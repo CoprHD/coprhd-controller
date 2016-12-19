@@ -18,9 +18,9 @@
 #   Download the tar file for Linux, untar, run seinstall -install
 # - The provider host should allow for NOSECURE SYMAPI REMOTE access. See https://asdwiki.isus.emc.com:8443/pages/viewpage.action?pageId=28778911 for more information.
 #
-# Requirements for XtremIO and VPLEX:
+# Requirements for XtremIO, Unity and VPLEX:
 # -----------------------------------
-# - XIO and VPLEX testing requires the ArrayTools.jar file.  For now, see Bill, Tej, or Nathan for this file.
+# - XIO, Unity and VPLEX testing requires the ArrayTools.jar file.  For now, see Bill, Tej, or Nathan for this file.
 # - These platforms will create a tools.yml file that the jar file will use based on variables in sanity.conf
 #
 #set -x
@@ -38,6 +38,8 @@ DUTEST_DEBUG=${DUTEST_DEBUG:-0}
 
 SANITY_CONFIG_FILE=""
 : ${USE_CLUSTERED_HOSTS=1}
+
+SERIAL_NUMBER="XX.XX.XX"
 
 # ============================================================
 # Check if there is a sanity configuration file specified
@@ -57,6 +59,7 @@ get_masking_view_name() {
     no_host_name=0
     export_name=$1
     host_name=$2
+    get_vipr_name=$3
 
     if [ "$host_name" = "-x-" ]; then
         # The host_name parameter is special, indicating no hostname, so
@@ -79,6 +82,18 @@ get_masking_view_name() {
 	masking_view_name="${cluster_name_if_any}${host_name}_${SERIAL_NUMBER: -3}"
     elif [ "$SS" = "xio" ]; then
         masking_view_name=$host_name
+    elif [ "$SS" = "unity" ]; then
+        if [ "${get_vipr_name}" != "true" ]; then
+	    if [ "$host_name" = "$HOST1" ]; then
+                masking_view_name="$H1ID"
+	    elif [ "$host_name" = "$HOST2" ]; then
+                masking_view_name="$H2ID"
+	    elif [ "$host_name" = "$HOST3" ]; then
+                masking_view_name="$H3ID"
+	    fi
+	else
+	    masking_view_name="${cluster_name_if_any}${host_name}_${SERIAL_NUMBER: -3}"
+	fi
     elif [ "$SS" = "vplex" ]; then
         # TODO figure out how to account for vplex cluster (V1_ or V2_)
         # also, the 3-char serial number suffix needs to be based on actual vplex cluster id,
@@ -103,7 +118,7 @@ verify_export() {
 
     masking_view_name=`get_masking_view_name ${export_name} ${host_name}`
 
-    arrayhelper verify_export ${SERIAL_NUMBER} ${masking_view_name} $*
+    arrayhelper verify_export ${SERIAL_NUMBER} "${masking_view_name}" $*
     if [ $? -ne "0" ]; then
 	if [ -f ${CMD_OUTPUT} ]; then
 	    cat ${CMD_OUTPUT}
@@ -123,7 +138,7 @@ verify_maskname() {
     export_name=$1
     host_name=$2
 
-    masking_view_name=`get_masking_view_name ${export_name} ${host_name}`
+    masking_view_name=`get_masking_view_name ${export_name} ${host_name} true`
 
     maskname=$(/opt/storageos/bin/dbutils list ExportMask | grep maskName | grep ${masking_view_name} | awk -e ' { print $3; }')
 
@@ -156,25 +171,25 @@ arrayhelper() {
 	device_id=$3
         pattern=$4
 	masking_view_name=`get_masking_view_name no-op ${pattern}`
-	arrayhelper_volume_mask_operation $operation $serial_number $device_id $masking_view_name
+	arrayhelper_volume_mask_operation $operation $serial_number $device_id "$masking_view_name"
 	;;
     remove_volume_from_mask)
 	device_id=$3
         pattern=$4
 	masking_view_name=`get_masking_view_name no-op ${pattern}`
-	arrayhelper_volume_mask_operation $operation $serial_number $device_id $masking_view_name
+	arrayhelper_volume_mask_operation $operation $serial_number $device_id "$masking_view_name"
 	;;
     add_initiator_to_mask)
 	pwwn=$3
         pattern=$4
 	masking_view_name=`get_masking_view_name no-op ${pattern}`
-	arrayhelper_initiator_mask_operation $operation $serial_number $pwwn $masking_view_name
+	arrayhelper_initiator_mask_operation $operation $serial_number $pwwn "$masking_view_name"
 	;;
     remove_initiator_from_mask)
 	pwwn=$3
         pattern=$4
 	masking_view_name=`get_masking_view_name no-op ${pattern}`
-	arrayhelper_initiator_mask_operation $operation $serial_number $pwwn $masking_view_name
+	arrayhelper_initiator_mask_operation $operation $serial_number $pwwn "$masking_view_name"
 	;;
     create_export_mask)
         device_id=$3
@@ -200,7 +215,7 @@ arrayhelper() {
     verify_export)
 	masking_view_name=$3
 	shift 3
-	arrayhelper_verify_export $operation $serial_number $masking_view_name $*
+	arrayhelper_verify_export $operation $serial_number "$masking_view_name" $*
 	;;
     *)
         echo -e "\e[91mERROR\e[0m: Invalid operation $operation specified to arrayhelper."
@@ -254,6 +269,9 @@ arrayhelper_volume_mask_operation() {
     xio)
          runcmd xiohelper.sh $operation $device_id $pattern
 	 ;;
+    unity)
+         runcmd vnxehelper.sh $operation $device_id "$pattern"
+         ;;
     vplex)
          runcmd vplexhelper.sh $operation $device_id $pattern
 	 ;;
@@ -284,6 +302,9 @@ arrayhelper_initiator_mask_operation() {
     xio)
          runcmd xiohelper.sh $operation $pwwn $pattern
 	 ;;
+    unity)
+         runcmd vnxehelper.sh $operation "$pwwn" "$pattern"
+         ;;
     vplex)
          runcmd vplexhelper.sh $operation $pwwn $pattern
 	 ;;
@@ -313,6 +334,9 @@ arrayhelper_delete_volume() {
     xio)
          runcmd xiohelper.sh $operation $device_id
 	 ;;
+    unity)
+         runcmd vnxehelper.sh $operation $device_id
+         ;;
     vplex)
          runcmd vplexhelper.sh $operation $device_id
 	 ;;
@@ -364,6 +388,9 @@ arrayhelper_delete_mask() {
     xio)
          runcmd xiohelper.sh $operation $pattern
 	 ;;
+    unity)
+         runcmd vnxehelper.sh $operation "$pattern"
+         ;;
     vplex)
          runcmd vplexhelper.sh $operation $pattern
 	 ;;
@@ -393,6 +420,9 @@ arrayhelper_verify_export() {
     xio)
          runcmd xiohelper.sh $operation $masking_view_name $*
 	 ;;
+    unity)
+         runcmd vnxehelper.sh $operation "$masking_view_name" $*
+         ;;
     vplex)
          runcmd vplexhelper.sh $operation $masking_view_name $*
 	 ;;
@@ -659,13 +689,12 @@ run() {
 
 # A method to run a command that continues on failure.
 runcmd() {
-    cmd=$*
-    echo === $cmd
+    echo === $@
     rm -f ${CMD_OUTPUT}
     if [ "${HIDE_OUTPUT}" = "" -o "${HIDE_OUTPUT}" = "1" ]; then
-	$cmd &> ${CMD_OUTPUT}
+	"$@" &> ${CMD_OUTPUT}
     else
-	$cmd 2>&1
+	"$@" 2>&1
     fi
     if [ $? -ne 0 ]; then
 	if [ -f ${CMD_OUTPUT} ]; then
@@ -722,6 +751,13 @@ setup_yaml() {
 	rm $tools_file
     fi
 
+    if [ "${SS}" = "unity" ]; then
+        echo "Creating ${tools_file}"
+        touch $tools_file
+        printf 'array:\n  %s:\n  - ip: %s:%s\n    username: %s\n    password: %s' "${SS}" "$UNITY_IP" "$UNITY_PORT" "$UNITY_USER" "$UNITY_PW" >> $tools_file
+        return
+    fi
+
     if [ "${storage_password}" = "" ]; then
 	echo "storage_password is not set.  Cannot make a valid tools.yml file without a storage_password"
 	exit;
@@ -730,6 +766,8 @@ setup_yaml() {
     sstype=${SS:0:3}
     if [ "${SS}" = "xio" ]; then
 	sstype="xtremio"
+    elif [ "${SS}" = "unity" ]; then
+        sstype="unity"
     fi
 
     # create the yml file to be used for array tooling
@@ -781,7 +819,7 @@ login() {
 
 prerun_setup() {
     # Convenience, clean up known artifacts
-    cleanup_previous_run_artifacts
+    #cleanup_previous_run_artifacts
 
     # Check if we have the most recent version of preExistingConfig.jar
     DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
@@ -796,31 +834,46 @@ prerun_setup() {
     fi
 
     echo "Seeing if there's an existing base of volumes"
-    BASENUM=`volume list ${PROJECT} | grep YES | head -1 | awk '{print $1}' | awk -Fp '{print $2}' | awk -F- '{print $1}'`
-    if [ "${BASENUM}" != "" ]
-    then
-       echo "Volumes were found!  Base number is: ${BASENUM}"
-       VOLNAME=dutestexp${BASENUM}
-       EXPORT_GROUP_NAME=export${BASENUM}
-       HOST1=host1export${BASENUM}
-       HOST2=host2export${BASENUM}
-       CLUSTER=cl${BASENUM}
+    echo "Check if tenant and project exist"
+    isTenantCreated=$(tenant list | grep $TENANT | wc -l)
+    if [ $isTenantCreated -ne 0 ]; then
+        echo "Found tenant $TENANT"
 
-       sstype=${SS:0:3}
-       if [ "${SS}" = "xio" ]; then
-	   sstype="xtremio"
-       fi
+        isProjectCreated=$(project list --tenant $TENANT | grep $PROJECT | wc -l)
+        if [ $isProjectCreated -ne 0 ]; then
+            echo "Found project $PROJECT"
+            BASENUM=`volume list ${PROJECT} | grep YES | head -1 | awk '{print $1}' | awk -Fp '{print $2}' | awk -F- '{print $1}'`
+            if [ "${BASENUM}" != "" ]
+            then
+               echo "Volumes were found!  Base number is: ${BASENUM}"
+               VOLNAME=dutestexp${BASENUM}
+               EXPORT_GROUP_NAME=export${BASENUM}
+               HOST1=host1export${BASENUM}
+               HOST2=host2export${BASENUM}
+               CLUSTER=cl${BASENUM}
 
-       # figure out what type of array we're running against
-       storage_type=`storagedevice list | grep COMPLETE | grep ${sstype} | awk '{print $1}'`
-       echo "Found storage type is: $storage_type"
-       SERIAL_NUMBER=`storagedevice list | grep COMPLETE | grep ${sstype} | awk '{print $2}' | awk -F+ '{print $2}'`
-       echo "Serial number is: $SERIAL_NUMBER"
-       if [ "${storage_type}" = "xtremio" ]
-       then
-	    storage_password=${XTREMIO_3X_PASSWD}
-       fi
+               sstype=${SS:0:3}
+               if [ "${SS}" = "xio" ]; then
+	           sstype="xtremio"
+               fi
 
+               # figure out what type of array we're running against
+               storage_type=`storagedevice list | grep COMPLETE | grep ${sstype} | awk '{print $1}'`
+               echo "Found storage type is: $storage_type"
+               SERIAL_NUMBER=`storagedevice list | grep COMPLETE | grep ${sstype} | awk '{print $2}' | awk -F+ '{print $2}'`
+               echo "Serial number is: $SERIAL_NUMBER"
+               if [ "${storage_type}" = "xtremio" ]
+               then
+                   storage_password=${XTREMIO_3X_PASSWD}
+               elif [ "${storage_type}" = "unity" ]; then
+                   storage_password=${UNITY_PW}
+               fi
+            fi
+        else
+            echo "The project $PROJECT doesn't exist"
+        fi
+    else
+        echo "The tenant $TENANT doesn't exist"
     fi
 
     smisprovider list | grep SIM > /dev/null
@@ -872,6 +925,8 @@ get_device_id() {
 
     if [ "$SS" = "xio" -o "$SS" = "vplex" ]; then
         volume show ${label} | grep device_label | awk '{print $2}' | cut -d '"' -f2
+    elif [ "$SS" = "unity" ]; then
+        volume show ${label} | grep native_id | awk '{print $2}' | cut -d '"' -f2
     else
 	volume show ${label} | grep native_id | awk '{print $2}' | cut -c2-6
     fi
@@ -928,18 +983,31 @@ vnx_setup() {
 
 unity_setup()
 {
+    # do this only once
+    echo "Setting up Unity"
+    storage_password=$UNITY_PW
+    SERIAL_NUMBER=$UNITY_SN
+
+    storagedevice list
+    isSystemCreated=$(storagedevice list | grep $UNITY_SN | wc -l)
+    [ "$isSystemCreated" -gt 1 ] && return
+
+    secho "Discovering Unity ..."
     run discoveredsystem create $UNITY_DEV unity $UNITY_IP $UNITY_PORT $UNITY_USER $UNITY_PW --serialno=$UNITY_SN
+    run storagedevice discover_all
+    sleep 30
+    isSystemCreated=$(storagedevice list | grep $UNITY_SN | wc -l)
+    if [ $isSystemCreated -eq 0 ]; then
+        echo "${UNITY_SN} has not been discovered"
+        exit 1
+    fi
 
     run storagepool update $UNITY_NATIVEGUID --type block --volume_type THIN_AND_THICK
     run transportzone add ${SRDF_VMAXA_VSAN} $UNITY_INIT_PWWN1
     run transportzone add ${SRDF_VMAXA_VSAN} $UNITY_INIT_PWWN2
-    run storagedevice discover_all
 
     setup_varray
-
     common_setup
-
-    SERIAL_NUMBER=`storagedevice list | grep COMPLETE | awk '{print $2}' | awk -F+ '{print $2}'`
     
     run cos create block ${VPOOL_BASE}	\
 	--description Base true                 \
@@ -1436,7 +1504,29 @@ setup() {
     fi
 
     if [ "${SIM}" != "1" ]; then
-	run networksystem create $BROCADE_NETWORK brocade --smisip $BROCADE_IP --smisport 5988 --smisuser $BROCADE_USER --smispw $BROCADE_PW --smisssl false
+        echo "Existing network system list - $(networksystem list)"
+        isNetworkDiscovered=$(networksystem list | grep $BROCADE_NETWORK | wc -l)
+        if [ $isNetworkDiscovered -eq 0 ]; then
+            secho "Discovering Brocade SAN Switch ..."
+	    result=$(networksystem create $BROCADE_NETWORK brocade --smisip $BROCADE_IP --smisport 5988 --smisuser $BROCADE_USER --smispw $BROCADE_PW --smisssl false 2>&1)
+	    isNetworkDiscovered=$(echo $result | grep "Network system discovered" | wc -l)
+            if [ $isNetworkDiscovered -eq 0 ]; then
+                sleep 30
+                isNetworkDiscovered=$(networksystem list | grep $BROCADE_NETWORK | wc -l)
+                if [ $isNetworkDiscovered -eq 0 ]; then
+                    echo $result
+                    exit 1
+                fi
+            fi
+
+            isNetworkDiscovered=$(transportzone listall | (grep ${SRDF_VMAXA_VSAN} || echo ''))
+	    if [ "$isNetworkDiscovered" == '' ]; then
+	        echo "Discovering network"
+	        run networksystem discover $BROCADE_NETWORK
+	        secho "Sleeping 30 seconds..."
+	        sleep 30
+	    fi
+        fi
     fi
 
     ${SS}_setup
@@ -1486,10 +1576,12 @@ test_0() {
     echot "Test 0 Begins"
     expname=${EXPORT_GROUP_NAME}t0
     verify_export ${expname}1 ${HOST1} gone
+
     runcmd export_group create $PROJECT ${expname}1 $NH --type Host --volspec ${PROJECT}/${VOLNAME}-1 --hosts "${HOST1}"
     verify_export ${expname}1 ${HOST1} 2 1
     # Paranoia check, verify if maybe we picked up an old mask.  Exit if we did.
     verify_maskname  ${expname}1 ${HOST1}
+
     runcmd export_group delete $PROJECT/${expname}1
     verify_export ${expname}1 ${HOST1} gone
     verify_no_zones ${FC_ZONE_A:7} ${HOST1}
@@ -1672,8 +1764,6 @@ test_3() {
 
     # Create the volume and inventory-only delete it so we can use it later.
     HIJACK=du-hijack-volume-${RANDOM}
-
-    # Create another volume that we will inventory-only delete
     runcmd volume create ${HIJACK} ${PROJECT} ${NH} ${VPOOL_BASE} 1GB --count 1
 
     # Get the device ID of the volume we created
@@ -1702,7 +1792,7 @@ test_3() {
 
     # Add the volume to the mask (done differently per array type)
     arrayhelper add_volume_to_mask ${SERIAL_NUMBER} ${device_id} ${HOST1}
-    
+
     # Verify the mask has the new volume in it
     verify_export ${expname}1 ${HOST1} 2 2
 
@@ -1748,18 +1838,26 @@ test_3() {
 #
 test_4() {
     echot "Test 4: Export Group Delete doesn't delete Export Mask when extra initiators are in it"
+    if [ "$SS" = "unity" ]; then
+        echo "For Unity, initiator cannot be deleted if host has mapped LUN. So skipping this test for Unity."
+        return
+    fi
+
     expname=${EXPORT_GROUP_NAME}t4
 
     # Make sure we start clean; no masking view on the array
     verify_export ${expname}1 ${HOST1} gone
 
-    # Create the mask with the 1 volume
+    # Create the mask with the 2 volume
     runcmd export_group create $PROJECT ${expname}1 $NH --type Host --volspec "${PROJECT}/${VOLNAME}-1,${PROJECT}/${VOLNAME}-2" --hosts "${HOST1}"
 
     verify_export ${expname}1 ${HOST1} 2 2
 
     if [ "$SS" != "xio" ]; then
         PWWN=`echo ${H2PI1} | sed 's/://g'`
+        if [ "$SS" = "unity" ]; then
+            PWWN="${H2NI1}:${H2PI1}"
+        fi
 
         # Add another initiator to the mask (done differently per array type)
         arrayhelper add_initiator_to_mask ${SERIAL_NUMBER} ${PWWN} ${HOST1}
@@ -1806,7 +1904,7 @@ test_4() {
     task=${answersarray[0]}
     workflow=${answersarray[1]}
 
-    PWWN=`randwwn | sed 's/://g'`
+    PWWN=`getwwn`
 
     # Add another initiator to the mask (done differently per array type)
     arrayhelper add_initiator_to_mask ${SERIAL_NUMBER} ${PWWN} ${HOST1}
@@ -1916,6 +2014,11 @@ test_4() {
 #
 test_5() {
     echot "Test 5: Remove Volume doesn't remove the volume when extra initiators are in the mask"
+    if [ "$SS" = "unity" ]; then
+        echo "For Unity, initiator cannot be deleted if host has mapped LUN. So skipping this test for Unity."
+        return
+    fi
+
     expname=${EXPORT_GROUP_NAME}t5
 
     # Make sure we start clean; no masking view on the array
@@ -1948,7 +2051,7 @@ test_5() {
     task=${answersarray[0]}
     workflow=${answersarray[1]}
 
-    PWWN=`randwwn | sed 's/://g'`
+    PWWN=`getwwn`
 
     # Add another initiator to the mask (done differently per array type)
     arrayhelper add_initiator_to_mask ${SERIAL_NUMBER} ${PWWN} ${HOST1}
@@ -2046,6 +2149,11 @@ test_5() {
 #
 test_6() {
     echot "Test 6: Remove Initiator doesn't remove initiator when extra volumes are seen by it"
+    if [ "$SS" = "unity" ]; then
+        echo "For Unity, initiator cannot be deleted if host has mapped LUN. So skipping this test for Unity."
+        return
+    fi
+
     expname=${EXPORT_GROUP_NAME}t6
 
     # Make sure we start clean; no masking view on the array
@@ -2302,6 +2410,9 @@ test_8() {
 
     # Strip out colons for array helper command
     h1pi2=`echo ${H1PI2} | sed 's/://g'`
+    if [ "$SS" = "unity" ]; then
+        h1pi2="${H1NI2}:${H1PI2}"
+    fi
 
     # Add another initiator to the mask (done differently per array type)
     arrayhelper add_initiator_to_mask ${SERIAL_NUMBER} ${h1pi2} ${HOST1}
@@ -2620,6 +2731,11 @@ test_12() {
 #
 test_13() {
     echot "Test 13: Test rollback of add volume, verify it does not remove volumes when initiator sneaks into mask"
+    if [ "$SS" = "unity" ]; then
+        echo "For Unity, initiator cannot be deleted if host has mapped LUN. So skipping this test for Unity."
+        return
+    fi
+
     expname=${EXPORT_GROUP_NAME}t13
 
     # Make sure we start clean; no masking view on the array
@@ -2654,7 +2770,7 @@ test_13() {
     task=${answersarray[0]}
     workflow=${answersarray[1]}
 
-    PWWN=`randwwn | sed 's/://g'`
+    PWWN=`getwwn`
 
     # Add another initiator to the mask (done differently per array type)
     arrayhelper add_initiator_to_mask ${SERIAL_NUMBER} ${PWWN} ${HOST1}
@@ -2703,6 +2819,11 @@ test_13() {
 #
 test_14() {
     echot "Test 14: Test rollback of add initiator, verify it does not remove initiators when volume sneaks into mask"
+    if [ "$SS" = "unity" ]; then
+        echo "For Unity, initiator cannot be deleted if host has mapped LUN. So skipping this test for Unity."
+        return
+    fi
+
     expname=${EXPORT_GROUP_NAME}t14-${RANDOM}
 
     # Make sure we start clean; no masking view on the array
@@ -2842,6 +2963,9 @@ test_15() {
 
     # Strip out colons for array helper command
     h1pi2=`echo ${H1PI2} | sed 's/://g'`
+    if [ "$SS" = "unity" ]; then
+        h1pi2="${H1NI2}:${H1PI2}"
+    fi
 
     # Add another initiator to the mask (done differently per array type)
     arrayhelper add_initiator_to_mask ${SERIAL_NUMBER} ${h1pi2} ${HOST1}
@@ -3184,6 +3308,11 @@ test_18() {
 #
 test_19() {
     echot "Test 19: Remove Initiator removes initiator when extra initiators are seen by it"
+    if [ "$SS" = "unity" ]; then
+        echo "For Unity, initiator cannot be deleted if host has mapped LUN. So skipping this test for Unity."
+        return
+    fi
+
     expname=${EXPORT_GROUP_NAME}t19
 
     # Make sure we start clean; no masking view on the array
@@ -3217,7 +3346,7 @@ test_19() {
     task=${answersarray[0]}
     workflow=${answersarray[1]}
 
-    PWWN=`randwwn | sed 's/://g'`
+    PWWN=`getwwn`
 
     # Add another initiator to the mask (done differently per array type)
     arrayhelper add_initiator_to_mask ${SERIAL_NUMBER} ${PWWN} ${HOST1}
@@ -3720,7 +3849,7 @@ test_25() {
 
     verify_zones ${FC_ZONE_A:7} exists
 
-    PWWN=`randwwn | sed 's/://g'`
+    PWWN=`getwwn`
 
     # Add another initiator to the mask (done differently per array type)
     arrayhelper add_initiator_to_mask ${SERIAL_NUMBER} ${PWWN} ${HOST1}
@@ -3812,6 +3941,18 @@ randwwn() {
    echo "${PRE}:${I2}:${I3}:${I4}:${I5}:${I6}:${I7}:${POST}"   
 }
 
+getwwn() {
+    if [ "$SS" = "unity" ]; then
+        PWWN=`randwwn`
+        NWWN=`randwwn`
+        PWWN=${NWWN}:${PWWN}
+    else
+        PWWN=`randwwn | sed 's/://g'`
+    fi
+
+    echo $PWWN
+}
+
 # ============================================================
 # -    M A I N
 # ============================================================
@@ -3820,16 +3961,19 @@ H1PI1=`pwwn 00`
 H1NI1=`nwwn 00`
 H1PI2=`pwwn 01`
 H1NI2=`nwwn 01`
+H1ID="${H1NI1}:${H1PI1} ${H1NI2}:${H1PI2}"
 
 H2PI1=`pwwn 02`
 H2NI1=`nwwn 02`
 H2PI2=`pwwn 03`
 H2NI2=`nwwn 03`
+H2ID="${H2NI1}:${H2PI1} ${H2NI2}:${H2PI2}"
 
 H3PI1=`pwwn 04`
 H3NI1=`nwwn 04`
 H3PI2=`pwwn 05`
 H3NI2=`nwwn 05`
+H3ID="${H3NI1}:${H3PI2} ${H3NI2}:${H3PI2}"
 
 # Delete and setup are optional
 if [ "$1" = "delete" ]
@@ -3895,7 +4039,7 @@ prerun_setup;
 if [ ${setup} -eq 1 ]
 then
     setup
-    if [ "$SS" = "xio" -o "$SS" = "vplex" ]; then
+    if [ "$SS" = "xio" -o "$SS" = "vplex" -o "$SS" = "unity" ]; then
 	setup_yaml;
     fi
     if [ "$SS" = "vmax2" -o "$SS" = "vmax3" -o "$SS" = "vnx" ]; then

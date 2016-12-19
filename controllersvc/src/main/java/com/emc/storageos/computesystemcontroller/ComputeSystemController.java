@@ -133,7 +133,20 @@ public interface ComputeSystemController extends Controller {
 
     public void setHostSanBootTargets(URI hostId, URI volumeId) throws ControllerException;
     
-    public void processDatastoreName(URI eventId, URI volume, String taskId, URI datastore, URI vcenterURI)
+    /**
+     * Processes the datastore rename by changing the volume tag
+     * @param eventId
+     * @param volume
+     *            - volume uri which is associated with the changed datastore
+     * @param taskId
+     *            - task id which is calling the method
+     * @param datastore
+     *            - identifier for the changed datastore
+     * @param vcenterURI
+     *            - uri for vcenter which the datastore belongs to
+     * @throws ControllerException
+     */
+    public void processDatastoreRename(URI eventId, URI volume, String taskId, URI datastore, URI vcenterURI)
             throws ControllerException;
 
     /**

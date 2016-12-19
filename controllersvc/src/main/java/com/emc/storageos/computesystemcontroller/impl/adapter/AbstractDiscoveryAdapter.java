@@ -8,19 +8,10 @@ import java.net.ConnectException;
 import java.net.NoRouteToHostException;
 import java.net.URI;
 import java.net.UnknownHostException;
-import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
 import javax.net.ssl.SSLException;
 
 import org.apache.commons.lang.StringUtils;
@@ -39,46 +30,25 @@ import com.emc.storageos.computesystemcontroller.impl.DiscoveryStatusUtils;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.ModelClient;
-import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.model.Cluster;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.RegistrationStatus;
-import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.HostInterface;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.IpInterface;
-import com.emc.storageos.db.client.model.ScopedLabel;
-import com.emc.storageos.db.client.model.ScopedLabelSet;
-import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.Vcenter;
 import com.emc.storageos.db.client.model.VcenterDataCenter;
-import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.util.EventUtils;
-import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.EndpointUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.google.common.base.Predicate;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
-import com.iwave.ext.linux.util.VolumeWWNUtils;
-import com.iwave.ext.vmware.HostStorageAPI;
-import com.iwave.ext.vmware.VCenterAPI;
-import com.iwave.ext.vmware.VMwareUtils;
-import com.vmware.vim25.DatastoreHostMount;
-import com.vmware.vim25.HostScsiDisk;
-import com.vmware.vim25.VmfsDatastoreInfo;
-import com.vmware.vim25.mo.Datacenter;
-import com.vmware.vim25.mo.Datastore;
-import com.vmware.vim25.mo.HostSystem;
 
 public abstract class AbstractDiscoveryAdapter implements ComputeSystemDiscoveryAdapter {
     private Logger log;
-    private static String ISA_NAMESPACE = "vipr";
-    private static String ISA_SEPARATOR = ":";
-    private static String VMFS_DATASTORE = ISA_NAMESPACE + ISA_SEPARATOR + "vmfsDatastore";
-    private static Pattern MACHINE_TAG_REGEX = Pattern.compile("([^W]*\\:[^W]*)=(.*)");
 
     protected final static String CONTROLLER_SVC = "controllersvc";
     protected final static String CONTROLLER_SVC_VER = "1";
@@ -755,125 +725,6 @@ public abstract class AbstractDiscoveryAdapter implements ComputeSystemDiscovery
             }
         }
 
-    }
-    
-    public void processDatastoreRename(Map<Datacenter, ?> datastoreMap, List<Host> oldHosts, Vcenter vcenter) {
-        List<URI> volumeUris = new ArrayList<URI>();
-        Boolean change = true;
-        Boolean renamed = false;
-        String newDsName = null;
-        String oldDsName = null;
-        URI changedDatastore = null;
-        Volume changedVolume = null;
-        List<URI> changedVolumeUris = new ArrayList<URI>();
-        URI vcenterURI = vcenter.getId();
-        VCenterAPI vcenterAPI = VcenterDiscoveryAdapter.createVCenterAPI(vcenter);
-        // get the volumes uri from clusters
-        for (Host oldHost : oldHosts) {
-            try {
-                List<ExportGroup> exportGroups = CustomQueryUtility.queryActiveResourcesByConstraint(dbClient, ExportGroup.class,
-                        AlternateIdConstraint.Factory.getConstraint(ExportGroup.class, "hosts", oldHost.getId().toString()));
-                for (ExportGroup exportGroup : exportGroups) {
-                    StringMap volumes = exportGroup.getVolumes();
-                    for (String volumeUriString : volumes.keySet()) {
-                        URI uri = URI.create(volumeUriString);
-                        volumeUris.add(uri);
-                    }
-                }
-            } catch (Exception e) {
-                info("Exception navigating cluster export groups for shared volumes " + e);
-            }
-        }
-
-        // from volume uri we get the datastore name that is there in vipr currently
-        Collection<Volume> volumes = dbClient.queryObject(Volume.class, volumeUris);
-        Set<Datacenter> dcs = datastoreMap.keySet();
-
-        for (Volume volume : volumes) {
-            if (volume.getTag() != null) {
-                volume.isVolumeExported(dbClient);
-                ScopedLabelSet tagSet = volume.getTag();
-                Iterator<ScopedLabel> tagIter = tagSet.iterator();
-                while (tagIter.hasNext()) {
-                    ScopedLabel sl = tagIter.next();
-                    if (sl.getLabel() != null && (sl.getLabel().startsWith(VMFS_DATASTORE))) {
-                        // check if there is any change in datastore name
-                        for (Datacenter dc : dcs) {
-                            Datastore[] datastores = (Datastore[]) datastoreMap.get(dc);
-                            for (Datastore ds : datastores) {
-                                if (sl.getLabel().contains(ds.getName())) {
-                                    change = false;
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        // identify the datastore which got changed
-        if (change) {
-            for (Datacenter dc : dcs) {
-                List<HostSystem> hostList = vcenterAPI.listHostSystems(dc);
-                Set<HostSystem> hosts = new HashSet<HostSystem>(hostList);
-                List<Datastore> datastores = vcenterAPI.listDatastores(dc);
-                for (Datastore ds : datastores) {
-                    if (!(ds.getInfo() instanceof VmfsDatastoreInfo)) {
-                        continue;
-                    }
-                    for (HostSystem host : hosts) {
-                        List<HostScsiDisk> diskList = new HostStorageAPI(host).listDisks(ds);
-                        Set<HostScsiDisk> disks = new HashSet<HostScsiDisk>(diskList);
-                        for (HostScsiDisk disk : disks) {
-                            String diskWwn = VMwareUtils.getDiskWwn(disk);
-                            for (Volume vol : volumes) {
-                                if (StringUtils.isNotBlank(diskWwn) && VolumeWWNUtils.wwnMatches(diskWwn, vol.getWWN())) {
-                                    newDsName = ds.getName();
-                                    changedDatastore = URI.create(ds.getInfo().getUrl());
-                                    if (vol.getTag() != null) {
-                                        ScopedLabelSet tagSet = vol.getTag();
-                                        Iterator<ScopedLabel> tagIter = tagSet.iterator();
-                                        while (tagIter.hasNext()) {
-                                            ScopedLabel sl = tagIter.next();
-                                            String tagValue = sl.getLabel();
-                                            if (tagValue != null && (tagValue.startsWith(VMFS_DATASTORE))) {
-                                                oldDsName = getDatastoreName(tagValue);
-                                            }
-                                        }
-                                    }
-                                    if (newDsName != null && oldDsName != null && !oldDsName.equals(newDsName)) {
-                                        renamed = true;
-                                        changedVolume = vol;
-                                        changedVolumeUris.add(changedVolume.getId());
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-                
-                if (change && renamed) {
-                    EventUtils.createActionableEvent(dbClient, EventUtils.EventCode.VENTER_DATASTORE_RENAME,
-                            changedVolume.getTenant().getURI(),
-                            ComputeSystemDialogProperties.getMessage("ComputeSystem.vcenterDatastoreRenameLabel"),
-                            ComputeSystemDialogProperties.getMessage("ComputeSystem.vcenterDatastoreRenameDescription", oldDsName,
-                                    newDsName),
-                            ComputeSystemDialogProperties.getMessage("ComputeSystem.vcenterDatastoreRenameWarning"), changedVolume,
-                            changedVolumeUris, EventUtils.vcenterDatastoreRename,
-                            new Object[] { changedVolume.getId(), newDsName, changedDatastore, vcenterURI },
-                            EventUtils.vcenterDatastoreRenameDecline, new Object[] { changedVolume.getId() });
-                }
-            }
-        }
-    }
-
-    public String getDatastoreName(String tag) {
-        if (tag != null) {
-            Matcher matcher = MACHINE_TAG_REGEX.matcher(tag);
-            if (matcher.matches()) {
-                return matcher.group(2);
-            }
-        }
-        return null;
     }
 
     // TODO: move to AbstractHostDiscoveryAdapter once EsxHostDiscoveryAdatper is moved to extend it

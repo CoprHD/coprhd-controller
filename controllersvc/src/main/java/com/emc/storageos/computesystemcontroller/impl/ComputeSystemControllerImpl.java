@@ -277,8 +277,8 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
     }
     
     @Override
-    public void processDatastoreName(URI eventId, URI volume, String taskId, URI datastore, URI vcenterURI)
-            throws ControllerException{
+    public void processDatastoreRename(URI eventId, URI volume, String taskId, URI datastore, URI vcenterURI)
+            throws ControllerException {
         TaskCompleter completer = null;
         try {
             completer = new VolumeCompleter(volume, taskId);
@@ -288,36 +288,53 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
             waitFor = addStepForDatastoreRename(workflow, waitFor, volume, datastore, vcenterURI);
             workflow.executePlan(completer, "Success", null, null, null, null);
         } catch (Exception ex) {
-            String message = "processDatastoreName caught an exception.";
+            String message = "Datastore name change could not succeed because of exception:";
             _log.error(message, ex);
             ServiceError serviceError = DeviceControllerException.errors.jobFailed(ex);
-            if(completer !=null){
+            if (completer != null) {
                 completer.error(_dbClient, serviceError);
-            } 
+            }
         }
     }
-    
-    public String addStepForDatastoreRename(Workflow workflow, String waitFor, URI volume,
+
+    private String addStepForDatastoreRename(Workflow workflow, String waitFor, URI volume,
             URI datastore, URI vcenterURI) {
-            waitFor = workflow.createStep(UPDATE_DATASTORE_NAME_STEP,
-                    "Updating datastore name", waitFor,
-                    volume, volume.toString(),
-                    this.getClass(),
-                    updateDatastoreNameMethod(volume, datastore, vcenterURI),
-                    null, null);
+        waitFor = workflow.createStep(UPDATE_DATASTORE_NAME_STEP,
+                "Updating datastore name", waitFor,
+                volume, volume.toString(),
+                this.getClass(),
+                updateDatastoreNameMethod(volume, datastore, vcenterURI),
+                null, null);
         return waitFor;
     }
-    
-    public Workflow.Method updateDatastoreNameMethod(URI volume, URI datastore, URI vcenter) {
+
+    private Workflow.Method updateDatastoreNameMethod(URI volume, URI datastore, URI vcenter) {
         return new Workflow.Method("updateDatastoreName", volume, datastore, vcenter);
     }
 
+    /**
+     * Invoked using reflection for the workflow framework
+     * 
+     * @param volume
+     *            - changed volume
+     * @param datastore
+     *            - changed datastore
+     * @param vcenterURI
+     *            - vcenter where datastore belongs to.
+     * @param stepId
+     */
     public void updateDatastoreName(URI volume, URI datastore, URI vcenterURI, String stepId) {
         WorkflowStepCompleter.stepExecuting(stepId);
         Vcenter vcenter = _dbClient.queryObject(Vcenter.class, vcenterURI);
         VCenterAPI vcenterAPI = VcenterDiscoveryAdapter.createVCenterAPI(vcenter);
-        ComputeSystemHelper.updateDatastoreName(_dbClient, volume, datastore, vcenterAPI);
-        WorkflowStepCompleter.stepSucceded(stepId);
+        boolean success = false;
+        success = ComputeSystemHelper.updateDatastoreName(_dbClient, volume, datastore, vcenterAPI);
+        if (success) {
+            WorkflowStepCompleter.stepSucceded(stepId);
+        } else {
+            WorkflowStepCompleter.stepFailed(stepId, DeviceControllerException.errors.unforeseen());
+        }
+
     }
 
     /**

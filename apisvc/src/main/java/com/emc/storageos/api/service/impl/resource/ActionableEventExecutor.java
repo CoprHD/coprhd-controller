@@ -686,14 +686,19 @@ public class ActionableEventExecutor {
      * Get details for the datastore rename method
      * NOTE: In order to maintain backwards compatibility, do not change the signature of this method.
      * 
-     * @param hostId the host that is moving vcenters
-     * @param clusterId the cluster the host is moving to
-     * @param datacenterId the datacenter the host is moving to
-     * @param isVcenter if true, vcenter api operations will be executed against the host to detach/unmount and attach/mount disks and
+     * @param hostId
+     *            the host that is moving vcenters
+     * @param clusterId
+     *            the cluster the host is moving to
+     * @param datacenterId
+     *            the datacenter the host is moving to
+     * @param isVcenter
+     *            if true, vcenter api operations will be executed against the host to detach/unmount and attach/mount
+     *            disks and
      *            datastores
      * @return list of event details
      */
-    @SuppressWarnings("unused")           // Invoked using reflection for the event framework
+    @SuppressWarnings("unused") // Invoked using reflection for the event framework
     public List<String> vcenterDatastoreRenameDetails(URI volume, String newDatastoreName, URI changedDatstore, URI vcenterURI) {
         List<String> result = Lists.newArrayList();
         Volume volumeObj = _dbClient.queryObject(Volume.class, volume);
@@ -704,17 +709,21 @@ public class ActionableEventExecutor {
         return result;
     }
 
-    
     /**
      * Method to rename a datastore and update the volume tag.
      * NOTE: In order to maintain backwards compatibility, do not change the signature of this method.
      * 
-     * @param volume id that has been affected
-     * @param New datastore name
+     * @param volume
+     *            id that has been affected
+     * @param New
+     *            datastore name
      * @param datastoreId
-     * @param isVcenter if true, vcenter api operations will be executed against the host to detach/unmount and attach/mount disks and
+     * @param isVcenter
+     *            if true, vcenter api operations will be executed against the host to detach/unmount and attach/mount
+     *            disks and
      *            datastores
-     * @param eventId the event id
+     * @param eventId
+     *            the event id
      * @return task for updating the datastore name
      */
     public TaskResourceRep vcenterDatastoreRename(URI volume, String newDatastoreName, URI changedDatastore, URI vcenterURI, URI eventId) {
@@ -722,27 +731,30 @@ public class ActionableEventExecutor {
         Operation op = _dbClient.createTaskOpStatus(Volume.class, volume, taskId,
                 ResourceOperationTypeEnum.UPDATE_DATA_STORE_NAME);
         Volume volumeObj = _dbClient.queryObject(Volume.class, volume);
-        computeController.processDatastoreName(eventId, volume, taskId, changedDatastore, vcenterURI);
+        computeController.processDatastoreRename(eventId, volume, taskId, changedDatastore, vcenterURI);
         return toTask(volumeObj, taskId, op);
     }
-    
+
     /**
      * Decline method that is invoked when the vcenterDatastoreRename event is declined
      * NOTE: In order to maintain backwards compatibility, do not change the signature of this method.
      * 
-     * @param volume uri
-     * @param eventId the event id
+     * @param volume
+     *            uri
+     * @param eventId
+     *            the event id
      * @return task
      */
     public TaskResourceRep vcenterDatastoreRenameDecline(URI volume, URI eventId) {
         return null;
     }
-    
+
     /**
      * Get details for a decline event for vcenterDatastoreRename
      * NOTE: In order to maintain backwards compatibility, do not change the signature of this method.
      * 
-     * @param @param volume uri
+     * @param @param
+     *            volume uri
      * @return list of details
      */
     public List<String> vcenterDatastoreRenameDeclineDetails(URI volume) {

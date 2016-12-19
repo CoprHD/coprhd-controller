@@ -68,6 +68,7 @@ import com.vmware.vim25.mo.VirtualMachine;
 public class ComputeSystemHelper {
 
     private static final Logger _log = LoggerFactory.getLogger(ComputeSystemHelper.class);
+    //regex pattern matches the tag like "vipr:vmfsDatastore=TestDatastore2"
     private static Pattern MACHINE_TAG_REGEX = Pattern.compile("([^W]*\\:[^W]*)=(.*)");
     private static String ISA_NAMESPACE = "vipr";
     private static String ISA_SEPARATOR = ":";
@@ -578,7 +579,7 @@ public class ComputeSystemHelper {
     }
 
     /**
-     * Update the datastore name in volume
+     * Update the datastore name in volume tag
      * 
      * @param dbClient
      *            dbclient
@@ -587,7 +588,7 @@ public class ComputeSystemHelper {
      * @param hostURI
      *            the host id
      */
-    public static void updateDatastoreName(DbClient dbClient, URI volume, URI datastore, VCenterAPI vcenterAPI) {
+    public static boolean updateDatastoreName(DbClient dbClient, URI volume, URI datastore, VCenterAPI vcenterAPI) {
         Volume volumeobj = dbClient.queryObject(Volume.class, volume);
         Datastore changedDatastore = null;
         String datastoreId = datastore.toString();
@@ -628,9 +629,10 @@ public class ComputeSystemHelper {
             volumeobj.setTag(tagSet);
         }
         dbClient.updateObject(volumeobj);
+        return true;
     }
 
-    public static String getDatastoreName(String tag) {
+    private static String getDatastoreName(String tag) {
         if (tag != null) {
             Matcher matcher = MACHINE_TAG_REGEX.matcher(tag);
             if (matcher.matches()) {

@@ -885,30 +885,8 @@ public class OrderService extends CatalogTaggedResourceService {
             throw APIException.badRequests.cannotExecuteOperationWhilePendingTask("Deleting orders");
         }
 
-        StorageOSUser user = getUserFromContext();
-
-        log.info("lby0:starTime={} endTime={} tids={} user={}",
-                new Object[] {startTimeStr, endTimeStr, tenantIDsStr, user.getName()});
-
-        /*
-        long startTimeInMS = 0;
-        long endTimeInMS = System.currentTimeMillis();
-        */
-
         long startTimeInMS = getTime(startTimeStr, 0);
         long endTimeInMS = getTime(endTimeStr, System.currentTimeMillis());
-
-        /*
-        if (!startTimeStr.isEmpty()) {
-            Date startTime = getDateTimestamp(startTimeStr);
-            startTimeInMS = startTime.getTime();
-        }
-
-        if (!endTimeStr.isEmpty()) {
-            Date endTime = getDateTimestamp(endTimeStr);
-            endTimeInMS = endTime.getTime();
-        }
-        */
 
         if (startTimeInMS > endTimeInMS) {
             throw APIException.badRequests.endTimeBeforeStartTime(startTimeStr, endTimeStr);
@@ -920,7 +898,8 @@ public class OrderService extends CatalogTaggedResourceService {
 
         log.info("lby00 start={} end={} tids={}", new Object[] {startTimeInMS, endTimeInMS, tids});
 
-        OrderServiceJob job = new OrderServiceJob(OrderServiceJob.JobType.DELETE, startTimeInMS*1000, endTimeInMS*1000, tids);
+        OrderServiceJob job =
+            new OrderServiceJob(OrderServiceJob.JobType.DELETE, startTimeInMS*1000, endTimeInMS*1000, tids);
         try {
             queue.put(job);
         }catch (Exception e) {

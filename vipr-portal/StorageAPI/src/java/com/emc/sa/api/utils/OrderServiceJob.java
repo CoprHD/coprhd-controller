@@ -22,8 +22,8 @@ public class OrderServiceJob implements Serializable {
     };
 
     private JobType type;
-    private long startTime;
-    private long endTime;
+    private long startTimeInNS;
+    private long endTimeInNS;
     private List<URI> tenantIDs;
 
     private long total = 0; // number of orders to be deleted
@@ -38,8 +38,8 @@ public class OrderServiceJob implements Serializable {
     }
 
     public OrderServiceJob(JobType type, long start, long end, List<URI> tids) {
-        startTime = start;
-        endTime = end;
+        startTimeInNS = start;
+        endTimeInNS = end;
         tenantIDs = tids;
         this.type = type;
     }
@@ -48,9 +48,10 @@ public class OrderServiceJob implements Serializable {
         out.defaultWriteObject();
 
         out.writeUTF(type.name());
+
         //parameters given by REST API
-        out.writeLong(startTime);
-        out.writeLong(endTime);
+        out.writeLong(startTimeInNS);
+        out.writeLong(endTimeInNS);
         out.writeObject(tenantIDs);
 
         out.writeLong(total);
@@ -67,8 +68,8 @@ public class OrderServiceJob implements Serializable {
         String s = in.readUTF();
         type = JobType.valueOf(s);
 
-        startTime = in.readLong();
-        endTime = in.readLong();
+        startTimeInNS = in.readLong();
+        endTimeInNS = in.readLong();
         tenantIDs = (List<URI>)in.readObject();
 
         total = in.readLong();
@@ -83,12 +84,12 @@ public class OrderServiceJob implements Serializable {
         return type;
     }
 
-    public long getStartTime() {
-        return startTime;
+    public long getStartTimeInNS() {
+        return startTimeInNS;
     }
 
-    public long getEndTime() {
-        return endTime;
+    public long getEndTimeInNS() {
+        return endTimeInNS;
     }
 
     public List<URI> getTenandIDs() {
@@ -119,10 +120,10 @@ public class OrderServiceJob implements Serializable {
     public String toString() {
         StringBuilder builder = new StringBuilder();
 
-        builder.append("startTime:")
-                .append(startTime)
-                .append("\nendTime:")
-                .append(endTime)
+        builder.append("startTimeInNS:")
+                .append(startTimeInNS)
+                .append("\nendTimeInNS:")
+                .append(endTimeInNS)
                 .append("\ntenandIDs:")
                 .append(tenantIDs)
                 .append("\ntotal:")

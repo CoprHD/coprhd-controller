@@ -8,7 +8,6 @@ import java.net.URI;
 import java.util.List;
 
 import com.emc.storageos.db.client.constraint.TimeSeriesConstraint;
-import com.emc.storageos.db.client.model.TimeSeries;
 import com.emc.storageos.db.client.model.uimodels.Order;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -17,7 +16,6 @@ import com.emc.sa.catalog.OrderManager;
 import com.emc.storageos.coordinator.client.service.DistributedQueueItemProcessedCallback;
 import com.emc.storageos.coordinator.client.service.impl.DistributedQueueConsumer;
 import com.emc.storageos.db.client.DbClient;
-import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.NamedElementQueryResultList;
 import com.emc.storageos.svcs.errorhandling.resources.BadRequestException;
 import com.emc.sa.api.OrderService;
@@ -50,8 +48,8 @@ public class OrderServiceJobConsumer extends DistributedQueueConsumer<OrderServi
         boolean error = false;
 
         try {
-            long startTime = job.getStartTime();
-            long endTime = job.getEndTime();
+            long startTime = job.getStartTimeInNS();
+            long endTime = job.getEndTimeInNS();
             List<URI> tids = job.getTenandIDs();
             log.info("lbyh tids={}", tids);
 

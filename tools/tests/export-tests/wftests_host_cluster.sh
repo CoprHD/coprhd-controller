@@ -1167,6 +1167,8 @@ test_cluster_remove_discovered_host() {
     datastore2="fakedatastore2"-${random_number}
     create_volume_and_datastore $TENANT ${volume1} ${datastore1} $NH $VPOOL_BASE ${PROJECT} ${vcenter} ${datacenter} ${cluster1}
     create_volume_and_datastore $TENANT ${volume2} ${datastore2} $NH $VPOOL_BASE ${PROJECT2} ${vcenter} ${datacenter} ${cluster1}
+    # Export group name will be auto-generated as the cluster name
+    exportgroup=${cluster1}
         
     for failure in ${failure_injections}
     do
@@ -1177,8 +1179,8 @@ test_cluster_remove_discovered_host() {
         reset_counts
         column_family="Volume ExportGroup ExportMask"        
         mkdir -p results/${random_number}       
-        exportgroup1=exportgroup1-${random_number}
-        exportgroup2=exportgroup2-${random_number}        
+        #       exportgroup1=exportgroup1-${random_number}
+        # exportgroup2=exportgroup2-${random_number}        
         
         # Snap DB
         snap_db 1 ${column_family}
@@ -1216,11 +1218,11 @@ test_cluster_remove_discovered_host() {
 #        sleep 2
         
         # Export the volume to the fake cluster    
-        runcmd export_group create ${PROJECT} ${exportgroup1} $NH --type Cluster --volspec ${PROJECT}/${volume1} --clusters ${TENANT}/${cluster1}
-        runcmd export_group create ${PROJECT2} ${exportgroup2} $NH --type Cluster --volspec ${PROJECT2}/${volume2} --clusters ${TENANT}/${cluster1}
+        #runcmd export_group create ${PROJECT} ${exportgroup1} $NH --type Cluster --volspec ${PROJECT}/${volume1} --clusters ${TENANT}/${cluster1}
+        #runcmd export_group create ${PROJECT2} ${exportgroup2} $NH --type Cluster --volspec ${PROJECT2}/${volume2} --clusters ${TENANT}/${cluster1}
         
         # List of all export groups being used
-        exportgroups="${PROJECT}/${exportgroup1} ${PROJECT2}/${exportgroup2}"
+        exportgroups="${PROJECT}/${exportgroup} ${PROJECT2}/${exportgroup}"
         
         for eg in ${exportgroups}
         do

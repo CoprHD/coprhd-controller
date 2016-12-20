@@ -122,6 +122,20 @@ public class VNXeCreateVolumesJob extends VNXeJob {
     private void processVolume(VNXeApiClient apiClient, String nativeId, URI volumeId,
             DbClient dbClient, StringBuilder logMsgBuilder, Calendar creationTime) throws IOException, DeviceControllerException {
         Volume volume = dbClient.queryObject(Volume.class, volumeId);
+
+        // If the volume is inactive, the job failed while the asynchronous work was running.
+        // Honor that the job failed and do not commit the volume, which would make it active again.
+        if (volume.getInactive()) {
+            if (logMsgBuilder.length() != 0) {
+                logMsgBuilder.append("\n");
+            }
+            logMsgBuilder.append(String.format(
+                    "Create volume job failed and volume set to inactive. Volume was likely created successfully and will be left on the array for ingestion. NativeId: %s, URI: %s",
+                    nativeId,
+                    getTaskCompleter().getId()));
+            return;
+        }
+
         volume.setCreationTime(creationTime);
         VNXeLun vnxeLun = apiClient.getLun(nativeId);
 
@@ -143,6 +157,20 @@ public class VNXeCreateVolumesJob extends VNXeJob {
         BlockConsistencyGroup group = null;
         for (URI volId : volIds) {
             Volume volume = dbClient.queryObject(Volume.class, volId);
+
+            // If the volume is inactive, the job failed while the asynchronous work was running.
+            // Honor that the job failed and do not commit the volume, which would make it active again.
+            if (volume.getInactive()) {
+                if (logMsgBuilder.length() != 0) {
+                    logMsgBuilder.append("\n");
+                }
+                logMsgBuilder.append(String.format(
+                        "Create volume job failed and volume set to inactive. Volume was likely created successfully and will be left on the array for ingestion. NativeId: %s, URI: %s",
+                        volume.getNativeId(),
+                        getTaskCompleter().getId()));
+                return;
+            }
+
             volume.setCreationTime(creationTime);
             if (group == null) {
                 group = dbClient.queryObject(BlockConsistencyGroup.class, volume.getConsistencyGroup());

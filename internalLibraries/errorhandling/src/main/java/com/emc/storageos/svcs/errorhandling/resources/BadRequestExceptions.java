@@ -3129,4 +3129,6 @@ public interface BadRequestExceptions {
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException invalidParameterWwnBadFormat(String wwn);
 
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException cannotExpandSRDFActiveVolume(final String label);
 }

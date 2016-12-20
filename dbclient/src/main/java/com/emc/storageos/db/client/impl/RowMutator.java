@@ -31,6 +31,7 @@ import com.netflix.astyanax.util.TimeUUIDUtils;
  */
 public class RowMutator {
     private static final Logger log = LoggerFactory.getLogger(RowMutator.class);
+    private static int TIME_STAMP_OFFSET = 1;
     
     private Map<String, Map<String, ColumnListMutation<CompositeColumnName>>> _cfRowMap;
     private Map<String, Map<String, ColumnListMutation<IndexColumnName>>> _cfIndexMap;
@@ -43,14 +44,25 @@ public class RowMutator {
      * Construct RowMutator instance for for index CF and object CF updates
      * 
      * @param keyspace - cassandra keyspace object
-     * @param retryWithLocalQuorum - true - retry once with LOCAL_QUORUM for write failure 
+     * @param retryWithLocalQuorum - true - retry once with LOCAL_QUORUM for write failure
      */
     public RowMutator(Keyspace keyspace, boolean retryWithLocalQuorum) {
+        this(keyspace, retryWithLocalQuorum, TimeUUIDUtils.getMicrosTimeFromUUID(TimeUUIDUtils.getUniqueTimeUUIDinMicros()));
+    }
+    
+    /**
+     * Construct RowMutator instance for for index CF and object CF updates
+     * 
+     * @param keyspace - cassandra keyspace object
+     * @param retryWithLocalQuorum - true - retry once with LOCAL_QUORUM for write failure
+     * @param microsTimeStamp timestamp works as the start time for timeUUID
+     */
+    public RowMutator(Keyspace keyspace, boolean retryWithLocalQuorum, long microsTimeStamp) {
         this.keyspace = keyspace;
-        _timeStamp.set(TimeUUIDUtils.getMicrosTimeFromUUID(TimeUUIDUtils.getUniqueTimeUUIDinMicros()));
-
+        this._timeStamp.set(microsTimeStamp);
+        
         _mutationBatch = keyspace.prepareMutationBatch();
-        _mutationBatch.setTimestamp(_timeStamp.get()).withAtomicBatch(true);
+        _mutationBatch.setTimestamp(microsTimeStamp).withAtomicBatch(true);
 
         _cfRowMap = new HashMap<String, Map<String, ColumnListMutation<CompositeColumnName>>>();
         _cfIndexMap = new HashMap<String, Map<String, ColumnListMutation<IndexColumnName>>>();
@@ -59,7 +71,7 @@ public class RowMutator {
     }
 
     public UUID getTimeUUID() {
-    	return TimeUUIDUtils.getMicrosTimeUUID(_timeStamp.incrementAndGet());
+        return TimeUUIDUtils.getMicrosTimeUUID(_timeStamp.addAndGet(TIME_STAMP_OFFSET));
     }
 
     /**

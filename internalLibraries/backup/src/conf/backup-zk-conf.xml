@@ -44,7 +44,7 @@
         <constructor-arg value="/data/zk/siteid" />
     </bean>
 
-    <bean id="driverPath" class="java.jo.File">
+    <bean id="driverPath" class="java.io.File">
         <constructor-arg value="/data/drivers" />
     </bean>
 </beans>

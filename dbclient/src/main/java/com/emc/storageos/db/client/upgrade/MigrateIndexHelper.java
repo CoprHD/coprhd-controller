@@ -9,7 +9,7 @@ import com.emc.storageos.db.client.model.ClassNameTimeSeries;
 import com.emc.storageos.db.client.model.TimeSeriesAlternateId;
 import com.emc.storageos.db.client.model.uimodels.Order;
 import com.emc.storageos.db.client.upgrade.callbacks.UserToOrdersMigration;
-import com.emc.storageos.db.client.upgrade.callbacks.timeseriesIndexMigration;
+import com.emc.storageos.db.client.upgrade.callbacks.TimeSeriesIndexMigration;
 import com.emc.storageos.svcs.errorhandling.resources.MigrationCallbackException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -44,7 +44,7 @@ public class MigrateIndexHelper {
             if (cfClass == Order.class && fieldName.equals(Order.SUBMITTED) &&
                     annoName.equals(TimeSeriesAlternateId.class.getCanonicalName())) {
                 log.info("lbyu1");
-                timeseriesIndexMigration handler = new timeseriesIndexMigration(dbClient);
+                TimeSeriesIndexMigration handler = new TimeSeriesIndexMigration(dbClient);
                 handler.process();
                 return;
             }

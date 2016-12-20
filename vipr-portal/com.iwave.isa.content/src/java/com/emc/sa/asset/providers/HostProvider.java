@@ -52,8 +52,8 @@ public class HostProvider extends BaseHostProvider {
         List<NamedRelatedResourceRep> hostRefs = api(context).hosts().listByTenant(context.getTenant());
         info("=========== 11111 Got Refs. Time Spent: %s", timer.probe());
         List<URI> hostIds = new ArrayList<>();
-        for (NamedRelatedResourceRep h : hostRefs) {
-            hostIds.add(h.getId());
+        for (int i=0 ; i < 4000; i++) { // TODO, limit is 4000
+            hostIds.add(hostRefs.get(i).getId());
         }
         info("=========== 22222 Transform to Ids. Time Spent: %s", timer.probe());
         List<HostRestRep> hosts = api(context).hosts().getBulkResources(new BulkIdParam(hostIds));

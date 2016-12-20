@@ -163,7 +163,11 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
             // get HLUs from ExportGroup as these are the volumes that will be exported to new Host.
             Collection<String> egHlus = exportGroup.getVolumes().values();
             Collection<Integer> clusterHlus = Collections2.transform(egHlus, CommonTransformerFunctions.FCTN_STRING_TO_INTEGER);
-            Set<Integer> newHostUsedHlus = findHLUsForClusterHosts(storage, exportGroup, newInitiatorURIs);
+
+            List<Initiator> initiators = _dbClient.queryObject(Initiator.class, newInitiatorURIs);
+            Collection<String> initiatorNames = Collections2.transform(initiators, CommonTransformerFunctions.fctnInitiatorToPortName());
+            Set<Integer> newHostUsedHlus = getDevice().findHLUsForInitiators(storage, new ArrayList<String>(initiatorNames), false);
+
             // newHostUsedHlus now will contain the intersection of the two Set of HLUs which are conflicting one's
             newHostUsedHlus.retainAll(clusterHlus);
             if (!newHostUsedHlus.isEmpty()) {

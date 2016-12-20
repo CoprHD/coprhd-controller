@@ -37,13 +37,39 @@ delete_volume_and_datastore() {
     # tenant datastorename vcenter datacenter cluster
     tenant=$1   
     datastorename=$2
- 
+
     vcenter=`vcenter list ${tenant} | grep ${3} | awk '{print $5}'`
     datacenter=`datacenter list ${3} | grep ${4} | awk '{print $4}'`
     cluster=`cluster list ${tenant} | grep ${5} | awk '{print $4}'`
     
     echo "=== catalog order DeleteDatastoreandVolume ${tenant} host=${cluster},datastoreName=${datastorename},vcenter=${vcenter},datacenter=${datacenter}"
     echo `catalog order DeleteDatastoreandVolume ${tenant} host=${cluster},datastoreName=${datastorename},vcenter=${vcenter},datacenter=${datacenter}`
+}
+
+create_datastore() {
+    # tenant volname datastorename project vcenter datacenter cluster
+    tenant=$1   
+    volume=`volume list ${4} | grep ${2} | awk '{print $7}'`
+    datastorename=$3
+    project=`project list --tenant ${tenant} | grep "${4} " | awk '{print $4}'`
+    vcenter=`vcenter list ${tenant} | grep ${5} | awk '{print $5}'`
+    datacenter=`datacenter list ${5} | grep ${6} | awk '{print $4}'`
+    cluster=`cluster list ${tenant} | grep ${7} | awk '{print $4}'`    
+    
+    echo "=== catalog order CreateVMwareDatastore ${tenant} host=${cluster},volumes=${volume},datastoreName=${datastorename},project=${project},vcenter=${vcenter},datacenter=${datacenter}"
+    echo `catalog order CreateVMwareDatastore ${tenant} host=${cluster},volumes=${volume},datastoreName=${datastorename},project=${project},vcenter=${vcenter},datacenter=${datacenter}`
+}
+
+delete_datastore() {
+    # tenant datastorename vcenter datacenter cluster
+    tenant=$1   
+    datastorename=$2
+    vcenter=`vcenter list ${tenant} | grep ${3} | awk '{print $5}'`
+    datacenter=`datacenter list ${3} | grep ${4} | awk '{print $4}'`
+    cluster=`cluster list ${tenant} | grep ${5} | awk '{print $4}'`    
+    
+    echo "=== catalog order DeleteVMwareDatastore ${tenant} host=${cluster},datastoreName=${datastorename},vcenter=${vcenter},datacenter=${datacenter}"
+    echo `catalog order DeleteVMwareDatastore ${tenant} host=${cluster},datastoreName=${datastorename},vcenter=${vcenter},datacenter=${datacenter}`
 }
 
 # Test - Host Add Initiator
@@ -310,9 +336,23 @@ discover_vcenter() {
     vcenter discover $vcenter
 }
 
+change_host_cluster() {
+    host=$1
+    from_cluster=$2
+    to_cluster=$3
+    vcenter=$4
+    remove_host_from_cluster $host $from_cluster
+    add_host_to_cluster $host $to_cluster
+    discover_vcenter $vcenter
+}
+
 get_pending_event() {
     echo $(events list emcworld | grep pending | awk '{print $1}')
 } 
+
+get_failed_event() {
+    echo $(events list emcworld | grep failed | awk '{print $1}')
+}  
 
 approve_pending_event() {
     echo "Approving event $1"
@@ -865,6 +905,152 @@ test_move_non_clustered_host_to_cluster() {
         # Report results
         report_results ${test_name} ${failure}
     done
+}
+
+# Test - move clustered discovered host to another cluster
+#
+# Test for manually moving (through API) a non-clustered host to a cluster.
+#
+# 1. Create host
+# 2. Create initiator
+# 3. Export volume to an exclusive export group for host
+# 4. Export a second volume to a cluster export group
+# 5. Host update to move the host to the cluster export group
+# 6. Delete exclusive export group
+# 7. Delete cluster export group
+# 8. Delete host
+# 9. Remove initiator port wwn from network
+#
+test_move_clustered_discovered_host_to_cluster() {
+    test_name="test_move_non_clustered_host_to_cluster"
+    failure="only_one_test"
+    echot "Test test_move_non_clustered_host_to_cluster"
+    cluster1="cluster-1"
+    cluster2="cluster-2"
+    host="host21"
+    vcenter="vcenter1"
+    random_num=${RANDOM}
+    volume1=fakevolume1-${random_num}
+    volume2=fakevolume2-${random_num}
+    cluster1_export=cluster1export-${random_num}
+    cluster2_export=cluster2export-${random_num}
+    fake_pwwn1=`randwwn`
+    fake_nwwn1=`randwwn`
+    fake_pwwn2=`randwwn`
+    fake_nwwn2=`randwwn`
+    set_controller_cs_discovery_refresh_interval 1
+    
+    cfs="ExportGroup ExportMask Network Host Initiator"
+
+    host_cluster_failure_injections="failure_029_host_cluster_ComputeSystemControllerImpl.verifyDatastore_after_verify \
+                                     failure_030_host_cluster_ComputeSystemControllerImpl.unmountAndDetach_after_unmount \
+                                     failure_031_host_cluster_ComputeSystemControllerImpl.unmountAndDetach_after_detach"
+    common_failure_injections="failure_004_final_step_in_workflow_complete"
+    
+    # Create the volumes
+    runcmd volume create ${volume1} ${PROJECT} ${NH} ${VPOOL_BASE} 1GB
+    runcmd volume create ${volume2} ${PROJECT} ${NH} ${VPOOL_BASE} 1GB
+    
+    # Export the volumes to the clusters
+    runcmd export_group create ${PROJECT} ${cluster1_export} $NH --type Cluster --volspec ${PROJECT}/${volume1} --clusters ${TENANT}/${cluster1}
+    runcmd export_group create ${PROJECT} ${cluster2_export} $NH --type Cluster --volspec ${PROJECT}/${volume2} --clusters ${TENANT}/${cluster2}
+
+    syssvc /workspace/vipr-emc/tools/cli/python/conf/sanity.conf localhost set_prop validation_check false
+
+    failure_injections="${HAPPY_PATH_TEST_INJECTION} ${host_cluster_failure_injections} ${common_failure_injections}"
+
+    for failure in ${failure_injections}
+    do
+        if [ ${failure} == ${HAPPY_PATH_TEST_INJECTION} ]; then
+            echot "Running happy path test for move non-clustered host to cluster..."
+        else    
+            echot "Running move non-clustered host to cluster with failure scenario: ${failure}..."
+        fi    
+        
+        TEST_OUTPUT_FILE=test_output_${RANDOM}.log
+        reset_counts
+        item=${RANDOM}
+        mkdir -p results/${item}
+        datastore1=fakedatastore1-${item}
+        datastore2=fakedatastore2-${item}
+        
+        move_host="false"
+
+        snap_db 1 ${cfs}
+
+        create_datastore ${TENANT} ${volume1} ${datastore1} ${PROJECT} ${vcenter} "DC-Simulator-1" ${cluster1}
+        create_datastore ${TENANT} ${volume2} ${datastore2} ${PROJECT} ${vcenter} "DC-Simulator-1" ${cluster2}
+
+        # Move the host from cluster-2 into cluster-1
+        change_host_cluster $host $cluster2 $cluster1 $vcenter           
+
+        EVENT_ID=$(get_pending_event)
+        if [ -z "$EVENT_ID" ]; then
+            echo "FAILED. Expected an event"
+            # Move the host into cluster-1           
+            change_host_cluster $host $cluster1 $cluster2 $vcenter
+            finish -1
+        else
+            if [ ${failure} == ${HAPPY_PATH_TEST_INJECTION} ]; then
+                approve_pending_event $EVENT_ID
+            else
+                # Turn failure injection on
+                set_artificial_failure ${failure}
+                fail approve_pending_event $EVENT_ID
+                EVENT_ID=$(get_failed_event)    
+                # turn failure injection off and retry the approval
+                set_artificial_failure none
+                approve_pending_event $EVENT_ID
+            fi 
+        fi        
+        
+        if [[ $(export_contains ${PROJECT}/$cluster1_export $host) && $(export_contains ${PROJECT}/$cluster2_export $host) == "" ]]; then
+            move_host="true"
+            echo "Host" ${host} "has been successfully moved to cluster" ${cluster2}
+        else
+            echo "Failed to move host" ${host} "to cluster" ${cluster2}  
+            
+            # Report results
+            incr_fail_count
+            if [ "${NO_BAILING}" != "1" ]; then
+                report_results ${test_name} ${failure}
+                finish -1
+            fi
+        fi    
+
+        if [ ${move_host} = "true"  ]; then
+            # Move the host into cluster-1           
+            change_host_cluster $host $cluster1 $cluster2 $vcenter 
+            
+            EVENT_ID=$(get_pending_event)
+            if [ -z "$EVENT_ID" ]; then
+                finish -1
+            else
+                approve_pending_event $EVENT_ID
+            fi                  
+        fi
+        
+        delete_datastore ${TENANT} ${datastore1} ${vcenter} "DC-Simulator-1" ${cluster1}
+        delete_datastore ${TENANT} ${datastore2} ${vcenter} "DC-Simulator-1" ${cluster2}
+
+        snap_db 2 ${cfs}  
+
+        # Validate that nothing was left behind
+        validate_db 1 2 ${cfs}          
+
+        # Report results
+        report_results ${test_name} ${failure}
+    done
+    
+    # Cleanup exports
+    runcmd export_group update ${PROJECT}/${cluster1_export} --remVols ${PROJECT}/${volume1}
+    runcmd export_group delete ${PROJECT}/${cluster1_export} 
+    runcmd export_group update ${PROJECT}/${cluster2_export} --remVols ${PROJECT}/${volume2}
+    runcmd export_group delete ${PROJECT}/${cluster2_export}     
+    
+    # Cleanup volumes
+    runcmd volume delete ${PROJECT}/${volume1} --wait
+    runcmd volume delete ${PROJECT}/${volume2} --wait
 }
 
 # Searches an ExportGroup for a given value. Returns 0 if the value is found,

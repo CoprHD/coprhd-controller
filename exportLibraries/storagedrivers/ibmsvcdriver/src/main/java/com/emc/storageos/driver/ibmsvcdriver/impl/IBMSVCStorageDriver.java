@@ -272,6 +272,10 @@ public class IBMSVCStorageDriver extends DefaultStorageDriver implements BlockSt
 	public DriverTask createVolumeSnapshot(List<VolumeSnapshot> snapshots, StorageCapabilities capabilities){
 		return ibmsvcConsistencyGroups.createVolumeSnapshot(snapshots,capabilities);
 	}
+	@Override
+	public DriverTask deleteVolumeSnapshot(List<VolumeSnapshot> snapshots, StorageCapabilities capabilities){
+		return ibmsvcConsistencyGroups.deleteVolumeSnapshot(snapshots,capabilities);
+	}
 
 
 	/**

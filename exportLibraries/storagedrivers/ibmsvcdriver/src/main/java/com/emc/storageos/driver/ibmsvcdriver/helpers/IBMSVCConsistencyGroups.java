@@ -10,6 +10,7 @@ package com.emc.storageos.driver.ibmsvcdriver.helpers;/*
  */
 
 import com.emc.storageos.driver.ibmsvcdriver.api.*;
+import com.emc.storageos.driver.ibmsvcdriver.connection.Connection;
 import com.emc.storageos.driver.ibmsvcdriver.connection.ConnectionManager;
 import com.emc.storageos.driver.ibmsvcdriver.connection.SSHConnection;
 import com.emc.storageos.driver.ibmsvcdriver.impl.IBMSVCDriverTask;
@@ -78,22 +79,27 @@ public class IBMSVCConsistencyGroups {
     //
     public DriverTask createVolumeSnapshot(List<VolumeSnapshot> snapshots, StorageCapabilities capabilities) {
         // 0. create svc consistency group for the host if it doesn't exist.
-        // need to find hostname, not sure where to get the info from
         DriverTask task = createDriverTask(IBMSVCConstants.TASK_TYPE_CREATE_SNAPSHOT_VOLUMES);
         String consistGrpName = "";
         try {
             if (snapshots.size() > 0) {
                 String test = String.format(snapshots.get(0).getStorageSystemId());
-                consistGrpName = snapshots.get(0).getDisplayName();
                 SSHConnection connectioncg = connectionManager.getClientBySystemId(snapshots.get(0).getStorageSystemId());
-
+                // find the host for the snapshot to use as consistency group name.
+                IBMSVCQueryVolumeHostMappingResult volHostResult = IBMSVCCLI.queryVolumeHostMapping(
+                        connectioncg,snapshots.get(0).getParentId());
+                if (volHostResult.isSuccess()) {
+                        consistGrpName = volHostResult.getHostList().get(0).getHostName();
+                }
+                else {
+                    throw new Exception(volHostResult.getErrorString());
+                }
                 // check if consistency group exists
                 IBMSVCQueryFCConsistGrpResult resultConsistquery = IBMSVCCLI.queryFCConsistGrp(connectioncg,
                         consistGrpName, consistGrpName);
                 if (!resultConsistquery.isSuccess()) {
                     if (resultConsistquery.getErrorString().contains(
                         "The action failed because an object that was specified in the command does not exist.")) {
-
                         IBMSVCCreateFCConsistGrpResult resultConsistGrp = IBMSVCCLI.createFCConsistGrp(
                                 connectioncg, consistGrpName);
                         consistGrpName = resultConsistGrp.getConsistGrpName();
@@ -101,6 +107,9 @@ public class IBMSVCConsistencyGroups {
                     else {
                         throw new Exception(resultConsistquery.getErrorString());
                     }
+                }
+                else{
+                    consistGrpName = resultConsistquery.getConsistGrpName();
                 }
 
             }
@@ -266,6 +275,32 @@ public class IBMSVCConsistencyGroups {
         return task;
     }
 
+    public DriverTask deleteVolumeSnapshot(List<VolumeSnapshot> snapshots, StorageCapabilities capabilities){
+
+        DriverTask task = createDriverTask(IBMSVCConstants.TASK_TYPE_CREATE_SNAPSHOT_VOLUMES);
+        // stop copy
+        SSHConnection connection = connectionManager.getClientBySystemId(snapshots.get(0).getStorageSystemId());
+        for (VolumeSnapshot volumeSnapshot : snapshots) {
+            // get the snapshots FC id.
+            IBMSVCQueryVolumeFCMappingResult resultQFCMapping = IBMSVCCLI.queryVolumeFCMapping(
+                    connection,volumeSnapshot.getSnapSetId());
+            // list of maps resultQFCMapping.getFcMappingIds()
+            for (String mapID : resultQFCMapping.getFcMappingNames()){
+                // stop the map for each volume.
+                stopFCMapping(connection, mapID);
+                IBMSVCDeleteFCMappingResult resultDeleteMap = IBMSVCCLI.deleteFCMapping(connection,mapID);
+                if (resultDeleteMap.isSuccess()){
+                    //remove
+                    task.setStatus(DriverTask.TaskStatus.READY);
+                }
+            }
+
+        }
+        // remove mapping
+        // delete
+        return task;
+    }
+
     /**
      * Prepare for Starting FC Mapping
      *
@@ -371,6 +406,7 @@ public class IBMSVCConsistencyGroups {
      *            FC Mapping ID to be deleted
      */
     private void deleteFCMapping(SSHConnection connection, String fcMappingId) {
+        // remove from consistency group
         // Remove the FC Mapping and delete the snapshot volume
         IBMSVCDeleteFCMappingResult resultDeleteFCMapping = IBMSVCCLI.deleteFCMapping(connection, fcMappingId);
         if (resultDeleteFCMapping.isSuccess()) {

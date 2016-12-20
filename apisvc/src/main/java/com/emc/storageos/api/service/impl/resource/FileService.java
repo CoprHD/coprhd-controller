@@ -3469,13 +3469,13 @@ public class FileService extends TaskResourceService {
 
         switch (appliedAt) {
             case project:
-                if (assignedResources.contains(filePolicyUri.toString())) {
+                if (assignedResources.contains(fs.getProject().getURI().toString())) {
                     _log.error("File policy {} is already applied at project.", filePolicy.getFilePolicyName());
                     throw APIException.badRequests.filePolicyAssigedAlreadyAssignedToParent(filePolicy.getApplyAt());
                 }
                 break;
             case vpool:
-                if (assignedResources.contains(filePolicyUri.toString())) {
+                if (assignedResources.contains(fs.getVirtualPool().toString())) {
                     _log.error("File policy {} is already applied at virtual pool.", filePolicy.getFilePolicyName());
                     throw APIException.badRequests.filePolicyAssigedAlreadyAssignedToParent(filePolicy.getApplyAt());
                 }
@@ -3507,16 +3507,15 @@ public class FileService extends TaskResourceService {
                     snapshotPolicyPresent = true;
                     break;
                 }
-
             }
 
             if (snapshotPolicyPresent && FilePolicy.FilePolicyType.file_snapshot.name().equals(filePolicy.getFilePolicyType())) {
-                // throw error
+                _log.error("File policy of same type is already applied to the file system {}.", filePolicy.getFilePolicyType());
                 throw APIException.badRequests.duplicateFilePolicyTypeAssociation(FilePolicy.FilePolicyType.file_snapshot.name());
             }
 
             if (replicationPolicyPresent && FilePolicy.FilePolicyType.file_replication.name().equals(filePolicy.getFilePolicyType())) {
-                // throw error
+                _log.error("File policy of same type is already applied to the file system {}.", filePolicy.getFilePolicyType());
                 throw APIException.badRequests.duplicateFilePolicyTypeAssociation(FilePolicy.FilePolicyType.file_replication.name());
             }
 

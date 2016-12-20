@@ -4326,9 +4326,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                             // update the ExportMask with the successfully added initiator
                             Initiator initForThisPortInfo = portInfosToInitiatorMap.get(portInfo);
                             exportMask.addInitiator(initForThisPortInfo);
-                            if (!exportMask.hasExistingInitiator(initForThisPortInfo)) {
-                                exportMask.addToUserCreatedInitiators(initForThisPortInfo);
-                            }
+                            exportMask.addToUserCreatedInitiators(initForThisPortInfo);
                             updateExportMask = true;
                         }
 

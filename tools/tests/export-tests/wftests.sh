@@ -1285,7 +1285,7 @@ vplex_sim_setup() {
                              --max_mirrors 0                                    \
                              --expandable true 
 
-            run cos update block $VPOOL_BASE --storage $VPLEX_SIM_VMAX7_NATIVEGUID
+            run cos update block $VPOOL_BASE --storage $VPLEX_SIM_VMAX2_NATIVEGUID
 
 	    # Migration vpool test
             secho "Setting up the virtual pool for local VPLEX provisioning and migration (source)"

@@ -1958,8 +1958,7 @@ test_2() {
                                     failure_046_VPlexDeviceController.createVirtualVolume_after_create_operation \
                                     failure_007_NetworkDeviceController.zoneExportRemoveVolumes_before_unzone \
                                     failure_008_NetworkDeviceController.zoneExportRemoveVolumes_after_unzone \
-                                    failure_009_VPlexVmaxMaskingOrchestrator.createOrAddVolumesToExportMask_before_operation \
-                                    failure_010_VPlexVmaxMaskingOrchestrator.createOrAddVolumesToExportMask_after_operation"
+                                    failure_009_VPlexVmaxMaskingOrchestrator.createOrAddVolumesToExportMask_before_operation"
     fi
 
     if [ "${SS}" = "vmax3" -o "${SS}" = "vmax2" ]
@@ -2099,8 +2098,7 @@ test_3() {
 
     if [ "${SS}" = "vplex" ]
     then
-	storage_failure_injections="failure_009_VPlexVmaxMaskingOrchestrator.createOrAddVolumesToExportMask_before_operation&5 \
-                                    failure_010_VPlexVmaxMaskingOrchestrator.createOrAddVolumesToExportMask_after_operation&5"
+	storage_failure_injections="failure_009_VPlexVmaxMaskingOrchestrator.createOrAddVolumesToExportMask_before_operation&5"
     fi
 
     if [ "${SS}" = "vmax3" -o "${SS}" = "vmax2" ]
@@ -2606,8 +2604,7 @@ test_8() {
     then
 	storage_failure_injections="failure_007_NetworkDeviceController.zoneExportRemoveVolumes_before_unzone \
                                     failure_008_NetworkDeviceController.zoneExportRemoveVolumes_after_unzone \
-                                    failure_009_VPlexVmaxMaskingOrchestrator.createOrAddVolumesToExportMask_before_operation \
-                                    failure_010_VPlexVmaxMaskingOrchestrator.createOrAddVolumesToExportMask_after_operation"
+                                    failure_009_VPlexVmaxMaskingOrchestrator.createOrAddVolumesToExportMask_before_operation"
     fi
 
     if [ "${SS}" = "vmax2" ]
@@ -2726,8 +2723,7 @@ test_9() {
 
     if [ "${SS}" = "vplex" ]
     then
-	storage_failure_injections="failure_009_VPlexVmaxMaskingOrchestrator.deleteOrRemoveVolumesToExportMask_before_operation \
-                                    failure_010_VPlexVmaxMaskingOrchestrator.deleteOrRemoveVolumesToExportMask_after_operation"
+	storage_failure_injections="failure_009_VPlexVmaxMaskingOrchestrator.deleteOrRemoveVolumesToExportMask_before_operation"
     fi
 
     if [ "${SS}" = "unity" ]

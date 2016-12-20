@@ -77,6 +77,11 @@ public final class InvokeTestFailure {
     public static final String ARTIFICIAL_FAILURE_044 = "failure_044_VPlexVmaxMaskingOrchestrator.deleteOrRemoveVolumesToExportMask_after_operation";
     public static final String ARTIFICIAL_FAILURE_045 = "failure_045_VPlexDeviceController.createVirtualVolume_before_create_operation";
     public static final String ARTIFICIAL_FAILURE_046 = "failure_046_VPlexDeviceController.createVirtualVolume_after_create_operation";
+    public static final String ARTIFICIAL_FAILURE_047 = "failure_047_NetworkDeviceController.zoneExportMaskCreate_before_zone";
+    public static final String ARTIFICIAL_FAILURE_048 = "failure_048_NetworkDeviceController.zoneExportMaskCreate_after_zone";
+    public static final String ARTIFICIAL_FAILURE_049 = "failure_049_BrocadeNetworkSMIS.getWEBMClient";
+    public static final String ARTIFICIAL_FAILURE_050 = "failure_050_MaskingWorkflowEntryPoints.doExportGroupDelete_before_delete";
+    public static final String ARTIFICIAL_FAILURE_051 = "failure_051_MaskingWorkflowEntryPoints.doExportGroupDelete_after_delete_before_unzone";
 
     private static final int FAILURE_SUBSTRING_LENGTH = 11;
 

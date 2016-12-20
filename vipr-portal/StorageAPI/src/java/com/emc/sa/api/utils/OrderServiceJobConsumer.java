@@ -48,12 +48,18 @@ public class OrderServiceJobConsumer extends DistributedQueueConsumer<OrderServi
         boolean error = false;
 
         try {
+            OrderJobStatus jobStatus = orderService.queryJobInfo(OrderServiceJob.JobType.DELETE_ORDER);
+            long startTime = jobStatus.getStartTime();
+            long endTime = jobStatus.getEndTime();
+            List<URI> tids = jobStatus.getTids();
+
+            /*
             long startTime = job.getStartTimeInNS();
             long endTime = job.getEndTimeInNS();
             List<URI> tids = job.getTenandIDs();
+            */
             log.info("lbyh tids={}", tids);
 
-            OrderJobStatus jobStatus = orderService.queryJobInfo(OrderServiceJob.JobType.DELETE);
 
             if (jobStatus.getTotal() == -1) {
                 //It's the first time to run the job, so get the total number of orders to be deleted
@@ -76,7 +82,7 @@ public class OrderServiceJobConsumer extends DistributedQueueConsumer<OrderServi
                 }
 
                 jobStatus.setTotal(total);
-                orderService.saveJobInfo(OrderServiceJob.JobType.DELETE, jobStatus);
+                orderService.saveJobInfo(jobStatus);
             }
 
         /*
@@ -121,7 +127,7 @@ public class OrderServiceJobConsumer extends DistributedQueueConsumer<OrderServi
 
             jobStatus.setTimeUsedPerOrder(speed);
 
-            orderService.saveJobInfo(OrderServiceJob.JobType.DELETE, jobStatus);
+            orderService.saveJobInfo(jobStatus);
 
             if (jobStatus.isFinished()) {
                 log.info("lbyh9: remove order job from the queue");

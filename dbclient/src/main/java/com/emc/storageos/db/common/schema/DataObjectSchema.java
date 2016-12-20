@@ -9,8 +9,11 @@ import java.util.Objects;
 
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.common.DbSchemaScannerInterceptor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class DataObjectSchema extends DbSchema {
+    private static final Logger log = LoggerFactory.getLogger(DataObjectSchema.class);
     public DataObjectSchema() {
     }
 
@@ -33,6 +36,7 @@ public class DataObjectSchema extends DbSchema {
 
     @Override
     public int hashCode() {
+        log.info("lbyt: class={} stack=", this.getClass().getSimpleName(), new Throwable());
         return Objects.hash(this);
     }
 }

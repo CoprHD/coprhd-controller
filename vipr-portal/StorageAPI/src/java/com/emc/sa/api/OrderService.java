@@ -881,7 +881,7 @@ public class OrderService extends CatalogTaggedResourceService {
                                  @DefaultValue("") @QueryParam(SearchConstants.END_TIME_PARAM) String endTimeStr,
                                  @DefaultValue("") @QueryParam(SearchConstants.TENANT_IDS_PARAM) String tenantIDsStr) {
 
-        if (isJobRunning(OrderServiceJob.JobType.DELETE)) {
+        if (isJobRunning(OrderServiceJob.JobType.DELETE_ORDER)) {
             throw APIException.badRequests.cannotExecuteOperationWhilePendingTask("Deleting orders");
         }
 
@@ -894,12 +894,15 @@ public class OrderService extends CatalogTaggedResourceService {
 
         List<URI> tids = toIDs(SearchConstants.TENANT_IDS_PARAM, tenantIDsStr);
 
-        saveJobInfo(OrderServiceJob.JobType.DELETE, startTimeInMS*1000, endTimeInMS*1000, tids);
+        OrderJobStatus status = new OrderJobStatus(OrderServiceJob.JobType.DELETE_ORDER,
+                startTimeInMS*1000, endTimeInMS*1000, tids);
+
+        saveJobInfo(status);
 
         log.info("lby00 start={} end={} tids={}", new Object[] {startTimeInMS, endTimeInMS, tids});
 
-        OrderServiceJob job =
-            new OrderServiceJob(OrderServiceJob.JobType.DELETE, startTimeInMS*1000, endTimeInMS*1000, tids);
+        OrderServiceJob job = new OrderServiceJob(OrderServiceJob.JobType.DELETE_ORDER);
+            //new OrderServiceJob(OrderServiceJob.JobType.DELETE, startTimeInMS*1000, endTimeInMS*1000, tids);
         try {
             queue.put(job);
         }catch (Exception e) {
@@ -911,15 +914,17 @@ public class OrderService extends CatalogTaggedResourceService {
         return Response.ok().build();
     }
 
+    /*
     public void saveJobInfo(OrderServiceJob.JobType type, long startTime, long endTime, List<URI> tids) {
-        OrderJobStatus status = new OrderJobStatus(startTime, endTime, tids);
+        OrderJobStatus status = new OrderJobStatus(type, startTime, endTime, tids);
         log.info("lbyx0: persist type={}", status);
         coordinatorClient.persistRuntimeState(type.name(), status);
     }
+    */
 
-    public void saveJobInfo(OrderServiceJob.JobType type, OrderJobStatus status) {
+    public void saveJobInfo(OrderJobStatus status) {
         log.info("lbyx0: persist type={}", status);
-        coordinatorClient.persistRuntimeState(type.name(), status);
+        coordinatorClient.persistRuntimeState(status.getType().name(), status);
     }
 
     public OrderJobStatus queryJobInfo(OrderServiceJob.JobType type) {
@@ -927,7 +932,7 @@ public class OrderService extends CatalogTaggedResourceService {
     }
 
     private boolean isJobRunning(OrderServiceJob.JobType type) {
-        OrderJobStatus jobStatus = queryJobInfo(OrderServiceJob.JobType.DELETE);
+        OrderJobStatus jobStatus = queryJobInfo(OrderServiceJob.JobType.DELETE_ORDER);
 
         if (jobStatus == null ) {
             return false; // no job running

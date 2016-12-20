@@ -26,6 +26,7 @@ public class OrderJobStatus implements CoordinatorSerializable {
 
     private static final ObjectMapper mapper = new ObjectMapper().enableDefaultTyping();
 
+    private OrderServiceJob.JobType type;
     private long startTime = -1;
     private long endTime = -1;
     private List<URI> tids;
@@ -44,10 +45,15 @@ public class OrderJobStatus implements CoordinatorSerializable {
     public OrderJobStatus() {
     }
 
-    public OrderJobStatus(long startTime, long endTime, List<URI> tids) {
+    public OrderJobStatus(OrderServiceJob.JobType type, long startTime, long endTime, List<URI> tids) {
+        this.type = type;
         this.startTime = startTime;
         this.endTime = endTime;
         this.tids = tids;
+    }
+
+    public OrderServiceJob.JobType getType() {
+        return type;
     }
 
     public long getStartTime() {

@@ -55,6 +55,7 @@ public class DecommissionedConstraintImpl extends ConstraintImpl<IndexColumnName
      */
     public DecommissionedConstraintImpl(Class<? extends DataObject> clazz, ColumnField field, Boolean value) {
         super(clazz, field, value);
+        indexSerializer = IndexColumnNameSerializer.get();
 
         throwIfNoInactiveIndex(field);
 
@@ -160,7 +161,7 @@ public class DecommissionedConstraintImpl extends ConstraintImpl<IndexColumnName
     public Class<? extends DataObject> getDataObjectType() {
         return _entryType;
     }
-    
+
 	@Override
 	public boolean isValid() {
         return this._rowKey!=null && !this._rowKey.isEmpty();

@@ -956,7 +956,9 @@ test_move_clustered_discovered_host_to_cluster() {
     runcmd export_group create ${PROJECT} ${cluster1_export} $NH --type Cluster --volspec ${PROJECT}/${volume1} --clusters ${TENANT}/${cluster1}
     runcmd export_group create ${PROJECT} ${cluster2_export} $NH --type Cluster --volspec ${PROJECT}/${volume2} --clusters ${TENANT}/${cluster2}
 
-    failure_injections="${HAPPY_PATH_TEST_INJECTION} ${host_cluster_failure_injections} ${common_failure_injections}"
+    syssvc $SANITY_CONFIG_FILE localhost set_prop system_proxyuser_encpassword "ChangeMe1!"
+
+    failure_injections="${HAPPY_PATH_TEST_INJECTION} {host_cluster_failure_injections} ${common_failure_injections}"
 
     for failure in ${failure_injections}
     do

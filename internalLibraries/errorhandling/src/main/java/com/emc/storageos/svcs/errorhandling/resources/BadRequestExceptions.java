@@ -2975,6 +2975,12 @@ public interface BadRequestExceptions {
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException duplicatePolicyAssociation(URI fp);
 
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException duplicateFilePolicyTypeAssociation(final String policyType);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException filePolicyAssigedAlreadyAssignedToParent(final String policyAppliedAt);
+
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException invalidVirtualPoolForVirtualPoolChange(String label, String reason);
 

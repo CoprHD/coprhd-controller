@@ -56,7 +56,7 @@ public class FilePolicyMapper {
             resp.setVpool(DbObjectMapper.toNamedRelatedResource(ResourceTypeEnum.FILE_VPOOL,
                     vpoolURI, vpool.getLabel()));
         }
-        Boolean appliedToAllFS = from.isApplyToAllFS();
+        Boolean appliedToAllFS = from.getApplyToAllFS();
         if (appliedToAllFS != null) {
             resp.setAppliedToAllFileSystems(appliedToAllFS);
         }

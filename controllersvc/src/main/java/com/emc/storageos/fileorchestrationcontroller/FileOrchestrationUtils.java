@@ -17,8 +17,8 @@ import com.emc.storageos.db.client.model.CifsShareACL;
 import com.emc.storageos.db.client.model.FileExport;
 import com.emc.storageos.db.client.model.FileExportRule;
 import com.emc.storageos.db.client.model.FilePolicy;
+import com.emc.storageos.db.client.model.FilePolicy.FilePolicyApplyLevel;
 import com.emc.storageos.db.client.model.FileShare;
-import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.model.file.ExportRule;
 import com.emc.storageos.model.file.ShareACL;
@@ -275,25 +275,36 @@ public class FileOrchestrationUtils {
      * @param project
      * @return List<FilePolicy>
      */
-    public static List<FilePolicy> getAllApplicablePolices(DbClient dbClient, URI vpool, NamedURI project) {
+    public static List<FilePolicy> getAllApplicablePolices(DbClient dbClient, URI vpool, URI project) {
         List<FilePolicy> filePolicies = new ArrayList<FilePolicy>();
         List<URI> policyIds = dbClient.queryByType(FilePolicy.class, true);
         List<FilePolicy> filepolicies = dbClient.queryObject(FilePolicy.class, policyIds);
 
         for (FilePolicy filePolicy : filepolicies) {
-            if (filePolicy.getApplyAt().equals(FilePolicy.FilePolicyApplyLevel.vpool.name())
-                    && filePolicy.getAssignedResources().contains(vpool.toString())) {
-                filePolicies.add(filePolicy);
-            }
-            if (filePolicy.getApplyAt().equals(FilePolicy.FilePolicyApplyLevel.project.name())
-                    && filePolicy.getAssignedResources().contains(project.toString()) && filePolicy.getFilePolicyVpool().equals(vpool)) {
-                filePolicies.add(filePolicy);
-            }
-            if (filePolicy.getApplyAt().equals(FilePolicy.FilePolicyApplyLevel.file_system.name())
-                    && filePolicy.isApplyToAllFS() && filePolicy.getFilePolicyVpool().equals(vpool)) {
-                filePolicies.add(filePolicy);
+            FilePolicyApplyLevel appliedLevel = FilePolicyApplyLevel.valueOf(filePolicy.getApplyAt());
+            switch (appliedLevel) {
+                case vpool:
+                    if (filePolicy.getAssignedResources().contains(vpool.toString())) {
+                        filePolicies.add(filePolicy);
+                    }
+                    break;
+                case project:
+                    if (filePolicy.getAssignedResources().contains(project.toString())
+                            && filePolicy.getFilePolicyVpool().toString().equals(vpool.toString())) {
+                        filePolicies.add(filePolicy);
+                    }
+                    break;
+                case file_system:
+                    // Here logic has to be changed.
+                    if (filePolicy.getApplyToAllFS() && filePolicy.getFilePolicyVpool().toString().equals(vpool.toString())) {
+                        filePolicies.add(filePolicy);
+                    }
+                    break;
+                default:
+                    return null;
             }
         }
         return filePolicies;
     }
+
 }

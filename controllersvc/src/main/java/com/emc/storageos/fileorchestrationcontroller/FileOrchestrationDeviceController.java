@@ -23,6 +23,7 @@ import com.emc.storageos.db.client.model.FileObject;
 import com.emc.storageos.db.client.model.FilePolicy;
 import com.emc.storageos.db.client.model.FileShare;
 import com.emc.storageos.db.client.model.FileShare.PersonalityTypes;
+import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.SMBFileShare;
 import com.emc.storageos.db.client.model.SMBShareMap;
 import com.emc.storageos.db.client.model.Snapshot;
@@ -1444,17 +1445,14 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
     }
 
     public String addStepsForApplyingPolicies(Workflow workflow, String waitFor, List<FileDescriptor> fileDescriptors) {
-
         FileDescriptor sourceDescriptors = FileDescriptor
                 .filterByType(fileDescriptors, FileDescriptor.Type.FILE_DATA, FileDescriptor.Type.FILE_MIRROR_SOURCE).get(0);
         FileShare sourceFS = s_dbClient.queryObject(FileShare.class, sourceDescriptors.getFsURI());
-
+        Project project = s_dbClient.queryObject(Project.class, sourceFS.getProject());
         List<FilePolicy> filePolicies = FileOrchestrationUtils.getAllApplicablePolices(s_dbClient, sourceFS.getVirtualPool(),
-                sourceFS.getProject());
-
+                project.getId());
         if (filePolicies != null && !filePolicies.isEmpty()) {
-
-            String stepDescription = String.format("applying file policies at different levels");
+            String stepDescription = String.format("applying file policies");
             String applyFilePolicyStep = workflow.createStepId();
             Object[] args = new Object[] { sourceFS.getId(), filePolicies };
             waitFor = _fileDeviceController.createMethod(workflow, waitFor, APPLY_FILE_POLICY_METHOD, applyFilePolicyStep,

@@ -645,9 +645,9 @@ public class IsilonApi {
      */
     public String createSnapshotSchedule(String name, String path, String schedule, String pattern, Integer duration)
             throws IsilonException {
-        return createSnapshotSchedule(_baseUrl.resolve(URI_SNAPSHOT_SCHEDULES), "schedule", new IsilonSnapshotSchedule(name, path,
-                schedule, pattern,
-                duration));
+        IsilonSnapshotSchedule isiSchedule = new IsilonSnapshotSchedule(name, path, schedule, pattern, duration);
+        sLogger.info("Isilon snapshot schedule: {} creation started", isiSchedule.toString());
+        return createSnapshotSchedule(_baseUrl.resolve(URI_SNAPSHOT_SCHEDULES), "schedule", isiSchedule);
     }
 
     /**

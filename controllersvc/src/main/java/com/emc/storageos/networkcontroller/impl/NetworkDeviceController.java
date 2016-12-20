@@ -1273,7 +1273,6 @@ public class NetworkDeviceController implements NetworkController {
         TaskCompleter taskCompleter = null;
         boolean status = false;
         try {
-            WorkflowStepCompleter.stepExecuting(stepId);
             if (zoningParams.isEmpty()) {
                 _log.info("zoningParams is empty, returning");
                 WorkflowStepCompleter.stepSucceded(stepId);
@@ -1282,8 +1281,6 @@ public class NetworkDeviceController implements NetworkController {
             URI exportGroupId = zoningParams.get(0).getExportGroupId();
             URI virtualArray = zoningParams.get(0).getVirtualArray();
             if (!checkZoningRequired(stepId, virtualArray)) {
-                _log.info("Zoning check is not required.");
-                WorkflowStepCompleter.stepSucceded(stepId);
                 return true;
             }
             volumeURIs = removeDuplicateURIs(volumeURIs);

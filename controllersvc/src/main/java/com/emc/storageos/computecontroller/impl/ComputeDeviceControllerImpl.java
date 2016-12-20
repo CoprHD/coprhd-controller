@@ -135,7 +135,6 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
         VirtualArray vArray = _dbClient.queryObject(VirtualArray.class, varray);
 
         ComputeSystem cs = _dbClient.queryObject(ComputeSystem.class, ce.getComputeSystem());
-        
         TaskCompleter tc = new ComputeHostCompleter(hostId, opId, OperationTypeEnum.CREATE_HOST, EVENT_SERVICE_TYPE);
         getDevice(cs.getSystemType()).createHost(cs, host, vcp, vArray, tc);
     }
@@ -166,18 +165,15 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
                         new Workflow.Method("rollbackUnbindHostFromTemplate", computeSystemId, hostId),
                         null);
 
-                // Set host to boot from lan
-                //TODO investigate -- why is there no rollback for this step?
-
-                waitFor = workflow.createStep(OS_INSTALL_SET_LAN_BOOT,
-                        "Set the host to boot from LAN", waitFor, cs.getId(), cs
-                                .getSystemType(),
-                        this.getClass(), new Workflow.Method("setLanBootTargetStep", computeSystemId,
-                                computeElementId, hostId),
-                        new Workflow.Method(ROLLBACK_NOTHING_METHOD), null);
-
             }
+             // Set host to boot from lan
+            waitFor = workflow.createStep(OS_INSTALL_SET_LAN_BOOT,
+                     "Set the host to boot from LAN", waitFor, cs.getId(), cs.getSystemType(), this.getClass(),
+                     new Workflow.Method("setLanBootTargetStep", computeSystemId,computeElementId, hostId),
+                     new Workflow.Method("setNoBootStep", computeSystemId,computeElementId, hostId),
+                     null);
 
+            // Set the OS install Vlan on the first vnic
             waitFor = workflow.createStep(OS_INSTALL_PREPARE_OS_NETWORK, "prepare network for os install", waitFor, cs
                     .getId(), cs.getSystemType(), this.getClass(),
                     new Workflow.Method("prepareOsInstallNetworkStep", computeSystemId, computeElementId),
@@ -187,7 +183,6 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
         } else {
             log.error("sptId is null!");
         }
-        
 
         
         //TODO remove commented code
@@ -223,7 +218,7 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
                         .getSystemType(),
                 this.getClass(), new Workflow.Method("setSanBootTargetStep", computeSystemId,
                         computeElementId, hostId, volumeId),
-                new Workflow.Method(ROLLBACK_NOTHING_METHOD), null);
+                new Workflow.Method("setNoBootStep", computeSystemId,computeElementId, hostId), null);
 
         ComputeElement ce = _dbClient.queryObject(ComputeElement.class, computeElementId);
         //TODO check for ce not null
@@ -273,6 +268,25 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
         }
 
     }
+    public void setNoBootStep(URI computeSystemId, URI computeElementId, URI hostId, String stepId) {
+        log.info("setNoBootStep");
+        try {
+            WorkflowStepCompleter.stepExecuting(stepId);
+
+            setNoBoot(computeSystemId, computeElementId, hostId, true);
+
+            WorkflowStepCompleter.stepSucceded(stepId);
+        } catch (InternalException e) {
+            log.error("Exception setNoBootStep: " + e.getMessage(), e);
+            WorkflowStepCompleter.stepFailed(stepId, e);
+        } catch (Exception e) {
+            log.error("Unexpected exception setNoBootStep: " + e.getMessage(), e);
+            String opName = ResourceOperationTypeEnum.INSTALL_OPERATING_SYSTEM.getName();
+            WorkflowStepCompleter.stepFailed(stepId,
+                    ImageServerControllerException.exceptions.unexpectedException(opName, e));
+        }
+
+    }
 
     public void setLanBootTargetStep(URI computeSystemId, URI computeElementId, URI hostId, String stepId) {
         log.info("setLanBootTargetStep");
@@ -304,7 +318,16 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
 
     }
 
-    //TODO check if we can convert any of these internal methods to private (in the interface as well as here)
+    private void setNoBoot(URI computeSystemId, URI computeElementId, URI hostId, boolean waitForServerRestart)
+            throws InternalException {
+
+        log.info("Compute Element %s is being set to No Boot", computeElementId);
+        ComputeSystem cs = _dbClient.queryObject(ComputeSystem.class, computeSystemId);
+
+        getDevice(cs.getSystemType()).setNoBoot(cs, computeElementId, hostId, waitForServerRestart);
+
+    }
+
     @Override
     public void setSanBootTarget(URI computeSystemId, URI computeElementId, URI hostId, URI volumeId, boolean waitForServerRestart)
             throws InternalException {
@@ -591,13 +614,17 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
             throws InternalException {
 
         Host host = _dbClient.queryObject(Host.class, hostId);
-
-        if (host.getComputeElement() == null) {
+        if (host == null || host.getComputeElement() == null) {
             /**
              * No steps need to be added - as this was not a host that we
              * created in ViPR. If it was computeElement property of the host
              * would have been set.
              */
+            if (host == null){
+                 log.error("No host found with Id: "+ hostId);
+            } else{
+                 log.info("Host: " + host.getLabel() + " has no associated computeElement. So skipping service profile and boot volume deletion steps");
+            }
             return waitFor;
         }
 
@@ -605,6 +632,10 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
 
         if (computeElement != null) {
             ComputeSystem cs = _dbClient.queryObject(ComputeSystem.class, computeElement.getComputeSystem());
+            if (cs == null){
+                log.error("ComputeElement " + computeElement.getLabel() + " has an invalid computeSystem reference: " + computeElement.getComputeSystem());
+                return waitFor;
+            }
 
             //TODO add rollback steps for these workflow steps
             waitFor = workflow.createStep(DEACTIVATION_COMPUTE_SYSTEM_HOST, "Unbind blade from service profile",
@@ -616,7 +647,13 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
                 waitFor = workflow.createStep(DEACTIVATION_COMPUTE_SYSTEM_BOOT_VOLUME,
                         "Delete the boot volume for the host", waitFor, cs.getId(), cs.getSystemType(),
                         this.getClass(), new Workflow.Method("deleteBlockVolume", hostId), null, null);
+            } else if (!deactivateBootVolume) {
+                 log.info("flag deactivateBootVolume set to false");
+            } else if (host.getBootVolumeId() == null){
+                 log.info("Host "+ host.getLabel() + " has no bootVolume association");
             }
+        } else {
+            log.error("Host "+ host.getLabel()+ " has associated computeElementURI: "+ host.getComputeElement()+ " which is an invalid reference");
         }
 
         return waitFor;
@@ -635,14 +672,31 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
     public String addStepsVcenterClusterCleanup(Workflow workflow, String waitFor, URI clusterId) throws InternalException {
         Cluster cluster = _dbClient.queryObject(Cluster.class, clusterId);
 
+        if(null == cluster) {
+            log.info("Could not find cluster instance for cluster id {}", clusterId.toString());
+            return waitFor;
+        }
+
         if (NullColumnValueGetter.isNullURI(cluster.getVcenterDataCenter())) {
             log.info("cluster is not synced to vcenter");
+            return waitFor;
+        }
+        List<URI> clusterHosts = ComputeSystemHelper.getChildrenUris(_dbClient, clusterId, Host.class, "cluster");
+        // Check if cluster has hosts, if cluster is empty then safely remove from vcenter.
+        if (null == clusterHosts || clusterHosts.isEmpty()) {
+            VcenterDataCenter vcenterDataCenter = _dbClient.queryObject(VcenterDataCenter.class,
+                    cluster.getVcenterDataCenter());
+            log.info("Cluster has no hosts, removing empty cluster : {}, from vCenter : {}", cluster.getLabel(),
+                    vcenterDataCenter.getLabel());
+            waitFor = workflow.createStep(REMOVE_VCENTER_CLUSTER, "If synced with vCenter, remove the cluster", waitFor,
+                    clusterId, clusterId.toString(), this.getClass(),
+                    new Workflow.Method("removeVcenterCluster", cluster.getId(), cluster.getVcenterDataCenter()), null,
+                    null);
             return waitFor;
         }
 
         boolean hasDiscoveredHosts = false;
         boolean hasProvisionedHosts = false;
-        List<URI> clusterHosts = ComputeSystemHelper.getChildrenUris(_dbClient, clusterId, Host.class, "cluster");
         List<Host> hosts = _dbClient.queryObject(Host.class, clusterHosts);
         for (Host host : hosts) {
             if (NullColumnValueGetter.isNullURI(host.getComputeElement())) {
@@ -992,14 +1046,14 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
 
             if (host.getComputeElement() == null) {
                 // NO-OP
-            	//TODO log a message
+                log.info("Host " + host.getLabel() + " has no computeElement association");
                 WorkflowStepCompleter.stepSucceded(stepId);
                 return;
             } else {
                 ComputeElement computeElement = _dbClient.queryObject(ComputeElement.class, host.getComputeElement());
                 //TODO check for computeElement not to be null
                 if (NullColumnValueGetter.isNullValue(computeElement.getDn())) {
-                	//TODO log a message 'no service profile for this blade', and mark it as failed???
+                    log.info("Host " + host.getLabel() + " has computeElement " + host.getComputeElement() + " with label " + computeElement.getLabel() + " and Dn "+ computeElement.getDn());
                     WorkflowStepCompleter.stepSucceded(stepId);
                     return;
                 }

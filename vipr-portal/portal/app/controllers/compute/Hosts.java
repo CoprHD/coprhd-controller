@@ -19,6 +19,7 @@ import models.datatable.HostDataTable;
 import models.datatable.HostDataTable.HostInfo;
 
 import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang.math.NumberUtils;
 
 import play.data.binding.As;
 import play.data.validation.MaxSize;
@@ -28,6 +29,7 @@ import play.data.validation.Required;
 import play.data.validation.Validation;
 import play.i18n.Messages;
 import play.mvc.With;
+import plugin.StorageOsPlugin;
 import util.ClusterUtils;
 import util.HostUtils;
 import util.MessagesUtils;
@@ -36,6 +38,8 @@ import util.VCenterUtils;
 import util.datatable.DataTablesSupport;
 import util.validation.HostNameOrIpAddress;
 
+import com.emc.storageos.coordinator.client.model.Constants;
+import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.model.host.ArrayAffinityHostParam;
 import com.emc.storageos.model.host.HostCreateParam;
 import com.emc.storageos.model.host.HostParam;
@@ -76,6 +80,9 @@ public class Hosts extends ViprResourceController {
     public static void list() {
         TenantSelector.addRenderArgs();
         renderArgs.put("dataTable", new HostDataTable());
+        CoordinatorClient coordinatorClient = StorageOsPlugin.getInstance().getCoordinatorClient();
+        String limit = coordinatorClient.getPropertyInfo().getProperty(Constants.RESOURCE_LIMIT_TENANT_HOSTS);
+        renderArgs.put(Constants.RESOURCE_LIMIT_TENANT_HOSTS, limit);
         render();
     }
 

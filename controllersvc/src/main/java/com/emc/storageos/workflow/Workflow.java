@@ -7,14 +7,9 @@ package com.emc.storageos.workflow;
 import java.io.ObjectStreamField;
 import java.io.Serializable;
 import java.net.URI;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 
+import com.google.common.base.Predicate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -23,6 +18,9 @@ import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
 import com.emc.storageos.volumecontroller.TaskCompleter;
+
+import static com.google.common.collect.Collections2.filter;
+import static com.google.common.collect.Lists.newArrayList;
 
 /**
  * A Workflow represents a sequence of steps that can be executed by Controllers to
@@ -847,38 +845,100 @@ public class Workflow implements Serializable {
         return state;
     }
 
+    /**
+     * Given a set of steps that executed, what is the overall service error associated with the steps?
+     * This determined in a priority order as follows:
+     * 1. The first step that failed (ERROR state) time-wise gets priority (is returned first), otherwise...
+     * 2. The first step that was put in SUSPENDED_ERROR or SUSPENDED_NO_ERROR state time-wise gets returned,
+     * otherwise...
+     * 3. The first step that was CANCELLED is returned (not as likely)
+     * 
+     * The resulting message is a compiled set of error messages from the root cause and all other steps that
+     * failed, especially during rollback.
+     * 
+     * @param statusMap
+     *            step map
+     * @return Service error that represents the overall service error (root cause)
+     * @throws WorkflowException
+     */
     public static ServiceError getOverallServiceError(Map<String, StepStatus> statusMap)
             throws WorkflowException {
-        StepState state = null;
         ServiceError error = null;
-        for (String stepId : statusMap.keySet()) {
-            StepStatus status = statusMap.get(stepId);
-            switch (status.state) {
-                case ERROR:
-                    if (state != StepState.ERROR) { // we want to record the root error, the first one
-                        state = status.state;
-                        error = ServiceError.buildServiceError(status.serviceCode, status.message);
-                    }
-                    break;
-                case SUSPENDED_NO_ERROR:
-                case SUSPENDED_ERROR:
-                    if (state != StepState.ERROR) {
-                        state = status.state;
-                        error = ServiceError.buildServiceError(status.serviceCode, status.message);
-                    }
-                    break;
+        StepStatus rootCauseStatus = null;
+        List<StepStatus> additionalErrors = new ArrayList<>();
 
-                case CANCELLED: // ERROR and SUSPENDS have higher precedence than CANCELLED
-                    if (state != StepState.ERROR && state != StepState.SUSPENDED_NO_ERROR && state != StepState.SUSPENDED_ERROR) {
-                        state = status.state;
-                        error = ServiceError.buildServiceError(status.serviceCode, status.message);
-                    }
-                    break;
-                case SUCCESS:
-                default:
-                    break;
+        final Map<StepState, Integer> errorStatePriorities = new HashMap<>();
+        errorStatePriorities.put(StepState.ERROR, 0);
+        errorStatePriorities.put(StepState.SUSPENDED_NO_ERROR, 1);
+        errorStatePriorities.put(StepState.SUSPENDED_ERROR, 1);
+        errorStatePriorities.put(StepState.CANCELLED, 2);
+
+        // Filter out non-error statuses.
+        List<StepStatus> statuses = newArrayList(filter(statusMap.values(), new Predicate<StepStatus>() {
+            @Override
+            public boolean apply(StepStatus input) {
+                return errorStatePriorities.containsKey(input.state);
+            }
+        }));
+
+        //Sort the statuses based on the errorStatePriorities map and also by earliest time.
+        Collections.sort(statuses, new Comparator<StepStatus>() {
+            @Override
+            public int compare(StepStatus a, StepStatus b) {
+                Integer aStatePriority = errorStatePriorities.get(a.state);
+                Integer bStatePriority = errorStatePriorities.get(b.state);
+
+                if (aStatePriority != null && bStatePriority == null) {
+                    return -1;
+                } else if (aStatePriority == null && bStatePriority != null) {
+                    return 1;
+                } else if (aStatePriority == null && bStatePriority == null) {
+                    return 0;
+                }
+
+                int result = aStatePriority.compareTo(bStatePriority);
+                if (result != 0) {
+                    return result;
+                }
+
+                long aTime = a.endTime.getTime();
+                long bTime = b.endTime.getTime();
+                return Long.compare(aTime, bTime);
+            }
+        });
+
+        // First element will be the root cause, the remaining elements are additional errors.
+        for (StepStatus status : statuses) {
+            if (rootCauseStatus == null) {
+                rootCauseStatus = status;
+            } else {
+                additionalErrors.add(status);
             }
         }
+
+        // Now formulate an error message that contains all side-effects
+        if (rootCauseStatus != null) {
+            // Start the message with the root cause:
+            StringBuffer sb = new StringBuffer(
+                    "Message: " + rootCauseStatus.message + "\n" + "Description: " + rootCauseStatus.description + "\n");
+
+            if (!additionalErrors.isEmpty()) {
+                sb.append("\nAdditional errors occurred during processing.  Each error is listed below.\n\n");
+                
+                Iterator<StepStatus> iter = additionalErrors.iterator();
+                while (iter.hasNext()) {
+                    StepStatus ss = iter.next();
+                    sb.append("Additional Message: " + ss.message + "\n" + "Description: " + ss.description + "\n");
+                    if (iter.hasNext()) {
+                        sb.append("\n");
+                    }
+                }
+            }
+            
+            // Assemble the resulting error service code with the compiled message.
+            error = ServiceError.buildServiceError(rootCauseStatus.serviceCode, sb.toString());
+        }
+        
         return error;
     }
 

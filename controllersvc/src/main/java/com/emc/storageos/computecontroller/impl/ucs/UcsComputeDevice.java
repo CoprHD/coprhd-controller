@@ -70,6 +70,7 @@ import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.StringSetUtil;
+import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.networkcontroller.impl.NetworkAssociationHelper;
@@ -456,7 +457,7 @@ public class UcsComputeDevice implements ComputeDevice {
                     computeSystem.getId(), computeSystem.getSystemType(), this.getClass(), new Workflow.Method(
                             "createLsServer", computeSystem, sptDn, host.getHostName()),
                     new Workflow.Method(
-                            "deleteLsServer", computeSystem, createSpToken),
+                            "deleteLsServer", computeSystem, host.getId(), createSpToken),
                     createSpToken);
 
             String modifySpBootToken = workflow.createStepId();
@@ -466,7 +467,7 @@ public class UcsComputeDevice implements ComputeDevice {
                             "Modify the created service profile to have an Empty boot policy, if a boot policy was associated, it will be over-written!",
                             createSpToken, computeSystem.getId(), computeSystem.getSystemType(), this.getClass(),
                             new Workflow.Method("modifyLsServerNoBoot", computeSystem, createSpToken),
-                            new Workflow.Method("deleteLsServer", computeSystem, createSpToken), modifySpBootToken);
+                            new Workflow.Method("deleteLsServer", computeSystem, host.getId(), createSpToken), modifySpBootToken);
 
             String bindSPStepId = workflow.createStepId();
             bindSPStepId = workflow.createStep(BIND_SERVICE_PROFILE_TO_BLADE_STEP,
@@ -483,14 +484,18 @@ public class UcsComputeDevice implements ComputeDevice {
                     computeSystem.getId(), computeSystem.getSystemType(), this.getClass(), new Workflow.Method(
                             "addHostPortsToVArrayNetworks", varray, host),
                     null, addHostPortsToNetworkStepId);
-
-            String addHostToSharedExportGroupsStepId = workflow.createStepId();
-            addHostToSharedExportGroupsStepId = workflow.createStep(ADD_HOST_TO_SHARED_EXPORT_GROUPS,
-                    "Add host to shared export groups", addHostPortsToNetworkStepId,
-                    computeSystem.getId(), computeSystem.getSystemType(), this.getClass(), new Workflow.Method(
-                            "addHostToSharedExportGroups", host),
-                    null, addHostToSharedExportGroupsStepId);
-
+            //forcefully skipping the sharedExport update step, due to concurrency issue
+            // we will handle update of sharedExport to all hosts in bulk rather than one for each host.
+            // Temporary workaround fix until the actual fix is delivered.
+            boolean performStep = false;
+            if (performStep) {
+                String addHostToSharedExportGroupsStepId = workflow.createStepId();
+                addHostToSharedExportGroupsStepId = workflow.createStep(ADD_HOST_TO_SHARED_EXPORT_GROUPS,
+                        "Add host to shared export groups", addHostPortsToNetworkStepId, computeSystem.getId(),
+                        computeSystem.getSystemType(), this.getClass(),
+                        new Workflow.Method("addHostToSharedExportGroups", host), null,
+                        addHostToSharedExportGroupsStepId);
+            }
             workflow.executePlan(taskCompleter, "Successfully created host : " + host.getHostName());
 
             LOGGER.info("create Host : " + host.getLabel() + " Complete");
@@ -656,19 +661,6 @@ public class UcsComputeDevice implements ComputeDevice {
                     .toString(), e);
         }
 
-        try {
-            ucsmService.setServiceProfileToLanBoot(getUcsmURL(cs).toString(), cs.getUsername(), cs.getPassword(),
-                    ce.getDn());
-            /*
-             * Wait for the reboot that happens on setting the lan boot policy on the ServiceProfile
-             */
-            pullAndPollManagedObject(getUcsmURL(cs).toString(), cs.getUsername(), cs.getPassword(), ce.getDn(), LsServer.class);
-        } catch (ClientGeneralException e) {
-            LOGGER.error("Unable to set lan boot On computeElement : " + ce.getId(), e);
-            throw ComputeSystemControllerException.exceptions.unableToSetOsInstallNetwork(osInstallVlan, ce.getId()
-                    .toString(), e);
-        }
-
         return vlanMap;
 
     }
@@ -819,7 +811,7 @@ public class UcsComputeDevice implements ComputeDevice {
         return lsServer;
     }
 
-    public void deleteLsServer(ComputeSystem cs, String createSpStepId, String stepId) throws ClientGeneralException {
+    public void deleteLsServer(ComputeSystem cs, URI hostURI, String createSpStepId, String stepId) throws ClientGeneralException {
         WorkflowStepCompleter.stepExecuting(stepId);
         String spDn = (String) workflowService.loadStepData(createSpStepId);
         try {
@@ -830,6 +822,12 @@ public class UcsComputeDevice implements ComputeDevice {
             } else {
                 LOGGER.info("No OP");
             }
+            Host host = _dbClient.queryObject(Host.class, hostURI);
+            if (host!=null && host.getComputeElement()!=null){
+               host.setComputeElement(NullColumnValueGetter.getNullURI());
+               _dbClient.persistObject(host);
+            }
+
             WorkflowStepCompleter.stepSucceded(stepId);
         } catch (Exception e) {
             LOGGER.error("Unable to deleteLsServer...", e);
@@ -1014,6 +1012,30 @@ public class UcsComputeDevice implements ComputeDevice {
 
     }
 
+    public void setNoBoot(ComputeSystem cs, URI computeElementId, URI hostId,
+            boolean waitForServerRestart) throws InternalException {
+
+        ComputeElement computeElement = _dbClient.queryObject(ComputeElement.class, computeElementId);
+
+        try {
+            ucsmService.setServiceProfileToNoBoot(getUcsmURL(cs).toString(), cs.getUsername(), cs.getPassword(),
+                    computeElement.getDn());
+
+            if (waitForServerRestart) {
+                pullAndPollManagedObject(getUcsmURL(cs).toString(), cs.getUsername(), cs.getPassword(),
+                        computeElement.getDn(), LsServer.class);
+            }
+        } catch (ClientGeneralException e) {
+            if (computeElement == null){
+                throw ComputeSystemControllerException.exceptions.unableToSetNoBoot(computeElementId.toString(), e);
+            } else {
+                throw ComputeSystemControllerException.exceptions.unableToSetNoBoot(computeElement.getLabel(), e);
+            }
+        }
+
+    }
+
+
     @Override
     public void setLanBootTarget(ComputeSystem cs, URI computeElementId, URI hostId,
             boolean waitForServerRestart) throws InternalException {
@@ -1128,37 +1150,48 @@ public class UcsComputeDevice implements ComputeDevice {
     public void deactivateHost(ComputeSystem cs, Host host) throws ClientGeneralException {
 
         try {
-            if (host != null && host.getComputeElement() != null && host.getUuid() != null) {
+             if (host != null && host.getComputeElement() != null ) {
+                ComputeElement computeElement = _dbClient.queryObject(ComputeElement.class, host.getComputeElement());
+                if (computeElement == null){
+                    LOGGER.error("Host "+ host.getLabel()+ " has associated computeElementURI: "+ host.getComputeElement()+ " which is an invalid reference");
+                    LOGGER.info("Service profile deletion will not be triggered");
+                    return;
+                }
+                LOGGER.info("Host.uuid: "+host.getUuid() + " ComputeElement.uuid: "+  computeElement.getUuid());
+                if (host.getUuid() != null ) {
+                    LsServer sp = ucsmService.getLsServer(getUcsmURL(cs).toString(),
+                            cs.getUsername(), cs.getPassword(), host.getUuid());
 
-                LsServer sp = ucsmService.getLsServer(getUcsmURL(cs).toString(),
-                        cs.getUsername(), cs.getPassword(), host.getUuid());
+                    if (sp != null) {
 
-                if (sp != null) {
+                        LsServer unboundServiceProfile = ucsmService.unbindServiceProfile(getUcsmURL(cs).toString(),
+                                cs.getUsername(), cs.getPassword(), sp.getDn());
 
-                    ComputeElement computeElement = _dbClient.queryObject(ComputeElement.class, host.getComputeElement());
+                        LOGGER.debug("Operational state of Deleted Service Profile : " + unboundServiceProfile.getOperState());
 
-                    LsServer unboundServiceProfile = ucsmService.unbindServiceProfile(getUcsmURL(cs).toString(),
-                            cs.getUsername(), cs.getPassword(), sp.getDn());
+                        ComputeBlade computeBlade = pullAndPollManagedObject(getUcsmURL(cs).toString(), cs.getUsername(), cs.getPassword(),
+                                computeElement.getLabel(), ComputeBlade.class);
+                       
+                        if (computeBlade == null){
+                             LOGGER.info("ComputeBlade "+ computeElement.getLabel()+ " not found on UCS");
+                        } else {
 
-                    LOGGER.debug("Operstate of Deleted Service Profile : " + unboundServiceProfile.getOperState());
+                             // Release the computeElement back into the pool as soon as we have unbound it from the service profile
+                             if (LsServerOperStates.UNASSOCIATED.equals(LsServerOperStates.fromString(computeBlade.getOperState()))) {
+                                 computeElement.setAvailable(true);
+                                 _dbClient.persistObject(computeElement);
+                             }
+                        }
 
-                    ComputeBlade computeBlade = pullAndPollManagedObject(getUcsmURL(cs).toString(), cs.getUsername(), cs.getPassword(),
-                            computeElement.getLabel(), ComputeBlade.class);
-
-                    // Release the computeElement back into the pool as soon as we have unbound it from the service
-                    // profile
-                    if (LsServerOperStates.UNASSOCIATED.equals(LsServerOperStates.fromString(computeBlade.getOperState()))) {
-                        computeElement.setAvailable(true);
-                        _dbClient.persistObject(computeElement);
+                        ucsmService.deleteServiceProfile(getUcsmURL(cs).toString(), cs.getUsername(), cs.getPassword(),
+                                unboundServiceProfile.getDn());
+                    } else {
+                        LOGGER.info("No service profile with uuid: " + host.getUuid() + " found on the UCS. Nothing to delete. "); 
                     }
 
-                    ucsmService.deleteServiceProfile(getUcsmURL(cs).toString(), cs.getUsername(), cs.getPassword(),
-                            unboundServiceProfile.getDn());
+                    // On successful deletion of the service profile - get rid of the objects that represent objects from the service profile
+                    removeHostInitiatorsFromNetworks(host);
                 }
-
-                // On successful deletion of the service profile - get rid of the objects that represent objects from
-                // the service profile
-                removeHostInitiatorsFromNetworks(host);
             }
 
         } catch (ClientGeneralException e) {
@@ -1208,3 +1241,4 @@ public class UcsComputeDevice implements ComputeDevice {
     }
 
 }
+

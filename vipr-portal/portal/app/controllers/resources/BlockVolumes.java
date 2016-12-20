@@ -24,6 +24,7 @@ import play.data.binding.As;
 import play.i18n.Messages;
 import play.mvc.Util;
 import play.mvc.With;
+import plugin.StorageOsPlugin;
 import util.BlockConsistencyGroupUtils;
 import util.BourneUtil;
 import util.MessagesUtils;
@@ -34,6 +35,8 @@ import util.VirtualPoolUtils;
 import util.datatable.DataTablesSupport;
 
 import com.emc.sa.util.ResourceType;
+import com.emc.storageos.coordinator.client.model.Constants;
+import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.RelatedResourceRep;
 import com.emc.storageos.model.block.BlockMirrorRestRep;
@@ -79,6 +82,11 @@ public class BlockVolumes extends ResourceController {
         setActiveProjectId(projectId);
         renderArgs.put("dataTable", blockVolumesDataTable);
         renderArgs.put("filterOptions", FILTER_OPTIONS);
+        
+        CoordinatorClient coordinatorClient = StorageOsPlugin.getInstance().getCoordinatorClient();
+        String limit = coordinatorClient.getPropertyInfo().getProperty(Constants.RESOURCE_LIMIT_PROJECT_VOLUMES);
+        renderArgs.put(Constants.RESOURCE_LIMIT_PROJECT_VOLUMES, limit);
+        
         addReferenceData();
         render();
     }

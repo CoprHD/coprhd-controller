@@ -3126,6 +3126,11 @@ test_16() {
 #
 test_17() {
     echot "Test 17: Tests kill switch to disable export validation checks"
+    if [ "$SS" = "unity" ]; then
+        echo "For Unity, initiator cannot be deleted if host has mapped LUN. So skipping this test for Unity. The unknown LUN will prevent initiators from being deleted, hence export mask cannot be deleted."
+        return
+    fi
+
     expname=${EXPORT_GROUP_NAME}t3
 
     # Make sure we start clean; no masking view on the array
@@ -3732,6 +3737,11 @@ test_23() {
 #
 test_24() {
     echot "Test 24: Remove Volume doesn't remove the zone when extra volume is in the mask"
+    if [ "$SS" = "unity" ]; then
+        echo "Test 25 will fail for Unity due to COP-27345. Skipping."
+        return
+    fi
+
     expname=${EXPORT_GROUP_NAME}t24
 
     # Make sure we start clean; no masking view on the array
@@ -3824,6 +3834,9 @@ test_24() {
 test_25() {
     if [ "$SS" = "xio" ]; then
         echo "Test 25 is not applicable for XtremIO. Skipping."
+        return
+    elif [ "$SS" = "unity" ]; then
+        echo "Test 25 is not applicable for Unity. Skipping."
         return
     fi
 

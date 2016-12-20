@@ -81,6 +81,7 @@ public class VNXeSystemValidatorFactory implements StorageSystemValidatorFactory
         logger = new ValidatorLogger(log, ctx.getExportMask().forDisplay(), ctx.getStorage().forDisplay());
         VNXeExportMaskVolumesValidator volumeValidator = new VNXeExportMaskVolumesValidator(ctx.getStorage(), ctx.getExportMask(), ctx.getBlockObjects());
         volumeValidator.setExceptionContext(ctx);
+        volumeValidator.setCheckAllVolumes(false);
         VNXeExportMaskInitiatorsValidator initiatorValidator = new VNXeExportMaskInitiatorsValidator(ctx.getStorage(),
                 ctx.getExportMask());
         initiatorValidator.setExceptionContext(ctx);

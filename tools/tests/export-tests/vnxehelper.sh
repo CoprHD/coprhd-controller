@@ -20,8 +20,8 @@
 
 TMPFILE1=/tmp/verify-${RANDOM}
 TMPFILE2=$TMPFILE1-error
-NUMBER_OF_INITIATORS = "numberOfInitiators"
-NUMBER_OF_LUNS = "numberOfLUNs"
+NUMBER_OF_INITIATORS="numberOfInitiators"
+NUMBER_OF_LUNS="numberOfLUNs"
 
 ## Convenience method for deleting a mask outside of ViPR (including the storage group)
 delete_mask() {
@@ -133,7 +133,6 @@ tools_jar="${DIR}/ArrayTools.jar"
 array_type="unity"
 
 if [ -f ${tools_file} ]; then
-    echo "Using configuration file ${tools_file}"
     is_vnxe=$(grep "vnxe" ${tools_file} || echo "")
     if [ "$is_vnxe" != '' ]; then
         array_type="vnxe"
@@ -143,9 +142,7 @@ else
     exit 1
 fi
 
-if [ -f ${tools_jar} ]; then
-    echo "Using jar file ${tools_jar}"
-else
+if [ ! -f ${tools_jar} ]; then
     echo "${tools_jar} not found"    
     exit 1
 fi

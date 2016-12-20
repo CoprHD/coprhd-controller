@@ -4,8 +4,11 @@
  */
 package com.emc.storageos.volumecontroller.impl.validators.vnxe;
 
+import java.net.URI;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -18,8 +21,6 @@ import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.vnxe.models.HostLun;
 import com.emc.storageos.vnxe.models.VNXeBase;
 import com.emc.storageos.vnxe.models.VNXeHost;
-import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
-import com.emc.storageos.volumecontroller.impl.utils.DiscoveryUtils;
 import com.emc.storageos.volumecontroller.impl.validators.ValidatorLogger;
 
 /**
@@ -55,18 +56,23 @@ public class VNXeExportMaskVolumesValidator extends AbstractVNXeValidator {
                     if (checkAllVolumes) {
                         failValidation = true;
                     } else {
+                        Set<String> lunIds = new HashSet<String>();
+                        Collection<String> strUris = exportMask.getVolumes().keySet();
+                        for (String strUri : strUris) {
+                            BlockObject bo = BlockObject.fetch(dbClient, URI.create(strUri));
+                            if (bo != null && !bo.getInactive()) {
+                                lunIds.add(bo.getNativeId());
+                            }
+                        }
+
                         for (VNXeBase hostLunId : hostLunIds) {
                             HostLun hostLun = apiClient.getHostLun(hostLunId.getId());
                             // get lun from from hostLun
                             VNXeBase vnxelunId = hostLun.getLun();
                             if (vnxelunId != null) {
-                                lunId = vnxelunId.toString();
-                                String nativeGuid = NativeGUIDGenerator.generateNativeGuidForVolumeOrBlockSnapShot(storage.getNativeGuid(),
-                                        lunId);
-                                // ViPR managed LUN could be exported to host outside ViPR, it is still a known LUN to ViPR
-                                if (DiscoveryUtils.checkStorageVolumeExistsInDB(dbClient, nativeGuid) == null &&
-                                        DiscoveryUtils.checkBlockSnapshotExistsInDB(dbClient, nativeGuid) == null) {
-                                    log.info("LUN {} is unmanaged", lunId);
+                                lunId = vnxelunId.getId().toString();
+                                if (!lunIds.contains(lunId)) {
+                                    log.info("LUN {} is unknown", lunId);
                                     failValidation = true;
                                     break;
                                 }

@@ -26,7 +26,7 @@
 # the array resource before retrying, but that is an easier service operation than cleaning the ViPR database.
 #
 #set -x
-export PERL5LIB=/workspace/amritha/lib/perl5
+
 source $(dirname $0)/wftests_host_cluster.sh
 VIPRCLI_CMD="/opt/storageos/cli/bin/viprcli"
 LOCAL_LDAP_AUTHN_MANAGER_PWD=secret
@@ -1022,8 +1022,8 @@ reset_system_props() {
 # Reset all of the system properties so settings are back to normal that are changed 
 # during the tests themselves.
 reset_system_props_pre_test() {
-	#echo "inside reset_system_props_pre_test()."    
-	set_artificial_failure "none"
+	echo "inside reset_system_props_pre_test()."    
+	#set_artificial_failure "none"
 }
 
 # Clean zones from previous tests, verify no zones are on the switch
@@ -1813,7 +1813,7 @@ verify_failures() {
 }
 
 test_1(){
-  secho "Running Test 9 for datastore creation and rename."
+  secho "Running Test 1 for datastore creation and rename."
         item=${RANDOM}
         cfs="ActionableEvent"
         failure="Failed to detect the name change of the Datastore"
@@ -1825,7 +1825,8 @@ test_1(){
         #snap_db 2 ${cfs}
         #validate_db 1 2 ${cfs}
         runcmd  esxcfg-rename-datastore.pl --server lglw8062.lss.emc.com --username administrator@vsphere6.local --password D@ngerous1 --datastore tbdel1912_1 --txtplacement prepend --txtformat local-storage- --operation rename
-        discover_vcenter "urn:storageos:Vcenter:3f099f3a-ebcb-4a3a-8c78-8661fc9085af:vdc1"
+        #discover_vcenter "urn:storageos:Vcenter:75402ddd-d4f7-436f-810b-be25fa7de929:vdc1"
+	discover_vcenter "lglw8062"
         snap_db 2 ${cfs}
         validate_db 1 2 ${cfs}
         if egrep "eventStatus = pending|eventCode = 107" results/${item}/ActionableEvent-2.txt

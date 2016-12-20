@@ -8219,7 +8219,26 @@ class Bourne:
                 if (vcenter['name'] == label):
                     return vcenter['id']
         raise Exception('bad vcenter name: ' + name)
+    
+	def vcenter_query_root_tenant(self, name):
+        label = name
+        tenant = self.tenant_getid()
+        #print tenant
+        vcenters = self.vcenter_list(tenant)
+        for vcenter in vcenters:
+            if (vcenter['name'] == label):
+                return vcenter['id']
+        raise Exception('wrong vcenter name: '+ name)
 
+    def vcenter_query_root_tenant(self, name):
+        label = name
+        tenant = self.tenant_getid()
+        #print tenant
+        vcenters = self.vcenter_list(tenant)
+        for vcenter in vcenters:
+            if (vcenter['name'] == label):
+                return vcenter['id']
+        raise Exception('wrong vcenter name: '+ name)
     def vcenter_show(self, name):
         uri = self.vcenter_query(name)
         return self.api('GET', URI_VCENTER.format(uri))
@@ -8229,7 +8248,7 @@ class Bourne:
         return self.api('GET', uri_vcenter_task.format(vcenter, task))
 
     def vcenter_discover(self, name):
-        uri = self.vcenter_query(name)
+        uri = self.vcenter_query_root_tenant(name)
         o = self.api('POST', URI_VCENTER_DISCOVER.format(uri))
         self.assert_is_dict(o)
         try:

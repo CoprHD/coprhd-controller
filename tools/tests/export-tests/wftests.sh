@@ -2248,7 +2248,7 @@ test_4() {
     failure_injections="${common_failure_injections} ${storage_failure_injections} ${network_failure_injections}"
 
     # Placeholder when a specific failure case is being worked...
-    # failure_injections="failure_004:failure_020"
+    # failure_injections="failure_047_NetworkDeviceController.zoneExportMaskCreate_before_zone"
 
     for failure in ${failure_injections}
     do
@@ -2826,6 +2826,124 @@ test_9() {
 
       # Report results
       report_results test_9 ${failure}
+    done
+}
+
+# Test 10
+#
+# Test removing a volumes while injecting several different failures that cause the job to not get
+# done, or not get done effectively enough.
+#
+# 1. Save off state of DB (1)
+# 2. Export a volume to a host
+# 3. Save off state of DB (2)
+# 4. Perform add volume operation that will fail at the end of execution (and other locations)
+# 5. Save off state of DB (3)
+# 6. Compare state (2) and (3)
+# 7. Retry operation without failure injection
+# 8. Save off state of DB (4)
+# 9. Compare state (1) and (4)
+#
+test_10() {
+    echot "Test 10 Begins"
+    expname=${EXPORT_GROUP_NAME}t6
+
+    common_failure_injections="failure_004_final_step_in_workflow_complete"
+
+    if [ "${SS}" = "vplex" ]
+    then
+	storage_failure_injections=""
+    fi
+
+    if [ "${SS}" = "vnx" -o "${SS}" = "vmax2" -o "${SS}" = "vmax3" -o "${SS}" = "unity" ]
+    then
+	storage_failure_injections="failure_017_Export_doRemoveVolume"
+    fi
+
+    failure_injections="${common_failure_injections} ${storage_failure_injections}"
+
+    # Placeholder when a specific failure case is being worked...
+    failure_injections="failure_firewall"
+
+    for failure in ${failure_injections}
+    do
+      item=${RANDOM}
+      TEST_OUTPUT_FILE=test_output_${item}.log
+      secho "Running Test 6 with failure scenario: ${failure}..."
+      cfs="ExportGroup ExportMask FCZoneReference"
+      mkdir -p results/${item}
+      volname=${VOLNAME}-${item}
+      reset_counts
+      
+      # Snap the state before the export group was created
+      snap_db 1 ${cfs}
+
+      # prime the export
+      runcmd export_group create $PROJECT ${expname}1 $NH --type Host --volspec "${PROJECT}/${VOLNAME}-1,${PROJECT}/${VOLNAME}-2" --hosts "${HOST1}"
+
+      # Turn on failure at a specific point
+      set_artificial_failure ${failure}
+
+      # Turn on suspend of export after orchestration
+      set_suspend_on_class_method ${exportRemoveVolumesDeviceStep}
+
+      if [ "${failure}" = "failure_firewall" ]
+      then
+	  # Run the export group command TODO: Do this more elegantly
+	  echo === export_group update $PROJECT/${expname}1 --remVols ${PROJECT}/${VOLNAME}-2
+	  resultcmd=`export_group update $PROJECT/${expname}1 --remVols ${PROJECT}/${VOLNAME}-2`
+
+	  if [ $? -ne 0 ]; then
+	      echo "export group command failed outright"
+	      cleanup
+	      finish 5
+	  fi
+
+	  # Show the result of the export group command for now (show the task and WF IDs)
+	  echo $resultcmd
+
+	  # Parse results (add checks here!  encapsulate!)
+	  taskworkflow=`echo $resultcmd | awk -F, '{print $2 $3}'`
+	  answersarray=($taskworkflow)
+	  task=${answersarray[0]}
+	  workflow=${answersarray[1]}
+
+	  # turn on firewall
+	  /usr/sbin/iptables -I INPUT 1 -s 10.247.28.161 -p all -j REJECT
+
+	  # Resume the workflow
+	  runcmd workflow resume $workflow
+
+	  # Follow the task.  It should fail because of Poka Yoke validation
+	  echo "*** Following the export_group update task to verify it FAILS because of firewall"
+	  fail task follow $task
+      else
+	  # Delete the export
+	  fail export_group update ${PROJECT}/${expname}1 --remVol ${PROJECT}/${VOLNAME}-2
+      fi
+
+      if [ "${failure}" = "failure_firewall" ]
+      then
+	  # turn off firewall
+	  /usr/sbin/iptables -D INPUT 1
+      else
+	  # Verify injected failures were hit
+	  verify_failures ${failure}
+      fi
+
+      # rerun the command
+      set_artificial_failure none
+      runcmd export_group update ${PROJECT}/${expname}1 --remVol ${PROJECT}/${VOLNAME}-2
+
+      # Delete the export group
+      runcmd export_group delete ${PROJECT}/${expname}1
+
+      # Validate the DB is back to its original state
+      snap_db 4 ${cfs}
+      validate_db 1 4 ${cfs}
+
+      # Report results
+      report_results test_10 ${failure}
     done
 }
 

@@ -536,6 +536,29 @@ public class BlockVirtualPools extends ViprResourceController {
         renderJSON(dataObjectOptions(pools));
     }
 
+    public static void listRemoteReplicationVirtualArraysJson(BlockVirtualPoolForm vpool) {
+        if (vpool == null) {
+            renderJSON(Collections.emptyList());
+        }
+        vpool.deserialize();
+        List<StringOption> actualOptions = Lists.newArrayList();
+        List<VirtualArrayRestRep> virtualArrays = await(vpool.srdfVirtualArrays().asPromise());
+        for (StringOption option : dataObjectOptions(virtualArrays)) {
+            if (!varrayAlreadyInRemoteReplication(option.id, vpool.remoteReplications)) {
+                actualOptions.add(option);
+            }
+        }
+        renderJSON(actualOptions);
+    }
+
+    public static void listRemoteReplicationVirtualPoolsJson(String virtualArray) {
+        if (virtualArray == null) {
+            renderJSON(Collections.emptyList());
+        }
+        List<BlockVirtualPoolRestRep> pools = await(new ConnectedBlockVirtualPoolsCall(uris(virtualArray)).asPromise());
+        renderJSON(dataObjectOptions(pools));
+    }
+
     public static void listHighAvailabilityVirtualArraysJson(BlockVirtualPoolForm vpool) {
         if (vpool == null) {
             renderJSON(Collections.emptyList());
@@ -674,6 +697,16 @@ public class BlockVirtualPools extends ViprResourceController {
     private static boolean varrayAlreadyInSRDFCopies(String varrayId, SrdfCopyForm[] copies) {
         for (SrdfCopyForm copy : copies) {
             if (copy.virtualArray.equals(varrayId)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static boolean varrayAlreadyInRemoteReplication(String varrayId, RemoteReplicationForm[] remoteReplications) {
+        for (RemoteReplicationForm remoteReplication : remoteReplications) {
+            if (remoteReplication.virtualArray.equals(varrayId)) {
                 return true;
             }
         }

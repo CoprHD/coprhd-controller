@@ -2405,6 +2405,17 @@ srdfCopy.virtualArray.error.duplicate=Virtual Arrays can only be used in once in
 srdfCopy.virtualPool=Virtual Pool
 srdfCopy.virtualPool.help=Optionally select a target Virtual Pool for this SRDF copy (defaults to same Virtual Pool as the source volume)
 
+
+# Remote Replication
+vpool.remoteReplications=Remote Replications
+vpool.remoteReplications.help=Configure target Virtual Arrays and optional target Virtual Pools for Remote Replications.
+remoteReplication.title=Remote Replications
+remoteReplication.virtualArray=Virtual Array
+remoteReplication.virtualArray.help=Select the target Virtual Array for this Remote Replication.
+remoteReplication.virtualArray.error.duplicate=Virtual Arrays can only be used in once in the list of Remote Replication
+remoteReplication.virtualPool=Virtual Pool
+remoteReplication.virtualPool.help=Optionally select a target Virtual Pool for this Remote Replications(defaults to same Virtual Pool as the source volume)
+
 # Quota
 vpool.enableQuota=Enable Quota
 vpool.quota=Quota

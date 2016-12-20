@@ -395,9 +395,6 @@
         </div>
         
         <div ng-if="vpool.remoteProtection == '${models.ProtectionSystemTypes.REMOTEREPLICATION}'">
-          <control-group v-field='vpool.remoteReplication'>
-            <select-one v-disabled="locked" options="remoteReplicationOptions" auto-default ></select-one>
-          </control-group>
           #{include 'arrays/BlockVirtualPools/remoteReplications.html' /}
         </div>
         

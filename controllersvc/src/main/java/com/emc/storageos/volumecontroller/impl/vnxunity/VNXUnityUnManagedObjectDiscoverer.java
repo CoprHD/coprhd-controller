@@ -1501,15 +1501,19 @@ public class VNXUnityUnManagedObjectDiscoverer {
                 if (Boolean.getBoolean(hostUnManagedVol.getVolumeCharacterstics()
                         .get(SupportedVolumeCharacterstics.IS_SNAP_SHOT.name()))) {
                     idCharSequence = HostLunRequests.ID_SEQUENCE_SNAP;
+                    Snap snap = apiClient.getSnapshot(lunId);
+                    lunId = snap.getLun().getId(); // get snap's parent id
                 }
-                HostLun hostLun = apiClient.getHostLun(hostId, lunId, idCharSequence);
-                String hostHlu = host.getName() + "=" + hostLun.getHlu();
-                StringSet existingHostHlu = (StringSet) hostUnManagedVol.getVolumeInformation().get(
-                        SupportedVolumeInformation.HLU_TO_EXPORT_MASK_NAME_MAP.name());
-                if (existingHostHlu != null) {
-                    existingHostHlu.add(hostHlu);
-                } else {
-                    hostUnManagedVol.getVolumeInformation().put(SupportedVolumeInformation.HLU_TO_EXPORT_MASK_NAME_MAP.name(), hostHlu);
+                HostLun hostLun = apiClient.getHostLun(lunId, hostId, idCharSequence);
+                if (hostLun != null) {
+                    String hostHlu = host.getName() + "=" + hostLun.getHlu();
+                    StringSet existingHostHlu = hostUnManagedVol.getVolumeInformation().get(
+                            SupportedVolumeInformation.HLU_TO_EXPORT_MASK_NAME_MAP.name());
+                    if (existingHostHlu != null) {
+                        existingHostHlu.add(hostHlu);
+                    } else {
+                        hostUnManagedVol.getVolumeInformation().put(SupportedVolumeInformation.HLU_TO_EXPORT_MASK_NAME_MAP.name(), hostHlu);
+                    }
                 }
 
                 unManagedExportVolumesToUpdate.add(hostUnManagedVol);
@@ -1776,7 +1780,7 @@ public class VNXUnityUnManagedObjectDiscoverer {
      */
     private void populateSnapInfo(UnManagedVolume unManagedVolume, Snap snap, String parentVolumeNatvieGuid,
             StringSet parentMatchedVPools) {
-        log.info(String.format("populate snap:", snap.getName()));
+        log.info("populate snap: {}", snap.getName());
         unManagedVolume.getVolumeCharacterstics().put(SupportedVolumeCharacterstics.IS_SNAP_SHOT.toString(), Boolean.TRUE.toString());
 
         StringSet parentVol = new StringSet();

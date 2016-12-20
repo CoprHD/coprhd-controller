@@ -307,14 +307,14 @@ public class VNXeApiClient {
     }
 
     /**
-     * Get hostLun based on host id & Lun id.
+     * Get hostLun based on Lun id & host id.
      *
-     * @param hostId the host id
      * @param lunId the lun id
+     * @param hostId the host id
      * @param idCharSequence the id char sequence
      * @return HostLun
      */
-    public HostLun getHostLun(String hostId, String lunId, String idCharSequence) {
+    public HostLun getHostLun(String lunId, String hostId, String idCharSequence) {
         HostLunRequests req = new HostLunRequests(_khClient);
         return req.getHostLun(lunId, hostId, idCharSequence);
     }

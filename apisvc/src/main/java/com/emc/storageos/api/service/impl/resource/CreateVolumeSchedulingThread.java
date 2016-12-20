@@ -107,9 +107,8 @@ class CreateVolumeSchedulingThread implements Runnable {
                 volume.setInactive(true);
                 // clean up the consistency group
                 if (consistencyGroup != null) {
-                    StringSet requestedTypes = consistencyGroup.getRequestedTypes();
-                    requestedTypes.removeAll(requestedTypes);
-                    consistencyGroup.setRequestedTypes(requestedTypes);
+                    StringSet cgRequestTypes = consistencyGroup.getRequestedTypes();
+                    cgRequestTypes.removeAll(cgRequestTypes);
                     this.blockService._dbClient.updateObject(consistencyGroup);
                 }
                 this.blockService._dbClient.updateObject(volume);

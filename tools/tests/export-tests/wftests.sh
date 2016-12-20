@@ -937,8 +937,16 @@ prerun_setup() {
     fi
     
     if [ "${SIM}" = "1" ]; then
-	    FC_ZONE_A=${CLUSTER1NET_SIM_NAME}	  
-	fi
+	FC_ZONE_A=${CLUSTER1NET_SIM_NAME}	  
+    fi
+
+    # Some failures are brocade or cisco specific
+    /opt/storageos/bin/dbutils list NetworkSystem | grep -i brocade > /dev/null
+    if [ $? -eq 0 ]
+    then
+	BROCADE=1
+	secho "Found Brocade switch"
+    fi
 
     # All export operations orchestration go through the same entry-points
     exportCreateOrchStep=ExportWorkflowEntryPoints.exportGroupCreate
@@ -1082,7 +1090,7 @@ unity_setup()
     run cos create block ${VPOOL_BASE}	\
 	--description Base true                 \
 	--protocols FC 			                \
-	--numpaths 1				            \
+	--numpaths 2				            \
 	--multiVolumeConsistency \
 	--provisionType 'Thin'			        \
 	--max_snapshots 10                      \
@@ -1277,7 +1285,7 @@ vplex_sim_setup() {
                              --max_mirrors 0                                    \
                              --expandable true 
 
-            run cos update block $VPOOL_BASE --storage $VPLEX_SIM_VMAX7_NATIVEGUID
+            run cos update block $VPOOL_BASE --storage $VPLEX_SIM_VMAX2_NATIVEGUID
 
 	    # Migration vpool test
             secho "Setting up the virtual pool for local VPLEX provisioning and migration (source)"
@@ -1649,6 +1657,7 @@ setup() {
 
     if [ "${SIM}" != "1" ]; then
 	run networksystem create $BROCADE_NETWORK brocade --smisip $BROCADE_IP --smisport 5988 --smisuser $BROCADE_USER --smispw $BROCADE_PW --smisssl false
+	BROCADE=1;
     else
 	FABRIC_SIMULATOR=fabric-sim
 	if [ "${SS}" = "vplex" ]; then
@@ -1803,6 +1812,7 @@ test_1() {
                                failure_004:failure_013_BlockDeviceController.rollbackCreateVolumes_before_device_delete \
                                failure_004:failure_014_BlockDeviceController.rollbackCreateVolumes_after_device_delete"
 
+    storage_failure_injections=""
     if [ "${SS}" = "vplex" ]
     then
 	# Would love to have injections in the vplex package itself somehow, but hard to do since I stuck InvokeTestFailure in controller,
@@ -1813,10 +1823,9 @@ test_1() {
                                     failure_015_SmisCommandHelper.invokeMethod_AddMembers \
                                     failure_045_VPlexDeviceController.createVirtualVolume_before_create_operation \
                                     failure_046_VPlexDeviceController.createVirtualVolume_after_create_operation \
-                                    failure_007_NetworkDeviceController.zoneExportRemoveVolumes_before_unzone \
-                                    failure_008_NetworkDeviceController.zoneExportRemoveVolumes_after_unzone \
-                                    failure_009_VPlexVmaxMaskingOrchestrator.createOrAddVolumesToExportMask_before_operation \
-                                    failure_010_VPlexVmaxMaskingOrchestrator.createOrAddVolumesToExportMask_after_operation"
+                                    failure_004:failure_007_NetworkDeviceController.zoneExportRemoveVolumes_before_unzone \
+                                    failure_004:failure_008_NetworkDeviceController.zoneExportRemoveVolumes_after_unzone \
+                                    failure_009_VPlexVmaxMaskingOrchestrator.createOrAddVolumesToExportMask_before_operation"
     fi
 
     if [ "${SS}" = "vmax3" -o "${SS}" = "vmax2" ]
@@ -1847,7 +1856,7 @@ test_1() {
 
     if [ "${SS}" = "vplex" ]
     then
-	cfs="Volume ExportGroup ExportMask"
+	cfs="Volume ExportGroup ExportMask FCZoneReference"
     else
 	cfs="Volume"
     fi
@@ -1938,6 +1947,7 @@ test_2() {
                                failure_004:failure_013_BlockDeviceController.rollbackCreateVolumes_before_device_delete \
                                failure_004:failure_014_BlockDeviceController.rollbackCreateVolumes_after_device_delete"
 
+    storage_failure_injections=""
     if [ "${SS}" = "vplex" ]
     then
 	# Would love to have injections in the vplex package itself somehow, but hard to do since I stuck InvokeTestFailure in controller,
@@ -1950,8 +1960,7 @@ test_2() {
                                     failure_046_VPlexDeviceController.createVirtualVolume_after_create_operation \
                                     failure_007_NetworkDeviceController.zoneExportRemoveVolumes_before_unzone \
                                     failure_008_NetworkDeviceController.zoneExportRemoveVolumes_after_unzone \
-                                    failure_009_VPlexVmaxMaskingOrchestrator.createOrAddVolumesToExportMask_before_operation \
-                                    failure_010_VPlexVmaxMaskingOrchestrator.createOrAddVolumesToExportMask_after_operation"
+                                    failure_009_VPlexVmaxMaskingOrchestrator.createOrAddVolumesToExportMask_before_operation"
     fi
 
     if [ "${SS}" = "vmax3" -o "${SS}" = "vmax2" ]
@@ -1987,7 +1996,7 @@ test_2() {
 
     if [ "${SS}" = "vplex" ]
     then
-	cfs="Volume ExportGroup ExportMask BlockConsistencyGroup"
+	cfs="Volume ExportGroup ExportMask BlockConsistencyGroup FCZoneReference"
     else
 	cfs="Volume BlockConsistencyGroup"
     fi
@@ -2089,10 +2098,10 @@ test_3() {
 
     common_failure_injections="failure_004_final_step_in_workflow_complete"
 
+    storage_failure_injections=""
     if [ "${SS}" = "vplex" ]
     then
-	storage_failure_injections="failure_009_VPlexVmaxMaskingOrchestrator.createOrAddVolumesToExportMask_before_operation&5 \
-                                    failure_010_VPlexVmaxMaskingOrchestrator.createOrAddVolumesToExportMask_after_operation&5"
+	storage_failure_injections="failure_009_VPlexVmaxMaskingOrchestrator.createOrAddVolumesToExportMask_before_operation&5"
     fi
 
     if [ "${SS}" = "vmax3" -o "${SS}" = "vmax2" ]
@@ -2118,9 +2127,9 @@ test_3() {
 
     if [ "${SS}" = "vplex" ]
     then
-	cfs="Volume ExportGroup ExportMask"
+	cfs="Volume ExportGroup ExportMask FCZoneReference"
     else
-	cfs="Volume ExportGroup ExportMask"
+	cfs="Volume"
     fi
 
     for failure in ${failure_injections}
@@ -2203,8 +2212,21 @@ test_4() {
     echot "Test 4 Begins"
     expname=${EXPORT_GROUP_NAME}t0
 
-    common_failure_injections="failure_004_final_step_in_workflow_complete"
+    common_failure_injections="failure_047_NetworkDeviceController.zoneExportMaskCreate_before_zone \
+                               failure_048_NetworkDeviceController.zoneExportMaskCreate_after_zone \
+                               failure_004_final_step_in_workflow_complete \
+                               failure_004:failure_018_Export_doRollbackExportCreate_before_delete \
+                               failure_004:failure_020_Export_zoneRollback_before_delete \
+                               failure_004:failure_021_Export_zoneRollback_after_delete"
 
+
+    network_failure_injections=""
+    if [ "${BROCADE}" = "1" ]
+    then
+	network_failure_injections="failure_049_BrocadeNetworkSMIS.getWEBMClient"
+    fi
+
+    storage_failure_injections=""
     if [ "${SS}" = "vplex" ]
     then
 	storage_failure_injections=""
@@ -2212,36 +2234,29 @@ test_4() {
 
     if [ "${SS}" = "vnx" ]
     then
-        storage_failure_injections="failure_015_SmisCommandHelper.invokeMethod_CreateStorageHardwareID failure_004:failure_018 failure_004:failure_019 failure_004:failure_020 failure_004:failure_021"
+        storage_failure_injections="failure_015_SmisCommandHelper.invokeMethod_CreateStorageHardwareID"
     fi
 
     if [ "${SS}" = "vmax2" -o "${SS}" = "vmax3" ]
     then
-	storage_failure_injections="failure_015_SmisCommandHelper.invokeMethod_CreateGroup \
-                                    failure_004:failure_018_Export_doRollbackExportCreate_before_delete \
-                                    failure_004:failure_019_Export_doRollbackExportCreate_after_delete \
-                                    failure_004:failure_020_Export_zoneRollback_before_delete \
-                                    failure_004:failure_021_Export_zoneRollback_after_delete"
+	storage_failure_injections="failure_015_SmisCommandHelper.invokeMethod_CreateGroup"
     fi
 
     if [ "${SS}" = "unity" ]; then
-      storage_failure_injections="failure_004:failure_018_Export_doRollbackExportCreate_before_delete \
-                                  failure_004:failure_019_Export_doRollbackExportCreate_after_delete \
-                                  failure_004:failure_020_Export_zoneRollback_before_delete \
-                                  failure_004:failure_021_Export_zoneRollback_after_delete"
+      storage_failure_injections=""
     fi
 
-    failure_injections="${common_failure_injections} ${storage_failure_injections}"
+    failure_injections="${common_failure_injections} ${storage_failure_injections} ${network_failure_injections}"
 
     # Placeholder when a specific failure case is being worked...
-    # failure_injections="failure_004:failure_020_Export_zoneRollback_before_delete"
+    # failure_injections="failure_047_NetworkDeviceController.zoneExportMaskCreate_before_zone"
 
     for failure in ${failure_injections}
     do
       item=${RANDOM}
       TEST_OUTPUT_FILE=test_output_${item}.log
       secho "Running Test 4 with failure scenario: ${failure}..."
-      cfs="ExportGroup ExportMask"
+      cfs="ExportGroup ExportMask FCZoneReference"
       mkdir -p results/${item}
       volname=${VOLNAME}-${item}
       reset_counts
@@ -2302,8 +2317,16 @@ test_5() {
 
     common_failure_injections="failure_004_final_step_in_workflow_complete \
                                failure_007_NetworkDeviceController.zoneExportRemoveVolumes_before_unzone \
-                               failure_008_NetworkDeviceController.zoneExportRemoveVolumes_after_unzone"
+                               failure_008_NetworkDeviceController.zoneExportRemoveVolumes_after_unzone \
+                               failure_018_Export_doRollbackExportCreate_before_delete"
 
+    network_failure_injections=""
+    if [ "${BROCADE}" = "1" ]
+    then
+	network_failure_injections="failure_049_BrocadeNetworkSMIS.getWEBMClient"
+    fi
+
+    storage_failure_injections=""
     if [ "${SS}" = "vplex" ]
     then
 	storage_failure_injections=""
@@ -2316,20 +2339,21 @@ test_5() {
 
     if [ "${SS}" = "vnx" ]
     then
-	storage_failure_injections="failure_015_SmisCommandHelper.invokeMethod_DeleteProtocolController failure_015_SmisCommandHelper.invokeMethod_DeleteStorageHardwareID"
+	storage_failure_injections="failure_015_SmisCommandHelper.invokeMethod_DeleteProtocolController \
+                                    failure_015_SmisCommandHelper.invokeMethod_DeleteStorageHardwareID"
     fi
 
-    failure_injections="${common_failure_injections} ${storage_failure_injections}"
+    failure_injections="${common_failure_injections} ${storage_failure_injections} ${network_failure_injections}"
 
     # Placeholder when a specific failure case is being worked...
-    # failure_injections="failure_007 failure_008"
+    # failure_injections="failure_018 failure_020 failure_021"
 
     for failure in ${failure_injections}
     do
       item=${RANDOM}
       TEST_OUTPUT_FILE=test_output_${item}.log
       secho "Running Test 5 with failure scenario: ${failure}..."
-      cfs="ExportGroup ExportMask"
+      cfs="ExportGroup ExportMask FCZoneReference"
       mkdir -p results/${item}
       volname=${VOLNAME}-${item}
       reset_counts
@@ -2387,6 +2411,7 @@ test_6() {
 
     common_failure_injections="failure_004_final_step_in_workflow_complete"
 
+    storage_failure_injections=""
     if [ "${SS}" = "vplex" ]
     then
 	storage_failure_injections=""
@@ -2407,7 +2432,7 @@ test_6() {
       item=${RANDOM}
       TEST_OUTPUT_FILE=test_output_${item}.log
       secho "Running Test 6 with failure scenario: ${failure}..."
-      cfs="ExportGroup ExportMask"
+      cfs="ExportGroup ExportMask FCZoneReference"
       mkdir -p results/${item}
       volname=${VOLNAME}-${item}
       reset_counts
@@ -2473,6 +2498,14 @@ test_7() {
                                failure_004:failure_016_Export_doRemoveInitiator \
                                failure_004:failure_024_Export_zone_removeInitiator_before_delete \
                                failure_004:failure_025_Export_zone_removeInitiator_after_delete"
+
+    network_failure_injections=""
+    if [ "${BROCADE}" = "1" ]
+    then
+	network_failure_injections="failure_049_BrocadeNetworkSMIS.getWEBMClient"
+    fi
+
+    storage_failure_injections=""
     if [ "${SS}" = "vplex" ]
     then
 	storage_failure_injections=""
@@ -2483,17 +2516,17 @@ test_7() {
 	storage_failure_injections=""
     fi
 
-    failure_injections="${common_failure_injections} ${storage_failure_injections}"
+    failure_injections="${common_failure_injections} ${storage_failure_injections} ${network_failure_injections}"
 
     # Placeholder when a specific failure case is being worked...
-    # failure_injections="failure_004:failure_024"
+    # failure_injections="failure_004:failure_020_Export_zoneRollback_before_delete"
 
     for failure in ${failure_injections}
     do
       item=${RANDOM}
       TEST_OUTPUT_FILE=test_output_${item}.log
       secho "Running Test 7 with failure scenario: ${failure}..."
-      cfs="ExportGroup ExportMask"
+      cfs="ExportGroup ExportMask FCZoneReference"
       mkdir -p results/${item}
       volname=${VOLNAME}-${item}
       reset_counts
@@ -2572,12 +2605,12 @@ test_8() {
     common_failure_injections="failure_004_final_step_in_workflow_complete"
     meta_size=240GB
 
+    storage_failure_injections=""
     if [ "${SS}" = "vplex" ]
     then
 	storage_failure_injections="failure_007_NetworkDeviceController.zoneExportRemoveVolumes_before_unzone \
                                     failure_008_NetworkDeviceController.zoneExportRemoveVolumes_after_unzone \
-                                    failure_009_VPlexVmaxMaskingOrchestrator.createOrAddVolumesToExportMask_before_operation \
-                                    failure_010_VPlexVmaxMaskingOrchestrator.createOrAddVolumesToExportMask_after_operation"
+                                    failure_009_VPlexVmaxMaskingOrchestrator.createOrAddVolumesToExportMask_before_operation"
     fi
 
     if [ "${SS}" = "vmax2" ]
@@ -2604,7 +2637,12 @@ test_8() {
       item=${RANDOM}
       TEST_OUTPUT_FILE=test_output_${item}.log
       secho "Running Test 1 with failure scenario: ${failure}..."
-      cfs="Volume ExportGroup ExportMask"
+      if [ "${SS}" = "vplex" ]
+      then
+	  cfs="Volume ExportGroup ExportMask FCZoneReference"
+      else
+	  cfs="Volume"
+      fi
       reset_counts
       mkdir -p results/${item}
       volname=${VOLNAME}-${item}
@@ -2689,10 +2727,10 @@ test_9() {
     # Typically we have failure_004 here, but in the case of delete, there's no real rollback.
     common_failure_injections=""
 
+    storage_failure_injections=""
     if [ "${SS}" = "vplex" ]
     then
-	storage_failure_injections="failure_009_VPlexVmaxMaskingOrchestrator.deleteOrRemoveVolumesToExportMask_before_operation \
-                                    failure_010_VPlexVmaxMaskingOrchestrator.deleteOrRemoveVolumesToExportMask_after_operation"
+	storage_failure_injections="failure_009_VPlexVmaxMaskingOrchestrator.deleteOrRemoveVolumesToExportMask_before_operation"
     fi
 
     if [ "${SS}" = "unity" ]
@@ -2790,6 +2828,125 @@ test_9() {
 
       # Report results
       report_results test_9 ${failure}
+    done
+}
+
+# Test 10
+#
+# Test removing a volumes while injecting several different failures that cause the job to not get
+# done, or not get done effectively enough.
+#
+# 1. Save off state of DB (1)
+# 2. Export a volume to a host
+# 3. Save off state of DB (2)
+# 4. Perform add volume operation that will fail at the end of execution (and other locations)
+# 5. Save off state of DB (3)
+# 6. Compare state (2) and (3)
+# 7. Retry operation without failure injection
+# 8. Save off state of DB (4)
+# 9. Compare state (1) and (4)
+#
+test_10() {
+    echot "Test 10 Begins"
+    expname=${EXPORT_GROUP_NAME}t6
+
+    common_failure_injections="failure_004_final_step_in_workflow_complete"
+
+    storage_failure_injections=""
+    if [ "${SS}" = "vplex" ]
+    then
+	storage_failure_injections=""
+    fi
+
+    if [ "${SS}" = "vnx" -o "${SS}" = "vmax2" -o "${SS}" = "vmax3" -o "${SS}" = "unity" ]
+    then
+	storage_failure_injections="failure_017_Export_doRemoveVolume"
+    fi
+
+    failure_injections="${common_failure_injections} ${storage_failure_injections}"
+
+    # Placeholder when a specific failure case is being worked...
+    failure_injections="failure_firewall"
+
+    for failure in ${failure_injections}
+    do
+      item=${RANDOM}
+      TEST_OUTPUT_FILE=test_output_${item}.log
+      secho "Running Test 6 with failure scenario: ${failure}..."
+      cfs="ExportGroup ExportMask FCZoneReference"
+      mkdir -p results/${item}
+      volname=${VOLNAME}-${item}
+      reset_counts
+      
+      # Snap the state before the export group was created
+      snap_db 1 ${cfs}
+
+      # prime the export
+      runcmd export_group create $PROJECT ${expname}1 $NH --type Host --volspec "${PROJECT}/${VOLNAME}-1,${PROJECT}/${VOLNAME}-2" --hosts "${HOST1}"
+
+      # Turn on failure at a specific point
+      set_artificial_failure ${failure}
+
+      # Turn on suspend of export after orchestration
+      set_suspend_on_class_method ${exportRemoveVolumesDeviceStep}
+
+      if [ "${failure}" = "failure_firewall" ]
+      then
+	  # Run the export group command TODO: Do this more elegantly
+	  echo === export_group update $PROJECT/${expname}1 --remVols ${PROJECT}/${VOLNAME}-2
+	  resultcmd=`export_group update $PROJECT/${expname}1 --remVols ${PROJECT}/${VOLNAME}-2`
+
+	  if [ $? -ne 0 ]; then
+	      echo "export group command failed outright"
+	      cleanup
+	      finish 5
+	  fi
+
+	  # Show the result of the export group command for now (show the task and WF IDs)
+	  echo $resultcmd
+
+	  # Parse results (add checks here!  encapsulate!)
+	  taskworkflow=`echo $resultcmd | awk -F, '{print $2 $3}'`
+	  answersarray=($taskworkflow)
+	  task=${answersarray[0]}
+	  workflow=${answersarray[1]}
+
+	  # turn on firewall
+	  /usr/sbin/iptables -I INPUT 1 -s 10.247.28.161 -p all -j REJECT
+
+	  # Resume the workflow
+	  runcmd workflow resume $workflow
+
+	  # Follow the task.  It should fail because of Poka Yoke validation
+	  echo "*** Following the export_group update task to verify it FAILS because of firewall"
+	  fail task follow $task
+      else
+	  # Delete the export
+	  fail export_group update ${PROJECT}/${expname}1 --remVol ${PROJECT}/${VOLNAME}-2
+      fi
+
+      if [ "${failure}" = "failure_firewall" ]
+      then
+	  # turn off firewall
+	  /usr/sbin/iptables -D INPUT 1
+      else
+	  # Verify injected failures were hit
+	  verify_failures ${failure}
+      fi
+
+      # rerun the command
+      set_artificial_failure none
+      runcmd export_group update ${PROJECT}/${expname}1 --remVol ${PROJECT}/${VOLNAME}-2
+
+      # Delete the export group
+      runcmd export_group delete ${PROJECT}/${expname}1
+
+      # Validate the DB is back to its original state
+      snap_db 4 ${cfs}
+      validate_db 1 4 ${cfs}
+
+      # Report results
+      report_results test_10 ${failure}
     done
 }
 

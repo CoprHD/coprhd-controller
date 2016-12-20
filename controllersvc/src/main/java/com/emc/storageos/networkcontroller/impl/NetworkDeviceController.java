@@ -80,8 +80,10 @@ import com.emc.storageos.util.NetworkLite;
 import com.emc.storageos.util.NetworkUtil;
 import com.emc.storageos.volumecontroller.AsyncTask;
 import com.emc.storageos.volumecontroller.ControllerException;
+import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.BiosCommandResult;
 import com.emc.storageos.volumecontroller.impl.ControllerUtils;
+import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ZoneReferencesRemoveCompleter;
 import com.emc.storageos.volumecontroller.impl.monitoring.RecordableBourneEvent;
 import com.emc.storageos.volumecontroller.impl.monitoring.RecordableEventManager;
 import com.emc.storageos.volumecontroller.impl.monitoring.cim.enums.RecordType;
@@ -1551,6 +1553,7 @@ public class NetworkDeviceController implements NetworkController {
      * @throws DeviceControllerException
      */
     public boolean zoneRollback(URI exportGroupURI, String contextKey, String taskId) throws DeviceControllerException {
+        TaskCompleter taskCompleter = null;
         try {
             NetworkFCContext context = (NetworkFCContext) WorkflowService.getInstance()
                     .loadStepData(contextKey);
@@ -1578,6 +1581,8 @@ public class NetworkDeviceController implements NetworkController {
                     rollbackList.add(info);
                 }
             }
+            
+            taskCompleter = new ZoneReferencesRemoveCompleter(rollbackList, context.isAddingZones(), taskId);
 
             InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_020);
             BiosCommandResult result = addRemoveZones(exportGroupURI, rollbackList,
@@ -1596,6 +1601,7 @@ public class NetworkDeviceController implements NetworkController {
             _log.error("Exception occurred while doing zone rollback", ex);
             ServiceError svcError = NetworkDeviceControllerException.errors.zoneRollbackFailedExc(
                     exportGroupURI.toString(), ex);
+            taskCompleter.error(_dbClient, svcError);
             WorkflowStepCompleter.stepFailed(taskId, svcError);
             return false;
         }

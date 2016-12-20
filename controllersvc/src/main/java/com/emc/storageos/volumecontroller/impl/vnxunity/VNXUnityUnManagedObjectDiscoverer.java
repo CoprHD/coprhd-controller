@@ -1498,7 +1498,7 @@ public class VNXUnityUnManagedObjectDiscoverer {
                 String lunId = (nativeId != null && nativeId.iterator().hasNext()) ? nativeId.iterator().next()
                         : nativeGuid.substring(nativeGuid.lastIndexOf(Constants.PLUS) + 1);
                 String idCharSequence = HostLunRequests.ID_SEQUENCE_LUN;
-                if (Boolean.getBoolean(hostUnManagedVol.getVolumeCharacterstics()
+                if (Boolean.valueOf(hostUnManagedVol.getVolumeCharacterstics()
                         .get(SupportedVolumeCharacterstics.IS_SNAP_SHOT.name()))) {
                     idCharSequence = HostLunRequests.ID_SEQUENCE_SNAP;
                     Snap snap = apiClient.getSnapshot(lunId);

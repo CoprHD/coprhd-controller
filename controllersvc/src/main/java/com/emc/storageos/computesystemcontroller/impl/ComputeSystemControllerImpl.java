@@ -76,6 +76,7 @@ import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.ControllerLockingUtil;
 import com.emc.storageos.volumecontroller.impl.ControllerServiceImpl;
 import com.emc.storageos.volumecontroller.impl.ControllerServiceImpl.Lock;
+import com.emc.storageos.volumecontroller.impl.block.taskcompleter.VolumeTaskCompleter;
 import com.emc.storageos.volumecontroller.placement.BlockStorageScheduler;
 import com.emc.storageos.workflow.Workflow;
 import com.emc.storageos.workflow.Workflow.Method;
@@ -114,6 +115,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
     private static final String REMOVE_HOST_STORAGE_WF_NAME = "REMOVE_HOST_STORAGE_WORKFLOW";
     private static final String REMOVE_IPINTERFACE_STORAGE_WF_NAME = "REMOVE_IPINTERFACE_STORAGE_WORKFLOW";
     private static final String HOST_CHANGES_WF_NAME = "HOST_CHANGES_WORKFLOW";
+    private static final String DATASTORE_NAME_CHANGE_WF_NAME = "DATASTORE_NAME_CHANGE_WORKFLOW";
     private static final String SYNCHRONIZE_SHARED_EXPORTS_WF_NAME = "SYNCHRONIZE_SHARED_EXPORTS_WORKFLOW";
 
     private static final String DETACH_HOST_STORAGE_WF_NAME = "DETACH_HOST_STORAGE_WORKFLOW";
@@ -126,6 +128,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
     private static final String UPDATE_FILESHARE_EXPORT_STEP = "UpdateFileshareExportStep";
     private static final String UNEXPORT_FILESHARE_STEP = "UnexportFileshareStep";
     private static final String UPDATE_HOST_AND_INITIATOR_CLUSTER_NAMES_STEP = "UpdateHostAndInitiatorClusterNamesStep";
+    private static final String UPDATE_DATASTORE_NAME_STEP = "UpdateDatastoreNameStep";
 
     private static final String VERIFY_DATASTORE_STEP = "VerifyDatastoreStep";
 
@@ -271,6 +274,67 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
             ServiceError serviceError = DeviceControllerException.errors.jobFailed(ex);
             completer.error(_dbClient, serviceError);
         }
+    }
+    
+    @Override
+    public void processDatastoreRename(URI eventId, URI volume, String taskId, URI datastore, URI vcenterURI)
+            throws ControllerException {
+        TaskCompleter completer = null;
+        try {
+            completer = new VolumeCompleter(volume, taskId);
+            Workflow workflow = _workflowService.getNewWorkflow(this,
+                    DATASTORE_NAME_CHANGE_WF_NAME, true, taskId);
+            String waitFor = null;
+            waitFor = addStepForDatastoreRename(workflow, waitFor, volume, datastore, vcenterURI);
+            workflow.executePlan(completer, "Success", null, null, null, null);
+        } catch (Exception ex) {
+            String message = "Datastore name change could not succeed because of exception:";
+            _log.error(message, ex);
+            ServiceError serviceError = DeviceControllerException.errors.jobFailed(ex);
+            if (completer != null) {
+                completer.error(_dbClient, serviceError);
+            }
+        }
+    }
+
+    private String addStepForDatastoreRename(Workflow workflow, String waitFor, URI volume,
+            URI datastore, URI vcenterURI) {
+        waitFor = workflow.createStep(UPDATE_DATASTORE_NAME_STEP,
+                "Updating datastore name", waitFor,
+                volume, volume.toString(),
+                this.getClass(),
+                updateDatastoreNameMethod(volume, datastore, vcenterURI),
+                null, null);
+        return waitFor;
+    }
+
+    private Workflow.Method updateDatastoreNameMethod(URI volume, URI datastore, URI vcenter) {
+        return new Workflow.Method("updateDatastoreName", volume, datastore, vcenter);
+    }
+
+    /**
+     * Invoked using reflection for the workflow framework
+     * 
+     * @param volume
+     *            - changed volume
+     * @param datastore
+     *            - changed datastore
+     * @param vcenterURI
+     *            - vcenter where datastore belongs to.
+     * @param stepId
+     */
+    public void updateDatastoreName(URI volume, URI datastore, URI vcenterURI, String stepId) {
+        WorkflowStepCompleter.stepExecuting(stepId);
+        Vcenter vcenter = _dbClient.queryObject(Vcenter.class, vcenterURI);
+        VCenterAPI vcenterAPI = VcenterDiscoveryAdapter.createVCenterAPI(vcenter);
+        boolean success = false;
+        success = ComputeSystemHelper.updateDatastoreName(_dbClient, volume, datastore, vcenterAPI);
+        if (success) {
+            WorkflowStepCompleter.stepSucceded(stepId);
+        } else {
+            WorkflowStepCompleter.stepFailed(stepId, DeviceControllerException.errors.unforeseen());
+        }
+
     }
 
     /**

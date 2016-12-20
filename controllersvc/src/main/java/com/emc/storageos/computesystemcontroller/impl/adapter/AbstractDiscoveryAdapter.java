@@ -12,7 +12,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
-
 import javax.net.ssl.SSLException;
 
 import org.apache.commons.lang.StringUtils;

@@ -38,6 +38,7 @@ import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.model.TaskResourceRep;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
+import com.vmware.vim25.mo.Datastore;
 
 public class ActionableEventExecutor {
 
@@ -679,6 +680,87 @@ public class ActionableEventExecutor {
      */
     public List<String> addInitiatorDeclineDetails(URI initiator) {
         return Lists.newArrayList(ComputeSystemDialogProperties.getMessage("ComputeSystem.addInitiatorDeclineDetails"));
+    }
+    
+     /**
+     * Get details for the datastore rename method
+     * NOTE: In order to maintain backwards compatibility, do not change the signature of this method.
+     * 
+     * @param volume
+     *            - id that has been affected
+     * @param newDatastoreName
+     *            - name of the new datastore needed to print in the display message.
+     * @param changedDatastore
+     *            - changed datastore identifier.++
+     * @param vcenterURI
+     *            - vcenter where the datastore belongs
+     * @return - list of event details
+     */
+    @SuppressWarnings("unused") // Invoked using reflection for the event framework
+    public List<String> vcenterDatastoreRenameDetails(URI volume, String newDatastoreName, URI changedDatstore, URI vcenterURI) {
+        List<String> result = Lists.newArrayList();
+        Volume volumeObj = _dbClient.queryObject(Volume.class, volume);
+        if (volumeObj != null && newDatastoreName != null) {
+            result.add(ComputeSystemDialogProperties.getMessage("ComputeSystem.vcenterDatastoreRenameDetails", newDatastoreName));
+        }
+        return result;
+    }
+
+    /**
+     * Method to rename a datastore and update the volume tag.
+     * NOTE: In order to maintain backwards compatibility, do not change the signature of this method.
+     * 
+     * @param volume
+     *            - id that has been affected
+     * @param newDatastoreName
+     *            - name of the new datastore needed to print in the display message.
+     * @param changedDatastore
+     *            - changed datastore identifier.++
+     * @param vcenterURI
+     *            - vcenter where the datastore belongs
+     * @param eventId
+     *            - the event id
+     * @return - task for updating the datastore name
+     */
+    public TaskResourceRep vcenterDatastoreRename(URI volume, String newDatastoreName, URI changedDatastore, URI vcenterURI, URI eventId) {
+        String taskId = UUID.randomUUID().toString();
+        Operation op = _dbClient.createTaskOpStatus(Volume.class, volume, taskId,
+                ResourceOperationTypeEnum.UPDATE_DATA_STORE_NAME);
+        Volume volumeObj = _dbClient.queryObject(Volume.class, volume);
+        computeController.processDatastoreRename(eventId, volume, taskId, changedDatastore, vcenterURI);
+        return toTask(volumeObj, taskId, op);
+    }
+
+    /**
+     * Decline method that is invoked when the vcenterDatastoreRename event is declined
+     * NOTE: In order to maintain backwards compatibility, do not change the signature of this method.
+     * 
+     * @param volume
+     *            uri
+     * @param newDatastoreName
+     *            - name of the new datastore needed to print in the display message.
+     * @param eventId
+     *            the event id
+     * @return task
+     */
+    public TaskResourceRep vcenterDatastoreRenameDecline(URI volume, String newDatastoreName, URI eventId) {
+        return null;
+    }
+
+    /**
+     * Get details for a decline event for vcenterDatastoreRename
+     * NOTE: In order to maintain backwards compatibility, do not change the signature of this method.
+     * 
+     * @param @param
+     *            volume uri
+     * 
+     * @param newDatastoreName
+     *            - name of the new datastore needed to print in the display message.
+     * @return list of details
+     */
+    public List<String> vcenterDatastoreRenameDeclineDetails(URI volume, String newDatastoreName) {
+        return Lists.newArrayList(
+                ComputeSystemDialogProperties.getMessage("ComputeSystem.vcenterDatastoreRenameDeclineDetails", newDatastoreName));
     }
 
     /**

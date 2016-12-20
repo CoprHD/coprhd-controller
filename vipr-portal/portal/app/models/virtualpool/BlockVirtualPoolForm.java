@@ -13,8 +13,27 @@ import java.net.URI;
 import java.util.List;
 import java.util.Set;
 
+import jobs.vipr.AutoTierPolicyNamesCall;
+import jobs.vipr.ConnectedBlockVirtualPoolsCall;
+import jobs.vipr.ConnectedVirtualArraysCall;
+import jobs.vipr.MatchingBlockStoragePoolsCall;
+import models.ConnectivityTypes;
+import models.HighAvailability;
+import models.ProtectionSystemTypes;
+import models.SizeUnit;
+import models.StorageSystemTypes;
+
 import org.apache.commons.lang.BooleanUtils;
 import org.apache.commons.lang.StringUtils;
+
+import play.Logger;
+import play.data.validation.Max;
+import play.data.validation.Min;
+import play.data.validation.Validation;
+import play.i18n.Messages;
+import util.VirtualPoolUtils;
+import util.builders.BlockVirtualPoolBuilder;
+import util.builders.BlockVirtualPoolUpdateBuilder;
 
 import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.vpool.BlockVirtualPoolParam;
@@ -26,29 +45,13 @@ import com.emc.storageos.model.vpool.VirtualPoolProtectionRPParam;
 import com.emc.storageos.model.vpool.VirtualPoolProtectionVirtualArraySettingsParam;
 import com.emc.storageos.model.vpool.VirtualPoolRemoteMirrorProtectionParam;
 import com.emc.storageos.model.vpool.VirtualPoolRemoteProtectionVirtualArraySettingsParam;
+import com.emc.storageos.model.vpool.VirtualPoolRemoteReplicationParam;
+import com.emc.storageos.model.vpool.VirtualPoolRemoteReplicationSettingsParam;
 import com.emc.vipr.client.core.BlockVirtualPools;
 import com.emc.vipr.client.core.util.ResourceUtils;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.google.gson.Gson;
-
-import jobs.vipr.AutoTierPolicyNamesCall;
-import jobs.vipr.ConnectedBlockVirtualPoolsCall;
-import jobs.vipr.ConnectedVirtualArraysCall;
-import jobs.vipr.MatchingBlockStoragePoolsCall;
-import models.ConnectivityTypes;
-import models.HighAvailability;
-import models.ProtectionSystemTypes;
-import models.SizeUnit;
-import models.StorageSystemTypes;
-import play.Logger;
-import play.data.validation.Max;
-import play.data.validation.Min;
-import play.data.validation.Validation;
-import play.i18n.Messages;
-import util.VirtualPoolUtils;
-import util.builders.BlockVirtualPoolBuilder;
-import util.builders.BlockVirtualPoolUpdateBuilder;
 
 public class BlockVirtualPoolForm extends VirtualPoolCommonForm<BlockVirtualPoolRestRep> {
     @Min(0)
@@ -91,6 +94,8 @@ public class BlockVirtualPoolForm extends VirtualPoolCommonForm<BlockVirtualPool
     public String srdfCopyMode;
     public String srdfCopiesJson = "[]";
     public SrdfCopyForm[] srdfCopies = {};
+    public String remoteReplicationsJson = "[]";
+    public RemoteReplicationForm[] remoteReplications = {};
     public String sourceJournalVArray;
     public String haJournalVArray;
     public String sourceJournalVPool;
@@ -108,6 +113,7 @@ public class BlockVirtualPoolForm extends VirtualPoolCommonForm<BlockVirtualPool
         Gson g = new Gson();
         srdfCopies = g.fromJson(srdfCopiesJson, SrdfCopyForm[].class);
         rpCopies = g.fromJson(rpCopiesJson, RPCopyForm[].class);
+        remoteReplications = g.fromJson(remoteReplicationsJson, RemoteReplicationForm[].class);
     }
 
     @Override
@@ -184,6 +190,27 @@ public class BlockVirtualPoolForm extends VirtualPoolCommonForm<BlockVirtualPool
                 for (SrdfCopyForm copy2 : srdfCopies) {
                     if (!copy1.equals(copy2) && copy1.virtualArray.equals(copy2.virtualArray)) {
                         Validation.addError(formName + ".srdfCopies", "srdfCopy.virtualArray.error.duplicate");
+                    }
+                }
+            }
+        }
+    }
+
+    private void validateRemoteReplication(String formName) {
+        // TODO need to do for other supported storage system
+        if (!StringUtils.equals(systemType, StorageSystemTypes.DELLSCSYSTEM)) {
+            Validation.addError(formName + ".systemType", "vpool.srdf.error.notSupported");
+        }
+
+        if ((remoteReplications == null) || (remoteReplications.length == 0)) {
+            // Mark it as required
+            Validation.required(formName + ".srdfCopies", null);
+        }
+        else {
+            for (RemoteReplicationForm rr1 : remoteReplications) {
+                for (RemoteReplicationForm rr2 : remoteReplications) {
+                    if (!rr1.equals(rr2) && rr1.virtualArray.equals(rr2.virtualArray)) {
+                        Validation.addError(formName + ".remoteReplications", "remoteReplications.virtualArray.error.duplicate");
                     }
                 }
             }
@@ -342,6 +369,25 @@ public class BlockVirtualPoolForm extends VirtualPoolCommonForm<BlockVirtualPool
             else {
                 srdfCopiesJson = "[]";
             }
+
+            VirtualPoolRemoteReplicationParam remoteReplication = protection.getRemoteReplicationParam();
+            if (remoteReplication != null) {
+                remoteProtection = ProtectionSystemTypes.REMOTEREPLICATION;
+
+                List<RemoteReplicationForm> remoteReplicationForms = Lists.newArrayList();
+                for (VirtualPoolRemoteReplicationSettingsParam replication : remoteReplication.getRemoteReplicationSettings()) {
+                    RemoteReplicationForm remoteReplicationForm = new RemoteReplicationForm();
+                    remoteReplicationForm.load(replication);
+                    remoteReplicationForms.add(remoteReplicationForm);
+                }
+                remoteReplications = remoteReplicationForms.toArray(new RemoteReplicationForm[0]);
+                Gson gson = new Gson();
+                remoteReplicationsJson = gson.toJson(remoteReplications);
+            }
+            else {
+                remoteReplicationsJson = "[]";
+            }
+
         }
     }
 
@@ -418,6 +464,15 @@ public class BlockVirtualPoolForm extends VirtualPoolCommonForm<BlockVirtualPool
                 }
                 builder.setRemoteCopies(copies);
             }
+        }
+        if (ProtectionSystemTypes.isRemoteReplication(remoteProtection)) {
+            List<VirtualPoolRemoteReplicationSettingsParam> replications = Lists.newArrayList();
+            for (RemoteReplicationForm remoteReplicationForm : remoteReplications) {
+                if (remoteReplicationForm != null && remoteReplicationForm.isEnabled()) {
+                    replications.add(remoteReplicationForm.write());
+                }
+            }
+            builder.setRemoteReplication(replications);
         }
 
         if (HighAvailability.isHighAvailability(highAvailability)) {
@@ -498,6 +553,19 @@ public class BlockVirtualPoolForm extends VirtualPoolCommonForm<BlockVirtualPool
                 builder.setRemoteCopies(copies);
             } else {
                 builder.disableRemoteCopies();
+            }
+
+            if (ProtectionSystemTypes.isRemoteReplication(remoteProtection)) {
+                Set<VirtualPoolRemoteReplicationSettingsParam> replications = Sets.newHashSet();
+                for (RemoteReplicationForm remoteReplicationForm : remoteReplications) {
+                    if (remoteReplicationForm != null && remoteReplicationForm.isEnabled()) {
+                        replications.add(remoteReplicationForm.write());
+                    }
+                }
+                // TODO need to update when vpool update is done
+                // builder.setRemoteReplication(replications);
+            } else {
+                // builder.disableRemoteReplication();
             }
 
             if (HighAvailability.isHighAvailability(highAvailability)) {

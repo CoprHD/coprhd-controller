@@ -4,15 +4,8 @@
  */
 package controllers.arrays;
 
-import com.emc.storageos.model.RelatedResourceRep;
-import com.emc.storageos.model.systems.StorageSystemRestRep;
-
 import static com.emc.vipr.client.core.util.ResourceUtils.id;
 import static com.emc.vipr.client.core.util.ResourceUtils.uris;
-
-import com.google.gson.JsonArray;
-import com.google.gson.JsonObject;
-
 import static controllers.Common.angularRenderArgs;
 import static controllers.Common.copyRenderArgsToAngular;
 import static controllers.Common.flashException;
@@ -51,6 +44,7 @@ import models.datatable.VirtualPoolDataTable;
 import models.datatable.VirtualPoolDataTable.VirtualPoolInfo;
 import models.virtualpool.BlockVirtualPoolForm;
 import models.virtualpool.RPCopyForm;
+import models.virtualpool.RemoteReplicationForm;
 import models.virtualpool.SrdfCopyForm;
 
 import org.apache.commons.beanutils.BeanUtils;
@@ -76,7 +70,9 @@ import util.VirtualArrayUtils;
 import util.VirtualPoolUtils;
 import util.datatable.DataTablesSupport;
 
+import com.emc.storageos.model.RelatedResourceRep;
 import com.emc.storageos.model.pools.StoragePoolRestRep;
+import com.emc.storageos.model.systems.StorageSystemRestRep;
 import com.emc.storageos.model.varray.VirtualArrayRestRep;
 import com.emc.storageos.model.vpool.BlockVirtualPoolRestRep;
 import com.emc.storageos.model.vpool.FileVirtualPoolRestRep;
@@ -85,6 +81,8 @@ import com.emc.vipr.client.exceptions.ViPRException;
 import com.emc.vipr.client.exceptions.ViPRHttpException;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonObject;
 
 import controllers.Common;
 import controllers.deadbolt.Restrict;
@@ -641,6 +639,19 @@ public class BlockVirtualPools extends ViprResourceController {
         }
     }
 
+    public static void validateRemoteReplication(RemoteReplicationForm remoteReplication) {
+        if (remoteReplication == null) {
+            renderJSON(ValidationResponse.invalid());
+        }
+        remoteReplication.validate("remoteReplication");
+        if (Validation.hasErrors()) {
+            renderJSON(ValidationResponse.collectErrors());
+        }
+        else {
+            renderJSON(ValidationResponse.valid());
+        }
+    }
+
     public static void save(BlockVirtualPoolForm vpool) {
         if (vpool == null) {
             list();
@@ -759,7 +770,8 @@ public class BlockVirtualPools extends ViprResourceController {
                 ));
         renderArgs.put("remoteProtectionOptions", Lists.newArrayList(
                 ProtectionSystemTypes.option(ProtectionSystemTypes.RECOVERPOINT),
-                ProtectionSystemTypes.option(ProtectionSystemTypes.SRDF)
+                ProtectionSystemTypes.option(ProtectionSystemTypes.SRDF),
+                ProtectionSystemTypes.option(ProtectionSystemTypes.REMOTEREPLICATION)
                 ));
         renderArgs.put("rpRemoteCopyModeOptions", RemoteCopyMode.OPTIONS);
         renderArgs.put("rpRpoTypeOptions", RpoType.OPTIONS);

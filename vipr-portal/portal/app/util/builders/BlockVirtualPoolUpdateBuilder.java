@@ -450,6 +450,46 @@ public class BlockVirtualPoolUpdateBuilder extends VirtualPoolUpdateBuilder {
         return Collections.emptyList();
     }
     
+    /*
+     * 
+     * protected VirtualPoolRemoteReplicationParam getRemoteReplication() {
+     * if (getProtection().getRemoteReplicationParam() == null) {
+     * getProtection().setRemoteReplicationParam(new VirtualPoolRemoteReplicationParam());
+     * }
+     * 
+     * return getProtection().getRemoteReplicationParam();
+     * }
+     * 
+     * public static VirtualPoolRemoteReplicationParam getRemoteReplication(BlockVirtualPoolProtectionParam protection) {
+     * return protection != null ? protection.getRemoteReplicationParam() : null;
+     * }
+     * 
+     * public BlockVirtualPoolBuilder setRemoteReplication(List<VirtualPoolRemoteReplicationSettingsParam> newValues) {
+     * getRemoteReplication().setRemoteReplicationSettings(newValues);
+     * return this;
+     * }
+     * 
+     * public static List<VirtualPoolRemoteReplicationSettingsParam> getRemoteReplicationSettings(
+     * BlockVirtualPoolRestRep virtualPool) {
+     * return getRemoteReplicationSettings(getProtection(virtualPool));
+     * }
+     * 
+     * public static List<VirtualPoolRemoteReplicationSettingsParam> getRemoteReplicationSettings(
+     * VirtualPoolRemoteReplicationParam remoteReplication) {
+     * return remoteReplication.getRemoteReplicationSettings();
+     * }
+     * 
+     * public static List<VirtualPoolRemoteReplicationSettingsParam> getRemoteReplicationSettings(
+     * BlockVirtualPoolProtectionUpdateParam protection) {
+     * 
+     * if (protection != null) {
+     * return protection.getRemoteReplicationParam().getRemoteReplicationSettings();
+     * }
+     * return Collections.emptyList();
+     * 
+     * }
+     */
+
     public BlockVirtualPoolUpdateBuilder setDedupCapable(boolean dedupCapable) {
         virtualPool.setDedupCapable(dedupCapable);
         return this;

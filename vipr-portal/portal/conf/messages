@@ -373,6 +373,7 @@ VirtualPoolPlacementPolicy.array_affinity=Host/Array Affinity - Storage Arrays/P
 
 ProtectionSystemType.rp=EMC RecoverPoint
 ProtectionSystemType.srdf=VMAX SRDF
+ProtectionSystemType.remoteReplication=Remote Replication
 
 HighAvailability.vplex_distributed=VPLEX Distributed
 HighAvailability.vplex_local=VPLEX Local

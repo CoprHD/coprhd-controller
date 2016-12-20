@@ -2350,7 +2350,6 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             }
 
             List<String> initiatorPorts = storageView.getInitiatorPwwns();
-            Map<String, Initiator> matchingInitiators = new HashMap<String, Initiator>();
 
             for (Initiator init : inits) {
                 String port = init.getInitiatorPort();
@@ -2360,7 +2359,6 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     _log.info("      found a matching initiator for " + normalizedName
                             + " host " + VPlexUtil.getInitiatorHostResourceName(init)
                             + " in storage view " + storageView.getName());
-                    matchingInitiators.put(normalizedName, init);
                 }
             }
 
@@ -2376,12 +2374,10 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 // add all the the initiators the user has requested to add
                 // to the exportMask initiators list
                 exportMask.addInitiator(init);
+                exportMask.addToUserCreatedInitiators(init);
                 String normalInit = Initiator.normalizePort(init.getInitiatorPort());
                 if (!storageView.getInitiatorPwwns().contains(normalInit)) {
                     initsToAdd.add(init);
-                    // add only those initiator to the user added list
-                    // which do not exist on the the storage view.
-                    exportMask.addToUserCreatedInitiators(init);
                 }
             }
 
@@ -2523,6 +2519,8 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
             // add the initiators to the user added list.
             exportMask.addToUserCreatedInitiators(inits);
+            exportMask.addInitiators(inits);// Consistency
+
             _dbClient.updateObject(exportMask);
             _log.info("VPLEX ExportMask name is now: " + exportMask.getMaskName());
         }
@@ -2572,13 +2570,14 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
         List<Initiator> initsToAdd = new ArrayList<Initiator>();
         for (Initiator init : inits) {
             // add all the the initiators the user has requested to add
-            // to the exportMask initiators list
+            // to the exportMask initiators list, user created List and
+            // remove them from existing initiator list if present
             sharedVplexExportMask.addInitiator(init);
+            sharedVplexExportMask.addToUserCreatedInitiators(init);
             if (!sharedVplexExportMask.hasExistingInitiator(init)) {
                 initsToAdd.add(init);
-                // add only those initiator to the user added list
-                // which do not exist on the the storage view.
-                sharedVplexExportMask.addToUserCreatedInitiators(init);
+            } else {
+                sharedVplexExportMask.removeFromExistingInitiators(init);
             }
         }
 

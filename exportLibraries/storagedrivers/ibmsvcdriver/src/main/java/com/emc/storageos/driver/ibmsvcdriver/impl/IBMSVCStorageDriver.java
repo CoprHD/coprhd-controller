@@ -19,6 +19,7 @@ import com.emc.storageos.driver.ibmsvcdriver.exceptions.IBMSVCDriverException;
 import com.emc.storageos.driver.ibmsvcdriver.helpers.IBMSVCConsistencyGroups;
 import com.emc.storageos.driver.ibmsvcdriver.helpers.IBMSVCDiscovery;
 import com.emc.storageos.driver.ibmsvcdriver.helpers.IBMSVCProvisioning;
+import com.emc.storageos.driver.ibmsvcdriver.utils.IBMSVCDriverConfiguration;
 import com.emc.storageos.storagedriver.DefaultStorageDriver;
 import com.emc.storageos.storagedriver.BlockStorageDriver;
 import com.emc.storageos.storagedriver.DriverTask;
@@ -29,6 +30,9 @@ import org.apache.commons.lang.mutable.MutableBoolean;
 import org.apache.commons.lang.mutable.MutableInt;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.BeansException;
+import org.springframework.context.ApplicationContext;
+import org.springframework.context.support.ClassPathXmlApplicationContext;
 
 import com.emc.storageos.driver.ibmsvcdriver.api.*;
 import com.emc.storageos.driver.ibmsvcdriver.connection.ConnectionInfo;
@@ -50,6 +54,7 @@ import com.emc.storageos.storagedriver.storagecapabilities.StorageCapabilities;
 
 public class IBMSVCStorageDriver extends DefaultStorageDriver implements BlockStorageDriver {
 
+    private static final String IBMSVCSYSTEM_CONF_FILE = "ibmsvcdriver-conf.xml";
 	private static final Logger _log = LoggerFactory.getLogger(IBMSVCStorageDriver.class);
 
 	/*
@@ -65,6 +70,9 @@ public class IBMSVCStorageDriver extends DefaultStorageDriver implements BlockSt
     private IBMSVCDiscovery ibmsvcDiscoveryHelper = new IBMSVCDiscovery();
     private IBMSVCProvisioning ibmsvcProvisioningHelper = new IBMSVCProvisioning();
     private IBMSVCConsistencyGroups ibmsvcConsistencyGroups = new IBMSVCConsistencyGroups();
+    private ApplicationContext parentApplicationContext;
+    private IBMSVCDriverConfiguration ibmsvcdriverConfiguration;
+    private static final String CONFIG_BEAN_NAME = "ibmsvcsystemConfig";
 
 	public IBMSVCStorageDriver() {
 		super();
@@ -83,8 +91,16 @@ public class IBMSVCStorageDriver extends DefaultStorageDriver implements BlockSt
 			setDriverRegistry(inMemRegistry);
 		}
 
+        ApplicationContext context = new ClassPathXmlApplicationContext(new String[] {IBMSVCSYSTEM_CONF_FILE}, parentApplicationContext);
+        ibmsvcdriverConfiguration = (IBMSVCDriverConfiguration) context.getBean(CONFIG_BEAN_NAME);
+        IBMSVCDriverConfiguration.setInstance(ibmsvcdriverConfiguration);
 
 	}
+
+
+    public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {
+        this.parentApplicationContext = applicationContext;
+    }
 
     @Override
     public synchronized void setDriverRegistry(com.emc.storageos.storagedriver.Registry driverRegistry) {

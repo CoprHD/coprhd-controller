@@ -20,6 +20,7 @@ import com.emc.storageos.driver.ibmsvcdriver.impl.IBMSVCClusterNode;
 import com.emc.storageos.driver.ibmsvcdriver.impl.IBMSVCDriverTask;
 import com.emc.storageos.driver.ibmsvcdriver.impl.IBMSVCStorageDriver;
 import com.emc.storageos.driver.ibmsvcdriver.utils.IBMSVCConstants;
+import com.emc.storageos.driver.ibmsvcdriver.utils.IBMSVCDriverConfiguration;
 import com.emc.storageos.driver.ibmsvcdriver.utils.IBMSVCDriverUtils;
 import com.emc.storageos.storagedriver.DriverTask;
 import com.emc.storageos.storagedriver.HostExportInfo;
@@ -40,6 +41,7 @@ public class IBMSVCDiscovery {
      */
     private ConnectionManager connectionManager = null;
     private Registry driverRegistry;
+        private IBMSVCDriverConfiguration ibmsvcConfiguration = IBMSVCDriverConfiguration.getInstance();
 
     Map<String, HostExportInfo> hostExportCache = new HashMap<>();
     Map<String, List<StoragePort>> storagePortsCache = new HashMap<>();
@@ -211,22 +213,31 @@ public class IBMSVCDiscovery {
                         supportedProtocols.add(StoragePool.Protocols.FC);
                         storagePool.setProtocols(supportedProtocols);
 
-                        Set<StoragePool.RaidLevels> supportedRaidLevels = new HashSet<StoragePool.RaidLevels>();
+                        //TODO: Not discovering RAID Levels from Storage pools.
+                        // RAID is configured at MDisk level for disks of type Array (Internal SVC Storage)
+                        // should we look at RAID Group of each MDisk and consider that as a supported RAID Level
+                        // We don't necessarily see RAID type in Managed disks (External Disks)
+
+                        // https://www.ibm.com/support/knowledgecenter/STPVGU_7.3.0/com.ibm.storage.svc.console.730.doc/svc_mdisksovr_1bchav.html
+                        // https://www.ibm.com/support/knowledgecenter/STPVGU_7.3.0/com.ibm.storage.svc.console.730.doc/svc_raid_07121736.html
+                        // https://www.ibm.com/support/knowledgecenter/STPVGU_7.3.0/com.ibm.storage.svc.console.730.doc/svc_mdiskgroupovr_1bchdu.html
+
+                        /*Set<StoragePool.RaidLevels> supportedRaidLevels = new HashSet<StoragePool.RaidLevels>();
                         supportedRaidLevels.add(StoragePool.RaidLevels.RAID0);
                         supportedRaidLevels.add(StoragePool.RaidLevels.RAID1);
                         supportedRaidLevels.add(StoragePool.RaidLevels.RAID5);
                         supportedRaidLevels.add(StoragePool.RaidLevels.RAID6);
                         supportedRaidLevels.add(StoragePool.RaidLevels.RAID10);
-                        storagePool.setSupportedRaidLevels(supportedRaidLevels);
+                        storagePool.setSupportedRaidLevels(supportedRaidLevels);*/
 
                         storagePool.setPoolServiceType(StoragePool.PoolServiceType.block);
                         storagePool.setSupportedResourceType(StoragePool.SupportedResourceType.THIN_AND_THICK);
                         storagePool.setAccessStatus(StorageObject.AccessStatus.READ_WRITE);
 
-                        storagePool.setMinimumThickVolumeSize(IBMSVCDriverUtils.convertGBtoBytes("1.00GB"));
-                        storagePool.setMaximumThickVolumeSize(IBMSVCDriverUtils.convertGBtoBytes("100.00GB"));
-                        storagePool.setMinimumThinVolumeSize(IBMSVCDriverUtils.convertGBtoBytes("1.00GB"));
-                        storagePool.setMaximumThinVolumeSize(IBMSVCDriverUtils.convertGBtoBytes("100.00GB"));
+                        storagePool.setMinimumThickVolumeSize(IBMSVCDriverUtils.convertGBtoBytes(ibmsvcConfiguration.getDefaultStoragePoolMinThickVolSizeGB()));
+                        storagePool.setMaximumThickVolumeSize(IBMSVCDriverUtils.convertGBtoBytes(ibmsvcConfiguration.getDefaultStoragePoolMaxThickVolSizeGB()));
+                        storagePool.setMinimumThinVolumeSize(IBMSVCDriverUtils.convertGBtoBytes(ibmsvcConfiguration.getDefaultStoragePoolMinThinVolSizeGB()));
+                        storagePool.setMaximumThinVolumeSize(IBMSVCDriverUtils.convertGBtoBytes(ibmsvcConfiguration.getDefaultStoragePoolMaxThinVolSizeGB()));
                         storagePools.add(storagePool);
 
                         _log.info(String.format("Processed storage pool %s.\n", storagePool.getPoolName()));

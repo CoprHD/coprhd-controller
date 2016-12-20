@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:util="http://www.springframework.org/schema/util"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+        http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd
+        http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util-3.0.xsd">
+    <bean id="ibmsvcsystemConfig" class="com.emc.storageos.driver.ibmsvcdriver.utils.IBMSVCDriverConfiguration">
+        <property name="defaultVolumeGrainSize" value="128"/>
+        <property name="defaultVolumeRealSize" value="2%"/>
+        <property name="defaultVolumeWarning" value="80%"/>
+        <property name="defaultVolumeMirrorSyncRate" value="50%"/>
+        <property name="defaultVolumeIOgroup" value="io_grp0"/>
+        <property name="defaultVolumeVirtualizationType" value="striped"/>
+        <property name="defaultVolumeCacheSetting" value="readwrite"/>
+
+        <property name="defaultStoragePoolMinThickVolSizeGB" value="1.00"/>
+        <property name="defaultStoragePoolMaxThickVolSizeGB" value="100.00"/>
+        <property name="defaultStoragePoolMinThinVolSizeGB" value="1.00"/>
+        <property name="defaultStoragePoolMaxThinVolSizeGB" value="100.00"/>
+
+
+    </bean>
+</beans>

@@ -13,6 +13,7 @@ package com.emc.storageos.driver.ibmsvcdriver.api;
 import java.util.List;
 
 import com.emc.storageos.driver.ibmsvcdriver.exceptions.CommandException;
+import com.emc.storageos.driver.ibmsvcdriver.utils.IBMSVCDriverConfiguration;
 import com.emc.storageos.driver.ibmsvcdriver.utils.ParsePattern;
 
 public class IBMSVCCreateVolumeCommand extends AbstractIBMSVCQueryCommand<IBMSVCCreateVolumeResult> {
@@ -38,14 +39,18 @@ public class IBMSVCCreateVolumeCommand extends AbstractIBMSVCQueryCommand<IBMSVC
 
         boolean compressed = false;
 
-        addArgument("svctask mkvdisk -cache readwrite -vtype striped");
-        addArgument("-iogrp io_grp0");
+        IBMSVCDriverConfiguration ibmsvcdriverConfiguration = IBMSVCDriverConfiguration.getInstance();
+
+        addArgument("svctask mkvdisk");
+        addArgument(String.format("-cache readwrite %s", ibmsvcdriverConfiguration.getDefaultVolumeCacheSetting()));
+        addArgument(String.format("-vtype %s", ibmsvcdriverConfiguration.getDefaultVolumeVirtualizationType()));
+                addArgument(String.format("-iogrp %s", ibmsvcdriverConfiguration.getDefaultVolumeIOgroup()));
 
         if (volumeName != null && (!volumeName.equals(""))) {
 
-            if(volumeName.contains("_compressed")){
+            if(volumeName.contains("[compressed]")){
                 compressed = true;
-                volumeName = volumeName.replace("_compressed","");
+                volumeName = volumeName.replace("[compressed]","");
             }
 
             addArgument(String.format("-name %s", volumeName));
@@ -60,7 +65,7 @@ public class IBMSVCCreateVolumeCommand extends AbstractIBMSVCQueryCommand<IBMSVC
 
         if (createMirrorCopy) {
             addArgument("-createsync");
-            addArgument("-syncrate 50");
+            addArgument(String.format("-syncrate %s", ibmsvcdriverConfiguration.getDefaultVolumeMirrorSyncRate()));
             addArgument(String.format("-copies 2"));
             addArgument(String.format("-mdiskgrp %s", storagePoolName + ":" + storagePoolName));
         } else {
@@ -71,10 +76,10 @@ public class IBMSVCCreateVolumeCommand extends AbstractIBMSVCQueryCommand<IBMSVC
         if (thinlyProvisioned) {
             addArgument("-autoexpand");
             if (!compressed){
-                addArgument("-grainsize 256");
+                addArgument(String.format("-grainsize %s", ibmsvcdriverConfiguration.getDefaultVolumeGrainSize()));
             }
-            addArgument("-rsize 2%");
-            addArgument("-warning 80%");
+            addArgument(String.format("-rsize %s", ibmsvcdriverConfiguration.getDefaultVolumeRealSize()));
+            addArgument(String.format("-warning %s", ibmsvcdriverConfiguration.getDefaultVolumeWarning()));
         }
 
         if (compressed){

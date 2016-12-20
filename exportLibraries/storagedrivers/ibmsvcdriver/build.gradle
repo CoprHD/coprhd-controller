@@ -5,6 +5,7 @@ dependencies {
             "commons-collections:commons-collections:3.2.1",
 			library(jsch),
 			library(log4j),
+            library(spring),
 			//library(apache_log4j_extras),
 			library(guava)
 }

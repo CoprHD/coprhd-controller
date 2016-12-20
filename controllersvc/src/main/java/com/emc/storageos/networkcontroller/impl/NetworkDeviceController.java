@@ -1479,6 +1479,7 @@ public class NetworkDeviceController implements NetworkController {
     public boolean zoneExportRemoveInitiators(
     		List<NetworkZoningParam> zoningParams,
             String stepId) throws ControllerException {
+        TaskCompleter taskCompleter = null;
         if (zoningParams.isEmpty()) {
             _log.info("zoningParams is empty, returning");
             WorkflowStepCompleter.stepSucceded(stepId);
@@ -1507,6 +1508,9 @@ public class NetworkDeviceController implements NetworkController {
                 return true;
             }
 
+            // Create a local completer to handle DB cleanup in the case of failure.
+            taskCompleter = new ZoneReferencesRemoveCompleter(context.getZoneInfos(), true, stepId);
+
             InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_024);
             // Now call removeZones to remove all the required zones.
             BiosCommandResult result = addRemoveZones(exportGroupId, context.getZoneInfos(), true);
@@ -1526,6 +1530,7 @@ public class NetworkDeviceController implements NetworkController {
             _log.error("Exception zoning remove initiators", ex);
             ServiceError svcError = NetworkDeviceControllerException.errors.zoneExportRemoveInitiatorsFailed(
                     ex.getMessage(), ex);
+            taskCompleter.error(_dbClient, svcError);
             WorkflowStepCompleter.stepFailed(stepId, svcError);
             return status;
         }
@@ -1546,9 +1551,12 @@ public class NetworkDeviceController implements NetworkController {
     /**
      * Rollback any of the zoning operations.
      * 
-     * @param exportGroupURI -- The ExportGroup URI
-     * @param contextKey -- The context which indicates what zones were configured on the device.
-     * @param taskId -- String tas identifier for WorkflowTaskCompleter.
+     * @param exportGroupURI
+     *            -- The ExportGroup URI
+     * @param contextKey
+     *            -- The context which indicates what zones were configured on the device.
+     * @param taskId
+     *            -- String task identifier for WorkflowTaskCompleter.
      * @return
      * @throws DeviceControllerException
      */

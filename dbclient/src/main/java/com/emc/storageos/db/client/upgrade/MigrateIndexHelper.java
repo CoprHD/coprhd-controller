@@ -25,15 +25,15 @@ public class MigrateIndexHelper {
 
     private static final Logger log = LoggerFactory.getLogger(MigrateIndexHelper.class);
 
-    public static void migrateAddedIndex(InternalDbClient dbClient, Class<? extends DataObject> cfClass, String fieldName, String annoName) {
+    public static void migrateAddedIndex(InternalDbClient dbClient, Class<? extends DataObject> cfClass, String fieldName,
+                                         String annoName) {
         if (cfClass == null || fieldName == null || annoName == null) {
             // this callback has not been set up; skip it.
             throw DatabaseException.fatals.failedDuringUpgrade("Unexpected state: callback not setup", null);
         }
 
         String cfName = cfClass.getCanonicalName();
-        log.info("Adding new index records for class: {} field: {} annotation: {}",
-                new Object[] { cfName, fieldName, annoName }, new Throwable());
+        log.info("Adding new index records for class: {} field: {} annotation: {}", new Object[] { cfName, fieldName, annoName });
 
         if (!DataObject.class.isAssignableFrom(cfClass)) {
             throw DatabaseException.fatals.failedDuringUpgrade("db schema migration error: could not update index "
@@ -43,7 +43,6 @@ public class MigrateIndexHelper {
         try {
             if (cfClass == Order.class && fieldName.equals(Order.SUBMITTED) &&
                     annoName.equals(TimeSeriesAlternateId.class.getCanonicalName())) {
-                log.info("lbyu1");
                 TimeSeriesIndexMigration handler = new TimeSeriesIndexMigration(dbClient);
                 handler.process();
                 return;
@@ -51,7 +50,6 @@ public class MigrateIndexHelper {
 
             if (cfClass == Order.class && fieldName.equals(Order.SUBMITTED_BY_USER_ID) &&
                     annoName.equals(ClassNameTimeSeries.class.getCanonicalName())) {
-                log.info("lbyu2");
                 UserToOrdersMigration handler = new UserToOrdersMigration(dbClient);
                 handler.process();
                 return;

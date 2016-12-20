@@ -5,10 +5,9 @@
 
 package com.emc.storageos.db.client.upgrade.callbacks;
 
-import com.emc.storageos.db.client.impl.*;
-import com.emc.storageos.db.client.model.uimodels.Order;
-import com.emc.storageos.db.client.upgrade.BaseCustomMigrationCallback;
-import com.emc.storageos.svcs.errorhandling.resources.MigrationCallbackException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.netflix.astyanax.Keyspace;
 import com.netflix.astyanax.MutationBatch;
 import com.netflix.astyanax.connectionpool.OperationResult;
@@ -16,8 +15,11 @@ import com.netflix.astyanax.model.*;
 import com.netflix.astyanax.query.RowQuery;
 import com.netflix.astyanax.serializers.StringSerializer;
 import com.netflix.astyanax.util.RangeBuilder;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+
+import com.emc.storageos.db.client.impl.*;
+import com.emc.storageos.db.client.model.uimodels.Order;
+import com.emc.storageos.db.client.upgrade.BaseCustomMigrationCallback;
+import com.emc.storageos.svcs.errorhandling.resources.MigrationCallbackException;
 
 public class TimeSeriesIndexMigration extends BaseCustomMigrationCallback {
     private static final Logger log = LoggerFactory.getLogger(TimeSeriesIndexMigration.class);
@@ -31,7 +33,7 @@ public class TimeSeriesIndexMigration extends BaseCustomMigrationCallback {
     public void process() throws MigrationCallbackException {
         long start = System.currentTimeMillis();
 
-        log.info("lbybb0");
+        log.info("Migrate {}", Order.SUBMITTED);
 
         Keyspace ks = client.getLocalKeyspace();
         ColumnFamily<String, IndexColumnName> tenantToOrder =
@@ -61,14 +63,14 @@ public class TimeSeriesIndexMigration extends BaseCustomMigrationCallback {
                         m++;
                         String indexKey = row.getKey();
                         String orderId = col.getName().getTwo();
-                        log.info("lbyd11: tid={} order={} m={}", indexKey, orderId, m);
+                        log.info("lby tid={} order={} m={}", indexKey, orderId, m);
 
                         TimeSeriesIndexColumnName newCol = new TimeSeriesIndexColumnName(Order.class.getSimpleName(),
                                 orderId, col.getName().getTimeUUID());
 
                         mutationBatch.withRow(newCf, indexKey).putEmptyColumn(newCol, null);
                         if ( m % 10000 == 0) {
-                            log.info("lbyd22 commit m={}", m);
+                            log.info("lby commit m={}", m);
                             mutationBatch.execute();
                         }
                     }
@@ -76,10 +78,11 @@ public class TimeSeriesIndexMigration extends BaseCustomMigrationCallback {
             }
 
             mutationBatch.execute();
+
             long end = System.currentTimeMillis();
-            System.out.println("Read5 "+n+" : "+ (end - start)/1000);
+            log.info("Read {} records in  MS",n, (end - start)/1000);
         }catch (Exception e) {
-            log.error("lbyy0: e=", e);
+            log.error("Migration to {} failed e=", newCf.getName(), e);
         }
     }
 }

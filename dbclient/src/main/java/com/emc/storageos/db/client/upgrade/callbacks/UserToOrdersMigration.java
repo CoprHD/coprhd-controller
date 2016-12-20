@@ -4,29 +4,25 @@
  */
 package com.emc.storageos.db.client.upgrade.callbacks;
 
-import java.net.URI;
-
-import com.emc.storageos.db.client.upgrade.InternalDbClient;
-import com.netflix.astyanax.connectionpool.OperationResult;
-import com.netflix.astyanax.model.ColumnList;
-import com.netflix.astyanax.model.Row;
-import com.netflix.astyanax.model.Rows;
-import com.netflix.astyanax.serializers.StringSerializer;
-import com.netflix.astyanax.util.RangeBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.netflix.astyanax.connectionpool.OperationResult;
+import com.netflix.astyanax.serializers.StringSerializer;
+import com.netflix.astyanax.util.RangeBuilder;
 import com.netflix.astyanax.Keyspace;
 import com.netflix.astyanax.MutationBatch;
 import com.netflix.astyanax.model.Column;
 import com.netflix.astyanax.model.ColumnFamily;
+import com.netflix.astyanax.model.ColumnList;
+import com.netflix.astyanax.model.Row;
+import com.netflix.astyanax.model.Rows;
 import com.netflix.astyanax.query.RowQuery;
 
-import com.emc.storageos.db.client.constraint.impl.AlternateIdConstraintImpl;
-import com.emc.storageos.db.client.constraint.impl.QueryHitIterator;
 import com.emc.storageos.db.client.model.uimodels.Order;
-import com.emc.storageos.db.client.upgrade.BaseCustomMigrationCallback;
 import com.emc.storageos.db.client.impl.*;
+import com.emc.storageos.db.client.upgrade.BaseCustomMigrationCallback;
+import com.emc.storageos.db.client.upgrade.InternalDbClient;
 
 import com.emc.storageos.svcs.errorhandling.resources.MigrationCallbackException;
 
@@ -74,23 +70,25 @@ public class UserToOrdersMigration extends BaseCustomMigrationCallback {
                     for (Column<IndexColumnName> col : cols) {
                         String indexKey = row.getKey();
                         String orderId = col.getName().getTwo();
-                        log.info("lbyd11: tid={} order={}", indexKey, orderId);
+                        log.info("lby: tid={} order={}", indexKey, orderId);
 
                         ClassNameTimeSeriesIndexColumnName newCol = new ClassNameTimeSeriesIndexColumnName(col.getName().getOne(), orderId,
                                 col.getName().getTimeUUID());
                         mutationBatch.withRow(newCf, indexKey).putEmptyColumn(newCol, null);
                         if ( m % 10000 == 0) {
-                            log.info("lbyd22 commit m={}", m);
+                            log.info("lby commit m={}", m);
                             mutationBatch.execute();
                         }
                     }
                 }
             }
+
             mutationBatch.execute();
+
             long end = System.currentTimeMillis();
-            log.info("Read5 "+n+" : "+ (end - start)/1000);
+            log.info("Read {} in MS", n, (end - start)/1000);
         }catch (Exception e) {
-            log.error("lbyy0: e=", e);
+            log.error("Migration to {} failed e=", newCf.getName(), e);
         }
     }
 }

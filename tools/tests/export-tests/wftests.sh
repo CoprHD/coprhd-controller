@@ -1092,7 +1092,7 @@ unity_setup()
     run cos create block ${VPOOL_BASE}	\
 	--description Base true                 \
 	--protocols FC 			                \
-	--numpaths 1				            \
+	--numpaths 2				            \
 	--multiVolumeConsistency \
 	--provisionType 'Thin'			        \
 	--max_snapshots 10                      \
@@ -1814,6 +1814,7 @@ test_1() {
                                failure_004:failure_013_BlockDeviceController.rollbackCreateVolumes_before_device_delete \
                                failure_004:failure_014_BlockDeviceController.rollbackCreateVolumes_after_device_delete"
 
+    storage_failure_injections=""
     if [ "${SS}" = "vplex" ]
     then
 	# Would love to have injections in the vplex package itself somehow, but hard to do since I stuck InvokeTestFailure in controller,
@@ -1948,6 +1949,7 @@ test_2() {
                                failure_004:failure_013_BlockDeviceController.rollbackCreateVolumes_before_device_delete \
                                failure_004:failure_014_BlockDeviceController.rollbackCreateVolumes_after_device_delete"
 
+    storage_failure_injections=""
     if [ "${SS}" = "vplex" ]
     then
 	# Would love to have injections in the vplex package itself somehow, but hard to do since I stuck InvokeTestFailure in controller,
@@ -2098,6 +2100,7 @@ test_3() {
 
     common_failure_injections="failure_004_final_step_in_workflow_complete"
 
+    storage_failure_injections=""
     if [ "${SS}" = "vplex" ]
     then
 	storage_failure_injections="failure_009_VPlexVmaxMaskingOrchestrator.createOrAddVolumesToExportMask_before_operation&5"
@@ -2225,6 +2228,7 @@ test_4() {
 	network_failure_injections="failure_049_BrocadeNetworkSMIS.getWEBMClient"
     fi
 
+    storage_failure_injections=""
     if [ "${SS}" = "vplex" ]
     then
 	storage_failure_injections=""
@@ -2324,6 +2328,7 @@ test_5() {
 	network_failure_injections="failure_049_BrocadeNetworkSMIS.getWEBMClient"
     fi
 
+    storage_failure_injections=""
     if [ "${SS}" = "vplex" ]
     then
 	storage_failure_injections=""
@@ -2408,6 +2413,7 @@ test_6() {
 
     common_failure_injections="failure_004_final_step_in_workflow_complete"
 
+    storage_failure_injections=""
     if [ "${SS}" = "vplex" ]
     then
 	storage_failure_injections=""
@@ -2493,9 +2499,7 @@ test_7() {
     common_failure_injections="failure_004_final_step_in_workflow_complete \
                                failure_004:failure_016_Export_doRemoveInitiator \
                                failure_004:failure_024_Export_zone_removeInitiator_before_delete \
-                               failure_004:failure_025_Export_zone_removeInitiator_after_delete \
-                               failure_004:failure_020_Export_zoneRollback_before_delete \
-                               failure_004:failure_021_Export_zoneRollback_after_delete"
+                               failure_004:failure_025_Export_zone_removeInitiator_after_delete"
 
     network_failure_injections=""
     if [ "${BROCADE}" = "1" ]
@@ -2503,6 +2507,7 @@ test_7() {
 	network_failure_injections="failure_049_BrocadeNetworkSMIS.getWEBMClient"
     fi
 
+    storage_failure_injections=""
     if [ "${SS}" = "vplex" ]
     then
 	storage_failure_injections=""
@@ -2516,7 +2521,7 @@ test_7() {
     failure_injections="${common_failure_injections} ${storage_failure_injections} ${network_failure_injections}"
 
     # Placeholder when a specific failure case is being worked...
-    # failure_injections="failure_004:failure_024_Export_zone_removeInitiator_before_delete"
+    # failure_injections="failure_004:failure_020_Export_zoneRollback_before_delete"
 
     for failure in ${failure_injections}
     do
@@ -2596,6 +2601,7 @@ test_8() {
     common_failure_injections="failure_004_final_step_in_workflow_complete"
     meta_size=260GB
 
+    storage_failure_injections=""
     if [ "${SS}" = "vplex" ]
     then
 	storage_failure_injections="failure_007_NetworkDeviceController.zoneExportRemoveVolumes_before_unzone \
@@ -2721,6 +2727,7 @@ test_9() {
     # Typically we have failure_004 here, but in the case of delete, there's no real rollback.
     common_failure_injections=""
 
+    storage_failure_injections=""
     if [ "${SS}" = "vplex" ]
     then
 	storage_failure_injections="failure_009_VPlexVmaxMaskingOrchestrator.deleteOrRemoveVolumesToExportMask_before_operation"
@@ -2845,6 +2852,7 @@ test_10() {
 
     common_failure_injections="failure_004_final_step_in_workflow_complete"
 
+    storage_failure_injections=""
     if [ "${SS}" = "vplex" ]
     then
 	storage_failure_injections=""

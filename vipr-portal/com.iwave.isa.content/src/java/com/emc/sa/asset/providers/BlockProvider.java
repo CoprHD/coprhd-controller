@@ -28,10 +28,13 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
+import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.model.search.SearchResultResourceRep;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.ObjectUtils;
 import org.apache.commons.lang.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 import com.emc.sa.asset.AssetOptionsContext;
@@ -107,6 +110,8 @@ import com.google.common.collect.Sets;
 @Component
 @AssetNamespace("vipr")
 public class BlockProvider extends BaseAssetOptionsProvider {
+    private static final Logger log = LoggerFactory.getLogger(BlockProvider.class);
+
     public static final String EXCLUSIVE_STORAGE = "exclusive";
     public static final String SHARED_STORAGE = "shared";
     public static final String RECOVERPOINT_BOOKMARK_SNAPSHOT_TYPE_VALUE = "rp";
@@ -3125,8 +3130,26 @@ public class BlockProvider extends BaseAssetOptionsProvider {
             filter = new ExportHostOrClusterFilter(hostId, clusterId).and(new ExportVirtualArrayFilter(virtualArrayId));
         }
         List<ExportGroupRestRep> exports = client.blockExports().findByProject(projectId, filter);
+    //    List<SearchResultResourceRep> exportRefs = client.blockExports().findRefsByProject(projectId, filter);
 
         return getBlockVolumeIdsForExports(exports);
+     //   return getBlockVolumeIdsFromExportRefs(client, exportRefs);
+    }
+
+    private static Set<URI> getBlockVolumeIdsFromExportRefs(ViPRCoreClient client, List<SearchResultResourceRep> exportRefs) {
+        Set<URI> ids = Sets.newHashSet();
+        log.info("==== Query export start ");
+        for (SearchResultResourceRep ref : exportRefs) {
+            ExportGroupRestRep export = client.blockExports().get(ref.getId());
+            log.info("==== get export {}, {}  ", export.getId(), export.getVolumes());
+            if (export.getVolumes() != null) {
+                for (ExportBlockParam volume : export.getVolumes()) {
+                    ids.add(volume.getId());
+                }
+            }
+        }
+        log.info("==== Query export end ");
+        return ids;
     }
 
     /**

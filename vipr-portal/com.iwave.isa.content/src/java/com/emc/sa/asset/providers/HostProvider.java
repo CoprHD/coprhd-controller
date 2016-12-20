@@ -10,6 +10,7 @@ import static com.emc.vipr.client.core.filters.RegistrationFilter.REGISTERED;
 import java.net.URI;
 import java.util.List;
 
+import com.emc.sa.util.PerfTimer;
 import org.springframework.stereotype.Component;
 
 import com.emc.sa.asset.AssetOptionsContext;
@@ -41,8 +42,12 @@ public class HostProvider extends BaseHostProvider {
     }
 
     protected List<HostRestRep> getHosts(AssetOptionsContext context) {
-        debug("getting hosts");
-        return api(context).hosts().getByTenant(context.getTenant(), REGISTERED.and(INCOMPATIBLE.not()));
+        info("=========== getting hosts");
+        PerfTimer timer = new PerfTimer();
+        timer.start();
+        List<HostRestRep> hosts = api(context).hosts().getByTenant(context.getTenant(), REGISTERED.and(INCOMPATIBLE.not()));
+        info("=========== done. Time Spent: %s", timer.probe());
+        return hosts;
     }
 
     protected List<HostRestRep> getLinuxHosts(AssetOptionsContext context) {

@@ -1,0 +1,22 @@
+/*
+ * Copyright (c) 2016 EMC Corporation
+ * All Rights Reserved
+ */
+package com.emc.storageos.storagedriver.storagecapabilities;
+
+/**
+ * Class defines capability definition for user defined set of remote replication attributes.
+ * Capability instances for this definition have map of name-value pairs as defined by user.
+ */
+public class RemoteReplicationAttributes extends CapabilityDefinition {
+
+    // The uid of this capability definition.
+    public static final String CAPABILITY_UID = CapabilityDefinition.CapabilityUid.remoteReplicationAttributes.name();
+
+    /**
+     * Default Constructor
+     */
+    public RemoteReplicationAttributes() {
+        super(CAPABILITY_UID);
+    }
+}

@@ -896,6 +896,12 @@
         <property name="blockDeviceController" ref="blockDeviceController" />
     </bean>
 
+    <bean id="remoteReplicationDeviceController" class="com.emc.storageos.remoterreplicationcontroller.RemoteReplicationDeviceController">
+        <property name="dbClient" ref="dbclient" />
+        <property name="workflowService" ref="workflowService" />
+        <property name="remoteReplicationDevice" ref="externalBlockStorageDevice" />
+    </bean>
+
     <bean id="fileDeviceController" class="com.emc.storageos.volumecontroller.impl.FileDeviceController">
         <property name="devices">
             <map>
@@ -1092,6 +1098,7 @@
                 <ref bean="ucsDevice"/>
                 <ref bean="vcenterController"/>
                 <ref bean="objectDeviceController"/>
+                <ref bean="remoteReplicationDeviceController"/>
 		<ref bean="workflowService"/>
                 <ref bean="computeSystemOrchestrationDeviceController"/>
             </set>
@@ -1439,6 +1446,17 @@
         <property name="locker" ref="locker" />
     </bean>
 
+    <bean id="rrConfigDiscoveryJobConsumer"
+          class="com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.DataCollectionJobConsumer">
+        <property name="dbClient" ref="dbclient" />
+        <property name="coordinator" ref="coordinator" />
+        <property name="util" ref="dataCollectionJobUtil" />
+        <property name="configInfo" ref="configinfo" />
+        <property name="connectionFactory" ref="CIMConnectionFactory" />
+        <property name="jobScheduler" ref="dataCollectionJobScheduler" />
+        <property name="locker" ref="locker" />
+    </bean>
+
   <bean id="dataCollectionJobUtil"
 	class="com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.DataCollectionJobUtil">
 	<property name="dbClient" ref="dbclient" />
@@ -1472,6 +1490,7 @@
         <property name="arrayAffinityDiscoverJobConsumer" ref="arrayAffinityDiscoverJobConsumer" />
         <property name="computeDiscoverJobConsumer" ref="computeDiscoverJobConsumer" />
         <property name="meteringJobConsumer" ref="meteringJobConsumer" />
+        <property name="rrConfigDiscoveryJobConsumer" ref="rrConfigDiscoveryJobConsumer" />
         <property name="jobScheduler" ref="dataCollectionJobScheduler" />
 		<property name="cimConnectionFactory" ref="CIMConnectionFactory" />
 		<property name="vplexApiFactory" ref="vplexapifactory"/>
@@ -1593,7 +1612,9 @@
         <property name="vplexDeviceController" ref="vplexDeviceController" />
         <property name="rpDeviceController" ref="rpProtection" />
         <property name="srdfDeviceController" ref="srdfDeviceController" />
+        <property name="remoteReplicationDeviceController" ref="remoteReplicationDeviceController" />
         <property name="replicaDeviceController" ref="replicaDeviceController" />
+
         <property name="locker" ref="locker"/>
         <property name="validator" ref="validatorFactory"/>
     </bean>

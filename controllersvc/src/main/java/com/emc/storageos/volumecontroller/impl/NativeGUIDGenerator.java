@@ -101,6 +101,10 @@ public class NativeGUIDGenerator {
 
     public static final String NAMESPACE = "NAMESPACE";
 
+    public static final String REMOTE_REPLICATION_SET = "REMOTEREPLICATIONSET";
+
+    public static final String REMOTE_REPLICATION_GROUP = "REMOTEREPLICATIONGROUP";
+
     static {
         OBJECT_TYPE_SET.add(POOL);
         OBJECT_TYPE_SET.add(PORT);
@@ -826,6 +830,18 @@ public class NativeGUIDGenerator {
 
     public static String generateNativeGuidForNamespace(StorageSystem device, String uniqueId, String type) {
         return String.format("%s+%s+%s+%s", _deviceTypeMap.get(device.getSystemType()), device.getSerialNumber(), type, uniqueId);
+    }
+
+    public static String generateRemoteReplicationSetNativeGuid(String systemType,
+            String remoteReplicationSetNativeId) {
+        return String.format("%s+" + REMOTE_REPLICATION_SET + "+%s", systemType, remoteReplicationSetNativeId);
+    }
+
+    public static String generateRemoteReplicationGroupNativeGuid(String systemType,
+                                                                  String remoteReplicationSetNativeId,
+                                                                  String remoteReplicationGroupNativeId) {
+        return String.format("%s+%s" + REMOTE_REPLICATION_GROUP + "+%s", systemType, remoteReplicationSetNativeId,
+                remoteReplicationGroupNativeId);
     }
 
 }

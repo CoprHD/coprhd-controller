@@ -73,6 +73,12 @@ public class VirtualPoolCapabilityValuesWrapper implements Serializable {
     public static final String REPLICA_CREATE_INACTIVE = "replicaActiveInactiveMode";
     public static final String SNAPSHOT_SESSION_COPY_MODE = "snapshotSessionCopyMode";
 
+    // remote replication parameters (SB SDK)
+    public static final String REMOTE_REPLICATION_SET = "remoteReplicationSet";
+    public static final String REMOTE_REPLICATION_GROUP = "remoteReplicationGroup";
+    public static final String REMOTE_REPLICATION_MODE = "remoteReplicationMode";
+    public static final String REMOTE_REPLICATION_CREATE_INACTIVE = "remoteReplicationCreateInactive";
+
     private final Map<String, Object> _vpoolCapabilities = new HashMap<String, Object>();
 
     /**
@@ -432,5 +438,25 @@ public class VirtualPoolCapabilityValuesWrapper implements Serializable {
         if(_vpoolCapabilities.get(keyEntry) != null) {
             _vpoolCapabilities.remove(keyEntry);
         }
+    }
+
+    public URI getRemoteReplicationSet() {
+        Object value = _vpoolCapabilities.get(REMOTE_REPLICATION_SET);
+        return value != null ? (URI) value : null;
+    }
+
+    public URI getRemoteReplicationGroup() {
+        Object value = _vpoolCapabilities.get(REMOTE_REPLICATION_GROUP);
+        return value != null ? (URI) value : null;
+    }
+
+    public String getRemoteReplicationMode() {
+        Object value = _vpoolCapabilities.get(REMOTE_REPLICATION_MODE);
+        return value != null ? (String) value : null;
+    }
+
+    public Boolean getRemoteReplicationCreateInactive() {
+        Object value = _vpoolCapabilities.get(REMOTE_REPLICATION_CREATE_INACTIVE);
+        return value != null ? (Boolean) value : null;
     }
 }

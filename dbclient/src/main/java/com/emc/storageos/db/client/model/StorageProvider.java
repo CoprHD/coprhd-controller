@@ -53,6 +53,9 @@ public class StorageProvider extends DataObject {
         }
     }
 
+    // Unigue native identifier (system level identifier)
+    private String _nativeId;
+
     private StringSet _storageSystems;
     // provider IP address
     private String _ipAddress;
@@ -529,6 +532,16 @@ public class StorageProvider extends DataObject {
             setChanged("keys");
 
         }
+    }
+
+    @Name("nativeId")
+    public String getNativeId() {
+        return _nativeId;
+    }
+
+    public void setNativeId(String nativeId) {
+        _nativeId = nativeId;
+        setChanged("nativeId");
     }
 
     public void addStorageSystem(DbClient dbClient, StorageSystem storage, boolean activeProvider) throws DatabaseException {

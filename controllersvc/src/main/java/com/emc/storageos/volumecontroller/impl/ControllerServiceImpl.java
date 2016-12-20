@@ -82,6 +82,8 @@ public class ControllerServiceImpl implements ControllerService {
     private static final String SCAN_JOB_QUEUE_NAME = "scanjobqueue";
     public static final String MONITORING_JOB_QUEUE_NAME = "monitoringjobqueue";
     private static final String METERING_JOB_QUEUE_NAME = "meteringjobqueue";
+    private static final String RR_DISCOVERY_JOB_QUEUE_NAME  = "rrconfigdiscoveryjobqueue";
+
     public static final String DISCOVERY = "Discovery";
     public static final String ARRAYAFFINITY_DISCOVERY = "ArrayAffinity";
     public static final String DISCOVERY_RECONCILE_TZ = "DiscoveryReconcileTZ";
@@ -92,10 +94,12 @@ public class ControllerServiceImpl implements ControllerService {
     public static final String NS_DISCOVERY = "NS_Discovery";
     public static final String COMPUTE_DISCOVERY = "Compute_Discovery";
     public static final String CS_DISCOVERY = "CS_Discovery";
+    public static final String RR_DISCOVERY = "RemoteReplicationConfig_Discovery";
     private static final String DISCOVERY_COREPOOLSIZE = "discovery-core-pool-size";
     private static final int ARRAYAFFINITY_DISCOVERY_COREPOOLSIZE = 3;
     private static final String COMPUTE_DISCOVERY_COREPOOLSIZE = "compute-discovery-core-pool-size";
     private static final String METERING_COREPOOLSIZE = "metering-core-pool-size";
+    private static final String RR_DISCOVERY_COREPOOLSIZE = "rr-config-discovery-core-pool-size";
     private static final int DEFAULT_MAX_THREADS = 100;
     public static final String CONNECTION = "Connection";
     public static final String CAPACITY_COMPUTE_DELAY = "capacity-compute-delay";
@@ -107,7 +111,7 @@ public class ControllerServiceImpl implements ControllerService {
     public static final long DEFAULT_CAPACITY_COMPUTE_INTERVAL = 3600;
 
     // list of support discovery job type
-    private static final String[] DISCOVERY_JOB_TYPES = new String[] { DISCOVERY, NS_DISCOVERY, CS_DISCOVERY, COMPUTE_DISCOVERY };
+    private static final String[] DISCOVERY_JOB_TYPES = new String[] { DISCOVERY, NS_DISCOVERY, CS_DISCOVERY, COMPUTE_DISCOVERY, RR_DISCOVERY };
 
     private static final Logger _log = LoggerFactory.getLogger(ControllerServiceImpl.class);
     private Dispatcher _dispatcher;
@@ -128,6 +132,9 @@ public class ControllerServiceImpl implements ControllerService {
     private static volatile DistributedQueue<DataCollectionJob> _scanJobQueue = null;
     private static volatile DistributedQueue<DataCollectionJob> _meteringJobQueue = null;
     private static volatile DistributedQueue<DataCollectionJob> _monitoringJobQueue = null;
+    // queue for remote replication config discovery jobs
+    private static volatile DistributedQueue<DataCollectionJob> _rrConfigDiscoveryJobQueue = null;
+
     private CIMConnectionFactory _cimConnectionFactory;
     private VPlexApiFactory _vplexApiFactory;
     private HDSApiFactory hdsApiFactory;
@@ -141,6 +148,7 @@ public class ControllerServiceImpl implements ControllerService {
     private static volatile DataCollectionJobConsumer _arrayAffinityDiscoverJobConsumer;
     private static volatile DataCollectionJobConsumer _computeDiscoverJobConsumer;
     private static volatile DataCollectionJobConsumer _meteringJobConsumer;
+    private static volatile DataCollectionJobConsumer _rrConfigDiscoveryJobConsumer;
     private static volatile DataCollectionJobScheduler _jobScheduler;
     private MonitoringJobConsumer _monitoringJobConsumer;
     private ConnectionStateListener zkConnectionStateListenerForMonitoring;
@@ -163,7 +171,8 @@ public class ControllerServiceImpl implements ControllerService {
         COMPUTE_DATA_COLLECTION_LOCK("lock-compute-datacollectionjob-"),
         CS_DATA_COLLECTION_LOCK("lock-cs-datacollectionjob-"),
         POOL_MATCHER_LOCK("lock-implicitpoolmatcherjob-"),
-        DISCOVER_RECONCILE_TZ_LOCK("lock-discoverreconciletz-");
+        DISCOVER_RECONCILE_TZ_LOCK("lock-discoverreconciletz-"),
+        DISCOVER_RR_CONFIG_LOCK("lock-discover-rr-config-");
 
         private final String _lockName;
         private InterProcessLock _processLock;
@@ -186,6 +195,8 @@ public class ControllerServiceImpl implements ControllerService {
                 _timeout = Constants.DISCOVER_LOCK_ACQUIRE_TIME;
             } else if (_lockName.equals("lock-implicitpoolmatcherjob-")) {
                 _timeout = Constants.DEFAULT_LOCK_ACQUIRE_TIME;
+            } else if (_lockName.equals("lock-implicitpoolmatcherjob-")) {
+                _timeout = Constants.DISCOVER_LOCK_ACQUIRE_TIME;;
             } else {
                 _timeout = 0;
             }
@@ -266,6 +277,8 @@ public class ControllerServiceImpl implements ControllerService {
                 return POOL_MATCHER_LOCK;
             } else if (type.equals(DISCOVERY_RECONCILE_TZ)) {
                 return DISCOVER_RECONCILE_TZ_LOCK;
+            } else if (type.equals(RR_DISCOVERY)) {
+                return DISCOVER_RR_CONFIG_LOCK;
             } else {
                 // impossible
                 return null;
@@ -417,6 +430,11 @@ public class ControllerServiceImpl implements ControllerService {
         _meteringJobConsumer = meteringJobConsumer;
     }
 
+    public void setRrConfigDiscoveryJobConsumer(DataCollectionJobConsumer rrConfigDiscoveryJobConsumer) {
+        _rrConfigDiscoveryJobConsumer = rrConfigDiscoveryJobConsumer;
+    }
+
+
     /**
      * Set Job Scheduler
      * 
@@ -490,6 +508,7 @@ public class ControllerServiceImpl implements ControllerService {
         _computeDiscoverJobConsumer.start();
         _scanJobConsumer.start();
         _meteringJobConsumer.start();
+        _rrConfigDiscoveryJobConsumer.start();
         _discoverJobQueue = _coordinator.getQueue(DISCOVER_JOB_QUEUE_NAME, _discoverJobConsumer,
                 new DataCollectionJobSerializer(), Integer.parseInt(_configInfo.get(DISCOVERY_COREPOOLSIZE)), 200);
         _arrayAffinityDiscoverJobQueue = _coordinator.getQueue(ARRAYAFFINITY_DISCOVER_JOB_QUEUE_NAME, _arrayAffinityDiscoverJobConsumer,
@@ -500,6 +519,8 @@ public class ControllerServiceImpl implements ControllerService {
                 new DataCollectionJobSerializer(), Integer.parseInt(_configInfo.get(METERING_COREPOOLSIZE)), 200);
         _scanJobQueue = _coordinator.getQueue(SCAN_JOB_QUEUE_NAME, _scanJobConsumer,
                 new DataCollectionJobSerializer(), 1, 50);
+        _rrConfigDiscoveryJobQueue = _coordinator.getQueue(RR_DISCOVERY_JOB_QUEUE_NAME, _rrConfigDiscoveryJobConsumer,
+                new DataCollectionJobSerializer(), Integer.parseInt(_configInfo.get(RR_DISCOVERY_COREPOOLSIZE)), 100);
         
         /**
          * Monitoring use cases starts here
@@ -540,12 +561,14 @@ public class ControllerServiceImpl implements ControllerService {
         _scanJobQueue.stop(120000);
         _monitoringJobQueue.stop(120000);
         _meteringJobQueue.stop(120000);
+        _rrConfigDiscoveryJobQueue.stop(120000);
         _dispatcher.stop();
         _scanJobConsumer.stop();
         _discoverJobConsumer.stop();
         _arrayAffinityDiscoverJobConsumer.stop();
         _computeDiscoverJobConsumer.stop();
         _meteringJobConsumer.stop();
+        _rrConfigDiscoveryJobConsumer.stop();
         _monitoringJobConsumer.stop();
         _dbClient.stop();
         /**
@@ -692,6 +715,8 @@ public class ControllerServiceImpl implements ControllerService {
             _monitoringJobQueue.put(job);
         } else if (jobType.equals(METERING)) {
             _meteringJobQueue.put(job);
+        } else if (jobType.equals(RR_DISCOVERY)) {
+            _rrConfigDiscoveryJobQueue.put(job);
         }
         _log.info("Queued " + jobType + " job for " + job.systemString());
 

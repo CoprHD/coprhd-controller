@@ -41,6 +41,9 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 
+import com.emc.storageos.db.client.model.remotereplication.RemoteReplicationPair;
+import com.emc.storageos.model.remotereplication.RemoteReplicationParameters;
+import com.emc.storageos.plugins.common.Constants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -1002,6 +1005,22 @@ public class BlockService extends TaskResourceService {
             capabilities.put(VirtualPoolCapabilityValuesWrapper.COMPUTE, computeURI.toString());
         }
 
+        // set remote replication parameters
+        if (VirtualPool.vPoolSpecifiesRemoteReplication(vpool)) {
+            RemoteReplicationParameters rrParameters = param.getRemoteReplicationParameters();
+           if (rrParameters != null) {
+               capabilities.put(VirtualPoolCapabilityValuesWrapper.REMOTE_REPLICATION_SET, rrParameters.getRemoteReplicationSet());
+               capabilities.put(VirtualPoolCapabilityValuesWrapper.REMOTE_REPLICATION_GROUP, rrParameters.getRemoteReplicationGroup());
+               capabilities.put(VirtualPoolCapabilityValuesWrapper.REMOTE_REPLICATION_MODE, rrParameters.getRemoteReplicationMode());
+               capabilities.put(VirtualPoolCapabilityValuesWrapper.REMOTE_REPLICATION_CREATE_INACTIVE, rrParameters.getCreateInactive());
+           } else {
+               // error
+               // todo:
+               // throw APIException.badRequests.volumeCreateDoesNotSpecifyRemoteReplicationParameters();
+           }
+        }
+
+
         // COP-14028
         // Changing the return of a TaskList to return immediately while the underlying tasks are
         // being built up. Steps:
@@ -1194,6 +1213,8 @@ public class BlockService extends TaskResourceService {
             return getBlockServiceImpl(DiscoveredDataObject.Type.vplex.name());
         } else if (VirtualPool.vPoolSpecifiesSRDF(vpool)) {
             return getBlockServiceImpl(DiscoveredDataObject.Type.srdf.name());
+        } else if (VirtualPool.vPoolSpecifiesRemoteReplication(vpool)) {
+            return getBlockServiceImpl(Constants.REMOTE_REPLICATION);
         } else if (VirtualPool.vPoolSpecifiesMirrors(vpool, dbClient)) {
             return getBlockServiceImpl("mirror");
         } else if (vpool.getMultivolumeConsistency() != null && vpool.getMultivolumeConsistency()) {
@@ -1232,6 +1253,14 @@ public class BlockService extends TaskResourceService {
             return getBlockServiceImpl(DiscoveredDataObject.Type.srdf.name());
         }
 
+        // check for remote replication target
+        List<RemoteReplicationPair> rrPairs = CustomQueryUtility.queryActiveResourcesByRelation(dbClient, volume.getId(),
+                                                          RemoteReplicationPair.class, "targetElement");
+        if (rrPairs != null && !rrPairs.isEmpty()) {
+            // target rr volume
+            return getBlockServiceImpl(Constants.REMOTE_REPLICATION);
+        }
+
         // Otherwise the volume sent in is assigned to a virtual pool that tells us what block service to return
         VirtualPool vPool = dbClient.queryObject(VirtualPool.class, volume.getVirtualPool());
         // Mutually exclusive logic that selects an implementation of the block service
@@ -1239,6 +1268,8 @@ public class BlockService extends TaskResourceService {
             return getBlockServiceImpl(DiscoveredDataObject.Type.vplex.name());
         } else if (VirtualPool.vPoolSpecifiesSRDF(vPool)) {
             return getBlockServiceImpl(DiscoveredDataObject.Type.srdf.name());
+        } else if (VirtualPool.vPoolSpecifiesRemoteReplication(vPool)) {
+            return getBlockServiceImpl(Constants.REMOTE_REPLICATION);
         } else if (VirtualPool.vPoolSpecifiesMirrors(vPool, dbClient)) {
             return getBlockServiceImpl("mirror");
         } else if (vPool.getMultivolumeConsistency() != null && vPool.getMultivolumeConsistency()) {

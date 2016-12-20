@@ -15,6 +15,7 @@ import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.NetworkSystem;
 import com.emc.storageos.db.client.model.ProtectionSet;
 import com.emc.storageos.db.client.model.Vcenter;
+import com.emc.storageos.db.client.model.remotereplication.RemoteReplicationConfigProvider;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
@@ -136,6 +137,8 @@ public class DiscoverTaskCompleter extends DataCollectionTaskCompleter {
             opType = ResourceOperationTypeEnum.DISCOVER_NETWORK_SYSTEM;
         } else if (ProtectionSet.class.equals(type)) {
             opType = ResourceOperationTypeEnum.DISCOVER_PROTECTION_SET;
+        } else if (RemoteReplicationConfigProvider.class.equals(type)) {
+            opType = ResourceOperationTypeEnum.DISCOVER_REMOTE_REPLICATION_CONFIG_PROVIDER;
         }
 
         dbClient.createTaskOpStatus(getType(), getId(), getOpId(),

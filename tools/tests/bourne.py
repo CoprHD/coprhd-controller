@@ -501,6 +501,12 @@ URI_REPLICATION_GROUPS          = URI_SERVICES_BASE + '/vdc/data-service/vpools'
 URI_REPLICATION_EXTEND          = URI_SERVICES_BASE + '/vdc/data-service/vpools/{0}/addvarrays'
 URI_REPLICATION_COMPRESS        = URI_SERVICES_BASE + '/vdc/data-service/vpools/{0}/removevarrays'
 
+URI_REMOTEREPLICATIONSET_LIST            = URI_SERVICES_BASE   + '/block/remotereplicationsets'
+URI_REMOTEREPLICATIONSET_INSTANCE        = URI_SERVICES_BASE   + '/block/remotereplicationsets/{0}'
+URI_REMOTEREPLICATIONGROUP_LIST            = URI_SERVICES_BASE   + '/block/remotereplicationgroups'
+URI_REMOTEREPLICATIONGROUP_INSTANCE        = URI_SERVICES_BASE   + '/block/remotereplicationgroups/{0}'
+
+
 URI_VNAS_SERVERS                = URI_SERVICES_BASE + '/vdc/vnas-servers'
 URI_VNAS_SERVER                 = URI_SERVICES_BASE + '/vdc/vnas-servers/{0}'
 URI_VNAS_SERVER_ASSIGN          = URI_SERVICES_BASE + '/projects/{0}/assign-vnas-servers'
@@ -1466,7 +1472,7 @@ class Bourne:
                    standbyJournalVpool, rp_copy_mode, rp_rpo_value, rp_rpo_type, protectionCoS,
                    multiVolumeConsistency, max_snapshots, max_mirrors, thin_volume_preallocation_percentage,
                    long_term_retention, system_type, srdf, auto_tiering_policy_name, host_io_limit_bandwidth, host_io_limit_iops,
-		   auto_cross_connect, placement_policy, compressionEnabled):
+		   auto_cross_connect, placement_policy, compressionEnabled, remoteReplication):
 
         if (type != 'block' and type != 'file' and type != "object" ):
             raise Exception('wrong type for vpool: ' + str(type))
@@ -1525,10 +1531,29 @@ class Bourne:
         if (type == 'block' and placement_policy):
             parms['placement_policy'] = placement_policy;
 
-        if (max_snapshots or max_mirrors or protectionCoS or srdf):
+        if (max_snapshots or max_mirrors or protectionCoS or srdf or remote_replication):
             cos_protection_params = dict()
 
             if (type == 'block'):
+
+                # process remote replication parameters
+                if (remoteReplication):
+                        copies = remoteReplication.split(',')
+                        rrEntries = []
+                        for copy in copies:
+                            copyParam = copy.split(":")
+                            rr_params = dict()
+                            rr_params['varray'] = self.neighborhood_query(copyParam[0])
+                            try:
+                                rr_params['vpool'] = self.cos_query("block", copyParam[1])
+                            except:
+                                 pass
+                            rrEntries.append(rr_params)
+                        cos_protection_remote_replication_params = dict()
+                        cos_protection_remote_replication_params['remote_replication_settings'] = rrEntries
+                        cos_protection_params['remote_replication'] = cos_protection_remote_replication_params
+
+                # remote replication end
 
 		if (srdf):
                     cos_protection_srdf_params = dict()
@@ -3681,7 +3706,7 @@ class Bourne:
     def volume_exports(self, uri):
         return self.api('GET', URI_VOLUMES_EXPORTS.format(uri))
 
-    def volume_create(self, label, project, neighborhood, cos, size, isThinVolume, count, protocols, protection, consistencyGroup, computeResource):
+    def volume_create(self, label, project, neighborhood, cos, size, isThinVolume, count, protocols, protection, consistencyGroup, computeResource, remoteReplication):
         parms = {
             'name'              : label,
             'varray'      : neighborhood,
@@ -3699,6 +3724,22 @@ class Bourne:
 
         if (computeResource):
             parms['computeResource'] = computeResource
+
+        # process remote replication parameters
+        if (remoteReplication):
+            rr_params = remoteReplication.split(":")
+            replication_settings = dict()
+            replication_settings['replication_set'] = self.replicationset_query(rr_params[0])
+            try:
+                replication_settings['replication_group'] = self.replicationgroup_query(rr_params[1])
+            except:
+                pass
+            replication_settings['replication_mode'] = rr_params[2]
+
+            #remote_replication_params = dict()
+            #remote_replication_params['remote_replication'] = replication_settings
+            parms['remote_replication_params'] =  replication_settings
+        # remote replication end
 
         print "VOLUME CREATE Params = ", parms
         resp = self.api('POST', URI_VOLUME_LIST, parms, {})
@@ -9152,3 +9193,52 @@ class Bourne:
         }
 
         return self.api('POST', URI_CUSTOMCONFIGS, parms, {})
+
+    #
+    # remote replication APIs
+    #
+
+    # remote replication set APIs
+    def replicationset_list(self):
+        o = self.api('GET', URI_REMOTEREPLICATIONSET_LIST)
+        if (not o):
+            return {};
+        else:
+            return o['remote_replication_set']
+
+    def replicationset_show(self, uri):
+        return self.api('GET', URI_REMOTEREPLICATIONSET_INSTANCE.format(uri))
+
+    def replicationset_query(self, name):
+        if (self.__is_uri(name)):
+            return name
+
+        replicationsets = self.replicationset_list()
+        for rs in replicationsets:
+            replicationset = self.replicationset_show(rs['id'])
+            if (replicationset['name'] == name):
+                return replicationset['id']
+        raise Exception('bad remote replication set name ' + name)
+
+
+    # remote replication group APIs
+    def replicationgroup_list(self):
+        o = self.api('GET', URI_REMOTEREPLICATIONGROUP_LIST)
+        if (not o):
+            return {};
+        else:
+            return o['remote_replication_group']
+
+    def replicationgroup_show(self, uri):
+        return self.api('GET', URI_REMOTEREPLICATIONGROUP_INSTANCE.format(uri))
+
+    def replicationgroup_query(self, name):
+        if (self.__is_uri(name)):
+            return name
+
+        replicationgroups = self.replicationgroup_list()
+        for rg in replicationgroups:
+            replicationgroup = self.replicationgroup_show(rg['id'])
+            if (replicationgroup['name'] == name):
+                return replicationgroup['id']
+        raise Exception('bad remote replication group name ' + name)

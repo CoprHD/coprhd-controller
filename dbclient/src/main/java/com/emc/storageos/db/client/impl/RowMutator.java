@@ -8,6 +8,7 @@ package com.emc.storageos.db.client.impl;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicLong;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -30,10 +31,11 @@ import com.netflix.astyanax.util.TimeUUIDUtils;
  */
 public class RowMutator {
     private static final Logger log = LoggerFactory.getLogger(RowMutator.class);
+    private static int TIME_STAMP_OFFSET = 1;
     
     private Map<String, Map<String, ColumnListMutation<CompositeColumnName>>> _cfRowMap;
     private Map<String, Map<String, ColumnListMutation<IndexColumnName>>> _cfIndexMap;
-    private long _timeStamp;
+    private AtomicLong _timeStamp = new AtomicLong();
     private MutationBatch _mutationBatch;
     private Keyspace keyspace;
     private boolean retryFailedWriteWithLocalQuorum = false;
@@ -57,10 +59,10 @@ public class RowMutator {
      */
     public RowMutator(Keyspace keyspace, boolean retryWithLocalQuorum, long microsTimeStamp) {
         this.keyspace = keyspace;
-        this._timeStamp = microsTimeStamp;
+        this._timeStamp.set(microsTimeStamp);
         
         _mutationBatch = keyspace.prepareMutationBatch();
-        _mutationBatch.setTimestamp(_timeStamp).withAtomicBatch(true);
+        _mutationBatch.setTimestamp(microsTimeStamp).withAtomicBatch(true);
 
         _cfRowMap = new HashMap<String, Map<String, ColumnListMutation<CompositeColumnName>>>();
         _cfIndexMap = new HashMap<String, Map<String, ColumnListMutation<IndexColumnName>>>();
@@ -69,8 +71,7 @@ public class RowMutator {
     }
 
     public UUID getTimeUUID() {
-        _timeStamp += 1000;
-        return TimeUUIDUtils.getMicrosTimeUUID(_timeStamp);
+        return TimeUUIDUtils.getMicrosTimeUUID(_timeStamp.getAndAdd(TIME_STAMP_OFFSET));
     }
 
     /**

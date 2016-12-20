@@ -8,6 +8,9 @@ import java.io.BufferedReader;
 import java.io.StringReader;
 import java.lang.reflect.InvocationTargetException;
 import java.net.URI;
+import java.time.Duration;
+import java.time.Instant;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -48,11 +51,13 @@ import com.netflix.astyanax.util.TimeUUIDUtils;
 
 public class RebuildIndexDuplicatedCFNameMigration extends BaseCustomMigrationCallback {
     private static final Logger log = LoggerFactory.getLogger(RebuildIndexDuplicatedCFNameMigration.class);
-    private int totalProccessedClassCount = 0;
+    private int totalProcessedClassCount = 0;
+    private int totalProcessedDataObjectCount = 0;
 
     @Override
     public void process() throws MigrationCallbackException {
         log.info("Begin to run migration handler RebuildIndexDuplicatedCFName");
+        long beginTime = System.currentTimeMillis();
 
         InternalDbClient dbClient = (InternalDbClient) getDbClient();
 
@@ -66,38 +71,52 @@ public class RebuildIndexDuplicatedCFNameMigration extends BaseCustomMigrationCa
 
             DuplicatedIndexCFDetector detector = new DuplicatedIndexCFDetector();
             List<DuplciatedIndexDataObject> duplciatedIndexDataObjects = detector.findDuplicatedIndexCFNames(dbSchema);
+            Map<String, List<DuplciatedIndexDataObject>> duplciatedIndexDataObjectMap = new HashMap<String, List<DuplciatedIndexDataObject>>();
 
             for (DuplciatedIndexDataObject duplciatedIndexDataObject : duplciatedIndexDataObjects) {
-                handleDataObjectClass(duplciatedIndexDataObject);
+                if (!duplciatedIndexDataObjectMap.containsKey(duplciatedIndexDataObject.getClassName())) {
+                    duplciatedIndexDataObjectMap.put(duplciatedIndexDataObject.getClassName(), new ArrayList<DuplciatedIndexDataObject>());
+                }
+                duplciatedIndexDataObjectMap.get(duplciatedIndexDataObject.getClassName()).add(duplciatedIndexDataObject);
+                //handleDataObjectClass(duplciatedIndexDataObject);
             }
-
-            log.info("Total Classes: {}", totalProccessedClassCount);
+            
+            for (Entry<String, List<DuplciatedIndexDataObject>> entry : duplciatedIndexDataObjectMap.entrySet()) {
+                handleDataObjectClass(entry.getKey(), entry.getValue());
+            }
+            
+            log.info("Total Classes: {}", totalProcessedClassCount);
+            log.info("Total Data Object: {}", totalProcessedDataObjectCount);
         } catch (Exception e) {
             log.error("Failed to fun migration handler RebuildIndexDuplicatedCFName {}", e);
         }
 
         log.info("Finish run migration handler RebuildIndexDuplicatedCFName");
+        log.info("Total seconds: {}", (System.currentTimeMillis() - beginTime)/1000);
     }
 
-    public void handleDataObjectClass(DuplciatedIndexDataObject duplciatedIndexDataObject) throws Exception {
-        log.info("proccess model class {}", duplciatedIndexDataObject.getClassName());
+    public int handleDataObjectClass(String className, List<DuplciatedIndexDataObject> duplciatedIndexDataObjects) throws Exception {
+        log.info("proccess model class {}", className);
 
         InternalDbClient dbClient = (InternalDbClient) getDbClient();
-        DataObjectType doType = TypeMap.getDoType((Class<? extends DataObject>) Class.forName(duplciatedIndexDataObject.getClassName()));
+        DataObjectType doType = TypeMap.getDoType((Class<? extends DataObject>) Class.forName(className));
         
         if (KeyspaceUtil.isGlobal(doType.getDataObjectClass())) {
-            log.info("Skip global model {}", duplciatedIndexDataObject.getClassName());
-            return;
+            log.info("Skip global model {}", className);
+            return 0;
         }
         
-        totalProccessedClassCount++;
+        int totalProcessedIndex = 0;
+        totalProcessedClassCount++;
         Keyspace keyspace = dbClient.getLocalContext().getKeyspace();
 
         ColumnFamilyQuery<String, CompositeColumnName> query = keyspace.prepareQuery(doType.getCF());
         OperationResult<Rows<String, CompositeColumnName>> result = query.getAllRows().setRowLimit(100).execute();
-
+        int totalCount = 0;
         for (Row<String, CompositeColumnName> objRow : result.getResult()) {
             boolean inactiveObject = false;
+            totalProcessedDataObjectCount++;
+            totalCount++;
 
             for (Column<CompositeColumnName> column : objRow.getColumns()) {
                 if (DataObject.INACTIVE_FIELD_NAME.equals(column.getName().getOne()) && column.getBooleanValue()) {
@@ -111,10 +130,15 @@ public class RebuildIndexDuplicatedCFNameMigration extends BaseCustomMigrationCa
                 continue;
             }
 
-            for (Entry<IndexCFKey, List<FieldInfo>> entry : duplciatedIndexDataObject.getIndexFieldsMap().entrySet()) {
-                proccessDataObjectTypeByIndexCF(doType, entry, objRow, keyspace);
+            for (DuplciatedIndexDataObject duplciatedIndexDataObject : duplciatedIndexDataObjects) {
+                for (Entry<IndexCFKey, List<FieldInfo>> entry : duplciatedIndexDataObject.getIndexFieldsMap().entrySet()) {
+                    totalProcessedIndex += proccessDataObjectTypeByIndexCF(doType, entry, objRow, keyspace);
+                }
             }
         }
+        
+        log.info("Total data object count is {} for model {}", totalCount, className);
+        return totalProcessedIndex;
     }
 
     public int proccessDataObjectTypeByIndexCF(DataObjectType doType, Entry<IndexCFKey, List<FieldInfo>> entry,
@@ -153,6 +177,9 @@ public class RebuildIndexDuplicatedCFNameMigration extends BaseCustomMigrationCa
             
             if (valueColumnMap.containsKey(key)) {
                 totalCleanupCount++;
+                /*log.info("Found duplicated index value: {}", key);
+                log.info("Column1: {}", column.getName());
+                log.info("Column2: {}", valueColumnMap.get(key));*/
                 rebuildIndex(doType, columnField, valueObject, objRow.getKey(), column, keyspace);
             } else {
                 valueColumnMap.put(key, column.getName());
@@ -185,11 +212,22 @@ public class RebuildIndexDuplicatedCFNameMigration extends BaseCustomMigrationCa
     }
 
     public int getTotalProccessedClassCount() {
-        return totalProccessedClassCount;
+        return totalProcessedClassCount;
     }   
 }
 
 class FieldValueTimeUUIDPair {
+    @Override
+    public String toString() {
+        StringBuilder builder = new StringBuilder();
+        builder.append("FieldValueTimeUUIDPair [fieldValue=");
+        builder.append(fieldValue);
+        builder.append(", timeUUID=");
+        builder.append(timeUUID);
+        builder.append("]");
+        return builder.toString();
+    }
+
     private Object fieldValue;
     private UUID timeUUID;
 

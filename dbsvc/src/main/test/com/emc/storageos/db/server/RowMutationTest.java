@@ -5,6 +5,9 @@
 package com.emc.storageos.db.server;
 
 import java.net.URI;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.UUID;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -154,5 +157,17 @@ public class RowMutationTest extends DbsvcTestBase {
 		Rows<String, IndexColumnName> rows = result.getRows(indexCF);
         
         Assert.assertEquals(rows.size(), 1);        
+    }
+    
+    @Test
+    public void testTimeUUID() {
+        Set<String> uuidSet = new HashSet<String>();
+        for (int i = 0; i < 1000; i++) {
+            UUID uuid = rowMutator.getTimeUUID();
+            if (uuidSet.contains(uuid.toString())) {
+                Assert.fail("time uuid is duplicated from RowMutator");
+            }
+            uuidSet.add(uuid.toString());
+        }
     }
 }

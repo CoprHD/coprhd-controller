@@ -7,6 +7,7 @@ package com.emc.storageos.db.server;
 
 import com.emc.storageos.coordinator.client.model.DbVersionInfo;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
+import com.emc.storageos.coordinator.client.service.DrUtil;
 import com.emc.storageos.coordinator.client.service.impl.CoordinatorClientInetAddressMap;
 import com.emc.storageos.coordinator.client.service.impl.DualInetAddress;
 import com.emc.storageos.coordinator.common.impl.ServiceImpl;
@@ -26,6 +27,7 @@ import com.emc.storageos.db.server.util.StubCoordinatorClientImpl;
 import com.emc.storageos.security.password.PasswordUtils;
 import com.emc.storageos.services.util.JmxServerWrapper;
 import com.emc.storageos.services.util.LoggingUtils;
+
 import org.apache.cassandra.config.Schema;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -141,6 +143,7 @@ public abstract class DbServiceTestBase {
         vdcHosts.add("127.0.0.1");
         util.setVdcNodeList(vdcHosts);
         util.setDbCommonInfo(new java.util.Properties());
+        util.setDrUtil(new DrUtil(coordinator));
 
         dbsvc = new InternalDbService();
         dbsvc.setConfig("db-test.yaml");

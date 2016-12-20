@@ -135,4 +135,5 @@ public interface BackupConstants {
 
     public static final String DRIVERS_FOLDER_NAME = "drivers";
     public static final String DRIVERS_DIR = "/data/drivers";
+    public static final String BACKUP_FILE_PERMISSION = "644";
 }

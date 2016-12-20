@@ -23,6 +23,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static com.emc.storageos.services.util.FileUtils.chown;
+import static com.emc.storageos.services.util.FileUtils.chmod;
 
 public class RestoreHandler {
 
@@ -167,6 +168,7 @@ public class RestoreHandler {
         File sysDriverDir = new File(BackupConstants.DRIVERS_DIR);
         for (File f : drivers) {
             try {
+                chmod(f, BackupConstants.BACKUP_FILE_PERMISSION);
                 FileUtils.moveFileToDirectory(f, sysDriverDir, true);
                 log.info("Successfully restored driver file: {}", f.getName());
             } catch (IOException e) {

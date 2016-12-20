@@ -55,7 +55,7 @@ public class Hosts extends AbstractCoreBulkResources<HostRestRep> implements Ten
     }
 
     @Override
-    protected List<HostRestRep> getBulkResources(BulkIdParam input) {
+    public List<HostRestRep> getBulkResources(BulkIdParam input) {
         HostBulkRep response = client.post(HostBulkRep.class, input, getBulkUrl());
         return defaultList(response.getHosts());
     }

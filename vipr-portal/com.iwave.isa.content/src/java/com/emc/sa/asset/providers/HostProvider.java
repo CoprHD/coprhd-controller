@@ -8,9 +8,12 @@ import static com.emc.vipr.client.core.filters.CompatibilityFilter.INCOMPATIBLE;
 import static com.emc.vipr.client.core.filters.RegistrationFilter.REGISTERED;
 
 import java.net.URI;
+import java.util.ArrayList;
 import java.util.List;
 
 import com.emc.sa.util.PerfTimer;
+import com.emc.storageos.model.BulkIdParam;
+import com.emc.storageos.model.NamedRelatedResourceRep;
 import org.springframework.stereotype.Component;
 
 import com.emc.sa.asset.AssetOptionsContext;
@@ -45,8 +48,16 @@ public class HostProvider extends BaseHostProvider {
         info("=========== getting hosts");
         PerfTimer timer = new PerfTimer();
         timer.start();
-        List<HostRestRep> hosts = api(context).hosts().getByTenant(context.getTenant(), REGISTERED.and(INCOMPATIBLE.not()));
-        info("=========== done. Time Spent: %s", timer.probe());
+        // List<HostRestRep> hosts = api(context).hosts().getByTenant(context.getTenant(), REGISTERED.and(INCOMPATIBLE.not()));
+        List<NamedRelatedResourceRep> hostRefs = api(context).hosts().listByTenant(context.getTenant());
+        info("=========== 11111 Got Refs. Time Spent: %s", timer.probe());
+        List<URI> hostIds = new ArrayList<>();
+        for (NamedRelatedResourceRep h : hostRefs) {
+            hostIds.add(h.getId());
+        }
+        info("=========== 22222 Transform to Ids. Time Spent: %s", timer.probe());
+        List<HostRestRep> hosts = api(context).hosts().getBulkResources(new BulkIdParam(hostIds));
+        info("=========== 33333 Done. Time Spent: %s", timer.probe());
         return hosts;
     }
 

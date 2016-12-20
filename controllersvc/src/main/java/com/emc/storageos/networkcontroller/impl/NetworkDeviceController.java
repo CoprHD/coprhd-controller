@@ -1270,8 +1270,10 @@ public class NetworkDeviceController implements NetworkController {
     private boolean doZoneExportMasksDelete(List<NetworkZoningParam> zoningParams,
             Collection<URI> volumeURIs, String stepId) {
         NetworkFCContext context = new NetworkFCContext();
+        TaskCompleter taskCompleter = null;
         boolean status = false;
         try {
+            WorkflowStepCompleter.stepExecuting(stepId);
             if (zoningParams.isEmpty()) {
                 _log.info("zoningParams is empty, returning");
                 WorkflowStepCompleter.stepSucceded(stepId);
@@ -1280,6 +1282,8 @@ public class NetworkDeviceController implements NetworkController {
             URI exportGroupId = zoningParams.get(0).getExportGroupId();
             URI virtualArray = zoningParams.get(0).getVirtualArray();
             if (!checkZoningRequired(stepId, virtualArray)) {
+                _log.info("Zoning check is not required.");
+                WorkflowStepCompleter.stepSucceded(stepId);
                 return true;
             }
             volumeURIs = removeDuplicateURIs(volumeURIs);
@@ -1293,9 +1297,13 @@ public class NetworkDeviceController implements NetworkController {
 
             // If there are no zones to do, we were successful.
             if (context.getZoneInfos().isEmpty()) {
+                _log.info("No zoning information provided.");
                 WorkflowStepCompleter.stepSucceded(stepId);
                 return true;
             }
+
+            // Create a local completer to handle DB cleanup in the case of failure.
+            taskCompleter = new ZoneReferencesRemoveCompleter(context.getZoneInfos(), true, stepId);
 
             List<NetworkFCZoneInfo> lastReferenceZoneInfo = new ArrayList<NetworkFCZoneInfo>();
             for (NetworkFCZoneInfo zoneInfo : zones) {
@@ -1334,6 +1342,7 @@ public class NetworkDeviceController implements NetworkController {
             WorkflowService.getInstance().storeStepData(stepId, context);
             ServiceError svcError = NetworkDeviceControllerException.errors
                     .zoneExportGroupDeleteFailed(ex.getMessage(), ex);
+            taskCompleter.error(_dbClient, svcError);
             WorkflowStepCompleter.stepFailed(stepId, svcError);
         }
         return status;

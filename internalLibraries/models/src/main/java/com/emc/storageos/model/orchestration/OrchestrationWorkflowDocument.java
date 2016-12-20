@@ -18,7 +18,6 @@ package com.emc.storageos.model.orchestration;
 
 import java.util.List;
 import java.util.Map;
-
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlElementWrapper;
 import javax.xml.bind.annotation.XmlRootElement;
@@ -98,7 +97,7 @@ public class OrchestrationWorkflowDocument {
         public void setDefaultValue(String defaultValue) {
             this.defaultValue = defaultValue;
         }
-        
+
         @XmlElement(name = "value")
         public String getValue() {
             return value;
@@ -106,7 +105,7 @@ public class OrchestrationWorkflowDocument {
         public void setValue(String assetValue) {
             this.value = assetValue;
         }
-        
+
         @XmlElement(name = "group")
         public String getGroup() {
             return group;
@@ -114,7 +113,7 @@ public class OrchestrationWorkflowDocument {
         public void setGroup(String group) {
             this.group = group;
         }
-        
+
         @XmlElement(name = "required")
         public boolean getRequired() {
             return required;
@@ -122,7 +121,7 @@ public class OrchestrationWorkflowDocument {
         public void setRequired(boolean required) {
             this.required = required;
         }
-        
+
         @XmlElement(name = "locked")
         public boolean getLocked() {
             return locked;
@@ -162,6 +161,8 @@ public class OrchestrationWorkflowDocument {
         private String friendlyName;
         private String operation;
         private String description;
+        private Integer positionX;
+        private Integer positionY;
         private String type;
         private Map<String, Input> input;
         private Map<String, String> output;
@@ -185,6 +186,21 @@ public class OrchestrationWorkflowDocument {
             this.friendlyName = friendlyName;
         }
 
+        @XmlElement(name = "position_y")
+        public Integer getPositionY() {
+            return positionY;
+        }
+        public void setPositionY(Integer positionY) {
+            this.positionY = positionY;
+        }
+
+        @XmlElement(name = "position_x")
+        public Integer getPositionX() {
+            return positionX;
+        }
+        public void setPositionX(Integer positionX) {
+            this.positionX = positionX;
+        }
 
         @XmlElement(name = "operation")
         public String getOperation() {
@@ -238,8 +254,8 @@ public class OrchestrationWorkflowDocument {
         public String getSuccessCriteria() {
             return successCriteria;
         }
-        public void setSuccessCriteria(String successCritera) {
-            this.successCriteria = successCritera;
+        public void setSuccessCriteria(String successCriteria) {
+            this.successCriteria = successCriteria;
         }
         @XmlElement(name = "next")
         public NextStep getNext() {
@@ -255,18 +271,18 @@ public class OrchestrationWorkflowDocument {
         private String failedStep;
         
         @XmlElement(name = "default")
-        public String getDefault() {
+        public String getDefaultStep() {
             return defaultStep;
         }
-        public void setDefault(String defaultstep) {
-            this.defaultStep = defaultstep;
+        public void setDefaultStep(String defaultStep) {
+            this.defaultStep = defaultStep;
         }
         
         @XmlElement(name = "failed")
-        public String getFailed() {
+        public String getFailedStep() {
             return failedStep;
         }
-        public void setFailed(String failedStep) {
+        public void setFailedStep(String failedStep) {
             this.failedStep = failedStep;
         }
     }

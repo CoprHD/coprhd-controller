@@ -80,34 +80,4 @@ public final class OrchestrationServiceConstants {
         }
 
     }
-
-    public enum StepType {
-        VIPR_REST("ViPR REST API"),
-        REST("REST API"),
-        LOCAL_ANSIBLE("Local Ansible"),
-        REMOTE_ANSIBLE("Remote Ansible"),
-        SHELL_SCRIPT("Shell Script"),
-        START("Start"),
-        END("End");
-
-        private final String stepType;
-        private StepType(final String stepType)
-        {
-            this.stepType = stepType;
-        }
-
-        @Override
-        public String toString() {
-		    return stepType;
-        }
-        public static StepType fromString(String v) {
-            for (StepType e : StepType.values())
-            {
-                if (v.equals(e.stepType)) 
-                    return e;
-            }
-
-            return null;
-        }
-    }
 }

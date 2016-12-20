@@ -41,7 +41,7 @@ import com.emc.sa.engine.service.Service;
 import com.emc.sa.service.vipr.ViPRExecutionUtils;
 import com.emc.sa.service.vipr.ViPRService;
 import com.emc.sa.service.vipr.oe.OrchestrationServiceConstants.InputType;
-import com.emc.sa.service.vipr.oe.OrchestrationServiceConstants.StepType;
+import com.emc.storageos.primitives.Primitive.StepType;
 import com.emc.sa.service.vipr.oe.gson.ViprOperation;
 import com.emc.sa.service.vipr.oe.gson.ViprTask;
 import com.emc.sa.service.vipr.oe.tasks.OrchestrationTaskResult;
@@ -122,7 +122,7 @@ public class OrchestrationService extends ViPRService {
             stepsHash.put(step.getId(), step);
 
         Step step = stepsHash.get(StepType.START.toString());
-        String next = step.getNext().getDefault();
+        String next = step.getNext().getDefaultStep();
 
         while (next != null && !next.equals(StepType.END.toString())) {
             step = stepsHash.get(next);
@@ -197,12 +197,12 @@ public class OrchestrationService extends ViPRService {
         if (status) {
             ExecutionUtils.currentContext().logInfo("orchestrationService.stepSuccessStatus", step, result.getReturnCode());
 
-            return step.getNext().getDefault();
+            return step.getNext().getDefaultStep();
         }
 
         ExecutionUtils.currentContext().logError("orchestrationService.stepFailedStatus", step);
 
-        return step.getNext().getFailed();
+        return step.getNext().getFailedStep();
     }
 
     /**

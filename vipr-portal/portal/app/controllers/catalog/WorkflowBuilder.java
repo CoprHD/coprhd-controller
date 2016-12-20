@@ -16,20 +16,6 @@
  */
 package controllers.catalog;
 
-import static util.BourneUtil.getCatalogClient;
-
-import java.net.URI;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
-import play.Logger;
-import play.mvc.Controller;
-import play.mvc.With;
-
 import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.orchestration.OrchestrationWorkflowCreateParam;
 import com.emc.storageos.model.orchestration.OrchestrationWorkflowDocument;
@@ -47,8 +33,18 @@ import com.emc.vipr.model.catalog.WFDirectoryRestRep;
 import com.emc.vipr.model.catalog.WFDirectoryUpdateParam;
 import com.emc.vipr.model.catalog.WFDirectoryWorkflowsUpdateParam;
 import com.google.gson.annotations.SerializedName;
-
 import controllers.Common;
+import java.net.URI;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import play.Logger;
+import play.mvc.Controller;
+import play.mvc.With;
+import static util.BourneUtil.getCatalogClient;
 
 /**
  * @author Nick Aquino
@@ -172,6 +168,24 @@ public class WorkflowBuilder extends Controller {
         }
     }
 
+    //TODO: remove this method and use another means of hardcoding
+    private static List<OrchestrationWorkflowDocument.Step> getStartEndSteps(){
+        OrchestrationWorkflowDocument.Step start = new OrchestrationWorkflowDocument.Step();
+        start.setFriendlyName("Start");
+        start.setId("Start");
+        start.setPositionX(1793);
+        start.setPositionY(1783);
+        OrchestrationWorkflowDocument.Step end = new OrchestrationWorkflowDocument.Step();
+        end.setFriendlyName("End");
+        end.setId("End");
+        end.setPositionX(2041);
+        end.setPositionY(1783);
+        List<OrchestrationWorkflowDocument.Step> steps = new ArrayList<OrchestrationWorkflowDocument.Step>();
+        steps.add(start);
+        steps.add(end);
+        return steps;
+    }
+
     public static void createWorkflow(final String workflowName,
             final String dirID) {
         try {
@@ -179,6 +193,8 @@ public class WorkflowBuilder extends Controller {
             final OrchestrationWorkflowCreateParam param = new OrchestrationWorkflowCreateParam();
             final OrchestrationWorkflowDocument document = new OrchestrationWorkflowDocument();
             document.setName(workflowName);
+            List<OrchestrationWorkflowDocument.Step> steps = getStartEndSteps();
+            document.setSteps(steps);
             param.setDocument(document);
             final OrchestrationWorkflowRestRep orchestrationWorkflowRestRep = getCatalogClient()
                     .orchestrationPrimitives().createWorkflow(param);
@@ -202,6 +218,44 @@ public class WorkflowBuilder extends Controller {
             Logger.error(e.getMessage());
             flash.error("Error creating workflow");
         }
+    }
+
+    public static void saveWorkflow(final URI workflowId,
+                                      final OrchestrationWorkflowDocument workflowDoc) {
+        try {
+            // Create workflow with just name
+            final OrchestrationWorkflowUpdateParam param = new OrchestrationWorkflowUpdateParam();
+            param.setDocument(workflowDoc);
+            final OrchestrationWorkflowRestRep orchestrationWorkflowRestRep = getCatalogClient()
+                    .orchestrationPrimitives().editWorkflow(workflowId,param);
+        } catch (Exception e) {
+            Logger.error(e.getMessage());
+            flash.error("Error saving workflow");
+        }
+    }
+
+    public static void getWorkflow(final URI workflowId) {
+        OrchestrationWorkflowRestRep orchestrationWorkflowRestRep = getCatalogClient()
+                .orchestrationPrimitives().getWorkflow(workflowId);
+        renderJSON(orchestrationWorkflowRestRep);
+    }
+
+    public static void validateWorkflow(final URI workflowId) {
+        OrchestrationWorkflowRestRep orchestrationWorkflowRestRep = getCatalogClient()
+                .orchestrationPrimitives().validateWorkflow(workflowId);
+        renderJSON(orchestrationWorkflowRestRep);
+    }
+
+    public static void publishWorkflow(final URI workflowId) {
+        OrchestrationWorkflowRestRep orchestrationWorkflowRestRep = getCatalogClient()
+                .orchestrationPrimitives().publishWorkflow(workflowId);
+        renderJSON(orchestrationWorkflowRestRep);
+    }
+
+    public static void unpublishWorkflow(final URI workflowId) {
+        OrchestrationWorkflowRestRep orchestrationWorkflowRestRep = getCatalogClient()
+                .orchestrationPrimitives().unpublishWorkflow(workflowId);
+        renderJSON(orchestrationWorkflowRestRep);
     }
 
     public static void editWorkflowName(final String id, final String newName) {

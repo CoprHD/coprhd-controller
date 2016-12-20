@@ -1,185 +1,3 @@
-    /*
-    Dummy data for testing functionality
-        dummyWorkflowData - represents newly created workflow
-        dummyWF - represents workflow data saved by wfbuilder
-    TODO: replace dummy data with API data
-    */
-    var dummyWorkflowData = {
-           "name":"",
-           "description":"Create Volumes if fails delete the created volumes. Send Email about the Workflow status"
-       };
-
-    var dummyWF = {
-                   "name":"demo",
-                   "description":"Create Volumes if fails delete the created volumes. Send Email about the Workflow status",
-                   "steps":[
-                      {
-                         "positionX": 2110,
-                         "positionY": 2098,
-                         "id":"Start",
-                         "friendly_name":"Start",
-                         "next":{
-                            "default":"GoBig"
-                         }
-                      },
-                      {
-                        "positionX": 2323,
-                        "positionY": 2098,
-                         "id":"GoBig",
-                         "operation":"com.emc.storageos.model.orchestration.internal.BlockServiceCreateVolume",
-                         "description":"Create Volumes",
-                         "friendly_name":"Create Volume",
-                         "type":"ViPR REST API",
-                         "input":{
-                            "size":{
-                               "type":"InputFromUser",
-                               "friendly_name":"CreateVolume Size",
-                               "required":"true",
-                               "default_value":"1GB",
-                               "value":"",
-                               "group":"Provisioning",
-                               "locked":""
-                            },
-                            "name":{
-                               "type":"InputFromUser",
-                               "friendly_name":"Create Volume Name",
-                               "required":"true",
-                               "default_value":"Mozart-Vol",
-                               "value":"",
-                               "group":"Provisioning",
-                               "locked":""
-                            },
-                            "count":{
-                               "type":"InputFromUser",
-                               "friendly_name":"Num of volumes to create",
-                               "required":"true",
-                               "default_value":"1",
-                               "value":"",
-                               "group":"Provisioning"
-                            },
-                            "varray":{
-                               "type":"AssetOption",
-                               "friendly_name":"Varray",
-                               "required":"true",
-                               "default_value":"urn:storageos:VirtualArray:9ff1c466-4f17-4d0a-aaf9-df9cb06cfde0:vdc1",
-                               "value":"assetType.vipr.virtualArray",
-                               "group":"Controller"
-                            },
-                            "vpool":{
-                               "type":"AssetOption",
-                               "friendly_name":"Vpool",
-                               "required":"true",
-                               "default_value":"urn:storageos:VirtualPool:8b81adcd-91c8-422a-bc2d-6d245db66998:vdc1",
-                               "value":"assetType.vipr.blockVirtualPool",
-                               "group":"Controller"
-                            },
-                            "project":{
-                               "type":"AssetOption",
-                               "friendly_name":"Project",
-                               "required":"true",
-                               "default_value":"urn:storageos:Project:51d2cc03-62ad-4e7e-92b1-e60cf614c84f:global",
-                               "value":"assetType.vipr.project",
-                               "group":"Controller"
-                            },
-                        "consistencyGroup":{
-                           "type":"InputFromUser",
-                               "friendly_name":"consistency group",
-                               "required":"false",
-                               "default_value":"",
-                               "group":"Controller"
-                        },
-                        "computeResource":{
-                           "type":"InputFromUser",
-                               "friendly_name":"compute resource",
-                               "required":"false",
-                               "default_value":"",
-                               "group":"Controller"
-                         }
-                         },
-                         "success_criteria":"#task_state == 'pending'",
-                         "output":{
-                            "CreatedVols":"task.resource.id"
-                         },
-                         "attributes":{
-                            "wait_for_task":true,
-                            "timeout":"60"
-                         },
-                         "next":{
-                            "default":"WinBig",
-                            "failed":"WE123"
-                         }
-                      },
-                      {
-                        "positionX": 2312,
-                        "positionY": 2248,
-                         "id":"WE123",
-                         "operation":"deleteVolumes",
-                         "description":" Delete the volumes",
-                         "friendly_name":"Delete Volume",
-                         "type":"ViPR REST API",
-                         "input":{
-                            "id":{
-                               "type":"FromOtherStepOutput",
-                               "friendly_name":"Volumes to be deleted",
-                               "value":"GoBig.id"
-                            }
-                         },
-                         "output":{
-                            "DeletedVols":"task.resource.id"
-                         },
-                         "success_criteria":null,
-                         "next":{
-                            "default":"WinBig"
-                         }
-                      },
-                      {
-                        "positionX": 2585,
-                        "positionY": 2248,
-                         "id":"WinBig",
-                         "operation":"com.emc.storageos.model.orchestration.internal.LocalAnsible",
-                         "description":"Generic Shell Primitive",
-                         "friendly_name":"Send Email",
-                         "type":"Ansible Script",
-                         "input":{
-                            "email":{
-                               "type":"InputFromUser",
-                               "friendly_name":"Email Send To",
-                               "required":"true",
-                               "default_value":"noReply@dell.com",
-                               "group":"Others"
-                            },
-                            "Subject":{
-                               "type":"InputFromUser",
-                               "friendly_name":"Subject of SendEmail",
-                               "default_value":"Sending Email…",
-                               "group":"Others"
-                            },
-                            "CreatedVolumes":{
-                               "type":"FromOtherStepOutput",
-                               "friendly_name":"created Volumes",
-                               "value":"GoBig.CreatedVols"
-                            },
-                            "Deletedvolumes":{
-                               "type":"FromOtherStepOutput",
-                               "friendly_name":"Deleted Volumes",
-                               "required":"false",
-                               "value":"WE123.DeletedVols"
-                            }
-                         },
-                         "output":null,
-                         "success_criteria":null,
-                         "next":{
-                            "default":"End"
-                          } 
-                      },
-                      {
-                        "positionX": 2839,
-                        "positionY": 2248,
-                         "friendly_name":"End",
-                         "id":"End"
-                      }
-                   ]
-                };
 
 angular.module("portalApp").controller('builderController', function($scope, $rootScope) { //NOSONAR ("Suppressing Sonar violations of max 100 lines in a function and function complexity")
     $rootScope.$on("addWorkflowTab", function(event, id, name){
@@ -189,7 +7,8 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
     $scope.workflowTabs = {};
 
     function addTab(id,name) {
-      $scope.workflowTabs[id] = { id:id, name:name, href:'#'+id };
+        var elementid = id.replace(/:/g,'');
+        $scope.workflowTabs[elementid] = { id:id, elementid:elementid, name:name, href:'#'+elementid };
     }
     $scope.closeTab = function(tabID){
         delete $scope.workflowTabs[tabID];
@@ -298,14 +117,6 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
                              "action": function () {
                                  tree.delete_node($node);
                              }
-                         },
-                         "Preview": {
-                             "separator_before": false,
-                             "separator_after": false,
-                             "label": "Preview",
-                             "action": function () {
-                                 previewNode($node);
-                             }
                          }
                      };
                  }
@@ -338,11 +149,6 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
     jstreeContainer.on("rename_node.jstree", renameDir);
     jstreeContainer.on("delete_node.jstree", deleteDir);
     jstreeContainer.on("select_node.jstree", selectDir);
-
-    // This method will create tab view for workflows
-    function previewNode(node) {
-        $rootScope.$emit("addWorkflowTab", node.id,node.text);
-    }
 
     function createDir(event, data) {
         if ("file" !== data.node.type) {
@@ -459,7 +265,7 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
 
     $scope.openWorkflow = function() {
         var selectedNode = jstreeContainer.jstree(true).get_selected(true)[0];
-        $rootScope.$emit("addWorkflowTab", selectedNode.id.replace(/:/g,'') ,selectedNode.text);
+        $rootScope.$emit("addWorkflowTab", selectedNode.id ,selectedNode.text);
     }
 })
 
@@ -468,14 +274,27 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
     var diagramContainer = $element.find('#diagramContainer');
     var sbSite = $element.find('#sb-site');
     var treecontroller = $element.find('#theSidebar');
-    var jspInstance;
-    var workflowData;
+    var  jspInstance;
+    var workflowData = {};
+    var dataAvailable = false;
     $scope.selectedId = '';
-    //TODO: get workflowData from the API or user input and remove dummy data
-    workflowData = jQuery.extend(true, {}, dummyWorkflowData);
 
     initializeJsPlumb();
     initializePanZoom();
+
+    function activateTab(tab){
+      $('.nav-tabs a[href="#' + tab + '"]').tab('show');
+    };
+
+    $scope.initializeWorkflowData = function(workflowInfo) {
+        var elementid = workflowInfo.id.replace(/:/g,'');
+        $http.get(routes.Workflow_get({workflowId: workflowInfo.id})).then(function (resp) {
+            workflowData = resp.data;
+            activateTab(elementid);
+            loadJSON();
+            dataAvailable = true;
+        });
+    }
 
     function initializePanZoom(){
 
@@ -584,7 +403,7 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
 
 
         //add data
-        //TODO:remove friendly_name, it will be included in step data already
+        //TODO:remove friendlyName, it will be included in step data already
         var stepData = jQuery.extend(true, {}, treecontroller.data("primitiveData"));
         stepData.id = randomIdHash;
         stepData.positionY = positionY;
@@ -603,10 +422,10 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
                 sourceNext = sourceData.next;
             }
             if (sourceEndpoint.hasClass("passEndpoint")) {
-                sourceNext.default=connection.targetId
+                sourceNext.defaultStep=connection.targetId
             }
             if (sourceEndpoint.hasClass("failEndpoint")) {
-                sourceNext.failed=connection.targetId
+                sourceNext.failedStep=connection.targetId
             }
             sourceData.next=sourceNext;
         });
@@ -620,19 +439,16 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
                 sourceNext = sourceData.next;
             }
             if (sourceEndpoint.hasClass("passEndpoint")) {
-                delete sourceData.next.default;
+                delete sourceData.next.defaultStep;
             }
             if (sourceEndpoint.hasClass("failEndpoint")) {
-                delete sourceData.next.failed;
+                delete sourceData.next.failedStep;
             }
             sourceData.next=sourceNext;
         });
     }
-    /*
-    Functions for creating JSON from jsplumb diagram and for creating diagram form JSON
-        These functions will be used within export/import/save/load
-    */
-    $scope.buildJSON = function() {
+
+    function buildJSON() {
         var blocks = []
         diagramContainer.find(" .item").each(function(idx, elem) {
             var $elem = $(elem);
@@ -646,9 +462,32 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
         });
 
         //TODO: return JSON data so that it can be accessed in Export/SaveWorkflow via this method
-        workflowData.steps = blocks;
+        workflowData.document.steps = blocks;
+    }
 
-        dummyWF = jQuery.extend(true, {}, workflowData);
+    $scope.saveWorkflow = function() {
+        buildJSON();
+        $http.post(routes.Workflow_save({workflowId : workflowData.id}),{workflowDoc : workflowData.document}).then(function (resp) {
+            //TODO: change variable to update that workflow saved
+        });
+    }
+
+    $scope.validateWorkflow = function() {
+        $http.post(routes.Workflow_validate({workflowId : workflowData.id})).then(function (resp) {
+            console.log(resp);
+        });
+    }
+
+    $scope.publishorkflow = function() {
+        $http.post(routes.Workflow_publish({workflowId : workflowData.id})).then(function (resp) {
+            console.log(resp);
+        });
+    }
+
+    $scope.unpublishWorkflow = function() {
+        $http.post(routes.Workflow_unpublish({workflowId : workflowData.id})).then(function (resp) {
+            console.log(resp);
+        });
     }
 
     $scope.removeStep = function(stepId) {
@@ -667,7 +506,7 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
         }
 
         var stepId = step.id;
-        var stepName = step.friendly_name;
+        var stepName = step.friendlyName;
 
         //create element html
         //TODO: move html to separate location instead of building in JS when design available
@@ -681,7 +520,9 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
         var theNewItem = diagramContainer.find(' #' + stepId);
 
         //add data
+        step.type="ViPR REST API";
         theNewItem.data("oeData",step);
+        console.log(step);
 
         //set position of element
         $(theNewItemWrapper).css({
@@ -701,33 +542,29 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
 
     function loadConnections(step) {
         if(step.next){
-            if(step.next.default){
+            if(step.next.defaultStep){
                 var passEndpoint = jspInstance.getEndpoint(step.id+"-pass");
-                jspInstance.connect({source:passEndpoint, target:step.next.default});
+                jspInstance.connect({source:passEndpoint, target:step.next.defaultStep});
             }
-            if(step.next.failed){
+            if(step.next.failedStep){
                 var failEndpoint = jspInstance.getEndpoint(step.id+"-fail");
-                jspInstance.connect({source:failEndpoint, target:step.next.failed});
+                jspInstance.connect({source:failEndpoint, target:step.next.failedStep});
             }
         }
     }
 
-    $scope.loadJSON = function() {
-
-        //TODO: replace dummyWF with json from API or import
-        var loadedWorkflow=jQuery.extend(true, {}, dummyWF);
-        workflowData.name = loadedWorkflow.name;
-        workflowData.description = loadedWorkflow.description;
+    function loadJSON() {
 
         //load steps with position data
-        loadedWorkflow.steps.forEach(function(step) {
+        workflowData.document.steps.forEach(function(step) {
             loadStep(step);
         });
 
         //load connections
-        loadedWorkflow.steps.forEach(function(step) {
+        workflowData.document.steps.forEach(function(step) {
             loadConnections(step);
         });
+
     }
 
     $scope.reset = function() {

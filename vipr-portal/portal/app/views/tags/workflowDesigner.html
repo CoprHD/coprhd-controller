@@ -1,9 +1,10 @@
-<div ng-controller="tabController" ng-repeat="workflowTab in workflowTabs" class="tab-pane" id="{{workflowTab.id}}">
+<div ng-controller="tabController" ng-repeat="workflowTab in workflowTabs" class="tab-pane" id="{{workflowTab.elementid}}" ng-init="initializeWorkflowData(workflowTab)">
     <div class="buttonbar">
 
-        <input id="Export" type="button" class="btn btn-default" value="Export" ng-click="buildJSON();" />
-        <input id="Import" type="button" class="btn btn-default" value="Import" ng-click="loadJSON();" />
-        <input id="reset" type="button" class="btn btn-default" value="reset" ng-click="reset();" />
+        <input id="Save" type="button" class="btn btn-default" value="Save" ng-click="saveWorkflow();" />
+        <input id="Validate" type="button" class="btn btn-default" value="Validate" ng-click="validateWorkflow();" />
+        <input id="Publish" type="button" class="btn btn-default" value="Publish" ng-click="publishorkflow();" />
+        <input id="Unpublish" type="button" class="btn btn-default" value="Unpublish" ng-click="unpublishWorkflow();" />
 
     </div>
     <div class="builder-container">

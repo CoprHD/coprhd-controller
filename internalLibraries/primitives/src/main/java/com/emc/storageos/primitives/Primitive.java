@@ -16,12 +16,11 @@
  */
 package com.emc.storageos.primitives;
 
-import java.util.Arrays;
-import java.util.List;
-
 import com.emc.storageos.primitives.input.InputParameter;
 import com.emc.storageos.primitives.output.OutputParameter;
-
+import java.util.Arrays;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 
 /**
@@ -29,27 +28,65 @@ import com.emc.storageos.primitives.output.OutputParameter;
  */
 public abstract class Primitive {
 
+    public enum StepType {
+        VIPR_REST("ViPR REST API"),
+        REST("REST API"),
+        LOCAL_ANSIBLE("Local Ansible"),
+        REMOTE_ANSIBLE("Remote Ansible"),
+        SHELL_SCRIPT("Shell Script"),
+        START("Start"),
+        END("End");
+
+        private final String stepType;
+        private StepType(final String stepType)
+        {
+            this.stepType = stepType;
+        }
+
+        @Override
+        public String toString() {
+            return stepType;
+        }
+        public static StepType fromString(String v) {
+            for (StepType e : StepType.values())
+            {
+                if (v.equals(e.stepType))
+                    return e;
+            }
+
+            return null;
+        }
+    }
+
     private String name;
+    private StepType type;
     private String friendlyName;
     private String description;
     private String successCriteria;
-    private List<InputParameter> input;
-    private List<OutputParameter> output;
+    private Map<String,InputParameter> input;
+    private Map<String,OutputParameter> output;
 
     public Primitive(final String name, final String friendlyName,
             final String description, final String successCriteria,
-            final InputParameter[] input, final OutputParameter[] output) {
+            final InputParameter[] input, final OutputParameter[] output, final StepType type) {
         this.name = name;
         this.friendlyName = friendlyName;
         this.description = description;
         this.successCriteria = successCriteria;
-        this.input = Arrays.asList(input);
-        this.output = Arrays.asList(output);
+        this.input = Arrays.asList(input).stream().collect(
+                Collectors.toMap(InputParameter::getName, elem -> elem));
+        this.output = Arrays.asList(output).stream().collect(
+                Collectors.toMap(OutputParameter::getName, elem -> elem));;
+        this.type = type;
     }
 
 
     public String getName() {
         return name;
+    }
+
+    public StepType getType() {
+        return type;
     }
 
     public String getFriendlyName() {
@@ -64,11 +101,11 @@ public abstract class Primitive {
         return successCriteria;
     }
 
-    public List<InputParameter> getInput() {
+    public Map<String,InputParameter> getInput() {
         return input;
     }
     
-    public List<OutputParameter> getOutput() {
+    public Map<String,OutputParameter> getOutput() {
         return output;
     }
 }

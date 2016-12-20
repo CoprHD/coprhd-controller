@@ -16,7 +16,6 @@
  */
 package com.emc.storageos.model.orchestration;
 
-import com.google.gson.annotations.SerializedName;
 import javax.xml.bind.annotation.XmlElement;
 
 /**
@@ -24,21 +23,8 @@ import javax.xml.bind.annotation.XmlElement;
  */
 public class OutputParameterRestRep {
 
-    @SerializedName("name")
-    private String name;
-    @SerializedName("type")
     private String type;
-    @SerializedName("table")
     private String table;
-    
-    @XmlElement(name = "name")
-    public String getName() {
-        return name;
-    }
-    
-    public void setName(final String name) {
-        this.name = name;
-    }
     
     @XmlElement(name = "type")
     public String getType() {

@@ -32,6 +32,7 @@ import com.emc.storageos.primitives.output.BasicOutputParameter.NameValueListPar
 public class LocalAnsible extends Primitive {
 
     private final static String FRIENDLY_NAME = "Ansible playbook";
+    private final static StepType TYPE = StepType.LOCAL_ANSIBLE;
     private final static String DESCRIPTION = "Locally executed ansible playbook";
     private final static String SUCCESS_CRITERIA = "code = 0";
     
@@ -42,7 +43,7 @@ public class LocalAnsible extends Primitive {
     private final static BasicOutputParameter OUTPUT_LIST[]  = {OUTPUT};
 
     public LocalAnsible() {
-        super(LocalAnsible.class.getName(), FRIENDLY_NAME, DESCRIPTION, SUCCESS_CRITERIA, INPUT, OUTPUT_LIST);
+        super(LocalAnsible.class.getName(), FRIENDLY_NAME, DESCRIPTION, SUCCESS_CRITERIA, INPUT, OUTPUT_LIST,TYPE);
     }
 
 }

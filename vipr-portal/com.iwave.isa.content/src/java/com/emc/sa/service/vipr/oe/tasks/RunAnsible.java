@@ -35,6 +35,7 @@ import com.emc.sa.service.vipr.oe.OrchestrationServiceConstants;
 import com.emc.sa.service.vipr.tasks.ViPRExecutionTask;
 import com.emc.storageos.model.orchestration.OrchestrationWorkflowDocument.Step;
 import com.emc.storageos.services.util.Exec;
+import com.emc.storageos.primitives.Primitive.StepType;
 
 /**
  * Runs Orchestration Shell script or Ansible Playbook.
@@ -69,7 +70,7 @@ public class RunAnsible  extends ViPRExecutionTask<OrchestrationTaskResult> {
             return null;
         }
 
-        final OrchestrationServiceConstants.StepType type = OrchestrationServiceConstants.StepType.fromString(step.getType());
+        final StepType type = StepType.fromString(step.getType());
 
         final Exec.Result result;
         switch (type) {

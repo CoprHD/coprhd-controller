@@ -110,7 +110,7 @@
 	        if (status == 'INIT' || status == 'PREPARING' || status == 'SYNCING' || status == 'REPAIRING') {
 	            // If recovery is running, the Start Node Recovery should be disabled (always).
 	            $('#startNodeRecoveryBtn').prop("disabled", true);
-	            $('#message').css('display','none');
+	            $('#message').css('display','block');
 	            document.getElementById("message").innerHTML = "${recoveringMsg}";
 	            $('#recStatus').css('display','none');
 	            $('#recStatusAnim').css('display','block');
@@ -123,6 +123,7 @@
 	               }
 	           $('#recStatus').css('display','block');
 	           $('#recStatusAnim').css('display','none');
+	            $('#message').css('display','none');
 	    	 }
     	}
     }

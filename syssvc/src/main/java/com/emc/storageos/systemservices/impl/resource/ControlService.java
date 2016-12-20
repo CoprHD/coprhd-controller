@@ -203,7 +203,7 @@ public class ControlService {
      * clean up database file and create hibernate file
      */
     private void purgeDbData () {
-        final String startupModeFile = "starupmode";
+        final String startupModeFile = "startupmode";
         final String startupModeContent = startupModeFile +"=hibernate";
         final String dataDir = "/data/";
         final String dbDir = dataDir + "db/";

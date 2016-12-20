@@ -1822,10 +1822,9 @@ test_1() {
                                     failure_015_SmisCommandHelper.invokeMethod_AddMembers \
                                     failure_045_VPlexDeviceController.createVirtualVolume_before_create_operation \
                                     failure_046_VPlexDeviceController.createVirtualVolume_after_create_operation \
-                                    failure_007_NetworkDeviceController.zoneExportRemoveVolumes_before_unzone \
-                                    failure_008_NetworkDeviceController.zoneExportRemoveVolumes_after_unzone \
-                                    failure_009_VPlexVmaxMaskingOrchestrator.createOrAddVolumesToExportMask_before_operation \
-                                    failure_010_VPlexVmaxMaskingOrchestrator.createOrAddVolumesToExportMask_after_operation"
+                                    failure_004:failure_007_NetworkDeviceController.zoneExportRemoveVolumes_before_unzone \
+                                    failure_004:failure_008_NetworkDeviceController.zoneExportRemoveVolumes_after_unzone \
+                                    failure_009_VPlexVmaxMaskingOrchestrator.createOrAddVolumesToExportMask_before_operation"
     fi
 
     if [ "${SS}" = "vmax3" -o "${SS}" = "vmax2" ]

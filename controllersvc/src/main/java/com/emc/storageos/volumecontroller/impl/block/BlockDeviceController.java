@@ -1126,6 +1126,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                         for (ExportMask exportMask : exportMasks) {
                         	exportMask.removeVolume(volume.getId());
                     		exportMask.removeFromUserCreatedVolumes(volume);
+                            exportMask.removeFromExistingVolumes(volume);
                     		if (!exportMask.getCreatedBySystem() && !exportMask.hasAnyVolumes() && exportMask.emptyVolumes()) {
                     			canRemoveGroup = true;
                     			_dbClient.removeObject(exportMask);

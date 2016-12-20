@@ -902,9 +902,9 @@ public class VNXUnityUnManagedObjectDiscoverer {
 
         // clear the mask to HLU map. Fresh data gets persisted during UnManagedExportMask discovery
         if (unManagedVolume.getVolumeInformation().get(
-                SupportedVolumeInformation.HLU_TO_EXPORT_MASK_NAME_MAP.toString()) != null) {
+                SupportedVolumeInformation.HLU_TO_EXPORT_MASK_NAME_MAP.name()) != null) {
             unManagedVolume.getVolumeInformation().get(
-                    SupportedVolumeInformation.HLU_TO_EXPORT_MASK_NAME_MAP.toString()).clear();
+                    SupportedVolumeInformation.HLU_TO_EXPORT_MASK_NAME_MAP.name()).clear();
         }
 
         if (created) {
@@ -1493,23 +1493,23 @@ public class VNXUnityUnManagedObjectDiscoverer {
                 mask.getUnmanagedVolumeUris().add(hostUnManagedVol.getId().toString());
 
                 // update mask to HLU information
-                StringSet nativeId = hostUnManagedVol.getVolumeInformation().get(SupportedVolumeInformation.NATIVE_ID.toString());
+                StringSet nativeId = hostUnManagedVol.getVolumeInformation().get(SupportedVolumeInformation.NATIVE_ID.name());
                 String nativeGuid = hostUnManagedVol.getNativeGuid();
-                String lunId = nativeId != null ? nativeId.iterator().next()
+                String lunId = (nativeId != null && nativeId.iterator().hasNext()) ? nativeId.iterator().next()
                         : nativeGuid.substring(nativeGuid.lastIndexOf(Constants.PLUS) + 1);
                 String idCharSequence = HostLunRequests.ID_SEQUENCE_LUN;
                 if (Boolean.getBoolean(hostUnManagedVol.getVolumeCharacterstics()
-                        .get(SupportedVolumeCharacterstics.IS_SNAP_SHOT.toString()))) {
+                        .get(SupportedVolumeCharacterstics.IS_SNAP_SHOT.name()))) {
                     idCharSequence = HostLunRequests.ID_SEQUENCE_SNAP;
                 }
                 HostLun hostLun = apiClient.getHostLun(hostId, lunId, idCharSequence);
                 String hostHlu = host.getName() + "=" + hostLun.getHlu();
                 StringSet existingHostHlu = (StringSet) hostUnManagedVol.getVolumeInformation().get(
-                        SupportedVolumeInformation.HLU_TO_EXPORT_MASK_NAME_MAP.toString());
+                        SupportedVolumeInformation.HLU_TO_EXPORT_MASK_NAME_MAP.name());
                 if (existingHostHlu != null) {
                     existingHostHlu.add(hostHlu);
                 } else {
-                    hostUnManagedVol.getVolumeInformation().put(SupportedVolumeInformation.HLU_TO_EXPORT_MASK_NAME_MAP.toString(), hostHlu);
+                    hostUnManagedVol.getVolumeInformation().put(SupportedVolumeInformation.HLU_TO_EXPORT_MASK_NAME_MAP.name(), hostHlu);
                 }
 
                 unManagedExportVolumesToUpdate.add(hostUnManagedVol);

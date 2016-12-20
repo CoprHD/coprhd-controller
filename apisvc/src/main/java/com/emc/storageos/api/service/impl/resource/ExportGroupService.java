@@ -3215,7 +3215,7 @@ public class ExportGroupService extends TaskResourceService {
         if (varray != null) {
            boolean validVarray = varray.equals(exportGroup.getVirtualArray());
            if (exportGroup.getAltVirtualArrays() != null 
-                   && varray.equals(exportGroup.getAltVirtualArrays().get(system.getId().toString()))) {
+                   && varray.toString().equals(exportGroup.getAltVirtualArrays().get(system.getId().toString()))) {
                validVarray = true;
            }
            if (!validVarray) {
@@ -3479,12 +3479,12 @@ public class ExportGroupService extends TaskResourceService {
         ArgValidator.checkUri(param.getStorageSystem());
         StorageSystem system = queryObject(StorageSystem.class, param.getStorageSystem(), true);
         
-     // Get the virtual array, default to Export Group varray. Validate it matches.
+        // Get the virtual array, default to Export Group varray. Validate it matches.
         URI varray = param.getVirtualArray();
         if (varray != null) {
            boolean validVarray = varray.equals(exportGroup.getVirtualArray());
            if (exportGroup.getAltVirtualArrays() != null 
-                   && varray.equals(exportGroup.getAltVirtualArrays().get(system.getId().toString()))) {
+                   && varray.toString().equals(exportGroup.getAltVirtualArrays().get(system.getId().toString()))) {
                validVarray = true;
            }
            if (!validVarray) {

@@ -934,6 +934,11 @@ public class BlockDeviceExportController implements BlockExportController {
                             mask.getId().toString()));
                     continue;
                 }
+                if (!ExportMaskUtils.exportMaskInVarray(_dbClient, mask, varray)) {
+                	_log.info(String.format("Export mask %s (%s, args) is not in the designated varray %s ... skipping", 
+                			mask.getMaskName(), mask.getId(), varray));
+                	continue;
+                }
                 affectedMasks.add(mask);
                 Map<URI, List<URI>> adjustedPathForMask = ExportMaskUtils.getAdjustedPathsForExportMask(mask, adjustedPaths, _dbClient);
                 Map<URI, List<URI>> removedPathForMask = ExportMaskUtils.getRemovePathsForExportMask(mask, removedPaths);
@@ -945,7 +950,7 @@ public class BlockDeviceExportController implements BlockExportController {
             List<URI> maskURIs = new ArrayList<URI> ();
             Map<URI, List<URI>> newPaths = ExportMaskUtils.getNewPaths(_dbClient, exportMasks, maskURIs, adjustedPaths);
             if (!newPaths.isEmpty()) {
-                for (ExportMask mask : exportMasks) {                    
+                for (ExportMask mask : affectedMasks) {                    
                     URI maskURI = mask.getId();
                     stepId = _wfUtils.generateExportAddPathsWorkflow(workflow, "Export add paths", stepId, systemURI, exportGroup.getId(),
                             varray, mask, maskAjustedPathMap.get(maskURI), maskRemovePathMap.get(maskURI));
@@ -961,7 +966,7 @@ public class BlockDeviceExportController implements BlockExportController {
                 // TODO -- externalize this
                 String suspendMessage = "Adjust/rescan host paths. Press \"Resume\" to start removal of unnecessary paths."
                         + "\"Rollback\" will terminate the order without removing paths.";
-                for (ExportMask mask : exportMasks) {
+                for (ExportMask mask : affectedMasks) {
                     URI maskURI = mask.getId();
                     Map<URI, List<URI>> removingPaths = maskRemovePathMap.get(maskURI);
                     if (!removingPaths.isEmpty()) {

@@ -13298,14 +13298,21 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
         ExportGroup exportGroup = _dbClient.queryObject(ExportGroup.class, exportGroupURI);
         ExportMask exportMask = _dbClient.queryObject(ExportMask.class, exportMaskURI);
         if (exportGroup == null || exportMask == null || exportGroup.getInactive() || exportMask.getInactive() || 
-                !exportGroup.hasMask(exportMaskURI)) {
-            String reason = String.format("Bad exportGroup %s or exportMask %s", exportGroupURI, exportMaskURI);
-            _log.info(reason);
-            ServiceCoded coded = WorkflowException.exceptions.workflowConstructionError(reason);
-            WorkflowStepCompleter.stepFailed(stepId, coded);
-            return;
+        		!exportGroup.hasMask(exportMaskURI)) {
+        	String reason = String.format("Bad exportGroup %s or exportMask %s", exportGroupURI, exportMaskURI);
+        	_log.info(reason);
+        	ServiceCoded coded = WorkflowException.exceptions.workflowConstructionError(reason);
+        	WorkflowStepCompleter.stepFailed(stepId, coded);
+        	return;
         }
-        
+
+        // Check if the ExportMask is in the desired varray (in cross-coupled ExportGroups)
+        if (!ExportMaskUtils.exportMaskInVarray(_dbClient, exportMask, varray)) {
+        	_log.info(String.format("ExportMask %s (%s) not in specified varray %s", exportMask.getMaskName(), exportMask.getId(), varray));
+        	WorkflowStepCompleter.stepSucceeded(stepId, String.format("No operation done: Mask not in specified varray %s", varray));
+        	return;
+        }
+
         // Refresh the ExportMask so we have the latest data.
         StorageSystem vplexSystem = getDataObject(StorageSystem.class, vplex, _dbClient);
         VPlexApiClient client = getVPlexAPIClient(_vplexApiFactory, vplex, _dbClient);

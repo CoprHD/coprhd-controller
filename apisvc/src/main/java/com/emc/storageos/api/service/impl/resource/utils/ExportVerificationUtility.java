@@ -25,6 +25,7 @@ import com.emc.storageos.db.client.model.FileExport;
 import com.emc.storageos.db.client.model.FileExportRule;
 import com.emc.storageos.db.client.model.FileObject;
 import com.emc.storageos.db.client.model.FileShare;
+import com.emc.storageos.db.client.model.FileShare.PersonalityTypes;
 import com.emc.storageos.db.client.model.Snapshot;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
@@ -67,8 +68,7 @@ public class ExportVerificationUtility {
         }
 
         for (ExportRule exportRule : listExportRule) {
-            if (exportRule.isToProceed())
-            {
+            if (exportRule.isToProceed()) {
                 FileExportRule rule = new FileExportRule();
                 copyPropertiesToSave(rule, exportRule);
                 rule.setOpType(type.name());
@@ -235,9 +235,7 @@ public class ExportVerificationUtility {
         // MULTIPLE_EXPORTS_WITH_SAME_SEC_FLAVOR
         if (!secFlavorsFound.contains(secRuleToValidate)) {
             secFlavorsFound.add(rule.getSecFlavor());
-        }
-        else
-        {
+        } else {
             rule.setIsToProceed(false, ExportOperationErrorType.MULTIPLE_EXPORTS_WITH_SAME_SEC_FLAVOR);
         }
     }
@@ -364,8 +362,7 @@ public class ExportVerificationUtility {
         if (snapshot != null) {
             dest.setSnapshotId(snapshot.getId());
             dest.setExportPath(snapshot.getPath() + subDirPath);
-        }
-        else {
+        } else {
             dest.setFileSystemId(fs.getId());
             dest.setExportPath(fs.getPath() + subDirPath);
         }
@@ -375,8 +372,7 @@ public class ExportVerificationUtility {
 
     }
 
-    private List<FileExportRule> queryExports(FileShare fs, Snapshot snapshot, boolean isFile)
-    {
+    private List<FileExportRule> queryExports(FileShare fs, Snapshot snapshot, boolean isFile) {
 
         try {
             ContainmentConstraint containmentConstraint;
@@ -582,8 +578,11 @@ public class ExportVerificationUtility {
                         throw APIException.badRequests.snapshotExportPermissionReadOnly();
                     }
                     case EXPORT_NOT_FOUND: {
-                        throw APIException.badRequests.exportNotFound(opName,
-                                exportRule.toString());
+                        FileShare fs = _dbClient.queryObject(FileShare.class, exportRule.getFsID());
+                        if (fs.getPersonality().equals(PersonalityTypes.TARGET.name())) {
+                            throw APIException.badRequests.exportNotFound(opName, exportRule.toString());
+                        } else
+                            break;
                     }
                     case INVALID_SECURITY_TYPE: {
                         if (exportRule.getSecFlavor() != null) {
@@ -688,10 +687,10 @@ public class ExportVerificationUtility {
         _log.info("Validating Export hosts");
 
         if (snapshot != null) {
-            // snapshot specific validation - ro permission - can't export - per old code. So adding this validation here.
+            // snapshot specific validation - ro permission - can't export - per old code. So adding this validation
+            // here.
             if ((exportRule.getReadWriteHosts() != null && !exportRule.getReadWriteHosts().isEmpty())
-                    || (exportRule.getRootHosts() != null && !exportRule.getRootHosts().isEmpty()))
-            {
+                    || (exportRule.getRootHosts() != null && !exportRule.getRootHosts().isEmpty())) {
                 exportRule.setIsToProceed(false, ExportOperationErrorType.SNAPSHOT_EXPORT_SHOULD_BE_READ_ONLY);
                 _log.info("Snapshot export permission should be read only");
                 return null;
@@ -789,7 +788,7 @@ public class ExportVerificationUtility {
         if (exportMap != null) {
             Iterator<String> it = fileObject.getFsExports().keySet().iterator();
             while (it.hasNext()) {
-                String fsExpKey = (String) it.next();
+                String fsExpKey = it.next();
                 FileExport fileExport = fileObject.getFsExports().get(fsExpKey);
                 if (fileExport.getPath().equalsIgnoreCase(path)) {
                     _log.info("File system path: {} is exported", path);

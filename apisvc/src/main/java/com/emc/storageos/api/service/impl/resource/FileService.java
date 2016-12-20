@@ -15,9 +15,11 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.EnumSet;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
@@ -2117,6 +2119,22 @@ public class FileService extends TaskResourceService {
         } catch (Exception e) {
             // _log.error("Error Processing Export Updates {}, {}", e.getMessage(), e);
             throw APIException.badRequests.unableToProcessRequest(e.getMessage());
+        }
+
+        try {
+            if (fs.getPersonality().equals(PersonalityTypes.SOURCE.name())) {
+                StringSet targetFileShares = fs.getMirrorfsTargets();
+                // set all the exports to read only
+                if (targetFileShares != null && !targetFileShares.isEmpty()) {
+                    // create read only exports for each of the targets
+                    for (String targetFS : targetFileShares) {
+                        updateFSExportRules(URIUtil.uri(targetFS), subDir, unmountExport,
+                                changeUpdateExportRulesToRO(param, _dbClient.queryObject(FileShare.class, URIUtil.uri(targetFS)))); // TODO
+                    }
+                }
+            }
+        } catch (Exception e) {
+            _log.error("Error Processing Export Updates {}, {}", e.getMessage(), e);
         }
 
         return toTask(fs, task, op);
@@ -4284,4 +4302,82 @@ public class FileService extends TaskResourceService {
         return false;
     }
 
+    public FileShareExportUpdateParams changeUpdateExportRulesToRO(FileShareExportUpdateParams param, FileShare fs) {
+        FileShareExportUpdateParams roParam = new FileShareExportUpdateParams();
+        List<ExportRule> addRules = null;
+        List<ExportRule> deleteRules = null;
+        List<ExportRule> modifyRules = null;
+
+        if (param.getExportRulesToAdd() != null) {
+            // change add rules to readonly
+            addRules = new ArrayList<ExportRule>();
+            addRules = convertRulesToRO(param.getExportRulesToAdd().getExportRules(), fs, param.getSubDir());
+            ExportRules add = new ExportRules();
+            add.setExportRules(addRules);
+            roParam.setExportRulesToAdd(add);
+        }
+
+        if (param.getExportRulesToDelete() != null) {
+            // change delete rules to readonly
+            deleteRules = new ArrayList<ExportRule>();
+            deleteRules = convertRulesToRO(param.getExportRulesToDelete().getExportRules(), fs, param.getSubDir());
+            ExportRules delete = new ExportRules();
+            delete.setExportRules(deleteRules);
+            roParam.setExportRulesToDelete(delete);
+        }
+
+        if (param.getExportRulesToModify() != null) {
+            // change modify rules to readonly
+            modifyRules = new ArrayList<ExportRule>();
+            modifyRules = convertRulesToRO(param.getExportRulesToModify().getExportRules(), fs, param.getSubDir());
+            ExportRules modify = new ExportRules();
+            modify.setExportRules(modifyRules);
+            roParam.setExportRulesToModify(modify);
+        }
+        roParam.setSubDir(param.getSubDir());
+
+        return roParam;
+    }
+
+    public List<ExportRule> convertRulesToRO(List<ExportRule> rules, FileShare fs, String subDir) {
+
+        List<ExportRule> oldRules = FileOperationUtils.getExportRules(fs.getId(), false, subDir, _dbClient);
+
+        List<ExportRule> newRules = new ArrayList<ExportRule>();
+        for (ExportRule rule : rules) {
+
+            ExportRule roRule = findMatchingRule(oldRules, rule);
+            Set<String> roHosts = new HashSet<String>();
+            if (rule.getReadOnlyHosts() != null) {
+                roHosts.addAll(rule.getReadOnlyHosts());
+            }
+            if (rule.getReadWriteHosts() != null) {
+                roHosts.addAll(rule.getReadWriteHosts());
+            }
+            if (rule.getRootHosts() != null) {
+                roHosts.addAll(rule.getRootHosts());
+            }
+            if (roRule == null) {
+                roRule = rule;
+                roRule.setReadWriteHosts(null);
+                roRule.setRootHosts(null);
+                roRule.setReadOnlyHosts(roHosts);
+                roRule.setExportPath(fs.getMountPath() + "/" + subDir);
+                roRule.setMountPoint(fs.getMountPath());
+            } else {
+                roRule.getReadOnlyHosts().addAll(roHosts);
+            }
+            newRules.add(roRule);
+        }
+        return newRules;
+    }
+
+    public ExportRule findMatchingRule(List<ExportRule> oldRules, ExportRule newRule) {
+        for (ExportRule rule : oldRules) {
+            if (newRule.getSecFlavor().equalsIgnoreCase(rule.getSecFlavor())) {
+                return rule;
+            }
+        }
+        return null;
+    }
 }

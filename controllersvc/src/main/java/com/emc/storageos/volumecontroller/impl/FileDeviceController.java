@@ -6,6 +6,7 @@ package com.emc.storageos.volumecontroller.impl;
 
 import static java.util.Arrays.asList;
 
+import java.lang.reflect.InvocationTargetException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
@@ -40,6 +41,7 @@ import com.emc.storageos.db.client.model.FileExportRule;
 import com.emc.storageos.db.client.model.FileMountInfo;
 import com.emc.storageos.db.client.model.FileObject;
 import com.emc.storageos.db.client.model.FileShare;
+import com.emc.storageos.db.client.model.FileShare.PersonalityTypes;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.NFSShareACL;
 import com.emc.storageos.db.client.model.Operation;
@@ -530,7 +532,8 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
         StorageSystem.Type storageSystemType = StorageSystem.Type.valueOf(storageType);
         boolean qDIngestionSupported = false;
         if (storageSystemType.equals(StorageSystem.Type.unity) || storageSystemType.equals(StorageSystem.Type.netapp)
-                || storageSystemType.equals(StorageSystem.Type.netappc) || storageSystemType.equals(StorageSystem.Type.vnxfile ) || storageSystemType.equals(StorageSystem.Type.isilon)) {
+                || storageSystemType.equals(StorageSystem.Type.netappc) || storageSystemType.equals(StorageSystem.Type.vnxfile)
+                || storageSystemType.equals(StorageSystem.Type.isilon)) {
             qDIngestionSupported = true;
         }
         return qDIngestionSupported;
@@ -645,13 +648,36 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             } else {
                 _log.info("Exports are null");
             }
-            // Acquire lock for VNXFILE Storage System
-            acquireStepLock(storageObj, opId);
             WorkflowStepCompleter.stepExecuting(opId);
-            BiosCommandResult result = getDevice(storageObj.getSystemType()).doExport(storageObj, args, fileExports);
-
-            if (result.getCommandPending()) {
-                return;
+            BiosCommandResult result;
+            if (fs.getPersonality().equals(PersonalityTypes.TARGET.name()) && isFile) {
+                result = new BiosCommandResult();
+                Workflow workflow = _workflowService.getWorkflowFromStepId(opId);
+                boolean keepLooping = true;
+                while (keepLooping) {
+                    try {
+                        // Acquire lock for VNXFILE Storage System
+                        acquireStepLock(storageObj, opId);
+                        result = getDevice(storageObj.getSystemType()).doExport(storageObj, args, fileExports);
+                        if (result.isCommandSuccess() || result.getCommandPending()) {
+                            keepLooping = false;
+                        } else if (!result.getServiceCoded().getMessage().contains("No such file or directory")) {
+                            keepLooping = false;
+                        }
+                    } catch (ControllerException e) {
+                        if (!e.getMessage().contains("No such file or directory")) {
+                            throw e;
+                        }
+                    } finally {
+                        _workflowService.releaseAllWorkflowLocks(workflow);
+                        if (keepLooping) {
+                            Thread.sleep(60 * 1000);
+                        }
+                    }
+                }
+            } else {
+                acquireStepLock(storageObj, opId);
+                result = getDevice(storageObj.getSystemType()).doExport(storageObj, args, fileExports);
             }
             if (!result.isCommandSuccess() && !result.getCommandPending()) {
                 WorkflowStepCompleter.stepFailed(opId, result.getServiceCoded());
@@ -2007,7 +2033,58 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             acquireStepLock(storageObj, opId);
 
             WorkflowStepCompleter.stepExecuting(opId);
-            BiosCommandResult result = getDevice(storageObj.getSystemType()).updateExportRules(storageObj, args);
+            BiosCommandResult result;
+            if (fs.getPersonality().equals(PersonalityTypes.TARGET.name()) && isFile) {
+                List<FileExportRule> rulesToCheck = new ArrayList<FileExportRule>();
+                List<ExportRule> rulesToCopy = new ArrayList<ExportRule>();
+                // if (param.getExportRulesToAdd() != null) {
+                // rulesToCopy.addAll(param.getExportRulesToAdd().getExportRules());
+                // }
+                if (param.getExportRulesToModify() != null) {
+                    rulesToCopy.addAll(param.getExportRulesToModify().getExportRules());
+                }
+                if (param.getExportRulesToDelete() != null) {
+                    rulesToCopy.addAll(param.getExportRulesToDelete().getExportRules());
+                }
+                for (ExportRule ruleToCopy : rulesToCopy) {
+                    FileExportRule ruleToCheck = new FileExportRule();
+                    copyProperties(ruleToCheck, ruleToCopy, param.getSubDir(), fs);
+                    rulesToCheck.add(ruleToCheck);
+                }
+                result = new BiosCommandResult();
+                Workflow workflow = _workflowService.getWorkflowFromStepId(opId);
+                boolean keepLooping = true;
+                // while (keepLooping) {
+                // try {
+                // // Acquire lock for VNXFILE Storage System
+                // acquireStepLock(storageObj, opId);
+                // result = getDevice(storageObj.getSystemType()).updateExportRules(storageObj, args);
+                // if (result.isCommandSuccess() || result.getCommandPending()) {
+                // keepLooping = false;
+                // } else if (!result.getServiceCoded().getMessage().contains("Export requested to MODIFY not found")) {
+                // keepLooping = false;
+                // }
+                // } catch (ControllerException e) {
+                // if (!result.getServiceCoded().getMessage().contains("Export requested to")
+                // && !result.getServiceCoded().getMessage().contains("not found")) {
+                // throw e;
+                // }
+                // } finally {
+                // _workflowService.releaseAllWorkflowLocks(workflow);
+                // if (keepLooping) {
+                // Thread.sleep(60 * 1000);
+                // }
+                // }
+                // }
+                while (!isExportsExist(rulesToCheck)) {
+                    Thread.sleep(60 * 1000);
+                }
+                acquireStepLock(storageObj, opId);
+                result = getDevice(storageObj.getSystemType()).updateExportRules(storageObj, args);
+            } else {
+                acquireStepLock(storageObj, opId);
+                result = getDevice(storageObj.getSystemType()).updateExportRules(storageObj, args);
+            }
 
             if (result.isCommandSuccess()) {
                 // Update Database
@@ -3688,7 +3765,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
     @Override
     public String addStepsForCreateFileSystems(Workflow workflow,
             String waitFor, List<FileDescriptor> filesystems, String taskId)
-            throws InternalException {
+                    throws InternalException {
 
         if (filesystems != null && !filesystems.isEmpty()) {
             // create source filesystems
@@ -3736,7 +3813,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
     @Override
     public String addStepsForDeleteFileSystems(Workflow workflow,
             String waitFor, List<FileDescriptor> filesystems, String taskId)
-            throws InternalException {
+                    throws InternalException {
         List<FileDescriptor> sourceDescriptors = FileDescriptor.filterByType(filesystems,
                 FileDescriptor.Type.FILE_DATA, FileDescriptor.Type.FILE_EXISTING_SOURCE,
                 FileDescriptor.Type.FILE_MIRROR_SOURCE);
@@ -3811,7 +3888,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
     @Override
     public String addStepsForExpandFileSystems(Workflow workflow, String waitFor,
             List<FileDescriptor> fileDescriptors, String taskId)
-            throws InternalException {
+                    throws InternalException {
         List<FileDescriptor> sourceDescriptors = FileDescriptor.filterByType(fileDescriptors, FileDescriptor.Type.FILE_MIRROR_SOURCE,
                 FileDescriptor.Type.FILE_EXISTING_SOURCE, FileDescriptor.Type.FILE_DATA,
                 FileDescriptor.Type.FILE_MIRROR_TARGET);
@@ -4362,5 +4439,69 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                 throw DeviceControllerException.exceptions.failedToAcquireWorkflowLock(lockKeys.toString(), "Timeout in Acquiring Lock");
             }
         }
+    }
+
+    public boolean isExportsExist(List<FileExportRule> rules) {
+        List<Boolean> validExports = new ArrayList<Boolean>();
+        for (FileExportRule rule : rules) {
+            if (getAvailableExportRule(rule) != null) {
+                validExports.add(true);
+            } else {
+                validExports.add(false);
+            }
+        }
+        if (validExports.contains(false)) {
+            return false;
+        }
+        return true;
+    }
+
+    private FileExportRule getAvailableExportRule(FileExportRule exportRule) {
+        String exportIndex = exportRule.getFsExportIndex();
+
+        _log.info("Retriving DB Model using its index {}", exportIndex);
+        FileExportRule rule = null;
+        URIQueryResultList result = new URIQueryResultList();
+        _dbClient.queryByConstraint(AlternateIdConstraint.Factory
+                .getFileExportRuleConstraint(exportIndex), result);
+
+        Iterator<URI> it = result.iterator();
+        while (it.hasNext()) {
+            if (result.iterator().hasNext()) {
+                rule = _dbClient.queryObject(FileExportRule.class, it.next());
+                if (rule != null && !rule.getInactive()) {
+                    _log.info("Existing DB Model found {}", rule);
+                    break;
+                } else {
+                    rule = null;
+                }
+            }
+        }
+
+        return rule;
+
+    }
+
+    /**
+     * Copy the properties and set Fs Id.
+     * 
+     * @param dest
+     * @param orig
+     * @param fs
+     * @throws IllegalAccessException
+     * @throws InvocationTargetException
+     */
+    private void copyProperties(FileExportRule dest, ExportRule orig, String subDir, FileShare fs) {
+
+        String subDirPath = "";
+        if (subDir != null && subDir.length() > 0) {
+            subDirPath = "/" + subDir;
+        }
+        _log.info("Sub Dir Path : {}", subDirPath);
+        dest.setSecFlavor(orig.getSecFlavor());
+        dest.setFileSystemId(fs.getId());
+        dest.setExportPath(fs.getPath() + subDirPath);
+        _log.info("After copying properties to DB Model Export Rule {}",
+                dest.toString());
     }
 }

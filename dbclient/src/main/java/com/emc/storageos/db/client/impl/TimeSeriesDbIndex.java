@@ -1,21 +1,23 @@
+/*
+ * Copyright (c) 2016 EMC Corporation
+ * All Rights Reserved
+ */
 package com.emc.storageos.db.client.impl;
 
-import com.emc.storageos.db.client.model.DataObject;
-import com.emc.storageos.db.client.model.uimodels.Order;
-import com.netflix.astyanax.ColumnListMutation;
-import com.netflix.astyanax.model.Column;
-import com.netflix.astyanax.model.ColumnFamily;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.net.URI;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-/**
- * Created by brian on 16-11-16.
- */
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.netflix.astyanax.ColumnListMutation;
+import com.netflix.astyanax.model.Column;
+import com.netflix.astyanax.model.ColumnFamily;
+
+import com.emc.storageos.db.client.model.DataObject;
+import com.emc.storageos.db.client.model.uimodels.Order;
+
 public class TimeSeriesDbIndex extends DbIndex<TimeSeriesIndexColumnName> {
     private static final Logger _log = LoggerFactory.getLogger(TimeSeriesDbIndex.class);
 
@@ -38,6 +40,7 @@ public class TimeSeriesDbIndex extends DbIndex<TimeSeriesIndexColumnName> {
 
         Order order = (Order)obj;
         String indexKey = order.getTenant();
+        _log.info("lbyc: indexKey={} indexCF={}", indexKey, indexCF);
         ColumnListMutation<TimeSeriesIndexColumnName> indexColList =
                 mutator.getIndexColumnList(indexCF, indexKey);
 

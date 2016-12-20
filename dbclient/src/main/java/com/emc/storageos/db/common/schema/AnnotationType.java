@@ -13,6 +13,8 @@ import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlTransient;
 
+import com.emc.storageos.db.client.model.AlternateId;
+import com.emc.storageos.db.client.model.DecommissionedIndex;
 import com.emc.storageos.db.client.model.uimodels.Order;
 import com.google.common.base.Objects;
 import org.slf4j.Logger;
@@ -133,12 +135,13 @@ public class AnnotationType implements SchemaObject {
     public boolean canBeIgnore() {
         if (parent instanceof FieldInfo) {
             FieldInfo fieldInfo = (FieldInfo)parent;
-            if (name.equals("DecommissionedIndex") && fieldInfo.getName().equals(Order.SUBMITTED)) {
+            if (name.equals(DecommissionedIndex.class.getSimpleName()) && fieldInfo.getName().equals(Order.SUBMITTED)) {
                 log.info("lbyx2");
                 return true;
             }
 
-            if (name.equals("AlternateId") && fieldInfo.getName().equals(Order.SUBMITTED_BY_USER_ID)) {
+            //if (name.equals("AlternateId") && fieldInfo.getName().equals(Order.SUBMITTED_BY_USER_ID)) {
+            if (name.equals(AlternateId.class.getSimpleName()) && fieldInfo.getName().equals(Order.SUBMITTED_BY_USER_ID)) {
                 log.info("lbyx3");
                 return true;
             }

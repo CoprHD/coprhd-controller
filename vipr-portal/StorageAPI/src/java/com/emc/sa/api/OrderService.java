@@ -4,8 +4,6 @@
  */
 package com.emc.sa.api;
 
-import java.io.OutputStream;
-import java.io.PrintStream;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.charset.Charset;

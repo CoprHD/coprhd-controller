@@ -493,7 +493,7 @@ public class MigrationHandlerImpl implements MigrationHandler {
                     }
                 }
 
-                log.info("Invoking migration callback: " + callback.getName());
+                log.info("lbyt0 Invoking migration callback: {} class={} ", callback.getName(), callback.getClass().getName());
                 try {
                     callback.process();
                 } catch (MigrationCallbackException ex) {

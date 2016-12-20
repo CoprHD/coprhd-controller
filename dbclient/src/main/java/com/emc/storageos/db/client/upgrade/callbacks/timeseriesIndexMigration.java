@@ -5,6 +5,7 @@
 
 package com.emc.storageos.db.client.upgrade.callbacks;
 
+import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.impl.*;
 import com.emc.storageos.db.client.model.uimodels.Order;
 import com.emc.storageos.db.client.upgrade.BaseCustomMigrationCallback;
@@ -21,13 +22,18 @@ import org.slf4j.LoggerFactory;
 
 public class timeseriesIndexMigration extends BaseCustomMigrationCallback {
     private static final Logger log = LoggerFactory.getLogger(timeseriesIndexMigration.class);
+    private DbClientImpl client;
+
+    public timeseriesIndexMigration(DbClientImpl dbClient) {
+        client = dbClient;
+    }
 
     @Override
     public void process() throws MigrationCallbackException {
         long start = System.currentTimeMillis();
 
         log.info("lbybb0");
-        DbClientImpl client = (DbClientImpl)getDbClient();
+        //DbClientImpl client = (DbClientImpl)getDbClient();
 
         Keyspace ks = client.getLocalKeyspace();
         ColumnFamily<String, IndexColumnName> tenantToOrder =

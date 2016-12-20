@@ -6,6 +6,7 @@ package com.emc.storageos.db.client.upgrade.callbacks;
 
 import java.net.URI;
 
+import com.emc.storageos.db.client.upgrade.InternalDbClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -25,6 +26,12 @@ import com.emc.storageos.svcs.errorhandling.resources.MigrationCallbackException
 
 public class UserToOrdersMigration extends BaseCustomMigrationCallback {
     private static final Logger log = LoggerFactory.getLogger(UserToOrdersMigration.class);
+
+    InternalDbClient client;
+
+    public UserToOrdersMigration(InternalDbClient dbclient) {
+        client = dbclient;
+    }
 
     private static long n = 0;
     static class MigrationQueryHitIterator extends QueryHitIterator<URI, IndexColumnName> {
@@ -74,7 +81,7 @@ public class UserToOrdersMigration extends BaseCustomMigrationCallback {
         try {
             final AlternateIdConstraintImpl constraint = new AlternateIdConstraintImpl("UserToOrders", "root", Order.class, 0, 0);
             constraint.setPageCount(10000);
-            DbClientImpl client = (DbClientImpl)getDbClient();
+            // DbClientImpl client = (DbClientImpl)getDbClient();
             Keyspace ks = client.getLocalKeyspace();
             constraint.setKeyspace(ks);
 

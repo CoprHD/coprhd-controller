@@ -84,7 +84,7 @@ public abstract class ConstraintImpl <T extends CompositeIndexColumnName> implem
     }
 
     public abstract boolean isValid();
-    
+
     public void setStartId(URI startId) {
         if (startId != null) {
             this.startId = startId.toString();
@@ -148,6 +148,7 @@ public abstract class ConstraintImpl <T extends CompositeIndexColumnName> implem
     protected <T1> void queryOnePageWithoutAutoPaginate(RowQuery<String, T> query, String prefix, final QueryResult<T1> result)
             throws ConnectionException {
 
+        log.info("lbyt0: indexSerializer={} prefix={}",indexSerializer, prefix);
         CompositeRangeBuilder builder = indexSerializer.buildRange()
                 .greaterThanEquals(prefix)
                 .lessThanEquals(prefix)

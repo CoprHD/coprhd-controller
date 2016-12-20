@@ -33,7 +33,6 @@ public class timeseriesIndexMigration extends BaseCustomMigrationCallback {
         long start = System.currentTimeMillis();
 
         log.info("lbybb0");
-        //DbClientImpl client = (DbClientImpl)getDbClient();
 
         Keyspace ks = client.getLocalKeyspace();
         ColumnFamily<String, IndexColumnName> tenantToOrder =
@@ -46,7 +45,7 @@ public class timeseriesIndexMigration extends BaseCustomMigrationCallback {
         MutationBatch mutationBatch = ks.prepareMutationBatch();
         try {
             long n = 0;
-            long m = 0;
+            long m;
             OperationResult<Rows<String, IndexColumnName>> result = ks.prepareQuery(tenantToOrder).getAllRows()
                     .setRowLimit(100)
                     .withColumnRange(new RangeBuilder().setLimit(0).build())
@@ -54,7 +53,6 @@ public class timeseriesIndexMigration extends BaseCustomMigrationCallback {
             for (Row<String, IndexColumnName> row : result.getResult()) {
                 n++;
                 m = 0;
-                //log.info("lbyd2 key={} n={}", row.getKey(), n);
                 RowQuery<String, IndexColumnName> rowQuery = ks.prepareQuery(tenantToOrder).getKey(row.getKey())
                         .autoPaginate(true)
                         .withColumnRange(new RangeBuilder().setLimit(5).build());
@@ -76,6 +74,7 @@ public class timeseriesIndexMigration extends BaseCustomMigrationCallback {
                     }
                 }
             }
+
             mutationBatch.execute();
             long end = System.currentTimeMillis();
             System.out.println("Read5 "+n+" : "+ (end - start)/1000);

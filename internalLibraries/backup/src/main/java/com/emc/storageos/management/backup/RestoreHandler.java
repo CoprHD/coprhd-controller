@@ -146,11 +146,40 @@ public class RestoreHandler {
 
             tmpDir.renameTo(viprDataDir);
             chown(viprDataDir, BackupConstants.STORAGEOS_USER, BackupConstants.STORAGEOS_GROUP);
+            restoreDrivers();
         } finally {
             if (tmpDir.exists()) {
                 FileUtils.deleteQuietly(tmpDir);
             }
         }
+    }
+
+    private void restoreDrivers() {
+        File backupDriverDir = new File(viprDataDir, BackupConstants.DRIVERS_FOLDER_NAME);
+        if (!backupDriverDir.exists() || !backupDriverDir.isDirectory()) {
+            return;
+        }
+        File[] drivers = backupDriverDir.listFiles();
+        if (drivers == null || drivers.length == 0) {
+            return;
+        }
+        log.info("Found drivers in backup, prepare to restore drivers ...");
+        File sysDriverDir = new File(BackupConstants.DRIVERS_DIR);
+        for (File f : drivers) {
+            try {
+                FileUtils.moveFileToDirectory(f, sysDriverDir, true);
+                log.info("Successfully restored driver file: {}", f.getName());
+            } catch (IOException e) {
+                log.error("Error happened when moving driver file {} from backup to data directory", f.getName(), e);
+            }
+        }
+        try {
+            FileUtils.deleteDirectory(backupDriverDir);
+            log.info("Successfully deleted driver backup directory");
+        } catch (IOException e) {
+            log.error("Failed to delete tmp driver directory {}", backupDriverDir.getAbsolutePath(), e);
+        }
+        chown(sysDriverDir, BackupConstants.STORAGEOS_USER, BackupConstants.STORAGEOS_GROUP);
     }
 
     private void replaceSiteIdFile(File siteIdFileDir) throws IOException {

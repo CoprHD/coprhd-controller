@@ -38,7 +38,6 @@ public class ZkBackupHandler extends BackupHandler {
     private static final String ZK_ACCEPTED_EPOCH = "acceptedEpoch";
     private static final String ZK_CURRENT_EPOCH = "currentEpoch";
     private static final String CONNECT_ZK_HOST = "localhost";
-    private static final String DRIVERS_FOLDER_NAME = "drivers";
     private static final int CONNECT_ZK_PORT = 2181;
     private int nodeCount = 0;
     private File zkDir;
@@ -327,7 +326,12 @@ public class ZkBackupHandler extends BackupHandler {
             log.error("Driver path is not configured, or does not exist, or is not a directory");
             return;
         }
-        File driverFolder = new File(targetDir, DRIVERS_FOLDER_NAME);
+        File[] drivers = driverPath.listFiles();
+        if (drivers == null || drivers.length == 0) {
+            log.info("Found no driver, skip backing up drivers");
+            return;
+        }
+        File driverFolder = new File(targetDir, BackupConstants.DRIVERS_FOLDER_NAME);
         driverFolder.mkdir();
         for (File driver : driverPath.listFiles()) {
             if (!driver.getName().endsWith(".jar")) {

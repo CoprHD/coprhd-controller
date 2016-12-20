@@ -132,4 +132,7 @@ public interface BackupConstants {
     public static final String SITE_ID_FILE_NAME = "siteid";
     public static final int SYSTOOL_TIMEOUT_MILLIS = 120000; // 2 min
     public static final String VDC_PROPS_FILE_NAME = "vdcconfig.properties";
+
+    public static final String DRIVERS_FOLDER_NAME = "drivers";
+    public static final String DRIVERS_DIR = "/data/drivers";
 }

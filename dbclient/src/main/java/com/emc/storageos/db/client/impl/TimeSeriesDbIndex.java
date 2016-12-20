@@ -56,47 +56,24 @@ public class TimeSeriesDbIndex extends DbIndex<TimeSeriesIndexColumnName> {
                          Map<String, List<Column<CompositeColumnName>>> fieldColumnMap) {
         UUID uuid = column.getName().getTimeUUID();
 
-        _log.info("lbyd0: recordKey={} className={} stack=", recordKey, className, new Throwable());
-        _log.info("column={}", column.getName());
         if (!className.equals("Order")) {
             throw new RuntimeException("Can not create TimeSeriesIndex on non Order object");
         }
 
         List<Column<CompositeColumnName>> value = fieldColumnMap.get("tenant");
         Column<CompositeColumnName> tenantCol = value.get(0);
-        CompositeColumnName columnName = tenantCol.getName();
         String tid = tenantCol.getStringValue();
-        _log.info("lbyd3 tid={}", tid);
 
         ColumnListMutation<TimeSeriesIndexColumnName> indexColList = mutator.getIndexColumnList(indexCF, tid);
 
-        _log.info("lbyf0 to delete indexKey={}", tid);
         indexColList.deleteColumn(new TimeSeriesIndexColumnName(className, recordKey, uuid));
 
         return true;
     }
 
-    /*
-    String getRowKey(CompositeColumnName column, Object value) {
-        if (indexByKey) {
-            return column.getTwo();
-        }
-
-        return value.toString();
-    }
-
-    String getRowKey(Column<CompositeColumnName> column) {
-        if (indexByKey) {
-            return column.getName().getTwo();
-        }
-
-        return column.getStringValue();
-    }
-    */
-
     @Override
     public String toString() {
-        StringBuilder builder = new StringBuilder("AltIdDbIndex class");
+        StringBuilder builder = new StringBuilder(this.getClass().getCanonicalName());
         builder.append("\t");
         builder.append(super.toString());
         builder.append("\n");

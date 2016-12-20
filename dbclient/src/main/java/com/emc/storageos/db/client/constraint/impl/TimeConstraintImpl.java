@@ -11,7 +11,6 @@ import com.netflix.astyanax.Keyspace;
 import com.netflix.astyanax.model.Column;
 import com.netflix.astyanax.model.ColumnFamily;
 import com.netflix.astyanax.query.RowQuery;
-import com.netflix.astyanax.serializers.StringSerializer;
 import com.netflix.astyanax.util.RangeBuilder;
 import com.netflix.astyanax.util.TimeUUIDUtils;
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;

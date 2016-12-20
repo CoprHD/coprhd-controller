@@ -7,9 +7,6 @@ package com.emc.storageos.db.client.constraint.impl;
 
 import java.net.URI;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.netflix.astyanax.Keyspace;
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 import com.netflix.astyanax.model.Column;
@@ -28,7 +25,6 @@ import com.netflix.astyanax.serializers.StringSerializer;
  * Alternate ID constraint implementation
  */
 public class AlternateIdConstraintImpl extends ConstraintImpl<IndexColumnName> implements AlternateIdConstraint {
-    private static final Logger log = LoggerFactory.getLogger(AlternateIdConstraintImpl.class);
 
     private final ColumnFamily<String, IndexColumnName> _altIdCf;
     private final String _altId;

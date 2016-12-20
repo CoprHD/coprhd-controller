@@ -8,9 +8,6 @@ import java.lang.annotation.*;
 
 import com.emc.storageos.db.client.upgrade.AddIndexMigrationCallback;
 
-/**
- * Alternate ID field marker
- */
 @Documented
 @Target({ ElementType.METHOD })
 @Retention(RetentionPolicy.RUNTIME)

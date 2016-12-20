@@ -7,16 +7,16 @@ package com.emc.sa.model.dao;
 import java.net.URI;
 import java.util.*;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import javax.annotation.PostConstruct;
 
 import com.emc.storageos.db.client.constraint.*;
 import com.emc.storageos.db.client.constraint.impl.*;
 import com.emc.storageos.db.client.impl.DbClientImpl;
-import com.emc.storageos.db.client.model.ClassNameTimeSeries;
 import com.emc.storageos.db.client.model.uimodels.Order;
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.constraint.NamedElementQueryResultList.NamedElement;
@@ -31,7 +31,6 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
 public class BourneDbClient implements DBClientWrapper {
-
     private static final Logger LOG = LoggerFactory.getLogger(BourneDbClient.class);
 
     private DbClient dbClient;
@@ -143,10 +142,7 @@ public class BourneDbClient implements DBClientWrapper {
         LOG.info("lbyb1: findOrdersByAlternateId(columnField={}, userId={}, maxCount={})",
                 new Object[] { columnField, userId, maxCount});
 
-        DataObjectType doType = TypeMap.getDoType(Order.class);
-
-        AlternateIdConstraint constraint = new ClassNameTimeSeriesConstraintImpl(doType.getColumnField(columnField),
-                userId, startTime, endTime);
+        TimeSeriesConstraint constraint = TimeSeriesConstraint.Factory.getOrdersByUser(userId, startTime,endTime);
 
         return queryNamedElementsByConstraint(constraint, maxCount);
     }
@@ -157,10 +153,7 @@ public class BourneDbClient implements DBClientWrapper {
         LOG.info("lbyb2: getOrderCount(userId={} cf={}, startTime={}, endTime={})",
                 new Object[] {userId, fieldName, startTime, endTime});
 
-        DataObjectType doType = TypeMap.getDoType(Order.class);
-
-        ClassNameTimeSeriesConstraintImpl constraint = new ClassNameTimeSeriesConstraintImpl(doType.getColumnField(fieldName),
-                userId, startTime, endTime);
+        TimeSeriesConstraint constraint = TimeSeriesConstraint.Factory.getOrdersByUser(userId, startTime, endTime);
         DbClientImpl dbclient = (DbClientImpl)getDbClient();
         constraint.setKeyspace(dbclient.getLocalKeyspace());
 
@@ -179,18 +172,13 @@ public class BourneDbClient implements DBClientWrapper {
 
         Map<String, Long> counts = new HashMap();
 
-        DataObjectType doType = TypeMap.getDoType(Order.class);
-
         for (URI tid : tids) {
-            String tenantId = tid.toString();
-            TimeSeriesConstraintImpl constraint = new TimeSeriesConstraintImpl(tenantId,
-                    doType.getColumnField(fieldName), startTime, endTime);
-
+            TimeSeriesConstraint constraint = TimeSeriesConstraint.Factory.getOrders(tid, startTime, endTime);
             DbClientImpl dbclient = (DbClientImpl) getDbClient();
             constraint.setKeyspace(dbclient.getLocalKeyspace());
 
             try {
-                counts.put(tenantId, constraint.count());
+                counts.put(tid.toString(), constraint.count());
             } catch (ConnectionException e) {
                 throw new DataAccessException(e);
             }
@@ -207,11 +195,10 @@ public class BourneDbClient implements DBClientWrapper {
         LOG.info("findAllOrdersByTimeRange(tid={} columnField={}, startTime={} endTime={} maxCount={})",
                 new Object[]{tid, columnField, startTime, endTime, maxCount});
 
-        DataObjectType doType = TypeMap.getDoType(Order.class);
         long startTimeInMS = startTime.getTime();
         long endTimeInMS = endTime.getTime();
-        TimeSeriesConstraintImpl constraint = new TimeSeriesConstraintImpl(tid.toString(), doType.getColumnField(columnField),
-                startTimeInMS, endTimeInMS);
+
+        TimeSeriesConstraint constraint = TimeSeriesConstraint.Factory.getOrders(tid, startTimeInMS, endTimeInMS);
         List<NamedElement> allOrderIds = queryNamedElementsByConstraint(constraint, maxCount);
 
         return allOrderIds;

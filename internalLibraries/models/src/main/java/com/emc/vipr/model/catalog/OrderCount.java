@@ -18,12 +18,12 @@ public class OrderCount {
     public OrderCount() {
     }
 
-    public void put(String key, long count) {
-        countMap.put(key, count);
+    public OrderCount(Map<String, Long> map) {
+        countMap = map;
     }
 
-    public void setCountMap(Map<String, Long> countMap) {
-        this.countMap = countMap;
+    public void put(String key, long count) {
+        countMap.put(key, count);
     }
 
     @XmlElement(name = "counts")

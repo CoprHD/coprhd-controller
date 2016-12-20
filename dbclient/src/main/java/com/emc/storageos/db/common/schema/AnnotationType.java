@@ -13,6 +13,7 @@ import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlTransient;
 
+import com.emc.storageos.db.client.model.uimodels.Order;
 import com.google.common.base.Objects;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -127,5 +128,37 @@ public class AnnotationType implements SchemaObject {
 
     public void setParent(SchemaObject parent) {
         this.parent = parent;
+    }
+
+    public boolean canBeIgnore() {
+        if (parent instanceof FieldInfo) {
+            FieldInfo fieldInfo = (FieldInfo)parent;
+            if (name.equals("DecommissionedIndex") && fieldInfo.getName().equals(Order.SUBMITTED)) {
+                log.info("lbyx2");
+                return true;
+            }
+
+            if (name.equals("AlternateId") && fieldInfo.getName().equals(Order.SUBMITTED_BY_USER_ID)) {
+                log.info("lbyx3");
+                return true;
+            }
+        }
+        return false;
+    }
+
+    @Override
+    public String toString() {
+        StringBuilder builder = new StringBuilder();
+
+        builder.append("type:")
+                .append(type)
+                .append("\nname:")
+                .append(name)
+                .append("\nvalueList:")
+                .append(valueList)
+                .append("\nparent:")
+                .append(parent);
+
+        return builder.toString();
     }
 }

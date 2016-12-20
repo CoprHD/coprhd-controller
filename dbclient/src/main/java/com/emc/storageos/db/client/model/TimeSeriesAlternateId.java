@@ -8,9 +8,6 @@ import com.emc.storageos.db.client.upgrade.AddIndexMigrationCallback;
 
 import java.lang.annotation.*;
 
-/**
- * Created by brian on 16-11-16.
- */
 @Documented
 @Target({ ElementType.METHOD })
 @Retention(RetentionPolicy.RUNTIME)

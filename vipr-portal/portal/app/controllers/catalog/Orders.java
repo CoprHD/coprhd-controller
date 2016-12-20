@@ -97,9 +97,14 @@ public class Orders extends OrderExecution {
     private static void addMaxDaysRenderArgs() {
         Integer maxDays = params.get("maxDays", Integer.class);
         if (maxDays == null) {
-            maxDays = 1;
+            if (StringUtils.isNotEmpty(params.get("startDate"))
+                    && StringUtils.isNotEmpty(params.get("endDate"))) {
+                maxDays = 0;
+            } else {
+                maxDays = 1;
+            }
         }
-        int[] days = { 1, 7, 14, 30, 90 };
+        int[] days = { 1, 7, 14, 30, 90, 0 };
         List<StringOption> options = Lists.newArrayList();
         options.add(new StringOption(String.valueOf(maxDays), MessagesUtils.get("orders.nDays", maxDays)));
         for (int day : days) {
@@ -110,6 +115,7 @@ public class Orders extends OrderExecution {
         }
 
         renderArgs.put("maxDays", maxDays);
+        renderArgs.put("dateDaysAgo", OrderDataTable.getDateDaysAgo(maxDays));
         renderArgs.put("maxDaysOptions", options);
     }
 
@@ -117,7 +123,21 @@ public class Orders extends OrderExecution {
     public static void allOrders() {
         RecentUserOrdersDataTable dataTable = new RecentUserOrdersDataTable();
         TenantSelector.addRenderArgs();
+
+        String startDate = params.get("startDate");
+        String endDate = params.get("endDate");
+        if (StringUtils.isNotEmpty(startDate) && StringUtils.isNotEmpty(endDate)) {
+            dataTable.setStartDate(startDate);
+            dataTable.setEndDate(endDate);
+            renderArgs.put("orderCount",
+                    DataTablesSupport.toJson(dataTable.fetchCount()));
+            renderArgs.put("startDate", startDate);
+            renderArgs.put("endDate", endDate);
+        }
         addMaxDaysRenderArgs();
+        Common.copyRenderArgsToAngular();
+        /*flash.put("warning", "Totally 9700 orders are found in database, "
+                + "but only 6000 entries are loaded and displayed here for performance concern.");// for mockup*/
         render(dataTable);
     }
 
@@ -125,16 +145,34 @@ public class Orders extends OrderExecution {
     public static void allOrdersJson(Integer maxDays) {
         DataTableParams dataTableParams = DataTablesSupport.createParams(params);
         RecentUserOrdersDataTable dataTable = new RecentUserOrdersDataTable();
-        dataTable.setMaxAgeInDays(maxDays != null ? Math.max(maxDays, 1) : 1);
+        if (StringUtils.isNotEmpty(params.get("startDate"))
+                && StringUtils.isNotEmpty(params.get("endDate"))) {
+            dataTable.setStartDate(params.get("startDate"));
+            dataTable.setEndDate(params.get("endDate"));
+        } else {
+            dataTable.setStartAndEndDatesByMaxDays(maxDays != null ? Math.max(maxDays, 1) : 1);
+        }
         renderJSON(DataTablesSupport.createJSON(dataTable.fetchData(dataTableParams), params));
     }
 
     public static void list() {
+        //TODO should handle the case more than 6K
         Logger.info("hlj, start to call list()");
         OrderDataTable dataTable = new OrderDataTable(Models.currentTenant());
         dataTable.setUserInfo(Security.getUserInfo());
-        renderArgs.put("startDate", params.get("startDate"));
-        renderArgs.put("endDate", params.get("endDate"));
+        String startDate = params.get("startDate");
+        String endDate = params.get("endDate");
+        if (StringUtils.isNotEmpty(startDate) && StringUtils.isNotEmpty(endDate)) {
+            dataTable.setStartDate(startDate);
+            dataTable.setEndDate(endDate);
+            renderArgs.put("orderCount",
+                    DataTablesSupport.toJson(dataTable.fetchCount()));
+            renderArgs.put("startDate", startDate);
+            renderArgs.put("endDate", endDate);
+        }
+
+        addMaxDaysRenderArgs();
+        Common.copyRenderArgsToAngular();
         render(dataTable);
     }
 
@@ -142,12 +180,20 @@ public class Orders extends OrderExecution {
         Logger.info("hlj, start to call listJson()");
         OrderDataTable dataTable = new OrderDataTable(Models.currentTenant());
         dataTable.setUserInfo(Security.getUserInfo());
-        dataTable.setStartDate(params.get("startDate"));
-        dataTable.setEndDate(params.get("endDate"));
+        if (StringUtils.isNotEmpty(params.get("startDate"))
+                && StringUtils.isNotEmpty(params.get("endDate"))) {
+            dataTable.setStartDate(params.get("startDate"));
+            dataTable.setEndDate(params.get("endDate"));
+        } else {
+            dataTable.setStartAndEndDatesByMaxDays(params.get("maxDays", Integer.class));
+        }
+
         renderJSON(DataTablesSupport.createJSON(dataTable.fetchAll(), params));
     }
 
     public static void itemsJson(@As(",") String[] ids) {
+        Logger.info("hlj, start to call itemsJson()");
+        Logger.info("ids: {}", ids);
         List<OrderInfo> results = Lists.newArrayList();
         if (ids != null && ids.length > 0) {
             for (String id : ids) {
@@ -273,7 +319,7 @@ public class Orders extends OrderExecution {
 
         Http.Cookie cookie = request.cookies.get(RECENT_ACTIVITIES);
         response.setCookie(RECENT_ACTIVITIES, updateRecentActivitiesCookie(cookie, serviceId));
-        
+
         receipt(orderId);
     }
 
@@ -446,8 +492,8 @@ public class Orders extends OrderExecution {
         public Tags tags;
         public List<TaskResourceRep> viprTasks;
         public ScheduledEventRestRep scheduledEvent;
-        public Date scheduleStartDateTime; 
-        
+        public Date scheduleStartDateTime;
+
         public Map<URI, String> viprTaskStepMessages;
 
         public OrderDetails(String orderId) {
@@ -494,10 +540,10 @@ public class Orders extends OrderExecution {
             URI scheduledEventId = order.getScheduledEventId();
             if (scheduledEventId != null) {
                 scheduledEvent = getCatalogClient().orders().getScheduledEvent(scheduledEventId);
-                String isoDateTimeStr = String.format("%sT%02d:%02d:00Z", 
-                                        scheduledEvent.getScheduleInfo().getStartDate(), 
-                                        scheduledEvent.getScheduleInfo().getHourOfDay(), 
-                                        scheduledEvent.getScheduleInfo().getMinuteOfHour());
+                String isoDateTimeStr = String.format("%sT%02d:%02d:00Z",
+                        scheduledEvent.getScheduleInfo().getStartDate(),
+                        scheduledEvent.getScheduleInfo().getHourOfDay(),
+                        scheduledEvent.getScheduleInfo().getMinuteOfHour());
                 DateTime startDateTime = DateTime.parse(isoDateTimeStr);
                 scheduleStartDateTime = startDateTime.toDate();
             }

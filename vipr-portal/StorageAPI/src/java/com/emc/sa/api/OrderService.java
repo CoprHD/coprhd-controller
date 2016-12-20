@@ -739,7 +739,7 @@ public class OrderService extends CatalogTaggedResourceService {
      * @throws DatabaseException when a DB error occurs
      */
     @GET
-    @Path("/user-order-count")
+    @Path("/my-order-count")
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     public OrderCount getUserOrderCount(@DefaultValue("") @QueryParam(SearchConstants.START_TIME_PARAM) String startTimeStr,
                                       @DefaultValue("") @QueryParam(SearchConstants.END_TIME_PARAM) String endTimeStr)

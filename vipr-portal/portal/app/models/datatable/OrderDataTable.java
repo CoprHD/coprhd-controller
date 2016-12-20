@@ -8,8 +8,13 @@ import static com.emc.vipr.client.core.util.ResourceUtils.uri;
 
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
+
+import org.apache.commons.lang.time.DateUtils;
+
+import com.emc.vipr.model.catalog.OrderCount;
 
 import play.Logger;
 import models.security.UserInfo;
@@ -22,12 +27,21 @@ import com.google.common.collect.Lists;
 import controllers.catalog.Orders;
 
 public class OrderDataTable extends DataTable {
+    protected static final String ORDER_MAX_COUNT = "6000";
+    protected static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd");
     protected UserInfo userInfo;
     protected String tenantId;
-    
-    protected String startDate;
-    protected String endDate;
-    private static final String ORDER_MAX_COUNT = "6000";
+
+    protected Date startDate; //"yyyy-MM-dd 00:00:00" in local time zone
+    protected Date endDate;   //"yyyy-MM-dd 23:59:59" in local time zone
+
+    private void setStartDate(Date startDate) {//set to "yyyy-MM-dd 00:00:00"
+        this.startDate = getStartTimeOfADay(startDate);
+    }
+
+    private void setEndDate(Date endDate) {//set to "yyyy-MM-dd 23:59:59"
+        this.endDate = getEndTimeOfADay(endDate);
+    }
 
     public OrderDataTable(String tenantId) {
         this.tenantId = tenantId;
@@ -49,28 +63,31 @@ public class OrderDataTable extends DataTable {
     }
 
     public void setStartDate(String startDate) {
-        this.startDate = startDate;
+        try {
+            this.setStartDate(DATE_FORMAT.parse(startDate));
+        } catch (ParseException e) {
+            Logger.error("Date parse error for: %s, e=%s", startDate, e);
+        }
     }
 
     public void setEndDate(String endDate) {
-        this.endDate = endDate;
+        try {
+            this.setEndDate(DATE_FORMAT.parse(endDate));
+        } catch (ParseException e) {
+            Logger.error("Date parse error for: %s, e=%s", endDate, e);
+        }
+    }
+
+    public void setStartAndEndDatesByMaxDays(int maxDays) {
+        this.setStartDate(getDateDaysAgo(maxDays));
+        this.setEndDate(now());
     }
 
     public List<OrderInfo> fetchAll() {
         List<OrderRestRep> orderRestReps = null;
         if (userInfo != null) {
-            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
-            Date start = null;
-            Date end = null;
-            //just for test
-            try {
-                start = sdf.parse(startDate);
-                end = sdf.parse(endDate);
-            } catch (ParseException e) {
-                e.printStackTrace();
-            }
-            Logger.info("hlj, start to call fetchAll()");
-            orderRestReps = OrderUtils.getUserOrders(start, end, ORDER_MAX_COUNT);
+            Logger.info("hlj, start to call fetchAll(), %s, %s", startDate, endDate);
+            orderRestReps = OrderUtils.getUserOrders(startDate, endDate, ORDER_MAX_COUNT);
         } else {
             orderRestReps = OrderUtils.getOrders(uri(this.tenantId));
         }
@@ -78,14 +95,8 @@ public class OrderDataTable extends DataTable {
         return convert(orderRestReps);
     }
 
-    protected List<OrderInfo> convert(List<OrderRestRep> orderRestReps) {
-        List<OrderInfo> orderInfos = Lists.newArrayList();
-        if (orderRestReps != null) {
-            for (OrderRestRep orderRestRep : orderRestReps) {
-                orderInfos.add(new OrderInfo(orderRestRep));
-            }
-        }
-        return orderInfos;
+    public OrderCount fetchCount() {
+        return OrderUtils.getUserOrdersCount(startDate, endDate);
     }
 
     public static class OrderInfo {
@@ -118,5 +129,39 @@ public class OrderDataTable extends DataTable {
                 this.scheduledTime = o.getScheduledTime().getTime().getTime();
             }
         }
+    }
+
+    protected List<OrderInfo> convert(List<OrderRestRep> orderRestReps) {
+        List<OrderInfo> orderInfos = Lists.newArrayList();
+        if (orderRestReps != null) {
+            for (OrderRestRep orderRestRep : orderRestReps) {
+                orderInfos.add(new OrderInfo(orderRestRep));
+            }
+        }
+        return orderInfos;
+    }
+
+    public static Date getDateDaysAgo(int daysAgo) {
+        Calendar cal = Calendar.getInstance();
+        cal.add(Calendar.DAY_OF_YEAR, -daysAgo + 1);
+        return cal.getTime();
+    }
+
+    protected Date now() {
+        return new Date();
+    }
+
+    protected Date getStartTimeOfADay(Date origin) {
+        Date result = DateUtils.setHours(origin, 0);
+        result = DateUtils.setMinutes(result, 0);
+        result = DateUtils.setSeconds(result, 0);
+        return result;
+    }
+
+    protected Date getEndTimeOfADay(Date origin) {
+        Date result = DateUtils.setHours(origin, 23);
+        result = DateUtils.setMinutes(result, 59);
+        result = DateUtils.setSeconds(result, 59);
+        return result;
     }
 }

@@ -16,6 +16,7 @@ import com.emc.vipr.client.ViPRCatalogClient2;
 import com.emc.vipr.client.exceptions.ViPRHttpException;
 import com.emc.vipr.model.catalog.ExecutionLogRestRep;
 import com.emc.vipr.model.catalog.ExecutionStateRestRep;
+import com.emc.vipr.model.catalog.OrderCount;
 import com.emc.vipr.model.catalog.OrderLogRestRep;
 import com.emc.vipr.model.catalog.OrderRestRep;
 import com.google.common.collect.Lists;
@@ -62,6 +63,19 @@ public class OrderUtils {
             endTime = Long.toString(endDate.getTime());
         }
         return catalog.orders().getUserOrders(startTime, endTime, maxCount);
+    }
+
+    public static OrderCount getUserOrdersCount(Date startDate, Date endDate) {
+        ViPRCatalogClient2 catalog = getCatalogClient();
+        String startTime = null;
+        if (startDate != null) {
+            startTime = Long.toString(startDate.getTime());
+        }
+        String endTime = null;
+        if (endDate != null) {
+            endTime = Long.toString(endDate.getTime());
+        }
+        return catalog.orders().getUserOrdersCount(startTime, endTime);
     }
 
     public static List<OrderRestRep> getScheduledOrders() {

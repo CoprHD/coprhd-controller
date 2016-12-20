@@ -168,7 +168,6 @@ public class RestoreHandler {
         File sysDriverDir = new File(BackupConstants.DRIVERS_DIR);
         for (File f : drivers) {
             try {
-                chmod(f, BackupConstants.BACKUP_FILE_PERMISSION);
                 FileUtils.moveFileToDirectory(f, sysDriverDir, true);
                 log.info("Successfully restored driver file: {}", f.getName());
             } catch (IOException e) {
@@ -182,6 +181,7 @@ public class RestoreHandler {
             log.error("Failed to delete tmp driver directory {}", backupDriverDir.getAbsolutePath(), e);
         }
         chown(sysDriverDir, BackupConstants.STORAGEOS_USER, BackupConstants.STORAGEOS_GROUP);
+        chmod(sysDriverDir, BackupConstants.BACKUP_FILE_PERMISSION);
     }
 
     private void replaceSiteIdFile(File siteIdFileDir) throws IOException {

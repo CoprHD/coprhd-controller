@@ -9,7 +9,6 @@ import java.net.URI;
 import java.net.URL;
 import java.rmi.RemoteException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -18,8 +17,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import org.apache.commons.lang.StringUtils;
 import org.springframework.stereotype.Component;
@@ -86,11 +83,7 @@ import com.vmware.vim25.mo.HostSystem;
 @Component
 public class VcenterDiscoveryAdapter extends EsxHostDiscoveryAdapter {
 
-    private static String ISA_NAMESPACE = "vipr";
-    private static String ISA_SEPARATOR = ":";
-    private static String VMFS_DATASTORE = ISA_NAMESPACE + ISA_SEPARATOR + "vmfsDatastore";
-    //regex pattern matches the tag like "vipr:vmfsDatastore=TestDatastore2"
-    private static Pattern MACHINE_TAG_REGEX = Pattern.compile("([^W]*\\:[^W]*)=(.*)");
+    private static final String VMFS_DATASTORE_PREFIX = "vipr:vmfsDatastore";
     @Override
     public boolean isSupportedTarget(String targetId) {
         return URIUtil.isType(URI.create(targetId), Vcenter.class);
@@ -763,8 +756,10 @@ public class VcenterDiscoveryAdapter extends EsxHostDiscoveryAdapter {
         }
     }
     
-    /** processes to check if there is any changes in datastore currently checking for renaming.
+    /**
+     * processes to check if there is any changes in datastore currently checking for renaming.
      * TODO: check for deletion of datastore.
+     * 
      * @param datastoreMap
      * @param oldHosts
      * @param vcenter
@@ -777,34 +772,37 @@ public class VcenterDiscoveryAdapter extends EsxHostDiscoveryAdapter {
         String oldDsName = null;
         URI changedDatastore = null;
         Volume changedVolume = null;
-        URI vcenterURI = vcenter.getId();
-        VCenterAPI vcenterAPI = VcenterDiscoveryAdapter.createVCenterAPI(vcenter);
         List<URI> changedVolumeUris = new ArrayList<URI>();
         List<Datastore> newDatastores = new ArrayList<Datastore>();
+        Map<Volume, String> volumeDatastoreMap = new HashMap<Volume, String>();
+        URI vcenterURI = vcenter.getId();
+        VCenterAPI vcenterAPI = VcenterDiscoveryAdapter.createVCenterAPI(vcenter);
         List<Datacenter> dcs = vcenterAPI.listAllDatacenters();
+        
+        //creating list of new datastore for optimization
         for (Datacenter dc : dcs) {
             List<Datastore> datastores = vcenterAPI.listDatastores(dc);
             newDatastores.addAll(datastores);
         }
         // get the volumes uri from clusters
+        StringMap volumesMap = new StringMap();
         for (Host oldHost : oldHosts) {
             try {
                 List<ExportGroup> exportGroups = CustomQueryUtility.queryActiveResourcesByConstraint(dbClient, ExportGroup.class,
                         AlternateIdConstraint.Factory.getConstraint(ExportGroup.class, "hosts", oldHost.getId().toString()));
                 for (ExportGroup exportGroup : exportGroups) {
-                    StringMap volumes = exportGroup.getVolumes();
-                    for (String volumeUriString : volumes.keySet()) {
-                        URI uri = URI.create(volumeUriString);
-                        volumeUris.add(uri);
-                    }
+                    volumesMap.putAll(exportGroup.getVolumes());
+                }
+                for (String volumeUriString : volumesMap.keySet()) {
+                    URI uri = URI.create(volumeUriString);
+                    volumeUris.add(uri);
                 }
             } catch (Exception e) {
                 error("Exception navigating cluster export groups for shared volumes " + e);
             }
         }
 
-        // from volume uri we get the datastore name that is there in vipr currently if matches any one of the datastore
-        // name in the list then no changes occured in vcenter if not then wither it is deleted or got renamed
+        // creating a volume map which has the volume that has vmfs datastore and also the datastore name that is associated.
         Collection<Volume> volumes = dbClient.queryObject(Volume.class, volumeUris);
         for (Volume volume : volumes) {
             if (volume.getTag() != null) {
@@ -812,18 +810,26 @@ public class VcenterDiscoveryAdapter extends EsxHostDiscoveryAdapter {
                 Iterator<ScopedLabel> tagIter = tagSet.iterator();
                 while (tagIter.hasNext()) {
                     ScopedLabel sl = tagIter.next();
-                    if (sl.getLabel() != null && (sl.getLabel().startsWith(VMFS_DATASTORE))) {
-                        // check if there is any change in datastore name
-                            for (Datastore ds : newDatastores) {
-                                if (sl.getLabel().contains(ds.getName())) {
-                                    change = false;
-                                }
-                            }
+                    String tagValue = sl.getLabel();
+                    if (tagValue != null && (tagValue.startsWith(VMFS_DATASTORE_PREFIX))) {
+                        volumeDatastoreMap.put(volume, tagValue);
                     }
                 }
             }
         }
         
+     // check if there is any change in datastore name
+     // from volume uri we get the datastore name that is there in vipr currently if matches any one of the datastore
+     // name in the list then no changes occured in vcenter if not then either it is deleted or got renamed
+        for (Map.Entry<Volume,String> entry: volumeDatastoreMap.entrySet()){
+            for (Datastore ds : newDatastores) {
+                String oldDSname = entry.getValue();
+                if (oldDSname.equals(ds.getName())) {
+                    change = false;
+                }
+            }
+        }
+
         // identify the datastore which got changed, for each datacenter getting the datastores and hosts associated to
         // it. Then from each hostsystem getting the hostSCSI disks. and then iterating each volume to match the
         // diskwwn, if matched then check the volume tag tto match the datastore name if not matching, then get the
@@ -843,21 +849,11 @@ public class VcenterDiscoveryAdapter extends EsxHostDiscoveryAdapter {
                         Set<HostScsiDisk> disks = new HashSet<HostScsiDisk>(diskList);
                         for (HostScsiDisk disk : disks) {
                             String diskWwn = VMwareUtils.getDiskWwn(disk);
-                            for (Volume vol : volumes) {
+                            for (Volume vol : volumeDatastoreMap.keySet() ) {
                                 if (StringUtils.isNotBlank(diskWwn) && VolumeWWNUtils.wwnMatches(diskWwn, vol.getWWN())) {
                                     newDsName = ds.getName();
                                     changedDatastore = URI.create(ds.getInfo().getUrl());
-                                    if (vol.getTag() != null) {
-                                        ScopedLabelSet tagSet = vol.getTag();
-                                        Iterator<ScopedLabel> tagIter = tagSet.iterator();
-                                        while (tagIter.hasNext()) {
-                                            ScopedLabel sl = tagIter.next();
-                                            String tagValue = sl.getLabel();
-                                            if (tagValue != null && (tagValue.startsWith(VMFS_DATASTORE))) {
-                                                oldDsName = getDatastoreName(tagValue);
-                                            }
-                                        }
-                                    }
+                                    oldDsName = volumeDatastoreMap.get(vol);
                                     if (newDsName != null && oldDsName != null && !oldDsName.equals(newDsName)) {
                                         renamed = true;
                                         changedVolume = vol;
@@ -878,19 +874,9 @@ public class VcenterDiscoveryAdapter extends EsxHostDiscoveryAdapter {
                             ComputeSystemDialogProperties.getMessage("ComputeSystem.vcenterDatastoreRenameWarning"), changedVolume,
                             changedVolumeUris, EventUtils.vcenterDatastoreRename,
                             new Object[] { changedVolume.getId(), newDsName, changedDatastore, vcenterURI },
-                            EventUtils.vcenterDatastoreRenameDecline, new Object[] { changedVolume.getId() });
+                            EventUtils.vcenterDatastoreRenameDecline, new Object[] { changedVolume.getId() , newDsName });
                 }
             }
         }
-    }
-
-    private String getDatastoreName(String tag) {
-        if (tag != null) {
-            Matcher matcher = MACHINE_TAG_REGEX.matcher(tag);
-            if (matcher.matches()) {
-                return matcher.group(2);
-            }
-        }
-        return null;
     }
 }

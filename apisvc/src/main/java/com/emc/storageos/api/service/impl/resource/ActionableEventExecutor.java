@@ -682,21 +682,19 @@ public class ActionableEventExecutor {
         return Lists.newArrayList(ComputeSystemDialogProperties.getMessage("ComputeSystem.addInitiatorDeclineDetails"));
     }
     
-    /**
+     /**
      * Get details for the datastore rename method
      * NOTE: In order to maintain backwards compatibility, do not change the signature of this method.
      * 
-     * @param hostId
-     *            the host that is moving vcenters
-     * @param clusterId
-     *            the cluster the host is moving to
-     * @param datacenterId
-     *            the datacenter the host is moving to
-     * @param isVcenter
-     *            if true, vcenter api operations will be executed against the host to detach/unmount and attach/mount
-     *            disks and
-     *            datastores
-     * @return list of event details
+     * @param volume
+     *            - id that has been affected
+     * @param newDatastoreName
+     *            - name of the new datastore needed to print in the display message.
+     * @param changedDatastore
+     *            - changed datastore identifier.++
+     * @param vcenterURI
+     *            - vcenter where the datastore belongs
+     * @return - list of event details
      */
     @SuppressWarnings("unused") // Invoked using reflection for the event framework
     public List<String> vcenterDatastoreRenameDetails(URI volume, String newDatastoreName, URI changedDatstore, URI vcenterURI) {
@@ -704,7 +702,6 @@ public class ActionableEventExecutor {
         Volume volumeObj = _dbClient.queryObject(Volume.class, volume);
         if (volumeObj != null && newDatastoreName != null) {
             result.add(ComputeSystemDialogProperties.getMessage("ComputeSystem.vcenterDatastoreRenameDetails", newDatastoreName));
-            result.add(volumeObj.getLabel());
         }
         return result;
     }
@@ -714,17 +711,16 @@ public class ActionableEventExecutor {
      * NOTE: In order to maintain backwards compatibility, do not change the signature of this method.
      * 
      * @param volume
-     *            id that has been affected
-     * @param New
-     *            datastore name
-     * @param datastoreId
-     * @param isVcenter
-     *            if true, vcenter api operations will be executed against the host to detach/unmount and attach/mount
-     *            disks and
-     *            datastores
+     *            - id that has been affected
+     * @param newDatastoreName
+     *            - name of the new datastore needed to print in the display message.
+     * @param changedDatastore
+     *            - changed datastore identifier.++
+     * @param vcenterURI
+     *            - vcenter where the datastore belongs
      * @param eventId
-     *            the event id
-     * @return task for updating the datastore name
+     *            - the event id
+     * @return - task for updating the datastore name
      */
     public TaskResourceRep vcenterDatastoreRename(URI volume, String newDatastoreName, URI changedDatastore, URI vcenterURI, URI eventId) {
         String taskId = UUID.randomUUID().toString();
@@ -741,11 +737,13 @@ public class ActionableEventExecutor {
      * 
      * @param volume
      *            uri
+     * @param newDatastoreName
+     *            - name of the new datastore needed to print in the display message.
      * @param eventId
      *            the event id
      * @return task
      */
-    public TaskResourceRep vcenterDatastoreRenameDecline(URI volume, URI eventId) {
+    public TaskResourceRep vcenterDatastoreRenameDecline(URI volume, String newDatastoreName, URI eventId) {
         return null;
     }
 
@@ -755,10 +753,14 @@ public class ActionableEventExecutor {
      * 
      * @param @param
      *            volume uri
+     * 
+     * @param newDatastoreName
+     *            - name of the new datastore needed to print in the display message.
      * @return list of details
      */
-    public List<String> vcenterDatastoreRenameDeclineDetails(URI volume) {
-        return Lists.newArrayList(ComputeSystemDialogProperties.getMessage("ComputeSystem.vcenterDatastoreRenameDeclineDetails"));
+    public List<String> vcenterDatastoreRenameDeclineDetails(URI volume, String newDatastoreName) {
+        return Lists.newArrayList(
+                ComputeSystemDialogProperties.getMessage("ComputeSystem.vcenterDatastoreRenameDeclineDetails", newDatastoreName));
     }
 
     /**

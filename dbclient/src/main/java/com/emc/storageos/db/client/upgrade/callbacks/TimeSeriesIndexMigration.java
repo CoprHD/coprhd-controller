@@ -24,6 +24,7 @@ import com.emc.storageos.svcs.errorhandling.resources.MigrationCallbackException
 public class TimeSeriesIndexMigration extends BaseCustomMigrationCallback {
     private static final Logger log = LoggerFactory.getLogger(TimeSeriesIndexMigration.class);
     private DbClientImpl client;
+    final public String SOURCE_INDEX_CF_NAME="TenantToOrder";
 
     public TimeSeriesIndexMigration(DbClientImpl dbClient) {
         client = dbClient;
@@ -35,15 +36,16 @@ public class TimeSeriesIndexMigration extends BaseCustomMigrationCallback {
 
         log.info("Migrate {}", Order.SUBMITTED);
 
-        Keyspace ks = client.getLocalKeyspace();
         ColumnFamily<String, IndexColumnName> tenantToOrder =
-                new ColumnFamily<String, IndexColumnName>("TenantToOrder", StringSerializer.get(),
-                        IndexColumnNameSerializer.get());
+                new ColumnFamily<>(SOURCE_INDEX_CF_NAME, StringSerializer.get(), IndexColumnNameSerializer.get());
 
         DataObjectType doType = TypeMap.getDoType(Order.class);
         ColumnField field = doType.getColumnField(Order.SUBMITTED);
-        ColumnFamily<String, TimeSeriesIndexColumnName> newCf = field.getIndexCF();
+        ColumnFamily<String, TimeSeriesIndexColumnName> newIndexCF = field.getIndexCF();
+
+        Keyspace ks = client.getLocalKeyspace();
         MutationBatch mutationBatch = ks.prepareMutationBatch();
+
         try {
             long n = 0;
             long m;
@@ -68,7 +70,7 @@ public class TimeSeriesIndexMigration extends BaseCustomMigrationCallback {
                         TimeSeriesIndexColumnName newCol = new TimeSeriesIndexColumnName(Order.class.getSimpleName(),
                                 orderId, col.getName().getTimeUUID());
 
-                        mutationBatch.withRow(newCf, indexKey).putEmptyColumn(newCol, null);
+                        mutationBatch.withRow(newIndexCF, indexKey).putEmptyColumn(newCol, null);
                         if ( m % 10000 == 0) {
                             log.info("lby commit m={}", m);
                             mutationBatch.execute();
@@ -80,9 +82,9 @@ public class TimeSeriesIndexMigration extends BaseCustomMigrationCallback {
             mutationBatch.execute();
 
             long end = System.currentTimeMillis();
-            log.info("Read {} records in  MS",n, (end - start)/1000);
+            log.info("Read {} records in  MS", n, (end - start)/1000);
         }catch (Exception e) {
-            log.error("Migration to {} failed e=", newCf.getName(), e);
+            log.error("Migration to {} failed e=", newIndexCF.getName(), e);
         }
     }
 }

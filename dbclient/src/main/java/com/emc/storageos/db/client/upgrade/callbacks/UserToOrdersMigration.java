@@ -30,6 +30,7 @@ public class UserToOrdersMigration extends BaseCustomMigrationCallback {
     private static final Logger log = LoggerFactory.getLogger(UserToOrdersMigration.class);
 
     InternalDbClient client;
+    final public String SOURCE_INDEX_CF_NAME="UserToOrders";
 
     public UserToOrdersMigration(InternalDbClient dbclient) {
         client = dbclient;
@@ -39,20 +40,22 @@ public class UserToOrdersMigration extends BaseCustomMigrationCallback {
     public void process() throws MigrationCallbackException {
         long start = System.currentTimeMillis();
 
-        log.info("lbybb0");
-
-        Keyspace ks = client.getLocalKeyspace();
-        ColumnFamily<String, IndexColumnName> userToOrders =
-                new ColumnFamily<String, IndexColumnName>("UserToOrders", StringSerializer.get(), IndexColumnNameSerializer.get());
+        log.info("To migrate to {}", Order.SUBMITTED_BY_USER_ID);
 
         DataObjectType doType = TypeMap.getDoType(Order.class);
         ColumnField field = doType.getColumnField(Order.SUBMITTED_BY_USER_ID);
-        ColumnFamily<String, ClassNameTimeSeriesIndexColumnName> newCf = field.getIndexCF();
-        MutationBatch mutationBatch = ks.prepareMutationBatch();
-        try {
-            long n = 0;
-            long m = 0;
+        ColumnFamily<String, ClassNameTimeSeriesIndexColumnName> newIndexCF = field.getIndexCF();
 
+        ColumnFamily<String, IndexColumnName> userToOrders =
+                new ColumnFamily<>(SOURCE_INDEX_CF_NAME, StringSerializer.get(), IndexColumnNameSerializer.get());
+
+        Keyspace ks = client.getLocalKeyspace();
+        MutationBatch mutationBatch = ks.prepareMutationBatch();
+
+        long n = 0;
+        long m = 0;
+
+        try {
             OperationResult<Rows<String, IndexColumnName>> result = ks.prepareQuery(userToOrders).getAllRows()
                     .setRowLimit(100)
                     .withColumnRange(new RangeBuilder().setLimit(0).build())
@@ -74,7 +77,7 @@ public class UserToOrdersMigration extends BaseCustomMigrationCallback {
 
                         ClassNameTimeSeriesIndexColumnName newCol = new ClassNameTimeSeriesIndexColumnName(col.getName().getOne(), orderId,
                                 col.getName().getTimeUUID());
-                        mutationBatch.withRow(newCf, indexKey).putEmptyColumn(newCol, null);
+                        mutationBatch.withRow(newIndexCF, indexKey).putEmptyColumn(newCol, null);
                         if ( m % 10000 == 0) {
                             log.info("lby commit m={}", m);
                             mutationBatch.execute();
@@ -86,9 +89,9 @@ public class UserToOrdersMigration extends BaseCustomMigrationCallback {
             mutationBatch.execute();
 
             long end = System.currentTimeMillis();
-            log.info("Read {} in MS", n, (end - start)/1000);
+            log.info("Read {} records in MS", n, (end - start)/1000);
         }catch (Exception e) {
-            log.error("Migration to {} failed e=", newCf.getName(), e);
+            log.error("Migration to {} failed e=", newIndexCF.getName(), e);
         }
     }
 }

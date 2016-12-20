@@ -287,7 +287,6 @@ test_vcenter_event() {
     report_results ${test_name} ${failure}
 }
 
-
 # Helper methods for tests
 add_host_to_cluster() {
     host=$1
@@ -1167,9 +1166,7 @@ test_cluster_remove_discovered_host() {
     datastore1="fakedatastore1"-${random_number}
     datastore2="fakedatastore2"-${random_number}
     create_volume_and_datastore $TENANT ${volume1} ${datastore1} $NH $VPOOL_BASE ${PROJECT} ${vcenter} ${datacenter} ${cluster1}
-    #create_volume_and_datastore $TENANT ${volume2} ${datastore2} $NH $VPOOL_BASE ${PROJECT2} ${vcenter} ${datacenter} ${cluster1}
-        
-    delete_volume_and_datastore $TENANT ${datastore1} ${vcenter} ${datacenter} ${cluster1}
+    create_volume_and_datastore $TENANT ${volume2} ${datastore2} $NH $VPOOL_BASE ${PROJECT2} ${vcenter} ${datacenter} ${cluster1}
         
     for failure in ${failure_injections}
     do
@@ -1364,9 +1361,9 @@ test_cluster_remove_discovered_host() {
     done
     
      # Cleanup volumes
-    #runcmd volume delete ${PROJECT}/${volume1} --wait
-    #runcmd volume delete ${PROJECT2}/${volume2} --wait 
-    #runcmd project delete ${PROJECT2}
+    delete_volume_and_datastore $TENANT ${datastore1} ${vcenter} ${datacenter} ${cluster1}
+    delete_volume_and_datastore $TENANT ${datastore2} ${vcenter} ${datacenter} ${cluster1} 
+    runcmd project delete ${PROJECT2}
     
     # Turn off validation back on
     secho "Turning ViPR validation ON"

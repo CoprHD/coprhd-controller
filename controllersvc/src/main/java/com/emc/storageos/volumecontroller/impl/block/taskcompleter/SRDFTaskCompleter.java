@@ -65,6 +65,7 @@ public class SRDFTaskCompleter extends TaskCompleter {
         setStatus(dbClient, status, coded);
         updateWorkflowStatus(status, coded);
         updateVolumeStatus(dbClient, status);
+        updateConsistencyGroupTasks(dbClient, status, coded);
     }
 
     protected void setDbClient(DbClient dbClient) {

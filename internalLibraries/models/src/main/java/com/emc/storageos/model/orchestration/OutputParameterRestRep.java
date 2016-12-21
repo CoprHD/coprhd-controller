@@ -23,9 +23,19 @@ import javax.xml.bind.annotation.XmlElement;
  */
 public class OutputParameterRestRep {
 
+    private String name;
     private String type;
     private String table;
-    
+
+    @XmlElement(name = "name")
+    public String getName() {
+        return name;
+    }
+
+    public void setName(final String name) {
+        this.name = name;
+    }
+
     @XmlElement(name = "type")
     public String getType() {
         return type;

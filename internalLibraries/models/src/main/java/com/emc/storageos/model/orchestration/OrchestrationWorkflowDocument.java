@@ -165,7 +165,7 @@ public class OrchestrationWorkflowDocument {
         private Integer positionY;
         private String type;
         private Map<String, Input> input;
-        private Map<String, String> output;
+        private List<String> output;
         private StepAttribute attributes;
         private String successCriteria;
         private NextStep next;
@@ -235,10 +235,10 @@ public class OrchestrationWorkflowDocument {
         }
         
         @XmlElement(name = "output")
-        public Map<String, String> getOutput() {
+        public List<String> getOutput() {
             return output;
         }
-        public void setOutput(Map<String, String> output) {
+        public void setOutput(List<String> output) {
             this.output = output;
         }
         

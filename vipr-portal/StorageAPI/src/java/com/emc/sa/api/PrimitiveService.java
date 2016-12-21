@@ -130,23 +130,25 @@ public class PrimitiveService {
         }
         return inputRestRep;
     }
-    
-    private static Map<String,OutputParameterRestRep> mapOutput(Map<String,OutputParameter> output) {
-        Map<String,OutputParameterRestRep> outputRestRep = new HashMap<String,OutputParameterRestRep>();
-        for(final OutputParameter parameter : output.values()) {
-            String key = parameter.getName();
+
+    private static List<OutputParameterRestRep> mapOutput(List<OutputParameter> output) {
+        List<OutputParameterRestRep> outputRestRep = new ArrayList<OutputParameterRestRep>();
+        int index = 0;
+        for(final OutputParameter parameter : output) {
             if(parameter.isBasicOutputParameter()) {
                 BasicOutputParameter outputParam = parameter.asBasicOutputParameter();
                 OutputParameterRestRep parameterRestRep = new OutputParameterRestRep();
+                parameterRestRep.setName(outputParam.getName());
                 parameterRestRep.setType(outputParam.getType().name());
-                outputRestRep.put(key, parameterRestRep);
+                outputRestRep.add(index++, parameterRestRep);
             } else {
                 TableOutputParameter outputParam = parameter.asTableOutputParameter();
                 for( final BasicOutputParameter column : outputParam.getColumns()) {
                     OutputParameterRestRep parameterRestRep = new OutputParameterRestRep();
+                    parameterRestRep.setName(column.getName());
                     parameterRestRep.setType(column.getType().name());
                     parameterRestRep.setTable(outputParam.getName());
-                    outputRestRep.put(key, parameterRestRep);
+                    outputRestRep.add(index++, parameterRestRep);
                 }
             }
         }

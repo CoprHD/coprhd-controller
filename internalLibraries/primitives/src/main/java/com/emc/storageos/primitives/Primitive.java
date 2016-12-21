@@ -19,7 +19,9 @@ package com.emc.storageos.primitives;
 import com.emc.storageos.primitives.input.InputParameter;
 import com.emc.storageos.primitives.output.OutputParameter;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 
@@ -64,7 +66,7 @@ public abstract class Primitive {
     private String description;
     private String successCriteria;
     private Map<String,InputParameter> input;
-    private Map<String,OutputParameter> output;
+    private List<OutputParameter> output;
 
     public Primitive(final String name, final String friendlyName,
             final String description, final String successCriteria,
@@ -74,9 +76,8 @@ public abstract class Primitive {
         this.description = description;
         this.successCriteria = successCriteria;
         this.input = Arrays.asList(input).stream().collect(
-                Collectors.toMap(InputParameter::getName, elem -> elem));
-        this.output = Arrays.asList(output).stream().collect(
-                Collectors.toMap(OutputParameter::getName, elem -> elem));;
+                Collectors.toMap(InputParameter::getName, Function.identity()));
+        this.output = Arrays.asList(output);
         this.type = type;
     }
 
@@ -105,7 +106,7 @@ public abstract class Primitive {
         return input;
     }
     
-    public Map<String,OutputParameter> getOutput() {
+    public List<OutputParameter> getOutput() {
         return output;
     }
 }

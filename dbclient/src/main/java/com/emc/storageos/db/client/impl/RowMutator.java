@@ -47,20 +47,10 @@ public class RowMutator {
      * @param retryWithLocalQuorum - true - retry once with LOCAL_QUORUM for write failure
      */
     public RowMutator(Keyspace keyspace, boolean retryWithLocalQuorum) {
-        this(keyspace, retryWithLocalQuorum, TimeUUIDUtils.getMicrosTimeFromUUID(TimeUUIDUtils.getUniqueTimeUUIDinMicros()));
-    }
-    
-    /**
-     * Construct RowMutator instance for for index CF and object CF updates
-     * 
-     * @param keyspace - cassandra keyspace object
-     * @param retryWithLocalQuorum - true - retry once with LOCAL_QUORUM for write failure
-     * @param microsTimeStamp timestamp works as the start time for timeUUID
-     */
-    public RowMutator(Keyspace keyspace, boolean retryWithLocalQuorum, long microsTimeStamp) {
         this.keyspace = keyspace;
-        this._timeStamp.set(microsTimeStamp);
         
+        long microsTimeStamp = TimeUUIDUtils.getMicrosTimeFromUUID(TimeUUIDUtils.getUniqueTimeUUIDinMicros());
+        this._timeStamp.set(microsTimeStamp);
         _mutationBatch = keyspace.prepareMutationBatch();
         _mutationBatch.setTimestamp(microsTimeStamp).withAtomicBatch(true);
 
@@ -72,6 +62,10 @@ public class RowMutator {
 
     public UUID getTimeUUID() {
         return TimeUUIDUtils.getMicrosTimeUUID(_timeStamp.addAndGet(TIME_STAMP_OFFSET));
+    }
+    
+    public void resetTimeUUIDStartTime(long startTime) {
+        _timeStamp.set(startTime);
     }
 
     /**

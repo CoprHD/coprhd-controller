@@ -6,11 +6,15 @@ package com.emc.storageos.db.client.upgrade.callbacks;
 
 import java.lang.reflect.InvocationTargetException;
 import java.net.URI;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -26,7 +30,6 @@ import com.emc.storageos.db.client.model.Snapshot;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.upgrade.BaseCustomMigrationCallback;
 import com.emc.storageos.db.client.upgrade.InternalDbClient;
-import com.emc.storageos.db.client.upgrade.callbacks.FieldValueTimeUUIDPair.DuplciatedIndexDataObject;
 import com.emc.storageos.db.common.schema.FieldInfo;
 import com.emc.storageos.svcs.errorhandling.resources.MigrationCallbackException;
 import com.google.common.collect.Sets;
@@ -42,8 +45,9 @@ public class RebuildIndexDuplicatedCFNameMigration extends BaseCustomMigrationCa
     private static final Logger log = LoggerFactory.getLogger(RebuildIndexDuplicatedCFNameMigration.class);
     private int totalProcessedDataObjectCount = 0;
     private Set<Class<? extends DataObject>> scanClasses = Sets.newHashSet(FileShare.class, Snapshot.class);
-    private DuplciatedIndexDataObject duplciatedIndexDataObject = new DuplciatedIndexDataObject();
     private Set<String> fieldNames = Sets.newHashSet("path", "mountPath");
+    private ExecutorService executor = Executors.newFixedThreadPool(10);
+    private AtomicInteger totalProcessedIndex = new AtomicInteger(0);
 
     @Override
     public void process() throws MigrationCallbackException {
@@ -58,24 +62,23 @@ public class RebuildIndexDuplicatedCFNameMigration extends BaseCustomMigrationCa
             }
         }
 
-        log.info("Total Data Object: {}", totalProcessedDataObjectCount);
-        
+        log.info("Totally rebuild index count: {}", totalProcessedIndex);
         log.info("Finish run migration handler RebuildIndexDuplicatedCFName");
         log.info("Total seconds: {}", (System.currentTimeMillis() - beginTime)/1000);
     }
 
-    public int handleDataObjectClass(Class<? extends DataObject> clazz) throws Exception {
+    public void handleDataObjectClass(Class<? extends DataObject> clazz) throws Exception {
         log.info("proccess model class {}", clazz);
 
         InternalDbClient dbClient = (InternalDbClient) getDbClient();
         DataObjectType doType = TypeMap.getDoType(clazz);
         
-        int totalProcessedIndex = 0;
         Keyspace keyspace = dbClient.getLocalContext().getKeyspace();
 
         ColumnFamilyQuery<String, CompositeColumnName> query = keyspace.prepareQuery(doType.getCF());
         OperationResult<Rows<String, CompositeColumnName>> result = query.getAllRows().setRowLimit(100).execute();
         int totalCount = 0;
+        List<Row<String, CompositeColumnName>> rows = new ArrayList<Row<String, CompositeColumnName>>();
         for (Row<String, CompositeColumnName> objRow : result.getResult()) {
             boolean inactiveObject = false;
             totalProcessedDataObjectCount++;
@@ -93,70 +96,80 @@ public class RebuildIndexDuplicatedCFNameMigration extends BaseCustomMigrationCa
                 continue;
             }
 
-            totalProcessedIndex += proccessDataObjectTypeByIndexCF(doType, objRow, keyspace);
+            rows.add(objRow);
+            if (rows.size() == 1000) {
+                proccessDataObjectTypeByIndexCF(doType, rows, keyspace);
+                rows = new ArrayList<Row<String, CompositeColumnName>>();
+            }
+            
         }
         
+        proccessDataObjectTypeByIndexCF(doType, rows, keyspace);
         log.info("Total data object count is {} for model {}", totalCount, clazz.getName());
-        return totalProcessedIndex;
+        return;
     }
 
-    public int proccessDataObjectTypeByIndexCF(DataObjectType doType, Row<String, CompositeColumnName> objRow, Keyspace keyspace) throws InstantiationException, IllegalAccessException,
+    public void proccessDataObjectTypeByIndexCF(DataObjectType doType, List<Row<String, CompositeColumnName>> rows, Keyspace keyspace)
+            throws InstantiationException, IllegalAccessException,
             IllegalArgumentException, InvocationTargetException {
-        Map<FieldValueTimeUUIDPair, CompositeColumnName> valueColumnMap = new HashMap<FieldValueTimeUUIDPair, CompositeColumnName>();
+
         int totalCleanupCount = 0;
+        RowMutator rowMutator = new RowMutator(keyspace, false);
+        for (Row<String, CompositeColumnName> objRow : rows) {
+            try {
+                Map<FieldValueTimeUUIDPair, CompositeColumnName> valueColumnMap = new HashMap<FieldValueTimeUUIDPair, CompositeColumnName>();
+                DataObject dataObject = DataObject.createInstance(doType.getDataObjectClass(), URI.create(objRow.getKey()));
+                for (Column<CompositeColumnName> column : objRow.getColumns()) {
+                    if (!fieldNames.contains(column.getName().getOne())) {
+                        continue;
+                    }
 
-        DataObject dataObject = DataObject.createInstance(doType.getDataObjectClass(), URI.create(objRow.getKey()));
-        for (Column<CompositeColumnName> column : objRow.getColumns()) {
-            if (!fieldNames.contains(column.getName().getOne())) {
-                continue;
-            }
+                    ColumnField columnField = doType.getColumnField(column.getName().getOne());
+                    columnField.deserialize(column, dataObject);
+                    Object valueObject = columnField.getPropertyDescriptor().getReadMethod().invoke(dataObject, null);
 
-            ColumnField columnField = doType.getColumnField(column.getName().getOne());
-            columnField.deserialize(column, dataObject);
-            Object valueObject = columnField.getPropertyDescriptor().getReadMethod().invoke(dataObject, null);
+                    if (valueObject == null || column.getName().getTimeUUID() == null) {
+                        continue;
+                    }
 
-            if (valueObject == null || column.getName().getTimeUUID() == null) {
-                continue;
-            }
-            
-            FieldValueTimeUUIDPair key = null;
-            key = new FieldValueTimeUUIDPair(valueObject, column.getName().getTimeUUID());
-            
-            
-            if (valueColumnMap.containsKey(key)) {
-                totalCleanupCount++;
-                /*log.info("Found duplicated index value: {}", key);
-                log.info("Column1: {}", column.getName());
-                log.info("Column2: {}", valueColumnMap.get(key));*/
-                rebuildIndex(doType, columnField, valueObject, objRow.getKey(), column, keyspace);
-            } else {
-                valueColumnMap.put(key, column.getName());
+                    FieldValueTimeUUIDPair key = null;
+                    key = new FieldValueTimeUUIDPair(valueObject, column.getName().getTimeUUID());
+
+                    if (valueColumnMap.containsKey(key)) {
+                        totalCleanupCount++;
+                        rebuildIndex(doType, columnField, valueObject, objRow.getKey(), column, rowMutator);
+                    } else {
+                        valueColumnMap.put(key, column.getName());
+                    }
+                }
+            } catch (Exception e) {
+                log.error("Failed to proccess Data Object: ", e);
             }
         }
-
+        
         if (totalCleanupCount > 0) {
-            log.info("Total cleanup {} for {}", totalCleanupCount, objRow.getKey());
+            rowMutator.execute();
         }
-        return totalCleanupCount;
+        
+        totalProcessedIndex.getAndAdd(totalCleanupCount);
     }
 
     private void rebuildIndex(DataObjectType doType, ColumnField columnField, Object value, String rowKey,
-            Column<CompositeColumnName> column, Keyspace keyspace) throws InstantiationException, IllegalAccessException,
+            Column<CompositeColumnName> column, RowMutator rowMutator) throws InstantiationException, IllegalAccessException,
             IllegalArgumentException, InvocationTargetException {
-        RowMutator rowMutator = new RowMutator(keyspace, false, TimeUUIDUtils.getMicrosTimeFromUUID(column.getName().getTimeUUID()));
+        
         rowMutator.getRecordColumnList(doType.getCF(), rowKey).deleteColumn(column.getName());
-
+        
+        rowMutator.resetTimeUUIDStartTime(TimeUUIDUtils.getMicrosTimeFromUUID(column.getName().getTimeUUID()));
         DataObject dataObject = DataObject.createInstance(doType.getDataObjectClass(), URI.create(rowKey));
         dataObject.trackChanges();
-        if (columnField.getType() == ColumnField.ColumnType.TrackingSet) {
-            StringSet stringSet = new StringSet();
-            stringSet.add(column.getStringValue());
-            value = stringSet;
-        }
+        
         columnField.getPropertyDescriptor().getWriteMethod().invoke(dataObject, value);
         columnField.serialize(dataObject, rowMutator);
-        
-        rowMutator.execute();
+    }
+
+    public int getTotalProcessedIndexCount() {
+        return totalProcessedIndex.get();
     } 
 }
 

@@ -1345,18 +1345,23 @@ schedulePolicy.replicationSync=Synchronous
 schedulePolicy.priorityLow=Low
 schedulePolicy.priorityHigh=High
 filePolicy.name=Policy Name
+schedule.policies.unknown=Unknown File Policy
 
 assignPolicy.title=Policy Assignment
-assignPolicy.poicyName=Policies
-assignPolicy.applyPolicyAt=Apply Policies at
+assignPolicy.policyName=Policies
+assignPolicy.appliedAt=Apply Policies at
 assignPolicy.project.applyAll=Apply for all applicable Projects
 assignPolicy.project.applySpecific=Apply for specific Projects
 assignPolicy.vpool.applyAll=Apply for all applicable vPools
 assignPolicy.vpool.applySpecific=Apply for specific vPools
+
+assignPolicy.applySpecificProjects=
+assignPolicy.applySpecificvPools=
+
 assignPolicy.project.availableVpool=Available vPools
 assignPolicy.project.appliedVpool=Applied vPools
-assignPolicy.targetSite.apply=Apply on target site
-assignPolicy.vArray.target=Target vArrray(s)
+assignPolicy.applyOnTargetSite=Apply on target site
+assignPolicy.targetVarray=Target vArrray(s)
 assignPolicy.vArray.source=Source vArray
 
 vdcs.list.title=Virtual Data Centers

@@ -812,7 +812,7 @@ public class VcenterDiscoveryAdapter extends EsxHostDiscoveryAdapter {
                     ScopedLabel sl = tagIter.next();
                     String tagValue = sl.getLabel();
                     if (tagValue != null && (tagValue.startsWith(VMFS_DATASTORE_PREFIX))) {
-                        volumeDatastoreMap.put(volume, tagValue);
+                        volumeDatastoreMap.put(volume, ComputeSystemHelper.getDatastoreName(tagValue));
                     }
                 }
             }

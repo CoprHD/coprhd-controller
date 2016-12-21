@@ -3374,8 +3374,8 @@ public class VolumeIngestionUtil {
      */
     public static Integer findHlu(UnManagedVolume unManagedVolume, String exportMaskName) {
 
-        // TODO currently only the VPLEX, VMAX discovery process is creating
-        // this HLU_TO_EXPORT_LABEL_MAP --- this should also be added to other
+        // TODO currently only VPLEX, VMAX, XtremIO and Unity unmanaged discovery processes
+        // are creating this HLU_TO_EXPORT_LABEL_MAP --- this should also be added to other
         // unmanaged volume discovery services if the HLU is found to be required.
         // By default, if no mapping is found, a LUN_UNASSIGNED (-1) will be returned.
 

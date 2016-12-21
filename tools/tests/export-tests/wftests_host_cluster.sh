@@ -557,9 +557,11 @@ test_move_clustered_host_to_another_cluster() {
     test_name="test_move_clustered_host_to_another_cluster"
     echot "Test test_move_clustered_host_to_another_cluster Begins"
         
-    common_failure_injections="failure_001_host_export_ComputeSystemControllerImpl.updateExportGroup_before_update"
+    common_failure_injections="failure_004_final_step_in_workflow_complete \
+                               failure_027_host_cluster_ComputeSystemControllerImpl.deleteExportGroup_before_delete \
+                               failure_042_host_cluster_ComputeSystemControllerImpl.updateHostAndInitiatorClusterReferences" 
 
-    failure_injections="${HAPPY_PATH_TEST_INJECTION}" # ${common_failure_injections}"
+    failure_injections="${HAPPY_PATH_TEST_INJECTION} ${common_failure_injections}"
 
     # Placeholder when a specific failure case is being worked...
     # failure_injections="failure_001_host_export_ComputeSystemControllerImpl.updateExportGroup_before_update"
@@ -697,7 +699,6 @@ test_move_clustered_host_to_another_cluster() {
            set_artificial_failure none
            
            runcmd hosts update $host1 --cluster ${TENANT}/${cluster2}
-           sleep 60
 
         fi
         

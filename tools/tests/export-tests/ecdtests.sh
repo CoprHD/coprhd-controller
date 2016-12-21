@@ -683,10 +683,13 @@ BOURNE_IP=${BOURNE_IP:-"localhost"}
 #
 NH=nh
 NH2=nh2
-VCENTER=vcenter1
+VCENTER=lglw8062
 DC=CLI-DC
 stype='Shared'
 host=StretchCluster
+VCENTER_IP=lglw8062.lss.emc.com
+VCENTER_USER=administrator@vsphere6.local
+VCENTER_PASS=D@ngerous1
 
 # By default, we'll use this network.  Some arrays may use another and redefine it in their setup
 FC_ZONE_A=FABRIC_losam082-fabric
@@ -1819,19 +1822,28 @@ test_1(){
         failure="Failed to detect the name change of the Datastore"
         mkdir -p results/${item}
         dsname=${VOLNAME}-${item}
-        snap_db 1 ${cfs}
+       
+	#Take the snap of the initial state of the DB.
+	snap_db 1 ${cfs}
 
         #runcmd vcenter_datastore create ${VCENTER} ${DC} ${stype} ${host} ${NH} ${VPOOL_BASE} ${PROJECT} ${dsname} ${dsname}-vol --size 1GB
-        #snap_db 2 ${cfs}
-        #validate_db 1 2 ${cfs}
-        runcmd  esxcfg-rename-datastore.pl --server lglw8062.lss.emc.com --username administrator@vsphere6.local --password D@ngerous1 --datastore tbdel1912_1 --txtplacement prepend --txtformat local-storage- --operation rename
-        #discover_vcenter "urn:storageos:Vcenter:75402ddd-d4f7-436f-810b-be25fa7de929:vdc1"
+       
+	#run the perl script to rename the datastore
+        runcmd  esxcfg-rename-datastore.pl --server ${VCENTER_IP} --username ${VCENTER_USER} --password ${VCENTER_PASS} --datastore tbdel1912_1 --txtplacement prepend --txtformat local-storage- --operation rename
+        #discover_vcenter
 	discover_vcenter "lglw8062"
+	
+	#Take a snap of the DB. Now a new event should be created.
         snap_db 2 ${cfs}
+
+	#Difference
         validate_db 1 2 ${cfs}
-        if egrep "eventStatus = pending|eventCode = 107" results/${item}/ActionableEvent-2.txt
+       
+	#Test PASS/FAIL
+	if [[ $(grep -A1 'eventCode = 107' results/${item}/ActionableEvent-2.txt) = 'eventStatus = pending' ]]; 
         then
                 #if found trst PASS
+		echo "PASS"
                 report_results test_10 success
         else
                 #else test FAIL

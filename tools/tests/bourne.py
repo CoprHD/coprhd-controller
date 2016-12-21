@@ -8230,15 +8230,6 @@ class Bourne:
                 return vcenter['id']
         raise Exception('wrong vcenter name: '+ name)
 
-    def vcenter_query_root_tenant(self, name):
-        label = name
-        tenant = self.tenant_getid()
-        #print tenant
-        vcenters = self.vcenter_list(tenant)
-        for vcenter in vcenters:
-            if (vcenter['name'] == label):
-                return vcenter['id']
-        raise Exception('wrong vcenter name: '+ name)
     def vcenter_show(self, name):
         uri = self.vcenter_query(name)
         return self.api('GET', URI_VCENTER.format(uri))

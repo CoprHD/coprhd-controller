@@ -13,6 +13,7 @@ import java.util.*;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
+import com.emc.storageos.services.util.TimeUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -86,8 +87,6 @@ import com.emc.vipr.client.catalog.impl.SearchConstants;
 @Path("/catalog/orders")
 public class OrderService extends CatalogTaggedResourceService {
     private static final Logger log = LoggerFactory.getLogger(OrderService.class);
-
-    private static final String DATE_TIME_FORMAT = "yyyy-MM-dd_HH:mm:ss";
 
     private static final String EVENT_SERVICE_TYPE = "catalog-order";
 
@@ -278,11 +277,11 @@ public class OrderService extends CatalogTaggedResourceService {
         else if (parameters.containsKey(SearchConstants.START_TIME_PARAM) || parameters.containsKey(SearchConstants.END_TIME_PARAM)) {
             Date startTime = null;
             if (parameters.containsKey(SearchConstants.START_TIME_PARAM)) {
-                startTime = getDateTimestamp(parameters.get(SearchConstants.START_TIME_PARAM).get(0));
+                startTime = TimeUtils.getDateTimestamp(parameters.get(SearchConstants.START_TIME_PARAM).get(0));
             }
             Date endTime = null;
             if (parameters.containsKey(SearchConstants.END_TIME_PARAM)) {
-                endTime = getDateTimestamp(parameters.get(SearchConstants.END_TIME_PARAM).get(0));
+                endTime = TimeUtils.getDateTimestamp(parameters.get(SearchConstants.END_TIME_PARAM).get(0));
             }
             if (startTime == null && endTime == null) {
                 throw APIException.badRequests.invalidParameterSearchMissingParameter(getResourceClass().getName(),
@@ -596,7 +595,7 @@ public class OrderService extends CatalogTaggedResourceService {
             return defaultTime;
         }
 
-        Date startTime = getDateTimestamp(timeStr);
+        Date startTime = TimeUtils.getDateTimestamp(timeStr);
         return startTime.getTime();
     }
 
@@ -785,27 +784,6 @@ public class OrderService extends CatalogTaggedResourceService {
             }
         }
         return null;
-    }
-
-    private static Date getDateTimestamp(String timestampStr) {
-        if (StringUtils.isBlank(timestampStr)) {
-            return null;
-        }
-
-        try {
-            SimpleDateFormat dateFormat = new SimpleDateFormat(DATE_TIME_FORMAT);
-            return dateFormat.parse(timestampStr);
-        } catch (ParseException pe) {
-            return getDateFromLong(timestampStr);
-        }
-    }
-
-    private static Date getDateFromLong(String timestampStr) {
-        try {
-            return new Date(Long.parseLong(timestampStr));
-        } catch (NumberFormatException n) {
-            throw APIException.badRequests.invalidDate(timestampStr);
-        }
     }
 
     public static class OrderResRepFilter<E extends RelatedResourceRep> extends ResRepFilter<E>

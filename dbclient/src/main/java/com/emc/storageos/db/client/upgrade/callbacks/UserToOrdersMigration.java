@@ -4,6 +4,7 @@
  */
 package com.emc.storageos.db.client.upgrade.callbacks;
 
+import com.emc.storageos.db.client.upgrade.BaseDefaultMigrationCallback;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -26,21 +27,29 @@ import com.emc.storageos.db.client.upgrade.InternalDbClient;
 
 import com.emc.storageos.svcs.errorhandling.resources.MigrationCallbackException;
 
-public class UserToOrdersMigration extends BaseCustomMigrationCallback {
+// public class UserToOrdersMigration extends BaseCustomMigrationCallback {
+public class UserToOrdersMigration extends BaseDefaultMigrationCallback {
     private static final Logger log = LoggerFactory.getLogger(UserToOrdersMigration.class);
 
-    InternalDbClient client;
+    // InternalDbClient client;
     final public String SOURCE_INDEX_CF_NAME="UserToOrders";
 
-    public UserToOrdersMigration(InternalDbClient dbclient) {
+    public UserToOrdersMigration() {
+        super();
+    }
+
+    /*
+     public UserToOrdersMigration(InternalDbClient dbclient) {
         client = dbclient;
     }
+    */
 
     @Override
     public void process() throws MigrationCallbackException {
         long start = System.currentTimeMillis();
 
-        log.info("To migrate to {}", Order.SUBMITTED_BY_USER_ID);
+        log.info("lbym0: Adding new index records for class: {} field: {} annotation: {}",
+                new Object[] { cfClass, fieldName, annotation.annotationType().getCanonicalName()});
 
         DataObjectType doType = TypeMap.getDoType(Order.class);
         ColumnField field = doType.getColumnField(Order.SUBMITTED_BY_USER_ID);
@@ -49,6 +58,7 @@ public class UserToOrdersMigration extends BaseCustomMigrationCallback {
         ColumnFamily<String, IndexColumnName> userToOrders =
                 new ColumnFamily<>(SOURCE_INDEX_CF_NAME, StringSerializer.get(), IndexColumnNameSerializer.get());
 
+        DbClientImpl client = getInternalDbClient();
         Keyspace ks = client.getLocalKeyspace();
         MutationBatch mutationBatch = ks.prepareMutationBatch();
 

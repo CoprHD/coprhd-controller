@@ -36,6 +36,7 @@ public class TimedContainmentConstraintImpl extends ConstraintImpl<IndexColumnNa
             ColumnField field) {
         super(indexKey, entryType, field);
         indexSerializer = IndexColumnNameSerializer.get();
+
         this.startTimeMicros = startTimeMicros * MILLIS_TO_MICROS;
         this.endTimeMicros = endTimeMicros * MILLIS_TO_MICROS;
 
@@ -123,7 +124,7 @@ public class TimedContainmentConstraintImpl extends ConstraintImpl<IndexColumnNa
     public Class<? extends DataObject> getDataObjectType() {
         return field.getDataObjectType();
     }
-    
+
 	@Override
 	public boolean isValid() {
         return this.indexKey!=null && !this.indexKey.toString().isEmpty();

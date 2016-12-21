@@ -28,6 +28,9 @@ public class OrderCount {
 
     @XmlElement(name = "counts")
     public Map<String, Long> getCounts() {
+        if (countMap == null) {
+            countMap = new HashMap<>();
+        }
         return countMap;
     }
 }

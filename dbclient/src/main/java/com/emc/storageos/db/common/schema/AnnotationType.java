@@ -140,7 +140,6 @@ public class AnnotationType implements SchemaObject {
                 return true;
             }
 
-            //if (name.equals("AlternateId") && fieldInfo.getName().equals(Order.SUBMITTED_BY_USER_ID)) {
             if (name.equals(AlternateId.class.getSimpleName()) && fieldInfo.getName().equals(Order.SUBMITTED_BY_USER_ID)) {
                 log.info("lbyx3");
                 return true;

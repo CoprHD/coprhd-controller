@@ -9,14 +9,7 @@ import static com.emc.vipr.client.core.filters.DiscoveryStatusFilter.COMPLETE;
 import static com.emc.vipr.client.core.filters.RegistrationFilter.REGISTERED;
 
 import java.net.URI;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 import org.apache.commons.lang.StringUtils;
 import org.springframework.stereotype.Component;
@@ -215,9 +208,9 @@ public class VMWareProvider extends BaseHostProvider {
         resources.addAll(api(context).blockSnapshots().getByIds(snapshotIds));
 
         List<URI> resourceIds = getVolumeList(resources);
-        Map<URI, Integer> volumeHlus = getVolumeHLUs(context, resourceIds);
-
-        return createBlockVolumeDatastoreOptions(volumeHlus, resources, esxHost);
+        // Map<URI, Integer> volumeHlus = getVolumeHLUs(context, resourceIds);
+        // return createBlockVolumeDatastoreOptions(volumeHlus, resources, esxHost);
+        return createBlockVolumeDatastoreOptions(null, resources, esxHost);
     }
 
     @Asset("blockdatastore")
@@ -264,7 +257,8 @@ public class VMWareProvider extends BaseHostProvider {
 
         for (BlockObjectRestRep volume : mountedVolumes) {
             Set<String> datastoreNames = VMwareDatastoreTagger.getDatastoreNames(volume);
-            Integer hlu = volumeHlus.get(volume.getId());
+            // Integer hlu = volumeHlus.get(volume.getId());
+            Integer hlu = null;
             String hluLabel = hlu == null ? "N/A" : hlu.toString();
             String datastoresLabel = datastoreNames.isEmpty() ? "N/A" : StringUtils.join(datastoreNames, ",");
             options.add(newAssetOption(volume.getId(), "volume.hlu.datastore", volume.getName(), hluLabel, datastoresLabel));

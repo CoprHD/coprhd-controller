@@ -95,8 +95,8 @@ public class ExportUtils {
                 for (Initiator initiator : initiators) {
                     initiatorPorts = getInitiatorPorts(exportMask, initiator, ports, dbClient);
                     zoneRefs = getInitiatorsZoneReferencesForBlockObject(initiator, initiatorPorts, bo, dbClient);
-                    list.getExportList().addAll(getItlsForMaskInitiator(dbClient,
-                            exportMasks.get(exportMask), exportMask, initiator, hlu, blockObject, initiatorPorts, zoneRefs));
+                    list.getExportList().addAll(
+                            getItlsForMaskInitiator(dbClient, exportMasks.get(exportMask), exportMask, initiator, hlu, blockObject, initiatorPorts, zoneRefs));
                 }
             }
         }

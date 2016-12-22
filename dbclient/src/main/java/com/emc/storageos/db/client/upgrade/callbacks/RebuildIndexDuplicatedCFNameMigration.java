@@ -12,8 +12,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.slf4j.Logger;
@@ -27,10 +25,8 @@ import com.emc.storageos.db.client.impl.TypeMap;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.FileShare;
 import com.emc.storageos.db.client.model.Snapshot;
-import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.upgrade.BaseCustomMigrationCallback;
 import com.emc.storageos.db.client.upgrade.InternalDbClient;
-import com.emc.storageos.db.common.schema.FieldInfo;
 import com.emc.storageos.svcs.errorhandling.resources.MigrationCallbackException;
 import com.google.common.collect.Sets;
 import com.netflix.astyanax.Keyspace;
@@ -41,12 +37,16 @@ import com.netflix.astyanax.model.Rows;
 import com.netflix.astyanax.query.ColumnFamilyQuery;
 import com.netflix.astyanax.util.TimeUUIDUtils;
 
+/**
+ * This migration handler is to fix issue COP-26680. 
+ * Check CF FileShare and Snapshot to detect whether it contain duplicated index mentioned in issue COP-26680
+ *
+ */
 public class RebuildIndexDuplicatedCFNameMigration extends BaseCustomMigrationCallback {
     private static final Logger log = LoggerFactory.getLogger(RebuildIndexDuplicatedCFNameMigration.class);
-    private int totalProcessedDataObjectCount = 0;
+    private static final int REBUILD_INDEX_BATCH_SIZE = 1000;
     private Set<Class<? extends DataObject>> scanClasses = Sets.newHashSet(FileShare.class, Snapshot.class);
     private Set<String> fieldNames = Sets.newHashSet("path", "mountPath");
-    private ExecutorService executor = Executors.newFixedThreadPool(10);
     private AtomicInteger totalProcessedIndex = new AtomicInteger(0);
 
     @Override
@@ -81,7 +81,6 @@ public class RebuildIndexDuplicatedCFNameMigration extends BaseCustomMigrationCa
         List<Row<String, CompositeColumnName>> rows = new ArrayList<Row<String, CompositeColumnName>>();
         for (Row<String, CompositeColumnName> objRow : result.getResult()) {
             boolean inactiveObject = false;
-            totalProcessedDataObjectCount++;
             totalCount++;
 
             for (Column<CompositeColumnName> column : objRow.getColumns()) {
@@ -91,13 +90,12 @@ public class RebuildIndexDuplicatedCFNameMigration extends BaseCustomMigrationCa
                 }
             }
 
-            // skip inactive data object
             if (inactiveObject) {
                 continue;
             }
 
             rows.add(objRow);
-            if (rows.size() == 1000) {
+            if (rows.size() == REBUILD_INDEX_BATCH_SIZE) {
                 proccessDataObjectTypeByIndexCF(doType, rows, keyspace);
                 rows = new ArrayList<Row<String, CompositeColumnName>>();
             }
@@ -174,17 +172,6 @@ public class RebuildIndexDuplicatedCFNameMigration extends BaseCustomMigrationCa
 }
 
 class FieldValueTimeUUIDPair {
-    @Override
-    public String toString() {
-        StringBuilder builder = new StringBuilder();
-        builder.append("FieldValueTimeUUIDPair [fieldValue=");
-        builder.append(fieldValue);
-        builder.append(", timeUUID=");
-        builder.append(timeUUID);
-        builder.append("]");
-        return builder.toString();
-    }
-
     private Object fieldValue;
     private UUID timeUUID;
 
@@ -223,110 +210,5 @@ class FieldValueTimeUUIDPair {
         } else if (!timeUUID.equals(other.timeUUID))
             return false;
         return true;
-    }
-    
-    public static class DuplciatedIndexDataObject {
-        private String className;
-        private String dataCFName;
-        private Map<IndexCFKey, List<FieldInfo>> indexFieldsMap = new HashMap<IndexCFKey, List<FieldInfo>>();
-
-        public String getDataCFName() {
-            return dataCFName;
-        }
-
-        public void setDataCFName(String dataCFName) {
-            this.dataCFName = dataCFName;
-        }
-
-        public String getClassName() {
-            return className;
-        }
-
-        public void setClassName(String className) {
-            this.className = className;
-        }
-
-        public Map<IndexCFKey, List<FieldInfo>> getIndexFieldsMap() {
-            return indexFieldsMap;
-        }
-
-        public void setIndexFieldsMap(Map<IndexCFKey, List<FieldInfo>> indexFieldsMap) {
-            this.indexFieldsMap = indexFieldsMap;
-        }
-    }
-    
-    public static class IndexCFKey {
-        private String index;
-        private String cf;
-        private String fieldTypeClass;
-        
-        public IndexCFKey(String index, String cf, String fieldTypeClass) {
-            super();
-            this.index = index;
-            this.cf = cf;
-            this.fieldTypeClass = fieldTypeClass;
-        }
-
-        public String getIndex() {
-            return index;
-        }
-
-        public String getCf() {
-            return cf;
-        }
-
-        public String getFieldTypeClass() {
-            return fieldTypeClass;
-        }
-
-        @Override
-        public int hashCode() {
-            final int prime = 31;
-            int result = 1;
-            result = prime * result + ((cf == null) ? 0 : cf.hashCode());
-            result = prime * result + ((fieldTypeClass == null) ? 0 : fieldTypeClass.hashCode());
-            result = prime * result + ((index == null) ? 0 : index.hashCode());
-            return result;
-        }
-
-        @Override
-        public boolean equals(Object obj) {
-            if (this == obj)
-                return true;
-            if (obj == null)
-                return false;
-            if (getClass() != obj.getClass())
-                return false;
-            IndexCFKey other = (IndexCFKey) obj;
-            if (cf == null) {
-                if (other.cf != null)
-                    return false;
-            } else if (!cf.equals(other.cf))
-                return false;
-            if (fieldTypeClass == null) {
-                if (other.fieldTypeClass != null)
-                    return false;
-            } else if (!fieldTypeClass.equals(other.fieldTypeClass))
-                return false;
-            if (index == null) {
-                if (other.index != null)
-                    return false;
-            } else if (!index.equals(other.index))
-                return false;
-            return true;
-        }
-
-        @Override
-        public String toString() {
-            StringBuilder builder = new StringBuilder();
-            builder.append("IndexCFKey [index=");
-            builder.append(index);
-            builder.append(", cf=");
-            builder.append(cf);
-            builder.append(", fieldTypeClass=");
-            builder.append(fieldTypeClass);
-            builder.append("]");
-            return builder.toString();
-        }
     }
 }

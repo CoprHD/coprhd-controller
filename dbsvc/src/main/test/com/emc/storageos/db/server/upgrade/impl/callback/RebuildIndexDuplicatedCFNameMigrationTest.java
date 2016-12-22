@@ -48,7 +48,7 @@ public class RebuildIndexDuplicatedCFNameMigrationTest extends DbsvcTestBase {
         
         target = new RebuildIndexDuplicatedCFNameMigration();
         target.setDbClient(getDbClient());
-        target.handleDataObjectClass(FileShare.class);
+        target.process();
         assertEquals(testDataArray.length, target.getTotalProcessedIndexCount());
         
         for (FileShare testData : testDataArray) {

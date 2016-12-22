@@ -37,7 +37,7 @@ import java.io.IOException;
 import java.net.URI;
 
 public abstract class CommandHandler {
-    public String cfName = null;
+    public String cfName = null; 
 
     public abstract void process(DBClient _client) throws Exception;
 

@@ -12,6 +12,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.slf4j.Logger;
@@ -48,7 +52,9 @@ public class RebuildIndexDuplicatedCFNameMigration extends BaseCustomMigrationCa
     private Set<Class<? extends DataObject>> scanClasses = Sets.newHashSet(FileShare.class, Snapshot.class);
     private Set<String> fieldNames = Sets.newHashSet("path", "mountPath");
     private AtomicInteger totalProcessedIndex = new AtomicInteger(0);
-
+    private BlockingQueue<Runnable> blockingQueue = new ArrayBlockingQueue<Runnable>(20);
+    private ThreadPoolExecutor executor = new ThreadPoolExecutor(5, 10, 50, TimeUnit.MILLISECONDS, blockingQueue);
+    
     @Override
     public void process() throws MigrationCallbackException {
         log.info("Begin to run migration handler RebuildIndexDuplicatedCFName");
@@ -58,10 +64,19 @@ public class RebuildIndexDuplicatedCFNameMigration extends BaseCustomMigrationCa
             try {
                 handleDataObjectClass(clazz);
             } catch (Exception e) {
-                log.error("Failed to detect/rebuild duplicated index for {}", clazz);
+                log.error("Failed to detect/rebuild duplicated index for {}", clazz, e);
             }
         }
-
+        
+        executor.shutdown();
+        try {
+            if (!executor.awaitTermination(120, TimeUnit.SECONDS)) {
+                executor.shutdownNow();
+            } 
+        } catch (Exception e) {
+            executor.shutdownNow();
+        }
+        
         log.info("Totally rebuild index count: {}", totalProcessedIndex);
         log.info("Finish run migration handler RebuildIndexDuplicatedCFName");
         log.info("Total seconds: {}", (System.currentTimeMillis() - beginTime)/1000);
@@ -96,60 +111,69 @@ public class RebuildIndexDuplicatedCFNameMigration extends BaseCustomMigrationCa
 
             rows.add(objRow);
             if (rows.size() == REBUILD_INDEX_BATCH_SIZE) {
-                proccessDataObjectTypeByIndexCF(doType, rows, keyspace);
+                submitRebuildTask(doType, rows, keyspace);
                 rows = new ArrayList<Row<String, CompositeColumnName>>();
             }
             
         }
         
-        proccessDataObjectTypeByIndexCF(doType, rows, keyspace);
+        submitRebuildTask(doType, rows, keyspace);
+        
         log.info("Total data object count is {} for model {}", totalCount, clazz.getName());
         return;
     }
 
-    public void proccessDataObjectTypeByIndexCF(DataObjectType doType, List<Row<String, CompositeColumnName>> rows, Keyspace keyspace)
+    public void submitRebuildTask(DataObjectType doType, List<Row<String, CompositeColumnName>> rows, Keyspace keyspace)
             throws InstantiationException, IllegalAccessException,
             IllegalArgumentException, InvocationTargetException {
 
-        int totalCleanupCount = 0;
-        RowMutator rowMutator = new RowMutator(keyspace, false);
-        for (Row<String, CompositeColumnName> objRow : rows) {
-            try {
-                Map<FieldValueTimeUUIDPair, CompositeColumnName> valueColumnMap = new HashMap<FieldValueTimeUUIDPair, CompositeColumnName>();
-                DataObject dataObject = DataObject.createInstance(doType.getDataObjectClass(), URI.create(objRow.getKey()));
-                for (Column<CompositeColumnName> column : objRow.getColumns()) {
-                    if (!fieldNames.contains(column.getName().getOne())) {
-                        continue;
-                    }
+        executor.submit(new Runnable() {
 
-                    ColumnField columnField = doType.getColumnField(column.getName().getOne());
-                    columnField.deserialize(column, dataObject);
-                    Object valueObject = columnField.getPropertyDescriptor().getReadMethod().invoke(dataObject, null);
+            @Override
+            public void run() {
+                int totalCleanupCount = 0;
+                RowMutator rowMutator = new RowMutator(keyspace, false);
+                for (Row<String, CompositeColumnName> objRow : rows) {
+                    try {
+                        Map<FieldValueTimeUUIDPair, CompositeColumnName> valueColumnMap = new HashMap<FieldValueTimeUUIDPair, CompositeColumnName>();
+                        DataObject dataObject = DataObject.createInstance(doType.getDataObjectClass(), URI.create(objRow.getKey()));
+                        for (Column<CompositeColumnName> column : objRow.getColumns()) {
+                            if (!fieldNames.contains(column.getName().getOne())) {
+                                continue;
+                            }
 
-                    if (valueObject == null || column.getName().getTimeUUID() == null) {
-                        continue;
-                    }
+                            ColumnField columnField = doType.getColumnField(column.getName().getOne());
+                            columnField.deserialize(column, dataObject);
+                            Object valueObject = columnField.getPropertyDescriptor().getReadMethod().invoke(dataObject, null);
 
-                    FieldValueTimeUUIDPair key = null;
-                    key = new FieldValueTimeUUIDPair(valueObject, column.getName().getTimeUUID());
+                            if (valueObject == null || column.getName().getTimeUUID() == null) {
+                                continue;
+                            }
 
-                    if (valueColumnMap.containsKey(key)) {
-                        totalCleanupCount++;
-                        rebuildIndex(doType, columnField, valueObject, objRow.getKey(), column, rowMutator);
-                    } else {
-                        valueColumnMap.put(key, column.getName());
+                            FieldValueTimeUUIDPair key = null;
+                            key = new FieldValueTimeUUIDPair(valueObject, column.getName().getTimeUUID());
+
+                            if (valueColumnMap.containsKey(key)) {
+                                totalCleanupCount++;
+                                rebuildIndex(doType, columnField, valueObject, objRow.getKey(), column, rowMutator);
+                            } else {
+                                valueColumnMap.put(key, column.getName());
+                            }
+                        }
+                    } catch (Exception e) {
+                        log.error("Failed to proccess Data Object: ", e);
                     }
                 }
-            } catch (Exception e) {
-                log.error("Failed to proccess Data Object: ", e);
+                
+                if (totalCleanupCount > 0) {
+                    rowMutator.execute();
+                }
+                
+                totalProcessedIndex.getAndAdd(totalCleanupCount);
             }
-        }
         
-        if (totalCleanupCount > 0) {
-            rowMutator.execute();
-        }
+        });
         
-        totalProcessedIndex.getAndAdd(totalCleanupCount);
     }
 
     private void rebuildIndex(DataObjectType doType, ColumnField columnField, Object value, String rowKey,

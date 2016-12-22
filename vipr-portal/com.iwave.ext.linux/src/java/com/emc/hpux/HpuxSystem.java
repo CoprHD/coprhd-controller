@@ -63,14 +63,21 @@ public final class HpuxSystem extends SecureShellSupport implements HostRescanAd
         return cmd.getResults();
     }
 
+    @Override
     public void rescan() {
-        executeCommand(new IoscanRescanDevicesCommand());
-        executeCommand(new InsfRescanDevicesCommand());
+        executeCommand(new IoscanRescanDevicesCommand(), SecureShellSupport.SHORT_TIMEOUT);
+        executeCommand(new InsfRescanDevicesCommand(), SecureShellSupport.SHORT_TIMEOUT);
     }
 
     @Override
     public void executeCommand(Command command) {
+        executeCommand(command, SecureShellSupport.NO_TIMEOUT);
+    }
+
+    @Override
+    public void executeCommand(Command command, int timeout) {
         SSHCommandExecutor executor = new SSHCommandExecutor(getHost(), getPort(), getUsername(), getPassword());
+        executor.setCommandTimeout(timeout);
         executor.setSudoPrefix("export PATH=$PATH:/usr/local/bin; sudo -S -p '' sh -c ");
         command.setCommandExecutor(executor);
         command.execute();

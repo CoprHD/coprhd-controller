@@ -9,6 +9,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import com.emc.aix.SecureShellSupport;
 import com.google.common.collect.Lists;
 import com.iwave.ext.command.Command;
 import com.iwave.ext.command.CommandOutput;
@@ -112,10 +113,15 @@ public class LinuxSystemCLI implements HostRescanAdapter {
         this.hostId = hostId;
     }
 
-    public void executeCommand(Command command) {
+    public void executeCommand(Command command, int timeout) {
         SSHCommandExecutor executor = new SSHCommandExecutor(host, port, username, password);
+        executor.setCommandTimeout(10);
         command.setCommandExecutor(executor);
         command.execute();
+    }
+
+    public void executeCommand(Command command) {
+        executeCommand(command, SecureShellSupport.NO_TIMEOUT);
     }
 
     public Set<String> getAllDiskDevices() {
@@ -215,9 +221,9 @@ public class LinuxSystemCLI implements HostRescanAdapter {
     }
 
     @Override
-    public void rescan() {
+    public void rescan() throws Exception {
         RescanDevicesCommand command = new RescanDevicesCommand();
-        executeCommand(command);
+        executeCommand(command, SecureShellSupport.SHORT_TIMEOUT);
     }
 
     public Map<String, Integer> getDeviceToLunMapping(String mpathName) {

@@ -69,14 +69,19 @@ public final class AixSystem extends SecureShellSupport implements HostRescanAda
     @Override
     public void rescan() {
         RescanDevicesCommand command = new RescanDevicesCommand();
-        executeCommand(command);
+        executeCommand(command, SecureShellSupport.SHORT_TIMEOUT);
+    }
+
+    @Override
+    public void executeCommand(Command command, int timeout) {
+        SSHCommandExecutor executor = new SSHCommandExecutor(getHost(), getPort(), getUsername(), getPassword());
+        executor.setCommandTimeout(timeout);
+        command.setCommandExecutor(executor);
+        command.execute();
     }
 
     @Override
     public void executeCommand(Command command) {
-        SSHCommandExecutor executor = new SSHCommandExecutor(getHost(), getPort(), getUsername(), getPassword());
-        executor.setCommandTimeout(10);
-        command.setCommandExecutor(executor);
-        command.execute();
+        executeCommand(command, SecureShellSupport.NO_TIMEOUT);
     }
 }

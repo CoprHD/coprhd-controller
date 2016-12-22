@@ -11,6 +11,7 @@ import static com.emc.vipr.client.core.filters.RegistrationFilter.REGISTERED;
 import java.net.URI;
 import java.util.*;
 
+import com.emc.sa.util.PerfTimer;
 import org.apache.commons.lang.StringUtils;
 import org.springframework.stereotype.Component;
 
@@ -196,12 +197,17 @@ public class VMWareProvider extends BaseHostProvider {
     @Asset("assignedBlockDatastore")
     @AssetDependencies("esxHost")
     public List<AssetOption> getAssignedDatastores(AssetOptionsContext context, URI esxHost) {
-        debug("getting blockDatastores (esxHost=%s)", esxHost);
+        PerfTimer timer = new PerfTimer();
+        timer.start();
+        info("getting blockDatastores (esxHost=%s)", esxHost);
 
         List<ExportGroupRestRep> exports = BlockProviderUtils.getExportsForHostOrCluster(api(context), context.getTenant(), esxHost);
+        info("========= Got exports. Time = %s", timer.probe());
         Collection<ExportGroupRestRep> filteredExportGroups = BlockStorageUtils.filterExportsByType(exports, esxHost);
         Set<URI> volumeIds = BlockProviderUtils.getExportedResourceIds(filteredExportGroups, ResourceType.VOLUME);
+        info("========= Got exported vols. Time = %s", timer.probe());
         Set<URI> snapshotIds = BlockProviderUtils.getExportedResourceIds(filteredExportGroups, ResourceType.BLOCK_SNAPSHOT);
+        info("========= Got exported snapshots. Time = %s", timer.probe());
 
         List<BlockObjectRestRep> resources = new ArrayList<>();
         resources.addAll(api(context).blockVolumes().getByIds(volumeIds));
@@ -210,7 +216,10 @@ public class VMWareProvider extends BaseHostProvider {
         List<URI> resourceIds = getVolumeList(resources);
         // Map<URI, Integer> volumeHlus = getVolumeHLUs(context, resourceIds);
         // return createBlockVolumeDatastoreOptions(volumeHlus, resources, esxHost);
-        return createBlockVolumeDatastoreOptions(null, resources, esxHost);
+        info("========= all db query done. Before transform. Time = %s", timer.probe());
+        List<AssetOption> options = createBlockVolumeDatastoreOptions(null, resources, esxHost);
+        info("========= Done. Time = %s", timer.probe());
+        return options;
     }
 
     @Asset("blockdatastore")

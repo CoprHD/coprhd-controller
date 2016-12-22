@@ -12,6 +12,7 @@ import java.util.Set;
 import com.google.common.collect.Lists;
 import com.iwave.ext.command.Command;
 import com.iwave.ext.command.CommandOutput;
+import com.iwave.ext.command.HostRescanAdapter;
 import com.iwave.ext.linux.command.AddToFSTabCommand;
 import com.iwave.ext.linux.command.FindMaxLunIdCommand;
 import com.iwave.ext.linux.command.FindMountPointCommand;
@@ -43,7 +44,7 @@ import com.iwave.utility.ssh.SSHCommandExecutor;
  * 
  * @author Chris Dail
  */
-public class LinuxSystemCLI {
+public class LinuxSystemCLI implements HostRescanAdapter {
     /** The SSH host address. */
     private String host;
     /** The SSH port (defaults to 22). */
@@ -213,7 +214,8 @@ public class LinuxSystemCLI {
         return command.getResults();
     }
 
-    public void rescanDevices() {
+    @Override
+    public void rescan() {
         RescanDevicesCommand command = new RescanDevicesCommand();
         executeCommand(command);
     }

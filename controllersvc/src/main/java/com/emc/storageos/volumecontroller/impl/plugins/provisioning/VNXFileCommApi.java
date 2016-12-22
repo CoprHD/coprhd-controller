@@ -1294,6 +1294,25 @@ public class VNXFileCommApi {
         return fsSizeInfo;
     }
 
+    public Map<String, String> getNFSExport(StorageSystem system, FileDeviceInputOutput args) {
+        sshApi.setConnParams(system.getIpAddress(), system.getUsername(),
+                system.getPassword());
+        StoragePort storagePort = _dbClient.queryObject(StoragePort.class, args.getFs().getStoragePort());
+        String moverId;
+        String exportPath =args.getExportPath();
+        StorageHADomain dataMover = null;
+        URI dataMoverId = storagePort.getStorageHADomain();
+        dataMover = _dbClient.queryObject(StorageHADomain.class, dataMoverId);
+        moverId = dataMover.getName();
+
+        _log.info("Using Mover Id {} to unexport FS mounted at {}", moverId, exportPath);
+
+        // Delete export from storage system.
+        sshApi.setConnParams(system.getIpAddress(), system.getUsername(), system.getPassword());
+        Map<String, String> exportMap = sshApi.getNFSExportsForPath(dataMover.getAdapterName(), exportPath).get(exportPath);
+        return exportMap;
+    }
+
     public XMLApiResult expandFS(final StorageSystem system, String fsName, long extendSize, boolean isMountRequired,
             boolean isVirtualProvisioned) throws VNXException {
         _log.info("Expand File System {} : new size requested {}", fsName, extendSize);

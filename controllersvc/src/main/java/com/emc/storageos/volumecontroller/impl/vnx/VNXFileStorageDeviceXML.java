@@ -308,10 +308,6 @@ public class VNXFileStorageDeviceXML extends AbstractFileStorageDevice {
         List<ExportRule> exportDelete = args.getExportRulesToDelete();
         List<ExportRule> exportModify = args.getExportRulesToModify();
 
-        // To be processed export rules
-        List<ExportRule> exportsToRemove = new ArrayList<>();
-        List<ExportRule> exportsToAdd = new ArrayList<>();
-
         String exportPath;
         String subDir = args.getSubDirectory();
 
@@ -329,6 +325,59 @@ public class VNXFileStorageDeviceXML extends AbstractFileStorageDevice {
         }
         _log.info("exportPath : {}", exportPath);
         args.setExportPath(exportPath);
+
+        try {
+            // add the new export rule from the array into the update request.
+            Map<String, ExportRule> arrayExportRuleMap = extraExportRuleFromArray(storage, args);
+
+            if (!arrayExportRuleMap.isEmpty()) {
+                if (exportModify != null) {
+                    // merge the end point for which sec flavor is common.
+                    for (ExportRule exportRule : exportModify) {
+                        ExportRule arrayExportRule = arrayExportRuleMap.remove(exportRule.getSecFlavor());
+                        if (arrayExportRule != null) {
+
+                            if (exportRule.getReadOnlyHosts() != null) {
+                                exportRule.getReadOnlyHosts().addAll(arrayExportRule.getReadOnlyHosts());
+                            } else {
+                                exportRule.setReadOnlyHosts(arrayExportRule.getReadOnlyHosts());
+
+                            }
+                            if (exportRule.getReadWriteHosts() != null) {
+                                exportRule.getReadWriteHosts().addAll(arrayExportRule.getReadWriteHosts());
+                            } else {
+                                exportRule.setReadWriteHosts(arrayExportRule.getReadWriteHosts());
+
+                            }
+                            if (exportRule.getRootHosts() != null) {
+                                exportRule.getRootHosts().addAll(arrayExportRule.getRootHosts());
+                            } else {
+                                exportRule.setRootHosts(arrayExportRule.getRootHosts());
+
+                            }
+                        }
+                    }
+                    // now add the remaining export rule
+                    exportModify.addAll(arrayExportRuleMap.values());
+
+                } else {
+                    // if exportModify is null then create a new export rule and add
+                    exportModify = new ArrayList<ExportRule>();
+                    exportModify.addAll(arrayExportRuleMap.values());
+
+                }
+            }
+        } catch (Exception e) {
+            // TODO Auto-generated catch block
+            _log.error("Not able to fetch latest Export rule from backend array.", e);
+
+        }
+
+        // To be processed export rules
+        List<ExportRule> exportsToRemove = new ArrayList<>();
+        List<ExportRule> exportsToAdd = new ArrayList<>();
+
+
 
         // ALL EXPORTS
         List<ExportRule> existingDBExportRule = args.getExistingDBExportRules();
@@ -1361,6 +1410,105 @@ public class VNXFileStorageDeviceXML extends AbstractFileStorageDevice {
             cmdResult = BiosCommandResult.createErrorResult(DeviceControllerErrors.vnx.unableToUpdateQuotaDir());
         }
         return cmdResult;
+    }
+
+    /**
+     * Get the export rule which are present in array but not in CoprHD Database.
+     * 
+     * @param storage
+     * @param args
+     * @return map with security flavor and export rule
+     */
+    private Map<String, ExportRule> extraExportRuleFromArray(StorageSystem storage, FileDeviceInputOutput args) {
+
+        // map to store the export rule grouped by sec flavor
+        Map<String, ExportRule> exportRuleMap = new HashMap<>();
+
+        List<String> arrayReadOnlyHost = new ArrayList<>();
+        List<String> arrayReadWriteHost = new ArrayList<>();
+        List<String> arrayRootHost = new ArrayList<>();
+
+        Set<String> dbReadOnlyHost = new HashSet<>();
+        Set<String> dbReadWriteHost = new HashSet<>();
+        Set<String> dbRootHost = new HashSet<>();
+
+        // get all export rule from CoprHD data base
+        List<ExportRule> existingDBExportRules = args.getExistingDBExportRules();
+
+        // get the all the export from the storage system.
+        XMLApiResult result = null;
+        ApplicationContext context = null;
+        context = loadContext();
+        VNXFileCommApi vnxComm = loadVNXFileCommunicationAPIs(context);
+        if (null == vnxComm) {
+            throw VNXException.exceptions.communicationFailed(VNXCOMM_ERR_MSG);
+        }
+        for (ExportRule exportRule : existingDBExportRules) {
+            if (exportRule.getReadOnlyHosts() != null) {
+                dbReadOnlyHost.addAll(exportRule.getReadOnlyHosts());
+            }
+            if (exportRule.getReadWriteHosts() != null) {
+                dbReadWriteHost.addAll(exportRule.getReadWriteHosts());
+            }
+            if (exportRule.getRootHosts() != null) {
+                dbRootHost.addAll(exportRule.getRootHosts());
+            }
+
+            Map<String, String> vnxExportMap = null;
+                vnxExportMap = vnxComm.getNFSExport(storage, args);
+
+            // TO DO need t
+
+            arrayReadOnlyHost.add(vnxExportMap.get("readOnly"));
+            arrayReadWriteHost.add(vnxExportMap.get("readWrite"));
+            arrayRootHost.add(vnxExportMap.get("root"));
+
+            // find out the change between array and CoprHD database.
+            boolean changeFound = false;
+            Set<String> arrayExtraReadOnlyHost = new HashSet<>();
+            Set<String> arrayExtraReadWriteHost = new HashSet<>();
+            Set<String> arrayExtraRootHost = new HashSet<>();
+            for (String host : arrayReadOnlyHost) {
+                boolean isNotExist = dbReadOnlyHost.add(host);
+                if (isNotExist) {
+                    arrayExtraReadOnlyHost.add(host);
+                    changeFound = true;
+                }
+            }
+
+            for (String host : arrayReadWriteHost) {
+                boolean isNotExist = dbReadWriteHost.add(host);
+                if (isNotExist) {
+                    arrayExtraReadWriteHost.add(host);
+                    changeFound = true;
+                }
+            }
+
+            for (String host : arrayRootHost) {
+                boolean isNotExist = dbRootHost.add(host);
+                if (isNotExist) {
+                    arrayExtraRootHost.add(host);
+                    changeFound = true;
+
+                }
+            }
+
+            if (changeFound) {
+                ExportRule extraRuleFromArray = new ExportRule();
+                extraRuleFromArray.setDeviceExportId(exportRule.getDeviceExportId());
+                extraRuleFromArray.setAnon(exportRule.getAnon());
+                extraRuleFromArray.setSecFlavor(exportRule.getSecFlavor());
+                extraRuleFromArray.setExportPath(exportRule.getExportPath());
+                extraRuleFromArray.setReadOnlyHosts(arrayExtraReadOnlyHost);
+                extraRuleFromArray.setReadWriteHosts(arrayExtraReadWriteHost);
+                extraRuleFromArray.setRootHosts(arrayExtraRootHost);
+                exportRuleMap.put(exportRule.getSecFlavor(), extraRuleFromArray);
+            }
+
+        }
+
+        return exportRuleMap;
+
     }
 
     @Override

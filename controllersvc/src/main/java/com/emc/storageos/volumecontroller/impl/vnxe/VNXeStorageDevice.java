@@ -12,6 +12,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -56,11 +57,13 @@ import com.emc.storageos.vnxe.VNXeConstants;
 import com.emc.storageos.vnxe.VNXeException;
 import com.emc.storageos.vnxe.VNXeUtils;
 import com.emc.storageos.vnxe.models.AccessEnum;
+import com.emc.storageos.vnxe.models.VNXeBase;
 import com.emc.storageos.vnxe.models.VNXeCommandJob;
 import com.emc.storageos.vnxe.models.VNXeCommandResult;
 import com.emc.storageos.vnxe.models.VNXeFSSupportedProtocolEnum;
 import com.emc.storageos.vnxe.models.VNXeFileSystem;
 import com.emc.storageos.vnxe.models.VNXeFileSystemSnap;
+import com.emc.storageos.vnxe.models.VNXeNfsShare;
 import com.emc.storageos.volumecontroller.BlockStorageDevice;
 import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.FileDeviceInputOutput;
@@ -1696,6 +1699,53 @@ public class VNXeStorageDevice extends VNXeOperations
         List<ExportRule> exportDelete = args.getExportRulesToDelete();
         List<ExportRule> exportModify = args.getExportRulesToModify();
 
+        try {
+            // add the new export rule from the array into the update request.
+            Map<String, ExportRule> arrayExportRuleMap = extraExportRuleFromArray(storage, args);
+
+            if (!arrayExportRuleMap.isEmpty()) {
+                if (exportModify != null) {
+                    // merge the end point for which sec flavor is common.
+                    for (ExportRule exportRule : exportModify) {
+                        ExportRule arrayExportRule = arrayExportRuleMap.remove(exportRule.getSecFlavor());
+                        if (arrayExportRule != null) {
+
+                            if (exportRule.getReadOnlyHosts() != null) {
+                                exportRule.getReadOnlyHosts().addAll(arrayExportRule.getReadOnlyHosts());
+                            } else {
+                                exportRule.setReadOnlyHosts(arrayExportRule.getReadOnlyHosts());
+
+                            }
+                            if (exportRule.getReadWriteHosts() != null) {
+                                exportRule.getReadWriteHosts().addAll(arrayExportRule.getReadWriteHosts());
+                            } else {
+                                exportRule.setReadWriteHosts(arrayExportRule.getReadWriteHosts());
+
+                            }
+                            if (exportRule.getRootHosts() != null) {
+                                exportRule.getRootHosts().addAll(arrayExportRule.getRootHosts());
+                            } else {
+                                exportRule.setRootHosts(arrayExportRule.getRootHosts());
+
+                            }
+                        }
+                    }
+                    // now add the remaining export rule
+                    exportModify.addAll(arrayExportRuleMap.values());
+
+                } else {
+                    // if exportModify is null then create a new export rule and add
+                    exportModify = new ArrayList<ExportRule>();
+                    exportModify.addAll(arrayExportRuleMap.values());
+
+                }
+            }
+        } catch (Exception e) {
+            // TODO Auto-generated catch block
+            _logger.error("Not able to fetch latest Export rule from backend array.", e);
+
+        }
+
         // To be processed export rules
         List<ExportRule> exportsToRemove = new ArrayList<>();
         List<ExportRule> exportsToAdd = new ArrayList<>();
@@ -2336,6 +2386,105 @@ public class VNXeStorageDevice extends VNXeOperations
 
         return BiosCommandResult.createErrorResult(
                 DeviceControllerErrors.vnxe.operationNotSupported("Delete CIFS Share ACLs", "VNXe"));
+    }
+
+    /**
+     * Get the export rule which are present in array but not in CoprHD Database.
+     * 
+     * @param storage
+     * @param args
+     * @return map with security flavor and export rule
+     */
+    private Map<String, ExportRule> extraExportRuleFromArray(StorageSystem storage, FileDeviceInputOutput args) {
+
+        // map to store the export rule grouped by sec flavor
+        Map<String, ExportRule> exportRuleMap = new HashMap<>();
+        List<VNXeNfsShare> exportsList = new ArrayList<VNXeNfsShare>();
+
+        List<VNXeBase> arrayReadOnlyHost = new ArrayList<>();
+        List<VNXeBase> arrayReadWriteHost = new ArrayList<>();
+        List<VNXeBase> arrayRootHost = new ArrayList<>();
+
+        Set<String> dbReadOnlyHost = new HashSet<>();
+        Set<String> dbReadWriteHost = new HashSet<>();
+        Set<String> dbRootHost = new HashSet<>();
+
+        // get all export rule from CoprHD data base
+        List<ExportRule> existingDBExportRules = args.getExistingDBExportRules();
+
+        // get the all the export from the storage system.
+        VNXeApiClient apiClient = getVnxeClient(storage);
+        for (ExportRule exportRule : existingDBExportRules) {
+            if (exportRule.getReadOnlyHosts() != null) {
+                dbReadOnlyHost.addAll(exportRule.getReadOnlyHosts());
+            }
+            if (exportRule.getReadWriteHosts() != null) {
+                dbReadWriteHost.addAll(exportRule.getReadWriteHosts());
+            }
+            if (exportRule.getRootHosts() != null) {
+                dbRootHost.addAll(exportRule.getRootHosts());
+            }
+
+            String vnxeExportId = exportRule.getDeviceExportId();
+            if (vnxeExportId != null) {
+                List<VNXeNfsShare> vnxeExports = null;
+                vnxeExports = apiClient.getNfsSharesForFileSystem(args.getFsId().toString());
+                exportsList.addAll(vnxeExports);
+                for (VNXeNfsShare vnXeNfsShare : vnxeExports) {
+
+                    arrayReadOnlyHost.addAll(vnXeNfsShare.getReadOnlyHosts());
+                    arrayReadWriteHost.addAll(vnXeNfsShare.getReadWriteHosts());
+                    arrayRootHost.addAll(vnXeNfsShare.getRootAccessHosts());
+                }
+
+            }
+
+            // find out the change between array and CoprHD database.
+            boolean changeFound = false;
+            Set<String> arrayExtraReadOnlyHost = new HashSet<>();
+            Set<String> arrayExtraReadWriteHost = new HashSet<>();
+            Set<String> arrayExtraRootHost = new HashSet<>();
+            for (VNXeBase host : arrayReadOnlyHost) {
+                boolean isNotExist = dbReadOnlyHost.add(host.getId());
+                if (isNotExist) {
+                    arrayExtraReadOnlyHost.add(host.getId());
+                    changeFound = true;
+                }
+            }
+
+            for (VNXeBase host : arrayReadWriteHost) {
+                boolean isNotExist = dbReadWriteHost.add(host.getId());
+                if (isNotExist) {
+                    arrayExtraReadWriteHost.add(host.getId());
+                    changeFound = true;
+                }
+            }
+
+            for (VNXeBase host : arrayRootHost) {
+                boolean isNotExist = dbRootHost.add(host.getId());
+                if (isNotExist) {
+                    arrayExtraRootHost.add(host.getId());
+                    changeFound = true;
+
+                }
+            }
+
+            if (changeFound) {
+                ExportRule extraRuleFromArray = new ExportRule();
+                extraRuleFromArray.setDeviceExportId(exportRule.getDeviceExportId());
+                extraRuleFromArray.setAnon(exportRule.getAnon());
+                extraRuleFromArray.setSecFlavor(exportRule.getSecFlavor());
+                extraRuleFromArray.setExportPath(exportRule.getExportPath());
+                extraRuleFromArray.setReadOnlyHosts(arrayExtraReadOnlyHost);
+                extraRuleFromArray.setReadWriteHosts(arrayExtraReadWriteHost);
+                extraRuleFromArray.setRootHosts(arrayExtraRootHost);
+                exportRuleMap.put(exportRule.getSecFlavor(), extraRuleFromArray);
+            }
+
+        }
+
+        return exportRuleMap;
+
     }
 
     @Override

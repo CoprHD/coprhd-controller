@@ -12,6 +12,7 @@ import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
 
+import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.time.DateUtils;
 
 import com.emc.vipr.model.catalog.OrderCount;
@@ -27,7 +28,8 @@ import com.google.common.collect.Lists;
 import controllers.catalog.Orders;
 
 public class OrderDataTable extends DataTable {
-    protected static final String ORDER_MAX_COUNT = "6000";
+    public static final int ORDER_MAX_COUNT = 6000;
+    protected static final String ORDER_MAX_COUNT_STR = String.valueOf(ORDER_MAX_COUNT);
     protected static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd");
     protected UserInfo userInfo;
     protected String tenantId;
@@ -64,7 +66,7 @@ public class OrderDataTable extends DataTable {
 
     public void setStartDate(String startDate) {
         try {
-            this.setStartDate(DATE_FORMAT.parse(startDate));
+            setStartDate(DATE_FORMAT.parse(startDate));
         } catch (ParseException e) {
             Logger.error("Date parse error for: %s, e=%s", startDate, e);
         }
@@ -72,22 +74,32 @@ public class OrderDataTable extends DataTable {
 
     public void setEndDate(String endDate) {
         try {
-            this.setEndDate(DATE_FORMAT.parse(endDate));
+            setEndDate(DATE_FORMAT.parse(endDate));
         } catch (ParseException e) {
             Logger.error("Date parse error for: %s, e=%s", endDate, e);
         }
     }
 
-    public void setStartAndEndDatesByMaxDays(int maxDays) {
-        this.setStartDate(getDateDaysAgo(maxDays));
-        this.setEndDate(now());
+    public void setStartAndEndDatesByMaxDays(Integer maxDays) {
+        maxDays = maxDays != null ? Math.max(maxDays, 1) : 1;
+        setStartDate(getDateDaysAgo(maxDays));
+        setEndDate(now());
+    }
+    
+    public void setByStartEndDateOrMaxDays(String startDate, String endDate, Integer maxDays) {
+        if (StringUtils.isNotEmpty(startDate) && StringUtils.isNotEmpty(endDate)) {
+            setStartDate(startDate);
+            setEndDate(endDate);
+        } else {
+            setStartAndEndDatesByMaxDays(maxDays);
+        }
     }
 
     public List<OrderInfo> fetchAll() {
         List<OrderRestRep> orderRestReps = null;
         if (userInfo != null) {
             Logger.info("hlj, start to call fetchAll(), %s, %s", startDate, endDate);
-            orderRestReps = OrderUtils.getUserOrders(startDate, endDate, ORDER_MAX_COUNT);
+            orderRestReps = OrderUtils.getUserOrders(startDate, endDate, ORDER_MAX_COUNT_STR);
         } else {
             orderRestReps = OrderUtils.getOrders(uri(this.tenantId));
         }

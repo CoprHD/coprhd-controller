@@ -118,7 +118,6 @@ public class PrimitiveMapper {
 
     public static void mapPrimitiveFields(final UserPrimitive from,
             PrimitiveRestRep to) {
-        to.setName(from.getName());
         to.setFriendlyName(from.getFriendlyName());
         to.setDescription(from.getDescription());
         to.setSuccessCriteria(from.getSuccessCriteria());

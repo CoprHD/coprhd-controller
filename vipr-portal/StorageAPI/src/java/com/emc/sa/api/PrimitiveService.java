@@ -344,7 +344,7 @@ public class PrimitiveService {
             final PrimitiveUpdateParam param) {
 
         if (null != param.getName()) {
-            update.setName(param.getName());
+            update.setLabel(param.getName());
         }
         if (null != param.getFriendlyName()) {
             update.setFriendlyName(param.getFriendlyName());

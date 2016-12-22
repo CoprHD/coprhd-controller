@@ -40,7 +40,7 @@ public class PrimitiveUpdateParam {
         this.name = name;
     }
 
-    @XmlElement(name = "friendlyName")
+    @XmlElement(name = "friendly_name")
     public String getFriendlyName() {
         return friendlyName;
     }

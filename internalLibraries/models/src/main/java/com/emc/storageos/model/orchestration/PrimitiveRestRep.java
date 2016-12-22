@@ -28,7 +28,6 @@ import com.emc.storageos.model.RestLinkRep;
 @XmlRootElement(name = "primitive")
 public class PrimitiveRestRep extends DataObjectRestRep {
 
-    private String name;
     private String friendlyName;
     private String description;
     private String successCriteria;
@@ -36,15 +35,6 @@ public class PrimitiveRestRep extends DataObjectRestRep {
     private List<InputParameterRestRep> input;
     private List<OutputParameterRestRep> output;
     private RestLinkRep resource;
-
-    @XmlElement(name = "name")
-    public String getName() {
-        return name;
-    }
-
-    public void setName(final String name) {
-        this.name = name;
-    }
 
     @XmlElement(name = "friendly_name")
     public String getFriendlyName() {

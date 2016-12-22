@@ -26,28 +26,16 @@ import com.emc.storageos.db.client.model.StringSet;
 public abstract class UserPrimitive extends ModelObject {
 
     private static final long serialVersionUID = 1L;
-
-    private static final String NAME = "name";
+    
     private static final String FRIENDLY_NAME = "friendlyName";
     private static final String DESCRIPTION = "description";
     private static final String SUCCESS_CRITERIA = "successCriteria";
     private static final String OUTPUT = "output";
 
-    private String name;
     private String friendlyName;
     private String description;
     private String successCriteria;
     private StringSet output;
-
-    @Name(NAME)
-    public String getName() {
-        return name;
-    }
-
-    public void setName(String name) {
-        this.name = name;
-        setChanged(NAME);
-    }
 
     @Name(FRIENDLY_NAME)
     public String getFriendlyName() {

@@ -195,39 +195,38 @@ public class OrchestrationUtils {
         }  
     }
 
-    public static void waitForViprTasks(List<URI> tasksStartedByOe, ViPRCoreClient client) throws InterruptedException {
-        if( tasksStartedByOe.isEmpty()) {
+    public static void waitForTasks(final List<URI> tasksStartedByOe, final ViPRCoreClient client) throws InterruptedException {
+        if (tasksStartedByOe.isEmpty()) {
             return;
-        }  
-        ExecutionUtils.currentContext().logInfo("Orchestration Engine Workflow complete.  " +
-                "Waiting for Tasks in ViPR to finish that were started by " +
-                "Orchestration Engine workflow.");
+        }
+        ExecutionUtils.currentContext().logInfo("orchestrationService.waitforTask");
 
-        long startTime = System.currentTimeMillis();
-        List<URI> remainingTasks = new ArrayList<>(tasksStartedByOe);
+        final long startTime = System.currentTimeMillis();
 
-        while(!remainingTasks.isEmpty()) {
-            Iterator<URI> remainingTasksIter = remainingTasks.iterator();
-            while(remainingTasksIter.hasNext()) {
-              URI taskId = (URI)remainingTasksIter.next();
-                String state = client.tasks().get(taskId).getState();
-                if(state.equals("error")) {
+        while(!tasksStartedByOe.isEmpty()) {
+            final Iterator<URI> remainingTasksIter = tasksStartedByOe.iterator();
+            while (remainingTasksIter.hasNext()) {
+                final URI taskId = remainingTasksIter.next();
+                final String state = client.tasks().get(taskId).getState();
+                if (state.equals("error")) {
                     throw new IllegalStateException("One or more tasks " +
                             " started by Orchestration Engine reported an error.");
-                }
-                if(state.equals("ready")) {
+                } else if (state.equals("ready")) {
                     remainingTasksIter.remove();
                 } else {
-                    break;
+                    OrchestrationUtils.sleep(TASK_CHECK_INTERVAL);
                 }
+                checkTimeout(startTime);
             }
-            OrchestrationUtils.sleep(TASK_CHECK_INTERVAL);
+        }
+    }
 
-            if( (System.currentTimeMillis() - startTime)
-                    > TASK_CHECK_TIMEOUT*60*1000 ) {
-                throw new IllegalStateException("Task(s) started by Orchestration Engine " +
-                        "timed out.");
-            }
+
+    public static void checkTimeout(final long startTime) {
+        if ((System.currentTimeMillis() - startTime)
+                > TASK_CHECK_TIMEOUT * 60 * 1000) {
+            throw new IllegalStateException("Task(s) started by Orchestration Engine " +
+                    "timed out.");
         }
     }
 

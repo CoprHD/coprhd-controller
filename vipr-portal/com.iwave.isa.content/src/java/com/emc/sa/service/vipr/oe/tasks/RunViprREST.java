@@ -24,13 +24,16 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import com.google.gson.Gson;
 import org.apache.commons.io.IOUtils;
 import org.slf4j.LoggerFactory;
 import org.springframework.web.util.UriTemplate;
 
 import com.emc.sa.engine.ExecutionUtils;
+import com.emc.sa.service.vipr.oe.gson.ViprOperation;
 import com.emc.sa.service.vipr.oe.OrchestrationService;
 import com.emc.sa.service.vipr.oe.OrchestrationServiceConstants;
+import com.emc.sa.service.vipr.oe.OrchestrationUtils;
 import com.emc.sa.service.vipr.oe.SuccessCriteria;
 import com.emc.sa.service.vipr.tasks.ViPRExecutionTask;
 import com.emc.storageos.model.orchestration.internal.ViPRPrimitive;
@@ -74,6 +77,11 @@ public class RunViprREST extends ViPRExecutionTask<OrchestrationTaskResult> {
         ExecutionUtils.currentContext().logInfo("runViprREST.startInfo", primitive.getFriendlyName());
 
         OrchestrationTaskResult result = makeRestCall(path, requestBody, method);
+
+        final Gson gson = new Gson();
+        final ViprOperation res = gson.fromJson(result.getOut(), ViprOperation.class);
+
+        OrchestrationUtils.waitForTasks(res.getTaskIds(), getClient());
 
         ExecutionUtils.currentContext().logInfo("runViprREST.doneInfo", primitive.getFriendlyName());
 

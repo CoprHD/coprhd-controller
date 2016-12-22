@@ -4,20 +4,21 @@
  */
 package com.emc.storageos.db.client.constraint;
 
+import java.net.URI;
+
+import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
+
 import com.emc.storageos.db.client.constraint.impl.ClassNameTimeSeriesConstraintImpl;
 import com.emc.storageos.db.client.constraint.impl.TimeSeriesConstraintImpl;
 import com.emc.storageos.db.client.impl.ColumnField;
 import com.emc.storageos.db.client.impl.DataObjectType;
 import com.emc.storageos.db.client.impl.TypeMap;
 import com.emc.storageos.db.client.model.uimodels.Order;
-import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
-
-import java.net.URI;
 
 public interface TimeSeriesConstraint extends Constraint {
     long count() throws ConnectionException;
 
-    static class Factory {
+    class Factory {
         public static TimeSeriesConstraint getOrdersByUser(String user, long startTimeInMS, long endTimeInMS) {
             DataObjectType doType = TypeMap.getDoType(Order.class);
             ColumnField field = doType.getColumnField(Order.SUBMITTED_BY_USER_ID);

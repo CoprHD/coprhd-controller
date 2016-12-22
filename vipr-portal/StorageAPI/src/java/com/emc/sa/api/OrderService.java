@@ -15,8 +15,6 @@ import java.util.*;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
-import com.emc.sa.api.utils.OrderJobStatus;
-import com.emc.storageos.db.client.constraint.TimeSeriesConstraint;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -24,6 +22,10 @@ import javax.ws.rs.*;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.StreamingOutput;
+
+import com.emc.sa.api.utils.OrderJobStatus;
+import com.emc.storageos.db.client.constraint.TimeSeriesConstraint;
+import com.emc.storageos.services.util.TimeUtils;
 
 import com.emc.sa.api.utils.OrderServiceJob;
 import com.emc.sa.api.utils.OrderServiceJobConsumer;
@@ -33,7 +35,6 @@ import com.emc.sa.model.dao.ModelClient;
 import com.emc.sa.model.util.ScheduleTimeHelper;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.client.service.DistributedQueue;
-import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.NamedElementQueryResultList;
 
 import org.apache.commons.lang3.StringUtils;
@@ -47,7 +48,6 @@ import com.emc.storageos.db.client.model.EncryptionProvider;
 import com.emc.storageos.db.exceptions.DatabaseException;
 
 import com.emc.storageos.services.util.NamedScheduledThreadPoolExecutor;
-import com.emc.storageos.services.util.TimeUtils;
 import com.emc.storageos.systemservices.impl.logsvc.LogRequestParam;
 import com.emc.vipr.model.catalog.*;
 
@@ -62,6 +62,9 @@ import com.emc.sa.descriptor.ServiceField;
 import com.emc.sa.descriptor.ServiceFieldGroup;
 import com.emc.sa.descriptor.ServiceFieldTable;
 import com.emc.sa.descriptor.ServiceItem;
+import com.emc.sa.engine.scheduler.SchedulerDataManager;
+import com.emc.sa.model.dao.ModelClient;
+import com.emc.sa.model.util.ScheduleTimeHelper;
 import com.emc.sa.util.TextUtils;
 
 import static com.emc.sa.api.mapper.OrderMapper.createNewObject;
@@ -100,8 +103,6 @@ import com.emc.vipr.client.catalog.impl.SearchConstants;
 @Path("/catalog/orders")
 public class OrderService extends CatalogTaggedResourceService {
     private static final Logger log = LoggerFactory.getLogger(OrderService.class);
-
-    private static final String DATE_TIME_FORMAT = "yyyy-MM-dd_HH:mm:ss";
 
     private static final String EVENT_SERVICE_TYPE = "catalog-order";
 
@@ -310,11 +311,11 @@ public class OrderService extends CatalogTaggedResourceService {
         else if (parameters.containsKey(SearchConstants.START_TIME_PARAM) || parameters.containsKey(SearchConstants.END_TIME_PARAM)) {
             Date startTime = null;
             if (parameters.containsKey(SearchConstants.START_TIME_PARAM)) {
-                startTime = getDateTimestamp(parameters.get(SearchConstants.START_TIME_PARAM).get(0));
+                startTime = TimeUtils.getDateTimestamp(parameters.get(SearchConstants.START_TIME_PARAM).get(0));
             }
             Date endTime = null;
             if (parameters.containsKey(SearchConstants.END_TIME_PARAM)) {
-                endTime = getDateTimestamp(parameters.get(SearchConstants.END_TIME_PARAM).get(0));
+                endTime = TimeUtils.getDateTimestamp(parameters.get(SearchConstants.END_TIME_PARAM).get(0));
             }
             if (startTime == null && endTime == null) {
                 throw APIException.badRequests.invalidParameterSearchMissingParameter(getResourceClass().getName(),
@@ -322,9 +323,9 @@ public class OrderService extends CatalogTaggedResourceService {
                                 + SearchConstants.END_TIME_PARAM);
             }
             int maxCount = -1;
-            List<String> c= parameters.get(SearchConstants.MAX_COUNT);
+            List<String> c= parameters.get(SearchConstants.ORDER_MAX_COUNT);
             if (c != null) {
-                String maxCountParam = parameters.get(SearchConstants.MAX_COUNT).get(0);
+                String maxCountParam = parameters.get(SearchConstants.ORDER_MAX_COUNT).get(0);
                 maxCount = Integer.parseInt(maxCountParam);
             }
 
@@ -684,7 +685,7 @@ public class OrderService extends CatalogTaggedResourceService {
     public OrderBulkRep getUserOrders(
             @DefaultValue("") @QueryParam(SearchConstants.START_TIME_PARAM) String startTimeStr,
             @DefaultValue("") @QueryParam(SearchConstants.END_TIME_PARAM) String endTimeStr,
-            @DefaultValue("-1") @QueryParam(SearchConstants.MAX_COUNT) String maxCount) throws DatabaseException {
+            @DefaultValue("-1") @QueryParam(SearchConstants.ORDER_MAX_COUNT) String maxCount) throws DatabaseException {
 
         StorageOSUser user = getUserFromContext();
 
@@ -713,7 +714,7 @@ public class OrderService extends CatalogTaggedResourceService {
             return defaultTime;
         }
 
-        Date startTime = getDateTimestamp(timeStr);
+        Date startTime = TimeUtils.getDateTimestamp(timeStr);
         return startTime.getTime();
     }
 
@@ -1022,27 +1023,6 @@ public class OrderService extends CatalogTaggedResourceService {
             }
         }
         return null;
-    }
-
-    private static Date getDateTimestamp(String timestampStr) {
-        if (StringUtils.isBlank(timestampStr)) {
-            return null;
-        }
-
-        try {
-            SimpleDateFormat dateFormat = new SimpleDateFormat(DATE_TIME_FORMAT);
-            return dateFormat.parse(timestampStr);
-        } catch (ParseException pe) {
-            return getDateFromLong(timestampStr);
-        }
-    }
-
-    private static Date getDateFromLong(String timestampStr) {
-        try {
-            return new Date(Long.parseLong(timestampStr));
-        } catch (NumberFormatException n) {
-            throw APIException.badRequests.invalidDate(timestampStr);
-        }
     }
 
     public static class OrderResRepFilter<E extends RelatedResourceRep> extends ResRepFilter<E>

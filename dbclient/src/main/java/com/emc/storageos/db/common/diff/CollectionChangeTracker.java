@@ -208,14 +208,7 @@ public class CollectionChangeTracker<T extends SchemaObject, S extends Diff> ext
                         continue;
                     }
 
-                    String s = null;
-                    try {
-                        s = at.toString();
-                    }catch (Exception e) {
-                        log.error("lbyx: e=", e);
-                    }
-
-                    log.info("lbyx0: at={}", s);
+                    log.info("lbyx0: at={}", at);
                     if (at.canBeIgnore()) {
                         log.info("lby1 schema=", schema.describe());
                         continue;

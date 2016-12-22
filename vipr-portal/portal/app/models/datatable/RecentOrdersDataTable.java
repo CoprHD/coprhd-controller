@@ -49,7 +49,7 @@ public class RecentOrdersDataTable extends OrderDataTable {
             super.setStartAndEndDatesByMaxDays(maxAgeInDays);
         }
 
-        List<OrderRestRep> orders = OrderUtils.findByTimeRange(startDate, endDate, tenantId);
+        List<OrderRestRep> orders = OrderUtils.findByTimeRange(startDate, endDate, tenantId, -1);
         if (userInfo != null) {// used for DashboardOrdersDataTable
             filterByUserId(orders);
         } else {
@@ -72,7 +72,7 @@ public class RecentOrdersDataTable extends OrderDataTable {
 
     /**
      * Filters out orders that are not associated with the selected tenant.
-     * 
+     *
      * @param orders
      *            the orders.
      */
@@ -87,7 +87,7 @@ public class RecentOrdersDataTable extends OrderDataTable {
 
     /**
      * Filters out orders that are not submitted by the selected user (if applicable).
-     * 
+     *
      * @param orders
      *            the orders.
      */

@@ -81,7 +81,7 @@ public class ExportPathsAdjustmentParam {
      * If true, remove paths would be pending until users resume the workflow,
      * if false, remove paths would not wait for users input.
      */
-    @XmlElementWrapper(name = "wait_before_remove_paths", required = false)
+    @XmlElement(name = "wait_before_remove_paths", required=false)
     public Boolean getWaitBeforeRemovePaths() {
         if (waitBeforeRemovePaths == null) {
             waitBeforeRemovePaths = false;

@@ -171,8 +171,9 @@ BEGIN	{
 	    sub("pwwnKey", "", zref);
 	    gsub(invalidURICharRegex, "", zref);
 	    zname=zoneToName[zref];
+            #print "pwwnKey=", pwwnKey
 	    pwwnKeyToZoneName[pwwnKey] = zname;
-	    if (zref in zoneToCount) {
+	    if (pwwnKey in pwwnKeyToCount) {
 	        pwwnKeyToCount[pwwnKey]++;
 	    } else {
 	        pwwnKeyToCount[pwwnKey] = 1;
@@ -217,6 +218,10 @@ BEGIN	{
 		    storageDevice = mask["storageDevice"];
 		    sub("URI: ", "", storageDevice);
                     printf "eg %s em %s ssys %s\n", egrp["label"], mask["maskName"], storageDevice;
+		    existingVols = mask["existingVolumes"]
+		    if (existingVols != null) {
+			print "Existing volumes: ", existingVols
+		    }
 		    zoneMap = mask["zoningMap"];
 		    sub("{", "", zoneMap);
 		    sub("}", "", zoneMap);

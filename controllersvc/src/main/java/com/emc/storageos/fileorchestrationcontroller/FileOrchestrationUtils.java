@@ -282,6 +282,7 @@ public class FileOrchestrationUtils {
 
         for (FilePolicy filePolicy : filepolicies) {
             FilePolicyApplyLevel appliedLevel = FilePolicyApplyLevel.valueOf(filePolicy.getApplyAt());
+            // TODO NPE!!!!!!!
             switch (appliedLevel) {
                 case vpool:
                     if (filePolicy.getAssignedResources().contains(vpool.toString())) {

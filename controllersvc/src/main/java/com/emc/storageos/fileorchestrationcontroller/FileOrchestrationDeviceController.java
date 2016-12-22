@@ -10,6 +10,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Set;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -23,6 +24,7 @@ import com.emc.storageos.db.client.model.FileObject;
 import com.emc.storageos.db.client.model.FilePolicy;
 import com.emc.storageos.db.client.model.FileShare;
 import com.emc.storageos.db.client.model.FileShare.PersonalityTypes;
+import com.emc.storageos.db.client.model.PolicyStorageResource;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.SMBFileShare;
 import com.emc.storageos.db.client.model.SMBShareMap;
@@ -40,6 +42,7 @@ import com.emc.storageos.model.file.MountInfo;
 import com.emc.storageos.model.file.ShareACL;
 import com.emc.storageos.model.file.ShareACLs;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
+import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.ControllerLockingService;
 import com.emc.storageos.volumecontroller.FileSMBShare;
@@ -49,6 +52,7 @@ import com.emc.storageos.volumecontroller.impl.FileDeviceController;
 import com.emc.storageos.volumecontroller.impl.file.CreateMirrorFileSystemsCompleter;
 import com.emc.storageos.volumecontroller.impl.file.FileCreateWorkflowCompleter;
 import com.emc.storageos.volumecontroller.impl.file.FileDeleteWorkflowCompleter;
+import com.emc.storageos.volumecontroller.impl.file.FilePolicyWorkflowCompleter;
 import com.emc.storageos.volumecontroller.impl.file.FileSnapshotWorkflowCompleter;
 import com.emc.storageos.volumecontroller.impl.file.FileWorkflowCompleter;
 import com.emc.storageos.volumecontroller.impl.file.MirrorFileFailoverTaskCompleter;
@@ -82,6 +86,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
     static final String DELETE_FILESYSTEM_SNAPSHOT_WF_NAME = "DELETE_FILESYSTEM_SNAPSHOT_WORKFLOW";
     static final String RESTORE_FILESYSTEM_SNAPSHOT_WF_NAME = "RESTORE_FILESYSTEM_SNAPSHOT_WORFLOW";
     static final String DELETE_FILESYSTEM_SHARE_ACLS_WF_NAME = "DELETE_FILESYSTEM_SHARE_ACLS_WORKFLOW";
+    static final String UNASSIGN_FILE_POLICY_WF_NAME = "UNASSIGN_FILE_POLICY_WORKFLOW";
 
     static final String FAILOVER_FILESYSTEMS_WF_NAME = "FAILOVER_FILESYSTEM_WORKFLOW";
     static final String FAILBACK_FILESYSTEMS_WF_NAME = "FAILBACK_FILESYSTEM_WORKFLOW";
@@ -113,6 +118,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
     private static final String CHECK_IF_EXPORT_IS_MOUNTED = "CheckIfExportIsMounted";
 
     private static final String APPLY_FILE_POLICY_METHOD = "applyFilePolicy";
+    private static final String UNASSIGN_FILE_POLICY_METHOD = "unassignFilePolicy";
 
     /*
      * (non-Javadoc)
@@ -1459,6 +1465,38 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
                     stepDescription, sourceFS.getStorageDevice(), args);
         }
         return waitFor;
+    }
+
+    @Override
+    public void unassignFilePolicy(URI policy, Set<URI> unassignFrom, String taskId) throws InternalException {
+        FilePolicy filePolicy = s_dbClient.queryObject(FilePolicy.class, policy);
+        String opName = ResourceOperationTypeEnum.CREATE_FILE_SNAPSHOT_SHARE.getName();
+        TaskCompleter completer = new FilePolicyWorkflowCompleter(policy, taskId);
+        try {
+            Workflow workflow = _workflowService.getNewWorkflow(this, UNASSIGN_FILE_POLICY_WF_NAME, false, taskId, completer);
+            s_logger.info("Generating steps for unassigning file policy {} from resources", policy);
+            for (URI uri : unassignFrom) {
+                Set<String> policyResources = filePolicy.getPolicyStorageResources();
+                for (String policyResource : policyResources) {
+                    PolicyStorageResource policyStorage = s_dbClient.queryObject(PolicyStorageResource.class, URI.create(policyResource));
+                    if (policyStorage.getAppliedAt().toString().equals(uri.toString())) {
+                        StorageSystem storageSystem = s_dbClient.queryObject(StorageSystem.class, policyStorage.getStorageSystem());
+                        String stepId = workflow.createStepId();
+                        String stepDes = String.format("unassigning file policy : %s,  from resource: %s,", filePolicy.getId(), uri);
+                        Object[] args = new Object[] { storageSystem.getId(), policy, policyStorage.getId() };
+                        _fileDeviceController.createMethod(workflow, null, UNASSIGN_FILE_POLICY_METHOD, stepId, stepDes,
+                                storageSystem.getId(), args);
+                    }
+                }
+            }
+            String successMessage = String.format("unassigning file policy : %s,  from resources: %s finsihed successfully,",
+                    filePolicy.getId(), unassignFrom);
+            workflow.executePlan(completer, successMessage);
+        } catch (Exception ex) {
+            s_logger.error(String.format("unassigning file policy : %s,  from resource: %s failed,", filePolicy.getId(), unassignFrom), ex);
+            ServiceError serviceError = DeviceControllerException.errors.unassignFilePolicyFailed(policy.toString(), opName, ex);
+            completer.error(s_dbClient, _locker, serviceError);
+        }
     }
 
 }

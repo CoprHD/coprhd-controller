@@ -3498,7 +3498,6 @@ public class FileService extends TaskResourceService {
             _log.info("No Errors found proceeding further {}, {}, {}", new Object[] { _dbClient, fs, filePolicy });
 
             if (FilePolicy.FilePolicyType.file_snapshot.name().equals(filePolicy.getFilePolicyType())) {
-
                 controller.assignFileSystemSnapshotPolicy(device.getId(), fs.getId(), filePolicy.getId(), task);
 
                 auditOp(OperationTypeEnum.ASSIGN_FILE_SYSTEM_SNAPSHOT_SCHEDULE, true, AuditLogManager.AUDITOP_BEGIN,

@@ -30,6 +30,7 @@ import com.emc.storageos.svcs.errorhandling.resources.InternalException;
  * URI snapshot: Snapshot and FS shares are identical from storage controller perspective (for now).
  */
 public interface FileController extends StorageController {
+
     /**
      * Create a file system share.
      * 
@@ -192,5 +193,13 @@ public interface FileController extends StorageController {
 
     public void listSanpshotByPolicy(URI storage, URI fs, URI policy, String opId) throws InternalException;
 
+    /**
+     * 
+     * @param sourceFS
+     * @param filePolicies
+     * @param taskId
+     * @throws InternalException
+     */
     public void applyFilePolicy(URI sourceFS, List<FilePolicy> filePolicies, String taskId) throws InternalException;
+
 }

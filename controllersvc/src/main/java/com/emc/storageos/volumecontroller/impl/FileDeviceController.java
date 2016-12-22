@@ -44,6 +44,7 @@ import com.emc.storageos.db.client.model.FileShare;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.NFSShareACL;
 import com.emc.storageos.db.client.model.Operation;
+import com.emc.storageos.db.client.model.PolicyStorageResource;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.QuotaDirectory;
 import com.emc.storageos.db.client.model.SMBFileShare;
@@ -4349,9 +4350,6 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
         }
     }
 
-    /**
-     * 
-     */
     @Override
     public void applyFilePolicy(URI sourceFS, List<FilePolicy> filePolicies, String taskId) {
         FileShare fsObj = null;
@@ -4394,6 +4392,51 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
         } catch (Exception e) {
             ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
             WorkflowStepCompleter.stepFailed(taskId, serviceError);
+        }
+    }
+
+    /**
+     * 
+     * @param storage
+     * @param filePolicy
+     * @param policyStorageResource
+     * @param opId
+     * @throws ControllerException
+     */
+    public void unassignFilePolicy(URI storage, URI policyURI, URI policyStorageResource, String opId) throws ControllerException {
+        StorageSystem storageObj = null;
+        FilePolicy filePolicy = null;
+        PolicyStorageResource policyRes = null;
+        try {
+
+            FileDeviceInputOutput args = new FileDeviceInputOutput();
+            storageObj = _dbClient.queryObject(StorageSystem.class, storage);
+            filePolicy = _dbClient.queryObject(FilePolicy.class, policyURI);
+            policyRes = _dbClient.queryObject(PolicyStorageResource.class, policyStorageResource);
+
+            args.setFileProtectionPolicy(filePolicy);
+            args.setPolicyStorageResource(policyRes);
+            WorkflowStepCompleter.stepExecuting(opId);
+            _log.info("Unassigning file policy: {} from resource: {}", policyURI.toString(), policyRes.getAppliedAt().toString());
+
+            BiosCommandResult result = getDevice(storageObj.getSystemType()).doUnassignFilePolicy(storageObj, args);
+            if (result.getCommandPending()) {
+                return;
+            }
+            if (!result.isCommandSuccess() && !result.getCommandPending()) {
+                WorkflowStepCompleter.stepFailed(opId, result.getServiceCoded());
+            }
+            if (result.isCommandSuccess()) {
+                StringSet assignedResources = filePolicy.getAssignedResources();
+                assignedResources.remove(policyRes.getAppliedAt().toString());
+                filePolicy.setAssignedResources(assignedResources);
+                _dbClient.updateObject(filePolicy);
+                _log.info("File policy unassigned successfully");
+                WorkflowStepCompleter.stepSucceded(opId);
+            }
+        } catch (Exception e) {
+            ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
+            WorkflowStepCompleter.stepFailed(opId, serviceError);
         }
     }
 }

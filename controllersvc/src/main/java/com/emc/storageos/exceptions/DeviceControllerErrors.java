@@ -203,7 +203,7 @@ public interface DeviceControllerErrors {
 
     @DeclareServiceCode(ServiceCode.CONTROLLER_JOB_ERROR)
     public ServiceError expandFileShareFailed(final String fsUris, final String operationName, final Throwable cause);
-    
+
     @DeclareServiceCode(ServiceCode.CONTROLLER_JOB_ERROR)
     public ServiceError volumeReachedMaxExports(final String volume, final int hlu, final Throwable cause);
 
@@ -233,6 +233,9 @@ public interface DeviceControllerErrors {
 
     @DeclareServiceCode(ServiceCode.CONTROLLER_JOB_ERROR)
     public ServiceError deleteShareACLFailed(final String fsUris, final String operationName, final Throwable cause);
+
+    @DeclareServiceCode(ServiceCode.CONTROLLER_JOB_ERROR)
+    public ServiceError unassignFilePolicyFailed(final String Uri, final String operationName, final Throwable cause);
 
     @DeclareServiceCode(ServiceCode.CONTROLLER_JOB_ERROR)
     public ServiceError removeVolumeFromMaskFailed(final String volumeURIs);

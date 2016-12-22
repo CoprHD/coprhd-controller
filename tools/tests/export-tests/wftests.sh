@@ -2249,10 +2249,12 @@ test_4() {
     failure_injections="${common_failure_injections} ${storage_failure_injections} ${network_failure_injections}"
 
     # Placeholder when a specific failure case is being worked...
-    # failure_injections="failure_047_NetworkDeviceController.zoneExportMaskCreate_before_zone"
+    # failure_injections="failure_004:failure_021_Export_zoneRollback_after_delete"
 
     for failure in ${failure_injections}
     do
+      clean_zones ${FC_ZONE_A:7} ${HOST1}
+      prerun_tests
       item=${RANDOM}
       TEST_OUTPUT_FILE=test_output_${item}.log
       secho "Running Test 4 with failure scenario: ${failure}..."
@@ -2526,7 +2528,7 @@ test_7() {
     failure_injections="${common_failure_injections} ${storage_failure_injections} ${network_failure_injections}"
 
     # Placeholder when a specific failure case is being worked...
-    # failure_injections="failure_004:failure_020_Export_zoneRollback_before_delete"
+    #failure_injections="failure_004:failure_024_Export_zone_removeInitiator_before_delete"
 
     for failure in ${failure_injections}
     do
@@ -2919,7 +2921,7 @@ test_10() {
 	  workflow=${answersarray[1]}
 
 	  # turn on firewall
-	  /usr/sbin/iptables -I INPUT 1 -s 10.247.28.161 -p all -j REJECT
+	  /usr/sbin/iptables -I INPUT 1 -s 10.247.101.45 -p all -j REJECT
 
 	  # Resume the workflow
 	  runcmd workflow resume $workflow

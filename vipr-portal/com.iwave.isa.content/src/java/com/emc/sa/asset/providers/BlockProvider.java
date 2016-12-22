@@ -930,10 +930,10 @@ public class BlockProvider extends BaseAssetOptionsProvider {
             InitiatorRestRep initiator = ipm.getInitiator();
             List<NamedRelatedResourceRep> ports = ipm.getStoragePorts();
             
-            String portList = new String();
+            String portList = new String(" ");
             List<URI> portURIs = new ArrayList<URI>();
             for (NamedRelatedResourceRep port : ports) {
-                portList += port.getName();
+                portList += port.getName() + " ";
                 portURIs.add(port.getId());
             }
             
@@ -959,6 +959,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         "exportPathStorageSystem", "exportPathPorts" })
     public List<AssetOption> getAffectedExports(AssetOptionsContext ctx, URI hostOrClusterId, URI vArrayId, URI exportId, 
             Integer minPaths, Integer maxPaths, Integer pathsPerInitiator, String useExisting, URI storageSystemId, String ports) {
+        ViPRCoreClient client = api(ctx);
         // the asset option list
         List<AssetOption> options = Lists.newArrayList();
         
@@ -967,10 +968,18 @@ public class BlockProvider extends BaseAssetOptionsProvider {
                 exportId, minPaths, maxPaths, pathsPerInitiator, useExisting, storageSystemId, exportPathPorts);
         
         List<NamedRelatedResourceRep> affectedList = portPreview.getAffectedExportGroups();
+        List<URI> exportIds = new ArrayList<URI>();
         
         for (NamedRelatedResourceRep affected : affectedList) {
-            String label = getMessage("exportPathAdjustment.affectedExports", affected.getName());
-            options.add(new AssetOption("", label));
+            exportIds.add(affected.getId());
+        }
+        
+        List<ExportGroupRestRep> exports = client.blockExports().getByIds(exportIds);
+        
+        for (ExportGroupRestRep export : exports) {
+            String projectName = client.projects().get(export.getProject().getId()).getName();
+            String label = getMessage("exportPathAdjustment.affectedExports", projectName, export.getName());
+            options.add(new AssetOption(export.getName(), label));
         }
         
         return options;

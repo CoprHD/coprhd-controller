@@ -115,7 +115,7 @@ public class LinuxSystemCLI implements HostRescanAdapter {
 
     public void executeCommand(Command command, int timeout) {
         SSHCommandExecutor executor = new SSHCommandExecutor(host, port, username, password);
-        executor.setCommandTimeout(10);
+        executor.setCommandTimeout(timeout);
         command.setCommandExecutor(executor);
         command.execute();
     }

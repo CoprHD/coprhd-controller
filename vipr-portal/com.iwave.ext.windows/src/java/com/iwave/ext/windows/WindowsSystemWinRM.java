@@ -68,13 +68,13 @@ public class WindowsSystemWinRM implements HostRescanAdapter {
         return !versions.isEmpty() ? versions.get(0) : null;
     }
 
-    public String rescanDevices() throws WinRMException {
+    public String rescanDisks() throws WinRMException {
         return diskPart(WindowsUtils.getRescanCommands());
     }
 
     @Override
     public void rescan() throws WinRMException {
-        rescanDevices();
+        rescanDisks();
     }
 
     public String formatAndMountDisk(int diskNumber, String fsType, String allocationUnitSize, String label, String mountpoint,

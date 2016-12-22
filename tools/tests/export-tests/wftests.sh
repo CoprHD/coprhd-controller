@@ -2101,7 +2101,7 @@ test_3() {
     storage_failure_injections=""
     if [ "${SS}" = "vplex" ]
     then
-	storage_failure_injections="failure_009_VPlexVmaxMaskingOrchestrator.createOrAddVolumesToExportMask_before_operation&5"
+	storage_failure_injections="failure_009_VPlexVmaxMaskingOrchestrator.createOrAddVolumesToExportMask_before_operation"
     fi
 
     if [ "${SS}" = "vmax3" -o "${SS}" = "vmax2" ]
@@ -2420,7 +2420,8 @@ test_6() {
 
     if [ "${SS}" = "vnx" -o "${SS}" = "vmax2" -o "${SS}" = "unity" ]
     then
-	storage_failure_injections="failure_004:failure_017_Export_doRemoveVolume"
+	storage_failure_injections="failure_004:failure_017_Export_doRemoveVolume \
+                                    failure_015_SmisCommandHelper.invokeMethod_CreateGroup"
     fi
 
     if [ "${SS}" = "vmax3" ]

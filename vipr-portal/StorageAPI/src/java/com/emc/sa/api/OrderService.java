@@ -331,6 +331,10 @@ public class OrderService extends CatalogTaggedResourceService {
 
             log.info("lbyc0: maxCount={} startTime={}, endTime={}", maxCount, startTime, endTime);
 
+            if (startTime.after(endTime)) {
+                throw APIException.badRequests.endTimeBeforeStartTime(startTime.toString(), endTime.toString());
+            }
+
             orders = orderManager.findOrdersByTimeRange(uri(tenantId), startTime, endTime, maxCount);
         }
 

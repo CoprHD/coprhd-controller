@@ -1958,8 +1958,8 @@ test_2() {
                                     failure_015_SmisCommandHelper.invokeMethod_AddMembers \
                                     failure_045_VPlexDeviceController.createVirtualVolume_before_create_operation \
                                     failure_046_VPlexDeviceController.createVirtualVolume_after_create_operation \
-                                    failure_007_NetworkDeviceController.zoneExportRemoveVolumes_before_unzone \
-                                    failure_008_NetworkDeviceController.zoneExportRemoveVolumes_after_unzone \
+                                    failure_004:failure_007_NetworkDeviceController.zoneExportRemoveVolumes_before_unzone \
+                                    failure_004:failure_008_NetworkDeviceController.zoneExportRemoveVolumes_after_unzone \
                                     failure_009_VPlexVmaxMaskingOrchestrator.createOrAddVolumesToExportMask_before_operation"
     fi
 
@@ -2101,7 +2101,7 @@ test_3() {
     storage_failure_injections=""
     if [ "${SS}" = "vplex" ]
     then
-	storage_failure_injections="failure_009_VPlexVmaxMaskingOrchestrator.createOrAddVolumesToExportMask_before_operation&5"
+	storage_failure_injections="failure_009_VPlexVmaxMaskingOrchestrator.createOrAddVolumesToExportMask_before_operation"
     fi
 
     if [ "${SS}" = "vmax3" -o "${SS}" = "vmax2" ]
@@ -2349,7 +2349,7 @@ test_5() {
     failure_injections="${common_failure_injections} ${storage_failure_injections} ${network_failure_injections}"
 
     # Placeholder when a specific failure case is being worked...
-    # failure_injections="failure_007_NetworkDeviceController.zoneExportRemoveVolumes_before_unzone"
+    # failure_injections="failure_015_SmisCommandHelper.invokeMethod_AddMembers"
 
     for failure in ${failure_injections}
     do
@@ -2422,7 +2422,8 @@ test_6() {
 
     if [ "${SS}" = "vnx" -o "${SS}" = "vmax2" -o "${SS}" = "unity" ]
     then
-	storage_failure_injections="failure_004:failure_017_Export_doRemoveVolume"
+	storage_failure_injections="failure_004:failure_017_Export_doRemoveVolume \
+                                    failure_015_SmisCommandHelper.invokeMethod_CreateGroup"
     fi
 
     if [ "${SS}" = "vmax3" ]

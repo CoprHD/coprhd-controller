@@ -182,16 +182,22 @@ public class VMWareProvider extends BaseHostProvider {
     @Asset("unassignedBlockDatastore")
     @AssetDependencies({ "esxHost", "project" })
     public List<AssetOption> getUnassignedDatastores(AssetOptionsContext ctx, URI hostOrClusterId, final URI projectId) {
+        PerfTimer timer = new PerfTimer();
+        timer.start();
+        info("getting blockDatastores");
         ViPRCoreClient client = api(ctx);
         Set<URI> exportedBlockResources = BlockProvider.getExportedVolumes(api(ctx), projectId, hostOrClusterId, null);
+        info("========= Got exported vols. Time = %s", timer.probe());
         UnexportedBlockResourceFilter<VolumeRestRep> unexportedFilter = new UnexportedBlockResourceFilter<VolumeRestRep>(
                 exportedBlockResources);
         SourceTargetVolumesFilter sourceTargetVolumesFilter = new SourceTargetVolumesFilter();
         List<VolumeRestRep> volumes = client.blockVolumes().findByProject(projectId, unexportedFilter.and(sourceTargetVolumesFilter));
         List<URI> volumeIds = getVolumeList(volumes);
-        Map<URI, Integer> volumeHlus = getVolumeHLUs(ctx, volumeIds);
-
-        return createBlockVolumeDatastoreOptions(volumeHlus, volumes, hostOrClusterId);
+        // Map<URI, Integer> volumeHlus = getVolumeHLUs(ctx, volumeIds);
+        // return createBlockVolumeDatastoreOptions(volumeHlus, volumes, hostOrClusterId);
+        List<AssetOption> options = createBlockVolumeDatastoreOptions(null, volumes, hostOrClusterId);
+        info("========= Done. Time = %s", timer.probe());
+        return options;
     }
 
     @Asset("assignedBlockDatastore")

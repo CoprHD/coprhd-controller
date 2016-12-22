@@ -7,6 +7,7 @@ package com.emc.storageos.srdfcontroller;
 import static com.emc.storageos.db.client.constraint.ContainmentConstraint.Factory.getVolumesByConsistencyGroup;
 import static com.emc.storageos.db.client.model.Volume.PersonalityTypes.TARGET;
 import static com.emc.storageos.db.client.util.CommonTransformerFunctions.FCTN_STRING_TO_URI;
+import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.Collections2.filter;
 import static com.google.common.collect.Collections2.transform;
 import static com.google.common.collect.Lists.newArrayList;
@@ -2000,6 +2001,7 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
                     }
                 }
                 completer = new SRDFSwapCompleter(combined, task, successLinkStatus);
+                updateCompleterWithConsistencyGroup(completer, volume);
                 getRemoteMirrorDevice().doSwapVolumePair(system, volume, completer);
             } else if (op.equalsIgnoreCase("pause")) {
                 completer = new SRDFLinkPauseCompleter(combined, task);
@@ -2511,5 +2513,19 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
     public String addStepsForCreateFullCopy(Workflow workflow, String waitFor, List<VolumeDescriptor> volumeDescriptors, String taskId)
             throws InternalException {
         return waitFor;
+    }
+
+    /**
+     * Updates the given TaskCompleter with a Volume's BlockConsistencyGroup URI, if available.
+     *
+     * @param taskCompleter TaskCompleter
+     * @param volume        Volume
+     */
+    private void updateCompleterWithConsistencyGroup(TaskCompleter taskCompleter, Volume volume) {
+        checkNotNull(volume);
+        checkNotNull(taskCompleter);
+        if (!NullColumnValueGetter.isNullURI(volume.getConsistencyGroup())) {
+            taskCompleter.addConsistencyGroupId(volume.getConsistencyGroup());
+        }
     }
 }

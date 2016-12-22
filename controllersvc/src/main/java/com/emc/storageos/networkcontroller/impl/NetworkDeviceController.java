@@ -428,7 +428,6 @@ public class NetworkDeviceController implements NetworkController {
                 }
 
             } else { /* Adding zones */
-                // WJEIV
                 result = networkDevice.addZones(device, zones, fabricId, fabricWwn, true);
                 if (result.isCommandSuccess()) {
                     String refKey = null;
@@ -1270,6 +1269,7 @@ public class NetworkDeviceController implements NetworkController {
     private boolean doZoneExportMasksDelete(List<NetworkZoningParam> zoningParams,
             Collection<URI> volumeURIs, String stepId) {
         NetworkFCContext context = new NetworkFCContext();
+        TaskCompleter taskCompleter = null;
         boolean status = false;
         try {
             if (zoningParams.isEmpty()) {
@@ -1297,13 +1297,23 @@ public class NetworkDeviceController implements NetworkController {
                 return true;
             }
 
+            // Determine what needs to be rolled back.
             List<NetworkFCZoneInfo> lastReferenceZoneInfo = new ArrayList<NetworkFCZoneInfo>();
-            for (NetworkFCZoneInfo zoneInfo : zones) {
-                if (zoneInfo.isLastReference()) {
-                    _log.debug("EndPoints with last reference" + zoneInfo.getEndPoints());
-                    lastReferenceZoneInfo.add(zoneInfo);
+            List<NetworkFCZoneInfo> rollbackList = new ArrayList<NetworkFCZoneInfo>();
+            for (NetworkFCZoneInfo info : context.getZoneInfos()) {
+                if (info.canBeRolledBack()) {
+                    // If we were adding zones, we set lastReference so it will be deleted.
+                    if (context.isAddingZones()) {
+                        info.setLastReference(true);
+                        lastReferenceZoneInfo.add(info);
+                    }
+                    rollbackList.add(info);
                 }
             }
+
+            // Create a local completer to handle DB cleanup in the case of failure.
+            taskCompleter = new ZoneReferencesRemoveCompleter(context.getZoneInfos(), true, stepId);
+
             InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_007);
             // Now call removeZones to remove all the required zones.
             BiosCommandResult result = addRemoveZones(exportGroupId, context.getZoneInfos(), true);
@@ -1329,11 +1339,10 @@ public class NetworkDeviceController implements NetworkController {
             _log.info("Successfully removed zones for ExportGroup: {}", exportGroupId.toString());
         } catch (Exception ex) {
             _log.error("Exception zoning delete Export Masks", ex);
-            // TODO revisit Exceptions
-            // Save our zone infos in case we want to rollback.
             WorkflowService.getInstance().storeStepData(stepId, context);
             ServiceError svcError = NetworkDeviceControllerException.errors
                     .zoneExportGroupDeleteFailed(ex.getMessage(), ex);
+            taskCompleter.error(_dbClient, svcError);
             WorkflowStepCompleter.stepFailed(stepId, svcError);
         }
         return status;
@@ -1479,6 +1488,7 @@ public class NetworkDeviceController implements NetworkController {
     public boolean zoneExportRemoveInitiators(
     		List<NetworkZoningParam> zoningParams,
             String stepId) throws ControllerException {
+        TaskCompleter taskCompleter = null;
         if (zoningParams.isEmpty()) {
             _log.info("zoningParams is empty, returning");
             WorkflowStepCompleter.stepSucceded(stepId);
@@ -1507,6 +1517,9 @@ public class NetworkDeviceController implements NetworkController {
                 return true;
             }
 
+            // Create a local completer to handle DB cleanup in the case of failure.
+            taskCompleter = new ZoneReferencesRemoveCompleter(context.getZoneInfos(), true, stepId);
+
             InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_024);
             // Now call removeZones to remove all the required zones.
             BiosCommandResult result = addRemoveZones(exportGroupId, context.getZoneInfos(), true);
@@ -1526,6 +1539,7 @@ public class NetworkDeviceController implements NetworkController {
             _log.error("Exception zoning remove initiators", ex);
             ServiceError svcError = NetworkDeviceControllerException.errors.zoneExportRemoveInitiatorsFailed(
                     ex.getMessage(), ex);
+            taskCompleter.error(_dbClient, svcError);
             WorkflowStepCompleter.stepFailed(stepId, svcError);
             return status;
         }
@@ -1546,9 +1560,12 @@ public class NetworkDeviceController implements NetworkController {
     /**
      * Rollback any of the zoning operations.
      * 
-     * @param exportGroupURI -- The ExportGroup URI
-     * @param contextKey -- The context which indicates what zones were configured on the device.
-     * @param taskId -- String tas identifier for WorkflowTaskCompleter.
+     * @param exportGroupURI
+     *            -- The ExportGroup URI
+     * @param contextKey
+     *            -- The context which indicates what zones were configured on the device.
+     * @param taskId
+     *            -- String task identifier for WorkflowTaskCompleter.
      * @return
      * @throws DeviceControllerException
      */

@@ -2249,10 +2249,12 @@ test_4() {
     failure_injections="${common_failure_injections} ${storage_failure_injections} ${network_failure_injections}"
 
     # Placeholder when a specific failure case is being worked...
-    # failure_injections="failure_047_NetworkDeviceController.zoneExportMaskCreate_before_zone"
+    # failure_injections="failure_004:failure_021_Export_zoneRollback_after_delete"
 
     for failure in ${failure_injections}
     do
+      clean_zones ${FC_ZONE_A:7} ${HOST1}
+      prerun_tests
       item=${RANDOM}
       TEST_OUTPUT_FILE=test_output_${item}.log
       secho "Running Test 4 with failure scenario: ${failure}..."
@@ -2334,7 +2336,8 @@ test_5() {
 
     if [ "${SS}" = "vmax2" -o "${SS}" = "vmax3" ]
     then
-	storage_failure_injections="failure_015_SmisCommandHelper.invokeMethod_DeleteGroup"
+	storage_failure_injections="failure_015_SmisCommandHelper.invokeMethod_DeleteGroup \
+                                    failure_015_SmisCommandHelper.invokeMethod_AddMembers"
     fi
 
     if [ "${SS}" = "vnx" ]
@@ -2346,7 +2349,7 @@ test_5() {
     failure_injections="${common_failure_injections} ${storage_failure_injections} ${network_failure_injections}"
 
     # Placeholder when a specific failure case is being worked...
-    # failure_injections="failure_018 failure_020 failure_021"
+    # failure_injections="failure_007_NetworkDeviceController.zoneExportRemoveVolumes_before_unzone"
 
     for failure in ${failure_injections}
     do
@@ -2417,9 +2420,15 @@ test_6() {
 	storage_failure_injections=""
     fi
 
-    if [ "${SS}" = "vnx" -o "${SS}" = "vmax2" -o "${SS}" = "vmax3" -o "${SS}" = "unity" ]
+    if [ "${SS}" = "vnx" -o "${SS}" = "vmax2" -o "${SS}" = "unity" ]
     then
 	storage_failure_injections="failure_004:failure_017_Export_doRemoveVolume"
+    fi
+
+    if [ "${SS}" = "vmax3" ]
+    then
+	storage_failure_injections="failure_004:failure_017_Export_doRemoveVolume \
+                                    failure_015_SmisCommandHelper.invokeMethod_CreateGroup"
     fi
 
     failure_injections="${common_failure_injections} ${storage_failure_injections}"
@@ -2519,7 +2528,7 @@ test_7() {
     failure_injections="${common_failure_injections} ${storage_failure_injections} ${network_failure_injections}"
 
     # Placeholder when a specific failure case is being worked...
-    # failure_injections="failure_004:failure_020_Export_zoneRollback_before_delete"
+    #failure_injections="failure_004:failure_024_Export_zone_removeInitiator_before_delete"
 
     for failure in ${failure_injections}
     do
@@ -2912,7 +2921,7 @@ test_10() {
 	  workflow=${answersarray[1]}
 
 	  # turn on firewall
-	  /usr/sbin/iptables -I INPUT 1 -s 10.247.28.161 -p all -j REJECT
+	  /usr/sbin/iptables -I INPUT 1 -s 10.247.101.45 -p all -j REJECT
 
 	  # Resume the workflow
 	  runcmd workflow resume $workflow

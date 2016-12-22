@@ -20,8 +20,8 @@ public class ExportPathsPreview extends ViPRExecutionTask<ExportPathsAdjustmentP
     
     private URI exportId;
     
-    public ExportPathsPreview(URI hostOrClusterId, URI virtualArray, Integer minPaths, Integer maxPaths, Integer pathsPerInitiator,
-            URI storageSystemId, List<URI> ports, URI exportId) {
+    public ExportPathsPreview(URI hostOrClusterId, URI virtualArray, URI exportId, Integer minPaths, Integer maxPaths, 
+            Integer pathsPerInitiator, URI storageSystemId, List<URI> ports) {
         
         this.hostOrClusterId = hostOrClusterId;
         this.virtualArray = virtualArray;
@@ -32,7 +32,9 @@ public class ExportPathsPreview extends ViPRExecutionTask<ExportPathsAdjustmentP
         this.ports = ports;
         
         this.exportId = exportId;
-     // TODO: addDetails     provideDetailArgs(name, getMessage("CreateExport.cluster"), hostName, volumeIds, hlu);
+        
+        provideDetailArgs(this.exportId, this.hostOrClusterId, this.virtualArray, this.minPaths, this.maxPaths, 
+                this.pathsPerInitiator, this.storageSystemId, this.ports.toString());
     }
     
     @Override
@@ -45,17 +47,7 @@ public class ExportPathsPreview extends ViPRExecutionTask<ExportPathsAdjustmentP
         exportPathParameters.setPathsPerInitiator(pathsPerInitiator);
         
         exportPathParameters.setStoragePorts(ports);
-        
-//        List<ExportGroupRestRep> exports = getClient().blockExports().findByHost(hostOrClusterId, null, null);
-//        URI exportId = null;
-//        
-//        if (exports.isEmpty()) {
-//            error("No Export found for host : %s", hostOrClusterId);
-//        } else {
-//            exportId = exports.get(0).getId();
-//        }
-        
-        
+ 
         param.setStorageSystem(storageSystemId);
         param.setVirtualArray(virtualArray);
         

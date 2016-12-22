@@ -45,8 +45,8 @@ public class ServiceDescriptor implements ServiceItemContainer, Serializable {
     /** Indicates if the operation can result in data loss (Warn the user) */
     private boolean destructive = false;
     
-    /** Indicated if the order will display a preview option */
-    private boolean useModal = true;
+    /** Indicated if the order will display a modal option */
+    private boolean useModal = false;
 
     public String getServiceId() {
         return serviceId;

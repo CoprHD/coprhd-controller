@@ -1,6 +1,7 @@
 package com.emc.sa.service.vipr.block;
 
 import static com.emc.sa.service.ServiceParams.HOST;
+import static com.emc.sa.service.ServiceParams.EXPORT;
 import static com.emc.sa.service.ServiceParams.MIN_PATHS;
 import static com.emc.sa.service.ServiceParams.MAX_PATHS;
 import static com.emc.sa.service.ServiceParams.PATHS_PER_INITIATOR;
@@ -9,6 +10,7 @@ import static com.emc.sa.service.ServiceParams.STORAGE_SYSTEM;
 import static com.emc.sa.service.ServiceParams.VIRTUAL_ARRAY;
 import static com.emc.sa.service.ServiceParams.AFFECTED_PORTS;
 import static com.emc.sa.service.ServiceParams.REMOVED_PORTS;
+import static com.emc.sa.service.ServiceParams.USE_EXISTING_PATHS;
 
 
 import java.net.URI;
@@ -20,8 +22,11 @@ import java.util.Map;
 import com.emc.sa.engine.bind.Param;
 import com.emc.sa.engine.service.Service;
 import com.emc.sa.service.vipr.ViPRService;
-import com.emc.storageos.model.block.export.ExportGroupRestRep;
+import com.emc.sa.service.vipr.block.tasks.ExportPathsPreview;
+import com.emc.storageos.model.NamedRelatedResourceRep;
+import com.emc.storageos.model.block.export.ExportPathsAdjustmentPreviewRestRep;
 import com.emc.storageos.model.block.export.InitiatorPathParam;
+import com.emc.storageos.model.block.export.InitiatorPortMapRestRep;
 
 @Service("ExportPathAdjustment")
 public class ExportPathAdjustmentService extends ViPRService {
@@ -32,6 +37,9 @@ public class ExportPathAdjustmentService extends ViPRService {
     @Param(VIRTUAL_ARRAY)
     protected URI virtualArray;
     
+    @Param(EXPORT)
+    protected URI exportId;
+    
     @Param(MIN_PATHS)
     protected Integer minPaths;
     
@@ -40,6 +48,9 @@ public class ExportPathAdjustmentService extends ViPRService {
     
     @Param(PATHS_PER_INITIATOR)
     protected Integer pathsPerInitiator;
+    
+    @Param(USE_EXISTING_PATHS)
+    protected String useExistingPaths;
     
     @Param(STORAGE_SYSTEM)
     protected URI storageSystem;
@@ -58,38 +69,30 @@ public class ExportPathAdjustmentService extends ViPRService {
     
     @Override
     public void precheck() throws Exception {
-        try {
-            for (String affected : affectedPorts) {
-                Map<URI, List<URI>> port = (Map<URI, List<URI>>) BlockStorageUtils.serializeFromString(affected);
-                affectedPortsMap.putAll(port);
+        if (affectedPorts.isEmpty() && removedPorts.isEmpty()) {
+            // if we have no affected or removed, the preview as likely not been generated, so we're going to 
+            // generate it before running the service. This is to support the api call and allowing the user
+            // to omit sending the serialize string. 
+            runExportPathsPreview();
+        } else {
+            try {
+                for (String affected : affectedPorts) {
+                    Map<URI, List<URI>> port = (Map<URI, List<URI>>) BlockStorageUtils.serializeFromString(affected);
+                    affectedPortsMap.putAll(port);
+                }
+                
+                for (String removed : removedPorts) {
+                    Map<URI, List<URI>> port = (Map<URI, List<URI>>) BlockStorageUtils.serializeFromString(removed);
+                    removedPortsMap.putAll(port);
+                }
+            } catch (Exception ex) {
+                // TODO: fail order, log error
             }
-            
-            for (String removed : removedPorts) {
-                Map<URI, List<URI>> port = (Map<URI, List<URI>>) BlockStorageUtils.serializeFromString(removed);
-                removedPortsMap.putAll(port);
-            }
-//            removedPortsMap = (Map<URI, List<URI>>) BlockStorageUtils.serializeFromString(removedPorts);
-        } catch (Exception ex) {
-            // TODO: fail order, log error
         }
     }
     
     @Override
     public void execute() throws Exception {
-        List<ExportGroupRestRep> exports = getClient().blockExports().findByHost(host, null, null);
-        URI exportId = null;
-        
-        if (exports.isEmpty()) {
-            error("No Export found for host : %s", host);
-        } else {
-            exportId = exports.get(0).getId();
-        }
-
-//        ExportPathsAdjustmentPreviewRestRep previewRestRep = execute(new ExportPathsPreview(host, virtualArray, minPaths, maxPaths, 
-//                pathsPerInitiator, storageSystem, ports, exportId));
-//        List<InitiatorPortMapRestRep> affectedPaths = previewRestRep.getAddedPaths();
-//        List<InitiatorPortMapRestRep> removedPaths = previewRestRep.getRemovedPaths();
-//        
         // build affect paths
         List<InitiatorPathParam> toSendAffectedPaths = new ArrayList<InitiatorPathParam>();
         for (Map.Entry<URI, List<URI>> entry : affectedPortsMap.entrySet()) {
@@ -114,8 +117,30 @@ public class ExportPathAdjustmentService extends ViPRService {
         
         BlockStorageUtils.adjustExportPaths(minPaths, maxPaths, pathsPerInitiator, storageSystem, exportId, 
                 toSendAffectedPaths, toSendRemovedPaths);
-        //execute(new AdjustExportPaths(minPaths, maxPaths, pathsPerInitiator, storageSystem, exportId, 
-        //        toSendAffectedPaths, toSendRemovedPaths));
-
+    }
+    
+    private void runExportPathsPreview() {
+        ExportPathsAdjustmentPreviewRestRep previewRestRep = execute(new ExportPathsPreview(host, virtualArray, exportId,
+              minPaths, maxPaths, pathsPerInitiator, storageSystem, ports));
+        List<InitiatorPortMapRestRep> affectedPaths = previewRestRep.getAdjustedPaths();
+        List<InitiatorPortMapRestRep> removedPaths = previewRestRep.getRemovedPaths();
+          
+        // build the affected path 
+        for (InitiatorPortMapRestRep ipm : affectedPaths) {
+            List<URI> portList = new ArrayList<URI>();
+            for (NamedRelatedResourceRep port : ipm.getStoragePorts()) {
+                portList.add(port.getId());
+            }
+            affectedPortsMap.put(ipm.getInitiator().getId(), portList);
+        }
+        
+        // build the removed path 
+        for (InitiatorPortMapRestRep ipm : removedPaths) {
+            List<URI> portList = new ArrayList<URI>();
+            for (NamedRelatedResourceRep port : ipm.getStoragePorts()) {
+                portList.add(port.getId());
+            }
+            removedPortsMap.put(ipm.getInitiator().getId(), portList);
+        }
     }
 }

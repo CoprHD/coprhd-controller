@@ -94,6 +94,7 @@ import com.emc.storageos.model.vpool.BlockVirtualPoolRestRep;
 import com.emc.storageos.model.vpool.VirtualPoolChangeOperationEnum;
 import com.emc.storageos.model.vpool.VirtualPoolChangeRep;
 import com.emc.storageos.model.vpool.VirtualPoolCommonRestRep;
+import com.emc.storageos.storagedriver.model.StoragePort;
 import com.emc.vipr.client.ViPRCoreClient;
 import com.emc.vipr.client.core.filters.BlockVolumeConsistencyGroupFilter;
 import com.emc.vipr.client.core.filters.ConsistencyGroupFilter;
@@ -729,6 +730,65 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         return options;
     }
     
+    @Asset("exportPathExport")
+    @AssetDependencies({ "project", "host", "exportPathVirtualArray" })
+    public List<AssetOption> getExportPathExports(AssetOptionsContext ctx, URI projectId, URI hostOrClusterId, URI vArrayId) {
+        ViPRCoreClient client = api(ctx);
+        List<AssetOption> options = Lists.newArrayList();
+        
+        List<ExportGroupRestRep> exports = client.blockExports().findByHost(hostOrClusterId, projectId, vArrayId);
+        
+        for (ExportGroupRestRep export : exports) {
+            options.add(new AssetOption(export.getId(), export.getName()));
+        }
+        
+        return options;
+    }
+    
+    @Asset("exportPathMinPathsOptions")
+    public List<AssetOption> getExportPathMinOptions(AssetOptionsContext ctx) {
+        List<AssetOption> options = Lists.newArrayList();
+        
+        for (int i = 1; i <= 32; ++i) {
+            options.add(new AssetOption(Integer.toString(i), Integer.toString(i)));
+        }
+        
+        return options;
+    }
+    
+    @Asset("exportPathMaxPathsOptions")
+    public List<AssetOption> getExportPathMaxOptions(AssetOptionsContext ctx) {
+        List<AssetOption> options = Lists.newArrayList();
+        
+        for (int i = 1; i <= 32; ++i) {
+            options.add(new AssetOption(Integer.toString(i), Integer.toString(i)));
+        }
+        
+        return options;
+    }
+    
+    @Asset("exportPathPathsPerInitiatorOptions")
+    public List<AssetOption> getExportPathPathsPerOptions(AssetOptionsContext ctx) {
+        List<AssetOption> options = Lists.newArrayList();
+        
+        for (int i = 1; i <= 32; ++i) {
+            options.add(new AssetOption(Integer.toString(i), Integer.toString(i)));
+        }
+        
+        return options;
+    }
+    
+    @Asset("exportPathExistingPath")
+    public List<AssetOption> getExportPathExistingPath(AssetOptionsContext ctx
+            ) {
+        List<AssetOption> options = Lists.newArrayList();
+        
+        options.add(new AssetOption(YES_VALUE, YES_VALUE));
+        options.add(new AssetOption(NO_VALUE, NO_VALUE));
+        
+        return options;
+    }
+    
     @Asset("exportPathStorageSystem")
     @AssetDependencies({ "host", "exportPathVirtualArray" })
     public List<AssetOption> getExportPathStorageSystem(AssetOptionsContext ctx, URI hostOrClusterId, URI vArrayId) {
@@ -763,37 +823,90 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     }
     
     @Asset("exportPathPorts")
-    @AssetDependencies({ "host", "exportPathStorageSystem" })
-    public List<AssetOption> getExportPathPorts(AssetOptionsContext ctx, URI hostOrClusterId, URI storageSystemId) {
+    @AssetDependencies({ "exportPathStorageSystem" })
+    public List<AssetOption> getExportPathPorts(AssetOptionsContext ctx, URI storageSystemId) {
         ViPRCoreClient client = api(ctx);
         List<AssetOption> options = Lists.newArrayList();
         
         List<StoragePortRestRep> ports = client.storagePorts().getByStorageSystem(storageSystemId);
         
         for (StoragePortRestRep port : ports) {
-            String portPercentBusy = (port.getPortPercentBusy() != null) ? port.getPortPercentBusy().toString() : "N/A"; 
-            String label = getMessage("exportPathAdjustment.ports", port.getPortName(), portPercentBusy);
-            options.add(new AssetOption(port.getId(), label));
+            if (port.getPortType().equals(StoragePort.PortType.frontend.toString())) {
+                String portPercentBusy = (port.getPortPercentBusy() != null) ? port.getPortPercentBusy().toString() : "N/A"; 
+                String label = getMessage("exportPathAdjustment.ports", port.getPortName(), portPercentBusy);
+                options.add(new AssetOption(port.getId(), label));
+            }
         }
 
         return options;
     }
     
+    // TODO: this is not working as intended, the most strict dependency gets call before this one. Probly needs to be revisited.
+    // Keeping for now since it generates the list when no ports are selected while showing an error
     @Asset("exportPathAddedPorts")
-    @AssetDependencies({ "host", "exportPathStorageSystem", "exportPathPorts" })
-    public List<AssetOption> getAddedPorts(AssetOptionsContext ctx, URI hostOrClusterId, URI storageSystemId, String ports) {
+    @AssetDependencies({ "host", "exportPathVirtualArray", "exportPathExport", "exportPathMinPathsOptions",
+        "exportPathMaxPathsOptions", "exportPathPathsPerInitiatorOptions", "exportPathExistingPath", "exportPathStorageSystem"})
+    public List<AssetOption> getAddedPorts(AssetOptionsContext ctx, URI hostOrClusterId, URI vArrayId, URI exportId, 
+            Integer minPaths, Integer maxPaths, Integer pathsPerInitiator, String useExisting, URI storageSystemId) {
+//        List<URI> exportPathPorts = new ArrayList<URI>();
+//        ExportPathsAdjustmentPreviewRestRep portPreview =  generateExportPathPreview(ctx, hostOrClusterId, vArrayId, storageSystemId, exportPathPorts);
+//        List<InitiatorPortMapRestRep> addedList = portPreview.getAdjustedPaths();
+        
+        return getAddedPorts(ctx, hostOrClusterId, vArrayId, exportId, minPaths, maxPaths, pathsPerInitiator, 
+                useExisting, storageSystemId, new String(""));
+    }
+    
+    // TODO: We currently have an issue with exportPathPorts being empty. Need to figure out how to deal with an empty list
+    // of ports as a dependency.
+    @Asset("exportPathAddedPorts")
+    @AssetDependencies({ "host", "exportPathVirtualArray", "exportPathExport", "exportPathMinPathsOptions",
+        "exportPathMaxPathsOptions", "exportPathPathsPerInitiatorOptions", "exportPathExistingPath", 
+        "exportPathStorageSystem", "exportPathPorts" })
+    public List<AssetOption> getAddedPorts(AssetOptionsContext ctx, URI hostOrClusterId, URI vArrayId, URI exportId, 
+            Integer minPaths, Integer maxPaths, Integer pathsPerInitiator, String useExisting, URI storageSystemId, String ports) {
         List<URI> exportPathPorts = parseExportPathPorts(ports);
-        ExportPathsAdjustmentPreviewRestRep portPreview =  generateExportPathPreview(ctx, hostOrClusterId, storageSystemId, exportPathPorts);
+        ExportPathsAdjustmentPreviewRestRep portPreview =  generateExportPathPreview(ctx, hostOrClusterId, vArrayId, 
+                exportId, minPaths, maxPaths, pathsPerInitiator, useExisting, storageSystemId, exportPathPorts);
         List<InitiatorPortMapRestRep> addedList = portPreview.getAdjustedPaths();
         
         return buildPathOptions(addedList, "exportPathAdjustment.addedPorts");
     }
     
+    //[, , ,, , vipr.project,, vipr.exportPathRemovedPorts, , vipr.exportPathStorageSystem, vipr.exportPathAddedPorts, , vipr.blockStorageType]
+/*    { "host", vipr.host
+    "exportPathVirtualArray", vipr.exportPathVirtualArray
+    "exportPathExport", vipr.exportPathExport
+    "exportPathMinPathsOptions", vipr.exportPathMinPathsOptions
+//        "exportPathMaxPathsOptions", vipr.exportPathMaxPathsOptions
+ * "exportPathPathPerInitiatorOptions", vipr.exportPathPathsPerInitiatorOptions
+ * "exportPathExistingPath", vipr.exportPathExistingPath
+//        "exportPathStorageSystem", vipr.exportPathStorageSystem
+ * "exportPathPorts", vipr.exportPathPorts
+ *  }
+ * 
+ */
     @Asset("exportPathRemovedPorts")
-    @AssetDependencies({ "host", "exportPathStorageSystem", "exportPathPorts" })
-    public List<AssetOption> getRemovedPorts(AssetOptionsContext ctx, URI hostOrClusterId, URI storageSystemId, String ports) {
+    @AssetDependencies({ "host", "exportPathVirtualArray", "exportPathExport", "exportPathMinPathsOptions",
+        "exportPathMaxPathsOptions", "exportPathPathsPerInitiatorOptions", "exportPathExistingPath", "exportPathStorageSystem"})
+    public List<AssetOption> getRemovedPorts(AssetOptionsContext ctx, URI hostOrClusterId, URI vArrayId, URI exportId, 
+            Integer minPaths, Integer maxPaths, Integer pathsPerInitiator, String useExisting, URI storageSystemId) {
+//        List<URI> exportPathPorts = new ArrayList<URI>();
+//        ExportPathsAdjustmentPreviewRestRep portPreview =  generateExportPathPreview(ctx, hostOrClusterId, vArrayId, storageSystemId, exportPathPorts);
+//        List<InitiatorPortMapRestRep> removedList = portPreview.getRemovedPaths();
+        
+        return getRemovedPorts(ctx, hostOrClusterId, vArrayId, exportId, minPaths, maxPaths, pathsPerInitiator, 
+                useExisting, storageSystemId, new String(""));
+    }
+    
+    @Asset("exportPathRemovedPorts")
+    @AssetDependencies({ "host", "exportPathVirtualArray", "exportPathExport", "exportPathMinPathsOptions",
+        "exportPathMaxPathsOptions", "exportPathPathsPerInitiatorOptions", "exportPathExistingPath", 
+        "exportPathStorageSystem", "exportPathPorts" })
+    public List<AssetOption> getRemovedPorts(AssetOptionsContext ctx, URI hostOrClusterId, URI vArrayId, URI exportId, 
+            Integer minPaths, Integer maxPaths, Integer pathsPerInitiator, String useExisting, URI storageSystemId, String ports) {
         List<URI> exportPathPorts = parseExportPathPorts(ports);
-        ExportPathsAdjustmentPreviewRestRep portPreview =  generateExportPathPreview(ctx, hostOrClusterId, storageSystemId, exportPathPorts);
+        ExportPathsAdjustmentPreviewRestRep portPreview =  generateExportPathPreview(ctx, hostOrClusterId, vArrayId, 
+                exportId, minPaths, maxPaths, pathsPerInitiator, useExisting, storageSystemId, exportPathPorts);
         List<InitiatorPortMapRestRep> removedList = portPreview.getRemovedPaths();
         
         return buildPathOptions(removedList, "exportPathAdjustment.removedPorts");
@@ -812,7 +925,6 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     /* helper for building the list of asset option for affected and removed paths */
     private List<AssetOption> buildPathOptions(List<InitiatorPortMapRestRep> list, String message) {
         List<AssetOption> options = Lists.newArrayList();
-        
         
         for (InitiatorPortMapRestRep ipm : list) {
             InitiatorRestRep initiator = ipm.getInitiator();
@@ -842,13 +954,17 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     }
     
     @Asset("exportPathAffectedExports")
-    @AssetDependencies({ "host", "exportPathStorageSystem", "exportPathPorts" })
-    public List<AssetOption> getAffectedExports(AssetOptionsContext ctx, URI hostOrClusterId, URI storageSystemId, String ports) {
+    @AssetDependencies({ "host", "exportPathVirtualArray", "exportPathExport", "exportPathMinPathsOptions",
+        "exportPathMaxPathsOptions", "exportPathPathsPerInitiatorOptions", "exportPathExistingPath", 
+        "exportPathStorageSystem", "exportPathPorts" })
+    public List<AssetOption> getAffectedExports(AssetOptionsContext ctx, URI hostOrClusterId, URI vArrayId, URI exportId, 
+            Integer minPaths, Integer maxPaths, Integer pathsPerInitiator, String useExisting, URI storageSystemId, String ports) {
         // the asset option list
         List<AssetOption> options = Lists.newArrayList();
         
         List<URI> exportPathPorts = parseExportPathPorts(ports);
-        ExportPathsAdjustmentPreviewRestRep portPreview =  generateExportPathPreview(ctx, hostOrClusterId, storageSystemId, exportPathPorts);
+        ExportPathsAdjustmentPreviewRestRep portPreview =  generateExportPathPreview(ctx, hostOrClusterId, vArrayId, 
+                exportId, minPaths, maxPaths, pathsPerInitiator, useExisting, storageSystemId, exportPathPorts);
         
         List<NamedRelatedResourceRep> affectedList = portPreview.getAffectedExportGroups();
         
@@ -861,14 +977,18 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     }
     
     private ExportPathsAdjustmentPreviewRestRep generateExportPathPreview(AssetOptionsContext ctx, URI hostOrClusterId, 
-            URI storageSystemId, List<URI> exportPathPorts) {
+            URI vArrayId, URI exportId, Integer minPaths, Integer maxPaths, Integer pathsPerInitiator, 
+            String useExisting, URI storageSystemId, List<URI> ports) {
         ViPRCoreClient client = api(ctx);
         ExportPathsAdjustmentPreviewParam param = new ExportPathsAdjustmentPreviewParam();
         ExportPathParameters exportPathParameters = new ExportPathParameters();
         
-        List<ExportGroupRestRep> exports = client.blockExports().findByHost(hostOrClusterId, null, null);
-        URI exportId = exports.isEmpty() ? null : exports.get(0).getId();
-        
+        exportPathParameters.setMinPaths(minPaths);
+        exportPathParameters.setMaxPaths(maxPaths);
+        exportPathParameters.setPathsPerInitiator(pathsPerInitiator);
+       
+        param.setUseExistingPaths(useExisting.equalsIgnoreCase(YES_VALUE) ? true : false);
+
         param.setStorageSystem(storageSystemId);
         
         param.setExportPathParameters(exportPathParameters);

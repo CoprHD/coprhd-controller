@@ -3,6 +3,15 @@
     serviceId:"ExportPathAdjustment",
     useModal: true,
     fields:{
+        project:{
+            type:"assetType.vipr.project",
+            lockable: true
+        },
+        storageType:{
+          type:"assetType.vipr.blockStorageType",
+          lockable:true,
+          initialValue:"exclusive"
+        },
     	host:{
             type:"assetType.vipr.host",
             lockable: true
@@ -11,35 +20,30 @@
             type:"assetType.vipr.exportPathVirtualArray",
             lockable: true
         },
-        
+        export:{
+          type: "assetType.vipr.exportPathExport", 
+          lockable: false
+        },
         minPaths: {
-          type:"number",
-          lockable: true,
-          required: false,
-          validation: {
-            min:1,
-            max:65535
-          }
+          type:"assetType.vipr.exportPathMinPathsOptions",
+          omitNone: true,
+          initialValue: "1"
         },
-        
         maxPaths: {
-          type:"number",
-          lockable: true,
-          required: false,
-          validation: {
-            min:1,
-            max:65535
-          }
+          type:"assetType.vipr.exportPathMaxPathsOptions",
+          omitNone: true, 
+          initialValue: "2"
+        },
+        pathsPerInitiator: {
+          type:"assetType.vipr.exportPathPathsPerInitiatorOptions",
+          omitNone: true,
+          initialValue: "1"
         },
         
-        pathsPerInitiator: {
-          type:"number",
-          lockable: true,
-          required: false,
-          validation: {
-            min:1,
-            max:65535
-          }
+        useExistingPaths: {
+            type:"assetType.vipr.exportPathExistingPath",
+            omitNone: true,
+            initialValue: "yes"
         },
         
         storageSystem: {

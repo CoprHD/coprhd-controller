@@ -305,26 +305,26 @@ public class BlockExports extends ProjectResources<ExportGroupRestRep> implement
     /**
      * TODO: write summary
      * <p>
-     * API Call: <tt>POST /block/exports/{id}/port-allocate-preview</tt>
+     * API Call: <tt>POST /block/exports/{id}/paths-adjustment-preview</tt>
      *
      * @param id
      * @param input
      * @return Port Allocate Preview
      */
     public ExportPathsAdjustmentPreviewRestRep getExportPathAdjustmentPreview(URI id, ExportPathsAdjustmentPreviewParam input) {
-        return client.post(ExportPathsAdjustmentPreviewRestRep.class, input, getIdUrl() + "/port-allocate-preview", id);
+        return client.post(ExportPathsAdjustmentPreviewRestRep.class, input, getIdUrl() + "/paths-adjustment-preview", id);
     }
     
     /**
      * TODO: write summary
      * <p>
-     * API Call: <tt>POST /block/exports/{id}/port-rebalance</tt>
+     * API Call: <tt>POST /block/exports/{id}/paths-adjustment</tt>
      *
      * @param id
      * @param input
      * @return Port Allocate Preview
      */
     public Task<ExportGroupRestRep> pathAdjustment(URI id, ExportPathsAdjustmentParam input) {
-        return putTask(input, getIdUrl() + "/port-rebalance", id);
+        return putTask(input, getIdUrl() + "/paths-adjustment", id);
     }
 }

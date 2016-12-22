@@ -2420,8 +2420,7 @@ test_6() {
 
     if [ "${SS}" = "vnx" -o "${SS}" = "vmax2" -o "${SS}" = "unity" ]
     then
-	storage_failure_injections="failure_004:failure_017_Export_doRemoveVolume \
-                                    failure_015_SmisCommandHelper.invokeMethod_CreateGroup"
+	storage_failure_injections="failure_004:failure_017_Export_doRemoveVolume"
     fi
 
     if [ "${SS}" = "vmax3" ]
@@ -2433,7 +2432,7 @@ test_6() {
     failure_injections="${common_failure_injections} ${storage_failure_injections}"
 
     # Placeholder when a specific failure case is being worked...
-    # failure_injections="failure_004"
+    # failure_injections="failure_015_SmisCommandHelper.invokeMethod_CreateGroup"
 
     for failure in ${failure_injections}
     do

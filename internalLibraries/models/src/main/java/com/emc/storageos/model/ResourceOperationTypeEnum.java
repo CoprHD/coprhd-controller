@@ -122,7 +122,7 @@ public enum ResourceOperationTypeEnum {
     CREATE_FILE_SYSTEM_QUOTA_DIR("CREATE FILESYSTEM QUOTA DIR", "create filesystem quota directory"),
     DELETE_FILE_SYSTEM_QUOTA_DIR("DELETE FILESYSTEM QUOTA DIR", "delete filesystem quota directory"),
     UPDATE_FILE_SYSTEM_QUOTA_DIR("UPDATE FILESYSTEM QUOTA DIR", "update filesystem quota directory"),
-    UNASSIGN_RESOURCES_FROM_FILE_POLICY("UNASSIGN RESOURCES FROM FILE POLICY", "unassign resources from file policy"),
+    UNASSIGN_FILE_POLICY("UNASSIGN FILE POLICY", "unassign file policy"),
     UPDATE_BUCKET("UPDATE BUCKET", "update bucket operation"),
     DELETE_BUCKET("DELETE BUCKET", "delete bucket operation"),
     CREATE_BUCKET("CREATE BUCKET", "create bucket operation"),

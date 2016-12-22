@@ -2625,7 +2625,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                             policyStorageResource.setId(URIUtil.createId(PolicyStorageResource.class));
                             policyStorageResource.setFilePolicyId(snapshotPolicy.getId());
                             policyStorageResource.setStorageSystem(storageObj.getId());
-                            policyStorageResource.setPolicyNativeId(scheduleId);
+                            policyStorageResource.setPolicyNativeId(snapshotScheduleName);
                             setPolicyStorageAppliedAt(snapshotPolicy, args, policyStorageResource);
                             _dbClient.createObject(policyStorageResource);
 
@@ -2649,6 +2649,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
     @Override
     public BiosCommandResult doUnassignFilePolicy(StorageSystem storage, FileDeviceInputOutput args)
             throws ControllerException {
+        IsilonSnapshotSchedule isiSnapshotSchedule = null;
         try {
             IsilonApi isi = getIsilonDevice(storage);
             FilePolicy filePolicy = args.getFileProtectionPolicy();
@@ -2656,8 +2657,19 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
 
             if (filePolicy.getFilePolicyType().equals(FilePolicy.FilePolicyType.file_replication.name())) {
                 // TODO
+                // Sprint 5 task
+
             } else if (filePolicy.getFilePolicyType().equals(FilePolicy.FilePolicyType.file_snapshot.name())) {
-                isi.deleteSnapshotSchedule(policyResource.getPolicyNativeId());
+                ArrayList<IsilonSnapshotSchedule> isiSnapshotPolicies = isi.getSnapshotSchedules().getList();
+                for (IsilonSnapshotSchedule isiSnapshotPolicy : isiSnapshotPolicies) {
+                    if (isiSnapshotPolicy.getName().equals(policyResource.getPolicyNativeId())) {
+                        isiSnapshotSchedule = isiSnapshotPolicy;
+                    }
+                }
+                if (isiSnapshotSchedule != null) {
+                    _log.info("deleting Isilon Snapshot schedule: {}", isiSnapshotSchedule.toString());
+                    isi.deleteSnapshotSchedule(policyResource.getPolicyNativeId());
+                }
                 StringSet assignedResources = filePolicy.getPolicyStorageResources();
                 assignedResources.remove(policyResource.getId().toString());
                 filePolicy.setPolicyStorageResources(assignedResources);

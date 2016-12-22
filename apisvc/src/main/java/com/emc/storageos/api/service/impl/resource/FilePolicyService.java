@@ -367,8 +367,8 @@ public class FilePolicyService extends TaskResourceService {
         }
 
         Operation op = _dbClient.createTaskOpStatus(FilePolicy.class, filepolicy.getId(),
-                task, ResourceOperationTypeEnum.UNASSIGN_RESOURCES_FROM_FILE_POLICY);
-        op.setDescription("unassign File Policy from vpool ");
+                task, ResourceOperationTypeEnum.UNASSIGN_FILE_POLICY);
+        op.setDescription("unassign File Policy from resources ");
         FileOrchestrationController controller = getController(FileOrchestrationController.class,
                 FileOrchestrationController.FILE_ORCHESTRATION_DEVICE);
         try {

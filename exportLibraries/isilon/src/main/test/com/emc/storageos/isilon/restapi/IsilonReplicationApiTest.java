@@ -132,7 +132,8 @@ public class IsilonReplicationApiTest {
 
         IsilonReplicationApiTest.setup();
         // IsilonReplicationApiTest.testGetReplicationPolicies();
-        IsilonReplicationApiTest.testGetSnapshotSchedules();
+        // IsilonReplicationApiTest.testGetSnapshotSchedules();
+
         // IsilonReplicationApiTest.testlicenseInfo();
         // IsilonReplicationApiTest.testGetReplicationPolicy();
         // IsilonReplicationApiTest.testCreateReplicationPolicy();

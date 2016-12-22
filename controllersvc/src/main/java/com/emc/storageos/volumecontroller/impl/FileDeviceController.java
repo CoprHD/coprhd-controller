@@ -62,6 +62,7 @@ import com.emc.storageos.db.client.model.VirtualNAS;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.FileOperationUtils;
+import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.fileorchestrationcontroller.FileDescriptor;
@@ -4430,8 +4431,12 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                 StringSet assignedResources = filePolicy.getAssignedResources();
                 assignedResources.remove(policyRes.getAppliedAt().toString());
                 filePolicy.setAssignedResources(assignedResources);
+                if (filePolicy.getAssignedResources().isEmpty()) {
+                    filePolicy.setApplyAt(NullColumnValueGetter.getNullStr());
+                }
                 _dbClient.updateObject(filePolicy);
-                _log.info("File policy unassigned successfully");
+                _log.info("Unassigning file policy: {} from resource: {} finished successfully", policyURI.toString(),
+                        policyRes.getAppliedAt().toString());
                 WorkflowStepCompleter.stepSucceded(opId);
             }
         } catch (Exception e) {

@@ -1358,6 +1358,13 @@ assignPolicy.vpool.applySpecific=Apply for specific vPools
 assignPolicy.applySpecificProjects=
 assignPolicy.applySpecificvPools=
 
+assignPolicy.applyToAllProjects=Projects
+assignPolicy.projects=Projects
+assignPolicy.saved=File Pool policy assignment successful
+assignPolicy.applyAtProject=Project
+assignPolicy.applyAtVPool=Virtual Pool
+assignPolicy.applyAtFs=File System
+
 assignPolicy.project.availableVpool=Available vPools
 assignPolicy.project.appliedVpool=Applied vPools
 assignPolicy.applyOnTargetSite=Apply on target site

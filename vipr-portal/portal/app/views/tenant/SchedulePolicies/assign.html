@@ -37,65 +37,35 @@
       #{Form.selectOneControlGroup field:field, options:applyPolicyOptions, select:assignPolicy.appliedAt, cssClass:'span3' /}
     #{/field}    
     
-    <div id="projectFields">
-	    #{field 'assignPolicy.applySpecificProjects'}
-	      %{
-	        field.cssClass = "bla";
-	        field.cssClassLabel = 'inline'
-	      }%
-	      #{Form.controlGroup field:field, noLabel:noLabel}
-	        %{
-	          field.disabled = false
-	        }%
-	        <div class="span6" style="margin-left:0px;">
-	          #{Form.radio field:field, value: "true", label: messages.get("assignPolicy.project.applyAll")/}
-	          #{Form.radio field:field, value: "false", label: messages.get("assignPolicy.project.applySpecific")/}
-	        </div>
-	      #{/Form.controlGroup}      
-	    #{/field}    
+   <div id="projectFields"> 
+    #{field 'assignPolicy.applyToAllProjects'}
+    #{Form.controlGroup field:field, width:4}
+      %{ typeField = field }%
+      #{Form.radio field:typeField, value: "applyToAllProjects", label: messages.get("assignPolicy.project.applyAll")/}
+      #{Form.radio field:typeField, value: "~applyToAllProjects", label: messages.get("assignPolicy.project.applySpecific")/}
+    #{/Form.controlGroup}
+    #{/field}
+     #{field 'assignPolicy.projects', noLabel:noLabel}
+         #{Form.selectManyControlGroup field:field, options:projectOptions /}
+     #{/field}
     </div>
     
     <div id="vpoolFields">
-		    #{field 'assignPolicy.applySpecificvPools'}
-		      %{
-		        field.cssClass = "bla";
-		        field.cssClassLabel = 'inline'
-		      }%
-		      #{Form.controlGroup field:field, noLabel:noLabel}
-		        %{
-		          field.disabled = false
-		        }%
-		        <div class="span6" style="margin-left:0px;">
-		          #{Form.radio field:field, value: "true", label: messages.get("assignPolicy.vpool.applyAll")/}
-		          #{Form.radio field:field, value: "false", label: messages.get("assignPolicy.vpool.applySpecific")/}
-		        </div>
-		      #{/Form.controlGroup}      
-		    #{/field}    
-		    
-		        
-		  <control-group v-field="vPools" class="storagePoolCriteria" type="array" >
-		    <select-many options="virtualArrayOptions" ></select-many>
-		  </control-group>		        
-		    
-		    
-			#{field 'assignPolicy.applyOnTargetSite'}
-		       #{Form.booleanCheckBoxControlGroup field:field /}
-		    #{/field}    
-		    
-		    #{field 'assignPolicy.targetVarray'}
-		      #{Form.selectOneControlGroup field:field, options:varrayList, select:assignPolicy.appliedAt, cssClass:'span3' /}
-		    #{/field}
-		    
-			<div ng-controller="PolicyAsignVPol">
-		      <fieldset data-ng-repeat="vArray in vArrays">
-		      	 <input type="text" ng-model="vArray" placeholder="Select Varray"/>
-		      	 <button class="remove" ng-show="$last" ng-click="removeVarray()">-</button>
-		      </fieldset> 
-		      <button class="add" ng-click="addVarray()">+</button>
-		    </div>
-		        
+    #{field 'assignPolicy.applyToAllVpools'}
+    #{Form.controlGroup field:field, width:4}
+      %{ typeField = field }%
+      #{Form.radio field:typeField, value: "applyToAllVpools", label: messages.get("assignPolicy.vpool.applyAll")/} 
+      #{Form.radio field:typeField, value: "~applyToAllVpools", label: messages.get("assignPolicy.vpool.applySpecific")/}
+    #{/Form.controlGroup}
+    #{/field}
+     #{field 'assignPolicy.vPools', noLabel:noLabel}
+         #{Form.selectManyControlGroup field:field, options:vpoolOptions /}
+     #{/field}
     </div>
-    
+	        
+	#{field 'assignPolicy.applyOnTargetSite'}
+       #{Form.booleanCheckBoxControlGroup field:field /}
+    #{/field}    
     
   #{Form.saveCancelButtonBar size:'large', cancelHref:@list()/}
 #{/form}

@@ -8,6 +8,7 @@ import static com.emc.vipr.client.core.util.ResourceUtils.uri;
 import static util.BourneUtil.getViprClient;
 
 import java.net.URI;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -15,12 +16,15 @@ import java.util.Set;
 import org.apache.commons.lang.StringUtils;
 
 import com.emc.storageos.db.client.model.FilePolicy.FilePolicyApplyLevel;
+import com.emc.storageos.model.DataObjectRestRep;
 import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.file.policy.FilePolicyAssignParam;
 import com.emc.storageos.model.file.policy.FilePolicyListRestRep;
 import com.emc.storageos.model.file.policy.FilePolicyProjectAssignParam;
 import com.emc.storageos.model.file.policy.FilePolicyRestRep;
 import com.emc.storageos.model.file.policy.FilePolicyVpoolAssignParam;
+import com.emc.storageos.model.project.ProjectRestRep;
+import com.emc.storageos.model.vpool.FileVirtualPoolRestRep;
 import com.emc.vipr.client.core.util.ResourceUtils;
 import com.google.common.collect.Lists;
 
@@ -28,6 +32,7 @@ import controllers.Common;
 import controllers.deadbolt.Restrict;
 import controllers.deadbolt.Restrictions;
 import controllers.util.FlashException;
+import controllers.util.Models;
 import controllers.util.ViprResourceController;
 import models.datatable.ScheculePoliciesDataTable;
 import play.Logger;
@@ -68,16 +73,18 @@ public class AssignPolicies extends ViprResourceController {
     public static void create() {
         AssignPolicyForm assignPolicy = new AssignPolicyForm();
         addRenderArgs();
+        addProjectArgs();
         render("@edit", assignPolicy);
     }
 
     @FlashException(value = "list", keep = true)
-    public static void edit(String id) {
+    public static void assign(String id) {
         FilePolicyRestRep filePolicyRestRep = getViprClient().fileProtectionPolicies().get(uri(id));
         if (filePolicyRestRep != null) {
             AssignPolicyForm assignPolicy = new AssignPolicyForm().form(filePolicyRestRep);
 
             addRenderArgs();
+            addProjectArgs();
             render(assignPolicy);
         } else {
             flash.error(MessagesUtils.get(UNKNOWN, id));
@@ -101,8 +108,37 @@ public class AssignPolicies extends ViprResourceController {
 
     }
 
+    private static List<StringOption> createResourceOptions(Collection<? extends DataObjectRestRep> values) {
+        List<StringOption> options = Lists.newArrayList();
+        for (DataObjectRestRep value : values) {
+            options.add(new StringOption(value.getId().toString(), value.getName()));
+        }
+        return options;
+    }
+
+    private static List<StringOption> getFileVirtualPoolsOptions(URI virtualArray) {
+        Collection<FileVirtualPoolRestRep> virtualPools;
+        if (virtualArray == null) {
+            virtualPools = getViprClient().fileVpools().getAll();
+        } else {
+            virtualPools = getViprClient().fileVpools().getByVirtualArray(virtualArray);
+        }
+
+        return createResourceOptions(virtualPools);
+    }
+
+    private static List<StringOption> getFileProjectOptions(URI tenantId) {
+        Collection<ProjectRestRep> projects = getViprClient().projects().getByTenant(tenantId);
+        return createResourceOptions(projects);
+    }
+
+    private static void addProjectArgs() {
+        renderArgs.put("projectVpoolOptions", getFileVirtualPoolsOptions(null));
+        renderArgs.put("projectOptions", getFileProjectOptions(uri(Models.currentAdminTenant())));
+    }
+
     @FlashException(keep = true, referrer = { "create", "edit" })
-    public static void save(AssignPolicyForm assignPolicy) {
+    public static void edit(AssignPolicyForm assignPolicy) {
         if (assignPolicy == null) {
             Logger.error("No assign policy parameters passed");
             badRequest("No assign policy parameters passed");

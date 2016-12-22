@@ -38,6 +38,9 @@
     #{/field}    
     
    <div id="projectFields"> 
+    #{field 'assignPolicy.vpool'}
+      #{Form.selectOneControlGroup field:field, options:projectVpoolOptions, select:assignPolicy.vpool, cssClass:'span3' /}
+    #{/field} 
     #{field 'assignPolicy.applyToAllProjects'}
     #{Form.controlGroup field:field, width:4}
       %{ typeField = field }%

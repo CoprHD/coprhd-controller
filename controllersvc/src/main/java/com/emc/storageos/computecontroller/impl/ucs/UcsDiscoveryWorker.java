@@ -78,6 +78,7 @@ import com.emc.storageos.db.client.model.ComputeVnic;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.DiscoveredSystemObject;
+import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.UCSServiceProfileTemplate;
 import com.emc.storageos.db.client.model.UCSVhbaTemplate;
@@ -340,6 +341,8 @@ public class UcsDiscoveryWorker {
         for (String name : removeBlades.keySet()) {
             _log.info("Marked for deletion ComputeElement name:" + name);
         }
+        removeBladesFromComputeVirtualPools(removeBlades.values());
+        removeBladesFromHosts(removeBlades.values());
         deleteDataObjects(new ArrayList<DataObject>(removeBlades.values()));
     }
 
@@ -1643,6 +1646,49 @@ public class UcsDiscoveryWorker {
         }
         computeVnic.setNativeVlan(nativeVlan);
         computeVnic.setVlans(vlans);
+    }
+
+    private void removeBladesFromHosts(Collection<ComputeElement> removeBlades) {
+        List<URI> ids = _dbClient.queryByType(Host.class, true);
+        Iterator<Host> iter = _dbClient.queryIterativeObjects(Host.class, ids);
+
+        while (iter.hasNext()) {
+            Boolean dbUpdateRequired = false;
+            Host host = iter.next();
+            for (ComputeElement computeElement : removeBlades) {
+                if (host.getComputeElement() != null
+                        && host.getComputeElement().equals(computeElement.getId())) {
+                    _log.info("Removing ComputeElement {} association from Host {} ", computeElement.getDn(), host.getLabel());
+                    host.setComputeElement(NullColumnValueGetter.getNullURI());
+                    _dbClient.persistObject(host);
+                }
+            }
+
+        }
+    }
+
+
+    private void removeBladesFromComputeVirtualPools(Collection<ComputeElement> removeBlades) {
+        List<URI> ids = _dbClient.queryByType(ComputeVirtualPool.class, true);
+        Iterator<ComputeVirtualPool> iter = _dbClient.queryIterativeObjects(ComputeVirtualPool.class, ids);
+
+        while (iter.hasNext()) {
+            Boolean dbUpdateRequired = false;
+            ComputeVirtualPool cvp = iter.next();
+            for (ComputeElement computeElement : removeBlades) {
+                if (cvp.getMatchedComputeElements() != null
+                        && cvp.getMatchedComputeElements().contains(computeElement.getId().toString())) {
+                    _log.info("Removing ComputeElement {} from ComputeVirtualPool {} ", computeElement.getDn(), cvp.getLabel());
+                    cvp.removeMatchedComputeElement(computeElement.getId().toString());
+                    dbUpdateRequired = true;
+                }
+            }
+
+            if (dbUpdateRequired) {
+                _log.info("Persisting ComputeVirtualPool {},after ComputeElement removal", cvp.getLabel());
+                _dbClient.persistObject(cvp);
+            }
+        }
     }
 
     private void removeServiceProfileTemplatesFromComputeVirtualPool(Collection<UCSServiceProfileTemplate> removeTemplates) {

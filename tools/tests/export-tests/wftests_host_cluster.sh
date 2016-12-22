@@ -1453,3 +1453,95 @@ test_delete_host() {
         report_results ${test_name} ${failure}
     done
 }
+
+test_delete_cluster() {
+    test_name="test_delete_cluster"
+    echot "Test test_delete_cluster"
+    host1=fakehost-1-${RANDOM}
+    host2=fakehost-2-${RANDOM}
+    cluster=fakecluster-${RANDOM}
+    cluster_export=${cluster}
+ 
+    cfs="ExportGroup ExportMask Network Host Initiator Cluster"
+
+    common_failure_injections="failure_004_final_step_in_workflow_complete"
+    
+    fake_pwwn1=`randwwn`
+    fake_nwwn1=`randwwn`
+    fake_pwwn2=`randwwn`
+    fake_nwwn2=`randwwn`
+
+    volume1=${VOLNAME}-1
+
+    # Add initator WWNs to the network
+    run transportzone add $NH/${FC_ZONE_A} ${fake_pwwn1}
+    run transportzone add $NH/${FC_ZONE_A} ${fake_pwwn2}
+            
+    failure_injections="${HAPPY_PATH_TEST_INJECTION} ${common_failure_injections}"
+
+    # Create fake host
+    runcmd hosts create $host1 $TENANT Esx ${host1}.lss.emc.com --port 1 
+    runcmd hosts create $host2 $TENANT Esx ${host2}.lss.emc.com --port 1
+
+    # Create new initators and add to fakehost
+    runcmd initiator create $host1 FC ${fake_pwwn1} --node ${fake_nwwn1}
+    runcmd initiator create $host2 FC ${fake_pwwn2} --node ${fake_nwwn2}
+
+    for failure in ${failure_injections}
+    do
+        if [ ${failure} == ${HAPPY_PATH_TEST_INJECTION} ]; then
+            secho "Running happy path test for delete cluster..."
+        else    
+            secho "Running delete cluster with failure scenario: ${failure}..."
+        fi    
+       
+        TEST_OUTPUT_FILE=test_output_${RANDOM}.log
+        reset_counts
+        item=${RANDOM}
+        mkdir -p results/${item}
+        #cluster1_export=clusterexport-${item}
+
+        snap_db 1 ${cfs}
+       
+        runcmd cluster create $cluster $TENANT
+
+        runcmd hosts update $host1 --cluster ${TENANT}/${cluster}
+        runcmd hosts update $host2 --cluster ${TENANT}/${cluster}
+ 
+        runcmd export_group create $PROJECT ${cluster_export} $NH --type Cluster --volspec ${PROJECT}/${volume1} --cluster ${TENANT}/${cluster}
+ 
+        snap_db 2 ${cfs}
+
+        move_host="false"
+        if [ ${failure} == ${HAPPY_PATH_TEST_INJECTION} ]; then
+            # Move the host to first cluster
+            #runcmd hosts update ${host} --cluster ${TENANT}/${cluster1}
+            runcmd cluster delete ${TENANT}/${cluster} --detachstorage true
+        else    
+            # Turn on failure at a specific point
+            set_artificial_failure ${failure}
+            
+            fail cluster delete ${TENANT}/${cluster} --detachstorage true
+    
+            # Snap the DB after rollback
+            snap_db 3 ${cfs}
+
+            # Validate nothing was left behind
+            validate_db 2 3 ${cfs}
+                
+            # Rerun the command
+            set_artificial_failure none
+
+            # Retry move the host to first cluster
+            runcmd cluster delete ${TENANT}/${cluster} --detachstorage true          
+        fi
+        
+        snap_db 4 ${cfs}  
+
+        # Validate that nothing was left behind
+        validate_db 1 4 ${cfs}          
+
+        # Report results
+        report_results ${test_name} ${failure}
+    done
+}

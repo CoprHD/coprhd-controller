@@ -378,6 +378,7 @@ URI_VCENTERS_BULKGET            = URI_VCENTERS        + '/bulk'
 URI_VCENTER_DATACENTERS         = URI_VCENTER         + '/vcenter-data-centers'
 URI_CLUSTERS                    = URI_SERVICES_BASE   + '/compute/clusters'
 URI_CLUSTER                     = URI_SERVICES_BASE   + '/compute/clusters/{0}'
+URI_CLUSTER_DEACTIVATE          = URI_CLUSTER         + '/deactivate?detach-storage={1}'
 URI_CLUSTERS_BULKGET            = URI_CLUSTERS        + '/bulk'
 URI_DATACENTERS                 = URI_SERVICES_BASE   + '/compute/vcenter-data-centers'
 URI_DATACENTER                  = URI_SERVICES_BASE   + '/compute/vcenter-data-centers/{0}'
@@ -8320,9 +8321,17 @@ class Bourne:
         uri = self.cluster_query(name)
         return self.api('GET', URI_CLUSTER.format(uri))
 
-    def cluster_delete(self, name):
+    def cluster_delete(self, name, detachstorage):
         uri = self.cluster_query(name)
-        return self.api('POST', URI_RESOURCE_DEACTIVATE.format(URI_CLUSTER.format(uri)))
+        o = self.api('POST', URI_CLUSTER_DEACTIVATE.format(uri, detachstorage))
+        self.assert_is_dict(o)
+        s = self.api_sync_2(o['resource']['id'], o['id'], self.cluster_show_task)
+        return (o,s)
+  
+    def cluster_show_task(self, uri, task):
+        uri_cluster_task = URI_CLUSTER + '/tasks/{1}'
+        return self.api('GET', uri_cluster_task.format(uri, task))
+
 
     #
     # Compute Resources - Host

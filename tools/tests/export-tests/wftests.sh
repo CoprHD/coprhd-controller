@@ -2418,9 +2418,15 @@ test_6() {
 	storage_failure_injections=""
     fi
 
-    if [ "${SS}" = "vnx" -o "${SS}" = "vmax2" -o "${SS}" = "vmax3" -o "${SS}" = "unity" ]
+    if [ "${SS}" = "vnx" -o "${SS}" = "vmax2" -o "${SS}" = "unity" ]
     then
 	storage_failure_injections="failure_004:failure_017_Export_doRemoveVolume"
+    fi
+
+    if [ "${SS}" = "vmax3" ]
+    then
+	storage_failure_injections="failure_004:failure_017_Export_doRemoveVolume \
+                                    failure_015_SmisCommandHelper.invokeMethod_CreateGroup"
     fi
 
     failure_injections="${common_failure_injections} ${storage_failure_injections}"

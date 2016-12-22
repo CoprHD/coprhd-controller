@@ -193,9 +193,9 @@ public class VMWareProvider extends BaseHostProvider {
         SourceTargetVolumesFilter sourceTargetVolumesFilter = new SourceTargetVolumesFilter();
         List<VolumeRestRep> volumes = client.blockVolumes().findByProject(projectId, unexportedFilter.and(sourceTargetVolumesFilter));
         List<URI> volumeIds = getVolumeList(volumes);
-        // Map<URI, Integer> volumeHlus = getVolumeHLUs(ctx, volumeIds);
+        Map<URI, Integer> volumeHlus = getVolumeHLUs(ctx, volumeIds);
         // return createBlockVolumeDatastoreOptions(volumeHlus, volumes, hostOrClusterId);
-        List<AssetOption> options = createBlockVolumeDatastoreOptions(null, volumes, hostOrClusterId);
+        List<AssetOption> options = createBlockVolumeDatastoreOptions(volumeHlus, volumes, hostOrClusterId);
         info("========= Done. Time = %s", timer.probe());
         return options;
     }

@@ -609,17 +609,13 @@ public class XtremIOProvUtils {
     public static String getIGNameForInitiator(Initiator initiator, String storageSerialNumber, XtremIOClient client, String xioClusterName)
             throws Exception {
         String igName = null;
-        try {
-            String initiatorName = initiator.getMappedInitiatorName(storageSerialNumber);
-            if (null != initiatorName) {
-                // Get initiator by Name and find IG Group
-                XtremIOInitiator initiatorObj = client.getInitiator(initiatorName, xioClusterName);
-                if (null != initiatorObj) {
-                    igName = initiatorObj.getInitiatorGroup().get(1);
-                }
+        String initiatorName = initiator.getMappedInitiatorName(storageSerialNumber);
+        if (null != initiatorName) {
+            // Get initiator by Name and find IG Group
+            XtremIOInitiator initiatorObj = client.getInitiator(initiatorName, xioClusterName);
+            if (null != initiatorObj) {
+                igName = initiatorObj.getInitiatorGroup().get(1);
             }
-        } catch (Exception e) {
-            _log.warn("Initiator {} already deleted", initiator.getLabel());
         }
 
         return igName;

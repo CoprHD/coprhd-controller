@@ -1,0 +1,10 @@
+<div ng-repeat="item in modal.items | values | unlocked">
+  <span ng-switch="item.type">
+    <span ng-switch-when="table">
+      <service-table table="item"></service-table>
+    </span>
+    <span ng-switch-default>
+      <service-field field="item"></service-field>
+    </span>
+  </span>
+</div>

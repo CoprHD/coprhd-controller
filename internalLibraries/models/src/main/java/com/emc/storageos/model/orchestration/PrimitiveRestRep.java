@@ -28,12 +28,19 @@ import com.emc.storageos.model.RestLinkRep;
 @XmlRootElement(name = "primitive")
 public class PrimitiveRestRep extends DataObjectRestRep {
 
+    @SerializedName("friendly_name")
     private String friendlyName;
+    @SerializedName("description")
     private String description;
+    @SerializedName("success_criteria")
     private String successCriteria;
+    @SerializedName("attributes")
     private List<Attribute> attributes;
+    @SerializedName("input")
     private List<InputParameterRestRep> input;
+    @SerializedName("output")
     private List<OutputParameterRestRep> output;
+    @SerializedName("resource")
     private RestLinkRep resource;
 
     @XmlElement(name = "friendly_name")

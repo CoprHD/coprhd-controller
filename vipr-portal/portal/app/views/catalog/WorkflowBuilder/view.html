@@ -11,31 +11,30 @@
     <div class="builder-column">
         <ul id="wftabs" class="nav nav-tabs" role="tablist">
             <li class="active"><a href="#home" role="tab" data-toggle="tab" data-id="home"><span class="glyphicon glyphicon-home "></span>&nbsp;Workflow Library</a></li>
-            <li ng-repeat="workflowTab in workflowTabs" class=""><a href="{{workflowTab.href}}" role="tab" data-toggle="tab">{{workflowTab.id}}<button class="close" ng-click="closeTab(workflowTab.id)" type="button" title="Close tab"><span aria-hidden="true">&times;</span></button></a></li>
+            <li ng-repeat="workflowTab in workflowTabs" class=""><a href="{{workflowTab.href}}" role="tab" data-toggle="tab">{{workflowTab.name}}<button class="close" ng-click="closeTab(workflowTab.id)" type="button" title="Close tab"><span aria-hidden="true">&times;</span></button></a></li>
         </ul>
 
         <div class="tab-content">
             <div class="tab-pane active" id="home">
                 <div class="col-md-3">
-                    <div id="theSidebar" class="sidebar" style="" >
+                    <div ng-controller="treeController" id="theSidebar" class="home-sidebar" >
                         <div class="tree_buttons" style="padding-bottom: 10px; padding-top: 10px;padding-right: 10px;float: right">
-                            <button id="addFolder" type="button" class="btn btn-xs btn-primary add" value="Add Folder" title="Add Folder" onclick="addFolder();" disabled>
+                            <button id="addFolder" type="button" class="btn btn-xs btn-primary add" value="Add Folder" title="Add Folder" ng-click="addFolder();" disabled>
                                 <span class="glyphicon glyphicon-folder-close "></span>
                             </button>
-                            <button id="addWorkflow" type="button" class="btn btn-xs btn-success add" value="Add Workflow" title="Add Workflow" onclick="addWorkflow();" disabled>
+                            <button id="addWorkflow" type="button" class="btn btn-xs btn-success add" value="Add Workflow" title="Add Workflow" ng-click="addWorkflow();" disabled>
                                 <span class="glyphicon glyphicon-plus "></span>
                             </button>
-                            <button id="deleteNode" type="button" class="btn btn-xs btn-danger delete" value="Delete" title="Delete" onclick="deleteNode();" disabled>
+                            <button id="deleteNode" type="button" class="btn btn-xs btn-danger delete" value="Delete" title="Delete" ng-click="deleteNode();" disabled>
                                 <span class="glyphicon glyphicon-trash "></span>
                             </button>
-                            <button id="editNode" type="button" class="btn btn-xs btn-warning edit" value="Edit" title="Edit" onclick="editNode();" disabled>
+                            <button id="editNode" type="button" class="btn btn-xs btn-warning edit" value="Edit" title="Edit" ng-click="editNode();" disabled>
                                 <span class="glyphicon glyphicon-pencil "></span>
                             </button>
-                            <!--TODO: Workflow preview is pending, so disabling this button for now-->
                             <button id="previewWorkflow"  type="button" class="btn btn-xs btn-default info" value="Preview" title="Preview" disabled>
                                 <span class="glyphicon glyphicon-eye-open "></span>
                             </button>
-                            <button id="openEditor"  type="button" class="btn btn-xs btn-default info" value="Open" title="Open" onclick="openWorkflow()" disabled>
+                            <button id="openEditor"  type="button" class="btn btn-xs btn-default info" value="Open" title="Open" ng-click="openWorkflow()" disabled>
                                 <span class="glyphicon glyphicon-new-window "></span>
                             </button>
                         </div>
@@ -48,7 +47,6 @@
                         </div>
                     </div>
                 </div>
-                <!--TODO: workflow preview-->
                 <div class="col-md-9">
                     <div style="height:80vh; border:1px solid #000; padding:20px;">Workflow preview TODO</div>
                     <div style="padding:10px;">
@@ -56,9 +54,7 @@
                     </div>
                 </div>
             </div>
-            <div ng-controller="tabController" ng-repeat="workflowTab in workflowTabs" class="tab-pane" id="{{workflowTab.id}}">
-                #{workflowDesigner/}
-            </div>
+            #{workflowDesigner/}
         </div>
     </div>
 </div>

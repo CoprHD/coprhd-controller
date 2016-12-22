@@ -1,810 +1,204 @@
     /*
     Dummy data for testing functionality
         dummyWorkflowData - represents newly created workflow
-        dummyStepData - represents data assosciated with a specific step
         dummyWF - represents workflow data saved by wfbuilder
     TODO: replace dummy data with API data
     */
     var dummyWorkflowData = {
-           "WorkflowName":"",
-           "Description":"Create Volumes if fails delete the created volumes. Send Email about the Workflow status"
+           "name":"",
+           "description":"Create Volumes if fails delete the created volumes. Send Email about the Workflow status"
        };
 
-    var dummyStepData = {
-         "OpName":"createVolume",
-         "Description":"Create Volumes",
-         "Type":"ViPR REST API",
-         "Input":{
-            "Size":{
-               "Type":"inputFromUser",
-               "FriendlyName":"CreateVolume Size",
-               "Required":"true",
-               "Default":"",
-               "AssetValue":"",
-               "Group":"Provisioning",
-               "LockDown":""
-            },
-            "volumeName":{
-               "Type":"inputFromUser",
-               "FriendlyName":"Create Volume Name",
-               "Required":"true",
-               "Default":"Mozart-Vol",
-               "AssetValue":"",
-               "Group":"Provisioning",
-               "LockDown":""
-            },
-            "numOfVolume":{
-               "Type":"inputFromUser",
-               "FriendlyName":"Num of volumes to create",
-               "Required":"true",
-               "Default":"1",
-               "AssetValue":"",
-               "Group":"Provisioning"
-            },
-            "vArray":{
-               "Type":"AssetOption",
-               "FriendlyName":"Varray",
-               "Required":"true",
-               "Default":"",
-               "AssetValue":"asset.option.varray",
-               "Group":"Controller"
-            },
-            "vPool":{
-               "Type":"AssetOption",
-               "FriendlyName":"Vpool",
-               "Required":"true",
-               "Default":"",
-               "AssetValue":"asset.option.vpool",
-               "Group":"Controller"
-            },
-            "project":{
-               "Type":"AssetOption",
-               "FriendlyName":"Project",
-               "Required":"true",
-               "Default":"",
-               "AssetValue":"asset.option.vpool",
-               "Group":"Controller"
-            }
-         },
-         "Output":{
-            "createdVols":"ALL task.resource.id"
-         },
-         "StepAttribute":{
-            "WaitForTask":true,
-            "Timeout":"60m"
-         }
-        };
-
     var dummyWF = {
-                    "WorkflowName": "",
-                    "Description": "Create Volumes if fails delete the created volumes. Send Email about the Workflow status",
-                    "Steps": [
+                   "name":"demo",
+                   "description":"Create Volumes if fails delete the created volumes. Send Email about the Workflow status",
+                   "steps":[
                       {
-                        "positionX": 1977,
-                        "positionY": 1999,
-                        "StepId": "im85huspdbpflmcxr",
-                        "FriendlyName": "Create Volume",
-                        "OpName": "createVolume",
-                        "Description": "Create Volumes",
-                        "Type": "ViPR REST API",
-                        "Input": {
-                          "Size": {
-                            "Type": "inputFromUser",
-                            "FriendlyName": "CreateVolume Size",
-                            "Required": "true",
-                            "Default": "",
-                            "AssetValue": "",
-                            "Group": "Provisioning",
-                            "LockDown": ""
-                          },
-                          "volumeName": {
-                            "Type": "inputFromUser",
-                            "FriendlyName": "Create Volume Name",
-                            "Required": "true",
-                            "Default": "Mozart-Vol",
-                            "AssetValue": "",
-                            "Group": "Provisioning",
-                            "LockDown": ""
-                          },
-                          "numOfVolume": {
-                            "Type": "inputFromUser",
-                            "FriendlyName": "Num of volumes to create",
-                            "Required": "true",
-                            "Default": "1",
-                            "AssetValue": "",
-                            "Group": "Provisioning"
-                          },
-                          "vArray": {
-                            "Type": "AssetOption",
-                            "FriendlyName": "Varray",
-                            "Required": "true",
-                            "Default": "",
-                            "AssetValue": "asset.option.varray",
-                            "Group": "Controller"
-                          },
-                          "vPool": {
-                            "Type": "AssetOption",
-                            "FriendlyName": "Vpool",
-                            "Required": "true",
-                            "Default": "",
-                            "AssetValue": "asset.option.vpool",
-                            "Group": "Controller"
-                          },
-                          "project": {
-                            "Type": "AssetOption",
-                            "FriendlyName": "Project",
-                            "Required": "true",
-                            "Default": "",
-                            "AssetValue": "asset.option.vpool",
-                            "Group": "Controller"
-                          }
-                        },
-                        "Output": {
-                          "createdVols": "ALL task.resource.id"
-                        },
-                        "StepAttribute": {
-                          "WaitForTask": true,
-                          "Timeout": "60m"
-                        },
-                        "Next": {
-                          "Default": "pgij9drci8kxcd6lxr",
-                          "Failure": "7yjtpb83rn95hotro1or"
-                        }
+                         "positionX": 2110,
+                         "positionY": 2098,
+                         "id":"Start",
+                         "friendly_name":"Start",
+                         "next":{
+                            "default":"GoBig"
+                         }
                       },
                       {
-                        "positionX": 2391,
-                        "positionY": 2108,
-                        "StepId": "pgij9drci8kxcd6lxr",
-                        "FriendlyName": "e",
-                        "OpName": "createVolume",
-                        "Description": "Create Volumes",
-                        "Type": "ViPR REST API",
-                        "Input": {
-                          "Size": {
-                            "Type": "inputFromUser",
-                            "FriendlyName": "CreateVolume Size",
-                            "Required": "true",
-                            "Default": "",
-                            "AssetValue": "",
-                            "Group": "Provisioning",
-                            "LockDown": ""
-                          },
-                          "volumeName": {
-                            "Type": "inputFromUser",
-                            "FriendlyName": "Create Volume Name",
-                            "Required": "true",
-                            "Default": "Mozart-Vol",
-                            "AssetValue": "",
-                            "Group": "Provisioning",
-                            "LockDown": ""
-                          },
-                          "numOfVolume": {
-                            "Type": "inputFromUser",
-                            "FriendlyName": "Num of volumes to create",
-                            "Required": "true",
-                            "Default": "1",
-                            "AssetValue": "",
-                            "Group": "Provisioning"
-                          },
-                          "vArray": {
-                            "Type": "AssetOption",
-                            "FriendlyName": "Varray",
-                            "Required": "true",
-                            "Default": "",
-                            "AssetValue": "asset.option.varray",
-                            "Group": "Controller"
-                          },
-                          "vPool": {
-                            "Type": "AssetOption",
-                            "FriendlyName": "Vpool",
-                            "Required": "true",
-                            "Default": "",
-                            "AssetValue": "asset.option.vpool",
-                            "Group": "Controller"
-                          },
-                          "project": {
-                            "Type": "AssetOption",
-                            "FriendlyName": "Project",
-                            "Required": "true",
-                            "Default": "",
-                            "AssetValue": "asset.option.vpool",
-                            "Group": "Controller"
-                          }
+                        "positionX": 2323,
+                        "positionY": 2098,
+                         "id":"GoBig",
+                         "operation":"com.emc.storageos.model.orchestration.internal.BlockServiceCreateVolume",
+                         "description":"Create Volumes",
+                         "friendly_name":"Create Volume",
+                         "type":"ViPR REST API",
+                         "input":{
+                            "size":{
+                               "type":"InputFromUser",
+                               "friendly_name":"CreateVolume Size",
+                               "required":"true",
+                               "default_value":"1GB",
+                               "value":"",
+                               "group":"Provisioning",
+                               "locked":""
+                            },
+                            "name":{
+                               "type":"InputFromUser",
+                               "friendly_name":"Create Volume Name",
+                               "required":"true",
+                               "default_value":"Mozart-Vol",
+                               "value":"",
+                               "group":"Provisioning",
+                               "locked":""
+                            },
+                            "count":{
+                               "type":"InputFromUser",
+                               "friendly_name":"Num of volumes to create",
+                               "required":"true",
+                               "default_value":"1",
+                               "value":"",
+                               "group":"Provisioning"
+                            },
+                            "varray":{
+                               "type":"AssetOption",
+                               "friendly_name":"Varray",
+                               "required":"true",
+                               "default_value":"urn:storageos:VirtualArray:9ff1c466-4f17-4d0a-aaf9-df9cb06cfde0:vdc1",
+                               "value":"assetType.vipr.virtualArray",
+                               "group":"Controller"
+                            },
+                            "vpool":{
+                               "type":"AssetOption",
+                               "friendly_name":"Vpool",
+                               "required":"true",
+                               "default_value":"urn:storageos:VirtualPool:8b81adcd-91c8-422a-bc2d-6d245db66998:vdc1",
+                               "value":"assetType.vipr.blockVirtualPool",
+                               "group":"Controller"
+                            },
+                            "project":{
+                               "type":"AssetOption",
+                               "friendly_name":"Project",
+                               "required":"true",
+                               "default_value":"urn:storageos:Project:51d2cc03-62ad-4e7e-92b1-e60cf614c84f:global",
+                               "value":"assetType.vipr.project",
+                               "group":"Controller"
+                            },
+                        "consistencyGroup":{
+                           "type":"InputFromUser",
+                               "friendly_name":"consistency group",
+                               "required":"false",
+                               "default_value":"",
+                               "group":"Controller"
                         },
-                        "Output": {
-                          "createdVols": "ALL task.resource.id"
-                        },
-                        "StepAttribute": {
-                          "WaitForTask": true,
-                          "Timeout": "60m"
-                        }
+                        "computeResource":{
+                           "type":"InputFromUser",
+                               "friendly_name":"compute resource",
+                               "required":"false",
+                               "default_value":"",
+                               "group":"Controller"
+                         }
+                         },
+                         "success_criteria":"#task_state == 'pending'",
+                         "output":{
+                            "CreatedVols":"task.resource.id"
+                         },
+                         "attributes":{
+                            "wait_for_task":true,
+                            "timeout":"60"
+                         },
+                         "next":{
+                            "default":"WinBig",
+                            "failed":"WE123"
+                         }
                       },
                       {
-                        "positionX": 1986,
-                        "positionY": 2173,
-                        "StepId": "7yjtpb83rn95hotro1or",
-                        "FriendlyName": "z",
-                        "OpName": "createVolume",
-                        "Description": "Create Volumes",
-                        "Type": "ViPR REST API",
-                        "Input": {
-                          "Size": {
-                            "Type": "inputFromUser",
-                            "FriendlyName": "CreateVolume Size",
-                            "Required": "true",
-                            "Default": "",
-                            "AssetValue": "",
-                            "Group": "Provisioning",
-                            "LockDown": ""
-                          },
-                          "volumeName": {
-                            "Type": "inputFromUser",
-                            "FriendlyName": "Create Volume Name",
-                            "Required": "true",
-                            "Default": "Mozart-Vol",
-                            "AssetValue": "",
-                            "Group": "Provisioning",
-                            "LockDown": ""
-                          },
-                          "numOfVolume": {
-                            "Type": "inputFromUser",
-                            "FriendlyName": "Num of volumes to create",
-                            "Required": "true",
-                            "Default": "1",
-                            "AssetValue": "",
-                            "Group": "Provisioning"
-                          },
-                          "vArray": {
-                            "Type": "AssetOption",
-                            "FriendlyName": "Varray",
-                            "Required": "true",
-                            "Default": "",
-                            "AssetValue": "asset.option.varray",
-                            "Group": "Controller"
-                          },
-                          "vPool": {
-                            "Type": "AssetOption",
-                            "FriendlyName": "Vpool",
-                            "Required": "true",
-                            "Default": "",
-                            "AssetValue": "asset.option.vpool",
-                            "Group": "Controller"
-                          },
-                          "project": {
-                            "Type": "AssetOption",
-                            "FriendlyName": "Project",
-                            "Required": "true",
-                            "Default": "",
-                            "AssetValue": "asset.option.vpool",
-                            "Group": "Controller"
-                          }
-                        },
-                        "Output": {
-                          "createdVols": "ALL task.resource.id"
-                        },
-                        "StepAttribute": {
-                          "WaitForTask": true,
-                          "Timeout": "60m"
-                        },
-                        "Next": {
-                          "Failure": "btbrmlnqgultzs3y2e29",
-                          "Default": "ttyepwky095z74ym0a4i"
-                        }
+                        "positionX": 2312,
+                        "positionY": 2248,
+                         "id":"WE123",
+                         "operation":"deleteVolumes",
+                         "description":" Delete the volumes",
+                         "friendly_name":"Delete Volume",
+                         "type":"ViPR REST API",
+                         "input":{
+                            "id":{
+                               "type":"FromOtherStepOutput",
+                               "friendly_name":"Volumes to be deleted",
+                               "value":"GoBig.id"
+                            }
+                         },
+                         "output":{
+                            "DeletedVols":"task.resource.id"
+                         },
+                         "success_criteria":null,
+                         "next":{
+                            "default":"WinBig"
+                         }
                       },
                       {
-                        "positionX": 2220,
-                        "positionY": 2231,
-                        "StepId": "ttyepwky095z74ym0a4i",
-                        "FriendlyName": "x",
-                        "OpName": "createVolume",
-                        "Description": "Create Volumes",
-                        "Type": "ViPR REST API",
-                        "Input": {
-                          "Size": {
-                            "Type": "inputFromUser",
-                            "FriendlyName": "CreateVolume Size",
-                            "Required": "true",
-                            "Default": "",
-                            "AssetValue": "",
-                            "Group": "Provisioning",
-                            "LockDown": ""
-                          },
-                          "volumeName": {
-                            "Type": "inputFromUser",
-                            "FriendlyName": "Create Volume Name",
-                            "Required": "true",
-                            "Default": "Mozart-Vol",
-                            "AssetValue": "",
-                            "Group": "Provisioning",
-                            "LockDown": ""
-                          },
-                          "numOfVolume": {
-                            "Type": "inputFromUser",
-                            "FriendlyName": "Num of volumes to create",
-                            "Required": "true",
-                            "Default": "1",
-                            "AssetValue": "",
-                            "Group": "Provisioning"
-                          },
-                          "vArray": {
-                            "Type": "AssetOption",
-                            "FriendlyName": "Varray",
-                            "Required": "true",
-                            "Default": "",
-                            "AssetValue": "asset.option.varray",
-                            "Group": "Controller"
-                          },
-                          "vPool": {
-                            "Type": "AssetOption",
-                            "FriendlyName": "Vpool",
-                            "Required": "true",
-                            "Default": "",
-                            "AssetValue": "asset.option.vpool",
-                            "Group": "Controller"
-                          },
-                          "project": {
-                            "Type": "AssetOption",
-                            "FriendlyName": "Project",
-                            "Required": "true",
-                            "Default": "",
-                            "AssetValue": "asset.option.vpool",
-                            "Group": "Controller"
-                          }
-                        },
-                        "Output": {
-                          "createdVols": "ALL task.resource.id"
-                        },
-                        "StepAttribute": {
-                          "WaitForTask": true,
-                          "Timeout": "60m"
-                        },
-                        "Next": {
-                          "Default": "nuq104xx4ef1gp2mlsor"
-                        }
+                        "positionX": 2585,
+                        "positionY": 2248,
+                         "id":"WinBig",
+                         "operation":"com.emc.storageos.model.orchestration.internal.LocalAnsible",
+                         "description":"Generic Shell Primitive",
+                         "friendly_name":"Send Email",
+                         "type":"Ansible Script",
+                         "input":{
+                            "email":{
+                               "type":"InputFromUser",
+                               "friendly_name":"Email Send To",
+                               "required":"true",
+                               "default_value":"noReply@dell.com",
+                               "group":"Others"
+                            },
+                            "Subject":{
+                               "type":"InputFromUser",
+                               "friendly_name":"Subject of SendEmail",
+                               "default_value":"Sending Email…",
+                               "group":"Others"
+                            },
+                            "CreatedVolumes":{
+                               "type":"FromOtherStepOutput",
+                               "friendly_name":"created Volumes",
+                               "value":"GoBig.CreatedVols"
+                            },
+                            "Deletedvolumes":{
+                               "type":"FromOtherStepOutput",
+                               "friendly_name":"Deleted Volumes",
+                               "required":"false",
+                               "value":"WE123.DeletedVols"
+                            }
+                         },
+                         "output":null,
+                         "success_criteria":null,
+                         "next":{
+                            "default":"End"
+                          } 
                       },
                       {
-                        "positionX": 2433,
-                        "positionY": 2232,
-                        "StepId": "nuq104xx4ef1gp2mlsor",
-                        "FriendlyName": "q",
-                        "OpName": "createVolume",
-                        "Description": "Create Volumes",
-                        "Type": "ViPR REST API",
-                        "Input": {
-                          "Size": {
-                            "Type": "inputFromUser",
-                            "FriendlyName": "CreateVolume Size",
-                            "Required": "true",
-                            "Default": "",
-                            "AssetValue": "",
-                            "Group": "Provisioning",
-                            "LockDown": ""
-                          },
-                          "volumeName": {
-                            "Type": "inputFromUser",
-                            "FriendlyName": "Create Volume Name",
-                            "Required": "true",
-                            "Default": "Mozart-Vol",
-                            "AssetValue": "",
-                            "Group": "Provisioning",
-                            "LockDown": ""
-                          },
-                          "numOfVolume": {
-                            "Type": "inputFromUser",
-                            "FriendlyName": "Num of volumes to create",
-                            "Required": "true",
-                            "Default": "1",
-                            "AssetValue": "",
-                            "Group": "Provisioning"
-                          },
-                          "vArray": {
-                            "Type": "AssetOption",
-                            "FriendlyName": "Varray",
-                            "Required": "true",
-                            "Default": "",
-                            "AssetValue": "asset.option.varray",
-                            "Group": "Controller"
-                          },
-                          "vPool": {
-                            "Type": "AssetOption",
-                            "FriendlyName": "Vpool",
-                            "Required": "true",
-                            "Default": "",
-                            "AssetValue": "asset.option.vpool",
-                            "Group": "Controller"
-                          },
-                          "project": {
-                            "Type": "AssetOption",
-                            "FriendlyName": "Project",
-                            "Required": "true",
-                            "Default": "",
-                            "AssetValue": "asset.option.vpool",
-                            "Group": "Controller"
-                          }
-                        },
-                        "Output": {
-                          "createdVols": "ALL task.resource.id"
-                        },
-                        "StepAttribute": {
-                          "WaitForTask": true,
-                          "Timeout": "60m"
-                        },
-                        "Next": {
-                          "Default": "tgh820479dfctqhbyb9",
-                          "Failure": "rphtli3wwoi8bzdoyldi"
-                        }
-                      },
-                      {
-                        "positionX": 2714,
-                        "positionY": 2232,
-                        "StepId": "tgh820479dfctqhbyb9",
-                        "FriendlyName": "w",
-                        "OpName": "createVolume",
-                        "Description": "Create Volumes",
-                        "Type": "ViPR REST API",
-                        "Input": {
-                          "Size": {
-                            "Type": "inputFromUser",
-                            "FriendlyName": "CreateVolume Size",
-                            "Required": "true",
-                            "Default": "",
-                            "AssetValue": "",
-                            "Group": "Provisioning",
-                            "LockDown": ""
-                          },
-                          "volumeName": {
-                            "Type": "inputFromUser",
-                            "FriendlyName": "Create Volume Name",
-                            "Required": "true",
-                            "Default": "Mozart-Vol",
-                            "AssetValue": "",
-                            "Group": "Provisioning",
-                            "LockDown": ""
-                          },
-                          "numOfVolume": {
-                            "Type": "inputFromUser",
-                            "FriendlyName": "Num of volumes to create",
-                            "Required": "true",
-                            "Default": "1",
-                            "AssetValue": "",
-                            "Group": "Provisioning"
-                          },
-                          "vArray": {
-                            "Type": "AssetOption",
-                            "FriendlyName": "Varray",
-                            "Required": "true",
-                            "Default": "",
-                            "AssetValue": "asset.option.varray",
-                            "Group": "Controller"
-                          },
-                          "vPool": {
-                            "Type": "AssetOption",
-                            "FriendlyName": "Vpool",
-                            "Required": "true",
-                            "Default": "",
-                            "AssetValue": "asset.option.vpool",
-                            "Group": "Controller"
-                          },
-                          "project": {
-                            "Type": "AssetOption",
-                            "FriendlyName": "Project",
-                            "Required": "true",
-                            "Default": "",
-                            "AssetValue": "asset.option.vpool",
-                            "Group": "Controller"
-                          }
-                        },
-                        "Output": {
-                          "createdVols": "ALL task.resource.id"
-                        },
-                        "StepAttribute": {
-                          "WaitForTask": true,
-                          "Timeout": "60m"
-                        },
-                        "Next": {
-                          "Default": "pgij9drci8kxcd6lxr",
-                          "Failure": "iv5zjcpncqsbbkdcmcxr"
-                        }
-                      },
-                      {
-                        "positionX": 2908,
-                        "positionY": 2323,
-                        "StepId": "iv5zjcpncqsbbkdcmcxr",
-                        "FriendlyName": "d",
-                        "OpName": "createVolume",
-                        "Description": "Create Volumes",
-                        "Type": "ViPR REST API",
-                        "Input": {
-                          "Size": {
-                            "Type": "inputFromUser",
-                            "FriendlyName": "CreateVolume Size",
-                            "Required": "true",
-                            "Default": "",
-                            "AssetValue": "",
-                            "Group": "Provisioning",
-                            "LockDown": ""
-                          },
-                          "volumeName": {
-                            "Type": "inputFromUser",
-                            "FriendlyName": "Create Volume Name",
-                            "Required": "true",
-                            "Default": "Mozart-Vol",
-                            "AssetValue": "",
-                            "Group": "Provisioning",
-                            "LockDown": ""
-                          },
-                          "numOfVolume": {
-                            "Type": "inputFromUser",
-                            "FriendlyName": "Num of volumes to create",
-                            "Required": "true",
-                            "Default": "1",
-                            "AssetValue": "",
-                            "Group": "Provisioning"
-                          },
-                          "vArray": {
-                            "Type": "AssetOption",
-                            "FriendlyName": "Varray",
-                            "Required": "true",
-                            "Default": "",
-                            "AssetValue": "asset.option.varray",
-                            "Group": "Controller"
-                          },
-                          "vPool": {
-                            "Type": "AssetOption",
-                            "FriendlyName": "Vpool",
-                            "Required": "true",
-                            "Default": "",
-                            "AssetValue": "asset.option.vpool",
-                            "Group": "Controller"
-                          },
-                          "project": {
-                            "Type": "AssetOption",
-                            "FriendlyName": "Project",
-                            "Required": "true",
-                            "Default": "",
-                            "AssetValue": "asset.option.vpool",
-                            "Group": "Controller"
-                          }
-                        },
-                        "Output": {
-                          "createdVols": "ALL task.resource.id"
-                        },
-                        "StepAttribute": {
-                          "WaitForTask": true,
-                          "Timeout": "60m"
-                        },
-                        "Next": {
-                          "Default": "pgij9drci8kxcd6lxr"
-                        }
-                      },
-                      {
-                        "positionX": 2433,
-                        "positionY": 2401,
-                        "StepId": "rphtli3wwoi8bzdoyldi",
-                        "FriendlyName": "a",
-                        "OpName": "createVolume",
-                        "Description": "Create Volumes",
-                        "Type": "ViPR REST API",
-                        "Input": {
-                          "Size": {
-                            "Type": "inputFromUser",
-                            "FriendlyName": "CreateVolume Size",
-                            "Required": "true",
-                            "Default": "",
-                            "AssetValue": "",
-                            "Group": "Provisioning",
-                            "LockDown": ""
-                          },
-                          "volumeName": {
-                            "Type": "inputFromUser",
-                            "FriendlyName": "Create Volume Name",
-                            "Required": "true",
-                            "Default": "Mozart-Vol",
-                            "AssetValue": "",
-                            "Group": "Provisioning",
-                            "LockDown": ""
-                          },
-                          "numOfVolume": {
-                            "Type": "inputFromUser",
-                            "FriendlyName": "Num of volumes to create",
-                            "Required": "true",
-                            "Default": "1",
-                            "AssetValue": "",
-                            "Group": "Provisioning"
-                          },
-                          "vArray": {
-                            "Type": "AssetOption",
-                            "FriendlyName": "Varray",
-                            "Required": "true",
-                            "Default": "",
-                            "AssetValue": "asset.option.varray",
-                            "Group": "Controller"
-                          },
-                          "vPool": {
-                            "Type": "AssetOption",
-                            "FriendlyName": "Vpool",
-                            "Required": "true",
-                            "Default": "",
-                            "AssetValue": "asset.option.vpool",
-                            "Group": "Controller"
-                          },
-                          "project": {
-                            "Type": "AssetOption",
-                            "FriendlyName": "Project",
-                            "Required": "true",
-                            "Default": "",
-                            "AssetValue": "asset.option.vpool",
-                            "Group": "Controller"
-                          }
-                        },
-                        "Output": {
-                          "createdVols": "ALL task.resource.id"
-                        },
-                        "StepAttribute": {
-                          "WaitForTask": true,
-                          "Timeout": "60m"
-                        },
-                        "Next": {
-                          "Failure": "tgh820479dfctqhbyb9",
-                          "Default": "n0e651ri9c97rjclvunmi"
-                        }
-                      },
-                      {
-                        "positionX": 2727,
-                        "positionY": 2401,
-                        "StepId": "n0e651ri9c97rjclvunmi",
-                        "FriendlyName": "s",
-                        "OpName": "createVolume",
-                        "Description": "Create Volumes",
-                        "Type": "ViPR REST API",
-                        "Input": {
-                          "Size": {
-                            "Type": "inputFromUser",
-                            "FriendlyName": "CreateVolume Size",
-                            "Required": "true",
-                            "Default": "",
-                            "AssetValue": "",
-                            "Group": "Provisioning",
-                            "LockDown": ""
-                          },
-                          "volumeName": {
-                            "Type": "inputFromUser",
-                            "FriendlyName": "Create Volume Name",
-                            "Required": "true",
-                            "Default": "Mozart-Vol",
-                            "AssetValue": "",
-                            "Group": "Provisioning",
-                            "LockDown": ""
-                          },
-                          "numOfVolume": {
-                            "Type": "inputFromUser",
-                            "FriendlyName": "Num of volumes to create",
-                            "Required": "true",
-                            "Default": "1",
-                            "AssetValue": "",
-                            "Group": "Provisioning"
-                          },
-                          "vArray": {
-                            "Type": "AssetOption",
-                            "FriendlyName": "Varray",
-                            "Required": "true",
-                            "Default": "",
-                            "AssetValue": "asset.option.varray",
-                            "Group": "Controller"
-                          },
-                          "vPool": {
-                            "Type": "AssetOption",
-                            "FriendlyName": "Vpool",
-                            "Required": "true",
-                            "Default": "",
-                            "AssetValue": "asset.option.vpool",
-                            "Group": "Controller"
-                          },
-                          "project": {
-                            "Type": "AssetOption",
-                            "FriendlyName": "Project",
-                            "Required": "true",
-                            "Default": "",
-                            "AssetValue": "asset.option.vpool",
-                            "Group": "Controller"
-                          }
-                        },
-                        "Output": {
-                          "createdVols": "ALL task.resource.id"
-                        },
-                        "StepAttribute": {
-                          "WaitForTask": true,
-                          "Timeout": "60m"
-                        },
-                        "Next": {
-                          "Failure": "tgh820479dfctqhbyb9",
-                          "Default": "iv5zjcpncqsbbkdcmcxr"
-                        }
-                      },
-                      {
-                        "positionX": 1986,
-                        "positionY": 2323,
-                        "StepId": "btbrmlnqgultzs3y2e29",
-                        "FriendlyName": "c",
-                        "OpName": "createVolume",
-                        "Description": "Create Volumes",
-                        "Type": "ViPR REST API",
-                        "Input": {
-                          "Size": {
-                            "Type": "inputFromUser",
-                            "FriendlyName": "CreateVolume Size",
-                            "Required": "true",
-                            "Default": "",
-                            "AssetValue": "",
-                            "Group": "Provisioning",
-                            "LockDown": ""
-                          },
-                          "volumeName": {
-                            "Type": "inputFromUser",
-                            "FriendlyName": "Create Volume Name",
-                            "Required": "true",
-                            "Default": "Mozart-Vol",
-                            "AssetValue": "",
-                            "Group": "Provisioning",
-                            "LockDown": ""
-                          },
-                          "numOfVolume": {
-                            "Type": "inputFromUser",
-                            "FriendlyName": "Num of volumes to create",
-                            "Required": "true",
-                            "Default": "1",
-                            "AssetValue": "",
-                            "Group": "Provisioning"
-                          },
-                          "vArray": {
-                            "Type": "AssetOption",
-                            "FriendlyName": "Varray",
-                            "Required": "true",
-                            "Default": "",
-                            "AssetValue": "asset.option.varray",
-                            "Group": "Controller"
-                          },
-                          "vPool": {
-                            "Type": "AssetOption",
-                            "FriendlyName": "Vpool",
-                            "Required": "true",
-                            "Default": "",
-                            "AssetValue": "asset.option.vpool",
-                            "Group": "Controller"
-                          },
-                          "project": {
-                            "Type": "AssetOption",
-                            "FriendlyName": "Project",
-                            "Required": "true",
-                            "Default": "",
-                            "AssetValue": "asset.option.vpool",
-                            "Group": "Controller"
-                          }
-                        },
-                        "Output": {
-                          "createdVols": "ALL task.resource.id"
-                        },
-                        "StepAttribute": {
-                          "WaitForTask": true,
-                          "Timeout": "60m"
-                        },
-                        "Next": {
-                          "Default": "ttyepwky095z74ym0a4i",
-                          "Failure": "rphtli3wwoi8bzdoyldi"
-                        }
+                        "positionX": 2839,
+                        "positionY": 2248,
+                         "friendly_name":"End",
+                         "id":"End"
                       }
-                    ]
-                  };
+                   ]
+                };
 
-var treeID = "#jstree_demo";
-angular.module("portalApp").controller('builderController', function($scope, $http) { //NOSONAR ("Suppressing Sonar violations of max 100 lines in a function and function complexity")
+angular.module("portalApp").controller('builderController', function($scope, $rootScope) { //NOSONAR ("Suppressing Sonar violations of max 100 lines in a function and function complexity")
+    $rootScope.$on("addWorkflowTab", function(event, id, name){
+       addTab(id,name);
+    });
 
     $scope.workflowTabs = {};
 
-    $scope.addTab = function (tabid) {
-      $scope.workflowTabs[tabid] = { id: tabid, href:"#"+tabid };
-      $scope.$apply();
+    function addTab(id,name) {
+      $scope.workflowTabs[id] = { id:id, name:name, href:'#'+id };
     }
+    $scope.closeTab = function(tabID){
+        delete $scope.workflowTabs[tabID];
+        $(".nav-tabs li").children('a').first().click();
+    };
+})
+.controller('treeController', function($element, $scope, $compile, $http, $rootScope) { //NOSONAR ("Suppressing Sonar violations of max 100 lines in a function and function complexity")
+
+    var jstreeContainer = $element.find('#jstree_demo');
 
     // -- populate tree data
     //TODO: get ViPR Library nodes from API (pending)
@@ -813,18 +207,20 @@ angular.module("portalApp").controller('builderController', function($scope, $ht
         {"id":"viprLib","parent":"#","text":"ViPR Library"},
         {"id":"viprrest","parent":"viprLib","text":"ViPR REST Primitives"}
     ]
+
+
     $http.get(routes.WF_directories()).then(function (data) {
         initializeJsTree(dirJSON.concat(data.data))
     });
     // --
 
     function initializeJsTree(dirJSON){
-        $(".search-input").keyup(function() {
+        $element.find(".search-input").keyup(function() {
             var searchString = $(this).val();
-            $(treeID).jstree('search', searchString);
+            jstreeContainer.jstree('search', searchString);
         });
 
-        $(treeID).jstree({
+        jstreeContainer.jstree({
             "core": {
                 "animation": 0,
                 "check_callback": true,
@@ -860,7 +256,7 @@ angular.module("portalApp").controller('builderController', function($scope, $ht
             },
             "contextmenu" : {
                  "items": function($node) {
-                     var tree = $(treeID).jstree(true);
+                     var tree = jstreeContainer.jstree(true);
                      return {
                          "Create": {
                              "separator_before": false,
@@ -915,27 +311,37 @@ angular.module("portalApp").controller('builderController', function($scope, $ht
                  }
             }
         }).on('ready.jstree', function() {
-            $( ".draggable-card" ).draggable({handle: "a",helper: "clone",scroll: false});
+            jstreeContainer.find( ".draggable-card" ).draggable({handle: "a",scroll: false,helper: getDraggableStepHTML,appendTo: 'body',cursorAt: { top: 8, left: -16 }});
         }).bind("rename_node.jstree clear_search.jstree search.jstree open_node.jstree", function() {
-            $( ".draggable-card" ).draggable({handle: "a",helper: "clone",scroll: false});
+            jstreeContainer.find( ".draggable-card" ).draggable({handle: "a",scroll: false,helper: getDraggableStepHTML,appendTo: 'body',cursorAt: { top: 0, left: 0 }});
         })
+    }
+
+    var getDraggableStepHTML= function(event){
+        var stepName=event.target.text;
+        var treeId = event.target.parentElement.id
+        if (!stepName) {
+            stepName=event.target.parentElement.text;
+            treeId = event.target.parentElement.parentElement.id
+        }
+        var $item = '<div style="z-index:999;"class="item"><div class="itemText">' + stepName + '</div></div>';
+
+        //move this
+        var itemData = jstreeContainer.jstree(true).get_json(treeId).data;
+        $element.data("primitiveData",itemData);
+
+        return $( $item );
     }
 
     // jstree actions
     //TODO: do error handling on all actions
-    $(treeID).on("rename_node.jstree", renameDir);
-    $(treeID).on("delete_node.jstree", deleteDir);
-    $(treeID).on("select_node.jstree", selectDir);
-
-    $scope.closeTab = function(tabID){
-        delete $scope.workflowTabs[tabID];
-        $(".nav-tabs li").children('a').first().click();
-    };
+    jstreeContainer.on("rename_node.jstree", renameDir);
+    jstreeContainer.on("delete_node.jstree", deleteDir);
+    jstreeContainer.on("select_node.jstree", selectDir);
 
     // This method will create tab view for workflows
     function previewNode(node) {
-        var tabID = "tab_"+node.id;
-        addTab(tabID);
+        $rootScope.$emit("addWorkflowTab", node.id,node.text);
     }
 
     function createDir(event, data) {
@@ -1011,15 +417,60 @@ angular.module("portalApp").controller('builderController', function($scope, $ht
             }
         });
     };
+
+
+    // Methods for JSTree actions
+    $scope.addFolder = function() {
+        var ref = jstreeContainer.jstree(true),
+            sel = ref.get_selected();
+        if(!sel.length) { return false; }
+        sel = sel[0];
+        sel = ref.create_node(sel);
+        if(sel) {
+            ref.edit(sel);
+        }
+    }
+
+    $scope.addWorkflow = function() {
+        var ref = jstreeContainer.jstree(true),
+            sel = ref.get_selected();
+        if(!sel.length) { return false; }
+        sel = sel[0];
+        sel = ref.create_node(sel, {"type":"file"});
+        if(sel) {
+            ref.edit(sel);
+        }
+    }
+
+    $scope.editNode = function() {
+        var ref = jstreeContainer.jstree(true),
+            sel = ref.get_selected();
+        if(!sel.length) { return false; }
+        sel = sel[0];
+        ref.edit(sel);
+    };
+
+    $scope.deleteNode = function() {
+        var ref = jstreeContainer.jstree(true),
+            sel = ref.get_selected();
+        if(!sel.length) { return false; }
+        ref.delete_node(sel);
+    };
+
+    $scope.openWorkflow = function() {
+        var selectedNode = jstreeContainer.jstree(true).get_selected(true)[0];
+        $rootScope.$emit("addWorkflowTab", selectedNode.id.replace(/:/g,'') ,selectedNode.text);
+    }
 })
 
-.controller('tabController', function($element, $scope, $compile) { //NOSONAR ("Suppressing Sonar violations of max 100 lines in a function and function complexity")
+.controller('tabController', function($element, $scope, $compile, $http) { //NOSONAR ("Suppressing Sonar violations of max 100 lines in a function and function complexity")
 
-    var diagramContainer = $element.find('#diagramContainer')
-    var sbSite = $element.find('#sb-site')
+    var diagramContainer = $element.find('#diagramContainer');
+    var sbSite = $element.find('#sb-site');
+    var treecontroller = $element.find('#theSidebar');
     var jspInstance;
     var workflowData;
-
+    $scope.selectedId = '';
     //TODO: get workflowData from the API or user input and remove dummy data
     workflowData = jQuery.extend(true, {}, dummyWorkflowData);
 
@@ -1123,7 +574,6 @@ angular.module("portalApp").controller('builderController', function($scope, $ht
         //set ID and text within the step element
         //TODO: retrieve stepname from step data when API is available
         var randomIdHash = Math.random().toString(36).substring(7);
-        var stepName = $(e.toElement).text();
 
         //compensate x,y for zoom
         var x = e.clientX + document.body.scrollLeft + document.documentElement.scrollLeft;
@@ -1134,10 +584,9 @@ angular.module("portalApp").controller('builderController', function($scope, $ht
 
 
         //add data
-        //TODO:remove FriendlyName, it will be included in step data already
-        var stepData = jQuery.extend(true, {}, dummyStepData);
-        stepData.StepId = randomIdHash;
-        stepData.FriendlyName = stepName;
+        //TODO:remove friendly_name, it will be included in step data already
+        var stepData = jQuery.extend(true, {}, treecontroller.data("primitiveData"));
+        stepData.id = randomIdHash;
         stepData.positionY = positionY;
         stepData.positionX = positionX;
 
@@ -1148,35 +597,35 @@ angular.module("portalApp").controller('builderController', function($scope, $ht
         jspInstance.bind("connection", function(connection) {
             var source=$(connection.source);
             var sourceEndpoint=$(connection.sourceEndpoint.canvas);
-            var sourceData = source.data();
+            var sourceData = source.data("oeData");
             var sourceNext = {};
-            if (sourceData.Next) {
-                sourceNext = sourceData.Next;
+            if (sourceData.next) {
+                sourceNext = sourceData.next;
             }
             if (sourceEndpoint.hasClass("passEndpoint")) {
-                sourceNext.Default=connection.targetId
+                sourceNext.default=connection.targetId
             }
             if (sourceEndpoint.hasClass("failEndpoint")) {
-                sourceNext.Failure=connection.targetId
+                sourceNext.failed=connection.targetId
             }
-            source.data("Next",sourceNext);
+            sourceData.next=sourceNext;
         });
 
         jspInstance.bind("connectionDetached", function(connection) {
             var source=$(connection.source);
             var sourceEndpoint=$(connection.sourceEndpoint.canvas);
-            var sourceData = source.data();
+            var sourceData = source.data("oeData");
             var sourceNext = {};
-            if (sourceData.Next) {
-                sourceNext = sourceData.Next;
+            if (sourceData.next) {
+                sourceNext = sourceData.next;
             }
             if (sourceEndpoint.hasClass("passEndpoint")) {
-                delete sourceData.Next.Default;
+                delete sourceData.next.default;
             }
             if (sourceEndpoint.hasClass("failEndpoint")) {
-                delete sourceData.Next.Failure;
+                delete sourceData.next.failed;
             }
-            source.data("Next",sourceNext);
+            sourceData.next=sourceNext;
         });
     }
     /*
@@ -1188,7 +637,8 @@ angular.module("portalApp").controller('builderController', function($scope, $ht
         diagramContainer.find(" .item").each(function(idx, elem) {
             var $elem = $(elem);
             var $wrapper = $elem.parent();
-            var data = $elem.data();
+            var data = $elem.data("oeData");
+            delete data.$classCounts;
             blocks.push($.extend(data,{
                 positionX: parseInt($wrapper.css("left"), 10),
                 positionY: parseInt($wrapper.css("top"), 10)
@@ -1196,7 +646,7 @@ angular.module("portalApp").controller('builderController', function($scope, $ht
         });
 
         //TODO: return JSON data so that it can be accessed in Export/SaveWorkflow via this method
-        workflowData.Steps = blocks;
+        workflowData.steps = blocks;
 
         dummyWF = jQuery.extend(true, {}, workflowData);
     }
@@ -1205,26 +655,33 @@ angular.module("portalApp").controller('builderController', function($scope, $ht
         jspInstance.remove(diagramContainer.find('#' + stepId));
     }
 
+    $scope.select = function(stepId) {
+        $scope.selectedId = stepId;
+        var data = diagramContainer.find('#'+stepId).data("oeData");
+        $scope.stepData = data;
+    }
+
     function loadStep(step) {
         if(!step.positionY || !step.positionX){
             return;
         }
 
-        var stepId = step.StepId;
-        var stepName = step.FriendlyName;
+        var stepId = step.id;
+        var stepName = step.friendly_name;
 
         //create element html
         //TODO: move html to separate location instead of building in JS when design available
         var $itemWrapper = '<div id="' + stepId + '-wrapper" class="example-item-card-wrapper"></div>';
+        var $buttonContainer = '<div class="button-container"></div>';
+        var $editButton = '<a class="glyphicon glyphicon-pencil button-step-close" ng-click="select(\''+stepId+'\')"></a>';
         var $closeButton = '<a class="glyphicon glyphicon-remove button-step-close" ng-click="removeStep(\''+stepId+'-wrapper\')"></a>';
-        var $item = '<div id="' + stepId + '" class="item">';
-        var $itemText = '<div class="itemText">' + stepName + '</div>';
-        $($itemText).appendTo(diagramContainer).wrap($itemWrapper).before($closeButton).wrap($item);
+        var $item = '<div id="' + stepId + '" class="item" ng-class="{\'highlighted\':selectedId == \'' + stepId + '\'}"><div class="itemText">' + stepName + '</div></div>';
+        $($closeButton).appendTo(diagramContainer).wrap($itemWrapper).after($item).wrap($buttonContainer).before($editButton);
         var theNewItemWrapper = diagramContainer.find(' #' + stepId+'-wrapper');
         var theNewItem = diagramContainer.find(' #' + stepId);
 
         //add data
-        theNewItem.data(step);
+        theNewItem.data("oeData",step);
 
         //set position of element
         $(theNewItemWrapper).css({
@@ -1239,18 +696,18 @@ angular.module("portalApp").controller('builderController', function($scope, $ht
         jspInstance.draggable(diagramContainer.find(' #'+stepId+'-wrapper'));
 
         //updates angular handlers for the new element
-        $compile(theNewItemWrapper.contents())($scope);
+        $compile(theNewItemWrapper)($scope);
     }
 
     function loadConnections(step) {
-        if(step.Next){
-            if(step.Next.Default){
-                var passEndpoint = jspInstance.getEndpoint(step.StepId+"-pass");
-                jspInstance.connect({source:passEndpoint, target:step.Next.Default});
+        if(step.next){
+            if(step.next.default){
+                var passEndpoint = jspInstance.getEndpoint(step.id+"-pass");
+                jspInstance.connect({source:passEndpoint, target:step.next.default});
             }
-            if(step.Next.Failure){
-                var failEndpoint = jspInstance.getEndpoint(step.StepId+"-fail");
-                jspInstance.connect({source:failEndpoint, target:step.Next.Failure});
+            if(step.next.failed){
+                var failEndpoint = jspInstance.getEndpoint(step.id+"-fail");
+                jspInstance.connect({source:failEndpoint, target:step.next.failed});
             }
         }
     }
@@ -1259,16 +716,16 @@ angular.module("portalApp").controller('builderController', function($scope, $ht
 
         //TODO: replace dummyWF with json from API or import
         var loadedWorkflow=jQuery.extend(true, {}, dummyWF);
-        workflowData.WorkflowName = loadedWorkflow.WorkflowName;
-        workflowData.Description = loadedWorkflow.Description;
+        workflowData.name = loadedWorkflow.name;
+        workflowData.description = loadedWorkflow.description;
 
         //load steps with position data
-        loadedWorkflow.Steps.forEach(function(step) {
+        loadedWorkflow.steps.forEach(function(step) {
             loadStep(step);
         });
 
         //load connections
-        loadedWorkflow.Steps.forEach(function(step) {
+        loadedWorkflow.steps.forEach(function(step) {
             loadConnections(step);
         });
     }
@@ -1280,50 +737,23 @@ angular.module("portalApp").controller('builderController', function($scope, $ht
             $elem.remove();
         });
         workflowData = {};
-        }
+    }
+
+    $scope.activePage = 0;
+    $scope.menuOpen = false;
+
+    $scope.openPage = function(pageId){
+        $scope.menuOpen = true;
+        $scope.activePage = pageId;
+    }
+
+    $scope.toggleMenu = function(){
+        $scope.menuOpen = !$scope.menuOpen;
+    }
+
+    $scope.closeMenu = function() {
+        $scope.menuOpen = false;
+    }
 
 });
 
-// Methods for JSTree actions
-function addFolder() {
-    var ref = $(treeID).jstree(true),
-        sel = ref.get_selected();
-    if(!sel.length) { return false; }
-    sel = sel[0];
-    sel = ref.create_node(sel);
-    if(sel) {
-        ref.edit(sel);
-    }
-}
-
-function addWorkflow() {
-    var ref = $(treeID).jstree(true),
-        sel = ref.get_selected();
-    if(!sel.length) { return false; }
-    sel = sel[0];
-    sel = ref.create_node(sel, {"type":"file"});
-    if(sel) {
-        ref.edit(sel);
-    }
-}
-
-function editNode() {
-    var ref = $(treeID).jstree(true),
-        sel = ref.get_selected();
-    if(!sel.length) { return false; }
-    sel = sel[0];
-    ref.edit(sel);
-};
-
-function deleteNode() {
-    var ref = $(treeID).jstree(true),
-        sel = ref.get_selected();
-    if(!sel.length) { return false; }
-    ref.delete_node(sel);
-};
-
-function openWorkflow() {
-    var selectedNodeText = $(treeID).jstree(true).get_selected(true)[0].text;
-    var tabID = "tab_"+selectedNodeText;
-    angular.element('#builderController').scope().addTab(tabID);
-}

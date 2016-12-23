@@ -37,7 +37,7 @@ usage() {
     echo "       -quick                 Including the output gathered by options: minimal column families, zk, logs, properties and health."
     echo "       -ftp <server name or ip and directory> -u <user name> -p <password>"
     echo "                              If specified, the output will be transferred to the external ftp site"
-    echo "                              Note: It's suggest to always dump the output to the FTP to retain space in ViPR nodes and not run into issue due to /tmp folder being full"
+    echo "                              Note: It's suggested to always dump the output to the FTP to retain space in ViPR nodes and not run into issue due to /tmp folder being full"
     echo "For example:"
     echo "       $0 -all -ftp ftp://10.247.101.11:/tmp -u usera -p xxx"
     echo "       $0 -quick"

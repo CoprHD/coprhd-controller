@@ -20,6 +20,7 @@ public class IBMSVCCreateVolumeCommand extends AbstractIBMSVCQueryCommand<IBMSVC
 
     public static final String CREATE_VOLUME_SUCCESS = "CreateVolumeSuccess";
     public static final String CREATE_VOLUME_FAILED = "CreateVolumeFailed";
+    private IBMSVCDriverConfiguration ibmsvcdriverConfiguration = IBMSVCDriverConfiguration.getInstance();
 
     private final static ParsePattern[] PARSING_CONFIG = new ParsePattern[]{
             new ParsePattern("Virtual Disk, id \\[(\\d+)\\], successfully created", CREATE_VOLUME_SUCCESS),
@@ -39,10 +40,8 @@ public class IBMSVCCreateVolumeCommand extends AbstractIBMSVCQueryCommand<IBMSVC
 
         boolean compressed = false;
 
-        IBMSVCDriverConfiguration ibmsvcdriverConfiguration = IBMSVCDriverConfiguration.getInstance();
-
         addArgument("svctask mkvdisk");
-        addArgument(String.format("-cache readwrite %s", ibmsvcdriverConfiguration.getDefaultVolumeCacheSetting()));
+        addArgument(String.format("-cache %s", ibmsvcdriverConfiguration.getDefaultVolumeCacheSetting()));
         addArgument(String.format("-vtype %s", ibmsvcdriverConfiguration.getDefaultVolumeVirtualizationType()));
                 addArgument(String.format("-iogrp %s", ibmsvcdriverConfiguration.getDefaultVolumeIOgroup()));
 

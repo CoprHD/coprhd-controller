@@ -20,8 +20,11 @@ public class IBMSVCStartFCConsistGrpCommand extends AbstractIBMSVCQueryCommand<I
     private final static ParsePattern[] PARSING_CONFIG = new ParsePattern[]{
     };
 
-    public IBMSVCStartFCConsistGrpCommand(String fcConsistGrpId, String consistGrpName, boolean isRestore) {
-        addArgument("svctask startfcconsistgrp -prep");
+    public IBMSVCStartFCConsistGrpCommand(String fcConsistGrpId, String consistGrpName, boolean isRestore, boolean prep) {
+        addArgument("svctask startfcconsistgrp");
+        if(prep){
+            addArgument("-prep");
+        }
         if (isRestore) {
             addArgument("-restore");
         }

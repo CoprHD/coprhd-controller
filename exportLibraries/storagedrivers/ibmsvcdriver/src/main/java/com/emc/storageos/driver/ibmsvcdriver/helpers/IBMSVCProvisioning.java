@@ -80,6 +80,8 @@ public class IBMSVCProvisioning {
 
         DriverTask task = createDriverTask(IBMSVCConstants.TASK_TYPE_CREATE_STORAGE_VOLUMES);
 
+        int volumesCreated = 0;
+
         for (StorageVolume storageVolume : volumes) {
 
             _log.info("createVolumes() for storage system {} - start", storageVolume.getStorageSystemId());
@@ -89,7 +91,6 @@ public class IBMSVCProvisioning {
             try {
                 connection = connectionManager.getClientBySystemId(storageVolume.getStorageSystemId());
 
-                //Identify the
 
                 IBMSVCCreateVolumeResult result = IBMSVCCLI.createStorageVolumes(connection, storageVolume, false,
                         false);
@@ -126,7 +127,8 @@ public class IBMSVCProvisioning {
 
                     task.setMessage(String.format("Created storage volume %s (%s) size %s\n", result.getName(),
                             result.getId(), result.getRequestedCapacity()));
-                    task.setStatus(DriverTask.TaskStatus.READY);
+
+                    volumesCreated += 1;
 
                     _log.info(String.format("Created storage volume %s (%s) size %s.\n", result.getName(),
                             result.getId(), result.getRequestedCapacity()));
@@ -151,6 +153,14 @@ public class IBMSVCProvisioning {
                 }
             }
             _log.info("createVolumes() for storage system {} - end", storageVolume.getStorageSystemId());
+        }
+
+        if (volumesCreated == volumes.size()) {
+            task.setStatus(DriverTask.TaskStatus.READY);
+        } else if (volumesCreated == 0) {
+            task.setStatus(DriverTask.TaskStatus.FAILED);
+        } else {
+            task.setStatus(DriverTask.TaskStatus.PARTIALLY_FAILED);
         }
 
         return task;
@@ -806,6 +816,8 @@ public class IBMSVCProvisioning {
 
         DriverTask task = createDriverTask(IBMSVCConstants.TASK_TYPE_UNEXPORT_STORAGE_VOLUMES);
 
+        int volumesUnexported = 0;
+
         for (StorageVolume storageVolume : volumes) {
 
             _log.info("unexportVolumesFromInitiators() for storage system {} - start",
@@ -860,7 +872,8 @@ public class IBMSVCProvisioning {
                             logString += ".\n";
                             _log.info(String.format(logString));
                             task.setMessage(logString);
-                            task.setStatus(DriverTask.TaskStatus.READY);
+                            //task.setStatus(DriverTask.TaskStatus.READY);
+                            volumesUnexported += 1;
                         } else {
                             _log.error(String.format("UnExport the storage volume %s to the host %s failed : %s\n",
                                             storageVolume.getDeviceLabel(), result.getHostName(), result.getErrorString()),
@@ -896,6 +909,15 @@ public class IBMSVCProvisioning {
             _log.info("unexportVolumesFromInitiators() for storage system {} - end\n",
                     storageVolume.getStorageSystemId());
         }
+
+        if (volumesUnexported == volumes.size()) {
+            task.setStatus(DriverTask.TaskStatus.READY);
+        } else if (volumesUnexported == 0) {
+            task.setStatus(DriverTask.TaskStatus.FAILED);
+        } else {
+            task.setStatus(DriverTask.TaskStatus.PARTIALLY_FAILED);
+        }
+
         return task;
     }
 

@@ -25,7 +25,7 @@ public class IBMSVCCreateFCConsistGrpCommand extends AbstractIBMSVCQueryCommand<
 
     public IBMSVCCreateFCConsistGrpCommand(String consistGrpName) {
         addArgument("svctask mkfcconsistgrp");
-        addArgument(String.format("-name %s", consistGrpName));
+        addArgument(String.format("-name \"%s\"", consistGrpName));
 
         // Setting the autodelete attribute. If this attribute is set to on, the FC CG is automatically
         // deleted when the last mapping it contains is deleted

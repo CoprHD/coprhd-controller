@@ -56,6 +56,15 @@ public class IBMSVCDriverConfiguration {
     private String defaultStoragePoolMaxThickVolSizeGB = "100.00";
     private String defaultStoragePoolMinThinVolSizeGB = "1.00";
     private String defaultStoragePoolMaxThinVolSizeGB = "100.00";
+    private boolean enforceCGForSnapshots = false;
+
+    public boolean isEnforceCGForSnapshots() {
+        return enforceCGForSnapshots;
+    }
+
+    public void setEnforceCGForSnapshots(boolean enforceCGForSnapshots) {
+        this.enforceCGForSnapshots = enforceCGForSnapshots;
+    }
 
     public String getDefaultStoragePoolMinThickVolSizeGB() {
         return String.format("%sGB", defaultStoragePoolMinThickVolSizeGB);

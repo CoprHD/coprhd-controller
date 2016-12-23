@@ -24,7 +24,7 @@ public class IBMSVCQueryVolumeFCMappingCommand extends AbstractIBMSVCQueryComman
     };
 
     public IBMSVCQueryVolumeFCMappingCommand(String volumeId) {
-        addArgument("svcinfo lsvdiskfcmappings -delim :");
+        addArgument("svcinfo lsvdiskfcmappings -nohdr -delim :");
         addArgument(String.format("%s", volumeId));
     }
 

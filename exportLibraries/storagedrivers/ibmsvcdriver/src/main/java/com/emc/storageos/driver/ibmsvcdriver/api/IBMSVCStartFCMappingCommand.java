@@ -20,10 +20,13 @@ public class IBMSVCStartFCMappingCommand extends AbstractIBMSVCQueryCommand<IBMS
     private final static ParsePattern[] PARSING_CONFIG = new ParsePattern[]{
     };
 
-    public IBMSVCStartFCMappingCommand(String fc_map_Id, boolean isRestore) {
+    public IBMSVCStartFCMappingCommand(String fc_map_Id, boolean isRestore, boolean prep) {
         addArgument("svctask startfcmap");
+        if(prep){
+            addArgument("-prep");
+        }
         if (isRestore) {
-            addArgument("-prep -restore");
+            addArgument("-restore");
         }
         addArgument(String.format("%s", fc_map_Id));
 

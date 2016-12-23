@@ -252,9 +252,9 @@ public class IBMSVCCLI {
         return command.getResults();
     }
 
-    public static IBMSVCStartFCMappingResult startFCMapping(SSHConnection connection, String fc_map_Id) {
+    public static IBMSVCStartFCMappingResult startFCMapping(SSHConnection connection, String fc_map_Id, boolean isRestore, boolean prep) {
         _log.info("Starting startFCMapping() for Starting IBM-SVC FlashCopy Mapping...");
-        IBMSVCStartFCMappingCommand command = new IBMSVCStartFCMappingCommand(fc_map_Id, false);
+        IBMSVCStartFCMappingCommand command = new IBMSVCStartFCMappingCommand(fc_map_Id, isRestore, prep);
         executeCommand(connection, command);
         _log.info("Ending startFCMapping() for Starting IBM-SVC FlashCopy Mapping.");
         return command.getResults();
@@ -284,6 +284,14 @@ public class IBMSVCCLI {
         return command.getResults();
     }
 
+
+    public static IBMSVCFilterFCMappingResult filterVolumeFCMapping(SSHConnection connection, String srcVolId, String tgtVolId){
+        _log.info("Starting filterVolumeFCMapping() for Querying IBM-SVC Volume FlashCopy Mapping...");
+        IBMSVCFilterFCMappingCommand command = new IBMSVCFilterFCMappingCommand(srcVolId, tgtVolId);
+        executeCommand(connection, command);
+        _log.info("Ending filterVolumeFCMapping() for Querying IBM-SVC Volume FlashCopy Mapping.");
+        return command.getResults();
+    }
 
     public static IBMSVCChangeFCMappingResult changeFCMapping(SSHConnection connection, String fcMappingId,
                                 String copyRate, String autoDelete, String consistencyGrpId, String cleanRate) {
@@ -331,9 +339,9 @@ public class IBMSVCCLI {
     }
 
     public static IBMSVCStartFCConsistGrpResult startFCConsistGrp(SSHConnection connection, String consistGrpId,
-                                                                  String consistGrpName) {
+                                                                  String consistGrpName, boolean restore, boolean prep) {
         _log.info("Starting startFCConsistGrp() for Starting IBM-SVC FlashCopy Consistency Group...");
-        IBMSVCStartFCConsistGrpCommand command = new IBMSVCStartFCConsistGrpCommand(consistGrpId, consistGrpName, false);
+        IBMSVCStartFCConsistGrpCommand command = new IBMSVCStartFCConsistGrpCommand(consistGrpId, consistGrpName, restore, prep);
         executeCommand(connection, command);
         _log.info("Ending startFCConsistGrp() for Starting IBM-SVC FlashCopy Consistency Group.");
         return command.getResults();

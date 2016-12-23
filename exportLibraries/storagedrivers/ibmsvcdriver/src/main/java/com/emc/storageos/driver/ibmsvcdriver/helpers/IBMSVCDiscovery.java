@@ -114,6 +114,12 @@ public class IBMSVCDiscovery {
                 storageSystem.setMinorVersion(result.getProperty("MinorVersion"));
                 storageSystem.setIsSupportedVersion(true);
 
+                // Support both, element and group replicas.
+                Set<StorageSystem.SupportedReplication> supportedReplications = new HashSet<>();
+                supportedReplications.add(StorageSystem.SupportedReplication.elementReplica);
+                supportedReplications.add(StorageSystem.SupportedReplication.groupReplica);
+                storageSystem.setSupportedReplications(supportedReplications);
+
                 _log.info("Processed storage system %s.", storageSystem.getIpAddress());
                 task.setMessage(
                         String.format("Storage system %s discovery completed.", storageSystem.getIpAddress()));
@@ -327,7 +333,14 @@ public class IBMSVCDiscovery {
         return task;
     }
 
-
+    /**
+     * Discover Storage Ports
+     * @param connection - SSH Connection
+     * @param storageSystemId - Storage System ID
+     * @param storagePorts - Storage Ports List
+     * @param result - Result
+     * @param storagePortsCache - Storage Port Cache
+     */
     private void discoverStoragePorts(SSHConnection connection, String storageSystemId, List<StoragePort> storagePorts, Map<String, Object> result, Map<String, List<StoragePort>> storagePortsCache){
 
         if(storagePortsCache != null && storagePortsCache.containsKey(storageSystemId)){
@@ -759,23 +772,6 @@ public class IBMSVCDiscovery {
 
         return filteredStoragePort;
 
-    }
-
-    public Map<String, HostExportInfo> getSnapshotExportInfoForHosts(VolumeSnapshot snapshot) {
-        // TODO Auto-generated method stub
-        return null;
-    }
-
-
-    public Map<String, HostExportInfo> getCloneExportInfoForHosts(VolumeClone clone) {
-        // TODO Auto-generated method stub
-        return null;
-    }
-
-
-    public Map<String, HostExportInfo> getMirrorExportInfoForHosts(VolumeMirror mirror) {
-        // TODO Auto-generated method stub
-        return null;
     }
 
 }

@@ -25,6 +25,7 @@ public class IBMSVCQueryFCMappingCommand extends AbstractIBMSVCQueryCommand<IBMS
     public static final String FC_TARGET_VOL_NAME = "TargetVolName";
     public static final String FC_MAPPING_STATUS = "FCMapStatus";
     public static final String FC_COPY_RATE = "CopyRate";
+    public static final String FC_PROGRESS = "FCMapProgress";
 
     private final static ParsePattern[] PARSING_CONFIG = new ParsePattern[] {
             new ParsePattern("id:(.*)", FC_MAPPING_ID),
@@ -34,15 +35,31 @@ public class IBMSVCQueryFCMappingCommand extends AbstractIBMSVCQueryCommand<IBMS
             new ParsePattern("target_vdisk_name:(.*)", FC_TARGET_VOL_NAME),
             new ParsePattern("status:(.*)", FC_MAPPING_STATUS),
             new ParsePattern("copy_rate:(.*)", FC_COPY_RATE),
+            new ParsePattern("progress:(.*)", FC_PROGRESS),
     };
 
-    public IBMSVCQueryFCMappingCommand(String fc_map_Id, boolean isFilter, String srcVolName, String tgtVolName) {
+    /**
+     * Constructor
+     * @param fcMapId
+     * @param isFilter
+     * @param srcVolName
+     * @param tgtVolName
+     */
+    public IBMSVCQueryFCMappingCommand(String fcMapId, boolean isFilter, String srcVolName, String tgtVolName) {
         addArgument("svcinfo lsfcmap -delim :");
         if (!isFilter) {
-            addArgument(String.format("%s", fc_map_Id));
+            addArgument(String.format("%s", fcMapId));
         } else {
-            addArgument(String.format("-filtervalue \"source_vdisk_name=%s\"", srcVolName));
-            addArgument(String.format("\"target_vdisk_name=%s\"", tgtVolName));
+            String filterParamters = "-filtervalue ";
+
+            if(srcVolName != null){
+                filterParamters = String.format("%s \"source_vdisk_name=%s\"", filterParamters, srcVolName);
+            }
+
+            if(tgtVolName != null){
+                filterParamters = String.format("%s \"target_vdisk_name=%s\"", filterParamters, tgtVolName);
+            }
+            addArgument(filterParamters);
         }
     }
 

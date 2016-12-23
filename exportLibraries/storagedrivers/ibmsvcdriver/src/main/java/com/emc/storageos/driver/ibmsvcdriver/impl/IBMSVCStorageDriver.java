@@ -16,9 +16,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 
 import com.emc.storageos.driver.ibmsvcdriver.exceptions.IBMSVCDriverException;
-import com.emc.storageos.driver.ibmsvcdriver.helpers.IBMSVCConsistencyGroups;
-import com.emc.storageos.driver.ibmsvcdriver.helpers.IBMSVCDiscovery;
-import com.emc.storageos.driver.ibmsvcdriver.helpers.IBMSVCProvisioning;
+import com.emc.storageos.driver.ibmsvcdriver.helpers.*;
 import com.emc.storageos.driver.ibmsvcdriver.utils.IBMSVCDriverConfiguration;
 import com.emc.storageos.storagedriver.DefaultStorageDriver;
 import com.emc.storageos.storagedriver.BlockStorageDriver;
@@ -70,6 +68,8 @@ public class IBMSVCStorageDriver extends DefaultStorageDriver implements BlockSt
     private IBMSVCDiscovery ibmsvcDiscoveryHelper = new IBMSVCDiscovery();
     private IBMSVCProvisioning ibmsvcProvisioningHelper = new IBMSVCProvisioning();
     private IBMSVCConsistencyGroups ibmsvcConsistencyGroups = new IBMSVCConsistencyGroups();
+    private IBMSVCSnapshots ibmsvcSnapshots = new IBMSVCSnapshots();
+    private IBMSVCClones ibmsvcClones = new IBMSVCClones();
     private ApplicationContext parentApplicationContext;
     private IBMSVCDriverConfiguration ibmsvcdriverConfiguration;
     private static final String CONFIG_BEAN_NAME = "ibmsvcsystemConfig";
@@ -160,78 +160,22 @@ public class IBMSVCStorageDriver extends DefaultStorageDriver implements BlockSt
 		return ibmsvcDiscoveryHelper.getStorageVolumes(storageSystem, storageVolumes, token);
 	}
 
-	/**
-	 * Create storage volumes with a given set of capabilities. Before
-	 * completion of the request, set all required data for provisioned volumes
-	 * in "volumes" parameter.
-	 *
-	 * @param volumes
-	 *            Input/output argument for volumes.
-	 * @param capabilities
-	 *            Input argument for capabilities. Defines storage capabilities
-	 *            of volumes to create.
-	 * @return task
-	 */
+
 	@Override
 	public DriverTask createVolumes(List<StorageVolume> volumes, StorageCapabilities capabilities) {
         return ibmsvcProvisioningHelper.createVolumes(volumes, capabilities);
 	}
 
-	/**
-	 * Expand volume. Before completion of the request, set all required data
-	 * for expanded volume in "volume" parameter.
-	 *
-	 * @param storageVolume
-	 *            Volume to expand. Type: Input/Output argument.
-	 * @param newCapacity
-	 *            Requested capacity. Type: input argument.
-	 * @return task
-	 */
 	@Override
 	public DriverTask expandVolume(StorageVolume storageVolume, long newCapacity) {
 		return ibmsvcProvisioningHelper.expandVolume(storageVolume, newCapacity);
 	}
 
-	/**
-	 * Delete volumes.
-	 * 
-	 * @param storageVolume
-	 *            Volumes to delete.
-	 * @return task
-	 */
 	@Override
 	public DriverTask deleteVolume(StorageVolume storageVolume) {
 		return ibmsvcProvisioningHelper.deleteVolume(storageVolume);
 	}
 
-	/**
-	 * Export volumes to initiators through a given set of ports. If ports are
-	 * not provided, use port requirements from ExportPathsServiceOption storage
-	 * capability
-	 *
-	 * @param initiators
-	 *            Type: Input.
-	 * @param volumes
-	 *            Type: Input.
-	 * @param volumeToHLUMap
-	 *            map of volume nativeID to requested HLU. HLU value of -1 means
-	 *            that HLU is not defined and will be assigned by array. Type:
-	 *            Input/Output.
-	 * @param recommendedPorts
-	 *            list of storage ports recommended for the export. Optional.
-	 *            Type: Input.
-	 * @param availablePorts
-	 *            list of ports available for the export. Type: Input.
-	 * @param storageCapabilities
-	 *            storage capabilities. Type: Input.
-	 * @param usedRecommendedPorts
-	 *            true if driver used recommended and only recommended ports for
-	 *            the export, false otherwise. Type: Output.
-	 * @param selectedPorts
-	 *            ports selected for the export (if recommended ports have not
-	 *            been used). Type: Output.
-	 * @return task
-	 */
 	@Override
 	public DriverTask exportVolumesToInitiators(List<Initiator> initiators, List<StorageVolume> volumes,
 			Map<String, String> volumeToHLUMap, List<StoragePort> recommendedPorts, List<StoragePort> availablePorts,
@@ -243,40 +187,89 @@ public class IBMSVCStorageDriver extends DefaultStorageDriver implements BlockSt
 	}
 
 
-	/**
-	 * Unexport volumes from initiators
-	 *
-	 * @param initiators
-	 *            Type: Input.
-	 * @param volumes
-	 *            Type: Input.
-	 * @return task
-	 */
 	@Override
 	public DriverTask unexportVolumesFromInitiators(List<Initiator> initiators, List<StorageVolume> volumes) {
 		return ibmsvcProvisioningHelper.unexportVolumesFromInitiators(initiators, volumes);
 	}
 
-	@Override
-	public DriverTask resumeVolumeMirror(List<VolumeMirror> mirrors) {
-		// TODO Auto-generated method stub
-		return null;
-	}
 
-	public DriverTask restoreVolumeMirror(StorageVolume volume, VolumeMirror mirror) {
-		// TODO Auto-generated method stub
-		return null;
-	}
 
 	@Override
 	public DriverTask createVolumeSnapshot(List<VolumeSnapshot> snapshots, StorageCapabilities capabilities){
-		return ibmsvcConsistencyGroups.createVolumeSnapshot(snapshots,capabilities);
-	}
-	@Override
-	public DriverTask deleteVolumeSnapshot(List<VolumeSnapshot> snapshots, StorageCapabilities capabilities){
-		return ibmsvcConsistencyGroups.deleteVolumeSnapshot(snapshots,capabilities);
+		return ibmsvcSnapshots.createVolumeSnapshot(snapshots, capabilities);
 	}
 
+    @Override
+    public DriverTask restoreSnapshot(List<VolumeSnapshot> snapshots) {
+
+        HashSet<String> consistencyGroupSet =new HashSet<String>();
+
+        for (VolumeSnapshot volumeSnapshot : snapshots) {
+            if(volumeSnapshot.getConsistencyGroup() != null){
+                consistencyGroupSet.add(volumeSnapshot.getConsistencyGroup());
+            }
+        }
+
+        //All snapshots must belong to same consistency group. If groups is more than 1, Flag error
+        if(consistencyGroupSet.size() > 1){
+            DriverTask task = createDriverTask(IBMSVCConstants.TASK_TYPE_RESTORE_SNAPSHOT_VOLUMES);
+            task.setMessage(String.format("Restore of snapshots failed : %s.", "Snapshots belong to more than one Consistency Groups - " + consistencyGroupSet.toString()));
+            task.setStatus(DriverTask.TaskStatus.FAILED);
+            return task;
+
+        }else if(consistencyGroupSet.size() == 1){
+            return ibmsvcConsistencyGroups.restoreSnapshot(snapshots);
+        }else{
+            return ibmsvcSnapshots.restoreSnapshot(snapshots);
+        }
+
+    }
+
+    @Override
+    public DriverTask deleteVolumeSnapshot(VolumeSnapshot snapshot){
+        return ibmsvcSnapshots.deleteVolumeSnapshot(snapshot);
+    }
+
+
+    @Override
+    public DriverTask createVolumeClone(List<VolumeClone> clones, StorageCapabilities capabilities) {
+        return ibmsvcClones.createVolumeClone(clones, capabilities);
+    }
+
+    @Override
+    public DriverTask detachVolumeClone(List<VolumeClone> clones) {
+        return ibmsvcClones.detachVolumeClone(clones);
+    }
+
+    @Override
+    public DriverTask restoreFromClone(List<VolumeClone> clones) {
+        HashSet<String> consistencyGroupSet =new HashSet<String>();
+
+        for (VolumeClone volumeClone : clones) {
+            if(volumeClone.getConsistencyGroup() != null){
+                consistencyGroupSet.add(volumeClone.getConsistencyGroup());
+            }
+        }
+
+        //All snapshots must belong to same consistency group. If groups is more than 1, Flag error
+        if(consistencyGroupSet.size() > 1){
+            DriverTask task = createDriverTask(IBMSVCConstants.TASK_TYPE_RESTORE_SNAPSHOT_VOLUMES);
+            task.setMessage(String.format("Restore of snapshots failed : %s.", "Snapshots belong to more than one Consistency Groups - " + consistencyGroupSet.toString()));
+            task.setStatus(DriverTask.TaskStatus.FAILED);
+            return task;
+
+        }else if(consistencyGroupSet.size() == 1){
+            return ibmsvcConsistencyGroups.restoreClone(clones);
+        }else{
+            return ibmsvcClones.restoreFromClone(clones);
+        }
+
+    }
+
+    @Override
+    public DriverTask deleteVolumeClone(VolumeClone clone) {
+        return ibmsvcClones.deleteVolumeClone(clone);
+    }
 
 	/**
 	 * Set task status by checking the number of successful sub-tasks.
@@ -310,16 +303,6 @@ public class IBMSVCStorageDriver extends DefaultStorageDriver implements BlockSt
 		return task;
 	}
 
-	/**
-	 * Create driver task for task type
-	 *
-	 * @param taskType
-	 */
-	public DriverTask createDriverTask(String taskType) {
-		String taskID = String.format("%s+%s+%s", IBMSVCConstants.DRIVER_NAME, taskType, UUID.randomUUID());
-		DriverTask task = new IBMSVCDriverTask(taskID);
-		return task;
-	}
 
 	/**
 	 * Compare domain name and system name
@@ -365,43 +348,46 @@ public class IBMSVCStorageDriver extends DefaultStorageDriver implements BlockSt
 		return null;
 	}
 
-	@Override
-	public DriverTask restoreSnapshot(List<VolumeSnapshot> snapshots) {
-		// TODO Auto-generated method stub
-		return null;
-	}
 
-	@Override
-	public DriverTask createConsistencyGroupMirror(VolumeConsistencyGroup consistencyGroup, List<VolumeMirror> mirrors,
-			List<CapabilityInstance> capabilities) {
-		// TODO Auto-generated method stub
-		return null;
-	}
+    @Override
+    public DriverTask createConsistencyGroup(VolumeConsistencyGroup consistencyGroup) {
+        return ibmsvcConsistencyGroups.createConsistencyGroup(consistencyGroup);
+    }
 
-	@Override
-	public DriverTask deleteConsistencyGroupMirror(List<VolumeMirror> mirrors) {
-		// TODO Auto-generated method stub
-		return null;
-	}
+    @Override
+    public DriverTask deleteConsistencyGroup(VolumeConsistencyGroup consistencyGroup) {
+        return ibmsvcConsistencyGroups.deleteConsistencyGroup(consistencyGroup);
+    }
 
-	/*@Override
-	public DriverTask addVolumesToConsistencyGroup(List<StorageVolume> volumes, StorageCapabilities capabilities) {
-		// TODO Auto-generated method stub
-		return null;
-	}
+    @Override
+    public DriverTask addVolumesToConsistencyGroup(List<StorageVolume> volumes, StorageCapabilities capabilities) {
+        // TODO Auto-generated method stub
+        return null;
+    }
 
-	@Override
-	public DriverTask removeVolumesFromConsistencyGroup(List<StorageVolume> volumes, StorageCapabilities capabilities) {
-		// TODO Auto-generated method stub
-		return null;
-	}*/
+    @Override
+    public DriverTask removeVolumesFromConsistencyGroup(List<StorageVolume> volumes, StorageCapabilities capabilities) {
+        // TODO Auto-generated method stub
+        return null;
+    }
 
 
-	@Override
-	public DriverTask restoreVolumeMirror(List<VolumeMirror> mirrors) {
-		// TODO Auto-generated method stub
-		return null;
-	}
+    @Override
+    public DriverTask createConsistencyGroupSnapshot(VolumeConsistencyGroup consistencyGroup,
+                                                     List<VolumeSnapshot> snapshots, List<CapabilityInstance> capabilities) {
+        return ibmsvcConsistencyGroups.createConsistencyGroupSnapshot(consistencyGroup, snapshots, capabilities);
+    }
+
+    @Override
+    public DriverTask deleteConsistencyGroupSnapshot(List<VolumeSnapshot> snapshots) {
+        return ibmsvcConsistencyGroups.deleteConsistencyGroupSnapshot(snapshots);
+    }
+
+    @Override
+    public DriverTask createConsistencyGroupClone(VolumeConsistencyGroup consistencyGroup, List<VolumeClone> clones,
+                                                  List<CapabilityInstance> capabilities) {
+        return ibmsvcConsistencyGroups.createConsistencyGroupClone(consistencyGroup, clones, capabilities);
+    }
 
 	@Override
 	public Map<String, HostExportInfo> getVolumeExportInfoForHosts(StorageVolume volume) {
@@ -412,18 +398,29 @@ public class IBMSVCStorageDriver extends DefaultStorageDriver implements BlockSt
 	@Override
 	public Map<String, HostExportInfo> getSnapshotExportInfoForHosts(VolumeSnapshot snapshot) {
 		// TODO Auto-generated method stub
-		return ibmsvcDiscoveryHelper.getSnapshotExportInfoForHosts(snapshot);
+		return null;
 	}
 
 	@Override
 	public Map<String, HostExportInfo> getCloneExportInfoForHosts(VolumeClone clone) {
 		// TODO Auto-generated method stub
-		return ibmsvcDiscoveryHelper.getCloneExportInfoForHosts(clone);
+        return null;
 	}
 
 	@Override
 	public Map<String, HostExportInfo> getMirrorExportInfoForHosts(VolumeMirror mirror) {
-		return ibmsvcDiscoveryHelper.getMirrorExportInfoForHosts(mirror);
+        return null;
 	}
+
+    /**
+     * Create driver task for task type
+     *
+     * @param taskType
+     */
+    public DriverTask createDriverTask(String taskType) {
+        String taskID = String.format("%s+%s+%s", IBMSVCConstants.DRIVER_NAME, taskType, UUID.randomUUID());
+        DriverTask task = new IBMSVCDriverTask(taskID);
+        return task;
+    }
 
 }

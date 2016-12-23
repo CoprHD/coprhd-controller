@@ -20,6 +20,8 @@
         <property name="defaultStoragePoolMinThinVolSizeGB" value="1.00"/>
         <property name="defaultStoragePoolMaxThinVolSizeGB" value="100.00"/>
 
+        <property name="enforceCGForSnapshots" value="false"/>
+
 
     </bean>
 </beans>

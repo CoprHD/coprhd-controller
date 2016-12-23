@@ -103,8 +103,6 @@ public class ConnectionManager {
                 _log.info("Connection Created to the host {}", hostName);
 
                 if(connectionInfo.get_systemNativeId() != null){
-                    _log.info(String.format("Setting conn info in registry %s - %s - %s - %s - %s", connectionInfo.get_systemNativeId(), connectionInfo.get_hostname(),
-                            connectionInfo.get_port(), connectionInfo.get_username(), connectionInfo.get_password()));
                     setConnInfoToRegistry(connectionInfo.get_systemNativeId(), connectionInfo.get_hostname(),
                             connectionInfo.get_port(), connectionInfo.get_username(), connectionInfo.get_password());
                 }
@@ -416,14 +414,10 @@ public class ConnectionManager {
 
         synchronized (syncObject) {
 
-                _log.info(String.format("Before getting the connection details from the Registry %s.%n", systemId));
-
             ipAddress = getConnInfoFromRegistry(systemId, IBMSVCConstants.IP_ADDRESS);
                 port = getConnInfoFromRegistry(systemId, IBMSVCConstants.PORT_NUMBER);
                 username = getConnInfoFromRegistry(systemId, IBMSVCConstants.USER_NAME);
                 password = getConnInfoFromRegistry(systemId, IBMSVCConstants.PASSWORD);
-
-                _log.info(String.format("After getting the connection details from the Registry %s.%n", systemId));
 
                 if (ipAddress != null && username != null && password != null) {
 

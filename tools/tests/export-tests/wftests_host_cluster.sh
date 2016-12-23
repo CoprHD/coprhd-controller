@@ -954,6 +954,8 @@ test_move_clustered_discovered_host_to_cluster() {
 
     failure_injections="${HAPPY_PATH_TEST_INJECTION} ${host_cluster_failure_injections} ${common_failure_injections}" 
 
+    failure="false"
+
     for failure in ${failure_injections}
     do
         if [ ${failure} == ${HAPPY_PATH_TEST_INJECTION} ]; then
@@ -980,7 +982,9 @@ test_move_clustered_discovered_host_to_cluster() {
             if [ "$EVENT_ID" ]; then
                 approve_pending_event $EVENT_ID
             fi    
-            finish -1
+            report_results ${test_name} ${failure}
+            failure="true"
+            break
         else
             if [ ${failure} == ${HAPPY_PATH_TEST_INJECTION} ]; then
                 approve_pending_event $EVENT_ID
@@ -996,7 +1000,8 @@ test_move_clustered_discovered_host_to_cluster() {
                     incr_fail_count
                     if [ "${NO_BAILING}" != "1" ]; then
                         report_results ${test_name} ${failure}
-                        finish -1
+                        failure="true"
+                        break
                     fi
                 else
                     echo "Host has successfully been moved to cluster ${cluster2} on rollback."                    
@@ -1014,7 +1019,8 @@ test_move_clustered_discovered_host_to_cluster() {
                     incr_fail_count
                     if [ "${NO_BAILING}" != "1" ]; then
                         report_results ${test_name} ${failure}
-                        finish -1
+                        failure="true"
+                        break
                     fi
                 else
                     echo "Host has successfully been moved to cluster ${cluster1}." 
@@ -1032,7 +1038,8 @@ test_move_clustered_discovered_host_to_cluster() {
             incr_fail_count
             if [ "${NO_BAILING}" != "1" ]; then
                 report_results ${test_name} ${failure}
-                finish -1
+                failure="true"
+                break
             fi
         fi    
 
@@ -1044,7 +1051,9 @@ test_move_clustered_discovered_host_to_cluster() {
             
             EVENT_ID=$(get_pending_event)
             if [ -z "$EVENT_ID" ]; then
-                finish -1
+                report_results ${test_name} ${failure}
+                failure="true"
+                break
             else
                 approve_pending_event $EVENT_ID
             fi                  
@@ -1062,6 +1071,10 @@ test_move_clustered_discovered_host_to_cluster() {
     
     delete_datastore_and_volume ${TENANT} ${datastore1} ${vcenter} "DC-Simulator-1" ${cluster1}
     delete_datastore_and_volume ${TENANT} ${datastore2} ${vcenter} "DC-Simulator-1" ${cluster2}  
+    
+    if [ ${failure} == "true" ]]; then
+        finish -1
+    fi
     
     snap_db 2 ${cfs}  
 

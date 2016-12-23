@@ -21,6 +21,8 @@ public abstract class SecureShellSupport {
     private String password;
     /** The ID of the host to which this CLI connects */
     private URI hostId;
+    public static int NO_TIMEOUT = 0;
+    public static int SHORT_TIMEOUT = 60;
 
     public SecureShellSupport() {
     }
@@ -46,6 +48,8 @@ public abstract class SecureShellSupport {
     }
 
     public abstract void executeCommand(Command command);
+
+    public abstract void executeCommand(Command command, int timeout);
 
     public String getHost() {
         return host;

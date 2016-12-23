@@ -797,12 +797,12 @@ abstract public class AbstractDefaultMaskingOrchestrator {
                     throws WorkflowException {
         URI exportGroupURI = exportGroup.getId();
         List<URI> exportMaskURIs = new ArrayList<URI>();
-        List<URI> volumeURIs = new ArrayList<URI>();
+        Set<URI> volumeURIs = new HashSet<>();
         for (ExportMask mask : exportMasks) {
             exportMaskURIs.add(mask.getId());
             volumeURIs.addAll(ExportMaskUtils.getVolumeURIs(mask));
         }
-        
+
         List<NetworkZoningParam> zoningParams = 
         		NetworkZoningParam.convertExportMasksToNetworkZoningParam(exportGroupURI, exportMaskURIs, _dbClient);
 
@@ -882,13 +882,14 @@ abstract public class AbstractDefaultMaskingOrchestrator {
 
         Workflow.Method zoningExecuteMethod = _networkDeviceController.zoneExportAddVolumesMethod(
                 exportGroupURI, exportMaskURIs, volumeURIs);
+        Workflow.Method rollbackMethod = _networkDeviceController.zoneRollbackMethod(exportGroupURI, zoningStep);
 
         zoningStep = workflow.createStep(
                 (previousStep == null ? EXPORT_GROUP_ZONING_TASK : null),
                 "Zoning subtask for export-group: " + exportGroupURI,
                 previousStep, NullColumnValueGetter.getNullURI(),
                 "network-system", _networkDeviceController.getClass(),
-                zoningExecuteMethod, null, zoningStep);
+                zoningExecuteMethod, rollbackMethod, zoningStep);
 
         return zoningStep;
     }

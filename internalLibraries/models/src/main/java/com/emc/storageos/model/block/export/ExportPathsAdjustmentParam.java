@@ -12,6 +12,8 @@ import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlElementWrapper;
 import javax.xml.bind.annotation.XmlRootElement;
 
+import org.slf4j.Logger;
+
 @XmlRootElement(name="block_export_paths_adjustment")
 public class ExportPathsAdjustmentParam {
     private URI storageSystem;
@@ -104,5 +106,28 @@ public class ExportPathsAdjustmentParam {
 
     public void setVirtualArray(URI virtualArray) {
         this.virtualArray = virtualArray;
+    }
+    
+    public void logParameters(Logger log) {
+    	log.info("ExportPathsAdjustment input parameters storage-system:" + getStorageSystem().toString());
+    	if (getExportPathParameters() != null) {
+    		getExportPathParameters().log(log);
+    	}
+    	if (getAdjustedPaths() != null) {
+    		log.info("Adjusted Paths:");
+    		for (InitiatorPathParam path : getAdjustedPaths()) {
+    			path.log(log);
+    		}
+    	} else {
+    		log.info("Adjusted Paths not supplied");
+    	}
+    	if (getRemovedPaths() != null) {
+    		log.info("Removed Paths: ");
+    		for (InitiatorPathParam path : getRemovedPaths()) {
+    			path.log(log);
+    		}
+    	} else {
+    		log.info("Removed Paths not supplied");
+    	}
     }
 }

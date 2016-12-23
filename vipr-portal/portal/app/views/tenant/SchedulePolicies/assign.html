@@ -10,7 +10,7 @@
 
 #{alerts/}
 
-#{form @save(), id:'assignPolicy', class:'form form-horizontal', autocomplete:"off"}
+#{form @saveAssignPolicy(), id:'assignPolicy', class:'form form-horizontal', autocomplete:"off"}
   #{if assignPolicy?.id}
     #{field 'assignPolicy.id'}
       <input type="hidden" name="id" value="${field.value}">

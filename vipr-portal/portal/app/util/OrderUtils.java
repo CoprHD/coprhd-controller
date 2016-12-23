@@ -109,7 +109,7 @@ public class OrderUtils {
         return scheduledOrdersInWindow;
     }
 
-    public static List<OrderRestRep> findByTimeRange(Date startTime, Date endTime, String tenant) {
+    public static List<OrderRestRep> findByTimeRange(Date startTime, Date endTime, String tenant, String maxCount) {
         ViPRCatalogClient2 catalog = getCatalogClient();
         String start = null;
         if (startTime != null) {
@@ -120,7 +120,7 @@ public class OrderUtils {
             end = Long.toString(endTime.getTime());
         }
 
-        return catalog.orders().search().byTimeRange(start, end, URI.create(tenant)).run();
+        return catalog.orders().search().byTimeRange(start, end, URI.create(tenant), maxCount).run();
     }
 
     public static void cancelOrder(URI orderId) {

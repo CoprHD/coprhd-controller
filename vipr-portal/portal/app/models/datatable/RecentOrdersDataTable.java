@@ -49,7 +49,7 @@ public class RecentOrdersDataTable extends OrderDataTable {
             super.setStartAndEndDatesByMaxDays(maxAgeInDays);
         }
 
-        List<OrderRestRep> orders = OrderUtils.findByTimeRange(startDate, endDate, tenantId);
+        List<OrderRestRep> orders = OrderUtils.findByTimeRange(startDate, endDate, tenantId, ORDER_MAX_COUNT_STR);
         if (userInfo != null) {// used for DashboardOrdersDataTable
             filterByUserId(orders);
         } else {

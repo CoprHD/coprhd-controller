@@ -217,6 +217,10 @@ BEGIN	{
 		    storageDevice = mask["storageDevice"];
 		    sub("URI: ", "", storageDevice);
                     printf "eg %s em %s ssys %s\n", egrp["label"], mask["maskName"], storageDevice;
+		    existingVols = mask["existingVolumes"]
+		    if (existingVols != null) {
+			print "Existing volumes: ", existingVols
+		    }
 		    zoneMap = mask["zoningMap"];
 		    sub("{", "", zoneMap);
 		    sub("}", "", zoneMap);

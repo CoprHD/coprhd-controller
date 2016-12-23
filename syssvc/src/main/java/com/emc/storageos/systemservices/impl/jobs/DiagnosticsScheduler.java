@@ -5,7 +5,7 @@
 package com.emc.storageos.systemservices.impl.jobs;
 
 import com.emc.storageos.services.util.AlertsLogger;
-import com.emc.storageos.systemservices.impl.healthmonitor.DbDowntimeTracker;
+import com.emc.storageos.systemservices.impl.util.DbDowntimeTracker;
 import com.emc.storageos.systemservices.impl.healthmonitor.DiagConstants;
 import com.emc.storageos.systemservices.impl.healthmonitor.DiagnosticsExec;
 import com.emc.storageos.systemservices.impl.healthmonitor.LogAnalyser;

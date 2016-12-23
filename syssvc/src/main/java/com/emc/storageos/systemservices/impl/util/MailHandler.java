@@ -106,7 +106,9 @@ public class MailHandler {
         params.put("nodeId", nodeId);
         params.put("serviceName",serviceName);
         params.put("offlineDays", Long.toString(offlineDays));
-        if (nodeRecoveryRequired) params.put("url",coordinator.getPropertyInfo().getProperty("NETWORK_VIP"));
+        if (nodeRecoveryRequired) {
+            params.put("url",coordinator.getPropertyInfo().getProperty("NETWORK_VIP"));
+        }
         String titile = String.format("ATTENTION - DataBase service(%s) of %s has been down for %s days",
                 nodeId, serviceName, offlineDays);
 

@@ -13,8 +13,8 @@ public class DbOfflineStatus {
 
     public DbOfflineStatus () {}
     
-    public DbOfflineStatus (boolean OutageTimeExceeded) {
-        outageTimeExceed = OutageTimeExceeded;
+    public DbOfflineStatus (boolean outageTimeExceeded) {
+        outageTimeExceed = outageTimeExceeded;
     }
 
     @XmlElement(name="db_offline_info")
@@ -22,10 +22,8 @@ public class DbOfflineStatus {
         return this.outageTimeExceed;
     }
 
-    public void setOutageTimeExceeded(boolean OutageTimeExceeded) {
-        this.outageTimeExceed = OutageTimeExceeded;
+    public void setOutageTimeExceeded(boolean outageTimeExceeded) {
+        this.outageTimeExceed = outageTimeExceeded;
     }
-
-
 
 }

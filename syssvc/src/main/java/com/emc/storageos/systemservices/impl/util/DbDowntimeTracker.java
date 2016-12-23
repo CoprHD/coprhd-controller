@@ -2,14 +2,13 @@
  * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
-package com.emc.storageos.systemservices.impl.healthmonitor;
+package com.emc.storageos.systemservices.impl.util;
 
 import java.util.Arrays;
 import java.util.List;
 
 import com.emc.storageos.services.util.AlertsLogger;
 import com.emc.storageos.security.dbInfo.DbInfoUtils;
-import com.emc.storageos.systemservices.impl.util.MailHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;

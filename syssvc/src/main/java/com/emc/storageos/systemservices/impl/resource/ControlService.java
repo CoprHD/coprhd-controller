@@ -229,7 +229,6 @@ public class ControlService {
         cleanDbarray = cleanDb.toArray(cleanDbarray);
         Exec.Result result = Exec.exec(Exec.DEFAULT_CMD_TIMEOUT, cleanDbarray);
         _log.info("result code is {}",result.getExitValue());
-        //String [] clean_db = {"/usr/bin/rm","-fr"};
         try {
             FileUtils.writePlainFile(dbFile,startupModeContent.getBytes());
             FileUtils.writePlainFile(geodbFile,startupModeContent.getBytes());
@@ -589,12 +588,19 @@ public class ControlService {
             }
         }
         ArrayList<String> unvaliableNodeList = new ArrayList<>(unvaliableNodeSet);
+        setRecoverPrecheckStatus(recoveryPrecheckStatus, unvaliableNodeList, recoverableNodeList, nodeList.size());
+        recoveryPrecheckStatus.setUnavailables(unvaliableNodeList);
+        recoveryPrecheckStatus.setRecoverables(recoverableNodeList);
+        return recoveryPrecheckStatus;
+    }
+
+    private void setRecoverPrecheckStatus(RecoveryPrecheckStatus recoveryPrecheckStatus ,ArrayList<String> unvaliableNodeList, ArrayList<String> recoverableNodeList ,int size) {
         if (recoveryPrecheckStatus.getStatus() == null || !recoveryPrecheckStatus.getStatus().equals(RecoveryPrecheckStatus.Status.NODE_UNREACHABLE)) {
-            if (!unvaliableNodeSet.isEmpty()) {
+            if (!unvaliableNodeList.isEmpty()) {
                 if (!unvaliableNodeList.equals(recoverableNodeList)) {
                     recoveryPrecheckStatus.setStatus(RecoveryPrecheckStatus.Status.CORRUPTED_NODE_FOR_OTHER_REASON);
                 }else {
-                    if (recoverableNodeList.size() < (nodeList.size()/ 2 + 1)) { /*corrupted nodes is less than quorum nodes*/
+                    if (recoverableNodeList.size() < (size / 2 + 1)) { /*corrupted nodes is less than quorum nodes*/
                         recoveryPrecheckStatus.setStatus(RecoveryPrecheckStatus.Status.RECOVERY_NEEDED);
                     }else {
                         recoveryPrecheckStatus.setStatus(RecoveryPrecheckStatus.Status.CORRUPTED_NODE_COUNT_MORE_THAN_QUORUM);
@@ -604,9 +610,6 @@ public class ControlService {
                 recoveryPrecheckStatus.setStatus(RecoveryPrecheckStatus.Status.ALL_GOOD);
             }
         }
-        recoveryPrecheckStatus.setUnavailables(unvaliableNodeList);
-        recoveryPrecheckStatus.setRecoverables(recoverableNodeList);
-        return recoveryPrecheckStatus;
     }
 
     @GET

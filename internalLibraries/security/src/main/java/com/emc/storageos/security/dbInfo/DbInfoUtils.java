@@ -1,6 +1,12 @@
+/*
+ * Copyright (c) 2016 EMC Corporation
+ * All Rights Reserved
+ */
+
+/**
+ * utils to check db/geodb related info
+ */
 package com.emc.storageos.security.dbInfo;
-
-
 
 import com.emc.storageos.coordinator.client.model.Constants;
 import com.emc.storageos.coordinator.client.model.DbOfflineEventInfo;
@@ -16,28 +22,22 @@ import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 
-/*
- * Copyright (c) 2016 EMC Corporation
- * All Rights Reserved
- */
-
-/**
- * utils to check db/geodb related info
- */
 public class DbInfoUtils {
     private static final Logger _log = LoggerFactory.getLogger(DbInfoUtils.class);
     // Service outage time should be less than 5 days, or else service will not be allowed to get started any more.
     // As we checked the downtime every 15 mins, to avoid actual downtime undervalued, setting the max value as 4 days.
     public static final long MAX_SERVICE_OUTAGE_TIME = 4 * TimeUtils.DAYS;
     public static final List<String> serviceNames = Arrays.asList(Constants.DBSVC_NAME, Constants.GEODBSVC_NAME);
+    public DbInfoUtils() {
+    }
     /**
      * Check offline event info to see if dbsvc/geodbsvc on this node could get started
      */
-    public static void checkDBOfflineInfo(CoordinatorClient _coordinator, String serviceName ,String dbDir, boolean enableAlert) {
+    public static void checkDBOfflineInfo(CoordinatorClient coordinator, String serviceName ,String dbDir, boolean enableAlert) {
 
-        DbOfflineEventInfo dbOfflineEventInfo = getDbOfflineEventInfo(_coordinator, serviceName);
+        DbOfflineEventInfo dbOfflineEventInfo = getDbOfflineEventInfo(coordinator, serviceName);
 
-        String localNodeId = _coordinator.getInetAddessLookupMap().getNodeId();
+        String localNodeId = coordinator.getInetAddessLookupMap().getNodeId();
         Long lastActiveTimestamp = dbOfflineEventInfo.geLastActiveTimestamp(localNodeId);
         long zkTimeStamp = (lastActiveTimestamp == null) ? TimeUtils.getCurrentTime() : lastActiveTimestamp;
 
@@ -48,6 +48,12 @@ public class DbInfoUtils {
 
         _log.info("Service timestamp in ZK is {}, local file is: {}", zkTimeStamp, localTimeStamp);
         long diffTime = (zkTimeStamp > localTimeStamp) ? (zkTimeStamp - localTimeStamp) : 0;
+        checkDiffTime(diffTime, enableAlert);
+        Long offlineTime = dbOfflineEventInfo.getOfflineTimeInMS(localNodeId);
+        checkOfflineTime(offlineTime, isDirEmpty, enableAlert);
+    }
+
+    private static void checkDiffTime(long diffTime,boolean enableAlert) {
         if (diffTime >= MAX_SERVICE_OUTAGE_TIME) {
             String errMsg = String.format("We detect database files on local disk are more than %s days older " +
                     "than last time it was seen in the cluster. It may bring stale data into the database, " +
@@ -56,8 +62,9 @@ public class DbInfoUtils {
             if (enableAlert) AlertsLogger.getAlertsLogger().error(errMsg);
             throw new java.lang.IllegalStateException(errMsg);
         }
+    }
 
-        Long offlineTime = dbOfflineEventInfo.getOfflineTimeInMS(localNodeId);
+    private static void checkOfflineTime(Long offlineTime, boolean isDirEmpty, boolean enableAlert) {
         if (!isDirEmpty && offlineTime != null && offlineTime >= MAX_SERVICE_OUTAGE_TIME) {
             String errMsg = String.format("This node is offline for more than %s days. It may bring stale data into " +
                     "database, so the service cannot continue to boot. Please poweroff this node and follow our " +
@@ -67,13 +74,13 @@ public class DbInfoUtils {
         }
     }
 
-    public static Long getDbOfflineTime (CoordinatorClient _coordinator, String serviceName, String nodeId) {
-        DbOfflineEventInfo dbOfflineEventInfo = getDbOfflineEventInfo(_coordinator, serviceName);
+    public static Long getDbOfflineTime (CoordinatorClient coordinator, String serviceName, String nodeId) {
+        DbOfflineEventInfo dbOfflineEventInfo = getDbOfflineEventInfo(coordinator, serviceName);
         return dbOfflineEventInfo.getOfflineTimeInMS(nodeId);
     }
 
-    private static DbOfflineEventInfo getDbOfflineEventInfo (CoordinatorClient _coordinator, String serviceName) {
-        Configuration config = _coordinator.queryConfiguration(_coordinator.getSiteId(), Constants.DB_DOWNTIME_TRACKER_CONFIG,
+    private static DbOfflineEventInfo getDbOfflineEventInfo (CoordinatorClient coordinator, String serviceName) {
+        Configuration config = coordinator.queryConfiguration(coordinator.getSiteId(), Constants.DB_DOWNTIME_TRACKER_CONFIG,
                 serviceName);
         return new DbOfflineEventInfo(config);
     }

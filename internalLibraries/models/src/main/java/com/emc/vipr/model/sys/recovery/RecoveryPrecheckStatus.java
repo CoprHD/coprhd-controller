@@ -1,16 +1,15 @@
+/*
+ * Copyright (c) 2016 EMC Corporation
+ * All Rights Reserved
+ */
 package com.emc.vipr.model.sys.recovery;
 
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlElementWrapper;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
-import java.lang.reflect.Array;
 import java.util.ArrayList;
 
-/*
- * Copyright (c) 2016 EMC Corporation
- * All Rights Reserved
- */
 @XmlRootElement(name="recovery_precheck_status")
 public class RecoveryPrecheckStatus {
 
@@ -25,8 +24,8 @@ public class RecoveryPrecheckStatus {
     }
 
     private Status status ;
-    private ArrayList<String> unavailables ;
-    private ArrayList<String> recoverables;
+    private ArrayList<String> unavailables = new ArrayList<>();
+    private ArrayList<String> recoverables = new ArrayList<>();
 
     @XmlElement(name="status")
     public  Status getStatus() {

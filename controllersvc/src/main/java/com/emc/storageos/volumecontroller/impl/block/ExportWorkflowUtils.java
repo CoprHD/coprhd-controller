@@ -9,21 +9,26 @@ import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.emc.storageos.computecontroller.impl.HostRescanDeviceController;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.DiscoveredSystemObject;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportMask;
+import com.emc.storageos.db.client.model.Host;
+import com.emc.storageos.db.client.model.Host.HostType;
+import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.ProtectionSystem;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
@@ -38,11 +43,10 @@ import com.emc.storageos.protectioncontroller.impl.recoverpoint.RPDeviceExportCo
 import com.emc.storageos.util.ExportUtils;
 import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.impl.ControllerLockingUtil;
-import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
-import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportMaskAddPathsCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportTaskCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ZoningAddPathsCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ZoningRemovePathsCompleter;
+import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
 import com.emc.storageos.workflow.Workflow;
 import com.emc.storageos.workflow.WorkflowException;
 import com.emc.storageos.workflow.WorkflowRestartedException;
@@ -57,6 +61,7 @@ public class ExportWorkflowUtils {
     private ExportWorkflowEntryPoints _exportWfEntryPoints;
     private WorkflowService _workflowSvc;
     private NetworkDeviceController networkDeviceController;
+    private HostRescanDeviceController hostRescanDeviceController;
 
 
     public void setDbClient(DbClient dbc) {
@@ -730,6 +735,50 @@ public class ExportWorkflowUtils {
 
         return zoningStep;
     }
+    
+    /**
+     * Generate workflow steps for rescanning hosts after a change in paths.
+     * @param workflow -- Workflow being generated
+     * @param zoningMap -- zoning map with the cahnges (used for initiators)
+     * @param waitFor -- previous step id to work on
+     * @return -- Step group or previous step to wait for
+     */
+    public String generateHostRescanWorkflowSteps(Workflow workflow, Map<URI, List<URI>> zoningMap, String waitFor) { 
+        // Determine the set of hosts that neet to be rescanned.
+        Set<URI> hostURIs = new HashSet<URI>();
+        for (URI initiatorURI : zoningMap.keySet()) {
+            Initiator initiator = _dbClient.queryObject(Initiator.class, initiatorURI);
+            if (!(initiator == null || initiator.getInactive() || initiator.getHost() == null)) {
+                hostURIs.add(initiator.getHost());
+            }
+        }
+        
+        
+        // Loop through each Host. Generate a step to rescan the host if it is not type Other.
+        boolean generatedStep = false;
+        String stepGroup = "hostRescan" + (waitFor != null ? waitFor : "");
+        boolean queuedStep = false;
+        for (URI hostURI : hostURIs) {
+            Host host = _dbClient.queryObject(Host.class, hostURI);
+            if (host == null || host.getInactive()) {
+                _log.info(String.format("Host not found or inactive: %s", hostURI));
+                continue;
+            }
+            if (host.getType().equalsIgnoreCase(HostType.Other.name())) {
+                _log.info(String.format("Manually entered host %s, cannot rescan", host.getHostName()));
+                continue;
+            }
+            Workflow.Method rescan = hostRescanDeviceController.rescanHostStorageMethod(hostURI);
+            Workflow.Method nullMethod = hostRescanDeviceController.nullWorkflowStepMethod();
+            workflow.createStep(stepGroup,
+                    String.format("Rescan Host Storage: %s", host.getHostName()),
+                    waitFor, NullColumnValueGetter.getNullURI(),
+                    "host-rescan", hostRescanDeviceController.getClass(),
+                    rescan, nullMethod, null);
+            queuedStep = true;
+        }
+        return (queuedStep ? stepGroup : waitFor);
+    }
         
     /**
      * Gets an instance of ProtectionExportController.
@@ -741,5 +790,13 @@ public class ExportWorkflowUtils {
      */
     private ProtectionExportController getProtectionExportController() {
         return new RPDeviceExportController(_dbClient, this);
+    }
+
+    public HostRescanDeviceController getHostRescanDeviceController() {
+        return hostRescanDeviceController;
+    }
+
+    public void setHostRescanDeviceController(HostRescanDeviceController hostRescanDeviceController) {
+        this.hostRescanDeviceController = hostRescanDeviceController;
     }
 }

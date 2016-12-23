@@ -514,4 +514,8 @@ public interface DeviceControllerExceptions {
 
     @DeclareServiceCode(ServiceCode.CONTROLLER_VALIDATION_EXCEPTION)
     public DeviceControllerException deleteExportGroupValidationError(String exportGroupName, String storageSystemName, String details);
+    
+    @DeclareServiceCode(ServiceCode.BLOCK_CONTROLLER_ERROR)
+    public DeviceControllerException hostRescanUnsuccessful(String hostName, String reason);
+    
 }

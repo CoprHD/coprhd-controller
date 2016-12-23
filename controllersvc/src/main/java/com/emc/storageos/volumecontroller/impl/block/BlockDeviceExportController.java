@@ -958,6 +958,9 @@ public class BlockDeviceExportController implements BlockExportController {
     
                 stepId = _wfUtils.generateZoningAddPathsWorkflow(workflow, "Zoning add paths", systemURI, exportGroupURI, maskAjustedPathMap,
                         newPaths, stepId);
+                
+                stepId = _wfUtils.generateHostRescanWorkflowSteps(workflow, newPaths, stepId);
+                
                 }
 
             boolean isPending = waitBeforeRemovePaths;
@@ -978,6 +981,8 @@ public class BlockDeviceExportController implements BlockExportController {
                 }
                 stepId = _wfUtils.generateZoningRemovePathsWorkflow(workflow, "Zoning remove paths", systemURI, exportGroupURI, maskAjustedPathMap,
                         maskRemovePathMap, stepId);
+                
+                stepId = _wfUtils.generateHostRescanWorkflowSteps(workflow, removedPaths, stepId);
             }
             if (!workflow.getAllStepStatus().isEmpty()) {
                 // update ExportPortRebalanceCompleter with affected export groups

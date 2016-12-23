@@ -967,18 +967,4 @@ public class VPlexControllerUtils {
         log.info("Stale Export Mask cleanup complete.");
     }
 
-    public static Set<Integer> findHLUsForInitiators(StorageSystem storage, List<String> initiatorNames, boolean mustHaveAllPorts) {
-        long startTime = System.currentTimeMillis();
-        Set<Integer> usedHLUs = new HashSet<Integer>();
-
-        /**
-         * Find used HLUs here local and distributed
-         */
-
-        log.info(String.format("HLUs found for Initiators { %s }: %s",
-                Joiner.on(',').join(initiatorNames), usedHLUs));
-        long totalTime = System.currentTimeMillis() - startTime;
-        log.info(String.format("find used HLUs for Initiators took %f seconds", (double) totalTime / (double) 1000));
-        return usedHLUs;
-    }
 }

@@ -91,7 +91,8 @@ public class ExternalDeviceUtils {
         volume.setProvisionedCapacity(deviceClone.getProvisionedCapacity());
         volume.setAllocatedCapacity(deviceClone.getAllocatedCapacity());
         volume.setInactive(false);
-        volume.setConsistencyGroup(cgURI);
+        // Do not associate clones with original source cg (see cop-27409)
+        //volume.setConsistencyGroup(cgURI);
     }
 
     /**

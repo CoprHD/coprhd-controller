@@ -87,7 +87,7 @@ public class FilePolicyParam implements Serializable {
      * 
      * @return
      */
-    @XmlElement(required = true, name = "priority")
+    @XmlElement(name = "priority")
     public String getPriority() {
         return this.priority;
     }

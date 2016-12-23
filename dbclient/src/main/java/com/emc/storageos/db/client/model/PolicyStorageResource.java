@@ -4,7 +4,6 @@
  */
 package com.emc.storageos.db.client.model;
 
-import java.io.Serializable;
 import java.net.URI;
 
 /**
@@ -14,22 +13,15 @@ import java.net.URI;
  */
 
 @Cf("PolicyStorageResource")
-public class PolicyStorageResource extends DataObject implements Serializable {
+public class PolicyStorageResource extends DataObject {
 
     private static final long serialVersionUID = 1L;
     private URI filePolicyId;
     private URI storageSystem;
     private URI nasServer;
+    private URI appliedAt;
     private String policyNativeId;
 
-    public PolicyStorageResource(URI filePolicyId, URI storageSystem, String policyNativeId) {
-        super();
-        this.filePolicyId = filePolicyId;
-        this.storageSystem = storageSystem;
-        this.policyNativeId = policyNativeId;
-    }
-
-    @RelationIndex(cf = "RelationIndex", type = FilePolicy.class)
     @Name("filePolicyId")
     public URI getFilePolicyId() {
         return filePolicyId;
@@ -70,10 +62,14 @@ public class PolicyStorageResource extends DataObject implements Serializable {
         setChanged("policyNativeId");
     }
 
-    @Override
-    public String toString() {
-        return "PolicyStorageResource [FilePolicyId=" + filePolicyId + ", storageSystem=" + storageSystem + ", nasServer=" + nasServer
-                + ", policyNativeId=" + policyNativeId + "]";
+    @Name("appliedAt")
+    public URI getAppliedAt() {
+        return appliedAt;
+    }
+
+    public void setAppliedAt(URI appliedAt) {
+        this.appliedAt = appliedAt;
+        setChanged("appliedAt");
     }
 
 }

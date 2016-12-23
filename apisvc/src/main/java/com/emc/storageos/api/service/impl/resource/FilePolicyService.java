@@ -7,6 +7,7 @@ package com.emc.storageos.api.service.impl.resource;
 import static com.emc.storageos.api.mapper.DbObjectMapper.toLink;
 import static com.emc.storageos.api.mapper.DbObjectMapper.toNamedRelatedResource;
 import static com.emc.storageos.api.mapper.FilePolicyMapper.map;
+import static com.emc.storageos.api.mapper.TaskMapper.toTask;
 
 import java.net.URI;
 import java.util.EnumSet;
@@ -43,9 +44,11 @@ import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.VirtualPool;
+import com.emc.storageos.fileorchestrationcontroller.FileOrchestrationController;
 import com.emc.storageos.model.BulkIdParam;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.model.ResourceTypeEnum;
+import com.emc.storageos.model.TaskResourceRep;
 import com.emc.storageos.model.auth.ACLAssignmentChanges;
 import com.emc.storageos.model.auth.ACLAssignments;
 import com.emc.storageos.model.file.policy.FilePolicyAssignParam;
@@ -63,6 +66,7 @@ import com.emc.storageos.security.authorization.DefaultPermissions;
 import com.emc.storageos.security.authorization.Role;
 import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
+import com.emc.storageos.svcs.errorhandling.resources.BadRequestException;
 import com.emc.storageos.volumecontroller.impl.monitoring.RecordableEventManager;
 
 /**
@@ -317,7 +321,11 @@ public class FilePolicyService extends TaskResourceService {
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @CheckPermission(roles = { Role.SYSTEM_ADMIN })
-    public void unassignFilePolicy(@PathParam("id") URI id, FilePolicyUnAssignParam param) {
+    public TaskResourceRep unassignFilePolicy(@PathParam("id") URI id, FilePolicyUnAssignParam param) {
+
+        _log.info("Unassign File Policy :{}  request received.", id);
+        String task = UUID.randomUUID().toString();
+        Set<URI> unassignFrom = param.getUnassignfromVpools();
 
         ArgValidator.checkFieldUriType(id, FilePolicy.class, "id");
         FilePolicy filepolicy = this._dbClient.queryObject(FilePolicy.class, id);
@@ -327,6 +335,7 @@ public class FilePolicyService extends TaskResourceService {
         if (filepolicy.getAssignedResources() == null || filepolicy.getAssignedResources().isEmpty()) {
             errorMsg.append("File Policy" + id + " doesn't have any assigned resources.");
             _log.error(errorMsg.toString());
+            // TODO proper exception has to be thrown
             throw APIException.badRequests.invalidFilePolicyAssignParam(filepolicy.getFilePolicyName(), errorMsg.toString());
         }
 
@@ -339,25 +348,44 @@ public class FilePolicyService extends TaskResourceService {
 
         if (filepolicy.getApplyAt().equals(FilePolicy.FilePolicyApplyLevel.vpool.name())) {
             ArgValidator.checkFieldNotNull(param.getUnassignfromVpools(), "unassign_from_vpools");
-            Set<URI> vpoolURIs = param.getUnassignfromVpools();
-
-            for (URI vpoolURI : vpoolURIs) {
-                if (!filepolicy.getAssignedResources().contains(vpoolURI.toString())) {
-                    errorMsg.append("Provided vpool is either being not assigned to the file policy:" + filepolicy.getId()
-                            + " or it is a invalid vpool URI");
-                    _log.error(errorMsg.toString());
-                    // TODO proper exception has to be thrown
-                    throw APIException.badRequests.invalidFilePolicyAssignParam(filepolicy.getFilePolicyName(), errorMsg.toString());
-                }
-            }
-            String task = UUID.randomUUID().toString();
-            Operation op = _dbClient.createTaskOpStatus(FilePolicy.class, filepolicy.getId(),
-                    task, ResourceOperationTypeEnum.UNASSIGN_RESOURCES_FROM_FILE_POLICY);
-            // FileServiceApi fileServiceApi = getFileShareServiceImpl(fs, _dbClient);
-            // fileServiceApi.share(device.getId(), fs.getId(), smbShare, task);
-            // auditOp(opType, operationalStatus, operationStage, descparams);;
-            // return toTask(filepolicy, task, op);
         }
+        if (filepolicy.getApplyAt().equals(FilePolicy.FilePolicyApplyLevel.project.name())) {
+            ArgValidator.checkFieldNotNull(param.getUnassignfromProjects(), "unassign_from_projects");
+        }
+        if (filepolicy.getApplyAt().equals(FilePolicy.FilePolicyApplyLevel.file_system.name())) {
+            ArgValidator.checkFieldNotNull(param.getUnassignfromFileSystems(), "unassign_from_file_systems");
+        }
+
+        for (URI uri : unassignFrom) {
+            if (!filepolicy.getAssignedResources().contains(uri.toString())) {
+                errorMsg.append("Provided resource URI is either being not assigned to the file policy:" + filepolicy.getId()
+                        + " or it is a invalid URI");
+                _log.error(errorMsg.toString());
+                // TODO proper exception has to be thrown
+                throw APIException.badRequests.invalidFilePolicyAssignParam(filepolicy.getFilePolicyName(), errorMsg.toString());
+            }
+        }
+
+        Operation op = _dbClient.createTaskOpStatus(FilePolicy.class, filepolicy.getId(),
+                task, ResourceOperationTypeEnum.UNASSIGN_FILE_POLICY);
+        op.setDescription("unassign File Policy from resources ");
+        FileOrchestrationController controller = getController(FileOrchestrationController.class,
+                FileOrchestrationController.FILE_ORCHESTRATION_DEVICE);
+        try {
+            controller.unassignFilePolicy(filepolicy.getId(), unassignFrom, task);
+
+            // auditOp(OperationTypeEnum.ASSIGN_FILE_SYSTEM_SNAPSHOT_SCHEDULE, true, AuditLogManager.AUDITOP_BEGIN,
+            // fs.getId().toString(), device.getId().toString(), fp.getId());
+
+        } catch (BadRequestException e) {
+            op = _dbClient.error(FilePolicy.class, filepolicy.getId(), task, e);
+            _log.error("Error Unassigning File policy {}, {}", e.getMessage(), e);
+            throw e;
+        } catch (Exception e) {
+            _log.error("Error Unassigning Files Policy {}, {}", e.getMessage(), e);
+            throw APIException.badRequests.unableToProcessRequest(e.getMessage());
+        }
+        return toTask(filepolicy, task, op);
     }
 
     /**
@@ -726,7 +754,7 @@ public class FilePolicyService extends TaskResourceService {
         ArgValidator.checkFieldNotNull(param.getProjectAssignParams(), "project_assign_param");
         ArgValidator.checkFieldUriType(param.getProjectAssignParams().getVpool(), VirtualPool.class, "vpool");
         VirtualPool vpool = this._dbClient.queryObject(VirtualPool.class, param.getProjectAssignParams().getVpool());
-        ArgValidator.checkEntity(vpool, vpool.getId(), false);
+        ArgValidator.checkEntity(vpool, param.getProjectAssignParams().getVpool(), false);
 
         // Check if the vpool supports provided policy type..
         if (!FilePolicyServiceUtils.validateVpoolSupportPolicyType(filepolicy, vpool)) {
@@ -796,7 +824,7 @@ public class FilePolicyService extends TaskResourceService {
 
         ArgValidator.checkFieldUriType(param.getFileSystemAssignParams().getVpool(), VirtualPool.class, "vpool");
         VirtualPool vpool = this._dbClient.queryObject(VirtualPool.class, param.getFileSystemAssignParams().getVpool());
-        ArgValidator.checkEntity(vpool, vpool.getId(), false);
+        ArgValidator.checkEntity(vpool, param.getFileSystemAssignParams().getVpool(), false);
 
         // Check if policy is being already mapped to the provided vpool
         if (filepolicy.getFilePolicyVpool() != null && filepolicy.getFilePolicyVpool().equals(vpool.getId())) {

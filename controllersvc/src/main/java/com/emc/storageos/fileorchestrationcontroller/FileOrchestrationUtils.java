@@ -281,27 +281,30 @@ public class FileOrchestrationUtils {
         List<FilePolicy> filepolicies = dbClient.queryObject(FilePolicy.class, policyIds);
 
         for (FilePolicy filePolicy : filepolicies) {
-            FilePolicyApplyLevel appliedLevel = FilePolicyApplyLevel.valueOf(filePolicy.getApplyAt());
-            switch (appliedLevel) {
-                case vpool:
-                    if (filePolicy.getAssignedResources().contains(vpool.toString())) {
-                        filePolicies.add(filePolicy);
-                    }
-                    break;
-                case project:
-                    if (filePolicy.getAssignedResources().contains(project.toString())
-                            && filePolicy.getFilePolicyVpool().toString().equals(vpool.toString())) {
-                        filePolicies.add(filePolicy);
-                    }
-                    break;
-                case file_system:
-                    // Here logic has to be changed.
-                    if (filePolicy.getApplyToAllFS() && filePolicy.getFilePolicyVpool().toString().equals(vpool.toString())) {
-                        filePolicies.add(filePolicy);
-                    }
-                    break;
-                default:
-                    return null;
+            if (filePolicy.getApplyAt() != null && filePolicy.getAssignedResources() != null) {
+                FilePolicyApplyLevel appliedLevel = FilePolicyApplyLevel.valueOf(filePolicy.getApplyAt());
+
+                switch (appliedLevel) {
+                    case vpool:
+                        if (filePolicy.getAssignedResources().contains(vpool.toString())) {
+                            filePolicies.add(filePolicy);
+                        }
+                        break;
+                    case project:
+                        if (filePolicy.getAssignedResources().contains(project.toString())
+                                && filePolicy.getFilePolicyVpool().toString().equals(vpool.toString())) {
+                            filePolicies.add(filePolicy);
+                        }
+                        break;
+                    case file_system:
+                        // TODO Here logic has to be changed.
+                        if (filePolicy.getApplyToAllFS() && filePolicy.getFilePolicyVpool().toString().equals(vpool.toString())) {
+                            filePolicies.add(filePolicy);
+                        }
+                        break;
+                    default:
+                        return null;
+                }
             }
         }
         return filePolicies;

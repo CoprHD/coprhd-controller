@@ -3544,7 +3544,6 @@ public class FileService extends TaskResourceService {
             _log.info("No Errors found proceeding further {}, {}, {}", new Object[] { _dbClient, fs, filePolicy });
 
             controller.applyFilePolicy(fs.getId(), Collections.singletonList(filePolicy), task);
-
             auditOp(OperationTypeEnum.ASSIGN_FILE_POLICY, true, AuditLogManager.AUDITOP_BEGIN,
                     fs.getId().toString(), device.getId().toString(), filePolicy.getId());
 

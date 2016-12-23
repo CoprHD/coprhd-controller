@@ -156,6 +156,7 @@ public class Orders extends OrderExecution {
         dataTable.setByStartEndDateOrMaxDays(params.get("startDate"), params.get("endDate"),
                 params.get("maxDays", Integer.class));
         Long orderCount = dataTable.fetchCount().getCounts().entrySet().iterator().next().getValue();
+        System.out.println("hlj in my order list count: "+orderCount);
         if (orderCount > OrderDataTable.ORDER_MAX_COUNT) {
             flash.put("warning", MessagesUtils.get("orders.warning", orderCount, OrderDataTable.ORDER_MAX_COUNT));
         }

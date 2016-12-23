@@ -59,6 +59,7 @@ import com.emc.storageos.model.file.policy.FilePolicyListRestRep;
 import com.emc.storageos.model.file.policy.FilePolicyParam;
 import com.emc.storageos.model.file.policy.FilePolicyRestRep;
 import com.emc.storageos.model.file.policy.FilePolicyUnAssignParam;
+import com.emc.storageos.model.file.policy.FilePolicyUpdateParam;
 import com.emc.storageos.model.file.policy.FileReplicationPolicyParam;
 import com.emc.storageos.security.authentication.StorageOSUser;
 import com.emc.storageos.security.authorization.CheckPermission;
@@ -325,7 +326,6 @@ public class FilePolicyService extends TaskResourceService {
 
         _log.info("Unassign File Policy :{}  request received.", id);
         String task = UUID.randomUUID().toString();
-        Set<URI> unassignFrom = param.getUnassignfromVpools();
 
         ArgValidator.checkFieldUriType(id, FilePolicy.class, "id");
         FilePolicy filepolicy = this._dbClient.queryObject(FilePolicy.class, id);
@@ -333,39 +333,27 @@ public class FilePolicyService extends TaskResourceService {
         StringBuilder errorMsg = new StringBuilder();
 
         if (filepolicy.getAssignedResources() == null || filepolicy.getAssignedResources().isEmpty()) {
-            errorMsg.append("File Policy" + id + " doesn't have any assigned resources.");
+            errorMsg.append("File Policy: " + id + " doesn't have any assigned resources.");
             _log.error(errorMsg.toString());
-            // TODO proper exception has to be thrown
-            throw APIException.badRequests.invalidFilePolicyAssignParam(filepolicy.getFilePolicyName(), errorMsg.toString());
+            throw APIException.badRequests.invalidFilePolicyUnAssignParam(filepolicy.getFilePolicyName(), errorMsg.toString());
         }
-
         if (!param.getForceUnassign() && !filepolicy.getPolicyStorageResources().isEmpty()) {
             errorMsg.append("File Policy" + id + " is currently active and running. Try again with 'force unassign flag' ");
             _log.error(errorMsg.toString());
-            // TODO proper exception has to be thrown..
-            throw APIException.badRequests.invalidFilePolicyAssignParam(filepolicy.getFilePolicyName(), errorMsg.toString());
+            throw APIException.badRequests.invalidFilePolicyUnAssignParam(filepolicy.getFilePolicyName(), errorMsg.toString());
         }
-
-        if (filepolicy.getApplyAt().equals(FilePolicy.FilePolicyApplyLevel.vpool.name())) {
-            ArgValidator.checkFieldNotNull(param.getUnassignfromVpools(), "unassign_from_vpools");
-        }
-        if (filepolicy.getApplyAt().equals(FilePolicy.FilePolicyApplyLevel.project.name())) {
-            ArgValidator.checkFieldNotNull(param.getUnassignfromProjects(), "unassign_from_projects");
-        }
-        if (filepolicy.getApplyAt().equals(FilePolicy.FilePolicyApplyLevel.file_system.name())) {
-            ArgValidator.checkFieldNotNull(param.getUnassignfromFileSystems(), "unassign_from_file_systems");
-        }
-
-        for (URI uri : unassignFrom) {
-            if (!filepolicy.getAssignedResources().contains(uri.toString())) {
-                errorMsg.append("Provided resource URI is either being not assigned to the file policy:" + filepolicy.getId()
-                        + " or it is a invalid URI");
-                _log.error(errorMsg.toString());
-                // TODO proper exception has to be thrown
-                throw APIException.badRequests.invalidFilePolicyAssignParam(filepolicy.getFilePolicyName(), errorMsg.toString());
+        ArgValidator.checkFieldNotNull(param.getUnassignfrom(), "unassign_from");
+        Set<URI> unassignFrom = param.getUnassignfrom();
+        if (unassignFrom != null) {
+            for (URI uri : unassignFrom) {
+                if (!filepolicy.getAssignedResources().contains(uri.toString())) {
+                    errorMsg.append("Provided resource URI is either being not assigned to the file policy:" + filepolicy.getId()
+                            + " or it is a invalid URI");
+                    _log.error(errorMsg.toString());
+                    throw APIException.badRequests.invalidFilePolicyUnAssignParam(filepolicy.getFilePolicyName(), errorMsg.toString());
+                }
             }
         }
-
         Operation op = _dbClient.createTaskOpStatus(FilePolicy.class, filepolicy.getId(),
                 task, ResourceOperationTypeEnum.UNASSIGN_FILE_POLICY);
         op.setDescription("unassign File Policy from resources ");
@@ -373,9 +361,8 @@ public class FilePolicyService extends TaskResourceService {
                 FileOrchestrationController.FILE_ORCHESTRATION_DEVICE);
         try {
             controller.unassignFilePolicy(filepolicy.getId(), unassignFrom, task);
-
-            // auditOp(OperationTypeEnum.ASSIGN_FILE_SYSTEM_SNAPSHOT_SCHEDULE, true, AuditLogManager.AUDITOP_BEGIN,
-            // fs.getId().toString(), device.getId().toString(), fp.getId());
+            auditOp(OperationTypeEnum.UNASSIGN_FILE_POLICY, true, "BEGIN", filepolicy.getId().toString(),
+                    filepolicy.getLabel());
 
         } catch (BadRequestException e) {
             op = _dbClient.error(FilePolicy.class, filepolicy.getId(), task, e);
@@ -440,21 +427,18 @@ public class FilePolicyService extends TaskResourceService {
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @CheckPermission(roles = { Role.SYSTEM_ADMIN })
-    public FilePolicyCreateResp updateFilePolicy(@PathParam("id") URI id, FilePolicyParam param) {
+    public FilePolicyCreateResp updateFilePolicy(@PathParam("id") URI id, FilePolicyUpdateParam param) {
 
-        FilePolicy policy = queryResource(id);
-        ArgValidator.checkEntityNotNull(policy, id, isIdEmbeddedInURL(id));
-
-        // check policy type is valid or not
-        ArgValidator.checkFieldValueFromEnum(param.getPolicyType(), "policy_type",
-                EnumSet.allOf(FilePolicyType.class));
+        ArgValidator.checkFieldUriType(id, FilePolicy.class, "id");
+        FilePolicy filepolicy = this._dbClient.queryObject(FilePolicy.class, id);
+        ArgValidator.checkEntity(filepolicy, id, true);
 
         _log.info("file policy updation started -- ");
-        if (param.getPolicyType().equals(FilePolicyType.file_replication.name())) {
-            return updateFileReplicationPolicy(policy, param);
+        if (filepolicy.getFilePolicyType().equals(FilePolicyType.file_replication.name())) {
+            return updateFileReplicationPolicy(filepolicy, param);
 
-        } else if (param.getPolicyType().equals(FilePolicyType.file_snapshot.name())) {
-            return updateFileSnapshotPolicy(policy, param);
+        } else if (filepolicy.getFilePolicyType().equals(FilePolicyType.file_snapshot.name())) {
+            return updateFileSnapshotPolicy(filepolicy, param);
         }
         return null;
     }
@@ -555,7 +539,7 @@ public class FilePolicyService extends TaskResourceService {
      * @param param
      * @return
      */
-    private FilePolicyCreateResp updateFileReplicationPolicy(FilePolicy fileReplicationPolicy, FilePolicyParam param) {
+    private FilePolicyCreateResp updateFileReplicationPolicy(FilePolicy fileReplicationPolicy, FilePolicyUpdateParam param) {
         StringBuilder errorMsg = new StringBuilder();
 
         // validate and update common parameters!!
@@ -603,7 +587,7 @@ public class FilePolicyService extends TaskResourceService {
      * @param fileSnapshotPolicy
      * @return
      */
-    private FilePolicyCreateResp updateFileSnapshotPolicy(FilePolicy fileSnapshotPolicy, FilePolicyParam param) {
+    private FilePolicyCreateResp updateFileSnapshotPolicy(FilePolicy fileSnapshotPolicy, FilePolicyUpdateParam param) {
         StringBuilder errorMsg = new StringBuilder();
 
         // validate and update common parameters!!
@@ -641,7 +625,7 @@ public class FilePolicyService extends TaskResourceService {
                 fileSnapshotPolicy.getId()), fileSnapshotPolicy.getLabel());
     }
 
-    private boolean updatePolicyCommonParameters(FilePolicy existingPolicy, FilePolicyParam param) {
+    private boolean updatePolicyCommonParameters(FilePolicy existingPolicy, FilePolicyUpdateParam param) {
         StringBuilder errorMsg = new StringBuilder();
 
         // Validate replication policy schedule parameters
@@ -658,15 +642,6 @@ public class FilePolicyService extends TaskResourceService {
             }
         }
 
-        // validate replication type and copy mode parameters
-        if (param.getPolicyType() != null && !param.getPolicyType().isEmpty()) {
-            if (!param.getPolicyType().equalsIgnoreCase(existingPolicy.getFilePolicyType())) {
-                _log.error("Policy type can not be changed to {} ", param.getPolicyType());
-                throw APIException.badRequests.invalidFilePolicyType(param.getPolicyType());
-            }
-
-        }
-
         // Verify and updated the policy name!!!
         if (param.getPolicyName() != null && !param.getPolicyName().isEmpty()
                 && !existingPolicy.getLabel().equalsIgnoreCase(param.getPolicyName())) {
@@ -678,9 +653,7 @@ public class FilePolicyService extends TaskResourceService {
         if (param.getPolicyDescription() != null && !param.getPolicyDescription().isEmpty()) {
             existingPolicy.setFilePolicyDescription(param.getPolicyDescription());
         }
-
         return true;
-
     }
 
     /**

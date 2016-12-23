@@ -1,4 +1,5 @@
 /*
+
  * Copyright (c) 2008-2012 EMC Corporation
  * All Rights Reserved
  */
@@ -32,6 +33,7 @@ import com.emc.storageos.db.client.model.FSExportMap;
 import com.emc.storageos.db.client.model.FileExport;
 import com.emc.storageos.db.client.model.FilePolicy;
 import com.emc.storageos.db.client.model.FilePolicy.FilePolicyApplyLevel;
+import com.emc.storageos.db.client.model.FilePolicy.FilePolicyType;
 import com.emc.storageos.db.client.model.FileShare;
 import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.OpStatusMap;
@@ -2607,7 +2609,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                     continue;
                 } else {
                     String snapshotScheduleName = "";
-                    if (snapshotPolicy.getApplyAt().equals(FilePolicy.FilePolicyApplyLevel.file_system.name())) {
+                    if (snapshotPolicy.getApplyAt().equals(FilePolicyApplyLevel.file_system.name())) {
                         snapshotScheduleName = fs.getLabel() + "_" + snapshotPolicy.getFilePolicyName();
                     } else {
                         snapshotScheduleName = snapshotPolicy.getApplyAt() + "_" + snapshotPolicy.getFilePolicyName();
@@ -2629,9 +2631,15 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                             setPolicyStorageAppliedAt(snapshotPolicy, args, policyStorageResource);
                             _dbClient.createObject(policyStorageResource);
 
-                            StringSet assignedResources = new StringSet();
-                            assignedResources.add(policyStorageResource.getId().toString());
-                            snapshotPolicy.setPolicyStorageResources(assignedResources);
+                            StringSet policyStrgRes = new StringSet();
+                            policyStrgRes.add(policyStorageResource.getId().toString());
+                            snapshotPolicy.setPolicyStorageResources(policyStrgRes);
+
+                            if (snapshotPolicy.getApplyAt().equals(FilePolicyApplyLevel.file_system.name())) {
+                                StringSet assignedResources = new StringSet();
+                                assignedResources.add(fs.getId().toString());
+                                snapshotPolicy.setAssignedResources(assignedResources);
+                            }
                             _dbClient.updateObject(snapshotPolicy);
 
                         }
@@ -2655,11 +2663,11 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             FilePolicy filePolicy = args.getFileProtectionPolicy();
             PolicyStorageResource policyResource = args.getPolicyStorageResource();
 
-            if (filePolicy.getFilePolicyType().equals(FilePolicy.FilePolicyType.file_replication.name())) {
+            if (filePolicy.getFilePolicyType().equals(FilePolicyType.file_replication.name())) {
                 // TODO
                 // Sprint 5 task
 
-            } else if (filePolicy.getFilePolicyType().equals(FilePolicy.FilePolicyType.file_snapshot.name())) {
+            } else if (filePolicy.getFilePolicyType().equals(FilePolicyType.file_snapshot.name())) {
                 ArrayList<IsilonSnapshotSchedule> isiSnapshotPolicies = isi.getSnapshotSchedules().getList();
                 for (IsilonSnapshotSchedule isiSnapshotPolicy : isiSnapshotPolicies) {
                     if (isiSnapshotPolicy.getName().equals(policyResource.getPolicyNativeId())) {

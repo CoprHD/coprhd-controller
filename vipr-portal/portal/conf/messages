@@ -3129,7 +3129,7 @@ orders.nDays=%d Days
 orders.startDate=Start Date
 orders.endDate=End Date
 requestSearch.placeholder=Search for Orders...
-orders.warning=%s orders were found based on current filter.  Returning maximum of %s entries.
+orders.warning=Based on the current filter, %s orders were found in the database. A maximum of %s orders are displayed here.
 
 catalog.corrupted-service.title=Corrupted Service
 catalog.corrupted-service.description=Unable to find this catalog service - it may have been removed or is configured incorrectly. You can still view the order details below.

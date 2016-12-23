@@ -34,6 +34,7 @@ import com.emc.vipr.model.catalog.ApprovalRestRep;
 import com.emc.vipr.model.catalog.CatalogServiceRestRep;
 import com.emc.vipr.model.catalog.ExecutionLogRestRep;
 import com.emc.vipr.model.catalog.ExecutionStateRestRep;
+import com.emc.vipr.model.catalog.OrderCount;
 import com.emc.vipr.model.catalog.OrderCreateParam;
 import com.emc.vipr.model.catalog.OrderLogRestRep;
 import com.emc.vipr.model.catalog.OrderRestRep;
@@ -81,6 +82,7 @@ import util.TimeUtils;
 import util.api.ApiMapperUtils;
 import util.datatable.DataTableParams;
 import util.datatable.DataTablesSupport;
+
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 
 @With(Common.class)
@@ -126,16 +128,14 @@ public class Orders extends OrderExecution {
         RecentUserOrdersDataTable dataTable = new RecentUserOrdersDataTable();
         TenantSelector.addRenderArgs();
 
-        String startDate = params.get("startDate");
-        String endDate = params.get("endDate");
-        if (StringUtils.isNotEmpty(startDate) && StringUtils.isNotEmpty(endDate)) {
-            dataTable.setStartDate(startDate);
-            dataTable.setEndDate(endDate);
-            renderArgs.put("orderCount",
-                    DataTablesSupport.toJson(dataTable.fetchCount()));
-            renderArgs.put("startDate", startDate);
-            renderArgs.put("endDate", endDate);
+        dataTable.setByStartEndDateOrMaxDays(params.get("startDate"), params.get("endDate"),
+                params.get("maxDays", Integer.class));
+        Long orderCount = dataTable.fetchCount().getCounts().get(Models.currentAdminTenant());
+        System.out.println(Models.currentAdminTenant()+"\t count: "+orderCount);
+        if (orderCount > OrderDataTable.ORDER_MAX_COUNT) {
+            flash.put("warning", MessagesUtils.get("orders.warning", orderCount, OrderDataTable.ORDER_MAX_COUNT));
         }
+        
         addMaxDaysRenderArgs();
         Common.copyRenderArgsToAngular();
         render(dataTable);
@@ -150,7 +150,6 @@ public class Orders extends OrderExecution {
     }
 
     public static void list() {
-        //TODO should handle the case more than 6K
         Logger.info("hlj, start to call list()");
         OrderDataTable dataTable = new OrderDataTable(Models.currentTenant());
         dataTable.setUserInfo(Security.getUserInfo());

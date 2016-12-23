@@ -1353,8 +1353,10 @@ public class ExternalDeviceCommunicationInterface extends
                                                    com.emc.storageos.db.client.model.remotereplication.RemoteReplicationSet systemSet) {
         try {
             systemSet.setReachable(true);
-            systemSet.setDeviceLabel(driverSet.getDeviceLabel());
-
+            if (driverSet.getDeviceLabel() != null) {
+                systemSet.setLabel(driverSet.getDeviceLabel());
+                systemSet.setDeviceLabel(driverSet.getDeviceLabel());
+            }
             // set supported replication link granularity
             StringSet supportedReplicationLinkGranularity = new StringSet();
             for (RemoteReplicationSet.ElementType linGranularity : driverSet.getReplicationLinkGranularity()) {
@@ -1434,7 +1436,10 @@ public class ExternalDeviceCommunicationInterface extends
         try {
             systemGroup.setReachable(true);
             systemGroup.setDeviceLabel(driverGroup.getDeviceLabel());
-
+            if (driverGroup.getDisplayName() != null) {
+                systemGroup.setDisplayName(driverGroup.getDisplayName());
+                systemGroup.setLabel(driverGroup.getDisplayName());
+            }
             // set replication state
             RemoteReplicationSet.ReplicationState replicationState = driverGroup.getReplicationState();
             systemGroup.setReplicationState(

@@ -30,7 +30,7 @@ public class RemoteReplicationGroup extends DiscoveredDataObject {
     // Type of storage systems in this replication group.
     private String storageSystemType;
 
-    // Display name of this replication group (whem provisioned by the systemt).
+    // Display name of this replication group (when provisioned by the system).
     private String displayName;
 
     // Source storage system of this group

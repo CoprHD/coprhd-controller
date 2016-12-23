@@ -35,7 +35,8 @@ public class RemoteReplicationSet extends DiscoveredDataObject {
     // Map of nativeId of storage system to its roles in the replication set.
     private StringSetMap systemToRolesMap;
 
-    // Element types in this remote replication set for which which device supports replication link operations.
+    // Element types in this remote replication set for which device supports replication link operations.
+    // Can be any  combination of replication set, replication group and replication pair.
     private StringSet supportedReplicationLinkGranularity;
 
     // Set of replication modes which are supported for elements of this set

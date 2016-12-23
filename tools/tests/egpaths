@@ -171,8 +171,9 @@ BEGIN	{
 	    sub("pwwnKey", "", zref);
 	    gsub(invalidURICharRegex, "", zref);
 	    zname=zoneToName[zref];
+            #print "pwwnKey=", pwwnKey
 	    pwwnKeyToZoneName[pwwnKey] = zname;
-	    if (zref in zoneToCount) {
+	    if (pwwnKey in pwwnKeyToCount) {
 	        pwwnKeyToCount[pwwnKey]++;
 	    } else {
 	        pwwnKeyToCount[pwwnKey] = 1;

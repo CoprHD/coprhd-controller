@@ -23,9 +23,15 @@ import static com.emc.sa.service.vipr.ViPRExecutionUtils.execute;
 import static com.emc.sa.util.ResourceType.BLOCK_SNAPSHOT;
 import static com.emc.sa.util.ResourceType.VOLUME;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Base64;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -54,6 +60,7 @@ import com.emc.sa.service.vipr.block.tasks.AddHostToExport;
 import com.emc.sa.service.vipr.block.tasks.AddJournalCapacity;
 import com.emc.sa.service.vipr.block.tasks.AddVolumesToConsistencyGroup;
 import com.emc.sa.service.vipr.block.tasks.AddVolumesToExport;
+import com.emc.sa.service.vipr.block.tasks.AdjustExportPaths;
 import com.emc.sa.service.vipr.block.tasks.CreateBlockVolume;
 import com.emc.sa.service.vipr.block.tasks.CreateBlockVolumeByName;
 import com.emc.sa.service.vipr.block.tasks.CreateContinuousCopy;
@@ -136,6 +143,7 @@ import com.emc.storageos.model.block.VolumeRestRep.FullCopyRestRep;
 import com.emc.storageos.model.block.export.ExportBlockParam;
 import com.emc.storageos.model.block.export.ExportGroupRestRep;
 import com.emc.storageos.model.block.export.ITLRestRep;
+import com.emc.storageos.model.block.export.InitiatorPathParam;
 import com.emc.storageos.model.systems.StorageSystemRestRep;
 import com.emc.storageos.model.varray.VirtualArrayRestRep;
 import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
@@ -390,6 +398,16 @@ public class BlockStorageUtils {
 
     public static ExportGroupRestRep findEmptyExportsByName(String name, URI projectId, URI varrayId) {
         return execute(new FindEmptyExportByName(name, projectId, varrayId));
+    }
+    
+    public static URI adjustExportPaths(Integer minPaths, Integer maxPaths, Integer pathsPerInitiator, 
+            URI storageSystemId, URI id, List<InitiatorPathParam> addedPaths, List<InitiatorPathParam> removedPaths) {
+        
+        Task<ExportGroupRestRep> task = execute(new AdjustExportPaths(minPaths, maxPaths, pathsPerInitiator, 
+                storageSystemId, id, addedPaths, removedPaths));
+        URI exportId = task.getResourceId();
+        addAffectedResource(exportId);
+        return exportId;
     }
 
     public static List<URI> addJournalCapacity(URI projectId, URI virtualArrayId, URI virtualPoolId, double sizeInGb, Integer count,
@@ -1522,6 +1540,24 @@ public class BlockStorageUtils {
 
         BlockConsistencyGroupRestRep group = getBlockConsistencyGroup(volume.getConsistencyGroup().getId());
         return group != null && group.getTypes().contains(BlockConsistencyGroup.Types.SRDF.name());
+    }
+
+    /** Write the object to a Base64 string. */
+    public static String serializeToString(Object o) throws IOException {
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        ObjectOutputStream oos = new ObjectOutputStream(baos);
+        oos.writeObject(o);
+        oos.close();
+        return Base64.getEncoder().encodeToString(baos.toByteArray());
+    }
+    
+    /** Read the object from Base64 string. */
+    public static Object serializeFromString(String s) throws IOException, ClassNotFoundException {
+         byte [] data = Base64.getDecoder().decode(s);
+         ObjectInputStream ois = new ObjectInputStream(new ByteArrayInputStream(data) );
+         Object o  = ois.readObject();
+         ois.close();
+         return o;
     }
 
     public static void checkVolumeLimit(ViPRCoreClient client, URI project) {

@@ -1,0 +1,81 @@
+{
+    baseKey:"ExportPathAdjustment.Block",
+    serviceId:"ExportPathAdjustment",
+    useModal: true,
+    fields:{
+        project:{
+            type:"assetType.vipr.project",
+            lockable: true
+        },
+        storageType:{
+          type:"assetType.vipr.blockStorageType",
+          lockable:true,
+          initialValue:"exclusive"
+        },
+    	host:{
+            type:"assetType.vipr.host",
+            lockable: true
+        },
+        virtualArray:{
+            type:"assetType.vipr.exportPathVirtualArray",
+            lockable: true
+        },
+        export:{
+          type: "assetType.vipr.exportPathExport", 
+          lockable: false
+        },
+        minPaths: {
+          type:"assetType.vipr.exportPathMinPathsOptions",
+          omitNone: true,
+          initialValue: "1"
+        },
+        maxPaths: {
+          type:"assetType.vipr.exportPathMaxPathsOptions",
+          omitNone: true, 
+          initialValue: "2"
+        },
+        pathsPerInitiator: {
+          type:"assetType.vipr.exportPathPathsPerInitiatorOptions",
+          omitNone: true,
+          initialValue: "1"
+        },
+        
+        useExistingPaths: {
+            type:"assetType.vipr.exportPathExistingPath",
+            omitNone: true,
+            initialValue: "yes"
+        },
+        
+        storageSystem: {
+            type:"assetType.vipr.exportPathStorageSystem"
+        },       
+        ports:{
+            type:"assetType.vipr.exportPathPorts",
+            select: "many"
+        },
+
+	    exportPathPreview:{
+	       type:"modal",
+           items:{
+                affectedPorts:{
+                    type:"assetType.vipr.exportPathAddedPorts",
+                    select: "list",
+                    required: false,
+                    omitNone: true
+                },
+                removedPorts:{
+                    type:"assetType.vipr.exportPathRemovedPorts",
+                    select: "list",
+                    required: false,
+                    omitNone: true
+                },
+                affectedExports:{
+                    type:"assetType.vipr.exportPathAffectedExports",
+                    select: "list",
+                    required: false,
+                    omitNone: true
+                }
+    	    }
+        }
+    }
+}

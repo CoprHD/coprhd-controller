@@ -19,6 +19,7 @@ import com.emc.vipr.model.catalog.AssetOptionsResponse;
 import com.emc.vipr.model.catalog.CatalogServiceRestRep;
 import com.emc.vipr.model.catalog.ServiceDescriptorRestRep;
 import com.emc.vipr.model.catalog.ServiceFieldGroupRestRep;
+import com.emc.vipr.model.catalog.ServiceFieldModalRestRep;
 import com.emc.vipr.model.catalog.ServiceFieldRestRep;
 import com.emc.vipr.model.catalog.ServiceFieldTableRestRep;
 import com.emc.vipr.model.catalog.ServiceItemRestRep;
@@ -103,6 +104,9 @@ public class AssetOptions {
             }
             else if (item.isTable()) {
                 allFields.addAll(getAllFields(((ServiceFieldTableRestRep) item).getItems()));
+            }
+            else if (item.isModal()) {
+                allFields.addAll(getAllFields(((ServiceFieldModalRestRep) item).getItems()));
             }
         }
         return allFields;

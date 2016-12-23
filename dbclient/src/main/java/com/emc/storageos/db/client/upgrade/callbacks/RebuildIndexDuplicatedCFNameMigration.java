@@ -110,9 +110,13 @@ public class RebuildIndexDuplicatedCFNameMigration extends BaseCustomMigrationCa
             }
 
             rows.add(objRow);
-            if (rows.size() == REBUILD_INDEX_BATCH_SIZE) {
-                submitRebuildTask(doType, rows, keyspace);
-                rows = new ArrayList<Row<String, CompositeColumnName>>();
+            if (rows.size() > REBUILD_INDEX_BATCH_SIZE) {
+                try {
+                    submitRebuildTask(doType, rows, keyspace);
+                    rows = new ArrayList<Row<String, CompositeColumnName>>();
+                } catch (Exception e) {
+                    log.warn("Failed to submit rebuild index task, this may be caused by thread pool is full, try in next round", e);
+                }
             }
             
         }
@@ -123,9 +127,7 @@ public class RebuildIndexDuplicatedCFNameMigration extends BaseCustomMigrationCa
         return;
     }
 
-    public void submitRebuildTask(DataObjectType doType, List<Row<String, CompositeColumnName>> rows, Keyspace keyspace)
-            throws InstantiationException, IllegalAccessException,
-            IllegalArgumentException, InvocationTargetException {
+    public void submitRebuildTask(DataObjectType doType, List<Row<String, CompositeColumnName>> rows, Keyspace keyspace) {
 
         executor.submit(new Runnable() {
 

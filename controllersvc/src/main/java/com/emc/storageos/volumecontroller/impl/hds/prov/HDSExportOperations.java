@@ -1560,13 +1560,13 @@ public class HDSExportOperations implements ExportMaskOperations {
                 exportMask
                         .addToExistingInitiatorsIfAbsent(initiatorsExistsOnHSD);
 
+                StringSet nullVolumes = new StringSet();
                 builder.append(String
                         .format("XM is matching. " + "EI: { %s }, EV: { %s }\n",
                                 Joiner.on(',').join(
                                         exportMask.getExistingInitiators()),
-                                Joiner.on(',').join(
-                                        exportMask.getExistingVolumes()
-                                                .keySet())));
+								Joiner.on(',').join((exportMask.getExistingVolumes().isEmpty()) ? nullVolumes
+										: exportMask.getExistingVolumes().keySet())));
 
             }
             if (null == exportMask.getDeviceDataMap()

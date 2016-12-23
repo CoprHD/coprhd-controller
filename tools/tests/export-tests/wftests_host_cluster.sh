@@ -33,7 +33,7 @@ create_volume_and_datastore() {
     echo `catalog order CreateVolumeandDatastore ${tenant} project=${project},name=${volname},virtualPool=${virtualpool},virtualArray=${virtualarray},host=${cluster},datastoreName=${datastorename},size=1,vcenter=${vcenter},datacenter=${datacenter}`
 }
 
-delete_volume_and_datastore() {
+delete_datastore_and_volume() {
     # tenant datastorename vcenter datacenter cluster
     tenant=$1   
     datastorename=$2
@@ -909,17 +909,13 @@ test_move_non_clustered_host_to_cluster() {
 
 # Test - move clustered discovered host to another cluster
 #
-# Test for manually moving (through API) a non-clustered host to a cluster.
+# Test for moving a clustered discovered host to another cluster.
 #
-# 1. Create host
-# 2. Create initiator
-# 3. Export volume to an exclusive export group for host
-# 4. Export a second volume to a cluster export group
-# 5. Host update to move the host to the cluster export group
-# 6. Delete exclusive export group
-# 7. Delete cluster export group
-# 8. Delete host
-# 9. Remove initiator port wwn from network
+# 1. Create volumes and datastores for cluster1 and cluster2
+# 2. Move pre-existing cluster2 host to cluster1
+# 3. Move host back to cluster2
+# 4. Delete exports
+# 5. Delete datastores and volumes
 #
 test_move_clustered_discovered_host_to_cluster() {
     test_name="test_move_non_clustered_host_to_cluster"
@@ -932,32 +928,30 @@ test_move_clustered_discovered_host_to_cluster() {
     random_num=${RANDOM}
     volume1=fakevolume1-${random_num}
     volume2=fakevolume2-${random_num}
-    cluster1_export=cluster1export-${random_num}
-    cluster2_export=cluster2export-${random_num}
-    fake_pwwn1=`randwwn`
-    fake_nwwn1=`randwwn`
-    fake_pwwn2=`randwwn`
-    fake_nwwn2=`randwwn`
+    cluster1_export=cluster-1
+    cluster2_export=cluster-2
+    datastore1=fakedatastore1-${random_num}
+    datastore2=fakedatastore2-${random_num}    
     set_controller_cs_discovery_refresh_interval 1
-    
     cfs="ExportGroup ExportMask Network Host Initiator"
 
-    host_cluster_failure_injections="failure_029_host_cluster_ComputeSystemControllerImpl.verifyDatastore_after_verify \
+    run syssvc $SANITY_CONFIG_FILE localhost set_prop system_proxyuser_encpassword $SYSADMIN_PASSWORD
+
+    host_cluster_failure_injections="failure_026_host_cluster_ComputeSystemControllerImpl.updateExportGroup_before_update \
+                                     failure_029_host_cluster_ComputeSystemControllerImpl.verifyDatastore_after_verify \
                                      failure_030_host_cluster_ComputeSystemControllerImpl.unmountAndDetach_after_unmount \
                                      failure_031_host_cluster_ComputeSystemControllerImpl.unmountAndDetach_after_detach"
     common_failure_injections="failure_004_final_step_in_workflow_complete"
-    
-    # Create the volumes
-    runcmd volume create ${volume1} ${PROJECT} ${NH} ${VPOOL_BASE} 1GB
-    runcmd volume create ${volume2} ${PROJECT} ${NH} ${VPOOL_BASE} 1GB
-    
-    # Export the volumes to the clusters
-    runcmd export_group create ${PROJECT} ${cluster1_export} $NH --type Cluster --volspec ${PROJECT}/${volume1} --clusters ${TENANT}/${cluster1}
-    runcmd export_group create ${PROJECT} ${cluster2_export} $NH --type Cluster --volspec ${PROJECT}/${volume2} --clusters ${TENANT}/${cluster2}
 
-    syssvc $SANITY_CONFIG_FILE localhost set_prop system_proxyuser_encpassword "ChangeMe1!"
+    item=${RANDOM}
+    mkdir -p results/${item}
 
-    failure_injections="${HAPPY_PATH_TEST_INJECTION} {host_cluster_failure_injections} ${common_failure_injections}"
+    snap_db 1 ${cfs}
+
+    create_volume_and_datastore ${TENANT} ${volume1} ${datastore1} ${NH} ${VPOOL_BASE} ${PROJECT} ${vcenter} "DC-Simulator-1" ${cluster1}
+    create_volume_and_datastore ${TENANT} ${volume2} ${datastore2} ${NH} ${VPOOL_BASE} ${PROJECT} ${vcenter} "DC-Simulator-1" ${cluster2}
+
+    failure_injections="${HAPPY_PATH_TEST_INJECTION} ${host_cluster_failure_injections} ${common_failure_injections}" 
 
     for failure in ${failure_injections}
     do
@@ -969,26 +963,22 @@ test_move_clustered_discovered_host_to_cluster() {
         
         TEST_OUTPUT_FILE=test_output_${RANDOM}.log
         reset_counts
-        item=${RANDOM}
-        mkdir -p results/${item}
-        datastore1=fakedatastore1-${item}
-        datastore2=fakedatastore2-${item}
-        
         move_host="false"
-
-        snap_db 1 ${cfs}
-
-        create_datastore ${TENANT} ${volume1} ${datastore1} ${PROJECT} ${vcenter} "DC-Simulator-1" ${cluster1}
-        create_datastore ${TENANT} ${volume2} ${datastore2} ${PROJECT} ${vcenter} "DC-Simulator-1" ${cluster2}
 
         # Move the host from cluster-2 into cluster-1
         change_host_cluster $host $cluster2 $cluster1 $vcenter           
+
+        sleep 20
 
         EVENT_ID=$(get_pending_event)
         if [ -z "$EVENT_ID" ]; then
             echo "FAILED. Expected an event"
             # Move the host into cluster-1           
             change_host_cluster $host $cluster1 $cluster2 $vcenter
+            EVENT_ID=$(get_pending_event)
+            if [ "$EVENT_ID" ]; then
+                approve_pending_event $EVENT_ID
+            fi    
             finish -1
         else
             if [ ${failure} == ${HAPPY_PATH_TEST_INJECTION} ]; then
@@ -997,10 +987,37 @@ test_move_clustered_discovered_host_to_cluster() {
                 # Turn failure injection on
                 set_artificial_failure ${failure}
                 fail approve_pending_event $EVENT_ID
+
+                # Verify that rollback moved the host back to cluster2
+                cluster=`get_host_cluster "emcworld" ${host}`
+                if [[ "${cluster}" != "${cluster2}" ]]; then
+                    echo "+++ FAIL - Host should belong to old cluster ${cluster2}...fail."
+                    incr_fail_count
+                    if [ "${NO_BAILING}" != "1" ]; then
+                        report_results ${test_name} ${failure}
+                        finish -1
+                    fi
+                else
+                    echo "Host has successfully been moved to cluster ${cluster2} on rollback."                    
+                fi
+           
                 EVENT_ID=$(get_failed_event)    
                 # turn failure injection off and retry the approval
                 set_artificial_failure none
                 approve_pending_event $EVENT_ID
+                
+                # Verify that the host has been moved to cluster1
+                cluster=`get_host_cluster "emcworld" ${host}`
+                if [[ "${cluster}" != "${cluster1}" ]]; then
+                    echo "+++ FAIL - Host should belong to old cluster ${cluster1}...fail."
+                    incr_fail_count
+                    if [ "${NO_BAILING}" != "1" ]; then
+                        report_results ${test_name} ${failure}
+                        finish -1
+                    fi
+                else
+                    echo "Host has successfully been moved to cluster ${cluster1}." 
+                fi
             fi 
         fi        
         
@@ -1022,21 +1039,15 @@ test_move_clustered_discovered_host_to_cluster() {
             # Move the host into cluster-1           
             change_host_cluster $host $cluster1 $cluster2 $vcenter 
             
+            sleep 20
+            
             EVENT_ID=$(get_pending_event)
             if [ -z "$EVENT_ID" ]; then
                 finish -1
             else
                 approve_pending_event $EVENT_ID
             fi                  
-        fi
-        
-        delete_datastore ${TENANT} ${datastore1} ${vcenter} "DC-Simulator-1" ${cluster1}
-        delete_datastore ${TENANT} ${datastore2} ${vcenter} "DC-Simulator-1" ${cluster2}
-
-        snap_db 2 ${cfs}  
-
-        # Validate that nothing was left behind
-        validate_db 1 2 ${cfs}          
+        fi   
 
         # Report results
         report_results ${test_name} ${failure}
@@ -1048,9 +1059,13 @@ test_move_clustered_discovered_host_to_cluster() {
     runcmd export_group update ${PROJECT}/${cluster2_export} --remVols ${PROJECT}/${volume2}
     runcmd export_group delete ${PROJECT}/${cluster2_export}     
     
-    # Cleanup volumes
-    runcmd volume delete ${PROJECT}/${volume1} --wait
-    runcmd volume delete ${PROJECT}/${volume2} --wait
+    delete_datastore_and_volume ${TENANT} ${datastore1} ${vcenter} "DC-Simulator-1" ${cluster1}
+    delete_datastore_and_volume ${TENANT} ${datastore2} ${vcenter} "DC-Simulator-1" ${cluster2}  
+    
+    snap_db 2 ${cfs}  
+
+    # Validate that nothing was left behind
+    validate_db 1 2 ${cfs}
 }
 
 # Searches an ExportGroup for a given value. Returns 0 if the value is found,

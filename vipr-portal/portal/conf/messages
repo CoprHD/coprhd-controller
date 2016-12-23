@@ -1359,7 +1359,9 @@ assignPolicy.applySpecificProjects=
 assignPolicy.applySpecificvPools=
 
 assignPolicy.applyToAllProjects=Projects
+assignPolicy.applyToAllVpools=Virtual Pools
 assignPolicy.projects=Projects
+assignPolicy.vPools=Virtual Pools
 assignPolicy.saved=File Pool policy assignment successful
 assignPolicy.applyAtProject=Project
 assignPolicy.applyAtVPool=Virtual Pool
@@ -1370,6 +1372,10 @@ assignPolicy.project.appliedVpool=Applied vPools
 assignPolicy.applyOnTargetSite=Apply on target site
 assignPolicy.targetVarray=Target vArrray(s)
 assignPolicy.vArray.source=Source vArray
+
+replicationTopology.title=Select Replication Site(s)
+replicationTopology.sourceVArray=Source Virtual Array
+replicationTopology.targetVArray=Target Virtual Array
 
 vdcs.list.title=Virtual Data Centers
 vdcs.edit.title=Edit Virtual Data Center

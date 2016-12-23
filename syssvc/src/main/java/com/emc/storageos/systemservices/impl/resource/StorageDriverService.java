@@ -88,7 +88,7 @@ public class StorageDriverService {
     private static final String META_DEF_FILE_NAME = "metadata.properties";
     private static final String DRIVER_NAME = "driver_name";
     private static final String DRIVER_VERSION = "driver_version";
-    private static final String DRIVER_VERSION_PATTERN = "^\\d+\\.\\d+\\.\\d+\\.\\d+$";
+    private static final Pattern DRIVER_VERSION_PATTERN = Pattern.compile("^\\d+\\.\\d+\\.\\d+\\.\\d+$");
     private static final String STORAGE_NAME = "storage_name";
     private static final String STORAGE_DISPLAY_NAME = "storage_display_name";
     private static final String PROVIDER_NAME = "provider_name";
@@ -120,6 +120,11 @@ public class StorageDriverService {
     private CoordinatorClient coordinator;
     private CoordinatorClientExt coordinatorExt;
     private DbClient dbClient;
+    private LocalRepository localRepo = LocalRepository.getInstance();
+
+    public void setLocalRepo(LocalRepository localRepo) {
+        this.localRepo = localRepo;
+    }
 
     public DbClient getDbClient() {
         return dbClient;
@@ -240,32 +245,30 @@ public class StorageDriverService {
         return Response.ok(in).type(MediaType.APPLICATION_OCTET_STREAM).build();
     }
 
+    // Extract this method for the convenience of UT mocking
+    protected void moveDriverToDataDir(File f) throws IOException {
+        Files.move(f, new File(StorageDriverManager.DRIVER_DIR + f.getName()));
+    }
+
     @POST
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
     @Consumes(MediaType.MULTIPART_FORM_DATA)
     public Response install(@FormDataParam("driver") InputStream uploadedInputStream,
             @FormDataParam("driver") FormDataContentDisposition details) {
-
         String fileName = details.getFileName();
         long fileSize = details.getSize();
         log.info("Received driver jar file: {}, size: {}", fileName, fileSize);
         if (fileSize >= MAX_DRIVER_SIZE) {
             throw APIException.badRequests.fileSizeExceedsLimit(MAX_DRIVER_SIZE);
         }
-
         precheckForEnv();
-
         File driverFile = saveToTmpDir(fileName, uploadedInputStream);
-
         StorageDriverMetaData metaData = parseDriverMetaData(driverFile);
-
         precheckForMetaData(metaData);
-
         InterProcessLock lock = getStorageDriverOperationLock();
         try {
             // move file from /tmp to /data/drivers
-            Files.move(driverFile, new File(StorageDriverManager.DRIVER_DIR + driverFile.getName()));
-
+            moveDriverToDataDir(driverFile);
             // insert meta data int db
             List<StorageSystemType> types = StorageDriverMapper.map(metaData);
             for (StorageSystemType type : types) {
@@ -274,14 +277,12 @@ public class StorageDriverService {
                 dbClient.createObject(type);
                 log.info("Added storage system type {}, set status to INSTALLING", type.getStorageTypeName());
             }
-
             // update local list in ZK
-            Set<String> localDrivers = LocalRepository.getInstance().getLocalDrivers();
+            Set<String> localDrivers = localRepo.getLocalDrivers();
             StorageDriversInfo info = new StorageDriversInfo();
             info.setInstalledDrivers(localDrivers);
             coordinatorExt.setNodeSessionScopeInfo(info);
             log.info("Updated local driver list to syssvc service beacon: {}", Arrays.toString(localDrivers.toArray()));
-
             // update target list in ZK
             info = coordinator.getTargetInfo(StorageDriversInfo.class);
             if (info == null) {
@@ -319,18 +320,15 @@ public class StorageDriverService {
         }
 
         precheckForEnv();
-
         List<StorageSystemType> toUninstallTypes = filterTypesByDriver(driverName);
-
-
         precheckForDriverStatus(toUninstallTypes, driverName);
-
         InterProcessLock lock = getStorageDriverOperationLock();
         try {
             StorageDriversInfo info = coordinator.getTargetInfo(StorageDriversInfo.class);
             if (info == null) {
                 info = new StorageDriversInfo();
             }
+
             for (StorageSystemType type : toUninstallTypes) {
                 type.setDriverStatus(StorageSystemType.STATUS.UNISNTALLING.toString());
                 dbClient.updateObject(type);
@@ -354,7 +352,6 @@ public class StorageDriverService {
                 log.error(String.format("Lock release failed when uninstalling driver %s", driverName));
             }
         }
-
     }
 
     private List<StorageSystemType> filterTypesByDriver(String driverName) {
@@ -380,7 +377,7 @@ public class StorageDriverService {
         }
     }
 
-    private File saveToTmpDir(String fileName, InputStream uploadedInputStream) {
+    protected File saveToTmpDir(String fileName, InputStream uploadedInputStream) {
         File driverFile = new File(StorageDriverManager.TMP_DIR + fileName);
         int accSize = 0;
         OutputStream os = null;
@@ -433,23 +430,17 @@ public class StorageDriverService {
         if (fileSize >= MAX_DRIVER_SIZE) {
             throw APIException.badRequests.fileSizeExceedsLimit(MAX_DRIVER_SIZE);
         }
-
         precheckForEnv();
-
         File driverFile = saveToTmpDir(fileName, uploadedInputStream);
-
         StorageDriverMetaData metaData = parseDriverMetaData(driverFile);
         if (!StringUtils.equals(driverName, metaData.getDriverName())) {
             throw APIException.internalServerErrors.upgradeDriverPrecheckFailed(
                     String.format("Driver name specified in jar file is not %s", driverName));
         }
-
         precheckForMetaData(metaData, true, force);
-
         InterProcessLock lock = getStorageDriverOperationLock();
         try {
-            // move file from /tmp to /data/drivers
-            Files.move(driverFile, new File(StorageDriverManager.DRIVER_DIR + driverFile.getName()));
+            moveDriverToDataDir(driverFile);
 
             // save new meta data to ZK
             coordinator.persistServiceConfiguration(metaData.toConfiguration());
@@ -585,7 +576,7 @@ public class StorageDriverService {
 
     private void precheckForDriverVersion(String driverVersion) {
         precheckForNotEmptyField("driver_version", driverVersion);
-        if (!Pattern.compile(DRIVER_VERSION_PATTERN).matcher(driverVersion).find()) {
+        if (!DRIVER_VERSION_PATTERN.matcher(driverVersion).find()) {
             throw APIException.internalServerErrors.installDriverPrecheckFailed(
                     "driver_version field value should be four numbers concatenated by dot");
         }
@@ -634,7 +625,7 @@ public class StorageDriverService {
         return props;
     }
 
-    private StorageDriverMetaData parseDriverMetaData(File driverFile) {
+    protected StorageDriverMetaData parseDriverMetaData(File driverFile) {
         String driverFilePath = driverFile.getAbsolutePath();
         Properties props = extractPropsFromFile(driverFilePath);
 
@@ -712,7 +703,7 @@ public class StorageDriverService {
         return metaData;
     }
 
-    private void precheckForEnv() {
+    protected void precheckForEnv() {
         DrUtil drUtil = new DrUtil(coordinator);
 
         if (!drUtil.isActiveSite()) {
@@ -735,7 +726,7 @@ public class StorageDriverService {
         }
     }
 
-    private InterProcessLock getStorageDriverOperationLock() {
+    protected InterProcessLock getStorageDriverOperationLock() {
         // Try to acquire lock, succeed or throw Exception
         InterProcessLock lock = coordinator.getSiteLocalLock(STORAGE_DRIVER_OPERATION_lOCK);
         boolean acquired;
@@ -782,7 +773,6 @@ public class StorageDriverService {
             throw APIException.internalServerErrors.installDriverPrecheckFailed(String.format("Driver %s is in % state",
                     opOngoingStorageType.getDriverName(), opOngoingStorageType.getDriverStatus()));
         }
-
         return lock;
     }
 
@@ -809,9 +799,8 @@ public class StorageDriverService {
         return result;
     }
 
-    private void auditOperation(OperationTypeEnum type, String status, String stage, Object... descparams) {
+    protected void auditOperation(OperationTypeEnum type, String status, String stage, Object... descparams) {
         auditMgr.recordAuditLog(null, null, EVENT_SERVICE_TYPE, type, System.currentTimeMillis(), status, stage,
                 descparams);
-
     }
 }

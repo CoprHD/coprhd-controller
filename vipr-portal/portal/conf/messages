@@ -4115,6 +4115,9 @@ button.mirroring.resume=Resume
 
 button.driverupload=Upload Driver
 
+button.setDR=Set as DR Port
+button.unsetDR=Unset as DR Port
+
 common.yes=Yes
 common.no=No
 common.security.title=Security

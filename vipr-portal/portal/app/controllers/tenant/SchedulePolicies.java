@@ -123,10 +123,8 @@ public class SchedulePolicies extends ViprResourceController {
         if (filePolicyRestRep != null) {
             AssignPolicyForm assignPolicy = new AssignPolicyForm().form(filePolicyRestRep);
             addRenderApplyPolicysAt();
-
-            addRenderVarrays();
             addProjectArgs();
-
+            addvPoolArgs();
             render(assignPolicy);
 
         } else {
@@ -260,18 +258,20 @@ public class SchedulePolicies extends ViprResourceController {
         renderArgs.put("projectOptions", getFileProjectOptions(uri(Models.currentAdminTenant())));
     }
 
-    private static void addRenderVarrays() {
+    private static void addvPoolArgs() {
+        renderArgs.put("vPoolOptions", getFileVirtualPoolsOptions(null));
+        renderArgs.put("virtualArrays", getVarrays());
+    }
+
+    private static List<StringOption> getVarrays() {
 
         List<StringOption> varrayList = Lists.newArrayList();
-
         List<NamedRelatedResourceRep> allVarrays = getViprClient().varrays().list();
 
         for (NamedRelatedResourceRep varray : allVarrays) {
             varrayList.add(new StringOption(varray.getId().toString(), varray.getName()));
         }
-
-        renderArgs.put("varrayList", varrayList);
-
+        return varrayList;
     }
 
     @FlashException(keep = true, referrer = { "create", "edit" })
@@ -688,6 +688,12 @@ public class SchedulePolicies extends ViprResourceController {
 
             if (policyName == null || policyName.isEmpty()) {
                 Validation.addError(formName + ".policyName", MessagesUtils.get("schedulePolicy.policyName.error.required"));
+            }
+        }
+
+        public void save() {
+            if (id != null) {
+                savePolicy(this);
             }
         }
 

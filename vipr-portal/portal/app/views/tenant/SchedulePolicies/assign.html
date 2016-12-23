@@ -44,8 +44,8 @@
     #{field 'assignPolicy.applyToAllProjects'}
     #{Form.controlGroup field:field, width:4}
       %{ typeField = field }%
-      #{Form.radio field:typeField, value: "applyToAllProjects", label: messages.get("assignPolicy.project.applyAll")/}
-      #{Form.radio field:typeField, value: "~applyToAllProjects", label: messages.get("assignPolicy.project.applySpecific")/}
+      #{Form.radio field:typeField, value: "true", label: messages.get("assignPolicy.project.applyAll")/}
+      #{Form.radio field:typeField, value: "false", label: messages.get("assignPolicy.project.applySpecific")/}
     #{/Form.controlGroup}
     #{/field}
      #{field 'assignPolicy.projects', noLabel:noLabel}
@@ -57,8 +57,8 @@
     #{field 'assignPolicy.applyToAllVpools'}
     #{Form.controlGroup field:field, width:4}
       %{ typeField = field }%
-      #{Form.radio field:typeField, value: "applyToAllVpools", label: messages.get("assignPolicy.vpool.applyAll")/} 
-      #{Form.radio field:typeField, value: "~applyToAllVpools", label: messages.get("assignPolicy.vpool.applySpecific")/}
+      #{Form.radio field:typeField, value: "true", label: messages.get("assignPolicy.vpool.applyAll")/} 
+      #{Form.radio field:typeField, value: "false", label: messages.get("assignPolicy.vpool.applySpecific")/}
     #{/Form.controlGroup}
     #{/field}
      #{field 'assignPolicy.vPools', noLabel:noLabel}

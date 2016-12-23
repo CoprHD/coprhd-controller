@@ -3260,6 +3260,7 @@ public class ExportGroupService extends TaskResourceService {
             addRetainedPathsFromHosts(response, existingPathMap, param.getHosts());
             Collections.sort(response.getAdjustedPaths(), response.new InitiatorPortMapRestRepComparator());
             calculateRemovedPaths(response, zoningMap, exportGroup, system, varray, param.getHosts());
+            response.logResponse(_log);
             return response;
         } catch (ControllerException ex) {
             _log.error(ex.getLocalizedMessage());
@@ -3451,7 +3452,7 @@ public class ExportGroupService extends TaskResourceService {
             }
         }
     }
-    
+   
     /**
      * Export paths adjustment
      *  
@@ -3478,6 +3479,9 @@ public class ExportGroupService extends TaskResourceService {
 
         ArgValidator.checkUri(param.getStorageSystem());
         StorageSystem system = queryObject(StorageSystem.class, param.getStorageSystem(), true);
+        
+        // Log the input parameters
+        param.logParameters(_log);
         
         // Get the virtual array, default to Export Group varray. Validate it matches.
         URI varray = param.getVirtualArray();

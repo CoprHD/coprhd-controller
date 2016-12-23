@@ -13,6 +13,8 @@ import javax.xml.bind.annotation.XmlAccessorType;
 import javax.xml.bind.annotation.XmlElementWrapper;
 import javax.xml.bind.annotation.XmlRootElement;
 
+import org.slf4j.Logger;
+
 import com.emc.storageos.model.NamedRelatedResourceRep;
 
 @XmlRootElement(name = "export_paths_adjustment_preview")
@@ -59,6 +61,29 @@ public class ExportPathsAdjustmentPreviewRestRep {
             }
             return (arg0.getInitiator().getHostName().compareTo(arg1.getInitiator().getHostName()));
         }
+    }
+    
+    public void logResponse(Logger log) {
+    	log.info("Path Adjustment Preview : adjustedPaths");
+    	for (InitiatorPortMapRestRep entry : adjustedPaths) {
+    		log.info(String.format("Host %s initiator %s (%s): ", 
+    			entry.getInitiator().getHostName(), entry.getInitiator().getInitiatorPort(), entry.getInitiator().getId()));
+    		StringBuilder buffer = new StringBuilder();
+    		for (NamedRelatedResourceRep aPort : entry.getStoragePorts()) {
+    			buffer.append(String.format("%s (%s)   ", aPort.getName(), aPort.getId()));
+    		}
+    		log.info("Ports: " + buffer.toString());
+    	}
+    	log.info("Path Adjustment Preview : removedPaths");
+    	for (InitiatorPortMapRestRep entry : removedPaths) {
+    		log.info(String.format("Host %s initiator %s (%s): ", 
+    			entry.getInitiator().getHostName(), entry.getInitiator().getInitiatorPort(), entry.getInitiator().getId()));
+    		StringBuilder buffer = new StringBuilder();
+    		for (NamedRelatedResourceRep aPort : entry.getStoragePorts()) {
+    			buffer.append(String.format("%s (%s)   ", aPort.getName(), aPort.getId()));
+    		}
+    		log.info("Ports: " + buffer.toString());
+    	}
     }
 
 }

@@ -12,6 +12,8 @@ import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlElementWrapper;
 import javax.xml.bind.annotation.XmlRootElement;
 
+import org.slf4j.Logger;
+
 @XmlRootElement(name="initiator_path")
 public class InitiatorPathParam {
     private URI initiator;
@@ -44,5 +46,8 @@ public class InitiatorPathParam {
     public void setStoragePorts(List<URI> storagePorts) {
         this.storagePorts = storagePorts;
     }
-
+    
+    public void log(Logger log) {
+    	log.info(String.format("%s -> %s", initiator, storagePorts));
+    }
 }

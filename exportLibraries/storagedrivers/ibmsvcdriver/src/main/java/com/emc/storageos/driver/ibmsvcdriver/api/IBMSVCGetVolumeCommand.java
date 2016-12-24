@@ -48,6 +48,8 @@ public class IBMSVCGetVolumeCommand extends AbstractIBMSVCQueryCommand<IBMSVCGet
     public IBMSVCGetVolumeCommand(String volumeId) {
         addArgument("svcinfo lsvdisk -delim :");
         addArgument(String.format("%s", volumeId));
+
+        results = new IBMSVCGetVolumeResult();
     }
 
     @Override
@@ -63,7 +65,7 @@ public class IBMSVCGetVolumeCommand extends AbstractIBMSVCQueryCommand<IBMSVCGet
 
     @Override
     void beforeProcessing() {
-        results = new IBMSVCGetVolumeResult();
+
     }
 
     @Override

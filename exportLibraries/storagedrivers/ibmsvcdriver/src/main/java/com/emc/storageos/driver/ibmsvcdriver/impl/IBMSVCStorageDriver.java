@@ -218,7 +218,7 @@ public class IBMSVCStorageDriver extends DefaultStorageDriver implements BlockSt
             return task;
 
         }else if(consistencyGroupSet.size() == 1){
-            return ibmsvcConsistencyGroups.restoreSnapshot(snapshots);
+            return ibmsvcConsistencyGroups.restoreConsistencyGroupSnapshot(snapshots);
         }else{
             return ibmsvcSnapshots.restoreSnapshot(snapshots);
         }
@@ -259,7 +259,7 @@ public class IBMSVCStorageDriver extends DefaultStorageDriver implements BlockSt
             return task;
 
         }else if(consistencyGroupSet.size() == 1){
-            return ibmsvcConsistencyGroups.restoreClone(clones);
+            return ibmsvcConsistencyGroups.restoreConsistencyGroupClone(clones);
         }else{
             return ibmsvcClones.restoreFromClone(clones);
         }

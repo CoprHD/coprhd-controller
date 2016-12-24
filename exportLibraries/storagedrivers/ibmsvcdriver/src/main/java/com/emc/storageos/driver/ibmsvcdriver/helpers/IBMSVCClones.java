@@ -1,26 +1,23 @@
-package com.emc.storageos.driver.ibmsvcdriver.helpers;/*
-                                                      * Copyright (c) 2016 EMC Corporation
-                                                      * All Rights Reserved
-                                                      *
-                                                      * This software contains the intellectual property of EMC Corporation
-                                                      * or is licensed to EMC Corporation from third parties.  Use of this
-                                                      * software and the intellectual property contained therein is expressly
-                                                      * limited to the terms and conditions of the License Agreement under which
-                                                      * it is provided by or on behalf of EMC.
-                                                      */
-
+/*
+  * Copyright (c) 2016 EMC Corporation
+  * All Rights Reserved
+  *
+  * This software contains the intellectual property of EMC Corporation
+  * or is licensed to EMC Corporation from third parties.  Use of this
+  * software and the intellectual property contained therein is expressly
+  * limited to the terms and conditions of the License Agreement under which
+  * it is provided by or on behalf of EMC.
+  */
+package com.emc.storageos.driver.ibmsvcdriver.helpers;
 import com.emc.storageos.driver.ibmsvcdriver.api.*;
 import com.emc.storageos.driver.ibmsvcdriver.connection.ConnectionManager;
 import com.emc.storageos.driver.ibmsvcdriver.connection.SSHConnection;
-import com.emc.storageos.driver.ibmsvcdriver.exceptions.IBMSVCDriverException;
 import com.emc.storageos.driver.ibmsvcdriver.impl.IBMSVCDriverTask;
 import com.emc.storageos.driver.ibmsvcdriver.impl.IBMSVCStorageDriver;
 import com.emc.storageos.driver.ibmsvcdriver.utils.IBMSVCConstants;
 import com.emc.storageos.driver.ibmsvcdriver.utils.IBMSVCDriverConfiguration;
 import com.emc.storageos.driver.ibmsvcdriver.utils.IBMSVCDriverUtils;
 import com.emc.storageos.storagedriver.DriverTask;
-import com.emc.storageos.storagedriver.model.StorageObject;
-import com.emc.storageos.storagedriver.model.StorageVolume;
 import com.emc.storageos.storagedriver.model.VolumeClone;
 import com.emc.storageos.storagedriver.storagecapabilities.StorageCapabilities;
 import org.slf4j.Logger;
@@ -30,7 +27,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
-import static java.util.concurrent.TimeUnit.SECONDS;
 
 public class IBMSVCClones {
 
@@ -79,6 +75,9 @@ public class IBMSVCClones {
 
         int clonesSuccessfullyCreated = 0;
 
+        List<IBMSVCStartFCMappingResult> listOfCreatedFCMaps = new ArrayList<>();
+        List<VolumeClone> listOfCreatedClones = new ArrayList<>();
+
         for (VolumeClone volumeClone : clones) {
 
 
@@ -87,7 +86,10 @@ public class IBMSVCClones {
             try {
                 connection = connectionManager.getClientBySystemId(volumeClone.getStorageSystemId());
 
-                IBMSVCFlashCopy.createAndStartFlashCopy(connection, volumeClone.getParentId(), volumeClone, true);
+                IBMSVCStartFCMappingResult startFCMappingResult = IBMSVCFlashCopy.createAndStartFlashCopy(connection, volumeClone.getStorageSystemId(), volumeClone.getParentId(), volumeClone, true, false);
+
+                listOfCreatedFCMaps.add(startFCMappingResult);
+                listOfCreatedClones.add(volumeClone);
 
                 volumeClone.setReplicationState(VolumeClone.ReplicationState.CREATED);
 
@@ -105,14 +107,14 @@ public class IBMSVCClones {
 
         }
 
-        // TODO: wait for all clone copies to complete
+        try{
+            IBMSVCFlashCopy.waitForFCMapState(listOfCreatedClones, listOfCreatedFCMaps);
 
-        // Set order status based on number of successful completions
-        if (clonesSuccessfullyCreated == clones.size()) {
-            task.setStatus(DriverTask.TaskStatus.READY);
-        } else if (clonesSuccessfullyCreated == 0) {
-            task.setStatus(DriverTask.TaskStatus.FAILED);
-        } else {
+            // Set task status to READY, FAILED, PARTIALLY_FAILED based on complete count
+            IBMSVCDriverUtils.setTaskStatusBasedOnCount(clones.size(), listOfCreatedClones.size(), "Clones created and copied successfully", task);
+
+        }catch(Exception ex){
+            task.setMessage(String.format("Failed to wait for Clone Copy to complete %s", ex.getMessage()));
             task.setStatus(DriverTask.TaskStatus.PARTIALLY_FAILED);
         }
 
@@ -192,13 +194,8 @@ public class IBMSVCClones {
             _log.info("detachVolumeClone() for storage system {} - end", volumeClone.getStorageSystemId());
         }
 
-        if (clonesDetached == clones.size()) {
-            task.setStatus(DriverTask.TaskStatus.READY);
-        } else if (clonesDetached == 0) {
-            task.setStatus(DriverTask.TaskStatus.FAILED);
-        } else {
-            task.setStatus(DriverTask.TaskStatus.PARTIALLY_FAILED);
-        }
+        // Set task status to READY, FAILED, PARTIALLY_FAILED based on complete count
+        IBMSVCDriverUtils.setTaskStatusBasedOnCount(clones.size(), clonesDetached, "Clones detached successfully", task);
 
         return task;
     }
@@ -213,121 +210,46 @@ public class IBMSVCClones {
 
         DriverTask task = createDriverTask(IBMSVCConstants.TASK_TYPE_RESTORE_CLONE_VOLUMES);
 
+        // TODO: Convert to Async
+
         int clonesRestored = 0;
+
+        List<IBMSVCStartFCMappingResult> listOfRestoredFCMaps = new ArrayList<>();
+        List<VolumeClone> listOfRestoredClones = new ArrayList<>();
+
+        _log.info("restoreFromClone() for storage system {} - start", clones.get(0).getStorageSystemId());
 
         for (VolumeClone volumeClone : clones) {
 
-            _log.info("restoreFromClone() for storage system {} - start", volumeClone.getStorageSystemId());
-
             SSHConnection connection = null;
+
             try {
                 connection = connectionManager.getClientBySystemId(volumeClone.getStorageSystemId());
 
-                // 1. Get the Source Volume details like fcMapCount,
-                // seCopyCount, copyCount
-                // As each Snapshot has an Max of 256 FC Mappings only for each
-                // source volume
-                IBMSVCGetVolumeResult resultQueryVolume = IBMSVCCLI.queryStorageVolume(connection,
-                        volumeClone.getParentId());
+                IBMSVCStartFCMappingResult startFCMappingResult = IBMSVCFlashCopy.createAndStartFlashCopy(connection, volumeClone.getStorageSystemId(), volumeClone.getParentId(), volumeClone, true, true);
 
-                if (resultQueryVolume.isSuccess()) {
+                volumeClone.setReplicationState(VolumeClone.ReplicationState.CREATED);
 
-                    _log.info(String.format("Processing clone volume Id %s.\n",
-                            resultQueryVolume.getProperty("VolumeId")));
+                listOfRestoredFCMaps.add(startFCMappingResult);
+                listOfRestoredClones.add(volumeClone);
 
-                    int fcMapCount = Integer.parseInt(resultQueryVolume.getProperty("FCMapCount"));
-
-                    if (fcMapCount < IBMSVCConstants.MAX_SOURCE_MAPPINGS) {
-
-                        String sourceVolumeName = volumeClone.getNativeId();
-                        String targetVolumeName = resultQueryVolume.getProperty("VolumeName");
-
-                        // 2. Create FC Mapping for the source and target volume
-                        // Set the fullCopy to true to indicate its Volume Clone
-                        IBMSVCCreateFCMappingResult resultFCMapping = IBMSVCCLI.createFCMapping(connection,
-                                sourceVolumeName, targetVolumeName, null, true);
-
-                        if (resultFCMapping.isSuccess()) {
-                            _log.info(String.format("Created flashCopy mapping %s\n", resultFCMapping.getId()));
-
-                            IBMSVCFlashCopy.waitForFCMapState(5, connection, resultFCMapping.getId(), "idle_or_copied", -1);
-
-                            IBMSVCStartFCMappingResult resultStartFCMapping = IBMSVCFlashCopy.startFCMapping(connection,
-                                    resultFCMapping.getId(), true, true);
-
-                            if (resultStartFCMapping.isSuccess()) {
-
-                                // Wait for restore to complete
-                                // TODO: Move to Asynchronous
-                                // waitForFCMapState(5, connection, resultFCMapping.getId(), "idle_or_copied", 100);
-
-                                _log.info(String.format(
-                                        "Started flashCopy mapping Id %s for the source volume %s and the target volume %s.\n",
-                                        resultStartFCMapping.getId(), sourceVolumeName, targetVolumeName));
-                                task.setMessage(String.format(
-                                        "Started flashCopy mapping Id %s for the source volume %s and the target volume %s.",
-                                        resultStartFCMapping.getId(), sourceVolumeName, targetVolumeName)
-                                        + resultFCMapping.getErrorString());
-                                // task.setStatus(DriverTask.TaskStatus.READY);
-                                clonesRestored += 1;
-                            } else {
-                                _log.error(
-                                        String.format(
-                                                "Starting flashCopy mapping for the source volume %s and the target volume %s failed : %s",
-                                                sourceVolumeName, targetVolumeName, resultStartFCMapping.getErrorString()),
-                                        resultStartFCMapping.isSuccess());
-                                task.setMessage(String.format(
-                                        "Starting flashCopy mapping for the source volume %s and the target volume %s failed : %s.",
-                                        sourceVolumeName, targetVolumeName, resultStartFCMapping.getErrorString()));
-                                task.setStatus(DriverTask.TaskStatus.FAILED);
-                            }
-
-                        } else {
-                            _log.error(
-                                    String.format(
-                                            "Creating flashCopy mapping for the source volume %s and the target volume %s failed : %s",
-                                            sourceVolumeName, targetVolumeName, resultFCMapping.getErrorString()),
-                                    resultFCMapping.isSuccess());
-                            task.setMessage(String.format(
-                                    "Creating flashCopy mapping for the source volume %s and the target volume %s failed : %s.",
-                                    sourceVolumeName, targetVolumeName, resultFCMapping.getErrorString()));
-                            task.setStatus(DriverTask.TaskStatus.FAILED);
-                        }
-
-                    } else {
-                        _log.error(String.format("FlashCopy mapping has reached the maximum for the source volume %s\n",
-                                resultQueryVolume.getProperty("VolumeName")));
-                        task.setMessage(
-                                String.format("FlashCopy mapping has reached the maximum for the source volume %s",
-                                        resultQueryVolume.getProperty("VolumeName"))
-                                        + resultQueryVolume.getErrorString());
-                        task.setStatus(DriverTask.TaskStatus.FAILED);
-                    }
-
-                } else {
-                    _log.error(String.format("Querying storage volume %s failed : %s\n", volumeClone.getParentId(),
-                            resultQueryVolume.getErrorString()), resultQueryVolume.isSuccess());
-                    task.setMessage(String.format("Querying storage volume %s failed : %s.", volumeClone.getParentId(),
-                            resultQueryVolume.getErrorString()));
-                    task.setStatus(DriverTask.TaskStatus.FAILED);
-                }
+                clonesRestored += 1;
 
             } catch (Exception e) {
-                _log.error("Unable to restore the clone volume {} on the storage system {}", volumeClone.getParentId(),
-                        volumeClone.getStorageSystemId());
-                task.setMessage(String.format("Unable to restore the clone volume %s on the storage system %s",
-                        volumeClone.getDeviceLabel(), volumeClone.getStorageSystemId()) + e.getMessage());
-                task.setStatus(DriverTask.TaskStatus.FAILED);
-                e.printStackTrace();
+                _log.error("Unable to create the clone volume {} on the storage system {} - {}", volumeClone.getParentId(),
+                        volumeClone.getStorageSystemId(), e.getMessage());
+
             } finally {
                 if (connection != null) {
                     connection.disconnect();
                 }
             }
 
-            _log.info("restoreFromClone() for storage system {} - end", volumeClone.getStorageSystemId());
         }
 
+        // TODO: wait for all clone copies to complete here and not inside loop above
+
+        // Set order status based on number of successful completions
         if (clonesRestored == clones.size()) {
             task.setStatus(DriverTask.TaskStatus.READY);
         } else if (clonesRestored == 0) {
@@ -335,6 +257,19 @@ public class IBMSVCClones {
         } else {
             task.setStatus(DriverTask.TaskStatus.PARTIALLY_FAILED);
         }
+
+        try{
+            IBMSVCFlashCopy.waitForFCMapState(listOfRestoredClones, listOfRestoredFCMaps);
+
+            // Set task status to READY, FAILED, PARTIALLY_FAILED based on complete count
+            IBMSVCDriverUtils.setTaskStatusBasedOnCount(clones.size(), clonesRestored, "Restored from Clones successfully", task);
+
+        }catch(Exception ex){
+            task.setMessage(String.format("Failed to wait for restore from clone to complete copying - %s", ex.getMessage()));
+            task.setStatus(DriverTask.TaskStatus.PARTIALLY_FAILED);
+        }
+
+        _log.info("restoreFromClone() for storage system {} - end", clones.get(0).getStorageSystemId());
 
         return task;
     }
@@ -392,5 +327,8 @@ public class IBMSVCClones {
 
         return task;
     }
+
+
+
 
 }

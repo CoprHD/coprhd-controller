@@ -11,6 +11,7 @@ import java.math.RoundingMode;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import com.emc.storageos.storagedriver.DriverTask;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -187,5 +188,28 @@ public class IBMSVCDriverUtils {
             }
         }
         return sWwn;
+    }
+
+
+    /**
+     * Set Task Status based on completed items
+     * @param totalItems
+     * @param totalCompleted
+     * @param successMessage
+     * @param task
+     */
+    public static void setTaskStatusBasedOnCount(int totalItems, int totalCompleted, String successMessage, DriverTask task){
+
+        // Set order status based on number of successful completions
+        if (totalCompleted == totalItems) {
+            task.setMessage(successMessage);
+            task.setStatus(DriverTask.TaskStatus.READY);
+        } else if (totalCompleted == 0) {
+            task.setStatus(DriverTask.TaskStatus.FAILED);
+        } else {
+            task.setMessage(String.format("Some operations failed - %s of %s completed successfully.", totalCompleted, totalItems ));
+            task.setStatus(DriverTask.TaskStatus.PARTIALLY_FAILED);
+        }
+
     }
 }

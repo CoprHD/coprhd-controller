@@ -7,6 +7,8 @@ package com.emc.storageos.db.client.constraint.impl;
 import java.net.URI;
 
 import com.emc.storageos.db.client.constraint.TimeSeriesConstraint;
+import com.netflix.astyanax.model.ByteBufferRange;
+import com.netflix.astyanax.serializers.CompositeRangeBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -67,21 +69,26 @@ public class ClassNameTimeSeriesConstraintImpl extends ConstraintImpl<ClassNameT
         log.info("prefix={} startime= {} endtime= {}", _entryType.getSimpleName(), startTimeMicros, endTimeMicros);
         log.info("pageCount={}", pageCount);
 
-        RowQuery<String, ClassNameTimeSeriesIndexColumnName> query = _keyspace.prepareQuery(_altIdCf).getKey(_altId)
-                .withColumnRange(ClassNameTimeSeriesSerializer.get().buildRange()
-                        .withPrefix(_entryType.getSimpleName())
-                        .greaterThan(startTimeMicros)
-                        .lessThanEquals(endTimeMicros)
-                        .limit(pageCount));
+        return genQuery(genRangeBuilder().limit(pageCount));
+    }
 
-        return query;
+    private RowQuery<String, ClassNameTimeSeriesIndexColumnName> genQuery(CompositeRangeBuilder builder) {
+        return _keyspace.prepareQuery(_altIdCf).getKey(_altId).withColumnRange(builder);
+    }
+
+    private CompositeRangeBuilder genRangeBuilder() {
+        return ClassNameTimeSeriesSerializer.get().buildRange()
+                .withPrefix(_entryType.getSimpleName())
+                .greaterThan(startTimeMicros)
+                .lessThanEquals(endTimeMicros);
     }
 
     @Override
     public long count() throws ConnectionException {
         try {
-            OperationResult<Integer> countResult = genQuery().getCount().execute();
+            OperationResult<Integer> countResult = genQuery(genRangeBuilder()).getCount().execute();
             long count = countResult.getResult();
+            log.info("lbye count={}", count);
             return count;
         }catch (ConnectionException e) {
             log.error("Failed to get count e=", e);

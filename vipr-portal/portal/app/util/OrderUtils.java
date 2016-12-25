@@ -20,8 +20,11 @@ import com.emc.vipr.model.catalog.OrderCount;
 import com.emc.vipr.model.catalog.OrderLogRestRep;
 import com.emc.vipr.model.catalog.OrderRestRep;
 import com.google.common.collect.Lists;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class OrderUtils {
+    private static final Logger log = LoggerFactory.getLogger(OrderUtils.class);
 
     public static OrderRestRep getOrder(RelatedResourceRep resource) {
         if (resource != null) {
@@ -118,6 +121,14 @@ public class OrderUtils {
         String end = null;
         if (endTime != null) {
             end = Long.toString(endTime.getTime());
+        }
+
+        log.info("lbye0");
+        try {
+            OrderCount count = catalog.orders().getUserOrdersCount("", "");
+            log.info("lbye count={}", count.getCounts());
+        }catch(Exception e) {
+            log.error("lbye e=",e);
         }
 
         return catalog.orders().search().byTimeRange(start, end, URI.create(tenant), maxCount).run();

@@ -22,7 +22,7 @@ import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 
-public class DbInfoUtils {
+public final class DbInfoUtils {
     private static final Logger _log = LoggerFactory.getLogger(DbInfoUtils.class);
     // Service outage time should be less than 5 days, or else service will not be allowed to get started any more.
     // As we checked the downtime every 15 mins, to avoid actual downtime undervalued, setting the max value as 4 days.

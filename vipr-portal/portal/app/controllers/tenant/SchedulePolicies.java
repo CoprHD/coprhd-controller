@@ -24,13 +24,16 @@ import com.emc.storageos.model.DataObjectRestRep;
 import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.auth.ACLEntry;
 import com.emc.storageos.model.file.policy.FilePolicyAssignParam;
+import com.emc.storageos.model.file.policy.FilePolicyCreateParam;
 import com.emc.storageos.model.file.policy.FilePolicyCreateResp;
 import com.emc.storageos.model.file.policy.FilePolicyListRestRep;
 import com.emc.storageos.model.file.policy.FilePolicyParam;
 import com.emc.storageos.model.file.policy.FilePolicyProjectAssignParam;
 import com.emc.storageos.model.file.policy.FilePolicyRestRep;
 import com.emc.storageos.model.file.policy.FilePolicyRestRep.ReplicationSettingsRestRep;
+import com.emc.storageos.model.file.policy.FilePolicyRestRep.SnapshotSettingsRestRep;
 import com.emc.storageos.model.file.policy.FilePolicyScheduleParams;
+import com.emc.storageos.model.file.policy.FilePolicyUpdateParam;
 import com.emc.storageos.model.file.policy.FilePolicyVpoolAssignParam;
 import com.emc.storageos.model.file.policy.FileReplicationPolicyParam;
 import com.emc.storageos.model.file.policy.FileSnapshotPolicyExpireParam;
@@ -45,8 +48,6 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 import controllers.Common;
-import controllers.deadbolt.Restrict;
-import controllers.deadbolt.Restrictions;
 import controllers.util.FlashException;
 import controllers.util.Models;
 import controllers.util.ViprResourceController;
@@ -305,12 +306,15 @@ public class SchedulePolicies extends ViprResourceController {
         URI policyId = null;
         if (schedulePolicy.isNew()) {
             schedulePolicy.tenantId = Models.currentAdminTenant();
-            FilePolicyParam policyParam = updatePolicyParam(schedulePolicy);
+            FilePolicyCreateParam policyParam = new FilePolicyCreateParam();
+            updatePolicyParam(schedulePolicy, policyParam);
+            policyParam.setPolicyType(schedulePolicy.policyType);
             FilePolicyCreateResp createdPolicy = getViprClient().fileProtectionPolicies().create(policyParam);
             policyId = createdPolicy.getId();
         } else {
             FilePolicyRestRep schedulePolicyRestRep = getViprClient().fileProtectionPolicies().get(uri(schedulePolicy.id));
-            FilePolicyParam input = updatePolicyParam(schedulePolicy);
+            FilePolicyUpdateParam input = new FilePolicyUpdateParam();
+            updatePolicyParam(schedulePolicy, input);
             getViprClient().fileProtectionPolicies().update(schedulePolicyRestRep.getId(), input);
             policyId = schedulePolicyRestRep.getId();
         }
@@ -352,10 +356,8 @@ public class SchedulePolicies extends ViprResourceController {
 
     }
 
-    private static FilePolicyParam updatePolicyParam(SchedulePolicyForm schedulePolicy) {
-        FilePolicyParam param = new FilePolicyParam();
+    private static FilePolicyParam updatePolicyParam(SchedulePolicyForm schedulePolicy, FilePolicyParam param) {
         param.setPolicyName(schedulePolicy.policyName);
-        param.setPolicyType(schedulePolicy.policyType);
 
         FilePolicyScheduleParams scheduleParam = new FilePolicyScheduleParams();
         scheduleParam.setScheduleTime(schedulePolicy.scheduleHour + ":" + schedulePolicy.scheduleMin);
@@ -480,14 +482,20 @@ public class SchedulePolicies extends ViprResourceController {
             if (restRep.getSchedule().getDayOfWeek() != null) {
                 this.scheduleDayOfWeek = restRep.getSchedule().getDayOfWeek();
             }
+            if (restRep.getSnapshotSettings() != null) {
+                SnapshotSettingsRestRep snapshotSettings = restRep.getSnapshotSettings();
 
-            if (restRep.getSnapshotSettings() != null && restRep.getSnapshotSettings().getExpiryType() != null) {
-                this.expireType = restRep.getSnapshotSettings().getExpiryType();
+                if (snapshotSettings.getSnapshotNamePattern() != null) {
+                    this.snapshotNamePattern = snapshotSettings.getSnapshotNamePattern();
+                }
+                if (snapshotSettings.getExpiryType() != null) {
+                    this.expireType = snapshotSettings.getExpiryType();
+                }
+                if (snapshotSettings.getExpiryTime() != null) {
+                    this.expireValue = snapshotSettings.getExpiryTime().intValue();
+                }
             }
 
-            if (restRep.getSnapshotSettings() != null && restRep.getSnapshotSettings().getExpiryTime() != null) {
-                this.expireValue = restRep.getSnapshotSettings().getExpiryTime().intValue();
-            }
             if (restRep.getSchedule() != null) {
                 this.repeat = restRep.getSchedule().getRepeat();
             }
@@ -615,12 +623,8 @@ public class SchedulePolicies extends ViprResourceController {
                 assignProjects.add(uri(project));
             }
             projectAssignParams.setAssigntoProjects(assignProjects);
+            projectAssignParams.setAssigntoAll(assignPolicy.applyToAllProjects);
 
-            if (assignPolicy.applyToAllProjects) {
-                projectAssignParams.setAssigntoAll(true);
-            } else {
-                projectAssignParams.setAssigntoAll(false);
-            }
             param.setProjectAssignParams(projectAssignParams);
 
         } else if (FilePolicyApplyLevel.vpool.name().equalsIgnoreCase(assignPolicy.appliedAt)) {
@@ -637,12 +641,8 @@ public class SchedulePolicies extends ViprResourceController {
                 assignVpools.add(uri(vpool));
             }
             vpoolAssignParams.setAssigntoVpools(assignVpools);
+            vpoolAssignParams.setAssigntoAll(assignPolicy.applyToAllVpools);
 
-            if (assignPolicy.applyToAllVpools) {
-                vpoolAssignParams.setAssigntoAll(true);
-            } else {
-                vpoolAssignParams.setAssigntoAll(false);
-            }
             param.setVpoolAssignParams(vpoolAssignParams);
         }
 
@@ -700,17 +700,18 @@ public class SchedulePolicies extends ViprResourceController {
                 this.vpool = ResourceUtils.stringId(restRep.getVpool());
                 this.projects = ResourceUtils.stringRefIds(restRep.getAssignedResources());
                 this.applyToAllProjects = false;
-                if (this.projects == null || this.projects.isEmpty()) {
-                    this.applyToAllProjects = true;
+                if (restRep.getAppliedToAllProjects() != null) {
+                    this.applyToAllProjects = restRep.getAppliedToAllProjects();
                 }
             } else if (FilePolicyApplyLevel.vpool.name().equalsIgnoreCase(this.appliedAt)) {
 
                 this.vPools = ResourceUtils.stringRefIds(restRep.getAssignedResources());
                 this.applyToAllVpools = false;
-                if (this.vPools == null || this.vPools.isEmpty()) {
-                    this.applyToAllVpools = true;
+                if (restRep.getAppliedToAllvPools() != null) {
+                    this.applyToAllVpools = restRep.getAppliedToAllvPools();
                 }
             }
+
             return this;
         }
 

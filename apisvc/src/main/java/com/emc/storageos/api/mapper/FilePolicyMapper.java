@@ -60,6 +60,14 @@ public class FilePolicyMapper {
         if (appliedToAllFS != null) {
             resp.setAppliedToAllFileSystems(appliedToAllFS);
         }
+        Boolean appliedToAllProjects = from.getApplyToAllProjects();
+        if (appliedToAllProjects != null) {
+            resp.setAppliedToAllProjects(appliedToAllProjects);
+        }
+        Boolean appliedToAllvPools = from.getApplyToAllvPools();
+        if (appliedToAllvPools != null) {
+            resp.setAppliedToAllvPools(appliedToAllvPools);
+        }
 
         String appliedAt = from.getApplyAt();
         if (NullColumnValueGetter.isNotNullValue(appliedAt)) {
@@ -109,8 +117,8 @@ public class FilePolicyMapper {
             resp.setPriority(from.getPriority());
         }
 
-        if (from.isApplyOnTargetSite() != null) {
-            resp.setApplyOnTargetSite(from.isApplyOnTargetSite());
+        if (from.getApplyOnTargetSite() != null) {
+            resp.setApplyOnTargetSite(from.getApplyOnTargetSite());
         }
 
         String policyType = from.getFilePolicyType();
@@ -129,7 +137,9 @@ public class FilePolicyMapper {
             if (!SnapshotExpireType.NEVER.name().equalsIgnoreCase(expiryType)) {
                 snapshotSettings.setExpiryTime(from.getSnapshotExpireTime());
             }
-
+            if (from.getSnapshotNamePattern() != null) {
+                snapshotSettings.setSnapshotNamePattern(from.getSnapshotNamePattern());
+            }
             resp.setSnapshotSettings(snapshotSettings);
         }
         return resp;

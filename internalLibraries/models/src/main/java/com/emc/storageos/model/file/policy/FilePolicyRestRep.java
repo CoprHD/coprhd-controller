@@ -20,6 +20,8 @@ public class FilePolicyRestRep extends DataObjectRestRep {
     private Boolean hasAccessToTenants;
 
     private Boolean appliedToAllFileSystems;
+    private Boolean appliedToAllProjects;
+    private Boolean appliedToAllvPools;
 
     private String appliedAt;
 
@@ -57,9 +59,19 @@ public class FilePolicyRestRep extends DataObjectRestRep {
         return hasAccessToTenants;
     }
 
+    @XmlElement(name = "applied_to_all_projects")
+    public Boolean getAppliedToAllProjects() {
+        return appliedToAllProjects;
+    }
+
     @XmlElement(name = "applied_to_all_filesystems")
     public Boolean getAppliedToAllFileSystems() {
         return appliedToAllFileSystems;
+    }
+
+    @XmlElement(name = "applied_to_all_vpools")
+    public Boolean getAppliedToAllvPools() {
+        return appliedToAllvPools;
     }
 
     @XmlElement(name = "apply_on_target_site")
@@ -124,6 +136,14 @@ public class FilePolicyRestRep extends DataObjectRestRep {
 
     public void setAppliedToAllFileSystems(Boolean appliedToAllFileSystems) {
         this.appliedToAllFileSystems = appliedToAllFileSystems;
+    }
+
+    public void setAppliedToAllProjects(Boolean appliedToAllProjects) {
+        this.appliedToAllProjects = appliedToAllProjects;
+    }
+
+    public void setAppliedToAllvPools(Boolean appliedToAllvPools) {
+        this.appliedToAllvPools = appliedToAllvPools;
     }
 
     public void setApplyOnTargetSite(Boolean applyOnTargetSite) {

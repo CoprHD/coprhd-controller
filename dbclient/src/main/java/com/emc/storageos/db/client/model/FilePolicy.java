@@ -79,6 +79,8 @@ public class FilePolicy extends DataObjectWithACLs {
      * FALSE means : policy has to applied on the specific file system chosen at the time of provisioning..
      */
     private Boolean applyToAllFS;
+    private Boolean applyToAllvPools;
+    private Boolean applyToAllProjects;
 
     private Boolean applyOnTargetSite;
 
@@ -277,7 +279,7 @@ public class FilePolicy extends DataObjectWithACLs {
     }
 
     @Name("applyOnTargetSite")
-    public Boolean isApplyOnTargetSite() {
+    public Boolean getApplyOnTargetSite() {
         return this.applyOnTargetSite;
     }
 
@@ -314,6 +316,26 @@ public class FilePolicy extends DataObjectWithACLs {
     public void setPolicyStorageResources(StringSet policyStorageResources) {
         this.policyStorageResources = policyStorageResources;
         setChanged("policyStorageResources");
+    }
+
+    @Name("applyToAllvPools")
+    public Boolean getApplyToAllvPools() {
+        return applyToAllvPools;
+    }
+
+    public void setApplyToAllvPools(Boolean applyToAllvPools) {
+        this.applyToAllvPools = applyToAllvPools;
+        setChanged("applyToAllvPools");
+    }
+
+    @Name("applyToAllProjects")
+    public Boolean getApplyToAllProjects() {
+        return applyToAllProjects;
+    }
+
+    public void setApplyToAllProjects(Boolean applyToAllProjects) {
+        this.applyToAllProjects = applyToAllProjects;
+        setChanged("applyToAllProjects");
     }
 
     @Override

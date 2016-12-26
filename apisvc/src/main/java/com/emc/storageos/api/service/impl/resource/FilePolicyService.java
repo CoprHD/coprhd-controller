@@ -54,9 +54,9 @@ import com.emc.storageos.model.auth.ACLAssignments;
 import com.emc.storageos.model.file.policy.FilePolicyAssignParam;
 import com.emc.storageos.model.file.policy.FilePolicyAssignResp;
 import com.emc.storageos.model.file.policy.FilePolicyBulkRep;
+import com.emc.storageos.model.file.policy.FilePolicyCreateParam;
 import com.emc.storageos.model.file.policy.FilePolicyCreateResp;
 import com.emc.storageos.model.file.policy.FilePolicyListRestRep;
-import com.emc.storageos.model.file.policy.FilePolicyParam;
 import com.emc.storageos.model.file.policy.FilePolicyRestRep;
 import com.emc.storageos.model.file.policy.FilePolicyUnAssignParam;
 import com.emc.storageos.model.file.policy.FilePolicyUpdateParam;
@@ -159,7 +159,7 @@ public class FilePolicyService extends TaskResourceService {
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @CheckPermission(roles = { Role.SYSTEM_ADMIN })
-    public FilePolicyCreateResp createFilePolicy(FilePolicyParam param) {
+    public FilePolicyCreateResp createFilePolicy(FilePolicyCreateParam param) {
 
         // Make policy name as mandatory field
         ArgValidator.checkFieldNotNull(param.getPolicyName(), "policyName");
@@ -456,7 +456,7 @@ public class FilePolicyService extends TaskResourceService {
      * @param param
      * @return
      */
-    private FilePolicyCreateResp createFileReplicationPolicy(FilePolicyParam param) {
+    private FilePolicyCreateResp createFileReplicationPolicy(FilePolicyCreateParam param) {
         StringBuilder errorMsg = new StringBuilder();
         FilePolicy fileReplicationPolicy = new FilePolicy();
 
@@ -498,7 +498,7 @@ public class FilePolicyService extends TaskResourceService {
      * @param param
      * @return
      */
-    private FilePolicyCreateResp createFileSnapshotPolicy(FilePolicyParam param) {
+    private FilePolicyCreateResp createFileSnapshotPolicy(FilePolicyCreateParam param) {
         StringBuilder errorMsg = new StringBuilder();
         FilePolicy fileSnapshotPolicy = new FilePolicy();
 

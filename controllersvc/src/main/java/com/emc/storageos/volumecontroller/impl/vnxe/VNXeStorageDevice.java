@@ -63,6 +63,7 @@ import com.emc.storageos.vnxe.models.VNXeCommandResult;
 import com.emc.storageos.vnxe.models.VNXeFSSupportedProtocolEnum;
 import com.emc.storageos.vnxe.models.VNXeFileSystem;
 import com.emc.storageos.vnxe.models.VNXeFileSystemSnap;
+import com.emc.storageos.vnxe.models.VNXeHost;
 import com.emc.storageos.vnxe.models.VNXeNfsShare;
 import com.emc.storageos.volumecontroller.BlockStorageDevice;
 import com.emc.storageos.volumecontroller.ControllerException;
@@ -2401,9 +2402,9 @@ public class VNXeStorageDevice extends VNXeOperations
         Map<String, ExportRule> exportRuleMap = new HashMap<>();
         List<VNXeNfsShare> exportsList = new ArrayList<VNXeNfsShare>();
 
-        List<VNXeBase> arrayReadOnlyHost = new ArrayList<>();
-        List<VNXeBase> arrayReadWriteHost = new ArrayList<>();
-        List<VNXeBase> arrayRootHost = new ArrayList<>();
+        List<String> arrayReadOnlyHost = new ArrayList<>();
+        List<String> arrayReadWriteHost = new ArrayList<>();
+        List<String> arrayRootHost = new ArrayList<>();
 
         Set<String> dbReadOnlyHost = new HashSet<>();
         Set<String> dbReadWriteHost = new HashSet<>();
@@ -2428,13 +2429,24 @@ public class VNXeStorageDevice extends VNXeOperations
             String vnxeExportId = exportRule.getDeviceExportId();
             if (vnxeExportId != null) {
                 List<VNXeNfsShare> vnxeExports = null;
-                vnxeExports = apiClient.getNfsSharesForFileSystem(args.getFsId().toString());
+                vnxeExports = apiClient.getNfsSharesForFileSystem(args.getFs().getNativeId());
                 exportsList.addAll(vnxeExports);
                 for (VNXeNfsShare vnXeNfsShare : vnxeExports) {
-
-                    arrayReadOnlyHost.addAll(vnXeNfsShare.getReadOnlyHosts());
-                    arrayReadWriteHost.addAll(vnXeNfsShare.getReadWriteHosts());
-                    arrayRootHost.addAll(vnXeNfsShare.getRootAccessHosts());
+                    List<VNXeBase> hostIdReadOnly = vnXeNfsShare.getReadOnlyHosts();
+                    for (VNXeBase vnXeBase : hostIdReadOnly) {
+                        VNXeHost host = apiClient.getHostById(vnXeBase.getId());
+                        arrayReadOnlyHost.add(host.getName());
+                    }
+                    List<VNXeBase> hostIdReadWrite = vnXeNfsShare.getReadWriteHosts();
+                    for (VNXeBase vnXeBase : hostIdReadWrite) {
+                        VNXeHost host = apiClient.getHostById(vnXeBase.getId());
+                        arrayReadWriteHost.add(host.getName());
+                    }
+                    List<VNXeBase> hostIdRootHost = vnXeNfsShare.getRootAccessHosts();
+                    for (VNXeBase vnXeBase : hostIdRootHost) {
+                        VNXeHost host = apiClient.getHostById(vnXeBase.getId());
+                        arrayRootHost.add(host.getName());
+                    }
                 }
 
             }
@@ -2444,26 +2456,26 @@ public class VNXeStorageDevice extends VNXeOperations
             Set<String> arrayExtraReadOnlyHost = new HashSet<>();
             Set<String> arrayExtraReadWriteHost = new HashSet<>();
             Set<String> arrayExtraRootHost = new HashSet<>();
-            for (VNXeBase host : arrayReadOnlyHost) {
-                boolean isNotExist = dbReadOnlyHost.add(host.getId());
+            for (String host : arrayReadOnlyHost) {
+                boolean isNotExist = dbReadOnlyHost.add(host);
                 if (isNotExist) {
-                    arrayExtraReadOnlyHost.add(host.getId());
+                    arrayExtraReadOnlyHost.add(host);
                     changeFound = true;
                 }
             }
 
-            for (VNXeBase host : arrayReadWriteHost) {
-                boolean isNotExist = dbReadWriteHost.add(host.getId());
+            for (String host : arrayReadWriteHost) {
+                boolean isNotExist = dbReadWriteHost.add(host);
                 if (isNotExist) {
-                    arrayExtraReadWriteHost.add(host.getId());
+                    arrayExtraReadWriteHost.add(host);
                     changeFound = true;
                 }
             }
 
-            for (VNXeBase host : arrayRootHost) {
-                boolean isNotExist = dbRootHost.add(host.getId());
+            for (String host : arrayRootHost) {
+                boolean isNotExist = dbRootHost.add(host);
                 if (isNotExist) {
-                    arrayExtraRootHost.add(host.getId());
+                    arrayExtraRootHost.add(host);
                     changeFound = true;
 
                 }

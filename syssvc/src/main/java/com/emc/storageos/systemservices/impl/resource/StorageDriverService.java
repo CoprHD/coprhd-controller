@@ -256,6 +256,7 @@ public class StorageDriverService {
     public Response install(@FormDataParam("driver") InputStream uploadedInputStream,
             @FormDataParam("driver") FormDataContentDisposition details) {
         String fileName = details.getFileName();
+        precheckForDriverFileName(fileName);
         long fileSize = details.getSize();
         log.info("Received driver jar file: {}, size: {}", fileName, fileSize);
         if (fileSize >= MAX_DRIVER_SIZE) {
@@ -424,7 +425,7 @@ public class StorageDriverService {
             @FormDataParam("force") @DefaultValue("false") Boolean force) {
         log.info("Start to upgrade driver for {} ...", driverName);
         String fileName = details.getFileName();
-
+        precheckForDriverFileName(fileName);
         long fileSize = details.getSize();
         log.info("Received driver jar file: {}, size: {}", fileName, fileSize);
         if (fileSize >= MAX_DRIVER_SIZE) {
@@ -559,19 +560,34 @@ public class StorageDriverService {
         }
     }
 
+    private void precheckForDriverFileName (String fileName) {
+        precheckForNotEmptyField("driver file name", fileName);
+        if (hasForbiddenChar(fileName)) {
+            throw APIException.internalServerErrors
+            .installDriverPrecheckFailed("driver file name should only contain letter, digit, dash or underline");
+        }
+    }
+
     private void precheckForDriverName(String name) {
         precheckForNotEmptyField("driver_name", name);
         if (name.length() > MAX_DISPLAY_STRING_LENGTH) {
             throw APIException.internalServerErrors.installDriverPrecheckFailed(
                     String.format("driver name is longer than %s", MAX_DISPLAY_STRING_LENGTH));
         }
+        if (hasForbiddenChar(name)) {
+            throw APIException.internalServerErrors
+            .installDriverPrecheckFailed("driver name should only contain letter, digit, dash or underline");
+        }
+    }
+
+    private boolean hasForbiddenChar(String name) {
         for (int i = 0; i < name.length(); i ++) {
             char c = name.charAt(i);
-            if (c != '_' && !Character.isLetter(c) && !Character.isDigit(c)) {
-                throw APIException.internalServerErrors
-                        .installDriverPrecheckFailed("driver name should only contain letter, digit or underline");
+            if (c != '_' && c != '-' && !Character.isLetter(c) && !Character.isDigit(c)) {
+                return true;
             }
         }
+        return false;
     }
 
     private void precheckForDriverVersion(String driverVersion) {

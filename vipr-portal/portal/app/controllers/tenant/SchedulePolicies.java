@@ -48,6 +48,8 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 import controllers.Common;
+import controllers.deadbolt.Restrict;
+import controllers.deadbolt.Restrictions;
 import controllers.util.FlashException;
 import controllers.util.Models;
 import controllers.util.ViprResourceController;

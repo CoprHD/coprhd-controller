@@ -50,36 +50,23 @@ usage() {
 ######################
 # Collect Functions
 ######################
-collect_min_cfs() {
+collect_cfs() {
+    local option=$1
+
     local param="db-cfs"
     check_if_skip $param
     if [[ ${SKIP_COLLECT} == true ]] ; then
         return
     fi
 
-    echo "Collecting minimum cfs.."
-    local minCfsDir="${DIAGCOLLECT_OUTPUT}/$param"
-    mkdir -p ${minCfsDir}
-    
-    set +e
-    diagnose_cfs ${minCfsDir} "m"
-    set -e
-}
-
-collect_all_cfs() {
-    local param="db-cfs"
-    check_if_skip $param
-    if [[ ${SKIP_COLLECT} == true ]] ; then
-        return
-    fi
-
-    echo "Collecting all cfs.."
-    local allCfsDir="${DIAGCOLLECT_OUTPUT}/$param"
-    mkdir -p ${allCfsDir}
+    echo "Collecting cfs info.."
+    local cfsDir="${DIAGCOLLECT_OUTPUT}/$param"
+    mkdir -p ${cfsDir}
 
     set +e
-    diagnose_cfs ${allCfsDir} "f"
+    diagnose_cfs ${cfsDir} "${option}"
     set -e
+
 }
 
 collect_zk() {
@@ -176,7 +163,7 @@ collect_all() {
     collect_health
     collect_backup
     collect_zk
-    collect_all_cfs
+    collect_cfs "-all_cfs"
 }
 
 collect_quick() {
@@ -185,7 +172,7 @@ collect_quick() {
     collect_properties
     collect_health
     collect_zk
-    collect_min_cfs
+    collect_cfs "-min_cfs"
 }
 
 create_archive() {
@@ -262,14 +249,14 @@ execute_with_progress_point() {
     local task=$1
 
     set +e
-    while [ 1 ]; do echo -n "."; sleep 5; done &
-    local print_pid=$!
+    while true; do echo -n "."; sleep 5; done &
+    BACKGROUND_PRINT_PID=$!
     local result="success"
     eval "${task}" &>/dev/null
     if [ $? -ne 0 ]; then
         result="failed"
     fi
-    kill ${print_pid} &>/dev/null
+    kill ${BACKGROUND_PRINT_PID} &>/dev/null
     set -e
 
     echo "${result}"
@@ -329,30 +316,10 @@ check_node_cluster_status() {
 }
 
 diagnose_cfs() {
-    local outputDir=$1
+    local cfsDir=$1
     local option=$2
 
-    #
-    # Cleanup previous output
-    #
-    if [ -e ${outputDir} ]; then
-        rm -rf ${outputDir}
-    fi
-    mkdir -p ${outputDir}/lists
-
-    #
-    # Generate Column Family lists
-    #
-    if [ "${option}" == "m" ]; then
-        CFLIST_FINAL=(${MIN_CFS[*]})
-    else
-        CFLIST_FINAL=$($COMMAND_DIR/dbcli show_cf | cut -d " " -f3)
-    fi
-
-    #
-    # No. of concurrent "dbutils list" jobs that can be done in parallel
-    # set to number of CPU cores (default to 4)
-    #
+    # Number of CPU cores (default to 4)
     cat /proc/cpuinfo | grep processor &>/dev/null
     if [ $? -eq 0 ]; then
         MAX_CURR_JOBS=`cat /proc/cpuinfo | grep processor | wc -l`
@@ -360,30 +327,44 @@ diagnose_cfs() {
         MAX_CURR_JOBS=4
     fi
 
-    #
+    # Get to be connected CFs list
+    local cfList=()
+    if [ "${option}" == "-min_cfs" ]; then
+        cfList=(${MIN_CFS[*]})
+    elif [ "${option}" == "-all_cfs" ]; then
+        cfList=$($COMMAND_DIR/dbcli show_cf | cut -d " " -f3)
+    else
+        echo "Invalid option for diagnosing cfs: ${option}"
+        exit 2
+    fi
+
+    local output="lists"
+    local cfListFile="collected_cf_list"
+    rm -rf ${cfsDir}
+    mkdir -p ${cfsDir}/${output}
+    echo "${cfList}" > ${cfsDir}/collected_cf_list
+    echo "Please see cf list in ''"
+    echo "${cfList}" > ${cfsDir}/collected_cf_list
+
+    local output="lists"
+    rm -rf ${cfsDir}
+    mkdir -p ${cfsDir}/${output}
+
     # Generate the "dbutils list" output files
     # processed in parallel with:  no. of threads == no. of CPU cores
-    #
     echo -n -e "\tNow generating dbutils listings, this may take several minutes..."
-    NUM_CURR_JOBS=0
-    for CF in ${CFLIST_FINAL[@]}; do
-        for i in {1..$MAX_CURR_JOBS}; do
-            nohup $COMMAND_DIR/dbutils list $CF > ${outputDir}/lists/"dbutils.list.$CF.out" 2> ${outputDir}/lists/cfs_dump.err < /dev/null &
-            ((NUM_CURR_JOBS += 1))
-
-            while [ $NUM_CURR_JOBS -ge $MAX_CURR_JOBS ]; do
-                echo -n "."
-                sleep 5
-                NUM_CURR_JOBS=`jobs -r | wc -l`
-            done
+    for CF in ${cfList[@]}; do
+        nohup $COMMAND_DIR/dbutils list ${CF} > ${cfsDir}/${output}/"dbutils.list.${CF}.out" 2> ${cfsDir}/${output}/cfs_dump.err < /dev/null &
+        while [ `jobs -r | wc -l` -ge $MAX_CURR_JOBS ]; do
+            echo -n "."
+            sleep 5
         done
     done
+    wait
 
-    #
     # Format the generated "dbutils list" output files
     # (further formatting can be added with additional "else if" clauses in the "gawk" program below)
-    #
-    for outfile in `ls ${outputDir}/lists/*.out` ;
+    for outfile in `ls ${cfsDir}/${output}/*.out` ;
     do
         gawk '(NR>2) { 
             if ((match($0, /(.+)time=(.+)/, a)) != 0) {
@@ -406,38 +387,33 @@ diagnose_cfs() {
                 print "\n * * * * * * * * *  * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n\n",$0;
             }
             else {print $0}
-        }' $outfile > "${outputDir}/lists/`basename $outfile .out`.txt"
+        }' $outfile > "${cfsDir}/${output}/`basename $outfile .out`.txt"
     done
 
-    echo; echo -e "\tCapturing RelationIndex output, AltIndex output and system properties..."
-
-    #
     # Generate cqlsh RelationIndex and AltIndex output
-    #
-    RI_INPUT_FILE="cqlsh.RelationIndex_Input.txt"
-    AI_INPUT_FILE="cqlsh.AltIdIndex-Input.txt"
-    echo "SELECT * FROM \"RelationIndex\" LIMIT 1000000;" > ${outputDir}/$RI_INPUT_FILE
-    echo "SELECT * FROM \"AltIdIndex\" LIMIT 1000000;" > ${outputDir}/$AI_INPUT_FILE
+    echo; echo -e "\tCapturing RelationIndex output, AltIndex output and system properties..."
+    local indexList=(RelationIndex AltIdIndex)
+    for index in ${indexList[@]}
+    do
+        local tmpFile="${cfsDir}/cqlsh.Input"
+        echo "SELECT * FROM \"$index\" LIMIT 1000000;" >${tmpFile}
+        $COMMAND_DIR/cqlsh -k StorageOS localhost -f ${tmpFile} > ${cfsDir}/${output}/"cqlsh.${index}_Output.txt"
+    done
+    rm -rf ${tmpFile}
 
-    RI_OUTPUT_FILE="cqlsh.RelationIndex_Output.txt"
-    AI_OUTPUT_FILE="cqlsh.AltIdIndex_Output.txt"
-    $COMMAND_DIR/cqlsh -k StorageOS localhost -f ${outputDir}/$RI_INPUT_FILE > ${outputDir}/lists/$RI_OUTPUT_FILE
-    $COMMAND_DIR/cqlsh -k StorageOS localhost -f ${outputDir}/$AI_INPUT_FILE > ${outputDir}/lists/$AI_OUTPUT_FILE
-
-    rm -f ${outputDir}/$RI_INPUT_FILE
-    rm -f ${outputDir}/$AI_INPUT_FILE
-
-    #
     # Clean up temporary files and zip up the output files
-    #
-    TAR_FILENAME="cfs-`date +%Y%0m%0d%0k%0M%0S`.tar"
-    TAR_SUBFILE="unformatted_output.tar"
-    export TAR_FORMAT=gnu
-    tar -cf "${outputDir}/lists/$TAR_SUBFILE" --format=gnu -C "${outputDir}/lists" ${outputDir}/lists/*.out &>/dev/null
-    rm -f ${outputDir}/lists/*.out
-    tar -cf "${outputDir}/$TAR_FILENAME" --format=gnu -C "${outputDir}/lists" . &>/dev/null
-    gzip "${outputDir}/$TAR_FILENAME"
-    rm -rf ${outputDir}/lists
+    cd ${cfsDir}/${output}
+    tar -cf "unformatted_output.tar" *.out --format=gnu &>/dev/null
+    rm -f *.out
+    cd ${cfsDir}
+    tar -czf "cfs-`date +%Y%0m%0d%0k%0M%0S`.tar.gz" ${output}/* --format=gnu &>/dev/null
+    rm -rf ${output}
+}
+
+clean_up() {
+    while [ `kill -0 ${BACKGROUND_PRINT_PID} &>/dev/null` ]; do
+        kill ${BACKGROUND_PRINT_PID} &>/dev/null
+    done
 }
 
 #######################
@@ -497,7 +473,7 @@ fi
 
 for i in $(seq 1 $#)
 do
-    eval param=\$$i
+    eval param=\${${i}}
     case $param in
         -all|-quick)
             genaral_param_count=$[genaral_param_count+1]
@@ -508,29 +484,30 @@ do
         -backup)
             plain_param_count=$[plain_param_count+1]
             if [[ $i -lt $# ]]; then
-                eval next_param=\$$[i+1]
+                eval next_param=\${$[i+1]}
             fi
             set_backupname "${next_param}"
             ;;
         -ftp)
             ftp_param_count=$[ftp_param_count+1]
             if [[ $i -lt $# ]]; then
-                eval FTP=\$$[i+1]
+                eval FTP=\${$[i+1]}
             fi
             check_ftp_parameter "$param" "$FTP"
             ;;
         -u)
             ftp_param_count=$[ftp_param_count+1]
             if [[ $i -lt $# ]]; then
-                eval USER=\$$[i+1]
+                eval USER=\${$[i+1]}
             fi
             check_ftp_parameter "$param" "$USER"
             ;;
         -p)
             ftp_param_count=$[ftp_param_count+1]
             if [[ $i -lt $# ]]; then
-                eval PASSWORD=\$$[i+1]
+                eval PASSWORD=\${$[i+1]}
             fi
+            #echo "$param && $PASSWORD"
             check_ftp_parameter "$param" "$PASSWORD"
             ;;
         -*)
@@ -550,14 +527,16 @@ LOCAL_NODE=`/etc/systool --getprops | awk -F '=' '/\<node_id\>/ {print $2}'`
 
 check_node_cluster_status
 
+trap clean_up EXIT
+
 for i in $(seq 1 $#)
 do
     eval param=\$$i
     case ${param} in
         -all) collect_all; DIAGCOLLECT_ARCHIVE_NAME="${DIAGCOLLECT_ARCHIVE_NAME}${param}" ;;
         -quick) collect_quick; DIAGCOLLECT_ARCHIVE_NAME="${DIAGCOLLECT_ARCHIVE_NAME}${param}" ;;
-        -min_cfs) collect_min_cfs ;;
-        -all_cfs) collect_all_cfs ;;
+        -min_cfs) collect_cfs ${param} ;;
+        -all_cfs) collect_cfs ${param} ;;
         -zk) collect_zk ;;
         -backup) collect_backup "${BACKUP_NAME}" ;;
         -logs) collect_logs ;;

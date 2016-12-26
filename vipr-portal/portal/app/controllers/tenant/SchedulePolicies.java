@@ -355,7 +355,7 @@ public class SchedulePolicies extends ViprResourceController {
     private static FilePolicyParam updatePolicyParam(SchedulePolicyForm schedulePolicy) {
         FilePolicyParam param = new FilePolicyParam();
         param.setPolicyName(schedulePolicy.policyName);
-        // param.setPolicyType(schedulePolicy.policyType);
+        param.setPolicyType(schedulePolicy.policyType);
 
         FilePolicyScheduleParams scheduleParam = new FilePolicyScheduleParams();
         scheduleParam.setScheduleTime(schedulePolicy.scheduleHour + ":" + schedulePolicy.scheduleMin);
@@ -692,7 +692,10 @@ public class SchedulePolicies extends ViprResourceController {
             this.policyName = restRep.getName();
 
             this.appliedAt = restRep.getAppliedAt();
-            this.applyOnTargetSite = restRep.getApplyOnTargetSite();
+            this.applyOnTargetSite = false;
+            if (restRep.getApplyOnTargetSite() != null) {
+                this.applyOnTargetSite = restRep.getApplyOnTargetSite();
+            }
             // Load project applicable fields
             if (FilePolicyApplyLevel.project.name().equalsIgnoreCase(this.appliedAt)) {
 

@@ -410,10 +410,10 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                         Joiner.on(",").join(initiatorsURIs), mask.getMaskName()));
                 Map<URI, List<URI>> maskToInitiatorsMap = new HashMap<URI, List<URI>>();
                 maskToInitiatorsMap.put(mask.getId(), initiatorsURIs);
-                previousStep = generateZoningAddInitiatorsWorkflow(workflow, previousStep,
-                        exportGroup, maskToInitiatorsMap);
                 previousStep = generateExportMaskAddInitiatorsWorkflow(workflow, previousStep, storage, exportGroup, mask,
                         initiatorsURIs, null, token);
+                previousStep = generateZoningAddInitiatorsWorkflow(workflow, previousStep,
+                        exportGroup, maskToInitiatorsMap);
                 anyOperationsToDo = true;
             }
 
@@ -522,7 +522,7 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                     Initiator initiator = _dbClient.queryObject(Initiator.class, initiatorURI);
 
                     // Get a list of the ExportMasks that were matched to the initiator
-                    // go through the initiators and figure out the proper intiator and volume ramifications
+                    // go through the initiators and figure out the proper initiator and volume ramifications
                     // to the existing masks.
                     List<URI> exportMaskURIs = new ArrayList<URI>();
                     exportMaskURIs.addAll(entry.getValue());

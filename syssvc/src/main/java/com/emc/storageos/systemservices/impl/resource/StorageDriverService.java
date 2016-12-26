@@ -40,6 +40,7 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
+import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.curator.framework.recipes.locks.InterProcessLock;
 import org.slf4j.Logger;
@@ -382,22 +383,12 @@ public class StorageDriverService {
 
     private File saveToTmpDir(String fileName, InputStream uploadedInputStream) {
         File driverFile = new File(StorageDriverManager.TMP_DIR + fileName);
-        int accSize = 0;
         OutputStream os = null;
         try {
-            os = new BufferedOutputStream(new FileOutputStream(driverFile));
-            int bytesRead = 0;
-            while (true) {
-                byte[] buffer = new byte[0x10000];
-                bytesRead = uploadedInputStream.read(buffer);
-                if (bytesRead == -1) {
-                    break;
-                }
-                accSize += bytesRead;
-                if (accSize > MAX_DRIVER_SIZE) {
-                    throw APIException.badRequests.fileSizeExceedsLimit(MAX_DRIVER_SIZE);
-                }
-                os.write(buffer, 0, bytesRead);
+            os = new FileOutputStream(driverFile);
+            long copiedSize = IOUtils.copyLarge(uploadedInputStream, os, 0, MAX_DRIVER_SIZE);
+            if (copiedSize >= MAX_DRIVER_SIZE) {
+                throw APIException.badRequests.fileSizeExceedsLimit(MAX_DRIVER_SIZE);
             }
             uploadedInputStream.close();
         } catch (IOException e) {

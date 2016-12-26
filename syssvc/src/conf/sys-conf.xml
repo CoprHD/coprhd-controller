@@ -74,7 +74,7 @@
 
     <bean id="dbRepairStatusHandler" class="com.emc.storageos.systemservices.impl.util.DbRepairStatusHandler"/>
 
-    <bean id="dbDowntimeTracker" class="com.emc.storageos.systemservices.impl.util.DbDowntimeTracker"/>
+    <bean id="dbDowntimeTracker" class="com.emc.storageos.systemservices.impl.healthmonitor.DbDowntimeTracker"/>
 
     <bean id="auditLogManager"
         class="com.emc.storageos.security.audit.AuditLogManager">

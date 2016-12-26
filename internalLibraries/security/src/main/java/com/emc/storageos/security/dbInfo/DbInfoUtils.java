@@ -28,7 +28,8 @@ public class DbInfoUtils {
     // As we checked the downtime every 15 mins, to avoid actual downtime undervalued, setting the max value as 4 days.
     public static final long MAX_SERVICE_OUTAGE_TIME = 4 * TimeUtils.DAYS;
     public static final List<String> serviceNames = Arrays.asList(Constants.DBSVC_NAME, Constants.GEODBSVC_NAME);
-    public DbInfoUtils() {
+
+    private DbInfoUtils() {
     }
     /**
      * Check offline event info to see if dbsvc/geodbsvc on this node could get started

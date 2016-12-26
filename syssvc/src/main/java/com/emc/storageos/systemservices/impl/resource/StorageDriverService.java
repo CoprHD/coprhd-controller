@@ -562,9 +562,13 @@ public class StorageDriverService {
 
     private void precheckForDriverFileName (String fileName) {
         precheckForNotEmptyField("driver file name", fileName);
-        if (hasForbiddenChar(fileName)) {
+        if (!fileName.endsWith(".jar") && !fileName.endsWith(".JAR")) {
             throw APIException.internalServerErrors
-            .installDriverPrecheckFailed("driver file name should only contain letter, digit, dash or underline");
+            .installDriverPrecheckFailed("driver file name should end with .jar or .JAR as suffix");
+        }
+        if (hasForbiddenChar(fileName.substring(0, fileName.length() - ".jar".length()))) {
+            throw APIException.internalServerErrors.installDriverPrecheckFailed(
+                    "driver file name (not include .jar suffix part) should only contain letter, digit, dash or underline");
         }
     }
 

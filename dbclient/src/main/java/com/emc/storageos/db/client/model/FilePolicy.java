@@ -80,6 +80,8 @@ public class FilePolicy extends DataObjectWithACLs {
      */
     private Boolean applyToAllFS;
 
+    private Boolean applyOnTargetSite;
+
     public static enum FileReplicationType {
         LOCAL, REMOTE;
     }
@@ -272,6 +274,16 @@ public class FilePolicy extends DataObjectWithACLs {
     public void setApplyToAllFS(Boolean applyToAllFS) {
         this.applyToAllFS = applyToAllFS;
         setChanged("applyToAllFS");
+    }
+
+    @Name("applyOnTargetSite")
+    public Boolean isApplyOnTargetSite() {
+        return this.applyOnTargetSite;
+    }
+
+    public void setApplyOnTargetSite(Boolean applyOnTargetSite) {
+        this.applyOnTargetSite = applyOnTargetSite;
+        setChanged("applyOnTargetSite");
     }
 
     @Name("filePolicyVpool")

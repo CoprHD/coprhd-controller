@@ -710,6 +710,10 @@ public class FilePolicyService extends TaskResourceService {
             filepolicy.setApplyAt(FilePolicyApplyLevel.vpool.name());
             filepolicy.setAssignedResources(assignedResources);
         }
+
+        if (param.getApplyOnTargetSite() != null) {
+            filepolicy.setApplyOnTargetSite(param.getApplyOnTargetSite());
+        }
         this._dbClient.updateObject(filepolicy);
         return new FilePolicyAssignResp(filepolicy.getId(), toLink(ResourceTypeEnum.FILE_POLICY,
                 filepolicy.getId()), filepolicy.getLabel(), filepolicy.getApplyAt(), filepolicy.getAssignedResources());
@@ -777,6 +781,9 @@ public class FilePolicyService extends TaskResourceService {
             filepolicy.setAssignedResources(assignedResources);
             filepolicy.setFilePolicyVpool(param.getProjectAssignParams().getVpool());
         }
+        if (param.getApplyOnTargetSite() != null) {
+            filepolicy.setApplyOnTargetSite(param.getApplyOnTargetSite());
+        }
         this._dbClient.updateObject(filepolicy);
         return new FilePolicyAssignResp(filepolicy.getId(), toLink(ResourceTypeEnum.FILE_POLICY,
                 filepolicy.getId()), filepolicy.getLabel(), filepolicy.getApplyAt(), filepolicy.getAssignedResources());
@@ -825,6 +832,9 @@ public class FilePolicyService extends TaskResourceService {
         filepolicy.setFilePolicyVpool(param.getFileSystemAssignParams().getVpool());
 
         filepolicy.setApplyToAllFS(param.getFileSystemAssignParams().getAssigntoAll());
+        if (param.getApplyOnTargetSite() != null) {
+            filepolicy.setApplyOnTargetSite(param.getApplyOnTargetSite());
+        }
         this._dbClient.updateObject(filepolicy);
         return new FilePolicyAssignResp(filepolicy.getId(), toLink(ResourceTypeEnum.FILE_POLICY,
                 filepolicy.getId()), filepolicy.getLabel(), filepolicy.getApplyAt());

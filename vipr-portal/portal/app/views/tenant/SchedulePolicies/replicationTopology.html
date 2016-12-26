@@ -1,0 +1,130 @@
+#{set 'moreScripts'}
+#{get 'moreScripts'/}
+<script type="text/javascript">
+var replicationTopo = function() {
+    var dialog;
+    var form;
+    var varraySelect;
+    var vpoolSelect;
+    var editCopy;
+
+    var editVersion = -1;
+    
+    function showDialog() {
+       
+        //loadVirtualArrayOptions();
+        // Collect Arrays
+        dialog.modal('show');
+    }
+    
+    function hideDialog() {
+        dialog.modal('hide');
+    }
+
+    var my = {};
+    my.init = function() {
+        dialog = $('#replicationTopologyDialog');
+        form = $('#replicationTopologyForm');
+        sourceVArraySelect = $('[name="replicationTopology.sourceVArray"]')
+        targetVArraySelect = $('[name="replicationTopology.targetVArray"]')
+
+        //varraySelect.on('change',loadVirtualPoolOptions);
+
+        dialog.on('hide', endSave);
+
+        // Initialise the copies table
+        $.each(copies, function(index, value) {
+           addCopyRow(value);
+        });
+    }
+
+
+    my.addCopy = function() {
+        editVersion = -1;
+        showDialog();
+    }
+
+    my.editCopy = function(event) {
+        var copyRow = getCopyTableRow(event);
+        editVersion = copyRow[0].rowIndex-1;
+
+        showDialog();
+    }
+
+    return my;
+}();
+
+$(document).ready(function() {
+    replication.init();
+});
+
+
+</script>
+#{/set}
+
+#{set 'moreStyles'}
+#{get 'moreStyles'/}
+<style type="text/css">
+#replicationTopologyDialog .modal-body {
+    max-height: none;
+    overflow-y: visible;
+}
+.table.replicationTopology {
+    /*width: 540px;*/
+    float:left;
+    margin-bottom: 0;
+}
+.table.replicationTopology .edit {
+    cursor: pointer;
+}
+.table.replicationTopology .virtualArray {
+    width: 160px;
+}
+.table.replicationTopology td.sourceVArray,
+.table.replicationTopology td.targetVArray,
+.table.replicationTopology th.sourceVArray,
+.table.replicationTopology th.targetVArray,
+.table.replicationTopology .actions {
+    width: 20px;
+    text-align: center;
+}
+.table.replicationTopology .disabled {
+    opacity: 0.5;
+}
+</style>
+#{/set}
+
+
+#{field 'assignPolicy.replicationTopology'}
+  %{ field.required = true }%
+  #{Form.controlGroup field:field}
+    
+    <table id="replicationTopology" class="table table-hover replicationTopology">
+    <thead>
+    <tr>
+      <th class="virtualArray">&{'replicationTopology.sourceVArray'}</th>
+      <th class="virtualPool">&{'replicationTopology.targetVArray'}</th>
+      <th class="actions"></th>
+    </tr>
+    </thead>
+ #{if !locked} 
+    <tfoot>
+    <tr>
+        <th>&nbsp;</th>
+        <th  class="assignPolicy"><a href="#" onclick="showDialog(); return false;">Add Copy</a></th>
+        <th></th>
+    </tr>
+    </tfoot>
+  #{/if} 
+    <tbody>
+
+    </tbody>
+    </table>
+  #{/Form.controlGroup}
+#{/field}
+
+<script>
+function showDialog() {
+	$('#replicationTopologyDialog').modal('show');
+}
+</script>

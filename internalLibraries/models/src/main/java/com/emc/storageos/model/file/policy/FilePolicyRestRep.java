@@ -35,6 +35,8 @@ public class FilePolicyRestRep extends DataObjectRestRep {
 
     private String priority;
 
+    private Boolean applyOnTargetSite;
+
     @XmlElement(name = "schedule")
     public ScheduleRestRep getSchedule() {
         return schedule;
@@ -58,6 +60,11 @@ public class FilePolicyRestRep extends DataObjectRestRep {
     @XmlElement(name = "applied_to_all_filesystems")
     public Boolean getAppliedToAllFileSystems() {
         return appliedToAllFileSystems;
+    }
+
+    @XmlElement(name = "apply_on_target_site")
+    public Boolean getApplyOnTargetSite() {
+        return applyOnTargetSite;
     }
 
     @XmlElement(name = "vpool")
@@ -117,6 +124,10 @@ public class FilePolicyRestRep extends DataObjectRestRep {
 
     public void setAppliedToAllFileSystems(Boolean appliedToAllFileSystems) {
         this.appliedToAllFileSystems = appliedToAllFileSystems;
+    }
+
+    public void setApplyOnTargetSite(Boolean applyOnTargetSite) {
+        this.applyOnTargetSite = applyOnTargetSite;
     }
 
     public void setHasAccessToTenants(Boolean hasAccessToTenants) {

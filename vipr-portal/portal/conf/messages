@@ -71,6 +71,7 @@ nav.file.filesystems=File Systems
 nav.file.snapshots=File Snapshots
 nav.file.vnasservers=vNas Servers
 nav.file.virtualPools=File Virtual Pools
+nav.file.protectionPolicies=File Protection Policies
 nav.object.virtualPools=Object Virtual Pools
 nav.computeVirtualPools=Compute Virtual Pools
 nav.system=System
@@ -1345,7 +1346,39 @@ schedulePolicy.replicationSync=Synchronous
 schedulePolicy.priorityLow=Low
 schedulePolicy.priorityHigh=High
 filePolicy.name=Policy Name
+schedule.policies.unknown=Unknown File Policy
 
+assignPolicy.title=Policy Assignment
+assignPolicy.policyName=Policies
+assignPolicy.appliedAt=Apply Policies at
+assignPolicy.project.applyAll=Apply for all applicable Projects
+assignPolicy.project.applySpecific=Apply for specific Projects
+assignPolicy.vpool.applyAll=Apply for all applicable vPools
+assignPolicy.vpool.applySpecific=Apply for specific vPools
+
+assignPolicy.applySpecificProjects=
+assignPolicy.applySpecificvPools=
+
+assignPolicy.applyToAllProjects=Projects
+assignPolicy.applyToAllVpools=Virtual Pools
+assignPolicy.projects=Projects
+assignPolicy.vPools=Virtual Pools
+assignPolicy.vpool=Virtual Pool
+assignPolicy.saved=File Pool policy assignment successful
+assignPolicy.applyAtProject=Project
+assignPolicy.applyAtVPool=Virtual Pool
+assignPolicy.applyAtFs=File System
+
+assignPolicy.project.availableVpool=Available vPools
+assignPolicy.project.appliedVpool=Applied vPools
+assignPolicy.applyOnTargetSite=Apply on target site
+assignPolicy.targetVarray=Target vArrray(s)
+assignPolicy.vArray.source=Source vArray
+assignPolicy.replicationTopology=Replication Site(s)
+
+replicationTopology.title=Select Replication Site(s)
+replicationTopology.sourceVArray=Source Virtual Array
+replicationTopology.targetVArray=Target Virtual Array
 
 vdcs.list.title=Virtual Data Centers
 vdcs.edit.title=Edit Virtual Data Center
@@ -4122,6 +4155,7 @@ button.ipsec.rotate.keys=Rotate IPsec Key
 button.synchronize=Synchronize
 button.syncOptions=Sync Options
 selectOne.chooseOption=-- Please Choose --
+button.assignPolicies=Assign Policies
 
 button.mirroring.start=Start
 button.mirroring.stop=Stop

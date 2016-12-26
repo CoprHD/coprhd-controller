@@ -8,23 +8,35 @@ import static com.emc.vipr.client.core.util.ResourceUtils.uri;
 import static util.BourneUtil.getViprClient;
 
 import java.net.URI;
+import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 
+import com.emc.storageos.db.client.model.FilePolicy.FilePolicyApplyLevel;
+import com.emc.storageos.db.client.model.FilePolicy.FilePolicyType;
+import com.emc.storageos.db.client.model.VirtualPool.FileReplicationType;
+import com.emc.storageos.model.DataObjectRestRep;
 import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.auth.ACLEntry;
+import com.emc.storageos.model.file.policy.FilePolicyAssignParam;
 import com.emc.storageos.model.file.policy.FilePolicyCreateResp;
 import com.emc.storageos.model.file.policy.FilePolicyListRestRep;
 import com.emc.storageos.model.file.policy.FilePolicyParam;
+import com.emc.storageos.model.file.policy.FilePolicyProjectAssignParam;
 import com.emc.storageos.model.file.policy.FilePolicyRestRep;
 import com.emc.storageos.model.file.policy.FilePolicyRestRep.ReplicationSettingsRestRep;
 import com.emc.storageos.model.file.policy.FilePolicyScheduleParams;
+import com.emc.storageos.model.file.policy.FilePolicyVpoolAssignParam;
 import com.emc.storageos.model.file.policy.FileReplicationPolicyParam;
 import com.emc.storageos.model.file.policy.FileSnapshotPolicyExpireParam;
 import com.emc.storageos.model.file.policy.FileSnapshotPolicyParam;
+import com.emc.storageos.model.project.ProjectRestRep;
+import com.emc.storageos.model.vpool.FileVirtualPoolRestRep;
 import com.emc.vipr.client.core.ACLResources;
 import com.emc.vipr.client.core.FileProtectionPolicies;
 import com.emc.vipr.client.core.util.ResourceUtils;
@@ -101,6 +113,25 @@ public class SchedulePolicies extends ViprResourceController {
             render(schedulePolicy);
         } else {
             flash.error(MessagesUtils.get(UNKNOWN, id));
+            list();
+        }
+
+    }
+
+    @FlashException(value = "list", keep = true)
+    public static void assign(String ids) {
+
+        FilePolicyRestRep filePolicyRestRep = getViprClient().fileProtectionPolicies().get(uri(ids));
+
+        if (filePolicyRestRep != null) {
+            AssignPolicyForm assignPolicy = new AssignPolicyForm().form(filePolicyRestRep);
+            addRenderApplyPolicysAt();
+            addProjectArgs(ids);
+            addvPoolArgs(ids);
+            render(assignPolicy);
+
+        } else {
+            flash.error(MessagesUtils.get(UNKNOWN, ids));
             list();
         }
 
@@ -191,6 +222,74 @@ public class SchedulePolicies extends ViprResourceController {
         }
     }
 
+    private static void addRenderApplyPolicysAt() {
+
+        List<StringOption> applyPolicyAtOptions = Lists.newArrayList();
+        applyPolicyAtOptions.add(new StringOption(FilePolicyApplyLevel.vpool.name(), MessagesUtils.get("assignPolicy.applyAtVPool")));
+        applyPolicyAtOptions.add(new StringOption(FilePolicyApplyLevel.project.name(), MessagesUtils.get("assignPolicy.applyAtProject")));
+        applyPolicyAtOptions.add(new StringOption(FilePolicyApplyLevel.file_system.name(), MessagesUtils.get("assignPolicy.applyAtFs")));
+        renderArgs.put("applyPolicyOptions", applyPolicyAtOptions);
+
+    }
+
+    private static List<StringOption> createResourceOptions(Collection<? extends DataObjectRestRep> values) {
+        List<StringOption> options = Lists.newArrayList();
+        for (DataObjectRestRep value : values) {
+            options.add(new StringOption(value.getId().toString(), value.getName()));
+        }
+        return options;
+    }
+
+    private static List<StringOption> getFileVirtualPoolsOptions(URI virtualArray, String id) {
+        Collection<FileVirtualPoolRestRep> virtualPools;
+        if (virtualArray == null) {
+            virtualPools = getViprClient().fileVpools().getAll();
+        } else {
+            virtualPools = getViprClient().fileVpools().getByVirtualArray(virtualArray);
+        }
+        // Filter the vpools based on policy type!!!
+        Collection<FileVirtualPoolRestRep> vPools = Lists.newArrayList();
+        FilePolicyRestRep policy = getViprClient().fileProtectionPolicies().get(uri(id));
+        for (FileVirtualPoolRestRep vpool : virtualPools) {
+            if (FilePolicyType.file_snapshot.name().equalsIgnoreCase(policy.getType()) &&
+                    vpool.getProtection() != null && vpool.getProtection().getScheduleSnapshots()) {
+                vPools.add(vpool);
+            } else if (FilePolicyType.file_replication.name().equalsIgnoreCase(policy.getType()) &&
+                    vpool.getFileReplicationType() != null
+                    && !FileReplicationType.NONE.name().equalsIgnoreCase(vpool.getFileReplicationType())) {
+                vPools.add(vpool);
+            }
+        }
+
+        return createResourceOptions(vPools);
+    }
+
+    private static List<StringOption> getFileProjectOptions(URI tenantId) {
+        Collection<ProjectRestRep> projects = getViprClient().projects().getByTenant(tenantId);
+        return createResourceOptions(projects);
+    }
+
+    private static void addProjectArgs(String id) {
+        renderArgs.put("projectVpoolOptions", getFileVirtualPoolsOptions(null, id));
+        renderArgs.put("projectOptions", getFileProjectOptions(uri(Models.currentAdminTenant())));
+    }
+
+    private static void addvPoolArgs(String id) {
+        renderArgs.put("vPoolOptions", getFileVirtualPoolsOptions(null, id));
+        renderArgs.put("virtualArrays", getVarrays());
+    }
+
+    private static List<StringOption> getVarrays() {
+
+        List<StringOption> varrayList = Lists.newArrayList();
+        List<NamedRelatedResourceRep> allVarrays = getViprClient().varrays().list();
+
+        for (NamedRelatedResourceRep varray : allVarrays) {
+            varrayList.add(new StringOption(varray.getId().toString(), varray.getName()));
+        }
+        return varrayList;
+    }
+
     @FlashException(keep = true, referrer = { "create", "edit" })
     public static void save(SchedulePolicyForm schedulePolicy) {
         if (schedulePolicy == null) {
@@ -221,6 +320,32 @@ public class SchedulePolicies extends ViprResourceController {
         flash.success(MessagesUtils.get("projects.saved", schedulePolicy.policyName));
         if (StringUtils.isNotBlank(schedulePolicy.referrerUrl)) {
             redirect(schedulePolicy.referrerUrl);
+        } else {
+            list();
+        }
+
+    }
+
+    @FlashException(keep = true, referrer = { "assign" })
+    public static void saveAssignPolicy(AssignPolicyForm assignPolicy) {
+
+        if (assignPolicy == null) {
+            Logger.error("No assign policy parameters passed");
+            badRequest("No assign policy parameters passed");
+            return;
+        }
+        assignPolicy.validate("assignPolicy");
+        if (Validation.hasErrors()) {
+            Common.handleError();
+        }
+
+        assignPolicy.id = params.get("id");
+        FilePolicyAssignParam assignPolicyParam = updateAssignPolicyParam(assignPolicy);
+        getViprClient().fileProtectionPolicies().assignPolicy(uri(assignPolicy.id), assignPolicyParam);
+
+        flash.success(MessagesUtils.get("assignPolicy.saved", assignPolicy.policyName));
+        if (StringUtils.isNotBlank(assignPolicy.referrerUrl)) {
+            redirect(assignPolicy.referrerUrl);
         } else {
             list();
         }
@@ -464,4 +589,143 @@ public class SchedulePolicies extends ViprResourceController {
 
     }
 
+    private static FilePolicyAssignParam updateAssignPolicyParam(AssignPolicyForm assignPolicy) {
+        FilePolicyAssignParam param = new FilePolicyAssignParam();
+
+        FilePolicyRestRep existingPolicy = getViprClient().fileProtectionPolicies().get(URI.create(assignPolicy.id));
+
+        param.setApplyAt(assignPolicy.appliedAt);
+
+        param.setApplyOnTargetSite(assignPolicy.applyOnTargetSite);
+
+        if (FilePolicyApplyLevel.project.name().equalsIgnoreCase(assignPolicy.appliedAt)) {
+
+            FilePolicyProjectAssignParam projectAssignParams = new FilePolicyProjectAssignParam();
+            projectAssignParams.setVpool(uri(assignPolicy.vpool));
+
+            List<String> existingProjects = stringRefIds(existingPolicy.getAssignedResources());
+            List<String> projects = assignPolicy.projects;
+
+            Set<String> add = Sets.newHashSet(CollectionUtils.subtract(projects, existingProjects));
+            // Set<String> remove = Sets.newHashSet(CollectionUtils.subtract(existingProjects, projects));
+
+            // Assign new projects
+            Set<URI> assignProjects = new HashSet<URI>();
+            for (String project : add) {
+                assignProjects.add(uri(project));
+            }
+            projectAssignParams.setAssigntoProjects(assignProjects);
+
+            if (assignPolicy.applyToAllProjects) {
+                projectAssignParams.setAssigntoAll(true);
+            } else {
+                projectAssignParams.setAssigntoAll(false);
+            }
+            param.setProjectAssignParams(projectAssignParams);
+
+        } else if (FilePolicyApplyLevel.vpool.name().equalsIgnoreCase(assignPolicy.appliedAt)) {
+            FilePolicyVpoolAssignParam vpoolAssignParams = new FilePolicyVpoolAssignParam();
+
+            List<String> existingvPools = stringRefIds(existingPolicy.getAssignedResources());
+            List<String> vPools = assignPolicy.vPools;
+
+            Set<String> add = Sets.newHashSet(CollectionUtils.subtract(vPools, existingvPools));
+            // Set<String> remove = Sets.newHashSet(CollectionUtils.subtract(existingvPools, vPools));
+
+            Set<URI> assignVpools = new HashSet<URI>();
+            for (String vpool : add) {
+                assignVpools.add(uri(vpool));
+            }
+            vpoolAssignParams.setAssigntoVpools(assignVpools);
+
+            if (assignPolicy.applyToAllVpools) {
+                vpoolAssignParams.setAssigntoAll(true);
+            } else {
+                vpoolAssignParams.setAssigntoAll(false);
+            }
+            param.setVpoolAssignParams(vpoolAssignParams);
+        }
+
+        return param;
+
+    }
+
+    public static class AssignPolicyForm {
+
+        public String id;
+
+        public String tenantId;
+
+        @Required
+        @MaxSize(128)
+        @MinSize(2)
+        // Schedule policy name
+        public String policyName;
+        // Type of the policy
+        public String policyType;
+
+        public String appliedAt;
+
+        public String vpool;
+
+        public boolean applyToAllProjects;
+
+        public List<String> projects;
+
+        public boolean applyToAllVpools;
+
+        public List<String> vPools;
+
+        public boolean applyOnTargetSite;
+
+        public FileReplicationTopology[] replicationTopology = {};
+
+        public String referrerUrl;
+
+        public AssignPolicyForm form(FilePolicyRestRep restRep) {
+
+            this.id = restRep.getId().toString();
+            // this.tenantId = restRep.getTenant().getId().toString();
+            this.policyType = restRep.getType();
+            this.policyName = restRep.getName();
+
+            this.appliedAt = restRep.getAppliedAt();
+            this.applyOnTargetSite = false;
+            if (restRep.getApplyOnTargetSite() != null) {
+                this.applyOnTargetSite = restRep.getApplyOnTargetSite();
+            }
+            // Load project applicable fields
+            if (FilePolicyApplyLevel.project.name().equalsIgnoreCase(this.appliedAt)) {
+
+                this.vpool = ResourceUtils.stringId(restRep.getVpool());
+                this.projects = ResourceUtils.stringRefIds(restRep.getAssignedResources());
+                this.applyToAllProjects = false;
+                if (this.projects == null || this.projects.isEmpty()) {
+                    this.applyToAllProjects = true;
+                }
+            } else if (FilePolicyApplyLevel.vpool.name().equalsIgnoreCase(this.appliedAt)) {
+
+                this.vPools = ResourceUtils.stringRefIds(restRep.getAssignedResources());
+                this.applyToAllVpools = false;
+                if (this.vPools == null || this.vPools.isEmpty()) {
+                    this.applyToAllVpools = true;
+                }
+            }
+            return this;
+        }
+
+        public boolean isNew() {
+            return StringUtils.isBlank(id);
+        }
+
+        public void validate(String formName) {
+            Validation.valid(formName, this);
+            Validation.required(formName + ".policyName", policyName);
+
+            if (policyName == null || policyName.isEmpty()) {
+                Validation.addError(formName + ".policyName", MessagesUtils.get("schedulePolicy.policyName.error.required"));
+            }
+        }
+
+    }
 }

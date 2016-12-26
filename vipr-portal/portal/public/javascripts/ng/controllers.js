@@ -676,6 +676,19 @@ angular.module("portalApp").controller({
         
         getClusterInfo();
         var clusterPoller = $interval(getClusterInfo,LONG_POLLING);
+    },
+    PolicyAsignVPol: function($scope,$http, $interval){
+    	$scope.addVArray= function(){
+    		var item = schome.vArray.length+1;
+    		$scope.vArray.push({'id':'vArray'+item});
+    	};
+    	
+    	$scope.removeVArray= function(){
+    		var lastItem= $scope.vArray.length-1;
+    		$scope.choices.splice(lastItem);
+    	};
+    	
+    	console.log("Registring policy controller"+$scope.val());
     }
 });
 

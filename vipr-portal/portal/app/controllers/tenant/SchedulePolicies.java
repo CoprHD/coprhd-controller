@@ -616,7 +616,7 @@ public class SchedulePolicies extends ViprResourceController {
             }
             projectAssignParams.setAssigntoProjects(assignProjects);
 
-            if (assignProjects == null || assignProjects.isEmpty()) {
+            if (assignPolicy.applyToAllProjects) {
                 projectAssignParams.setAssigntoAll(true);
             } else {
                 projectAssignParams.setAssigntoAll(false);
@@ -638,7 +638,7 @@ public class SchedulePolicies extends ViprResourceController {
             }
             vpoolAssignParams.setAssigntoVpools(assignVpools);
 
-            if (assignVpools == null || assignVpools.isEmpty()) {
+            if (assignPolicy.applyToAllVpools) {
                 vpoolAssignParams.setAssigntoAll(true);
             } else {
                 vpoolAssignParams.setAssigntoAll(false);

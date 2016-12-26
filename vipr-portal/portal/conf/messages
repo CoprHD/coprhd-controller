@@ -71,6 +71,7 @@ nav.file.filesystems=File Systems
 nav.file.snapshots=File Snapshots
 nav.file.vnasservers=vNas Servers
 nav.file.virtualPools=File Virtual Pools
+nav.file.protectionPolicies=File Protection Policies
 nav.object.virtualPools=Object Virtual Pools
 nav.computeVirtualPools=Compute Virtual Pools
 nav.system=System

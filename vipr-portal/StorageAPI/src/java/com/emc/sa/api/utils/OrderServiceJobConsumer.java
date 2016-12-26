@@ -9,6 +9,9 @@ import java.util.List;
 
 import com.emc.storageos.db.client.constraint.TimeSeriesConstraint;
 import com.emc.storageos.db.client.model.uimodels.Order;
+import com.emc.storageos.security.audit.AuditLogManager;
+import com.emc.storageos.security.authentication.StorageOSUser;
+import com.emc.storageos.services.OperationTypeEnum;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -23,15 +26,19 @@ import com.emc.sa.api.OrderService;
 public class OrderServiceJobConsumer extends DistributedQueueConsumer<OrderServiceJob> {
     private final Logger log = LoggerFactory.getLogger(OrderServiceJobConsumer.class);
 
-    private static int MAX_DB_RETRY = 30;
     DbClient dbClient;
     OrderManager orderManager;
     OrderService orderService;
 
-    public OrderServiceJobConsumer(OrderService service, DbClient client, OrderManager manager) {
+    AuditLogManager auditLogManager;
+
+    public OrderServiceJobConsumer(OrderService service, AuditLogManager auditLogManager,
+                                   DbClient client, OrderManager manager) {
         dbClient = client;
         orderManager = manager;
         orderService = service;
+
+        this.auditLogManager = auditLogManager;
     }
 
     /**
@@ -45,7 +52,6 @@ public class OrderServiceJobConsumer extends DistributedQueueConsumer<OrderServi
     public void consumeItem(OrderServiceJob job, DistributedQueueItemProcessedCallback callback) throws Exception {
 
         log.info("The job job={} callback={}", job, callback);
-        boolean error = false;
 
         try {
             OrderJobStatus jobStatus = orderService.queryJobInfo(OrderServiceJob.JobType.DELETE_ORDER);
@@ -53,13 +59,7 @@ public class OrderServiceJobConsumer extends DistributedQueueConsumer<OrderServi
             long endTime = jobStatus.getEndTime();
             List<URI> tids = jobStatus.getTids();
 
-            /*
-            long startTime = job.getStartTimeInNS();
-            long endTime = job.getEndTimeInNS();
-            List<URI> tids = job.getTenandIDs();
-            */
-            log.info("lbyh tids={}", tids);
-
+            log.info("lbyk0 tids={} startTime={} endTime={}", tids, startTime, endTime);
 
             if (jobStatus.getTotal() == -1) {
                 //It's the first time to run the job, so get the total number of orders to be deleted
@@ -70,7 +70,7 @@ public class OrderServiceJobConsumer extends DistributedQueueConsumer<OrderServi
                     dbClient.queryByConstraint(constraint, ids);
                     for (NamedElementQueryResultList.NamedElement namedID : ids) {
                         URI id = namedID.getId();
-                        log.info("lbyh0: id={}", id);
+                        log.info("lbyk1: id={}", id);
                         Order order = orderManager.getOrderById(id);
                         try {
                             orderManager.canBeDeleted(order);
@@ -82,17 +82,9 @@ public class OrderServiceJobConsumer extends DistributedQueueConsumer<OrderServi
                 }
 
                 jobStatus.setTotal(total);
+                log.info("lbyk2: total={}", total);
                 orderService.saveJobInfo(jobStatus);
             }
-
-        /*
-        long now = System.currentTimeMillis();
-        long lastCompletedTimeStamp = job.getLastCompletedTimeStamp();
-        long sleepTime = lastCompletedTimeStamp+432000*1000-now;
-        if (sleepTime >0) {
-            Thread.sleep(sleepTime);
-        }
-        */
 
             long nDeleted = 0;
             long nFailed = 0;
@@ -101,19 +93,24 @@ public class OrderServiceJobConsumer extends DistributedQueueConsumer<OrderServi
                 TimeSeriesConstraint constraint = TimeSeriesConstraint.Factory.getOrders(tid, startTime, endTime);
                 NamedElementQueryResultList ids = new NamedElementQueryResultList();
                 dbClient.queryByConstraint(constraint, ids);
+                log.info("lbyk6 tid={}", tid);
                 for (NamedElementQueryResultList.NamedElement namedID : ids) {
                     URI id = namedID.getId();
-                    log.info("lbyh id={}", id);
+                    log.info("lbyk3 id={}", id);
+                    Order order = orderManager.getOrderById(id);
                     try {
-                        orderManager.deleteOrder(id, tid.toString());
+                        orderManager.deleteOrder(order);
                         nDeleted++;
+                        auditLog(order, true, jobStatus.getTenantId(), jobStatus.getUserId());
+                        log.info("lbyk4 nDeleted={}", nDeleted);
                     } catch (BadRequestException e) {
                         //TODO: change to debug level
-                        log.error("lbyh failed to delete order {} e=", id, e);
+                        log.error("lbyk5 failed to delete order {} e=", id, e);
+                        auditLog(order, false, jobStatus.getTenantId(), jobStatus.getUserId());
                         nFailed++;
                     } catch (Exception e) {
-                        log.error("lbyh1: failed to delete order={} e=", id, e);
-                        error = true;
+                        log.error("lbyk5: failed to delete order={} e=", id, e);
+                        auditLog(order, false, jobStatus.getTenantId(), jobStatus.getUserId());
                         nFailed++;
                     }
                 }
@@ -128,14 +125,23 @@ public class OrderServiceJobConsumer extends DistributedQueueConsumer<OrderServi
             jobStatus.setTimeUsedPerOrder(speed);
 
             orderService.saveJobInfo(jobStatus);
+            log.info("lbyk9 jobStatus={}", jobStatus);
 
             if (jobStatus.isFinished()) {
-                log.info("lbyh9: remove order job from the queue");
+                log.info("lbyk7: remove order job from the queue");
                 callback.itemProcessed();
             }
         }catch (Exception e) {
-            log.info("lbyhhh e=",e);
+            log.info("lbyk8 e=",e);
             throw e;
         }
+
+    }
+
+    private void auditLog(Order order, boolean success, URI tid, URI uid) {
+        String operationStatus = success ? AuditLogManager.AUDITLOG_SUCCESS : AuditLogManager.AUDITLOG_FAILURE;
+        auditLogManager.recordAuditLog(tid, uid, orderService.getServiceType(),
+                OperationTypeEnum.DELETE_ORDER, System.currentTimeMillis(),
+                operationStatus, null, order.auditParameters());
     }
 }

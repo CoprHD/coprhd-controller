@@ -31,6 +31,10 @@ public class OrderJobStatus implements CoordinatorSerializable {
     private long endTime = -1;
     private List<URI> tids;
 
+    //for audit log
+    private URI tenantId;
+    private URI userId;
+
     // Total number orders to be deleted in this job
     private long total = -1;
 
@@ -45,11 +49,15 @@ public class OrderJobStatus implements CoordinatorSerializable {
     public OrderJobStatus() {
     }
 
-    public OrderJobStatus(OrderServiceJob.JobType type, long startTime, long endTime, List<URI> tids) {
+    public OrderJobStatus(OrderServiceJob.JobType type, long startTime, long endTime, List<URI> tids,
+                          URI tid, URI uid) {
         this.type = type;
         this.startTime = startTime;
         this.endTime = endTime;
         this.tids = tids;
+
+        this.tenantId = tid;
+        this.userId = uid;
     }
 
     public OrderServiceJob.JobType getType() {
@@ -87,6 +95,14 @@ public class OrderJobStatus implements CoordinatorSerializable {
     public void addCompleted(long n) {
         long now = System.currentTimeMillis();
         completedMap.put(now, n);
+    }
+
+    public URI getTenantId() {
+        return tenantId;
+    }
+
+    public URI getUserId() {
+        return userId;
     }
 
     @JsonIgnore

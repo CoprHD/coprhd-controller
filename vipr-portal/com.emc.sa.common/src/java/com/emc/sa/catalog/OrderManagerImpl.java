@@ -447,15 +447,18 @@ public class OrderManagerImpl implements OrderManager {
         return (now - createdTime) < 30*24*60*60*1000;
     }
 
-    public void deleteOrder(URI orderId, String tenantId) {
+    //public void deleteOrder(URI orderId, String tenantId) {
+    //public void deleteOrder(URI orderId) {
+    public void deleteOrder(Order order) {
 
-        Order order = getOrderById(orderId);
-        ArgValidator.checkEntity(order, orderId, true);
+        // Order order = getOrderById(orderId);
+        // ArgValidator.checkEntity(order, orderId, true);
 
-        log.info("lbyh0 order={} tid={}", order, tenantId);
+        log.info("lbyh0 order={}", order);
 
         canBeDeleted(order);
 
+        URI orderId = order.getId();
         List<ApprovalRequest> approvalRequests = approvalManager.findApprovalsByOrderId(orderId);
         log.info("lbyh0: approvalRequests={}", approvalRequests);
         client.delete(approvalRequests);

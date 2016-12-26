@@ -9,8 +9,7 @@ import java.io.PrintStream;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.charset.Charset;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
+import java.security.InvalidParameterException;
 import java.util.*;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -23,30 +22,26 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.StreamingOutput;
 
+import org.apache.commons.lang3.StringUtils;
+import org.apache.curator.framework.recipes.locks.InterProcessLock;
+import org.springframework.beans.factory.annotation.Autowired;
+import com.google.common.collect.Lists;
 import com.emc.sa.api.utils.OrderJobStatus;
-import com.emc.storageos.db.client.constraint.TimeSeriesConstraint;
-import com.emc.storageos.services.util.TimeUtils;
 
 import com.emc.sa.api.utils.OrderServiceJob;
 import com.emc.sa.api.utils.OrderServiceJobConsumer;
 import com.emc.sa.api.utils.OrderServiceJobSerializer;
 import com.emc.sa.engine.scheduler.SchedulerDataManager;
-import com.emc.sa.model.dao.ModelClient;
 import com.emc.sa.model.util.ScheduleTimeHelper;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.client.service.DistributedQueue;
 import com.emc.storageos.db.client.constraint.NamedElementQueryResultList;
-
-import org.apache.commons.lang3.StringUtils;
-import org.apache.curator.framework.recipes.locks.InterProcessLock;
-import org.springframework.beans.factory.annotation.Autowired;
-import com.google.common.collect.Lists;
-
+import com.emc.storageos.db.client.constraint.TimeSeriesConstraint;
 import com.emc.storageos.db.client.model.uimodels.*;
 import com.emc.storageos.db.client.util.ExecutionWindowHelper;
 import com.emc.storageos.db.client.model.EncryptionProvider;
 import com.emc.storageos.db.exceptions.DatabaseException;
-
+import com.emc.storageos.services.util.TimeUtils;
 import com.emc.storageos.services.util.NamedScheduledThreadPoolExecutor;
 import com.emc.storageos.systemservices.impl.logsvc.LogRequestParam;
 import com.emc.vipr.model.catalog.*;
@@ -62,24 +57,23 @@ import com.emc.sa.descriptor.ServiceField;
 import com.emc.sa.descriptor.ServiceFieldGroup;
 import com.emc.sa.descriptor.ServiceFieldTable;
 import com.emc.sa.descriptor.ServiceItem;
-import com.emc.sa.engine.scheduler.SchedulerDataManager;
-import com.emc.sa.model.dao.ModelClient;
-import com.emc.sa.model.util.ScheduleTimeHelper;
 import com.emc.sa.util.TextUtils;
+import com.emc.sa.model.dao.ModelClient;
 
 import static com.emc.sa.api.mapper.OrderMapper.createNewObject;
 import static com.emc.sa.api.mapper.OrderMapper.createOrderParameters;
 import static com.emc.sa.api.mapper.OrderMapper.map;
 import static com.emc.sa.api.mapper.OrderMapper.toExecutionLogList;
 import static com.emc.sa.api.mapper.OrderMapper.toOrderLogList;
-import static com.emc.storageos.db.client.URIUtil.uri;
-import static com.emc.storageos.db.client.URIUtil.asString;
-import static com.emc.storageos.api.mapper.DbObjectMapper.toNamedRelatedResource;
-
 import com.emc.storageos.api.service.authorization.PermissionsHelper;
 import com.emc.storageos.api.service.impl.resource.ArgValidator;
 import com.emc.storageos.api.service.impl.response.ResRepFilter;
 import com.emc.storageos.api.service.impl.response.RestLinkFactory;
+
+import static com.emc.storageos.db.client.URIUtil.uri;
+import static com.emc.storageos.db.client.URIUtil.asString;
+import static com.emc.storageos.api.mapper.DbObjectMapper.toNamedRelatedResource;
+
 import com.emc.storageos.model.BulkIdParam;
 import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.RelatedResourceRep;
@@ -210,7 +204,9 @@ public class OrderService extends CatalogTaggedResourceService {
     private void startJobQueue() {
         log.info("Starting order service job queue");
         try {
-            OrderServiceJobConsumer consumer = new OrderServiceJobConsumer(this, _dbClient, orderManager);
+            // StorageOSUser user = this.getUserFromContext();
+            //OrderServiceJobConsumer consumer = new OrderServiceJobConsumer(this, user, _auditMgr, _dbClient, orderManager);
+            OrderServiceJobConsumer consumer = new OrderServiceJobConsumer(this, _auditMgr, _dbClient, orderManager);
             queue = _coordinator.getQueue(ORDER_SERVICE_QUEUE_NAME, consumer, new OrderServiceJobSerializer(), 1);
         } catch (Exception e) {
             log.error("Failed to start order job queue", e);
@@ -471,7 +467,8 @@ public class OrderService extends CatalogTaggedResourceService {
             order.setOrderStatus(OrderStatus.CANCELLED.name());
             client.save(order);
         } else {
-            orderManager.deleteOrder(order.getId(), "");
+            //orderManager.deleteOrder(order.getId(), "");
+            orderManager.deleteOrder(order);
         }
 
         return Response.ok().build();
@@ -871,11 +868,10 @@ public class OrderService extends CatalogTaggedResourceService {
 
     /**
      *
-     * @brief delete orders (that can be deleted) within a time range
+     * @brief delete orders (that can be deleted) under given tenants within a time range
      * @param startTimeStr the start time of the range (exclusive)
      * @param endTimeStr the end time of the range (inclusive)
-     * @param tenantIDsStr if not empty, it's a list of tenant IDs separated by ','
-     *                     which means delete orders (that can be deleted) under those tenants
+     * @param tenantIDsStr A list of tenant IDs separated by ','
      * @return OK if a background job is submitted successfully
      */
     @DELETE
@@ -897,17 +893,25 @@ public class OrderService extends CatalogTaggedResourceService {
             throw APIException.badRequests.endTimeBeforeStartTime(startTimeStr, endTimeStr);
         }
 
+        if (tenantIDsStr.isEmpty()) {
+            throw APIException.badRequests.invalidParameter(SearchConstants.TENANT_IDS_PARAM, tenantIDsStr,
+                    new InvalidParameterException("tenant ID list should not be empty"));
+        }
+
         List<URI> tids = toIDs(SearchConstants.TENANT_IDS_PARAM, tenantIDsStr);
 
+        StorageOSUser user = getUserFromContext();
+        URI tid = URI.create(user.getTenantId());
+        URI uid = URI.create(user.getName());
+
         OrderJobStatus status = new OrderJobStatus(OrderServiceJob.JobType.DELETE_ORDER,
-                startTimeInMS*1000, endTimeInMS*1000, tids);
+                startTimeInMS*1000, endTimeInMS*1000, tids, tid, uid);
 
         saveJobInfo(status);
 
         log.info("lby00 start={} end={} tids={}", new Object[] {startTimeInMS, endTimeInMS, tids});
 
         OrderServiceJob job = new OrderServiceJob(OrderServiceJob.JobType.DELETE_ORDER);
-            //new OrderServiceJob(OrderServiceJob.JobType.DELETE, startTimeInMS*1000, endTimeInMS*1000, tids);
         try {
             queue.put(job);
         }catch (Exception e) {
@@ -918,14 +922,6 @@ public class OrderService extends CatalogTaggedResourceService {
 
         return Response.ok().build();
     }
-
-    /*
-    public void saveJobInfo(OrderServiceJob.JobType type, long startTime, long endTime, List<URI> tids) {
-        OrderJobStatus status = new OrderJobStatus(type, startTime, endTime, tids);
-        log.info("lbyx0: persist type={}", status);
-        coordinatorClient.persistRuntimeState(type.name(), status);
-    }
-    */
 
     public void saveJobInfo(OrderJobStatus status) {
         log.info("lbyx0: persist type={}", status);
@@ -947,9 +943,11 @@ public class OrderService extends CatalogTaggedResourceService {
         Map<Long, Long> completedMap = jobStatus.getCompleted();
 
         long deletedOrdersInCurrentPeriod = 0;
-        for (Map.Entry<Long, Long> entry : completedMap.entrySet()) {
+        for (Iterator<Map.Entry<Long, Long>> it = completedMap.entrySet().iterator(); it.hasNext();) {
+            Map.Entry<Long, Long> entry = it.next();
             long timestamp = entry.getKey();
             if ((now - timestamp) > INDEX_GC_GRACE_PERIOD) {
+                it.remove();
                 continue; // have been recycled by Cassandra
             }
             deletedOrdersInCurrentPeriod +=entry.getValue();
@@ -979,9 +977,11 @@ public class OrderService extends CatalogTaggedResourceService {
         log.info("lbyh0: id={}", id);
 
         Order order = queryResource(id);
+        ArgValidator.checkEntity(order, id, true);
         log.info("lbyh0 order={}", order);
 
-        orderManager.deleteOrder(id, "");
+        //orderManager.deleteOrder(id, "");
+        orderManager.deleteOrder(order);
 
         auditOpSuccess(OperationTypeEnum.DELETE_ORDER, order.auditParameters());
 

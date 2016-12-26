@@ -182,15 +182,6 @@ public class FileUtils {
         return null;
     }
 
-    public static void main(String[] args) {
-        List<String> cmds = new ArrayList<String>();
-        cmds.add("abc"); cmds.add("def");
-        String[] fuck = new String[cmds.size()];
-        cmds.toArray(fuck);
-        for (String a : fuck) {
-            System.out.println(a);
-        }
-    }
     public static void chmod(File file, String perms, boolean recursive) {
         if (file == null || file.exists() == false) {
             return;

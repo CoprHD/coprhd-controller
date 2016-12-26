@@ -54,13 +54,13 @@ collect_cfs() {
     local option=$1
 
     local param="db-cfs"
-    check_if_skip $param
+    check_if_skip ${param}
     if [[ ${SKIP_COLLECT} == true ]] ; then
         return
     fi
 
     echo "Collecting cfs info.."
-    local cfsDir="${DIAGCOLLECT_OUTPUT}/$param"
+    local cfsDir="${DIAGCOLLECT_OUTPUT}/${param}"
     mkdir -p ${cfsDir}
 
     set +e
@@ -71,7 +71,7 @@ collect_cfs() {
 
 collect_zk() {
     local param="zk-info"
-    check_if_skip $param
+    check_if_skip ${param}
     if [[ ${SKIP_COLLECT} == true ]] ; then
         return
     fi
@@ -181,7 +181,7 @@ create_archive() {
 
     local task="zip -r ${DIAGCOLLECT_ARCHIVE_NAME}.zip ${DIAGCOLLECT_MAME}/*"
     execute_with_progress_point "${task}"
-    if [[ $? -eq 0 ]]; then
+    if [ $? -eq 0 ]; then
         rm -rf ${DIAGCOLLECT_OUTPUT}
     fi
 }
@@ -197,7 +197,7 @@ upload_to_ftp() {
 
     local task="cat ${uploadfile} | curl -sSk -u ${user}:${password} -a -T - "${ftpserver}"/${DIAGCOLLECT_ARCHIVE_NAME}.zip"
     execute_with_progress_point "${task}"
-    if [[ $? -eq 0 ]]; then
+    if [ $? -eq 0 ]; then
         echo "Removing local archive file.."
         rm -rf ${uploadfile}
     fi
@@ -290,13 +290,13 @@ check_node_cluster_status() {
         local tmpFile="/tmp/zk_telnet_status"
         echo ruok | curl telnet://${viprNode}:2181 &> ${tmpFile}
         cat ${tmpFile} | grep "imok" &>/dev/null
-        if [ $? == 0 ]; then
+        if [ $? -eq 0 ]; then
             if [ ${viprNode} == ${LOCAL_NODE} ]; then
                 NODE_AVAILABLE=true
             fi
             echo stat | curl telnet://${viprNode}:2181 &>${tmpFile}
             cat ${tmpFile} | grep "Mode" &>/dev/null
-            if [ $? == 0 ]; then
+            if [ $? -eq 0 ]; then
                 CLUSTER_AVAILABLE=true
             fi
         fi
@@ -342,9 +342,7 @@ diagnose_cfs() {
     local cfListFile="collected_cf_list"
     rm -rf ${cfsDir}
     mkdir -p ${cfsDir}/${output}
-    echo "${cfList}" > ${cfsDir}/collected_cf_list
-    echo "Please see cf list in ''"
-    echo "${cfList}" > ${cfsDir}/collected_cf_list
+    echo "${cfList}" > ${cfsDir}/${cfListFile}
 
     local output="lists"
     rm -rf ${cfsDir}
@@ -507,7 +505,6 @@ do
             if [[ $i -lt $# ]]; then
                 eval PASSWORD=\${$[i+1]}
             fi
-            #echo "$param && $PASSWORD"
             check_ftp_parameter "$param" "$PASSWORD"
             ;;
         -*)
@@ -531,7 +528,7 @@ trap clean_up EXIT
 
 for i in $(seq 1 $#)
 do
-    eval param=\$$i
+    eval param=\${$i}
     case ${param} in
         -all) collect_all; DIAGCOLLECT_ARCHIVE_NAME="${DIAGCOLLECT_ARCHIVE_NAME}${param}" ;;
         -quick) collect_quick; DIAGCOLLECT_ARCHIVE_NAME="${DIAGCOLLECT_ARCHIVE_NAME}${param}" ;;

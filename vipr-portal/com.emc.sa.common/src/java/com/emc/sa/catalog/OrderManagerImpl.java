@@ -203,6 +203,7 @@ public class OrderManagerImpl implements OrderManager {
             case QUOTA_DIRECTORY:
             case VIRTUAL_ARRAY:
             case VIRTUAL_POOL:
+            case COMPUTE_VIRTUAL_POOL:
             case CONSISTENCY_GROUP:
             case STORAGE_SYSTEM:
             case EXPORT_GROUP:
@@ -234,6 +235,7 @@ public class OrderManagerImpl implements OrderManager {
             }
             else {
                 // Defer to AssetOptions if it's not a ViPR resource
+                log.info(String.format("AssetType %s not a ViPR resource, deferring to AssetOptions to get value.", key));
                 AssetOptionsContext context = assetOptionsManager.createDefaultContext(user);
                 List<AssetOption> options = assetOptionsManager.getOptions(context, assetType, assetValues);
                 for (AssetOption option : options) {
@@ -265,6 +267,9 @@ public class OrderManagerImpl implements OrderManager {
                     break;
                 case CLUSTER:
                     dataObject = client.findById(Cluster.class, id);
+                    break;
+                case COMPUTE_VIRTUAL_POOL:
+                    dataObject = client.findById(ComputeVirtualPool.class, id);
                     break;
                 case QUOTA_DIRECTORY:
                     dataObject = client.findById(QuotaDirectory.class, id);

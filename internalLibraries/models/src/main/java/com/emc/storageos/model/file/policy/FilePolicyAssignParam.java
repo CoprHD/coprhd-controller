@@ -24,6 +24,8 @@ public class FilePolicyAssignParam implements Serializable {
     // Level at which policy has to be applied..
     private String applyAt;
 
+    private Boolean applyOnTargetSite;
+
     // Vpool assignment parameters.
     private FilePolicyVpoolAssignParam vpoolAssignParams;
 
@@ -46,6 +48,15 @@ public class FilePolicyAssignParam implements Serializable {
 
     public void setApplyAt(String applyAt) {
         this.applyAt = applyAt;
+    }
+
+    @XmlElement(name = "apply_on_target_site")
+    public Boolean getApplyOnTargetSite() {
+        return this.applyOnTargetSite;
+    }
+
+    public void setApplyOnTargetSite(Boolean applyOnTarget) {
+        this.applyOnTargetSite = applyOnTarget;
     }
 
     @XmlElement(name = "vpool_assign_param")

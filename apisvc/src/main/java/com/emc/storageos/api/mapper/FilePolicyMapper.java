@@ -109,6 +109,10 @@ public class FilePolicyMapper {
             resp.setPriority(from.getPriority());
         }
 
+        if (from.isApplyOnTargetSite() != null) {
+            resp.setApplyOnTargetSite(from.isApplyOnTargetSite());
+        }
+
         String policyType = from.getFilePolicyType();
         resp.setType(policyType);
         if (FilePolicyType.file_replication.name().equals(policyType)) {

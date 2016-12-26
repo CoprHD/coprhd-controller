@@ -32,7 +32,9 @@
       }%
       #{Form.inputTextControlGroup field:field /}
     #{/field}
-    
+    #{field 'assignPolicy.policyType'}
+      <input type="hidden" name="policyType" value="${field.value}">
+    #{/field} 
     #{field 'assignPolicy.appliedAt'}
       #{Form.selectOneControlGroup field:field, options:applyPolicyOptions, select:assignPolicy.appliedAt, cssClass:'span3' /}
     #{/field}    
@@ -54,22 +56,26 @@
     </div>
     
     <div id="vpoolFields">
-    #{field 'assignPolicy.applyToAllVpools'}
-    #{Form.controlGroup field:field, width:4}
-      %{ typeField = field }%
-      #{Form.radio field:typeField, value: "true", label: messages.get("assignPolicy.vpool.applyAll")/} 
-      #{Form.radio field:typeField, value: "false", label: messages.get("assignPolicy.vpool.applySpecific")/}
-    #{/Form.controlGroup}
-    #{/field}
+     #{field 'assignPolicy.applyToAllVpools'}
+     #{Form.controlGroup field:field, width:4}
+       %{ typeField = field }%
+       #{Form.radio field:typeField, value: "true", label: messages.get("assignPolicy.vpool.applyAll")/} 
+       #{Form.radio field:typeField, value: "false", label: messages.get("assignPolicy.vpool.applySpecific")/}
+     #{/Form.controlGroup}
+     #{/field}
      #{field 'assignPolicy.vPools', noLabel:noLabel}
          #{Form.selectManyControlGroup field:field, options:vpoolOptions /}
      #{/field}
-     #{include 'tenant/SchedulePolicies/replicationTopology.html' /}
-     </div>
-	        
-	#{field 'assignPolicy.applyOnTargetSite'}
-       #{Form.booleanCheckBoxControlGroup field:field /}
-    #{/field}    
+    </div>
+	
+	<div id="replicationFields">        
+	   #{include 'tenant/SchedulePolicies/replicationTopology.html' /}
+	</div>
+	<div id="snapshotFields">           
+	   #{field 'assignPolicy.applyOnTargetSite'}
+          #{Form.booleanCheckBoxControlGroup field:field /}
+       #{/field} 
+    </div>   
     
   #{Form.saveCancelButtonBar size:'large', cancelHref:@list()/}
 #{/form}
@@ -103,7 +109,7 @@
     
     function showAssignAt(){
 			var assignAt = $('#assignPolicy_appliedAt').val();
-
+            var policyType = $('#assignPolicy_policyType').val();
 				if (assignAt == 'project') {
 					$('#vpoolFields').hide();
 					$('#projectFields').show();
@@ -114,6 +120,15 @@
 					$('#vpoolFields').hide();
 					$('#projectFields').hide();
 				}
+				
+				if(policyType == 'file_snapshot') {
+				    $('#replicationFields').hide();
+					$('#snapshotFields').show();
+				} else if (policyType == 'file_replication') {
+				    $('#replicationFields').show();
+					$('#snapshotFields').hide();
+				}
+				
 			}
     
 		</script>

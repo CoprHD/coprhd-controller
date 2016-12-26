@@ -596,9 +596,7 @@ public class SchedulePolicies extends ViprResourceController {
 
         param.setApplyAt(assignPolicy.appliedAt);
 
-        if (assignPolicy.applyOnTargetSite != existingPolicy.getApplyOnTargetSite()) {
-            param.setApplyOnTargetSite(assignPolicy.applyOnTargetSite);
-        }
+        param.setApplyOnTargetSite(assignPolicy.applyOnTargetSite);
 
         if (FilePolicyApplyLevel.project.name().equalsIgnoreCase(assignPolicy.appliedAt)) {
 
@@ -707,10 +705,7 @@ public class SchedulePolicies extends ViprResourceController {
                 }
             } else if (FilePolicyApplyLevel.vpool.name().equalsIgnoreCase(this.appliedAt)) {
 
-                this.vpool = restRep.getVpool().getName();
-                for (NamedRelatedResourceRep vpool : restRep.getAssignedResources()) {
-                    this.vPools.add(vpool.getName());
-                }
+                this.vPools = ResourceUtils.stringRefIds(restRep.getAssignedResources());
                 this.applyToAllVpools = false;
                 if (this.vPools == null || this.vPools.isEmpty()) {
                     this.applyToAllVpools = true;

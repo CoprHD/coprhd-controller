@@ -28,9 +28,9 @@ import com.emc.storageos.db.client.model.FilePolicy.FilePolicyType;
 import com.emc.storageos.db.client.model.FilePolicy.SnapshotExpireType;
 import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.file.FilePolicyRestRep;
+import com.emc.storageos.model.file.policy.FilePolicyCreateParam;
 import com.emc.storageos.model.file.policy.FilePolicyCreateResp;
 import com.emc.storageos.model.file.policy.FilePolicyListRestRep;
-import com.emc.storageos.model.file.policy.FilePolicyParam;
 import com.emc.storageos.model.file.policy.FilePolicyScheduleParams;
 import com.emc.storageos.model.file.policy.FileSnapshotPolicyExpireParam;
 import com.emc.storageos.model.file.policy.FileSnapshotPolicyParam;
@@ -135,7 +135,7 @@ public class FilePolicyApiTest extends ApiTestBase {
     @Test
     public void testFileSnapshotPolicyCreate() {
 
-        FilePolicyParam param = new FilePolicyParam();
+        FilePolicyCreateParam param = new FilePolicyCreateParam();
         param.setPolicyName(filePolicyName);
         param.setPolicyDescription(filePolicyName);
         param.setPolicyType(FilePolicyType.file_snapshot.name());

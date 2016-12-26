@@ -108,7 +108,7 @@ public class FilePolicyServiceUtils {
                             return false;
                         }
                     } else {
-                        errorMsg.append("required parameter schedule_day_of_week was missing or empty");
+                        errorMsg.append("required parameter schedule_day_of_week is missing or empty");
                         return false;
                     }
                     schedulePolicy.setScheduleTime(policyScheduleparams.getScheduleTime() + period);
@@ -117,7 +117,8 @@ public class FilePolicyServiceUtils {
                     }
                     break;
                 case MONTHS:
-                    if (policyScheduleparams.getScheduleDayOfMonth() > 0 && policyScheduleparams.getScheduleDayOfMonth() <= 31) {
+                    if (policyScheduleparams.getScheduleDayOfMonth() != null
+                            && policyScheduleparams.getScheduleDayOfMonth() > 0 && policyScheduleparams.getScheduleDayOfMonth() <= 31) {
                         schedulePolicy.setScheduleDayOfMonth((long) policyScheduleparams.getScheduleDayOfMonth());
                         schedulePolicy.setScheduleRepeat((long) policyScheduleparams.getScheduleRepeat());
                         schedulePolicy.setScheduleTime(policyScheduleparams.getScheduleTime() + period);
@@ -125,9 +126,7 @@ public class FilePolicyServiceUtils {
                             schedulePolicy.setScheduleDayOfWeek(NullColumnValueGetter.getNullStr());
                         }
                     } else {
-                        errorMsg.append("required parameter schedule_day_of_month is missing or value: "
-                                + policyScheduleparams.getScheduleDayOfMonth()
-                                + " is invalid");
+                        errorMsg.append("required parameter schedule_day_of_month is missing or value is invalid");
                         return false;
                     }
                     break;

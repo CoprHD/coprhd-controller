@@ -304,4 +304,15 @@ public class FilePolicy extends DataObjectWithACLs {
         setChanged("policyStorageResources");
     }
 
+    @Override
+    public String toString() {
+        return "FilePolicy [filePolicyType=" + filePolicyType + ", filePolicyName=" + filePolicyName + ", filePolicyDescription="
+                + filePolicyDescription + ", applyAt=" + applyAt + ", assignedResources=" + assignedResources + ", accessTenants="
+                + accessTenants + ", scheduleFrequency=" + scheduleFrequency + ", scheduleRepeat=" + scheduleRepeat + ", scheduleTime="
+                + scheduleTime + ", scheduleDayOfWeek=" + scheduleDayOfWeek + ", scheduleDayOfMonth=" + scheduleDayOfMonth
+                + ", snapshotExpireType=" + snapshotExpireType + ", snapshotExpireTime=" + snapshotExpireTime + ", snapshotNamePattern="
+                + snapshotNamePattern + ", fileReplicationType=" + fileReplicationType + ", fileReplicationCopyMode="
+                + fileReplicationCopyMode + ", filePolicyVpool=" + filePolicyVpool + ", priority=" + priority + ", policyStorageResources="
+                + policyStorageResources + ", applyToAllFS=" + applyToAllFS + "]";
+    }
 }

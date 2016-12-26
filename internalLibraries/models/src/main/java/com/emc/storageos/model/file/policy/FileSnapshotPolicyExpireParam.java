@@ -46,7 +46,7 @@ public class FileSnapshotPolicyExpireParam implements Serializable {
      * 
      * @return
      */
-    @XmlElement(name = "expire_value")
+    @XmlElement(required = true, name = "expire_value")
     public int getExpireValue() {
         return this.expireValue;
     }

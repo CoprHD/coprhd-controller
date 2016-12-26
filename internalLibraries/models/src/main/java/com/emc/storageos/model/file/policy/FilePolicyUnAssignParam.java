@@ -21,9 +21,7 @@ public class FilePolicyUnAssignParam implements Serializable {
     private static final long serialVersionUID = 1L;
     private boolean unassignFromAll;
     private boolean forceUnassign = false;
-    private Set<URI> unassignfromVpools;
-    private Set<URI> unassignfromProjects;
-    private Set<URI> unassignfromFileSystems;
+    private Set<URI> unassignfrom;
 
     public FilePolicyUnAssignParam() {
         super();
@@ -47,34 +45,14 @@ public class FilePolicyUnAssignParam implements Serializable {
         this.forceUnassign = forceUnassign;
     }
 
-    @XmlElementWrapper(name = "unassign_from_vpools")
-    @XmlElement(name = "vpool")
-    public Set<URI> getUnassignfromVpools() {
-        return unassignfromVpools;
+    @XmlElementWrapper(name = "unassign_from")
+    @XmlElement(name = "URI")
+    public Set<URI> getUnassignfrom() {
+        return unassignfrom;
     }
 
-    public void setUnassignfromVpools(Set<URI> unassignfromVpools) {
-        this.unassignfromVpools = unassignfromVpools;
-    }
-
-    @XmlElementWrapper(name = "unassign_from_projects")
-    @XmlElement(name = "project")
-    public Set<URI> getUnassignfromProjects() {
-        return unassignfromProjects;
-    }
-
-    public void setUnassignfromProjects(Set<URI> unassignfromProjects) {
-        this.unassignfromProjects = unassignfromProjects;
-    }
-
-    @XmlElementWrapper(name = "unassign_from_file_systems")
-    @XmlElement(name = "file_system")
-    public Set<URI> getUnassignfromFileSystems() {
-        return unassignfromFileSystems;
-    }
-
-    public void setUnassignfromFileSystems(Set<URI> unassignfromFileSystems) {
-        this.unassignfromFileSystems = unassignfromFileSystems;
+    public void setUnassignfrom(Set<URI> unassignfrom) {
+        this.unassignfrom = unassignfrom;
     }
 
 }

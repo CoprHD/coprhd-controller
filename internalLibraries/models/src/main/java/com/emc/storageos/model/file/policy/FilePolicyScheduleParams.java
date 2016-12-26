@@ -39,7 +39,7 @@ public class FilePolicyScheduleParams implements Serializable {
      * 
      * @return
      */
-    @XmlElement(name = "schedule_frequency")
+    @XmlElement(required = true, name = "schedule_frequency")
     public String getScheduleFrequency() {
         return this.scheduleFrequency;
     }
@@ -53,7 +53,7 @@ public class FilePolicyScheduleParams implements Serializable {
      * 
      * @return
      */
-    @XmlElement(name = "schedule_repeat")
+    @XmlElement(required = true, name = "schedule_repeat")
     public Long getScheduleRepeat() {
         return this.scheduleRepeat;
     }
@@ -67,7 +67,7 @@ public class FilePolicyScheduleParams implements Serializable {
      * 
      * @return
      */
-    @XmlElement(name = "schedule_time")
+    @XmlElement(required = true, name = "schedule_time")
     public String getScheduleTime() {
         return this.scheduleTime;
     }

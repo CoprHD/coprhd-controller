@@ -523,7 +523,8 @@ public enum OperationTypeEnum {
     UNMOUNT_NFS_EXPORT("UNMOUNT NFS EXPORT", "unmount nfs operation failed", "unmount nfs export operation"),
     LIST_MOUNTED_EXPORTS("LIST MOUNTED EXPORTS", "list mounted nfs operation failed", "list mounted exports operation"),
     
-    DELETE_FILE_POLICY("DELETE FILE POLICY", "Delete file policy failed", "Delete file policy operation");
+    DELETE_FILE_POLICY("DELETE FILE POLICY", "Delete file policy failed", "Delete file policy operation"),
+    UNASSIGN_FILE_POLICY("FilePolicyUnassign", "FilePolicyUnassignFailed", "File Policy Unassigned");
 
     private final String _evType;
     private final String _fail_evType;

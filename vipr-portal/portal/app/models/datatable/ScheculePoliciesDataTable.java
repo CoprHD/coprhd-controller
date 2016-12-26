@@ -51,20 +51,22 @@ public class ScheculePoliciesDataTable extends DataTable {
             StringBuffer assignRes = new StringBuffer();
             boolean first = true;
 
-            for (NamedRelatedResourceRep res : policy.getAssignedResources()) {
-                if (first) {
-                    assignRes.append(res.getName());
-                    first = false;
-                } else {
-                    assignRes.append(",").append(res.getName());
+            if (policy.getAssignedResources() != null) {
+                for (NamedRelatedResourceRep res : policy.getAssignedResources()) {
+                    if (first) {
+                        assignRes.append(res.getName());
+                        first = false;
+                    } else {
+                        assignRes.append(",").append(res.getName());
+                    }
                 }
-            }
-            if (FilePolicyApplyLevel.project.name().equals(policy.getAppliedAt())) {
-                vPools = policy.getVpool().getName();
-                projects = assignRes.toString();
+                if (FilePolicyApplyLevel.project.name().equals(policy.getAppliedAt())) {
+                    vPools = policy.getVpool().getName();
+                    projects = assignRes.toString();
 
-            } else if (FilePolicyApplyLevel.vpool.name().equals(policy.getAppliedAt())) {
-                vPools = assignRes.toString();
+                } else if (FilePolicyApplyLevel.vpool.name().equals(policy.getAppliedAt())) {
+                    vPools = assignRes.toString();
+                }
             }
         }
 

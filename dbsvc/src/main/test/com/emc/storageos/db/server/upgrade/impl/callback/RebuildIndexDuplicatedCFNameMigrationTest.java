@@ -8,13 +8,14 @@ import static org.junit.Assert.assertEquals;
 
 import java.lang.reflect.Field;
 
-import org.junit.Before;
 import org.junit.Test;
 
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.impl.CompositeColumnName;
 import com.emc.storageos.db.client.impl.DataObjectType;
 import com.emc.storageos.db.client.impl.DbClientImpl;
+import com.emc.storageos.db.client.impl.DbConsistencyChecker;
+import com.emc.storageos.db.client.impl.DbConsistencyCheckerHelper;
 import com.emc.storageos.db.client.impl.RowMutator;
 import com.emc.storageos.db.client.impl.TypeMap;
 import com.emc.storageos.db.client.model.FileShare;
@@ -30,10 +31,19 @@ public class RebuildIndexDuplicatedCFNameMigrationTest extends DbsvcTestBase {
     
     @Test
     public void testHandleDataObjectClass() throws Exception {
+        DataObjectType doType = TypeMap.getDoType(FileShare.class);
+        for (int i = 0; i < 5; i++) {
+            FileShare testData = new FileShare();
+            testData.setId(URIUtil.createId(FileShare.class));
+            testData.setPath("duplicated_value" + i);
+            testData.setMountPath("duplicated_value" + i);
+            
+            getDbClient().updateObject(testData);
+        }
+        
+        //create data object whose index are neede to be rebuild
     	resetRowMutatorTimeStampOffSet(0);
-    	DataObjectType doType = TypeMap.getDoType(FileShare.class);
-    	
-        FileShare[] testDataArray = new FileShare[10];
+    	FileShare[] testDataArray = new FileShare[10];
         for (int i = 0; i < 10; i++) {
         	FileShare testData = new FileShare();
         	testData.setId(URIUtil.createId(FileShare.class));

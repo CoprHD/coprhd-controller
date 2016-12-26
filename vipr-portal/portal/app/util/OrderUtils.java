@@ -123,14 +123,6 @@ public class OrderUtils {
             end = Long.toString(endTime.getTime());
         }
 
-        log.info("lbye0");
-        try {
-            OrderCount count = catalog.orders().getUserOrdersCount("", "");
-            log.info("lbye count={}", count.getCounts());
-        }catch(Exception e) {
-            log.error("lbye e=",e);
-        }
-
         return catalog.orders().search().byTimeRange(start, end, URI.create(tenant), maxCount).run();
     }
 

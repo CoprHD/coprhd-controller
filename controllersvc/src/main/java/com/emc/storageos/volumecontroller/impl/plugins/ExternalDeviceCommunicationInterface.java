@@ -110,7 +110,7 @@ public class ExternalDeviceCommunicationInterface extends
         }
         List<URI> ids = _dbClient.queryByType(StorageSystemType.class, true);
         Iterator<StorageSystemType> it = _dbClient.queryIterativeObjects(StorageSystemType.class, ids);
-        Map<String, AbstractStorageDriver> cachedDriverInstances = new HashMap<String, AbstractStorageDriver>();
+        Map<String, AbstractStorageDriver> cachedDriverInstances = new HashMap<>();
         while (it.hasNext()) {
             StorageSystemType type = it.next();
             if (type.getIsNative() == null ||type.getIsNative()) {

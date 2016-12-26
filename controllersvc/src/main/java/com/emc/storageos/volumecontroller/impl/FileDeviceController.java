@@ -533,7 +533,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
         StorageSystem.Type storageSystemType = StorageSystem.Type.valueOf(storageType);
         boolean qDIngestionSupported = false;
         if (storageSystemType.equals(StorageSystem.Type.unity) || storageSystemType.equals(StorageSystem.Type.netapp)
-                || storageSystemType.equals(StorageSystem.Type.netappc) || storageSystemType.equals(StorageSystem.Type.vnxfile)) {
+                || storageSystemType.equals(StorageSystem.Type.netappc) || storageSystemType.equals(StorageSystem.Type.vnxfile ) || storageSystemType.equals(StorageSystem.Type.isilon)) {
             qDIngestionSupported = true;
         }
         return qDIngestionSupported;
@@ -1264,14 +1264,19 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             args.addStoragePool(pool);
             args.setFileOperation(true);
             args.setOpId(opId);
+            WorkflowStepCompleter.stepExecuting(opId);
             BiosCommandResult result = getDevice(storageObj.getSystemType()).doModifyFS(storageObj, args);
             if (result.getCommandPending()) {
                 // async operation
                 return;
             }
             if (result.isCommandSuccess()) {
+                WorkflowStepCompleter.stepSucceded(opId);
                 _log.info("FileSystem updated " + " with Soft Limit: " + args.getFsSoftLimit() + ", Notification Limit: "
                         + args.getFsNotificationLimit() + ", Soft Grace: " + args.getFsSoftGracePeriod());
+            }
+            if (!result.isCommandSuccess() && !result.getCommandPending()) {
+                WorkflowStepCompleter.stepFailed(opId, result.getServiceCoded());
             }
             // Set status
             fs.getOpStatus().updateTaskStatus(opId, result.toOperation());
@@ -1282,6 +1287,8 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                     result.isCommandSuccess(), eventMsg, "", fs);
         } catch (Exception e) {
             _log.error("Unable to update file system: FS URI {}", fs.getId());
+            ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
+            WorkflowStepCompleter.stepFailed(opId, serviceError);
             updateTaskStatus(opId, fs, e);
             if (fs != null) {
                 recordFileDeviceOperation(_dbClient, OperationTypeEnum.UPDATE_FILE_SYSTEM, false, e.getMessage(), "", fs);
@@ -3053,8 +3060,9 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
         if (snapList != null) {
             _log.info(" No of Snapshots on FS {} ", snapList.size());
             for (Snapshot snapshot : snapList) {
-                if (!snapshot.getInactive())
+                if (!snapshot.getInactive()) {
                     return true;
+                }
             }
         }
 
@@ -3076,8 +3084,9 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
 
         if (qdList != null) {
             for (QuotaDirectory qd : qdList) {
-                if (!qd.getInactive())
+                if (!qd.getInactive()) {
                     return true;
+                }
             }
         }
 
@@ -3324,10 +3333,15 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             if (result.isCommandSuccess()) {
                 // Update Database
                 updateNFSACLsInDB(param, fs, args);
+                WorkflowStepCompleter.stepSucceded(opId);
             }
 
             if (result.getCommandPending()) {
                 return;
+            }
+
+            if (!result.isCommandSuccess() && !result.getCommandPending()) {
+                WorkflowStepCompleter.stepFailed(opId, result.getServiceCoded());
             }
             // Audit & Update the task status
             OperationTypeEnum auditType = null;
@@ -3357,6 +3371,8 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             }
             _dbClient.updateObject(fsObj);
         } catch (Exception e) {
+            ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
+            WorkflowStepCompleter.stepFailed(opId, serviceError);
             String[] params = { storage.toString(), fsURI.toString() };
             _log.error("Unable to set ACL on  file system or snapshot: storage {}, FS/snapshot URI {}", params, e);
             _log.error("{}, {} ", e.getMessage(), e);
@@ -3675,7 +3691,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
     @Override
     public String addStepsForCreateFileSystems(Workflow workflow,
             String waitFor, List<FileDescriptor> filesystems, String taskId)
-                    throws InternalException {
+            throws InternalException {
 
         if (filesystems != null && !filesystems.isEmpty()) {
             // create source filesystems
@@ -3723,7 +3739,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
     @Override
     public String addStepsForDeleteFileSystems(Workflow workflow,
             String waitFor, List<FileDescriptor> filesystems, String taskId)
-                    throws InternalException {
+            throws InternalException {
         List<FileDescriptor> sourceDescriptors = FileDescriptor.filterByType(filesystems,
                 FileDescriptor.Type.FILE_DATA, FileDescriptor.Type.FILE_EXISTING_SOURCE,
                 FileDescriptor.Type.FILE_MIRROR_SOURCE);
@@ -3798,7 +3814,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
     @Override
     public String addStepsForExpandFileSystems(Workflow workflow, String waitFor,
             List<FileDescriptor> fileDescriptors, String taskId)
-                    throws InternalException {
+            throws InternalException {
         List<FileDescriptor> sourceDescriptors = FileDescriptor.filterByType(fileDescriptors, FileDescriptor.Type.FILE_MIRROR_SOURCE,
                 FileDescriptor.Type.FILE_EXISTING_SOURCE, FileDescriptor.Type.FILE_DATA,
                 FileDescriptor.Type.FILE_MIRROR_TARGET);

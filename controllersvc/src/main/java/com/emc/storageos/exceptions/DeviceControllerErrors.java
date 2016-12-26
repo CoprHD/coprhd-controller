@@ -217,6 +217,9 @@ public interface DeviceControllerErrors {
     public ServiceError updateFileShareCIFSACLsFailed(final String fsUris, final String operationName, final Throwable cause);
 
     @DeclareServiceCode(ServiceCode.CONTROLLER_JOB_ERROR)
+    public ServiceError updateFileShareNFSACLFailed(final String fsUris, final String operationName, final Throwable cause);
+
+    @DeclareServiceCode(ServiceCode.CONTROLLER_JOB_ERROR)
     public ServiceError createFileSystemSnapshotFailed(final String fsUris, final String operationName, final Throwable cause);
 
     @DeclareServiceCode(ServiceCode.CONTROLLER_JOB_ERROR)
@@ -239,4 +242,7 @@ public interface DeviceControllerErrors {
 
     @DeclareServiceCode(ServiceCode.CONTROLLER_JOB_ERROR)
     public ServiceError removeVolumeFromMaskFailed(final String volumeURIs);
+
+    @DeclareServiceCode(ServiceCode.CONTROLLER_JOB_ERROR)
+    public ServiceError unableToUpdateFileSystem(final String operationName, final Throwable cause);
 }

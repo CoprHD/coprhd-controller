@@ -75,6 +75,7 @@ import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.util.ExportUtils;
+import com.emc.storageos.util.InvokeTestFailure;
 import com.emc.storageos.util.NetworkLite;
 import com.emc.storageos.util.NetworkUtil;
 import com.emc.storageos.volumecontroller.AsyncTask;
@@ -1298,9 +1299,11 @@ public class NetworkDeviceController implements NetworkController {
                     lastReferenceZoneInfo.add(zoneInfo);
                 }
             }
+            InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_007);
             // Now call removeZones to remove all the required zones.
             BiosCommandResult result = addRemoveZones(exportGroupId, context.getZoneInfos(), true);
             status = result.isCommandSuccess();
+            InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_008);
 
             List<URI> exportMaskURIs = new ArrayList<URI>();
             for (NetworkZoningParam zoningParam : zoningParams) {
@@ -1499,9 +1502,11 @@ public class NetworkDeviceController implements NetworkController {
                 return true;
             }
 
+            InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_024);
             // Now call removeZones to remove all the required zones.
             BiosCommandResult result = addRemoveZones(exportGroupId, context.getZoneInfos(), true);
             status = result.isCommandSuccess();
+            InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_025);
 
             // Update the workflow state.
             completeWorkflowState(stepId, "zoneExportRemoveInitiators", result);
@@ -1554,6 +1559,7 @@ public class NetworkDeviceController implements NetworkController {
                 return true;
             }
             logZones(context.getZoneInfos());
+
             WorkflowStepCompleter.stepExecuting(taskId);
             _log.info("Beginning zone rollback");
             // Determine what needs to be rolled back.
@@ -1570,8 +1576,10 @@ public class NetworkDeviceController implements NetworkController {
                 }
             }
 
+            InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_020);
             BiosCommandResult result = addRemoveZones(exportGroupURI, rollbackList,
                     context.isAddingZones());
+            InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_021);
 
             completeWorkflowState(taskId, "ZoneRollback", result);
 

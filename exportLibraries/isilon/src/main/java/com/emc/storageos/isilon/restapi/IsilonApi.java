@@ -1020,6 +1020,26 @@ public class IsilonApi {
     }
 
     /* SmartQuotas */
+    
+    /**
+     * List all smartquotas for given 
+     * 
+     * @param resumeToken
+     * @param pathBaseDir
+     * @return
+     * @throws IsilonException
+     */
+    public IsilonList<IsilonSmartQuota> listFileQuotas(String resumeToken) throws IsilonException {
+        URI uri = URI_QUOTAS;
+        StringBuffer URLBuffer = new StringBuffer(_baseUrl.resolve(uri).toString());
+        URLBuffer.append("?path=").append("&recurse_path_children=true&type=directory");
+        uri = URI.create(URLBuffer.toString());
+        sLogger.info("get list of smart quotas of type directory for uri {}", uri.toString());
+        uri = _baseUrl.resolve(uri);
+        return list(uri, "quotas", IsilonSmartQuota.class, resumeToken);
+    }
+    
+    
 
     /**
      * List all smartquotas
@@ -1455,9 +1475,11 @@ public class IsilonApi {
             fspath = fspath.substring(1);// remove '/' prefix
             fspath = URLEncoder.encode(fspath, "UTF-8");
             fspath = fspath.concat("?acl");// add suffix ?acl
+
         } catch (UnsupportedEncodingException e) {
             e.printStackTrace();
         }
+
         put(_baseUrl.resolve(URI_IFS), fspath, "ACL", acl);
     }
 

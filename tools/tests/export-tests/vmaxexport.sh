@@ -1531,7 +1531,7 @@ test_30() {
     runcmd transportzone add $NH/${FC_ZONE_A} $H4PI1
     runcmd transportzone add $NH/${FC_ZONE_A} $H5PI1
 
-    echo "Test 30 Begin"
+    echot "Test 30 Begin"
     expname=${EXPORT_GROUP_NAME}t30
     clusterXP=${expname}CL
     host4XP=${expname}H4
@@ -1599,6 +1599,200 @@ aliastest() {
 
     runcmd initiator delete $HOSTALIAS/$INITALIAS
     runcmd hosts delete $HOSTALIAS
+}
+
+# Conversion of Existing Initiators to User Added initiators if they are ViPR managed within an export Mask
+# 1. Create and Export a Volume- V1 to a Host H1 with two initiators I1 and I2
+# 2. Using Symcli add Initiator I3, I3 to the Initiator Group Associated with the Masking View.
+# 3. Create and Export a Volume- V2 to this Host. Verify that the Masking contains 4 initators and 2 Volumes
+# 4. Add I3, I4 to Host H1. The export Mask needs to be updated accordingly as part of the Export Group Update.
+# 5. Remove I3 and Verify that the Masking contains 3 initators and 2 Volumes
+# 6. Delete Export Group and verify that the masking View is gone..
+
+exisitingintiatorstest() {
+    echot "Existing Initiators to User Added Initiators Test Begins"
+
+    #Prepare Host, Initiators and zones
+    EXISTINGINITTEST=exinittest-${RANDOM}
+    USERADDEDINIT1=10:00:00:DE:AD:BE:EF:01
+    USERADDEDINIT2=10:00:00:DE:AD:BE:EF:02
+    EXISTINGINIT3=10:00:00:DE:AD:BE:EF:03
+    EXISTINGINIT4=10:00:00:DE:AD:BE:EF:04
+    PWWN3=100000DEADBEEF03
+    PWWN4=100000DEADBEEF04
+
+    runcmd hosts create ${EXISTINGINITTEST} $TENANT Other ${EXISTINGINITTEST} --port 8111
+    runcmd initiator create ${EXISTINGINITTEST} FC $USERADDEDINIT1 --node $USERADDEDINIT1
+    runcmd initiator create ${EXISTINGINITTEST} FC $USERADDEDINIT2 --node $USERADDEDINIT2
+    runcmd transportzone add $NH/${FC_ZONE_A} $USERADDEDINIT1
+    runcmd transportzone add $NH/${FC_ZONE_A} $USERADDEDINIT2
+
+    echot "Creating an export Group and exporting the first volume to initiators 10:00:00:DE:AD:BE:EF:01 and 10:00:00:DE:AD:BE:EF:02"
+    EXISTINGINITEGTEST=exinitegtest-${RANDOM}
+    runcmd export_group create $PROJECT $EXISTINGINITEGTEST $NH --type Host --volspec ${PROJECT}/${VOLNAME}-1 --hosts "${EXISTINGINITTEST}"
+    verify_export $EXISTINGINITEGTEST ${EXISTINGINITTEST} 2 1
+
+    echot "Adding initiators 10:00:00:DE:AD:BE:EF:03 and 10:00:00:DE:AD:BE:EF:04 to the Masking View using the CLI"
+    CLIADDINIT=add_initiator_to_mask
+    # Add another initiator to the mask (done differently per array type)
+    runcmd symhelper.sh $CLIADDINIT $SN ${PWWN3} ${EXISTINGINITTEST}${LAST_3DIGITS}
+    runcmd symhelper.sh $CLIADDINIT $SN ${PWWN4} ${EXISTINGINITTEST}${LAST_3DIGITS}
+    runcmd export_group update ${PROJECT}/$EXISTINGINITEGTEST --addVols "${PROJECT}/${VOLNAME}-2"
+    verify_export $EXISTINGINITEGTEST ${EXISTINGINITTEST} 4 2
+
+
+    echot "Adding existing initiators 10:00:00:DE:AD:BE:EF:03 and 10:00:00:DE:AD:BE:EF:04 to the Host"
+    runcmd transportzone add $NH/${FC_ZONE_A} $EXISTINGINIT3
+    runcmd transportzone add $NH/${FC_ZONE_A} $EXISTINGINIT4
+    runcmd initiator create ${EXISTINGINITTEST} FC $EXISTINGINIT3 --node $EXISTINGINIT3
+    runcmd initiator create ${EXISTINGINITTEST} FC $EXISTINGINIT4 --node $EXISTINGINIT4
+
+    echot "Deleting existing initiators 10:00:00:DE:AD:BE:EF:03"
+    runcmd initiator delete $EXISTINGINITTEST/$EXISTINGINIT3
+    verify_export $EXISTINGINITEGTEST ${EXISTINGINITTEST} 3 2
+
+    echot "Deleting Export Mask existing initiators 10:00:00:DE:AD:BE:EF:04"
+    runcmd export_group delete $PROJECT/$EXISTINGINITEGTEST
+    verify_export $EXISTINGINITEGTEST ${EXISTINGINITTEST} gone
+
+    runcmd initiator delete $EXISTINGINITTEST/$USERADDEDINIT1
+    runcmd initiator delete $EXISTINGINITTEST/$USERADDEDINIT2
+    runcmd initiator delete $EXISTINGINITTEST/$EXISTINGINIT4
+    runcmd hosts delete $EXISTINGINITTEST
+}
+
+
+# Concurrency test cases for Export Group update api call
+ 
+eg_update_concurrency_test() {
+    test_31;
+    test_32;	
+    test_33;
+}
+# Add/Remove hosts concurrently and verify the Export Group update call's status
+test_31() {
+    echot "Test 31 Begins"
+    expname=${EXPORT_GROUP_NAME}t31
+    hostXP1=${expname}H1
+
+    runcmd export_group create ${PROJECT} $hostXP1 nh --volspec ${PROJECT}/${VOLNAME}-1 --hosts "${HOST1}" --type Host
+    verify_export $hostXP1 $HOST1 2 1
+    verify_export $hostXP1 $HOST2 gone
+    verify_export $hostXP1 $HOST3 gone
+
+    # Add Host2 and Host3 at the same time on same Export Group
+    runcmd export_group update ${PROJECT}/${hostXP1} --addHosts "${HOST2}" &
+    runcmd export_group update ${PROJECT}/${hostXP1} --addHosts "${HOST3}" &
+    wait_for_pending_or_queued_tasks
+
+    verify_export $hostXP1 $HOST1 2 1
+    verify_export $hostXP1 $HOST2 2 1
+    verify_export $hostXP1 $HOST3 2 1
+
+    runcmd export_group update ${PROJECT}/${hostXP1} --remHosts "${HOST2}"
+
+    verify_export $hostXP1 $HOST1 2 1
+    verify_export $hostXP1 $HOST2 gone
+    verify_export $hostXP1 $HOST3 2 1
+
+    #Add Host2 and remove Host3 at the same time on same Export Group
+    runcmd export_group update ${PROJECT}/${hostXP1} --addHosts "${HOST2}" &
+    runcmd export_group update ${PROJECT}/${hostXP1} --remHosts "${HOST3}" &
+    wait_for_pending_or_queued_tasks
+
+    verify_export $hostXP1 $HOST1 2 1
+    verify_export $hostXP1 $HOST2 2 1
+    verify_export $hostXP1 $HOST3 gone
+
+    runcmd export_group update ${PROJECT}/$hostXP1 --remVols ${PROJECT}/${VOLNAME}-1
+    verify_export $hostXP1 $HOST1 gone
+    verify_export $hostXP1 $HOST2 gone
+    verify_export $hostXP1 $HOST3 gone
+
+    runcmd export_group delete ${PROJECT}/$hostXP1
+}
+
+# Add/Remove volumes concurrently and verify the Export Group update call's status
+test_32() {
+    echot "Test 32 Begins"
+    expname=${EXPORT_GROUP_NAME}t32
+    hostXP1=${expname}H1
+
+    runcmd export_group create ${PROJECT} $hostXP1 nh --volspec ${PROJECT}/${VOLNAME}-1 --hosts "${HOST1}" --type Host
+    verify_export $hostXP1 $HOST1 2 1
+
+    # Add Host2 and Host3 at the same time on same Export Group
+    runcmd export_group update ${PROJECT}/${hostXP1} --addVols "${PROJECT}/${VOLNAME}-2" &
+    runcmd export_group update ${PROJECT}/${hostXP1} --addVols "${PROJECT}/${VOLNAME}-3" &
+    wait_for_pending_or_queued_tasks
+
+    verify_export $hostXP1 $HOST1 2 3
+
+    runcmd export_group update ${PROJECT}/${hostXP1} --remVols "${PROJECT}/${VOLNAME}-3" &
+    runcmd export_group update ${PROJECT}/${hostXP1} --addVols "${PROJECT}/${VOLNAME}-4" &
+    wait_for_pending_or_queued_tasks
+
+    verify_export $hostXP1 $HOST1 2 3
+
+    runcmd export_group delete ${PROJECT}/$hostXP1
+
+    verify_export $hostXP1 $HOST1 gone
+    verify_export $hostXP1 $HOST2 gone
+    verify_export $hostXP1 $HOST3 gone
+}
+
+
+# Add volume and Host concurrently and verify the Export Group update call's status
+test_33() {
+    echot "Test 33 Begins"
+    expname=${EXPORT_GROUP_NAME}t33
+    hostXP1=${expname}H1
+
+    runcmd export_group create ${PROJECT} $hostXP1 nh --volspec ${PROJECT}/${VOLNAME}-1 --hosts "${HOST1}" --type Host
+    verify_export $hostXP1 $HOST1 2 1
+
+    # Add Host2 and Host3 at the same time on same Export Group
+    runcmd export_group update ${PROJECT}/${hostXP1} --addVols "${PROJECT}/${VOLNAME}-2" &
+    runcmd export_group update ${PROJECT}/${hostXP1} --addHosts "${HOST2}" &
+    wait_for_pending_or_queued_tasks
+
+    verify_export $hostXP1 $HOST1 2 2
+    verify_export $hostXP1 $HOST2 2 2
+
+    runcmd export_group delete ${PROJECT}/$hostXP1
+
+    verify_export $hostXP1 $HOST1 gone
+    verify_export $hostXP1 $HOST2 gone
+}
+
+wait_for_pending_or_queued_tasks()
+{
+    while [ 1 ]
+    do
+        # slep up front is intentional to allow tasks to be created
+        sleep 20
+        pending=`check_for_tasks pending`
+        queued=`check_for_tasks queued`
+        if [ $pending -eq 0 ] && [ $queued -eq 0 ]
+        then
+            echo "no pending or queued tasks"
+            break
+        fi
+        echo "waiting for ${pending} pending and ${queued} queued tasks to complete"
+    done
+}
+
+check_for_tasks()
+{
+    task_count=0
+    tasks=`task list | grep ${1} | awk '{print $1}'`
+    if [[ $tasks != "" ]]; then
+        for task in ${tasks}
+        do
+            task_count=$((task_count + 1))
+        done
+    fi
+    echo $task_count
 }
 
 cleanup() {
@@ -1727,6 +1921,8 @@ test_28;
 test_29;
 test_30;
 aliastest;
+exisitingintiatorstest;
+eg_update_concurrency_test;
 cleanup;
 finish
 

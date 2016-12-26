@@ -105,6 +105,7 @@ public class PathConstants {
     public static final String CLUSTER_URL = "/compute/clusters";
     public static final String CLUSTER_DETACH_STORAGE_URL = CLUSTER_URL + "/{clusterId}/detach-storage";
     public static final String HOST_BY_CLUSTER_URL = CLUSTER_URL + "/{clusterId}/hosts";
+    public static final String CLUSTER_UPDATE_SHARED_EXPORTS_URL = CLUSTER_URL + "/{clusterId}/update-shared-exports";
     public static final String INITIATOR_URL = "/compute/initiators";
     public static final String IPINTERFACE_URL = "/compute/ip-interfaces";
     public static final String DATACENTER_URL = "/compute/vcenter-data-centers";

@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import com.emc.storageos.db.client.DbClient;
@@ -19,9 +20,13 @@ import com.emc.storageos.db.client.model.FileExportRule;
 import com.emc.storageos.db.client.model.FilePolicy;
 import com.emc.storageos.db.client.model.FilePolicy.FilePolicyApplyLevel;
 import com.emc.storageos.db.client.model.FileShare;
+import com.emc.storageos.db.client.model.NFSShareACL;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.model.file.ExportRule;
+import com.emc.storageos.model.file.FileNfsACLUpdateParams;
+import com.emc.storageos.model.file.NfsACE;
 import com.emc.storageos.model.file.ShareACL;
+import com.emc.storageos.volumecontroller.FileControllerConstants;
 
 /**
  * File orchestration Utility Class
@@ -266,6 +271,75 @@ public class FileOrchestrationUtils {
             }
         }
         return shareACLMap;
+    }
+
+    public static HashMap<String, NfsACE> getUserToNFSACEMap(List<NfsACE> nfsACL) {
+        HashMap<String, NfsACE> aclMap = new HashMap<String, NfsACE>();
+        if(nfsACL != null && !nfsACL.isEmpty()) {
+            String user = null;
+            String domain = null;
+            for (NfsACE ace : nfsACL) {
+                domain = ace.getDomain();
+                user = ace.getUser();
+                user = domain == null ? "null+" + user: domain + "+" + user;
+                if (user != null && !user.isEmpty()) {
+                    aclMap.put(user, ace);
+                }
+            }
+        }
+        return aclMap;
+    }
+
+    public static Map<String, List<NfsACE>> queryNFSACL(FileShare fs, DbClient dbClient) {
+
+        Map<String, List<NfsACE>> map = new HashMap<String, List<NfsACE>>();
+        ContainmentConstraint containmentConstraint = ContainmentConstraint.Factory.getFileNfsAclsConstraint(fs.getId());
+        List<NFSShareACL> nfsAclList = CustomQueryUtility
+                .queryActiveResourcesByConstraint(dbClient, NFSShareACL.class, containmentConstraint);
+
+        if (nfsAclList != null) {
+            Iterator<NFSShareACL> aclIter = nfsAclList.iterator();
+            while (aclIter.hasNext()) {
+                NFSShareACL dbNFSAcl = aclIter.next();
+                String fsPath = dbNFSAcl.getFileSystemPath();
+                NfsACE ace = convertNFSShareACLToNfsACE(dbNFSAcl);
+                if (map.get(fsPath) == null) {
+                    List<NfsACE> acl = new ArrayList<NfsACE>();
+                    acl.add(ace);
+                    map.put(fsPath, acl);
+                } else {
+                    map.get(fsPath).add(ace);
+                }
+            }
+        }
+        return map;
+    }
+
+    public static NfsACE convertNFSShareACLToNfsACE(NFSShareACL dbNFSAcl) {
+        NfsACE dest = new NfsACE();
+
+        dest.setDomain(dbNFSAcl.getDomain());
+        dest.setPermissions(dbNFSAcl.getPermissions());
+        dest.setPermissionType(FileControllerConstants.NFS_FILE_PERMISSION_TYPE_ALLOW);
+        if (dbNFSAcl.getPermissionType() != null && !dbNFSAcl.getPermissionType().isEmpty()) {
+            dest.setPermissionType(dbNFSAcl.getPermissionType());
+        }
+        dest.setType("user");
+        if (dbNFSAcl.getType() != null && !dbNFSAcl.getType().isEmpty()) {
+            dest.setType(dbNFSAcl.getType());
+        }
+        dest.setUser(dbNFSAcl.getUser());
+        return dest;
+    }
+
+    public static FileNfsACLUpdateParams getFileNfsACLUpdateParamWithSubDir(String fsPath, FileShare fs) {
+        FileNfsACLUpdateParams params = new FileNfsACLUpdateParams();
+        if (!fsPath.equals(fs.getPath())) {
+            // Sub directory NFS ACL
+            String subDir = fsPath.split(fs.getPath())[1];
+            params.setSubDir(subDir.substring(1));
+        }
+        return params;
     }
 
     /**

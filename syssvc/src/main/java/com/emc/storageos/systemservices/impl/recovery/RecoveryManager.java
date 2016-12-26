@@ -158,8 +158,7 @@ public class RecoveryManager implements Runnable {
      * Check if cluster is in minority nodes corrupted scenario
      */
     private void checkClusterStatus() throws Exception {
-        aliveNodes.clear();
-        corruptedNodes.clear();
+
         if (isVMwareVapp()) {
             initNodeListByCheckOfflineTime();
             purgeDataForVappRecovery(corruptedNodes);
@@ -181,6 +180,8 @@ public class RecoveryManager implements Runnable {
      * Init alive node list and corrupted node list by checking db status and geodb status
      */
     private void initNodeListByCheckDbStatus() throws Exception {
+        aliveNodes.clear();
+        corruptedNodes.clear();
         for (String serviceName : serviceNames) {
             try (DbManagerOps dbManagerOps = new DbManagerOps(serviceName)) {
                 Map<String, Boolean> statusMap = dbManagerOps.getNodeStates();
@@ -868,6 +869,8 @@ public class RecoveryManager implements Runnable {
         }
     }
     private void initNodeListByCheckOfflineTime() {
+        aliveNodes.clear();
+        corruptedNodes.clear();
         ArrayList<String> nodeList = coordinator.getAllNodeIds();
         for (String nodeId : nodeList) {
             try {

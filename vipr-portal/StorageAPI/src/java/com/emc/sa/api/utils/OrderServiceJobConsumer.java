@@ -76,6 +76,7 @@ public class OrderServiceJobConsumer extends DistributedQueueConsumer<OrderServi
                             orderManager.canBeDeleted(order);
                             total++;
                         } catch (Exception e) {
+                            log.info("lbyjj e=", e);
                             continue;
                         }
                     }
@@ -84,6 +85,12 @@ public class OrderServiceJobConsumer extends DistributedQueueConsumer<OrderServi
                 jobStatus.setTotal(total);
                 log.info("lbyk2: total={}", total);
                 orderService.saveJobInfo(jobStatus);
+
+                if (total == 0) {
+                    log.info("No orders can be deleted");
+                    callback.itemProcessed();
+                    return;
+                }
             }
 
             long nDeleted = 0;

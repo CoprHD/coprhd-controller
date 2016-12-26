@@ -50,6 +50,7 @@ import com.google.common.collect.Maps;
 public class OrderManagerImpl implements OrderManager {
 
     private static final Logger log = LoggerFactory.getLogger(OrderManagerImpl.class);
+    final static long ONE_MOTHIN_IN_MS = 2592000000L;
 
     @Autowired
     private ModelClient client;
@@ -443,16 +444,14 @@ public class OrderManagerImpl implements OrderManager {
         log.info("lbyj3");
         long createdTime = order.getCreationTime().getTimeInMillis();
 
-        log.info("lbyj4");
-        return (now - createdTime) < 30*24*60*60*1000;
+        log.info("lbyjj4 now={} createdTime={}", now, createdTime);
+        log.info("dela={} {}", now-createdTime, ONE_MOTHIN_IN_MS);
+        boolean ret = (now - createdTime) < ONE_MOTHIN_IN_MS;
+        log.info("ret1={}", ret);
+        return ret;
     }
 
-    //public void deleteOrder(URI orderId, String tenantId) {
-    //public void deleteOrder(URI orderId) {
     public void deleteOrder(Order order) {
-
-        // Order order = getOrderById(orderId);
-        // ArgValidator.checkEntity(order, orderId, true);
 
         log.info("lbyh0 order={}", order);
 

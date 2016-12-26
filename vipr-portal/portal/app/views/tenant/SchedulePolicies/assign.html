@@ -68,9 +68,6 @@
      #{/field}
     </div>
 	
-	<div id="replicationFields">        
-	   #{include 'tenant/SchedulePolicies/replicationTopology.html' /}
-	</div>
 	<div id="snapshotFields">           
 	   #{field 'assignPolicy.applyOnTargetSite'}
           #{Form.booleanCheckBoxControlGroup field:field /}
@@ -122,10 +119,8 @@
 				}
 				
 				if(policyType == 'file_snapshot') {
-				    $('#replicationFields').hide();
 					$('#snapshotFields').show();
 				} else if (policyType == 'file_replication') {
-				    $('#replicationFields').show();
 					$('#snapshotFields').hide();
 				}
 				

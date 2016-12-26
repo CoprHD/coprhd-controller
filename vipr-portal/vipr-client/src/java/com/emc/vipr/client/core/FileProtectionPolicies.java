@@ -10,6 +10,7 @@ import java.net.URI;
 import java.util.List;
 
 import com.emc.storageos.model.BulkIdParam;
+import com.emc.storageos.model.TaskResourceRep;
 import com.emc.storageos.model.auth.ACLAssignmentChanges;
 import com.emc.storageos.model.auth.ACLEntry;
 import com.emc.storageos.model.file.policy.FilePolicyAssignParam;
@@ -18,8 +19,8 @@ import com.emc.storageos.model.file.policy.FilePolicyBulkRep;
 import com.emc.storageos.model.file.policy.FilePolicyCreateParam;
 import com.emc.storageos.model.file.policy.FilePolicyCreateResp;
 import com.emc.storageos.model.file.policy.FilePolicyListRestRep;
-import com.emc.storageos.model.file.policy.FilePolicyParam;
 import com.emc.storageos.model.file.policy.FilePolicyRestRep;
+import com.emc.storageos.model.file.policy.FilePolicyUnAssignParam;
 import com.emc.storageos.model.file.policy.FilePolicyUpdateParam;
 import com.emc.vipr.client.Task;
 import com.emc.vipr.client.Tasks;
@@ -136,8 +137,8 @@ public class FileProtectionPolicies extends AbstractCoreBulkResources<FilePolicy
      * @param input
      *            the update configuration.
      */
-    public FilePolicyAssignResp unassignPolicy(URI id, FilePolicyAssignParam input) {
-        return client.put(FilePolicyAssignResp.class, input, getAssignPolicyUrl(), id);
+    public TaskResourceRep unassignPolicy(URI id, FilePolicyUnAssignParam input) {
+        return client.put(TaskResourceRep.class, input, getAssignPolicyUrl(), id);
     }
 
     @Override

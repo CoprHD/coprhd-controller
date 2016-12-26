@@ -33,6 +33,7 @@ import com.emc.storageos.model.file.policy.FilePolicyRestRep;
 import com.emc.storageos.model.file.policy.FilePolicyRestRep.ReplicationSettingsRestRep;
 import com.emc.storageos.model.file.policy.FilePolicyRestRep.SnapshotSettingsRestRep;
 import com.emc.storageos.model.file.policy.FilePolicyScheduleParams;
+import com.emc.storageos.model.file.policy.FilePolicyUnAssignParam;
 import com.emc.storageos.model.file.policy.FilePolicyUpdateParam;
 import com.emc.storageos.model.file.policy.FilePolicyVpoolAssignParam;
 import com.emc.storageos.model.file.policy.FileReplicationPolicyParam;
@@ -230,7 +231,7 @@ public class SchedulePolicies extends ViprResourceController {
         List<StringOption> applyPolicyAtOptions = Lists.newArrayList();
         applyPolicyAtOptions.add(new StringOption(FilePolicyApplyLevel.vpool.name(), MessagesUtils.get("assignPolicy.applyAtVPool")));
         applyPolicyAtOptions.add(new StringOption(FilePolicyApplyLevel.project.name(), MessagesUtils.get("assignPolicy.applyAtProject")));
-        applyPolicyAtOptions.add(new StringOption(FilePolicyApplyLevel.file_system.name(), MessagesUtils.get("assignPolicy.applyAtFs")));
+        // applyPolicyAtOptions.add(new StringOption(FilePolicyApplyLevel.file_system.name(), MessagesUtils.get("assignPolicy.applyAtFs")));
         renderArgs.put("applyPolicyOptions", applyPolicyAtOptions);
 
     }
@@ -346,7 +347,13 @@ public class SchedulePolicies extends ViprResourceController {
         }
 
         assignPolicy.id = params.get("id");
-        FilePolicyAssignParam assignPolicyParam = updateAssignPolicyParam(assignPolicy);
+        FilePolicyUnAssignParam unAssignPolicyParam = new FilePolicyUnAssignParam();
+        if (updateUnAssignPolicyParam(assignPolicy, unAssignPolicyParam)) {
+            getViprClient().fileProtectionPolicies().unassignPolicy(uri(assignPolicy.id), unAssignPolicyParam);
+        }
+
+        FilePolicyAssignParam assignPolicyParam = new FilePolicyAssignParam();
+        updateAssignPolicyParam(assignPolicy, assignPolicyParam);
         getViprClient().fileProtectionPolicies().assignPolicy(uri(assignPolicy.id), assignPolicyParam);
 
         flash.success(MessagesUtils.get("assignPolicy.saved", assignPolicy.policyName));
@@ -599,9 +606,9 @@ public class SchedulePolicies extends ViprResourceController {
 
     }
 
-    private static FilePolicyAssignParam updateAssignPolicyParam(AssignPolicyForm assignPolicy) {
-        FilePolicyAssignParam param = new FilePolicyAssignParam();
+    private static Boolean updateAssignPolicyParam(AssignPolicyForm assignPolicy, FilePolicyAssignParam param) {
 
+        Boolean policyAssignment = false;
         FilePolicyRestRep existingPolicy = getViprClient().fileProtectionPolicies().get(URI.create(assignPolicy.id));
 
         param.setApplyAt(assignPolicy.appliedAt);
@@ -614,15 +621,20 @@ public class SchedulePolicies extends ViprResourceController {
             projectAssignParams.setVpool(uri(assignPolicy.vpool));
 
             List<String> existingProjects = stringRefIds(existingPolicy.getAssignedResources());
-            List<String> projects = assignPolicy.projects;
+            List<String> projects = Lists.newArrayList();
+            if (assignPolicy.projects != null) {
+                projects = assignPolicy.projects;
+            }
 
             Set<String> add = Sets.newHashSet(CollectionUtils.subtract(projects, existingProjects));
-            // Set<String> remove = Sets.newHashSet(CollectionUtils.subtract(existingProjects, projects));
 
             // Assign new projects
             Set<URI> assignProjects = new HashSet<URI>();
-            for (String project : add) {
-                assignProjects.add(uri(project));
+            if (!add.isEmpty()) {
+                for (String project : add) {
+                    assignProjects.add(uri(project));
+                }
+                policyAssignment = true;
             }
             projectAssignParams.setAssigntoProjects(assignProjects);
             projectAssignParams.setAssigntoAll(assignPolicy.applyToAllProjects);
@@ -633,14 +645,20 @@ public class SchedulePolicies extends ViprResourceController {
             FilePolicyVpoolAssignParam vpoolAssignParams = new FilePolicyVpoolAssignParam();
 
             List<String> existingvPools = stringRefIds(existingPolicy.getAssignedResources());
-            List<String> vPools = assignPolicy.vPools;
+            List<String> vPools = Lists.newArrayList();
+
+            if (assignPolicy.vPools != null) {
+                vPools = assignPolicy.vPools;
+            }
 
             Set<String> add = Sets.newHashSet(CollectionUtils.subtract(vPools, existingvPools));
-            // Set<String> remove = Sets.newHashSet(CollectionUtils.subtract(existingvPools, vPools));
 
             Set<URI> assignVpools = new HashSet<URI>();
-            for (String vpool : add) {
-                assignVpools.add(uri(vpool));
+            if (!add.isEmpty()) {
+                for (String vpool : add) {
+                    assignVpools.add(uri(vpool));
+                }
+                policyAssignment = true;
             }
             vpoolAssignParams.setAssigntoVpools(assignVpools);
             vpoolAssignParams.setAssigntoAll(assignPolicy.applyToAllVpools);
@@ -648,7 +666,58 @@ public class SchedulePolicies extends ViprResourceController {
             param.setVpoolAssignParams(vpoolAssignParams);
         }
 
-        return param;
+        return policyAssignment;
+
+    }
+
+    private static Boolean updateUnAssignPolicyParam(AssignPolicyForm assignPolicy, FilePolicyUnAssignParam param) {
+
+        Boolean policyUnAssignment = false;
+        FilePolicyRestRep existingPolicy = getViprClient().fileProtectionPolicies().get(URI.create(assignPolicy.id));
+
+        if (FilePolicyApplyLevel.project.name().equalsIgnoreCase(assignPolicy.appliedAt)) {
+
+            List<String> existingProjects = stringRefIds(existingPolicy.getAssignedResources());
+            List<String> projects = Lists.newArrayList();
+            if (assignPolicy.projects != null) {
+                projects = assignPolicy.projects;
+            }
+
+            Set<String> remove = Sets.newHashSet(CollectionUtils.subtract(existingProjects, projects));
+
+            // removed projects
+            Set<URI> unAssingRes = new HashSet<URI>();
+            if (!remove.isEmpty()) {
+                for (String project : remove) {
+                    unAssingRes.add(uri(project));
+                }
+                policyUnAssignment = true;
+            }
+            param.setUnassignfrom(unAssingRes);
+
+        } else if (FilePolicyApplyLevel.vpool.name().equalsIgnoreCase(assignPolicy.appliedAt)) {
+
+            List<String> existingvPools = stringRefIds(existingPolicy.getAssignedResources());
+            List<String> vPools = Lists.newArrayList();
+
+            if (assignPolicy.vPools != null) {
+                vPools = assignPolicy.vPools;
+            }
+
+            Set<String> remove = Sets.newHashSet(CollectionUtils.subtract(existingvPools, vPools));
+
+            // removed vpools
+            Set<URI> unAssingRes = new HashSet<URI>();
+            if (!remove.isEmpty()) {
+                for (String vpool : remove) {
+                    unAssingRes.add(uri(vpool));
+                }
+                policyUnAssignment = true;
+            }
+            param.setUnassignfrom(unAssingRes);
+        }
+
+        return policyUnAssignment;
 
     }
 

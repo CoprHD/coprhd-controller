@@ -27,7 +27,7 @@ public class ScheculePoliciesDataTable extends DataTable {
         setDefaultSortField("policyName");
     }
 
-    public static class ScheculePolicy {
+    public static class FileProtectionPolicy {
         public String id;
         public String policyName;
         public String policyType;
@@ -37,50 +37,35 @@ public class ScheculePoliciesDataTable extends DataTable {
         public String priority;
         public String description;
 
-        public ScheculePolicy(FilePolicyRestRep policy) {
-            id = policy.getId().toString();
-            policyName = policy.getName();
-            policyType = getTranslatedPolicyType(policy.getType());
-            appliedAt = policy.getAppliedAt();
-            vPools = policy.getVpool().getName();
-            projects = getProjectsFromPolicy(policy);
-            priority = "";
-            description = policy.getDescription();
-        }
-
-        private String getProjectsFromPolicy(FilePolicyRestRep policy) {
-            StringBuffer projects = new StringBuffer();
-            boolean first = true;
-            if (FilePolicyApplyLevel.project.name().equals(policy.getAppliedAt())) {
-                for (NamedRelatedResourceRep proj : policy.getAssignedResources()) {
-                    if (first) {
-                        projects.append(proj.getName());
-                        first = false;
-                    } else {
-                        projects.append(",").append(proj.getName());
-                    }
-                }
-            }
-            return projects.toString();
-        }
-
-        private String getTranslatedPolicyType(String key) {
-            Map<String, String> translatedProlicyType = Maps.newLinkedHashMap();
-            translatedProlicyType.put("file_snapshot", "File Snapshot");
-            return translatedProlicyType.get(key);
-        }
-    }
-
-    public static class FileProtectionPolicy {
-        public String id;
-        public String policyName;
-        public String policyType;
-
         public FileProtectionPolicy(FilePolicyRestRep policy) {
             id = policy.getId().toString();
             policyName = policy.getName();
             policyType = getTranslatedPolicyType(policy.getType());
+            appliedAt = policy.getAppliedAt();
+            priority = policy.getPriority();
+            description = policy.getDescription();
+            setAssignedResFromPolicy(policy);
+        }
 
+        private void setAssignedResFromPolicy(FilePolicyRestRep policy) {
+            StringBuffer assignRes = new StringBuffer();
+            boolean first = true;
+
+            for (NamedRelatedResourceRep res : policy.getAssignedResources()) {
+                if (first) {
+                    assignRes.append(res.getName());
+                    first = false;
+                } else {
+                    assignRes.append(",").append(res.getName());
+                }
+            }
+            if (FilePolicyApplyLevel.project.name().equals(policy.getAppliedAt())) {
+                vPools = policy.getVpool().getName();
+                projects = assignRes.toString();
+
+            } else if (FilePolicyApplyLevel.vpool.name().equals(policy.getAppliedAt())) {
+                vPools = assignRes.toString();
+            }
         }
 
         private String getTranslatedPolicyType(String key) {
@@ -93,5 +78,4 @@ public class ScheculePoliciesDataTable extends DataTable {
             return translatedProlicyType.get(key);
         }
     }
-
 }

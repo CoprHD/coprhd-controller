@@ -27,6 +27,7 @@ public enum ResourceType {
     CLUSTER("Cluster"),
     VCENTER("Vcenter"),
     VCENTER_DATA_CENTER("VcenterDataCenter"),
+    COMPUTE_VIRTUAL_POOL("ComputeVirtualPool"),
 
     VIRTUAL_ARRAY("VirtualArray"),
     VIRTUAL_POOL("VirtualPool"),

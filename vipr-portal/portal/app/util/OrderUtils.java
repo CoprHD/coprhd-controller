@@ -20,12 +20,8 @@ import com.emc.vipr.model.catalog.OrderCount;
 import com.emc.vipr.model.catalog.OrderLogRestRep;
 import com.emc.vipr.model.catalog.OrderRestRep;
 import com.google.common.collect.Lists;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class OrderUtils {
-    private static final Logger log = LoggerFactory.getLogger(OrderUtils.class);
-
     public static OrderRestRep getOrder(RelatedResourceRep resource) {
         if (resource != null) {
             return getOrder(resource.getId());

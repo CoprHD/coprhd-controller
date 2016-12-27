@@ -438,17 +438,11 @@ public class OrderManagerImpl implements OrderManager {
     }
 
     private boolean createdWithinOneMonth(Order order) {
-        log.info("lbyj2");
         long now = System.currentTimeMillis();
 
-        log.info("lbyj3");
         long createdTime = order.getCreationTime().getTimeInMillis();
 
-        log.info("lbyjj4 now={} createdTime={}", now, createdTime);
-        log.info("dela={} {}", now-createdTime, ONE_MOTHIN_IN_MS);
-        boolean ret = (now - createdTime) < ONE_MOTHIN_IN_MS;
-        log.info("ret1={}", ret);
-        return ret;
+        return (now - createdTime) < ONE_MOTHIN_IN_MS;
     }
 
     public void deleteOrder(Order order) {

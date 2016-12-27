@@ -24,7 +24,6 @@ public interface OrderManager {
 
     public void canBeDeleted(Order order);
 
-    //public void deleteOrder(URI orderId, String tenantID);
     public void deleteOrder(Order order);
 
     public List<Order> getOrders(URI tenantId);

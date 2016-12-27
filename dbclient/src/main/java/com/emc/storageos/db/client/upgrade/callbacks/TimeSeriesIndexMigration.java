@@ -5,7 +5,6 @@
 
 package com.emc.storageos.db.client.upgrade.callbacks;
 
-import com.emc.storageos.db.client.upgrade.BaseDefaultMigrationCallback;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -19,7 +18,7 @@ import com.netflix.astyanax.util.RangeBuilder;
 
 import com.emc.storageos.db.client.impl.*;
 import com.emc.storageos.db.client.model.uimodels.Order;
-import com.emc.storageos.db.client.upgrade.BaseCustomMigrationCallback;
+import com.emc.storageos.db.client.upgrade.BaseDefaultMigrationCallback;
 import com.emc.storageos.svcs.errorhandling.resources.MigrationCallbackException;
 
 public class TimeSeriesIndexMigration extends BaseDefaultMigrationCallback {

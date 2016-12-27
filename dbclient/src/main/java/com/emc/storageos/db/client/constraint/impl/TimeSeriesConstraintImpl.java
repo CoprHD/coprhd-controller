@@ -1,9 +1,10 @@
 package com.emc.storageos.db.client.constraint.impl;
 
-import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
-import com.emc.storageos.db.client.constraint.TimeSeriesConstraint;
-import com.emc.storageos.db.client.impl.*;
-import com.emc.storageos.db.client.model.DataObject;
+import java.net.URI;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.netflix.astyanax.Keyspace;
 import com.netflix.astyanax.connectionpool.OperationResult;
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
@@ -11,14 +12,11 @@ import com.netflix.astyanax.model.Column;
 import com.netflix.astyanax.model.ColumnFamily;
 import com.netflix.astyanax.query.RowQuery;
 import com.netflix.astyanax.serializers.CompositeRangeBuilder;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
-import java.net.URI;
+import com.emc.storageos.db.client.constraint.TimeSeriesConstraint;
+import com.emc.storageos.db.client.impl.*;
+import com.emc.storageos.db.client.model.DataObject;
 
-/**
- * Alternate ID constraint implementation
- */
 public class TimeSeriesConstraintImpl extends ConstraintImpl<TimeSeriesIndexColumnName>
         implements TimeSeriesConstraint {
     private static final Logger log = LoggerFactory.getLogger(TimeSeriesConstraintImpl.class);
@@ -82,7 +80,7 @@ public class TimeSeriesConstraintImpl extends ConstraintImpl<TimeSeriesIndexColu
             OperationResult<Integer> countResult = genQuery(genRangeBuilder()).getCount().execute();
             long count =  countResult.getResult();
 
-            log.info("lby: count={}", count);
+            log.info("count={}", count);
 
             return count;
         }catch (ConnectionException e) {
@@ -98,7 +96,6 @@ public class TimeSeriesConstraintImpl extends ConstraintImpl<TimeSeriesIndexColu
 
     @Override
     protected <T> T createQueryHit(final QueryResult<T> result, Column<TimeSeriesIndexColumnName> column) {
-        log.info("lbyg1");
         lastMatchedTimeStamp = column.getName().getTimeInMicros()/1000;
         return result.createQueryHit(getURI(column));
     }

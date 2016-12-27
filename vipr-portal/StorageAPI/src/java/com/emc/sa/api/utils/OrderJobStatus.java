@@ -13,13 +13,14 @@ import java.util.Collections;
 import java.util.List;
 import java.util.TreeMap;
 
+import org.codehaus.jackson.annotate.JsonIgnore;
+import org.codehaus.jackson.map.ObjectMapper;
+
 import com.emc.storageos.coordinator.client.model.CoordinatorClassInfo;
 import com.emc.storageos.coordinator.client.model.CoordinatorSerializable;
 import com.emc.storageos.coordinator.exceptions.CoordinatorException;
 import com.emc.storageos.coordinator.exceptions.FatalCoordinatorException;
 import com.emc.vipr.model.catalog.OrderJobInfo;
-import org.codehaus.jackson.annotate.JsonIgnore;
-import org.codehaus.jackson.map.ObjectMapper;
 
 public class OrderJobStatus implements CoordinatorSerializable {
     private static final Logger log = LoggerFactory.getLogger(OrderJobStatus.class);

@@ -24,11 +24,8 @@ import com.emc.vipr.client.core.filters.ResourceFilter;
 import com.emc.vipr.client.core.util.ResourceUtils;
 import com.emc.vipr.client.impl.RestClient;
 import com.emc.vipr.model.catalog.*;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class Orders2 extends AbstractCatalogBulkResources<OrderRestRep> implements TenantResources<OrderRestRep> {
-    private static final Logger log = LoggerFactory.getLogger(Orders2.class);
 
     public Orders2(ViPRCatalogClient2 parent, RestClient client) {
         super(parent, client, OrderRestRep.class, PathConstants.ORDER2_URL);
@@ -176,14 +173,6 @@ public class Orders2 extends AbstractCatalogBulkResources<OrderRestRep> implemen
             uriBuilder = uriBuilder.queryParam(SearchConstants.ORDER_MAX_COUNT, maxCount);
         }
         OrderBulkRep response = client.getURI(OrderBulkRep.class, uriBuilder.build());
-
-        log.info("lbye0");
-        try {
-            OrderCount count = getUserOrdersCount(startTime, endTime);
-            log.info("lbye count={}", count.getCounts());
-        }catch(Exception e) {
-            log.error("lbye e=", e);
-        }
         return response.getOrders();
     }
 

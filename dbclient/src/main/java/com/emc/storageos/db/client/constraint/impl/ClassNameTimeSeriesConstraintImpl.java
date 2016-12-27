@@ -6,9 +6,6 @@ package com.emc.storageos.db.client.constraint.impl;
 
 import java.net.URI;
 
-import com.emc.storageos.db.client.constraint.TimeSeriesConstraint;
-import com.netflix.astyanax.model.ByteBufferRange;
-import com.netflix.astyanax.serializers.CompositeRangeBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -18,12 +15,13 @@ import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 import com.netflix.astyanax.model.Column;
 import com.netflix.astyanax.model.ColumnFamily;
 import com.netflix.astyanax.query.RowQuery;
+import com.netflix.astyanax.serializers.CompositeRangeBuilder;
 
-import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.impl.ColumnField;
 import com.emc.storageos.db.client.impl.ClassNameTimeSeriesSerializer;
 import com.emc.storageos.db.client.impl.ClassNameTimeSeriesIndexColumnName;
 import com.emc.storageos.db.client.model.DataObject;
+import com.emc.storageos.db.client.constraint.TimeSeriesConstraint;
 
 public class ClassNameTimeSeriesConstraintImpl extends ConstraintImpl<ClassNameTimeSeriesIndexColumnName>
         implements TimeSeriesConstraint {
@@ -88,7 +86,7 @@ public class ClassNameTimeSeriesConstraintImpl extends ConstraintImpl<ClassNameT
         try {
             OperationResult<Integer> countResult = genQuery(genRangeBuilder()).getCount().execute();
             long count = countResult.getResult();
-            log.info("lbye count={}", count);
+            log.info("count={}", count);
             return count;
         }catch (ConnectionException e) {
             log.error("Failed to get count e=", e);
@@ -103,7 +101,6 @@ public class ClassNameTimeSeriesConstraintImpl extends ConstraintImpl<ClassNameT
 
     @Override
     protected <T> T createQueryHit(final QueryResult<T> result, Column<ClassNameTimeSeriesIndexColumnName> column) {
-        log.info("lby: createQueryHit");
         lastMatchedTimeStamp = column.getName().getTimeInMicros()/1000;
         return result.createQueryHit(getURI(column));
     }

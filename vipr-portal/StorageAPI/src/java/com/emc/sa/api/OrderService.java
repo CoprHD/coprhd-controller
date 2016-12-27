@@ -204,8 +204,6 @@ public class OrderService extends CatalogTaggedResourceService {
     private void startJobQueue() {
         log.info("Starting order service job queue");
         try {
-            // StorageOSUser user = this.getUserFromContext();
-            //OrderServiceJobConsumer consumer = new OrderServiceJobConsumer(this, user, _auditMgr, _dbClient, orderManager);
             OrderServiceJobConsumer consumer = new OrderServiceJobConsumer(this, _auditMgr, _dbClient, orderManager);
             queue = _coordinator.getQueue(ORDER_SERVICE_QUEUE_NAME, consumer, new OrderServiceJobSerializer(), 1);
         } catch (Exception e) {
@@ -467,7 +465,6 @@ public class OrderService extends CatalogTaggedResourceService {
             order.setOrderStatus(OrderStatus.CANCELLED.name());
             client.save(order);
         } else {
-            //orderManager.deleteOrder(order.getId(), "");
             orderManager.deleteOrder(order);
         }
 
@@ -604,22 +601,6 @@ public class OrderService extends CatalogTaggedResourceService {
             Throwable cause = new Throwable("Both tenant and order IDs are empty");
             throw APIException.badRequests.invalidParameter(SearchConstants.TENANT_ID_PARAM, tenantIDsStr, cause);
         }
-
-        /*
-        // Validate the passed start and end times are valid.
-        Date startTime = TimeUtils.getDateTimestamp(startTimeStr);
-        Date endTime = TimeUtils.getDateTimestamp(endTimeStr);
-        TimeUtils.validateTimestamps(startTime, endTime);
-        log.info("Validated requested time window");
-
-        // Setting default start time to yesterday
-        if (startTime == null) {
-            Calendar yesterday = Calendar.getInstance();
-            yesterday.add(Calendar.DATE, -1);
-            startTime = yesterday.getTime();
-            log.info("Setting start time to yesterday {} ", startTime);
-        }
-        */
 
         final long startTimeInMS = getTime(startTimeStr, 0);
         final long endTimeInMS = getTime(endTimeStr, System.currentTimeMillis());
@@ -980,7 +961,6 @@ public class OrderService extends CatalogTaggedResourceService {
         ArgValidator.checkEntity(order, id, true);
         log.info("lbyh0 order={}", order);
 
-        //orderManager.deleteOrder(id, "");
         orderManager.deleteOrder(order);
 
         auditOpSuccess(OperationTypeEnum.DELETE_ORDER, order.auditParameters());

@@ -1892,26 +1892,63 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
             HashMap<String, UnManagedFileQuotaDirectory> qdMap = new HashMap<String, UnManagedFileQuotaDirectory>();
              
             // get first page of quota data, process and insert to database
-
-            IsilonApi.IsilonList<IsilonSmartQuota> quotas = isilonApi.listFileQuotas(null);
-
+            
             HashMap<String, IsilonSmartQuota> tempQuotaMap = new HashMap<String, IsilonSmartQuota>();
-
-            for (IsilonSmartQuota quota : quotas.getList()) {
-                tempQuotaMap.put(quota.getPath(), quota);
+            
+            
+            List<IsilonAccessZone> accessZones = isilonApi.getAccessZones(null);
+            
+            List<String> tempAccessZonePath = new ArrayList<String>();
+            
+            for (IsilonAccessZone accessZone : accessZones) {
+                if (!accessZone.isSystem()) {
+                    tempAccessZonePath.add(accessZone.getPath() + "/");
+                }
             }
             
-            for (IsilonSmartQuota quota : quotas.getList()) {
+            String[] remoteAccessZonePaths = (String[]) tempAccessZonePath.toArray(); 
+            
+            /*
+             *Corner case code: JIRA COP-27008
+             * code scenario : remote remote-access-zone path starts in another access-zone path 
+             * remote access zone-1 : /ifs/zone-a
+             * remote access zone-2 : /ifs/zone-a/zone-b
+             * To handle this scenario, we are taking the discoverable path to start from access zone 
+             * FS path will be : /<access-zone-path>/<v-pool>/<tenant-name>/<project-name> 
+             *   
+             */
+            
+            for (IsilonAccessZone accessZone : accessZones) {
 
-                String fsNativeId = quota.getPath();
-                if (isUnderUnmanagedDiscoveryPath(fsNativeId)) {
-                    int fsPathType = isQuotaOrFile(fsNativeId);
+                String accessZonePath = accessZone.getPath();
 
-                    if (fsPathType == PATH_IS_FILE) {
-                        fsQuotaMap.put(fsNativeId, quota);
+                int accessZoneDiscPathLength = computeCustomConfigPathLengths(accessZonePath);
+
+                IsilonApi.IsilonList<IsilonSmartQuota> quotas = isilonApi.listQuotas(null, accessZonePath);
+
+                for (IsilonSmartQuota quota : quotas.getList()) {
+
+                    if (accessZone.isSystem() && StringUtils.startsWithAny(quota.getPath(), remoteAccessZonePaths)) {
+                        /*
+                         * Corner case code :
+                         * if config path for system access zone starts with just '/ifs' & not with '/ifs/vipr'
+                         * skip further process if quota belongs to
+                         * other AccessZonePath
+                        */
+                        continue;
                     }
-                    if (fsPathType == PATH_IS_QUOTA) {
-                        quotaDirMap.put(fsNativeId, quota);
+
+                    tempQuotaMap.put(quota.getPath(), quota);
+                    String fsNativeId = quota.getPath();
+                    if (isUnderUnmanagedDiscoveryPath(fsNativeId)) {
+                        int fsPathType = isQuotaOrFile(fsNativeId, accessZoneDiscPathLength);
+
+                        if (fsPathType == PATH_IS_FILE) {
+                            fsQuotaMap.put(fsNativeId, quota);
+                        }
+                        if (fsPathType == PATH_IS_QUOTA) {
+                            quotaDirMap.put(fsNativeId, quota);
+                        }
                     }
                 }
             }
@@ -2110,18 +2147,13 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
         return qualified;
     }
     
-    private int isQuotaOrFile(String fsNativeId) {
+    private int isQuotaOrFile(String fsNativeId, int accessZoneDiscPathLength) {
 
-        if (_discPathsLength == 0) {
-            computeCustomConfigPathLengths();
-        }
-
-        int isFile = 0;
         int pathLength = fsNativeId.split("/").length;
 
-        if (pathLength == (_discPathsLength + 1)) {
+        if (pathLength == (accessZoneDiscPathLength + 1)) {
             return PATH_IS_FILE;
-        } else if (pathLength == (_discPathsLength + 2)) {
+        } else if (pathLength == (accessZoneDiscPathLength + 2)) {
             return PATH_IS_QUOTA;
         }
         return PATH_IS_INVALID;
@@ -3527,20 +3559,25 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
     }
     
     /**
-     * Compute the path length for discovering a file system
+     * Compute the path length for discovering a file system for a give AccessZone path
      * its
      * CustomConfigPath + 2
      * where path would be like
-     * /ifs/<access-zone>/<vpool_name>/<tenant_name>/<project_name>
+     * /<access-zone-path>/<vpool_name>/<tenant_name>/<project_name>
+     * <access-zone-path> = /ifs/vipr
      */
-    private void computeCustomConfigPathLengths() {
+    private int computeCustomConfigPathLengths(String accessZonePath) {
         String tempCustomConfigPathLength = getCustomConfigPath();
+        String initalPath = accessZonePath+"/";
+        int discPathLength=0;
         if (StringUtils.isNotEmpty(tempCustomConfigPathLength)) {
-            _discPathsLength = (INITIAL_PATH + tempCustomConfigPathLength).split("/").length;
+            discPathLength = (initalPath + tempCustomConfigPathLength).split("/").length;
         } else {
             _log.error("CustomConfig path {} has not been set ", tempCustomConfigPathLength);
-            _discPathsLength = (INITIAL_PATH).split("/").length;
+            discPathLength = (initalPath).split("/").length;
         }
+        
+        return discPathLength;
     }
 
     /**

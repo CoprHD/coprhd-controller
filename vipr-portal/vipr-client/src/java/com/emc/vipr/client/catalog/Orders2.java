@@ -75,7 +75,7 @@ public class Orders2 extends AbstractCatalogBulkResources<OrderRestRep> implemen
 
     /**
      * Creates a search builder specifically for creating order search queries.
-     * 
+     *
      * @return a order search builder.
      */
     @Override
@@ -87,13 +87,13 @@ public class Orders2 extends AbstractCatalogBulkResources<OrderRestRep> implemen
      * Submit an order
      * <p>
      * API Call: <tt>POST /catalog/orders</tt>
-     * 
+     *
      * @param input
      *            the order
      * @return the newly created order
      */
     public OrderRestRep submit(OrderCreateParam input) {
-        
+
         OrderRestRep order = client
                 .post(OrderRestRep.class, input, PathConstants.ORDER2_URL);
         return order;
@@ -103,7 +103,7 @@ public class Orders2 extends AbstractCatalogBulkResources<OrderRestRep> implemen
      * Schedule an order
      * <p>
      * API Call: <tt>POST /catalog/events</tt>
-     * 
+     *
      * @param input - event creation parameters
      * @return the scheduled events
      */
@@ -112,12 +112,12 @@ public class Orders2 extends AbstractCatalogBulkResources<OrderRestRep> implemen
                 .post(ScheduledEventRestRep.class, input, PathConstants.SCHEDULED_EVENTS_URL);
         return event;
     }
-    
+
     /**
      * Convenience method for submitting orders using a map of parameters.
      * <p>
      * API Call: <tt>POST /catalog/orders</tt>
-     * 
+     *
      * @param tenantId Tenant ID to place the order in
      * @param serviceId Service ID of the service to order
      * @param params Map of parameters to place the order with
@@ -160,7 +160,7 @@ public class Orders2 extends AbstractCatalogBulkResources<OrderRestRep> implemen
         OrderList response = client.getURI(OrderList.class, uriBuilder.build());
         return response.getOrders();
     }
-    
+
     public List<OrderRestRep> listUserOrders2(String startTime, String endTime, String maxCount) {
         UriBuilder uriBuilder = client.uriBuilder(PathConstants.ORDER2_MY_URL);
         if (startTime != null) {
@@ -241,7 +241,7 @@ public class Orders2 extends AbstractCatalogBulkResources<OrderRestRep> implemen
      * Return execution state for an order
      * <p>
      * API Call: <tt>GET /catalog/orders/{id}/execution</tt>
-     * 
+     *
      * @return order's execution state
      */
     public ExecutionStateRestRep getExecutionState(URI orderId) {
@@ -252,7 +252,7 @@ public class Orders2 extends AbstractCatalogBulkResources<OrderRestRep> implemen
      * Return execution logs for an order
      * <p>
      * API Call: <tt>GET /catalog/orders/{id}/execution/logs</tt>
-     * 
+     *
      * @return order's execution logs
      */
     public List<ExecutionLogRestRep> getExecutionLogs(URI orderId) {
@@ -264,7 +264,7 @@ public class Orders2 extends AbstractCatalogBulkResources<OrderRestRep> implemen
      * Return logs for an order
      * <p>
      * API Call: <tt>GET /catalog/orders/{id}/logs</tt>
-     * 
+     *
      * @return order's logs
      */
     public List<OrderLogRestRep> getLogs(URI orderId) {
@@ -276,7 +276,7 @@ public class Orders2 extends AbstractCatalogBulkResources<OrderRestRep> implemen
      * Cancel a scheduled order
      * <p>
      * API Call: <tt>POST /catalog/orders/{id}/cancel</tt>
-     * 
+     *
      */
     public void cancelOrder(URI id) {
         client.post(String.class, PathConstants.ORDER2_CANCEL_URL, id);
@@ -286,31 +286,31 @@ public class Orders2 extends AbstractCatalogBulkResources<OrderRestRep> implemen
      * Deactivates the given order by ID.
      * <p>
      * API Call: <tt>POST /catalog/orders/{id}/deactivate</tt>
-     * 
+     *
      * @param id
      *            the ID of catalog order to deactivate.
      */
     public void deactivate(URI id) {
         doDeactivate(id);
     }
-    
+
     /**
      * Return scheduled event for an order
      * <p>
      * API Call: <tt>GET /catalog/events/{id}</tt>
-     * 
+     *
      * @return order's logs
      */
     public ScheduledEventRestRep getScheduledEvent(URI eventId) {
         ScheduledEventRestRep event = client.get(ScheduledEventRestRep.class, PathConstants.SCHEDULED_EVENTS_URL + "/{id}", eventId);
         return event;
     }
-    
+
     /**
      * Update an order
      * <p>
      * API Call: <tt>PUT /catalog/events/{id}</tt>
-     * 
+     *
      * @param eventId - URN for the event
      * @param input - event update parameters
      * @return the scheduled events
@@ -321,12 +321,12 @@ public class Orders2 extends AbstractCatalogBulkResources<OrderRestRep> implemen
                 .put(ScheduledEventRestRep.class, input, uri);
         return event;
     }
-    
+
     /**
      * Deactivate an recurring event
      * <p>
      * API Call: <tt>POST /catalog/events/{id}/deactivate</tt>
-     * 
+     *
      * @param eventId - URN for the event
      */
     public void deactivateScheduledEvent(URI eventId) {

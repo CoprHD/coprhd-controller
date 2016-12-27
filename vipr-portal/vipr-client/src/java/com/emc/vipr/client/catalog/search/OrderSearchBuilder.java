@@ -9,6 +9,7 @@ import static com.emc.vipr.client.catalog.impl.SearchConstants.ORDER_MAX_COUNT;
 import static com.emc.vipr.client.catalog.impl.SearchConstants.ORDER_STATUS_PARAM;
 import static com.emc.vipr.client.catalog.impl.SearchConstants.START_TIME_PARAM;
 import static com.emc.vipr.client.catalog.impl.SearchConstants.TENANT_ID_PARAM;
+import static com.emc.vipr.client.catalog.impl.SearchConstants.ORDER_MAX_COUNT;
 
 import java.net.URI;
 import java.util.HashMap;

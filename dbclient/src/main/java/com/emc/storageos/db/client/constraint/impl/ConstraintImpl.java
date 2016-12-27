@@ -84,7 +84,7 @@ public abstract class ConstraintImpl <T extends CompositeIndexColumnName> implem
     }
 
     public abstract boolean isValid();
-    
+
     public void setStartId(URI startId) {
         if (startId != null) {
             this.startId = startId.toString();

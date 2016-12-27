@@ -79,7 +79,7 @@ public class RecentOrdersDataTable extends OrderDataTable {
 
     /**
      * Filters out orders that are not associated with the selected tenant.
-     * 
+     *
      * @param orders
      *            the orders.
      */
@@ -94,7 +94,7 @@ public class RecentOrdersDataTable extends OrderDataTable {
 
     /**
      * Filters out orders that are not submitted by the selected user (if applicable).
-     * 
+     *
      * @param orders
      *            the orders.
      */

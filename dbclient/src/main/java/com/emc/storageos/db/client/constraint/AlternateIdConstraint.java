@@ -174,7 +174,7 @@ public interface AlternateIdConstraint extends Constraint {
             DataObjectType doType = TypeMap.getDoType(UnManagedFileSystem.class);
             return new AlternateIdConstraintImpl(doType.getColumnField(NATIVE_GUID), altId);
         }
-        
+
         public static AlternateIdConstraint getUnManagedFileQuotaDirectoryInfoParentNativeGUIdConstraint(String altId) {
             DataObjectType doType = TypeMap.getDoType(UnManagedFileQuotaDirectory.class);
             return new AlternateIdConstraintImpl(doType.getColumnField("parentFsNativeGuid"), altId);
@@ -354,7 +354,7 @@ public interface AlternateIdConstraint extends Constraint {
             DataObjectType doType = TypeMap.getDoType(StoragePort.class);
             return new AlternateIdConstraintImpl(doType.getColumnField("taggedVirtualArrays"), varrayId);
         }
-        
+
         public static AlternateIdConstraint getStoragePortsForStorageSystemConstraint(String storageSystem) {
             DataObjectType doType = TypeMap.getDoType(StoragePort.class);
             return new AlternateIdConstraintImpl(doType.getColumnField("storageDevice"), storageSystem);
@@ -678,7 +678,7 @@ public interface AlternateIdConstraint extends Constraint {
             DataObjectType doType = TypeMap.getDoType(Workflow.class);
             return new AlternateIdConstraintImpl(doType.getColumnField("orchTaskId"), orchTaskId);
         }
-        
+
         public static AlternateIdConstraint getWorkflowStepDataByStep(String stepId) {
             DataObjectType doType = TypeMap.getDoType(WorkflowStepData.class);
             return new AlternateIdConstraintImpl(doType.getColumnField("stepId"), stepId);
@@ -783,18 +783,6 @@ public interface AlternateIdConstraint extends Constraint {
         public static AlternateIdConstraint getExecutionWindowTenantIdIdConstraint(String altId) {
             DataObjectType doType = TypeMap.getDoType(ExecutionWindow.class);
             return new AlternateIdConstraintImpl(doType.getColumnField(ExecutionWindow.TENANT), altId);
-        }
-
-        public static AlternateIdConstraint getOrdersByUser(String user, long startTimeInMS, long endTimeInMS) {
-            DataObjectType doType = TypeMap.getDoType(Order.class);
-            ColumnField field = doType.getColumnField(Order.SUBMITTED_BY_USER_ID);
-            return new ClassNameTimeSeriesConstraintImpl(field, user, startTimeInMS, endTimeInMS);
-        }
-
-        public static AlternateIdConstraint getOrders(URI tid, long startTimeInMS, long endTimeInMS) {
-            DataObjectType doType = TypeMap.getDoType(Order.class);
-            ColumnField field = doType.getColumnField(Order.SUBMITTED);
-            return new TimeSeriesConstraintImpl(tid.toString(), field, startTimeInMS, endTimeInMS);
         }
     }
 }

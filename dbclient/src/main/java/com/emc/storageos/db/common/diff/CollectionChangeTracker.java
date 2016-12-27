@@ -207,9 +207,17 @@ public class CollectionChangeTracker<T extends SchemaObject, S extends Diff> ext
                         log.info("EnumType {} has been removed", at.describe());
                         continue;
                     }
+
+                    log.info("lbyx0: at={}", at);
+                    if (at.canBeIgnore()) {
+                        log.info("lby1 schema=", schema.describe());
+                        continue;
+                    }
                 }
+
                 log.warn("An unsupported schema change has been made. {} has been removed.",
                         schema.describe());
+                log.info("lbyx stack=", new Throwable());
                 returnVal = false;
             }
         }

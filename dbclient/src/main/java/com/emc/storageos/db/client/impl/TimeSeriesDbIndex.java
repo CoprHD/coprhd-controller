@@ -1,21 +1,23 @@
+/*
+ * Copyright (c) 2016 EMC Corporation
+ * All Rights Reserved
+ */
 package com.emc.storageos.db.client.impl;
 
-import com.emc.storageos.db.client.model.DataObject;
-import com.emc.storageos.db.client.model.uimodels.Order;
-import com.netflix.astyanax.ColumnListMutation;
-import com.netflix.astyanax.model.Column;
-import com.netflix.astyanax.model.ColumnFamily;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.net.URI;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-/**
- * Created by brian on 16-11-16.
- */
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.netflix.astyanax.ColumnListMutation;
+import com.netflix.astyanax.model.Column;
+import com.netflix.astyanax.model.ColumnFamily;
+
+import com.emc.storageos.db.client.model.DataObject;
+import com.emc.storageos.db.client.model.uimodels.Order;
+
 public class TimeSeriesDbIndex extends DbIndex<TimeSeriesIndexColumnName> {
     private static final Logger _log = LoggerFactory.getLogger(TimeSeriesDbIndex.class);
 
@@ -38,6 +40,7 @@ public class TimeSeriesDbIndex extends DbIndex<TimeSeriesIndexColumnName> {
 
         Order order = (Order)obj;
         String indexKey = order.getTenant();
+        _log.info("lbyc: indexKey={} indexCF={}", indexKey, indexCF);
         ColumnListMutation<TimeSeriesIndexColumnName> indexColList =
                 mutator.getIndexColumnList(indexCF, indexKey);
 
@@ -56,47 +59,24 @@ public class TimeSeriesDbIndex extends DbIndex<TimeSeriesIndexColumnName> {
                          Map<String, List<Column<CompositeColumnName>>> fieldColumnMap) {
         UUID uuid = column.getName().getTimeUUID();
 
-        _log.info("lbyd0: recordKey={} className={} stack=", recordKey, className, new Throwable());
-        _log.info("column={}", column.getName());
         if (!className.equals("Order")) {
             throw new RuntimeException("Can not create TimeSeriesIndex on non Order object");
         }
 
         List<Column<CompositeColumnName>> value = fieldColumnMap.get("tenant");
         Column<CompositeColumnName> tenantCol = value.get(0);
-        CompositeColumnName columnName = tenantCol.getName();
         String tid = tenantCol.getStringValue();
-        _log.info("lbyd3 tid={}", tid);
 
         ColumnListMutation<TimeSeriesIndexColumnName> indexColList = mutator.getIndexColumnList(indexCF, tid);
 
-        _log.info("lbyf0 to delete indexKey={}", tid);
         indexColList.deleteColumn(new TimeSeriesIndexColumnName(className, recordKey, uuid));
 
         return true;
     }
 
-    /*
-    String getRowKey(CompositeColumnName column, Object value) {
-        if (indexByKey) {
-            return column.getTwo();
-        }
-
-        return value.toString();
-    }
-
-    String getRowKey(Column<CompositeColumnName> column) {
-        if (indexByKey) {
-            return column.getName().getTwo();
-        }
-
-        return column.getStringValue();
-    }
-    */
-
     @Override
     public String toString() {
-        StringBuilder builder = new StringBuilder("AltIdDbIndex class");
+        StringBuilder builder = new StringBuilder(this.getClass().getCanonicalName());
         builder.append("\t");
         builder.append(super.toString());
         builder.append("\n");

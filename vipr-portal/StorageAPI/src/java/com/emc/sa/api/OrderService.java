@@ -4,48 +4,35 @@
  */
 package com.emc.sa.api;
 
-import static com.emc.sa.api.mapper.OrderMapper.createNewObject;
-import static com.emc.sa.api.mapper.OrderMapper.createOrderParameters;
-import static com.emc.sa.api.mapper.OrderMapper.map;
-import static com.emc.sa.api.mapper.OrderMapper.toExecutionLogList;
-import static com.emc.sa.api.mapper.OrderMapper.toOrderLogList;
-import static com.emc.storageos.db.client.URIUtil.uri;
-import static com.emc.storageos.db.client.URIUtil.asString;
-import static com.emc.storageos.api.mapper.DbObjectMapper.toNamedRelatedResource;
-
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.charset.Charset;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import javax.ws.rs.*;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.curator.framework.recipes.locks.InterProcessLock;
 import org.springframework.beans.factory.annotation.Autowired;
 import com.google.common.collect.Lists;
 
+import com.emc.sa.engine.scheduler.SchedulerDataManager;
+import com.emc.sa.model.util.ScheduleTimeHelper;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.model.uimodels.*;
 import com.emc.storageos.db.client.util.ExecutionWindowHelper;
 import com.emc.storageos.db.client.model.EncryptionProvider;
 import com.emc.storageos.db.exceptions.DatabaseException;
-
-import com.emc.storageos.services.util.NamedScheduledThreadPoolExecutor;
 import com.emc.storageos.services.util.TimeUtils;
-
-import com.emc.sa.engine.scheduler.SchedulerDataManager;
-import com.emc.sa.model.dao.ModelClient;
-import com.emc.sa.model.util.ScheduleTimeHelper;
+import com.emc.storageos.services.util.NamedScheduledThreadPoolExecutor;
+import com.emc.vipr.model.catalog.*;
 
 import com.emc.sa.api.mapper.OrderFilter;
 import com.emc.sa.api.mapper.OrderMapper;
@@ -59,11 +46,22 @@ import com.emc.sa.descriptor.ServiceFieldGroup;
 import com.emc.sa.descriptor.ServiceFieldTable;
 import com.emc.sa.descriptor.ServiceItem;
 import com.emc.sa.util.TextUtils;
+import com.emc.sa.model.dao.ModelClient;
 
+import static com.emc.sa.api.mapper.OrderMapper.createNewObject;
+import static com.emc.sa.api.mapper.OrderMapper.createOrderParameters;
+import static com.emc.sa.api.mapper.OrderMapper.map;
+import static com.emc.sa.api.mapper.OrderMapper.toExecutionLogList;
+import static com.emc.sa.api.mapper.OrderMapper.toOrderLogList;
 import com.emc.storageos.api.service.authorization.PermissionsHelper;
 import com.emc.storageos.api.service.impl.resource.ArgValidator;
 import com.emc.storageos.api.service.impl.response.ResRepFilter;
 import com.emc.storageos.api.service.impl.response.RestLinkFactory;
+
+import static com.emc.storageos.db.client.URIUtil.uri;
+import static com.emc.storageos.db.client.URIUtil.asString;
+import static com.emc.storageos.api.mapper.DbObjectMapper.toNamedRelatedResource;
+
 import com.emc.storageos.model.BulkIdParam;
 import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.RelatedResourceRep;
@@ -80,7 +78,6 @@ import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.volumecontroller.impl.monitoring.RecordableEventManager;
 
 import com.emc.vipr.client.catalog.impl.SearchConstants;
-import com.emc.vipr.model.catalog.*;
 
 @DefaultPermissions(
         readRoles = {},
@@ -88,8 +85,6 @@ import com.emc.vipr.model.catalog.*;
 @Path("/catalog/orders")
 public class OrderService extends CatalogTaggedResourceService {
     private static final Logger log = LoggerFactory.getLogger(OrderService.class);
-
-    private static final String DATE_TIME_FORMAT = "yyyy-MM-dd_HH:mm:ss";
 
     private static final String EVENT_SERVICE_TYPE = "catalog-order";
 
@@ -188,12 +183,12 @@ public class OrderService extends CatalogTaggedResourceService {
 
     /**
      * List data for the specified orders.
-     * 
+     *
      * @param param POST data containing the id list.
      * @prereq none
      * @brief List data of specified orders
      * @return list of representations.
-     * 
+     *
      * @throws DatabaseException When an error occurs querying the database.
      */
     @POST
@@ -245,11 +240,12 @@ public class OrderService extends CatalogTaggedResourceService {
      * parameter: 'orderStatus' The status for the order
      * parameter: 'startTime' Start time to search for orders
      * parameter: 'endTime' End time to search for orders
-     * 
+     *
      * @return Return a list of matching orders or an empty list if no match was found.
      */
     @Override
     protected SearchResults getOtherSearchResults(Map<String, List<String>> parameters, boolean authorized) {
+        log.info("lbyc00");
         StorageOSUser user = getUserFromContext();
         String tenantId = user.getTenantId();
         if (parameters.containsKey(SearchConstants.TENANT_ID_PARAM)) {
@@ -279,11 +275,11 @@ public class OrderService extends CatalogTaggedResourceService {
         else if (parameters.containsKey(SearchConstants.START_TIME_PARAM) || parameters.containsKey(SearchConstants.END_TIME_PARAM)) {
             Date startTime = null;
             if (parameters.containsKey(SearchConstants.START_TIME_PARAM)) {
-                startTime = getDateTimestamp(parameters.get(SearchConstants.START_TIME_PARAM).get(0));
+                startTime = TimeUtils.getDateTimestamp(parameters.get(SearchConstants.START_TIME_PARAM).get(0));
             }
             Date endTime = null;
             if (parameters.containsKey(SearchConstants.END_TIME_PARAM)) {
-                endTime = getDateTimestamp(parameters.get(SearchConstants.END_TIME_PARAM).get(0));
+                endTime = TimeUtils.getDateTimestamp(parameters.get(SearchConstants.END_TIME_PARAM).get(0));
             }
             if (startTime == null && endTime == null) {
                 throw APIException.badRequests.invalidParameterSearchMissingParameter(getResourceClass().getName(),
@@ -297,7 +293,11 @@ public class OrderService extends CatalogTaggedResourceService {
                 maxCount = Integer.parseInt(maxCountParam);
             }
 
-            log.info("lby0: maxCount={} startTime={}, endTime={}", maxCount, startTime, endTime);
+            log.info("lbyc0: maxCount={} startTime={}, endTime={}", maxCount, startTime, endTime);
+
+            if (startTime.after(endTime)) {
+                throw APIException.badRequests.endTimeBeforeStartTime(startTime.toString(), endTime.toString());
+            }
 
             orders = orderManager.findOrdersByTimeRange(uri(tenantId), startTime, endTime, maxCount);
         }
@@ -443,7 +443,7 @@ public class OrderService extends CatalogTaggedResourceService {
 
     /**
      * Gets the order logs
-     * 
+     *
      * @param orderId the URN of an order
      * @brief List Order Logs
      * @return a list of order logs
@@ -467,7 +467,7 @@ public class OrderService extends CatalogTaggedResourceService {
 
     /**
      * Gets the order execution
-     * 
+     *
      * @param orderId the URN of an order
      * @brief Get Order Execution
      * @return an order execution
@@ -489,7 +489,7 @@ public class OrderService extends CatalogTaggedResourceService {
 
     /**
      * Gets the order execution logs
-     * 
+     *
      * @param orderId the URN of an order
      * @brief Get Order Execution Logs
      * @return order execution logs
@@ -534,11 +534,30 @@ public class OrderService extends CatalogTaggedResourceService {
     }
 
     /**
+     * Gets the list of orders for current user
+     *
+     * @brief List Orders
+     * @return a list of orders
+     * @throws DatabaseException when a DB error occurs
+     */
+    @GET
+    @Path("")
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    public OrderList getUserOrders() throws DatabaseException {
+
+        StorageOSUser user = getUserFromContext();
+
+        List<Order> orders = orderManager.getUserOrders(user, 0, System.currentTimeMillis(), -1);
+
+        return toOrderList(orders);
+    }
+
+    /**
      * Gets the list of orders within a time range for current user
      *
      * @brief List Orders
-     * @param startTimeStr
-     * @param endTimeStr
+     * @param startTimeStr start time of the query
+     * @param endTimeStr  end time of the query
      * @param maxCount The max number of orders this API returns
      * @return a list of orders
      * @throws DatabaseException when a DB error occurs
@@ -546,43 +565,40 @@ public class OrderService extends CatalogTaggedResourceService {
     @GET
     @Path("/my-orders")
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    public OrderBulkRep getUserOrders(@DefaultValue("") @QueryParam(SearchConstants.START_TIME_PARAM) String startTimeStr,
-                               @DefaultValue("") @QueryParam(SearchConstants.END_TIME_PARAM) String endTimeStr,
-                               @DefaultValue("-1") @QueryParam(SearchConstants.ORDER_MAX_COUNT) String maxCount)
-            throws DatabaseException {
+    public OrderBulkRep getUserOrders(
+            @DefaultValue("") @QueryParam(SearchConstants.START_TIME_PARAM) String startTimeStr,
+            @DefaultValue("") @QueryParam(SearchConstants.END_TIME_PARAM) String endTimeStr,
+            @DefaultValue("-1") @QueryParam(SearchConstants.ORDER_MAX_COUNT) String maxCount) throws DatabaseException {
 
         StorageOSUser user = getUserFromContext();
 
         log.info("user={}", user.getName());
 
         int max = Integer.parseInt(maxCount);
-        long startTimeInMS = 0;
-        long endTimeInMS = System.currentTimeMillis();
 
-        if (!startTimeStr.isEmpty()) {
-            Date startTime = getDateTimestamp(startTimeStr);
-            startTimeInMS = startTime.getTime();
-        }
-
-        if (!endTimeStr.isEmpty()) {
-            Date endTime = getDateTimestamp(endTimeStr);
-            endTimeInMS = endTime.getTime();
-        }
+        long startTimeInMS = getTime(startTimeStr, 0);
+        long endTimeInMS = getTime(endTimeStr, System.currentTimeMillis());
 
         if (startTimeInMS > endTimeInMS) {
             throw APIException.badRequests.endTimeBeforeStartTime(startTimeStr, endTimeStr);
         }
 
-        log.info("lby00 start={} end={} max={}", startTimeInMS, endTimeInMS, max);
+        log.info("start={} end={} max={}", startTimeInMS, endTimeInMS, max);
+
         List<Order> orders = orderManager.getUserOrders(user, startTimeInMS, endTimeInMS, max);
-        log.info("lby0 done0");
 
         List<OrderRestRep> list = toOrders(orders, user);
 
-        OrderBulkRep resp = new OrderBulkRep(list);
-        log.info("lby0 done1");
+        return new OrderBulkRep(list);
+    }
 
-        return resp;
+    private long getTime(String timeStr, long defaultTime) {
+        if (timeStr.isEmpty()) {
+            return defaultTime;
+        }
+
+        Date startTime = TimeUtils.getDateTimestamp(timeStr);
+        return startTime.getTime();
     }
 
     private List<OrderRestRep> toOrders(List<Order> orders, StorageOSUser user) {
@@ -615,54 +631,24 @@ public class OrderService extends CatalogTaggedResourceService {
 
         StorageOSUser user = getUserFromContext();
 
-        log.info("lbyb0:starTime={} endTime={} maxCount={} user={}",
-                new Object[] {startTimeStr, endTimeStr, user.getName()});
+        log.info("user={}", user.getName());
 
-        long startTimeInMS = 0;
-        long endTimeInMS = TimeUtils.getCurrentTime();
-
-        if (!startTimeStr.isEmpty()) {
-            Date startTime = getDateTimestamp(startTimeStr);
-            startTimeInMS = startTime.getTime();
-        }
-
-        if (!endTimeStr.isEmpty()) {
-            Date endTime = getDateTimestamp(endTimeStr);
-            endTimeInMS = endTime.getTime();
-        }
-
-        log.info("lbyb0 start={} end={}", startTimeInMS, endTimeInMS);
+        long startTimeInMS = getTime(startTimeStr, 0);
+        long endTimeInMS = getTime(endTimeStr, System.currentTimeMillis());
 
         if (startTimeInMS > endTimeInMS) {
             throw APIException.badRequests.endTimeBeforeStartTime(startTimeStr, endTimeStr);
         }
 
+        log.info("start={} end={}", startTimeInMS, endTimeInMS);
         long count = orderManager.getOrderCount(user, startTimeInMS, endTimeInMS);
-        log.info("lbyb0 count={} done0", count);
+        log.info("count={}", count);
 
         OrderCount resp = new OrderCount();
+
         resp.put(user.getName(), count);
 
         return resp;
-    }
-
-    /**
-     * Gets the list of orders for current user
-     *
-     * @brief List Orders
-     * @return a list of orders
-     * @throws DatabaseException when a DB error occurs
-     */
-    @GET
-    @Path("")
-    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    public OrderList getUserOrders() throws DatabaseException {
-
-        StorageOSUser user = getUserFromContext();
-
-        List<Order> orders = orderManager.getUserOrders(user, 0, System.currentTimeMillis(), -1);
-
-        return toOrderList(orders);
     }
 
     private Order getOrderById(URI id, boolean checkInactive) {
@@ -682,10 +668,10 @@ public class OrderService extends CatalogTaggedResourceService {
     }
 
     /**
-     * @brief Get number of orders within a time range for the given tenants
-     * @param startTimeStr
-     * @param endTimeStr
-     * @return  number of orders of each tenant
+     * @brief Get number of orders under given tenants within a time range
+     * @param startTimeStr start time
+     * @param endTimeStr   end time
+     * @return  number of orders within the time range of each tenant
      * @throws DatabaseException when a DB error occurs
      */
     @GET
@@ -699,53 +685,38 @@ public class OrderService extends CatalogTaggedResourceService {
 
         StorageOSUser user = getUserFromContext();
 
-        log.info("lbya0:starTime={} endTime={} maxCount={} user={}",
-                new Object[] {startTimeStr, endTimeStr, user.getName()});
+        log.info("user={}", user.getName());
 
-        List<URI> tids= getTenantIDs(tenantIDs);
-
-        long startTimeInMS = 0;
-        long endTimeInMS = TimeUtils.getCurrentTime();
-
-        if (!startTimeStr.isEmpty()) {
-            Date startTime = getDateTimestamp(startTimeStr);
-            startTimeInMS = startTime.getTime();
-        }
-
-        if (!endTimeStr.isEmpty()) {
-            Date endTime = getDateTimestamp(endTimeStr);
-            endTimeInMS = endTime.getTime();
-        }
-
-        log.info("lbyb0 start={} end={}", startTimeInMS, endTimeInMS);
+        long startTimeInMS = getTime(startTimeStr, 0);
+        long endTimeInMS = getTime(endTimeStr, System.currentTimeMillis());
 
         if (startTimeInMS > endTimeInMS) {
             throw APIException.badRequests.endTimeBeforeStartTime(startTimeStr, endTimeStr);
         }
 
+        List<URI> tids= toIDs(SearchConstants.TENANT_IDS_PARAM, tenantIDs);
+
+        log.info("lbyb0 start={} end={} tids={}", startTimeInMS, endTimeInMS, tids);
+
         Map<String, Long> countMap = orderManager.getOrderCount(tids, startTimeInMS, endTimeInMS);
         log.info("lbyb0 count={} done0", countMap);
 
-        OrderCount resp = new OrderCount();
-        resp.setCountMap(countMap);
+        OrderCount resp = new OrderCount( countMap);
 
         return resp;
     }
 
-    private List<URI> getTenantIDs(@DefaultValue("") @QueryParam(SearchConstants.TENANT_IDS_PARAM) String tenantIDs) {
-        if (tenantIDs.isEmpty()) {
-            throw APIException.badRequests.invalidParameter(SearchConstants.TENANT_IDS_PARAM, tenantIDs);
-        }
-
-        String[] tenantIDsInStr = tenantIDs.split(",");
+    private List<URI> toIDs(String parameterName, String idsStr) {
         List<URI> ids = new ArrayList();
+
+        String[] idsInStr = idsStr.split(",");
         try {
-            for (String id : tenantIDsInStr) {
+            for (String id : idsInStr) {
                 URI uri = new URI(id);
                 ids.add(uri);
             }
         }catch(URISyntaxException e) {
-            throw APIException.badRequests.invalidParameter(SearchConstants.TENANT_IDS_PARAM, tenantIDs, e);
+            throw APIException.badRequests.invalidParameter(parameterName, idsStr, e);
         }
 
         return ids;
@@ -753,7 +724,7 @@ public class OrderService extends CatalogTaggedResourceService {
 
     /**
      * Deactivates the order
-     * 
+     *
      * @param id the URN of an catalog order to be deactivated
      * @brief Deactivate Order
      * @return OK if deactivation completed successfully
@@ -817,27 +788,6 @@ public class OrderService extends CatalogTaggedResourceService {
             }
         }
         return null;
-    }
-
-    private static Date getDateTimestamp(String timestampStr) {
-        if (StringUtils.isBlank(timestampStr)) {
-            return null;
-        }
-
-        try {
-            SimpleDateFormat dateFormat = new SimpleDateFormat(DATE_TIME_FORMAT);
-            return dateFormat.parse(timestampStr);
-        } catch (ParseException pe) {
-            return getDateFromLong(timestampStr);
-        }
-    }
-
-    private static Date getDateFromLong(String timestampStr) {
-        try {
-            return new Date(Long.parseLong(timestampStr));
-        } catch (NumberFormatException n) {
-            throw APIException.badRequests.invalidDate(timestampStr);
-        }
     }
 
     public static class OrderResRepFilter<E extends RelatedResourceRep> extends ResRepFilter<E>

@@ -74,7 +74,7 @@ public class MigrationHandlerImpl implements MigrationHandler {
 
     /**
      * Package where model classes are defined
-     * 
+     *
      * @param packages
      */
     public void setPackages(String... packages) {
@@ -89,7 +89,7 @@ public class MigrationHandlerImpl implements MigrationHandler {
 
     /**
      * The packages to be ignored in the comparing
-     * 
+     *
      * @param pkgs
      */
     public void setIgnoredPackages(String... pkgs) {
@@ -98,7 +98,7 @@ public class MigrationHandlerImpl implements MigrationHandler {
 
     /**
      * Set coordinator client
-     * 
+     *
      * @param coordinator
      */
     public void setCoordinator(CoordinatorClient coordinator) {
@@ -112,10 +112,10 @@ public class MigrationHandlerImpl implements MigrationHandler {
     public DbClient getDbClient() {
         return dbClient;
     }
-	
+
     /**
      * Set db client
-     * 
+     *
      * @param dbClient
      */
     public void setDbClient(DbClient dbClient) {
@@ -130,7 +130,7 @@ public class MigrationHandlerImpl implements MigrationHandler {
 
     /**
      * Set service info
-     * 
+     *
      * @param service
      */
     public void setService(Service service) {
@@ -140,10 +140,10 @@ public class MigrationHandlerImpl implements MigrationHandler {
     public Map<String, List<BaseCustomMigrationCallback>> getCustomMigrationCallbacks() {
 		return customMigrationCallbacks;
 	}
-    
+
     /**
      * set versioned custom migration callbacks
-     * 
+     *
      * @param customMigrationCallbacks
      */
     public void setCustomMigrationCallbacks(Map<String, List<BaseCustomMigrationCallback>>
@@ -165,6 +165,7 @@ public class MigrationHandlerImpl implements MigrationHandler {
      */
     @Override
     public boolean run() throws DatabaseException {
+        log.info("lbya0");
         Date startTime = new Date();
         // set state to migration_init and wait for all nodes to reach this state
         setDbConfig(DbConfigConstants.MIGRATION_INIT);
@@ -183,19 +184,19 @@ public class MigrationHandlerImpl implements MigrationHandler {
                 schemaUtil.setCurrentVersion(targetVersion);
             }
             return true;
-        } 
-        
+        }
+
         if (schemaUtil.isGeoDbsvc()) {
             boolean schemaVersionChanged = isDbSchemaVersionChanged();
 
             // scan and update cassandra schema
             checkGeoDbSchema();
-            
+
             // no migration procedure for geosvc, just wait till migration is done on one of the
             // dbsvcs
             log.warn("Migration is not supported for Geodbsvc. Wait till migration is done");
             statusChecker.waitForMigrationDone();
-            
+
             // Update vdc version
             if (schemaVersionChanged) {
                 schemaUtil.insertOrUpdateVdcVersion(dbClient, true);
@@ -206,12 +207,12 @@ public class MigrationHandlerImpl implements MigrationHandler {
             // need to copy geo-replicated resources from local to geo db.
             statusChecker.waitForAllNodesMigrationInit(Constants.GEODBSVC_NAME);
         }
-        
+
         InterProcessLock lock = null;
         String currentSchemaVersion = null;
         int retryCount = 0;
         while (retryCount < MAX_MIGRATION_RETRY) {
-            log.debug("Migration handlers - Start. Trying to grab lock ...");
+            log.info("Migration handlers - Start. Trying to grab lock ...");
             try {
                 // grab global lock for migration
                 lock = getLock(DB_MIGRATION_LOCK);
@@ -257,7 +258,7 @@ public class MigrationHandlerImpl implements MigrationHandler {
                     log.info("Start scanning and creating new column families");
                     schemaUtil.checkCf(true);
                     log.info("Scanning and creating new column families succeed");
-                    
+
                     DbSchemasDiff diff = new DbSchemasDiff(persistedSchema, currentSchema,
                             ignoredPkgs);
                     if (diff.isChanged()) {
@@ -288,7 +289,7 @@ public class MigrationHandlerImpl implements MigrationHandler {
 
                     persistSchema(targetVersion, DbSchemaChecker.marshalSchemas(currentSchema,
                             null));
-                    
+
                     schemaUtil.dropUnusedCfsIfExists();
                     // set current version in zk
                     schemaUtil.setCurrentVersion(targetVersion);
@@ -346,14 +347,14 @@ public class MigrationHandlerImpl implements MigrationHandler {
         List<String> callStack = new ArrayList<String>();
         for (StackTraceElement t : e.getStackTrace()){
             callStack.add(t.toString());
-        }       
+        }
         failure.setCallStack(callStack);
         coordinator.persistRuntimeState(Constants.UPGRADE_FAILURE_INFO, failure);
     }
-    
+
     private void markMigrationFailure(Date startTime, String currentSchemaVersion, Exception e) {
         persistMigrationFailInfo(startTime, e);
-        
+
         String errMsg =
                 String.format("DB schema migration from %s to %s failed due to an unexpected error.",
                         currentSchemaVersion, targetVersion);
@@ -369,7 +370,7 @@ public class MigrationHandlerImpl implements MigrationHandler {
             log.error(e.getMessage(), e);
         }
     }
-    
+
     private boolean isUnRetryableException(Exception e) {
         return e instanceof FatalDatabaseException ||
                 e instanceof FatalCoordinatorException ||
@@ -458,10 +459,10 @@ public class MigrationHandlerImpl implements MigrationHandler {
 
     /**
      * Figure out all migration callbacks and run from given checkpoint
-     * 
+     *
      * @param diff
      * @param checkpoint
-     * @throws MigrationCallbackException 
+     * @throws MigrationCallbackException
      */
     private void runMigrationCallbacks(DbSchemasDiff diff, String checkpoint) throws MigrationCallbackException {
         List<MigrationCallback> callbacks = new ArrayList<>();
@@ -492,7 +493,7 @@ public class MigrationHandlerImpl implements MigrationHandler {
                     }
                 }
 
-                log.info("Invoking migration callback: " + callback.getName());
+                log.info("lbyt0 Invoking migration callback: {} class={} ", callback.getName(), callback.getClass().getName());
                 try {
                     callback.process();
                 } catch (MigrationCallbackException ex) {
@@ -535,7 +536,7 @@ public class MigrationHandlerImpl implements MigrationHandler {
 
     /**
      * Determines the default migration callbacks for a class and field and returns a list of handlers
-     * 
+     *
      * @param annotationTypes
      * @return
      */
@@ -591,7 +592,7 @@ public class MigrationHandlerImpl implements MigrationHandler {
 
         /*
          * (non-Javadoc)
-         * 
+         *
          * @see java.util.Comparator#compare(java.lang.Object, java.lang.Object)
          */
         @Override
@@ -632,7 +633,7 @@ public class MigrationHandlerImpl implements MigrationHandler {
 
     /**
      * Determines the custom migration callbacks for the current version and returns a list of handlers
-     * 
+     *
      * @return
      */
     private List<BaseCustomMigrationCallback> generateCustomMigrationCallbacks() {
@@ -662,7 +663,7 @@ public class MigrationHandlerImpl implements MigrationHandler {
 
     /**
      * Get a list of callback names
-     * 
+     *
      * @param callbacks
      * @return
      */
@@ -676,7 +677,7 @@ public class MigrationHandlerImpl implements MigrationHandler {
 
     /**
      * Dump schema changes we are processing to the log
-     * 
+     *
      * @param diff
      */
     public void dumpChanges(DbSchemasDiff diff) {
@@ -715,20 +716,20 @@ public class MigrationHandlerImpl implements MigrationHandler {
 
         log.info("Finish dumping changes");
     }
-    
+
     private boolean isDbSchemaVersionChanged() {
         String targetVersion = service.getVersion();
         String currentSchemaVersion = coordinator.getCurrentDbSchemaVersion();
         return !targetVersion.equals(currentSchemaVersion);
     }
-    
+
     private void checkGeoDbSchema() {
         String targetVersion = service.getVersion();
         if (isDbSchemaVersionChanged() && !VdcUtil.checkGeoCompatibleOfOtherVdcs(targetVersion)){
             log.info("Not all vdc are upgraded. Skip geodb schema change until all vdc are upgraded");
             return;
         }
-        
+
         log.info("Start scanning and creating new column families");
         InterProcessLock lock = null;
         try {
@@ -749,6 +750,6 @@ public class MigrationHandlerImpl implements MigrationHandler {
             }
         }
     }
-    
+
 
 }

@@ -341,7 +341,7 @@ public interface BadRequestExceptions {
     public BadRequestException invalidBlockObjectToExport(String label, String simpleName);
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID_URI)
-    public BadRequestException invalidDate(final String date);
+    public BadRequestException invalidDate(final String date, final String formate);
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException invalidEndpointExpectedFC(String endpoint);
@@ -2256,7 +2256,7 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException cantChangeVpoolNotAllCGVolumes();
-        
+
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException cantChangeVpoolVolumeIsNotInCG();
 
@@ -3122,13 +3122,16 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException deactivateRPTargetNotSupported(final String string);
-    
+
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException cannotAddProtectionWhenSnapshotsExist(final String volumeLabel);
-    
+
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException cantMigrateNotAllRPSourceVolumesInRequest();
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException invalidParameterWwnBadFormat(String wwn);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException cannotExpandSRDFActiveVolume(final String label);
 }

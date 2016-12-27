@@ -124,7 +124,7 @@ public class TimedContainmentConstraintImpl extends ConstraintImpl<IndexColumnNa
     public Class<? extends DataObject> getDataObjectType() {
         return field.getDataObjectType();
     }
-    
+
 	@Override
 	public boolean isValid() {
         return this.indexKey!=null && !this.indexKey.toString().isEmpty();

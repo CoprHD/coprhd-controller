@@ -955,8 +955,6 @@ public class OrderService extends CatalogTaggedResourceService {
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @CheckPermission(roles = { Role.TENANT_ADMIN })
     public Response deactivateOrder(@PathParam("id") URI id) throws DatabaseException {
-        log.info("lbyh0: id={}", id);
-
         Order order = queryResource(id);
         ArgValidator.checkEntity(order, id, true);
         log.info("lbyh0 order={}", order);

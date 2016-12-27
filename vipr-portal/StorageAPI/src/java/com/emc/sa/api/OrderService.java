@@ -533,7 +533,6 @@ public class OrderService extends CatalogTaggedResourceService {
         return toOrderList(orders);
     }
 
-
     /**
      * Gets the list of orders for current user
      *

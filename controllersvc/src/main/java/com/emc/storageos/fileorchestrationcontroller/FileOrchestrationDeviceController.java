@@ -165,12 +165,6 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
             waitFor = _fileDeviceController.addStepsForCreateFileSystems(workflow, waitFor,
                     fileDescriptors, taskId);
 
-            /*
-             * // second, call create replication link or pair
-             * waitFor = _fileReplicationDeviceController.addStepsForCreateFileSystems(workflow, waitFor,
-             * fileDescriptors, taskId);
-             */
-
             // second, check for policies that has to applied on this file system..
             waitFor = addStepsForApplyingPolicies(workflow, waitFor, fileDescriptors);
 
@@ -1629,7 +1623,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
 
                         if (targetACE != null &&
                                 (!targetACE.getPermissions().equals(sourceACE.getPermissions()) ||
-                                !targetACE.getPermissionType().equals(sourceACE.getPermissionType()))) {
+                                        !targetACE.getPermissionType().equals(sourceACE.getPermissionType()))) {
 
                             targetACE.setPermissions(sourceACE.getPermissions());
                             targetACE.setPermissionType(sourceACE.getPermissionType());
@@ -1721,7 +1715,6 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
             completer.error(s_dbClient, this._locker, serviceError);
         }
     }
-
 
     public String addStepsForApplyingPolicies(Workflow workflow, String waitFor, List<FileDescriptor> fileDescriptors) {
         FileDescriptor sourceDescriptors = FileDescriptor

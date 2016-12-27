@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015 EMC Corporation
+ * Copyright (c) 2016 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.api.service.impl.resource;
@@ -228,9 +228,9 @@ public class FilePolicyService extends TaskResourceService {
     }
 
     /**
-     * Get details of a file policy.
+     * @brief Get details of a file policy.
      * 
-     * @param id the file file policy id.
+     * @param id of the file policy.
      * @return File policy information.
      */
     @GET
@@ -250,6 +250,11 @@ public class FilePolicyService extends TaskResourceService {
         return map(filepolicy, _dbClient);
     }
 
+    /**
+     * @brief Delete file policy.
+     * @param id of the file policy.
+     * @return
+     */
     @DELETE
     @Path("/{id}")
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
@@ -281,9 +286,9 @@ public class FilePolicyService extends TaskResourceService {
     }
 
     /**
-     * Assign File Policy to vpool, project, file system
+     * @brief Assign File Policy to vpool, project, file system
      * 
-     * @param id FilePolicy URI
+     * @param id of the file policy.
      * @param param FilePolicyAssignParam
      * @return FilePolicyAssignResp
      */
@@ -293,7 +298,7 @@ public class FilePolicyService extends TaskResourceService {
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @CheckPermission(roles = { Role.SYSTEM_ADMIN })
     public FilePolicyAssignResp assignFilePolicy(@PathParam("id") URI id, FilePolicyAssignParam param) {
-
+        FilePolicyAssignResp resp = new FilePolicyAssignResp();
         ArgValidator.checkFieldUriType(id, FilePolicy.class, "id");
         FilePolicy filepolicy = this._dbClient.queryObject(FilePolicy.class, id);
         ArgValidator.checkEntity(filepolicy, id, true);
@@ -315,9 +320,15 @@ public class FilePolicyService extends TaskResourceService {
         } else if (param.getApplyAt().equals(FilePolicyApplyLevel.file_system.name())) {
             return assignFilePolicyToFS(param, filepolicy);
         }
-        return null;
+        return resp;
     }
 
+    /**
+     * @brief Unassign File Policy from vpool, project, file system.
+     * @param id of the file policy.
+     * @param FilePolicyUnAssignParam
+     * @return TaskResourceRep
+     */
     @PUT
     @Path("/{id}/unassign-policy")
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
@@ -390,7 +401,6 @@ public class FilePolicyService extends TaskResourceService {
     @CheckPermission(roles = { Role.SECURITY_ADMIN, Role.SYSTEM_ADMIN, Role.RESTRICTED_SECURITY_ADMIN }, blockProxies = true)
     public ACLAssignments updateAcls(@PathParam("id") URI id,
             ACLAssignmentChanges changes) {
-        // return updateAclsOnVirtualPool(VirtualPool.Type.file, id, changes);
 
         FilePolicy policy = queryResource(id);
         ArgValidator.checkEntityNotNull(policy, id, isIdEmbeddedInURL(id));
@@ -403,7 +413,7 @@ public class FilePolicyService extends TaskResourceService {
     /**
      * Get File Policy ACLs
      * 
-     * @param id the URN of a ViPR FilePolicy
+     * @param id the URI of a ViPR FilePolicy
      * @brief Show ACL entries for File policy
      * @return ACL Assignment details
      */
@@ -424,9 +434,9 @@ public class FilePolicyService extends TaskResourceService {
     }
 
     /**
-     * update the file policy
+     * @brief Update the file policy
      * 
-     * @param id the URN of a ViPR FilePolicy
+     * @param id the URI of a ViPR FilePolicy
      * @param param FilePolicyUpdateParam
      * @return FilePolicyCreateResp
      */
@@ -436,7 +446,7 @@ public class FilePolicyService extends TaskResourceService {
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @CheckPermission(roles = { Role.SYSTEM_ADMIN })
     public FilePolicyCreateResp updateFilePolicy(@PathParam("id") URI id, FilePolicyUpdateParam param) {
-
+        FilePolicyCreateResp resp = new FilePolicyCreateResp();
         ArgValidator.checkFieldUriType(id, FilePolicy.class, "id");
         FilePolicy filepolicy = this._dbClient.queryObject(FilePolicy.class, id);
         ArgValidator.checkEntity(filepolicy, id, true);
@@ -448,11 +458,11 @@ public class FilePolicyService extends TaskResourceService {
         } else if (filepolicy.getFilePolicyType().equals(FilePolicyType.file_snapshot.name())) {
             return updateFileSnapshotPolicy(filepolicy, param);
         }
-        return null;
+        return resp;
     }
 
     /**
-     * Replication Policy Checks and creation.
+     * Validate and create replication policy.
      * 
      * @param param
      * @return
@@ -494,7 +504,7 @@ public class FilePolicyService extends TaskResourceService {
     }
 
     /**
-     * Snapshot Policy checks and creation.
+     * Validate and create snapshot policy.
      * 
      * @param param
      * @return

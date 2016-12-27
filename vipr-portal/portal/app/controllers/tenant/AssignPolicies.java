@@ -179,12 +179,6 @@ public class AssignPolicies extends ViprResourceController {
             }
             projectAssignParams.setAssigntoProjects(assignProjects);
 
-            if (assignProjects == null || assignProjects.isEmpty()) {
-                projectAssignParams.setAssigntoAll(true);
-            } else {
-                projectAssignParams.setAssigntoAll(false);
-            }
-
         } else if (FilePolicyApplyLevel.vpool.name().equalsIgnoreCase(assignPolicy.appliedAt)) {
             FilePolicyVpoolAssignParam vpoolAssignParams = new FilePolicyVpoolAssignParam();
 
@@ -194,11 +188,6 @@ public class AssignPolicies extends ViprResourceController {
             }
             vpoolAssignParams.setAssigntoVpools(assignVpools);
 
-            if (assignVpools == null || assignVpools.isEmpty()) {
-                vpoolAssignParams.setAssigntoAll(true);
-            } else {
-                vpoolAssignParams.setAssigntoAll(false);
-            }
         }
 
         return param;

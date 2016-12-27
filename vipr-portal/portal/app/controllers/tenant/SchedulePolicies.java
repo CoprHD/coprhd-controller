@@ -647,8 +647,8 @@ public class SchedulePolicies extends ViprResourceController {
             List<String> existingvPools = stringRefIds(existingPolicy.getAssignedResources());
             List<String> vPools = Lists.newArrayList();
 
-            if (assignPolicy.vPools != null) {
-                vPools = assignPolicy.vPools;
+            if (assignPolicy.virtualPools != null) {
+                vPools = assignPolicy.virtualPools;
             }
 
             Set<String> add = Sets.newHashSet(CollectionUtils.subtract(vPools, existingvPools));
@@ -700,8 +700,8 @@ public class SchedulePolicies extends ViprResourceController {
             List<String> existingvPools = stringRefIds(existingPolicy.getAssignedResources());
             List<String> vPools = Lists.newArrayList();
 
-            if (assignPolicy.vPools != null) {
-                vPools = assignPolicy.vPools;
+            if (assignPolicy.virtualPools != null) {
+                vPools = assignPolicy.virtualPools;
             }
 
             Set<String> remove = Sets.newHashSet(CollectionUtils.subtract(existingvPools, vPools));
@@ -745,7 +745,7 @@ public class SchedulePolicies extends ViprResourceController {
 
         public String applyToAllVpools = "selected";
 
-        public List<String> vPools;
+        public List<String> virtualPools;
 
         public boolean applyOnTargetSite;
 
@@ -775,7 +775,7 @@ public class SchedulePolicies extends ViprResourceController {
                 }
             } else if (FilePolicyApplyLevel.vpool.name().equalsIgnoreCase(this.appliedAt)) {
 
-                this.vPools = ResourceUtils.stringRefIds(restRep.getAssignedResources());
+                this.virtualPools = ResourceUtils.stringRefIds(restRep.getAssignedResources());
                 if (restRep.getAppliedTovPools() != null) {
                     this.applyToAllVpools = restRep.getAppliedTovPools();
                 }

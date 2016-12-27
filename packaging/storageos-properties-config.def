@@ -12,7 +12,7 @@
         rebootRequired : false,
         controlNodeOnly : false,
         notifiers : ( "dns" ),
-        value : "10.254.66.23,10.254.66.24",
+        value : "",
     },
     {
         key : "network_ntpservers",
@@ -27,7 +27,7 @@
         rebootRequired : false,
         controlNodeOnly : false,
         notifiers : ( "ntp" ),
-        value : "10.254.140.21,10.254.140.22",
+        value : "",
     },
     {
         key : "image_server_address",
@@ -302,7 +302,7 @@
         rebootRequired : false,
         notifiers : ( "connectemc" ),
         controlNodeOnly : true,
-        value : "None",
+        value : "FTPS",
     },
     {
         key : "system_connectemc_smtp_server",
@@ -907,7 +907,7 @@
         rebootRequired : false,
         notifiers : ( "ssh" ),
         controlNodeOnly : false,
-        value : "yes",
+        value : "no",
     },
     {
         key : "system_permit_root_console",
@@ -922,7 +922,7 @@
         reconfigRequired : true,
         rebootRequired : false,
         controlNodeOnly : false,
-        value : "yes",
+        value : "no",
     },
     {
         key : "controller_metering_interval",

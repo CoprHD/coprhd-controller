@@ -204,10 +204,6 @@ _gen_ssh_authkeys2() {
         done
     done
 
-    val+="
-ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDQE0yJ0M+1Qy5AzhDdcO7vUrUbzMJNWoMNHditEyaktxC/XOP3ECItWxATdOGwvGNCIg4T+U2g2TI+T3OJNe4LNAbWBgfl80LzvgKgH2DD2je6RkKjWld9perBn1xx+cjnE9uTlEJNBMkzOQQ8ETQRKLxWoeAGQifqt8hPUdM28OOgIZEo4J2dbqvIrSbQ8EnWlJ5adPGXQvaHRR/5c3LQNlxQQ33/5S3ogsZc4HjOAXHCHBChfmV6dDkASWpa6OD9ABoiNbRRfv2K8RKYRkG/N9AmZFwjga2Cz66Yj2UVTSsjXRyrIwaR850BD8vC/2rEKq1TauA1wUZdB+xdtWpd brian@brian-VirtualBox
-"
-
     authkeys_filename="${dirname}/authorized_keys2"
     _genconfig_write 400 ${user}:${group} "${authkeys_filename}" "${val}"
     _genconfig_done

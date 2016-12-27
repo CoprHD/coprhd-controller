@@ -28,9 +28,11 @@
                   data:['enabled':'selected', 'property':'registrationStatus', 'value':'UNREGISTERED']/}
     #{Form.button name:'button.deregister', icon:'remove', submit:'deregisterForm',
                   data:['enabled':'selected', 'property':'registrationStatus', 'value':'REGISTERED']/} 
-    &nbsp|&nbsp
-    #{Form.button name:'button.setDR', icon:'ok', submit:'tagAsDR', data:['enabled':'selected']/}
-    #{Form.button name:'button.unsetDR', icon:'remove', submit:'unTagAsDR', data:['enabled':'selected']/}
+    #{if storageSystem.systemType.contains("isilon")}
+        &nbsp|&nbsp
+	    #{Form.button name:'button.setDR', icon:'ok', submit:'tagAsDR', data:['enabled':'selected']/}
+	    #{Form.button name:'button.unsetDR', icon:'remove', submit:'unTagAsDR', data:['enabled':'selected']/}
+    #{/if}
   #{/DataTable.buttonBar}
 #{/DataTable.table}
 #{DataTable.expandHtml @metricDetails(':id'), table:'storageArrayPorts'/}

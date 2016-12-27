@@ -2164,6 +2164,7 @@ storageArrayPorts.initiatorLoad=Initiator Load
 storageArrayPorts.volumeLoad=Volume Load
 storageArrayPort.portTypes.IP=IP
 storageArrayPort.portTypes.FC=Fiber Channel
+storageArrayPorts.isDRPort=DR Port
 
 StorageSystems.savedPort=Saved '%s'
 

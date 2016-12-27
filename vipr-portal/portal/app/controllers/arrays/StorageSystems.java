@@ -1372,6 +1372,10 @@ public class StorageSystems extends ViprResourceController {
             if (StorageSystemTypes.isECS(storageSystem.getSystemType())) {
                 alterColumns("portGroup", "iqn", "alias").hidden();
             }
+
+            if (StorageSystemTypes.isIsilon((storageSystem.getSystemType()))) {
+                alterColumns("isDRPort").setVisible(true);
+            }
         }
     }
 

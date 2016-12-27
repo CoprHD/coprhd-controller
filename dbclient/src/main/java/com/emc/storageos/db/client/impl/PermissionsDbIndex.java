@@ -40,7 +40,7 @@ public class PermissionsDbIndex extends DbIndex {
                 mutator.getIndexColumnList(indexCF, rowKey);
 
         IndexColumnName indexEntry =
-                new IndexColumnName(className, recordKey, value.toString(), mutator.getTimeUUID());
+                new IndexColumnName(className, recordKey, value.toString(), column.getTimeUUID());
 
         ColumnValue.setColumn(indexColList, indexEntry, value.toString(), ttl);
 

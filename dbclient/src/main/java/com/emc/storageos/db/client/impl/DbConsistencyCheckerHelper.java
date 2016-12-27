@@ -12,12 +12,11 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.UUID;
-import java.util.Map.Entry;
 
-import org.eclipse.jetty.util.log.Log;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -380,7 +379,7 @@ public class DbConsistencyCheckerHelper {
         private Class<? extends DbIndex> indexType;
         private Keyspace keyspace;
 
-        IndexAndCf(Class<? extends DbIndex> indexType,
+        public IndexAndCf(Class<? extends DbIndex> indexType,
                 ColumnFamily<String, IndexColumnName> cf, Keyspace keyspace) {
             this.indexType = indexType;
             this.cf = cf;
@@ -655,7 +654,7 @@ public class DbConsistencyCheckerHelper {
         return result;
     }
     
-    protected String findDataCreatedInWhichDBVersion(long createTime) {
+    public String findDataCreatedInWhichDBVersion(long createTime) {
         //small data set, no need to binary search
         long selectKey = 0;
         for (Entry<Long, String> entry : schemaVersionsTime.entrySet()) {

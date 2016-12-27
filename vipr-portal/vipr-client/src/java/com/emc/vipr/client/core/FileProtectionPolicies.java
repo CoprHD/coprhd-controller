@@ -40,6 +40,10 @@ public class FileProtectionPolicies extends AbstractCoreBulkResources<FilePolicy
         return PathConstants.FILE_PROTECTION_POLICY_URL + "/assign-policy";
     }
 
+    private String getUnAssignPolicyUrl() {
+        return PathConstants.FILE_PROTECTION_POLICY_URL + "/unassign-policy";
+    }
+
     /**
      * Deletes the given file protection policy by ID.
      * <p>
@@ -138,7 +142,7 @@ public class FileProtectionPolicies extends AbstractCoreBulkResources<FilePolicy
      *            the update configuration.
      */
     public TaskResourceRep unassignPolicy(URI id, FilePolicyUnAssignParam input) {
-        return client.put(TaskResourceRep.class, input, getAssignPolicyUrl(), id);
+        return client.put(TaskResourceRep.class, input, getUnAssignPolicyUrl(), id);
     }
 
     @Override

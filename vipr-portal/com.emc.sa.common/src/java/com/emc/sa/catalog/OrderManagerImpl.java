@@ -417,26 +417,6 @@ public class OrderManagerImpl implements OrderManager {
         client.save(order);
     }
 
-    public void canBeDeleted(Order order) {
-        log.info("lbyj0");
-
-        if (order.getScheduledEventId()!=null) {
-            throw APIException.badRequests.scheduledOrderNotAllowed("deactivation");
-        }
-
-        if (createdWithinOneMonth(order)) {
-            throw APIException.badRequests.orderWithinOneMonth(order.getId());
-        }
-
-        OrderStatus status = OrderStatus.valueOf(order.getOrderStatus());
-        log.info("lbyj5 status={}", status);
-        if (!status.canBeDeleted()) {
-            throw APIException.badRequests.orderCanNotBeDeleted(order.getId(), status.toString());
-        }
-
-        log.info("lbyj6");
-    }
-
     private boolean createdWithinOneMonth(Order order) {
         long now = System.currentTimeMillis();
 
@@ -446,42 +426,6 @@ public class OrderManagerImpl implements OrderManager {
     }
 
     public void deleteOrder(Order order) {
-
-        log.info("lbyh0 order={}", order);
-
-        canBeDeleted(order);
-
-        URI orderId = order.getId();
-        List<ApprovalRequest> approvalRequests = approvalManager.findApprovalsByOrderId(orderId);
-        log.info("lbyh0: approvalRequests={}", approvalRequests);
-        client.delete(approvalRequests);
-
-        List<OrderParameter> orderParameters = getOrderParameters(orderId);
-        log.info("lbyh0: orderParameters={}", orderParameters);
-        client.delete(orderParameters);
-
-        ExecutionState state = getOrderExecutionState(order.getExecutionStateId());
-
-        StringSet logIds = state.getLogIds();
-        log.info("lbyh0 logIds={}", logIds);
-        for (String logId : logIds) {
-            URI id = null;
-            try {
-                id = new URI(logId);
-            }catch(URISyntaxException e) {
-                log.error("lbyh0 e=",e);
-                continue;
-            }
-            ExecutionLog log = client.getModelClient().findById(ExecutionLog.class, id);
-            client.delete(log);
-        }
-
-        List<ExecutionTaskLog> logs = client.executionTaskLogs().findByIds(state.getTaskLogIds());
-        for (ExecutionTaskLog taskLog: logs) {
-            client.delete(taskLog);
-        }
-
-        client.delete(state);
         client.delete(order);
     }
 

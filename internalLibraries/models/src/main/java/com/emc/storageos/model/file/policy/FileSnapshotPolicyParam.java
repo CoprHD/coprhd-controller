@@ -38,7 +38,7 @@ public class FileSnapshotPolicyParam implements Serializable {
      * 
      * @return
      */
-    @XmlElement(name = "snapshot_expire_params")
+    @XmlElement(required = true, name = "snapshot_expire_params")
     public FileSnapshotPolicyExpireParam getSnapshotExpireParams() {
         return this.snapshotExpireParams;
     }

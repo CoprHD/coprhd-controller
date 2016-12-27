@@ -17,7 +17,7 @@ import javax.xml.bind.annotation.XmlElementWrapper;
 public class FilePolicyVpoolAssignParam implements Serializable {
 
     private static final long serialVersionUID = 1L;
-    private boolean assigntoAll;
+    private String assigntoAll;
     private Set<URI> assigntoVpools;
 
     public FilePolicyVpoolAssignParam() {
@@ -25,11 +25,11 @@ public class FilePolicyVpoolAssignParam implements Serializable {
     }
 
     @XmlElement(name = "assign_to_all")
-    public boolean getAssigntoAll() {
+    public String getAssigntoAll() {
         return this.assigntoAll;
     }
 
-    public void setAssigntoAll(boolean assigntoAll) {
+    public void setAssigntoAll(String assigntoAll) {
         this.assigntoAll = assigntoAll;
     }
 

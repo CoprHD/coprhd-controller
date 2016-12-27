@@ -1606,7 +1606,13 @@ public class VNXUnityFileStorageDevice extends VNXUnityOperations
     @Override
     public BiosCommandResult doApplyFilePolicy(StorageSystem storageObj, FileDeviceInputOutput args) {
         return BiosCommandResult.createErrorResult(
-                DeviceControllerErrors.vnxe.operationNotSupported("Assign File Policy", "VNXe"));
+                DeviceControllerErrors.vnxe.operationNotSupported("Assign File Policy", "VNXUnity"));
+    }
+
+    @Override
+    public BiosCommandResult doUnassignFilePolicy(StorageSystem storage, FileDeviceInputOutput fd) throws ControllerException {
+        return BiosCommandResult.createErrorResult(
+                DeviceControllerErrors.vnxe.operationNotSupported("Unassign File Policy", "VNXUnity"));
     }
 
 }

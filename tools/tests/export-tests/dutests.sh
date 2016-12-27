@@ -227,7 +227,7 @@ arrayhelper_create_export_mask_operation() {
 	vmax2|vmax3)
 	    runcmd symhelper.sh $operation $serial_number $device_id $pwwn $maskname
 	 ;;
-    default)
+    *)
          echo -e "\e[91mERROR\e[0m: Invalid platform specified in storage_type: $storage_type"
 	 cleanup
 	 finish -1
@@ -257,7 +257,7 @@ arrayhelper_volume_mask_operation() {
     vplex)
          runcmd vplexhelper.sh $operation $device_id $pattern
 	 ;;
-    default)
+    *)
          echo -e "\e[91mERROR\e[0m: Invalid platform specified in storage_type: $storage_type"
 	 cleanup
 	 finish -1
@@ -287,7 +287,7 @@ arrayhelper_initiator_mask_operation() {
     vplex)
          runcmd vplexhelper.sh $operation $pwwn $pattern
 	 ;;
-    default)
+    *)
          echo -e "\e[91mERROR\e[0m: Invalid platform specified in storage_type: $storage_type"
 	 cleanup
 	 finish -1
@@ -316,7 +316,7 @@ arrayhelper_delete_volume() {
     vplex)
          runcmd vplexhelper.sh $operation $device_id
 	 ;;
-    default)
+    *)
          echo -e "\e[91mERROR\e[0m: Invalid platform specified in storage_type: $storage_type"
 	 cleanup
 	 finish -1
@@ -338,7 +338,7 @@ arrayhelper_delete_export_mask() {
     vmax2|vmax3)
          runcmd symhelper.sh $operation $serial_number $masking_view_name $sg_name $ig_name
 	 ;;
-    default)
+    *)
          echo -e "\e[91mERROR\e[0m: Invalid platform specified in storage_type: $storage_type"
 	 cleanup
 	 finish -1
@@ -367,7 +367,7 @@ arrayhelper_delete_mask() {
     vplex)
          runcmd vplexhelper.sh $operation $pattern
 	 ;;
-    default)
+    *)
          echo -e "\e[91mERROR\e[0m: Invalid platform specified in storage_type: $storage_type"
 	 cleanup
 	 finish -1
@@ -396,7 +396,7 @@ arrayhelper_verify_export() {
     vplex)
          runcmd vplexhelper.sh $operation $masking_view_name $*
 	 ;;
-    default)
+    *)
          echo -e "\e[91mERROR\e[0m: Invalid platform specified in storage_type: $storage_type"
 	 cleanup
 	 finish -1
@@ -864,6 +864,9 @@ prerun_setup() {
 	exportRemoveInitiatorsDeviceStep=ExportWorkflowEntryPoints.exportRemoveInitiators
 	exportDeleteDeviceStep=VPlexDeviceController.deleteStorageView
     fi
+    
+    set_validation_check true
+    rm /tmp/verify*
 }
 
 # get the device ID of a created volume
@@ -928,13 +931,16 @@ vnx_setup() {
 
 unity_setup()
 {
-    discoveredsystem create $UNITY_DEV unity $UNITY_IP $UNITY_PORT $UNITY_USER $UNITY_PW --serialno=$UNITY_SN
-    storagedevice list
+    run discoveredsystem create $UNITY_DEV unity $UNITY_IP $UNITY_PORT $UNITY_USER $UNITY_PW --serialno=$UNITY_SN
 
-    storagepool update $UNITY_NATIVEGUID --type block --volume_type THIN_AND_THICK
+    run storagepool update $UNITY_NATIVEGUID --type block --volume_type THIN_AND_THICK
     run transportzone add ${SRDF_VMAXA_VSAN} $UNITY_INIT_PWWN1
     run transportzone add ${SRDF_VMAXA_VSAN} $UNITY_INIT_PWWN2
     run storagedevice discover_all
+
+    setup_varray
+
+    common_setup
 
     SERIAL_NUMBER=`storagedevice list | grep COMPLETE | awk '{print $2}' | awk -F+ '{print $2}'`
     
@@ -1433,7 +1439,11 @@ setup() {
     fi
 
     if [ "${SIM}" != "1" ]; then
-	run networksystem create $BROCADE_NETWORK brocade --smisip $BROCADE_IP --smisport 5988 --smisuser $BROCADE_USER --smispw $BROCADE_PW --smisssl false
+        isNetworkDiscovered=$(networksystem list | grep $BROCADE_NETWORK | wc -l)
+        if [ $isNetworkDiscovered -eq 0 ]; then
+            secho "Discovering Brocade SAN Switch ..."
+            run networksystem create $BROCADE_NETWORK brocade --smisip $BROCADE_IP --smisport 5988 --smisuser $BROCADE_USER --smispw $BROCADE_PW --smisssl false
+        fi
     fi
 
     ${SS}_setup
@@ -1765,8 +1775,8 @@ test_4() {
         verify_export ${expname}1 ${HOST1} 3 2
 
         # Run the export group command.  Expect it to fail with validation
-	fail export_group delete $PROJECT/${expname}1
-
+	    fail export_group delete $PROJECT/${expname}1
+        
         # Run the export group command.  Expect it to fail with validation
         fail export_group update $PROJECT/${expname}1 --remVols "${PROJECT}/${VOLNAME}-2"
 
@@ -1789,9 +1799,9 @@ test_4() {
     resultcmd=`export_group delete $PROJECT/${expname}1`
 
     if [ $? -ne 0 ]; then
-	echo "export group command failed outright"
-	cleanup
-	finish 4
+        echo "export group command failed outright"
+        cleanup
+        finish 4
     fi
 
     # Show the result of the export group command for now (show the task and WF IDs)
@@ -1836,9 +1846,9 @@ test_4() {
     resultcmd=`export_group delete $PROJECT/${expname}1`
 
     if [ $? -ne 0 ]; then
-	echo "export group command failed outright"
-	cleanup
-	finish 4
+        echo "export group command failed outright"
+        cleanup
+        finish 4
     fi
 
     # Show the result of the export group command for now (show the task and WF IDs)
@@ -1876,15 +1886,13 @@ test_4() {
 
         # Turn off suspend of export after orchestration
         set_suspend_on_class_method "none"
-
-        # Delete the export group
+        
         runcmd export_group delete $PROJECT/${expname}1
-
     else
-	# For XIO, extra initiator of different host but same cluster results in delete initiator call
-	sleep 60
-	verify_export ${expname}1 ${HOST1} 1 2
-	# Now remove the volumes from the storage group (masking view)
+        # For XIO, extra initiator of different host but same cluster results in delete initiator call
+        sleep 60
+        verify_export ${expname}1 ${HOST1} 1 2
+        # Now remove the volumes from the storage group (masking view)
         device_id=`get_device_id ${PROJECT}/${VOLNAME}-1`
         arrayhelper remove_volume_from_mask ${SERIAL_NUMBER} ${device_id} ${HOST1}
         device_id=`get_device_id ${PROJECT}/${VOLNAME}-2`
@@ -3750,6 +3758,9 @@ test_25() {
     verify_export ${expname}1 ${HOST1} gone
     verify_no_zones ${FC_ZONE_A:7} ${HOST1}
 }
+
+# pull in the vplextests.sh so it can use the dutests framework
+source vplextests.sh
 
 cleanup() {
     if [ "${docleanup}" = "1" ]; then

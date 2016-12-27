@@ -19,7 +19,9 @@ public class FilePolicyRestRep extends DataObjectRestRep {
 
     private Boolean hasAccessToTenants;
 
-    private Boolean appliedToAllFileSystems;
+    private String appliedToFileSystems;
+    private String appliedToProjects;
+    private String appliedTovPools;
 
     private String appliedAt;
 
@@ -34,6 +36,8 @@ public class FilePolicyRestRep extends DataObjectRestRep {
     private SnapshotSettingsRestRep snapshotSettings;
 
     private String priority;
+
+    private Boolean applyOnTargetSite;
 
     @XmlElement(name = "schedule")
     public ScheduleRestRep getSchedule() {
@@ -55,9 +59,24 @@ public class FilePolicyRestRep extends DataObjectRestRep {
         return hasAccessToTenants;
     }
 
-    @XmlElement(name = "applied_to_all_filesystems")
-    public Boolean getAppliedToAllFileSystems() {
-        return appliedToAllFileSystems;
+    @XmlElement(name = "applied_to_projects")
+    public String getAppliedToProjects() {
+        return appliedToProjects;
+    }
+
+    @XmlElement(name = "applied_to_filesystems")
+    public String getAppliedToFileSystems() {
+        return appliedToFileSystems;
+    }
+
+    @XmlElement(name = "applied_to_vpools")
+    public String getAppliedTovPools() {
+        return appliedTovPools;
+    }
+
+    @XmlElement(name = "apply_on_target_site")
+    public Boolean getApplyOnTargetSite() {
+        return applyOnTargetSite;
     }
 
     @XmlElement(name = "vpool")
@@ -115,8 +134,20 @@ public class FilePolicyRestRep extends DataObjectRestRep {
         this.vpool = vpool;
     }
 
-    public void setAppliedToAllFileSystems(Boolean appliedToAllFileSystems) {
-        this.appliedToAllFileSystems = appliedToAllFileSystems;
+    public void setAppliedToFileSystems(String appliedToFileSystems) {
+        this.appliedToFileSystems = appliedToFileSystems;
+    }
+
+    public void setAppliedToProjects(String appliedToProjects) {
+        this.appliedToProjects = appliedToProjects;
+    }
+
+    public void setAppliedTovPools(String appliedTovPools) {
+        this.appliedTovPools = appliedTovPools;
+    }
+
+    public void setApplyOnTargetSite(Boolean applyOnTargetSite) {
+        this.applyOnTargetSite = applyOnTargetSite;
     }
 
     public void setHasAccessToTenants(Boolean hasAccessToTenants) {
@@ -161,9 +192,9 @@ public class FilePolicyRestRep extends DataObjectRestRep {
             builder.append(hasAccessToTenants);
             builder.append(", ");
         }
-        if (appliedToAllFileSystems != null) {
-            builder.append("appliedToAllFileSystems=");
-            builder.append(appliedToAllFileSystems);
+        if (appliedToFileSystems != null) {
+            builder.append("appliedToFileSystems=");
+            builder.append(appliedToFileSystems);
             builder.append(", ");
         }
         if (appliedAt != null) {

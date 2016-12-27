@@ -16,7 +16,7 @@
       <input type="hidden" name="id" value="${field.value}">
     #{/field}  
   #{/if}
-  #{field 'schedulePolicy.tenantId'}
+<!--   #{field 'schedulePolicy.tenantId'} -->
         <input type="hidden" name="tenantId" value="${field.value}"/>
   #{/field}
  #{field 'schedulePolicy.referrerUrl'}
@@ -38,10 +38,10 @@
       #{Form.inputTextControlGroup field:field /}
     #{/field}
     
-    #{field 'schedulePolicy.snapshotPattern'}
+    #{field 'schedulePolicy.snapshotNamePattern'}
       %{
         field.required = true
-        field.fieldKey = 'schedulePolicy.snapshotPattern'
+        field.fieldKey = 'schedulePolicy.snapshotNamePattern'
       }%
       #{Form.inputTextControlGroup field:field /}
     #{/field}
@@ -218,13 +218,13 @@
      function showPolicyPage() {
           var policyType = $('#schedulePolicy_policyType').val();
           if(policyType == 'file_snapshot') {
-               $('#schedulePolicy_snapshotPatternControlGroup').show();
+               $('#schedulePolicy_snapshotNamePatternControlGroup').show();
                $('#schedulePolicy_replicationTypeControlGroup').hide();
                $('#schedulePolicy_replicationCopyTypeControlGroup').hide();
                $('#schedulePolicy_priorityControlGroup').hide();
                $('#schedulePolicy_expirationControlGroup').show();
           } else if (policyType == 'file_replication') {
-          	   $('#schedulePolicy_snapshotPatternControlGroup').hide();
+          	   $('#schedulePolicy_snapshotNamePatternControlGroup').hide();
                $('#schedulePolicy_replicationTypeControlGroup').show();
                $('#schedulePolicy_replicationCopyTypeControlGroup').show();
                $('#schedulePolicy_priorityControlGroup').show();

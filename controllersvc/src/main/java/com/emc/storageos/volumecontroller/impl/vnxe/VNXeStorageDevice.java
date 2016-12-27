@@ -20,8 +20,10 @@ import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup.Types;
+import com.emc.storageos.db.client.model.util.BlockConsistencyGroupUtils;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.ExportMask;
@@ -51,6 +53,7 @@ import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.model.file.ExportRule;
 import com.emc.storageos.plugins.common.Constants;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
+import com.emc.storageos.util.InvokeTestFailure;
 import com.emc.storageos.vnxe.VNXeApiClient;
 import com.emc.storageos.vnxe.VNXeConstants;
 import com.emc.storageos.vnxe.VNXeException;
@@ -927,6 +930,7 @@ public class VNXeStorageDevice extends VNXeOperations
             }
             List<String> volNames = new ArrayList<String>();
             String autoTierPolicyName = null;
+            InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_022);
             for (Volume volume : volumes) {
                 String tenantName = "";
                 try {
@@ -968,6 +972,7 @@ public class VNXeStorageDevice extends VNXeOperations
                     taskCompleter, storagePool.getId(), isCG);
 
             ControllerServiceImpl.enqueueJob(new QueueJob(createVolumesJob));
+            InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_023);
         } catch (VNXeException e) {
             _logger.error("Create volumes got the exception", e);
             opFailed = true;
@@ -1449,13 +1454,14 @@ public class VNXeStorageDevice extends VNXeOperations
         VNXeApiClient apiClient = getVnxeClient(storage);
         try {
             apiClient.deleteLunGroup(lunGroupId, false, false);
-            URI systemURI = storage.getId();
-            consistencyGroup.removeSystemConsistencyGroup(systemURI.toString(),
-                    consistencyGroup.getCgNameOnStorageSystem(systemURI));
-            if (markInactive) {
-                consistencyGroup.setInactive(true);
+
+            if (keepRGName) {
+                taskCompleter.ready(_dbClient);
+                return;
             }
-            _dbClient.persistObject(consistencyGroup);
+
+            // Clean up the system consistency group references
+            BlockConsistencyGroupUtils.cleanUpCGAndUpdate(consistencyGroup, storage.getId(), lunGroupId, markInactive, _dbClient);
             _logger.info("Consistency group {} deleted", consistencyGroup.getLabel());
             taskCompleter.ready(_dbClient);
         } catch (Exception e) {
@@ -2614,5 +2620,11 @@ public class VNXeStorageDevice extends VNXeOperations
     public BiosCommandResult doApplyFilePolicy(StorageSystem storageObj, FileDeviceInputOutput args) {
         return BiosCommandResult.createErrorResult(
                 DeviceControllerErrors.vnxe.operationNotSupported("Assign File Policy", "VNXe"));
+    }
+
+    @Override
+    public BiosCommandResult doUnassignFilePolicy(StorageSystem storage, FileDeviceInputOutput fd) throws ControllerException {
+        return BiosCommandResult.createErrorResult(
+                DeviceControllerErrors.vnxe.operationNotSupported("un assign File Policy", "VNXe"));
     }
 }

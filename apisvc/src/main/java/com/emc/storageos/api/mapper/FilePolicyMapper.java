@@ -56,9 +56,17 @@ public class FilePolicyMapper {
             resp.setVpool(DbObjectMapper.toNamedRelatedResource(ResourceTypeEnum.FILE_VPOOL,
                     vpoolURI, vpool.getLabel()));
         }
-        Boolean appliedToAllFS = from.getApplyToAllFS();
+        String appliedToAllFS = from.getApplyToFS();
         if (appliedToAllFS != null) {
-            resp.setAppliedToAllFileSystems(appliedToAllFS);
+            resp.setAppliedToFileSystems(appliedToAllFS);
+        }
+        String appliedToAllProjects = from.getApplyToProjects();
+        if (appliedToAllProjects != null) {
+            resp.setAppliedToProjects(appliedToAllProjects);
+        }
+        String appliedToAllvPools = from.getApplyTovPools();
+        if (appliedToAllvPools != null) {
+            resp.setAppliedTovPools(appliedToAllvPools);
         }
 
         String appliedAt = from.getApplyAt();
@@ -109,6 +117,10 @@ public class FilePolicyMapper {
             resp.setPriority(from.getPriority());
         }
 
+        if (from.getApplyOnTargetSite() != null) {
+            resp.setApplyOnTargetSite(from.getApplyOnTargetSite());
+        }
+
         String policyType = from.getFilePolicyType();
         resp.setType(policyType);
         if (FilePolicyType.file_replication.name().equals(policyType)) {
@@ -125,7 +137,9 @@ public class FilePolicyMapper {
             if (!SnapshotExpireType.NEVER.name().equalsIgnoreCase(expiryType)) {
                 snapshotSettings.setExpiryTime(from.getSnapshotExpireTime());
             }
-
+            if (from.getSnapshotNamePattern() != null) {
+                snapshotSettings.setSnapshotNamePattern(from.getSnapshotNamePattern());
+            }
             resp.setSnapshotSettings(snapshotSettings);
         }
         return resp;

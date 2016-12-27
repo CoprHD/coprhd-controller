@@ -175,7 +175,6 @@ public class SystemHealth extends Controller {
         renderArgs.put("recoveringMsg", recoveringMsg);
         ClusterInfo clusterInfo = AdminDashboardUtils.getClusterInfo();
         render(recoveryStatus, clusterInfo);
-
     }
 
     public static void nodeRecovery() {

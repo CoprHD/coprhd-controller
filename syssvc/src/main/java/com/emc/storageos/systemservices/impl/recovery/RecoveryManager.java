@@ -505,7 +505,7 @@ public class RecoveryManager implements Runnable {
      */
     private void validateNodeRecoveryStatus() {
         RecoveryStatus status = queryNodeRecoveryStatus();
-        if (isTriggering(status) && isRecovering(status)) {
+        if (isTriggering(status) || isRecovering(status)) {
             log.warn("Have triggered node recovery already");
             throw new IllegalStateException("Have triggered node recovery already");
         }
@@ -868,6 +868,7 @@ public class RecoveryManager implements Runnable {
             log.error("Interrupted while waiting to shutdown recovery thread pool", e);
         }
     }
+
     private void initNodeListByCheckOfflineTime() {
         aliveNodes.clear();
         corruptedNodes.clear();
@@ -887,8 +888,8 @@ public class RecoveryManager implements Runnable {
             }
         }
         log.info("Alive nodes:{}, corrupted nodes: {}", aliveNodes, corruptedNodes);
-
     }
+
     private void purgeDataForVappRecovery(List<String> nodeList) {
         for (String nodeId : nodeList) {
             try {
@@ -898,20 +899,19 @@ public class RecoveryManager implements Runnable {
                 throw e;
             }
         }
-        log.info("Alive nodes:{}, corrupted nodes: {}", aliveNodes, corruptedNodes);
     }
 
     /**
     * restart dbsvc/geosvc/syssvc after repairing for vapp
     */
     private void restartServices() {
+        ArrayList<String> restartedServiceNames = new ArrayList<>(serviceNames);
+        restartedServiceNames.add(Constants.SYSSVC_NAME);
         for (String nodeId : corruptedNodes) {
-            for (String serviceName : serviceNames) {
+            for (String serviceName : restartedServiceNames) {
                 SysClientFactory.getSysClient(coordinator.getNodeEndpoint(nodeId)).
                         post(URI.create(SysClientFactory.URI_RESTART_SERVICE.getPath() + "?name=" + serviceName), null, null);
             }
-            SysClientFactory.getSysClient(coordinator.getNodeEndpoint(nodeId)).
-                    post(URI.create(SysClientFactory.URI_RESTART_SERVICE.getPath() + "?name=" + "syssvc"), null, null);
         }
     }
 }

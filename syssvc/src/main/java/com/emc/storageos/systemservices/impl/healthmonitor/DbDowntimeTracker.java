@@ -176,7 +176,6 @@ public class DbDowntimeTracker {
                     serviceName, nodeId, offLineTimeInDay));
             dbOfflineEventInfo.setKeyOfflineAlertInDay(nodeId, offLineTimeInDay);
         }
-
     }
 
     /**
@@ -203,7 +202,7 @@ public class DbDowntimeTracker {
                 nodeId, serviceName, offlineDays);
 
         String content;
-        if (nodeRecoveryRequired){
+        if (nodeRecoveryRequired) {
             content = MailHelper.readTemplate("DbsvcOfflineFivedaysEmail.html");
         }else {
             content = MailHelper.readTemplate("DbsvcOfflineEmail.html");

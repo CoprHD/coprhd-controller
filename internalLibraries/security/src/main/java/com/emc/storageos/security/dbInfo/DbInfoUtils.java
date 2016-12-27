@@ -85,5 +85,4 @@ public final class DbInfoUtils {
                 serviceName);
         return new DbOfflineEventInfo(config);
     }
-
 }

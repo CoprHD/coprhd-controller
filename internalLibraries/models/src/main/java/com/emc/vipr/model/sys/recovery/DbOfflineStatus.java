@@ -25,5 +25,4 @@ public class DbOfflineStatus {
     public void setOutageTimeExceeded(boolean outageTimeExceeded) {
         this.outageTimeExceed = outageTimeExceeded;
     }
-
 }

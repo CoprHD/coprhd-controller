@@ -103,8 +103,8 @@ public class OrderService extends CatalogTaggedResourceService {
     private static Charset UTF_8 = Charset.forName("UTF-8");
 
     private static String ORDER_SERVICE_QUEUE_NAME="OrderService";
-    private static long INDEX_GC_GRACE_PERIOD=432000*1000;
-    private static long MAX_DELETED_ORDERS_PER_GC_PERIOD=300000;
+    private static long INDEX_GC_GRACE_PERIOD=432000*1000L;
+    public  static long MAX_DELETED_ORDERS_PER_GC_PERIOD=300000L;
 
     private static int SCHEDULED_EVENTS_SCAN_INTERVAL = 300;
     private int scheduleInterval = SCHEDULED_EVENTS_SCAN_INTERVAL;
@@ -871,10 +871,6 @@ public class OrderService extends CatalogTaggedResourceService {
         long endTimeInMS = getTime(endTimeStr, System.currentTimeMillis());
 
         if (startTimeInMS > endTimeInMS) {
-            throw APIException.badRequests.endTimeBeforeStartTime(startTimeStr, endTimeStr);
-        }
-
-        if (tenantIDsStr.isEmpty()) {
             throw APIException.badRequests.invalidParameter(SearchConstants.TENANT_IDS_PARAM, tenantIDsStr,
                     new InvalidParameterException("tenant ID list should not be empty"));
         }
@@ -920,6 +916,17 @@ public class OrderService extends CatalogTaggedResourceService {
             return false; // no job running
         }
 
+        long deletedOrdersInCurrentPeriod = getDeletedOrdersInCurrentPeriod(jobStatus);
+
+        if (deletedOrdersInCurrentPeriod > MAX_DELETED_ORDERS_PER_GC_PERIOD) {
+            // There are already max number of orders deleted within the current GC
+            return true;
+        }
+
+        return !jobStatus.isFinished();
+    }
+
+    public long getDeletedOrdersInCurrentPeriod(OrderJobStatus jobStatus) {
         long now = System.currentTimeMillis();
         Map<Long, Long> completedMap = jobStatus.getCompleted();
 
@@ -933,13 +940,7 @@ public class OrderService extends CatalogTaggedResourceService {
             }
             deletedOrdersInCurrentPeriod +=entry.getValue();
         }
-
-        if (deletedOrdersInCurrentPeriod > MAX_DELETED_ORDERS_PER_GC_PERIOD) {
-            // There are already max number of orders deleted within the current GC
-            return true;
-        }
-
-        return !jobStatus.isFinished();
+        return deletedOrdersInCurrentPeriod;
     }
 
     /**

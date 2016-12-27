@@ -424,9 +424,11 @@ public class OrderManagerImpl implements OrderManager {
             throw APIException.badRequests.scheduledOrderNotAllowed("deactivation");
         }
 
+        /*
         if (createdWithinOneMonth(order)) {
             throw APIException.badRequests.orderWithinOneMonth(order.getId());
         }
+        */
 
         OrderStatus status = OrderStatus.valueOf(order.getOrderStatus());
         log.info("lbyj5 status={}", status);
@@ -477,6 +479,7 @@ public class OrderManagerImpl implements OrderManager {
         }
 
         List<ExecutionTaskLog> logs = client.executionTaskLogs().findByIds(state.getTaskLogIds());
+        log.info("lbyh0 logs={}", logs);
         for (ExecutionTaskLog taskLog: logs) {
             client.delete(taskLog);
         }

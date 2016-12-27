@@ -66,7 +66,6 @@ collect_cfs() {
     set +e
     diagnose_cfs ${cfsDir} "${option}"
     set -e
-
 }
 
 collect_zk() {
@@ -425,7 +424,7 @@ diagnose_cfs() {
     done
 
     # Generate cqlsh RelationIndex and AltIndex output
-    echo -e "\tCapturing RelationIndex output, AltIndex output and system properties..."
+    echo -e -n "\tCapturing RelationIndex output, AltIndex output and system properties..."
     local indexList=(RelationIndex AltIdIndex)
     for index in ${indexList[@]}
     do
@@ -444,7 +443,7 @@ diagnose_cfs() {
     cd ${cfsDir}
     tar -czf "cfs-`date +%Y%0m%0d%0k%0M%0S`.tar.gz" ${output}/* --format=gnu &>/dev/null
     rm -rf ${output}
-    echo "success"
+    echo "finish"
 }
 
 clean_up() {

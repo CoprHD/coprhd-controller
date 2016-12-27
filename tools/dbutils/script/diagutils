@@ -93,24 +93,33 @@ collect_backup() {
     fi
 
     set +e
-    local foundName=`${COMMAND_DIR}/bkutils -l | grep "${backupName}" | awk '{print $1}'`
-    if [ "${foundName}" == "${backupName}" ]; then
-        echo "Backup($backupName) exists"
-    else
-        ${COMMAND_DIR}/bkutils -c ${backupName} -f
+    echo "Collecting backup data.."
+    check_if_skip ${param}
+    if [[ ${SKIP_COLLECT} == false ]] ; then
+        local foundName=`${COMMAND_DIR}/bkutils -l | grep "${backupName}" | awk '{print $1}'`
+        if [ "${foundName}" == "${backupName}" ]; then
+            echo -e "\tBackup($backupName) exists"
+        else
+            echo -e -n "\tStart to creat backup(${backupName}).."
+            local task="${COMMAND_DIR}/bkutils -c ${backupName} -f"
+            execute_with_progress_point "${task}" "true"
+        fi
     fi
     set -e
 
-    echo "Collecting backup data.."
+    echo -e -n "\tArchiving backup data.."
     local backupDir="${DIAGCOLLECT_OUTPUT}/backup"
     mkdir -p ${backupDir}
     collect_data "/data/backup/${backupName}" "${backupDir}" "false"
   
-    set +e 
     cd ${backupDir}
-    zip ${backupName}.zip * &>/dev/null
+    local task="zip ${backupName}.zip *"
+    execute_with_progress_point "${task}" "false"
     rm -rf ${backupName}_*
-    ${COMMAND_DIR}/bkutils -d ${backupName} &> /dev/null
+    set +e
+    if [[ ${SKIP_COLLECT} == false ]] ; then
+        ${COMMAND_DIR}/bkutils -d ${backupName} &> /dev/null
+    fi
     set -e
 }
 
@@ -139,20 +148,26 @@ collect_health() {
     mkdir -p ${healthDir}
     
     set +e
-    free > ${healthDir}/${LOCAL_NODE}-memory
-    df -l > ${healthDir}/${LOCAL_NODE}-space
-    ifconfig > ${healthDir}/${LOCAL_NODE}-ifconfig
-    /etc/diagtool > ${healthDir}/${LOCAL_NODE}-diagtool   
+    echo -e -n "\tCollecting memory disk related information on local node.."
+    free > ${healthDir}/${LOCAL_NODE}-memory 
+    df -l > ${healthDir}/${LOCAL_NODE}-space 
+    ifconfig > ${healthDir}/${LOCAL_NODE}-ifconfig 
+    local task="/etc/diagtool -v > ${healthDir}/${LOCAL_NODE}-diagtool"
+    execute_with_progress_point "${task}" "false"
 
+    echo -e -n "\tCollecting nodetool realted information of each node.."
     for i in $(seq 1 ${NODE_COUNT})
     do
         local viprNode=$(get_nodeid)
-        ${COMMAND_DIR}/nodetool -h ${viprNode} -p 7199 status &> ${healthDir}/${viprNode}-dbstatus
-        ${COMMAND_DIR}/nodetool -h ${viprNode} -p 7299 status &> ${healthDir}/${viprNode}-geodbstatus
-        ${COMMAND_DIR}/nodetool -h ${viprNode} compactionhistory &> ${healthDir}/${viprNode}-compactionhistory
-        ${COMMAND_DIR}/nodetool -h ${viprNode} compactionstats &> ${healthDir}/${viprNode}-compactionstats
-        ${COMMAND_DIR}/nodetool -h ${viprNode} cfstats &> ${healthDir}/${viprNode}-cfstats
+        ${COMMAND_DIR}/nodetool -h ${viprNode} -p 7199 status &> ${healthDir}/${viprNode}-dbstatus  &
+        ${COMMAND_DIR}/nodetool -h ${viprNode} -p 7299 status &> ${healthDir}/${viprNode}-geodbstatus &
+        ${COMMAND_DIR}/nodetool -h ${viprNode} compactionhistory &> ${healthDir}/${viprNode}-compactionhistory &
+        ${COMMAND_DIR}/nodetool -h ${viprNode} compactionstats &> ${healthDir}/${viprNode}-compactionstats &
+        ${COMMAND_DIR}/nodetool -h ${viprNode} cfstats &> ${healthDir}/${viprNode}-cfstats &
+        print_progress_point
     done
+    wait
+    echo "finish"
     set -e
 }
 
@@ -180,7 +195,7 @@ create_archive() {
     cd ${DIAGCOLLECT_DIR}
 
     local task="zip -r ${DIAGCOLLECT_ARCHIVE_NAME}.zip ${DIAGCOLLECT_MAME}/*"
-    execute_with_progress_point "${task}"
+    execute_with_progress_point "${task}" "true"
     if [ $? -eq 0 ]; then
         rm -rf ${DIAGCOLLECT_OUTPUT}
     fi
@@ -196,7 +211,7 @@ upload_to_ftp() {
     echo -n "Uploading ${uploadfile} to ftp server(${ftpserver}).."
 
     local task="cat ${uploadfile} | curl -sSk -u ${user}:${password} -a -T - "${ftpserver}"/${DIAGCOLLECT_ARCHIVE_NAME}.zip"
-    execute_with_progress_point "${task}"
+    execute_with_progress_point "${task}" "true"
     if [ $? -eq 0 ]; then
         echo "Removing local archive file.."
         rm -rf ${uploadfile}
@@ -247,6 +262,7 @@ user_confirm() {
 
 execute_with_progress_point() {
     local task=$1
+    local printResult=$2
 
     set +e
     while true; do echo -n "."; sleep 5; done &
@@ -256,13 +272,47 @@ execute_with_progress_point() {
     if [ $? -ne 0 ]; then
         result="failed"
     fi
-    kill ${BACKGROUND_PRINT_PID} &>/dev/null
     set -e
+    kill_backup_ground_thread &> /dev/null
 
-    echo "${result}"
+    if [[ ${printResult} == "true" ]]; then
+        echo "${result}"
+    else
+        echo "finish"
+    fi
     if [[ ${result} == "failed" ]]; then
         return 1
     fi
+}
+
+kill_backup_ground_thread() {
+    set +e
+    while true; do
+        ps -p ${BACKGROUND_PRINT_PID} | grep -v "PID" &>/dev/null
+        if [ $? -eq 0 ]; then
+            kill -9  ${BACKGROUND_PRINT_PID} &>/dev/null
+        else 
+            break
+        fi
+    done
+    set -e
+}
+
+set_max_current_job_number() {
+    # Number of CPU cores (default to 4)
+    cat /proc/cpuinfo | grep processor &>/dev/null
+    if [ $? -eq 0 ]; then
+        MAX_CURR_JOBS=`cat /proc/cpuinfo | grep processor | wc -l`
+    else
+        MAX_CURR_JOBS=4
+    fi
+}
+
+print_progress_point() {
+    while [ `jobs -r | grep "Running" | wc -l` -ge $MAX_CURR_JOBS ]; do
+        echo -n "." 
+        sleep 5
+    done
 }
 
 check_if_skip() {
@@ -319,14 +369,6 @@ diagnose_cfs() {
     local cfsDir=$1
     local option=$2
 
-    # Number of CPU cores (default to 4)
-    cat /proc/cpuinfo | grep processor &>/dev/null
-    if [ $? -eq 0 ]; then
-        MAX_CURR_JOBS=`cat /proc/cpuinfo | grep processor | wc -l`
-    else
-        MAX_CURR_JOBS=4
-    fi
-
     # Get to be connected CFs list
     local cfList=()
     if [ "${option}" == "-min_cfs" ]; then
@@ -344,21 +386,15 @@ diagnose_cfs() {
     mkdir -p ${cfsDir}/${output}
     echo "${cfList}" > ${cfsDir}/${cfListFile}
 
-    local output="lists"
-    rm -rf ${cfsDir}
-    mkdir -p ${cfsDir}/${output}
-
     # Generate the "dbutils list" output files
     # processed in parallel with:  no. of threads == no. of CPU cores
     echo -n -e "\tNow generating dbutils listings, this may take several minutes..."
     for CF in ${cfList[@]}; do
         nohup $COMMAND_DIR/dbutils list ${CF} > ${cfsDir}/${output}/"dbutils.list.${CF}.out" 2> ${cfsDir}/${output}/cfs_dump.err < /dev/null &
-        while [ `jobs -r | wc -l` -ge $MAX_CURR_JOBS ]; do
-            echo -n "."
-            sleep 5
-        done
+        print_progress_point
     done
     wait
+    echo "finish"
 
     # Format the generated "dbutils list" output files
     # (further formatting can be added with additional "else if" clauses in the "gawk" program below)
@@ -389,7 +425,7 @@ diagnose_cfs() {
     done
 
     # Generate cqlsh RelationIndex and AltIndex output
-    echo; echo -e "\tCapturing RelationIndex output, AltIndex output and system properties..."
+    echo -e "\tCapturing RelationIndex output, AltIndex output and system properties..."
     local indexList=(RelationIndex AltIdIndex)
     for index in ${indexList[@]}
     do
@@ -397,21 +433,22 @@ diagnose_cfs() {
         echo "SELECT * FROM \"$index\" LIMIT 1000000;" >${tmpFile}
         $COMMAND_DIR/cqlsh -k StorageOS localhost -f ${tmpFile} > ${cfsDir}/${output}/"cqlsh.${index}_Output.txt"
     done
+    echo "finish"
     rm -rf ${tmpFile}
 
     # Clean up temporary files and zip up the output files
+    echo -e -n "\tAchiving cfs data.."
     cd ${cfsDir}/${output}
     tar -cf "unformatted_output.tar" *.out --format=gnu &>/dev/null
     rm -f *.out
     cd ${cfsDir}
     tar -czf "cfs-`date +%Y%0m%0d%0k%0M%0S`.tar.gz" ${output}/* --format=gnu &>/dev/null
     rm -rf ${output}
+    echo "success"
 }
 
 clean_up() {
-    while [ `kill -0 ${BACKGROUND_PRINT_PID} &>/dev/null` ]; do
-        kill ${BACKGROUND_PRINT_PID} &>/dev/null
-    done
+    kill_backup_ground_thread
 }
 
 #######################
@@ -420,6 +457,7 @@ clean_up() {
 genaral_param_count=0
 plain_param_count=0
 ftp_param_count=0
+cf_param_count=0
 
 check_ftp_parameter() {
     local param=$1
@@ -452,6 +490,12 @@ validate_parameters() {
         exit 2
     fi
 
+    if [[ ${cf_param_count} -gt 1 ]]; then
+        echo "'-min_cfs' and '-all_cfs' could not be executed together"
+        usage
+        exit 2
+    fi
+
     if [[ ${ftp_param_count} -ne 0 && ${ftp_param_count} -ne 3 ]]; then
         echo "Lack of parameters for ftp server.."
         usage
@@ -476,7 +520,11 @@ do
         -all|-quick)
             genaral_param_count=$[genaral_param_count+1]
             ;;
-        -min_cfs|-all_cfs|-zk|-logs|-properties|-health)
+        -min_cfs|-all_cfs)
+            plain_param_count=$[plain_param_count+1]
+            cf_param_count=$[cf_param_count+1]
+            ;;
+        -zk|-logs|-properties|-health)
             plain_param_count=$[plain_param_count+1]
             ;;
         -backup)
@@ -523,6 +571,7 @@ NODE_COUNT=`/etc/systool --getprops | awk -F '=' '/\<node_count\>/ {print $2}'`
 LOCAL_NODE=`/etc/systool --getprops | awk -F '=' '/\<node_id\>/ {print $2}'`
 
 check_node_cluster_status
+set_max_current_job_number
 
 trap clean_up EXIT
 

@@ -21,7 +21,6 @@ import com.emc.storageos.db.exceptions.DatabaseException;
  */
 public abstract class QueryHitIterator<T1, T2 extends CompositeIndexColumnName>
         implements Iterator<T1> {
-
     protected RowQuery<String, T2> _query;
     protected Iterator<Column<T2>> _currentIt;
 

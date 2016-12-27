@@ -22,7 +22,6 @@ import com.emc.vipr.model.catalog.OrderRestRep;
 import com.google.common.collect.Lists;
 
 public class OrderUtils {
-
     public static OrderRestRep getOrder(RelatedResourceRep resource) {
         if (resource != null) {
             return getOrder(resource.getId());

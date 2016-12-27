@@ -1,23 +1,22 @@
 package com.emc.storageos.db.client.constraint.impl;
 
-import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
-import com.emc.storageos.db.client.constraint.TimeSeriesConstraint;
-import com.emc.storageos.db.client.impl.*;
-import com.emc.storageos.db.client.model.DataObject;
+import java.net.URI;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.netflix.astyanax.Keyspace;
 import com.netflix.astyanax.connectionpool.OperationResult;
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 import com.netflix.astyanax.model.Column;
 import com.netflix.astyanax.model.ColumnFamily;
 import com.netflix.astyanax.query.RowQuery;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import com.netflix.astyanax.serializers.CompositeRangeBuilder;
 
-import java.net.URI;
+import com.emc.storageos.db.client.constraint.TimeSeriesConstraint;
+import com.emc.storageos.db.client.impl.*;
+import com.emc.storageos.db.client.model.DataObject;
 
-/**
- * Alternate ID constraint implementation
- */
 public class TimeSeriesConstraintImpl extends ConstraintImpl<TimeSeriesIndexColumnName>
         implements TimeSeriesConstraint {
     private static final Logger log = LoggerFactory.getLogger(TimeSeriesConstraintImpl.class);
@@ -61,25 +60,29 @@ public class TimeSeriesConstraintImpl extends ConstraintImpl<TimeSeriesIndexColu
         log.info("cf={} key={} column1={}", indexCF.getName(), indexKey, entryType.getSimpleName());
         log.info("startime= {} endtime= {}", startTimeMicros, endTimeMicros);
         log.info("pageCount={}", pageCount);
+        return genQuery(genRangeBuilder().limit(pageCount));
+    }
 
-        RowQuery<String, TimeSeriesIndexColumnName> query = _keyspace.prepareQuery(indexCF)
-                //.getKey(entryType.getSimpleName())
-                .getKey(indexKey)
-                .withColumnRange(TimeSeriesColumnNameSerializer.get().buildRange()
-                        .withPrefix(entryType.getSimpleName())
-                        .greaterThan(startTimeMicros)
-                        .lessThanEquals(endTimeMicros)
-                        .limit(pageCount));
+    private RowQuery<String, TimeSeriesIndexColumnName> genQuery(CompositeRangeBuilder builder) {
+        return _keyspace.prepareQuery(indexCF).getKey(indexKey).withColumnRange(builder);
+    }
 
-        return query;
+    private CompositeRangeBuilder genRangeBuilder() {
+        return TimeSeriesColumnNameSerializer.get().buildRange()
+                .withPrefix(entryType.getSimpleName())
+                .greaterThan(startTimeMicros)
+                .lessThanEquals(endTimeMicros);
     }
 
     @Override
     public long count() throws ConnectionException {
         try {
-            OperationResult<Integer> countResult = _keyspace.prepareQuery(indexCF).getKey(entryType.getSimpleName())
-                    .getCount().execute();
-            return countResult.getResult();
+            OperationResult<Integer> countResult = genQuery(genRangeBuilder()).getCount().execute();
+            long count =  countResult.getResult();
+
+            log.info("count={}", count);
+
+            return count;
         }catch (ConnectionException e) {
             log.error("Failed to get count e=", e);
             throw e;
@@ -93,7 +96,6 @@ public class TimeSeriesConstraintImpl extends ConstraintImpl<TimeSeriesIndexColu
 
     @Override
     protected <T> T createQueryHit(final QueryResult<T> result, Column<TimeSeriesIndexColumnName> column) {
-        log.info("lbyg1");
         lastMatchedTimeStamp = column.getName().getTimeInMicros()/1000;
         return result.createQueryHit(getURI(column));
     }

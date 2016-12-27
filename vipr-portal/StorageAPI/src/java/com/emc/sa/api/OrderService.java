@@ -4,35 +4,40 @@
  */
 package com.emc.sa.api;
 
+import java.io.OutputStream;
+import java.io.PrintStream;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.charset.Charset;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
-import com.emc.storageos.services.util.TimeUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.ws.rs.*;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
+import javax.ws.rs.core.StreamingOutput;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.curator.framework.recipes.locks.InterProcessLock;
 import org.springframework.beans.factory.annotation.Autowired;
 import com.google.common.collect.Lists;
 
+import com.emc.sa.engine.scheduler.SchedulerDataManager;
+import com.emc.sa.model.util.ScheduleTimeHelper;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
+import com.emc.storageos.db.client.constraint.NamedElementQueryResultList;
+import com.emc.storageos.db.client.constraint.TimeSeriesConstraint;
 import com.emc.storageos.db.client.model.uimodels.*;
 import com.emc.storageos.db.client.util.ExecutionWindowHelper;
 import com.emc.storageos.db.client.model.EncryptionProvider;
 import com.emc.storageos.db.exceptions.DatabaseException;
-
+import com.emc.storageos.services.util.TimeUtils;
 import com.emc.storageos.services.util.NamedScheduledThreadPoolExecutor;
+import com.emc.storageos.systemservices.impl.logsvc.LogRequestParam;
 import com.emc.vipr.model.catalog.*;
 
 import com.emc.sa.api.mapper.OrderFilter;
@@ -46,24 +51,23 @@ import com.emc.sa.descriptor.ServiceField;
 import com.emc.sa.descriptor.ServiceFieldGroup;
 import com.emc.sa.descriptor.ServiceFieldTable;
 import com.emc.sa.descriptor.ServiceItem;
-import com.emc.sa.engine.scheduler.SchedulerDataManager;
-import com.emc.sa.model.dao.ModelClient;
-import com.emc.sa.model.util.ScheduleTimeHelper;
 import com.emc.sa.util.TextUtils;
+import com.emc.sa.model.dao.ModelClient;
 
 import static com.emc.sa.api.mapper.OrderMapper.createNewObject;
 import static com.emc.sa.api.mapper.OrderMapper.createOrderParameters;
 import static com.emc.sa.api.mapper.OrderMapper.map;
 import static com.emc.sa.api.mapper.OrderMapper.toExecutionLogList;
 import static com.emc.sa.api.mapper.OrderMapper.toOrderLogList;
-import static com.emc.storageos.db.client.URIUtil.uri;
-import static com.emc.storageos.db.client.URIUtil.asString;
-import static com.emc.storageos.api.mapper.DbObjectMapper.toNamedRelatedResource;
-
 import com.emc.storageos.api.service.authorization.PermissionsHelper;
 import com.emc.storageos.api.service.impl.resource.ArgValidator;
 import com.emc.storageos.api.service.impl.response.ResRepFilter;
 import com.emc.storageos.api.service.impl.response.RestLinkFactory;
+
+import static com.emc.storageos.db.client.URIUtil.uri;
+import static com.emc.storageos.db.client.URIUtil.asString;
+import static com.emc.storageos.api.mapper.DbObjectMapper.toNamedRelatedResource;
+
 import com.emc.storageos.model.BulkIdParam;
 import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.RelatedResourceRep;
@@ -536,6 +540,75 @@ public class OrderService extends CatalogTaggedResourceService {
     }
 
     /**
+     * Get log data from the specified virtual machines that are filtered, merged,
+     * and sorted based on the passed request parameters and streams the log
+     * messages back to the client as JSON formatted strings.
+     *
+     * @brief Show logs from all or specified virtual machine
+     * @param startTimeStr The start datetime of the desired time window. Value is
+     *            inclusive.
+     *            Allowed values: "yyyy-MM-dd_HH:mm:ss" formatted date or
+     *            datetime in ms.
+     *            Default: Set to yesterday same time
+     * @param endTimeStr The end datetime of the desired time window. Value is
+     *            inclusive.
+     *            Allowed values: "yyyy-MM-dd_HH:mm:ss" formatted date or
+     *            datetime in ms.
+     * @param tenantIDsStr a list of tenant IDs separated by ','
+     * @param orderIDsStr a list of order IDs separated by ','
+     * @prereq one of tenantIDsStr and orderIDsStr should be empty
+     * @return A reference to the StreamingOutput to which the log data is
+     *         written.
+     * @throws WebApplicationException When an invalid request is made.
+     */
+    @GET
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR, Role.SECURITY_ADMIN })
+    @Produces({ MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML, MediaType.TEXT_PLAIN })
+    @Path("/export")
+    public Response exportOrders( @DefaultValue("") @QueryParam(LogRequestParam.START_TIME) String startTimeStr,
+                                  @DefaultValue("") @QueryParam(LogRequestParam.END_TIME) String endTimeStr,
+                                  @DefaultValue("") @QueryParam(SearchConstants.TENANT_IDS_PARAM) String tenantIDsStr,
+                                  @DefaultValue("") @QueryParam(SearchConstants.ORDER_IDS) String orderIDsStr)
+            throws Exception {
+        log.info("lbyk:export orders startTime={}, endTime={} tid={} orderIDs={}",
+                new Object[] {startTimeStr, endTimeStr, tenantIDsStr, orderIDsStr});
+
+        if (!tenantIDsStr.isEmpty() && !orderIDsStr.isEmpty()) {
+            Throwable cause = new Throwable("Both tenant and order IDs are empty");
+            throw APIException.badRequests.invalidParameter(SearchConstants.TENANT_ID_PARAM, tenantIDsStr, cause);
+        }
+
+        final long startTimeInMS = getTime(startTimeStr, 0);
+        final long endTimeInMS = getTime(endTimeStr, System.currentTimeMillis());
+
+        final List<URI> tids= toIDs(SearchConstants.TENANT_IDS_PARAM, tenantIDsStr);
+
+        StreamingOutput out = new StreamingOutput() {
+            @Override
+            public void write(OutputStream outputStream) {
+                exportOrders(tids, startTimeInMS, endTimeInMS, outputStream);
+            }
+        };
+
+        return Response.ok(out).build();
+    }
+
+    private void exportOrders(List<URI> tids, long startTime, long endTime, OutputStream outputStream) {
+        PrintStream out = new PrintStream(outputStream);
+        for (URI tid : tids) {
+            TimeSeriesConstraint constraint = TimeSeriesConstraint.Factory.getOrders(tid, startTime, endTime);
+            NamedElementQueryResultList ids = new NamedElementQueryResultList();
+            _dbClient.queryByConstraint(constraint, ids);
+            for (NamedElementQueryResultList.NamedElement namedID : ids) {
+                URI id = namedID.getId();
+                log.info("lbyh id={}", id);
+                Order order = _dbClient.queryObject(Order.class, id);
+                out.print(order.toString());
+            }
+        }
+    }
+
+    /**
      * Gets the list of orders for current user
      *
      * @brief List Orders
@@ -740,6 +813,7 @@ public class OrderService extends CatalogTaggedResourceService {
         log.info("lbyh0: id={}", id);
 
         Order order = queryResource(id);
+        ArgValidator.checkEntity(order, id, true);
         log.info("lbyh0 order={}", order);
 
         orderManager.deleteOrder(order);

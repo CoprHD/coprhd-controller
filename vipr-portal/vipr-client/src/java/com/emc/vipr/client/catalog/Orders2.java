@@ -231,7 +231,7 @@ public class Orders2 extends AbstractCatalogBulkResources<OrderRestRep> implemen
         if (endTime != null) {
             uriBuilder = uriBuilder.queryParam(SearchConstants.END_TIME_PARAM, endTime);
         }
-        
+
         if (tenantIDs != null) {
             uriBuilder = uriBuilder.queryParam(SearchConstants.TENANT_IDS_PARAM, endTime);
         }

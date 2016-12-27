@@ -5,7 +5,6 @@
 package com.emc.vipr.client.catalog.search;
 
 import static com.emc.vipr.client.catalog.impl.SearchConstants.END_TIME_PARAM;
-import static com.emc.vipr.client.catalog.impl.SearchConstants.ORDER_COUNT_ONLY;
 import static com.emc.vipr.client.catalog.impl.SearchConstants.ORDER_STATUS_PARAM;
 import static com.emc.vipr.client.catalog.impl.SearchConstants.START_TIME_PARAM;
 import static com.emc.vipr.client.catalog.impl.SearchConstants.TENANT_ID_PARAM;

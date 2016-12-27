@@ -18,6 +18,7 @@ import com.emc.storageos.db.client.model.CifsShareACL;
 import com.emc.storageos.db.client.model.FileExport;
 import com.emc.storageos.db.client.model.FileExportRule;
 import com.emc.storageos.db.client.model.FilePolicy;
+import com.emc.storageos.db.client.model.FilePolicy.AssignToResource;
 import com.emc.storageos.db.client.model.FilePolicy.FilePolicyApplyLevel;
 import com.emc.storageos.db.client.model.FileShare;
 import com.emc.storageos.db.client.model.NFSShareACL;
@@ -275,13 +276,13 @@ public class FileOrchestrationUtils {
 
     public static HashMap<String, NfsACE> getUserToNFSACEMap(List<NfsACE> nfsACL) {
         HashMap<String, NfsACE> aclMap = new HashMap<String, NfsACE>();
-        if(nfsACL != null && !nfsACL.isEmpty()) {
+        if (nfsACL != null && !nfsACL.isEmpty()) {
             String user = null;
             String domain = null;
             for (NfsACE ace : nfsACL) {
                 domain = ace.getDomain();
                 user = ace.getUser();
-                user = domain == null ? "null+" + user: domain + "+" + user;
+                user = domain == null ? "null+" + user : domain + "+" + user;
                 if (user != null && !user.isEmpty()) {
                     aclMap.put(user, ace);
                 }
@@ -372,7 +373,8 @@ public class FileOrchestrationUtils {
                         break;
                     case file_system:
                         // TODO Here logic has to be changed..
-                        if (filePolicy.getApplyToAllFS() && filePolicy.getFilePolicyVpool().toString().equals(vpool.toString())) {
+                        if (AssignToResource.all.name().equalsIgnoreCase(filePolicy.getApplyToFS())
+                                && filePolicy.getFilePolicyVpool().toString().equals(vpool.toString())) {
                             filePolicies.add(filePolicy);
                         }
                         break;

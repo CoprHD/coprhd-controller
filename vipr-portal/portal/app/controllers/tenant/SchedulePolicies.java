@@ -739,11 +739,11 @@ public class SchedulePolicies extends ViprResourceController {
 
         public String vpool;
 
-        public boolean applyToAllProjects;
+        public String applyToAllProjects = "selected";
 
         public List<String> projects;
 
-        public boolean applyToAllVpools;
+        public String applyToAllVpools = "selected";
 
         public List<String> vPools;
 
@@ -770,16 +770,14 @@ public class SchedulePolicies extends ViprResourceController {
 
                 this.vpool = ResourceUtils.stringId(restRep.getVpool());
                 this.projects = ResourceUtils.stringRefIds(restRep.getAssignedResources());
-                this.applyToAllProjects = false;
-                if (restRep.getAppliedToAllProjects() != null) {
-                    this.applyToAllProjects = restRep.getAppliedToAllProjects();
+                if (restRep.getAppliedToProjects() != null) {
+                    this.applyToAllProjects = restRep.getAppliedToProjects();
                 }
             } else if (FilePolicyApplyLevel.vpool.name().equalsIgnoreCase(this.appliedAt)) {
 
                 this.vPools = ResourceUtils.stringRefIds(restRep.getAssignedResources());
-                this.applyToAllVpools = false;
-                if (restRep.getAppliedToAllvPools() != null) {
-                    this.applyToAllVpools = restRep.getAppliedToAllvPools();
+                if (restRep.getAppliedTovPools() != null) {
+                    this.applyToAllVpools = restRep.getAppliedTovPools();
                 }
             }
 

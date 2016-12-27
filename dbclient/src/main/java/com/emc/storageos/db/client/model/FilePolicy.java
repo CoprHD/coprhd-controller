@@ -78,9 +78,9 @@ public class FilePolicy extends DataObjectWithACLs {
      * provisioning.
      * FALSE means : policy has to applied on the specific file system chosen at the time of provisioning..
      */
-    private Boolean applyToAllFS;
-    private Boolean applyToAllvPools;
-    private Boolean applyToAllProjects;
+    private String applyToFS;
+    private String applyTovPools;
+    private String applyToProjects;
 
     private Boolean applyOnTargetSite;
 
@@ -106,6 +106,10 @@ public class FilePolicy extends DataObjectWithACLs {
 
     public static enum FilePolicyApplyLevel {
         vpool, project, file_system
+    }
+
+    public static enum AssignToResource {
+        all, selected
     }
 
     @Name("fileReplicationType")
@@ -268,14 +272,14 @@ public class FilePolicy extends DataObjectWithACLs {
         setChanged("assignedResources");
     }
 
-    @Name("applyToAllFS")
-    public Boolean getApplyToAllFS() {
-        return this.applyToAllFS;
+    @Name("applyToFS")
+    public String getApplyToFS() {
+        return this.applyToFS;
     }
 
-    public void setApplyToAllFS(Boolean applyToAllFS) {
-        this.applyToAllFS = applyToAllFS;
-        setChanged("applyToAllFS");
+    public void setApplyToFS(String applyToAllFS) {
+        this.applyToFS = applyToAllFS;
+        setChanged("applyToFS");
     }
 
     @Name("applyOnTargetSite")
@@ -318,24 +322,24 @@ public class FilePolicy extends DataObjectWithACLs {
         setChanged("policyStorageResources");
     }
 
-    @Name("applyToAllvPools")
-    public Boolean getApplyToAllvPools() {
-        return applyToAllvPools;
+    @Name("applyTovPools")
+    public String getApplyTovPools() {
+        return applyTovPools;
     }
 
-    public void setApplyToAllvPools(Boolean applyToAllvPools) {
-        this.applyToAllvPools = applyToAllvPools;
-        setChanged("applyToAllvPools");
+    public void setApplyTovPools(String applyToAllvPools) {
+        this.applyTovPools = applyToAllvPools;
+        setChanged("applyTovPools");
     }
 
-    @Name("applyToAllProjects")
-    public Boolean getApplyToAllProjects() {
-        return applyToAllProjects;
+    @Name("applyToProjects")
+    public String getApplyToProjects() {
+        return applyToProjects;
     }
 
-    public void setApplyToAllProjects(Boolean applyToAllProjects) {
-        this.applyToAllProjects = applyToAllProjects;
-        setChanged("applyToAllProjects");
+    public void setApplyToAllProjects(String applyToAllProjects) {
+        this.applyToProjects = applyToAllProjects;
+        setChanged("applyToProjects");
     }
 
     @Override
@@ -347,6 +351,6 @@ public class FilePolicy extends DataObjectWithACLs {
                 + ", snapshotExpireType=" + snapshotExpireType + ", snapshotExpireTime=" + snapshotExpireTime + ", snapshotNamePattern="
                 + snapshotNamePattern + ", fileReplicationType=" + fileReplicationType + ", fileReplicationCopyMode="
                 + fileReplicationCopyMode + ", filePolicyVpool=" + filePolicyVpool + ", priority=" + priority + ", policyStorageResources="
-                + policyStorageResources + ", applyToAllFS=" + applyToAllFS + "]";
+                + policyStorageResources + ", applyToAllFS=" + applyToFS + "]";
     }
 }

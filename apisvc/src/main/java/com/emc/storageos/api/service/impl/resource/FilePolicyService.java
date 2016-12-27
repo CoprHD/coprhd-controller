@@ -37,6 +37,7 @@ import com.emc.storageos.api.service.impl.resource.utils.FilePolicyServiceUtils;
 import com.emc.storageos.api.service.impl.response.BulkList;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.FilePolicy;
+import com.emc.storageos.db.client.model.FilePolicy.AssignToResource;
 import com.emc.storageos.db.client.model.FilePolicy.FilePolicyApplyLevel;
 import com.emc.storageos.db.client.model.FilePolicy.FilePolicyType;
 import com.emc.storageos.db.client.model.FilePolicy.SnapshotExpireType;
@@ -665,7 +666,7 @@ public class FilePolicyService extends TaskResourceService {
         StringBuilder errorMsg = new StringBuilder();
         ArgValidator.checkFieldNotNull(param.getVpoolAssignParams(), "vpool_assign_param");
 
-        if (param.getVpoolAssignParams().getAssigntoAll()) {
+        if (AssignToResource.all.name().equalsIgnoreCase(param.getVpoolAssignParams().getAssigntoAll())) {
             // policy has to be applied on all applicable file vpools
             List<URI> vpoolIDs = this._dbClient.queryByType(VirtualPool.class, true);
             List<VirtualPool> virtualPools = this._dbClient.queryObject(VirtualPool.class, vpoolIDs);
@@ -710,7 +711,9 @@ public class FilePolicyService extends TaskResourceService {
             filepolicy.setApplyAt(FilePolicyApplyLevel.vpool.name());
             filepolicy.setAssignedResources(assignedResources);
         }
-
+        if (param.getVpoolAssignParams().getAssigntoAll() != null) {
+            filepolicy.setApplyTovPools(param.getVpoolAssignParams().getAssigntoAll());
+        }
         if (param.getApplyOnTargetSite() != null) {
             filepolicy.setApplyOnTargetSite(param.getApplyOnTargetSite());
         }
@@ -747,7 +750,7 @@ public class FilePolicyService extends TaskResourceService {
             throw APIException.badRequests.invalidFilePolicyAssignParam(filepolicy.getFilePolicyName(), errorMsg.toString());
         }
 
-        if (param.getProjectAssignParams().getAssigntoAll()) {
+        if (AssignToResource.all.name().equalsIgnoreCase(param.getProjectAssignParams().getAssigntoAll())) {
             // policy has to be applied on all projects.
             List<URI> projectIDs = this._dbClient.queryByType(Project.class, true);
             StringSet assignedResources = new StringSet();
@@ -780,6 +783,10 @@ public class FilePolicyService extends TaskResourceService {
             filepolicy.setApplyAt(FilePolicyApplyLevel.project.name());
             filepolicy.setAssignedResources(assignedResources);
             filepolicy.setFilePolicyVpool(param.getProjectAssignParams().getVpool());
+        }
+
+        if (param.getProjectAssignParams().getAssigntoAll() != null) {
+            filepolicy.setApplyTovPools(param.getProjectAssignParams().getAssigntoAll());
         }
         if (param.getApplyOnTargetSite() != null) {
             filepolicy.setApplyOnTargetSite(param.getApplyOnTargetSite());
@@ -831,7 +838,7 @@ public class FilePolicyService extends TaskResourceService {
         filepolicy.setApplyAt(FilePolicyApplyLevel.file_system.name());
         filepolicy.setFilePolicyVpool(param.getFileSystemAssignParams().getVpool());
 
-        filepolicy.setApplyToAllFS(param.getFileSystemAssignParams().getAssigntoAll());
+        filepolicy.setApplyToFS(param.getFileSystemAssignParams().getAssigntoAll());
         if (param.getApplyOnTargetSite() != null) {
             filepolicy.setApplyOnTargetSite(param.getApplyOnTargetSite());
         }

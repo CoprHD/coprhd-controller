@@ -50,7 +50,6 @@ import com.google.common.collect.Maps;
 public class OrderManagerImpl implements OrderManager {
 
     private static final Logger log = LoggerFactory.getLogger(OrderManagerImpl.class);
-    final static long ONE_MOTHIN_IN_MS = 2592000000L;
 
     @Autowired
     private ModelClient client;
@@ -415,14 +414,6 @@ public class OrderManagerImpl implements OrderManager {
 
     public void updateOrder(Order order) {
         client.save(order);
-    }
-
-    private boolean createdWithinOneMonth(Order order) {
-        long now = System.currentTimeMillis();
-
-        long createdTime = order.getCreationTime().getTimeInMillis();
-
-        return (now - createdTime) < ONE_MOTHIN_IN_MS;
     }
 
     public void deleteOrder(Order order) {

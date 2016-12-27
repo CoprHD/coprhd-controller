@@ -621,7 +621,7 @@ public class FileStorageScheduler implements Scheduler {
         }
         
         List<StoragePort> spList = _dbClient.queryObject(StoragePort.class,
-                spURIList);
+        		spURIList);
 
         if (spIdSet != null && !spList.isEmpty()) {
             for (Iterator<StoragePort> iterator = spList.iterator(); iterator
@@ -630,13 +630,13 @@ public class FileStorageScheduler implements Scheduler {
                 if (storagePort.getInactive()
                         || storagePort.getTaggedVirtualArrays() == null
                         || !storagePort.getTaggedVirtualArrays().contains(
-                                vArrayURI.toString())
+                        		vArrayURI.toString())
                         || !RegistrationStatus.REGISTERED.toString()
                                 .equalsIgnoreCase(
                                         storagePort.getRegistrationStatus())
                         || (StoragePort.OperationalStatus.valueOf(storagePort
                                 .getOperationalStatus()))
-                                        .equals(StoragePort.OperationalStatus.NOT_OK)
+                                .equals(StoragePort.OperationalStatus.NOT_OK)
                         || !DiscoveredDataObject.CompatibilityStatus.COMPATIBLE
                                 .name().equals(
                                         storagePort.getCompatibilityStatus())
@@ -799,7 +799,7 @@ public class FileStorageScheduler implements Scheduler {
                             .equalsIgnoreCase(temp.getRegistrationStatus())
                     || (StoragePort.OperationalStatus.valueOf(temp
                             .getOperationalStatus()))
-                                    .equals(StoragePort.OperationalStatus.NOT_OK)
+                            .equals(StoragePort.OperationalStatus.NOT_OK)
                     || !DiscoveredDataObject.CompatibilityStatus.COMPATIBLE
                             .name().equals(temp.getCompatibilityStatus())
                     || !DiscoveryStatus.VISIBLE.name().equals(
@@ -906,7 +906,7 @@ public class FileStorageScheduler implements Scheduler {
             // TODO: Implement fake storageHADomain for DD to fit the viPR model
             // For unity, file system can be created only on vNas. There is no reason to find a matching HADomain if no vnas servers were found
             if (storage.getSystemType().equals(Type.unity.toString())) {
-                continue;
+                 continue;
             }
 
             if (!storage.getSystemType().equals(Type.netapp.toString())

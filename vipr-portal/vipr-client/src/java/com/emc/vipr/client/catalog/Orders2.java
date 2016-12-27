@@ -211,33 +211,29 @@ public class Orders2 extends AbstractCatalogBulkResources<OrderRestRep> implemen
         OrderCount orderCount = client.getURI(OrderCount.class, uriBuilder.build());
         return orderCount;
     }
-
+    
     /**
-     * Gets the number of all orders within a time range
-     *
+     * Get number of orders within a time range for the given tenants
      * <p>
      * API Call: <tt>GET /catalog/orders/count</tt>
-     *
+     * 
      * @param startTime
      * @param endTime
-     * @param tenantIDs tids separated by ','
+     * @param tenantId
      * @return
      */
-    public OrderCount getOrdersCount(String startTime, String endTime, String tenantIDs) {
-        UriBuilder uriBuilder = client.uriBuilder(PathConstants.ORDER2_COUNT);
+    public OrderCount getOrdersCount(String startTime, String endTime, URI tenantId) {
+        UriBuilder uriBuilder = client.uriBuilder(PathConstants.ORDER2_ALL_COUNT);
         if (startTime != null) {
             uriBuilder = uriBuilder.queryParam(SearchConstants.START_TIME_PARAM, startTime);
         }
         if (endTime != null) {
             uriBuilder = uriBuilder.queryParam(SearchConstants.END_TIME_PARAM, endTime);
         }
-
-        if (tenantIDs != null) {
-            uriBuilder = uriBuilder.queryParam(SearchConstants.TENANT_IDS_PARAM, endTime);
+        if (tenantId != null) {
+            uriBuilder = uriBuilder.queryParam(SearchConstants.TENANT_IDS_PARAM, tenantId.toString());
         }
-
         OrderCount orderCount = client.getURI(OrderCount.class, uriBuilder.build());
-
         return orderCount;
     }
 

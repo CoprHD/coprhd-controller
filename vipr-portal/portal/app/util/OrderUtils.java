@@ -76,6 +76,19 @@ public class OrderUtils {
         }
         return catalog.orders().getUserOrdersCount(startTime, endTime);
     }
+    
+    public static OrderCount getOrdersCount(Date startDate, Date endDate, URI tenantId) {
+        ViPRCatalogClient2 catalog = getCatalogClient();
+        String startTime = null;
+        if (startDate != null) {
+            startTime = Long.toString(startDate.getTime());
+        }
+        String endTime = null;
+        if (endDate != null) {
+            endTime = Long.toString(endDate.getTime());
+        }
+        return catalog.orders().getOrdersCount(startTime, endTime, tenantId);
+    }
 
     public static List<OrderRestRep> getScheduledOrders() {
         return getScheduledOrders(null);
@@ -108,7 +121,7 @@ public class OrderUtils {
         return scheduledOrdersInWindow;
     }
 
-    public static List<OrderRestRep> findByTimeRange(Date startTime, Date endTime, String tenant, long maxCount) {
+    public static List<OrderRestRep> findByTimeRange(Date startTime, Date endTime, String tenant, String maxCount) {
         ViPRCatalogClient2 catalog = getCatalogClient();
         String start = null;
         if (startTime != null) {

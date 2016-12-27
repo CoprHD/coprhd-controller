@@ -1572,8 +1572,8 @@ angular.module("portalApp").controller("MyOrdersCtrl", function($scope, $http) {
     });   
     
     $scope.$watch('rangeEndDate', function (newVal, oldVal) {
-    	if(oldVal === undefined) return;
     	console.info("vals "+newVal+"\t|"+oldVal);
+    	if(oldVal === undefined) return;
     	if(newVal < $scope.rangeStartDate) {
     		alert("The End Date must be not earlier than the Start Date, please re-select.");
     		return;
@@ -1588,7 +1588,7 @@ angular.module("portalApp").controller("MyOrdersCtrl", function($scope, $http) {
         console.info(url);
         window.location.href = url;
     });
-
+    
 });
 
 angular.module("portalApp").controller("AllOrdersCtrl", function($scope, $http) {

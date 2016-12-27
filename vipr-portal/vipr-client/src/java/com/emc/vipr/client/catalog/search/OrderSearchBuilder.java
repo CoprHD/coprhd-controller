@@ -5,6 +5,7 @@
 package com.emc.vipr.client.catalog.search;
 
 import static com.emc.vipr.client.catalog.impl.SearchConstants.END_TIME_PARAM;
+import static com.emc.vipr.client.catalog.impl.SearchConstants.ORDER_MAX_COUNT;
 import static com.emc.vipr.client.catalog.impl.SearchConstants.ORDER_STATUS_PARAM;
 import static com.emc.vipr.client.catalog.impl.SearchConstants.START_TIME_PARAM;
 import static com.emc.vipr.client.catalog.impl.SearchConstants.TENANT_ID_PARAM;
@@ -38,10 +39,10 @@ public class OrderSearchBuilder extends SearchBuilder<OrderRestRep> {
     }
 
     public SearchBuilder<OrderRestRep> byTimeRange(String start, String end) {
-        return byTimeRange(start, end, null, -1);
+        return byTimeRange(start, end, null, "-1");
     }
 
-    public SearchBuilder<OrderRestRep> byTimeRange(String start, String end, URI tenantId, long maxCount) {
+    public SearchBuilder<OrderRestRep> byTimeRange(String start, String end, URI tenantId, String maxCount) {
         Map<String, Object> parameters = new HashMap<String, Object>();
         if (tenantId != null) {
             parameters.put(TENANT_ID_PARAM, tenantId);
@@ -52,8 +53,9 @@ public class OrderSearchBuilder extends SearchBuilder<OrderRestRep> {
         if (end != null) {
             parameters.put(END_TIME_PARAM, end);
         }
-
-        parameters.put(ORDER_MAX_COUNT, maxCount);
+        if (maxCount != null) {
+            parameters.put(ORDER_MAX_COUNT, maxCount);
+        }
         return byAll(parameters);
     }
 

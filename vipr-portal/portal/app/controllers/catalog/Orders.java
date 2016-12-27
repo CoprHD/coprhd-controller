@@ -34,6 +34,7 @@ import com.emc.vipr.model.catalog.ApprovalRestRep;
 import com.emc.vipr.model.catalog.CatalogServiceRestRep;
 import com.emc.vipr.model.catalog.ExecutionLogRestRep;
 import com.emc.vipr.model.catalog.ExecutionStateRestRep;
+import com.emc.vipr.model.catalog.OrderCount;
 import com.emc.vipr.model.catalog.OrderCreateParam;
 import com.emc.vipr.model.catalog.OrderLogRestRep;
 import com.emc.vipr.model.catalog.OrderRestRep;
@@ -81,6 +82,7 @@ import util.TimeUtils;
 import util.api.ApiMapperUtils;
 import util.datatable.DataTableParams;
 import util.datatable.DataTablesSupport;
+
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 
 @With(Common.class)
@@ -99,6 +101,8 @@ public class Orders extends OrderExecution {
         if (maxDays == null) {
             if (StringUtils.isNotEmpty(params.get("startDate"))
                     && StringUtils.isNotEmpty(params.get("endDate"))) {
+                renderArgs.put("startDate", params.get("startDate"));
+                renderArgs.put("endDate", params.get("endDate"));
                 maxDays = 0;
             } else {
                 maxDays = 1;
@@ -124,20 +128,16 @@ public class Orders extends OrderExecution {
         RecentUserOrdersDataTable dataTable = new RecentUserOrdersDataTable();
         TenantSelector.addRenderArgs();
 
-        String startDate = params.get("startDate");
-        String endDate = params.get("endDate");
-        if (StringUtils.isNotEmpty(startDate) && StringUtils.isNotEmpty(endDate)) {
-            dataTable.setStartDate(startDate);
-            dataTable.setEndDate(endDate);
-            renderArgs.put("orderCount",
-                    DataTablesSupport.toJson(dataTable.fetchCount()));
-            renderArgs.put("startDate", startDate);
-            renderArgs.put("endDate", endDate);
+        dataTable.setByStartEndDateOrMaxDays(params.get("startDate"), params.get("endDate"),
+                params.get("maxDays", Integer.class));
+        Long orderCount = dataTable.fetchCount().getCounts().get(Models.currentAdminTenant());
+        System.out.println(Models.currentAdminTenant()+"\t count: "+orderCount);
+        if (orderCount > OrderDataTable.ORDER_MAX_COUNT) {
+            flash.put("warning", MessagesUtils.get("orders.warning", orderCount, OrderDataTable.ORDER_MAX_COUNT));
         }
+        
         addMaxDaysRenderArgs();
         Common.copyRenderArgsToAngular();
-        /*flash.put("warning", "Totally 9700 orders are found in database, "
-                + "but only 6000 entries are loaded and displayed here for performance concern.");// for mockup*/
         render(dataTable);
     }
 
@@ -145,32 +145,21 @@ public class Orders extends OrderExecution {
     public static void allOrdersJson(Integer maxDays) {
         DataTableParams dataTableParams = DataTablesSupport.createParams(params);
         RecentUserOrdersDataTable dataTable = new RecentUserOrdersDataTable();
-        if (StringUtils.isNotEmpty(params.get("startDate"))
-                && StringUtils.isNotEmpty(params.get("endDate"))) {
-            dataTable.setStartDate(params.get("startDate"));
-            dataTable.setEndDate(params.get("endDate"));
-        } else {
-            dataTable.setStartAndEndDatesByMaxDays(maxDays != null ? Math.max(maxDays, 1) : 1);
-        }
+        dataTable.setByStartEndDateOrMaxDays(params.get("startDate"), params.get("endDate"), maxDays);
         renderJSON(DataTablesSupport.createJSON(dataTable.fetchData(dataTableParams), params));
     }
 
     public static void list() {
-        //TODO should handle the case more than 6K
         Logger.info("hlj, start to call list()");
         OrderDataTable dataTable = new OrderDataTable(Models.currentTenant());
         dataTable.setUserInfo(Security.getUserInfo());
-        String startDate = params.get("startDate");
-        String endDate = params.get("endDate");
-        if (StringUtils.isNotEmpty(startDate) && StringUtils.isNotEmpty(endDate)) {
-            dataTable.setStartDate(startDate);
-            dataTable.setEndDate(endDate);
-            renderArgs.put("orderCount",
-                    DataTablesSupport.toJson(dataTable.fetchCount()));
-            renderArgs.put("startDate", startDate);
-            renderArgs.put("endDate", endDate);
+        dataTable.setByStartEndDateOrMaxDays(params.get("startDate"), params.get("endDate"),
+                params.get("maxDays", Integer.class));
+        Long orderCount = dataTable.fetchCount().getCounts().entrySet().iterator().next().getValue();
+        System.out.println("hlj in my order list count: "+orderCount);
+        if (orderCount > OrderDataTable.ORDER_MAX_COUNT) {
+            flash.put("warning", MessagesUtils.get("orders.warning", orderCount, OrderDataTable.ORDER_MAX_COUNT));
         }
-
         addMaxDaysRenderArgs();
         Common.copyRenderArgsToAngular();
         render(dataTable);
@@ -180,13 +169,8 @@ public class Orders extends OrderExecution {
         Logger.info("hlj, start to call listJson()");
         OrderDataTable dataTable = new OrderDataTable(Models.currentTenant());
         dataTable.setUserInfo(Security.getUserInfo());
-        if (StringUtils.isNotEmpty(params.get("startDate"))
-                && StringUtils.isNotEmpty(params.get("endDate"))) {
-            dataTable.setStartDate(params.get("startDate"));
-            dataTable.setEndDate(params.get("endDate"));
-        } else {
-            dataTable.setStartAndEndDatesByMaxDays(params.get("maxDays", Integer.class));
-        }
+        dataTable.setByStartEndDateOrMaxDays(params.get("startDate"), params.get("endDate"),
+                params.get("maxDays", Integer.class));
 
         renderJSON(DataTablesSupport.createJSON(dataTable.fetchAll(), params));
     }

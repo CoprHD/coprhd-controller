@@ -4,9 +4,10 @@
  */
 package models.datatable;
 
+import static com.emc.vipr.client.core.util.ResourceUtils.uri;
+
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
 
@@ -16,6 +17,7 @@ import org.apache.commons.lang.StringUtils;
 import util.OrderUtils;
 import util.datatable.DataTableParams;
 
+import com.emc.vipr.model.catalog.OrderCount;
 import com.emc.vipr.model.catalog.OrderRestRep;
 
 public class RecentOrdersDataTable extends OrderDataTable {
@@ -49,7 +51,7 @@ public class RecentOrdersDataTable extends OrderDataTable {
             super.setStartAndEndDatesByMaxDays(maxAgeInDays);
         }
 
-        List<OrderRestRep> orders = OrderUtils.findByTimeRange(startDate, endDate, tenantId, -1);
+        List<OrderRestRep> orders = OrderUtils.findByTimeRange(startDate, endDate, tenantId, ORDER_MAX_COUNT_STR);
         if (userInfo != null) {// used for DashboardOrdersDataTable
             filterByUserId(orders);
         } else {
@@ -68,6 +70,11 @@ public class RecentOrdersDataTable extends OrderDataTable {
             }
         }
         return orders;
+    }
+    
+    @Override
+    public OrderCount fetchCount() {
+        return OrderUtils.getOrdersCount(startDate, endDate, uri(tenantId));
     }
 
     /**

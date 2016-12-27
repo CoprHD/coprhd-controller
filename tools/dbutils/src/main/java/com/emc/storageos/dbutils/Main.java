@@ -17,13 +17,13 @@ import java.util.List;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import static com.emc.storageos.dbutils.CommandHandler.*;
+
+import com.emc.storageos.dbutils.CommandHandler.*;
 
 /**
  * Class provided simple cli for DB, to dump records in user readable format
  */
 public class Main {
-    private static long n = 0;
     private static final Logger log = LoggerFactory.getLogger(Main.class);
 
     private enum Command {
@@ -174,10 +174,7 @@ public class Main {
         }
     }
 
-
     public static void main(String[] args) throws Exception {
-
-        System.out.println("Start to collect performance info");
         deleteDbutilsPidFile();
         changeLogFileOwner();
         if (args.length == 0) {
@@ -268,15 +265,15 @@ public class Main {
                     break;
                 case CHECK_DB:
                     _client.init();
-                    handler = new CommandHandler.CheckDBHandler(args);
+                    handler = new CheckDBHandler(args);
                     break;
                 case REBUILD_INDEX:
                     _client.init();
-                    handler = new CommandHandler.RebuildIndexHandler(args);
+                    handler = new RebuildIndexHandler(args);
                     break;
                 case RUN_MIGRATION_CALLBACK:
                     _client.init();
-                    handler = new CommandHandler.RunMigrationCallback(args);
+                    handler = new RunMigrationCallback(args);
                     break;    
                 default:
                     throw new IllegalArgumentException("Invalid command ");

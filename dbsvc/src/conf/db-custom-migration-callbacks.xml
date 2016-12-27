@@ -134,7 +134,6 @@
                 <bean class="com.emc.storageos.db.client.upgrade.callbacks.AllowRecurringSchedulerMigration"/>
                 <bean class="com.emc.storageos.db.client.upgrade.callbacks.VplexVolumeThinlyProvisionedMigration"/>
                 <bean class="com.emc.storageos.db.client.upgrade.callbacks.VirtualPoolDedupCapableMigration"/>
-                <bean class="com.emc.storageos.db.client.upgrade.callbacks.RebuildIndexDuplicatedCFNameMigration"/>
             </list>
         </entry>
         <entry key="3.5">

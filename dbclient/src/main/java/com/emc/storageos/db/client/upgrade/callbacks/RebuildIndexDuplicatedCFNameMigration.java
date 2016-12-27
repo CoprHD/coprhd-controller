@@ -208,7 +208,6 @@ class FieldValueTimeUUIDPair {
     private UUID timeUUID;
 
     public FieldValueTimeUUIDPair(Object fieldValue, UUID timeUUID) {
-        super();
         this.fieldValue = fieldValue;
         this.timeUUID = timeUUID;
     }

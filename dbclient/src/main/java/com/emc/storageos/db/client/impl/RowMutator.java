@@ -31,7 +31,9 @@ import com.netflix.astyanax.util.TimeUUIDUtils;
  */
 public class RowMutator {
     private static final Logger log = LoggerFactory.getLogger(RowMutator.class);
-    private static int TIME_STAMP_OFFSET = 1;
+    
+    //this offset is to make sure timeuuid is unique for each data colun to resolve COP-26680
+    private static int TIME_STAMP_OFFSET = 1; 
     
     private Map<String, Map<String, ColumnListMutation<CompositeColumnName>>> _cfRowMap;
     private Map<String, Map<String, ColumnListMutation<IndexColumnName>>> _cfIndexMap;

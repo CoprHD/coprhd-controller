@@ -168,8 +168,7 @@ public class DbConsistencyCheckerHelper {
                         getIndexColumns(indexedField, column, objRow.getKey()));
                 
                 if (!isColumnInIndex) {
-                    long microsTimeFromUUID = TimeUUIDUtils.getMicrosTimeFromUUID(column.getName().getTimeUUID());
-                    String dbVersion = findDataCreatedInWhichDBVersion(microsTimeFromUUID);
+                    String dbVersion = findDataCreatedInWhichDBVersion(column.getName().getTimeUUID());
                     checkResult.increaseByVersion(dbVersion);
                     logMessage(String.format(
                             "Inconsistency found Object(%s, id: %s, field: %s) is existing, but the related Index(%s, type: %s, id: %s) is missing. This entry is updated by version %s",
@@ -280,8 +279,7 @@ public class DbConsistencyCheckerHelper {
                     if (row.getColumns().isEmpty()
                             || (idxEntry.getColumnName().getTimeUUID() != null && !existingDataColumnUUIDSet.contains(idxEntry
                                     .getColumnName().getTimeUUID()))) {
-                        long microsTimeFromUUID = TimeUUIDUtils.getMicrosTimeFromUUID(idxEntry.getColumnName().getTimeUUID());
-                        String dbVersion = findDataCreatedInWhichDBVersion(microsTimeFromUUID);
+                        String dbVersion = findDataCreatedInWhichDBVersion(idxEntry.getColumnName().getTimeUUID());
                         checkResult.increaseByVersion(dbVersion);
                         if (row.getColumns().isEmpty()) {
                             logMessage(String.format("Inconsistency found: Index(%s, type: %s, id: %s, column: %s) is existing "
@@ -652,6 +650,18 @@ public class DbConsistencyCheckerHelper {
         }
         
         return result;
+    }
+    
+    public String findDataCreatedInWhichDBVersion(UUID timeUUID) {
+        
+        long createTime = 0;
+        try {
+            createTime = TimeUUIDUtils.getMicrosTimeFromUUID(timeUUID);
+        } catch (Exception e) {
+            //ignore
+        }
+        
+        return findDataCreatedInWhichDBVersion(createTime);
     }
     
     public String findDataCreatedInWhichDBVersion(long createTime) {

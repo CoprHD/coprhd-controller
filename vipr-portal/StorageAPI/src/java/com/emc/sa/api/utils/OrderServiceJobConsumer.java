@@ -11,9 +11,7 @@ import java.util.List;
 import com.emc.storageos.db.client.constraint.TimeSeriesConstraint;
 import com.emc.storageos.db.client.model.uimodels.Order;
 import com.emc.storageos.security.audit.AuditLogManager;
-import com.emc.storageos.security.authentication.StorageOSUser;
 import com.emc.storageos.services.OperationTypeEnum;
-import com.sun.javafx.scene.control.skin.VirtualFlow;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -28,6 +26,7 @@ import com.emc.sa.api.OrderService;
 public class OrderServiceJobConsumer extends DistributedQueueConsumer<OrderServiceJob> {
     private final Logger log = LoggerFactory.getLogger(OrderServiceJobConsumer.class);
 
+    public static final long CHECK_INTERVAL = 1000*60*10L;
     DbClient dbClient;
     OrderManager orderManager;
     OrderService orderService;
@@ -72,6 +71,7 @@ public class OrderServiceJobConsumer extends DistributedQueueConsumer<OrderServi
             if (numberOfOrdersCanBeDeletedInGC <= 0) {
                log.info("Max number of order objects ({}) have been deleted in the current GC period",
                        OrderService.MAX_DELETED_ORDERS_PER_GC_PERIOD);
+                Thread.sleep(CHECK_INTERVAL);
                return;
             }
 

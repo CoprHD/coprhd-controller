@@ -199,11 +199,11 @@ public class FilePolicyServiceUtils {
         FilePolicyType policyType = FilePolicyType.valueOf(filepolicy.getFilePolicyType());
         switch (policyType) {
             case file_snapshot:
-                if (virtualPool.isFileSnapshotSupported()) {
+                if (virtualPool.getFileSnapshotSupported()) {
                     return true;
                 }
             case file_replication:
-                if (virtualPool.isFileReplicationSupported()) {
+                if (virtualPool.getFileReplicationSupported()) {
                     return true;
                 }
             default:

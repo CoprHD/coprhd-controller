@@ -754,7 +754,7 @@ public class FilePolicyService extends TaskResourceService {
         }
 
         // Check if the vpool supports policy at project level..
-        if (!vpool.isFilePolicyAtProjectLevel()) {
+        if (!vpool.getAllowFilePolicyAtProjectLevel()) {
             errorMsg.append("Provided vpool :" + vpool.getId().toString() + " doesn't support policy at project level");
             _log.error(errorMsg.toString());
             throw APIException.badRequests.invalidFilePolicyAssignParam(filepolicy.getFilePolicyName(), errorMsg.toString());
@@ -839,7 +839,7 @@ public class FilePolicyService extends TaskResourceService {
         }
 
         // Check if the vpool supports policy at file system level..
-        if (!vpool.isFilePolicyAtFSLevel()) {
+        if (!vpool.getAllowFilePolicyAtFSLevel()) {
             errorMsg.append("Provided vpool :" + vpool.getId().toString() + " doesn't support policy at file system level");
             _log.error(errorMsg.toString());
             throw APIException.badRequests.invalidFilePolicyAssignParam(filepolicy.getFilePolicyName(), errorMsg.toString());

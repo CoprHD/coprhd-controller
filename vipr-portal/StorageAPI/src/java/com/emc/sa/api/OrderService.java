@@ -105,7 +105,9 @@ public class OrderService extends CatalogTaggedResourceService {
     private static final String ORDER_SERVICE_QUEUE_NAME="OrderService";
     private static final String ORDER_JOB_LOCK="order-jobs";
     private static final long INDEX_GC_GRACE_PERIOD=432000*1000L;
+    // private static final long INDEX_GC_GRACE_PERIOD=3*60*1000L;
     public  static final long MAX_DELETED_ORDERS_PER_GC_PERIOD=300000L;
+    // public  static final long MAX_DELETED_ORDERS_PER_GC_PERIOD=100L;
 
     private static int SCHEDULED_EVENTS_SCAN_INTERVAL = 300;
     private int scheduleInterval = SCHEDULED_EVENTS_SCAN_INTERVAL;
@@ -891,8 +893,7 @@ public class OrderService extends CatalogTaggedResourceService {
         URI tid = URI.create(user.getTenantId());
         URI uid = URI.create(user.getName());
 
-        OrderJobStatus status = new OrderJobStatus(OrderServiceJob.JobType.DELETE_ORDER,
-                startTimeInMS*1000, endTimeInMS*1000, tids, tid, uid);
+        OrderJobStatus status = new OrderJobStatus(OrderServiceJob.JobType.DELETE_ORDER, startTimeInMS, endTimeInMS, tids, tid, uid);
 
         try {
             saveJobInfo(status);
@@ -954,11 +955,14 @@ public class OrderService extends CatalogTaggedResourceService {
             Map.Entry<Long, Long> entry = it.next();
             long timestamp = entry.getKey();
             if ((now - timestamp) > INDEX_GC_GRACE_PERIOD) {
+                jobStatus.addToDeletedNumber(entry.getValue());
                 it.remove();
                 continue; // have been recycled by Cassandra
             }
             deletedOrdersInCurrentPeriod +=entry.getValue();
         }
+
+        log.info("lbyd0: {} orders deleted in the current GC", deletedOrdersInCurrentPeriod);
         return deletedOrdersInCurrentPeriod;
     }
 

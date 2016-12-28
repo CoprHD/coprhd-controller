@@ -11,6 +11,7 @@ import java.io.IOException;
 import java.net.URI;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.TreeMap;
 
 import org.codehaus.jackson.annotate.JsonIgnore;

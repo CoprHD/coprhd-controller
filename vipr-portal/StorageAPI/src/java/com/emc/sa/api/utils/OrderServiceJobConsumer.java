@@ -100,6 +100,7 @@ public class OrderServiceJobConsumer extends DistributedQueueConsumer<OrderServi
                         continue;
                     }
                 }
+
                 if (stop) {
                     break;
                 }
@@ -122,34 +123,6 @@ public class OrderServiceJobConsumer extends DistributedQueueConsumer<OrderServi
             long nDeleted = 0;
             long nFailed = 0;
             long start = System.currentTimeMillis();
-            /*
-            for (URI tid : tids) {
-                log.info("lbykk2 tid={} startTime={} endTime={}", tid, startTime, endTime);
-                TimeSeriesConstraint constraint = TimeSeriesConstraint.Factory.getOrders(tid, startTime, endTime);
-                NamedElementQueryResultList ids = new NamedElementQueryResultList();
-                dbClient.queryByConstraint(constraint, ids);
-                for (NamedElementQueryResultList.NamedElement namedID : ids) {
-                    URI id = namedID.getId();
-                    log.info("lbykk2 id={}", id);
-                    Order order = orderManager.getOrderById(id);
-                    try {
-                        orderManager.deleteOrder(order);
-                        nDeleted++;
-                        auditLog(order, true, jobStatus.getTenantId(), jobStatus.getUserId());
-                        log.info("lbyk4 nDeleted={}", nDeleted);
-                    } catch (BadRequestException e) {
-                        //TODO: change to debug level
-                        log.error("lbyk5 failed to delete order {} e=", id, e);
-                        auditLog(order, false, jobStatus.getTenantId(), jobStatus.getUserId());
-                        nFailed++;
-                    } catch (Exception e) {
-                        log.error("lbyk5: failed to delete order={} e=", id, e);
-                        auditLog(order, false, jobStatus.getTenantId(), jobStatus.getUserId());
-                        nFailed++;
-                    }
-                }
-            }
-            */
             for (URI id : orderIds) {
                 Order order = orderManager.getOrderById(id);
                 try {

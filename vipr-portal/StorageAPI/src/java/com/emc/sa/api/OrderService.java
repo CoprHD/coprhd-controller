@@ -588,8 +588,8 @@ public class OrderService extends CatalogTaggedResourceService {
     @GET
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR, Role.SECURITY_ADMIN })
     @Produces({ MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML, MediaType.TEXT_PLAIN })
-    @Path("/export")
-    public Response exportOrders( @DefaultValue("") @QueryParam(LogRequestParam.START_TIME) String startTimeStr,
+    @Path("/download")
+    public Response downloadOrders( @DefaultValue("") @QueryParam(LogRequestParam.START_TIME) String startTimeStr,
                                   @DefaultValue("") @QueryParam(LogRequestParam.END_TIME) String endTimeStr,
                                   @DefaultValue("") @QueryParam(SearchConstants.TENANT_IDS_PARAM) String tenantIDsStr,
                                   @DefaultValue("") @QueryParam(SearchConstants.ORDER_IDS) String orderIDsStr)
@@ -598,12 +598,16 @@ public class OrderService extends CatalogTaggedResourceService {
                 new Object[] {startTimeStr, endTimeStr, tenantIDsStr, orderIDsStr});
 
         if (!tenantIDsStr.isEmpty() && !orderIDsStr.isEmpty()) {
-            Throwable cause = new Throwable("Both tenant and order IDs are empty");
+            InvalidParameterException cause = new InvalidParameterException("Both tenant and order IDs are empty");
             throw APIException.badRequests.invalidParameter(SearchConstants.TENANT_ID_PARAM, tenantIDsStr, cause);
         }
 
         final long startTimeInMS = getTime(startTimeStr, 0);
         final long endTimeInMS = getTime(endTimeStr, System.currentTimeMillis());
+
+        if (startTimeInMS > endTimeInMS) {
+            throw APIException.badRequests.endTimeBeforeStartTime(startTimeStr, endTimeStr);
+        }
 
         final List<URI> tids= toIDs(SearchConstants.TENANT_IDS_PARAM, tenantIDsStr);
 
@@ -628,6 +632,7 @@ public class OrderService extends CatalogTaggedResourceService {
                 log.info("lbyh id={}", id);
                 Order order = _dbClient.queryObject(Order.class, id);
                 out.print(order.toString());
+                auditOpSuccess(OperationTypeEnum.DOWNLOAD_ORDER, order.auditParameters());
             }
         }
     }
@@ -863,16 +868,20 @@ public class OrderService extends CatalogTaggedResourceService {
                                  @DefaultValue("") @QueryParam(SearchConstants.END_TIME_PARAM) String endTimeStr,
                                  @DefaultValue("") @QueryParam(SearchConstants.TENANT_IDS_PARAM) String tenantIDsStr) {
 
-        if (isJobRunning(OrderServiceJob.JobType.DELETE_ORDER)) {
-            throw APIException.badRequests.cannotExecuteOperationWhilePendingTask("Deleting orders");
-        }
-
         long startTimeInMS = getTime(startTimeStr, 0);
         long endTimeInMS = getTime(endTimeStr, System.currentTimeMillis());
 
         if (startTimeInMS > endTimeInMS) {
+            throw APIException.badRequests.endTimeBeforeStartTime(startTimeStr, endTimeStr);
+        }
+
+        if (tenantIDsStr.isEmpty()) {
             throw APIException.badRequests.invalidParameter(SearchConstants.TENANT_IDS_PARAM, tenantIDsStr,
-                    new InvalidParameterException("tenant ID list should not be empty"));
+                    new InvalidParameterException("tenant IDs should not be empty"));
+        }
+
+        if (isJobRunning(OrderServiceJob.JobType.DELETE_ORDER)) {
+            throw APIException.badRequests.cannotExecuteOperationWhilePendingTask("Deleting orders");
         }
 
         List<URI> tids = toIDs(SearchConstants.TENANT_IDS_PARAM, tenantIDsStr);

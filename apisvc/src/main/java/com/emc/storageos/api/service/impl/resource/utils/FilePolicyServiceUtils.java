@@ -4,6 +4,8 @@
  */
 package com.emc.storageos.api.service.impl.resource.utils;
 
+import java.net.URI;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.EnumSet;
 import java.util.List;
@@ -14,16 +16,23 @@ import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.api.service.impl.resource.ArgValidator;
 import com.emc.storageos.api.service.impl.resource.FilePolicyService;
+import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.FilePolicy;
+import com.emc.storageos.db.client.model.FilePolicy.AssignToResource;
+import com.emc.storageos.db.client.model.FilePolicy.FilePolicyApplyLevel;
 import com.emc.storageos.db.client.model.FilePolicy.FilePolicyType;
 import com.emc.storageos.db.client.model.FilePolicy.ScheduleFrequency;
 import com.emc.storageos.db.client.model.FilePolicy.SnapshotExpireType;
+import com.emc.storageos.db.client.model.FileShare;
+import com.emc.storageos.db.client.model.Project;
+import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.model.file.policy.FilePolicyScheduleParams;
 import com.emc.storageos.model.file.policy.FileSnapshotPolicyExpireParam;
 import com.emc.storageos.model.file.policy.FileSnapshotPolicyParam;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
+import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
 
 /**
  * @author jainm15
@@ -209,5 +218,83 @@ public class FilePolicyServiceUtils {
             default:
                 return false;
         }
+    }
+
+    public static List<FilePolicy> getAllApplicablePolices(DbClient dbClient, URI vpool, URI project) {
+        List<FilePolicy> filePolicies = new ArrayList<FilePolicy>();
+        List<URI> policyIds = dbClient.queryByType(FilePolicy.class, true);
+        List<FilePolicy> filepolicies = dbClient.queryObject(FilePolicy.class, policyIds);
+
+        for (FilePolicy filePolicy : filepolicies) {
+            if (filePolicy.getApplyAt() != null) {
+                FilePolicyApplyLevel appliedLevel = FilePolicyApplyLevel.valueOf(filePolicy.getApplyAt());
+
+                switch (appliedLevel) {
+                    case vpool:
+                        if (filePolicy.getAssignedResources() != null && filePolicy.getAssignedResources().contains(vpool.toString())) {
+                            filePolicies.add(filePolicy);
+                        }
+                        break;
+                    case project:
+                        if (filePolicy.getAssignedResources() != null && filePolicy.getAssignedResources().contains(project.toString())
+                                && filePolicy.getFilePolicyVpool().toString().equals(vpool.toString())) {
+                            filePolicies.add(filePolicy);
+                        }
+                        break;
+                    case file_system:
+                        // TODO Here logic has to be changed..
+                        if (AssignToResource.all.name().equalsIgnoreCase(filePolicy.getApplyToFS())
+                                && filePolicy.getFilePolicyVpool().toString().equals(vpool.toString())) {
+                            filePolicies.add(filePolicy);
+                        }
+                        break;
+                    default:
+                        return null;
+                }
+            }
+        }
+        return filePolicies;
+    }
+
+    public static boolean updatePolicyCapabilities(DbClient dbClient, VirtualArray scrVA, VirtualPool vPool, Project project, FileShare fs,
+            VirtualPoolCapabilityValuesWrapper capabilities, StringBuilder errorMsg) {
+
+        Boolean replicationSupported = false;
+        List<FilePolicy> eligiblePolicies = getAllApplicablePolices(dbClient, vPool.getId(), project.getId());
+        for (FilePolicy policy : eligiblePolicies) {
+            if (FilePolicyType.file_replication.name().equalsIgnoreCase(policy.getFilePolicyType())) {
+                if (replicationSupported) {
+                    if (errorMsg == null) {
+                        errorMsg = new StringBuilder();
+                    }
+                    // Single replication policy across vpool/project/fs
+                    errorMsg.append("More than one replication policy could not be applied accross vpool/project/fs");
+                    return false;
+
+                } else {
+                    // Update replication policy capabilities!!
+                    capabilities.put(VirtualPoolCapabilityValuesWrapper.FILE_REPLICATION_TYPE, policy.getFileReplicationType());
+                    capabilities.put(VirtualPoolCapabilityValuesWrapper.FILE_REPLICATION_COPY_MODE, policy.getFileReplicationCopyMode());
+                    if (vPool.getFrRpoType() != null) { // rpo type can be DAYS or HOURS
+                        capabilities.put(VirtualPoolCapabilityValuesWrapper.FILE_REPLICATION_RPO_TYPE, vPool.getFrRpoType());
+                    }
+                    if (vPool.getFrRpoValue() != null) {
+                        capabilities.put(VirtualPoolCapabilityValuesWrapper.FILE_REPLICATION_RPO_VALUE, vPool.getFrRpoValue());
+                    }
+                    if (policy.getTargetVArray() != null) {
+                        capabilities.put(VirtualPoolCapabilityValuesWrapper.FILE_REPLICATION_TARGET_VARRAY,
+                                policy.getFileReplicationType());
+                    }
+                    capabilities.put(VirtualPoolCapabilityValuesWrapper.FILE_REPLICATION_TARGET_VPOOL, vPool.getId());
+                }
+                replicationSupported = true;
+            }
+        }
+
+        if (vPool.getFileReplicationSupported() != replicationSupported) {
+            errorMsg.append("No replication policy assigned at any level for virtual pool ").append(vPool.getLabel());
+        }
+
+        return false;
     }
 }

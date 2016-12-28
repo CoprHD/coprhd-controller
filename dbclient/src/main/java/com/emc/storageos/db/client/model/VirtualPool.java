@@ -19,6 +19,7 @@ import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.model.valid.EnumType;
+import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
 
 /**
  * VirtualPool data object (like gold, silver, etc.)
@@ -1158,8 +1159,8 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
      *            A reference to the VirtualPool.
      * @return true if the VirtualPool specifies RP protection, false otherwise.
      */
-    public static boolean vPoolSpecifiesFileReplication(final VirtualPool virtualPool) {
-        return (virtualPool.getFileReplicationType() != null && FileReplicationType.validFileReplication(virtualPool
+    public static boolean vPoolSpecifiesFileReplication(VirtualPoolCapabilityValuesWrapper capabilities) {
+        return (capabilities.getFileReplicationType() != null && FileReplicationType.validFileReplication(capabilities
                 .getFileReplicationType()));
     }
 

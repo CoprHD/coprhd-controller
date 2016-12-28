@@ -83,6 +83,8 @@ public abstract class AttributeMatcher {
         schedule_snapshots,
         file_snapshot_supported,
         file_replication_supported,
+        file_replication_target_varray,
+        file_replication_target_vpool,
         min_datacenters,
         quota,
         source_storage_system,

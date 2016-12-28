@@ -73,6 +73,11 @@ public class FilePolicy extends DataObjectWithACLs {
     // Actual resources where is being applied
     private StringSet policyStorageResources;
 
+    // This has to be converted to FileReplicationTopology
+    // <TODO>
+    private URI sourceVArray;
+    private URI targetVArray;
+
     /**
      * TRUE means: if policy has to be applied on all file system coming under specified vpool, at the time of
      * provisioning.
@@ -300,6 +305,26 @@ public class FilePolicy extends DataObjectWithACLs {
     public void setFilePolicyVpool(URI filePolicyVpool) {
         this.filePolicyVpool = filePolicyVpool;
         setChanged("filePolicyVpool");
+    }
+
+    @Name("sourceVArray")
+    public URI getSourceVArray() {
+        return this.sourceVArray;
+    }
+
+    public void setSourceVArray(URI sourceVArray) {
+        this.sourceVArray = sourceVArray;
+        setChanged("sourceVArray");
+    }
+
+    @Name("targetVArray")
+    public URI getTargetVArray() {
+        return this.targetVArray;
+    }
+
+    public void setTargetVArray(URI targetVArray) {
+        this.targetVArray = targetVArray;
+        setChanged("targetVArray");
     }
 
     @Name("priority")

@@ -333,6 +333,11 @@ public class FilePolicyRestRep extends DataObjectRestRep {
         private String mode;
         private Boolean replicateConfiguration;
 
+        // This has to be converted to FileReplicationTopology
+        // <TODO>
+        private NamedRelatedResourceRep sourceVArray;
+        private NamedRelatedResourceRep targetVArray;
+
         @XmlElement(name = "type")
         public String getType() {
             return type;
@@ -358,6 +363,24 @@ public class FilePolicyRestRep extends DataObjectRestRep {
 
         public void setReplicateConfiguration(Boolean replicateConfiguration) {
             this.replicateConfiguration = replicateConfiguration;
+        }
+
+        @XmlElement(name = "source_varray")
+        public NamedRelatedResourceRep getSourceVArray() {
+            return this.sourceVArray;
+        }
+
+        public void setSourceVArray(NamedRelatedResourceRep sourceVArray) {
+            this.sourceVArray = sourceVArray;
+        }
+
+        @XmlElement(name = "target_varray")
+        public NamedRelatedResourceRep getTargetVArray() {
+            return this.targetVArray;
+        }
+
+        public void setTargetVArray(NamedRelatedResourceRep targetVArray) {
+            this.targetVArray = targetVArray;
         }
 
         @Override

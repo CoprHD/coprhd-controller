@@ -47,6 +47,9 @@ public class VirtualPoolCapabilityValuesWrapper implements Serializable {
     public static final String FILE_REPLICATION_RPO_VALUE = "fileReplicationRpoValue";
     public static final String FILE_REPLICATION_RPO_TYPE = "fileReplicationRpoType";
     public static final String FILE_REPLICATION_COPY_MODE = "fileReplicationCopyMode";
+    public static final String FILE_REPLICATION_TARGET_VARRAY = "fileReplicationTargetVarray";
+    public static final String FILE_REPLICATION_TARGET_VPOOL = "fileReplicationTargetVPool";
+    public static final String FILE_REPLICATION_TYPE = "fileReplicationType";
 
     // Not vpool params, but hints for volume descriptor creation
     // TODO: Move to ControllerOperationValuesWrapper
@@ -192,7 +195,7 @@ public class VirtualPoolCapabilityValuesWrapper implements Serializable {
         if (capabilities.contains(QUOTA)) {
             _vpoolCapabilities.put(QUOTA, capabilities.getQuota());
         }
-        
+
         if (capabilities.contains(DEDUP)) {
             _vpoolCapabilities.put(DEDUP, capabilities.getDedupCapable());
         }
@@ -209,6 +212,18 @@ public class VirtualPoolCapabilityValuesWrapper implements Serializable {
             _vpoolCapabilities.put(FILE_REPLICATION_COPY_MODE, capabilities.getRpCopyMode());
         }
 
+        if (capabilities.contains(FILE_REPLICATION_TARGET_VARRAY)) {
+            _vpoolCapabilities.put(FILE_REPLICATION_TARGET_VARRAY, capabilities.getRpCopyMode());
+        }
+
+        if (capabilities.contains(FILE_REPLICATION_TARGET_VPOOL)) {
+            _vpoolCapabilities.put(FILE_REPLICATION_TARGET_VPOOL, capabilities.getRpCopyMode());
+        }
+
+        if (capabilities.contains(FILE_REPLICATION_TYPE)) {
+            _vpoolCapabilities.put(FILE_REPLICATION_TYPE, capabilities.getRpCopyMode());
+        }
+
         if (capabilities.contains(COMPUTE)) {
             _vpoolCapabilities.put(COMPUTE, capabilities.getCompute());
         }
@@ -216,7 +231,7 @@ public class VirtualPoolCapabilityValuesWrapper implements Serializable {
         if (capabilities.contains(ARRAY_AFFINITY)) {
             _vpoolCapabilities.put(ARRAY_AFFINITY, capabilities.getArrayAffinity());
         }
-        
+
         if (capabilities.contains(CHANGE_VPOOL_VOLUME)) {
             _vpoolCapabilities.put(CHANGE_VPOOL_VOLUME, capabilities.getChangeVpoolVolume());
         }
@@ -297,6 +312,21 @@ public class VirtualPoolCapabilityValuesWrapper implements Serializable {
 
     public String getRpCopyMode() {
         Object value = _vpoolCapabilities.get(RP_COPY_MODE);
+        return value != null ? (String) value : null;
+    }
+
+    public URI getFileReplicationTargetVArray() {
+        Object value = _vpoolCapabilities.get(FILE_REPLICATION_TARGET_VARRAY);
+        return value != null ? (URI) value : null;
+    }
+
+    public URI getFileReplicationTargetVPool() {
+        Object value = _vpoolCapabilities.get(FILE_REPLICATION_TARGET_VPOOL);
+        return value != null ? (URI) value : null;
+    }
+
+    public String getFileReplicationType() {
+        Object value = _vpoolCapabilities.get(FILE_REPLICATION_TYPE);
         return value != null ? (String) value : null;
     }
 
@@ -408,15 +438,17 @@ public class VirtualPoolCapabilityValuesWrapper implements Serializable {
     public String getChangeVpoolVolume() {
         Object value = _vpoolCapabilities.get(CHANGE_VPOOL_VOLUME);
         return value != null ? (String) value : null;
-    }        public String getReplicaCreateInactive() {
+    }
+
+    public String getReplicaCreateInactive() {
         Object value = _vpoolCapabilities.get(REPLICA_CREATE_INACTIVE);
         return value != null ? (String) value : null;
     }
-    
+
     public String getSnapshotSessionCopyMode() {
         Object value = _vpoolCapabilities.get(SNAPSHOT_SESSION_COPY_MODE);
         return value != null ? (String) value : null;
-}
+    }
 
     public String getCompute() {
         Object value = _vpoolCapabilities.get(COMPUTE);
@@ -427,9 +459,9 @@ public class VirtualPoolCapabilityValuesWrapper implements Serializable {
         Object value = _vpoolCapabilities.get(ARRAY_AFFINITY);
         return value != null ? (Boolean) value : false;
     }
-    
+
     public void removeCapabilityEntry(String keyEntry) {
-        if(_vpoolCapabilities.get(keyEntry) != null) {
+        if (_vpoolCapabilities.get(keyEntry) != null) {
             _vpoolCapabilities.remove(keyEntry);
         }
     }

@@ -39,7 +39,7 @@ public class FilePlacementManager {
             Project project, VirtualPool vPool, VirtualPoolCapabilityValuesWrapper capabilities) {
 
         // Get the file placement based on passed parameters.
-        Scheduler scheduler = getFileServiceImpl(vPool);
+        Scheduler scheduler = getFileServiceImpl(capabilities);
         return scheduler.getRecommendationsForResources(virtualArray, project, vPool, capabilities);
     }
 
@@ -49,11 +49,11 @@ public class FilePlacementManager {
      * @param vpool Virtual Pool
      * @return storage scheduler
      */
-    private Scheduler getFileServiceImpl(VirtualPool vpool) {
+    private Scheduler getFileServiceImpl(VirtualPoolCapabilityValuesWrapper caps) {
 
         // Select an implementation of the right scheduler
         Scheduler scheduler = storageSchedulers.get("file");
-        if (VirtualPool.vPoolSpecifiesFileReplication(vpool)) {
+        if (VirtualPool.vPoolSpecifiesFileReplication(caps)) {
             scheduler = storageSchedulers.get("mirrorfile");
         }
         return scheduler;

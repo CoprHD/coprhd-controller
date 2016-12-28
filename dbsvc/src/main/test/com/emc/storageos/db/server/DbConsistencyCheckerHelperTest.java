@@ -56,6 +56,7 @@ public class DbConsistencyCheckerHelperTest extends DbsvcTestBase {
     
     @Test
     public void testFindDataCreatedInWhichDBVersion() {
+        assertEquals("Unknown", helper.findDataCreatedInWhichDBVersion(null));
         assertEquals("Unknown",
                 helper.findDataCreatedInWhichDBVersion(ThreadLocalRandom.current().nextLong(Long.MIN_VALUE, TIME_STAMP_2_4_1)));
         assertEquals("2.4.1",

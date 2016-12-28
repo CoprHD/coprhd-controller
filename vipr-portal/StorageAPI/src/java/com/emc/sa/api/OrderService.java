@@ -102,9 +102,10 @@ public class OrderService extends CatalogTaggedResourceService {
 
     private static Charset UTF_8 = Charset.forName("UTF-8");
 
-    private static String ORDER_SERVICE_QUEUE_NAME="OrderService";
-    private static long INDEX_GC_GRACE_PERIOD=432000*1000L;
-    public  static long MAX_DELETED_ORDERS_PER_GC_PERIOD=300000L;
+    private static final String ORDER_SERVICE_QUEUE_NAME="OrderService";
+    private static final String ORDER_JOB_LOCK="order-jobs";
+    private static final long INDEX_GC_GRACE_PERIOD=432000*1000L;
+    public  static final long MAX_DELETED_ORDERS_PER_GC_PERIOD=300000L;
 
     private static int SCHEDULED_EVENTS_SCAN_INTERVAL = 300;
     private int scheduleInterval = SCHEDULED_EVENTS_SCAN_INTERVAL;
@@ -893,7 +894,12 @@ public class OrderService extends CatalogTaggedResourceService {
         OrderJobStatus status = new OrderJobStatus(OrderServiceJob.JobType.DELETE_ORDER,
                 startTimeInMS*1000, endTimeInMS*1000, tids, tid, uid);
 
-        saveJobInfo(status);
+        try {
+            saveJobInfo(status);
+        }catch (Exception e) {
+            log.error("Failed to save job info e=", e);
+            throw APIException.internalServerErrors.getLockFailed();
+        }
 
         log.info("lby00 start={} end={} tids={}", new Object[] {startTimeInMS, endTimeInMS, tids});
 
@@ -909,9 +915,13 @@ public class OrderService extends CatalogTaggedResourceService {
         return Response.ok().build();
     }
 
-    public void saveJobInfo(OrderJobStatus status) {
+    public void saveJobInfo(OrderJobStatus status) throws Exception {
         log.info("lbyx0: persist type={}", status);
+        InterProcessLock lock = coordinatorClient.getLock(ORDER_JOB_LOCK);
+
+        lock.acquire();
         coordinatorClient.persistRuntimeState(status.getType().name(), status);
+        lock.release();
     }
 
     public OrderJobStatus queryJobInfo(OrderServiceJob.JobType type) {

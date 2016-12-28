@@ -1865,6 +1865,13 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
 
             Workflow workflow = _workflowService.getNewWorkflow(this, "exportGroupCreate", true, opId);
 
+            // If possible, do the HA side export. To do this we must have both
+            // HA side initiators, and volumes accessible from the HA side.
+            if (haVarray != null && varrayToInitiators.get(haVarray) != null) {
+                exportGroup.putAltVirtualArray(vplex.toString(), haVarray.toString());
+                _dbClient.updateObject(exportGroup);
+            }
+
             findAndUpdateFreeHLUsForClusterExport(vplexSystem, exportGroup, initiators, volumeMap);
 
             // Do the source side export if there are src side volumes and initiators.
@@ -1878,8 +1885,6 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
             // If possible, do the HA side export. To do this we must have both
             // HA side initiators, and volumes accessible from the HA side.
             if (haVarray != null && varrayToInitiators.get(haVarray) != null) {
-                exportGroup.putAltVirtualArray(vplex.toString(), haVarray.toString());
-                _dbClient.updateObject(exportGroup);
                 assembleExportMasksWorkflow(vplex, export, haVarray,
                         varrayToInitiators.get(haVarray),
                         ExportMaskUtils.filterVolumeMap(volumeMap, varrayToVolumes.get(haVarray)),
@@ -5370,8 +5375,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
         List<VPlexStorageViewInfo> storageViewInfos = client.getStorageViewsContainingInitiators(
                 vplexClusterName, initiatorNames); 
         _log.info("initiatorNames {}", initiatorNames);
-        if ((exportGroup.getAltVirtualArrays() != null)
-                && (exportGroup.getAltVirtualArrays().get(vplexStorageSystem.getId().toString()) != null)) {
+        if (exportGroup.hasAltVirtualArray(vplexStorageSystem.getId().toString())) {
             // If there is an alternate Varray entry for this Vplex, it indicates we have HA volumes.
             URI haVarrayURI = URI.create(exportGroup.getAltVirtualArrays().get(vplexStorageSystem.getId().toString()));
             _log.info("haVarrayURI :{} Vplex URI :{}", haVarrayURI, vplexStorageSystem.getId());
@@ -5389,9 +5393,8 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
                     haInitiatorNames.add(initiatorName);
                 }
             }
-
             storageViewInfos.addAll(client.getStorageViewsContainingInitiators(
-                    vplexHAClusterName, initiatorNames));
+                    vplexHAClusterName, haInitiatorNames));
         }
         
         for (VPlexStorageViewInfo storageViewInfo : storageViewInfos) {

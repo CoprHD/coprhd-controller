@@ -150,7 +150,7 @@ public class OrderManagerImpl implements OrderManager {
         for (OrderParameter orderParameter : orderParameters) {
             ServiceField serviceField = findServiceField(serviceDescriptor, orderParameter.getLabel());
             String friendlyLabel = serviceField.getLabel();
-    
+
             StringBuilder friendlyValue = new StringBuilder();
             List<String> values = TextUtils.parseCSV(orderParameter.getValue());
             for (String value : values) {
@@ -162,7 +162,7 @@ public class OrderManagerImpl implements OrderManager {
 
             orderParameter.setFriendlyLabel(friendlyLabel);
             orderParameter.setFriendlyValue(friendlyValue.toString());
-            
+
             createOrderParameter(orderParameter);
         }
 
@@ -424,11 +424,9 @@ public class OrderManagerImpl implements OrderManager {
             throw APIException.badRequests.scheduledOrderNotAllowed("deactivation");
         }
 
-        /*
         if (createdWithinOneMonth(order)) {
             throw APIException.badRequests.orderWithinOneMonth(order.getId());
         }
-        */
 
         OrderStatus status = OrderStatus.valueOf(order.getOrderStatus());
         log.info("lbyj5 status={}", status);

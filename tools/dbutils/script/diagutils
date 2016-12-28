@@ -1,5 +1,5 @@
 #!/bin/bash
-# Copyright (c) 2014 EMC Corporation
+# Copyright (c) 2016 EMC Corporation
 # All Rights Reserved
 #
 # This software contains the intellectual property of EMC Corporation
@@ -92,21 +92,20 @@ collect_backup() {
     fi
 
     set +e
-    echo "Collecting backup data.."
-    check_if_skip ${param}
+    check_if_skip "new backup"
     if [[ ${SKIP_COLLECT} == false ]] ; then
+        echo "Collecting backup data.."
         local foundName=`${COMMAND_DIR}/bkutils -l | grep "${backupName}" | awk '{print $1}'`
         if [ "${foundName}" == "${backupName}" ]; then
             echo -e "\tBackup($backupName) exists"
         else
-            echo -e -n "\tStart to creat backup(${backupName}).."
+            echo -e -n "\tStarting to creat backup(${backupName}).."
             local task="${COMMAND_DIR}/bkutils -c ${backupName} -f"
             execute_with_progress_point "${task}" "true"
         fi
     fi
-    set -e
 
-    echo -e -n "\tArchiving backup data.."
+    echo -e -n "\tTrying to collect and archive existing backup data.."
     local backupDir="${DIAGCOLLECT_OUTPUT}/backup"
     mkdir -p ${backupDir}
     collect_data "/data/backup/${backupName}" "${backupDir}" "false"
@@ -115,7 +114,6 @@ collect_backup() {
     local task="zip ${backupName}.zip *"
     execute_with_progress_point "${task}" "false"
     rm -rf ${backupName}_*
-    set +e
     if [[ ${SKIP_COLLECT} == false ]] ; then
         ${COMMAND_DIR}/bkutils -d ${backupName} &> /dev/null
     fi
@@ -127,7 +125,9 @@ collect_logs() {
     local logsDir="${DIAGCOLLECT_OUTPUT}/logs"
     mkdir -p ${logsDir}
 
+    set +e
     collect_data "/opt/storageos/logs" "${logsDir}" "true"
+    set -e
 }
 
 collect_properties() {
@@ -193,10 +193,16 @@ create_archive() {
     echo -n "Creating the final archive(${DIAGCOLLECT_DIR}/${DIAGCOLLECT_ARCHIVE_NAME}.zip).."
     cd ${DIAGCOLLECT_DIR}
 
+    set +e
     local task="zip -r ${DIAGCOLLECT_ARCHIVE_NAME}.zip ${DIAGCOLLECT_MAME}/*"
     execute_with_progress_point "${task}" "true"
-    if [ $? -eq 0 ]; then
+    local result=$?
+    set -e
+    if [ ${result} -eq 0 ]; then
         rm -rf ${DIAGCOLLECT_OUTPUT}
+    else
+        echo "Exit."
+        return ${result}
     fi
 }
 
@@ -209,11 +215,17 @@ upload_to_ftp() {
     local uploadfile=${DIAGCOLLECT_ARCHIVE_NAME}.zip
     echo -n "Uploading ${uploadfile} to ftp server(${ftpserver}).."
 
+    set +e
     local task="cat ${uploadfile} | curl -sSk -u ${user}:${password} -a -T - "${ftpserver}"/${DIAGCOLLECT_ARCHIVE_NAME}.zip"
     execute_with_progress_point "${task}" "true"
+    local result=$?
+    set -e
     if [ $? -eq 0 ]; then
         echo "Removing local archive file.."
         rm -rf ${uploadfile}
+    else 
+        echo "Exit."
+        return ${result}
     fi
 }
 
@@ -221,7 +233,6 @@ upload_to_ftp() {
 # Script Libs
 ######################
 collect_data() {
-    set +e
     local sourceDir=${1}
     local targetDir=${2}
     local haveSubDir=${3}
@@ -236,7 +247,6 @@ collect_data() {
         scp -r svcuser@"$viprNode":"${sourceDir}"/* ${targetDir} &>/dev/null
     done
     wait
-    set -e
 }
 
 get_nodeid() {
@@ -263,7 +273,6 @@ execute_with_progress_point() {
     local task=$1
     local printResult=$2
 
-    set +e
     while true; do echo -n "."; sleep 5; done &
     BACKGROUND_PRINT_PID=$!
     local result="success"
@@ -271,7 +280,6 @@ execute_with_progress_point() {
     if [ $? -ne 0 ]; then
         result="failed"
     fi
-    set -e
     kill_backup_ground_thread &> /dev/null
 
     if [[ ${printResult} == "true" ]]; then
@@ -285,7 +293,6 @@ execute_with_progress_point() {
 }
 
 kill_backup_ground_thread() {
-    set +e
     while true; do
         ps -p ${BACKGROUND_PRINT_PID} | grep -v "PID" &>/dev/null
         if [ $? -eq 0 ]; then
@@ -294,7 +301,6 @@ kill_backup_ground_thread() {
             break
         fi
     done
-    set -e
 }
 
 set_max_current_job_number() {

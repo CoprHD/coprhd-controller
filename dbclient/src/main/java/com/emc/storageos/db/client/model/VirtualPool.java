@@ -132,13 +132,13 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
     // File Policy Feature---temporary setting them true
     private Boolean fileSnapshotSupported = true;
     private Boolean fileReplicationSupported = true;
-    private Boolean filePolicyAtProjectLevel = true;
-    private Boolean filePolicyAtFSLevel = true;
+    private Boolean allowFilePolicyAtProjectLevel = true;
+    private Boolean allowFilePolicyAtFSLevel = true;
     private Long _frRpoValue;
     private String _frRpoType;
 
     @Name("fileSnapshotSupported")
-    public boolean isFileSnapshotSupported() {
+    public Boolean getFileSnapshotSupported() {
         return fileSnapshotSupported;
     }
 
@@ -148,7 +148,7 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
     }
 
     @Name("fileReplicationSupported")
-    public boolean isFileReplicationSupported() {
+    public Boolean getFileReplicationSupported() {
         return fileReplicationSupported;
     }
 
@@ -157,24 +157,24 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
         setChanged("fileReplicationSupported");
     }
 
-    @Name("filePolicyAtProjectLevel")
-    public boolean isFilePolicyAtProjectLevel() {
-        return filePolicyAtProjectLevel;
+    @Name("allowFilePolicyAtProjectLevel")
+    public boolean getAllowFilePolicyAtProjectLevel() {
+        return allowFilePolicyAtProjectLevel;
     }
 
-    public void setFilePolicyAtProjectLevel(Boolean filePolicyAtProjectLevel) {
-        this.filePolicyAtProjectLevel = filePolicyAtProjectLevel;
-        setChanged("filePolicyAtProjectLevel");
+    public void setAllowFilePolicyAtProjectLevel(Boolean filePolicyAtProjectLevel) {
+        this.allowFilePolicyAtProjectLevel = filePolicyAtProjectLevel;
+        setChanged("allowFilePolicyAtProjectLevel");
     }
 
-    @Name("filePolicyAtFSLevel")
-    public boolean isFilePolicyAtFSLevel() {
-        return filePolicyAtFSLevel;
+    @Name("allowFilePolicyAtFSLevel")
+    public boolean getAllowFilePolicyAtFSLevel() {
+        return allowFilePolicyAtFSLevel;
     }
 
-    public void setFilePolicyAtFSLevel(Boolean filePolicyAtFSLevel) {
-        this.filePolicyAtFSLevel = filePolicyAtFSLevel;
-        setChanged("filePolicyAtFSLevel");
+    public void setAllowFilePolicyAtFSLevel(Boolean filePolicyAtFSLevel) {
+        this.allowFilePolicyAtFSLevel = filePolicyAtFSLevel;
+        setChanged("allowFilePolicyAtFSLevel");
     }
 
     public static enum FileReplicationType {

@@ -2420,6 +2420,12 @@ vpool.remoteVirtualArray=Virtual Array
 vpool.remoteVirtualPool=Virtual Pool
 vpool.replicationType=Replication Type
 vpool.scheduleSnapshots=Schedule Snapshots
+
+vpool.replicationSupported=Replication
+vpool.snapshotSupported=Snapshots
+vpool.allowPolicyApplyAtProject=Allow Policies at Project
+vpool.allowPolicyApplyAtFS=Allow Policies at File System
+
 # File Replication
 replicationCopy.virtualArray=Virtual Array
 replicationCopy.virtualPool=Virtual Pool

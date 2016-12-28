@@ -84,6 +84,15 @@ public class VirtualPoolAttributeMapBuilder extends AttributeMapBuilder {
         if (null != _vpool.getScheduleSnapshots()) {
             putAttributeInMap(Attributes.schedule_snapshots.toString(), _vpool.getScheduleSnapshots());
         }
+
+        if (null != _vpool.getFileSnapshotSupported()) {
+            putAttributeInMap(Attributes.file_snapshot_supported.toString(), _vpool.getFileSnapshotSupported());
+        }
+
+        if (null != _vpool.getFileReplicationSupported()) {
+            putAttributeInMap(Attributes.file_replication_supported.toString(), _vpool.getFileReplicationSupported());
+        }
+
         putAttributeInMap(Attributes.high_availability_varray.toString(), haNh);
         putAttributeInMap(Attributes.high_availability_vpool.toString(), haCos);
         putAttributeInMap(Attributes.high_availability_rp.toString(), _vpool.getHaVarrayConnectedToRp());
@@ -135,10 +144,10 @@ public class VirtualPoolAttributeMapBuilder extends AttributeMapBuilder {
                 putAttributeInMap(Attributes.file_replication.toString(), fileRemoteProtectionSettings);
             }
         }
-        
+
         putAttributeInMap(Attributes.min_datacenters.toString(), _vpool.getMinDataCenters());
-        if (_vpool.getDedupCapable() != null &&  _vpool.getDedupCapable()) {
-        	putAttributeInMap(Attributes.dedup.toString(), _vpool.getDedupCapable());
+        if (_vpool.getDedupCapable() != null && _vpool.getDedupCapable()) {
+            putAttributeInMap(Attributes.dedup.toString(), _vpool.getDedupCapable());
         }
         return _attributeMap;
     }

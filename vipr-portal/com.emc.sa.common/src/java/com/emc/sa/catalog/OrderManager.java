@@ -22,7 +22,7 @@ public interface OrderManager {
 
     public void updateOrder(Order order);
 
-    public void canBeDeleted(Order order);
+    public void canBeDeleted(Order order, OrderStatus status);
 
     public void deleteOrder(Order order);
 

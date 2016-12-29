@@ -10,6 +10,7 @@ import java.util.List;
 
 import com.emc.storageos.db.client.constraint.TimeSeriesConstraint;
 import com.emc.storageos.db.client.model.uimodels.Order;
+import com.emc.storageos.db.client.model.uimodels.OrderStatus;
 import com.emc.storageos.security.audit.AuditLogManager;
 import com.emc.storageos.services.OperationTypeEnum;
 import org.slf4j.Logger;
@@ -26,8 +27,8 @@ import com.emc.sa.api.OrderService;
 public class OrderServiceJobConsumer extends DistributedQueueConsumer<OrderServiceJob> {
     private final Logger log = LoggerFactory.getLogger(OrderServiceJobConsumer.class);
 
-    public static final long CHECK_INTERVAL = 1000*60*10L;
-    // public static final long CHECK_INTERVAL = 1000*60*3L;
+    // public static final long CHECK_INTERVAL = 1000*60*10L;
+    public static final long CHECK_INTERVAL = 1000*60*3L;
     DbClient dbClient;
     OrderManager orderManager;
     OrderService orderService;
@@ -60,6 +61,7 @@ public class OrderServiceJobConsumer extends DistributedQueueConsumer<OrderServi
                 OrderJobStatus jobStatus = orderService.queryJobInfo(OrderServiceJob.JobType.DELETE_ORDER);
                 long startTime = jobStatus.getStartTime();
                 long endTime = jobStatus.getEndTime();
+                OrderStatus status = jobStatus.getStatus();
                 List<URI> tids = jobStatus.getTids();
                 List<URI> orderIds = new ArrayList();
 
@@ -89,7 +91,7 @@ public class OrderServiceJobConsumer extends DistributedQueueConsumer<OrderServi
                         log.info("lbykk0: id={}", id);
                         Order order = orderManager.getOrderById(id);
                         try {
-                            orderManager.canBeDeleted(order);
+                            orderManager.canBeDeleted(order, status);
                             if (orderIds.size() < numberOfOrdersCanBeDeletedInGC) {
                                 orderIds.add(id);
                             } else if (jobStatus.getTotal() != -1) {

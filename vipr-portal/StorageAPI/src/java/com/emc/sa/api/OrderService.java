@@ -104,9 +104,11 @@ public class OrderService extends CatalogTaggedResourceService {
 
     private static final String ORDER_SERVICE_QUEUE_NAME="OrderService";
     private static final String ORDER_JOB_LOCK="order-jobs";
+
     private static final long INDEX_GC_GRACE_PERIOD=432000*1000L;
-    // private static final long INDEX_GC_GRACE_PERIOD=3*60*1000L;
     public  static final long MAX_DELETED_ORDERS_PER_GC_PERIOD=300000L;
+
+    // private static final long INDEX_GC_GRACE_PERIOD=3*60*1000L;
     // public  static final long MAX_DELETED_ORDERS_PER_GC_PERIOD=100L;
 
     private static int SCHEDULED_EVENTS_SCAN_INTERVAL = 300;
@@ -861,6 +863,7 @@ public class OrderService extends CatalogTaggedResourceService {
      * @param startTimeStr the start time of the range (exclusive)
      * @param endTimeStr the end time of the range (inclusive)
      * @param tenantIDsStr A list of tenant IDs separated by ','
+     * @param statusStr Order status
      * @return OK if a background job is submitted successfully
      */
     @DELETE
@@ -868,9 +871,9 @@ public class OrderService extends CatalogTaggedResourceService {
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @CheckPermission(roles = { Role.TENANT_ADMIN })
     public Response deleteOrders(@DefaultValue("") @QueryParam(SearchConstants.START_TIME_PARAM) String startTimeStr,
-                                 @DefaultValue("") @QueryParam(SearchConstants.END_TIME_PARAM) String endTimeStr,
-                                 @DefaultValue("") @QueryParam(SearchConstants.TENANT_IDS_PARAM) String tenantIDsStr) {
-
+                                @DefaultValue("") @QueryParam(SearchConstants.END_TIME_PARAM) String endTimeStr,
+                                @DefaultValue("") @QueryParam(SearchConstants.TENANT_IDS_PARAM) String tenantIDsStr,
+                                @DefaultValue("") @QueryParam(SearchConstants.ORDER_STATUS_PARAM2) String statusStr) {
         long startTimeInMS = getTime(startTimeStr, 0);
         long endTimeInMS = getTime(endTimeStr, System.currentTimeMillis());
 
@@ -883,6 +886,24 @@ public class OrderService extends CatalogTaggedResourceService {
                     new InvalidParameterException("tenant IDs should not be empty"));
         }
 
+        OrderStatus orderStatus = null;
+        if (!statusStr.isEmpty()) {
+            try {
+                orderStatus = OrderStatus.valueOf(statusStr);
+            }catch (Exception e) {
+                StringBuilder builder = new StringBuilder("The value should be");
+                for (OrderStatus s: OrderStatus.values()) {
+                    if (s.canBeDeleted()) {
+                        builder.append(" ")
+                                .append(s.name());
+                    }
+                }
+
+                throw APIException.badRequests.invalidParameterWithCause(SearchConstants.ORDER_STATUS_PARAM2, statusStr,
+                        new InvalidParameterException(builder.toString()));
+            }
+        }
+
         if (isJobRunning(OrderServiceJob.JobType.DELETE_ORDER)) {
             throw APIException.badRequests.cannotExecuteOperationWhilePendingTask("Deleting orders");
         }
@@ -893,7 +914,9 @@ public class OrderService extends CatalogTaggedResourceService {
         URI tid = URI.create(user.getTenantId());
         URI uid = URI.create(user.getName());
 
-        OrderJobStatus status = new OrderJobStatus(OrderServiceJob.JobType.DELETE_ORDER, startTimeInMS, endTimeInMS, tids, tid, uid);
+        OrderJobStatus status =
+                new OrderJobStatus(OrderServiceJob.JobType.DELETE_ORDER, startTimeInMS, endTimeInMS,
+                        tids, tid, uid, orderStatus);
 
         try {
             saveJobInfo(status);

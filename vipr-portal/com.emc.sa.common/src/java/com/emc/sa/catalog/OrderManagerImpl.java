@@ -417,7 +417,7 @@ public class OrderManagerImpl implements OrderManager {
         client.save(order);
     }
 
-    public void canBeDeleted(Order order) {
+    public void canBeDeleted(Order order, OrderStatus orderStatus) {
         log.info("lbyj0");
 
         if (order.getScheduledEventId()!=null) {
@@ -431,7 +431,12 @@ public class OrderManagerImpl implements OrderManager {
         */
 
         OrderStatus status = OrderStatus.valueOf(order.getOrderStatus());
-        log.info("lbyj5 status={}", status);
+        log.info("lbyj5 orderStaus={} status={}", orderStatus, status);
+
+        if (orderStatus != null && status != orderStatus) {
+            throw APIException.badRequests.orderCanNotBeDeleted(order.getId(), status.toString());
+        }
+
         if (!status.canBeDeleted()) {
             throw APIException.badRequests.orderCanNotBeDeleted(order.getId(), status.toString());
         }
@@ -451,7 +456,7 @@ public class OrderManagerImpl implements OrderManager {
 
         log.info("lbyh0 order={}", order);
 
-        canBeDeleted(order);
+        canBeDeleted(order, null);
 
         URI orderId = order.getId();
         List<ApprovalRequest> approvalRequests = approvalManager.findApprovalsByOrderId(orderId);

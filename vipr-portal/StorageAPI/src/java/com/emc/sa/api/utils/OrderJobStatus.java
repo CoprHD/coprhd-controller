@@ -4,6 +4,7 @@
  */
 package com.emc.sa.api.utils;
 
+import com.emc.storageos.db.client.model.uimodels.OrderStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -29,6 +30,7 @@ public class OrderJobStatus implements CoordinatorSerializable {
     private static final ObjectMapper mapper = new ObjectMapper().enableDefaultTyping();
 
     private OrderServiceJob.JobType type;
+    private OrderStatus status = null;
     private long startTime = -1;
     private long endTime = -1;
     private List<URI> tids;
@@ -53,8 +55,9 @@ public class OrderJobStatus implements CoordinatorSerializable {
     }
 
     public OrderJobStatus(OrderServiceJob.JobType type, long startTime, long endTime, List<URI> tids,
-                          URI tid, URI uid) {
+                          URI tid, URI uid, OrderStatus status) {
         this.type = type;
+        this.status = status;
         this.startTime = startTime;
         this.endTime = endTime;
         this.tids = tids;
@@ -106,6 +109,10 @@ public class OrderJobStatus implements CoordinatorSerializable {
 
     public URI getUserId() {
         return userId;
+    }
+
+    public OrderStatus getStatus() {
+        return status;
     }
 
     @JsonIgnore

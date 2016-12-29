@@ -890,8 +890,12 @@ public class OrderService extends CatalogTaggedResourceService {
         if (!statusStr.isEmpty()) {
             try {
                 orderStatus = OrderStatus.valueOf(statusStr);
+
+                if (!orderStatus.canBeDeleted()) {
+                    throw new InvalidParameterException("Invalid order status");
+                }
             }catch (Exception e) {
-                StringBuilder builder = new StringBuilder("The value should be");
+                StringBuilder builder = new StringBuilder("The value should be one of");
                 for (OrderStatus s: OrderStatus.values()) {
                     if (s.canBeDeleted()) {
                         builder.append(" ")

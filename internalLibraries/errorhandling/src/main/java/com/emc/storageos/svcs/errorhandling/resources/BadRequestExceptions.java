@@ -402,8 +402,8 @@ public interface BadRequestExceptions {
             final String parameterValue);
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
-    public BadRequestException invalidParameter(final String parameterName,
-            final String parameterValue, final Throwable cause);
+    public BadRequestException invalidParameterWithCause(final String parameterName,
+                                                         final String parameterValue, final Throwable cause);
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID_RANGE)
     public BadRequestException invalidParameterAboveMaximum(String string, long size, long maximum,

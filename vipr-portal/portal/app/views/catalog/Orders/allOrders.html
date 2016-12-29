@@ -41,14 +41,14 @@
                   source: @allOrdersJson(),
                   selectable: true, 
                   options: ['fnServerParams': 'addParams']}
-        *{#{DataTable.buttonBar}
+        #{DataTable.buttonBar}
             #{Form.button name:'button.download', class:'primary', icon:'download', submit:'createForm'/}
             #{Form.button name:'button.delete', class:'danger', icon:'trash', submit:'deleteForm'/}
-        #{/DataTable.buttonBar}}*
+        #{/DataTable.buttonBar}
 
 #{/DataTable.table}
 
-     *{#{Modal.dialog id:'deleteDialog', titleKey: 'Confirm to Delete Orders'}
+     #{Modal.dialog id:'deleteDialog', titleKey: 'Confirm to Delete Orders'}
       #{Modal.body cssClass:'form-horizontal'}
       All rows are checked, DELETE action will be performed on all <b style="color:red">9700</b> orders, please CONFIRM!           
           <div>
@@ -72,7 +72,7 @@
        #{Form.button 'button.confirm', icon:'ok-sign', data:['dismiss':'modal']/}
         #{Form.button 'button.close', icon:'trash', data:['dismiss':'modal']/}
       #{/Modal.footer}
-    #{/Modal.dialog}}*
+    #{/Modal.dialog}
 
 <script type="text/javascript">
 function addParams(aoData) {

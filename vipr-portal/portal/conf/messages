@@ -1086,7 +1086,15 @@ nodeRecovery.status.heading=Recovery Status
 nodeRecovery.status=Status
 nodeRecovery.start.time=Start Time
 nodeRecovery.end.time=End Time
-
+#System node Recovery Vapp
+nodeRecovery.noderecoveryVapp.title=Node Recovery <small>(enabled only when the database service has been down over 5 days)</small>
+nodeRecovery.recovering.status=System is recovering database service on %s
+nodeRecovery.precheck.fail.allgood=All nodes and services are active. Node recovery not required.
+nodeRecovery.precheck.fail.drorgeo=Don't support node recovery on vApp in DR/GEO environment
+nodeRecovery.precheck.fail.unreachable=There is node unreachable, please power it on and refresh this page
+nodeRecovery.precheck.fail.quorum=Can't do node recovery because that the count of node with db service corrupted is more than quorum node count of this site
+nodeRecovery.precheck.fail.other=Node corrupted for other reason that node recovery is not support.Please contact customer support.
+nodeRecovery.precheck.success=Database service on node %s needs to be recovered
 
 # System Health Dashboard
 system.healthdashboard.title=System Health
@@ -1137,6 +1145,7 @@ system.stats.disk.util=Utilization
 system.stats.disk.avgwait=Average Wait
 system.stats.reboot=Reboot
 system.stats.restart=Restart
+system.stats.recover=Recover
 system.stats.cpu.loadavg= Load Average
 system.stats.services=Services
 system.stats.services.total=Total Services

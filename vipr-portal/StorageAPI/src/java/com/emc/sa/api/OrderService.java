@@ -602,7 +602,7 @@ public class OrderService extends CatalogTaggedResourceService {
 
         if (!tenantIDsStr.isEmpty() && !orderIDsStr.isEmpty()) {
             InvalidParameterException cause = new InvalidParameterException("Both tenant and order IDs are empty");
-            throw APIException.badRequests.invalidParameter(SearchConstants.TENANT_ID_PARAM, tenantIDsStr, cause);
+            throw APIException.badRequests.invalidParameterWithCause(SearchConstants.TENANT_ID_PARAM, tenantIDsStr, cause);
         }
 
         final long startTimeInMS = getTime(startTimeStr, 0);
@@ -823,7 +823,7 @@ public class OrderService extends CatalogTaggedResourceService {
                 ids.add(uri);
             }
         }catch(URISyntaxException e) {
-            throw APIException.badRequests.invalidParameter(parameterName, idsStr, e);
+            throw APIException.badRequests.invalidParameterWithCause(parameterName, idsStr, e);
         }
 
         return ids;
@@ -839,7 +839,7 @@ public class OrderService extends CatalogTaggedResourceService {
     @Path("/job-status")
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @CheckPermission(roles = { Role.TENANT_ADMIN })
-    public OrderJobInfo getJobStatus(@DefaultValue("DELETE") @QueryParam(SearchConstants.JOB_TYPE) String typeStr) {
+    public OrderJobInfo getJobStatus(@DefaultValue("DELETE_ORDER") @QueryParam(SearchConstants.JOB_TYPE) String typeStr) {
 
         log.info("lbyc0:type={}", typeStr);
 
@@ -848,7 +848,7 @@ public class OrderService extends CatalogTaggedResourceService {
             type = OrderServiceJob.JobType.valueOf(typeStr);
         }catch(Exception e) {
             log.error("Failed to get job type e=", e);
-            throw APIException.badRequests.invalidParameter(SearchConstants.JOB_TYPE, typeStr, e);
+            throw APIException.badRequests.invalidParameterWithCause(SearchConstants.JOB_TYPE, typeStr, e);
         }
 
         OrderJobStatus status = queryJobInfo(type);
@@ -879,7 +879,7 @@ public class OrderService extends CatalogTaggedResourceService {
         }
 
         if (tenantIDsStr.isEmpty()) {
-            throw APIException.badRequests.invalidParameter(SearchConstants.TENANT_IDS_PARAM, tenantIDsStr,
+            throw APIException.badRequests.invalidParameterWithCause(SearchConstants.TENANT_IDS_PARAM, tenantIDsStr,
                     new InvalidParameterException("tenant IDs should not be empty"));
         }
 

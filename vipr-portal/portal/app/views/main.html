@@ -310,6 +310,9 @@
               	#{if controllers.SystemHealth.isNodeRecoveryEnabled()}
                 	#{nav.item 'systemNodeRecovery', href: @SystemHealth.nodeRecovery()/}
               	#{/if}
+                #{else}
+                    #{nav.item 'systemNodeRecovery', href: @SystemHealth.nodeRecoveryVapp()/}
+                #{/else}
               #{/if}
              #{/deadbolt.restrict}
 	       	#{deadbolt.restrict roles:[['SYSTEM_ADMIN'], ['RESTRICTED_SYSTEM_ADMIN']]}

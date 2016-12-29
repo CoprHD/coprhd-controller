@@ -423,6 +423,6 @@ public class DbsvcTestBase {
                 _log.error("Failed to create instance of Class {} e", clazz, e);
             }
         }
-        _dbClient.removeObject(dataObjects.toArray(new DataObject[0]));
+        _dbClient.internalRemoveObjects(dataObjects.toArray(new DataObject[0]));
     }
 }

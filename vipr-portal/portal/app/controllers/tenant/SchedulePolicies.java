@@ -8,6 +8,7 @@ import static com.emc.vipr.client.core.util.ResourceUtils.uri;
 import static util.BourneUtil.getViprClient;
 
 import java.net.URI;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
@@ -47,6 +48,8 @@ import com.emc.vipr.client.core.util.ResourceUtils;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 
 import controllers.Common;
 import controllers.deadbolt.Restrict;
@@ -231,7 +234,8 @@ public class SchedulePolicies extends ViprResourceController {
         List<StringOption> applyPolicyAtOptions = Lists.newArrayList();
         applyPolicyAtOptions.add(new StringOption(FilePolicyApplyLevel.vpool.name(), MessagesUtils.get("assignPolicy.applyAtVPool")));
         applyPolicyAtOptions.add(new StringOption(FilePolicyApplyLevel.project.name(), MessagesUtils.get("assignPolicy.applyAtProject")));
-        // applyPolicyAtOptions.add(new StringOption(FilePolicyApplyLevel.file_system.name(), MessagesUtils.get("assignPolicy.applyAtFs")));
+        // applyPolicyAtOptions.add(new StringOption(FilePolicyApplyLevel.file_system.name(),
+        // MessagesUtils.get("assignPolicy.applyAtFs")));
         renderArgs.put("applyPolicyOptions", applyPolicyAtOptions);
 
     }
@@ -346,6 +350,14 @@ public class SchedulePolicies extends ViprResourceController {
             Common.handleError();
         }
 
+        GsonBuilder builder = new GsonBuilder();
+        Gson gson = builder.create();
+
+        List<FileReplicationTopology> replicationTopologies = Arrays
+                .asList(gson.fromJson(assignPolicy.topologiesString, FileReplicationTopology[].class));
+
+        validateTopologies(replicationTopologies); // TODO
+
         assignPolicy.id = params.get("id");
         FilePolicyUnAssignParam unAssignPolicyParam = new FilePolicyUnAssignParam();
         if (updateUnAssignPolicyParam(assignPolicy, unAssignPolicyParam)) {
@@ -363,6 +375,10 @@ public class SchedulePolicies extends ViprResourceController {
             list();
         }
 
+    }
+
+    private static void validateTopologies(List<FileReplicationTopology> topologies) {
+        // check if some null values have been sent TODO
     }
 
     private static FilePolicyParam updatePolicyParam(SchedulePolicyForm schedulePolicy, FilePolicyParam param) {
@@ -749,7 +765,7 @@ public class SchedulePolicies extends ViprResourceController {
 
         public boolean applyOnTargetSite;
 
-        public FileReplicationTopology[] replicationTopology = {};
+        public String topologiesString;
 
         public String referrerUrl;
 

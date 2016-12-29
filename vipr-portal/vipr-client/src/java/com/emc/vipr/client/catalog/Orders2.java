@@ -227,8 +227,13 @@ public class Orders2 extends AbstractCatalogBulkResources<OrderRestRep> implemen
         if (startTime != null) {
             uriBuilder = uriBuilder.queryParam(SearchConstants.START_TIME_PARAM, startTime);
         }
+
         if (endTime != null) {
             uriBuilder = uriBuilder.queryParam(SearchConstants.END_TIME_PARAM, endTime);
+        }
+
+        if (tenantIDs != null) {
+            uriBuilder = uriBuilder.queryParam(SearchConstants.TENANT_IDS_PARAM, tenantIDs);
         }
 
         client.deleteURI(String.class, uriBuilder.build());

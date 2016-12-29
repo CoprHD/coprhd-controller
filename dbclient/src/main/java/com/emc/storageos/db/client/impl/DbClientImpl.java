@@ -1356,8 +1356,13 @@ public class DbClientImpl implements DbClient {
             objTypeList.add(obj);
         }
         for (Entry<Class<? extends DataObject>, List<DataObject>> entry : typeObjMap.entrySet()) {
-            List<DataObject> dbObjList = entry.getValue();
-            removeObject(entry.getKey(), dbObjList.toArray(new DataObject[dbObjList.size()]));
+        	if (entry.getKey().getAnnotation(NoInactiveIndex.class) == null) {
+        		_log.warn("Model class {} has no NoInactiveIndex. Call markForDeletion() to delete", entry.getKey());
+        		markForDeletion(entry.getValue());
+        	} else {
+        		List<DataObject> dbObjList = entry.getValue();
+        		removeObject(entry.getKey(), dbObjList.toArray(new DataObject[dbObjList.size()]));
+        	}
         }
     }
 
@@ -2013,5 +2018,19 @@ public class DbClientImpl implements DbClient {
         return VdcUtil.VdcVersionComparator.compare(fieldVersion, clazzVersion) > 0 ? fieldVersion : clazzVersion;
     }
 
-    
+    public void internalRemoveObjects(DataObject... object) {
+    	Map<Class<? extends DataObject>, List<DataObject>> typeObjMap = new HashMap<Class<? extends DataObject>, List<DataObject>>();
+        for (DataObject obj : object) {
+            List<DataObject> objTypeList = typeObjMap.get(obj.getClass());
+            if (objTypeList == null) {
+                objTypeList = new ArrayList<>();
+                typeObjMap.put(obj.getClass(), objTypeList);
+            }
+            objTypeList.add(obj);
+        }
+        for (Entry<Class<? extends DataObject>, List<DataObject>> entry : typeObjMap.entrySet()) {
+        	List<DataObject> dbObjList = entry.getValue();
+        	removeObject(entry.getKey(), dbObjList.toArray(new DataObject[dbObjList.size()]));
+        }
+    }
 }

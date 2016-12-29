@@ -211,7 +211,47 @@ public class Orders2 extends AbstractCatalogBulkResources<OrderRestRep> implemen
         OrderCount orderCount = client.getURI(OrderCount.class, uriBuilder.build());
         return orderCount;
     }
-    
+
+    /**
+     *  Delete orders within a time range
+     *
+     * <p>
+     * API Call: <tt>DELETE /catalog/orders</tt>
+     *
+     * @param startTime
+     * @param endTime
+     * @param tenantIDs
+     */
+    public void deleteOrders(String startTime, String endTime, String tenantIDs) {
+        UriBuilder uriBuilder = client.uriBuilder(PathConstants.ORDER2_DELET_ORDERS);
+        if (startTime != null) {
+            uriBuilder = uriBuilder.queryParam(SearchConstants.START_TIME_PARAM, startTime);
+        }
+        if (endTime != null) {
+            uriBuilder = uriBuilder.queryParam(SearchConstants.END_TIME_PARAM, endTime);
+        }
+
+        client.deleteURI(String.class, uriBuilder.build());
+    }
+
+    /**
+     *  Query order job status
+     *
+     * <p>
+     * API Call: <tt>DELETE /catalog/orders</tt>
+     *
+     * @param jobType
+     * @return
+     */
+    public OrderJobInfo queryOrderJob(String jobType) {
+        UriBuilder uriBuilder = client.uriBuilder(PathConstants.ORDER2_QUERY_ORDER_JOB);
+        uriBuilder = uriBuilder.queryParam(SearchConstants.JOB_TYPE, jobType);
+
+        OrderJobInfo jobInfo = client.getURI(OrderJobInfo.class, uriBuilder.build());
+
+        return jobInfo;
+    }
+
     /**
      * Get number of orders within a time range for the given tenants
      * <p>

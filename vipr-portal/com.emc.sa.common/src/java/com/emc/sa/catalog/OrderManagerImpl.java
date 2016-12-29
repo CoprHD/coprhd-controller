@@ -424,9 +424,11 @@ public class OrderManagerImpl implements OrderManager {
             throw APIException.badRequests.scheduledOrderNotAllowed("deactivation");
         }
 
+        /*
         if (createdWithinOneMonth(order)) {
             throw APIException.badRequests.orderWithinOneMonth(order.getId());
         }
+        */
 
         OrderStatus status = OrderStatus.valueOf(order.getOrderStatus());
         log.info("lbyj5 status={}", status);

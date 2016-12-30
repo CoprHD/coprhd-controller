@@ -2424,6 +2424,13 @@ test_6() {
                                     failure_015_SmisCommandHelper.invokeMethod_CreateGroup"
     fi
 
+    if [ "${SS}" = "xio" ]
+    then
+        storage_failure_injections="failure_052_XtremIOExportOperations.runLunMapCreationAlgorithm_before_addvolume_to_lunmap \
+                                    failure_053_XtremIOExportOperations.runLunMapCreationAlgorithm_after_addvolume_to_lunmap"
+    fi
+
+
     failure_injections="${common_failure_injections} ${storage_failure_injections}"
 
     # Placeholder when a specific failure case is being worked...

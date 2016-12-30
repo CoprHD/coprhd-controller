@@ -44,6 +44,13 @@ public class ExportCreateCompleter extends ExportTaskCompleter {
                     break;
                 case ready:
                     operation.ready();
+
+                    // In the case of RecoverPoint bookmark exports, the volumes map could contain additional objects
+                    // that are being exported. Adding the object references to the ExportGroup here, ensures it aligns
+                    // with the ExportMask objects.
+                    _log.info(String.format("Adding block objects %s to export group %s.", volumeMap, exportGroup.getId()));
+                    exportGroup.addVolumes(volumeMap);
+
                     break;
                 case suspended_no_error:
                     operation.suspendedNoError();
@@ -60,12 +67,6 @@ public class ExportCreateCompleter extends ExportTaskCompleter {
             if (!hasActiveMasks(dbClient, exportGroup)) {
                 exportGroup.setInactive(status != Operation.Status.ready && status != Operation.Status.suspended_no_error);
             }
-
-            // In the case of RecoverPoint bookmark exports, the volumes map could contain additional objects
-            // that are being exported. Adding the object references to the ExportGroup here, ensures it aligns
-            // with the ExportMask objects.
-            _log.info(String.format("Adding block objects %s to export group %s.", volumeMap, exportGroup.getId()));
-            exportGroup.addVolumes(volumeMap);
 
             dbClient.updateObject(exportGroup);
 

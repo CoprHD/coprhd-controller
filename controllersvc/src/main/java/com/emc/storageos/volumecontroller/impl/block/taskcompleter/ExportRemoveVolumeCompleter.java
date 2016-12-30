@@ -29,6 +29,7 @@ public class ExportRemoveVolumeCompleter extends ExportTaskCompleter {
     private static final String EXPORT_REMOVE_VOLUME_MSG_FAILED_MSG = "Failed to remove volume %s from ExportGroup %s";
 
     private List<URI> _volumes;
+    // TODO this needs to be reworked to use export mask completers
     private List<URI> _exportMasksToRemove;
     private Map<URI, List<URI>> _exportMaskToRemovedVolumeMap;
 

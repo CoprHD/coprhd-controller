@@ -92,6 +92,8 @@ public class ExportUpdateCompleter extends ExportTaskCompleter {
                     break;
                 case ready:
                     operation.ready();
+                    // update the export group data if the job completes successfully
+                    updateExportGroup(exportGroup, dbClient);
                     break;
                 case suspended_no_error:
                     operation.suspendedNoError();
@@ -103,12 +105,9 @@ public class ExportUpdateCompleter extends ExportTaskCompleter {
                     break;
             }
             exportGroup.getOpStatus().updateTaskStatus(getOpId(), operation);
-            // update the export group data if the job completes successfully
-            if (status.equals(Operation.Status.ready)) {
-                updateExportGroup(exportGroup, dbClient);
-            }
+
             dbClient.updateObject(exportGroup);
-            
+
             ExportUtils.cleanStaleReferences(exportGroup.getId(), dbClient);
 
             _log.info("export_update completer: done");

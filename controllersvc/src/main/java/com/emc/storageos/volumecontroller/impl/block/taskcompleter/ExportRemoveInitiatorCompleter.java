@@ -30,6 +30,7 @@ public class ExportRemoveInitiatorCompleter extends ExportTaskCompleter {
 
     private List<URI> _initiatorURIs;
     private List<URI> _targetPorts;
+    // TODO this needs to be reworked to use export mask completers
     private List<URI> _exportMasksToRemove;
     private Map<URI, List<URI>> _exportMaskToRemovedVolumeMap;
 

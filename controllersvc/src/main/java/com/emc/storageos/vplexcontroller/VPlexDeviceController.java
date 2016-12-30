@@ -2287,7 +2287,8 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             ExportGroup exportGroup, URI varrayUri, Map<URI, Integer> blockObjectMap,
             List<ExportMask> exportMasksToUpdateOnDevice,
             Map<URI, List<Initiator>> exportMasksToUpdateOnDeviceWithInitiators,
-            Map<URI, List<URI>> exportMasksToUpdateOnDeviceWithStoragePorts, String opId) throws Exception {
+            Map<URI, List<URI>> exportMasksToUpdateOnDeviceWithStoragePorts, 
+            ExportTaskCompleter completer, String opId) throws Exception {
         boolean foundMatchingStorageView = false;
 
         List<String> initiatorNames = new ArrayList<String>();
@@ -2419,6 +2420,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             }
             
             exportMasksToUpdateOnDevice.add(exportMask);
+            completer.addToExportMasksCreated
             exportGroup.addExportMask(exportMask.getId());
             // TODO move to completer
             _dbClient.updateObject(exportGroup);

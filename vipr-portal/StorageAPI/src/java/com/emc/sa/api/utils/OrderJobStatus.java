@@ -45,7 +45,7 @@ public class OrderJobStatus implements CoordinatorSerializable {
     // key=timestamp when this round of deleting happens
     // value = number of orders deleted in this round
     private TreeMap<Long, Long> completedMap = new TreeMap<>();
-    private long nDeleted = 0; // number of Order objects physically deleted from the DB
+    private long nCompleted = 0; // number of Order objects physically deleted from the DB
 
     private long nFailed = 0;  // Number of Orders failed to be deleted or downloaded so far
     private long timeUsedPerOrder = -1;  //The time used to delete or download an order
@@ -117,20 +117,20 @@ public class OrderJobStatus implements CoordinatorSerializable {
 
     @JsonIgnore
     private long getCompletedNumber() {
-        long nCompleted = 0;
+        long completed = 0;
         for (long n : completedMap.values()) {
-            nCompleted += n;
+            completed += n;
         }
 
-        log.info("lbymm nCompleted={} nDeleted={}", nCompleted, nDeleted);
-        nCompleted += nDeleted;
-        return nCompleted;
+        log.info("lbymm completed={} nCompleted={}", completed, nCompleted);
+        completed += nCompleted;
+        return completed;
     }
 
     @JsonIgnore
     public void addToDeletedNumber(long n) {
-        log.info("lbymm add {} to nDeleted", n);
-        nDeleted += n;
+        log.info("lbymm add {} to nCompleted", n);
+        nCompleted += n;
     }
 
     @JsonIgnore

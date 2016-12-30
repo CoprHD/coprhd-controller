@@ -105,11 +105,11 @@ public class OrderService extends CatalogTaggedResourceService {
     private static final String ORDER_SERVICE_QUEUE_NAME="OrderService";
     private static final String ORDER_JOB_LOCK="order-jobs";
 
-    private static final long INDEX_GC_GRACE_PERIOD=432000*1000L;
-    public  static final long MAX_DELETED_ORDERS_PER_GC_PERIOD=300000L;
+    // private static final long INDEX_GC_GRACE_PERIOD=432000*1000L;
+    // public  static final long MAX_DELETED_ORDERS_PER_GC_PERIOD=300000L;
 
-    // private static final long INDEX_GC_GRACE_PERIOD=3*60*1000L;
-    // public  static final long MAX_DELETED_ORDERS_PER_GC_PERIOD=100L;
+    private static final long INDEX_GC_GRACE_PERIOD=3*60*1000L;
+    public  static final long MAX_DELETED_ORDERS_PER_GC_PERIOD=100L;
 
     private static int SCHEDULED_EVENTS_SCAN_INTERVAL = 300;
     private int scheduleInterval = SCHEDULED_EVENTS_SCAN_INTERVAL;
@@ -614,19 +614,37 @@ public class OrderService extends CatalogTaggedResourceService {
             throw APIException.badRequests.endTimeBeforeStartTime(startTimeStr, endTimeStr);
         }
 
+        if (isJobRunning()) {
+            throw APIException.badRequests.cannotExecuteOperationWhilePendingTask("Deleting/Downloading orders");
+        }
+
         final List<URI> tids= toIDs(SearchConstants.TENANT_IDS_PARAM, tenantIDsStr);
+
+        StorageOSUser user = getUserFromContext();
+        URI tid = URI.create(user.getTenantId());
+        URI uid = URI.create(user.getName());
+
+        OrderJobStatus status =
+                new OrderJobStatus(OrderServiceJob.JobType.DOWNLOAD_ORDER, startTimeInMS, endTimeInMS,
+                        tids, tid, uid, null);
+        try {
+            saveJobInfo(status);
+        }catch (Exception e) {
+            log.error("Failed to save job info e=", e);
+            throw APIException.internalServerErrors.getLockFailed();
+        }
 
         StreamingOutput out = new StreamingOutput() {
             @Override
             public void write(OutputStream outputStream) {
-                exportOrders(tids, startTimeInMS, endTimeInMS, outputStream);
+                exportOrders(tids, startTimeInMS, endTimeInMS, outputStream, status);
             }
         };
 
         return Response.ok(out).build();
     }
 
-    private void exportOrders(List<URI> tids, long startTime, long endTime, OutputStream outputStream) {
+    private void exportOrders(List<URI> tids, long startTime, long endTime, OutputStream outputStream, OrderJobStatus status) {
         PrintStream out = new PrintStream(outputStream);
         for (URI tid : tids) {
             TimeSeriesConstraint constraint = TimeSeriesConstraint.Factory.getOrders(tid, startTime, endTime);
@@ -634,10 +652,20 @@ public class OrderService extends CatalogTaggedResourceService {
             _dbClient.queryByConstraint(constraint, ids);
             for (NamedElementQueryResultList.NamedElement namedID : ids) {
                 URI id = namedID.getId();
-                log.info("lbyh id={}", id);
-                Order order = _dbClient.queryObject(Order.class, id);
-                out.print(order.toString());
-                auditOpSuccess(OperationTypeEnum.DOWNLOAD_ORDER, order.auditParameters());
+                Order order = null;
+                Object[] parameters = null;
+                try {
+                    order = _dbClient.queryObject(Order.class, id);
+                    parameters = order.auditParameters();
+                    log.info("lbyh id={}", id);
+                    out.print(order.toString());
+                    status.addCompleted(1);
+                    saveJobInfo(status);
+                    auditOpSuccess(OperationTypeEnum.DOWNLOAD_ORDER, parameters);
+                } catch (Exception e) {
+                    log.error("Failed to download order {}", id);
+                    auditOpFailure(OperationTypeEnum.DOWNLOAD_ORDER, parameters);
+                }
             }
         }
     }
@@ -908,8 +936,8 @@ public class OrderService extends CatalogTaggedResourceService {
             }
         }
 
-        if (isJobRunning(OrderServiceJob.JobType.DELETE_ORDER)) {
-            throw APIException.badRequests.cannotExecuteOperationWhilePendingTask("Deleting orders");
+        if (isJobRunning()) {
+            throw APIException.badRequests.cannotExecuteOperationWhilePendingTask("Deleting/Downloading orders");
         }
 
         List<URI> tids = toIDs(SearchConstants.TENANT_IDS_PARAM, tenantIDsStr);
@@ -919,8 +947,7 @@ public class OrderService extends CatalogTaggedResourceService {
         URI uid = URI.create(user.getName());
 
         OrderJobStatus status =
-                new OrderJobStatus(OrderServiceJob.JobType.DELETE_ORDER, startTimeInMS, endTimeInMS,
-                        tids, tid, uid, orderStatus);
+                new OrderJobStatus(OrderServiceJob.JobType.DELETE_ORDER, startTimeInMS, endTimeInMS, tids, tid, uid, orderStatus);
 
         try {
             saveJobInfo(status);
@@ -956,7 +983,11 @@ public class OrderService extends CatalogTaggedResourceService {
         return coordinatorClient.queryRuntimeState(type.name(), OrderJobStatus.class);
     }
 
-    private boolean isJobRunning(OrderServiceJob.JobType type) {
+    private boolean isJobRunning() {
+        return isDeletingJobRunning() || isDownloadingJobRunning();
+    }
+
+    private boolean isDeletingJobRunning() {
         OrderJobStatus jobStatus = queryJobInfo(OrderServiceJob.JobType.DELETE_ORDER);
 
         if (jobStatus == null ) {
@@ -968,6 +999,16 @@ public class OrderService extends CatalogTaggedResourceService {
         if (deletedOrdersInCurrentPeriod > MAX_DELETED_ORDERS_PER_GC_PERIOD) {
             // There are already max number of orders deleted within the current GC
             return true;
+        }
+
+        return !jobStatus.isFinished();
+    }
+
+    private boolean isDownloadingJobRunning() {
+        OrderJobStatus jobStatus = queryJobInfo(OrderServiceJob.JobType.DOWNLOAD_ORDER);
+
+        if (jobStatus == null ) {
+            return false; // no job running
         }
 
         return !jobStatus.isFinished();

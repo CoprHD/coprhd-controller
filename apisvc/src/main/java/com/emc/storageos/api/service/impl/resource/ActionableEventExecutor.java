@@ -456,7 +456,51 @@ public class ActionableEventExecutor {
         }
         return result;
     }
+    
+    public TaskResourceRep vcenterDatastoreRename(URI volume, URI datastore, String newDatastoreName, String oldDatastoreName,
+            URI vcenterURI, URI eventId) {
+        return null;
+    }
 
+    public List<String> vcenterDatastoreRenameDetails(URI volume, URI datastore, String newDatastoreName, String oldDatastoreName,
+            URI vcenterURI) {
+        List<String> result = Lists.newArrayList();
+        Volume vol = _dbClient.queryObject(Volume.class, volume);
+        if (volume != null) {
+            result.add(ComputeSystemDialogProperties.getMessage("ComputeSystem.vcenterDatastoreRenameDetails", vol.getLabel(),
+                    newDatastoreName, oldDatastoreName));
+        }
+
+        return result;
+    }
+
+    public TaskResourceRep vcenterDatastoreDelete(URI volume, String oldDatastoreName, URI vcenterURI, URI eventId) {
+        return null;
+    }
+
+    public List<String> vcenterDatastoreDeleteDetails(URI volume, String oldDatastoreName, URI vcenterURI) {
+        List<String> result = Lists.newArrayList();
+        Volume vol = _dbClient.queryObject(Volume.class, volume);
+        if (volume != null) {
+            result.add(ComputeSystemDialogProperties.getMessage("ComputeSystem.vcenterDatastoreDeleteDetails", oldDatastoreName,
+                    vol.getLabel()));
+        }
+        return result;
+    }
+
+    public TaskResourceRep vcenterDatastoreCreate(URI volume, URI newDatastoreUri, String newDsName, URI vcenterURI, URI eventId) {
+        return null;
+    }
+
+    public List<String> vcenterDatastoreCreateDetails(URI volume, URI newDatastoreUri, String newDsName, URI vcenterURI) {
+        List<String> result = Lists.newArrayList();
+        Volume vol = _dbClient.queryObject(Volume.class, volume);
+        if (volume != null) {
+            result.add(ComputeSystemDialogProperties.getMessage("ComputeSystem.vcenterDatastoreCreateDetails", newDsName, vol.getLabel()));
+        }
+        return result;
+    }
+    
     /**
      * Creates human readable output when an initiator is added or removed
      * 
@@ -679,6 +723,38 @@ public class ActionableEventExecutor {
      */
     public List<String> addInitiatorDeclineDetails(URI initiator) {
         return Lists.newArrayList(ComputeSystemDialogProperties.getMessage("ComputeSystem.addInitiatorDeclineDetails"));
+    }
+    
+    public TaskResourceRep vcenterDatastoreRenameDecline(URI volume, URI eventId) {
+        return null;
+    }
+
+    public List<String> vcenterDatastoreRenameDeclineDetails(URI volume) {
+        List<String> result = Lists.newArrayList();
+        result.add(ComputeSystemDialogProperties.getMessage("ComputeSystem.vcenterDatastoreRenameDeclineDetails"));
+        result.add(ComputeSystemDialogProperties.getMessage("ComputeSystem.vcenterDeclineFailure"));
+        return result;
+    }
+
+    public TaskResourceRep vcenterDatastoreDeleteDecline(URI volume, URI eventId) {
+        return null;
+    }
+
+    public List<String> vcenterDatastoreDeleteDeclineDetails(URI volume) {
+        List<String> result = Lists.newArrayList();
+        result.add(ComputeSystemDialogProperties.getMessage("ComputeSystem.vcenterDatastoreDeleteDeclineDetails"));
+        result.add(ComputeSystemDialogProperties.getMessage("ComputeSystem.vcenterDeclineFailure"));
+        return result;
+    }
+    
+    public TaskResourceRep vcenterDatastoreCreateDecline(URI volume, URI eventId) {
+        return null;
+    }
+
+    public List<String> vcenterDatastoreCreateDeclineDetails(URI volume) {
+        List<String> result = Lists.newArrayList();
+        result.add(ComputeSystemDialogProperties.getMessage("ComputeSystem.vcenterDatastoreCreateDeclineDetails"));
+        return result;
     }
 
     /**

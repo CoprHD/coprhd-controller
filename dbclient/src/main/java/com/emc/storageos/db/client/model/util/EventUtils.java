@@ -35,15 +35,21 @@ public class EventUtils {
     public static String hostClusterChange = "hostClusterChange";
     public static String removeInitiator = "removeInitiator";
     public static String addInitiator = "addInitiator";
+    public static String vcenterDatastoreRename = "vcenterDatastoreRename";
+    public static String vcenterDatastoreDelete= "vcenterDatastoreDelete";
+    public static String vcenterDatastoreCreate= "vcenterDatastoreCreate";
     public static String hostVcenterUnassignDecline = "hostVcenterUnassignDecline";
     public static String hostVcenterChangeDecline = "hostVcenterChangeDecline";
     public static String hostDatacenterChangeDecline = "hostDatacenterChangeDecline";
     public static String hostClusterChangeDecline = "hostClusterChangeDecline";
     public static String removeInitiatorDecline = "removeInitiatorDecline";
     public static String addInitiatorDecline = "addInitiatorDecline";
+    public static String vcenterDatastoreRenameDecline ="vcenterDatastoreRenameDecline";
+    public static String vcenterDatastoreDeleteDecline ="vcenterDatastoreDeleteDecline";
+    public static String vcenterDatastoreCreateDecline= "vcenterDatastoreCreateDecline";
 
     private static List<EventCode> ALLOWED_DUPLICATE_EVENTS = Lists.newArrayList(EventCode.HOST_INITIATOR_ADD,
-            EventCode.HOST_INITIATOR_DELETE);
+            EventCode.HOST_INITIATOR_DELETE, EventCode.VCENTER_DATASTORE_RENAME, EventCode.VCENTER_DATASTORE_DELETE, EventCode.VCENTER_DATASTORE_CREATE);
 
     public enum EventCode {
         HOST_CLUSTER_CHANGE("101"),
@@ -51,7 +57,10 @@ public class EventUtils {
         HOST_INITIATOR_DELETE("103"),
         HOST_DATACENTER_CHANGE("104"),
         HOST_VCENTER_CHANGE("105"),
-        UNASSIGN_HOST_FROM_VCENTER("106");
+        UNASSIGN_HOST_FROM_VCENTER("106"), 
+        VCENTER_DATASTORE_RENAME("107"),
+        VCENTER_DATASTORE_DELETE("108"),
+        VCENTER_DATASTORE_CREATE("109");
     
         private String code;
     

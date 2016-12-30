@@ -8,9 +8,12 @@ import java.net.URI;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -33,8 +36,11 @@ import com.emc.storageos.db.client.model.FileShare;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.IpInterface;
+import com.emc.storageos.db.client.model.ScopedLabel;
+import com.emc.storageos.db.client.model.ScopedLabelSet;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringMap;
+import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.Vcenter;
 import com.emc.storageos.db.client.model.VcenterDataCenter;
 import com.emc.storageos.db.client.model.util.EventUtils;
@@ -59,6 +65,9 @@ import com.vmware.vim25.mo.VirtualMachine;
 public class ComputeSystemHelper {
 
     private static final Logger _log = LoggerFactory.getLogger(ComputeSystemHelper.class);
+    private static final String VMFS_DATASTORE_PREFIX = "vipr:vmfsDatastore";
+    //Regex pattern matches the tag like "vipr:vmfsDatastore=TestDatastore2"
+    private static Pattern MACHINE_TAG_REGEX = Pattern.compile("([^W]*\\:[^W]*)=(.*)");
 
     /**
      * This function is to retrieve the children of a given class.
@@ -752,6 +761,31 @@ public class ComputeSystemHelper {
             }
         }
         return null;
+    }
+    
+    /**
+     * Returns the datastore names list from the Volume tag set passed.
+     * 
+     * @param tagSet
+     *            - volume tag set
+     * @return - datastore name list
+     */
+    public static StringSet getDatastoreName(ScopedLabelSet tagSet) {
+        StringSet datastoreNames = new StringSet();
+        if(tagSet== null){
+            return datastoreNames;
+        }
+        Iterator<ScopedLabel> tagIter = tagSet.iterator();
+        while (tagIter.hasNext()) {
+            String tagValue = tagIter.next().getLabel();
+            if (tagValue != null && (tagValue.startsWith(VMFS_DATASTORE_PREFIX))) {
+                Matcher matcher = MACHINE_TAG_REGEX.matcher(tagValue);
+                if (matcher.matches()) {
+                    datastoreNames.add(matcher.group(2));
+                }
+            }
+        }
+        return datastoreNames;
     }
 
 }

@@ -29,7 +29,6 @@ public class AlternateIdConstraintImpl extends ConstraintImpl<IndexColumnName> i
     private final ColumnFamily<String, IndexColumnName> _altIdCf;
     private final String _altId;
     private final Class<? extends DataObject> _entryType;
-
     private Keyspace _keyspace;
 
     public AlternateIdConstraintImpl(ColumnField field, String altId) {
@@ -41,6 +40,7 @@ public class AlternateIdConstraintImpl extends ConstraintImpl<IndexColumnName> i
         _entryType = field.getDataObjectType();
     }
 
+    /*
     public <T extends DataObject> AlternateIdConstraintImpl(String indexCFName, String altId, Class<T> entryType, long sTimeInMicros, long eTimeInMicros) {
         super(altId);
         indexSerializer = IndexColumnNameSerializer.get();
@@ -53,6 +53,7 @@ public class AlternateIdConstraintImpl extends ConstraintImpl<IndexColumnName> i
     public String getAltId() {
         return _altId;
     }
+    */
 
     @Override
     public void setKeyspace(Keyspace keyspace) {

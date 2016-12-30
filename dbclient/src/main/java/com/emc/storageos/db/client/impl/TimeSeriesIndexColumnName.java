@@ -1,3 +1,7 @@
+/*
+ * Copyright (c) 2016 EMC Corporation
+ * All Rights Reserved
+ */
 package com.emc.storageos.db.client.impl;
 
 import com.netflix.astyanax.annotations.Component;
@@ -5,9 +9,6 @@ import com.netflix.astyanax.util.TimeUUIDUtils;
 
 import java.util.UUID;
 
-/**
- * Created by brian on 16-11-16.
- */
 public class TimeSeriesIndexColumnName implements CompositeIndexColumnName {
     private @Component(ordinal = 0)
     String className;

@@ -116,31 +116,20 @@ public class BourneDbClient implements DBClientWrapper {
 
     public <T extends DataObject> List<NamedElement> findByAlternateId(Class<T> clazz, String columnField, String value)
             throws DataAccessException {
-        return findByAlternateId(clazz, columnField, value, 0, 0, -1);
-    }
-
-    public <T extends DataObject> List<NamedElement> findByAlternateId(Class<T> clazz, String columnField, String value,
-                                                                       long startTime, long endTime, int maxCount)
-            throws DataAccessException {
-
-        LOG.info("findByAlternateId(class={}, columnField={}, value={}, maxCount={})",
-                new Object[] { clazz, columnField, value, maxCount});
+          LOG.debug("findByAlternateId(class={}, columnField={}, value={})", new Object[] { clazz, columnField, value});
 
         DataObjectType doType = TypeMap.getDoType(clazz);
 
         AlternateIdConstraint constraint = new AlternateIdConstraintImpl(doType.getColumnField(columnField), value);
-                // startTime, endTime);
 
-        return queryNamedElementsByConstraint(constraint, maxCount);
+        return queryNamedElementsByConstraint(constraint);
     }
 
     @Override
-    public List<NamedElement> findOrdersByAlternateId(String columnField, String userId,
-                                                      long startTime, long endTime, int maxCount)
+    public List<NamedElement> findOrdersByAlternateId(String columnField, String userId, long startTime, long endTime, int maxCount)
             throws DataAccessException {
 
-        LOG.info("lbyb1: findOrdersByAlternateId(columnField={}, userId={}, maxCount={})",
-                new Object[] { columnField, userId, maxCount});
+        LOG.debug("findOrdersByAlternateId(columnField={}, userId={}, maxCount={})", new Object[] { columnField, userId, maxCount});
 
         TimeSeriesConstraint constraint = TimeSeriesConstraint.Factory.getOrdersByUser(userId, startTime,endTime);
 
@@ -150,8 +139,7 @@ public class BourneDbClient implements DBClientWrapper {
     @Override
     public long getOrderCount(String userId, String fieldName, long startTime, long endTime) {
 
-        LOG.info("lbyb2: getOrderCount(userId={} cf={}, startTime={}, endTime={})",
-                new Object[] {userId, fieldName, startTime, endTime});
+        LOG.debug("getOrderCount(userId={} cf={}, startTime={}, endTime={})", new Object[] {userId, fieldName, startTime, endTime});
 
         TimeSeriesConstraint constraint = TimeSeriesConstraint.Factory.getOrdersByUser(userId, startTime, endTime);
         DbClientImpl dbclient = (DbClientImpl)getDbClient();
@@ -167,8 +155,7 @@ public class BourneDbClient implements DBClientWrapper {
     @Override
     public Map<String, Long> getOrderCount(List<URI> tids, String fieldName, long startTime, long endTime) {
 
-        LOG.info("lbyb2: getOrderCount(tids={} cf={}, startTime={}, endTime={})",
-                new Object[] {tids, fieldName, startTime, endTime});
+        LOG.debug("getOrderCount(tids={} cf={}, startTime={}, endTime={})", new Object[] {tids, fieldName, startTime, endTime});
 
         Map<String, Long> counts = new HashMap();
 
@@ -187,12 +174,11 @@ public class BourneDbClient implements DBClientWrapper {
         return counts;
     }
 
-
     @Override
     public List<NamedElement> findAllOrdersByTimeRange(URI tid, String columnField, Date startTime, Date endTime,
                                                        int maxCount)
             throws DataAccessException {
-        LOG.info("findAllOrdersByTimeRange(tid={} columnField={}, startTime={} endTime={} maxCount={})",
+        LOG.debug("findAllOrdersByTimeRange(tid={} columnField={}, startTime={} endTime={} maxCount={})",
                 new Object[]{tid, columnField, startTime, endTime, maxCount});
 
         long startTimeInMS = startTime.getTime();
@@ -209,7 +195,6 @@ public class BourneDbClient implements DBClientWrapper {
     }
 
     protected List<NamedElement> queryNamedElementsByConstraint(Constraint constraint, int maxCount) {
-
         NamedElementQueryResultList queryResults = new NamedElementQueryResultList();
 
         try {

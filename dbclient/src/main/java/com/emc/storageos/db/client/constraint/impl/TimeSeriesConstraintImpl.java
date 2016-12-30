@@ -1,3 +1,7 @@
+/*
+ * Copyright (c) 2016 EMC Corporation
+ * All Rights Reserved
+ */
 package com.emc.storageos.db.client.constraint.impl;
 
 import java.net.URI;
@@ -57,9 +61,6 @@ public class TimeSeriesConstraintImpl extends ConstraintImpl<TimeSeriesIndexColu
 
     @Override
     protected RowQuery<String, TimeSeriesIndexColumnName> genQuery() {
-        log.info("cf={} key={} column1={}", indexCF.getName(), indexKey, entryType.getSimpleName());
-        log.info("startime= {} endtime= {}", startTimeMicros, endTimeMicros);
-        log.info("pageCount={}", pageCount);
         return genQuery(genRangeBuilder().limit(pageCount));
     }
 
@@ -78,11 +79,7 @@ public class TimeSeriesConstraintImpl extends ConstraintImpl<TimeSeriesIndexColu
     public long count() throws ConnectionException {
         try {
             OperationResult<Integer> countResult = genQuery(genRangeBuilder()).getCount().execute();
-            long count =  countResult.getResult();
-
-            log.info("count={}", count);
-
-            return count;
+            return countResult.getResult();
         }catch (ConnectionException e) {
             log.error("Failed to get count e=", e);
             throw e;
@@ -110,4 +107,3 @@ public class TimeSeriesConstraintImpl extends ConstraintImpl<TimeSeriesIndexColu
         return indexCF != null && entryType != null;
     }
 }
-

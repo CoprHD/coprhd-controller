@@ -4,7 +4,6 @@
  */
 package com.emc.storageos.db.client.upgrade.callbacks;
 
-import com.emc.storageos.db.client.upgrade.BaseDefaultMigrationCallback;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -22,8 +21,7 @@ import com.netflix.astyanax.query.RowQuery;
 
 import com.emc.storageos.db.client.model.uimodels.Order;
 import com.emc.storageos.db.client.impl.*;
-import com.emc.storageos.db.client.upgrade.BaseCustomMigrationCallback;
-import com.emc.storageos.db.client.upgrade.InternalDbClient;
+import com.emc.storageos.db.client.upgrade.BaseDefaultMigrationCallback;
 
 import com.emc.storageos.svcs.errorhandling.resources.MigrationCallbackException;
 
@@ -40,7 +38,7 @@ public class UserToOrdersMigration extends BaseDefaultMigrationCallback {
     public void process() throws MigrationCallbackException {
         long start = System.currentTimeMillis();
 
-        log.info("lbym0: Adding new index records for class: {} field: {} annotation: {}",
+        log.info("Adding new index records for class: {} field: {} annotation: {}",
                 new Object[] { cfClass, fieldName, annotation.annotationType().getCanonicalName()});
 
         DataObjectType doType = TypeMap.getDoType(Order.class);
@@ -75,13 +73,11 @@ public class UserToOrdersMigration extends BaseDefaultMigrationCallback {
                     for (Column<IndexColumnName> col : cols) {
                         String indexKey = row.getKey();
                         String orderId = col.getName().getTwo();
-                        log.info("lby: tid={} order={}", indexKey, orderId);
 
                         ClassNameTimeSeriesIndexColumnName newCol = new ClassNameTimeSeriesIndexColumnName(col.getName().getOne(), orderId,
                                 col.getName().getTimeUUID());
                         mutationBatch.withRow(newIndexCF, indexKey).putEmptyColumn(newCol, null);
                         if ( m % 10000 == 0) {
-                            log.info("lby commit m={}", m);
                             mutationBatch.execute();
                         }
                     }

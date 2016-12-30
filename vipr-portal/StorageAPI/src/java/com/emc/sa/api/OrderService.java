@@ -245,7 +245,6 @@ public class OrderService extends CatalogTaggedResourceService {
      */
     @Override
     protected SearchResults getOtherSearchResults(Map<String, List<String>> parameters, boolean authorized) {
-        log.info("lbyc00");
         StorageOSUser user = getUserFromContext();
         String tenantId = user.getTenantId();
         if (parameters.containsKey(SearchConstants.TENANT_ID_PARAM)) {
@@ -292,8 +291,6 @@ public class OrderService extends CatalogTaggedResourceService {
                 String maxCountParam = parameters.get(SearchConstants.ORDER_MAX_COUNT).get(0);
                 maxCount = Integer.parseInt(maxCountParam);
             }
-
-            log.info("lbyc0: maxCount={} startTime={}, endTime={}", maxCount, startTime, endTime);
 
             if (startTime.after(endTime)) {
                 throw APIException.badRequests.endTimeBeforeStartTime(startTime.toString(), endTime.toString());
@@ -696,10 +693,7 @@ public class OrderService extends CatalogTaggedResourceService {
 
         List<URI> tids= toIDs(SearchConstants.TENANT_IDS_PARAM, tenantIDs);
 
-        log.info("lbyb0 start={} end={} tids={}", startTimeInMS, endTimeInMS, tids);
-
         Map<String, Long> countMap = orderManager.getOrderCount(tids, startTimeInMS, endTimeInMS);
-        log.info("lbyb0 count={} done0", countMap);
 
         OrderCount resp = new OrderCount( countMap);
 

@@ -79,10 +79,9 @@ public class URIUtil {
 
         for (String modelPackage : MODEL_PACKAGES) {
             try {
-                log.info("lbyx: path={}",modelPackage + "." + typeName);
                 return Thread.currentThread().getContextClassLoader().loadClass(modelPackage + "." + typeName);
             } catch (ClassNotFoundException ignore) {
-                log.error("load class failed: ", ignore);
+                log.debug("load class failed: ", ignore);
             }
         }
 

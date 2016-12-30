@@ -63,10 +63,6 @@ public class ClassNameTimeSeriesConstraintImpl extends ConstraintImpl<ClassNameT
 
     @Override
     protected RowQuery<String, ClassNameTimeSeriesIndexColumnName> genQuery() {
-        log.info("cf={} key={}", _altIdCf.getName(), _altId);
-        log.info("prefix={} startime= {} endtime= {}", _entryType.getSimpleName(), startTimeMicros, endTimeMicros);
-        log.info("pageCount={}", pageCount);
-
         return genQuery(genRangeBuilder().limit(pageCount));
     }
 
@@ -86,7 +82,6 @@ public class ClassNameTimeSeriesConstraintImpl extends ConstraintImpl<ClassNameT
         try {
             OperationResult<Integer> countResult = genQuery(genRangeBuilder()).getCount().execute();
             long count = countResult.getResult();
-            log.info("count={}", count);
             return count;
         }catch (ConnectionException e) {
             log.error("Failed to get count e=", e);

@@ -40,11 +40,8 @@ public class TimeSeriesDbIndex extends DbIndex<TimeSeriesIndexColumnName> {
 
         Order order = (Order)obj;
         String indexKey = order.getTenant();
-        _log.info("lbyc: indexKey={} indexCF={}", indexKey, indexCF);
         ColumnListMutation<TimeSeriesIndexColumnName> indexColList =
                 mutator.getIndexColumnList(indexCF, indexKey);
-
-        _log.info("lbytt0: add indexKey={} key={} stack=", indexKey, recordKey, new Throwable());
 
         TimeSeriesIndexColumnName indexEntry = new TimeSeriesIndexColumnName(className, recordKey, mutator.getTimeUUID());
 

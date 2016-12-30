@@ -781,6 +781,7 @@ public class NetworkScheduler {
             zoneInfo.setEndPoints(Arrays.asList(new String[] { initiatorWwn, portWwn }));
             zoneInfo.setZoneName(zone.getName());
             zoneInfo.setExistingZone(zone.getExistingZone());
+            zoneInfo.setCanBeRolledBack(true);
         }
         return zoneInfo;
     }

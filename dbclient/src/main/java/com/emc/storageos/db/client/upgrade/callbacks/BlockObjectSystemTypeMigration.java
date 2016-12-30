@@ -64,7 +64,8 @@ public class BlockObjectSystemTypeMigration extends BaseCustomMigrationCallback 
 
                 while (pageIterator.hasNext()) {
                     BlockObject blockObject = pageIterator.next();
-                    if (blockObject.getSystemType() == null || blockObject.getSystemType().isEmpty()) {
+                    if (blockObject != null && blockObject.getSystemType() == null || blockObject.getSystemType().isEmpty()) {
+                        logger.info("starting migration of BlockObject " + blockObject.forDisplay());
                         String deviceSystemType = getDeviceSystemType(dbClient, storageSystemTypeMap, blockObject);
                         if (deviceSystemType != null) {
                             blockObject.setSystemType(deviceSystemType);
@@ -99,7 +100,9 @@ public class BlockObjectSystemTypeMigration extends BaseCustomMigrationCallback 
     private String getDeviceSystemType(DbClient dbClient, Map<URI, String> storageSystemTypeMap, BlockObject blockObject) {
         String deviceSystemType = null;
         URI storageSystemUri = blockObject.getStorageController();
-        if (storageSystemTypeMap.containsKey(storageSystemUri)) {
+        if (null == storageSystemUri) {
+            logger.warn("storage controller URI for BlockObject {} was null", blockObject.forDisplay());
+        } else if (storageSystemTypeMap.containsKey(storageSystemUri)) {
             deviceSystemType = storageSystemTypeMap.get(storageSystemUri);
         } else {
             StorageSystem storageSystem = dbClient.queryObject(StorageSystem.class, storageSystemUri);

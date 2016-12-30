@@ -8,6 +8,7 @@ package com.emc.storageos.db.client.impl;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicLong;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -31,28 +32,30 @@ import com.emc.storageos.db.exceptions.DatabaseException;
  */
 public class RowMutator<T extends CompositeIndexColumnName> {
     private static final Logger log = LoggerFactory.getLogger(RowMutator.class);
-    
+
+    //this offset is to make sure timeuuid is unique for each data colun to resolve COP-26680
+    private static int TIME_STAMP_OFFSET = 1;
+
     private Map<String, Map<String, ColumnListMutation<CompositeColumnName>>> _cfRowMap;
     private Map<String, Map<String, ColumnListMutation<T>>> _cfIndexMap;
-    private UUID _timeUUID;
-    private long _timeStamp;
+    private AtomicLong _timeStamp = new AtomicLong();
     private MutationBatch _mutationBatch;
     private Keyspace keyspace;
     private boolean retryFailedWriteWithLocalQuorum = false;
-    
+
     /**
      * Construct RowMutator instance for for index CF and object CF updates
-     * 
+     *
      * @param keyspace - cassandra keyspace object
-     * @param retryWithLocalQuorum - true - retry once with LOCAL_QUORUM for write failure 
+     * @param retryWithLocalQuorum - true - retry once with LOCAL_QUORUM for write failure
      */
     public RowMutator(Keyspace keyspace, boolean retryWithLocalQuorum) {
         this.keyspace = keyspace;
-        _timeUUID = TimeUUIDUtils.getUniqueTimeUUIDinMicros();
-        _timeStamp = TimeUUIDUtils.getMicrosTimeFromUUID(_timeUUID);
 
+        long microsTimeStamp = TimeUUIDUtils.getMicrosTimeFromUUID(TimeUUIDUtils.getUniqueTimeUUIDinMicros());
+        this._timeStamp.set(microsTimeStamp);
         _mutationBatch = keyspace.prepareMutationBatch();
-        _mutationBatch.setTimestamp(_timeStamp).withAtomicBatch(true);
+        _mutationBatch.setTimestamp(microsTimeStamp).withAtomicBatch(true);
 
         _cfRowMap = new HashMap<String, Map<String, ColumnListMutation<CompositeColumnName>>>();
         _cfIndexMap = new HashMap<String, Map<String, ColumnListMutation<T>>>();
@@ -61,16 +64,16 @@ public class RowMutator<T extends CompositeIndexColumnName> {
     }
 
     public UUID getTimeUUID() {
-        return _timeUUID;
+        return TimeUUIDUtils.getMicrosTimeUUID(_timeStamp.addAndGet(TIME_STAMP_OFFSET));
     }
 
-    public long getTimeStamp() {
-        return _timeStamp;
+    public void resetTimeUUIDStartTime(long startTime) {
+        _timeStamp.set(startTime);
     }
 
     /**
      * Get record row for given CF
-     * 
+     *
      * @param cf
      * @param key
      * @return
@@ -92,7 +95,7 @@ public class RowMutator<T extends CompositeIndexColumnName> {
 
     /***
      * Get index row for given CF
-     * 
+     *
      * @param cf
      * @param key
      * @return
@@ -124,13 +127,13 @@ public class RowMutator<T extends CompositeIndexColumnName> {
             throw DatabaseException.retryables.connectionFailed(e);
         }
     }
-    
+
     /**
      * Retry with LOCAL_QUORUM if remote site is not reachable. See DbClientContext.checkAndResetConsistencyLevel on
      * how the consistency level is changed back after remote site is available again later.
-     * 
+     *
      * It is supposed to happen on active site only.
-     * 
+     *
      * @param mutator
      * @throws ConnectionException
      */

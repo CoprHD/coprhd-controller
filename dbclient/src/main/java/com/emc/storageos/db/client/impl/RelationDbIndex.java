@@ -32,7 +32,7 @@ public class RelationDbIndex extends DbIndex<IndexColumnName> {
 
         ColumnListMutation<IndexColumnName> indexColList = mutator.getIndexColumnList(indexCF, rowKey);
 
-        IndexColumnName indexEntry = new IndexColumnName(className, recordKey, mutator.getTimeUUID());
+        IndexColumnName indexEntry = new IndexColumnName(className, recordKey, column.getTimeUUID());
 
         ColumnValue.setColumn(indexColList, indexEntry, null, ttl);
 

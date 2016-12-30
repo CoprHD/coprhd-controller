@@ -41,7 +41,7 @@ public class PrefixDbIndex extends DbIndex<IndexColumnName> {
         ColumnListMutation<IndexColumnName> indexColList = mutator.getIndexColumnList(indexCF, rowKey);
 
         IndexColumnName indexEntry =
-                new IndexColumnName(className, text.toLowerCase(), text, recordKey, mutator.getTimeUUID());
+                new IndexColumnName(className, text.toLowerCase(), text, recordKey, column.getTimeUUID());
 
         ColumnValue.setColumn(indexColList, indexEntry, null, ttl);
 

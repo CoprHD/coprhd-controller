@@ -5313,6 +5313,10 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
         }
     }
 
+    /**
+     * Finds the next available HLU for cluster export by querying the cluster's hosts'
+     * used HLUs and updates the volumeHLU map with free HLUs.
+     */
     @Override
     public void findAndUpdateFreeHLUsForClusterExport(StorageSystem storage, ExportGroup exportGroup, List<URI> initiatorURIs,
             Map<URI, Integer> volumeMap) {
@@ -5344,7 +5348,15 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
         }
     }
     
-    // selva
+    /**
+     * 
+     * @param vplexStorageSystem
+     * @param exportGroup
+     * @param initiatorURIs
+     * @param mustHaveAllPorts
+     * @return
+     * @throws Exception
+     */
     public Set<Integer> findHLUsForInitiators(StorageSystem vplexStorageSystem, ExportGroup exportGroup, List<URI> initiatorURIs,
             boolean mustHaveAllPorts) throws Exception {
         long startTime = System.currentTimeMillis();

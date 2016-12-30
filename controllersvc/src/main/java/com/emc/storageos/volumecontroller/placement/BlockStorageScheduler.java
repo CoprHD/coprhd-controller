@@ -329,6 +329,9 @@ public class BlockStorageScheduler {
                 system.getNativeGuid(),
                 pathParams.toString(), varray));
 
+        boolean isSwitchLocalityEnabled = isSwitchAffinityAllocationEnabled(system.getSystemType());
+        _log.info(String.format("The switch affinity is %s .", isSwitchLocalityEnabled));
+
         // Get the existing assignments in object form.
         Map<Initiator, List<StoragePort>> existingAssignments =
                 generateInitiatorsToStoragePortsMap(existingZoningMap, varray);
@@ -355,7 +358,7 @@ public class BlockStorageScheduler {
         List<URI> orderedNetworks = new ArrayList<URI>();
         StoragePortsAssigner assigner = StoragePortsAssignerFactory.getAssigner(system.getSystemType());
         Map<URI, Integer> net2PortsNeeded = assigner.getPortsNeededPerNetwork(net2InitiatorsMap,
-                pathParams, existingPortsMap, existingInitiatorsMap, orderedNetworks);
+                pathParams, existingPortsMap, existingInitiatorsMap, isSwitchLocalityEnabled, orderedNetworks);
         for (Map.Entry<URI, Integer> entry : net2PortsNeeded.entrySet()) {
             if (networkMap.get(entry.getKey()) != null) {
                 _log.info(String.format("Network %s (%s) requested ports %d",
@@ -386,9 +389,6 @@ public class BlockStorageScheduler {
         // https://support.emc.com/docu10627_RecoverPoint-Deploying-with-Symmetrix-Arrays-and-Splitter-Technical-Notes.pdf?language=en_US
         // We need to align the masking of volumes to hosts to the same ports as the RP masking view.
         portUsageMap = filterStoragePortsForRPVMAX(system.getId(), networkMap, varray, portUsageMap, volumeURIs);
-        
-        boolean isSwitchLocalityEnabled = isSwitchAffinityAllocationEnabled(system.getSystemType());
-        _log.info(String.format("The switch affinity is %s .", isSwitchLocalityEnabled));
 
         // Loop through all the required Networks, allocating ports as necessary.
         Map<NetworkLite, List<StoragePort>> portsAllocated = new HashMap<NetworkLite, List<StoragePort>>();

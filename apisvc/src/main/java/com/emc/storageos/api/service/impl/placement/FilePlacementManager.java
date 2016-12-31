@@ -7,6 +7,7 @@ package com.emc.storageos.api.service.impl.placement;
 import java.util.List;
 import java.util.Map;
 
+import com.emc.storageos.api.service.impl.resource.utils.FilePolicyServiceUtils;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.VirtualArray;
@@ -53,7 +54,7 @@ public class FilePlacementManager {
 
         // Select an implementation of the right scheduler
         Scheduler scheduler = storageSchedulers.get("file");
-        if (VirtualPool.vPoolSpecifiesFileReplication(caps)) {
+        if (FilePolicyServiceUtils.vPoolSpecifiesFileReplication(caps)) {
             scheduler = storageSchedulers.get("mirrorfile");
         }
         return scheduler;

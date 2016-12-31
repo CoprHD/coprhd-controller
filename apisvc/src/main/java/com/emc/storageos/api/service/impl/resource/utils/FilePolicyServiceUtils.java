@@ -25,8 +25,8 @@ import com.emc.storageos.db.client.model.FilePolicy.ScheduleFrequency;
 import com.emc.storageos.db.client.model.FilePolicy.SnapshotExpireType;
 import com.emc.storageos.db.client.model.FileShare;
 import com.emc.storageos.db.client.model.Project;
-import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
+import com.emc.storageos.db.client.model.VirtualPool.FileReplicationType;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.model.file.policy.FilePolicyScheduleParams;
 import com.emc.storageos.model.file.policy.FileSnapshotPolicyExpireParam;
@@ -256,7 +256,7 @@ public class FilePolicyServiceUtils {
         return filePolicies;
     }
 
-    public static boolean updatePolicyCapabilities(DbClient dbClient, VirtualArray scrVA, VirtualPool vPool, Project project, FileShare fs,
+    public static boolean updatePolicyCapabilities(DbClient dbClient, VirtualPool vPool, Project project, FileShare fs,
             VirtualPoolCapabilityValuesWrapper capabilities, StringBuilder errorMsg) {
 
         Boolean replicationSupported = false;
@@ -296,5 +296,25 @@ public class FilePolicyServiceUtils {
         }
 
         return false;
+    }
+
+    public static boolean vPoolSpecifiesFileReplication(FileShare fs, VirtualPool vPool, DbClient dbClient) {
+        if (vPool == null) {
+            vPool = dbClient.queryObject(VirtualPool.class, fs.getVirtualPool());
+        }
+        Project project = dbClient.queryObject(Project.class, fs.getProject().getURI());
+        VirtualPoolCapabilityValuesWrapper capabilities = new VirtualPoolCapabilityValuesWrapper();
+        StringBuilder errorMsg = new StringBuilder();
+        if (vPool.getFileReplicationSupported()
+                && FilePolicyServiceUtils.updatePolicyCapabilities(dbClient, vPool, project, fs, capabilities, errorMsg)) {
+        } else {
+            capabilities.put(VirtualPoolCapabilityValuesWrapper.FILE_REPLICATION_TYPE, VirtualPool.FileReplicationType.NONE.name());
+        }
+        return vPoolSpecifiesFileReplication(capabilities);
+    }
+
+    public static boolean vPoolSpecifiesFileReplication(VirtualPoolCapabilityValuesWrapper capabilities) {
+        return (capabilities.getFileReplicationType() != null && FileReplicationType.validFileReplication(capabilities
+                .getFileReplicationType()));
     }
 }

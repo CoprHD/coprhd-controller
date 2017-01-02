@@ -1706,53 +1706,6 @@ public class VNXeStorageDevice extends VNXeOperations
         List<ExportRule> exportDelete = args.getExportRulesToDelete();
         List<ExportRule> exportModify = args.getExportRulesToModify();
 
-        try {
-            // add the new export rule from the array into the update request.
-            Map<String, ExportRule> arrayExportRuleMap = extraExportRuleFromArray(storage, args);
-
-            if (!arrayExportRuleMap.isEmpty()) {
-                if (exportModify != null) {
-                    // merge the end point for which sec flavor is common.
-                    for (ExportRule exportRule : exportModify) {
-                        ExportRule arrayExportRule = arrayExportRuleMap.remove(exportRule.getSecFlavor());
-                        if (arrayExportRule != null) {
-
-                            if (exportRule.getReadOnlyHosts() != null) {
-                                exportRule.getReadOnlyHosts().addAll(arrayExportRule.getReadOnlyHosts());
-                            } else {
-                                exportRule.setReadOnlyHosts(arrayExportRule.getReadOnlyHosts());
-
-                            }
-                            if (exportRule.getReadWriteHosts() != null) {
-                                exportRule.getReadWriteHosts().addAll(arrayExportRule.getReadWriteHosts());
-                            } else {
-                                exportRule.setReadWriteHosts(arrayExportRule.getReadWriteHosts());
-
-                            }
-                            if (exportRule.getRootHosts() != null) {
-                                exportRule.getRootHosts().addAll(arrayExportRule.getRootHosts());
-                            } else {
-                                exportRule.setRootHosts(arrayExportRule.getRootHosts());
-
-                            }
-                        }
-                    }
-                    // now add the remaining export rule
-                    exportModify.addAll(arrayExportRuleMap.values());
-
-                } else {
-                    // if exportModify is null then create a new export rule and add
-                    exportModify = new ArrayList<ExportRule>();
-                    exportModify.addAll(arrayExportRuleMap.values());
-
-                }
-            }
-        } catch (Exception e) {
-            // TODO Auto-generated catch block
-            _logger.error("Not able to fetch latest Export rule from backend array.", e);
-
-        }
-
         // To be processed export rules
         List<ExportRule> exportsToRemove = new ArrayList<>();
         List<ExportRule> exportsToAdd = new ArrayList<>();
@@ -1789,6 +1742,53 @@ public class VNXeStorageDevice extends VNXeOperations
 
             _logger.info("exportPath : {}", exportPath);
             args.setExportPath(exportPath);
+
+            try {
+                // add the new export rule from the array into the update request.
+                Map<String, ExportRule> arrayExportRuleMap = extraExportRuleFromArray(storage, args);
+
+                if (!arrayExportRuleMap.isEmpty()) {
+                    if (exportModify != null) {
+                        // merge the end point for which sec flavor is common.
+                        for (ExportRule exportRule : exportModify) {
+                            ExportRule arrayExportRule = arrayExportRuleMap.remove(exportRule.getSecFlavor());
+                            if (arrayExportRule != null) {
+
+                                if (exportRule.getReadOnlyHosts() != null) {
+                                    exportRule.getReadOnlyHosts().addAll(arrayExportRule.getReadOnlyHosts());
+                                } else {
+                                    exportRule.setReadOnlyHosts(arrayExportRule.getReadOnlyHosts());
+
+                                }
+                                if (exportRule.getReadWriteHosts() != null) {
+                                    exportRule.getReadWriteHosts().addAll(arrayExportRule.getReadWriteHosts());
+                                } else {
+                                    exportRule.setReadWriteHosts(arrayExportRule.getReadWriteHosts());
+
+                                }
+                                if (exportRule.getRootHosts() != null) {
+                                    exportRule.getRootHosts().addAll(arrayExportRule.getRootHosts());
+                                } else {
+                                    exportRule.setRootHosts(arrayExportRule.getRootHosts());
+
+                                }
+                            }
+                        }
+                        // now add the remaining export rule
+                        exportModify.addAll(arrayExportRuleMap.values());
+
+                    } else {
+                        // if exportModify is null then create a new export rule and add
+                        exportModify = new ArrayList<ExportRule>();
+                        exportModify.addAll(arrayExportRuleMap.values());
+
+                    }
+                }
+            } catch (Exception e) {
+                // TODO Auto-generated catch block
+                _logger.error("Not able to fetch latest Export rule from backend array.", e);
+
+            }
 
             if (exportsToprocess == null) {
                 exportsToprocess = new ArrayList<>();

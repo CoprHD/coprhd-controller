@@ -1401,7 +1401,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         // set quota - save the quota id to extensions
         String qid = isi.createQuota(qDirPath, fsSize, bThresholdsIncludeOverhead,
                 bIncludeSnapshots, qDirSize, notificationLimitSize != null ? notificationLimitSize : 0L,
-                softLimitSize != null ? softLimitSize : 0L, softGracePeriod != null ? softGracePeriod : 0L);
+                        softLimitSize != null ? softLimitSize : 0L, softGracePeriod != null ? softGracePeriod : 0L);
         return qid;
     }
 
@@ -1509,6 +1509,33 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         List<ExportRule> exportDelete = args.getExportRulesToDelete();
         List<ExportRule> exportModify = args.getExportRulesToModify();
 
+        // To be processed export rules
+        List<ExportRule> exportsToRemove = new ArrayList<>();
+        List<ExportRule> exportsToModify = new ArrayList<>();
+        List<ExportRule> exportsToAdd = new ArrayList<>();
+
+        // Calculate Export Path
+        String exportPath;
+        String subDir = args.getSubDirectory();
+
+        // It is a Snapshot Export Update and so Sub Directory will be
+        // ".snapshot"
+        if (!args.getFileOperation()) {
+            exportPath = args.getSnapshotPath();
+            if (subDir != null && subDir.length() > 0) {
+                exportPath = args.getSnapshotPath() + "/" + subDir;
+            }
+
+        } else {
+            exportPath = args.getFs().getPath();
+            if (subDir != null && subDir.length() > 0) {
+                exportPath = args.getFs().getPath() + "/" + subDir;
+            }
+        }
+
+        _log.info("exportPath : {}", exportPath);
+        args.setExportPath(exportPath);
+
         try {
             // add the new export rule from the array into the update request.
             Map<String, ExportRule> arrayExportRuleMap = extraExportRuleFromArray(storage, args);
@@ -1555,32 +1582,6 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             _log.error("Not able to fetch latest Export rule from backend array.", e);
 
         }
-        // To be processed export rules
-        List<ExportRule> exportsToRemove = new ArrayList<>();
-        List<ExportRule> exportsToModify = new ArrayList<>();
-        List<ExportRule> exportsToAdd = new ArrayList<>();
-
-        // Calculate Export Path
-        String exportPath;
-        String subDir = args.getSubDirectory();
-
-        // It is a Snapshot Export Update and so Sub Directory will be
-        // ".snapshot"
-        if (!args.getFileOperation()) {
-            exportPath = args.getSnapshotPath();
-            if (subDir != null && subDir.length() > 0) {
-                exportPath = args.getSnapshotPath() + "/" + subDir;
-            }
-
-        } else {
-            exportPath = args.getFs().getPath();
-            if (subDir != null && subDir.length() > 0) {
-                exportPath = args.getFs().getPath() + "/" + subDir;
-            }
-        }
-
-        _log.info("exportPath : {}", exportPath);
-        args.setExportPath(exportPath);
 
         // ALL EXPORTS
         List<ExportRule> existingDBExportRule = args.getExistingDBExportRules();

@@ -308,6 +308,10 @@ public class VNXFileStorageDeviceXML extends AbstractFileStorageDevice {
         List<ExportRule> exportDelete = args.getExportRulesToDelete();
         List<ExportRule> exportModify = args.getExportRulesToModify();
 
+        // To be processed export rules
+        List<ExportRule> exportsToRemove = new ArrayList<>();
+        List<ExportRule> exportsToAdd = new ArrayList<>();
+
         String exportPath;
         String subDir = args.getSubDirectory();
 
@@ -372,11 +376,6 @@ public class VNXFileStorageDeviceXML extends AbstractFileStorageDevice {
             _log.error("Not able to fetch latest Export rule from backend array.", e);
 
         }
-
-        // To be processed export rules
-        List<ExportRule> exportsToRemove = new ArrayList<>();
-        List<ExportRule> exportsToAdd = new ArrayList<>();
-
 
 
         // ALL EXPORTS
@@ -1436,7 +1435,6 @@ public class VNXFileStorageDeviceXML extends AbstractFileStorageDevice {
         List<ExportRule> existingDBExportRules = args.getExistingDBExportRules();
 
         // get the all the export from the storage system.
-        XMLApiResult result = null;
         ApplicationContext context = null;
         context = loadContext();
         VNXFileCommApi vnxComm = loadVNXFileCommunicationAPIs(context);
@@ -1456,8 +1454,6 @@ public class VNXFileStorageDeviceXML extends AbstractFileStorageDevice {
 
             Map<String, String> vnxExportMap = null;
                 vnxExportMap = vnxComm.getNFSExport(storage, args);
-
-            // TO DO need t
 
             arrayReadOnlyHost.add(vnxExportMap.get("readOnly"));
             arrayReadWriteHost.add(vnxExportMap.get("readWrite"));

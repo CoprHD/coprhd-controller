@@ -1294,6 +1294,13 @@ public class VNXFileCommApi {
         return fsSizeInfo;
     }
 
+    /**
+     * Get the export from the storage system based on the export path
+     * 
+     * @param system storage system details
+     * @param args FileDeviceInputOutput object with export path details
+     * @return export map
+     */
     public Map<String, String> getNFSExport(StorageSystem system, FileDeviceInputOutput args) {
         sshApi.setConnParams(system.getIpAddress(), system.getUsername(),
                 system.getPassword());
@@ -1305,9 +1312,9 @@ public class VNXFileCommApi {
         dataMover = _dbClient.queryObject(StorageHADomain.class, dataMoverId);
         moverId = dataMover.getName();
 
-        _log.info("Using Mover Id {} to unexport FS mounted at {}", moverId, exportPath);
+        _log.info("Getting Mover Id {} to list FS export at {}", moverId, exportPath);
 
-        // Delete export from storage system.
+        // get export from storage system.
         sshApi.setConnParams(system.getIpAddress(), system.getUsername(), system.getPassword());
         Map<String, String> exportMap = sshApi.getNFSExportsForPath(dataMover.getAdapterName(), exportPath).get(exportPath);
         return exportMap;

@@ -13,7 +13,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.api.service.impl.resource.ArgValidator;
-import com.emc.storageos.api.service.impl.resource.FilePolicyService;
 import com.emc.storageos.db.client.model.FilePolicy;
 import com.emc.storageos.db.client.model.FilePolicy.FilePolicyType;
 import com.emc.storageos.db.client.model.FilePolicy.ScheduleFrequency;
@@ -29,7 +28,7 @@ import com.emc.storageos.svcs.errorhandling.resources.APIException;
  * @author jainm15
  */
 public class FilePolicyServiceUtils {
-    private static final Logger _log = LoggerFactory.getLogger(FilePolicyService.class);
+    private static final Logger _log = LoggerFactory.getLogger(FilePolicyServiceUtils.class);
     private static final int MIN_SNAPSHOT_EXPIRE_TIME = 2;
     private static final int MAX_SNAPSHOT_EXPIRE_TIME = 10;
     private static final long MIN_SNAPSHOT_EXPIRE_SECONDS = 7200;
@@ -118,7 +117,7 @@ public class FilePolicyServiceUtils {
                     break;
                 case MONTHS:
                     if (policyScheduleparams.getScheduleDayOfMonth() != null
-                            && policyScheduleparams.getScheduleDayOfMonth() > 0 && policyScheduleparams.getScheduleDayOfMonth() <= 31) {
+                    && policyScheduleparams.getScheduleDayOfMonth() > 0 && policyScheduleparams.getScheduleDayOfMonth() <= 31) {
                         schedulePolicy.setScheduleDayOfMonth((long) policyScheduleparams.getScheduleDayOfMonth());
                         schedulePolicy.setScheduleRepeat((long) policyScheduleparams.getScheduleRepeat());
                         schedulePolicy.setScheduleTime(policyScheduleparams.getScheduleTime() + period);

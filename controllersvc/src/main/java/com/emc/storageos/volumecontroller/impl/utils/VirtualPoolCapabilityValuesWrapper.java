@@ -47,7 +47,7 @@ public class VirtualPoolCapabilityValuesWrapper implements Serializable {
     public static final String FILE_REPLICATION_RPO_VALUE = "fileReplicationRpoValue";
     public static final String FILE_REPLICATION_RPO_TYPE = "fileReplicationRpoType";
     public static final String FILE_REPLICATION_COPY_MODE = "fileReplicationCopyMode";
-    public static final String FILE_REPLICATION_TARGET_VARRAY = "fileReplicationTargetVarray";
+    public static final String FILE_REPLICATION_TARGET_VARRAYS = "fileReplicationTargetVarrays";
     public static final String FILE_REPLICATION_TARGET_VPOOL = "fileReplicationTargetVPool";
     public static final String FILE_REPLICATION_TYPE = "fileReplicationType";
 
@@ -201,27 +201,27 @@ public class VirtualPoolCapabilityValuesWrapper implements Serializable {
         }
 
         if (capabilities.contains(FILE_REPLICATION_RPO_TYPE)) {
-            _vpoolCapabilities.put(FILE_REPLICATION_RPO_TYPE, capabilities.getRpRpoType());
+            _vpoolCapabilities.put(FILE_REPLICATION_RPO_TYPE, capabilities.getFileRpRpoType());
         }
 
-        if (capabilities.contains(FILE_REPLICATION_RPO_TYPE)) {
-            _vpoolCapabilities.put(FILE_REPLICATION_RPO_TYPE, capabilities.getRpCopyMode());
+        if (capabilities.contains(FILE_REPLICATION_RPO_VALUE)) {
+            _vpoolCapabilities.put(FILE_REPLICATION_RPO_VALUE, capabilities.getFileRpRpoValue());
         }
 
         if (capabilities.contains(FILE_REPLICATION_COPY_MODE)) {
-            _vpoolCapabilities.put(FILE_REPLICATION_COPY_MODE, capabilities.getRpCopyMode());
+            _vpoolCapabilities.put(FILE_REPLICATION_COPY_MODE, capabilities.getFileRpCopyMode());
         }
 
-        if (capabilities.contains(FILE_REPLICATION_TARGET_VARRAY)) {
-            _vpoolCapabilities.put(FILE_REPLICATION_TARGET_VARRAY, capabilities.getRpCopyMode());
+        if (capabilities.contains(FILE_REPLICATION_TARGET_VARRAYS)) {
+            _vpoolCapabilities.put(FILE_REPLICATION_TARGET_VARRAYS, capabilities.getFileReplicationTargetVArray());
         }
 
         if (capabilities.contains(FILE_REPLICATION_TARGET_VPOOL)) {
-            _vpoolCapabilities.put(FILE_REPLICATION_TARGET_VPOOL, capabilities.getRpCopyMode());
+            _vpoolCapabilities.put(FILE_REPLICATION_TARGET_VPOOL, capabilities.getFileReplicationTargetVPool());
         }
 
         if (capabilities.contains(FILE_REPLICATION_TYPE)) {
-            _vpoolCapabilities.put(FILE_REPLICATION_TYPE, capabilities.getRpCopyMode());
+            _vpoolCapabilities.put(FILE_REPLICATION_TYPE, capabilities.getFileReplicationType());
         }
 
         if (capabilities.contains(COMPUTE)) {
@@ -315,9 +315,9 @@ public class VirtualPoolCapabilityValuesWrapper implements Serializable {
         return value != null ? (String) value : null;
     }
 
-    public URI getFileReplicationTargetVArray() {
-        Object value = _vpoolCapabilities.get(FILE_REPLICATION_TARGET_VARRAY);
-        return value != null ? (URI) value : null;
+    public Set<String> getFileReplicationTargetVArray() {
+        Object value = _vpoolCapabilities.get(FILE_REPLICATION_TARGET_VARRAYS);
+        return value != null ? (Set<String>) value : null;
     }
 
     public URI getFileReplicationTargetVPool() {

@@ -396,7 +396,7 @@ public class FileService extends TaskResourceService {
 
         // setProtectionCapWrapper(cos, capabilities);
         StringBuilder errorMsg = new StringBuilder();
-        if (!FilePolicyServiceUtils.updatePolicyCapabilities(_dbClient, cos, project, null, capabilities, errorMsg)) {
+        if (!FilePolicyServiceUtils.updatePolicyCapabilities(_dbClient, neighborhood, cos, project, null, capabilities, errorMsg)) {
             _log.error("File system can not be created, ", errorMsg.toString());
             throw APIException.badRequests.unableToProcessRequest(errorMsg.toString());
         }
@@ -2628,7 +2628,7 @@ public class FileService extends TaskResourceService {
         capabilities.put(VirtualPoolCapabilityValuesWrapper.SOURCE_STORAGE_SYSTEM, device);
 
         StringBuilder errorMsg = new StringBuilder();
-        if (!FilePolicyServiceUtils.updatePolicyCapabilities(_dbClient, newVpool, project, null, capabilities, errorMsg)) {
+        if (!FilePolicyServiceUtils.updatePolicyCapabilities(_dbClient, varray, newVpool, project, null, capabilities, errorMsg)) {
             _log.error("File system can not be created, ", errorMsg.toString());
             throw APIException.badRequests.unableToProcessRequest(errorMsg.toString());
         }
@@ -2736,7 +2736,7 @@ public class FileService extends TaskResourceService {
         capabilities.put(VirtualPoolCapabilityValuesWrapper.SOURCE_STORAGE_SYSTEM, device);
 
         StringBuilder errorMsg = new StringBuilder();
-        if (!FilePolicyServiceUtils.updatePolicyCapabilities(_dbClient, currentVpool, project, null, capabilities, errorMsg)) {
+        if (!FilePolicyServiceUtils.updatePolicyCapabilities(_dbClient, varray, currentVpool, project, null, capabilities, errorMsg)) {
             _log.error("File system can not be created, ", errorMsg.toString());
             throw APIException.badRequests.unableToProcessRequest(errorMsg.toString());
         }
@@ -3407,7 +3407,7 @@ public class FileService extends TaskResourceService {
         VirtualPoolCapabilityValuesWrapper capabilities = new VirtualPoolCapabilityValuesWrapper();
         StringBuilder errorMsg = new StringBuilder();
         if (vPool.getFileReplicationSupported()
-                && FilePolicyServiceUtils.updatePolicyCapabilities(dbClient, vPool, project, fileShare, capabilities, errorMsg)) {
+                && FilePolicyServiceUtils.updateReplicationTypeCapabilities(dbClient, vPool, project, fileShare, capabilities, errorMsg)) {
         } else {
             capabilities.put(VirtualPoolCapabilityValuesWrapper.FILE_REPLICATION_TYPE, VirtualPool.FileReplicationType.NONE.name());
         }

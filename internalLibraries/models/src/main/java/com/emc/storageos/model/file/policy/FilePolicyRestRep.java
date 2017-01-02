@@ -333,10 +333,8 @@ public class FilePolicyRestRep extends DataObjectRestRep {
         private String mode;
         private Boolean replicateConfiguration;
 
-        // This has to be converted to FileReplicationTopology
-        // <TODO>
-        private NamedRelatedResourceRep sourceVArray;
-        private NamedRelatedResourceRep targetVArray;
+        // Represent the replication source and target site relation
+        private List<FileReplicationTopologyRestRep> replicationTopologies;
 
         @XmlElement(name = "type")
         public String getType() {
@@ -365,22 +363,13 @@ public class FilePolicyRestRep extends DataObjectRestRep {
             this.replicateConfiguration = replicateConfiguration;
         }
 
-        @XmlElement(name = "source_varray")
-        public NamedRelatedResourceRep getSourceVArray() {
-            return this.sourceVArray;
+        @XmlElement(name = "replication_topologies")
+        public List<FileReplicationTopologyRestRep> getReplicationTopologies() {
+            return replicationTopologies;
         }
 
-        public void setSourceVArray(NamedRelatedResourceRep sourceVArray) {
-            this.sourceVArray = sourceVArray;
-        }
-
-        @XmlElement(name = "target_varray")
-        public NamedRelatedResourceRep getTargetVArray() {
-            return this.targetVArray;
-        }
-
-        public void setTargetVArray(NamedRelatedResourceRep targetVArray) {
-            this.targetVArray = targetVArray;
+        public void setReplicationTopologies(List<FileReplicationTopologyRestRep> replicationTopologies) {
+            this.replicationTopologies = replicationTopologies;
         }
 
         @Override

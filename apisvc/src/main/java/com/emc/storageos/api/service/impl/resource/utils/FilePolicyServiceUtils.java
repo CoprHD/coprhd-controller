@@ -8,7 +8,9 @@ import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.EnumSet;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import org.slf4j.Logger;
@@ -23,8 +25,10 @@ import com.emc.storageos.db.client.model.FilePolicy.FilePolicyApplyLevel;
 import com.emc.storageos.db.client.model.FilePolicy.FilePolicyType;
 import com.emc.storageos.db.client.model.FilePolicy.ScheduleFrequency;
 import com.emc.storageos.db.client.model.FilePolicy.SnapshotExpireType;
+import com.emc.storageos.db.client.model.FileReplicationTopology;
 import com.emc.storageos.db.client.model.FileShare;
 import com.emc.storageos.db.client.model.Project;
+import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.VirtualPool.FileReplicationType;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
@@ -256,7 +260,22 @@ public class FilePolicyServiceUtils {
         return filePolicies;
     }
 
-    public static boolean updatePolicyCapabilities(DbClient dbClient, VirtualPool vPool, Project project, FileShare fs,
+    public static boolean updateReplicationTypeCapabilities(DbClient dbClient, VirtualPool vPool, Project project,
+            FileShare fs, VirtualPoolCapabilityValuesWrapper capabilities, StringBuilder errorMsg) {
+
+        capabilities.put(VirtualPoolCapabilityValuesWrapper.FILE_REPLICATION_TYPE, FileReplicationType.NONE.name());
+        List<FilePolicy> eligiblePolicies = getAllApplicablePolices(dbClient, vPool.getId(), project.getId());
+        for (FilePolicy policy : eligiblePolicies) {
+            if (FilePolicyType.file_replication.name().equalsIgnoreCase(policy.getFilePolicyType())) {
+                // Update replication policy capabilities!!
+                capabilities.put(VirtualPoolCapabilityValuesWrapper.FILE_REPLICATION_TYPE, policy.getFileReplicationType());
+            }
+        }
+        return true;
+    }
+
+    public static boolean updatePolicyCapabilities(DbClient dbClient, VirtualArray currVArray, VirtualPool vPool, Project project,
+            FileShare fs,
             VirtualPoolCapabilityValuesWrapper capabilities, StringBuilder errorMsg) {
 
         Boolean replicationSupported = false;
@@ -281,9 +300,28 @@ public class FilePolicyServiceUtils {
                     if (vPool.getFrRpoValue() != null) {
                         capabilities.put(VirtualPoolCapabilityValuesWrapper.FILE_REPLICATION_RPO_VALUE, vPool.getFrRpoValue());
                     }
-                    if (policy.getTargetVArray() != null) {
-                        capabilities.put(VirtualPoolCapabilityValuesWrapper.FILE_REPLICATION_TARGET_VARRAY,
-                                policy.getFileReplicationType());
+
+                    // Update target varrys for file placement!!
+                    if (policy.getReplicationTopologies() != null && !policy.getReplicationTopologies().isEmpty()) {
+                        Set<String> targetVArrys = new HashSet<String>();
+                        for (String strTopology : policy.getReplicationTopologies()) {
+                            FileReplicationTopology dbTopology = dbClient.queryObject(FileReplicationTopology.class,
+                                    URI.create(strTopology));
+                            if (currVArray.getId().toString().equalsIgnoreCase(dbTopology.getSourceVArray().toString())) {
+                                targetVArrys.addAll(dbTopology.getTargetVArrays());
+                            }
+                        }
+                        if (targetVArrys.isEmpty()) {
+                            errorMsg.append("Target VArry is not defined in replication topology for source varry "
+                                    + currVArray.getId().toString());
+                            return false;
+                        }
+                        capabilities.put(VirtualPoolCapabilityValuesWrapper.FILE_REPLICATION_TARGET_VARRAYS,
+                                targetVArrys);
+
+                    } else {
+                        errorMsg.append("Replication Topology is not defined for policy " + policy.getFilePolicyName());
+                        return false;
                     }
                     capabilities.put(VirtualPoolCapabilityValuesWrapper.FILE_REPLICATION_TARGET_VPOOL, vPool.getId());
                 }
@@ -306,7 +344,7 @@ public class FilePolicyServiceUtils {
         VirtualPoolCapabilityValuesWrapper capabilities = new VirtualPoolCapabilityValuesWrapper();
         StringBuilder errorMsg = new StringBuilder();
         if (vPool.getFileReplicationSupported()
-                && FilePolicyServiceUtils.updatePolicyCapabilities(dbClient, vPool, project, fs, capabilities, errorMsg)) {
+                && FilePolicyServiceUtils.updateReplicationTypeCapabilities(dbClient, vPool, project, fs, capabilities, errorMsg)) {
         } else {
             capabilities.put(VirtualPoolCapabilityValuesWrapper.FILE_REPLICATION_TYPE, VirtualPool.FileReplicationType.NONE.name());
         }

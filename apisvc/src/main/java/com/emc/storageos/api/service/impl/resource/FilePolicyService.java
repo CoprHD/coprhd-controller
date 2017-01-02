@@ -41,6 +41,7 @@ import com.emc.storageos.db.client.model.FilePolicy.AssignToResource;
 import com.emc.storageos.db.client.model.FilePolicy.FilePolicyApplyLevel;
 import com.emc.storageos.db.client.model.FilePolicy.FilePolicyType;
 import com.emc.storageos.db.client.model.FilePolicy.SnapshotExpireType;
+import com.emc.storageos.db.client.model.FileReplicationTopology;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.StringSet;
@@ -62,6 +63,7 @@ import com.emc.storageos.model.file.policy.FilePolicyRestRep;
 import com.emc.storageos.model.file.policy.FilePolicyUnAssignParam;
 import com.emc.storageos.model.file.policy.FilePolicyUpdateParam;
 import com.emc.storageos.model.file.policy.FileReplicationPolicyParam;
+import com.emc.storageos.model.file.policy.FileReplicationTopologyParam;
 import com.emc.storageos.security.authentication.StorageOSUser;
 import com.emc.storageos.security.authorization.CheckPermission;
 import com.emc.storageos.security.authorization.DefaultPermissions;
@@ -666,6 +668,39 @@ public class FilePolicyService extends TaskResourceService {
         return true;
     }
 
+    private boolean updateFileReplicationTopologyInfo(FilePolicyAssignParam param, FilePolicy filepolicy, StringBuilder errorMsg) {
+
+        if (param.getFileReplicationtopologies() != null && !param.getFileReplicationtopologies().isEmpty()) {
+            if (FilePolicyType.file_replication.name().equalsIgnoreCase(filepolicy.getFilePolicyType())) {
+
+                StringSet replicationTopologies = new StringSet();
+                for (FileReplicationTopologyParam topologyParam : param.getFileReplicationtopologies()) {
+                    // Create DB entry for Replication topology
+                    FileReplicationTopology dbReplTopology = new FileReplicationTopology();
+                    dbReplTopology.setId(URIUtil.createId(FileReplicationTopology.class));
+                    dbReplTopology.setPolicy(filepolicy.getId());
+                    dbReplTopology.setSourceVArray(topologyParam.getSourceVArray());
+                    StringSet targetArrays = new StringSet();
+                    if (topologyParam.getTargetVArrays() != null && !topologyParam.getTargetVArrays().isEmpty()) {
+                        for (URI uriTargetArray : topologyParam.getTargetVArrays()) {
+                            targetArrays.add(uriTargetArray.toString());
+                        }
+                        dbReplTopology.setTargetVArrays(targetArrays);
+                    }
+                    _dbClient.createObject(dbReplTopology);
+                    replicationTopologies.add(dbReplTopology.getId().toString());
+                }
+                filepolicy.setReplicationTopologies(replicationTopologies);
+                return true;
+            } else {
+                errorMsg.append("Replication topology is applicable only for replication type policies");
+                return false;
+            }
+        }
+
+        return false;
+    }
+
     /**
      * Assigning policy at vpool level
      * 
@@ -727,6 +762,12 @@ public class FilePolicyService extends TaskResourceService {
         if (param.getApplyOnTargetSite() != null) {
             filepolicy.setApplyOnTargetSite(param.getApplyOnTargetSite());
         }
+        // update replication topology info
+        if (!updateFileReplicationTopologyInfo(param, filepolicy, errorMsg)) {
+            _log.error(errorMsg.toString());
+            throw APIException.badRequests.invalidFilePolicyAssignParam(filepolicy.getFilePolicyName(), errorMsg.toString());
+        }
+
         this._dbClient.updateObject(filepolicy);
         return new FilePolicyAssignResp(filepolicy.getId(), toLink(ResourceTypeEnum.FILE_POLICY,
                 filepolicy.getId()), filepolicy.getLabel(), filepolicy.getApplyAt(), filepolicy.getAssignedResources());
@@ -801,6 +842,13 @@ public class FilePolicyService extends TaskResourceService {
         if (param.getApplyOnTargetSite() != null) {
             filepolicy.setApplyOnTargetSite(param.getApplyOnTargetSite());
         }
+
+        // update replication topology info
+        if (!updateFileReplicationTopologyInfo(param, filepolicy, errorMsg)) {
+            _log.error(errorMsg.toString());
+            throw APIException.badRequests.invalidFilePolicyAssignParam(filepolicy.getFilePolicyName(), errorMsg.toString());
+        }
+
         this._dbClient.updateObject(filepolicy);
         return new FilePolicyAssignResp(filepolicy.getId(), toLink(ResourceTypeEnum.FILE_POLICY,
                 filepolicy.getId()), filepolicy.getLabel(), filepolicy.getApplyAt(), filepolicy.getAssignedResources());
@@ -851,6 +899,12 @@ public class FilePolicyService extends TaskResourceService {
         filepolicy.setApplyToFS(param.getFileSystemAssignParams().getAssigntoAll());
         if (param.getApplyOnTargetSite() != null) {
             filepolicy.setApplyOnTargetSite(param.getApplyOnTargetSite());
+        }
+
+        // update replication topology info
+        if (!updateFileReplicationTopologyInfo(param, filepolicy, errorMsg)) {
+            _log.error(errorMsg.toString());
+            throw APIException.badRequests.invalidFilePolicyAssignParam(filepolicy.getFilePolicyName(), errorMsg.toString());
         }
         this._dbClient.updateObject(filepolicy);
         return new FilePolicyAssignResp(filepolicy.getId(), toLink(ResourceTypeEnum.FILE_POLICY,

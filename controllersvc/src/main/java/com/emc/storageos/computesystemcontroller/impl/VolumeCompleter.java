@@ -27,12 +27,12 @@ public class VolumeCompleter extends ComputeSystemCompleter {
         super(clazz, id, deactivateOnComplete, opId);
         _log.info("Creating completer for OpId: " + getOpId());
     }
-    
+
     public VolumeCompleter(URI id, String opId) {
         super(Volume.class, id, false, opId);
         _log.info("Creating completer for OpId: " + getOpId());
     }
-    
+
     @Override
     protected void complete(DbClient dbClient, Status status, ServiceCoded coded) throws DeviceControllerException {
         switch (status) {
@@ -46,13 +46,13 @@ public class VolumeCompleter extends ComputeSystemCompleter {
                 }
                 break;
             case suspended_error:
-                    dbClient.suspended_error(Volume.class, this.getId(), getOpId(), coded);
+                dbClient.suspended_error(Volume.class, this.getId(), getOpId(), coded);
                 if (isNotifyWorkflow()) {
                     WorkflowStepCompleter.stepSuspendedError(getOpId(), coded);
                 }
                 break;
             case suspended_no_error:
-                    dbClient.suspended_no_error(Volume.class, this.getId(), getOpId());
+                dbClient.suspended_no_error(Volume.class, this.getId(), getOpId());
                 if (isNotifyWorkflow()) {
                     WorkflowStepCompleter.stepSuspendedNoError(getOpId());
                 }

@@ -750,7 +750,7 @@ public class VcenterDiscoveryAdapter extends EsxHostDiscoveryAdapter {
     
     private void processDatastoreChanges(List<Host> oldHosts, Vcenter vcenter) {
         List<URI> volumeUris = new ArrayList<URI>();
-     // get the volumes uri from clusters
+        // get the volumes uri from clusters
         StringMap volumesMap = new StringMap();
         for (Host oldHost : oldHosts) {
             try {
@@ -863,7 +863,7 @@ public class VcenterDiscoveryAdapter extends EsxHostDiscoveryAdapter {
                 }
                 Set<HostSystem> hosts = new HashSet<HostSystem>(hostList);
                 Set<HostScsiDisk> disks = new HashSet<HostScsiDisk>(getDiskList(hosts, ds));
-                dsDisk.put(ds, disks);   
+                dsDisk.put(ds, disks);
             }
         }
         return dsDisk;

@@ -2136,25 +2136,26 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
     }
     
     @Override
-    public void processDatastoreRename(URI volume, String taskId, URI datastore, String oldDatastoreName, URI vcenterURI) throws ControllerException{
+    public void processDatastoreRename(URI volume, String taskId, URI datastore, String oldDatastoreName, URI vcenterURI)
+            throws ControllerException {
         TaskCompleter completer = null;
         try {
             completer = new VolumeCompleter(volume, taskId);
             Volume volumeObj = _dbClient.queryObject(Volume.class, volume);
-            if (oldDatastoreName == null || volumeObj.getTag() == null){
+            if (oldDatastoreName == null || volumeObj.getTag() == null) {
                 ServiceError serviceError = DeviceControllerException.errors.unforeseen();
                 completer.error(_dbClient, serviceError);
-             }
+            }
             Vcenter vcenter = _dbClient.queryObject(Vcenter.class, vcenterURI);
             VCenterAPI vcenterAPI = VcenterDiscoveryAdapter.createVCenterAPI(vcenter);
             boolean success = ComputeSystemHelper.updateDatastoreName(_dbClient, volumeObj, datastore, oldDatastoreName, vcenterAPI);
-            if (success){
+            if (success) {
                 completer.ready(_dbClient);
             } else {
                 ServiceError serviceError = DeviceControllerException.errors.unforeseen();
                 completer.error(_dbClient, serviceError);
-             }  
-            
+            }
+
         } catch (Exception ex) {
             String message = "Datastore name change could not succeed because of exception:";
             _log.error(message, ex);
@@ -2164,27 +2165,28 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
             }
         }
     }
-   
+
     @Override
-    public void processExternalDatastoreDelete(URI volume, String taskId, String oldDatastoreName, URI vcenterURI)throws ControllerException{
+    public void processExternalDatastoreDelete(URI volume, String taskId, String oldDatastoreName, URI vcenterURI)
+            throws ControllerException {
         TaskCompleter completer = null;
         try {
             completer = new VolumeCompleter(volume, taskId);
             Volume volumeObj = _dbClient.queryObject(Volume.class, volume);
-            if (oldDatastoreName == null || volumeObj.getTag() == null){
+            if (oldDatastoreName == null || volumeObj.getTag() == null) {
                 ServiceError serviceError = DeviceControllerException.errors.unforeseen();
                 completer.error(_dbClient, serviceError);
-             }
+            }
             Vcenter vcenter = _dbClient.queryObject(Vcenter.class, vcenterURI);
             VCenterAPI vcenterAPI = VcenterDiscoveryAdapter.createVCenterAPI(vcenter);
-            boolean success =  ComputeSystemHelper.updateExternalDeletedDatastoreVolume(_dbClient, volumeObj, oldDatastoreName, vcenterAPI);
-            if (success){
+            boolean success = ComputeSystemHelper.updateExternalDeletedDatastoreVolume(_dbClient, volumeObj, oldDatastoreName, vcenterAPI);
+            if (success) {
                 completer.ready(_dbClient);
             } else {
                 ServiceError serviceError = DeviceControllerException.errors.unforeseen();
                 completer.error(_dbClient, serviceError);
-             }  
-            
+            }
+
         } catch (Exception ex) {
             String message = "Volume update for external deletion of datastore could not succeed because of exception:";
             _log.error(message, ex);

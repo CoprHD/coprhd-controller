@@ -790,6 +790,19 @@ public class ComputeSystemHelper {
         return datastoreNames;
     }
 
+    /**
+     * Helper method to recheck the datastore to be renamed as raised by event and update the volume object
+     * 
+     * @param dbClient
+     * @param volumeObj
+     *            volume to be updated
+     * @param datastore
+     *            datastore that was renamed
+     * @param oldDatastoreName
+     *            old datastore name
+     * @param vcenterAPI
+     * @return true if the update is successful
+     */
     public static boolean updateDatastoreName(DbClient dbClient, Volume volumeObj, URI datastore, String oldDatastoreName,
             VCenterAPI vcenterAPI) {
         Datastore changedDatastore = null;
@@ -802,18 +815,18 @@ public class ComputeSystemHelper {
                     changedDatastore = ds;
             }
         }
-        
-        //case to handle if user revert to old datastore name
-        if (changedDatastore.getName() != null && oldDatastoreName.equals(changedDatastore.getName())) {
+
+        // case to handle if user revert to old datastore name
+        if (changedDatastore != null && oldDatastoreName.equals(changedDatastore.getName())) {
             EventUtils.deleteResourceEvents(dbClient, volumeObj.getId());
             return false;
         }
-        
+
         StringSet ds = getDatastoreName(volumeObj.getTag());
         if (ds.isEmpty() || !(ds.contains(oldDatastoreName))) {
             return false;
         }
-        
+
         ScopedLabel sl = getScopedLabel(volumeObj.getTag(), oldDatastoreName);
         ScopedLabel newSl = new ScopedLabel();
         String tagValue = sl.getLabel();
@@ -845,21 +858,32 @@ public class ComputeSystemHelper {
         return null;
     }
 
+    /**
+     * Helper method to recheck the datastore to be deleted as raised by event and update the volume object
+     * 
+     * @param dbClient
+     * @param volumeObj
+     *            volume to be updated
+     * @param oldDatastoreName
+     *            old datastore name
+     * @param vcenterAPI
+     * @return true if the update is successful
+     */
     public static boolean updateExternalDeletedDatastoreVolume(DbClient dbClient, Volume volumeObj, String oldDatastoreName,
             VCenterAPI vcenterAPI) {
         Datastore recheckDs = null;
         for (Datacenter dc : vcenterAPI.listAllDatacenters()) {
             recheckDs = vcenterAPI.findDatastore(dc, oldDatastoreName);
         }
-      //case to handle if user recreates the old datastore
-        if(recheckDs != null){
+        // case to handle if user recreates the old datastore
+        if (recheckDs != null) {
             return false;
         }
         StringSet ds = getDatastoreName(volumeObj.getTag());
         if (ds.isEmpty() || !(ds.contains(oldDatastoreName))) {
             return false;
         }
-       
+
         ScopedLabel sl = getScopedLabel(volumeObj.getTag(), oldDatastoreName);
         volumeObj.getTag().remove(sl);
         dbClient.updateObject(volumeObj);

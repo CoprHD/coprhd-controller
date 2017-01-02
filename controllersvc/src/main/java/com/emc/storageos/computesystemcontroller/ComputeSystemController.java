@@ -146,4 +146,8 @@ public interface ComputeSystemController extends Controller {
      * @throws ControllerException
      */
     public void synchronizeSharedExports(URI clusterId, String taskId) throws ControllerException;
+
+    public void processDatastoreRename(URI volume, String taskId, URI datastore, String oldDatastoreName, URI vcenterURI) throws ControllerException;
+
+    public void processExternalDatastoreDelete(URI volume, String taskId, String oldDatastoreName, URI vcenterURI)throws ControllerException;
 }

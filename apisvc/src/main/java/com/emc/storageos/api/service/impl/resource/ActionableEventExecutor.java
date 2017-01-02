@@ -457,11 +457,40 @@ public class ActionableEventExecutor {
         return result;
     }
     
+    /**
+     * Method to rename a datastore and update the volume tag.
+     * NOTE: In order to maintain backwards compatibility, do not change the signature of this method.
+     * @param volume id that has been affected
+     * @param datastore changed datastore identifier.
+     * @param newDatastoreName  name of the new datastore needed to print in the display message.
+     * @param oldDatastoreName  old name of the datastore needed to print in the display message.
+     * @param vcenterURI vcenter where the datastore belongs
+     * @param eventId the event id
+     * @return task for updating the datastore name
+     */
     public TaskResourceRep vcenterDatastoreRename(URI volume, URI datastore, String newDatastoreName, String oldDatastoreName,
             URI vcenterURI, URI eventId) {
-        return null;
+        String taskId = UUID.randomUUID().toString();
+        Operation op = _dbClient.createTaskOpStatus(Volume.class, volume, taskId,
+                ResourceOperationTypeEnum.UPDATE_DATASTORE_NAME);
+        op.ready();
+        op.pending();
+        Volume volumeObj = _dbClient.queryObject(Volume.class, volume);
+        computeController.processDatastoreRename(volume, taskId, datastore, oldDatastoreName, vcenterURI);
+        return toTask(volumeObj, taskId, op);
     }
 
+    /**
+     * Get details for the datastore rename method
+     * NOTE: In order to maintain backwards compatibility, do not change the signature of this method.
+     * @param volume id that has been affected
+     * @param datastore changed datastore identifier.
+     * @param newDatastoreName  name of the new datastore needed to print in the display message.
+     * @param oldDatastoreName  old name of the datastore needed to print in the display message.
+     * @param vcenterURI vcenter where the datastore belongs
+     * @param eventId the event id
+     * @return task for updating the datastore name
+     */
     public List<String> vcenterDatastoreRenameDetails(URI volume, URI datastore, String newDatastoreName, String oldDatastoreName,
             URI vcenterURI) {
         List<String> result = Lists.newArrayList();
@@ -474,8 +503,25 @@ public class ActionableEventExecutor {
         return result;
     }
 
+    /**
+     * Method to update the volume tag for externally deleted datastore.
+     * NOTE: In order to maintain backwards compatibility, do not change the signature of this method.
+     * @param volume id that has been affected
+     * @param oldDatastoreName old name of the datastore needed to print in the display message.
+     * @param vcenterURI vcenter where the datastore belongs
+     * @param eventId the event id
+     * @return task for updating the volume object
+     */
     public TaskResourceRep vcenterDatastoreDelete(URI volume, String oldDatastoreName, URI vcenterURI, URI eventId) {
-        return null;
+        String taskId = UUID.randomUUID().toString();
+        Operation op = _dbClient.createTaskOpStatus(Volume.class, volume, taskId,
+                ResourceOperationTypeEnum.UPDATE_EXTERNAL_DELETED_DATASTORE);
+        op.ready();
+        op.pending();
+        Volume volumeObj = _dbClient.queryObject(Volume.class, volume);
+        computeController.processExternalDatastoreDelete(volume, taskId, oldDatastoreName, vcenterURI);
+        return toTask(volumeObj, taskId, op);
+        
     }
 
     public List<String> vcenterDatastoreDeleteDetails(URI volume, String oldDatastoreName, URI vcenterURI) {

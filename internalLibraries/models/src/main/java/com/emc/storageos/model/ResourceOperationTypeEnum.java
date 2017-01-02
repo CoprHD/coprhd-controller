@@ -160,6 +160,8 @@ public enum ResourceOperationTypeEnum {
     CREATE_NETWORK("CREATE NETWORK", "create network operation"),
     CREATE_DATA_STORE("CREATE DATASTORE", "create data store operation"),
     DELETE_DATA_STORE("DELETE DATASTORE", "delete data store operation"),
+    UPDATE_DATASTORE_NAME("UPDATE DATASTORE NAME", "update data store name operation"),
+    UPDATE_EXTERNAL_DELETED_DATASTORE("UPDATE_EXTERNAL_DELETED_DATASTORE", "update externally deleted data store operation"),
     CREATE_SECRET_KEY("CREATE SECRET KEY", "create a secret key for a user"),
     DELETE_SECRET_KEY("DELETE SECRET KEY", "delete a user's secret key"),
     REGISTER_SMISPROVIDER("REGISTER SMIS PROVIDER", "register smis provider"),

@@ -43,6 +43,7 @@ import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.Vcenter;
 import com.emc.storageos.db.client.model.VcenterDataCenter;
+import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.util.EventUtils;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.DataObjectUtils;
@@ -59,6 +60,7 @@ import com.iwave.ext.vmware.VCenterAPI;
 import com.vmware.vim25.DatastoreSummary;
 import com.vmware.vim25.DatastoreSummaryMaintenanceModeState;
 import com.vmware.vim25.HostService;
+import com.vmware.vim25.mo.Datacenter;
 import com.vmware.vim25.mo.Datastore;
 import com.vmware.vim25.mo.VirtualMachine;
 
@@ -786,6 +788,82 @@ public class ComputeSystemHelper {
             }
         }
         return datastoreNames;
+    }
+
+    public static boolean updateDatastoreName(DbClient dbClient, Volume volumeObj, URI datastore, String oldDatastoreName,
+            VCenterAPI vcenterAPI) {
+        Datastore changedDatastore = null;
+        String datastoreId = datastore.toString();
+        // get the datastore that is changed
+        for (Datacenter dc : vcenterAPI.listAllDatacenters()) {
+            for (Datastore ds : vcenterAPI.listDatastores(dc)) {
+                String dsUri = ds.getInfo().getUrl();
+                if (dsUri != null && dsUri.equals(datastoreId))
+                    changedDatastore = ds;
+            }
+        }
+        
+        //case to handle if user revert to old datastore name
+        if (changedDatastore.getName() != null && oldDatastoreName.equals(changedDatastore.getName())) {
+            EventUtils.deleteResourceEvents(dbClient, volumeObj.getId());
+            return false;
+        }
+        
+        StringSet ds = getDatastoreName(volumeObj.getTag());
+        if (ds.isEmpty() || !(ds.contains(oldDatastoreName))) {
+            return false;
+        }
+        
+        ScopedLabel sl = getScopedLabel(volumeObj.getTag(), oldDatastoreName);
+        ScopedLabel newSl = new ScopedLabel();
+        String tagValue = sl.getLabel();
+        tagValue = tagValue.replaceAll(oldDatastoreName, changedDatastore.getName());
+        newSl.setScope(sl.getScope());
+        newSl.setLabel(tagValue);
+        volumeObj.getTag().remove(sl);
+        dbClient.updateObject(volumeObj);
+        if (volumeObj.getTag() != null) {
+            volumeObj.getTag().add(newSl);
+        } else {
+            ScopedLabelSet tagSet = new ScopedLabelSet();
+            tagSet.add(newSl);
+            volumeObj.setTag(tagSet);
+        }
+        dbClient.updateObject(volumeObj);
+        return true;
+    }
+    
+    private static ScopedLabel getScopedLabel(ScopedLabelSet tagSet, String oldDatastoreName) {
+        Iterator<ScopedLabel> tagIter = tagSet.iterator();
+        while (tagIter.hasNext()) {
+            ScopedLabel sl = tagIter.next();
+            String tagValue = sl.getLabel();
+            if (tagValue != null && (tagValue.startsWith(VMFS_DATASTORE_PREFIX)) && tagValue.contains(oldDatastoreName)) {
+                return sl;
+            }
+        }
+        return null;
+    }
+
+    public static boolean updateExternalDeletedDatastoreVolume(DbClient dbClient, Volume volumeObj, String oldDatastoreName,
+            VCenterAPI vcenterAPI) {
+        Datastore recheckDs = null;
+        for (Datacenter dc : vcenterAPI.listAllDatacenters()) {
+            recheckDs = vcenterAPI.findDatastore(dc, oldDatastoreName);
+        }
+      //case to handle if user recreates the old datastore
+        if(recheckDs != null){
+            return false;
+        }
+        StringSet ds = getDatastoreName(volumeObj.getTag());
+        if (ds.isEmpty() || !(ds.contains(oldDatastoreName))) {
+            return false;
+        }
+       
+        ScopedLabel sl = getScopedLabel(volumeObj.getTag(), oldDatastoreName);
+        volumeObj.getTag().remove(sl);
+        dbClient.updateObject(volumeObj);
+        return true;
     }
 
 }

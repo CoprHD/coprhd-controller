@@ -3568,13 +3568,13 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
      */
     private int computeCustomConfigPathLengths(String accessZonePath) {
         String tempCustomConfigPathLength = getCustomConfigPath();
-        String initalPath = accessZonePath+"/";
+        String initialPath = accessZonePath+"/";
         int discPathLength=0;
         if (StringUtils.isNotEmpty(tempCustomConfigPathLength)) {
-            discPathLength = (initalPath + tempCustomConfigPathLength).split("/").length;
+            discPathLength = (initialPath + tempCustomConfigPathLength).split("/").length;
         } else {
             _log.error("CustomConfig path {} has not been set ", tempCustomConfigPathLength);
-            discPathLength = (initalPath).split("/").length;
+            discPathLength = (initialPath).split("/").length;
         }
         
         return discPathLength;

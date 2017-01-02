@@ -1714,27 +1714,37 @@ xtremio_block_tests()
     v1=${XTREMIOVOL}1
     cos1=$XTREMIO_3X_COS_FC
     v2=${XTREMIOVOL}2
+    volume=${XTREMIOVOL}
     cos2=$XTREMIO_4X_COS_FC
     snap1_label=snap1-${HOSTNAME}-${RANDOM}
     snap2_label=snap2-${HOSTNAME}-${RANDOM}
-
-    run volume create ${v1} $PROJECT $NH $cos1 $BLK_SIZE --thinVolume true
+    snap3_label=snap3-${HOSTNAME}-${RANDOM}
+    snap4_label=snap4-${HOSTNAME}-${RANDOM}
+    snap5_label=snap5-${HOSTNAME}-${RANDOM}
+    
+    run volume create ${v1} $PROJECT $NH $cos2 $BLK_SIZE --thinVolume true
     run volume create ${v2} $PROJECT $NH $cos2 $BLK_SIZE --thinVolume true
     run volume create ${XTREMIOVOL}3 $PROJECT $NH $cos2 $BLK_SIZE --thinVolume true
     run volume create ${XTREMIOVOL}4 $PROJECT $NH $cos2 $BLK_SIZE --thinVolume true
     run volume create ${XTREMIOVOL}5 $PROJECT $NH $cos2 $BLK_SIZE --thinVolume true
     run blocksnapshot create $PROJECT/${v1} ${snap1_label}
     run blocksnapshot create $PROJECT/${v2} ${snap2_label}
+    run blocksnapshot create $PROJECT/${volume}3 ${snap3_label}
+    run blocksnapshot create $PROJECT/${volume}4 ${snap4_label}
+    run blocksnapshot create $PROJECT/${volume}5 ${snap5_label}
 
-
-    xtremio_export_test ${export_name}1 ${v1} ${v2} ${snap1_label} ${snap2_label}
-    xtremio_export_test_hlu
+    #xtremio_export_test ${export_name}1 ${v1} ${v2} ${snap1_label} ${snap2_label}
+    #xtremio_export_test_hlu
+    xtremio_export_test_hlu_snapshot ${snap1_label} ${snap2_label} ${snap3_label} ${snap4_label} ${snap5_label}
 
     run blocksnapshot restore $snap2
     run volume bulkget
 
     run blocksnapshot delete $PROJECT/${v1}/${snap1_label}
     run blocksnapshot delete $PROJECT/${v2}/${snap2_label}
+    run blocksnapshot delete $PROJECT/${volume}3 ${snap3_label}
+    run blocksnapshot delete $PROJECT/${volume}4 ${snap4_label}
+    run blocksnapshot delete $PROJECT/${volume}5 ${snap5_label}
     run volume delete $PROJECT/${v1} --wait
     run volume delete $PROJECT/${v2} --wait
     run volume delete $PROJECT/${XTREMIOVOL}3 --wait
@@ -1744,6 +1754,60 @@ xtremio_block_tests()
     echo There were $VERIFY_EXPORT_FAIL_COUNT export verification failures
 }
 
+xtremio_export_test_hlu_snapshot() {
+	volname=${XTREMIOVOL}
+	snap1=$proj/${volname}1/$1
+    snap2=$proj/${volname}2/$2
+	snap3=$proj/${volname}3/$3
+	snap5=$proj/${volname}5/$5
+	snap4=$proj/${volname}4/$4
+	HOST1=$hostbase${tenant}21
+	HOST2=$hostbase${tenant}22
+	expname=${XTREMIOEXPORT_GROUP}
+	echo "XTREMIO Consistent HLU Test Snapshot"
+	
+	run export_group create $proj ${expname}1 $NH --type Cluster --volspec "${snap1}" --cluster ${tenant}/${cluster}
+	verify_export ${HOST1} 4 1 0
+	verify_export ${HOST2} 4 1 0
+	
+	run export_group create $proj ${expname}2 $NH --type Host --volspec "${snap2}" --hosts "${HOST1}"
+	verify_export ${HOST1} 4 2 0,1
+	verify_export ${HOST2} 4 1 0
+	
+	run export_group update $proj/${expname}1 --addVolspec "${snap3}"
+	verify_export ${HOST1} 4 3 0,1,2
+	verify_export ${HOST2} 4 2 0,2
+	
+	run export_group create $proj ${expname}3 $NH --type Host --volspec "${snap4}" --hosts "${HOST2}"
+	verify_export ${HOST1} 4 3 0,1,2
+	verify_export ${HOST2} 4 3 0,1,2
+	
+	run export_group delete $proj/${expname}2
+	verify_export ${HOST1} 4 2 0,2
+    verify_export ${HOST2} 4 3 0,1,2
+	
+	run export_group update $proj/${expname}1 --remHosts "${HOST2}"
+    verify_export ${HOST1} 4 2 0,2
+    verify_export ${HOST2} 4 1 1
+
+    run export_group update $proj/${expname}1 --addVols "${snap5}"
+    verify_export ${HOST1} 4 3 0,2,3
+    verify_export ${HOST2} 4 1 1
+
+    run export_group update $proj/${expname}1 --remVols "${snap1}"
+    verify_export ${HOST1} 4 2 2,3
+    verify_export ${HOST2} 4 1 1
+
+	run export_group update $proj/${expname}1 --addHosts "${HOST2}"
+    verify_export ${HOST1} 4 2 2,3
+    verify_export ${HOST2} 4 3 1,2,3
+
+    run export_group delete $proj/${expname}3
+    verify_export ${HOST1} 4 2 2,3
+    verify_export ${HOST2} 4 2 2,3
+
+    run export_group delete $proj/${expname}1
+}
 
 xtremio_export_test()
 {

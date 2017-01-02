@@ -12,10 +12,9 @@ public class FileVirtualPoolProtectionUpdateParam extends VirtualPoolProtectionP
 
     // FileVirtualPoolReplicationParam replicationParam;
     private Boolean scheduleSnapshots;
-    private Boolean snapshotSupported = true;
-    private Boolean replicationSupported = true;
-    private Boolean allowFilePolicyAtProjectLevel = true;
-    private Boolean allowFilePolicyAtFSLevel = true;
+    private Boolean replicationSupported;
+    private Boolean allowFilePolicyAtProjectLevel;
+    private Boolean allowFilePolicyAtFSLevel;
     private Long minRpoValue;
     private String minRpoType;
 
@@ -34,15 +33,6 @@ public class FileVirtualPoolProtectionUpdateParam extends VirtualPoolProtectionP
 
     public void setScheduleSnapshots(Boolean scheduleSnapshots) {
         this.scheduleSnapshots = scheduleSnapshots;
-    }
-
-    @XmlElement(name = "snapshot_supported")
-    public Boolean getSnapshotSupported() {
-        return snapshotSupported;
-    }
-
-    public void setSnapshotSupported(Boolean snapshotSupported) {
-        this.snapshotSupported = snapshotSupported;
     }
 
     @XmlElement(name = "replication_supported")

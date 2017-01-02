@@ -40,7 +40,6 @@ public class FileVirtualPoolForm extends VirtualPoolCommonForm<FileVirtualPoolRe
     public String rpRpoType;
 
     public Boolean scheduleSnapshots;
-    public Boolean snapshotSupported;
     public Boolean replicationSupported;
     public Boolean allowPolicyApplyAtProject;
     public Boolean allowPolicyApplyAtFS;
@@ -74,7 +73,6 @@ public class FileVirtualPoolForm extends VirtualPoolCommonForm<FileVirtualPoolRe
         }
         if (protection != null) {
             scheduleSnapshots = protection.getScheduleSnapshots();
-            snapshotSupported = protection.getSnapshotSupported();
             replicationSupported = protection.getReplicationSupported();
             allowPolicyApplyAtProject = protection.getAllowFilePolicyAtProjectLevel();
             allowPolicyApplyAtFS = protection.getAllowFilePolicyAtFSLevel();
@@ -118,7 +116,6 @@ public class FileVirtualPoolForm extends VirtualPoolCommonForm<FileVirtualPoolRe
         builder.setScheduleSnapshots(scheduleSnapshots);
         builder.setLongTermRetention(longTermRetention);
         // Set Protection parameters!!
-        builder.setSnapshotSupported(snapshotSupported);
         builder.setReplicationSupported(replicationSupported);
         builder.setAllowPolicyAtProject(allowPolicyApplyAtProject);
         builder.setAllowPolicyAtFS(allowPolicyApplyAtFS);
@@ -135,7 +132,6 @@ public class FileVirtualPoolForm extends VirtualPoolCommonForm<FileVirtualPoolRe
         builder.setLongTermRetention(longTermRetention);
 
         // Set Protection parameters!!
-        builder.setSnapshotSupported(snapshotSupported);
         builder.setReplicationSupported(replicationSupported);
         builder.setAllowPolicyAtProject(allowPolicyApplyAtProject);
         builder.setAllowPolicyAtFS(allowPolicyApplyAtFS);

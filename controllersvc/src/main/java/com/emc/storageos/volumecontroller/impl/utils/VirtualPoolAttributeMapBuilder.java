@@ -85,10 +85,6 @@ public class VirtualPoolAttributeMapBuilder extends AttributeMapBuilder {
             putAttributeInMap(Attributes.schedule_snapshots.toString(), _vpool.getScheduleSnapshots());
         }
 
-        if (null != _vpool.getFileSnapshotSupported()) {
-            putAttributeInMap(Attributes.file_snapshot_supported.toString(), _vpool.getFileSnapshotSupported());
-        }
-
         if (null != _vpool.getFileReplicationSupported()) {
             putAttributeInMap(Attributes.file_replication_supported.toString(), _vpool.getFileReplicationSupported());
         }

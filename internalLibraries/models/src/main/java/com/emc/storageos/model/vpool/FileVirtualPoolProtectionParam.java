@@ -10,12 +10,10 @@ import javax.xml.bind.annotation.XmlRootElement;
 @XmlRootElement(name = "file_protection")
 public class FileVirtualPoolProtectionParam extends VirtualPoolProtectionParam {
 
-    // FileVirtualPoolReplicationParam replicationParam;
     private Boolean scheduleSnapshots;
-    private Boolean snapshotSupported = true;
-    private Boolean replicationSupported = true;
-    private Boolean allowFilePolicyAtProjectLevel = true;
-    private Boolean allowFilePolicyAtFSLevel = true;
+    private Boolean replicationSupported = false;
+    private Boolean allowFilePolicyAtProjectLevel = false;
+    private Boolean allowFilePolicyAtFSLevel = false;
     private Long minRpoValue;
     private String minRpoType;
 
@@ -34,15 +32,6 @@ public class FileVirtualPoolProtectionParam extends VirtualPoolProtectionParam {
 
     public void setScheduleSnapshots(Boolean scheduleSnapshots) {
         this.scheduleSnapshots = scheduleSnapshots;
-    }
-
-    @XmlElement(name = "snapshot_supported")
-    public Boolean getSnapshotSupported() {
-        return snapshotSupported;
-    }
-
-    public void setSnapshotSupported(Boolean snapshotSupported) {
-        this.snapshotSupported = snapshotSupported;
     }
 
     @XmlElement(name = "replication_supported")

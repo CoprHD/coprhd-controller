@@ -93,8 +93,6 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
     public final static int MAX_DISABLED = 0;
     // Maximum number of native snapshots allowed (0 == disabled, -1 == unlimited)
     private Integer _maxNativeSnapshots;
-    // It indicates whether virtual pool supports schedule snapshot
-    private Boolean scheduleSnapshot = false;
     // Maximum number of native continuous copies allowed (0 == disabled, -1 == unlimited)
     private Integer _maxNativeContinuousCopies;
     // This attribute is applicable only to Block Systems.
@@ -129,23 +127,14 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
     // File Repilcation copies
     private StringMap _fileRemoteCopySettings;
 
-    // File Policy Feature---temporary setting them true
-    private Boolean fileSnapshotSupported = true;
-    private Boolean fileReplicationSupported = true;
-    private Boolean allowFilePolicyAtProjectLevel = true;
-    private Boolean allowFilePolicyAtFSLevel = true;
+    // Replication and snapshot attributes;
+    // It indicates whether virtual pool supports schedule snapshot
+    private Boolean scheduleSnapshot = false;
+    private Boolean fileReplicationSupported = false;
+    private Boolean allowFilePolicyAtProjectLevel = false;
+    private Boolean allowFilePolicyAtFSLevel = false;
     private Long _frRpoValue;
     private String _frRpoType;
-
-    @Name("fileSnapshotSupported")
-    public Boolean getFileSnapshotSupported() {
-        return fileSnapshotSupported;
-    }
-
-    public void setFileSnapshotSupported(Boolean fileSnapshotSupported) {
-        this.fileSnapshotSupported = fileSnapshotSupported;
-        setChanged("fileSnapshotSupported");
-    }
 
     @Name("fileReplicationSupported")
     public Boolean getFileReplicationSupported() {

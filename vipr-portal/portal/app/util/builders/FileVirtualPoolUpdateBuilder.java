@@ -57,13 +57,6 @@ public class FileVirtualPoolUpdateBuilder extends VirtualPoolUpdateBuilder {
         return null;
     }
 
-    private Boolean getOldSnapshotSupported() {
-        if ((oldVirtualPool.getProtection() != null) && (oldVirtualPool.getProtection().getSnapshotSupported() != null)) {
-            return oldVirtualPool.getProtection().getSnapshotSupported();
-        }
-        return null;
-    }
-
     private Boolean getOldReplicationSupported() {
         if ((oldVirtualPool.getProtection() != null) && (oldVirtualPool.getProtection().getReplicationSupported() != null)) {
             return oldVirtualPool.getProtection().getReplicationSupported();
@@ -138,21 +131,6 @@ public class FileVirtualPoolUpdateBuilder extends VirtualPoolUpdateBuilder {
 
     public static Boolean getScheduleSnapshots(FileVirtualPoolProtectionParam protection) {
         return protection != null ? protection.getScheduleSnapshots() : null;
-    }
-
-    public FileVirtualPoolUpdateBuilder setSnapshotSupported(Boolean snapshotSupported) {
-        if (!ObjectUtils.equals(snapshotSupported, getOldSnapshotSupported())) {
-            getProtection().setSnapshotSupported(snapshotSupported);
-        }
-        return this;
-    }
-
-    public static Boolean getSnapshotSupported(FileVirtualPoolProtectionParam protection) {
-        return protection != null ? protection.getSnapshotSupported() : null;
-    }
-
-    public static Boolean getSnapshotSupported(FileVirtualPoolRestRep virtualPool) {
-        return getSnapshotSupported(getProtection(virtualPool));
     }
 
     public FileVirtualPoolUpdateBuilder setReplicationSupported(Boolean replicationSupported) {

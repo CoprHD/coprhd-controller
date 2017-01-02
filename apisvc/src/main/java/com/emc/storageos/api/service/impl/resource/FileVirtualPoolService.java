@@ -109,12 +109,6 @@ public class FileVirtualPoolService extends VirtualPoolService {
             cos.setLongTermRetention(param.getLongTermRetention());
         }
 
-        /*
-         * if (!remoteSettingsMap.isEmpty()) {
-         * _log.info("Adding file remote replicaition copies to DB ");
-         * _dbClient.createObject(new ArrayList(remoteSettingsMap.values()));
-         * }
-         */
         StringBuffer errorMessage = new StringBuffer();
         // update the implicit pools matching with this VirtualPool.
         ImplicitPoolMatcher.matchVirtualPoolWithAllStoragePools(cos, _dbClient, _coordinator, errorMessage);
@@ -562,9 +556,9 @@ public class FileVirtualPoolService extends VirtualPoolService {
                 vPool.setMaxNativeSnapshots(protectionParam.getSnapshots().getMaxSnapshots());
 
             }
-            vPool.setFileSnapshotSupported(false);
-            if (protectionParam.getSnapshotSupported() != null) {
-                vPool.setFileSnapshotSupported(protectionParam.getSnapshotSupported());
+            vPool.setScheduleSnapshots(false);
+            if (protectionParam.getScheduleSnapshots() != null) {
+                vPool.setScheduleSnapshots(protectionParam.getScheduleSnapshots());
             }
 
             vPool.setFileReplicationSupported(false);
@@ -750,7 +744,7 @@ public class FileVirtualPoolService extends VirtualPoolService {
         }
 
         // Check the protection parameters changed!!!
-        if (to.getSnapshotSupported() != from.getFileSnapshotSupported()
+        if (to.getScheduleSnapshots() != from.getScheduleSnapshots()
                 || to.getReplicationSupported() != from.getFileReplicationSupported()
                 || to.getAllowFilePolicyAtProjectLevel() != from.getAllowFilePolicyAtProjectLevel()
                 || to.getAllowFilePolicyAtFSLevel() != from.getAllowFilePolicyAtFSLevel()) {
@@ -767,14 +761,6 @@ public class FileVirtualPoolService extends VirtualPoolService {
             return true;
         }
 
-        // Check for Snapshot schedule protection
-        if (to.getScheduleSnapshots() != from.getScheduleSnapshots()) {
-            // Any changes to schedule snapshot is not permitted on
-            // virtual pools with provisioned file systems.
-            _log.info("Schedule snapshot cannot be modified to a vpool with provisioned filessystems ",
-                    from.getId());
-            return true;
-        }
         _log.info("No protection changes");
         return false;
     }
@@ -808,11 +794,6 @@ public class FileVirtualPoolService extends VirtualPoolService {
                     // Remove snapshots by setting the disabled value
                     virtualPool.setMaxNativeSnapshots(VirtualPool.MAX_DISABLED);
                 }
-            }
-
-            virtualPool.setFileSnapshotSupported(false);
-            if (param.getSnapshotSupported() != null) {
-                virtualPool.setFileSnapshotSupported(param.getSnapshotSupported());
             }
 
             virtualPool.setFileReplicationSupported(false);

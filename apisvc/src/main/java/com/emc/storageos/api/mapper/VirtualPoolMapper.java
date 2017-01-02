@@ -253,7 +253,6 @@ public class VirtualPoolMapper {
         to.setProtection(new FileVirtualPoolProtectionParam());
         to.getProtection().setSnapshots(new VirtualPoolProtectionSnapshotsParam());
         to.getProtection().getSnapshots().setMaxSnapshots(from.getMaxNativeSnapshots());
-        to.getProtection().setSnapshotSupported(from.getFileSnapshotSupported());
         to.getProtection().setReplicationSupported(from.getFileReplicationSupported());
         to.getProtection().setAllowFilePolicyAtProjectLevel(from.getAllowFilePolicyAtProjectLevel());
         to.getProtection().setAllowFilePolicyAtFSLevel(from.getAllowFilePolicyAtFSLevel());

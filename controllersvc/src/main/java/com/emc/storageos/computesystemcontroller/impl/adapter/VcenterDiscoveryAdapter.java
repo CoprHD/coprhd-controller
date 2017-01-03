@@ -126,13 +126,13 @@ public class VcenterDiscoveryAdapter extends EsxHostDiscoveryAdapter {
             }
             save(vcenter);
             processHostChanges(changes, deletedHosts, deletedClusters, true);
-            List<VcenterDataCenter> oldDatacenters = new ArrayList<VcenterDataCenter>();
-            Iterables.addAll(oldDatacenters, getDatacenters(vcenter));
-            List<Host> oldHosts = new ArrayList<Host>();
-            for (VcenterDataCenter oldDatacenter : oldDatacenters){
-                Iterables.addAll(oldHosts, getHosts(oldDatacenter));
+            List<VcenterDataCenter> dbDatacenters = new ArrayList<VcenterDataCenter>();
+            Iterables.addAll(dbDatacenters, getDatacenters(vcenter));
+            List<Host> dbHosts = new ArrayList<Host>();
+            for (VcenterDataCenter dbDatacenter : dbDatacenters){
+                Iterables.addAll(dbHosts, getHosts(dbDatacenter));
             }           
-            processDatastoreChanges(oldHosts, vcenter);
+            processDatastoreChanges(dbHosts, vcenter);
         } else {
             processor.setCompatibilityStatus(CompatibilityStatus.INCOMPATIBLE.name());
             save(vcenter);
@@ -753,12 +753,12 @@ public class VcenterDiscoveryAdapter extends EsxHostDiscoveryAdapter {
     /**
      * Method to detect for the external change for vCenter datastore viz., rename, create and delete
      */
-    private void processDatastoreChanges(List<Host> hosts, Vcenter vcenter) {
+    private void processDatastoreChanges(List<Host> dbHosts, Vcenter vcenter) {
         List<URI> volumeUris = new ArrayList<URI>();
         URI vcenterURI = vcenter.getId();
         VCenterAPI vcenterAPI = createVCenterAPI(vcenter);
         // get the volumes uri from clusters
-        for (Host host : hosts) {
+        for (Host host : dbHosts) {
             StringMap volumesMap = new StringMap();
             try {
                 List<ExportGroup> exportGroups = CustomQueryUtility.queryActiveResourcesByConstraint(dbClient, ExportGroup.class,
@@ -777,6 +777,7 @@ public class VcenterDiscoveryAdapter extends EsxHostDiscoveryAdapter {
         Set<URI> volumeUriSet = new HashSet<URI>(volumeUris);
         Collection<Volume> volumes = dbClient.queryObject(Volume.class, volumeUriSet);
         Map<Datastore, Set<HostScsiDisk>> dsDisk = getDsDiskMap(vcenterAPI);
+        List<Datacenter> datacenters = vcenterAPI.listAllDatacenters();
         Set<Volume> candidateVolumesForDatastore = new HashSet<Volume>();
         for (Volume volume : volumes) {
             ScopedLabelSet tagSet = volume.getTag();
@@ -785,7 +786,7 @@ public class VcenterDiscoveryAdapter extends EsxHostDiscoveryAdapter {
                 candidateVolumesForDatastore.add(volume);
             } else {
                 for (String datastoreName : datastoreNames) {
-                    checkDatastoreAndCreateEvent(datastoreName, volume, dsDisk, vcenter);
+                    checkDatastoreAndCreateEvent(datastoreName, volume, dsDisk, datacenters, vcenterAPI, vcenterURI);
                 }
             }
         }
@@ -827,11 +828,10 @@ public class VcenterDiscoveryAdapter extends EsxHostDiscoveryAdapter {
         return null;
     }
 
-    private void checkDatastoreAndCreateEvent(String oldDatastoreName, Volume volume, Map<Datastore, Set<HostScsiDisk>> dsDisk, Vcenter vcenter) {
-        URI vcenterURI = vcenter.getId();
-        VCenterAPI vcenterAPI = createVCenterAPI(vcenter);
+    private void checkDatastoreAndCreateEvent(String oldDatastoreName, Volume volume, Map<Datastore, Set<HostScsiDisk>> dsDisk,
+            List<Datacenter> datacenters, VCenterAPI vcenterAPI, URI vcenterURI) {
         Datastore ds = null;
-        for (Datacenter dc : vcenterAPI.listAllDatacenters()) {
+        for (Datacenter dc : datacenters) {
             ds = vcenterAPI.findDatastore(dc, oldDatastoreName);
             if (ds != null) { // found the datastore hence no need to process further
                 break;

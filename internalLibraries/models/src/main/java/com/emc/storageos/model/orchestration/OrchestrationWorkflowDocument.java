@@ -206,8 +206,8 @@ public class OrchestrationWorkflowDocument {
         public String getOperation() {
             return operation;
         }
-        public void setOperation(String opName) {
-            this.operation = opName;
+        public void setOperation(String operation) {
+            this.operation = operation;
         }
         
         @XmlElement(name = "description")

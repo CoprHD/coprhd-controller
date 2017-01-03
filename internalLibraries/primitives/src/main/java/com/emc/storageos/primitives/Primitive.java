@@ -74,9 +74,15 @@ public abstract class Primitive {
         this.description = description;
         this.successCriteria = successCriteria;
         this.input = Arrays.asList(input).stream().collect(
-                Collectors.toMap(InputParameter::getName, elem -> elem));
+                Collectors.toMap(InputParameter::getName, elem -> elem,(e1, e2) -> {
+                        return e1;
+                    }
+                ));
         this.output = Arrays.asList(output).stream().collect(
-                Collectors.toMap(OutputParameter::getName, elem -> elem));;
+                Collectors.toMap(OutputParameter::getName, elem -> elem,(e1, e2) -> {
+                        return e1;
+                    }
+                ));
         this.type = type;
     }
 

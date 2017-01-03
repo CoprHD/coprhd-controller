@@ -274,7 +274,7 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
     var diagramContainer = $element.find('#diagramContainer');
     var sbSite = $element.find('#sb-site');
     var treecontroller = $element.find('#theSidebar');
-    var  jspInstance;
+    var jspInstance;
     var workflowData = {};
     var dataAvailable = false;
     $scope.selectedId = '';
@@ -330,7 +330,6 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
     }
 
     function initializeJsPlumb(){
-        //initialize jsPlumb, will need to make instantiable
         jspInstance = jsPlumb.getInstance();
         jspInstance.importDefaults({
             DragOptions: {
@@ -520,9 +519,8 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
         var theNewItem = diagramContainer.find(' #' + stepId);
 
         //add data
-        step.type="ViPR REST API";
+        step.operation = step.name
         theNewItem.data("oeData",step);
-        console.log(step);
 
         //set position of element
         $(theNewItemWrapper).css({
@@ -535,6 +533,11 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
         jspInstance.makeTarget(diagramContainer.find(' #'+stepId), targetParams);
         jspInstance.addEndpoint(diagramContainer.find(' #'+stepId), {uuid:stepId+"-fail"}, failEndpoint);
         jspInstance.draggable(diagramContainer.find(' #'+stepId+'-wrapper'));
+
+        //$(' #'+stepId+'-wrapper').on('pointerdown', function( e ) {
+          //allows for draggable item in panzoom area
+        //  e.stopImmediatePropagation();
+        //});
 
         //updates angular handlers for the new element
         $compile(theNewItemWrapper)($scope);

@@ -2866,7 +2866,7 @@ test_10() {
     echot "Test 10 Begins"
     expname=${EXPORT_GROUP_NAME}t6
 
-    common_failure_injections="failure_004_final_step_in_workflow_complete"
+    common_failure_injections="failure_004_final_step_in_workflow_complete failure_firewall"
 
     storage_failure_injections=""
     if [ "${SS}" = "vplex" ]
@@ -2874,9 +2874,15 @@ test_10() {
 	storage_failure_injections=""
     fi
 
-    if [ "${SS}" = "vnx" -o "${SS}" = "vmax2" -o "${SS}" = "vmax3" -o "${SS}" = "unity" -o "${SS}" = "xio" ]
+    if [ "${SS}" = "unity" -o "${SS}" = "xio" ]
     then
 	storage_failure_injections="failure_017_Export_doRemoveVolume"
+    fi
+
+    if [ "${SS}" = "vnx" -o "${SS}" = "vmax2" -o "${SS}" = "vmax3" ]
+    then
+	storage_failure_injections="failure_017_Export_doRemoveVolume \
+                                    failure_015_SmisCommandHelper.invokeMethod_*"
     fi
 
     failure_injections="${common_failure_injections} ${storage_failure_injections}"
@@ -2925,8 +2931,20 @@ test_10() {
       
       if [ "${failure}" = "failure_firewall" ]
       then
+	  # Find the IP address we need to firewall
+	  if [ "${SIM}" = "1" ]
+	  then
+	      firewall_ip=${HW_SIMULATOR_IP}
+	  elif [ "${SS}" = "unity" ]
+	  then
+	      firewall_ip=${UNITY_IP}
+	  else
+	      secho "Firewall testing disabled for combo of ${SS} with simualtor=${SIM}"
+	      return
+	  fi
+
 	  # turn on firewall
-	  /usr/sbin/iptables -I INPUT 1 -s 10.247.101.45 -p all -j REJECT
+	  /usr/sbin/iptables -I INPUT 1 -s ${firewall_ip} -p all -j REJECT
       fi
 	
       # Turn on failure at a specific point
@@ -2935,24 +2953,22 @@ test_10() {
       # Resume the workflow
       runcmd workflow resume $workflow
 
+      # Turn on suspend of export after orchestration
+      set_suspend_on_class_method none
+
       # Follow the task.  It should fail because of Poka Yoke validation
       echo "*** Following the export_group update task to verify it FAILS because of firewall"
       fail task follow $task
 
-      if [ "${failure}" = "failure_firewall" -o "${failure}" = "failure_015_SmisCommandHelper.invokeMethod_*" ]
+      if [ "${failure}" = "failure_firewall" ]
       then
 	  # turn off firewall
 	  /usr/sbin/iptables -D INPUT 1
-      else
+      elif [ "${failure}" != "failure_015_SmisCommandHelper.invokeMethod_*" ]
+      then
 	  # Verify injected failures were hit
 	  verify_failures ${failure}
       fi
-
-      # Perform any DB validation in here
-      snap_db 3 ${cfs}
-
-      # Validate nothing was left behind
-      validate_db 2 3 ${cfs}
 
       # rerun the command
       set_artificial_failure none
@@ -2962,8 +2978,8 @@ test_10() {
       runcmd export_group delete ${PROJECT}/${expname}1
 
       # Validate the DB is back to its original state
-      snap_db 4 ${cfs}
-      validate_db 1 4 ${cfs}
+      snap_db 2 ${cfs}
+      validate_db 1 2 ${cfs}
 
       # Report results
       report_results test_10 ${failure}

@@ -2157,7 +2157,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
             }
 
         } catch (Exception ex) {
-            String message = "Datastore name change could not succeed because of exception:";
+            String message = "Processing of Datastore external rename event could not succeed because of exception:";
             _log.error(message, ex);
             ServiceError serviceError = DeviceControllerException.errors.jobFailed(ex);
             if (completer != null) {
@@ -2173,7 +2173,14 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
         try {
             completer = new VolumeCompleter(volume, taskId);
             Volume volumeObj = _dbClient.queryObject(Volume.class, volume);
-            if (oldDatastoreName == null || volumeObj.getTag() == null) {
+            if (oldDatastoreName == null) {
+                String message = "Volume update for external deletion of datastore could not succeed because old datastore name received is null.";
+                _log.error(message);
+                ServiceError serviceError = DeviceControllerException.errors.unforeseen();
+                completer.error(_dbClient, serviceError);
+            } else if (volumeObj.getTag() == null) {
+                String message = "Volume update for external deletion of datastore could not succeed because volume tag is null.";
+                _log.error(message);
                 ServiceError serviceError = DeviceControllerException.errors.unforeseen();
                 completer.error(_dbClient, serviceError);
             }

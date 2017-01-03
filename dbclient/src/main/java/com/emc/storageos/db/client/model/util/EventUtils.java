@@ -49,7 +49,10 @@ public class EventUtils {
     public static String vcenterDatastoreCreateDecline= "vcenterDatastoreCreateDecline";
 
     private static List<EventCode> ALLOWED_DUPLICATE_EVENTS = Lists.newArrayList(EventCode.HOST_INITIATOR_ADD,
-            EventCode.HOST_INITIATOR_DELETE, EventCode.VCENTER_DATASTORE_RENAME, EventCode.VCENTER_DATASTORE_DELETE, EventCode.VCENTER_DATASTORE_CREATE);
+            EventCode.HOST_INITIATOR_DELETE, 
+            EventCode.VCENTER_DATASTORE_RENAME, 
+            EventCode.VCENTER_DATASTORE_DELETE, 
+            EventCode.VCENTER_DATASTORE_CREATE);
 
     public enum EventCode {
         HOST_CLUSTER_CHANGE("101"),

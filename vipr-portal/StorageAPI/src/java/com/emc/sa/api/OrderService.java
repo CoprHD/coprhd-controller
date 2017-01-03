@@ -14,6 +14,7 @@ import java.util.*;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
+import com.emc.storageos.db.client.impl.DbClientImpl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -594,15 +595,15 @@ public class OrderService extends CatalogTaggedResourceService {
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR, Role.SECURITY_ADMIN })
     @Produces({ MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML, MediaType.TEXT_PLAIN })
     @Path("/download")
-    public Response downloadOrders( @DefaultValue("") @QueryParam(LogRequestParam.START_TIME) String startTimeStr,
-                                  @DefaultValue("") @QueryParam(LogRequestParam.END_TIME) String endTimeStr,
+    public Response downloadOrders( @DefaultValue("") @QueryParam(SearchConstants.START_TIME_PARAM) String startTimeStr,
+                                  @DefaultValue("") @QueryParam(SearchConstants.END_TIME_PARAM) String endTimeStr,
                                   @DefaultValue("") @QueryParam(SearchConstants.TENANT_IDS_PARAM) String tenantIDsStr,
                                   @DefaultValue("") @QueryParam(SearchConstants.ORDER_IDS) String orderIDsStr)
             throws Exception {
         log.info("lbyk:export orders startTime={}, endTime={} tid={} orderIDs={}",
                 new Object[] {startTimeStr, endTimeStr, tenantIDsStr, orderIDsStr});
 
-        if (!tenantIDsStr.isEmpty() && !orderIDsStr.isEmpty()) {
+        if (tenantIDsStr.isEmpty() && orderIDsStr.isEmpty()) {
             InvalidParameterException cause = new InvalidParameterException("Both tenant and order IDs are empty");
             throw APIException.badRequests.invalidParameterWithCause(SearchConstants.TENANT_ID_PARAM, tenantIDsStr, cause);
         }
@@ -624,7 +625,7 @@ public class OrderService extends CatalogTaggedResourceService {
         URI tid = URI.create(user.getTenantId());
         URI uid = URI.create(user.getName());
 
-        OrderJobStatus status =
+        final OrderJobStatus status =
                 new OrderJobStatus(OrderServiceJob.JobType.DOWNLOAD_ORDER, startTimeInMS, endTimeInMS,
                         tids, tid, uid, null);
         try {
@@ -646,8 +647,21 @@ public class OrderService extends CatalogTaggedResourceService {
 
     private void exportOrders(List<URI> tids, long startTime, long endTime, OutputStream outputStream, OrderJobStatus status) {
         PrintStream out = new PrintStream(outputStream);
+        out.println("ORDER DETAILS");
+        out.println("-------------");
+        log.info("lbyk startTime={} endTime={}", startTime, endTime);
+        long completed = 0;
+        long failed = 0;
         for (URI tid : tids) {
             TimeSeriesConstraint constraint = TimeSeriesConstraint.Factory.getOrders(tid, startTime, endTime);
+            DbClientImpl dbclient = (DbClientImpl)_dbClient;
+            constraint.setKeyspace(dbclient.getLocalKeyspace());
+            try {
+                log.info("lbyk count={}", constraint.count());
+            }catch(Exception e) {
+                log.error("lbyk e=", e);
+            }
+
             NamedElementQueryResultList ids = new NamedElementQueryResultList();
             _dbClient.queryByConstraint(constraint, ids);
             for (NamedElementQueryResultList.NamedElement namedID : ids) {
@@ -658,15 +672,57 @@ public class OrderService extends CatalogTaggedResourceService {
                     order = _dbClient.queryObject(Order.class, id);
                     parameters = order.auditParameters();
                     log.info("lbyh id={}", id);
-                    out.print(order.toString());
+                    //out.print(order.toString());
+                    dumpOrder(out, order);
                     status.addCompleted(1);
+                    completed++;
                     saveJobInfo(status);
                     auditOpSuccess(OperationTypeEnum.DOWNLOAD_ORDER, parameters);
                 } catch (Exception e) {
+                    failed++;
                     log.error("Failed to download order {}", id);
                     auditOpFailure(OperationTypeEnum.DOWNLOAD_ORDER, parameters);
                 }
             }
+        }
+
+        status.setTotal(completed+failed);
+        try {
+            saveJobInfo(status);
+        }catch (Exception e) {
+            log.error("Failed to save job info status={} e=", status, e);
+        }
+    }
+
+    private void dumpOrder(PrintStream out, Order order) {
+        out.print(order.toString());
+
+        out.println("Parameters");
+        out.println("----------");
+
+        List<OrderParameter> parameters= orderManager.getOrderParameters(order.getId());
+        for (OrderParameter parameter : parameters) {
+            out.print(parameter.toString());
+        }
+
+        out.println("Execution State");
+        out.println("---------------");
+
+        ExecutionState state = orderManager.getOrderExecutionState(order.getExecutionStateId());
+        out.print(state.toString());
+
+        out.println("Logs");
+        out.println("----");
+        out.println(" Execution Logs");
+        List<ExecutionLog> elogs = orderManager.getOrderExecutionLogs(order);
+        for (ExecutionLog elog : elogs) {
+            out.print(elog.toString());
+        }
+
+        out.println(" Execution Task Logs");
+        List<ExecutionTaskLog> tlogs = orderManager.getOrderExecutionTaskLogs(order);
+        for (ExecutionTaskLog tlog : tlogs) {
+            out.print(tlog.toString());
         }
     }
 
@@ -833,10 +889,9 @@ public class OrderService extends CatalogTaggedResourceService {
 
         List<URI> tids= toIDs(SearchConstants.TENANT_IDS_PARAM, tenantIDs);
 
-        log.info("lbyb0 start={} end={} tids={}", startTimeInMS, endTimeInMS, tids);
+        log.info("start={} end={} tids={}", startTimeInMS, endTimeInMS, tids);
 
         Map<String, Long> countMap = orderManager.getOrderCount(tids, startTimeInMS, endTimeInMS);
-        log.info("lbyb0 count={} done0", countMap);
 
         OrderCount resp = new OrderCount( countMap);
 

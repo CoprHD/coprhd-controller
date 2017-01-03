@@ -10,7 +10,7 @@ import javax.xml.bind.annotation.XmlRootElement;
 @XmlRootElement(name = "file_protection")
 public class FileVirtualPoolProtectionParam extends VirtualPoolProtectionParam {
 
-    private Boolean scheduleSnapshots;
+    private Boolean scheduleSnapshots = false;
     private Boolean replicationSupported = false;
     private Boolean allowFilePolicyAtProjectLevel = false;
     private Boolean allowFilePolicyAtFSLevel = false;

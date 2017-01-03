@@ -20,7 +20,6 @@ import org.apache.commons.lang.StringUtils;
 
 import com.emc.storageos.db.client.model.FilePolicy.FilePolicyApplyLevel;
 import com.emc.storageos.db.client.model.FilePolicy.FilePolicyType;
-import com.emc.storageos.db.client.model.VirtualPool.FileReplicationType;
 import com.emc.storageos.model.DataObjectRestRep;
 import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.auth.ACLEntry;
@@ -263,8 +262,7 @@ public class SchedulePolicies extends ViprResourceController {
                     vpool.getProtection() != null && vpool.getProtection().getScheduleSnapshots()) {
                 vPools.add(vpool);
             } else if (FilePolicyType.file_replication.name().equalsIgnoreCase(policy.getType()) &&
-                    vpool.getFileReplicationType() != null
-                    && !FileReplicationType.NONE.name().equalsIgnoreCase(vpool.getFileReplicationType())) {
+                    vpool.getProtection() != null && vpool.getProtection().getReplicationSupported()) {
                 vPools.add(vpool);
             }
         }

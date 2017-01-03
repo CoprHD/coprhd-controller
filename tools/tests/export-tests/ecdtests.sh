@@ -1822,22 +1822,29 @@ test_1(){
         failure="Failed to detect the name change of the Datastore"
         mkdir -p results/${item}
         dsname=${VOLNAME}-${item}
+        catalog_service=CreateVolumeandDatastore
+		parent_catalog=BlockServicesforVMwarevCenter
+		
+		#Take the snap of the initial state of the DB.
+		snap_db 1 ${cfs}
+		
+		#Create a datastore using catalog service API
+		runcmd vcenter createds ${VCENTER} ${DC} ${stype} ${host} ${NH} ${VPOOL_BASE} ${PROJECT} ${dsname} ${dsname}-vol 1GB ${catalog_service} ${parent_catalog}
        
-	#Take the snap of the initial state of the DB.
-	snap_db 1 ${cfs}
-
-        #runcmd vcenter_datastore create ${VCENTER} ${DC} ${stype} ${host} ${NH} ${VPOOL_BASE} ${PROJECT} ${dsname} ${dsname}-vol --size 1GB
-       
-	#run the perl script to rename the datastore
+		#run the perl script to rename the datastore
         runcmd  esxcfg-rename-datastore.pl --server ${VCENTER_IP} --username ${VCENTER_USER} --password ${VCENTER_PASS} --datastore tbdel1912_1 --txtplacement prepend --txtformat local-storage- --operation rename
-        #discover_vcenter
-	discover_vcenter "lglw8062"
-	
-	#Take a snap of the DB. Now a new event should be created.
+        
+		#Take a snap of the DB. Now a new event should be created.
         snap_db 2 ${cfs}
 
-	#Difference
-        validate_db 1 2 ${cfs}
+		#discover_vcenter
+		discover_vcenter "lglw8062"
+	
+		#Take a snap of the DB. Now a new event should be created.
+        snap_db 3 ${cfs}
+
+		#Difference
+        validate_db 2 3 ${cfs}
        
 	#Test PASS/FAIL
 	if [[ $(grep -A1 'eventCode = 107' results/${item}/ActionableEvent-2.txt) = 'eventStatus = pending' ]]; 
@@ -1859,46 +1866,30 @@ test_2(){
         cfs="Volume "
         mkdir -p results/${item}
         dsname=${VOLNAME}-${item}
-        snap_db 1 ${cfs}
+		catalog_service=CreateVolumeandDatastore
+		parent_catalog=BlockServicesforVMwarevCenter
+		
+		#Take the snap of the initial state of the DB.
+		snap_db 1 ${cfs}
+		
+		#Create datastore using catalog service APIs
+		runcmd vcenter createds ${VCENTER} ${DC} ${stype} ${host} ${NH} ${VPOOL_BASE} ${PROJECT} ${dsname} ${dsname}-vol 1GB ${catalog_service} ${parent_catalog}
+       	
+		#Run perl script to delete a datastore
+		runcmd  esxcfg-remove-datastore.pl --server lglw8062.lss.emc.com --username administrator@vsphere6.local --password D@ngerous1 --datastore tbdel --txtplacement prepend --txtformat local-storage- --operation rename
+        
+		#Take the snap of the DB.
+		snap_db 2 ${cfs}
+		
+		#Trigger discovery of vcenter
+		runcmd vcenter discover ${VCENTER}
+        
+		#Take the snap of the DB.
+		snap_db 3 ${cfs}
+        
+		#Difference
+		validate_db 2 3 ${cfs}
 
-        #runcmd datastore bulk get
-        #runcmd datastore create commodity ${dsname} Test
-        #runcmd datastore create ${dsname} ${PROJECT} ${NH} --size 1GB
-	/opt/storageos/cli viprcli vcenterdatacenter show -vcenter vceter1 -name CLI-DC | grep id
-        #snap_db 2 ${cfs}
-        #validate_db 1 2 ${cfs}
-        runcmd  esxcfg-remove-datastore.pl --server lglw8062.lss.emc.com --username administrator@vsphere6.local --password D@ngerous1 --datastore tbdel --txtplacement prepend --txtformat local-storage- --operation rename
-        runcmd vcenter discover ${VCENTER}
-        snap_db 2 ${cfs}
-        validate_db 1 2 ${cfs}
-
-}
-test_11(){
-
-	secho "Running Test 10 for VPLEX vol creation and delete it outside of vipr "
-	item=${RANDOM}
-        cfs="Volume "
-        mkdir -p results/${item}
-        volname=${VOLNAME}-${item}
-        snap_db 1 ${cfs}
-	runcmd volume create ${volname} ${PROJECT} ${NH} ${VPOOL_BASE} 1GB
-	snap_db 2 ${cfs}
-      # Remove the volume
-	/workspace/amritha/coprhd-controller/tools/tests/export-tests/sed -n '/${volname}/{n;p}' results/${item}/Volume-2.txt | grep virtual-volumes | cut -d'_' -f2 > results/${item}/vvol-${item}.txt
-	d="$(/workspace/amritha/coprhd-controller/tools/tests/export-tests/sed -n '/${volname}/{n;p}' results/${item}/Volume-2.txt | grep virtual-volumes | cut -d'_' -f2)"
-	echo $d
-	echo ${d}
-	a='device_'
-	b='_vol'
-	devid=$a$d$b
-        runcmd vplexhelper.sh delete_volume ${devid}  
-      # Perform any DB validation in here
-      snap_db 3 ${cfs}
-
-      # Validate nothing was left behind
-      validate_db 2 3 ${cfs}
-
-      #volume show ${volname} | grep device_label | awk '{print $2}' | cut -d '"' -f2
 }
 
 discover_vcenter() {

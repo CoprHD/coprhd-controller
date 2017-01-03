@@ -78,11 +78,6 @@ public class RunViprREST extends ViPRExecutionTask<OrchestrationTaskResult> {
 
         OrchestrationTaskResult result = makeRestCall(path, requestBody, method);
 
-        final Gson gson = new Gson();
-        final ViprOperation res = gson.fromJson(result.getOut(), ViprOperation.class);
-
-        OrchestrationUtils.waitForTasks(res.getTaskIds(), getClient());
-
         ExecutionUtils.currentContext().logInfo("runViprREST.doneInfo", primitive.getFriendlyName());
 
         return result;

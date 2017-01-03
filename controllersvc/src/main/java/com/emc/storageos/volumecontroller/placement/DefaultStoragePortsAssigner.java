@@ -513,7 +513,7 @@ public class DefaultStoragePortsAssigner implements StoragePortsAssigner {
         }
 
         // Pass 3 - use only non switch affinity
-        _log.info("PASS THREE: Assigining initiators without switch affinity");
+        _log.info("PASS THREE: Assigning initiators without switch affinity");
         iterateAssignmentPasses(assignments, netToNewInitiators, portUseCounts, netToAllocatedPorts, 
         		initiatorToSwitchName, portAddressToSwitchName, switchToStoragePortsByNet, initiatorToNetworkLiteMap, 
         		pathParams, false, true);

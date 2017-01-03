@@ -3134,6 +3134,7 @@ orders.delete=Delete Orders
 orders.delete.description=Click Confirm to delete the selected (checked) orders.
 orders.delete.all=All rows are checked, all <b style="color:red">%s</b> orders will be deleted.
 orders.delete.help=We strongly recommend that you download the orders before deleting them. <p>Only one 'Download/Delete' orders job is allowed at any given time.</p>
+orders.delete.submitted=Orders deletion submitted successfully.
 orders.download=Download Orders
 orders.download.description=Click Confirm to delete the selected (checked) orders.
 orders.download.all=All rows are checked, all <b style="color:red">%s</b> orders will be downloaded.

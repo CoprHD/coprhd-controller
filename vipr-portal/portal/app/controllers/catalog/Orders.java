@@ -176,8 +176,7 @@ public class Orders extends OrderExecution {
     }
 
     public static void itemsJson(@As(",") String[] ids) {
-        Logger.info("hlj, start to call itemsJson()");
-        Logger.info("ids: {}", ids);
+        Logger.info("hlj, start to call itemsJson(), ids: {}", ids);
         List<OrderInfo> results = Lists.newArrayList();
         if (ids != null && ids.length > 0) {
             for (String id : ids) {
@@ -191,6 +190,20 @@ public class Orders extends OrderExecution {
             }
         }
         renderJSON(results);
+    }
+    
+    @FlashException(value = "allOrders")
+    @Restrictions({ @Restrict("TENANT_ADMIN") })
+    public static void deleteOrders(@As(",") String[] ids) {
+        if (ids != null && ids.length > 0) {
+            System.out.println("hlj delete ids:"+ids);
+        } else {
+            RecentUserOrdersDataTable dataTable = new RecentUserOrdersDataTable();
+            dataTable.setByStartEndDateOrMaxDays(params.get("startDate"), params.get("endDate"), params.get("maxDays", Integer.class));
+            dataTable.deleteOrders();
+        }
+        flash.success(MessagesUtils.get("orders.delete.submitted"));
+        allOrders();
     }
 
     @FlashException(referrer = { "receiptContent" })

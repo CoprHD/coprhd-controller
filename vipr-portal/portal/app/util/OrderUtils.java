@@ -53,41 +53,22 @@ public class OrderUtils {
 
     public static List<OrderRestRep> getUserOrders(Date startDate, Date endDate, String maxCount) {
         ViPRCatalogClient2 catalog = getCatalogClient();
-        String startTime = null;
-        if (startDate != null) {
-            startTime = Long.toString(startDate.getTime());
-        }
-        String endTime = null;
-        if (endDate != null) {
-            endTime = Long.toString(endDate.getTime());
-        }
-        return catalog.orders().getUserOrders(startTime, endTime, maxCount);
+        return catalog.orders().getUserOrders(dateToLongStr(startDate), dateToLongStr(endDate), maxCount);
     }
 
     public static OrderCount getUserOrdersCount(Date startDate, Date endDate) {
         ViPRCatalogClient2 catalog = getCatalogClient();
-        String startTime = null;
-        if (startDate != null) {
-            startTime = Long.toString(startDate.getTime());
-        }
-        String endTime = null;
-        if (endDate != null) {
-            endTime = Long.toString(endDate.getTime());
-        }
-        return catalog.orders().getUserOrdersCount(startTime, endTime);
+        return catalog.orders().getUserOrdersCount(dateToLongStr(startDate), dateToLongStr(endDate));
     }
     
     public static OrderCount getOrdersCount(Date startDate, Date endDate, URI tenantId) {
         ViPRCatalogClient2 catalog = getCatalogClient();
-        String startTime = null;
-        if (startDate != null) {
-            startTime = Long.toString(startDate.getTime());
-        }
-        String endTime = null;
-        if (endDate != null) {
-            endTime = Long.toString(endDate.getTime());
-        }
-        return catalog.orders().getOrdersCount(startTime, endTime, tenantId);
+        return catalog.orders().getOrdersCount(dateToLongStr(startDate), dateToLongStr(endDate), tenantId);
+    }
+    
+    public static void deleteOrders(Date startDate, Date endDate, URI tenantId) {
+        ViPRCatalogClient2 catalog = getCatalogClient();
+        catalog.orders().deleteOrders(dateToLongStr(startDate), dateToLongStr(endDate), tenantId, null);
     }
 
     public static List<OrderRestRep> getScheduledOrders() {
@@ -121,18 +102,10 @@ public class OrderUtils {
         return scheduledOrdersInWindow;
     }
 
-    public static List<OrderRestRep> findByTimeRange(Date startTime, Date endTime, String tenant, String maxCount) {
+    public static List<OrderRestRep> findByTimeRange(Date startDate, Date endDate, String tenant, String maxCount) {
         ViPRCatalogClient2 catalog = getCatalogClient();
-        String start = null;
-        if (startTime != null) {
-            start = Long.toString(startTime.getTime());
-        }
-        String end = null;
-        if (endTime != null) {
-            end = Long.toString(endTime.getTime());
-        }
-
-        return catalog.orders().search().byTimeRange(start, end, URI.create(tenant), maxCount).run();
+        return catalog.orders().search().byTimeRange(dateToLongStr(startDate), dateToLongStr(endDate), 
+                URI.create(tenant), maxCount).run();
     }
 
     public static void cancelOrder(URI orderId) {
@@ -153,6 +126,14 @@ public class OrderUtils {
     public static List<OrderLogRestRep> getOrderLogs(URI orderId) {
         ViPRCatalogClient2 catalog = getCatalogClient();
         return catalog.orders().getLogs(orderId);
+    }
+    
+    private static String dateToLongStr(Date date) {
+        String time = null;
+        if (date != null) {
+            time = Long.toString(date.getTime());
+        }
+        return time;
     }
 
 }

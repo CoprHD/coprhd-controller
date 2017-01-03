@@ -248,9 +248,9 @@ public class Orders2 extends AbstractCatalogBulkResources<OrderRestRep> implemen
      *
      * @param startTime
      * @param endTime
-     * @param tenantIDs
+     * @param tenantId
      */
-    public void deleteOrders(String startTime, String endTime, String tenantIDs, String orderStatus) {
+    public void deleteOrders(String startTime, String endTime, URI tenantId, String orderStatus) {
         UriBuilder uriBuilder = client.uriBuilder(PathConstants.ORDER2_DELETE_ORDERS);
         if (startTime != null) {
             uriBuilder = uriBuilder.queryParam(SearchConstants.START_TIME_PARAM, startTime);
@@ -260,8 +260,8 @@ public class Orders2 extends AbstractCatalogBulkResources<OrderRestRep> implemen
             uriBuilder = uriBuilder.queryParam(SearchConstants.END_TIME_PARAM, endTime);
         }
 
-        if (tenantIDs != null) {
-            uriBuilder = uriBuilder.queryParam(SearchConstants.TENANT_IDS_PARAM, tenantIDs);
+        if (tenantId != null) {
+            uriBuilder = uriBuilder.queryParam(SearchConstants.TENANT_IDS_PARAM, tenantId.toString());
         }
 
         if (orderStatus != null) {

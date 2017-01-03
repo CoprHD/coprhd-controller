@@ -58,7 +58,7 @@
         <div><span class="help-block">&{"orders.delete.help"}</span></div>
       #{/Modal.body}
       #{Modal.footer}
-       #{Form.button 'button.confirm', icon:'ok-sign', data:['dismiss':'modal']/}
+       #{Form.button 'button.confirm', icon:'ok-sign', data:['dismiss':'modal'], action: 'deleteOrders()'/}
         #{Form.button 'button.close', icon:'trash', data:['dismiss':'modal']/}
       #{/Modal.footer}
     #{/Modal.dialog}
@@ -73,7 +73,7 @@
         <div><span class="help-block">&{"orders.download.help"}</span></div>
       #{/Modal.body}
       #{Modal.footer}
-       #{Form.button 'button.confirm', icon:'ok-sign', data:['dismiss':'modal']/}
+       #{Form.button 'button.confirm', icon:'ok-sign', data:['dismiss':'modal'], action: 'downloadOrders()'/}
         #{Form.button 'button.close', icon:'trash', data:['dismiss':'modal']/}
       #{/Modal.footer}
     #{/Modal.dialog}
@@ -82,7 +82,7 @@
 function addParams(aoData) {
     aoData.push({"name":"startDate", "value":"${startDate}"});
     aoData.push({"name":"endDate", "value":"${endDate}"});
-    aoData.push({"name":"maxDays", "value": "${maxDays}"});
+    aoData.push({"name":"maxDays", "value":"${maxDays}"});
 }
 table.orders.dataTable.afterCreate(function(dataTable) {
     var itemsJson = #{jsAction @catalog.Orders.itemsJson(':ids')/};
@@ -93,7 +93,6 @@ $(document).ready(function() {
     if(requestMaxDays != 0) {
         $(".forRange").hide();
     }
-	//$( "input[type=checkbox]" ).prop('checked', true);//for mockup
 
     $('#maxDays').on('change', function() {
         var maxDays = $(this).val();
@@ -109,9 +108,30 @@ $(document).ready(function() {
     $('.btn-danger').on('click', function() {
     	$('#deleteDialog').modal();
     });
+    
     $('.btn-primary').on('click', function() {
         $('#downloadDialog').modal();
     });
-	
+    
+    $('input[name=selectAll]').change(function() {
+    	if ($(this).is(':checked')) {
+    		$('input[type=checkbox]').prop('disabled', true);
+    		$(this).prop('disabled', false);
+        } else{
+        	$('input[type=checkbox]').prop('disabled', false);
+        }
+    });
+    
 });
+
+function deleteOrders() {
+    console.info("start to delete");
+    var url = #{jsAction @deleteOrders()/}()+"?startDate=${startDate}&endDate=${endDate}&maxDays=${maxDays}";
+    console.info(url);alert("wiat");
+    window.location.href = url;
+}
+
+function downloadOrders() {
+    console.info("start to download");
+}
 </script>

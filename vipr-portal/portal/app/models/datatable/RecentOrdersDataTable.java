@@ -76,6 +76,10 @@ public class RecentOrdersDataTable extends OrderDataTable {
     public OrderCount fetchCount() {
         return OrderUtils.getOrdersCount(startDate, endDate, uri(tenantId));
     }
+    
+    public void deleteOrders() {
+        OrderUtils.deleteOrders(startDate, endDate, uri(tenantId));
+    }
 
     /**
      * Filters out orders that are not associated with the selected tenant.

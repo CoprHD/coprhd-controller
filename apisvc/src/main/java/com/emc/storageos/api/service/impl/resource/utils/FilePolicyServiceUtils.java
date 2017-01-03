@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016 EMC Corporation
+ * Copyright (c) 2017 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.api.service.impl.resource.utils;
@@ -195,19 +195,28 @@ public class FilePolicyServiceUtils {
      * @param virtualPool
      * @return
      */
-    public static boolean validateVpoolSupportPolicyType(FilePolicy filepolicy, VirtualPool virtualPool) {
+    public static void validateVpoolSupportPolicyType(FilePolicy filepolicy, VirtualPool virtualPool) {
         FilePolicyType policyType = FilePolicyType.valueOf(filepolicy.getFilePolicyType());
+        StringBuilder errorMsg = new StringBuilder();
         switch (policyType) {
             case file_snapshot:
                 if (virtualPool.isFileSnapshotSupported()) {
-                    return true;
+                    break;
+                } else {
+                    errorMsg.append("Provided vpool :" + virtualPool.getId().toString() + " doesn't support file snapshot policy.");
+                    _log.error(errorMsg.toString());
+                    throw APIException.badRequests.invalidFilePolicyAssignParam(filepolicy.getFilePolicyName(), errorMsg.toString());
                 }
             case file_replication:
                 if (virtualPool.isFileReplicationSupported()) {
-                    return true;
+                    break;
+                } else {
+                    errorMsg.append("Provided vpool :" + virtualPool.getId().toString() + " doesn't support file replication policy");
+                    _log.error(errorMsg.toString());
+                    throw APIException.badRequests.invalidFilePolicyAssignParam(filepolicy.getFilePolicyName(), errorMsg.toString());
                 }
             default:
-                return false;
+                return;
         }
     }
 }

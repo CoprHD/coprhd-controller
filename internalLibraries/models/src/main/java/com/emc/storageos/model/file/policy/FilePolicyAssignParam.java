@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015 EMC Corporation
+ * Copyright (c) 2017 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.model.file.policy;
@@ -21,9 +21,6 @@ public class FilePolicyAssignParam implements Serializable {
 
     private static final long serialVersionUID = 1L;
 
-    // Level at which policy has to be applied..
-    private String applyAt;
-
     private Boolean applyOnTargetSite;
 
     // Vpool assignment parameters.
@@ -34,21 +31,6 @@ public class FilePolicyAssignParam implements Serializable {
 
     // File System assignment parameters.
     private FilePolicyFileSystemAssignParam fileSystemAssignParams;
-
-    /**
-     * Level at which policy has to applied.
-     * Valid values are vpool, project, file_system
-     * 
-     * @return
-     */
-    @XmlElement(required = true, name = "apply_at")
-    public String getApplyAt() {
-        return this.applyAt;
-    }
-
-    public void setApplyAt(String applyAt) {
-        this.applyAt = applyAt;
-    }
 
     @XmlElement(name = "apply_on_target_site")
     public Boolean getApplyOnTargetSite() {

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015 EMC Corporation
+ * Copyright (c) 2017 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.model.file.policy;
@@ -24,9 +24,6 @@ public class FilePolicyParam implements Serializable {
 
     // Priority of the policy
     private String priority;
-
-    // Policy schedule
-    private FilePolicyScheduleParams policySchedule;
 
     // Replication related parameters
     private FileReplicationPolicyParam replicationPolicyParams;
@@ -75,15 +72,6 @@ public class FilePolicyParam implements Serializable {
 
     public void setPriority(String priority) {
         this.priority = priority;
-    }
-
-    @XmlElement(name = "policy_schedule")
-    public FilePolicyScheduleParams getPolicySchedule() {
-        return this.policySchedule;
-    }
-
-    public void setPolicySchedule(FilePolicyScheduleParams policySchedule) {
-        this.policySchedule = policySchedule;
     }
 
     @XmlElement(name = "replication_params")

@@ -18,10 +18,11 @@ import com.emc.storageos.db.client.model.CifsShareACL;
 import com.emc.storageos.db.client.model.FileExport;
 import com.emc.storageos.db.client.model.FileExportRule;
 import com.emc.storageos.db.client.model.FilePolicy;
-import com.emc.storageos.db.client.model.FilePolicy.AssignToResource;
 import com.emc.storageos.db.client.model.FilePolicy.FilePolicyApplyLevel;
 import com.emc.storageos.db.client.model.FileShare;
 import com.emc.storageos.db.client.model.NFSShareACL;
+import com.emc.storageos.db.client.model.Project;
+import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.model.file.ExportRule;
 import com.emc.storageos.model.file.FileNfsACLUpdateParams;
@@ -350,8 +351,10 @@ public class FileOrchestrationUtils {
      * @param project
      * @return List<FilePolicy>
      */
-    public static List<FilePolicy> getAllApplicablePolices(DbClient dbClient, URI vpool, URI project) {
+    public static List<FilePolicy> getAllApplicablePolices(DbClient dbClient, VirtualPool vpool, Project project) {
+
         List<FilePolicy> filePolicies = new ArrayList<FilePolicy>();
+
         List<URI> policyIds = dbClient.queryByType(FilePolicy.class, true);
         List<FilePolicy> filepolicies = dbClient.queryObject(FilePolicy.class, policyIds);
 
@@ -373,8 +376,7 @@ public class FileOrchestrationUtils {
                         break;
                     case file_system:
                         // TODO Here logic has to be changed..
-                        if (AssignToResource.all.name().equalsIgnoreCase(filePolicy.getApplyToFS())
-                                && filePolicy.getFilePolicyVpool().toString().equals(vpool.toString())) {
+                        if (filePolicy.getFilePolicyVpool().toString().equals(vpool.toString())) {
                             filePolicies.add(filePolicy);
                         }
                         break;

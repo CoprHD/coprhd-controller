@@ -42,8 +42,8 @@
                   selectable: true, 
                   options: ['fnServerParams': 'addParams']}
         #{DataTable.buttonBar}
-            #{Form.button name:'button.download', class:'primary', icon:'download', submit:'createForm'/}
-            #{Form.button name:'button.delete', class:'danger', icon:'trash', submit:'deleteForm'/}
+            #{Form.button name:'button.download', class:'primary', icon:'download' /}
+            #{Form.button name:'button.delete', class:'danger', icon:'trash' /}
         #{/DataTable.buttonBar}
 
 #{/DataTable.table}
@@ -54,7 +54,7 @@
         &{'orders.delete.description'}
       #{/Modal.header}
       #{Modal.body cssClass:'form-horizontal'}
-        &{"orders.delete.all", 7000}
+        <span class="checkedAll-block">&{"orders.delete.all", orderCount}</span>
         <div><span class="help-block">&{"orders.delete.help"}</span></div>
       #{/Modal.body}
       #{Modal.footer}
@@ -69,7 +69,7 @@
         &{'orders.download.description'}
       #{/Modal.header}
       #{Modal.body cssClass:'form-horizontal'}
-        &{"orders.download.all", 7000}
+        <span class="checkedAll-block">&{"orders.download.all", orderCount}</span>
         <div><span class="help-block">&{"orders.download.help"}</span></div>
       #{/Modal.body}
       #{Modal.footer}
@@ -93,6 +93,14 @@ $(document).ready(function() {
     if(requestMaxDays != 0) {
         $(".forRange").hide();
     }
+    
+    var disableDeleteAll = "${disableDeleteAll}";
+    console.info(disableDeleteAll);
+    if (disableDeleteAll == 1) {
+    	$('input[name=selectAll]').prop('disabled', true);
+    }
+    
+    var isCheckedAll = false;
 
     $('#maxDays').on('change', function() {
         var maxDays = $(this).val();
@@ -106,10 +114,20 @@ $(document).ready(function() {
     });
 	
     $('.btn-danger').on('click', function() {
+    	if(isCheckedAll) {
+    		$('.checkedAll-block').show();
+    	}else {
+    		$('.checkedAll-block').hide();
+    	}
     	$('#deleteDialog').modal();
     });
     
     $('.btn-primary').on('click', function() {
+    	if(isCheckedAll) {
+            $('.checkedAll-block').show();
+        }else {
+            $('.checkedAll-block').hide();
+        }
         $('#downloadDialog').modal();
     });
     
@@ -117,8 +135,10 @@ $(document).ready(function() {
     	if ($(this).is(':checked')) {
     		$('input[type=checkbox]').prop('disabled', true);
     		$(this).prop('disabled', false);
+    		isCheckedAll = true;
         } else{
         	$('input[type=checkbox]').prop('disabled', false);
+        	isCheckedAll = false;
         }
     });
     
@@ -127,7 +147,7 @@ $(document).ready(function() {
 function deleteOrders() {
     console.info("start to delete");
     var url = #{jsAction @deleteOrders()/}()+"?startDate=${startDate}&endDate=${endDate}&maxDays=${maxDays}";
-    console.info(url);alert("wiat");
+    console.info(url);
     window.location.href = url;
 }
 
@@ -135,3 +155,9 @@ function downloadOrders() {
     console.info("start to download");
 }
 </script>
+
+<style type="text/css">
+.checkedAll-block {
+	display: none;
+}
+</style>

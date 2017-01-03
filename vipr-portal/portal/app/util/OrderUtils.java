@@ -17,6 +17,7 @@ import com.emc.vipr.client.exceptions.ViPRHttpException;
 import com.emc.vipr.model.catalog.ExecutionLogRestRep;
 import com.emc.vipr.model.catalog.ExecutionStateRestRep;
 import com.emc.vipr.model.catalog.OrderCount;
+import com.emc.vipr.model.catalog.OrderJobInfo;
 import com.emc.vipr.model.catalog.OrderLogRestRep;
 import com.emc.vipr.model.catalog.OrderRestRep;
 import com.google.common.collect.Lists;
@@ -69,6 +70,18 @@ public class OrderUtils {
     public static void deleteOrders(Date startDate, Date endDate, URI tenantId) {
         ViPRCatalogClient2 catalog = getCatalogClient();
         catalog.orders().deleteOrders(dateToLongStr(startDate), dateToLongStr(endDate), tenantId, null);
+    }
+    
+    public static void deactivateOrders(List<URI> ids) {
+        ViPRCatalogClient2 catalog = getCatalogClient();
+        for (URI id : ids) {
+            catalog.orders().deactivate(id);
+        }
+    }
+    
+    public static OrderJobInfo queryOrderJob(String jobType) {
+        ViPRCatalogClient2 catalog = getCatalogClient();
+        return catalog.orders().queryOrderJob(jobType);
     }
 
     public static List<OrderRestRep> getScheduledOrders() {

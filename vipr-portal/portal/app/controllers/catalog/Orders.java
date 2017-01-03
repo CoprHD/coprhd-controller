@@ -131,9 +131,15 @@ public class Orders extends OrderExecution {
         dataTable.setByStartEndDateOrMaxDays(params.get("startDate"), params.get("endDate"),
                 params.get("maxDays", Integer.class));
         Long orderCount = dataTable.fetchCount().getCounts().get(Models.currentAdminTenant());
+        renderArgs.put("orderCount", orderCount);
         System.out.println(Models.currentAdminTenant()+"\t count: "+orderCount);
         if (orderCount > OrderDataTable.ORDER_MAX_COUNT) {
             flash.put("warning", MessagesUtils.get("orders.warning", orderCount, OrderDataTable.ORDER_MAX_COUNT));
+        }
+        String deleteStatus = dataTable.getDeleteJobStatus();
+        if (deleteStatus != null) {
+            flash.put("info", deleteStatus);
+            renderArgs.put("disableDeleteAll", 1);
         }
         
         addMaxDaysRenderArgs();
@@ -196,7 +202,12 @@ public class Orders extends OrderExecution {
     @Restrictions({ @Restrict("TENANT_ADMIN") })
     public static void deleteOrders(@As(",") String[] ids) {
         if (ids != null && ids.length > 0) {
-            System.out.println("hlj delete ids:"+ids);
+            System.out.println("hlj delete ids:" + ids);
+            List<URI> uris = Lists.newArrayList();
+            for (String id : ids) {
+                uris.add(uri(id));
+            }
+            OrderUtils.deactivateOrders(uris);
         } else {
             RecentUserOrdersDataTable dataTable = new RecentUserOrdersDataTable();
             dataTable.setByStartEndDateOrMaxDays(params.get("startDate"), params.get("endDate"), params.get("maxDays", Integer.class));

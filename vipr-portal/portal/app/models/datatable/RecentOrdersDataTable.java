@@ -8,22 +8,28 @@ import static com.emc.vipr.client.core.util.ResourceUtils.uri;
 
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
 
 import org.apache.commons.lang.ObjectUtils;
 import org.apache.commons.lang.StringUtils;
 
+import play.Logger;
+import util.MessagesUtils;
 import util.OrderUtils;
 import util.datatable.DataTableParams;
 
 import com.emc.vipr.model.catalog.OrderCount;
+import com.emc.vipr.model.catalog.OrderJobInfo;
 import com.emc.vipr.model.catalog.OrderRestRep;
 
 public class RecentOrdersDataTable extends OrderDataTable {
     private int maxOrders = 0;
     /** Only displays orders newer than the given number of days (defaults to 7 days). */
     private int maxAgeInDays = 7;
+    public static final String JOB_TYPE_DELETE = "DELETE_ORDER";
+    public static final String JOB_TYPE_DOWNLOAD = "DOWNLOAD_ORDER";
 
     public RecentOrdersDataTable(String tenantId) {
         super(tenantId);
@@ -71,14 +77,25 @@ public class RecentOrdersDataTable extends OrderDataTable {
         }
         return orders;
     }
-    
+
     @Override
     public OrderCount fetchCount() {
         return OrderUtils.getOrdersCount(startDate, endDate, uri(tenantId));
     }
-    
+
     public void deleteOrders() {
         OrderUtils.deleteOrders(startDate, endDate, uri(tenantId));
+    }
+
+    public String getDeleteJobStatus() {
+        OrderJobInfo info = OrderUtils.queryOrderJob(JOB_TYPE_DELETE);
+        String status = null;
+        if (info != null) {
+            status = MessagesUtils.get("orders.delete.status", info.getCompleted(), info.getTotal(),
+                    info.getFailed(), new Date(info.getStartTime()), new Date(info.getEndTime()));
+        }
+        Logger.info("getDeleteJobStatus: {}", status);
+        return status;
     }
 
     /**

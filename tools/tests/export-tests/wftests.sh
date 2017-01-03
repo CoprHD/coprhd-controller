@@ -2882,7 +2882,8 @@ test_10() {
     failure_injections="${common_failure_injections} ${storage_failure_injections}"
 
     # Placeholder when a specific failure case is being worked...
-    #failure_injections="failure_firewall"
+    # failure_injections="failure_firewall"
+    # failure_injections="failure_015_SmisCommandHelper.invokeMethod_*"
 
     for failure in ${failure_injections}
     do
@@ -2900,51 +2901,45 @@ test_10() {
       # prime the export
       runcmd export_group create $PROJECT ${expname}1 $NH --type Host --volspec "${PROJECT}/${VOLNAME}-1,${PROJECT}/${VOLNAME}-2" --hosts "${HOST1}"
 
-      # Snap the state after the export group was created
-      snap_db 2 ${cfs}
+      # Turn on suspend of export after orchestration
+      set_suspend_on_class_method ${exportRemoveVolumesDeviceStep}
 
-       # Turn on failure at a specific point
-      set_artificial_failure ${failure}
+      # Run the export group command TODO: Do this more elegantly
+      echo === export_group update $PROJECT/${expname}1 --remVols ${PROJECT}/${VOLNAME}-2
+      resultcmd=`export_group update $PROJECT/${expname}1 --remVols ${PROJECT}/${VOLNAME}-2`
 
-      if [ "${failure}" = "failure_firewall" ]
-      then
-          # Turn on suspend of export after orchestration
-          set_suspend_on_class_method ${exportRemoveVolumesDeviceStep}
-
-	  # Run the export group command TODO: Do this more elegantly
-	  echo === export_group update $PROJECT/${expname}1 --remVols ${PROJECT}/${VOLNAME}-2
-	  resultcmd=`export_group update $PROJECT/${expname}1 --remVols ${PROJECT}/${VOLNAME}-2`
-
-	  if [ $? -ne 0 ]; then
-	      echo "export group command failed outright"
-	      cleanup
-	      finish 5
-	  fi
-
-	  # Show the result of the export group command for now (show the task and WF IDs)
-	  echo $resultcmd
-
-	  # Parse results (add checks here!  encapsulate!)
-	  taskworkflow=`echo $resultcmd | awk -F, '{print $2 $3}'`
-	  answersarray=($taskworkflow)
-	  task=${answersarray[0]}
-	  workflow=${answersarray[1]}
-
-	  # turn on firewall
-	  /usr/sbin/iptables -I INPUT 1 -s 10.247.101.45 -p all -j REJECT
-
-	  # Resume the workflow
-	  runcmd workflow resume $workflow
-
-	  # Follow the task.  It should fail because of Poka Yoke validation
-	  echo "*** Following the export_group update task to verify it FAILS because of firewall"
-	  fail task follow $task
-      else
-	  # Delete the export
-	  fail export_group update ${PROJECT}/${expname}1 --remVol ${PROJECT}/${VOLNAME}-2
+      if [ $? -ne 0 ]; then
+	  echo "export group command failed outright"
+	  cleanup
+	  finish 5
       fi
 
+      # Show the result of the export group command for now (show the task and WF IDs)
+      echo $resultcmd
+      
+      # Parse results (add checks here!  encapsulate!)
+      taskworkflow=`echo $resultcmd | awk -F, '{print $2 $3}'`
+      answersarray=($taskworkflow)
+      task=${answersarray[0]}
+      workflow=${answersarray[1]}
+      
       if [ "${failure}" = "failure_firewall" ]
+      then
+	  # turn on firewall
+	  /usr/sbin/iptables -I INPUT 1 -s 10.247.101.45 -p all -j REJECT
+      fi
+	
+      # Turn on failure at a specific point
+      set_artificial_failure ${failure}
+
+      # Resume the workflow
+      runcmd workflow resume $workflow
+
+      # Follow the task.  It should fail because of Poka Yoke validation
+      echo "*** Following the export_group update task to verify it FAILS because of firewall"
+      fail task follow $task
+
+      if [ "${failure}" = "failure_firewall" -o "${failure}" = "failure_015_SmisCommandHelper.invokeMethod_*" ]
       then
 	  # turn off firewall
 	  /usr/sbin/iptables -D INPUT 1

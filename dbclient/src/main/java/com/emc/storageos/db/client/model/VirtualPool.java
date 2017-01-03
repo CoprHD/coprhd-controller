@@ -147,7 +147,7 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
     }
 
     @Name("allowFilePolicyAtProjectLevel")
-    public boolean getAllowFilePolicyAtProjectLevel() {
+    public Boolean getAllowFilePolicyAtProjectLevel() {
         return allowFilePolicyAtProjectLevel;
     }
 
@@ -157,7 +157,7 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
     }
 
     @Name("allowFilePolicyAtFSLevel")
-    public boolean getAllowFilePolicyAtFSLevel() {
+    public Boolean getAllowFilePolicyAtFSLevel() {
         return allowFilePolicyAtFSLevel;
     }
 

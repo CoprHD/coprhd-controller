@@ -47,10 +47,9 @@ public class PlacementUtils {
             Map<URI, Map<String, List<StoragePort>>> switchStoragePortsByNet) {
         boolean isSwitchAffinityEnabled = BlockStorageScheduler.isSwitchAffinityAllocationEnabled(system.getSystemType());
         if (!isSwitchAffinityEnabled) {
+        	log.info("Switch affinity disabled- returning without initiator and port switch information");
             return;
         }
-        switchInitiatorsByNet = new HashMap<URI, Map<String, List<Initiator>>>();
-        switchStoragePortsByNet = new HashMap<URI, Map<String, List<StoragePort>>>();
         for (Map.Entry<URI, List<Initiator>> entry : initiatorsByNetMap.entrySet()) {
             URI net = entry.getKey();
             List <Initiator> initiators = entry.getValue();

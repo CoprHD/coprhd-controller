@@ -246,8 +246,8 @@ public class BlockStorageScheduler {
         
         // For each host, assign the ports to the appropriate initiators.
         for (URI hostURI : hostsToNetToInitiators.keySet()) {
-            Map<URI, Map<String, List<Initiator>>> switchInitiatorsByNet = null;
-            Map<URI, Map<String, List<StoragePort>>> switchStoragePortsByNet = null;
+            Map<URI, Map<String, List<Initiator>>> switchInitiatorsByNet = new HashMap<URI, Map<String, List<Initiator>>>();
+            Map<URI, Map<String, List<StoragePort>>> switchStoragePortsByNet = new HashMap<URI, Map<String, List<StoragePort>>>();
             Map<URI, List<Initiator>> initiatorByNetMap = hostsToNetToInitiators.get(hostURI);
             PlacementUtils.getSwitchfoForInititaorsStoragePorts(initiatorByNetMap, allocatedPortsMap, _dbClient, 
                     system, switchInitiatorsByNet, switchStoragePortsByNet);
@@ -2042,9 +2042,9 @@ public class BlockStorageScheduler {
                     for (Map.Entry<URI, Map<URI, List<Initiator>>> entry : hostsToNetToInitiators.entrySet()) {
                         URI hostURI = entry.getKey();
                         // The map of switch name to Initiators per network
-                        Map<URI, Map<String, List<Initiator>>> switchInitiatorsByNet = null;
+                        Map<URI, Map<String, List<Initiator>>> switchInitiatorsByNet = new HashMap<URI, Map<String, List<Initiator>>>();
                         // The map of swtich name to storage ports per network
-                        Map<URI, Map<String, List<StoragePort>>> switchStoragePortsByNet = null;
+                        Map<URI, Map<String, List<StoragePort>>> switchStoragePortsByNet = new HashMap<URI, Map<String, List<StoragePort>>>();
                         Map<URI, List<Initiator>> initiatorByNetMap = entry.getValue();
                         PlacementUtils.getSwitchfoForInititaorsStoragePorts(initiatorByNetMap, allocatedPortsMap, _dbClient, 
                                 storage, switchInitiatorsByNet, switchStoragePortsByNet);

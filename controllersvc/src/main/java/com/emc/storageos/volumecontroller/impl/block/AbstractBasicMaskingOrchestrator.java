@@ -111,7 +111,7 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
              */
             Set<Integer> usedHlus = findHLUsForClusterHosts(storage, exportGroup, initiatorURIs);
 
-            Integer maxHLU = getDevice().getMaximumAllowedHLU(storage);
+            Integer maxHLU = ExportUtils.getMaximumAllowedHLU(storage);
 
             Set<Integer> freeHLUs = ExportUtils.calculateFreeHLUs(usedHlus, maxHLU);
 

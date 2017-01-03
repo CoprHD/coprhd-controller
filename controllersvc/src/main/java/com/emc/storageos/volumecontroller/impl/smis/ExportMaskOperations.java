@@ -102,14 +102,6 @@ public interface ExportMaskOperations {
      */
     public Set<Integer> findHLUsForInitiators(StorageSystem storage, List<String> initiatorNames, boolean mustHaveAllPorts);
 
-    /**
-     * Gets the maximum allowed HLU number for the storage array.
-     *
-     * @param storage the storage system
-     * @return the maximum allowed HLU number for the storage array
-     */
-    public Integer getMaximumAllowedHLU(StorageSystem storage);
-
     public void updateStorageGroupPolicyAndLimits(StorageSystem storage, ExportMask exportMask,
             List<URI> volumeURIs, VirtualPool newVirtualPool, boolean rollback,
             TaskCompleter taskCompleter) throws Exception;

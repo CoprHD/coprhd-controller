@@ -2433,6 +2433,13 @@ test_6() {
                                     failure_015_SmisCommandHelper.invokeMethod_CreateGroup"
     fi
 
+    if [ "${SS}" = "xio" ]
+    then
+        storage_failure_injections="failure_052_XtremIOExportOperations.runLunMapCreationAlgorithm_before_addvolume_to_lunmap \
+                                    failure_053_XtremIOExportOperations.runLunMapCreationAlgorithm_after_addvolume_to_lunmap"
+    fi
+
+
     failure_injections="${common_failure_injections} ${storage_failure_injections}"
 
     # Placeholder when a specific failure case is being worked...
@@ -2867,7 +2874,7 @@ test_10() {
 	storage_failure_injections=""
     fi
 
-    if [ "${SS}" = "vnx" -o "${SS}" = "vmax2" -o "${SS}" = "vmax3" -o "${SS}" = "unity" ]
+    if [ "${SS}" = "vnx" -o "${SS}" = "vmax2" -o "${SS}" = "vmax3" -o "${SS}" = "unity" -o "${SS}" = "xio" ]
     then
 	storage_failure_injections="failure_017_Export_doRemoveVolume"
     fi
@@ -2875,7 +2882,7 @@ test_10() {
     failure_injections="${common_failure_injections} ${storage_failure_injections}"
 
     # Placeholder when a specific failure case is being worked...
-    failure_injections="failure_firewall"
+    #failure_injections="failure_firewall"
 
     for failure in ${failure_injections}
     do
@@ -2893,14 +2900,17 @@ test_10() {
       # prime the export
       runcmd export_group create $PROJECT ${expname}1 $NH --type Host --volspec "${PROJECT}/${VOLNAME}-1,${PROJECT}/${VOLNAME}-2" --hosts "${HOST1}"
 
-      # Turn on failure at a specific point
-      set_artificial_failure ${failure}
+      # Snap the state after the export group was created
+      snap_db 2 ${cfs}
 
-      # Turn on suspend of export after orchestration
-      set_suspend_on_class_method ${exportRemoveVolumesDeviceStep}
+       # Turn on failure at a specific point
+      set_artificial_failure ${failure}
 
       if [ "${failure}" = "failure_firewall" ]
       then
+          # Turn on suspend of export after orchestration
+          set_suspend_on_class_method ${exportRemoveVolumesDeviceStep}
+
 	  # Run the export group command TODO: Do this more elegantly
 	  echo === export_group update $PROJECT/${expname}1 --remVols ${PROJECT}/${VOLNAME}-2
 	  resultcmd=`export_group update $PROJECT/${expname}1 --remVols ${PROJECT}/${VOLNAME}-2`
@@ -2942,6 +2952,12 @@ test_10() {
 	  # Verify injected failures were hit
 	  verify_failures ${failure}
       fi
+
+      # Perform any DB validation in here
+      snap_db 3 ${cfs}
+
+      # Validate nothing was left behind
+      validate_db 2 3 ${cfs}
 
       # rerun the command
       set_artificial_failure none

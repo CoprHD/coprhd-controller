@@ -82,6 +82,7 @@ public class XtremIOConstants {
 
     public static final String CAPTION_NOT_UNIQUE = "caption_not_unique";
     public static final String VOLUME_MAPPED = "vol_already_mapped";
+    public static final String OBJECT_NOT_FOUND = "obj_not_found";
     public static final String XTREMIO_INPUT_NAME_STR = "?name=%s";
     public static final String XTREMIO_INPUT_ADDITIONAL_PARAM_STR = "&%s=%s";
     public static final String XTREMIO_INPUT_CLUSTER_STR = "?cluster-name=%s";

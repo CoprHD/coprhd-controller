@@ -17,6 +17,8 @@ import java.util.UUID;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 import org.apache.curator.framework.recipes.leader.LeaderSelector;
 import org.slf4j.Logger;
@@ -99,6 +101,8 @@ public class DataCollectionJobScheduler {
     private XtremIOClientFactory xioClientFactory;
     private PortMetricsProcessor _portMetricsProcessor;
     private LeaderSelector computePortMetricsSelector;
+
+    private final Lock _providerConnectionRefreshMutex = new ReentrantLock();
 
     static enum JobIntervals {
 
@@ -214,10 +218,6 @@ public class DataCollectionJobScheduler {
             }
         }
         
-        // CARA : _dataCollectionExecutorService is a ScheduledExecutorService which takes tasks and runs 
-        // them according to a schedule
-        // task are run sequentially all in the same thread
-        // schedulingProcessor.addScheduledTask puts tasks on _dataCollectionExecutorService
         LeaderSelectorListenerForPeriodicTask schedulingProcessor = new LeaderSelectorListenerForPeriodicTask(
                 _dataCollectionExecutorService);
 
@@ -278,13 +278,25 @@ public class DataCollectionJobScheduler {
         discoverySchedulingSelector.autoRequeue();
         discoverySchedulingSelector.start();
 
+        // run provider refresh in it's own thread so we don't hold up the scheduling
+        // thread if it takes longer than expected
+        _dataCollectionExecutorService.scheduleAtFixedRate(
+                new Runnable() {
+                    @Override
+                    public void run() {
+                        try {
+                            (new Thread(new RefreshProviderConnectionsThread())).start();
+                        } catch (Exception e) {
+                            _logger.error("Failed to start refresh connections thread: {}", e.getMessage());
+                            _logger.error(e.getMessage(), e);
+                        }
+                    }
+                }, initialConnectionRefreshDelay, JobIntervals.SCAN_INTERVALS.getInterval(), TimeUnit.SECONDS);
+
         // recompute storage ports's metrics for all storage system
         // Since traverse through all storage ports in all storage systems may take a while, it best to perform the
         // task in a thread. We definitely do not want all nodes in cluster to do the same task, select a leader to
         // do it there.
-        
-        // CARA : this is bad too; it only happens on the leader node at start up but I think it could prevent
-        // startup if anything in this task was hanging
         computePortMetricsSelector = _coordinator.getLeaderSelector(leaderSelectorComputePortMetricsPath, new LeaderSelectorListenerImpl() {
 
             @Override
@@ -305,6 +317,32 @@ public class DataCollectionJobScheduler {
         computePortMetricsSelector.autoRequeue();
         computePortMetricsSelector.start();
 
+    }
+    
+    private class RefreshProviderConnectionsThread implements Runnable {
+
+        @Override
+        public void run() {
+            try {
+                // a simple mutex lock is all we need in this case since provider connection refresh happens on all nodes
+                // this lock prevents a single node from starting a new provider connection refresh operation
+                // if a previous operation is still in progress
+                boolean acquired = _providerConnectionRefreshMutex.tryLock();
+                if (acquired) {
+                    try {
+                        _logger.info("Acquired mutex lock (_providerConnectionRefreshMutex) to refresh provider connections");
+                        refreshProviderConnections();
+                    } finally {
+                        _providerConnectionRefreshMutex.unlock();
+                    }
+                } else {
+                    _logger.error("Could not aquire mutex lock (_providerConnectionRefreshMutex) to refresh provider connections");
+                }
+            } catch (Exception e) {
+                _logger.error("Failed to refresh connections: {}", e.getMessage());
+                _logger.error(e.getMessage(), e);
+            }
+        }
     }
 
     private class DiscoveryScheduler implements Runnable {
@@ -356,7 +394,7 @@ public class DataCollectionJobScheduler {
                     _logger.info("Acquired a lock {} to schedule Jobs", lock.toString());
                     // Find the last scan time from the provider whose scan status is not in progress or scheduled
                     for (StorageProvider provider : providers) {
-                        if (!isInProgress(provider) && !isError(provider)) {
+                        if (!isInProgress(provider)) {
                             lastScanTime = provider.getLastScanTime();
                             inProgress = false;
                             break;

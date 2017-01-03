@@ -15,6 +15,8 @@ import com.emc.storageos.model.ports.StoragePortUpdate;
 import com.emc.storageos.model.project.ProjectRestRep;
 import com.emc.storageos.model.project.VirtualNasParam;
 import com.emc.storageos.model.smis.StorageProviderRestRep;
+import com.emc.storageos.model.storagesystem.type.StorageSystemTypeList;
+import com.emc.storageos.model.storagesystem.type.StorageSystemTypeRestRep;
 import com.emc.storageos.model.systems.StorageSystemRequestParam;
 import com.emc.storageos.model.systems.StorageSystemRestRep;
 import com.emc.storageos.model.systems.StorageSystemUpdateRequestParam;
@@ -48,6 +50,7 @@ import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -86,6 +89,7 @@ import util.EnumOption;
 import util.MessagesUtils;
 import util.StoragePoolUtils;
 import util.StoragePortUtils;
+import util.StorageSystemTypeUtils;
 import util.StorageSystemUtils;
 import util.StringOption;
 import util.TenantUtils;
@@ -123,6 +127,20 @@ public class StorageSystems extends ViprResourceController {
     private static final String GUIDE_VISIBLE = "guideVisible";
     private static final String GUIDE_COMPLETED_STEP = "completedSteps";
     private static final String SMIS_VMAX = "StorageSystemType.STORAGE_PROVIDER.vmax";
+    // key: storage system type, value: storage provider type
+    private static Map<String, String> nonNativeSystemProviderMap = new HashMap<String, String>();
+
+    private static void buildSouthBoundTypeMap() {
+        nonNativeSystemProviderMap.clear();
+        Map<String, StorageSystemTypeRestRep> typeMap = StorageSystemTypes.buildTypeMap();
+        for (StorageSystemTypeRestRep type : typeMap.values()) {
+            if (type.isNative() || type.getManagedBy() == null) {
+                continue;
+            }
+            nonNativeSystemProviderMap.put(type.getStorageTypeName(),
+                    typeMap.get(type.getManagedBy()).getStorageTypeName());
+        }
+    }
 
     private static void addReferenceData() {
         renderArgs.put("storageArrayTypeList", StorageSystemTypes.getStorageTypeOptions());
@@ -316,7 +334,7 @@ public class StorageSystems extends ViprResourceController {
         if (StringUtils.isNotEmpty(storageArray.referrerUrl)) {
             redirect(storageArray.referrerUrl);
         }
-
+        list();
     }
 
     public static void delete(@As(",") String[] ids) {
@@ -1041,7 +1059,7 @@ public class StorageSystems extends ViprResourceController {
             storageProviderForm.useSSL = this.useSSL;
             storageProviderForm.ipAddress = this.ipAddress;
             storageProviderForm.portNumber = this.portNumber;
-            storageProviderForm.interfaceType = StorageProviderTypes.fromStorageArrayType(this.type);
+            storageProviderForm.interfaceType = mapProviderType(this.type);
             storageProviderForm.secondaryUsername = this.secondaryUsername;
             storageProviderForm.secondaryPassword = this.secondaryPassword;
             storageProviderForm.elementManagerURL = this.elementManagerURL;
@@ -1051,6 +1069,13 @@ public class StorageSystems extends ViprResourceController {
             return storageProviderForm.create();
         }
 
+        private String mapProviderType(String type) {
+            String providerType = StorageProviderTypes.fromStorageArrayType(type);
+            if (providerType != null) {
+                return providerType;
+            }
+            return nonNativeSystemProviderMap.get(type);
+        }
         public void setSecondaryParameters() {
             if (StringUtils.isNotEmpty(this.hyperScaleUsername)) {
                 this.secondaryUsername = this.hyperScaleUsername;
@@ -1073,6 +1098,7 @@ public class StorageSystems extends ViprResourceController {
 
         public Task<?> save() {
             setSecondaryParameters();
+            buildSouthBoundTypeMap();
             if (isNew()) {
                 if (isStorageProviderManaged()) {
                     return createStorageProvider();
@@ -1195,7 +1221,7 @@ public class StorageSystems extends ViprResourceController {
         }
 
         private boolean isStorageProviderManaged() {
-            return StorageSystemTypes.isStorageProvider(type);
+            return StorageSystemTypes.isStorageProvider(type) || nonNativeSystemProviderMap.containsKey(type);
         }
 
         private boolean isVnxFile() {

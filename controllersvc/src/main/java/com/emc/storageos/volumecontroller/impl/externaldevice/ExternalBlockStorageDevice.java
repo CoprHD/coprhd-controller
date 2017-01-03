@@ -527,7 +527,7 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
             List<VolumeSnapshot> driverSnapshots = new ArrayList<>();
             for (BlockSnapshot snap : snapshotsToRestore) {
                 VolumeSnapshot driverSnapshot = new VolumeSnapshot();
-                Volume sourceVolume = getSnapshotParentVolume(blockSnapshot);
+                Volume sourceVolume = getSnapshotParentVolume(snap);
                 driverSnapshot.setParentId(sourceVolume.getNativeId());
                 driverSnapshot.setNativeId(snap.getNativeId());
                 driverSnapshot.setStorageSystemId(storageSystemNativeId);

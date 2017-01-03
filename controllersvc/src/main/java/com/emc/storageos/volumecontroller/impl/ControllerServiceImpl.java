@@ -646,7 +646,7 @@ public class ControllerServiceImpl implements ControllerService {
     }
 
     private List<StorageSystemType> listNonNativeTypes() {
-        List<StorageSystemType> result = new ArrayList<StorageSystemType>();
+        List<StorageSystemType> result = new ArrayList<>();
         List<URI> ids = _dbClient.queryByType(StorageSystemType.class, true);
         Iterator<StorageSystemType> it = _dbClient.queryIterativeObjects(StorageSystemType.class, ids);
         while (it.hasNext()) {
@@ -731,6 +731,7 @@ public class ControllerServiceImpl implements ControllerService {
 
     public static void enqueueJob(QueueJob job) throws Exception {
         _jobQueue.put(job);
+        job.getJob().getTaskCompleter().setAsynchronous(true);
     }
 
     public static Object getBean(String name) {

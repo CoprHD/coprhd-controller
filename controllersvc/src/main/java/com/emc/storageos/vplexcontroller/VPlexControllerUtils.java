@@ -550,12 +550,11 @@ public class VPlexControllerUtils {
                 log.error(message);
                 if (null == storageView) {
                     if (null != exportMask) {
-                        log.error(String.format("storage view %s could not be found on VPLEX device %s", 
+                        log.warn(String.format("storage view %s could not be found on VPLEX device %s", 
                                 exportMask.getMaskName(), exportMask.getStorageDevice()));
                         cleanStaleExportMasks(dbClient, exportMask.getStorageDevice());
                     }
-                    throw new IllegalArgumentException("storage view could not be found on vplex device; " + message 
-                            + "; any stale export masks have been removed, so you may retry the operation");
+                    return;
                 } else {
                     throw new IllegalArgumentException("export mask refresh arguments are invalid: " + message);
                 }

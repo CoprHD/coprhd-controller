@@ -82,6 +82,8 @@ public final class InvokeTestFailure {
     public static final String ARTIFICIAL_FAILURE_049 = "failure_049_BrocadeNetworkSMIS.getWEBMClient";
     public static final String ARTIFICIAL_FAILURE_050 = "failure_050_MaskingWorkflowEntryPoints.doExportGroupDelete_before_delete";
     public static final String ARTIFICIAL_FAILURE_051 = "failure_051_MaskingWorkflowEntryPoints.doExportGroupDelete_after_delete_before_unzone";
+    public static final String ARTIFICIAL_FAILURE_052 = "failure_052_XtremIOExportOperations.runLunMapCreationAlgorithm_before_addvolume_to_lunmap";
+    public static final String ARTIFICIAL_FAILURE_053 = "failure_053_XtremIOExportOperations.runLunMapCreationAlgorithm_after_addvolume_to_lunmap";
 
     private static final int FAILURE_SUBSTRING_LENGTH = 11;
 

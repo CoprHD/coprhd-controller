@@ -31,7 +31,7 @@ public class ExportMaskDeleteCompleter extends ExportTaskCompleter {
             ExportGroup exportGroup = dbClient.queryObject(ExportGroup.class, getId());
             ExportMask exportMask = (getMask() != null) ?
                     dbClient.queryObject(ExportMask.class, getMask()) : null;
-            if (exportMask != null && status == Operation.Status.ready) {
+            if (exportMask != null && Operation.isTerminalState(status)) {
                 exportGroup.removeExportMask(exportMask.getId());
                 dbClient.markForDeletion(exportMask);
                 dbClient.updateObject(exportGroup);

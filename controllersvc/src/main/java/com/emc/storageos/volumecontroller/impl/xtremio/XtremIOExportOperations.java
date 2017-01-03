@@ -56,6 +56,7 @@ import com.emc.storageos.workflow.WorkflowService;
 import com.emc.storageos.xtremio.restapi.XtremIOClient;
 import com.emc.storageos.xtremio.restapi.XtremIOConstants;
 import com.emc.storageos.xtremio.restapi.XtremIOConstants.XTREMIO_ENTITY_TYPE;
+import com.emc.storageos.xtremio.restapi.errorhandling.XtremIOApiException;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOInitiator;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOInitiatorGroup;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOTag;
@@ -530,7 +531,12 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
             dbClient.updateObject(mask);
 
         } catch (Exception e) {
-            _log.warn("Refreshing XtremIO mask failed", e);
+            if (null != e.getMessage() && !e.getMessage().contains(XtremIOConstants.OBJECT_NOT_FOUND)) {
+                String msg = String.format("Error when refreshing export mask %s", mask.getMaskName());
+                throw XtremIOApiException.exceptions.refreshExistingMaskFailure(msg, e);
+            } else {
+                _log.warn("Error refreshing export mask {}", mask.getMaskName());
+            }
         }
 
         return mask;
@@ -981,7 +987,7 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
                     igGroup.getNumberOfInitiators());
 
         }
-
+        
         // add all the left out initiators to this folder
         for (Initiator remainingInitiator : initiatorsToBeCreated) {
             _log.info("Initiator {} Label {} ", remainingInitiator.getInitiatorPort(),
@@ -1084,6 +1090,8 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
                     volumesToIGMap.put(igName, igVolume.getVolInfo().get(1));
                 }
             }
+            
+            InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_052);
 
             // create Lun Maps
             for (VolumeURIHLU volURIHLU : volumeURIHLUs) {
@@ -1153,6 +1161,7 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
                     }
                 }
             }
+            InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_053);
             ExportOperationContext.insertContextOperation(taskCompleter,
                     XtremIOExportOperationContext.OPERATION_ADD_VOLUMES_TO_INITIATOR_GROUP,
                     mappedVolumes);

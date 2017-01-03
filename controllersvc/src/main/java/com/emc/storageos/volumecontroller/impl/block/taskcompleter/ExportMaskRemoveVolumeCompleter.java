@@ -24,6 +24,7 @@ import com.emc.storageos.db.client.util.StringSetUtil;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
+import com.emc.storageos.workflow.WorkflowService;
 import com.google.common.base.Joiner;
 
 public class ExportMaskRemoveVolumeCompleter extends ExportTaskCompleter {
@@ -49,33 +50,36 @@ public class ExportMaskRemoveVolumeCompleter extends ExportTaskCompleter {
     @Override
     protected void complete(DbClient dbClient, Operation.Status status, ServiceCoded coded) throws DeviceControllerException {
         try {
-            ExportGroup exportGroup = dbClient.queryObject(ExportGroup.class, getId());
+            boolean isRollback = WorkflowService.getInstance().isStepInRollbackState(getOpId());
             ExportMask exportMask = (getMask() != null) ?
                     dbClient.queryObject(ExportMask.class, getMask()) : null;
-            for (URI volumeURI : _volumes) {
-                BlockObject volume = BlockObject.fetch(dbClient, volumeURI);
-                if (exportMask != null && Operation.isTerminalState(status)) {
-                    exportMask.removeFromUserCreatedVolumes(volume);
-                    exportMask.removeVolume(volume.getId());
-                }
-            }
-
             if (exportMask != null) {
-                if (exportMask.getVolumes() == null ||
-                        exportMask.getVolumes().isEmpty()) {
-                    exportGroup.removeExportMask(exportMask.getId());
-                    dbClient.markForDeletion(exportMask);
-                    dbClient.updateObject(exportGroup);
-                } else {
-                    dbClient.updateObject(exportMask);
+                if (status == Operation.Status.ready || (status == Operation.Status.error && isRollback)) {
+                    ExportGroup exportGroup = dbClient.queryObject(ExportGroup.class, getId());
+                    for (URI volumeURI : _volumes) {
+                        BlockObject volume = BlockObject.fetch(dbClient, volumeURI);
+                        exportMask.removeFromUserCreatedVolumes(volume);
+                        exportMask.removeVolume(volume.getId());
+                    }
+
+                    if (exportMask != null) {
+                        if (exportMask.getVolumes() == null ||
+                                exportMask.getVolumes().isEmpty()) {
+                            exportGroup.removeExportMask(exportMask.getId());
+                            dbClient.markForDeletion(exportMask);
+                            dbClient.updateObject(exportGroup);
+                        } else {
+                            dbClient.updateObject(exportMask);
+                        }
+                    }
+
+                    removeVolumesFromExportGroup(dbClient, exportGroup);
+                    _log.info(String.format(
+                            "Done ExportMaskRemoveVolume - Id: %s, OpId: %s, status: %s",
+                            getId().toString(), getOpId(), status.name()));
                 }
             }
 
-            removeVolumesFromExportGroup(dbClient, exportGroup);
-
-            _log.info(String.format(
-                    "Done ExportMaskRemoveVolume - Id: %s, OpId: %s, status: %s",
-                    getId().toString(), getOpId(), status.name()));
         } catch (Exception e) {
             _log.error(String.format(
                     "Failed updating status for ExportMaskRemoveVolume - Id: %s, OpId: %s",

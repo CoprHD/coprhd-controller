@@ -48,12 +48,14 @@
 
 #{/DataTable.table}
 
-     #{Modal.dialog id:'deleteDialog', titleKey: 'Confirm to Delete Orders'}
+     #{Modal.dialog id:'deleteDialog'}
+      #{Modal.header}
+        <h4 class="modal-title">&{'orders.delete'}</h4> 
+        &{'orders.delete.description'}
+      #{/Modal.header}
       #{Modal.body cssClass:'form-horizontal'}
-      All rows are checked, DELETE action will be performed on all <b style="color:red">9700</b> orders, please CONFIRM!           
-          <div>
-            <span class="help-block">We strongly recommend to download the orders before deleting them.</span>
-          </div>
+        &{"orders.delete.all", 7000}
+        <div><span class="help-block">&{"orders.delete.help"}</span></div>
       #{/Modal.body}
       #{Modal.footer}
        #{Form.button 'button.confirm', icon:'ok-sign', data:['dismiss':'modal']/}
@@ -61,12 +63,14 @@
       #{/Modal.footer}
     #{/Modal.dialog}
     
-    #{Modal.dialog id:'downloadDialog', titleKey: 'Confirm to Download Orders'}
+    #{Modal.dialog id:'downloadDialog'}
+      #{Modal.header}
+        <h4 class="modal-title">&{'orders.download'}</h4> 
+        &{'orders.download.description'}
+      #{/Modal.header}
       #{Modal.body cssClass:'form-horizontal'}
-      All rows are checked, DOWNLOAD will be performed on all 9700 orders, click 'Confirm' to start.           
-          <div>
-            <span class="help-block">Only one 'Download/Delete Orders' job is allowed at any time.</span>
-          </div>
+        &{"orders.download.all", 7000}
+        <div><span class="help-block">&{"orders.download.help"}</span></div>
       #{/Modal.body}
       #{Modal.footer}
        #{Form.button 'button.confirm', icon:'ok-sign', data:['dismiss':'modal']/}

@@ -3130,6 +3130,14 @@ orders.startDate=Start Date
 orders.endDate=End Date
 requestSearch.placeholder=Search for Orders...
 orders.warning=Based on the current filter, %s orders were found in the database. A maximum of %s orders are displayed here.
+orders.delete=Delete Orders
+orders.delete.description=Click Confirm to delete the selected (checked) orders.
+orders.delete.all=All rows are checked, all <b style="color:red">%s</b> orders will be deleted.
+orders.delete.help=We strongly recommend that you download the orders before deleting them. <p>Only one 'Download/Delete' orders job is allowed at any given time.</p>
+orders.download=Download Orders
+orders.download.description=Click Confirm to delete the selected (checked) orders.
+orders.download.all=All rows are checked, all <b style="color:red">%s</b> orders will be downloaded.
+orders.download.help=Only one 'Download/Delete' orders job is allowed at any given time.
 
 catalog.corrupted-service.title=Corrupted Service
 catalog.corrupted-service.description=Unable to find this catalog service - it may have been removed or is configured incorrectly. You can still view the order details below.

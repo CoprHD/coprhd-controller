@@ -3175,7 +3175,7 @@ fi
 
 
 test_start=1
-test_end=7
+test_end=10
 
 # If there's a last parameter, take that
 # as the name of the test to run
@@ -3233,4 +3233,3 @@ if [ "${DO_CLEANUP}" = "1" ]; then
 fi
 
 finish;
-

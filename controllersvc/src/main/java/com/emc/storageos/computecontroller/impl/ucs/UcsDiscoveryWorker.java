@@ -1653,7 +1653,6 @@ public class UcsDiscoveryWorker {
         Iterator<Host> iter = _dbClient.queryIterativeObjects(Host.class, ids);
 
         while (iter.hasNext()) {
-            Boolean dbUpdateRequired = false;
             Host host = iter.next();
             for (ComputeElement computeElement : removeBlades) {
                 if (host.getComputeElement() != null

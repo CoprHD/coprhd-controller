@@ -115,6 +115,10 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice implem
         this.drivers = drivers;
     }
 
+    public Map<String, AbstractStorageDriver> getDrivers() {
+        return drivers;
+    }
+
     public void setExportMaskOperationsHelper(ExportMaskOperations exportMaskOperationsHelper) {
         this.exportMaskOperationsHelper = exportMaskOperationsHelper;
     }

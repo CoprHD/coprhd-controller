@@ -16,6 +16,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import com.emc.vipr.model.sys.recovery.RecoveryPrecheckStatus;
 import jobs.MinorityNodeRecoveryJob;
 import jobs.RebootNodeJob;
 import jobs.RestartServiceJob;
@@ -133,6 +134,47 @@ public class SystemHealth extends Controller {
             renderArgs.put("endTime", endTime);
         }
         render(dbstatus);
+    }
+
+    public static void nodeRecoveryVapp() {
+        ViPRSystemClient client = BourneUtil.getSysClient();
+        RecoveryStatus recoveryStatus = client.control().getRecoveryStatus();
+        if (recoveryStatus.getStartTime()!= null ) {
+            DateTime startTime = new DateTime(recoveryStatus.getStartTime().getTime());
+            renderArgs.put("startTime", startTime);
+        }
+        if (recoveryStatus.getEndTime() != null) {
+            DateTime endTime = new DateTime(recoveryStatus.getEndTime().getTime());
+            renderArgs.put("endTime", endTime);
+        }
+        RecoveryPrecheckStatus recoveryPrecheckStatus = client.control().getRecoveryPrecheckStatus();
+        String precheckMsg = "";
+        switch (recoveryPrecheckStatus.getStatus()) {
+            case RECOVERY_NEEDED:
+                precheckMsg = Messages.get("nodeRecovery.precheck.success", recoveryPrecheckStatus.getRecoverables().toString());
+                break;
+            case ALL_GOOD:
+                precheckMsg = Messages.get("nodeRecovery.precheck.fail.allgood");
+                break;
+            case VAPP_IN_DR_OR_GEO:
+                precheckMsg = Messages.get("nodeRecovery.precheck.fail.drorgeo");
+                break;
+            case NODE_UNREACHABLE:
+                precheckMsg = Messages.get("nodeRecovery.precheck.fail.unreachable");
+                break;
+            case CORRUPTED_NODE_COUNT_MORE_THAN_QUORUM:
+                precheckMsg = Messages.get("nodeRecovery.precheck.fail.quorum");
+                break;
+            case CORRUPTED_NODE_FOR_OTHER_REASON:
+                precheckMsg = Messages.get("nodeRecovery.precheck.fail.other");
+                break;
+        }
+        renderArgs.put("precheckMsg", precheckMsg);
+        renderArgs.put("precheckStatus", recoveryPrecheckStatus.getStatus().name());
+        String recoveringMsg = Messages.get("nodeRecovery.recovering.status", recoveryPrecheckStatus.getRecoverables().toString());
+        renderArgs.put("recoveringMsg", recoveringMsg);
+        ClusterInfo clusterInfo = AdminDashboardUtils.getClusterInfo();
+        render(recoveryStatus, clusterInfo);
     }
 
     public static void nodeRecovery() {
@@ -576,12 +618,21 @@ public class SystemHealth extends Controller {
         ViPRSystemClient client = BourneUtil.getSysClient();
         List<NodeHealth> nodeHealthList = MonitorUtils.getNodeHealth();
         ClusterInfo clusterInfo = AdminDashboardUtils.getClusterInfo();
+        if (PlatformUtils.isVMwareVapp()) {
+            RecoveryPrecheckStatus recoveryPrecheckStatus = client.control().getRecoveryPrecheckStatus();
+            String recoveringMsg = Messages.get("nodeRecovery.recovering.status", recoveryPrecheckStatus.getRecoverables().toString());
+            renderArgs.put("recoveringMsg", recoveringMsg);
+        }
         RecoveryStatus recoveryStatus = client.control().getRecoveryStatus();
 
         renderArgs.put("nodeHealthList", nodeHealthList);
         renderArgs.put("clusterInfo", clusterInfo);
         renderArgs.put("recoveryStatus", recoveryStatus);
-        render("@nodeRecovery");
+        if (PlatformUtils.isVMwareVapp()) {
+            render("@nodeRecoveryVapp");
+        } else {
+            render("@nodeRecovery");
+        }
     }
 
     @Restrictions({ @Restrict("SYSTEM_ADMIN"), @Restrict("SECURITY_ADMIN"), @Restrict("RESTRICTED_SECURITY_ADMIN") })

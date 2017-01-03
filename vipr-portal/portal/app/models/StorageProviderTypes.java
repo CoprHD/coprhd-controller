@@ -38,7 +38,7 @@ public class StorageProviderTypes {
     public static final String CEPH = "ceph";
     public static final String DELLPROVIDER = "dellscprovider";
 
-    private static final Map<String, String> fromStorageArrayTypeMap = new HashMap<String, String>() {
+    public static final Map<String, String> fromStorageArrayTypeMap = new HashMap<String, String>() {
         private static final long serialVersionUID = -8628274587467033626L;
 
         {

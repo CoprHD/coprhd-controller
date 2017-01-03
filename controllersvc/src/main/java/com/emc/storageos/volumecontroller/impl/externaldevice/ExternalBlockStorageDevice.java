@@ -539,7 +539,7 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice implem
             List<VolumeSnapshot> driverSnapshots = new ArrayList<>();
             for (BlockSnapshot snap : snapshotsToRestore) {
                 VolumeSnapshot driverSnapshot = new VolumeSnapshot();
-                Volume sourceVolume = getSnapshotParentVolume(blockSnapshot);
+                Volume sourceVolume = getSnapshotParentVolume(snap);
                 driverSnapshot.setParentId(sourceVolume.getNativeId());
                 driverSnapshot.setNativeId(snap.getNativeId());
                 driverSnapshot.setStorageSystemId(storageSystemNativeId);
@@ -1743,6 +1743,11 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice implem
                     systemReplicationPairs.get(i).setNativeId(driverRRPairs.get(i).getNativeId());
                 }
                 dbClient.createObject(systemReplicationPairs);
+//                try {
+//                    throw new Exception("Injected error");
+//                } catch (InterruptedException e) {
+//                    _log.info("injected error", e);
+//                }
                 String msg = String.format("createGroupReplicationPairs -- Created group replication pairs: %s .", task.getMessage());
                 _log.info(msg);
                 taskCompleter.ready(dbClient);

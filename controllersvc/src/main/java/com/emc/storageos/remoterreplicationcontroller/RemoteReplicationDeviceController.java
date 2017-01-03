@@ -335,6 +335,8 @@ public class RemoteReplicationDeviceController implements RemoteReplicationContr
 
         List<URI> sourceVolumesURIs = new ArrayList<>();
         List<URI> targetVolumesURIs = new ArrayList<>();
+
+        List<URI> pairsURIs = new ArrayList<>();
         try {
             WorkflowStepCompleter.stepExecuting(opId);
             for (VolumeDescriptor descriptor : sourceDescriptors) {
@@ -349,7 +351,6 @@ public class RemoteReplicationDeviceController implements RemoteReplicationContr
                     Joiner.on(',').join(targetVolumesURIs));
             _log.info(logMsg);
 
-            List<URI> pairsURIs = new ArrayList<>();
             for (URI volumeURI : sourceVolumesURIs) {
                 List<RemoteReplicationPair> rrPairsTemp = CustomQueryUtility.queryActiveResourcesByRelation(dbClient, volumeURI, RemoteReplicationPair.class, "sourceElement");
                 // select pairs which have target volume from the list
@@ -375,7 +376,7 @@ public class RemoteReplicationDeviceController implements RemoteReplicationContr
         } catch (InternalException e) {
             _log.error(String.format("rollbackCreateRemoteReplicationLinks Failed - System type :%s, Source volumes: %s, Target volumes: %s",
                     systemType, Joiner.on(',').join(sourceVolumesURIs),
-                    Joiner.on(',').join(targetVolumesURIs)));
+                    Joiner.on(',').join(targetVolumesURIs)), e);
             List<URI> volumes = new ArrayList<>(sourceVolumesURIs);
             volumes.addAll(targetVolumesURIs);
             doFailTask(Volume.class, volumes, opId, e);
@@ -383,14 +384,24 @@ public class RemoteReplicationDeviceController implements RemoteReplicationContr
         } catch (Exception e) {
             _log.error(String.format("rollbackCreateRemoteReplicationLinks Failed - System type :%s, Source volumes: %s, Target volumes: %s",
                     systemType, Joiner.on(',').join(sourceVolumesURIs),
-                    Joiner.on(',').join(targetVolumesURIs)));
+                    Joiner.on(',').join(targetVolumesURIs)), e);
             ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
             List<URI> volumes = new ArrayList<>(sourceVolumesURIs);
             volumes.addAll(targetVolumesURIs);
             doFailTask(Volume.class, volumes, opId, serviceError);
             WorkflowStepCompleter.stepFailed(opId, serviceError);
+        } finally {
+            // always clean db --- delete replication pairs regardless of outcome
+            if (!pairsURIs.isEmpty()) {
+                try {
+                    List<RemoteReplicationPair> systemReplicationPairs = dbClient.queryObject(RemoteReplicationPair.class, pairsURIs, true);
+                    dbClient.markForDeletion(systemReplicationPairs);
+                    _log.warn("Deleted left-over replication pairs: \n \t\t{}", systemReplicationPairs);
+                } catch (Throwable th) {
+                    _log.error("Failed to delete replication pairs \n \t\t {}", pairsURIs, th);
+                }
+            }
         }
-
     }
 
     /**

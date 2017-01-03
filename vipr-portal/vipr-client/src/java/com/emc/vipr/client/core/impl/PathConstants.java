@@ -202,4 +202,10 @@ public class PathConstants {
     public static final String APP_SUPPORT_SNAPSHOT_SET_URL = APP_SUPPORT_SNAPSHOT_URL + "/copy-sets";
     public static final String OBJECT_NAMESPACE_URL = "/vdc/object-namespaces";
     public static final String STORAGE_SYSTEM_TYPE_URL = "/vdc/storage-system-types";
+
+    public static final String STORAGE_DRIVER_LIST_URL = "/storagedriver";
+    public static final String STORAGE_DRIVER_GET_URL = "/storagedriver/{driverName}";
+    public static final String STORAGE_DRIVER_INSTALL_URL = "/storagedriver";
+    public static final String STORAGE_DRIVER_UNINSTALL_URL = "/storagedriver/{driverName}";
+    public static final String STORAGE_DRIVER_UPGRADE_URL = "/storagedriver/{driverName}";
 }

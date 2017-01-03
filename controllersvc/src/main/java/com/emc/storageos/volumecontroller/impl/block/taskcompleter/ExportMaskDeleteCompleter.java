@@ -16,6 +16,7 @@ import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
+import com.emc.storageos.util.ExportUtils;
 
 @SuppressWarnings("serial")
 public class ExportMaskDeleteCompleter extends ExportTaskCompleter {
@@ -28,13 +29,11 @@ public class ExportMaskDeleteCompleter extends ExportTaskCompleter {
     @Override
     protected void complete(DbClient dbClient, Operation.Status status, ServiceCoded coded) throws DeviceControllerException {
         try {
-            ExportGroup exportGroup = dbClient.queryObject(ExportGroup.class, getId());
             ExportMask exportMask = (getMask() != null) ?
                     dbClient.queryObject(ExportMask.class, getMask()) : null;
-            if (exportMask != null && Operation.isTerminalState(status)) {
-                exportGroup.removeExportMask(exportMask.getId());
+            if (exportMask != null && (status == Operation.Status.ready || (Operation.isTerminalState(status) && isRollingBack()))) {
+                ExportUtils.cleanupAssociatedMaskResources(dbClient, exportMask);
                 dbClient.markForDeletion(exportMask);
-                dbClient.updateObject(exportGroup);
             }
             _log.info(String.format("Done ExportMaskDelete - EG: %s, OpId: %s, status: %s",
                     getId().toString(), getOpId(), status.name()));

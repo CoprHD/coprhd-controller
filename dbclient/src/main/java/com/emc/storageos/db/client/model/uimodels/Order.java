@@ -4,8 +4,6 @@
  */
 package com.emc.storageos.db.client.model.uimodels;
 
-import com.emc.storageos.db.client.model.*;
-import com.emc.storageos.model.valid.EnumType;
 import org.apache.commons.lang.builder.ToStringBuilder;
 import org.apache.commons.lang.builder.ToStringStyle;
 import org.slf4j.Logger;
@@ -14,6 +12,9 @@ import org.slf4j.LoggerFactory;
 import java.net.URI;
 import java.util.Calendar;
 import java.util.Date;
+
+import com.emc.storageos.db.client.model.*;
+import com.emc.storageos.model.valid.EnumType;
 
 @Cf("Order")
 public class Order extends ModelObject implements TenantDataObject {
@@ -214,7 +215,32 @@ public class Order extends ModelObject implements TenantDataObject {
 
     @Override
     public String toString() {
-        return ToStringBuilder.reflectionToString(this, ToStringStyle.SHORT_PREFIX_STYLE);
+        StringBuilder builder = new StringBuilder();
+        builder.append("\nOrderId:")
+                .append(getId())
+                .append("\nOrder Number:")
+                .append(getOrderNumber())
+                .append("\nSubmitted By:")
+                .append(getSubmittedByUserId())
+                .append("\nDate Submitted:")
+                .append(getCreationTime().getTime())
+                .append("\nDate Completed:")
+                .append(getDateCompleted().getTime())
+                .append("\nMessage:")
+                .append(getMessage())
+                .append("\nStatus:")
+                .append(getOrderStatus())
+                .append("\nCatalog ID:")
+                .append(getCatalogServiceId())
+                .append("\nTenant ID:")
+                .append(getTenant())
+                .append("\nScheduled Event ID:")
+                .append(getScheduledEventId())
+                .append("\n");
+
+        return builder.toString();
+
+        // return ToStringBuilder.reflectionToString(this, ToStringStyle.SHORT_PREFIX_STYLE);
     }
 
     @Override

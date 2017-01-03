@@ -60,7 +60,7 @@ public final class NTLMUtils {
     private static final Logger LOG = LoggerFactory.getLogger(NTLMUtils.class);
 
     /** Indicates that Unicode strings are supported for use in security buffer data. */
-    public static final int NEGOTAITE_UNICODE = 1;
+    public static final int NEGOTIATE_UNICODE = 1;
     /** Indicates that OEM strings are supported for use in security buffer data. */
     public static final int NEGOTIATE_OEM = 1 << 1;
     /** Requests that the server's authentication realm be included in the Type 2 message. */

@@ -31,7 +31,7 @@ public abstract class NTLMMessage {
     @SuppressWarnings("serial")
     private static final List<Pair<Integer, String>> FLAGS = new ArrayList<Pair<Integer, String>>() {
         {
-            add(new Pair<Integer, String>(1, "NEGOTAITE_UNICODE"));
+            add(new Pair<Integer, String>(1, "NEGOTIATE_UNICODE"));
             add(new Pair<Integer, String>(1 << 1, "NEGOTIATE_OEM"));
             add(new Pair<Integer, String>(1 << 2, "REQUEST_TARGET"));
             add(new Pair<Integer, String>(1 << 3, "UNKNOWN_1"));

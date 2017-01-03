@@ -117,13 +117,15 @@ public class RunAnsible  extends ViPRExecutionTask<OrchestrationTaskResult> {
 
         logger.info("Ansible Execution result:output{} error{} exitValue:{}", result.getStdOutput(), result.getStdError(), result.getExitValue());
 
-        return new OrchestrationTaskResult(parseOut(result.getStdOutput()), result.getStdError(), result.getExitValue());
+        return new OrchestrationTaskResult(parseOut(result.getStdOutput()), result.getStdError(), result.getExitValue(), null);
     }
 
     private String parseOut(final String out) {
-        if (step.getType().equals(OrchestrationServiceConstants.StepType.SHELL_SCRIPT.toString())) 
-            return out;
+        if (step.getType().equals(OrchestrationServiceConstants.StepType.SHELL_SCRIPT.toString())) {
+            logger.info("Type is shell script");
 
+            return out;
+        }
         final String regexString = Pattern.quote("output_start") + "(?s)(.*?)" + Pattern.quote("output_end");
         final Pattern pattern = Pattern.compile(regexString);
         final Matcher matcher = pattern.matcher(out);

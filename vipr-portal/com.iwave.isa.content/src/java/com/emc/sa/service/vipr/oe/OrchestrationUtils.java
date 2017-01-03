@@ -21,9 +21,9 @@ import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+
 
 import org.apache.commons.io.IOUtils;
 
@@ -32,6 +32,7 @@ import com.emc.sa.service.vipr.oe.gson.AffectedResource;
 import com.emc.sa.service.vipr.oe.gson.OeStatusMessage;
 import com.emc.sa.service.vipr.oe.gson.ViprOperation;
 import com.emc.sa.service.vipr.oe.gson.ViprTask;
+import com.emc.sa.service.vipr.oe.tasks.TaskState;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.model.TaskResourceRep;
 import com.emc.storageos.model.orchestration.OrchestrationWorkflowDocument;
@@ -195,32 +196,24 @@ public class OrchestrationUtils {
         }  
     }
 
-    public static void waitForTasks(final List<URI> tasksStartedByOe, final ViPRCoreClient client) throws InterruptedException {
+    public static Map<URI, String> waitForTasks(final List<URI> tasksStartedByOe, final ViPRCoreClient client) throws InterruptedException {
         if (tasksStartedByOe.isEmpty()) {
-            return;
+            return null;
         }
         ExecutionUtils.currentContext().logInfo("orchestrationService.waitforTask");
 
         final long startTime = System.currentTimeMillis();
+        final TaskState states = new TaskState(client, tasksStartedByOe);
 
-        while(!tasksStartedByOe.isEmpty()) {
-            final Iterator<URI> remainingTasksIter = tasksStartedByOe.iterator();
-            while (remainingTasksIter.hasNext()) {
-                final URI taskId = remainingTasksIter.next();
-                final String state = client.tasks().get(taskId).getState();
-                if (state.equals("error")) {
-                    throw new IllegalStateException("One or more tasks " +
-                            " started by Orchestration Engine reported an error.");
-                } else if (state.equals("ready")) {
-                    remainingTasksIter.remove();
-                } else {
-                    OrchestrationUtils.sleep(TASK_CHECK_INTERVAL);
-                }
-                checkTimeout(startTime);
-            }
+        while(states.hasPending()) {
+            states.updateState();
+
+            OrchestrationUtils.sleep(TASK_CHECK_INTERVAL);
+            checkTimeout(startTime);
         }
-    }
 
+        return states.getTaskState();
+    }
 
     public static void checkTimeout(final long startTime) {
         if ((System.currentTimeMillis() - startTime)

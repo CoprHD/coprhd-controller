@@ -17,16 +17,21 @@
 
 package com.emc.sa.service.vipr.oe.tasks;
 
+import java.net.URI;
+import java.util.Map;
+
 public final class OrchestrationTaskResult {
 
     private final String out;
     private final String err;
     private final int returnCode;
+    private final Map<URI, String> taskState;
 
-    public OrchestrationTaskResult(final String out, final String err, final int returnCode) {
+    public OrchestrationTaskResult(final String out, final String err, final int returnCode, final Map<URI, String> taskState) {
         this.out = out;
         this.err = err;
         this.returnCode = returnCode;
+        this.taskState = taskState;
     }
     public String getOut() {
         return out;

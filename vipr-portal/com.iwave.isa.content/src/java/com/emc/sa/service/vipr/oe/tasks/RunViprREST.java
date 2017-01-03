@@ -18,6 +18,8 @@
 package com.emc.sa.service.vipr.oe.tasks;
 
 import java.io.IOException;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -31,10 +33,8 @@ import org.springframework.web.util.UriTemplate;
 
 import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.service.vipr.oe.gson.ViprOperation;
-import com.emc.sa.service.vipr.oe.OrchestrationService;
 import com.emc.sa.service.vipr.oe.OrchestrationServiceConstants;
 import com.emc.sa.service.vipr.oe.OrchestrationUtils;
-import com.emc.sa.service.vipr.oe.SuccessCriteria;
 import com.emc.sa.service.vipr.tasks.ViPRExecutionTask;
 import com.emc.storageos.model.orchestration.internal.ViPRPrimitive;
 import com.emc.vipr.client.impl.RestClient;
@@ -88,6 +88,22 @@ public class RunViprREST extends ViPRExecutionTask<OrchestrationTaskResult> {
         return result;
     }
 
+    private Map<URI, String> waitForTask(final String result)
+    {
+        final Gson gson = new Gson();
+        final ViprOperation res = gson.fromJson(result, ViprOperation.class);
+
+        try {
+            return OrchestrationUtils.waitForTasks(res.getTaskIds(), getClient());
+        } catch (final InterruptedException e) {
+            logger.warn("Task Timed out");
+            return null;
+        } catch (final URISyntaxException e) {
+            logger.warn("Failed to parse REST response");
+            return null;
+        }
+    }
+
     private OrchestrationTaskResult makeRestCall(final String path, final Object requestBody, final String method) throws Exception {
 
         final ClientResponse response;
@@ -116,7 +132,7 @@ public class RunViprREST extends ViPRExecutionTask<OrchestrationTaskResult> {
 
         logger.info("Status of ViPR REST Operation:{} is :{}", primitive.getName(), response.getStatus());
 
-        String responseString = null;
+        final String responseString;
         try {
             responseString = IOUtils.toString(response.getEntityInputStream(), "UTF-8");
         } catch (final IOException e) {
@@ -125,7 +141,11 @@ public class RunViprREST extends ViPRExecutionTask<OrchestrationTaskResult> {
             return null;
         }
 
-        return new OrchestrationTaskResult(responseString, responseString, response.getStatus());
+        final Map<URI, String> taskState = waitForTask(responseString);
+        if (taskState == null)
+            return null;
+
+        return new OrchestrationTaskResult(responseString, responseString, response.getStatus(), taskState);
     }
 
 

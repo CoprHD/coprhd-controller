@@ -242,7 +242,8 @@ public class OrchestrationService extends ViPRService {
                 case OTHERS:
                 case ASSET_OPTION: {
                     //TODO handle multiple , separated values
-                    final String paramVal = (params.get(key) != null) ? (params.get(key).toString()) : (value.getDefaultValue().toString());
+
+                    final String paramVal = (params.get(key) != null) ? (params.get(key).toString()) : (value.getDefaultValue());
 
                     if (paramVal == null) {
                         if (value.getRequired()) {

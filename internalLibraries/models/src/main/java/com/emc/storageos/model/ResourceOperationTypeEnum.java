@@ -353,6 +353,7 @@ public enum ResourceOperationTypeEnum {
     WORKFLOW_ROLLBACK ("WORKFLOW_ROLLBACK", "Rollback a workflow"),
     MOUNT_NFS_EXPORT("MOUNT NFS EXPORT", "mount nfs export operation"),
     UNMOUNT_NFS_EXPORT("UNMOUNT NFS EXPORT", "unmount nfs export operation"),
+    CREATE_REMOTE_REPLICATION_GROUP("CREATE REMOTE REPLICATION GROUP", "create remote replication group"),
     LIST_MOUNTED_EXPORTS("LIST MOUNTED EXPORTS", "list mounted exports operation");
 
     private final String name;

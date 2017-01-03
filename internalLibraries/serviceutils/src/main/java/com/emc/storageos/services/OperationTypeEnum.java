@@ -515,7 +515,10 @@ public enum OperationTypeEnum {
     ADD_STORAGE_SYSTEM_TYPE("ADD STORAGE SYSTEM TYPE", "", "operation to initiate adding a new storage system type"),
     REMOVE_STORAGE_SYSTEM_TYPE("REMOVE STORAGE SYSTEM TYPE", "", "operation to initiate removing a storage system type"),
     CREATE_SCHEDULE_POLICY("SchedulePolicyCreated", "", "create schedule policy."),
-    
+
+    /* Remote Replication Operations */
+    CREATE_REMOTE_REPLICATION_GROUP("CREATE REMOTE REPLICATION GROUP", "CreateRemoteReplicationGroupFailed", "create remote replication group"),
+
     /* Filesystem Mount Operations*/
     
     MOUNT_NFS_EXPORT("MOUNT NFS EXPORT", "mount nfs export operation failed", "mount nfs export operation"),

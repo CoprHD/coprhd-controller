@@ -324,4 +324,8 @@ public class RemoteReplicationBlockServiceApiImpl extends AbstractBlockServiceAp
 
         return object.canBeDeleted();
     }
+
+    public void createRemoteReplicationGroup(URI replicationGroupId, String opId) {
+
+    }
 }

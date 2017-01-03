@@ -3125,4 +3125,11 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException cannotExpandSRDFActiveVolume(final String label);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException invalidReplicationMode(final String replicationMode);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException invalidIsGroupConsistencyEnforced(final String isGroupConsistencyEnforced);
+
 }

@@ -1,5 +1,7 @@
 /*
- * Copyright (c) 2016 EMC Corporation
+
+ * Copyright (c) 2017 EMC Corporation
+
  * All Rights Reserved
  */
 package com.emc.storageos.computesystemcontroller.impl;
@@ -10,8 +12,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.DbClient;
-import com.emc.storageos.db.client.model.Volume;
+
 import com.emc.storageos.db.client.model.Operation.Status;
+import com.emc.storageos.db.client.model.Volume;
+
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.workflow.WorkflowStepCompleter;
@@ -23,6 +27,12 @@ import com.emc.storageos.workflow.WorkflowStepCompleter;
 public class VolumeCompleter extends ComputeSystemCompleter {
 
     protected static final Logger _log = LoggerFactory.getLogger(VolumeCompleter.class);
+
+    public VolumeCompleter(Class clazz, URI id, boolean deactivateOnComplete, String opId) {
+        super(clazz, id, deactivateOnComplete, opId);
+        _log.info("Creating completer for OpId: " + getOpId());
+    }
+
 
     public VolumeCompleter(URI id, String opId) {
         super(Volume.class, id, false, opId);

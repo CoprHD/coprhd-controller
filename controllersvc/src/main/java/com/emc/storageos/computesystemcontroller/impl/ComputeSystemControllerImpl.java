@@ -52,6 +52,7 @@ import com.emc.storageos.db.client.model.ScopedLabel;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.Vcenter;
 import com.emc.storageos.db.client.model.VcenterDataCenter;
+import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.util.CommonTransformerFunctions;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
@@ -2197,4 +2198,81 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
         removeHostsFromExport(NullColumnValueGetter.getNullURI(), hostId, clusterId, isVcenter, vCenterDataCenterId, taskId);
 
     }
+    
+    @Override
+    public void processDatastoreRename(URI volume, String taskId, URI datastore, String oldDatastoreName, URI vcenterURI)
+            throws ControllerException {
+        TaskCompleter completer = null;
+        try {
+            completer = new VolumeCompleter(volume, taskId);
+            Volume volumeObj = _dbClient.queryObject(Volume.class, volume);
+            if (oldDatastoreName == null) {
+                String message = "Volume update for external deletion of datastore could not succeed because old datastore name received is null.";
+                _log.error(message);
+                ServiceError serviceError = DeviceControllerException.errors.unforeseen();
+                completer.error(_dbClient, serviceError);
+            } else if (volumeObj.getTag() == null) {
+                String message = "Volume update for external deletion of datastore could not succeed because volume tag is null.";
+                _log.error(message);
+                ServiceError serviceError = DeviceControllerException.errors.unforeseen();
+                completer.error(_dbClient, serviceError);
+            }
+            Vcenter vcenter = _dbClient.queryObject(Vcenter.class, vcenterURI);
+            VCenterAPI vcenterAPI = VcenterDiscoveryAdapter.createVCenterAPI(vcenter);
+            boolean success = ComputeSystemHelper.updateDatastoreName(_dbClient, volumeObj, datastore, oldDatastoreName, vcenterAPI);
+            if (success) {
+                completer.ready(_dbClient);
+            } else {
+                ServiceError serviceError = DeviceControllerException.errors.unforeseen();
+                completer.error(_dbClient, serviceError);
+            }
+
+        } catch (Exception ex) {
+            String message = "Processing of Datastore external rename event could not succeed because of exception:";
+            _log.error(message, ex);
+            ServiceError serviceError = DeviceControllerException.errors.jobFailed(ex);
+            if (completer != null) {
+                completer.error(_dbClient, serviceError);
+            }
+        }
+    }
+
+    @Override
+    public void processExternalDatastoreDelete(URI volume, String taskId, String oldDatastoreName, URI vcenterURI)
+            throws ControllerException {
+        TaskCompleter completer = null;
+        try {
+            completer = new VolumeCompleter(volume, taskId);
+            Volume volumeObj = _dbClient.queryObject(Volume.class, volume);
+            if (oldDatastoreName == null) {
+                String message = "Volume update for external deletion of datastore could not succeed because old datastore name received is null.";
+                _log.error(message);
+                ServiceError serviceError = DeviceControllerException.errors.unforeseen();
+                completer.error(_dbClient, serviceError);
+            } else if (volumeObj.getTag() == null) {
+                String message = "Volume update for external deletion of datastore could not succeed because volume tag is null.";
+                _log.error(message);
+                ServiceError serviceError = DeviceControllerException.errors.unforeseen();
+                completer.error(_dbClient, serviceError);
+            }
+            Vcenter vcenter = _dbClient.queryObject(Vcenter.class, vcenterURI);
+            VCenterAPI vcenterAPI = VcenterDiscoveryAdapter.createVCenterAPI(vcenter);
+            boolean success = ComputeSystemHelper.updateExternalDeletedDatastoreVolume(_dbClient, volumeObj, oldDatastoreName, vcenterAPI);
+            if (success) {
+                completer.ready(_dbClient);
+            } else {
+                ServiceError serviceError = DeviceControllerException.errors.unforeseen();
+                completer.error(_dbClient, serviceError);
+            }
+
+        } catch (Exception ex) {
+            String message = "Volume update for external deletion of datastore could not succeed because of exception:";
+            _log.error(message, ex);
+            ServiceError serviceError = DeviceControllerException.errors.jobFailed(ex);
+            if (completer != null) {
+                completer.error(_dbClient, serviceError);
+            }
+        }
+    }
+
 }

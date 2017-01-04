@@ -459,6 +459,151 @@ public class ActionableEventExecutor {
     }
 
     /**
+     * Method to rename a datastore and update the volume tag.
+     * NOTE: In order to maintain backwards compatibility, do not change the signature of this method.
+     * 
+     * @param volume
+     *            id that has been affected
+     * @param datastore
+     *            changed datastore identifier.
+     * @param newDatastoreName
+     *            name of the new datastore needed to print in the display message.
+     * @param oldDatastoreName
+     *            old name of the datastore needed to print in the display message.
+     * @param vcenterURI
+     *            vcenter where the datastore belongs
+     * @param eventId
+     *            the event id
+     * @return task for updating the datastore name
+     */
+    public TaskResourceRep vcenterDatastoreRename(URI volume, URI datastore, String newDatastoreName, String oldDatastoreName,
+            URI vcenterURI, URI eventId) {
+        String taskId = UUID.randomUUID().toString();
+        Operation op = _dbClient.createTaskOpStatus(Volume.class, volume, taskId,
+                ResourceOperationTypeEnum.UPDATE_DATASTORE_NAME);
+        op.ready();
+        Volume volumeObj = _dbClient.queryObject(Volume.class, volume);
+        computeController.processDatastoreRename(volume, taskId, datastore, oldDatastoreName, vcenterURI);
+        return toTask(volumeObj, taskId, op);
+    }
+
+    /**
+     * Get details for the datastore rename method
+     * NOTE: In order to maintain backwards compatibility, do not change the signature of this method.
+     * 
+     * @param volume
+     *            id that has been affected
+     * @param datastore
+     *            changed datastore identifier.
+     * @param newDatastoreName
+     *            name of the new datastore needed to print in the display message.
+     * @param oldDatastoreName
+     *            old name of the datastore needed to print in the display message.
+     * @param vcenterURI
+     *            vcenter where the datastore belongs
+     * @return list of details
+     */
+    public List<String> vcenterDatastoreRenameDetails(URI volume, URI datastore, String newDatastoreName, String oldDatastoreName,
+            URI vcenterURI) {
+        List<String> result = Lists.newArrayList();
+        Volume vol = _dbClient.queryObject(Volume.class, volume);
+        if (volume != null) {
+            result.add(ComputeSystemDialogProperties.getMessage("ComputeSystem.vcenterDatastoreRenameDetails", vol.getLabel(),
+                    newDatastoreName, oldDatastoreName));
+        }
+
+        return result;
+    }
+
+    /**
+     * Method to update the volume tag for externally deleted datastore.
+     * NOTE: In order to maintain backwards compatibility, do not change the signature of this method.
+     * 
+     * @param volume
+     *            id that has been affected
+     * @param oldDatastoreName
+     *            old name of the datastore needed to print in the display message.
+     * @param vcenterURI
+     *            vcenter where the datastore belongs
+     * @param eventId
+     *            the event id
+     * @return task for updating the volume object
+     */
+    public TaskResourceRep vcenterDatastoreDelete(URI volume, String oldDatastoreName, URI vcenterURI, URI eventId) {
+        String taskId = UUID.randomUUID().toString();
+        Operation op = _dbClient.createTaskOpStatus(Volume.class, volume, taskId,
+                ResourceOperationTypeEnum.UPDATE_EXTERNAL_DELETED_DATASTORE);
+        op.ready();
+        Volume volumeObj = _dbClient.queryObject(Volume.class, volume);
+        computeController.processExternalDatastoreDelete(volume, taskId, oldDatastoreName, vcenterURI);
+        return toTask(volumeObj, taskId, op);
+
+    }
+
+    /**
+     * Get details for the externally deleted datastore method.
+     * NOTE: In order to maintain backwards compatibility, do not change the signature of this method.
+     * 
+     * @param volume
+     *            id that has been affected
+     * @param oldDatastoreName
+     *            old name of the datastore needed to print in the display message.
+     * @param vcenterURI
+     *            vcenter where the datastore belongs
+     * @return list of detils
+     */
+    public List<String> vcenterDatastoreDeleteDetails(URI volume, String oldDatastoreName, URI vcenterURI) {
+        List<String> result = Lists.newArrayList();
+        Volume vol = _dbClient.queryObject(Volume.class, volume);
+        if (volume != null) {
+            result.add(ComputeSystemDialogProperties.getMessage("ComputeSystem.vcenterDatastoreDeleteDetails", oldDatastoreName,
+                    vol.getLabel()));
+        }
+        return result;
+    }
+
+    /**
+     * Method to update the volume tag for externally created datastore.
+     * NOTE: In order to maintain backwards compatibility, do not change the signature of this method.
+     * 
+     * @param volume
+     *            id that has been affected
+     * @param newDatastoreUri
+     * @param newDsName
+     *            newly created datastore identifiers
+     * @param vcenterURI
+     *            vcenter where the datastore belongs
+     * @param eventId
+     *            the event id
+     * @return task for updating the volume object
+     */
+    public TaskResourceRep vcenterDatastoreCreate(URI volume, URI newDatastoreUri, String newDsName, URI vcenterURI, URI eventId) {
+        return null;
+    }
+
+    /**
+     * Get details for the externally created datastore.
+     * NOTE: In order to maintain backwards compatibility, do not change the signature of this method.
+     * 
+     * @param volume
+     *            id that has been affected
+     * @param newDatastoreUri
+     * @param newDsName
+     *            newly created datastore identifiers
+     * @param vcenterURI
+     *            vcenter where the datastore belongs
+     * @return list of details
+     */
+    public List<String> vcenterDatastoreCreateDetails(URI volume, URI newDatastoreUri, String newDsName, URI vcenterURI) {
+        List<String> result = Lists.newArrayList();
+        Volume vol = _dbClient.queryObject(Volume.class, volume);
+        if (volume != null) {
+            result.add(ComputeSystemDialogProperties.getMessage("ComputeSystem.vcenterDatastoreCreateDetails", newDsName, vol.getLabel()));
+        }
+        return result;
+    }
+    
+    /**
      * Creates human readable output when an initiator is added or removed
      * 
      * @param affectedVolumes the list of affected volumes
@@ -682,68 +827,18 @@ public class ActionableEventExecutor {
         return Lists.newArrayList(ComputeSystemDialogProperties.getMessage("ComputeSystem.addInitiatorDeclineDetails"));
     }
     
-     /**
-     * Get details for the datastore rename method
-     * NOTE: In order to maintain backwards compatibility, do not change the signature of this method.
-     * 
-     * @param volume
-     *            - id that has been affected
-     * @param newDatastoreName
-     *            - name of the new datastore needed to print in the display message.
-     * @param changedDatastore
-     *            - changed datastore identifier.++
-     * @param vcenterURI
-     *            - vcenter where the datastore belongs
-     * @return - list of event details
-     */
-    @SuppressWarnings("unused") // Invoked using reflection for the event framework
-    public List<String> vcenterDatastoreRenameDetails(URI volume, String newDatastoreName, URI changedDatstore, URI vcenterURI) {
-        List<String> result = Lists.newArrayList();
-        Volume volumeObj = _dbClient.queryObject(Volume.class, volume);
-        if (volumeObj != null && newDatastoreName != null) {
-            result.add(ComputeSystemDialogProperties.getMessage("ComputeSystem.vcenterDatastoreRenameDetails", newDatastoreName));
-        }
-        return result;
-    }
-
-    /**
-     * Method to rename a datastore and update the volume tag.
-     * NOTE: In order to maintain backwards compatibility, do not change the signature of this method.
-     * 
-     * @param volume
-     *            - id that has been affected
-     * @param newDatastoreName
-     *            - name of the new datastore needed to print in the display message.
-     * @param changedDatastore
-     *            - changed datastore identifier.++
-     * @param vcenterURI
-     *            - vcenter where the datastore belongs
-     * @param eventId
-     *            - the event id
-     * @return - task for updating the datastore name
-     */
-    public TaskResourceRep vcenterDatastoreRename(URI volume, String newDatastoreName, URI changedDatastore, URI vcenterURI, URI eventId) {
-        String taskId = UUID.randomUUID().toString();
-        Operation op = _dbClient.createTaskOpStatus(Volume.class, volume, taskId,
-                ResourceOperationTypeEnum.UPDATE_DATA_STORE_NAME);
-        Volume volumeObj = _dbClient.queryObject(Volume.class, volume);
-        computeController.processDatastoreRename(eventId, volume, taskId, changedDatastore, vcenterURI);
-        return toTask(volumeObj, taskId, op);
-    }
 
     /**
      * Decline method that is invoked when the vcenterDatastoreRename event is declined
      * NOTE: In order to maintain backwards compatibility, do not change the signature of this method.
      * 
      * @param volume
-     *            uri
-     * @param newDatastoreName
-     *            - name of the new datastore needed to print in the display message.
+     *            the volume that is affected.
      * @param eventId
      *            the event id
      * @return task
      */
-    public TaskResourceRep vcenterDatastoreRenameDecline(URI volume, String newDatastoreName, URI eventId) {
+    public TaskResourceRep vcenterDatastoreRenameDecline(URI volume, URI eventId) {
         return null;
     }
 
@@ -751,16 +846,72 @@ public class ActionableEventExecutor {
      * Get details for a decline event for vcenterDatastoreRename
      * NOTE: In order to maintain backwards compatibility, do not change the signature of this method.
      * 
-     * @param @param
-     *            volume uri
-     * 
-     * @param newDatastoreName
-     *            - name of the new datastore needed to print in the display message.
+     * @param volume
+     *            the volume that is affected.
      * @return list of details
      */
-    public List<String> vcenterDatastoreRenameDeclineDetails(URI volume, String newDatastoreName) {
-        return Lists.newArrayList(
-                ComputeSystemDialogProperties.getMessage("ComputeSystem.vcenterDatastoreRenameDeclineDetails", newDatastoreName));
+    public List<String> vcenterDatastoreRenameDeclineDetails(URI volume) {
+        List<String> result = Lists.newArrayList();
+        result.add(ComputeSystemDialogProperties.getMessage("ComputeSystem.vcenterDatastoreRenameDeclineDetails"));
+        result.add(ComputeSystemDialogProperties.getMessage("ComputeSystem.vcenterDeclineFailure"));
+        return result;
+    }
+
+    /**
+     * Decline method that is invoked when the vcenterDatastoreDelete event is declined
+     * NOTE: In order to maintain backwards compatibility, do not change the signature of this method.
+     * 
+     * @param volume
+     *            the volume that is affected.
+     * @param eventId
+     *            the event id
+     * @return task
+     */
+    public TaskResourceRep vcenterDatastoreDeleteDecline(URI volume, URI eventId) {
+        return null;
+    }
+
+    /**
+     * Get details for a decline event for vcenterDatastoreDelete
+     * NOTE: In order to maintain backwards compatibility, do not change the signature of this method.
+     * 
+     * @param volume
+     *            the volume that is affected.
+     * @return list of details
+     */
+    public List<String> vcenterDatastoreDeleteDeclineDetails(URI volume) {
+        List<String> result = Lists.newArrayList();
+        result.add(ComputeSystemDialogProperties.getMessage("ComputeSystem.vcenterDatastoreDeleteDeclineDetails"));
+        result.add(ComputeSystemDialogProperties.getMessage("ComputeSystem.vcenterDeclineFailure"));
+        return result;
+    }
+
+    /**
+     * Decline method that is invoked when the vcenterDatastoreCreate event is declined
+     * NOTE: In order to maintain backwards compatibility, do not change the signature of this method.
+     * 
+     * @param volume
+     *            the volume that is affected.
+     * @param eventId
+     *            the event id
+     * @return task
+     */
+    public TaskResourceRep vcenterDatastoreCreateDecline(URI volume, URI eventId) {
+        return null;
+    }
+
+    /**
+     * Get details for a decline event for vcenterDatastoreCreate
+     * NOTE: In order to maintain backwards compatibility, do not change the signature of this method.
+     * 
+     * @param volume
+     *            the volume that is affected.
+     * @return list of details
+     */
+    public List<String> vcenterDatastoreCreateDeclineDetails(URI volume) {
+        List<String> result = Lists.newArrayList();
+        result.add(ComputeSystemDialogProperties.getMessage("ComputeSystem.vcenterDatastoreCreateDeclineDetails"));
+        return result;
     }
 
     /**

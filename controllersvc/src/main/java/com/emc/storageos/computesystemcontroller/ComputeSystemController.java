@@ -162,4 +162,38 @@ public interface ComputeSystemController extends Controller {
      * @throws ControllerException
      */
     public void synchronizeSharedExports(URI clusterId, String taskId) throws ControllerException;
+
+    /**
+     * Controller method to update the volume object with renamed datastore
+     * 
+     * @param volume
+     *            volume to be updated
+     * @param taskId
+     *            task id
+     * @param datastore
+     *            identifier of datastore that is renamed
+     * @param oldDatastoreName
+     *            old datastore name
+     * @param vcenterURI
+     *            vcenter where the datastore belongs to
+     * @throws ControllerException
+     */
+    public void processDatastoreRename(URI volume, String taskId, URI datastore, String oldDatastoreName, URI vcenterURI)
+            throws ControllerException;
+
+    /**
+     * Controller method to update the volume object with deleted datastore
+     * 
+     * @param volume
+     *            volume to be updated
+     * @param taskId
+     *            task id
+     * @param deletedDatastoreName
+     *            deleted datastore name
+     * @param vcenterURI
+     *            vcenter where the datastore belongs to
+     * @throws ControllerException
+     */
+    public void processExternalDatastoreDelete(URI volume, String taskId, String deletedDatastoreName, URI vcenterURI)
+            throws ControllerException;
 }

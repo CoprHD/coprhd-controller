@@ -94,6 +94,9 @@ public interface Constants {
     // service name for geodbsvc
     public static final String GEODBSVC_NAME = "geodbsvc";
 
+    // service name for syssvc
+    public static final String SYSSVC_NAME = "syssvc";
+
     // special configuration id for global config kinds, like SCHEMA_VERSION
     public static final String GLOBAL_ID = "global";
 

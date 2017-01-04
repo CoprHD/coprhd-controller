@@ -120,6 +120,7 @@ public class ExportMaskRemoveInitiatorCompleter extends ExportTaskCompleter {
         	super.complete(dbClient, status, coded);
         }
     }
+    
     /*
      * Remove unused storage Ports from export mask
      */
@@ -128,7 +129,15 @@ public class ExportMaskRemoveInitiatorCompleter extends ExportTaskCompleter {
 		StringSetMap zoningMap = exportMask.getZoningMap();
 		Set<String> zonedTarget = new HashSet<String>();
 		for (String initiator : initiators) {
-			zonedTarget.addAll(zoningMap.get(initiator));
+		    StringSet zoneEntry = zoningMap.get(initiator);
+		    if (zoneEntry != null) {
+		        zonedTarget.addAll(zoneEntry);
+		    } else {
+		        _log.warn(String.format(
+                        "removeUnusedTargets tried looking up initiator [%s] in zoningMap for "
+                        + "Export Mask [%s - %s], but no entry found - continue...", initiator, 
+                        exportMask.getMaskName(), exportMask.getId())); 
+		    }
 		}
 		Set<String> targets = new HashSet<String>(exportMask.getStoragePorts());
 		if (!targets.removeAll(zonedTarget)) {
@@ -139,7 +148,6 @@ public class ExportMaskRemoveInitiatorCompleter extends ExportTaskCompleter {
 		for (String targetPort : targets) {
 			exportMask.removeTarget(URIUtil.uri(targetPort));
 		}
-
 	}
 
 	public boolean removeInitiator(URI initiator) {

@@ -82,12 +82,12 @@ def vcenter_search(args):
 def datastore_create(args):
     bourne.connect(args.ip)
     
-	vcenter_uri = bourne.vcenter_query(args.vcenter)
-	datacenter_uri = bourne.datacenter_query(args.datacenter)
-	project_uri = bourne.project_query(args.project)
+    vcenter_uri = bourne.vcenter_query_root_tenant(args.vcenter)
+    datacenter_uri = bourne.datacenter_query(args.datacenter)
+    project_uri = bourne.project_query(args.project)
     cos_uri     = bourne.cos_query('block', args.cos)
     nh_uri      = bourne.neighborhood_query(args.neighborhood)
-	catalog_service_uri = bourne.catalog_query_subcategory(args.catalogservice,args.parentcatalog)
+    catalog_service_uri = bourne.catalog_query_subcategory(args.catalogservice,args.parentcatalog)
 	
     blockStorageType = 'shared'
     if (args.blockStorageType):
@@ -96,15 +96,11 @@ def datastore_create(args):
 	host_uri = bourne.host_query(args.host)
 		  
     start = time.time()
-    tr_list = bourne.datastore_create(vcenter_uri, datacenter_uri, blockStorageType, host_uri, project_uri, nh_uri, cos_uri, args.datastoreName,args.name, args.size, catalog_service_uri)
+    tr_list = bourne.datastore_create(vcenter_uri, datacenter_uri, blockStorageType, host_uri, nh_uri, cos_uri, project_uri, args.datastoreName,args.name, args.size, catalog_service_uri)
     total = time.time() - start
     print "Datastore create took", "{0:.2f}".format(total), "seconds to complete"
     #print 'Datastore_create debug : ' + str(s)
-    for tr in tr_list:
-        if (tr['state'] == 'ready'):
-            print 'Datastore created with id ' + tr['resource']['id']
-        elif (tr['state'] != 'suspended_no_error'):
-            print 'Datastore create failed.'
+    
 #----------------------------------------------------------------------
 # command-line parsing
 #----------------------------------------------------------------------
@@ -118,6 +114,7 @@ except:
 parser = argparse.ArgumentParser(description = 'Bourne vcenter cli usage.')
 parser.add_argument('cmd', help = 'cmd = (create | delete | show | list | discover)')
 parser.add_argument('--ip',	metavar = 'ipaddr',	help = 'IP address of bourne', default=bourne_ip)
+
 
 # vcenter create label --tenant tenant
 create = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
@@ -221,8 +218,8 @@ try:
     elif (cmd == "discover"):
         args = discover.parse_args()
         vcenter_discover(args)
-	elif (cmd == "createds"):
-        args = discover.parse_args()
+    elif (cmd == "createds"):
+        args = createds.parse_args()
         datastore_create(args)
     else:
         parser.print_help()

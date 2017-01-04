@@ -9,12 +9,13 @@
 # Used to perform various operations.
 #
 # Usage: ./vnxehelper.sh verify_export <NAME_PATTERN> <NUMBER_OF_INITIATORS_EXPECTED> <NUMBER_OF_LUNS_EXPECTED>
-#        ./vnxehelper.sh add_volume_to_mask <DEVICE_ID> <NAME_PATTERN>
+#        ./vnxehelper.sh add_volume_to_mask <DEVICE_ID> <NAME_PATTERN> <HLU>
 #        ./vnxehelper.sh remove_volume_from_mask <DEVICE_ID> <NAME_PATTERN>
 #        ./vnxehelper.sh delete_volume <DEVICE_ID>
 #        ./vnxehelper.sh delete_mask <NAME_PAATTERN>
-#        ./vnxehelper.sh add_initiator_to_mask <NWWN:PWWN> <NAME_PATTERN>
-#        ./vnxehelper.sh remove_initiator_from_mask <PWWN> <NWWN> <NAME_PATTERN>
+#        ./vnxehelper.sh add_initiator_to_mask <NWWN:PWWN ...> <NAME_PATTERN>
+#        ./vnxehelper.sh create_volume <NAME> <POOL_ID> <SIZE>
+#        ./vnxehelper.sh create_mask <NAME> <NAME_PAATTERN> <DEVICE_ID> <HLU>
 #
 #set -x
 
@@ -39,14 +40,15 @@ add_volume_to_mask() {
     fi
 
     java -Dproperty.file=${tools_file} -jar ${tools_jar} -arrays ${array_type} -method add_volume_to_mask -params "${pattern},${device_id},${hlu}" > ${TMPFILE1} 2> ${TMPFILE2}
-    echo "Added volume ${device_id} to initiator group ${pattern}"
+    cat ${TMPFILE1}
+    echo "Added volume ${device_id} to host ${pattern}"
 }
 
 remove_volume_from_mask() {
     device_id=$1
     pattern=$2
     java -Dproperty.file=${tools_file} -jar ${tools_jar} -arrays ${array_type} -method remove_volume_from_mask -params "${pattern},${device_id}"
-    echo "Removed volume ${device_id} from initiator group ${pattern}"
+    echo "Removed volume ${device_id} from host ${pattern}"
 }
 
 delete_volume() {
@@ -56,16 +58,35 @@ delete_volume() {
 
 remove_initiator_from_mask() {
     pwwn=$1
-    pattern=$2
-    java -Dproperty.file=${tools_file} -jar ${tools_jar} -arrays ${array_type} -method remove_initiator_from_mask -params "${pattern},${pwwn}"
-
+    java -Dproperty.file=${tools_file} -jar ${tools_jar} -arrays ${array_type} -method remove_initiator_from_mask -params "${pwwn}"
 }
 
 add_initiator_to_mask() {
     pwwn=$1
     pattern=$2
     java -Dproperty.file=${tools_file} -jar ${tools_jar} -arrays ${array_type} -method add_initiator_to_mask -params "${pattern},${pwwn}"
+}
 
+create_volume() {
+    volume_name=$1
+    pool=$2
+    size=$3
+
+    java -Dproperty.file=${tools_file} -jar ${tools_jar} -arrays ${array_type} -method create_volume -params "${volume_name},${pool},${size}" > ${TMPFILE1} 2> ${TMPFILE2}
+    cat ${TMPFILE1}
+}
+
+create_mask() {
+    host_name=$1
+    pattern=$2
+    device_id=$3
+    hlu="-1"
+    if [[ $# -gt 3 ]]; then
+        hlu="$4"
+    fi
+
+    java -Dproperty.file=${tools_file} -jar ${tools_jar} -arrays ${array_type} -method create_mask -params "${host_name},${pattern},${device_id},${hlu}" > ${TMPFILE1} 2> ${TMPFILE2}
+    cat ${TMPFILE1}
 }
 
 verify_export() {
@@ -147,7 +168,13 @@ if [ ! -f ${tools_jar} ]; then
     exit 1
 fi
 
-if [ "$1" = "add_volume_to_mask" ]; then
+if [ "$1" = "create_volume" ]; then
+    shift
+    create_volume "$1" "$2" "$3"
+elif [ "$1" = "create_mask" ]; then
+    shift
+    create_mask "$1" "$2" "$3"
+elif [ "$1" = "add_volume_to_mask" ]; then
     shift
     add_volume_to_mask "$1" "$2" "$3"
 elif [ "$1" = "remove_volume_from_mask" ]; then
@@ -169,5 +196,5 @@ elif [ "$1" = "verify_export" ]; then
     shift
     verify_export "$1" "$2" "$3"
 else
-    echo "Usage: $0 [delete_mask | add_volume_to_mask | remove_volume_from_mask | add_initiator_to_mask | remove_initiator_from_mask | delete_volume | verify_export] {params}"
+    echo "Usage: $0 [create_volume | create_mask | delete_mask | add_volume_to_mask | remove_volume_from_mask | add_initiator_to_mask | remove_initiator_from_mask | delete_volume | verify_export] {params}"
 fi

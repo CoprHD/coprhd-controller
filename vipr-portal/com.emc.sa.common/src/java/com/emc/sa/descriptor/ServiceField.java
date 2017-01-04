@@ -25,6 +25,7 @@ public class ServiceField extends ServiceItem {
     private static final long serialVersionUID = -1755035953840982580L;
     public static final String SELECT_ONE = "one";
     public static final String SELECT_MANY = "many";
+    public static final String SELECT_LIST = "list";
 
     public static final String ASSET_TYPE_PREFIX = "assetType.";
     public static final String TYPE_TEXT = "text";
@@ -40,6 +41,9 @@ public class ServiceField extends ServiceItem {
     
     /** Indicates whether the field will add "None" if required. */
     private boolean omitNone = false;
+    
+    /** Indicated whether the field will allow not values to be selected */
+    private boolean allowEmpty = false;
 
     /** Indicates that the field can be 'locked' down (pre-defined) by an admin in the catalog. */
     private boolean lockable;
@@ -70,6 +74,14 @@ public class ServiceField extends ServiceItem {
 
     public void setOmitNone(boolean omitNone) {
         this.omitNone = omitNone;
+    }
+    
+    public boolean isAllowEmpty() {
+        return allowEmpty;
+    }
+    
+    public void setAllowEmpty(boolean allowEmpty) {
+        this.allowEmpty = allowEmpty;
     }
 
     public boolean isLockable() {
@@ -139,6 +151,7 @@ public class ServiceField extends ServiceItem {
         toString(builder);
         builder.append("required", required);
         builder.append("omitNone", omitNone);
+        builder.append("allowEmpty", allowEmpty);
         builder.append("lockable", lockable);
         builder.append("initialValue", initialValue);
         builder.append("select", select);

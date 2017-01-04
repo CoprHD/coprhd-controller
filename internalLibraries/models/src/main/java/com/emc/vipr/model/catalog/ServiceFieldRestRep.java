@@ -20,6 +20,7 @@ public class ServiceFieldRestRep extends ServiceItemRestRep {
 
     private boolean required;
     private boolean omitNone;
+    private boolean allowEmpty;
     private String initialValue;
     private String select;
     private boolean lockable;
@@ -45,6 +46,15 @@ public class ServiceFieldRestRep extends ServiceItemRestRep {
 
     public void setOmitNone(boolean omitNone) {
         this.omitNone = omitNone;
+    }
+    
+    @XmlElement(name = "allowEmpty")
+    public boolean isAllowEmpty() {
+        return allowEmpty;
+    }
+    
+    public void setAllowEmpty(boolean allowEmpty) {
+        this.allowEmpty = allowEmpty;
     }
 
     @XmlElement(name = "initial_value")

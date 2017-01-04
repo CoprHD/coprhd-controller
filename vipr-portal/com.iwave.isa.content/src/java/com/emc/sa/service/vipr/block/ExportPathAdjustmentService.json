@@ -51,6 +51,7 @@
         },       
         ports:{
             type:"assetType.vipr.exportPathPorts",
+            allowEmpty: true,
             select: "many"
         },
 

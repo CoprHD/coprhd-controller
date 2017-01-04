@@ -76,6 +76,7 @@ public class ServiceDescriptorBuilder {
         apply(baseFieldKey, definition, field);
         field.setRequired(definition.required);
         field.setOmitNone(definition.omitNone);
+        field.setAllowEmpty(definition.allowEmpty);
         field.setLockable(definition.lockable);
         field.setInitialValue(definition.initialValue);
         field.setSelect(definition.select);

@@ -683,7 +683,7 @@ BOURNE_IP=${BOURNE_IP:-"localhost"}
 #
 NH=nh
 NH2=nh2
-VCENTER=lglw8062
+VCENTER="lglw8062"
 DC=CLI-DC
 stype='Shared'
 host=StretchCluster
@@ -1822,39 +1822,42 @@ test_1(){
         failure="Failed to detect the name change of the Datastore"
         mkdir -p results/${item}
         dsname=${VOLNAME}-${item}
-        catalog_service=CreateVolumeandDatastore
-		parent_catalog=BlockServicesforVMwarevCenter
+	esxihost=lgloc107.lss.emc.com
+    catalog_service=CreateVolumeandDatastore
+	parent_catalog=BlockServicesforVMwarevCenter
 		
-		#Take the snap of the initial state of the DB.
-		snap_db 1 ${cfs}
+	#Take the snap of the initial state of the DB.
+	snap_db 1 ${cfs}
 		
-		#Create a datastore using catalog service API
-		runcmd vcenter createds ${VCENTER} ${DC} ${stype} ${host} ${NH} ${VPOOL_BASE} ${PROJECT} ${dsname} ${dsname}-vol 1GB ${catalog_service} ${parent_catalog}
+	#Create a datastore using catalog service API
+	runcmd vcenter createds ${VCENTER} ${VCENTER}/${DC} ${stype} ${esxihost} ${NH} ${VPOOL_BASE} ${PROJECT} ${dsname} ${dsname}-vol 1 ${catalog_service} ${parent_catalog}
        
-		#run the perl script to rename the datastore
-        runcmd  esxcfg-rename-datastore.pl --server ${VCENTER_IP} --username ${VCENTER_USER} --password ${VCENTER_PASS} --datastore tbdel1912_1 --txtplacement prepend --txtformat local-storage- --operation rename
+	#sleep
+	sleep 50
+	#run the perl script to rename the datastore
+    runcmd  esxcfg-rename-datastore.pl --server ${VCENTER_IP} --username ${VCENTER_USER} --password ${VCENTER_PASS} --datastore ${dsname} --txtplacement prepend --txtformat local-storage- --operation rename
         
-		#Take a snap of the DB. Now a new event should be created.
-        snap_db 2 ${cfs}
+	#Take a snap of the DB. Now a new event should be created.
+    snap_db 2 ${cfs}
 
-		#discover_vcenter
-		discover_vcenter "lglw8062"
+	#discover_vcenter
+	discover_vcenter ${VCENTER}
 	
-		#Take a snap of the DB. Now a new event should be created.
-        snap_db 3 ${cfs}
+	#Take a snap of the DB. Now a new event should be created.
+    snap_db 3 ${cfs}
 
-		#Difference
-        validate_db 2 3 ${cfs}
+	#Difference
+    validate_db 2 3 ${cfs}
        
 	#Test PASS/FAIL
 	if [[ $(grep -A1 'eventCode = 107' results/${item}/ActionableEvent-2.txt) = 'eventStatus = pending' ]]; 
         then
                 #if found trst PASS
 		echo "PASS"
-                report_results test_10 success
+                report_results test_1 success
         else
                 #else test FAIL
-                report_results test_10 $failure
+                report_results test_1 $failure
         fi
 
 }
@@ -1873,10 +1876,10 @@ test_2(){
 		snap_db 1 ${cfs}
 		
 		#Create datastore using catalog service APIs
-		runcmd vcenter createds ${VCENTER} ${DC} ${stype} ${host} ${NH} ${VPOOL_BASE} ${PROJECT} ${dsname} ${dsname}-vol 1GB ${catalog_service} ${parent_catalog}
+		runcmd vcenter createds ${VCENTER} ${VCENTER}/${DC} ${stype} ${host} ${NH} ${VPOOL_BASE} ${PROJECT} ${dsname} ${dsname}-vol 1GB ${catalog_service} ${parent_catalog}
        	
 		#Run perl script to delete a datastore
-		runcmd  esxcfg-remove-datastore.pl --server lglw8062.lss.emc.com --username administrator@vsphere6.local --password D@ngerous1 --datastore tbdel --txtplacement prepend --txtformat local-storage- --operation rename
+		runcmd  esxcfg-remove-datastore.pl --server ${VCENTER_IP} --username ${VCENTER_USER} --password ${VCENTER_PASS} --datastore ${dsname} --txtplacement prepend --txtformat local-storage- --operation rename
         
 		#Take the snap of the DB.
 		snap_db 2 ${cfs}
@@ -2157,8 +2160,7 @@ echo `date`
 echo `git status | grep 'On branch'`
 
 if [ "${DO_CLEANUP}" = "1" ]; then
-    cleanup;
+	cleanup;
 fi
 
 finish;
-

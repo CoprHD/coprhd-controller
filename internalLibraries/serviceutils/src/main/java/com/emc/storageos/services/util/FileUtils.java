@@ -182,15 +182,27 @@ public class FileUtils {
         return null;
     }
 
-    public static void chmod(File file, String perms) {
+    public static void chmod(File file, String perms, boolean recursive) {
         if (file == null || file.exists() == false) {
             return;
         }
-        String[] cmds = { "/bin/chmod", "-R", perms, file.getAbsolutePath() };
+        List<String> cmdList = new ArrayList<String>();
+        cmdList.add("/bin/chmod");
+        if (recursive) {
+            cmdList.add("-R");
+        }
+        cmdList.add(perms);
+        cmdList.add(file.getAbsolutePath());
+        String[] cmds = new String[cmdList.size()];
+        cmdList.toArray(cmds);
         Exec.Result result = Exec.exec(Exec.DEFAULT_CMD_TIMEOUT, cmds);
         if (result.execFailed() || result.getExitValue() != 0) {
             throw new IllegalStateException(String.format("Execute command failed: %s", result));
         }
+    }
+
+    public static void chmod(File file, String perms) {
+        chmod(file, perms, true);
     }
 
     public static void chown(File file, String owner, String group) {

@@ -7,6 +7,7 @@ package com.emc.storageos.volumecontroller;
 
 import java.net.URI;
 import java.util.List;
+import java.util.Map;
 
 import com.emc.storageos.db.client.model.FilePolicy;
 import com.emc.storageos.model.file.CifsShareACLUpdateParams;
@@ -202,7 +203,7 @@ public interface FileController extends StorageController {
      */
     public void applyFilePolicy(URI sourceFS, List<FilePolicy> filePolicies, String taskId) throws InternalException;
 
-    public void assignFileSnapshotPolicyToVirtualPool(URI fileSnapshotPolicyURI, List<URI> storageSystemURIs, String opId)
+    public void assignFileSnapshotPolicyToVirtualPool(Map<URI, List<URI>> vpoolToStorageSystemMap, URI filePolicyToAssign, String taskId)
             throws InternalException;
 
 }

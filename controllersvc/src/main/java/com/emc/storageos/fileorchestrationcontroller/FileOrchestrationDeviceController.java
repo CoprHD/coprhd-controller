@@ -91,6 +91,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
     static final String DELETE_FILESYSTEM_SHARE_ACLS_WF_NAME = "DELETE_FILESYSTEM_SHARE_ACLS_WORKFLOW";
     static final String REPLICATE_QUOTA_DIR_SETTINGS_TO_TARGET_WF_NAME = "REPLICATE_QUOTA_DIR_SETTINGS_TO_TARGET_WORKFLOW";
     static final String UNASSIGN_FILE_POLICY_WF_NAME = "UNASSIGN_FILE_POLICY_WORKFLOW";
+    static final String ASSIGN_FILE_POLICY_WF_NAME = "ASSIGN_FILE_POLICY_WORKFLOW";
 
     static final String FAILOVER_FILESYSTEMS_WF_NAME = "FAILOVER_FILESYSTEM_WORKFLOW";
     static final String FAILBACK_FILESYSTEMS_WF_NAME = "FAILBACK_FILESYSTEM_WORKFLOW";
@@ -128,6 +129,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
 
     private static final String APPLY_FILE_POLICY_METHOD = "applyFilePolicy";
     private static final String UNASSIGN_FILE_POLICY_METHOD = "unassignFilePolicy";
+    private static final String ASSIGN_FILE_POLICY_METHOD = "assignFilePolicy";
 
     /*
      * (non-Javadoc)
@@ -1763,6 +1765,46 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
             ServiceError serviceError = DeviceControllerException.errors.unassignFilePolicyFailed(policy.toString(), opName, ex);
             completer.error(s_dbClient, _locker, serviceError);
         }
+    }
+
+    @Override
+    public void assignFilePolicyToVirtualPool(Map<URI, List<URI>> vpoolToStorageSystemMap, URI filePolicyToAssign, String taskId)
+            throws InternalException {
+        FilePolicy filePolicy = s_dbClient.queryObject(FilePolicy.class, filePolicyToAssign);
+        String opName = ResourceOperationTypeEnum.ASSIGN_FILE_POLICY.getName();
+        TaskCompleter completer = new FilePolicyWorkflowCompleter(filePolicyToAssign, taskId);
+
+        try {
+            String waitFor = null;
+            Workflow workflow = _workflowService.getNewWorkflow(this, ASSIGN_FILE_POLICY_WF_NAME, false, taskId, completer);
+            s_logger.info("Generating steps for assigning file policy {} to resources", filePolicyToAssign);
+            for (URI vpoolURI : vpoolToStorageSystemMap.keySet()) {
+                s_logger.info("Assigning file policy : %s,  to vpoll: %s failed,", filePolicy.getId(), vpoolURI);
+                List<URI> storageSystemURIList = vpoolToStorageSystemMap.get(vpoolURI);
+                if (storageSystemURIList != null && !storageSystemURIList.isEmpty()) {
+                    for (URI storageSystemURI : storageSystemURIList) {
+
+                        String stepId = workflow.createStepId();
+                        String stepDes = String
+                                .format("Assigning file policy : %s, to vpool: %s on storage system: %s", filePolicy.getId(), vpoolURI,
+                                        storageSystemURI);
+                        Object[] args = new Object[] { storageSystemURI, filePolicyToAssign };
+                        waitFor = _fileDeviceController.createMethod(workflow, waitFor, ASSIGN_FILE_POLICY_METHOD, stepId, stepDes,
+                                storageSystemURI, args);
+
+                    }
+                }
+            }
+
+            String successMessage = String.format("Assigning file policy : %s, to vpool(s) successful.",
+                    filePolicy.getId(), vpoolToStorageSystemMap);
+            workflow.executePlan(completer, successMessage);
+        } catch (Exception ex) {
+            s_logger.error(String.format("Assigning file policy : %s to vpool(s) failed", filePolicy.getId()), ex);
+            ServiceError serviceError = DeviceControllerException.errors.unassignFilePolicyFailed(filePolicyToAssign, opName, ex);
+            completer.error(s_dbClient, _locker, serviceError);
+        }
+
     }
 
 }

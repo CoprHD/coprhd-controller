@@ -22,18 +22,18 @@ public class AssignFilePolicySchedulingThread implements Runnable {
 
     private static final Logger _log = LoggerFactory.getLogger(AssignFilePolicySchedulingThread.class);
 
-    private final FileService fileService;
+    private final FilePolicyService filePolicyService;
     private Map<URI, List<URI>> vpoolToStorageSystemMap;
     private URI filePolicyToAssign;
     private FileServiceApi fileServiceImpl;
     private TaskResourceRep taskObject;
     private String task;
 
-    public AssignFilePolicySchedulingThread(FileService fileService, FilePolicy filePolicyToAssign,
+    public AssignFilePolicySchedulingThread(FilePolicyService fileService, FilePolicy filePolicyToAssign,
             Map<URI, List<URI>> vpoolToStorageSystemMap,
             FileServiceApi fileServiceImpl, TaskResourceRep taskObject, String task) {
 
-        this.fileService = fileService;
+        this.filePolicyService = fileService;
         this.vpoolToStorageSystemMap = vpoolToStorageSystemMap;
         this.fileServiceImpl = fileServiceImpl;
         this.taskObject = taskObject;
@@ -48,12 +48,12 @@ public class AssignFilePolicySchedulingThread implements Runnable {
             fileServiceImpl.assignFilePolicyToVirtualPool(vpoolToStorageSystemMap, filePolicyToAssign, task);
         } catch (Exception ex) {
             if (ex instanceof ServiceCoded) {
-                this.fileService._dbClient
-                        .error(FilePolicy.class, taskObject.getResource().getId(), taskObject.getOpId(), (ServiceCoded) ex);
+                this.filePolicyService._dbClient
+                .error(FilePolicy.class, taskObject.getResource().getId(), taskObject.getOpId(), (ServiceCoded) ex);
             } else {
-                this.fileService._dbClient.error(FilePolicy.class, taskObject.getResource().getId(), taskObject.getOpId(),
+                this.filePolicyService._dbClient.error(FilePolicy.class, taskObject.getResource().getId(), taskObject.getOpId(),
                         InternalServerErrorException.internalServerErrors
-                                .unexpectedErrorVolumePlacement(ex));
+                        .unexpectedErrorVolumePlacement(ex));
             }
             _log.error(ex.getMessage(), ex);
             taskObject.setMessage(ex.getMessage());
@@ -63,7 +63,7 @@ public class AssignFilePolicySchedulingThread implements Runnable {
 
     }
 
-    public static void executeApiTask(FileService fileService, ExecutorService executorService,
+    public static void executeApiTask(FilePolicyService fileService, ExecutorService executorService,
             DbClient dbClient, FilePolicy filePolicyToAssign,
             Map<URI, List<URI>> vpoolToStorageSystemMap,
             FileServiceApi fileServiceImpl, TaskResourceRep taskObject, String task) {

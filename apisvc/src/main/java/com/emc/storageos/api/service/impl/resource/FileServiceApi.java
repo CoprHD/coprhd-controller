@@ -61,7 +61,7 @@ public interface FileServiceApi {
             VirtualArray varray, VirtualPool vpool, TenantOrg tenantOrg,
             DataObject.Flag[] flags, List<Recommendation> recommendations,
             TaskList taskList, String task, VirtualPoolCapabilityValuesWrapper vpoolCapabilities)
-            throws InternalException;
+                    throws InternalException;
 
     /**
      * Delete the passed filesystems for the passed system.
@@ -127,7 +127,7 @@ public interface FileServiceApi {
     public TaskResourceRep createTargetsForExistingSource(FileShare fs, Project project,
             VirtualPool vpool, VirtualArray varray, TaskList taskList, String task, List<Recommendation> recommendations,
             VirtualPoolCapabilityValuesWrapper vpoolCapabilities)
-            throws InternalException;
+                    throws InternalException;
 
     /**
      * Create CIFS share for the FileSystem
@@ -276,5 +276,5 @@ public interface FileServiceApi {
     void deleteShareACLs(URI storage, URI uri, String shareName, String taskId) throws InternalException;
 
     void assignFilePolicyToVirtualPool(Map<URI, List<URI>> vpoolToStorageSystemMap, URI filePolicyToAssign,
-            String taskObject);
+            String taskId);
 }

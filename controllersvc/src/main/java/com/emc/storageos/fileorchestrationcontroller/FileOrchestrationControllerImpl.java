@@ -6,6 +6,7 @@ package com.emc.storageos.fileorchestrationcontroller;
 
 import java.net.URI;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import com.emc.storageos.db.client.DbClient;
@@ -120,6 +121,12 @@ public class FileOrchestrationControllerImpl implements FileOrchestrationControl
     public void unassignFilePolicy(URI policy, Set<URI> unassignFrom, String taskId) throws InternalException {
         execOrchestration("unassignFilePolicy", policy, unassignFrom, taskId);
 
+    }
+
+    @Override
+    public void assignFilePolicyToVirtualPool(Map<URI, List<URI>> vpoolToStorageSystemMap, URI filePolicyToAssign, String taskId)
+            throws InternalException {
+        execOrchestration("assignFilePolicyToVirtualPool", vpoolToStorageSystemMap, filePolicyToAssign, taskId);
     }
 
     // getter and setter methods

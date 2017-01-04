@@ -46,6 +46,7 @@ import com.emc.storageos.db.client.model.FilePolicy.FilePolicyType;
 import com.emc.storageos.db.client.model.FilePolicy.SnapshotExpireType;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.Project;
+import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.VirtualPool;
@@ -65,6 +66,7 @@ import com.emc.storageos.model.file.policy.FilePolicyRestRep;
 import com.emc.storageos.model.file.policy.FilePolicyUnAssignParam;
 import com.emc.storageos.model.file.policy.FilePolicyUpdateParam;
 import com.emc.storageos.model.file.policy.FileReplicationPolicyParam;
+import com.emc.storageos.security.audit.AuditLogManager;
 import com.emc.storageos.security.authentication.StorageOSUser;
 import com.emc.storageos.security.authorization.CheckPermission;
 import com.emc.storageos.security.authorization.DefaultPermissions;
@@ -721,7 +723,7 @@ public class FilePolicyService extends TaskResourceService {
 
             for (URI vpoolURI : vpoolURIs) {
                 ArgValidator.checkFieldUriType(vpoolURI, VirtualPool.class, "vpool");
-                VirtualPool virtualPool = this._dbClient.queryObject(VirtualPool.class, vpoolURI);
+                VirtualPool virtualPool = _dbClient.queryObject(VirtualPool.class, vpoolURI);
 
                 ArgValidator.checkEntity(virtualPool, vpoolURI, false);
 
@@ -740,8 +742,10 @@ public class FilePolicyService extends TaskResourceService {
                     throw APIException.badRequests.invalidFilePolicyAssignParam(filepolicy.getFilePolicyName(), errorMsg.toString());
                 }
             }
-            filepolicy.setApplyAt(FilePolicyApplyLevel.vpool.name());
-            filepolicy.setAssignedResources(assignedResources);
+            /*
+             * filepolicy.setApplyAt(FilePolicyApplyLevel.vpool.name());
+             * filepolicy.setAssignedResources(assignedResources);
+             */
         }
         /*
          * if (param.getVpoolAssignParams().getAssigntoAll() != null) {
@@ -752,6 +756,12 @@ public class FilePolicyService extends TaskResourceService {
          * }
          */
         // this._dbClient.updateObject(filepolicy);
+        FileServiceApi fileServiceApi = getDefaultFileServiceApi();
+        AssignFilePolicySchedulingThread.executeApiTask(this, _asyncTaskService.getExecutorService(), _dbClient,
+                filepolicy, vpoolToStorageSystemMap, fileServiceApi, taskObject, task);
+
+        auditOp(OperationTypeEnum.ASSIGN_FILE_POLICY, true, AuditLogManager.AUDITOP_BEGIN,
+                filepolicy.getLabel());
 
         return taskObject;
     }
@@ -902,13 +912,13 @@ public class FilePolicyService extends TaskResourceService {
         if (storagePoolURISet != null && !storagePoolURISet.isEmpty()) {
             for (Iterator<String> iterator = storagePoolURISet.iterator(); iterator.hasNext();) {
                 URI storagePoolURI = URI.create(iterator.next());
-                StoragePort sport = _dbClient.queryObject(StoragePort.class, storagePoolURI);
-                if (sport != null && !sport.getInactive()) {
-                    storageSystemURISet.add(sport.getStorageDevice());
+                StoragePool spool = _dbClient.queryObject(StoragePool.class, storagePoolURI);
+                if (spool != null && !sport.getInactive()) {
+                    storageSystemURISet.add(spool
+                            spool.getStorageDevice());
                 }
             }
         }
         return storageSystemURISet;
     }
-
 }

@@ -917,7 +917,7 @@ public class BlockDeviceExportController implements BlockExportController {
             boolean acquiredLocks = _wfUtils.getWorkflowService().acquireWorkflowLocks(
                     workflow, lockKeys, LockTimeoutValue.get(LockType.EXPORT_GROUP_OPS));
             if (!acquiredLocks) {
-                _log.error("Paths adjustment could not require log");
+                _log.error("Paths adjustment could not require lock.");
                 ServiceError serviceError = DeviceControllerException.errors.jobFailedOpMsg("paths adjustment", "Could not acquire workflow loc");
                 taskCompleter.error(_dbClient, serviceError);
                 return;

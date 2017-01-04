@@ -118,7 +118,9 @@ import com.emc.storageos.model.block.export.ITLRestRepList;
 import com.emc.storageos.model.block.export.InitiatorParam;
 import com.emc.storageos.model.block.export.InitiatorPathParam;
 import com.emc.storageos.model.block.export.InitiatorPortMapRestRep;
+import com.emc.storageos.model.block.export.PortReplacementParam;
 import com.emc.storageos.model.block.export.ExportPathsAdjustmentPreviewRestRep;
+import com.emc.storageos.model.block.export.ExportReplacePortsParam;
 import com.emc.storageos.model.block.export.VolumeParam;
 import com.emc.storageos.model.search.SearchResultResourceRep;
 import com.emc.storageos.model.search.SearchResults;
@@ -3589,5 +3591,188 @@ public class ExportGroupService extends TaskResourceService {
         if (!systemPorts.containsAll(pathTargets)) {
             throw APIException.badRequests.exportPathAdjustmentAdjustedPathNotValid(Joiner.on(",").join(pathTargets));
         }
+    }
+    
+    /**
+     * Replace storage ports for the export group
+     * @param id - Export group URI
+     * @param param - Input parameters
+     * @return - The task
+     * @throws ControllerException
+     */
+    @PUT
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/{id}/replace-ports")
+    @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.OWN, ACL.ALL })
+    public TaskResourceRep replacePorts(@PathParam("id") URI id, ExportReplacePortsParam param)
+            throws ControllerException {
+     // Basic validation of ExportGroup and the request
+        ExportGroup exportGroup = queryObject(ExportGroup.class, id, true);
+        if (exportGroup.checkInternalFlags(DataObject.Flag.DELETION_IN_PROGRESS)) {
+            throw BadRequestException.badRequests.deletionInProgress(
+                    exportGroup.getClass().getSimpleName(), exportGroup.getLabel());
+        }
+        validateExportGroupNoPendingEvents(exportGroup);
+
+        ArgValidator.checkUri(param.getStorageSystem());
+        StorageSystem system = queryObject(StorageSystem.class, param.getStorageSystem(), true);
+        
+        // Log the input parameters
+        param.logParameters(_log);
+        
+        // Get the virtual array, default to Export Group varray. Validate it matches.
+        URI varray = param.getVirtualArray();
+        if (varray != null) {
+           boolean validVarray = varray.equals(exportGroup.getVirtualArray());
+           if (exportGroup.getAltVirtualArrays() != null 
+                   && varray.toString().equals(exportGroup.getAltVirtualArrays().get(system.getId().toString()))) {
+               validVarray = true;
+           }
+           if (!validVarray) {
+               throw APIException.badRequests.varrayNotInExportGroup(varray.toString());
+           }
+        } else {    
+            varray = exportGroup.getVirtualArray();
+        }
+
+        Map<URI, List<URI>> adjustedPaths = new HashMap<URI, List<URI>>();
+        Map<URI, List<URI>> removedPaths = new HashMap<URI, List<URI>>();
+        validateReplacePortsAndConvertParams(exportGroup, system, param, adjustedPaths, removedPaths);
+        _log.info(String.format("The adjusted paths %s", Joiner.on(',').withKeyValueSeparator("=").join(adjustedPaths)));
+        _log.info(String.format("The removed paths %s", Joiner.on(',').withKeyValueSeparator("=").join(removedPaths)));
+        Boolean wait = param.getWaitBeforeRemovePaths();
+        if (wait == null) {
+            wait = false;
+        }
+        
+        String task = UUID.randomUUID().toString();
+        Operation op = initTaskStatus(exportGroup, task, Operation.Status.pending, ResourceOperationTypeEnum.EXPORT_REPLACE_PORTS);
+
+        // persist the export group to the database
+        _dbClient.updateObject(exportGroup);
+        auditOp(OperationTypeEnum.EXPORT_REPLACE_PORTS, true, AuditLogManager.AUDITOP_BEGIN,
+                exportGroup.getLabel(), exportGroup.getId().toString(),
+                exportGroup.getVirtualArray().toString(), exportGroup.getProject().toString());
+
+        TaskResourceRep taskRes = toTask(exportGroup, task, op);
+        BlockExportController exportController = getExportController();
+        _log.info("Submitting export port replacement request.");
+        
+        exportController.exportGroupPortRebalance(param.getStorageSystem(), id, varray, adjustedPaths, removedPaths, 
+                null, wait, task);
+        return taskRes;
+    }
+    
+    /**
+     * Validate the input parameters and update adjustedPaths and removedPaths
+     * 
+     * @param exportGroup - export group
+     * @param system - storage system
+     * @param param - input parameters
+     * @param adjustedPaths - OUTPUT adjusted paths
+     * @param removedPaths - OUTPUT removed paths
+     */
+    private void validateReplacePortsAndConvertParams(ExportGroup exportGroup, StorageSystem system, ExportReplacePortsParam param,
+            Map<URI, List<URI>>adjustedPaths, Map<URI, List<URI>>removedPaths) {
+        String systemType = system.getSystemType();
+        if (!Type.vmax.name().equalsIgnoreCase(systemType) &&
+            !Type.vplex.name().equalsIgnoreCase(systemType)) {
+            throw APIException.badRequests.exportReplacePortsSystemNotSupported(systemType); 
+        }
+        List<ExportMask> exportMasks = ExportMaskUtils.getExportMasks(_dbClient,  exportGroup, system.getId());
+        if (exportMasks.isEmpty()) {
+            throw APIException.badRequests.exportPathAdjustmentSystemExportGroupNotMatch(exportGroup.getLabel(), system.getNativeGuid());
+        }
+        
+        Set<URI> systemPorts = new HashSet<URI>();
+        URIQueryResultList storagePortURIs = new URIQueryResultList();
+        _dbClient.queryByConstraint(
+                ContainmentConstraint.Factory.getStorageDeviceStoragePortConstraint(system.getId()),
+                storagePortURIs);
+        List<StoragePort> storagePorts = _dbClient.queryObject(StoragePort.class, storagePortURIs);
+        for (StoragePort port : storagePorts) {
+            if (!port.getInactive() && 
+                    port.getCompatibilityStatus().equals(DiscoveredDataObject.CompatibilityStatus.COMPATIBLE.name()) &&
+                    port.getRegistrationStatus().equals(StoragePort.RegistrationStatus.REGISTERED.name()) &&
+                    port.getDiscoveryStatus().equals(DiscoveryStatus.VISIBLE.name())) {
+                systemPorts.add(port.getId());
+            }
+        }
+        
+        List<PortReplacementParam> replaces = param.getReplacePorts();
+        
+        // the map of storage port to initiators.
+        Map<URI, List<URI>> portsMap = new HashMap<URI, List<URI>>();
+        for (ExportMask mask : exportMasks) {
+            StringSetMap zoningMap = mask.getZoningMap();
+            if (zoningMap == null) {
+                _log.info(String.format("The mask %s has no zoning map, skip", mask.getLabel()));
+                continue;
+            }
+            for (String init : zoningMap.keySet()) {
+                URI initURI = URI.create(init);
+                List<URI> ports = adjustedPaths.get(initURI);
+                if (ports == null) {
+                    ports = new ArrayList<URI>();
+                    adjustedPaths.put(initURI, ports);
+                }
+                List<URI> pathPorts = StringSetUtil.stringSetToUriList(zoningMap.get(init));
+                ports.addAll(pathPorts);
+                // Get the portsMap
+                for (URI port : pathPorts) {
+                    List<URI> inits = portsMap.get(port);
+                    if (inits == null) {
+                        inits = new ArrayList<URI>();
+                        portsMap.put(port, inits);
+                    }
+                    inits.add(initURI);
+                }
+            }
+        }
+        
+        // Validate old port and new port are valid
+        for (PortReplacementParam replace : replaces) {
+            URI newPortURI = replace.getNewPort();
+            URI oldPortURI = replace.getOldPort();
+            if (!systemPorts.contains(newPortURI)) {
+                throw APIException.badRequests.exportReplacePortsPortsNotValid(newPortURI.toString(), system.getId().toString());
+            }
+            if (!systemPorts.contains(oldPortURI)) {
+                throw APIException.badRequests.exportReplacePortsPortsNotValid(oldPortURI.toString(), system.getId().toString());
+            }
+            // old port and new port should be in the same network
+            StoragePort newPort = _dbClient.queryObject(StoragePort.class, newPortURI);
+            StoragePort oldPort = _dbClient.queryObject(StoragePort.class, oldPortURI);
+            if (newPort.getNetwork() == null || oldPort.getNetwork() == null || 
+                    !newPort.getNetwork().equals(oldPort.getNetwork())) {
+                throw APIException.badRequests.exportReplacePortsOldNewPortsNotInSameNetwork(oldPortURI.toString(), newPortURI.toString());
+            }
+            List<URI> pathInits = portsMap.get(oldPortURI);
+            if (pathInits == null) {
+                // Old port is not in any path.
+                _log.error(String.format("The old port %s is not in any path in the export group", oldPortURI.toString()));
+                throw APIException.badRequests.exportReplacePortsOldPortNotInPaths(oldPortURI.toString());
+                
+            } else {
+                // Change the paths
+                for (URI initiator : pathInits) {
+                    List<URI> ports = adjustedPaths.get(initiator);
+                    ports.remove(oldPortURI);
+                    if (ports.contains(newPortURI)) {
+                        // The new port is in the paths already. error.
+                        throw APIException.badRequests.exportReplacePortsNewPortInPaths(newPortURI.toString());
+                    }
+                    ports.add(newPortURI);
+                    List<URI> removedPathsPorts = removedPaths.get(initiator);
+                    if (removedPathsPorts == null) {
+                        removedPathsPorts = new ArrayList<URI>();
+                        removedPaths.put(initiator, removedPathsPorts);
+                    }
+                    removedPathsPorts.add(oldPortURI);
+                }
+            }
+        }
+        
     }
 }

@@ -516,6 +516,7 @@ public enum OperationTypeEnum {
     REMOVE_STORAGE_SYSTEM_TYPE("REMOVE STORAGE SYSTEM TYPE", "", "operation to initiate removing a storage system type"),
     CREATE_SCHEDULE_POLICY("SchedulePolicyCreated", "", "create schedule policy."),
     EXPORT_PATH_ADJUSTMENT("EXPORT PATH ADJUSTMENT", "", "operation to adjust export paths"),
+    EXPORT_REPLACE_PORTS("EXPORT REPLACE PORTS", "", "operation to replace ports in export"),
     
     /* Filesystem Mount Operations*/
     

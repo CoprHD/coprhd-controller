@@ -102,6 +102,11 @@ public class ExportPortRebalanceCompleter extends ExportTaskCompleter{
         log.info("updating path param map.");
         if (affectedExportGroups == null || affectedExportGroups.isEmpty()) {
             // not export group is affected, return;
+            return;
+        }
+        if (newPathParam == null) {
+            // No change in the path param, return
+            return;
         }
         for (URI egURI : affectedExportGroups) {
             ExportGroup exportGroup = dbClient.queryObject(ExportGroup.class, egURI);

@@ -1585,12 +1585,13 @@ public class ExportUtils {
      * @return the maximum allowed HLU number for the storage array
      */
     public static Integer getMaximumAllowedHLU(StorageSystem storage) {
-        String maxAllowedHLUKey = getLookupKeyBasedOnSystemType(storage.getSystemType());
+        String systemType = storage.getSystemType();
+        String maxAllowedHLUKey = getLookupKeyBasedOnSystemType(systemType);
         // Get and return max allowed HLU from co-ordinator.
         String maxHLU = ControllerUtils.getPropertyValueFromCoordinator(coordinator, maxAllowedHLUKey);
-        if (maxHLU == null) {
-            maxAllowedHLUKey = getLookupKeyBasedOnSystemType("default");
-            maxHLU = ControllerUtils.getPropertyValueFromCoordinator(coordinator, maxAllowedHLUKey);
+        _log.info("Maximum allowed HLU for system type {}: {}", systemType, maxHLU);
+        if (maxHLU == null || maxHLU.isEmpty()) {
+            throw DeviceControllerException.exceptions.volumeExportMaximumHluNotAvailable(systemType);
         }
         return Integer.parseInt(maxHLU);
     }

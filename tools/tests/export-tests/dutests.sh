@@ -1571,6 +1571,31 @@ verify_nomasks() {
     verify_export ${expname}2 ${HOST2} gone
 }
 
+# For Unity, inititiator can not be removed unless no mapped LUN
+# Unexport LUNs first, then remove initiator, and then export the LUNs back
+#
+remove_unity_initiator_from_mask() {
+    masking_view_name=`get_masking_view_name no-op $1`
+    initiator=$2
+    volumes=$3
+
+    echo "Remove unity initiator $initiator from host $host"
+    # remove volumes first
+    for volume in $volumes
+    do
+        arrayhelper remove_volume_from_mask ${SERIAL_NUMBER} ${volume} "${masking_view_name}"
+    done
+
+    # now remove initiator
+    arrayhelper remove_initiator_from_mask ${SERIAL_NUMBER} ${initiator} "${masking_view_name}"
+
+    # add volumes
+    for volume in $volumes
+    do
+        arrayhelper add_volume_to_mask ${SERIAL_NUMBER} ${volume} "${masking_view_name}"
+    done
+}
+
 # Export Test 0
 #
 # Test existing functionality of export and verifies there's good volumes, exports are clean, and tests are ready to run.
@@ -1841,11 +1866,6 @@ test_3() {
 #
 test_4() {
     echot "Test 4: Export Group Delete doesn't delete Export Mask when extra initiators are in it"
-    if [ "$SS" = "unity" ]; then
-        echo "For Unity, initiator cannot be deleted if host has mapped LUN. So skipping this test for Unity."
-        return
-    fi
-
     expname=${EXPORT_GROUP_NAME}t4
 
     # Make sure we start clean; no masking view on the array
@@ -1878,7 +1898,13 @@ test_4() {
         verify_export ${expname}1 ${HOST1} 3 2
 
         # Now remove the initiator from the export mask
-        arrayhelper remove_initiator_from_mask ${SERIAL_NUMBER} ${PWWN} ${HOST1}
+        if [ "$SS" = "unity" ]; then
+            device_id1=`get_device_id ${PROJECT}/${VOLNAME}-1`
+            device_id2=`get_device_id ${PROJECT}/${VOLNAME}-2`
+            remove_unity_initiator_from_mask ${HOST1} ${PWWN} "${device_id1} ${device_id2}"
+        else
+            arrayhelper remove_initiator_from_mask ${SERIAL_NUMBER} ${PWWN} ${HOST1}
+        fi
 
         # Verify the mask is back to normal
         verify_export ${expname}1 ${HOST1} 2 2
@@ -1908,7 +1934,6 @@ test_4() {
     workflow=${answersarray[1]}
 
     PWWN=`getwwn`
-
     # Add another initiator to the mask (done differently per array type)
     arrayhelper add_initiator_to_mask ${SERIAL_NUMBER} ${PWWN} ${HOST1}
     
@@ -1926,7 +1951,13 @@ test_4() {
     verify_export ${expname}1 ${HOST1} 3 2
 
     # Now remove the initiator from the export mask
-    arrayhelper remove_initiator_from_mask ${SERIAL_NUMBER} ${PWWN} ${HOST1}
+    if [ "$SS" = "unity" ]; then
+        device_id1=`get_device_id ${PROJECT}/${VOLNAME}-1`
+        device_id2=`get_device_id ${PROJECT}/${VOLNAME}-2`
+        remove_unity_initiator_from_mask ${HOST1} ${PWWN} "${device_id1} ${device_id2}"
+    else
+        arrayhelper remove_initiator_from_mask ${SERIAL_NUMBER} ${PWWN} ${HOST1}
+    fi
 
     # Verify the mask is back to normal
     verify_export ${expname}1 ${HOST1} 2 2
@@ -1955,6 +1986,9 @@ test_4() {
     workflow=${answersarray[1]}
 
     PWWN=`echo ${H2PI1} | sed 's/://g'`
+    if [ "$SS" = "unity" ]; then
+        PWWN="${H2NI1}:${H2PI1}"
+    fi
 
     # Add another initiator to the mask (done differently per array type)
     arrayhelper add_initiator_to_mask ${SERIAL_NUMBER} ${PWWN} ${HOST1}
@@ -1973,7 +2007,14 @@ test_4() {
         # Verify the mask wasn't touched
         verify_export ${expname}1 ${HOST1} 3 2
         # Now remove the initiator from the export mask
-        arrayhelper remove_initiator_from_mask ${SERIAL_NUMBER} ${PWWN} ${HOST1}
+
+        if [ "$SS" = "unity" ]; then
+            device_id1=`get_device_id ${PROJECT}/${VOLNAME}-1`
+            device_id2=`get_device_id ${PROJECT}/${VOLNAME}-2`
+            remove_unity_initiator_from_mask ${HOST1} ${PWWN} "${device_id1} ${device_id2}"
+        else
+            arrayhelper remove_initiator_from_mask ${SERIAL_NUMBER} ${PWWN} ${HOST1}
+        fi
 
         # Verify the mask is back to normal
         verify_export ${expname}1 ${HOST1} 2 2
@@ -2015,11 +2056,6 @@ test_4() {
 #
 test_5() {
     echot "Test 5: Remove Volume doesn't remove the volume when extra initiators are in the mask"
-    if [ "$SS" = "unity" ]; then
-        echo "For Unity, initiator cannot be deleted if host has mapped LUN. So skipping this test for Unity."
-        return
-    fi
-
     expname=${EXPORT_GROUP_NAME}t5
 
     # Make sure we start clean; no masking view on the array
@@ -2068,7 +2104,13 @@ test_5() {
     fail task follow $task
 
     # Now remove the initiator from the export mask
-    arrayhelper remove_initiator_from_mask ${SERIAL_NUMBER} ${PWWN} ${HOST1}
+    if [ "$SS" = "unity" ]; then
+        device_id1=`get_device_id ${PROJECT}/${VOLNAME}-1`
+        device_id2=`get_device_id ${PROJECT}/${VOLNAME}-2`
+        remove_unity_initiator_from_mask ${HOST1} ${PWWN} "${device_id1} ${device_id2}"
+    else
+        arrayhelper remove_initiator_from_mask ${SERIAL_NUMBER} ${PWWN} ${HOST1}
+    fi
 
     # Verify the mask is back to normal
     verify_export ${expname}1 ${HOST1} 2 2
@@ -2094,7 +2136,10 @@ test_5() {
         workflow=${answersarray[1]}
 
         PWWN=`echo ${H2PI1} | sed 's/://g'`
-    
+        if [ "$SS" = "unity" ]; then
+            PWWN="${H2NI1}:${H2PI1}"
+        fi
+
         # Add another initiator to the mask (done differently per array type)
         arrayhelper add_initiator_to_mask ${SERIAL_NUMBER} ${PWWN} ${HOST1}
     
@@ -2112,7 +2157,13 @@ test_5() {
         verify_export ${expname}1 ${HOST1} 3 2
 
         # Now remove the initiator from the export mask
-        arrayhelper remove_initiator_from_mask ${SERIAL_NUMBER} ${PWWN} ${HOST1}
+        if [ "$SS" = "unity" ]; then
+            device_id1=`get_device_id ${PROJECT}/${VOLNAME}-1`
+            device_id2=`get_device_id ${PROJECT}/${VOLNAME}-2`
+            remove_unity_initiator_from_mask ${HOST1} ${PWWN} "${device_id1} ${device_id2}"
+        else
+            arrayhelper remove_initiator_from_mask ${SERIAL_NUMBER} ${PWWN} ${HOST1}
+        fi
 
         # Verify the mask is back to normal
         verify_export ${expname}1 ${HOST1} 2 2
@@ -2150,11 +2201,6 @@ test_5() {
 #
 test_6() {
     echot "Test 6: Remove Initiator doesn't remove initiator when extra volumes are seen by it"
-    if [ "$SS" = "unity" ]; then
-        echo "For Unity, initiator cannot be deleted if host has mapped LUN. So skipping this test for Unity."
-        return
-    fi
-
     expname=${EXPORT_GROUP_NAME}t6
 
     # Make sure we start clean; no masking view on the array
@@ -2183,7 +2229,7 @@ test_6() {
     # Now remove the volume from the storage group (masking view)
     arrayhelper remove_volume_from_mask ${SERIAL_NUMBER} ${known_device_id} ${HOST1}
 
-    # Verify the mask has the new volume in it
+    # Verify the mask without the new volume in it
     verify_export ${expname}1 ${HOST1} 2 1
 
     # Turn on suspend of export after orchestration
@@ -2193,14 +2239,16 @@ test_6() {
     echo === export_group update $PROJECT/${expname}1 --remInits ${HOST1}/${H1PI1}
     resultcmd=`export_group update $PROJECT/${expname}1 --remInits ${HOST1}/${H1PI1}`
 
-    if [ $? -ne 0 ]; then
+    if [ $? -ne 0 -a "$SS" != "unity" ]; then
 	echo "export group command failed outright"
 	cleanup
 	finish 6
     fi
 
     # Show the result of the export group command for now (show the task and WF IDs)
-    echo $resultcmd
+    if [ "$SS" != "unity" ]; then
+        echo $resultcmd
+    fi
 
     # Parse results (add checks here!  encapsulate!)
     taskworkflow=`echo $resultcmd | awk -F, '{print $2 $3}'`
@@ -2264,14 +2312,16 @@ test_6() {
     echo === export_group update $PROJECT/${expname}1 --remInits ${HOST1}/${H1PI1}
     resultcmd=`export_group update $PROJECT/${expname}1 --remInits ${HOST1}/${H1PI1}`
 
-    if [ $? -ne 0 ]; then
+    if [ $? -ne 0 -a "$SS" != "unity" ]; then
 	echo "export group command failed outright"
 	cleanup
 	finish 6
     fi
 
     # Show the result of the export group command for now (show the task and WF IDs)
-    echo $resultcmd
+    if [ "$SS" != "unity" ]; then
+        echo $resultcmd
+    fi
 
     # Parse results (add checks here!  encapsulate!)
     taskworkflow=`echo $resultcmd | awk -F, '{print $2 $3}'`
@@ -2305,10 +2355,13 @@ test_6() {
     set_suspend_on_class_method "none"
 
     # Try the operation again
-    runcmd export_group update $PROJECT/${expname}1 --remInits ${HOST1}/${H1PI1}
-
-    # Verify the mask is back to normal
-    verify_export ${expname}1 ${HOST1} 1 1
+    if [ "$SS" != "unity" ]; then
+        runcmd export_group update $PROJECT/${expname}1 --remInits ${HOST1}/${H1PI1}
+        # Verify the mask is back to normal
+        verify_export ${expname}1 ${HOST1} 1 1
+    else
+        fail export_group update $PROJECT/${expname}1 --remInits ${HOST1}/${H1PI1}
+    fi
 
     # Try the export operation again
     runcmd export_group update $PROJECT/${expname}1 --addInits ${HOST1}/${H1PI1}
@@ -2732,10 +2785,10 @@ test_12() {
 #
 test_13() {
     echot "Test 13: Test rollback of add volume, verify it does not remove volumes when initiator sneaks into mask"
-    if [ "$SS" = "unity" ]; then
-        echo "For Unity, initiator cannot be deleted if host has mapped LUN. So skipping this test for Unity."
-        return
-    fi
+    #if [ "$SS" = "unity" ]; then
+    #    echo "For Unity, initiator cannot be deleted if host has mapped LUN. So skipping this test for Unity."
+    #    return
+    #fi
 
     expname=${EXPORT_GROUP_NAME}t13
 
@@ -2787,10 +2840,16 @@ test_13() {
     fail task follow $task
 
     # Verify the mask still has the new volume in it (this will fail if rollback removed it)
-    verify_export ${expname}1 ${HOST1} 3 2
+    verify_export ${expname}1 ${HOST1} 3 2 # shouldn't be 3 1?
 
     # Remove initiator from the mask (done differently per array type)
-    arrayhelper remove_initiator_from_mask ${SERIAL_NUMBER} ${PWWN} ${HOST1}
+    if [ "$SS" = "unity" ]; then
+        device_id1=`get_device_id ${PROJECT}/${VOLNAME}-1`
+        device_id2=`get_device_id ${PROJECT}/${VOLNAME}-2`
+        remove_unity_initiator_from_mask ${HOST1} ${PWWN} "${device_id1} ${device_id2}"
+    else
+        arrayhelper remove_initiator_from_mask ${SERIAL_NUMBER} ${PWWN} ${HOST1}
+    fi
 
     # Verify the initiator was removed
     verify_export ${expname}1 ${HOST1} 2 2
@@ -2879,7 +2938,7 @@ test_14() {
     arrayhelper add_volume_to_mask ${SERIAL_NUMBER} ${device_id} ${HOST1}
     
     # Verify the mask has the new initiator in it
-    verify_export ${expname}1 ${HOST1} 1 2
+    verify_export ${expname}1 ${HOST1} 1 2 # should be 2 2
 
     # Resume the workflow
     runcmd workflow resume $workflow
@@ -3738,7 +3797,7 @@ test_23() {
 test_24() {
     echot "Test 24: Remove Volume doesn't remove the zone when extra volume is in the mask"
     if [ "$SS" = "unity" ]; then
-        echo "Test 25 will fail for Unity due to COP-27345. Skipping."
+        echo "This will fail for Unity due to COP-27345. Skipping for now."
         return
     fi
 

@@ -49,7 +49,7 @@ public class UserToOrdersMigration extends BaseDefaultMigrationCallback {
                 new ColumnFamily<>(SOURCE_INDEX_CF_NAME, StringSerializer.get(), IndexColumnNameSerializer.get());
 
         DbClientImpl client = getInternalDbClient();
-        Keyspace ks = client.getLocalKeyspace();
+        Keyspace ks = client.getKeyspace(Order.class);
         MutationBatch mutationBatch = ks.prepareMutationBatch();
 
         long n = 0;

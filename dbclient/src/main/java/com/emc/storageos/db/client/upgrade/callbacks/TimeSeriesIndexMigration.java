@@ -45,7 +45,7 @@ public class TimeSeriesIndexMigration extends BaseDefaultMigrationCallback {
 
 
         DbClientImpl client = getInternalDbClient();
-        Keyspace ks = client.getLocalKeyspace();
+        Keyspace ks = client.getKeyspace(Order.class);
         MutationBatch mutationBatch = ks.prepareMutationBatch();
 
         try {

@@ -143,7 +143,7 @@ public class BourneDbClient implements DBClientWrapper {
 
         TimeSeriesConstraint constraint = TimeSeriesConstraint.Factory.getOrdersByUser(userId, startTime, endTime);
         DbClientImpl dbclient = (DbClientImpl)getDbClient();
-        constraint.setKeyspace(dbclient.getLocalKeyspace());
+        constraint.setKeyspace(dbclient.getKeyspace(Order.class));
 
         try {
             return constraint.count();
@@ -162,7 +162,7 @@ public class BourneDbClient implements DBClientWrapper {
         for (URI tid : tids) {
             TimeSeriesConstraint constraint = TimeSeriesConstraint.Factory.getOrders(tid, startTime, endTime);
             DbClientImpl dbclient = (DbClientImpl) getDbClient();
-            constraint.setKeyspace(dbclient.getLocalKeyspace());
+            constraint.setKeyspace(dbclient.getKeyspace(Order.class));
 
             try {
                 counts.put(tid.toString(), constraint.count());

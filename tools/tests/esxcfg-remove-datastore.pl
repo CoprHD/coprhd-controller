@@ -1,7 +1,4 @@
 #!/usr/bin/perl -w
-# 12/15/09
-# http://engineering.ucsb.edu/~duonglt/vmware
-# http://communities.vmware.com/docs/DOC-9852
 
 use strict;
 use warnings;
@@ -90,7 +87,7 @@ sub getDatastores {
 	my ($host) = @_;
 
 	$hostname = &getShortHostname($host);
- 	$hostdatastoresystem = &getHostDatasoresystem($host); 
+ 	$hostdatastoresystem = &getHostDatastoreSystem($host); 
         $datastores = Vim::get_views(mo_ref_array => $host->datastore);
         &searchDS($txtformat,$txtplacement,$hostname,$datastores,$hostdatastoresystem);
 }
@@ -99,12 +96,12 @@ sub renameDS {
         my ($ds,$new_name,$hostdatastoresystem) = @_;
 
 	if($operation ne 'dryrun') {
-		print "\tRenaming \"" . $ds->name ."\" to \"$new_name\" ...\n";
+		print "\tRemoving \"" . $ds->name ."\" to \"$new_name\" ...\n";
         	my $task = $hostdatastoresystem->RemoveDatastore(datastore => $ds);
-        	my $msg = "\tSucessfully renamed datastore!\n";
+        	my $msg = "\tSucessfully removed datastore!\n";
         	&getStatus($task,$msg);
 	} else {
-		print "\tDRYRUN - Renaming \"" . $ds->name ."\" to \"$new_name\" ...\n";
+		print "\tDRYRUN - Removing \"" . $ds->name ."\" to \"$new_name\" ...\n";
 	}	
 }
 

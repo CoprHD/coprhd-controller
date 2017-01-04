@@ -100,7 +100,11 @@ def datastore_create(args):
     total = time.time() - start
     print "Datastore create took", "{0:.2f}".format(total), "seconds to complete"
     #print 'Datastore_create debug : ' + str(s)
-    
+    for tr in tr_list:
+        if (tr['order_status'] == 'PENDING'):
+            print 'Datastore created with id ' + tr['id']
+        elif (tr['state'] != 'FAILED'):
+            print 'Datastore create failed.'    
 #----------------------------------------------------------------------
 # command-line parsing
 #----------------------------------------------------------------------

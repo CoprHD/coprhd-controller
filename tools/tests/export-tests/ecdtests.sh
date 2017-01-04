@@ -1833,7 +1833,7 @@ test_1(){
 	runcmd vcenter createds ${VCENTER} ${VCENTER}/${DC} ${stype} ${esxihost} ${NH} ${VPOOL_BASE} ${PROJECT} ${dsname} ${dsname}-vol 1 ${catalog_service} ${parent_catalog}
        
 	#sleep
-	sleep 50
+	sleep 100
 	#run the perl script to rename the datastore
     runcmd  esxcfg-rename-datastore.pl --server ${VCENTER_IP} --username ${VCENTER_USER} --password ${VCENTER_PASS} --datastore ${dsname} --txtplacement prepend --txtformat local-storage- --operation rename
         
@@ -1869,29 +1869,63 @@ test_2(){
         cfs="Volume "
         mkdir -p results/${item}
         dsname=${VOLNAME}-${item}
-		catalog_service=CreateVolumeandDatastore
-		parent_catalog=BlockServicesforVMwarevCenter
+	catalog_service=CreateVolumeandDatastore
+	parent_catalog=BlockServicesforVMwarevCenter
+	esxihost=lgloc107.lss.emc.com		
+	#Take the snap of the initial state of the DB.
+	snap_db 1 ${cfs}
 		
-		#Take the snap of the initial state of the DB.
-		snap_db 1 ${cfs}
+	#Create datastore using catalog service APIs
+	runcmd vcenter createds ${VCENTER} ${VCENTER}/${DC} ${stype} ${esxihost} ${NH} ${VPOOL_BASE} ${PROJECT} ${dsname} ${dsname}-vol 1 ${catalog_service} ${parent_catalog}
+       	        
+	#sleep
+	sleep 100
+
+	#Run perl script to delete a datastore
+	runcmd  esxcfg-remove-datastore.pl --server ${VCENTER_IP} --username ${VCENTER_USER} --password ${VCENTER_PASS} --datastore ${dsname} --txtplacement prepend --txtformat local-storage- --operation remove
+        
+	#Take the snap of the DB.
+	snap_db 2 ${cfs}
+
+	#Trigger discovery of vcenter
+	runcmd vcenter discover ${VCENTER}
+        
+	sleep 10
+	#Take the snap of the DB.
+	snap_db 3 ${cfs}
+        
+	#Difference
+	validate_db 2 3 ${cfs}
+
+}
+
+test_3(){
+
+ secho "Running Test 3 for datastore creation outside vipr "
+        item=${RANDOM}
+        cfs="Volume "
+        mkdir -p results/${item}
+        
+	#Take the snap of the initial state of the DB.
+	snap_db 1 ${cfs}
+		       	
+	#Run perl script to delete a datastore
+	runcmd  esxcfg-create-datastore.pl --server ${VCENTER_IP} --username ${VCENTER_USER} --password ${VCENTER_PASS} 
+        
+	#Take the snap of the DB.
+	snap_db 2 ${cfs}
 		
-		#Create datastore using catalog service APIs
-		runcmd vcenter createds ${VCENTER} ${VCENTER}/${DC} ${stype} ${host} ${NH} ${VPOOL_BASE} ${PROJECT} ${dsname} ${dsname}-vol 1GB ${catalog_service} ${parent_catalog}
-       	
-		#Run perl script to delete a datastore
-		runcmd  esxcfg-remove-datastore.pl --server ${VCENTER_IP} --username ${VCENTER_USER} --password ${VCENTER_PASS} --datastore ${dsname} --txtplacement prepend --txtformat local-storage- --operation rename
+	#Trigger discovery of vcenter
+	runcmd vcenter discover ${VCENTER}
         
-		#Take the snap of the DB.
-		snap_db 2 ${cfs}
-		
-		#Trigger discovery of vcenter
-		runcmd vcenter discover ${VCENTER}
+	#sleep
+	sleep 10
+	
+	#Take the snap of the DB.
+	snap_db 3 ${cfs}
         
-		#Take the snap of the DB.
-		snap_db 3 ${cfs}
-        
-		#Difference
-		validate_db 2 3 ${cfs}
+	#Difference
+	validate_db 2 3 ${cfs}
 
 }
 

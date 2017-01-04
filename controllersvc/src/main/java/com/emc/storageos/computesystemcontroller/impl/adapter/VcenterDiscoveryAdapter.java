@@ -136,7 +136,7 @@ public class VcenterDiscoveryAdapter extends EsxHostDiscoveryAdapter {
                 processor.setRegistrationStatus(vcenter.getRegistrationStatus());
             }
             save(vcenter);
-            processHostChanges(changes, deletedHosts, deletedClusters, true)
+            processHostChanges(changes, deletedHosts, deletedClusters, true);
 
             List<VcenterDataCenter> dbDatacenters = new ArrayList<VcenterDataCenter>();
             Iterables.addAll(dbDatacenters, getDatacenters(vcenter));
@@ -775,7 +775,7 @@ public class VcenterDiscoveryAdapter extends EsxHostDiscoveryAdapter {
             StringMap volumesMap = new StringMap();
             try {
                 List<ExportGroup> exportGroups = CustomQueryUtility.queryActiveResourcesByConstraint(dbClient, ExportGroup.class,
-                        AlternateIdConstraint.Factory.getConstraint(ExportGroup.class, "hosts", host.getId().toString()))
+                        AlternateIdConstraint.Factory.getConstraint(ExportGroup.class, "hosts", host.getId().toString()));
                 for (ExportGroup exportGroup : exportGroups) {
                     volumesMap.putAll(exportGroup.getVolumes());
                 }

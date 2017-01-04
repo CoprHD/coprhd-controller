@@ -8545,14 +8545,15 @@ class Bourne:
         resp = self.api('POST', URI_CATALOG_ORDERS, parms, {})
         print "RESP = ", resp
         self.assert_is_dict(resp)
-        #tr_list = resp['order']
+        tr_list = resp['id']
         #print 'DEBUG : debug operation for volume : ' + o['resource']['id']
-        #print tr_list
-        #result = list()
+        print tr_list
+        result = list()
         #for tr in tr_list:
-         #   s = self.api_sync_2(tr['resource']['id'], tr['op_id'], self.volume_show_task)
-         #   result.append(s)
-        return resp['id']
+        #    s = self.api_sync_2(tr['id'], tr['op_id'], self.volume_show_task)
+        #    result.append(s)
+	print "Datastore created"
+        return resp
 
 		
     #

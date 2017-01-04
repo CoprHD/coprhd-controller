@@ -21,6 +21,7 @@ public class XtremIOConstants {
     public static final String UNDERSCORE = "_";
     public static final String EMPTY_STRING = "";
     public static final String SLASH = "/";
+    public static final String DASH = "-";
 
     public static final String VOLUME_KEY = "volume";
     public static final String SNAPSHOT_KEY = "snapshot";

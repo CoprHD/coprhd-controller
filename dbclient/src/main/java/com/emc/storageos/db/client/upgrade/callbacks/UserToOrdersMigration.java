@@ -28,7 +28,7 @@ import com.emc.storageos.svcs.errorhandling.resources.MigrationCallbackException
 public class UserToOrdersMigration extends BaseDefaultMigrationCallback {
     private static final Logger log = LoggerFactory.getLogger(UserToOrdersMigration.class);
 
-    final public String SOURCE_INDEX_CF_NAME="UserToOrders";
+    final public static String SOURCE_INDEX_CF_NAME="UserToOrders";
 
     public UserToOrdersMigration() {
         super();

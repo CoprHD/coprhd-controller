@@ -7,9 +7,6 @@ package com.emc.storageos.db.client.constraint;
 
 import java.net.URI;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.emc.storageos.db.client.constraint.impl.AlternateIdConstraintImpl;
 import com.emc.storageos.db.client.impl.DataObjectType;
 import com.emc.storageos.db.client.impl.TypeMap;
@@ -82,7 +79,6 @@ import com.emc.storageos.db.client.util.EndpointUtility;
  * Constraint for querying a record by alias
  */
 public interface AlternateIdConstraint extends Constraint {
-    final Logger log = LoggerFactory.getLogger(AlternateIdConstraint.class);
     /**
      * Factory for creating alternate ID constraint
      */
@@ -170,7 +166,7 @@ public interface AlternateIdConstraint extends Constraint {
             DataObjectType doType = TypeMap.getDoType(UnManagedFileSystem.class);
             return new AlternateIdConstraintImpl(doType.getColumnField(NATIVE_GUID), altId);
         }
-
+        
         public static AlternateIdConstraint getUnManagedFileQuotaDirectoryInfoParentNativeGUIdConstraint(String altId) {
             DataObjectType doType = TypeMap.getDoType(UnManagedFileQuotaDirectory.class);
             return new AlternateIdConstraintImpl(doType.getColumnField("parentFsNativeGuid"), altId);
@@ -350,7 +346,7 @@ public interface AlternateIdConstraint extends Constraint {
             DataObjectType doType = TypeMap.getDoType(StoragePort.class);
             return new AlternateIdConstraintImpl(doType.getColumnField("taggedVirtualArrays"), varrayId);
         }
-
+        
         public static AlternateIdConstraint getStoragePortsForStorageSystemConstraint(String storageSystem) {
             DataObjectType doType = TypeMap.getDoType(StoragePort.class);
             return new AlternateIdConstraintImpl(doType.getColumnField("storageDevice"), storageSystem);
@@ -674,7 +670,7 @@ public interface AlternateIdConstraint extends Constraint {
             DataObjectType doType = TypeMap.getDoType(Workflow.class);
             return new AlternateIdConstraintImpl(doType.getColumnField("orchTaskId"), orchTaskId);
         }
-
+        
         public static AlternateIdConstraint getWorkflowStepDataByStep(String stepId) {
             DataObjectType doType = TypeMap.getDoType(WorkflowStepData.class);
             return new AlternateIdConstraintImpl(doType.getColumnField("stepId"), stepId);

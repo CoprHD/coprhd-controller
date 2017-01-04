@@ -23,7 +23,7 @@ import com.emc.storageos.svcs.errorhandling.resources.MigrationCallbackException
 
 public class TimeSeriesIndexMigration extends BaseDefaultMigrationCallback {
     private static final Logger log = LoggerFactory.getLogger(TimeSeriesIndexMigration.class);
-    final public String SOURCE_INDEX_CF_NAME="TenantToOrder";
+    final public static String SOURCE_INDEX_CF_NAME="TenantToOrder";
 
     public TimeSeriesIndexMigration() {
         super();
@@ -61,8 +61,8 @@ public class TimeSeriesIndexMigration extends BaseDefaultMigrationCallback {
                 RowQuery<String, IndexColumnName> rowQuery = ks.prepareQuery(tenantToOrder).getKey(row.getKey())
                         .autoPaginate(true)
                         .withColumnRange(new RangeBuilder().setLimit(5).build());
-                ColumnList<IndexColumnName> cols;
-                while (!(cols = rowQuery.execute().getResult()).isEmpty()) {
+                ColumnList<IndexColumnName> cols = rowQuery.execute().getResult();
+                while (!cols.isEmpty()) {
                     for (Column<IndexColumnName> col : cols) {
                         m++;
                         String indexKey = row.getKey();
@@ -76,6 +76,7 @@ public class TimeSeriesIndexMigration extends BaseDefaultMigrationCallback {
                             mutationBatch.execute();
                         }
                     }
+                    cols = rowQuery.execute().getResult();
                 }
             }
 

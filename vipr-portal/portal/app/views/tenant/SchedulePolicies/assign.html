@@ -35,9 +35,6 @@
     #{field 'assignPolicy.policyType'}
       <input type="hidden" name="policyType" value="${field.value}">
     #{/field} 
-    #{field 'assignPolicy.appliedAt'}
-      #{Form.selectOneControlGroup field:field, options:applyPolicyOptions, select:assignPolicy.appliedAt, cssClass:'span3' /}
-    #{/field}    
     
    <div id="projectFields"> 
     #{field 'assignPolicy.vpool'}
@@ -97,7 +94,7 @@
 		}
 		
 		
-		$('#assignPolicy_appliedAt').on('change', showAssignAt);
+		// $('#assignPolicy_appliedAt').on('change', showAssignAt);
 		showAssignAt();
 		
 		

@@ -31,6 +31,9 @@ public class FilePolicyParam implements Serializable {
     // Snapshot related parameters..
     private FileSnapshotPolicyParam snapshotPolicyPrams;
 
+    // Level at which policy has to be applied..
+    private String applyAt;
+
     //
     private boolean isAccessToTenants;
 
@@ -101,4 +104,18 @@ public class FilePolicyParam implements Serializable {
         this.isAccessToTenants = isAccessToTenants;
     }
 
+    /**
+     * Level at which policy has to applied.
+     * Valid values are vpool, project, file_system
+     * 
+     * @return
+     */
+    @XmlElement(required = true, name = "apply_at")
+    public String getApplyAt() {
+        return this.applyAt;
+    }
+
+    public void setApplyAt(String applyAt) {
+        this.applyAt = applyAt;
+    }
 }

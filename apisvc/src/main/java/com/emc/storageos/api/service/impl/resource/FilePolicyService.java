@@ -11,6 +11,7 @@ import static com.emc.storageos.api.mapper.TaskMapper.toTask;
 
 import java.net.URI;
 import java.util.EnumSet;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
@@ -74,7 +75,8 @@ import com.emc.storageos.volumecontroller.impl.monitoring.RecordableEventManager
  * @author jainm15
  */
 @Path("/file/file-policies")
-@DefaultPermissions(readRoles = { Role.TENANT_ADMIN, Role.SYSTEM_MONITOR }, writeRoles = { Role.TENANT_ADMIN })
+@DefaultPermissions(readRoles = { Role.TENANT_ADMIN, Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR }, writeRoles = { Role.SYSTEM_ADMIN,
+        Role.RESTRICTED_SYSTEM_ADMIN })
 public class FilePolicyService extends TaskResourceService {
 
     private static final Logger _log = LoggerFactory.getLogger(FilePolicyService.class);
@@ -158,7 +160,7 @@ public class FilePolicyService extends TaskResourceService {
     @POST
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    @CheckPermission(roles = { Role.SYSTEM_ADMIN })
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
     public FilePolicyCreateResp createFilePolicy(FilePolicyCreateParam param) {
         FilePolicyCreateResp resp = new FilePolicyCreateResp();
         // Make policy name as mandatory field
@@ -195,23 +197,105 @@ public class FilePolicyService extends TaskResourceService {
      */
     @GET
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.TENANT_ADMIN })
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR, Role.TENANT_ADMIN })
     public FilePolicyListRestRep getFilePolicies() {
+        return getFilePoliciesForGivenUser();
+    }
+
+    private boolean userHasTenantAdminRoles() {
+        StorageOSUser user = getUserFromContext();
+
+        if (_permissionsHelper.userHasGivenRole(user,
+                null, Role.TENANT_ADMIN)) {
+            return true;
+        }
+        return false;
+    }
+
+    private boolean userHasSystemAdminRoles() {
+        StorageOSUser user = getUserFromContext();
+
+        if (_permissionsHelper.userHasGivenRole(user,
+                null, Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN)) {
+            return true;
+        }
+        return false;
+    }
+
+    private boolean canUserAssignPolicyAtGivenLevel(FilePolicy policy, FilePolicyAssignParam param) {
+
+        // user should have system admin role to assign policy to vpool
+        if (policy.getApplyAt() != null) {
+            switch (policy.getApplyAt()) {
+                case "vpool":
+                    if (!userHasSystemAdminRoles()) {
+                        _log.error("User does not sufficient roles to assign policy at vpool");
+                        throw APIException.forbidden.onlySystemAdminsCanAssignVpoolPolicies(policy.getFilePolicyName());
+                    }
+                    break;
+                case "project":
+                    if (!userHasTenantAdminRoles()) {
+                        _log.error("User does not sufficient roles to assign policy at project");
+                        throw APIException.forbidden.onlyTenantAdminsCanAssignProjectPolicies(policy.getFilePolicyName());
+                    }
+                    // Verify the user has an access to given projects
+                    break;
+                case "file_system":
+                    if (!userHasTenantAdminRoles()) {
+                        _log.error("User does not sufficient roles to assign policy at file system");
+                        throw APIException.forbidden.onlyTenantAdminsCanAssignFileSystemPolicies(policy.getFilePolicyName());
+                    }
+                    break;
+                default:
+                    return false;
+            }
+            return true;
+        }
+
+        return false;
+    }
+
+    protected FilePolicyListRestRep getFilePoliciesForGivenUser() {
 
         FilePolicyListRestRep filePolicyList = new FilePolicyListRestRep();
         List<URI> ids = _dbClient.queryByType(FilePolicy.class, true);
-        for (URI id : ids) {
-            FilePolicy filePolicy = _dbClient.queryObject(FilePolicy.class, id);
+        List<FilePolicy> filePolicies = _dbClient.queryObject(FilePolicy.class, ids);
 
-            if (filePolicy != null) {
+        StorageOSUser user = getUserFromContext();
+        // full list if role is {Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR} AND no tenant restriction from input
+        // else only return the list, which input tenant has access.
+        if (_permissionsHelper.userHasGivenRole(user, null, Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR)) {
+            for (FilePolicy filePolicy : filePolicies) {
+                filePolicyList.add(toNamedRelatedResource(filePolicy, filePolicy.getFilePolicyName()));
+            }
+        } else {
+            // otherwise, filter by only authorized to use
+            URI tenant = null;
 
-                if (canAccessFilePolicy(filePolicy)) {
-                    filePolicyList.add(toNamedRelatedResource(filePolicy, filePolicy.getFilePolicyName()));
+            tenant = URI.create(user.getTenantId());
+
+            Set<FilePolicy> policySet = new HashSet<FilePolicy>();
+            for (FilePolicy filePolicy : filePolicies) {
+                if (_permissionsHelper.tenantHasUsageACL(tenant, filePolicy)) {
+                    policySet.add(filePolicy);
                 }
+            }
+
+            // Also adding vpools which sub-tenants of the user have access to.
+            List<URI> subtenants = _permissionsHelper.getSubtenantsWithRoles(user);
+            for (FilePolicy filePolicy : filePolicies) {
+                if (_permissionsHelper.tenantHasUsageACL(subtenants, filePolicy)) {
+                    policySet.add(filePolicy);
+                }
+            }
+
+            for (FilePolicy filePolicy : policySet) {
+                filePolicyList.add(toNamedRelatedResource(filePolicy, filePolicy.getFilePolicyName()));
             }
         }
 
         return filePolicyList;
+
     }
 
     private boolean canAccessFilePolicy(FilePolicy filePolicy) {
@@ -240,17 +324,12 @@ public class FilePolicyService extends TaskResourceService {
     @GET
     @Path("/{id}")
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.TENANT_ADMIN })
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR, Role.TENANT_ADMIN })
     public FilePolicyRestRep getFilePolicy(@PathParam("id") URI id) {
 
         _log.info("Request recieved to get the file policy of id: {}", id);
         FilePolicy filepolicy = queryResource(id);
         ArgValidator.checkEntity(filepolicy, id, true);
-
-        if (!canAccessFilePolicy(filepolicy)) {
-            throw APIException.forbidden.tenantCannotAccessFilePolicy(filepolicy.getFilePolicyName());
-        }
-
         return map(filepolicy, _dbClient);
     }
 
@@ -262,7 +341,7 @@ public class FilePolicyService extends TaskResourceService {
     @DELETE
     @Path("/{id}")
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    @CheckPermission(roles = { Role.SYSTEM_ADMIN })
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
     public Response deleteFilePolicy(@PathParam("id") URI id) {
 
         FilePolicy filepolicy = queryResource(id);
@@ -300,7 +379,7 @@ public class FilePolicyService extends TaskResourceService {
     @Path("/{id}/assign-policy")
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    @CheckPermission(roles = { Role.SYSTEM_ADMIN })
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.TENANT_ADMIN })
     public FilePolicyAssignResp assignFilePolicy(@PathParam("id") URI id, FilePolicyAssignParam param) {
         FilePolicyAssignResp resp = new FilePolicyAssignResp();
         ArgValidator.checkFieldUriType(id, FilePolicy.class, "id");
@@ -327,7 +406,7 @@ public class FilePolicyService extends TaskResourceService {
     @Path("/{id}/unassign-policy")
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    @CheckPermission(roles = { Role.SYSTEM_ADMIN })
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.TENANT_ADMIN })
     public TaskResourceRep unassignFilePolicy(@PathParam("id") URI id, FilePolicyUnAssignParam param) {
 
         _log.info("Unassign File Policy :{}  request received.", id);
@@ -438,7 +517,7 @@ public class FilePolicyService extends TaskResourceService {
     @Path("/{id}")
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    @CheckPermission(roles = { Role.SYSTEM_ADMIN })
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
     public FilePolicyCreateResp updateFilePolicy(@PathParam("id") URI id, FilePolicyUpdateParam param) {
         FilePolicyCreateResp resp = new FilePolicyCreateResp();
         ArgValidator.checkFieldUriType(id, FilePolicy.class, "id");
@@ -696,9 +775,14 @@ public class FilePolicyService extends TaskResourceService {
             ArgValidator.checkEntity(virtualPool, vpoolURI, false);
 
             if (assignedResources.contains(virtualPool.getId().toString())) {
+                _log.info("policy {} had been assigned to vpool {} ", filepolicy.getFilePolicyName(), virtualPool.getLabel());
                 continue;
             } else {
                 FilePolicyServiceUtils.validateVpoolSupportPolicyType(filepolicy, virtualPool);
+
+                // Verify user has permision to assign policy
+                canUserAssignPolicyAtGivenLevel(filepolicy, param);
+
                 assignedResources.add(virtualPool.getId().toString());
                 StringSet vpoolPolicies = virtualPool.getFilePolices();
                 if (vpoolPolicies == null) {

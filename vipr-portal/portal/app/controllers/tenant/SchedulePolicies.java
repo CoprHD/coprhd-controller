@@ -101,6 +101,7 @@ public class SchedulePolicies extends ViprResourceController {
         addRenderArgs();
         addDateTimeRenderArgs();
         addTenantOptionsArgs();
+        addRenderApplyPolicysAt();
         render("@edit", schedulePolicy);
     }
 
@@ -113,7 +114,7 @@ public class SchedulePolicies extends ViprResourceController {
             addRenderArgs();
             addDateTimeRenderArgs();
             addTenantOptionsArgs();
-
+            addRenderApplyPolicysAt();
             render(schedulePolicy);
         } else {
             flash.error(MessagesUtils.get(UNKNOWN, id));
@@ -367,25 +368,30 @@ public class SchedulePolicies extends ViprResourceController {
 
     private static FilePolicyParam updatePolicyParam(SchedulePolicyForm schedulePolicy, FilePolicyParam param) {
         param.setPolicyName(schedulePolicy.policyName);
+        if (schedulePolicy.appliedAt != null) {
+            param.setApplyAt(schedulePolicy.appliedAt);
+        }
 
         FilePolicyScheduleParams scheduleParam = new FilePolicyScheduleParams();
-        scheduleParam.setScheduleTime(schedulePolicy.scheduleHour + ":" + schedulePolicy.scheduleMin);
-        scheduleParam.setScheduleFrequency(schedulePolicy.frequency);
-        scheduleParam.setScheduleRepeat(schedulePolicy.repeat);
+        if (schedulePolicy.policyType.equalsIgnoreCase("file_snapshot") || schedulePolicy.policyType.equalsIgnoreCase("file_replication")) {
+            scheduleParam.setScheduleTime(schedulePolicy.scheduleHour + ":" + schedulePolicy.scheduleMin);
+            scheduleParam.setScheduleFrequency(schedulePolicy.frequency);
+            scheduleParam.setScheduleRepeat(schedulePolicy.repeat);
 
-        if (schedulePolicy.frequency != null && "weeks".equals(schedulePolicy.frequency)) {
-            if (schedulePolicy.scheduleDayOfWeek != null) {
-                scheduleParam.setScheduleDayOfWeek(schedulePolicy.scheduleDayOfWeek);
+            if (schedulePolicy.frequency != null && "weeks".equals(schedulePolicy.frequency)) {
+                if (schedulePolicy.scheduleDayOfWeek != null) {
+                    scheduleParam.setScheduleDayOfWeek(schedulePolicy.scheduleDayOfWeek);
+                }
+
+            } else if (schedulePolicy.frequency != null && "months".equals(schedulePolicy.frequency)) {
+                scheduleParam.setScheduleDayOfMonth(schedulePolicy.scheduleDayOfMonth);
             }
-
-        } else if (schedulePolicy.frequency != null && "months".equals(schedulePolicy.frequency)) {
-            scheduleParam.setScheduleDayOfMonth(schedulePolicy.scheduleDayOfMonth);
         }
-        param.setPolicySchedule(scheduleParam);
 
         if (schedulePolicy.policyType.equalsIgnoreCase("file_snapshot")) {
             FileSnapshotPolicyParam snapshotParam = new FileSnapshotPolicyParam();
             snapshotParam.setSnapshotNamePattern(schedulePolicy.snapshotNamePattern);
+            snapshotParam.setPolicySchedule(scheduleParam);
             FileSnapshotPolicyExpireParam snapExpireParam = new FileSnapshotPolicyExpireParam();
             if (schedulePolicy.expiration != null && !"NEVER".equals(schedulePolicy.expiration)) {
                 snapExpireParam.setExpireType(schedulePolicy.expireType);
@@ -402,6 +408,7 @@ public class SchedulePolicies extends ViprResourceController {
             FileReplicationPolicyParam replicationPolicyParams = new FileReplicationPolicyParam();
             replicationPolicyParams.setReplicationCopyMode(schedulePolicy.replicationCopyType);
             replicationPolicyParams.setReplicationType(schedulePolicy.replicationType);
+            replicationPolicyParams.setPolicySchedule(scheduleParam);
             param.setPriority(schedulePolicy.priority);
             param.setReplicationPolicyParams(replicationPolicyParams);
         }
@@ -463,6 +470,8 @@ public class SchedulePolicies extends ViprResourceController {
 
         public String scheduleHour;
         public String scheduleMin;
+
+        public String appliedAt;
 
         public boolean enableTenants;
 
@@ -532,6 +541,9 @@ public class SchedulePolicies extends ViprResourceController {
                 this.priority = restRep.getPriority();
             }
 
+            if (restRep.getAppliedAt() != null) {
+                this.appliedAt = restRep.getAppliedAt();
+            }
             // Update replication fileds
             if (restRep.getReplicationSettings() != null) {
                 ReplicationSettingsRestRep replSetting = restRep.getReplicationSettings();
@@ -611,11 +623,11 @@ public class SchedulePolicies extends ViprResourceController {
         Boolean policyAssignment = false;
         FilePolicyRestRep existingPolicy = getViprClient().fileProtectionPolicies().get(URI.create(assignPolicy.id));
 
-        param.setApplyAt(assignPolicy.appliedAt);
+        // param.setApplyAt(assignPolicy.appliedAt);
 
         param.setApplyOnTargetSite(assignPolicy.applyOnTargetSite);
 
-        if (FilePolicyApplyLevel.project.name().equalsIgnoreCase(assignPolicy.appliedAt)) {
+        if (FilePolicyApplyLevel.project.name().equalsIgnoreCase(existingPolicy.getAppliedAt())) {
 
             FilePolicyProjectAssignParam projectAssignParams = new FilePolicyProjectAssignParam();
             projectAssignParams.setVpool(uri(assignPolicy.vpool));
@@ -637,11 +649,9 @@ public class SchedulePolicies extends ViprResourceController {
                 policyAssignment = true;
             }
             projectAssignParams.setAssigntoProjects(assignProjects);
-            projectAssignParams.setAssigntoAll(assignPolicy.applyToAllProjects);
-
             param.setProjectAssignParams(projectAssignParams);
 
-        } else if (FilePolicyApplyLevel.vpool.name().equalsIgnoreCase(assignPolicy.appliedAt)) {
+        } else if (FilePolicyApplyLevel.vpool.name().equalsIgnoreCase(existingPolicy.getAppliedAt())) {
             FilePolicyVpoolAssignParam vpoolAssignParams = new FilePolicyVpoolAssignParam();
 
             List<String> existingvPools = stringRefIds(existingPolicy.getAssignedResources());
@@ -661,8 +671,6 @@ public class SchedulePolicies extends ViprResourceController {
                 policyAssignment = true;
             }
             vpoolAssignParams.setAssigntoVpools(assignVpools);
-            vpoolAssignParams.setAssigntoAll(assignPolicy.applyToAllVpools);
-
             param.setVpoolAssignParams(vpoolAssignParams);
         }
 
@@ -675,7 +683,7 @@ public class SchedulePolicies extends ViprResourceController {
         Boolean policyUnAssignment = false;
         FilePolicyRestRep existingPolicy = getViprClient().fileProtectionPolicies().get(URI.create(assignPolicy.id));
 
-        if (FilePolicyApplyLevel.project.name().equalsIgnoreCase(assignPolicy.appliedAt)) {
+        if (FilePolicyApplyLevel.project.name().equalsIgnoreCase(existingPolicy.getAppliedAt())) {
 
             List<String> existingProjects = stringRefIds(existingPolicy.getAssignedResources());
             List<String> projects = Lists.newArrayList();
@@ -695,7 +703,7 @@ public class SchedulePolicies extends ViprResourceController {
             }
             param.setUnassignfrom(unAssingRes);
 
-        } else if (FilePolicyApplyLevel.vpool.name().equalsIgnoreCase(assignPolicy.appliedAt)) {
+        } else if (FilePolicyApplyLevel.vpool.name().equalsIgnoreCase(existingPolicy.getAppliedAt())) {
 
             List<String> existingvPools = stringRefIds(existingPolicy.getAssignedResources());
             List<String> vPools = Lists.newArrayList();
@@ -735,19 +743,15 @@ public class SchedulePolicies extends ViprResourceController {
         // Type of the policy
         public String policyType;
 
-        public String appliedAt;
-
         public String vpool;
 
-        public String applyToAllProjects = "selected";
-
         public List<String> projects;
-
-        public String applyToAllVpools = "selected";
 
         public List<String> virtualPools;
 
         public boolean applyOnTargetSite;
+
+        public String appliedAt;
 
         public FileReplicationTopology[] replicationTopology = {};
 
@@ -766,19 +770,11 @@ public class SchedulePolicies extends ViprResourceController {
                 this.applyOnTargetSite = restRep.getApplyOnTargetSite();
             }
             // Load project applicable fields
-            if (FilePolicyApplyLevel.project.name().equalsIgnoreCase(this.appliedAt)) {
-
+            if (FilePolicyApplyLevel.project.name().equalsIgnoreCase(restRep.getAppliedAt())) {
                 this.vpool = ResourceUtils.stringId(restRep.getVpool());
                 this.projects = ResourceUtils.stringRefIds(restRep.getAssignedResources());
-                if (restRep.getAppliedToProjects() != null) {
-                    this.applyToAllProjects = restRep.getAppliedToProjects();
-                }
-            } else if (FilePolicyApplyLevel.vpool.name().equalsIgnoreCase(this.appliedAt)) {
-
+            } else if (FilePolicyApplyLevel.vpool.name().equalsIgnoreCase(restRep.getAppliedAt())) {
                 this.virtualPools = ResourceUtils.stringRefIds(restRep.getAssignedResources());
-                if (restRep.getAppliedTovPools() != null) {
-                    this.applyToAllVpools = restRep.getAppliedTovPools();
-                }
             }
 
             return this;

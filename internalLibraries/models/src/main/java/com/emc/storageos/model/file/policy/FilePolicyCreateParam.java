@@ -17,8 +17,6 @@ public class FilePolicyCreateParam extends FilePolicyParam {
     private static final long serialVersionUID = 1L;
     // Type of the policy
     private String policyType;
-    // Level at which policy has to be applied..
-    private String applyAt;
 
     /**
      * Type of the policy,
@@ -33,20 +31,5 @@ public class FilePolicyCreateParam extends FilePolicyParam {
 
     public void setPolicyType(String policyType) {
         this.policyType = policyType;
-    }
-
-    /**
-     * Level at which policy has to applied.
-     * Valid values are vpool, project, file_system
-     * 
-     * @return
-     */
-    @XmlElement(required = true, name = "apply_at")
-    public String getApplyAt() {
-        return this.applyAt;
-    }
-
-    public void setApplyAt(String applyAt) {
-        this.applyAt = applyAt;
     }
 }

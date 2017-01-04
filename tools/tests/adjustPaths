@@ -48,6 +48,7 @@ fi
 
 export project=ap
 source subs/tenantProject 
+export tenant=`tenant root`
 
 # Configuration file to be used  
 source $CONFIG_FILE 
@@ -116,16 +117,33 @@ volume_create $volnameA $SITE1 ${SITE1}_Local ""
 # Test single host using VPLEX local in SITE1; note only VSAN11 talks to cluster1
 test1() {
     run export_group create $project eg1 $SITE1 --type Host --hosts h1$hostseed --volspec $project/$volnameA
-    egpaths eg1
+    egpaths eg1 | tee .egpaths.out
     run export_group pathadj ap/eg1 $vplex --maxpath 4 --pathsperinit 2
     run export_group pathadj ap/eg1 $vplex --maxpath 4 --pathsperinit 2 --go 1
-    egpaths eg1
+    egpaths eg1 | tee .egpaths.out
     run export_group pathadj ap/eg1 $vplex --maxpath 1 --go 1
-    egpaths eg1
+    egpaths eg1 | tee .egpaths.out
     run export_group delete $project/eg1
 }
+#test1
 
-test1
+# Test single host using VMAX in SITE2; note only VSAN12 in SITE2.
+source subs/arrayVpools
+createArrayVpool vmax2 vmax $SITE2
+volume_create $volnameB $SITE2 vmax2 ""
+ssys=$(getVolumeSystem $volnameB)
+test2() {
+    run export_group create $project eg2 $SITE2 --type Host --hosts h1$hostseed --volspec $project/$volnameB
+    egpaths eg2 | tee .egpaths.out
+    run export_group pathadj ap/eg2 $ssys --maxpath 4 --pathsperinit 2
+    run export_group pathadj ap/eg2 $ssys --maxpath 4 --pathsperinit 2 --go 1
+    egpaths eg2 | tee .egpaths.out
+    run export_group pathadj ap/eg2 $ssys --maxpath 1 --go 1
+    egpaths eg2 | tee .egpaths.out
+    run export_group delete $project/eg2
+}
+test2
+
 
 exit 0
 

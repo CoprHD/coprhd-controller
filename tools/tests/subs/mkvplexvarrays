@@ -62,8 +62,8 @@ srcVarray=$2
 haVarray=$3
 vplexGUID=$4
 existingVpools=$(cos list block | awk ' {print $1;}')
-count=$(echo $existingVpools | grep -c name)
-if [ $count -eq 0 ];
+count=$(echo $existingVpools | grep -c $name)
+if [ $count -gt 0 ];
 then
    echo "already existing vpool $name"
 else
@@ -82,8 +82,8 @@ name=$1
 srcVarray=$2
 vplexGUID=$3
 existingVpools=$(cos list block | awk ' {print $1;}')
-count=$(echo $existingVpools | grep -c name)
-if [ $count -eq 0 ];
+count=$(echo $existingVpools | grep -c $name)
+if [ $count -gt 0 ];
 then
    echo "already existing vpool $name"
 else

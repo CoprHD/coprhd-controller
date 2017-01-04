@@ -59,7 +59,7 @@ host_create() {
 # $7 = network to add first/second initiator to
 # $8 = network to add third/fourth initiator to
 host_create_4i() {
-    name=$1; cluster=$2; init1=$3; init2=$4; init3=$5; init6=$6; net1=$7; net2=$8
+    name=$1; cluster=$2; init1=$3; init2=$4; init3=$5; init4=$6; net1=$7; net2=$8
     exists=$(hosts list ${tenant} | grep $name | wc -l)
     [ $exists -ne 1 ] && {
         echoit "creating host $name"

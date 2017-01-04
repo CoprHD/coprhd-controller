@@ -143,7 +143,7 @@
   #{/deadbolt.restrict}
   
   *{ VIRTUAL ASSETS }*
-  #{deadbolt.restrict roles:[['SYSTEM_ADMIN'], ['RESTRICTED_SYSTEM_ADMIN'], ['SECURITY_ADMIN'], ['SYSTEM_MONITOR']]}
+  #{deadbolt.restrict roles:[['SYSTEM_ADMIN'], ['RESTRICTED_SYSTEM_ADMIN'], ['SECURITY_ADMIN'], ['SYSTEM_MONITOR'], ['TENANT_ADMIN']]}
     #{if isActiveSite }
     #{nav.menu 'virtualStorage', icon:'vipricon-virtualassets'}
       #{nav.menuSection 'nav.virtualStorage'}  
@@ -159,6 +159,7 @@
           #{/license.ifController}
         #{/deadbolt.restrict}
         #{nav.item 'vdcs', href: @infra.VirtualDataCenters.list()/}
+        #{nav.item 'file.protectionPolicies', href: @arrays.FileProtectionPolicies.list()/}
       #{/nav.menuSection}  
     #{/nav.menu}
   	#{/if}    

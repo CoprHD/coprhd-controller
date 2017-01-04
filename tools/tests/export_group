@@ -157,6 +157,40 @@ def export_group_pathadj(args):
         elif (s['state'] != 'suspended_no_error'):
 	    print 'Export group update failed.'
 	    sys.exit(1);
+	    
+def export_group_replaceports(args):
+    bourne.connect(args.ip)
+    replace_param = dict()
+    try:
+	groupId = bourne.export_group_query(args.groupId)
+	storageId = bourne.storagedevice_query(args.storageId)
+	if args.varray:
+	    varrayId = bourne.neighborhood_query(args.varray)
+            replace_param['virtual_array']=varrayId
+	else:
+	    varrayId = None
+	replace_port=dict()
+	oldport = bourne.storageport_query(args.oldport)
+	print "old port:", oldport
+	replace_port['old_port']=oldport
+	if(args.newport)
+	    newport = bourne.storageport_query(args.newport)
+	    replace_port['new_port']=newport
+	    print "new port:", newport
+
+	replace_param['storage_system'] = storageId
+	replace_ports=[]
+	replace_ports.append(replace_port)
+	replace_param['replace_ports']=replace_ports
+    except:
+        print 'No required parameters'
+    (o, s) = bourne.export_group_replace_ports(groupId, replace_param);
+
+    if (s['state'] == 'ready'):
+       print 'Export group replace ports with id ' + s['resource']['id']
+    elif (s['state'] != 'suspended_no_error'):
+	print 'Export group replace ports failed.'
+	sys.exit(1);
 
 def export_group_delete(args):
     bourne.connect(args.ip)
@@ -307,6 +341,15 @@ pathadj.add_argument('--useexisting', help = 'use the existing paths')
 pathadj.add_argument('--go', help = 'execute the rebalance command')
 pathadj.add_argument('--wait', help = 'wait before removing paths')
 
+# replace ports
+replaceports = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+replaceports.add_argument('groupId', help='name of export_group proj/group')
+replaceports.add_argument('storageId', help='storage system')
+replaceports.add_argument('--varray', help='Varray (neighborhood)')
+replaceports.add_argument('--oldport', help = 'old port to be replaced')
+replaceports.add_argument('--newport', help = 'new port')
+replaceports.add_argument('--wait', help = 'wait before removing paths')
+
 # export_group delete uri
 delete = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
 delete.add_argument('groupId',	help = 'name of export_group to be deleted')
@@ -412,6 +455,9 @@ try:
     elif(cmd == "pathadj"):
         args = pathadj.parse_args()
         export_group_pathadj(args)
+    elif(cmd == "replaceports"):
+        args = replaceports.parse_args()
+        export_group_replaceports(args)
     else:
         parser.print_help()
 

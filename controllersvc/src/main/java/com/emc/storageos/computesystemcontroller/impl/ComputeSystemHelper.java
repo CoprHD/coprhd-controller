@@ -808,12 +808,14 @@ public class ComputeSystemHelper {
         Datastore changedDatastore = null;
         String datastoreId = datastore.toString();
         // get the datastore that is changed
-        for (Datastore ds : vcenterAPI.listAllDatastores()) {
-            String dsUri = ds.getInfo().getUrl();
-            if (dsUri != null && dsUri.equals(datastoreId)) {
-                changedDatastore = ds;
-                break;
-            }
+        for (Datacenter dc : vcenterAPI.listAllDatacenters()) {
+            for (Datastore ds : vcenterAPI.listDatastores(dc)){
+                String dsUri = ds.getInfo().getUrl();
+                if (dsUri != null && dsUri.equals(datastoreId)) {
+                    changedDatastore = ds;
+                    break;
+                }
+            } 
         }
         
         if(changedDatastore == null){

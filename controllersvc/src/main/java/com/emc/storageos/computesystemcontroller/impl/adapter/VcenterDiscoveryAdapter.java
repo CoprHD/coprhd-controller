@@ -830,14 +830,17 @@ public class VcenterDiscoveryAdapter extends EsxHostDiscoveryAdapter {
 
     private void checkDatastoreAndCreateEvent(String oldDatastoreName, Volume volume, Map<Datastore, Set<HostScsiDisk>> dsDisk,
             List<Datacenter> datacenters, VCenterAPI vcenterAPI, URI vcenterURI) {
-        Datastore ds = null;
-        for (Datacenter dc : datacenters) {
-            ds = vcenterAPI.findDatastore(dc, oldDatastoreName);
-            if (ds != null) { // found the datastore hence no need to process further
+        Datastore changedDs = null;
+        Set<Datastore> datastores = dsDisk.keySet();
+        for (Datastore ds : datastores) {
+            if(ds.getName().equals(oldDatastoreName)) {
+                changedDs = ds;
+            }
+            if (changedDs != null) { // found the datastore hence no need to process further
                 break;
             }
         }
-        if (ds == null) {
+        if (changedDs == null) {
             Datastore newDatastore = getChangedDatastore(volume, dsDisk);
             if (newDatastore == null) {
                 EventUtils.createActionableEvent(dbClient, EventUtils.EventCode.VCENTER_DATASTORE_DELETE, volume.getTenant().getURI(),

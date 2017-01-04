@@ -2267,7 +2267,7 @@ test_38() {
     verify_export ${expname}2 -x- 6 3 0,1,2
     verify_export ${expname}3 ${HOST3} gone
 
-    runcmd export_group delete $PROJECT/${expname}1
+    runcmd export_group delete $PROJECT/${expname}2
     verify_export ${expname}2 -x- gone
 
     runcmd blocksnapshot delete ${PROJECT}/${VOLNAME}-1/${snap}-1

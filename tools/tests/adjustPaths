@@ -39,53 +39,21 @@ CWD=$(pwd)
 export PATH=$CWD:$PATH
 echo "PATH: " $PATH
 
-source loginconfigure
-login_nd_configure_smtp_nd_add_licenses
+if [ "$login" = "" ]; then
+    source subs/loginconfigure
+    login_nd_configure_smtp_nd_add_licenses
+else
+    security login root $login
+fi
 
-# Tenant and project and consistency group
-rootTenant=`tenant root`
-export rootTenant
-[ "$tenant" ] || {
-    tenant=$rootTenant
-}
-export tenant
-echo tenant $tenant 
-[ "$project" ] || {
-    project=adjPaths
-}
-echo project $project
-existingProjects=$(project list --tenant $tenant)
-echo "Existing projects: $existingProjects"
-$(echo $existingProjects | grep -q $project) || {
-    echo project create --tenant $tenant $project
-    project create --tenant $tenant $project
-}
-
-# Virtual arrays
-SITE1=VPLEX+FNM00130900300_FNM00130900301_cluster1
-SITE2=VPLEX+FNM00130900300_FNM00130900301_cluster2
-
-# Virtual pools
-VPOOL1=
-VPOOL2=
-
+export project=ap
+source subs/tenantProject 
 
 # Configuration file to be used  
 source $CONFIG_FILE 
 
 # Variables about volumes
 BLK_SIZE=${BLK_SIZE:-1073741824}
-
-macaddr=`/sbin/ifconfig eth0 | /usr/bin/awk '/HWaddr/ { print $5 }'`
-echo macaddr ${macaddr}
-hostseed=`echo ${macaddr} | awk -F: '{print $5$6}'`
-export hostseed
-hostbase=host${hostseed}
-export hostbase
-echo "hostbase $hostbase"
-seed=`date "+%H%M%S%N"`
-seed2b=`printf "%02X" $$ | cut -b1-2`
-echo "seed $seed seed2b $seed2b"
 
 echoit() {
     echo "******************************************************************"
@@ -106,16 +74,6 @@ run() {
     fi
 }
 
-run syssvc $CONFIG_FILE $BOURNE_IP set_prop controller_vplex_director_min_port_count 1
-
-
-pwwn() {
-    idx=$1; echo 50:${macaddr}:${idx}
-}
-nwwn() {
-    idx=$1; echo 51:${macaddr}:${idx}
-}
-
 
 # $1 = failure message
 fail() {
@@ -126,6 +84,50 @@ fail() {
     date
     exit 2
 }
+
+source subs/discovery
+source $sconf/simvplexvmax.conf
+vplex=$(storagedevice list | grep vplex | awk ' {print $2;}')
+echo VPLEX $vplex
+source subs/mkvplexvarrays 
+
+source subs/hosts
+clusterName=clus${hostseed}
+cluster_create $clusterName
+clusterId=$(cluster list $rootTenant | grep $clusterName | awk ' { print $4; }')
+networkA=VSAN_11
+networkB=VSAN_12
+host_create_4i h1$hostseed $clusterId 10 11 12 13 $networkA $networkB
+host_create_4i h2$hostseed $clusterId 20 21 22 23 $networkA $networkB
+host_create_4i h3$hostseed $clusterId 30 31 32 33 $networkA $networkB
+host_create_4i h4$hostseed $clusterId 40 41 42 43 $networkA $networkB
+
+
+# Control over running individual parts of the test (true/false)
+volnameA=${volnameA:-"adjPathsA$hostseed"}
+volnameB=${volnameB:-"adjPathsB$hostseed"}
+volnameC=${volnameC:-"adjPathsC$hostseed"}
+volnameD=${volnameD:-"adjPathsD$hostseed"}
+
+source subs/volume
+echo SITE1 $SITE1 
+volume_create $volnameA $SITE1 ${SITE1}_Local ""
+
+# Test single host using VPLEX local in SITE1; note only VSAN11 talks to cluster1
+test1() {
+    run export_group create $project eg1 $SITE1 --type Host --hosts h1$hostseed --volspec $project/$volnameA
+    egpaths eg1
+    run export_group pathadj ap/eg1 $vplex --maxpath 4 --pathsperinit 2
+    run export_group pathadj ap/eg1 $vplex --maxpath 4 --pathsperinit 2 --go 1
+    egpaths eg1
+    run export_group pathadj ap/eg1 $vplex --maxpath 1 --go 1
+    egpaths eg1
+    run export_group delete $project/eg1
+}
+
+test1
+
+exit 0
 
 #
 # Create a volume
@@ -207,6 +209,9 @@ volnameD=$(volume list adjPaths | grep adjustPathsD | head -1 | awk ' { print $1
 echo "Volumes: " $volnameA $volnameB $volnameC $volnameD
 
 # Now export the volumes
+test1() {
+    run export_group create
+}
 
 
 

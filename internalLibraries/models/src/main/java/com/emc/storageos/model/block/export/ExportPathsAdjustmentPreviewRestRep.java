@@ -75,7 +75,8 @@ public class ExportPathsAdjustmentPreviewRestRep {
     		log.info("Ports: " + buffer.toString());
     	}
     	log.info("Path Adjustment Preview : removedPaths");
-    	for (InitiatorPortMapRestRep entry : removedPaths) {
+        if (removedPaths != null) {
+    	    for (InitiatorPortMapRestRep entry : removedPaths) {
     		log.info(String.format("Host %s initiator %s (%s): ", 
     			entry.getInitiator().getHostName(), entry.getInitiator().getInitiatorPort(), entry.getInitiator().getId()));
     		StringBuilder buffer = new StringBuilder();
@@ -83,7 +84,8 @@ public class ExportPathsAdjustmentPreviewRestRep {
     			buffer.append(String.format("%s (%s)   ", aPort.getName(), aPort.getId()));
     		}
     		log.info("Ports: " + buffer.toString());
-    	}
+    	    }
+        }
     }
 
 }

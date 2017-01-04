@@ -1,0 +1,24 @@
+#!/bin/sh
+# Subroutines core creating a volume.
+
+# Create a volume
+# $1=name, $2=varray, $3=vpool, $4=cg
+volume_create() {
+    name=$1; varray=$2; vpool=$3; cg=$4
+    echoit "Creating volumes $name in $varray $vpool"
+    if [ "$cg" != "" ]; then
+    run volume create --consistencyGroup $cg $name $project $varray $vpool $BLK_SIZE --count 1
+    else
+    run volume create $name $project $varray $vpool $BLK_SIZE --count 1
+    fi
+}
+
+# Function to create a cluster. $1 is the cluster name
+cluster_create() {
+    name=$1
+    exists=$(cluster list ${tenant} | grep $name | wc -l)
+    [ $exists -ne 1 ] && {
+        echoit "creating cluster $name"
+        run cluster create $name $tenant --project $project
+    }
+}

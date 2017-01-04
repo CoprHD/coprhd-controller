@@ -89,4 +89,8 @@ public class OrderJobInfo {
     public void setTimeUsedPerOrder(long timeUsedPerOrder) {
         this.timeUsedPerOrder = timeUsedPerOrder;
     }
+    
+    public boolean isJobDone() {
+        return this.total == this.nCompleted + this.nFailed;
+    }
 }

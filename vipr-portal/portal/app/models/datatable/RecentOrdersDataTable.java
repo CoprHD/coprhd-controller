@@ -89,10 +89,10 @@ public class RecentOrdersDataTable extends OrderDataTable {
 
     public String getDeleteJobStatus() {
         OrderJobInfo info = OrderUtils.queryOrderJob(JOB_TYPE_DELETE);
-        String status = null;
-        if (info != null) {
-            status = MessagesUtils.get("orders.delete.status", info.getCompleted(), info.getTotal(),
-                    info.getFailed(), new Date(info.getStartTime()), new Date(info.getEndTime()));
+        String status = null; // if the job is done, return null
+        if (info != null /*&& !info.isJobDone()*/) {
+            status = MessagesUtils.get("orders.delete.status", new Date(info.getStartTime()), new Date(info.getEndTime()),
+                    info.getCompleted(), info.getTotal(), info.getFailed());
         }
         Logger.info("getDeleteJobStatus: {}", status);
         return status;

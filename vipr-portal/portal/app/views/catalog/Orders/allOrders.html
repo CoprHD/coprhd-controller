@@ -119,6 +119,20 @@ $(document).ready(function() {
     	}else {
     		$('.checkedAll-block').hide();
     	}
+    	var datatable = $('#orders .table').dataTable();
+    	
+        var values = [];
+        $('#orders input[name=selected]:checked').each(function() {
+            console.info($(this));
+            console.info("val: "+$(this).val());
+            var row = table.orders.dataTable.getRow(this);
+            console.info("row"+row);
+            $.each(row.cells, function(index, column) {
+                console.info(index, column);
+            });
+        });
+        
+        console.info(values);
     	$('#deleteDialog').modal();
     });
     

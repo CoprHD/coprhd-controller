@@ -1649,12 +1649,12 @@ public class ExportUtils {
     }
 
     /**
-     * Returns true if the storage system implementation supports finding free HLU for cluster export.
+     * Returns true if the storage system implementation supports consistent HLU generation for cluster export.
      *
      * @param storage the storage system
-     * @return true, if the storage system supports finding free HLU
+     * @return true, if the storage system supports consistent HLU generation
      */
-    public static boolean isFindFreeHLUSupportedForStorage(StorageSystem storage) {
+    public static boolean systemSupportsConsistentHLUGeneration(StorageSystem storage) {
         String systemType = storage.getSystemType();
         return (DiscoveredDataObject.Type.vmax.name().equals(systemType) || DiscoveredDataObject.Type.vnxblock.name().equals(systemType)
                 || DiscoveredDataObject.Type.xtremio.name().equals(systemType) || DiscoveredDataObject.Type.unity.name().equals(systemType)

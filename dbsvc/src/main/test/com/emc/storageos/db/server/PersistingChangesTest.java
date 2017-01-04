@@ -694,7 +694,8 @@ public class PersistingChangesTest extends DbsvcTestBase {
 
     @Test
     public void testAggregationQuery() throws Exception {
-
+        cleanupDataObjectCF(Volume.class);
+        
         Volume volume1 = new Volume();
         URI id1 = URIUtil.createId(Volume.class);
         URI pool1 = URIUtil.createId(StoragePool.class);

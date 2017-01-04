@@ -21,8 +21,6 @@ import com.emc.storageos.db.client.model.FilePolicy;
 import com.emc.storageos.db.client.model.FilePolicy.FilePolicyApplyLevel;
 import com.emc.storageos.db.client.model.FileShare;
 import com.emc.storageos.db.client.model.NFSShareACL;
-import com.emc.storageos.db.client.model.Project;
-import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.model.file.ExportRule;
 import com.emc.storageos.model.file.FileNfsACLUpdateParams;
@@ -351,7 +349,7 @@ public class FileOrchestrationUtils {
      * @param project
      * @return List<FilePolicy>
      */
-    public static List<FilePolicy> getAllApplicablePolices(DbClient dbClient, VirtualPool vpool, Project project) {
+    public static List<FilePolicy> getAllApplicablePolices(DbClient dbClient, URI vpool, URI project) {
 
         List<FilePolicy> filePolicies = new ArrayList<FilePolicy>();
 

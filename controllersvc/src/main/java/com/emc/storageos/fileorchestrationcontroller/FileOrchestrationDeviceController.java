@@ -32,7 +32,6 @@ import com.emc.storageos.db.client.model.SMBShareMap;
 import com.emc.storageos.db.client.model.Snapshot;
 import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StorageSystem;
-import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.filereplicationcontroller.FileReplicationDeviceController;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
@@ -1722,8 +1721,8 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
                 .filterByType(fileDescriptors, FileDescriptor.Type.FILE_DATA, FileDescriptor.Type.FILE_MIRROR_SOURCE).get(0);
         FileShare sourceFS = s_dbClient.queryObject(FileShare.class, sourceDescriptors.getFsURI());
         Project project = s_dbClient.queryObject(Project.class, sourceFS.getProject());
-        VirtualPool vpool = s_dbClient.queryObject(VirtualPool.class, sourceFS.getVirtualPool());
-        List<FilePolicy> filePolicies = FileOrchestrationUtils.getAllApplicablePolices(s_dbClient, vpool, project);
+        List<FilePolicy> filePolicies = FileOrchestrationUtils.getAllApplicablePolices(s_dbClient, sourceFS.getVirtualPool(),
+                project.getId());
         if (filePolicies != null && !filePolicies.isEmpty()) {
             String stepDescription = String.format("applying file policies");
             String applyFilePolicyStep = workflow.createStepId();

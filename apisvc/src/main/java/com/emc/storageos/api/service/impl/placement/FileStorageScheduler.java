@@ -10,6 +10,7 @@ import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -114,6 +115,10 @@ public class FileStorageScheduler implements Scheduler {
 
         _log.debug("Schedule storage for {} resource(s) of size {}.",
                 capabilities.getResourceCount(), capabilities.getSize());
+        // create map object if null, it used to receive the error message 
+        if (optionalAttributes == null) {
+            optionalAttributes = new HashMap<String, Object>();
+        }
 
         // Get all storage pools that match the passed vpool params and
         // protocols. In addition, the pool must have enough capacity

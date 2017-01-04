@@ -8471,48 +8471,48 @@ class Bourne:
 	
 	#Get the catalog category urn GET catalog/categories
     def catalog_category_uri(self,tenant):
-	    uri = self.__tenant_id_from_label(tenant)
-	    o = self.api('GET',URI_CATALOG_CATEGORYURI.format(uri),None)
-	    #print o['id']
-	    return  o['id']
+	uri = self.__tenant_id_from_label(tenant)
+	o = self.api('GET',URI_CATALOG_CATEGORYURI.format(uri),None)
+	#print o['id']
+	return  o['id']
 
 	#list all root categories : GET catalog/categories/{id}/categories
     def catalog_root_list(self, tenant):
-	    uri = self.catalog_category_uri(tenant)
-	    o = self.api('GET',URI_CATALOG_CATEGORIES.format(uri),None)
-	    #print "RESPONSE ROOT CATEGORIES :",o
-	    if (not o):
-		    return {}
-	    return o['catalog_category']
+	uri = self.catalog_category_uri(tenant)
+	o = self.api('GET',URI_CATALOG_CATEGORIES.format(uri),None)
+	#print "RESPONSE ROOT CATEGORIES :",o
+	if (not o):
+	    return {}
+	return o['catalog_category']
 	
 	#get root catalog services uri by name = BlockServicesforVMwarevCenter
     def catalog_query_root_services(self, name):
-	    label = name
-	    tenant = self.tenant_getid()
-	    categories = self.catalog_root_list(tenant)
-	    for category in categories:
+	label = name
+	tenant = self.tenant_getid()
+	categories = self.catalog_root_list(tenant)
+	for category in categories:
             if(category['name'] == label):
 		return category['id']
-	    raise Exception('bad category name: ' +name)
+	raise Exception('bad category name: ' +name)
 		
 
 	#get uri of catalog service subcategories GET/catalog/categories/{id}/services name = BlockServicesforVMwarevCenter
     def catalog_list_subcategory(self, name):
-	    uri = self.catalog_query_root_services(name)
-	    o = self.api('GET',URI_CATALOG_SERVICES.format(uri),None)
-	    if (not o):
+	uri = self.catalog_query_root_services(name)
+	o = self.api('GET',URI_CATALOG_SERVICES.format(uri),None)
+	if (not o):
             return {}
-	    return o['catalog_service']
+	return o['catalog_service']
 		
 	#get id of the subcategory eg by name eg.name =CreateVolumeandDatastore,parent =BlockServicesforVMwarevCenter
     def catalog_query_subcategory(self, name, parentcategory):
-	    label = name
-	    parent = parentcategory
-	    subcategories = self.catalog_list_subcategory(parentcategory)
-	    for category in subcategories:
+	label = name
+	parent = parentcategory
+	subcategories = self.catalog_list_subcategory(parentcategory)
+	for category in subcategories:
             if(category['name'] == label):
-		        return category['id']
-	    raise Exception('bad subcategory name: ' +name)
+	        return category['id']
+	raise Exception('bad subcategory name: ' +name)
 		 
 	
 	#put the catalog fields PUT/catalog/services/{id}
@@ -8520,7 +8520,7 @@ class Bourne:
 	#execute the order POST/catalog/orders
     def datastore_create(self,vcenter,datacenter,blockStorageType,host,virtualArray,virtualPool,project,datastoreName,name,size, catalog_service_id):
         tenant = self.tenant_getid()
-	    parameters = [
+	parameters = [
 		{	  	'friendly_value': None,		'label': "vcenter",		'value':vcenter,	'friendly_label': None},
 		{		'friendly_value': None,		'label': "datacenter",	'value': datacenter,	'friendly_label': None},
 		{		'friendly_value': None,		'label': "blockStorageType",	'value': blockStorageType,'friendly_label': None},

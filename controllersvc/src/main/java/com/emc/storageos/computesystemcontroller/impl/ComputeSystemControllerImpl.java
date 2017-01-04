@@ -1121,6 +1121,9 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
         WorkflowStepCompleter.stepExecuting(stepId);
 
         try {
+            // Test mechanism to invoke a failure. No-op on production systems.
+            InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_054);
+
             Host esxHost = _dbClient.queryObject(Host.class, hostId);
             Vcenter vCenter = _dbClient.queryObject(Vcenter.class, vCenterId);
             VcenterDataCenter vCenterDataCenter = _dbClient.queryObject(VcenterDataCenter.class, vcenterDatacenter);
@@ -1139,6 +1142,9 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                             if (VolumeWWNUtils.wwnMatches(VMwareUtils.getDiskWwn(entry), blockObject.getWWN())) {
                                 _log.info("Attach SCSI Lun " + entry.getCanonicalName() + " on host " + esxHost.getLabel());
                                 storageAPI.attachScsiLun(entry);
+
+                                // Test mechanism to invoke a failure. No-op on production systems.
+                                InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_055);
                             }
                         }
                     } catch (VMWareException ex) {
@@ -1157,6 +1163,9 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                                     if (datastore != null) {
                                         _log.info("Mounting datastore " + datastore.getName() + " on host " + esxHost.getLabel());
                                         storageAPI.mountDatastore(datastore);
+
+                                        // Test mechanism to invoke a failure. No-op on production systems.
+                                        InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_056);
                                     }
                                 } catch (VMWareException ex) {
                                     _log.warn(ex.getMessage(), ex);
@@ -1164,6 +1173,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                             }
                         }
                     }
+
                 }
             }
             WorkflowStepCompleter.stepSucceded(stepId);

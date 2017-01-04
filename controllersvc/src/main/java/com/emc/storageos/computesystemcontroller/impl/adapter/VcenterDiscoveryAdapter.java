@@ -776,26 +776,25 @@ public class VcenterDiscoveryAdapter extends EsxHostDiscoveryAdapter {
         }
         Set<URI> volumeUriSet = new HashSet<URI>(volumeUris);
         Collection<Volume> volumes = dbClient.queryObject(Volume.class, volumeUriSet);
-        Map<Datastore, Set<HostScsiDisk>> dsDisk = getDsDiskMap(vcenterAPI);
-        List<Datacenter> datacenters = vcenterAPI.listAllDatacenters();
-        Set<Volume> candidateVolumesForDatastore = new HashSet<Volume>();
+        Map<Datastore, Set<HostScsiDisk>> datastoreDiskMap = getDatastoreDiskMap(vcenterAPI);
+        Set<Volume> candidateVolumesForDatastoreCreate = new HashSet<Volume>();
         for (Volume volume : volumes) {
             ScopedLabelSet tagSet = volume.getTag();
             StringSet datastoreNames = ComputeSystemHelper.getDatastoreNames(tagSet);
             if (datastoreNames.isEmpty()) {
-                candidateVolumesForDatastore.add(volume);
+                candidateVolumesForDatastoreCreate.add(volume);
             } else {
                 for (String datastoreName : datastoreNames) {
-                    checkDatastoreAndCreateEvent(datastoreName, volume, dsDisk, datacenters, vcenterAPI, vcenterURI);
+                    handleDatastoreRenameAndDelete(datastoreName, volume, datastoreDiskMap, vcenterURI);
                 }
             }
         }
-        checkCreateDatastore(candidateVolumesForDatastore, dsDisk, vcenterURI);
+        handleDatastoreCreate(candidateVolumesForDatastoreCreate, datastoreDiskMap, vcenterURI);
     }
 
-    private void checkCreateDatastore(Collection<Volume> volumes, Map<Datastore, Set<HostScsiDisk>> dsDisk, URI vcenterURI) {
+    private void handleDatastoreCreate(Collection<Volume> volumes, Map<Datastore, Set<HostScsiDisk>> datastoreDiskMap, URI vcenterURI) {
         for (Volume volume : volumes) {
-            for (Entry<Datastore, Set<HostScsiDisk>> entry : dsDisk.entrySet()) {
+            for (Entry<Datastore, Set<HostScsiDisk>> entry : datastoreDiskMap.entrySet()) {
                 for (HostScsiDisk disk : entry.getValue()) {
                     String diskWwn = VMwareUtils.getDiskWwn(disk);
                     URI newDsUri = URI.create(entry.getKey().getInfo().getUrl());
@@ -816,7 +815,7 @@ public class VcenterDiscoveryAdapter extends EsxHostDiscoveryAdapter {
         }
     }
 
-    private Datastore getChangedDatastore(Volume volume, Map<Datastore, Set<HostScsiDisk>> dsDisk) {
+    private Datastore getDatastoreWithVolumeWwn(Volume volume, Map<Datastore, Set<HostScsiDisk>> dsDisk) {
         for (Entry<Datastore, Set<HostScsiDisk>> entry : dsDisk.entrySet()) {
             for (HostScsiDisk disk : entry.getValue()) {
                 String diskWwn = VMwareUtils.getDiskWwn(disk);
@@ -828,43 +827,45 @@ public class VcenterDiscoveryAdapter extends EsxHostDiscoveryAdapter {
         return null;
     }
 
-    private void checkDatastoreAndCreateEvent(String oldDatastoreName, Volume volume, Map<Datastore, Set<HostScsiDisk>> dsDisk,
-            List<Datacenter> datacenters, VCenterAPI vcenterAPI, URI vcenterURI) {
-        Datastore changedDs = null;
-        Set<Datastore> datastores = dsDisk.keySet();
-        for (Datastore ds : datastores) {
-            if(ds.getName().equals(oldDatastoreName)) {
-                changedDs = ds;
+    private void handleDatastoreRenameAndDelete(String candidateDatastoreName, Volume volume, Map<Datastore, Set<HostScsiDisk>> datastoreDiskMap, URI vcenterURI) {
+        Datastore candidateDatastore = null;
+        Set<Datastore> datastoresFromVcenter = datastoreDiskMap.keySet();
+        //check if the datastore is present in vcenter
+        for (Datastore datastoreFromVcenter : datastoresFromVcenter) {
+            if(datastoreFromVcenter.getName().equals(candidateDatastoreName)) {
+                candidateDatastore = datastoreFromVcenter;
             }
-            if (changedDs != null) { // found the datastore hence no need to process further
+            if (candidateDatastore != null) { // found the datastore hence no need to process further
                 break;
             }
         }
-        if (changedDs == null) {
-            Datastore newDatastore = getChangedDatastore(volume, dsDisk);
+        // not found the datastore with name hence either it is deleted or renamed.
+        if (candidateDatastore == null) {
+            //check with volume wwn if newDatastore not found then it was deleted or else if it is found then it is renamed.
+            Datastore newDatastore = getDatastoreWithVolumeWwn(volume, datastoreDiskMap);
             if (newDatastore == null) {
                 EventUtils.createActionableEvent(dbClient, EventUtils.EventCode.VCENTER_DATASTORE_DELETE, volume.getTenant().getURI(),
-                        ComputeSystemDialogProperties.getMessage("ComputeSystem.vcenterDatastoreDeleteLabel", oldDatastoreName),
+                        ComputeSystemDialogProperties.getMessage("ComputeSystem.vcenterDatastoreDeleteLabel", candidateDatastoreName),
                         ComputeSystemDialogProperties.getMessage("ComputeSystem.vcenterDatastoreDeleteDescription", volume.getLabel()),
                         ComputeSystemDialogProperties.getMessage("ComputeSystem.vcenterDatastoreDeleteWarning"), volume,
                         Lists.newArrayList(volume.getId()), EventUtils.vcenterDatastoreDelete,
-                        new Object[] { volume.getId(), oldDatastoreName, vcenterURI },
+                        new Object[] { volume.getId(), candidateDatastoreName, vcenterURI },
                         EventUtils.vcenterDatastoreDeleteDecline, new Object[] { volume.getId() });
-            } else if (!oldDatastoreName.equals(newDatastore.getName())) {
+            } else if (!candidateDatastoreName.equals(newDatastore.getName())) {
                 URI changedDsUri = URI.create(newDatastore.getInfo().getUrl());
                 EventUtils.createActionableEvent(dbClient, EventUtils.EventCode.VCENTER_DATASTORE_RENAME, volume.getTenant().getURI(),
-                        ComputeSystemDialogProperties.getMessage("ComputeSystem.vcenterDatastoreRenameLabel", oldDatastoreName),
+                        ComputeSystemDialogProperties.getMessage("ComputeSystem.vcenterDatastoreRenameLabel", candidateDatastoreName),
                         ComputeSystemDialogProperties.getMessage("ComputeSystem.vcenterDatastoreRenameDescription", newDatastore.getName()),
                         ComputeSystemDialogProperties.getMessage("ComputeSystem.vcenterDatastoreRenameWarning"), volume,
                         Lists.newArrayList(volume.getId()), EventUtils.vcenterDatastoreRename,
-                        new Object[] { volume.getId(), changedDsUri, newDatastore.getName(), oldDatastoreName, vcenterURI },
+                        new Object[] { volume.getId(), changedDsUri, newDatastore.getName(), candidateDatastoreName, vcenterURI },
                         EventUtils.vcenterDatastoreRenameDecline, new Object[] { volume.getId() });
             }
         }
     }
 
-    private Map<Datastore, Set<HostScsiDisk>> getDsDiskMap(VCenterAPI vcenterAPI) {
-        Map<Datastore, Set<HostScsiDisk>> dsDisk = new HashMap<Datastore, Set<HostScsiDisk>>();
+    private Map<Datastore, Set<HostScsiDisk>> getDatastoreDiskMap(VCenterAPI vcenterAPI) {
+        Map<Datastore, Set<HostScsiDisk>> datastoreDiskMap = new HashMap<Datastore, Set<HostScsiDisk>>();
         for (Datacenter dc : vcenterAPI.listAllDatacenters()) {
             List<HostSystem> hostList = vcenterAPI.listHostSystems(dc);
             Set<HostSystem> hosts = new HashSet<HostSystem>(hostList);
@@ -873,10 +874,10 @@ public class VcenterDiscoveryAdapter extends EsxHostDiscoveryAdapter {
                     continue;
                 }               
                 Set<HostScsiDisk> disks = new HashSet<HostScsiDisk>(getDiskList(hosts, ds));
-                dsDisk.put(ds, disks);
+                datastoreDiskMap.put(ds, disks);
             }
         }
-        return dsDisk;
+        return datastoreDiskMap;
     }
 
     private List<HostScsiDisk> getDiskList(Set<HostSystem> hosts, Datastore ds) {

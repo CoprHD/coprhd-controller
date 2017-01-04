@@ -18,7 +18,10 @@ import com.emc.storageos.db.client.model.uimodels.Order;
 public interface TimeSeriesConstraint extends Constraint {
     long count() throws ConnectionException;
 
-    static class Factory {
+    class Factory {
+        private Factory() {
+        }
+
         public static TimeSeriesConstraint getOrdersByUser(String user, long startTimeInMS, long endTimeInMS) {
             DataObjectType doType = TypeMap.getDoType(Order.class);
             ColumnField field = doType.getColumnField(Order.SUBMITTED_BY_USER_ID);

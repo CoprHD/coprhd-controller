@@ -36,7 +36,6 @@ public class ClassNameTimeSeriesIndexColumnName implements CompositeIndexColumnN
         this(-1, className, id, "", timeUUID);
     }
 
-
     public ClassNameTimeSeriesIndexColumnName(long timestamp, String className, String id, String four, UUID timeUUID) {
         this.timeInMicros = timestamp < 0 ? TimeUUIDUtils.getMicrosTimeFromUUID(timeUUID): timestamp;
         this.id = id;

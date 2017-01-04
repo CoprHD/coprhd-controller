@@ -29,7 +29,6 @@ public class TimeSeriesDbIndex extends DbIndex<TimeSeriesIndexColumnName> {
     boolean addColumn(String recordKey, CompositeColumnName column, Object value,
                       String className, RowMutator mutator, Integer ttl, DataObject obj) {
         if (value.toString().isEmpty()) {
-            // empty string in alternate id field, ignore and continue
             _log.warn("Empty string in {} id field: {}", this.getClass().getSimpleName(), fieldName);
             return false;
         }

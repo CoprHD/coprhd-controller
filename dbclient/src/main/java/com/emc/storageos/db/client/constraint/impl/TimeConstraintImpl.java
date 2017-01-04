@@ -56,9 +56,11 @@ public class TimeConstraintImpl extends ConstraintImpl<IndexColumnName> implemen
         this.entityType = clazz;
     }
 
+    /*
     public String getIndexKey() {
         return rowKey;
     }
+    */
 
     /**
      * Constructs the time constraint.

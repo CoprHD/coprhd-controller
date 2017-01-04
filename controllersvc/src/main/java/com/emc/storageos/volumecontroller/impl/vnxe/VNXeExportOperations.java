@@ -29,7 +29,6 @@ import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.HostInterface.Protocol;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.StorageSystem;
-import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
@@ -38,6 +37,7 @@ import com.emc.storageos.db.client.util.StringSetUtil;
 import com.emc.storageos.exceptions.DeviceControllerErrors;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
+import com.emc.storageos.util.ExportUtils;
 import com.emc.storageos.vnxe.VNXeApiClient;
 import com.emc.storageos.vnxe.models.Snap;
 import com.emc.storageos.vnxe.models.VNXeBase;
@@ -247,13 +247,8 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
                 throw new DeviceControllerException("Invalid ExportMask URI: " + exportMaskUri);
             }
 
-            StringSet inits = exportMask.getInitiators();
-            for (String init : inits) {
-                _logger.info("Initiator: {}", init);
-                Initiator initiator = _dbClient.queryObject(Initiator.class, URI.create(init));
-                if (initiator != null) {
-                    initiatorList.add(initiator);
-                }
+            if (initiatorList.isEmpty()) {
+                initiatorList = ExportUtils.getExportMaskInitiators(exportMask, _dbClient);
             }
 
             ExportMaskValidationContext ctx = new ExportMaskValidationContext();
@@ -266,23 +261,38 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
             String opId = taskCompleter.getOpId();
             VNXeApiClient apiClient = getVnxeClient(storage);
             String hostId = getHostIdFromInitiators(initiatorList, apiClient);
-            unexportLUNs(storage, exportMask, volumeURIList, apiClient, hostId, opId);
+            Set<String> removedLUNIds = unexportLUNs(storage, exportMask, volumesToBeUnmapped, apiClient, hostId, opId);
+
+            // check if there are LUNs on array
+            // note volume validation will pass if multiple masks have volumes on array
+            // initiator will not be able to removed if there are LUNs belongs to other masks
+            Set<String> lunIds = new HashSet<>();
+            for (Set<String> lunsInMask : VNXeUtils.getAllLUNsForHost(_dbClient, storage, exportMask).values()) {
+                lunIds.addAll(lunsInMask);
+            }
+
+            lunIds.removeAll(removedLUNIds);
 
             for (Initiator initiator : initiatorList) {
                 _logger.info("Processing initiator {}", initiator.getLabel());
-                String initiatorId = initiator.getInitiatorPort();
-                if (Protocol.FC.name().equals(initiator.getProtocol())) {
-                    initiatorId = initiator.getInitiatorNode() + ":" + initiatorId;
-                }
+                if (lunIds.isEmpty()) {
+                    // all ViPR known LUNs has been removed, and there shouldn't any unknown LUN since the volume validation passed
+                    String initiatorId = initiator.getInitiatorPort();
+                    if (Protocol.FC.name().equals(initiator.getProtocol())) {
+                        initiatorId = initiator.getInitiatorNode() + ":" + initiatorId;
+                    }
 
-                apiClient.deleteInitiator(initiatorId);
+                    apiClient.deleteInitiator(initiatorId);
+                }
                 exportMask.removeFromExistingInitiators(initiator);
                 exportMask.removeFromUserCreatedInitiators(initiator);
             }
 
-            List<VNXeHostInitiator> vnxeInitiators = apiClient.getInitiatorsByHostId(hostId);
-            if (vnxeInitiators == null || vnxeInitiators.isEmpty()) {
-                apiClient.deleteHost(hostId);
+            if (hostId != null) {
+                List<VNXeHostInitiator> vnxeInitiators = apiClient.getInitiatorsByHostId(hostId);
+                if (vnxeInitiators == null || vnxeInitiators.isEmpty()) {
+                    apiClient.deleteHost(hostId);
+                }
             }
 
             _dbClient.updateObject(exportMask);
@@ -359,12 +369,7 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
                 throw new DeviceControllerException("Invalid ExportMask URI: " + exportMaskUri);
             }
 
-            StringSet initiatorUris = exportMask.getInitiators();
-            List<Initiator> initiators = new ArrayList<Initiator>();
-            for (String initiatorUri : initiatorUris) {
-                Initiator init = _dbClient.queryObject(Initiator.class, URI.create(initiatorUri));
-                initiators.add(init);
-            }
+            List<Initiator> initiators = ExportUtils.getExportMaskInitiators(exportMask, _dbClient);
             Collection<VNXeHostInitiator> vnxeInitiators = prepareInitiators(initiators).values();
             VNXeBase host = apiClient.prepareHostsForExport(vnxeInitiators);
 
@@ -484,13 +489,7 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
                     .removeVolumes(storage, exportMask.getId(), initiatorList);
             initiatorsValidator.validate();
 
-            StringSet initiatorUris = exportMask.getInitiators();
-            List<Initiator> initiators = new ArrayList<Initiator>();
-            for (String initiatorUri : initiatorUris) {
-                Initiator init = _dbClient.queryObject(Initiator.class, URI.create(initiatorUri));
-                initiators.add(init);
-            }
-            Collection<VNXeHostInitiator> vnxeInitiators = prepareInitiators(initiators).values();
+            List<Initiator> initiators = ExportUtils.getExportMaskInitiators(exportMask, _dbClient);
             String hostId = getHostIdFromInitiators(initiators, apiClient);
 
             String opId = taskCompleter.getOpId();
@@ -549,12 +548,7 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
             }
 
             VNXeApiClient apiClient = getVnxeClient(storage);
-            StringSet initiatorUris = exportMask.getInitiators();
-            List<Initiator> initiators = new ArrayList<Initiator>();
-            for (String initiatorUri : initiatorUris) {
-                Initiator init = _dbClient.queryObject(Initiator.class, URI.create(initiatorUri));
-                initiators.add(init);
-            }
+            List<Initiator> initiators = ExportUtils.getExportMaskInitiators(exportMask, _dbClient);
             // Finding existing host from the array
             Collection<VNXeHostInitiator> vnxeInitiators = prepareInitiators(initiators).values();
             String hostId = null;
@@ -630,15 +624,6 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
             throw DeviceControllerException.exceptions.invalidObjectNull();
         }
 
-        Set<Initiator> allInitiators = new HashSet<Initiator>();
-        for (String init : mask.getInitiators()) {
-            _logger.info("Initiator: {}", init);
-            Initiator initiator = _dbClient.queryObject(Initiator.class, URI.create(init));
-            if (initiator != null) {
-                allInitiators.add(initiator);
-            }
-        }
-
         // Get the context from the task completer, in case this is a rollback.
         ExportOperationContext context = (ExportOperationContext) WorkflowService.getInstance().loadStepData(taskCompleter.getOpId());
         if (context != null && context.getOperations() != null) {
@@ -654,7 +639,6 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
                 }
             }
             initiators = addedInitiators;
-            allInitiators.addAll(addedInitiators);
             if (initiators == null || initiators.isEmpty()) {
                 _logger.info("There was no context found for add initiator. So there is nothing to rollback.");
                 taskCompleter.ready(_dbClient);
@@ -665,27 +649,30 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
         try {
             // find out if initiators being deleted are all initiator of VNXe host
             VNXeApiClient apiClient = getVnxeClient(storage);
+            List<Initiator> allInitiators = ExportUtils.getExportMaskInitiators(exportMask, _dbClient);
             String vnxeHostId = getHostIdFromInitiators(allInitiators, apiClient);
             List<VNXeHostInitiator> vnxeInitiators = apiClient.getInitiatorsByHostId(vnxeHostId);
-            Map<Initiator, VNXeHostInitiator> vnxeInitiatorsToBeRemoved = prepareInitiators(initiators);
+            Map<Initiator, VNXeHostInitiator> vnxeInitiatorsToBeRemoved = prepareInitiators(initiators); // initiators is a subset of allInitiators
+
 
             Set<String> initiatorIds = new HashSet<String>();
             for (VNXeHostInitiator vnxeInit : vnxeInitiators) {
                 initiatorIds.add(vnxeInit.getInitiatorId());
             }
 
-            Set<String> initiatorToBeRemoved = new HashSet<String>();
+            Set<String> initiatorsToBeRemoved = new HashSet<String>();
             for (VNXeHostInitiator vnxeInit : vnxeInitiatorsToBeRemoved.values()) {
                 String initiatorId = vnxeInit.getId();
                 if (initiatorIds.remove(initiatorId)) {
-                    initiatorToBeRemoved.add(initiatorId);
+                    initiatorsToBeRemoved.add(initiatorId);
                 }
             }
 
-            boolean deleteAllInitiators = false;
-            if (initiators.isEmpty()) {
+            boolean removeAllInitiators = false;
+            if (initiatorIds.isEmpty()) {
                 // all initiators will be removed (no unknown initiator)
-                deleteAllInitiators = true;
+                removeAllInitiators = true;
+                _logger.info("Remove all initiator: " + removeAllInitiators);
             }
 
             ExportMaskValidationContext ctx = new ExportMaskValidationContext();
@@ -694,11 +681,10 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
             ctx.setBlockObjects(volumeURIList, _dbClient);
             ctx.setAllowExceptions(context == null);
             VNXeExportMaskVolumesValidator volumeValidator = (VNXeExportMaskVolumesValidator) validator.removeInitiators(ctx);
-            volumeValidator.setCheckAllVolumes(!deleteAllInitiators);
+            volumeValidator.setRemoveAllInitiators(removeAllInitiators);
             volumeValidator.validate();
 
-            if (deleteAllInitiators) {
-                // remove all volumes (don't need validation, as there should be no unknown initiator in this case)
+            if (removeAllInitiators) {
                 unexportLUNs(storage, mask, StringSetUtil.stringSetToUriList(mask.getVolumes().keySet()), apiClient, vnxeHostId, taskCompleter.getOpId());
             }
 
@@ -799,8 +785,9 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
         return snap;
     }
 
-    private void unexportLUNs(StorageSystem storage, ExportMask exportMask, List<URI> volumes,
+    private Set<String> unexportLUNs(StorageSystem storage, ExportMask exportMask, List<URI> volumes,
             VNXeApiClient apiClient, String hostId, String opId) {
+        Set<String> lunIds = new HashSet<String>();
         Set<String> processedCGs = new HashSet<String>();
         for (URI volUri : volumes) {
             BlockObject blockObject = BlockObject.fetch(_dbClient, volUri);
@@ -823,8 +810,11 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
                     setSnapWWN(apiClient, blockObject, nativeId);
                 }
             }
+            lunIds.add(nativeId);
             // update the exportMask object
             exportMask.removeVolume(volUri);
         }
+
+        return lunIds;
     }
 }

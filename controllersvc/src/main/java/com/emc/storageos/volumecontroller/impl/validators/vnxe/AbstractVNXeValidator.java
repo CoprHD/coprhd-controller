@@ -120,7 +120,7 @@ public abstract class AbstractVNXeValidator implements Validator {
         String vnxeHostId = null;
         for (String init : exportMask.getInitiators()) {
             Initiator initiator = dbClient.queryObject(Initiator.class, URI.create(init));
-            if (initiator != null) {
+            if (initiator != null && !initiator.getInactive()) {
                 log.info("Processing initiator {}", initiator.getLabel());
                 String initiatorId = initiator.getInitiatorPort();
                 if (Protocol.FC.name().equals(initiator.getProtocol())) {

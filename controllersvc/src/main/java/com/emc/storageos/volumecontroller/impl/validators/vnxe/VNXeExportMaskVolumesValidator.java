@@ -4,7 +4,6 @@
  */
 package com.emc.storageos.volumecontroller.impl.validators.vnxe;
 
-import java.net.URI;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
@@ -22,6 +21,7 @@ import com.emc.storageos.vnxe.models.HostLun;
 import com.emc.storageos.vnxe.models.VNXeBase;
 import com.emc.storageos.vnxe.models.VNXeHost;
 import com.emc.storageos.volumecontroller.impl.validators.ValidatorLogger;
+import com.emc.storageos.volumecontroller.impl.vnxe.VNXeUtils;
 
 /**
  * Validator class for removing initiators from export mask and deleting export mask
@@ -31,7 +31,7 @@ public class VNXeExportMaskVolumesValidator extends AbstractVNXeValidator {
     private static final Logger log = LoggerFactory.getLogger(VNXeExportMaskVolumesValidator.class);
 
     private final Collection<? extends BlockObject> blockObjects;
-    private boolean checkAllVolumes = true;
+    private boolean isRemoveAllInitiators = false;
 
     VNXeExportMaskVolumesValidator(StorageSystem storage, ExportMask exportMask,
             Collection<? extends BlockObject> blockObjects) {
@@ -53,26 +53,27 @@ public class VNXeExportMaskVolumesValidator extends AbstractVNXeValidator {
             if (vnxeHost != null) {
                 List<VNXeBase> hostLunIds = vnxeHost.getHostLUNs();
                 if (hostLunIds != null && !hostLunIds.isEmpty()) {
-                    if (checkAllVolumes) {
+                    if (!isRemoveAllInitiators) {
                         failValidation = true;
                     } else {
-                        Set<String> lunIds = new HashSet<String>();
-                        Collection<String> strUris = exportMask.getVolumes().keySet();
-                        for (String strUri : strUris) {
-                            BlockObject bo = BlockObject.fetch(dbClient, URI.create(strUri));
-                            if (bo != null && !bo.getInactive()) {
-                                lunIds.add(bo.getNativeId());
-                            }
-                        }
-
+                        Set<String> lunIds = new HashSet<>();
+                        VNXeUtils.getAllLUNsForHost(dbClient, storage, exportMask).values().forEach(lunIds::addAll);
                         for (VNXeBase hostLunId : hostLunIds) {
                             HostLun hostLun = apiClient.getHostLun(hostLunId.getId());
+                            int type = hostLun.getType();
+                            VNXeBase vnxelunId = null;
                             // get lun from from hostLun
-                            VNXeBase vnxelunId = hostLun.getLun();
+                            if (HostLun.HostLUNTypeEnum.LUN_SNAP.getValue() == type) {
+                                // snap
+                                vnxelunId = hostLun.getSnap();
+                            } else {
+                                vnxelunId = hostLun.getLun();
+                            }
+
                             if (vnxelunId != null) {
                                 lunId = vnxelunId.getId().toString();
                                 if (!lunIds.contains(lunId)) {
-                                    log.info("LUN {} is unknown", lunId);
+                                    log.info("LUN/LUN Snap {} is unknown", lunId);
                                     failValidation = true;
                                     break;
                                 }
@@ -104,11 +105,11 @@ public class VNXeExportMaskVolumesValidator extends AbstractVNXeValidator {
         return true;
     }
 
-    public boolean isCheckAllVolumes() {
-        return checkAllVolumes;
+    public boolean isRemoveAllInitiators() {
+        return isRemoveAllInitiators;
     }
 
-    public void setCheckAllVolumes(boolean checkAllVolumes) {
-        this.checkAllVolumes = checkAllVolumes;
+    public void setRemoveAllInitiators(boolean isRemoveAllInitiators) {
+        this.isRemoveAllInitiators = isRemoveAllInitiators;
     }
 }

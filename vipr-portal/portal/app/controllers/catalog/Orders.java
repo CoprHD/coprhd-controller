@@ -202,7 +202,7 @@ public class Orders extends OrderExecution {
     @Restrictions({ @Restrict("TENANT_ADMIN") })
     public static void deleteOrders(@As(",") String[] ids) {
         if (ids != null && ids.length > 0) {
-            System.out.println("hlj delete ids:" + ids);
+            System.out.println("hlj delete ids:" + ids.length);
             List<URI> uris = Lists.newArrayList();
             for (String id : ids) {
                 uris.add(uri(id));

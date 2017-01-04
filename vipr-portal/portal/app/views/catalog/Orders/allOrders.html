@@ -88,6 +88,10 @@ table.orders.dataTable.afterCreate(function(dataTable) {
     var itemsJson = #{jsAction @catalog.Orders.itemsJson(':ids')/};
     watchOrderStatus(dataTable.getDataTable(), itemsJson);
 });
+
+var isCheckedAll = false;
+var toDeleteIds = null;
+
 $(document).ready(function() {
     var requestMaxDays = "${maxDays}";
     if(requestMaxDays != 0) {
@@ -95,13 +99,10 @@ $(document).ready(function() {
     }
     
     var disableDeleteAll = "${disableDeleteAll}";
-    console.info(disableDeleteAll);
     if (disableDeleteAll == 1) {
     	$('input[name=selectAll]').prop('disabled', true);
     }
     
-    var isCheckedAll = false;
-
     $('#maxDays').on('change', function() {
         var maxDays = $(this).val();
         if(maxDays == 0) {
@@ -118,21 +119,22 @@ $(document).ready(function() {
     		$('.checkedAll-block').show();
     	}else {
     		$('.checkedAll-block').hide();
-    	}
-    	var datatable = $('#orders .table').dataTable();
-    	
-        var values = [];
-        $('#orders input[name=selected]:checked').each(function() {
-            console.info($(this));
-            console.info("val: "+$(this).val());
-            var row = table.orders.dataTable.getRow(this);
-            console.info("row"+row);
-            $.each(row.cells, function(index, column) {
-                console.info(index, column);
+    		toDeleteIds = null;
+            var values = new Array();
+            $('#orders input[name=selected]:checked').each(function() {
+                console.info("val: "+$(this).val());
+                values.push($(this).val());
             });
-        });
-        
-        console.info(values);
+            toDeleteIds = values.join(',');
+            
+            console.info(values);
+            console.info(toDeleteIds);
+            if(toDeleteIds == "") {
+            	alert("Please select orders first.");
+            	return;
+            }
+    	}
+    	
     	$('#deleteDialog').modal();
     });
     
@@ -160,7 +162,11 @@ $(document).ready(function() {
 
 function deleteOrders() {
     console.info("start to delete");
-    var url = #{jsAction @deleteOrders()/}()+"?startDate=${startDate}&endDate=${endDate}&maxDays=${maxDays}";
+    if (isCheckedAll) {
+        var url = #{jsAction @deleteOrders()/}()+"?startDate=${startDate}&endDate=${endDate}&maxDays=${maxDays}";
+    } else {
+    	var url = #{jsAction @deleteOrders(':ids')/}({"ids":toDeleteIds});
+    }
     console.info(url);
     window.location.href = url;
 }

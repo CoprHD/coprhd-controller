@@ -84,6 +84,9 @@ public final class InvokeTestFailure {
     public static final String ARTIFICIAL_FAILURE_051 = "failure_051_MaskingWorkflowEntryPoints.doExportGroupDelete_after_delete_before_unzone";
     public static final String ARTIFICIAL_FAILURE_052 = "failure_052_XtremIOExportOperations.runLunMapCreationAlgorithm_before_addvolume_to_lunmap";
     public static final String ARTIFICIAL_FAILURE_053 = "failure_053_XtremIOExportOperations.runLunMapCreationAlgorithm_after_addvolume_to_lunmap";
+    public static final String ARTIFICIAL_FAILURE_054 = "failure_054_host_cluster_ComputeSystemControllerImpl.attachAndMount_before_attach";
+    public static final String ARTIFICIAL_FAILURE_055 = "failure_055_host_cluster_ComputeSystemControllerImpl.attachAndMount_after_attach";
+    public static final String ARTIFICIAL_FAILURE_056 = "failure_056_host_cluster_ComputeSystemControllerImpl.attachAndMount_after_mount";
 
     private static final int FAILURE_SUBSTRING_LENGTH = 11;
 

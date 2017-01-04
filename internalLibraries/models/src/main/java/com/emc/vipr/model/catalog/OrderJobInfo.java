@@ -90,7 +90,7 @@ public class OrderJobInfo {
         this.timeUsedPerOrder = timeUsedPerOrder;
     }
     
-    public boolean isJobDone() {
-        return this.total == this.nCompleted + this.nFailed;
+    public boolean isNoJobOrJobDone() {
+        return this.total == -1 || this.total == this.nCompleted + this.nFailed;
     }
 }

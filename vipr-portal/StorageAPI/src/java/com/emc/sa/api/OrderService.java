@@ -937,7 +937,7 @@ public class OrderService extends CatalogTaggedResourceService {
         }
 
         OrderJobStatus status = queryJobInfo(type);
-        return status.toOrderJobInfo();
+        return status != null ? status.toOrderJobInfo() : new OrderJobInfo();
     }
 
     /**

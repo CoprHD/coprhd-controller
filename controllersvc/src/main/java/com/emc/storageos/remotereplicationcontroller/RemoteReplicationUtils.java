@@ -1,4 +1,4 @@
-package com.emc.storageos.remoterreplicationcontroller;
+package com.emc.storageos.remotereplicationcontroller;
 
 
 import com.emc.storageos.db.client.DbClient;

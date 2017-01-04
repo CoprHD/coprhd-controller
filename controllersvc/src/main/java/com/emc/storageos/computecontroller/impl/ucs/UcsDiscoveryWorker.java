@@ -338,12 +338,14 @@ public class UcsDiscoveryWorker {
         createDataObjects(new ArrayList<DataObject>(addBlades.values()));
         persistDataObjects(new ArrayList<DataObject>(updateBlades.values()));
 
-        for (String name : removeBlades.keySet()) {
-            _log.info("Marked for deletion ComputeElement name:" + name);
+        if (!removeBlades.isEmpty()){
+            for (String name : removeBlades.keySet()) {
+                _log.info("Marked for deletion ComputeElement name:" + name);
+            }
+            removeBladesFromComputeVirtualPools(removeBlades.values());
+            removeBladesFromHosts(removeBlades.values());
+            deleteDataObjects(new ArrayList<DataObject>(removeBlades.values()));
         }
-        removeBladesFromComputeVirtualPools(removeBlades.values());
-        removeBladesFromHosts(removeBlades.values());
-        deleteDataObjects(new ArrayList<DataObject>(removeBlades.values()));
     }
 
     private void createComputeElement(ComputeSystem cs, ComputeElement computeElement, ComputeBlade computeBlade, LsServer lsServer) {
@@ -1660,6 +1662,7 @@ public class UcsDiscoveryWorker {
                     _log.info("Removing ComputeElement {} association from Host {} ", computeElement.getDn(), host.getLabel());
                     host.setComputeElement(NullColumnValueGetter.getNullURI());
                     _dbClient.persistObject(host);
+                    break;
                 }
             }
 

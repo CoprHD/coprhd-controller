@@ -24,6 +24,7 @@ import javax.xml.bind.annotation.XmlRootElement;
 
 import com.emc.storageos.model.DataObjectRestRep;
 import com.emc.storageos.model.RestLinkRep;
+import com.google.gson.annotations.SerializedName;
 
 @XmlRootElement(name = "primitive")
 public class PrimitiveRestRep extends DataObjectRestRep {

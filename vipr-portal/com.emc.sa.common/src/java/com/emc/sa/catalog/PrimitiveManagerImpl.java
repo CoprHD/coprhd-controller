@@ -23,7 +23,6 @@ import org.springframework.stereotype.Component;
 
 import com.emc.sa.model.dao.ModelClient;
 import com.emc.storageos.db.client.model.uimodels.AnsiblePackage;
-import com.emc.storageos.db.client.model.uimodels.PrimitiveResource;
 
 @Component
 public class PrimitiveManagerImpl implements PrimitiveManager {
@@ -34,11 +33,6 @@ public class PrimitiveManagerImpl implements PrimitiveManager {
     @Override
     public void save(final AnsiblePackage ansiblePackage) {
         client.save(ansiblePackage);
-    }
-
-    @Override
-    public void save(final PrimitiveResource resource) {
-        client.save(resource);
     }
 
     @Override

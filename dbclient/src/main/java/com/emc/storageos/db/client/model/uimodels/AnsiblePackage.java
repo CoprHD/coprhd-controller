@@ -20,7 +20,7 @@ import com.emc.storageos.db.client.model.Cf;
 import com.emc.storageos.db.client.model.Name;
 
 /**
- *
+ * Column family that contains meta data for an ansible package
  */
 @Cf("AnsiblePackage")
 public class AnsiblePackage extends AnsibleMetadata {

@@ -20,7 +20,8 @@ import com.emc.storageos.db.client.model.Name;
 import com.emc.storageos.db.client.model.StringSet;
 
 /**
- *
+ * Abstract class that contains common metadata for ansible
+ * primitives
  */
 public abstract class AnsibleMetadata extends UserPrimitive {
 

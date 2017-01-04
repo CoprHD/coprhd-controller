@@ -19,18 +19,11 @@ package com.emc.sa.catalog;
 import java.net.URI;
 
 import com.emc.storageos.db.client.model.uimodels.AnsiblePackage;
-import com.emc.storageos.db.client.model.uimodels.PrimitiveResource;
 
-/**
- * @author ssulliva
- *
- */
 public interface PrimitiveManager {
 
     public void save(final AnsiblePackage ansiblePackage);
-
-    public void save(final PrimitiveResource resource);
-
+    
     public AnsiblePackage findById(final URI id);
 
 }

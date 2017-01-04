@@ -80,6 +80,11 @@ public class Common extends Controller {
         {
             put("/orders/submitOrder","mountPoint", PATH_SANITIZER);
             put("/orders/submitOrder","mountPath", PATH_SANITIZER);
+
+            put("/ldap/save","ldapSources.managerDn", PATH_SANITIZER);
+            put("/usergroup/save","userGroup.name", PATH_SANITIZER);
+
+            put("/config/passwords","user", PATH_SANITIZER);
         }
     };
 
@@ -122,13 +127,12 @@ public class Common extends Controller {
     public static void xssCheck() {
         for (String param : params.all().keySet()) {
             // skip xss sanitation for fields which name contains password
-            if (param.toLowerCase().contains("password")) {
+            if (param.toLowerCase().contains("password") || param.toLowerCase().contains("username")) {
                 Logger.debug("skip sanitation for " + param);
                 return;
             }
 
             String[] data = params.getAll(param);
-
             if ((data != null) && (data.length > 0)) {
                 String sanitizer = (String)XSS_SANITIZERS.get(request.path,param);
                 Logger.debug("Cleaning data for " + param);

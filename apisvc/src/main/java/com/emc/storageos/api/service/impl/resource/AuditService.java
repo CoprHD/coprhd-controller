@@ -119,7 +119,7 @@ public class AuditService extends ResourceService {
             }
         }
         _logger.info("mtype is :{}",mType);
-        
+
         DateTime startTime, endTime;
         if (timeBucket != null && !timeBucket.isEmpty()) {
             startTime = getDataTime(timeBucket,HOUR_BUCKET_TIME_FORMAT);
@@ -136,11 +136,11 @@ public class AuditService extends ResourceService {
         }else {
             startTime = getDataTime(startTimeStr, HOUR_BUCKET_TIME_FORMAT);
             if (startTime == null) {
-                throw APIException.badRequests.invalidDate(startTimeStr);
+                throw APIException.badRequests.invalidDate(startTimeStr, HOUR_BUCKET_TIME_FORMAT);
             }
             endTime = getDataTime(endTimeStr, HOUR_BUCKET_TIME_FORMAT);
             if (endTime == null) {
-                throw APIException.badRequests.invalidDate(endTimeStr);
+                throw APIException.badRequests.invalidDate(endTimeStr, HOUR_BUCKET_TIME_FORMAT);
             }
             validateDataTimePair(startTime,endTime);
         }

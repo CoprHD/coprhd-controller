@@ -4,10 +4,10 @@
  */
 package models.datatable;
 
-import java.util.Calendar;
+import static com.emc.vipr.client.core.util.ResourceUtils.uri;
+
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
 
@@ -17,6 +17,7 @@ import org.apache.commons.lang.StringUtils;
 import util.OrderUtils;
 import util.datatable.DataTableParams;
 
+import com.emc.vipr.model.catalog.OrderCount;
 import com.emc.vipr.model.catalog.OrderRestRep;
 
 public class RecentOrdersDataTable extends OrderDataTable {
@@ -44,27 +45,18 @@ public class RecentOrdersDataTable extends OrderDataTable {
         this.maxAgeInDays = daysAgo;
     }
 
-    protected Date calculateStartTime() {
-        Calendar cal = Calendar.getInstance();
-        cal.add(Calendar.DAY_OF_YEAR, -maxAgeInDays);
-        return cal.getTime();
-    }
-
-    protected Date now() {
-        return new Date();
-    }
-
     @Override
     public List<OrderInfo> fetchAll() {
-        Date startTime = calculateStartTime();
-        Date endTime = now();
-
-        List<OrderRestRep> orders = OrderUtils.findByTimeRange(startTime, endTime, tenantId);
-        if (userInfo != null) {
-            filterByUserId(orders);
+        if (startDate == null && endDate == null) {
+            super.setStartAndEndDatesByMaxDays(maxAgeInDays);
         }
-        else {
-            filterByTenant(orders);
+
+        List<OrderRestRep> orders = OrderUtils.findByTimeRange(startDate, endDate, tenantId, ORDER_MAX_COUNT_STR);
+        if (userInfo != null) {// used for DashboardOrdersDataTable
+            filterByUserId(orders);
+        } else {
+            // no need to filter by tenant, because already find by tenantId
+            // filterByTenant(orders);
         }
         return convert(orders);
     }
@@ -79,10 +71,15 @@ public class RecentOrdersDataTable extends OrderDataTable {
         }
         return orders;
     }
+    
+    @Override
+    public OrderCount fetchCount() {
+        return OrderUtils.getOrdersCount(startDate, endDate, uri(tenantId));
+    }
 
     /**
      * Filters out orders that are not associated with the selected tenant.
-     * 
+     *
      * @param orders
      *            the orders.
      */
@@ -97,7 +94,7 @@ public class RecentOrdersDataTable extends OrderDataTable {
 
     /**
      * Filters out orders that are not submitted by the selected user (if applicable).
-     * 
+     *
      * @param orders
      *            the orders.
      */

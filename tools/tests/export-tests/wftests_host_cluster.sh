@@ -944,18 +944,17 @@ test_move_clustered_discovered_host_to_cluster() {
     set_controller_cs_discovery_refresh_interval 1
     cfs="ExportGroup ExportMask Network Host Initiator"
 
-    syssvc /workspace/vipr-emc/tools/cli/python/conf/sanity.conf localhost set_prop validation_check false
     run syssvc $SANITY_CONFIG_FILE localhost set_prop system_proxyuser_encpassword $SYSADMIN_PASSWORD
-#failure_026_host_cluster_ComputeSystemControllerImpl.updateExportGroup_before_update \
-#                                     failure_029_host_cluster_ComputeSystemControllerImpl.verifyDatastore_after_verify \
-#                                     failure_030_host_cluster_ComputeSystemControllerImpl.unmountAndDetach_after_unmount \
-#                                     failure_031_host_cluster_ComputeSystemControllerImpl.unmountAndDetach_after_detach \
-#                                     failure_032_host_cluster_ComputeSystemControllerImpl.updateHostAndInitiatorClusterReferences_after_updateHostAndInitiator \
-#                                     failure_033_host_cluster_ComputeSystemControllerImpl.updateHostAndInitiatorClusterReferences_after_updateHostVcenter \
                                      
-    host_cluster_failure_injections="failure_054_host_cluster_ComputeSystemControllerImpl.attachAndMount_before_attach"
-                                     #failure_055_host_cluster_ComputeSystemControllerImpl.attachAndMount_after_attach \
-                                     #failure_056_host_cluster_ComputeSystemControllerImpl.attachAndMount_after_mount"
+    host_cluster_failure_injections="failure_026_host_cluster_ComputeSystemControllerImpl.updateExportGroup_before_update \
+                                     failure_029_host_cluster_ComputeSystemControllerImpl.verifyDatastore_after_verify \
+                                     failure_030_host_cluster_ComputeSystemControllerImpl.unmountAndDetach_after_unmount \
+                                     failure_031_host_cluster_ComputeSystemControllerImpl.unmountAndDetach_after_detach \
+                                     failure_032_host_cluster_ComputeSystemControllerImpl.updateHostAndInitiatorClusterReferences_after_updateHostAndInitiator \
+                                     failure_033_host_cluster_ComputeSystemControllerImpl.updateHostAndInitiatorClusterReferences_after_updateHostVcenter \
+                                     failure_054_host_cluster_ComputeSystemControllerImpl.attachAndMount_before_attach \
+                                     failure_055_host_cluster_ComputeSystemControllerImpl.attachAndMount_after_attach \
+                                     failure_056_host_cluster_ComputeSystemControllerImpl.attachAndMount_after_mount"
     common_failure_injections="failure_004_final_step_in_workflow_complete"
 
     item=${RANDOM}
@@ -970,7 +969,7 @@ test_move_clustered_discovered_host_to_cluster() {
 
     failure="false"
 
-    for failure in ${host_cluster_failure_injections}
+    for failure in ${failure_injections}
     do
         if [ ${failure} == ${HAPPY_PATH_TEST_INJECTION} ]; then
             echot "Running happy path test for move non-clustered host to cluster..."

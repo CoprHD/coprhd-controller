@@ -12,10 +12,10 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.UUID;
-import java.util.Map.Entry;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -168,8 +168,7 @@ public class DbConsistencyCheckerHelper {
                         getIndexColumns(indexedField, column, objRow.getKey()));
                 
                 if (!isColumnInIndex) {
-                    long microsTimeFromUUID = TimeUUIDUtils.getMicrosTimeFromUUID(column.getName().getTimeUUID());
-                    String dbVersion = findDataCreatedInWhichDBVersion(microsTimeFromUUID);
+                    String dbVersion = findDataCreatedInWhichDBVersion(column.getName().getTimeUUID());
                     checkResult.increaseByVersion(dbVersion);
                     logMessage(String.format(
                             "Inconsistency found Object(%s, id: %s, field: %s) is existing, but the related Index(%s, type: %s, id: %s) is missing. This entry is updated by version %s",
@@ -266,20 +265,35 @@ public class DbConsistencyCheckerHelper {
 
             OperationResult<Rows<String, CompositeColumnName>> objResult = indexAndCf.keyspace
                     .prepareQuery(objCf).getRowSlice(objKeysIdxEntryMap.keySet())
-                    .withColumnRange(new RangeBuilder().setLimit(1).build())
                     .execute();
             for (Row<String, CompositeColumnName> row : objResult.getResult()) {
-                if (row.getColumns().isEmpty()) { // Only support all the columns have been removed now
-                    List<IndexEntry> idxEntries = objKeysIdxEntryMap.get(row.getKey());
-                    for (IndexEntry idxEntry : idxEntries) {
-                        long microsTimeFromUUID = TimeUUIDUtils.getMicrosTimeFromUUID(idxEntry.getColumnName().getTimeUUID());
-                        String dbVersion = findDataCreatedInWhichDBVersion(microsTimeFromUUID);
+                Set<UUID> existingDataColumnUUIDSet = new HashSet<>();
+                for (Column<CompositeColumnName> column : row.getColumns()) {
+                    if (column.getName().getTimeUUID() != null) {
+                        existingDataColumnUUIDSet.add(column.getName().getTimeUUID());
+                    }
+                }
+                
+                List<IndexEntry> idxEntries = objKeysIdxEntryMap.get(row.getKey());
+                for (IndexEntry idxEntry : idxEntries) {
+                    if (row.getColumns().isEmpty()
+                            || (idxEntry.getColumnName().getTimeUUID() != null && !existingDataColumnUUIDSet.contains(idxEntry
+                                    .getColumnName().getTimeUUID()))) {
+                        String dbVersion = findDataCreatedInWhichDBVersion(idxEntry.getColumnName().getTimeUUID());
                         checkResult.increaseByVersion(dbVersion);
-                        logMessage(String.format("Inconsistency found: Index(%s, type: %s, id: %s, column: %s) is existing "
+                        if (row.getColumns().isEmpty()) {
+                            logMessage(String.format("Inconsistency found: Index(%s, type: %s, id: %s, column: %s) is existing "
                                 + "but the related object record(%s, id: %s) is missing. This entry is updated by version %s",
                                 indexAndCf.cf.getName(), indexAndCf.indexType.getSimpleName(),
                                 idxEntry.getIndexKey(), idxEntry.getColumnName(),
                                 objCf.getName(), row.getKey(), dbVersion), true, toConsole);
+                        } else {
+                            logMessage(String.format("Inconsistency found: Index(%s, type: %s, id: %s, column: %s) is existing, "
+                                    + "but the related object record(%s, id: %s) has not data column can match this index. This entry is updated by version %s",
+                                    indexAndCf.cf.getName(), indexAndCf.indexType.getSimpleName(),
+                                    idxEntry.getIndexKey(), idxEntry.getColumnName(),
+                                    objCf.getName(), row.getKey(), dbVersion), true, toConsole);
+                        }
                         UUID timeUUID = idxEntry.getColumnName().getTimeUUID();
                         DbCheckerFileWriter.writeTo(indexAndCf.keyspace.getKeyspaceName(),
                                 String.format(timeUUID != null ? DELETE_INDEX_CQL : DELETE_INDEX_CQL_WITHOUT_UUID,
@@ -363,7 +377,7 @@ public class DbConsistencyCheckerHelper {
         private Class<? extends DbIndex> indexType;
         private Keyspace keyspace;
 
-        IndexAndCf(Class<? extends DbIndex> indexType,
+        public IndexAndCf(Class<? extends DbIndex> indexType,
                 ColumnFamily<String, IndexColumnName> cf, Keyspace keyspace) {
             this.indexType = indexType;
             this.cf = cf;
@@ -638,7 +652,19 @@ public class DbConsistencyCheckerHelper {
         return result;
     }
     
-    protected String findDataCreatedInWhichDBVersion(long createTime) {
+    public String findDataCreatedInWhichDBVersion(UUID timeUUID) {
+        
+        long createTime = 0;
+        try {
+            createTime = TimeUUIDUtils.getMicrosTimeFromUUID(timeUUID);
+        } catch (Exception e) {
+            //ignore
+        }
+        
+        return findDataCreatedInWhichDBVersion(createTime);
+    }
+    
+    public String findDataCreatedInWhichDBVersion(long createTime) {
         //small data set, no need to binary search
         long selectKey = 0;
         for (Entry<Long, String> entry : schemaVersionsTime.entrySet()) {

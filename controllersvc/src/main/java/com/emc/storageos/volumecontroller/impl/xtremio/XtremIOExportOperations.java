@@ -988,7 +988,7 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
                     igGroup.getNumberOfInitiators());
 
         }
-
+        
         // add all the left out initiators to this folder
         for (Initiator remainingInitiator : initiatorsToBeCreated) {
             _log.info("Initiator {} Label {} ", remainingInitiator.getInitiatorPort(),
@@ -1091,6 +1091,8 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
                     volumesToIGMap.put(igName, igVolume.getVolInfo().get(1));
                 }
             }
+            
+            InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_052);
 
             // create Lun Maps
             for (VolumeURIHLU volURIHLU : volumeURIHLUs) {
@@ -1160,6 +1162,7 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
                     }
                 }
             }
+            InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_053);
             ExportOperationContext.insertContextOperation(taskCompleter,
                     XtremIOExportOperationContext.OPERATION_ADD_VOLUMES_TO_INITIATOR_GROUP,
                     mappedVolumes);

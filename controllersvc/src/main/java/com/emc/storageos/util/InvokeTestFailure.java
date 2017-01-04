@@ -82,6 +82,11 @@ public final class InvokeTestFailure {
     public static final String ARTIFICIAL_FAILURE_049 = "failure_049_BrocadeNetworkSMIS.getWEBMClient";
     public static final String ARTIFICIAL_FAILURE_050 = "failure_050_MaskingWorkflowEntryPoints.doExportGroupDelete_before_delete";
     public static final String ARTIFICIAL_FAILURE_051 = "failure_051_MaskingWorkflowEntryPoints.doExportGroupDelete_after_delete_before_unzone";
+    public static final String ARTIFICIAL_FAILURE_052 = "failure_052_XtremIOExportOperations.runLunMapCreationAlgorithm_before_addvolume_to_lunmap";
+    public static final String ARTIFICIAL_FAILURE_053 = "failure_053_XtremIOExportOperations.runLunMapCreationAlgorithm_after_addvolume_to_lunmap";
+    public static final String ARTIFICIAL_FAILURE_054 = "failure_054_host_cluster_ComputeSystemControllerImpl.attachAndMount_before_attach";
+    public static final String ARTIFICIAL_FAILURE_055 = "failure_055_host_cluster_ComputeSystemControllerImpl.attachAndMount_after_attach";
+    public static final String ARTIFICIAL_FAILURE_056 = "failure_056_host_cluster_ComputeSystemControllerImpl.attachAndMount_after_mount";
 
     private static final int FAILURE_SUBSTRING_LENGTH = 11;
 
@@ -93,7 +98,7 @@ public final class InvokeTestFailure {
     /**
      * Regex pattern for extracting the method name from failure 015.
      */
-    private static final String invokeMethodPattern = String.format("^.*%s(\\w+)$", ARTIFICIAL_FAILURE_015);
+    private static final String invokeMethodPattern = String.format("^.*%s(\\w+|\\*)$", ARTIFICIAL_FAILURE_015);
     private static final int METHOD_NAME_GROUP = 1;
 
     private static volatile String _beanName;
@@ -195,7 +200,8 @@ public final class InvokeTestFailure {
         Matcher matcher = p.matcher(invokeArtificialFailure);
         if (matcher.matches()) {
             String failOnMethodName = matcher.group(METHOD_NAME_GROUP);
-            if (!Strings.isNullOrEmpty(failOnMethodName) && failOnMethodName.equalsIgnoreCase(methodName)) {
+            if (!Strings.isNullOrEmpty(failOnMethodName)
+                    && (failOnMethodName.equalsIgnoreCase(methodName) || failOnMethodName.equalsIgnoreCase("*"))) {
                 log("Injecting failure: " + ARTIFICIAL_FAILURE_015 + methodName);
                 throw new WBEMException("CIM_ERROR_FAILED (Unable to connect)");
             }

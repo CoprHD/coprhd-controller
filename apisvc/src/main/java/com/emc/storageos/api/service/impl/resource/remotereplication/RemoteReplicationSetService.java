@@ -7,7 +7,6 @@ import static com.emc.storageos.api.mapper.TaskMapper.toTask;
 import java.net.URI;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 
 import javax.ws.rs.Consumes;
@@ -18,43 +17,31 @@ import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 
-import com.emc.storageos.api.mapper.BlockMapper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.emc.storageos.api.service.impl.resource.ArgValidator;
-import com.emc.storageos.api.service.impl.resource.BlockServiceApi;
-import com.emc.storageos.api.service.impl.resource.FileServiceApi;
 import com.emc.storageos.api.service.impl.resource.TaskResourceService;
 import com.emc.storageos.db.client.URIUtil;
-import com.emc.storageos.db.client.model.BlockConsistencyGroup;
-import com.emc.storageos.db.client.model.FileShare;
-import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.OpStatusMap;
 import com.emc.storageos.db.client.model.Operation;
-import com.emc.storageos.db.client.model.Project;
-import com.emc.storageos.db.client.model.Snapshot;
 import com.emc.storageos.db.client.model.StringSet;
-import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.remotereplication.RemoteReplicationGroup;
+import com.emc.storageos.db.client.model.remotereplication.RemoteReplicationSet;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
+import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.storageos.model.TaskResourceRep;
-import com.emc.storageos.model.block.BlockConsistencyGroupCreate;
-import com.emc.storageos.model.block.BlockConsistencyGroupRestRep;
 import com.emc.storageos.model.remotereplication.RemoteReplicationGroupCreate;
-import com.emc.storageos.model.remotereplication.RemoteReplicationGroupRestRep;
+import com.emc.storageos.model.remotereplication.RemoteReplicationSetList;
+import com.emc.storageos.model.remotereplication.RemoteReplicationSetRestRep;
 import com.emc.storageos.security.audit.AuditLogManager;
+import com.emc.storageos.security.authorization.CheckPermission;
+import com.emc.storageos.security.authorization.DefaultPermissions;
+import com.emc.storageos.security.authorization.Role;
 import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.volumecontroller.ControllerException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import com.emc.storageos.db.client.model.remotereplication.RemoteReplicationSet;
-import com.emc.storageos.model.ResourceTypeEnum;
-import com.emc.storageos.model.remotereplication.RemoteReplicationSetList;
-import com.emc.storageos.model.remotereplication.RemoteReplicationSetRestRep;
-import com.emc.storageos.security.authorization.CheckPermission;
-import com.emc.storageos.security.authorization.DefaultPermissions;
-import com.emc.storageos.security.authorization.Role;
 
 @Path("/block/remotereplicationsets")
 @DefaultPermissions(readRoles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR },

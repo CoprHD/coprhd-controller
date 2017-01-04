@@ -9,6 +9,7 @@ import java.net.URI;
 import java.util.List;
 
 import com.emc.storageos.Controller;
+import com.emc.storageos.volumecontroller.ControllerException;
 
 public interface RemoteReplicationController extends Controller {
 
@@ -37,10 +38,8 @@ public interface RemoteReplicationController extends Controller {
      *     The state of replication pairs is same as after 'split' operation.
      *
      * @param replicationPairs list of replication pairs URI to create
-     * @param createActive true, if pairs should start replication link automatically after creation (link in ready state), false otherwise
-     *
      */
-    public void createGroupReplicationPairs(List<URI> replicationPairs, boolean createActive, String opId);
+    public void createGroupReplicationPairs(List<URI> replicationPairs, String opId);
 
     /**
      * Create replication pairs in existing replication set. Pairs are created outside of group container.
@@ -61,9 +60,8 @@ public interface RemoteReplicationController extends Controller {
      *     The state of replication pairs is same as after 'split' operation.
      *
      * @param replicationPairs list of replication pairs to create
-     * @param createActive true, if pairs should start replication link automatically after creation (link in ready state), false otherwise
      */
-    public void createSetReplicationPairs(List<URI> replicationPairs, boolean createActive, String opId);
+    public void createSetReplicationPairs(List<URI> replicationPairs, String opId);
 
     /**
      * Delete remote replication pairs. Should not delete backend volumes.

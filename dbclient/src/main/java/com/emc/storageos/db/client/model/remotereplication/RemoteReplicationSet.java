@@ -118,6 +118,19 @@ public class RemoteReplicationSet extends DiscoveredDataObject {
         this.systemToRolesMap.put(systemName, roles);
     }
 
+    public void addSystemRole(String systemName, String role) {
+        if (this.systemToRolesMap == null) {
+            this.systemToRolesMap = new StringSetMap();
+        }
+
+        if (this.systemToRolesMap.get(systemName) == null) {
+            addSystemRolesEntry(systemName, new StringSet());
+        }
+        StringSet roles = this.systemToRolesMap.get(systemName);
+        roles.add(role);
+    }
+
+
     @Name("supportedReplicationLinkGranularity")
     public StringSet getSupportedReplicationLinkGranularity() {
         return supportedReplicationLinkGranularity;

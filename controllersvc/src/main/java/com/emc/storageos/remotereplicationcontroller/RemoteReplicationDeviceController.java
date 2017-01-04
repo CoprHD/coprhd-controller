@@ -13,6 +13,7 @@ import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.Volume;
+import com.emc.storageos.db.client.model.remotereplication.RemoteReplicationGroup;
 import com.emc.storageos.db.client.model.remotereplication.RemoteReplicationPair;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.exceptions.DatabaseException;
@@ -73,16 +74,26 @@ public class RemoteReplicationDeviceController implements RemoteReplicationContr
 
     @Override
     public void createRemoteReplicationGroup(URI replicationGroup, String opId) {
+        RemoteReplicationGroup rrGroup = dbClient.queryObject(RemoteReplicationGroup.class, replicationGroup);
+        _log.info("Create remote replication group: {} : {}", rrGroup.getLabel(), replicationGroup);
+
+        List<URI> elementURIs = new ArrayList<>();
+        elementURIs.add(rrGroup.getSourceSystem());
+        elementURIs.add(rrGroup.getTargetSystem());
+        RemoteReplicationTaskCompleter taskCompleter = new RemoteReplicationTaskCompleter(elementURIs, opId);
+
+        // call device
+        RemoteReplicationDevice rrDevice = getRemoteReplicationDevice();
+        rrDevice.createRemoteReplicationGroup(replicationGroup, taskCompleter);
+    }
+
+    @Override
+    public void createGroupReplicationPairs(List<URI> replicationPairs, String opId) {
 
     }
 
     @Override
-    public void createGroupReplicationPairs(List<URI> replicationPairs, boolean createActive, String opId) {
-
-    }
-
-    @Override
-    public void createSetReplicationPairs(List<URI> replicationPairs, boolean createActive, String opId) {
+    public void createSetReplicationPairs(List<URI> replicationPairs, String opId) {
 
     }
 

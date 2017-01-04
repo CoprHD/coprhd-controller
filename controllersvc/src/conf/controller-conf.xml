@@ -896,7 +896,7 @@
         <property name="blockDeviceController" ref="blockDeviceController" />
     </bean>
 
-    <bean id="remoteReplicationDeviceController" class="com.emc.storageos.remoterreplicationcontroller.RemoteReplicationDeviceController">
+    <bean id="remoteReplicationDeviceController" class="com.emc.storageos.remotereplicationcontroller.RemoteReplicationDeviceController">
         <property name="dbClient" ref="dbclient" />
         <property name="workflowService" ref="workflowService" />
         <property name="remoteReplicationDevice" ref="externalBlockStorageDevice" />
@@ -941,7 +941,17 @@
             </set>
         </property>
     </bean>
-    
+
+    <bean id="remoteReplicationController" class="com.emc.storageos.remotereplicationcontroller.RemoteReplicationControllerImpl">
+        <property name="dispatcher" ref="dispatcher"/>
+        <property name="dbClient" ref="dbclient"/>
+        <property name="deviceControllers">
+            <set>
+                <ref bean="remoteReplicationDeviceController"/>
+            </set>
+        </property>
+    </bean>
+
     <bean id="objectDeviceController" class="com.emc.storageos.volumecontroller.impl.ObjectDeviceController">
         <property name="devices">
             <map>
@@ -1383,6 +1393,14 @@
         <property name="serviceName" value="FileReplicationController"/>
         <property name="service" ref="fileReplicationController"/>
         <property name="serviceInterface" value="com.emc.storageos.filereplicationcontroller.FileReplicationController"/>
+        <property name="registryPort" value="10099"/>
+        <property name="servicePort" value="40201"/>
+    </bean>
+
+    <bean class="org.springframework.remoting.rmi.RmiServiceExporter" depends-on="beacon">
+        <property name="serviceName" value="RemoteReplicationController"/>
+        <property name="service" ref="remoteReplicationController"/>
+        <property name="serviceInterface" value="com.emc.storageos.remotereplicationcontroller.RemoteReplicationController"/>
         <property name="registryPort" value="10099"/>
         <property name="servicePort" value="40201"/>
     </bean>

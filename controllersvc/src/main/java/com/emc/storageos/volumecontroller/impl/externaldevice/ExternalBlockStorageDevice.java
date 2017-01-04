@@ -17,6 +17,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import com.emc.storageos.db.client.model.StringSetMap;
 import com.emc.storageos.db.client.model.remotereplication.RemoteReplicationGroup;
 import com.emc.storageos.db.client.model.remotereplication.RemoteReplicationPair;
 import com.emc.storageos.db.client.model.remotereplication.RemoteReplicationSet;
@@ -1727,6 +1728,54 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice implem
     }
 
     @Override
+    public void createRemoteReplicationGroup(URI groupURI, TaskCompleter taskCompleter) {
+
+        RemoteReplicationGroup systemGroup = dbClient.queryObject(RemoteReplicationGroup.class, groupURI);
+        RemoteReplicationSet systemSet = dbClient.queryObject(RemoteReplicationSet.class, systemGroup.getReplicationSet());
+        _log.info("Create remote replication group: {}, id: {} in replication set: {}", systemGroup.getLabel(), groupURI, systemSet.getDeviceLabel());
+
+        try {
+            StorageSystem sourceSystem = dbClient.queryObject(StorageSystem.class, systemGroup.getSourceSystem());
+            StorageSystem targetSystem = dbClient.queryObject(StorageSystem.class, systemGroup.getTargetSystem());
+            RemoteReplicationDriver driver = (RemoteReplicationDriver)getDriver(sourceSystem.getSystemType());
+
+            // prepare driver group
+            com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationGroup driverGroup =
+                    prepareDriverRemoteReplicationGroup(systemGroup);
+            // call driver
+            DriverTask task = driver.createRemoteReplicationGroup(driverGroup, null);
+            // todo: need to implement support for async case.
+            if (task.getStatus() == DriverTask.TaskStatus.READY) {
+                // update group and update parent replication set
+                systemGroup.setNativeId(driverGroup.getNativeId());
+                systemGroup.setDeviceLabel(driverGroup.getDeviceLabel());
+
+                systemSet.addSystemRole(sourceSystem.getNativeId(),
+                        com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationSet.ReplicationRole.SOURCE.toString());
+                systemSet.addSystemRole(targetSystem.getNativeId(),
+                        com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationSet.ReplicationRole.TARGET.toString());
+
+                dbClient.updateObject(systemGroup);
+                dbClient.updateObject(systemSet);
+                String msg = String.format("createRemoteReplicationGroup -- Created remote replication group: %s .", task.getMessage());
+                _log.info(msg);
+                taskCompleter.ready(dbClient);
+            } else {
+                String errorMsg = String.format("createRemoteReplicationGroup -- Failed to create remote replication group: %s .", task.getMessage());
+                _log.error(errorMsg);
+                ServiceError serviceError = ExternalDeviceException.errors.createRemoteReplicationGroupFailed(systemGroup.getLabel(), errorMsg);
+                taskCompleter.error(dbClient, serviceError);
+            }
+        } catch (Exception e) {
+            String errorMsg = String.format("createRemoteReplicationGroup -- Failed to create remote replication group: %s .", systemGroup.getLabel());
+            _log.error(errorMsg, e);
+            ServiceError serviceError = ExternalDeviceException.errors.createRemoteReplicationGroupFailed(systemGroup.getLabel(), errorMsg);
+            taskCompleter.error(dbClient, serviceError);
+        }
+    }
+
+
+    @Override
     public void createGroupReplicationPairs(List<RemoteReplicationPair> systemReplicationPairs, TaskCompleter taskCompleter) {
 
         _log.info("Create group replication pairs in group {}\n" +
@@ -1993,6 +2042,22 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice implem
 
              driverRRPairs.add(driverPair);
          }
+    }
+
+    private com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationGroup prepareDriverRemoteReplicationGroup(RemoteReplicationGroup systemGroup) {
+
+        com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationGroup driverGroup = new com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationGroup();
+
+        StorageSystem sourceSystem = dbClient.queryObject(StorageSystem.class, systemGroup.getSourceSystem());
+        StorageSystem targetSystem = dbClient.queryObject(StorageSystem.class, systemGroup.getTargetSystem());
+        driverGroup.setDisplayName(systemGroup.getDisplayName());
+        driverGroup.setSourceSystemNativeId(sourceSystem.getNativeId());
+        driverGroup.setTargetSystemNativeId(targetSystem.getNativeId());
+        driverGroup.setReplicationMode(systemGroup.getReplicationMode());
+
+        // todo: complete
+        return driverGroup;
+
     }
 
 }

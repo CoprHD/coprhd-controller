@@ -14,7 +14,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import com.emc.storageos.remoterreplicationcontroller.RemoteReplicationDeviceController;
+import com.emc.storageos.remotereplicationcontroller.RemoteReplicationDeviceController;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

@@ -17,6 +17,7 @@
 
 package com.emc.sa.service.vipr.oe.tasks;
 
+import com.emc.storageos.db.client.model.Task;
 import com.emc.vipr.client.ViPRCoreClient;
 
 import java.net.URI;
@@ -46,8 +47,8 @@ public class TaskState {
     }
 
     public boolean hasPending() {
-        for (Map.Entry<URI, String> state : taskState.entrySet()) {
-            if (state.getValue().equals("pending"))
+        for (final String state : taskState.values()) {
+            if (state.equals(Task.Status.pending.toString()))
                 return true;
         }
 
@@ -55,8 +56,9 @@ public class TaskState {
     }
 
     public void updateState() {
-        for (Map.Entry<URI, String> state : taskState.entrySet()) {
-            taskState.put(state.getKey(), client.tasks().get(state.getKey()).getState());
+        for (final Map.Entry<URI, String> state : taskState.entrySet()) {
+            if (state.getValue().equals(Task.Status.pending.toString()))
+                taskState.put(state.getKey(), client.tasks().get(state.getKey()).getState());
         }
     }
 }

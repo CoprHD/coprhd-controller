@@ -131,9 +131,7 @@ public class RunAnsible  extends ViPRExecutionTask<OrchestrationTaskResult> {
         final Matcher matcher = pattern.matcher(out);
 
         while (matcher.find()) {
-            final String textInBetween = matcher.group(1);
-
-            return textInBetween;
+            return matcher.group(1);
         }
 
         return out;
@@ -250,8 +248,9 @@ public class RunAnsible  extends ViPRExecutionTask<OrchestrationTaskResult> {
 
     private String makeParam(final Map<String, List<String>> input) throws Exception {
         final StringBuilder sb = new StringBuilder();
-        for (Map.Entry<String, List<String>> e : input.entrySet())
-            sb.append(e.getValue().get(0)).append(" ");
+        for (List<String> value : input.values()) {
+            sb.append(value.get(0)).append(" ");
+        }
 
         return sb.toString();
     }

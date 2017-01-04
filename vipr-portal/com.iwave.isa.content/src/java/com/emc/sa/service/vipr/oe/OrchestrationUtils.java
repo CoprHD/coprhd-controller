@@ -135,21 +135,24 @@ public class OrchestrationUtils {
         }
     }
 
-    public static ViprOperation parseViprTasks(String workflowResponse) {
+    public static ViprOperation parseViprTasks(final String workflowResponse) {
         // When ViPR API returns Task(s), return them (in a ViPR Operation)
         try {
             // see if result contains array of Tasks
-            ViprOperation o = gson.fromJson(workflowResponse,ViprOperation.class);
+            final ViprOperation o = gson.fromJson(workflowResponse,ViprOperation.class);
             if(o.isValid()) {
                 return o;
             }
+
             // see if response was a single Task
-            ViprTask t = gson.fromJson(workflowResponse,ViprTask.class);
+            final ViprTask t = gson.fromJson(workflowResponse,ViprTask.class);
             if(t.isValid()) {
-                return new ViprOperation(t);
+                if (t.getState() != null) {
+                    return new ViprOperation(t);
+                }
             }
             return null;
-        } catch(JsonSyntaxException e) {
+        } catch(final JsonSyntaxException e) {
             return null;
         }
     }

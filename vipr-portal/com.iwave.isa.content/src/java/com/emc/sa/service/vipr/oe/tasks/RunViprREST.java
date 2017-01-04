@@ -85,8 +85,10 @@ public class RunViprREST extends ViPRExecutionTask<OrchestrationTaskResult> {
 
     private Map<URI, String> waitForTask(final String result)
     {
-        final Gson gson = new Gson();
-        final ViprOperation res = gson.fromJson(result, ViprOperation.class);
+        final ViprOperation res = OrchestrationUtils.parseViprTasks(result);
+        if (res == null) {
+            return null;
+        }
 
         try {
             return OrchestrationUtils.waitForTasks(res.getTaskIds(), getClient());

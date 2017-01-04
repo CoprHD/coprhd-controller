@@ -6,9 +6,6 @@ package com.emc.storageos.db.client.constraint.impl;
 
 import java.util.NoSuchElementException;
 
-// import org.slf4j.Logger;
-// import org.slf4j.LoggerFactory;
-
 import com.netflix.astyanax.model.Column;
 import com.netflix.astyanax.query.RowQuery;
 
@@ -19,9 +16,7 @@ import com.emc.storageos.db.client.impl.CompositeIndexColumnName;
  */
 public abstract class FilteredQueryHitIterator<T1, T2 extends CompositeIndexColumnName>
         extends QueryHitIterator<T1, T2> {
-    //private static final Logger log = LoggerFactory.getLogger(FilteredQueryHitIterator.class);
     private Column<T2> _current;
-    //protected boolean stop = false;
 
     public FilteredQueryHitIterator(RowQuery<String, T2> query) {
         super(query);
@@ -52,11 +47,9 @@ public abstract class FilteredQueryHitIterator<T1, T2 extends CompositeIndexColu
      */
     private void moveNext() {
         _current = null;
-        //while ((stop == false) &&(_currentIt != null)) {
         while (_currentIt != null) {
             skipToNext();
 
-            //if (stop || _current != null) {
             if (_current != null) {
                 return;
             }
@@ -67,7 +60,6 @@ public abstract class FilteredQueryHitIterator<T1, T2 extends CompositeIndexColu
 
     @Override
     public boolean hasNext() {
-        //return (stop == false) && (_current != null);
         return _current != null;
     }
 

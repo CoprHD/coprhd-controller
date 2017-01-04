@@ -309,15 +309,28 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
             duration: 100
             //TODO add contain: 'invert'
         });
-        $panzoom.parent().on('mousewheel.focal', function(e) {
+
+        //DOMMouseScroll is needed for firefox
+        $panzoom.parent().on('mousewheel.focal DOMMouseScroll', function(e) {
             e.preventDefault();
             var delta = e.delta || e.originalEvent.wheelDeltaY;
+            var focalPoint = e;
+
+            //if delta is null then DOMMouseScroll was used,
+            //we can map important data to similar delta/focalpoint objects
+            if (!delta){
+                delta = e.originalEvent.detail;
+                focalPoint = {
+                    clientX: e.originalEvent.clientX,
+                    clientY: e.originalEvent.clientY
+                };
+            }
             if (delta !== 0) {
                 var zoomOut = delta < 0;
                 $panzoom.panzoom('zoom', zoomOut, {
                     animate: false,
                     increment: 0.1,
-                    focal: e
+                    focal: focalPoint
                 });
             }
         });
@@ -533,11 +546,6 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
         jspInstance.makeTarget(diagramContainer.find(' #'+stepId), targetParams);
         jspInstance.addEndpoint(diagramContainer.find(' #'+stepId), {uuid:stepId+"-fail"}, failEndpoint);
         jspInstance.draggable(diagramContainer.find(' #'+stepId+'-wrapper'));
-
-        //$(' #'+stepId+'-wrapper').on('pointerdown', function( e ) {
-          //allows for draggable item in panzoom area
-        //  e.stopImmediatePropagation();
-        //});
 
         //updates angular handlers for the new element
         $compile(theNewItemWrapper)($scope);

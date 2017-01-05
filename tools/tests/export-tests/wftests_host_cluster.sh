@@ -319,7 +319,9 @@ add_host_to_cluster() {
     cluster=$2
     args="addHostTo $cluster $host"
     echo "Adding host $host to $cluster"
-    curl -ikL --header "Content-Type: application/json" --header "username:xx" --header "password: yy" --data '{"args": "'"$args"'"}' -X POST http://${HW_SIMULATOR_IP}:8235/vmware/modify &> /dev/null
+    # Uncomment for debugging
+    #echo "=== curl -ikL --header "Content-Type: application/json" --header "username:xx" --header "password: yy" --data '{"args": "${args}"}' -X POST http://${HW_SIMULATOR_IP}:8235/vmware/modify &> /dev/null"
+    curl -ikL --header "Content-Type: application/json" --header "username:xx" --header "password: yy" --data '{"args": "'"${args}"'"}' -X POST http://${HW_SIMULATOR_IP}:8235/vmware/modify &> /dev/null
 }
 
 remove_host_from_cluster() {
@@ -327,7 +329,9 @@ remove_host_from_cluster() {
     cluster=$2
     args="removeHostFrom $cluster $host"
     echo "Removing host $host from $cluster"
-    curl -ikL --header "Content-Type: application/json" --header "username:xx" --header "password: yy" --data '{"args": "'"$args"'"}' -X POST http://${HW_SIMULATOR_IP}:8235/vmware/modify &> /dev/null
+    # Uncomment for debugging
+    #echo "=== curl -ikL --header "Content-Type: application/json" --header "username:xx" --header "password: yy" --data '{"args": "${args}"}' -X POST http://${HW_SIMULATOR_IP}:8235/vmware/modify &> /dev/null"
+    curl -ikL --header "Content-Type: application/json" --header "username:xx" --header "password: yy" --data '{"args": "'"${args}"'"}' -X POST http://${HW_SIMULATOR_IP}:8235/vmware/modify &> /dev/null    
 }
 
 discover_vcenter() {
@@ -1366,7 +1370,7 @@ test_cluster_remove_discovered_host() {
     # Placeholder when a specific failure case is being worked...
     #failure_injections="${HAPPY_PATH_TEST_INJECTION}"    
     failure_injections="deleteExportGroup"
-       
+    
     # Real™ hosts/clusters/vcenters/datacenters provisioned during setup
     hostpostfix=".sim.emc.com"
     host1="host11"
@@ -1389,6 +1393,7 @@ test_cluster_remove_discovered_host() {
     volume2=${VOLNAME}-2-${random_number}
     datastore1="fakedatastore1"-${random_number}
     datastore2="fakedatastore2"-${random_number}
+    secho "Creating volume ${volume1} and datastore ${datastore1}..."
     create_volume_and_datastore $TENANT ${volume1} ${datastore1} $NH $VPOOL_BASE ${PROJECT} ${vcenter} ${datacenter} ${cluster1}
     #create_volume_and_datastore $TENANT ${volume2} ${datastore2} $NH $VPOOL_BASE ${PROJECT2} ${vcenter} ${datacenter} ${cluster1}
     
@@ -1437,23 +1442,26 @@ test_cluster_remove_discovered_host() {
             # Delete export group
             secho "Delete export group path..."
         
-            # Vcenter call to remove host1 from cluster
+            # Vcenter call to remove host1 from cluster1
             remove_host_from_cluster $host1 $cluster1                                        
             discover_vcenter ${vcenter}
             sleep 20
             EVENT_ID=$(get_pending_event)
             approve_pending_event $EVENT_ID
                         
-            # One more host to remove...
-            
-            # Vcenter call to remove host2 from cluster
-            remove_host_from_cluster $host2 $cluster1
+            # Vcenter call to remove host2 from cluster1
+            # NOTE: Temporarily move host2 to cluster2 to avoid 
+            # validation errors of an empty cluster in vcenter
+            remove_host_from_cluster $host2 $cluster1            
+            add_host_to_cluster $host2 $cluster2
             discover_vcenter ${vcenter}            
             sleep 20
-            # Find pending events which should be present after the discover
             EVENT_ID=$(get_pending_event)
+            
+            # Verify event
             if [ -z "$EVENT_ID" ]; then
                 echo "+++ FAILED. Expected an event! Re-add hosts to cluster..."
+                remove_host_from_cluster $host2 $cluster2 
                 add_host_to_cluster $host1 $cluster1
                 add_host_to_cluster $host2 $cluster1
                 discover_vcenter ${vcenter}
@@ -1506,15 +1514,19 @@ test_cluster_remove_discovered_host() {
                 fi
             done
             
-            # Add both hosts back to cluster
+            # Add both hosts back to cluster1           
             secho "Test complete, add hosts back to cluster..."
-            add_host_to_cluster $host1 $cluster1
-            add_host_to_cluster $host2 $cluster1                                  
-            discover_vcenter ${vcenter}            
-            sleep 20           
+            remove_host_from_cluster $host2 $cluster2
+            discover_vcenter ${vcenter}
+            sleep 20
             EVENT_ID=$(get_pending_event)
             approve_pending_event $EVENT_ID
-                        
+            # NOTE: If there are no export groups for that cluster, 
+            # no events are created so we do not need to approve anything.
+            add_host_to_cluster $host1 $cluster1
+            add_host_to_cluster $host2 $cluster1
+            discover_vcenter ${vcenter}
+            sleep 20                       
         else
             # Update export group
             secho "Update export group path..."
@@ -1597,8 +1609,9 @@ test_cluster_remove_discovered_host() {
     done
     
      # Cleanup volumes
-    delete_datastore_and_volume $TENANT ${datastore1} ${vcenter} ${datacenter} ${cluster1}
-    #delete_datastore_and_volume $TENANT ${datastore2} ${vcenter} ${datacenter} ${cluster1} 
+    #delete_datastore_and_volume $TENANT ${datastore1} ${vcenter} ${datacenter} ${cluster1}
+    #delete_datastore_and_volume $TENANT ${datastore2} ${vcenter} ${datacenter} ${cluster1}
+    runcmd volume delete ${PROJECT}/${volume1} --wait 
     runcmd project delete ${PROJECT2}
     
     # Turn off validation back on

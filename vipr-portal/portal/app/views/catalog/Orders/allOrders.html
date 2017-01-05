@@ -42,7 +42,7 @@
                   selectable: true, 
                   options: ['fnServerParams': 'addParams']}
         #{DataTable.buttonBar}
-            #{Form.button name:'button.download', class:'primary', icon:'download' /}
+            #{Form.button name:'button.download', class:'primary', icon:'download', disabled: disableDeleteAll /}
             #{Form.button name:'button.delete', class:'danger', icon:'trash' /}
         #{/DataTable.buttonBar}
 
@@ -89,8 +89,8 @@ table.orders.dataTable.afterCreate(function(dataTable) {
     watchOrderStatus(dataTable.getDataTable(), itemsJson);
 });
 
-var isCheckedAll = false;
-var toDeleteIds = null;
+var isSelectedAll = false;
+var selectedIds = null;
 
 $(document).ready(function() {
     var requestMaxDays = "${maxDays}";
@@ -115,57 +115,55 @@ $(document).ready(function() {
     });
 	
     $('.btn-danger').on('click', function() {
-    	if(isCheckedAll) {
-    		$('.checkedAll-block').show();
-    	}else {
-    		$('.checkedAll-block').hide();
-    		toDeleteIds = null;
-            var values = new Array();
-            $('#orders input[name=selected]:checked').each(function() {
-                console.info("val: "+$(this).val());
-                values.push($(this).val());
-            });
-            toDeleteIds = values.join(',');
-            
-            console.info(values);
-            console.info(toDeleteIds);
-            if(toDeleteIds == "") {
-            	alert("Please select orders first.");
-            	return;
-            }
-    	}
-    	
-    	$('#deleteDialog').modal();
+        checkAndShowDialog('#deleteDialog');
     });
     
     $('.btn-primary').on('click', function() {
-    	if(isCheckedAll) {
-            $('.checkedAll-block').show();
-        }else {
-            $('.checkedAll-block').hide();
-        }
-        $('#downloadDialog').modal();
+        checkAndShowDialog('#downloadDialog');
     });
     
     $('input[name=selectAll]').change(function() {
     	if ($(this).is(':checked')) {
     		$('input[type=checkbox]').prop('disabled', true);
     		$(this).prop('disabled', false);
-    		isCheckedAll = true;
+    		isSelectedAll = true;
         } else{
         	$('input[type=checkbox]').prop('disabled', false);
-        	isCheckedAll = false;
+        	isSelectedAll = false;
         }
     });
     
 });
 
+function checkAndShowDialog(dialog) {
+    if (isSelectedAll) {
+        $('.checkedAll-block').show();
+    } else {
+        $('.checkedAll-block').hide();
+        selectedIds = null;
+        var values = new Array();
+        $('#orders input[name=selected]:checked').each(function () {
+            console.info("val: " + $(this).val());
+            values.push($(this).val());
+        });
+        selectedIds = values.join(',');
+
+        console.info(values);
+        console.info(selectedIds);
+        if (selectedIds == "") {
+            alert("Please select orders first.");
+            return;
+        }
+    }
+    $(dialog).modal();
+}
+
 function deleteOrders() {
     console.info("start to delete");
-    if (isCheckedAll) {
+    if (isSelectedAll) {
         var url = #{jsAction @deleteOrders()/}()+"?startDate=${startDate}&endDate=${endDate}&maxDays=${maxDays}";
     } else {
-    	var url = #{jsAction @deleteOrders(':ids')/}({"ids":toDeleteIds});
+    	var url = #{jsAction @deleteOrders(':ids')/}({"ids":selectedIds});
     }
     console.info(url);
     window.location.href = url;
@@ -173,6 +171,13 @@ function deleteOrders() {
 
 function downloadOrders() {
     console.info("start to download");
+    if (isSelectedAll) {
+        var url = #{jsAction @downloadOrders()/}()+"?startDate=${startDate}&endDate=${endDate}&maxDays=${maxDays}";
+    } else {
+        var url = #{jsAction @downloadOrders(':ids')/}({"ids":selectedIds});
+    }
+    console.info(url);
+    window.open(url, "_blank");
 }
 </script>
 

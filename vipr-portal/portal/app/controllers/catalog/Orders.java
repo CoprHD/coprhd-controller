@@ -83,8 +83,6 @@ import util.api.ApiMapperUtils;
 import util.datatable.DataTableParams;
 import util.datatable.DataTablesSupport;
 
-import com.emc.storageos.svcs.errorhandling.resources.APIException;
-
 @With(Common.class)
 public class Orders extends OrderExecution {
     private static final int SHORT_DELAY = 1000;
@@ -132,7 +130,7 @@ public class Orders extends OrderExecution {
                 params.get("maxDays", Integer.class));
         Long orderCount = dataTable.fetchCount().getCounts().get(Models.currentAdminTenant());
         renderArgs.put("orderCount", orderCount);
-        System.out.println(Models.currentAdminTenant()+"\t count: "+orderCount);
+        System.out.println(Models.currentAdminTenant() + "\t count: " + orderCount);
         if (orderCount > OrderDataTable.ORDER_MAX_COUNT) {
             flash.put("warning", MessagesUtils.get("orders.warning", orderCount, OrderDataTable.ORDER_MAX_COUNT));
         }
@@ -141,7 +139,7 @@ public class Orders extends OrderExecution {
             flash.put("info", deleteStatus);
             renderArgs.put("disableDeleteAll", 1);
         }
-        
+
         addMaxDaysRenderArgs();
         Common.copyRenderArgsToAngular();
         render(dataTable);
@@ -162,7 +160,7 @@ public class Orders extends OrderExecution {
         dataTable.setByStartEndDateOrMaxDays(params.get("startDate"), params.get("endDate"),
                 params.get("maxDays", Integer.class));
         Long orderCount = dataTable.fetchCount().getCounts().entrySet().iterator().next().getValue();
-        System.out.println("hlj in my order list count: "+orderCount);
+        System.out.println("hlj in my order list count: " + orderCount);
         if (orderCount > OrderDataTable.ORDER_MAX_COUNT) {
             flash.put("warning", MessagesUtils.get("orders.warning", orderCount, OrderDataTable.ORDER_MAX_COUNT));
         }
@@ -197,7 +195,7 @@ public class Orders extends OrderExecution {
         }
         renderJSON(results);
     }
-    
+
     @FlashException(value = "allOrders")
     @Restrictions({ @Restrict("TENANT_ADMIN") })
     public static void deleteOrders(@As(",") String[] ids) {
@@ -215,6 +213,15 @@ public class Orders extends OrderExecution {
         }
         flash.success(MessagesUtils.get("orders.delete.submitted"));
         allOrders();
+    }
+
+    @FlashException(value = "allOrders")
+    @Restrictions({ @Restrict("TENANT_ADMIN") })
+    public static void downloadOrders() {
+        RecentUserOrdersDataTable dataTable = new RecentUserOrdersDataTable();
+        dataTable.downloadOrders(params.get("startDate"), params.get("endDate"), params.get("maxDays", Integer.class),
+                params.get("ids"));
+
     }
 
     @FlashException(referrer = { "receiptContent" })
@@ -320,8 +327,7 @@ public class Orders extends OrderExecution {
 
         if (OrderRestRep.ERROR.equalsIgnoreCase(status)) {
             flash.error(MessagesUtils.get("order.submitFailed"));
-        }
-        else {
+        } else {
             flash.success(MessagesUtils.get("order.submitSuccess"));
         }
 
@@ -535,11 +541,9 @@ public class Orders extends OrderExecution {
                 for (ExecutionLogRestRep log : taskLogs) {
                     if (ModelExtensions.isPrecheck(log)) {
                         precheckTaskLogs.add(log);
-                    }
-                    else if (ModelExtensions.isExecute(log)) {
+                    } else if (ModelExtensions.isExecute(log)) {
                         executeTaskLogs.add(log);
-                    }
-                    else if (ModelExtensions.isRollback(log)) {
+                    } else if (ModelExtensions.isRollback(log)) {
                         rollbackTaskLogs.add(log);
                     }
                     checkLastUpdated(log);

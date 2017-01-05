@@ -141,7 +141,7 @@ public class OrderUtils {
         return catalog.orders().getLogs(orderId);
     }
     
-    private static String dateToLongStr(Date date) {
+    public static String dateToLongStr(Date date) {
         String time = null;
         if (date != null) {
             time = Long.toString(date.getTime());

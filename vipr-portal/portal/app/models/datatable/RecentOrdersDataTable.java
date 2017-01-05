@@ -16,6 +16,8 @@ import org.apache.commons.lang.ObjectUtils;
 import org.apache.commons.lang.StringUtils;
 
 import play.Logger;
+import render.RenderSupportOrderPackage;
+import util.BourneUtil;
 import util.MessagesUtils;
 import util.OrderUtils;
 import util.datatable.DataTableParams;
@@ -23,6 +25,7 @@ import util.datatable.DataTableParams;
 import com.emc.vipr.model.catalog.OrderCount;
 import com.emc.vipr.model.catalog.OrderJobInfo;
 import com.emc.vipr.model.catalog.OrderRestRep;
+import util.support.SupportOrderPackageCreator;
 
 public class RecentOrdersDataTable extends OrderDataTable {
     private int maxOrders = 0;
@@ -96,6 +99,19 @@ public class RecentOrdersDataTable extends OrderDataTable {
         }
         Logger.info("getDeleteJobStatus: {}", status);
         return status;
+    }
+
+    public void downloadOrders(String startDate, String endDate, int maxDays, String orderIDs) {
+        this.setByStartEndDateOrMaxDays(startDate, endDate, maxDays);
+        SupportOrderPackageCreator creator = new SupportOrderPackageCreator(BourneUtil.getCatalogClient());
+        if (StringUtils.isNotEmpty(orderIDs)) {
+            creator.setOrderIDs(orderIDs);
+        } else {
+            creator.setStartDate(this.startDate);
+            creator.setEndDate(this.endDate);
+            creator.setTenantIDs(this.tenantId);
+        }
+        RenderSupportOrderPackage.renderSupportAuditPackage(creator);
     }
 
     /**

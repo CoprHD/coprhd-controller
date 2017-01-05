@@ -28,7 +28,7 @@ import com.emc.vipr.client.impl.RestClient;
 import com.emc.vipr.model.catalog.*;
 import com.sun.jersey.api.client.ClientResponse;
 
-public class Orders2 extends AbstractCatalogBulkResources<OrderRestRep> implements TenantResources<OrderRestRep> {
+public class Orders2 extends AbstractCatalogBulkResources<OrderRestRep>implements TenantResources<OrderRestRep> {
 
     public Orders2(ViPRCatalogClient2 parent, RestClient client) {
         super(parent, client, OrderRestRep.class, PathConstants.ORDER2_URL);
@@ -241,7 +241,7 @@ public class Orders2 extends AbstractCatalogBulkResources<OrderRestRep> implemen
     }
 
     /**
-     *  Delete orders within a time range
+     * Delete orders within a time range
      *
      * <p>
      * API Call: <tt>DELETE /catalog/orders</tt>
@@ -272,7 +272,7 @@ public class Orders2 extends AbstractCatalogBulkResources<OrderRestRep> implemen
     }
 
     /**
-     *  Query order job status
+     * Query order job status
      *
      * <p>
      * API Call: <tt>GET /catalog/orders/job-status</tt>
@@ -301,7 +301,7 @@ public class Orders2 extends AbstractCatalogBulkResources<OrderRestRep> implemen
      * @param orderIDs
      */
     private URI getDownloadOrdersURI(String startTime, String endTime, String tenantIDs, String orderIDs,
-                                     String status) {
+            String status) {
         UriBuilder uriBuilder = client.uriBuilder(PathConstants.ORDER2_DOWNLOAD_ORDER);
 
         if (startTime != null) {
@@ -324,15 +324,13 @@ public class Orders2 extends AbstractCatalogBulkResources<OrderRestRep> implemen
         return uriBuilder.build();
     }
 
-    public InputStream downloadOrdersAsStream(String startTime, String endTime, String tenantIDs, String orderIDs,
-                                              String status) {
+    public InputStream downloadOrdersAsStream(String startTime, String endTime, String tenantIDs, String orderIDs, String status) {
         URI uri = getDownloadOrdersURI(startTime, endTime, tenantIDs, orderIDs, status);
         ClientResponse response = client.resource(uri).accept(MediaType.APPLICATION_XML).get(ClientResponse.class);
         return response.getEntityInputStream();
     }
 
-    public InputStream downloadOrdersAsText(String startTime, String endTime, String tenantIDs, String orderIDs,
-                                            String status) {
+    public InputStream downloadOrdersAsText(String startTime, String endTime, String tenantIDs, String orderIDs, String status) {
         URI uri = getDownloadOrdersURI(startTime, endTime, tenantIDs, orderIDs, status);
         ClientResponse response = client.resource(uri).accept(MediaType.TEXT_PLAIN).get(ClientResponse.class);
         return response.getEntityInputStream();

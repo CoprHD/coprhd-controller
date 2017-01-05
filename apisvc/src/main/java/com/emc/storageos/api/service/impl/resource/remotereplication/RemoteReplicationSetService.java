@@ -68,6 +68,7 @@ public class RemoteReplicationSetService extends TaskResourceService {
     public TaskResourceRep createRemoteReplicationGroup(@PathParam("id") URI id,
             final RemoteReplicationGroupCreate param) throws InternalException {
 
+        _log.info("Called: createRemoteReplicationGroup()");
         checkForDuplicateName(param.getDisplayName(), RemoteReplicationGroup.class, id, "replicationSet", _dbClient);
 
         RemoteReplicationGroup rrGroup = prepareRRGroup(param, id);

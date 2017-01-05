@@ -231,7 +231,7 @@ public class FileProtectionPolicies extends ViprResourceController {
         List<StringOption> applyPolicyAtOptions = Lists.newArrayList();
         applyPolicyAtOptions.add(new StringOption(FilePolicyApplyLevel.vpool.name(), MessagesUtils.get("assignPolicy.applyAtVPool")));
         applyPolicyAtOptions.add(new StringOption(FilePolicyApplyLevel.project.name(), MessagesUtils.get("assignPolicy.applyAtProject")));
-        // applyPolicyAtOptions.add(new StringOption(FilePolicyApplyLevel.file_system.name(), MessagesUtils.get("assignPolicy.applyAtFs")));
+        applyPolicyAtOptions.add(new StringOption(FilePolicyApplyLevel.file_system.name(), MessagesUtils.get("assignPolicy.applyAtFs")));
         renderArgs.put("applyPolicyOptions", applyPolicyAtOptions);
 
     }

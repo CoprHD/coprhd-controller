@@ -2668,18 +2668,15 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                 if (isiSnapshotSchedule != null) {
                     _log.info("deleting Isilon Snapshot schedule: {}", isiSnapshotSchedule.toString());
                     isi.deleteSnapshotSchedule(policyResource.getPolicyNativeId());
-                    StringSet assignedResources = filePolicy.getPolicyStorageResources();
-                    assignedResources.remove(policyResource.getId().toString());
-                    filePolicy.setPolicyStorageResources(assignedResources);
-                    _dbClient.updateObject(filePolicy);
-                    _dbClient.markForDeletion(policyResource);
-                    return BiosCommandResult.createSuccessfulResult();
-
                 } else {
-                    final ServiceError serviceError = DeviceControllerErrors.isilon.UnAssignPolicyFailed(filePolicy.getId());
-                    _log.error(serviceError.getMessage());
-                    return BiosCommandResult.createErrorResult(serviceError);
+                    _log.info("snapshot schedule: {} doesn't exists on storage system", filePolicy.toString());
                 }
+                StringSet assignedResources = filePolicy.getPolicyStorageResources();
+                assignedResources.remove(policyResource.getId().toString());
+                filePolicy.setPolicyStorageResources(assignedResources);
+                _dbClient.updateObject(filePolicy);
+                _dbClient.markForDeletion(policyResource);
+                return BiosCommandResult.createSuccessfulResult();
             }
             return BiosCommandResult.createSuccessfulResult();
         } catch (IsilonException e) {

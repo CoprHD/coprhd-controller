@@ -259,4 +259,6 @@ public interface FileStorageDevice {
     public BiosCommandResult doUnassignFilePolicy(StorageSystem storage, FileDeviceInputOutput fd)
             throws ControllerException;
 
+    public BiosCommandResult checkFilePolicyExists(StorageSystem storageObj, FileDeviceInputOutput args);
+
 }

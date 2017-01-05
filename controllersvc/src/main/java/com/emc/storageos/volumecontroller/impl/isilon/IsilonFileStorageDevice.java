@@ -51,6 +51,7 @@ import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.Task;
 import com.emc.storageos.db.client.model.VirtualNAS;
+import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.util.TaskUtils;
 import com.emc.storageos.exceptions.DeviceControllerErrors;
 import com.emc.storageos.exceptions.DeviceControllerException;
@@ -1037,7 +1038,6 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             _log.error("doExport failed.", e);
             return BiosCommandResult.createErrorResult(e);
         }
-
     }
 
     @Override
@@ -2822,5 +2822,56 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             default:
                 _log.error("Not a valid policy apply level: " + applyLevel);
         }
+    }
+
+    @Override
+    public BiosCommandResult checkFilePolicyExists(StorageSystem storageObj, FileDeviceInputOutput args) {
+        VirtualNAS vNAS = args.getvNAS();
+        VirtualPool vpool = args.getVPool();
+        FilePolicy filePolicy = args.getFileProtectionPolicy();
+        boolean vNASExists = vNAS == null ? false : true;
+        String filePolicyBasePath = null;
+        IsilonApi isi = getIsilonDevice(storageObj);
+
+        String customPath = getCustomPath(storageObj, args);
+
+        if (vNASExists) {
+            String vNASPath = vNAS.getBaseDirPath();
+            if (vNASPath != null && !vNASPath.trim().isEmpty()) {
+                filePolicyBasePath = vNASPath + FW_SLASH + customPath;
+            } else {
+                filePolicyBasePath = IFS_ROOT + FW_SLASH + getSystemAccessZoneNamespace() + FW_SLASH + customPath;
+            }
+
+        } else {
+            filePolicyBasePath = IFS_ROOT + FW_SLASH + getSystemAccessZoneNamespace() + FW_SLASH + customPath;
+        }
+
+        if (FilePolicy.FilePolicyType.file_snapshot.name().equals(filePolicy.getFilePolicyType())) {
+            ArrayList<IsilonSnapshotSchedule> isiSnapshotPolicies = isi.getSnapshotSchedules().getList();
+            for (Iterator<IsilonSnapshotSchedule> iterator = isiSnapshotPolicies.iterator(); iterator.hasNext();) {
+                IsilonSnapshotSchedule isilonSnapshotSchedule = iterator.next();
+
+                if (isFilePolicyEquivalent(isilonSnapshotSchedule, filePolicy, filePolicyBasePath)) {
+
+                }
+
+            }
+        }
+        return null;
+    }
+
+    private boolean isFilePolicyEquivalent(IsilonSnapshotSchedule isilonSnapshotSchedule, FilePolicy filePolicy, String filePolicyBasePath) {
+
+        boolean match = false;
+
+        if (isilonSnapshotSchedule.getPath().equals(filePolicyBasePath)) {
+
+            // filePolicy.get
+
+        }
+
+        return match;
+
     }
 }

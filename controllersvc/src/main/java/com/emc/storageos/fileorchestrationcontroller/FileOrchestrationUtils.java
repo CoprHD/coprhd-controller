@@ -14,6 +14,7 @@ import java.util.Set;
 
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
+import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.CifsShareACL;
 import com.emc.storageos.db.client.model.FileExport;
 import com.emc.storageos.db.client.model.FileExportRule;
@@ -22,6 +23,7 @@ import com.emc.storageos.db.client.model.FilePolicy.AssignToResource;
 import com.emc.storageos.db.client.model.FilePolicy.FilePolicyApplyLevel;
 import com.emc.storageos.db.client.model.FileShare;
 import com.emc.storageos.db.client.model.NFSShareACL;
+import com.emc.storageos.db.client.model.VirtualNAS;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.model.file.ExportRule;
 import com.emc.storageos.model.file.FileNfsACLUpdateParams;
@@ -384,6 +386,25 @@ public class FileOrchestrationUtils {
             }
         }
         return filePolicies;
+    }
+
+    public static List<URI> getVNASServersOfStorageSystem(DbClient dbClient, URI storageSystemURI) {
+        URIQueryResultList vNasURIs = new URIQueryResultList();
+        List<URI> vNASURIList = new ArrayList<URI>();
+        dbClient.queryByConstraint(
+                ContainmentConstraint.Factory.getStorageDeviceVirtualNasConstraint(storageSystemURI),
+                vNasURIs);
+        Iterator<URI> vNasIter = vNasURIs.iterator();
+        while (vNasIter.hasNext()) {
+            URI vNasURI = vNasIter.next();
+            VirtualNAS vNas = dbClient.queryObject(VirtualNAS.class,
+                    vNasURI);
+            if (vNas != null && !vNas.getInactive()) {
+                vNASURIList.add(vNas.getId());
+            }
+        }
+
+        return vNASURIList;
     }
 
 }

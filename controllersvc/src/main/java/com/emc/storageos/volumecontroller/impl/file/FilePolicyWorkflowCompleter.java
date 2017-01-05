@@ -20,8 +20,8 @@ public class FilePolicyWorkflowCompleter extends FileTaskCompleter {
     private static final long serialVersionUID = 1L;
     protected static final Logger _log = LoggerFactory.getLogger(FileWorkflowCompleter.class);
 
+    super(FilePolicy.class, policyUri, task);
     public FilePolicyWorkflowCompleter(URI policyUri, String task) {
-        super(FilePolicy.class, policyUri, task);
         _log.info("Creating completer for OpId: " + getOpId());
     }
 

@@ -238,6 +238,9 @@ public interface DeviceControllerErrors {
     public ServiceError deleteShareACLFailed(final String fsUris, final String operationName, final Throwable cause);
 
     @DeclareServiceCode(ServiceCode.CONTROLLER_JOB_ERROR)
+    public ServiceError assignFilePolicyToVirtualPoolFailed(final String uri, final String operationName, final Throwable cause);
+
+    @DeclareServiceCode(ServiceCode.CONTROLLER_JOB_ERROR)
     public ServiceError unassignFilePolicyFailed(final String Uri, final String operationName, final Throwable cause);
 
     @DeclareServiceCode(ServiceCode.CONTROLLER_JOB_ERROR)

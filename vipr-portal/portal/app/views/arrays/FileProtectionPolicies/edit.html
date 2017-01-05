@@ -2,7 +2,7 @@
   titleKey = 'schedulepolicies.' + (schedulePolicy?.id ? 'edit' : 'create') + '.title';
 }%
 #{extends 'main.html'/}
-#{set navSelected: ['nav.virtualStorage', 'nav.file.protectionPolicies'] /}
+#{set navSelected: ['nav.tenantsettings', 'nav.schedulepolicies'] /}
 #{set 'title'}&{titleKey}#{/set}
 
 <div class="container">
@@ -38,10 +38,10 @@
       #{Form.inputTextControlGroup field:field /}
     #{/field}
     
-    #{field 'schedulePolicy.snapshotPattern'}
+    #{field 'schedulePolicy.snapshotNamePattern'}
       %{
         field.required = true
-        field.fieldKey = 'schedulePolicy.snapshotPattern'
+        field.fieldKey = 'schedulePolicy.snapshotNamePattern'
       }%
       #{Form.inputTextControlGroup field:field /}
     #{/field}
@@ -163,7 +163,9 @@
       
     #{/Form.controlGroup}
   #{/field}
-  
+  #{field 'assignPolicy.appliedAt'}
+    #{Form.selectOneControlGroup field:field, options:applyPolicyOptions, select:schedulePolicy.appliedAt, cssClass:'span3' /}
+  #{/field}  
   *{ tenantOptions is only set if user has access to read tenants and write ACLs }*
   #{if tenantOptions}
     #{collapse 'schedulePolicy.group.accessControl', icon:'user'}
@@ -218,13 +220,13 @@
      function showPolicyPage() {
           var policyType = $('#schedulePolicy_policyType').val();
           if(policyType == 'file_snapshot') {
-               $('#schedulePolicy_snapshotPatternControlGroup').show();
+               $('#schedulePolicy_snapshotNamePatternControlGroup').show();
                $('#schedulePolicy_replicationTypeControlGroup').hide();
                $('#schedulePolicy_replicationCopyTypeControlGroup').hide();
                $('#schedulePolicy_priorityControlGroup').hide();
                $('#schedulePolicy_expirationControlGroup').show();
           } else if (policyType == 'file_replication') {
-          	   $('#schedulePolicy_snapshotPatternControlGroup').hide();
+          	   $('#schedulePolicy_snapshotNamePatternControlGroup').hide();
                $('#schedulePolicy_replicationTypeControlGroup').show();
                $('#schedulePolicy_replicationCopyTypeControlGroup').show();
                $('#schedulePolicy_priorityControlGroup').show();

@@ -1432,12 +1432,8 @@ test_cluster_remove_discovered_host() {
             
             random_number=${RANDOM}
             TEST_OUTPUT_FILE=test_output_${RANDOM}.log
-            reset_counts
-            column_family=("Volume Cluster Host")        
+            reset_counts                   
             mkdir -p results/${random_number}       
-           
-            # Snap DB
-            snap_db 1 "${column_family[@]}"
             
             for eg in ${exportgroups}
             do
@@ -1463,6 +1459,10 @@ test_cluster_remove_discovered_host() {
             if [[ "${wf}" == *"deleteWorkflow"* ]]; then
                 # Delete export group
                 secho "Delete export group path..."
+                
+                # Snap DB
+                column_family=("Volume Cluster Host") 
+                snap_db 1 "${column_family[@]}"
             
                 # Vcenter call to remove host1 from cluster1
                 remove_host_from_cluster $host1 $cluster1                                        
@@ -1552,6 +1552,10 @@ test_cluster_remove_discovered_host() {
             else
                 # Update export group
                 secho "Update export group path..."
+                
+                # Snap DB
+                column_family=("Volume ExportGroup ExportMask Cluster Host") 
+                snap_db 1 "${column_family[@]}"
             
                 # Vcenter call to remove host from cluster
                 remove_host_from_cluster $host1 $cluster1            
@@ -1631,10 +1635,9 @@ test_cluster_remove_discovered_host() {
         done
     done
     
-     # Cleanup volumes
-    #delete_datastore_and_volume $TENANT ${datastore1} ${vcenter} ${datacenter} ${cluster1}
-    #delete_datastore_and_volume $TENANT ${datastore2} ${vcenter} ${datacenter} ${cluster1}
+    # Cleanup volumes
     runcmd volume delete ${PROJECT}/${volume1} --wait 
+    runcmd volume delete ${PROJECT2}/${volume2} --wait 
     runcmd project delete ${PROJECT2}
     
     # Turn off validation back on

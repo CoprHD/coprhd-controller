@@ -7,21 +7,20 @@ package com.emc.sa.catalog;
 import static com.emc.storageos.db.client.URIUtil.uri;
 
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.*;
 
 import javax.annotation.PostConstruct;
 import javax.annotation.Resource;
 
-import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
-import com.emc.storageos.db.client.constraint.NamedElementQueryResultList;
+import com.emc.storageos.api.service.impl.resource.ArgValidator;
 import com.emc.storageos.db.client.util.ExecutionWindowHelper;
-import com.emc.sa.model.util.ScheduleTimeHelper;
 import com.emc.storageos.db.client.model.*;
 import com.emc.storageos.db.client.model.uimodels.*;
-import com.emc.storageos.services.OperationTypeEnum;
-import com.emc.vipr.model.catalog.OrderRestRep;
+import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import org.apache.commons.lang.StringUtils;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -50,7 +49,7 @@ import com.google.common.collect.Maps;
 @Component
 public class OrderManagerImpl implements OrderManager {
 
-    private static final Logger log = Logger.getLogger(OrderManagerImpl.class);
+    private static final Logger log = LoggerFactory.getLogger(OrderManagerImpl.class);
 
     @Autowired
     private ModelClient client;
@@ -421,20 +420,29 @@ public class OrderManagerImpl implements OrderManager {
         client.delete(order);
     }
 
+
     public List<Order> getOrders(URI tenantId) {
         return client.orders().findAll(tenantId.toString());
     }
 
-    public List<Order> getUserOrders(StorageOSUser user) {
-        return client.orders().findByUserId(user.getUserName());
+    public List<Order> getUserOrders(StorageOSUser user, long startTime, long endTime, int maxCount) {
+        return client.orders().findOrdersByUserId(user.getUserName(), startTime, endTime, maxCount);
+    }
+
+    public long getOrderCount(StorageOSUser user, long startTime, long endTime) {
+        return client.orders().getOrdersCount(user.getUserName(), startTime, endTime);
+    }
+
+    public Map<String, Long> getOrderCount(List<URI> tids, long startTime, long endTime) {
+        return client.orders().getOrdersCount(tids, startTime, endTime);
     }
 
     public List<Order> findOrdersByStatus(URI tenantId, OrderStatus orderStatus) {
         return client.orders().findByOrderStatus(tenantId.toString(), orderStatus);
     }
 
-    public List<Order> findOrdersByTimeRange(URI tenantId, Date startTime, Date endTime) {
-        return client.orders().findByTimeRange(tenantId, startTime, endTime);
+    public List<Order> findOrdersByTimeRange(URI tenantId, Date startTime, Date endTime, int maxCount) {
+        return client.orders().findByTimeRange(tenantId, startTime, endTime, maxCount);
     }
 
     public List<ExecutionLog> getOrderExecutionLogs(Order order) {

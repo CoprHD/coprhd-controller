@@ -34,9 +34,14 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
     // --
 
     function initializeJsTree(dirJSON){
-        $element.find(".search-input").keyup(function() {
-            var searchString = $(this).val();
-            jstreeContainer.jstree('search', searchString);
+        var to = null;
+        var searchElem = $element.find(".search-input");
+        searchElem.keyup(function() {
+            if(to) { clearTimeout(to); }
+                to = setTimeout(function() {
+                  var searchString = searchElem.val();
+                  jstreeContainer.jstree('search', searchString);
+                }, 250);
         });
 
         jstreeContainer.jstree({
@@ -275,7 +280,8 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
     var sbSite = $element.find('#sb-site');
     var treecontroller = $element.find('#theSidebar');
     var jspInstance;
-    var workflowData = {};
+    $scope.workflowData = {};
+    $scope.modified = false;
     var dataAvailable = false;
     $scope.selectedId = '';
 
@@ -289,10 +295,11 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
     $scope.initializeWorkflowData = function(workflowInfo) {
         var elementid = workflowInfo.id.replace(/:/g,'');
         $http.get(routes.Workflow_get({workflowId: workflowInfo.id})).then(function (resp) {
-            workflowData = resp.data;
+            $scope.workflowData = resp.data;
             activateTab(elementid);
             loadJSON();
             dataAvailable = true;
+            $scope.modified = false;
         });
     }
 
@@ -339,6 +346,13 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
         });
         $panzoom.on('panzoomzoom', function(e, panzoom, scale) {
             jspInstance.setZoom(scale);
+        });
+
+        var str_down = 'mousedown' + ' pointerdown' + ' MSPointerDown';
+        var str_start = 'touchstart' + ' ' + str_down;
+
+        diagramContainer.on(str_start, "*", function(e) {
+            e.stopImmediatePropagation();
         });
     }
 
@@ -421,6 +435,8 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
         stepData.positionY = positionY;
         stepData.positionX = positionX;
 
+        $scope.modified = true;
+
         loadStep(stepData);
 
     }
@@ -440,6 +456,8 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
                 sourceNext.failedStep=connection.targetId
             }
             sourceData.next=sourceNext;
+            $scope.modified = true;
+            $scope.$apply();
         });
 
         jspInstance.bind("connectionDetached", function(connection) {
@@ -457,6 +475,8 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
                 delete sourceData.next.failedStep;
             }
             sourceData.next=sourceNext;
+            $scope.modified = true;
+            $scope.$apply();
         });
     }
 
@@ -474,31 +494,41 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
         });
 
         //TODO: return JSON data so that it can be accessed in Export/SaveWorkflow via this method
-        workflowData.document.steps = blocks;
+        $scope.workflowData.document.steps = blocks;
     }
 
     $scope.saveWorkflow = function() {
         buildJSON();
-        $http.post(routes.Workflow_save({workflowId : workflowData.id}),{workflowDoc : workflowData.document}).then(function (resp) {
-            //TODO: change variable to update that workflow saved
+        $http.post(routes.Workflow_save({workflowId : $scope.workflowData.id}),{workflowDoc : $scope.workflowData.document}).then(function (resp) {
+            checkStateResponse(resp,function(){$scope.modified = false;});
         });
     }
 
+    function checkStateResponse(resp,successCallback,failCallback){
+        if (resp.status == 200) {
+            $scope.workflowData.state = resp.data.state;
+            if (successCallback) successCallback();
+        } else {
+            if (failCallback) failCallback();
+            //TODO: show error
+        }
+    }
+
     $scope.validateWorkflow = function() {
-        $http.post(routes.Workflow_validate({workflowId : workflowData.id})).then(function (resp) {
-            console.log(resp);
+        $http.post(routes.Workflow_validate({workflowId : $scope.workflowData.id})).then(function (resp) {
+            checkStateResponse(resp);
         });
     }
 
     $scope.publishorkflow = function() {
-        $http.post(routes.Workflow_publish({workflowId : workflowData.id})).then(function (resp) {
-            console.log(resp);
+        $http.post(routes.Workflow_publish({workflowId : $scope.workflowData.id})).then(function (resp) {
+            checkStateResponse(resp);
         });
     }
 
     $scope.unpublishWorkflow = function() {
-        $http.post(routes.Workflow_unpublish({workflowId : workflowData.id})).then(function (resp) {
-            console.log(resp);
+        $http.post(routes.Workflow_unpublish({workflowId : $scope.workflowData.id})).then(function (resp) {
+            checkStateResponse(resp);
         });
     }
 
@@ -510,6 +540,8 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
         $scope.selectedId = stepId;
         var data = diagramContainer.find('#'+stepId).data("oeData");
         $scope.stepData = data;
+        $scope.menuOpen = true;
+        $scope.openPage(0);
     }
 
     function loadStep(step) {
@@ -527,12 +559,16 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
         var $editButton = '<a class="glyphicon glyphicon-pencil button-step-close" ng-click="select(\''+stepId+'\')"></a>';
         var $closeButton = '<a class="glyphicon glyphicon-remove button-step-close" ng-click="removeStep(\''+stepId+'-wrapper\')"></a>';
         var $item = '<div id="' + stepId + '" class="item" ng-class="{\'highlighted\':selectedId == \'' + stepId + '\'}"><div class="itemText">' + stepName + '</div></div>';
-        $($closeButton).appendTo(diagramContainer).wrap($itemWrapper).after($item).wrap($buttonContainer).before($editButton);
+        if (stepId === "Start" || stepId === "End"){
+            $($item).appendTo(diagramContainer).wrap($itemWrapper);
+        } else {
+            $($closeButton).appendTo(diagramContainer).wrap($itemWrapper).after($item).wrap($buttonContainer).before($editButton);
+        }
         var theNewItemWrapper = diagramContainer.find(' #' + stepId+'-wrapper');
         var theNewItem = diagramContainer.find(' #' + stepId);
 
         //add data
-        step.operation = step.name
+        if(!step.operation) {step.operation = step.name}
         theNewItem.data("oeData",step);
 
         //set position of element
@@ -542,9 +578,15 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
         });
 
         //add jsPlumb options
-        jspInstance.addEndpoint(diagramContainer.find(' #'+stepId), {uuid:stepId+"-pass"}, passEndpoint);
-        jspInstance.makeTarget(diagramContainer.find(' #'+stepId), targetParams);
-        jspInstance.addEndpoint(diagramContainer.find(' #'+stepId), {uuid:stepId+"-fail"}, failEndpoint);
+        if (stepId !== "Start"){
+            jspInstance.makeTarget(diagramContainer.find(' #'+stepId), targetParams);
+        }
+        if(stepId !== "End"){
+            jspInstance.addEndpoint(diagramContainer.find(' #'+stepId), {uuid:stepId+"-pass"}, passEndpoint);
+        }
+        if(stepId !== "Start" && stepId !== "End"){
+            jspInstance.addEndpoint(diagramContainer.find(' #'+stepId), {uuid:stepId+"-fail"}, failEndpoint);
+        }
         jspInstance.draggable(diagramContainer.find(' #'+stepId+'-wrapper'));
 
         //updates angular handlers for the new element
@@ -567,12 +609,12 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
     function loadJSON() {
 
         //load steps with position data
-        workflowData.document.steps.forEach(function(step) {
+        $scope.workflowData.document.steps.forEach(function(step) {
             loadStep(step);
         });
 
         //load connections
-        workflowData.document.steps.forEach(function(step) {
+        $scope.workflowData.document.steps.forEach(function(step) {
             loadConnections(step);
         });
 
@@ -584,7 +626,7 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
             var $elem = $(elem);
             $elem.remove();
         });
-        workflowData = {};
+        $scope.workflowData = {};
     }
 
     $scope.activePage = 0;

@@ -47,6 +47,7 @@ import com.emc.vipr.client.core.ProtectionSystems;
 import com.emc.vipr.client.core.QuotaDirectories;
 import com.emc.vipr.client.core.SchedulePolicies;
 import com.emc.vipr.client.core.Site;
+import com.emc.vipr.client.core.StorageDriver;
 import com.emc.vipr.client.core.StoragePools;
 import com.emc.vipr.client.core.StoragePorts;
 import com.emc.vipr.client.core.StorageProviders;
@@ -429,5 +430,9 @@ public class ViPRCoreClient {
 
     public StorageSystemType storageSystemType() {
         return new StorageSystemType(client);
+    }
+
+    public StorageDriver storageDriver() {
+        return new StorageDriver(client);
     }
 }

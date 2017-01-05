@@ -521,7 +521,12 @@ public enum OperationTypeEnum {
     
     MOUNT_NFS_EXPORT("MOUNT NFS EXPORT", "mount nfs export operation failed", "mount nfs export operation"),
     UNMOUNT_NFS_EXPORT("UNMOUNT NFS EXPORT", "unmount nfs operation failed", "unmount nfs export operation"),
-    LIST_MOUNTED_EXPORTS("LIST MOUNTED EXPORTS", "list mounted nfs operation failed", "list mounted exports operation");
+    LIST_MOUNTED_EXPORTS("LIST MOUNTED EXPORTS", "list mounted nfs operation failed", "list mounted exports operation"),
+
+    /* Storage Driver Operations */
+    INSTALL_STORAGE_DRIVER("INSTALL STORAGE DRIVER", "", "install storage driver operation"),
+    UNINSTALL_STORAGE_DRIVER("UNINSTALL STORAGE DRIVER", "", "uninstall storage driver operation"),
+    UPGRADE_STORAGE_DRIVER("UPGRADE STORAGE DRIVER", "", "upgrade storage driver operation");
 
     private final String _evType;
     private final String _fail_evType;

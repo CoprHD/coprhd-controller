@@ -6556,7 +6556,12 @@ sbsdk_remote_replication_tests()
     echo "***** Deleting volume $VOLUME_NAME *****"
     run volume delete $PROJECT/$VOLUME_NAME --wait
 
+    #Create a replication group
+    REMOTE_REPLICATION_GROUP_NAME=SanityReplicationGroup
+
     echo "***** Completed SB SDK remote replication sanity tests *****"
+    run remotereplicationgroup create $SBSDK_DRIVER_REPLICATION_SET1 $SBSDK_DRIVER_SYS_TYPE $REMOTE_REPLICATION_GROUP_NAME SYNCHRONOUS \
+                  --source_system $SBSDK_DRIVER_SYS_NATIVEGUID --target_system $SBSDK_DRIVER_SYS_TARGET_NATIVEGUID
 }
 
 

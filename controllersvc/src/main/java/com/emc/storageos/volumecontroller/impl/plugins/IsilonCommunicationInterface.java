@@ -1288,8 +1288,15 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
         }
         _log.info("Unmanaged file system locations are {}", paths);
         List<String> pathList = Arrays.asList(paths.split(","));
+        
+        /*
+         * fix COP-27008: if system-access-zone's dir has been removed 
+         * and is just /ifs/ 
+         */
+        pathList.remove("/ifs/");
 
         setDiscPathsForUnManaged(pathList);
+        
         
         _discCustomPath = getCustomConfigPath();
     }
@@ -1918,25 +1925,13 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
              *   
              */
             
-            for (IsilonAccessZone accessZone : accessZones) {
+            for (String discoverPath : _discPathsForUnManaged) {
 
-                String accessZonePath = accessZone.getPath();
+                int accessZoneDiscPathLength = computeCustomConfigPathLengths(discoverPath);
 
-                int accessZoneDiscPathLength = computeCustomConfigPathLengths(accessZonePath);
-
-                IsilonApi.IsilonList<IsilonSmartQuota> quotas = isilonApi.listQuotas(null, accessZonePath);
+                IsilonApi.IsilonList<IsilonSmartQuota> quotas = isilonApi.listQuotas(null, discoverPath);
 
                 for (IsilonSmartQuota quota : quotas.getList()) {
-
-                    if (accessZone.isSystem() && StringUtils.startsWithAny(quota.getPath(), remoteAccessZonePaths)) {
-                        /*
-                         * Corner case code :
-                         * if config path for system access zone starts with just '/ifs' & not with '/ifs/vipr'
-                         * skip further process if quota belongs to
-                         * other AccessZonePath
-                        */
-                        continue;
-                    }
 
                     tempQuotaMap.put(quota.getPath(), quota);
                     String fsNativeId = quota.getPath();
@@ -3568,7 +3563,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
      */
     private int computeCustomConfigPathLengths(String accessZonePath) {
         String tempCustomConfigPathLength = getCustomConfigPath();
-        String initialPath = accessZonePath+"/";
+        String initialPath = accessZonePath;
         int discPathLength=0;
         if (StringUtils.isNotEmpty(tempCustomConfigPathLength)) {
             discPathLength = (initialPath + tempCustomConfigPathLength).split("/").length;

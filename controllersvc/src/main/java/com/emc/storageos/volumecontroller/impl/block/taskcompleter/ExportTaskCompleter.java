@@ -43,10 +43,11 @@ public abstract class ExportTaskCompleter extends TaskCompleter {
 
     private URI _mask;
     private Map<String, String> _altVarrayMap;
-    private Map<URI, StringSetMap> _exportMaskToZoningMapMap;
+    private Map<URI, StringSetMap> _exportMaskToOldZoningMapMap;
     private Set<URI> _exportMasksCreated;
     private Set<URI> _exportMasksToBeAdded;
     private Set<URI> _exportMasksToBeRemoved;
+    private Map<URI, List<URI>> _exportMaskToAddedInitiatorMap;
     private Map<URI, List<URI>> _exportMaskToRemovedVolumeMap;
 
     public ExportTaskCompleter(Class clazz, URI id, String opId) {
@@ -105,15 +106,6 @@ public abstract class ExportTaskCompleter extends TaskCompleter {
                     }
                 }
 
-                if (_exportMaskToZoningMapMap != null && !_exportMaskToZoningMapMap.isEmpty()) {
-                    for (Entry<URI, StringSetMap> entry : _exportMaskToZoningMapMap.entrySet()) {
-                        ExportMask exportMask = ExportUtils.getExportMaskWithCache(exportMaskCache, entry.getKey(), dbClient);
-                        if (exportMask != null) {
-                            exportMask.addZoningMap(entry.getValue());
-                        }
-                    }
-                }
-
                 if (null != _exportMasksToBeAdded) {
                     for (URI exportMaskUri : _exportMasksToBeAdded) {
                         exportGroup.addExportMask(exportMaskUri);
@@ -126,6 +118,25 @@ public abstract class ExportTaskCompleter extends TaskCompleter {
                     }
                 }
 
+                if (null != _exportMaskToAddedInitiatorMap && !_exportMaskToAddedInitiatorMap.isEmpty()) {
+                    for (Entry<URI, List<URI>> entry : _exportMaskToAddedInitiatorMap.entrySet()) {
+                        ExportMask exportMask = ExportUtils.getExportMaskWithCache(exportMaskCache, entry.getKey(), dbClient);
+                        if (exportMask != null) {
+                            List<Initiator> inits = dbClient.queryObject(Initiator.class, entry.getValue());
+                            for (Initiator init : inits) {
+                                // add all the the initiators the user has requested to add
+                                // to the exportMask initiators list
+                                exportMask.addInitiator(init);
+                                if (!exportMask.hasExistingInitiator(init)) {
+                                    // add only those initiator to the user added list
+                                    // which do not exist on the the device already.
+                                    exportMask.addToUserCreatedInitiators(init);
+                                }
+                            }
+                        }
+                    }
+                }
+ 
                 ExportUtils.handleExportMaskVolumeRemoval(dbClient, _exportMaskToRemovedVolumeMap, getId());
 
                 break;
@@ -138,12 +149,22 @@ public abstract class ExportTaskCompleter extends TaskCompleter {
                     }
                     dbClient.markForDeletion(exportMasks);
                 }
+
+                if (_exportMaskToOldZoningMapMap != null && !_exportMaskToOldZoningMapMap.isEmpty()) {
+                    // revert any zoningMaps that were updated as part of this export task
+                    for (Entry<URI, StringSetMap> entry : _exportMaskToOldZoningMapMap.entrySet()) {
+                        ExportMask exportMask = ExportUtils.getExportMaskWithCache(exportMaskCache, entry.getKey(), dbClient);
+                        if (exportMask != null) {
+                            exportMask.setZoningMap(entry.getValue());
+                        }
+                    }
+                }
+
             default:
+                _logger.warn("Unhandled status: " + status);
                 break;
         }
-        if (exportGroup.isChanged()) {
-            dbClient.updateObject(exportGroup);
-        }
+        dbClient.updateObject(exportGroup);
         ExportUtils.persistExportMaskCache(exportMaskCache, dbClient);
     }
 
@@ -246,12 +267,12 @@ public abstract class ExportTaskCompleter extends TaskCompleter {
      * @param exportMaskUri URI of the ExportMask to update
      * @param zoningMapEntries a zoning map StringSetMap to set on the ExportMask
      */
-    public void addExportMaskZoningMapMapping(URI exportMaskUri, StringSetMap zoningMapEntries) {
-        if (_exportMaskToZoningMapMap == null) {
-            _exportMaskToZoningMapMap = new HashMap<URI, StringSetMap>();
+    public void addExportMaskToOldZoningMapMapping(URI exportMaskUri, StringSetMap zoningMapEntries) {
+        if (_exportMaskToOldZoningMapMap == null) {
+            _exportMaskToOldZoningMapMap = new HashMap<URI, StringSetMap>();
         }
 
-        _exportMaskToZoningMapMap.put(exportMaskUri, zoningMapEntries);
+        _exportMaskToOldZoningMapMap.put(exportMaskUri, zoningMapEntries);
     }
 
     /**
@@ -295,6 +316,20 @@ public abstract class ExportTaskCompleter extends TaskCompleter {
         }
 
         _exportMasksToBeRemoved.add(exportMaskUri);
+    }
+
+    /**
+     * Add a mapping for Initiator URIs that should be added to an ExportMask at the end of the workflow.
+     * 
+     * @param exportMaskUri the ExportMask URI to update
+     * @param initiatorUrisToBeAdded the list of Initiator URIs to add to the ExportMask
+     */
+    public void addExportMaskToAddedInitiatorMapping(URI exportMaskUri, List<URI> initiatorUrisToBeAdded) {
+        if (null == _exportMaskToAddedInitiatorMap) {
+            _exportMaskToAddedInitiatorMap = new HashMap<URI, List<URI>>();
+        }
+
+        _exportMaskToAddedInitiatorMap.put(exportMaskUri, initiatorUrisToBeAdded);
     }
 
     /**

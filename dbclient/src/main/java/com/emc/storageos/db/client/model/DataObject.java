@@ -330,15 +330,6 @@ public abstract class DataObject implements Serializable {
     }
 
     /**
-     * Checks if the DataObject has any changes
-     *
-     * @return true if modified, false otherwise
-     */
-    public boolean isChanged() {
-        return (_changed != null && !_changed.isEmpty());
-    }
-
-    /**
      * clears changed flag for the given name
      *
      * @param field name of the field to check

@@ -153,6 +153,11 @@ public class OrderJobStatus implements CoordinatorSerializable {
         nFailed = n;
     }
 
+    @JsonIgnore
+    public void addFailed(long n) {
+        nFailed +=n;
+    }
+
     public long getTimeUsedPerOrder() {
         return timeUsedPerOrder;
     }

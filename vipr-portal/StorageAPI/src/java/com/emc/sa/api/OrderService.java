@@ -663,30 +663,29 @@ public class OrderService extends CatalogTaggedResourceService {
 
         if (!orderIDs.isEmpty()) {
             dumpOrders(out, orderIDs, status);
-            return;
-        }
+        }else {
+            long completed = 0;
+            long failed = 0;
+            for (URI tid : tids) {
+                TimeSeriesConstraint constraint = TimeSeriesConstraint.Factory.getOrders(tid, startTime, endTime);
+                DbClientImpl dbclient = (DbClientImpl) _dbClient;
+                constraint.setKeyspace(dbclient.getKeyspace(Order.class));
 
-        long completed = 0;
-        long failed = 0;
-        for (URI tid : tids) {
-            TimeSeriesConstraint constraint = TimeSeriesConstraint.Factory.getOrders(tid, startTime, endTime);
-            DbClientImpl dbclient = (DbClientImpl)_dbClient;
-            constraint.setKeyspace(dbclient.getKeyspace(Order.class));
-
-            NamedElementQueryResultList ids = new NamedElementQueryResultList();
-            _dbClient.queryByConstraint(constraint, ids);
-            for (NamedElementQueryResultList.NamedElement namedID : ids) {
-                URI id = namedID.getId();
-                try {
-                    dumpOrder(out, id, status);
-                    completed++;
-                }catch (Exception e) {
-                    failed++;
+                NamedElementQueryResultList ids = new NamedElementQueryResultList();
+                _dbClient.queryByConstraint(constraint, ids);
+                for (NamedElementQueryResultList.NamedElement namedID : ids) {
+                    URI id = namedID.getId();
+                    try {
+                        dumpOrder(out, id, status);
+                        completed++;
+                    } catch (Exception e) {
+                        failed++;
+                    }
                 }
             }
+            status.setTotal(completed+failed);
         }
 
-        status.setTotal(completed+failed);
         try {
             saveJobInfo(status);
         }catch (Exception e) {
@@ -714,6 +713,7 @@ public class OrderService extends CatalogTaggedResourceService {
             if (orderStatus != null && !orderStatus.name().equals(order.getOrderStatus())) {
                 log.info("Order({})'s status {} is not {}, so skip downloading", id, order.getOrderStatus(),
                         orderStatus);
+                status.addFailed(1);
                 return;
             }
 

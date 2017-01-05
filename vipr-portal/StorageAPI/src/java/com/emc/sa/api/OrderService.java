@@ -333,6 +333,11 @@ public class OrderService extends CatalogTaggedResourceService {
             }
 
             orders = orderManager.findOrdersByTimeRange(uri(tenantId), startTime, endTime, maxCount);
+            log.info("lbyt start={} end={} max={} count={}", new Object[] { startTime, endTime, maxCount, orders.size()});
+            List<URI> tids = new ArrayList(1);
+            tids.add(uri(tenantId));
+            Map<String, Long> countMap = orderManager.getOrderCount(tids, startTime.getTime(), endTime.getTime());
+            log.info("lbyt count={}", countMap);
         }
 
         ResRepFilter<SearchResultResourceRep> resRepFilter =

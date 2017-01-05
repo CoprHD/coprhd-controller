@@ -19,9 +19,11 @@ import com.emc.storageos.security.authorization.PermissionsKey;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import org.apache.commons.lang.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class BaseModelFinder<T extends DataObject> {
-
+    private static final Logger _log = LoggerFactory.getLogger(BaseModelFinder.class);
     protected DBClientWrapper client;
     protected Class<T> clazz;
 
@@ -47,6 +49,7 @@ public class BaseModelFinder<T extends DataObject> {
                 out.add(namedElement.getId());
             }
         }
+        _log.info("lbytcc size={}", out.size());
         return out;
     }
 
@@ -124,12 +127,16 @@ public class BaseModelFinder<T extends DataObject> {
     }
 
     public static <T extends DataObject> List<T> active(List<T> unfiltered) {
+        _log.info("lbytbb size={}", unfiltered.size());
         List<T> filtered = Lists.newArrayList();
         for (T item : unfiltered) {
             if (item.getInactive() == null || !item.getInactive()) {
                 filtered.add(item);
+            }else {
+                _log.info("lbytbb id={} inactive", item.getId());
             }
         }
+        _log.info("lbytbb size={}", filtered.size());
         return filtered;
     }
 }

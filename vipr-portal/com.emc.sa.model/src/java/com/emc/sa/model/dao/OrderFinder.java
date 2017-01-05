@@ -118,6 +118,8 @@ public class OrderFinder extends TenantModelFinder<Order> {
         }
 
         List<NamedElement> orderIds = client.findAllOrdersByTimeRange(tenantId, Order.SUBMITTED, startTime, endTime, maxCount);
+        List<URI> ids = toURIs(orderIds);
+        log.info("lbytaa ids size={}", ids.size());
         return findByIds(toURIs(orderIds));
     }
 }

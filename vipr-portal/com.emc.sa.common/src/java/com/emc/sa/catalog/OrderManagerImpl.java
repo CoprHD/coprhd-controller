@@ -418,8 +418,6 @@ public class OrderManagerImpl implements OrderManager {
     }
 
     public void canBeDeleted(Order order, OrderStatus orderStatus) {
-        log.info("lbyj0");
-
         if (order.getScheduledEventId()!=null) {
             throw APIException.badRequests.scheduledOrderNotAllowed("deactivation");
         }
@@ -429,7 +427,6 @@ public class OrderManagerImpl implements OrderManager {
         }
 
         OrderStatus status = OrderStatus.valueOf(order.getOrderStatus());
-        log.info("lbyj5 orderStaus={} status={}", orderStatus, status);
 
         if (orderStatus != null && status != orderStatus) {
             throw APIException.badRequests.orderCanNotBeDeleted(order.getId(), status.toString());
@@ -439,7 +436,6 @@ public class OrderManagerImpl implements OrderManager {
             throw APIException.badRequests.orderCanNotBeDeleted(order.getId(), status.toString());
         }
 
-        log.info("lbyj6");
     }
 
     private boolean createdWithinOneMonth(Order order) {
@@ -466,31 +462,32 @@ public class OrderManagerImpl implements OrderManager {
         client.delete(orderParameters);
 
         ExecutionState state = getOrderExecutionState(order.getExecutionStateId());
-
-        StringSet logIds = state.getLogIds();
-        log.info("lbyh0 logIds={}", logIds);
-        for (String logId : logIds) {
-            URI id = null;
-            try {
-                id = new URI(logId);
-            }catch(URISyntaxException e) {
-                log.error("lbyh0 e=",e);
-                continue;
+        if (state != null) {
+            StringSet logIds = state.getLogIds();
+            log.info("lbyh0 logIds={}", logIds);
+            for (String logId : logIds) {
+                URI id = null;
+                try {
+                    id = new URI(logId);
+                } catch (URISyntaxException e) {
+                    log.error("lbyh0 e=", e);
+                    continue;
+                }
+                ExecutionLog log = client.getModelClient().findById(ExecutionLog.class, id);
+                client.delete(log);
             }
-            ExecutionLog log = client.getModelClient().findById(ExecutionLog.class, id);
-            client.delete(log);
+
+            List<ExecutionTaskLog> logs = client.executionTaskLogs().findByIds(state.getTaskLogIds());
+            log.info("lbyh0 logs={}", logs);
+            for (ExecutionTaskLog taskLog: logs) {
+                client.delete(taskLog);
+            }
+
+            client.delete(state);
         }
 
-        List<ExecutionTaskLog> logs = client.executionTaskLogs().findByIds(state.getTaskLogIds());
-        log.info("lbyh0 logs={}", logs);
-        for (ExecutionTaskLog taskLog: logs) {
-            client.delete(taskLog);
-        }
-
-        client.delete(state);
         client.delete(order);
     }
-
 
     public List<Order> getOrders(URI tenantId) {
         return client.orders().findAll(tenantId.toString());

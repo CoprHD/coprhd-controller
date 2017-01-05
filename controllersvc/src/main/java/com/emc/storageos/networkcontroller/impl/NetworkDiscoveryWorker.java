@@ -440,7 +440,7 @@ public class NetworkDiscoveryWorker {
             Map<String, String> fabricIdsMap = getDevice().getFabricIdsMap(networkSystem);
             // get the list of fabrics added, removed, changed
             TransportZoneReconciler reconciler = new TransportZoneReconciler();
-            TransportZoneReconciler.Results results = reconciler.reconcile(networkSystem, iNewEndPoints, fabricIdsMap, oldTransportZones);
+            TransportZoneReconciler.Results results = reconciler.reconcile(networkSystem, iNewEndPoints, fabricIdsMap, oldTransportZones, dbClient);
             String networkSystemUri = networkSystem.getId().toString();
             for (Network tzone : results.getRemoved()) {
                 List<String> removedEps = removeNetworkSystemTransportZone(tzone, networkSystemUri);

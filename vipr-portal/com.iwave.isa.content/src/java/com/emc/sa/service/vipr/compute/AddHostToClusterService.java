@@ -39,6 +39,7 @@ import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.model.compute.OsInstallParam;
 import com.emc.storageos.model.host.HostRestRep;
 import com.emc.storageos.model.vpool.ComputeVirtualPoolRestRep;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 
 @Service("AddHostToCluster")
@@ -98,12 +99,14 @@ public class AddHostToClusterService extends ViPRService {
     private Cluster cluster;
     private List<String> hostNames = null;
     private List<String> hostIps = null;
+    private List<String> copyOfHostNames = null;
 
     @Override
     public void precheck() throws Exception {
 
         StringBuilder preCheckErrors = new StringBuilder();
         hostNames = ComputeUtils.getHostNamesFromFqdnToIps(fqdnToIps);
+        copyOfHostNames = ImmutableList.copyOf(hostNames);
 
         hostIps = ComputeUtils.getIpsFromFqdnToIps(fqdnToIps);
 
@@ -271,7 +274,7 @@ public class AddHostToClusterService extends ViPRService {
 
             pushToVcenter();
         }
-        String orderErrors = ComputeUtils.getOrderErrors(cluster, hostNames, computeImage, vcenterId);
+        String orderErrors = ComputeUtils.getOrderErrors(cluster, copyOfHostNames, computeImage, vcenterId);
         if (orderErrors.length() > 0) { // fail order so user can resubmit
             if (ComputeUtils.nonNull(hosts).isEmpty()) {
                 throw new IllegalStateException(
@@ -505,4 +508,19 @@ public class AddHostToClusterService extends ViPRService {
     public void setHostIps(List<String> hostIps) {
         this.hostIps = hostIps;
     }
+
+    /**
+     * @return the copyOfHostNames
+     */
+    public List<String> getCopyOfHostNames() {
+        return copyOfHostNames;
+    }
+
+    /**
+     * @param copyOfHostNames the copyOfHostNames to set
+     */
+    public void setCopyOfHostNames(List<String> copyOfHostNames) {
+        this.copyOfHostNames = copyOfHostNames;
+    }
+
 }

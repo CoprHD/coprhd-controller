@@ -390,6 +390,13 @@ public class ComputeUtils {
         if (!hostsToRemove.isEmpty()) {
             try {
                 deactivateHosts(hostsToRemove);
+                for (Host hostRemoved : hostsToRemove) {
+                    for (Host hostCreated : hosts) {
+                        if(hostCreated.getId().equals(hostRemoved.getId())) {
+                            hosts.set(hosts.indexOf(hostCreated), null);
+                        }
+                    }
+                }
             } catch (Exception e) {
                 ExecutionUtils.currentContext().logError("computeutils.deactivatehost.deactivate.failure",
                         e.getMessage());
@@ -426,6 +433,13 @@ public class ComputeUtils {
         if (!hostsToRemove.isEmpty()) {
             try {
                 deactivateHosts(hostsToRemove);
+                for (Host hostRemoved : hostsToRemove) {
+                    for (Host hostCreated : hosts) {
+                        if(hostCreated.getId().equals(hostRemoved.getId())) {
+                            hosts.set(hosts.indexOf(hostCreated), null);
+                        }
+                    }
+                }
             } catch (Exception e) {
                 ExecutionUtils.currentContext().logError("computeutils.deactivatehost.deactivate.failure",
                         e.getMessage());
@@ -614,10 +628,10 @@ public class ComputeUtils {
         return true;
     }
 
-    public static boolean isComputePoolCapacityAvailable(ViPRCoreClient client, URI vcp, int numHosts) {
-        ComputeElementListRestRep resp = client.computeVpools().getMatchedComputeElements(vcp);
-        int size = resp.getList().size();
-        return size < numHosts ? false : true;
+    public static boolean isComputePoolCapacityAvailable(ViPRCoreClient client, URI poolURI, int numHosts) {
+        ComputeVirtualPoolRestRep resp = client.computeVpools().getComputeVirtualPool(poolURI);
+        int numAvailableBlades = resp.getAvailableMatchedComputeElements().size();
+        return numAvailableBlades < numHosts ? false : true;
     }
 
     public static boolean isValidIpAddress(String ipAddress) {
@@ -646,7 +660,7 @@ public class ComputeUtils {
 
     public static String getOrderErrors(Cluster cluster,
             List<String> hostNames, URI computeImage, URI vcenterId) {
-        StringBuffer orderErrors = new StringBuffer();
+        StringBuilder orderErrors = new StringBuilder();
 
         List<HostRestRep> hosts = Lists.newArrayList();
 

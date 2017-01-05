@@ -25,6 +25,7 @@ import com.emc.sa.service.vipr.compute.ComputeUtils.FqdnTable;
 import com.emc.storageos.db.client.model.Cluster;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.model.vpool.ComputeVirtualPoolRestRep;
+import com.google.common.collect.ImmutableList;
 
 @Service("AddBareMetalHostToCluster")
 public class AddBareMetalHostToClusterService extends ViPRService {
@@ -55,6 +56,7 @@ public class AddBareMetalHostToClusterService extends ViPRService {
 
     private Cluster cluster;
     private List<String> hostNames = null;
+    private List<String> copyOfHostNames = null;
 
 
     @Override
@@ -62,6 +64,7 @@ public class AddBareMetalHostToClusterService extends ViPRService {
 
         StringBuilder preCheckErrors = new StringBuilder();
         hostNames = ComputeUtils.getHostNamesFromFqdn(fqdnValues);
+        copyOfHostNames = ImmutableList.copyOf(hostNames);
 
         List<String> existingHostNames = ComputeUtils.getHostNamesByName(getClient(), hostNames);
         cluster = BlockStorageUtils.getCluster(clusterId);
@@ -159,7 +162,8 @@ public class AddBareMetalHostToClusterService extends ViPRService {
             hosts = ComputeUtils.deactivateHostsWithNoExport(hosts, exportIds, bootVolumeIds, cluster);
             ComputeUtils.setHostBootVolumes(hosts, bootVolumeIds);
         }
-        String orderErrors = ComputeUtils.getOrderErrors(cluster, hostNames, null, null);
+
+        String orderErrors = ComputeUtils.getOrderErrors(cluster, copyOfHostNames, null, null);
         if (orderErrors.length() > 0) { // fail order so user can resubmit
             if (ComputeUtils.nonNull(hosts).isEmpty()) {
                 throw new IllegalStateException(
@@ -245,6 +249,20 @@ public class AddBareMetalHostToClusterService extends ViPRService {
      */
     public void setHostNames(List<String> hostNames) {
         this.hostNames = hostNames;
+    }
+
+    /**
+     * @return the copyOfHostNames
+     */
+    public List<String> getCopyOfHostNames() {
+        return copyOfHostNames;
+    }
+
+    /**
+     * @param copyOfHostNames the copyOfHostNames to set
+     */
+    public void setCopyOfHostNames(List<String> copyOfHostNames) {
+        this.copyOfHostNames = copyOfHostNames;
     }
 
 }

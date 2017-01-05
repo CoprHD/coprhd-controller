@@ -16,7 +16,7 @@ import com.netflix.astyanax.model.Column;
 
 import com.emc.storageos.db.client.model.*;
 
-public class AltIdDbIndex extends DbIndex {
+public class AltIdDbIndex extends DbIndex<IndexColumnName> {
     private static final Logger _log = LoggerFactory.getLogger(AltIdDbIndex.class);
 
     AltIdDbIndex(ColumnFamily<String, IndexColumnName> indexCF) {
@@ -28,7 +28,7 @@ public class AltIdDbIndex extends DbIndex {
             String className, RowMutator mutator, Integer ttl, DataObject obj) {
         if (value.toString().isEmpty()) {
             // empty string in alternate id field, ignore and continue
-            _log.warn("Empty string in altenate id field: {}", fieldName);
+            _log.warn("Empty string in alternate id field: {}", fieldName);
             return false;
         }
 
@@ -36,7 +36,7 @@ public class AltIdDbIndex extends DbIndex {
 
         ColumnListMutation<IndexColumnName> indexColList = mutator.getIndexColumnList(indexCF, rowKey);
 
-        IndexColumnName indexEntry = new IndexColumnName(className, recordKey, mutator.getTimeUUID());
+        IndexColumnName indexEntry = new IndexColumnName(className, recordKey, column.getTimeUUID());
 
         ColumnValue.setColumn(indexColList, indexEntry, null, ttl);
 

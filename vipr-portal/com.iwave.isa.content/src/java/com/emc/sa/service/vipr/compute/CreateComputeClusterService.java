@@ -39,6 +39,7 @@ import com.emc.storageos.model.compute.OsInstallParam;
 import com.emc.storageos.model.host.HostRestRep;
 import com.emc.storageos.model.host.cluster.ClusterRestRep;
 import com.emc.storageos.model.vpool.ComputeVirtualPoolRestRep;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 
 @Service("CreateComputeCluster")
@@ -98,12 +99,14 @@ public class CreateComputeClusterService extends ViPRService {
     private Cluster cluster = null;
     private List<String> hostNames = null;
     private List<String> hostIps = null;
+    private List<String> copyOfHostNames = null;
 
     @Override
     public void precheck() throws Exception {
 
-        StringBuffer preCheckErrors = new StringBuffer();
+        StringBuilder preCheckErrors = new StringBuilder();
         hostNames = ComputeUtils.getHostNamesFromFqdnToIps(fqdnToIps);
+        copyOfHostNames = ImmutableList.copyOf(hostNames);
 
         hostIps = ComputeUtils.getIpsFromFqdnToIps(fqdnToIps);
 
@@ -267,6 +270,10 @@ public class CreateComputeClusterService extends ViPRService {
             // When the hosts are deactivated, update the cluster shared export groups to reflect the same.
             ComputeUtils.updateClusterSharedExports(cluster.getId(), cluster.getLabel());
             logInfo("compute.cluster.sharedexports.update.failed.rollback.completed", cluster.getLabel());
+            if (ComputeUtils.findHostNamesInCluster(cluster).isEmpty()) {
+                logInfo("compute.cluster.removing.empty.cluster");
+                ComputeUtils.deactivateCluster(cluster);
+            }
             throw new IllegalStateException(
                     ExecutionUtils.getMessage("compute.cluster.sharedexports.update.failed", cluster.getLabel()));
         } else {
@@ -291,7 +298,8 @@ public class CreateComputeClusterService extends ViPRService {
                 pushToVcenter();
             }
         }
-        String orderErrors = ComputeUtils.getOrderErrors(cluster, hostNames, computeImage, vcenterId);
+
+        String orderErrors = ComputeUtils.getOrderErrors(cluster, copyOfHostNames, computeImage, vcenterId);
         if (orderErrors.length() > 0) { // fail order so user can resubmit
             if (ComputeUtils.nonNull(hosts).isEmpty()) {
                 throw new IllegalStateException(
@@ -542,6 +550,20 @@ public class CreateComputeClusterService extends ViPRService {
      */
     public void setHostIps(List<String> hostIps) {
         this.hostIps = hostIps;
+    }
+
+    /**
+     * @return the copyOfHostNames
+     */
+    public List<String> getCopyOfHostNames() {
+        return copyOfHostNames;
+    }
+
+    /**
+     * @param copyOfHostNames the copyOfHostNames to set
+     */
+    public void setCopyOfHostNames(List<String> copyOfHostNames) {
+        this.copyOfHostNames = copyOfHostNames;
     }
 
 }

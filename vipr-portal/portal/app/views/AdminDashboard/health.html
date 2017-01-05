@@ -18,7 +18,7 @@
                     node = nodeHealthList.find{it.nodeId == controlNode.key};
                 }%
                 <a href="@{SystemHealth.details(node.nodeId)}" class="#{if 'good'.equalsIgnoreCase(node.status)}text-success#{/if}#{else}text-danger#{/else}"
-                >${node.nodeName}</a><br/>
+                >${node.nodeName}</a>#{if 'Degraded'.equalsIgnoreCase(node.status)} <span class="text-warning">#{icon 'warning-sign'/} ${node.status}</span>#{/if}<br/>
               #{/list}
             </dd>
           #{/if}

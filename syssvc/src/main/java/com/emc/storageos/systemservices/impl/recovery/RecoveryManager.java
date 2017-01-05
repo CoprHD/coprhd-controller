@@ -14,6 +14,9 @@ import java.util.Date;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import com.emc.storageos.coordinator.client.model.*;
+import com.emc.storageos.services.util.*;
+import com.emc.vipr.model.sys.recovery.DbOfflineStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -24,11 +27,6 @@ import com.emc.vipr.model.sys.ClusterInfo;
 import com.emc.vipr.model.sys.recovery.RecoveryStatus;
 import com.emc.vipr.model.sys.recovery.RecoveryConstants;
 import com.emc.storageos.model.property.PropertyConstants;
-import com.emc.storageos.coordinator.client.model.Constants;
-import com.emc.storageos.coordinator.client.model.RepositoryInfo;
-import com.emc.storageos.coordinator.client.model.Site;
-import com.emc.storageos.coordinator.client.model.SiteInfo;
-import com.emc.storageos.coordinator.client.model.SiteState;
 import com.emc.storageos.coordinator.client.service.DrUtil;
 import com.emc.storageos.coordinator.client.service.NodeListener;
 import com.emc.storageos.coordinator.client.service.impl.LeaderSelectorListenerImpl;
@@ -40,11 +38,9 @@ import com.emc.storageos.systemservices.impl.upgrade.CoordinatorClientExt;
 import com.emc.storageos.systemservices.impl.upgrade.LocalRepository;
 import com.emc.storageos.systemservices.impl.client.SysClientFactory;
 import com.emc.storageos.systemservices.exceptions.SysClientException;
-import com.emc.storageos.services.util.NamedThreadPoolExecutor;
-import com.emc.storageos.services.util.PlatformUtils;
 import com.emc.storageos.management.jmx.recovery.DbManagerOps;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
-import com.emc.storageos.services.util.MulticastUtil;
+
 
 /**
  * Recovery Manager drives whole lifecycle of node recovery. It maintains status machine in ZK.
@@ -61,6 +57,7 @@ public class RecoveryManager implements Runnable {
     private NamedThreadPoolExecutor recoveryExecutor;
     private NamedThreadPoolExecutor multicastExecutor;
     private boolean waitOnRecoveryTriggering = false;
+    private LeaderSelector leaderSelector;
 
     private static final long REDEPLOY_MULTICAST_TIMEOUT = 120 * 60 * 1000; // 2 hours
 
@@ -80,12 +77,8 @@ public class RecoveryManager implements Runnable {
      * Initialize recovery manager
      */
     public void init() {
-        if (!isVMwareVapp()) {
-            startRecoveryLeaderSelector();
-            addRecoveryStatusListener();
-        } else {
-            log.info("No need to init for node recovery in VMware vApp environment");
-        } 
+        startRecoveryLeaderSelector();
+        addRecoveryStatusListener();
     }
 
     /**
@@ -99,7 +92,7 @@ public class RecoveryManager implements Runnable {
                 checkClusterStatus();
                 runNodeRecovery();
             } catch (Exception e) {
-                log.warn("Internal error of Recovery manager: ", e.getMessage());
+                log.warn("Internal error of Recovery manager: {}", e.getMessage());
             }
         }
     }
@@ -165,7 +158,21 @@ public class RecoveryManager implements Runnable {
      * Check if cluster is in minority nodes corrupted scenario
      */
     private void checkClusterStatus() throws Exception {
-        initNodeListByCheckDbStatus();
+
+        if (isVMwareVapp()) {
+            initNodeListByCheckOfflineTime();
+            purgeDataForVappRecovery(corruptedNodes);
+        }else {
+            initNodeListByCheckDbStatus();
+        }
+        if (corruptedNodes.contains(coordinator.getMyNodeId())) {
+            String errMsg = "Close RecoveryManager leadership as node corrupted";
+            log.info(errMsg);
+            closeRecoveryLeaderSelector();
+            throw new Exception(errMsg);
+        } else {
+            log.info("Proceed RecoveryManager leadership as node is good");
+        }
         validateNodesStatus();
     }
 
@@ -175,7 +182,6 @@ public class RecoveryManager implements Runnable {
     private void initNodeListByCheckDbStatus() throws Exception {
         aliveNodes.clear();
         corruptedNodes.clear();
-
         for (String serviceName : serviceNames) {
             try (DbManagerOps dbManagerOps = new DbManagerOps(serviceName)) {
                 Map<String, Boolean> statusMap = dbManagerOps.getNodeStates();
@@ -231,11 +237,16 @@ public class RecoveryManager implements Runnable {
             lock = getRecoveryLock();
 
             setRecoveryStatus(RecoveryStatus.Status.PREPARING);
-            startMulticastService();
+            if (!isVMwareVapp()) {
+                startMulticastService();
+            }
 
             setRecoveryStatus(RecoveryStatus.Status.REPAIRING);
             runDbRepair();
 
+            if (isVMwareVapp()) {
+                restartServices();
+            }
             setRecoveryStatus(RecoveryStatus.Status.SYNCING);
             waitDbsvcStarted();
 
@@ -304,8 +315,28 @@ public class RecoveryManager implements Runnable {
         log.info("Wait dbsvc and geodbsvc get started..");
         waitHibernateNodeStarted();
         validateClusterStatus();
+        if (isVMwareVapp()) {
+            removeOfflineInfo();
+        }
     }
 
+    private void removeOfflineInfo() {
+        Configuration config = coordinator.getCoordinatorClient().queryConfiguration(coordinator.getCoordinatorClient().getSiteId(),
+                Constants.DB_DOWNTIME_TRACKER_CONFIG, Constants.DBSVC_NAME);
+        DbOfflineEventInfo dbOfflineEventInfo = new DbOfflineEventInfo(config);
+        for (int i = 1; i <= nodeCount; i++) {
+            String nodeId = "vipr" + i;
+            if (corruptedNodes.contains(nodeId)) {
+                if (dbOfflineEventInfo.getOfflineTimeInMS(nodeId) != null) {
+                    dbOfflineEventInfo.setOfflineTimeInMS(nodeId, null);
+                    log.info("Removed offline Time info of {}", nodeId);
+                }
+            }
+        }
+        config = dbOfflineEventInfo.toConfiguration(Constants.DBSVC_NAME);
+        coordinator.getCoordinatorClient().persistServiceConfiguration(coordinator.getCoordinatorClient().getSiteId(), config);
+        log.info("Clean offlineTime and Persist db tracker info to zk successfully");
+    }
     private void informHibernateNodeToReconfigure() {
         DrUtil drUtil = new DrUtil(coordinator.getCoordinatorClient());
         if (drUtil.isMultisite()) {
@@ -443,7 +474,6 @@ public class RecoveryManager implements Runnable {
         try {
             lock = getRecoveryLock();
 
-            validatePlatform();
             validateNodeRecoveryStatus();
             validateClusterState();
 
@@ -475,7 +505,7 @@ public class RecoveryManager implements Runnable {
      */
     private void validateNodeRecoveryStatus() {
         RecoveryStatus status = queryNodeRecoveryStatus();
-        if (isTriggering(status)) {
+        if (isTriggering(status) || isRecovering(status)) {
             log.warn("Have triggered node recovery already");
             throw new IllegalStateException("Have triggered node recovery already");
         }
@@ -485,13 +515,21 @@ public class RecoveryManager implements Runnable {
      * Check if cluster need to do node recovery
      */
     private void validateClusterState() {
-        ClusterInfo.ClusterState state = coordinator.getCoordinatorClient().getControlNodesState();
-        log.info("Current control nodes' state: {}", state);
-        if (state == ClusterInfo.ClusterState.STABLE) {
-            log.warn("Cluster is stable and no need to do node recovery");
-            throw new IllegalStateException("Cluster is stable and no need to do node recovery");
+        ClusterInfo.ClusterState state = null;
+        if (!isVMwareVapp()) {
+            state = coordinator.getCoordinatorClient().getControlNodesState();
+            log.info("Current control nodes' state: {}", state);
+            if (state == ClusterInfo.ClusterState.STABLE) {
+                log.warn("Cluster is stable and no need to do node recovery");
+                throw new IllegalStateException("Cluster is stable and no need to do node recovery");
+            }
+        } else {
+            initNodeListByCheckOfflineTime();
+            if (aliveNodes.size() == coordinator.getNodeCount()) {
+                log.warn("all nodes in vapp is available and no need to do node recovery");
+                throw new IllegalStateException("all nodes in vapp is available and no need to do node recovery");
+            }
         }
-
         // Disable node recovery when standby site state is unexpected as db repair would be failed in these scenarios.
         DrUtil drUtil = new DrUtil(coordinator.getCoordinatorClient());
         if (drUtil.isMultisite()) {
@@ -774,11 +812,25 @@ public class RecoveryManager implements Runnable {
                 log.warn("Exception while sleeping, ignore", e);
             }
         }
-        LeaderSelector leaderSelector = coordinator.getCoordinatorClient().getLeaderSelector(
+        leaderSelector = coordinator.getCoordinatorClient().getLeaderSelector(
                 RecoveryConstants.RECOVERY_LEADER_PATH,
                 new RecoveryLeaderSelectorListener());
         leaderSelector.autoRequeue();
         leaderSelector.start();
+    }
+    /*
+    * close leader selector on the node
+    * */
+    private void closeRecoveryLeaderSelector() {
+        log.info ("close the leaderSelect on the node as dbsvc need to recover");
+
+        leaderSelector.close();
+        /*make sure continue after stopLeadership executed */
+        try {
+            Thread.sleep(RecoveryConstants.RECOVERY_CONNECT_INTERVAL);
+        } catch (InterruptedException e) {
+            log.warn("Exception while sleeping, ignore", e);
+        }
     }
 
     /**
@@ -814,6 +866,52 @@ public class RecoveryManager implements Runnable {
             }
         } catch (InterruptedException e) {
             log.error("Interrupted while waiting to shutdown recovery thread pool", e);
+        }
+    }
+
+    private void initNodeListByCheckOfflineTime() {
+        aliveNodes.clear();
+        corruptedNodes.clear();
+        ArrayList<String> nodeList = coordinator.getAllNodeIds();
+        for (String nodeId : nodeList) {
+            try {
+                DbOfflineStatus dbOfflineStatus = SysClientFactory.getSysClient(
+                        coordinator.getNodeEndpoint(nodeId)).get(SysClientFactory.URI_GET_DB_OFFLINE_STATUS, DbOfflineStatus.class, null);
+                if (dbOfflineStatus.getOutageTimeExceeded()) {
+                    corruptedNodes.add(nodeId);
+                } else {
+                    aliveNodes.add(nodeId);
+                }
+            } catch (SysClientException e) {
+                log.warn("Internal error on clean up purge data: ", e.getMessage());
+                throw e;
+            }
+        }
+        log.info("Alive nodes:{}, corrupted nodes: {}", aliveNodes, corruptedNodes);
+    }
+
+    private void purgeDataForVappRecovery(List<String> nodeList) {
+        for (String nodeId : nodeList) {
+            try {
+                SysClientFactory.getSysClient(coordinator.getNodeEndpoint(nodeId)).post(URI.create(SysClientFactory.URI_NODE_DBRESET.getPath()), null, null);
+            } catch (SysClientException e) {
+                log.warn("Internal error on clean up purge data: ",e.getMessage());
+                throw e;
+            }
+        }
+    }
+
+    /**
+    * restart dbsvc/geosvc/syssvc after repairing for vapp
+    */
+    private void restartServices() {
+        ArrayList<String> restartedServiceNames = new ArrayList<>(serviceNames);
+        restartedServiceNames.add(Constants.SYSSVC_NAME);
+        for (String nodeId : corruptedNodes) {
+            for (String serviceName : restartedServiceNames) {
+                SysClientFactory.getSysClient(coordinator.getNodeEndpoint(nodeId)).
+                        post(URI.create(SysClientFactory.URI_RESTART_SERVICE.getPath() + "?name=" + serviceName), null, null);
+            }
         }
     }
 }

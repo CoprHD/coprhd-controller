@@ -97,7 +97,7 @@ test_host_add_initiator() {
     echot "Test test_host_add_initiator_failure"
     
     test_name="test_host_add_initiator"
-    cfs="ExportGroup ExportMask Initiator"
+    cfs=("ExportGroup ExportMask Initiator")
     random_number=${RANDOM}
     fake_pwwn1=`randwwn`
     fake_nwwn1=`randwwn`
@@ -157,14 +157,14 @@ test_host_add_initiator() {
         cluster1_export2=fakeclusterexport2-${item}
 
         # Snap the DB
-        snap_db 1 ${cfs}
+        snap_db 1 "${cfs[@]}"
 
         # Create 2 ExportGroups for the same cluster but each using a different project.
         runcmd export_group create $project1 ${cluster1_export1} $NH --type Cluster --volspec ${project1}/${volume1} --clusters ${TENANT}/${cluster1}
         runcmd export_group create $project2 ${cluster1_export2} $NH --type Cluster --volspec ${project2}/${volume2} --clusters ${TENANT}/${cluster1}
         
         # Snap the DB
-        snap_db 2 ${cfs}        
+        snap_db 2 "${cfs[@]}"        
 
         # Verify the initiator does not exist in the ExportGroup
         add_init="false"
@@ -196,10 +196,10 @@ test_host_add_initiator() {
             fail initiator create ${host1} FC ${fake_pwwn3} --node ${fake_nwwn3}           
 
             # Snap the DB
-            snap_db 3 ${cfs}
+            snap_db 3 "${cfs[@]}"
 
             # Validate nothing was left behind
-            validate_db 2 3 ${cfs}
+            validate_db 2 3 "${cfs[@]}"
                 
             # Rerun the command
             set_artificial_failure none
@@ -207,7 +207,7 @@ test_host_add_initiator() {
             runcmd initiator create ${host1} FC ${fake_pwwn3} --node ${fake_nwwn3}
             
             # Snap the DB
-            snap_db 4 ${cfs}
+            snap_db 4 "${cfs[@]}"
             
             # Turn failure back on
             set_artificial_failure ${failure}
@@ -216,10 +216,10 @@ test_host_add_initiator() {
             fail initiator create ${host2} FC ${fake_pwwn4} --node ${fake_nwwn4} 
             
             # Snap the DB
-            snap_db 5 ${cfs}
+            snap_db 5 "${cfs[@]}"
             
             # Validate nothing was left behind
-            validate_db 4 5 ${cfs}
+            validate_db 4 5 "${cfs[@]}"
             
             # Rerun the command
             set_artificial_failure none
@@ -257,10 +257,10 @@ test_host_add_initiator() {
         runcmd export_group delete ${project1}/${cluster1_export1}
         runcmd export_group delete ${project2}/${cluster1_export2}
         
-        snap_db 6 ${cfs}  
+        snap_db 6 "${cfs[@]}"  
 
         # Validate that nothing was left behind
-        validate_db 1 6 ${cfs}
+        validate_db 1 6 "${cfs[@]}"
 
 	    # Report results
 	    report_results ${test_name} ${failure}
@@ -275,14 +275,14 @@ test_vcenter_event() {
     reset_counts
     expname=${EXPORT_GROUP_NAME}t2
     item=${RANDOM}
-    cfs="ExportGroup ExportMask Host Initiator Cluster"
+    cfs=("ExportGroup ExportMask Host Initiator Cluster")
     mkdir -p results/${item}
     set_controller_cs_discovery_refresh_interval 1
 
     verify_export ${expname}1 ${HOST1} gone
 
     # Perform any DB validation in here
-    snap_db 1 ${cfs}
+    snap_db 1 "${cfs[@]}"
 
     # Run the export group command
     runcmd export_group create $PROJECT ${expname}1 $NH --type Cluster --volspec ${PROJECT}/${VOLNAME}-1 --clusters "emcworld/cluster-1"
@@ -310,10 +310,10 @@ test_vcenter_event() {
     discover_vcenter "vcenter1"
 
     # Snap the DB again
-    snap_db 2 ${cfs}
+    snap_db 2 "${cfs[@]}"
 
     # Validate nothing was left behind
-    validate_db 1 2 ${cfs}
+    validate_db 1 2 "${cfs[@]}"
 
     verify_export ${expname}1 ${HOST1} gone
 
@@ -416,7 +416,7 @@ test_host_remove_initiator() {
         random_number=${RANDOM}
         TEST_OUTPUT_FILE=test_output_${RANDOM}.log
         reset_counts
-        column_family="Volume ExportGroup ExportMask"
+        column_family=("Volume ExportGroup ExportMask")
         mkdir -p results/${random_number}
         host1=fakehost1-${random_number}
         host2=fakehost2-${random_number}
@@ -425,7 +425,7 @@ test_host_remove_initiator() {
         exportgroup2=exportgroup2-${random_number}
         
         # Snap DB
-        snap_db 1 ${column_family}
+        snap_db 1 "${column_family[@]}"
             
         # Create new random WWNs for nodes and initiators
         node1=`randwwn 20 C1`
@@ -547,10 +547,10 @@ test_host_remove_initiator() {
         runcmd hosts delete ${host2}
         
         # Snap DB
-        snap_db 2 ${column_family}
+        snap_db 2 "${column_family[@]}"
         
         # Validate DB
-        validate_db 1 2 ${column_family}
+        validate_db 1 2 "${column_family[@]}"
 
         # Report results
         report_results ${test_name} ${failure}
@@ -587,7 +587,7 @@ test_move_clustered_host_to_another_cluster() {
     
         TEST_OUTPUT_FILE=test_output_${RANDOM}.log
         reset_counts
-        column_family="Volume ExportGroup ExportMask"
+        column_family=("Volume ExportGroup ExportMask")
         random_number=${RANDOM}
         mkdir -p results/${random_number}
         volume1=${VOLNAME}-1
@@ -602,7 +602,7 @@ test_move_clustered_host_to_another_cluster() {
         exportgroup2=exportgroup-2-${random_number}
         
         # Snap DB
-        snap_db 1 ${column_family}
+        snap_db 1 "${column_family[@]}"
             
         # Create new random WWNs for nodes and initiators
         node1=`randwwn 20 C1`
@@ -749,10 +749,10 @@ test_move_clustered_host_to_another_cluster() {
         runcmd export_group delete $PROJECT/${exportgroup2}
         
         # Snap DB
-        snap_db 2 ${column_family}
+        snap_db 2 "${column_family[@]}"
     
         # Validate DB
-        validate_db 1 2 ${column_family}
+        validate_db 1 2 "${column_family[@]}"
 
         # Report results
         report_results ${test_name} ${failure}
@@ -787,7 +787,7 @@ test_move_non_clustered_host_to_cluster() {
     volume2=${VOLNAME}-2-${random_number}  
     cluster1=fakecluster-${random_number}
     
-    cfs="ExportGroup ExportMask Network Host Initiator"
+    cfs=("ExportGroup ExportMask Network Host Initiator")
 
     host_cluster_failure_injections="failure_026_host_cluster_ComputeSystemControllerImpl.updateExportGroup_before_update \
                                 failure_032_host_cluster_ComputeSystemControllerImpl.updateHostAndInitiatorClusterReferences_after_updateHostAndInitiator&1 \
@@ -837,13 +837,13 @@ test_move_non_clustered_host_to_cluster() {
         cluster1_export1=clusterexport1-${item}
         cluster1_export2=clusterexport2-${item}
 
-        snap_db 1 ${cfs}
+        snap_db 1 "${cfs[@]}"
 
         # Run the cluster export group create command
         runcmd export_group create $project1 ${cluster1_export1} $NH --type Cluster --volspec ${project1}/${volume1} --clusters ${TENANT}/${cluster1}
         runcmd export_group create $project2 ${cluster1_export2} $NH --type Cluster --volspec ${project2}/${volume2} --clusters ${TENANT}/${cluster1}
 
-        snap_db 2 ${cfs}
+        snap_db 2 "${cfs[@]}"
 
         move_host="false"
         if [ ${failure} == ${HAPPY_PATH_TEST_INJECTION} ]; then
@@ -858,10 +858,10 @@ test_move_non_clustered_host_to_cluster() {
             fail hosts update ${host1} --cluster ${TENANT}/${cluster1} 
     
             # Snap the DB after rollback
-            snap_db 3 ${cfs}
+            snap_db 3 "${cfs[@]}"
 
             # Validate nothing was left behind
-            validate_db 2 3 ${cfs}
+            validate_db 2 3 "${cfs[@]}"
                 
             # Rerun the command
             set_artificial_failure none
@@ -869,7 +869,7 @@ test_move_non_clustered_host_to_cluster() {
             # Add the first host to the cluster 
             runcmd hosts update ${host1} --cluster ${TENANT}/${cluster1}
 
-            snap_db 4 ${cfs}
+            snap_db 4 "${cfs[@]}"
 
             # Turn on failure again
             set_artificial_failure ${failure}
@@ -877,10 +877,10 @@ test_move_non_clustered_host_to_cluster() {
             # Move the second host to the cluster
             fail hosts update ${host2} --cluster ${TENANT}/${cluster1}
 
-            snap_db 5 ${cfs}
+            snap_db 5 "${cfs[@]}"
 
             # Validate nothing was left behind
-            validate_db 4 5 ${cfs}
+            validate_db 4 5 "${cfs[@]}"
 
             # Turn failure injection off
             set_artificial_failure none
@@ -909,10 +909,10 @@ test_move_non_clustered_host_to_cluster() {
             runcmd hosts update ${host2} --cluster null
         fi
         
-        snap_db 6 ${cfs}  
+        snap_db 6 "${cfs[@]}"  
 
         # Validate that nothing was left behind
-        validate_db 1 6 ${cfs}          
+        validate_db 1 6 "${cfs[@]}"          
 
         # Report results
         report_results ${test_name} ${failure}
@@ -946,7 +946,7 @@ test_move_clustered_discovered_host_to_cluster() {
     datastore1=fakedatastore1-${random_num}
     datastore2=fakedatastore2-${random_num}    
     set_controller_cs_discovery_refresh_interval 1
-    cfs="ExportGroup ExportMask Network Host Initiator"
+    cfs=("ExportGroup ExportMask Network Host Initiator")
 
     run syssvc $SANITY_CONFIG_FILE localhost set_prop system_proxyuser_encpassword $SYSADMIN_PASSWORD
                                      
@@ -964,7 +964,7 @@ test_move_clustered_discovered_host_to_cluster() {
     item=${RANDOM}
     mkdir -p results/${item}
 
-    snap_db 1 ${cfs}
+    snap_db 1 "${cfs[@]}"
 
     create_volume_and_datastore ${TENANT} ${volume1} ${datastore1} ${NH} ${VPOOL_BASE} ${PROJECT} ${vcenter} "DC-Simulator-1" ${cluster1}
     create_volume_and_datastore ${TENANT} ${volume2} ${datastore2} ${NH} ${VPOOL_BASE} ${PROJECT} ${vcenter} "DC-Simulator-1" ${cluster2}
@@ -1096,10 +1096,10 @@ test_move_clustered_discovered_host_to_cluster() {
         finish -1
     fi
     
-    snap_db 2 ${cfs}  
+    snap_db 2 "${cfs[@]}"  
 
     # Validate that nothing was left behind
-    validate_db 1 2 ${cfs}
+    validate_db 1 2 "${cfs[@]}"
 }
 
 # Searches an ExportGroup for a given value. Returns 0 if the value is found,
@@ -1164,7 +1164,7 @@ test_cluster_remove_host() {
         random_number=${RANDOM}
         TEST_OUTPUT_FILE=test_output_${RANDOM}.log
         reset_counts
-        column_family="Volume ExportGroup ExportMask"        
+        column_family=("Volume ExportGroup ExportMask")        
         mkdir -p results/${random_number}
         host1=fakehost1-${random_number}
         host2=fakehost2-${random_number}
@@ -1173,7 +1173,7 @@ test_cluster_remove_host() {
         exportgroup2=exportgroup2-${random_number}        
         
         # Snap DB
-        snap_db 1 ${column_family}
+        snap_db 1 "${column_family[@]}"
             
         # Create new random WWNs for nodes and initiators
         node1=`randwwn 20 C1`
@@ -1340,10 +1340,10 @@ test_cluster_remove_host() {
         runcmd hosts delete ${host2}
         
         # Snap DB
-        snap_db 2 ${column_family}
+        snap_db 2 "${column_family[@]}"
         
         # Validate DB
-        validate_db 1 2 ${column_family}
+        validate_db 1 2 "${column_family[@]}"
 
         # Report results
     	report_results ${test_name} ${failure}
@@ -1424,11 +1424,11 @@ test_cluster_remove_discovered_host() {
         random_number=${RANDOM}
         TEST_OUTPUT_FILE=test_output_${RANDOM}.log
         reset_counts
-        column_family="Volume ExportGroup ExportMask Host"        
+        column_family=("Volume ExportGroup ExportMask Host")        
         mkdir -p results/${random_number}       
        
         # Snap DB
-        snap_db 1 ${column_family}
+        snap_db 1 "${column_family[@]}"
                     
         # List of all export groups being used
         #exportgroups="${PROJECT}/${exportgroup} ${PROJECT2}/${exportgroup}"
@@ -1616,10 +1616,10 @@ test_cluster_remove_discovered_host() {
         fi    
         
         # Snap DB
-        snap_db 2 ${column_family}
+        snap_db 2 "${column_family[@]}"
         
         # Validate DB
-        validate_db 1 2 ${column_family}
+        validate_db 1 2 "${column_family[@]}"
 
         # Report results
         report_results ${test_name} ${failure}

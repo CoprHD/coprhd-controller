@@ -401,10 +401,11 @@ public class BlockStorageUtils {
     }
     
     public static URI adjustExportPaths(Integer minPaths, Integer maxPaths, Integer pathsPerInitiator, 
-            URI storageSystemId, URI id, List<InitiatorPathParam> addedPaths, List<InitiatorPathParam> removedPaths) {
+            URI storageSystemId, URI id, List<InitiatorPathParam> addedPaths, List<InitiatorPathParam> removedPaths,
+            boolean suspendWait) {
         
         Task<ExportGroupRestRep> task = execute(new AdjustExportPaths(minPaths, maxPaths, pathsPerInitiator, 
-                storageSystemId, id, addedPaths, removedPaths));
+                storageSystemId, id, addedPaths, removedPaths, suspendWait));
         URI exportId = task.getResourceId();
         addAffectedResource(exportId);
         return exportId;

@@ -1349,6 +1349,7 @@ schedulePolicy.priorityLow=Low
 schedulePolicy.priorityHigh=High
 filePolicy.name=Policy Name
 schedule.policies.unknown=Unknown File Policy
+schedulePolicy.appliedAt=Apply Policies at
 
 assignPolicy.title=Policy Assignment
 assignPolicy.policyName=Policies

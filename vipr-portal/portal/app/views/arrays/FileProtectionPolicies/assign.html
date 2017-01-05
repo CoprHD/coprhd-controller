@@ -93,8 +93,6 @@
 			$('div.form-actions a.btn').attr('href', referrerUrl);
 		}
 		
-		
-		// $('#assignPolicy_appliedAt').on('change', showAssignAt);
 		showAssignAt();
 		
 		
@@ -125,25 +123,3 @@
     
 		</script>
 #{/set}
-
-#{Modal.dialog id:'replicationTopologyDialog', titleKey:'replicationTopology.title'}
-  <form id="replicationTopologyForm" class="form form-horizontal" onSubmit="return false;">
-    #{authenticityToken/}
-    #{Modal.body}
-      #{field 'replicationTopology.sourceVArray'}
-        #{Form.selectOneControlGroup field:field,required:true, cssClass:'span4' /}
-      #{/field}
-      #{field 'replicationTopology.targetVArray'}
-        #{Form.selectOneControlGroup field:field, cssClass:'span4' /}
-      #{/field}
-    #{/Modal.body}
-    #{Modal.footer}
-      <button class="btn btn-primary" onclick="replication.saveCopy(event); return false;">
-        #{icon 'ok-sign'/} &{'button.done'}
-      </button>
-      <button class="btn btn-default" data-dismiss="modal">
-        #{icon 'trash'/} &{'button.cancel'}
-      </button>
-    #{/Modal.footer}
-  </form>
-#{/Modal.dialog}

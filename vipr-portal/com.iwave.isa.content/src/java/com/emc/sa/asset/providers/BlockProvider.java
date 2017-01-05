@@ -841,23 +841,16 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         return options;
     }
     
-    // TODO: this is not working as intended, the most strict dependency gets call before this one. Probly needs to be revisited.
-    // Keeping for now since it generates the list when no ports are selected while showing an error
     @Asset("exportPathAddedPorts")
     @AssetDependencies({ "host", "exportPathVirtualArray", "exportPathExport", "exportPathMinPathsOptions",
         "exportPathMaxPathsOptions", "exportPathPathsPerInitiatorOptions", "exportPathExistingPath", "exportPathStorageSystem"})
     public List<AssetOption> getAddedPorts(AssetOptionsContext ctx, URI hostOrClusterId, URI vArrayId, URI exportId, 
             Integer minPaths, Integer maxPaths, Integer pathsPerInitiator, String useExisting, URI storageSystemId) {
-//        List<URI> exportPathPorts = new ArrayList<URI>();
-//        ExportPathsAdjustmentPreviewRestRep portPreview =  generateExportPathPreview(ctx, hostOrClusterId, vArrayId, storageSystemId, exportPathPorts);
-//        List<InitiatorPortMapRestRep> addedList = portPreview.getAdjustedPaths();
-        
+
         return getAddedPorts(ctx, hostOrClusterId, vArrayId, exportId, minPaths, maxPaths, pathsPerInitiator, 
                 useExisting, storageSystemId, new String(""));
     }
     
-    // TODO: We currently have an issue with exportPathPorts being empty. Need to figure out how to deal with an empty list
-    // of ports as a dependency.
     @Asset("exportPathAddedPorts")
     @AssetDependencies({ "host", "exportPathVirtualArray", "exportPathExport", "exportPathMinPathsOptions",
         "exportPathMaxPathsOptions", "exportPathPathsPerInitiatorOptions", "exportPathExistingPath", 
@@ -871,29 +864,13 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         
         return buildPathOptions(addedList, "exportPathAdjustment.addedPorts");
     }
-    
-    //[, , ,, , vipr.project,, vipr.exportPathRemovedPorts, , vipr.exportPathStorageSystem, vipr.exportPathAddedPorts, , vipr.blockStorageType]
-/*    { "host", vipr.host
-    "exportPathVirtualArray", vipr.exportPathVirtualArray
-    "exportPathExport", vipr.exportPathExport
-    "exportPathMinPathsOptions", vipr.exportPathMinPathsOptions
-//        "exportPathMaxPathsOptions", vipr.exportPathMaxPathsOptions
- * "exportPathPathPerInitiatorOptions", vipr.exportPathPathsPerInitiatorOptions
- * "exportPathExistingPath", vipr.exportPathExistingPath
-//        "exportPathStorageSystem", vipr.exportPathStorageSystem
- * "exportPathPorts", vipr.exportPathPorts
- *  }
- * 
- */
+
     @Asset("exportPathRemovedPorts")
     @AssetDependencies({ "host", "exportPathVirtualArray", "exportPathExport", "exportPathMinPathsOptions",
         "exportPathMaxPathsOptions", "exportPathPathsPerInitiatorOptions", "exportPathExistingPath", "exportPathStorageSystem"})
     public List<AssetOption> getRemovedPorts(AssetOptionsContext ctx, URI hostOrClusterId, URI vArrayId, URI exportId, 
             Integer minPaths, Integer maxPaths, Integer pathsPerInitiator, String useExisting, URI storageSystemId) {
-//        List<URI> exportPathPorts = new ArrayList<URI>();
-//        ExportPathsAdjustmentPreviewRestRep portPreview =  generateExportPathPreview(ctx, hostOrClusterId, vArrayId, storageSystemId, exportPathPorts);
-//        List<InitiatorPortMapRestRep> removedList = portPreview.getRemovedPaths();
-        
+
         return getRemovedPorts(ctx, hostOrClusterId, vArrayId, exportId, minPaths, maxPaths, pathsPerInitiator, 
                 useExisting, storageSystemId, new String(""));
     }
@@ -952,6 +929,17 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         
         return options;
     }
+
+    @Asset("exportPathAffectedExports")
+    @AssetDependencies({ "host", "exportPathVirtualArray", "exportPathExport", "exportPathMinPathsOptions",
+        "exportPathMaxPathsOptions", "exportPathPathsPerInitiatorOptions", "exportPathExistingPath", 
+        "exportPathStorageSystem" })
+    public List<AssetOption> getAffectedExports(AssetOptionsContext ctx, URI hostOrClusterId, URI vArrayId, URI exportId, 
+            Integer minPaths, Integer maxPaths, Integer pathsPerInitiator, String useExisting, URI storageSystemId) {
+        
+        return getAffectedExports(ctx, hostOrClusterId, vArrayId, exportId, minPaths, maxPaths, pathsPerInitiator, 
+                useExisting, storageSystemId, new String(""));
+    }
     
     @Asset("exportPathAffectedExports")
     @AssetDependencies({ "host", "exportPathVirtualArray", "exportPathExport", "exportPathMinPathsOptions",
@@ -977,6 +965,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         List<ExportGroupRestRep> exports = client.blockExports().getByIds(exportIds);
         
         for (ExportGroupRestRep export : exports) {
+            // TODO: need to optimize the way that we retrieve the project name. 
             String projectName = client.projects().get(export.getProject().getId()).getName();
             String label = getMessage("exportPathAdjustment.affectedExports", projectName, export.getName());
             options.add(new AssetOption(export.getName(), label));

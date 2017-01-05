@@ -44,7 +44,10 @@ public abstract class ExportTaskCompleter extends TaskCompleter {
     private URI _mask;
     private Map<String, String> _altVarrayMap;
     private Map<URI, StringSetMap> _exportMaskToZoningMapMap;
+    private Set<URI> _exportMasksCreated;
     private Set<URI> _exportMasksToBeAdded;
+    private Set<URI> _exportMasksToBeRemoved;
+    private Map<URI, List<URI>> _exportMaskToRemovedVolumeMap;
 
     public ExportTaskCompleter(Class clazz, URI id, String opId) {
         super(clazz, id, opId);
@@ -101,6 +104,7 @@ public abstract class ExportTaskCompleter extends TaskCompleter {
                         exportGroup.putAltVirtualArray(entry.getKey(), entry.getValue());
                     }
                 }
+
                 if (_exportMaskToZoningMapMap != null && !_exportMaskToZoningMapMap.isEmpty()) {
                     for (Entry<URI, StringSetMap> entry : _exportMaskToZoningMapMap.entrySet()) {
                         ExportMask exportMask = ExportUtils.getExportMaskWithCache(exportMaskCache, entry.getKey(), dbClient);
@@ -109,7 +113,31 @@ public abstract class ExportTaskCompleter extends TaskCompleter {
                         }
                     }
                 }
+
+                if (null != _exportMasksToBeAdded) {
+                    for (URI exportMaskUri : _exportMasksToBeAdded) {
+                        exportGroup.addExportMask(exportMaskUri);
+                    }
+                }
+
+                if (null != _exportMasksToBeRemoved) {
+                    for (URI exportMaskUri : _exportMasksToBeRemoved) {
+                        exportGroup.removeExportMask(exportMaskUri);
+                    }
+                }
+
+                ExportUtils.handleExportMaskVolumeRemoval(dbClient, _exportMaskToRemovedVolumeMap, getId());
+
                 break;
+            case error:
+                if (null != _exportMasksCreated && !_exportMasksCreated.isEmpty()) {
+                    // remove and delete any export masks created by this export task
+                    List<ExportMask> exportMasks = dbClient.queryObject(ExportMask.class, _exportMasksCreated);
+                    for (URI exportMaskUri : _exportMasksCreated) {
+                        exportGroup.removeExportMask(exportMaskUri);
+                    }
+                    dbClient.markForDeletion(exportMasks);
+                }
             default:
                 break;
         }
@@ -227,6 +255,21 @@ public abstract class ExportTaskCompleter extends TaskCompleter {
     }
 
     /**
+     * Add to the list of URIs for ExportMasks that were created as
+     * part of this export task and should be deleted in the event of
+     * failure.
+     * 
+     * @param exportMaskUri the URI of the ExportMask created
+     */
+    public void addToExportMasksCreated(URI exportMaskUri) {
+        if (_exportMasksCreated == null) {
+            _exportMasksCreated = new HashSet<URI>();
+        }
+
+        _exportMasksCreated.add(exportMaskUri);
+    }
+
+    /**
      * Add to the list of URIs for ExportMasks that should be added to
      * the ExportGroup at the end of the task.
      * 
@@ -238,5 +281,33 @@ public abstract class ExportTaskCompleter extends TaskCompleter {
         }
 
         _exportMasksToBeAdded.add(exportMaskUri);
+    }
+
+    /**
+     * Add an ExportMask URI that should be removed from this completer's ExportGroup at the
+     * end of the workflow.
+     * 
+     * @param exportMaskUri the URI of the export mask to be removed.
+     */
+    public void addExportMaskToRemove(URI exportMaskUri) {
+        if (null == _exportMasksToBeRemoved) {
+            _exportMasksToBeRemoved = new HashSet<URI>();
+        }
+
+        _exportMasksToBeRemoved.add(exportMaskUri);
+    }
+
+    /**
+     * Add a mapping for Volume URIs that should be removed from an ExportMask at the end of the workflow.
+     * 
+     * @param exportMaskUri the ExportMask URI to update
+     * @param volumeUrisToBeRemoved the list of Volume URIs to remove from the ExportMask
+     */
+    public void addExportMaskToRemovedVolumeMapping(URI exportMaskUri, List<URI> volumeUrisToBeRemoved) {
+        if (null == _exportMaskToRemovedVolumeMap) {
+            _exportMaskToRemovedVolumeMap = new HashMap<URI, List<URI>>();
+        }
+
+        _exportMaskToRemovedVolumeMap.put(exportMaskUri, volumeUrisToBeRemoved);
     }
 }

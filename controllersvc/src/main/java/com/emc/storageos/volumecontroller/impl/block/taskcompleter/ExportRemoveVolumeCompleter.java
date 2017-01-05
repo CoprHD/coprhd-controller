@@ -7,9 +7,7 @@ package com.emc.storageos.volumecontroller.impl.block.taskcompleter;
 
 import java.net.URI;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -29,9 +27,6 @@ public class ExportRemoveVolumeCompleter extends ExportTaskCompleter {
     private static final String EXPORT_REMOVE_VOLUME_MSG_FAILED_MSG = "Failed to remove volume %s from ExportGroup %s";
 
     private List<URI> _volumes;
-    // TODO this needs to be reworked to use export mask completers
-    private List<URI> _exportMasksToRemove;
-    private Map<URI, List<URI>> _exportMaskToRemovedVolumeMap;
 
     public ExportRemoveVolumeCompleter(URI egUri, List<URI> volumes,
             String task) {
@@ -60,14 +55,6 @@ public class ExportRemoveVolumeCompleter extends ExportTaskCompleter {
                     for (URI volumeURI : _volumes) {
                         exportGroup.removeVolume(volumeURI);
                     }
-
-                    if (null != _exportMasksToRemove) {
-                        for (URI exportMaskUri : _exportMasksToRemove) {
-                            exportGroup.removeExportMask(exportMaskUri);
-                        }
-                    }
-
-                    ExportUtils.handleExportMaskVolumeRemoval(dbClient, _exportMaskToRemovedVolumeMap, getId());
 
                     operation.ready();
                     break;
@@ -101,34 +88,6 @@ public class ExportRemoveVolumeCompleter extends ExportTaskCompleter {
         return (status == Operation.Status.ready) ?
                 String.format(EXPORT_REMOVE_VOLUME_MSG, volume.getLabel(), exportGroup.getLabel()) :
                 String.format(EXPORT_REMOVE_VOLUME_MSG_FAILED_MSG, volume.getLabel(), exportGroup.getLabel());
-    }
-
-    /**
-     * Add an ExportMask URI that should be removed from this completer's ExportGroup at the
-     * end of the workflow.
-     * 
-     * @param exportMaskUri the URI of the export mask to be removed.
-     */
-    public void addExportMaskToRemove(URI exportMaskUri) {
-        if (null == _exportMasksToRemove) {
-            _exportMasksToRemove = new ArrayList<URI>();
-        }
-
-        _exportMasksToRemove.add(exportMaskUri);
-    }
-
-    /**
-     * Add a mapping for Volume URIs that should be removed from an ExportMask at the end of the workflow.
-     * 
-     * @param exportMaskUri the ExportMask URI to update
-     * @param volumeUrisToBeRemoved the list of Volume URIs to remove from the ExportMask
-     */
-    public void addExportMaskToRemovedVolumeMapping(URI exportMaskUri, List<URI> volumeUrisToBeRemoved) {
-        if (null == _exportMaskToRemovedVolumeMap) {
-            _exportMaskToRemovedVolumeMap = new HashMap<URI, List<URI>>();
-        }
-
-        _exportMaskToRemovedVolumeMap.put(exportMaskUri, volumeUrisToBeRemoved);
     }
 
 }

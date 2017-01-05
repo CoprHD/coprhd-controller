@@ -2535,28 +2535,27 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
     private void setupNewExportMask(Map<URI, Integer> blockObjectMap,
             StorageSystem vplexSystem, ExportGroup exportGroup,
             URI varrayUri, List<ExportMask> exportMasksToCreateOnDevice,
-            List<Initiator> inits, String vplexCluster, 
+            List<Initiator> initiators, String vplexCluster, 
             ExportTaskCompleter completer, String opId) throws Exception {
-        List<URI> hostInits = new ArrayList<URI>();
-        for (Initiator init : inits) {
-            hostInits.add(init.getId());
+
+        ExportPathParams pathParams = _blockScheduler.calculateExportPathParamForVolumes(
+                blockObjectMap.keySet(), 0, vplexSystem.getId(), exportGroup.getId());
+        if (exportGroup.getType() != null) {
+            pathParams.setExportGroupType(exportGroup.getType());
         }
+        Map<URI, List<URI>> assignments = _blockScheduler.assignStoragePorts(vplexSystem, exportGroup,
+                initiators, null, pathParams, blockObjectMap.keySet(), _networkDeviceController, varrayUri, opId);
+        List<URI> targets = BlockStorageScheduler.getTargetURIsFromAssignments(assignments);
 
-        ExportMask exportMask = initializeExportMask(
-                vplexSystem, exportGroup, varrayUri, hostInits, blockObjectMap, opId);
+        String maskName = getComputedExportMaskName(vplexSystem, varrayUri, initiators,
+                CustomConfigConstants.VPLEX_STORAGE_VIEW_NAME);
 
-        // CQ:614511 This is a check to ensure that the ExportMask name
-        // starts with only a letter, hyphen, or underscore.
-        // This is a VPLEX API restriction.
-        if (exportMask != null) {
+        ExportMask exportMask = ExportMaskUtils.initializeExportMask(vplexSystem,
+                exportGroup, initiators, blockObjectMap, targets, assignments, maskName, _dbClient);
+        exportMask.addToUserCreatedInitiators(initiators);
+        _dbClient.updateObject(exportMask);
 
-            // add the initiators to the user added list.
-            exportMask.addToUserCreatedInitiators(inits);
-            // TODO move to completer
-            _dbClient.updateObject(exportMask);
-            _log.info("VPLEX ExportMask name is now: " + exportMask.getMaskName());
-        }
-
+        completer.addToExportMasksCreated(exportMask.getId());
         exportMasksToCreateOnDevice.add(exportMask);
     }
 
@@ -11672,46 +11671,6 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             dataSource.addProperty(CustomConfigConstants.VPLEX_CLUSTER_SERIAL_NUMBER, clusterSerialNo);
         }
         return customConfigHandler.getComputedCustomConfigValue(configTemplateName, storage.getSystemType(), dataSource);
-    }
-
-    /**
-     * Create and initialize the ExportMask. To do this we:
-     * 1. Select the Storage Ports.
-     * 2. Create and persist the ExportMask.
-     * 3. Save our targets and exportMaskURI in the ExportGroupCreateData.
-     *
-     * @param storage
-     *            - Storage System
-     * @param exportGroup
-     * @param varrayURI
-     * @param initiatorURIs
-     * @param volumeMap
-     * @param opId
-     * @param targets
-     *            - OUT parameter containing list of StoragePort target URIs
-     * @return an Initialized ExportMask
-     * @throws Exception
-     */
-    private ExportMask initializeExportMask(
-            StorageSystem storage, ExportGroup exportGroup, URI varrayURI,
-            List<URI> initiatorURIs, Map<URI, Integer> volumeMap, String opId) throws Exception {
-        List<Initiator> initiators = _dbClient
-                .queryObject(Initiator.class, initiatorURIs);
-        ExportPathParams pathParams = _blockScheduler.calculateExportPathParamForVolumes(
-                volumeMap.keySet(), 0, storage.getId(), exportGroup.getId());
-        if (exportGroup.getType() != null) {
-            pathParams.setExportGroupType(exportGroup.getType());
-        }
-        Map<URI, List<URI>> assignments = _blockScheduler.assignStoragePorts(storage, exportGroup,
-                initiators, null, pathParams, volumeMap.keySet(), _networkDeviceController, varrayURI, opId);
-        List<URI> targets = BlockStorageScheduler.getTargetURIsFromAssignments(assignments);
-        String maskName = getComputedExportMaskName(storage, varrayURI, initiators,
-                CustomConfigConstants.VPLEX_STORAGE_VIEW_NAME);
-        ExportMask exportMask = ExportMaskUtils.initializeExportMask(storage,
-                exportGroup, initiators, volumeMap, targets, assignments, maskName, _dbClient);
-        // TODO move to completer
-        _dbClient.updateObject(exportMask);
-        return exportMask;
     }
 
     @Override

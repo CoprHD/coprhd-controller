@@ -1385,8 +1385,7 @@ test_cluster_remove_discovered_host() {
     #failure_injections="${HAPPY_PATH_TEST_INJECTION} ${common_failure_injections}"
 
     # Placeholder when a specific failure case is being worked...
-    #failure_injections="${HAPPY_PATH_TEST_INJECTION}"    
-    failure_injections="deleteExportGroup"
+    failure_injections="${HAPPY_PATH_TEST_INJECTION}"    
     
     # Real™ hosts/clusters/vcenters/datacenters provisioned during setup
     hostpostfix=".sim.emc.com"
@@ -1412,217 +1411,224 @@ test_cluster_remove_discovered_host() {
     datastore2="fakedatastore2"-${random_number}
     secho "Creating volume ${volume1} and datastore ${datastore1}..."
     create_volume_and_datastore $TENANT ${volume1} ${datastore1} $NH $VPOOL_BASE ${PROJECT} ${vcenter} ${datacenter} ${cluster1}
-    #create_volume_and_datastore $TENANT ${volume2} ${datastore2} $NH $VPOOL_BASE ${PROJECT2} ${vcenter} ${datacenter} ${cluster1}
+    create_volume_and_datastore $TENANT ${volume2} ${datastore2} $NH $VPOOL_BASE ${PROJECT2} ${vcenter} ${datacenter} ${cluster1}
     
     # Export group name will be auto-generated as the cluster name
     exportgroup=${cluster1}
+    
+    # List of all export groups created
+    exportgroups="${PROJECT}/${exportgroup} ${PROJECT2}/${exportgroup}"
+    
+    # There are two paths to test:
+    # 1. update: Meaning we remove a single discovered host from the cluster
+    # 2. delete: Meaning we remove ALL discovered hosts from the cluster
+    workflowPath="updateWorkflow deleteWorkflow"
         
-    for failure in ${failure_injections}
+    for wf in ${workflowPath}
     do
-        echot "Running cluster_remove_discovered_host with failure scenario: ${failure}..."
-        
-        random_number=${RANDOM}
-        TEST_OUTPUT_FILE=test_output_${RANDOM}.log
-        reset_counts
-        column_family=("Volume ExportGroup ExportMask Host")        
-        mkdir -p results/${random_number}       
-       
-        # Snap DB
-        snap_db 1 "${column_family[@]}"
-                    
-        # List of all export groups being used
-        #exportgroups="${PROJECT}/${exportgroup} ${PROJECT2}/${exportgroup}"
-        exportgroups="${PROJECT}/${exportgroup}"
-        
-        for eg in ${exportgroups}
+        for failure in ${failure_injections}
         do
-            # Double check export group to ensure the hosts are present            
-            foundhost1=`export_group show ${eg} | grep ${host1}`
-            foundhost2=`export_group show ${eg} | grep ${host2}`
+            echot "Running cluster_remove_discovered_host with failure scenario: ${failure} and testing path: ${wf}..."
             
-            if [[ "${foundhost1}" = "" || "${foundhost2}" = "" ]]; then
-                # Fail, hosts should have been added to the export group
-                echo "+++ FAIL - Some hosts were not found on export group ${eg}...fail."
-                # Report results
-                incr_fail_count
-                if [ "${NO_BAILING}" != "1" ]
-                then
-                    report_results ${test_name} ${failure}
-                    exit 1
+            random_number=${RANDOM}
+            TEST_OUTPUT_FILE=test_output_${RANDOM}.log
+            reset_counts
+            column_family=("Volume Cluster Host")        
+            mkdir -p results/${random_number}       
+           
+            # Snap DB
+            snap_db 1 "${column_family[@]}"
+            
+            for eg in ${exportgroups}
+            do
+                # Double check export group to ensure the hosts are present            
+                foundhost1=`export_group show ${eg} | grep ${host1}`
+                foundhost2=`export_group show ${eg} | grep ${host2}`
+                
+                if [[ "${foundhost1}" = "" || "${foundhost2}" = "" ]]; then
+                    # Fail, hosts should have been added to the export group
+                    echo "+++ FAIL - Some hosts were not found on export group ${eg}...fail."
+                    # Report results
+                    incr_fail_count
+                    if [ "${NO_BAILING}" != "1" ]
+                    then
+                        report_results ${test_name} ${failure}
+                        exit 1
+                    fi
+                else
+                    echo "+++ SUCCESS - All hosts present on export group ${eg}"   
                 fi
-            else
-                echo "+++ SUCCESS - All hosts present on export group ${eg}"   
-            fi
-        done
-                                      
-        if [[ "${failure}" == *"deleteExportGroup"* ]]; then
-            # Delete export group
-            secho "Delete export group path..."
-        
-            # Vcenter call to remove host1 from cluster1
-            remove_host_from_cluster $host1 $cluster1                                        
-            discover_vcenter ${vcenter}
-            sleep 20
-            EVENT_ID=$(get_pending_event)
-            approve_pending_event $EVENT_ID
-                        
-            # Vcenter call to remove host2 from cluster1
-            # NOTE: Temporarily move host2 to cluster2 to avoid 
-            # validation errors of an empty cluster in vcenter
-            remove_host_from_cluster $host2 $cluster1            
-            add_host_to_cluster $host2 $cluster2
-            discover_vcenter ${vcenter}            
-            sleep 20
-            EVENT_ID=$(get_pending_event)
+            done
+                                          
+            if [[ "${wf}" == *"deleteWorkflow"* ]]; then
+                # Delete export group
+                secho "Delete export group path..."
             
-            # Verify event
-            if [ -z "$EVENT_ID" ]; then
-                echo "+++ FAILED. Expected an event! Re-add hosts to cluster..."
-                remove_host_from_cluster $host2 $cluster2 
+                # Vcenter call to remove host1 from cluster1
+                remove_host_from_cluster $host1 $cluster1                                        
+                discover_vcenter ${vcenter}
+                sleep 20
+                EVENT_ID=$(get_pending_event)
+                approve_pending_event $EVENT_ID
+                            
+                # Vcenter call to remove host2 from cluster1
+                # NOTE: Temporarily move host2 to cluster2 to avoid 
+                # validation errors of an empty cluster in vcenter
+                remove_host_from_cluster $host2 $cluster1            
+                add_host_to_cluster $host2 $cluster2
+                discover_vcenter ${vcenter}            
+                sleep 20
+                EVENT_ID=$(get_pending_event)
+                
+                # Verify event
+                if [ -z "$EVENT_ID" ]; then
+                    echo "+++ FAILED. Expected an event! Re-add hosts to cluster..."
+                    remove_host_from_cluster $host2 $cluster2 
+                    add_host_to_cluster $host1 $cluster1
+                    add_host_to_cluster $host2 $cluster1
+                    discover_vcenter ${vcenter}
+                    sleep 20
+                    EVENT_ID=$(get_pending_event)
+                    if [ -z "$EVENT_ID" ]; then
+                        echo "+++ FAILED again! Expected an event for re-add host to cluster. Please check UI."
+                    else
+                        approve_pending_event $EVENT_ID
+                    fi                
+                    exit 1
+                else
+                    if [ ${failure} == ${failure} ]; then
+                        approve_pending_event $EVENT_ID
+                    else
+                        # Turn failure injection on
+                        set_artificial_failure ${failure}
+                        # Expect to fail when approving the event
+                        fail approve_pending_event $EVENT_ID
+                        discover_vcenter ${vcenter}
+                        sleep 20
+                        EVENT_ID=$(get_failed_event)    
+                        # Turn failure injection off and retry the approval
+                        secho "Re-run with failure injection off..."
+                        set_artificial_failure none
+                        approve_pending_event $EVENT_ID
+                    fi 
+                fi
+                
+                for eg in ${exportgroups}
+                do
+                    # Ensure that export group has been removed
+                    fail export_group show ${eg}
+                    
+                    echo "+++ Confirm export group ${eg} has been deleted, expect to see an exception below if it has..."
+                    foundeg=`export_group show ${eg} | grep ${eg}`
+                    
+                    if [ "${foundeg}" != "" ]; then
+                        # Fail, export group should be removed
+                        echo "+++ FAIL - Expected export group ${eg} was not deleted."
+                        # Report results
+                        incr_fail_count
+                        if [ "${NO_BAILING}" != "1" ]
+                        then
+                            report_results ${test_name} ${failure}
+                            exit 1
+                        fi
+                    else
+                        echo "+++ SUCCESS - Expected export group ${eg} was deleted." 
+                    fi
+                done
+                
+                # Add both hosts back to cluster1           
+                secho "Test complete, add hosts back to cluster..."
+                remove_host_from_cluster $host2 $cluster2
+                discover_vcenter ${vcenter}
+                sleep 20
+                EVENT_ID=$(get_pending_event)
+                approve_pending_event $EVENT_ID
+                # NOTE: If there are no export groups for that cluster, 
+                # no events are created so we do not need to approve anything.
                 add_host_to_cluster $host1 $cluster1
                 add_host_to_cluster $host2 $cluster1
                 discover_vcenter ${vcenter}
+                sleep 20                       
+            else
+                # Update export group
+                secho "Update export group path..."
+            
+                # Vcenter call to remove host from cluster
+                remove_host_from_cluster $host1 $cluster1            
+                discover_vcenter ${vcenter}  
                 sleep 20
                 EVENT_ID=$(get_pending_event)
+                
+                # Verify event
                 if [ -z "$EVENT_ID" ]; then
-                    echo "+++ FAILED again! Expected an event for re-add host to cluster. Please check UI."
-                else
-                    approve_pending_event $EVENT_ID
-                fi                
-                exit 1
-            else
-                if [ ${failure} == ${failure} ]; then
-                    approve_pending_event $EVENT_ID
-                else
-                    # Turn failure injection on
-                    set_artificial_failure ${failure}
-                    # Expect to fail when approving the event
-                    fail approve_pending_event $EVENT_ID
+                    echo "+++ FAILED. Expected an event! Re-add host to cluster..."
+                    add_host_to_cluster $host1 $cluster1
                     discover_vcenter ${vcenter}
                     sleep 20
-                    EVENT_ID=$(get_failed_event)    
-                    # Turn failure injection off and retry the approval
-                    secho "Re-run with failure injection off..."
-                    set_artificial_failure none
-                    approve_pending_event $EVENT_ID
-                fi 
-            fi
-            
-            for eg in ${exportgroups}
-            do
-                # Ensure that export group has been removed
-                fail export_group show ${eg}
-                
-                echo "+++ Confirm export group ${eg} has been deleted, expect to see an exception below if it has..."
-                foundeg=`export_group show ${eg} | grep ${eg}`
-                
-                if [ "${foundeg}" != "" ]; then
-                    # Fail, export group should be removed
-                    echo "+++ FAIL - Expected export group ${eg} was not deleted."
-                    # Report results
-                    incr_fail_count
-                    if [ "${NO_BAILING}" != "1" ]
-                    then
-                        report_results ${test_name} ${failure}
-                        exit 1
-                    fi
+                    EVENT_ID=$(get_pending_event)
+                    if [ -z "$EVENT_ID" ]; then
+                        echo "+++ FAILED again! Expected an event for re-add host to cluster. Please check UI."
+                    else
+                        approve_pending_event $EVENT_ID
+                    fi                
+                    exit 1
                 else
-                    echo "+++ SUCCESS - Expected export group ${eg} was deleted." 
+                    if [ ${failure} == ${HAPPY_PATH_TEST_INJECTION} ]; then
+                        approve_pending_event $EVENT_ID
+                    else
+                        # Turn failure injection on
+                        set_artificial_failure ${failure}
+                        # Expect to fail when approving the event
+                        fail approve_pending_event $EVENT_ID
+                        sleep 5
+                        # Turn failure injection off and retry the approval
+                        secho "Re-run with failure injection off..."
+                        set_artificial_failure none
+                        discover_vcenter ${vcenter}
+                        sleep 20
+                        EVENT_ID=$(get_failed_event)                        
+                        approve_pending_event $EVENT_ID
+                    fi 
                 fi
-            done
-            
-            # Add both hosts back to cluster1           
-            secho "Test complete, add hosts back to cluster..."
-            remove_host_from_cluster $host2 $cluster2
-            discover_vcenter ${vcenter}
-            sleep 20
-            EVENT_ID=$(get_pending_event)
-            approve_pending_event $EVENT_ID
-            # NOTE: If there are no export groups for that cluster, 
-            # no events are created so we do not need to approve anything.
-            add_host_to_cluster $host1 $cluster1
-            add_host_to_cluster $host2 $cluster1
-            discover_vcenter ${vcenter}
-            sleep 20                       
-        else
-            # Update export group
-            secho "Update export group path..."
-        
-            # Vcenter call to remove host from cluster
-            remove_host_from_cluster $host1 $cluster1            
-            discover_vcenter ${vcenter}  
-            sleep 20
-            
-            # Find pending events which should be present after the discover
-            EVENT_ID=$(get_pending_event)
-            if [ -z "$EVENT_ID" ]; then
-                echo "+++ FAILED. Expected an event! Re-add host to cluster..."
-                add_host_to_cluster $host1 $cluster1
-                discover_vcenter ${vcenter}
-                sleep 20
-                EVENT_ID=$(get_pending_event)
-                if [ -z "$EVENT_ID" ]; then
-                    echo "+++ FAILED again! Expected an event for re-add host to cluster. Please check UI."
-                else
-                    approve_pending_event $EVENT_ID
-                fi                
-                exit 1
-            else
-                if [ ${failure} == ${HAPPY_PATH_TEST_INJECTION} ]; then
-                    approve_pending_event $EVENT_ID
-                else
-                    # Turn failure injection on
-                    set_artificial_failure ${failure}
-                    # Expect to fail when approving the event
-                    fail approve_pending_event $EVENT_ID
-                    sleep 5
-                    # Turn failure injection off and retry the approval
-                    secho "Re-run with failure injection off..."
-                    set_artificial_failure none
-                    discover_vcenter ${vcenter}
-                    sleep 20
-                    EVENT_ID=$(get_failed_event)                        
-                    approve_pending_event $EVENT_ID
-                fi 
-            fi
-            
-            for eg in ${exportgroups}
-            do
-                # Ensure that host1 has been removed                
-                foundhost1=`export_group show ${eg} | grep ${host1}`
                 
-                if [[ "${foundhost1}" != "" ]]; then
-                    # Fail, host1 should be removed
-                    echo "+++ FAIL - Expected host was not removed from export group ${eg}."
-                    # Report results
-                    incr_fail_count
-                    if [ "${NO_BAILING}" != "1" ]
-                    then
-                        report_results ${test_name} ${failure}
-                        exit 1
-                    fi
-                else
-                    echo "+++ SUCCESS - Expected host removed from export group ${eg}." 
-                fi                                     
-            done
+                for eg in ${exportgroups}
+                do
+                    # Ensure that host1 has been removed                
+                    foundhost1=`export_group show ${eg} | grep ${host1}`
+                    
+                    if [[ "${foundhost1}" != "" ]]; then
+                        # Fail, host1 should be removed
+                        echo "+++ FAIL - Expected host was not removed from export group ${eg}."
+                        # Report results
+                        incr_fail_count
+                        if [ "${NO_BAILING}" != "1" ]
+                        then
+                            report_results ${test_name} ${failure}
+                            exit 1
+                        fi
+                    else
+                        echo "+++ SUCCESS - Expected host removed from export group ${eg}." 
+                    fi                                     
+                done
+                
+                # Add the host back to cluster
+                secho "Test complete, add the host back to cluster..."
+                add_host_to_cluster $host1 $cluster1                                  
+                discover_vcenter ${vcenter}            
+                sleep 20            
+                EVENT_ID=$(get_pending_event)
+                approve_pending_event $EVENT_ID
+            fi    
             
-            # Add the host back to cluster
-            secho "Test complete, add the host back to cluster..."
-            add_host_to_cluster $host1 $cluster1                                  
-            discover_vcenter ${vcenter}            
-            sleep 20            
-            EVENT_ID=$(get_pending_event)
-            approve_pending_event $EVENT_ID
-        fi    
-        
-        # Snap DB
-        snap_db 2 "${column_family[@]}"
-        
-        # Validate DB
-        validate_db 1 2 "${column_family[@]}"
-
-        # Report results
-        report_results ${test_name} ${failure}
+            # Snap DB
+            snap_db 2 "${column_family[@]}"
+            
+            # Validate DB
+            validate_db 1 2 "${column_family[@]}"
+    
+            # Report results
+            report_results ${test_name} ${failure}
+        done
     done
     
      # Cleanup volumes

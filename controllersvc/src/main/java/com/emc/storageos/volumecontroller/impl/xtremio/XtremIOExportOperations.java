@@ -412,7 +412,8 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
                     exportMask.removeFromExistingInitiators(initiator);
                     exportMask.removeFromUserCreatedInitiators(initiator);
                 } catch (Exception e) {
-                    failedIGs.add(initiator.getLabel());
+                    failedIGs.add(initiator.getLabel().concat(XtremIOConstants.DASH).concat(e.getMessage()));
+                    _log.warn("Removal of Initiator {} failed", initiator.getLabel(), e);
                 }
             }
             dbClient.updateObject(exportMask);
@@ -581,7 +582,7 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
             initiatorsValidator.validate();
 
             Set<String> igNames = groupInitiatorsByIG.keySet();
-            List<URI> failedVolumes = new ArrayList<URI>();
+            List<String> failedVolumes = new ArrayList<String>();
             for (URI volumeUri : volumes) {
                 BlockObject blockObj = BlockObject.fetch(dbClient, volumeUri);
                 _log.info("Block Obj {} , wwn {}", blockObj.getId(), blockObj.getWWN());
@@ -658,7 +659,7 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
                         try {
                             client.deleteLunMap(lunMap, xioClusterName);
                         } catch (Exception e) {
-                            failedVolumes.add(volumeUri);
+                            failedVolumes.add(volumeUri.toString().concat(XtremIOConstants.DASH).concat(e.getMessage()));
                             _log.warn("Deletion of Lun Map {} failed}", lunMap, e);
 
                         }
@@ -888,7 +889,7 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
                                     _log.info("Initiator {} already deleted", initiatorName);
                                 }
                             } catch (Exception e) {
-                                failedIGs.add(initiator.getLabel());
+                                failedIGs.add(initiator.getLabel().concat(XtremIOConstants.DASH).concat(e.getMessage()));
                                 _log.warn("Removal of Initiator {} from IG failed", initiator.getLabel(), e);
                             }
                         }
@@ -1190,13 +1191,18 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
                 _log.info("# of IGs  {} in Folder {}", igFolder.getNumberOfDirectObjs(), clusterName);
                 client.deleteTag(tempIGFolderName, XtremIOConstants.XTREMIO_ENTITY_TYPE.InitiatorGroup.name(), xioClusterName);
             } catch (Exception e) {
-                _log.warn("Deleting Initatiator Group Folder{} fails", clusterName, e);
+                if (null != e.getMessage() && !e.getMessage().contains(XtremIOConstants.OBJECT_NOT_FOUND)) {
+                    _log.warn("Deleting Initatiator Group Folder {} failed with exception {}", tempIGFolderName, e.getMessage());
+                    throw e;
+                } else {
+                    _log.warn("Initatiator Group Folder {} not found. Might be already deleted.", tempIGFolderName);
+                }
             }
         }
     }
 
     private void deleteInitiatorGroup(ArrayListMultimap<String, Initiator> groupInitiatorsByIG,
-            XtremIOClient client, String xioClusterName) {
+            XtremIOClient client, String xioClusterName) throws Exception {
         for (Entry<String, Collection<Initiator>> entry : groupInitiatorsByIG.asMap().entrySet()) {
             String igName = entry.getKey();
             try {
@@ -1215,7 +1221,12 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
                     }
                 }
             } catch (Exception e) {
-                _log.warn("Deleting Initatiator Group {} fails", igName, e);
+                if (null != e.getMessage() && !e.getMessage().contains(XtremIOConstants.OBJECT_NOT_FOUND)) {
+                    _log.warn("Deleting Initatiator Group {} failed with exception {}", igName, e.getMessage());
+                    throw e;
+                } else {
+                    _log.warn("Initatiator Group {} not found. Might be already deleted.", igName);
+                }
             }
         }
 

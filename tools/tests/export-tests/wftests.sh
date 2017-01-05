@@ -2946,7 +2946,7 @@ test_10() {
 	  fi
 
 	  # turn on firewall
-	  /usr/sbin/iptables -I INPUT 1 -s ${firewall_ip} -p all -j REJECT
+	  runcmd /usr/sbin/iptables -I INPUT 1 -s ${firewall_ip} -p all -j REJECT
       fi
 	
       # Turn on failure at a specific point
@@ -2965,7 +2965,7 @@ test_10() {
       if [ "${failure}" = "failure_firewall" ]
       then
 	  # turn off firewall
-	  /usr/sbin/iptables -D INPUT 1
+	  runcmd /usr/sbin/iptables -D INPUT 1
       elif [ "${failure}" != "failure_015_SmisCommandHelper.invokeMethod_*" ]
       then
 	  # Verify injected failures were hit

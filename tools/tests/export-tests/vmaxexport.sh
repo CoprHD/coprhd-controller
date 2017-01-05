@@ -2357,9 +2357,13 @@ test_39() {
     runcmd export_group delete $PROJECT/${expname}1
     verify_export ${expname}1 -x- gone
 
+    runcmd volume detach ${PROJECT}/${VOLNAME}-1 ${PROJECT}/${fullcopy}-1
     runcmd volume delete ${PROJECT}/${fullcopy}-1 --wait
+    runcmd volume detach ${PROJECT}/${VOLNAME}-2 ${PROJECT}/${fullcopy}-2
     runcmd volume delete ${PROJECT}/${fullcopy}-2 --wait
+    runcmd volume detach ${PROJECT}/${VOLNAME}-3 ${PROJECT}/${fullcopy}-3
     runcmd volume delete ${PROJECT}/${fullcopy}-3 --wait
+    runcmd volume detach ${PROJECT}/${VOLNAME}-4 ${PROJECT}/${fullcopy}-4
     runcmd volume delete ${PROJECT}/${fullcopy}-4 --wait
 }
 
@@ -2451,9 +2455,13 @@ test_40() {
     runcmd export_group delete $PROJECT/${expname}2
     verify_export ${expname}2 -x- gone
 
+    runcmd volume detach ${PROJECT}/${VOLNAME}-1 ${PROJECT}/${fullcopy}-1
     runcmd volume delete ${PROJECT}/${fullcopy}-1 --wait
+    runcmd volume detach ${PROJECT}/${VOLNAME}-2 ${PROJECT}/${fullcopy}-2
     runcmd volume delete ${PROJECT}/${fullcopy}-2 --wait
+    runcmd volume detach ${PROJECT}/${VOLNAME}-3 ${PROJECT}/${fullcopy}-3
     runcmd volume delete ${PROJECT}/${fullcopy}-3 --wait
+    runcmd volume detach ${PROJECT}/${VOLNAME}-4 ${PROJECT}/${fullcopy}-4
     runcmd volume delete ${PROJECT}/${fullcopy}-4 --wait
 }
 

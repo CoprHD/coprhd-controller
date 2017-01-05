@@ -1,10 +1,11 @@
+/*
+ * Copyright (c) 2016 EMC Corporation
+ * All Rights Reserved
+ */
 package com.emc.storageos.db.client.impl;
 
 import com.netflix.astyanax.serializers.AnnotatedCompositeSerializer;
 
-/**
- * Created by brian on 16-11-16.
- */
 public class TimeSeriesColumnNameSerializer extends AnnotatedCompositeSerializer<TimeSeriesIndexColumnName> {
     private static final TimeSeriesColumnNameSerializer instance = new TimeSeriesColumnNameSerializer();
     private static final String COMPARATOR_NAME =

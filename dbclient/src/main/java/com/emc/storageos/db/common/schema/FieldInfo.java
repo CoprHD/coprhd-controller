@@ -112,30 +112,10 @@ public class FieldInfo implements SchemaObject {
 
     @Override
     public String describe() {
-        return "lbyy0 field: " + this.name + " (type:" + this.type + ") in " + parent.describe();
+        return "field: " + this.name + " (type:" + this.type + ") in " + parent.describe();
     }
 
     public void setParent(SchemaObject parent) {
         this.parent = parent;
-    }
-
-    @Override
-    public String toString() {
-        StringBuilder builder = new StringBuilder();
-
-        builder.append("runtimeType:")
-                .append(runtimeType)
-                .append("\nname:")
-                .append(name)
-                .append("\ntype:")
-                .append(type)
-                .append("\nannotations:")
-                .append(annotations);
-        /*
-                .append("\nparent:")
-                .append(parent);
-                */
-
-        return builder.toString();
     }
 }

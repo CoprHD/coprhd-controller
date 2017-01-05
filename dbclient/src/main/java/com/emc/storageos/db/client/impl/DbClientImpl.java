@@ -320,7 +320,7 @@ public class DbClientImpl implements DbClient {
      * 
      * @return
      */
-    public Keyspace getLocalKeyspace() {
+    protected Keyspace getLocalKeyspace() {
         return localContext.getKeyspace();
     }
 
@@ -335,7 +335,7 @@ public class DbClientImpl implements DbClient {
      * @param dataObj
      * @return
      */
-    protected  Keyspace getKeyspace(DataObject dataObj) {
+    protected Keyspace getKeyspace(DataObject dataObj) {
         Class<? extends DataObject> clazz = dataObj.getClass();
         return getKeyspace(clazz);
     }
@@ -347,7 +347,7 @@ public class DbClientImpl implements DbClient {
      * @param clazz
      * @return
      */
-    protected <T extends DataObject> Keyspace getKeyspace(Class<T> clazz) {
+    public <T extends DataObject> Keyspace getKeyspace(Class<T> clazz) {
         return getDbClientContext(clazz).getKeyspace();
     }
     

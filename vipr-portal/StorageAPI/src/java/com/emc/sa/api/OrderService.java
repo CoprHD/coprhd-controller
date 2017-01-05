@@ -106,11 +106,11 @@ public class OrderService extends CatalogTaggedResourceService {
     private static final String ORDER_SERVICE_QUEUE_NAME="OrderService";
     private static final String ORDER_JOB_LOCK="order-jobs";
 
-    // private static final long INDEX_GC_GRACE_PERIOD=432000*1000L;
-    // public  static final long MAX_DELETED_ORDERS_PER_GC_PERIOD=300000L;
+    private static final long INDEX_GC_GRACE_PERIOD=432000*1000L;
+    public  static final long MAX_DELETED_ORDERS_PER_GC_PERIOD=300000L;
 
-    private static final long INDEX_GC_GRACE_PERIOD=3*60*1000L;
-    public  static final long MAX_DELETED_ORDERS_PER_GC_PERIOD=100L;
+    // private static final long INDEX_GC_GRACE_PERIOD=3*60*1000L;
+    // public  static final long MAX_DELETED_ORDERS_PER_GC_PERIOD=100L;
 
     private static int SCHEDULED_EVENTS_SCAN_INTERVAL = 300;
     private int scheduleInterval = SCHEDULED_EVENTS_SCAN_INTERVAL;
@@ -281,7 +281,6 @@ public class OrderService extends CatalogTaggedResourceService {
      */
     @Override
     protected SearchResults getOtherSearchResults(Map<String, List<String>> parameters, boolean authorized) {
-        log.info("lbyc00");
         StorageOSUser user = getUserFromContext();
         String tenantId = user.getTenantId();
         if (parameters.containsKey(SearchConstants.TENANT_ID_PARAM)) {
@@ -328,8 +327,6 @@ public class OrderService extends CatalogTaggedResourceService {
                 String maxCountParam = parameters.get(SearchConstants.ORDER_MAX_COUNT).get(0);
                 maxCount = Integer.parseInt(maxCountParam);
             }
-
-            log.info("lbyc0: maxCount={} startTime={}, endTime={}", maxCount, startTime, endTime);
 
             if (startTime.after(endTime)) {
                 throw APIException.badRequests.endTimeBeforeStartTime(startTime.toString(), endTime.toString());
@@ -674,31 +671,12 @@ public class OrderService extends CatalogTaggedResourceService {
         for (URI tid : tids) {
             TimeSeriesConstraint constraint = TimeSeriesConstraint.Factory.getOrders(tid, startTime, endTime);
             DbClientImpl dbclient = (DbClientImpl)_dbClient;
-            constraint.setKeyspace(dbclient.getLocalKeyspace());
+            constraint.setKeyspace(dbclient.getKeyspace(Order.class));
 
             NamedElementQueryResultList ids = new NamedElementQueryResultList();
             _dbClient.queryByConstraint(constraint, ids);
             for (NamedElementQueryResultList.NamedElement namedID : ids) {
                 URI id = namedID.getId();
-                /*
-                Order order = null;
-                Object[] parameters = null;
-                try {
-                    order = _dbClient.queryObject(Order.class, id);
-                    parameters = order.auditParameters();
-                    log.info("lbyh id={}", id);
-                    //out.print(order.toString());
-                    dumpOrder(out, order);
-                    status.addCompleted(1);
-                    completed++;
-                    saveJobInfo(status);
-                    auditOpSuccess(OperationTypeEnum.DOWNLOAD_ORDER, parameters);
-                } catch (Exception e) {
-                    failed++;
-                    log.error("Failed to download order {}", id);
-                    auditOpFailure(OperationTypeEnum.DOWNLOAD_ORDER, parameters);
-                }
-                */
                 try {
                     dumpOrder(out, id, status);
                     completed++;
@@ -946,8 +924,6 @@ public class OrderService extends CatalogTaggedResourceService {
         }
 
         List<URI> tids= toIDs(SearchConstants.TENANT_IDS_PARAM, tenantIDs);
-
-        log.info("start={} end={} tids={}", startTimeInMS, endTimeInMS, tids);
 
         Map<String, Long> countMap = orderManager.getOrderCount(tids, startTimeInMS, endTimeInMS);
 

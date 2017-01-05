@@ -16,10 +16,10 @@ import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlElements;
 import javax.xml.bind.annotation.XmlTransient;
 
-import com.emc.storageos.model.valid.EnumType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.emc.storageos.model.valid.EnumType;
 import com.emc.storageos.db.client.model.DbKeyspace;
 import com.emc.storageos.db.client.model.UpgradeAllowed;
 import com.emc.storageos.db.client.upgrade.CustomMigrationCallback;
@@ -208,16 +208,13 @@ public class CollectionChangeTracker<T extends SchemaObject, S extends Diff> ext
                         continue;
                     }
 
-                    log.info("lbyx0: at={}", at);
                     if (at.canBeIgnore()) {
-                        log.info("lby1 schema=", schema.describe());
                         continue;
                     }
                 }
 
                 log.warn("An unsupported schema change has been made. {} has been removed.",
                         schema.describe());
-                log.info("lbyx stack=", new Throwable());
                 returnVal = false;
             }
         }

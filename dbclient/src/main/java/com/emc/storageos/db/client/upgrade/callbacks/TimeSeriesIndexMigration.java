@@ -23,7 +23,7 @@ import com.emc.storageos.svcs.errorhandling.resources.MigrationCallbackException
 
 public class TimeSeriesIndexMigration extends BaseDefaultMigrationCallback {
     private static final Logger log = LoggerFactory.getLogger(TimeSeriesIndexMigration.class);
-    final public String SOURCE_INDEX_CF_NAME="TenantToOrder";
+    final public static String SOURCE_INDEX_CF_NAME="TenantToOrder";
 
     public TimeSeriesIndexMigration() {
         super();
@@ -33,7 +33,7 @@ public class TimeSeriesIndexMigration extends BaseDefaultMigrationCallback {
     public void process() throws MigrationCallbackException {
         long start = System.currentTimeMillis();
 
-        log.info("lbym0: Adding new index records for class: {} field: {} annotation: {}",
+        log.info("Adding new index records for class: {} field: {} annotation: {}",
                 new Object[] { cfClass, fieldName, annotation.annotationType().getCanonicalName()});
 
         ColumnFamily<String, IndexColumnName> tenantToOrder =
@@ -45,7 +45,7 @@ public class TimeSeriesIndexMigration extends BaseDefaultMigrationCallback {
 
 
         DbClientImpl client = getInternalDbClient();
-        Keyspace ks = client.getLocalKeyspace();
+        Keyspace ks = client.getKeyspace(Order.class);
         MutationBatch mutationBatch = ks.prepareMutationBatch();
 
         try {
@@ -61,23 +61,22 @@ public class TimeSeriesIndexMigration extends BaseDefaultMigrationCallback {
                 RowQuery<String, IndexColumnName> rowQuery = ks.prepareQuery(tenantToOrder).getKey(row.getKey())
                         .autoPaginate(true)
                         .withColumnRange(new RangeBuilder().setLimit(5).build());
-                ColumnList<IndexColumnName> cols;
-                while (!(cols = rowQuery.execute().getResult()).isEmpty()) {
+                ColumnList<IndexColumnName> cols = rowQuery.execute().getResult();
+                while (!cols.isEmpty()) {
                     for (Column<IndexColumnName> col : cols) {
                         m++;
                         String indexKey = row.getKey();
                         String orderId = col.getName().getTwo();
-                        log.info("lby tid={} order={} m={}", indexKey, orderId, m);
 
                         TimeSeriesIndexColumnName newCol = new TimeSeriesIndexColumnName(Order.class.getSimpleName(),
                                 orderId, col.getName().getTimeUUID());
 
                         mutationBatch.withRow(newIndexCF, indexKey).putEmptyColumn(newCol, null);
                         if ( m % 10000 == 0) {
-                            log.info("lby commit m={}", m);
                             mutationBatch.execute();
                         }
                     }
+                    cols = rowQuery.execute().getResult();
                 }
             }
 

@@ -991,9 +991,9 @@ test_move_non_clustered_host_to_cluster() {
 # 5. Delete datastores and volumes
 #
 test_move_clustered_discovered_host_to_cluster() {
-    test_name="test_move_non_clustered_host_to_cluster"
+    test_name="test_move_clustered_discovered_host_to_cluster"
     failure="only_one_test"
-    echot "Test test_move_non_clustered_host_to_cluster"
+    echot "Test test_move_clustered_discovered_host_to_cluster"
     cluster1="cluster-1"
     cluster2="cluster-2"
     host="host21"

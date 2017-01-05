@@ -10,8 +10,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-import org.apache.commons.collections.CollectionUtils;
-
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.exceptions.DeviceControllerException;
@@ -127,22 +125,6 @@ public class DataCollectionScanJob extends DataCollectionJob implements Serializ
         return false;
     }
     
-    private boolean uriListsMatch(List<URI> list1, List<URI> list2) {
-        if (list1 == null && list2 == null) {
-            return true;
-        }
-        if ((list1 == null && list2 != null)
-                || (list1 != null && list2 == null)
-                || list1.size() != list2.size()) {
-            return false;
-        }
-        
-        Collections.sort(list1);
-        Collections.sort(list2);
-        
-        return list1.equals(list2);
-    }
-    
     private boolean providersMatch(DataCollectionScanJob job) {
         if (_completers == null && job.getCompleters() == null) {
             return true;
@@ -163,7 +145,7 @@ public class DataCollectionScanJob extends DataCollectionJob implements Serializ
             otherProviderIds.add(completer.getId());
         }
         
-        return CollectionUtils.isEqualCollection(thisProviderIds, otherProviderIds);
+        return thisProviderIds.size() == otherProviderIds.size() && thisProviderIds.containsAll(otherProviderIds);
     }
     
     @Override

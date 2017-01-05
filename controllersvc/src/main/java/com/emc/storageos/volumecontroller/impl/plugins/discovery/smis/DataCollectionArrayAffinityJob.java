@@ -8,7 +8,6 @@ import java.io.Serializable;
 import java.net.URI;
 import java.util.List;
 
-import org.apache.commons.collections.CollectionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -115,11 +114,12 @@ public class DataCollectionArrayAffinityJob extends DataCollectionJob implements
             return true;
         }
         if ((list1 == null && list2 != null)
-                || (list1 != null && list2 == null)) {
+                || (list1 != null && list2 == null)
+                || list1.size() != list2.size()) {
             return false;
         }
         
-        return CollectionUtils.isEqualCollection(list1, list2);
+        return list1.containsAll(list2);
     }
     
     @Override

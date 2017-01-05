@@ -10,6 +10,8 @@ scripts {
         maxPermMemoryFactor = "0.0158"
         jvmArgs += " -Dconfig.dir=\"${project.installDir}/conf\" -Dplatform.home=\"${project.installDir}\" " +
                    '-Ddata.dir=/tmp -DbuildType=' + buildType
+
+        extraClasspath = "\${LIB_DIR}/storageos-vipr-primitives.jar"
     }
 }
 

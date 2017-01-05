@@ -110,5 +110,8 @@ var routes = {
   WF_directories: #{jsAction @catalog.WorkflowBuilder.getWFDirectories() /},
   WF_directory_edit_name: #{jsAction @catalog.WorkflowBuilder.editWFDirName(':id',':newName') /},
   WF_directory_delete: #{jsAction @catalog.WorkflowBuilder.deleteWFDir(':id') /},
-  WF_directory_create: #{jsAction @catalog.WorkflowBuilder.createWFDir(':name',':parent') /}
+  WF_directory_create: #{jsAction @catalog.WorkflowBuilder.createWFDir(':name',':parent') /},
+  Workflow_create: #{jsAction @catalog.WorkflowBuilder.createWorkflow(':workflowName',':dirID') /},
+  Workflow_delete: #{jsAction @catalog.WorkflowBuilder.deleteWorkflow(':workflowID', ':dirID') /},
+  Workflow_edit_name: #{jsAction @catalog.WorkflowBuilder.editWorkflowName(':id',':newName') /}
 };

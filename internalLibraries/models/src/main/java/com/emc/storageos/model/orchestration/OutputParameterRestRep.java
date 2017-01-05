@@ -16,17 +16,19 @@
  */
 package com.emc.storageos.model.orchestration;
 
+import com.google.gson.annotations.SerializedName;
 import javax.xml.bind.annotation.XmlElement;
-
-import com.emc.storageos.model.orchestration.internal.Parameter.ParameterType;
 
 /**
  * Rest representation class for an orchestration output parameter
  */
 public class OutputParameterRestRep {
 
+    @SerializedName("name")
     private String name;
-    private ParameterType type;
+    @SerializedName("type")
+    private String type;
+    @SerializedName("table")
     private String table;
     
     @XmlElement(name = "name")
@@ -39,11 +41,11 @@ public class OutputParameterRestRep {
     }
     
     @XmlElement(name = "type")
-    public ParameterType getType() {
+    public String getType() {
         return type;
     }
 
-    public void setType(ParameterType type) {
+    public void setType(String type) {
         this.type = type;
     }
 

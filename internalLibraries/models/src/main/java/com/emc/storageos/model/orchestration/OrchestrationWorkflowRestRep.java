@@ -25,6 +25,7 @@ import com.emc.storageos.model.DataObjectRestRep;
 public class OrchestrationWorkflowRestRep extends DataObjectRestRep {
 
     private OrchestrationWorkflowDocument document;
+    private String state;
 
     @XmlElement(name = "document")
     public OrchestrationWorkflowDocument getDocument() {
@@ -33,5 +34,14 @@ public class OrchestrationWorkflowRestRep extends DataObjectRestRep {
 
     public void setDocument(OrchestrationWorkflowDocument document) {
         this.document = document;
+    }
+
+    @XmlElement(name = "state" )
+    public String getState() {
+        return state;
+    }
+
+    public void setState(String state) {
+        this.state = state;
     }
 }

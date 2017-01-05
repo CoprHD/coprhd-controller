@@ -23,6 +23,7 @@ import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.RelationIndex;
 
 import java.net.URI;
+import java.util.Set;
 
 /**
  * DB model class for holding workflow directory structure.
@@ -40,19 +41,33 @@ public class WFDirectory extends ModelObject {
         return _parent;
     }
 
-    public void setParent(URI parent) {
+    public void setParent(final URI parent) {
         _parent = parent;
         setChanged("parent");
     }
 
     @Name("workflows")
     public StringSet getWorkflows() {
+        if (_workflows == null) {
+            _workflows = new StringSet();
+        }
         return _workflows;
     }
 
-    public void setWorkflows(StringSet workflows) {
-
+    public void setWorkflows(final StringSet workflows) {
         _workflows = workflows;
-        setChanged("workflows");
     }
+
+    public void addWorkflows(final Set<URI> workflowIDs) {
+        for (URI u : workflowIDs) {
+            getWorkflows().add(u.toString());
+        }
+    }
+
+    public void removeWorkflows(final Set<URI> workflowIDs) {
+        for (URI u : workflowIDs) {
+            getWorkflows().remove(u.toString());
+        }
+    }
+
 }

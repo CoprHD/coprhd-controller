@@ -14,7 +14,10 @@
  * limitations under the License.
  *
  */
-package com.emc.storageos.model.orchestration.internal;
+package com.emc.storageos.primitives;
+
+import com.emc.storageos.primitives.input.InputParameter;
+import com.emc.storageos.primitives.output.OutputParameter;
 
 
 /**

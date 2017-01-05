@@ -14,22 +14,27 @@
  * limitations under the License.
  *
  */
-package com.emc.storageos.model.orchestration.internal;
+package com.emc.storageos.primitives.input;
 
+import com.emc.storageos.primitives.Parameter;
 
 /**
- * Interface for orchestration primitive input/output parameters
+ * Base class for input parameters
  */
-public interface Parameter {
-    public enum ParameterType {
-        STRING,
-        INTEGER,
-        URI,
-        NAME_VALUE_LIST,
-        TABLE
+public abstract class InputParameter implements Parameter {
+    private final String name;
+    public InputParameter(final String name) {
+        this.name = name;
     }
     
-    public String getName();
+    @Override
+    public String getName() {
+        return name;
+    }
     
-    public ParameterType getType();
+    public abstract boolean isBasicInputParameter();
+    public abstract BasicInputParameter<?> asBasicInputParameter();
+    
+    public abstract boolean isTableInputParameter();
+    public abstract TableInputParameter asTableInputParameter();
 }

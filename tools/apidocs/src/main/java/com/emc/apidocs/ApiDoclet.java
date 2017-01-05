@@ -4,21 +4,38 @@
  */
 package com.emc.apidocs;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Properties;
+
+import org.apache.commons.io.IOUtils;
+
 import com.emc.apidocs.differencing.DifferenceEngine;
+import com.emc.apidocs.generating.PageGenerator;
 import com.emc.apidocs.model.ApiDifferences;
 import com.emc.apidocs.model.ApiErrorCode;
 import com.emc.apidocs.model.ApiMethod;
 import com.emc.apidocs.model.ApiService;
-import com.emc.apidocs.processing.*;
-import com.emc.apidocs.generating.*;
+import com.emc.apidocs.processing.MethodProcessor;
+import com.emc.apidocs.processing.PlayRoutesParser;
+import com.emc.apidocs.processing.TemporaryCleanup;
 import com.emc.apidocs.tools.MetaData;
 import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
 import com.google.common.collect.Lists;
-import com.sun.javadoc.*;
-import org.apache.commons.io.IOUtils;
-
-import java.io.*;
-import java.util.*;
+import com.sun.javadoc.AnnotationDesc;
+import com.sun.javadoc.AnnotationValue;
+import com.sun.javadoc.ClassDoc;
+import com.sun.javadoc.DocErrorReporter;
+import com.sun.javadoc.FieldDoc;
+import com.sun.javadoc.LanguageVersion;
+import com.sun.javadoc.MethodDoc;
+import com.sun.javadoc.RootDoc;
+import com.sun.javadoc.Tag;
 
 /**
  * Doclet to process the ViPR API annotations and comments
@@ -144,7 +161,7 @@ public class ApiDoclet {
     }
 
     /** Processes the list of classes looking for ones that represent an API Service, and parsing them if found */
-    private static synchronized List<ApiService> findApiServices(ClassDoc[] classes) {
+    public static synchronized List<ApiService> findApiServices(ClassDoc[] classes) {
         List<ApiService> apiServices = new ArrayList<ApiService>();
         for (ClassDoc classDoc : classes) {
             if (DATASERVICES_CLASSES.contains(classDoc.name())) {
@@ -170,9 +187,11 @@ public class ApiDoclet {
             }
         }
 
-        // Add All Services from the Portal API
-        apiServices.addAll(PlayRoutesParser.getPortalServices(portalSource));
-
+        if( null != portalSource) {
+            // Add All Services from the Portal API
+            apiServices.addAll(PlayRoutesParser.getPortalServices(portalSource));
+        }
+        
         return apiServices;
     }
 

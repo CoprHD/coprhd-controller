@@ -14,12 +14,15 @@
  * limitations under the License.
  *
  */
-package com.emc.storageos.model.orchestration.internal;
+package com.emc.storageos.primitives.samples;
 
 import javax.xml.bind.annotation.XmlRootElement;
 
-import com.emc.storageos.model.orchestration.internal.BasicInputParameter.StringParameter;
-import com.emc.storageos.model.orchestration.internal.BasicOutputParameter.NameValueListOutputParameter;
+import com.emc.storageos.primitives.Primitive;
+import com.emc.storageos.primitives.input.InputParameter;
+import com.emc.storageos.primitives.input.BasicInputParameter.StringParameter;
+import com.emc.storageos.primitives.output.BasicOutputParameter;
+import com.emc.storageos.primitives.output.BasicOutputParameter.NameValueListParameter;
 
 /**
  * Class that represents primitive meta data for an ansible script 
@@ -35,7 +38,7 @@ public class LocalAnsible extends Primitive {
     private final static StringParameter CONTENT = new StringParameter("content", true, null); 
     private final static InputParameter INPUT[] = {CONTENT}; 
     
-    private final static NameValueListOutputParameter OUTPUT = new NameValueListOutputParameter("output");
+    private final static NameValueListParameter OUTPUT = new NameValueListParameter("output");
     private final static BasicOutputParameter OUTPUT_LIST[]  = {OUTPUT};
 
     public LocalAnsible() {

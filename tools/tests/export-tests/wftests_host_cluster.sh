@@ -1656,7 +1656,7 @@ test_move_non_clustered_discovered_host_to_cluster() {
     cluster2_export=cluster2export-${random_num}
     set_controller_cs_discovery_refresh_interval 1
     
-    cfs="ExportGroup ExportMask"
+    cfs=("ExportGroup ExportMask")
 
     host_cluster_failure_injections="failure_029_host_cluster_ComputeSystemControllerImpl.verifyDatastore_after_verify \
                                      failure_030_host_cluster_ComputeSystemControllerImpl.unmountAndDetach_after_unmount \
@@ -1699,7 +1699,7 @@ test_move_non_clustered_discovered_host_to_cluster() {
         #remove_host_from_cluster $host $cluster1
         #remove_host_from_cluster $host $cluster2 
         
-        snap_db 1 ${cfs}
+        snap_db 1 ${cfs[@]}
 
         create_datastore ${TENANT} ${volume2} ${datastore2} ${PROJECT} ${vcenter} "DC-Simulator-1" ${cluster2}
 
@@ -1753,10 +1753,10 @@ test_move_non_clustered_discovered_host_to_cluster() {
         
         delete_datastore ${TENANT} ${datastore2} ${vcenter} "DC-Simulator-1" ${cluster2}
 
-        snap_db 2 ${cfs}  
+        snap_db 2 ${cfs[@]}  
 
         # Validate that nothing was left behind
-        validate_db 1 2 ${cfs}          
+        validate_db 1 2 ${cfs[@]}          
 
         # Report results
         report_results ${test_name} ${failure}

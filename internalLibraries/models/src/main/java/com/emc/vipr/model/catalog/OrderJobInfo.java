@@ -63,7 +63,7 @@ public class OrderJobInfo {
         this.total = total;
     }
 
-    @XmlElement(name = "completed")
+    @XmlElement(name = "completed_number")
     public long getCompleted() {
         return nCompleted;
     }
@@ -72,7 +72,7 @@ public class OrderJobInfo {
         this.nCompleted = nCompleted;
     }
 
-    @XmlElement(name = "failed")
+    @XmlElement(name = "failed_number")
     public long getFailed() {
         return nFailed;
     }

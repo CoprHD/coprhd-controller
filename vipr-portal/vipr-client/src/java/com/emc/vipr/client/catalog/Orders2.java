@@ -300,7 +300,8 @@ public class Orders2 extends AbstractCatalogBulkResources<OrderRestRep> implemen
      * @param tenantIDs
      * @param orderIDs
      */
-    private URI getDownloadOrdersURI(String startTime, String endTime, String tenantIDs, String orderIDs) {
+    private URI getDownloadOrdersURI(String startTime, String endTime, String tenantIDs, String orderIDs,
+                                     String status) {
         UriBuilder uriBuilder = client.uriBuilder(PathConstants.ORDER2_DOWNLOAD_ORDER);
 
         if (startTime != null) {
@@ -315,17 +316,24 @@ public class Orders2 extends AbstractCatalogBulkResources<OrderRestRep> implemen
         if (orderIDs != null) {
             uriBuilder = uriBuilder.queryParam(SearchConstants.ORDER_IDS, orderIDs.toString());
         }
+
+        if (status != null) {
+            uriBuilder = uriBuilder.queryParam(SearchConstants.ORDER_STATUS_PARAM2, status.toString());
+        }
+
         return uriBuilder.build();
     }
 
-    public InputStream downloadOrdersAsStream(String startTime, String endTime, String tenantIDs, String orderIDs) {
-        URI uri = getDownloadOrdersURI(startTime, endTime, tenantIDs, orderIDs);
+    public InputStream downloadOrdersAsStream(String startTime, String endTime, String tenantIDs, String orderIDs,
+                                              String status) {
+        URI uri = getDownloadOrdersURI(startTime, endTime, tenantIDs, orderIDs, status);
         ClientResponse response = client.resource(uri).accept(MediaType.APPLICATION_XML).get(ClientResponse.class);
         return response.getEntityInputStream();
     }
 
-    public InputStream downloadOrdersAsText(String startTime, String endTime, String tenantIDs, String orderIDs) {
-        URI uri = getDownloadOrdersURI(startTime, endTime, tenantIDs, orderIDs);
+    public InputStream downloadOrdersAsText(String startTime, String endTime, String tenantIDs, String orderIDs,
+                                            String status) {
+        URI uri = getDownloadOrdersURI(startTime, endTime, tenantIDs, orderIDs, status);
         ClientResponse response = client.resource(uri).accept(MediaType.TEXT_PLAIN).get(ClientResponse.class);
         return response.getEntityInputStream();
     }

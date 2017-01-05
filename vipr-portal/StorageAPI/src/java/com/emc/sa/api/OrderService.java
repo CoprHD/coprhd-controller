@@ -598,10 +598,11 @@ public class OrderService extends CatalogTaggedResourceService {
     public Response downloadOrders( @DefaultValue("") @QueryParam(SearchConstants.START_TIME_PARAM) String startTimeStr,
                                   @DefaultValue("") @QueryParam(SearchConstants.END_TIME_PARAM) String endTimeStr,
                                   @DefaultValue("") @QueryParam(SearchConstants.TENANT_IDS_PARAM) String tenantIDsStr,
+                                  @DefaultValue("") @QueryParam(SearchConstants.ORDER_STATUS_PARAM2) String orderStatusStr,
                                   @DefaultValue("") @QueryParam(SearchConstants.ORDER_IDS) String orderIDsStr)
             throws Exception {
-        log.info("lbyk:export orders startTime={}, endTime={} tid={} orderIDs={}",
-                new Object[] {startTimeStr, endTimeStr, tenantIDsStr, orderIDsStr});
+        log.info("lbyk:export orders startTime={}, endTime={} tid={} orderIDs={} status={}",
+                new Object[] {startTimeStr, endTimeStr, tenantIDsStr, orderIDsStr, orderStatusStr});
 
         if (tenantIDsStr.isEmpty() && orderIDsStr.isEmpty()) {
             InvalidParameterException cause = new InvalidParameterException("Both tenant and order IDs are empty");
@@ -615,6 +616,9 @@ public class OrderService extends CatalogTaggedResourceService {
             throw APIException.badRequests.endTimeBeforeStartTime(startTimeStr, endTimeStr);
         }
 
+        OrderStatus orderStatus = getOrderStatus(orderStatusStr, false);
+        log.info("lbyt0: status={} str={}", orderStatus, orderStatusStr);
+
         if (isJobRunning()) {
             throw APIException.badRequests.cannotExecuteOperationWhilePendingTask("Deleting/Downloading orders");
         }
@@ -627,7 +631,16 @@ public class OrderService extends CatalogTaggedResourceService {
 
         final OrderJobStatus status =
                 new OrderJobStatus(OrderServiceJob.JobType.DOWNLOAD_ORDER, startTimeInMS, endTimeInMS,
-                        tids, tid, uid, null);
+                        tids, tid, uid, orderStatus);
+
+        List<URI> orderIDs = toIDs(SearchConstants.ORDER_IDS, orderIDsStr);
+        status.setOrderIDs(orderIDs);
+
+        if (!orderIDs.isEmpty()) {
+            status.setStartTime(0);
+            status.setEndTime(0);
+        }
+
         try {
             saveJobInfo(status);
         }catch (Exception e) {
@@ -649,23 +662,25 @@ public class OrderService extends CatalogTaggedResourceService {
         PrintStream out = new PrintStream(outputStream);
         out.println("ORDER DETAILS");
         out.println("-------------");
-        log.info("lbyk startTime={} endTime={}", startTime, endTime);
+        List<URI> orderIDs = status.getOrderIDs();
+
+        if (!orderIDs.isEmpty()) {
+            dumpOrders(out, orderIDs, status);
+            return;
+        }
+
         long completed = 0;
         long failed = 0;
         for (URI tid : tids) {
             TimeSeriesConstraint constraint = TimeSeriesConstraint.Factory.getOrders(tid, startTime, endTime);
             DbClientImpl dbclient = (DbClientImpl)_dbClient;
             constraint.setKeyspace(dbclient.getLocalKeyspace());
-            try {
-                log.info("lbyk count={}", constraint.count());
-            }catch(Exception e) {
-                log.error("lbyk e=", e);
-            }
 
             NamedElementQueryResultList ids = new NamedElementQueryResultList();
             _dbClient.queryByConstraint(constraint, ids);
             for (NamedElementQueryResultList.NamedElement namedID : ids) {
                 URI id = namedID.getId();
+                /*
                 Order order = null;
                 Object[] parameters = null;
                 try {
@@ -683,6 +698,13 @@ public class OrderService extends CatalogTaggedResourceService {
                     log.error("Failed to download order {}", id);
                     auditOpFailure(OperationTypeEnum.DOWNLOAD_ORDER, parameters);
                 }
+                */
+                try {
+                    dumpOrder(out, id, status);
+                    completed++;
+                }catch (Exception e) {
+                    failed++;
+                }
             }
         }
 
@@ -691,6 +713,42 @@ public class OrderService extends CatalogTaggedResourceService {
             saveJobInfo(status);
         }catch (Exception e) {
             log.error("Failed to save job info status={} e=", status, e);
+        }
+    }
+
+    private void dumpOrders(PrintStream out, List<URI> orderIDs, OrderJobStatus status) {
+        for (URI id : orderIDs) {
+            try {
+                dumpOrder(out, id, status);
+            }catch (Exception e) {
+                //ignore
+            }
+        }
+    }
+
+    private void dumpOrder(PrintStream out, URI id, OrderJobStatus status) throws Exception {
+        Order order = null;
+        Object[] parameters = null;
+        OrderStatus orderStatus;
+        try {
+            order = _dbClient.queryObject(Order.class, id);
+            orderStatus = status.getStatus();
+            if (orderStatus != null && !orderStatus.name().equals(order.getOrderStatus())) {
+                log.info("Order({})'s status {} is not {}, so skip downloading", id, order.getOrderStatus(),
+                        orderStatus);
+                return;
+            }
+
+            parameters = order.auditParameters();
+            log.info("lbyh id={}", id);
+            dumpOrder(out, order);
+            status.addCompleted(1);
+            saveJobInfo(status);
+            auditOpSuccess(OperationTypeEnum.DOWNLOAD_ORDER, parameters);
+        } catch (Exception e) {
+            log.error("Failed to download order {}", id);
+            auditOpFailure(OperationTypeEnum.DOWNLOAD_ORDER, parameters);
+            throw e;
         }
     }
 
@@ -969,27 +1027,7 @@ public class OrderService extends CatalogTaggedResourceService {
                     new InvalidParameterException("tenant IDs should not be empty"));
         }
 
-        OrderStatus orderStatus = null;
-        if (!statusStr.isEmpty()) {
-            try {
-                orderStatus = OrderStatus.valueOf(statusStr);
-
-                if (!orderStatus.canBeDeleted()) {
-                    throw new InvalidParameterException("Invalid order status");
-                }
-            }catch (Exception e) {
-                StringBuilder builder = new StringBuilder("The value should be one of");
-                for (OrderStatus s: OrderStatus.values()) {
-                    if (s.canBeDeleted()) {
-                        builder.append(" ")
-                                .append(s.name());
-                    }
-                }
-
-                throw APIException.badRequests.invalidParameterWithCause(SearchConstants.ORDER_STATUS_PARAM2, statusStr,
-                        new InvalidParameterException(builder.toString()));
-            }
-        }
+        OrderStatus orderStatus = getOrderStatus(statusStr, true);
 
         if (isJobRunning()) {
             throw APIException.badRequests.cannotExecuteOperationWhilePendingTask("Deleting/Downloading orders");
@@ -1023,6 +1061,31 @@ public class OrderService extends CatalogTaggedResourceService {
         }
 
         return Response.ok().build();
+    }
+
+    private OrderStatus getOrderStatus(String statusStr, boolean deleteOnly) {
+        OrderStatus orderStatus = null;
+        if (!statusStr.isEmpty()) {
+            try {
+                orderStatus = OrderStatus.valueOf(statusStr);
+
+                if (deleteOnly && !orderStatus.canBeDeleted()) {
+                    throw new InvalidParameterException("Invalid order status");
+                }
+            }catch (Exception e) {
+                StringBuilder builder = new StringBuilder("The value should be one of");
+                for (OrderStatus s: OrderStatus.values()) {
+                    if (s.canBeDeleted()) {
+                        builder.append(" ")
+                                .append(s.name());
+                    }
+                }
+
+                throw APIException.badRequests.invalidParameterWithCause(SearchConstants.ORDER_STATUS_PARAM2, statusStr,
+                        new InvalidParameterException(builder.toString()));
+            }
+        }
+        return orderStatus;
     }
 
     public void saveJobInfo(OrderJobStatus status) throws Exception {

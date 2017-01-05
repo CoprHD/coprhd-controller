@@ -2872,10 +2872,6 @@ public class VmaxExportOperations implements ExportMaskOperations {
                             .unableToDeleteIGs(groupName));
                     return false;
                 }
-
-                // Perform post-mask-delete cleanup steps
-                ExportUtils.cleanupAssociatedMaskResources(_dbClient, exportMask);
-
             } else {
                 String opName = ResourceOperationTypeEnum.DELETE_EXPORT_GROUP.getName();
                 ServiceError serviceError = DeviceControllerException.errors.jobFailedOp(opName);

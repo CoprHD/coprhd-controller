@@ -98,7 +98,7 @@ public final class InvokeTestFailure {
     /**
      * Regex pattern for extracting the method name from failure 015.
      */
-    private static final String invokeMethodPattern = String.format("^.*%s(\\w+)$", ARTIFICIAL_FAILURE_015);
+    private static final String invokeMethodPattern = String.format("^.*%s(\\w+|\\*)$", ARTIFICIAL_FAILURE_015);
     private static final int METHOD_NAME_GROUP = 1;
 
     private static volatile String _beanName;
@@ -200,7 +200,8 @@ public final class InvokeTestFailure {
         Matcher matcher = p.matcher(invokeArtificialFailure);
         if (matcher.matches()) {
             String failOnMethodName = matcher.group(METHOD_NAME_GROUP);
-            if (!Strings.isNullOrEmpty(failOnMethodName) && failOnMethodName.equalsIgnoreCase(methodName)) {
+            if (!Strings.isNullOrEmpty(failOnMethodName)
+                    && (failOnMethodName.equalsIgnoreCase(methodName) || failOnMethodName.equalsIgnoreCase("*"))) {
                 log("Injecting failure: " + ARTIFICIAL_FAILURE_015 + methodName);
                 throw new WBEMException("CIM_ERROR_FAILED (Unable to connect)");
             }

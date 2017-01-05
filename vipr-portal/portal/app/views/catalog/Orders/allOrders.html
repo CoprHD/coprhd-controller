@@ -172,9 +172,7 @@ function deleteOrders() {
 function downloadOrders() {
     console.info("start to download");
     /*if (isSelectedAll) {
-        var url = #{jsAction @downloadOrders()/}()+"?startDate=${startDate}&endDate=${endDate}&maxDays=${maxDays}";
     } else {
-        var url = #{jsAction @downloadOrders(':ids')/}({"ids":selectedIds});
     }*/
     console.info(url);
     window.open(url, "_blank");

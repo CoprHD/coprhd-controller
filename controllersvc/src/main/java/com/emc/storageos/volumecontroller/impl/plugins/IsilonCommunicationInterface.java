@@ -1925,11 +1925,11 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
              *   
              */
             
-            for (String discoverPath : _discPathsForUnManaged) {
+            for (String umfsDiscoverPath : _discPathsForUnManaged) {
 
-                int accessZoneDiscPathLength = computeCustomConfigPathLengths(discoverPath);
+                int accessZoneDiscPathLength = computeCustomConfigPathLengths(umfsDiscoverPath);
 
-                IsilonApi.IsilonList<IsilonSmartQuota> quotas = isilonApi.listQuotas(null, discoverPath);
+                IsilonApi.IsilonList<IsilonSmartQuota> quotas = isilonApi.listQuotas(null, umfsDiscoverPath);
 
                 for (IsilonSmartQuota quota : quotas.getList()) {
 

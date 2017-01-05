@@ -827,12 +827,13 @@ public class VcenterDiscoveryAdapter extends EsxHostDiscoveryAdapter {
         return null;
     }
 
-    private void handleDatastoreRenameAndDelete(String candidateDatastoreName, Volume volume, Map<Datastore, Set<HostScsiDisk>> datastoreDiskMap, URI vcenterURI) {
+    private void handleDatastoreRenameAndDelete(String candidateDatastoreName, Volume volume,
+            Map<Datastore, Set<HostScsiDisk>> datastoreDiskMap, URI vcenterURI) {
         Datastore candidateDatastore = null;
         Set<Datastore> datastoresFromVcenter = datastoreDiskMap.keySet();
-        //check if the datastore is present in vcenter
+        // check if the datastore is present in vcenter
         for (Datastore datastoreFromVcenter : datastoresFromVcenter) {
-            if(datastoreFromVcenter.getName().equals(candidateDatastoreName)) {
+            if (datastoreFromVcenter.getName().equals(candidateDatastoreName)) {
                 candidateDatastore = datastoreFromVcenter;
             }
             if (candidateDatastore != null) { // found the datastore hence no need to process further
@@ -841,7 +842,8 @@ public class VcenterDiscoveryAdapter extends EsxHostDiscoveryAdapter {
         }
         // not found the datastore with name hence either it is deleted or renamed.
         if (candidateDatastore == null) {
-            //check with volume wwn if newDatastore not found then it was deleted or else if it is found then it is renamed.
+            // check with volume wwn if newDatastore not found then it was deleted or else if it is found then it is
+            // renamed.
             Datastore newDatastore = getDatastoreWithVolumeWwn(volume, datastoreDiskMap);
             if (newDatastore == null) {
                 EventUtils.createActionableEvent(dbClient, EventUtils.EventCode.VCENTER_DATASTORE_DELETE, volume.getTenant().getURI(),
@@ -872,7 +874,7 @@ public class VcenterDiscoveryAdapter extends EsxHostDiscoveryAdapter {
             for (Datastore ds : vcenterAPI.listDatastores(dc)) {
                 if (!(ds.getInfo() instanceof VmfsDatastoreInfo)) {
                     continue;
-                }               
+                }
                 Set<HostScsiDisk> disks = new HashSet<HostScsiDisk>(getDiskList(hosts, ds));
                 datastoreDiskMap.put(ds, disks);
             }

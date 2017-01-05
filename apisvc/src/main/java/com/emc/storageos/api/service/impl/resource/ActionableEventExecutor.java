@@ -480,7 +480,6 @@ public class ActionableEventExecutor {
         String taskId = UUID.randomUUID().toString();
         Operation op = _dbClient.createTaskOpStatus(Volume.class, volume, taskId,
                 ResourceOperationTypeEnum.UPDATE_DATASTORE_NAME);
-        op.pending();
         Volume volumeObj = _dbClient.queryObject(Volume.class, volume);
         computeController.processDatastoreRename(volume, taskId, datastore, oldDatastoreName, vcenterURI);
         return toTask(volumeObj, taskId, op);
@@ -532,7 +531,6 @@ public class ActionableEventExecutor {
         String taskId = UUID.randomUUID().toString();
         Operation op = _dbClient.createTaskOpStatus(Volume.class, volume, taskId,
                 ResourceOperationTypeEnum.UPDATE_EXTERNAL_DELETED_DATASTORE);
-        op.pending();
         Volume volumeObj = _dbClient.queryObject(Volume.class, volume);
         computeController.processExternalDatastoreDelete(volume, taskId, oldDatastoreName, vcenterURI);
         return toTask(volumeObj, taskId, op);

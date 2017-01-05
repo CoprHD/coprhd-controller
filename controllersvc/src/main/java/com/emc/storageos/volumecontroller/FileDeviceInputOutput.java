@@ -89,8 +89,6 @@ public class FileDeviceInputOutput {
     private List<NfsACE> nfsAclsToDelete = new ArrayList<>();
 
     // New Addition for File Policy Work
-    private List<FilePolicy> fileReplicationPolicies;
-    private List<FilePolicy> fileSnapshotPolicies;
     private FilePolicy fileProtectionPolicy;
     private PolicyStorageResource policyStorageResource;
 
@@ -1043,22 +1041,6 @@ public class FileDeviceInputOutput {
 
     public void setvNAS(VirtualNAS vNAS) {
         this.vNAS = vNAS;
-    }
-
-    public List<FilePolicy> getFileReplicationPolicies() {
-        return fileReplicationPolicies;
-    }
-
-    public void setFileReplicationPolicies(List<FilePolicy> fileReplicationPolicies) {
-        this.fileReplicationPolicies = fileReplicationPolicies;
-    }
-
-    public List<FilePolicy> getFileSnapshotPolicies() {
-        return fileSnapshotPolicies;
-    }
-
-    public void setFileSnapshotPolicies(List<FilePolicy> fileSnapshotPolicies) {
-        this.fileSnapshotPolicies = fileSnapshotPolicies;
     }
 
     public PolicyStorageResource getPolicyStorageResource() {

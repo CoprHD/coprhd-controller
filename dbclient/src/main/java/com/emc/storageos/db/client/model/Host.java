@@ -5,6 +5,10 @@
 package com.emc.storageos.db.client.model;
 
 import java.net.URI;
+import java.nio.ByteBuffer;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.UUID;
 
 import com.emc.storageos.db.client.util.EndpointUtility;
 
@@ -42,19 +46,32 @@ public class Host extends AbstractComputeSystem {
     private String provisioningStatus;
     private StringSet volumeGroupIds;
     private StringMap preferredPools;
+    private String uuid;
+    private String bios;
+    public static String ALTER_ID_FIELD = "hostName";
+
+    private Map<String,Double> biosToSmBiosMap = new HashMap<>();
+
+    public Host() {
+        //TODO: get real data mapping supported SMBIOS version to UCS blade BIOS
+        biosToSmBiosMap.put("BIOSV11111",2.2);
+        biosToSmBiosMap.put("BIOSV11112",2.4);
+        biosToSmBiosMap.put("BIOSV11113",2.6);
+        biosToSmBiosMap.put("BIOSV11114",2.6);
+        biosToSmBiosMap.put("BIOSV11115",2.8);
+    }
 
     /**
      * This is for recording the volumeId that was used in the OsInstallation phase. Will be used to remove the associated volume when
      * deactivating a Host
      */
     private URI bootVolumeId;
+
     /**
      * This is for recording the ComputeVirtualPool that was used to create the host (bare metal) - will be used to determine if the VCP is
      * in use
      */
     private URI computeVirtualPoolId;
-    public static String ALTER_ID_FIELD = "hostName";
-    private String uuid;
 
     /**
      * Gets the host type which is an instance of {@link HostType}
@@ -368,6 +385,53 @@ public class Host extends AbstractComputeSystem {
     public void setUuid(String uuid) {
         this.uuid = uuid;
         setChanged("uuid");
+    }
+
+    @Name("bios")
+    public String getBios() {
+        return bios;
+    }
+
+    public void setBios(String bios) {
+        this.bios = bios;
+        setChanged("bios");
+    }
+
+    /**
+     * Older hosts report UUID in Big-Endian or "network-byte-order" (Most Significant Byte first)
+     *     e.g.: {00112233-4455-6677-8899-AABBCCDDEEFF}
+     * Newer Hosts' BIOSs supporting SMBIOS 2.6 or later report UUID in Little-Endian or "wire-format", where
+     *   first 3 parts are in byte revered order (aka: 'mixed-endian')
+     *     e.g.: {33221100-5544-7766-8899-AABBCCDDEEFF}
+     **/
+    public String getUuidOldFormat() {
+        if( !hasMixedEndianUuid() ) {  //TODO: update to detect all BIOS, not just ones in map?
+            return uuid;
+        } else {
+            UUID uuidObj = UUID.fromString(uuid);
+            ByteBuffer bb = ByteBuffer.wrap(new byte[16]);
+            bb.putLong(uuidObj.getMostSignificantBits());
+            bb.putLong(uuidObj.getLeastSignificantBits());
+            byte[] reorderedUuid = new byte[16];
+            reorderedUuid[0] = bb.get(3); // reverse bytes in 1st part
+            reorderedUuid[1] = bb.get(2);
+            reorderedUuid[2] = bb.get(1);
+            reorderedUuid[3] = bb.get(0);
+            reorderedUuid[4] = bb.get(5); // reverse bytes in 2nd part
+            reorderedUuid[5] = bb.get(4);
+            reorderedUuid[6] = bb.get(7); // reverse bytes in 3rd part
+            reorderedUuid[7] = bb.get(6);
+            for(int byteIndex = 8; byteIndex < 16; byteIndex++ ) {
+                reorderedUuid[byteIndex] = bb.get(byteIndex); // copy 4th & 5th parts unchanged
+            }
+            bb = ByteBuffer.wrap(reorderedUuid);
+            UUID uuidNew = new UUID(bb.getLong(), bb.getLong());
+            return uuidNew.toString();
+        }
+    }
+
+    public boolean hasMixedEndianUuid() {
+        return biosToSmBiosMap.get(bios) < 2.6;
     }
 
     @Name("provisioningStatus")

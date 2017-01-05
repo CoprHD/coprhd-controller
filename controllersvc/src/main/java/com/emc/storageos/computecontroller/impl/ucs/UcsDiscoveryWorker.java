@@ -2061,10 +2061,7 @@ public class UcsDiscoveryWorker {
     }
 
     private void matchComputeBladesToHosts(ComputeSystem cs) {
-        URIQueryResultList uris = new URIQueryResultList();
-        _dbClient.queryByConstraint(ContainmentConstraint.Factory
-                .getComputeSystemComputeElemetsConstraint(cs.getId()), uris);
-        HostToComputeElementMatcher.matchComputeElementsToHostsByUuid(uris, _dbClient);
+        HostToComputeElementMatcher.matchHostsToComputeElements(_dbClient);
     }
 
     /**

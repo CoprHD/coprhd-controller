@@ -139,7 +139,7 @@ public class EsxHostDiscoveryAdapter extends AbstractHostDiscoveryAdapter {
                 && getVersionValidator().isValidEsxVersion(esxVersion)) {
             discoverHost(host, changes);
             processHostChanges(changes);
-            matchHostsToComputeElements(host.getId());
+            matchHostsToComputeElements();
         } else {
             host.setCompatibilityStatus(CompatibilityStatus.INCOMPATIBLE.name());
             save(host);
@@ -152,13 +152,10 @@ public class EsxHostDiscoveryAdapter extends AbstractHostDiscoveryAdapter {
 
     /**
      * Match hosts to compute elements
-     * 
-     * @param hostId The ID of the host to find a matching ComputeElement (blade) for
-     * 
      */
     @Override
-    public void matchHostsToComputeElements(URI hostId) {
-        HostToComputeElementMatcher.matchHostsToComputeElementsByUuid(hostId, getDbClient());
+    public void matchHostsToComputeElements() {
+        HostToComputeElementMatcher.matchHostsToComputeElements(getDbClient());
     }
 
     /**

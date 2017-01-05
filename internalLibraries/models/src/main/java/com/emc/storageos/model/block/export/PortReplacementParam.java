@@ -28,7 +28,7 @@ public class PortReplacementParam {
         this.oldPort = oldPort;
     }
 
-    @XmlElement(name = "new_port", required = true)
+    @XmlElement(name = "new_port", required = false)
     public URI getNewPort() {
         return newPort;
     }
@@ -38,7 +38,7 @@ public class PortReplacementParam {
     }
     
     public void log(Logger log) {
-        log.info(String.format("new port %s -> old port %s", newPort, oldPort));
+        log.info(String.format("old port %s -> new port %s", oldPort, newPort));
     }
 
 }

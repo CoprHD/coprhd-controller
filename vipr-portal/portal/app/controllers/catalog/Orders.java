@@ -137,7 +137,13 @@ public class Orders extends OrderExecution {
         String deleteStatus = dataTable.getDeleteJobStatus();
         if (deleteStatus != null) {
             flash.put("info", deleteStatus);
-            renderArgs.put("disableDeleteAll", 1);
+            renderArgs.put("disableDeleteAllAndDownload", 1);
+        } else {
+            String downloadStatus = dataTable.getDownloadJobStatus();
+            if (downloadStatus != null) {
+                flash.put("info", downloadStatus);
+                renderArgs.put("disableDeleteAllAndDownload", 1);
+            }
         }
 
         addMaxDaysRenderArgs();
@@ -217,11 +223,9 @@ public class Orders extends OrderExecution {
 
     @FlashException(value = "allOrders")
     @Restrictions({ @Restrict("TENANT_ADMIN") })
-    public static void downloadOrders() {
+    public static void downloadOrders(String ids) {
         RecentUserOrdersDataTable dataTable = new RecentUserOrdersDataTable();
-        dataTable.downloadOrders(params.get("startDate"), params.get("endDate"), params.get("maxDays", Integer.class),
-                params.get("ids"));
-
+        dataTable.downloadOrders(params.get("startDate"), params.get("endDate"), params.get("maxDays", Integer.class), ids);
     }
 
     @FlashException(referrer = { "receiptContent" })

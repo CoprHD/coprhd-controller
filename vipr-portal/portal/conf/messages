@@ -3149,6 +3149,8 @@ orders.download=Download Orders
 orders.download.description=Click Confirm to delete the selected (checked) orders.
 orders.download.all=All rows are checked, all <b style="color:red">%s</b> orders will be downloaded.
 orders.download.help=Only one 'Download/Delete' orders job is allowed at any given time.
+orders.download.status=Downloading orders from %s to %s is in progress: %s of %s orders has been successfully downloaded, %s orders failed.
+orders.download.status.notime=Downloading orders is in progress: %s of %s orders has been successfully downloaded, %s orders failed.
 
 catalog.corrupted-service.title=Corrupted Service
 catalog.corrupted-service.description=Unable to find this catalog service - it may have been removed or is configured incorrectly. You can still view the order details below.

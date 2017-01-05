@@ -42,7 +42,7 @@
                   selectable: true, 
                   options: ['fnServerParams': 'addParams']}
         #{DataTable.buttonBar}
-            #{Form.button name:'button.download', class:'primary', icon:'download', disabled: disableDeleteAll /}
+            #{Form.button name:'button.download', class:'primary', icon:'download', disabled: disableDeleteAllAndDownload /}
             #{Form.button name:'button.delete', class:'danger', icon:'trash' /}
         #{/DataTable.buttonBar}
 
@@ -98,8 +98,8 @@ $(document).ready(function() {
         $(".forRange").hide();
     }
     
-    var disableDeleteAll = "${disableDeleteAll}";
-    if (disableDeleteAll == 1) {
+    var disableDeleteAllAndDownload = "${disableDeleteAllAndDownload}";
+    if (disableDeleteAllAndDownload == 1) {
     	$('input[name=selectAll]').prop('disabled', true);
     }
     
@@ -171,9 +171,11 @@ function deleteOrders() {
 
 function downloadOrders() {
     console.info("start to download");
-    /*if (isSelectedAll) {
+    if (isSelectedAll) {
+        var url = #{jsAction @downloadOrders()/}()+"?startDate=${startDate}&endDate=${endDate}&maxDays=${maxDays}";
     } else {
-    }*/
+        var url = #{jsAction @downloadOrders(':ids')/}({"ids":selectedIds});
+    }
     console.info(url);
     window.open(url, "_blank");
 }

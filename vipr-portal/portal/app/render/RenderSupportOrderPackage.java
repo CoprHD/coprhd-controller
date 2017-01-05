@@ -32,7 +32,7 @@ public class RenderSupportOrderPackage extends Result {
 
     private String getFilename() {
         String timestamp = SupportOrderPackageCreator.formatTimestamp(Calendar.getInstance());
-        return String.format("auditlogs-%s.zip", timestamp);
+        return String.format("orders-%s.zip", timestamp);
     }
 
     private String getContentType() {

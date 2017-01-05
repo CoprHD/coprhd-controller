@@ -92,7 +92,7 @@ public class RecentOrdersDataTable extends OrderDataTable {
 
     public String getDeleteJobStatus() {
         OrderJobInfo info = OrderUtils.queryOrderJob(JOB_TYPE_DELETE);
-        String status = null; // if the job is done, return null
+        String status = null; // if the job is done or no job, return null
         if (info != null && !info.isNoJobOrJobDone()) {
             status = MessagesUtils.get("orders.delete.status", new Date(info.getStartTime()), new Date(info.getEndTime()),
                     info.getCompleted(), info.getTotal(), info.getFailed());
@@ -100,18 +100,34 @@ public class RecentOrdersDataTable extends OrderDataTable {
         Logger.info("getDeleteJobStatus: {}", status);
         return status;
     }
-
-    public void downloadOrders(String startDate, String endDate, int maxDays, String orderIDs) {
-        this.setByStartEndDateOrMaxDays(startDate, endDate, maxDays);
+    
+    public void downloadOrders(String startDate, String endDate, Integer maxDays, String orderIDs) {
         SupportOrderPackageCreator creator = new SupportOrderPackageCreator(BourneUtil.getCatalogClient());
         if (StringUtils.isNotEmpty(orderIDs)) {
             creator.setOrderIDs(orderIDs);
         } else {
+            this.setByStartEndDateOrMaxDays(startDate, endDate, maxDays);
             creator.setStartDate(this.startDate);
             creator.setEndDate(this.endDate);
             creator.setTenantIDs(this.tenantId);
         }
         RenderSupportOrderPackage.renderSupportAuditPackage(creator);
+    }
+    
+    public String getDownloadJobStatus() {
+        OrderJobInfo info = OrderUtils.queryOrderJob(JOB_TYPE_DOWNLOAD);
+        String status = null; // if the job is done or no job, return null
+        if (info != null && !info.isNoJobOrJobDone()) {
+            if (info.getStartTime() == 0) {
+                status = MessagesUtils.get("orders.download.status.notime",
+                        info.getCompleted(), info.getTotal(), info.getFailed());
+            } else {
+                status = MessagesUtils.get("orders.download.status", new Date(info.getStartTime()), new Date(info.getEndTime()),
+                        info.getCompleted(), info.getTotal(), info.getFailed());
+            }
+        }
+        Logger.info("getDownloadJobStatus: {}", status);
+        return status;
     }
 
     /**

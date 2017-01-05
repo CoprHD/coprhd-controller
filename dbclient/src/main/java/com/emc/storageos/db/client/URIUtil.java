@@ -36,7 +36,7 @@ public class URIUtil {
 
     /**
      * creates a URI for an object of type clazz
-     * 
+     *
      * @param clazz
      * @return
      */
@@ -58,7 +58,7 @@ public class URIUtil {
 
     /**
      * creates a URI for an VirtualDataCenter object. no vdc short id required
-     * 
+     *
      * @return
      */
     public static URI createVirtualDataCenterId(String vdcId) {
@@ -123,7 +123,7 @@ public class URIUtil {
          * [A-F0-9]{8} - used for matchin UUID, This segment is 8 hex characters.
          * The full UUID pattern is all Hex characters seperated by '-' in specific quantities
          * :([A-Z0-9]+)? - any amount of letters or numbers preceded by a colon
-         * 
+         *
          * Only legal characters (letters(any case), numbers, '-', ':')
          */
 
@@ -175,7 +175,7 @@ public class URIUtil {
 
     /**
      * Get the VDC Id embedded in the URI string, or null if none
-     * 
+     *
      * @param id a DataObject URI string
      * @return the vdc id
      */
@@ -185,7 +185,7 @@ public class URIUtil {
 
     /**
      * Get the VDC Id embedded in the URI, or null if none
-     * 
+     *
      * @param id a DataObject URI
      * @return the vdc id
      */
@@ -218,7 +218,7 @@ public class URIUtil {
 
     /**
      * Gets the value of the URI as a string, returns null if the URI is null.
-     * 
+     *
      * @param value
      *            the URI.
      * @return the string value of the URI.
@@ -248,7 +248,7 @@ public class URIUtil {
 
     /**
      * Converts a string to a URI, null safe.
-     * 
+     *
      * @param value
      *            the string value.
      * @return the URI.
@@ -259,7 +259,7 @@ public class URIUtil {
 
     /**
      * Converts a collection of strings to a list of URIs, null safe.
-     * 
+     *
      * @param values
      *            the string values.
      * @return the URIs.
@@ -279,7 +279,7 @@ public class URIUtil {
 
     /**
      * Converts an array of strings to a list of URIs, null safe.
-     * 
+     *
      * @param values
      *            the string values.
      * @return the URIs.
@@ -295,7 +295,7 @@ public class URIUtil {
 
     /**
      * Determines if the IDs are equal (and non-null).
-     * 
+     *
      * @param first
      *            the first ID.
      * @param second
@@ -311,7 +311,7 @@ public class URIUtil {
 
     /**
      * Checks if the ID is null (or matches the NULL_URI).
-     * 
+     *
      * @param id
      *            the ID.
      * @return true if the ID is null.

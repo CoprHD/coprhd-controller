@@ -56,7 +56,6 @@ import controllers.security.Security;
 @With(Common.class)
 public class OrdersApi extends Controller {
     private static final int DEFAULT_MAX_BULK_SIZE = 1000;
-    // private static final String DATE_TIME_FORMAT = "yyyy-MM-dd_HH:mm:ss";
 
     public static void orders() {
         ViPRCatalogClient2 catalog = getCatalogClient();
@@ -161,31 +160,7 @@ public class OrdersApi extends Controller {
         }
     }
 
-    /*
-    private static Date getDateTimestamp(String timestampStr) {
-        if (StringUtils.isBlank(timestampStr)) {
-            return null;
-        }
-
-        try {
-            SimpleDateFormat dateFormat = new SimpleDateFormat(DATE_TIME_FORMAT);
-            return dateFormat.parse(timestampStr);
-        } catch (ParseException pe) {
-            return getDateFromLong(timestampStr);
-        }
-    }
-
-    private static Date getDateFromLong(String timestampStr) {
-        try {
-            return new Date(Long.parseLong(timestampStr));
-        } catch (NumberFormatException n) {
-            throw APIException.badRequests.invalidDate(timestampStr);
-        }
-    }
-    */
-
     private static void updateOrderTags(URI orderId, TagAssignment assignment) {
-
         // shouldn't happen but we'll protect against it anyway.
         if (assignment == null) {
             error(401, Messages.get("OrdersApi.invalidTagChangesElement"));

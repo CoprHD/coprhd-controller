@@ -1,3 +1,7 @@
+/*
+ * Copyright (c) 2016 EMC Corporation
+ * All Rights Reserved
+ */
 package com.emc.storageos.db.client.impl;
 
 import com.netflix.astyanax.annotations.Component;
@@ -31,7 +35,6 @@ public class ClassNameTimeSeriesIndexColumnName implements CompositeIndexColumnN
     public ClassNameTimeSeriesIndexColumnName(String className, String id, UUID timeUUID) {
         this(-1, className, id, "", timeUUID);
     }
-
 
     public ClassNameTimeSeriesIndexColumnName(long timestamp, String className, String id, String four, UUID timeUUID) {
         this.timeInMicros = timestamp < 0 ? TimeUUIDUtils.getMicrosTimeFromUUID(timeUUID): timestamp;

@@ -165,7 +165,6 @@ public class MigrationHandlerImpl implements MigrationHandler {
      */
     @Override
     public boolean run() throws DatabaseException {
-        log.info("lbya0");
         Date startTime = new Date();
         // set state to migration_init and wait for all nodes to reach this state
         setDbConfig(DbConfigConstants.MIGRATION_INIT);
@@ -212,7 +211,7 @@ public class MigrationHandlerImpl implements MigrationHandler {
         String currentSchemaVersion = null;
         int retryCount = 0;
         while (retryCount < MAX_MIGRATION_RETRY) {
-            log.info("Migration handlers - Start. Trying to grab lock ...");
+            log.debug("Migration handlers - Start. Trying to grab lock ...");
             try {
                 // grab global lock for migration
                 lock = getLock(DB_MIGRATION_LOCK);
@@ -493,7 +492,7 @@ public class MigrationHandlerImpl implements MigrationHandler {
                     }
                 }
 
-                log.info("lbyt0 Invoking migration callback: {} class={} ", callback.getName(), callback.getClass().getName());
+                log.info("Invoking migration callback: {}", callback.getName());
                 try {
                     callback.process();
                 } catch (MigrationCallbackException ex) {

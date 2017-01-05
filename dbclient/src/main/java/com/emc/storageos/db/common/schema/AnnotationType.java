@@ -13,12 +13,14 @@ import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlTransient;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.google.common.base.Objects;
+
 import com.emc.storageos.db.client.model.AlternateId;
 import com.emc.storageos.db.client.model.DecommissionedIndex;
 import com.emc.storageos.db.client.model.uimodels.Order;
-import com.google.common.base.Objects;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class AnnotationType implements SchemaObject {
     private static final Logger log = LoggerFactory.getLogger(AnnotationType.class);
@@ -136,31 +138,15 @@ public class AnnotationType implements SchemaObject {
         if (parent instanceof FieldInfo) {
             FieldInfo fieldInfo = (FieldInfo)parent;
             if (name.equals(DecommissionedIndex.class.getSimpleName()) && fieldInfo.getName().equals(Order.SUBMITTED)) {
-                log.info("lbyx2");
+                log.info("ignore {} of field {}", DecommissionedIndex.class.getSimpleName(), Order.SUBMITTED);
                 return true;
             }
 
             if (name.equals(AlternateId.class.getSimpleName()) && fieldInfo.getName().equals(Order.SUBMITTED_BY_USER_ID)) {
-                log.info("lbyx3");
+                log.info("ignore {} of field {}", AlternateId.class.getSimpleName(), Order.SUBMITTED_BY_USER_ID);
                 return true;
             }
         }
         return false;
-    }
-
-    @Override
-    public String toString() {
-        StringBuilder builder = new StringBuilder();
-
-        builder.append("type:")
-                .append(type)
-                .append("\nname:")
-                .append(name)
-                .append("\nvalueList:")
-                .append(valueList)
-                .append("\nparent:")
-                .append(parent);
-
-        return builder.toString();
     }
 }

@@ -106,11 +106,11 @@ public class OrderService extends CatalogTaggedResourceService {
     private static final String ORDER_SERVICE_QUEUE_NAME="OrderService";
     private static final String ORDER_JOB_LOCK="order-jobs";
 
-    // private static final long INDEX_GC_GRACE_PERIOD=432000*1000L;
-    // public  static final long MAX_DELETED_ORDERS_PER_GC_PERIOD=300000L;
+    private static final long INDEX_GC_GRACE_PERIOD=432000*1000L;
+    public  static final long MAX_DELETED_ORDERS_PER_GC_PERIOD=300000L;
 
-    private static final long INDEX_GC_GRACE_PERIOD=3*60*1000L;
-    public  static final long MAX_DELETED_ORDERS_PER_GC_PERIOD=100L;
+    // private static final long INDEX_GC_GRACE_PERIOD=3*60*1000L;
+    // public  static final long MAX_DELETED_ORDERS_PER_GC_PERIOD=100L;
 
     private static int SCHEDULED_EVENTS_SCAN_INTERVAL = 300;
     private int scheduleInterval = SCHEDULED_EVENTS_SCAN_INTERVAL;
@@ -281,7 +281,6 @@ public class OrderService extends CatalogTaggedResourceService {
      */
     @Override
     protected SearchResults getOtherSearchResults(Map<String, List<String>> parameters, boolean authorized) {
-        log.info("lbyc00");
         StorageOSUser user = getUserFromContext();
         String tenantId = user.getTenantId();
         if (parameters.containsKey(SearchConstants.TENANT_ID_PARAM)) {
@@ -328,8 +327,6 @@ public class OrderService extends CatalogTaggedResourceService {
                 String maxCountParam = parameters.get(SearchConstants.ORDER_MAX_COUNT).get(0);
                 maxCount = Integer.parseInt(maxCountParam);
             }
-
-            log.info("lbyc0: maxCount={} startTime={}, endTime={}", maxCount, startTime, endTime);
 
             if (startTime.after(endTime)) {
                 throw APIException.badRequests.endTimeBeforeStartTime(startTime.toString(), endTime.toString());
@@ -598,10 +595,11 @@ public class OrderService extends CatalogTaggedResourceService {
     public Response downloadOrders( @DefaultValue("") @QueryParam(SearchConstants.START_TIME_PARAM) String startTimeStr,
                                   @DefaultValue("") @QueryParam(SearchConstants.END_TIME_PARAM) String endTimeStr,
                                   @DefaultValue("") @QueryParam(SearchConstants.TENANT_IDS_PARAM) String tenantIDsStr,
+                                  @DefaultValue("") @QueryParam(SearchConstants.ORDER_STATUS_PARAM2) String orderStatusStr,
                                   @DefaultValue("") @QueryParam(SearchConstants.ORDER_IDS) String orderIDsStr)
             throws Exception {
-        log.info("lbyk:export orders startTime={}, endTime={} tid={} orderIDs={}",
-                new Object[] {startTimeStr, endTimeStr, tenantIDsStr, orderIDsStr});
+        log.info("lbyk:export orders startTime={}, endTime={} tid={} orderIDs={} status={}",
+                new Object[] {startTimeStr, endTimeStr, tenantIDsStr, orderIDsStr, orderStatusStr});
 
         if (tenantIDsStr.isEmpty() && orderIDsStr.isEmpty()) {
             InvalidParameterException cause = new InvalidParameterException("Both tenant and order IDs are empty");
@@ -615,6 +613,9 @@ public class OrderService extends CatalogTaggedResourceService {
             throw APIException.badRequests.endTimeBeforeStartTime(startTimeStr, endTimeStr);
         }
 
+        OrderStatus orderStatus = getOrderStatus(orderStatusStr, false);
+        log.info("lbyt0: status={} str={}", orderStatus, orderStatusStr);
+
         if (isJobRunning()) {
             throw APIException.badRequests.cannotExecuteOperationWhilePendingTask("Deleting/Downloading orders");
         }
@@ -627,7 +628,16 @@ public class OrderService extends CatalogTaggedResourceService {
 
         final OrderJobStatus status =
                 new OrderJobStatus(OrderServiceJob.JobType.DOWNLOAD_ORDER, startTimeInMS, endTimeInMS,
-                        tids, tid, uid, null);
+                        tids, tid, uid, orderStatus);
+
+        List<URI> orderIDs = toIDs(SearchConstants.ORDER_IDS, orderIDsStr);
+        status.setOrderIDs(orderIDs);
+
+        if (!orderIDs.isEmpty()) {
+            status.setStartTime(0);
+            status.setEndTime(0);
+        }
+
         try {
             saveJobInfo(status);
         }catch (Exception e) {
@@ -649,48 +659,74 @@ public class OrderService extends CatalogTaggedResourceService {
         PrintStream out = new PrintStream(outputStream);
         out.println("ORDER DETAILS");
         out.println("-------------");
-        log.info("lbyk startTime={} endTime={}", startTime, endTime);
-        long completed = 0;
-        long failed = 0;
-        for (URI tid : tids) {
-            TimeSeriesConstraint constraint = TimeSeriesConstraint.Factory.getOrders(tid, startTime, endTime);
-            DbClientImpl dbclient = (DbClientImpl)_dbClient;
-            constraint.setKeyspace(dbclient.getLocalKeyspace());
-            try {
-                log.info("lbyk count={}", constraint.count());
-            }catch(Exception e) {
-                log.error("lbyk e=", e);
-            }
+        List<URI> orderIDs = status.getOrderIDs();
 
-            NamedElementQueryResultList ids = new NamedElementQueryResultList();
-            _dbClient.queryByConstraint(constraint, ids);
-            for (NamedElementQueryResultList.NamedElement namedID : ids) {
-                URI id = namedID.getId();
-                Order order = null;
-                Object[] parameters = null;
-                try {
-                    order = _dbClient.queryObject(Order.class, id);
-                    parameters = order.auditParameters();
-                    log.info("lbyh id={}", id);
-                    //out.print(order.toString());
-                    dumpOrder(out, order);
-                    status.addCompleted(1);
-                    completed++;
-                    saveJobInfo(status);
-                    auditOpSuccess(OperationTypeEnum.DOWNLOAD_ORDER, parameters);
-                } catch (Exception e) {
-                    failed++;
-                    log.error("Failed to download order {}", id);
-                    auditOpFailure(OperationTypeEnum.DOWNLOAD_ORDER, parameters);
+        if (!orderIDs.isEmpty()) {
+            dumpOrders(out, orderIDs, status);
+        }else {
+            long completed = 0;
+            long failed = 0;
+            for (URI tid : tids) {
+                TimeSeriesConstraint constraint = TimeSeriesConstraint.Factory.getOrders(tid, startTime, endTime);
+                DbClientImpl dbclient = (DbClientImpl) _dbClient;
+                constraint.setKeyspace(dbclient.getKeyspace(Order.class));
+
+                NamedElementQueryResultList ids = new NamedElementQueryResultList();
+                _dbClient.queryByConstraint(constraint, ids);
+                for (NamedElementQueryResultList.NamedElement namedID : ids) {
+                    URI id = namedID.getId();
+                    try {
+                        dumpOrder(out, id, status);
+                        completed++;
+                    } catch (Exception e) {
+                        failed++;
+                    }
                 }
             }
+            status.setTotal(completed+failed);
         }
 
-        status.setTotal(completed+failed);
         try {
             saveJobInfo(status);
         }catch (Exception e) {
             log.error("Failed to save job info status={} e=", status, e);
+        }
+    }
+
+    private void dumpOrders(PrintStream out, List<URI> orderIDs, OrderJobStatus status) {
+        for (URI id : orderIDs) {
+            try {
+                dumpOrder(out, id, status);
+            }catch (Exception e) {
+                //ignore
+            }
+        }
+    }
+
+    private void dumpOrder(PrintStream out, URI id, OrderJobStatus status) throws Exception {
+        Order order = null;
+        Object[] parameters = null;
+        OrderStatus orderStatus;
+        try {
+            order = _dbClient.queryObject(Order.class, id);
+            orderStatus = status.getStatus();
+            if (orderStatus != null && !orderStatus.name().equals(order.getOrderStatus())) {
+                log.info("Order({})'s status {} is not {}, so skip downloading", id, order.getOrderStatus(),
+                        orderStatus);
+                status.addFailed(1);
+                return;
+            }
+
+            parameters = order.auditParameters();
+            log.info("lbyh id={}", id);
+            dumpOrder(out, order);
+            status.addCompleted(1);
+            saveJobInfo(status);
+            auditOpSuccess(OperationTypeEnum.DOWNLOAD_ORDER, parameters);
+        } catch (Exception e) {
+            log.error("Failed to download order {}", id);
+            auditOpFailure(OperationTypeEnum.DOWNLOAD_ORDER, parameters);
+            throw e;
         }
     }
 
@@ -889,8 +925,6 @@ public class OrderService extends CatalogTaggedResourceService {
 
         List<URI> tids= toIDs(SearchConstants.TENANT_IDS_PARAM, tenantIDs);
 
-        log.info("start={} end={} tids={}", startTimeInMS, endTimeInMS, tids);
-
         Map<String, Long> countMap = orderManager.getOrderCount(tids, startTimeInMS, endTimeInMS);
 
         OrderCount resp = new OrderCount( countMap);
@@ -969,27 +1003,7 @@ public class OrderService extends CatalogTaggedResourceService {
                     new InvalidParameterException("tenant IDs should not be empty"));
         }
 
-        OrderStatus orderStatus = null;
-        if (!statusStr.isEmpty()) {
-            try {
-                orderStatus = OrderStatus.valueOf(statusStr);
-
-                if (!orderStatus.canBeDeleted()) {
-                    throw new InvalidParameterException("Invalid order status");
-                }
-            }catch (Exception e) {
-                StringBuilder builder = new StringBuilder("The value should be one of");
-                for (OrderStatus s: OrderStatus.values()) {
-                    if (s.canBeDeleted()) {
-                        builder.append(" ")
-                                .append(s.name());
-                    }
-                }
-
-                throw APIException.badRequests.invalidParameterWithCause(SearchConstants.ORDER_STATUS_PARAM2, statusStr,
-                        new InvalidParameterException(builder.toString()));
-            }
-        }
+        OrderStatus orderStatus = getOrderStatus(statusStr, true);
 
         if (isJobRunning()) {
             throw APIException.badRequests.cannotExecuteOperationWhilePendingTask("Deleting/Downloading orders");
@@ -1023,6 +1037,31 @@ public class OrderService extends CatalogTaggedResourceService {
         }
 
         return Response.ok().build();
+    }
+
+    private OrderStatus getOrderStatus(String statusStr, boolean deleteOnly) {
+        OrderStatus orderStatus = null;
+        if (!statusStr.isEmpty()) {
+            try {
+                orderStatus = OrderStatus.valueOf(statusStr);
+
+                if (deleteOnly && !orderStatus.canBeDeleted()) {
+                    throw new InvalidParameterException("Invalid order status");
+                }
+            }catch (Exception e) {
+                StringBuilder builder = new StringBuilder("The value should be one of");
+                for (OrderStatus s: OrderStatus.values()) {
+                    if (s.canBeDeleted()) {
+                        builder.append(" ")
+                                .append(s.name());
+                    }
+                }
+
+                throw APIException.badRequests.invalidParameterWithCause(SearchConstants.ORDER_STATUS_PARAM2, statusStr,
+                        new InvalidParameterException(builder.toString()));
+            }
+        }
+        return orderStatus;
     }
 
     public void saveJobInfo(OrderJobStatus status) throws Exception {

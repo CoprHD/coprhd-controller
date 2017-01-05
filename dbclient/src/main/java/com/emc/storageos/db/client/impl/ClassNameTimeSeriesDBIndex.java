@@ -1,10 +1,13 @@
+/*
+ * Copyright (c) 2016 EMC Corporation
+ * All Rights Reserved
+ */
 package com.emc.storageos.db.client.impl;
 
 import java.util.Map;
 import java.util.List;
 import java.util.UUID;
 
-import com.netflix.astyanax.util.TimeUUIDUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

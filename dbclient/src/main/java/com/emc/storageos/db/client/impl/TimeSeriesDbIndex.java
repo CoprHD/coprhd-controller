@@ -29,7 +29,6 @@ public class TimeSeriesDbIndex extends DbIndex<TimeSeriesIndexColumnName> {
     boolean addColumn(String recordKey, CompositeColumnName column, Object value,
                       String className, RowMutator mutator, Integer ttl, DataObject obj) {
         if (value.toString().isEmpty()) {
-            // empty string in alternate id field, ignore and continue
             _log.warn("Empty string in {} id field: {}", this.getClass().getSimpleName(), fieldName);
             return false;
         }
@@ -40,11 +39,7 @@ public class TimeSeriesDbIndex extends DbIndex<TimeSeriesIndexColumnName> {
 
         Order order = (Order)obj;
         String indexKey = order.getTenant();
-        _log.info("lbyc: indexKey={} indexCF={}", indexKey, indexCF);
-        ColumnListMutation<TimeSeriesIndexColumnName> indexColList =
-                mutator.getIndexColumnList(indexCF, indexKey);
-
-        _log.info("lbytt0: add indexKey={} key={} stack=", indexKey, recordKey, new Throwable());
+        ColumnListMutation<TimeSeriesIndexColumnName> indexColList = mutator.getIndexColumnList(indexCF, indexKey);
 
         TimeSeriesIndexColumnName indexEntry = new TimeSeriesIndexColumnName(className, recordKey, mutator.getTimeUUID());
 
@@ -59,8 +54,8 @@ public class TimeSeriesDbIndex extends DbIndex<TimeSeriesIndexColumnName> {
                          Map<String, List<Column<CompositeColumnName>>> fieldColumnMap) {
         UUID uuid = column.getName().getTimeUUID();
 
-        if (!className.equals("Order")) {
-            throw new RuntimeException("Can not create TimeSeriesIndex on non Order object");
+        if (!className.equals(Order.class.getSimpleName())) {
+            throw new RuntimeException("Can not remove TimeSeriesIndex on non Order object");
         }
 
         List<Column<CompositeColumnName>> value = fieldColumnMap.get("tenant");

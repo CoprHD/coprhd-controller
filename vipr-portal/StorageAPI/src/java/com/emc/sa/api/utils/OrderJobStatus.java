@@ -10,10 +10,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.net.URI;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.TreeMap;
+import java.util.*;
 
 import org.codehaus.jackson.annotate.JsonIgnore;
 import org.codehaus.jackson.map.ObjectMapper;
@@ -34,6 +31,7 @@ public class OrderJobStatus implements CoordinatorSerializable {
     private long startTime = -1;
     private long endTime = -1;
     private List<URI> tids;
+    private List<URI> orderIDs; //orders to be downloaded given by REST API
 
     //for audit log
     private URI tenantId;
@@ -64,6 +62,15 @@ public class OrderJobStatus implements CoordinatorSerializable {
 
         this.tenantId = tid;
         this.userId = uid;
+    }
+
+    public List<URI> getOrderIDs() {
+        return orderIDs;
+    }
+
+    public void setOrderIDs(List<URI> orderIDs) {
+        this.orderIDs = orderIDs;
+        total = orderIDs.size();
     }
 
     public OrderServiceJob.JobType getType() {
@@ -144,6 +151,11 @@ public class OrderJobStatus implements CoordinatorSerializable {
 
     public void setFailed(long n) {
         nFailed = n;
+    }
+
+    @JsonIgnore
+    public void addFailed(long n) {
+        nFailed +=n;
     }
 
     public long getTimeUsedPerOrder() {

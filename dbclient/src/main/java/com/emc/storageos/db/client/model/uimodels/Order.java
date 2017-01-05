@@ -4,11 +4,6 @@
  */
 package com.emc.storageos.db.client.model.uimodels;
 
-import org.apache.commons.lang.builder.ToStringBuilder;
-import org.apache.commons.lang.builder.ToStringStyle;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.net.URI;
 import java.util.Calendar;
 import java.util.Date;
@@ -18,8 +13,6 @@ import com.emc.storageos.model.valid.EnumType;
 
 @Cf("Order")
 public class Order extends ModelObject implements TenantDataObject {
-    private static final Logger log = LoggerFactory.getLogger(Order.class);
-
     public static final String SUBMITTED_BY_USER_ID = "submittedByUserId";
     public static final String SUBMITTED = "indexed";
     public static final String CATALOG_SERVICE_ID = "catalogServiceId";
@@ -199,7 +192,7 @@ public class Order extends ModelObject implements TenantDataObject {
 
     /**
      * Return value of indexed field
-     * 
+     *
      * @return
      */
     @Name("indexed")

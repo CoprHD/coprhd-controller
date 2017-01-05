@@ -30,7 +30,7 @@ public class DecommissionedDbIndex extends DbIndex<IndexColumnName> {
         ColumnListMutation<IndexColumnName> indexColList =
                 mutator.getIndexColumnList(indexCF, className);
 
-        IndexColumnName indexEntry = new IndexColumnName(value.toString(), recordKey, mutator.getTimeUUID());
+        IndexColumnName indexEntry = new IndexColumnName(value.toString(), recordKey, column.getTimeUUID());
 
         ColumnValue.setColumn(indexColList, indexEntry, null, ttl);
 

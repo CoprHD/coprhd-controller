@@ -8,6 +8,7 @@ import java.io.Serializable;
 import java.net.URI;
 import java.util.List;
 
+import org.apache.commons.collections.CollectionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -107,5 +108,26 @@ public class DataCollectionArrayAffinityJob extends DataCollectionJob implements
 
     public List<URI> getSystemIds() {
         return _systemIds;
+    }
+    
+    private boolean uriListsMatch(List<URI> list1, List<URI> list2) {
+        if (list1 == null && list2 == null) {
+            return true;
+        }
+        if ((list1 == null && list2 != null)
+                || (list1 != null && list2 == null)) {
+            return false;
+        }
+        
+        return CollectionUtils.isEqualCollection(list1, list2);
+    }
+    
+    @Override
+    public boolean matches(DataCollectionJob job) {
+        return (this.getClass().equals(job.getClass())
+                && getCompleter().getJobType().equals(job.getCompleter().getJobType())
+                && getNamespace().equals(job.getNamespace())
+                && uriListsMatch(getHostIds(), ((DataCollectionArrayAffinityJob) job).getHostIds())
+                && uriListsMatch(getSystemIds(), ((DataCollectionArrayAffinityJob) job).getSystemIds()) );
     }
 }

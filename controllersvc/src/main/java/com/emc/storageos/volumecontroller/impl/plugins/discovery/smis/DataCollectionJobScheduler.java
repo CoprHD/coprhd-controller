@@ -505,7 +505,7 @@ public class DataCollectionJobScheduler {
                 StorageProvider provider = null;
                 if (URIUtil.isType(systemURI, StorageSystem.class)) {
                     StorageSystem systemObj = _dbClient.queryObject(StorageSystem.class, systemURI);
-                    if (systemObj == null || !systemObj.getInactive()) {
+                    if (systemObj == null || systemObj.getInactive()) {
                         _logger.warn(String.format("StorageSystem %s is no longer in the DB or is inactive. It could have been deleted or decommissioned",
                                 systemURI));
                         continue;
@@ -617,8 +617,7 @@ public class DataCollectionJobScheduler {
                 DataCollectionTaskCompleter completer = job.getCompleter();
                 DiscoveredSystemObject system = (DiscoveredSystemObject)
                         _dbClient.queryObject(completer.getType(), completer.getId());
-                if (isDataCollectionJobSchedulingNeeded(system,
-                        job.getType(), job.isSchedulerJob(), job.getNamespace())) {
+                if (isDataCollectionJobSchedulingNeeded(system, job)) {
                     job.schedule(_dbClient);
                     if (job instanceof DataCollectionArrayAffinityJob) {
                         ((ArrayAffinityDataCollectionTaskCompleter) completer).setLastStatusMessage(_dbClient, "");
@@ -716,8 +715,11 @@ public class DataCollectionJobScheduler {
      *            requested by a user.
      * @return
      */
-    private <T extends DiscoveredSystemObject> boolean isDataCollectionJobSchedulingNeeded(
-            T system, String type, boolean scheduler, String namespace) {
+    private <T extends DiscoveredSystemObject> boolean isDataCollectionJobSchedulingNeeded(T system, DataCollectionJob job) {
+
+        String type = job.getType();
+        boolean scheduler = job.isSchedulerJob();
+        String namespace = job.getNamespace();
 
         // CTRL-8227 if an unmanaged volume discovery is requested by the user,
         // just run it regardless of last discovery time
@@ -763,8 +765,39 @@ public class DataCollectionJobScheduler {
                 (system instanceof Host || system instanceof Vcenter)) {
             type = ControllerServiceImpl.CS_DISCOVERY;
         }
+        
+        // check directly on the queue to determine if the job is in progress
+        boolean inProgress = ControllerServiceImpl.isDataCollectionJobInProgress(job);
+        boolean queued = ControllerServiceImpl.isDataCollectionJobQueued(job);
 
-        return isJobSchedulingNeeded(system.getId(), type, isInProgress(system, type), isError(system, type), scheduler, lastTime, nextTime);
+        if (!queued && !inProgress) {
+            // the job does not appear on the queue in either active or queued state
+            // check the storage system database status; if it shows that it's scheduled or in progress, something
+            // went wrong with a previous discovery. Set it to error and allow it to be rescheduled.
+            boolean dbInProgressStatus = isInProgress(system, type);
+            if (dbInProgressStatus) {
+                updateStatusToError(system, type);
+            }
+        }
+
+        return isJobSchedulingNeeded(system.getId(), type, queued, inProgress, isError(system, type), scheduler, lastTime, nextTime);
+    }
+
+    /**
+     * update Status to error
+     * 
+     * @param system
+     * @param type
+     */
+    private <T extends DiscoveredSystemObject> void updateStatusToError(T system, String type) {
+        if (ControllerServiceImpl.METERING.equalsIgnoreCase(type)) {
+            system.setMeteringStatus(DiscoveredDataObject.DataCollectionJobStatus.ERROR.toString());
+        } else if (ControllerServiceImpl.ARRAYAFFINITY_DISCOVERY.equalsIgnoreCase(type)) {
+            ((StorageSystem) system).setArrayAffinityStatus(DiscoveredDataObject.DataCollectionJobStatus.ERROR.toString());
+        } else {
+            system.setDiscoveryStatus(DiscoveredDataObject.DataCollectionJobStatus.ERROR.toString());
+        }
+        _dbClient.updateObject(system);
     }
 
     /**
@@ -779,7 +812,7 @@ public class DataCollectionJobScheduler {
         long nextTime = provider.getNextScanTime();
         long lastTime = provider.getLastScanTime();
 
-        return isJobSchedulingNeeded(provider.getId(), type, isInProgress(provider), isError(provider), scheduler, lastTime, nextTime);
+        return isJobSchedulingNeeded(provider.getId(), type, false, isInProgress(provider), isError(provider), scheduler, lastTime, nextTime);
     }
 
     /**
@@ -789,13 +822,13 @@ public class DataCollectionJobScheduler {
      * @param scheduler indicates if the job is initiated automatically by scheduler or if it is
      *            requested by a user.
      */
-    private boolean isJobSchedulingNeeded(URI id, String type, boolean inProgress,
-            boolean isError, boolean scheduler, long lastTime, long nextTime) {
+    private boolean isJobSchedulingNeeded(URI id, String type, boolean queued, boolean inProgress, boolean isError, boolean scheduler, long lastTime, long nextTime) {
+        
         long systemTime = System.currentTimeMillis();
         long tolerance = Long.parseLong(_configInfo.get(TOLERANCE)) * 1000;
         _logger.info("Next Run Time {} , Last Run Time {}", nextTime, lastTime);
         long refreshInterval = getRefreshInterval(type);
-        if (!inProgress) {
+        if (!inProgress && !queued) {
             // First for job, that is scheduled, is compared against the "next time"
             // it expected to be started by the scheduler thread
             if (scheduler) {
@@ -818,28 +851,15 @@ public class DataCollectionJobScheduler {
                         id, type);
                 return false;
             }
-        }
-        // If in progress. We still needs to check that this status is not a
-        // left-over from unsuccessful thread (like the Bourne node crashed in the middle of the job.)
-        // We shouldn't trigger discovery of systems when user trigger the job for first time and the job is already InProgress.
-        else if (!scheduler && (systemTime - lastTime > refreshInterval * 1000) && lastTime > 0) {
-            _logger.info("User triggered {} Job for {} attempted to schedule later than refresh interval allows. Reschedule the job", type,
-                    id);
-        } else if (scheduler
-                && (systemTime - lastTime > refreshInterval * 1000)
-                && nextTime > 0
-                && System.currentTimeMillis() - nextTime >= JobIntervals.getMaxIdleInterval() * 1000) {
-            // CARA : here we should look into the queue to see if this item is queued or active (there's a queue lock)
-            // if it's not queued or active, we don't even need to wait the max idle interval (default 24 hours); we probably just failed to
-            //    reset the discovery status.
-            // if it's queued and not active, don't queue it again. It's turn will come
-            // the question is what to do if it's active; this means its hanging; re-queuing the job will cause the queue to eventually fill up
-            //    I think in this case we should set the storage system to error state
-            //    the customer must fix what's wrong and reboot the node; we could add tooling so they can more easily figure out which node
-            //    we should also consider halting provisioning orders while the storage system is in an error state (maybe we already do?)
-            _logger.info("Scheduled {} Job for {} was idle for too long. Reschedule the job", type, id);
-        }
-        else {
+        } else if (inProgress && System.currentTimeMillis() - nextTime >= JobIntervals.getMaxIdleInterval() * 1000) {
+            // TODO : if the job is in progress (not queued, but really running), check to see how long it's been in progress. 
+            // If it's longer than some threshold, do something to resolve things. possibilities include:
+            //   -- set the db status of the storage system to error
+            //   -- clear the item from the queue (there is probably a thread running)
+            //   -- interrupt the thread (is this dangerous?)
+            //   -- set the storage system to some suspect status; require customer to resolve things and clear status; need details???
+            //   -- make sure the job age does not include the time it spent on the queue waiting to be run!!!!!!!!
+        } else {
             _logger.info("{} Job for {} is in Progress", type, id);
             return false;
         }

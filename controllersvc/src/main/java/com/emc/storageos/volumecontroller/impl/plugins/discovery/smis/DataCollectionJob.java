@@ -57,4 +57,17 @@ public abstract class DataCollectionJob implements Serializable {
     public String getNamespace() {
         return Discovery_Namespaces.ALL.toString();
     }
+    
+    /**
+     * determines if the two data collection jobs are identical
+     * 
+     * @param job
+     * @return
+     */
+    public boolean matches(DataCollectionJob job) {
+        return (this.getClass().equals(job.getClass())
+                && getCompleter().getId().equals(job.getCompleter().getId())
+                && getCompleter().getJobType().equals(job.getCompleter().getJobType())
+                && getNamespace().equals(job.getNamespace()));
+    }
 }

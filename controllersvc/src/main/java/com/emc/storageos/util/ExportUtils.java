@@ -1586,7 +1586,7 @@ public class ExportUtils {
      */
     public static Integer getMaximumAllowedHLU(StorageSystem storage) {
         String systemType = storage.getSystemType();
-        String maxAllowedHLUKey = getLookupKeyBasedOnSystemType(systemType);
+        String maxAllowedHLUKey = String.format(MAX_ALLOWED_HLU_KEY, systemType);
         // Get and return max allowed HLU from co-ordinator.
         String maxHLU = ControllerUtils.getPropertyValueFromCoordinator(coordinator, maxAllowedHLUKey);
         _log.info("Maximum allowed HLU for system type {}: {}", systemType, maxHLU);
@@ -1594,16 +1594,6 @@ public class ExportUtils {
             throw DeviceControllerException.exceptions.volumeExportMaximumHluNotAvailable(systemType);
         }
         return Integer.parseInt(maxHLU);
-    }
-
-    /**
-     * Gets the lookup key based on system type.
-     *
-     * @param systemType
-     * @return the key
-     */
-    private static String getLookupKeyBasedOnSystemType(String systemType) {
-        return String.format(MAX_ALLOWED_HLU_KEY, systemType);
     }
 
     /**

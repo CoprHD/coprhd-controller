@@ -18,7 +18,7 @@ import com.netflix.astyanax.model.Column;
 
 import com.emc.storageos.db.client.model.*;
 
-public class RelationDbIndex extends DbIndex {
+public class RelationDbIndex extends DbIndex<IndexColumnName> {
     private static final Logger _log = LoggerFactory.getLogger(RelationIndex.class);
 
     RelationDbIndex(ColumnFamily<String, IndexColumnName> indexCF) {

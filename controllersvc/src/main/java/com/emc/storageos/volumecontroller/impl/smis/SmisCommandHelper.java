@@ -4228,6 +4228,44 @@ public class SmisCommandHelper implements SmisConstants {
     }
 
     /**
+     * Determines which of the passed volumes is in a storage group that is not a
+     * parking storage group.
+     * 
+     * @param storage A reference to the storage system.
+     * @param volumeURIs The URIs of the volumes to check.
+     * 
+     * @return The URIs of the volumes in non parking storage groups mapped by storage group name.
+     */
+    public Map<String, List<URI>> getVolumesInNonParkingStorageGroup(StorageSystem storage, List<URI> volumeURIs) {
+        CloseableIterator<CIMInstance> storageGroupInstanceItr = null;
+        Map<String, List<URI>> storageGroupMap = new HashMap<>();
+        try {
+            CIMObjectPath storageGroupPath = CimObjectPathCreator.createInstance(
+                    SmisCommandHelper.MASKING_GROUP_TYPE.SE_DeviceMaskingGroup.name(), ROOT_EMC_NAMESPACE);
+            storageGroupInstanceItr = getEnumerateInstances(storage, storageGroupPath, SmisConstants.PS_ELEMENT_NAME);
+            while (storageGroupInstanceItr.hasNext()) {
+                CIMInstance storageGroupInstance = storageGroupInstanceItr.next();
+                String storageGroupName = storageGroupInstance.getPropertyValue(CP_ELEMENT_NAME).toString();
+                // Parking storage groups starts with "ViPR_".
+                if (storageGroupName.startsWith(Constants.STORAGE_GROUP_PREFIX)) {
+                    continue;
+                }
+                
+                List<URI> volumesInStorageGroup = findVolumesInStorageGroup(storage, storageGroupName, volumeURIs);
+                if (volumesInStorageGroup != null && !volumesInStorageGroup.isEmpty()) {
+                    storageGroupMap.put(storageGroupName, volumesInStorageGroup);
+                }
+            }
+        } catch (Exception e) {
+            _log.warn("Get export mask volumes in non parking storage groups failed", e);
+        } finally {
+            closeCIMIterator(storageGroupInstanceItr);
+        }
+        
+        return storageGroupMap;
+    }
+
+    /**
      * Get Existing Port Group Names
      *
      * @param storage

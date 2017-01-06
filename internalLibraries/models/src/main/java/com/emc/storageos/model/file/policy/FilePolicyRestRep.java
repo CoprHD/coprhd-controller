@@ -1,3 +1,7 @@
+/*
+ * Copyright (c) 2017 EMC Corporation
+ * All Rights Reserved
+ */
 package com.emc.storageos.model.file.policy;
 
 import java.util.ArrayList;
@@ -18,10 +22,6 @@ public class FilePolicyRestRep extends DataObjectRestRep {
     private String description;
 
     private Boolean hasAccessToTenants;
-
-    private String appliedToFileSystems;
-    private String appliedToProjects;
-    private String appliedTovPools;
 
     private String appliedAt;
 
@@ -57,21 +57,6 @@ public class FilePolicyRestRep extends DataObjectRestRep {
     @XmlElement(name = "has_access_to_tenants")
     public Boolean getHasAccessToTenants() {
         return hasAccessToTenants;
-    }
-
-    @XmlElement(name = "applied_to_projects")
-    public String getAppliedToProjects() {
-        return appliedToProjects;
-    }
-
-    @XmlElement(name = "applied_to_filesystems")
-    public String getAppliedToFileSystems() {
-        return appliedToFileSystems;
-    }
-
-    @XmlElement(name = "applied_to_vpools")
-    public String getAppliedTovPools() {
-        return appliedTovPools;
     }
 
     @XmlElement(name = "apply_on_target_site")
@@ -134,18 +119,6 @@ public class FilePolicyRestRep extends DataObjectRestRep {
         this.vpool = vpool;
     }
 
-    public void setAppliedToFileSystems(String appliedToFileSystems) {
-        this.appliedToFileSystems = appliedToFileSystems;
-    }
-
-    public void setAppliedToProjects(String appliedToProjects) {
-        this.appliedToProjects = appliedToProjects;
-    }
-
-    public void setAppliedTovPools(String appliedTovPools) {
-        this.appliedTovPools = appliedTovPools;
-    }
-
     public void setApplyOnTargetSite(Boolean applyOnTargetSite) {
         this.applyOnTargetSite = applyOnTargetSite;
     }
@@ -192,11 +165,7 @@ public class FilePolicyRestRep extends DataObjectRestRep {
             builder.append(hasAccessToTenants);
             builder.append(", ");
         }
-        if (appliedToFileSystems != null) {
-            builder.append("appliedToFileSystems=");
-            builder.append(appliedToFileSystems);
-            builder.append(", ");
-        }
+
         if (appliedAt != null) {
             builder.append("appliedAt=");
             builder.append(appliedAt);

@@ -2,7 +2,7 @@
  * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
-package controllers.tenant;
+package controllers.arrays;
 
 import org.apache.commons.lang.StringUtils;
 

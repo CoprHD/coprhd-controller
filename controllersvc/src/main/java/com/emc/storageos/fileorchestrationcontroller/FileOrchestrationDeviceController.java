@@ -32,6 +32,7 @@ import com.emc.storageos.db.client.model.SMBShareMap;
 import com.emc.storageos.db.client.model.Snapshot;
 import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StorageSystem;
+import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.filereplicationcontroller.FileReplicationDeviceController;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
@@ -1720,15 +1721,34 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
         FileDescriptor sourceDescriptors = FileDescriptor
                 .filterByType(fileDescriptors, FileDescriptor.Type.FILE_DATA, FileDescriptor.Type.FILE_MIRROR_SOURCE).get(0);
         FileShare sourceFS = s_dbClient.queryObject(FileShare.class, sourceDescriptors.getFsURI());
+
+        VirtualPool vpool = s_dbClient.queryObject(VirtualPool.class, sourceFS.getVirtualPool());
+        List<FilePolicy> fileVpoolPolicies = FileOrchestrationUtils.getAllVpoolLevelPolices(s_dbClient, vpool, sourceFS.getStorageDevice());
+
+        if (fileVpoolPolicies != null && !fileVpoolPolicies.isEmpty()) {
+            for (FilePolicy fileVpoolPolicy : fileVpoolPolicies) {
+                String stepDescription = String.format("creating file policy : %s  at : %s level", fileVpoolPolicy.getId(),
+                        vpool.getLabel());
+                String applyFilePolicyStep = workflow.createStepId();
+                Object[] args = new Object[] { sourceFS.getId(), fileVpoolPolicy.getId() };
+                waitFor = _fileDeviceController.createMethod(workflow, waitFor, APPLY_FILE_POLICY_METHOD, applyFilePolicyStep,
+                        stepDescription, sourceFS.getStorageDevice(), args);
+            }
+        }
+
         Project project = s_dbClient.queryObject(Project.class, sourceFS.getProject());
-        List<FilePolicy> filePolicies = FileOrchestrationUtils.getAllApplicablePolices(s_dbClient, sourceFS.getVirtualPool(),
-                project.getId());
-        if (filePolicies != null && !filePolicies.isEmpty()) {
-            String stepDescription = String.format("applying file policies");
-            String applyFilePolicyStep = workflow.createStepId();
-            Object[] args = new Object[] { sourceFS.getId(), filePolicies };
-            waitFor = _fileDeviceController.createMethod(workflow, waitFor, APPLY_FILE_POLICY_METHOD, applyFilePolicyStep,
-                    stepDescription, sourceFS.getStorageDevice(), args);
+        List<FilePolicy> fileProjectPolicies = FileOrchestrationUtils.getAllProjectLevelPolices(s_dbClient, project,
+                sourceFS.getStorageDevice());
+
+        if (fileProjectPolicies != null && !fileProjectPolicies.isEmpty()) {
+            for (FilePolicy fileProjectPolicy : fileProjectPolicies) {
+                String stepDescription = String.format("creating file policy : %s  at : %s level", fileProjectPolicy.getId(),
+                        project.getLabel());
+                String applyFilePolicyStep = workflow.createStepId();
+                Object[] args = new Object[] { sourceFS.getId(), fileProjectPolicy.getId() };
+                waitFor = _fileDeviceController.createMethod(workflow, waitFor, APPLY_FILE_POLICY_METHOD, applyFilePolicyStep,
+                        stepDescription, sourceFS.getStorageDevice(), args);
+            }
         }
         return waitFor;
     }

@@ -124,4 +124,13 @@ public interface ForbiddenExceptions {
 
     @DeclareServiceCode(ServiceCode.SECURITY_INSUFFICIENT_PERMISSIONS)
     public ForbiddenException tenantCannotAccessFilePolicy(final String filePolicyName);
+
+    @DeclareServiceCode(ServiceCode.SECURITY_INSUFFICIENT_PERMISSIONS)
+    public ForbiddenException onlySystemAdminsCanAssignVpoolPolicies(final String filePolicyName);
+
+    @DeclareServiceCode(ServiceCode.SECURITY_INSUFFICIENT_PERMISSIONS)
+    public ForbiddenException onlyTenantAdminsCanAssignProjectPolicies(final String filePolicyName);
+
+    @DeclareServiceCode(ServiceCode.SECURITY_INSUFFICIENT_PERMISSIONS)
+    public ForbiddenException onlyTenantAdminsCanAssignFileSystemPolicies(final String filePolicyName);
 }

@@ -136,6 +136,7 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
     private Boolean filePolicyAtFSLevel = true;
     private Long _frRpoValue;
     private String _frRpoType;
+    private StringSet filePolices;
 
     @Name("fileSnapshotSupported")
     public boolean isFileSnapshotSupported() {
@@ -175,6 +176,16 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
     public void setFilePolicyAtFSLevel(Boolean filePolicyAtFSLevel) {
         this.filePolicyAtFSLevel = filePolicyAtFSLevel;
         setChanged("filePolicyAtFSLevel");
+    }
+
+    @Name("filePolices")
+    public StringSet getFilePolices() {
+        return filePolices;
+    }
+
+    public void setFilePolices(StringSet filePolices) {
+        this.filePolices = filePolices;
+        setChanged("filePolices");
     }
 
     public static enum FileReplicationType {

@@ -143,9 +143,9 @@ public class FilePolicyApiTest extends ApiTestBase {
         policySchedule.setScheduleFrequency("DAYS");
         policySchedule.setScheduleRepeat(6L);
         policySchedule.setScheduleTime("12:00");
-        param.setPolicySchedule(policySchedule);
         FileSnapshotPolicyParam snapshotPolicyParam = new FileSnapshotPolicyParam();
         snapshotPolicyParam.setSnapshotNamePattern("snapshot policy 1");
+        snapshotPolicyParam.setPolicySchedule(policySchedule);
         FileSnapshotPolicyExpireParam snapshotExpireParams = new FileSnapshotPolicyExpireParam();
 
         snapshotExpireParams.setExpireType(SnapshotExpireType.NEVER.toString());

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015 EMC Corporation
+ * Copyright (c) 2017 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.model.file.policy;
@@ -25,14 +25,14 @@ public class FilePolicyParam implements Serializable {
     // Priority of the policy
     private String priority;
 
-    // Policy schedule
-    private FilePolicyScheduleParams policySchedule;
-
     // Replication related parameters
     private FileReplicationPolicyParam replicationPolicyParams;
 
     // Snapshot related parameters..
     private FileSnapshotPolicyParam snapshotPolicyPrams;
+
+    // Level at which policy has to be applied..
+    private String applyAt;
 
     //
     private boolean isAccessToTenants;
@@ -77,15 +77,6 @@ public class FilePolicyParam implements Serializable {
         this.priority = priority;
     }
 
-    @XmlElement(name = "policy_schedule")
-    public FilePolicyScheduleParams getPolicySchedule() {
-        return this.policySchedule;
-    }
-
-    public void setPolicySchedule(FilePolicyScheduleParams policySchedule) {
-        this.policySchedule = policySchedule;
-    }
-
     @XmlElement(name = "replication_params")
     public FileReplicationPolicyParam getReplicationPolicyParams() {
         return this.replicationPolicyParams;
@@ -113,4 +104,18 @@ public class FilePolicyParam implements Serializable {
         this.isAccessToTenants = isAccessToTenants;
     }
 
+    /**
+     * Level at which policy has to applied.
+     * Valid values are vpool, project, file_system
+     * 
+     * @return
+     */
+    @XmlElement(required = true, name = "apply_at")
+    public String getApplyAt() {
+        return this.applyAt;
+    }
+
+    public void setApplyAt(String applyAt) {
+        this.applyAt = applyAt;
+    }
 }

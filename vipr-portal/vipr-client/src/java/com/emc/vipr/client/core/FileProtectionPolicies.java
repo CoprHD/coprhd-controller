@@ -120,7 +120,7 @@ public class FileProtectionPolicies extends AbstractCoreBulkResources<FilePolicy
     /**
      * Assign the given policy to a give level.
      * <p>
-     * API Call: <tt>PUT /file/file-policies/{id}/assign-policy</tt>
+     * API Call: <tt>POST /file/file-policies/{id}/assign-policy</tt>
      * 
      * @param id
      *            the ID of the policy to be assigned.
@@ -128,13 +128,13 @@ public class FileProtectionPolicies extends AbstractCoreBulkResources<FilePolicy
      *            the update configuration.
      */
     public FilePolicyAssignResp assignPolicy(URI id, FilePolicyAssignParam input) {
-        return client.put(FilePolicyAssignResp.class, input, getAssignPolicyUrl(), id);
+        return client.post(FilePolicyAssignResp.class, input, getAssignPolicyUrl(), id);
     }
 
     /**
      * Un-assign the given policy from a level.
      * <p>
-     * API Call: <tt>PUT /file/file-policies/{id}/unassign-policy</tt>
+     * API Call: <tt>POST /file/file-policies/{id}/unassign-policy</tt>
      * 
      * @param id
      *            the ID of the policy to be assigned.
@@ -142,7 +142,7 @@ public class FileProtectionPolicies extends AbstractCoreBulkResources<FilePolicy
      *            the update configuration.
      */
     public TaskResourceRep unassignPolicy(URI id, FilePolicyUnAssignParam input) {
-        return client.put(TaskResourceRep.class, input, getUnAssignPolicyUrl(), id);
+        return client.post(TaskResourceRep.class, input, getUnAssignPolicyUrl(), id);
     }
 
     @Override

@@ -195,6 +195,11 @@ test_host_add_initiator() {
             
             fail initiator create ${host1} FC ${fake_pwwn3} --node ${fake_nwwn3}           
 
+            # Verify injected failures were hit
+            verify_failures ${failure}
+            # Let the async jobs calm down
+            sleep 5
+
             # Snap the DB
             snap_db 3 "${cfs[@]}"
 
@@ -217,7 +222,6 @@ test_host_add_initiator() {
             
             # Verify injected failures were hit
             verify_failures ${failure}
-
             # Let the async jobs calm down
             sleep 5
             
@@ -502,6 +506,11 @@ test_host_remove_initiator() {
         
             # Try and remove an initiator from the host, this should fail during updateExport()
             fail initiator delete ${host1}/${init1}
+            
+            # Verify injected failures were hit
+            verify_failures ${failure}
+            # Let the async jobs calm down
+            sleep 5
         fi
  
         # Zzzzzz
@@ -675,6 +684,11 @@ test_move_clustered_host_to_another_cluster() {
             # Turn on failure at a specific point
             set_artificial_failure ${failure}
             fail hosts update $host1 --cluster ${TENANT}/${cluster2}
+            
+            # Verify injected failures were hit
+            verify_failures ${failure}
+            # Let the async jobs calm down
+            sleep 5            
         fi
         
  
@@ -866,7 +880,6 @@ test_move_non_clustered_host_to_cluster() {
     
             # Verify injected failures were hit
             verify_failures ${failure}
-
             # Let the async jobs calm down
             sleep 5
     
@@ -892,7 +905,6 @@ test_move_non_clustered_host_to_cluster() {
 
             # Verify injected failures were hit
             verify_failures ${failure}
-
             # Let the async jobs calm down
             sleep 5
 
@@ -1040,7 +1052,6 @@ test_move_clustered_discovered_host_to_cluster() {
 
                 # Verify injected failures were hit
                 verify_failures ${failure}
-
                 # Let the async jobs calm down
                 sleep 5
 
@@ -1533,6 +1544,12 @@ test_cluster_remove_discovered_host() {
                         set_artificial_failure ${failure}
                         # Expect to fail when approving the event
                         fail approve_pending_event $EVENT_ID
+                        
+                        # Verify injected failures were hit
+                        verify_failures ${failure}
+                        # Let the async jobs calm down
+                        sleep 5
+                        
                         discover_vcenter ${vcenter}
                         sleep 20
                         EVENT_ID=$(get_failed_event)    
@@ -1614,7 +1631,12 @@ test_cluster_remove_discovered_host() {
                         set_artificial_failure ${failure}
                         # Expect to fail when approving the event
                         fail approve_pending_event $EVENT_ID
-                        sleep 5
+                        
+                        # Verify injected failures were hit
+                        verify_failures ${failure}
+                        # Let the async jobs calm down
+                        sleep 5                        
+
                         # Turn failure injection off and retry the approval
                         secho "Re-run with failure injection off..."
                         set_artificial_failure none
@@ -1751,6 +1773,12 @@ test_move_non_clustered_discovered_host_to_cluster() {
                 # Turn failure injection on
                 set_artificial_failure ${failure}
                 fail approve_pending_event $EVENT_ID
+                
+                # Verify injected failures were hit
+                verify_failures ${failure}
+                # Let the async jobs calm down
+                sleep 5                
+                
                 EVENT_ID=$(get_failed_event)    
                 # turn failure injection off and retry the approval
                 set_artificial_failure none

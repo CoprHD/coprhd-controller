@@ -31,6 +31,9 @@ public interface ServiceUnavailableExceptions {
     @DeclareServiceCode(ServiceCode.API_SERVICE_UNAVAILABLE)
     public ServiceUnavailableException cannotDeactivateStorageSystemWhileInDiscover(URI id);
 
+    @DeclareServiceCode(ServiceCode.CONTROLLER_SERVICE_NOT_AVALIABLE)
+    public ServiceUnavailableException controllerServiceUnavailable();
+
     @DeclareServiceCode(ServiceCode.SYS_CLUSTER_STATE_NOT_STABLE)
     public ServiceUnavailableException clusterStateNotStable();
 

@@ -72,9 +72,11 @@ public class ExportMaskExistingInitiatorsMigration extends BaseCustomMigrationCa
                     }
                 }
 
-                if (system != null && Type.vmax.toString().equalsIgnoreCase(system.getSystemType())) {
+                if (system != null && (Type.vmax.toString().equalsIgnoreCase(system.getSystemType()) ||
+                        (Type.vplex.toString().equalsIgnoreCase(system.getSystemType())))) {
 
-                    logger.info("Processing existing initiators for export mask {} on VMAX storage {}", exportMask.getId(), systemUri);
+                    logger.info("Processing existing initiators for export mask {} on {} storage {}", exportMask.getId(),
+                            system.getSystemType(), systemUri);
                     boolean updateObject = false;
                     List<String> initiatorsToProcess = new ArrayList<String>();
 

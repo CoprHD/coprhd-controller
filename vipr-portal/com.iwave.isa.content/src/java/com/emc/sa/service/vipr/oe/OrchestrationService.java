@@ -236,7 +236,7 @@ public class OrchestrationService extends ViPRService {
                 case OTHERS:
                 case ASSET_OPTION: {
                     //TODO handle multiple , separated values
-                    final String paramVal = (params.get(key) != null) ? (params.get(key).toString()) : (value.getDefaultValue());
+                    final String paramVal = (params.get(key) != null) ? (StringUtils.strip(params.get(key).toString(), "\"")) : (value.getDefaultValue());
 
                     if (paramVal == null) {
                         if (value.getRequired()) {
@@ -488,11 +488,10 @@ public class OrchestrationService extends ViPRService {
 
             int p = 0;
             for (String statement : statements) {
-
-                if (statement.startsWith(OrchestrationServiceConstants.RETURN_CODE)) {
+                if (statement.trim().startsWith(OrchestrationServiceConstants.RETURN_CODE)) {
                     Expression e2 = parser.parseExpression(statement);
 
-                    sc.setReturnCode(res.getReturnCode());
+                    sc.setCode(res.getReturnCode());
                     boolean val = e2.getValue(con2, Boolean.class);
                     logger.info("Evaluated value for errorCode or returnCode is:{}", val);
 

@@ -13,6 +13,7 @@ import java.net.URI;
 import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -47,7 +48,6 @@ import com.emc.storageos.db.client.model.FilePolicy.SnapshotExpireType;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.StoragePool;
-import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.fileorchestrationcontroller.FileOrchestrationController;
@@ -900,7 +900,7 @@ public class FilePolicyService extends TaskResourceService {
 
     private List<URI> getAssociatedStorageSystemsByVPool(VirtualPool vpool) {
 
-        List<URI> storageSystemURISet = new ArrayList<URI>();
+        Set<URI> storageSystemURISet = new HashSet<URI>();
 
         StringSet storagePoolURISet = null;
         if (vpool.getUseMatchedPools()) {
@@ -913,12 +913,12 @@ public class FilePolicyService extends TaskResourceService {
             for (Iterator<String> iterator = storagePoolURISet.iterator(); iterator.hasNext();) {
                 URI storagePoolURI = URI.create(iterator.next());
                 StoragePool spool = _dbClient.queryObject(StoragePool.class, storagePoolURI);
-                if (spool != null && !sport.getInactive()) {
+                if (spool != null && !spool.getInactive()) {
                     storageSystemURISet.add(spool
-                            spool.getStorageDevice());
+                            .getStorageDevice());
                 }
             }
         }
-        return storageSystemURISet;
+        return new ArrayList<URI>(storageSystemURISet);
     }
 }

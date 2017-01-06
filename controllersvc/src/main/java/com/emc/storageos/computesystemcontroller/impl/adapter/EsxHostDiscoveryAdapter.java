@@ -211,6 +211,11 @@ public class EsxHostDiscoveryAdapter extends AbstractHostDiscoveryAdapter {
                     save(targetHost);
                 }
 
+                if (hw != null && hw.biosInfo != null
+                        && StringUtils.isNotBlank(hw.biosInfo.biosVersion)) {
+                    targetHost.setBios(hw.biosInfo.biosVersion);
+                }
+                
                 DiscoveryStatusUtils.markAsProcessing(getModelClient(),
                         targetHost);
                 try {

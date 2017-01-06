@@ -9,6 +9,8 @@ import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import com.emc.storageos.db.client.util.EndpointUtility;
 
@@ -54,11 +56,32 @@ public class Host extends AbstractComputeSystem {
 
     public Host() {
         //TODO: get real data mapping supported SMBIOS version to UCS blade BIOS
-        biosToSmBiosMap.put("BIOSV11111",2.2);
-        biosToSmBiosMap.put("BIOSV11112",2.4);
-        biosToSmBiosMap.put("BIOSV11113",2.6);
-        biosToSmBiosMap.put("BIOSV11114",2.6);
-        biosToSmBiosMap.put("BIOSV11115",2.8);
+        biosToSmBiosMap.put("BIOS1-V2.2",2.2);
+        biosToSmBiosMap.put("BIOS2-V2.4",2.4);
+        biosToSmBiosMap.put("BIOS3-V2.5",2.5);
+        biosToSmBiosMap.put("B200M4.2.2.4a.0.041620151912",2.6);
+    }
+
+    public boolean hasMixedEndianUuid() {
+        // TODO   improve test when data available
+        final String biosVersionPattern = "^B\\d+M(\\d)";
+        Pattern r = Pattern.compile(biosVersionPattern);
+        String biosModel = "4";  // default to newer blade model
+        try {
+            Matcher m = r.matcher(bios);
+            if(m.find()) {
+                biosModel = m.group(1);
+            } 
+        } catch (IllegalStateException ise){
+            return true; // default is to assume newer blade with unknown BIOS version
+        }
+        int biosModelInt = 4; // default to newer model
+        try {
+            biosModelInt = Integer.parseInt(biosModel);
+        } catch (NumberFormatException nfe) {
+            return true; // default is to assume newer blade with unknown BIOS version
+        }
+        return biosModelInt > 3;  // old models are not mixed endian  TODO: validate this test
     }
 
     /**
@@ -428,10 +451,6 @@ public class Host extends AbstractComputeSystem {
             UUID uuidNew = new UUID(bb.getLong(), bb.getLong());
             return uuidNew.toString();
         }
-    }
-
-    public boolean hasMixedEndianUuid() {
-        return biosToSmBiosMap.get(bios) < 2.6;
     }
 
     @Name("provisioningStatus")

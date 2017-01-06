@@ -78,7 +78,7 @@ public class HostToComputeElementMatcher {
                 dbClient.queryByType(Host.class, true); // active only
 
         allHosts = dbClient.queryObjectFields(Host.class,
-                Arrays.asList("uuid", "computeElement", "registrationStatus", "hostName"),
+                Arrays.asList("uuid", "computeElement", "registrationStatus", "hostName","bios","label"),
                 getFullyImplementedCollection(allHostUris));
 
         Collection<URI> allComputeElementUris =
@@ -86,7 +86,7 @@ public class HostToComputeElementMatcher {
 
         Collection<ComputeElement> allComputeElements =
                 dbClient.queryObjectFields(ComputeElement.class,
-                        Arrays.asList("uuid", "registrationStatus", "available"),
+                        Arrays.asList("uuid", "registrationStatus", "available","label"),
                         getFullyImplementedCollection(allComputeElementUris));
 
         // initialize lists of eligible hosts & blades (to be filtered before matching)
@@ -150,17 +150,18 @@ public class HostToComputeElementMatcher {
         Collection<Host> hostsToUpdate = new ArrayList<>();
         hostLoop:
             for(Host host : eligibleHosts) {
-                if(!NullColumnValueGetter.isNullURI(host.getComputeElement()))
+                if(!NullColumnValueGetter.isNullURI(host.getComputeElement())) {
                     for(ComputeElement ce : eligibleComputeElements) {
                         if(host.getComputeElement().equals(ce.getId())) {
                             continue hostLoop; // host assoc'd to valid, eligible blade.  Skip to next host
                         }
                     }
-                _log.info("Host associated to unknown ComputeElement.  Host '" + host.getLabel() + "'(" +
-                        host.getId() + ") is associated to ComputeElement " +
-                        host.getComputeElement() + " which is not in ViPR DB.  Removing this association.");
-                host.setComputeElement(NullColumnValueGetter.getNullURI());
-                hostsToUpdate.add(host);
+                    _log.info("Host associated to unknown ComputeElement.  Host '" + host.getLabel() + "'(" +
+                            host.getId() + ") is associated to ComputeElement " +
+                            host.getComputeElement() + " which is not in ViPR DB.  Removing this association.");
+                    host.setComputeElement(NullColumnValueGetter.getNullURI());
+                    hostsToUpdate.add(host);
+                }
             }
         dbClient.updateObject(hostsToUpdate);
     }
@@ -256,7 +257,7 @@ public class HostToComputeElementMatcher {
 
     private static void findUuidMatches() {
         // check for uuid matches
-        HostToComputeElementMatches hostToComputeElementMatches = new HostToComputeElementMatches();
+        hostToComputeElementMatches = new HostToComputeElementMatches();
         for(Host host : eligibleHosts) {
             for(ComputeElement computeElement : eligibleComputeElements) {
                 if (uuidsMatch(host,computeElement)) {
@@ -378,13 +379,17 @@ public class HostToComputeElementMatcher {
 
     private static class HostToComputeElementMatches {
 
-        private ArrayList<HostComputeElementPair> hostComputeElementPairs;
+        private List<HostComputeElementPair> hostComputeElementPairs;
 
+        private HostToComputeElementMatches() {
+            hostComputeElementPairs = new ArrayList<>();
+        }
+        
         private void add(Host host, ComputeElement computeElement) {
             hostComputeElementPairs.add(new HostComputeElementPair(host,computeElement));
         }
 
-        private ArrayList<HostComputeElementPair> getMatches() {
+        private List<HostComputeElementPair> getMatches() {
             return hostComputeElementPairs;
         }
 

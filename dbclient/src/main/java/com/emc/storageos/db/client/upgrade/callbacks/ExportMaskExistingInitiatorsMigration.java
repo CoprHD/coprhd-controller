@@ -96,8 +96,8 @@ public class ExportMaskExistingInitiatorsMigration extends BaseCustomMigrationCa
                         }
                     }
                     if (updateObject) {
-                        logger.info("Processed existing initiators for export mask {} on VMAX storage {} and updated the Mask Object",
-                                exportMask.getId(), systemUri);
+                        logger.info("Processed existing initiators for export mask {} on {} storage {} and updated the Mask Object",
+                                exportMask.getId(), system.getSystemType(), systemUri);
                         dbClient.updateObject(exportMask);
                         exportMaskUpdatedCount++;
                     }

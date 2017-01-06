@@ -87,6 +87,7 @@ public final class InvokeTestFailure {
     public static final String ARTIFICIAL_FAILURE_054 = "failure_054_host_cluster_ComputeSystemControllerImpl.attachAndMount_before_attach";
     public static final String ARTIFICIAL_FAILURE_055 = "failure_055_host_cluster_ComputeSystemControllerImpl.attachAndMount_after_attach";
     public static final String ARTIFICIAL_FAILURE_056 = "failure_056_host_cluster_ComputeSystemControllerImpl.attachAndMount_after_mount";
+    public static final String ARTIFICIAL_FAILURE_057 = "failure_057_MdsNetworkSystemDevice.removeZones";
 
     private static final int FAILURE_SUBSTRING_LENGTH = 11;
 

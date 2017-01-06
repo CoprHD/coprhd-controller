@@ -1779,6 +1779,10 @@ verify_failures() {
 
     for failure_check in `echo ${FAILURES} | sed 's/:/ /g'`
     do
+        
+    # Remove any trailing &# used to represent specific failure occurrences    
+    failure_check=${failure_check%&*}
+            
 	grep ${failure_check} ${INVOKE_FAILURE_FILE} > /dev/null
 	if [ $? -ne 0 ]; then
 	    secho 

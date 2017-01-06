@@ -97,7 +97,7 @@ test_host_add_initiator() {
     echot "Test test_host_add_initiator_failure"
     
     test_name="test_host_add_initiator"
-    cfs="ExportGroup ExportMask Initiator"
+    cfs=("ExportGroup ExportMask Initiator")
     random_number=${RANDOM}
     fake_pwwn1=`randwwn`
     fake_nwwn1=`randwwn`
@@ -157,14 +157,14 @@ test_host_add_initiator() {
         cluster1_export2=fakeclusterexport2-${item}
 
         # Snap the DB
-        snap_db 1 ${cfs}
+        snap_db 1 "${cfs[@]}"
 
         # Create 2 ExportGroups for the same cluster but each using a different project.
         runcmd export_group create $project1 ${cluster1_export1} $NH --type Cluster --volspec ${project1}/${volume1} --clusters ${TENANT}/${cluster1}
         runcmd export_group create $project2 ${cluster1_export2} $NH --type Cluster --volspec ${project2}/${volume2} --clusters ${TENANT}/${cluster1}
         
         # Snap the DB
-        snap_db 2 ${cfs}        
+        snap_db 2 "${cfs[@]}"        
 
         # Verify the initiator does not exist in the ExportGroup
         add_init="false"
@@ -195,11 +195,16 @@ test_host_add_initiator() {
             
             fail initiator create ${host1} FC ${fake_pwwn3} --node ${fake_nwwn3}           
 
+            # Verify injected failures were hit
+            verify_failures ${failure}
+            # Let the async jobs calm down
+            sleep 5
+
             # Snap the DB
-            snap_db 3 ${cfs}
+            snap_db 3 "${cfs[@]}"
 
             # Validate nothing was left behind
-            validate_db 2 3 ${cfs}
+            validate_db 2 3 "${cfs[@]}"
                 
             # Rerun the command
             set_artificial_failure none
@@ -207,7 +212,7 @@ test_host_add_initiator() {
             runcmd initiator create ${host1} FC ${fake_pwwn3} --node ${fake_nwwn3}
             
             # Snap the DB
-            snap_db 4 ${cfs}
+            snap_db 4 "${cfs[@]}"
             
             # Turn failure back on
             set_artificial_failure ${failure}
@@ -215,11 +220,16 @@ test_host_add_initiator() {
             # Fail while adding initiator for host2 
             fail initiator create ${host2} FC ${fake_pwwn4} --node ${fake_nwwn4} 
             
+            # Verify injected failures were hit
+            verify_failures ${failure}
+            # Let the async jobs calm down
+            sleep 5
+            
             # Snap the DB
-            snap_db 5 ${cfs}
+            snap_db 5 "${cfs[@]}"
             
             # Validate nothing was left behind
-            validate_db 4 5 ${cfs}
+            validate_db 4 5 "${cfs[@]}"
             
             # Rerun the command
             set_artificial_failure none
@@ -257,10 +267,10 @@ test_host_add_initiator() {
         runcmd export_group delete ${project1}/${cluster1_export1}
         runcmd export_group delete ${project2}/${cluster1_export2}
         
-        snap_db 6 ${cfs}  
+        snap_db 6 "${cfs[@]}"  
 
         # Validate that nothing was left behind
-        validate_db 1 6 ${cfs}
+        validate_db 1 6 "${cfs[@]}"
 
 	    # Report results
 	    report_results ${test_name} ${failure}
@@ -275,14 +285,14 @@ test_vcenter_event() {
     reset_counts
     expname=${EXPORT_GROUP_NAME}t2
     item=${RANDOM}
-    cfs="ExportGroup ExportMask Host Initiator Cluster"
+    cfs=("ExportGroup ExportMask Host Initiator Cluster")
     mkdir -p results/${item}
     set_controller_cs_discovery_refresh_interval 1
 
     verify_export ${expname}1 ${HOST1} gone
 
     # Perform any DB validation in here
-    snap_db 1 ${cfs}
+    snap_db 1 "${cfs[@]}"
 
     # Run the export group command
     runcmd export_group create $PROJECT ${expname}1 $NH --type Cluster --volspec ${PROJECT}/${VOLNAME}-1 --clusters "emcworld/cluster-1"
@@ -310,10 +320,10 @@ test_vcenter_event() {
     discover_vcenter "vcenter1"
 
     # Snap the DB again
-    snap_db 2 ${cfs}
+    snap_db 2 "${cfs[@]}"
 
     # Validate nothing was left behind
-    validate_db 1 2 ${cfs}
+    validate_db 1 2 "${cfs[@]}"
 
     verify_export ${expname}1 ${HOST1} gone
 
@@ -327,7 +337,9 @@ add_host_to_cluster() {
     cluster=$2
     args="addHostTo $cluster $host"
     echo "Adding host $host to $cluster"
-    curl -ikL --header "Content-Type: application/json" --header "username:xx" --header "password: yy" --data '{"args": "'"$args"'"}' -X POST http://${HW_SIMULATOR_IP}:8235/vmware/modify &> /dev/null
+    # Uncomment for debugging
+    #echo "=== curl -ikL --header "Content-Type: application/json" --header "username:xx" --header "password: yy" --data '{"args": "${args}"}' -X POST http://${HW_SIMULATOR_IP}:8235/vmware/modify &> /dev/null"
+    curl -ikL --header "Content-Type: application/json" --header "username:xx" --header "password: yy" --data '{"args": "'"${args}"'"}' -X POST http://${HW_SIMULATOR_IP}:8235/vmware/modify &> /dev/null
 }
 
 remove_host_from_cluster() {
@@ -335,7 +347,9 @@ remove_host_from_cluster() {
     cluster=$2
     args="removeHostFrom $cluster $host"
     echo "Removing host $host from $cluster"
-    curl -ikL --header "Content-Type: application/json" --header "username:xx" --header "password: yy" --data '{"args": "'"$args"'"}' -X POST http://${HW_SIMULATOR_IP}:8235/vmware/modify &> /dev/null
+    # Uncomment for debugging
+    #echo "=== curl -ikL --header "Content-Type: application/json" --header "username:xx" --header "password: yy" --data '{"args": "${args}"}' -X POST http://${HW_SIMULATOR_IP}:8235/vmware/modify &> /dev/null"
+    curl -ikL --header "Content-Type: application/json" --header "username:xx" --header "password: yy" --data '{"args": "'"${args}"'"}' -X POST http://${HW_SIMULATOR_IP}:8235/vmware/modify &> /dev/null    
 }
 
 discover_vcenter() {
@@ -412,7 +426,7 @@ test_host_remove_initiator() {
         random_number=${RANDOM}
         TEST_OUTPUT_FILE=test_output_${RANDOM}.log
         reset_counts
-        column_family="Volume ExportGroup ExportMask"
+        column_family=("Volume ExportGroup ExportMask")
         mkdir -p results/${random_number}
         host1=fakehost1-${random_number}
         host2=fakehost2-${random_number}
@@ -421,7 +435,7 @@ test_host_remove_initiator() {
         exportgroup2=exportgroup2-${random_number}
         
         # Snap DB
-        snap_db 1 ${column_family}
+        snap_db 1 "${column_family[@]}"
             
         # Create new random WWNs for nodes and initiators
         node1=`randwwn 20 C1`
@@ -492,6 +506,11 @@ test_host_remove_initiator() {
         
             # Try and remove an initiator from the host, this should fail during updateExport()
             fail initiator delete ${host1}/${init1}
+            
+            # Verify injected failures were hit
+            verify_failures ${failure}
+            # Let the async jobs calm down
+            sleep 5
         fi
  
         # Zzzzzz
@@ -543,10 +562,10 @@ test_host_remove_initiator() {
         runcmd hosts delete ${host2}
         
         # Snap DB
-        snap_db 2 ${column_family}
+        snap_db 2 "${column_family[@]}"
         
         # Validate DB
-        validate_db 1 2 ${column_family}
+        validate_db 1 2 "${column_family[@]}"
 
         # Report results
         report_results ${test_name} ${failure}
@@ -583,7 +602,7 @@ test_move_clustered_host_to_another_cluster() {
     
         TEST_OUTPUT_FILE=test_output_${RANDOM}.log
         reset_counts
-        column_family="Volume ExportGroup ExportMask"
+        column_family=("Volume ExportGroup ExportMask")
         random_number=${RANDOM}
         mkdir -p results/${random_number}
         volume1=${VOLNAME}-1
@@ -598,7 +617,7 @@ test_move_clustered_host_to_another_cluster() {
         exportgroup2=exportgroup-2-${random_number}
         
         # Snap DB
-        snap_db 1 ${column_family}
+        snap_db 1 "${column_family[@]}"
             
         # Create new random WWNs for nodes and initiators
         node1=`randwwn 20 C1`
@@ -663,6 +682,11 @@ test_move_clustered_host_to_another_cluster() {
             # Turn on failure at a specific point
             set_artificial_failure ${failure}
             fail hosts update $host1 --cluster ${TENANT}/${cluster2}
+            
+            # Verify injected failures were hit
+            verify_failures ${failure}
+            # Let the async jobs calm down
+            sleep 5            
         fi
         
  
@@ -745,10 +769,10 @@ test_move_clustered_host_to_another_cluster() {
         runcmd export_group delete $PROJECT/${exportgroup2}
         
         # Snap DB
-        snap_db 2 ${column_family}
+        snap_db 2 "${column_family[@]}"
     
         # Validate DB
-        validate_db 1 2 ${column_family}
+        validate_db 1 2 "${column_family[@]}"
 
         # Report results
         report_results ${test_name} ${failure}
@@ -783,7 +807,7 @@ test_move_non_clustered_host_to_cluster() {
     volume2=${VOLNAME}-2-${random_number}  
     cluster1=fakecluster-${random_number}
     
-    cfs="ExportGroup ExportMask Network Host Initiator"
+    cfs=("ExportGroup ExportMask Network Host Initiator")
 
     host_cluster_failure_injections="failure_026_host_cluster_ComputeSystemControllerImpl.updateExportGroup_before_update \
                                 failure_032_host_cluster_ComputeSystemControllerImpl.updateHostAndInitiatorClusterReferences_after_updateHostAndInitiator&1 \
@@ -833,13 +857,13 @@ test_move_non_clustered_host_to_cluster() {
         cluster1_export1=clusterexport1-${item}
         cluster1_export2=clusterexport2-${item}
 
-        snap_db 1 ${cfs}
+        snap_db 1 "${cfs[@]}"
 
         # Run the cluster export group create command
         runcmd export_group create $project1 ${cluster1_export1} $NH --type Cluster --volspec ${project1}/${volume1} --clusters ${TENANT}/${cluster1}
         runcmd export_group create $project2 ${cluster1_export2} $NH --type Cluster --volspec ${project2}/${volume2} --clusters ${TENANT}/${cluster1}
 
-        snap_db 2 ${cfs}
+        snap_db 2 "${cfs[@]}"
 
         move_host="false"
         if [ ${failure} == ${HAPPY_PATH_TEST_INJECTION} ]; then
@@ -853,11 +877,16 @@ test_move_non_clustered_host_to_cluster() {
             # Move the host to the cluster
             fail hosts update ${host1} --cluster ${TENANT}/${cluster1} 
     
+            # Verify injected failures were hit
+            verify_failures ${failure}
+            # Let the async jobs calm down
+            sleep 5
+    
             # Snap the DB after rollback
-            snap_db 3 ${cfs}
+            snap_db 3 "${cfs[@]}"
 
             # Validate nothing was left behind
-            validate_db 2 3 ${cfs}
+            validate_db 2 3 "${cfs[@]}"
                 
             # Rerun the command
             set_artificial_failure none
@@ -865,7 +894,7 @@ test_move_non_clustered_host_to_cluster() {
             # Add the first host to the cluster 
             runcmd hosts update ${host1} --cluster ${TENANT}/${cluster1}
 
-            snap_db 4 ${cfs}
+            snap_db 4 "${cfs[@]}"
 
             # Turn on failure again
             set_artificial_failure ${failure}
@@ -873,10 +902,15 @@ test_move_non_clustered_host_to_cluster() {
             # Move the second host to the cluster
             fail hosts update ${host2} --cluster ${TENANT}/${cluster1}
 
-            snap_db 5 ${cfs}
+            # Verify injected failures were hit
+            verify_failures ${failure}
+            # Let the async jobs calm down
+            sleep 5
+
+            snap_db 5 "${cfs[@]}"
 
             # Validate nothing was left behind
-            validate_db 4 5 ${cfs}
+            validate_db 4 5 "${cfs[@]}"
 
             # Turn failure injection off
             set_artificial_failure none
@@ -905,10 +939,10 @@ test_move_non_clustered_host_to_cluster() {
             runcmd hosts update ${host2} --cluster null
         fi
         
-        snap_db 6 ${cfs}  
+        snap_db 6 "${cfs[@]}"  
 
         # Validate that nothing was left behind
-        validate_db 1 6 ${cfs}          
+        validate_db 1 6 "${cfs[@]}"          
 
         # Report results
         report_results ${test_name} ${failure}
@@ -942,35 +976,55 @@ test_move_clustered_discovered_host_to_cluster() {
     datastore1=fakedatastore1-${random_num}
     datastore2=fakedatastore2-${random_num}    
     set_controller_cs_discovery_refresh_interval 1
-    cfs="ExportGroup ExportMask Network Host Initiator"
+    cfs=("ExportGroup ExportMask Network Host Initiator")
 
+    #syssvc $SANITY_CONFIG_FILE localhost set_prop validation_check false
     run syssvc $SANITY_CONFIG_FILE localhost set_prop system_proxyuser_encpassword $SYSADMIN_PASSWORD
-                                     
+
     host_cluster_failure_injections="failure_026_host_cluster_ComputeSystemControllerImpl.updateExportGroup_before_update \
                                      failure_029_host_cluster_ComputeSystemControllerImpl.verifyDatastore_after_verify \
                                      failure_030_host_cluster_ComputeSystemControllerImpl.unmountAndDetach_after_unmount \
                                      failure_031_host_cluster_ComputeSystemControllerImpl.unmountAndDetach_after_detach \
                                      failure_032_host_cluster_ComputeSystemControllerImpl.updateHostAndInitiatorClusterReferences_after_updateHostAndInitiator \
                                      failure_033_host_cluster_ComputeSystemControllerImpl.updateHostAndInitiatorClusterReferences_after_updateHostVcenter \
+                                     failure_042_host_cluster_ComputeSystemControllerImpl.updateHostAndInitiatorClusterReferences \
                                      failure_054_host_cluster_ComputeSystemControllerImpl.attachAndMount_before_attach \
                                      failure_055_host_cluster_ComputeSystemControllerImpl.attachAndMount_after_attach \
                                      failure_056_host_cluster_ComputeSystemControllerImpl.attachAndMount_after_mount"
     common_failure_injections="failure_004_final_step_in_workflow_complete"
+    rollback_failures="failure_004:failure_032_host_cluster_ComputeSystemControllerImpl.updateHostAndInitiatorClusterReferences_after_updateHostAndInitiator&2 \
+                       failure_004:failure_033_host_cluster_ComputeSystemControllerImpl.updateHostAndInitiatorClusterReferences_after_updateHostVcenter&2 \
+                       failure_004:failure_042_host_cluster_ComputeSystemControllerImpl.updateHostAndInitiatorClusterReferences&2"
 
     item=${RANDOM}
     mkdir -p results/${item}
 
-    snap_db 1 ${cfs}
+    # There are valid database inconsistencies for this test so we are performing the database comparison 
+    # after the tests have executed and cleanup is performed.
+    snap_db 1 "${cfs[@]}"
 
     create_volume_and_datastore ${TENANT} ${volume1} ${datastore1} ${NH} ${VPOOL_BASE} ${PROJECT} ${vcenter} "DC-Simulator-1" ${cluster1}
     create_volume_and_datastore ${TENANT} ${volume2} ${datastore2} ${NH} ${VPOOL_BASE} ${PROJECT} ${vcenter} "DC-Simulator-1" ${cluster2}
 
-    failure_injections="${HAPPY_PATH_TEST_INJECTION} ${host_cluster_failure_injections} ${common_failure_injections}" 
-
-    failure="false"
+    failure_injections="${HAPPY_PATH_TEST_INJECTION} ${host_cluster_failure_injections} ${common_failure_injections} ${rollback_failures}" 
+    failed="false"
 
     for failure in ${failure_injections}
     do
+        cluster=`get_host_cluster "emcworld" ${host}`
+        if [[ "${cluster}" == "${cluster1}" ]]; then
+            echo "Discovered that ${host} is part of ${cluster1}. Moving ${host} to ${cluster2} for test setup"
+            # Move the host from cluster-1 into cluster-2
+            change_host_cluster $host $cluster1 $cluster2 $vcenter           
+
+            sleep 20
+
+            EVENT_ID=$(get_pending_event)
+            if [ "$EVENT_ID" ]; then
+                approve_pending_event $EVENT_ID
+            fi
+        fi        
+        
         if [ ${failure} == ${HAPPY_PATH_TEST_INJECTION} ]; then
             echot "Running happy path test for move non-clustered host to cluster..."
         else    
@@ -987,19 +1041,7 @@ test_move_clustered_discovered_host_to_cluster() {
         sleep 20
 
         EVENT_ID=$(get_pending_event)
-        if [ -z "$EVENT_ID" ]; then
-            echo "FAILED. Expected an event"
-            # Move the host into cluster-1           
-            change_host_cluster $host $cluster1 $cluster2 $vcenter
-            sleep 20
-            EVENT_ID=$(get_pending_event)
-            if [ "$EVENT_ID" ]; then
-                approve_pending_event $EVENT_ID
-            fi    
-            report_results ${test_name} ${failure}
-            failure="true"
-            break
-        else
+
             if [ ${failure} == ${HAPPY_PATH_TEST_INJECTION} ]; then
                 approve_pending_event $EVENT_ID
             else
@@ -1007,19 +1049,26 @@ test_move_clustered_discovered_host_to_cluster() {
                 set_artificial_failure ${failure}
                 fail approve_pending_event $EVENT_ID
 
+                # Verify injected failures were hit
+                verify_failures ${failure}
+                # Let the async jobs calm down
+                sleep 5
+
                 # Verify that rollback moved the host back to cluster2
                 cluster=`get_host_cluster "emcworld" ${host}`
                 vcenterdc=`get_host_datacenter "emcworld" ${host} ${vcenter}`
                 if [[ "${cluster}" == "${cluster2}" && "${vcenterdc}" == "${dc}" ]]; then
-                    echo "Host has successfully been moved to cluster ${cluster2} on rollback."
+                    echo "Host has successfully been moved to ${cluster2} on rollback."
                 else
-                    echo "+++ FAIL - Host should belong to old cluster ${cluster2}."
+                    echo "+++ Rollback Failure - Host should belong to old cluster ${cluster2}."
+                    runcmd events delete $EVENT_ID > /dev/null
+                    set_artificial_failure none
                     incr_fail_count
                     if [ "${NO_BAILING}" != "1" ]; then
                         report_results ${test_name} ${failure}
-                        failure="true"
-                        break
                     fi                    
+                    failed="true"
+                    continue
                 fi
 
                 EVENT_ID=$(get_failed_event)    
@@ -1031,36 +1080,34 @@ test_move_clustered_discovered_host_to_cluster() {
                 cluster=`get_host_cluster "emcworld" ${host}`
                 vcenterdc=`get_host_datacenter "emcworld" ${host} ${vcenter}`
                 if [[ "${cluster}" == "${cluster1}" && "${vcenterdc}" == "${dc}" ]]; then
-                    echo "Host has successfully been moved to cluster/vcenterdc ${cluster1}/${dc}." 
+                    echo "Host has successfully been moved to ${cluster1}/${dc}." 
                 else
-                    echo "+++ FAIL - Host should belong to cluster/vcenterdc ${cluster1}/${dc} but belongs to ${cluster}/${vcenterdc}."
+                    echo "+++ Failure re-executed host move operation - Host should belong to ${cluster1}/${dc} but belongs to ${cluster}/${vcenterdc}."
                     incr_fail_count
                     if [ "${NO_BAILING}" != "1" ]; then
                         report_results ${test_name} ${failure}
-                        failure="true"
-                        break
                     fi                
+                    failed="true"
+                    break
                 fi
-            fi 
-        fi        
+            fi        
         
         if [[ $(export_contains ${PROJECT}/$cluster1_export $host) && $(export_contains ${PROJECT}/$cluster2_export $host) == "" ]]; then
             move_host="true"
-            echo "Host" ${host} "has been successfully moved to cluster" ${cluster2}
+            echo "${host} has been successfully moved and belongs to ${cluster1_export} export"
         else
-            echo "Failed to move host" ${host} "to cluster" ${cluster2}  
+            echo "Failed to move ${host}. It should only belong to ${cluster1_export} export"  
             
             # Report results
             incr_fail_count
             if [ "${NO_BAILING}" != "1" ]; then
                 report_results ${test_name} ${failure}
-                failure="true"
-                break
             fi
+            failed="true"
         fi    
 
         if [ ${move_host} = "true"  ]; then
-            # Move the host into cluster-1           
+            # Move the host back to cluster-2           
             change_host_cluster $host $cluster1 $cluster2 $vcenter 
             
             sleep 20
@@ -1068,8 +1115,7 @@ test_move_clustered_discovered_host_to_cluster() {
             EVENT_ID=$(get_pending_event)
             if [ -z "$EVENT_ID" ]; then
                 report_results ${test_name} ${failure}
-                failure="true"
-                break
+                failed="true"
             else
                 approve_pending_event $EVENT_ID
             fi                  
@@ -1088,14 +1134,12 @@ test_move_clustered_discovered_host_to_cluster() {
     delete_datastore_and_volume ${TENANT} ${datastore1} ${vcenter} "DC-Simulator-1" ${cluster1}
     delete_datastore_and_volume ${TENANT} ${datastore2} ${vcenter} "DC-Simulator-1" ${cluster2}  
     
-    if [ ${failure} == "true" ]; then
-        finish -1
-    fi
-    
-    snap_db 2 ${cfs}  
+    if [ ${failed} == "false" ]; then
+        snap_db 2 "${cfs[@]}"  
 
-    # Validate that nothing was left behind
-    validate_db 1 2 ${cfs}
+        # Validate that nothing was left behind
+        validate_db 1 2 "${cfs[@]}"
+    fi
 }
 
 # Searches an ExportGroup for a given value. Returns 0 if the value is found,
@@ -1160,7 +1204,7 @@ test_cluster_remove_host() {
         random_number=${RANDOM}
         TEST_OUTPUT_FILE=test_output_${RANDOM}.log
         reset_counts
-        column_family="Volume ExportGroup ExportMask"        
+        column_family=("Volume ExportGroup ExportMask")        
         mkdir -p results/${random_number}
         host1=fakehost1-${random_number}
         host2=fakehost2-${random_number}
@@ -1169,7 +1213,7 @@ test_cluster_remove_host() {
         exportgroup2=exportgroup2-${random_number}        
         
         # Snap DB
-        snap_db 1 ${column_family}
+        snap_db 1 "${column_family[@]}"
             
         # Create new random WWNs for nodes and initiators
         node1=`randwwn 20 C1`
@@ -1336,10 +1380,10 @@ test_cluster_remove_host() {
         runcmd hosts delete ${host2}
         
         # Snap DB
-        snap_db 2 ${column_family}
+        snap_db 2 "${column_family[@]}"
         
         # Validate DB
-        validate_db 1 2 ${column_family}
+        validate_db 1 2 "${column_family[@]}"
 
         # Report results
     	report_results ${test_name} ${failure}
@@ -1381,8 +1425,8 @@ test_cluster_remove_discovered_host() {
     #failure_injections="${HAPPY_PATH_TEST_INJECTION} ${common_failure_injections}"
 
     # Placeholder when a specific failure case is being worked...
-    failure_injections="failure_029_host_cluster_ComputeSystemControllerImpl.verifyDatastore_after_verify"    
-       
+    failure_injections="${HAPPY_PATH_TEST_INJECTION}"    
+    
     # Real™ hosts/clusters/vcenters/datacenters provisioned during setup
     hostpostfix=".sim.emc.com"
     host1="host11"
@@ -1393,24 +1437,6 @@ test_cluster_remove_discovered_host() {
     cluster2="cluster-2"
     vcenter="vcenter1"
     datacenter="DC-Simulator-1"
-    
-#    port1=`initiator list ${host1}${hostpostfix} | awk '{print($1)}'`
-#    port2=`initiator list ${host1}${hostpostfix} | awk '{print($2)}'`
-#    port3=`initiator list ${host1}${hostpostfix} | awk '{print($3)}'`
-#    port4=`initiator list ${host1}${hostpostfix} | awk '{print($4)}'`
-#    port5=`initiator list ${host1}${hostpostfix} | awk '/^rbd:/ {print($5)}'`
-#
-#    echo ${port1}
-#    echo "+++"
-#    echo ${port2}
-#    echo "+++"
-#    echo ${port3}
-#    echo "+++"
-#    echo ${port4}
-#    echo "+++"
-#    echo ${port5}
-#    echo "+++"
-#    exit 1
     
     random_number=${RANDOM}        
     
@@ -1423,143 +1449,41 @@ test_cluster_remove_discovered_host() {
     volume2=${VOLNAME}-2-${random_number}
     datastore1="fakedatastore1"-${random_number}
     datastore2="fakedatastore2"-${random_number}
+    secho "Creating volume ${volume1} and datastore ${datastore1}..."
     create_volume_and_datastore $TENANT ${volume1} ${datastore1} $NH $VPOOL_BASE ${PROJECT} ${vcenter} ${datacenter} ${cluster1}
-    #create_volume_and_datastore $TENANT ${volume2} ${datastore2} $NH $VPOOL_BASE ${PROJECT2} ${vcenter} ${datacenter} ${cluster1}
+    create_volume_and_datastore $TENANT ${volume2} ${datastore2} $NH $VPOOL_BASE ${PROJECT2} ${vcenter} ${datacenter} ${cluster1}
     
     # Export group name will be auto-generated as the cluster name
     exportgroup=${cluster1}
+    
+    # List of all export groups created
+    exportgroups="${PROJECT}/${exportgroup} ${PROJECT2}/${exportgroup}"
+    
+    # There are two paths to test:
+    # 1. update: Meaning we remove a single discovered host from the cluster
+    # 2. delete: Meaning we remove ALL discovered hosts from the cluster
+    workflowPath="updateWorkflow deleteWorkflow"
         
-    for failure in ${failure_injections}
+    for wf in ${workflowPath}
     do
-        echot "Running cluster_remove_discovered_host with failure scenario: ${failure}..."
-        
-        random_number=${RANDOM}
-        TEST_OUTPUT_FILE=test_output_${RANDOM}.log
-        reset_counts
-        column_family="Volume ExportGroup ExportMask Host"        
-        mkdir -p results/${random_number}       
-       
-        # Snap DB
-        snap_db 1 ${column_family}
-                    
-        # List of all export groups being used
-        #exportgroups="${PROJECT}/${exportgroup} ${PROJECT2}/${exportgroup}"
-        exportgroups="${PROJECT}/${exportgroup}"
-        
-        for eg in ${exportgroups}
+        for failure in ${failure_injections}
         do
-            # Double check export group to ensure the hosts are present            
-            foundhost1=`export_group show ${eg} | grep ${host1}`
-            foundhost2=`export_group show ${eg} | grep ${host2}`
+            echot "Running cluster_remove_discovered_host with failure scenario: ${failure} and testing path: ${wf}..."
             
-            if [[ "${foundhost1}" = "" || "${foundhost2}" = "" ]]; then
-                # Fail, hosts should have been added to the export group
-                echo "+++ FAIL - Some hosts were not found on export group ${eg}...fail."
-                # Report results
-                incr_fail_count
-                if [ "${NO_BAILING}" != "1" ]
-                then
-                    report_results ${test_name} ${failure}
-                    exit 1
-                fi
-            else
-                echo "+++ SUCCESS - All hosts present on export group ${eg}"   
-            fi
-        done
-                                      
-        if [[ "${failure}" == *"deleteExportGroup"* ]]; then
-            # Delete export group
-            secho "Delete export group path..."
-            
-#            # Try and remove both hosts from cluster, first should pass and second should fail
-#            runcmd hosts update $host1 --cluster null
-#            
-#            # Happy path would mean there is no fail, otherwise we should expect a failure
-#            if [ ${failure} != ${HAPPY_PATH_TEST_INJECTION} ]; then            
-#                fail hosts update $host2 --cluster null
-#            fi
-#        
-#            # Rerun the command with no failures
-#            set_artificial_failure none 
-#            runcmd hosts update $host2 --cluster null
-#            
-#            # Zzzzzz
-#            sleep 5
-#            
-#            for eg in ${exportgroups}
-#            do
-#                # Ensure that export group has been removed
-#                fail export_group show ${eg}
-#                
-#                echo "+++ Confirm export group ${eg} has been deleted, expect to see an exception below if it has..."
-#                foundeg=`export_group show ${eg} | grep ${eg}`
-#                
-#                if [ "${foundeg}" != "" ]; then
-#                    # Fail, export group should be removed
-#                    echo "+++ FAIL - Expected export group ${eg} was not deleted."
-#                    # Report results
-#                    incr_fail_count
-#                    if [ "${NO_BAILING}" != "1" ]
-#                    then
-#                        report_results ${test_name} ${failure}
-#                        exit 1
-#                    fi
-#                else
-#                    echo "+++ SUCCESS - Expected export group ${eg} was deleted." 
-#                fi
-#            done
-                        
-        else
-            # Update export group
-            secho "Update export group path..."
-        
-            # Vcenter call to remove host from cluster
-            remove_host_from_cluster $host1 $cluster1                        
-            
-            # Run discover
-            discover_vcenter ${vcenter}
-            
-            # Zzzzzz
-            sleep 5
-            
-            # Find pending events which should be present after the discover
-            EVENT_ID=$(get_pending_event)
-            if [ -z "$EVENT_ID" ]; then
-                echo "+++ FAILED. Expected an event! Re-add host to cluster..."
-                add_host_to_cluster $host1 $cluster1
-                EVENT_ID=$(get_pending_event)
-                if [ -z "$EVENT_ID" ]; then
-                    echo "+++ FAILED again! Expected an event for re-add host to cluster. Please check UI."
-                else
-                    approve_pending_event $EVENT_ID
-                fi                
-                exit 1
-            else
-                if [ ${failure} == ${HAPPY_PATH_TEST_INJECTION} ]; then
-                    approve_pending_event $EVENT_ID
-                else
-                    # Turn failure injection on
-                    set_artificial_failure ${failure}
-                    # Expect to fail when approving the event
-                    fail approve_pending_event $EVENT_ID
-                    discover_vcenter ${vcenter}
-                    sleep 5
-                    EVENT_ID=$(get_failed_event)    
-                    # Turn failure injection off and retry the approval
-                    secho "Re-run with failure injection off..."
-                    set_artificial_failure none
-                    approve_pending_event $EVENT_ID
-                fi 
-            fi
+            random_number=${RANDOM}
+            TEST_OUTPUT_FILE=test_output_${RANDOM}.log
+            reset_counts                   
+            mkdir -p results/${random_number}       
             
             for eg in ${exportgroups}
             do
-                # Ensure that host1 has been removed                
+                # Double check export group to ensure the hosts are present            
                 foundhost1=`export_group show ${eg} | grep ${host1}`
+                foundhost2=`export_group show ${eg} | grep ${host2}`
                 
-                if [[ "${foundhost1}" != "" ]]; then
-                    # Fail, initiators 1 and 2 and host1 should be removed and initiators 3 and 4 should still be present
-                    echo "+++ FAIL - Expected host was not removed from export group ${eg}."
+                if [[ "${foundhost1}" = "" || "${foundhost2}" = "" ]]; then
+                    # Fail, hosts should have been added to the export group
+                    echo "+++ FAIL - Some hosts were not found on export group ${eg}...fail."
                     # Report results
                     incr_fail_count
                     if [ "${NO_BAILING}" != "1" ]
@@ -1568,35 +1492,342 @@ test_cluster_remove_discovered_host() {
                         exit 1
                     fi
                 else
-                    echo "+++ SUCCESS - Expected host removed from export group ${eg}." 
-                fi                                     
+                    echo "+++ SUCCESS - All hosts present on export group ${eg}"   
+                fi
             done
+                                          
+            if [[ "${wf}" == *"deleteWorkflow"* ]]; then
+                # Delete export group
+                secho "Delete export group path..."
+                
+                # Snap DB
+                column_family=("Volume Cluster Host") 
+                snap_db 1 "${column_family[@]}"
             
-            # Add the host back to cluster
-            secho "Test complete, add the host back to cluster..."
-            add_host_to_cluster $host1 $cluster1                                  
-            discover_vcenter ${vcenter}            
-            sleep 5            
-            EVENT_ID=$(get_pending_event)
-            approve_pending_event $EVENT_ID
-        fi    
-        
-        # Snap DB
-        snap_db 2 ${column_family}
-        
-        # Validate DB
-        validate_db 1 2 ${column_family}
+                # Vcenter call to remove host1 from cluster1
+                remove_host_from_cluster $host1 $cluster1                                        
+                discover_vcenter ${vcenter}
+                sleep 20
+                EVENT_ID=$(get_pending_event)
+                approve_pending_event $EVENT_ID
+                            
+                # Vcenter call to remove host2 from cluster1
+                # NOTE: Temporarily move host2 to cluster2 to avoid 
+                # validation errors of an empty cluster in vcenter
+                remove_host_from_cluster $host2 $cluster1            
+                add_host_to_cluster $host2 $cluster2
+                discover_vcenter ${vcenter}            
+                sleep 20
+                EVENT_ID=$(get_pending_event)
+                
+                # Verify event
+                if [ -z "$EVENT_ID" ]; then
+                    echo "+++ FAILED. Expected an event! Re-add hosts to cluster..."
+                    remove_host_from_cluster $host2 $cluster2 
+                    add_host_to_cluster $host1 $cluster1
+                    add_host_to_cluster $host2 $cluster1
+                    discover_vcenter ${vcenter}
+                    sleep 20
+                    EVENT_ID=$(get_pending_event)
+                    if [ -z "$EVENT_ID" ]; then
+                        echo "+++ FAILED again! Expected an event for re-add host to cluster. Please check UI."
+                    else
+                        approve_pending_event $EVENT_ID
+                    fi                
+                    exit 1
+                else
+                    if [ ${failure} == ${failure} ]; then
+                        approve_pending_event $EVENT_ID
+                    else
+                        # Turn failure injection on
+                        set_artificial_failure ${failure}
+                        # Expect to fail when approving the event
+                        fail approve_pending_event $EVENT_ID
+                        
+                        # Verify injected failures were hit
+                        verify_failures ${failure}
+                        # Let the async jobs calm down
+                        sleep 5
+                        
+                        discover_vcenter ${vcenter}
+                        sleep 20
+                        EVENT_ID=$(get_failed_event)    
+                        # Turn failure injection off and retry the approval
+                        secho "Re-run with failure injection off..."
+                        set_artificial_failure none
+                        approve_pending_event $EVENT_ID
+                    fi 
+                fi
+                
+                for eg in ${exportgroups}
+                do
+                    # Ensure that export group has been removed
+                    fail export_group show ${eg}
+                    
+                    echo "+++ Confirm export group ${eg} has been deleted, expect to see an exception below if it has..."
+                    foundeg=`export_group show ${eg} | grep ${eg}`
+                    
+                    if [ "${foundeg}" != "" ]; then
+                        # Fail, export group should be removed
+                        echo "+++ FAIL - Expected export group ${eg} was not deleted."
+                        # Report results
+                        incr_fail_count
+                        if [ "${NO_BAILING}" != "1" ]
+                        then
+                            report_results ${test_name} ${failure}
+                            exit 1
+                        fi
+                    else
+                        echo "+++ SUCCESS - Expected export group ${eg} was deleted." 
+                    fi
+                done
+                
+                # Add both hosts back to cluster1           
+                secho "Test complete, add hosts back to cluster..."
+                remove_host_from_cluster $host2 $cluster2
+                discover_vcenter ${vcenter}
+                sleep 20
+                EVENT_ID=$(get_pending_event)
+                approve_pending_event $EVENT_ID
+                # NOTE: If there are no export groups for that cluster, 
+                # no events are created so we do not need to approve anything.
+                add_host_to_cluster $host1 $cluster1
+                add_host_to_cluster $host2 $cluster1
+                discover_vcenter ${vcenter}
+                sleep 20                       
+            else
+                # Update export group
+                secho "Update export group path..."
+                
+                # Snap DB
+                column_family=("Volume ExportGroup ExportMask Cluster Host") 
+                snap_db 1 "${column_family[@]}"
+            
+                # Vcenter call to remove host from cluster
+                remove_host_from_cluster $host1 $cluster1            
+                discover_vcenter ${vcenter}  
+                sleep 20
+                EVENT_ID=$(get_pending_event)
+                
+                # Verify event
+                if [ -z "$EVENT_ID" ]; then
+                    echo "+++ FAILED. Expected an event! Re-add host to cluster..."
+                    add_host_to_cluster $host1 $cluster1
+                    discover_vcenter ${vcenter}
+                    sleep 20
+                    EVENT_ID=$(get_pending_event)
+                    if [ -z "$EVENT_ID" ]; then
+                        echo "+++ FAILED again! Expected an event for re-add host to cluster. Please check UI."
+                    else
+                        approve_pending_event $EVENT_ID
+                    fi                
+                    exit 1
+                else
+                    if [ ${failure} == ${HAPPY_PATH_TEST_INJECTION} ]; then
+                        approve_pending_event $EVENT_ID
+                    else
+                        # Turn failure injection on
+                        set_artificial_failure ${failure}
+                        # Expect to fail when approving the event
+                        fail approve_pending_event $EVENT_ID
+                        
+                        # Verify injected failures were hit
+                        verify_failures ${failure}
+                        # Let the async jobs calm down
+                        sleep 5                        
 
-        # Report results
-        report_results ${test_name} ${failure}
+                        # Turn failure injection off and retry the approval
+                        secho "Re-run with failure injection off..."
+                        set_artificial_failure none
+                        discover_vcenter ${vcenter}
+                        sleep 20
+                        EVENT_ID=$(get_failed_event)                        
+                        approve_pending_event $EVENT_ID
+                    fi 
+                fi
+                
+                for eg in ${exportgroups}
+                do
+                    # Ensure that host1 has been removed                
+                    foundhost1=`export_group show ${eg} | grep ${host1}`
+                    
+                    if [[ "${foundhost1}" != "" ]]; then
+                        # Fail, host1 should be removed
+                        echo "+++ FAIL - Expected host was not removed from export group ${eg}."
+                        # Report results
+                        incr_fail_count
+                        if [ "${NO_BAILING}" != "1" ]
+                        then
+                            report_results ${test_name} ${failure}
+                            exit 1
+                        fi
+                    else
+                        echo "+++ SUCCESS - Expected host removed from export group ${eg}." 
+                    fi                                     
+                done
+                
+                # Add the host back to cluster
+                secho "Test complete, add the host back to cluster..."
+                add_host_to_cluster $host1 $cluster1                                  
+                discover_vcenter ${vcenter}            
+                sleep 20            
+                EVENT_ID=$(get_pending_event)
+                approve_pending_event $EVENT_ID
+            fi    
+            
+            # Snap DB
+            snap_db 2 "${column_family[@]}"
+            
+            # Validate DB
+            validate_db 1 2 "${column_family[@]}"
+    
+            # Report results
+            report_results ${test_name} ${failure}
+        done
     done
     
-     # Cleanup volumes
-    delete_volume_and_datastore $TENANT ${datastore1} ${vcenter} ${datacenter} ${cluster1}
-    #delete_volume_and_datastore $TENANT ${datastore2} ${vcenter} ${datacenter} ${cluster1} 
+    # Cleanup volumes
+    runcmd volume delete ${PROJECT}/${volume1} --wait 
+    runcmd volume delete ${PROJECT2}/${volume2} --wait 
     runcmd project delete ${PROJECT2}
     
     # Turn off validation back on
     secho "Turning ViPR validation ON"
     syssvc $SANITY_CONFIG_FILE localhost set_prop validation_check true
+}
+
+test_move_non_clustered_discovered_host_to_cluster() {
+    test_name="test_move_non_clustered_discovered_host_to_cluster"
+    echot "Test test_move_non_clustered_discovered_host_to_cluster"
+    cluster1="cluster-1"
+    cluster2="cluster-2"
+    host="host21"
+    vcenter="vcenter1"
+    random_num=${RANDOM}
+    volume1=fakevolume1-${random_num}
+    volume2=fakevolume2-${random_num}
+    cluster2_export=cluster2export-${random_num}
+    set_controller_cs_discovery_refresh_interval 1
+    
+    cfs=("ExportGroup ExportMask")
+
+    host_cluster_failure_injections="failure_029_host_cluster_ComputeSystemControllerImpl.verifyDatastore_after_verify \
+                                     failure_030_host_cluster_ComputeSystemControllerImpl.unmountAndDetach_after_unmount \
+                                     failure_031_host_cluster_ComputeSystemControllerImpl.unmountAndDetach_after_detach"
+    common_failure_injections="failure_004_final_step_in_workflow_complete"
+    
+    # Create the volumes
+    runcmd volume create ${volume2} ${PROJECT} ${NH} ${VPOOL_BASE} 1GB
+    
+    # Move host into cluster1 so that the datastore can be provisioned to cluster-2 with the precheck of matching hosts
+    change_host_cluster $host $cluster2 $cluster1 $vcenter
+    # then assign to null cluster
+    runcmd hosts update ${host}.sim.emc.com --cluster null
+    
+    # Export the volumes to the clusters
+    runcmd export_group create ${PROJECT} ${cluster2_export} $NH --type Cluster --volspec ${PROJECT}/${volume2} --clusters ${TENANT}/${cluster2}
+
+    syssvc $SANITY_CONFIG_FILE localhost set_prop system_proxyuser_encpassword "ChangeMe1!"
+
+    failure_injections="${HAPPY_PATH_TEST_INJECTION}" # {host_cluster_failure_injections} ${common_failure_injections}"
+
+    for failure in ${failure_injections}
+    do
+        if [ ${failure} == ${HAPPY_PATH_TEST_INJECTION} ]; then
+            echot "Running happy path test for move non-clustered discovered host to cluster..."
+        else    
+            echot "Running move non-clustered discovered host to cluster with failure scenario: ${failure}..."
+        fi    
+        
+        TEST_OUTPUT_FILE=test_output_${RANDOM}.log
+        reset_counts
+        item=${RANDOM}
+        mkdir -p results/${item}
+        datastore2=fakedatastore2-${item}
+        
+        move_host="true"
+   
+        # Remove host from cluster
+        #runcmd hosts update ${host}.sim.emc.com --cluster null
+        #remove_host_from_cluster $host $cluster1
+        #remove_host_from_cluster $host $cluster2 
+        
+        snap_db 1 ${cfs[@]}
+
+        create_datastore ${TENANT} ${volume2} ${datastore2} ${PROJECT} ${vcenter} "DC-Simulator-1" ${cluster2}
+
+        change_host_cluster $host $cluster1 $cluster2 $vcenter
+        discover_vcenter "vcenter1"
+ 
+        EVENT_ID=$(get_pending_event)
+        if [ -z "$EVENT_ID" ]; then
+            echo "FAILED. Expected an event"
+            # Move the host into cluster-1           
+            #change_host_cluster $host $cluster1 $cluster2 $vcenter
+            finish -1
+        else
+            if [ ${failure} == ${HAPPY_PATH_TEST_INJECTION} ]; then
+                approve_pending_event $EVENT_ID
+            else
+                # Turn failure injection on
+                set_artificial_failure ${failure}
+                fail approve_pending_event $EVENT_ID
+                
+                # Verify injected failures were hit
+                verify_failures ${failure}
+                # Let the async jobs calm down
+                sleep 5                
+                
+                EVENT_ID=$(get_failed_event)    
+                # turn failure injection off and retry the approval
+                set_artificial_failure none
+                approve_pending_event $EVENT_ID
+            fi 
+        fi        
+        
+        if [[ $(export_contains ${PROJECT}/$cluster2_export $host) != "" ]]; then
+            echo "Host" ${host} "has been successfully moved to cluster" ${cluster2}
+        else
+            echo "Failed to move host" ${host} "to cluster" ${cluster2}  
+            
+            # Report results
+            incr_fail_count
+            if [ "${NO_BAILING}" != "1" ]; then
+                report_results ${test_name} ${failure}
+                finish -1
+            fi
+        fi    
+
+        if [ ${move_host} = "true"  ]; then
+            # Move the host into cluster-1           
+            change_host_cluster $host $cluster2 $cluster1 $vcenter 
+            
+            EVENT_ID=$(get_pending_event)
+            if [ -z "$EVENT_ID" ]; then
+                finish -1
+            else
+                approve_pending_event $EVENT_ID
+            fi                  
+        fi
+        
+        delete_datastore ${TENANT} ${datastore2} ${vcenter} "DC-Simulator-1" ${cluster2}
+
+        snap_db 2 ${cfs[@]}  
+
+        # Validate that nothing was left behind
+        validate_db 1 2 ${cfs[@]}          
+
+        # Report results
+        report_results ${test_name} ${failure}
+    done
+    
+    # Cleanup exports
+    #runcmd export_group update ${PROJECT}/${cluster1_export} --remVols ${PROJECT}/${volume1}
+    #runcmd export_group delete ${PROJECT}/${cluster1_export} 
+    #runcmd export_group update ${PROJECT}/${cluster2_export} --remVols ${PROJECT}/${volume2}
+    #runcmd export_group delete ${PROJECT}/${cluster2_export}     
+    
+    # Cleanup volumes
+    #runcmd volume delete ${PROJECT}/${volume1} --wait
+    #runcmd volume delete ${PROJECT}/${volume2} --wait
 }

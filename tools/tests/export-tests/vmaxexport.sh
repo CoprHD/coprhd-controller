@@ -1898,7 +1898,7 @@ test_34() {
     verify_export ${expname}1 -x- 6 3 2,3,58
 
     runcmd export_group update ${PROJECT}/${expname}1 --addVols "${PROJECT}/${VOLNAME}-2,${PROJECT}/${VOLNAME}-4,${PROJECT}/${VOLNAME}-6"
-    verify_export ${expname}1 -x- 6 6 0,1,2,3,4,58
+    verify_export ${expname}1 -x- 6 6 1,2,3,4,5,58
 
     runcmd export_group delete $PROJECT/${expname}1
     verify_export ${expname}1 -x- gone
@@ -1985,15 +1985,15 @@ test_35() {
     verify_export ${expname}3 ${HOST2} gone
 
     runcmd export_group update ${PROJECT}/${expname}2 --addVols "${PROJECT}/${VOLNAME}-2,${PROJECT}/${VOLNAME}-6"
-    verify_export ${expname}2 -x- 6 4 0,1,2,3
+    verify_export ${expname}2 -x- 6 4 1,2,3,4
 
     runcmd export_group create $PROJECT ${expname}4 $NH --type Host --volspec ${PROJECT}/${VOLNAME}-7 --hosts "${HOST3}"
-    verify_export ${expname}2 -x- 6 4 0,1,2,3
-    verify_export ${expname}4 ${HOST3} 2 1 4
+    verify_export ${expname}2 -x- 6 4 1,2,3,4
+    verify_export ${expname}4 ${HOST3} 2 1 0
 
     runcmd export_group delete $PROJECT/${expname}2
     verify_export ${expname}2 -x- gone
-    verify_export ${expname}4 ${HOST3} 2 1 4
+    verify_export ${expname}4 ${HOST3} 2 1 0
 
     runcmd export_group delete $PROJECT/${expname}4
     verify_export ${expname}4 ${HOST3} gone
@@ -2172,16 +2172,16 @@ test_37() {
     verify_export ${expname}1 -x- 4 2 1,2
 
     runcmd export_group update ${PROJECT}/${expname}1 --addVolspec ${PROJECT}/${VOLNAME}-2/${snap}-2
-    verify_export ${expname}1 -x- 4 3 0,1,2
+    verify_export ${expname}1 -x- 4 3 1,2,3
 
     runcmd export_group update ${PROJECT}/${expname}1 --remVols ${PROJECT}/${VOLNAME}-1
-    verify_export ${expname}1 -x- 4 2 0,2
+    verify_export ${expname}1 -x- 4 2 2,3
 
     runcmd export_group update ${PROJECT}/${expname}1 --addHosts "${HOST3}"
-    verify_export ${expname}1 -x- 6 2 0,2
+    verify_export ${expname}1 -x- 6 2 2,3
 
     runcmd export_group update ${PROJECT}/${expname}1 --addVolspec "${PROJECT}/${VOLNAME}-3/${snap}-3,${PROJECT}/${VOLNAME}-4/${snap}-4"
-    verify_export ${expname}1 -x- 6 4 0,1,2,3
+    verify_export ${expname}1 -x- 6 4 1,2,3,4
 
     runcmd export_group delete $PROJECT/${expname}1
     verify_export ${expname}1 -x- gone
@@ -2258,23 +2258,23 @@ test_38() {
     verify_export ${expname}2 -x- 4 2 1,2
 
     runcmd export_group update ${PROJECT}/${expname}2 --addVolspec ${PROJECT}/${VOLNAME}-1/${snap}-1
-    verify_export ${expname}2 -x- 4 3 0,1,2
+    verify_export ${expname}2 -x- 4 3 1,2,3
 
     runcmd export_group update ${PROJECT}/${expname}2 --remVols ${PROJECT}/${VOLNAME}-2
-    verify_export ${expname}2 -x- 4 2 0,2
+    verify_export ${expname}2 -x- 4 2 2,3
 
     runcmd export_group update ${PROJECT}/${expname}2 --addHosts "${HOST3}"
-    verify_export ${expname}2 -x- 6 2 0,2
+    verify_export ${expname}2 -x- 6 2 2,3
 
     runcmd export_group update ${PROJECT}/${expname}2 --addVolspec ${PROJECT}/${VOLNAME}-3/${snap}-3
-    verify_export ${expname}2 -x- 6 3 0,1,2
+    verify_export ${expname}2 -x- 6 3 1,2,3
 
     runcmd export_group create $PROJECT ${expname}3 $NH --type Host --volspec ${PROJECT}/${VOLNAME}-4/${snap}-4 --hosts "${HOST3}"
-    verify_export ${expname}2 -x- 6 3 0,1,2
-    verify_export ${expname}3 ${HOST3} 2 1 3
+    verify_export ${expname}2 -x- 6 3 1,2,3
+    verify_export ${expname}3 ${HOST3} 2 1 0
 
     runcmd export_group delete $PROJECT/${expname}3
-    verify_export ${expname}2 -x- 6 3 0,1,2
+    verify_export ${expname}2 -x- 6 3 1,2,3
     verify_export ${expname}3 ${HOST3} gone
 
     runcmd export_group delete $PROJECT/${expname}2
@@ -2349,16 +2349,16 @@ test_39() {
     verify_export ${expname}1 -x- 4 2 1,2
 
     runcmd export_group update ${PROJECT}/${expname}1 --addVolspec ${PROJECT}/${fullcopy}-2
-    verify_export ${expname}1 -x- 4 3 0,1,2
+    verify_export ${expname}1 -x- 4 3 1,2,3
 
     runcmd export_group update ${PROJECT}/${expname}1 --remVols ${PROJECT}/${VOLNAME}-1
-    verify_export ${expname}1 -x- 4 2 0,2
+    verify_export ${expname}1 -x- 4 2 2,3
 
     runcmd export_group update ${PROJECT}/${expname}1 --addHosts "${HOST3}"
-    verify_export ${expname}1 -x- 6 2 0,2
+    verify_export ${expname}1 -x- 6 2 2,3
 
     runcmd export_group update ${PROJECT}/${expname}1 --addVolspec "${PROJECT}/${fullcopy}-3,${PROJECT}/${fullcopy}-4"
-    verify_export ${expname}1 -x- 6 4 0,1,2,3
+    verify_export ${expname}1 -x- 6 4 1,2,3,4
 
     runcmd export_group delete $PROJECT/${expname}1
     verify_export ${expname}1 -x- gone
@@ -2439,23 +2439,23 @@ test_40() {
     verify_export ${expname}2 -x- 4 2 1,2
 
     runcmd export_group update ${PROJECT}/${expname}2 --addVolspec ${PROJECT}/${fullcopy}-1
-    verify_export ${expname}2 -x- 4 3 0,1,2
+    verify_export ${expname}2 -x- 4 3 1,2,3
 
     runcmd export_group update ${PROJECT}/${expname}2 --remVols ${PROJECT}/${VOLNAME}-2
-    verify_export ${expname}2 -x- 4 2 0,2
+    verify_export ${expname}2 -x- 4 2 2,3
 
     runcmd export_group update ${PROJECT}/${expname}2 --addHosts "${HOST3}"
-    verify_export ${expname}2 -x- 6 2 0,2
+    verify_export ${expname}2 -x- 6 2 2,3
 
     runcmd export_group update ${PROJECT}/${expname}2 --addVolspec ${PROJECT}/${fullcopy}-3
-    verify_export ${expname}2 -x- 6 3 0,1,2
+    verify_export ${expname}2 -x- 6 3 1,2,3
 
     runcmd export_group create $PROJECT ${expname}3 $NH --type Host --volspec ${PROJECT}/${fullcopy}-4 --hosts "${HOST3}"
-    verify_export ${expname}2 -x- 6 3 0,1,2
-    verify_export ${expname}3 ${HOST3} 2 1 3
+    verify_export ${expname}2 -x- 6 3 1,2,3
+    verify_export ${expname}3 ${HOST3} 2 1 0
 
     runcmd export_group delete $PROJECT/${expname}3
-    verify_export ${expname}2 -x- 6 3 0,1,2
+    verify_export ${expname}2 -x- 6 3 1,2,3
     verify_export ${expname}3 ${HOST3} gone
 
     runcmd export_group delete $PROJECT/${expname}2
@@ -2534,16 +2534,16 @@ test_41() {
     verify_export ${expname}1 -x- 4 2 1,2
 
     runcmd export_group update ${PROJECT}/${expname}1 --addVolspec ${PROJECT}/${VOLNAME}-2/${mirror}-2
-    verify_export ${expname}1 -x- 4 3 0,1,2
+    verify_export ${expname}1 -x- 4 3 1,2,3
 
     runcmd export_group update ${PROJECT}/${expname}1 --remVols ${PROJECT}/${VOLNAME}-1
-    verify_export ${expname}1 -x- 4 2 0,2
+    verify_export ${expname}1 -x- 4 2 2,3
 
     runcmd export_group update ${PROJECT}/${expname}1 --addHosts "${HOST3}"
-    verify_export ${expname}1 -x- 6 2 0,2
+    verify_export ${expname}1 -x- 6 2 2,3
 
     runcmd export_group update ${PROJECT}/${expname}1 --addVolspec "${PROJECT}/${VOLNAME}-3/${mirror}-3,${PROJECT}/${VOLNAME}-4/${mirror}-4"
-    verify_export ${expname}1 -x- 6 4 0,1,2,3
+    verify_export ${expname}1 -x- 6 4 1,2,3,4
 
     runcmd export_group delete $PROJECT/${expname}1
     verify_export ${expname}1 -x- gone
@@ -2624,23 +2624,23 @@ test_42() {
     verify_export ${expname}2 -x- 4 2 1,2
 
     runcmd export_group update ${PROJECT}/${expname}2 --addVolspec ${PROJECT}/${VOLNAME}-1/${mirror}-1
-    verify_export ${expname}2 -x- 4 3 0,1,2
+    verify_export ${expname}2 -x- 4 3 1,2,3
 
     runcmd export_group update ${PROJECT}/${expname}2 --remVols ${PROJECT}/${VOLNAME}-2
-    verify_export ${expname}2 -x- 4 2 0,2
+    verify_export ${expname}2 -x- 4 2 2,3
 
     runcmd export_group update ${PROJECT}/${expname}2 --addHosts "${HOST3}"
-    verify_export ${expname}2 -x- 6 2 0,2
+    verify_export ${expname}2 -x- 6 2 2,3
 
     runcmd export_group update ${PROJECT}/${expname}2 --addVolspec ${PROJECT}/${VOLNAME}-3/${mirror}-3
-    verify_export ${expname}2 -x- 6 3 0,1,2
+    verify_export ${expname}2 -x- 6 3 1,2,3
 
     runcmd export_group create $PROJECT ${expname}3 $NH --type Host --volspec ${PROJECT}/${VOLNAME}-4/${mirror}-4 --hosts "${HOST3}"
-    verify_export ${expname}2 -x- 6 3 0,1,2
-    verify_export ${expname}3 ${HOST3} 2 1 3
+    verify_export ${expname}2 -x- 6 3 1,2,3
+    verify_export ${expname}3 ${HOST3} 2 1 0
 
     runcmd export_group delete $PROJECT/${expname}3
-    verify_export ${expname}2 -x- 6 3 0,1,2
+    verify_export ${expname}2 -x- 6 3 1,2,3
     verify_export ${expname}3 ${HOST3} gone
 
     runcmd export_group delete $PROJECT/${expname}2

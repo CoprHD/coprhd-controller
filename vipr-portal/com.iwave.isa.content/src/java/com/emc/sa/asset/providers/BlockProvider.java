@@ -716,13 +716,14 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         ViPRCoreClient client = api(ctx);
         List<AssetOption> options = Lists.newArrayList();
         
-        List<ExportGroupRestRep> exports = client.blockExports().findByHost(hostOrClusterId, null, null);
-        List<URI> vArrayIds = new ArrayList<URI>();
-        for (ExportGroupRestRep export : exports) {
-            vArrayIds.add(export.getVirtualArray().getId());
+        List<VirtualArrayRestRep> vArrays = new ArrayList<VirtualArrayRestRep>();
+
+        if (BlockStorageUtils.isHost(hostOrClusterId)) {
+            vArrays = client.varrays().findByConnectedHost(hostOrClusterId);
+        } else if (BlockStorageUtils.isCluster(hostOrClusterId)) {
+            vArrays = client.varrays().findByConnectedCluster(hostOrClusterId);
         }
         
-        List<VirtualArrayRestRep> vArrays = client.varrays().getByIds(vArrayIds, null);
         for (VirtualArrayRestRep vArray : vArrays) {
             options.add(new AssetOption(vArray.getId(), vArray.getName()));
         }
@@ -736,8 +737,14 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         ViPRCoreClient client = api(ctx);
         List<AssetOption> options = Lists.newArrayList();
         
-        List<ExportGroupRestRep> exports = client.blockExports().findByHost(hostOrClusterId, projectId, vArrayId);
-        
+        List<ExportGroupRestRep> exports = new ArrayList<ExportGroupRestRep>();
+
+        if (BlockStorageUtils.isHost(hostOrClusterId)) {
+            exports = client.blockExports().findByHost(hostOrClusterId, projectId, vArrayId);
+        } else if (BlockStorageUtils.isCluster(hostOrClusterId)) {
+            exports = client.blockExports().findByCluster(hostOrClusterId, projectId, vArrayId);
+        }
+
         for (ExportGroupRestRep export : exports) {
             options.add(new AssetOption(export.getId(), export.getName()));
         }

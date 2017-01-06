@@ -333,11 +333,6 @@ public class OrderService extends CatalogTaggedResourceService {
             }
 
             orders = orderManager.findOrdersByTimeRange(uri(tenantId), startTime, endTime, maxCount);
-            log.info("lbyt start={} end={} max={} count={}", new Object[] { startTime, endTime, maxCount, orders.size()});
-            List<URI> tids = new ArrayList(1);
-            tids.add(uri(tenantId));
-            Map<String, Long> countMap = orderManager.getOrderCount(tids, startTime.getTime(), endTime.getTime());
-            log.info("lbyt count={}", countMap);
         }
 
         ResRepFilter<SearchResultResourceRep> resRepFilter =
@@ -603,9 +598,6 @@ public class OrderService extends CatalogTaggedResourceService {
                                   @DefaultValue("") @QueryParam(SearchConstants.ORDER_STATUS_PARAM2) String orderStatusStr,
                                   @DefaultValue("") @QueryParam(SearchConstants.ORDER_IDS) String orderIDsStr)
             throws Exception {
-        log.info("lbyk:export orders startTime={}, endTime={} tid={} orderIDs={} status={}",
-                new Object[] {startTimeStr, endTimeStr, tenantIDsStr, orderIDsStr, orderStatusStr});
-
         if (tenantIDsStr.isEmpty() && orderIDsStr.isEmpty()) {
             InvalidParameterException cause = new InvalidParameterException("Both tenant and order IDs are empty");
             throw APIException.badRequests.invalidParameterWithCause(SearchConstants.TENANT_ID_PARAM, tenantIDsStr, cause);
@@ -619,7 +611,6 @@ public class OrderService extends CatalogTaggedResourceService {
         }
 
         OrderStatus orderStatus = getOrderStatus(orderStatusStr, false);
-        log.info("lbyt0: status={} str={}", orderStatus, orderStatusStr);
 
         if (isJobRunning()) {
             throw APIException.badRequests.cannotExecuteOperationWhilePendingTask("Deleting/Downloading orders");
@@ -723,13 +714,12 @@ public class OrderService extends CatalogTaggedResourceService {
             }
 
             parameters = order.auditParameters();
-            log.info("lbyh id={}", id);
             dumpOrder(out, order);
             status.addCompleted(1);
             saveJobInfo(status);
             auditOpSuccess(OperationTypeEnum.DOWNLOAD_ORDER, parameters);
         } catch (Exception e) {
-            log.error("Failed to download order {}", id);
+            log.error("Failed to download order {} e=", id, e);
             auditOpFailure(OperationTypeEnum.DOWNLOAD_ORDER, parameters);
             throw e;
         }
@@ -750,20 +740,26 @@ public class OrderService extends CatalogTaggedResourceService {
         out.println("---------------");
 
         ExecutionState state = orderManager.getOrderExecutionState(order.getExecutionStateId());
-        out.print(state.toString());
+        if (state != null) {
+            out.print(state.toString());
+        }
 
         out.println("Logs");
         out.println("----");
         out.println(" Execution Logs");
-        List<ExecutionLog> elogs = orderManager.getOrderExecutionLogs(order);
-        for (ExecutionLog elog : elogs) {
-            out.print(elog.toString());
+        if (state != null) {
+            List<ExecutionLog> elogs = orderManager.getOrderExecutionLogs(order);
+            for (ExecutionLog elog : elogs) {
+                out.print(elog.toString());
+            }
         }
 
         out.println(" Execution Task Logs");
-        List<ExecutionTaskLog> tlogs = orderManager.getOrderExecutionTaskLogs(order);
-        for (ExecutionTaskLog tlog : tlogs) {
-            out.print(tlog.toString());
+        if (state != null) {
+            List<ExecutionTaskLog> tlogs = orderManager.getOrderExecutionTaskLogs(order);
+            for (ExecutionTaskLog tlog : tlogs) {
+                out.print(tlog.toString());
+            }
         }
     }
 
@@ -943,8 +939,10 @@ public class OrderService extends CatalogTaggedResourceService {
         String[] idsInStr = idsStr.split(",");
         try {
             for (String id : idsInStr) {
-                URI uri = new URI(id);
-                ids.add(uri);
+                if (!id.isEmpty()) {
+                    URI uri = new URI(id);
+                    ids.add(uri);
+                }
             }
         }catch(URISyntaxException e) {
             throw APIException.badRequests.invalidParameterWithCause(parameterName, idsStr, e);
@@ -964,8 +962,6 @@ public class OrderService extends CatalogTaggedResourceService {
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @CheckPermission(roles = { Role.TENANT_ADMIN })
     public OrderJobInfo getJobStatus(@DefaultValue("DELETE_ORDER") @QueryParam(SearchConstants.JOB_TYPE) String typeStr) {
-
-        log.info("lbyc0:type={}", typeStr);
 
         OrderServiceJob.JobType type;
         try {
@@ -1030,8 +1026,6 @@ public class OrderService extends CatalogTaggedResourceService {
             throw APIException.internalServerErrors.getLockFailed();
         }
 
-        log.info("lby00 start={} end={} tids={}", new Object[] {startTimeInMS, endTimeInMS, tids});
-
         OrderServiceJob job = new OrderServiceJob(OrderServiceJob.JobType.DELETE_ORDER);
         try {
             queue.put(job);
@@ -1070,7 +1064,6 @@ public class OrderService extends CatalogTaggedResourceService {
     }
 
     public void saveJobInfo(OrderJobStatus status) throws Exception {
-        log.info("lbyx0: persist type={}", status);
         InterProcessLock lock = coordinatorClient.getLock(ORDER_JOB_LOCK);
 
         lock.acquire();
@@ -1129,7 +1122,7 @@ public class OrderService extends CatalogTaggedResourceService {
             deletedOrdersInCurrentPeriod +=entry.getValue();
         }
 
-        log.info("lbyd0: {} orders deleted in the current GC", deletedOrdersInCurrentPeriod);
+        log.info("{} orders deleted in the current GC", deletedOrdersInCurrentPeriod);
         return deletedOrdersInCurrentPeriod;
     }
 
@@ -1148,7 +1141,6 @@ public class OrderService extends CatalogTaggedResourceService {
     public Response deactivateOrder(@PathParam("id") URI id) throws DatabaseException {
         Order order = queryResource(id);
         ArgValidator.checkEntity(order, id, true);
-        log.info("lbyh0 order={}", order);
 
         orderManager.deleteOrder(order);
 

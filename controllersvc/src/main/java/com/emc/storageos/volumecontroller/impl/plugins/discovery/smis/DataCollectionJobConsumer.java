@@ -119,11 +119,13 @@ public class DataCollectionJobConsumer extends
         if (job instanceof DataCollectionScanJob) {
             throw new DeviceControllerException("Invoked wrong job type : " + job.getType());
         }
+        
+        String nodeId = _coordinator.getInetAddessLookupMap().getNodeId();
 
         DataCollectionTaskCompleter completer = job.getCompleter();
         completer.updateObjectState(_dbClient, DiscoveredDataObject.DataCollectionJobStatus.IN_PROGRESS);
         String jobType = job.getType();
-        job.updateTask(_dbClient, "Started " + jobType);
+        job.updateTask(_dbClient, "Started " + jobType + " on node " + nodeId);
 
         /**
          * TODO ISILON or VNXFILE

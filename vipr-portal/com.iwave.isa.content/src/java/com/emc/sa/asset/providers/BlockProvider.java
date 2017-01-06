@@ -984,6 +984,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         exportPathParameters.setMinPaths(minPaths);
         exportPathParameters.setMaxPaths(maxPaths);
         exportPathParameters.setPathsPerInitiator(pathsPerInitiator);
+        exportPathParameters.setStoragePorts(ports);
        
         param.setUseExistingPaths(useExisting.equalsIgnoreCase(YES_VALUE) ? true : false);
 

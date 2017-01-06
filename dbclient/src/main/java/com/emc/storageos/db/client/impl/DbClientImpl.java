@@ -347,7 +347,7 @@ public class DbClientImpl implements DbClient {
      * @param clazz
      * @return
      */
-    protected <T extends DataObject> Keyspace getKeyspace(Class<T> clazz) {
+    public <T extends DataObject> Keyspace getKeyspace(Class<T> clazz) {
         return getDbClientContext(clazz).getKeyspace();
     }
     
@@ -984,10 +984,13 @@ public class DbClientImpl implements DbClient {
     @Override
     public <T> void queryByConstraint(Constraint constraint, QueryResultList<T> result, URI startId, int maxCount) {
         ConstraintImpl constraintImpl = (ConstraintImpl) constraint;
-    	if (!constraintImpl.isValid()) {
-    		throw new IllegalArgumentException("invalid constraint: the key can't be null or empty"); 
-    	}
+
+        if (!constraintImpl.isValid()) {
+            throw new IllegalArgumentException("invalid constraint: the key can't be null or empty");
+        }
+
         constraintImpl.setStartId(startId);
+
         constraintImpl.setPageCount(maxCount);
 
         constraint.setKeyspace(getKeyspace(constraint.getDataObjectType()));

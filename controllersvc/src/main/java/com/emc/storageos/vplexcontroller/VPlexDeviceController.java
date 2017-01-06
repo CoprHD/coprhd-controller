@@ -5322,7 +5322,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
             Map<URI, Integer> volumeMap) {
         try {
             if (exportGroup.forCluster() && volumeMap.values().contains(ExportGroup.LUN_UNASSIGNED)
-                    && ExportUtils.isFindFreeHLUSupportedForStorage(storage)) {
+                    && ExportUtils.systemSupportsConsistentHLUGeneration(storage)) {
                 _log.info("Find and update free HLUs for Cluster Export START..");
                 /**
                  * Group the initiators by Host. For each Host, call device.findHLUsForInitiators() to get used HLUs.

@@ -215,6 +215,12 @@ test_host_add_initiator() {
             # Fail while adding initiator for host2 
             fail initiator create ${host2} FC ${fake_pwwn4} --node ${fake_nwwn4} 
             
+            # Verify injected failures were hit
+            verify_failures ${failure}
+
+            # Let the async jobs calm down
+            sleep 5
+            
             # Snap the DB
             snap_db 5 "${cfs[@]}"
             
@@ -858,6 +864,12 @@ test_move_non_clustered_host_to_cluster() {
             # Move the host to the cluster
             fail hosts update ${host1} --cluster ${TENANT}/${cluster1} 
     
+            # Verify injected failures were hit
+            verify_failures ${failure}
+
+            # Let the async jobs calm down
+            sleep 5
+    
             # Snap the DB after rollback
             snap_db 3 "${cfs[@]}"
 
@@ -877,6 +889,12 @@ test_move_non_clustered_host_to_cluster() {
 
             # Move the second host to the cluster
             fail hosts update ${host2} --cluster ${TENANT}/${cluster1}
+
+            # Verify injected failures were hit
+            verify_failures ${failure}
+
+            # Let the async jobs calm down
+            sleep 5
 
             snap_db 5 "${cfs[@]}"
 
@@ -949,33 +967,53 @@ test_move_clustered_discovered_host_to_cluster() {
     set_controller_cs_discovery_refresh_interval 1
     cfs=("ExportGroup ExportMask Network Host Initiator")
 
+    #syssvc $SANITY_CONFIG_FILE localhost set_prop validation_check false
     run syssvc $SANITY_CONFIG_FILE localhost set_prop system_proxyuser_encpassword $SYSADMIN_PASSWORD
-                                     
+
     host_cluster_failure_injections="failure_026_host_cluster_ComputeSystemControllerImpl.updateExportGroup_before_update \
                                      failure_029_host_cluster_ComputeSystemControllerImpl.verifyDatastore_after_verify \
                                      failure_030_host_cluster_ComputeSystemControllerImpl.unmountAndDetach_after_unmount \
                                      failure_031_host_cluster_ComputeSystemControllerImpl.unmountAndDetach_after_detach \
                                      failure_032_host_cluster_ComputeSystemControllerImpl.updateHostAndInitiatorClusterReferences_after_updateHostAndInitiator \
                                      failure_033_host_cluster_ComputeSystemControllerImpl.updateHostAndInitiatorClusterReferences_after_updateHostVcenter \
+                                     failure_042_host_cluster_ComputeSystemControllerImpl.updateHostAndInitiatorClusterReferences \
                                      failure_054_host_cluster_ComputeSystemControllerImpl.attachAndMount_before_attach \
                                      failure_055_host_cluster_ComputeSystemControllerImpl.attachAndMount_after_attach \
                                      failure_056_host_cluster_ComputeSystemControllerImpl.attachAndMount_after_mount"
     common_failure_injections="failure_004_final_step_in_workflow_complete"
+    rollback_failures="failure_004:failure_032_host_cluster_ComputeSystemControllerImpl.updateHostAndInitiatorClusterReferences_after_updateHostAndInitiator&2 \
+                       failure_004:failure_033_host_cluster_ComputeSystemControllerImpl.updateHostAndInitiatorClusterReferences_after_updateHostVcenter&2 \
+                       failure_004:failure_042_host_cluster_ComputeSystemControllerImpl.updateHostAndInitiatorClusterReferences&2"
 
     item=${RANDOM}
     mkdir -p results/${item}
 
+    # There are valid database inconsistencies for this test so we are performing the database comparison 
+    # after the tests have executed and cleanup is performed.
     snap_db 1 "${cfs[@]}"
 
     create_volume_and_datastore ${TENANT} ${volume1} ${datastore1} ${NH} ${VPOOL_BASE} ${PROJECT} ${vcenter} "DC-Simulator-1" ${cluster1}
     create_volume_and_datastore ${TENANT} ${volume2} ${datastore2} ${NH} ${VPOOL_BASE} ${PROJECT} ${vcenter} "DC-Simulator-1" ${cluster2}
 
-    failure_injections="${HAPPY_PATH_TEST_INJECTION} ${host_cluster_failure_injections} ${common_failure_injections}" 
-
-    failure="false"
+    failure_injections="${HAPPY_PATH_TEST_INJECTION} ${host_cluster_failure_injections} ${common_failure_injections} ${rollback_failures}" 
+    failed="false"
 
     for failure in ${failure_injections}
     do
+        cluster=`get_host_cluster "emcworld" ${host}`
+        if [[ "${cluster}" == "${cluster1}" ]]; then
+            echo "Discovered that ${host} is part of ${cluster1}. Moving ${host} to ${cluster2} for test setup"
+            # Move the host from cluster-1 into cluster-2
+            change_host_cluster $host $cluster1 $cluster2 $vcenter           
+
+            sleep 20
+
+            EVENT_ID=$(get_pending_event)
+            if [ "$EVENT_ID" ]; then
+                approve_pending_event $EVENT_ID
+            fi
+        fi        
+        
         if [ ${failure} == ${HAPPY_PATH_TEST_INJECTION} ]; then
             echot "Running happy path test for move non-clustered host to cluster..."
         else    
@@ -992,19 +1030,7 @@ test_move_clustered_discovered_host_to_cluster() {
         sleep 20
 
         EVENT_ID=$(get_pending_event)
-        if [ -z "$EVENT_ID" ]; then
-            echo "FAILED. Expected an event"
-            # Move the host into cluster-1           
-            change_host_cluster $host $cluster1 $cluster2 $vcenter
-            sleep 20
-            EVENT_ID=$(get_pending_event)
-            if [ "$EVENT_ID" ]; then
-                approve_pending_event $EVENT_ID
-            fi    
-            report_results ${test_name} ${failure}
-            failure="true"
-            break
-        else
+
             if [ ${failure} == ${HAPPY_PATH_TEST_INJECTION} ]; then
                 approve_pending_event $EVENT_ID
             else
@@ -1012,19 +1038,27 @@ test_move_clustered_discovered_host_to_cluster() {
                 set_artificial_failure ${failure}
                 fail approve_pending_event $EVENT_ID
 
+                # Verify injected failures were hit
+                verify_failures ${failure}
+
+                # Let the async jobs calm down
+                sleep 5
+
                 # Verify that rollback moved the host back to cluster2
                 cluster=`get_host_cluster "emcworld" ${host}`
                 vcenterdc=`get_host_datacenter "emcworld" ${host} ${vcenter}`
                 if [[ "${cluster}" == "${cluster2}" && "${vcenterdc}" == "${dc}" ]]; then
-                    echo "Host has successfully been moved to cluster ${cluster2} on rollback."
+                    echo "Host has successfully been moved to ${cluster2} on rollback."
                 else
-                    echo "+++ FAIL - Host should belong to old cluster ${cluster2}."
+                    echo "+++ Rollback Failure - Host should belong to old cluster ${cluster2}."
+                    runcmd events delete $EVENT_ID > /dev/null
+                    set_artificial_failure none
                     incr_fail_count
                     if [ "${NO_BAILING}" != "1" ]; then
                         report_results ${test_name} ${failure}
-                        failure="true"
-                        break
                     fi                    
+                    failed="true"
+                    continue
                 fi
 
                 EVENT_ID=$(get_failed_event)    
@@ -1036,36 +1070,34 @@ test_move_clustered_discovered_host_to_cluster() {
                 cluster=`get_host_cluster "emcworld" ${host}`
                 vcenterdc=`get_host_datacenter "emcworld" ${host} ${vcenter}`
                 if [[ "${cluster}" == "${cluster1}" && "${vcenterdc}" == "${dc}" ]]; then
-                    echo "Host has successfully been moved to cluster/vcenterdc ${cluster1}/${dc}." 
+                    echo "Host has successfully been moved to ${cluster1}/${dc}." 
                 else
-                    echo "+++ FAIL - Host should belong to cluster/vcenterdc ${cluster1}/${dc} but belongs to ${cluster}/${vcenterdc}."
+                    echo "+++ Failure re-executed host move operation - Host should belong to ${cluster1}/${dc} but belongs to ${cluster}/${vcenterdc}."
                     incr_fail_count
                     if [ "${NO_BAILING}" != "1" ]; then
                         report_results ${test_name} ${failure}
-                        failure="true"
-                        break
                     fi                
+                    failed="true"
+                    break
                 fi
-            fi 
-        fi        
+            fi        
         
         if [[ $(export_contains ${PROJECT}/$cluster1_export $host) && $(export_contains ${PROJECT}/$cluster2_export $host) == "" ]]; then
             move_host="true"
-            echo "Host" ${host} "has been successfully moved to cluster" ${cluster2}
+            echo "${host} has been successfully moved and belongs to ${cluster1_export} export"
         else
-            echo "Failed to move host" ${host} "to cluster" ${cluster2}  
+            echo "Failed to move ${host}. It should only belong to ${cluster1_export} export"  
             
             # Report results
             incr_fail_count
             if [ "${NO_BAILING}" != "1" ]; then
                 report_results ${test_name} ${failure}
-                failure="true"
-                break
             fi
+            failed="true"
         fi    
 
         if [ ${move_host} = "true"  ]; then
-            # Move the host into cluster-1           
+            # Move the host back to cluster-2           
             change_host_cluster $host $cluster1 $cluster2 $vcenter 
             
             sleep 20
@@ -1073,8 +1105,7 @@ test_move_clustered_discovered_host_to_cluster() {
             EVENT_ID=$(get_pending_event)
             if [ -z "$EVENT_ID" ]; then
                 report_results ${test_name} ${failure}
-                failure="true"
-                break
+                failed="true"
             else
                 approve_pending_event $EVENT_ID
             fi                  
@@ -1093,14 +1124,12 @@ test_move_clustered_discovered_host_to_cluster() {
     delete_datastore_and_volume ${TENANT} ${datastore1} ${vcenter} "DC-Simulator-1" ${cluster1}
     delete_datastore_and_volume ${TENANT} ${datastore2} ${vcenter} "DC-Simulator-1" ${cluster2}  
     
-    if [ ${failure} == "true" ]; then
-        finish -1
-    fi
-    
-    snap_db 2 "${cfs[@]}"  
+    if [ ${failed} == "false" ]; then
+        snap_db 2 "${cfs[@]}"  
 
-    # Validate that nothing was left behind
-    validate_db 1 2 "${cfs[@]}"
+        # Validate that nothing was left behind
+        validate_db 1 2 "${cfs[@]}"
+    fi
 }
 
 # Searches an ExportGroup for a given value. Returns 0 if the value is found,

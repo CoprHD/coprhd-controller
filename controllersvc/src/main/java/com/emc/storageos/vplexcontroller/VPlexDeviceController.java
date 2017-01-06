@@ -1083,7 +1083,6 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
      * @param description
      *            The event description
      */
-    // TODO this contents of this method should probably just never be called except by a completer
     private void recordBourneVolumeEvent(URI volumeId, String evtType, Operation.Status status,
             String description) {
         try {
@@ -2031,7 +2030,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                                 varrayUri,
                                 vplexClusterId);
 
-                        // If an ExportMask like this is found, there is already storage view 
+                        // If an ExportMask like this is found, there is already a storage view 
                         // on the VPLEX with some or all the initiators, so ViPR will reuse the ExportMask 
                         // and storage view in a "shared by multiple hosts" kind of way.
                         // If not found, ViPR will attempt to find a suitable existing storage view
@@ -2411,24 +2410,25 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             _networkDeviceController.updateZoningMap(exportGroup, exportMask, false);
 
             _dbClient.createObject(exportMask);
-            
+
             if (!initsToAdd.isEmpty()) {
                 ExportPathParams pathParams = _blockScheduler.calculateExportPathParamForVolumes(
                         blockObjectMap.keySet(), exportGroup.getNumPaths(), vplexSystem.getId(), exportGroup.getId());
-    
+
                 // Try to assign new ports by passing in existingMap
                 Map<URI, List<URI>> assignments = _blockScheduler.assignStoragePorts(vplexSystem, exportGroup,
                         initsToAdd, exportMask.getZoningMap(), pathParams, null, _networkDeviceController, varrayUri, opId);
                 // Consolidate the prezoned ports with the new assignments to get the total ports needed in the mask
                 if (assignments != null && !assignments.isEmpty()) {
+                    // Save the old zoning map in case of failure.
+                    completer.addExportMaskToOldZoningMapMapping(exportMask.getId(), exportMask.getZoningMap());
                     // Update zoningMap if there are new assignments
                     exportMask = updateZoningMap(_dbClient, exportMask, assignments,
-                            exportMasksToUpdateOnDeviceWithStoragePorts, completer);
+                            exportMasksToUpdateOnDeviceWithStoragePorts);
                 }
             }
-            
+
             exportMasksToUpdateOnDevice.add(exportMask);
-            exportGroup.addExportMask(exportMask.getId());
             completer.addToExportMasksCreated(exportMask.getId());
 
             // add the initiators to the map for the exportMask that do not exist
@@ -2478,7 +2478,6 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
         exportMasksToUpdateOnDevice.add(viprExportMask);
         completer.addToExportMasksToBeAdded(viprExportMask.getId());
-        completer.addExportMaskToOldZoningMapMapping(viprExportMask.getId(), viprExportMask.getZoningMap());
         ExportPathParams pathParams = _blockScheduler.calculateExportPathParamForVolumes(
                 blockObjectMap.keySet(), exportGroup.getNumPaths(), vplexSystem.getId(), exportGroup.getId());
         if (exportGroup.getType() != null) {
@@ -2494,9 +2493,11 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     inits, viprExportMask.getZoningMap(), pathParams, null, _networkDeviceController, varrayUri, opId);
             // Consolidate the prezoned ports with the new assignments to get the total ports needed in the mask
             if (assignments != null && !assignments.isEmpty()) {
+                // Save the old zoning map in case of failure.
+                completer.addExportMaskToOldZoningMapMapping(viprExportMask.getId(), viprExportMask.getZoningMap());
                 // Update zoning Map with these new assignments
                 viprExportMask = updateZoningMap(_dbClient, viprExportMask, assignments,
-                        exportMasksToUpdateOnDeviceWithStoragePorts, completer);
+                        exportMasksToUpdateOnDeviceWithStoragePorts);
             }
         }
     }
@@ -2599,9 +2600,11 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
         Map<URI, List<URI>> assignments = _blockScheduler.assignStoragePorts(vplexSystem, exportGroup,
                 inits, sharedVplexExportMask.getZoningMap(), pathParams, null, _networkDeviceController, varrayUri, opId);
         if (assignments != null && !assignments.isEmpty()) {
+            // Save the old zoning map in case of failure.
+            completer.addExportMaskToOldZoningMapMapping(sharedVplexExportMask.getId(), sharedVplexExportMask.getZoningMap());
             // Update zoningMap if there are new assignments
             sharedVplexExportMask = updateZoningMap(_dbClient, sharedVplexExportMask, assignments,
-                    exportMasksToUpdateOnDeviceWithStoragePorts, completer);
+                    exportMasksToUpdateOnDeviceWithStoragePorts);
         }
 
         List<Initiator> initsToAddOnVplexDevice = new ArrayList<Initiator>();
@@ -2635,14 +2638,12 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
      * @param exportMask The reference to exportMask
      * @param assignments New assignments Map of initiator to storagePorts that will be updated in the zoning map
      * @param exportMasksToUpdateOnDeviceWithStoragePorts OUT param -- Map of ExportMask to new Storage ports
-     * @param completer the ExportMaskCompleter that will revert to the old zoning map on error
      * @return returns an updated exportMask
      */
     private ExportMask updateZoningMap(DbClient dbClient, ExportMask exportMask, Map<URI, List<URI>> assignments,
-            Map<URI, List<URI>> exportMasksToUpdateOnDeviceWithStoragePorts, ExportTaskCompleter completer) {
+            Map<URI, List<URI>> exportMasksToUpdateOnDeviceWithStoragePorts) {
 
         StringSetMap existingZoningMap = exportMask.getZoningMap();
-        completer.addExportMaskToOldZoningMapMapping(exportMask.getId(), existingZoningMap);
         for (URI initiatorURI : assignments.keySet()) {
             boolean initiatorMatchFound = false;
             if (existingZoningMap != null && !existingZoningMap.isEmpty()) {
@@ -2939,7 +2940,6 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             for (BlockObject bo : blockObjects) {
                 String deviceLabel = bo.getDeviceLabel();
                 bo.setWWN(svInfo.getWWNForStorageViewVolume(deviceLabel));
-                // TODO move to completer
                 _dbClient.updateObject(bo);
 
                 updatedBlockObjectMap.put(bo.getId(),
@@ -3076,10 +3076,8 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             // back a failed export group creation.
             if (!exportGroupMasksContainExportGroupVolume(exportGroup, exportMasks)) {
                 for (ExportMask exportMask : exportMasks) {
-                    exportGroup.removeExportMask(exportMask.getId());
+                    completer.addExportMaskToRemove(exportMask.getId());
                 }
-                // TODO move to completer
-                _dbClient.updateObject(exportGroup);
                 completer.ready(_dbClient);
                 return;
             }
@@ -3158,6 +3156,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                                         exportMask.getMaskName(), export),
                                 storageViewStepId, vplexSystem.getId(), vplexSystem.getSystemType(),
                                 this.getClass(), storageViewExecuteMethod, null, null);
+                        completer.addExportMaskToDelete(exportMask.getId());
                     }
 
                     if (isValidationNeeded && (removeVolumes || removeInitiators)) {
@@ -3357,18 +3356,6 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                         _log.info("storage view was not found on the VPLEX during deletion, "
                                 + "but no errors were encountered.");
                     }
-                }
-                
-                _log.info("Marking export mask for deletion from Vipr: " + exportMask.getMaskName());
-                _dbClient.markForDeletion(exportMask);
-
-                _log.info("updating ExportGroups containing this ExportMask");
-                List<ExportGroup> exportGroups = ExportMaskUtils.getExportGroups(_dbClient, exportMask);
-                for (ExportGroup exportGroup : exportGroups) {
-                    _log.info("Removing mask from ExportGroup " + exportGroup.getGeneratedName());
-                    exportGroup.removeExportMask(exportMaskURI);
-                    // TODO move to completer
-                    _dbClient.updateObject(exportGroup);
                 }
             } else {
                 _log.info("ExportMask to delete could not be found in database: " + exportMaskURI);
@@ -3592,7 +3579,6 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 String deviceLabel = volume.getDeviceLabel();
                 String wwn = svInfo.getWWNForStorageViewVolume(volume.getDeviceLabel());
                 volume.setWWN(wwn);
-                // TODO move to completer
                 _dbClient.updateObject(volume);
 
                 updatedVolumeMap.put(volume.getId(),
@@ -3840,6 +3826,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     previousStep = workflow.createStep(DELETE_STORAGE_VIEW,
                             String.format("Deleting storage view: %s (%s)", exportMask.getMaskName(), exportMask.getId()),
                             previousStep, vplexURI, vplex.getSystemType(), this.getClass(), deleteStorageView, null, null);
+                    completer.addExportMaskToDelete(exportMask.getId());
 
                     // Unzone step (likely just a FCZoneReference removal since this is remove volume only)
                     previousStep = workflow.createStep(
@@ -4184,7 +4171,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             Map<URI, List<URI>> assignments = _blockScheduler.assignStoragePorts(vplex, exportGroup,
                     initiators, exportMask.getZoningMap(), pathParams, volumeURIs, _networkDeviceController, varrayURI, opId);
             List<URI> newTargetURIs = BlockStorageScheduler.getTargetURIsFromAssignments(assignments);
-            exportMask.setZoningMap(BlockStorageScheduler.getZoneMapFromAssignments(assignments));
+            exportMask.addZoningMap(BlockStorageScheduler.getZoneMapFromAssignments(assignments));
             _dbClient.updateObject(exportMask);
             
             _log.info(String.format("Adding targets %s for host %s",
@@ -4918,6 +4905,8 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                             exportMask.getMaskName(), exportGroup.getId()),
                     lastStep, vplex.getId(), vplex.getSystemType(),
                     this.getClass(), storageViewExecuteMethod, null, null);
+            completer.addExportMaskToDelete(exportMask.getId());
+
             // Add zoning step for deleting ExportMask
             List<NetworkZoningParam> zoningParam = NetworkZoningParam.convertExportMasksToNetworkZoningParam(
                     exportGroup.getId(), Collections.singletonList(exportMask.getId()), _dbClient);

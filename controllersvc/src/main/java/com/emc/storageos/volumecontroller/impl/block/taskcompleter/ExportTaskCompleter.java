@@ -47,6 +47,7 @@ public abstract class ExportTaskCompleter extends TaskCompleter {
     private Set<URI> _exportMasksCreated;
     private Set<URI> _exportMasksToBeAdded;
     private Set<URI> _exportMasksToBeRemoved;
+    private Set<URI> _exportMasksToBeDeleted;
     private Map<URI, List<URI>> _exportMaskToAddedInitiatorMap;
     private Map<URI, List<URI>> _exportMaskToRemovedVolumeMap;
 
@@ -115,6 +116,14 @@ public abstract class ExportTaskCompleter extends TaskCompleter {
                 if (null != _exportMasksToBeRemoved) {
                     for (URI exportMaskUri : _exportMasksToBeRemoved) {
                         exportGroup.removeExportMask(exportMaskUri);
+                    }
+                }
+
+                if (null != _exportMasksToBeDeleted) {
+                    for (URI exportMaskUri : _exportMasksToBeDeleted) {
+                        exportGroup.removeExportMask(exportMaskUri);
+                        ExportMask exportMask = ExportUtils.getExportMaskWithCache(exportMaskCache, exportMaskUri, dbClient);
+                        dbClient.markForDeletion(exportMask);
                     }
                 }
 
@@ -195,9 +204,8 @@ public abstract class ExportTaskCompleter extends TaskCompleter {
                 case CREATE_EXPORT_GROUP:
                 case UPDATE_EXPORT_GROUP:
                 case DELETE_EXPORT_GROUP:
-                    AuditBlockUtil.auditBlock(dbClient, opType, opStatus, opStage, exportGroup
-                            .getLabel(), exportGroup.getId().toString(), exportGroup.getVirtualArray()
-                                    .toString(),
+                    AuditBlockUtil.auditBlock(dbClient, opType, opStatus, opStage, exportGroup.getLabel(), 
+                            exportGroup.getId().toString(), exportGroup.getVirtualArray().toString(),
                             exportGroup.getProject().toString());
                     break;
                 case ADD_EXPORT_INITIATOR:
@@ -316,6 +324,20 @@ public abstract class ExportTaskCompleter extends TaskCompleter {
         }
 
         _exportMasksToBeRemoved.add(exportMaskUri);
+    }
+
+    /**
+     * Add an ExportMask URI that should be removed from this completer's ExportGroup at the
+     * end of the workflow and also deleted from the database.
+     * 
+     * @param exportMaskUri the URI of the export mask to be deleted.
+     */
+    public void addExportMaskToDelete(URI exportMaskUri) {
+        if (null == _exportMasksToBeDeleted) {
+            _exportMasksToBeDeleted = new HashSet<URI>();
+        }
+
+        _exportMasksToBeDeleted.add(exportMaskUri);
     }
 
     /**

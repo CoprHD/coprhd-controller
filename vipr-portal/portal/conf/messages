@@ -151,6 +151,9 @@ nav.disasterRecovery.obsoleteWarning=Obsolete site
 nav.ipsec=IPsec
 nav.storageSystemTypes=Storage System Types
 
+nav.templates=Templates
+nav.srdf=SRDF Configurations
+
 # Override messages in the Secure plugin
 secure.title=
 secure.username=Username:
@@ -4877,3 +4880,9 @@ gettingStarted.vpool.allflash.desc=Virtual Pool for All-Flash Storage created by
 gettingStarted.vpool.vmax.desc=Virtual Pool for EMC VMAX All-Flash Storage created by Getting Started Guide
 gettingStarted.vpool.xio.desc=Virtual Pool for EMC XtremIO Storage created by Getting Started Guide
 gettingStarted.vpool.unity.desc=Virtual Pool for EMC UNITY Storage created by Getting Started Guide
+
+srdConfigurations.title=SRDF Configurations
+srdConfiguration.source=Source
+srdConfiguration.target=Target
+
+

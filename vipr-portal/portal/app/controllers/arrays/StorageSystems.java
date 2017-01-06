@@ -190,15 +190,12 @@ public class StorageSystems extends ViprResourceController {
     }
 
     public static void itemDetails(String id) {
-        StorageSystemRestRep storageSystem = StorageSystemUtils
-                .getStorageSystem(id);
+        StorageSystemRestRep storageSystem = StorageSystemUtils.getStorageSystem(id);
         if (storageSystem == null) {
             error(MessagesUtils.get(UNKNOWN, id));
         }
-        StorageProviderRestRep smisProvider = StorageSystemUtils
-                .getStorageProvider(storageSystem);
-        Map<String, Set<NamedRelatedResourceRep>> connectivityMap = StorageSystemUtils
-                .getProtectionConnectivityMap(storageSystem);
+        StorageProviderRestRep smisProvider = StorageSystemUtils.getStorageProvider(storageSystem);
+        Map<String, Set<NamedRelatedResourceRep>> connectivityMap = StorageSystemUtils.getProtectionConnectivityMap(storageSystem);
         render(storageSystem, smisProvider, connectivityMap);
     }
 

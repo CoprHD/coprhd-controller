@@ -107,12 +107,12 @@ public class HostToComputeElementMatcher {
                     RegistrationStatus.UNREGISTERED.name().equals(host.getRegistrationStatus())) {
                 String hostCeMsg = "";
                 if( !NullColumnValueGetter.isNullURI(host.getComputeElement()) ) {
-                    hostCeMsg = "Removing association to " + host.getComputeElement() + "]  ";
+                    hostCeMsg = "Removing association to (" + host.getComputeElement() + "). ";
                     host.setComputeElement(NullColumnValueGetter.getNullURI());
                     dbClient.updateObject(host);
                 }
                 _log.info("Host is unregistered or has an invalid UUID.  " + hostCeMsg + "Ignoring Host '" +
-                        host.getLabel() + "' (" + host.getId() + ") with uuid [" + host.getUuid() + "]");
+                        host.getLabel() + "'(" + host.getId() + ")[" + host.getUuid() + "]");
                 eligibleHostsIter.remove();
             }
         }
@@ -128,14 +128,18 @@ public class HostToComputeElementMatcher {
                     "'(" +computeElement.getId() + ")");
             if ((!isValidUuid(computeElement.getUuid()) ||
                     RegistrationStatus.UNREGISTERED.name().equals(computeElement.getRegistrationStatus()))) {
-                _log.info("ComputeElement " + computeElement.getId() + " is unregistered or " +
-                        "has an invalid UUID.");
+                _log.info("ComputeElement '" +
+                        computeElement.getLabel() + "'(" +
+                        computeElement.getId() + ")[" +
+                        computeElement.getUuid() + "] is unregistered or has an invalid UUID.");
                 for (Host hostToCheck:allHosts) { // remove associations to this blade
                     if ( !NullColumnValueGetter.isNullURI(hostToCheck.getComputeElement()) &&
                             hostToCheck.getComputeElement().equals(computeElement.getId()) ) {
                         _log.warn("Removing association of Host '" + hostToCheck.getLabel() +
-                                "'(" + hostToCheck.getId() + ") with ComputeElement " +
-                                computeElement.getId() + " which is unregistered or has invalid UUID.");
+                                "'(" + hostToCheck.getId() + ") with ComputeElement '" +
+                                computeElement.getLabel() + "'(" +
+                                computeElement.getId() + ")[" +
+                                computeElement.getUuid() + "] which is unregistered or has invalid UUID.");
                         hostToCheck.setComputeElement(NullColumnValueGetter.getNullURI());
                         dbClient.updateObject(hostToCheck);
                     }

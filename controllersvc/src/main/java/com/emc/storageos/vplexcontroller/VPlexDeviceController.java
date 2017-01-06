@@ -2159,7 +2159,6 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
         _log.info("processing the export masks to be created");
         for (ExportMask exportMask : exportMasksToCreateOnDevice) {
-
             storageViewStepId = handleExportMaskCreate(blockObjectMap, workflow, vplexSystem, exportGroup,
                     storageViewStepId, exportMask);
         }
@@ -2952,19 +2951,13 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             _log.info("updatedBlockObjectMap: " + updatedBlockObjectMap.toString());
             exportMask.addVolumes(updatedBlockObjectMap);
             // Update user created volumes
-            // TODO: Update user created volumes needs to move to the completer eventually
-            // We might need to change the completer or use ExportMaskCreateCompleter
-            // during exportGroupCreate which sets volumes to user created volumes list.
             exportMask.addToUserCreatedVolumes(blockObjects);
             // update native id (this is the context path to the storage view on the vplex)
             // e.g.: /clusters/cluster-1/exports/storage-views/V1_myserver_288
             // this column being set to non-null can be used to indicate a storage view that 
             // has been successfully created on the VPLEX device
             exportMask.setNativeId(svInfo.getPath());
-            // TODO move to completer
             _dbClient.updateObject(exportMask);
-            // TODO move to completer
-            _dbClient.updateObject(exportGroup);
 
             WorkflowStepCompleter.stepSucceded(stepId);
         } catch (VPlexApiException vae) {
@@ -3499,28 +3492,10 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
             InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_001);
 
-            // TODO: Bharath/RPTEAM - I dont think the below call to zoneExportAddVolumes is necessary here(i have just
-            // commented it for
-            // now, because i am no expert in this
-            // area and a discussion with the experts would make sense).
-            // This step is already done prior to calling this method as a workflow. (look in
-            // assembleExportMasksWorkflow)
-            // Also, one problem with this call, if we are going to need it later on is : This call updates workflow
-            // objects, but there is
-            // no step or workflow created for this call and passed in.
-            // From my observation this call was inadvertently setting the workflow completer to success that operations
-            // waiting on this
-            // would kick off prior to actually adding the volumes
-            // to the storage view. In case of RP, the createCg call would fire off and fail because it would execute
-            // before all the volumes
-            // made it to the storageview on the VPLEX.
-            // Maybe consider some workflow here if this call needs to be included.
-            // _networkDeviceController.zoneExportAddVolumes(exportGroupURI, exportMaskURIs, volumeMap.keySet(), opId);
             VPlexApiClient client = getVPlexAPIClient(_vplexApiFactory, vplex, _dbClient);
             // Need to massage the map to fit the API
             List<BlockObject> volumes = new ArrayList<BlockObject>();
             Map<String, Integer> deviceLabelToHLU = new HashMap<String, Integer>();
-            Map<URI, Integer> volumesToAdd = new HashMap<URI, Integer>();
             boolean duplicateHLU = false;
 
             for (Map.Entry<URI, Integer> entry : volumeMap.entrySet()) {
@@ -3549,13 +3524,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 BlockObject vol = Volume.fetchExportMaskBlockObject(_dbClient, entry.getKey());
                 volumes.add(vol);
                 deviceLabelToHLU.put(vol.getDeviceLabel(), requestedHLU);
-                volumesToAdd.put(entry.getKey(), entry.getValue());
             }
-
-            // Add volumes to exportmask, so that rollback works in case of any errors
-            exportMask.addVolumes(volumesToAdd);
-            // TODO move to completer
-            _dbClient.updateObject(exportMask);
 
             // If duplicate HLU are found then return, completer is set to error above
             if (duplicateHLU) {
@@ -3597,10 +3566,8 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
             // We also need to update the volume/lun id map in the export mask
             // to those assigned by the VPLEX.
-            _log.info("Updating volume/lun map in export mask {}", exportMask.getId());
-            exportMask.addVolumes(updatedVolumeMap);
-            // TODO move to completer
-            _dbClient.updateObject(exportMask);
+            _log.info("Updated volume/lun map is {}", updatedVolumeMap);
+            completer.updateVolumeMap(updatedVolumeMap);
 
             InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_002);
 
@@ -4261,19 +4228,6 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
     }
 
     /**
-     * TODO: Remove - it's in NetworkDeviceController
-     * Args should match zoneRollbackMethod above except for taskId.
-     *
-     * @param exportGroupURI
-     * @param contextKey
-     * @param taskId
-     * @throws DeviceControllerException
-     */
-    public void zoneRollback(URI exportGroupURI, String contextKey, String taskId) throws DeviceControllerException {
-        _networkDeviceController.zoneRollback(exportGroupURI, contextKey, taskId);
-    }
-
-    /**
      * @see storageViewAddInitiators
      * @param vplexURI
      * @param exportURI
@@ -4425,7 +4379,8 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                             }
                         }
 
-                        // TODO move to completer
+                        // TODO can't really fix this early persist spot because increaseMaxPaths uses this method
+                        // as well, and it would require an interface change up the MaskingOrchestrator chain
                         if (updateExportMask) {
                             _dbClient.updateObject(exportMask);
                         }
@@ -4546,7 +4501,6 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                         for (URI target : targetsAddedToStorageView) {
                             exportMask.addTarget(target);
                         }
-                        // TODO move to completer
                         _dbClient.updateObject(exportMask);
                     }
                 }
@@ -4658,7 +4612,6 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                         for (URI target : targetsToRemoveFromStorageView) {
                             exportMask.removeTarget(target);
                         }
-                        // TODO move to completer
                         _dbClient.updateObject(exportMask);
                     }
                 }
@@ -5324,7 +5277,6 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                         for (URI target : targetsAddedToStorageView) {
                             exportMask.removeTarget(target);
                         }
-                        // TODO move to completer
                         _dbClient.updateObject(exportMask);
                     }
                 }

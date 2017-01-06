@@ -30,7 +30,7 @@ import static com.emc.storageos.volumecontroller.impl.smis.vmax.VmaxExportOperat
 public class ExportMaskAddVolumeCompleter extends ExportTaskCompleter {
     private static final org.slf4j.Logger _log = LoggerFactory.getLogger(ExportMaskAddVolumeCompleter.class);
     private final List<URI> _volumes;
-    private final Map<URI, Integer> _volumeMap;
+    private Map<URI, Integer> _volumeMap;
 
     public ExportMaskAddVolumeCompleter(URI egUri, URI emUri, Map<URI, Integer> volumes,
             String task) {
@@ -112,4 +112,13 @@ public class ExportMaskAddVolumeCompleter extends ExportTaskCompleter {
         return false;
     }
 
+    /**
+     * Update the volume map, likely with new HLU info.
+     * 
+     * @param volumeMap the new volumeMap to set
+     */
+    public void updateVolumeMap(Map<URI, Integer> volumeMap) {
+        _volumeMap = new HashMap<>();
+        _volumeMap.putAll(volumeMap);
+    }
 }

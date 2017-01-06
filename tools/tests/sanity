@@ -1717,9 +1717,7 @@ xtremio_block_tests()
     snap1_label=snap1-${HOSTNAME}-${RANDOM}
     snap2_label=snap2-${HOSTNAME}-${RANDOM}
     snap3_label=snap3-${HOSTNAME}-${RANDOM}
-    snap4_label=snap4-${HOSTNAME}-${RANDOM}
-    snap5_label=snap5-${HOSTNAME}-${RANDOM}
-    
+            
     run volume create ${volume}1 $PROJECT $NH $cos2 $BLK_SIZE --thinVolume true
     run volume create ${volume}2 $PROJECT $NH $cos2 $BLK_SIZE --thinVolume true
     run volume create ${volume}3 $PROJECT $NH $cos2 $BLK_SIZE --thinVolume true

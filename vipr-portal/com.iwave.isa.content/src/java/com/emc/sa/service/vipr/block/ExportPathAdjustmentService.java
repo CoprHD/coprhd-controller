@@ -11,6 +11,7 @@ import static com.emc.sa.service.ServiceParams.VIRTUAL_ARRAY;
 import static com.emc.sa.service.ServiceParams.AFFECTED_PORTS;
 import static com.emc.sa.service.ServiceParams.REMOVED_PORTS;
 import static com.emc.sa.service.ServiceParams.USE_EXISTING_PATHS;
+import static com.emc.sa.service.ServiceParams.SUSPEND_WAIT;
 
 
 import java.net.URI;
@@ -57,6 +58,9 @@ public class ExportPathAdjustmentService extends ViPRService {
     
     @Param(PORTS)
     protected List<URI> ports;
+    
+    @Param(SUSPEND_WAIT)
+    protected boolean suspendWait;
     
     @Param(value = AFFECTED_PORTS, required = false)
     protected List<String> affectedPorts;
@@ -116,7 +120,7 @@ public class ExportPathAdjustmentService extends ViPRService {
         }
         
         BlockStorageUtils.adjustExportPaths(minPaths, maxPaths, pathsPerInitiator, storageSystem, exportId, 
-                toSendAffectedPaths, toSendRemovedPaths);
+                toSendAffectedPaths, toSendRemovedPaths, suspendWait);
     }
     
     private void runExportPathsPreview() {

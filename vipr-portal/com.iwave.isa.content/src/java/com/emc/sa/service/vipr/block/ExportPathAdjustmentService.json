@@ -53,6 +53,12 @@
             type:"assetType.vipr.exportPathPorts",
             select: "many"
         },
+        
+        suspendWait:{
+            type: "boolean",
+            initialValue: "false",
+            required: "false"
+        },
 
 	    exportPathPreview:{
 	       type:"modal",

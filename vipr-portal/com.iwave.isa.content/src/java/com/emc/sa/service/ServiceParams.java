@@ -91,6 +91,7 @@ public interface ServiceParams {
     public String AFFECTED_PORTS = "affectedPorts";
     public String REMOVED_PORTS = "removedPorts";
     public String USE_EXISTING_PATHS = "useExistingPaths";
+    public String SUSPEND_WAIT = "suspendWait";
 
     public String MOBILITY_GROUP_METHOD = "mobilityGroupMethod";
 

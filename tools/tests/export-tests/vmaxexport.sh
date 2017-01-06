@@ -347,6 +347,8 @@ setup() {
 	--numpaths 1				\
 	--provisionType 'Thin'			\
 	--max_snapshots 10                     \
+	--max_mirrors 10                       \
+	--expandable false                     \
 	--neighborhoods $NH                    
 
    runcmd cos update block $VPOOL_BASE --storage ${NATIVEGUID}
@@ -2546,9 +2548,13 @@ test_41() {
     runcmd export_group delete $PROJECT/${expname}1
     verify_export ${expname}1 -x- gone
 
+    runcmd blockmirror pause ${PROJECT}/${VOLNAME}-1
     runcmd blockmirror deactivate ${PROJECT}/${VOLNAME}-1 ${mirror}-1
+    runcmd blockmirror pause ${PROJECT}/${VOLNAME}-2
     runcmd blockmirror deactivate ${PROJECT}/${VOLNAME}-2 ${mirror}-2
+    runcmd blockmirror pause ${PROJECT}/${VOLNAME}-3
     runcmd blockmirror deactivate ${PROJECT}/${VOLNAME}-3 ${mirror}-3
+    runcmd blockmirror pause ${PROJECT}/${VOLNAME}-4
     runcmd blockmirror deactivate ${PROJECT}/${VOLNAME}-4 ${mirror}-4
 }
 
@@ -2640,9 +2646,13 @@ test_42() {
     runcmd export_group delete $PROJECT/${expname}2
     verify_export ${expname}2 -x- gone
 
+    runcmd blockmirror pause ${PROJECT}/${VOLNAME}-1
     runcmd blockmirror deactivate ${PROJECT}/${VOLNAME}-1 ${mirror}-1
+    runcmd blockmirror pause ${PROJECT}/${VOLNAME}-2
     runcmd blockmirror deactivate ${PROJECT}/${VOLNAME}-2 ${mirror}-2
+    runcmd blockmirror pause ${PROJECT}/${VOLNAME}-3
     runcmd blockmirror deactivate ${PROJECT}/${VOLNAME}-3 ${mirror}-3
+    runcmd blockmirror pause ${PROJECT}/${VOLNAME}-4
     runcmd blockmirror deactivate ${PROJECT}/${VOLNAME}-4 ${mirror}-4
 }
 

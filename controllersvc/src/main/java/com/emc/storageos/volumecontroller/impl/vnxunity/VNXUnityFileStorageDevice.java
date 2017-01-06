@@ -19,6 +19,7 @@ import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.model.FSExportMap;
 import com.emc.storageos.db.client.model.FileExport;
+import com.emc.storageos.db.client.model.FilePolicy.FilePolicyApplyLevel;
 import com.emc.storageos.db.client.model.FileShare;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.QuotaDirectory;
@@ -68,7 +69,7 @@ import com.emc.storageos.volumecontroller.impl.vnxunity.job.VNXUnityQuotaDirecto
 import com.emc.storageos.volumecontroller.impl.vnxunity.job.VNXUnityUpdateFileSystemQuotaDirectoryJob;
 
 public class VNXUnityFileStorageDevice extends VNXUnityOperations
-        implements FileStorageDevice {
+implements FileStorageDevice {
 
     private static final Logger _logger = LoggerFactory.getLogger(VNXUnityFileStorageDevice.class);
 
@@ -224,7 +225,7 @@ public class VNXUnityFileStorageDevice extends VNXUnityOperations
     @Override
     public BiosCommandResult doExport(StorageSystem storage,
             FileDeviceInputOutput args, List<FileExport> exportList)
-                    throws ControllerException {
+            throws ControllerException {
 
         _logger.info("exporting the file system: " + args.getFsName());
         if (args.getFileObjExports() == null || args.getFileObjExports().isEmpty()) {
@@ -1415,12 +1416,12 @@ public class VNXUnityFileStorageDevice extends VNXUnityOperations
 
             if (qd.getSize() == 0) {
                 size = args.getFsCapacity(); // If quota directory has no size specified, inherit it from the parent fs
-                                             // for the calculation of limit sizes
+                // for the calculation of limit sizes
             } else {
                 size = qd.getSize();
             }
             softLimit = Long.valueOf(qd.getSoftLimit() * size / 100);// conversion from percentage to bytes
-                                                                     // using hard limit
+            // using hard limit
             softGrace = Long.valueOf(qd.getSoftGrace() * 24 * 60 * 60); // conversion from days to seconds
             job = apiClient.createQuotaDirectory(args.getFsName(), qd.getName(), qd.getSize(), softLimit, softGrace);
 
@@ -1515,13 +1516,13 @@ public class VNXUnityFileStorageDevice extends VNXUnityOperations
 
             if (qd.getSize() == 0) {
                 size = args.getFsCapacity(); // If quota directory has no size specified, inherit it from the parent fs
-                                             // for the calculation of limit sizes
+                // for the calculation of limit sizes
             } else {
                 size = qd.getSize();
             }
 
             softLimit = Long.valueOf(qd.getSoftLimit() * size / 100);// conversion from percentage to bytes
-                                                                     // using hard limit
+            // using hard limit
             softGrace = Long.valueOf(qd.getSoftGrace() * 24 * 60 * 60); // conversion from days to seconds
             job = apiClient.updateQuotaDirectory(qd.getNativeId(), qd.getSize(), softLimit, softGrace);
 
@@ -1613,6 +1614,13 @@ public class VNXUnityFileStorageDevice extends VNXUnityOperations
     public BiosCommandResult doUnassignFilePolicy(StorageSystem storage, FileDeviceInputOutput fd) throws ControllerException {
         return BiosCommandResult.createErrorResult(
                 DeviceControllerErrors.vnxe.operationNotSupported("Unassign File Policy", "VNXUnity"));
+    }
+
+    @Override
+    public BiosCommandResult
+    checkFilePolicyExistsOrCreate(StorageSystem storageObj, FilePolicyApplyLevel vpool, FileDeviceInputOutput args) {
+        return BiosCommandResult.createErrorResult(
+                DeviceControllerErrors.vnxe.operationNotSupported("Assign File Policy", "VNXUnity"));
     }
 
 }

@@ -422,7 +422,8 @@ public class FilePolicyService extends TaskResourceService {
             _log.error(errorMsg.toString());
             throw APIException.badRequests.invalidFilePolicyUnAssignParam(filepolicy.getFilePolicyName(), errorMsg.toString());
         }
-        if (!param.getForceUnassign() && !filepolicy.getPolicyStorageResources().isEmpty()) {
+        if (!param.getForceUnassign() && filepolicy.getPolicyStorageResources() != null
+                && !filepolicy.getPolicyStorageResources().isEmpty()) {
             errorMsg.append("File Policy" + id + " is currently active and running. Try again with 'force unassign flag' ");
             _log.error(errorMsg.toString());
             throw APIException.badRequests.invalidFilePolicyUnAssignParam(filepolicy.getFilePolicyName(), errorMsg.toString());

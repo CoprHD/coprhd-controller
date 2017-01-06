@@ -1772,7 +1772,7 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
                 // cg id will be null when deleting replication groups created for CG full copy volumes
                 consistencyGroup = _dbClient.queryObject(BlockConsistencyGroup.class, consistencyGroupId);
             }
-            if (replicationGroupName == null && (consistencyGroup == null || consistencyGroup.getInactive())) {
+            if (replicationGroupName == null || (consistencyGroup == null || consistencyGroup.getInactive())) {
                 _log.info(String.format("%s is inactive or deleted", consistencyGroupId));
                 return;
             }

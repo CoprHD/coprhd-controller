@@ -1743,15 +1743,17 @@ test_0() {
 
 snap_db() {
     slot=$1
-    shift
-    column_families=$*
+    column_families=$2
+    escape_seq=$3
+
+    base_filter="| sed -r '/6[0]{29}[A-Z0-9]{2}=/s/\=-?[0-9][0-9]?[0-9]?/=XX/g' | sed -r 's/vdc1=-?[0-9][0-9]?[0-9]?/vdc1=XX/g' | grep -v \"status = OpStatusMap\" | grep -v \"lastDiscoveryRunTime = \" | grep -v \"successDiscoveryTime = \" | grep -v \"storageDevice = URI: null\" | grep -v \"StringSet \[\]\" | grep -v \"varray = URI: null\" | grep -v \"Description:\" | grep -v \"Additional\" | grep -v -e '^$' | grep -v \"clustername = null\" | grep -v \"cluster = URI: null\" | grep -v \"vcenterDataCenter = \" $escape_seq"
     
     secho "snapping column families [set $slot]: ${column_families}"
 
-    for cf in ${column_families}
-    do
-      # Run list, but normalize the HLU numbers since the simulators can't handle that yet.
-      /opt/storageos/bin/dbutils list ${cf} | sed -r '/6[0]{29}[A-Z0-9]{2}=/s/\=-?[0-9][0-9]?[0-9]?/=XX/g' | sed -r 's/vdc1=-?[0-9][0-9]?[0-9]?/vdc1=XX/g' | grep -v "status = OpStatusMap" | grep -v "lastDiscoveryRunTime = " | grep -v "successDiscoveryTime = " | grep -v "storageDevice = URI: null" | grep -v "StringSet \[\]" | grep -v "varray = URI: null" | grep -v "Description:" | grep -v "Additional" | grep -v -e '^$' | grep -v "clustername = null" | grep -v "cluster = URI: null" | grep -v "vcenterDataCenter = " > results/${item}/${cf}-${slot}.txt
+    IFS=' ' read -ra cfs_array <<< "$column_families"
+    for cf in "${cfs_array[@]}"; do
+       execute="/opt/storageos/bin/dbutils list ${cf} $base_filter > results/${item}/${cf}-${slot}.txt"
+       eval $execute
     done
 }      
 
@@ -1777,6 +1779,10 @@ verify_failures() {
 
     for failure_check in `echo ${FAILURES} | sed 's/:/ /g'`
     do
+        
+    # Remove any trailing &# used to represent specific failure occurrences    
+    failure_check=${failure_check%&*}
+            
 	grep ${failure_check} ${INVOKE_FAILURE_FILE} > /dev/null
 	if [ $? -ne 0 ]; then
 	    secho 
@@ -1856,9 +1862,9 @@ test_1() {
 
     if [ "${SS}" = "vplex" ]
     then
-	cfs="Volume ExportGroup ExportMask FCZoneReference"
+	cfs=("Volume ExportGroup ExportMask FCZoneReference")
     else
-	cfs="Volume"
+	cfs=("Volume")
     fi
 
     for failure in ${failure_injections}
@@ -1874,7 +1880,7 @@ test_1() {
       set_artificial_failure ${failure}
 
       # Check the state of the volume that doesn't exist
-      snap_db 1 ${cfs}
+      snap_db 1 "${cfs[@]}"
 
       #For XIO, before failure 6 is invoked the task would have completed successfully
       if [ "${SS}" = "xio" -a "${failure}" = "failure_006_BlockDeviceController.createVolumes_after_device_create" ]
@@ -1894,10 +1900,10 @@ test_1() {
       fi
 
       # Perform any DB validation in here
-      snap_db 2 ${cfs}
+      snap_db 2 "${cfs[@]}" 
 
       # Validate nothing was left behind
-      validate_db 1 2 ${cfs}
+      validate_db 1 2 "${cfs[@]}"
 
       # Rerun the command
       set_artificial_failure none
@@ -1915,7 +1921,7 @@ test_1() {
       fi
 
       # Perform any DB validation in here
-      snap_db 3 ${cfs}
+      snap_db 3 "${cfs[@]}"
 
       # Validate nothing was left behind
       validate_db 2 3 ${cfs}
@@ -1996,9 +2002,9 @@ test_2() {
 
     if [ "${SS}" = "vplex" ]
     then
-	cfs="Volume ExportGroup ExportMask BlockConsistencyGroup FCZoneReference"
+	cfs=("Volume ExportGroup ExportMask BlockConsistencyGroup FCZoneReference")
     else
-	cfs="Volume BlockConsistencyGroup"
+	cfs=("Volume BlockConsistencyGroup")
     fi
 
     for failure in ${failure_injections}
@@ -2018,7 +2024,7 @@ test_2() {
       runcmd blockconsistencygroup create ${PROJECT} ${CGNAME}
 
       # Check the state of the volume that doesn't exist
-      snap_db 1 ${cfs}
+      snap_db 1 "${cfs[@]}"
 
       #For XIO, before failure 6 is invoked the task would have completed successfully
       if [ "${SS}" = "xio" -a "${failure}" = "failure_006_BlockDeviceController.createVolumes_after_device_create" ]
@@ -2038,7 +2044,7 @@ test_2() {
       fi
 
       # Perform any DB validation in here
-      snap_db 2 ${cfs}
+      snap_db 2 "${cfs[@]}"
 
       # Validate nothing was left behind
       validate_db 1 2 ${cfs}
@@ -2050,7 +2056,7 @@ test_2() {
       runcmd blockconsistencygroup create ${PROJECT} ${CGNAME}
 
       # Perform any DB validation in here
-      snap_db 3 ${cfs}
+      snap_db 3 "${cfs[@]}"
 
       # Rerun the command
       set_artificial_failure none
@@ -2068,7 +2074,7 @@ test_2() {
       fi
 
       # Perform any DB validation in here
-      snap_db 4 ${cfs}
+      snap_db 4 "${cfs[@]}"
 
       # Validate nothing was left behind
       validate_db 3 4 ${cfs}
@@ -2127,9 +2133,9 @@ test_3() {
 
     if [ "${SS}" = "vplex" ]
     then
-	cfs="Volume ExportGroup ExportMask FCZoneReference"
+	cfs=("Volume ExportGroup ExportMask FCZoneReference")
     else
-	cfs="Volume"
+	cfs=("Volume")
     fi
 
     for failure in ${failure_injections}
@@ -2149,7 +2155,7 @@ test_3() {
       set_artificial_failure ${failure}
 
       # Check the state of the volume that doesn't exist
-      snap_db 1 ${cfs}
+      snap_db 1 "${cfs[@]}"
 
       # Create the volume
       fail volume create ${volname} ${project} ${NH} ${VPOOL_BASE} 1GB --count 8
@@ -2161,7 +2167,7 @@ test_3() {
       sleep 5
 
       # Perform any DB validation in here
-      snap_db 2 ${cfs}
+      snap_db 2 "${cfs[@]}"
 
       # Validate nothing was left behind
       validate_db 1 2 ${cfs}
@@ -2184,7 +2190,7 @@ test_3() {
       runcmd project delete ${project}
 
       # Perform any DB validation in here
-      snap_db 3 ${cfs}
+      snap_db 3 "${cfs[@]}"
 
       # Validate nothing was left behind
       validate_db 2 3 ${cfs}
@@ -2258,7 +2264,7 @@ test_4() {
       item=${RANDOM}
       TEST_OUTPUT_FILE=test_output_${item}.log
       secho "Running Test 4 with failure scenario: ${failure}..."
-      cfs="ExportGroup ExportMask FCZoneReference"
+      cfs=("ExportGroup ExportMask FCZoneReference")
       mkdir -p results/${item}
       volname=${VOLNAME}-${item}
       reset_counts
@@ -2267,7 +2273,7 @@ test_4() {
       set_artificial_failure ${failure}
 
       # Check the state of the export that doesn't exist
-      snap_db 1 ${cfs}
+      snap_db 1 "${cfs[@]}"
 
       # Create the export
       fail export_group create $PROJECT ${expname}1 $NH --type Host --volspec ${PROJECT}/${VOLNAME}-1 --hosts "${HOST1}"
@@ -2276,7 +2282,7 @@ test_4() {
       verify_failures ${failure}
 
       # Perform any DB validation in here
-      snap_db 2 ${cfs}
+      snap_db 2 "${cfs[@]}"
 
       # Validate nothing was left behind
       validate_db 1 2 ${cfs}
@@ -2289,10 +2295,10 @@ test_4() {
       runcmd export_group delete $PROJECT/${expname}1
       
       # Perform any DB validation in here
-      snap_db 3 ${cfs}
+      snap_db 3 "${cfs[@]}"
 
       # Validate nothing was left behind
-      validate_db 2 3 ${cfs}
+      validate_db 2 3 "${cfs[@]}"
 
       # Report results
       report_results test_4 ${failure}
@@ -2326,6 +2332,8 @@ test_5() {
     if [ "${BROCADE}" = "1" ]
     then
 	network_failure_injections="failure_049_BrocadeNetworkSMIS.getWEBMClient"
+    else
+        network_failure_injections="failure_057_MdsNetworkSystemDevice.removeZones"
     fi
 
     storage_failure_injections=""
@@ -2356,13 +2364,13 @@ test_5() {
       item=${RANDOM}
       TEST_OUTPUT_FILE=test_output_${item}.log
       secho "Running Test 5 with failure scenario: ${failure}..."
-      cfs="ExportGroup ExportMask FCZoneReference"
+      cfs=("ExportGroup ExportMask FCZoneReference")
       mkdir -p results/${item}
       volname=${VOLNAME}-${item}
       reset_counts
       
       # Check the state of the export that it doesn't exist
-      snap_db 1 ${cfs}
+      snap_db 1 "${cfs[@]}"
 
       # prime the export
       runcmd export_group create $PROJECT ${expname}1 $NH --type Host --volspec ${PROJECT}/${VOLNAME}-1 --hosts "${HOST1}"
@@ -2383,10 +2391,10 @@ test_5() {
       runcmd export_group delete $PROJECT/${expname}1
 
       # Perform any DB validation in here
-      snap_db 2 ${cfs}
+      snap_db 2 "${cfs[@]}"
 
       # Validate nothing was left behind
-      validate_db 1 2 ${cfs}
+      validate_db 1 2 "${cfs[@]}"
 
       # Report results
       report_results test_5 ${failure}
@@ -2448,19 +2456,19 @@ test_6() {
       item=${RANDOM}
       TEST_OUTPUT_FILE=test_output_${item}.log
       secho "Running Test 6 with failure scenario: ${failure}..."
-      cfs="ExportGroup ExportMask FCZoneReference"
+      cfs=("ExportGroup ExportMask FCZoneReference")
       mkdir -p results/${item}
       volname=${VOLNAME}-${item}
       reset_counts
       
       # Snap the state before the export group was created
-      snap_db 1 ${cfs}
+      snap_db 1 "${cfs[@]}"
 
       # prime the export
       runcmd export_group create $PROJECT ${expname}1 $NH --type Host --volspec ${PROJECT}/${VOLNAME}-1 --hosts "${HOST1}"
 
       # Snap the DB state with the export group created
-      snap_db 2 ${cfs}
+      snap_db 2 "${cfs[@]}"
 
       # Turn on failure at a specific point
       set_artificial_failure ${failure}
@@ -2472,8 +2480,8 @@ test_6() {
       verify_failures ${failure}
 
       # Validate nothing was left behind
-      snap_db 3 ${cfs}
-      validate_db 2 3 ${cfs}
+      snap_db 3 "${cfs[@]}" "| grep -v existingVolumes"
+      validate_db 2 3 "${cfs[@]}"
 
       # rerun the command
       set_artificial_failure none
@@ -2483,8 +2491,8 @@ test_6() {
       runcmd export_group delete ${PROJECT}/${expname}1
 
       # Validate the DB is back to its original state
-      snap_db 4 ${cfs}
-      validate_db 1 4 ${cfs}
+      snap_db 4 "${cfs[@]}"
+      validate_db 1 4 "${cfs[@]}"
 
       # Report results
       report_results test_6 ${failure}
@@ -2542,19 +2550,19 @@ test_7() {
       item=${RANDOM}
       TEST_OUTPUT_FILE=test_output_${item}.log
       secho "Running Test 7 with failure scenario: ${failure}..."
-      cfs="ExportGroup ExportMask FCZoneReference"
+      cfs=("ExportGroup ExportMask FCZoneReference")
       mkdir -p results/${item}
       volname=${VOLNAME}-${item}
       reset_counts
       
       # Check the state of the export that it doesn't exist
-      snap_db 1 ${cfs}
+      snap_db 1 "${cfs[@]}"
 
       # prime the export
       runcmd export_group create $PROJECT ${expname}1 $NH --type Exclusive --volspec ${PROJECT}/${VOLNAME}-1 --inits "${HOST1}/${H1PI1}"
 
       # Snsp the DB so we can validate after failures later
-      snap_db 2 ${cfs}
+      snap_db 2 "${cfs[@]}"
 
       # Strip out colons for array helper command
       h1pi2=`echo ${H1PI2} | sed 's/://g'`
@@ -2569,10 +2577,10 @@ test_7() {
       verify_failures ${failure}
 
       # Perform any DB validation in here
-      snap_db 3 ${cfs}
+      snap_db 3 "${cfs[@]}"
 
       # Validate nothing was left behind
-      validate_db 2 3 ${cfs}
+      validate_db 2 3 "${cfs[@]}"
 
       # Rerun the command
       set_artificial_failure none
@@ -2582,8 +2590,8 @@ test_7() {
       runcmd export_group delete ${PROJECT}/${expname}1
 
       # Verify the DB is back to the original state
-      snap_db 4 ${cfs}
-      validate_db 1 4 ${cfs}
+      snap_db 4 "${cfs[@]}"
+      validate_db 1 4 "${cfs[@]}"
 
       # Report results
       report_results test_7 ${failure}
@@ -2655,9 +2663,9 @@ test_8() {
       secho "Running Test 1 with failure scenario: ${failure}..."
       if [ "${SS}" = "vplex" ]
       then
-	  cfs="Volume ExportGroup ExportMask FCZoneReference"
+	  cfs=("Volume ExportGroup ExportMask FCZoneReference")
       else
-	  cfs="Volume"
+	  cfs=("Volume")
       fi
       reset_counts
       mkdir -p results/${item}
@@ -2670,7 +2678,7 @@ test_8() {
       set_artificial_failure ${failure}
 
       # Check the state of the volume that doesn't exist
-      snap_db 1 ${cfs}
+      snap_db 1 "${cfs[@]}"
 
       #For XIO, before failure 6 is invoked the task would have completed successfully
       if [ "${SS}" = "xio" -a "${failure}" = "failure_006_BlockDeviceController.createVolumes_after_device_create" ]
@@ -2690,10 +2698,10 @@ test_8() {
       fi
 
       # Perform any DB validation in here
-      snap_db 2 ${cfs}
+      snap_db 2 "${cfs[@]}"
 
       # Validate nothing was left behind
-      validate_db 1 2 ${cfs}
+      validate_db 1 2 "${cfs[@]}"
 
       # Rerun the command
       set_artificial_failure none
@@ -2714,10 +2722,10 @@ test_8() {
       fi
 
       # Perform any DB validation in here
-      snap_db 3 ${cfs}
+      snap_db 3 "${cfs[@]}"
 
       # Validate nothing was left behind
-      validate_db 2 3 ${cfs}
+      validate_db 2 3 "${cfs[@]}"
 
       # Report results
       report_results test_8 ${failure}
@@ -2787,9 +2795,9 @@ test_9() {
 
     if [ "${SS}" = "vplex" ]
     then
-	cfs="Volume ExportGroup ExportMask BlockConsistencyGroup"
+	cfs=("Volume ExportGroup ExportMask BlockConsistencyGroup")
     else
-	cfs="Volume BlockConsistencyGroup"
+	cfs=("Volume BlockConsistencyGroup")
     fi
 
     for failure in ${failure_injections}
@@ -2805,7 +2813,7 @@ test_9() {
       CGNAME=wf-test2-cg-${item}
 
       # Check the state of the volume that doesn't exist
-      snap_db 1 ${cfs}
+      snap_db 1 "${cfs[@]}"
 
       # Create the CG
       runcmd blockconsistencygroup create ${PROJECT} ${CGNAME}
@@ -2819,7 +2827,7 @@ test_9() {
       fi
 
       # Perform any DB validation in here
-      snap_db 2 ${cfs}
+      snap_db 2 "${cfs[@]}"
 
       # Turn on failure at a specific point
       set_artificial_failure ${failure}
@@ -2837,10 +2845,10 @@ test_9() {
       runcmd blockconsistencygroup delete ${CGNAME}
 
       # Perform any DB validation in here
-      snap_db 3 ${cfs}
+      snap_db 3 "${cfs[@]}"
 
       # Validate nothing was left behind
-      validate_db 1 3 ${cfs}
+      validate_db 1 3 "${cfs[@]}"
 
       # Report results
       report_results test_9 ${failure}
@@ -2866,7 +2874,7 @@ test_10() {
     echot "Test 10 Begins"
     expname=${EXPORT_GROUP_NAME}t6
 
-    common_failure_injections="failure_004_final_step_in_workflow_complete"
+    common_failure_injections="failure_004_final_step_in_workflow_complete failure_firewall"
 
     storage_failure_injections=""
     if [ "${SS}" = "vplex" ]
@@ -2874,9 +2882,15 @@ test_10() {
 	storage_failure_injections=""
     fi
 
-    if [ "${SS}" = "vnx" -o "${SS}" = "vmax2" -o "${SS}" = "vmax3" -o "${SS}" = "unity" -o "${SS}" = "xio" ]
+    if [ "${SS}" = "unity" -o "${SS}" = "xio" ]
     then
 	storage_failure_injections="failure_017_Export_doRemoveVolume"
+    fi
+
+    if [ "${SS}" = "vnx" -o "${SS}" = "vmax2" -o "${SS}" = "vmax3" ]
+    then
+	storage_failure_injections="failure_017_Export_doRemoveVolume \
+                                    failure_015_SmisCommandHelper.invokeMethod_*"
     fi
 
     failure_injections="${common_failure_injections} ${storage_failure_injections}"
@@ -2890,13 +2904,13 @@ test_10() {
       item=${RANDOM}
       TEST_OUTPUT_FILE=test_output_${item}.log
       secho "Running Test 6 with failure scenario: ${failure}..."
-      cfs="ExportGroup ExportMask FCZoneReference"
+      cfs=("ExportGroup ExportMask FCZoneReference")
       mkdir -p results/${item}
       volname=${VOLNAME}-${item}
       reset_counts
       
       # Snap the state before the export group was created
-      snap_db 1 ${cfs}
+      snap_db 1 "${cfs[@]}"
 
       # prime the export
       runcmd export_group create $PROJECT ${expname}1 $NH --type Host --volspec "${PROJECT}/${VOLNAME}-1,${PROJECT}/${VOLNAME}-2" --hosts "${HOST1}"
@@ -2925,8 +2939,20 @@ test_10() {
       
       if [ "${failure}" = "failure_firewall" ]
       then
+	  # Find the IP address we need to firewall
+	  if [ "${SIM}" = "1" ]
+	  then
+	      firewall_ip=${HW_SIMULATOR_IP}
+	  elif [ "${SS}" = "unity" ]
+	  then
+	      firewall_ip=${UNITY_IP}
+	  else
+	      secho "Firewall testing disabled for combo of ${SS} with simualtor=${SIM}"
+	      return
+	  fi
+
 	  # turn on firewall
-	  /usr/sbin/iptables -I INPUT 1 -s 10.247.101.45 -p all -j REJECT
+	  runcmd /usr/sbin/iptables -I INPUT 1 -s ${firewall_ip} -p all -j REJECT
       fi
 	
       # Turn on failure at a specific point
@@ -2935,24 +2961,22 @@ test_10() {
       # Resume the workflow
       runcmd workflow resume $workflow
 
+      # Turn on suspend of export after orchestration
+      set_suspend_on_class_method none
+
       # Follow the task.  It should fail because of Poka Yoke validation
       echo "*** Following the export_group update task to verify it FAILS because of firewall"
       fail task follow $task
 
-      if [ "${failure}" = "failure_firewall" -o "${failure}" = "failure_015_SmisCommandHelper.invokeMethod_*" ]
+      if [ "${failure}" = "failure_firewall" ]
       then
 	  # turn off firewall
-	  /usr/sbin/iptables -D INPUT 1
-      else
+	  runcmd /usr/sbin/iptables -D INPUT 1
+      elif [ "${failure}" != "failure_015_SmisCommandHelper.invokeMethod_*" ]
+      then
 	  # Verify injected failures were hit
 	  verify_failures ${failure}
       fi
-
-      # Perform any DB validation in here
-      snap_db 3 ${cfs}
-
-      # Validate nothing was left behind
-      validate_db 2 3 ${cfs}
 
       # rerun the command
       set_artificial_failure none
@@ -2962,8 +2986,8 @@ test_10() {
       runcmd export_group delete ${PROJECT}/${expname}1
 
       # Validate the DB is back to its original state
-      snap_db 4 ${cfs}
-      validate_db 1 4 ${cfs}
+      snap_db 2 "${cfs[@]}"
+      validate_db 1 2 "${cfs[@]}"
 
       # Report results
       report_results test_10 ${failure}

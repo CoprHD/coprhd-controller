@@ -1,0 +1,118 @@
+#!/bin/sh
+#!/bin/sh
+#
+# Copyright (c) 2015 EMC Corporation
+# All Rights Reserved
+#
+
+awk -f - <<'MYEND' $* | sort
+
+# Parse the entries from a file fn and put in indicated array table.
+# The keys are a concatenation of URI and property name,
+# the contents are the value of the property.
+function parseEntries(fn, table) {
+    uri = 0;
+    while (getline <fn > 0) {
+        if (match($1, "id:")) {
+            uri = $2;
+	    #print "id: ", uri;
+	    table[uri,"id"] = uri;
+        } else if ($0 ~ "^$") {
+	    uri=0;
+	} else if (uri != 0) {
+	    key=$1;
+	    content = $0;
+	    sub(".* = ", "", content)
+	    table[uri, key] = content;
+        }
+    }
+}
+
+# Print all the properties of one object given by it's URI
+# that is located in the indicated associative table.
+function printobj(table, uri) {
+    print "*************************************************************";
+    print uri;
+    for (id in table) {
+        key=id;
+        sub("(vdc.|global)$", "", key);
+        if (key ~ uri) {
+	    key=id;
+	    sub("urn:.*\\:(vdc.|global)","",key);
+	    sub("[^a-zA-Z0-9_]*", "", key);
+            # Exclude the mongo large OpStatusMap and creationTime entries
+            if (! ((key ~ "status" && table[id] ~ "OpStatusMap.*") || key ~ "creationTime")) {
+	        print "    ", key, " = ", table[id];
+            }
+	}
+    }
+    print " ";
+}
+
+#
+# Extract the properties of a give object given its
+# URI and associative table and make a simplier
+# properties / value map that is put in obj.
+function getobj(table, uri, obj) {
+    for (id in table) {
+        key=id;
+        sub("(vdc.|global)$", "", key);
+        if (key ~ uri) {
+	    key=id;
+	    sub("urn:.*\\:(vdc.|global)","",key);
+	    sub("[^a-zA-Z0-9_]*", "", key);
+	    obj[key] = table[id];
+	}
+    }
+}
+
+# Returns a shortened form of a URI
+function shortURI(uriId) {
+    split(uriId,uriIdArray,"-");
+    return uriIdArray[2] "-" uriIdArray[3];
+}
+
+function makeZoneKey(initiatorWwn, portWwn) {
+    initwwn = initiatorWwn;
+    gsub(":", "", initwwn);
+    portwwn = portWwn;
+    gsub(":", "", portwwn);
+    return initwwn  "_"  portwwn;
+}
+
+
+BEGIN	{
+    debug=0;
+    system("/opt/storageos/bin/dbutils list FCZoneReference >/tmp/_zref");
+    parseEntries("/tmp/_zref", zrefs);
+
+    for (zref in zrefs) {
+        if (zref ~ "id") {
+            uri=zrefs[zref];
+            getobj(zrefs, uri, zrefobj);
+            if (zrefobj["inactive"] == "false") {
+                volURI = zrefobj["volumeUri"];
+                gsub("URI: ", "", volURI);
+                printf("%s %s %s\n", zrefobj["pwwnKey"], volURI, zrefobj["zoneName"]);
+            }
+        }
+    }
+
+}
+MYEND
+
+
+#id: urn:storageos:FCZoneReference:cc0443c1-83cf-4bef-83a5-c05340f9dbb3:vdc1
+#        creationTime = java.util.GregorianCalendar[time=1483718693662,areFieldsSet=true,areAllFieldsSet=true,lenient=true,zone=sun.util.calendar.ZoneInfo[id="Etc/Universal",offset=0,dstSavings=0,useDaylight=false,transitions=0,lastRule=null],firstDayOfWeek=1,minimalDaysInFirstWeek=1,ERA=1,YEAR=2017,MONTH=0,WEEK_OF_YEAR=1,WEEK_OF_MONTH=1,DAY_OF_MONTH=6,DAY_OF_YEAR=6,DAY_OF_WEEK=6,DAY_OF_WEEK_IN_MONTH=1,AM_PM=1,HOUR=4,HOUR_OF_DAY=16,MINUTE=4,SECOND=53,MILLISECOND=662,ZONE_OFFSET=0,DST_OFFSET=0]
+#        existingZone = false
+#        fabricId = 12
+#        groupUri = URI: urn:storageos:ExportGroup:c6124486-97ab-4303-a302-861f2b36efd2:vdc1
+#        inactive = false
+#        internalFlags = 0
+#        label = 50000982346F1250_50005056A2025A12_urn:storageos:Volume:34d637de-f3e8-4032-9ee4-cef48d00c29e:vdc1
+#        networkSystemUri = URI: urn:storageos:NetworkSystem:346011a6-689a-409b-9eef-2caee02e8fdb:vdc1
+#        status = OpStatusMap {}
+#        pwwnKey = 50000982346F1250_50005056A2025A12
+#        volumeUri = URI: urn:storageos:Volume:34d637de-f3e8-4032-9ee4-cef48d00c29e:vdc1
+#        zoneName = SDS_h1025aorg_5056A2025A12_8923_FA1A0
+#

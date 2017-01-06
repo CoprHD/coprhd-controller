@@ -114,7 +114,7 @@ def export_group_pathadj(args):
         adjusted_path['initiator'] = path['initiator']['id']
         adjusted_ports = []
         for port in path['storage_ports']:
-            print path['initiator']['hostname'], path['initiator']['initiator_port'],port['name']
+            print "+", path['initiator']['hostname'], path['initiator']['initiator_port'],port['name']
             adjusted_ports.append(port['id'])
         adjusted_path['storage_ports'] = adjusted_ports
         adjusted_paths.append(adjusted_path)   
@@ -126,7 +126,7 @@ def export_group_pathadj(args):
         removed_path['initiator'] = path['initiator']['id']
         removed_ports = []
         for port in path['storage_ports']:
-            print path['initiator']['hostname'], path['initiator']['initiator_port'],port['name']
+            print "-", path['initiator']['hostname'], path['initiator']['initiator_port'],port['name']
             removed_ports.append(port['id'])
         removed_path['storage_ports'] = removed_ports
         removed_paths.append(removed_path)

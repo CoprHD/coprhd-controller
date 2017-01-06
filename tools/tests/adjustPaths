@@ -39,11 +39,11 @@ CWD=$(pwd)
 export PATH=$CWD:$PATH
 echo "PATH: " $PATH
 
-if [ "$login" = "" ]; then
+if [ "$password" = "" ]; then
     source subs/loginconfigure
     login_nd_configure_smtp_nd_add_licenses
 else
-    security login root $login
+    security login root $password
 fi
 
 export project=ap
@@ -75,7 +75,6 @@ run() {
     fi
 }
 
-
 # $1 = failure message
 fail() {
     [ "$1" = ""	] && {
@@ -84,6 +83,49 @@ fail() {
     echoit fail: $1
     date
     exit 2
+}
+
+# Subroutines for comparing the paths
+pathadj() {
+    echoit "export_group pathadj $*"  
+    export_group pathadj $*  | tee .pathadj.out
+    grep '^+' .pathadj.out | awk ' { print $2, $3, $4; }' | sort >.pathadj.cmp1
+}
+
+egpaths() {
+    echoit "egpaths $*"
+    $CWD/egpaths $* | tee .egpath.out
+    grep '\.org' .egpath.out | awk ' { print $1, $2, $5; }' | sort >.pathadj.cmp2
+    diff .pathadj.cmp1 .pathadj.cmp2
+    rc=$?
+    if [ $rc -ne 0 ] ; then
+        diff .pathadj.cmp1 .pathadj.cmp2
+	fail "Unexpected path differences"
+    fi
+}
+
+verifyzones() {
+    zones=$(grep '\.org' .egpath.out } awk ' { print $6; }')
+    zone list ciscosim --fabricid 11 >.zones.out
+    zone list ciscosim --fabricid 12 >.zones.out
+    for zone in $zones; do
+       grep $zone .zones.out
+       notfound=$?
+       if [ $notfound -get 0 ]; then
+           fail "Missing zone: " $zone
+       fi
+    done
+}
+
+verifynozones() {
+    zone list ciscosim --fabricid 11 >.zones.out
+    zone list ciscosim --fabricid 12 >.zones.out
+    num=$(grep .org .zones.out | wc -l)
+    if [ $num -gt 0 ]; then
+        echo "left-over zones:"
+	cat .zones.out
+        fail "left-over zones"
+    fi
 }
 
 source subs/discovery
@@ -115,335 +157,37 @@ echo SITE1 $SITE1
 volume_create $volnameA $SITE1 ${SITE1}_Local ""
 
 # Test single host using VPLEX local in SITE1; note only VSAN11 talks to cluster1
-test1() {
+vplexSingleHost() {
+    echoit "Testing VPLEX local single host"
     run export_group create $project eg1 $SITE1 --type Host --hosts h1$hostseed --volspec $project/$volnameA
-    egpaths eg1 | tee .egpaths.out
-    run export_group pathadj ap/eg1 $vplex --maxpath 4 --pathsperinit 2
-    run export_group pathadj ap/eg1 $vplex --maxpath 4 --pathsperinit 2 --go 1
-    egpaths eg1 | tee .egpaths.out
-    run export_group pathadj ap/eg1 $vplex --maxpath 1 --go 1
-    egpaths eg1 | tee .egpaths.out
+    pathadj ap/eg1 $vplex --maxpath 4 --pathsperinit 2
+    pathadj ap/eg1 $vplex --maxpath 4 --pathsperinit 2 --go 1
+    egpaths eg1 
+    pathadj ap/eg1 $vplex --maxpath 1 --go 1
+    egpaths eg1 
     run export_group delete $project/eg1
+    verifynozones
 }
-#test1
+vplexSingleHost
 
 # Test single host using VMAX in SITE2; note only VSAN12 in SITE2.
 source subs/arrayVpools
 createArrayVpool vmax2 vmax $SITE2
 volume_create $volnameB $SITE2 vmax2 ""
 ssys=$(getVolumeSystem $volnameB)
-test2() {
+vmaxSingleHost() {
+    echoit "Testing VMAX local single host"
     run export_group create $project eg2 $SITE2 --type Host --hosts h1$hostseed --volspec $project/$volnameB
-    egpaths eg2 | tee .egpaths.out
-    run export_group pathadj ap/eg2 $ssys --maxpath 4 --pathsperinit 2
-    run export_group pathadj ap/eg2 $ssys --maxpath 4 --pathsperinit 2 --go 1
-    egpaths eg2 | tee .egpaths.out
-    run export_group pathadj ap/eg2 $ssys --maxpath 1 --go 1
-    egpaths eg2 | tee .egpaths.out
+    pathadj ap/eg2 $ssys --maxpath 1 --useexisting 1
+    egpaths eg2 
+    pathadj ap/eg2 $ssys --maxpath 4 --pathsperinit 2 --go 1
+    egpaths eg2 
+    pathadj ap/eg2 $ssys --maxpath 1 --go 1
+    egpaths eg2 
     run export_group delete $project/eg2
+    verifynozones
 }
-test2
-
-
-exit 0
-
-#
-# Create a volume
-# $1=name, $2=varray, $3=vpool, $4=cg
-volume_create() {
-    name=$1; varray=$2; vpool=$3; cg=$4
-    echoit "Creating volumes $name in $varray $vpool"
-    if [ "$cg" != "" ]; then
-    run volume create --consistencyGroup $cg $name $project $varray $vpool $BLK_SIZE --count 1
-    else
-    run volume create $name $project $varray $vpool $BLK_SIZE --count 1
-    fi
-}
-
-# Function to create a cluster. $1 is the cluster name
-cluster_create() {
-    name=$1
-    exists=$(cluster list ${tenant} | grep $name | wc -l)
-    [ $exists -ne 1 ] && {
-        echoit "creating cluster $name"
-        run cluster create $name $tenant --project $project
-    }
-}
-
-clusterName=adjPath${hostseed}
-cluster_create $clusterName
-clusterId=$(cluster list $rootTenant | grep $clusterName | awk ' { print $4; }')
-
-# Function to create a host.
-# $1 = host name, $2 = cluster id
-# $3 = arg to pwwn for first initiator, 
-# $4 = arg to pwwn for second initiator
-# $5 = network to add first initiator to
-# $6 = network to add second initiator to
-host_create() {
-    name=$1; cluster=$2; init1=$3; init2=$4; net1=$5; net2=$6
-    exists=$(hosts list ${tenant} | grep $name | wc -l)
-    [ $exists -ne 1 ] && {
-        echoit "creating host $name"
-        run hosts create $name $tenant Other ${name}.org --port 2222 --cluster $cluster
-        run initiator create $name FC $(pwwn $init1) --node $(nwwn $init1)
-        run initiator create $name FC $(pwwn $init2) --node $(nwwn $init2)
-        run transportzone add $net1 $(pwwn $init1)
-        run transportzone add $net2 $(pwwn $init2)
-    }
-}
-
-networkA=VSAN_11
-networkB=VSAN_12
-host_create adjPathsHost1$hostseed $clusterId 10 11 $networkA $networkB
-host_create adjPathsHost2$hostseed $clusterId 20 21 $networkA $networkB
-
-
-# Control over running individual parts of the test (true/false)
-volnameA=${volnameA:-"adjustPathsA$hostseed$seed2b"}
-volnameB=${volnameB:-"adjustPathsB$hostseed$seed2b"}
-volnameC=${volnameC:-"adjustPathsC$hostseed$seed2b"}
-volnameD=${volnameD:-"adjustPathsD$hostseed$seed2b"}
-
-vpoolL1=VPLEX+FNM00130900300_FNM00130900301_cluster1_Local
-vpoolL2=VPLEX+FNM00130900300_FNM00130900301_cluster2_Local
-vpoolD1=VPLEX+FNM00130900300_FNM00130900301_cluster1_distributed
-vpoolD2=VPLEX+FNM00130900300_FNM00130900301_cluster2_distributed
-
-# Create volumes if necessary
-volcount=$(volume list $project | grep uri | wc -l)
-if [ $volcount -eq 0 ]; then
-run volume_create $volnameA $SITE1 $vpoolL1 
-run volume_create $volnameB $SITE2 $vpoolL2 
-run volume_create $volnameC $SITE1 $vpoolD1 
-run volume_create $volnameD $SITE2 $vpoolD2 
-fi
-
-# Grab the volume names
-volnameA=$(volume list adjPaths | grep adjustPathsA | head -1 | awk ' { print $1; }')
-volnameB=$(volume list adjPaths | grep adjustPathsB | head -1 | awk ' { print $1; }')
-volnameC=$(volume list adjPaths | grep adjustPathsC | head -1 | awk ' { print $1; }')
-volnameD=$(volume list adjPaths | grep adjustPathsD | head -1 | awk ' { print $1; }')
-echo "Volumes: " $volnameA $volnameB $volnameC $volnameD
-
-# Now export the volumes
-test1() {
-    run export_group create
-}
-
-
-
-
-### ### 
-### 
-### if [ $create_volume = "true" ];
-### then
-###     security login root $SYSADMIN_PASSWORD
-###     # Create consistency group 
-###     CGlabel=${CGlabel:-"vpxrdf${seed2b}"}
-###     export CGlabel
-###     run blockconsistencygroup create $project $CGlabel
-###     echoit "create volume $volname1"
-###     volume_create "$volname1" $SITEr1 $VPOOL1 $CGlabel
-### else
-###     # Determine the CG label and volume label that were used previously
-###     CGlabel=$(/opt/storageos/bin/dbutils list BlockConsistencyGroup | awk ' /label/ { label=$3; } /types/ { if (match($4, "VPLEX")) print label;  }' | grep -v arget)
-###     volname1=$(volume list sanity8 | awk "{ print $1 }" | sed "s/-.*$//" | grep vplexSrdf | head -1)
-###     echoit "Using existing volume $volname1 cg $CGlabel"
-### fi
-### CGtarget=$CGlabel-Target-$SITEr2
-### 
-### if [ $VOLUME_COUNT -gt 1 ];
-### then
-###     volname1=${volname1}-1
-###     volname1target=${volname1}-target-${SITEr2}
-###     echo "volname1 $volname1"
-###     echo "volname1target $volname1target"
-### fi
-### 
-### if [ $export_volume = "true" ]; 
-### then
-###    echoit "Exporting volume to cluster"
-###    run export_group create $project egtest1 $SITEr1 --type Cluster --clusters $clusterId --volspec $project/$volname1
-### fi
-### 
-### if [ "$test_protection_ops" = "true" ];
-### then
-### security login root $SYSADMIN_PASSWORD
-### echoit "Testing Failover/cancel CG"
-### run blockconsistencygroup failover $CGlabel --targetVarray ${SITEr2} --copyType srdf | awk ' /message|name/ { print $0; }'
-### run blockconsistencygroup failover_cancel $CGlabel --targetVarray ${SITEr2} --copyType srdf | awk ' /message|name/ { print $0; }'
-### echoit "Testing Swap/back CG"
-### run blockconsistencygroup swap $CGlabel --targetVarray ${SITEr2} --copyType srdf | awk ' /message|name/ { print $0; }'
-### run blockconsistencygroup swap ${CGlabel}-Target-${SITEr2} --targetVarray ${SITEr1} --copyType srdf | awk ' /message|name/ { print $0; }'
-### fi
-### 
-### if [ "$test_expand" = "true" ];
-### then
-### security login root $SYSADMIN_PASSWORD
-### echoit "Testing volume expand"
-### run volume expand $project/$volname1 ${BLK_SIZE2}
-### fi
-### 
-### if [ "$test_r1_snapvx_nocopy" = "true" ];
-### then
-### security login root $SYSADMIN_PASSWORD
-### # Create snapvx sessions with no linked targets
-### SNAP_SESSION_NAME1=$CGlabel-snap1
-### SNAP_SESSION_NAME2=$CGlabel-snap2
-### SNAP_SESSION_TGT_NAME1=${volname1}-snap1
-### SNAP_SESSION_TGT_NAME2=${volname1}-snap2
-### echoit "Creating snapvx session $SNAP_SESSION_NAME1"
-### run blockconsistencygroup create_snapshot_session $CGlabel $SNAP_SESSION_NAME1
-### echoit "Creating snapvx session $SNAP_SESSION_NAME2"
-### run blockconsistencygroup create_snapshot_session $CGlabel $SNAP_SESSION_NAME2
-### # Restore the snapvx session.
-### echoit "Restoring snapvx session $SNAP_SESSION_NAME1"
-### run blockconsistencygroup restore_targets $CGlabel/$SNAP_SESSION_NAME1
-### # Link target to the snapvx session 1 in default nocopy mode.
-### echoit "Linking target $SNAP_SESSION_TGT_NAME1 to snapvx session $SNAP_SESSION_NAME1"
-### run blockconsistencygroup link_targets $CGlabel/$SNAP_SESSION_NAME1 1 $SNAP_SESSION_TGT_NAME1
-### # Relink target to the snapvx session 2.
-### echoit "Relinking target $SNAP_SESSION_TGT_NAME1 to SnapVx session 2"
-### run blockconsistencygroup relink_targets $CGlabel/$SNAP_SESSION_NAME2 $CGlabel/${SNAP_SESSION_TGT_NAME1}-1-1
-### # Unlink target from the snapvx session and delete target volume.
-### echoit "unlinking target from SnapVx session 2"
-### run blockconsistencygroup unlink_targets $CGlabel/$SNAP_SESSION_NAME2 $CGlabel/${SNAP_SESSION_TGT_NAME1}-1-1 --delete_target true
-### # Delete the snapvx sessions.
-### echoit "Deleting SnapVx sessions $SNAP_SESSION_NAME1 and $SNAP_SESSION_NAME2"
-### run blockconsistencygroup delete_snapshot_session $CGlabel/$SNAP_SESSION_NAME1
-### run blockconsistencygroup delete_snapshot_session $CGlabel/$SNAP_SESSION_NAME2
-### fi
-### 
-### if [ "$test_r2_snapvx_nocopy" = "true" ];
-### then
-### security login root $SYSADMIN_PASSWORD
-### # Create snapvx sessions with no linked targets
-### SNAP_SESSION_NAME1=$CGtarget-snap1
-### SNAP_SESSION_NAME2=$CGtarget-snap2
-### SNAP_SESSION_TGT_NAME1=${volname1}-r2-snap1
-### SNAP_SESSION_TGT_NAME2=${volname1}-r2-snap2
-### echoit "Creating snapvx session $SNAP_SESSION_NAME1"
-### run blockconsistencygroup create_snapshot_session $CGtarget $SNAP_SESSION_NAME1
-### echoit "Creating snapvx session $SNAP_SESSION_NAME2"
-### run blockconsistencygroup create_snapshot_session $CGtarget $SNAP_SESSION_NAME2
-### # Restore the snapvx session.
-### echoit "Pausing the link so can restore R2"
-### run volume change_link $project/$volname1 pause $project/$volname1target srdf
-### echoit "Restoring snapvx session $SNAP_SESSION_NAME1"
-### run blockconsistencygroup restore_targets $CGtarget/$SNAP_SESSION_NAME1
-### echoit "Resuming the link"
-### run volume change_link $project/$volname1 resume $project/$volname1target srdf
-### # Link target to the snapvx session 1 in default nocopy mode.
-### echoit "Linking target $SNAP_SESSION_TGT_NAME1 to snapvx session $SNAP_SESSION_NAME1"
-### run blockconsistencygroup link_targets $CGtarget/$SNAP_SESSION_NAME1 1 $SNAP_SESSION_TGT_NAME1
-### # Relink target to the snapvx session 2.
-### echoit "Relinking target $SNAP_SESSION_TGT_NAME1 to SnapVx session 2"
-### run blockconsistencygroup relink_targets $CGtarget/$SNAP_SESSION_NAME2 $CGtarget/${SNAP_SESSION_TGT_NAME1}-1-1
-### # Unlink target from the snapvx session and delete target volume.
-### echoit "unlinking target from SnapVx session 2"
-### run blockconsistencygroup unlink_targets $CGtarget/$SNAP_SESSION_NAME2 $CGtarget/${SNAP_SESSION_TGT_NAME1}-1-1 --delete_target true
-### # Delete the snapvx sessions.
-### echoit "Deleting SnapVx sessions $SNAP_SESSION_NAME1 and $SNAP_SESSION_NAME2"
-### run blockconsistencygroup delete_snapshot_session $CGtarget/$SNAP_SESSION_NAME1
-### run blockconsistencygroup delete_snapshot_session $CGtarget/$SNAP_SESSION_NAME2
-### fi
-### 
-### if [ "$test_r1_fullcopy" = "true" ];
-### then
-### security login root $SYSADMIN_PASSWORD
-### r1copy1=${volname1}_r1_copy1
-### echoit "Creating full copy $r1copy1"
-### volume full_copy $r1copy1 $project/$volname1
-### echoit "Resyncing full copy $r1copy1-1"
-### volume full_copy_resync $project/$r1copy1-1
-### echoit "Restoring full copy $r1copy1"
-### volume full_copy_restore $project/$r1copy1-1
-### i=1
-### while [ $i -le $VOLUME_COUNT ];
-###     do
-###     echoit "Detaching full copy $r1copy1-$i"
-###     volume detach $project/$volname1 $project/$r1copy1-$i
-###     echoit "Deleting full copy $r1copy1-$i"
-###     volume delete $project/$r1copy1-$i --wait --wait
-###     i=$(($i + 1))
-###     done
-### fi
-### 
-### if [ "$test_r2_fullcopy" = "true" ];
-### then
-### security login root $SYSADMIN_PASSWORD
-### r2copy1=${volname1}_r2_copy1
-### echoit "Creating full copy $r2copy1"
-### run volume full_copy $r2copy1 $project/$volname1target
-### echoit "Resyncing full copy $r2copy1-1"
-### run volume full_copy_resync $project/$r2copy1-1
-### echoit "Restoring full copy $r2copy1-1"
-### run volume full_copy_restore $project/$r2copy1-1
-### i=1
-### while [ $i -le $VOLUME_COUNT ];
-###     do
-###     echoit "Detaching full copy $r2copy1-$i"
-###     run volume detach $project/$volname1target $project/$r2copy1-$i
-###     echoit "Deleting full copy $r2copy1-$i"
-###     run volume delete $project/$r2copy1-$i --wait
-###     i=$(($i + 1))
-###     done
-### echoit "Resuming synchronization on link after restore"
-### run volume change_link $project/$volname1 resume $project/$volname1target srdf
-### fi
-### 
-### if [ $export_volume = "true" ];
-### then
-###    echoit "Deleting export group egtest1"
-###    run export_group delete $project/egtest1
-### fi
-### 
-### # Remove volume suffix
-### volname1=$(echo $volname1 | sed 's/-1//')
-### echo volname1 $volname1
-### 
-### if [ "$delete_volume" = "true" ];
-### then
-### security login root $SYSADMIN_PASSWORD
-### if [ "$VOLUME_COUNT" -eq 1 ]; then
-### echoit "remove volume $volname1"
-### run volume delete $project/$volname1 --wait
-### else
-###     i=1;
-###     while [ $i -le $VOLUME_COUNT ];
-###     do
-###         # Loop removing all volumes
-###         run volume delete $project/${volname1}-$i --wait
-###         i=$(($i + 1))
-###     done
-### fi
-### echoit "Delete consistency group $CGlabel"
-### run blockconsistencygroup delete $CGlabel
-### fi
-### 
-### # Create/delete volume(s) in the same CG over and over
-### if [ "$create_delete_loop" = "true" ];
-### then
-###     for i in a b c d e f g h i j ;
-###     do
-###     security login root $SYSADMIN_PASSWORD
-###     echoit "create volume $volname1"
-###     volume_create "$volname1$i" $SITEr1 $VPOOL1 $CGlabel
-###     if [ "$VOLUME_COUNT" -eq 1 ]; then
-###         echoit "remove volume $volname1"
-###         run volume delete $project/$volname1$i --wait
-###     else
-###         j=1;
-###         while [ $j -le $VOLUME_COUNT ];
-###         do
-###             # Loop removing all volumes
-###             run volume delete $project/${volname1}${i}-$j --wait
-###             j=$(($j + 1))
-###         done
-###     fi
-###     done
-### fi
+vmaxSingleHost
 
 echoit "passed"
 date

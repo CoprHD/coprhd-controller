@@ -1733,12 +1733,6 @@ public class HDSExportOperations implements ExportMaskOperations {
     }
 
     @Override
-    public Integer getMaximumAllowedHLU(StorageSystem storage) {
-        // TODO Auto-generated method stub
-        return null;
-    }
-
-    @Override
     public ExportMask refreshExportMask(StorageSystem storage, ExportMask mask) throws DeviceControllerException {
 
         try {

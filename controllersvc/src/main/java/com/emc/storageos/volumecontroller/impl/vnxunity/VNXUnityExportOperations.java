@@ -28,9 +28,6 @@ import com.google.common.base.Joiner;
 public class VNXUnityExportOperations extends VNXeExportOperations {
     private static final Logger log = LoggerFactory.getLogger(VNXUnityExportOperations.class);
 
-    // Max HLU number allowed on array. TODO Find it out
-    private static final int MAX_HLU = 512;
-
     @Override
     protected VNXeApiClient getVnxeClient(StorageSystem storage) {
         VNXeApiClient client = _clientFactory.getUnityClient(storage.getIpAddress(),
@@ -96,12 +93,6 @@ public class VNXUnityExportOperations extends VNXeExportOperations {
             throw VNXeException.exceptions.hluRetrievalFailed(errMsg, e);
         }
         return usedHLUs;
-    }
-
-    @Override
-    public Integer getMaximumAllowedHLU(StorageSystem storage) {
-        // TODO find out how to get it
-        return MAX_HLU;
     }
 
 }

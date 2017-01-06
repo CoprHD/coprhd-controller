@@ -1070,11 +1070,6 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
     }
 
     @Override
-    public Integer getMaximumAllowedHLU(StorageSystem storage) {
-        return _exportMaskOperationsHelper.getMaximumAllowedHLU(storage);
-    }
-
-    @Override
     public ExportMask refreshExportMask(final StorageSystem storage, final ExportMask mask) throws DeviceControllerException {
         return _exportMaskOperationsHelper.refreshExportMask(storage, mask);
     }

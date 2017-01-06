@@ -172,9 +172,11 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
 
                     // If the volume is a recoverpoint protected volume, the capacity has already been
                     // adjusted in the RPBlockServiceApiImpl class therefore there is no need to adjust it here.
-                    // If it is not, add 1 MB extra to make up the missing bytes due to divide by 1024
+                    // If it is not, add 1 MB extra to make up the missing bytes due to divide by 1024 (Usecase: XIO on HA side of VPLEX Distributed)
+                    // If there are no additional bytes requested, don't add that extra 1 MB.
                     int amountToAdjustCapacity = 1;
-                    if (Volume.checkForProtectedVplexBackendVolume(dbClient, volume) || volume.checkForRp()) {
+                    if (Volume.checkForProtectedVplexBackendVolume(dbClient, volume) || volume.checkForRp()
+                            || ((volume.getCapacity().doubleValue() / (1024 * 1024)) % 1) == 0) {
                         amountToAdjustCapacity = 0;
                     }
 
@@ -886,11 +888,6 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
     @Override
     public Set<Integer> findHLUsForInitiators(StorageSystem storage, List<String> initiatorNames, boolean mustHaveAllPorts) {
         return xtremioExportOperationHelper.findHLUsForInitiators(storage, initiatorNames, mustHaveAllPorts);
-    }
-
-    @Override
-    public Integer getMaximumAllowedHLU(StorageSystem storage) {
-        return xtremioExportOperationHelper.getMaximumAllowedHLU(storage);
     }
 
     @Override

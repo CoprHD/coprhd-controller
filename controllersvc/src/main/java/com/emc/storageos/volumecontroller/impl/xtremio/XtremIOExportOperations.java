@@ -70,10 +70,6 @@ import com.google.common.collect.Sets;
 public class XtremIOExportOperations extends XtremIOOperations implements ExportMaskOperations {
     private static final Logger _log = LoggerFactory.getLogger(XtremIOExportOperations.class);
 
-    // Max HLU number allowed on array. TODO Find it out
-    // XtremIO 4.0 Maximum limits: Number of Volumes mappings per Initiator Group = 2048
-    private static final int MAX_HLU = 2048;
-
     private ValidatorFactory validator;
 
     public void setValidator(ValidatorFactory validator) {
@@ -497,12 +493,6 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
             throw XtremIOApiException.exceptions.hluRetrievalFailed(errMsg, e);
         }
         return usedHLUs;
-    }
-
-    @Override
-    public Integer getMaximumAllowedHLU(StorageSystem storage) {
-        // TODO find out how to get it
-        return MAX_HLU;
     }
 
     @Override

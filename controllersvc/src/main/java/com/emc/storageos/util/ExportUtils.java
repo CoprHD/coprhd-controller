@@ -22,6 +22,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.util.CollectionUtils;
 
+import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
@@ -57,9 +58,8 @@ import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.client.util.StringMapUtil;
 import com.emc.storageos.db.client.util.StringSetUtil;
 import com.emc.storageos.exceptions.DeviceControllerException;
-import com.emc.storageos.volumecontroller.BlockStorageDevice;
 import com.emc.storageos.volumecontroller.ControllerException;
-import com.emc.storageos.volumecontroller.impl.block.AbstractDefaultMaskingOrchestrator;
+import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Collections2;
@@ -72,6 +72,17 @@ public class ExportUtils {
     private final static Logger _log = LoggerFactory.getLogger(ExportUtils.class);
 
     public static final String NO_VIPR = "NO_VIPR";   // used to exclude VIPR use of export mask
+    private static final String MAX_ALLOWED_HLU_KEY = "controller_%s_max_allowed_HLU";
+
+    private static CoordinatorClient coordinator;
+
+    public CoordinatorClient getCoordinator() {
+        return coordinator;
+    }
+
+    public void setCoordinator(CoordinatorClient coordinator) {
+        ExportUtils.coordinator = coordinator;
+    }
 
     /**
      * Get an initiator as specified by the initiator's network port.
@@ -1568,6 +1579,24 @@ public class ExportUtils {
     }
 
     /**
+     * Gets the maximum allowed HLU number for the storage array.
+     *
+     * @param storage the storage system
+     * @return the maximum allowed HLU number for the storage array
+     */
+    public static Integer getMaximumAllowedHLU(StorageSystem storage) {
+        String systemType = storage.getSystemType();
+        String maxAllowedHLUKey = String.format(MAX_ALLOWED_HLU_KEY, systemType);
+        // Get and return max allowed HLU from co-ordinator.
+        String maxHLU = ControllerUtils.getPropertyValueFromCoordinator(coordinator, maxAllowedHLUKey);
+        _log.info("Maximum allowed HLU for system type {}: {}", systemType, maxHLU);
+        if (maxHLU == null || maxHLU.isEmpty()) {
+            throw DeviceControllerException.exceptions.volumeExportMaximumHluNotAvailable(systemType);
+        }
+        return Integer.parseInt(maxHLU);
+    }
+
+    /**
      * Update free HLUs in the volume map.
      *
      * @param volumeMap the volume map
@@ -1611,12 +1640,12 @@ public class ExportUtils {
     }
 
     /**
-     * Returns true if the storage system implementation supports finding free HLU for cluster export.
+     * Returns true if the storage system implementation supports consistent HLU generation for cluster export.
      *
      * @param storage the storage system
-     * @return true, if the storage system supports finding free HLU
+     * @return true, if the storage system supports consistent HLU generation
      */
-    public static boolean isFindFreeHLUSupportedForStorage(StorageSystem storage) {
+    public static boolean systemSupportsConsistentHLUGeneration(StorageSystem storage) {
         String systemType = storage.getSystemType();
         return (DiscoveredDataObject.Type.vmax.name().equals(systemType) || DiscoveredDataObject.Type.vnxblock.name().equals(systemType)
                 || DiscoveredDataObject.Type.xtremio.name().equals(systemType) || DiscoveredDataObject.Type.unity.name().equals(systemType)

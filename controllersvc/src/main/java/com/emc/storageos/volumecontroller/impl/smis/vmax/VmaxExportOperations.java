@@ -127,9 +127,6 @@ public class VmaxExportOperations implements ExportMaskOperations {
     // Remote copy session error message. Used for error handling/retry.
     private static String COPY_SESSION_ERROR = "A specified device is involved in a Remote Copy session and cannot be modified";
 
-    // Max HLU number allowed on array. TODO Find it out
-    private static final int MAX_HLU = 4096;
-
     @Autowired
     private DataSourceFactory dataSourceFactory;
 
@@ -2059,12 +2056,6 @@ public class VmaxExportOperations implements ExportMaskOperations {
             _log.info(String.format("find used HLUs for Initiators took %f seconds", (double) totalTime / (double) 1000));
         }
         return usedHLUs;
-    }
-
-    @Override
-    public Integer getMaximumAllowedHLU(StorageSystem storage) {
-        // TODO find out how to get it
-        return MAX_HLU;
     }
 
     @Override

@@ -1123,7 +1123,11 @@
     
     <bean id="versionChecker" class="com.emc.storageos.util.VersionChecker">
         <property name="coordinator" ref="coordinator"/>
-    </bean>    
+    </bean>
+
+    <bean id="exportUtils" class="com.emc.storageos.util.ExportUtils">
+        <property name="coordinator" ref="coordinator"/>
+    </bean>
 
     <bean id="workflowScrubber" class="com.emc.storageos.workflow.WorkflowScrubberExecutor">
         <property name="dbClient" ref="dbclient"/>

@@ -100,7 +100,7 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
     public void findUpdateFreeHLUsForClusterExport(StorageSystem storage, ExportGroup exportGroup,
             List<URI> initiatorURIs, Map<URI, Integer> volumeMap) {
         if (exportGroup.forCluster() && volumeMap.values().contains(ExportGroup.LUN_UNASSIGNED)
-                && ExportUtils.isFindFreeHLUSupportedForStorage(storage)) {
+                && ExportUtils.systemSupportsConsistentHLUGeneration(storage)) {
             _log.info("Find and update free HLUs for Cluster Export START..");
             /**
              * Group the initiators by Host. For each Host, call device.findHLUsForInitiators() to get used HLUs.
@@ -111,7 +111,7 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
              */
             Set<Integer> usedHlus = findHLUsForClusterHosts(storage, exportGroup, initiatorURIs);
 
-            Integer maxHLU = getDevice().getMaximumAllowedHLU(storage);
+            Integer maxHLU = ExportUtils.getMaximumAllowedHLU(storage);
 
             Set<Integer> freeHLUs = ExportUtils.calculateFreeHLUs(usedHlus, maxHLU);
 
@@ -155,11 +155,12 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
      * @param exportGroup the export group
      * @param newInitiatorURIs the host initiators to be added to the export group
      **/
-    public void validateHLUForLunViolations(StorageSystem storage, ExportGroup exportGroup, List<URI> newInitiatorURIs) {
+    public void checkForConsistentLunViolation(StorageSystem storage, ExportGroup exportGroup, List<URI> newInitiatorURIs) {
 
         Map<String, Integer> volumeHluPair = new HashMap<String, Integer>();
         // For 'add host to cluster' operation, validate and fail beforehand if HLU conflict is detected
-        if (exportGroup.forCluster() && exportGroup.getVolumes() != null) {
+        if (exportGroup.forCluster() && exportGroup.getVolumes() != null
+                && ExportUtils.systemSupportsConsistentHLUGeneration(storage)) {
             // get HLUs from ExportGroup as these are the volumes that will be exported to new Host.
             Collection<String> egHlus = exportGroup.getVolumes().values();
             Collection<Integer> clusterHlus = Collections2.transform(egHlus, CommonTransformerFunctions.FCTN_STRING_TO_INTEGER);

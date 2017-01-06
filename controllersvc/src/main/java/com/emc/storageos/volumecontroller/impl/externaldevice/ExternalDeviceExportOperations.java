@@ -645,12 +645,6 @@ public class ExternalDeviceExportOperations implements ExportMaskOperations {
     }
 
     @Override
-    public Integer getMaximumAllowedHLU(StorageSystem storage) {
-        // TODO Auto-generated method stub
-        return null;
-    }
-
-    @Override
     public ExportMask refreshExportMask(StorageSystem storage, ExportMask mask) throws DeviceControllerException {
         // No common masking concept for driver managed systems. Return export mask as is.
         return mask;

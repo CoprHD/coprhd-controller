@@ -794,12 +794,6 @@ public class XIVExportOperations implements ExportMaskOperations {
         return null;
     }
 
-    @Override
-    public Integer getMaximumAllowedHLU(StorageSystem storage) {
-        // TODO Auto-generated method stub
-        return null;
-    }
-
     private ExportMask refreshSMISExportMask(StorageSystem storage, ExportMask mask) {
         try {
             CIMInstance instance = _helper.getSCSIProtocolController(storage,

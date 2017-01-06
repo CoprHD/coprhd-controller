@@ -342,12 +342,6 @@ public abstract class DefaultBlockStorageDevice implements BlockStorageDevice, R
     }
 
     @Override
-    public Integer getMaximumAllowedHLU(StorageSystem storage) {
-        throw DeviceControllerException.exceptions
-                .blockDeviceOperationNotSupported();
-    }
-
-    @Override
     public ExportMask refreshExportMask(StorageSystem storage, ExportMask mask) throws DeviceControllerException {
         throw DeviceControllerException.exceptions
                 .blockDeviceOperationNotSupported();

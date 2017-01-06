@@ -1306,7 +1306,7 @@ public class VNXFileCommApi {
                 system.getPassword());
         StoragePort storagePort = _dbClient.queryObject(StoragePort.class, args.getFs().getStoragePort());
         String moverId;
-        String exportPath =args.getExportPath();
+        String exportPath = args.getExportPath();
         StorageHADomain dataMover = null;
         URI dataMoverId = storagePort.getStorageHADomain();
         dataMover = _dbClient.queryObject(StorageHADomain.class, dataMoverId);
@@ -1370,20 +1370,20 @@ public class VNXFileCommApi {
 
     public XMLApiResult expandFS(final StorageSystem system, final FileShare fileShare, long extendSize, boolean isMountRequired,
             boolean isVirtualProvisioned) throws VNXException {
-    	// get the data mover
-    	boolean isMounted = false;
+        // get the data mover
+        boolean isMounted = false;
         StorageHADomain dataMover = this.getDataMover(fileShare);
         if (null != dataMover) {
             sshApi.setConnParams(system.getIpAddress(), system.getUsername(), system.getPassword());
             Map<String, String> existingMounts = sshApi.getFsMountpathMap(dataMover.getAdapterName());
             if (existingMounts.get(fileShare.getName()) == null) {
-            	isMounted = true;
+                isMounted = true;
             } else {
-            	isMounted = false;
+                isMounted = false;
             }
-        } 
+        }
         _log.info("expandFS for fileName{} and isMountRequired {}", fileShare.getName(), String.valueOf(isMounted));
-    	return expandFS(system, fileShare.getName(), extendSize, isMounted, isVirtualProvisioned);
+        return expandFS(system, fileShare.getName(), extendSize, isMounted, isVirtualProvisioned);
     }
 
     public XMLApiResult doRestoreSnapshot(final StorageSystem system, String fsId, String fsName, String id, String snapshotName)

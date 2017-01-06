@@ -50,6 +50,7 @@ import com.emc.storageos.volumecontroller.FileDeviceInputOutput;
 import com.emc.storageos.volumecontroller.impl.BiosCommandResult;
 import com.emc.storageos.volumecontroller.impl.file.AbstractFileStorageDevice;
 import com.emc.storageos.volumecontroller.impl.plugins.provisioning.VNXFileCommApi;
+import com.google.common.collect.Sets;
 
 /*
  * Suppressing these warnings as fix will be made in future release.
@@ -299,7 +300,7 @@ public class VNXFileStorageDeviceXML extends AbstractFileStorageDevice {
     @Override
     public BiosCommandResult updateExportRules(StorageSystem storage,
             FileDeviceInputOutput args)
-            throws ControllerException {
+                    throws ControllerException {
         XMLApiResult result = null;
         ApplicationContext context = null;
 
@@ -376,7 +377,6 @@ public class VNXFileStorageDeviceXML extends AbstractFileStorageDevice {
             _log.error("Not able to fetch latest Export rule from backend array.", e);
 
         }
-
 
         // ALL EXPORTS
         List<ExportRule> existingDBExportRule = args.getExistingDBExportRules();
@@ -1001,7 +1001,7 @@ public class VNXFileStorageDeviceXML extends AbstractFileStorageDevice {
     @Override
     public BiosCommandResult getFSSnapshotList(StorageSystem storage,
             FileDeviceInputOutput args, List<String> snapshots)
-            throws ControllerException {
+                    throws ControllerException {
 
         // TODO: Implement method
         String op = "getFSSnapshotList";
@@ -1423,9 +1423,9 @@ public class VNXFileStorageDeviceXML extends AbstractFileStorageDevice {
         // map to store the export rule grouped by sec flavor
         Map<String, ExportRule> exportRuleMap = new HashMap<>();
 
-        List<String> arrayReadOnlyHost = new ArrayList<>();
-        List<String> arrayReadWriteHost = new ArrayList<>();
-        List<String> arrayRootHost = new ArrayList<>();
+        Set<String> arrayReadOnlyHost = new HashSet<>();
+        Set<String> arrayReadWriteHost = new HashSet<>();
+        Set<String> arrayRootHost = new HashSet<>();
 
         Set<String> dbReadOnlyHost = new HashSet<>();
         Set<String> dbReadWriteHost = new HashSet<>();
@@ -1453,43 +1453,38 @@ public class VNXFileStorageDeviceXML extends AbstractFileStorageDevice {
             }
 
             Map<String, String> vnxExportMap = null;
-                vnxExportMap = vnxComm.getNFSExport(storage, args);
-
-            arrayReadOnlyHost.add(vnxExportMap.get("readOnly"));
-            arrayReadWriteHost.add(vnxExportMap.get("readWrite"));
-            arrayRootHost.add(vnxExportMap.get("root"));
-
+            vnxExportMap = vnxComm.getNFSExport(storage, args);
+            String readOnlyList = vnxExportMap.get("ro");
+            String readWriteList = vnxExportMap.get("rw");
+            String rootList = vnxExportMap.get("root");
+            // we get multiple value each separated by :
+            if (readOnlyList != null) {
+                for (String readOnly : readOnlyList.split(":")) {
+                    if (!readOnly.equals("null")) {
+                        arrayReadOnlyHost.add(readOnly);
+                    }
+                }
+            }
+            if (readWriteList != null) {
+                for (String readWrite : readWriteList.split(":")) {
+                    if (!readWrite.equals("null")) {
+                        arrayReadWriteHost.add(readWrite);
+                    }
+                }
+            }
+            if (rootList != null) {
+                for (String root : rootList.split(":")) {
+                    if (!root.equals("null")) {
+                        arrayRootHost.add(root);
+                    }
+                }
+            }
             // find out the change between array and CoprHD database.
-            boolean changeFound = false;
-            Set<String> arrayExtraReadOnlyHost = new HashSet<>();
-            Set<String> arrayExtraReadWriteHost = new HashSet<>();
-            Set<String> arrayExtraRootHost = new HashSet<>();
-            for (String host : arrayReadOnlyHost) {
-                boolean isNotExist = dbReadOnlyHost.add(host);
-                if (isNotExist) {
-                    arrayExtraReadOnlyHost.add(host);
-                    changeFound = true;
-                }
-            }
-
-            for (String host : arrayReadWriteHost) {
-                boolean isNotExist = dbReadWriteHost.add(host);
-                if (isNotExist) {
-                    arrayExtraReadWriteHost.add(host);
-                    changeFound = true;
-                }
-            }
-
-            for (String host : arrayRootHost) {
-                boolean isNotExist = dbRootHost.add(host);
-                if (isNotExist) {
-                    arrayExtraRootHost.add(host);
-                    changeFound = true;
-
-                }
-            }
-
-            if (changeFound) {
+            Set<String> arrayExtraReadOnlyHost = Sets.difference((Set<String>) arrayReadOnlyHost, dbReadOnlyHost);
+            Set<String> arrayExtraReadWriteHost = Sets.difference((Set<String>) arrayReadWriteHost, dbReadWriteHost);
+            Set<String> arrayExtraRootHost = Sets.difference((Set<String>) arrayRootHost, dbRootHost);
+            // if change found update the exportRuleMap
+            if (!arrayExtraReadOnlyHost.isEmpty() || !arrayExtraReadWriteHost.isEmpty() || !arrayExtraRootHost.isEmpty()) {
                 ExportRule extraRuleFromArray = new ExportRule();
                 extraRuleFromArray.setDeviceExportId(exportRule.getDeviceExportId());
                 extraRuleFromArray.setAnon(exportRule.getAnon());

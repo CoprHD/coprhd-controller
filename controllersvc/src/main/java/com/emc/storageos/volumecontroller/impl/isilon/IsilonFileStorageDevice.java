@@ -74,6 +74,7 @@ import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.BiosCommandResult;
 import com.emc.storageos.volumecontroller.impl.file.AbstractFileStorageDevice;
 import com.emc.storageos.volumecontroller.impl.file.FileMirrorOperations;
+import com.google.common.collect.Sets;
 
 /**
  * Isilon specific file controller implementation.
@@ -1401,7 +1402,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         // set quota - save the quota id to extensions
         String qid = isi.createQuota(qDirPath, fsSize, bThresholdsIncludeOverhead,
                 bIncludeSnapshots, qDirSize, notificationLimitSize != null ? notificationLimitSize : 0L,
-                        softLimitSize != null ? softLimitSize : 0L, softGracePeriod != null ? softGracePeriod : 0L);
+                softLimitSize != null ? softLimitSize : 0L, softGracePeriod != null ? softGracePeriod : 0L);
         return qid;
     }
 
@@ -1715,36 +1716,11 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             }
 
             // find out the change between array and CoprHD database.
-            boolean changeFound = false;
-            Set<String> arrayExtraReadOnlyHost = new HashSet<>();
-            Set<String> arrayExtraReadWriteHost = new HashSet<>();
-            Set<String> arrayExtraRootHost = new HashSet<>();
-            for (String host : arrayReadOnlyHost) {
-                boolean isNotExist = dbReadOnlyHost.add(host);
-                if (isNotExist) {
-                    arrayExtraReadOnlyHost.add(host);
-                    changeFound = true;
-                }
-            }
-
-            for (String host : arrayReadWriteHost) {
-                boolean isNotExist = dbReadWriteHost.add(host);
-                if (isNotExist) {
-                    arrayExtraReadWriteHost.add(host);
-                    changeFound = true;
-                }
-            }
-
-            for (String host : arrayRootHost) {
-                boolean isNotExist = dbRootHost.add(host);
-                if (isNotExist) {
-                    arrayExtraRootHost.add(host);
-                    changeFound = true;
-
-                }
-            }
-
-            if (changeFound) {
+            Set<String> arrayExtraReadOnlyHost = Sets.difference((Set<String>) arrayReadOnlyHost, dbReadOnlyHost);
+            Set<String> arrayExtraReadWriteHost = Sets.difference((Set<String>) arrayReadWriteHost, dbReadWriteHost);
+            Set<String> arrayExtraRootHost = Sets.difference((Set<String>) arrayRootHost, dbRootHost);
+            // if change found update the exportRuleMap
+            if (!arrayExtraReadOnlyHost.isEmpty() || !arrayExtraReadWriteHost.isEmpty() || !arrayExtraRootHost.isEmpty()) {
                 ExportRule extraRuleFromArray = new ExportRule();
                 extraRuleFromArray.setDeviceExportId(exportRule.getDeviceExportId());
                 extraRuleFromArray.setAnon(exportRule.getAnon());

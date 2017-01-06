@@ -199,7 +199,7 @@ public class FileControllerImpl extends AbstractDiscoveredSystemController imple
     @Override
     public void updateShareACLs(URI storageURI, URI fsURI, String shareName,
             CifsShareACLUpdateParams param, String opId)
-                    throws ControllerException {
+            throws ControllerException {
         execFS("updateShareACLs", storageURI, fsURI, shareName, param, opId);
 
     }
@@ -250,6 +250,13 @@ public class FileControllerImpl extends AbstractDiscoveredSystemController imple
     public void applyFilePolicy(URI sourceFS, List<FilePolicy> filePolicies, String taskId) throws InternalException {
         execFS("applyFilePolicy", sourceFS, filePolicies, taskId);
 
+    }
+
+    @Override
+    public void
+            assignFileSnapshotPolicyToVirtualPool(URI storageSystemURI, URI vNASURI, URI filePolicyToAssign, URI vpoolURI, String taskId)
+            throws InternalException {
+        execFS("assignFileSnapshotPolicyToVirtualPool", storageSystemURI, vNASURI, filePolicyToAssign, vpoolURI, taskId);
     }
 
 }

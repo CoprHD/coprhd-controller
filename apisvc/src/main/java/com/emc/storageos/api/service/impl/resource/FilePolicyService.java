@@ -789,6 +789,7 @@ public class FilePolicyService extends TaskResourceService {
                     vpoolPolicies = new StringSet();
                 }
                 vpoolPolicies.add(filepolicy.getId().toString());
+                virtualPool.setFilePolices(vpoolPolicies);
                 _dbClient.updateObject(virtualPool);
             }
         }

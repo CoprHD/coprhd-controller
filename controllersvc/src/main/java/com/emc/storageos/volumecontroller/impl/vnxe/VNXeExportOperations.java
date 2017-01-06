@@ -42,6 +42,7 @@ import com.emc.storageos.vnxe.VNXeApiClient;
 import com.emc.storageos.vnxe.models.Snap;
 import com.emc.storageos.vnxe.models.VNXeBase;
 import com.emc.storageos.vnxe.models.VNXeExportResult;
+import com.emc.storageos.vnxe.models.VNXeHost;
 import com.emc.storageos.vnxe.models.VNXeHostInitiator;
 import com.emc.storageos.vnxe.models.VNXeLunSnap;
 import com.emc.storageos.volumecontroller.TaskCompleter;
@@ -654,7 +655,6 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
             List<VNXeHostInitiator> vnxeInitiators = apiClient.getInitiatorsByHostId(vnxeHostId);
             Map<Initiator, VNXeHostInitiator> vnxeInitiatorsToBeRemoved = prepareInitiators(initiators); // initiators is a subset of allInitiators
 
-
             Set<String> initiatorIds = new HashSet<String>();
             for (VNXeHostInitiator vnxeInit : vnxeInitiators) {
                 initiatorIds.add(vnxeInit.getInitiatorId());
@@ -675,34 +675,51 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
                 _logger.info("Remove all initiator: " + removeAllInitiators);
             }
 
+            boolean hasMappedRes = false;
+            VNXeHost vnxeHost = apiClient.getHostById(vnxeHostId);
+            List<VNXeBase> hostLUNs = vnxeHost.getHostLUNs();
+            if (hostLUNs != null && !hostLUNs.isEmpty()) {
+                hasMappedRes = true;
+            }
+
             ExportMaskValidationContext ctx = new ExportMaskValidationContext();
             ctx.setStorage(storage);
             ctx.setExportMask(mask);
             ctx.setBlockObjects(volumeURIList, _dbClient);
             ctx.setAllowExceptions(context == null);
             VNXeExportMaskVolumesValidator volumeValidator = (VNXeExportMaskVolumesValidator) validator.removeInitiators(ctx);
-            volumeValidator.setRemoveAllInitiators(removeAllInitiators);
             volumeValidator.validate();
 
             if (removeAllInitiators) {
                 unexportLUNs(storage, mask, StringSetUtil.stringSetToUriList(mask.getVolumes().keySet()), apiClient, vnxeHostId, taskCompleter.getOpId());
-            }
-
-            for (Initiator initiator : initiators) {
-                _logger.info("Processing initiator {}", initiator.getLabel());
-                String initiatorId = initiator.getInitiatorPort();
-                if (Protocol.FC.name().equals(initiator.getProtocol())) {
-                    initiatorId = initiator.getInitiatorNode() + ":" + initiatorId;
-                }
-
-                apiClient.deleteInitiator(initiatorId);
-                mask.removeFromExistingInitiators(initiator);
-                mask.removeFromUserCreatedInitiators(initiator);
-            }
-
-            vnxeInitiators = apiClient.getInitiatorsByHostId(vnxeHostId);
-            if (vnxeInitiators == null || vnxeInitiators.isEmpty()) {
                 apiClient.deleteHost(vnxeHostId);
+            } else {
+                if (hasMappedRes) {
+                    List<String> initiatorIdList = new ArrayList<>();
+                    for (Initiator initiator : initiators) {
+                        _logger.info("Processing initiator {}", initiator.getLabel());
+                        String initiatorId = initiator.getInitiatorPort();
+                        if (Protocol.FC.name().equals(initiator.getProtocol())) {
+                            initiatorId = initiator.getInitiatorNode() + ":" + initiatorId;
+                        }
+                        initiatorIdList.add(initiatorId);
+                        mask.removeFromExistingInitiators(initiator);
+                        mask.removeFromUserCreatedInitiators(initiator);
+                    }
+                    apiClient.deleteInitiators(initiatorIdList);
+                } else {
+                    for (Initiator initiator : initiators) {
+                        _logger.info("Processing initiator {}", initiator.getLabel());
+                        String initiatorId = initiator.getInitiatorPort();
+                        if (Protocol.FC.name().equals(initiator.getProtocol())) {
+                            initiatorId = initiator.getInitiatorNode() + ":" + initiatorId;
+                        }
+
+                        apiClient.deleteInitiator(initiatorId);
+                        mask.removeFromExistingInitiators(initiator);
+                        mask.removeFromUserCreatedInitiators(initiator);
+                    }
+                }
             }
 
             _dbClient.updateObject(mask);

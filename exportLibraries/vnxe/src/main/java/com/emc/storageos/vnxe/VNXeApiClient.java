@@ -143,6 +143,7 @@ import com.emc.storageos.vnxe.requests.StorageProcessorListRequest;
 import com.emc.storageos.vnxe.requests.StorageResourceRequest;
 import com.emc.storageos.vnxe.requests.StorageSystemRequest;
 import com.emc.storageos.vnxe.requests.StorageTierRequest;
+import com.google.common.base.Joiner;
 
 /**
  * This class is used to get data or execute configuration commands against VNXe arrays
@@ -153,6 +154,7 @@ public class VNXeApiClient {
     public static int GENERIC_STORAGE_LUN_TYPE = 1;
     public static int STANDALONE_LUN_TYPE = 2;
     public String netBios;
+    private static final String VIPR_TMP_HOST_PREFIX = "VIPR_INTERNAL_";
 
     // the client to invoke VNXe requests
     private KHClient _khClient;
@@ -2876,6 +2878,46 @@ public class VNXeApiClient {
         _logger.info("deleting initiator: " + initiatorId);
         DeleteHostInitiatorRequest req = new DeleteHostInitiatorRequest(_khClient);
         return req.deleteInitiator(initiatorId);
+    }
+
+    /**
+     * Delete initiators by moving initiators to a dummy host, then delete the dummy host
+     *
+     * This should be used if there is mapped resource on the host that the initiators are registered to.
+     * It can also be used in case of no mapped resource.
+     *
+     * @param initiatorIds initiator Ids (IQN or WWN)
+     * @return VNXeCommandResult
+     */
+    public VNXeCommandResult deleteInitiators(List<String> initiatorIds)
+            throws VNXeException {
+        _logger.info("deleting initiators: " + Joiner.on(',').join(initiatorIds));
+
+        // create a dummy host
+        HostListRequest hostListReq = new HostListRequest(_khClient);
+        HostCreateParam hostCreateParm = new HostCreateParam();
+        hostCreateParm.setName(VIPR_TMP_HOST_PREFIX + initiatorIds.get(0));
+        hostCreateParm.setType(HostTypeEnum.HOSTMANUAL.getValue());
+
+        VNXeCommandResult result = hostListReq.createHost(hostCreateParm);
+        String dummyHostId = result.getId();
+
+        // get initiators
+        for (String initiatorId : initiatorIds) {
+            VNXeHostInitiator initiator = getInitiatorByWWN(initiatorId);
+            if (initiator == null) {
+                _logger.info("Could not find initiator: {}", initiatorId);
+            } else {
+                // move the initiator to the dummy host
+                HostInitiatorModifyParam initModifyParam = new HostInitiatorModifyParam();
+                initModifyParam.setHost(new VNXeBase(dummyHostId));
+                HostInitiatorRequest hostInitiaotrReq = new HostInitiatorRequest(_khClient);
+                hostInitiaotrReq.modifyHostInitiator(initModifyParam, initiator.getId());
+            }
+        }
+
+        // delete the dummy host
+        return deleteHost(dummyHostId);
     }
 
     /**

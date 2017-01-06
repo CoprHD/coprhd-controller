@@ -83,7 +83,7 @@ public class VNXeExportMaskInitiatorsValidator extends AbstractVNXeValidator {
         }
 
         checkForErrors();
-        log.info("Completed initiator validation of XtremIO ExportMask: " + id);
+        log.info("Completed initiator validation of VNXe ExportMask: " + id);
 
         return true;
     }

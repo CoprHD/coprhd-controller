@@ -372,4 +372,9 @@ public class ApiClientTest {
         apiClient.modifyHostLunHlu("Host_20", "Host_20_sv_189_prod", 0);
 
     }
+
+    // @Test
+    public void deleteInitiator() {
+        apiClient.deleteInitiator("11:22:33:44:55:66:77:88:99:00:11:22:33:44:55:66");
+    }
 }

@@ -1571,31 +1571,6 @@ verify_nomasks() {
     verify_export ${expname}2 ${HOST2} gone
 }
 
-# For Unity, inititiator can not be removed unless no mapped LUN
-# Unexport LUNs first, then remove initiator, and then export the LUNs back
-#
-remove_unity_initiator_from_mask() {
-    masking_view_name=`get_masking_view_name no-op $1`
-    initiator=$2
-    volumes=$3
-
-    echo "Remove unity initiator $initiator from host $host"
-    # remove volumes first
-    for volume in $volumes
-    do
-        arrayhelper remove_volume_from_mask ${SERIAL_NUMBER} ${volume} "${masking_view_name}"
-    done
-
-    # now remove initiator
-    arrayhelper remove_initiator_from_mask ${SERIAL_NUMBER} ${initiator} "${masking_view_name}"
-
-    # add volumes
-    for volume in $volumes
-    do
-        arrayhelper add_volume_to_mask ${SERIAL_NUMBER} ${volume} "${masking_view_name}"
-    done
-}
-
 # Export Test 0
 #
 # Test existing functionality of export and verifies there's good volumes, exports are clean, and tests are ready to run.
@@ -1898,13 +1873,7 @@ test_4() {
         verify_export ${expname}1 ${HOST1} 3 2
 
         # Now remove the initiator from the export mask
-        if [ "$SS" = "unity" ]; then
-            device_id1=`get_device_id ${PROJECT}/${VOLNAME}-1`
-            device_id2=`get_device_id ${PROJECT}/${VOLNAME}-2`
-            remove_unity_initiator_from_mask ${HOST1} ${PWWN} "${device_id1} ${device_id2}"
-        else
-            arrayhelper remove_initiator_from_mask ${SERIAL_NUMBER} ${PWWN} ${HOST1}
-        fi
+        arrayhelper remove_initiator_from_mask ${SERIAL_NUMBER} ${PWWN} ${HOST1}
 
         # Verify the mask is back to normal
         verify_export ${expname}1 ${HOST1} 2 2
@@ -1951,13 +1920,7 @@ test_4() {
     verify_export ${expname}1 ${HOST1} 3 2
 
     # Now remove the initiator from the export mask
-    if [ "$SS" = "unity" ]; then
-        device_id1=`get_device_id ${PROJECT}/${VOLNAME}-1`
-        device_id2=`get_device_id ${PROJECT}/${VOLNAME}-2`
-        remove_unity_initiator_from_mask ${HOST1} ${PWWN} "${device_id1} ${device_id2}"
-    else
-        arrayhelper remove_initiator_from_mask ${SERIAL_NUMBER} ${PWWN} ${HOST1}
-    fi
+    arrayhelper remove_initiator_from_mask ${SERIAL_NUMBER} ${PWWN} ${HOST1}
 
     # Verify the mask is back to normal
     verify_export ${expname}1 ${HOST1} 2 2
@@ -2007,14 +1970,7 @@ test_4() {
         # Verify the mask wasn't touched
         verify_export ${expname}1 ${HOST1} 3 2
         # Now remove the initiator from the export mask
-
-        if [ "$SS" = "unity" ]; then
-            device_id1=`get_device_id ${PROJECT}/${VOLNAME}-1`
-            device_id2=`get_device_id ${PROJECT}/${VOLNAME}-2`
-            remove_unity_initiator_from_mask ${HOST1} ${PWWN} "${device_id1} ${device_id2}"
-        else
-            arrayhelper remove_initiator_from_mask ${SERIAL_NUMBER} ${PWWN} ${HOST1}
-        fi
+        arrayhelper remove_initiator_from_mask ${SERIAL_NUMBER} ${PWWN} ${HOST1}
 
         # Verify the mask is back to normal
         verify_export ${expname}1 ${HOST1} 2 2
@@ -2104,13 +2060,7 @@ test_5() {
     fail task follow $task
 
     # Now remove the initiator from the export mask
-    if [ "$SS" = "unity" ]; then
-        device_id1=`get_device_id ${PROJECT}/${VOLNAME}-1`
-        device_id2=`get_device_id ${PROJECT}/${VOLNAME}-2`
-        remove_unity_initiator_from_mask ${HOST1} ${PWWN} "${device_id1} ${device_id2}"
-    else
-        arrayhelper remove_initiator_from_mask ${SERIAL_NUMBER} ${PWWN} ${HOST1}
-    fi
+    arrayhelper remove_initiator_from_mask ${SERIAL_NUMBER} ${PWWN} ${HOST1}
 
     # Verify the mask is back to normal
     verify_export ${expname}1 ${HOST1} 2 2
@@ -2157,13 +2107,7 @@ test_5() {
         verify_export ${expname}1 ${HOST1} 3 2
 
         # Now remove the initiator from the export mask
-        if [ "$SS" = "unity" ]; then
-            device_id1=`get_device_id ${PROJECT}/${VOLNAME}-1`
-            device_id2=`get_device_id ${PROJECT}/${VOLNAME}-2`
-            remove_unity_initiator_from_mask ${HOST1} ${PWWN} "${device_id1} ${device_id2}"
-        else
-            arrayhelper remove_initiator_from_mask ${SERIAL_NUMBER} ${PWWN} ${HOST1}
-        fi
+        arrayhelper remove_initiator_from_mask ${SERIAL_NUMBER} ${PWWN} ${HOST1}
 
         # Verify the mask is back to normal
         verify_export ${expname}1 ${HOST1} 2 2
@@ -2785,10 +2729,6 @@ test_12() {
 #
 test_13() {
     echot "Test 13: Test rollback of add volume, verify it does not remove volumes when initiator sneaks into mask"
-    #if [ "$SS" = "unity" ]; then
-    #    echo "For Unity, initiator cannot be deleted if host has mapped LUN. So skipping this test for Unity."
-    #    return
-    #fi
 
     expname=${EXPORT_GROUP_NAME}t13
 
@@ -2843,13 +2783,7 @@ test_13() {
     verify_export ${expname}1 ${HOST1} 3 2 # shouldn't be 3 1?
 
     # Remove initiator from the mask (done differently per array type)
-    if [ "$SS" = "unity" ]; then
-        device_id1=`get_device_id ${PROJECT}/${VOLNAME}-1`
-        device_id2=`get_device_id ${PROJECT}/${VOLNAME}-2`
-        remove_unity_initiator_from_mask ${HOST1} ${PWWN} "${device_id1} ${device_id2}"
-    else
-        arrayhelper remove_initiator_from_mask ${SERIAL_NUMBER} ${PWWN} ${HOST1}
-    fi
+    arrayhelper remove_initiator_from_mask ${SERIAL_NUMBER} ${PWWN} ${HOST1}
 
     # Verify the initiator was removed
     verify_export ${expname}1 ${HOST1} 2 2
@@ -2879,11 +2813,6 @@ test_13() {
 #
 test_14() {
     echot "Test 14: Test rollback of add initiator, verify it does not remove initiators when volume sneaks into mask"
-    if [ "$SS" = "unity" ]; then
-        echo "For Unity, initiator cannot be deleted if host has mapped LUN. So skipping this test for Unity."
-        return
-    fi
-
     expname=${EXPORT_GROUP_NAME}t14-${RANDOM}
 
     # Make sure we start clean; no masking view on the array
@@ -3185,11 +3114,6 @@ test_16() {
 #
 test_17() {
     echot "Test 17: Tests kill switch to disable export validation checks"
-    if [ "$SS" = "unity" ]; then
-        echo "For Unity, initiator cannot be deleted if host has mapped LUN. So skipping this test for Unity. The unknown LUN will prevent initiators from being deleted, hence export mask cannot be deleted."
-        return
-    fi
-
     expname=${EXPORT_GROUP_NAME}t3
 
     # Make sure we start clean; no masking view on the array
@@ -3373,10 +3297,6 @@ test_18() {
 #
 test_19() {
     echot "Test 19: Remove Initiator removes initiator when extra initiators are seen by it"
-    if [ "$SS" = "unity" ]; then
-        echo "For Unity, initiator cannot be deleted if host has mapped LUN. So skipping this test for Unity."
-        return
-    fi
 
     expname=${EXPORT_GROUP_NAME}t19
 

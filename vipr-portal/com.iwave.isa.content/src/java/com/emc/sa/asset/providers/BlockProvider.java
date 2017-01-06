@@ -796,36 +796,41 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         return options;
     }
     
+    @SuppressWarnings("incomplete-switch")
     @Asset("exportPathStorageSystem")
-    @AssetDependencies({ "host", "exportPathVirtualArray" })
-    public List<AssetOption> getExportPathStorageSystem(AssetOptionsContext ctx, URI hostOrClusterId, URI vArrayId) {
+    @AssetDependencies({ "exportPathExport" })
+    public List<AssetOption> getExportPathStorageSystem(AssetOptionsContext ctx, URI exportId) {
         ViPRCoreClient client = api(ctx);
         List<AssetOption> options = Lists.newArrayList();
         List<URI> storageSystemIds = new ArrayList<URI>();
         
-        client.varrays().get(vArrayId);
-        
-        List<NetworkRestRep> networks = client.networks().getByVirtualArray(vArrayId);
-        for (NetworkRestRep network : networks) {
-            // find storage system by network ?
+        ExportGroupRestRep export = client.blockExports().get(exportId);
+        List<ExportBlockParam> volumes = export.getVolumes();
+        for (ExportBlockParam volume : volumes) {
+            URI resourceId = volume.getId();
+            ResourceType volumeType = ResourceType.fromResourceId(resourceId.toString());
+            switch (volumeType) {
+                case VOLUME:
+                    VolumeRestRep v = client.blockVolumes().get(resourceId);
+                    if (v != null) {
+                        storageSystemIds.add(v.getStorageController());
+                    }
+                    break;
+                case BLOCK_SNAPSHOT:
+                    BlockSnapshotRestRep s = client.blockSnapshots().get(resourceId);
+                    if (s != null) {
+                        storageSystemIds.add(s.getStorageController());
+                    }
+                    break;
+            }
         }
-        
-        List<StoragePoolRestRep> storagePools = client.storagePools().getByVirtualArray(vArrayId);
-        for (StoragePoolRestRep storagePool : storagePools) {
-            storageSystemIds.add(storagePool.getStorageSystem().getId());
-        }
-        
-        List<StoragePortRestRep> storagePorts = client.storagePorts().getByVirtualArray(vArrayId);
-        for (StoragePortRestRep storagePort : storagePorts) {
-            storageSystemIds.add(storagePort.getStorageDevice().getId());
-        }
-        
+
         List<StorageSystemRestRep> storageSystems = client.storageSystems().getByIds(storageSystemIds);
-        
+
         for (StorageSystemRestRep storageSystem : storageSystems) {
             options.add(new AssetOption(storageSystem.getId(), storageSystem.getName()));
         }
-        
+
         return options;
     }
     

@@ -16,7 +16,6 @@ import com.emc.storageos.Controller;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
 import com.emc.storageos.db.client.model.DiscoveredSystemObject;
-import com.emc.storageos.db.client.model.FilePolicy;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.exceptions.ClientControllerException;
 import com.emc.storageos.impl.AbstractDiscoveredSystemController;
@@ -247,9 +246,8 @@ public class FileControllerImpl extends AbstractDiscoveredSystemController imple
     }
 
     @Override
-    public void applyFilePolicy(URI sourceFS, List<FilePolicy> filePolicies, String taskId) throws InternalException {
-        execFS("applyFilePolicy", sourceFS, filePolicies, taskId);
-
+    public void applyFilePolicy(URI FS, URI filePolicy, String taskId) throws InternalException {
+        execFS("applyFilePolicy", FS, filePolicy, taskId);
     }
 
 }

@@ -1,6 +1,7 @@
 #{set 'moreScripts'}
 #{get 'moreScripts'/}
 <script type="text/javascript">
+#{if !_disableEditable}
 function renderLink(o, val) {
     var data = o.aData;
     var url = #{jsAction (_edit ?: @edit(':id')) /};
@@ -8,6 +9,7 @@ function renderLink(o, val) {
     
     return "<a href='"+href+"'>" + val + "</a>";
 }
+#{/if}
 </script>
 #{/set}
 #{DataTable.table dataTable:_dataTable, source:(_list ?: @listJson()), id:_id, prefix:_prefix, cssClass:_cssClass,

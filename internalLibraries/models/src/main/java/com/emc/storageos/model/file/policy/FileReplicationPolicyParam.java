@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015 EMC Corporation
+ * Copyright (c) 2017 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.model.file.policy;
@@ -19,6 +19,7 @@ public class FileReplicationPolicyParam implements Serializable {
     private String replicationType;
     private String replicationCopyMode;
     private boolean replicateConfiguration = false;
+    private FilePolicyScheduleParams policySchedule;
 
     public FileReplicationPolicyParam() {
 
@@ -69,4 +70,12 @@ public class FileReplicationPolicyParam implements Serializable {
         this.replicateConfiguration = replicateConfiguration;
     }
 
+    @XmlElement(name = "policy_schedule")
+    public FilePolicyScheduleParams getPolicySchedule() {
+        return this.policySchedule;
+    }
+
+    public void setPolicySchedule(FilePolicyScheduleParams policySchedule) {
+        this.policySchedule = policySchedule;
+    }
 }

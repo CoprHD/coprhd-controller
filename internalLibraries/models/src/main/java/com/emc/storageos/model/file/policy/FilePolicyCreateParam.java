@@ -1,7 +1,15 @@
+/*
+ * Copyright (c) 2017 EMC Corporation
+ * All Rights Reserved
+ */
 package com.emc.storageos.model.file.policy;
 
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
+
+/**
+ * @author jainm15
+ */
 
 @XmlRootElement(name = "file_policy_create")
 public class FilePolicyCreateParam extends FilePolicyParam {

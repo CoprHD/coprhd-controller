@@ -20,6 +20,7 @@ public class Project extends DataObjectWithACLs {
     private Long _quotaGB;
     private Boolean _quotaEnabled;
     private StringSet assignedVNasServers;
+    private StringSet filePolices;
 
     @NamedRelationIndex(cf = "NamedRelation", type = TenantOrg.class)
     @Name("tenantOrg")
@@ -80,6 +81,16 @@ public class Project extends DataObjectWithACLs {
     public void setAssignedVNasServers(StringSet assignedVNasServers) {
         this.assignedVNasServers = assignedVNasServers;
         setChanged("assigned_vnas_servers");
+    }
+
+    @Name("filePolices")
+    public StringSet getFilePolices() {
+        return filePolices;
+    }
+
+    public void setFilePolices(StringSet filePolices) {
+        this.filePolices = filePolices;
+        setChanged("filePolices");
     }
 
 }

@@ -14,7 +14,6 @@ import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.EnumSet;
 import java.util.Iterator;
 import java.util.List;
@@ -3577,7 +3576,7 @@ public class FileService extends TaskResourceService {
 
             _log.info("No Errors found proceeding further {}, {}, {}", new Object[] { _dbClient, fs, filePolicy });
 
-            controller.applyFilePolicy(fs.getId(), Collections.singletonList(filePolicy), task);
+            controller.applyFilePolicy(fs.getId(), filePolicy.getId(), task);
             auditOp(OperationTypeEnum.ASSIGN_FILE_POLICY, true, AuditLogManager.AUDITOP_BEGIN,
                     fs.getId().toString(), device.getId().toString(), filePolicy.getId());
 

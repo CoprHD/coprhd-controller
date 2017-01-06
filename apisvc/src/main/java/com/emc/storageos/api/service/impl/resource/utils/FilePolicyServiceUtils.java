@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016 EMC Corporation
+ * Copyright (c) 2017 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.api.service.impl.resource.utils;
@@ -20,7 +20,6 @@ import com.emc.storageos.api.service.impl.resource.ArgValidator;
 import com.emc.storageos.api.service.impl.resource.FilePolicyService;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.FilePolicy;
-import com.emc.storageos.db.client.model.FilePolicy.AssignToResource;
 import com.emc.storageos.db.client.model.FilePolicy.FilePolicyApplyLevel;
 import com.emc.storageos.db.client.model.FilePolicy.FilePolicyType;
 import com.emc.storageos.db.client.model.FilePolicy.ScheduleFrequency;
@@ -208,19 +207,28 @@ public class FilePolicyServiceUtils {
      * @param virtualPool
      * @return
      */
-    public static boolean validateVpoolSupportPolicyType(FilePolicy filepolicy, VirtualPool virtualPool) {
+    public static void validateVpoolSupportPolicyType(FilePolicy filepolicy, VirtualPool virtualPool) {
         FilePolicyType policyType = FilePolicyType.valueOf(filepolicy.getFilePolicyType());
+        StringBuilder errorMsg = new StringBuilder();
         switch (policyType) {
             case file_snapshot:
                 if (virtualPool.getScheduleSnapshots()) {
-                    return true;
+                    break;
+                } else {
+                    errorMsg.append("Provided vpool :" + virtualPool.getId().toString() + " doesn't support file snapshot policy.");
+                    _log.error(errorMsg.toString());
+                    throw APIException.badRequests.invalidFilePolicyAssignParam(filepolicy.getFilePolicyName(), errorMsg.toString());
                 }
             case file_replication:
                 if (virtualPool.getFileReplicationSupported()) {
-                    return true;
+                    break;
+                } else {
+                    errorMsg.append("Provided vpool :" + virtualPool.getId().toString() + " doesn't support file replication policy");
+                    _log.error(errorMsg.toString());
+                    throw APIException.badRequests.invalidFilePolicyAssignParam(filepolicy.getFilePolicyName(), errorMsg.toString());
                 }
             default:
-                return false;
+                return;
         }
     }
 
@@ -246,11 +254,8 @@ public class FilePolicyServiceUtils {
                         }
                         break;
                     case file_system:
-                        // TODO Here logic has to be changed..
-                        if (AssignToResource.all.name().equalsIgnoreCase(filePolicy.getApplyToFS())
-                                && filePolicy.getFilePolicyVpool().toString().equals(vpool.toString())) {
-                            filePolicies.add(filePolicy);
-                        }
+                        filePolicies.add(filePolicy);
+
                         break;
                     default:
                         return null;
@@ -258,6 +263,7 @@ public class FilePolicyServiceUtils {
             }
         }
         return filePolicies;
+
     }
 
     public static boolean updateReplicationTypeCapabilities(DbClient dbClient, VirtualPool vPool, Project project,

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015 EMC Corporation
+ * Copyright (c) 2017 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.db.client.model;
@@ -275,16 +275,6 @@ public class FilePolicy extends DataObjectWithACLs {
         setChanged("assignedResources");
     }
 
-    @Name("applyToFS")
-    public String getApplyToFS() {
-        return this.applyToFS;
-    }
-
-    public void setApplyToFS(String applyToAllFS) {
-        this.applyToFS = applyToAllFS;
-        setChanged("applyToFS");
-    }
-
     @Name("applyOnTargetSite")
     public Boolean getApplyOnTargetSite() {
         return this.applyOnTargetSite;
@@ -325,7 +315,6 @@ public class FilePolicy extends DataObjectWithACLs {
         setChanged("policyStorageResources");
     }
 
-    @Name("applyTovPools")
     public String getApplyTovPools() {
         return applyTovPools;
     }

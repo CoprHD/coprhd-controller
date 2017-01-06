@@ -59,18 +59,6 @@ public class FilePolicyMapper {
             resp.setVpool(DbObjectMapper.toNamedRelatedResource(ResourceTypeEnum.FILE_VPOOL,
                     vpoolURI, vpool.getLabel()));
         }
-        String appliedToAllFS = from.getApplyToFS();
-        if (appliedToAllFS != null) {
-            resp.setAppliedToFileSystems(appliedToAllFS);
-        }
-        String appliedToAllProjects = from.getApplyToProjects();
-        if (appliedToAllProjects != null) {
-            resp.setAppliedToProjects(appliedToAllProjects);
-        }
-        String appliedToAllvPools = from.getApplyTovPools();
-        if (appliedToAllvPools != null) {
-            resp.setAppliedTovPools(appliedToAllvPools);
-        }
 
         String appliedAt = from.getApplyAt();
         if (NullColumnValueGetter.isNotNullValue(appliedAt)) {

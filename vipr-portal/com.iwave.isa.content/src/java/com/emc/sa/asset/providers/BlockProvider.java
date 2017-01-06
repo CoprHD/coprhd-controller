@@ -835,15 +835,16 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     }
     
     @Asset("exportPathPorts")
-    @AssetDependencies({ "exportPathStorageSystem" })
-    public List<AssetOption> getExportPathPorts(AssetOptionsContext ctx, URI storageSystemId) {
+    @AssetDependencies({ "exportPathVirtualArray", "exportPathStorageSystem" })
+    public List<AssetOption> getExportPathPorts(AssetOptionsContext ctx, URI vArrayId, URI storageSystemId) {
         ViPRCoreClient client = api(ctx);
         List<AssetOption> options = Lists.newArrayList();
         
-        List<StoragePortRestRep> ports = client.storagePorts().getByStorageSystem(storageSystemId);
+        List<StoragePortRestRep> ports = client.storagePorts().getByVirtualArray(vArrayId);
         
         for (StoragePortRestRep port : ports) {
-            if (port.getPortType().equals(StoragePort.PortType.frontend.toString())) {
+            if (port.getPortType().equals(StoragePort.PortType.frontend.toString()) && 
+                    port.getStorageDevice().getId().equals(storageSystemId)) {
                 String portPercentBusy = (port.getPortPercentBusy() != null) ? port.getPortPercentBusy().toString() : "N/A"; 
                 String label = getMessage("exportPathAdjustment.ports", port.getPortName(), portPercentBusy);
                 options.add(new AssetOption(port.getId(), label));

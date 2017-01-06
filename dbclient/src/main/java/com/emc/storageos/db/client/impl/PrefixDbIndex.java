@@ -16,7 +16,7 @@ import com.emc.storageos.db.client.model.*;
 import java.util.List;
 import java.util.Map;
 
-public class PrefixDbIndex extends DbIndex {
+public class PrefixDbIndex extends DbIndex<IndexColumnName> {
     private static final Logger _log = LoggerFactory.getLogger(PrefixDbIndex.class);
 
     // minimum number of characters required for prefix indexing

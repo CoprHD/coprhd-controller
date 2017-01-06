@@ -16,7 +16,7 @@ import com.netflix.astyanax.model.Column;
 
 import com.emc.storageos.db.client.model.*;
 
-public class PermissionsDbIndex extends DbIndex {
+public class PermissionsDbIndex extends DbIndex<IndexColumnName> {
     private static final Logger _log = LoggerFactory.getLogger(PermissionsDbIndex.class);
 
     PermissionsDbIndex(ColumnFamily<String, IndexColumnName> indexCF) {
@@ -40,7 +40,7 @@ public class PermissionsDbIndex extends DbIndex {
                 mutator.getIndexColumnList(indexCF, rowKey);
 
         IndexColumnName indexEntry =
-                new IndexColumnName(className, recordKey, value.toString(), mutator.getTimeUUID());
+                new IndexColumnName(className, recordKey, value.toString(), column.getTimeUUID());
 
         ColumnValue.setColumn(indexColList, indexEntry, value.toString(), ttl);
 

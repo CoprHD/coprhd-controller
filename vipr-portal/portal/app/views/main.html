@@ -111,6 +111,9 @@
             #{license.ifController}
               #{nav.item 'storageArrays', href: @arrays.StorageSystems.list()/}
               #{nav.item 'storageProviders', href: @arrays.StorageProviders.list()/}
+              #{deadbolt.restrict roles:[['SECURITY_ADMIN'], ['RESTRICTED_SECURITY_ADMIN'],['SYSTEM_MONITOR'], ['SYSTEM_ADMIN'], ['RESTRICTED_SYSTEM_ADMIN']]}
+                    #{nav.item 'storageDrivers', href: @arrays.StorageDrivers.list()/}
+              #{/deadbolt.restrict}
               #{nav.item 'dataProtectionSystems', href: @arrays.DataProtectionSystems.list()/}
               #{nav.item 'SANSwitches', href: @arrays.SanSwitches.list()/}
               #{nav.item 'networks', href: @arrays.Networks.list()/}
@@ -303,16 +306,14 @@
               #{deadbolt.restrict roles:[['SECURITY_ADMIN'], ['RESTRICTED_SECURITY_ADMIN'],['SYSTEM_MONITOR'], ['SYSTEM_ADMIN'], ['RESTRICTED_SYSTEM_ADMIN']]}
             	#{nav.item 'disasterRecovery', href: @infra.DisasterRecovery.list()/}
               #{/deadbolt.restrict}
-			  #{if util.SetupUtils.isOssBuild() || !util.SetupUtils.isAppliance()}
-              	#{deadbolt.restrict roles:[['SECURITY_ADMIN'], ['RESTRICTED_SECURITY_ADMIN'],['SYSTEM_MONITOR'], ['SYSTEM_ADMIN'], ['RESTRICTED_SYSTEM_ADMIN']]}
-            		#{nav.item 'storageSystemTypes', href: @arrays.StorageSystemTypes.list()/}
-              	#{/deadbolt.restrict}
-			  #{/if}
               #{deadbolt.restrict roles:[['SYSTEM_ADMIN'], ['RESTRICTED_SYSTEM_ADMIN'], ['SYSTEM_MONITOR'], ['SECURITY_ADMIN']]}
               #{if isActiveSite }
               	#{if controllers.SystemHealth.isNodeRecoveryEnabled()}
                 	#{nav.item 'systemNodeRecovery', href: @SystemHealth.nodeRecovery()/}
               	#{/if}
+                #{else}
+                    #{nav.item 'systemNodeRecovery', href: @SystemHealth.nodeRecoveryVapp()/}
+                #{/else}
               #{/if}
              #{/deadbolt.restrict}
 	       	#{deadbolt.restrict roles:[['SYSTEM_ADMIN'], ['RESTRICTED_SYSTEM_ADMIN']]}

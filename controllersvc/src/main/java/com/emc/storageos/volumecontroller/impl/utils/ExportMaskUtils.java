@@ -163,8 +163,9 @@ public class ExportMaskUtils {
         }
 
         List<URI> exportMaskUris = dbClient.queryByType(ExportMask.class, true);
-        List<ExportMask> exportMasks = dbClient.queryObject(ExportMask.class, exportMaskUris);
-        for (ExportMask exportMask : exportMasks) {
+        Iterator<ExportMask> exportMasks = dbClient.queryIterativeObjects(ExportMask.class, exportMaskUris, true);
+        while (exportMasks.hasNext()) {
+            ExportMask exportMask = exportMasks.next();
             if (exportMask == null || exportMask.getInactive()) {
                 continue;
             }

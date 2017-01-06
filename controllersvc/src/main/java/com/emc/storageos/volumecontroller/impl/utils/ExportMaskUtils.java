@@ -1343,6 +1343,7 @@ public class ExportMaskUtils {
      */
     public static ExportMask getExportMaskByName(DbClient dbClient, URI storageSystemId, String name) {
         ExportMask exportMask = null;
+        ExportMask result = null;
         URIQueryResultList uriQueryList = new URIQueryResultList();
         dbClient.queryByConstraint(AlternateIdConstraint.Factory
                 .getExportMaskByNameConstraint(name), uriQueryList);
@@ -1353,10 +1354,11 @@ public class ExportMaskUtils {
                     exportMask.getStorageDevice().equals(storageSystemId)) {
                 // We're expecting there to be only one export mask of a
                 // given name for any storage array.
+                result = exportMask;
                 break;
             }
         }
-        return exportMask;
+        return result;
     }
 
     /**
@@ -1411,7 +1413,12 @@ public class ExportMaskUtils {
         String maskResource = mask.getResource();
         if (!NullColumnValueGetter.isNullValue(maskResource)) { // check only if the mask has resource
             if (URIUtil.isType(URI.create(maskResource), Host.class)) {
-                differentResource = !maskResource.equals(existingInitiator.getHost().toString());
+                // We found scenarios where VPLEX Initiators/ports do not have the Host Name set and this is handled below.
+                if (!NullColumnValueGetter.isNullURI(existingInitiator.getHost())) {
+                    differentResource = !maskResource.equals(existingInitiator.getHost().toString());
+                } else {
+                    differentResource = true;
+                }
             } else {
                 differentResource = !maskResource.equals(existingInitiator.getClusterName());
             }

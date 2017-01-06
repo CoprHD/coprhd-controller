@@ -1554,6 +1554,80 @@ angular.module("portalApp").controller("ConfigBackupCtrl", function($scope) {
     }
 });
 
+angular.module("portalApp").controller("MyOrdersCtrl", function($scope, $http) {
+	var ORDER_MY_LIST = routes.Order_list();
+	console.info($scope);
+	var dateFormat = "YYYY-MM-DD";
+	
+	var dateDaysAgo = $scope.dateDaysAgo;
+	var startDate = $scope.startDate;
+	var endDate = $scope.endDate;
+	var current = new Date().getTime();
+		
+    angular.element("#orderSelector").ready(function () {
+        $scope.$apply(function () {        	
+            $scope.rangeStartDate = startDate != null?startDate : formatDate(dateDaysAgo, dateFormat);
+            $scope.rangeEndDate = endDate != null?endDate : formatDate(current, dateFormat);
+        });  
+    });   
+    
+    $scope.$watch('rangeEndDate', function (newVal, oldVal) {
+    	console.info("vals "+newVal+"\t|"+oldVal);
+    	if(oldVal === undefined) return;
+    	if(newVal < $scope.rangeStartDate) {
+    		alert("The End Date must be not earlier than the Start Date, please re-select.");
+    		return;
+    	}
+    	
+        var url = ORDER_MY_LIST + "?startDate=" + encodeURIComponent($scope.rangeStartDate)+
+        			"&endDate="+encodeURIComponent($scope.rangeEndDate);
+        //TODO: should disabled when go to new url
+        $('.bfh-datepicker-toggle input').attr("readonly", true);
+        $('date-picker').click(false);
+        
+        console.info(url);
+        window.location.href = url;
+    });
+    
+});
+
+angular.module("portalApp").controller("AllOrdersCtrl", function($scope, $http) {
+    var ORDER_ALL_ORDERS = routes.Order_allOrders();
+    console.info($scope);
+    var dateFormat = "YYYY-MM-DD";
+
+    var dateDaysAgo = $scope.dateDaysAgo;
+    var startDate = $scope.startDate;
+    var endDate = $scope.endDate;
+    var current = new Date().getTime();
+
+    angular.element("#orderSelector").ready(function () {
+        $scope.$apply(function () {
+            $scope.rangeStartDate = startDate != null?startDate : formatDate(dateDaysAgo, dateFormat);
+            $scope.rangeEndDate = endDate != null?endDate : formatDate(current, dateFormat);
+        });
+    });
+
+    $scope.$watch('rangeEndDate', function (newVal, oldVal) {
+        if(oldVal === undefined) return;
+        console.info("vals "+newVal+"\t|"+oldVal);
+        if(newVal < $scope.rangeStartDate) {
+            alert("The End Date must be not earlier than the Start Date, please re-select.");
+            return;
+        }
+
+        var url = ORDER_ALL_ORDERS + "?startDate=" + encodeURIComponent($scope.rangeStartDate)+
+            "&endDate="+encodeURIComponent($scope.rangeEndDate);
+        //TODO: should disabled when go to new url
+        $('.bfh-datepicker-toggle input').attr("readonly", true);
+        $('date-picker').click(false);
+
+        console.info(url);
+        window.location.href = url;
+    });
+
+});
+
 angular.module("portalApp").controller("schedulerEditCtrl", function($scope) {
     $scope.pad = function(number) {
        return (number < 10 ? '0' : '') + number

@@ -105,6 +105,7 @@ public class PathConstants {
     public static final String CLUSTER_URL = "/compute/clusters";
     public static final String CLUSTER_DETACH_STORAGE_URL = CLUSTER_URL + "/{clusterId}/detach-storage";
     public static final String HOST_BY_CLUSTER_URL = CLUSTER_URL + "/{clusterId}/hosts";
+    public static final String CLUSTER_UPDATE_SHARED_EXPORTS_URL = CLUSTER_URL + "/{clusterId}/update-shared-exports";
     public static final String INITIATOR_URL = "/compute/initiators";
     public static final String IPINTERFACE_URL = "/compute/ip-interfaces";
     public static final String DATACENTER_URL = "/compute/vcenter-data-centers";
@@ -201,4 +202,10 @@ public class PathConstants {
     public static final String APP_SUPPORT_SNAPSHOT_SET_URL = APP_SUPPORT_SNAPSHOT_URL + "/copy-sets";
     public static final String OBJECT_NAMESPACE_URL = "/vdc/object-namespaces";
     public static final String STORAGE_SYSTEM_TYPE_URL = "/vdc/storage-system-types";
+
+    public static final String STORAGE_DRIVER_LIST_URL = "/storagedriver";
+    public static final String STORAGE_DRIVER_GET_URL = "/storagedriver/{driverName}";
+    public static final String STORAGE_DRIVER_INSTALL_URL = "/storagedriver";
+    public static final String STORAGE_DRIVER_UNINSTALL_URL = "/storagedriver/{driverName}";
+    public static final String STORAGE_DRIVER_UPGRADE_URL = "/storagedriver/{driverName}";
 }

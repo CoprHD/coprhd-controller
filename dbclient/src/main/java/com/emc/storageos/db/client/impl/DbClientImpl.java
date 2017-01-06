@@ -347,7 +347,7 @@ public class DbClientImpl implements DbClient {
      * @param clazz
      * @return
      */
-    protected <T extends DataObject> Keyspace getKeyspace(Class<T> clazz) {
+    public <T extends DataObject> Keyspace getKeyspace(Class<T> clazz) {
         return getDbClientContext(clazz).getKeyspace();
     }
     
@@ -984,10 +984,13 @@ public class DbClientImpl implements DbClient {
     @Override
     public <T> void queryByConstraint(Constraint constraint, QueryResultList<T> result, URI startId, int maxCount) {
         ConstraintImpl constraintImpl = (ConstraintImpl) constraint;
-    	if (!constraintImpl.isValid()) {
-    		throw new IllegalArgumentException("invalid constraint: the key can't be null or empty"); 
-    	}
+
+        if (!constraintImpl.isValid()) {
+            throw new IllegalArgumentException("invalid constraint: the key can't be null or empty");
+        }
+
         constraintImpl.setStartId(startId);
+
         constraintImpl.setPageCount(maxCount);
 
         constraint.setKeyspace(getKeyspace(constraint.getDataObjectType()));
@@ -1090,6 +1093,33 @@ public class DbClientImpl implements DbClient {
         internalIterativePersistObject(objects, true);
     }
 
+    /**
+     * Print a stack trace to show the originator of the persist request.
+     * Used to detect anti-patterns. Calling this method is only for logging purposes.
+     * 
+     * @param obj
+     *            object to print stack
+     */
+    private <T> void printPersistedObject(T obj) {
+        final String filterClasses[] = { "Workflow", "WorkflowStep", "WorkflowStepData", "Task" };
+        ArrayList<String> filterList = new ArrayList<>(Arrays.asList(filterClasses));
+        if (obj instanceof DataObject && !filterList.contains(obj.getClass().getSimpleName())) {
+            DataObject dobj = (DataObject)obj;
+
+            StackTraceElement[] elements = Thread.currentThread().getStackTrace();
+            StringBuffer sb = new StringBuffer("Persisting obj: " + dobj.getId() + "\n");
+            sb.append("InActive: " + ((DataObject) obj).getInactive() + "\n");
+            sb.append("====================================================================================================\n");
+            for (int i = 0; i < elements.length; i++) {
+                if (elements[i].getClassName().contains("storageos")) {
+                    sb.append("\t\t" + elements[i] + "\n");
+                }
+            }
+            sb.append("====================================================================================================");
+            _log.info(sb.toString());
+        }
+    }
+
     private <T extends DataObject>
             void internalPersistObject(Collection<T> dataobjects,
                     boolean updateIndex) {
@@ -1104,6 +1134,10 @@ public class DbClientImpl implements DbClient {
                 typeObjMap.put((Class<? extends T>) obj.getClass(), objTypeList);
             }
             objTypeList.add(obj);
+
+            // Instrumentation for the benefit of finding anti-patterns. This can be removed or
+            // encapsulated around a system property
+            // printPersistedObject(obj);
         }
 
         for (Entry<Class<? extends T>, List<T>> entry : typeObjMap.entrySet()) {
@@ -1305,7 +1339,7 @@ public class DbClientImpl implements DbClient {
         while (it.hasNext()) {
             it.next().setInactive(true);
         }
-        persistObject(objects);
+        updateObject(objects);
     }
 
     @Override

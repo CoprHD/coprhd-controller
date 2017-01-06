@@ -177,7 +177,7 @@ public class CommonTransformerFunctions {
 
             @Override
             public String apply(DataObject obj) {
-                return obj.forDisplay();
+                return obj != null ? obj.forDisplay() : EMPTY_STRING;
             }
         };
     }

@@ -10,12 +10,9 @@ import java.util.Date;
 
 import com.emc.storageos.db.client.model.*;
 import com.emc.storageos.model.valid.EnumType;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 @Cf("Order")
 public class Order extends ModelObject implements TenantDataObject {
-    private static final Logger _log = LoggerFactory.getLogger(Order.class);
     public static final String SUBMITTED_BY_USER_ID = "submittedByUserId";
     public static final String SUBMITTED = "indexed";
     public static final String CATALOG_SERVICE_ID = "catalogServiceId";
@@ -237,8 +234,6 @@ public class Order extends ModelObject implements TenantDataObject {
                 .append("\n");
 
         return builder.toString();
-
-        // return ToStringBuilder.reflectionToString(this, ToStringStyle.SHORT_PREFIX_STYLE);
     }
 
     @Override

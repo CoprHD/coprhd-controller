@@ -8,21 +8,27 @@ import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.emc.storageos.db.client.constraint.TimeSeriesConstraint;
-import com.emc.storageos.db.client.model.uimodels.Order;
-import com.emc.storageos.db.client.model.uimodels.OrderStatus;
-import com.emc.storageos.security.audit.AuditLogManager;
-import com.emc.storageos.services.OperationTypeEnum;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.emc.sa.catalog.OrderManager;
 import com.emc.storageos.coordinator.client.service.DistributedQueueItemProcessedCallback;
 import com.emc.storageos.coordinator.client.service.impl.DistributedQueueConsumer;
+
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.constraint.NamedElementQueryResultList;
+import com.emc.storageos.db.client.constraint.TimeSeriesConstraint;
+import com.emc.storageos.db.client.model.uimodels.Order;
+import com.emc.storageos.db.client.model.uimodels.OrderStatus;
+
+import com.emc.storageos.security.audit.AuditLogManager;
+
+import com.emc.storageos.services.OperationTypeEnum;
+
 import com.emc.storageos.svcs.errorhandling.resources.BadRequestException;
+
 import com.emc.sa.api.OrderService;
+
+import com.emc.sa.catalog.OrderManager;
 
 public class OrderServiceJobConsumer extends DistributedQueueConsumer<OrderServiceJob> {
     private final Logger log = LoggerFactory.getLogger(OrderServiceJobConsumer.class);

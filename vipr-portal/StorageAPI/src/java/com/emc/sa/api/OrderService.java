@@ -14,7 +14,6 @@ import java.util.*;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
-import com.emc.storageos.db.client.impl.DbClientImpl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -41,10 +40,10 @@ import com.emc.storageos.db.client.constraint.TimeSeriesConstraint;
 import com.emc.storageos.db.client.model.uimodels.*;
 import com.emc.storageos.db.client.util.ExecutionWindowHelper;
 import com.emc.storageos.db.client.model.EncryptionProvider;
+import com.emc.storageos.db.client.impl.DbClientImpl;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.services.util.TimeUtils;
 import com.emc.storageos.services.util.NamedScheduledThreadPoolExecutor;
-import com.emc.storageos.systemservices.impl.logsvc.LogRequestParam;
 import com.emc.vipr.model.catalog.*;
 
 import com.emc.sa.api.mapper.OrderFilter;
@@ -108,9 +107,6 @@ public class OrderService extends CatalogTaggedResourceService {
 
     private static final long INDEX_GC_GRACE_PERIOD=432000*1000L;
     public  static final long MAX_DELETED_ORDERS_PER_GC_PERIOD=300000L;
-
-    // private static final long INDEX_GC_GRACE_PERIOD=3*60*1000L;
-    // public  static final long MAX_DELETED_ORDERS_PER_GC_PERIOD=100L;
 
     private static int SCHEDULED_EVENTS_SCAN_INTERVAL = 300;
     private int scheduleInterval = SCHEDULED_EVENTS_SCAN_INTERVAL;

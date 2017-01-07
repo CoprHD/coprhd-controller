@@ -447,30 +447,24 @@ public class OrderManagerImpl implements OrderManager {
     }
 
     public void deleteOrder(Order order) {
-
-        log.info("lbyh0 order={}", order);
-
         canBeDeleted(order, null);
 
         URI orderId = order.getId();
         List<ApprovalRequest> approvalRequests = approvalManager.findApprovalsByOrderId(orderId);
-        log.info("lbyh0: approvalRequests={}", approvalRequests);
         client.delete(approvalRequests);
 
         List<OrderParameter> orderParameters = getOrderParameters(orderId);
-        log.info("lbyh0: orderParameters={}", orderParameters);
         client.delete(orderParameters);
 
         ExecutionState state = getOrderExecutionState(order.getExecutionStateId());
         if (state != null) {
             StringSet logIds = state.getLogIds();
-            log.info("lbyh0 logIds={}", logIds);
             for (String logId : logIds) {
                 URI id = null;
                 try {
                     id = new URI(logId);
                 } catch (URISyntaxException e) {
-                    log.error("lbyh0 e=", e);
+                    log.error("Invalid id {} e=", logId, e);
                     continue;
                 }
                 ExecutionLog log = client.getModelClient().findById(ExecutionLog.class, id);
@@ -478,7 +472,6 @@ public class OrderManagerImpl implements OrderManager {
             }
 
             List<ExecutionTaskLog> logs = client.executionTaskLogs().findByIds(state.getTaskLogIds());
-            log.info("lbyh0 logs={}", logs);
             for (ExecutionTaskLog taskLog: logs) {
                 client.delete(taskLog);
             }

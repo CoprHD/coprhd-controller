@@ -247,15 +247,6 @@ public class BourneDbClient implements DBClientWrapper {
 
         LOG.debug("findByIds({}, {})", new Object[] { clazz, ids });
 
-        /*
-        for (URI id : ids) {
-            T order = (T)getDbClient().queryObject(id);
-            if (order.getInactive() == false) {
-                LOG.info("lbyee id={}", order.getId());
-            }
-        }
-        */
-
         try {
             List<T> results = Lists.newArrayList();
             Iterator<T> iter = getDbClient().queryIterativeObjects(clazz, ids);

@@ -72,7 +72,6 @@ public class TimeSeriesIndexMigration extends BaseDefaultMigrationCallback {
                         String orderId = col.getName().getTwo();
 
                         //get time UUID
-                        log.info("lbya0 orderId={}", orderId);
                         RowQuery<String, IndexColumnName> timeseriesIndexRowQuery = ks.prepareQuery(timeseriesIndex).getKey("Order");
                         CompositeRangeBuilder builder = IndexColumnNameSerializer.get().buildRange().withPrefix("true");
                         ColumnList<IndexColumnName> timeSeriesCol= timeseriesIndexRowQuery.withColumnRange(builder.greaterThanEquals(orderId)

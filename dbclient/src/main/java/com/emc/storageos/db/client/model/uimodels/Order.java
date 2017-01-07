@@ -190,7 +190,6 @@ public class Order extends ModelObject implements TenantDataObject {
     @Override
     public void markUpdated() {
         super.markUpdated();
-        _log.info("lbym0 id={} indexed={} stack=", _id, indexed, new Throwable());
         if (indexed == null ) {
             setIndexed(Boolean.TRUE);
         }

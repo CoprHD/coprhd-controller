@@ -476,7 +476,6 @@ public class DbClientImpl implements DbClient {
     @Override
     public <T extends DataObject> Iterator<T> queryIterativeObjects(final Class<T> clazz,
             Collection<URI> ids, final boolean activeOnly) {
-        _log.info("lbydd activeOnly={}",  activeOnly);
         DataObjectType doType = TypeMap.getDoType(clazz);
         if (doType == null || ids == null) {
             throw new IllegalArgumentException();

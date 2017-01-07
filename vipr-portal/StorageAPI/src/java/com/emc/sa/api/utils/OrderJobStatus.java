@@ -4,7 +4,6 @@
  */
 package com.emc.sa.api.utils;
 
-import com.emc.storageos.db.client.model.uimodels.OrderStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -19,6 +18,9 @@ import com.emc.storageos.coordinator.client.model.CoordinatorClassInfo;
 import com.emc.storageos.coordinator.client.model.CoordinatorSerializable;
 import com.emc.storageos.coordinator.exceptions.CoordinatorException;
 import com.emc.storageos.coordinator.exceptions.FatalCoordinatorException;
+
+import com.emc.storageos.db.client.model.uimodels.OrderStatus;
+
 import com.emc.vipr.model.catalog.OrderJobInfo;
 
 public class OrderJobStatus implements CoordinatorSerializable {
@@ -129,14 +131,12 @@ public class OrderJobStatus implements CoordinatorSerializable {
             completed += n;
         }
 
-        log.info("lbymm completed={} nCompleted={}", completed, nCompleted);
         completed += nCompleted;
         return completed;
     }
 
     @JsonIgnore
     public void addToDeletedNumber(long n) {
-        log.info("lbymm add {} to nCompleted", n);
         nCompleted += n;
     }
 
@@ -178,7 +178,6 @@ public class OrderJobStatus implements CoordinatorSerializable {
     @Override
     public OrderJobStatus decodeFromString(String infoStr) throws FatalCoordinatorException {
         try {
-            log.info("lbyt1: str={}", infoStr);
             mapper.readerForUpdating(this).readValue(infoStr);
             return this;
         } catch (IOException e) {
@@ -191,7 +190,6 @@ public class OrderJobStatus implements CoordinatorSerializable {
     public String toString() {
         try {
             String str = mapper.writeValueAsString(this);
-            log.info("lbyt: str={}", str);
             return str;
         } catch (IOException e) {
             log.error("Failed to serialize this object", e);

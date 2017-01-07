@@ -27,8 +27,7 @@ import com.emc.sa.api.OrderService;
 public class OrderServiceJobConsumer extends DistributedQueueConsumer<OrderServiceJob> {
     private final Logger log = LoggerFactory.getLogger(OrderServiceJobConsumer.class);
 
-    // public static final long CHECK_INTERVAL = 1000*60*10L;
-    public static final long CHECK_INTERVAL = 1000*60*3L;
+    public static final long CHECK_INTERVAL = 1000*60*10L;
     DbClient dbClient;
     OrderManager orderManager;
     OrderService orderService;
@@ -54,8 +53,6 @@ public class OrderServiceJobConsumer extends DistributedQueueConsumer<OrderServi
     @Override
     public void consumeItem(OrderServiceJob job, DistributedQueueItemProcessedCallback callback) throws Exception {
 
-        log.info("lbyd: The job job={} callback={} stack=", job, callback, new Throwable());
-
         while (true) {
             try {
                 OrderJobStatus jobStatus = orderService.queryJobInfo(OrderServiceJob.JobType.DELETE_ORDER);
@@ -65,8 +62,7 @@ public class OrderServiceJobConsumer extends DistributedQueueConsumer<OrderServi
                 List<URI> tids = jobStatus.getTids();
                 List<URI> orderIds = new ArrayList();
 
-                log.info("lbyk0 tids={} startTime={} endTime={}", tids, startTime, endTime);
-                log.info("lbym jobstatus={}", jobStatus);
+                log.info("jobstatus={}", jobStatus);
 
                 long total = 0;
                 long numberOfOrdersDeletedInGC = orderService.getDeletedOrdersInCurrentPeriod(jobStatus);
@@ -82,13 +78,11 @@ public class OrderServiceJobConsumer extends DistributedQueueConsumer<OrderServi
 
                 boolean stop = false;
                 for (URI tid : tids) {
-                    log.info("lbykk0 tid={} startTime={} endTime={}", tid, startTime, endTime);
                     TimeSeriesConstraint constraint = TimeSeriesConstraint.Factory.getOrders(tid, startTime, endTime);
                     NamedElementQueryResultList ids = new NamedElementQueryResultList();
                     dbClient.queryByConstraint(constraint, ids);
                     for (NamedElementQueryResultList.NamedElement namedID : ids) {
                         URI id = namedID.getId();
-                        log.info("lbykk0: id={}", id);
                         Order order = orderManager.getOrderById(id);
                         try {
                             orderManager.canBeDeleted(order, status);
@@ -101,7 +95,6 @@ public class OrderServiceJobConsumer extends DistributedQueueConsumer<OrderServi
 
                             total++;
                         } catch (Exception e) {
-                            log.info("lbyjj e=", e);
                             continue;
                         }
                     }
@@ -116,14 +109,13 @@ public class OrderServiceJobConsumer extends DistributedQueueConsumer<OrderServi
                     jobStatus.setTotal(total);
                     orderService.saveJobInfo(jobStatus);
 
-                    log.info("lbyd: total={}", total);
                     if (total == 0) {
                         log.info("No orders can be deleted");
                         break;
                     }
                 }
 
-                log.info("lbyd {} orders to be deleted within current GC", orderIds.size());
+                log.info("{} orders to be deleted within current GC period", orderIds.size());
 
                 long nDeleted = 0;
                 long nFailed = 0;
@@ -134,22 +126,18 @@ public class OrderServiceJobConsumer extends DistributedQueueConsumer<OrderServi
                         orderManager.deleteOrder(order);
                         nDeleted++;
                         auditLog(order, true, jobStatus.getTenantId(), jobStatus.getUserId());
-                        log.info("lbyk4 nDeleted={}", nDeleted);
                     } catch (BadRequestException e) {
-                        //TODO: change to debug level
-                        log.error("lbyk5 failed to delete order {} e=", id, e);
+                        log.warn("Failed to delete order {} e=", id, e);
                         auditLog(order, false, jobStatus.getTenantId(), jobStatus.getUserId());
                         nFailed++;
                     } catch (Exception e) {
-                        log.error("lbyk5: failed to delete order={} e=", id, e);
+                        log.warn("Failed to delete order={} e=", id, e);
                         auditLog(order, false, jobStatus.getTenantId(), jobStatus.getUserId());
                         nFailed++;
                     }
                 }
 
-                log.info("lbym {}", jobStatus.getCompleted());
                 jobStatus.addCompleted(nDeleted);
-                log.info("lbym1 {}", jobStatus.getCompleted());
                 jobStatus.setFailed(nFailed);
 
                 long end = System.currentTimeMillis();
@@ -158,21 +146,19 @@ public class OrderServiceJobConsumer extends DistributedQueueConsumer<OrderServi
                 jobStatus.setTimeUsedPerOrder(speed);
 
                 orderService.saveJobInfo(jobStatus);
-                log.info("lbyk9 jobStatus={}", jobStatus);
 
                 if (jobStatus.isFinished()) {
                     break;
                 }
                 Thread.sleep(CHECK_INTERVAL);
             } catch (Exception e) {
-                log.info("lbyk8 e=", e);
+                log.error("e=", e);
                 throw e;
             }
         }
 
-        log.info("lbyk7: remove order job from the queue");
+        log.info("remove order job from the queue");
         callback.itemProcessed();
-        log.info("lbydd done");
     }
 
     private void auditLog(Order order, boolean success, URI tid, URI uid) {

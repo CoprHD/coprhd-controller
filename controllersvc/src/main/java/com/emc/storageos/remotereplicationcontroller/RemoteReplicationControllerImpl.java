@@ -25,11 +25,11 @@ public class RemoteReplicationControllerImpl extends AbstractDiscoveredSystemCon
     private Dispatcher dispatcher;
     private DbClient dbClient;
 
-    public Set<RemoteReplicationController> getDeviceImpl() {
+    public Set<RemoteReplicationController> getDeviceControllers() {
         return deviceControllers;
     }
 
-    public void setDeviceController(Set<RemoteReplicationController> deviceControllers) {
+    public void setDeviceControllers(Set<RemoteReplicationController> deviceControllers) {
         this.deviceControllers = deviceControllers;
     }
 

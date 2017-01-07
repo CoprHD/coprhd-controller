@@ -171,8 +171,13 @@ public class RemoteReplicationSetService extends TaskResourceService {
         remoteReplicationGroup.setOpStatus(new OpStatusMap());
 
         remoteReplicationGroup.setDisplayName(param.getDisplayName());
-        remoteReplicationGroup.setReplicationState(
-                com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationSet.ReplicationState.valueOf(param.getReplicationState()));
+        if (param.getReplicationState() != null ) {
+            remoteReplicationGroup.setReplicationState(
+                    com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationSet.ReplicationState.valueOf(param.getReplicationState()));
+        } else {
+            // set to active by default
+            remoteReplicationGroup.setReplicationState(com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationSet.ReplicationState.ACTIVE);
+        }
         remoteReplicationGroup.setIsGroupConsistencyEnforced(param.getIsGroupConsistencyEnforced());
 
         // set replication mode

@@ -109,7 +109,7 @@ URI_FILE_SNAPSHOT               = URI_FILE_SNAPSHOTS        + '/{0}'
 URI_FILE_SNAPSHOT_EXPORTS       = URI_FILE_SNAPSHOT         + '/exports'
 URI_FILE_SNAPSHOT_UNEXPORT      = URI_FILE_SNAPSHOT          + '/export'
 URI_FILE_SNAPSHOT_RESTORE       = URI_FILE_SNAPSHOT         + '/restore'
-URI_FILE_SNAPSHOT_SHARES        = URI_FILE_SNAPSHOT         + '/shares'
+        = URI_FILE_SNAPSHOT         + '/shares'
 URI_FILE_SNAPSHOT_SHARES_ACL      = URI_FILE_SNAPSHOT_SHARES    + '/{1}/acl'
 URI_FILE_SNAPSHOT_SHARES_ACL_SHOW = URI_FILE_SNAPSHOT_SHARES    + '/{1}/acl'
 URI_FILE_SNAPSHOT_SHARES_ACL_DELETE = URI_FILE_SNAPSHOT_SHARES    + '/{1}/acl'
@@ -9259,7 +9259,7 @@ class Bourne:
 
         o = self.api('POST', URI_REMOTEREPLICATIONGROUP_CREATE.format(replicationset_uri), parms)
         self.assert_is_dict(o)
+        print '@@@@: ' + str(o) + ' :@@@@'
         s = self.api_sync_2(o['resource']['id'], o['op_id'], self.replicationgroup_show_task)
-
         return s
 

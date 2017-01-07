@@ -17,14 +17,14 @@ from bourne import Bourne
 # Create remote replication group.
 def remotereplicationgroup_create(args):
     bourne.connect(args.ip)
-    source_system_uri = bourne.storagedevice_querybynativeguid(args.source_system_name)
+    source_system_uri = bourne.storagedevice_querybynativeguid(args.source_system)
     print 'Source system uri: ' + source_system_uri
-    target_system_uri = bourne.storagedevice_querybynativeguid(args.target_system_name)
+    target_system_uri = bourne.storagedevice_querybynativeguid(args.target_system)
     print 'Target system uri: ' + target_system_uri
     replicationset_uri = bourne.replicationset_query(args.replicationset_name)
     print 'Replication set uri: ' + replicationset_uri
 
-    s = bourne.replicationgroup_create(replicationset_uri, args.system_type, args.name. args.replication_mode, source_system_uri, target_system_uri)
+    s = bourne.replicationgroup_create(replicationset_uri, args.system_type, args.name, args.replication_mode, source_system_uri, target_system_uri)
     if (s['state'] == 'ready'):
         print 'Remote replication group created with id ' + s['resource']['id']
     else:

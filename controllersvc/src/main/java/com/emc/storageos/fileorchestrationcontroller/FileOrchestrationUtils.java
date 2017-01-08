@@ -390,14 +390,18 @@ public class FileOrchestrationUtils {
      * @param storageSystem
      * @return
      */
-    public static List<FilePolicy> getAllProjectLevelPolices(DbClient dbClient, Project project, URI storageSystem) {
+    public static List<FilePolicy> getAllProjectLevelPolices(DbClient dbClient, Project project, VirtualPool vpool, URI storageSystem) {
         List<FilePolicy> filePoliciesToCreate = new ArrayList<FilePolicy>();
         StringSet fileProjectPolicies = project.getFilePolices();
 
         if (fileProjectPolicies != null && !fileProjectPolicies.isEmpty()) {
             for (String fileProjectPolicy : fileProjectPolicies) {
                 FilePolicy filePolicy = dbClient.queryObject(FilePolicy.class, URIUtil.uri(fileProjectPolicy));
-                filePoliciesToCreate.add(filePolicy);
+                if (!filePolicy.getFilePolicyVpool().toString().equals(vpool.getId().toString())) {
+                    continue;
+                } else {
+                    filePoliciesToCreate.add(filePolicy);
+                }
                 StringSet policyStrRes = filePolicy.getPolicyStorageResources();
                 if (policyStrRes != null && !policyStrRes.isEmpty()) {
                     for (String policyStrRe : policyStrRes) {

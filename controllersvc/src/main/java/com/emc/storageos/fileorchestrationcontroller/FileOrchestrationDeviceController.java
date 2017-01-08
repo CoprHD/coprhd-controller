@@ -1738,7 +1738,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
         }
 
         Project project = s_dbClient.queryObject(Project.class, sourceFS.getProject());
-        List<FilePolicy> fileProjectPolicies = FileOrchestrationUtils.getAllProjectLevelPolices(s_dbClient, project,
+        List<FilePolicy> fileProjectPolicies = FileOrchestrationUtils.getAllProjectLevelPolices(s_dbClient, project, vpool,
                 sourceFS.getStorageDevice());
 
         if (fileProjectPolicies != null && !fileProjectPolicies.isEmpty()) {

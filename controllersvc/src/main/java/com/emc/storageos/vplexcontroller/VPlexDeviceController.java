@@ -340,8 +340,6 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
         "If you rollback the deletion of the migration source, it will be inventory deleted from ViPR, "
         + "and you should rename the source volume on the array as ViPR uses a temporary name that may " 
         + "conflict with future migrations.";
-    // Maximum HLU TODO find out the value from array
-    public static final int MAX_HLU = 2048;
 
     // migration speed to transfer size map
     private static final Map<String, String> migrationSpeedToTransferSizeMap;
@@ -5332,8 +5330,8 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
                  * Update the new values in the VolumeHLU Map.
                  */
                 Set<Integer> usedHlus = findHLUsForInitiators(storage, exportGroup, initiatorURIs, false);
-
-                Set<Integer> freeHLUs = ExportUtils.calculateFreeHLUs(usedHlus, MAX_HLU);
+                Integer maxHLU = ExportUtils.getMaximumAllowedHLU(storage);
+                Set<Integer> freeHLUs = ExportUtils.calculateFreeHLUs(usedHlus, maxHLU);
 
                 ExportUtils.updateFreeHLUsInVolumeMap(volumeMap, freeHLUs);
 

@@ -29,12 +29,13 @@ public class AssignFilePolicySchedulingThread implements Runnable {
     private TaskResourceRep taskObject;
     private String task;
 
-    public AssignFilePolicySchedulingThread(FilePolicyService fileService, FilePolicy filePolicyToAssign,
+    public AssignFilePolicySchedulingThread(FilePolicyService fileService, URI filePolicyToAssign,
             Map<URI, List<URI>> vpoolToStorageSystemMap,
             FileServiceApi fileServiceImpl, TaskResourceRep taskObject, String task) {
 
         this.filePolicyService = fileService;
         this.vpoolToStorageSystemMap = vpoolToStorageSystemMap;
+        this.filePolicyToAssign = filePolicyToAssign;
         this.fileServiceImpl = fileServiceImpl;
         this.taskObject = taskObject;
         this.task = task;
@@ -64,7 +65,7 @@ public class AssignFilePolicySchedulingThread implements Runnable {
     }
 
     public static void executeApiTask(FilePolicyService fileService, ExecutorService executorService,
-            DbClient dbClient, FilePolicy filePolicyToAssign,
+            DbClient dbClient, URI filePolicyToAssign,
             Map<URI, List<URI>> vpoolToStorageSystemMap,
             FileServiceApi fileServiceImpl, TaskResourceRep taskObject, String task) {
 
@@ -73,7 +74,7 @@ public class AssignFilePolicySchedulingThread implements Runnable {
         try {
             executorService.execute(schedulingThread);
         } catch (Exception e) {
-            String message = "Failed to execute file creation API task for resource " + taskObject.getResource().getId();
+            String message = "Failed to execute file assign policy API task for resource " + taskObject.getResource().getId();
             _log.error(message);
             taskObject.setMessage(message);
         }

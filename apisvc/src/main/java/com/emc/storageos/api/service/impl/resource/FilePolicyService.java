@@ -759,7 +759,7 @@ public class FilePolicyService extends TaskResourceService {
         // this._dbClient.updateObject(filepolicy);
         FileServiceApi fileServiceApi = getDefaultFileServiceApi();
         AssignFilePolicySchedulingThread.executeApiTask(this, _asyncTaskService.getExecutorService(), _dbClient,
-                filepolicy, vpoolToStorageSystemMap, fileServiceApi, taskObject, task);
+                filepolicy.getId(), vpoolToStorageSystemMap, fileServiceApi, taskObject, task);
 
         auditOp(OperationTypeEnum.ASSIGN_FILE_POLICY, true, AuditLogManager.AUDITOP_BEGIN,
                 filepolicy.getLabel());

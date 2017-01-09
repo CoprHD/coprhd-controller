@@ -25,7 +25,7 @@ public class SuccessCriteria {
     //Variables for Evaluation of SuccessCriteria and Output
     private String eval;
     private final List<String> evaluateVal = new ArrayList<String>();
-    private int returnCode;
+    private int code;
 
     public String getEval() {
         return eval;
@@ -39,12 +39,12 @@ public class SuccessCriteria {
         this.eval = eval;
     }
 
-    public int getReturnCode() {
-        return returnCode;
+    public int getCode() {
+        return code;
     }
 
-    public void setReturnCode(int returnCode) {
-        this.returnCode = returnCode;
+    public void setCode(int code) {
+        this.code = code;
     }
 
     public void setEvaluateVal(String value, int pos) {

@@ -130,7 +130,6 @@ public class Orders extends OrderExecution {
                 params.get("maxDays", Integer.class));
         Long orderCount = dataTable.fetchCount().getCounts().get(Models.currentAdminTenant());
         renderArgs.put("orderCount", orderCount);
-        System.out.println(Models.currentAdminTenant() + "\t count: " + orderCount);
         if (orderCount > OrderDataTable.ORDER_MAX_COUNT) {
             flash.put("warning", MessagesUtils.get("orders.warning", orderCount, OrderDataTable.ORDER_MAX_COUNT));
         }
@@ -160,13 +159,11 @@ public class Orders extends OrderExecution {
     }
 
     public static void list() {
-        Logger.info("hlj, start to call list()");
         OrderDataTable dataTable = new OrderDataTable(Models.currentTenant());
         dataTable.setUserInfo(Security.getUserInfo());
         dataTable.setByStartEndDateOrMaxDays(params.get("startDate"), params.get("endDate"),
                 params.get("maxDays", Integer.class));
         Long orderCount = dataTable.fetchCount().getCounts().entrySet().iterator().next().getValue();
-        System.out.println("hlj in my order list count: " + orderCount);
         if (orderCount > OrderDataTable.ORDER_MAX_COUNT) {
             flash.put("warning", MessagesUtils.get("orders.warning", orderCount, OrderDataTable.ORDER_MAX_COUNT));
         }
@@ -176,7 +173,6 @@ public class Orders extends OrderExecution {
     }
 
     public static void listJson() {
-        Logger.info("hlj, start to call listJson()");
         OrderDataTable dataTable = new OrderDataTable(Models.currentTenant());
         dataTable.setUserInfo(Security.getUserInfo());
         dataTable.setByStartEndDateOrMaxDays(params.get("startDate"), params.get("endDate"),
@@ -186,7 +182,6 @@ public class Orders extends OrderExecution {
     }
 
     public static void itemsJson(@As(",") String[] ids) {
-        Logger.info("hlj, start to call itemsJson(), ids: {}", ids);
         List<OrderInfo> results = Lists.newArrayList();
         if (ids != null && ids.length > 0) {
             for (String id : ids) {
@@ -206,7 +201,6 @@ public class Orders extends OrderExecution {
     @Restrictions({ @Restrict("TENANT_ADMIN") })
     public static void deleteOrders(@As(",") String[] ids) {
         if (ids != null && ids.length > 0) {
-            System.out.println("hlj delete ids:" + ids.length);
             List<URI> uris = Lists.newArrayList();
             for (String id : ids) {
                 uris.add(uri(id));

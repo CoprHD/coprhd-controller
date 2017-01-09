@@ -62,6 +62,7 @@ public class ExportMaskRemoveInitiatorCompleter extends ExportTaskCompleter {
                             exportMask.removeTarget(targetPort);
                         }
                     }
+                    removeUnusedTargets(exportMask);
                     dbClient.updateObject(exportMask);
                 }
                 _log.info(String.format(

@@ -1213,8 +1213,10 @@ public class NetworkDeviceController implements NetworkController {
             }
 
             // Now call addZones to add all the required zones.
+            InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_058);
             BiosCommandResult result = addRemoveZones(exportGroup.getId(),
                     context.getZoneInfos(), false);
+            InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_059);
             status = result.isCommandSuccess();
             // Save our zone infos in case we want to rollback.
             WorkflowService.getInstance().storeStepData(token, context);

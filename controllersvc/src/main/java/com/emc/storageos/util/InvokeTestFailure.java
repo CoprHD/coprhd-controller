@@ -7,6 +7,8 @@ package com.emc.storageos.util;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -84,18 +86,27 @@ public final class InvokeTestFailure {
     public static final String ARTIFICIAL_FAILURE_051 = "failure_051_MaskingWorkflowEntryPoints.doExportGroupDelete_after_delete_before_unzone";
     public static final String ARTIFICIAL_FAILURE_052 = "failure_052_XtremIOExportOperations.runLunMapCreationAlgorithm_before_addvolume_to_lunmap";
     public static final String ARTIFICIAL_FAILURE_053 = "failure_053_XtremIOExportOperations.runLunMapCreationAlgorithm_after_addvolume_to_lunmap";
+    public static final String ARTIFICIAL_FAILURE_054 = "failure_054_host_cluster_ComputeSystemControllerImpl.attachAndMount_before_attach";
+    public static final String ARTIFICIAL_FAILURE_055 = "failure_055_host_cluster_ComputeSystemControllerImpl.attachAndMount_after_attach";
+    public static final String ARTIFICIAL_FAILURE_056 = "failure_056_host_cluster_ComputeSystemControllerImpl.attachAndMount_after_mount";
+    public static final String ARTIFICIAL_FAILURE_057 = "failure_057_MdsNetworkSystemDevice.removeZones";
+    public static final String ARTIFICIAL_FAILURE_058 = "failure_057_NetworkDeviceController.zoneExportAddInitiators_before_zone";
+    public static final String ARTIFICIAL_FAILURE_059 = "failure_058_NetworkDeviceController.zoneExportAddInitiators_after_zone";
 
     private static final int FAILURE_SUBSTRING_LENGTH = 11;
+
+    private static final String FAILURE_OCCURRENCE_SPLIT = "&";
+    private static final String ROLLBACK_FAILURE_SPLIT = ":";
 
     /**
      * Counter for the number of failure injection occurrences.
      */
-    private static int FAILURE_COUNTER = 0;
+    private static Map<String, Integer> failureCounters = new HashMap<String, Integer>();
 
     /**
      * Regex pattern for extracting the method name from failure 015.
      */
-    private static final String invokeMethodPattern = String.format("^.*%s(\\w+)$", ARTIFICIAL_FAILURE_015);
+    private static final String invokeMethodPattern = String.format("^.*%s(\\w+|\\*)$", ARTIFICIAL_FAILURE_015);
     private static final int METHOD_NAME_GROUP = 1;
 
     private static volatile String _beanName;
@@ -132,9 +143,17 @@ public final class InvokeTestFailure {
 
         if (invokeArtificialFailure != null && invokeArtificialFailure.contains(failureKey.substring(0, FAILURE_SUBSTRING_LENGTH))) {
             // Increment the failure occurrence counter.
-            FAILURE_COUNTER++;
-            if (canInvokeFailure()) {
-                log("Injecting failure: " + failureKey + " at failure occurrence: " + FAILURE_COUNTER);
+            if (failureCounters.get(failureKey) == null) {
+                failureCounters.put(failureKey, 0);
+            }
+
+            // Get the failure occurrence counter for the current failure key. Increment by 1 and overwrite existing count in the map.
+            int failureOccurrenceCount = failureCounters.get(failureKey);
+            failureOccurrenceCount++;
+            failureCounters.put(failureKey, failureOccurrenceCount);
+
+            if (canInvokeFailure(failureKey)) {
+                log("Injecting failure: " + failureKey + " at failure occurrence: " + (failureOccurrenceCount));
                 throw new NullPointerException("Artificially Thrown Exception: " + failureKey);
             }
         }
@@ -145,11 +164,30 @@ public final class InvokeTestFailure {
      * failure will always be invoked. If a failure point is set, the injected failure will only
      * be invoked if the failure count matches the failure point.
      *
+     * @param failureKey the failure key corresponding to the injection failure being triggered
      * @return true if the injection failure can be invoked, false otherwise.
      */
-    private static boolean canInvokeFailure() {
+    private static boolean canInvokeFailure(String failureKey) {
         String invokeArtificialFailure = _coordinator.getPropertyInfo().getProperty(ARTIFICIAL_FAILURE);
-        String[] failurePointSplit = invokeArtificialFailure.split("&");
+
+        String firstFailureKey = invokeArtificialFailure;
+        String secondFailureKey = "";
+
+        if (invokeArtificialFailure.contains(":")) {
+            String[] rollbackFailurePointSplit = invokeArtificialFailure.split(ROLLBACK_FAILURE_SPLIT);
+            if (rollbackFailurePointSplit.length == 2) {
+                firstFailureKey = rollbackFailurePointSplit[0];
+                secondFailureKey = rollbackFailurePointSplit[1];
+            }
+        }
+
+        if (failureKey.contains(firstFailureKey.substring(0, FAILURE_SUBSTRING_LENGTH))) {
+            invokeArtificialFailure = firstFailureKey;
+        } else if (failureKey.contains(secondFailureKey.substring(0, FAILURE_SUBSTRING_LENGTH))) {
+            invokeArtificialFailure = secondFailureKey;
+        }
+
+        String[] failurePointSplit = invokeArtificialFailure.split(FAILURE_OCCURRENCE_SPLIT);
         int failurePoint = -1;
 
         if (failurePointSplit.length == 2) {
@@ -160,9 +198,11 @@ public final class InvokeTestFailure {
             }
         }
 
+        int currentFailureCount = failureCounters.get(failureKey);
+
         // If no failure point has been specified (-1) or the specified failure point matches
         // the failure counter, return true
-        return (failurePoint == -1 || failurePoint == FAILURE_COUNTER);
+        return (failurePoint == -1 || failurePoint == currentFailureCount);
     }
 
     /**
@@ -171,8 +211,7 @@ public final class InvokeTestFailure {
     private static void resetCounter() {
         Boolean failureCounterReset = Boolean.valueOf(_coordinator.getPropertyInfo().getProperty(ARTIFICIAL_FAILURE_COUNTER_RESET));
         if (failureCounterReset) {
-            log("Resetting counter to 0");
-            FAILURE_COUNTER = 0;
+            failureCounters = new HashMap<String, Integer>();
         }
     }
 
@@ -197,7 +236,8 @@ public final class InvokeTestFailure {
         Matcher matcher = p.matcher(invokeArtificialFailure);
         if (matcher.matches()) {
             String failOnMethodName = matcher.group(METHOD_NAME_GROUP);
-            if (!Strings.isNullOrEmpty(failOnMethodName) && failOnMethodName.equalsIgnoreCase(methodName)) {
+            if (!Strings.isNullOrEmpty(failOnMethodName)
+                    && (failOnMethodName.equalsIgnoreCase(methodName) || failOnMethodName.equalsIgnoreCase("*"))) {
                 log("Injecting failure: " + ARTIFICIAL_FAILURE_015 + methodName);
                 throw new WBEMException("CIM_ERROR_FAILED (Unable to connect)");
             }

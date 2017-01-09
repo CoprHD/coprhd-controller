@@ -6,8 +6,6 @@ import java.util.List;
 import java.util.Map.Entry;
 import java.util.Set;
 
-import models.StorageSystemTypes;
-
 import org.apache.commons.lang.StringUtils;
 
 import play.Logger;

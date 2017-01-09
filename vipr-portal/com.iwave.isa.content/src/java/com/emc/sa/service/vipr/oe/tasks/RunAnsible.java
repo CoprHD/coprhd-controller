@@ -122,7 +122,7 @@ public class RunAnsible  extends ViPRExecutionTask<OrchestrationTaskResult> {
     }
 
     private String parseOut(final String out) {
-        if (step.getType().equals(OrchestrationServiceConstants.StepType.SHELL_SCRIPT.toString())) {
+        if (step.getType().equals(StepType.SHELL_SCRIPT.toString())) {
             logger.info("Type is shell script");
 
             return out;

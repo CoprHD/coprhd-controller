@@ -14,10 +14,10 @@ seed2b=`printf "%02X" $$ | cut -b1-2`
 echo "seed $seed seed2b $seed2b"
 
 pwwn() {
-    idx=$1; echo 50:${macaddr}:${idx}
+    idx=$1; echo 10:${macaddr}:${idx}
 }
 nwwn() {
-    idx=$1; echo 51:${macaddr}:${idx}
+    idx=$1; echo 11:${macaddr}:${idx}
 }
 
 

@@ -16,6 +16,7 @@ public class AdjustExportPaths extends WaitForTask<ExportGroupRestRep> {
     private Integer maxPaths;
     private Integer pathsPerInitiator;
     private URI storageSystemId;
+    private boolean suspendWait;
     
     private List<InitiatorPathParam> addedPaths;
     private List<InitiatorPathParam> removedPaths;
@@ -23,11 +24,12 @@ public class AdjustExportPaths extends WaitForTask<ExportGroupRestRep> {
     private URI exportId;
     
     public AdjustExportPaths(Integer minPaths, Integer maxPaths, Integer pathsPerInitiator, URI storageSystemId, URI exportId, 
-            List<InitiatorPathParam> addedPaths, List<InitiatorPathParam> removedPaths) {
+            List<InitiatorPathParam> addedPaths, List<InitiatorPathParam> removedPaths, boolean suspendWait) {
         this.minPaths = minPaths;
         this.maxPaths = maxPaths;
         this.pathsPerInitiator = pathsPerInitiator;
         this.storageSystemId = storageSystemId;
+        this.suspendWait = suspendWait;
         
         this.addedPaths = addedPaths;
         this.removedPaths = removedPaths;
@@ -53,6 +55,7 @@ public class AdjustExportPaths extends WaitForTask<ExportGroupRestRep> {
         param.setAdjustedPaths(addedPaths);
         param.setRemovedPaths(removedPaths);
         
+        param.setWaitBeforeRemovePaths(suspendWait);
         param.setWaitBeforeRemovePaths(false);
 
         return getClient().blockExports().pathAdjustment(exportId, param);

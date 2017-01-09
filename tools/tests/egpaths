@@ -256,6 +256,7 @@ BEGIN	{
 			     portName=portToName[portid];
 			     portWwn=portToWwn[portid];
 			     zoneKey = makeZoneKey(initiatorWwn, portWwn);
+			     #print "zoneKey: " , zoneKey;
 			     gsub(" ", "", zoneKey);
 			     zoneName = pwwnKeyToZoneName[zoneKey];
 			     zoneCount = pwwnKeyToCount[zoneKey];

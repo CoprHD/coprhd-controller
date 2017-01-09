@@ -4470,17 +4470,20 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
         StorageSystem storageObj = null;
         FilePolicy filePolicy = null;
         VirtualNAS vNAS = null;
+        VirtualPool vpool = null;
         // PolicyStorageResource policyRes = null;
         try {
             WorkflowStepCompleter.stepExecuting(opId);
             FileDeviceInputOutput args = new FileDeviceInputOutput();
             storageObj = _dbClient.queryObject(StorageSystem.class, storageSystemURI);
             filePolicy = _dbClient.queryObject(FilePolicy.class, filePolicyToAssign);
+            vpool = _dbClient.queryObject(VirtualPool.class, vpoolURI);
             if (vNASURI != null) {
                 vNAS = _dbClient.queryObject(VirtualNAS.class, vNASURI);
                 args.setvNAS(vNAS);
             }
             args.setFileProtectionPolicy(filePolicy);
+            args.setVPool(vpool);
 
             _log.info("Assigning file snapshot policy: {} to vpool: {}", filePolicyToAssign, vpoolURI);
 
@@ -4494,6 +4497,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             }
             if (result.isCommandSuccess()) {
                 createFilePolicyInDB(storageSystemURI, vpoolURI, FilePolicyApplyLevel.vpool.name(), filePolicy);
+                WorkflowStepCompleter.stepSucceded(opId);
             }
         } catch (Exception e) {
             ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);

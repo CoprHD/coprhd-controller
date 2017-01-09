@@ -42,6 +42,7 @@ public final class OrchestrationServiceConstants {
 
     //Ansible Constants
     public static final String ANSIBLE_LOCAL_BIN = "/usr/bin/ansible-playbook";
+    public static final String SHELL_BIN = "/usr/bin/sh";
     public static final String SHELL_LOCAL_BIN = "/usr/bin/ssh";
     public static final String PATH = "/opt/storageos/";
     public static final String EXTRA_VARS = "--extra-vars";

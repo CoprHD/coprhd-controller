@@ -168,11 +168,17 @@ public class OrchestrationService extends ViPRService {
                     throw new IllegalStateException("Operation Type not supported" + type);
             }
 
-            final boolean isSuccess = isSuccess(step, res);
-            if (isSuccess)
-                updateOutputPerStep(step, res.getOut());
+            boolean isSuccess = isSuccess(step, res);
+            if (isSuccess) {
+                try {
+                    updateOutputPerStep(step, res.getOut());
+                } catch (final Exception e) {
+                    logger.info("Failed to parse output" + e);
 
-	        next = getNext(isSuccess, res, step);
+                    isSuccess = false;
+                }
+            }
+	    next = getNext(isSuccess, res, step);
 
             if (next == null) {
                 logger.error("Orchestration Engine failed to retrieve next step:{}", step.getId());
@@ -320,7 +326,7 @@ public class OrchestrationService extends ViPRService {
         return true;
 
     }
-    private List<String> evaluateAnsibleOut(String result, String key) throws Exception
+    private List<String> evaluateAnsibleOut(final String result, final String key) throws Exception
     {
         final List<String> out = new ArrayList<String>();
 
@@ -331,9 +337,10 @@ public class OrchestrationService extends ViPRService {
 
         if (arrNode.isArray()) {
             for (final JsonNode objNode : arrNode) {
-                logger.info("output val is:{}", objNode);
                 out.add(objNode.toString());
             }
+        } else {
+            out.add(arrNode.toString());
         }
 
         return out;
@@ -358,15 +365,11 @@ public class OrchestrationService extends ViPRService {
 
         final Map<String, List<String>> out = new HashMap<String, List<String>>();
 
-        Set keyset = output.keySet();
-        Iterator it = keyset.iterator();
-        while (it.hasNext()) {
-            String key = it.next().toString();
-            String value = output.get(key);
+        for(Map.Entry<String, String> e : output.entrySet()) {
             if (isAnsible(step)) {
-                out.put(key, evaluateAnsibleOut(result, key));
+                out.put(e.getKey(), evaluateAnsibleOut(result, e.getKey()));
             } else {
-                out.put(key, evaluateValue(result, value));
+                out.put(e.getKey(), evaluateValue(result, e.getValue()));
             }
         }
 
@@ -416,8 +419,8 @@ public class OrchestrationService extends ViPRService {
     private List<String> evaluateValue(final String result, String value) throws Exception {
 
         final Gson gson = new Gson();
-        ViprOperation res = gson.fromJson(result, ViprOperation.class);
-        ExpressionParser parser = new SpelExpressionParser();
+        final ViprOperation res = gson.fromJson(result, ViprOperation.class);
+        final ExpressionParser parser = new SpelExpressionParser();
 
         logger.debug("Find value of:{}", value);
         List<String> valueList = new ArrayList<String>();

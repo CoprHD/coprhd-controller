@@ -3166,5 +3166,5 @@ public interface BadRequestExceptions {
     public BadRequestException exportReplacePortsOldNewPortsNotInSameNetwork(final String oldPort, final String newPort);
     
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
-    public BadRequestException exportReplacePortsResultNoPath();
+    public BadRequestException exportReplacePortsPortsNotSameType(final String oldPort, final String newPort);
 }

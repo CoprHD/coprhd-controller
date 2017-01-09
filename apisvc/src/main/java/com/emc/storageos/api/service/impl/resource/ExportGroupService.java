@@ -3735,42 +3735,45 @@ public class ExportGroupService extends TaskResourceService {
         for (PortReplacementParam replace : replaces) {
             URI newPortURI = replace.getNewPort();
             URI oldPortURI = replace.getOldPort();
-            if (newPortURI != null && !systemPorts.contains(newPortURI)) {
+            if (newPortURI == null || !systemPorts.contains(newPortURI)) {
                 throw APIException.badRequests.exportReplacePortsPortsNotValid(newPortURI.toString(), system.getId().toString());
             }
             if (!systemPorts.contains(oldPortURI)) {
                 throw APIException.badRequests.exportReplacePortsPortsNotValid(oldPortURI.toString(), system.getId().toString());
             }
-            // old port and new port should be in the same network
+            // old port and new port should be in the same network, or connected
             StoragePort newPort = null;
-            if (newPortURI != null) {
-                newPort = _dbClient.queryObject(StoragePort.class, newPortURI);
-            }
+            newPort = _dbClient.queryObject(StoragePort.class, newPortURI);
+            
             StoragePort oldPort = _dbClient.queryObject(StoragePort.class, oldPortURI);
-            if (newPort != null) {
-                if (newPort.getNetwork() == null || oldPort.getNetwork() == null || 
-                        !newPort.getNetwork().equals(oldPort.getNetwork())) {
-                    throw APIException.badRequests.exportReplacePortsOldNewPortsNotInSameNetwork(oldPortURI.toString(), newPortURI.toString());
-                }
+            
+            if (newPort.getNetwork() == null || oldPort.getNetwork() == null) {
+                throw APIException.badRequests.exportReplacePortsOldNewPortsNotInSameNetwork(oldPortURI.toString(), newPortURI.toString());
+            }
+            NetworkLite newportNetwork = NetworkUtil.getNetworkLite(newPort.getNetwork(), _dbClient);
+            NetworkLite oldPortNetwork = NetworkUtil.getNetworkLite(oldPort.getNetwork(), _dbClient);
+            if (newportNetwork == null || oldPortNetwork == null || 
+                    !NetworkUtil.checkInitiatorAndPortConnected(newportNetwork, oldPortNetwork)) {
+                throw APIException.badRequests.exportReplacePortsOldNewPortsNotInSameNetwork(oldPort.getPortNetworkId(), newPort.getPortNetworkId());
+            }
+            if (!newPort.getTransportType().equals(oldPort.getTransportType())) {
+                throw APIException.badRequests.exportReplacePortsPortsNotSameType(oldPort.getPortNetworkId(), newPort.getPortNetworkId());
             }
             List<URI> pathInits = portsMap.get(oldPortURI);
             if (pathInits == null) {
                 // Old port is not in any path.
                 _log.error(String.format("The old port %s is not in any path in the export group", oldPortURI.toString()));
-                throw APIException.badRequests.exportReplacePortsOldPortNotInPaths(oldPortURI.toString());
+                throw APIException.badRequests.exportReplacePortsOldPortNotInPaths(oldPort.getPortNetworkId());
                 
             } else {
                 // Change the paths
                 for (URI initiator : pathInits) {
                     List<URI> ports = adjustedPaths.get(initiator);
                     ports.remove(oldPortURI);
-                    if (newPortURI != null && !ports.contains(newPortURI)) {
-                        ports.add(newPortURI);
+                    if (ports.contains(newPortURI)) {
+                        throw APIException.badRequests.exportReplacePortsNewPortInPaths(newPort.getPortNetworkId());
                     }
-                    if (ports.isEmpty()) {
-                        _log.info(String.format("The initiator %s does not have any path, remove it", initiator.toString()));
-                        adjustedPaths.remove(initiator);
-                    }
+                    ports.add(newPortURI);
                     List<URI> removedPathsPorts = removedPaths.get(initiator);
                     if (removedPathsPorts == null) {
                         removedPathsPorts = new ArrayList<URI>();
@@ -3779,9 +3782,6 @@ public class ExportGroupService extends TaskResourceService {
                     removedPathsPorts.add(oldPortURI);
                 }
             }
-        }
-        if (adjustedPaths.isEmpty()) {
-            throw APIException.badRequests.exportReplacePortsResultNoPath();
         }
     }
 }

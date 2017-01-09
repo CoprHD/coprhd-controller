@@ -11,16 +11,16 @@ HOST_TEST_CASES="test_host_add_initiator test_vcenter_event test_host_remove_ini
 get_host_cluster() {
     tenant=$1
     hostname=$2
-    clusterid=`hosts list ${tenant} | grep ${hostname} | awk '{print $5}'`
-    echo `cluster list ${tenant} | grep ${clusterid} | awk '{print $1}'`
+    clusterid=`hosts list ${tenant} | grep "${hostname} " | awk '{print $5}'`
+    echo `cluster list ${tenant} | grep "${clusterid} " | awk '{print $1}'`
 }
 
 get_host_datacenter() {
     tenant=$1
     hostname=$2
     vcenter=$3
-    datacenterid=`hosts list ${tenant} | grep ${hostname} | awk '{print $6}'`
-    echo `datacenter list ${vcenter} | grep ${datacenterid} | awk '{print $1}'`
+    datacenterid=`hosts list ${tenant} | grep "${hostname} " | awk '{print $6}'`
+    echo `datacenter list ${vcenter} | grep "${datacenterid} " | awk '{print $1}'`
 }
 
 create_volume_and_datastore() {
@@ -29,13 +29,13 @@ create_volume_and_datastore() {
     volname=$2
     datastorename=$3   
 
-    virtualarray=`neighborhood list | grep ${4} | awk '{print $3}'`
+    virtualarray=`neighborhood list | grep "${4} " | awk '{print $3}'`
     virtualpool=`cos list block | grep "${5} " | awk '{print $3}'`
     project=`project list --tenant ${tenant} | grep "${6} " | awk '{print $4}'`
  
-    vcenter=`vcenter list ${tenant} | grep ${7} | awk '{print $5}'`
-    datacenter=`datacenter list ${7} | grep ${8} | awk '{print $4}'`
-    cluster=`cluster list ${tenant} | grep ${9} | awk '{print $4}'`
+    vcenter=`vcenter list ${tenant} | grep "${7} " | awk '{print $5}'`
+    datacenter=`datacenter list ${7} | grep "${8} " | awk '{print $4}'`
+    cluster=`cluster list ${tenant} | grep "${9} " | awk '{print $4}'`
     
     echo "=== catalog order CreateVolumeandDatastore ${tenant} project=${project},name=${volname},virtualPool=${virtualpool},virtualArray=${virtualarray},host=${cluster},datastoreName=${datastorename},size=1,vcenter=${vcenter},datacenter=${datacenter}"
     echo `catalog order CreateVolumeandDatastore ${tenant} project=${project},name=${volname},virtualPool=${virtualpool},virtualArray=${virtualarray},host=${cluster},datastoreName=${datastorename},size=1,vcenter=${vcenter},datacenter=${datacenter}`
@@ -46,9 +46,9 @@ delete_datastore_and_volume() {
     tenant=$1   
     datastorename=$2
 
-    vcenter=`vcenter list ${tenant} | grep ${3} | awk '{print $5}'`
-    datacenter=`datacenter list ${3} | grep ${4} | awk '{print $4}'`
-    cluster=`cluster list ${tenant} | grep ${5} | awk '{print $4}'`
+    vcenter=`vcenter list ${tenant} | grep "${3} " | awk '{print $5}'`
+    datacenter=`datacenter list ${3} | grep "${4} " | awk '{print $4}'`
+    cluster=`cluster list ${tenant} | grep "${5} " | awk '{print $4}'`
     
     echo "=== catalog order DeleteDatastoreandVolume ${tenant} host=${cluster},datastoreName=${datastorename},vcenter=${vcenter},datacenter=${datacenter}"
     echo `catalog order DeleteDatastoreandVolume ${tenant} host=${cluster},datastoreName=${datastorename},vcenter=${vcenter},datacenter=${datacenter}`
@@ -57,12 +57,12 @@ delete_datastore_and_volume() {
 create_datastore() {
     # tenant volname datastorename project vcenter datacenter cluster
     tenant=$1   
-    volume=`volume list ${4} | grep ${2} | awk '{print $7}'`
+    volume=`volume list ${4} | grep "${2} " | awk '{print $7}'`
     datastorename=$3
     project=`project list --tenant ${tenant} | grep "${4} " | awk '{print $4}'`
-    vcenter=`vcenter list ${tenant} | grep ${5} | awk '{print $5}'`
-    datacenter=`datacenter list ${5} | grep ${6} | awk '{print $4}'`
-    cluster=`cluster list ${tenant} | grep ${7} | awk '{print $4}'`    
+    vcenter=`vcenter list ${tenant} | grep "${5} " | awk '{print $5}'`
+    datacenter=`datacenter list ${5} | grep "${6} " | awk '{print $4}'`
+    cluster=`cluster list ${tenant} | grep "${7} " | awk '{print $4}'`    
     
     echo "=== catalog order CreateVMwareDatastore ${tenant} host=${cluster},volumes=${volume},datastoreName=${datastorename},project=${project},vcenter=${vcenter},datacenter=${datacenter}"
     echo `catalog order CreateVMwareDatastore ${tenant} host=${cluster},volumes=${volume},datastoreName=${datastorename},project=${project},vcenter=${vcenter},datacenter=${datacenter}`
@@ -72,9 +72,9 @@ delete_datastore() {
     # tenant datastorename vcenter datacenter cluster
     tenant=$1   
     datastorename=$2
-    vcenter=`vcenter list ${tenant} | grep ${3} | awk '{print $5}'`
-    datacenter=`datacenter list ${3} | grep ${4} | awk '{print $4}'`
-    cluster=`cluster list ${tenant} | grep ${5} | awk '{print $4}'`    
+    vcenter=`vcenter list ${tenant} | grep "${3} " | awk '{print $5}'`
+    datacenter=`datacenter list ${3} | grep "${4} " | awk '{print $4}'`
+    cluster=`cluster list ${tenant} | grep "${5} " | awk '{print $4}'`    
     
     echo "=== catalog order DeleteVMwareDatastore ${tenant} host=${cluster},datastoreName=${datastorename},vcenter=${vcenter},datacenter=${datacenter}"
     echo `catalog order DeleteVMwareDatastore ${tenant} host=${cluster},datastoreName=${datastorename},vcenter=${vcenter},datacenter=${datacenter}`
@@ -83,10 +83,10 @@ delete_datastore() {
 export_volume_vmware() {
     # tenant volume vcenter datacenter cluster project
     tenant=$1       
-    volume=`volume list ${6} | grep ${2} | awk '{print $7}'`
-    vcenter=`vcenter list ${tenant} | grep ${3} | awk '{print $5}'`
-    datacenter=`datacenter list ${3} | grep ${4} | awk '{print $4}'`
-    cluster=`cluster list ${tenant} | grep ${5} | awk '{print $4}'`           
+    volume=`volume list ${6} | grep "${2} " | awk '{print $7}'`
+    vcenter=`vcenter list ${tenant} | grep "${3} " | awk '{print $5}'`
+    datacenter=`datacenter list ${3} | grep "${4} " | awk '{print $4}'`
+    cluster=`cluster list ${tenant} | grep "${5} " | awk '{print $4}'`           
     project=`project list --tenant ${tenant} | grep "${6} " | awk '{print $4}'`
         
     echo "=== catalog order ExportVolumeforVMware ${tenant} project=${project},volumes=${volume},host=${cluster},vcenter=${vcenter},datacenter=${datacenter}"

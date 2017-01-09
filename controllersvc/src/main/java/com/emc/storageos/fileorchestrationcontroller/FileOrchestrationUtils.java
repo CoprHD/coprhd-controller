@@ -17,7 +17,9 @@ import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
+import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
+import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.CifsShareACL;
 import com.emc.storageos.db.client.model.FileExport;
 import com.emc.storageos.db.client.model.FileExportRule;
@@ -41,6 +43,7 @@ import com.emc.storageos.model.file.NfsACE;
 import com.emc.storageos.model.file.ShareACL;
 import com.emc.storageos.volumecontroller.FileControllerConstants;
 import com.emc.storageos.volumecontroller.FileDeviceInputOutput;
+import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
 
 /**
  * File orchestration Utility Class
@@ -586,8 +589,60 @@ public class FileOrchestrationUtils {
         }
     }
 
+    /**
+     * Find the file storage resource by Native ID
+     * 
+     * @param dbClient
+     *
+     * @param system
+     *            storage system
+     * @param filePolicy
+     *            file policy
+     * @param args
+     * 
+     * @param path
+     *            storage path
+     * @return policy storage resource
+     */
+    public static PolicyStorageResource findpolicyStorageResourceByNativeId(DbClient dbClient, StorageSystem system, FilePolicy filePolicy,
+            FileDeviceInputOutput args, String path) {
+        URIQueryResultList results = new URIQueryResultList();
+        PolicyStorageResource storageRes = null;
+
+        NASServer nasServer = null;
+        if (args.getvNAS() != null) {
+            nasServer = args.getvNAS();
+        } else {
+            // Get the physical NAS for the storage system!!
+            PhysicalNAS pNAS = getSystemPhysicalNAS(dbClient, system);
+            if (pNAS != null) {
+                nasServer = pNAS;
+            }
+        }
+
+        // Set storage port details to vNas
+        String nasNativeGuid = NativeGUIDGenerator.generateNativeGuidForFilePolicyResource(system,
+                nasServer.getNasName(), filePolicy.getFilePolicyType(), path, NativeGUIDGenerator.FILE_STORAGE_RESOURCE);
+
+        dbClient.queryByConstraint(
+                AlternateIdConstraint.Factory.getPolicyStorageResourceByNativeGuidConstraint(nasNativeGuid),
+                results);
+        Iterator<URI> iter = results.iterator();
+        PolicyStorageResource tmpStorageres = null;
+        while (iter.hasNext()) {
+            tmpStorageres = dbClient.queryObject(PolicyStorageResource.class, iter.next());
+
+            if (tmpStorageres != null && !tmpStorageres.getInactive()) {
+                storageRes = tmpStorageres;
+                _log.info("found virtual NAS {}", tmpStorageres.getNativeGuid() + ":" + tmpStorageres.getFilePolicyId());
+                break;
+            }
+        }
+        return storageRes;
+    }
+
     public static void updatePolicyStorageResouce(DbClient dbClient, StorageSystem system, FilePolicy filePolicy,
-            FileDeviceInputOutput args,
+            FileDeviceInputOutput args, String sourcePath,
             PolicyStorageResource policyStorageResource) {
         if (policyStorageResource != null) {
             policyStorageResource = new PolicyStorageResource();
@@ -608,6 +663,8 @@ public class FileOrchestrationUtils {
         }
         policyStorageResource.setNasServer(nasServer.getId());
         setPolicyStorageAppliedAt(filePolicy, args, policyStorageResource);
+        policyStorageResource.setNativeGuid(NativeGUIDGenerator.generateNativeGuidForFilePolicyResource(system,
+                nasServer.getNasName(), filePolicy.getFilePolicyType(), sourcePath, NativeGUIDGenerator.FILE_STORAGE_RESOURCE));
         dbClient.createObject(policyStorageResource);
 
         StringSet policyStrgRes = filePolicy.getPolicyStorageResources();
@@ -623,11 +680,10 @@ public class FileOrchestrationUtils {
             }
             assignedResources.add(args.getFs().getId().toString());
             filePolicy.setAssignedResources(assignedResources);
-
-            dbClient.updateObject(filePolicy);
-            _log.info("PolicyStorageResource object created successfully for {} ",
-                    system.getLabel() + policyStorageResource.getAppliedAt());
         }
+        dbClient.updateObject(filePolicy);
+        _log.info("PolicyStorageResource object created successfully for {} ",
+                system.getLabel() + policyStorageResource.getAppliedAt());
     }
 
 }

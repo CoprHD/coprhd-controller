@@ -2635,7 +2635,15 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                 _log.info("File Policy {} is already applied and running.", filePolicy.toString());
 
                 // Verify the policy was mapped to FileStorageResource
+                if (null == FileOrchestrationUtils.findpolicyStorageResourceByNativeId(_dbClient, storageObj,
+                        filePolicy, args, sourcePath)) {
+                    _log.info("Isilon policy found for {}, creating policy storage resouce to further management",
+                            filePolicy.getFilePolicyName());
+                    PolicyStorageResource policyStorageResource = new PolicyStorageResource();
+                    FileOrchestrationUtils.updatePolicyStorageResouce(_dbClient, storageObj, filePolicy,
+                            args, sourcePath, policyStorageResource);
 
+                }
                 return BiosCommandResult.createSuccessfulResult();
 
             } else {
@@ -2653,7 +2661,8 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                 if (policyId != null) {
                     _log.info("Isilon File Policy {} created successfully.", policyId);
                     PolicyStorageResource policyStorageResource = new PolicyStorageResource();
-                    FileOrchestrationUtils.updatePolicyStorageResouce(_dbClient, storageObj, filePolicy, args, policyStorageResource);
+                    FileOrchestrationUtils.updatePolicyStorageResouce(_dbClient, storageObj, filePolicy, args, sourcePath,
+                            policyStorageResource);
                     return BiosCommandResult.createSuccessfulResult();
                 }
             }
@@ -2664,6 +2673,16 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             if (isiSnapshotPolicies != null && !isiSnapshotPolicies.isEmpty()
                     && isSnapshotScheduleExistsOnIsilon(isiSnapshotPolicies, path)) {
                 _log.info("File Policy {} is already applied and running.", filePolicy.toString());
+                // Verify the policy was mapped to FileStorageResource
+                if (null == FileOrchestrationUtils.findpolicyStorageResourceByNativeId(_dbClient, storageObj,
+                        filePolicy, args, path)) {
+                    _log.info("Isilon snapshot policy found for {}, creating policy storage resouce to further management",
+                            filePolicy.getFilePolicyName());
+                    PolicyStorageResource policyStorageResource = new PolicyStorageResource();
+                    FileOrchestrationUtils.updatePolicyStorageResouce(_dbClient, storageObj, filePolicy,
+                            args, path, policyStorageResource);
+
+                }
                 return BiosCommandResult.createSuccessfulResult();
 
             } else {
@@ -2678,7 +2697,8 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                     if (policyId != null) {
                         _log.info("Isilon File Policy {} created successfully.", policyId);
                         PolicyStorageResource policyStorageResource = new PolicyStorageResource();
-                        FileOrchestrationUtils.updatePolicyStorageResouce(_dbClient, storageObj, filePolicy, args, policyStorageResource);
+                        FileOrchestrationUtils.updatePolicyStorageResouce(_dbClient, storageObj, filePolicy, args, path,
+                                policyStorageResource);
                         return BiosCommandResult.createSuccessfulResult();
                     }
                 } catch (IsilonException e) {

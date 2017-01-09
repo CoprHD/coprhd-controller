@@ -282,24 +282,26 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
     var jspInstance;
     $scope.workflowData = {};
     $scope.modified = false;
-    var dataAvailable = false;
     $scope.selectedId = '';
 
     initializeJsPlumb();
     initializePanZoom();
 
     function activateTab(tab){
-      $('.nav-tabs a[href="#' + tab + '"]').tab('show');
+        $('.nav-tabs a[href="#' + tab + '"]').tab('show');
+        loadJSON();
+        $scope.modified = false;
     };
 
     $scope.initializeWorkflowData = function(workflowInfo) {
         var elementid = workflowInfo.id.replace(/:/g,'');
         $http.get(routes.Workflow_get({workflowId: workflowInfo.id})).then(function (resp) {
-            $scope.workflowData = resp.data;
-            activateTab(elementid);
-            loadJSON();
-            dataAvailable = true;
-            $scope.modified = false;
+            if (resp.status == 200) {
+                $scope.workflowData = resp.data;
+                activateTab(elementid);
+            } else {
+                //TODO: show error for workflow failed to load
+            }
         });
     }
 

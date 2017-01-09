@@ -1,0 +1,77 @@
+#!/usr/bin/python
+#
+# Copyright (c) 2015 EMC Corporation
+# All Rights Reserved
+#
+
+import argparse
+import sys
+import os
+import time
+from bourne import Bourne
+
+#----------------------------------------------------------------------
+# remotereplicatingroup functions
+#----------------------------------------------------------------------
+
+# Create remote replication group.
+def remotereplicationgroup_create(args):
+    bourne.connect(args.ip)
+    source_system_uri = bourne.storagedevice_querybynativeguid(args.source_system)
+    print 'Source system uri: ' + source_system_uri
+    target_system_uri = bourne.storagedevice_querybynativeguid(args.target_system)
+    print 'Target system uri: ' + target_system_uri
+    replicationset_uri = bourne.replicationset_query(args.replicationset_name)
+    print 'Replication set uri: ' + replicationset_uri
+
+    s = bourne.replicationgroup_create(replicationset_uri, args.system_type, args.name, args.replication_mode, source_system_uri, target_system_uri)
+    if (s['state'] == 'ready'):
+        print 'Remote replication group created with id ' + s['resource']['id']
+    else:
+        print 'Remote replication group create failed.'
+
+
+#----------------------------------------------------------------------
+# command-line parsing
+#----------------------------------------------------------------------
+
+try:
+    bourne_ip = os.environ['BOURNE_IPADDR']
+except:
+    bourne_ip = 'localhost'
+
+# remotereplicatingroup cmd cmd_args [--ip ipaddr]
+parser = argparse.ArgumentParser(description = 'Bourne remotereplication group cli usage.')
+parser.add_argument('cmd', help = 'cmd = (create )')
+parser.add_argument('--ip',	metavar = 'ipaddr',	help = 'IP address of bourne', default=bourne_ip)
+
+# snapshotsession create name label [--ip ipaddr]
+create = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+create.add_argument('replicationset_name', help = 'The name of the parent replication set.')
+create.add_argument('system_type', help = 'The name of the storage system type.')
+create.add_argument('name', help = 'The name of the remote replication group.')
+create.add_argument('replication_mode', help = 'The name of the group replication mode.')
+create.add_argument('--source_system', help = 'The Native GUID of the source storage system.')
+create.add_argument('--target_system', help = 'The Native GUID of the target storage system.')
+
+#----------------------------------------------------------------------
+# Main script
+#----------------------------------------------------------------------
+
+try:
+
+    if (len(sys.argv) > 1):
+        cmd = sys.argv[1]
+    else:
+        cmd = None
+
+    bourne = Bourne()
+
+    if (cmd == "create"):
+        args = create.parse_args()
+        remotereplicationgroup_create(args)
+    else:
+        parser.print_help()
+
+except:
+    raise

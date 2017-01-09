@@ -469,6 +469,7 @@
     <bean id="remoteReplicationSetService" class="com.emc.storageos.api.service.impl.resource.remotereplication.RemoteReplicationSetService">
         <property name="dbClient" ref="dbclient"/>
         <property name="coordinator" ref="coordinator"/>
+        <property name="remoteReplicationServiceApi" ref="remoteReplicationBlockServiceApiImpl"/>
     </bean>
 
     <bean id="remoteReplicationGroupService" class="com.emc.storageos.api.service.impl.resource.remotereplication.RemoteReplicationGroupService">
@@ -958,5 +959,6 @@
   </bean>
   
   <bean id="sysUtils" class="com.emc.storageos.services.util.SysUtils" />
+  <bean class="com.emc.storageos.api.service.impl.southbound.StorageDriverManagerPostProcessor" />
 </beans>
 

@@ -15,6 +15,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
+import com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationGroup;
 import com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationPair;
 import org.apache.commons.lang.mutable.MutableBoolean;
 import org.apache.commons.lang.mutable.MutableInt;
@@ -1090,6 +1091,24 @@ public class StorageDriverSimulator extends DefaultStorageDriver implements Bloc
     }
 
     @Override
+    public DriverTask createRemoteReplicationGroup(RemoteReplicationGroup replicationGroup, StorageCapabilities capabilities) {
+        String driverName = this.getClass().getSimpleName();
+        String taskId = String.format("%s+%s+%s", driverName, "createRemoteReplicationGroup", UUID.randomUUID().toString());
+        DriverTask task = new DriverSimulatorTask(taskId);
+
+        replicationGroup.setNativeId("driverSimulatorRemoteReplicationGroup_" + UUID.randomUUID().toString());
+        replicationGroup.setDeviceLabel("driverSimulatorRemoteReplicationGroup_" + UUID.randomUUID().toString());
+        task.setStatus(DriverTask.TaskStatus.READY);
+
+        String msg = String.format("StorageDriver: createRemoteReplicationGroup information: name --- %s, source system: %s, \n " +
+                        "\t target system: %s - end",
+                replicationGroup.getNativeId(), replicationGroup.getSourceSystemNativeId(), replicationGroup.getTargetSystemNativeId());
+        _log.info(msg);
+        task.setMessage(msg);
+        return task;
+    }
+
+    @Override
     public DriverTask createGroupReplicationPairs(List<RemoteReplicationPair> replicationPairs, StorageCapabilities capabilities) {
         Set<String> driverPairs = new HashSet<>();
         for (RemoteReplicationPair pair : replicationPairs) {
@@ -1114,7 +1133,7 @@ public class StorageDriverSimulator extends DefaultStorageDriver implements Bloc
     public DriverTask deleteReplicationPairs(List<RemoteReplicationPair> replicationPairs) {
         String driverName = this.getClass().getSimpleName();
         String taskId = String.format("%s+%s+%s", driverName, "deleteReplicationPairs", UUID.randomUUID().toString());
-        DriverTask task = new DefaultDriverTask(taskId);
+        DriverTask task = new DriverSimulatorTask(taskId);
         task.setStatus(DriverTask.TaskStatus.READY);
 
         List<String> nativeIds = new ArrayList<>();

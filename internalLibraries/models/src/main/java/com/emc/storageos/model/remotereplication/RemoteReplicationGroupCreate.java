@@ -44,7 +44,7 @@ public class RemoteReplicationGroupCreate {
         this.storageSystemType = storageSystemType;
     }
 
-    @XmlElement(name = "display_name")
+    @XmlElement(name = "name")
     public String getDisplayName() {
         return displayName;
     }

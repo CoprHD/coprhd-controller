@@ -109,7 +109,7 @@ URI_FILE_SNAPSHOT               = URI_FILE_SNAPSHOTS        + '/{0}'
 URI_FILE_SNAPSHOT_EXPORTS       = URI_FILE_SNAPSHOT         + '/exports'
 URI_FILE_SNAPSHOT_UNEXPORT      = URI_FILE_SNAPSHOT          + '/export'
 URI_FILE_SNAPSHOT_RESTORE       = URI_FILE_SNAPSHOT         + '/restore'
-URI_FILE_SNAPSHOT_SHARES        = URI_FILE_SNAPSHOT         + '/shares'
+        = URI_FILE_SNAPSHOT         + '/shares'
 URI_FILE_SNAPSHOT_SHARES_ACL      = URI_FILE_SNAPSHOT_SHARES    + '/{1}/acl'
 URI_FILE_SNAPSHOT_SHARES_ACL_SHOW = URI_FILE_SNAPSHOT_SHARES    + '/{1}/acl'
 URI_FILE_SNAPSHOT_SHARES_ACL_DELETE = URI_FILE_SNAPSHOT_SHARES    + '/{1}/acl'
@@ -505,7 +505,8 @@ URI_REMOTEREPLICATIONSET_LIST            = URI_SERVICES_BASE   + '/block/remoter
 URI_REMOTEREPLICATIONSET_INSTANCE        = URI_SERVICES_BASE   + '/block/remotereplicationsets/{0}'
 URI_REMOTEREPLICATIONGROUP_LIST            = URI_SERVICES_BASE   + '/block/remotereplicationgroups'
 URI_REMOTEREPLICATIONGROUP_INSTANCE        = URI_SERVICES_BASE   + '/block/remotereplicationgroups/{0}'
-
+URI_REMOTEREPLICATIONGROUP_CREATE        = URI_SERVICES_BASE   + '/block/remotereplicationsets/{0}/create-group'
+URI_REMOTEREPLICATIONGROUP_TASK          = URI_SERVICES_BASE   + '/block/remotereplicationgroups/{0}/tasks/{1}'
 
 URI_VNAS_SERVERS                = URI_SERVICES_BASE + '/vdc/vnas-servers'
 URI_VNAS_SERVER                 = URI_SERVICES_BASE + '/vdc/vnas-servers/{0}'
@@ -9199,6 +9200,9 @@ class Bourne:
     #
 
     # remote replication set APIs
+    def replicationgroup_show_task(self, group_uri, op_id):
+        return self.api('GET', URI_REMOTEREPLICATIONGROUP_TASK.format(group_uri, op_id))
+
     def replicationset_list(self):
         o = self.api('GET', URI_REMOTEREPLICATIONSET_LIST)
         if (not o):
@@ -9242,3 +9246,20 @@ class Bourne:
             if (replicationgroup['name'] == name):
                 return replicationgroup['id']
         raise Exception('bad remote replication group name ' + name)
+
+    def replicationgroup_create(self, replicationset_uri, systemtype, name, replicationmode, sourcesystem_uri, targetsystem_uri):
+
+        parms = {
+            'storage_system_type'   : systemtype,
+            'name'      : name,
+            'replication_mode'   : replicationmode,
+            'source_system'       : sourcesystem_uri,
+            'target_system'	   : targetsystem_uri
+        }
+
+        o = self.api('POST', URI_REMOTEREPLICATIONGROUP_CREATE.format(replicationset_uri), parms)
+        self.assert_is_dict(o)
+        print '@@@@: ' + str(o) + ' :@@@@'
+        s = self.api_sync_2(o['resource']['id'], o['op_id'], self.replicationgroup_show_task)
+        return s
+

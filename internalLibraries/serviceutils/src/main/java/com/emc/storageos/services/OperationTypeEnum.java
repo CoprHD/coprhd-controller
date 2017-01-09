@@ -515,12 +515,20 @@ public enum OperationTypeEnum {
     ADD_STORAGE_SYSTEM_TYPE("ADD STORAGE SYSTEM TYPE", "", "operation to initiate adding a new storage system type"),
     REMOVE_STORAGE_SYSTEM_TYPE("REMOVE STORAGE SYSTEM TYPE", "", "operation to initiate removing a storage system type"),
     CREATE_SCHEDULE_POLICY("SchedulePolicyCreated", "", "create schedule policy."),
-    
+
+    /* Remote Replication Operations */
+    CREATE_REMOTE_REPLICATION_GROUP("CREATE REMOTE REPLICATION GROUP", "CreateRemoteReplicationGroupFailed", "create remote replication group"),
+
     /* Filesystem Mount Operations*/
     
     MOUNT_NFS_EXPORT("MOUNT NFS EXPORT", "mount nfs export operation failed", "mount nfs export operation"),
     UNMOUNT_NFS_EXPORT("UNMOUNT NFS EXPORT", "unmount nfs operation failed", "unmount nfs export operation"),
-    LIST_MOUNTED_EXPORTS("LIST MOUNTED EXPORTS", "list mounted nfs operation failed", "list mounted exports operation");
+    LIST_MOUNTED_EXPORTS("LIST MOUNTED EXPORTS", "list mounted nfs operation failed", "list mounted exports operation"),
+
+    /* Storage Driver Operations */
+    INSTALL_STORAGE_DRIVER("INSTALL STORAGE DRIVER", "", "install storage driver operation"),
+    UNINSTALL_STORAGE_DRIVER("UNINSTALL STORAGE DRIVER", "", "uninstall storage driver operation"),
+    UPGRADE_STORAGE_DRIVER("UPGRADE STORAGE DRIVER", "", "upgrade storage driver operation");
 
     private final String _evType;
     private final String _fail_evType;

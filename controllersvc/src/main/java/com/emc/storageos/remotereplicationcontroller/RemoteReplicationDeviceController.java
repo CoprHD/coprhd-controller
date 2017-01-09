@@ -2,7 +2,7 @@
  * Copyright (c) 2016 EMC Corporation
  * All Rights Reserved
  */
-package com.emc.storageos.remoterreplicationcontroller;
+package com.emc.storageos.remotereplicationcontroller;
 
 
 import com.emc.storageos.blockorchestrationcontroller.BlockOrchestrationInterface;
@@ -13,26 +13,21 @@ import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.Volume;
+import com.emc.storageos.db.client.model.remotereplication.RemoteReplicationGroup;
 import com.emc.storageos.db.client.model.remotereplication.RemoteReplicationPair;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.exceptions.DeviceControllerException;
-import com.emc.storageos.plugins.common.Constants;
-import com.emc.storageos.storagedriver.DriverTask;
 import com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationSet;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
-import com.emc.storageos.volumecontroller.BlockStorageDevice;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.BlockSnapshotRestoreCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.VolumeWorkflowCompleter;
-import com.emc.storageos.volumecontroller.impl.externaldevice.RemoteReplicationArgument;
 import com.emc.storageos.volumecontroller.impl.externaldevice.RemoteReplicationDevice;
 import com.emc.storageos.volumecontroller.impl.externaldevice.taskcompleters.RemoteReplicationTaskCompleter;
-import com.emc.storageos.volumecontroller.impl.smis.srdf.SRDFUtils;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
 import com.emc.storageos.workflow.Workflow;
-import com.emc.storageos.workflow.WorkflowException;
 import com.emc.storageos.workflow.WorkflowService;
 import com.emc.storageos.workflow.WorkflowStepCompleter;
 import com.google.common.base.Joiner;
@@ -43,8 +38,6 @@ import java.net.URI;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
 
 public class RemoteReplicationDeviceController implements RemoteReplicationController, BlockOrchestrationInterface {
 
@@ -81,16 +74,26 @@ public class RemoteReplicationDeviceController implements RemoteReplicationContr
 
     @Override
     public void createRemoteReplicationGroup(URI replicationGroup, String opId) {
+        RemoteReplicationGroup rrGroup = dbClient.queryObject(RemoteReplicationGroup.class, replicationGroup);
+        _log.info("Create remote replication group: {} : {}", rrGroup.getLabel(), replicationGroup);
+
+        List<URI> elementURIs = new ArrayList<>();
+        elementURIs.add(rrGroup.getSourceSystem());
+        elementURIs.add(rrGroup.getTargetSystem());
+        RemoteReplicationTaskCompleter taskCompleter = new RemoteReplicationTaskCompleter(elementURIs, opId);
+
+        // call device
+        RemoteReplicationDevice rrDevice = getRemoteReplicationDevice();
+        rrDevice.createRemoteReplicationGroup(replicationGroup, taskCompleter);
+    }
+
+    @Override
+    public void createGroupReplicationPairs(List<URI> replicationPairs, String opId) {
 
     }
 
     @Override
-    public void createGroupReplicationPairs(List<URI> replicationPairs, boolean createActive, String opId) {
-
-    }
-
-    @Override
-    public void createSetReplicationPairs(List<URI> replicationPairs, boolean createActive, String opId) {
+    public void createSetReplicationPairs(List<URI> replicationPairs, String opId) {
 
     }
 

@@ -14,6 +14,7 @@ import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.model.BlockSnapshotSession;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.Task;
+import com.emc.storageos.remotereplicationcontroller.RemoteReplicationController;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -323,5 +324,12 @@ public class RemoteReplicationBlockServiceApiImpl extends AbstractBlockServiceAp
         }
 
         return object.canBeDeleted();
+    }
+
+    public void createRemoteReplicationGroup(URI replicationGroupId, String taskId) {
+        RemoteReplicationController controller = getController(
+                RemoteReplicationController.class, Constants.EXTERNALDEVICE);
+
+        controller.createRemoteReplicationGroup(replicationGroupId, taskId);
     }
 }

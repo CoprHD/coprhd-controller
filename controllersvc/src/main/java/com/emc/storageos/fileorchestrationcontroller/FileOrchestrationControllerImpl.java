@@ -126,7 +126,7 @@ public class FileOrchestrationControllerImpl implements FileOrchestrationControl
     @Override
     public void assignFileSnapshotPolicyToVirtualPool(Map<URI, List<URI>> vpoolToStorageSystemMap, URI filePolicyToAssign, String taskId)
             throws InternalException {
-        execOrchestration("assignFilePolicyToVirtualPool", vpoolToStorageSystemMap, filePolicyToAssign, taskId);
+        execOrchestration("assignFileSnapshotPolicyToVirtualPool", vpoolToStorageSystemMap, filePolicyToAssign, taskId);
     }
 
     // getter and setter methods

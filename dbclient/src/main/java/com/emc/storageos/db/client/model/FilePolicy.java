@@ -76,15 +76,6 @@ public class FilePolicy extends DataObjectWithACLs {
     // This has to be converted to FileReplicationTopology
     private StringSet replicationTopologies;
 
-    /**
-     * TRUE means: if policy has to be applied on all file system coming under specified vpool, at the time of
-     * provisioning.
-     * FALSE means : policy has to applied on the specific file system chosen at the time of provisioning..
-     */
-    private String applyToFS;
-    private String applyTovPools;
-    private String applyToProjects;
-
     private Boolean applyOnTargetSite;
 
     public static enum FileReplicationType {
@@ -315,25 +306,6 @@ public class FilePolicy extends DataObjectWithACLs {
         setChanged("policyStorageResources");
     }
 
-    public String getApplyTovPools() {
-        return applyTovPools;
-    }
-
-    public void setApplyTovPools(String applyToAllvPools) {
-        this.applyTovPools = applyToAllvPools;
-        setChanged("applyTovPools");
-    }
-
-    @Name("applyToProjects")
-    public String getApplyToProjects() {
-        return applyToProjects;
-    }
-
-    public void setApplyToAllProjects(String applyToAllProjects) {
-        this.applyToProjects = applyToAllProjects;
-        setChanged("applyToProjects");
-    }
-
     @Name("replicationTopologies")
     public StringSet getReplicationTopologies() {
         return replicationTopologies;
@@ -353,6 +325,6 @@ public class FilePolicy extends DataObjectWithACLs {
                 + ", snapshotExpireType=" + snapshotExpireType + ", snapshotExpireTime=" + snapshotExpireTime + ", snapshotNamePattern="
                 + snapshotNamePattern + ", fileReplicationType=" + fileReplicationType + ", fileReplicationCopyMode="
                 + fileReplicationCopyMode + ", filePolicyVpool=" + filePolicyVpool + ", priority=" + priority + ", policyStorageResources="
-                + policyStorageResources + ", applyToAllFS=" + applyToFS + "]";
+                + policyStorageResources + " ]";
     }
 }

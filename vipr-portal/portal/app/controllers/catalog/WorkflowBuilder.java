@@ -223,7 +223,6 @@ public class WorkflowBuilder extends Controller {
     public static void saveWorkflow(final URI workflowId,
                                       final OrchestrationWorkflowDocument workflowDoc) {
         try {
-            // Create workflow with just name
             final OrchestrationWorkflowUpdateParam param = new OrchestrationWorkflowUpdateParam();
             param.setDocument(workflowDoc);
             final OrchestrationWorkflowRestRep orchestrationWorkflowRestRep = getCatalogClient()

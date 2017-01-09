@@ -479,7 +479,7 @@ public class DefaultStoragePortsAssigner implements StoragePortsAssigner {
                     _log.info(String.format("Existing assignment initiator %s (%s) port %s (%s/%s) net %s", 
                             hostExistingInitiator.getInitiatorPort(), hostExistingInitiator.getHostName(),
                             port.getPortName(), port.getPortNetworkId(), 
-                            getPortSwitchName(port, portAddressToSwitchName)), port.getNetwork());
+                            getPortSwitchName(port, portAddressToSwitchName), port.getNetwork()));
                     addPortUse(portUseCounts, port);
                 }
             }

@@ -43,168 +43,165 @@ import com.emc.storageos.volumecontroller.placement.StoragePortsAllocator.PortAl
  *         
  */
 public class StoragePortsAssignerTest extends StoragePortsAllocatorTest {
-    private static final Log _log = LogFactory
-            .getLog(StoragePortsAssignerTest.class);
+	private static final Log _log = LogFactory
+			.getLog(StoragePortsAssignerTest.class);
 
-    public static void main(String[] args) throws Exception {
-        //PropertyConfigurator.configure("log4j.properties");
-        StoragePortsAssigner assigner = StoragePortsAssignerFactory.getAssigner("VMAX");
-        _log.info("Beginning logging");
+	public static void main(String[] args) throws Exception {
+		//PropertyConfigurator.configure("log4j.properties");
+		StoragePortsAssigner assigner = StoragePortsAssignerFactory.getAssigner("VMAX");
+		_log.info("Beginning logging");
 
-        List<Initiator> initA = getHostInitiators(4);
-        Map<URI, List<Initiator>> net2InitiatorsMapA = makeNet2InitiatorsMap(initA, 1,2);
-        List<Initiator> initB = getHostInitiators(4);
-        Map<URI, List<Initiator>> net2InitiatorsMapB = makeNet2InitiatorsMap(initB, 1,2);
-        for (int k=1; k <= 2; k++) {  //initiators per port
-        for (int j = 1; j <= 2; j++) {  // paths per initiator
-            for (int i = 1; i <= 8; i++) {  // max paths
-            	
-        			System.out.println("*** Two hosts each 4 initiators across 2 networks: " 
-        					+ "max_paths = " + i + " paths_per_initiator = " + j + " initiators per port " + k);
-        			System.out.println("*** No switch affinity");
-        			testVMAX2NetAllocAssign(net2InitiatorsMapA, net2InitiatorsMapB, null, null, i, 0, j, k);
-        			System.out.println("*** Switch affinity");;
-        			testVMAX2NetAllocAssignWithSwitchAffinity(net2InitiatorsMapA, net2InitiatorsMapB, i, 0, j, k);
-        		}
-        	}
-        }
-        
-        System.out.println("Testing Hosts on non-overlapping networks!");
-        initA = getHostInitiators(4);
-        net2InitiatorsMapA = makeNet2InitiatorsMap(initA, 1,2);
-        initB = getHostInitiators(4);
-        net2InitiatorsMapB = makeNet2InitiatorsMap(initB, 3,4);
-        List<Initiator> initC = getHostInitiators(4);
-        Map<URI, List<Initiator>> net2InitiatorsMapC = makeNet2InitiatorsMap(initC, 4, 4);
-        for (int k=1; k <= 2; k++) {  //initiators per port
-        for (int j = 1; j <= 2; j++) {  // paths per initiator
-            for (int i = 1; i <= 8; i++) {  // max paths
-                System.out.println("*** Three hosts (net1,net2), (net3,net4), (net4), each 4 initiators: " 
-                    + "max_paths = " + i + " paths_per_initiator = " + j + " initiators per port " + k);
-                testVMAX4NetAllocAssign(net2InitiatorsMapA, net2InitiatorsMapB, net2InitiatorsMapC, null, i, 0, j, k);
-            }
-        }
+		List<Initiator> initA = getHostInitiators(4);
+		Map<URI, List<Initiator>> net2InitiatorsMapA = makeNet2InitiatorsMap(initA, 1,2);
+		List<Initiator> initB = getHostInitiators(4);
+		Map<URI, List<Initiator>> net2InitiatorsMapB = makeNet2InitiatorsMap(initB, 1,2);
+		for (int k=1; k <= 2; k++) {  //initiators per port
+			for (int j = 1; j <= 2; j++) {  // paths per initiator
+				for (int i = 1; i <= 8; i++) {  // max paths
 
-        if (true) 	{
-        	System.exit(0);
-        }}
-        
-        initA = getHostInitiators(4);
-        net2InitiatorsMapA = makeNet2InitiatorsMap(initA, 1,2);
-        initB = getHostInitiators(4);
-        net2InitiatorsMapB = makeNet2InitiatorsMap(initB, 3,4);
-        initC = getHostInitiators(4);
-        net2InitiatorsMapC = makeNet2InitiatorsMap(initC, 4, 4);
-        List<Initiator> initD = getHostInitiators(4);
-        Map<URI, List<Initiator>> net2InitiatorsMapD = makeNet2InitiatorsMap(initD, 1, 4);
-        for (int k=1; k <= 2; k++) {  //initiators per port
-        for (int j = 1; j <= 2; j++) {  // paths per initiator
-            for (int i = 1; i <= 8; i++) {  // max paths
-                System.out.println("*** Four hosts (net1,net2), (net3,net4), (net4), (net1,net2, net3, net4) each 4 initiators: " 
-                    + "max_paths = " + i + " paths_per_initiator = " + j + " initiators per port " + k);
-                testVMAX4NetAllocAssign(net2InitiatorsMapA, net2InitiatorsMapB, net2InitiatorsMapC, net2InitiatorsMapD, i, 0, j, k);
-            }
-        }
-        }
-                
-        System.out.println("End Testing Hosts on non-overlapping networks!\n\n");
-        
-        System.out.println("Testing VNX two hosts");
-        initA = getHostInitiators(4);
-        net2InitiatorsMapA = makeNet2InitiatorsMap(initA, 1,2);
-        initB = getHostInitiators(4);
-        net2InitiatorsMapB = makeNet2InitiatorsMap(initB, 1,2);
-        for (int j = 1; j <= 2; j++) {
-            for (int i = 2; i <= 6; i++) {
-                System.out.println("*** Two VNX hosts, each 4 initiators across 2 networks: max_paths = " + i + " paths_per_initiator = " + j);
-                testVNX2NetAllocAssign(net2InitiatorsMapA, net2InitiatorsMapB, null, null, i, 1, j, 1, false);
-                System.out.println("*** Switch Affinity ** Two VNX hosts, each 4 initiators across 2 networks: max_paths = " + i + " paths_per_initiator = " + j);
-                testVNX2NetAllocAssign(net2InitiatorsMapA, net2InitiatorsMapB, null, null, i, 1, j, 1, true);
-            }
-        }
-        System.out.println("End of Testing VNX two hosts");
+					System.out.println("*** Two hosts each 4 initiators across 2 networks: " 
+							+ "max_paths = " + i + " paths_per_initiator = " + j + " initiators per port " + k);
+					System.out.println("*** No switch affinity");
+					testVMAX2NetAllocAssign(net2InitiatorsMapA, net2InitiatorsMapB, null, null, i, 0, j, k);
+					System.out.println("*** Switch affinity");;
+					testVMAX2NetAllocAssignWithSwitchAffinity(net2InitiatorsMapA, net2InitiatorsMapB, i, 0, j, k);
+				}
+			}
+		}
+
+		System.out.println("Testing Hosts on non-overlapping networks!");
+		initA = getHostInitiators(4);
+		net2InitiatorsMapA = makeNet2InitiatorsMap(initA, 1,2);
+		initB = getHostInitiators(4);
+		net2InitiatorsMapB = makeNet2InitiatorsMap(initB, 3,4);
+		List<Initiator> initC = getHostInitiators(4);
+		Map<URI, List<Initiator>> net2InitiatorsMapC = makeNet2InitiatorsMap(initC, 4, 4);
+		for (int k=1; k <= 2; k++) {  //initiators per port
+			for (int j = 1; j <= 2; j++) {  // paths per initiator
+				for (int i = 1; i <= 8; i++) {  // max paths
+					System.out.println("*** Three hosts (net1,net2), (net3,net4), (net4), each 4 initiators: " 
+							+ "max_paths = " + i + " paths_per_initiator = " + j + " initiators per port " + k);
+					testVMAX4NetAllocAssign(net2InitiatorsMapA, net2InitiatorsMapB, net2InitiatorsMapC, null, i, 0, j, k);
+				}
+			}
+		}
+
+		initA = getHostInitiators(4);
+		net2InitiatorsMapA = makeNet2InitiatorsMap(initA, 1,2);
+		initB = getHostInitiators(4);
+		net2InitiatorsMapB = makeNet2InitiatorsMap(initB, 3,4);
+		initC = getHostInitiators(4);
+		net2InitiatorsMapC = makeNet2InitiatorsMap(initC, 4, 4);
+		List<Initiator> initD = getHostInitiators(4);
+		Map<URI, List<Initiator>> net2InitiatorsMapD = makeNet2InitiatorsMap(initD, 1, 4);
+		for (int k=1; k <= 2; k++) {  //initiators per port
+			for (int j = 1; j <= 2; j++) {  // paths per initiator
+				for (int i = 1; i <= 8; i++) {  // max paths
+					System.out.println("*** Four hosts (net1,net2), (net3,net4), (net4), (net1,net2, net3, net4) each 4 initiators: " 
+							+ "max_paths = " + i + " paths_per_initiator = " + j + " initiators per port " + k);
+					testVMAX4NetAllocAssign(net2InitiatorsMapA, net2InitiatorsMapB, net2InitiatorsMapC, net2InitiatorsMapD, i, 0, j, k);
+				}
+			}
+		}
+
+		System.out.println("End Testing Hosts on non-overlapping networks!\n\n");
+
+		System.out.println("Testing VNX two hosts");
+		initA = getHostInitiators(4);
+		net2InitiatorsMapA = makeNet2InitiatorsMap(initA, 1,2);
+		initB = getHostInitiators(4);
+		net2InitiatorsMapB = makeNet2InitiatorsMap(initB, 1,2);
+		for (int j = 1; j <= 2; j++) {
+			for (int i = 2; i <= 6; i++) {
+				System.out.println("*** Two VNX hosts, each 4 initiators across 2 networks: max_paths = " + i + " paths_per_initiator = " + j);
+				testVNX2NetAllocAssign(net2InitiatorsMapA, net2InitiatorsMapB, null, null, i, 1, j, 1, false);
+				System.out.println("*** Switch Affinity ** Two VNX hosts, each 4 initiators across 2 networks: max_paths = " + i + " paths_per_initiator = " + j);
+				testVNX2NetAllocAssign(net2InitiatorsMapA, net2InitiatorsMapB, null, null, i, 1, j, 1, true);
+			}
+		}
+		System.out.println("End of Testing VNX two hosts");
 
 
-        // Test incremental initiator / port addition
-        initA = getHostInitiators(2);
-        Map<URI, List<Initiator>> net2InitiatorsMap = makeNet2InitiatorsMap(initA, 1, 2);
-        initB = getHostInitiators(2);
-        net2InitiatorsMapB = makeNet2InitiatorsMap(initB,1,2);
+		// Test incremental initiator / port addition
+		initA = getHostInitiators(2);
+		Map<URI, List<Initiator>> net2InitiatorsMap = makeNet2InitiatorsMap(initA, 1, 2);
+		initB = getHostInitiators(2);
+		net2InitiatorsMapB = makeNet2InitiatorsMap(initB,1,2);
 
-        for (int j = 1; j <= 2; j++) {
-            for (int i = 4; i <= 4; i++) {
-               System.out.println("*** 2 initiators across 2 networks, incremental 2 more initiators in new host: max_paths = " + i
-                        + " paths_per_initiator = " + j);
-                testVMAX2NetAllocIncrementalAssign(net2InitiatorsMap, net2InitiatorsMapB, i, j);
-                testVMAX2NetAllocIncrementalAssignWithSwitchAffinity(net2InitiatorsMap, net2InitiatorsMapB, i, j, i, j);
-            }
-        }
+		for (int j = 1; j <= 2; j++) {
+			for (int i = 4; i <= 4; i++) {
+				System.out.println("*** 2 initiators across 2 networks, incremental 2 more initiators in new host: max_paths = " + i
+						+ " paths_per_initiator = " + j);
+				testVMAX2NetAllocIncrementalAssign(net2InitiatorsMap, net2InitiatorsMapB, i, j);
+				testVMAX2NetAllocIncrementalAssignWithSwitchAffinity(net2InitiatorsMap, net2InitiatorsMapB, i, j, i, j);
+			}
+		}
 
-        URI hostAid = initA.get(0).getHost();
-        String hostAname = initA.get(0).getHostName();
-        initC = addHostInitiators(2, hostAid, hostAname);
-        net2InitiatorsMapB = makeNet2InitiatorsMap(initC, 1,2);
+		URI hostAid = initA.get(0).getHost();
+		String hostAname = initA.get(0).getHostName();
+		initC = addHostInitiators(2, hostAid, hostAname);
+		net2InitiatorsMapB = makeNet2InitiatorsMap(initC, 1,2);
 
-        for (int j = 1; j <= 2; j++) {
-            for (int i = 2; i <= 8; i++) {
-                System.out.println("*** 2 initiators across 2 networks, incremental 2 more initiators in same host: max_paths = " + i
-                        + " paths_per_initiator = " + j);
-                testVMAX2NetAllocIncrementalAssign(net2InitiatorsMap, net2InitiatorsMapB, i, j);
-                testVMAX2NetAllocIncrementalAssignWithSwitchAffinity(net2InitiatorsMap, net2InitiatorsMapB, i, j, i, j);
-            }
-        }
+		for (int j = 1; j <= 2; j++) {
+			for (int i = 2; i <= 8; i++) {
+				System.out.println("*** 2 initiators across 2 networks, incremental 2 more initiators in same host: max_paths = " + i
+						+ " paths_per_initiator = " + j);
+				testVMAX2NetAllocIncrementalAssign(net2InitiatorsMap, net2InitiatorsMapB, i, j);
+				testVMAX2NetAllocIncrementalAssignWithSwitchAffinity(net2InitiatorsMap, net2InitiatorsMapB, i, j, i, j);
+			}
+		}
 
-        initA = getHostInitiators(4);
-        net2InitiatorsMap = makeNet2InitiatorsMap(initA, 1, 2);
-        initB = getHostInitiators(4);
-        net2InitiatorsMapB = makeNet2InitiatorsMap(initB, 1, 2);
-        for (int j = 1; j <= 2; j++) {
-            for (int i = 1; i <= 8; i++) {
-                System.out.println("*** 4 initiators across 2 networks, incremental 4 more initiators in new host: max_paths = " + i
-                        + " paths_per_initiator = " + j);
-                testVMAX2NetAllocIncrementalAssign(net2InitiatorsMap, net2InitiatorsMapB, i, j);
-            }
-        }
+		initA = getHostInitiators(4);
+		net2InitiatorsMap = makeNet2InitiatorsMap(initA, 1, 2);
+		initB = getHostInitiators(4);
+		net2InitiatorsMapB = makeNet2InitiatorsMap(initB, 1, 2);
+		for (int j = 1; j <= 2; j++) {
+			for (int i = 1; i <= 8; i++) {
+				System.out.println("*** 4 initiators across 2 networks, incremental 4 more initiators in new host: max_paths = " + i
+						+ " paths_per_initiator = " + j);
+				testVMAX2NetAllocIncrementalAssign(net2InitiatorsMap, net2InitiatorsMapB, i, j);
+			}
+		}
 
-        initA = getHostInitiators(4);
-        net2InitiatorsMap = makeNet2InitiatorsMap(initA, 1, 2);
-        hostAid = initA.get(0).getHost();
-        hostAname = initA.get(0).getHostName();
-        initC = addHostInitiators(4, hostAid, hostAname);
-        net2InitiatorsMapB = makeNet2InitiatorsMap(initC, 1, 2);
-        for (int j = 1; j <= 2; j++) {
-            for (int i = 1; i <= 12; i++) {
-                System.out.println("*** 4 initiators across 2 networks, incremental 4 more initiators in same host: max_paths = " + i
-                        + " paths_per_initiator = " + j);
-                testVMAX2NetAllocIncrementalAssign(net2InitiatorsMap, net2InitiatorsMapB, i, j);
-            }
-        }
-        
-        initA = getHostInitiators(4);
-        net2InitiatorsMap = makeNet2InitiatorsMap(initA, 1, 2);
-        initB = getHostInitiators(4);
-        net2InitiatorsMapB = makeNet2InitiatorsMap(initB, 1, 2);
-        // The following loop assumes symmetric networks across the two hosts
-        for (Map.Entry<URI, List<Initiator>> entry : net2InitiatorsMap.entrySet()) {
-            net2InitiatorsMap.get(entry.getKey()).addAll(net2InitiatorsMapB.get(entry.getKey()));
-        }
-        for (int j = 1; j <= 2; j++) {
-            for (int i = 1; i <= 8; i++) {
-                System.out.println("*** 4 initiators across 2 networks, incremental same hosts with more paths; initial max_paths = " + i
-                        + " paths_per_initiator = " + j);
-                testVMAX2NetAllocIncrementalAssign(net2InitiatorsMap, net2InitiatorsMap, i, j, i+4, j+1);
-            }
-        }
+		initA = getHostInitiators(4);
+		net2InitiatorsMap = makeNet2InitiatorsMap(initA, 1, 2);
+		hostAid = initA.get(0).getHost();
+		hostAname = initA.get(0).getHostName();
+		initC = addHostInitiators(4, hostAid, hostAname);
+		net2InitiatorsMapB = makeNet2InitiatorsMap(initC, 1, 2);
+		for (int j = 1; j <= 2; j++) {
+			for (int i = 1; i <= 12; i++) {
+				System.out.println("*** 4 initiators across 2 networks, incremental 4 more initiators in same host: max_paths = " + i
+						+ " paths_per_initiator = " + j);
+				testVMAX2NetAllocIncrementalAssign(net2InitiatorsMap, net2InitiatorsMapB, i, j);
+			}
+		}
 
-        for (int j = 1; j <= 2; j++) {
-            for (int i = 2; i <= 12; i++) {
-                System.out.println("*** 4 initiators across 2 networks, incremental 4 more initiators in same host: max_paths = " + i
-                        + " paths_per_initiator = " + j);
-                testVNX2NetAllocIncrementalAssign(net2InitiatorsMap, net2InitiatorsMapB, i, j);
-            }
-        }
+		initA = getHostInitiators(4);
+		net2InitiatorsMap = makeNet2InitiatorsMap(initA, 1, 2);
+		initB = getHostInitiators(4);
+		net2InitiatorsMapB = makeNet2InitiatorsMap(initB, 1, 2);
+		// The following loop assumes symmetric networks across the two hosts
+		for (Map.Entry<URI, List<Initiator>> entry : net2InitiatorsMap.entrySet()) {
+			net2InitiatorsMap.get(entry.getKey()).addAll(net2InitiatorsMapB.get(entry.getKey()));
+		}
+		for (int j = 1; j <= 2; j++) {
+			for (int i = 1; i <= 8; i++) {
+				System.out.println("*** 4 initiators across 2 networks, incremental same hosts with more paths; initial max_paths = " + i
+						+ " paths_per_initiator = " + j);
+				testVMAX2NetAllocIncrementalAssign(net2InitiatorsMap, net2InitiatorsMap, i, j, i+4, j+1);
+			}
+		}
 
-        System.out.println("done!");
+		for (int j = 1; j <= 2; j++) {
+			for (int i = 2; i <= 12; i++) {
+				System.out.println("*** 4 initiators across 2 networks, incremental 4 more initiators in same host: max_paths = " + i
+						+ " paths_per_initiator = " + j);
+				testVNX2NetAllocIncrementalAssign(net2InitiatorsMap, net2InitiatorsMapB, i, j);
+			}
+		}
+
+		System.out.println("done!");
     }
 
     

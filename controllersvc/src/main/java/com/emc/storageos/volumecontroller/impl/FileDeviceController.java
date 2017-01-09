@@ -40,6 +40,7 @@ import com.emc.storageos.db.client.model.FileExportRule;
 import com.emc.storageos.db.client.model.FileMountInfo;
 import com.emc.storageos.db.client.model.FileObject;
 import com.emc.storageos.db.client.model.FilePolicy;
+import com.emc.storageos.db.client.model.FilePolicy.FilePolicyApplyLevel;
 import com.emc.storageos.db.client.model.FileShare;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.NFSShareACL;
@@ -4383,6 +4384,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             args.setVPool(vpool);
             args.setProject(project);
             args.setFileProtectionPolicy(filePolicy);
+
             WorkflowStepCompleter.stepExecuting(taskId);
             BiosCommandResult result = getDevice(storageObj.getSystemType()).doApplyFilePolicy(storageObj, args);
             if (result.getCommandPending()) {
@@ -4428,16 +4430,12 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                 return;
 
             } else if (result.isCommandSuccess()) {
-                StringSet policyStrRes = filePolicy.getPolicyStorageResources();
-                policyStrRes.remove(policyRes.getId().toString());
-                filePolicy.setPolicyStorageResources(policyStrRes);
+                filePolicy.removePolicyStorageResources(filePolicy, policyRes.getId());
                 _dbClient.markForDeletion(policyRes);
-
-                StringSet assignedResources = filePolicy.getAssignedResources();
-                assignedResources.remove(policyRes.getAppliedAt().toString());
-                filePolicy.setAssignedResources(assignedResources);
+                filePolicy.removeAssignedResources(filePolicy, policyRes.getAppliedAt());
                 _dbClient.updateObject(filePolicy);
 
+                updateUnAssignedResource(filePolicy, policyRes);
                 _log.info("Unassigning file policy: {} from resource: {} finished successfully", policyURI.toString(),
                         policyRes.getAppliedAt().toString());
                 WorkflowStepCompleter.stepSucceded(opId);
@@ -4447,6 +4445,29 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
         } catch (Exception e) {
             ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
             WorkflowStepCompleter.stepFailed(opId, serviceError);
+        }
+    }
+
+    private void updateUnAssignedResource(FilePolicy filePolicy, PolicyStorageResource policyRes) {
+        FilePolicyApplyLevel applyLevel = FilePolicyApplyLevel.valueOf(filePolicy.getApplyAt());
+        switch (applyLevel) {
+            case vpool:
+                VirtualPool vpool = _dbClient.queryObject(VirtualPool.class, policyRes.getAppliedAt());
+                vpool.removeFilePolicy(vpool, filePolicy.getId());
+                _dbClient.updateObject(vpool);
+                break;
+            case project:
+                Project project = _dbClient.queryObject(Project.class, policyRes.getAppliedAt());
+                project.removeFilePolicy(project, filePolicy.getId());
+                _dbClient.updateObject(project);
+                break;
+            case file_system:
+                FileShare fs = _dbClient.queryObject(FileShare.class, policyRes.getAppliedAt());
+                fs.removeFilePolicy(fs, filePolicy.getId());
+                _dbClient.updateObject(fs);
+                break;
+            default:
+                _log.error("Not a valid policy apply level: " + applyLevel);
         }
     }
 }

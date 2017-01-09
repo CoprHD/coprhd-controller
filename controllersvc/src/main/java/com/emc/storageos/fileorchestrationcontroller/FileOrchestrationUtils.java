@@ -23,6 +23,7 @@ import com.emc.storageos.db.client.model.FileExport;
 import com.emc.storageos.db.client.model.FileExportRule;
 import com.emc.storageos.db.client.model.FilePolicy;
 import com.emc.storageos.db.client.model.FileShare;
+import com.emc.storageos.db.client.model.NASServer;
 import com.emc.storageos.db.client.model.NFSShareACL;
 import com.emc.storageos.db.client.model.PolicyStorageResource;
 import com.emc.storageos.db.client.model.Project;
@@ -43,6 +44,10 @@ import com.emc.storageos.volumecontroller.FileControllerConstants;
 
 public class FileOrchestrationUtils {
     private static final Logger _log = LoggerFactory.getLogger(FileOrchestrationUtils.class);
+
+    private FileOrchestrationUtils() {
+
+    }
 
     /**
      * This method generates export map for the file system export rules.
@@ -357,9 +362,9 @@ public class FileOrchestrationUtils {
      * @param storageSystem
      * @return
      */
-    public static List<FilePolicy> getAllVpoolLevelPolices(DbClient dbClient, VirtualPool vpool, URI storageSystem) {
+    public static List<FilePolicy> getAllVpoolLevelPolices(DbClient dbClient, VirtualPool vpool, NASServer nasServer, URI storageSystem) {
         List<FilePolicy> filePoliciesToCreate = new ArrayList<FilePolicy>();
-        StringSet fileVpoolPolicies = vpool.getFilePolices();
+        StringSet fileVpoolPolicies = vpool.getFilePolicies();
 
         if (fileVpoolPolicies != null && !fileVpoolPolicies.isEmpty()) {
             for (String fileVpoolPolicy : fileVpoolPolicies) {
@@ -370,7 +375,8 @@ public class FileOrchestrationUtils {
                     for (String policyStrRe : policyStrRes) {
                         PolicyStorageResource strRes = dbClient.queryObject(PolicyStorageResource.class, URIUtil.uri(policyStrRe));
                         if (strRes.getAppliedAt().toString().equals(vpool.getId().toString())
-                                && strRes.getStorageSystem().toString().equals(storageSystem.toString())) {
+                                && strRes.getStorageSystem().toString().equals(storageSystem.toString())
+                                && strRes.getNasServer().toString().equalsIgnoreCase(nasServer.getId().toString())) {
                             _log.info("File Policy {} is already for vpool {} , storage system {}", filePolicy.getFilePolicyName(),
                                     vpool.getLabel(), storageSystem.toString());
                             filePoliciesToCreate.remove(filePolicy);
@@ -390,9 +396,10 @@ public class FileOrchestrationUtils {
      * @param storageSystem
      * @return
      */
-    public static List<FilePolicy> getAllProjectLevelPolices(DbClient dbClient, Project project, VirtualPool vpool, URI storageSystem) {
+    public static List<FilePolicy> getAllProjectLevelPolices(DbClient dbClient, Project project, VirtualPool vpool, NASServer nasServer,
+            URI storageSystem) {
         List<FilePolicy> filePoliciesToCreate = new ArrayList<FilePolicy>();
-        StringSet fileProjectPolicies = project.getFilePolices();
+        StringSet fileProjectPolicies = project.getFilePolicies();
 
         if (fileProjectPolicies != null && !fileProjectPolicies.isEmpty()) {
             for (String fileProjectPolicy : fileProjectPolicies) {
@@ -407,7 +414,8 @@ public class FileOrchestrationUtils {
                     for (String policyStrRe : policyStrRes) {
                         PolicyStorageResource strRes = dbClient.queryObject(PolicyStorageResource.class, URIUtil.uri(policyStrRe));
                         if (strRes.getAppliedAt().toString().equals(project.getId().toString())
-                                && strRes.getStorageSystem().toString().equals(storageSystem.toString())) {
+                                && strRes.getStorageSystem().toString().equals(storageSystem.toString())
+                                && strRes.getNasServer().toString().equalsIgnoreCase(nasServer.getId().toString())) {
                             _log.info("File Policy {} is already for project {} , storage system {}", filePolicy.getFilePolicyName(),
                                     project.getLabel(), storageSystem.toString());
                             filePoliciesToCreate.remove(filePolicy);

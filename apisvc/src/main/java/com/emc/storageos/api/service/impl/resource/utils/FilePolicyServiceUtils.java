@@ -35,6 +35,10 @@ public class FilePolicyServiceUtils {
     private static final long MIN_SNAPSHOT_EXPIRE_SECONDS = 7200;
     private static final long MAX_SNAPSHOT_EXPIRE_SECONDS = 10 * 365 * 24 * 3600;
 
+    private FilePolicyServiceUtils() {
+
+    }
+
     /**
      * validates whether the schedule policy parameters are valid or not
      * 
@@ -219,4 +223,5 @@ public class FilePolicyServiceUtils {
                 return;
         }
     }
+
 }

@@ -200,6 +200,6 @@ public interface FileController extends StorageController {
      * @param taskId
      * @throws InternalException
      */
-    public void applyFilePolicy(URI FS, URI filePolicy, String taskId) throws InternalException;
+    public void applyFilePolicy(URI fs, URI filePolicy, String taskId) throws InternalException;
 
 }

@@ -35,9 +35,11 @@ import com.emc.storageos.db.client.model.FilePolicy;
 import com.emc.storageos.db.client.model.FilePolicy.FilePolicyApplyLevel;
 import com.emc.storageos.db.client.model.FilePolicy.FilePolicyType;
 import com.emc.storageos.db.client.model.FileShare;
+import com.emc.storageos.db.client.model.NASServer;
 import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.OpStatusMap;
 import com.emc.storageos.db.client.model.Operation;
+import com.emc.storageos.db.client.model.PhysicalNAS;
 import com.emc.storageos.db.client.model.PolicyStorageResource;
 import com.emc.storageos.db.client.model.QuotaDirectory;
 import com.emc.storageos.db.client.model.SMBFileShare;
@@ -2606,26 +2608,26 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                     policyStorageResource.setFilePolicyId(filePolicy.getId());
                     policyStorageResource.setStorageSystem(storageObj.getId());
                     policyStorageResource.setPolicyNativeId(snapshotScheduleName);
+                    NASServer nasServer = null;
+                    if (args.getvNAS() != null) {
+                        nasServer = args.getvNAS();
+                    } else {
+                        // Get the physical NAS for the storage system!!
+                        PhysicalNAS pNAS = getSystemPhysicalNAS(_dbClient, storageObj);
+                        if (pNAS != null) {
+                            nasServer = pNAS;
+                        }
+                    }
+                    policyStorageResource.setNasServer(nasServer.getId());
                     setPolicyStorageAppliedAt(filePolicy, args, policyStorageResource);
-
                     _dbClient.createObject(policyStorageResource);
 
-                    StringSet policyStrgRes = filePolicy.getPolicyStorageResources();
-                    if (policyStrgRes == null) {
-                        policyStrgRes = new StringSet();
-                    }
-                    policyStrgRes.add(policyStorageResource.getId().toString());
-                    filePolicy.setPolicyStorageResources(policyStrgRes);
+                    filePolicy.addPolicyStorageResources(filePolicy, policyStorageResource.getId());
 
                     if (filePolicy.getApplyAt().equals(FilePolicyApplyLevel.file_system.name())) {
-                        StringSet assignedResources = filePolicy.getAssignedResources();
-                        if (assignedResources == null) {
-                            assignedResources = new StringSet();
-                        }
-                        assignedResources.add(fs.getId().toString());
-                        filePolicy.setAssignedResources(assignedResources);
+                        filePolicy.addAssignedResources(filePolicy, fs.getId());
+                        fs.addFilePolicy(fs, filePolicy.getId());
                     }
-
                     _dbClient.updateObject(filePolicy);
                     return BiosCommandResult.createSuccessfulResult();
 
@@ -2822,5 +2824,16 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             default:
                 _log.error("Not a valid policy apply level: " + applyLevel);
         }
+    }
+
+    public static PhysicalNAS getSystemPhysicalNAS(DbClient dbClient, StorageSystem system) {
+        List<URI> nasServers = dbClient.queryByType(PhysicalNAS.class, true);
+        List<PhysicalNAS> phyNasServers = dbClient.queryObject(PhysicalNAS.class, nasServers);
+        for (PhysicalNAS nasServer : phyNasServers) {
+            if (nasServer.getStorageDeviceURI().toString().equalsIgnoreCase(system.getId().toString())) {
+                return nasServer;
+            }
+        }
+        return null;
     }
 }

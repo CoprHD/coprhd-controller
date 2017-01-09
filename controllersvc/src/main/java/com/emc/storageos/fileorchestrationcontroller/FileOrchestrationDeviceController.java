@@ -25,6 +25,7 @@ import com.emc.storageos.db.client.model.FileObject;
 import com.emc.storageos.db.client.model.FilePolicy;
 import com.emc.storageos.db.client.model.FileShare;
 import com.emc.storageos.db.client.model.FileShare.PersonalityTypes;
+import com.emc.storageos.db.client.model.NASServer;
 import com.emc.storageos.db.client.model.PolicyStorageResource;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.SMBFileShare;
@@ -32,7 +33,6 @@ import com.emc.storageos.db.client.model.SMBShareMap;
 import com.emc.storageos.db.client.model.Snapshot;
 import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StorageSystem;
-import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.filereplicationcontroller.FileReplicationDeviceController;
@@ -1724,7 +1724,10 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
         FileShare sourceFS = s_dbClient.queryObject(FileShare.class, sourceDescriptors.getFsURI());
 
         VirtualPool vpool = s_dbClient.queryObject(VirtualPool.class, sourceFS.getVirtualPool());
-        List<FilePolicy> fileVpoolPolicies = FileOrchestrationUtils.getAllVpoolLevelPolices(s_dbClient, vpool, sourceFS.getStorageDevice());
+        NASServer nasServer = s_dbClient.queryObject(NASServer.class, sourceFS.getVirtualNAS());
+
+        List<FilePolicy> fileVpoolPolicies = FileOrchestrationUtils.getAllVpoolLevelPolices(s_dbClient, vpool, nasServer,
+                sourceFS.getStorageDevice());
 
         if (fileVpoolPolicies != null && !fileVpoolPolicies.isEmpty()) {
             for (FilePolicy fileVpoolPolicy : fileVpoolPolicies) {
@@ -1738,7 +1741,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
         }
 
         Project project = s_dbClient.queryObject(Project.class, sourceFS.getProject());
-        List<FilePolicy> fileProjectPolicies = FileOrchestrationUtils.getAllProjectLevelPolices(s_dbClient, project, vpool,
+        List<FilePolicy> fileProjectPolicies = FileOrchestrationUtils.getAllProjectLevelPolices(s_dbClient, project, vpool, nasServer,
                 sourceFS.getStorageDevice());
 
         if (fileProjectPolicies != null && !fileProjectPolicies.isEmpty()) {
@@ -1780,9 +1783,8 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
                 }
             } else {
                 s_logger.info("file policy {} is not applied to any storage system", policy);
-                StringSet assignedResources = filePolicy.getAssignedResources();
                 for (URI uri : unassignFrom) {
-                    assignedResources.remove(uri.toString());
+                    filePolicy.removeAssignedResources(filePolicy, uri);
                 }
                 s_dbClient.updateObject(filePolicy);
                 s_logger.info("Unassigning file policy: {} from resources: {} finished successfully", policy.toString(),

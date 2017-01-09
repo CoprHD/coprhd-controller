@@ -303,4 +303,61 @@ public class FilePolicy extends DataObjectWithACLs {
         setChanged("policyStorageResources");
     }
 
+    /**
+     * This method will add assigned resources to file policy
+     * 
+     * @param filePolicy
+     * @param resourceURI
+     */
+    public void addAssignedResources(FilePolicy filePolicy, URI resourceURI) {
+        StringSet assignedResources = filePolicy.getAssignedResources();
+        if (assignedResources == null) {
+            assignedResources = new StringSet();
+        }
+        assignedResources.add(resourceURI.toString());
+        filePolicy.setAssignedResources(assignedResources);
+    }
+
+    /**
+     * This method will remove assigned resources to file policy
+     * 
+     * @param filePolicy
+     * @param resourceURI
+     */
+    public void removeAssignedResources(FilePolicy filePolicy, URI resourceURI) {
+        StringSet assignedResources = filePolicy.getAssignedResources();
+        if (assignedResources != null) {
+            assignedResources.remove(resourceURI.toString());
+            filePolicy.setAssignedResources(assignedResources);
+        }
+    }
+
+    /**
+     * This method will add policy storage resources to file policy
+     * 
+     * @param filePolicy
+     * @param resourceURI
+     */
+    public void addPolicyStorageResources(FilePolicy filePolicy, URI resourceURI) {
+        StringSet policyStrResources = filePolicy.getPolicyStorageResources();
+        if (policyStrResources == null) {
+            policyStrResources = new StringSet();
+        }
+        policyStrResources.add(resourceURI.toString());
+        filePolicy.setPolicyStorageResources(policyStrResources);
+    }
+
+    /**
+     * This method will remove policy storage resources to file policy
+     * 
+     * @param filePolicy
+     * @param resourceURI
+     */
+    public void removePolicyStorageResources(FilePolicy filePolicy, URI resourceURI) {
+        StringSet policyStrResources = filePolicy.getPolicyStorageResources();
+        if (policyStrResources != null) {
+            policyStrResources.remove(resourceURI.toString());
+            filePolicy.setPolicyStorageResources(policyStrResources);
+        }
+    }
 }

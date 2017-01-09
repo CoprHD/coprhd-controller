@@ -80,6 +80,19 @@ delete_datastore() {
     echo `catalog order DeleteVMwareDatastore ${tenant} host=${cluster},datastoreName=${datastorename},vcenter=${vcenter},datacenter=${datacenter}`
 }
 
+export_volume_vmware() {
+    # tenant volume vcenter datacenter cluster project
+    tenant=$1       
+    volume=`volume list ${6} | grep ${2} | awk '{print $7}'`
+    vcenter=`vcenter list ${tenant} | grep ${3} | awk '{print $5}'`
+    datacenter=`datacenter list ${3} | grep ${4} | awk '{print $4}'`
+    cluster=`cluster list ${tenant} | grep ${5} | awk '{print $4}'`           
+    project=`project list --tenant ${tenant} | grep "${6} " | awk '{print $4}'`
+        
+    echo "=== catalog order ExportVolumeforVMware ${tenant} project=${project},volumes=${volume},host=${cluster},vcenter=${vcenter},datacenter=${datacenter}"
+    echo `catalog order ExportVolumeforVMware ${tenant} project=${project},volumes=${volume},host=${cluster},vcenter=${vcenter},datacenter=${datacenter}`
+}
+
 # Test - Host Add Initiator
 #
 # Happy path/failure test for add initiator to a host that is part of an exclusive and shared export group.
@@ -1409,8 +1422,9 @@ test_cluster_remove_discovered_host() {
     volume2=${VOLNAME}-2-${random_number}
     datastore1="fakedatastore1"-${random_number}
     datastore2="fakedatastore2"-${random_number}
-    secho "Creating volume ${volume1} and datastore ${datastore1}..."
+    secho "Creating volume ${PROJECT}/${volume1} and datastore ${datastore1} exported to ${cluster1}..."
     create_volume_and_datastore $TENANT ${volume1} ${datastore1} $NH $VPOOL_BASE ${PROJECT} ${vcenter} ${datacenter} ${cluster1}
+    secho "Creating volume ${PROJECT2}/${volume2} and datastore ${datastore2} exported to ${cluster1}..."
     create_volume_and_datastore $TENANT ${volume2} ${datastore2} $NH $VPOOL_BASE ${PROJECT2} ${vcenter} ${datacenter} ${cluster1}
     
     # Export group name will be auto-generated as the cluster name
@@ -1435,9 +1449,9 @@ test_cluster_remove_discovered_host() {
             reset_counts                   
             mkdir -p results/${random_number}       
             
+            # Confirm export groups have the hosts present  
             for eg in ${exportgroups}
             do
-                # Double check export group to ensure the hosts are present            
                 foundhost1=`export_group show ${eg} | grep ${host1}`
                 foundhost2=`export_group show ${eg} | grep ${host2}`
                 
@@ -1452,10 +1466,11 @@ test_cluster_remove_discovered_host() {
                         exit 1
                     fi
                 else
-                    echo "+++ SUCCESS - All hosts present on export group ${eg}"   
+                    echo "+++ SUCCESS - All hosts present on export group ${eg}"
                 fi
             done
-                                          
+                              
+            # Check whether we are testing update or delete            
             if [[ "${wf}" == *"deleteWorkflow"* ]]; then
                 # Delete export group
                 secho "Delete export group path..."
@@ -1497,15 +1512,18 @@ test_cluster_remove_discovered_host() {
                     exit 1
                 else
                     if [ ${failure} == ${failure} ]; then
+                        # Happy path, no failure injection
                         approve_pending_event $EVENT_ID
                     else
                         # Turn failure injection on
                         set_artificial_failure ${failure}
+                        
                         # Expect to fail when approving the event
                         fail approve_pending_event $EVENT_ID
                         discover_vcenter ${vcenter}
                         sleep 20
                         EVENT_ID=$(get_failed_event)    
+                        
                         # Turn failure injection off and retry the approval
                         secho "Re-run with failure injection off..."
                         set_artificial_failure none
@@ -1513,16 +1531,15 @@ test_cluster_remove_discovered_host() {
                     fi 
                 fi
                 
+                # Ensure the export groups have been removed
                 for eg in ${exportgroups}
-                do
-                    # Ensure that export group has been removed
-                    fail export_group show ${eg}
-                    
+                do                    
+                    fail export_group show ${eg}                    
                     echo "+++ Confirm export group ${eg} has been deleted, expect to see an exception below if it has..."
                     foundeg=`export_group show ${eg} | grep ${eg}`
                     
                     if [ "${foundeg}" != "" ]; then
-                        # Fail, export group should be removed
+                        # Fail, export group should have been removed
                         echo "+++ FAIL - Expected export group ${eg} was not deleted."
                         # Report results
                         incr_fail_count
@@ -1538,23 +1555,34 @@ test_cluster_remove_discovered_host() {
                 
                 # Add both hosts back to cluster1           
                 secho "Test complete, add hosts back to cluster..."
+                
+                # NOTE: host2 was temporarily added to cluster2, remove it from
+                # cluster2 so we can add it back to cluster1
                 remove_host_from_cluster $host2 $cluster2
                 discover_vcenter ${vcenter}
                 sleep 20
                 EVENT_ID=$(get_pending_event)
                 approve_pending_event $EVENT_ID
-                # NOTE: If there are no export groups for that cluster, 
+                
+                # NOTE: If there are no export groups for the cluster, 
                 # no events are created so we do not need to approve anything.
+                # Just add the hosts back to cluster and run a re-discover of 
+                # the vcenter.
                 add_host_to_cluster $host1 $cluster1
                 add_host_to_cluster $host2 $cluster1
                 discover_vcenter ${vcenter}
-                sleep 20                       
+                sleep 20
+                # Because both hosts were removed from the cluster the export group was
+                # automatically removed. Now we need to re-export the volumes to the cluster, 
+                # this will re-create the export groups.
+                export_volume_vmware $TENANT ${volume1} ${vcenter} ${datacenter} ${cluster1} ${PROJECT}
+                export_volume_vmware $TENANT ${volume2} ${vcenter} ${datacenter} ${cluster1} ${PROJECT2}
             else
                 # Update export group
                 secho "Update export group path..."
                 
                 # Snap DB
-                column_family=("Volume ExportGroup ExportMask Cluster Host") 
+                column_family=("Volume ExportGroup Cluster Host") 
                 snap_db 1 "${column_family[@]}"
             
                 # Vcenter call to remove host from cluster
@@ -1578,6 +1606,7 @@ test_cluster_remove_discovered_host() {
                     exit 1
                 else
                     if [ ${failure} == ${HAPPY_PATH_TEST_INJECTION} ]; then
+                        # Happy path, no failure injection
                         approve_pending_event $EVENT_ID
                     else
                         # Turn failure injection on
@@ -1595,13 +1624,13 @@ test_cluster_remove_discovered_host() {
                     fi 
                 fi
                 
+                # Ensure that host1 has been removed from all export groups
                 for eg in ${exportgroups}
                 do
-                    # Ensure that host1 has been removed                
                     foundhost1=`export_group show ${eg} | grep ${host1}`
                     
                     if [[ "${foundhost1}" != "" ]]; then
-                        # Fail, host1 should be removed
+                        # Fail, host1 should have been removed
                         echo "+++ FAIL - Expected host was not removed from export group ${eg}."
                         # Report results
                         incr_fail_count
@@ -1636,9 +1665,11 @@ test_cluster_remove_discovered_host() {
     done
     
     # Cleanup volumes
-    runcmd volume delete ${PROJECT}/${volume1} --wait 
-    runcmd volume delete ${PROJECT2}/${volume2} --wait 
-    runcmd project delete ${PROJECT2}
+#    delete_datastore_and_volume ${TENANT} ${datastore1} ${vcenter} ${datacenter} ${cluster1}
+#    sleep 10
+#    delete_datastore_and_volume ${TENANT} ${datastore2} ${vcenter} ${datacenter} ${cluster1}
+#    sleep 10
+#    runcmd project delete ${PROJECT2}
     
     # Turn off validation back on
     secho "Turning ViPR validation ON"

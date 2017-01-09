@@ -136,7 +136,7 @@ public class WorkflowBuilder extends Controller {
             WFDirectoryUpdateParam param = new WFDirectoryUpdateParam();
             param.setName(newName);
             getCatalogClient().wfDirectories().edit(new URI(id), param);
-        } catch (Exception e) {
+        } catch (final Exception e) {
             Logger.error(e.getMessage());
         }
     }
@@ -144,7 +144,7 @@ public class WorkflowBuilder extends Controller {
     public static void deleteWFDir(String id) {
         try {
             getCatalogClient().wfDirectories().delete(new URI(id));
-        } catch (Exception e) {
+        } catch (final Exception e) {
             Logger.error(e.getMessage());
         }
     }
@@ -163,7 +163,7 @@ public class WorkflowBuilder extends Controller {
             WFDirectoryRestRep wfDirectoryRestRep = getCatalogClient()
                     .wfDirectories().create(param);
             renderJSON(wfDirectoryRestRep);
-        } catch (Exception e) {
+        } catch (final Exception e) {
             Logger.error(e.getMessage());
         }
     }
@@ -214,7 +214,7 @@ public class WorkflowBuilder extends Controller {
             }
 
             renderJSON(orchestrationWorkflowRestRep);
-        } catch (Exception e) {
+        } catch (final Exception e) {
             Logger.error(e.getMessage());
             flash.error("Error creating workflow");
         }
@@ -227,7 +227,7 @@ public class WorkflowBuilder extends Controller {
             param.setDocument(workflowDoc);
             final OrchestrationWorkflowRestRep orchestrationWorkflowRestRep = getCatalogClient()
                     .orchestrationPrimitives().editWorkflow(workflowId,param);
-        } catch (Exception e) {
+        } catch (final Exception e) {
             Logger.error(e.getMessage());
             flash.error("Error saving workflow");
         }
@@ -271,7 +271,7 @@ public class WorkflowBuilder extends Controller {
             } else {
                 flash.error("Workflow " + id + "not found");
             }
-        } catch (Exception e) {
+        } catch (final Exception e) {
             Logger.error(e.getMessage());
         }
     }
@@ -291,7 +291,7 @@ public class WorkflowBuilder extends Controller {
             param.setWorkflows(new WFDirectoryWorkflowsUpdateParam(null,
                     removeWorkflows));
             getCatalogClient().wfDirectories().edit(new URI(dirID), param);
-        } catch (Exception e) {
+        } catch (final Exception e) {
             Logger.error(e.getMessage());
         }
     }
@@ -321,7 +321,7 @@ public class WorkflowBuilder extends Controller {
                 node.data = primitiveRestRep;
                 topLevelNodes.add(node);
             }
-        } catch (Exception e) {
+        } catch (final Exception e) {
             Logger.error(e.getMessage());
         }
     }

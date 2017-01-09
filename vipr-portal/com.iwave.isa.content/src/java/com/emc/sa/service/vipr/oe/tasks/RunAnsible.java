@@ -36,8 +36,8 @@ import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.service.vipr.oe.OrchestrationServiceConstants;
 import com.emc.sa.service.vipr.tasks.ViPRExecutionTask;
 import com.emc.storageos.model.orchestration.OrchestrationWorkflowDocument.Step;
-import com.emc.storageos.services.util.Exec;
 import com.emc.storageos.primitives.Primitive.StepType;
+import com.emc.storageos.services.util.Exec;
 
 /**
  * Runs Orchestration Shell script or Ansible Playbook.

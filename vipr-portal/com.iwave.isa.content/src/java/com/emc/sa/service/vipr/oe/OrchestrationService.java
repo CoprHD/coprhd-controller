@@ -41,7 +41,6 @@ import com.emc.sa.engine.service.Service;
 import com.emc.sa.service.vipr.ViPRExecutionUtils;
 import com.emc.sa.service.vipr.ViPRService;
 import com.emc.sa.service.vipr.oe.OrchestrationServiceConstants.InputType;
-import com.emc.storageos.primitives.Primitive.StepType;
 import com.emc.sa.service.vipr.oe.gson.ViprOperation;
 import com.emc.sa.service.vipr.oe.gson.ViprTask;
 import com.emc.sa.service.vipr.oe.tasks.OrchestrationTaskResult;
@@ -54,6 +53,7 @@ import com.emc.storageos.model.orchestration.OrchestrationWorkflowDocument.Input
 import com.emc.storageos.model.orchestration.OrchestrationWorkflowDocument.Step;
 import com.emc.storageos.model.orchestration.OrchestrationWorkflowDocument.StepAttribute;
 import com.emc.storageos.primitives.Primitive;
+import com.emc.storageos.primitives.Primitive.StepType;
 import com.emc.storageos.primitives.PrimitiveHelper;
 import com.emc.storageos.primitives.ViPRPrimitive;
 import com.google.gson.Gson;

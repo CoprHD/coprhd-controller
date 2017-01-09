@@ -614,6 +614,11 @@ public class ExportUtils {
         return sharedExportMaskNameList;
     }
 
+    public static boolean isInitiatorSharedByMasks(DbClient dbClient, URI initiatorUri) {
+        return CustomQueryUtility.queryActiveResourcesByConstraint(dbClient, ExportMask.class,
+                ContainmentConstraint.Factory.getConstraint(ExportMask.class, "initiators", initiatorUri)).size() > 1;
+    }
+
     static public int getNumberOfExportGroupsWithVolume(Initiator initiator, URI blockObjectId, DbClient dbClient) {
         List<ExportGroup> list = getInitiatorVolumeExportGroups(initiator, blockObjectId, dbClient);
         return (list != null) ? list.size() : 0;

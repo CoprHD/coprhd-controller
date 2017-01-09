@@ -2921,6 +2921,33 @@ public class VNXeApiClient {
     }
 
     /**
+     * Get host LUN Ids
+     *
+     * @param hostId
+     * @return host LUN Ids
+     */
+    public Set<String> getHostLUNIds(String hostId) {
+        Set<String> lunIds = new HashSet<>();
+        VNXeHost host = getHostById(hostId);
+        if (host != null) {
+            List<VNXeBase> hostLunIds = host.getHostLUNs();
+            if (hostLunIds != null && !hostLunIds.isEmpty()) {
+                for (VNXeBase hostLunId : hostLunIds) {
+                    HostLun hostLun = getHostLun(hostLunId.getId());
+                    VNXeBase vnxelunId = hostLun.getSnap();
+                    if (vnxelunId == null) {
+                        vnxelunId = hostLun.getLun();
+                    }
+
+                    lunIds.add(vnxelunId.getId());
+                }
+            }
+        }
+
+        return lunIds;
+    }
+
+    /**
      * Delete host
      *
      * @param hostId host Id

@@ -82,15 +82,15 @@ public class VNXeUtils {
     }
 
     /**
-     * Get all LUNS on the array that mapped to a host identified by initiators in the mask
+     * Get all LUNs on the array that mapped to a host identified by initiators in the mask
      *
      * @param dbClient
      * @param storage
      * @param exportMask
-     * @return export mask to LUNs map
+     * @return LUNs mapped to the host
      */
-    public static Map<ExportMask, Set<String>> getAllLUNsForHost(DbClient dbClient, StorageSystem storage, ExportMask exportMask) {
-        Map<ExportMask, Set<String>> maskTolUNIds = new HashMap<>();
+    public static Set<String> getAllLUNsForHost(DbClient dbClient, StorageSystem storage, ExportMask exportMask) {
+       Set<String> lunIds = new HashSet<>();
         URI hostURI = null;
 
         for (String init : exportMask.getInitiators()) {
@@ -116,17 +116,14 @@ public class VNXeUtils {
         }
 
         for (ExportMask mask : exportMasks) {
-            Set<String> lunIds = new HashSet<>();
             for (String strUri : mask.getVolumes().keySet()) {
                 BlockObject bo = BlockObject.fetch(dbClient, URI.create(strUri));
                 if (bo != null && !bo.getInactive() && storage.getId().equals(bo.getStorageController())) {
                     lunIds.add(bo.getNativeId());
                 }
             }
-
-            maskTolUNIds.put(mask, lunIds);
         }
 
-        return maskTolUNIds;
+        return lunIds;
     }
 }

@@ -78,20 +78,14 @@ public class VNXeSystemValidatorFactory implements StorageSystemValidatorFactory
 
     @Override
     public Validator exportMaskDelete(ExportMaskValidationContext ctx) {
+        // removing initiators from mask will be ViPR DB only operation if there is unknown volume, hence no volume validation
         logger = new ValidatorLogger(log, ctx.getExportMask().forDisplay(), ctx.getStorage().forDisplay());
-        VNXeExportMaskVolumesValidator volumeValidator = new VNXeExportMaskVolumesValidator(ctx.getStorage(), ctx.getExportMask(), ctx.getBlockObjects());
-        volumeValidator.setExceptionContext(ctx);
         VNXeExportMaskInitiatorsValidator initiatorValidator = new VNXeExportMaskInitiatorsValidator(ctx.getStorage(),
                 ctx.getExportMask());
         initiatorValidator.setExceptionContext(ctx);
-        configureValidators(logger, volumeValidator, initiatorValidator);
+        configureValidators(logger, initiatorValidator);
 
-        ChainingValidator chain = new ChainingValidator(logger, config, "Export Mask");
-        chain.setExceptionContext(ctx);
-        chain.addValidator(volumeValidator);
-        chain.addValidator(initiatorValidator);
-
-        return chain;
+        return initiatorValidator;
     }
 
     @Override

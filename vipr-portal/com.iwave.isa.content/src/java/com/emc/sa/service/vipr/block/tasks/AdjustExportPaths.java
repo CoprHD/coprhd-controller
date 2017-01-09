@@ -56,7 +56,6 @@ public class AdjustExportPaths extends WaitForTask<ExportGroupRestRep> {
         param.setRemovedPaths(removedPaths);
         
         param.setWaitBeforeRemovePaths(suspendWait);
-        param.setWaitBeforeRemovePaths(false);
 
         return getClient().blockExports().pathAdjustment(exportId, param);
     }

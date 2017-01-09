@@ -15,6 +15,7 @@ import com.emc.storageos.services.util.AlertsLogger;
 import com.emc.storageos.svcs.errorhandling.resources.MigrationCallbackException;
 
 import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang.time.DurationFormatUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -492,6 +493,7 @@ public class MigrationHandlerImpl implements MigrationHandler {
                     }
                 }
 
+                long beginTime = System.currentTimeMillis();
                 log.info("Invoking migration callback: {}", callback.getName());
                 try {
                     callback.process();
@@ -500,6 +502,9 @@ public class MigrationHandlerImpl implements MigrationHandler {
                 } catch (Exception e) {
                 	String msg = String.format("%s fail,Please contract the EMC support team", callback.getName());
                     throw new MigrationCallbackException(msg,e);
+                } finally {
+                    log.info("Migration callback {} finished with time: {}", callback.getName(),
+                            DurationFormatUtils.formatDurationHMS(System.currentTimeMillis() - beginTime));
                 }
                 // Update checkpoint
                 schemaUtil.setMigrationCheckpoint(callback.getName());

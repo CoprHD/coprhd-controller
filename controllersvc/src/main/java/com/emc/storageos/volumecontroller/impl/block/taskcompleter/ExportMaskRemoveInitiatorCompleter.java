@@ -8,8 +8,9 @@ package com.emc.storageos.volumecontroller.impl.block.taskcompleter;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.HashSet;
-import java.util.Set;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Set;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -20,10 +21,12 @@ import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.Operation;
+import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.StringSetMap;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
+import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.util.ExportUtils;
 import com.emc.storageos.workflow.WorkflowService;
 
@@ -85,6 +88,31 @@ public class ExportMaskRemoveInitiatorCompleter extends ExportTaskCompleter {
             ExportMask exportMask = (getMask() != null) ?
                     dbClient.queryObject(ExportMask.class, getMask()) : null;
             boolean isRollback = WorkflowService.getInstance().isStepInRollbackState(getOpId());
+            if ((status == Operation.Status.error) && (isRollback) && (coded instanceof ServiceError)) {
+                ServiceError error = (ServiceError) coded;
+                String originalMessage = error.getMessage();
+                StorageSystem storageSystem = exportMask != null ? dbClient.queryObject(StorageSystem.class, exportMask.getStorageDevice())
+                        : null;
+                List<Initiator> initiators = dbClient.queryObject(Initiator.class, _initiatorURIs);
+                StringBuffer initiatorsJoined = new StringBuffer();
+                if (initiators != null && !initiators.isEmpty()) {
+                    Iterator<Initiator> initIter = initiators.iterator();
+                    while (initIter.hasNext()) {
+                        Initiator initiator = initIter.next();
+                        initiatorsJoined.append(initiator.forDisplay());
+                        if (initIter.hasNext()) {
+                            initiatorsJoined.append(",");
+                        }
+                    }
+                }
+                String additionMessage = String.format(
+                        "Rollback encountered problems removing initiator(s) %s from export mask %s on storage system %s and may require manual clean up",
+                        initiatorsJoined.toString(), exportMask.getMaskName(),
+                        storageSystem != null ? storageSystem.forDisplay() : "Unknown");
+                String updatedMessage = String.format("%s\n%s", originalMessage, additionMessage);
+                error.setMessage(updatedMessage);
+            }
+
             if (exportMask != null && (status == Operation.Status.ready || isRollback)) {
                 List<Initiator> initiators =
                         dbClient.queryObject(Initiator.class, _initiatorURIs);

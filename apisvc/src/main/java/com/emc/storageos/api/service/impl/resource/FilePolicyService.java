@@ -694,13 +694,8 @@ public class FilePolicyService extends TaskResourceService {
         ArgValidator.checkFieldNotNull(param.getVpoolAssignParams(), "vpool_assign_param");
 
         Map<URI, List<URI>> vpoolToStorageSystemMap = new HashMap<URI, List<URI>>();
-
         String task = UUID.randomUUID().toString();
-        filepolicy.setOpStatus(new OpStatusMap());
-        Operation op = new Operation();
-        op.setResourceType(ResourceOperationTypeEnum.ASSIGN_FILE_POLICY);
-        filepolicy.getOpStatus().createTaskStatus(task, op);
-        TaskResourceRep taskObject = toTask(filepolicy, task);
+        TaskResourceRep taskObject = createAssignFilePolicyTask(filepolicy, task);
 
         if (AssignToResource.all.name().equalsIgnoreCase(param.getVpoolAssignParams().getAssigntoAll())) {
             // policy has to be applied on all applicable file vpools
@@ -926,5 +921,14 @@ public class FilePolicyService extends TaskResourceService {
             }
         }
         return new ArrayList<URI>(storageSystemURISet);
+    }
+
+    private TaskResourceRep createAssignFilePolicyTask(FilePolicy filepolicy, String taskId) {
+        filepolicy.setOpStatus(new OpStatusMap());
+        Operation op = new Operation();
+        op.setResourceType(ResourceOperationTypeEnum.ASSIGN_FILE_POLICY);
+        filepolicy.getOpStatus().createTaskStatus(taskId, op);
+        _dbClient.updateObject(filepolicy);
+        return toTask(filepolicy, taskId);
     }
 }

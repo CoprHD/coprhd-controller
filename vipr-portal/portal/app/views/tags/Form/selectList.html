@@ -102,7 +102,7 @@
    
 </script>
 <div class="selectList ${cssClass} ${disabled ? "disabled" : ""}"#{if disabled} data-disabled="disabled"#{/if}>
-  <div id="${field.id}" name="${field.name}" class="selectListContent"#{Form.extraAtts atts:field.atts/}>
+  <div id="${field.name}" name="${field.name}" class="selectListContent"#{Form.extraAtts atts:field.atts/}>
   #{list items:field.options, as:'option'}
     %{ checkboxId = "${field.id}${option[valueProperty]?.htmlId()}" }%
     <div class="checkbox">

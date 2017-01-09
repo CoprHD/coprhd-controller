@@ -268,7 +268,13 @@ public class DbConsistencyCheckerHelper {
                     .execute();
             for (Row<String, CompositeColumnName> row : objResult.getResult()) {
                 Set<UUID> existingDataColumnUUIDSet = new HashSet<>();
+                boolean inactiveObject = false;
                 for (Column<CompositeColumnName> column : row.getColumns()) {
+                    if (column.getName().getOne().equals(DataObject.INACTIVE_FIELD_NAME) && column.getBooleanValue()) {
+                        inactiveObject = true;
+                        break;
+                    }
+                    
                     if (column.getName().getTimeUUID() != null) {
                         existingDataColumnUUIDSet.add(column.getName().getTimeUUID());
                     }
@@ -276,17 +282,17 @@ public class DbConsistencyCheckerHelper {
                 
                 List<IndexEntry> idxEntries = objKeysIdxEntryMap.get(row.getKey());
                 for (IndexEntry idxEntry : idxEntries) {
-                    if (row.getColumns().isEmpty()
+                    if (inactiveObject && row.getColumns().isEmpty()
                             || (idxEntry.getColumnName().getTimeUUID() != null && !existingDataColumnUUIDSet.contains(idxEntry
                                     .getColumnName().getTimeUUID()))) {
                         String dbVersion = findDataCreatedInWhichDBVersion(idxEntry.getColumnName().getTimeUUID());
                         checkResult.increaseByVersion(dbVersion);
-                        if (row.getColumns().isEmpty()) {
+                        if (inactiveObject || row.getColumns().isEmpty()) {
                             logMessage(String.format("Inconsistency found: Index(%s, type: %s, id: %s, column: %s) is existing "
-                                + "but the related object record(%s, id: %s) is missing. This entry is updated by version %s",
+                                + "but the related object record(%s, id: %s) is %s. This entry is updated by version %s",
                                 indexAndCf.cf.getName(), indexAndCf.indexType.getSimpleName(),
                                 idxEntry.getIndexKey(), idxEntry.getColumnName(),
-                                objCf.getName(), row.getKey(), dbVersion), true, toConsole);
+                                objCf.getName(), row.getKey(), inactiveObject ? "inactive" : "missing", dbVersion), true, toConsole);
                         } else {
                             logMessage(String.format("Inconsistency found: Index(%s, type: %s, id: %s, column: %s) is existing, "
                                     + "but the related object record(%s, id: %s) has not data column can match this index. This entry is updated by version %s",

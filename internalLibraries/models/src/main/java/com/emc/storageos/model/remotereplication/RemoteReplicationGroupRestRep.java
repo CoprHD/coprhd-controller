@@ -1,12 +1,12 @@
 package com.emc.storageos.model.remotereplication;
 
 
-import com.emc.storageos.model.DataObjectRestRep;
-
 import javax.xml.bind.annotation.XmlAccessType;
 import javax.xml.bind.annotation.XmlAccessorType;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
+
+import com.emc.storageos.model.DataObjectRestRep;
 
 @XmlAccessorType(XmlAccessType.PROPERTY)
 @XmlRootElement(name = "remote_replication_group")

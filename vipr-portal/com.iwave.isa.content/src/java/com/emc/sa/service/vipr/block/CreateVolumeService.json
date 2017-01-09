@@ -46,6 +46,10 @@
         consistencyGroup:{
             type:"assetType.vipr.consistencyGroup",
             required:false
+        },
+         remoteReplicationGroup:{
+            type:"assetType.vipr.remoteReplicationGroup",
+            required:false
         }
     }
 

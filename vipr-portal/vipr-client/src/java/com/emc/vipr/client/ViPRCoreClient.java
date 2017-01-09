@@ -45,6 +45,7 @@ import com.emc.vipr.client.core.ObjectVirtualPools;
 import com.emc.vipr.client.core.Projects;
 import com.emc.vipr.client.core.ProtectionSystems;
 import com.emc.vipr.client.core.QuotaDirectories;
+import com.emc.vipr.client.core.SBSDKRemoteReplicationGroups;
 import com.emc.vipr.client.core.SchedulePolicies;
 import com.emc.vipr.client.core.Site;
 import com.emc.vipr.client.core.StorageDriver;
@@ -261,6 +262,10 @@ public class ViPRCoreClient {
 
     public BlockConsistencyGroups blockConsistencyGroups() {
         return new BlockConsistencyGroups(this, client);
+    }
+
+    public SBSDKRemoteReplicationGroups remoteReplicationGroups() {
+        return new SBSDKRemoteReplicationGroups(this, client);
     }
 
     public BlockMigrations blockMigrations() {

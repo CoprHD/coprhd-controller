@@ -719,7 +719,6 @@ public class FilePolicyService extends TaskResourceService {
             // Policy has to be applied on specified file vpools..
             ArgValidator.checkFieldNotNull(param.getVpoolAssignParams().getAssigntoVpools(), "assign_to_vpools");
             Set<URI> vpoolURIs = param.getVpoolAssignParams().getAssigntoVpools();
-            StringSet assignedResources = new StringSet();
 
             for (URI vpoolURI : vpoolURIs) {
                 ArgValidator.checkFieldUriType(vpoolURI, VirtualPool.class, "vpool");
@@ -741,6 +740,8 @@ public class FilePolicyService extends TaskResourceService {
                     _log.error(errorMsg.toString());
                     throw APIException.badRequests.invalidFilePolicyAssignParam(filepolicy.getFilePolicyName(), errorMsg.toString());
                 }
+
+                vpoolToStorageSystemMap.put(vpoolURI, getAssociatedStorageSystemsByVPool(virtualPool));
             }
             /*
              * filepolicy.setApplyAt(FilePolicyApplyLevel.vpool.name());

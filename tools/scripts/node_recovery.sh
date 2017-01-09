@@ -37,7 +37,7 @@ clean_tracker_info() {
     if [[ "${PRODUCT_VERSION}" == "vipr-2.4."* ]]; then
         echo "delete /config/dbDowntimeTracker/dbsvc" | /opt/storageos/bin/zkCli.sh &>/dev/null
         echo "delete /config/dbDowntimeTracker/geodbsvc" | /opt/storageos/bin/zkCli.sh &>/dev/null
-    elif [[ "${PRODUCT_VERSION}" == "vipr-3.0."* ]]; then
+    elif [[ "${PRODUCT_VERSION}" == "vipr-3."* ]]; then
         siteid=$(sudo /etc/systool --getvdcprops | awk -F '=' '/\<site_my_uuid\>/ {print $2}')
         echo "delete /sites/$siteid/config/dbDowntimeTracker/dbsvc" | /opt/storageos/bin/zkCli.sh &>/dev/null
         echo "delete /sites/$siteid/config/dbDowntimeTracker/geodbsvc" | /opt/storageos/bin/zkCli.sh &>/dev/null

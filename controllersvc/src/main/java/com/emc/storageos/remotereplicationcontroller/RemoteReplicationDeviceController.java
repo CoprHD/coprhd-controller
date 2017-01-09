@@ -25,6 +25,7 @@ import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.BlockSnapshotRestoreCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.VolumeWorkflowCompleter;
 import com.emc.storageos.volumecontroller.impl.externaldevice.RemoteReplicationDevice;
+import com.emc.storageos.volumecontroller.impl.externaldevice.taskcompleters.RemoteReplicationGroupCompleter;
 import com.emc.storageos.volumecontroller.impl.externaldevice.taskcompleters.RemoteReplicationTaskCompleter;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
 import com.emc.storageos.workflow.Workflow;
@@ -80,7 +81,7 @@ public class RemoteReplicationDeviceController implements RemoteReplicationContr
         List<URI> elementURIs = new ArrayList<>();
         elementURIs.add(rrGroup.getSourceSystem());
         elementURIs.add(rrGroup.getTargetSystem());
-        RemoteReplicationTaskCompleter taskCompleter = new RemoteReplicationTaskCompleter(elementURIs, opId);
+        RemoteReplicationGroupCompleter taskCompleter = new RemoteReplicationGroupCompleter(replicationGroup, opId);
 
         // call device
         RemoteReplicationDevice rrDevice = getRemoteReplicationDevice();

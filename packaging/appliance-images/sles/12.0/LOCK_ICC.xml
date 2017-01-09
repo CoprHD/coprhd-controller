@@ -729,7 +729,7 @@
 <target name="symcli-symcli"                       depends="symcli-symcli-7.6.2.1808-8.3_1"/>
 <target name="symcli-symrecover"                   depends="symcli-symrecover-7.6.2.1808-8.3_1"/>
 <target name="symcli-thincore"                     depends="symcli-thincore-7.6.2.1808-8.3_1"/>
-<target name="symcli-wrapper"                      depends="symcli-wrapper-7.6.2.56-2_1"/>
+<target name="symcli-wrapper"                      depends="symcli-wrapper-8.3.0.2252-0.3_1"/>
 <target name="sysfsutils"                          depends="sysfsutils-2.1.0-151.65_1"/>
 <target name="syslog-service"                      depends="syslog-service-2.0-778.1_1"/>
 <target name="syslogd"                             depends="syslogd-1.4.1"/>

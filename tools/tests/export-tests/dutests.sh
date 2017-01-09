@@ -3915,7 +3915,7 @@ test_25() {
 #     should success, the export mask is delted in ViPR DB, and the host is deleted from array
 #
 test_26() {
-    echot "Test 26: Export Group update/delete when multiple export groups for one host"
+    echot "Test 26: Export Group update/delete with one export group per one host"
 
     # Check to make sure we're running Unity only
     if [ "${SS}" != "unity" ]; then

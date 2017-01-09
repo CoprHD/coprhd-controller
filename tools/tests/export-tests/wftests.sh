@@ -1885,6 +1885,10 @@ verify_failures() {
 
     for failure_check in `echo ${FAILURES} | sed 's/:/ /g'`
     do
+        
+    # Remove any trailing &# used to represent specific failure occurrences    
+    failure_check=${failure_check%&*}
+            
 	grep ${failure_check} ${INVOKE_FAILURE_FILE} > /dev/null
 	if [ $? -ne 0 ]; then
 	    secho 
@@ -2434,6 +2438,8 @@ test_5() {
     if [ "${BROCADE}" = "1" ]
     then
 	network_failure_injections="failure_049_BrocadeNetworkSMIS.getWEBMClient"
+    else
+        network_failure_injections="failure_057_MdsNetworkSystemDevice.removeZones"
     fi
 
     storage_failure_injections=""

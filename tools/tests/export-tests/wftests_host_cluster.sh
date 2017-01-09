@@ -27,10 +27,10 @@ create_volume_and_datastore() {
     # tenant volname datastorename varray vpool project vcenter datacenter cluster
     tenant=$1
     volname=$2
-    datastorename=$3
+    datastorename=$3   
 
     virtualarray=`neighborhood list | grep ${4} | awk '{print $3}'`
-    virtualpool=`cos list block | grep ${5} | awk '{print $3}'`
+    virtualpool=`cos list block | grep "${5} " | awk '{print $3}'`
     project=`project list --tenant ${tenant} | grep "${6} " | awk '{print $4}'`
  
     vcenter=`vcenter list ${tenant} | grep ${7} | awk '{print $5}'`
@@ -1413,7 +1413,6 @@ test_cluster_remove_host() {
 }
 
 # Test Cluster Remove Discovered Host
-
 test_cluster_remove_discovered_host() {
     test_name="test_cluster_remove_discovered_host"
     echot "Test cluster_remove_discovered_host Begins"

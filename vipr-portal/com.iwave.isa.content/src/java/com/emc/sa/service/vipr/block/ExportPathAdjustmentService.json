@@ -51,13 +51,14 @@
         },       
         ports:{
             type:"assetType.vipr.exportPathPorts",
-            select: "many"
+            select: "many",
+            required: false
         },
         
         suspendWait:{
             type: "boolean",
             initialValue: "false",
-            required: "false"
+            required: false
         },
 
 	    exportPathPreview:{

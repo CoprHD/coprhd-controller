@@ -56,7 +56,7 @@ public class ExportPathAdjustmentService extends ViPRService {
     @Param(STORAGE_SYSTEM)
     protected URI storageSystem;
     
-    @Param(PORTS)
+    @Param(value = PORTS, required = false)
     protected List<URI> ports;
     
     @Param(SUSPEND_WAIT)

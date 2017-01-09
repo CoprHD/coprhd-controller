@@ -62,6 +62,7 @@ import play.mvc.With;
 import util.EnumOption;
 import util.MessagesUtils;
 import util.StoragePoolUtils;
+import util.StorageSystemTypeUtils;
 import util.StorageSystemUtils;
 import util.StringOption;
 import util.TenantUtils;
@@ -72,6 +73,8 @@ import util.datatable.DataTablesSupport;
 
 import com.emc.storageos.model.RelatedResourceRep;
 import com.emc.storageos.model.pools.StoragePoolRestRep;
+import com.emc.storageos.model.storagesystem.type.StorageSystemTypeList;
+import com.emc.storageos.model.storagesystem.type.StorageSystemTypeRestRep;
 import com.emc.storageos.model.systems.StorageSystemRestRep;
 import com.emc.storageos.model.varray.VirtualArrayRestRep;
 import com.emc.storageos.model.vpool.BlockVirtualPoolRestRep;
@@ -112,6 +115,18 @@ public class BlockVirtualPools extends ViprResourceController {
     private static final String VP_XIO_DIAMOND = "xio-diamond";
     private static final String VP_UNITY_DIAMOND = "unity-diamond";
     private static final String DEFAULT_AUTO_TIER = "Diamond SLO (0.8ms)";
+
+    private static List<String> getSupportAutoTierTypes() {
+        List<String> result = new ArrayList<String>();
+        StorageSystemTypeList types = StorageSystemTypeUtils.getAllStorageSystemTypes(StorageSystemTypeUtils.ALL_TYPE);
+        for (StorageSystemTypeRestRep type : types.getStorageSystemTypes()) {
+            if (type.isNative() || type.getIsSmiProvider() || !type.isSupportAutoTierPolicy()) {
+                continue;
+            }
+            result.add(type.getStorageTypeName());
+        }
+        return result;
+    }
 
     public static void list() {
         VirtualPoolDataTable dataTable = createVirtualPoolDataTable();
@@ -384,6 +399,7 @@ public class BlockVirtualPools extends ViprResourceController {
     }
 
     private static void edit(BlockVirtualPoolForm vpool) {
+        List<String> autoTierTypes = getSupportAutoTierTypes();
         applyFlashParam(vpool, "vpool", "autoTierPolicy", "systemType", "provisioningType", "haVirtualArray", "haVirtualPool",
                 "highAvailability", "remoteProtection");
         List<String> varrays = getFlashList("vpool", "virtualArrays");
@@ -401,7 +417,7 @@ public class BlockVirtualPools extends ViprResourceController {
         copyRenderArgsToAngular();
         angularRenderArgs().put("vpool", vpool);
 
-        render("@edit", vpool);
+        render("@edit", vpool, autoTierTypes);
     }
 
     private static StoragePoolDataTable createStoragePoolDataTable() {

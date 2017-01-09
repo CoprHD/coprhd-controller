@@ -100,7 +100,7 @@ public class RecentOrdersDataTable extends OrderDataTable {
         Logger.info("getDeleteJobStatus: {}", status);
         return status;
     }
-    
+
     public void downloadOrders(String startDate, String endDate, Integer maxDays, String orderIDs) {
         SupportOrderPackageCreator creator = new SupportOrderPackageCreator(BourneUtil.getCatalogClient());
         if (StringUtils.isNotEmpty(orderIDs)) {
@@ -113,7 +113,7 @@ public class RecentOrdersDataTable extends OrderDataTable {
         }
         RenderSupportOrderPackage.renderSupportAuditPackage(creator);
     }
-    
+
     public String getDownloadJobStatus() {
         OrderJobInfo info = OrderUtils.queryOrderJob(JOB_TYPE_DOWNLOAD);
         String status = null; // if the job is done or no job, return null

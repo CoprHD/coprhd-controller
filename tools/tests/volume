@@ -254,6 +254,7 @@ def volume_show(args):
     bourne.connect(args.ip)
     uri = bourne.volume_query(args.name)
     vol_op = bourne.volume_show(uri)
+    print vol_op
     bourne.pretty_print_json(vol_op)
 
 def volume_query(args):

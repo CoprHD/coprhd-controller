@@ -51,12 +51,17 @@ my $hostlist = Opts::get_option('hostlist');
 my $txtplacement = Opts::get_option('txtplacement');
 my $operation = Opts::get_option('operation');
 
-my (@hosts,$content,$host_view,$host_views,$hostname,$datastores,$new_dsname);
+my (@hosts,$content,$host_view,$host_views,$hostname,$datastores,$new_dsname,$configmanager,$rescan);
 
 $content = Vim::get_service_content();
 
 if($content->about->apiType eq 'HostAgent') {
 	$host_view = Vim::find_entity_view(view_type => 'HostSystem');
+	$configmanager = $host_view->configManager;
+        $rescan = Vim::get_view( mo_ref => $configmanager->storageSystem );
+        $rescan->RescanAllHba();
+        $rescan->RescanVmfs();
+
 	if(defined($host_view->summary->managementServerIp)) {
                 Util::disconnect();
                 print "ESX(i) host is currently being managed by a vCenter Server, to properly rename datastore, please connect to vCenter and specify --vihost param!\n";

@@ -1793,6 +1793,17 @@ getdeviceid(){
 
 }
 
+list_db(){
+	id=$1
+	shift
+	cf=$*
+	
+	secho "Querying the required key and value"
+	
+	/opt/storageos/bin/dbcli list -i ${id} ${cf} >results/${item}/${cf}-list.txt
+
+}    
+
 # Verify the failures in the variable were actually hit when the job ran.
 verify_failures() {
     INVOKE_FAILURE_FILE=/opt/storageos/logs/invoke-test-failure.log
@@ -1818,7 +1829,7 @@ verify_failures() {
 test_1(){
   secho "Running Test 1 for datastore creation and rename."
         item=${RANDOM}
-        cfs="ActionableEvent"
+        cfs="ActionableEvent Volume"
         failure="Failed to detect the name change of the Datastore"
         mkdir -p results/${item}
         dsname=${VOLNAME}-${item}
@@ -1844,29 +1855,39 @@ test_1(){
 	discover_vcenter ${VCENTER}
 	
 	#Take a snap of the DB. Now a new event should be created.
-    snap_db 3 ${cfs}
+ 	snap_db 3 ${cfs}
 
+	event_id=$(get_event_urn ${dsname} results/${item}/ActionableEvent-3.txt | grep 'id' | awk '{print $2}' )
+
+        runcmd events approve ${event_id}
+	
+	snap_db 4 ${cfs}
+	
+	list_db ${event_id} "ActionableEvent"
+	affected_resources=$( grep 'affectedResources' results/${item}/ActionableEvent-list.txt | awk '{print $4}' | cut -d '[' -f2 | cut -d ']' -f1 )
+        event_status=$( grep 'eventStatus' results/${item}/ActionableEvent-list.txt |  awk '{print $3}' )
+	
+	secho ${affected_resources}
+	secho ${event_status}
+	list_db ${affected_resources} "Volume"
+	
+	tag=$( grep 'tag' results/${item}/Volume-list.txt )
+	secho $tag
 	#Difference
-    validate_db 2 3 ${cfs}
-       
-	#Test PASS/FAIL
-	if [[ $(grep -A1 'eventCode = 107' results/${item}/ActionableEvent-2.txt) = 'eventStatus = pending' ]]; 
-        then
-                #if found trst PASS
-		echo "PASS"
-                report_results test_1 success
-        else
-                #else test FAIL
-                report_results test_1 $failure
-        fi
-
+    	validate_db 3 4 ${cfs}
+	
+	if [ -z $tag]
+	then echo "FAIL"
+	else
+	echo "PASS"
+	fi       
 }
 
 test_2(){
 
  secho "Running Test 10 for datastore creation and delete."
         item=${RANDOM}
-        cfs="Volume "
+        cfs="ActionableEvent Volume"
         mkdir -p results/${item}
         dsname=${VOLNAME}-${item}
 	catalog_service=CreateVolumeandDatastore
@@ -1893,9 +1914,33 @@ test_2(){
 	sleep 10
 	#Take the snap of the DB.
 	snap_db 3 ${cfs}
+
+	event_id=$(get_event_urn ${dsname} results/${item}/ActionableEvent-3.txt | grep 'id' | awk '{print $2}' )
+
+        runcmd events approve ${event_id}
         
-	#Difference
-	validate_db 2 3 ${cfs}
+	snap_db 4 ${cfs}
+	#echo "I am being executed"
+	
+	list_db ${event_id} "ActionableEvent"
+        affected_resources=$( grep 'affectedResources' results/${item}/ActionableEvent-list.txt | awk '{print $4}' | cut -d '[' -f2 | cut -d ']' -f1 )
+        event_status=$( grep 'eventStatus' results/${item}/ActionableEvent-list.txt |  awk '{print $3}' )
+
+        secho ${affected_resources}
+        secho ${event_status}
+        list_db ${affected_resources} "Volume"
+
+        secho ${event_status}
+	tag=$( grep 'tag' results/${item}/Volume-list.txt )
+        secho $tag
+        #Difference
+        validate_db 3 4 ${cfs}
+
+        if [ -z $tag]
+        then echo "PASS"
+        else
+        echo "FAIL"
+        fi
 
 }
 
@@ -1903,14 +1948,28 @@ test_3(){
 
  secho "Running Test 3 for datastore creation outside vipr "
         item=${RANDOM}
-        cfs="Volume "
+        cfs="ActionableEvent "
         mkdir -p results/${item}
-        
+	dsname=${VOLNAME}-${item}        
+        esxihost=StretchCluster
+
 	#Take the snap of the initial state of the DB.
 	snap_db 1 ${cfs}
 		       	
+	#Create volume for datastore 
+	runcmd volume create ${dsname}-vol ${PROJECT} ${NH} ${VPOOL_BASE} 1GB 
+
+	volume show ${PROJECT}/${dsname}-vol >volshow.txt
+
+	op=$(grep wwn volshow.txt | awk '{print $2}' | cut -d '"' -f2 | tail -1 )
+	n='naa.'
+	wwn=$n$op
+	secho $wwn 
+
+	runcmd export_group create ${PROJECT} ${dsname}-expgrp ${NH} --type Cluster --volspec ${PROJECT}/${dsname}-vol --clusters $TENANT/${esxihost}
+
 	#Run perl script to delete a datastore
-	runcmd  esxcfg-create-datastore.pl --server ${VCENTER_IP} --username ${VCENTER_USER} --password ${VCENTER_PASS} 
+	runcmd  esxcfg-create-datastore.pl --server ${VCENTER_IP} --username ${VCENTER_USER} --password ${VCENTER_PASS} --wwn $wwn --dsname ${dsname} 
         
 	#Take the snap of the DB.
 	snap_db 2 ${cfs}
@@ -1923,9 +1982,32 @@ test_3(){
 	
 	#Take the snap of the DB.
 	snap_db 3 ${cfs}
-        
-	#Difference
-	validate_db 2 3 ${cfs}
+       
+	event_id=$(get_event_urn ${dsname}-vol results/${item}/ActionableEvent-3.txt | grep 'id' | awk '{print $2}' ) 
+	
+	runcmd events approve ${event_id}
+
+	snap_db 4 ${cfs}
+	
+	list_db ${event_id} "ActionableEvent"
+        affected_resources=$( grep 'affectedResources' results/${item}/ActionableEvent-list.txt | awk '{print $4}' | cut -d '[' -f2 | cut -d ']' -f1 )
+        event_status=$( grep 'eventStatus' results/${item}/ActionableEvent-list.txt |  awk '{print $3}' )
+
+        secho ${affected_resources}
+        secho ${event_status}
+        list_db ${affected_resources} "Volume"
+
+        tag=$( grep 'tag' results/${item}/Volume-list.txt )
+        secho $tag
+        #Difference
+        validate_db 3 4 ${cfs}
+
+        if [ -z $tag]
+        then echo "FAIL"
+        else
+        echo "PASS"
+        fi
+
 
 }
 
@@ -1935,6 +2017,20 @@ discover_vcenter() {
     vcenter discover $vcenter
 }
 
+get_event_urn(){
+    F='id: '
+    T=$1
+cat $2 | grep "$F\|$T"                                                                  \
+| sed -e "/$F/ {s/.\+id \(.\+\)/\1/; h; d;}"                      \
+      -e "/$T/ {H;x;s/\(\S\+\)\n\(\S\+\) \(\S\+\).*/\1 timed out at \3 on \2/}"
+
+}
+
+get_event_status(){
+
+awk '/\$1/ {show=1} show; /eventStatus/ {show=0}' "$2" 
+
+}
 cleanup() {
     if [ "${DO_CLEANUP}" = "1" ]; then
 	for id in `export_group list $PROJECT | grep YES | awk '{print $5}'`

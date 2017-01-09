@@ -5588,7 +5588,7 @@ class Bourne:
         }
         self.api('PUT', target, params)
 
-    def datastore_create(self, type, label, cos, filecos, size, mountpoint):
+    def edatastore_create(self, type, label, cos, filecos, size, mountpoint):
 
         if (type == 'commodity'):
             params = dict()
@@ -8541,7 +8541,7 @@ class Bourne:
             'catalog_service'             : catalog_service_id,
         }
 		
-        print "DATASTORE CREATE Params = ", parms
+        #print "DATASTORE CREATE Params = ", parms
         resp = self.api('POST', URI_CATALOG_ORDERS, parms, {})
         print "RESP = ", resp
         self.assert_is_dict(resp)

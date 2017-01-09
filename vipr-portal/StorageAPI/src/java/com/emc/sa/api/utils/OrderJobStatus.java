@@ -33,7 +33,7 @@ public class OrderJobStatus implements CoordinatorSerializable {
     private long startTime = -1;
     private long endTime = -1;
     private List<URI> tids;
-    private List<URI> orderIDs; //orders to be downloaded given by REST API
+    private List<URI> orderIDs = new ArrayList(); //orders to be downloaded given by REST API
 
     //for audit log
     private URI tenantId;

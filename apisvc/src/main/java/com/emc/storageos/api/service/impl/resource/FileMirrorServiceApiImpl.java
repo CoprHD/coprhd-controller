@@ -21,6 +21,7 @@ import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.ContainmentPrefixConstraint;
 import com.emc.storageos.db.client.constraint.PrefixConstraint;
 import com.emc.storageos.db.client.model.DataObject;
+import com.emc.storageos.db.client.model.FilePolicy.FilePolicyApplyLevel;
 import com.emc.storageos.db.client.model.FileShare;
 import com.emc.storageos.db.client.model.FileShare.FileAccessState;
 import com.emc.storageos.db.client.model.NamedURI;
@@ -286,11 +287,14 @@ public class FileMirrorServiceApiImpl extends AbstractFileServiceApiImpl<FileMir
                 targetFsPrefix = cosCapabilities.getFileTargetCopyName();
             }
 
-            if (vpool.getFileReplicationType().equals(FileReplicationType.LOCAL.name())) {
+            if (FileReplicationType.LOCAL.name().equalsIgnoreCase(cosCapabilities.getFileReplicationType())) {
 
                 // Stripping out the special characters like ; /-+!@#$%^&())";:[]{}\ | but allow underscore character _
                 String varrayName = varray.getLabel().replaceAll("[^\\dA-Za-z\\_]", "");
-                fileLabelBuilder = new StringBuilder(targetFsPrefix).append("-target-" + varrayName);
+                fileLabelBuilder = new StringBuilder(targetFsPrefix);
+                if (FilePolicyApplyLevel.file_system.name().equalsIgnoreCase(cosCapabilities.getFileReplicationAppliedAt())) {
+                    fileLabelBuilder.append("-target");
+                }
                 _log.info("Target file system name {}", fileLabelBuilder.toString());
                 targetFileShare = prepareEmptyFileSystem(fileLabelBuilder.toString(), sourceFileShare.getCapacity(),
                         project, recommendation, tenantOrg, varray, vpool, targetVpool, flags, task);
@@ -320,7 +324,10 @@ public class FileMirrorServiceApiImpl extends AbstractFileServiceApiImpl<FileMir
 
                     // Stripping out the special characters like ; /-+!@#$%^&())";:[]{}\ | but allow underscore character _
                     String varrayName = targetVArray.getLabel().replaceAll("[^\\dA-Za-z\\_]", "");
-                    fileLabelBuilder = new StringBuilder(targetFsPrefix).append("-target-" + varrayName);
+                    fileLabelBuilder = new StringBuilder(targetFsPrefix);
+                    if (FilePolicyApplyLevel.file_system.name().equalsIgnoreCase(cosCapabilities.getFileReplicationAppliedAt())) {
+                        fileLabelBuilder.append("-target");
+                    }
                     _log.info("Target file system name {}", fileLabelBuilder.toString());
                     targetFileShare = prepareEmptyFileSystem(fileLabelBuilder.toString(), sourceFileShare.getCapacity(),
                             project, recommendation, tenantOrg, targetVArray, vpool, targetVpool, flags, task);

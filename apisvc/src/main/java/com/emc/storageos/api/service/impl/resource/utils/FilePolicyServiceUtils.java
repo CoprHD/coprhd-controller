@@ -31,6 +31,7 @@ import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.VirtualPool.FileReplicationType;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
+import com.emc.storageos.fileorchestrationcontroller.FileOrchestrationUtils;
 import com.emc.storageos.model.file.policy.FilePolicyScheduleParams;
 import com.emc.storageos.model.file.policy.FileSnapshotPolicyExpireParam;
 import com.emc.storageos.model.file.policy.FileSnapshotPolicyParam;
@@ -270,12 +271,9 @@ public class FilePolicyServiceUtils {
             FileShare fs, VirtualPoolCapabilityValuesWrapper capabilities, StringBuilder errorMsg) {
 
         capabilities.put(VirtualPoolCapabilityValuesWrapper.FILE_REPLICATION_TYPE, FileReplicationType.NONE.name());
-        List<FilePolicy> eligiblePolicies = getAllApplicablePolices(dbClient, vPool.getId(), project.getId());
-        for (FilePolicy policy : eligiblePolicies) {
-            if (FilePolicyType.file_replication.name().equalsIgnoreCase(policy.getFilePolicyType())) {
-                // Update replication policy capabilities!!
-                capabilities.put(VirtualPoolCapabilityValuesWrapper.FILE_REPLICATION_TYPE, policy.getFileReplicationType());
-            }
+        List<FilePolicy> eligiblePolicies = FileOrchestrationUtils.getReplicationPolices(dbClient, vPool, project, fs);
+        if (eligiblePolicies != null && !eligiblePolicies.isEmpty()) {
+            capabilities.put(VirtualPoolCapabilityValuesWrapper.FILE_REPLICATION_TYPE, eligiblePolicies.get(0).getFileReplicationType());
         }
         return true;
     }
@@ -284,61 +282,55 @@ public class FilePolicyServiceUtils {
             FileShare fs,
             VirtualPoolCapabilityValuesWrapper capabilities, StringBuilder errorMsg) {
 
-        Boolean replicationSupported = false;
-        List<FilePolicy> eligiblePolicies = getAllApplicablePolices(dbClient, vPool.getId(), project.getId());
-        for (FilePolicy policy : eligiblePolicies) {
-            if (FilePolicyType.file_replication.name().equalsIgnoreCase(policy.getFilePolicyType())) {
-                if (replicationSupported) {
-                    if (errorMsg == null) {
-                        errorMsg = new StringBuilder();
-                    }
-                    // Single replication policy across vpool/project/fs
-                    errorMsg.append("More than one replication policy could not be applied accross vpool/project/fs");
-                    return false;
+        List<FilePolicy> eligiblePolicies = FileOrchestrationUtils.getReplicationPolices(dbClient, vPool, project, fs);
+        if (eligiblePolicies != null && !eligiblePolicies.isEmpty()) {
+            if (eligiblePolicies.size() > 1) {
+                if (errorMsg == null) {
+                    errorMsg = new StringBuilder();
+                }
+                // Single replication policy across vpool/project/fs
+                errorMsg.append("More than one replication policy could not be applied accross vpool/project/fs");
+                return false;
+            } else {
+                FilePolicy policy = eligiblePolicies.get(0);
+                // Update replication policy capabilities!!
+                capabilities.put(VirtualPoolCapabilityValuesWrapper.FILE_REPLICATION_TYPE, policy.getFileReplicationType());
+                capabilities.put(VirtualPoolCapabilityValuesWrapper.FILE_REPLICATION_COPY_MODE, policy.getFileReplicationCopyMode());
+                if (vPool.getFrRpoType() != null) { // rpo type can be DAYS or HOURS
+                    capabilities.put(VirtualPoolCapabilityValuesWrapper.FILE_REPLICATION_RPO_TYPE, vPool.getFrRpoType());
+                }
+                if (vPool.getFrRpoValue() != null) {
+                    capabilities.put(VirtualPoolCapabilityValuesWrapper.FILE_REPLICATION_RPO_VALUE, vPool.getFrRpoValue());
+                }
+                capabilities.put(VirtualPoolCapabilityValuesWrapper.FILE_REPLICATION_APPLIED_AT, policy.getApplyAt());
 
-                } else {
-                    // Update replication policy capabilities!!
-                    capabilities.put(VirtualPoolCapabilityValuesWrapper.FILE_REPLICATION_TYPE, policy.getFileReplicationType());
-                    capabilities.put(VirtualPoolCapabilityValuesWrapper.FILE_REPLICATION_COPY_MODE, policy.getFileReplicationCopyMode());
-                    if (vPool.getFrRpoType() != null) { // rpo type can be DAYS or HOURS
-                        capabilities.put(VirtualPoolCapabilityValuesWrapper.FILE_REPLICATION_RPO_TYPE, vPool.getFrRpoType());
-                    }
-                    if (vPool.getFrRpoValue() != null) {
-                        capabilities.put(VirtualPoolCapabilityValuesWrapper.FILE_REPLICATION_RPO_VALUE, vPool.getFrRpoValue());
-                    }
-
-                    // Update target varrys for file placement!!
-                    if (policy.getReplicationTopologies() != null && !policy.getReplicationTopologies().isEmpty()) {
-                        Set<String> targetVArrys = new HashSet<String>();
-                        for (String strTopology : policy.getReplicationTopologies()) {
-                            FileReplicationTopology dbTopology = dbClient.queryObject(FileReplicationTopology.class,
-                                    URI.create(strTopology));
-                            if (currVArray.getId().toString().equalsIgnoreCase(dbTopology.getSourceVArray().toString())) {
-                                targetVArrys.addAll(dbTopology.getTargetVArrays());
-                            }
+                // Update target varrys for file placement!!
+                if (policy.getReplicationTopologies() != null && !policy.getReplicationTopologies().isEmpty()) {
+                    Set<String> targetVArrys = new HashSet<String>();
+                    for (String strTopology : policy.getReplicationTopologies()) {
+                        FileReplicationTopology dbTopology = dbClient.queryObject(FileReplicationTopology.class,
+                                URI.create(strTopology));
+                        if (currVArray.getId().toString().equalsIgnoreCase(dbTopology.getSourceVArray().toString())) {
+                            targetVArrys.addAll(dbTopology.getTargetVArrays());
                         }
-                        if (targetVArrys.isEmpty()) {
-                            errorMsg.append("Target VArry is not defined in replication topology for source varry "
-                                    + currVArray.getId().toString());
-                            return false;
-                        }
-                        capabilities.put(VirtualPoolCapabilityValuesWrapper.FILE_REPLICATION_TARGET_VARRAYS,
-                                targetVArrys);
-
-                    } else {
-                        errorMsg.append("Replication Topology is not defined for policy " + policy.getFilePolicyName());
+                    }
+                    if (targetVArrys.isEmpty()) {
+                        errorMsg.append("Target VArry is not defined in replication topology for source varry "
+                                + currVArray.getId().toString());
                         return false;
                     }
-                    capabilities.put(VirtualPoolCapabilityValuesWrapper.FILE_REPLICATION_TARGET_VPOOL, vPool.getId());
+                    capabilities.put(VirtualPoolCapabilityValuesWrapper.FILE_REPLICATION_TARGET_VARRAYS,
+                            targetVArrys);
+                } else {
+                    errorMsg.append("Replication Topology is not defined for policy " + policy.getFilePolicyName());
+                    return false;
                 }
-                replicationSupported = true;
+                return true;
             }
-        }
-
-        if (vPool.getFileReplicationSupported() != replicationSupported) {
+        } else if (vPool.getFileReplicationSupported()) {
             errorMsg.append("No replication policy assigned at any level for virtual pool ").append(vPool.getLabel());
+            return false;
         }
-
         return false;
     }
 

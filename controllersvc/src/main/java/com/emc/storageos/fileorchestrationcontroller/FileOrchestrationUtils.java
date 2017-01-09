@@ -22,6 +22,7 @@ import com.emc.storageos.db.client.model.CifsShareACL;
 import com.emc.storageos.db.client.model.FileExport;
 import com.emc.storageos.db.client.model.FileExportRule;
 import com.emc.storageos.db.client.model.FilePolicy;
+import com.emc.storageos.db.client.model.FilePolicy.FilePolicyType;
 import com.emc.storageos.db.client.model.FileShare;
 import com.emc.storageos.db.client.model.NFSShareACL;
 import com.emc.storageos.db.client.model.PolicyStorageResource;
@@ -414,5 +415,48 @@ public class FileOrchestrationUtils {
             }
         }
         return filePoliciesToCreate;
+    }
+
+    public static Boolean isPolicyAppliedOnStorageSystem(DbClient dbClient, VirtualPool vpool, Project project, FileShare fs,
+            FilePolicy policy) {
+
+        return false;
+    }
+
+    /**
+     * 
+     * @param dbClient
+     * @param project
+     * @param storageSystem
+     * @return
+     */
+    public static List<FilePolicy> getReplicationPolices(DbClient dbClient, VirtualPool vpool, Project project, FileShare fs) {
+        List<FilePolicy> replicationPolicies = new ArrayList<FilePolicy>();
+
+        StringSet filePolicies = new StringSet();
+
+        // vPool policies
+        if (vpool.getFilePolices() != null && !vpool.getFilePolices().isEmpty()) {
+            filePolicies.addAll(vpool.getFilePolices());
+        }
+        // Project policies
+        if (project.getFilePolices() != null && !project.getFilePolices().isEmpty()) {
+            filePolicies.addAll(project.getFilePolices());
+        }
+        // fs policies
+        if (fs.getFilePolicies() != null && !fs.getFilePolicies().isEmpty()) {
+            filePolicies.addAll(fs.getFilePolicies());
+        }
+
+        if (filePolicies != null && !filePolicies.isEmpty()) {
+            for (String strPolicy : filePolicies) {
+                FilePolicy filePolicy = dbClient.queryObject(FilePolicy.class, URIUtil.uri(strPolicy));
+
+                if (FilePolicyType.file_replication.name().equalsIgnoreCase(filePolicy.getFilePolicyType())) {
+                    replicationPolicies.add(filePolicy);
+                }
+            }
+        }
+        return replicationPolicies;
     }
 }

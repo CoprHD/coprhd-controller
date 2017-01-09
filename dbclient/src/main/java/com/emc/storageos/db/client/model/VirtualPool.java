@@ -17,7 +17,9 @@ import javax.xml.bind.annotation.XmlEnumValue;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
+import com.emc.storageos.db.client.model.FilePolicy.FilePolicyType;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
+import com.emc.storageos.model.file.policy.FileProtectionRemoteSettings;
 import com.emc.storageos.model.valid.EnumType;
 
 /**
@@ -1380,6 +1382,34 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
                     settings.put(vPoolUri, new ArrayList<String>());
                 }
                 settings.get(vPoolUri).add(remoteSettings.getCopyMode());
+            }
+        }
+        return settings;
+    }
+
+    public static Map<String, FileProtectionRemoteSettings> getFileProtectionRemoteSettiings(
+            URI defaultVpool, final DbClient dbClient) {
+        Map<String, FileProtectionRemoteSettings> settings = new HashMap<String, FileProtectionRemoteSettings>();
+
+        VirtualPool vpool = dbClient.queryObject(VirtualPool.class, defaultVpool);
+        if (vpool != null && vpool.getFileReplicationSupported()) {
+            // Find is there any replication policy attached to vpool
+            FilePolicy replPolicy = null;
+            StringSet policies = vpool.getFilePolices();
+            for (String strPolicy : policies) {
+                FilePolicy policy = dbClient.queryObject(FilePolicy.class, URI.create(strPolicy));
+                if (FilePolicyType.file_replication.name().equalsIgnoreCase(policy.getFilePolicyType())) {
+                    replPolicy = policy;
+                    break;
+                }
+            }
+            if (replPolicy != null) {
+                // Fill the replication type and copy mode!!
+                FileProtectionRemoteSettings fileReplSettings = new FileProtectionRemoteSettings();
+                fileReplSettings.setReplicationCopyMode(replPolicy.getFileReplicationCopyMode());
+                fileReplSettings.setReplicationType(replPolicy.getFileReplicationType());
+                fileReplSettings.setTargetVirtualPool(defaultVpool.toString());
+                settings.put(defaultVpool.toString(), fileReplSettings);
             }
         }
         return settings;

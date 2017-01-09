@@ -35,6 +35,7 @@ import com.emc.storageos.db.client.model.FilePolicy;
 import com.emc.storageos.db.client.model.FilePolicy.FilePolicyApplyLevel;
 import com.emc.storageos.db.client.model.FilePolicy.FilePolicyType;
 import com.emc.storageos.db.client.model.FileShare;
+import com.emc.storageos.db.client.model.FileShare.PersonalityTypes;
 import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.OpStatusMap;
 import com.emc.storageos.db.client.model.Operation;
@@ -902,22 +903,24 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             args.setFsNativeGuid(args.getFsMountPath());
             args.setFsNativeId(args.getFsMountPath());
             args.setFsPath(args.getFsMountPath());
-            // create directory for the file share
-            isi.createDir(args.getFsMountPath(), true);
+            if (doCreateFileSystemNeeded(args)) {
+                // create directory for the file share
+                isi.createDir(args.getFsMountPath(), true);
 
-            Long softGrace = null;
-            if (args.getFsSoftGracePeriod() != null) {
-                softGrace = Long.valueOf(args.getFsSoftGracePeriod());
+                Long softGrace = null;
+                if (args.getFsSoftGracePeriod() != null) {
+                    softGrace = Long.valueOf(args.getFsSoftGracePeriod());
+                }
+
+                // set quota - save the quota id to extensions
+                String qid = createQuotaWithThreshold(args.getFsMountPath(), args.getFsCapacity(), args.getFsSoftLimit(),
+                        args.getFsNotificationLimit(), softGrace, null, isi);
+
+                if (args.getFsExtensions() == null) {
+                    args.initFsExtensions();
+                }
+                args.getFsExtensions().put(QUOTA, qid);
             }
-
-            // set quota - save the quota id to extensions
-            String qid = createQuotaWithThreshold(args.getFsMountPath(), args.getFsCapacity(), args.getFsSoftLimit(),
-                    args.getFsNotificationLimit(), softGrace, null, isi);
-
-            if (args.getFsExtensions() == null) {
-                args.initFsExtensions();
-            }
-            args.getFsExtensions().put(QUOTA, qid);
 
             // set protection level
             // String protection = args.getFSProtectionLevel();
@@ -939,6 +942,23 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
 
             return BiosCommandResult.createErrorResult(e);
         }
+    }
+
+    private boolean isReplicationPolicyApplied(FileDeviceInputOutput args, FileShare sourceFS) {
+
+        return false;
+    }
+
+    private boolean doCreateFileSystemNeeded(FileDeviceInputOutput args) {
+
+        FileShare fs = args.getFs();
+        if (fs.getPersonality() != null && fs.getPersonality().equalsIgnoreCase(PersonalityTypes.TARGET.name())) {
+            FileShare sourceFS = _dbClient.queryObject(FileShare.class, fs.getParentFileShare().getURI());
+            if (isReplicationPolicyApplied(args, sourceFS)) {
+                return false;
+            }
+        }
+        return true;
     }
 
     private FileDeviceInputOutput prepareFileDeviceInputOutput(boolean forceDelete, URI uri, String opId) {

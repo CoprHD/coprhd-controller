@@ -50,6 +50,7 @@ public class VirtualPoolCapabilityValuesWrapper implements Serializable {
     public static final String FILE_REPLICATION_TARGET_VARRAYS = "fileReplicationTargetVarrays";
     public static final String FILE_REPLICATION_TARGET_VPOOL = "fileReplicationTargetVPool";
     public static final String FILE_REPLICATION_TYPE = "fileReplicationType";
+    public static final String FILE_REPLICATION_APPLIED_AT = "fileReplicationAppliedAt";
 
     // Not vpool params, but hints for volume descriptor creation
     // TODO: Move to ControllerOperationValuesWrapper
@@ -224,6 +225,10 @@ public class VirtualPoolCapabilityValuesWrapper implements Serializable {
             _vpoolCapabilities.put(FILE_REPLICATION_TYPE, capabilities.getFileReplicationType());
         }
 
+        if (capabilities.contains(FILE_REPLICATION_APPLIED_AT)) {
+            _vpoolCapabilities.put(FILE_REPLICATION_APPLIED_AT, capabilities.getFileReplicationAppliedAt());
+        }
+
         if (capabilities.contains(COMPUTE)) {
             _vpoolCapabilities.put(COMPUTE, capabilities.getCompute());
         }
@@ -327,6 +332,11 @@ public class VirtualPoolCapabilityValuesWrapper implements Serializable {
 
     public String getFileReplicationType() {
         Object value = _vpoolCapabilities.get(FILE_REPLICATION_TYPE);
+        return value != null ? (String) value : null;
+    }
+
+    public String getFileReplicationAppliedAt() {
+        Object value = _vpoolCapabilities.get(FILE_REPLICATION_APPLIED_AT);
         return value != null ? (String) value : null;
     }
 

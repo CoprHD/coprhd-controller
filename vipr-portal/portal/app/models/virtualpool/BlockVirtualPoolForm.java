@@ -662,6 +662,16 @@ public class BlockVirtualPoolForm extends VirtualPoolCommonForm<BlockVirtualPool
         return new ConnectedBlockVirtualPoolsCall(uris(haVirtualArray));
     }
 
+    public ConnectedVirtualArraysCall remoteReplicationVirtualArrays() {
+        boolean isRemoteReplication = ProtectionSystemTypes.isRemoteReplication(remoteProtection);
+        List<URI> varrayIds = isRemoteReplication ? uris(virtualArrays) : uris();
+        return new ConnectedVirtualArraysCall(varrayIds, ConnectivityTypes.REMOTE_REPLICATION);
+    }
+
+    public ConnectedBlockVirtualPoolsCall remoteReplicationVirtualPools() {
+        return new ConnectedBlockVirtualPoolsCall(uris(haVirtualArray));
+    }
+
     public AutoTierPolicyNamesCall autoTierPolicyNames() {
         boolean isVnx = StorageSystemTypes.isVnxBlock(systemType) || StorageSystemTypes.isVNXe(systemType) ||
                     StorageSystemTypes.isUnity(systemType);

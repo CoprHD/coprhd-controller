@@ -32,10 +32,10 @@ public class RemoteReplicationForm {
         Validation.valid(formName, this);
     }
 
-    public void load(VirtualPoolRemoteReplicationSettingsParam copy) {
-        virtualArray = asString(copy.getVarray());
+    public void load(VirtualPoolRemoteReplicationSettingsParam param) {
+        virtualArray = asString(param.getVarray());
         virtualArrayName = name(VirtualArrayUtils.getVirtualArray(virtualArray));
-        virtualPool = asString(copy.getVpool());
+        virtualPool = asString(param.getVpool());
         virtualPoolName = name(VirtualPoolUtils.getBlockVirtualPool(virtualPool));
     }
 

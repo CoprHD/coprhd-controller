@@ -542,7 +542,7 @@ public class BlockVirtualPools extends ViprResourceController {
         }
         vpool.deserialize();
         List<StringOption> actualOptions = Lists.newArrayList();
-        List<VirtualArrayRestRep> virtualArrays = await(vpool.srdfVirtualArrays().asPromise());
+        List<VirtualArrayRestRep> virtualArrays = await(vpool.remoteReplicationVirtualArrays().asPromise());
         for (StringOption option : dataObjectOptions(virtualArrays)) {
             if (!varrayAlreadyInRemoteReplication(option.id, vpool.remoteReplications)) {
                 actualOptions.add(option);
@@ -831,6 +831,8 @@ public class BlockVirtualPools extends ViprResourceController {
         Promise<List<BlockVirtualPoolRestRep>> sourceJournalVirtualPools = vpool.sourceRpJournalVirtualPools().asPromise();
         Promise<List<BlockVirtualPoolRestRep>> haJournalVirtualPools = vpool.haRpJournalVirtualPools().asPromise();
         Promise<List<VirtualArrayRestRep>> srdfVirtualArrays = vpool.srdfVirtualArrays().asPromise();
+        Promise<List<VirtualArrayRestRep>> remoteReplicationVirtualArrays = vpool.remoteReplicationVirtualArrays().asPromise();
+        Promise<List<BlockVirtualPoolRestRep>> remoteReplicationVirtualPools = vpool.remoteReplicationVirtualPools().asPromise();
 
         if (TenantUtils.canReadAllTenants() && VirtualPoolUtils.canUpdateACLs()) {
             addDataObjectOptions("tenantOptions", new TenantsCall().asPromise());
@@ -848,6 +850,8 @@ public class BlockVirtualPools extends ViprResourceController {
         addDataObjectOptions("vpoolHAJournalVirtualPoolOptions", haJournalVirtualPools);
         addDataObjectOptions("srdfVirtualArrayOptions", srdfVirtualArrays);
         addDataObjectOptions("srdfVirtualPoolOptions", connectedVirtualPools);
+        addDataObjectOptions("remoteReplicationVirtualArrayOptions", remoteReplicationVirtualArrays);
+        addDataObjectOptions("remoteReplicationVirtualPoolOptions", remoteReplicationVirtualPools);
     }
 
     private static Map<String, String> allFlashVirtualPool() {

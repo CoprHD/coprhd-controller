@@ -6,9 +6,9 @@ package models;
 
 import java.util.List;
 
-import com.google.common.collect.Lists;
-
 import util.StringOption;
+
+import com.google.common.collect.Lists;
 
 public class ConnectivityTypes {
     public static final String RECOVER_POINT = "rp";
@@ -16,6 +16,7 @@ public class ConnectivityTypes {
     public static final String VPLEX = "vplex";
     public static final String RP_VPLEX = "rpvplex";
     public static final String UNSUPPORTED = "unsupported";
+    public static final String REMOTE_REPLICATION = "remotereplication";
 
     public static StringOption option(String type) {
         return new StringOption(type, getDisplayValue(type));

@@ -2611,49 +2611,44 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                     && isSnapshotScheduleExistsOnIsilon(isiSnapshotPolicies, path)) {
                 _log.info("File Policy {} is already applied and running.", filePolicy.toString());
                 return BiosCommandResult.createSuccessfulResult();
-            } else {
-                String snapshotScheduleName = "";
-                if (filePolicy.getApplyAt().equals(FilePolicyApplyLevel.file_system.name())) {
-                    snapshotScheduleName = fs.getLabel() + "_" + filePolicy.getFilePolicyName();
-                } else {
-                    snapshotScheduleName = filePolicy.getApplyAt() + "_" + filePolicy.getFilePolicyName();
-                }
 
+            } else {
+                String snapshotScheduleName = generateNameForSnapshotPolicy(filePolicy, fs, args);
                 String pattern = snapshotScheduleName + "_%Y-%m-%d_%H-%M";
                 String ScheduleValue = getIsilonPolicySchedule(filePolicy);
                 Integer expireValue = getIsilonSnapshotExpireValue(filePolicy);
                 _log.info("File Policy : {} creation started", filePolicy.toString());
                 try {
-                    String scheduleId = isi.createSnapshotSchedule(snapshotScheduleName, path, ScheduleValue, pattern, expireValue);
+                    isi.createSnapshotSchedule(snapshotScheduleName, path, ScheduleValue, pattern, expireValue);
 
-                    if (scheduleId != null) {
-                        PolicyStorageResource policyStorageResource = new PolicyStorageResource();
-                        policyStorageResource.setId(URIUtil.createId(PolicyStorageResource.class));
-                        policyStorageResource.setFilePolicyId(filePolicy.getId());
-                        policyStorageResource.setStorageSystem(storageObj.getId());
-                        policyStorageResource.setPolicyNativeId(snapshotScheduleName);
-                        setPolicyStorageAppliedAt(filePolicy, args, policyStorageResource);
-                        _dbClient.createObject(policyStorageResource);
+                    PolicyStorageResource policyStorageResource = new PolicyStorageResource();
+                    policyStorageResource.setId(URIUtil.createId(PolicyStorageResource.class));
+                    policyStorageResource.setFilePolicyId(filePolicy.getId());
+                    policyStorageResource.setStorageSystem(storageObj.getId());
+                    policyStorageResource.setPolicyNativeId(snapshotScheduleName);
+                    setPolicyStorageAppliedAt(filePolicy, args, policyStorageResource);
 
-                        StringSet policyStrgRes = filePolicy.getPolicyStorageResources();
-                        if (policyStrgRes == null) {
-                            policyStrgRes = new StringSet();
-                        }
-                        policyStrgRes.add(policyStorageResource.getId().toString());
-                        filePolicy.setPolicyStorageResources(policyStrgRes);
+                    _dbClient.createObject(policyStorageResource);
 
-                        if (filePolicy.getApplyAt().equals(FilePolicyApplyLevel.file_system.name())) {
-                            StringSet assignedResources = filePolicy.getAssignedResources();
-                            if (assignedResources == null) {
-                                assignedResources = new StringSet();
-                            }
-                            assignedResources.add(fs.getId().toString());
-                            filePolicy.setAssignedResources(assignedResources);
-                        }
-
-                        _dbClient.updateObject(filePolicy);
-                        return BiosCommandResult.createSuccessfulResult();
+                    StringSet policyStrgRes = filePolicy.getPolicyStorageResources();
+                    if (policyStrgRes == null) {
+                        policyStrgRes = new StringSet();
                     }
+                    policyStrgRes.add(policyStorageResource.getId().toString());
+                    filePolicy.setPolicyStorageResources(policyStrgRes);
+
+                    if (filePolicy.getApplyAt().equals(FilePolicyApplyLevel.file_system.name())) {
+                        StringSet assignedResources = filePolicy.getAssignedResources();
+                        if (assignedResources == null) {
+                            assignedResources = new StringSet();
+                        }
+                        assignedResources.add(fs.getId().toString());
+                        filePolicy.setAssignedResources(assignedResources);
+                    }
+
+                    _dbClient.updateObject(filePolicy);
+                    return BiosCommandResult.createSuccessfulResult();
+
                 } catch (IsilonException e) {
                     _log.error("create file policy failed.", e);
                     return BiosCommandResult.createErrorResult(e);
@@ -2691,11 +2686,6 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                 } else {
                     _log.info("snapshot schedule: {} doesn't exists on storage system", filePolicy.toString());
                 }
-                StringSet assignedResources = filePolicy.getPolicyStorageResources();
-                assignedResources.remove(policyResource.getId().toString());
-                filePolicy.setPolicyStorageResources(assignedResources);
-                _dbClient.updateObject(filePolicy);
-                _dbClient.markForDeletion(policyResource);
                 return BiosCommandResult.createSuccessfulResult();
             }
             return BiosCommandResult.createSuccessfulResult();
@@ -2740,6 +2730,25 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                 _log.error("Not a valid policy apply level: " + applyLevel);
         }
         return policyPath;
+    }
+
+    private String generateNameForSnapshotPolicy(FilePolicy filePolicy, FileShare fileShare, FileDeviceInputOutput args) {
+        String policyName = "";
+        FilePolicyApplyLevel applyLevel = FilePolicyApplyLevel.valueOf(filePolicy.getApplyAt());
+        switch (applyLevel) {
+            case vpool:
+                policyName = args.getVPoolNameWithNoSpecialCharacters() + "_" + filePolicy.getFilePolicyName();
+                break;
+            case project:
+                policyName = args.getProjectNameWithNoSpecialCharacters() + "_" + filePolicy.getFilePolicyName();
+                break;
+            case file_system:
+                policyName = fileShare.getLabel() + "_" + filePolicy.getFilePolicyName();
+                break;
+            default:
+                _log.error("Not a valid policy apply level: " + applyLevel);
+        }
+        return policyName;
     }
 
     private static boolean isSnapshotScheduleExistsOnIsilon(ArrayList<IsilonSnapshotSchedule> isiSnapshotPolicies, String path) {

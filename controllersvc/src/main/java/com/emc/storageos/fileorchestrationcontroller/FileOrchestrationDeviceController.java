@@ -32,6 +32,7 @@ import com.emc.storageos.db.client.model.SMBShareMap;
 import com.emc.storageos.db.client.model.Snapshot;
 import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StorageSystem;
+import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.filereplicationcontroller.FileReplicationDeviceController;
@@ -1737,7 +1738,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
         }
 
         Project project = s_dbClient.queryObject(Project.class, sourceFS.getProject());
-        List<FilePolicy> fileProjectPolicies = FileOrchestrationUtils.getAllProjectLevelPolices(s_dbClient, project,
+        List<FilePolicy> fileProjectPolicies = FileOrchestrationUtils.getAllProjectLevelPolices(s_dbClient, project, vpool,
                 sourceFS.getStorageDevice());
 
         if (fileProjectPolicies != null && !fileProjectPolicies.isEmpty()) {
@@ -1761,19 +1762,31 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
         try {
             Workflow workflow = _workflowService.getNewWorkflow(this, UNASSIGN_FILE_POLICY_WF_NAME, false, taskId, completer);
             s_logger.info("Generating steps for unassigning file policy {} from resources", policy);
-            for (URI uri : unassignFrom) {
-                Set<String> policyResources = filePolicy.getPolicyStorageResources();
-                for (String policyResource : policyResources) {
-                    PolicyStorageResource policyStorage = s_dbClient.queryObject(PolicyStorageResource.class, URI.create(policyResource));
-                    if (policyStorage.getAppliedAt().toString().equals(uri.toString())) {
-                        StorageSystem storageSystem = s_dbClient.queryObject(StorageSystem.class, policyStorage.getStorageSystem());
-                        String stepId = workflow.createStepId();
-                        String stepDes = String.format("unassigning file policy : %s,  from resource: %s,", filePolicy.getId(), uri);
-                        Object[] args = new Object[] { storageSystem.getId(), policy, policyStorage.getId() };
-                        _fileDeviceController.createMethod(workflow, null, UNASSIGN_FILE_POLICY_METHOD, stepId, stepDes,
-                                storageSystem.getId(), args);
+            Set<String> policyResources = filePolicy.getPolicyStorageResources();
+            if (policyResources != null && !policyResources.isEmpty()) {
+                for (URI uri : unassignFrom) {
+                    for (String policyResource : policyResources) {
+                        PolicyStorageResource policyStorage = s_dbClient.queryObject(PolicyStorageResource.class,
+                                URI.create(policyResource));
+                        if (policyStorage.getAppliedAt().toString().equals(uri.toString())) {
+                            StorageSystem storageSystem = s_dbClient.queryObject(StorageSystem.class, policyStorage.getStorageSystem());
+                            String stepId = workflow.createStepId();
+                            String stepDes = String.format("unassigning file policy : %s,  from resource: %s,", filePolicy.getId(), uri);
+                            Object[] args = new Object[] { storageSystem.getId(), policy, policyStorage.getId() };
+                            _fileDeviceController.createMethod(workflow, null, UNASSIGN_FILE_POLICY_METHOD, stepId, stepDes,
+                                    storageSystem.getId(), args);
+                        }
                     }
                 }
+            } else {
+                s_logger.info("file policy {} is not applied to any storage system", policy);
+                StringSet assignedResources = filePolicy.getAssignedResources();
+                for (URI uri : unassignFrom) {
+                    assignedResources.remove(uri.toString());
+                }
+                s_dbClient.updateObject(filePolicy);
+                s_logger.info("Unassigning file policy: {} from resources: {} finished successfully", policy.toString(),
+                        unassignFrom.toString());
             }
             String successMessage = String.format("unassigning file policy : %s,  from resources: %s finsihed successfully,",
                     filePolicy.getId(), unassignFrom);

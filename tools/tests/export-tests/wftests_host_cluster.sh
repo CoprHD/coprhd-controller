@@ -1526,21 +1526,7 @@ test_cluster_remove_discovered_host() {
                 discover_vcenter ${vcenter}
                 sleep 20
                 EVENT_ID=$(get_pending_event)
-                approve_pending_event $EVENT_ID
-                            
-                # Vcenter call to remove host2 from cluster1
-                # NOTE: Temporarily move host2 to cluster2 to avoid 
-                # validation errors of an empty cluster in vcenter
-                remove_host_from_cluster $host2 $cluster1
-                discover_vcenter ${vcenter}            
-                sleep 20
-                EVENT_ID=$(get_pending_event)
-                          
-                add_host_to_cluster $host2 $cluster2
-                discover_vcenter ${vcenter}            
-                sleep 20
-                EVENT_ID=$(get_pending_event)
-                
+                                
                 # Verify event
                 if [ -z "$EVENT_ID" ]; then
                     echo "+++ FAILED. Expected an event! Re-add hosts to cluster..."
@@ -1582,6 +1568,16 @@ test_cluster_remove_discovered_host() {
                         approve_pending_event $EVENT_ID
                     fi 
                 fi
+                
+                # Vcenter call to remove host2 from cluster1
+                # NOTE: Temporarily move host2 to cluster2 to avoid 
+                # validation errors of an empty cluster in vcenter
+                remove_host_from_cluster $host2 $cluster1                
+                add_host_to_cluster $host2 $cluster2
+                discover_vcenter ${vcenter}            
+                sleep 20
+                EVENT_ID=$(get_pending_event)
+                approve_pending_event $EVENT_ID
                 
                 # Ensure the export groups have been removed
                 for eg in ${exportgroups}

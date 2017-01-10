@@ -14,18 +14,14 @@ import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.emc.storageos.customconfigcontroller.CustomConfigConstants;
-import com.emc.storageos.customconfigcontroller.impl.CustomConfigHandler;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
-import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.FCEndpoint;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
-import com.emc.storageos.volumecontroller.impl.plugins.metering.smis.processor.PortMetricsProcessor;
 
 public class PlacementUtils {
     protected static final Logger log = LoggerFactory.getLogger(PlacementUtils.class);
@@ -61,6 +57,7 @@ public class PlacementUtils {
             for (Initiator initiator : initiators) {
                 String switchName = PlacementUtils.getSwitchName(initiator.getInitiatorPort(), dbClient);
                 if (switchName == null || switchName.isEmpty()) {
+                    log.info(String.format("The initiator %s does not have switch info", initiator.getInitiatorPort()));
                     switchName = NullColumnValueGetter.getNullStr();
                 }
                 List<Initiator> inits = switchInitiatorMap.get(switchName);
@@ -148,17 +145,17 @@ public class PlacementUtils {
      * @param system storage system
      * @param initiatorSwitchMap OUTPUT map of initiator to switch name
      * @param switchStoragePortsMap OUPTUT map of switch name to list of storage ports
+     * @param portSwitchMap OUTPUT map of port to switch name
      */
     public static void getSwitchNameForInititaorsStoragePorts(List<Initiator> initiators, 
             Map<URI, List<StoragePort>> storagePorts, DbClient dbClient, StorageSystem system, 
             Map<URI, String> initiatorSwitchMap,
-            Map<URI, Map<String, List<StoragePort>>> switchStoragePortsByNetMap) {
+            Map<URI, Map<String, List<StoragePort>>> switchStoragePortsByNetMap,
+            Map<URI, String> portSwitchMap) {
         boolean isSwitchAffinityEnabled = BlockStorageScheduler.isSwitchAffinityAllocationEnabled(system.getSystemType());
         if (!isSwitchAffinityEnabled) {
             return;
         }
-        initiatorSwitchMap = new HashMap<URI, String>();
-        switchStoragePortsByNetMap = new HashMap<URI, Map<String, List<StoragePort>>>();
         for (Initiator initiator : initiators) {
             String switchName = PlacementUtils.getSwitchName(initiator.getInitiatorPort(), dbClient);
             if (switchName == null || switchName.isEmpty()) {
@@ -180,6 +177,7 @@ public class PlacementUtils {
                 if (switchName == null || switchName.isEmpty()) {
                     switchName = NullColumnValueGetter.getNullStr();
                 }
+                portSwitchMap.put(port.getId(), switchName);
                 List<StoragePort> portsInMap = switchPortMap.get(switchName);
                 if (portsInMap == null) {
                     portsInMap = new ArrayList<>();

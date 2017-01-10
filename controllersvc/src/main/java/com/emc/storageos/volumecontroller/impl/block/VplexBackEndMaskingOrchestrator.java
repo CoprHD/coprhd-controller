@@ -119,13 +119,16 @@ public interface VplexBackEndMaskingOrchestrator extends MaskingOrchestrator {
      *            -- Map of initiator URI to switch name
      * @param switchstoragePortsMap
      *            -- Map of switch name to list of storage ports by network URI
+     * @param portSwitchMap
+     *            -- Map of port URI to switch name
      * @return StringSetMap -- the zoningMap entry that should be used for the ExportMask.
      */
     StringSetMap configureZoning(Map<URI, List<List<StoragePort>>> portGroup,
             Map<String, Map<URI, Set<Initiator>>> initiatorGroup,
             Map<URI, NetworkLite> networkMap, StoragePortsAssigner assigner,
             Map<URI, String> initiatorSwitchMap,
-            Map<URI, Map<String, List<StoragePort>>> switchStoragePortsMap);
+            Map<URI, Map<String, List<StoragePort>>> switchStoragePortsMap,
+            Map<URI, String> portSwitchMap);
 
     /**
      * Return a Workflow method for createOrAddVolumesToExportMask.

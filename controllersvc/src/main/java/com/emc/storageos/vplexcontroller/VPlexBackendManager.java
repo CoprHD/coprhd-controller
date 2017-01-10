@@ -1048,11 +1048,12 @@ public class VPlexBackendManager {
                 initiatorGroups.size(), switchToPortNumber, null);
 
         // Now generate the Masking Views that will be needed.
-        Map<URI, String> initiatorSwitchMap = null;
-        Map<URI, Map<String, List<StoragePort>>> switchStoragePortsMap = null;
+        Map<URI, String> initiatorSwitchMap = new HashMap<URI, String>();
+        Map<URI, Map<String, List<StoragePort>>> switchStoragePortsMap = new HashMap<URI, Map<String, List<StoragePort>>>();
         Map<URI, List<StoragePort>> storageports = getStoragePorts(portGroups);
+        Map<URI, String> portSwitchMap = new HashMap<URI, String>();
         PlacementUtils.getSwitchNameForInititaorsStoragePorts(_initiators, storageports, _dbClient, array, 
-                initiatorSwitchMap, switchStoragePortsMap);
+                initiatorSwitchMap, switchStoragePortsMap, portSwitchMap);
         Map<ExportMask, ExportGroup> exportMasksMap = new HashMap<ExportMask, ExportGroup>();
         Iterator<Map<String, Map<URI, Set<Initiator>>>> igIterator = initiatorGroups.iterator();
         // get the assigner needed - it is with a pre-zoned ports assigner or the default
@@ -1065,7 +1066,7 @@ public class VPlexBackendManager {
             }
             Map<String, Map<URI, Set<Initiator>>> initiatorGroup = igIterator.next();
             StringSetMap zoningMap = orca.configureZoning(portGroup, initiatorGroup, _networkMap, assigner, 
-                    initiatorSwitchMap, switchStoragePortsMap);
+                    initiatorSwitchMap, switchStoragePortsMap, portSwitchMap);
             ExportMask exportMask = generateExportMask(array.getId(), maskName, portGroup, initiatorGroup, zoningMap);
 
             // Set a flag indicating that we do not want to remove zoningMap entries

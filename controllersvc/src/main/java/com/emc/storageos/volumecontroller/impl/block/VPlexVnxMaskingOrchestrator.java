@@ -222,7 +222,8 @@ public class VPlexVnxMaskingOrchestrator extends VnxMaskingOrchestrator implemen
             Map<String, Map<URI, Set<Initiator>>> initiatorGroup,
             Map<URI, NetworkLite> networkMap, StoragePortsAssigner assigner,
             Map<URI, String> initiatorSwitchMap,
-            Map<URI, Map<String, List<StoragePort>>> switchStoragePortsMap) {
+            Map<URI, Map<String, List<StoragePort>>> switchStoragePortsMap,
+            Map<URI, String> portSwitchMap) {
         StringSetMap zoningMap = new StringSetMap();
 
         // Set up a map to track port usage so that we can use all ports more or less equally.
@@ -294,9 +295,9 @@ public class VPlexVnxMaskingOrchestrator extends VnxMaskingOrchestrator implemen
                         bPortName = portB.getPortName();
                         ports.add(portB.getId().toString());
                     }
-                    _log.info(String.format("%s %s   %s -> %s  %s",
-                            director, net.getLabel(), initiator.getInitiatorPort(),
-                            aPortName, bPortName));
+                    _log.info(String.format("%s %s   %s %s -> %s  %s %s %s",
+                            director, net.getLabel(), initiator.getInitiatorPort(), initiatorSwitchMap.get(initiator.getId()), 
+                            aPortName, portSwitchMap.get(portA.getId()), bPortName, portSwitchMap.get(portB.getId())));
                     zoningMap.put(initiator.getId().toString(), ports);
                 }
             }

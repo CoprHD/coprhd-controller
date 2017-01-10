@@ -2298,6 +2298,7 @@ public class BlockStorageScheduler {
         } catch (Exception e) {
             _log.warn("exception while getting custom config value", e);
         }
+        _log.info("Switch affinity is " + switchLocalityAllocationEnabled);
         return switchLocalityAllocationEnabled;
     }
     

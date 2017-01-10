@@ -346,9 +346,10 @@ public class VPlexVmaxMaskingOrchestrator extends VmaxMaskingOrchestrator
             Map<String, Map<URI, Set<Initiator>>> initiatorGroup,
             Map<URI, NetworkLite> networkMap, StoragePortsAssigner assigner,
             Map<URI, String> initiatorSwitchMap,
-            Map<URI, Map<String, List<StoragePort>>> switchStoragePortsMap) {
+            Map<URI, Map<String, List<StoragePort>>> switchStoragePortsMap,
+            Map<URI, String> portSwitchMap) {
         return VPlexBackEndOrchestratorUtil.configureZoning(portGroup, initiatorGroup, networkMap, assigner, 
-                initiatorSwitchMap, switchStoragePortsMap);
+                initiatorSwitchMap, switchStoragePortsMap, portSwitchMap);
     }
 
     @Override

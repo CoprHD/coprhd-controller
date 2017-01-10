@@ -462,7 +462,8 @@ public class VplexXtremIOMaskingOrchestrator extends XtremIOMaskingOrchestrator 
     public StringSetMap configureZoning(Map<URI, List<List<StoragePort>>> portGroup,
             Map<String, Map<URI, Set<Initiator>>> initiatorGroup, Map<URI, NetworkLite> networkMap, 
             StoragePortsAssigner assigner, Map<URI, String> initiatorSwitchMap,
-            Map<URI, Map<String, List<StoragePort>>> switchStoragePortsMap) {
+            Map<URI, Map<String, List<StoragePort>>> switchStoragePortsMap,
+            Map<URI, String> portSwitchMap) {
 
         StringSetMap zoningMap = new StringSetMap();
         // Set up a map to track port usage so that we can use all ports more or less equally.
@@ -538,9 +539,9 @@ public class VplexXtremIOMaskingOrchestrator extends XtremIOMaskingOrchestrator 
                     StoragePort storagePort = VPlexBackEndOrchestratorUtil.assignPortToInitiator(assigner,
                             assignablePorts, net, initiator, portUsage, null);
                     if (storagePort != null) {
-                        _log.info(String.format("%s %s   %s -> %s  %s", director, net.getLabel(),
-                                initiator.getInitiatorPort(), storagePort.getPortNetworkId(),
-                                storagePort.getPortName()));
+                        _log.info(String.format("%s %s   %s %s -> %s  %s %s", director, net.getLabel(),
+                                initiator.getInitiatorPort(), initiatorSwitchMap.get(initiator.getId()), storagePort.getPortNetworkId(),
+                                storagePort.getPortName(), portSwitchMap.get(storagePort.getId())));
                         StringSet ports = new StringSet();
                         ports.add(storagePort.getId().toString());
                         zoningMap.put(initiator.getId().toString(), ports);

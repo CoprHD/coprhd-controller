@@ -332,7 +332,7 @@ public class VPlexXtremIOMaskingOrchestratorTest extends StoragePortsAllocatorTe
             }
             Map<String, Map<URI, Set<Initiator>>> initiatorGroup = igIterator.next();
             StoragePortsAssigner assigner = StoragePortsAssignerFactory.getAssignerForZones("vmax", null);
-            StringSetMap zoningMap = orca.configureZoning(portGroup, initiatorGroup, networkMap, assigner, null, null);
+            StringSetMap zoningMap = orca.configureZoning(portGroup, initiatorGroup, networkMap, assigner, null, null, null);
             VPlexBackendManager mgr = new VPlexBackendManager(null, null, null, null, null, URI.create("project"), URI.create("tenant"),
                     null, null);
             ExportMask exportMask = mgr.generateExportMask(arrayURI, maskName, portGroup, initiatorGroup, zoningMap);
@@ -860,7 +860,7 @@ public class VPlexXtremIOMaskingOrchestratorTest extends StoragePortsAllocatorTe
             Map<String, Map<URI, Set<Initiator>>> initiatorGroup = igIterator.next();
             StoragePortsAssigner assigner = StoragePortsAssignerFactory.getAssignerForZones("vmax", null);
             StringSetMap zoningMap = orca.configureZoning(portGroup, initiatorGroup, networkMap, assigner, 
-                    initiatorSwitchMap, portSwitchMap);
+                    initiatorSwitchMap, portSwitchMap, VPlexVmaxMaskingOrchestratorTest.getPortSwitchNameMap(portSwitchMap));
             VPlexBackendManager mgr = new VPlexBackendManager(null, null, null, null, null, URI.create("project"), URI.create("tenant"),
                     null, null);
             ExportMask exportMask = mgr.generateExportMask(arrayURI, maskName, portGroup, initiatorGroup, zoningMap);

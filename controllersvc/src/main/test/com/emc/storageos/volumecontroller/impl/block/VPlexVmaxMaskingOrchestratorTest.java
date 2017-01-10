@@ -194,10 +194,10 @@ public class VPlexVmaxMaskingOrchestratorTest extends StoragePortsAllocatorTest 
             }
             Map<String, Map<URI, Set<Initiator>>> initiatorGroup = igIterator.next();
             StoragePortsAssigner assigner = StoragePortsAssignerFactory.getAssignerForZones("vmax", null);
-            StringSetMap zoningMap = orca.configureZoning(portGroup, initiatorGroup, networkMap, assigner, null, null);
+            StringSetMap zoningMap = orca.configureZoning(portGroup, initiatorGroup, networkMap, assigner, null, null, null);
             VPlexBackendManager mgr = new VPlexBackendManager(null, null, null, null, null, URI.create("project"), URI.create("tenant"),
                     null, null);
-            ExportMask exportMask = mgr.generateExportMask(arrayURI, maskName, portGroup, initiatorGroup, zoningMap);
+            mgr.generateExportMask(arrayURI, maskName, portGroup, initiatorGroup, zoningMap);
         }
         _log.info("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++");
     }
@@ -707,11 +707,24 @@ public class VPlexVmaxMaskingOrchestratorTest extends StoragePortsAllocatorTest 
             Map<String, Map<URI, Set<Initiator>>> initiatorGroup = igIterator.next();
             StoragePortsAssigner assigner = StoragePortsAssignerFactory.getAssignerForZones("vmax", null);
             StringSetMap zoningMap = orca.configureZoning(portGroup, initiatorGroup, networkMap, assigner, initiatorSwitchMap,
-                    portSwitchMap);
+                    portSwitchMap, getPortSwitchNameMap(portSwitchMap));
             VPlexBackendManager mgr = new VPlexBackendManager(null, null, null, null, null, URI.create("project"), URI.create("tenant"),
                     null, null);
-            ExportMask exportMask = mgr.generateExportMask(arrayURI, maskName, portGroup, initiatorGroup, zoningMap);
+            mgr.generateExportMask(arrayURI, maskName, portGroup, initiatorGroup, zoningMap);
         }
         _log.info("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++");
+    }
+    
+    public static Map<URI, String> getPortSwitchNameMap(Map<URI, Map<String, List<StoragePort>>> switchPortPerNetMap) {
+        Map<URI, String> result = new HashMap<URI, String> ();
+        for (Map<String, List<StoragePort>> switchPorts : switchPortPerNetMap.values()) {
+            for (Map.Entry<String, List<StoragePort>> entry : switchPorts.entrySet()) {
+                String switchName = entry.getKey();
+                for (StoragePort port : entry.getValue()) {
+                    result.put(port.getId(), switchName);
+                }
+            }
+        }
+        return result;
     }
 }

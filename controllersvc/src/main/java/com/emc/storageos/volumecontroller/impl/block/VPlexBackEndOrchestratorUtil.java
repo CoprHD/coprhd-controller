@@ -67,7 +67,8 @@ public class VPlexBackEndOrchestratorUtil {
     public static StringSetMap configureZoning(Map<URI, List<List<StoragePort>>> portGroup,
             Map<String, Map<URI, Set<Initiator>>> initiatorGroup, Map<URI, NetworkLite> networkMap,
             StoragePortsAssigner assigner, Map<URI, String> initiatorSwitchMap,
-            Map<URI, Map<String, List<StoragePort>>> switchStoragePortsMap) {
+            Map<URI, Map<String, List<StoragePort>>> switchStoragePortsMap,
+            Map<URI, String> portSwitchMap) {
         StringSetMap zoningMap = new StringSetMap();
         // Set up a map to track port usage so that we can use all ports more or less equally.
         Map<StoragePort, Integer> portUsage = new HashMap<StoragePort, Integer>();
@@ -103,6 +104,9 @@ public class VPlexBackEndOrchestratorUtil {
                                 if (switchPorts != null && !switchPorts.isEmpty()) {
                                     _log.info(String.format("Found the same switch ports, switch is %s", switchName));
                                     assignablePorts = switchPorts;
+                                } else {
+                                    _log.info(String.format("Switch affinity is not honored, because no storage port from the switch %s for the initiator %s", 
+                                            switchName, initiator.getInitiatorPort()));
                                 }
                             }
                         }
@@ -110,9 +114,9 @@ public class VPlexBackEndOrchestratorUtil {
                     StoragePort storagePort = assignPortToInitiator(assigner,
                             assignablePorts, net, initiator, portUsage, null);
                     if (storagePort != null) {
-                        _log.info(String.format("%s %s   %s -> %s  %s", director, net.getLabel(),
-                                initiator.getInitiatorPort(), storagePort.getPortNetworkId(),
-                                storagePort.getPortName()));
+                        _log.info(String.format("%s %s   %s %s -> %s  %s %s", director, net.getLabel(),
+                                initiator.getInitiatorPort(), initiatorSwitchMap.get(initiator.getId()),storagePort.getPortNetworkId(),
+                                storagePort.getPortName(), portSwitchMap.get(storagePort.getId())));
                         StringSet ports = new StringSet();
                         ports.add(storagePort.getId().toString());
                         zoningMap.put(initiator.getId().toString(), ports);

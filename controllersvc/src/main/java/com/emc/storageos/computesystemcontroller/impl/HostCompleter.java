@@ -18,17 +18,20 @@ import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 
+@SuppressWarnings("serial")
 public class HostCompleter extends ComputeSystemCompleter {
 
     private static final Logger _logger = LoggerFactory.getLogger(HostCompleter.class);
-    private URI eventId;
+    private final URI eventId;
+    private URI clusterId;
+    private URI vCenterDataCenterId;
 
     public HostCompleter(URI id, boolean deactivateOnComplete, String opId) {
         this(NullColumnValueGetter.getNullURI(), id, deactivateOnComplete, opId);
     }
 
-    public HostCompleter(List<URI> ids, boolean deactivateOnComplete, String opId) {
-        this(NullColumnValueGetter.getNullURI(), ids, deactivateOnComplete, opId);
+    public HostCompleter(List<URI> ids, boolean deactivateOnComplete, URI clusterId, URI vCenterDataCenterId, String opId) {
+        this(NullColumnValueGetter.getNullURI(), ids, deactivateOnComplete, clusterId, vCenterDataCenterId, opId);
     }
 
     public HostCompleter(URI eventId, URI id, boolean deactivateOnComplete, String opId) {
@@ -36,9 +39,11 @@ public class HostCompleter extends ComputeSystemCompleter {
         this.eventId = eventId;
     }
 
-    public HostCompleter(URI eventId, List<URI> ids, boolean deactivateOnComplete, String opId) {
+    public HostCompleter(URI eventId, List<URI> ids, boolean deactivateOnComplete, URI clusterId, URI vCenterDataCenterId, String opId) {
         super(Host.class, ids, deactivateOnComplete, opId);
         this.eventId = eventId;
+        this.clusterId = clusterId;
+        this.vCenterDataCenterId = vCenterDataCenterId;
     }
 
     @Override
@@ -59,7 +64,41 @@ public class HostCompleter extends ComputeSystemCompleter {
                             dbClient.updateObject(event);
                         }
                     }
+
+                    // Only update the cluster/vCenterDataCenter values if they both exist
+                    if (clusterId != null && vCenterDataCenterId != null) {
+                        // Get the old cluster/vcenter datacenter host values so we can properly rollback
+                        // those fields.
+                        URI oldClusterId = NullColumnValueGetter.getNullURI();
+                        URI oldvCenterDataCenterId = NullColumnValueGetter.getNullURI();
+
+                        if (host != null) {
+                            if (!NullColumnValueGetter.isNullURI(host.getCluster())) {
+                                oldClusterId = host.getCluster();
+                            }
+                            if (!NullColumnValueGetter.isNullURI(host.getVcenterDataCenter())) {
+                                oldvCenterDataCenterId = host.getVcenterDataCenter();
+                            }
+                        }
+
+                        _logger.info("Error occurred.  Setting old host values fro cluster/vcenterdatacenter");
+
+                        ComputeSystemHelper.updateHostAndInitiatorClusterReferences(dbClient, oldClusterId, id);
+                        ComputeSystemHelper.updateHostVcenterDatacenterReference(dbClient, id, oldvCenterDataCenterId);
+                    }
                     dbClient.error(Host.class, id, getOpId(), coded);
+                    break;
+                case ready:
+                    // Only update the cluster/vCenterDataCenter values if they both exist
+                    if (clusterId != null && vCenterDataCenterId != null) {
+
+                        _logger.info("Success.  Setting new host values fro cluster/vcenterdatacenter");
+
+                        ComputeSystemHelper.updateHostAndInitiatorClusterReferences(dbClient, clusterId, id);
+                        ComputeSystemHelper.updateHostVcenterDatacenterReference(dbClient, id, vCenterDataCenterId);
+                    }
+
+                    dbClient.ready(Host.class, id, getOpId());
                     break;
                 default:
                     dbClient.ready(Host.class, id, getOpId());

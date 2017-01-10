@@ -221,6 +221,7 @@ public class OrderManagerImpl implements OrderManager {
             case UNMANAGED_EXPORTMASK:
             case BLOCK_CONTINUOUS_COPY:
             case VPLEX_CONTINUOUS_COPY:
+            case STORAGE_PORT:
                 return true;
             default:
                 return false;
@@ -329,6 +330,9 @@ public class OrderManagerImpl implements OrderManager {
                 case VPLEX_CONTINUOUS_COPY:
                     dataObject = client.findById(VplexMirror.class, id);
                     break;
+                case STORAGE_PORT:
+                    dataObject = client.findById(StoragePort.class, id);
+                    break;
             }
         } catch (Exception e) {
             log.error(String.format("Error getting resource %s", resourceId), e);
@@ -361,6 +365,8 @@ public class OrderManagerImpl implements OrderManager {
                     return String.format("%s [cluster: %s]", dataObject.getLabel(), cluster.getLabel());
                 }
             }
+        } else if (dataObject instanceof StoragePort) {
+            return ((StoragePort) dataObject).getPortName();
         }
         return dataObject.getLabel();
     }

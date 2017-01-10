@@ -1427,7 +1427,7 @@ test_cluster_remove_discovered_host() {
 
     # Placeholder when a specific failure case is being worked...
     #failure_injections="${HAPPY_PATH_TEST_INJECTION}"    
-    failure_injections="failure_060_host_cluster_ComputeSystemControllerImpl.verifyDatastoreForRemoval_after_verify"
+    failure_injections="failure_029_host_cluster_ComputeSystemControllerImpl.verifyDatastore_after_verify"
     
     # Real™ hosts/clusters/vcenters/datacenters provisioned during setup
     hostpostfix=".sim.emc.com"

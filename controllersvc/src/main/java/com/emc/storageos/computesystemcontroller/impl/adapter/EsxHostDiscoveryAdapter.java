@@ -403,7 +403,7 @@ public class EsxHostDiscoveryAdapter extends AbstractHostDiscoveryAdapter {
      * @return host that has a matching label or ip address, null if can't be
      *         found
      */
-    protected Host findExistingHost(HostSystem hostSystem) {
+    public Host findExistingHost(HostSystem hostSystem) {
         List<Host> hosts = CustomQueryUtility.queryActiveResourcesByConstraint(
                 dbClient, Host.class, PrefixConstraint.Factory
                         .getFullMatchConstraint(Host.class, "label",

@@ -180,4 +180,6 @@ public interface ComputeSystemController extends Controller {
      */
     public void processExternalDatastoreDelete(URI volume, String taskId, String deletedDatastoreName, URI vcenterURI)
             throws ControllerException;
+
+    public void processExternalDatastoreCreate(URI volume, String taskId, URI newDatastoreUri, URI vcenterURI) throws ControllerException;
 }

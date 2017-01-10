@@ -262,13 +262,35 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
             String opId = taskCompleter.getOpId();
             VNXeApiClient apiClient = getVnxeClient(storage);
             String hostId = getHostIdFromInitiators(initiatorList, apiClient);
-            Set<String> removedLUNIds = unexportLUNs(storage, exportMask, volumesToBeUnmapped, apiClient, hostId, opId);
+            Set<String> processedCGs = new HashSet<String>();
+            for (URI volUri : volumesToBeUnmapped) {
+                BlockObject blockObject = BlockObject.fetch(_dbClient, volUri);
+                String nativeId = blockObject.getNativeId();
+                String cgName = VNXeUtils.getBlockObjectCGName(blockObject, _dbClient);
+                if (cgName != null && !processedCGs.contains(cgName)) {
+                    processedCGs.add(cgName);
+                    VNXeUtils.getCGLock(workflowService, storage, cgName, opId);
+                }
+                if (URIUtil.isType(volUri, Volume.class)) {
+                    apiClient.unexportLun(hostId, nativeId);
+                } else if (URIUtil.isType(volUri, BlockSnapshot.class)) {
+                    if (BlockObject.checkForRP(_dbClient, volUri)) {
+                        _logger.info(String.format(
+                                "BlockObject %s is a RecoverPoint bookmark. Un-exporting associated lun %s instead of snap.",
+                                volUri, nativeId));
+                        apiClient.unexportLun(hostId, nativeId);
+                    } else {
+                        apiClient.unexportSnap(hostId, nativeId);
+                        setSnapWWN(apiClient, blockObject, nativeId);
+                    }
+                }
+                // update the exportMask object
+                exportMask.removeVolume(volUri);
+            }
 
             // check if there are LUNs on array
             // initiator will not be able to removed if there are LUNs belongs to other masks, or unknown to ViPR
             Set<String> lunIds = apiClient.getHostLUNIds(hostId);
-            lunIds.removeAll(removedLUNIds);
-
             for (Initiator initiator : initiatorList) {
                 _logger.info("Processing initiator {}", initiator.getLabel());
                 if (lunIds.isEmpty() && !ExportUtils.isInitiatorSharedByMasks(_dbClient, initiator.getId())) {
@@ -770,38 +792,5 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
             }
         }
         return snap;
-    }
-
-    private Set<String> unexportLUNs(StorageSystem storage, ExportMask exportMask, List<URI> volumes,
-            VNXeApiClient apiClient, String hostId, String opId) {
-        Set<String> lunIds = new HashSet<String>();
-        Set<String> processedCGs = new HashSet<String>();
-        for (URI volUri : volumes) {
-            BlockObject blockObject = BlockObject.fetch(_dbClient, volUri);
-            String nativeId = blockObject.getNativeId();
-            String cgName = VNXeUtils.getBlockObjectCGName(blockObject, _dbClient);
-            if (cgName != null && !processedCGs.contains(cgName)) {
-                processedCGs.add(cgName);
-                VNXeUtils.getCGLock(workflowService, storage, cgName, opId);
-            }
-            if (URIUtil.isType(volUri, Volume.class)) {
-                apiClient.unexportLun(hostId, nativeId);
-            } else if (URIUtil.isType(volUri, BlockSnapshot.class)) {
-                if (BlockObject.checkForRP(_dbClient, volUri)) {
-                    _logger.info(String.format(
-                            "BlockObject %s is a RecoverPoint bookmark. Un-exporting associated lun %s instead of snap.",
-                            volUri, nativeId));
-                    apiClient.unexportLun(hostId, nativeId);
-                } else {
-                    apiClient.unexportSnap(hostId, nativeId);
-                    setSnapWWN(apiClient, blockObject, nativeId);
-                }
-            }
-            lunIds.add(nativeId);
-            // update the exportMask object
-            exportMask.removeVolume(volUri);
-        }
-
-        return lunIds;
     }
 }

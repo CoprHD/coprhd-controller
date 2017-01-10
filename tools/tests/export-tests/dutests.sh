@@ -2789,7 +2789,7 @@ test_13() {
     fail task follow $task
 
     # Verify the mask still has the new volume in it (this will fail if rollback removed it)
-    verify_export ${expname}1 ${HOST1} 3 2 # shouldn't be 3 1?
+    verify_export ${expname}1 ${HOST1} 3 2
 
     # Remove initiator from the mask (done differently per array type)
     arrayhelper remove_initiator_from_mask ${SERIAL_NUMBER} ${PWWN} ${HOST1}
@@ -2876,7 +2876,7 @@ test_14() {
     arrayhelper add_volume_to_mask ${SERIAL_NUMBER} ${device_id} ${HOST1}
     
     # Verify the mask has the new initiator in it
-    verify_export ${expname}1 ${HOST1} 1 2 # should be 2 2
+    verify_export ${expname}1 ${HOST1} 1 2
 
     # Resume the workflow
     runcmd workflow resume $workflow
@@ -3306,7 +3306,6 @@ test_18() {
 #
 test_19() {
     echot "Test 19: Remove Initiator removes initiator when extra initiators are seen by it"
-
     expname=${EXPORT_GROUP_NAME}t19
 
     # Make sure we start clean; no masking view on the array
@@ -3886,36 +3885,40 @@ test_25() {
 #
 # Basic Use Case for single host, single export group
 # 1. Create 2 volume, 1 host export
-# 2. Add a new initiator to the host outside of ViPR
-# 3. Remove volume from the export group
+# 2. Create two snapshots, and add snapsots to the export group
+# 3. Add a new initiator to the host outside of ViPR
+# 4. Remove volume from the export group
 #    should fail
-# 4. Remove the unknown initiator from the host
-# 5. Remove first volume from the export group
+# 5. Remove the unknown initiator from the host
+# 6. Remove snapshots from the host
 #    should success
-# 6. Remove second volume from the export group
+# 7. Remove first volume from the export group
+#    should success
+# 8. Remove second volume from the export group
 #    should success, export mask get deleted in ViPR DB, and host is deleted from array
-# 7. Add unknown initiator to the host again
-# 8. Delete the export group, and create 2 volume, 1 host export
-# 9. Delete export groups
-#    should fail
-# 10. Remove the unknown initiator
-# 11. Delete export group
+# 9. Add unknown initiator to the host again
+# 10. Delete the export group, and create 2 volume, 1 host export
+# 11. Delete export groups
+#     should fail
+# 12. Remove the unknown initiator
+# 13. Delete export group
 #     should success, the host should be deleted
-# 12. Create 2 volume, 1 host export
-# 13. Add a volume to the host outside of ViPR
-# 14. Delete export group
+# 14. Create 2 volume, 2 snapshot, 1 host export
+# 15. Add a volume to the host outside of ViPR
+# 16. Delete export group
 #     should success, the host should not be deleted
-# 15. Create 2 volume, 1 host export
-# 16. Remove initiator from the export group
+# 17. Create 2 volume, 2 snapshot, 1 host export
+# 18. Remove initiator from the export group
 #     should fail due to the unknown volume
-# 17. Remove the unknow volume from the host
-# 18. Remove an initiator from the export group
+# 19. Remove the unknow volume from the host
+# 20. Remove an initiator from the export group
 #     should success, it will delete the initiator from host
-# 19. Remove the last initiator from the export group
+# 21. Remove the last initiator from the export group
 #     should success, the export mask is delted in ViPR DB, and the host is deleted from array
+# 22. Clean up
 #
 test_26() {
-    echot "Test 26: Export Group update/delete with one export group per one host"
+    echot "Test 26: Export Group update/delete with one export group per host"
 
     # Check to make sure we're running Unity only
     if [ "${SS}" != "unity" ]; then
@@ -3933,21 +3936,40 @@ test_26() {
 
     verify_export ${expname}1 ${HOST1} 2 2
 
+    # Create a snapshot
+    snap_label1=snap1
+    snap1=$PROJECT/${VOLNAME}-1/$snap_label1
+    snap_label2=snap2
+    snap2=$PROJECT/${VOLNAME}-3/$snap_label2
+
+    runcmd blocksnapshot create $PROJECT/${VOLNAME}-1 ${snap_label1}
+    runcmd volume create ${VOLNAME}-3 ${PROJECT} ${NH} ${VPOOL_BASE} 1GB --count 1
+    runcmd blocksnapshot create $PROJECT/${VOLNAME}-3 ${snap_label2}
+
+    runcmd export_group update $PROJECT/${expname}1 --addVolspec "$snap1","$snap2"
+    verify_export ${expname}1 ${HOST1} 2 4
+
     PWWN="${H2NI1}:${H2PI1}"
     # Add another initiator to the host
     arrayhelper add_initiator_to_mask ${SERIAL_NUMBER} ${PWWN} ${HOST1}
 
     # Verify the mask has the new initiator in it
-    verify_export ${expname}1 ${HOST1} 3 2
+    verify_export ${expname}1 ${HOST1} 3 4
 
     # Test remove volume
     fail export_group update $PROJECT2/${expname}1 --remVols "${PROJECT}/${VOLNAME}-1"
-    verify_export ${expname}1 ${HOST1} 3 2
+    verify_export ${expname}1 ${HOST1} 3 4
 
     # Now remove the initiator from the host
     arrayhelper remove_initiator_from_mask ${SERIAL_NUMBER} ${PWWN} ${HOST1}
 
     # Verify the mask is back to normal
+    verify_export ${expname}1 ${HOST1} 2 4
+
+    runcmd export_group update $PROJECT/${expname}1 --remVols "$snap1"
+    verify_export ${expname}1 ${HOST1} 2 3
+
+    runcmd export_group update $PROJECT/${expname}1 --remVols "$snap2"
     verify_export ${expname}1 ${HOST1} 2 2
 
     runcmd export_group update $PROJECT/${expname}1 --remVols "${PROJECT}/${VOLNAME}-1"
@@ -3986,8 +4008,8 @@ test_26() {
     verify_export ${expname}1 ${HOST1} gone
 
     # Test delete mask with unknown volume
-    runcmd export_group create ${PROJECT} ${expname}1 $NH --type Host --volspec "${PROJECT}/${VOLNAME}-1,${PROJECT}/${VOLNAME}-2" --hosts "${HOST1}"
-    verify_export ${expname}1 ${HOST1} 2 2
+    runcmd export_group create ${PROJECT} ${expname}1 $NH --type Host --volspec "${PROJECT}/${VOLNAME}-1,${PROJECT}/${VOLNAME}-2,$snap1,$snap2" --hosts "${HOST1}"
+    verify_export ${expname}1 ${HOST1} 2 4
 
     # Create the volume and inventory-only delete it so we can use it later
     HIJACK=du-hijack-volume-${RANDOM}
@@ -4002,30 +4024,35 @@ test_26() {
     arrayhelper add_volume_to_mask ${SERIAL_NUMBER} ${device_id} ${HOST1}
 
     # Verify the mask has the new volume in it
-    verify_export ${expname}1 ${HOST1} 2 3
+    verify_export ${expname}1 ${HOST1} 2 5
 
     runcmd export_group delete $PROJECT/${expname}1
     verify_export ${expname}1 ${HOST1} 2 1
 
     # Create the same export group again
-    runcmd export_group create ${PROJECT} ${expname}1 $NH --type Host --volspec "${PROJECT}/${VOLNAME}-1,${PROJECT}/${VOLNAME}-2" --hosts "${HOST1}"
-    verify_export ${expname}1 ${HOST1} 2 3
+    runcmd export_group create ${PROJECT} ${expname}1 $NH --type Host --volspec "${PROJECT}/${VOLNAME}-1,${PROJECT}/${VOLNAME}-2,$snap1,$snap2" --hosts "${HOST1}"
+    verify_export ${expname}1 ${HOST1} 2 5
 
     fail export_group update $PROJECT/${expname}1 --remInits ${HOST1}/${H1PI1}
-    verify_export ${expname}1 ${HOST1} 2 3
+    verify_export ${expname}1 ${HOST1} 2 5
 
     # Now remove the volume from the host
     arrayhelper remove_volume_from_mask ${SERIAL_NUMBER} ${device_id} ${HOST1}
-    verify_export ${expname}1 ${HOST1} 2 2
+    verify_export ${expname}1 ${HOST1} 2 4
 
     runcmd export_group update $PROJECT/${expname}1 --remInits ${HOST1}/${H1PI1}
-    verify_export ${expname}1 ${HOST1} 1 2
+    verify_export ${expname}1 ${HOST1} 1 4
 
     runcmd export_group update $PROJECT/${expname}1 --remInits ${HOST1}/${H1PI2}
     verify_export ${expname}1 ${HOST1} gone
 
     # Clean up
+    arrayhelper delete_volume ${SERIAL_NUMBER} ${device_id}
     runcmd export_group delete $PROJECT/${expname}1
+
+    runcmd blocksnapshot delete $snap1
+    runcmd blocksnapshot delete $snap2
+    runcmd volume delete $PROJECT/${VOLNAME}-3 --wait
 }
 
 # DU Prevention Validation Test 27 (Unity only)
@@ -4066,6 +4093,7 @@ test_26() {
 #     should success, all volumes of the export are unmapped, and the export mask 1 is delted in ViPR DB, but it will not delete the initiator from the host
 # 22. Remove the last initiator from the second export group
 #     should success, the export mask is deleted from ViPR DB, and the host is deleted from array
+# 23. Clean up
 #
 test_27() {
     echot "Test 27: Export Group update/delete when multiple export groups for one host"
@@ -4079,12 +4107,15 @@ test_27() {
     expname=${EXPORT_GROUP_NAME}t27
     PROJECT2=${PROJECT}2
 
-    isProjectCreated=$(project list --tenant $TENANT | grep ${PROJECT2} | wc -l)
-    if [ $isProjectCreated -ne 0 ]; then
-        echo "Found project $PROJECT"
+    isCreated=$(project list --tenant $TENANT | grep ${PROJECT2} | wc -l)
+    if [ $isCreated -ne 0 ]; then
+        echo "Found project $PROJECT2"
     else
         run project create ${PROJECT2} --tenant $TENANT
-        run volume create P2${VOLNAME} ${PROJECT2} ${NH} ${VPOOL_BASE} 1GB --count 2
+        isCreated=$(volume list $PROJECT2 | grep P2${VOLNAME} | wc -l)
+        if [ $isCreated -eq 0 ]; then
+            run volume create P2${VOLNAME} ${PROJECT2} ${NH} ${VPOOL_BASE} 1GB --count 2
+        fi
     fi
 
     # Make sure we start clean; no masking view on the array
@@ -4203,8 +4234,10 @@ test_27() {
     verify_export ${expname}1 ${HOST1} gone
 
     # Clean up
+    arrayhelper delete_volume ${SERIAL_NUMBER} ${device_id}
     runcmd export_group delete $PROJECT/${expname}1
     runcmd export_group delete $PROJECT2/${expname}2
+    runcmd volume delete --project $PROJECT2 --wait
 }
 
 # pull in the vplextests.sh so it can use the dutests framework
@@ -4382,7 +4415,7 @@ then
 fi
 
 test_start=0
-test_end=25
+test_end=27
 
 # If there's a last parameter, take that
 # as the name of the test to run
@@ -4409,13 +4442,11 @@ else
    # Passing tests:
    while [ ${num} -le ${test_end} ]; 
    do
-     if [ ${num} -ne 5 -a ${num} -ne 6 -a ${num} -ne 9 -a ${num} -ne 11 -a ${num} -ne 13 -a ${num} -ne 14 -a ${num} -ne 15 -a ${num} -ne 18 -a ${num} -ne 19 ]; then
      reset_system_props
      prerun_tests
      test_${num}
      reset_system_props
      num=`expr ${num} + 1`
-     fi
    done
 fi
 

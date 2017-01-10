@@ -89,7 +89,8 @@ public final class InvokeTestFailure {
     public static final String ARTIFICIAL_FAILURE_057 = "failure_057_MdsNetworkSystemDevice.removeZones";
     public static final String ARTIFICIAL_FAILURE_058 = "failure_057_NetworkDeviceController.zoneExportAddInitiators_before_zone";
     public static final String ARTIFICIAL_FAILURE_059 = "failure_058_NetworkDeviceController.zoneExportAddInitiators_after_zone";
-
+    public static final String ARTIFICIAL_FAILURE_060 = "failure_060_host_cluster_ComputeSystemControllerImpl.verifyDatastoreForRemoval_after_verify";
+    
     private static final int FAILURE_SUBSTRING_LENGTH = 11;
 
     private static final String FAILURE_OCCURRENCE_SPLIT = "&";

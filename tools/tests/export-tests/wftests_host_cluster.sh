@@ -1426,7 +1426,8 @@ test_cluster_remove_discovered_host() {
     #failure_injections="${HAPPY_PATH_TEST_INJECTION} ${common_failure_injections}"
 
     # Placeholder when a specific failure case is being worked...
-    failure_injections="${HAPPY_PATH_TEST_INJECTION}"    
+    #failure_injections="${HAPPY_PATH_TEST_INJECTION}"    
+    failure_injections="failure_060_host_cluster_ComputeSystemControllerImpl.verifyDatastoreForRemoval_after_verify"
     
     # Real™ hosts/clusters/vcenters/datacenters provisioned during setup
     hostpostfix=".sim.emc.com"
@@ -1466,8 +1467,7 @@ test_cluster_remove_discovered_host() {
     # There are two paths to test:
     # 1. update: Meaning we remove a single discovered host from the cluster
     # 2. delete: Meaning we remove ALL discovered hosts from the cluster
-    #workflowPath="updateWorkflow deleteWorkflow"
-    workflowPath="deleteWorkflow"
+    workflowPath="updateWorkflow deleteWorkflow"
         
     for wf in ${workflowPath}
     do
@@ -1546,7 +1546,7 @@ test_cluster_remove_discovered_host() {
                     fi                
                     exit 1
                 else
-                    if [ ${failure} == ${failure} ]; then
+                    if [ ${failure} == ${HAPPY_PATH_TEST_INJECTION} ]; then
                         # Happy path, no failure injection
                         approve_pending_event $EVENT_ID
                     else

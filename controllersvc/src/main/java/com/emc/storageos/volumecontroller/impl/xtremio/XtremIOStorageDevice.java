@@ -891,11 +891,6 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
     }
 
     @Override
-    public Integer getMaximumAllowedHLU(StorageSystem storage) {
-        return xtremioExportOperationHelper.getMaximumAllowedHLU(storage);
-    }
-
-    @Override
     public ExportMask refreshExportMask(StorageSystem storage, ExportMask mask) throws DeviceControllerException {
         return xtremioExportOperationHelper.refreshExportMask(storage, mask);
     }

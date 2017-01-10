@@ -702,14 +702,6 @@ public interface BlockStorageDevice {
     public Set<Integer> findHLUsForInitiators(StorageSystem storage, List<String> initiatorNames, boolean mustHaveAllPorts);
 
     /**
-     * Gets the maximum allowed HLU number for the storage array.
-     *
-     * @param storage the storage system
-     * @return the maximum allowed HLU number for the storage array
-     */
-    public Integer getMaximumAllowedHLU(StorageSystem storage);
-
-    /**
      * This call will be used to update the ExportMask with the latest data from the array.
      * 
      * @param storage

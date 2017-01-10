@@ -347,6 +347,8 @@ setup() {
 	--numpaths 1				\
 	--provisionType 'Thin'			\
 	--max_snapshots 10                     \
+	--max_mirrors 10                       \
+	--expandable false                     \
 	--neighborhoods $NH                    
 
    runcmd cos update block $VPOOL_BASE --storage ${NATIVEGUID}
@@ -1800,6 +1802,18 @@ consistent_hlu_test() {
     test_34;
     test_35;
     test_36;
+
+    # snapshot
+    test_37;
+    test_38;
+
+    # full copy
+    test_39;
+    test_40;
+
+    # mirror
+    test_41;
+    test_42;
 }
 
 # Export Test 34
@@ -1837,40 +1851,40 @@ test_34() {
         return
     fi
 
-    echot "Test 34 Begins - Consistent HLU"
+    echot "Test 34 Begins - Consistent Cluster HLU"
     expname=${EXPORT_GROUP_NAME}t34
     runcmd export_group create $PROJECT ${expname}1 $NH --type Cluster --volspec ${PROJECT}/${VOLNAME}-1 --cluster "${TENANT}/${CLUSTER}"
-    verify_export ${expname}1 -x- 6 1 0
+    verify_export ${expname}1 -x- 6 1 1
 
     runcmd export_group create $PROJECT ${expname}2 $NH --type Host --volspec ${PROJECT}/${VOLNAME}-2 --hosts "${HOST1}"
-    verify_export ${expname}1 -x- 6 1 0
-    verify_export ${expname}2 ${HOST1} 2 1 1
+    verify_export ${expname}1 -x- 6 1 1
+    verify_export ${expname}2 ${HOST1} 2 1 0
 
     runcmd export_group update ${PROJECT}/${expname}1 --addVols ${PROJECT}/${VOLNAME}-3
-    verify_export ${expname}1 -x- 6 2 0,2
-    verify_export ${expname}2 ${HOST1} 2 1 1
+    verify_export ${expname}1 -x- 6 2 1,2
+    verify_export ${expname}2 ${HOST1} 2 1 0
 
     runcmd export_group create $PROJECT ${expname}3 $NH --type Host --volspec ${PROJECT}/${VOLNAME}-4 --hosts "${HOST2}"
-    verify_export ${expname}1 -x- 6 2 0,2
-    verify_export ${expname}2 ${HOST1} 2 1 1
-    verify_export ${expname}3 ${HOST2} 2 1 1
+    verify_export ${expname}1 -x- 6 2 1,2
+    verify_export ${expname}2 ${HOST1} 2 1 0
+    verify_export ${expname}3 ${HOST2} 2 1 0
 
     runcmd export_group delete $PROJECT/${expname}2
-    verify_export ${expname}1 -x- 6 2 0,2
+    verify_export ${expname}1 -x- 6 2 1,2
     verify_export ${expname}2 ${HOST1} gone
-    verify_export ${expname}3 ${HOST2} 2 1 1
+    verify_export ${expname}3 ${HOST2} 2 1 0
 
     runcmd export_group update ${PROJECT}/${expname}1 --remHosts "${HOST3}"
-    verify_export ${expname}1 -x- 4 2 0,2
-    verify_export ${expname}3 ${HOST2} 2 1 1
+    verify_export ${expname}1 -x- 4 2 1,2
+    verify_export ${expname}3 ${HOST2} 2 1 0
 
     runcmd export_group update ${PROJECT}/${expname}1 --addVols ${PROJECT}/${VOLNAME}-5
-    verify_export ${expname}1 -x- 4 3 0,2,3
-    verify_export ${expname}3 ${HOST2} 2 1 1
+    verify_export ${expname}1 -x- 4 3 1,2,3
+    verify_export ${expname}3 ${HOST2} 2 1 0
 
     runcmd export_group update ${PROJECT}/${expname}1 --remVols ${PROJECT}/${VOLNAME}-1
     verify_export ${expname}1 -x- 4 2 2,3
-    verify_export ${expname}3 ${HOST2} 2 1 1
+    verify_export ${expname}3 ${HOST2} 2 1 0
 
     runcmd export_group delete $PROJECT/${expname}3
     verify_export ${expname}1 -x- 4 2 2,3
@@ -1884,7 +1898,7 @@ test_34() {
     verify_export ${expname}1 -x- 6 3 2,3,58
 
     runcmd export_group update ${PROJECT}/${expname}1 --addVols "${PROJECT}/${VOLNAME}-2,${PROJECT}/${VOLNAME}-4,${PROJECT}/${VOLNAME}-6"
-    verify_export ${expname}1 -x- 6 6 0,1,2,3,4,58
+    verify_export ${expname}1 -x- 6 6 1,2,3,4,5,58
 
     runcmd export_group delete $PROJECT/${expname}1
     verify_export ${expname}1 -x- gone
@@ -1927,7 +1941,7 @@ test_35() {
         return
     fi
 
-    echot "Test 35 Begins - Consistent HLU"
+    echot "Test 35 Begins - Consistent Cluster HLU"
     expname=${EXPORT_GROUP_NAME}t35
     runcmd export_group create $PROJECT ${expname}1 $NH --type Host --volspec ${PROJECT}/${VOLNAME}-1 --hosts "${HOST1}"
     verify_export ${expname}1 ${HOST1} 2 1 0
@@ -1971,15 +1985,15 @@ test_35() {
     verify_export ${expname}3 ${HOST2} gone
 
     runcmd export_group update ${PROJECT}/${expname}2 --addVols "${PROJECT}/${VOLNAME}-2,${PROJECT}/${VOLNAME}-6"
-    verify_export ${expname}2 -x- 6 4 0,1,2,3
+    verify_export ${expname}2 -x- 6 4 1,2,3,4
 
     runcmd export_group create $PROJECT ${expname}4 $NH --type Host --volspec ${PROJECT}/${VOLNAME}-7 --hosts "${HOST3}"
-    verify_export ${expname}2 -x- 6 4 0,1,2,3
-    verify_export ${expname}4 ${HOST3} 2 1 4
+    verify_export ${expname}2 -x- 6 4 1,2,3,4
+    verify_export ${expname}4 ${HOST3} 2 1 0
 
     runcmd export_group delete $PROJECT/${expname}2
     verify_export ${expname}2 -x- gone
-    verify_export ${expname}4 ${HOST3} 2 1 4
+    verify_export ${expname}4 ${HOST3} 2 1 0
 
     runcmd export_group delete $PROJECT/${expname}4
     verify_export ${expname}4 ${HOST3} gone
@@ -2024,7 +2038,7 @@ test_36() {
         return
     fi
 
-    echot "Test 36 Begins - Consistent HLU"
+    echot "Test 36 Begins - Consistent Cluster HLU"
     expname=${EXPORT_GROUP_NAME}t36
     runcmd export_group create $PROJECT ${expname}1 $NH --type Host --volspec ${PROJECT}/${VOLNAME}-1 --hosts "${HOST1}"
     verify_export ${expname}1 ${HOST1} 2 1 0
@@ -2093,6 +2107,553 @@ test_36() {
 
     runcmd export_group delete $PROJECT/${expname}4
     verify_export ${expname}4 ${HOST3} gone
+}
+
+# Export Test 37
+#
+# Consistent Cluster HLU (Snapshot export)
+#
+# Greenfield:
+# CLUSTER with 3 hosts
+# Step-1: Export a volume to the cluster. Result: All hosts in the cluster sees the volume with same HLU (least unused number)
+# Step-2: Export a volume to HOST1 (exclusive). Result: HLU assigned should be unused among cluster view
+# Step-3: Export a snapshot to the cluster. Result: All hosts in the cluster sees the snapshot with same HLU (least unused number among all hosts in the cluster)
+# Step-4: Export a snapshot to HOST1 (exclusive). Result: HLU assigned should be unused among cluster view
+# Step-5: Delete the HOST1's export
+# Step-6: Remove HOST3 from cluster
+# Step-7: Export a new snapshot to the cluster. Result: All hosts in the cluster sees the snapshot with same HLU
+# Step-8: Remove one shared volume from cluster exported in Step-1
+# Step-9: Add HOST3 to CLUSTER. Result: All shared volumes of cluster to be exported to this new host with the HLU for those volumes same as that of cluster's view
+# Step-10: Export 2 new snapshots to the cluster. Result: All hosts in the cluster including new host sees the snapshot with same HLU
+#          (least unused number among all hosts in the cluster)
+#
+# EG1:  CLUSTER (HOST1, HOST2, HOST3)
+# EG2:  HOST1
+#
+# Export Masks:
+# CLUSTER
+# HOST1
+#
+test_37() {
+    if [ "$USE_CLUSTERED_HOSTS" -eq "0" ]; then
+        echo Test 37 skipped, does not apply when non-clustered tests are enabled
+        return
+    fi
+
+    echot "Test 37 Begins - Consistent Cluster HLU (Snapshot export)"
+    expname=${EXPORT_GROUP_NAME}t37
+    snap=snap
+
+    runcmd blocksnapshot create ${PROJECT}/${VOLNAME}-1 ${snap}-1
+    runcmd blocksnapshot create ${PROJECT}/${VOLNAME}-2 ${snap}-2
+    runcmd blocksnapshot create ${PROJECT}/${VOLNAME}-3 ${snap}-3
+    runcmd blocksnapshot create ${PROJECT}/${VOLNAME}-4 ${snap}-4
+
+    runcmd export_group create $PROJECT ${expname}1 $NH --type Cluster --volspec ${PROJECT}/${VOLNAME}-1 --cluster "${TENANT}/${CLUSTER}"
+    verify_export ${expname}1 -x- 6 1 1
+
+    runcmd export_group create $PROJECT ${expname}2 $NH --type Host --volspec ${PROJECT}/${VOLNAME}-2 --hosts "${HOST1}"
+    verify_export ${expname}1 -x- 6 1 1
+    verify_export ${expname}2 ${HOST1} 2 1 0
+
+    runcmd export_group update ${PROJECT}/${expname}1 --addVolspec ${PROJECT}/${VOLNAME}-1/${snap}-1
+    verify_export ${expname}1 -x- 6 2 1,2
+    verify_export ${expname}2 ${HOST1} 2 1 0
+
+    runcmd export_group update ${PROJECT}/${expname}2 --addVolspec ${PROJECT}/${VOLNAME}-2/${snap}-2
+    verify_export ${expname}1 -x- 6 2 1,2
+    verify_export ${expname}2 ${HOST1} 2 2 0,3
+
+    runcmd export_group delete $PROJECT/${expname}2
+    verify_export ${expname}1 -x- 6 2 1,2
+    verify_export ${expname}2 ${HOST1} gone
+
+    runcmd export_group update ${PROJECT}/${expname}1 --remHosts "${HOST3}"
+    verify_export ${expname}1 -x- 4 2 1,2
+
+    runcmd export_group update ${PROJECT}/${expname}1 --addVolspec ${PROJECT}/${VOLNAME}-2/${snap}-2
+    verify_export ${expname}1 -x- 4 3 1,2,3
+
+    runcmd export_group update ${PROJECT}/${expname}1 --remVols ${PROJECT}/${VOLNAME}-1
+    verify_export ${expname}1 -x- 4 2 2,3
+
+    runcmd export_group update ${PROJECT}/${expname}1 --addHosts "${HOST3}"
+    verify_export ${expname}1 -x- 6 2 2,3
+
+    runcmd export_group update ${PROJECT}/${expname}1 --addVolspec "${PROJECT}/${VOLNAME}-3/${snap}-3,${PROJECT}/${VOLNAME}-4/${snap}-4"
+    verify_export ${expname}1 -x- 6 4 1,2,3,4
+
+    runcmd export_group delete $PROJECT/${expname}1
+    verify_export ${expname}1 -x- gone
+
+    runcmd blocksnapshot delete ${PROJECT}/${VOLNAME}-1/${snap}-1
+    runcmd blocksnapshot delete ${PROJECT}/${VOLNAME}-2/${snap}-2
+    runcmd blocksnapshot delete ${PROJECT}/${VOLNAME}-3/${snap}-3
+    runcmd blocksnapshot delete ${PROJECT}/${VOLNAME}-4/${snap}-4
+}
+
+# Export Test 38
+#
+# Consistent Cluster HLU (Snapshot export)
+#
+# Greenfield:  (with export create for cluster and host in reverse order, AND perform exclusive export to host that got added to cluster)
+# CLUSTER with 3 hosts
+# Step-1: Export a volume to the cluster. Result: All hosts in the cluster sees the volume with same HLU (least unused number)
+# Step-2: Export a volume to HOST1 (exclusive). Result: HLU assigned should be unused among cluster view
+# Step-3: Export a snapshot to the cluster. Result: All hosts in the cluster sees the snapshot with same HLU (least unused number among all hosts in the cluster)
+# Step-4: Export a snapshot to HOST1 (exclusive). Result: HLU assigned should be unused among cluster view
+# Step-5: Delete the HOST1's export
+# Step-6: Remove HOST3 from cluster
+# Step-7: Export a new snapshot to the cluster. Result: All hosts in the cluster sees the snapshot with same HLU
+# Step-8: Remove one shared volume from cluster exported in Step-1
+# Step-9: Add HOST3 to CLUSTER. Result: All shared volumes of cluster to be exported to this new host with the HLU for those volumes same as that of cluster's view
+# Step-10: Export a new snapshot to the cluster. Result: All hosts in the cluster including new host sees the snapshot with same HLU
+#          (least unused number among all hosts in the cluster)
+# Step-11: Export a snapshot to HOST3 that is added to cluster (exclusive). Result: HLU assigned should be unused among cluster view
+#
+# EG1:  HOST1
+# EG2:  CLUSTER (HOST1, HOST2, HOST3)
+# EG3:  HOST3
+#
+# Export Masks:
+# CLUSTER
+# HOST1
+# HOST3
+#
+test_38() {
+    if [ "$USE_CLUSTERED_HOSTS" -eq "0" ]; then
+        echo Test 38 skipped, does not apply when non-clustered tests are enabled
+        return
+    fi
+
+    echot "Test 38 Begins - Consistent Cluster HLU (Snapshot export)"
+    expname=${EXPORT_GROUP_NAME}t38
+    snap=snap
+
+    runcmd blocksnapshot create ${PROJECT}/${VOLNAME}-1 ${snap}-1
+    runcmd blocksnapshot create ${PROJECT}/${VOLNAME}-2 ${snap}-2
+    runcmd blocksnapshot create ${PROJECT}/${VOLNAME}-3 ${snap}-3
+    runcmd blocksnapshot create ${PROJECT}/${VOLNAME}-4 ${snap}-4
+
+    runcmd export_group create $PROJECT ${expname}1 $NH --type Host --volspec ${PROJECT}/${VOLNAME}-1 --hosts "${HOST1}"
+    verify_export ${expname}1 ${HOST1} 2 1 0
+
+    runcmd export_group create $PROJECT ${expname}2 $NH --type Cluster --volspec ${PROJECT}/${VOLNAME}-2 --cluster "${TENANT}/${CLUSTER}"
+    verify_export ${expname}1 ${HOST1} 2 1 0
+    verify_export ${expname}2 -x- 6 1 1
+
+    runcmd export_group update ${PROJECT}/${expname}2 --addVolspec ${PROJECT}/${VOLNAME}-2/${snap}-2
+    verify_export ${expname}1 ${HOST1} 2 1 0
+    verify_export ${expname}2 -x- 6 2 1,2
+
+    runcmd export_group update ${PROJECT}/${expname}1 --addVolspec ${PROJECT}/${VOLNAME}-1/${snap}-1
+    verify_export ${expname}1 ${HOST1} 2 2 0,3
+    verify_export ${expname}2 -x- 6 2 1,2
+
+    runcmd export_group delete $PROJECT/${expname}1
+    verify_export ${expname}1 ${HOST1} gone
+    verify_export ${expname}2 -x- 6 2 1,2
+
+    runcmd export_group update ${PROJECT}/${expname}2 --remHosts "${HOST3}"
+    verify_export ${expname}2 -x- 4 2 1,2
+
+    runcmd export_group update ${PROJECT}/${expname}2 --addVolspec ${PROJECT}/${VOLNAME}-1/${snap}-1
+    verify_export ${expname}2 -x- 4 3 1,2,3
+
+    runcmd export_group update ${PROJECT}/${expname}2 --remVols ${PROJECT}/${VOLNAME}-2
+    verify_export ${expname}2 -x- 4 2 2,3
+
+    runcmd export_group update ${PROJECT}/${expname}2 --addHosts "${HOST3}"
+    verify_export ${expname}2 -x- 6 2 2,3
+
+    runcmd export_group update ${PROJECT}/${expname}2 --addVolspec ${PROJECT}/${VOLNAME}-3/${snap}-3
+    verify_export ${expname}2 -x- 6 3 1,2,3
+
+    runcmd export_group create $PROJECT ${expname}3 $NH --type Host --volspec ${PROJECT}/${VOLNAME}-4/${snap}-4 --hosts "${HOST3}"
+    verify_export ${expname}2 -x- 6 3 1,2,3
+    verify_export ${expname}3 ${HOST3} 2 1 0
+
+    runcmd export_group delete $PROJECT/${expname}3
+    verify_export ${expname}2 -x- 6 3 1,2,3
+    verify_export ${expname}3 ${HOST3} gone
+
+    runcmd export_group delete $PROJECT/${expname}2
+    verify_export ${expname}2 -x- gone
+
+    runcmd blocksnapshot delete ${PROJECT}/${VOLNAME}-1/${snap}-1
+    runcmd blocksnapshot delete ${PROJECT}/${VOLNAME}-2/${snap}-2
+    runcmd blocksnapshot delete ${PROJECT}/${VOLNAME}-3/${snap}-3
+    runcmd blocksnapshot delete ${PROJECT}/${VOLNAME}-4/${snap}-4
+}
+
+# Export Test 39
+#
+# Consistent Cluster HLU (Full copy export)
+#
+# Greenfield:
+# CLUSTER with 3 hosts
+# Step-1: Export a volume to the cluster. Result: All hosts in the cluster sees the volume with same HLU (least unused number)
+# Step-2: Export a volume to HOST1 (exclusive). Result: HLU assigned should be unused among cluster view
+# Step-3: Export a full copy to the cluster. Result: All hosts in the cluster sees the full copy with same HLU (least unused number among all hosts in the cluster)
+# Step-4: Export a full copy to HOST1 (exclusive). Result: HLU assigned should be unused among cluster view
+# Step-5: Delete the HOST1's export
+# Step-6: Remove HOST3 from cluster
+# Step-7: Export a new full copy to the cluster. Result: All hosts in the cluster sees the full copy with same HLU
+# Step-8: Remove one shared volume from cluster exported in Step-1
+# Step-9: Add HOST3 to CLUSTER. Result: All shared volumes of cluster to be exported to this new host with the HLU for those volumes same as that of cluster's view
+# Step-10: Export 2 new full copies to the cluster. Result: All hosts in the cluster including new host sees the full copy with same HLU
+#          (least unused number among all hosts in the cluster)
+#
+# EG1:  CLUSTER (HOST1, HOST2, HOST3)
+# EG2:  HOST1
+#
+# Export Masks:
+# CLUSTER
+# HOST1
+#
+test_39() {
+    if [ "$USE_CLUSTERED_HOSTS" -eq "0" ]; then
+        echo Test 39 skipped, does not apply when non-clustered tests are enabled
+        return
+    fi
+
+    echot "Test 39 Begins - Consistent Cluster HLU (Full copy export)"
+    expname=${EXPORT_GROUP_NAME}t39
+    fullcopy=fullcopy
+
+    runcmd volume full_copy ${fullcopy}-1 ${PROJECT}/${VOLNAME}-1 --count=1
+    runcmd volume full_copy ${fullcopy}-2 ${PROJECT}/${VOLNAME}-2 --count=1
+    runcmd volume full_copy ${fullcopy}-3 ${PROJECT}/${VOLNAME}-3 --count=1
+    runcmd volume full_copy ${fullcopy}-4 ${PROJECT}/${VOLNAME}-4 --count=1
+
+    runcmd export_group create $PROJECT ${expname}1 $NH --type Cluster --volspec ${PROJECT}/${VOLNAME}-1 --cluster "${TENANT}/${CLUSTER}"
+    verify_export ${expname}1 -x- 6 1 1
+
+    runcmd export_group create $PROJECT ${expname}2 $NH --type Host --volspec ${PROJECT}/${VOLNAME}-2 --hosts "${HOST1}"
+    verify_export ${expname}1 -x- 6 1 1
+    verify_export ${expname}2 ${HOST1} 2 1 0
+
+    runcmd export_group update ${PROJECT}/${expname}1 --addVolspec ${PROJECT}/${fullcopy}-1
+    verify_export ${expname}1 -x- 6 2 1,2
+    verify_export ${expname}2 ${HOST1} 2 1 0
+
+    runcmd export_group update ${PROJECT}/${expname}2 --addVolspec ${PROJECT}/${fullcopy}-2
+    verify_export ${expname}1 -x- 6 2 1,2
+    verify_export ${expname}2 ${HOST1} 2 2 0,3
+
+    runcmd export_group delete $PROJECT/${expname}2
+    verify_export ${expname}1 -x- 6 2 1,2
+    verify_export ${expname}2 ${HOST1} gone
+
+    runcmd export_group update ${PROJECT}/${expname}1 --remHosts "${HOST3}"
+    verify_export ${expname}1 -x- 4 2 1,2
+
+    runcmd export_group update ${PROJECT}/${expname}1 --addVolspec ${PROJECT}/${fullcopy}-2
+    verify_export ${expname}1 -x- 4 3 1,2,3
+
+    runcmd export_group update ${PROJECT}/${expname}1 --remVols ${PROJECT}/${VOLNAME}-1
+    verify_export ${expname}1 -x- 4 2 2,3
+
+    runcmd export_group update ${PROJECT}/${expname}1 --addHosts "${HOST3}"
+    verify_export ${expname}1 -x- 6 2 2,3
+
+    runcmd export_group update ${PROJECT}/${expname}1 --addVolspec "${PROJECT}/${fullcopy}-3,${PROJECT}/${fullcopy}-4"
+    verify_export ${expname}1 -x- 6 4 1,2,3,4
+
+    runcmd export_group delete $PROJECT/${expname}1
+    verify_export ${expname}1 -x- gone
+
+    runcmd volume detach ${PROJECT}/${VOLNAME}-1 ${PROJECT}/${fullcopy}-1
+    runcmd volume delete ${PROJECT}/${fullcopy}-1 --wait
+    runcmd volume detach ${PROJECT}/${VOLNAME}-2 ${PROJECT}/${fullcopy}-2
+    runcmd volume delete ${PROJECT}/${fullcopy}-2 --wait
+    runcmd volume detach ${PROJECT}/${VOLNAME}-3 ${PROJECT}/${fullcopy}-3
+    runcmd volume delete ${PROJECT}/${fullcopy}-3 --wait
+    runcmd volume detach ${PROJECT}/${VOLNAME}-4 ${PROJECT}/${fullcopy}-4
+    runcmd volume delete ${PROJECT}/${fullcopy}-4 --wait
+}
+
+# Export Test 40
+#
+# Consistent Cluster HLU (Full copy export)
+#
+# Greenfield:  (with export create for cluster and host in reverse order, AND perform exclusive export to host that got added to cluster)
+# CLUSTER with 3 hosts
+# Step-1: Export a volume to the cluster. Result: All hosts in the cluster sees the volume with same HLU (least unused number)
+# Step-2: Export a volume to HOST1 (exclusive). Result: HLU assigned should be unused among cluster view
+# Step-3: Export a full copy to the cluster. Result: All hosts in the cluster sees the full copy with same HLU (least unused number among all hosts in the cluster)
+# Step-4: Export a full copy to HOST1 (exclusive). Result: HLU assigned should be unused among cluster view
+# Step-5: Delete the HOST1's export
+# Step-6: Remove HOST3 from cluster
+# Step-7: Export a new full copy to the cluster. Result: All hosts in the cluster sees the full copy with same HLU
+# Step-8: Remove one shared volume from cluster exported in Step-1
+# Step-9: Add HOST3 to CLUSTER. Result: All shared volumes of cluster to be exported to this new host with the HLU for those volumes same as that of cluster's view
+# Step-10: Export a new full copy to the cluster. Result: All hosts in the cluster including new host sees the full copy with same HLU
+#          (least unused number among all hosts in the cluster)
+# Step-11: Export a full copy to HOST3 that is added to cluster (exclusive). Result: HLU assigned should be unused among cluster view
+#
+# EG1:  HOST1
+# EG2:  CLUSTER (HOST1, HOST2, HOST3)
+# EG3:  HOST3
+#
+# Export Masks:
+# CLUSTER
+# HOST1
+# HOST3
+#
+test_40() {
+    if [ "$USE_CLUSTERED_HOSTS" -eq "0" ]; then
+        echo Test 40 skipped, does not apply when non-clustered tests are enabled
+        return
+    fi
+
+    echot "Test 40 Begins - Consistent Cluster HLU (Full copy export)"
+    expname=${EXPORT_GROUP_NAME}t40
+    fullcopy=fullcopy
+
+    runcmd volume full_copy ${fullcopy}-1 ${PROJECT}/${VOLNAME}-1 --count=1
+    runcmd volume full_copy ${fullcopy}-2 ${PROJECT}/${VOLNAME}-2 --count=1
+    runcmd volume full_copy ${fullcopy}-3 ${PROJECT}/${VOLNAME}-3 --count=1
+    runcmd volume full_copy ${fullcopy}-4 ${PROJECT}/${VOLNAME}-4 --count=1
+
+    runcmd export_group create $PROJECT ${expname}1 $NH --type Host --volspec ${PROJECT}/${VOLNAME}-1 --hosts "${HOST1}"
+    verify_export ${expname}1 ${HOST1} 2 1 0
+
+    runcmd export_group create $PROJECT ${expname}2 $NH --type Cluster --volspec ${PROJECT}/${VOLNAME}-2 --cluster "${TENANT}/${CLUSTER}"
+    verify_export ${expname}1 ${HOST1} 2 1 0
+    verify_export ${expname}2 -x- 6 1 1
+
+    runcmd export_group update ${PROJECT}/${expname}2 --addVolspec ${PROJECT}/${fullcopy}-2
+    verify_export ${expname}1 ${HOST1} 2 1 0
+    verify_export ${expname}2 -x- 6 2 1,2
+
+    runcmd export_group update ${PROJECT}/${expname}1 --addVolspec ${PROJECT}/${fullcopy}-1
+    verify_export ${expname}1 ${HOST1} 2 2 0,3
+    verify_export ${expname}2 -x- 6 2 1,2
+
+    runcmd export_group delete $PROJECT/${expname}1
+    verify_export ${expname}1 ${HOST1} gone
+    verify_export ${expname}2 -x- 6 2 1,2
+
+    runcmd export_group update ${PROJECT}/${expname}2 --remHosts "${HOST3}"
+    verify_export ${expname}2 -x- 4 2 1,2
+
+    runcmd export_group update ${PROJECT}/${expname}2 --addVolspec ${PROJECT}/${fullcopy}-1
+    verify_export ${expname}2 -x- 4 3 1,2,3
+
+    runcmd export_group update ${PROJECT}/${expname}2 --remVols ${PROJECT}/${VOLNAME}-2
+    verify_export ${expname}2 -x- 4 2 2,3
+
+    runcmd export_group update ${PROJECT}/${expname}2 --addHosts "${HOST3}"
+    verify_export ${expname}2 -x- 6 2 2,3
+
+    runcmd export_group update ${PROJECT}/${expname}2 --addVolspec ${PROJECT}/${fullcopy}-3
+    verify_export ${expname}2 -x- 6 3 1,2,3
+
+    runcmd export_group create $PROJECT ${expname}3 $NH --type Host --volspec ${PROJECT}/${fullcopy}-4 --hosts "${HOST3}"
+    verify_export ${expname}2 -x- 6 3 1,2,3
+    verify_export ${expname}3 ${HOST3} 2 1 0
+
+    runcmd export_group delete $PROJECT/${expname}3
+    verify_export ${expname}2 -x- 6 3 1,2,3
+    verify_export ${expname}3 ${HOST3} gone
+
+    runcmd export_group delete $PROJECT/${expname}2
+    verify_export ${expname}2 -x- gone
+
+    runcmd volume detach ${PROJECT}/${VOLNAME}-1 ${PROJECT}/${fullcopy}-1
+    runcmd volume delete ${PROJECT}/${fullcopy}-1 --wait
+    runcmd volume detach ${PROJECT}/${VOLNAME}-2 ${PROJECT}/${fullcopy}-2
+    runcmd volume delete ${PROJECT}/${fullcopy}-2 --wait
+    runcmd volume detach ${PROJECT}/${VOLNAME}-3 ${PROJECT}/${fullcopy}-3
+    runcmd volume delete ${PROJECT}/${fullcopy}-3 --wait
+    runcmd volume detach ${PROJECT}/${VOLNAME}-4 ${PROJECT}/${fullcopy}-4
+    runcmd volume delete ${PROJECT}/${fullcopy}-4 --wait
+}
+
+# Export Test 41
+#
+# Consistent Cluster HLU (Mirror export)
+#
+# Greenfield:
+# CLUSTER with 3 hosts
+# Step-1: Export a volume to the cluster. Result: All hosts in the cluster sees the volume with same HLU (least unused number)
+# Step-2: Export a volume to HOST1 (exclusive). Result: HLU assigned should be unused among cluster view
+# Step-3: Export a mirror to the cluster. Result: All hosts in the cluster sees the mirror with same HLU (least unused number among all hosts in the cluster)
+# Step-4: Export a mirror to HOST1 (exclusive). Result: HLU assigned should be unused among cluster view
+# Step-5: Delete the HOST1's export
+# Step-6: Remove HOST3 from cluster
+# Step-7: Export a new mirror to the cluster. Result: All hosts in the cluster sees the mirror with same HLU
+# Step-8: Remove one shared volume from cluster exported in Step-1
+# Step-9: Add HOST3 to CLUSTER. Result: All shared volumes of cluster to be exported to this new host with the HLU for those volumes same as that of cluster's view
+# Step-10: Export 2 new mirrors to the cluster. Result: All hosts in the cluster including new host sees the mirror with same HLU
+#          (least unused number among all hosts in the cluster)
+#
+# EG1:  CLUSTER (HOST1, HOST2, HOST3)
+# EG2:  HOST1
+#
+# Export Masks:
+# CLUSTER
+# HOST1
+#
+test_41() {
+    if [ "$USE_CLUSTERED_HOSTS" -eq "0" ]; then
+        echo Test 41 skipped, does not apply when non-clustered tests are enabled
+        return
+    fi
+
+    echot "Test 41 Begins - Consistent Cluster HLU (Mirror export)"
+    expname=${EXPORT_GROUP_NAME}t41
+    mirror=mirror
+
+    runcmd blockmirror attach ${PROJECT}/${VOLNAME}-1 ${mirror}-1 1
+    runcmd blockmirror attach ${PROJECT}/${VOLNAME}-2 ${mirror}-2 1
+    runcmd blockmirror attach ${PROJECT}/${VOLNAME}-3 ${mirror}-3 1
+    runcmd blockmirror attach ${PROJECT}/${VOLNAME}-4 ${mirror}-4 1
+
+    runcmd export_group create $PROJECT ${expname}1 $NH --type Cluster --volspec ${PROJECT}/${VOLNAME}-1 --cluster "${TENANT}/${CLUSTER}"
+    verify_export ${expname}1 -x- 6 1 1
+
+    runcmd export_group create $PROJECT ${expname}2 $NH --type Host --volspec ${PROJECT}/${VOLNAME}-2 --hosts "${HOST1}"
+    verify_export ${expname}1 -x- 6 1 1
+    verify_export ${expname}2 ${HOST1} 2 1 0
+
+    runcmd export_group update ${PROJECT}/${expname}1 --addVolspec ${PROJECT}/${VOLNAME}-1/${mirror}-1
+    verify_export ${expname}1 -x- 6 2 1,2
+    verify_export ${expname}2 ${HOST1} 2 1 0
+
+    runcmd export_group update ${PROJECT}/${expname}2 --addVolspec ${PROJECT}/${VOLNAME}-2/${mirror}-2
+    verify_export ${expname}1 -x- 6 2 1,2
+    verify_export ${expname}2 ${HOST1} 2 2 0,3
+
+    runcmd export_group delete $PROJECT/${expname}2
+    verify_export ${expname}1 -x- 6 2 1,2
+    verify_export ${expname}2 ${HOST1} gone
+
+    runcmd export_group update ${PROJECT}/${expname}1 --remHosts "${HOST3}"
+    verify_export ${expname}1 -x- 4 2 1,2
+
+    runcmd export_group update ${PROJECT}/${expname}1 --addVolspec ${PROJECT}/${VOLNAME}-2/${mirror}-2
+    verify_export ${expname}1 -x- 4 3 1,2,3
+
+    runcmd export_group update ${PROJECT}/${expname}1 --remVols ${PROJECT}/${VOLNAME}-1
+    verify_export ${expname}1 -x- 4 2 2,3
+
+    runcmd export_group update ${PROJECT}/${expname}1 --addHosts "${HOST3}"
+    verify_export ${expname}1 -x- 6 2 2,3
+
+    runcmd export_group update ${PROJECT}/${expname}1 --addVolspec "${PROJECT}/${VOLNAME}-3/${mirror}-3,${PROJECT}/${VOLNAME}-4/${mirror}-4"
+    verify_export ${expname}1 -x- 6 4 1,2,3,4
+
+    runcmd export_group delete $PROJECT/${expname}1
+    verify_export ${expname}1 -x- gone
+
+    runcmd blockmirror pause ${PROJECT}/${VOLNAME}-1
+    runcmd blockmirror deactivate ${PROJECT}/${VOLNAME}-1 ${mirror}-1
+    runcmd blockmirror pause ${PROJECT}/${VOLNAME}-2
+    runcmd blockmirror deactivate ${PROJECT}/${VOLNAME}-2 ${mirror}-2
+    runcmd blockmirror pause ${PROJECT}/${VOLNAME}-3
+    runcmd blockmirror deactivate ${PROJECT}/${VOLNAME}-3 ${mirror}-3
+    runcmd blockmirror pause ${PROJECT}/${VOLNAME}-4
+    runcmd blockmirror deactivate ${PROJECT}/${VOLNAME}-4 ${mirror}-4
+}
+
+# Export Test 42
+#
+# Consistent Cluster HLU (Mirror export)
+#
+# Greenfield:  (with export create for cluster and host in reverse order, AND perform exclusive export to host that got added to cluster)
+# CLUSTER with 3 hosts
+# Step-1: Export a volume to the cluster. Result: All hosts in the cluster sees the volume with same HLU (least unused number)
+# Step-2: Export a volume to HOST1 (exclusive). Result: HLU assigned should be unused among cluster view
+# Step-3: Export a mirror to the cluster. Result: All hosts in the cluster sees the mirror with same HLU (least unused number among all hosts in the cluster)
+# Step-4: Export a mirror to HOST1 (exclusive). Result: HLU assigned should be unused among cluster view
+# Step-5: Delete the HOST1's export
+# Step-6: Remove HOST3 from cluster
+# Step-7: Export a new mirror to the cluster. Result: All hosts in the cluster sees the mirror with same HLU
+# Step-8: Remove one shared volume from cluster exported in Step-1
+# Step-9: Add HOST3 to CLUSTER. Result: All shared volumes of cluster to be exported to this new host with the HLU for those volumes same as that of cluster's view
+# Step-10: Export a new mirror to the cluster. Result: All hosts in the cluster including new host sees the mirror with same HLU
+#          (least unused number among all hosts in the cluster)
+# Step-11: Export a mirror to HOST3 that is added to cluster (exclusive). Result: HLU assigned should be unused among cluster view
+#
+# EG1:  HOST1
+# EG2:  CLUSTER (HOST1, HOST2, HOST3)
+# EG3:  HOST3
+#
+# Export Masks:
+# CLUSTER
+# HOST1
+# HOST3
+#
+test_42() {
+    if [ "$USE_CLUSTERED_HOSTS" -eq "0" ]; then
+        echo Test 42 skipped, does not apply when non-clustered tests are enabled
+        return
+    fi
+
+    echot "Test 42 Begins - Consistent Cluster HLU (Mirror export)"
+    expname=${EXPORT_GROUP_NAME}t42
+    mirror=mirror
+
+    runcmd blockmirror attach ${PROJECT}/${VOLNAME}-1 ${mirror}-1 1
+    runcmd blockmirror attach ${PROJECT}/${VOLNAME}-2 ${mirror}-2 1
+    runcmd blockmirror attach ${PROJECT}/${VOLNAME}-3 ${mirror}-3 1
+    runcmd blockmirror attach ${PROJECT}/${VOLNAME}-4 ${mirror}-4 1
+
+    runcmd export_group create $PROJECT ${expname}1 $NH --type Host --volspec ${PROJECT}/${VOLNAME}-1 --hosts "${HOST1}"
+    verify_export ${expname}1 ${HOST1} 2 1 0
+
+    runcmd export_group create $PROJECT ${expname}2 $NH --type Cluster --volspec ${PROJECT}/${VOLNAME}-2 --cluster "${TENANT}/${CLUSTER}"
+    verify_export ${expname}1 ${HOST1} 2 1 0
+    verify_export ${expname}2 -x- 6 1 1
+
+    runcmd export_group update ${PROJECT}/${expname}2 --addVolspec ${PROJECT}/${VOLNAME}-2/${mirror}-2
+    verify_export ${expname}1 ${HOST1} 2 1 0
+    verify_export ${expname}2 -x- 6 2 1,2
+
+    runcmd export_group update ${PROJECT}/${expname}1 --addVolspec ${PROJECT}/${VOLNAME}-1/${mirror}-1
+    verify_export ${expname}1 ${HOST1} 2 2 0,3
+    verify_export ${expname}2 -x- 6 2 1,2
+
+    runcmd export_group delete $PROJECT/${expname}1
+    verify_export ${expname}1 ${HOST1} gone
+    verify_export ${expname}2 -x- 6 2 1,2
+
+    runcmd export_group update ${PROJECT}/${expname}2 --remHosts "${HOST3}"
+    verify_export ${expname}2 -x- 4 2 1,2
+
+    runcmd export_group update ${PROJECT}/${expname}2 --addVolspec ${PROJECT}/${VOLNAME}-1/${mirror}-1
+    verify_export ${expname}2 -x- 4 3 1,2,3
+
+    runcmd export_group update ${PROJECT}/${expname}2 --remVols ${PROJECT}/${VOLNAME}-2
+    verify_export ${expname}2 -x- 4 2 2,3
+
+    runcmd export_group update ${PROJECT}/${expname}2 --addHosts "${HOST3}"
+    verify_export ${expname}2 -x- 6 2 2,3
+
+    runcmd export_group update ${PROJECT}/${expname}2 --addVolspec ${PROJECT}/${VOLNAME}-3/${mirror}-3
+    verify_export ${expname}2 -x- 6 3 1,2,3
+
+    runcmd export_group create $PROJECT ${expname}3 $NH --type Host --volspec ${PROJECT}/${VOLNAME}-4/${mirror}-4 --hosts "${HOST3}"
+    verify_export ${expname}2 -x- 6 3 1,2,3
+    verify_export ${expname}3 ${HOST3} 2 1 0
+
+    runcmd export_group delete $PROJECT/${expname}3
+    verify_export ${expname}2 -x- 6 3 1,2,3
+    verify_export ${expname}3 ${HOST3} gone
+
+    runcmd export_group delete $PROJECT/${expname}2
+    verify_export ${expname}2 -x- gone
+
+    runcmd blockmirror pause ${PROJECT}/${VOLNAME}-1
+    runcmd blockmirror deactivate ${PROJECT}/${VOLNAME}-1 ${mirror}-1
+    runcmd blockmirror pause ${PROJECT}/${VOLNAME}-2
+    runcmd blockmirror deactivate ${PROJECT}/${VOLNAME}-2 ${mirror}-2
+    runcmd blockmirror pause ${PROJECT}/${VOLNAME}-3
+    runcmd blockmirror deactivate ${PROJECT}/${VOLNAME}-3 ${mirror}-3
+    runcmd blockmirror pause ${PROJECT}/${VOLNAME}-4
+    runcmd blockmirror deactivate ${PROJECT}/${VOLNAME}-4 ${mirror}-4
 }
 
 cleanup() {

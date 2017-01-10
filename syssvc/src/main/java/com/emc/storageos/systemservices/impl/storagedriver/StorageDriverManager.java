@@ -261,7 +261,7 @@ public class StorageDriverManager {
         Site activeSite = drUtil.getActiveSite();
         List<StorageDriversInfo> infos = getDriversInfo(activeSite.getUuid());
         if (activeSite.getNodeCount() != infos.size()) {
-            log.warn("No all nodes are online, skip updating meta data");
+            log.warn("Not all nodes are online, skip updating meta data");
             return;
         }
         boolean installFinished = updateInstallMetadata(infos);

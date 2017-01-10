@@ -277,11 +277,10 @@ public final class InvokeTestFailure {
      * @return an override value in seconds if the failure invocation is set.
      */
     public static int internalOnlyOverrideSyncWrapperTimeOut(int syncWrapperTimeOut) {
-        final String failureKey = ARTIFICIAL_FAILURE_015 + "GetCompositeElements";
         String invokeArtificialFailure = _coordinator.getPropertyInfo().getProperty(ARTIFICIAL_FAILURE);
-        if (invokeArtificialFailure != null && invokeArtificialFailure.contains(failureKey.substring(0, FAILURE_SUBSTRING_LENGTH))) {
-            log("Resetting sync wait time to 15 seconds");
-            return 15;
+        if (invokeArtificialFailure != null && invokeArtificialFailure.contains(ARTIFICIAL_FAILURE_015)) {
+            log("Temporarily setting sync wait time to 15 seconds because failure_015 is being used.");
+            return 15000;
         }
         return syncWrapperTimeOut;
     }

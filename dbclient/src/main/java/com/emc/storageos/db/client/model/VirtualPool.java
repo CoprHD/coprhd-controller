@@ -1396,11 +1396,13 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
             // Find is there any replication policy attached to vpool
             FilePolicy replPolicy = null;
             StringSet policies = vpool.getFilePolices();
-            for (String strPolicy : policies) {
-                FilePolicy policy = dbClient.queryObject(FilePolicy.class, URI.create(strPolicy));
-                if (FilePolicyType.file_replication.name().equalsIgnoreCase(policy.getFilePolicyType())) {
-                    replPolicy = policy;
-                    break;
+            if (policies != null && !policies.isEmpty()) {
+                for (String strPolicy : policies) {
+                    FilePolicy policy = dbClient.queryObject(FilePolicy.class, URI.create(strPolicy));
+                    if (FilePolicyType.file_replication.name().equalsIgnoreCase(policy.getFilePolicyType())) {
+                        replPolicy = policy;
+                        break;
+                    }
                 }
             }
             if (replPolicy != null) {

@@ -64,6 +64,15 @@
        #{/field} 
     </div>   
     
+    <div id="replicationFields">           
+	   #{field 'assignPolicy.sourceSite'}
+         #{Form.selectOneControlGroup field:field, options:virtualArrayOptions, select:assignPolicy.sourceSite, cssClass:'span3' /}
+       #{/field}
+       #{field 'assignPolicy.targetSites'}
+         #{Form.selectOneControlGroup field:field, options:virtualArrayOptions, select:assignPolicy.targetSites, cssClass:'span3' /}
+       #{/field}
+    </div>
+    
   #{Form.saveCancelButtonBar size:'large', cancelHref:@list()/}
 #{/form}
 </div>

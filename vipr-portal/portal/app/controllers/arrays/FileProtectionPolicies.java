@@ -8,7 +8,6 @@ import static com.emc.vipr.client.core.util.ResourceUtils.uri;
 import static util.BourneUtil.getViprClient;
 
 import java.net.URI;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
@@ -37,6 +36,8 @@ import com.emc.storageos.model.file.policy.FilePolicyUnAssignParam;
 import com.emc.storageos.model.file.policy.FilePolicyUpdateParam;
 import com.emc.storageos.model.file.policy.FilePolicyVpoolAssignParam;
 import com.emc.storageos.model.file.policy.FileReplicationPolicyParam;
+import com.emc.storageos.model.file.policy.FileReplicationTopologyParam;
+import com.emc.storageos.model.file.policy.FileReplicationTopologyRestRep;
 import com.emc.storageos.model.file.policy.FileSnapshotPolicyExpireParam;
 import com.emc.storageos.model.file.policy.FileSnapshotPolicyParam;
 import com.emc.storageos.model.project.ProjectRestRep;
@@ -281,7 +282,7 @@ public class FileProtectionPolicies extends ViprResourceController {
 
     private static void addvPoolArgs(String id) {
         renderArgs.put("vPoolOptions", getFileVirtualPoolsOptions(null, id));
-        renderArgs.put("virtualArrays", getVarrays());
+        renderArgs.put("virtualArrayOptions", getVarrays());
     }
 
     private static List<StringOption> getVarrays() {
@@ -350,11 +351,12 @@ public class FileProtectionPolicies extends ViprResourceController {
         GsonBuilder builder = new GsonBuilder();
         Gson gson = builder.create();
 
-        List<FileReplicationTopology> replicationTopologies = Arrays
-                .asList(gson.fromJson(assignPolicy.topologiesString, FileReplicationTopology[].class));
-
-        validateTopologies(replicationTopologies); // TODO
-
+        /*
+         * List<FileReplicationTopology> replicationTopologies = Arrays
+         * .asList(gson.fromJson(assignPolicy.topologiesString, FileReplicationTopology[].class));
+         * 
+         * validateTopologies(replicationTopologies); // TODO
+         */
         assignPolicy.id = params.get("id");
         FilePolicyUnAssignParam unAssignPolicyParam = new FilePolicyUnAssignParam();
         if (updateUnAssignPolicyParam(assignPolicy, unAssignPolicyParam)) {
@@ -639,6 +641,23 @@ public class FileProtectionPolicies extends ViprResourceController {
 
         param.setApplyOnTargetSite(assignPolicy.applyOnTargetSite);
 
+        // Get source and target varrays
+        if (FilePolicyType.file_replication.name().equalsIgnoreCase(assignPolicy.policyType)) {
+
+            Set<FileReplicationTopologyParam> fileReplicationtopologies = new HashSet<FileReplicationTopologyParam>();
+            FileReplicationTopologyParam topology = new FileReplicationTopologyParam();
+            if (assignPolicy.sourceSite != null) {
+                topology.setSourceVArray(uri(assignPolicy.sourceSite));
+            }
+            if (assignPolicy.targetSites != null) {
+                Set<URI> targetArrays = new HashSet<URI>();
+                targetArrays.add(uri(assignPolicy.targetSites));
+                topology.setTargetVArrays(targetArrays);
+            }
+            fileReplicationtopologies.add(topology);
+            param.setFileReplicationtopologies(fileReplicationtopologies);
+        }
+
         if (FilePolicyApplyLevel.project.name().equalsIgnoreCase(existingPolicy.getAppliedAt())) {
 
             FilePolicyProjectAssignParam projectAssignParams = new FilePolicyProjectAssignParam();
@@ -770,6 +789,10 @@ public class FileProtectionPolicies extends ViprResourceController {
 
         public String referrerUrl;
 
+        public String sourceSite;
+
+        public String targetSites;
+
         public AssignPolicyForm form(FilePolicyRestRep restRep) {
 
             this.id = restRep.getId().toString();
@@ -781,6 +804,13 @@ public class FileProtectionPolicies extends ViprResourceController {
             this.applyOnTargetSite = false;
             if (restRep.getApplyOnTargetSite() != null) {
                 this.applyOnTargetSite = restRep.getApplyOnTargetSite();
+            }
+            if (restRep.getReplicationSettings() != null) {
+                List<FileReplicationTopologyRestRep> topologies = restRep.getReplicationSettings().getReplicationTopologies();
+                if (topologies != null && !topologies.isEmpty()) {
+                    this.sourceSite = topologies.get(0).getSourceVArray().getId().toString();
+                    this.targetSites = topologies.get(0).getTargetVArrays().iterator().next().getId().toString();
+                }
             }
             // Load project applicable fields
             if (FilePolicyApplyLevel.project.name().equalsIgnoreCase(restRep.getAppliedAt())) {

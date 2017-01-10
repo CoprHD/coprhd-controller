@@ -778,9 +778,6 @@ public class FileVirtualPoolService extends VirtualPoolService {
         if (param != null) {
             if (param.getScheduleSnapshots() != null) {
                 virtualPool.setScheduleSnapshots(param.getScheduleSnapshots());
-            } else {
-
-                virtualPool.setScheduleSnapshots(false);
             }
             // Handle the protection snapshot updates
             if (param.getSnapshots() != null) {
@@ -796,25 +793,32 @@ public class FileVirtualPoolService extends VirtualPoolService {
                 }
             }
 
-            virtualPool.setFileReplicationSupported(false);
             if (param.getReplicationSupported() != null) {
                 virtualPool.setFileReplicationSupported(param.getReplicationSupported());
             }
 
-            virtualPool.setAllowFilePolicyAtProjectLevel(false);
             if (param.getAllowFilePolicyAtProjectLevel() != null) {
                 virtualPool.setAllowFilePolicyAtProjectLevel(param.getAllowFilePolicyAtProjectLevel());
             }
 
-            virtualPool.setAllowFilePolicyAtFSLevel(false);
             if (param.getAllowFilePolicyAtFSLevel() != null) {
                 virtualPool.setAllowFilePolicyAtFSLevel(param.getAllowFilePolicyAtFSLevel());
             }
 
             // Validate the RPO value and type!!
-            if (validateReplicationRpoParams(param.getMinRpoValue(), param.getMinRpoType())) {
-                virtualPool.setFrRpoType(param.getMinRpoType());
-                virtualPool.setFrRpoValue(param.getMinRpoValue());
+            if (param.getMinRpoValue() != null || param.getMinRpoType() != null) {
+                Long rpoValue = virtualPool.getFrRpoValue();
+                if (param.getMinRpoValue() != null) {
+                    rpoValue = virtualPool.getFrRpoValue();
+                }
+                String rpoType = virtualPool.getFrRpoType();
+                if (param.getMinRpoType() != null) {
+                    rpoType = param.getMinRpoType();
+                }
+                if (validateReplicationRpoParams(rpoValue, rpoType)) {
+                    virtualPool.setFrRpoType(rpoType);
+                    virtualPool.setFrRpoValue(rpoValue);
+                }
             }
         }
     }

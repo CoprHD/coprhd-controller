@@ -194,7 +194,7 @@ public class FileVirtualPoolUpdateBuilder extends VirtualPoolUpdateBuilder {
     }
 
     public FileVirtualPoolUpdateBuilder setMinRPOType(String rpoType) {
-        if (!ObjectUtils.equals(rpoType, getOldRPOValue())) {
+        if (!ObjectUtils.equals(rpoType, getOldRPOType())) {
             getProtection().setMinRpoType(rpoType);
         }
         return this;

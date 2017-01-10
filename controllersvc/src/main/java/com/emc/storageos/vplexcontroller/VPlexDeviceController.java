@@ -3566,8 +3566,9 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
             // We also need to update the volume/lun id map in the export mask
             // to those assigned by the VPLEX.
-            _log.info("Updated volume/lun map is {}", updatedVolumeMap);
-            completer.updateVolumeMap(updatedVolumeMap);
+            _log.info("Updating volume/lun map in export mask {}", exportMask.getId());
+            exportMask.addVolumes(updatedVolumeMap);
+            _dbClient.updateObject(exportMask);
 
             InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_002);
 
@@ -4379,8 +4380,6 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                             }
                         }
 
-                        // TODO can't really fix this early persist spot because increaseMaxPaths uses this method
-                        // as well, and it would require an interface change up the MaskingOrchestrator chain
                         if (updateExportMask) {
                             _dbClient.updateObject(exportMask);
                         }

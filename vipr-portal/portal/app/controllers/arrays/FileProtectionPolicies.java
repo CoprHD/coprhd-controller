@@ -642,7 +642,7 @@ public class FileProtectionPolicies extends ViprResourceController {
         param.setApplyOnTargetSite(assignPolicy.applyOnTargetSite);
 
         // Get source and target varrays
-        if (FilePolicyType.file_replication.name().equalsIgnoreCase(assignPolicy.policyType)) {
+        if (FilePolicyType.file_replication.name().equalsIgnoreCase(existingPolicy.getType())) {
 
             Set<FileReplicationTopologyParam> fileReplicationtopologies = new HashSet<FileReplicationTopologyParam>();
             FileReplicationTopologyParam topology = new FileReplicationTopologyParam();

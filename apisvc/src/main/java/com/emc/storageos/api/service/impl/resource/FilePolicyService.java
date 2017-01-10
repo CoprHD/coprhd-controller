@@ -757,9 +757,8 @@ public class FilePolicyService extends TaskResourceService {
 
     private boolean updateFileReplicationTopologyInfo(FilePolicyAssignParam param, FilePolicy filepolicy, StringBuilder errorMsg) {
 
-        if (param.getFileReplicationtopologies() != null && !param.getFileReplicationtopologies().isEmpty()) {
-            if (FilePolicyType.file_replication.name().equalsIgnoreCase(filepolicy.getFilePolicyType())) {
-
+        if (FilePolicyType.file_replication.name().equalsIgnoreCase(filepolicy.getFilePolicyType())) {
+            if (param.getFileReplicationtopologies() != null && !param.getFileReplicationtopologies().isEmpty()) {
                 StringSet replicationTopologies = new StringSet();
                 for (FileReplicationTopologyParam topologyParam : param.getFileReplicationtopologies()) {
                     // Create DB entry for Replication topology
@@ -778,14 +777,9 @@ public class FilePolicyService extends TaskResourceService {
                     replicationTopologies.add(dbReplTopology.getId().toString());
                 }
                 filepolicy.setReplicationTopologies(replicationTopologies);
-                return true;
-            } else {
-                errorMsg.append("Replication topology is applicable only for replication type policies");
-                return false;
             }
         }
-
-        return false;
+        return true;
     }
 
     /**

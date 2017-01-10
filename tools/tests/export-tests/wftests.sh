@@ -2978,7 +2978,7 @@ test_9() {
 #
 test_10() {
     echot "Test 10 Begins"
-    expname=${EXPORT_GROUP_NAME}t6
+    expname=${EXPORT_GROUP_NAME}t10
 
     common_failure_injections="failure_004_final_step_in_workflow_complete failure_firewall"
 
@@ -3009,7 +3009,7 @@ test_10() {
     do
       item=${RANDOM}
       TEST_OUTPUT_FILE=test_output_${item}.log
-      secho "Running Test 6 with failure scenario: ${failure}..."
+      secho "Running Test 10 with failure scenario: ${failure}..."
       cfs=("ExportGroup ExportMask FCZoneReference")
       mkdir -p results/${item}
       volname=${VOLNAME}-${item}

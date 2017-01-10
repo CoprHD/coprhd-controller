@@ -9,6 +9,7 @@ import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
@@ -20,9 +21,11 @@ import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.Operation;
-import com.emc.storageos.db.client.util.StringSetUtil;
+import com.emc.storageos.db.client.model.StorageSystem;
+import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
+import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
 import com.emc.storageos.workflow.WorkflowService;
 import com.google.common.base.Joiner;
@@ -54,6 +57,32 @@ public class ExportMaskRemoveVolumeCompleter extends ExportTaskCompleter {
             ExportMask exportMask = (getMask() != null) ?
                     dbClient.queryObject(ExportMask.class, getMask()) : null;
             if (exportMask != null) {
+                if ((status == Operation.Status.error) && (isRollback) && (coded instanceof ServiceError)) {
+                    ServiceError error = (ServiceError) coded;
+                    String originalMessage = error.getMessage();
+                    StorageSystem storageSystem = exportMask != null
+                            ? dbClient.queryObject(StorageSystem.class, exportMask.getStorageDevice())
+                            : null;
+                    List<Volume> volumes = dbClient.queryObject(Volume.class, _volumes);
+                    StringBuffer volumesJoined = new StringBuffer();
+                    if (volumes != null && !volumes.isEmpty()) {
+                        Iterator<Volume> initIter = volumes.iterator();
+                        while (initIter.hasNext()) {
+                            Volume volume = initIter.next();
+                            volumesJoined.append(volume.forDisplay());
+                            if (initIter.hasNext()) {
+                                volumesJoined.append(",");
+                            }
+                        }
+                    }
+                    String additionMessage = String.format(
+                            "Rollback encountered problems removing volume(s) %s from export mask %s on storage system %s and may require manual clean up",
+                            volumesJoined.toString(), exportMask.getMaskName(),
+                            storageSystem != null ? storageSystem.forDisplay() : "Unknown");
+                    String updatedMessage = String.format("%s\n%s", originalMessage, additionMessage);
+                    error.setMessage(updatedMessage);
+                }
+
                 if (status == Operation.Status.ready || (status == Operation.Status.error && isRollback)) {
                     ExportGroup exportGroup = dbClient.queryObject(ExportGroup.class, getId());
                     for (URI volumeURI : _volumes) {

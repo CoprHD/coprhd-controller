@@ -362,4 +362,14 @@ public class ComputeVirtualPool extends DataObjectWithACLs implements GeoVisible
             }
         }
     }
+    
+    public void removeMatchedComputeElement(String ceURI) {
+        if (ceURI != null && _matchedComputeElements != null) {
+            boolean removed = _matchedComputeElements.remove(ceURI);
+            if (removed) {
+                setChanged("matchedComputeElements");
+            }
+        }
+    }
+
 }

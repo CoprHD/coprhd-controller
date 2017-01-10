@@ -1036,92 +1036,8 @@ prerun_tests() {
     cleanup_previous_run_artifacts
 }
 
-vnx_sim_setup() {
-    VNX_PROVIDER_NAME=VNX-PROVIDER-SIM
-    VNX_SMIS_IP=$SIMULATOR_SMIS_IP
-    VNX_SMIS_PORT=5988
-    SMIS_USER=$SMIS_USER
-    SMIS_PASSWD=$SMIS_PASSWD
-    VNX_SMIS_SSL=false
-    VNXB_NATIVEGUID=$SIMULATOR_VNX_NATIVEGUID
-}
 
-vnx_setup() {
-    SMISPASS=0
-    # do this only once
-    echo "Setting up SMIS for VNX"
-    storage_password=$SMIS_PASSWD
 
-    VNX_PROVIDER_NAME=VNX-PROVIDER
-    if [ "${SIM}" = "1" ]; then
-	vnx_sim_setup
-    fi
-
-    run smisprovider create ${VNX_PROVIDER_NAME} ${VNX_SMIS_IP} ${VNX_SMIS_PORT} ${SMIS_USER} "$SMIS_PASSWD" ${VNX_SMIS_SSL}
-    run storagedevice discover_all --ignore_error
-
-    # Remove all arrays that aren't VNXB_NATIVEGUID
-    for id in `storagedevice list |  grep -v ${VNXB_NATIVEGUID} | grep COMPLETE | awk '{print $2}'`
-    do
-	run storagedevice deregister ${id}
-	run storagedevice delete ${id}
-    done
-
-    run storagepool update $VNXB_NATIVEGUID --type block --volume_type THICK_ONLY
-
-    setup_varray
-
-    run storagepool update $VNXB_NATIVEGUID --nhadd $NH --type block
-
-    common_setup
-
-    SERIAL_NUMBER=`storagedevice list | grep COMPLETE | awk '{print $2}' | awk -F+ '{print $2}'`
-    
-    # Chose thick because we need a thick pool for VNX metas
-    run cos create block ${VPOOL_BASE}	\
-	--description Base true                 \
-	--protocols FC 			                \
-	--numpaths 2				            \
-	--multiVolumeConsistency \
-	--provisionType 'Thick'			        \
-	--max_snapshots 10                      \
-	--neighborhoods $NH                    
-
-    if [ "${SIM}" = "1" ]
-    then
-	# Remove the thin pool that doesn't support metas on the VNX simulator
-	run cos update_pools block $VPOOL_BASE --rem ${VNXB_NATIVEGUID}/${VNXB_NATIVEGUID}+POOL+U+TP0000
-    else
-	run cos update block $VPOOL_BASE --storage ${VNXB_NATIVEGUID}
-    fi
-}
-
-unity_setup()
-{
-    run discoveredsystem create $UNITY_DEV unity $UNITY_IP $UNITY_PORT $UNITY_USER $UNITY_PW --serialno=$UNITY_SN
-
-    run storagepool update $UNITY_NATIVEGUID --type block --volume_type THIN_AND_THICK
-    run transportzone add ${SRDF_VMAXA_VSAN} $UNITY_INIT_PWWN1
-    run transportzone add ${SRDF_VMAXA_VSAN} $UNITY_INIT_PWWN2
-    run storagedevice discover_all
-
-    setup_varray
-
-    common_setup
-
-    SERIAL_NUMBER=`storagedevice list | grep COMPLETE | awk '{print $2}' | awk -F+ '{print $2}'`
-    
-    run cos create block ${VPOOL_BASE}	\
-	--description Base true                 \
-	--protocols FC 			                \
-	--numpaths 1				            \
-	--multiVolumeConsistency \
-	--provisionType 'Thin'			        \
-	--max_snapshots 10                      \
-	--neighborhoods $NH                    
-
-    run cos update block $VPOOL_BASE --storage ${UNITY_NATIVEGUID}
-}
 
 vmax2_sim_setup() {
     VMAX_PROVIDER_NAME=VMAX2-PROVIDER-SIM
@@ -1235,325 +1151,7 @@ vmax3_setup() {
     run cos update block $VPOOL_BASE --storage ${VMAX_NATIVEGUID}
 }
 
-vplex_sim_setup() {
-    secho "Setting up VPLEX environment connected to simulators on: ${VPLEX_SIM_IP}"
 
-    # Discover the storage systems 
-    secho "Discovering back-end storage arrays using ECOM/SMIS simulator on: $VPLEX_SIM_SMIS_IP..."
-    run smisprovider create $VPLEX_SIM_SMIS_DEV_NAME $VPLEX_SIM_SMIS_IP $VPLEX_VMAX_SMIS_SIM_PORT $VPLEX_SIM_SMIS_USER "$VPLEX_SIM_SMIS_PASSWD" false
-
-    secho "Discovering VPLEX using simulator on: ${VPLEX_SIM_IP}..."
-    run storageprovider create $VPLEX_SIM_DEV_NAME $VPLEX_SIM_IP 443 $VPLEX_SIM_USER "$VPLEX_SIM_PASSWD" vplex
-    run storagedevice discover_all
-
-    VPLEX_GUID=$VPLEX_SIM_VPLEX_GUID
-    CLUSTER1NET_NAME=$CLUSTER1NET_SIM_NAME
-    CLUSTER2NET_NAME=$CLUSTER2NET_SIM_NAME
-
-    # Setup the varrays. $NH contains VPLEX cluster-1 and $NH2 contains VPLEX cluster-2.
-    secho "Setting up the virtual arrays nh and nh2"
-    VPLEX_VARRAY1=$NH
-    VPLEX_VARRAY2=$NH2
-    FC_ZONE_A=${CLUSTER1NET_NAME}
-    FC_ZONE_B=${CLUSTER2NET_NAME}
-    run neighborhood create $VPLEX_VARRAY1
-    run transportzone assign $FC_ZONE_A $VPLEX_VARRAY1
-    run transportzone create $FC_ZONE_A $VPLEX_VARRAY1 --type FC
-    secho "Setting up the VPLEX cluster-2 virtual array $VPLEX_VARRAY2"
-    run neighborhood create $VPLEX_VARRAY2
-    run transportzone assign $FC_ZONE_B $VPLEX_VARRAY2
-    run transportzone create $FC_ZONE_B $VPLEX_VARRAY2 --type FC
-    # Assign both networks to both transport zones
-    run transportzone assign $FC_ZONE_A $VPLEX_VARRAY2
-    run transportzone assign $FC_ZONE_B $VPLEX_VARRAY1
-
-    secho "Setting up the VPLEX cluster-1 virtual array $VPLEX_VARRAY1"
-    run storageport update $VPLEX_GUID FC --group director-1-1-A --addvarrays $NH
-    run storageport update $VPLEX_GUID FC --group director-1-1-B --addvarrays $NH
-    run storageport update $VPLEX_GUID FC --group director-1-2-A --addvarrays $VPLEX_VARRAY1
-    run storageport update $VPLEX_GUID FC --group director-1-2-B --addvarrays $VPLEX_VARRAY1
-    # The arrays are assigned to individual varrays as well.
-    run storageport update $VPLEX_SIM_VMAX1_NATIVEGUID FC --addvarrays $NH
-    run storageport update $VPLEX_SIM_VMAX2_NATIVEGUID FC --addvarrays $NH
-    run storageport update $VPLEX_SIM_VMAX3_NATIVEGUID FC --addvarrays $NH
-
-    run storageport update $VPLEX_GUID FC --group director-2-1-A --addvarrays $VPLEX_VARRAY2
-    run storageport update $VPLEX_GUID FC --group director-2-1-B --addvarrays $VPLEX_VARRAY2
-    run storageport update $VPLEX_GUID FC --group director-2-2-A --addvarrays $VPLEX_VARRAY2
-    run storageport update $VPLEX_GUID FC --group director-2-2-B --addvarrays $VPLEX_VARRAY2
-    run storageport update $VPLEX_SIM_VMAX4_NATIVEGUID FC --addvarrays $NH2
-    run storageport update $VPLEX_SIM_VMAX5_NATIVEGUID FC --addvarrays $NH2
-    #run storageport update $VPLEX_VMAX_NATIVEGUID FC --addvarrays $VPLEX_VARRAY2
-
-    common_setup
-
-    SERIAL_NUMBER=$VPLEX_GUID
-
-    case "$VPLEX_MODE" in 
-        local)
-            secho "Setting up the virtual pool for local VPLEX provisioning"
-            run cos create block $VPOOL_BASE true                            \
-                             --description 'vpool-for-vplex-local-volumes'      \
-                             --protocols FC                                     \
-                             --numpaths 2                                       \
-                             --provisionType 'Thin'                             \
-                             --highavailability vplex_local                     \
-                             --neighborhoods $VPLEX_VARRAY1                     \
-                             --max_snapshots 1                                  \
-                             --max_mirrors 0                                    \
-                             --expandable true 
-
-            run cos update block $VPOOL_BASE --storage $VPLEX_SIM_VMAX1_NATIVEGUID
-            run cos update block $VPOOL_BASE --storage $VPLEX_SIM_VMAX2_NATIVEGUID
-            run cos update block $VPOOL_BASE --storage $VPLEX_SIM_VMAX3_NATIVEGUID
-
-	    # Migration vpool test
-            secho "Setting up the virtual pool for local VPLEX provisioning and migration (source)"
-            run cos create block ${VPOOL_BASE}_migration_src false                            \
-                             --description 'vpool-for-vplex-local-volumes-src'      \
-                             --protocols FC                                     \
-                             --numpaths 2                                       \
-                             --provisionType 'Thin'                             \
-                             --highavailability vplex_local                     \
-                             --neighborhoods $VPLEX_VARRAY1                     \
-		             --multiVolumeConsistency \
-                             --max_snapshots 1                                  \
-                             --max_mirrors 0                                    \
-                             --expandable true 
-
-            run cos update block ${VPOOL_BASE}_migration_src --storage $VPLEX_SIM_VMAX1_NATIVEGUID
-
-	    # Migration vpool test
-            secho "Setting up the virtual pool for local VPLEX provisioning and migration (target)"
-            run cos create block ${VPOOL_BASE}_migration_tgt false                           \
-                             --description 'vpool-for-vplex-local-volumes-tgt'      \
-                             --protocols FC                                     \
-                             --numpaths 2                                       \
-                             --provisionType 'Thin'                             \
-                             --highavailability vplex_local                     \
-                             --neighborhoods $VPLEX_VARRAY1                     \
-		             --multiVolumeConsistency \
-                             --max_snapshots 1                                  \
-                             --max_mirrors 0                                    \
-                             --expandable true 
-
-            run cos update block ${VPOOL_BASE}_migration_tgt --storage $VPLEX_SIM_VMAX2_NATIVEGUID
-        ;;
-        distributed)
-            secho "Setting up the virtual pool for distributed VPLEX provisioning"
-            run cos create block $VPOOL_BASE true                                \
-                             --description 'vpool-for-vplex-distributed-volumes'    \
-                             --protocols FC                                         \
-                             --numpaths 2                                           \
-                             --provisionType 'Thin'                                 \
-                             --highavailability vplex_distributed                   \
-                             --neighborhoods $VPLEX_VARRAY1 $VPLEX_VARRAY2          \
-                             --haNeighborhood $VPLEX_VARRAY2                        \
-                             --max_snapshots 1                                      \
-                             --max_mirrors 0                                        \
-                             --expandable true
-
-            run cos update block $VPOOL_BASE --storage $VPLEX_SIM_VMAX4_NATIVEGUID
-            run cos update block $VPOOL_BASE --storage $VPLEX_SIM_VMAX5_NATIVEGUID
-        ;;
-        *)
-            secho "Invalid VPLEX_MODE: $VPLEX_MODE (should be 'local' or 'distributed')"
-            Usage
-        ;;
-    esac
-}
-
-vplex_setup() {
-    storage_password=${VPLEX_PASSWD}
-    if [ "${SIM}" = "1" ]; then
-	vplex_sim_setup
-	return
-    fi
-
-    secho "Discovering VPLEX Storage Assets"
-    storageprovider show $VPLEX_DEV_NAME &> /dev/null && return $?
-    run smisprovider create $VPLEX_VMAX_SMIS_DEV_NAME $VPLEX_VMAX_SMIS_IP 5989 $VPLEX_SMIS_USER "$VPLEX_SMIS_PASSWD" true
-    run smisprovider create $VPLEX_VNX1_SMIS_DEV_NAME $VPLEX_VNX1_SMIS_IP 5989 $VPLEX_SMIS_USER "$VPLEX_SMIS_PASSWD" true
-    run smisprovider create $VPLEX_VNX2_SMIS_DEV_NAME $VPLEX_VNX2_SMIS_IP 5989 $VPLEX_SMIS_USER "$VPLEX_SMIS_PASSWD" true
-    run storageprovider create $VPLEX_DEV_NAME $VPLEX_IP 443 $VPLEX_USER "$VPLEX_PASSWD" vplex
-    run storagedevice discover_all
-
-    VPLEX_VARRAY1=$NH
-    FC_ZONE_A=${CLUSTER1NET_NAME}
-    secho "Setting up the VPLEX cluster-1 virtual array $VPLEX_VARRAY1"
-    run neighborhood create $VPLEX_VARRAY1
-    run transportzone assign $FC_ZONE_A $VPLEX_VARRAY1
-    run transportzone create $FC_ZONE_A $VPLEX_VARRAY1 --type FC
-    run storageport update $VPLEX_GUID FC --group director-1-1-A --addvarrays $VPLEX_VARRAY1
-    run storageport update $VPLEX_GUID FC --group director-1-1-B --addvarrays $VPLEX_VARRAY1
-    run storageport update $VPLEX_VNX1_NATIVEGUID FC --addvarrays $VPLEX_VARRAY1
-    run storageport update $VPLEX_VNX2_NATIVEGUID FC --addvarrays $VPLEX_VARRAY1
-    
-    VPLEX_VARRAY2=$NH2
-    FC_ZONE_B=${CLUSTER2NET_NAME}
-    secho "Setting up the VPLEX cluster-2 virtual array $VPLEX_VARRAY2"
-    run neighborhood create $VPLEX_VARRAY2
-    run transportzone assign $FC_ZONE_B $VPLEX_VARRAY2
-    run transportzone create $FC_ZONE_B $VPLEX_VARRAY2 --type FC
-    run storageport update $VPLEX_GUID FC --group director-2-1-A --addvarrays $VPLEX_VARRAY2
-    run storageport update $VPLEX_GUID FC --group director-2-1-B --addvarrays $VPLEX_VARRAY2
-    run storageport update $VPLEX_VMAX_NATIVEGUID FC --addvarrays $VPLEX_VARRAY2
-    
-    common_setup
-
-    SERIAL_NUMBER=$VPLEX_GUID
-
-    case "$VPLEX_MODE" in 
-        local)
-            secho "Setting up the virtual pool for local VPLEX provisioning"
-            run cos create block $VPOOL_BASE true                            \
-                             --description 'vpool-for-vplex-local-volumes'      \
-                             --protocols FC                                     \
-                             --numpaths 2                                       \
-                             --provisionType 'Thin'                             \
-                             --highavailability vplex_local                     \
-                             --neighborhoods $VPLEX_VARRAY1                     \
-                             --max_snapshots 1                                  \
-                             --max_mirrors 0                                    \
-                             --expandable true 
-
-            run cos update block $VPOOL_BASE --storage $VPLEX_VNX1_NATIVEGUID
-
-	    # Migration vpool test
-            secho "Setting up the virtual pool for local VPLEX provisioning and migration (source)"
-            run cos create block ${VPOOL_BASE}_migration_src false                            \
-                             --description 'vpool-for-vplex-local-volumes-src'      \
-                             --protocols FC                                     \
-                             --numpaths 2                                       \
-                             --provisionType 'Thin'                             \
-                             --highavailability vplex_local                     \
-                             --neighborhoods $VPLEX_VARRAY1                     \
-		             --multiVolumeConsistency \
-                             --max_snapshots 1                                  \
-                             --max_mirrors 0                                    \
-                             --expandable true 
-
-            run cos update block ${VPOOL_BASE}_migration_src --storage $VPLEX_VNX1_NATIVEGUID
-
-	    # Migration vpool test
-            secho "Setting up the virtual pool for local VPLEX provisioning and migration (target)"
-            run cos create block ${VPOOL_BASE}_migration_tgt false                           \
-                             --description 'vpool-for-vplex-local-volumes-tgt'      \
-                             --protocols FC                                     \
-                             --numpaths 2                                       \
-                             --provisionType 'Thin'                             \
-                             --highavailability vplex_local                     \
-                             --neighborhoods $VPLEX_VARRAY1                     \
-		             --multiVolumeConsistency \
-                             --max_snapshots 1                                  \
-                             --max_mirrors 0                                    \
-                             --expandable true 
-
-            run cos update block ${VPOOL_BASE}_migration_tgt --storage $VPLEX_VNX2_NATIVEGUID
-        ;;
-        distributed)
-            secho "Setting up the virtual pool for distributed VPLEX provisioning"
-            run cos create block $VPOOL_BASE true                                \
-                             --description 'vpool-for-vplex-distributed-volumes'    \
-                             --protocols FC                                         \
-                             --numpaths 2                                           \
-                             --provisionType 'Thin'                                 \
-                             --highavailability vplex_distributed                   \
-                             --neighborhoods $VPLEX_VARRAY1 $VPLEX_VARRAY2          \
-                             --haNeighborhood $VPLEX_VARRAY2                        \
-                             --max_snapshots 1                                      \
-                             --max_mirrors 0                                        \
-                             --expandable true
-
-	    # having issues predicting the storage that gets used, so commenting this out for now.
-            #run cos update block $VPOOL_BASE --storage $VPLEX_VNX1_NATIVEGUID
-            run cos update block $VPOOL_BASE --storage $VPLEX_VMAX_NATIVEGUID
-
-	    # Migration vpool test
-            secho "Setting up the virtual pool for distributed VPLEX provisioning and migration (source)"
-            run cos create block ${VPOOL_BASE}_migration_src false                            \
-                             --description 'vpool-for-vplex-distributed-volumes-src'    \
-                             --protocols FC                                         \
-                             --numpaths 2                                           \
-                             --provisionType 'Thin'                                 \
-                             --highavailability vplex_distributed                   \
-                             --neighborhoods $VPLEX_VARRAY1 $VPLEX_VARRAY2          \
-                             --haNeighborhood $VPLEX_VARRAY2                        \
-		             --multiVolumeConsistency \
-                             --max_snapshots 1                                      \
-                             --max_mirrors 0                                        \
-                             --expandable true
-
-            run cos update block ${VPOOL_BASE}_migration_src --storage $VPLEX_VNX1_NATIVEGUID
-            #run cos update block ${VPOOL_BASE}_migration_src --storage $VPLEX_VMAX_NATIVEGUID
-
-	    # Migration vpool test
-            secho "Setting up the virtual pool for distributed VPLEX provisioning and migration (target)"
-            run cos create block ${VPOOL_BASE}_migration_tgt false                            \
-                             --description 'vpool-for-vplex-distributed-volumes-tgt'    \
-                             --protocols FC                                         \
-                             --numpaths 2                                           \
-                             --provisionType 'Thin'                                 \
-                             --highavailability vplex_distributed                   \
-                             --neighborhoods $VPLEX_VARRAY1 $VPLEX_VARRAY2          \
-                             --haNeighborhood $VPLEX_VARRAY2                        \
-		             --multiVolumeConsistency \
-                             --max_snapshots 1                                      \
-                             --max_mirrors 0                                        \
-                             --expandable true
-
-            run cos update block ${VPOOL_BASE}_migration_tgt --storage $VPLEX_VNX2_NATIVEGUID
-            run cos update block ${VPOOL_BASE}_migration_tgt --storage $VPLEX_VMAX_NATIVEGUID
-        ;;
-        *)
-            secho "Invalid VPLEX_MODE: $VPLEX_MODE (should be 'local' or 'distributed')"
-            Usage
-        ;;
-    esac
-}
-
-xio_sim_setup() {
-    XIO-PROVIDER=XIO-PROVIDER-SIM
-    XTREMIO_3X_IP=$XIO_SIMULATOR_IP
-    XTREMIO_PORT=$XIO_4X_SIMULATOR_PORT
-    XTREMIO_NATIVEGUID=$XIO_4X_SIM_NATIVEGUID
-}
-
-xio_setup() {
-    # do this only once
-    echo "Setting up XtremIO"
-    storage_password=$XTREMIO_3X_PASSWD
-    XTREMIO_PORT=443
-    XTREMIO_NATIVEGUID=XTREMIO+$XTREMIO_3X_SN
-
-    if [ "${SIM}" = "1" ]; then
-	xio_sim_setup
-    fi    
-    
-    run storageprovider create XIO-PROVIDER $XTREMIO_3X_IP $XTREMIO_PORT $XTREMIO_3X_USER "$XTREMIO_3X_PASSWD" xtremio
-    run storagedevice discover_all --ignore_error
-
-    run storagepool update $XTREMIO_NATIVEGUID --type block --volume_type THIN_ONLY
-
-    setup_varray
-
-    run storagepool update $XTREMIO_NATIVEGUID --nhadd $NH --type block
-
-    common_setup
-
-    SERIAL_NUMBER=`storagedevice list | grep COMPLETE | awk '{print $2}' | awk -F+ '{print $2}'`
-    
-    run cos create block ${VPOOL_BASE}	\
-	--description Base true                 \
-	--protocols FC 			                \
-	--numpaths 1				            \
-	--provisionType 'Thin'			        \
-	--max_snapshots 10                      \
-        --multiVolumeConsistency        \
-	--neighborhoods $NH                    
-
-    run cos update block $VPOOL_BASE --storage ${XTREMIO_NATIVEGUID}
-}
 
 host_setup() {
     run project create $PROJECT --tenant $TENANT 
@@ -1804,28 +1402,6 @@ list_db(){
 
 }    
 
-# Verify the failures in the variable were actually hit when the job ran.
-verify_failures() {
-    INVOKE_FAILURE_FILE=/opt/storageos/logs/invoke-test-failure.log
-    FAILURES=${1}
-
-    # cat ${INVOKE_FAILURE_FILE}
-
-    for failure_check in `echo ${FAILURES} | sed 's/:/ /g'`
-    do
-	grep ${failure_check} ${INVOKE_FAILURE_FILE} > /dev/null
-	if [ $? -ne 0 ]; then
-	    secho 
-	    secho "FAILED: Failure injection ${failure_check} was not encountered during the operation execution."
-	    secho 
-	    incr_fail_count
-	fi
-    done
-
-    # delete the invoke test failure file.  It will get recreated.
-    rm -f ${INVOKE_FAILURE_FILE}
-}
-
 test_1(){
   secho "Running Test 1 for datastore creation and rename."
         item=${RANDOM}
@@ -1834,7 +1410,7 @@ test_1(){
         mkdir -p results/${item}
         dsname=${VOLNAME}-${item}
 	esxihost=lgloc107.lss.emc.com
-    catalog_service=CreateVolumeandDatastore
+    	catalog_service=CreateVolumeandDatastore
 	parent_catalog=BlockServicesforVMwarevCenter
 		
 	#Take the snap of the initial state of the DB.
@@ -1857,13 +1433,19 @@ test_1(){
 	#Take a snap of the DB. Now a new event should be created.
  	snap_db 3 ${cfs}
 
+	#Get event id created due to datastore rename
 	event_id=$(get_event_urn ${dsname} results/${item}/ActionableEvent-3.txt | grep 'id' | awk '{print $2}' )
-
+	
+	#Approve the event
         runcmd events approve ${event_id}
 	
+	#Snap of the DB
 	snap_db 4 ${cfs}
 	
+	#Get the record particular to the event id
 	list_db ${event_id} "ActionableEvent"
+
+	#Extract affected resources and event status from list_db output
 	affected_resources=$( grep 'affectedResources' results/${item}/ActionableEvent-list.txt | awk '{print $4}' | cut -d '[' -f2 | cut -d ']' -f1 )
         event_status=$( grep 'eventStatus' results/${item}/ActionableEvent-list.txt |  awk '{print $3}' )
 	
@@ -1915,27 +1497,34 @@ test_2(){
 	#Take the snap of the DB.
 	snap_db 3 ${cfs}
 
+	#Get event id 
 	event_id=$(get_event_urn ${dsname} results/${item}/ActionableEvent-3.txt | grep 'id' | awk '{print $2}' )
-
+	
+	#Approve the event 
         runcmd events approve ${event_id}
         
 	snap_db 4 ${cfs}
-	#echo "I am being executed"
 	
+	#List the record for the particular event id
 	list_db ${event_id} "ActionableEvent"
+
+	#Extract the affected resources and event status from list_db output
         affected_resources=$( grep 'affectedResources' results/${item}/ActionableEvent-list.txt | awk '{print $4}' | cut -d '[' -f2 | cut -d ']' -f1 )
         event_status=$( grep 'eventStatus' results/${item}/ActionableEvent-list.txt |  awk '{print $3}' )
-
-        secho ${affected_resources}
-        secho ${event_status}
+	
+	#Extract the records of affected resources
         list_db ${affected_resources} "Volume"
 
-        secho ${event_status}
+        #secho ${event_status}
+	
+	#get the tag of the volume if it exists
 	tag=$( grep 'tag' results/${item}/Volume-list.txt )
-        secho $tag
-        #Difference
+        #secho $tag
+        
+	#Difference
         validate_db 3 4 ${cfs}
 
+	#Test result : PASS if volume tag is removed after deletion of datastore,FAIL if volume tag persists
         if [ -z $tag]
         then echo "PASS"
         else
@@ -1960,12 +1549,14 @@ test_3(){
 	runcmd volume create ${dsname}-vol ${PROJECT} ${NH} ${VPOOL_BASE} 1GB 
 
 	volume show ${PROJECT}/${dsname}-vol >volshow.txt
-
+	
+	#Finding wwn of the created volume to match with diskwwn. Appending 'naa.' to match diskwwn.
 	op=$(grep wwn volshow.txt | awk '{print $2}' | cut -d '"' -f2 | tail -1 )
 	n='naa.'
 	wwn=$n$op
-	secho $wwn 
+	#secho $wwn 
 
+	#Export the volume to cluster/ESXi Host
 	runcmd export_group create ${PROJECT} ${dsname}-expgrp ${NH} --type Cluster --volspec ${PROJECT}/${dsname}-vol --clusters $TENANT/${esxihost}
 
 	#Run perl script to delete a datastore
@@ -1982,26 +1573,36 @@ test_3(){
 	
 	#Take the snap of the DB.
 	snap_db 3 ${cfs}
-       
+	
+	#Extract the event id from the db snap output       
 	event_id=$(get_event_urn ${dsname}-vol results/${item}/ActionableEvent-3.txt | grep 'id' | awk '{print $2}' ) 
 	
+	#Approve the event
 	runcmd events approve ${event_id}
-
+	
+	#Snap of the DB
 	snap_db 4 ${cfs}
 	
+	#Get the record particular to the event created
 	list_db ${event_id} "ActionableEvent"
+	
+	#Extract the affected resources and event status
         affected_resources=$( grep 'affectedResources' results/${item}/ActionableEvent-list.txt | awk '{print $4}' | cut -d '[' -f2 | cut -d ']' -f1 )
         event_status=$( grep 'eventStatus' results/${item}/ActionableEvent-list.txt |  awk '{print $3}' )
 
-        secho ${affected_resources}
-        secho ${event_status}
-        list_db ${affected_resources} "Volume"
+        #secho ${affected_resources}
+        #secho ${event_status}
+        
+	#Get the records of the particular affected resource(s)
+	list_db ${affected_resources} "Volume"
 
+	#Extract the tag from list_db output
         tag=$( grep 'tag' results/${item}/Volume-list.txt )
-        secho $tag
+        #secho $tag
         #Difference
         validate_db 3 4 ${cfs}
-
+	
+	#Test result PASS if tag is non empty, FAIL if tag is empty
         if [ -z $tag]
         then echo "FAIL"
         else
@@ -2026,11 +1627,6 @@ cat $2 | grep "$F\|$T"                                                          
 
 }
 
-get_event_status(){
-
-awk '/\$1/ {show=1} show; /eventStatus/ {show=0}' "$2" 
-
-}
 cleanup() {
     if [ "${DO_CLEANUP}" = "1" ]; then
 	for id in `export_group list $PROJECT | grep YES | awk '{print $5}'`

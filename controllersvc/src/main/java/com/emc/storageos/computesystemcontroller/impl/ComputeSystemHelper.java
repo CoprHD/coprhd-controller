@@ -882,12 +882,14 @@ public class ComputeSystemHelper {
         Datastore changedDatastore = null;
         String datastoreId = datastore.toString();
         // get the datastore that is changed
-        for (Datastore ds : vcenterAPI.listAllDatastores()) {
-            String dsUri = ds.getInfo().getUrl();
-            if (dsUri != null && dsUri.equals(datastoreId)) {
-                changedDatastore = ds;
-                break;
-            }
+        for (Datacenter dc : vcenterAPI.listAllDatacenters()) {
+            for (Datastore ds : vcenterAPI.listDatastores(dc)){
+                String dsUri = ds.getInfo().getUrl();
+                if (dsUri != null && dsUri.equals(datastoreId)) {
+                    changedDatastore = ds;
+                    break;
+                }
+            } 
         }
         
         if(changedDatastore == null){
@@ -904,19 +906,19 @@ public class ComputeSystemHelper {
             return false;
         }
         
-        ScopedLabel sl = getScopedLabel(volumeObj.getTag(), oldDatastoreName);
+        ScopedLabel existingSl = getScopedLabel(volumeObj.getTag(), oldDatastoreName);
         
-        if(sl == null){
+        if(existingSl == null){
             String message = "Volume tag not found";
             _log.error(message);
             return false;
         }
         ScopedLabel newSl = new ScopedLabel();
-        String tagValue = sl.getLabel();
+        String tagValue = existingSl.getLabel();
         tagValue = tagValue.replaceAll(oldDatastoreName, changedDatastore.getName());
-        newSl.setScope(sl.getScope());
+        newSl.setScope(existingSl.getScope());
         newSl.setLabel(tagValue);
-        volumeObj.getTag().remove(sl);
+        volumeObj.getTag().remove(existingSl);
         dbClient.updateObject(volumeObj);
         if (volumeObj.getTag() != null) {
             volumeObj.getTag().add(newSl);
@@ -972,9 +974,11 @@ public class ComputeSystemHelper {
             return false;
         }
 
-        ScopedLabel sl = getScopedLabel(volumeObj.getTag(), deletedDatastoreName);
-        volumeObj.getTag().remove(sl);
-        dbClient.updateObject(volumeObj);
+        ScopedLabel existingSl = getScopedLabel(volumeObj.getTag(), deletedDatastoreName);
+        if(existingSl != null){
+            volumeObj.getTag().remove(existingSl);
+            dbClient.updateObject(volumeObj);
+        }
         return true;
     }
 

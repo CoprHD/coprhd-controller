@@ -42,14 +42,12 @@ public abstract class ExportTaskCompleter extends TaskCompleter {
     private static final Logger _logger = LoggerFactory.getLogger(ExportTaskCompleter.class);
 
     private URI _mask;
-    private Map<String, String> _altVarrayMap;
     private Map<URI, StringSetMap> _exportMaskToOldZoningMapMap;
     private Set<URI> _exportMasksCreated;
     private Set<URI> _exportMasksToBeAdded;
     private Set<URI> _exportMasksToBeRemoved;
     private Set<URI> _exportMasksToBeDeleted;
-    private Map<URI, List<URI>> _exportMaskToAddedInitiatorMap;
-    private Map<URI, List<URI>> _exportMaskToRemovedVolumeMap;
+    private Map<URI, List<URI>> _sharedExportMaskToAddedInitiatorMap;
 
     public ExportTaskCompleter(Class clazz, URI id, String opId) {
         super(clazz, id, opId);
@@ -101,11 +99,6 @@ public abstract class ExportTaskCompleter extends TaskCompleter {
         Map<URI, ExportMask> exportMaskCache = null;
         switch (status) {
             case ready:
-                if (_altVarrayMap != null && !_altVarrayMap.isEmpty()) {
-                    for (Entry<String, String> entry : _altVarrayMap.entrySet()) {
-                        exportGroup.putAltVirtualArray(entry.getKey(), entry.getValue());
-                    }
-                }
 
                 if (null != _exportMasksToBeAdded) {
                     for (URI exportMaskUri : _exportMasksToBeAdded) {
@@ -127,14 +120,14 @@ public abstract class ExportTaskCompleter extends TaskCompleter {
                     }
                 }
 
-                if (null != _exportMaskToAddedInitiatorMap && !_exportMaskToAddedInitiatorMap.isEmpty()) {
-                    for (Entry<URI, List<URI>> entry : _exportMaskToAddedInitiatorMap.entrySet()) {
+                if (null != _sharedExportMaskToAddedInitiatorMap && !_sharedExportMaskToAddedInitiatorMap.isEmpty()) {
+                    for (Entry<URI, List<URI>> entry : _sharedExportMaskToAddedInitiatorMap.entrySet()) {
                         ExportMask exportMask = ExportUtils.getExportMaskWithCache(exportMaskCache, entry.getKey(), dbClient);
                         if (exportMask != null) {
                             List<Initiator> inits = dbClient.queryObject(Initiator.class, entry.getValue());
                             for (Initiator init : inits) {
                                 // add all the the initiators the user has requested to add
-                                // to the exportMask initiators list
+                                // to the shared exportMask's initiators list
                                 exportMask.addInitiator(init);
                                 if (!exportMask.hasExistingInitiator(init)) {
                                     // add only those initiator to the user added list
@@ -146,8 +139,6 @@ public abstract class ExportTaskCompleter extends TaskCompleter {
                     }
                 }
  
-                ExportUtils.handleExportMaskVolumeRemoval(dbClient, _exportMaskToRemovedVolumeMap, getId());
-
                 break;
             case error:
                 if (null != _exportMasksCreated && !_exportMasksCreated.isEmpty()) {
@@ -255,21 +246,6 @@ public abstract class ExportTaskCompleter extends TaskCompleter {
     }
 
     /**
-     * Add a StorageSystem URI to alternate VirtualArray URI mapping to be applied to the
-     * ExportGroup on successful completion.
-     * 
-     * @param storageSystemUri storage system URI for the key
-     * @param varrayUri varray URI for the value
-     */
-    public void addAltVarrayMapping(String storageSystemUri, String varrayUri) {
-        if (_altVarrayMap == null) {
-            _altVarrayMap = new HashMap<String, String>();
-        }
-
-        _altVarrayMap.put(storageSystemUri, varrayUri);
-    }
-
-    /**
      * Add an ExportMask URI to zoning map entry to applied on successful completion.
      * 
      * @param exportMaskUri URI of the ExportMask to update
@@ -341,30 +317,18 @@ public abstract class ExportTaskCompleter extends TaskCompleter {
     }
 
     /**
-     * Add a mapping for Initiator URIs that should be added to an ExportMask at the end of the workflow.
+     * Add a mapping for Initiator URIs that should be added to a shared 
+     * ExportMask (used by more than one host) at the end of the workflow.
      * 
      * @param exportMaskUri the ExportMask URI to update
      * @param initiatorUrisToBeAdded the list of Initiator URIs to add to the ExportMask
      */
-    public void addExportMaskToAddedInitiatorMapping(URI exportMaskUri, List<URI> initiatorUrisToBeAdded) {
-        if (null == _exportMaskToAddedInitiatorMap) {
-            _exportMaskToAddedInitiatorMap = new HashMap<URI, List<URI>>();
+    public void addSharedExportMaskToAddedInitiatorMapping(URI exportMaskUri, List<URI> initiatorUrisToBeAdded) {
+        if (null == _sharedExportMaskToAddedInitiatorMap) {
+            _sharedExportMaskToAddedInitiatorMap = new HashMap<URI, List<URI>>();
         }
 
-        _exportMaskToAddedInitiatorMap.put(exportMaskUri, initiatorUrisToBeAdded);
+        _sharedExportMaskToAddedInitiatorMap.put(exportMaskUri, initiatorUrisToBeAdded);
     }
 
-    /**
-     * Add a mapping for Volume URIs that should be removed from an ExportMask at the end of the workflow.
-     * 
-     * @param exportMaskUri the ExportMask URI to update
-     * @param volumeUrisToBeRemoved the list of Volume URIs to remove from the ExportMask
-     */
-    public void addExportMaskToRemovedVolumeMapping(URI exportMaskUri, List<URI> volumeUrisToBeRemoved) {
-        if (null == _exportMaskToRemovedVolumeMap) {
-            _exportMaskToRemovedVolumeMap = new HashMap<URI, List<URI>>();
-        }
-
-        _exportMaskToRemovedVolumeMap.put(exportMaskUri, volumeUrisToBeRemoved);
-    }
 }

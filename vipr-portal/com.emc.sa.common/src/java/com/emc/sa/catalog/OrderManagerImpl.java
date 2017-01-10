@@ -34,6 +34,7 @@ import com.emc.sa.model.dao.ModelClient;
 import com.emc.sa.model.util.CreationTimeComparator;
 import com.emc.sa.model.util.SortedIndexUtils;
 import com.emc.sa.util.ResourceType;
+import com.emc.sa.util.CatalogSerializationUtils;
 import com.emc.sa.util.TextUtils;
 import com.emc.sa.zookeeper.OrderCompletionQueue;
 import com.emc.sa.zookeeper.OrderExecutionQueue;
@@ -232,6 +233,9 @@ public class OrderManagerImpl implements OrderManager {
         try {
             if (canGetResourceLabel(key)) {
                 return getResourceLabel(key);
+            } else if (CatalogSerializationUtils.isSerializedObject(key)) {
+                Map<URI, List<URI>> port = (Map<URI, List<URI>>) CatalogSerializationUtils.serializeFromString(key);
+                return port.toString();
             }
             else {
                 // Defer to AssetOptions if it's not a ViPR resource

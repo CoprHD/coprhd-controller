@@ -1480,7 +1480,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
                 if (!volume.getInactive()) {
                     _log.info("Marking volume in-active: " + volume.getId());
-                    _dbClient.markForDeletion(volume);
+                    _dbClient.removeObject(volume);
                 }
             }
         } finally {
@@ -1739,7 +1739,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                                 VplexMirror mirror = _dbClient.queryObject(VplexMirror.class, URI.create(mirrorId));
                                 if (null != mirror) {
                                     _log.info("Marking mirror {} {} for deletion.", mirror.getId(), mirror.getDeviceLabel());
-                                    _dbClient.markForDeletion(mirror);
+                                    _dbClient.removeObject(mirror);
                                 }
                             }
                         }
@@ -2971,7 +2971,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 if (null != exportMask) {
                     _log.error("marking ExportMask inactive so that rollback will "
                             + "not delete the existing storage view on the VPLEX");
-                    _dbClient.markForDeletion(exportMask);
+                    _dbClient.removeObject(exportMask);
                 }
             }
 
@@ -6621,7 +6621,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             }
             URI storageSystemToRemove = sourceVolume.getStorageController();
             ExportUtils.cleanBlockObjectFromExports(sourceVolumeURI, true, _dbClient);
-            _dbClient.markForDeletion(sourceVolume);
+            _dbClient.removeObject(sourceVolume);
             
             // If the virtual volume is in a CG, and has information about the associated volumes,
             // clean up the CG by removing the source volumes storage system unless it is the same as
@@ -7047,7 +7047,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 // Mark the prepared VPLEX volume for deletion if this is an import
                 // operation, rather than an upgrade of a local volume to distributed.
                 if ((importedVolumeURI != null) && (vplexVolume != null)) {
-                    _dbClient.markForDeletion(vplexVolume);
+                    _dbClient.removeObject(vplexVolume);
                 }
                 
                 // For distributed volumes, mark the volume prepared for the HA side of 
@@ -7055,7 +7055,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 if (createdVolumeURI != null) {
                     Volume createdVolume = _dbClient.queryObject(Volume.class, createdVolumeURI);
                     if (createdVolume != null) {
-                        _dbClient.markForDeletion(createdVolume);
+                        _dbClient.removeObject(createdVolume);
                     }
                 }
                 
@@ -7064,7 +7064,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 // when creating a VPLEX volume from a backend snapshot. For importing
                 // a non-VPLEX volume to VPLEX, this will be a public volume.
                 if ((importedVolume != null) && (importedVolume.checkInternalFlags(DataObject.Flag.INTERNAL_OBJECT))) {
-                    _dbClient.markForDeletion(importedVolume);
+                    _dbClient.removeObject(importedVolume);
                 }
             }
         }
@@ -7187,7 +7187,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
         Volume vplexVolume = _dbClient.queryObject(Volume.class, vplexVolumeURI);
         if (importVolumeURI != null) {
             // Importing... mark the VPlex volume for deletion.
-            _dbClient.markForDeletion(vplexVolume);
+            _dbClient.removeObject(vplexVolume);
         } else {
             // Upgrading... nothing to do.
         }
@@ -10374,7 +10374,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             _dbClient.updateObject(sourceVplexVolume);
 
             // Delete the mirror object
-            _dbClient.markForDeletion(vplexMirror);
+            _dbClient.removeObject(vplexMirror);
 
             // Persist changes for the newly promoted volume
             _dbClient.updateObject(promoteVolume);
@@ -10454,18 +10454,18 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             if (null != vplexMirror.getAssociatedVolumes()) {
                 for (String assocVolumeId : vplexMirror.getAssociatedVolumes()) {
                     Volume volume = _dbClient.queryObject(Volume.class, URI.create(assocVolumeId));
-                    _dbClient.markForDeletion(volume);
+                    _dbClient.removeObject(volume);
                 }
             }
 
             // Delete the mirror object
-            _dbClient.markForDeletion(vplexMirror);
+            _dbClient.removeObject(vplexMirror);
 
             _log.error("Error during rollback of promote mirror: {}", e.getMessage(), e);
         } finally {
             // Delete the volume that was supposed to be promoted volume
             Volume volume = _dbClient.queryObject(Volume.class, promoteeURI);
-            _dbClient.markForDeletion(volume);
+            _dbClient.removeObject(volume);
 
             // Return success so rollback continues
             WorkflowStepCompleter.stepSucceded(stepId);
@@ -10689,7 +10689,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             _log.error("Detach mirror failed for mirror " + mirrors, ex);
             for (URI uri : promotees) {
                 Volume volume = _dbClient.queryObject(Volume.class, uri);
-                _dbClient.markForDeletion(volume);
+                _dbClient.removeObject(volume);
             }
             ServiceError serviceError = VPlexApiException.errors.detachContinuousCopyFailed(ex);
             completer.error(_dbClient, serviceError);
@@ -10994,13 +10994,13 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 for (String assocVolumeId : vplexMirror.getAssociatedVolumes()) {
                     Volume volume = _dbClient.queryObject(Volume.class, URI.create(assocVolumeId));
                     if (null != volume) {
-                        _dbClient.markForDeletion(volume);
+                        _dbClient.removeObject(volume);
                     }
                 }
             }
 
             // Delete the mirror object
-            _dbClient.markForDeletion(vplexMirror);
+            _dbClient.removeObject(vplexMirror);
 
             _log.error("Error during rollback of promote mirror: {}", e.getMessage(), e);
         } finally {
@@ -11083,7 +11083,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 // If we are here due to promote mirror action then
                 // delete the volume that was supposed to be promoted volume.
                 Volume volume = _dbClient.queryObject(Volume.class, promotedVolumeURI);
-                _dbClient.markForDeletion(volume);
+                _dbClient.removeObject(volume);
             }
             recordBourneVplexMirrorEvent(vplexMirrorURI,
                     OperationTypeEnum.DETACH_VOLUME_MIRROR.getEvType(true),
@@ -11096,7 +11096,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 // If we are here due to promote mirror action then
                 // delete the volume that was supposed to be promoted volume.
                 Volume volume = _dbClient.queryObject(Volume.class, promotedVolumeURI);
-                _dbClient.markForDeletion(volume);
+                _dbClient.removeObject(volume);
             }
             String opName = ResourceOperationTypeEnum.DETACH_VPLEX_LOCAL_MIRROR.getName();
             ServiceError serviceError = VPlexApiException.errors.detachMirrorFailed(opName, ex);
@@ -11155,7 +11155,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     Volume sourceVplexVolume = _dbClient.queryObject(Volume.class, vplexMirror.getSource());
                     sourceVplexVolume.getMirrors().remove(vplexMirror.getId().toString());
                     _dbClient.updateObject(sourceVplexVolume);
-                    _dbClient.markForDeletion(vplexMirror);
+                    _dbClient.removeObject(vplexMirror);
                 }
             }
             WorkflowStepCompleter.stepSucceded(stepId);

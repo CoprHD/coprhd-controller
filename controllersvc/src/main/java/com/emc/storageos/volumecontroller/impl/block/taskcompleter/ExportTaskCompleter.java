@@ -123,7 +123,7 @@ public abstract class ExportTaskCompleter extends TaskCompleter {
                     for (URI exportMaskUri : _exportMasksToBeDeleted) {
                         exportGroup.removeExportMask(exportMaskUri);
                         ExportMask exportMask = ExportUtils.getExportMaskWithCache(exportMaskCache, exportMaskUri, dbClient);
-                        dbClient.markForDeletion(exportMask);
+                        dbClient.removeObject(exportMask);
                     }
                 }
 
@@ -153,10 +153,10 @@ public abstract class ExportTaskCompleter extends TaskCompleter {
                 if (null != _exportMasksCreated && !_exportMasksCreated.isEmpty()) {
                     // remove and delete any export masks created by this export task
                     List<ExportMask> exportMasks = dbClient.queryObject(ExportMask.class, _exportMasksCreated);
-                    for (URI exportMaskUri : _exportMasksCreated) {
-                        exportGroup.removeExportMask(exportMaskUri);
+                    for (ExportMask exportMask : exportMasks) {
+                        exportGroup.removeExportMask(exportMask.getId());
+                        dbClient.removeObject(exportMask);
                     }
-                    dbClient.markForDeletion(exportMasks);
                 }
 
                 if (_exportMaskToOldZoningMapMap != null && !_exportMaskToOldZoningMapMap.isEmpty()) {

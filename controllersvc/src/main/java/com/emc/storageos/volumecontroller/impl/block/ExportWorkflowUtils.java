@@ -145,6 +145,7 @@ public class ExportWorkflowUtils {
         String task = UUID.randomUUID().toString();
 
         Workflow storageWorkflow = newWorkflow("storageSystemExportGroupUpdate", false, task);
+        _log.info("Task id {} and sub workflow uri {}", task, storageWorkflow.getWorkflowURI());
         DiscoveredSystemObject storageSystem = getStorageSystem(_dbClient, blockStorageControllerUri);
         String stepId = null;
 

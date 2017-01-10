@@ -36,6 +36,7 @@ import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.client.util.StringMapUtil;
 import com.emc.storageos.db.client.util.StringSetUtil;
 import com.emc.storageos.exceptions.DeviceControllerException;
+import com.emc.storageos.locking.LockRetryException;
 import com.emc.storageos.locking.LockTimeoutValue;
 import com.emc.storageos.locking.LockType;
 import com.emc.storageos.protectioncontroller.ProtectionExportController;
@@ -418,7 +419,7 @@ public class BlockDeviceExportController implements BlockExportController {
 
             _log.info("Received request to update export group. Creating master workflow.");
             workflow = _wfUtils.newWorkflow("exportGroupUpdate", false, opId);
-
+            _log.info("Task id {} and workflow uri {}", opId, workflow.getWorkflowURI());
             for (URI storageUri : addedStorageToBlockObjects.keySet()) {
                 _log.info("Creating sub-workflow for storage system {}", String.valueOf(storageUri));
                 // TODO: Need to fix, getExportMask() returns a single mask,
@@ -436,6 +437,23 @@ public class BlockDeviceExportController implements BlockExportController {
             } else {
                 taskCompleter.ready(_dbClient);
             }
+        } catch (LockRetryException ex) {
+            /**
+             * Added this catch block to mark the current workflow as completed so that lock retry will not get exception while creating new
+             * workflow using the same taskid.
+             */
+            _log.info(String.format("Lock retry exception key: %s remaining time %d", ex.getLockIdentifier(),
+                    ex.getRemainingWaitTimeSeconds()));
+            if (workflow != null && !NullColumnValueGetter.isNullURI(workflow.getWorkflowURI())) {
+                com.emc.storageos.db.client.model.Workflow wf = _dbClient.queryObject(com.emc.storageos.db.client.model.Workflow.class,
+                        workflow.getWorkflowURI());
+                if (!wf.getCompleted()) {
+                    _log.error("Found in progress workflow {} and needs to change the status to completed", wf.getId());
+                    wf.setCompleted(true);
+                    _dbClient.updateObject(wf);
+                }
+            }
+            throw ex;
         } catch (Exception ex) {
             ExportTaskCompleter taskCompleter = new ExportUpdateCompleter(export, opId);
             String message = "exportGroupUpdate caught an exception.";

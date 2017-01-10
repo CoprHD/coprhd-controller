@@ -35,7 +35,6 @@ import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.VirtualPool.FileReplicationType;
-import com.emc.storageos.db.client.model.VpoolRemoteCopyProtectionSettings;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.fileorchestrationcontroller.FileDescriptor;
@@ -308,18 +307,21 @@ public class FileMirrorServiceApiImpl extends AbstractFileServiceApiImpl<FileMir
 
             } else {
 
-                Map<URI, VpoolRemoteCopyProtectionSettings> settingMap = VirtualPool.getFileRemoteProtectionSettings(vpool, _dbClient);
-                VpoolRemoteCopyProtectionSettings protectionSettings = null;
-                List<VirtualArray> virtualArrayTargets = FileMirrorScheduler.getTargetVirtualArraysForVirtualPool(project, vpool,
-                        _dbClient, getPermissionsHelper());
-
                 // Source file system!!
                 preparedFileSystems.add(sourceFileShare);
 
+                List<VirtualArray> virtualArrayTargets = new ArrayList<VirtualArray>();
+                if (cosCapabilities.getFileReplicationTargetVArray() != null
+                        & !cosCapabilities.getFileReplicationTargetVArray().isEmpty()) {
+                    for (String strVarray : cosCapabilities.getFileReplicationTargetVArray()) {
+                        virtualArrayTargets.add(_dbClient.queryObject(VirtualArray.class, URI.create(strVarray)));
+                    }
+                }
+
                 for (VirtualArray targetVArray : virtualArrayTargets) {
-                    protectionSettings = settingMap.get(targetVArray.getId());
-                    if (protectionSettings.getVirtualPool() != null) {
-                        targetVpool = _dbClient.queryObject(VirtualPool.class, protectionSettings.getVirtualPool());
+
+                    if (cosCapabilities.getFileReplicationTargetVPool() != null) {
+                        targetVpool = _dbClient.queryObject(VirtualPool.class, cosCapabilities.getFileReplicationTargetVPool());
                     }
 
                     // Stripping out the special characters like ; /-+!@#$%^&())";:[]{}\ | but allow underscore character _

@@ -511,7 +511,7 @@ public class FileOrchestrationUtils {
             filePolicies.addAll(project.getFilePolices());
         }
         // fs policies
-        if (fs.getFilePolicies() != null && !fs.getFilePolicies().isEmpty()) {
+        if (fs != null && fs.getFilePolicies() != null && !fs.getFilePolicies().isEmpty()) {
             filePolicies.addAll(fs.getFilePolicies());
         }
 

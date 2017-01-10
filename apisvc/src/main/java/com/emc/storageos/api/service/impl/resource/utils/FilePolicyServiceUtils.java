@@ -312,6 +312,7 @@ public class FilePolicyServiceUtils {
                                 URI.create(strTopology));
                         if (currVArray.getId().toString().equalsIgnoreCase(dbTopology.getSourceVArray().toString())) {
                             targetVArrys.addAll(dbTopology.getTargetVArrays());
+                            break;
                         }
                     }
                     if (targetVArrys.isEmpty()) {
@@ -321,6 +322,8 @@ public class FilePolicyServiceUtils {
                     }
                     capabilities.put(VirtualPoolCapabilityValuesWrapper.FILE_REPLICATION_TARGET_VARRAYS,
                             targetVArrys);
+                    capabilities.put(VirtualPoolCapabilityValuesWrapper.FILE_REPLICATION_TARGET_VPOOL,
+                            vPool.getId());
                 } else {
                     errorMsg.append("Replication Topology is not defined for policy " + policy.getFilePolicyName());
                     return false;

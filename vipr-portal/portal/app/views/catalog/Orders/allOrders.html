@@ -5,9 +5,9 @@
 #{DataTable.header titleKey:'allOrders.title' /}
 
 <div class="max-days-selector" ng-controller="AllOrdersCtrl" id="orderSelector"
-#{if maxDays == 0 }  style="width: 780px; margin-left: -650px;margin-right:170px" #{/if}
+#{if maxDays == 0 }  style="width: 780px; margin-left: -600px;margin-right:120px" #{/if}
 #{else} style="margin-left: -170px;margin-right:170px" #{/else} >
-    <div class="description">&{'orders.maxDays'}</div>
+    <div class="description">&{'orders.maxDays'}#{if maxDays != 0 } <span class="notForRange">&{'orders.maxDays.last'}</span>#{/if}</div>
     <div class="control" style="width:110px;">
     #{field 'maxDays'}
     %{
@@ -96,6 +96,7 @@
         var requestMaxDays = "${maxDays}";
         if (requestMaxDays != 0) {
             $(".forRange").hide();
+            $(".notForRange").show();
         }
 
         var disableDeleteAllAndDownload = "${disableDeleteAllAndDownload}";
@@ -107,7 +108,8 @@
             var maxDays = $(this).val();
             if (maxDays == 0) {
                 $(".forRange").show();
-                $('.max-days-selector').css({'width': '780px', 'margin-left': '-650px', 'margin-right': '170px'});
+                $(".notForRange").hide();
+                $('.max-days-selector').css({'width': '780px', 'margin-left': '-600px', 'margin-right': '120px'});
             } else {
                 var url = #{jsAction @allOrders()/}() + "?maxDays=" + maxDays;
                 window.location.href = url;

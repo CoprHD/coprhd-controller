@@ -14,6 +14,7 @@ import java.util.regex.Pattern;
 
 import javax.wbem.WBEMException;
 
+import org.apache.commons.io.IOUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -251,6 +252,7 @@ public final class InvokeTestFailure {
      *            error message
      */
     public static void log(String msg) {
+        FileOutputStream fop = null;
         try {
             _log.info(msg);
             String logFileName = "/opt/storageos/logs/invoke-test-failure.log";
@@ -258,14 +260,15 @@ public final class InvokeTestFailure {
             if (!logFile.exists()) {
                 logFile.createNewFile();
             }
-            FileOutputStream fop = new FileOutputStream(logFile, true);
+            fop = new FileOutputStream(logFile, true);
+            fop.flush();
             StringBuffer sb = new StringBuffer(msg + "\n");
             // Last chance, if file is deleted, write manually.
             fop.write(sb.toString().getBytes());
-            fop.flush();
-            fop.close();
         } catch (IOException e) {
             // It's OK if we can't log this.
+        } finally {
+            IOUtils.closeQuietly(fop);
         }
 
     }

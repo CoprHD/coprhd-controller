@@ -16,26 +16,26 @@ import com.emc.vipr.client.core.impl.PathConstants;
 import com.emc.vipr.client.impl.RestClient;
 
 /**
- * Remote Replication Consistency Group resources.
+ * Remote Replication Group resources.
  * <p>
  * Base URL: <tt>/block/remotereplicationgroups</tt>
  *
  * @see RemoteReplicationGroupRestRep
  */
-public class SBSDKRemoteReplicationGroups extends ProjectResources<RemoteReplicationGroupRestRep> implements
+public class RemoteReplicationGroups extends ProjectResources<RemoteReplicationGroupRestRep> implements
         TaskResources<RemoteReplicationGroupRestRep> {
-    public SBSDKRemoteReplicationGroups(ViPRCoreClient parent, RestClient client) {
+    public RemoteReplicationGroups(ViPRCoreClient parent, RestClient client) {
         super(parent, client, RemoteReplicationGroupRestRep.class, PathConstants.BLOCK_REMOTE_REPLICATION_GROUP_URL);
     }
 
     @Override
-    public SBSDKRemoteReplicationGroups withInactive(boolean inactive) {
-        return (SBSDKRemoteReplicationGroups) super.withInactive(inactive);
+    public RemoteReplicationGroups withInactive(boolean inactive) {
+        return (RemoteReplicationGroups) super.withInactive(inactive);
     }
 
     @Override
-    public SBSDKRemoteReplicationGroups withInternal(boolean internal) {
-        return (SBSDKRemoteReplicationGroups) super.withInternal(internal);
+    public RemoteReplicationGroups withInternal(boolean internal) {
+        return (RemoteReplicationGroups) super.withInternal(internal);
     }
 
     @Override

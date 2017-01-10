@@ -20,31 +20,26 @@ import com.emc.vipr.model.catalog.AssetOption;
 
 @Component
 @AssetNamespace("vipr")
-public class RemoteReplicationGroupProvider extends BaseAssetOptionsProvider {
+public class RemoteReplicationSetProvider extends BaseAssetOptionsProvider {
 
-
-
-
-
-    @Asset("remoteReplicationGroup")
+    @Asset("remoteReplicationSet")
     @AssetDependencies({ "project", "blockVirtualPool" })
-    public List<AssetOption> getRemoteReplicationGroups(AssetOptionsContext ctx, URI projectId, URI virtualPoolId) {
+    public List<AssetOption> getRemoteReplicationSets(AssetOptionsContext ctx, URI projectId, URI virtualPoolId) {
         BlockVirtualPoolRestRep vpool = api(ctx).blockVpools().get(virtualPoolId);
 
-        // Only provide remote Replication groups if the selected VPool supports it
+        // Only provide remote Replication Sets if the selected VPool supports it
         if (isSupportedVPool(vpool)) {
-            return createBaseResourceOptions(api(ctx).remoteReplicationGroups().search().byProject(projectId).run());
+            return createBaseResourceOptions(api(ctx).remoteReplicationSets().search().byProject(projectId).run());
         } else {
             return Collections.emptyList();
         }
     }
 
-    @Asset("remoteReplicationGroup")
+    @Asset("remoteReplicationSet")
     @AssetDependencies({ "project" })
-    public List<AssetOption> getRemoteReplicationGroups(AssetOptionsContext ctx, URI projectId) {
-        return createBaseResourceOptions(api(ctx).remoteReplicationGroups().search().byProject(projectId).run());
+    public List<AssetOption> getRemoteReplicationSets(AssetOptionsContext ctx, URI projectId) {
+        return createBaseResourceOptions(api(ctx).remoteReplicationSets().search().byProject(projectId).run());
     }
-
 
     private boolean isSupportedVPool(BlockVirtualPoolRestRep vpool) {
         return vpool != null && vpool.getProtection().getRemoteReplicationParam() != null;

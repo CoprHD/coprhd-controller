@@ -9,9 +9,9 @@ import static com.emc.sa.asset.providers.BlockProviderUtils.isLocalSnapshotSuppo
 import static com.emc.sa.asset.providers.BlockProviderUtils.isRPSourceVolume;
 import static com.emc.sa.asset.providers.BlockProviderUtils.isRPTargetVolume;
 import static com.emc.sa.asset.providers.BlockProviderUtils.isRemoteSnapshotSupported;
+import static com.emc.sa.asset.providers.BlockProviderUtils.isSnapshotRPBookmark;
 import static com.emc.sa.asset.providers.BlockProviderUtils.isSnapshotSessionSupportedForCG;
 import static com.emc.sa.asset.providers.BlockProviderUtils.isSnapshotSessionSupportedForVolume;
-import static com.emc.sa.asset.providers.BlockProviderUtils.isSnapshotRPBookmark;
 import static com.emc.sa.asset.providers.BlockProviderUtils.isVpoolProtectedByVarray;
 import static com.emc.vipr.client.core.util.ResourceUtils.name;
 import static com.emc.vipr.client.core.util.ResourceUtils.stringId;
@@ -117,7 +117,6 @@ public class BlockProvider extends BaseAssetOptionsProvider {
 
     public static final String VOLUME_OPTION_KEY = "volume";
     public static final String CONSISTENCY_GROUP_OPTION_KEY = "consistencygroup";
-    public static final String REMOTE_REPLICATION_GROUP_OPTION_KEY = "remoteReplicationgroup";
 
     public static final String LINKED_SNAPSHOT_COPYMODE_VALUE = "copy";
     public static final String LINKED_SNAPSHOT_NOCOPYMODE_VALUE = "nocopy";
@@ -135,9 +134,6 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     private static final AssetOption VOLUME_OPTION = newAssetOption(VOLUME_OPTION_KEY, "block.storage.type.volume");
     private static final AssetOption CONSISTENCY_GROUP_OPTION = newAssetOption(CONSISTENCY_GROUP_OPTION_KEY,
             "block.storage.type.consistencygroup");
-
-    private static final AssetOption REMOTE_REPLICATION_GROUP_OPTION = newAssetOption(REMOTE_REPLICATION_GROUP_OPTION_KEY,
-            "block.storage.type.remoteReplicationgroup");
 
     // Failover option keys
     public static final String LATEST_IMAGE_OPTION_KEY = "latest";

@@ -846,7 +846,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         for (StoragePortRestRep port : ports) {
             if (port.getPortType().equals(StoragePort.PortType.frontend.toString()) && 
                     port.getStorageDevice().getId().equals(storageSystemId)) {
-                String portPercentBusy = (port.getPortPercentBusy() != null) ? port.getPortPercentBusy().toString() : "N/A"; 
+                String portPercentBusy = (port.getPortPercentBusy() != null) ? String.valueOf(Math.round(port.getPortPercentBusy() * 100 / 100)) + "%" : "N/A"; 
                 String label = getMessage("exportPathAdjustment.ports", port.getPortName(), portPercentBusy);
                 options.add(new AssetOption(port.getId(), label));
             }

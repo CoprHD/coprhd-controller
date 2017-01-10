@@ -989,7 +989,7 @@ test_move_clustered_discovered_host_to_cluster() {
     set_controller_cs_discovery_refresh_interval 1
     cfs=("ExportGroup ExportMask Network Host Initiator")
 
-    syssvc $SANITY_CONFIG_FILE localhost set_prop validation_check false
+    #syssvc $SANITY_CONFIG_FILE localhost set_prop validation_check false
     run syssvc $SANITY_CONFIG_FILE localhost set_prop system_proxyuser_encpassword $SYSADMIN_PASSWORD
 
     host_cluster_failure_injections="failure_026_host_cluster_ComputeSystemControllerImpl.updateExportGroup_before_update \
@@ -1000,9 +1000,6 @@ test_move_clustered_discovered_host_to_cluster() {
                                      failure_055_host_cluster_ComputeSystemControllerImpl.attachAndMount_after_attach \
                                      failure_056_host_cluster_ComputeSystemControllerImpl.attachAndMount_after_mount"
     common_failure_injections="failure_004_final_step_in_workflow_complete"
-
-    failtest="failure_029_host_cluster_ComputeSystemControllerImpl.verifyDatastore_after_verify"
-    injections="${HAPPY_PATH_TEST_INJECTION} ${failtest}"
     
     item=${RANDOM}
     mkdir -p results/${item}

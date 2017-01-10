@@ -336,7 +336,7 @@ public class ZkBackupHandler extends BackupHandler {
         File driverFolder = new File(targetDir, BackupConstants.DRIVERS_FOLDER_NAME);
         driverFolder.mkdir();
         for (File driver : driverPath.listFiles()) {
-            if (!driver.getName().endsWith(".jar")) {
+            if (!com.emc.storageos.services.util.FileUtils.isJarFile(driver.getName())) {
                 continue;
             }
             FileUtils.copyFileToDirectory(driver, driverFolder);

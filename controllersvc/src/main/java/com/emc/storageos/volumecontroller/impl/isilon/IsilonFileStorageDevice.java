@@ -56,6 +56,7 @@ import com.emc.storageos.db.client.model.VirtualNAS;
 import com.emc.storageos.db.client.model.util.TaskUtils;
 import com.emc.storageos.exceptions.DeviceControllerErrors;
 import com.emc.storageos.exceptions.DeviceControllerException;
+import com.emc.storageos.fileorchestrationcontroller.FileOrchestrationUtils;
 import com.emc.storageos.isilon.restapi.IsilonApi;
 import com.emc.storageos.isilon.restapi.IsilonApi.IsilonList;
 import com.emc.storageos.isilon.restapi.IsilonApiFactory;
@@ -2591,7 +2592,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             String path = generatePathForPolicy(filePolicy, fs, args);
             if (isiSnapshotPolicies != null && !isiSnapshotPolicies.isEmpty()
                     && isSnapshotScheduleExistsOnIsilon(isiSnapshotPolicies, path)) {
-                _log.info("File Policy {} is already applied and running.", filePolicy.toString());
+                _log.info("File Policy {} is already applied and running.", filePolicy.getFilePolicyName());
                 return BiosCommandResult.createSuccessfulResult();
 
             } else {
@@ -2613,7 +2614,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                         nasServer = args.getvNAS();
                     } else {
                         // Get the physical NAS for the storage system!!
-                        PhysicalNAS pNAS = getSystemPhysicalNAS(_dbClient, storageObj);
+                        PhysicalNAS pNAS = FileOrchestrationUtils.getSystemPhysicalNAS(_dbClient, storageObj);
                         if (pNAS != null) {
                             nasServer = pNAS;
                         }
@@ -2622,11 +2623,11 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                     setPolicyStorageAppliedAt(filePolicy, args, policyStorageResource);
                     _dbClient.createObject(policyStorageResource);
 
-                    filePolicy.addPolicyStorageResources(filePolicy, policyStorageResource.getId());
+                    filePolicy.addPolicyStorageResources(policyStorageResource.getId());
 
                     if (filePolicy.getApplyAt().equals(FilePolicyApplyLevel.file_system.name())) {
-                        filePolicy.addAssignedResources(filePolicy, fs.getId());
-                        fs.addFilePolicy(fs, filePolicy.getId());
+                        filePolicy.addAssignedResources(fs.getId());
+                        fs.addFilePolicy(filePolicy.getId());
                     }
                     _dbClient.updateObject(filePolicy);
                     return BiosCommandResult.createSuccessfulResult();
@@ -2826,14 +2827,4 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         }
     }
 
-    public static PhysicalNAS getSystemPhysicalNAS(DbClient dbClient, StorageSystem system) {
-        List<URI> nasServers = dbClient.queryByType(PhysicalNAS.class, true);
-        List<PhysicalNAS> phyNasServers = dbClient.queryObject(PhysicalNAS.class, nasServers);
-        for (PhysicalNAS nasServer : phyNasServers) {
-            if (nasServer.getStorageDeviceURI().toString().equalsIgnoreCase(system.getId().toString())) {
-                return nasServer;
-            }
-        }
-        return null;
-    }
 }

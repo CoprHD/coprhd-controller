@@ -95,31 +95,20 @@ public class Project extends DataObjectWithACLs {
         setChanged("filePolicies");
     }
 
-    /**
-     * 
-     * @param project
-     * @param policy
-     */
-    public void addFilePolicy(Project project, URI policy) {
-        StringSet policies = project.getFilePolicies();
+    public void addFilePolicy(URI policy) {
+        StringSet policies = filePolicies;
         if (policies == null) {
             policies = new StringSet();
         }
         policies.add(policy.toString());
-        project.setFilePolicies(policies);
+        this.filePolicies = policies;
     }
 
-    /**
-     * 
-     * @param project
-     * @param policy
-     */
     public void removeFilePolicy(Project project, URI policy) {
-        StringSet policies = project.getFilePolicies();
+        StringSet policies = filePolicies;
         if (policies != null) {
             policies.remove(policy.toString());
-            project.setFilePolicies(policies);
+            this.filePolicies = policies;
         }
     }
-
 }

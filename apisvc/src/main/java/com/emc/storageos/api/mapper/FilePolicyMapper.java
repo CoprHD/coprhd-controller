@@ -26,7 +26,11 @@ import com.emc.storageos.model.file.policy.FilePolicyRestRep.ReplicationSettings
 import com.emc.storageos.model.file.policy.FilePolicyRestRep.ScheduleRestRep;
 import com.emc.storageos.model.file.policy.FilePolicyRestRep.SnapshotSettingsRestRep;
 
-public class FilePolicyMapper {
+public final class FilePolicyMapper {
+
+    private FilePolicyMapper() {
+
+    }
 
     public static FilePolicyRestRep map(FilePolicy from, DbClient dbClient) {
 

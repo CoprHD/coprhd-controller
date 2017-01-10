@@ -467,20 +467,20 @@ public class FileShare extends FileObject implements ProjectResource {
         setChanged("notificationLimit");
     }
 
-    public void addFilePolicy(FileShare fs, URI policy) {
-        StringSet policies = fs.getFilePolicies();
+    public void addFilePolicy(URI policy) {
+        StringSet policies = filePolicies;
         if (policies == null) {
             policies = new StringSet();
         }
         policies.add(policy.toString());
-        fs.setFilePolicies(policies);
+        this.filePolicies = policies;
     }
 
-    public void removeFilePolicy(FileShare fs, URI policy) {
-        StringSet policies = fs.getFilePolicies();
+    public void removeFilePolicy(URI policy) {
+        StringSet policies = filePolicies;
         if (policies != null) {
             policies.remove(policy.toString());
-            fs.setFilePolicies(policies);
+            this.filePolicies = policies;
         }
     }
 }

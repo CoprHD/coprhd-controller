@@ -13,7 +13,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.api.service.impl.resource.ArgValidator;
-import com.emc.storageos.api.service.impl.resource.FilePolicyService;
 import com.emc.storageos.db.client.model.FilePolicy;
 import com.emc.storageos.db.client.model.FilePolicy.FilePolicyType;
 import com.emc.storageos.db.client.model.FilePolicy.ScheduleFrequency;
@@ -28,8 +27,8 @@ import com.emc.storageos.svcs.errorhandling.resources.APIException;
 /**
  * @author jainm15
  */
-public class FilePolicyServiceUtils {
-    private static final Logger _log = LoggerFactory.getLogger(FilePolicyService.class);
+public final class FilePolicyServiceUtils {
+    private static final Logger _log = LoggerFactory.getLogger(FilePolicyServiceUtils.class);
     private static final int MIN_SNAPSHOT_EXPIRE_TIME = 2;
     private static final int MAX_SNAPSHOT_EXPIRE_TIME = 10;
     private static final long MIN_SNAPSHOT_EXPIRE_SECONDS = 7200;
@@ -139,6 +138,34 @@ public class FilePolicyServiceUtils {
             }
         }
         return true;
+    }
+
+    public static boolean validatePolicySchdeuleTime(FilePolicyScheduleParams policyScheduleparams, FilePolicy schedulePolicy,
+            StringBuilder errorMsg) {
+
+        String period = " PM";
+        int hour = 0, minute = 0;
+        boolean isValid = true;
+        if (policyScheduleparams.getScheduleTime().contains(":")) {
+            String splitTime[] = policyScheduleparams.getScheduleTime().split(":");
+            hour = Integer.parseInt(splitTime[0]);
+            minute = Integer.parseInt(splitTime[1]);
+            if (splitTime[0].startsWith("-") || splitTime[1].startsWith("-")) {
+                isValid = false;
+            }
+        } else {
+            hour = Integer.parseInt(policyScheduleparams.getScheduleTime());
+            minute = 0;
+        }
+        if (isValid && (hour >= 0 && hour < 24) && (minute >= 0 && minute < 60)) {
+            if (hour < 12) {
+                period = " AM";
+            }
+        } else {
+            errorMsg.append("Schedule time: " + policyScheduleparams.getScheduleTime() + " is invalid");
+            return false;
+        }
+        return isValid;
     }
 
     public static void validateSnapshotPolicyParam(FileSnapshotPolicyParam param) {

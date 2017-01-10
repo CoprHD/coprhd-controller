@@ -193,13 +193,13 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
      * @param vpool
      * @param policy
      */
-    public void addFilePolicy(VirtualPool vpool, URI policy) {
-        StringSet policies = vpool.getFilePolicies();
+    public void addFilePolicy(URI policy) {
+        StringSet policies = filePolicies;
         if (policies == null) {
             policies = new StringSet();
         }
         policies.add(policy.toString());
-        vpool.setFilePolicies(policies);
+        this.filePolicies = policies;
     }
 
     /**
@@ -207,11 +207,11 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
      * @param vpool
      * @param policy
      */
-    public void removeFilePolicy(VirtualPool vpool, URI policy) {
-        StringSet policies = vpool.getFilePolicies();
+    public void removeFilePolicy(URI policy) {
+        StringSet policies = filePolicies;
         if (policies != null) {
             policies.remove(policy.toString());
-            vpool.setFilePolicies(policies);
+            this.filePolicies = policies;
         }
     }
 

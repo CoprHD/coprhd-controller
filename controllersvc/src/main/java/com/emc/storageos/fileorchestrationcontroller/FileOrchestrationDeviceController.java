@@ -1724,8 +1724,14 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
         FileShare sourceFS = s_dbClient.queryObject(FileShare.class, sourceDescriptors.getFsURI());
 
         VirtualPool vpool = s_dbClient.queryObject(VirtualPool.class, sourceFS.getVirtualPool());
-        NASServer nasServer = s_dbClient.queryObject(NASServer.class, sourceFS.getVirtualNAS());
+        StorageSystem storage = s_dbClient.queryObject(StorageSystem.class, sourceFS.getStorageDevice());
 
+        NASServer nasServer = null;
+        if (sourceFS.getVirtualNAS() != null) {
+            nasServer = s_dbClient.queryObject(NASServer.class, sourceFS.getVirtualNAS());
+        } else {
+            nasServer = FileOrchestrationUtils.getSystemPhysicalNAS(s_dbClient, storage);
+        }
         List<FilePolicy> fileVpoolPolicies = FileOrchestrationUtils.getAllVpoolLevelPolices(s_dbClient, vpool, nasServer,
                 sourceFS.getStorageDevice());
 
@@ -1736,7 +1742,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
                 String applyFilePolicyStep = workflow.createStepId();
                 Object[] args = new Object[] { sourceFS.getId(), fileVpoolPolicy.getId() };
                 waitFor = _fileDeviceController.createMethod(workflow, waitFor, APPLY_FILE_POLICY_METHOD, applyFilePolicyStep,
-                        stepDescription, sourceFS.getStorageDevice(), args);
+                        stepDescription, storage.getId(), args);
             }
         }
 
@@ -1751,7 +1757,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
                 String applyFilePolicyStep = workflow.createStepId();
                 Object[] args = new Object[] { sourceFS.getId(), fileProjectPolicy.getId() };
                 waitFor = _fileDeviceController.createMethod(workflow, waitFor, APPLY_FILE_POLICY_METHOD, applyFilePolicyStep,
-                        stepDescription, sourceFS.getStorageDevice(), args);
+                        stepDescription, storage.getId(), args);
             }
         }
         return waitFor;
@@ -1760,7 +1766,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
     @Override
     public void unassignFilePolicy(URI policy, Set<URI> unassignFrom, String taskId) throws InternalException {
         FilePolicy filePolicy = s_dbClient.queryObject(FilePolicy.class, policy);
-        String opName = ResourceOperationTypeEnum.CREATE_FILE_SNAPSHOT_SHARE.getName();
+        String opName = ResourceOperationTypeEnum.UNASSIGN_FILE_POLICY.getName();
         TaskCompleter completer = new FilePolicyWorkflowCompleter(policy, taskId);
         try {
             Workflow workflow = _workflowService.getNewWorkflow(this, UNASSIGN_FILE_POLICY_WF_NAME, false, taskId, completer);
@@ -1784,7 +1790,8 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
             } else {
                 s_logger.info("file policy {} is not applied to any storage system", policy);
                 for (URI uri : unassignFrom) {
-                    filePolicy.removeAssignedResources(filePolicy, uri);
+                    filePolicy.removeAssignedResources(uri);
+                    FileOrchestrationUtils.updateUnAssignedResource(filePolicy, uri, s_dbClient);
                 }
                 s_dbClient.updateObject(filePolicy);
                 s_logger.info("Unassigning file policy: {} from resources: {} finished successfully", policy.toString(),

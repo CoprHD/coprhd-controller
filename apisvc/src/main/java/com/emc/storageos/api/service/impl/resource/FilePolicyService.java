@@ -722,31 +722,31 @@ public class FilePolicyService extends TaskResourceService {
             VirtualPool virtualPool = _permissionsHelper.getObjectById(vpoolURI, VirtualPool.class);
             ArgValidator.checkEntity(virtualPool, vpoolURI, false);
 
+            if (filePolicy.getAssignedResources() != null && filePolicy.getAssignedResources().contains(virtualPool.getId().toString())) {
+                _log.info("file policy: {} has already been assigned to vpool: {} ", filePolicy.getFilePolicyName(),
+                        virtualPool.getLabel());
+                continue;
+            }
             if (doesResHasPolicyOfSameType(virtualPool.getFilePolicies(), filePolicy)) {
                 errorMsg.append("Provided vpool : " + virtualPool.getLabel() + " can not have two policies of the same type.");
                 _log.error(errorMsg.toString());
                 throw APIException.badRequests.invalidFilePolicyAssignParam(filePolicy.getFilePolicyName(), errorMsg.toString());
             }
 
-            if (filePolicy.getAssignedResources() != null && filePolicy.getAssignedResources().contains(virtualPool.getId().toString())) {
-                _log.info("policy {} had been assigned to vpool {} ", filePolicy.getFilePolicyName(), virtualPool.getLabel());
-                continue;
-            } else {
-                FilePolicyServiceUtils.validateVpoolSupportPolicyType(filePolicy, virtualPool);
-                // Verify user has permission to assign policy
-                canUserAssignPolicyAtGivenLevel(filePolicy);
+            FilePolicyServiceUtils.validateVpoolSupportPolicyType(filePolicy, virtualPool);
+            // Verify user has permission to assign policy
+            canUserAssignPolicyAtGivenLevel(filePolicy);
 
-                filePolicy.addAssignedResources(filePolicy, vpoolURI);
-                virtualPool.addFilePolicy(virtualPool, filePolicy.getId());
-                _dbClient.updateObject(virtualPool);
-            }
+            filePolicy.addAssignedResources(vpoolURI);
+            virtualPool.addFilePolicy(filePolicy.getId());
+            _dbClient.updateObject(virtualPool);
         }
         if (param.getApplyOnTargetSite() != null) {
             filePolicy.setApplyOnTargetSite(param.getApplyOnTargetSite());
         }
         _dbClient.updateObject(filePolicy);
-        return new FilePolicyAssignResp(filePolicy.getId(), toLink(ResourceTypeEnum.FILE_POLICY, filePolicy.getId()),
-                filePolicy.getLabel(), filePolicy.getApplyAt(), filePolicy.getAssignedResources());
+        return new FilePolicyAssignResp(filePolicy.getId(), toLink(ResourceTypeEnum.FILE_POLICY, filePolicy.getId()), filePolicy.getLabel(),
+                filePolicy.getApplyAt(), filePolicy.getAssignedResources());
     }
 
     private FilePolicyAssignResp assignFilePolicyToProject(FilePolicyAssignParam param, FilePolicy filePolicy) {
@@ -787,20 +787,21 @@ public class FilePolicyService extends TaskResourceService {
             Project project = _permissionsHelper.getObjectById(projectURI, Project.class);
             ArgValidator.checkEntity(project, projectURI, false);
 
+            if (filePolicy.getAssignedResources() != null && filePolicy.getAssignedResources().contains(project.getId().toString())) {
+                continue;
+            }
             if (doesResHasPolicyOfSameType(project.getFilePolicies(), filePolicy)) {
                 errorMsg.append("Provided project : " + project.getLabel() + " can not have two policies of the same type.");
                 _log.error(errorMsg.toString());
                 throw APIException.badRequests.invalidFilePolicyAssignParam(filePolicy.getFilePolicyName(), errorMsg.toString());
             }
-            if (filePolicy.getAssignedResources() != null && filePolicy.getAssignedResources().contains(project.getId().toString())) {
-                continue;
-            } else {
-                // Verify user has permission to assign policy
-                canUserAssignPolicyAtGivenLevel(filePolicy);
-                filePolicy.addAssignedResources(filePolicy, projectURI);
-                project.addFilePolicy(project, filePolicy.getId());
-                _dbClient.updateObject(project);
-            }
+
+            // Verify user has permission to assign policy
+            canUserAssignPolicyAtGivenLevel(filePolicy);
+
+            filePolicy.addAssignedResources(projectURI);
+            project.addFilePolicy(filePolicy.getId());
+            _dbClient.updateObject(project);
         }
         if (param.getApplyOnTargetSite() != null) {
             filePolicy.setApplyOnTargetSite(param.getApplyOnTargetSite());
@@ -929,26 +930,27 @@ public class FilePolicyService extends TaskResourceService {
     }
 
     private boolean doesResHasPolicyOfSameType(StringSet existingPolicies, FilePolicy filePolicy) {
-
-        List<URI> existingFilePolicyURIs = new ArrayList<URI>();
-        for (String existingPolicy : existingPolicies) {
-            existingFilePolicyURIs.add(URI.create(existingPolicy));
-        }
-        Iterator<FilePolicy> iterator = _dbClient.queryIterativeObjects(FilePolicy.class, existingFilePolicyURIs, true);
-
-        if (filePolicy.getFilePolicyType().equals(FilePolicyType.file_replication.name())) {
-            while (iterator.hasNext()) {
-                FilePolicy fp = iterator.next();
-                if (FilePolicy.FilePolicyType.file_replication.name().equals(fp.getFilePolicyType())) {
-                    return true;
-                }
+        if (existingPolicies != null && !existingPolicies.isEmpty()) {
+            List<URI> existingFilePolicyURIs = new ArrayList<URI>();
+            for (String existingPolicy : existingPolicies) {
+                existingFilePolicyURIs.add(URI.create(existingPolicy));
             }
+            Iterator<FilePolicy> iterator = _dbClient.queryIterativeObjects(FilePolicy.class, existingFilePolicyURIs, true);
 
-        } else if (filePolicy.getFilePolicyType().equals(FilePolicyType.file_snapshot.name())) {
-            while (iterator.hasNext()) {
-                FilePolicy fp = iterator.next();
-                if (FilePolicy.FilePolicyType.file_snapshot.name().equals(fp.getFilePolicyType())) {
-                    return true;
+            if (filePolicy.getFilePolicyType().equals(FilePolicyType.file_replication.name())) {
+                while (iterator.hasNext()) {
+                    FilePolicy fp = iterator.next();
+                    if (FilePolicy.FilePolicyType.file_replication.name().equals(fp.getFilePolicyType())) {
+                        return true;
+                    }
+                }
+
+            } else if (filePolicy.getFilePolicyType().equals(FilePolicyType.file_snapshot.name())) {
+                while (iterator.hasNext()) {
+                    FilePolicy fp = iterator.next();
+                    if (FilePolicy.FilePolicyType.file_snapshot.name().equals(fp.getFilePolicyType())) {
+                        return true;
+                    }
                 }
             }
         }

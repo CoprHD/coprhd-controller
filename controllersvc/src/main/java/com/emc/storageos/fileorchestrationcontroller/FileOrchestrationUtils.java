@@ -367,7 +367,7 @@ public class FileOrchestrationUtils {
      * @param storageSystem
      * @return
      */
-    public static List<FilePolicy> getAllVpoolLevelPolices(DbClient dbClient, VirtualPool vpool, URI storageSystem) {
+    public static List<FilePolicy> getAllVpoolLevelPolices(DbClient dbClient, VirtualPool vpool, URI storageSystem, URI nasServer) {
         List<FilePolicy> filePoliciesToCreate = new ArrayList<FilePolicy>();
         StringSet fileVpoolPolicies = vpool.getFilePolices();
 
@@ -380,7 +380,8 @@ public class FileOrchestrationUtils {
                     for (String policyStrRe : policyStrRes) {
                         PolicyStorageResource strRes = dbClient.queryObject(PolicyStorageResource.class, URIUtil.uri(policyStrRe));
                         if (strRes.getAppliedAt().toString().equals(vpool.getId().toString())
-                                && strRes.getStorageSystem().toString().equals(storageSystem.toString())) {
+                                && strRes.getStorageSystem().toString().equals(storageSystem.toString())
+                                && strRes.getNasServer().toString().equalsIgnoreCase(nasServer.toString())) {
                             _log.info("File Policy {} is already for vpool {} , storage system {}", filePolicy.getFilePolicyName(),
                                     vpool.getLabel(), storageSystem.toString());
                             filePoliciesToCreate.remove(filePolicy);
@@ -400,7 +401,8 @@ public class FileOrchestrationUtils {
      * @param storageSystem
      * @return
      */
-    public static List<FilePolicy> getAllProjectLevelPolices(DbClient dbClient, Project project, VirtualPool vpool, URI storageSystem) {
+    public static List<FilePolicy> getAllProjectLevelPolices(DbClient dbClient, Project project, VirtualPool vpool,
+            URI storageSystem, URI nasServer) {
         List<FilePolicy> filePoliciesToCreate = new ArrayList<FilePolicy>();
         StringSet fileProjectPolicies = project.getFilePolices();
 
@@ -417,7 +419,8 @@ public class FileOrchestrationUtils {
                     for (String policyStrRe : policyStrRes) {
                         PolicyStorageResource strRes = dbClient.queryObject(PolicyStorageResource.class, URIUtil.uri(policyStrRe));
                         if (strRes.getAppliedAt().toString().equals(project.getId().toString())
-                                && strRes.getStorageSystem().toString().equals(storageSystem.toString())) {
+                                && strRes.getStorageSystem().toString().equals(storageSystem.toString())
+                                && strRes.getNasServer().toString().equalsIgnoreCase(nasServer.toString())) {
                             _log.info("File Policy {} is already for project {} , storage system {}", filePolicy.getFilePolicyName(),
                                     project.getLabel(), storageSystem.toString());
                             filePoliciesToCreate.remove(filePolicy);
@@ -543,15 +546,17 @@ public class FileOrchestrationUtils {
             } else {
                 FilePolicy replPolicy = replicationPolicies.get(0);
                 if (fs.getPersonality() != null && fs.getPersonality().equalsIgnoreCase(PersonalityTypes.TARGET.name())) {
+                    // Get the source storage system!!
+                    StorageSystem targetSystem = dbClient.queryObject(StorageSystem.class, fs.getStorageDevice());
                     if (replPolicy.getApplyAt().equalsIgnoreCase(FilePolicyApplyLevel.vpool.name())) {
-                        return isvPoolPolicyAppliedOnStorageSystem(dbClient, system, nasServer,
+                        return isvPoolPolicyAppliedOnStorageSystem(dbClient, targetSystem, nasServer,
                                 vpool, replPolicy);
                     } else if (replPolicy.getApplyAt().equalsIgnoreCase(FilePolicyApplyLevel.project.name())) {
-                        return isProjectPolicyAppliedOnStorageSystem(dbClient, system, nasServer,
+                        return isProjectPolicyAppliedOnStorageSystem(dbClient, targetSystem, nasServer,
                                 project, replPolicy);
                     } else if (replPolicy.getApplyAt().equalsIgnoreCase(FilePolicyApplyLevel.file_system.name())) {
                         FileShare fsParent = dbClient.queryObject(FileShare.class, fs.getParentFileShare());
-                        return isFSPolicyAppliedOnStorageSystem(dbClient, system, nasServer,
+                        return isFSPolicyAppliedOnStorageSystem(dbClient, targetSystem, nasServer,
                                 fsParent, replPolicy);
                     }
                 }
@@ -641,16 +646,41 @@ public class FileOrchestrationUtils {
         return storageRes;
     }
 
+    private static String stripSpecialCharacters(String label) {
+        return label.replaceAll("[^\\dA-Za-z ]", "").replaceAll("\\s+", "_");
+    }
+
+    public static String generateNameForPolicy(FilePolicy filePolicy, FileShare fileShare, FileDeviceInputOutput args) {
+        String devPolicyName = "";
+        String policyName = stripSpecialCharacters(filePolicy.getFilePolicyName());
+
+        FilePolicyApplyLevel applyLevel = FilePolicyApplyLevel.valueOf(filePolicy.getApplyAt());
+        switch (applyLevel) {
+            case vpool:
+                devPolicyName = args.getVPoolNameWithNoSpecialCharacters() + "_" + policyName;
+                break;
+            case project:
+                devPolicyName = args.getProjectNameWithNoSpecialCharacters() + "_" + policyName;
+                break;
+            case file_system:
+                devPolicyName = fileShare.getLabel() + "_" + policyName;
+                break;
+            default:
+                _log.error("Not a valid policy apply level: " + applyLevel);
+        }
+        return policyName;
+    }
+
     public static void updatePolicyStorageResouce(DbClient dbClient, StorageSystem system, FilePolicy filePolicy,
             FileDeviceInputOutput args, String sourcePath,
             PolicyStorageResource policyStorageResource) {
-        if (policyStorageResource != null) {
+        if (policyStorageResource == null) {
             policyStorageResource = new PolicyStorageResource();
         }
         policyStorageResource.setId(URIUtil.createId(PolicyStorageResource.class));
         policyStorageResource.setFilePolicyId(filePolicy.getId());
         policyStorageResource.setStorageSystem(system.getId());
-        policyStorageResource.setPolicyNativeId(filePolicy.getFilePolicyName());
+        policyStorageResource.setPolicyNativeId(stripSpecialCharacters(filePolicy.getFilePolicyName()));
         NASServer nasServer = null;
         if (args.getvNAS() != null) {
             nasServer = args.getvNAS();

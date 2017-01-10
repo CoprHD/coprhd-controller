@@ -326,10 +326,7 @@ public class FileMirrorServiceApiImpl extends AbstractFileServiceApiImpl<FileMir
 
                     // Stripping out the special characters like ; /-+!@#$%^&())";:[]{}\ | but allow underscore character _
                     String varrayName = targetVArray.getLabel().replaceAll("[^\\dA-Za-z\\_]", "");
-                    fileLabelBuilder = new StringBuilder(targetFsPrefix);
-                    if (FilePolicyApplyLevel.file_system.name().equalsIgnoreCase(cosCapabilities.getFileReplicationAppliedAt())) {
-                        fileLabelBuilder.append("-target");
-                    }
+                    fileLabelBuilder = new StringBuilder(targetFsPrefix).append("-target");
                     _log.info("Target file system name {}", fileLabelBuilder.toString());
                     targetFileShare = prepareEmptyFileSystem(fileLabelBuilder.toString(), sourceFileShare.getCapacity(),
                             project, recommendation, tenantOrg, targetVArray, vpool, targetVpool, flags, task);

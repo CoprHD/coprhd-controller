@@ -66,7 +66,6 @@ import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.fileorchestrationcontroller.FileDescriptor;
 import com.emc.storageos.fileorchestrationcontroller.FileOrchestrationInterface;
-import com.emc.storageos.fileorchestrationcontroller.FileOrchestrationUtils;
 import com.emc.storageos.locking.LockTimeoutValue;
 import com.emc.storageos.locking.LockType;
 import com.emc.storageos.model.file.CifsShareACLUpdateParams;
@@ -319,13 +318,6 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             setVirtualNASinArgs(fsObj.getVirtualNAS(), args);
             args.setTenantOrg(tenant);
             args.setProject(proj);
-
-            // Get the replication policy for vpool/project/fs
-            List<FilePolicy> replicationPolicies = FileOrchestrationUtils.getReplicationPolices(_dbClient, vPool, proj, fsObj);
-            if (replicationPolicies != null && !replicationPolicies.isEmpty()) {
-                FilePolicy replPoliy = replicationPolicies.get(0);
-                args.setReplPolicyAt(replPoliy.getApplyAt());
-            }
 
             // work flow and we need to add TaskCompleter(TBD for vnxfile)
             WorkflowStepCompleter.stepExecuting(opId);
@@ -4391,6 +4383,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             args.setVPool(vpool);
             args.setProject(project);
             args.setFileProtectionPolicy(filePolicy);
+            setVirtualNASinArgs(fsObj.getVirtualNAS(), args);
             WorkflowStepCompleter.stepExecuting(taskId);
             BiosCommandResult result = getDevice(storageObj.getSystemType()).doApplyFilePolicy(storageObj, args);
             if (result.getCommandPending()) {

@@ -1,9 +1,13 @@
-<div ng-controller="tabController" ng-repeat="workflowTab in workflowTabs" class="tab-pane" id="{{workflowTab.id}}">
+<div ng-controller="tabController" ng-repeat="workflowTab in workflowTabs" class="tab-pane" id="{{workflowTab.elementid}}" ng-init="initializeWorkflowData(workflowTab)">
     <div class="buttonbar">
 
-        <input id="Export" type="button" class="btn btn-default" value="Export" ng-click="buildJSON();" />
-        <input id="Import" type="button" class="btn btn-default" value="Import" ng-click="loadJSON();" />
-        <input id="reset" type="button" class="btn btn-default" value="reset" ng-click="reset();" />
+        <button ng-disabled="!modified|| workflowData.state == 'PUBLISHED'" id="Save" type="button" class="btn btn-default" value="Save" ng-click="saveWorkflow();" />
+        <span ng-class="{'glyphicon-ok-sign success-icon':!modified,'glyphicon-exclamation-sign warning-icon':modified}" class="glyphicon "></span> Save</button>
+        <button ng-disabled="modified || workflowData.state == 'VALID' || workflowData.state == 'PUBLISHED'" id="Validate" type="button" class="btn btn-default" value="Validate" ng-click="validateWorkflow();" />
+        <span ng-hide="(workflowData.state != 'VALID' && workflowData.state != 'PUBLISHED')" class="glyphicon glyphicon-ok-sign success-icon"></span> Validate</button>
+        <button ng-disabled="modified || workflowData.state != 'VALID'" id="Publish" type="button" class="btn btn-default" value="Publish" ng-click="publishorkflow();" />
+        <span ng-hide="workflowData.state != 'PUBLISHED'" class="glyphicon glyphicon-ok-sign success-icon"></span> Publish</button>
+        <button ng-disabled="workflowData.state != 'PUBLISHED'" id="Unpublish" type="button" class="btn btn-default" value="Unpublish" ng-click="unpublishWorkflow();" />Unpublish</button>
 
     </div>
     <div class="builder-container">

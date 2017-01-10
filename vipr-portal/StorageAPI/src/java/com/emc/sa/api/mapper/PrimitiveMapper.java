@@ -22,7 +22,9 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import com.emc.storageos.api.service.impl.response.ResourceTypeMapping;
 import com.emc.storageos.db.client.model.StringSet;
@@ -94,13 +96,12 @@ public class PrimitiveMapper {
      */
     private static void mapAnsiblePackage(final AnsiblePackage from,
             final PrimitiveRestRep to) {
-        List<InputParameterRestRep> input = new ArrayList<InputParameterRestRep>();
+        final Map<String, InputParameterRestRep> input = new HashMap<String, InputParameterRestRep>();
         if (null != from.getExtraVars()) {
             for (final String extraVar : from.getExtraVars()) {
                 InputParameterRestRep param = new InputParameterRestRep();
-                param.setName("@extraVars." + extraVar);
                 param.setType(ParameterType.STRING.name());
-                input.add(param);
+                input.put("@extraVars." + extraVar, param);
             }
         }
         to.setInput(input);
@@ -124,14 +125,13 @@ public class PrimitiveMapper {
         to.setOutput(mapOutput(from.getOutput()));
     }
 
-    private static List<OutputParameterRestRep> mapOutput(StringSet from) {
-        final List<OutputParameterRestRep> to = new ArrayList<OutputParameterRestRep>();
+    private static Map<String, OutputParameterRestRep> mapOutput(StringSet from) {
+        final Map<String, OutputParameterRestRep> to = new HashMap<String, OutputParameterRestRep>();
         if (null != from) {
             for (final String parameter : from) {
                 final OutputParameterRestRep paramRestRep = new OutputParameterRestRep();
-                paramRestRep.setName(parameter);
                 paramRestRep.setType(ParameterType.STRING.name());
-                to.add(paramRestRep);
+                to.put(parameter, paramRestRep);
             }
         }
         return to;

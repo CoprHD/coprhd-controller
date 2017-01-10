@@ -37,8 +37,8 @@
                                 <td><strong>locked</strong></td>
                                 <td><strong>group</strong></td>
                             </tr>
-                            <tr ng-repeat="input in stepData.input">
-                                <td>{{ input.name }}</td>
+                            <tr ng-repeat="(key, input) in stepData.input">
+                                <td>{{ key }}</td>
                                 <td><input ng-model="input.type" /></td>
                                 <td><input ng-model="input.required" /></td>
                                 <td><input ng-model="input.default_value" /></td>
@@ -64,11 +64,9 @@
                     <table>
                         <tr>
                             <td><strong>name</strong></td>
-                            <td><strong>type</strong></td>
                         </tr>
-                        <tr ng-repeat="output in stepData.output">
-                            <td>{{output.name}}</td>
-                            <td>{{output.type}}</td>
+                        <tr ng-repeat="(key, value) in stepData.output">
+                            <td>{{key}}</td>
                         </tr>
                     </table>
                 </div>

@@ -11,7 +11,7 @@
     <div class="builder-column">
         <ul id="wftabs" class="nav nav-tabs" role="tablist">
             <li class="active"><a href="#home" role="tab" data-toggle="tab" data-id="home"><span class="glyphicon glyphicon-home "></span>&nbsp;Workflow Library</a></li>
-            <li ng-repeat="workflowTab in workflowTabs" class=""><a href="{{workflowTab.href}}" role="tab" data-toggle="tab">{{workflowTab.name}}<button class="close" ng-click="closeTab(workflowTab.id)" type="button" title="Close tab"><span aria-hidden="true">&times;</span></button></a></li>
+            <li ng-repeat="workflowTab in workflowTabs" class=""><a href="{{workflowTab.href}}" role="tab" data-toggle="tab">{{workflowTab.name}}<button class="close" ng-click="closeTab(workflowTab.elementid)" type="button" title="Close tab"><span aria-hidden="true">&times;</span></button></a></li>
         </ul>
 
         <div class="tab-content">

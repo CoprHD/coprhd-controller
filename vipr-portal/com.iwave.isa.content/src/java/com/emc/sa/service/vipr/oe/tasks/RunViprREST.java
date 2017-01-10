@@ -18,20 +18,23 @@
 package com.emc.sa.service.vipr.oe.tasks;
 
 import java.io.IOException;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import com.google.gson.Gson;
 import org.apache.commons.io.IOUtils;
 import org.slf4j.LoggerFactory;
 import org.springframework.web.util.UriTemplate;
 
 import com.emc.sa.engine.ExecutionUtils;
-import com.emc.sa.service.vipr.oe.OrchestrationService;
+import com.emc.sa.service.vipr.oe.gson.ViprOperation;
 import com.emc.sa.service.vipr.oe.OrchestrationServiceConstants;
-import com.emc.sa.service.vipr.oe.SuccessCriteria;
+import com.emc.sa.service.vipr.oe.OrchestrationUtils;
 import com.emc.sa.service.vipr.tasks.ViPRExecutionTask;
 import com.emc.storageos.primitives.ViPRPrimitive;
 import com.emc.vipr.client.impl.RestClient;
@@ -80,6 +83,24 @@ public class RunViprREST extends ViPRExecutionTask<OrchestrationTaskResult> {
         return result;
     }
 
+    private Map<URI, String> waitForTask(final String result)
+    {
+        final ViprOperation res = OrchestrationUtils.parseViprTasks(result);
+        if (res == null) {
+            return null;
+        }
+
+        try {
+            return OrchestrationUtils.waitForTasks(res.getTaskIds(), getClient());
+        } catch (final InterruptedException e) {
+            logger.warn("Task Timed out");
+            return null;
+        } catch (final URISyntaxException e) {
+            logger.warn("Failed to parse REST response");
+            return null;
+        }
+    }
+
     private OrchestrationTaskResult makeRestCall(final String path, final Object requestBody, final String method) throws Exception {
 
         final ClientResponse response;
@@ -108,7 +129,7 @@ public class RunViprREST extends ViPRExecutionTask<OrchestrationTaskResult> {
 
         logger.info("Status of ViPR REST Operation:{} is :{}", primitive.getName(), response.getStatus());
 
-        String responseString = null;
+        final String responseString;
         try {
             responseString = IOUtils.toString(response.getEntityInputStream(), "UTF-8");
         } catch (final IOException e) {
@@ -117,7 +138,11 @@ public class RunViprREST extends ViPRExecutionTask<OrchestrationTaskResult> {
             return null;
         }
 
-        return new OrchestrationTaskResult(responseString, responseString, response.getStatus());
+        final Map<URI, String> taskState = waitForTask(responseString);
+        if (taskState == null)
+            return null;
+
+        return new OrchestrationTaskResult(responseString, responseString, response.getStatus(), taskState);
     }
 
 
@@ -137,7 +162,7 @@ public class RunViprREST extends ViPRExecutionTask<OrchestrationTaskResult> {
                 //TODO convert to a better exception?
                 throw new IllegalStateException("Unfulfilled path parameter: " + key);
             }
-            pathParameterMap.put(key, value);
+            pathParameterMap.put(key, value.get(0));
         }
         
         final String path = template.expand(pathParameterMap).getPath(); 
@@ -169,7 +194,7 @@ public class RunViprREST extends ViPRExecutionTask<OrchestrationTaskResult> {
         while (m.find()) {
             String pat = m.group(1);
             String newpat = "$" + pat;
-            body = body.replace(newpat, input.get(pat).get(0));
+            body = body.replace(newpat, "\"" +input.get(pat).get(0)+"\"");
         }
 
         return body;

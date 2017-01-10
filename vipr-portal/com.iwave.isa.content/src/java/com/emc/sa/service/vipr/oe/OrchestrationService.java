@@ -41,7 +41,6 @@ import com.emc.sa.engine.service.Service;
 import com.emc.sa.service.vipr.ViPRExecutionUtils;
 import com.emc.sa.service.vipr.ViPRService;
 import com.emc.sa.service.vipr.oe.OrchestrationServiceConstants.InputType;
-import com.emc.sa.service.vipr.oe.OrchestrationServiceConstants.StepType;
 import com.emc.sa.service.vipr.oe.gson.ViprOperation;
 import com.emc.sa.service.vipr.oe.gson.ViprTask;
 import com.emc.sa.service.vipr.oe.tasks.OrchestrationTaskResult;
@@ -54,6 +53,7 @@ import com.emc.storageos.model.orchestration.OrchestrationWorkflowDocument.Input
 import com.emc.storageos.model.orchestration.OrchestrationWorkflowDocument.Step;
 import com.emc.storageos.model.orchestration.OrchestrationWorkflowDocument.StepAttribute;
 import com.emc.storageos.primitives.Primitive;
+import com.emc.storageos.primitives.Primitive.StepType;
 import com.emc.storageos.primitives.PrimitiveHelper;
 import com.emc.storageos.primitives.ViPRPrimitive;
 import com.google.gson.Gson;
@@ -122,7 +122,7 @@ public class OrchestrationService extends ViPRService {
             stepsHash.put(step.getId(), step);
 
         Step step = stepsHash.get(StepType.START.toString());
-        String next = step.getNext().getDefault();
+        String next = step.getNext().getDefaultStep();
 
         while (next != null && !next.equals(StepType.END.toString())) {
             step = stepsHash.get(next);
@@ -168,11 +168,17 @@ public class OrchestrationService extends ViPRService {
                     throw new IllegalStateException("Operation Type not supported" + type);
             }
 
-            final boolean isSuccess = isSuccess(step, res);
-            if (isSuccess)
-                updateOutputPerStep(step, res.getOut());
+            boolean isSuccess = isSuccess(step, res);
+            if (isSuccess) {
+                try {
+                    updateOutputPerStep(step, res.getOut());
+                } catch (final Exception e) {
+                    logger.info("Failed to parse output" + e);
 
-	        next = getNext(isSuccess, res, step);
+                    isSuccess = false;
+                }
+            }
+	    next = getNext(isSuccess, res, step);
 
             if (next == null) {
                 logger.error("Orchestration Engine failed to retrieve next step:{}", step.getId());
@@ -197,12 +203,12 @@ public class OrchestrationService extends ViPRService {
         if (status) {
             ExecutionUtils.currentContext().logInfo("orchestrationService.stepSuccessStatus", step, result.getReturnCode());
 
-            return step.getNext().getDefault();
+            return step.getNext().getDefaultStep();
         }
 
         ExecutionUtils.currentContext().logError("orchestrationService.stepFailedStatus", step);
 
-        return step.getNext().getFailed();
+        return step.getNext().getFailedStep();
     }
 
     /**
@@ -236,7 +242,7 @@ public class OrchestrationService extends ViPRService {
                 case OTHERS:
                 case ASSET_OPTION: {
                     //TODO handle multiple , separated values
-                    final String paramVal = (params.get(key) != null) ? (params.get(key).toString()) : (value.getDefaultValue());
+                    final String paramVal = (params.get(key) != null) ? (StringUtils.strip(params.get(key).toString(), "\"")) : (value.getDefaultValue());
 
                     if (paramVal == null) {
                         if (value.getRequired()) {
@@ -320,7 +326,7 @@ public class OrchestrationService extends ViPRService {
         return true;
 
     }
-    private List<String> evaluateAnsibleOut(String result, String key) throws Exception
+    private List<String> evaluateAnsibleOut(final String result, final String key) throws Exception
     {
         final List<String> out = new ArrayList<String>();
 
@@ -331,9 +337,10 @@ public class OrchestrationService extends ViPRService {
 
         if (arrNode.isArray()) {
             for (final JsonNode objNode : arrNode) {
-                logger.info("output val is:{}", objNode);
                 out.add(objNode.toString());
             }
+        } else {
+            out.add(arrNode.toString());
         }
 
         return out;
@@ -358,15 +365,11 @@ public class OrchestrationService extends ViPRService {
 
         final Map<String, List<String>> out = new HashMap<String, List<String>>();
 
-        Set keyset = output.keySet();
-        Iterator it = keyset.iterator();
-        while (it.hasNext()) {
-            String key = it.next().toString();
-            String value = output.get(key);
+        for(Map.Entry<String, String> e : output.entrySet()) {
             if (isAnsible(step)) {
-                out.put(key, evaluateAnsibleOut(result, key));
+                out.put(e.getKey(), evaluateAnsibleOut(result, e.getKey()));
             } else {
-                out.put(key, evaluateValue(result, value));
+                out.put(e.getKey(), evaluateValue(result, e.getValue()));
             }
         }
 
@@ -416,8 +419,8 @@ public class OrchestrationService extends ViPRService {
     private List<String> evaluateValue(final String result, String value) throws Exception {
 
         final Gson gson = new Gson();
-        ViprOperation res = gson.fromJson(result, ViprOperation.class);
-        ExpressionParser parser = new SpelExpressionParser();
+        final ViprOperation res = gson.fromJson(result, ViprOperation.class);
+        final ExpressionParser parser = new SpelExpressionParser();
 
         logger.debug("Find value of:{}", value);
         List<String> valueList = new ArrayList<String>();
@@ -488,11 +491,10 @@ public class OrchestrationService extends ViPRService {
 
             int p = 0;
             for (String statement : statements) {
-
-                if (statement.startsWith(OrchestrationServiceConstants.RETURN_CODE)) {
+                if (statement.trim().startsWith(OrchestrationServiceConstants.RETURN_CODE)) {
                     Expression e2 = parser.parseExpression(statement);
 
-                    sc.setReturnCode(res.getReturnCode());
+                    sc.setCode(res.getReturnCode());
                     boolean val = e2.getValue(con2, Boolean.class);
                     logger.info("Evaluated value for errorCode or returnCode is:{}", val);
 

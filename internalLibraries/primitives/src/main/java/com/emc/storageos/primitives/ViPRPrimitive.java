@@ -26,12 +26,12 @@ import com.emc.storageos.primitives.output.OutputParameter;
  */
 public abstract class ViPRPrimitive extends Primitive {
 
-    public ViPRPrimitive(final URI id, final String name,
-            final String friendlyName, final String description,
+    private final static StepType TYPE = StepType.VIPR_REST;
+    
+    public ViPRPrimitive(final URI id, final String name, final String friendlyName, final String description,
             final String successCriteria, final InputParameter[] input,
-            final OutputParameter[] output) {
-        super(id, name, friendlyName, description, successCriteria, input,
-                output);
+            OutputParameter[] output) {
+        super(id, name, friendlyName, description, successCriteria, input, output,TYPE);
     }
 
     public abstract String path();

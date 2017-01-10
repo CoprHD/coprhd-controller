@@ -22,9 +22,9 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
 import java.nio.file.FileSystems;
-import java.util.ArrayList;
 import java.util.Collections;
-import java.util.List;
+import java.util.HashMap;
+import java.util.Map;
 
 import javax.servlet.ServletOutputStream;
 import javax.servlet.http.HttpServletRequest;
@@ -134,6 +134,7 @@ public class PrimitiveService {
             PrimitiveRestRep primitiveRestRep = new PrimitiveRestRep();
             primitiveRestRep.setId(primitive.getId());
             primitiveRestRep.setName(primitive.getName());
+            primitiveRestRep.setType(primitive.getType().toString());
             primitiveRestRep.setFriendlyName(primitive.getFriendlyName());
             primitiveRestRep.setDescription(primitive.getDescription());
             primitiveRestRep.setSuccessCriteria(primitive.getSuccessCriteria());
@@ -394,15 +395,13 @@ public class PrimitiveService {
         return PrimitiveMapper.map(update);
     }
 
-    private static List<InputParameterRestRep> mapInput(
-            List<InputParameter> inputParameters) {
-        List<InputParameterRestRep> inputRestRep = new ArrayList<InputParameterRestRep>();
-        int index = 0;
-        for (final InputParameter parameter : inputParameters) {
 
-            if (parameter.isBasicInputParameter()) {
+    private static Map<String,InputParameterRestRep> mapInput(Map<String,InputParameter> inputParameters) {
+        Map<String,InputParameterRestRep> inputRestRep = new HashMap<String,InputParameterRestRep>();
+        for(final InputParameter parameter : inputParameters.values()) {
+            String key = parameter.getName();
+            if(parameter.isBasicInputParameter()) {
                 InputParameterRestRep inputParamRestRep = new InputParameterRestRep();
-                inputParamRestRep.setName(parameter.getName());
                 inputParamRestRep.setType(parameter.getType().name());
                 BasicInputParameter<?> inputParam = parameter
                         .asBasicInputParameter();
@@ -412,35 +411,31 @@ public class PrimitiveService {
                             .singletonList(inputParam.getDefaultValue()
                                     .toString()));
                 }
-                inputRestRep.add(index++, inputParamRestRep);
+                inputRestRep.put(key, inputParamRestRep);
             }
 
         }
         return inputRestRep;
     }
-
-    private static List<OutputParameterRestRep> mapOutput(
-            List<OutputParameter> output) {
-        List<OutputParameterRestRep> outputRestRep = new ArrayList<OutputParameterRestRep>();
-        int index = 0;
-        for (final OutputParameter parameter : output) {
-            if (parameter.isBasicOutputParameter()) {
-                BasicOutputParameter outputParam = parameter
-                        .asBasicOutputParameter();
+    
+    private static Map<String,OutputParameterRestRep> mapOutput(Map<String,OutputParameter> output) {
+        Map<String,OutputParameterRestRep> outputRestRep = new HashMap<String,OutputParameterRestRep>();
+        for(final OutputParameter parameter : output.values()) {
+            String key = parameter.getName();
+            if(parameter.isBasicOutputParameter()) {
+                BasicOutputParameter outputParam = parameter.asBasicOutputParameter();
                 OutputParameterRestRep parameterRestRep = new OutputParameterRestRep();
-                parameterRestRep.setName(outputParam.getName());
                 parameterRestRep.setType(outputParam.getType().name());
-                outputRestRep.add(index++, parameterRestRep);
+                outputRestRep.put(key, parameterRestRep);
             } else {
                 TableOutputParameter outputParam = parameter
                         .asTableOutputParameter();
                 for (final BasicOutputParameter column : outputParam
                         .getColumns()) {
                     OutputParameterRestRep parameterRestRep = new OutputParameterRestRep();
-                    parameterRestRep.setName(column.getName());
                     parameterRestRep.setType(column.getType().name());
                     parameterRestRep.setTable(outputParam.getName());
-                    outputRestRep.add(index++, parameterRestRep);
+                    outputRestRep.put(key, parameterRestRep);
                 }
             }
         }

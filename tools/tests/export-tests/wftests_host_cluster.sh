@@ -1438,7 +1438,7 @@ test_cluster_remove_discovered_host() {
 
     # Placeholder when a specific failure case is being worked...
     #failure_injections="${HAPPY_PATH_TEST_INJECTION}"    
-    failure_injections="failure_029_host_cluster_ComputeSystemControllerImpl.verifyDatastore_after_verify"
+    failure_injections="${HAPPY_PATH_TEST_INJECTION} failure_029_host_cluster_ComputeSystemControllerImpl.verifyDatastore_after_verify"
     
     # Real™ hosts/clusters/vcenters/datacenters provisioned during setup
     hostpostfix=".sim.emc.com"
@@ -1466,19 +1466,21 @@ test_cluster_remove_discovered_host() {
     secho "Creating volume ${PROJECT}/${volume1} and datastore ${datastore1} exported to ${cluster1}..."
     create_volume_and_datastore $TENANT ${volume1} ${datastore1} $NH $VPOOL_BASE ${PROJECT} ${vcenter} ${datacenter} ${cluster1}
  
-    secho "Creating volume ${PROJECT2}/${volume2} and datastore ${datastore2} exported to ${cluster1}..."
-    create_volume_and_datastore $TENANT ${volume2} ${datastore2} $NH $VPOOL_BASE ${PROJECT2} ${vcenter} ${datacenter} ${cluster1}
+    #secho "Creating volume ${PROJECT2}/${volume2} and datastore ${datastore2} exported to ${cluster1}..."
+    #create_volume_and_datastore $TENANT ${volume2} ${datastore2} $NH $VPOOL_BASE ${PROJECT2} ${vcenter} ${datacenter} ${cluster1}
     
     # Export group name will be auto-generated as the cluster name
     exportgroup=${cluster1}
     
     # List of all export groups created
-    exportgroups="${PROJECT}/${exportgroup} ${PROJECT2}/${exportgroup}"
+    #exportgroups="${PROJECT}/${exportgroup} ${PROJECT2}/${exportgroup}"
+    exportgroups="${PROJECT}/${exportgroup}"
     
     # There are two paths to test:
     # 1. update: Meaning we remove a single discovered host from the cluster
     # 2. delete: Meaning we remove ALL discovered hosts from the cluster
-    workflowPath="updateWorkflow deleteWorkflow"
+    #workflowPath="updateWorkflow deleteWorkflow"
+    workflowPath="updateWorkflow"
         
     for wf in ${workflowPath}
     do
@@ -1521,26 +1523,34 @@ test_cluster_remove_discovered_host() {
                 column_family=("Volume Cluster Host") 
                 snap_db 1 "${column_family[@]}"
             
-                # Vcenter call to remove host1 from cluster1
-                remove_host_from_cluster $host1 $cluster1                                        
-                discover_vcenter ${vcenter}
+                # NOTE: We want to remove both host1 and host2 from cluster1.
+                # This will be accomplished by moving host1 and host2 temporarily
+                # to cluster2.
+
+                # 'Remove' host1
+                change_host_cluster ${host1} ${cluster1} ${cluster2} ${vcenter}  
+                sleep 20
+                EVENT_ID=$(get_pending_event)
+                approve_pending_event $EVENT_ID
+                
+                # 'Remove' host2, this is the last host in cluster1
+                change_host_cluster ${host2} ${cluster1} ${cluster2} ${vcenter}                            
                 sleep 20
                 EVENT_ID=$(get_pending_event)
                                 
                 # Verify event
                 if [ -z "$EVENT_ID" ]; then
                     echo "+++ FAILED. Expected an event! Re-add hosts to cluster..."
-                    remove_host_from_cluster $host2 $cluster2 
-                    add_host_to_cluster $host1 $cluster1
-                    add_host_to_cluster $host2 $cluster1
-                    discover_vcenter ${vcenter}
+                    change_host_cluster ${host1} ${cluster2} ${cluster1} ${vcenter}
                     sleep 20
                     EVENT_ID=$(get_pending_event)
-                    if [ -z "$EVENT_ID" ]; then
-                        echo "+++ FAILED again! Expected an event for re-add host to cluster. Please check UI."
-                    else
-                        approve_pending_event $EVENT_ID
-                    fi                
+                    approve_pending_event $EVENT_ID
+                    
+                    change_host_cluster ${host2} ${cluster2} ${cluster1} ${vcenter}
+                    sleep 20
+                    EVENT_ID=$(get_pending_event)
+                    approve_pending_event $EVENT_ID
+                                    
                     exit 1
                 else
                     if [ ${failure} == ${HAPPY_PATH_TEST_INJECTION} ]; then
@@ -1569,16 +1579,6 @@ test_cluster_remove_discovered_host() {
                     fi 
                 fi
                 
-                # Vcenter call to remove host2 from cluster1
-                # NOTE: Temporarily move host2 to cluster2 to avoid 
-                # validation errors of an empty cluster in vcenter
-                remove_host_from_cluster $host2 $cluster1                
-                add_host_to_cluster $host2 $cluster2
-                discover_vcenter ${vcenter}            
-                sleep 20
-                EVENT_ID=$(get_pending_event)
-                approve_pending_event $EVENT_ID
-                
                 # Ensure the export groups have been removed
                 for eg in ${exportgroups}
                 do                    
@@ -1604,27 +1604,25 @@ test_cluster_remove_discovered_host() {
                 # Add both hosts back to cluster1           
                 secho "Test complete, add hosts back to cluster..."
                 
-                # NOTE: host2 was temporarily added to cluster2, remove it from
-                # cluster2 so we can add it back to cluster1
-                remove_host_from_cluster $host2 $cluster2
-                discover_vcenter ${vcenter}
+                change_host_cluster ${host1} ${cluster2} ${cluster1} ${vcenter}
                 sleep 20
                 EVENT_ID=$(get_pending_event)
                 approve_pending_event $EVENT_ID
                 
+                change_host_cluster ${host2} ${cluster2} ${cluster1} ${vcenter}
+                sleep 20
+                EVENT_ID=$(get_pending_event)
+                approve_pending_event $EVENT_ID
                 # NOTE: If there are no export groups for the cluster, 
                 # no events are created so we do not need to approve anything.
                 # Just add the hosts back to cluster and run a re-discover of 
                 # the vcenter.
-                add_host_to_cluster $host1 $cluster1
-                add_host_to_cluster $host2 $cluster1
-                discover_vcenter ${vcenter}
-                sleep 20
+               
                 # Because both hosts were removed from the cluster the export group was
                 # automatically removed. Now we need to re-export the volumes to the cluster, 
                 # this will re-create the export groups.
-                export_volume_vmware $TENANT ${volume1} ${vcenter} ${datacenter} ${cluster1} ${PROJECT}
-                export_volume_vmware $TENANT ${volume2} ${vcenter} ${datacenter} ${cluster1} ${PROJECT2}
+                #export_volume_vmware $TENANT ${volume1} ${vcenter} ${datacenter} ${cluster1} ${PROJECT}
+                #export_volume_vmware $TENANT ${volume2} ${vcenter} ${datacenter} ${cluster1} ${PROJECT2}
             else
                 # Update export group
                 secho "Update export group path..."
@@ -1633,24 +1631,23 @@ test_cluster_remove_discovered_host() {
                 column_family=("Volume ExportGroup Cluster Host") 
                 snap_db 1 "${column_family[@]}"
             
-                # Vcenter call to remove host from cluster
-                remove_host_from_cluster $host1 $cluster1            
-                discover_vcenter ${vcenter}  
+                # NOTE: We want to remove host1 from cluster1.
+                # This will be accomplished by moving host1 temporarily
+                # to cluster2.
+
+                # 'Remove' host1
+                change_host_cluster ${host1} ${cluster1} ${cluster2} ${vcenter}  
                 sleep 20
                 EVENT_ID=$(get_pending_event)
                 
                 # Verify event
                 if [ -z "$EVENT_ID" ]; then
                     echo "+++ FAILED. Expected an event! Re-add host to cluster..."
-                    add_host_to_cluster $host1 $cluster1
-                    discover_vcenter ${vcenter}
+                    change_host_cluster ${host1} ${cluster2} ${cluster1} ${vcenter}  
                     sleep 20
                     EVENT_ID=$(get_pending_event)
-                    if [ -z "$EVENT_ID" ]; then
-                        echo "+++ FAILED again! Expected an event for re-add host to cluster. Please check UI."
-                    else
-                        approve_pending_event $EVENT_ID
-                    fi                
+                    approve_pending_event $EVENT_ID
+                                    
                     exit 1
                 else
                     if [ ${failure} == ${HAPPY_PATH_TEST_INJECTION} ]; then
@@ -1699,9 +1696,8 @@ test_cluster_remove_discovered_host() {
                 
                 # Add the host back to cluster
                 secho "Test complete, add the host back to cluster..."
-                add_host_to_cluster $host1 $cluster1                                  
-                discover_vcenter ${vcenter}            
-                sleep 20            
+                change_host_cluster ${host1} ${cluster2} ${cluster1} ${vcenter}  
+                sleep 20
                 EVENT_ID=$(get_pending_event)
                 approve_pending_event $EVENT_ID
             fi    

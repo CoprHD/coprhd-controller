@@ -1057,7 +1057,7 @@ test_move_clustered_discovered_host_to_cluster() {
                 # Verify injected failures were hit
                 verify_failures ${failure}
                 # Let the async jobs calm down
-                sleep 20
+                sleep 5
 
                 # Verify that rollback moved the host back to cluster2
                 cluster=`get_host_cluster "emcworld" ${host}`

@@ -1094,10 +1094,10 @@ public class VmaxExportOperations implements ExportMaskOperations {
                         SmisMaskingViewAddVolumeJob job = new SmisMaskingViewAddVolumeJob(
                                 null, storage.getId(), exportMaskURI, newVolumesToAdd, null, completer);
                         job.setCIMObjectPathfactory(_cimPath);
+                        _helper.addVolumesToStorageGroup(newVolumesToAdd, storage, childGroupName, job, forceFlag);
                         ExportOperationContext.insertContextOperation(taskCompleter,
                                 VmaxExportOperationContext.OPERATION_ADD_VOLUMES_TO_STORAGE_GROUP,
                                 childGroupName, newVolumesToAdd, forceFlag);
-                        _helper.addVolumesToStorageGroup(newVolumesToAdd, storage, childGroupName, job, forceFlag);
                         _log.info("Adding Volumes to non cascaded Storage Group {} END",
                                 childGroupName);
                     } else {

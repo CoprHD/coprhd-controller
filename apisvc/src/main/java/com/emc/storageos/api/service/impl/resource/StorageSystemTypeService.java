@@ -11,7 +11,9 @@ import java.net.URI;
 import java.util.Iterator;
 import java.util.List;
 
+import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
+import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
@@ -21,13 +23,17 @@ import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.StorageSystemType;
 import com.emc.storageos.model.ResourceTypeEnum;
+import com.emc.storageos.model.storagesystem.type.StorageSystemTypeAddParam;
 import com.emc.storageos.model.storagesystem.type.StorageSystemTypeList;
 import com.emc.storageos.model.storagesystem.type.StorageSystemTypeRestRep;
+import com.emc.storageos.security.audit.AuditLogManager;
 import com.emc.storageos.security.authorization.CheckPermission;
 import com.emc.storageos.security.authorization.DefaultPermissions;
 import com.emc.storageos.security.authorization.Role;
+import com.emc.storageos.services.OperationTypeEnum;
 
 /**
  * StorageSystemTypes resource implementation
@@ -98,6 +104,72 @@ public class StorageSystemTypeService extends TaskResourceService {
             }
         }
         return list;
+    }
+
+    /**
+     * Internal call to create a new storage system type.
+     *
+     * @param addparam
+     *            The StorageSystemTypeAddParam object contains all the
+     *            parameters for creation.
+     * @brief Create storage system type. This api is available for testing.
+     *
+     * @return StorageSystemTypeRestRep object.
+     */
+    @POST
+    @Path("/internal")
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
+    public StorageSystemTypeRestRep addStorageSystemType(StorageSystemTypeAddParam addparam) {
+        log.info("addStorageSystemType");
+
+        ArgValidator.checkFieldNotEmpty(addparam.getStorageTypeName(), "storageTypeName");
+        checkDuplicateLabel(StorageSystemType.class, addparam.getStorageTypeName());
+
+        ArgValidator.checkFieldNotEmpty(addparam.getMetaType(), "metaType");
+
+        ArgValidator.checkFieldNotEmpty(addparam.getDriverClassName(), "driverClassName");
+
+        if (addparam.getIsDefaultSsl()) {
+            ArgValidator.checkFieldNotEmpty(addparam.getSslPort(), "sslPort");
+        } else {
+            ArgValidator.checkFieldNotEmpty(addparam.getNonSslPort(), "nonSslPort");
+        }
+
+        StorageSystemType ssType = new StorageSystemType();
+        URI ssTyeUri = URIUtil.createId(StorageSystemType.class);
+        ssType.setId(ssTyeUri);
+        ssType.setStorageTypeId(ssTyeUri.toString());
+
+        ssType.setStorageTypeName(addparam.getStorageTypeName());
+        ssType.setMetaType(addparam.getMetaType());
+        ssType.setDriverClassName(addparam.getDriverClassName());
+
+        if (addparam.getStorageTypeDispName() != null) {
+            ssType.setStorageTypeDispName(addparam.getStorageTypeDispName());
+        }
+
+        if (addparam.getNonSslPort() != null) {
+            ssType.setNonSslPort(addparam.getNonSslPort());
+        }
+
+        if (addparam.getSslPort() != null) {
+            ssType.setSslPort(addparam.getSslPort());
+        }
+
+        ssType.setIsSmiProvider(addparam.getIsSmiProvider());
+        ssType.setIsDefaultSsl(addparam.getIsDefaultSsl());
+        ssType.setIsDefaultMDM(addparam.getIsDefaultMDM());
+        ssType.setIsOnlyMDM(addparam.getIsOnlyMDM());
+        ssType.setIsElementMgr(addparam.getIsElementMgr());
+        ssType.setIsSecretKey(addparam.getIsSecretKey());
+
+        _dbClient.createObject(ssType);
+
+        auditOp(OperationTypeEnum.ADD_STORAGE_SYSTEM_TYPE, true, AuditLogManager.AUDITOP_BEGIN,
+                ssType.getId().toString(), ssType.getStorageTypeName(), ssType.getMetaType());
+        return map(ssType);
     }
 
     @Override

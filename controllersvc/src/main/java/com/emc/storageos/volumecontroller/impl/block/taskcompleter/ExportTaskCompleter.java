@@ -42,7 +42,6 @@ public abstract class ExportTaskCompleter extends TaskCompleter {
     private static final Logger _logger = LoggerFactory.getLogger(ExportTaskCompleter.class);
 
     private URI _mask;
-    private Map<URI, StringSetMap> _exportMaskToOldZoningMapMap;
     private Set<URI> _exportMasksCreated;
     private Set<URI> _exportMasksToBeAdded;
     private Set<URI> _exportMasksToBeRemoved;
@@ -150,16 +149,6 @@ public abstract class ExportTaskCompleter extends TaskCompleter {
                     }
                 }
 
-                if (_exportMaskToOldZoningMapMap != null && !_exportMaskToOldZoningMapMap.isEmpty()) {
-                    // revert any zoningMaps that were updated as part of this export task
-                    for (Entry<URI, StringSetMap> entry : _exportMaskToOldZoningMapMap.entrySet()) {
-                        ExportMask exportMask = ExportUtils.getExportMaskWithCache(exportMaskCache, entry.getKey(), dbClient);
-                        if (exportMask != null) {
-                            exportMask.setZoningMap(entry.getValue());
-                        }
-                    }
-                }
-
             default:
                 _logger.warn("Unhandled status: " + status);
                 break;
@@ -243,20 +232,6 @@ public abstract class ExportTaskCompleter extends TaskCompleter {
         _logger.info("this ExportGroup does not have any remaining active masks: "
                 + exportGroup.getGeneratedName());
         return false;
-    }
-
-    /**
-     * Add an ExportMask URI to zoning map entry to applied on successful completion.
-     * 
-     * @param exportMaskUri URI of the ExportMask to update
-     * @param zoningMapEntries a zoning map StringSetMap to set on the ExportMask
-     */
-    public void addExportMaskToOldZoningMapMapping(URI exportMaskUri, StringSetMap zoningMapEntries) {
-        if (_exportMaskToOldZoningMapMap == null) {
-            _exportMaskToOldZoningMapMap = new HashMap<URI, StringSetMap>();
-        }
-
-        _exportMaskToOldZoningMapMap.put(exportMaskUri, zoningMapEntries);
     }
 
     /**

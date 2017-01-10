@@ -698,6 +698,71 @@ public class ExportUtils {
     }
 
     /**
+     * This method updates zoning map to add new assignments.
+     * 
+     * @param dbClient an instance of {@link DbClient}
+     * @param exportMask The reference to exportMask
+     * @param assignments New assignments Map of initiator to storagePorts that will be updated in the zoning map
+     * @param exportMasksToUpdateOnDeviceWithStoragePorts OUT param -- Map of ExportMask to new Storage ports
+     * @return returns an updated exportMask
+     */
+    public static ExportMask updateZoningMap(DbClient dbClient, ExportMask exportMask, Map<URI, List<URI>> assignments,
+            Map<URI, List<URI>> exportMasksToUpdateOnDeviceWithStoragePorts) {
+
+        StringSetMap existingZoningMap = exportMask.getZoningMap();
+        for (URI initiatorURI : assignments.keySet()) {
+            boolean initiatorMatchFound = false;
+            if (existingZoningMap != null && !existingZoningMap.isEmpty()) {
+                for (String initiatorId : existingZoningMap.keySet()) {
+                    if (initiatorURI.toString().equals(initiatorId)) {
+                        StringSet ports = existingZoningMap.get(initiatorId);
+                        if (ports != null && !ports.isEmpty()) {
+                            initiatorMatchFound = true;
+                            StringSet newTargets = StringSetUtil.uriListToStringSet(assignments.get(initiatorURI));
+                            if (!ports.containsAll(newTargets)) {
+                                ports.addAll(newTargets);
+                                // Adds zoning map entry with new and existing ports. Its kind of updating storage ports for the initiator.
+                                exportMask.addZoningMapEntry(initiatorId, ports);
+                                updateExportMaskStoragePortsMap(exportMask, exportMasksToUpdateOnDeviceWithStoragePorts,
+                                        assignments, initiatorURI);
+                            }
+                        }
+                    }
+                }
+            }
+            if (!initiatorMatchFound) {
+                // Adds new zoning map entry for the initiator with new assignments as there isn't one already.
+                exportMask.addZoningMapEntry(initiatorURI.toString(), StringSetUtil.uriListToStringSet(assignments.get(initiatorURI)));
+                updateExportMaskStoragePortsMap(exportMask, exportMasksToUpdateOnDeviceWithStoragePorts,
+                        assignments, initiatorURI);
+            }
+        }
+        dbClient.updateObject(exportMask);
+
+        return exportMask;
+    }
+
+    /**
+     * This method just updates the passed in exportMasksToUpdateOnDeviceWithStoragePorts map with
+     * the new storage ports assigned for the initiator for a exportMask.
+     * 
+     * @param exportMask The reference to exportMask
+     * @param exportMasksToUpdateOnDeviceWithStoragePorts OUT param -- map of exportMask to update with new storage ports
+     * @param assignments New assignments Map of initiator to storage ports
+     * @param initiatorURI The initiator URI for which storage ports are updated in the exportMask
+     */
+    private static void updateExportMaskStoragePortsMap(ExportMask exportMask,
+            Map<URI, List<URI>> exportMasksToUpdateOnDeviceWithStoragePorts,
+            Map<URI, List<URI>> assignments, URI initiatorURI) {
+
+        if (exportMasksToUpdateOnDeviceWithStoragePorts.get(exportMask.getId()) != null) {
+            exportMasksToUpdateOnDeviceWithStoragePorts.get(exportMask.getId()).addAll(assignments.get(initiatorURI));
+        } else {
+            exportMasksToUpdateOnDeviceWithStoragePorts.put(exportMask.getId(), assignments.get(initiatorURI));
+        }
+    }
+
+    /**
      * Take in a list of storage port names (hex digits separated by colons),
      * then returns a list of URIs representing the StoragePort URIs they represent.
      * 

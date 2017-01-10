@@ -75,7 +75,6 @@ import com.emc.storageos.db.client.model.StorageProvider;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.StringSet;
-import com.emc.storageos.db.client.model.StringSetMap;
 import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
@@ -2420,10 +2419,8 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                         initsToAdd, exportMask.getZoningMap(), pathParams, null, _networkDeviceController, varrayUri, opId);
                 // Consolidate the prezoned ports with the new assignments to get the total ports needed in the mask
                 if (assignments != null && !assignments.isEmpty()) {
-                    // Save the old zoning map in case of failure.
-                    completer.addExportMaskToOldZoningMapMapping(exportMask.getId(), exportMask.getZoningMap());
                     // Update zoningMap if there are new assignments
-                    exportMask = updateZoningMap(_dbClient, exportMask, assignments,
+                    exportMask = ExportUtils.updateZoningMap(_dbClient, exportMask, assignments,
                             exportMasksToUpdateOnDeviceWithStoragePorts);
                 }
             }
@@ -2493,10 +2490,8 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     inits, viprExportMask.getZoningMap(), pathParams, null, _networkDeviceController, varrayUri, opId);
             // Consolidate the prezoned ports with the new assignments to get the total ports needed in the mask
             if (assignments != null && !assignments.isEmpty()) {
-                // Save the old zoning map in case of failure.
-                completer.addExportMaskToOldZoningMapMapping(viprExportMask.getId(), viprExportMask.getZoningMap());
                 // Update zoning Map with these new assignments
-                viprExportMask = updateZoningMap(_dbClient, viprExportMask, assignments,
+                viprExportMask = ExportUtils.updateZoningMap(_dbClient, viprExportMask, assignments,
                         exportMasksToUpdateOnDeviceWithStoragePorts);
             }
         }
@@ -2600,10 +2595,8 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
         Map<URI, List<URI>> assignments = _blockScheduler.assignStoragePorts(vplexSystem, exportGroup,
                 inits, sharedVplexExportMask.getZoningMap(), pathParams, null, _networkDeviceController, varrayUri, opId);
         if (assignments != null && !assignments.isEmpty()) {
-            // Save the old zoning map in case of failure.
-            completer.addExportMaskToOldZoningMapMapping(sharedVplexExportMask.getId(), sharedVplexExportMask.getZoningMap());
             // Update zoningMap if there are new assignments
-            sharedVplexExportMask = updateZoningMap(_dbClient, sharedVplexExportMask, assignments,
+            sharedVplexExportMask = ExportUtils.updateZoningMap(_dbClient, sharedVplexExportMask, assignments,
                     exportMasksToUpdateOnDeviceWithStoragePorts);
         }
 
@@ -2629,71 +2622,6 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
         exportMasksToUpdateOnDevice.add(sharedVplexExportMask);
 
-    }
-
-    /**
-     * This method updates zoning map to add new assignments.
-     * 
-     * @param dbClient an instance of {@link DbClient}
-     * @param exportMask The reference to exportMask
-     * @param assignments New assignments Map of initiator to storagePorts that will be updated in the zoning map
-     * @param exportMasksToUpdateOnDeviceWithStoragePorts OUT param -- Map of ExportMask to new Storage ports
-     * @return returns an updated exportMask
-     */
-    private ExportMask updateZoningMap(DbClient dbClient, ExportMask exportMask, Map<URI, List<URI>> assignments,
-            Map<URI, List<URI>> exportMasksToUpdateOnDeviceWithStoragePorts) {
-
-        StringSetMap existingZoningMap = exportMask.getZoningMap();
-        for (URI initiatorURI : assignments.keySet()) {
-            boolean initiatorMatchFound = false;
-            if (existingZoningMap != null && !existingZoningMap.isEmpty()) {
-                for (String initiatorId : existingZoningMap.keySet()) {
-                    if (initiatorURI.toString().equals(initiatorId)) {
-                        StringSet ports = existingZoningMap.get(initiatorId);
-                        if (ports != null && !ports.isEmpty()) {
-                            initiatorMatchFound = true;
-                            StringSet newTargets = StringSetUtil.uriListToStringSet(assignments.get(initiatorURI));
-                            if (!ports.containsAll(newTargets)) {
-                                ports.addAll(newTargets);
-                                // Adds zoning map entry with new and existing ports. Its kind of updating storage ports for the initiator.
-                                exportMask.addZoningMapEntry(initiatorId, ports);
-                                updateExportMaskStoragePortsMap(exportMask, exportMasksToUpdateOnDeviceWithStoragePorts,
-                                        assignments, initiatorURI);
-                            }
-                        }
-                    }
-                }
-            }
-            if (!initiatorMatchFound) {
-                // Adds new zoning map entry for the initiator with new assignments as there isn't one already.
-                exportMask.addZoningMapEntry(initiatorURI.toString(), StringSetUtil.uriListToStringSet(assignments.get(initiatorURI)));
-                updateExportMaskStoragePortsMap(exportMask, exportMasksToUpdateOnDeviceWithStoragePorts,
-                        assignments, initiatorURI);
-            }
-        }
-        dbClient.updateObject(exportMask);
-
-        return exportMask;
-    }
-
-    /**
-     * This method just updates the passed in exportMasksToUpdateOnDeviceWithStoragePorts map with
-     * the new storage ports assigned for the initiator for a exportMask.
-     * 
-     * @param exportMask The reference to exportMask
-     * @param exportMasksToUpdateOnDeviceWithStoragePorts OUT param -- map of exportMask to update with new storage ports
-     * @param assignments New assignments Map of initiator to storage ports
-     * @param initiatorURI The initiator URI for which storage ports are updated in the exportMask
-     */
-    private void updateExportMaskStoragePortsMap(ExportMask exportMask,
-            Map<URI, List<URI>> exportMasksToUpdateOnDeviceWithStoragePorts,
-            Map<URI, List<URI>> assignments, URI initiatorURI) {
-
-        if (exportMasksToUpdateOnDeviceWithStoragePorts.get(exportMask.getId()) != null) {
-            exportMasksToUpdateOnDeviceWithStoragePorts.get(exportMask.getId()).addAll(assignments.get(initiatorURI));
-        } else {
-            exportMasksToUpdateOnDeviceWithStoragePorts.put(exportMask.getId(), assignments.get(initiatorURI));
-        }
     }
 
     /**
@@ -4136,8 +4064,6 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 pathParams.setExportGroupType(exportGroup.getType());
             }
 
-            // Save the old zoningMap to the completer, for reversion in case of error
-            completer.addExportMaskToOldZoningMapMapping(exportMask.getId(), exportMask.getZoningMap());
             // Assign additional StoragePorts if needed.
             Map<URI, List<URI>> assignments = _blockScheduler.assignStoragePorts(vplex, exportGroup,
                     initiators, exportMask.getZoningMap(), pathParams, volumeURIs, _networkDeviceController, varrayURI, opId);

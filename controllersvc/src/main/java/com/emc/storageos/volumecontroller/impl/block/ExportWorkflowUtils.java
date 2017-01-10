@@ -529,7 +529,8 @@ public class ExportWorkflowUtils {
      * @param workflow - Workflow in which to add the step
      * @param groupId - String pointing to the group id of the step
      * @param description - String description of the step
-     * @param storageSystem - StorageSystem object to which operation applies
+     * @param storageSystemURI - StorageSystem URI hod / rollback method
+     * @param methodClass -- the Class containing the method / rollback method
      * @param method - Step method to be called
      * @param rollback - Step rollback method to be call (if any)
      * @param waitFor - String of groupId of step to wait for
@@ -541,17 +542,19 @@ public class ExportWorkflowUtils {
      */
     public String newWorkflowStep(Workflow workflow,
             String groupId, String description,
-            DiscoveredSystemObject storageSystem,
+            URI storageSystemURI,
+            Class methodClass,
             Workflow.Method method, Workflow.Method rollback,
             String waitFor, boolean setSuspend, String suspendMessage)
             throws WorkflowException {
         if (groupId == null) {
             groupId = method.getClass().getSimpleName();
         }
+        StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, storageSystemURI);
         String stepId =  workflow.createStep(groupId, description,
                 waitFor, storageSystem.getId(),
-                storageSystem.getSystemType(), ExportWorkflowEntryPoints.class, method,
-                rollback, setSuspend, null);
+                storageSystem.getSystemType(), 
+                methodClass, method, rollback, setSuspend, null);
         workflow.setSuspendedStepMessage(stepId, suspendMessage);
         return stepId;
     }
@@ -660,7 +663,7 @@ public class ExportWorkflowUtils {
      */
     public String generateExportRemovePathsWorkflow(Workflow workflow, String wfGroupId, String waitFor,
             URI storageURI, URI exportGroupURI, URI varray, ExportMask exportMask, Map<URI, List<URI>> adjustedPaths, 
-            Map<URI, List<URI>> removePaths, boolean isPending, String suspendMessage) 
+            Map<URI, List<URI>> removePaths) 
                     throws ControllerException {
         DiscoveredSystemObject storageSystem = getStorageSystem(_dbClient, storageURI);
 
@@ -668,8 +671,7 @@ public class ExportWorkflowUtils {
                 storageURI, exportGroupURI, varray, exportMask.getId(), adjustedPaths, removePaths);
         String stepDescription = String.format("Export remove paths mask %s hosts %s", exportMask.getMaskName(), 
                 ExportMaskUtils.getHostNamesInMask(exportMask, _dbClient));
-        return newWorkflowStep(workflow, wfGroupId, stepDescription,
-                storageSystem, method, null, waitFor, isPending, suspendMessage);
+        return newWorkflowStep(workflow, wfGroupId, stepDescription, storageSystem, method, null, waitFor);
     }
     
     /**

@@ -560,9 +560,8 @@ public class BlockVirtualPools extends ViprResourceController {
         List<StringOption> actualOptions = Lists.newArrayList();
         List<VirtualArrayRestRep> virtualArrays = await(vpool.remoteReplicationVirtualArrays().asPromise());
         for (StringOption option : dataObjectOptions(virtualArrays)) {
-            if (!varrayAlreadyInRemoteReplication(option.id, vpool.remoteReplications)) {
                 actualOptions.add(option);
-            }
+
         }
         renderJSON(actualOptions);
     }

@@ -17,6 +17,7 @@ import jobs.vipr.AutoTierPolicyNamesCall;
 import jobs.vipr.ConnectedBlockVirtualPoolsCall;
 import jobs.vipr.ConnectedVirtualArraysCall;
 import jobs.vipr.MatchingBlockStoragePoolsCall;
+import jobs.vipr.VirtualArraysCall;
 import models.ConnectivityTypes;
 import models.HighAvailability;
 import models.ProtectionSystemTypes;
@@ -662,10 +663,9 @@ public class BlockVirtualPoolForm extends VirtualPoolCommonForm<BlockVirtualPool
         return new ConnectedBlockVirtualPoolsCall(uris(haVirtualArray));
     }
 
-    public ConnectedVirtualArraysCall remoteReplicationVirtualArrays() {
-        boolean isRemoteReplication = ProtectionSystemTypes.isRemoteReplication(remoteProtection);
-        List<URI> varrayIds = isRemoteReplication ? uris(virtualArrays) : uris();
-        return new ConnectedVirtualArraysCall(varrayIds, ConnectivityTypes.REMOTE_REPLICATION);
+    public VirtualArraysCall remoteReplicationVirtualArrays() {
+        // currently get all the VirtualArrays by ignoring any filter.
+        return new VirtualArraysCall();
     }
 
     public ConnectedBlockVirtualPoolsCall remoteReplicationVirtualPools() {

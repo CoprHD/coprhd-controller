@@ -31,7 +31,9 @@ create_volume_and_datastore() {
 
     virtualarray_id=`neighborhood list | grep "${4} " | awk '{print $3}'`
     virtualpool_id=`cos list block | grep "${5} " | awk '{print $3}'`
+    echot ${virtualpool_id}
     project_id=`project list --tenant ${tenant_arg} | grep "${6} " | awk '{print $4}'`
+    echot ${project_id}
  
     vcenter_id=`vcenter list ${tenant_arg} | grep "${7} " | awk '{print $5}'`
     datacenter_id=`datacenter list ${7} | grep "${8} " | awk '{print $4}'`
@@ -91,23 +93,6 @@ export_volume_vmware() {
         
     echo "=== catalog order ExportVolumeforVMware ${tenant_arg} project=${project_id},volumes=${volume_id},host=${cluster_id},vcenter=${vcenter_id},datacenter=${datacenter_id}"
     echo `catalog order ExportVolumeforVMware ${tenant_arg} project=${project_id},volumes=${volume_id},host=${cluster_id},vcenter=${vcenter_id},datacenter=${datacenter_id}`
-}
-
-create_volume_and_datastore() {
-    # tenant volname datastorename varray vpool project vcenter datacenter cluster
-    tenant=$1
-    volname=$2
-    datastorename=$3
-
-    virtualarray=`neighborhood list | grep ${4} | awk '{print $3}'`
-    virtualpool=`cos list block | grep ${5} | awk '{print $3}'`
-    project=`project list --tenant emcworld | grep ${6} | awk '{print $4}'`
- 
-    vcenter=`vcenter list ${tenant} | grep ${7} | awk '{print $5}'`
-    datacenter=`datacenter list ${7} | grep ${8} | awk '{print $4}'`
-    cluster=`cluster list emcworld | grep ${9} | awk '{print $4}'`
-
-    echo `catalog order CreateVolumeandDatastore ${tenant} project=${project},name=${volname},virtualPool=${virtualpool},virtualArray=${virtualarray},host=${cluster},datastoreName=${datastorename},size=1,vcenter=${vcenter},datacenter=${datacenter}`
 }
 
 # Test - Host Add Initiator

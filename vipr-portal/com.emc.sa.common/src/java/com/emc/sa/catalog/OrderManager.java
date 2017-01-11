@@ -22,6 +22,8 @@ public interface OrderManager {
 
     public void updateOrder(Order order);
 
+    public void canBeDeleted(Order order, OrderStatus status);
+
     public void deleteOrder(Order order);
 
     public List<Order> getOrders(URI tenantId);

@@ -126,7 +126,12 @@ collect_logs() {
     mkdir -p ${logsDir}
 
     set +e
-    collect_data "/opt/storageos/logs" "${logsDir}" "true"
+    cd ${logsDir}
+    mkdir info logs orders
+    collect_data "/opt/storageos/logs" "${logsDir}/info" "true"
+    convert_log_name
+    zip -r logs-${DIAGCOLLECT_MAME}.zip * &>/dev/null
+    rm -rf info logs orders
     set -e
 }
 
@@ -255,6 +260,10 @@ get_nodeid() {
     else
         echo "vipr$i"
     fi
+}
+
+get_nodeName() {
+    echo `/etc/systool --getprops | grep "node_${i}_name" | awk -F '=' '{print $2}'`
 }
 
 user_confirm() {
@@ -442,7 +451,7 @@ diagnose_cfs() {
     rm -rf ${tmpFile}
 
     # Clean up temporary files and zip up the output files
-    echo -e -n "\tAchiving cfs data.."
+    echo -e -n "\tArchiving cfs data.."
     cd ${cfsDir}/${output}
     tar -cf "unformatted_output.tar" *.out --format=gnu &>/dev/null
     rm -f *.out
@@ -450,6 +459,25 @@ diagnose_cfs() {
     tar -czf "cfs-`date +%Y%0m%0d%0k%0M%0S`.tar.gz" ${output}/* --format=gnu &>/dev/null
     rm -rf ${output}
     echo "finish"
+}
+
+convert_log_name() {
+    local serviceList=(vasasvc portalsvc systemevents coordinatorsvc apisvc bkutils geosvc dbsvc authsvc controllersvc syssvc sasvc geodbsvc)
+    for service in ${serviceList[@]}; do
+        for i in $(seq 1 ${NODE_COUNT})
+        do
+            local nodeId=$(get_nodeid)
+            local nodeName=$(get_nodeName)
+            local serviceLogFiles=($(ls -f info/${nodeId}/${service}.log.* 2>/dev/null))
+            for file in ${serviceLogFiles[@]}; do
+                zcat ${file} >> info/${nodeId}/${service}.log
+            done
+            if [ -f "info/${nodeId}/${service}.log" ]; then
+                sed "s/^/${nodeId} ${nodeName} ${service} &/g" info/${nodeId}/${service}.log > logs/${service}_${nodeId}_${nodeName}.log
+            fi
+            rm -rf info/${nodeId}/${service}.log*
+        done
+    done
 }
 
 clean_up() {

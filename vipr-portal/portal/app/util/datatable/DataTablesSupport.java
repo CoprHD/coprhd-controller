@@ -25,7 +25,6 @@ public class DataTablesSupport {
         Source source = createSource(data, requestParams);
         //just for performance calculating, should remove when test done.
         String result = toJson(source);
-        Logger.info("hlj, JSON DONE");
         return result;
     }
 

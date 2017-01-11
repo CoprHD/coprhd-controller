@@ -9,6 +9,7 @@ import java.net.URI;
 import com.emc.sa.service.vipr.tasks.WaitForTasks;
 import com.emc.storageos.model.block.VolumeCreate;
 import com.emc.storageos.model.block.VolumeRestRep;
+import com.emc.storageos.model.remotereplication.RemoteReplicationParameters;
 import com.emc.vipr.client.Tasks;
 
 public class CreateBlockVolume extends WaitForTasks<VolumeRestRep> {
@@ -19,15 +20,18 @@ public class CreateBlockVolume extends WaitForTasks<VolumeRestRep> {
     private Integer count;
     private String name;
     private URI consistencyGroupId;
+    private URI remoteReplicationSetId;
+    private URI remoteReplicationGroupId;
     private URI computeResource;
 
     public CreateBlockVolume(String vpoolId, String varrayId, String projectId, String size, Integer count,
-            String name, String consistencyGroupId) {
-        this(uri(vpoolId), uri(varrayId), uri(projectId), size, count, name, uri(consistencyGroupId), null);
+            String name, String consistencyGroupId, String remoteReplicationSetId, String remoteReplicationGroupId) {
+        this(uri(vpoolId), uri(varrayId), uri(projectId), size, count, name, uri(consistencyGroupId), uri(remoteReplicationSetId),
+                uri(remoteReplicationGroupId), null);
     }
 
     public CreateBlockVolume(URI vpoolId, URI varrayId, URI projectId, String size, Integer count, String name,
-            URI consistencyGroupId, URI computeResource) {
+            URI consistencyGroupId, URI remoteReplicationSetId, URI remoteReplicationGroupId, URI computeResource) {
         this.vpoolId = vpoolId;
         this.varrayId = varrayId;
         this.projectId = projectId;
@@ -35,6 +39,8 @@ public class CreateBlockVolume extends WaitForTasks<VolumeRestRep> {
         this.count = count;
         this.name = name;
         this.consistencyGroupId = consistencyGroupId;
+        this.remoteReplicationSetId = remoteReplicationSetId;
+        this.remoteReplicationGroupId = remoteReplicationGroupId;
         this.computeResource = computeResource;
         provideDetailArgs(name, size, vpoolId, varrayId, projectId);
     }
@@ -53,6 +59,10 @@ public class CreateBlockVolume extends WaitForTasks<VolumeRestRep> {
         }
         create.setCount(numberOfVolumes);
         create.setConsistencyGroup(consistencyGroupId);
+        RemoteReplicationParameters replicationParam = new RemoteReplicationParameters();
+        replicationParam.setRemoteReplicationSet(remoteReplicationSetId);
+        replicationParam.setRemoteReplicationGroup(remoteReplicationGroupId);
+        create.setRemoteReplicationParameters(replicationParam);
         if (computeResource != null) {
             create.setComputeResource(computeResource);
         }

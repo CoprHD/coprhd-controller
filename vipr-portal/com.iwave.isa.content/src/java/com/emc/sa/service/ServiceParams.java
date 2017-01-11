@@ -76,6 +76,8 @@ public interface ServiceParams {
     public String SNAPSHOT_SESSION = "snapshotSession";
     public String EXPORT = "export";
     public String CONSISTENCY_GROUP = "consistencyGroup";
+    public String REMOTE_REPLICATION_SET = "remoteReplicationSet";
+    public String REMOTE_REPLICATION_GROUP = "remoteReplicationGroup";
     public String HLU = "hlu";
     public String MIN_PATHS = "minPaths";
     public String MAX_PATHS = "maxPaths";

@@ -13,6 +13,8 @@ import static com.emc.sa.service.ServiceParams.NAME;
 import static com.emc.sa.service.ServiceParams.NUMBER_OF_VOLUMES;
 import static com.emc.sa.service.ServiceParams.PATHS_PER_INITIATOR;
 import static com.emc.sa.service.ServiceParams.PROJECT;
+import static com.emc.sa.service.ServiceParams.REMOTE_REPLICATION_GROUP;
+import static com.emc.sa.service.ServiceParams.REMOTE_REPLICATION_SET;
 import static com.emc.sa.service.ServiceParams.SIZE_IN_GB;
 import static com.emc.sa.service.ServiceParams.VIRTUAL_ARRAY;
 import static com.emc.sa.service.ServiceParams.VIRTUAL_POOL;
@@ -419,10 +421,11 @@ public class BlockStorageUtils {
     }
 
     public static List<URI> createVolumes(URI projectId, URI virtualArrayId, URI virtualPoolId,
-            String baseVolumeName, double sizeInGb, Integer count, URI consistencyGroupId, URI computeResource) {
+            String baseVolumeName, double sizeInGb, Integer count, URI consistencyGroupId, URI remoteReplicationSetId,
+            URI remoteReplicationGroupId, URI computeResource) {
         String volumeSize = gbToVolumeSize(sizeInGb);
         Tasks<VolumeRestRep> tasks = execute(new CreateBlockVolume(virtualPoolId, virtualArrayId, projectId, volumeSize,
-                count, baseVolumeName, consistencyGroupId, computeResource));
+                count, baseVolumeName, consistencyGroupId, remoteReplicationSetId, remoteReplicationGroupId, computeResource));
         List<URI> volumeIds = Lists.newArrayList();
         for (Task<VolumeRestRep> task : tasks.getTasks()) {
             URI volumeId = task.getResourceId();
@@ -434,10 +437,10 @@ public class BlockStorageUtils {
     }
 
     public static Task<VolumeRestRep> createVolumesByName(URI projectId, URI virtualArrayId, URI virtualPoolId,
-            double sizeInGb, URI consistencyGroupId, String volumeName) {
+            double sizeInGb, URI consistencyGroupId, URI remoteReplicationSetId, URI remoteReplicationGroupId, String volumeName) {
         String volumeSize = gbToVolumeSize(sizeInGb);
         return execute(new CreateBlockVolumeByName(projectId, virtualArrayId,
-                virtualPoolId, volumeSize, consistencyGroupId, volumeName));
+                virtualPoolId, volumeSize, consistencyGroupId, remoteReplicationSetId, remoteReplicationGroupId, volumeName));
     }
 
     public static void expandVolumes(Collection<URI> volumeIds, double newSizeInGB) {
@@ -1141,11 +1144,15 @@ public class BlockStorageUtils {
         public URI project;
         @Param(value = CONSISTENCY_GROUP, required = false)
         public URI consistencyGroup;
-
+        @Param(value = REMOTE_REPLICATION_SET, required = false)
+        public URI remoteReplicationSet;
+        @Param(value = REMOTE_REPLICATION_GROUP, required = false)
+        public URI remoteReplicationGroup;
         @Override
         public String toString() {
             return "Virtual Pool=" + virtualPool + ", Virtual Array=" + virtualArray + ", Project=" + project
-                    + ", Consistency Group=" + consistencyGroup;
+                    + ", Consistency Group=" + consistencyGroup + ", Remote Replication Set=" + remoteReplicationSet
+                    + ", Remote Replication Group=" + remoteReplicationGroup;
         }
 
         @Override
@@ -1155,6 +1162,8 @@ public class BlockStorageUtils {
             map.put(VIRTUAL_ARRAY, virtualArray);
             map.put(PROJECT, project);
             map.put(CONSISTENCY_GROUP, consistencyGroup);
+            map.put(REMOTE_REPLICATION_SET, remoteReplicationSet);
+            map.put(REMOTE_REPLICATION_GROUP, remoteReplicationGroup);
             return map;
         }
     }

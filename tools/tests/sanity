@@ -1912,6 +1912,7 @@ xtremio_export_test_hlu2()
 
     run export_group delete $proj/${expname}2
 }
+
 #
 # SRDF
 #
@@ -13190,7 +13191,9 @@ unityblock_base_tests()
     run export_group delete $PROJECT/$eg
     run volume delete $PROJECT/$vol1 --wait
     run hosts delete $hostLbl
-	    
+
+    unityblock_export_consistent_hlu_test
+
     echo "unity consistency group tests"
 	    
     run blockconsistencygroup create $PROJECT $consistency_group
@@ -13203,6 +13206,164 @@ unityblock_base_tests()
     run volume delete $PROJECT/$vol2 --wait
     run blockconsistencygroup delete $consistency_group
     echo "**** Done unity block"
+
+    echo There were $VERIFY_EXPORT_COUNT export verifications
+    echo There were $VERIFY_EXPORT_FAIL_COUNT export verification failures
+}
+
+unity_verify_export() {
+    # Parameters: Storage View Name, Number of Initiators, Number of Luns, HLU
+    # While checking if the Initiator group does not exist, then parameter $2 should be "gone"
+    IG_name=$1
+    masking_view_name=${IG_name}.lss.emc.com
+    run ${BASEDIR}/\export-tests/vnxehelper.sh verify_export $masking_view_name $2 $3 $4
+    if [ $? -ne "0" ]; then
+       echo There was a failure
+       VERIFY_EXPORT_FAIL_COUNT=`expr $VERIFY_EXPORT_FAIL_COUNT + 1`
+    fi
+    VERIFY_EXPORT_COUNT=`expr $VERIFY_EXPORT_COUNT + 1`
+}
+
+unityblock_export_consistent_hlu_test()
+{
+    echo "unity export consistent HLU tests START"
+    unityblock_export_consistent_hlu_test1
+    unityblock_export_consistent_hlu_test2
+
+    #unityblock_export_consistent_hlu_snap_test1
+    #unityblock_export_consistent_hlu_snap_test2
+    echo "unity export consistent HLU tests END"
+}
+
+#Consistent Cluster HLU
+# CLUSTER with 2 hosts
+# Step-1: Export a volume to the cluster. Result: All hosts in the cluster sees the volume with same HLU (least unused number)
+# Step-2: Export a volume to HOST1 (exclusive). Result: HLU assigned should be unused among cluster view
+# Step-3: Export a volume to the cluster. Result: All hosts in the cluster sees the volume with same HLU (least unused number)
+# Step-4: Export a volume to HOST2 (exclusive). Result: HLU assigned should be unused among cluster view
+# Step-5: Delete the private volume from HOST1 exported in step-2
+# Step-6: Remove HOST2 from cluster
+# Step-7: Remove one shared volume from cluster exported in Step-1
+# Step-8: Add HOST2 to CLUSTER. Result: All shared volumes of cluster to be exported to this new host with the HLU for those volumes same as that of cluster's view
+# Step-9: Export new 2 volumes to the cluster. Result: All hosts in the cluster sees the volume with same HLU.
+unityblock_export_consistent_hlu_test1()
+{
+    HOST1=$hostbase${tenant}11
+    HOST2=$hostbase${tenant}12
+    expname=unityEG-${RANDOM}
+    volname=unityVol-${RANDOM}
+	cluster=sanityCluster1
+
+    echo "Unity Consistent HLU Test 1"
+    run export_group create $proj ${expname}1 $NH --type Cluster --volspec "${proj}/${volname}"-1 --cluster ${tenant}/${cluster}
+    unity_verify_export ${HOST1} 4 1 1
+    unity_verify_export ${HOST2} 4 1 1
+
+    run export_group create $proj ${expname}2 $NH --type Host --volspec "${proj}/${volname}"-2 --hosts "${HOST1}"
+    unity_verify_export ${HOST1} 4 2 0,1
+    unity_verify_export ${HOST2} 4 1 1
+
+    run export_group update $proj/${expname}1 --addVols "${proj}/${volname}"-3
+    unity_verify_export ${HOST1} 4 3 0,1,2
+    unity_verify_export ${HOST2} 4 2 1,2
+
+    run export_group create $proj ${expname}3 $NH --type Host --volspec "${proj}/${volname}"-4 --hosts "${HOST2}"
+    unity_verify_export ${HOST1} 4 3 0,1,2
+    unity_verify_export ${HOST2} 4 3 0,1,2
+
+    run export_group delete $proj/${expname}2
+    unity_verify_export ${HOST1} 4 2 1,2
+    unity_verify_export ${HOST2} 4 3 0,1,2
+
+    run export_group update $proj/${expname}1 --remHosts "${HOST2}"
+    unity_verify_export ${HOST1} 4 2 1,2
+    unity_verify_export ${HOST2} 4 1 0
+
+    run export_group update $proj/${expname}1 --remVols "${proj}/${volname}"-1
+    unity_verify_export ${HOST1} 4 1 2
+    unity_verify_export ${HOST2} 4 1 0
+
+	run export_group update $proj/${expname}1 --addHosts "${HOST2}"
+    unity_verify_export ${HOST1} 4 1 2
+    unity_verify_export ${HOST2} 4 2 0,2
+
+    run export_group update $proj/${expname}1 --addVols "${proj}/${volname}-1,{proj}/${volname}-2"
+    unity_verify_export ${HOST1} 4 3 1,2,3
+    unity_verify_export ${HOST2} 4 4 0,1,2,3
+
+    run export_group delete $proj/${expname}3
+    unity_verify_export ${HOST1} 4 3 1,2,3
+    unity_verify_export ${HOST2} 4 3 1,2,3
+
+    run export_group delete $proj/${expname}1
+    #TODO
+}
+
+#Consistent Cluster HLU
+# CLUSTER with 2 hosts
+# Step-1: Export a volume to HOST1 (exclusive). Result: HLU assigned should be unused among cluster view
+# Step-2: Export a volume to the cluster. Result: All hosts in the cluster sees the volume with same HLU (least unused number)
+# Step-3: Export a volume to the cluster. Result: All hosts in the cluster sees the volume with same HLU (least unused number)
+# Step-4: Export a volume to HOST2 (exclusive). Result: HLU assigned should be unused among cluster view
+# Step-5: Delete the private volume from HOST1 exported in step-2
+# Step-6: Remove HOST2 from cluster
+# Step-7: Remove one shared volume from cluster exported in Step-1
+# Step-8: Add HOST2 to CLUSTER. Result: All shared volumes of cluster to be exported to this new host with the HLU for those volumes same as that of cluster's view
+# Step-9: Export a new volume to the cluster. Result: All hosts in the cluster sees the volume with same HLU.
+# Step-10: Export a new volume to HOST2 (exclusive). Result: HLU assigned should be unused among cluster view
+unityblock_export_consistent_hlu_test2()
+{
+	HOST1=$hostbase${tenant}21
+	HOST2=$hostbase${tenant}22
+    expname=unityEG-${RANDOM}
+    volname=unityVol-${RANDOM}
+	cluster=sanityCluster2
+
+    echo "Unity Consistent HLU Test 2"
+    run export_group create $proj ${expname}1 $NH --type Host --volspec "${proj}/${volname}"-1 --hosts "${HOST1}"
+    unity_verify_export ${HOST1} 4 1 0
+
+    run export_group create $proj ${expname}2 $NH --type Cluster --volspec "${proj}/${volname}"-2 --cluster ${tenant}/${cluster}
+    unity_verify_export ${HOST1} 4 2 0,1
+    unity_verify_export ${HOST2} 4 1 1
+
+    run export_group update $proj/${expname}2 --addVols "${proj}/${volname}"-3
+    unity_verify_export ${HOST1} 4 3 0,1,2
+    unity_verify_export ${HOST2} 4 2 1,2
+
+    run export_group create $proj ${expname}3 $NH --type Host --volspec "${proj}/${volname}"-4 --hosts "${HOST2}"
+    unity_verify_export ${HOST1} 4 3 0,1,2
+    unity_verify_export ${HOST2} 4 3 0,1,2
+
+    run export_group delete $proj/${expname}1
+    unity_verify_export ${HOST1} 4 2 1,2
+    unity_verify_export ${HOST2} 4 3 0,1,2
+
+    run export_group update $proj/${expname}2 --remHosts "${HOST2}"
+    unity_verify_export ${HOST1} 4 2 1,2
+    unity_verify_export ${HOST2} 4 1 0
+
+    run export_group update $proj/${expname}2 --remVols "${proj}/${volname}"-2
+    unity_verify_export ${HOST1} 4 1 2
+
+    run export_group update $proj/${expname}2 --addHosts "${HOST2}"
+    unity_verify_export ${HOST1} 4 1 2
+    unity_verify_export ${HOST2} 4 2 0,2
+
+    run export_group update $proj/${expname}2 --addVols "${proj}/${volname}"-2
+    unity_verify_export ${HOST1} 4 2 1,2
+    unity_verify_export ${HOST2} 4 3 0,1,2
+
+    run export_group update $proj/${expname}3 --addVols "${proj}/${volname}"-1
+    unity_verify_export ${HOST1} 4 2 1,2
+    unity_verify_export ${HOST2} 4 4 0,1,2,3
+
+    run export_group delete $proj/${expname}3
+    unity_verify_export ${HOST1} 4 2 1,2
+    unity_verify_export ${HOST2} 4 2 1,2
+
+    run export_group delete $proj/${expname}2
+    #TODO
 }
 
 unityblock_cos_setup()

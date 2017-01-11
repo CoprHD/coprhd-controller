@@ -14,6 +14,7 @@ import java.util.regex.Pattern;
 
 import javax.wbem.WBEMException;
 
+import org.apache.commons.io.IOUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -91,8 +92,8 @@ public final class InvokeTestFailure {
     public static final String ARTIFICIAL_FAILURE_056 = "failure_056_host_cluster_ComputeSystemControllerImpl.attachAndMount_after_mount";
     public static final String ARTIFICIAL_FAILURE_057 = "failure_057_MdsNetworkSystemDevice.removeZones";
     public static final String ARTIFICIAL_FAILURE_058 = "failure_057_NetworkDeviceController.zoneExportAddInitiators_before_zone";
-    public static final String ARTIFICIAL_FAILURE_059 = "failure_058_NetworkDeviceController.zoneExportAddInitiators_after_zone";
-
+    public static final String ARTIFICIAL_FAILURE_059 = "failure_058_NetworkDeviceController.zoneExportAddInitiators_after_zone";    
+    
     private static final int FAILURE_SUBSTRING_LENGTH = 11;
 
     private static final String FAILURE_OCCURRENCE_SPLIT = "&";
@@ -251,6 +252,7 @@ public final class InvokeTestFailure {
      *            error message
      */
     public static void log(String msg) {
+        FileOutputStream fop = null;
         try {
             _log.info(msg);
             String logFileName = "/opt/storageos/logs/invoke-test-failure.log";
@@ -258,14 +260,15 @@ public final class InvokeTestFailure {
             if (!logFile.exists()) {
                 logFile.createNewFile();
             }
-            FileOutputStream fop = new FileOutputStream(logFile, true);
+            fop = new FileOutputStream(logFile, true);
+            fop.flush();
             StringBuffer sb = new StringBuffer(msg + "\n");
             // Last chance, if file is deleted, write manually.
             fop.write(sb.toString().getBytes());
-            fop.flush();
-            fop.close();
         } catch (IOException e) {
             // It's OK if we can't log this.
+        } finally {
+            IOUtils.closeQuietly(fop);
         }
 
     }
@@ -277,11 +280,10 @@ public final class InvokeTestFailure {
      * @return an override value in seconds if the failure invocation is set.
      */
     public static int internalOnlyOverrideSyncWrapperTimeOut(int syncWrapperTimeOut) {
-        final String failureKey = ARTIFICIAL_FAILURE_015 + "GetCompositeElements";
         String invokeArtificialFailure = _coordinator.getPropertyInfo().getProperty(ARTIFICIAL_FAILURE);
-        if (invokeArtificialFailure != null && invokeArtificialFailure.contains(failureKey.substring(0, FAILURE_SUBSTRING_LENGTH))) {
-            log("Resetting sync wait time to 15 seconds");
-            return 15;
+        if (invokeArtificialFailure != null && invokeArtificialFailure.contains(ARTIFICIAL_FAILURE_015)) {
+            log("Temporarily setting sync wait time to 15 seconds because failure_015 is being used.");
+            return 15000;
         }
         return syncWrapperTimeOut;
     }

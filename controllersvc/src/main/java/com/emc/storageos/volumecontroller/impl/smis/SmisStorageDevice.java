@@ -8,6 +8,7 @@ import static com.emc.storageos.volumecontroller.impl.ControllerUtils.checkSnaps
 import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.CP_INSTANCE_ID;
 import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.CP_REPLICATION_GROUP;
 import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.SYMM_SYNCHRONIZATION_ASPECT_FOR_SOURCE_GROUP;
+import static com.google.common.collect.Collections2.transform;
 import static java.text.MessageFormat.format;
 
 import java.net.URI;
@@ -27,6 +28,7 @@ import javax.cim.CIMObjectPath;
 import javax.cim.UnsignedInteger16;
 import javax.wbem.CloseableIterator;
 import javax.wbem.WBEMException;
+import javax.wbem.client.WBEMClient;
 
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
@@ -61,6 +63,7 @@ import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.Volume.PersonalityTypes;
 import com.emc.storageos.db.client.model.Volume.ReplicationState;
 import com.emc.storageos.db.client.model.util.BlockConsistencyGroupUtils;
+import com.emc.storageos.db.client.util.CommonTransformerFunctions;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NameGenerator;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
@@ -3294,5 +3297,28 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
             _log.error(errMsg);
             throw DeviceControllerException.exceptions.couldNotPerformAliasOperation(errMsg);
         }
+    }
+    
+    @Override
+    public List<URI> getPortGroupMembers(StorageSystem storage, String portGroup) throws Exception{
+        if (storage.getSystemType().equals(Type.vnxblock)) {
+            return null;
+        }
+        WBEMClient client = _helper.getConnection(storage).getCimClient();
+        CIMObjectPath portGroupPath = _cimPath.getMaskingGroupPath(storage, portGroup,
+                SmisConstants.MASKING_GROUP_TYPE.SE_TargetMaskingGroup);
+        CIMInstance instance = _helper.checkExists(storage, portGroupPath, false, false);
+        if (instance == null) {
+            _log.warn("Could not find the port group " + portGroup);
+            return null;
+        }
+        List<String> storagePorts = _helper.getStoragePortsFromLunMaskingInstance(client,
+                instance);
+        _log.info("port group members : {}", Joiner.on(',').join(storagePorts));
+        List<URI> storagePortURIs = new ArrayList<URI>();
+        storagePortURIs.addAll(transform(ExportUtils.storagePortNamesToURIs(_dbClient, storagePorts),
+                CommonTransformerFunctions.FCTN_STRING_TO_URI));
+        _log.info("port group members : {}", Joiner.on(',').join(storagePortURIs));
+        return storagePortURIs;
     }
 }

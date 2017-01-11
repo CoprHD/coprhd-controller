@@ -511,4 +511,7 @@ public interface DeviceControllerExceptions {
 
     @DeclareServiceCode(ServiceCode.CONTROLLER_VALIDATION_EXCEPTION)
     public DeviceControllerException deleteExportGroupValidationError(String exportGroupName, String storageSystemName, String details);
+    
+    @DeclareServiceCode(ServiceCode.CONTROLLER_VALIDATION_EXCEPTION)
+    public DeviceControllerException noPortMembersInPortGroupError(String portGroup);
 }

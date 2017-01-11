@@ -53,9 +53,11 @@ import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportGroup.ExportGroupType;
 import com.emc.storageos.db.client.model.ExportMask;
+import com.emc.storageos.db.client.model.ExportPathParams;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.StorageSystem;
+import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
@@ -309,10 +311,35 @@ public class VmaxExportOperations implements ExportMaskOperations {
                     cascadedSGDataSource);
 
             // 3. PortGroup (PG)
-            DataSource portGroupDataSource = ExportMaskUtils.getExportDatasource(storage, initiatorList, dataSourceFactory,
-                    portGroupCustomTemplateName);
-            String pgGroupName = customConfigHandler.getComputedCustomConfigValue(portGroupCustomTemplateName, storage.getSystemType(),
-                    portGroupDataSource);
+            // check if port group name is specified
+            ExportGroup exportGroup = null;
+            List<ExportGroup> exportGroups = ExportMaskUtils.getExportGroups(_dbClient, mask);
+            URI firstVolUri = volumeURIHLUs[0].getVolumeURI();
+            for (ExportGroup eg : exportGroups) {
+                StringMap volumes = eg.getVolumes();
+                if (volumes.containsKey(firstVolUri.toString())) {
+                    exportGroup = eg;
+                }
+            }
+            ExportPathParams pathParams = null;
+            if (exportGroup != null) {
+             // Check to see if the ExportGroup has path parameters for volume
+                if (exportGroup.getPathParameters().containsKey(firstVolUri.toString())) {
+                    URI exportPathParamsUri = URI.create(exportGroup.getPathParameters().get(firstVolUri.toString()));
+                    pathParams = _dbClient.queryObject(ExportPathParams.class, exportPathParamsUri);
+                }
+            }
+            String pgGroupName = null;
+            if (pathParams != null) {
+                pgGroupName = pathParams.getPortGroup();
+                _log.info("port group name: " + pgGroupName);
+            }
+            if (pgGroupName == null) {
+                DataSource portGroupDataSource = ExportMaskUtils.getExportDatasource(storage, initiatorList, dataSourceFactory,
+                        portGroupCustomTemplateName);
+                pgGroupName = customConfigHandler.getComputedCustomConfigValue(portGroupCustomTemplateName, storage.getSystemType(),
+                        portGroupDataSource);
+            }
 
             // CTRL-9054 Always create unique port Groups.
             pgGroupName = _helper.generateGroupName(_helper.getExistingPortGroupsFromArray(storage), pgGroupName);

@@ -826,4 +826,9 @@ public abstract class DefaultBlockStorageDevice implements BlockStorageDevice, R
     public String doInitiatorAliasGet(StorageSystem storage, Initiator initiator) throws Exception {
         throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
     }
+    
+    @Override
+    public List<URI> getPortGroupMembers(StorageSystem storage, String portGroup) throws Exception{
+        return null;
+    }
 }

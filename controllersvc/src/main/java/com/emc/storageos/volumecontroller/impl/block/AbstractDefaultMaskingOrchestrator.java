@@ -50,6 +50,7 @@ import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.util.CommonTransformerFunctions;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
+import com.emc.storageos.db.client.util.StringSetUtil;
 import com.emc.storageos.db.client.util.WWNUtility;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.networkcontroller.impl.NetworkDeviceController;
@@ -321,7 +322,17 @@ abstract public class AbstractDefaultMaskingOrchestrator {
         if (exportGroup.getZoneAllInitiators()) {
             pathParams.setAllowFewerPorts(true);
         }
-
+        if (pathParams.getPortGroup() != null) {
+            String portGroup = pathParams.getPortGroup();
+            _log.info("port group is " + portGroup);
+            List<URI> storagePorts = getDevice().getPortGroupMembers(storage, portGroup);
+            if (storagePorts != null && !storagePorts.isEmpty()) {
+                pathParams.setStoragePorts(StringSetUtil.uriListToStringSet(storagePorts));
+            } else {
+                _log.error(String.format("The port group %s does not have any port members", portGroup));
+                throw DeviceControllerException.exceptions.noPortMembersInPortGroupError(portGroup);
+            }
+        }
         Map<URI, List<URI>> assignments = _blockScheduler.assignStoragePorts(storage, exportGroup,
                 initiators, null, pathParams, volumeMap.keySet(), _networkDeviceController, exportGroup.getVirtualArray(), token);
         List<URI> targets = BlockStorageScheduler.getTargetURIsFromAssignments(assignments);
@@ -2619,4 +2630,11 @@ abstract public class AbstractDefaultMaskingOrchestrator {
         }
         return resourceMaskMap;
     }
+    
+    /**
+     * Return the StorageDevice.
+     *
+     * @return
+     */
+    public abstract BlockStorageDevice getDevice();
 }

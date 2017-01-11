@@ -22,6 +22,8 @@ public class ExportPathParams extends DataObject {
     // If explicitly created is true, a user specifically create an ExportPathParam record.
     // If explicitly created is false, the entry was created as a side effect of an export operation.
     private Boolean explicitlyCreated;
+    // port group name predefined in the vmax
+    private String portGroup;
     
     /*
      * If allowFewerPorts is true, may allocate fewer than the calculated port requirement
@@ -104,6 +106,16 @@ public class ExportPathParams extends DataObject {
         setChanged("storagePorts");
     }
 
+    @Name("portGroup")
+    public String getPortGroup() {
+        return portGroup;
+    }
+    
+    public void setPortGroup(String portGroup) {
+        this.portGroup = portGroup;
+        setChanged("portGroup");
+    }
+    
     @Name("explicitlyCreated")
     public Boolean getExplicitlyCreated() {
         return explicitlyCreated;

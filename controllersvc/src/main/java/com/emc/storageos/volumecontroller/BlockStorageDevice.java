@@ -1115,5 +1115,15 @@ public interface BlockStorageDevice {
      * @param initiator
      */
     public String doInitiatorAliasGet(StorageSystem storage, Initiator initiator) throws Exception;
+    
+    /**
+     * Get port members in the port group. it is valid for vmax only right now.
+     * 
+     * @param storage
+     * @param portGroupName
+     * @return
+     * @throws Exception
+     */       
+    public List<URI> getPortGroupMembers(StorageSystem storage, String portGroupName) throws Exception;
 
 }

@@ -1244,5 +1244,10 @@ public class VNXUnityBlockStorageDevice extends VNXUnityOperations
     public String doInitiatorAliasGet(StorageSystem storage, Initiator initiator) throws DeviceControllerException {
         throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
     }
+    
+    @Override
+    public List<URI> getPortGroupMembers(StorageSystem storage, String portGroup) {
+        return null;
+    }
 
 }

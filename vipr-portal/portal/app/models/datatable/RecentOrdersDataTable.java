@@ -12,6 +12,7 @@ import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
 
+import com.emc.storageos.db.client.model.uimodels.OrderStatus;
 import org.apache.commons.lang.ObjectUtils;
 import org.apache.commons.lang.StringUtils;
 
@@ -128,6 +129,21 @@ public class RecentOrdersDataTable extends OrderDataTable {
         }
         Logger.info("getDownloadJobStatus: {}", status);
         return status;
+    }
+    
+    public static String getCanBeDeletedOrderStatuses() {
+        StringBuilder builder = null;
+        for (OrderStatus s : OrderStatus.values()) {
+            if (s.canBeDeleted()) {
+                if (builder == null) {
+                    builder = new StringBuilder();
+                } else {
+                    builder.append(", ");
+                }
+                builder.append(s.name());
+            }
+        }
+        return builder.toString();
     }
 
     /**

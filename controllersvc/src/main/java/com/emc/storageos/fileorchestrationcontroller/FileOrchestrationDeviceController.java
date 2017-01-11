@@ -1856,19 +1856,28 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
                         List<URI> vNASURIList = FileOrchestrationUtils.getVNASServersOfStorageSystem(s_dbClient, storageSystemURI);
                         if (vNASURIList != null && !vNASURIList.isEmpty()) {
                             for (Iterator<URI> iterator = vNASURIList.iterator(); iterator.hasNext();) {
-
                                 URI vNASURI = iterator.next();
-                                String stepId = workflow.createStepId();
-                                String stepDes = String
-                                        .format("Assigning file policy: %s, to vpool: %s on storage system: %s", filePolicy.getId(),
-                                                vpoolURI,
-                                                storageSystemURI);
-                                Object[] args = new Object[] { storageSystemURI, vNASURI, filePolicyToAssign, vpoolURI };
-                                waitFor = _fileDeviceController.createMethod(workflow, waitFor,
-                                        ASSIGN_FILE_SNAPSHOT_POLICY_TO_PROJECT_METHOD,
-                                        stepId,
-                                        stepDes,
-                                        storageSystemURI, args);
+                                if (projectURIs != null && !projectURIs.isEmpty()) {
+
+                                    for (Iterator<URI> projectIterator = projectURIs.iterator(); projectIterator.hasNext();) {
+                                        URI projectURI = projectIterator.next();
+
+                                        String stepId = workflow.createStepId();
+                                        String stepDes = String
+                                                .format("Assigning file policy: %s, to project: %s on storage system: %s",
+                                                        filePolicy.getId(),
+                                                        vpoolURI,
+                                                        storageSystemURI);
+                                        Object[] args = new Object[] { storageSystemURI, vNASURI, filePolicyToAssign, vpoolURI, projectURI };
+                                        waitFor = _fileDeviceController.createMethod(workflow, waitFor,
+                                                ASSIGN_FILE_SNAPSHOT_POLICY_TO_PROJECT_METHOD,
+                                                stepId,
+                                                stepDes,
+                                                storageSystemURI, args);
+
+                                    }
+
+                                }
                             }
                         } else {
                             s_logger.info("No vNAS servers for storage system URI: {}", storageSystemURI);

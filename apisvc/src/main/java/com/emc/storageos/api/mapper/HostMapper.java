@@ -26,6 +26,7 @@ import com.emc.storageos.db.client.model.Vcenter;
 import com.emc.storageos.db.client.model.VcenterDataCenter;
 import com.emc.storageos.model.RelatedResourceRep;
 import com.emc.storageos.model.ResourceTypeEnum;
+import com.emc.storageos.model.StringHashMapEntry;
 import com.emc.storageos.model.block.export.ExportBlockParam;
 import com.emc.storageos.model.block.export.ExportGroupRestRep;
 import com.emc.storageos.model.block.export.ExportPathParametersRep;
@@ -130,6 +131,17 @@ public class HostMapper {
             to.setType(from.getType());
         }
         to.setGeneratedName(from.getGeneratedName());
+        if (from.getAltVirtualArrays() != null && !from.getAltVirtualArrays().isEmpty()) {
+            // The alternate virtual array is a map from Storage System URI to Virtual Array URI
+            List<StringHashMapEntry> toVirtualArrays = new ArrayList<StringHashMapEntry>();
+            for (Map.Entry<String, String> entry : from.getAltVirtualArrays().entrySet()) {
+                StringHashMapEntry toEntry = new StringHashMapEntry();
+                toEntry.setName(entry.getKey());
+                toEntry.setValue(entry.getValue());
+                toVirtualArrays.add(toEntry);
+            }
+            to.setAltVirtualArrays(toVirtualArrays);
+        }
         return to;
     }
 

@@ -10,6 +10,7 @@ import static com.emc.storageos.api.mapper.SystemsMapper.map;
 import java.net.URI;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 
 import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
@@ -18,6 +19,7 @@ import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
 
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
@@ -25,6 +27,7 @@ import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.StorageSystemType;
+import com.emc.storageos.db.server.impl.StorageSystemTypesInitUtils;
 import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.storageos.model.storagesystem.type.StorageSystemTypeAddParam;
 import com.emc.storageos.model.storagesystem.type.StorageSystemTypeList;
@@ -107,7 +110,7 @@ public class StorageSystemTypeService extends TaskResourceService {
     }
 
     /**
-     * Internal call to create a new storage system type.
+     * Internal api to create a new storage system type.
      *
      * @param addparam
      *            The StorageSystemTypeAddParam object contains all the
@@ -170,6 +173,39 @@ public class StorageSystemTypeService extends TaskResourceService {
         auditOp(OperationTypeEnum.ADD_STORAGE_SYSTEM_TYPE, true, AuditLogManager.AUDITOP_BEGIN,
                 ssType.getId().toString(), ssType.getStorageTypeName(), ssType.getMetaType());
         return map(ssType);
+    }
+
+    /**
+     * Internal api to delete existing Storage System Type.
+     *
+     * @param id storage system type id
+     *
+     * @brief Delete Storage System Type.
+     * @return No data returned in response body
+     */
+    @POST
+    @Path("/internal/{id}/deactivate")
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
+    public Response deleteStorageSystemType(@PathParam("id") URI id) {
+        log.info("deleteStorageSystemType: {}", id);
+        // Name of Array and its Display Name mapping, cannot delete native
+        // drivers
+        Map<String, String> nativeDriverNameMap = StorageSystemTypesInitUtils.getDisplayNames();
+
+        StorageSystemType sstype = queryObject(StorageSystemType.class, id, true);
+        ArgValidator.checkEntity(sstype, id, isIdEmbeddedInURL(id));
+        if (nativeDriverNameMap.get(sstype.getStorageTypeName()) == null) {
+            _dbClient.markForDeletion(sstype);
+
+            auditOp(OperationTypeEnum.REMOVE_STORAGE_SYSTEM_TYPE, true, AuditLogManager.AUDITOP_BEGIN,
+                    sstype.getId().toString(), sstype.getStorageTypeName(), sstype.getMetaType());
+            return Response.ok().build();
+        } else {
+            return Response.status(403).build();
+        }
+
     }
 
     @Override

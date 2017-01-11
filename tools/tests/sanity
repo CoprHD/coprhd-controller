@@ -6349,6 +6349,7 @@ sbsdk_remote_replication_setup()
     echo "***** Executing setup for SB SDK remote replication tests *****"
 
     #Define variables
+    SIMULATOR_STORAGE_TYPE=driversystem
     # System names are important to align with remote replication configuration in driver simulator.
     SBSDK_DRIVER_REPLICATION_SET1=replicationSet1
     SBSDK_DRIVER_REPLICATION_SET1_GROUP1=replicationGroup1_set1
@@ -6383,6 +6384,10 @@ sbsdk_remote_replication_setup()
     SBSDK_DRIVER_SYS_PWWN24=62:FE:FE:FE:FE:FE:FE:14
     SBSDK_DRIVER_SYS_PWWN25=62:FE:FE:FE:FE:FE:FE:15
     SBSDK_DRIVER_SYS_PWWN26=62:FE:FE:FE:FE:FE:FE:16
+
+    echo "**** Creating storage system type for driver simulator *******"
+    run remotereplicationgroup create_storage_type $SIMULATOR_STORAGE_TYPE --type block --is_provider false --support_ssl true \
+             --port 789 --ssl_port 8798 --driver_class dummy.java
 
     #Discover the SB SDK simulator storage system
     echo "***** Creating SB SDK simulator storage systems *****"
@@ -6542,11 +6547,6 @@ sbsdk_remote_replication_tests()
     HOST_INIT_NODE_WWN1=20:00:00:E0:7E:00:00:0F
     HOST_INIT_PORT_WWN2=10:00:00:90:FA:18:0E:99
     HOST_INIT_NODE_WWN2=20:00:00:90:FA:18:0E:99
-    SIMULATOR_STORAGE_TYPE=driversystem
-
-    echo "**** Creating storage sytstem type for driver simulator *******"
-    run remotereplicationgroup create_storage_type $SIMULATOR_STORAGE_TYPE --type block --is_provider false --support_ssl true \
-                  --port 789 --ssl_port 8798 --driver_class dummy.java
 
     #Create a volume
     echo "***** Creating volume ${VOLUME_NAME} *****"

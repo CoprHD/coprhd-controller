@@ -34,15 +34,8 @@ def remotereplicationgroup_create(args):
 # Create storage system type.
 def remotereplicationgroup_create_storage_type(args):
     bourne.connect(args.ip)
-    source_system_uri = bourne.storagedevice_querybynativeguid(args.source_system)
-    print 'Source system uri: ' + source_system_uri
-    target_system_uri = bourne.storagedevice_querybynativeguid(args.target_system)
-    print 'Target system uri: ' + target_system_uri
-    replicationset_uri = bourne.replicationset_query(args.replicationset_name)
-    print 'Replication set uri: ' + replicationset_uri
-
     storage_type = bourne.replicationgroup_create_storage_type(args.storage_type_name, args.storage_type_name, args.type, args.is_provider, args.support_ssl,
-                                                    args.port, args.ssl_port, args.driver_name)
+                                                    args.port, args.ssl_port, args.driver_class)
     print storage_type
 
 

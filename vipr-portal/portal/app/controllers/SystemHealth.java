@@ -82,8 +82,6 @@ public class SystemHealth extends Controller {
     public static final String DBHEALTH_STATUS_SUCCESS = "SUCCESS";
     public static final String DBHEALTH_STATUS_FAIL = "FAILED";
     public static final String DBHEALTH_STATUS_FINISH = "FINISHED";
-//    public static final int LOG_REQUEST_TIMEOUT_MILLIS = 10 * 60 * 1000; // 10 mins
-    public static final int LOG_REQUEST_TIMEOUT_MILLIS = 3000; // 3 seconds for tests
 
     public static final String DEFAULT_SEVERITY = "7";
     public static final String[] SEVERITIES = { "4", "5", "7", "8" };
@@ -373,7 +371,7 @@ public class SystemHealth extends Controller {
 
     public static void logsJson(String uri) {
         String url = BourneUtil.getSysApiUrl() + StringEscapeUtils.unescapeHtml(uri);
-        renderViprProxy(url, Security.getAuthToken(), null, LOG_REQUEST_TIMEOUT_MILLIS);
+        renderViprProxy(url, Security.getAuthToken(), null);
     }
 
     public static void listNodesJson() {

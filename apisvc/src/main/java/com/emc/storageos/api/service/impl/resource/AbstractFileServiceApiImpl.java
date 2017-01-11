@@ -319,4 +319,14 @@ public abstract class AbstractFileServiceApiImpl<T> implements FileServiceApi {
         controller.assignFileSnapshotPolicyToVirtualPool(vpoolToStorageSystemMap, filePolicyToAssign, taskId);
 
     }
+
+    @Override
+    public void assignFilePolicyToProject(Map<URI, List<URI>> vpoolToStorageSystemMap, List<URI> projectURIs, URI filePolicyToAssign,
+            String taskId) {
+        FileOrchestrationController controller = getController(FileOrchestrationController.class,
+                FileOrchestrationController.FILE_ORCHESTRATION_DEVICE);
+        controller.assignFileSnapshotPolicyToProject(vpoolToStorageSystemMap, projectURIs, filePolicyToAssign, taskId);
+
+    }
+
 }

@@ -18,9 +18,9 @@ import com.emc.storageos.model.TaskResourceRep;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorException;
 
-public class AssignFilePolicySchedulingThread implements Runnable {
+public class AssignFileSnapshotPolicyToVpoolSchedulingThread implements Runnable {
 
-    private static final Logger _log = LoggerFactory.getLogger(AssignFilePolicySchedulingThread.class);
+    private static final Logger _log = LoggerFactory.getLogger(AssignFileSnapshotPolicyToVpoolSchedulingThread.class);
 
     private final FilePolicyService filePolicyService;
     private Map<URI, List<URI>> vpoolToStorageSystemMap;
@@ -29,7 +29,7 @@ public class AssignFilePolicySchedulingThread implements Runnable {
     private TaskResourceRep taskObject;
     private String task;
 
-    public AssignFilePolicySchedulingThread(FilePolicyService fileService, URI filePolicyToAssign,
+    public AssignFileSnapshotPolicyToVpoolSchedulingThread(FilePolicyService fileService, URI filePolicyToAssign,
             Map<URI, List<URI>> vpoolToStorageSystemMap,
             FileServiceApi fileServiceImpl, TaskResourceRep taskObject, String task) {
 
@@ -50,11 +50,11 @@ public class AssignFilePolicySchedulingThread implements Runnable {
         } catch (Exception ex) {
             if (ex instanceof ServiceCoded) {
                 this.filePolicyService._dbClient
-                .error(FilePolicy.class, taskObject.getResource().getId(), taskObject.getOpId(), (ServiceCoded) ex);
+                        .error(FilePolicy.class, taskObject.getResource().getId(), taskObject.getOpId(), (ServiceCoded) ex);
             } else {
                 this.filePolicyService._dbClient.error(FilePolicy.class, taskObject.getResource().getId(), taskObject.getOpId(),
                         InternalServerErrorException.internalServerErrors
-                        .unexpectedErrorVolumePlacement(ex));
+                                .unexpectedErrorVolumePlacement(ex));
             }
             _log.error(ex.getMessage(), ex);
             taskObject.setMessage(ex.getMessage());
@@ -69,7 +69,7 @@ public class AssignFilePolicySchedulingThread implements Runnable {
             Map<URI, List<URI>> vpoolToStorageSystemMap,
             FileServiceApi fileServiceImpl, TaskResourceRep taskObject, String task) {
 
-        AssignFilePolicySchedulingThread schedulingThread = new AssignFilePolicySchedulingThread(fileService, filePolicyToAssign,
+        AssignFileSnapshotPolicyToVpoolSchedulingThread schedulingThread = new AssignFileSnapshotPolicyToVpoolSchedulingThread(fileService, filePolicyToAssign,
                 vpoolToStorageSystemMap, fileServiceImpl, taskObject, task);
         try {
             executorService.execute(schedulingThread);

@@ -41,7 +41,6 @@ import com.emc.storageos.api.service.impl.resource.utils.FilePolicyServiceUtils;
 import com.emc.storageos.api.service.impl.response.BulkList;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.FilePolicy;
-import com.emc.storageos.db.client.model.FilePolicy.AssignToResource;
 import com.emc.storageos.db.client.model.FilePolicy.FilePolicyApplyLevel;
 import com.emc.storageos.db.client.model.FilePolicy.FilePolicyType;
 import com.emc.storageos.db.client.model.FilePolicy.SnapshotExpireType;
@@ -693,61 +692,39 @@ public class FilePolicyService extends TaskResourceService {
         StringBuilder errorMsg = new StringBuilder();
         ArgValidator.checkFieldNotNull(param.getVpoolAssignParams(), "vpool_assign_param");
 
+        // Policy has to be applied on specified file vpools..
+        ArgValidator.checkFieldNotNull(param.getVpoolAssignParams().getAssigntoVpools(), "assign_to_vpools");
+        Set<URI> vpoolURIs = param.getVpoolAssignParams().getAssigntoVpools();
+
         Map<URI, List<URI>> vpoolToStorageSystemMap = new HashMap<URI, List<URI>>();
-        String task = UUID.randomUUID().toString();
-        TaskResourceRep taskObject = createAssignFilePolicyTask(filepolicy, task);
 
-        if (AssignToResource.all.name().equalsIgnoreCase(param.getVpoolAssignParams().getAssigntoAll())) {
-            // policy has to be applied on all applicable file vpools
-            List<URI> vpoolIDs = this._dbClient.queryByType(VirtualPool.class, true);
-            List<VirtualPool> virtualPools = this._dbClient.queryObject(VirtualPool.class, vpoolIDs);
+        for (URI vpoolURI : vpoolURIs) {
+            ArgValidator.checkFieldUriType(vpoolURI, VirtualPool.class, "vpool");
+            VirtualPool virtualPool = _dbClient.queryObject(VirtualPool.class, vpoolURI);
 
-            /* StringSet assignedResources = new StringSet(); */
-            for (VirtualPool virtualPool : virtualPools) {
-                if (virtualPool.getType().equals(VirtualPool.Type.file.name())
-                        && FilePolicyServiceUtils.validateVpoolSupportPolicyType(filepolicy, virtualPool)) {
-                    URI vpoolURI = virtualPool.getId();
-                    vpoolToStorageSystemMap.put(vpoolURI, getAssociatedStorageSystemsByVPool(virtualPool));
-                }
+            ArgValidator.checkEntity(virtualPool, vpoolURI, false);
+
+            if (filepolicy.getAssignedResources() != null
+                    && filepolicy.getAssignedResources().contains(virtualPool.getId().toString())) {
+                errorMsg.append("Provided vpool :" + virtualPool.getId().toString() + " is already assigned to policy"
+                        + filepolicy.getId().toString());
+                _log.error(errorMsg.toString());
+                throw APIException.badRequests.invalidFilePolicyAssignParam(filepolicy.getFilePolicyName(), errorMsg.toString());
             }
-            /*
-             * filepolicy.setApplyAt(FilePolicyApplyLevel.vpool.name());
-             * filepolicy.setAssignedResources(assignedResources);
-             */
 
-        } else {
-            // Policy has to be applied on specified file vpools..
-            ArgValidator.checkFieldNotNull(param.getVpoolAssignParams().getAssigntoVpools(), "assign_to_vpools");
-            Set<URI> vpoolURIs = param.getVpoolAssignParams().getAssigntoVpools();
-
-            for (URI vpoolURI : vpoolURIs) {
-                ArgValidator.checkFieldUriType(vpoolURI, VirtualPool.class, "vpool");
-                VirtualPool virtualPool = _dbClient.queryObject(VirtualPool.class, vpoolURI);
-
-                ArgValidator.checkEntity(virtualPool, vpoolURI, false);
-
-                if (filepolicy.getAssignedResources() != null
-                        && filepolicy.getAssignedResources().contains(virtualPool.getId().toString())) {
-                    errorMsg.append("Provided vpool :" + virtualPool.getId().toString() + " is already assigned to policy"
-                            + filepolicy.getId().toString());
-                    _log.error(errorMsg.toString());
-                    throw APIException.badRequests.invalidFilePolicyAssignParam(filepolicy.getFilePolicyName(), errorMsg.toString());
-                }
-
-                if (!FilePolicyServiceUtils.validateVpoolSupportPolicyType(filepolicy, virtualPool)) {
-                    errorMsg.append("Provided vpool :" + virtualPool.getId().toString() + " doesn't support policy type:"
-                            + filepolicy.getFilePolicyType());
-                    _log.error(errorMsg.toString());
-                    throw APIException.badRequests.invalidFilePolicyAssignParam(filepolicy.getFilePolicyName(), errorMsg.toString());
-                }
-
-                vpoolToStorageSystemMap.put(vpoolURI, getAssociatedStorageSystemsByVPool(virtualPool));
+            if (!FilePolicyServiceUtils.validateVpoolSupportPolicyType(filepolicy, virtualPool)) {
+                errorMsg.append("Provided vpool :" + virtualPool.getId().toString() + " doesn't support policy type:"
+                        + filepolicy.getFilePolicyType());
+                _log.error(errorMsg.toString());
+                throw APIException.badRequests.invalidFilePolicyAssignParam(filepolicy.getFilePolicyName(), errorMsg.toString());
             }
-            /*
-             * filepolicy.setApplyAt(FilePolicyApplyLevel.vpool.name());
-             * filepolicy.setAssignedResources(assignedResources);
-             */
+            vpoolToStorageSystemMap.put(vpoolURI, getAssociatedStorageSystemsByVPool(virtualPool));
         }
+
+        /*
+         * filepolicy.setApplyAt(FilePolicyApplyLevel.vpool.name());
+         * filepolicy.setAssignedResources(assignedResources);
+         */
         /*
          * if (param.getVpoolAssignParams().getAssigntoAll() != null) {
          * filepolicy.setApplyTovPools(param.getVpoolAssignParams().getAssigntoAll());
@@ -756,9 +733,10 @@ public class FilePolicyService extends TaskResourceService {
          * filepolicy.setApplyOnTargetSite(param.getApplyOnTargetSite());
          * }
          */
-        // this._dbClient.updateObject(filepolicy);
+        String task = UUID.randomUUID().toString();
+        TaskResourceRep taskObject = createAssignFilePolicyTask(filepolicy, task);
         FileServiceApi fileServiceApi = getDefaultFileServiceApi();
-        AssignFilePolicySchedulingThread.executeApiTask(this, _asyncTaskService.getExecutorService(), _dbClient,
+        AssignFileSnapshotPolicyToVpoolSchedulingThread.executeApiTask(this, _asyncTaskService.getExecutorService(), _dbClient,
                 filepolicy.getId(), vpoolToStorageSystemMap, fileServiceApi, taskObject, task);
 
         auditOp(OperationTypeEnum.ASSIGN_FILE_POLICY, true, AuditLogManager.AUDITOP_BEGIN,
@@ -777,7 +755,8 @@ public class FilePolicyService extends TaskResourceService {
         StringBuilder errorMsg = new StringBuilder();
         ArgValidator.checkFieldNotNull(param.getProjectAssignParams(), "project_assign_param");
         ArgValidator.checkFieldUriType(param.getProjectAssignParams().getVpool(), VirtualPool.class, "vpool");
-        VirtualPool vpool = this._dbClient.queryObject(VirtualPool.class, param.getProjectAssignParams().getVpool());
+        URI vpoolURI = param.getProjectAssignParams().getVpool();
+        VirtualPool vpool = _dbClient.queryObject(VirtualPool.class, vpoolURI);
         ArgValidator.checkEntity(vpool, param.getProjectAssignParams().getVpool(), false);
 
         // Check if the vpool supports provided policy type..
@@ -795,51 +774,45 @@ public class FilePolicyService extends TaskResourceService {
             throw APIException.badRequests.invalidFilePolicyAssignParam(filepolicy.getFilePolicyName(), errorMsg.toString());
         }
 
-        if (AssignToResource.all.name().equalsIgnoreCase(param.getProjectAssignParams().getAssigntoAll())) {
-            // policy has to be applied on all projects.
-            List<URI> projectIDs = this._dbClient.queryByType(Project.class, true);
-            StringSet assignedResources = new StringSet();
-            for (URI projectID : projectIDs) {
-                assignedResources.add(projectID.toString());
+        // policy has to be applied on specified projects
+        ArgValidator.checkFieldNotNull(param.getProjectAssignParams().getAssigntoProjects(), "assign_to_projects");
+        Set<URI> projetcURIs = param.getProjectAssignParams().getAssigntoProjects();
+        // StringSet assignedResources = new StringSet();
+        for (URI projetcURI : projetcURIs) {
+            ArgValidator.checkFieldUriType(projetcURI, Project.class, "project");
+            Project project = _dbClient.queryObject(Project.class, projetcURI);
+            ArgValidator.checkEntity(project, projetcURI, false);
+
+            // Check if policy is being already assigned this project
+            if (filepolicy.getAssignedResources() != null && filepolicy.getAssignedResources().contains(project.getId().toString())) {
+                errorMsg.append("Provided project :" + project.getId().toString() + " is already assigned to policy"
+                        + filepolicy.getId().toString());
+                _log.error(errorMsg.toString());
+                throw APIException.badRequests.invalidFilePolicyAssignParam(filepolicy.getFilePolicyName(), errorMsg.toString());
             }
-            filepolicy.setApplyAt(FilePolicyApplyLevel.project.name());
-            filepolicy.setAssignedResources(assignedResources);
-            filepolicy.setFilePolicyVpool(param.getProjectAssignParams().getVpool());
-        } else {
-            // policy has to be applied on specified projects
-            ArgValidator.checkFieldNotNull(param.getProjectAssignParams().getAssigntoProjects(), "assign_to_projects");
-            Set<URI> projetcURIs = param.getProjectAssignParams().getAssigntoProjects();
-            StringSet assignedResources = new StringSet();
-            for (URI projetcURI : projetcURIs) {
-                ArgValidator.checkFieldUriType(projetcURI, Project.class, "project");
-                Project project = this._dbClient.queryObject(Project.class, projetcURI);
-                ArgValidator.checkEntity(project, projetcURI, false);
-
-                // Check if policy is being already assigned this project
-                if (filepolicy.getAssignedResources() != null && filepolicy.getAssignedResources().contains(project.getId().toString())) {
-                    errorMsg.append("Provided project :" + project.getId().toString() + " is already assigned to policy"
-                            + filepolicy.getId().toString());
-                    _log.error(errorMsg.toString());
-                    throw APIException.badRequests.invalidFilePolicyAssignParam(filepolicy.getFilePolicyName(), errorMsg.toString());
-                }
-
-                assignedResources.add(projetcURI.toString());
-            }
-            filepolicy.setApplyAt(FilePolicyApplyLevel.project.name());
-            filepolicy.setAssignedResources(assignedResources);
-            filepolicy.setFilePolicyVpool(param.getProjectAssignParams().getVpool());
+            // assignedResources.add(projetcURI.toString());
         }
-
-        if (param.getProjectAssignParams().getAssigntoAll() != null) {
-            filepolicy.setApplyTovPools(param.getProjectAssignParams().getAssigntoAll());
-        }
-        if (param.getApplyOnTargetSite() != null) {
-            filepolicy.setApplyOnTargetSite(param.getApplyOnTargetSite());
-        }
-        this._dbClient.updateObject(filepolicy);
-
+        Map<URI, List<URI>> vpoolToStorageSystemMap = new HashMap<URI, List<URI>>();
+        vpoolToStorageSystemMap.put(vpoolURI, getAssociatedStorageSystemsByVPool(vpool));
+        /*
+         * filepolicy.setApplyAt(FilePolicyApplyLevel.project.name());
+         * filepolicy.setAssignedResources(assignedResources);
+         * filepolicy.setFilePolicyVpool(param.getProjectAssignParams().getVpool());
+         * 
+         * if (param.getApplyOnTargetSite() != null) {
+         * filepolicy.setApplyOnTargetSite(param.getApplyOnTargetSite());
+         * }
+         */
         String task = UUID.randomUUID().toString();
-        return toTask(filepolicy, task);
+        TaskResourceRep taskObject = createAssignFilePolicyTask(filepolicy, task);
+        FileServiceApi fileServiceApi = getDefaultFileServiceApi();
+        AssignFileSnapshotPolicyToProjectSchedulingThread.executeApiTask(this, _asyncTaskService.getExecutorService(), _dbClient,
+                filepolicy.getId(), vpoolToStorageSystemMap, new ArrayList<URI>(projetcURIs), fileServiceApi, taskObject, task);
+
+        auditOp(OperationTypeEnum.ASSIGN_FILE_POLICY, true, AuditLogManager.AUDITOP_BEGIN,
+                filepolicy.getLabel());
+
+        return taskObject;
     }
 
     /**

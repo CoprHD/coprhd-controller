@@ -129,6 +129,13 @@ public class FileOrchestrationControllerImpl implements FileOrchestrationControl
         execOrchestration("assignFileSnapshotPolicyToVirtualPool", vpoolToStorageSystemMap, filePolicyToAssign, taskId);
     }
 
+    @Override
+    public void assignFileSnapshotPolicyToProject(Map<URI, List<URI>> vpoolToStorageSystemMap, List<URI> projectURIs,
+            URI filePolicyToAssign, String taskId) {
+        execOrchestration("assignFileSnapshotPolicyToProject", vpoolToStorageSystemMap, projectURIs, filePolicyToAssign, taskId);
+
+    }
+
     // getter and setter methods
     public FileOrchestrationController getController() {
         return _controller;

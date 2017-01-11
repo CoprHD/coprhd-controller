@@ -17,6 +17,7 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.HttpClient;
+import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.conn.ClientConnectionManager;
 import org.apache.http.conn.scheme.Scheme;
@@ -53,19 +54,28 @@ import javax.net.ssl.X509TrustManager;
 public class RenderProxy extends Result {
     private String url;
     private Map<String, String> headers;
+    private int timeoutMillis = -1;
 
     public static void renderProxy(String url, Map<String, String> headers) {
         throw new RenderProxy(url, headers);
     }
 
-    public static void renderViprProxy(String url, String authToken, String accept) {
+    private static Map<String, String> generateHeaders(String authToken, String accept) {
         Map<String, String> headers = Maps.newHashMap();
         headers.put(Constants.AUTH_TOKEN_KEY, authToken);
         headers.put("X-EMC-REST-CLIENT", "TRUE");
         if (StringUtils.isNotBlank(accept)) {
             headers.put("Accept", accept);
         }
-        renderProxy(url, headers);
+        return headers;
+    }
+
+    public static void renderViprProxy(String url, String authToken, String accept) {
+        renderProxy(url, generateHeaders(authToken, accept));
+    }
+
+    public static void renderViprProxy(String url, String authToken, String accept, int timeoutMillis) {
+        throw new RenderProxy(url, generateHeaders(authToken, accept), timeoutMillis);
     }
 
     public RenderProxy(String url) {
@@ -76,10 +86,17 @@ public class RenderProxy extends Result {
         this.url = url;
         this.headers = headers;
     }
+    public RenderProxy(String url, Map<String, String> headers, int timeoutMillis) {
+        this(url, headers);
+        this.timeoutMillis = timeoutMillis;
+    }
 
     @Override
     public void apply(Request request, Response response) {
         HttpGet httpGet = new HttpGet(url);
+        if (timeoutMillis != -1) {
+            httpGet.setConfig(RequestConfig.custom().setSocketTimeout(timeoutMillis).build());
+        }
 
         for (Map.Entry<String, String> header : headers.entrySet()) {
             httpGet.setHeader(header.getKey(), header.getValue());

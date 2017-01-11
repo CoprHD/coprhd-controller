@@ -16,7 +16,7 @@ import com.netflix.astyanax.model.Column;
 
 import com.emc.storageos.db.client.model.*;
 
-public class PermissionsDbIndex extends DbIndex {
+public class PermissionsDbIndex extends DbIndex<IndexColumnName> {
     private static final Logger _log = LoggerFactory.getLogger(PermissionsDbIndex.class);
 
     PermissionsDbIndex(ColumnFamily<String, IndexColumnName> indexCF) {

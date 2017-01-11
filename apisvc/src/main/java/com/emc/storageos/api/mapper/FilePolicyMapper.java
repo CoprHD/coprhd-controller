@@ -66,7 +66,7 @@ public final class FilePolicyMapper {
             resp.setAppliedAt(appliedAt);
             StringSet assignedResources = from.getAssignedResources();
             if (assignedResources != null && !assignedResources.isEmpty()) {
-                List<URI> resourceURIs = new ArrayList<URI>();
+                List<URI> resourceURIs = new ArrayList<>();
                 for (Iterator<String> iterator = assignedResources.iterator(); iterator.hasNext();) {
                     String resourceId = iterator.next();
                     resourceURIs.add(URI.create(resourceId));

@@ -366,7 +366,7 @@ public final class FileOrchestrationUtils {
      * @return
      */
     public static List<FilePolicy> getAllVpoolLevelPolices(DbClient dbClient, VirtualPool vpool, NASServer nasServer, URI storageSystem) {
-        List<FilePolicy> filePoliciesToCreate = new ArrayList<FilePolicy>();
+        List<FilePolicy> filePoliciesToCreate = new ArrayList<>();
         StringSet fileVpoolPolicies = vpool.getFilePolicies();
 
         if (fileVpoolPolicies != null && !fileVpoolPolicies.isEmpty()) {
@@ -401,7 +401,7 @@ public final class FileOrchestrationUtils {
      */
     public static List<FilePolicy> getAllProjectLevelPolices(DbClient dbClient, Project project, VirtualPool vpool, NASServer nasServer,
             URI storageSystem) {
-        List<FilePolicy> filePoliciesToCreate = new ArrayList<FilePolicy>();
+        List<FilePolicy> filePoliciesToCreate = new ArrayList<>();
         StringSet fileProjectPolicies = project.getFilePolicies();
 
         if (fileProjectPolicies != null && !fileProjectPolicies.isEmpty()) {
@@ -409,9 +409,8 @@ public final class FileOrchestrationUtils {
                 FilePolicy filePolicy = dbClient.queryObject(FilePolicy.class, URIUtil.uri(fileProjectPolicy));
                 if (!filePolicy.getFilePolicyVpool().toString().equals(vpool.getId().toString())) {
                     continue;
-                } else {
-                    filePoliciesToCreate.add(filePolicy);
                 }
+                filePoliciesToCreate.add(filePolicy);
                 StringSet policyStrRes = filePolicy.getPolicyStorageResources();
                 if (policyStrRes != null && !policyStrRes.isEmpty()) {
                     for (String policyStrRe : policyStrRes) {
@@ -431,46 +430,46 @@ public final class FileOrchestrationUtils {
         return filePoliciesToCreate;
     }
 
-    public static void updateUnAssignedResource(FilePolicy filePolicy, PolicyStorageResource policyRes, DbClient _dbClient) {
+    public static void updateUnAssignedResource(FilePolicy filePolicy, PolicyStorageResource policyRes, DbClient dbClient) {
         FilePolicyApplyLevel applyLevel = FilePolicyApplyLevel.valueOf(filePolicy.getApplyAt());
         switch (applyLevel) {
             case vpool:
-                VirtualPool vpool = _dbClient.queryObject(VirtualPool.class, policyRes.getAppliedAt());
+                VirtualPool vpool = dbClient.queryObject(VirtualPool.class, policyRes.getAppliedAt());
                 vpool.removeFilePolicy(filePolicy.getId());
-                _dbClient.updateObject(vpool);
+                dbClient.updateObject(vpool);
                 break;
             case project:
-                Project project = _dbClient.queryObject(Project.class, policyRes.getAppliedAt());
+                Project project = dbClient.queryObject(Project.class, policyRes.getAppliedAt());
                 project.removeFilePolicy(project, filePolicy.getId());
-                _dbClient.updateObject(project);
+                dbClient.updateObject(project);
                 break;
             case file_system:
-                FileShare fs = _dbClient.queryObject(FileShare.class, policyRes.getAppliedAt());
+                FileShare fs = dbClient.queryObject(FileShare.class, policyRes.getAppliedAt());
                 fs.removeFilePolicy(filePolicy.getId());
-                _dbClient.updateObject(fs);
+                dbClient.updateObject(fs);
                 break;
             default:
                 _log.error("Not a valid policy apply level: " + applyLevel);
         }
     }
 
-    public static void updateUnAssignedResource(FilePolicy filePolicy, URI unassignRes, DbClient _dbClient) {
+    public static void updateUnAssignedResource(FilePolicy filePolicy, URI unassignRes, DbClient dbClient) {
         FilePolicyApplyLevel applyLevel = FilePolicyApplyLevel.valueOf(filePolicy.getApplyAt());
         switch (applyLevel) {
             case vpool:
-                VirtualPool vpool = _dbClient.queryObject(VirtualPool.class, unassignRes);
+                VirtualPool vpool = dbClient.queryObject(VirtualPool.class, unassignRes);
                 vpool.removeFilePolicy(filePolicy.getId());
-                _dbClient.updateObject(vpool);
+                dbClient.updateObject(vpool);
                 break;
             case project:
-                Project project = _dbClient.queryObject(Project.class, unassignRes);
+                Project project = dbClient.queryObject(Project.class, unassignRes);
                 project.removeFilePolicy(project, filePolicy.getId());
-                _dbClient.updateObject(project);
+                dbClient.updateObject(project);
                 break;
             case file_system:
-                FileShare fs = _dbClient.queryObject(FileShare.class, unassignRes);
+                FileShare fs = dbClient.queryObject(FileShare.class, unassignRes);
                 fs.removeFilePolicy(filePolicy.getId());
-                _dbClient.updateObject(fs);
+                dbClient.updateObject(fs);
                 break;
             default:
                 _log.error("Not a valid policy apply level: " + applyLevel);

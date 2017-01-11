@@ -64,7 +64,8 @@ public final class FilePolicyServiceUtils {
 
             // validating schedule time
             String period = " PM";
-            int hour = 0, minute = 0;
+            int hour;
+            int minute;
             boolean isValid = true;
             if (policyScheduleparams.getScheduleTime().contains(":")) {
                 String splitTime[] = policyScheduleparams.getScheduleTime().split(":");
@@ -140,36 +141,8 @@ public final class FilePolicyServiceUtils {
         return true;
     }
 
-    public static boolean validatePolicySchdeuleTime(FilePolicyScheduleParams policyScheduleparams, FilePolicy schedulePolicy,
-            StringBuilder errorMsg) {
-
-        String period = " PM";
-        int hour = 0, minute = 0;
-        boolean isValid = true;
-        if (policyScheduleparams.getScheduleTime().contains(":")) {
-            String splitTime[] = policyScheduleparams.getScheduleTime().split(":");
-            hour = Integer.parseInt(splitTime[0]);
-            minute = Integer.parseInt(splitTime[1]);
-            if (splitTime[0].startsWith("-") || splitTime[1].startsWith("-")) {
-                isValid = false;
-            }
-        } else {
-            hour = Integer.parseInt(policyScheduleparams.getScheduleTime());
-            minute = 0;
-        }
-        if (isValid && (hour >= 0 && hour < 24) && (minute >= 0 && minute < 60)) {
-            if (hour < 12) {
-                period = " AM";
-            }
-        } else {
-            errorMsg.append("Schedule time: " + policyScheduleparams.getScheduleTime() + " is invalid");
-            return false;
-        }
-        return isValid;
-    }
-
     public static void validateSnapshotPolicyParam(FileSnapshotPolicyParam param) {
-        boolean isValidSnapshotExpire = false;
+        boolean isValidSnapshotExpire;
 
         // check snapshot expire type is valid or not
         ArgValidator.checkFieldValueFromEnum(param.getSnapshotExpireParams().getExpireType().toUpperCase(), "expire_type",
@@ -192,7 +165,7 @@ public final class FilePolicyServiceUtils {
      * @return true/false
      */
     private static boolean validateSnapshotExpireParam(FileSnapshotPolicyExpireParam expireParam) {
-        long seconds = 0;
+        long seconds;
         int expireValue = expireParam.getExpireValue();
         SnapshotExpireType expireType = SnapshotExpireType.valueOf(expireParam.getExpireType().toUpperCase());
         switch (expireType) {

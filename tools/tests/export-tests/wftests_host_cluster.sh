@@ -1479,8 +1479,8 @@ test_cluster_remove_discovered_host() {
     # There are two paths to test:
     # 1. update: Meaning we remove a single discovered host from the cluster
     # 2. delete: Meaning we remove ALL discovered hosts from the cluster
-    #workflowPath="updateWorkflow deleteWorkflow"
-    workflowPath="updateWorkflow"
+    workflowPath="updateWorkflow deleteWorkflow"
+    #workflowPath="updateWorkflow"
         
     for wf in ${workflowPath}
     do
@@ -1628,7 +1628,7 @@ test_cluster_remove_discovered_host() {
                 secho "Update export group path..."
                 
                 # Snap DB
-                column_family=("Volume ExportGroup Cluster Host") 
+                column_family=("Volume Cluster Host") 
                 snap_db 1 "${column_family[@]}"
             
                 # NOTE: We want to remove host1 from cluster1.

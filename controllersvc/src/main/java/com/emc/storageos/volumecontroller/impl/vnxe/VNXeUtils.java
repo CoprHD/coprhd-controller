@@ -6,30 +6,20 @@ package com.emc.storageos.volumecontroller.impl.vnxe;
 
 import java.net.URI;
 import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.DbClient;
-import com.emc.storageos.db.client.constraint.ContainmentConstraint;
-import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
-import com.emc.storageos.db.client.model.ExportMask;
-import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.locking.LockTimeoutValue;
 import com.emc.storageos.locking.LockType;
-import com.emc.storageos.util.ExportUtils;
 import com.emc.storageos.workflow.WorkflowService;
 
 public class VNXeUtils {
@@ -79,51 +69,5 @@ public class VNXeUtils {
             cgName = null;
         }
         return cgName;
-    }
-
-    /**
-     * Get all LUNs on the array that mapped to a host identified by initiators in the mask
-     *
-     * @param dbClient
-     * @param storage
-     * @param exportMask
-     * @return LUNs mapped to the host
-     */
-    public static Set<String> getAllLUNsForHost(DbClient dbClient, StorageSystem storage, ExportMask exportMask) {
-       Set<String> lunIds = new HashSet<>();
-        URI hostURI = null;
-
-        for (String init : exportMask.getInitiators()) {
-            Initiator initiator = dbClient.queryObject(Initiator.class, URI.create(init));
-            if (initiator != null && !initiator.getInactive()) {
-                hostURI = initiator.getHost();
-                if (!NullColumnValueGetter.isNullURI(hostURI)) {
-                    break;
-                }
-            }
-        }
-
-        // get initiators from host
-        Set<ExportMask> exportMasks = new HashSet<>();
-        if (!NullColumnValueGetter.isNullURI(hostURI)) {
-            URIQueryResultList list = new URIQueryResultList();
-            dbClient.queryByConstraint(ContainmentConstraint.Factory.getContainedObjectsConstraint(hostURI, Initiator.class, "host"), list);
-            Iterator<URI> uriIter = list.iterator();
-            while (uriIter.hasNext()) {
-                Initiator initiator = dbClient.queryObject(Initiator.class, uriIter.next());
-                exportMasks.addAll(ExportUtils.getInitiatorExportMasks(initiator, dbClient));
-            }
-        }
-
-        for (ExportMask mask : exportMasks) {
-            for (String strUri : mask.getVolumes().keySet()) {
-                BlockObject bo = BlockObject.fetch(dbClient, URI.create(strUri));
-                if (bo != null && !bo.getInactive() && storage.getId().equals(bo.getStorageController())) {
-                    lunIds.add(bo.getNativeId());
-                }
-            }
-        }
-
-        return lunIds;
     }
 }

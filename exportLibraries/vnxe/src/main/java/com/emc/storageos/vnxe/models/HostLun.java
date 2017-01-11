@@ -52,7 +52,7 @@ public class HostLun extends VNXeBase {
         return snap;
     }
 
-    public void setLunSnap(VNXeBase snap) {
+    public void setSnap(VNXeBase snap) {
         this.snap = snap;
     }
 
@@ -65,8 +65,8 @@ public class HostLun extends VNXeBase {
     }
 
     public static enum HostLUNTypeEnum {
-        LUN_SNAP(2),
-        LUN(1);
+        LUN_SNAP(1),
+        LUN(2);
 
         private int value;
 

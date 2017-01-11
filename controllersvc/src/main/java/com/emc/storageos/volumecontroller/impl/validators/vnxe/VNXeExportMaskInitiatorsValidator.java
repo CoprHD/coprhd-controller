@@ -17,6 +17,7 @@ import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.util.NetworkUtil;
+import com.emc.storageos.vnxe.VNXeApiClient;
 import com.emc.storageos.vnxe.models.VNXeHostInitiator;
 import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
 import com.emc.storageos.volumecontroller.impl.validators.ValidatorLogger;
@@ -37,9 +38,10 @@ public class VNXeExportMaskInitiatorsValidator extends AbstractVNXeValidator {
      */
     @Override
     public boolean validate() throws Exception {
-        log.info("Initiating initiator validation of VNXe ExportMask: " + id);
+        log.info("Initiating initiator validation of VNXe ExportMask: " + getId());
         DbClient dbClient = getDbClient();
-        apiClient = getApiClient();
+        VNXeApiClient apiClient = getApiClient();
+        ExportMask exportMask = getExportMask();
 
         try {
             // Don't validate against backing masks or RP
@@ -83,7 +85,7 @@ public class VNXeExportMaskInitiatorsValidator extends AbstractVNXeValidator {
         }
 
         checkForErrors();
-        log.info("Completed initiator validation of VNXe ExportMask: " + id);
+        log.info("Completed initiator validation of VNXe ExportMask: " + getId());
 
         return true;
     }

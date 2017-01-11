@@ -34,19 +34,19 @@ public abstract class AbstractVNXeValidator implements Validator {
     public static final String NO_MATCH = "<no match>";
     private static final Logger log = LoggerFactory.getLogger(AbstractVNXeValidator.class);
     private VNXeSystemValidatorFactory factory;
-    protected ValidatorLogger logger;
+    private ValidatorLogger logger;
 
-    protected final StorageSystem storage;
-    protected final ExportMask exportMask;
-    protected boolean errorOnMismatch = true;
-    protected String id = null; // identifying string for ExportMask
-    protected VNXeApiClient apiClient;
+    private final StorageSystem storage;
+    private final ExportMask exportMask;
+    private boolean errorOnMismatch = true;
+    private String id = null; // identifying string for ExportMask
+    private VNXeApiClient apiClient;
     private ExceptionContext exceptionContext;
 
     public AbstractVNXeValidator(StorageSystem storage, ExportMask exportMask) {
         this.storage = storage;
         this.exportMask = exportMask;
-        id = String.format("%s (%s)(%s)", exportMask.getMaskName(), exportMask.getNativeId(), exportMask.getId().toString());
+        this.id = String.format("%s (%s)(%s)", exportMask.getMaskName(), exportMask.getNativeId(), exportMask.getId().toString());
     }
 
     public void setFactory(VNXeSystemValidatorFactory factory) {
@@ -70,15 +70,21 @@ public abstract class AbstractVNXeValidator implements Validator {
     }
 
     public VNXeApiClient getApiClient() {
+        if (apiClient != null) {
+            return apiClient;
+        }
+
         if (storage.deviceIsType(Type.unity)) {
-            return getClientFactory().getUnityClient(storage.getIpAddress(),
+            apiClient = getClientFactory().getUnityClient(storage.getIpAddress(),
                     storage.getPortNumber(), storage.getUsername(),
                     storage.getPassword());
         } else {
-            return getClientFactory().getClient(storage.getIpAddress(),
+            apiClient = getClientFactory().getClient(storage.getIpAddress(),
                     storage.getPortNumber(), storage.getUsername(),
                     storage.getPassword());
         }
+
+        return apiClient;
     }
 
     public void setApiClient(VNXeApiClient apiClient) {
@@ -152,5 +158,17 @@ public abstract class AbstractVNXeValidator implements Validator {
         }
 
         return vnxeHostId;
+    }
+
+    public StorageSystem getStorage() {
+        return storage;
+    }
+
+    public ExportMask getExportMask() {
+        return exportMask;
+    }
+
+    public String getId() {
+        return id;
     }
 }

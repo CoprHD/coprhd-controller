@@ -2026,7 +2026,7 @@ test_5() {
     # Make sure we start clean; no masking view on the array
     verify_export ${expname}1 ${HOST1} gone
 
-    # Create the mask with the 1 volume
+    # Create the mask with 2 volumes
     runcmd export_group create $PROJECT ${expname}1 $NH --type Host --volspec "${PROJECT}/${VOLNAME}-1,${PROJECT}/${VOLNAME}-2" --hosts "${HOST1}"
 
     verify_export ${expname}1 ${HOST1} 2 2
@@ -3182,8 +3182,8 @@ test_17() {
     echo "*** Following the export_group delete task to verify it PASSES because validation is disabled"
     runcmd task follow $task
 
-    if [ "${SS}" = "xio" ]; then
-        # XIO will still protect the lun mapping due to the additional volume, leaving it behind
+    if [ "${SS}" = "xio" -o "${SS}" = "unity" ]; then
+        # XIO/Unity will still protect the lun mapping due to the additional volume, leaving it behind
 	verify_export ${expname}1 ${HOST1} 2 1
 	# Delete the lun mapping and mask
 	arrayhelper remove_volume_from_mask ${SERIAL_NUMBER} ${device_id} ${HOST1}

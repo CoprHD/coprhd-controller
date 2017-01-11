@@ -48,9 +48,8 @@ import com.google.common.collect.Maps;
 
 @Component
 public class OrderManagerImpl implements OrderManager {
-
     private static final Logger log = LoggerFactory.getLogger(OrderManagerImpl.class);
-    final static long ONE_MOTHIN_IN_MS = 2592000000L;
+    private long noDeletePeriod = 2592000000L;
 
     @Autowired
     private ModelClient client;
@@ -95,6 +94,14 @@ public class OrderManagerImpl implements OrderManager {
         Order order = client.orders().findById(id);
 
         return order;
+    }
+
+    public void setNoDeletePeriod(long noDeletePeriod) {
+        this.noDeletePeriod = noDeletePeriod;
+    }
+
+    public long getNoDeletePeriod() {
+        return noDeletePeriod;
     }
 
     public Order createOrder(Order order, List<OrderParameter> orderParameters, StorageOSUser user) {
@@ -443,7 +450,7 @@ public class OrderManagerImpl implements OrderManager {
 
         long createdTime = order.getCreationTime().getTimeInMillis();
 
-        return (now - createdTime) < ONE_MOTHIN_IN_MS;
+        return (now - createdTime) < noDeletePeriod;
     }
 
     public void deleteOrder(Order order) {

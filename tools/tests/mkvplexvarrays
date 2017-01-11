@@ -1,0 +1,196 @@
+#!/bin/sh
+#
+# Copyright (c) 2016 EMC Corporation
+# All Rights Reserved
+#
+
+# This script creates varrays and vpools automatically for VPLEX configurations.
+# It works by creating varray for each cluster of a vplex, and for that varray,
+# a simple vpool to create vplex local volumes and another vpool to create vplex
+# distributed volumes.
+
+# Save the command arguments
+ARGC=$#
+[ $ARGC -eq 0 ] && {
+    echo "usage: mkvplexvarrays config_file bourne_ip"
+    exit 2;
+}
+
+CONFIG_FILE=""
+# ============================================================
+# Check if there is a sanity configuration file specified
+# on the command line. In, which case, we should use that
+# ============================================================
+if [ "$1"x != "x" ]; then
+   if [ -f "$1" ]; then
+      CONFIG_FILE=$1
+      echo Using sanity configuration file $CONFIG_FILE
+      source $CONFIG_FILE
+      shift
+   fi
+fi
+
+if [ "$1"x != "x" ]; then
+      BOURNE_IP=$1
+      echo Using BOURNE_IP $BOURNE_IP
+      shift
+else
+      BOURNE_IP=127.0.0.1
+fi
+
+ARGV=$*
+CWD=$(pwd)
+export PATH=$CWD:$PATH
+echo "PATH: " $PATH
+
+source loginconfigure
+login_nd_configure_smtp_nd_add_licenses
+
+# Tenant 
+rootTenant=`tenant root`
+export rootTenant
+
+# Configuration file to be used  
+source $CONFIG_FILE 
+
+echoit() {
+    echo "******************************************************************"
+    echo $*
+    echo "******************************************************************"
+}
+
+run() {
+    cmd=$*
+    date
+    echoit $cmd
+    $cmd 2>&1
+}
+
+run syssvc $CONFIG_FILE $BOURNE_IP set_prop controller_vplex_director_min_port_count 1
+
+
+############################################################################
+# Create varrays and vpools
+#
+# Below this point is the algorithm to create Virtual Arrays and Virtual Pools based on VPLEX port and network configuration
+# This algorithm creates a reasonable default configuration automatically
+#
+
+getVplexGUIDs() {
+   storagedevice list | grep vplex | awk ' { print $2; }'
+}
+vplexGUIDs=$(getVplexGUIDs)
+echo vplexGUIDs $vplexGUIDs
+
+#args:  vplexGUID, cluster={1,2}
+getPortWwnsForVplexCluster() {
+    storageport list $1 --v | grep "director-$2" | awk ' { print $4; }' | sort
+}
+
+#args:  vplexGUID, cluster={1,2}
+getNetworksForVplexCluster() {
+    storageport list $1 --v | grep "director-$2" | awk ' { print $7; }' | grep -v '.*---.*' | sort | uniq
+}
+
+#args:  vplexGUID, cluster={1,2}
+getPortGroupsForVplexCluster() {
+    storageport list $1 --v | grep "director-$2" | awk ' { print $2; }' | sort | uniq
+}
+
+#args: name, srcVarray, haVarray, vplexGUID
+createDistributedVplexVpool() {
+name=$1
+srcVarray=$2
+haVarray=$3
+vplexGUID=$4
+existingVpools=$(cos list block | awk ' {print $1;}')
+count=$(echo $existingVpools | grep -c name)
+if [ $count -eq 0 ];
+then
+   echo "already existing vpool $name"
+else
+   run cos create block $name true --description Automatically_generated_$name  \
+        --protocols FC --numpaths 1 --highavailability vplex_distributed --haNeighborhood $haVarray \
+        --provisionType Thin --neighborhoods $srcVarray $haVarray --expandable true \
+        --max_snapshots 4 --multiVolumeConsistency --auto_cross_connect true
+#cos update block $name --storage $VPLEXSRDF_SOURCE_GUID
+   cos allow $name block $rootTenant
+fi
+}
+
+#args: name, srcVarray, vplexGUID
+createLocalVplexVpool() {
+name=$1
+srcVarray=$2
+vplexGUID=$3
+existingVpools=$(cos list block | awk ' {print $1;}')
+count=$(echo $existingVpools | grep -c name)
+if [ $count -eq 0 ];
+then
+   echo "already existing vpool $name"
+else
+   run cos create block $name true --description Automatically_generated_$name  \
+        --protocols FC --numpaths 1 --highavailability vplex_local \
+        --provisionType Thin --neighborhoods $srcVarray --expandable true \
+        --max_snapshots 4 --multiVolumeConsistency --auto_cross_connect true
+#cos update block $name --storage $VPLEXSRDF_SOURCE_GUID
+   cos allow $name block $rootTenant
+fi
+}
+
+
+# Iterate through the VPLEX systems, for each:
+#   Iterate through the clusters
+#      Get the portWwns used by the Vple cluster
+#      If the cluster exists and has ports,
+#          Get the networks used by the cluster
+#          Get the port groups used by the cluster
+#          Make the virtual array (known as neighborhood)
+#          Add the Vplex ports to the varray
+#          Add the networks to the varray
+for vplexGUID in $vplexGUIDs
+do
+    varray1=""
+    varray2=""
+    for cluster in 1 2
+    do
+       portWwns=$(getPortWwnsForVplexCluster $vplexGUID $cluster)
+       echo portWwns $portWwns
+       if [ "$portWwns" != "" ] ; then
+            echo "\nVplex $vplexGUID cluster $cluster portWwns: "$portWwns
+            varrayName=$(echo ${vplexGUID}_cluster${cluster} | sed 's/:/_/')
+            echo " $karray name: " $varrayName
+            networks=$(getNetworksForVplexCluster $vplexGUID $cluster)
+            echo "Vplex $vplexGUID cluster $cluster Networks: "$networks
+            portGroups=$(getPortGroupsForVplexCluster $vplexGUID $cluster)
+            echo "Port groups: " $portGroups
+	    # Create the varray
+	    neighborhood create $varrayName
+	    # Add the Vplex ports. The use of portGroup is just an artifact of how
+	    # the storageport command determines which port to use. In java code, you
+	    # would just use the appropriate set of port URIs
+	    for portGroup in $portGroups
+	    do
+	        run storageport update $vplexGUID FC --group $portGroup --addvarrays $varrayName
+	    done
+            # Add the networks to the varrays
+            for network in $networks
+	    do
+	        run transportzone assign $network $varrayName
+	    done
+
+	    # Now create a local varray for the cluster
+	    run createLocalVplexVpool ${varrayName}_Local ${varrayName} $vplexGUID
+	    if [ $cluster -eq 1 ] ; then varray1=$varrayName; fi
+	    if [ $cluster -eq 2 ] ; then varray2=$varrayName; fi
+       fi
+    done
+    # If Both varrays are present, make distributed Vpools.
+    echo varray1 $varray1 varray2 $varray2
+    if [ "$varray1" != "" -a "$varray2" != "" ] ; then
+        run createDistributedVplexVpool ${varray1}_distributed $varray1 $varray2 $vplexGUID
+	run createDistributedVplexVpool ${varray2}_distributed $varray2 $varray1 $vplexGUID
+    fi
+done
+
+

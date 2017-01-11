@@ -11,16 +11,19 @@ import com.emc.aix.SecureShellSupport;
 import com.emc.hpux.command.GetHpuxVersionCommand;
 import com.emc.hpux.command.GetNetworkAdapterMacAddressCommand;
 import com.emc.hpux.command.HpuxVersionCommand;
+import com.emc.hpux.command.InsfRescanDevicesCommand;
+import com.emc.hpux.command.IoscanRescanDevicesCommand;
 import com.emc.hpux.command.ListHBAInfoCommand;
 import com.emc.hpux.command.ListIPInterfacesCommand;
 import com.emc.hpux.command.ListIQNsCommand;
 import com.emc.hpux.model.HpuxVersion;
 import com.iwave.ext.command.Command;
+import com.iwave.ext.command.HostRescanAdapter;
 import com.iwave.ext.linux.model.HBAInfo;
 import com.iwave.ext.linux.model.IPInterface;
 import com.iwave.utility.ssh.SSHCommandExecutor;
 
-public final class HpuxSystem extends SecureShellSupport {
+public final class HpuxSystem extends SecureShellSupport implements HostRescanAdapter {
 
     public HpuxSystem() {
         super();
@@ -61,8 +64,20 @@ public final class HpuxSystem extends SecureShellSupport {
     }
 
     @Override
+    public void rescan() {
+        executeCommand(new IoscanRescanDevicesCommand(), SecureShellSupport.SHORT_TIMEOUT);
+        executeCommand(new InsfRescanDevicesCommand(), SecureShellSupport.SHORT_TIMEOUT);
+    }
+
+    @Override
     public void executeCommand(Command command) {
+        executeCommand(command, SecureShellSupport.NO_TIMEOUT);
+    }
+
+    @Override
+    public void executeCommand(Command command, int timeout) {
         SSHCommandExecutor executor = new SSHCommandExecutor(getHost(), getPort(), getUsername(), getPassword());
+        executor.setCommandTimeout(timeout);
         executor.setSudoPrefix("export PATH=$PATH:/usr/local/bin; sudo -S -p '' sh -c ");
         command.setCommandExecutor(executor);
         command.execute();

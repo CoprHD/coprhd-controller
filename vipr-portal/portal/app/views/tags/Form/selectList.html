@@ -1,0 +1,129 @@
+*{
+  @param field - the field map
+         field.id - the ID of the field
+         field.name - the name of the field
+         field.value - the current field value
+         field.options - the possible options for the field.
+         field.valueType - type of the value (defaults to String.class)
+         field.valueProperty - the property name of each option value (defaults to 'id')
+         field.labelProperty - the property name of each option label (defaults to 'name')
+         field.subLabelProperty - the property name of each option label
+         field.cssClass - the CSS class for the control (defaults to 'span4')
+         field.optionProperties - beside item label, there are other properties which each item needs to conserve in UI, similar to table row object. 
+                                  This is an array of property names.  The actual data is store in item's jquery data("optionObject") for later retrieval.
+         
+  This is a common layout for a select list control.  The control should be wrapped in a #{field} tag, and the options
+  must be specified within the tag.  Each option has a value and label, which default to 'id' and 'name' respectively.
+  The value and label properties may be overriden using the 'valueProperty' and 'labelProperty' properties on the field.
+  The value type defaults to Long, but may be overridden using the 'valueType' property. 
+  
+  #{field 'fromModels'}
+    %{ field.options = someReferenceData; }%
+    #{Form.selectList field:field/}
+  #{/field}
+  
+  #{field 'fromMap'}
+    %{
+      field.options = [
+        1:'Value 1',
+        2:'Value 2'
+      ]
+      field.valueProperty = 'key'; // Key from the map
+      field.labelProperty = 'value'; // Value from the map
+    }%
+    #{Form.selectList field:field/}
+  #{/}
+  
+  #{field 'fromStringMap'}
+    %{
+      field.options = [
+        'value1':'Value 1',
+        'value2':'Value 2'
+      ]
+      field.valueType = String.class;
+      field.valueProperty = 'key'; // Key from the map
+      field.labelProperty = 'value'; // Value from the map
+    }%
+    #{Form.selectList field:field/}
+  #{/}
+}*
+%{
+  field = _field;
+  type = field.valueType ?: String.class;
+  valueProperty = field.valueProperty ?: "id";
+  labelProperty = field.labelProperty ?: "name";
+  subLabelProperty = field.subLabelProperty;
+  value = flash[field.name] ? flash[field.name]?.split(type) : field.value;
+  cssClass = field.cssClass ?: "span6";
+  disabled = field.disabled ?: false
+}%
+<script type="text/javascript">
+ var ${field.id} = new SelectList('#${field.id}'); 
+ $(document).ready(function() {
+   var searchField = $("#${field.id}Search");
+   searchField.keyup(function() {
+     delay(function(){
+       ${field.id}.filter(searchField.val());
+     }, 300 );     
+   });
+
+   var searchThreshold = ${field.searchThreshold ?: 4};
+   //
+   // show/hide search component in list box with more items than the search threshold
+   //
+   var selectListContent = $('#${field.id}');
+   var selectListParentControl = selectListContent.closest('div.selectList');
+   showSearchBox(selectListContent.find("input:checkbox").length > searchThreshold);
+   
+   //
+   // trgger listener when new item is added or removed from selectList.  Then,
+   // show the search if there are more checkboxes than the threshold. Hide, otherwise.
+   //
+   selectListContent.on('DOMNodeInserted DOMNodeRemoved', function () {
+      showSearchBox(selectListContent.find("input:checkbox").length > searchThreshold);
+   });
+   
+   function showSearchBox( show ) {
+       var disabled = selectListParentControl.data('disabled') == 'disabled';
+       if ( show && !disabled) {
+           selectListParentControl.find('.selectListSearch').show();           
+       } else {
+           selectListParentControl.find('.selectListSearch').hide();           
+       }
+   }
+ }); 
+ var delay = (function(){
+   var timer = 0;
+   return function(callback, ms){
+     clearTimeout (timer);
+     timer = setTimeout(callback, ms);
+   };
+ })(); 
+   
+</script>
+<div class="selectList ${cssClass} ${disabled ? "disabled" : ""}"#{if disabled} data-disabled="disabled"#{/if}>
+  <div id="${field.name}" name="${field.name}" class="selectListContent"#{Form.extraAtts atts:field.atts/}>
+  #{list items:field.options, as:'option'}
+    %{ checkboxId = "${field.id}${option[valueProperty]?.htmlId()}" }%
+    <div class="checkbox">
+    <label for="${checkboxId}">
+      <input id="${checkboxId}" name="${field.name}" type="checkbox"
+        #{if (value)?.contains(option[valueProperty])}checked="checked"#{/} value="${option[valueProperty]}" #{if disabled}disabled="true"#{/if}>
+        ${option[labelProperty]}
+        #{if subLabelProperty && option[subLabelProperty]}<br>&nbsp;&nbsp;${option[subLabelProperty]}#{/if}  
+    </label>
+    </div>
+    <div class="clearfix"></div>
+    #{if field.optionProperties}
+      <script>
+       var optionObject = {}
+       #{list items:field.optionProperties, as:'property'}
+           optionObject['${property}'] = '${option[property]}';
+       #{/list}
+       $('input:checkbox[id="${checkboxId}"]').data("optionObject", optionObject);
+       
+      </script>
+    #{/if}    
+  #{/list}
+  </div>
+</div>

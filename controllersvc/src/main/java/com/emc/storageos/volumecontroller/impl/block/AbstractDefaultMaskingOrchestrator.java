@@ -61,10 +61,12 @@ import com.emc.storageos.util.NetworkLite;
 import com.emc.storageos.volumecontroller.BlockStorageDevice;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportGroupRemoveVolumesCleanupCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportMaskAddInitiatorCompleter;
+import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportMaskAddPathsCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportMaskAddVolumeCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportMaskCreateCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportMaskDeleteCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportMaskRemoveInitiatorCompleter;
+import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportMaskRemovePathsCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportMaskRemoveVolumeCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportOrchestrationTask;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportTaskCompleter;
@@ -95,6 +97,8 @@ abstract public class AbstractDefaultMaskingOrchestrator {
     public static final String EXPORT_GROUP_UPDATE_ZONING_MAP = "update-zoning-map";
     public static final String IGNORE_TASK = "ignore";
     public static final String UNASSOCIATED = "UNASSOCIATED";
+    public static final String EXPORT_MASK_ADD_PATHS_TASK = "export-mask-add-paths-task";
+    public static final String EXPORT_MASK_REMOVE_PATHS_TASK = "export-mask-remove-paths-task";
 
     protected DbClient _dbClient;
     protected static volatile BlockStorageScheduler _blockScheduler;
@@ -2630,6 +2634,56 @@ abstract public class AbstractDefaultMaskingOrchestrator {
         }
         return resourceMaskMap;
     }
+    
+    /**
+     * Create add paths to export mask workflow step 
+     * 
+     * @param workflow
+     * @param storage - storage system
+     * @param exportGroupURI - export group uri
+     * @param exportMaskURI - export mask uri
+     * @param newPaths - new paths to be added
+     * @param previousStep - previous step that this step will wait for
+     * @return - the created step
+     * @throws Exception
+     */
+    public String generateExportMaskAddPathsWorkflow(Workflow workflow, StorageSystem storage, URI exportGroupURI, URI exportMaskURI,
+            Map<URI, List<URI>> newPaths, String previousStep) throws Exception {
+        
+        String maskingStep = workflow.createStepId();
+        ExportTaskCompleter exportTaskCompleter = new ExportMaskAddPathsCompleter(exportGroupURI, exportMaskURI, maskingStep);
+
+        Workflow.Method executeMethod = new Workflow.Method(
+                "doExportMaskAddPaths", storage.getId(), exportGroupURI, exportMaskURI,
+                newPaths, exportTaskCompleter);
+
+        maskingStep = workflow.createStep(EXPORT_MASK_ADD_PATHS_TASK,
+                String.format("Adding paths to export mask %s", exportMaskURI.toString()),
+                previousStep, storage.getId(), storage.getSystemType(),
+                MaskingWorkflowEntryPoints.class, executeMethod,
+                null, maskingStep);
+        return maskingStep;
+    }
+      
+    
+    public String generateExportMaskRemovePathsWorkflow(Workflow workflow, StorageSystem storage, URI exportGroupURI, 
+            URI exportMaskURI, Map<URI, List<URI>> adjustedPaths, Map<URI, List<URI>> removePaths, String previousStep) throws Exception {
+        
+        String maskingStep = workflow.createStepId();
+        ExportTaskCompleter exportTaskCompleter = new ExportMaskRemovePathsCompleter(exportGroupURI, exportMaskURI, maskingStep);
+
+        Workflow.Method executeMethod = new Workflow.Method(
+                "doExportMaskRemovePaths", storage.getId(), exportGroupURI, exportMaskURI, adjustedPaths, 
+                removePaths, exportTaskCompleter);
+
+        maskingStep = workflow.createStep(EXPORT_MASK_REMOVE_PATHS_TASK,
+                String.format("Removeing paths to export mask %s", exportMaskURI.toString()),
+                previousStep, storage.getId(), storage.getSystemType(),
+                MaskingWorkflowEntryPoints.class, executeMethod,
+                null, maskingStep);
+        return maskingStep;
+    }
+    
     
     /**
      * Return the StorageDevice.

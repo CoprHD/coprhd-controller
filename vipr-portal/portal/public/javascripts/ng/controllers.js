@@ -241,6 +241,10 @@ angular.module("portalApp").controller({
            return $scope.schedulerEnabled;
         };
         
+        $scope.isModalEnabled = function() {
+            return $scope.serviceDescriptor.useModal;
+         };
+        
         $scope.isRecurring = function() {
            return $scope.isRecurringAllowed() && $scope.scheduler.recurrence != 1;
         };

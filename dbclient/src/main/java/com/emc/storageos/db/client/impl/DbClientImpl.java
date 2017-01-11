@@ -1357,7 +1357,7 @@ public class DbClientImpl implements DbClient {
         }
         for (Entry<Class<? extends DataObject>, List<DataObject>> entry : typeObjMap.entrySet()) {
         	if (entry.getKey().getAnnotation(NoInactiveIndex.class) == null) {
-        		_log.warn("Model class {} has no NoInactiveIndex. Call markForDeletion() to delete", entry.getKey());
+        		_log.debug("Model class {} has no NoInactiveIndex. Call markForDeletion() to delete", entry.getKey());
         		markForDeletion(entry.getValue());
         	} else {
         		List<DataObject> dbObjList = entry.getValue();
@@ -1374,6 +1374,7 @@ public class DbClientImpl implements DbClient {
         DataObjectType doType = null;
         RemovedColumnsList removedList = new RemovedColumnsList();
         for (DataObject dataObject : allObjects) {
+            _log.info("Try to remove data object {}", dataObject.getId());
             checkGeoVersionForMutation(dataObject);
             doType = TypeMap.getDoType(dataObject.getClass());
             // delete all the index columns for this object first

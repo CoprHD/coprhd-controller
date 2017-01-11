@@ -1490,6 +1490,8 @@ public class NetworkDeviceController implements NetworkController {
     public boolean zoneExportRemoveInitiators(
     		List<NetworkZoningParam> zoningParams,
             String stepId) throws ControllerException {
+        boolean isRollback = WorkflowService.getInstance().isStepInRollbackState(stepId);
+        boolean isOperationSuccessful = false;
         TaskCompleter taskCompleter = null;
         if (zoningParams.isEmpty()) {
             _log.info("zoningParams is empty, returning");
@@ -1515,6 +1517,7 @@ public class NetworkDeviceController implements NetworkController {
 
             // If there are no zones to do, we were successful.
             if (context.getZoneInfos().isEmpty()) {
+                isOperationSuccessful = true;
                 WorkflowStepCompleter.stepSucceded(stepId);
                 return true;
             }
@@ -1531,9 +1534,8 @@ public class NetworkDeviceController implements NetworkController {
             // Update the workflow state.
             completeWorkflowState(stepId, "zoneExportRemoveInitiators", result);
 
-            // If the result is success, remove the initiators from the ExportMask zoningMap.
             if (result.isCommandSuccess()) {
-                removeInitiatorsFromZoningMap(zoningParams);
+                isOperationSuccessful = true;
             }
             return status;
 
@@ -1544,6 +1546,11 @@ public class NetworkDeviceController implements NetworkController {
             taskCompleter.error(_dbClient, svcError);
             WorkflowStepCompleter.stepFailed(stepId, svcError);
             return status;
+        } finally {
+            // clean up the zoning map too if the result is success or a rollback
+            if (isOperationSuccessful || isRollback) {
+                removeInitiatorsFromZoningMap(zoningParams);
+            }
         }
     }
 

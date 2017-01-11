@@ -482,6 +482,8 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
 
             completer = new HostCompleter(eventId, hostIds, false, clusterId, vCenterDataCenterId, taskId);
 
+            waitFor = addStepForUpdatingHostAndInitiatorClusterReferences(workflow, waitFor, hostIds, clusterId, vCenterDataCenterId);
+            
             if (!NullColumnValueGetter.isNullURI(oldCluster)) {
                 waitFor = addStepsForRemoveHost(workflow, waitFor, hostIds, oldCluster, vCenterDataCenterId, isVcenter);
             }
@@ -506,6 +508,9 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
             completer = new HostCompleter(eventId, hostIds, false, NullColumnValueGetter.getNullURI(), vCenterDataCenterId, taskId);
             Workflow workflow = _workflowService.getNewWorkflow(this, REMOVE_HOST_STORAGE_WF_NAME, true, taskId);
             String waitFor = null;
+
+            waitFor = addStepForUpdatingHostAndInitiatorClusterReferences(workflow, waitFor, hostIds, NullColumnValueGetter.getNullURI(),
+                    vCenterDataCenterId);
 
             waitFor = addStepsForRemoveHost(workflow, waitFor, hostIds, clusterId, vCenterDataCenterId, isVcenter);
 
@@ -822,6 +827,33 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
             waitFor = this.attachAndMountVolumes(hostExports, waitFor, workflow);
         }
 
+        return waitFor;
+    }
+
+    public String addStepForUpdatingHostAndInitiatorClusterReferences(Workflow workflow, String waitFor, List<URI> hostIds, URI clusterId,
+            URI vCenterDataCenterId) {
+        for (URI hostId : hostIds) {
+
+            URI oldClusterId = NullColumnValueGetter.getNullURI();
+            URI oldvCenterDataCenterId = NullColumnValueGetter.getNullURI();
+
+            Host host = _dbClient.queryObject(Host.class, hostId);
+            if (host != null) {
+                if (!NullColumnValueGetter.isNullURI(host.getCluster())) {
+                    oldClusterId = host.getCluster();
+                }
+                if (!NullColumnValueGetter.isNullURI(host.getVcenterDataCenter())) {
+                    oldvCenterDataCenterId = host.getVcenterDataCenter();
+                }
+            }
+
+            waitFor = workflow.createStep(UPDATE_HOST_AND_INITIATOR_CLUSTER_NAMES_STEP,
+                    String.format("Updating host and initiator cluster names for host %s to %s", hostId, clusterId), waitFor,
+                    hostId, hostId.toString(),
+                    this.getClass(),
+                    updateHostAndInitiatorClusterReferencesMethod(hostId, clusterId, vCenterDataCenterId),
+                    updateHostAndInitiatorClusterReferencesMethod(hostId, oldClusterId, oldvCenterDataCenterId), null);
+        }
         return waitFor;
     }
 
@@ -1489,6 +1521,40 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
             }
         }
         return waitFor;
+    }
+
+    public Workflow.Method updateHostAndInitiatorClusterReferencesMethod(URI hostId, URI clusterId, URI vCenterDataCenterId) {
+        return new Workflow.Method("updateHostAndInitiatorClusterReferences", hostId, clusterId, vCenterDataCenterId);
+    }
+
+    /**
+     * Updates the host and initiator references for the cluster
+     *
+     * @param hostId Host ID
+     * @param clusterId Cluster ID
+     * @param vCenterDataCenterId vCenter ID
+     * @param stepId Current step ID
+     */
+    public void updateHostAndInitiatorClusterReferences(URI hostId, URI clusterId, URI vCenterDataCenterId, String stepId) {
+        try {
+            WorkflowStepCompleter.stepExecuting(stepId);
+
+            // Test mechanism to invoke a failure. No-op on production systems.
+            InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_042);
+
+            ComputeSystemHelper.updateHostAndInitiatorClusterReferences(_dbClient, clusterId, hostId);
+
+            // Test mechanism to invoke a failure. No-op on production systems.
+            InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_032);
+            ComputeSystemHelper.updateHostVcenterDatacenterReference(_dbClient, hostId, vCenterDataCenterId);
+
+            // Test mechanism to invoke a failure. No-op on production systems.
+            InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_033);
+            WorkflowStepCompleter.stepSucceded(stepId);
+        } catch (Exception ex) {
+            _log.error("Exception occured while updating host and initiator cluster references {} - {}", hostId, clusterId, ex);
+            WorkflowStepCompleter.stepFailed(stepId, DeviceControllerException.errors.jobFailed(ex));
+        }
     }
 
     /**

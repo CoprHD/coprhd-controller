@@ -598,7 +598,8 @@ test_move_clustered_host_to_another_cluster() {
     echot "Test test_move_clustered_host_to_another_cluster Begins"
         
     common_failure_injections="failure_004_final_step_in_workflow_complete \
-                               failure_027_host_cluster_ComputeSystemControllerImpl.deleteExportGroup_before_delete" 
+                               failure_027_host_cluster_ComputeSystemControllerImpl.deleteExportGroup_before_delete \
+                               failure_042_host_cluster_ComputeSystemControllerImpl.updateHostAndInitiatorClusterReferences"
 
     failure_injections="${HAPPY_PATH_TEST_INJECTION} ${common_failure_injections}"
 
@@ -822,7 +823,9 @@ test_move_non_clustered_host_to_cluster() {
     
     cfs=("ExportGroup ExportMask Network Host Initiator")
 
-    host_cluster_failure_injections="failure_026_host_cluster_ComputeSystemControllerImpl.updateExportGroup_before_update"
+    host_cluster_failure_injections="failure_026_host_cluster_ComputeSystemControllerImpl.updateExportGroup_before_update \
+                                failure_032_host_cluster_ComputeSystemControllerImpl.updateHostAndInitiatorClusterReferences_after_updateHostAndInitiator&1 \
+                                failure_033_host_cluster_ComputeSystemControllerImpl.updateHostAndInitiatorClusterReferences_after_updateHostVcenter&1"
     common_failure_injections="failure_004_final_step_in_workflow_complete"
     
     fake_pwwn1=`randwwn`
@@ -996,11 +999,17 @@ test_move_clustered_discovered_host_to_cluster() {
                                      failure_029_host_cluster_ComputeSystemControllerImpl.verifyDatastore_after_verify \
                                      failure_030_host_cluster_ComputeSystemControllerImpl.unmountAndDetach_after_unmount \
                                      failure_031_host_cluster_ComputeSystemControllerImpl.unmountAndDetach_after_detach \
+                                     failure_032_host_cluster_ComputeSystemControllerImpl.updateHostAndInitiatorClusterReferences_after_updateHostAndInitiator \
+                                     failure_033_host_cluster_ComputeSystemControllerImpl.updateHostAndInitiatorClusterReferences_after_updateHostVcenter \
+                                     failure_042_host_cluster_ComputeSystemControllerImpl.updateHostAndInitiatorClusterReferences \
                                      failure_054_host_cluster_ComputeSystemControllerImpl.attachAndMount_before_attach \
                                      failure_055_host_cluster_ComputeSystemControllerImpl.attachAndMount_after_attach \
                                      failure_056_host_cluster_ComputeSystemControllerImpl.attachAndMount_after_mount"
     common_failure_injections="failure_004_final_step_in_workflow_complete"
-    
+    rollback_failures="failure_004:failure_032_host_cluster_ComputeSystemControllerImpl.updateHostAndInitiatorClusterReferences_after_updateHostAndInitiator&2 \
+                       failure_004:failure_033_host_cluster_ComputeSystemControllerImpl.updateHostAndInitiatorClusterReferences_after_updateHostVcenter&2 \
+                       failure_004:failure_042_host_cluster_ComputeSystemControllerImpl.updateHostAndInitiatorClusterReferences&2"
+        
     item=${RANDOM}
     mkdir -p results/${item}
 
@@ -1011,7 +1020,7 @@ test_move_clustered_discovered_host_to_cluster() {
     create_volume_and_datastore ${TENANT} ${volume1} ${datastore1} ${NH} ${VPOOL_BASE} ${PROJECT} ${vcenter} "DC-Simulator-1" ${cluster1}
     create_volume_and_datastore ${TENANT} ${volume2} ${datastore2} ${NH} ${VPOOL_BASE} ${PROJECT} ${vcenter} "DC-Simulator-1" ${cluster2}
 
-    failure_injections="${HAPPY_PATH_TEST_INJECTION} ${host_cluster_failure_injections} ${common_failure_injections}" 
+    failure_injections="${HAPPY_PATH_TEST_INJECTION} ${host_cluster_failure_injections} ${common_failure_injections} ${rollback_failures}"  
     failed="false"
 
     for failure in ${failure_injections}
@@ -1179,7 +1188,10 @@ test_cluster_remove_host() {
     common_failure_injections="failure_004_final_step_in_workflow_complete \
                                 failure_026_host_cluster_ComputeSystemControllerImpl.updateExportGroup_before_update \
                                 failure_027_host_cluster_ComputeSystemControllerImpl.deleteExportGroup_before_delete \
-                                failure_028_host_cluster_ComputeSystemControllerImpl.deleteExportGroup_after_delete"
+                                failure_028_host_cluster_ComputeSystemControllerImpl.deleteExportGroup_after_delete \
+                                failure_032_host_cluster_ComputeSystemControllerImpl.updateHostAndInitiatorClusterReferences_after_updateHostAndInitiator&1 \
+                                failure_033_host_cluster_ComputeSystemControllerImpl.updateHostAndInitiatorClusterReferences_after_updateHostVcenter&1 \
+                                failure_042_host_cluster_ComputeSystemControllerImpl.updateHostAndInitiatorClusterReferences"
 
     failure_injections="${HAPPY_PATH_TEST_INJECTION} ${common_failure_injections}"
 

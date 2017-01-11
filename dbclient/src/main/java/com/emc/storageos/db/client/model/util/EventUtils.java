@@ -51,8 +51,12 @@ public class EventUtils {
         HOST_INITIATOR_DELETE("103"),
         HOST_DATACENTER_CHANGE("104"),
         HOST_VCENTER_CHANGE("105"),
-        UNASSIGN_HOST_FROM_VCENTER("106");
-    
+        UNASSIGN_HOST_FROM_VCENTER("106"),
+        	
+    	PORT_REMOVED("201"),
+    	PORT_VSAN_CHANGE("201");
+    	
+    	
         private String code;
     
         EventCode(String code) {

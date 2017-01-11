@@ -37,6 +37,8 @@ import com.emc.storageos.db.client.model.Network;
 import com.emc.storageos.db.client.model.NetworkSystem;
 import com.emc.storageos.db.client.model.StorageProtocol.Transport;
 import com.emc.storageos.db.client.model.StringSet;
+import com.emc.storageos.db.client.model.TenantOrg;
+import com.emc.storageos.db.client.model.util.EventUtils;
 import com.emc.storageos.db.client.util.DataObjectUtils;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.exceptions.DatabaseException;
@@ -50,6 +52,7 @@ import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import com.emc.storageos.volumecontroller.impl.monitoring.RecordableBourneEvent;
 import com.emc.storageos.volumecontroller.impl.monitoring.RecordableEventManager;
 import com.emc.storageos.volumecontroller.impl.monitoring.cim.enums.RecordType;
+import com.google.common.collect.Lists;
 
 /**
  * This class handles the discovery tasks for NetworkSystem. It uses an instances
@@ -454,9 +457,12 @@ public class NetworkDiscoveryWorker {
                 if (results.getRemovedEndPoints().get(tzone) != null) {
                     NetworkAssociationHelper
                             .handleEndpointsRemoved(tzone, results.getRemovedEndPoints().get(tzone), dbClient, _coordinator);
+                    
+                    handleRemoveEvent(results.getAddedEndPoints(), results.getRemovedEndPoints(), tzone);
                 }
                 if (results.getAddedEndPoints().get(tzone) != null) {
-                    handleEndpointsAdded(tzone, results.getAddedEndPoints().get(tzone));
+                    handleEndpointsAdded(tzone, results.getAddedEndPoints().get(tzone));                    
+                    //handleAddEvent(results.getAddedEndPoints().get(tzone));
                 }
                 saveTransportZone(tzone, false);
             }
@@ -477,6 +483,41 @@ public class NetworkDiscoveryWorker {
         }
     }
 
+    private void handleAddEvent(Map<Network, List<String>> addedEndPoints, 			 
+			 Network tzone) throws IOException {
+    
+    }
+    
+    private void handleRemoveEvent(Map<Network, List<String>> addedEndPoints, 
+    								Map<Network, List<String>> removedEndpoints , 
+    								 Network tzone) throws IOException {
+        
+    	List<String> removedEndpointsOfTzone = removedEndpoints.get(tzone);
+     	if ( removedEndpointsOfTzone != null){
+     		for(String endpointRemoved:removedEndpointsOfTzone){
+     			//check if this endpoint is being added to some other new tzone 
+     			//apart from being removed from the old transport zone.
+     			for( List<String> addedEndPointsOfTzone : addedEndPoints.values() ){
+     				if(addedEndPointsOfTzone.contains(endpointRemoved)){
+     					//we dont raise the event. The event about removing port from one tzone adding 
+     					//to another tzone will be generated as part of the addedEndpoints of the target tzone.
+     				}
+     				else{
+     					//raise the event.
+     		            EventUtils.createActionableEvent(dbClient,
+     		                    EventUtils.EventCode.PORT_REMOVED,
+     		                    TenantOrg.SYSTEM_TENANT, 
+     		                    "Endpoint deleted from the Network",
+     		                    MessageFormat.format("Endpoing {0} deleted from {1}",endpointRemoved , tzone.getLabel()), 
+     		                    "Appropriate export masks have to be taken care",
+     		                    tzone, Lists.newArrayList(),
+     		                    "", new Object[] {}, "", new Object[] {} );     					
+     				}
+     			}
+     		}    		
+    	}    	
+    }
+    
     /**
      * Looks in the topology view for endpoints that accessible by routing
      * 
@@ -804,6 +845,16 @@ public class NetworkDiscoveryWorker {
             _log.info("Added endpoints {} to transport zone {}", endpoints.toArray(), tzone.getLabel());
             // before we add the endpoints, they need to be removed from their old transport zones
             NetworkAssociationHelper.handleRemoveFromOldNetworks(transportZoneMap, tzone, dbClient, _coordinator);
+            
+			//raise the event.
+	        EventUtils.createActionableEvent(dbClient,
+                    EventUtils.EventCode.PORT_REMOVED,
+                    TenantOrg.SYSTEM_TENANT, 
+                    "Endpoint deleted from the Network",
+                    MessageFormat.format("Endpoing {0} deleted from {1} and added to {2}",endpoints.toArray() , tzone.getLabel()), 
+                    "Appropriate export masks have to be taken care",
+                    tzone, Lists.newArrayList(),
+                    "", new Object[] {}, "", new Object[] {} );   
         }
         // now, add the the endpoints
         NetworkAssociationHelper.handleEndpointsAdded(tzone, endpoints, dbClient, _coordinator);

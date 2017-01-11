@@ -330,9 +330,11 @@ public class VmaxExportOperations implements ExportMaskOperations {
                 }
             }
             String pgGroupName = null;
-            if (pathParams != null) {
+            boolean reusePGName = false;
+            if (pathParams != null && pathParams.getPortGroup() != null && !pathParams.getPortGroup().isEmpty()) {
                 pgGroupName = pathParams.getPortGroup();
                 _log.info("port group name: " + pgGroupName);
+                reusePGName = true;
             }
             if (pgGroupName == null) {
                 DataSource portGroupDataSource = ExportMaskUtils.getExportDatasource(storage, initiatorList, dataSourceFactory,
@@ -342,7 +344,9 @@ public class VmaxExportOperations implements ExportMaskOperations {
             }
 
             // CTRL-9054 Always create unique port Groups.
-            pgGroupName = _helper.generateGroupName(_helper.getExistingPortGroupsFromArray(storage), pgGroupName);
+            if (!reusePGName) {
+                pgGroupName = _helper.generateGroupName(_helper.getExistingPortGroupsFromArray(storage), pgGroupName);
+            }
             CIMObjectPath targetPortGroupPath = createTargetPortGroup(storage, pgGroupName, targetURIList, taskCompleter);
 
             // 4. ExportMask = MaskingView (MV) = IG + SG + PG

@@ -183,14 +183,14 @@ def create_parser(subcommand_parsers, common_parser):
         'create',
         description='ViPR FilePolicy Create CLI usage.',
         parents=[common_parser], conflict_handler='resolve',
-        help='Create a filesystem')
+        help='Create a filepolicy')
     mandatory_args = create_parser.add_argument_group('mandatory arguments')
     mandatory_args.add_argument('-name', '-n',
                                 metavar='<policy_name>',
                                 dest='name',
                                 help='Name of the policy',
                                 required=True)
-     mandatory_args.add_argument('-type', '-t',
+    mandatory_args.add_argument('-type', '-t',
                                 metavar='<policy_type>',
                                 dest='policy_type',
                                 help='Type of the policy, valid values are : file_snapshot, file_replication, file_quota',
@@ -199,20 +199,130 @@ def create_parser(subcommand_parsers, common_parser):
                                metavar='<policy_description>',
                                dest='description',
                                help='Policy Description')
-    mandatory_args.add_argument('-priority', '-pr',
+    create_parser.add_argument('-priority', '-pr',
                                 metavar='<priority>', dest='priority',
-                                help='Priority of the policy',
-                                required=True)
+                                help='Priority of the policy')
+
+    create_parser.add_argument('-policyschedulefrequency', '-plscfr',
+                                metavar='<policy_schedule_frequency>', dest='policy_sched_frequnecy',
+                                help='Type of schedule policy e.g days, weeks or months')
+    create_parser.add_argument('-policyschedulerepeat', '-plscrp',
+                                metavar='<policy_schedule_repeat>', dest='policy_sched_repeat',
+                                help='Policy run on every')    
+    create_parser.add_argument('-policyscheduletime', '-plsctm',
+                                metavar='<policy_schedule_time>', dest='policy_sched_time',
+                                help='Time when policy run')    
+    create_parser.add_argument('-policyscheduleweek', '-plscwk',
+                                metavar='<policy_schedule_week>', dest='policy_sched_week',
+                                help='Day of week when policy run')    
+    create_parser.add_argument('-policyschedulemonth', '-plscmn',
+                                metavar='<policy_schedule_month>', dest='policy_sched_month',
+                                help='Day of month when policy run')    
+
+    create_parser.add_argument('-replicationtype', '-reptype',
+                                metavar='<replication_type>', dest='replication_type',
+                                help='File Replication type Valid values are: LOCAL, REMOTE')    
+    create_parser.add_argument('-replicationcopymode', '-repcpmode',
+                                metavar='<replication_copy_mode>', dest='replication_copy_mode',
+                                help='File Replication copy type Valid values are: SYNC, ASYNC')    
+    create_parser.add_argument('-replicationconfiguration', '-repconf',
+                                metavar='<replicate_configuration>', dest='replicate_configuration',
+                                help='Whether to replicate File System configurations i.e CIFS shares, NFS Exports at the time of failover/failback. Default value is False')    
+
+
+    create_parser.add_argument('-snapshotnamepattern', '-snpnmptrn',
+                                metavar='<snapshot_name_pattern>', dest='snapshot_name_pattern',
+                                help='Snapshot pattern ')    
+    create_parser.add_argument('-snapshotexpiretype', '-snpexptp',
+                                metavar='<snapshot_expire_type>', dest='snapshot_expire_type',
+                                help='Snapshot expire type e.g hours, days, weeks, months or never')     
+    create_parser.add_argument('-snapshotexpirevalue', '-snpexpvl',
+                                metavar='<snapshot_expire_value>', dest='snapshot_expire_value',
+                                help='Snapshot expire after this value')  
+
     mandatory_args.add_argument('-tenants_access', '-ta',
                                 metavar='<is_access_to_tenants>', dest='tenants_access',
                                 help='Tenants access',
                                 required=False)
+
     create_parser.set_defaults(func=filepolicy_create)
 
-    def filepolicy_create(subcommand_parsers, common_parser):
-        print "create file policy- CALLED"
+def filepolicy_create(subcommand_parsers, common_parser):
+    print "create file policy- CALLED"
 
 
+def update_parser(subcommand_parsers, common_parser):
+    update_parser = subcommand_parsers.add_parser(
+        'create',
+        description='ViPR FilePolicy Update CLI usage.',
+        parents=[common_parser], conflict_handler='resolve',
+        help='Update a filepolicy')
+    mandatory_args = update_parser.add_argument_group('mandatory arguments')
+    mandatory_args.add_argument('-name', '-n',
+                                metavar='<policy_name>',
+                                dest='name',
+                                help='Name of the policy',
+                                required=True)
+    mandatory_args.add_argument('-type', '-t',
+                                metavar='<policy_type>',
+                                dest='policy_type',
+                                help='Type of the policy, valid values are : file_snapshot, file_replication, file_quota',
+                                required=True)
+    update_parser.add_argument('-description', '-dc',
+                               metavar='<policy_description>',
+                               dest='description',
+                               help='Policy Description')
+    update_parser.add_argument('-priority', '-pr',
+                                metavar='<priority>', dest='priority',
+                                help='Priority of the policy')
+
+    update_parser.add_argument('-policyschedulefrequency', '-plscfr',
+                                metavar='<policy_schedule_frequency>', dest='policy_sched_frequnecy',
+                                help='Type of schedule policy e.g days, weeks or months')
+    update_parser.add_argument('-policyschedulerepeat', '-plscrp',
+                                metavar='<policy_schedule_repeat>', dest='policy_sched_repeat',
+                                help='Policy run on every')    
+    update_parser.add_argument('-policyscheduletime', '-plsctm',
+                                metavar='<policy_schedule_time>', dest='policy_sched_time',
+                                help='Time when policy run')    
+    update_parser.add_argument('-policyscheduleweek', '-plscwk',
+                                metavar='<policy_schedule_week>', dest='policy_sched_week',
+                                help='Day of week when policy run')    
+    update_parser.add_argument('-policyschedulemonth', '-plscmn',
+                                metavar='<policy_schedule_month>', dest='policy_sched_month',
+                                help='Day of month when policy run')    
+
+    update_parser.add_argument('-replicationtype', '-reptype',
+                                metavar='<replication_type>', dest='replication_type',
+                                help='File Replication type Valid values are: LOCAL, REMOTE')    
+    update_parser.add_argument('-replicationcopymode', '-repcpmode',
+                                metavar='<replication_copy_mode>', dest='replication_copy_mode',
+                                help='File Replication copy type Valid values are: SYNC, ASYNC')    
+    update_parser.add_argument('-replicationconfiguration', '-repconf',
+                                metavar='<replicate_configuration>', dest='replicate_configuration',
+                                help='Whether to replicate File System configurations i.e CIFS shares, NFS Exports at the time of failover/failback. Default value is False')    
+
+
+    update_parser.add_argument('-snapshotnamepattern', '-snpnmptrn',
+                                metavar='<snapshot_name_pattern>', dest='snapshot_name_pattern',
+                                help='Snapshot pattern ')    
+    update_parser.add_argument('-snapshotexpiretype', '-snpexptp',
+                                metavar='<snapshot_expire_type>', dest='snapshot_expire_type',
+                                help='Snapshot expire type e.g hours, days, weeks, months or never')     
+    update_parser.add_argument('-snapshotexpirevalue', '-snpexpvl',
+                                metavar='<snapshot_expire_value>', dest='snapshot_expire_value',
+                                help='Snapshot expire after this value')  
+
+    mandatory_args.add_argument('-tenants_access', '-ta',
+                                metavar='<is_access_to_tenants>', dest='tenants_access',
+                                help='Tenants access',
+                                required=False)
+
+    update_parser.set_defaults(func=filepolicy_update)
+
+
+def filepolicy_update(subcommand_parsers, common_parser):
+    print "update file policy- CALLED"
 
 
 # FilePolicy Delete routines
@@ -223,7 +333,7 @@ def delete_parser(subcommand_parsers, common_parser):
         description='ViPR Filesystem Delete CLI usage.',
         parents=[common_parser],
         conflict_handler='resolve',
-        help='Delete a filesystem')
+        help='Delete a filepolicy')
     mandatory_args = delete_parser.add_argument_group('mandatory arguments')
     mandatory_args.add_argument('-name', '-n',
                                 metavar='<policy-name>',
@@ -269,8 +379,15 @@ def filepolicy_parser(parent_subparser, common_parser):
     show_parser(subcommand_parsers, common_parser)
 
     '''
+    '''
     # create command parser
     create_parser(subcommand_parsers, common_parser)
-    '''
+
+    # update command parser
+    update_parser(subcommand_parsers, common_parser)
+
+    
+
+
     # delete command parser
     delete_parser(subcommand_parsers, common_parser)

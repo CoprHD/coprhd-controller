@@ -13,6 +13,12 @@ import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.ws.rs.Consumes;
@@ -27,6 +33,7 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.StreamingOutput;
 
+import org.eclipse.jetty.util.log.Log;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -275,20 +282,38 @@ public class LogService extends BaseLogSvcResource {
                 getLogNamesFromAlias(logNames)).logLevel(severity).startTime(startTime)
                 .endTime(endTime).regex(msgRegex).maxCont(maxCount).build();
         _log.info("log request info is {}", logReqInfo.toString());
-        final LogNetworkStreamMerger logRequestMgr = new LogNetworkStreamMerger(
-                logReqInfo, mediaType, _logSvcPropertiesLoader);
-        StreamingOutput logMsgStream = new StreamingOutput() {
+        ExecutorService pool = Executors.newFixedThreadPool(1);
+        _log.info("Thread pool for pull logs from nodes has bean created");
+        Future<LogNetworkStreamMerger> fu = pool.submit(new Callable<LogNetworkStreamMerger>() {
+
             @Override
-            public void write(OutputStream outputStream) {
-                try {
-                    runningRequests.incrementAndGet();
-                    logRequestMgr.streamLogs(outputStream);
-                } finally {
-                    runningRequests.decrementAndGet();
-                }
+            public LogNetworkStreamMerger call() throws Exception {
+                _log.info("Prepare to pull logs from other logs, task begin!!!");
+                return new LogNetworkStreamMerger(
+                        logReqInfo, mediaType, _logSvcPropertiesLoader);
             }
-        };
-        return Response.ok(logMsgStream).build();
+            
+        });
+        _log.info("Pulling log task has been submited");
+        
+
+        try {
+            LogNetworkStreamMerger logRequestMgr = fu.get(5, TimeUnit.SECONDS);
+            StreamingOutput logMsgStream = new StreamingOutput() {
+                @Override
+                public void write(OutputStream outputStream) {
+                    try {
+                        runningRequests.incrementAndGet();
+                        logRequestMgr.streamLogs(outputStream);
+                    } finally {
+                        runningRequests.decrementAndGet();
+                    }
+                }
+            };
+            return Response.ok(logMsgStream).build();
+        } catch (TimeoutException e) {
+            throw new RuntimeException("Timeout happend, there may be too many logs to traverse, please try again");
+        }
     }
 
     /**

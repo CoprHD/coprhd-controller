@@ -158,15 +158,11 @@ public class ExportMaskUtils {
         }
 
         URIQueryResultList exportMaskUris = new URIQueryResultList();
-        dbClient.queryByConstraint(
-                ContainmentConstraint.Factory.getStorageDeviceExportMaskConstraint(ssysURI),
-                exportMaskUris);
-        Iterator<URI> exportMaskIterator = exportMaskUris.iterator();
+        dbClient.queryByConstraint(ContainmentConstraint.Factory.getStorageDeviceExportMaskConstraint(ssysURI), exportMaskUris);
+        Iterator<ExportMask> exportMaskIterator = dbClient.queryIterativeObjects(ExportMask.class, exportMaskUris, true);
         while (exportMaskIterator.hasNext()) {
-            URI exportMaskURI = exportMaskIterator.next();
-            ExportMask exportMask = dbClient.queryObject(ExportMask.class, exportMaskURI);
-
-            if (null != exportMask && !exportMask.getInactive()) {
+            ExportMask exportMask = exportMaskIterator.next();
+            if (null != exportMask) {
                 returnMasks.add(exportMask);
             }
         }

@@ -31,6 +31,7 @@ class FilePolicy(object):
     # Commonly used URIs for the 'Fileshare' module
     URI_FILE_POLICIES='/file/file-policies'
     URI_FILE_POLICY_SHOW= URI_FILE_POLICIES + '/{0}'
+    URI_FILE_POLICY_DELETE= URI_FILE_POLICIES+'/{0}'
 
 
 
@@ -104,6 +105,25 @@ class FilePolicy(object):
             return None
         return o
 
+    def filepolicy_delete_by_uri(self, uri):
+        '''
+        Deletes a filepolicy based on project UUID
+        Parameters:
+            uri: UUID of filepolicy
+        '''
+        (s, h) = common.service_json_request(self.__ipAddr, self.__port,
+                    "DELETE", FilePolicy.URI_FILE_POLICY_DELETE.format(uri), None)
+        return
+
+    def filepolicy_delete(self, name):
+        '''
+        Deletes a filepolicy based on policy name
+        Parameters:
+            name: name of filepolicy
+        '''
+        project_uri = self.filepolicy_query(name)
+        return self.filepolicy_delete_by_uri(filepolicy_uri)
+
 def list_parser(subcommand_parsers, common_parser):
     list_parser = subcommand_parsers.add_parser(
         'list',
@@ -156,6 +176,78 @@ def filepolicy_show(args):
     except SOSError as e:
         raise e
 
+
+
+def create_parser(subcommand_parsers, common_parser):
+    create_parser = subcommand_parsers.add_parser(
+        'create',
+        description='ViPR FilePolicy Create CLI usage.',
+        parents=[common_parser], conflict_handler='resolve',
+        help='Create a filesystem')
+    mandatory_args = create_parser.add_argument_group('mandatory arguments')
+    mandatory_args.add_argument('-name', '-n',
+                                metavar='<policy_name>',
+                                dest='name',
+                                help='Name of the policy',
+                                required=True)
+     mandatory_args.add_argument('-type', '-t',
+                                metavar='<policy_type>',
+                                dest='policy_type',
+                                help='Type of the policy, valid values are : file_snapshot, file_replication, file_quota',
+                                required=True)
+    create_parser.add_argument('-description', '-dc',
+                               metavar='<policy_description>',
+                               dest='description',
+                               help='Policy Description')
+    mandatory_args.add_argument('-priority', '-pr',
+                                metavar='<priority>', dest='priority',
+                                help='Priority of the policy',
+                                required=True)
+    mandatory_args.add_argument('-tenants_access', '-ta',
+                                metavar='<is_access_to_tenants>', dest='tenants_access',
+                                help='Tenants access',
+                                required=False)
+    create_parser.set_defaults(func=filepolicy_create)
+
+    def filepolicy_create(subcommand_parsers, common_parser):
+        print "create file policy- CALLED"
+
+
+
+
+# FilePolicy Delete routines
+
+def delete_parser(subcommand_parsers, common_parser):
+    delete_parser = subcommand_parsers.add_parser(
+        'delete',
+        description='ViPR Filesystem Delete CLI usage.',
+        parents=[common_parser],
+        conflict_handler='resolve',
+        help='Delete a filesystem')
+    mandatory_args = delete_parser.add_argument_group('mandatory arguments')
+    mandatory_args.add_argument('-name', '-n',
+                                metavar='<policy-name>',
+                                dest='name',
+                                help='Name of FilePolicy',
+                                required=True)
+    delete_parser.set_defaults(func=filepolicy_delete)
+
+
+def filepolicy_delete(subcommand_parsers, common_parser):
+    obj = FilePolicy(args.ip, args.port)
+    try:
+        if(not args.name):
+            args.name = ""
+        obj.filepolicy_delete(args.name)
+
+    except SOSError as e:
+        if (e.err_code == SOSError.NOT_FOUND_ERR):
+            raise SOSError(SOSError.NOT_FOUND_ERR,
+                           "FilePolicy delete failed: " + e.err_text)
+        else:
+            raise e
+
+
 #
 # FilePolicy Main parser routine
 #
@@ -174,6 +266,11 @@ def filepolicy_parser(parent_subparser, common_parser):
     list_parser(subcommand_parsers,common_parser)
 
     #show command parser
-    
     show_parser(subcommand_parsers, common_parser)
-    
+
+    '''
+    # create command parser
+    create_parser(subcommand_parsers, common_parser)
+    '''
+    # delete command parser
+    delete_parser(subcommand_parsers, common_parser)

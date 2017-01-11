@@ -31,9 +31,7 @@ create_volume_and_datastore() {
 
     virtualarray_id=`neighborhood list | grep "${4} " | awk '{print $3}'`
     virtualpool_id=`cos list block | grep "${5} " | awk '{print $3}'`
-    echot ${virtualpool_id}
     project_id=`project list --tenant ${tenant_arg} | grep "${6} " | awk '{print $4}'`
-    echot ${project_id}
  
     vcenter_id=`vcenter list ${tenant_arg} | grep "${7} " | awk '{print $5}'`
     datacenter_id=`datacenter list ${7} | grep "${8} " | awk '{print $4}'`
@@ -1469,21 +1467,19 @@ test_cluster_remove_discovered_host() {
     secho "Creating volume ${PROJECT}/${volume1} and datastore ${datastore1} exported to ${cluster1}..."
     create_volume_and_datastore $TENANT ${volume1} ${datastore1} $NH $VPOOL_BASE ${PROJECT} ${vcenter} ${datacenter} ${cluster1}
  
-    #secho "Creating volume ${PROJECT2}/${volume2} and datastore ${datastore2} exported to ${cluster1}..."
-    #create_volume_and_datastore $TENANT ${volume2} ${datastore2} $NH $VPOOL_BASE ${PROJECT2} ${vcenter} ${datacenter} ${cluster1}
+    secho "Creating volume ${PROJECT2}/${volume2} and datastore ${datastore2} exported to ${cluster1}..."
+    create_volume_and_datastore $TENANT ${volume2} ${datastore2} $NH $VPOOL_BASE ${PROJECT2} ${vcenter} ${datacenter} ${cluster1}
     
     # Export group name will be auto-generated as the cluster name
     exportgroup=${cluster1}
     
     # List of all export groups created
-    #exportgroups="${PROJECT}/${exportgroup} ${PROJECT2}/${exportgroup}"
-    exportgroups="${PROJECT}/${exportgroup}"
-    
+    exportgroups="${PROJECT}/${exportgroup} ${PROJECT2}/${exportgroup}"
+        
     # There are two paths to test:
     # 1. update: Meaning we remove a single discovered host from the cluster
     # 2. delete: Meaning we remove ALL discovered hosts from the cluster
     workflowPath="updateWorkflow deleteWorkflow"
-    #workflowPath="updateWorkflow"
         
     for wf in ${workflowPath}
     do
@@ -1536,7 +1532,8 @@ test_cluster_remove_discovered_host() {
                 EVENT_ID=$(get_pending_event)
                 approve_pending_event $EVENT_ID
                 
-                # 'Remove' host2, this is the last host in cluster1
+                # 'Remove' host2, this is the last host in cluster1 and the 
+                # export group should be cleaned up.
                 change_host_cluster ${host2} ${cluster1} ${cluster2} ${vcenter}                            
                 sleep 20
                 EVENT_ID=$(get_pending_event)
@@ -1607,25 +1604,20 @@ test_cluster_remove_discovered_host() {
                 # Add both hosts back to cluster1           
                 secho "Test complete, add hosts back to cluster..."
                 
-                change_host_cluster ${host1} ${cluster2} ${cluster1} ${vcenter}
-                sleep 20
-                EVENT_ID=$(get_pending_event)
-                approve_pending_event $EVENT_ID
-                
-                change_host_cluster ${host2} ${cluster2} ${cluster1} ${vcenter}
-                sleep 20
-                EVENT_ID=$(get_pending_event)
-                approve_pending_event $EVENT_ID
                 # NOTE: If there are no export groups for the cluster, 
                 # no events are created so we do not need to approve anything.
                 # Just add the hosts back to cluster and run a re-discover of 
                 # the vcenter.
-               
+                change_host_cluster ${host1} ${cluster2} ${cluster1} ${vcenter}
+                sleep 20                                
+                change_host_cluster ${host2} ${cluster2} ${cluster1} ${vcenter}
+                sleep 20
+                                              
                 # Because both hosts were removed from the cluster the export group was
                 # automatically removed. Now we need to re-export the volumes to the cluster, 
                 # this will re-create the export groups.
-                #export_volume_vmware $TENANT ${volume1} ${vcenter} ${datacenter} ${cluster1} ${PROJECT}
-                #export_volume_vmware $TENANT ${volume2} ${vcenter} ${datacenter} ${cluster1} ${PROJECT2}
+                export_volume_vmware $TENANT ${volume1} ${vcenter} ${datacenter} ${cluster1} ${PROJECT}
+                export_volume_vmware $TENANT ${volume2} ${vcenter} ${datacenter} ${cluster1} ${PROJECT2}
             else
                 # Update export group
                 secho "Update export group path..."
@@ -1702,7 +1694,7 @@ test_cluster_remove_discovered_host() {
                 change_host_cluster ${host1} ${cluster2} ${cluster1} ${vcenter}  
                 sleep 20
                 EVENT_ID=$(get_pending_event)
-                approve_pending_event $EVENT_ID
+                approve_pending_event $EVENT_ID                                
             fi    
             
             # Snap DB

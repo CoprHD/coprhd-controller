@@ -466,16 +466,16 @@ public class OrderManagerImpl implements OrderManager {
         ExecutionState state = getOrderExecutionState(order.getExecutionStateId());
         if (state != null) {
             StringSet logIds = state.getLogIds();
+            URI id = null;
             for (String logId : logIds) {
-                URI id = null;
                 try {
                     id = new URI(logId);
                 } catch (URISyntaxException e) {
                     log.error("Invalid id {} e=", logId, e);
                     continue;
                 }
-                ExecutionLog log = client.getModelClient().findById(ExecutionLog.class, id);
-                client.delete(log);
+                ExecutionLog execlog = client.getModelClient().findById(ExecutionLog.class, id);
+                client.delete(execlog);
             }
 
             List<ExecutionTaskLog> logs = client.executionTaskLogs().findByIds(state.getTaskLogIds());

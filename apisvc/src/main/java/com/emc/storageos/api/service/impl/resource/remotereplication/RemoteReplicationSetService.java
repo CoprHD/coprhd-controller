@@ -130,7 +130,7 @@ public class RemoteReplicationSetService extends TaskResourceService {
         RemoteReplicationSetList rrSetList = new RemoteReplicationSetList();
 
         List<URI> ids = _dbClient.queryByType(RemoteReplicationSet.class, true);
-        _log.info("Found {} sets: {}", ids.size(), ids);
+        _log.info("Found sets: {}", ids);
         Iterator<RemoteReplicationSet> iter = _dbClient.queryIterativeObjects(RemoteReplicationSet.class, ids);
         while (iter.hasNext()) {
             rrSetList.getRemoteReplicationSets().add(toNamedRelatedResource(iter.next()));

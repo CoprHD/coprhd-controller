@@ -70,7 +70,7 @@ public class RemoteReplicationGroupService extends TaskResourceService {
         RemoteReplicationGroupList rrGroupList = new RemoteReplicationGroupList();
 
         List<URI> ids = _dbClient.queryByType(RemoteReplicationGroup.class, true);
-        _log.info("Found {} groups: {}", ids.size(), ids);
+        _log.info("Found groups: {}", ids);
         Iterator<RemoteReplicationGroup> iter = _dbClient.queryIterativeObjects(RemoteReplicationGroup.class, ids);
         while (iter.hasNext()) {
             rrGroupList.getRemoteReplicationGroups().add(toNamedRelatedResource(iter.next()));

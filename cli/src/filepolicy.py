@@ -32,6 +32,7 @@ class FilePolicy(object):
     URI_FILE_POLICIES='/file/file-policies'
     URI_FILE_POLICY_SHOW= URI_FILE_POLICIES + '/{0}'
     URI_FILE_POLICY_DELETE= URI_FILE_POLICIES+'/{0}'
+    URI_FILE_POLICY_UPDATE= URI_FILE_POLICIES+'/{0}'
 
 
 
@@ -123,6 +124,156 @@ class FilePolicy(object):
         '''
         project_uri = self.filepolicy_query(name)
         return self.filepolicy_delete_by_uri(filepolicy_uri)
+
+    def filepolicy_create( name ,type, tenants_access, description, priority,
+       policyschedulefrequency, policyschedulerepeat, policyscheduletime, policyscheduleweek,
+       policyschedulemonth, replicationcopymode, replicationconfiguration, replicationtype,
+       snapshotnamepattern, snapshotexpiretype, snapshotexpirevalue,applyat):
+        '''
+        Creates a filepolicy based on policy name
+        parameters:
+        type policy type 
+        tenants_access tenants access flag,
+        description policy description,
+        priority priority of the policys,
+        policyschedulefrequency sType of schedule policy e.g days, week or months,
+        policyschedulerepeat policy run on every,
+        policyscheduletime Time when policy run,
+        policyscheduleweek day of week when policy run,
+        policyschedulemonth day of month when policy run,
+        replicationcopymode,
+        replicationconfiguration,
+        replicationtype,
+        snapshotnamepattern,
+        snapshotexpiretype,
+        snapshotexpirevalue
+        '''
+        create_request={}
+        create_request["policy_type"]=type
+        create_request["policy_name"]=name
+        create_request["policy_description"]=description
+        create_request["priority"]=priority
+        create_request["is_access_to_tenants"]=tenants_access
+        create_request["apply_at"]=applyat
+
+        policy_schedule={}
+        snapshot_params={}
+        replication_params={}
+        snapshot_expire_params={}
+
+        policy_schedule["schedule_frequency"]=policyschedulefrequency
+        policy_schedule["schedule_repeat"]=policyschedulerepeat
+        policy_schedule["schedule_time"]=policyscheduletime
+        policy_schedule["schedule_day_of_week"]=policyscheduleweek
+        policy_schedule["schedule_day_of_month"]=policyschedulemonth
+
+        if(type =="file_replication"):
+                  replication_params["replication_type"]=replicationtype
+                  replication_params["replication_copy_mode"]=replicationcopymode
+                  replication_params["replicate_configuration"]=replicationconfiguration
+                  replication_params["policy_schedule"]=policy_schedule
+        else: if(type == "file_snapshot"):
+                  snapshot_expire_params["expire_type"]=snapshot_expire_type
+                  snapshot_expire_value["expire_value"]=snapshot_expire_value
+                  snapshot_params["snapshot_name_pattern"]=snapshotnamepattern
+                  snapshot_params["snapshot_expire_params"]=snapshot_expire_params
+                  snapshot_params["policy_schedule"]=policy_schedule
+
+        create_request["replication_params"]=replication_params
+        create_request["snapshot_params"]=snapshot_params
+
+        body = json.dumps(create_request)
+        (s, h) = common.service_json_request(self.__ipAddr, self.__port,
+                    "POST",FilePolicy.URI_FILE_POLICIES,body)
+        if(not s):
+            return None
+        o = common.json_decode(s)
+        if(sync):
+            return self.check_for_sync(o, sync,synctimeout)
+        else:
+            return o
+        except SOSError as e:
+           errorMessage = str(e)
+        if(common.is_uri(fileshare_uri)):
+            errorMessage = str(e).replace(fileshare_uri, name)
+        common.format_err_msg_and_raise("create", "filepolicy",
+            errorMessage, e.err_code)
+
+
+    def filepolicy_update(self, name , tenants_access, description, priority,
+       policyschedulefrequency, policyschedulerepeat, policyscheduletime, policyscheduleweek,
+       policyschedulemonth, replicationcopymode, replicationconfiguration, replicationtype,
+       snapshotnamepattern, snapshotexpiretype, snapshotexpirevalue,applyat):
+        '''
+        Creates a filepolicy based on policy name
+        parameters:
+        tenants_access tenants access flag,
+        description policy description,
+        priority priority of the policys,
+        policyschedulefrequency sType of schedule policy e.g days, week or months,
+        policyschedulerepeat policy run on every,
+        policyscheduletime Time when policy run,
+        policyscheduleweek day of week when policy run,
+        policyschedulemonth day of month when policy run,
+        replicationcopymode,
+        replicationconfiguration,
+        replicationtype,
+        snapshotnamepattern,
+        snapshotexpiretype,
+        snapshotexpirevalue
+        '''
+        filepolicy_uri =self.filepolicy_query(name)
+
+        update_request={}
+        update_request["policy_name"]=name
+        update_request["policy_description"]=description
+        update_request["priority"]=priority
+        update_request["is_access_to_tenants"]=tenants_access
+        update_request["apply_at"]=applyat
+
+        policy_schedule={}
+        snapshot_params={}
+        replication_params={}
+        snapshot_expire_params={}
+
+        policy_schedule["schedule_frequency"]=policyschedulefrequency
+        policy_schedule["schedule_repeat"]=policyschedulerepeat
+        policy_schedule["schedule_time"]=policyscheduletime
+        policy_schedule["schedule_day_of_week"]=policyscheduleweek
+        policy_schedule["schedule_day_of_month"]=policyschedulemonth
+
+        if(type =="file_replication"):
+                  replication_params["replication_type"]=replicationtype
+                  replication_params["replication_copy_mode"]=replicationcopymode
+                  replication_params["replicate_configuration"]=replicationconfiguration
+                  replication_params["policy_schedule"]=policy_schedule
+        else: if(type == "file_snapshot"):
+                  snapshot_expire_params["expire_type"]=snapshot_expire_type
+                  snapshot_expire_value["expire_value"]=snapshot_expire_value
+                  snapshot_params["snapshot_name_pattern"]=snapshotnamepattern
+                  snapshot_params["snapshot_expire_params"]=snapshot_expire_params
+                  snapshot_params["policy_schedule"]=policy_schedule
+
+        update_request["replication_params"]=replication_params
+        update_request["snapshot_params"]=snapshot_params
+
+        body = json.dumps(create_request)
+        (s, h) = common.service_json_request(self.__ipAddr, self.__port,
+                    "PUT",FilePolicy.URI_FILE_POLICY_UPDATE.format(filepolicy_uri),body)
+        if(not s):
+            return None
+        o = common.json_decode(s)
+        if(sync):
+            return self.check_for_sync(o, sync,synctimeout)
+        else:
+            return o
+        except SOSError as e:
+           errorMessage = str(e)
+        if(common.is_uri(fileshare_uri)):
+            errorMessage = str(e).replace(fileshare_uri, name)
+        common.format_err_msg_and_raise("update", "filepolicy",
+            errorMessage, e.err_code)
+
 
 def list_parser(subcommand_parsers, common_parser):
     list_parser = subcommand_parsers.add_parser(
@@ -247,8 +398,20 @@ def create_parser(subcommand_parsers, common_parser):
 
     create_parser.set_defaults(func=filepolicy_create)
 
-def filepolicy_create(subcommand_parsers, common_parser):
-    print "create file policy- CALLED"
+def filepolicy_create(args):
+    obj = FilePolicy(args.ip, args.port)
+    try:
+        obj.filepolicy_create(args.name, args.type, args.tenants_access,
+        args.description,  args.priority,  args.policyschedulefrequency, args.policyschedulerepeat,
+        args.policyscheduletime, args.policyscheduleweek, args.policyschedulemonth, args.replicationcopymode,
+        args.replicationconfiguration, args.replicationtype,  args.snapshotnamepattern,
+        args.snapshotexpiretype,  args.snapshotexpirevalue)
+
+    except SOSError as e:
+        common.format_err_msg_and_raise("create", "filepolicy",
+                                        e.err_text, e.err_code)
+
+
 
 
 def update_parser(subcommand_parsers, common_parser):
@@ -322,7 +485,17 @@ def update_parser(subcommand_parsers, common_parser):
 
 
 def filepolicy_update(subcommand_parsers, common_parser):
-    print "update file policy- CALLED"
+    obj = FilePolicy(args.ip, args.port)
+    try:
+        obj.filepolicy_create(args.name, args.tenants_access, args.description, 
+         args.priority, args.policyschedulefrequency, args.policyschedulerepeat,
+         args.policyscheduletime, args.policyscheduleweek, args.policyschedulemonth, 
+         args.replicationcopymode, args.replicationconfiguration, args.replicationtype, 
+         args.snapshotnamepattern, args.snapshotexpiretype, args.snapshotexpirevalue)
+
+    except SOSError as e:
+        common.format_err_msg_and_raise("update", "filepolicy",
+                                        e.err_text, e.err_code)
 
 
 # FilePolicy Delete routines

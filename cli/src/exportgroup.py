@@ -871,7 +871,7 @@ def exportgroup_pathadjustment_parser(subcommand_parsers, common_parser):
 	mandatory_args.add_argument('-storagesystem', '-ss',
 			       metavar='<storagesystem>',
 			       dest='storagesystem',
-			       help='storagesystem in export that is adjusted',
+			       help='serial number of storagesystem in export that is adjusted',
 			       required=True)
 	path_adjustment_preview_parser.add_argument('-varray', '-va',
 			       metavar='<varray>',
@@ -882,11 +882,11 @@ def exportgroup_pathadjustment_parser(subcommand_parsers, common_parser):
 			       metavar='<tenantname>',
 			       dest='tenant',
 			       help='container tenant name')
-	path_adjustment_preview_parser.add_argument('-maxpaths', '-mxp',
+	path_adjustment_preview_parser.add_argument('-maxpaths', '-maxp',
 			       metavar='<maxpaths>',
 			       dest='maxpaths',
 			       help='max paths')
-	path_adjustment_preview_parser.add_argument('-minpaths', '-mnp',
+	path_adjustment_preview_parser.add_argument('-minpaths', '-minp',
 			       metavar='<minpaths>',
 			       dest='minpaths',
 			       help='min paths')

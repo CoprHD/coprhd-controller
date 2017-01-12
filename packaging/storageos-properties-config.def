@@ -1670,7 +1670,7 @@
         reconfigRequired : false,
         rebootRequired : false,
         controlNodeOnly : true,
-        value : "60",
+        value : "240",
     },
     {
         key : "controller_vplex_volume_expansion_status_check_retry_max_wait",

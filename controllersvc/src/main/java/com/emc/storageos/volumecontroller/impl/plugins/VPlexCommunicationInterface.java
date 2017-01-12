@@ -25,6 +25,7 @@ import java.util.TreeMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.emc.storageos.api.service.impl.resource.utils.PropertySetterUtil;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
@@ -879,8 +880,18 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
                         persistUnManagedVolumes(newUnmanagedVolumes, knownUnmanagedVolumes, false);
 
                     } else {
-                        s_logger.info("Virtual Volume {} is already managed by "
-                                + "ViPR as Volume URI {}", name, managedVolume.getId());
+                        s_logger.info("Virtual Volume {} is already managed by ViPR", managedVolume.forDisplay());
+
+                        Long currentCapacity = info.getCapacityBytes();
+                        if (currentCapacity != null && currentCapacity > managedVolume.getCapacity()) {
+                            // update the managed volume's capacity if it changed. this could possibly happen
+                            // if the volume were expanded and the final status was not processed successfully by ViPR due to timeout
+                            s_logger.info("Virtual Volume {} capacity on VPLEX is different ({}) than in database ({}), updating...", 
+                                    managedVolume.forDisplay(), info.getCapacityBytes(), managedVolume.getCapacity());
+                            managedVolume.setAllocatedCapacity(Long.parseLong(String.valueOf(0)));
+                            managedVolume.setProvisionedCapacity(currentCapacity);
+                            managedVolume.setCapacity(currentCapacity);
+                        }
                     }
 
                     if (null != unmanagedVolume && !unmanagedVolume.getInactive()) {

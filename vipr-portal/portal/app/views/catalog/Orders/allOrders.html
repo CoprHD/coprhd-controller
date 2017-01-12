@@ -55,7 +55,7 @@
     #{/Modal.header}
     #{Modal.body cssClass:'form-horizontal'}
     <span class="checkedAll-block">&{"orders.delete.all", orderCount}</span>
-    <div><span class="help-block">&{"orders.delete.help"}</span></div>
+    <div><span class="help-block">&{"orders.delete.help", canBeDeletedStatuses}</span></div>
     #{/Modal.body}
     #{Modal.footer}
         #{Form.button 'button.confirm', icon:'ok-sign', data:['dismiss':'modal'], action: 'deleteOrders()'/}

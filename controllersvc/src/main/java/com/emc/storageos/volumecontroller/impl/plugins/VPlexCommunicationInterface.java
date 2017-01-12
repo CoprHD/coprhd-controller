@@ -1348,9 +1348,9 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
             s_logger.info("Replaced Pools : {}", volume.getSupportedVpoolUris());
         }
 
-        Set<VPlexStorageViewInfo> svs = volumeToStorageViewMap.get(volume.getLabel());
+        Set<VPlexStorageViewInfo> svs = volumeToStorageViewMap.get(info.getName());
         if (svs != null) {
-            updateWwnAndHluInfo(volume, svs);
+            updateWwnAndHluInfo(volume, info.getName(), svs);
         }
     }
 
@@ -1358,9 +1358,10 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
      * For a given UnManagedVolume, determine the wwn from the storage views it is in.
      *
      * @param unManagedVolume the UnManagedVolume to check
+     * @param volumeName the original name of the Virtual Volume
      * @param storageViews the VPlexStorageViewInfo set the unmanaged volume is found in
      */
-    private void updateWwnAndHluInfo(UnManagedVolume unManagedVolume, Set<VPlexStorageViewInfo> storageViews) {
+    private void updateWwnAndHluInfo(UnManagedVolume unManagedVolume, String volumeName, Set<VPlexStorageViewInfo> storageViews) {
         if (null != storageViews) {
             String wwn = unManagedVolume.getWwn();
             StringSet hluMappings = new StringSet();
@@ -1368,20 +1369,20 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
                 if (wwn == null || wwn.isEmpty()) {
                     // the wwn may have been found in the virtual volume, if this is a 5.4+ VPLEX
                     // otherwise, we need to check in the storage view mappings for a WWN (5.3 and before)
-                    wwn = storageView.getWWNForStorageViewVolume(unManagedVolume.getLabel());
-                    s_logger.info("found wwn {} for unmanaged volume {}", wwn, unManagedVolume.getLabel());
+                    wwn = storageView.getWWNForStorageViewVolume(volumeName);
+                    s_logger.info("found wwn {} for unmanaged volume {}", wwn, volumeName);
                     if (wwn != null) {
                         unManagedVolume.setWwn(BlockObject.normalizeWWN(wwn));
                     }
                 }
-                Integer hlu = storageView.getHLUForStorageViewVolume(unManagedVolume.getLabel());
+                Integer hlu = storageView.getHLUForStorageViewVolume(volumeName);
                 if (hlu != null) {
                     hluMappings.add(storageView.getName() + "=" + hlu.toString());
                 }
             }
             if (!hluMappings.isEmpty()) {
                 s_logger.info("setting HLU_TO_EXPORT_MASK_NAME_MAP for unmanaged volume {} to "
-                        + hluMappings, unManagedVolume.getLabel());
+                        + hluMappings, volumeName);
                 unManagedVolume.putVolumeInfo(
                         SupportedVolumeInformation.HLU_TO_EXPORT_MASK_NAME_MAP.name(), hluMappings);
             }

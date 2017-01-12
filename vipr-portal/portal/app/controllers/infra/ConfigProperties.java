@@ -22,19 +22,7 @@ import com.emc.storageos.management.backup.ExternalServerType;
 import com.emc.storageos.management.backup.util.BackupClient;
 import com.emc.storageos.management.backup.util.CifsClient;
 import com.emc.storageos.management.backup.util.FtpClient;
-import models.properties.BackupPropertyPage;
-import models.properties.ControllerPropertyPage;
-import models.properties.DefaultPropertyPage;
-import models.properties.DiscoveryPropertyPage;
-import models.properties.NetworkPropertyPage;
-import models.properties.PasswordPropertyPage;
-import models.properties.Property;
-import models.properties.PropertyPage;
-import models.properties.SecurityPropertyPage;
-import models.properties.SmtpPropertyPage;
-import models.properties.SupportPropertyPage;
-import models.properties.SyslogPropertiesPage;
-import models.properties.UpgradePropertyPage;
+import models.properties.*;
 
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.math.NumberUtils;
@@ -185,6 +173,7 @@ public class ConfigProperties extends Controller {
             addPage(pages, new PasswordPropertyPage(properties));
             addPage(pages, new SyslogPropertiesPage(properties));
             addPage(pages, new BackupPropertyPage(properties));
+            addPage(pages, new LogRententionPage(properties));
         }
         else {
             if (PlatformUtils.isAppliance()) {
@@ -200,6 +189,7 @@ public class ConfigProperties extends Controller {
             addPage(excludePages, new PasswordPropertyPage(properties));
             addPage(excludePages, new SyslogPropertiesPage(properties));
             addPage(excludePages, new BackupPropertyPage(properties));
+            addPage(pages, new LogRententionPage(properties));
         }
 
         addDefaultPages(pages, properties.values(), excludePages, isActiveSite);

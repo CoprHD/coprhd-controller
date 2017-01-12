@@ -3007,6 +3007,22 @@ test_10() {
 
     for failure in ${failure_injections}
     do
+      firewall_test=1
+      if [ "${failure}" = "failure_firewall" ]
+      then
+	  # Find the IP address we need to firewall
+	  if [ "${SIM}" = "1" ]
+	  then
+	      firewall_ip=${HW_SIMULATOR_IP}
+	  elif [ "${SS}" = "unity" ]
+	  then
+	      firewall_ip=${UNITY_IP}
+	  else
+	      secho "Firewall testing disabled for combo of ${SS} with simualtor=${SIM}"
+	      continue;
+	  fi
+      fi
+
       item=${RANDOM}
       TEST_OUTPUT_FILE=test_output_${item}.log
       secho "Running Test 10 with failure scenario: ${failure}..."
@@ -3045,18 +3061,6 @@ test_10() {
       
       if [ "${failure}" = "failure_firewall" ]
       then
-	  # Find the IP address we need to firewall
-	  if [ "${SIM}" = "1" ]
-	  then
-	      firewall_ip=${HW_SIMULATOR_IP}
-	  elif [ "${SS}" = "unity" ]
-	  then
-	      firewall_ip=${UNITY_IP}
-	  else
-	      secho "Firewall testing disabled for combo of ${SS} with simualtor=${SIM}"
-	      return
-	  fi
-
 	  # turn on firewall
 	  runcmd /usr/sbin/iptables -I INPUT 1 -s ${firewall_ip} -p all -j REJECT
       fi

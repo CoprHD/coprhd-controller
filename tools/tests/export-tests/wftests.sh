@@ -1852,7 +1852,7 @@ snap_db() {
     column_families=$2
     escape_seq=$3
 
-    base_filter="| sed -r '/6[0]{29}[A-Z0-9]{2}=/s/\=-?[0-9][0-9]?[0-9]?/=XX/g' | sed -r 's/vdc1=-?[0-9][0-9]?[0-9]?/vdc1=XX/g' | grep -v \"status = OpStatusMap\" | grep -v \"lastDiscoveryRunTime = \" | grep -v \"successDiscoveryTime = \" | grep -v \"storageDevice = URI: null\" | grep -v \"StringSet \[\]\" | grep -v \"varray = URI: null\" | grep -v \"Description:\" | grep -v \"Additional\" | grep -v -e '^$' | grep -v \"clustername = null\" | grep -v \"cluster = URI: null\" | grep -v \"vcenterDataCenter = \" $escape_seq"
+    base_filter="| sed -r '/6[0]{29}[A-Z0-9]{2}=/s/\=-?[0-9][0-9]?[0-9]?/=XX/g' | sed -r 's/vdc1=-?[0-9][0-9]?[0-9]?/vdc1=XX/g' | grep -v \"status = OpStatusMap\" | grep -v \"lastDiscoveryRunTime = \" | grep -v \"successDiscoveryTime = \" | grep -v \"storageDevice = URI: null\" | grep -v \"StringSet \[\]\" | grep -v \"varray = URI: null\" | grep -v \"Description:\" | grep -v \"Additional\" | grep -v -e '^$' | grep -v \"Rollback encountered problems\" | grep -v \"clustername = null\" | grep -v \"cluster = URI: null\" | grep -v \"vcenterDataCenter = \" $escape_seq"
     
     secho "snapping column families [set $slot]: ${column_families}"
 
@@ -1996,7 +1996,7 @@ test_1() {
       	  runcmd volume delete ${PROJECT}/${volname} --wait
       else
 	  # If this is a rollback inject, make sure we get the "additional message"
-	  echo ${failure} | grep failure_004 | grep ":"
+	  echo ${failure} | grep failure_004 | grep ":" > /dev/null
 	  if [ $? -eq 0 ]
 	  then
 	      # Make sure it fails with additional errors accounted for in the error message
@@ -2148,7 +2148,7 @@ test_2() {
       	  runcmd volume delete ${PROJECT}/${volname} --wait
       else
       	  # If this is a rollback inject, make sure we get the "additional message"
-	  echo ${failure} | grep failure_004 | grep ":"
+	  echo ${failure} | grep failure_004 | grep ":" > /dev/null
 	  if [ $? -eq 0 ]
 	  then
 	      # Make sure it fails with additional errors accounted for in the error message
@@ -2280,7 +2280,7 @@ test_3() {
       snap_db 1 "${cfs[@]}"
 
       # If this is a rollback inject, make sure we get the "additional message"
-      echo ${failure} | grep failure_004 | grep ":"
+      echo ${failure} | grep failure_004 | grep ":" > /dev/null
       if [ $? -eq 0 ]
       then
 	  # Make sure it fails with additional errors accounted for in the error message
@@ -2406,7 +2406,7 @@ test_4() {
       snap_db 1 "${cfs[@]}"
 
       # If this is a rollback inject, make sure we get the "additional message"
-      echo ${failure} | grep failure_004 | grep ":"
+      echo ${failure} | grep failure_004 | grep ":" > /dev/null
       if [ $? -eq 0 ]
       then
 	  # Make sure it fails with additional errors accounted for in the error message
@@ -2612,7 +2612,7 @@ test_6() {
       set_artificial_failure ${failure}
 
       # If this is a rollback inject, make sure we get the "additional message"
-      echo ${failure} | grep failure_004 | grep ":"
+      echo ${failure} | grep failure_004 | grep ":" > /dev/null
       if [ $? -eq 0 ]
       then
 	  # Make sure it fails with additional errors accounted for in the error message
@@ -2717,7 +2717,7 @@ test_7() {
       set_artificial_failure ${failure}
 
       # If this is a rollback inject, make sure we get the "additional message"
-      echo ${failure} | grep failure_004 | grep ":"
+      echo ${failure} | grep failure_004 | grep ":" > /dev/null
       if [ $? -eq 0 ]
       then
 	  # Make sure it fails with additional errors accounted for in the error message
@@ -2842,7 +2842,7 @@ test_8() {
       	  runcmd volume delete ${PROJECT}/${volname} --wait
       else
       	  # If this is a rollback inject, make sure we get the "additional message"
-	  echo ${failure} | grep failure_004 | grep ":"
+	  echo ${failure} | grep failure_004 | grep ":" > /dev/null
 	  if [ $? -eq 0 ]
 	  then
 	      # Make sure it fails with additional errors accounted for in the error message

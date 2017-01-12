@@ -1852,7 +1852,7 @@ snap_db() {
     column_families=$2
     escape_seq=$3
 
-    base_filter="| sed -r '/6[0]{29}[A-Z0-9]{2}=/s/\=-?[0-9][0-9]?[0-9]?/=XX/g' | sed -r 's/vdc1=-?[0-9][0-9]?[0-9]?/vdc1=XX/g' | grep -v \"status = OpStatusMap\" | grep -v \"lastDiscoveryRunTime = \" | grep -v \"successDiscoveryTime = \" | grep -v \"storageDevice = URI: null\" | grep -v \"StringSet \[\]\" | grep -v \"varray = URI: null\" | grep -v \"Description:\" | grep -v \"Additional\" | grep -v -e '^$' | grep -v \"clustername = null\" | grep -v \"cluster = URI: null\" | grep -v \"vcenterDataCenter = \" $escape_seq"
+    base_filter="| sed -r '/6[0]{29}[A-Z0-9]{2}=/s/\=-?[0-9][0-9]?[0-9]?/=XX/g' | sed -r 's/vdc1=-?[0-9][0-9]?[0-9]?/vdc1=XX/g' | grep -v \"status = OpStatusMap\" | grep -v \"lastDiscoveryRunTime = \" | grep -v \"successDiscoveryTime = \" | grep -v \"storageDevice = URI: null\" | grep -v \"StringSet \[\]\" | grep -v \"varray = URI: null\" | grep -v \"Description:\" | grep -v \"Additional\" | grep -v -e '^$' | grep -v \"Rollback encountered problems\" | grep -v \"clustername = null\" | grep -v \"cluster = URI: null\" | grep -v \"vcenterDataCenter = \" $escape_seq"
     
     secho "snapping column families [set $slot]: ${column_families}"
 
@@ -1995,8 +1995,16 @@ test_1() {
 	  # Remove the volume
       	  runcmd volume delete ${PROJECT}/${volname} --wait
       else
-      	  # Create the volume
-      	  fail volume create ${volname} ${PROJECT} ${NH} ${VPOOL_BASE} 1GB
+	  # If this is a rollback inject, make sure we get the "additional message"
+	  echo ${failure} | grep failure_004 | grep ":" > /dev/null
+	  if [ $? -eq 0 ]
+	  then
+	      # Make sure it fails with additional errors accounted for in the error message
+      	      fail -with_error "Additional errors occurred" volume create ${volname} ${PROJECT} ${NH} ${VPOOL_BASE} 1GB
+	  else
+      	      # Create the volume
+      	      fail volume create ${volname} ${PROJECT} ${NH} ${VPOOL_BASE} 1GB
+	  fi
 
 	  # Verify injected failures were hit
 	  verify_failures ${failure}
@@ -2139,8 +2147,16 @@ test_2() {
 	  # Remove the volume
       	  runcmd volume delete ${PROJECT}/${volname} --wait
       else
-      	  # Create the volume
-      	  fail volume create ${volname} ${PROJECT} ${NH} ${VPOOL_BASE} 1GB --consistencyGroup=${CGNAME}
+      	  # If this is a rollback inject, make sure we get the "additional message"
+	  echo ${failure} | grep failure_004 | grep ":" > /dev/null
+	  if [ $? -eq 0 ]
+	  then
+	      # Make sure it fails with additional errors accounted for in the error message
+      	      fail -with_error "Additional errors occurred" volume create ${volname} ${PROJECT} ${NH} ${VPOOL_BASE} 1GB --consistencyGroup=${CGNAME}
+	  else
+      	      # Create the volume
+	      fail volume create ${volname} ${PROJECT} ${NH} ${VPOOL_BASE} 1GB --consistencyGroup=${CGNAME}
+	  fi
 
 	  # Verify injected failures were hit
 	  verify_failures ${failure}
@@ -2263,8 +2279,16 @@ test_3() {
       # Check the state of the volume that doesn't exist
       snap_db 1 "${cfs[@]}"
 
-      # Create the volume
-      fail volume create ${volname} ${project} ${NH} ${VPOOL_BASE} 1GB --count 8
+      # If this is a rollback inject, make sure we get the "additional message"
+      echo ${failure} | grep failure_004 | grep ":" > /dev/null
+      if [ $? -eq 0 ]
+      then
+	  # Make sure it fails with additional errors accounted for in the error message
+      	  fail -with_error "Additional errors occurred" volume create ${volname} ${project} ${NH} ${VPOOL_BASE} 1GB --count 8
+      else
+	  # Create the volume
+	  fail volume create ${volname} ${project} ${NH} ${VPOOL_BASE} 1GB --count 8
+      fi
 
       # Verify injected failures were hit
       verify_failures ${failure}
@@ -2280,7 +2304,7 @@ test_3() {
 
       # Rerun the command
       set_artificial_failure none
-      # Determine if re-running the command under certain failure scenario's is expected to fail (like Unity) or succeed.
+      # Determine if re-running the command under certain failure scenarios is expected to fail (like Unity) or succeed.
       if [ "${SS}" = "unity" ] && [ "${failure}" = "failure_023" ]
       then
           # Unity is expected to fail because the array doesn't like duplicate LUN names
@@ -2361,7 +2385,7 @@ test_4() {
     failure_injections="${common_failure_injections} ${storage_failure_injections} ${network_failure_injections}"
 
     # Placeholder when a specific failure case is being worked...
-    # failure_injections="failure_004:failure_021_Export_zoneRollback_after_delete"
+    # failure_injections="failure_004:failure_018_Export_doRollbackExportCreate_before_delete"
 
     for failure in ${failure_injections}
     do
@@ -2381,8 +2405,16 @@ test_4() {
       # Check the state of the export that doesn't exist
       snap_db 1 "${cfs[@]}"
 
-      # Create the export
-      fail export_group create $PROJECT ${expname}1 $NH --type Host --volspec ${PROJECT}/${VOLNAME}-1 --hosts "${HOST1}"
+      # If this is a rollback inject, make sure we get the "additional message"
+      echo ${failure} | grep failure_004 | grep ":" > /dev/null
+      if [ $? -eq 0 ]
+      then
+	  # Make sure it fails with additional errors accounted for in the error message
+	  fail -with_error "Additional errors occurred" export_group create $PROJECT ${expname}1 $NH --type Host --volspec ${PROJECT}/${VOLNAME}-1 --hosts "${HOST1}"
+      else
+	  # Create the export
+	  fail export_group create $PROJECT ${expname}1 $NH --type Host --volspec ${PROJECT}/${VOLNAME}-1 --hosts "${HOST1}"
+      fi
 
       # Verify injected failures were hit
       verify_failures ${failure}
@@ -2579,8 +2611,16 @@ test_6() {
       # Turn on failure at a specific point
       set_artificial_failure ${failure}
 
-      # Delete the export
-      fail export_group update ${PROJECT}/${expname}1 --addVol ${PROJECT}/${VOLNAME}-2
+      # If this is a rollback inject, make sure we get the "additional message"
+      echo ${failure} | grep failure_004 | grep ":" > /dev/null
+      if [ $? -eq 0 ]
+      then
+	  # Make sure it fails with additional errors accounted for in the error message
+      	  fail -with_error "Additional errors occurred" export_group update ${PROJECT}/${expname}1 --addVol ${PROJECT}/${VOLNAME}-2
+      else
+	  # Delete the export
+	  fail export_group update ${PROJECT}/${expname}1 --addVol ${PROJECT}/${VOLNAME}-2
+      fi
 
       # Verify injected failures were hit
       verify_failures ${failure}
@@ -2676,8 +2716,16 @@ test_7() {
       # Turn on failure at a specific point
       set_artificial_failure ${failure}
 
-      # Attempt to add an initiator
-      fail export_group update ${PROJECT}/${expname}1 --addInits ${HOST1}/${H1PI2}
+      # If this is a rollback inject, make sure we get the "additional message"
+      echo ${failure} | grep failure_004 | grep ":" > /dev/null
+      if [ $? -eq 0 ]
+      then
+	  # Make sure it fails with additional errors accounted for in the error message
+      	  fail -with_error "Additional errors occurred" export_group update ${PROJECT}/${expname}1 --addInits ${HOST1}/${H1PI2}
+      else
+	  # Attempt to add an initiator
+	  fail export_group update ${PROJECT}/${expname}1 --addInits ${HOST1}/${H1PI2}
+      fi
 
       # Verify injected failures were hit
       verify_failures ${failure}
@@ -2793,8 +2841,16 @@ test_8() {
 	  # Remove the volume
       	  runcmd volume delete ${PROJECT}/${volname} --wait
       else
-      	  # Create the volume
-      	  fail volume create ${volname} ${PROJECT} ${NH} ${VPOOL_BASE} ${meta_size}
+      	  # If this is a rollback inject, make sure we get the "additional message"
+	  echo ${failure} | grep failure_004 | grep ":" > /dev/null
+	  if [ $? -eq 0 ]
+	  then
+	      # Make sure it fails with additional errors accounted for in the error message
+	      fail -with_error "Additional errors occurred" volume create ${volname} ${PROJECT} ${NH} ${VPOOL_BASE} ${meta_size}
+	  else
+      	      # Create the volume
+	      fail volume create ${volname} ${PROJECT} ${NH} ${VPOOL_BASE} ${meta_size}
+	  fi
 
 	  # Verify injected failures were hit
 	  verify_failures ${failure}
@@ -3009,6 +3065,22 @@ test_10() {
 
     for failure in ${failure_injections}
     do
+      firewall_test=1
+      if [ "${failure}" = "failure_firewall" ]
+      then
+	  # Find the IP address we need to firewall
+	  if [ "${SIM}" = "1" ]
+	  then
+	      firewall_ip=${HW_SIMULATOR_IP}
+	  elif [ "${SS}" = "unity" ]
+	  then
+	      firewall_ip=${UNITY_IP}
+	  else
+	      secho "Firewall testing disabled for combo of ${SS} with simualtor=${SIM}"
+	      continue;
+	  fi
+      fi
+
       item=${RANDOM}
       TEST_OUTPUT_FILE=test_output_${item}.log
       secho "Running Test 10 with failure scenario: ${failure}..."
@@ -3047,18 +3119,6 @@ test_10() {
       
       if [ "${failure}" = "failure_firewall" ]
       then
-	  # Find the IP address we need to firewall
-	  if [ "${SIM}" = "1" ]
-	  then
-	      firewall_ip=${HW_SIMULATOR_IP}
-	  elif [ "${SS}" = "unity" ]
-	  then
-	      firewall_ip=${UNITY_IP}
-	  else
-	      secho "Firewall testing disabled for combo of ${SS} with simualtor=${SIM}"
-	      return
-	  fi
-
 	  # turn on firewall
 	  runcmd /usr/sbin/iptables -I INPUT 1 -s ${firewall_ip} -p all -j REJECT
       fi

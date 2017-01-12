@@ -132,12 +132,10 @@ public class RecentOrdersDataTable extends OrderDataTable {
     }
     
     public static String getCanBeDeletedOrderStatuses() {
-        StringBuilder builder = null;
+        StringBuilder builder = new StringBuilder();
         for (OrderStatus s : OrderStatus.values()) {
             if (s.canBeDeleted()) {
-                if (builder == null) {
-                    builder = new StringBuilder();
-                } else {
+                if (builder.length() != 0) {
                     builder.append(", ");
                 }
                 builder.append(s.name());

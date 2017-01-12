@@ -194,8 +194,6 @@ public class VMWareProvider extends BaseHostProvider {
                 exportedBlockResources);
         SourceTargetVolumesFilter sourceTargetVolumesFilter = new SourceTargetVolumesFilter();
         List<VolumeRestRep> volumes = client.blockVolumes().findByProject(projectId, unexportedFilter.and(sourceTargetVolumesFilter));
-        List<URI> volumeIds = getVolumeList(volumes);
-        // Map<URI, Integer> volumeHlus = getVolumeHLUs(ctx, volumeIds);
 
         return createBlockVolumeDatastoreOptions(volumes, hostOrClusterId);
     }

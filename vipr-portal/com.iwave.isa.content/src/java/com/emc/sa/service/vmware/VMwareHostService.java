@@ -9,6 +9,7 @@ import static com.emc.sa.service.ServiceParams.HOST;
 import static com.emc.sa.service.ServiceParams.VCENTER;
 
 import java.net.URI;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
@@ -18,10 +19,16 @@ import com.emc.sa.service.vipr.ViPRService;
 import com.emc.sa.service.vipr.block.BlockStorageUtils;
 import com.emc.storageos.db.client.model.Cluster;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
+import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.Host;
+import com.emc.storageos.db.client.model.ScopedLabel;
+import com.emc.storageos.db.client.model.ScopedLabelSet;
+import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.VcenterDataCenter;
+import com.emc.storageos.db.client.model.Volume;
 import com.google.common.collect.Sets;
 import com.vmware.vim25.mo.ClusterComputeResource;
+import com.vmware.vim25.mo.Datastore;
 import com.vmware.vim25.mo.HostSystem;
 
 public abstract class VMwareHostService extends ViPRService {
@@ -136,6 +143,35 @@ public abstract class VMwareHostService extends ViPRService {
                 info("Hosts in cluster %s matches correctly", cluster.getLabel());
             }
 
+        }
+    }
+    
+    protected void validateDatastoreVolume(List<String> datastoreNames) {
+        for (String datastoreName : datastoreNames) {
+            Datastore datastore = vmware.getDatastore(datacenter.getLabel(), datastoreName);
+            if (datastore != null) {
+                continue;
+            }
+            List<Host> dbHosts = getModelClient().hosts().findByCluster(hostCluster.getId());
+            List<ExportGroup> exports = getModelClient().exportGroupFinder().findByHosts(dbHosts);
+            StringMap exportVolumeIds = new StringMap();
+            for (ExportGroup export : exports) {
+                exportVolumeIds.putAll(export.getVolumes());
+            }
+            List<URI> volumeUris = new ArrayList<URI>();
+            for (String volumeUriString : exportVolumeIds.keySet()) {
+                URI uri = URI.create(volumeUriString);
+                volumeUris.add(uri);
+            }
+            List<Volume> exportVolumes = getModelClient().findByIds(Volume.class, volumeUris);
+            for (Volume volume : exportVolumes) {
+                ScopedLabelSet tagSet = volume.getTag();
+                for (ScopedLabel tag : tagSet) {
+                    if (tag.getLabel().contains(datastoreName)) {
+                        BlockStorageUtils.checkEvents(volume);
+                    }
+                }
+            }
         }
     }
 }

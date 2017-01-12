@@ -519,7 +519,6 @@ public enum OperationTypeEnum {
 
     /* Remote Replication Operations */
     CREATE_REMOTE_REPLICATION_GROUP("CREATE REMOTE REPLICATION GROUP", "CreateRemoteReplicationGroupFailed", "create remote replication group"),
-    
     /* Filesystem Mount Operations*/
 
     MOUNT_NFS_EXPORT("MOUNT NFS EXPORT", "mount nfs export operation failed", "mount nfs export operation"),

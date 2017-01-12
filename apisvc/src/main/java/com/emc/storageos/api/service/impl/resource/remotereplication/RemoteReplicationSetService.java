@@ -45,7 +45,7 @@ import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.volumecontroller.ControllerException;
 
-@Path("/block/remotereplicationsets")
+@Path("/vdc/block/remotereplicationsets")
 @DefaultPermissions(readRoles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR },
         writeRoles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
 public class RemoteReplicationSetService extends TaskResourceService {

@@ -733,8 +733,12 @@ public class DbConsistencyCheckerHelper {
         return selectKey == 0 ? "Unknown" : schemaVersionsTime.get(selectKey);
     }
     
+    public ThreadPoolExecutor getExecutor() {
+        return executor;
+    }
+
     public static class CheckResult {
-        private AtomicInteger total;
+        private AtomicInteger total = new AtomicInteger();
         private Map<String, Integer> countOfVersion = Collections.synchronizedMap(new TreeMap<String, Integer>());
         
         public int getTotal() {

@@ -891,6 +891,7 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
                             managedVolume.setAllocatedCapacity(Long.parseLong(String.valueOf(0)));
                             managedVolume.setProvisionedCapacity(currentCapacity);
                             managedVolume.setCapacity(currentCapacity);
+                            _dbClient.updateObject(managedVolume);
                         }
                     }
 

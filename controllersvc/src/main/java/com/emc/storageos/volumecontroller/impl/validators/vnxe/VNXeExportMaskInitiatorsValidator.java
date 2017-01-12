@@ -27,6 +27,8 @@ import com.emc.storageos.volumecontroller.impl.validators.ValidatorLogger;
  */
 public class VNXeExportMaskInitiatorsValidator extends AbstractVNXeValidator {
     private static final Logger log = LoggerFactory.getLogger(VNXeExportMaskInitiatorsValidator.class);
+    private static final String misMatchInitiatorRemediation = "Remove the initiator from the host on array";
+    private static final String unknownInitiatorRemediation = "Remove the initiator from the host on array, or add the initiator to the host in ViPR";
 
     public VNXeExportMaskInitiatorsValidator(StorageSystem storage, ExportMask exportMask) {
         super(storage, exportMask);
@@ -52,6 +54,10 @@ public class VNXeExportMaskInitiatorsValidator extends AbstractVNXeValidator {
 
             // all initiators of VNXe host should be on single ViPR host, or unknown to ViPR
             String vnxeHostId = getVNXeHostFromInitiators();
+            if (vnxeHostId == null) {
+                return true;
+            }
+
             List<VNXeHostInitiator> initiatorList = apiClient.getInitiatorsByHostId(vnxeHostId);
             URI hostId = null;
             if (initiatorList != null) {
@@ -63,6 +69,7 @@ public class VNXeExportMaskInitiatorsValidator extends AbstractVNXeValidator {
                             hostId = viprInitiator.getHost();
                         } else if (!hostId.equals(viprInitiator.getHost())) {
                             log.info("Initiator {} belongs to different ViPR host", portWWN);
+                            setRemediation(misMatchInitiatorRemediation);
                             getLogger().logDiff(exportMask.getId().toString(), "initiators", ValidatorLogger.NO_MATCHING_ENTRY,
                                     initiator.getPortWWN());
                             break;
@@ -70,6 +77,7 @@ public class VNXeExportMaskInitiatorsValidator extends AbstractVNXeValidator {
                     } else {
                         // initiator not found in ViPR
                         log.info("Unknown initiator found: {}", portWWN);
+                        setRemediation(unknownInitiatorRemediation);
                         getLogger().logDiff(exportMask.getId().toString(), "initiators", ValidatorLogger.NO_MATCHING_ENTRY,
                                 initiator.getPortWWN());
                         break;

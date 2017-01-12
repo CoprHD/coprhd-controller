@@ -33,12 +33,12 @@ import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
-import com.emc.storageos.db.client.util.StringSetUtil;
 import com.emc.storageos.exceptions.DeviceControllerErrors;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.util.ExportUtils;
 import com.emc.storageos.vnxe.VNXeApiClient;
+import com.emc.storageos.vnxe.VNXeException;
 import com.emc.storageos.vnxe.models.Snap;
 import com.emc.storageos.vnxe.models.VNXeBase;
 import com.emc.storageos.vnxe.models.VNXeExportResult;
@@ -252,36 +252,40 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
                 initiatorList = ExportUtils.getExportMaskInitiators(exportMask, _dbClient);
             }
 
-            ExportMaskValidationContext ctx = new ExportMaskValidationContext();
-            ctx.setStorage(storage);
-            ctx.setExportMask(exportMask);
-            ctx.setBlockObjects(volumeURIList, _dbClient);
-            ctx.setInitiators(initiatorList);
-            validator.exportMaskDelete(ctx).validate();
-
-            String opId = taskCompleter.getOpId();
             VNXeApiClient apiClient = getVnxeClient(storage);
             String hostId = getHostIdFromInitiators(initiatorList, apiClient);
+            if (hostId != null) {
+                ExportMaskValidationContext ctx = new ExportMaskValidationContext();
+                ctx.setStorage(storage);
+                ctx.setExportMask(exportMask);
+                ctx.setBlockObjects(volumeURIList, _dbClient);
+                ctx.setInitiators(initiatorList);
+                validator.exportMaskDelete(ctx).validate();
+            }
+
+            String opId = taskCompleter.getOpId();
             Set<String> processedCGs = new HashSet<String>();
             for (URI volUri : volumesToBeUnmapped) {
-                BlockObject blockObject = BlockObject.fetch(_dbClient, volUri);
-                String nativeId = blockObject.getNativeId();
-                String cgName = VNXeUtils.getBlockObjectCGName(blockObject, _dbClient);
-                if (cgName != null && !processedCGs.contains(cgName)) {
-                    processedCGs.add(cgName);
-                    VNXeUtils.getCGLock(workflowService, storage, cgName, opId);
-                }
-                if (URIUtil.isType(volUri, Volume.class)) {
-                    apiClient.unexportLun(hostId, nativeId);
-                } else if (URIUtil.isType(volUri, BlockSnapshot.class)) {
-                    if (BlockObject.checkForRP(_dbClient, volUri)) {
-                        _logger.info(String.format(
-                                "BlockObject %s is a RecoverPoint bookmark. Un-exporting associated lun %s instead of snap.",
-                                volUri, nativeId));
+                if (hostId != null) {
+                    BlockObject blockObject = BlockObject.fetch(_dbClient, volUri);
+                    String nativeId = blockObject.getNativeId();
+                    String cgName = VNXeUtils.getBlockObjectCGName(blockObject, _dbClient);
+                    if (cgName != null && !processedCGs.contains(cgName)) {
+                        processedCGs.add(cgName);
+                        VNXeUtils.getCGLock(workflowService, storage, cgName, opId);
+                    }
+                    if (URIUtil.isType(volUri, Volume.class)) {
                         apiClient.unexportLun(hostId, nativeId);
-                    } else {
-                        apiClient.unexportSnap(hostId, nativeId);
-                        setSnapWWN(apiClient, blockObject, nativeId);
+                    } else if (URIUtil.isType(volUri, BlockSnapshot.class)) {
+                        if (BlockObject.checkForRP(_dbClient, volUri)) {
+                            _logger.info(String.format(
+                                    "BlockObject %s is a RecoverPoint bookmark. Un-exporting associated lun %s instead of snap.",
+                                    volUri, nativeId));
+                            apiClient.unexportLun(hostId, nativeId);
+                        } else {
+                            apiClient.unexportSnap(hostId, nativeId);
+                            setSnapWWN(apiClient, blockObject, nativeId);
+                        }
                     }
                 }
                 // update the exportMask object
@@ -290,33 +294,45 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
 
             // check if there are LUNs on array
             // initiator will not be able to removed if there are LUNs belongs to other masks, or unknown to ViPR
-            Set<String> lunIds = apiClient.getHostLUNIds(hostId);
+            Set<String> lunIds = null;
+            if (hostId != null) {
+                lunIds = apiClient.getHostLUNIds(hostId);
+            }
+
             for (Initiator initiator : initiatorList) {
                 _logger.info("Processing initiator {}", initiator.getLabel());
-                if (lunIds.isEmpty() && !ExportUtils.isInitiatorSharedByMasks(_dbClient, initiator.getId())) {
+                if (hostId != null && lunIds.isEmpty() && !ExportUtils.isInitiatorSharedByMasks(_dbClient, initiator.getId())) {
                     // all ViPR known LUNs has been removed, and there shouldn't any unknown LUN since the volume validation passed
                     String initiatorId = initiator.getInitiatorPort();
                     if (Protocol.FC.name().equals(initiator.getProtocol())) {
                         initiatorId = initiator.getInitiatorNode() + ":" + initiatorId;
                     }
 
-                    apiClient.deleteInitiator(initiatorId);
+                    try {
+                        apiClient.deleteInitiator(initiatorId);
+                    } catch (VNXeException e) {
+                        _logger.warn("Error on deleting initiator: {}", e.getMessage());
+                    }
                 }
                 exportMask.removeFromExistingInitiators(initiator);
                 exportMask.removeFromUserCreatedInitiators(initiator);
             }
+
+            _dbClient.updateObject(exportMask);
 
             if (hostId != null) {
                 List<VNXeHostInitiator> vnxeInitiators = apiClient.getInitiatorsByHostId(hostId);
                 if (vnxeInitiators.isEmpty()) {
                     Set<String> vnxeLUNIds = apiClient.getHostLUNIds(hostId);
                     if ((vnxeLUNIds.isEmpty())) {
-                        apiClient.deleteHost(hostId);
+                        try {
+                            apiClient.deleteHost(hostId);
+                        } catch (VNXeException e) {
+                            _logger.warn("Error on deleting host: {}", e.getMessage());
+                        }
                     }
                 }
             }
-
-            _dbClient.updateObject(exportMask);
 
             List<ExportGroup> exportGroups = ExportMaskUtils.getExportGroups(_dbClient, exportMask);
             if (exportGroups != null) {
@@ -363,7 +379,7 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
         }
 
         if (vnxeHostId == null) {
-            throw new DeviceControllerException("No host found");
+            _logger.warn("No host found");
         }
 
         return vnxeHostId;
@@ -505,38 +521,41 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
                 throw new DeviceControllerException("Invalid ExportMask URI: " + exportMaskUri);
             }
 
-            VNXeApiClient apiClient = getVnxeClient(storage);
-            VNXeExportMaskInitiatorsValidator initiatorsValidator = (VNXeExportMaskInitiatorsValidator) validator
-                    .removeVolumes(storage, exportMask.getId(), initiatorList);
-            initiatorsValidator.validate();
-
             List<Initiator> initiators = ExportUtils.getExportMaskInitiators(exportMask, _dbClient);
+            VNXeApiClient apiClient = getVnxeClient(storage);
             String hostId = getHostIdFromInitiators(initiators, apiClient);
+            if (hostId != null) {
+                VNXeExportMaskInitiatorsValidator initiatorsValidator = (VNXeExportMaskInitiatorsValidator) validator
+                        .removeVolumes(storage, exportMask.getId(), initiatorList);
+                initiatorsValidator.validate();
+            }
 
             String opId = taskCompleter.getOpId();
             Set<String> processedCGs = new HashSet<String>();
             for (URI volUri : volumes) {
-                BlockObject blockObject = BlockObject.fetch(_dbClient, volUri);
-                // COP-25254 this method could be called when delete vplex volume created from snapshot. in this case
-                // the volume passed in is an internal volume, representing the snapshot. we need to find the snapshot
-                // with the same nativeGUID, then unexport the snapshot.
-                BlockObject snapshot = findSnapshotByInternalVolume(blockObject);
-                if (snapshot != null) {
-                    blockObject = snapshot;
-                    exportMask.removeVolume(volUri);
-                    volUri = blockObject.getId();
-                }
-                String cgName = VNXeUtils.getBlockObjectCGName(blockObject, _dbClient);
-                if (cgName != null && !processedCGs.contains(cgName)) {
-                    processedCGs.add(cgName);
-                    VNXeUtils.getCGLock(workflowService, storage, cgName, opId);
-                }
-                String nativeId = blockObject.getNativeId();
-                if (URIUtil.isType(volUri, Volume.class)) {
-                    apiClient.unexportLun(hostId, nativeId);
-                } else if (URIUtil.isType(volUri, BlockSnapshot.class)) {
-                    apiClient.unexportSnap(hostId, nativeId);
-                    setSnapWWN(apiClient, blockObject, nativeId);
+                if (hostId != null) {
+                    BlockObject blockObject = BlockObject.fetch(_dbClient, volUri);
+                    // COP-25254 this method could be called when delete vplex volume created from snapshot. in this case
+                    // the volume passed in is an internal volume, representing the snapshot. we need to find the snapshot
+                    // with the same nativeGUID, then unexport the snapshot.
+                    BlockObject snapshot = findSnapshotByInternalVolume(blockObject);
+                    if (snapshot != null) {
+                        blockObject = snapshot;
+                        exportMask.removeVolume(volUri);
+                        volUri = blockObject.getId();
+                    }
+                    String cgName = VNXeUtils.getBlockObjectCGName(blockObject, _dbClient);
+                    if (cgName != null && !processedCGs.contains(cgName)) {
+                        processedCGs.add(cgName);
+                        VNXeUtils.getCGLock(workflowService, storage, cgName, opId);
+                    }
+                    String nativeId = blockObject.getNativeId();
+                    if (URIUtil.isType(volUri, Volume.class)) {
+                        apiClient.unexportLun(hostId, nativeId);
+                    } else if (URIUtil.isType(volUri, BlockSnapshot.class)) {
+                        apiClient.unexportSnap(hostId, nativeId);
+                        setSnapWWN(apiClient, blockObject, nativeId);
+                    }
                 }
                 // update the exportMask object
                 exportMask.removeVolume(volUri);
@@ -672,34 +691,36 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
             VNXeApiClient apiClient = getVnxeClient(storage);
             List<Initiator> allInitiators = ExportUtils.getExportMaskInitiators(exportMask, _dbClient);
             String vnxeHostId = getHostIdFromInitiators(allInitiators, apiClient);
-            List<VNXeHostInitiator> vnxeInitiators = apiClient.getInitiatorsByHostId(vnxeHostId);
-            Map<Initiator, VNXeHostInitiator> vnxeInitiatorsToBeRemoved = prepareInitiators(initiators); // initiators is a subset of allInitiators
+            if (vnxeHostId != null) {
+                List<VNXeHostInitiator> vnxeInitiators = apiClient.getInitiatorsByHostId(vnxeHostId);
+                Map<Initiator, VNXeHostInitiator> vnxeInitiatorsToBeRemoved = prepareInitiators(initiators); // initiators is a subset of allInitiators
 
-            Set<String> initiatorIds = new HashSet<String>();
-            for (VNXeHostInitiator vnxeInit : vnxeInitiators) {
-                initiatorIds.add(vnxeInit.getInitiatorId());
-            }
-
-            Set<String> initiatorsToBeRemoved = new HashSet<String>();
-            for (VNXeHostInitiator vnxeInit : vnxeInitiatorsToBeRemoved.values()) {
-                String initiatorId = vnxeInit.getId();
-                if (initiatorIds.remove(initiatorId)) {
-                    initiatorsToBeRemoved.add(initiatorId);
+                Set<String> initiatorIds = new HashSet<String>();
+                for (VNXeHostInitiator vnxeInit : vnxeInitiators) {
+                    initiatorIds.add(vnxeInit.getInitiatorId());
                 }
-            }
 
-            ExportMaskValidationContext ctx = new ExportMaskValidationContext();
-            ctx.setStorage(storage);
-            ctx.setExportMask(mask);
-            ctx.setBlockObjects(volumeURIList, _dbClient);
-            ctx.setAllowExceptions(context == null);
-            VNXeExportMaskVolumesValidator volumeValidator = (VNXeExportMaskVolumesValidator) validator.removeInitiators(ctx);
-            volumeValidator.validate();
+                Set<String> initiatorsToBeRemoved = new HashSet<String>();
+                for (VNXeHostInitiator vnxeInit : vnxeInitiatorsToBeRemoved.values()) {
+                    String initiatorId = vnxeInit.getId();
+                    if (initiatorIds.remove(initiatorId)) {
+                        initiatorsToBeRemoved.add(initiatorId);
+                    }
+                }
+
+                ExportMaskValidationContext ctx = new ExportMaskValidationContext();
+                ctx.setStorage(storage);
+                ctx.setExportMask(mask);
+                ctx.setBlockObjects(volumeURIList, _dbClient);
+                ctx.setAllowExceptions(context == null);
+                VNXeExportMaskVolumesValidator volumeValidator = (VNXeExportMaskVolumesValidator) validator.removeInitiators(ctx);
+                volumeValidator.validate();
+            }
 
             List<String> initiatorIdList = new ArrayList<>();
             for (Initiator initiator : initiators) {
                 _logger.info("Processing initiator {}", initiator.getLabel());
-                if (!ExportUtils.isInitiatorSharedByMasks(_dbClient, initiator.getId())) {
+                if (vnxeHostId != null && !ExportUtils.isInitiatorSharedByMasks(_dbClient, initiator.getId())) {
                     String initiatorId = initiator.getInitiatorPort();
                     if (Protocol.FC.name().equals(initiator.getProtocol())) {
                         initiatorId = initiator.getInitiatorNode() + ":" + initiatorId;

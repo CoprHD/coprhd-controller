@@ -34,6 +34,8 @@ import com.google.common.base.Joiner;
 public class VNXeExportMaskVolumesValidator extends AbstractVNXeValidator {
 
     private static final Logger log = LoggerFactory.getLogger(VNXeExportMaskVolumesValidator.class);
+    private static final String unknownLUNRemediation = "Unmap the LUN/LUN Snap from the host on array";
+
     private final Collection<? extends BlockObject> blockObjects;
 
     VNXeExportMaskVolumesValidator(StorageSystem storage, ExportMask exportMask,
@@ -70,6 +72,7 @@ public class VNXeExportMaskVolumesValidator extends AbstractVNXeValidator {
                     "Unexpected exception validating ExportMask volumes: " + ex.getMessage());
         }
 
+        setRemediation(unknownLUNRemediation);
         checkForErrors();
         log.info("Completed volume validation of VNXe ExportMask: " + getId());
 

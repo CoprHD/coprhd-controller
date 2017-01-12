@@ -42,6 +42,7 @@ public abstract class AbstractVNXeValidator implements Validator {
     private String id = null; // identifying string for ExportMask
     private VNXeApiClient apiClient;
     private ExceptionContext exceptionContext;
+    private String remediation = ValidatorLogger.CONTACT_EMC_SUPPORT;
 
     public AbstractVNXeValidator(StorageSystem storage, ExportMask exportMask) {
         this.storage = storage;
@@ -106,7 +107,7 @@ public abstract class AbstractVNXeValidator implements Validator {
     public void checkForErrors() {
         if (errorOnMismatch && getLogger().hasErrors() && shouldThrowException()) {
             throw DeviceControllerException.exceptions.validationError(
-                    "Export Mask", getLogger().getMsgs().toString(), ValidatorLogger.CONTACT_EMC_SUPPORT);
+                    "Export Mask", getLogger().getMsgs().toString(), getRemediation());
         }
     }
 
@@ -152,9 +153,7 @@ public abstract class AbstractVNXeValidator implements Validator {
         }
 
         if (vnxeHostId == null) {
-            log.info("No host found for export mask {}", exportMask.getLabel());
-            getLogger().logDiff(exportMask.getId().toString(), "initiators", ValidatorLogger.NO_MATCHING_ENTRY, exportMask.getLabel());
-            checkForErrors();
+            log.warn("No host found for export mask {}", exportMask.getLabel());
         }
 
         return vnxeHostId;
@@ -170,5 +169,13 @@ public abstract class AbstractVNXeValidator implements Validator {
 
     public String getId() {
         return id;
+    }
+
+    protected String getRemediation() {
+        return remediation;
+    }
+
+    protected void setRemediation(String remediation) {
+        this.remediation = remediation;
     }
 }

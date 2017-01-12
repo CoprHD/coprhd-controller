@@ -24,6 +24,7 @@ import com.emc.sa.engine.bind.Param;
 import com.emc.sa.engine.service.Service;
 import com.emc.sa.service.vipr.ViPRService;
 import com.emc.sa.service.vipr.block.tasks.ExportPathsPreview;
+import com.emc.sa.util.CatalogSerializationUtils;
 import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.block.export.ExportPathsAdjustmentPreviewRestRep;
 import com.emc.storageos.model.block.export.InitiatorPathParam;
@@ -56,7 +57,7 @@ public class ExportPathAdjustmentService extends ViPRService {
     @Param(STORAGE_SYSTEM)
     protected URI storageSystem;
     
-    @Param(PORTS)
+    @Param(value = PORTS, required = false)
     protected List<URI> ports;
     
     @Param(SUSPEND_WAIT)
@@ -81,12 +82,12 @@ public class ExportPathAdjustmentService extends ViPRService {
         } else {
             try {
                 for (String affected : affectedPorts) {
-                    Map<URI, List<URI>> port = (Map<URI, List<URI>>) BlockStorageUtils.serializeFromString(affected);
+                    Map<URI, List<URI>> port = (Map<URI, List<URI>>) CatalogSerializationUtils.serializeFromString(affected);
                     affectedPortsMap.putAll(port);
                 }
                 
                 for (String removed : removedPorts) {
-                    Map<URI, List<URI>> port = (Map<URI, List<URI>>) BlockStorageUtils.serializeFromString(removed);
+                    Map<URI, List<URI>> port = (Map<URI, List<URI>>) CatalogSerializationUtils.serializeFromString(removed);
                     removedPortsMap.putAll(port);
                 }
             } catch (Exception ex) {

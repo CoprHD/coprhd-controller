@@ -315,6 +315,11 @@ public class Workflow implements Serializable {
             byte[] bytes = GenericSerializer.serialize(this);
         }
     }
+    
+    /**
+     * Defines a NULL method, either for execution or rollback. The null method always returns "Step Succeeded.".
+     */
+    static final public Method NULL_METHOD = new Workflow.Method("_null_method_");
 
     /**
      * The interface that must be provided as the workflow callback handler.
@@ -398,6 +403,9 @@ public class Workflow implements Serializable {
      */
     private void methodNameValidator(Class controllerClass, String methodName)
             throws WorkflowException {
+        if (methodName.equals(NULL_METHOD.methodName)) {
+            return;
+        }
         java.lang.reflect.Method[] methods = controllerClass.getMethods();
         for (java.lang.reflect.Method method : methods) {
             if (method.getName().equals(methodName)) {

@@ -47,6 +47,7 @@ import com.emc.sa.machinetags.KnownMachineTags;
 import com.emc.sa.machinetags.MachineTagUtils;
 import com.emc.sa.service.vipr.block.BlockStorageUtils;
 import com.emc.sa.util.ResourceType;
+import com.emc.sa.util.CatalogSerializationUtils;
 import com.emc.sa.util.StringComparator;
 import com.emc.sa.util.TextUtils;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
@@ -845,7 +846,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         for (StoragePortRestRep port : ports) {
             if (port.getPortType().equals(StoragePort.PortType.frontend.toString()) && 
                     port.getStorageDevice().getId().equals(storageSystemId)) {
-                String portPercentBusy = (port.getPortPercentBusy() != null) ? port.getPortPercentBusy().toString() : "N/A"; 
+                String portPercentBusy = (port.getPortPercentBusy() != null) ? String.valueOf(Math.round(port.getPortPercentBusy() * 100 / 100)) + "%" : "N/A"; 
                 String label = getMessage("exportPathAdjustment.ports", port.getPortName(), portPercentBusy);
                 options.add(new AssetOption(port.getId(), label));
             }
@@ -933,7 +934,8 @@ public class BlockProvider extends BaseAssetOptionsProvider {
             String label = getMessage(message, initiator.getHostName(), initiator.getName(), portList);
             String keyString = new String("");
             try {
-                keyString = BlockStorageUtils.serializeToString(key);
+                keyString = CatalogSerializationUtils.serializeToString(key);
+//                keyString = BlockStorageUtils.serializeToString(key);
             } catch (Exception ex) {
                 
             }

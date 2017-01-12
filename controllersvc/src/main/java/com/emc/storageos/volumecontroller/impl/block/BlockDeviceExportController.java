@@ -24,6 +24,7 @@ import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
+import com.emc.storageos.db.client.model.DiscoveredSystemObject;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.ExportPathParams;
@@ -58,6 +59,8 @@ import com.emc.storageos.volumecontroller.impl.block.taskcompleter.VolumeVpoolCh
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.VolumeWorkflowCompleter;
 import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
 import com.emc.storageos.workflow.Workflow;
+import com.emc.storageos.workflow.WorkflowException;
+import com.emc.storageos.workflow.WorkflowService;
 import com.google.common.base.Joiner;
 
 /**
@@ -963,20 +966,29 @@ public class BlockDeviceExportController implements BlockExportController {
                 
                 }
 
-            boolean isPending = waitBeforeRemovePaths;
+            
             
             if (removedPaths != null && !removedPaths.isEmpty() ) {
-                // TODO -- externalize this
-                String suspendMessage = "Adjust/rescan host paths. Press \"Resume\" to start removal of unnecessary paths."
-                        + "\"Rollback\" will terminate the order without removing paths.";
+                boolean isPending = waitBeforeRemovePaths;
+                if (isPending) {
+                    // Insert a step that will be suspended. When it resumes, it will re-acquire the lock keys,
+                    // which are released when the workflow suspends.
+                    String suspendMessage = "Adjust/rescan host/cluster paths. Press \"Resume\" to start removal of unnecessary paths."
+                            + "\"Rollback\" will terminate the order without removing paths, leaving the added paths in place.";
+                    Workflow.Method method = WorkflowService.acquireWorkflowLocksMethod(lockKeys, 
+                            LockTimeoutValue.get(LockType.EXPORT_GROUP_OPS));
+                    Workflow.Method rollbackNull = Workflow.NULL_METHOD;
+                   stepId =  _wfUtils.newWorkflowStep(workflow, "AcquireLocks", "Suspending for user verification of host/cluster connectivity.", systemURI, 
+                            WorkflowService.class, method, rollbackNull, stepId, isPending, suspendMessage);
+                }
+                
+                // Iterate through the ExportMasks, generating a step to remove unneeded paths.
                 for (ExportMask mask : affectedMasks) {
                     URI maskURI = mask.getId();
                     Map<URI, List<URI>> removingPaths = maskRemovePathMap.get(maskURI);
                     if (!removingPaths.isEmpty()) {
                         stepId = _wfUtils.generateExportRemovePathsWorkflow(workflow, "Export remove paths", stepId, 
-                                systemURI, exportGroupURI, varray, mask, maskAjustedPathMap.get(maskURI), removingPaths, 
-                                isPending, suspendMessage);
-                        isPending = false;
+                                systemURI, exportGroupURI, varray, mask, maskAjustedPathMap.get(maskURI), removingPaths);
                     }
                 }
                 stepId = _wfUtils.generateZoningRemovePathsWorkflow(workflow, "Zoning remove paths", systemURI, exportGroupURI, maskAjustedPathMap,

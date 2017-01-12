@@ -1,6 +1,7 @@
 package com.emc.sa.service.vipr.block.tasks;
 
 import java.net.URI;
+import java.util.ArrayList;
 import java.util.List;
 
 import com.emc.sa.service.vipr.tasks.WaitForTask;
@@ -37,7 +38,7 @@ public class AdjustExportPaths extends WaitForTask<ExportGroupRestRep> {
         this.exportId = exportId;
         
         provideDetailArgs(this.exportId, this.minPaths, this.maxPaths, this.pathsPerInitiator, 
-                this.addedPaths.toString(), this.removedPaths.toString());
+                buildPathDetails(this.addedPaths), buildPathDetails(this.removedPaths));
     }
     
     @Override
@@ -56,8 +57,23 @@ public class AdjustExportPaths extends WaitForTask<ExportGroupRestRep> {
         param.setRemovedPaths(removedPaths);
         
         param.setWaitBeforeRemovePaths(suspendWait);
-        param.setWaitBeforeRemovePaths(false);
 
         return getClient().blockExports().pathAdjustment(exportId, param);
+    }
+    
+    private String buildPathDetails(List<InitiatorPathParam> param) {
+        String str = new String("");
+        
+        for (InitiatorPathParam ini : param) {
+            str += " " + ini.getInitiator().toString() + ": [";
+            List<String> ports = new ArrayList<String>();
+            for (URI uri : ini.getStoragePorts()) {
+                ports.add(uri.toString());
+            }
+            str += String.join(", ", ports);
+            str += "],";
+        }
+        
+        return str;
     }
 }

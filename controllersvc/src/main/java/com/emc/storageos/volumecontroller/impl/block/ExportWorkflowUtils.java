@@ -12,7 +12,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -106,9 +105,6 @@ public class ExportWorkflowUtils {
      * @param workflow the main workflow
      * @param wfGroupId the workflow group Id, if any
      * @param waitFor the id of a step on which this workflow has to wait, if any
-     * @param storageUri the storage controller used to perform the export update.
-     *            This can be either a block storage controller or protection
-     *            controller.
      * @param exportGroupUri the export group being updated
      * @param exportMask the export mask for the storage system
      * @param addedBlockObjects the map of block objects to be added
@@ -118,6 +114,9 @@ public class ExportWorkflowUtils {
      * @param blockStorageControllerUri the block storage controller. This will always
      *            be used for adding/removing initiators as we
      *            do not want a protection controller doing this.
+     * @param storageUri the storage controller used to perform the export update.
+     *            This can be either a block storage controller or protection
+     *            controller.
      * @return the id of the wrapper step that was added to main workflow
      * @throws IOException
      * @throws WorkflowException
@@ -142,10 +141,10 @@ public class ExportWorkflowUtils {
             return null;
         }
 
-        String task = UUID.randomUUID().toString();
-
-        Workflow storageWorkflow = newWorkflow("storageSystemExportGroupUpdate", false, task);
-        _log.info("Task id {} and sub workflow uri {}", task, storageWorkflow.getWorkflowURI());
+        // We would rather the task be the child stepID of the parent workflow's stepID.
+        // This helps us to preserve parent/child relationships.
+        String exportGroupUpdateStepId = workflow.createStepId();
+        Workflow storageWorkflow = newWorkflow("storageSystemExportGroupUpdate", false, exportGroupUpdateStepId);
         DiscoveredSystemObject storageSystem = getStorageSystem(_dbClient, blockStorageControllerUri);
         String stepId = null;
 
@@ -230,7 +229,7 @@ public class ExportWorkflowUtils {
                     workflow, lockKeys, LockTimeoutValue.get(LockType.EXPORT_GROUP_OPS));
             if (!acquiredLocks) {
                 throw DeviceControllerException.exceptions.failedToAcquireLock(lockKeys.toString(),
-                        "ExportMaskUpgrade: " + exportGroup.getLabel());
+                        "ExportMaskUpdate: " + exportGroup.getLabel());
             }
 
             Map<URI, Integer> objectsToAdd = new HashMap<URI, Integer>(addedBlockObjects);
@@ -261,7 +260,7 @@ public class ExportWorkflowUtils {
                     storageWorkflow, lockKeys, LockTimeoutValue.get(LockType.EXPORT_GROUP_OPS));
             if (!acquiredLocks) {
                 throw DeviceControllerException.exceptions.failedToAcquireLock(lockKeys.toString(),
-                        "ExportMaskUpgrade: " + exportMask.getMaskName());
+                        "ExportMaskUpdate: " + exportMask.getMaskName());
             }
 
             // There will not be a rollback step for the overall update instead
@@ -271,7 +270,7 @@ public class ExportWorkflowUtils {
             return newWorkflowStep(workflow, wfGroupId,
                     String.format("Updating export on storage array %s (%s)",
                             storageSystem.getNativeGuid(), blockStorageControllerUri.toString()),
-                    storageSystem, method, null, waitFor);
+                    storageSystem, method, null, waitFor, exportGroupUpdateStepId);
         } catch (Exception ex) {
             getWorkflowService().releaseAllWorkflowLocks(storageWorkflow);
             throw ex;
@@ -502,6 +501,45 @@ public class ExportWorkflowUtils {
                 waitFor, storageSystem.getId(),
                 storageSystem.getSystemType(), ExportWorkflowEntryPoints.class, method,
                 rollback, null);
+    }
+
+    /**
+     * Wrapper for WorkflowService.createStep. The method expects that the method and
+     * rollback (if specified) are in the ExportWorkflowEntryPoints class.
+     *
+     * @param workflow
+     *            - Workflow in which to add the step
+     * @param groupId
+     *            - String pointing to the group id of the step
+     * @param description
+     *            - String description of the step
+     * @param storageSystem
+     *            - StorageSystem object to which operation applies
+     * @param method
+     *            - Step method to be called
+     * @param rollback
+     *            - Step rollback method to be call (if any)
+     * @param waitFor
+     *            - String of groupId of step to wait for
+     * @param stepId
+     *            - step ID
+     *
+     * @return String the stepId generated for the step.
+     * @throws WorkflowException
+     */
+    public String newWorkflowStep(Workflow workflow,
+            String groupId, String description,
+            DiscoveredSystemObject storageSystem,
+            Workflow.Method method, Workflow.Method rollback,
+            String waitFor, String stepId)
+            throws WorkflowException {
+        if (groupId == null) {
+            groupId = method.getClass().getSimpleName();
+        }
+        return workflow.createStep(groupId, description,
+                waitFor, storageSystem.getId(),
+                storageSystem.getSystemType(), ExportWorkflowEntryPoints.class, method,
+                rollback, stepId);
     }
 
     /**

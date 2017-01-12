@@ -6,11 +6,13 @@ package com.emc.vipr.client.catalog;
 
 import static com.emc.vipr.client.core.util.ResourceUtils.defaultList;
 
+import java.io.InputStream;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.UriBuilder;
 
 import com.emc.storageos.model.BulkIdParam;
@@ -24,8 +26,9 @@ import com.emc.vipr.client.core.filters.ResourceFilter;
 import com.emc.vipr.client.core.util.ResourceUtils;
 import com.emc.vipr.client.impl.RestClient;
 import com.emc.vipr.model.catalog.*;
+import com.sun.jersey.api.client.ClientResponse;
 
-public class Orders2 extends AbstractCatalogBulkResources<OrderRestRep> implements TenantResources<OrderRestRep> {
+public class Orders2 extends AbstractCatalogBulkResources<OrderRestRep>implements TenantResources<OrderRestRep> {
 
     public Orders2(ViPRCatalogClient2 parent, RestClient client) {
         super(parent, client, OrderRestRep.class, PathConstants.ORDER2_URL);
@@ -211,12 +214,12 @@ public class Orders2 extends AbstractCatalogBulkResources<OrderRestRep> implemen
         OrderCount orderCount = client.getURI(OrderCount.class, uriBuilder.build());
         return orderCount;
     }
-    
+
     /**
      * Get number of orders within a time range for the given tenants
      * <p>
      * API Call: <tt>GET /catalog/orders/count</tt>
-     * 
+     *
      * @param startTime
      * @param endTime
      * @param tenantId
@@ -235,6 +238,102 @@ public class Orders2 extends AbstractCatalogBulkResources<OrderRestRep> implemen
         }
         OrderCount orderCount = client.getURI(OrderCount.class, uriBuilder.build());
         return orderCount;
+    }
+
+    /**
+     * Delete orders within a time range
+     *
+     * <p>
+     * API Call: <tt>DELETE /catalog/orders</tt>
+     *
+     * @param startTime
+     * @param endTime
+     * @param tenantId
+     */
+    public void deleteOrders(String startTime, String endTime, URI tenantId, String orderStatus) {
+        UriBuilder uriBuilder = client.uriBuilder(PathConstants.ORDER2_DELETE_ORDERS);
+        if (startTime != null) {
+            uriBuilder = uriBuilder.queryParam(SearchConstants.START_TIME_PARAM, startTime);
+        }
+
+        if (endTime != null) {
+            uriBuilder = uriBuilder.queryParam(SearchConstants.END_TIME_PARAM, endTime);
+        }
+
+        if (tenantId != null) {
+            uriBuilder = uriBuilder.queryParam(SearchConstants.TENANT_IDS_PARAM, tenantId.toString());
+        }
+
+        if (orderStatus != null) {
+            uriBuilder = uriBuilder.queryParam(SearchConstants.ORDER_STATUS_PARAM2, orderStatus);
+        }
+
+        client.deleteURI(String.class, uriBuilder.build());
+    }
+
+    /**
+     * Query order job status
+     *
+     * <p>
+     * API Call: <tt>GET /catalog/orders/job-status</tt>
+     *
+     * @param jobType
+     * @return
+     */
+    public OrderJobInfo queryOrderJob(String jobType) {
+        UriBuilder uriBuilder = client.uriBuilder(PathConstants.ORDER2_QUERY_ORDER_JOB);
+        uriBuilder = uriBuilder.queryParam(SearchConstants.JOB_TYPE, jobType);
+
+        OrderJobInfo jobInfo = client.getURI(OrderJobInfo.class, uriBuilder.build());
+
+        return jobInfo;
+    }
+
+    /**
+     * Download orders
+     *
+     * <p>
+     * API Call: <tt>GET /catalog/orders/download</tt>
+     *
+     * @param startTime
+     * @param endTime
+     * @param tenantIDs
+     * @param orderIDs
+     */
+    private URI getDownloadOrdersURI(String startTime, String endTime, String tenantIDs, String orderIDs,
+            String status) {
+        UriBuilder uriBuilder = client.uriBuilder(PathConstants.ORDER2_DOWNLOAD_ORDER);
+
+        if (startTime != null) {
+            uriBuilder = uriBuilder.queryParam(SearchConstants.START_TIME_PARAM, startTime);
+        }
+        if (endTime != null) {
+            uriBuilder = uriBuilder.queryParam(SearchConstants.END_TIME_PARAM, endTime);
+        }
+        if (tenantIDs != null) {
+            uriBuilder = uriBuilder.queryParam(SearchConstants.TENANT_IDS_PARAM, tenantIDs.toString());
+        }
+        if (orderIDs != null) {
+            uriBuilder = uriBuilder.queryParam(SearchConstants.ORDER_IDS, orderIDs.toString());
+        }
+
+        if (status != null) {
+            uriBuilder = uriBuilder.queryParam(SearchConstants.ORDER_STATUS_PARAM2, status.toString());
+        }
+
+        return uriBuilder.build();
+    }
+
+    public InputStream downloadOrdersAsStream(String startTime, String endTime, String tenantIDs, String orderIDs, String status) {
+        URI uri = getDownloadOrdersURI(startTime, endTime, tenantIDs, orderIDs, status);
+        ClientResponse response = client.resource(uri).accept(MediaType.APPLICATION_XML).get(ClientResponse.class);
+        return response.getEntityInputStream();
+    }
+
+    public InputStream downloadOrdersAsText(String startTime, String endTime, String tenantIDs, String orderIDs, String status) {
+        URI uri = getDownloadOrdersURI(startTime, endTime, tenantIDs, orderIDs, status);
+        ClientResponse response = client.resource(uri).accept(MediaType.TEXT_PLAIN).get(ClientResponse.class);
+        return response.getEntityInputStream();
     }
 
     /**

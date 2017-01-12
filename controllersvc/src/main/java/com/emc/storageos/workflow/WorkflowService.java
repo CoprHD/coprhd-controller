@@ -595,8 +595,9 @@ public class WorkflowService implements WorkflowController {
                 } 
 
                 // If an error is reported, and we're supposed to suspend on error, suspend
+                // Don't put a workflow in suspended state if we're already in rollback.
                 Step step = workflow.getStepMap().get(stepId);
-                if (StepState.ERROR == state && workflow.isSuspendOnError()) {
+                if (StepState.ERROR == state && workflow.isSuspendOnError() && !step.isRollbackStep()) {
                     state = StepState.SUSPENDED_ERROR;
                     step.suspendStep = false;
                 }
@@ -1158,6 +1159,10 @@ public class WorkflowService implements WorkflowController {
 
                 // Mark steps that should be suspended in the workflow for later.
                 suspendStepsMatchingProperty(workflow);
+
+                // Make sure parent/child relationship is refreshed in case child workflow was created
+                // before parent was executed
+                workflow._nested = associateToParentWorkflow(workflow);
 
                 persistWorkflow(workflow);
 
@@ -1975,7 +1980,7 @@ public class WorkflowService implements WorkflowController {
     /**
      * Associates workflow to a parent (outer) workflow (if any), i.e.
      * this Workflow is nested within the outer one.
-     * Depends on the Worflow's orchestration task id being a step in the outer workflow.
+     * Depends on the Workflow's orchestration task id being a step in the outer workflow.
      * 
      * @param workflow
      *            -- potential nested Workflow

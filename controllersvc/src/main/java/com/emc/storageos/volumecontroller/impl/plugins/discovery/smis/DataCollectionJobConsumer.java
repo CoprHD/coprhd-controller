@@ -121,13 +121,15 @@ public class DataCollectionJobConsumer extends
             throw new DeviceControllerException("Invoked wrong job type : " + job.getType());
         }
         
-        String nodeId = _coordinator.getInetAddessLookupMap().getNodeId();
-
         DataCollectionTaskCompleter completer = job.getCompleter();
+        // set the next run time based on the time this discovery job is started (not the time it's queued)
         completer.setNextRunTime(_dbClient,
                 System.currentTimeMillis() + JobIntervals.get(job.getType()).getInterval() * 1000);
         completer.updateObjectState(_dbClient, DiscoveredDataObject.DataCollectionJobStatus.IN_PROGRESS);
+        
+        // get the node that this discovery is being run on so it is displayed in the UI
         String jobType = job.getType();
+        String nodeId = _coordinator.getInetAddessLookupMap().getNodeId();
         job.updateTask(_dbClient, "Started " + jobType + " on node " + nodeId);
 
         /**

@@ -774,6 +774,7 @@ public class DataCollectionJobScheduler {
             // went wrong with a previous discovery. Set it to error and allow it to be rescheduled.
             boolean dbInProgressStatus = isInProgress(system, type);
             if (dbInProgressStatus) {
+                _logger.warn(type + " job for " + system.getLabel() + " is not queued or in progress; correcting the ViPR DB status");
                 updateDataCollectionStatus(system, type, DiscoveredDataObject.DataCollectionJobStatus.ERROR);
             }
         } else {
@@ -791,14 +792,15 @@ public class DataCollectionJobScheduler {
             }
          }
 
-        return isJobSchedulingNeeded(system.getId(), type, queued, inProgress, isError(system, type), scheduler, lastTime, nextTime);
+        return isJobSchedulingNeeded(system.getId(), type, (queued || inProgress), isError(system, type), scheduler, lastTime, nextTime);
     }
 
     /**
-     * update Status to error
+     * update data collection status on storage system
      * 
      * @param system
      * @param type
+     * @param status
      */
     private <T extends DiscoveredSystemObject> void updateDataCollectionStatus(T system, String type, DiscoveredDataObject.DataCollectionJobStatus status) {
         if (ControllerServiceImpl.METERING.equalsIgnoreCase(type)) {
@@ -823,7 +825,7 @@ public class DataCollectionJobScheduler {
         long nextTime = provider.getNextScanTime();
         long lastTime = provider.getLastScanTime();
 
-        return isJobSchedulingNeeded(provider.getId(), type, false, isInProgress(provider), isError(provider), scheduler, lastTime, nextTime);
+        return isJobSchedulingNeeded(provider.getId(), type, isInProgress(provider), isError(provider), scheduler, lastTime, nextTime);
     }
 
     /**
@@ -833,13 +835,13 @@ public class DataCollectionJobScheduler {
      * @param scheduler indicates if the job is initiated automatically by scheduler or if it is
      *            requested by a user.
      */
-    private boolean isJobSchedulingNeeded(URI id, String type, boolean queued, boolean inProgress, boolean isError, boolean scheduler, long lastTime, long nextTime) {
+    private boolean isJobSchedulingNeeded(URI id, String type, boolean inProgress, boolean isError, boolean scheduler, long lastTime, long nextTime) {
         
         long systemTime = System.currentTimeMillis();
         long tolerance = Long.parseLong(_configInfo.get(TOLERANCE)) * 1000;
         _logger.info("Next Run Time {} , Last Run Time {}", nextTime, lastTime);
         long refreshInterval = getRefreshInterval(type);
-        if (!inProgress && !queued) {
+        if (!inProgress) {
             // First for job, that is scheduled, is compared against the "next time"
             // it expected to be started by the scheduler thread
             if (scheduler) {

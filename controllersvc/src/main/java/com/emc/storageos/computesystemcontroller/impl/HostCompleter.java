@@ -88,18 +88,6 @@ public class HostCompleter extends ComputeSystemCompleter {
                     }
                     dbClient.error(Host.class, id, getOpId(), coded);
                     break;
-                case ready:
-                    // Only update the cluster/vCenterDataCenter values if they both exist
-                    if (clusterId != null && vCenterDataCenterId != null) {
-
-                        _logger.info("Success.  Setting new host values fro cluster/vcenterdatacenter");
-
-                        ComputeSystemHelper.updateHostAndInitiatorClusterReferences(dbClient, clusterId, id);
-                        ComputeSystemHelper.updateHostVcenterDatacenterReference(dbClient, id, vCenterDataCenterId);
-                    }
-
-                    dbClient.ready(Host.class, id, getOpId());
-                    break;
                 default:
                     dbClient.ready(Host.class, id, getOpId());
             }

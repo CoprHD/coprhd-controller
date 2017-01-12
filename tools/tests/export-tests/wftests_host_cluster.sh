@@ -9,75 +9,88 @@ HAPPY_PATH_TEST_INJECTION="happy_path_test_injection"
 HOST_TEST_CASES="test_host_add_initiator test_vcenter_event test_host_remove_initiator test_move_clustered_host_to_another_cluster test_move_non_clustered_host_to_cluster test_cluster_remove_host"
 
 get_host_cluster() {
-    tenant=$1
-    hostname=$2
-    clusterid=`hosts list ${tenant} | grep ${hostname} | awk '{print $5}'`
-    echo `cluster list ${tenant} | grep ${clusterid} | awk '{print $1}'`
+    tenant_arg=$1
+    hostname_arg=$2
+    cluster_id=`hosts list ${tenant_arg} | grep "${hostname_arg} " | awk '{print $5}'`
+    echo `cluster list ${tenant_arg} | grep "${cluster_id} " | awk '{print $1}'`
 }
 
 get_host_datacenter() {
-    tenant=$1
-    hostname=$2
-    vcenter=$3
-    datacenterid=`hosts list ${tenant} | grep ${hostname} | awk '{print $6}'`
-    echo `datacenter list ${vcenter} | grep ${datacenterid} | awk '{print $1}'`
+    tenant_arg=$1
+    hostname_arg=$2
+    vcenter_arg=$3
+    datacenter_id=`hosts list ${tenant_arg} | grep "${hostname_arg} " | awk '{print $6}'`
+    echo `datacenter list ${vcenter_arg} | grep "${datacenter_id} " | awk '{print $1}'`
 }
 
 create_volume_and_datastore() {
     # tenant volname datastorename varray vpool project vcenter datacenter cluster
-    tenant=$1
-    volname=$2
-    datastorename=$3
+    tenant_arg=$1
+    volname_arg=$2
+    datastorename_arg=$3   
 
-    virtualarray=`neighborhood list | grep ${4} | awk '{print $3}'`
-    virtualpool=`cos list block | grep ${5} | awk '{print $3}'`
-    project=`project list --tenant ${tenant} | grep "${6} " | awk '{print $4}'`
+    virtualarray_id=`neighborhood list | grep "${4} " | awk '{print $3}'`
+    virtualpool_id=`cos list block | grep "${5} " | awk '{print $3}'`
+    project_id=`project list --tenant ${tenant_arg} | grep "${6} " | awk '{print $4}'`
  
-    vcenter=`vcenter list ${tenant} | grep ${7} | awk '{print $5}'`
-    datacenter=`datacenter list ${7} | grep ${8} | awk '{print $4}'`
-    cluster=`cluster list ${tenant} | grep ${9} | awk '{print $4}'`
+    vcenter_id=`vcenter list ${tenant_arg} | grep "${7} " | awk '{print $5}'`
+    datacenter_id=`datacenter list ${7} | grep "${8} " | awk '{print $4}'`
+    cluster_id=`cluster list ${tenant_arg} | grep "${9} " | awk '{print $4}'`
     
-    echo "=== catalog order CreateVolumeandDatastore ${tenant} project=${project},name=${volname},virtualPool=${virtualpool},virtualArray=${virtualarray},host=${cluster},datastoreName=${datastorename},size=1,vcenter=${vcenter},datacenter=${datacenter}"
-    echo `catalog order CreateVolumeandDatastore ${tenant} project=${project},name=${volname},virtualPool=${virtualpool},virtualArray=${virtualarray},host=${cluster},datastoreName=${datastorename},size=1,vcenter=${vcenter},datacenter=${datacenter}`
+    echo "=== catalog order CreateVolumeandDatastore ${tenant_arg} project=${project_id},name=${volname_arg},virtualPool=${virtualpool_id},virtualArray=${virtualarray_id},host=${cluster_id},datastoreName=${datastorename_arg},size=1,vcenter=${vcenter_id},datacenter=${datacenter_id}"
+    echo `catalog order CreateVolumeandDatastore ${tenant_arg} project=${project_id},name=${volname_arg},virtualPool=${virtualpool_id},virtualArray=${virtualarray_id},host=${cluster_id},datastoreName=${datastorename_arg},size=1,vcenter=${vcenter_id},datacenter=${datacenter_id}`
 }
 
 delete_datastore_and_volume() {
     # tenant datastorename vcenter datacenter cluster
-    tenant=$1   
-    datastorename=$2
+    tenant_arg=$1   
+    datastorename_arg=$2
 
-    vcenter=`vcenter list ${tenant} | grep ${3} | awk '{print $5}'`
-    datacenter=`datacenter list ${3} | grep ${4} | awk '{print $4}'`
-    cluster=`cluster list ${tenant} | grep ${5} | awk '{print $4}'`
+    vcenter_id=`vcenter list ${tenant_arg} | grep "${3} " | awk '{print $5}'`
+    datacenter_id=`datacenter list ${3} | grep "${4} " | awk '{print $4}'`
+    cluster_id=`cluster list ${tenant_arg} | grep "${5} " | awk '{print $4}'`
     
-    echo "=== catalog order DeleteDatastoreandVolume ${tenant} host=${cluster},datastoreName=${datastorename},vcenter=${vcenter},datacenter=${datacenter}"
-    echo `catalog order DeleteDatastoreandVolume ${tenant} host=${cluster},datastoreName=${datastorename},vcenter=${vcenter},datacenter=${datacenter}`
+    echo "=== catalog order DeleteDatastoreandVolume ${tenant_arg} host=${cluster_id},datastoreName=${datastorename_arg},vcenter=${vcenter_id},datacenter=${datacenter_id}"
+    echo `catalog order DeleteDatastoreandVolume ${tenant_arg} host=${cluster_id},datastoreName=${datastorename_arg},vcenter=${vcenter_id},datacenter=${datacenter_id}`
 }
 
 create_datastore() {
     # tenant volname datastorename project vcenter datacenter cluster
-    tenant=$1   
-    volume=`volume list ${4} | grep ${2} | awk '{print $7}'`
-    datastorename=$3
-    project=`project list --tenant ${tenant} | grep "${4} " | awk '{print $4}'`
-    vcenter=`vcenter list ${tenant} | grep ${5} | awk '{print $5}'`
-    datacenter=`datacenter list ${5} | grep ${6} | awk '{print $4}'`
-    cluster=`cluster list ${tenant} | grep ${7} | awk '{print $4}'`    
+    tenant_arg=$1   
+    volume_id=`volume list ${4} | grep "${2} " | awk '{print $7}'`
+    datastorename_arg=$3
+    project_id=`project list --tenant ${tenant_arg} | grep "${4} " | awk '{print $4}'`
+    vcenter_id=`vcenter list ${tenant_arg} | grep "${5} " | awk '{print $5}'`
+    datacenter_id=`datacenter list ${5} | grep "${6} " | awk '{print $4}'`
+    cluster_id=`cluster list ${tenant_arg} | grep "${7} " | awk '{print $4}'`    
     
-    echo "=== catalog order CreateVMwareDatastore ${tenant} host=${cluster},volumes=${volume},datastoreName=${datastorename},project=${project},vcenter=${vcenter},datacenter=${datacenter}"
-    echo `catalog order CreateVMwareDatastore ${tenant} host=${cluster},volumes=${volume},datastoreName=${datastorename},project=${project},vcenter=${vcenter},datacenter=${datacenter}`
+    echo "=== catalog order CreateVMwareDatastore ${tenant_arg} host=${cluster_id},volumes=${volume_id},datastoreName=${datastorename_arg},project=${project_id},vcenter=${vcenter_id},datacenter=${datacenter_id}"
+    echo `catalog order CreateVMwareDatastore ${tenant_arg} host=${cluster_id},volumes=${volume_id},datastoreName=${datastorename_arg},project=${project_id},vcenter=${vcenter_id},datacenter=${datacenter_id}`
 }
 
 delete_datastore() {
     # tenant datastorename vcenter datacenter cluster
-    tenant=$1   
-    datastorename=$2
-    vcenter=`vcenter list ${tenant} | grep ${3} | awk '{print $5}'`
-    datacenter=`datacenter list ${3} | grep ${4} | awk '{print $4}'`
-    cluster=`cluster list ${tenant} | grep ${5} | awk '{print $4}'`    
+    tenant_arg=$1   
+    datastorename_arg=$2
+    vcenter_id=`vcenter list ${tenant_arg} | grep "${3} " | awk '{print $5}'`
+    datacenter_id=`datacenter list ${3} | grep "${4} " | awk '{print $4}'`
+    cluster_id=`cluster list ${tenant_arg} | grep "${5} " | awk '{print $4}'`    
     
-    echo "=== catalog order DeleteVMwareDatastore ${tenant} host=${cluster},datastoreName=${datastorename},vcenter=${vcenter},datacenter=${datacenter}"
-    echo `catalog order DeleteVMwareDatastore ${tenant} host=${cluster},datastoreName=${datastorename},vcenter=${vcenter},datacenter=${datacenter}`
+    echo "=== catalog order DeleteVMwareDatastore ${tenant_arg} host=${cluster_id},datastoreName=${datastorename_arg},vcenter=${vcenter_id},datacenter=${datacenter_id}"
+    echo `catalog order DeleteVMwareDatastore ${tenant_arg} host=${cluster_id},datastoreName=${datastorename_arg},vcenter=${vcenter_id},datacenter=${datacenter_id}`
+}
+
+export_volume_vmware() {
+    # tenant volume vcenter datacenter cluster project
+    tenant_arg=$1       
+    volume_id=`volume list ${6} | grep "${2} " | awk '{print $7}'`
+    vcenter_id=`vcenter list ${tenant_arg} | grep "${3} " | awk '{print $5}'`
+    datacenter_id=`datacenter list ${3} | grep "${4} " | awk '{print $4}'`
+    cluster_id=`cluster list ${tenant_arg} | grep "${5} " | awk '{print $4}'`           
+    project_id=`project list --tenant ${tenant_arg} | grep "${6} " | awk '{print $4}'`
+        
+    echo "=== catalog order ExportVolumeforVMware ${tenant_arg} project=${project_id},volumes=${volume_id},host=${cluster_id},vcenter=${vcenter_id},datacenter=${datacenter_id}"
+    echo `catalog order ExportVolumeforVMware ${tenant_arg} project=${project_id},volumes=${volume_id},host=${cluster_id},vcenter=${vcenter_id},datacenter=${datacenter_id}`
 }
 
 # Test - Host Add Initiator
@@ -584,9 +597,11 @@ test_move_clustered_host_to_another_cluster() {
     test_name="test_move_clustered_host_to_another_cluster"
     echot "Test test_move_clustered_host_to_another_cluster Begins"
         
-    common_failure_injections="failure_001_host_export_ComputeSystemControllerImpl.updateExportGroup_before_update"
+    common_failure_injections="failure_004_final_step_in_workflow_complete \
+                               failure_027_host_cluster_ComputeSystemControllerImpl.deleteExportGroup_before_delete \
+                               failure_042_host_cluster_ComputeSystemControllerImpl.updateHostAndInitiatorClusterReferences" 
 
-    failure_injections="${HAPPY_PATH_TEST_INJECTION}" # ${common_failure_injections}"
+    failure_injections="${HAPPY_PATH_TEST_INJECTION} ${common_failure_injections}"
 
     # Placeholder when a specific failure case is being worked...
     # failure_injections="failure_001_host_export_ComputeSystemControllerImpl.updateExportGroup_before_update"
@@ -729,7 +744,6 @@ test_move_clustered_host_to_another_cluster() {
            set_artificial_failure none
            
            runcmd hosts update $host1 --cluster ${TENANT}/${cluster2}
-           sleep 60
 
         fi
         
@@ -960,9 +974,9 @@ test_move_non_clustered_host_to_cluster() {
 # 5. Delete datastores and volumes
 #
 test_move_clustered_discovered_host_to_cluster() {
-    test_name="test_move_non_clustered_host_to_cluster"
+    test_name="test_move_clustered_discovered_host_to_cluster"
     failure="only_one_test"
-    echot "Test test_move_non_clustered_host_to_cluster"
+    echot "Test test_move_clustered_discovered_host_to_cluster"
     cluster1="cluster-1"
     cluster2="cluster-2"
     host="host21"
@@ -1400,7 +1414,6 @@ test_cluster_remove_host() {
 }
 
 # Test Cluster Remove Discovered Host
-
 test_cluster_remove_discovered_host() {
     test_name="test_cluster_remove_discovered_host"
     echot "Test cluster_remove_discovered_host Begins"
@@ -1425,7 +1438,8 @@ test_cluster_remove_discovered_host() {
     #failure_injections="${HAPPY_PATH_TEST_INJECTION} ${common_failure_injections}"
 
     # Placeholder when a specific failure case is being worked...
-    failure_injections="${HAPPY_PATH_TEST_INJECTION}"    
+    #failure_injections="${HAPPY_PATH_TEST_INJECTION}"    
+    failure_injections="${HAPPY_PATH_TEST_INJECTION} failure_029_host_cluster_ComputeSystemControllerImpl.verifyDatastore_after_verify"
     
     # Real™ hosts/clusters/vcenters/datacenters provisioned during setup
     hostpostfix=".sim.emc.com"
@@ -1449,8 +1463,11 @@ test_cluster_remove_discovered_host() {
     volume2=${VOLNAME}-2-${random_number}
     datastore1="fakedatastore1"-${random_number}
     datastore2="fakedatastore2"-${random_number}
-    secho "Creating volume ${volume1} and datastore ${datastore1}..."
+ 
+    secho "Creating volume ${PROJECT}/${volume1} and datastore ${datastore1} exported to ${cluster1}..."
     create_volume_and_datastore $TENANT ${volume1} ${datastore1} $NH $VPOOL_BASE ${PROJECT} ${vcenter} ${datacenter} ${cluster1}
+ 
+    secho "Creating volume ${PROJECT2}/${volume2} and datastore ${datastore2} exported to ${cluster1}..."
     create_volume_and_datastore $TENANT ${volume2} ${datastore2} $NH $VPOOL_BASE ${PROJECT2} ${vcenter} ${datacenter} ${cluster1}
     
     # Export group name will be auto-generated as the cluster name
@@ -1458,7 +1475,7 @@ test_cluster_remove_discovered_host() {
     
     # List of all export groups created
     exportgroups="${PROJECT}/${exportgroup} ${PROJECT2}/${exportgroup}"
-    
+        
     # There are two paths to test:
     # 1. update: Meaning we remove a single discovered host from the cluster
     # 2. delete: Meaning we remove ALL discovered hosts from the cluster
@@ -1475,9 +1492,9 @@ test_cluster_remove_discovered_host() {
             reset_counts                   
             mkdir -p results/${random_number}       
             
+            # Confirm export groups have the hosts present  
             for eg in ${exportgroups}
             do
-                # Double check export group to ensure the hosts are present            
                 foundhost1=`export_group show ${eg} | grep ${host1}`
                 foundhost2=`export_group show ${eg} | grep ${host2}`
                 
@@ -1492,10 +1509,11 @@ test_cluster_remove_discovered_host() {
                         exit 1
                     fi
                 else
-                    echo "+++ SUCCESS - All hosts present on export group ${eg}"   
+                    echo "+++ SUCCESS - All hosts present on export group ${eg}"
                 fi
             done
-                                          
+                              
+            # Check whether we are testing update or delete            
             if [[ "${wf}" == *"deleteWorkflow"* ]]; then
                 # Delete export group
                 secho "Delete export group path..."
@@ -1504,43 +1522,44 @@ test_cluster_remove_discovered_host() {
                 column_family=("Volume Cluster Host") 
                 snap_db 1 "${column_family[@]}"
             
-                # Vcenter call to remove host1 from cluster1
-                remove_host_from_cluster $host1 $cluster1                                        
-                discover_vcenter ${vcenter}
+                # NOTE: We want to remove both host1 and host2 from cluster1.
+                # This will be accomplished by moving host1 and host2 temporarily
+                # to cluster2.
+
+                # 'Remove' host1
+                change_host_cluster ${host1} ${cluster1} ${cluster2} ${vcenter}  
                 sleep 20
                 EVENT_ID=$(get_pending_event)
                 approve_pending_event $EVENT_ID
-                            
-                # Vcenter call to remove host2 from cluster1
-                # NOTE: Temporarily move host2 to cluster2 to avoid 
-                # validation errors of an empty cluster in vcenter
-                remove_host_from_cluster $host2 $cluster1            
-                add_host_to_cluster $host2 $cluster2
-                discover_vcenter ${vcenter}            
+                
+                # 'Remove' host2, this is the last host in cluster1 and the 
+                # export group should be cleaned up.
+                change_host_cluster ${host2} ${cluster1} ${cluster2} ${vcenter}                            
                 sleep 20
                 EVENT_ID=$(get_pending_event)
-                
+                                
                 # Verify event
                 if [ -z "$EVENT_ID" ]; then
                     echo "+++ FAILED. Expected an event! Re-add hosts to cluster..."
-                    remove_host_from_cluster $host2 $cluster2 
-                    add_host_to_cluster $host1 $cluster1
-                    add_host_to_cluster $host2 $cluster1
-                    discover_vcenter ${vcenter}
+                    change_host_cluster ${host1} ${cluster2} ${cluster1} ${vcenter}
                     sleep 20
                     EVENT_ID=$(get_pending_event)
-                    if [ -z "$EVENT_ID" ]; then
-                        echo "+++ FAILED again! Expected an event for re-add host to cluster. Please check UI."
-                    else
-                        approve_pending_event $EVENT_ID
-                    fi                
+                    approve_pending_event $EVENT_ID
+                    
+                    change_host_cluster ${host2} ${cluster2} ${cluster1} ${vcenter}
+                    sleep 20
+                    EVENT_ID=$(get_pending_event)
+                    approve_pending_event $EVENT_ID
+                                    
                     exit 1
                 else
-                    if [ ${failure} == ${failure} ]; then
+                    if [ ${failure} == ${HAPPY_PATH_TEST_INJECTION} ]; then
+                        # Happy path, no failure injection
                         approve_pending_event $EVENT_ID
                     else
                         # Turn failure injection on
                         set_artificial_failure ${failure}
+                        
                         # Expect to fail when approving the event
                         fail approve_pending_event $EVENT_ID
                         
@@ -1552,6 +1571,7 @@ test_cluster_remove_discovered_host() {
                         discover_vcenter ${vcenter}
                         sleep 20
                         EVENT_ID=$(get_failed_event)    
+                        
                         # Turn failure injection off and retry the approval
                         secho "Re-run with failure injection off..."
                         set_artificial_failure none
@@ -1559,16 +1579,15 @@ test_cluster_remove_discovered_host() {
                     fi 
                 fi
                 
+                # Ensure the export groups have been removed
                 for eg in ${exportgroups}
-                do
-                    # Ensure that export group has been removed
-                    fail export_group show ${eg}
-                    
+                do                    
+                    fail export_group show ${eg}                    
                     echo "+++ Confirm export group ${eg} has been deleted, expect to see an exception below if it has..."
                     foundeg=`export_group show ${eg} | grep ${eg}`
                     
                     if [ "${foundeg}" != "" ]; then
-                        # Fail, export group should be removed
+                        # Fail, export group should have been removed
                         echo "+++ FAIL - Expected export group ${eg} was not deleted."
                         # Report results
                         incr_fail_count
@@ -1584,46 +1603,50 @@ test_cluster_remove_discovered_host() {
                 
                 # Add both hosts back to cluster1           
                 secho "Test complete, add hosts back to cluster..."
-                remove_host_from_cluster $host2 $cluster2
-                discover_vcenter ${vcenter}
-                sleep 20
-                EVENT_ID=$(get_pending_event)
-                approve_pending_event $EVENT_ID
-                # NOTE: If there are no export groups for that cluster, 
+                
+                # NOTE: If there are no export groups for the cluster, 
                 # no events are created so we do not need to approve anything.
-                add_host_to_cluster $host1 $cluster1
-                add_host_to_cluster $host2 $cluster1
-                discover_vcenter ${vcenter}
-                sleep 20                       
+                # Just add the hosts back to cluster and run a re-discover of 
+                # the vcenter.
+                change_host_cluster ${host1} ${cluster2} ${cluster1} ${vcenter}
+                sleep 20                                
+                change_host_cluster ${host2} ${cluster2} ${cluster1} ${vcenter}
+                sleep 20
+                                              
+                # Because both hosts were removed from the cluster the export group was
+                # automatically removed. Now we need to re-export the volumes to the cluster, 
+                # this will re-create the export groups.
+                export_volume_vmware $TENANT ${volume1} ${vcenter} ${datacenter} ${cluster1} ${PROJECT}
+                export_volume_vmware $TENANT ${volume2} ${vcenter} ${datacenter} ${cluster1} ${PROJECT2}
             else
                 # Update export group
                 secho "Update export group path..."
                 
                 # Snap DB
-                column_family=("Volume ExportGroup ExportMask Cluster Host") 
+                column_family=("Volume Cluster Host") 
                 snap_db 1 "${column_family[@]}"
             
-                # Vcenter call to remove host from cluster
-                remove_host_from_cluster $host1 $cluster1            
-                discover_vcenter ${vcenter}  
+                # NOTE: We want to remove host1 from cluster1.
+                # This will be accomplished by moving host1 temporarily
+                # to cluster2.
+
+                # 'Remove' host1
+                change_host_cluster ${host1} ${cluster1} ${cluster2} ${vcenter}  
                 sleep 20
                 EVENT_ID=$(get_pending_event)
                 
                 # Verify event
                 if [ -z "$EVENT_ID" ]; then
                     echo "+++ FAILED. Expected an event! Re-add host to cluster..."
-                    add_host_to_cluster $host1 $cluster1
-                    discover_vcenter ${vcenter}
+                    change_host_cluster ${host1} ${cluster2} ${cluster1} ${vcenter}  
                     sleep 20
                     EVENT_ID=$(get_pending_event)
-                    if [ -z "$EVENT_ID" ]; then
-                        echo "+++ FAILED again! Expected an event for re-add host to cluster. Please check UI."
-                    else
-                        approve_pending_event $EVENT_ID
-                    fi                
+                    approve_pending_event $EVENT_ID
+                                    
                     exit 1
                 else
                     if [ ${failure} == ${HAPPY_PATH_TEST_INJECTION} ]; then
+                        # Happy path, no failure injection
                         approve_pending_event $EVENT_ID
                     else
                         # Turn failure injection on
@@ -1646,13 +1669,13 @@ test_cluster_remove_discovered_host() {
                     fi 
                 fi
                 
+                # Ensure that host1 has been removed from all export groups
                 for eg in ${exportgroups}
                 do
-                    # Ensure that host1 has been removed                
                     foundhost1=`export_group show ${eg} | grep ${host1}`
                     
                     if [[ "${foundhost1}" != "" ]]; then
-                        # Fail, host1 should be removed
+                        # Fail, host1 should have been removed
                         echo "+++ FAIL - Expected host was not removed from export group ${eg}."
                         # Report results
                         incr_fail_count
@@ -1668,11 +1691,10 @@ test_cluster_remove_discovered_host() {
                 
                 # Add the host back to cluster
                 secho "Test complete, add the host back to cluster..."
-                add_host_to_cluster $host1 $cluster1                                  
-                discover_vcenter ${vcenter}            
-                sleep 20            
+                change_host_cluster ${host1} ${cluster2} ${cluster1} ${vcenter}  
+                sleep 20
                 EVENT_ID=$(get_pending_event)
-                approve_pending_event $EVENT_ID
+                approve_pending_event $EVENT_ID                                
             fi    
             
             # Snap DB
@@ -1687,9 +1709,11 @@ test_cluster_remove_discovered_host() {
     done
     
     # Cleanup volumes
-    runcmd volume delete ${PROJECT}/${volume1} --wait 
-    runcmd volume delete ${PROJECT2}/${volume2} --wait 
-    runcmd project delete ${PROJECT2}
+#    delete_datastore_and_volume ${TENANT} ${datastore1} ${vcenter} ${datacenter} ${cluster1}
+#    sleep 10
+#    delete_datastore_and_volume ${TENANT} ${datastore2} ${vcenter} ${datacenter} ${cluster1}
+#    sleep 10
+#    runcmd project delete ${PROJECT2}
     
     # Turn off validation back on
     secho "Turning ViPR validation ON"
@@ -1752,7 +1776,7 @@ test_move_non_clustered_discovered_host_to_cluster() {
         #remove_host_from_cluster $host $cluster1
         #remove_host_from_cluster $host $cluster2 
         
-        snap_db 1 ${cfs[@]}
+        snap_db 1 "${cfs[@]}"
 
         create_datastore ${TENANT} ${volume2} ${datastore2} ${PROJECT} ${vcenter} "DC-Simulator-1" ${cluster2}
 
@@ -1812,10 +1836,10 @@ test_move_non_clustered_discovered_host_to_cluster() {
         
         delete_datastore ${TENANT} ${datastore2} ${vcenter} "DC-Simulator-1" ${cluster2}
 
-        snap_db 2 ${cfs[@]}  
+        snap_db 2 "${cfs[@]}"
 
         # Validate that nothing was left behind
-        validate_db 1 2 ${cfs[@]}          
+        validate_db 1 2 "${cfs[@]}"
 
         # Report results
         report_results ${test_name} ${failure}

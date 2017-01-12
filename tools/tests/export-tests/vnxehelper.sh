@@ -24,7 +24,7 @@ TMPFILE2=$TMPFILE1-error
 NUMBER_OF_INITIATORS="numberOfInitiators"
 NUMBER_OF_LUNS="numberOfLUNs"
 
-## Convenience method for deleting a mask outside of ViPR (including the storage group)
+## Convenience method for deleting a host outside of ViPR
 delete_mask() {
     pattern=$1
     java -Dproperty.file=${tools_file} -jar ${tools_jar} -arrays ${array_type} -method delete_mask -params "${pattern}" 

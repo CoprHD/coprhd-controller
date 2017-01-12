@@ -4240,35 +4240,85 @@ test_27() {
     runcmd volume delete --project $PROJECT2 --wait
 }
 
-# pull in the vplextests.sh so it can use the dutests framework
-source vplextests.sh
+# DU Prevention Validation Test 28 (Unity only)
+#
+# Summary: Test remove volume, initiator from host that no longer exists on array
+#
+# Basic Use Case for single host, multiple export groups
+# 1. Create 2 volume, 2 initiator export
+# 2. Delete the host directly from array
+# 3. Remove the first volume
+#    should success
+# 4. Remove the last volume
+#    should success, export mask is deleted in ViPR
+# 5. Create 2 volume, 2 initiator export again
+# 6. Delete the host directly from array
+# 7. Delete the first initiator from ViPR
+#    should success
+# 8. Delete the last initiator from ViPR
+#    should success, export mask is deleted in ViPR
+# 9. Create 2 volume, 2 initiator export again
+# 10. Delete the host directly from array
+# 11. Delete the export group
+#     should success
+#
+test_28() {
+    echot "Test 28: Export Group update/delete with no matched host"
 
-cleanup() {
-    if [ "${docleanup}" = "1" ]; then
-	for id in `export_group list $PROJECT | grep YES | awk '{print $5}'`
-	do
-	  runcmd export_group delete ${id} > /dev/null
-	  echo "Deleted export group: ${id}"
-	done
-	runcmd volume delete --project $PROJECT --wait
+    # Check to make sure we're running Unity only
+    if [ "${SS}" != "unity" ]; then
+        echo "test_28 only runs on Unity. Bypassing for ${SS}."
+        return
     fi
-    echo There were $VERIFY_EXPORT_COUNT export verifications
-    echo There were $VERIFY_EXPORT_FAIL_COUNT export verification failures
-}
 
-# Clean up any exports or volumes from previous runs, but not the volumes you need to run tests
-cleanup_previous_run_artifacts() {
-   for id in `export_group list $PROJECT | grep YES | awk '{print $5}'`
-   do
-      echo "Deleting old export group: ${id}"
-      runcmd export_group delete ${id} > /dev/null
-   done
+    expname=${EXPORT_GROUP_NAME}t28
 
-   for id in `volume list ${PROJECT} | grep YES | grep hijack | awk '{print $7}'`
-   do
-      echo "Deleting old volume: ${id}"
-      runcmd volume delete ${id} --wait > /dev/null
-   done
+    # Make sure we start clean; no masking view on the array
+    verify_export ${expname}1 ${HOST1} gone
+
+    # Create the mask with 2 volumes
+    runcmd export_group create $PROJECT ${expname}1 $NH --type Host --volspec "${PROJECT}/${VOLNAME}-1,${PROJECT}/${VOLNAME}-2" --hosts "${HOST1}"
+
+    verify_export ${expname}1 ${HOST1} 2 2
+
+    # Now remove the host
+    arrayhelper delete_mask ${SERIAL_NUMBER} ${expname}1 ${HOST1}
+
+    # Verify the host is gone
+    verify_export ${expname}1 ${HOST1} gone
+
+    runcmd export_group update $PROJECT/${expname}1 --remVols "${PROJECT}/${VOLNAME}-1"
+    runcmd export_group update $PROJECT/${expname}1 --remVols "${PROJECT}/${VOLNAME}-2"
+
+    # Create the same export group again
+    runcmd export_group delete $PROJECT/${expname}1
+    runcmd export_group create $PROJECT ${expname}1 $NH --type Host --volspec "${PROJECT}/${VOLNAME}-1,${PROJECT}/${VOLNAME}-2" --hosts "${HOST1}"
+
+    # Verify the mask has the new initiator in it
+    verify_export ${expname}1 ${HOST1} 2 2
+
+    # Now remove the host
+    arrayhelper delete_mask ${SERIAL_NUMBER} ${expname}1 ${HOST1}
+
+    # Verify the host is gone
+    verify_export ${expname}1 ${HOST1} gone
+
+    # Now remove initiators
+    runcmd export_group update $PROJECT/${expname}1 --remInits ${HOST1}/${H1PI1}
+    runcmd export_group update $PROJECT/${expname}1 --remInits ${HOST1}/${H1PI2}
+
+    # Create the same export group again
+    runcmd export_group delete $PROJECT/${expname}1
+    runcmd export_group create $PROJECT ${expname}1 $NH --type Host --volspec "${PROJECT}/${VOLNAME}-1,${PROJECT}/${VOLNAME}-2" --hosts "${HOST1}"
+
+    # Verify the mask has the new initiator in it
+    verify_export ${expname}1 ${HOST1} 2 2
+
+    # Now remove the host
+    arrayhelper delete_mask ${SERIAL_NUMBER} ${expname}1 ${HOST1}
+
+    # Delete export group. Should success
+    runcmd export_group delete $PROJECT/${expname}1
 }
 
 # call this to generate a random WWN for exports.
@@ -4415,7 +4465,7 @@ then
 fi
 
 test_start=0
-test_end=27
+test_end=28
 
 # If there's a last parameter, take that
 # as the name of the test to run

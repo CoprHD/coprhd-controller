@@ -44,6 +44,7 @@ import com.emc.storageos.util.InvokeTestFailure;
 import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import com.emc.storageos.volumecontroller.impl.VolumeURIHLU;
+import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportMaskRemoveInitiatorCompleter;
 import com.emc.storageos.volumecontroller.impl.smis.ExportMaskOperations;
 import com.emc.storageos.volumecontroller.impl.utils.ExportOperationContext;
 import com.emc.storageos.volumecontroller.impl.utils.ExportOperationContext.ExportOperationContextOperation;
@@ -339,6 +340,12 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
                         && XtremIOExportOperationContext.OPERATION_ADD_INITIATORS_TO_INITIATOR_GROUP.equals(operation.getOperation())) {
                     addedInitiators = (List<Initiator>) operation.getArgs().get(0);
                     _log.info("Removing initiators {} as part of rollback", Joiner.on(',').join(initiators));
+                }
+            }
+            // Update the initiators in the task completer such that we update the export mask/group correctly
+            for (Initiator initiator : initiators) {
+                if (addedInitiators == null || !addedInitiators.contains(initiator)) {
+                    ((ExportMaskRemoveInitiatorCompleter) taskCompleter).removeInitiator(initiator.getId());
                 }
             }
             initiators = addedInitiators;

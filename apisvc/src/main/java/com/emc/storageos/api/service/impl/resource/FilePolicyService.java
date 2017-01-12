@@ -329,14 +329,15 @@ public class FilePolicyService extends TaskResourceService {
             throw APIException.badRequests.invalidFilePolicyAssignParam(filepolicy.getFilePolicyName(), errorMsg.toString());
         }
 
-        if (param.getApplyAt().equals(FilePolicyApplyLevel.vpool.name())) {
-            return assignFilePolicyToVpool(param, filepolicy);
-        } else if (param.getApplyAt().equals(FilePolicyApplyLevel.project.name())) {
-            return assignFilePolicyToProject(param, filepolicy);
-        } else if (param.getApplyAt().equals(FilePolicyApplyLevel.file_system.name())) {
-            return assignFilePolicyToFS(param, filepolicy);
+        FilePolicyApplyLevel appliedAt = FilePolicyApplyLevel.valueOf(param.getApplyAt());
+        switch (appliedAt) {
+            case vpool:
+                return assignFilePolicyToVpool(param, filepolicy);
+            case project:
+                return assignFilePolicyToProject(param, filepolicy);
+            default:
+                throw APIException.badRequests.invalidFilePolicyApplyLevel(appliedAt.name());
         }
-        return null;
     }
 
     /**

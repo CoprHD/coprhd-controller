@@ -20,8 +20,6 @@ import java.util.Map;
 
 import org.apache.commons.lang.StringUtils;
 import org.joda.time.DateTime;
-import org.joda.time.DateTimeZone;
-import org.joda.time.format.ISODateTimeFormat;
 
 import com.emc.sa.util.TextUtils;
 import com.emc.storageos.db.client.model.uimodels.OrderStatus;
@@ -34,7 +32,6 @@ import com.emc.vipr.model.catalog.ApprovalRestRep;
 import com.emc.vipr.model.catalog.CatalogServiceRestRep;
 import com.emc.vipr.model.catalog.ExecutionLogRestRep;
 import com.emc.vipr.model.catalog.ExecutionStateRestRep;
-import com.emc.vipr.model.catalog.OrderCount;
 import com.emc.vipr.model.catalog.OrderCreateParam;
 import com.emc.vipr.model.catalog.OrderLogRestRep;
 import com.emc.vipr.model.catalog.OrderRestRep;
@@ -78,12 +75,9 @@ import util.ModelExtensions;
 import util.OrderUtils;
 import util.StringOption;
 import util.TagUtils;
-import util.TimeUtils;
 import util.api.ApiMapperUtils;
 import util.datatable.DataTableParams;
 import util.datatable.DataTablesSupport;
-
-import com.emc.storageos.svcs.errorhandling.resources.APIException;
 
 @With(Common.class)
 public class Orders extends OrderExecution {
@@ -131,11 +125,23 @@ public class Orders extends OrderExecution {
         dataTable.setByStartEndDateOrMaxDays(params.get("startDate"), params.get("endDate"),
                 params.get("maxDays", Integer.class));
         Long orderCount = dataTable.fetchCount().getCounts().get(Models.currentAdminTenant());
-        System.out.println(Models.currentAdminTenant()+"\t count: "+orderCount);
+        renderArgs.put("orderCount", orderCount);
         if (orderCount > OrderDataTable.ORDER_MAX_COUNT) {
             flash.put("warning", MessagesUtils.get("orders.warning", orderCount, OrderDataTable.ORDER_MAX_COUNT));
         }
-        
+        String deleteStatus = dataTable.getDeleteJobStatus();
+        if (deleteStatus != null) {
+            flash.put("info", deleteStatus);
+            renderArgs.put("disableDeleteAllAndDownload", 1);
+        } else {
+            String downloadStatus = dataTable.getDownloadJobStatus();
+            if (downloadStatus != null) {
+                flash.put("info", downloadStatus);
+                renderArgs.put("disableDeleteAllAndDownload", 1);
+            }
+        }
+        renderArgs.put("canBeDeletedStatuses", RecentOrdersDataTable.getCanBeDeletedOrderStatuses());
+
         addMaxDaysRenderArgs();
         Common.copyRenderArgsToAngular();
         render(dataTable);
@@ -150,13 +156,11 @@ public class Orders extends OrderExecution {
     }
 
     public static void list() {
-        Logger.info("hlj, start to call list()");
         OrderDataTable dataTable = new OrderDataTable(Models.currentTenant());
         dataTable.setUserInfo(Security.getUserInfo());
         dataTable.setByStartEndDateOrMaxDays(params.get("startDate"), params.get("endDate"),
                 params.get("maxDays", Integer.class));
         Long orderCount = dataTable.fetchCount().getCounts().entrySet().iterator().next().getValue();
-        System.out.println("hlj in my order list count: "+orderCount);
         if (orderCount > OrderDataTable.ORDER_MAX_COUNT) {
             flash.put("warning", MessagesUtils.get("orders.warning", orderCount, OrderDataTable.ORDER_MAX_COUNT));
         }
@@ -166,7 +170,6 @@ public class Orders extends OrderExecution {
     }
 
     public static void listJson() {
-        Logger.info("hlj, start to call listJson()");
         OrderDataTable dataTable = new OrderDataTable(Models.currentTenant());
         dataTable.setUserInfo(Security.getUserInfo());
         dataTable.setByStartEndDateOrMaxDays(params.get("startDate"), params.get("endDate"),
@@ -176,8 +179,6 @@ public class Orders extends OrderExecution {
     }
 
     public static void itemsJson(@As(",") String[] ids) {
-        Logger.info("hlj, start to call itemsJson()");
-        Logger.info("ids: {}", ids);
         List<OrderInfo> results = Lists.newArrayList();
         if (ids != null && ids.length > 0) {
             for (String id : ids) {
@@ -191,6 +192,31 @@ public class Orders extends OrderExecution {
             }
         }
         renderJSON(results);
+    }
+
+    @FlashException(value = "allOrders")
+    @Restrictions({ @Restrict("TENANT_ADMIN") })
+    public static void deleteOrders(@As(",") String[] ids) {
+        if (ids != null && ids.length > 0) {
+            List<URI> uris = Lists.newArrayList();
+            for (String id : ids) {
+                uris.add(uri(id));
+            }
+            OrderUtils.deactivateOrders(uris);
+        } else {
+            RecentUserOrdersDataTable dataTable = new RecentUserOrdersDataTable();
+            dataTable.setByStartEndDateOrMaxDays(params.get("startDate"), params.get("endDate"), params.get("maxDays", Integer.class));
+            dataTable.deleteOrders();
+        }
+        flash.success(MessagesUtils.get("orders.delete.submitted"));
+        allOrders();
+    }
+
+    @FlashException(value = "allOrders")
+    @Restrictions({ @Restrict("TENANT_ADMIN") })
+    public static void downloadOrders(String ids) {
+        RecentUserOrdersDataTable dataTable = new RecentUserOrdersDataTable();
+        dataTable.downloadOrders(params.get("startDate"), params.get("endDate"), params.get("maxDays", Integer.class), ids);
     }
 
     @FlashException(referrer = { "receiptContent" })
@@ -296,8 +322,7 @@ public class Orders extends OrderExecution {
 
         if (OrderRestRep.ERROR.equalsIgnoreCase(status)) {
             flash.error(MessagesUtils.get("order.submitFailed"));
-        }
-        else {
+        } else {
             flash.success(MessagesUtils.get("order.submitSuccess"));
         }
 
@@ -511,11 +536,9 @@ public class Orders extends OrderExecution {
                 for (ExecutionLogRestRep log : taskLogs) {
                     if (ModelExtensions.isPrecheck(log)) {
                         precheckTaskLogs.add(log);
-                    }
-                    else if (ModelExtensions.isExecute(log)) {
+                    } else if (ModelExtensions.isExecute(log)) {
                         executeTaskLogs.add(log);
-                    }
-                    else if (ModelExtensions.isRollback(log)) {
+                    } else if (ModelExtensions.isRollback(log)) {
                         rollbackTaskLogs.add(log);
                     }
                     checkLastUpdated(log);

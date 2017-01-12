@@ -1406,7 +1406,7 @@ public class ExportMaskUtils {
         boolean differentResource = false;
         String maskResource = mask.getResource();
         if (!NullColumnValueGetter.isNullValue(maskResource)) { // check only if the mask has resource
-            if (URIUtil.isType(URI.create(maskResource), Host.class)) {
+            if (maskResource.startsWith("urn:storageos:Host")) {
                 // We found scenarios where VPLEX Initiators/ports do not have the Host Name set and this is handled below.
                 if (!NullColumnValueGetter.isNullURI(existingInitiator.getHost())) {
                     differentResource = !maskResource.equals(existingInitiator.getHost().toString());

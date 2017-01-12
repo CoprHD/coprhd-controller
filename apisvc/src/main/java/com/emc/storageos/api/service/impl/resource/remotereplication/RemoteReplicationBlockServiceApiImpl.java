@@ -10,11 +10,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import com.emc.storageos.db.client.constraint.ContainmentConstraint;
-import com.emc.storageos.db.client.model.BlockSnapshotSession;
-import com.emc.storageos.db.client.model.DataObject;
-import com.emc.storageos.db.client.model.Task;
-import com.emc.storageos.remotereplicationcontroller.RemoteReplicationController;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -25,8 +20,12 @@ import com.emc.storageos.api.service.impl.resource.BlockService;
 import com.emc.storageos.api.service.impl.resource.BlockServiceApi;
 import com.emc.storageos.blockorchestrationcontroller.BlockOrchestrationController;
 import com.emc.storageos.blockorchestrationcontroller.VolumeDescriptor;
+import com.emc.storageos.db.client.constraint.ContainmentConstraint;
+import com.emc.storageos.db.client.model.BlockSnapshotSession;
+import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.Project;
+import com.emc.storageos.db.client.model.Task;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
@@ -39,11 +38,13 @@ import com.emc.storageos.model.TaskResourceRep;
 import com.emc.storageos.model.block.VolumeCreate;
 import com.emc.storageos.model.vpool.VirtualPoolChangeOperationEnum;
 import com.emc.storageos.plugins.common.Constants;
+import com.emc.storageos.remotereplicationcontroller.RemoteReplicationController;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
 import com.emc.storageos.volumecontroller.Recommendation;
+import com.emc.storageos.volumecontroller.impl.externaldevice.RemoteReplicationElement;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
 
 public class RemoteReplicationBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RemoteReplicationScheduler> {
@@ -331,5 +332,12 @@ public class RemoteReplicationBlockServiceApiImpl extends AbstractBlockServiceAp
                 RemoteReplicationController.class, Constants.EXTERNALDEVICE);
 
         controller.createRemoteReplicationGroup(replicationGroupId, taskId);
+    }
+
+    public void failoverRemoteReplicationElementLink(RemoteReplicationElement remoterReplicationElement, String taskId) {
+        RemoteReplicationController controller = getController(
+                RemoteReplicationController.class, Constants.EXTERNALDEVICE);
+
+        //controller.createRemoteReplicationGroup(replicationGroupId, taskId);
     }
 }

@@ -354,6 +354,7 @@ public enum ResourceOperationTypeEnum {
     MOUNT_NFS_EXPORT("MOUNT NFS EXPORT", "mount nfs export operation"),
     UNMOUNT_NFS_EXPORT("UNMOUNT NFS EXPORT", "unmount nfs export operation"),
     CREATE_REMOTE_REPLICATION_GROUP("CREATE REMOTE REPLICATION GROUP", "create remote replication group"),
+    FAILOVER_REMOTE_REPLICATION_GROUP_LINK("FAILOVER REMOTE REPLICATION GROUP LINK", "failover remote replication group link"),
     LIST_MOUNTED_EXPORTS("LIST MOUNTED EXPORTS", "list mounted exports operation");
 
     private final String name;

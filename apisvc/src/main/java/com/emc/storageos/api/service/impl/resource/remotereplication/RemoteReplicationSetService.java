@@ -17,8 +17,6 @@ import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 
-import com.emc.storageos.db.client.model.remotereplication.RemoteReplicationPair;
-import com.emc.storageos.db.client.util.CustomQueryUtility;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -30,6 +28,7 @@ import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.remotereplication.RemoteReplicationGroup;
 import com.emc.storageos.db.client.model.remotereplication.RemoteReplicationSet;
+import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.storageos.model.TaskResourceRep;
@@ -131,6 +130,7 @@ public class RemoteReplicationSetService extends TaskResourceService {
         RemoteReplicationSetList rrSetList = new RemoteReplicationSetList();
 
         List<URI> ids = _dbClient.queryByType(RemoteReplicationSet.class, true);
+        _log.info("Found {} sets: {}", ids.size(), ids);
         Iterator<RemoteReplicationSet> iter = _dbClient.queryIterativeObjects(RemoteReplicationSet.class, ids);
         while (iter.hasNext()) {
             rrSetList.getRemoteReplicationSets().add(toNamedRelatedResource(iter.next()));

@@ -2915,7 +2915,7 @@ public class WorkflowService implements WorkflowController {
      */
     public boolean isStepInRollbackState(String stepId) {
         Workflow workflow = _instance.getWorkflowFromStepId(stepId);
-        return workflow.isRollbackState();
+        return workflow != null && workflow.isRollbackState();
     }
 
 }

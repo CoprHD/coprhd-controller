@@ -2945,7 +2945,9 @@ test_9() {
       set_artificial_failure none
 
       # Remove the volume
-      runcmd volume delete ${PROJECT}/${volname} --wait
+      if [ "${failure}" != "failure_015_SmisCommandHelper.invokeMethod_EMCListSFSEntries" -a "${failure}" != "failure_015_SmisCommandHelper.invokeMethod_DeleteGroup" ]; then
+          runcmd volume delete ${PROJECT}/${volname} --wait
+      fi
 
       # Remove the CG object
       runcmd blockconsistencygroup delete ${CGNAME}

@@ -37,7 +37,7 @@ public class ClassNameTimeSeriesDBIndex extends DbIndex<ClassNameTimeSeriesIndex
 
         ColumnListMutation<ClassNameTimeSeriesIndexColumnName> indexColList = mutator.getIndexColumnList(indexCF, rowKey);
 
-        ClassNameTimeSeriesIndexColumnName indexEntry = new ClassNameTimeSeriesIndexColumnName(className, recordKey, mutator.getTimeUUID());
+        ClassNameTimeSeriesIndexColumnName indexEntry = new ClassNameTimeSeriesIndexColumnName(className, recordKey, column.getTimeUUID());
 
         ColumnValue.setColumn(indexColList, indexEntry, null, ttl);
 

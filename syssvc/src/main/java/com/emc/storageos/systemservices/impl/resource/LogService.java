@@ -293,7 +293,9 @@ public class LogService extends BaseLogSvcResource {
         });
         // For now, the task that fetches logs from all nodes is serial,
         // and we give every node 10 minutes' time to finish this task.
-        int timeoutMinutes = nodeIds.size() * 10;
+        int nodeCount = nodeIds.size();
+        nodeCount = nodeCount == 0 ? _coordinatorClientExt.getNodeCount() : nodeCount;
+        int timeoutMinutes = nodeCount * 10;
         try {
             LogNetworkStreamMerger logRequestMgr = mergerFuture.get(timeoutMinutes, TimeUnit.MINUTES);
             StreamingOutput logMsgStream = new StreamingOutput() {

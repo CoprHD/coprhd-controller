@@ -259,4 +259,10 @@ public class FileControllerImpl extends AbstractDiscoveredSystemController imple
         execFS("assignFileSnapshotPolicyToVirtualPool", storageSystemURI, vNASURI, filePolicyToAssign, vpoolURI, taskId);
     }
 
+    @Override
+    public void assignFileSnapshotPolicyToProject(URI storageSystemURI, URI vNASURI, URI filePolicyToAssign, URI vpoolURI, URI projectURI,
+            String taskId) throws InternalException {
+        execFS("assignFileSnapshotPolicyToProject", storageSystemURI, vNASURI, filePolicyToAssign, vpoolURI, projectURI, taskId);
+    }
+
 }

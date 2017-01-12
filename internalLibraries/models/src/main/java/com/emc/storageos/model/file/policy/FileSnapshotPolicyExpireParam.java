@@ -1,7 +1,7 @@
 /*
-  * Copyright (c) 2016 EMC Corporation
-  * All Rights Reserved
-  */
+ * Copyright (c) 2017 EMC Corporation
+ * All Rights Reserved
+ */
 package com.emc.storageos.model.file.policy;
 
 import java.io.Serializable;

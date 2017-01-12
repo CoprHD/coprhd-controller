@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015 EMC Corporation
+ * Copyright (c) 2017 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.model.file.policy;
@@ -16,6 +16,7 @@ public class FileSnapshotPolicyParam implements Serializable {
     private static final long serialVersionUID = 1L;
 
     private String snapshotNamePattern;
+    private FilePolicyScheduleParams policySchedule;
 
     // Snapshot expire parameters like type and value..
     private FileSnapshotPolicyExpireParam snapshotExpireParams;
@@ -47,4 +48,12 @@ public class FileSnapshotPolicyParam implements Serializable {
         this.snapshotExpireParams = snapshotExpireParams;
     }
 
+    @XmlElement(name = "policy_schedule")
+    public FilePolicyScheduleParams getPolicySchedule() {
+        return this.policySchedule;
+    }
+
+    public void setPolicySchedule(FilePolicyScheduleParams policySchedule) {
+        this.policySchedule = policySchedule;
+    }
 }

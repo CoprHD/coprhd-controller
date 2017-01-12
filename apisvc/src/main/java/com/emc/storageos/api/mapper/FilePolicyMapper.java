@@ -26,7 +26,11 @@ import com.emc.storageos.model.file.policy.FilePolicyRestRep.ReplicationSettings
 import com.emc.storageos.model.file.policy.FilePolicyRestRep.ScheduleRestRep;
 import com.emc.storageos.model.file.policy.FilePolicyRestRep.SnapshotSettingsRestRep;
 
-public class FilePolicyMapper {
+public final class FilePolicyMapper {
+
+    private FilePolicyMapper() {
+
+    }
 
     public static FilePolicyRestRep map(FilePolicy from, DbClient dbClient) {
 
@@ -56,25 +60,13 @@ public class FilePolicyMapper {
             resp.setVpool(DbObjectMapper.toNamedRelatedResource(ResourceTypeEnum.FILE_VPOOL,
                     vpoolURI, vpool.getLabel()));
         }
-        String appliedToAllFS = from.getApplyToFS();
-        if (appliedToAllFS != null) {
-            resp.setAppliedToFileSystems(appliedToAllFS);
-        }
-        String appliedToAllProjects = from.getApplyToProjects();
-        if (appliedToAllProjects != null) {
-            resp.setAppliedToProjects(appliedToAllProjects);
-        }
-        String appliedToAllvPools = from.getApplyTovPools();
-        if (appliedToAllvPools != null) {
-            resp.setAppliedTovPools(appliedToAllvPools);
-        }
 
         String appliedAt = from.getApplyAt();
         if (NullColumnValueGetter.isNotNullValue(appliedAt)) {
             resp.setAppliedAt(appliedAt);
             StringSet assignedResources = from.getAssignedResources();
             if (assignedResources != null && !assignedResources.isEmpty()) {
-                List<URI> resourceURIs = new ArrayList<URI>();
+                List<URI> resourceURIs = new ArrayList<>();
                 for (Iterator<String> iterator = assignedResources.iterator(); iterator.hasNext();) {
                     String resourceId = iterator.next();
                     resourceURIs.add(URI.create(resourceId));

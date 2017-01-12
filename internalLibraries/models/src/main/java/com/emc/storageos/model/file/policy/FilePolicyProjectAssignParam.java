@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015 EMC Corporation
+ * Copyright (c) 2017 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.model.file.policy;
@@ -17,7 +17,7 @@ import javax.xml.bind.annotation.XmlElementWrapper;
 public class FilePolicyProjectAssignParam implements Serializable {
 
     private static final long serialVersionUID = 1L;
-    private String assigntoAll;
+
     private URI vpool;
     private Set<URI> assignToProjects;
 
@@ -25,22 +25,13 @@ public class FilePolicyProjectAssignParam implements Serializable {
         super();
     }
 
-    @XmlElement(name = "vpool", required = true)
+    @XmlElement(name = "vpool")
     public URI getVpool() {
         return this.vpool;
     }
 
     public void setVpool(URI vpool) {
         this.vpool = vpool;
-    }
-
-    @XmlElement(name = "assign_to_all")
-    public String getAssigntoAll() {
-        return this.assigntoAll;
-    }
-
-    public void setAssigntoAll(String assigntoAll) {
-        this.assigntoAll = assigntoAll;
     }
 
     @XmlElementWrapper(name = "assign_to_projects", required = true)

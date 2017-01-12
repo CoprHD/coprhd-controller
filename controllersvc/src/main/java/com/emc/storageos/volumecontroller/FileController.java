@@ -8,7 +8,6 @@ package com.emc.storageos.volumecontroller;
 import java.net.URI;
 import java.util.List;
 
-import com.emc.storageos.db.client.model.FilePolicy;
 import com.emc.storageos.model.file.CifsShareACLUpdateParams;
 import com.emc.storageos.model.file.FileExportUpdateParams;
 import com.emc.storageos.model.file.NfsACLUpdateParams;
@@ -194,12 +193,13 @@ public interface FileController extends StorageController {
     public void listSanpshotByPolicy(URI storage, URI fs, URI policy, String opId) throws InternalException;
 
     /**
+     * Apply file policy to a file system
      * 
-     * @param sourceFS
-     * @param filePolicies
+     * @param FS file system where policy has to be applied
+     * @param filePolicy URI of the policy to be applied
      * @param taskId
      * @throws InternalException
      */
-    public void applyFilePolicy(URI sourceFS, List<FilePolicy> filePolicies, String taskId) throws InternalException;
+    public void applyFilePolicy(URI fs, URI filePolicy, String taskId) throws InternalException;
 
 }

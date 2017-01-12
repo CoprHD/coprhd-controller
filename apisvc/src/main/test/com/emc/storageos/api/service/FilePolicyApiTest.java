@@ -143,9 +143,9 @@ public class FilePolicyApiTest extends ApiTestBase {
         policySchedule.setScheduleFrequency("DAYS");
         policySchedule.setScheduleRepeat(6L);
         policySchedule.setScheduleTime("12:00");
-        param.setPolicySchedule(policySchedule);
         FileSnapshotPolicyParam snapshotPolicyParam = new FileSnapshotPolicyParam();
         snapshotPolicyParam.setSnapshotNamePattern("snapshot policy 1");
+        snapshotPolicyParam.setPolicySchedule(policySchedule);
         FileSnapshotPolicyExpireParam snapshotExpireParams = new FileSnapshotPolicyExpireParam();
 
         snapshotExpireParams.setExpireType(SnapshotExpireType.NEVER.toString());
@@ -164,11 +164,6 @@ public class FilePolicyApiTest extends ApiTestBase {
         createdFileSnapshotPolicyURI = createdFilePolicy.getId();
 
         System.out.println("New snapshot policy ID: " + createdFileSnapshotPolicyURI);
-
-        /*
-         * CleanupResource cleanUpresource = new CleanupResource("delete", getFilePolicyURI(createdFilePolicy.getId()), rSys, null);
-         * registerResourceForCleanup(cleanUpresource);
-         */
 
     }
 

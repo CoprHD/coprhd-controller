@@ -2,7 +2,7 @@
   titleKey = 'assignPolicy.title';
 }%
 #{extends 'main.html'/}
-#{set navSelected: ['nav.virtualStorage', 'nav.file.protectionPolicies'] /}
+#{set navSelected: ['nav.tenantsettings', 'nav.schedulepolicies'] /}
 #{set 'title'}&{titleKey}#{/set}
 
 <div class="container">
@@ -35,42 +35,29 @@
     #{field 'assignPolicy.policyType'}
       <input type="hidden" name="policyType" value="${field.value}">
     #{/field} 
+    
     #{field 'assignPolicy.appliedAt'}
+       %{
+       field.disabled=true
+       }%
       #{Form.selectOneControlGroup field:field, options:applyPolicyOptions, select:assignPolicy.appliedAt, cssClass:'span3' /}
-    #{/field}    
+    #{/field} 
     
    <div id="projectFields"> 
     #{field 'assignPolicy.vpool'}
       #{Form.selectOneControlGroup field:field, options:projectVpoolOptions, select:assignPolicy.vpool, cssClass:'span3' /}
     #{/field} 
-    #{field 'assignPolicy.applyToAllProjects'}
-    #{Form.controlGroup field:field, width:4}
-      %{ typeField = field }%
-      #{Form.radio field:typeField, value: "true", label: messages.get("assignPolicy.project.applyAll")/}
-      #{Form.radio field:typeField, value: "false", label: messages.get("assignPolicy.project.applySpecific")/}
-    #{/Form.controlGroup}
-    #{/field}
      #{field 'assignPolicy.projects', noLabel:noLabel}
          #{Form.selectManyControlGroup field:field, options:projectOptions /}
      #{/field}
     </div>
     
     <div id="vpoolFields">
-     #{field 'assignPolicy.applyToAllVpools'}
-     #{Form.controlGroup field:field, width:4}
-       %{ typeField = field }%
-       #{Form.radio field:typeField, value: "true", label: messages.get("assignPolicy.vpool.applyAll")/} 
-       #{Form.radio field:typeField, value: "false", label: messages.get("assignPolicy.vpool.applySpecific")/}
-     #{/Form.controlGroup}
-     #{/field}
-     #{field 'assignPolicy.vPools', noLabel:noLabel}
+     #{field 'assignPolicy.virtualPools', noLabel:noLabel}
          #{Form.selectManyControlGroup field:field, options:vPoolOptions /}
      #{/field}
     </div>
 	
-	<div id="replicationFields">        
-	   #{include 'tenant/SchedulePolicies/replicationTopology.html' /}
-	</div>
 	<div id="snapshotFields">           
 	   #{field 'assignPolicy.applyOnTargetSite'}
           #{Form.booleanCheckBoxControlGroup field:field /}
@@ -99,7 +86,6 @@
 			$('div.form-actions a.btn').attr('href', referrerUrl);
 		}
 		
-		
 		$('#assignPolicy_appliedAt').on('change', showAssignAt);
 		showAssignAt();
 		
@@ -122,10 +108,8 @@
 				}
 				
 				if(policyType == 'file_snapshot') {
-				    $('#replicationFields').hide();
 					$('#snapshotFields').show();
 				} else if (policyType == 'file_replication') {
-				    $('#replicationFields').show();
 					$('#snapshotFields').hide();
 				}
 				
@@ -133,25 +117,3 @@
     
 		</script>
 #{/set}
-
-#{Modal.dialog id:'replicationTopologyDialog', titleKey:'replicationTopology.title'}
-  <form id="replicationTopologyForm" class="form form-horizontal" onSubmit="return false;">
-    #{authenticityToken/}
-    #{Modal.body}
-      #{field 'replicationTopology.sourceVArray'}
-        #{Form.selectOneControlGroup field:field,required:true, cssClass:'span4' /}
-      #{/field}
-      #{field 'replicationTopology.targetVArray'}
-        #{Form.selectOneControlGroup field:field, cssClass:'span4' /}
-      #{/field}
-    #{/Modal.body}
-    #{Modal.footer}
-      <button class="btn btn-primary" onclick="replication.saveCopy(event); return false;">
-        #{icon 'ok-sign'/} &{'button.done'}
-      </button>
-      <button class="btn btn-default" data-dismiss="modal">
-        #{icon 'trash'/} &{'button.cancel'}
-      </button>
-    #{/Modal.footer}
-  </form>
-#{/Modal.dialog}

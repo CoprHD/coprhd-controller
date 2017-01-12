@@ -512,6 +512,45 @@ public class ExportWorkflowUtils {
     }
 
     /**
+     * Wrapper for WorkflowService.createStep. The method expects that the method and
+     * rollback (if specified) are in the ExportWorkflowEntryPoints class.
+     *
+     * @param workflow
+     *            - Workflow in which to add the step
+     * @param groupId
+     *            - String pointing to the group id of the step
+     * @param description
+     *            - String description of the step
+     * @param storageSystem
+     *            - StorageSystem object to which operation applies
+     * @param method
+     *            - Step method to be called
+     * @param rollback
+     *            - Step rollback method to be call (if any)
+     * @param waitFor
+     *            - String of groupId of step to wait for
+     * @param stepId
+     *            - step ID
+     *
+     * @return String the stepId generated for the step.
+     * @throws WorkflowException
+     */
+    public String newWorkflowStep(Workflow workflow,
+            String groupId, String description,
+            DiscoveredSystemObject storageSystem,
+            Workflow.Method method, Workflow.Method rollback,
+            String waitFor, String stepId)
+            throws WorkflowException {
+        if (groupId == null) {
+            groupId = method.getClass().getSimpleName();
+        }
+        return workflow.createStep(groupId, description,
+                waitFor, storageSystem.getId(),
+                storageSystem.getSystemType(), ExportWorkflowEntryPoints.class, method,
+                rollback, stepId);
+    }
+
+    /**
      * Returns a DiscoveredDataObject which can either point to a StorageSystem or
      * ProtectionSystem object.
      *

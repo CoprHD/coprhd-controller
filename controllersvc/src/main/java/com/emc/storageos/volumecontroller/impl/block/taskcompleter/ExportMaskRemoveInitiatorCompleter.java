@@ -157,8 +157,12 @@ public class ExportMaskRemoveInitiatorCompleter extends ExportTaskCompleter {
 		StringSetMap zoningMap = exportMask.getZoningMap();
 		Set<String> zonedTarget = new HashSet<String>();
 		for (String initiator : initiators) {
-			zonedTarget.addAll(zoningMap.get(initiator));
+            StringSet targets = zoningMap.get(initiator);
+            if (targets != null && !targets.isEmpty()) {
+                zonedTarget.addAll(targets);
+            }
 		}
+
 		Set<String> targets = new HashSet<String>(exportMask.getStoragePorts());
 		if (!targets.removeAll(zonedTarget)) {
 			for (String zonedPort : zonedTarget) {

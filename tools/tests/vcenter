@@ -79,7 +79,31 @@ def vcenter_search(args):
     else:
         print 'Result: ', array
 
-
+def datastore_create(args):
+    bourne.connect(args.ip)
+    
+    vcenter_uri = bourne.vcenter_query_root_tenant(args.vcenter)
+    datacenter_uri = bourne.datacenter_query(args.datacenter)
+    project_uri = bourne.project_query(args.project)
+    cos_uri     = bourne.cos_query('block', args.cos)
+    nh_uri      = bourne.neighborhood_query(args.neighborhood)
+    catalog_service_uri = bourne.catalog_query_subcategory(args.catalogservice,args.parentcatalog)
+	
+    blockStorageType = 'shared'
+    if (args.blockStorageType):
+        blockStorageType = args.blockStorageType
+	
+	host_uri = bourne.host_query(args.host)
+		  
+    start = time.time()
+    tr_list = bourne.datastore_create(vcenter_uri, datacenter_uri, blockStorageType, host_uri, nh_uri, cos_uri, project_uri, args.datastoreName,args.name, args.size, catalog_service_uri)
+    total = time.time() - start
+    print "Datastore create took", "{0:.2f}".format(total), "seconds to complete"
+    print 'Datastore_create DEBUG : ' ,tr_list
+    if (tr_list['order_status'] == 'PENDING'):
+        print 'Datastore created with id ' + tr_list['id']
+    elif (tr_list['order_status'] == 'FAILED'):
+        print 'Datastore create failed.'    
 #----------------------------------------------------------------------
 # command-line parsing
 #----------------------------------------------------------------------
@@ -93,6 +117,7 @@ except:
 parser = argparse.ArgumentParser(description = 'Bourne vcenter cli usage.')
 parser.add_argument('cmd', help = 'cmd = (create | delete | show | list | discover)')
 parser.add_argument('--ip',	metavar = 'ipaddr',	help = 'IP address of bourne', default=bourne_ip)
+
 
 # vcenter create label --tenant tenant
 create = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
@@ -141,6 +166,24 @@ search.add_argument('prefix',    metavar = 'prefix', help = 'prefix for search n
 search.add_argument('--tag',     metavar = 'tag',    help = 'boolean for search tag or not (search from name)', default=None)
 search.add_argument('--project', metavar = 'project',help = 'search name within project', default=None)
 
+# vcenter createds vcenter datacenter host project neighborhood cos datastoreName name size catalogservice parentcatalog
+createds = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+createds.add_argument('vcenter',		help = 'vcenter of datastore')
+createds.add_argument('datacenter',		help = 'datacenter in vcenter')
+createds.add_argument('blockStorageType', help = 'shared/exclusive')
+createds.add_argument('host',     help = 'ESXI host/Cluster in the datacenter')
+createds.add_argument('neighborhood',	help = 'varray where volume is created')
+createds.add_argument('cos',		help = 'vpool name for volume')
+createds.add_argument('project',		help = 'container project name')
+createds.add_argument('datastoreName',		help = 'name of datastore')
+createds.add_argument('name',		help = 'name of datastore volume')
+createds.add_argument('size',		help = 'size of volume')
+createds.add_argument('catalogservice', help = 'The name of catalog service to be used. eg.name =CreateVolumeandDatastore ')
+createds.add_argument('parentcatalog', help = 'The name of parent catalog to be used. eg parent= BlockServicesforVMwarevCenter')
+
+
+
+#createds.add_argument('--computeResource', help = 'The name of a host or cluster to which the volume will be exported')
 
 #----------------------------------------------------------------------
 # Main script
@@ -178,6 +221,9 @@ try:
     elif (cmd == "discover"):
         args = discover.parse_args()
         vcenter_discover(args)
+    elif (cmd == "createds"):
+        args = createds.parse_args()
+        datastore_create(args)
     else:
         parser.print_help()
 except:

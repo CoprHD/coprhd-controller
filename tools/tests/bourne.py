@@ -43,6 +43,10 @@ except AttributeError:
 
 URI_SERVICES_BASE               = ''
 URI_CATALOG                     = URI_SERVICES_BASE + '/catalog'
+URI_CATALOG_ORDERS				= URI_CATALOG + '/orders'
+URI_CATALOG_CATEGORYURI 	= URI_CATALOG + '/categories'
+URI_CATALOG_CATEGORIES			= URI_CATALOG + '/categories/{0}/categories'
+URI_CATALOG_SERVICES		   	= URI_CATALOG + '/categories/{0}/services'
 URI_CATALOG_VPOOL                 = URI_CATALOG       + '/vpools'
 URI_CATALOG_VPOOL_FILE            = URI_CATALOG_VPOOL   + '/file'
 URI_CATALOG_VPOOL_BLOCK           = URI_CATALOG_VPOOL   + '/block'
@@ -5584,7 +5588,7 @@ class Bourne:
         }
         self.api('PUT', target, params)
 
-    def datastore_create(self, type, label, cos, filecos, size, mountpoint):
+    def edatastore_create(self, type, label, cos, filecos, size, mountpoint):
 
         if (type == 'commodity'):
             params = dict()
@@ -8219,6 +8223,16 @@ class Bourne:
                 if (vcenter['name'] == label):
                     return vcenter['id']
         raise Exception('bad vcenter name: ' + name)
+    
+    def vcenter_query_root_tenant(self, name):
+        label = name
+        tenant = self.tenant_getid()
+        #print tenant
+        vcenters = self.vcenter_list(tenant)
+        for vcenter in vcenters:
+            if (vcenter['name'] == label):
+                return vcenter['id']
+        raise Exception('wrong vcenter name: '+ name)
 
     def vcenter_show(self, name):
         uri = self.vcenter_query(name)
@@ -8229,7 +8243,7 @@ class Bourne:
         return self.api('GET', uri_vcenter_task.format(vcenter, task))
 
     def vcenter_discover(self, name):
-        uri = self.vcenter_query(name)
+        uri = self.vcenter_query_root_tenant(name)
         o = self.api('POST', URI_VCENTER_DISCOVER.format(uri))
         self.assert_is_dict(o)
         try:
@@ -8254,7 +8268,7 @@ class Bourne:
         return self.api('POST', URI_VCENTER_DATACENTERS.format(uri), parms)
 
     def datacenter_list(self, vcenter):
-        uri = self.vcenter_query(vcenter)
+        uri = self.vcenter_query_root_tenant(vcenter)
         o = self.api('GET', URI_VCENTER_DATACENTERS.format(uri), None)
         if (not o):
             return {}
@@ -8272,7 +8286,7 @@ class Bourne:
 
     def datacenter_show(self, name):
         (vcenter, label)  = name.split('/', 1)
-        vcenterUri = self.vcenter_query(vcenter)
+        vcenterUri = self.vcenter_query_root_tenant(vcenter)
         uri = self.datacenter_query(name)
         return self.api('GET', URI_DATACENTER.format(uri))
 
@@ -8451,8 +8465,97 @@ class Bourne:
             return {}
         return o['event']
 
+	#
+	#Catalog services
+	#
+	
+	#Get the catalog category urn GET catalog/categories
+    def catalog_category_uri(self,tenant):
+	uri = self.__tenant_id_from_label(tenant)
+	o = self.api('GET',URI_CATALOG_CATEGORYURI.format(uri),None)
+	#print o['id']
+	return  o['id']
 
-    
+	#list all root categories : GET catalog/categories/{id}/categories
+    def catalog_root_list(self, tenant):
+	uri = self.catalog_category_uri(tenant)
+	o = self.api('GET',URI_CATALOG_CATEGORIES.format(uri),None)
+	#print "RESPONSE ROOT CATEGORIES :",o
+	if (not o):
+	    return {}
+	return o['catalog_category']
+	
+	#get root catalog services uri by name = BlockServicesforVMwarevCenter
+    def catalog_query_root_services(self, name):
+	label = name
+	tenant = self.tenant_getid()
+	categories = self.catalog_root_list(tenant)
+	for category in categories:
+            if(category['name'] == label):
+		return category['id']
+	raise Exception('bad category name: ' +name)
+		
+
+	#get uri of catalog service subcategories GET/catalog/categories/{id}/services name = BlockServicesforVMwarevCenter
+    def catalog_list_subcategory(self, name):
+	uri = self.catalog_query_root_services(name)
+	o = self.api('GET',URI_CATALOG_SERVICES.format(uri),None)
+	if (not o):
+            return {}
+	return o['catalog_service']
+		
+	#get id of the subcategory eg by name eg.name =CreateVolumeandDatastore,parent =BlockServicesforVMwarevCenter
+    def catalog_query_subcategory(self, name, parentcategory):
+	label = name
+	parent = parentcategory
+	subcategories = self.catalog_list_subcategory(parentcategory)
+	for category in subcategories:
+            if(category['name'] == label):
+	        return category['id']
+	raise Exception('bad subcategory name: ' +name)
+		 
+	
+	#put the catalog fields PUT/catalog/services/{id}
+	
+	#execute the order POST/catalog/orders
+    def datastore_create(self,vcenter,datacenter,blockStorageType,host,virtualArray,virtualPool,project,datastoreName,name,size, catalog_service_id):
+        tenant = self.tenant_getid()
+	parameters = [
+		{	  	'friendly_value': None,		'label': "vcenter",		'value':vcenter,	'friendly_label': None},
+		{		'friendly_value': None,		'label': "datacenter",	'value': datacenter,	'friendly_label': None},
+		{		'friendly_value': None,		'label': "blockStorageType",	'value': blockStorageType,'friendly_label': None},
+		{		'friendly_value': None,		'label': "host",	"value": host,		'friendly_label': None },
+		{      'friendly_value': None,      'label': "virtualArray",      'value': virtualArray,      'friendly_label': None    },
+		{      'friendly_value': None,      'label': "virtualPool",      'value': virtualPool,      'friendly_label': None   },
+		{      'friendly_value': None,      'label': "project",      'value': project,      'friendly_label': None   },
+		{      'friendly_value': None,      'label': "datastoreName",      'value': datastoreName,      'friendly_label': None    },
+		{      'friendly_value': None,      'label': "name",      'value': name,      'friendly_label': None    },
+		{      'friendly_value': None,      'label': "size",      'value':int(size),     'friendly_label': None   }  ]
+		
+        parms = {
+            'tenantId'              : tenant,
+            'scheduledEventId'      : None,
+            'scheduledTime'           : None,
+            'executionWindow'               : None,
+            'parameters'              : parameters,
+            'catalog_service'             : catalog_service_id,
+        }
+		
+        #print "DATASTORE CREATE Params = ", parms
+        resp = self.api('POST', URI_CATALOG_ORDERS, parms, {})
+        print "RESP = ", resp
+        self.assert_is_dict(resp)
+        tr_list = resp['id']
+        #print 'DEBUG : debug operation for volume : ' + o['resource']['id']
+        print tr_list
+        result = list()
+        #for tr in tr_list:
+        #    s = self.api_sync_2(tr['id'], tr['op_id'], self.volume_show_task)
+        #    result.append(s)
+	print "Datastore created"
+        return resp
+
+		
     #
     # Compute Resources - host initiator
     #

@@ -31,6 +31,14 @@ def remotereplicationgroup_create(args):
         print 'Remote replication group create failed.'
 
 
+# Create storage system type.
+def remotereplicationgroup_create_storage_type(args):
+    bourne.connect(args.ip)
+    storage_type = bourne.replicationgroup_create_storage_type(args.storage_type_name, args.storage_type_name, args.type, args.is_provider, args.support_ssl,
+                                                    args.port, args.ssl_port, args.driver_class)
+    print storage_type
+
+
 #----------------------------------------------------------------------
 # command-line parsing
 #----------------------------------------------------------------------
@@ -45,7 +53,18 @@ parser = argparse.ArgumentParser(description = 'Bourne remotereplication group c
 parser.add_argument('cmd', help = 'cmd = (create )')
 parser.add_argument('--ip',	metavar = 'ipaddr',	help = 'IP address of bourne', default=bourne_ip)
 
-# snapshotsession create name label [--ip ipaddr]
+# remotereplicationgroup create_storage_type
+create_storage_type = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+create_storage_type.add_argument('storage_type_name', help = 'The name of the storage system type.')
+#create_storage_type.add_argument('storage_type_display_name', help = 'The name of the storage system type display name.')
+create_storage_type.add_argument('--type', help = 'The name of the storage type: block/file.')
+create_storage_type.add_argument('--is_provider', help = 'true in case this is provider storage type.')
+create_storage_type.add_argument('--support_ssl', help = 'true if ssl is supported.')
+create_storage_type.add_argument('--port', help = 'Port to connect to storage.')
+create_storage_type.add_argument('--ssl_port', help = 'SSL Port to connect to storage.')
+create_storage_type.add_argument('--driver_class', help = 'Driver class name.')
+
+# remotereplicationgroup create
 create = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
 create.add_argument('replicationset_name', help = 'The name of the parent replication set.')
 create.add_argument('system_type', help = 'The name of the storage system type.')
@@ -70,6 +89,9 @@ try:
     if (cmd == "create"):
         args = create.parse_args()
         remotereplicationgroup_create(args)
+    elif (cmd == "create_storage_type"):
+        args = create_storage_type.parse_args()
+        remotereplicationgroup_create_storage_type(args)
     else:
         parser.print_help()
 

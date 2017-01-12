@@ -109,7 +109,7 @@ URI_FILE_SNAPSHOT               = URI_FILE_SNAPSHOTS        + '/{0}'
 URI_FILE_SNAPSHOT_EXPORTS       = URI_FILE_SNAPSHOT         + '/exports'
 URI_FILE_SNAPSHOT_UNEXPORT      = URI_FILE_SNAPSHOT          + '/export'
 URI_FILE_SNAPSHOT_RESTORE       = URI_FILE_SNAPSHOT         + '/restore'
-        = URI_FILE_SNAPSHOT         + '/shares'
+URI_FILE_SNAPSHOT_SHARES        = URI_FILE_SNAPSHOT         + '/shares'
 URI_FILE_SNAPSHOT_SHARES_ACL      = URI_FILE_SNAPSHOT_SHARES    + '/{1}/acl'
 URI_FILE_SNAPSHOT_SHARES_ACL_SHOW = URI_FILE_SNAPSHOT_SHARES    + '/{1}/acl'
 URI_FILE_SNAPSHOT_SHARES_ACL_DELETE = URI_FILE_SNAPSHOT_SHARES    + '/{1}/acl'
@@ -501,12 +501,13 @@ URI_REPLICATION_GROUPS          = URI_SERVICES_BASE + '/vdc/data-service/vpools'
 URI_REPLICATION_EXTEND          = URI_SERVICES_BASE + '/vdc/data-service/vpools/{0}/addvarrays'
 URI_REPLICATION_COMPRESS        = URI_SERVICES_BASE + '/vdc/data-service/vpools/{0}/removevarrays'
 
-URI_REMOTEREPLICATIONSET_LIST            = URI_SERVICES_BASE   + '/block/remotereplicationsets'
-URI_REMOTEREPLICATIONSET_INSTANCE        = URI_SERVICES_BASE   + '/block/remotereplicationsets/{0}'
-URI_REMOTEREPLICATIONGROUP_LIST            = URI_SERVICES_BASE   + '/block/remotereplicationgroups'
-URI_REMOTEREPLICATIONGROUP_INSTANCE        = URI_SERVICES_BASE   + '/block/remotereplicationgroups/{0}'
-URI_REMOTEREPLICATIONGROUP_CREATE        = URI_SERVICES_BASE   + '/block/remotereplicationsets/{0}/create-group'
-URI_REMOTEREPLICATIONGROUP_TASK          = URI_SERVICES_BASE   + '/block/remotereplicationgroups/{0}/tasks/{1}'
+URI_REMOTEREPLICATIONSET_LIST            = URI_SERVICES_BASE   + '/vdc/block/remotereplicationsets'
+URI_REMOTEREPLICATIONSET_INSTANCE        = URI_SERVICES_BASE   + '/vdc/block/remotereplicationsets/{0}'
+URI_REMOTEREPLICATIONGROUP_LIST            = URI_SERVICES_BASE   + '/vdc/block/remotereplicationgroups'
+URI_REMOTEREPLICATIONGROUP_INSTANCE        = URI_SERVICES_BASE   + '/vdc/block/remotereplicationgroups/{0}'
+URI_REMOTEREPLICATIONGROUP_CREATE        = URI_SERVICES_BASE   + '/vdc/block/remotereplicationsets/{0}/create-group'
+URI_REMOTEREPLICATIONGROUP_TASK          = URI_SERVICES_BASE   + '/vdc/block/remotereplicationgroups/{0}/tasks/{1}'
+URI_STORAGE_SYSTEM_TYPE_CREATE           = URI_SERVICES_BASE   + '/vdc/storage-system-types/internal'
 
 URI_VNAS_SERVERS                = URI_SERVICES_BASE + '/vdc/vnas-servers'
 URI_VNAS_SERVER                 = URI_SERVICES_BASE + '/vdc/vnas-servers/{0}'
@@ -9263,3 +9264,20 @@ class Bourne:
         s = self.api_sync_2(o['resource']['id'], o['op_id'], self.replicationgroup_show_task)
         return s
 
+    def replicationgroup_create_storage_type(self, storage_type_name, storage_type_display_name, type, is_provider, support_ssl,
+                                         port, ssl_port, driver_name):
+        parms = {
+            'storageTypeName'   : storage_type_name,
+            'storageTypeDispName'      : storage_type_display_name,
+            'metaType'   : type,
+            'isSmiProvider'       : is_provider,
+            'isDefaultSsl'	   : support_ssl,
+            'sslPort'      : ssl_port,
+            'nonSslPort'   : port,
+            'driverClassName'       : driver_name
+        }
+
+        o = self.api('POST', URI_STORAGE_SYSTEM_TYPE_CREATE, parms)
+        self.assert_is_dict(o)
+        print '@@@@: ' + str(o) + ' :@@@@'
+        return o

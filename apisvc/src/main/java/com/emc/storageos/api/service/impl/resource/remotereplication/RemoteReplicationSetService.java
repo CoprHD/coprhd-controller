@@ -17,6 +17,8 @@ import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 
+import com.emc.storageos.db.client.model.remotereplication.RemoteReplicationPair;
+import com.emc.storageos.db.client.util.CustomQueryUtility;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -43,12 +45,13 @@ import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.volumecontroller.ControllerException;
 
-@Path("/block/remotereplicationsets")
+@Path("/vdc/block/remotereplicationsets")
 @DefaultPermissions(readRoles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR },
         writeRoles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
 public class RemoteReplicationSetService extends TaskResourceService {
 
     private static final Logger _log = LoggerFactory.getLogger(RemoteReplicationSetService.class);
+    public static final String SERVICE_TYPE = "remote_replication";
 
     // remote replication service api implementations
     private RemoteReplicationBlockServiceApiImpl remoteReplicationServiceApi;
@@ -57,8 +60,13 @@ public class RemoteReplicationSetService extends TaskResourceService {
         return remoteReplicationServiceApi;
     }
 
-    public void setRemoteReplicationServiceApi(RemoteReplicationBlockServiceApiImpl _remoteReplicationServiceApi) {
+    public void setRemoteReplicationServiceApi(RemoteReplicationBlockServiceApiImpl remoteReplicationServiceApi) {
         this.remoteReplicationServiceApi = remoteReplicationServiceApi;
+    }
+
+    @Override
+    public String getServiceType() {
+        return SERVICE_TYPE;
     }
 
     @POST
@@ -69,7 +77,14 @@ public class RemoteReplicationSetService extends TaskResourceService {
             final RemoteReplicationGroupCreate param) throws InternalException {
 
         _log.info("Called: createRemoteReplicationGroup()");
-        checkForDuplicateName(param.getDisplayName(), RemoteReplicationGroup.class, id, "replicationSet", _dbClient);
+        List<RemoteReplicationGroup> rrGroups = CustomQueryUtility.queryActiveResourcesByRelation(_dbClient, id, RemoteReplicationGroup.class, "replicationSet");
+        if (rrGroups != null) {
+            for (RemoteReplicationGroup group : rrGroups) {
+                if (group.getLabel() != null && group.getLabel().equalsIgnoreCase(param.getDisplayName())) {
+                    throw APIException.badRequests.duplicateLabel(param.getDisplayName());
+                }
+            }
+        }
 
         RemoteReplicationGroup rrGroup = prepareRRGroup(param, id);
         _dbClient.createObject(rrGroup);
@@ -167,6 +182,8 @@ public class RemoteReplicationSetService extends TaskResourceService {
         RemoteReplicationGroup remoteReplicationGroup = new RemoteReplicationGroup();
         RemoteReplicationSet remoteReplicationSet = _dbClient.queryObject(RemoteReplicationSet.class, parentRRSetURI);
         remoteReplicationGroup.setId(URIUtil.createId(RemoteReplicationGroup.class));
+        remoteReplicationGroup.setIsDriverManaged(true);
+        remoteReplicationGroup.setReachable(true);
         remoteReplicationGroup.setLabel(param.getDisplayName());
         remoteReplicationGroup.setOpStatus(new OpStatusMap());
 

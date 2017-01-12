@@ -27,7 +27,7 @@ import com.emc.storageos.security.authorization.DefaultPermissions;
 import com.emc.storageos.security.authorization.Role;
 
 
-@Path("/block/remotereplicationgroups")
+@Path("/vdc/block/remotereplicationgroups")
 @DefaultPermissions(readRoles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR },
         writeRoles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
 public class RemoteReplicationGroupService extends TaskResourceService {

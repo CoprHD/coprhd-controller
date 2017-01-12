@@ -1493,6 +1493,9 @@ public class ExternalDeviceCommunicationInterface extends
                 systemGroup.setReplicationMode(driverGroup.getReplicationMode());
             }
 
+            // storage systemt type for this group
+            systemGroup.setStorageSystemType(parentRRSet.getStorageSystemType());
+
             // set flag to indicate if group consistency for link operations is enforced
             StringSet systemReplicationModesNoGroupConsistency = parentRRSet.getReplicationModesNoGroupConsistency();
             StringSet systemReplicationModeGroupConsistencyEnforced = parentRRSet.getReplicationModesGroupConsistencyEnforced();

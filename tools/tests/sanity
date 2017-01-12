@@ -6349,6 +6349,7 @@ sbsdk_remote_replication_setup()
     echo "***** Executing setup for SB SDK remote replication tests *****"
 
     #Define variables
+    SIMULATOR_STORAGE_TYPE=driversystem
     # System names are important to align with remote replication configuration in driver simulator.
     SBSDK_DRIVER_REPLICATION_SET1=replicationSet1
     SBSDK_DRIVER_REPLICATION_SET1_GROUP1=replicationGroup1_set1
@@ -6383,6 +6384,10 @@ sbsdk_remote_replication_setup()
     SBSDK_DRIVER_SYS_PWWN24=62:FE:FE:FE:FE:FE:FE:14
     SBSDK_DRIVER_SYS_PWWN25=62:FE:FE:FE:FE:FE:FE:15
     SBSDK_DRIVER_SYS_PWWN26=62:FE:FE:FE:FE:FE:FE:16
+
+    echo "**** Creating storage system type for driver simulator *******"
+    run remotereplicationgroup create_storage_type $SIMULATOR_STORAGE_TYPE --type block --is_provider false --support_ssl true \
+             --port 789 --ssl_port 8798 --driver_class dummy.java
 
     #Discover the SB SDK simulator storage system
     echo "***** Creating SB SDK simulator storage systems *****"
@@ -6554,10 +6559,10 @@ sbsdk_remote_replication_tests()
     run volume delete $PROJECT/$VOLUME_NAME --wait
 
     #Create a replication group
-    REMOTE_REPLICATION_GROUP_NAME=SanityReplicationGroup
+    REMOTE_REPLICATION_GROUP_NAME=SBSDK_RemoteReplicationGroup-${RANDOM}
 
     echo "**** Creating replication group: $REMOTE_REPLICATION_GROUP_NAME *******"
-    run remotereplicationgroup create $SBSDK_DRIVER_REPLICATION_SET1 $SBSDK_DRIVER_SYS_TYPE $REMOTE_REPLICATION_GROUP_NAME SYNCHRONOUS \
+    run remotereplicationgroup create $SBSDK_DRIVER_REPLICATION_SET1 $SBSDK_DRIVER_SYS_TYPE $REMOTE_REPLICATION_GROUP_NAME synchronous \
                   --source_system $SBSDK_DRIVER_SYS_NATIVEGUID --target_system $SBSDK_DRIVER_SYS_TARGET_NATIVEGUID
 
     echo "***** Completed SB SDK remote replication sanity tests *****"

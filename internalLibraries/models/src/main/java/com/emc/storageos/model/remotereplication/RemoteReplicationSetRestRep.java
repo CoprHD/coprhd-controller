@@ -5,7 +5,10 @@ import com.emc.storageos.model.DataObjectRestRep;
 import javax.xml.bind.annotation.XmlAccessType;
 import javax.xml.bind.annotation.XmlAccessorType;
 import javax.xml.bind.annotation.XmlElement;
+import javax.xml.bind.annotation.XmlElementWrapper;
 import javax.xml.bind.annotation.XmlRootElement;
+import java.util.HashSet;
+import java.util.Set;
 
 @XmlAccessorType(XmlAccessType.PROPERTY)
 @XmlRootElement(name = "remote_replication_set")
@@ -23,6 +26,11 @@ public class RemoteReplicationSetRestRep extends DataObjectRestRep {
     // Type of storage systems in this replication set.
     private String storageSystemType;
 
+    // Supported element types in this set: group/pair
+    private Set<String> supportedElementTypes;
+
+    // Supported remote replication modes
+    private Set<String> supportedReplicationModes;
 
     @XmlElement(name = "native_id")
     public String getNativeId() {
@@ -59,5 +67,31 @@ public class RemoteReplicationSetRestRep extends DataObjectRestRep {
 
     public void setStorageSystemType(String storageSystemType) {
         this.storageSystemType = storageSystemType;
+    }
+
+    @XmlElementWrapper(name = "supported_element_types")
+     @XmlElement(name = "supported_element_type")
+     public Set<String> getSupportedElementTypes() {
+        if (supportedElementTypes == null) {
+            supportedElementTypes = new HashSet<>();
+        }
+        return supportedElementTypes;
+    }
+
+    public void setSupportedElementTypes(Set<String> supportedElementTypes) {
+        this.supportedElementTypes = supportedElementTypes;
+    }
+
+    @XmlElementWrapper(name = "supported_replication_modes")
+    @XmlElement(name = "supported_replication_mode")
+    public Set<String> getSupportedReplicationModes() {
+        if (supportedReplicationModes == null) {
+            supportedReplicationModes = new HashSet<>();
+        }
+        return supportedReplicationModes;
+    }
+
+    public void setSupportedReplicationModes(Set<String> supportedReplicationModes) {
+        this.supportedReplicationModes = supportedReplicationModes;
     }
 }

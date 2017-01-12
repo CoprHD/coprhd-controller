@@ -10,17 +10,20 @@ import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.DiscoveredSystemObject;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.remotereplication.RemoteReplicationGroup;
+import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.filereplicationcontroller.FileReplicationController;
 import com.emc.storageos.impl.AbstractDiscoveredSystemController;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
+import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.impl.Dispatcher;
 
 import java.net.URI;
 import java.util.List;
 import java.util.Set;
 
-public class RemoteReplicationControllerImpl extends AbstractDiscoveredSystemController implements RemoteReplicationController {
+public class RemoteReplicationControllerImpl implements RemoteReplicationController {
 
+    private final static String REMOTE_REPLICATION_DEVICE = "remote-replication-device";
     private Set<RemoteReplicationController> deviceControllers;
     private Dispatcher dispatcher;
     private DbClient dbClient;
@@ -49,20 +52,19 @@ public class RemoteReplicationControllerImpl extends AbstractDiscoveredSystemCon
         this.dbClient = dbClient;
     }
 
-    @Override
-    protected Controller lookupDeviceController(DiscoveredSystemObject device) {
+    protected Controller getController() {
         return deviceControllers.iterator().next();
     }
 
-    private void queueRequest(String methodName, Object... args) throws InternalException {
-        queueTask(dbClient, StorageSystem.class, dispatcher, methodName, args);
+    private void exec(String methodName, Object... args) throws ControllerException {
+            dispatcher.queue(NullColumnValueGetter.getNullURI(), REMOTE_REPLICATION_DEVICE,
+                    getController(), methodName, args);
     }
-
 
     @Override
     public void createRemoteReplicationGroup(URI replicationGroup, String opId) {
         RemoteReplicationGroup rrGroup = dbClient.queryObject(RemoteReplicationGroup.class, replicationGroup);
-        queueRequest("createRemoteReplicationGroup", rrGroup.getSourceSystem(), replicationGroup, opId);
+        exec("createRemoteReplicationGroup", replicationGroup, opId);
 
     }
 

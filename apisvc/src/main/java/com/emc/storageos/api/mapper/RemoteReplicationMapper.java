@@ -41,6 +41,7 @@ public class RemoteReplicationMapper {
         to.setReachable(from.getReachable());
         to.setStorageSystemType(from.getStorageSystemType());
         to.setDisplayName(from.getDisplayName());
+        to.setReplicationMode(from.getReplicationMode());
 
         return to;
     }

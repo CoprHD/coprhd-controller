@@ -1439,9 +1439,9 @@ public class ExternalDeviceCommunicationInterface extends
             StringSet systemReplicationModesNoGroupConsistency = new StringSet();
             StringSet systemReplicationModeGroupConsistencyEnforced = new StringSet();
             // set replication mode for this set
-            if (driverSet.getReplicationMode() != null) {
-                systemSet.setReplicationMode(driverSet.getReplicationMode().getReplicationModeName());
-            }
+            //if (driverSet.getReplicationMode() != null) {
+            //    systemSet.setReplicationMode(driverSet.getReplicationMode().getReplicationModeName());
+            //}
             // process supported replication modes
             Set<RemoteReplicationMode> supportedReplicationModes = driverSet.getSupportedReplicationModes();
             for (RemoteReplicationMode rMode : supportedReplicationModes) {
@@ -1540,11 +1540,11 @@ public class ExternalDeviceCommunicationInterface extends
             }
 
             // set supported replication link granularity
-            StringSet supportedReplicationLinkGranularity = new StringSet();
-            for (RemoteReplicationSet.ElementType linGranularity : driverGroup.getReplicationLinkGranularity()) {
-                supportedReplicationLinkGranularity.add(linGranularity.toString());
-            }
-            systemGroup.setSupportedReplicationLinkGranularity(supportedReplicationLinkGranularity);
+//            StringSet supportedReplicationLinkGranularity = new StringSet();
+//            for (RemoteReplicationSet.ElementType linGranularity : driverGroup.getReplicationLinkGranularity()) {
+//                supportedReplicationLinkGranularity.add(linGranularity.toString());
+//            }
+//            systemGroup.setSupportedReplicationLinkGranularity(supportedReplicationLinkGranularity);
         } catch (Exception e) {
             String message = String.format("Failed to prepare remote replication group %s . Error: %s .  Set group to not reachable.",
                     systemGroup.getNativeGuid(), e.getMessage());

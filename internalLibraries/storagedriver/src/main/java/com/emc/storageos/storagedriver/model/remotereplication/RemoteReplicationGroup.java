@@ -51,6 +51,9 @@ public class RemoteReplicationGroup {
 
     /**
      * Defines if group consistency for link operations is enforced. Type: Input/Output.
+     * When true, link operations are allowed only on group level and operations affect all
+     * replication pairs in the group.
+     * When false, link operations are allowed on individual pairs in the group.
      */
     private boolean isGroupConsistencyEnforced;
 
@@ -58,7 +61,8 @@ public class RemoteReplicationGroup {
      * Defines types of group elements for which replication link operations are supported.
      * Could be either group or pair level. Type: Output.
      */
-    private Set<RemoteReplicationSet.ElementType> replicationLinkGranularity = new HashSet<>();
+    //not needed: remove
+    //private Set<RemoteReplicationSet.ElementType> replicationLinkGranularity = new HashSet<>();
 
     /**
      * Native id of the source storage system in this replication group. Type: Input/Output.
@@ -131,13 +135,13 @@ public class RemoteReplicationGroup {
         this.isGroupConsistencyEnforced = isGroupConsistencyEnforced;
     }
 
-    public Set<RemoteReplicationSet.ElementType> getReplicationLinkGranularity() {
-        return replicationLinkGranularity;
-    }
-
-    public void setReplicationLinkGranularity(Set<RemoteReplicationSet.ElementType> replicationLinkGranularity) {
-        this.replicationLinkGranularity = replicationLinkGranularity;
-    }
+//    public Set<RemoteReplicationSet.ElementType> getReplicationLinkGranularity() {
+//        return replicationLinkGranularity;
+//    }
+//
+//    public void setReplicationLinkGranularity(Set<RemoteReplicationSet.ElementType> replicationLinkGranularity) {
+//        this.replicationLinkGranularity = replicationLinkGranularity;
+//    }
 
     public String getSourceSystemNativeId() {
         return sourceSystemNativeId;
@@ -168,11 +172,10 @@ public class RemoteReplicationGroup {
         String msg = String.format("\n\tGroup native id %s: " +
                         "\n\t\t replication mode: %s, replication state: %s" +
                         "\n\t\t is group consistency enforced: %s" +
-                        "\n\t\t supported link granularity: %s" +
                         "\n\t\t source system %s" +
                         "\n\t\t target system %s" +
                         "\n\t\t parent replication set: %s",
-                nativeId,  replicationMode, replicationState, isGroupConsistencyEnforced, replicationLinkGranularity,
+                nativeId,  replicationMode, replicationState, isGroupConsistencyEnforced,
                 sourceSystemNativeId, targetSystemNativeId, replicationSetNativeId);
 
         return(msg);

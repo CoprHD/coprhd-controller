@@ -27,6 +27,9 @@ public class RemoteReplicationGroupRestRep extends DataObjectRestRep {
     // Display name of this replication group (whem provisioned by the systemt).
     private String displayName;
 
+    // Replication mode of this group
+    private String replicationMode;
+
     @XmlElement(name = "native_id")
     public String getNativeId() {
         return nativeId;
@@ -70,5 +73,14 @@ public class RemoteReplicationGroupRestRep extends DataObjectRestRep {
 
     public void setDisplayName(String displayName) {
         this.displayName = displayName;
+    }
+
+    @XmlElement(name = "replication_mode")
+    public String getReplicationMode() {
+        return replicationMode;
+    }
+
+    public void setReplicationMode(String replicationMode) {
+        this.replicationMode = replicationMode;
     }
 }

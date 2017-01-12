@@ -1862,9 +1862,11 @@ test_delete_host() {
     host=fakehost-${RANDOM}
     exclusive_export=${host}
  
-    cfs="ExportGroup ExportMask Network Host Initiator"
+    cfs=("ExportGroup ExportMask Network Host Initiator")
 
-    common_failure_injections="failure_004_final_step_in_workflow_complete"
+    common_failure_injections="failure_004_final_step_in_workflow_complete \
+                               failure_027_host_cluster_ComputeSystemControllerImpl.deleteExportGroup_before_delete \
+                               failure_028_host_cluster_ComputeSystemControllerImpl.deleteExportGroup_after_delete"
     
     fake_pwwn1=`randwwn`
     fake_nwwn1=`randwwn`
@@ -1890,7 +1892,7 @@ test_delete_host() {
         mkdir -p results/${item}
         #cluster1_export=clusterexport-${item}
 
-        snap_db 1 ${cfs}
+        snap_db 1 "${cfs[@]}"
 
         # Create fake host
         runcmd hosts create $host $TENANT Esx ${host}.lss.emc.com --port 1
@@ -1900,7 +1902,7 @@ test_delete_host() {
 
         runcmd export_group create $PROJECT ${exclusive_export} $NH --type Host --volspec ${PROJECT}/${volume1} --hosts ${host}
  
-        snap_db 2 ${cfs}
+        snap_db 2 "${cfs[@]}"
 
         move_host="false"
         if [ ${failure} == ${HAPPY_PATH_TEST_INJECTION} ]; then
@@ -1913,13 +1915,18 @@ test_delete_host() {
             
             # Move the host to the cluster
             fail hosts delete ${host} --detachstorage true
-    
-            # Snap the DB after rollback
-            snap_db 3 ${cfs}
+   
+            if [[ $(export_contains $PROJECT/$exclusive_export $host) == "" ]]; then
+               echo "Failure: Host ${host} removed from export ${exclusive_export}"  
 
-            # Validate nothing was left behind
-            validate_db 2 3 ${cfs}
-                
+               # Report results
+               incr_fail_count
+               if [ "${NO_BAILING}" != "1" ]; then
+                   report_results ${test_name} ${failure}
+                   finish -1
+               fi
+            fi
+ 
             # Rerun the command
             set_artificial_failure none
 
@@ -1927,13 +1934,14 @@ test_delete_host() {
             runcmd hosts delete ${host} --detachstorage true          
         fi
         
-        snap_db 4 ${cfs}  
+        snap_db 4 "${cfs[@]}"  
 
         # Validate that nothing was left behind
-        validate_db 1 4 ${cfs}          
+        validate_db 1 4 "${cfs[@]}"
 
         # Report results
         report_results ${test_name} ${failure}
+  
     done
 }
 
@@ -1945,10 +1953,12 @@ test_delete_cluster() {
     cluster=fakecluster-${RANDOM}
     cluster_export=${cluster}
  
-    cfs="ExportGroup ExportMask Network Host Initiator Cluster"
+    cfs=("ExportGroup ExportMask Network Host Initiator Cluster")
 
-    common_failure_injections="failure_004_final_step_in_workflow_complete"
-    
+    common_failure_injections="failure_004_final_step_in_workflow_complete \
+                               failure_027_host_cluster_ComputeSystemControllerImpl.deleteExportGroup_before_delete \
+                               failure_028_host_cluster_ComputeSystemControllerImpl.deleteExportGroup_after_delete"
+ 
     fake_pwwn1=`randwwn`
     fake_nwwn1=`randwwn`
     fake_pwwn2=`randwwn`
@@ -1984,7 +1994,7 @@ test_delete_cluster() {
         mkdir -p results/${item}
         #cluster1_export=clusterexport-${item}
 
-        snap_db 1 ${cfs}
+        snap_db 1 "${cfs[@]}"
        
         runcmd cluster create $cluster $TENANT
 
@@ -1993,7 +2003,7 @@ test_delete_cluster() {
  
         runcmd export_group create $PROJECT ${cluster_export} $NH --type Cluster --volspec ${PROJECT}/${volume1} --cluster ${TENANT}/${cluster}
  
-        snap_db 2 ${cfs}
+        snap_db 2 "${cfs[@]}"
 
         move_host="false"
         if [ ${failure} == ${HAPPY_PATH_TEST_INJECTION} ]; then
@@ -2005,13 +2015,18 @@ test_delete_cluster() {
             set_artificial_failure ${failure}
             
             fail cluster delete ${TENANT}/${cluster} --detachstorage true
-    
-            # Snap the DB after rollback
-            snap_db 3 ${cfs}
+   
+            if [[ $(export_contains $PROJECT/$cluster_export $cluster) == "" ]]; then
+               echo "Failure: Cluster ${cluster} removed from export ${cluster_export}"  
 
-            # Validate nothing was left behind
-            validate_db 2 3 ${cfs}
-                
+               # Report results
+               incr_fail_count
+               if [ "${NO_BAILING}" != "1" ]; then
+                   report_results ${test_name} ${failure}
+                   finish -1
+               fi
+            fi
+ 
             # Rerun the command
             set_artificial_failure none
 
@@ -2019,10 +2034,10 @@ test_delete_cluster() {
             runcmd cluster delete ${TENANT}/${cluster} --detachstorage true          
         fi
         
-        snap_db 4 ${cfs}  
+        snap_db 4 "${cfs[@]}"
 
         # Validate that nothing was left behind
-        validate_db 1 4 ${cfs}          
+        validate_db 1 4 "${cfs[@]}"
 
         # Report results
         report_results ${test_name} ${failure}

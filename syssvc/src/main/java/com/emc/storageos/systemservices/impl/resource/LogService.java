@@ -17,6 +17,7 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -42,6 +43,7 @@ import com.emc.storageos.management.jmx.logging.LoggingOps;
 import com.emc.storageos.security.authorization.CheckPermission;
 import com.emc.storageos.security.authorization.Role;
 import com.emc.storageos.services.ServicesMetadata;
+import com.emc.storageos.services.util.NamedThreadPoolExecutor;
 import com.emc.storageos.services.util.TimeUtils;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.systemservices.impl.client.SysClientFactory;
@@ -282,23 +284,18 @@ public class LogService extends BaseLogSvcResource {
                 getLogNamesFromAlias(logNames)).logLevel(severity).startTime(startTime)
                 .endTime(endTime).regex(msgRegex).maxCont(maxCount).build();
         _log.info("log request info is {}", logReqInfo.toString());
-        ExecutorService pool = Executors.newFixedThreadPool(1);
-        _log.info("Thread pool for pull logs from nodes has bean created");
-        Future<LogNetworkStreamMerger> fu = pool.submit(new Callable<LogNetworkStreamMerger>() {
-
+        ThreadPoolExecutor pool = new NamedThreadPoolExecutor("LogCollecting", 1);
+        Future<LogNetworkStreamMerger> mergerFuture = pool.submit(new Callable<LogNetworkStreamMerger>() {
             @Override
             public LogNetworkStreamMerger call() throws Exception {
-                _log.info("Prepare to pull logs from other logs, task begin!!!");
-                return new LogNetworkStreamMerger(
-                        logReqInfo, mediaType, _logSvcPropertiesLoader);
+                return new LogNetworkStreamMerger(logReqInfo, mediaType, _logSvcPropertiesLoader);
             }
-            
         });
-        _log.info("Pulling log task has been submited");
-        
-
+        // For now, the task that fetches logs from all nodes is serial,
+        // and we give every node 10 minutes' time to finish this task.
+        int timeoutMinutes = nodeIds.size() * 10;
         try {
-            LogNetworkStreamMerger logRequestMgr = fu.get(5, TimeUnit.SECONDS);
+            LogNetworkStreamMerger logRequestMgr = mergerFuture.get(timeoutMinutes, TimeUnit.MINUTES);
             StreamingOutput logMsgStream = new StreamingOutput() {
                 @Override
                 public void write(OutputStream outputStream) {
@@ -312,7 +309,8 @@ public class LogService extends BaseLogSvcResource {
             };
             return Response.ok(logMsgStream).build();
         } catch (TimeoutException e) {
-            throw new RuntimeException("Timeout happend, there may be too many logs to traverse, please try again");
+            _log.error("Log collecting timeout, waited {} minutes", timeoutMinutes);
+            throw APIException.internalServerErrors.logCollectionTimeout(timeoutMinutes);
         }
     }
 

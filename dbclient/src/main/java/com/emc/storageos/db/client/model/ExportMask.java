@@ -86,6 +86,9 @@ public class ExportMask extends DataObject {
     // Captures the Device Specific information that are created for this export mask.
     private StringSetMap _deviceDataMap;
 
+    // port group info to identify if reuse port group in the array
+    private String _portGroup;
+    
     public static enum State {
         initializing,       // export mask is being created
         ready,              // export mask is created
@@ -795,6 +798,16 @@ public class ExportMask extends DataObject {
         setChanged("createdBySystem");
     }
 
+    @Name("portGroup")
+    public String getPortGroup() {
+        return _portGroup;
+    }
+
+    public void setPortGroup(String portGroup) {
+        _portGroup = portGroup;
+        setChanged("portGroup");
+    }
+    
     @Name("zoningMap")
     public StringSetMap getZoningMap() {
         if (_zoningMap == null) {

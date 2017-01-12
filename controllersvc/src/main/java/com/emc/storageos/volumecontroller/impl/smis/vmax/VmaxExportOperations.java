@@ -50,6 +50,7 @@ import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.BlockObject;
+import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportGroup.ExportGroupType;
 import com.emc.storageos.db.client.model.ExportMask;
@@ -309,13 +310,21 @@ public class VmaxExportOperations implements ExportMaskOperations {
                     cascadedSGDataSource);
 
             // 3. PortGroup (PG)
-            DataSource portGroupDataSource = ExportMaskUtils.getExportDatasource(storage, initiatorList, dataSourceFactory,
-                    portGroupCustomTemplateName);
-            String pgGroupName = customConfigHandler.getComputedCustomConfigValue(portGroupCustomTemplateName, storage.getSystemType(),
-                    portGroupDataSource);
-
-            // CTRL-9054 Always create unique port Groups.
-            pgGroupName = _helper.generateGroupName(_helper.getExistingPortGroupsFromArray(storage), pgGroupName);
+            
+            // find the port group in the array
+            String pgGroupName = findPortGroup(targetURIList, storage);
+            if (pgGroupName == null) {
+                DataSource portGroupDataSource = ExportMaskUtils.getExportDatasource(storage, initiatorList, dataSourceFactory,
+                        portGroupCustomTemplateName);
+                pgGroupName = customConfigHandler.getComputedCustomConfigValue(portGroupCustomTemplateName, storage.getSystemType(),
+                        portGroupDataSource);
+    
+                // CTRL-9054 Always create unique port Groups.
+                pgGroupName = _helper.generateGroupName(_helper.getExistingPortGroupsFromArray(storage), pgGroupName);
+            } else {
+                mask.setPortGroup(pgGroupName);
+                _dbClient.updateObject(mask);
+            }
             CIMObjectPath targetPortGroupPath = createTargetPortGroup(storage, pgGroupName, targetURIList, taskCompleter);
 
             // 4. ExportMask = MaskingView (MV) = IG + SG + PG
@@ -4952,5 +4961,47 @@ public class VmaxExportOperations implements ExportMaskOperations {
                     VmaxExportOperationContext.OPERATION_ADD_EXISTING_INITIATOR_TO_EXPORT_GROUP, initiator.getId());
         }
     }
+    
+    public List<URI> getPortGroupMembers(StorageSystem storage, String portGroup) throws Exception{
+        if (storage.getSystemType().equals(Type.vnxblock)) {
+            return null;
+        }
+        WBEMClient client = _helper.getConnection(storage).getCimClient();
+        CIMObjectPath portGroupPath = _cimPath.getMaskingGroupPath(storage, portGroup,
+                SmisConstants.MASKING_GROUP_TYPE.SE_TargetMaskingGroup);
+        CIMInstance instance = _helper.checkExists(storage, portGroupPath, false, false);
+        if (instance == null) {
+            _log.warn("Could not find the port group " + portGroup);
+            return null;
+        }
+        List<String> storagePorts = _helper.getStoragePortsFromLunMaskingInstance(client,
+                instance);
+        _log.info("port group members : {}", Joiner.on(',').join(storagePorts));
+        List<URI> storagePortURIs = new ArrayList<URI>();
+        storagePortURIs.addAll(transform(ExportUtils.storagePortNamesToURIs(_dbClient, storagePorts),
+                CommonTransformerFunctions.FCTN_STRING_TO_URI));
+        _log.info("port group members : {}", Joiner.on(',').join(storagePortURIs));
+        return storagePortURIs;
+    }
 
+    /**
+     * Find the port group in the array, containing the given ports
+     * 
+     * @param ports
+     * @param storage
+     * @return
+     * @throws Exception
+     */
+    public String findPortGroup(List<URI> ports, StorageSystem storage) throws Exception{
+        String portGroup = null;
+        Set<String>portGroupNames = _helper.getExistingPortGroupsFromArray(storage);
+        for (String portGroupName : portGroupNames) {
+            List<URI> storagePortUris = getPortGroupMembers(storage, portGroupName);
+            if (storagePortUris.containsAll(ports)) {
+                _log.info("Found the port group " + portGroup);
+                portGroup = portGroupName;
+            }
+        }
+        return portGroup;
+    }
 }

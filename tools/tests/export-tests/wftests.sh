@@ -674,6 +674,7 @@ SHORTENED_HOST=${SHORTENED_HOST:=`echo $BOURNE_IP | awk -F. '{ print $1 }'`}
 # cos configuration
 #
 VPOOL_BASE=vpool
+VPOOL_CHANGE=${VPOOL_BASE}-change
 VPOOL_FAST=${VPOOL_BASE}-fast
 
 BASENUM=${BASENUM:=$RANDOM}
@@ -1061,14 +1062,25 @@ vnx_setup() {
 	--multiVolumeConsistency \
 	--provisionType 'Thick'			        \
 	--max_snapshots 10                      \
+	--neighborhoods $NH  
+
+    run cos create block ${VPOOL_CHANGE}	\
+	--description Base true                 \
+	--protocols FC 			                \
+	--numpaths 4				            \
+	--multiVolumeConsistency \
+	--provisionType 'Thick'			        \
+	--max_snapshots 10                      \
 	--neighborhoods $NH                    
 
     if [ "${SIM}" = "1" ]
     then
 	# Remove the thin pool that doesn't support metas on the VNX simulator
 	run cos update_pools block $VPOOL_BASE --rem ${VNXB_NATIVEGUID}/${VNXB_NATIVEGUID}+POOL+U+TP0000
+        run cos update_pools block $VPOOL_CHANGE --rem ${VNXB_NATIVEGUID}/${VNXB_NATIVEGUID}+POOL+U+TP0000
     else
 	run cos update block $VPOOL_BASE --storage ${VNXB_NATIVEGUID}
+        run cos update block $VPOOL_CHANGE --storage ${VNXB_NATIVEGUID}
     fi
 }
 
@@ -1090,13 +1102,24 @@ unity_setup()
     run cos create block ${VPOOL_BASE}	\
 	--description Base true                 \
 	--protocols FC 			                \
-	--numpaths 1				            \
+	--numpaths 2				            \
 	--multiVolumeConsistency \
 	--provisionType 'Thin'			        \
 	--max_snapshots 10                      \
 	--neighborhoods $NH                    
 
+    run cos create block ${VPOOL_CHANGE}	\
+	--description Base true                 \
+	--protocols FC 			                \
+	--numpaths 4				            \
+	--multiVolumeConsistency \
+	--provisionType 'Thin'			        \
+	--max_snapshots 10                      \
+	--neighborhoods $NH 
+
     run cos update block $VPOOL_BASE --storage ${UNITY_NATIVEGUID}
+    run cos update block $VPOOL_CHANGE --storage ${UNITY_NATIVEGUID}
+
 }
 
 vmax2_sim_setup() {
@@ -1153,9 +1176,21 @@ vmax2_setup() {
 	--provisionType 'Thin'			        \
 	--max_snapshots 10                      \
 	--expandable true                       \
-	--neighborhoods $NH                    
+	--neighborhoods $NH  
+
+    run cos create block ${VPOOL_CHANGE}	\
+	--description Base true                 \
+	--protocols FC 			                \
+	--multiVolumeConsistency \
+	--numpaths 4				            \
+	--provisionType 'Thin'			        \
+	--max_snapshots 10                      \
+	--expandable true                       \
+	--neighborhoods $NH                  
 
     run cos update block $VPOOL_BASE --storage ${VMAX_NATIVEGUID}
+    run cos update block $VPOOL_CHANGE --storage ${VMAX_NATIVEGUID}
+
 }
 
 vmax3_sim_setup() {
@@ -1211,9 +1246,21 @@ vmax3_setup() {
 	--provisionType 'Thin'			        \
 	--max_snapshots 10                      \
 	--expandable true                       \
+	--neighborhoods $NH
+
+    run cos create block ${VPOOL_CHANGE}	\
+	--description Base true                 \
+	--protocols FC 			                \
+	--multiVolumeConsistency \
+	--numpaths 4				            \
+	--provisionType 'Thin'			        \
+	--max_snapshots 10                      \
+	--expandable true                       \
 	--neighborhoods $NH                    
 
     run cos update block $VPOOL_BASE --storage ${VMAX_NATIVEGUID}
+    run cos update block $VPOOL_CHANGE --storage ${VMAX_NATIVEGUID}
+
 }
 
 vplex_sim_setup() {
@@ -1285,7 +1332,22 @@ vplex_sim_setup() {
                              --max_mirrors 0                                    \
                              --expandable true 
 
-            run cos update block $VPOOL_BASE --storage $VPLEX_SIM_VMAX7_NATIVEGUID
+            run cos update block $VPOOL_BASE --storage $VPLEX_SIM_VMAX2_NATIVEGUID
+
+            secho "Setting up the virtual pool for change vpool operation"
+            run cos create block $VPOOL_CHANGE false                            \
+                             --description 'vpool-change-for-vplex-local-volumes'      \
+                             --protocols FC                                     \
+                             --numpaths 4                                       \
+                             --provisionType 'Thin'                             \
+                             --highavailability vplex_local                     \
+                             --neighborhoods $VPLEX_VARRAY1                     \
+		             --multiVolumeConsistency \
+                             --max_snapshots 1                                  \
+                             --max_mirrors 0                                    \
+                             --expandable true 
+
+            run cos update block $VPOOL_CHANGE --storage $VPLEX_SIM_VMAX2_NATIVEGUID
 
 	    # Migration vpool test
             secho "Setting up the virtual pool for local VPLEX provisioning and migration (source)"
@@ -1336,6 +1398,23 @@ vplex_sim_setup() {
 
             run cos update block $VPOOL_BASE --storage $VPLEX_SIM_VMAX4_NATIVEGUID
             run cos update block $VPOOL_BASE --storage $VPLEX_SIM_VMAX5_NATIVEGUID
+
+            secho "Setting up the virtual pool for distributed VPLEX change vpool"
+            run cos create block $VPOOL_CHANGE true                                \
+                             --description 'vpool-change-for-vplex-distributed-volumes'    \
+                             --protocols FC                                         \
+                             --numpaths 4                                           \
+                             --provisionType 'Thin'                                 \
+		             --multiVolumeConsistency \
+                             --highavailability vplex_distributed                   \
+                             --neighborhoods $VPLEX_VARRAY1 $VPLEX_VARRAY2          \
+                             --haNeighborhood $VPLEX_VARRAY2                        \
+                             --max_snapshots 1                                      \
+                             --max_mirrors 0                                        \
+                             --expandable true
+
+            run cos update block $VPOOL_CHANGE --storage $VPLEX_SIM_VMAX4_NATIVEGUID
+            run cos update block $VPOOL_CHANGE --storage $VPLEX_SIM_VMAX5_NATIVEGUID
         ;;
         *)
             secho "Invalid VPLEX_MODE: $VPLEX_MODE (should be 'local' or 'distributed')"
@@ -1400,6 +1479,23 @@ vplex_setup() {
                              --expandable true 
 
             run cos update block $VPOOL_BASE --storage $VPLEX_VNX1_NATIVEGUID
+
+	    # Change vpool test
+            secho "Setting up the virtual pool for local VPLEX provisioning"
+            run cos create block $VPOOL_CHANGE true                            \
+                             --description 'vpool-change-for-vplex-local-volumes'      \
+                             --protocols FC                                     \
+                             --numpaths 4                                       \
+                             --provisionType 'Thin'                             \
+                             --highavailability vplex_local                     \
+                             --neighborhoods $VPLEX_VARRAY1                     \
+		             --multiVolumeConsistency \
+                             --max_snapshots 1                                  \
+                             --max_mirrors 0                                    \
+                             --expandable true 
+
+            run cos update block $VPOOL_CHANGE --storage $VPLEX_VNX1_NATIVEGUID
+
 
 	    # Migration vpool test
             secho "Setting up the virtual pool for local VPLEX provisioning and migration (source)"
@@ -1536,7 +1632,17 @@ xio_setup() {
         --multiVolumeConsistency        \
 	--neighborhoods $NH                    
 
+    run cos create block ${VPOOL_CHANGE}	\
+	--description Base true                 \
+	--protocols FC 			                \
+	--numpaths 2				            \
+	--provisionType 'Thin'			        \
+	--max_snapshots 10                      \
+        --multiVolumeConsistency        \
+	--neighborhoods $NH                    
+
     run cos update block $VPOOL_BASE --storage ${XTREMIO_NATIVEGUID}
+    run cos update block $VPOOL_CHANGE --storage ${XTREMIO_NATIVEGUID}
 }
 
 host_setup() {
@@ -1743,15 +1849,17 @@ test_0() {
 
 snap_db() {
     slot=$1
-    shift
-    column_families=$*
+    column_families=$2
+    escape_seq=$3
+
+    base_filter="| sed -r '/6[0]{29}[A-Z0-9]{2}=/s/\=-?[0-9][0-9]?[0-9]?/=XX/g' | sed -r 's/vdc1=-?[0-9][0-9]?[0-9]?/vdc1=XX/g' | grep -v \"status = OpStatusMap\" | grep -v \"lastDiscoveryRunTime = \" | grep -v \"successDiscoveryTime = \" | grep -v \"storageDevice = URI: null\" | grep -v \"StringSet \[\]\" | grep -v \"varray = URI: null\" | grep -v \"Description:\" | grep -v \"Additional\" | grep -v -e '^$' | grep -v \"clustername = null\" | grep -v \"cluster = URI: null\" | grep -v \"vcenterDataCenter = \" $escape_seq"
     
     secho "snapping column families [set $slot]: ${column_families}"
 
-    for cf in ${column_families}
-    do
-      # Run list, but normalize the HLU numbers since the simulators can't handle that yet.
-      /opt/storageos/bin/dbutils list ${cf} | sed -r '/6[0]{29}[A-Z0-9]{2}=/s/\=-?[0-9][0-9]?[0-9]?/=XX/g' | sed -r 's/vdc1=-?[0-9][0-9]?[0-9]?/vdc1=XX/g' | grep -v "status = OpStatusMap" | grep -v "lastDiscoveryRunTime = " | grep -v "successDiscoveryTime = " | grep -v "storageDevice = URI: null" | grep -v "StringSet \[\]" | grep -v "varray = URI: null" | grep -v "Description:" | grep -v "Additional" | grep -v -e '^$' | grep -v "clustername = null" | grep -v "cluster = URI: null" | grep -v "vcenterDataCenter = " > results/${item}/${cf}-${slot}.txt
+    IFS=' ' read -ra cfs_array <<< "$column_families"
+    for cf in "${cfs_array[@]}"; do
+       execute="/opt/storageos/bin/dbutils list ${cf} $base_filter > results/${item}/${cf}-${slot}.txt"
+       eval $execute
     done
 }      
 
@@ -1777,6 +1885,10 @@ verify_failures() {
 
     for failure_check in `echo ${FAILURES} | sed 's/:/ /g'`
     do
+        
+    # Remove any trailing &# used to represent specific failure occurrences    
+    failure_check=${failure_check%&*}
+            
 	grep ${failure_check} ${INVOKE_FAILURE_FILE} > /dev/null
 	if [ $? -ne 0 ]; then
 	    secho 
@@ -1812,6 +1924,7 @@ test_1() {
                                failure_004:failure_013_BlockDeviceController.rollbackCreateVolumes_before_device_delete \
                                failure_004:failure_014_BlockDeviceController.rollbackCreateVolumes_after_device_delete"
 
+    storage_failure_injections=""
     if [ "${SS}" = "vplex" ]
     then
 	# Would love to have injections in the vplex package itself somehow, but hard to do since I stuck InvokeTestFailure in controller,
@@ -1822,10 +1935,9 @@ test_1() {
                                     failure_015_SmisCommandHelper.invokeMethod_AddMembers \
                                     failure_045_VPlexDeviceController.createVirtualVolume_before_create_operation \
                                     failure_046_VPlexDeviceController.createVirtualVolume_after_create_operation \
-                                    failure_007_NetworkDeviceController.zoneExportRemoveVolumes_before_unzone \
-                                    failure_008_NetworkDeviceController.zoneExportRemoveVolumes_after_unzone \
-                                    failure_009_VPlexVmaxMaskingOrchestrator.createOrAddVolumesToExportMask_before_operation \
-                                    failure_010_VPlexVmaxMaskingOrchestrator.createOrAddVolumesToExportMask_after_operation"
+                                    failure_004:failure_007_NetworkDeviceController.zoneExportRemoveVolumes_before_unzone \
+                                    failure_004:failure_008_NetworkDeviceController.zoneExportRemoveVolumes_after_unzone \
+                                    failure_009_VPlexVmaxMaskingOrchestrator.createOrAddVolumesToExportMask_before_operation"
     fi
 
     if [ "${SS}" = "vmax3" -o "${SS}" = "vmax2" ]
@@ -1856,9 +1968,9 @@ test_1() {
 
     if [ "${SS}" = "vplex" ]
     then
-	cfs="Volume ExportGroup ExportMask FCZoneReference"
+	cfs=("Volume ExportGroup ExportMask FCZoneReference")
     else
-	cfs="Volume"
+	cfs=("Volume")
     fi
 
     for failure in ${failure_injections}
@@ -1874,7 +1986,7 @@ test_1() {
       set_artificial_failure ${failure}
 
       # Check the state of the volume that doesn't exist
-      snap_db 1 ${cfs}
+      snap_db 1 "${cfs[@]}"
 
       #For XIO, before failure 6 is invoked the task would have completed successfully
       if [ "${SS}" = "xio" -a "${failure}" = "failure_006_BlockDeviceController.createVolumes_after_device_create" ]
@@ -1894,10 +2006,10 @@ test_1() {
       fi
 
       # Perform any DB validation in here
-      snap_db 2 ${cfs}
+      snap_db 2 "${cfs[@]}" 
 
       # Validate nothing was left behind
-      validate_db 1 2 ${cfs}
+      validate_db 1 2 "${cfs[@]}"
 
       # Rerun the command
       set_artificial_failure none
@@ -1915,7 +2027,7 @@ test_1() {
       fi
 
       # Perform any DB validation in here
-      snap_db 3 ${cfs}
+      snap_db 3 "${cfs[@]}"
 
       # Validate nothing was left behind
       validate_db 2 3 ${cfs}
@@ -1947,6 +2059,7 @@ test_2() {
                                failure_004:failure_013_BlockDeviceController.rollbackCreateVolumes_before_device_delete \
                                failure_004:failure_014_BlockDeviceController.rollbackCreateVolumes_after_device_delete"
 
+    storage_failure_injections=""
     if [ "${SS}" = "vplex" ]
     then
 	# Would love to have injections in the vplex package itself somehow, but hard to do since I stuck InvokeTestFailure in controller,
@@ -1957,10 +2070,9 @@ test_2() {
                                     failure_015_SmisCommandHelper.invokeMethod_AddMembers \
                                     failure_045_VPlexDeviceController.createVirtualVolume_before_create_operation \
                                     failure_046_VPlexDeviceController.createVirtualVolume_after_create_operation \
-                                    failure_007_NetworkDeviceController.zoneExportRemoveVolumes_before_unzone \
-                                    failure_008_NetworkDeviceController.zoneExportRemoveVolumes_after_unzone \
-                                    failure_009_VPlexVmaxMaskingOrchestrator.createOrAddVolumesToExportMask_before_operation \
-                                    failure_010_VPlexVmaxMaskingOrchestrator.createOrAddVolumesToExportMask_after_operation"
+                                    failure_004:failure_007_NetworkDeviceController.zoneExportRemoveVolumes_before_unzone \
+                                    failure_004:failure_008_NetworkDeviceController.zoneExportRemoveVolumes_after_unzone \
+                                    failure_009_VPlexVmaxMaskingOrchestrator.createOrAddVolumesToExportMask_before_operation"
     fi
 
     if [ "${SS}" = "vmax3" -o "${SS}" = "vmax2" ]
@@ -1996,9 +2108,9 @@ test_2() {
 
     if [ "${SS}" = "vplex" ]
     then
-	cfs="Volume ExportGroup ExportMask BlockConsistencyGroup FCZoneReference"
+	cfs=("Volume ExportGroup ExportMask BlockConsistencyGroup FCZoneReference")
     else
-	cfs="Volume BlockConsistencyGroup"
+	cfs=("Volume BlockConsistencyGroup")
     fi
 
     for failure in ${failure_injections}
@@ -2018,7 +2130,7 @@ test_2() {
       runcmd blockconsistencygroup create ${PROJECT} ${CGNAME}
 
       # Check the state of the volume that doesn't exist
-      snap_db 1 ${cfs}
+      snap_db 1 "${cfs[@]}"
 
       #For XIO, before failure 6 is invoked the task would have completed successfully
       if [ "${SS}" = "xio" -a "${failure}" = "failure_006_BlockDeviceController.createVolumes_after_device_create" ]
@@ -2038,7 +2150,7 @@ test_2() {
       fi
 
       # Perform any DB validation in here
-      snap_db 2 ${cfs}
+      snap_db 2 "${cfs[@]}"
 
       # Validate nothing was left behind
       validate_db 1 2 ${cfs}
@@ -2050,7 +2162,7 @@ test_2() {
       runcmd blockconsistencygroup create ${PROJECT} ${CGNAME}
 
       # Perform any DB validation in here
-      snap_db 3 ${cfs}
+      snap_db 3 "${cfs[@]}"
 
       # Rerun the command
       set_artificial_failure none
@@ -2068,7 +2180,7 @@ test_2() {
       fi
 
       # Perform any DB validation in here
-      snap_db 4 ${cfs}
+      snap_db 4 "${cfs[@]}"
 
       # Validate nothing was left behind
       validate_db 3 4 ${cfs}
@@ -2098,10 +2210,10 @@ test_3() {
 
     common_failure_injections="failure_004_final_step_in_workflow_complete"
 
+    storage_failure_injections=""
     if [ "${SS}" = "vplex" ]
     then
-	storage_failure_injections="failure_009_VPlexVmaxMaskingOrchestrator.createOrAddVolumesToExportMask_before_operation&5 \
-                                    failure_010_VPlexVmaxMaskingOrchestrator.createOrAddVolumesToExportMask_after_operation&5"
+	storage_failure_injections="failure_009_VPlexVmaxMaskingOrchestrator.createOrAddVolumesToExportMask_before_operation"
     fi
 
     if [ "${SS}" = "vmax3" -o "${SS}" = "vmax2" ]
@@ -2127,9 +2239,9 @@ test_3() {
 
     if [ "${SS}" = "vplex" ]
     then
-	cfs="Volume ExportGroup ExportMask FCZoneReference"
+	cfs=("Volume ExportGroup ExportMask FCZoneReference")
     else
-	cfs="Volume"
+	cfs=("Volume")
     fi
 
     for failure in ${failure_injections}
@@ -2149,7 +2261,7 @@ test_3() {
       set_artificial_failure ${failure}
 
       # Check the state of the volume that doesn't exist
-      snap_db 1 ${cfs}
+      snap_db 1 "${cfs[@]}"
 
       # Create the volume
       fail volume create ${volname} ${project} ${NH} ${VPOOL_BASE} 1GB --count 8
@@ -2161,7 +2273,7 @@ test_3() {
       sleep 5
 
       # Perform any DB validation in here
-      snap_db 2 ${cfs}
+      snap_db 2 "${cfs[@]}"
 
       # Validate nothing was left behind
       validate_db 1 2 ${cfs}
@@ -2184,7 +2296,7 @@ test_3() {
       runcmd project delete ${project}
 
       # Perform any DB validation in here
-      snap_db 3 ${cfs}
+      snap_db 3 "${cfs[@]}"
 
       # Validate nothing was left behind
       validate_db 2 3 ${cfs}
@@ -2226,6 +2338,7 @@ test_4() {
 	network_failure_injections="failure_049_BrocadeNetworkSMIS.getWEBMClient"
     fi
 
+    storage_failure_injections=""
     if [ "${SS}" = "vplex" ]
     then
 	storage_failure_injections=""
@@ -2248,14 +2361,16 @@ test_4() {
     failure_injections="${common_failure_injections} ${storage_failure_injections} ${network_failure_injections}"
 
     # Placeholder when a specific failure case is being worked...
-    # failure_injections="failure_004:failure_020"
+    # failure_injections="failure_004:failure_021_Export_zoneRollback_after_delete"
 
     for failure in ${failure_injections}
     do
+      clean_zones ${FC_ZONE_A:7} ${HOST1}
+      prerun_tests
       item=${RANDOM}
       TEST_OUTPUT_FILE=test_output_${item}.log
       secho "Running Test 4 with failure scenario: ${failure}..."
-      cfs="ExportGroup ExportMask FCZoneReference"
+      cfs=("ExportGroup ExportMask FCZoneReference")
       mkdir -p results/${item}
       volname=${VOLNAME}-${item}
       reset_counts
@@ -2264,7 +2379,7 @@ test_4() {
       set_artificial_failure ${failure}
 
       # Check the state of the export that doesn't exist
-      snap_db 1 ${cfs}
+      snap_db 1 "${cfs[@]}"
 
       # Create the export
       fail export_group create $PROJECT ${expname}1 $NH --type Host --volspec ${PROJECT}/${VOLNAME}-1 --hosts "${HOST1}"
@@ -2273,7 +2388,7 @@ test_4() {
       verify_failures ${failure}
 
       # Perform any DB validation in here
-      snap_db 2 ${cfs}
+      snap_db 2 "${cfs[@]}"
 
       # Validate nothing was left behind
       validate_db 1 2 ${cfs}
@@ -2286,10 +2401,10 @@ test_4() {
       runcmd export_group delete $PROJECT/${expname}1
       
       # Perform any DB validation in here
-      snap_db 3 ${cfs}
+      snap_db 3 "${cfs[@]}"
 
       # Validate nothing was left behind
-      validate_db 2 3 ${cfs}
+      validate_db 2 3 "${cfs[@]}"
 
       # Report results
       report_results test_4 ${failure}
@@ -2323,8 +2438,11 @@ test_5() {
     if [ "${BROCADE}" = "1" ]
     then
 	network_failure_injections="failure_049_BrocadeNetworkSMIS.getWEBMClient"
+    else
+        network_failure_injections="failure_057_MdsNetworkSystemDevice.removeZones"
     fi
 
+    storage_failure_injections=""
     if [ "${SS}" = "vplex" ]
     then
 	storage_failure_injections=""
@@ -2332,7 +2450,8 @@ test_5() {
 
     if [ "${SS}" = "vmax2" -o "${SS}" = "vmax3" ]
     then
-	storage_failure_injections="failure_015_SmisCommandHelper.invokeMethod_DeleteGroup"
+	storage_failure_injections="failure_015_SmisCommandHelper.invokeMethod_DeleteGroup \
+                                    failure_015_SmisCommandHelper.invokeMethod_AddMembers"
     fi
 
     if [ "${SS}" = "vnx" ]
@@ -2344,20 +2463,20 @@ test_5() {
     failure_injections="${common_failure_injections} ${storage_failure_injections} ${network_failure_injections}"
 
     # Placeholder when a specific failure case is being worked...
-    # failure_injections="failure_018 failure_020 failure_021"
+    # failure_injections="failure_015_SmisCommandHelper.invokeMethod_AddMembers"
 
     for failure in ${failure_injections}
     do
       item=${RANDOM}
       TEST_OUTPUT_FILE=test_output_${item}.log
       secho "Running Test 5 with failure scenario: ${failure}..."
-      cfs="ExportGroup ExportMask FCZoneReference"
+      cfs=("ExportGroup ExportMask FCZoneReference")
       mkdir -p results/${item}
       volname=${VOLNAME}-${item}
       reset_counts
       
       # Check the state of the export that it doesn't exist
-      snap_db 1 ${cfs}
+      snap_db 1 "${cfs[@]}"
 
       # prime the export
       runcmd export_group create $PROJECT ${expname}1 $NH --type Host --volspec ${PROJECT}/${VOLNAME}-1 --hosts "${HOST1}"
@@ -2378,10 +2497,10 @@ test_5() {
       runcmd export_group delete $PROJECT/${expname}1
 
       # Perform any DB validation in here
-      snap_db 2 ${cfs}
+      snap_db 2 "${cfs[@]}"
 
       # Validate nothing was left behind
-      validate_db 1 2 ${cfs}
+      validate_db 1 2 "${cfs[@]}"
 
       # Report results
       report_results test_5 ${failure}
@@ -2409,39 +2528,53 @@ test_6() {
 
     common_failure_injections="failure_004_final_step_in_workflow_complete"
 
+    storage_failure_injections=""
     if [ "${SS}" = "vplex" ]
     then
 	storage_failure_injections=""
     fi
 
-    if [ "${SS}" = "vnx" -o "${SS}" = "vmax2" -o "${SS}" = "vmax3" -o "${SS}" = "unity" ]
+    if [ "${SS}" = "vnx" -o "${SS}" = "vmax2" -o "${SS}" = "unity" ]
     then
 	storage_failure_injections="failure_004:failure_017_Export_doRemoveVolume"
     fi
 
+    if [ "${SS}" = "vmax3" ]
+    then
+	storage_failure_injections="failure_004:failure_017_Export_doRemoveVolume \
+                                    failure_015_SmisCommandHelper.invokeMethod_CreateGroup"
+    fi
+
+    if [ "${SS}" = "xio" ]
+    then
+        storage_failure_injections="failure_052_XtremIOExportOperations.runLunMapCreationAlgorithm_before_addvolume_to_lunmap \
+                                    failure_053_XtremIOExportOperations.runLunMapCreationAlgorithm_after_addvolume_to_lunmap"
+    fi
+
+
     failure_injections="${common_failure_injections} ${storage_failure_injections}"
 
     # Placeholder when a specific failure case is being worked...
-    # failure_injections="failure_004"
+    # failure_injections="failure_015_SmisCommandHelper.invokeMethod_CreateGroup"
 
     for failure in ${failure_injections}
     do
       item=${RANDOM}
       TEST_OUTPUT_FILE=test_output_${item}.log
       secho "Running Test 6 with failure scenario: ${failure}..."
-      cfs="ExportGroup ExportMask FCZoneReference"
+      cfs=("ExportGroup ExportMask FCZoneReference")
       mkdir -p results/${item}
       volname=${VOLNAME}-${item}
       reset_counts
       
       # Snap the state before the export group was created
-      snap_db 1 ${cfs}
+      snap_db 1 "${cfs[@]}"
 
       # prime the export
       runcmd export_group create $PROJECT ${expname}1 $NH --type Host --volspec ${PROJECT}/${VOLNAME}-1 --hosts "${HOST1}"
 
       # Snap the DB state with the export group created
-      snap_db 2 ${cfs}
+      snap_db 2 "${cfs[@]}"
 
       # Turn on failure at a specific point
       set_artificial_failure ${failure}
@@ -2453,8 +2586,8 @@ test_6() {
       verify_failures ${failure}
 
       # Validate nothing was left behind
-      snap_db 3 ${cfs}
-      validate_db 2 3 ${cfs}
+      snap_db 3 "${cfs[@]}" "| grep -v existingVolumes"
+      validate_db 2 3 "${cfs[@]}"
 
       # rerun the command
       set_artificial_failure none
@@ -2464,8 +2597,8 @@ test_6() {
       runcmd export_group delete ${PROJECT}/${expname}1
 
       # Validate the DB is back to its original state
-      snap_db 4 ${cfs}
-      validate_db 1 4 ${cfs}
+      snap_db 4 "${cfs[@]}"
+      validate_db 1 4 "${cfs[@]}"
 
       # Report results
       report_results test_6 ${failure}
@@ -2494,9 +2627,7 @@ test_7() {
     common_failure_injections="failure_004_final_step_in_workflow_complete \
                                failure_004:failure_016_Export_doRemoveInitiator \
                                failure_004:failure_024_Export_zone_removeInitiator_before_delete \
-                               failure_004:failure_025_Export_zone_removeInitiator_after_delete \
-                               failure_004:failure_020_Export_zoneRollback_before_delete \
-                               failure_004:failure_021_Export_zoneRollback_after_delete"
+                               failure_004:failure_025_Export_zone_removeInitiator_after_delete"
 
     network_failure_injections=""
     if [ "${BROCADE}" = "1" ]
@@ -2504,6 +2635,7 @@ test_7() {
 	network_failure_injections="failure_049_BrocadeNetworkSMIS.getWEBMClient"
     fi
 
+    storage_failure_injections=""
     if [ "${SS}" = "vplex" ]
     then
 	storage_failure_injections=""
@@ -2517,26 +2649,26 @@ test_7() {
     failure_injections="${common_failure_injections} ${storage_failure_injections} ${network_failure_injections}"
 
     # Placeholder when a specific failure case is being worked...
-    # failure_injections="failure_004:failure_024_Export_zone_removeInitiator_before_delete"
+    #failure_injections="failure_004:failure_024_Export_zone_removeInitiator_before_delete"
 
     for failure in ${failure_injections}
     do
       item=${RANDOM}
       TEST_OUTPUT_FILE=test_output_${item}.log
       secho "Running Test 7 with failure scenario: ${failure}..."
-      cfs="ExportGroup ExportMask FCZoneReference"
+      cfs=("ExportGroup ExportMask FCZoneReference")
       mkdir -p results/${item}
       volname=${VOLNAME}-${item}
       reset_counts
       
       # Check the state of the export that it doesn't exist
-      snap_db 1 ${cfs}
+      snap_db 1 "${cfs[@]}"
 
       # prime the export
       runcmd export_group create $PROJECT ${expname}1 $NH --type Exclusive --volspec ${PROJECT}/${VOLNAME}-1 --inits "${HOST1}/${H1PI1}"
 
       # Snsp the DB so we can validate after failures later
-      snap_db 2 ${cfs}
+      snap_db 2 "${cfs[@]}"
 
       # Strip out colons for array helper command
       h1pi2=`echo ${H1PI2} | sed 's/://g'`
@@ -2551,10 +2683,10 @@ test_7() {
       verify_failures ${failure}
 
       # Perform any DB validation in here
-      snap_db 3 ${cfs}
+      snap_db 3 "${cfs[@]}"
 
       # Validate nothing was left behind
-      validate_db 2 3 ${cfs}
+      validate_db 2 3 "${cfs[@]}"
 
       # Rerun the command
       set_artificial_failure none
@@ -2564,8 +2696,8 @@ test_7() {
       runcmd export_group delete ${PROJECT}/${expname}1
 
       # Verify the DB is back to the original state
-      snap_db 4 ${cfs}
-      validate_db 1 4 ${cfs}
+      snap_db 4 "${cfs[@]}"
+      validate_db 1 4 "${cfs[@]}"
 
       # Report results
       report_results test_7 ${failure}
@@ -2603,12 +2735,12 @@ test_8() {
     common_failure_injections="failure_004_final_step_in_workflow_complete"
     meta_size=240GB
 
+    storage_failure_injections=""
     if [ "${SS}" = "vplex" ]
     then
 	storage_failure_injections="failure_007_NetworkDeviceController.zoneExportRemoveVolumes_before_unzone \
                                     failure_008_NetworkDeviceController.zoneExportRemoveVolumes_after_unzone \
-                                    failure_009_VPlexVmaxMaskingOrchestrator.createOrAddVolumesToExportMask_before_operation \
-                                    failure_010_VPlexVmaxMaskingOrchestrator.createOrAddVolumesToExportMask_after_operation"
+                                    failure_009_VPlexVmaxMaskingOrchestrator.createOrAddVolumesToExportMask_before_operation"
     fi
 
     if [ "${SS}" = "vmax2" ]
@@ -2637,9 +2769,9 @@ test_8() {
       secho "Running Test 1 with failure scenario: ${failure}..."
       if [ "${SS}" = "vplex" ]
       then
-	  cfs="Volume ExportGroup ExportMask FCZoneReference"
+	  cfs=("Volume ExportGroup ExportMask FCZoneReference")
       else
-	  cfs="Volume"
+	  cfs=("Volume")
       fi
       reset_counts
       mkdir -p results/${item}
@@ -2652,7 +2784,7 @@ test_8() {
       set_artificial_failure ${failure}
 
       # Check the state of the volume that doesn't exist
-      snap_db 1 ${cfs}
+      snap_db 1 "${cfs[@]}"
 
       #For XIO, before failure 6 is invoked the task would have completed successfully
       if [ "${SS}" = "xio" -a "${failure}" = "failure_006_BlockDeviceController.createVolumes_after_device_create" ]
@@ -2672,10 +2804,10 @@ test_8() {
       fi
 
       # Perform any DB validation in here
-      snap_db 2 ${cfs}
+      snap_db 2 "${cfs[@]}"
 
       # Validate nothing was left behind
-      validate_db 1 2 ${cfs}
+      validate_db 1 2 "${cfs[@]}"
 
       # Rerun the command
       set_artificial_failure none
@@ -2696,10 +2828,10 @@ test_8() {
       fi
 
       # Perform any DB validation in here
-      snap_db 3 ${cfs}
+      snap_db 3 "${cfs[@]}"
 
       # Validate nothing was left behind
-      validate_db 2 3 ${cfs}
+      validate_db 2 3 "${cfs[@]}"
 
       # Report results
       report_results test_8 ${failure}
@@ -2725,10 +2857,10 @@ test_9() {
     # Typically we have failure_004 here, but in the case of delete, there's no real rollback.
     common_failure_injections=""
 
+    storage_failure_injections=""
     if [ "${SS}" = "vplex" ]
     then
-	storage_failure_injections="failure_009_VPlexVmaxMaskingOrchestrator.deleteOrRemoveVolumesToExportMask_before_operation \
-                                    failure_010_VPlexVmaxMaskingOrchestrator.deleteOrRemoveVolumesToExportMask_after_operation"
+	storage_failure_injections="failure_009_VPlexVmaxMaskingOrchestrator.deleteOrRemoveVolumesToExportMask_before_operation"
     fi
 
     if [ "${SS}" = "unity" ]
@@ -2769,9 +2901,9 @@ test_9() {
 
     if [ "${SS}" = "vplex" ]
     then
-	cfs="Volume ExportGroup ExportMask BlockConsistencyGroup"
+	cfs=("Volume ExportGroup ExportMask BlockConsistencyGroup")
     else
-	cfs="Volume BlockConsistencyGroup"
+	cfs=("Volume BlockConsistencyGroup")
     fi
 
     for failure in ${failure_injections}
@@ -2787,7 +2919,7 @@ test_9() {
       CGNAME=wf-test2-cg-${item}
 
       # Check the state of the volume that doesn't exist
-      snap_db 1 ${cfs}
+      snap_db 1 "${cfs[@]}"
 
       # Create the CG
       runcmd blockconsistencygroup create ${PROJECT} ${CGNAME}
@@ -2801,7 +2933,7 @@ test_9() {
       fi
 
       # Perform any DB validation in here
-      snap_db 2 ${cfs}
+      snap_db 2 "${cfs[@]}"
 
       # Turn on failure at a specific point
       set_artificial_failure ${failure}
@@ -2819,13 +2951,251 @@ test_9() {
       runcmd blockconsistencygroup delete ${CGNAME}
 
       # Perform any DB validation in here
-      snap_db 3 ${cfs}
+      snap_db 3 "${cfs[@]}"
 
       # Validate nothing was left behind
-      validate_db 1 3 ${cfs}
+      validate_db 1 3 "${cfs[@]}"
 
       # Report results
       report_results test_9 ${failure}
+    done
+}
+
+# Test 10
+#
+# Test removing a volumes while injecting several different failures that cause the job to not get
+# done, or not get done effectively enough.
+#
+# 1. Save off state of DB (1)
+# 2. Export a volume to a host
+# 3. Save off state of DB (2)
+# 4. Perform add volume operation that will fail at the end of execution (and other locations)
+# 5. Save off state of DB (3)
+# 6. Compare state (2) and (3)
+# 7. Retry operation without failure injection
+# 8. Save off state of DB (4)
+# 9. Compare state (1) and (4)
+#
+test_10() {
+    echot "Test 10 Begins"
+    expname=${EXPORT_GROUP_NAME}t10
+
+    common_failure_injections="failure_004_final_step_in_workflow_complete failure_firewall"
+
+    storage_failure_injections=""
+    if [ "${SS}" = "vplex" ]
+    then
+	storage_failure_injections=""
+    fi
+
+    if [ "${SS}" = "unity" -o "${SS}" = "xio" ]
+    then
+	storage_failure_injections="failure_017_Export_doRemoveVolume"
+    fi
+
+    if [ "${SS}" = "vnx" -o "${SS}" = "vmax2" -o "${SS}" = "vmax3" ]
+    then
+	storage_failure_injections="failure_017_Export_doRemoveVolume \
+                                    failure_015_SmisCommandHelper.invokeMethod_*"
+    fi
+
+    failure_injections="${common_failure_injections} ${storage_failure_injections}"
+
+    # Placeholder when a specific failure case is being worked...
+    # failure_injections="failure_firewall"
+    # failure_injections="failure_015_SmisCommandHelper.invokeMethod_*"
+
+    for failure in ${failure_injections}
+    do
+      item=${RANDOM}
+      TEST_OUTPUT_FILE=test_output_${item}.log
+      secho "Running Test 10 with failure scenario: ${failure}..."
+      cfs=("ExportGroup ExportMask FCZoneReference")
+      mkdir -p results/${item}
+      volname=${VOLNAME}-${item}
+      reset_counts
+      
+      # Snap the state before the export group was created
+      snap_db 1 "${cfs[@]}"
+
+      # prime the export
+      runcmd export_group create $PROJECT ${expname}1 $NH --type Host --volspec "${PROJECT}/${VOLNAME}-1,${PROJECT}/${VOLNAME}-2" --hosts "${HOST1}"
+
+      # Turn on suspend of export after orchestration
+      set_suspend_on_class_method ${exportRemoveVolumesDeviceStep}
+
+      # Run the export group command TODO: Do this more elegantly
+      echo === export_group update $PROJECT/${expname}1 --remVols ${PROJECT}/${VOLNAME}-2
+      resultcmd=`export_group update $PROJECT/${expname}1 --remVols ${PROJECT}/${VOLNAME}-2`
+
+      if [ $? -ne 0 ]; then
+	  echo "export group command failed outright"
+	  cleanup
+	  finish 5
+      fi
+
+      # Show the result of the export group command for now (show the task and WF IDs)
+      echo $resultcmd
+      
+      # Parse results (add checks here!  encapsulate!)
+      taskworkflow=`echo $resultcmd | awk -F, '{print $2 $3}'`
+      answersarray=($taskworkflow)
+      task=${answersarray[0]}
+      workflow=${answersarray[1]}
+      
+      if [ "${failure}" = "failure_firewall" ]
+      then
+	  # Find the IP address we need to firewall
+	  if [ "${SIM}" = "1" ]
+	  then
+	      firewall_ip=${HW_SIMULATOR_IP}
+	  elif [ "${SS}" = "unity" ]
+	  then
+	      firewall_ip=${UNITY_IP}
+	  else
+	      secho "Firewall testing disabled for combo of ${SS} with simualtor=${SIM}"
+	      return
+	  fi
+
+	  # turn on firewall
+	  runcmd /usr/sbin/iptables -I INPUT 1 -s ${firewall_ip} -p all -j REJECT
+      fi
+	
+      # Turn on failure at a specific point
+      set_artificial_failure ${failure}
+
+      # Resume the workflow
+      runcmd workflow resume $workflow
+
+      # Turn on suspend of export after orchestration
+      set_suspend_on_class_method none
+
+      # Follow the task.  It should fail because of Poka Yoke validation
+      echo "*** Following the export_group update task to verify it FAILS because of firewall"
+      fail task follow $task
+
+      if [ "${failure}" = "failure_firewall" ]
+      then
+	  # turn off firewall
+	  runcmd /usr/sbin/iptables -D INPUT 1
+      elif [ "${failure}" != "failure_015_SmisCommandHelper.invokeMethod_*" ]
+      then
+	  # Verify injected failures were hit
+	  verify_failures ${failure}
+      fi
+
+      # rerun the command
+      set_artificial_failure none
+      runcmd export_group update ${PROJECT}/${expname}1 --remVol ${PROJECT}/${VOLNAME}-2
+
+      # Delete the export group
+      runcmd export_group delete ${PROJECT}/${expname}1
+
+      # Validate the DB is back to its original state
+      snap_db 2 "${cfs[@]}"
+      validate_db 1 2 "${cfs[@]}"
+
+      # Report results
+      report_results test_10 ${failure}
+    done
+}
+
+# Test 11
+#
+# Test increasing max path while injecting several different failures that cause the job to not get
+# done, or not get done effectively enough.
+#
+# 1. Save off state of DB (1)
+# 2. Export a volume to a host
+# 3. Save off state of DB (2)
+# 4. Perform change vpool operation to increase max path that will fail at the end of execution (and other locations)
+# 5. Save off state of DB (3)
+# 6. Compare state (2) and (3)
+# 7. Retry operation without failure injection
+# 8. Save off state of DB (4)
+# 9. Compare state (1) and (4)
+#
+test_11() {
+    echot "Test 11 Begins"
+    expname=${EXPORT_GROUP_NAME}t11
+
+    common_failure_injections="failure_004_final_step_in_workflow_complete \
+                               failure_058_NetworkDeviceController.zoneExportAddInitiators_before_zone \
+                               failure_059_NetworkDeviceController.zoneExportAddInitiators_after_zone"
+
+    storage_failure_injections=""
+    if [ "${SS}" = "vplex" ]
+    then
+	storage_failure_injections=""
+    fi
+
+    if [ "${SS}" = "unity" -o "${SS}" = "xio" ]
+    then
+	storage_failure_injections="failure_003_late_in_add_initiator_to_mask"
+    fi
+
+    if [ "${SS}" = "vnx" -o "${SS}" = "vmax2" -o "${SS}" = "vmax3" ]
+    then
+	storage_failure_injections="failure_015_SmisCommandHelper.invokeMethod_*"
+    fi
+
+    failure_injections="${common_failure_injections} ${storage_failure_injections}"
+
+    # Placeholder when a specific failure case is being worked...
+    # failure_injections="failure_057_NetworkDeviceController.zoneExportAddInitiators_before_zone"
+
+    for failure in ${failure_injections}
+    do
+      item=${RANDOM}
+      TEST_OUTPUT_FILE=test_output_${item}.log
+      secho "Running Test 11 with failure scenario: ${failure}..."
+      cfs=("ExportGroup ExportMask FCZoneReference")
+      mkdir -p results/${item}
+      volname=${VOLNAME}-${item}
+      reset_counts
+      
+      runcmd volume create ${volname} ${PROJECT} ${NH} ${VPOOL_BASE} 1GB
+
+      # Check the state of the export that it doesn't exist
+      snap_db 1 "${cfs[@]}"
+
+      # prime the export
+      runcmd export_group create $PROJECT ${expname} $NH --type Host --volspec ${PROJECT}/${volname} --hosts "${HOST1}"
+
+      # Snsp the DB so we can validate after failures later
+      snap_db 2 "${cfs[@]}"
+
+      # Turn on failure at a specific point
+      set_artificial_failure ${failure}
+
+      # Attempt to change vpool
+      fail volume change_cos ${PROJECT}/${volname} ${VPOOL_CHANGE}
+
+      # Verify injected failures were hit
+      verify_failures ${failure}
+
+      # Perform any DB validation in here
+      snap_db 3 "${cfs[@]}"
+
+      # Validate nothing was left behind
+      validate_db 2 3 "${cfs[@]}"
+
+      # Rerun the command
+      set_artificial_failure none
+      runcmd volume change_cos ${PROJECT}/${volname} ${VPOOL_CHANGE}
+
+      # Delete the export
+      runcmd export_group delete ${PROJECT}/${expname}
+
+      # Verify the DB is back to the original state
+      snap_db 4 "${cfs[@]}"
+      validate_db 1 4 "${cfs[@]}"
+
+      # Remove the volume
+      runcmd volume delete ${PROJECT}/${volname} --wait
+
+      # Report results
+      report_results test_11 ${failure}
     done
 }
 
@@ -3034,7 +3404,7 @@ fi
 
 
 test_start=1
-test_end=7
+test_end=10
 
 # If there's a last parameter, take that
 # as the name of the test to run
@@ -3092,4 +3462,3 @@ if [ "${DO_CLEANUP}" = "1" ]; then
 fi
 
 finish;
-

@@ -626,8 +626,6 @@ public class DataCollectionJobScheduler {
                         _dbClient.updateObject(system);
                     }
 
-                    completer.setNextRunTime(_dbClient,
-                            System.currentTimeMillis() + JobIntervals.get(job.getType()).getInterval() * 1000);
                     ControllerServiceImpl.enqueueDataCollectionJob(job);
                 }
                 else {
@@ -776,9 +774,22 @@ public class DataCollectionJobScheduler {
             // went wrong with a previous discovery. Set it to error and allow it to be rescheduled.
             boolean dbInProgressStatus = isInProgress(system, type);
             if (dbInProgressStatus) {
-                updateStatusToError(system, type);
+                updateDataCollectionStatus(system, type, DiscoveredDataObject.DataCollectionJobStatus.ERROR);
             }
-        }
+        } else {
+            // log a message if the discovery job has been runnig for longer than expected
+            long currentTime = System.currentTimeMillis();
+            long maxIdleTime = JobIntervals.getMaxIdleInterval() * 1000;
+            long jobInterval = JobIntervals.get(job.getType()).getInterval();
+            // next time is the time the job was picked up from the queue plus the job interval
+            // so the start time of the currently running job is next time minus job interval
+            // the running time of the currently running job is current time - next time - job interval
+            boolean longRunningDiscovery = inProgress && (currentTime - nextTime - jobInterval >= maxIdleTime);
+            if (longRunningDiscovery) {
+                _logger.warn(type + " job for " + system.getLabel() + 
+                        " has been running for longer than expected; this could indicate a problem with the storage system");
+            }
+         }
 
         return isJobSchedulingNeeded(system.getId(), type, queued, inProgress, isError(system, type), scheduler, lastTime, nextTime);
     }
@@ -789,13 +800,13 @@ public class DataCollectionJobScheduler {
      * @param system
      * @param type
      */
-    private <T extends DiscoveredSystemObject> void updateStatusToError(T system, String type) {
+    private <T extends DiscoveredSystemObject> void updateDataCollectionStatus(T system, String type, DiscoveredDataObject.DataCollectionJobStatus status) {
         if (ControllerServiceImpl.METERING.equalsIgnoreCase(type)) {
-            system.setMeteringStatus(DiscoveredDataObject.DataCollectionJobStatus.ERROR.toString());
+            system.setMeteringStatus(status.toString());
         } else if (ControllerServiceImpl.ARRAYAFFINITY_DISCOVERY.equalsIgnoreCase(type)) {
-            ((StorageSystem) system).setArrayAffinityStatus(DiscoveredDataObject.DataCollectionJobStatus.ERROR.toString());
+            ((StorageSystem) system).setArrayAffinityStatus(status.toString());
         } else {
-            system.setDiscoveryStatus(DiscoveredDataObject.DataCollectionJobStatus.ERROR.toString());
+            system.setDiscoveryStatus(status.toString());
         }
         _dbClient.updateObject(system);
     }
@@ -851,14 +862,6 @@ public class DataCollectionJobScheduler {
                         id, type);
                 return false;
             }
-        } else if (inProgress && System.currentTimeMillis() - nextTime >= JobIntervals.getMaxIdleInterval() * 1000) {
-            // TODO : if the job is in progress (not queued, but really running), check to see how long it's been in progress. 
-            // If it's longer than some threshold, do something to resolve things. possibilities include:
-            //   -- set the db status of the storage system to error
-            //   -- clear the item from the queue (there is probably a thread running)
-            //   -- interrupt the thread (is this dangerous?)
-            //   -- set the storage system to some suspect status; require customer to resolve things and clear status; need details???
-            //   -- make sure the job age does not include the time it spent on the queue waiting to be run!!!!!!!!
         } else {
             _logger.info("{} Job for {} is in Progress", type, id);
             return false;

@@ -43,6 +43,7 @@ import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.volumecontroller.ControllerLockingService;
 import com.emc.storageos.volumecontroller.impl.ControllerServiceImpl;
+import com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.DataCollectionJobScheduler.JobIntervals;
 import com.emc.storageos.volumecontroller.impl.smis.CIMConnectionFactory;
 
 /**
@@ -123,6 +124,8 @@ public class DataCollectionJobConsumer extends
         String nodeId = _coordinator.getInetAddessLookupMap().getNodeId();
 
         DataCollectionTaskCompleter completer = job.getCompleter();
+        completer.setNextRunTime(_dbClient,
+                System.currentTimeMillis() + JobIntervals.get(job.getType()).getInterval() * 1000);
         completer.updateObjectState(_dbClient, DiscoveredDataObject.DataCollectionJobStatus.IN_PROGRESS);
         String jobType = job.getType();
         job.updateTask(_dbClient, "Started " + jobType + " on node " + nodeId);

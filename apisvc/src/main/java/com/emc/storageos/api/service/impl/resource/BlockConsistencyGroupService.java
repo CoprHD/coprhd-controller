@@ -256,6 +256,8 @@ public class BlockConsistencyGroupService extends TaskResourceService {
             final BlockConsistencyGroupCreate param) {
         checkForDuplicateName(param.getName(), BlockConsistencyGroup.class);
 
+        checkIsAlphaNumeric(param.getName());
+
         // Validate name
         ArgValidator.checkFieldNotEmpty(param.getName(), "name");
 
@@ -2310,6 +2312,17 @@ public class BlockConsistencyGroupService extends TaskResourceService {
             throw APIException.badRequests.invalidCopyType(copy.getType());
         }
         return taskList;
+    }
+
+    /**
+     * Check whether consistency group has special characters
+     * @param consistencyGroupName
+     */
+    private void checkIsAlphaNumeric(String consistencyGroupName) {
+        String pattern = "^[a-zA-Z0-9]*$";
+        if (!consistencyGroupName.matches(pattern)) {
+            throw APIException.badRequests.groupNameonlyAlphaNumericAllowed();
+        }
     }
 
     /**

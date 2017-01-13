@@ -2665,9 +2665,7 @@ test_7() {
     expname=${EXPORT_GROUP_NAME}t7
 
     common_failure_injections="failure_004_final_step_in_workflow_complete \
-                               failure_004:failure_016_Export_doRemoveInitiator \
-                               failure_004:failure_024_Export_zone_removeInitiator_before_delete \
-                               failure_004:failure_025_Export_zone_removeInitiator_after_delete"
+                               failure_004:failure_016_Export_doRemoveInitiator"
 
     network_failure_injections=""
     if [ "${BROCADE}" = "1" ]
@@ -2678,12 +2676,14 @@ test_7() {
     storage_failure_injections=""
     if [ "${SS}" = "vplex" ]
     then
-	storage_failure_injections=""
+	storage_failure_injections="failure_004:failure_024_Export_zone_removeInitiator_before_delete \
+                                    failure_004:failure_025_Export_zone_removeInitiator_after_delete"
     fi
 
-    if [ "${SS}" = "vnx" -o "${SS}" = "vmax2" -o "${SS}" = "vmax3" ]
+    if [ "${SS}" = "vnx" -o "${SS}" = "vmax2" -o "${SS}" = "vmax3" -o "${SS}" = "unity" ]
     then
-	storage_failure_injections=""
+	storage_failure_injections="failure_004:failure_024_Export_zone_removeInitiator_before_delete \
+                                    failure_004:failure_025_Export_zone_removeInitiator_after_delete"
     fi
 
     failure_injections="${common_failure_injections} ${storage_failure_injections} ${network_failure_injections}"

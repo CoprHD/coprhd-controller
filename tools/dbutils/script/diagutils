@@ -9,11 +9,13 @@
 # it is provided by or on behalf of EMC.
 #
 
-DIAGCOLLECT_DIR="/tmp/diagutils"
+DIAGCOLLECT_DIR="/data/diagutils"
 DIAGCOLLECT_MAME="diagutils-`date +%Y%0m%0d%0k%0M%0S`"
 DIAGCOLLECT_ARCHIVE_NAME="${DIAGCOLLECT_MAME}"
 DIAGCOLLECT_OUTPUT="${DIAGCOLLECT_DIR}/${DIAGCOLLECT_MAME}"
 COMMAND_DIR="/opt/storageos/bin"
+DISK_USAGE_WARNING_LIMIT=50
+DISK_USAGE_TERMINATION_LIMIT=80
 MIN_CFS=(BlockConsistencyGroup BlockMirror BlockSnapshot Cluster ExportGroup ExportMask FCZoneReference Host Initiator Network NetworkSystem ProtectionSet ProtectionSystem StoragePort StorageSystem VirtualArray VirtualDataCenter VirtualPool Volume)
 
 #This script is used to help user to restore a backupset simply
@@ -234,6 +236,12 @@ upload_to_ftp() {
     fi
 }
 
+precheck_status() {
+    precheck_disk_status
+    precheck_node_cluster_status
+    set_max_current_job_number
+}
+
 ######################
 # Script Libs
 ######################
@@ -249,7 +257,7 @@ collect_data() {
             local targetDir="${2}/$viprNode"
             mkdir -p $targetDir
         fi
-        scp -r svcuser@"$viprNode":"${sourceDir}"/* ${targetDir} &>/dev/null
+        scp -r svcuser@"$viprNode":"${sourceDir}"/* ${targetDir} &>/dev/null &
     done
     wait
 }
@@ -289,7 +297,7 @@ execute_with_progress_point() {
     if [ $? -ne 0 ]; then
         result="failed"
     fi
-    kill_backup_ground_thread &> /dev/null
+    kill_background_thread &> /dev/null
 
     if [[ ${printResult} == "true" ]]; then
         echo "${result}"
@@ -301,7 +309,7 @@ execute_with_progress_point() {
     fi
 }
 
-kill_backup_ground_thread() {
+kill_background_thread() {
     while true; do
         ps -p ${BACKGROUND_PRINT_PID} | grep -v "PID" &>/dev/null
         if [ $? -eq 0 ]; then
@@ -344,7 +352,7 @@ check_if_skip() {
     fi
 }
 
-check_node_cluster_status() {
+precheck_node_cluster_status() {
     NODE_AVAILABLE=false
     CLUSTER_AVAILABLE=false
 
@@ -376,6 +384,29 @@ check_node_cluster_status() {
 
     if [[ ${CLUSTER_AVAILABLE} == false ]]; then
         echo "Cluster is unavailable, some collection would be missed"
+    fi
+}
+
+precheck_disk_status() {
+    local dataUsedPercentage=$(df -km /data | awk -F ' ' '/\<data\>/ {print $5}')
+    if [[ ${dataUsedPercentage%\%} -gt $DISK_USAGE_TERMINATION_LIMIT  ]]; then
+        echo "Data disk used percentage is over than 80%(${dataUsedPercentage}), can not execute this tool."
+        exit 1
+    elif [[ ${dataUsedPercentage%\%} -gt $DISK_USAGE_WARNING_LIMIT  ]]; then
+        echo "Data disk used percentage is over than 50%(${dataUsedPercentage})."
+        user_confirm "Are you sure you want to continue?"
+    fi
+}
+
+precheck_ftp_status() {
+    local ftpserver=$1
+    local user=$2
+    local password=$3
+
+    curl -sSk -u ${user}:${password} -l "${ftpserver}" &>/dev/null
+    if [ $? -ne 0 ]; then
+        echo "FTP server is unavailable or username/password is incorrect."
+        exit 2
     fi
 }
 
@@ -468,12 +499,12 @@ convert_log_name() {
         do
             local nodeId=$(get_nodeid)
             local nodeName=$(get_nodeName)
-            local serviceLogFiles=($(ls -f info/${nodeId}/${service}.log.* 2>/dev/null))
+            local serviceLogFiles=($(ls -rt info/${nodeId}/${service}.log.*.gz 2>/dev/null))
             for file in ${serviceLogFiles[@]}; do
-                zcat ${file} >> info/${nodeId}/${service}.log
+                zcat ${file} | sed "s/^[0-9]/${nodeId} ${nodeName} ${service} &/g" >> logs/${service}_${nodeId}_${nodeName}.log
             done
             if [ -f "info/${nodeId}/${service}.log" ]; then
-                sed "s/^/${nodeId} ${nodeName} ${service} &/g" info/${nodeId}/${service}.log > logs/${service}_${nodeId}_${nodeName}.log
+                cat info/${nodeId}/${service}.log | sed "s/^[0-9]/${nodeId} ${nodeName} ${service} &/g" >> logs/${service}_${nodeId}_${nodeName}.log
             fi
             rm -rf info/${nodeId}/${service}.log*
         done
@@ -481,7 +512,7 @@ convert_log_name() {
 }
 
 clean_up() {
-    kill_backup_ground_thread
+    kill_background_thread
 }
 
 #######################
@@ -533,6 +564,8 @@ validate_parameters() {
         echo "Lack of parameters for ftp server.."
         usage
         exit 2
+    elif [[ ${ftp_param_count} -eq 3 ]]; then
+        precheck_ftp_status "${FTP}" "${USER}" "${PASSWORD}"
     fi
 }
 
@@ -603,8 +636,7 @@ validate_parameters
 NODE_COUNT=`/etc/systool --getprops | awk -F '=' '/\<node_count\>/ {print $2}'`
 LOCAL_NODE=`/etc/systool --getprops | awk -F '=' '/\<node_id\>/ {print $2}'`
 
-check_node_cluster_status
-set_max_current_job_number
+precheck_status
 
 trap clean_up EXIT
 

@@ -9,7 +9,6 @@ import static com.emc.sa.service.ServiceParams.HOST;
 import static com.emc.sa.service.ServiceParams.VCENTER;
 
 import java.net.URI;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
@@ -21,11 +20,10 @@ import com.emc.storageos.db.client.model.Cluster;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.Host;
-import com.emc.storageos.db.client.model.ScopedLabel;
-import com.emc.storageos.db.client.model.ScopedLabelSet;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.VcenterDataCenter;
 import com.emc.storageos.db.client.model.Volume;
+import com.emc.storageos.model.block.BlockObjectRestRep;
 import com.google.common.collect.Sets;
 import com.vmware.vim25.mo.ClusterComputeResource;
 import com.vmware.vim25.mo.Datastore;
@@ -146,30 +144,27 @@ public abstract class VMwareHostService extends ViPRService {
         }
     }
     
-    protected void validateDatastoreVolume(List<String> datastoreNames) {
-        for (String datastoreName : datastoreNames) {
-            Datastore datastore = vmware.getDatastore(datacenter.getLabel(), datastoreName);
-            if (datastore != null) {
+    /**
+     * Validates the volume associated to vCenter datastore has any pending events due to external change
+     */
+    protected void validateDatastoreVolume(String datastoreName) {
+        List<Host> dbHosts = getModelClient().hosts().findByCluster(hostCluster.getId());
+        List<ExportGroup> exports = getModelClient().exportGroupFinder().findByHosts(dbHosts);
+        StringMap exportVolumeIds = new StringMap();
+        for (ExportGroup export : exports) {
+            exportVolumeIds.putAll(export.getVolumes());
+        }
+        for (String volume : exportVolumeIds.keySet()) {
+            URI uri = URI.create(volume);
+            BlockObjectRestRep exportVolume = BlockStorageUtils.getVolume(uri);
+            if (!BlockStorageUtils.isVolumeVMFSDatastore(exportVolume)) {
                 continue;
             }
-            List<Host> dbHosts = getModelClient().hosts().findByCluster(hostCluster.getId());
-            List<ExportGroup> exports = getModelClient().exportGroupFinder().findByHosts(dbHosts);
-            StringMap exportVolumeIds = new StringMap();
-            for (ExportGroup export : exports) {
-                exportVolumeIds.putAll(export.getVolumes());
-            }
-            List<URI> volumeUris = new ArrayList<URI>();
-            for (String volumeUriString : exportVolumeIds.keySet()) {
-                URI uri = URI.create(volumeUriString);
-                volumeUris.add(uri);
-            }
-            List<Volume> exportVolumes = getModelClient().findByIds(Volume.class, volumeUris);
-            for (Volume volume : exportVolumes) {
-                ScopedLabelSet tagSet = volume.getTag();
-                for (ScopedLabel tag : tagSet) {
-                    if (tag.getLabel().contains(datastoreName)) {
-                        BlockStorageUtils.checkEvents(volume);
-                    }
+            Set<String> tagSet = exportVolume.getTags();
+            for (String tag : tagSet) {
+                if (tag.contains(datastoreName)) {
+                    Volume volumeObj = getModelClient().findById(Volume.class, exportVolume.getId());
+                    BlockStorageUtils.checkEvents(volumeObj);
                 }
             }
         }

@@ -14,6 +14,7 @@ import com.emc.sa.service.vipr.block.BlockStorageUtils;
 import com.emc.storageos.db.client.model.ActionableEvent;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.Host;
+import com.emc.storageos.db.client.model.Volume;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Lists;
 
@@ -46,6 +47,16 @@ public class GetActionableEvents extends ViPRExecutionTask<Void> {
                 }
             }
         }
+
+        Volume volumeObj = models.of(Volume.class).findById(resource.getId());
+        if (volumeObj != null) {
+            events = models.actionableEvents().findPendingByAffectedResources(volumeObj.getId());
+            if (!events.isEmpty()) {
+                ExecutionUtils.fail("failTask.actionableEvents.precheck", new Object[] {},
+                        new Object[] { volumeObj.forDisplay(), getEventOutput(events) });
+            }
+        }
+        
         return null;
     }
 

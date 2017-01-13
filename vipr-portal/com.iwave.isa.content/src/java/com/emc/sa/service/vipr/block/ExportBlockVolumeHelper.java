@@ -30,6 +30,7 @@ import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.engine.bind.Param;
 import com.emc.storageos.db.client.model.Cluster;
 import com.emc.storageos.db.client.model.Host;
+import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.model.block.BlockObjectRestRep;
 import com.emc.storageos.model.block.export.ExportGroupRestRep;
 import com.google.common.collect.Lists;
@@ -73,6 +74,7 @@ public class ExportBlockVolumeHelper {
 
     protected Host host;
     protected Cluster cluster;
+    protected Volume volume;
 
     public void precheck() {
         if (hlu == null) {
@@ -86,6 +88,8 @@ public class ExportBlockVolumeHelper {
         precheckExportPathParameters(minPaths, maxPaths, pathsPerInitiator);
 
         if (volumeIds == null || volumeIds.isEmpty() && volumeId != null) {
+            volume = BlockStorageUtils.getBlockVolumeById(URI.create(volumeId));
+            BlockStorageUtils.checkEvents(volume);
             volumeIds = Collections.singletonList(volumeId);
         }
 

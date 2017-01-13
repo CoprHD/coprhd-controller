@@ -24,6 +24,7 @@ import com.emc.sa.service.vmware.VMwareHostService;
 import com.emc.sa.service.vmware.tasks.ConnectToVCenter;
 import com.emc.storageos.db.client.model.Cluster;
 import com.emc.storageos.db.client.model.Host;
+import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.model.block.BlockObjectRestRep;
 import com.emc.storageos.model.block.export.ExportGroupRestRep;
 import com.emc.vipr.client.core.util.ResourceUtils;
@@ -71,6 +72,8 @@ public class UnexportVMwareVolumeService extends VMwareHostService {
             logWarn("unexport.host.service.not.found", volumeIds.size(), volumes.size());
         }
         for (BlockObjectRestRep volume : volumes) {
+            Volume volumeObj = BlockStorageUtils.getBlockVolumeById(volume.getId());
+            BlockStorageUtils.checkEvents(volumeObj);
             String datastoreName = KnownMachineTags.getBlockVolumeVMFSDatastore(hostId, volume);
             if (!StringUtils.isEmpty(datastoreName)) {
                 Datastore datastore = vmware.getDatastore(datacenter.getLabel(), datastoreName);

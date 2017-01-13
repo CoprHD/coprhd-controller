@@ -34,6 +34,7 @@ public class CreateVolumeAndExtendVmfsDatastoreService extends VMwareHostService
         super.precheck();
         createBlockVolumeHelper.precheck();
         acquireHostLock();
+        validateDatastoreVolume(datastoreName);
         datastore = vmware.getDatastore(datacenter.getLabel(), datastoreName);
         vmware.disconnect();
     }

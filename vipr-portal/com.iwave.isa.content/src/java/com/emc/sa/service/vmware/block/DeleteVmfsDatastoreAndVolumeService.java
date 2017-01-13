@@ -33,6 +33,7 @@ public class DeleteVmfsDatastoreAndVolumeService extends VMwareHostService {
         datastores = Maps.newHashMap();
         acquireHostLock();
         for (String datastoreName : datastoreNames) {
+            validateDatastoreVolume(datastoreName);
             Datastore datastore = vmware.getDatastore(datacenter.getLabel(), datastoreName);
             vmware.verifyDatastoreForRemoval(datastore);
             List<VolumeRestRep> volumes = vmware.findVolumesBackingDatastore(host, datastore);

@@ -38,6 +38,7 @@ public class ExpandVmfsDatastoreService extends VMwareHostService {
         super.precheck();
         volume = BlockStorageUtils.getVolume(volumeId);
         acquireHostLock();
+        validateDatastoreVolume(datastoreName);
         datastore = vmware.getDatastore(datacenter.getLabel(), datastoreName);
     }
 

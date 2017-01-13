@@ -49,8 +49,8 @@ import com.google.common.collect.Maps;
 
 @Component
 public class OrderManagerImpl implements OrderManager {
-
     private static final Logger log = LoggerFactory.getLogger(OrderManagerImpl.class);
+    private long noDeletePeriod = 2592000000L;
 
     @Autowired
     private ModelClient client;
@@ -95,6 +95,14 @@ public class OrderManagerImpl implements OrderManager {
         Order order = client.orders().findById(id);
 
         return order;
+    }
+
+    public void setNoDeletePeriod(long noDeletePeriod) {
+        this.noDeletePeriod = noDeletePeriod;
+    }
+
+    public long getNoDeletePeriod() {
+        return noDeletePeriod;
     }
 
     public Order createOrder(Order order, List<OrderParameter> orderParameters, StorageOSUser user) {
@@ -150,7 +158,7 @@ public class OrderManagerImpl implements OrderManager {
         for (OrderParameter orderParameter : orderParameters) {
             ServiceField serviceField = findServiceField(serviceDescriptor, orderParameter.getLabel());
             String friendlyLabel = serviceField.getLabel();
-    
+
             StringBuilder friendlyValue = new StringBuilder();
             List<String> values = TextUtils.parseCSV(orderParameter.getValue());
             for (String value : values) {
@@ -162,7 +170,7 @@ public class OrderManagerImpl implements OrderManager {
 
             orderParameter.setFriendlyLabel(friendlyLabel);
             orderParameter.setFriendlyValue(friendlyValue.toString());
-            
+
             createOrderParameter(orderParameter);
         }
 
@@ -426,10 +434,70 @@ public class OrderManagerImpl implements OrderManager {
         client.save(order);
     }
 
-    public void deleteOrder(Order order) {
-        client.delete(order);
+    public void canBeDeleted(Order order, OrderStatus orderStatus) {
+        if (order.getScheduledEventId()!=null) {
+            throw APIException.badRequests.scheduledOrderNotAllowed("deactivation");
+        }
+
+        if (createdWithinOneMonth(order)) {
+            throw APIException.badRequests.orderWithinOneMonth(order.getId());
+        }
+
+        OrderStatus status = OrderStatus.valueOf(order.getOrderStatus());
+
+        if (orderStatus != null && status != orderStatus) {
+            throw APIException.badRequests.orderCanNotBeDeleted(order.getId(), status.toString());
+        }
+
+        if (!status.canBeDeleted()) {
+            throw APIException.badRequests.orderCanNotBeDeleted(order.getId(), status.toString());
+        }
+
     }
 
+    private boolean createdWithinOneMonth(Order order) {
+        long now = System.currentTimeMillis();
+
+        long createdTime = order.getCreationTime().getTimeInMillis();
+
+        return (now - createdTime) < noDeletePeriod;
+    }
+
+    public void deleteOrder(Order order) {
+        canBeDeleted(order, null);
+
+        URI orderId = order.getId();
+        List<ApprovalRequest> approvalRequests = approvalManager.findApprovalsByOrderId(orderId);
+        client.delete(approvalRequests);
+
+        List<OrderParameter> orderParameters = getOrderParameters(orderId);
+        client.delete(orderParameters);
+
+        ExecutionState state = getOrderExecutionState(order.getExecutionStateId());
+        if (state != null) {
+            StringSet logIds = state.getLogIds();
+            URI id = null;
+            for (String logId : logIds) {
+                try {
+                    id = new URI(logId);
+                } catch (URISyntaxException e) {
+                    log.error("Invalid id {} e=", logId, e);
+                    continue;
+                }
+                ExecutionLog execlog = client.getModelClient().findById(ExecutionLog.class, id);
+                client.delete(execlog);
+            }
+
+            List<ExecutionTaskLog> logs = client.executionTaskLogs().findByIds(state.getTaskLogIds());
+            for (ExecutionTaskLog taskLog: logs) {
+                client.delete(taskLog);
+            }
+
+            client.delete(state);
+        }
+
+        client.delete(order);
+    }
 
     public List<Order> getOrders(URI tenantId) {
         return client.orders().findAll(tenantId.toString());

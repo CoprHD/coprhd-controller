@@ -39,6 +39,10 @@ public class FileUtils {
         tmpDir = rawDir.endsWith(File.separator) ? rawDir.substring(0, rawDir.length() - 1) : rawDir;
     }
 
+    public static boolean isJarFile(String fileName) {
+        return fileName.endsWith(".jar") || fileName.endsWith(".JAR");
+    }
+
     public static String generateTmpFileName(String fileName) {
         if (fileName == null || fileName.contains(File.separator)) {
             throw new RuntimeException("File name can't be null or contain file separator");

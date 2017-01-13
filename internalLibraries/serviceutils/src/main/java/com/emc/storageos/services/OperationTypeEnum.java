@@ -319,6 +319,7 @@ public enum OperationTypeEnum {
     CREATE_ORDER("CRAETE ORDER", "", "operation to create a order"),
     UPDATE_ORDER("UPDATE ORDER", "", "operation to update a order"),
     DELETE_ORDER("DELETE ORDER", "", "operation to delete a order"),
+    DOWNLOAD_ORDER("DOWNLOAD ORDER", "", "operation to download a order"),
 
     CREATE_HOST("CREATE HOST", "", "operation to create a compute host."),
     UPDATE_HOST("UPDATE HOST", "", "operation to update a compute host."),
@@ -518,7 +519,7 @@ public enum OperationTypeEnum {
     EXPORT_PATH_ADJUSTMENT("EXPORT PATH ADJUSTMENT", "", "operation to adjust export paths"),
     
     /* Filesystem Mount Operations*/
-    
+
     MOUNT_NFS_EXPORT("MOUNT NFS EXPORT", "mount nfs export operation failed", "mount nfs export operation"),
     UNMOUNT_NFS_EXPORT("UNMOUNT NFS EXPORT", "unmount nfs operation failed", "unmount nfs export operation"),
     LIST_MOUNTED_EXPORTS("LIST MOUNTED EXPORTS", "list mounted nfs operation failed", "list mounted exports operation"),

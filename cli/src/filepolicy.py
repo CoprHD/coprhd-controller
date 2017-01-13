@@ -33,6 +33,8 @@ class FilePolicy(object):
     URI_FILE_POLICY_SHOW= URI_FILE_POLICIES + '/{0}'
     URI_FILE_POLICY_DELETE= URI_FILE_POLICIES+'/{0}'
     URI_FILE_POLICY_UPDATE= URI_FILE_POLICIES+'/{0}'
+    URI_FILE_POLICY_ASSIGN= URI_FILE_POLICIES+'/{0}/assign-policy'
+    URI_FILE_POLICY_UNASSIGN= URI_FILE_POLICIES+'/{0}/unassign-policy'
 
 
 
@@ -172,7 +174,7 @@ class FilePolicy(object):
                   replication_params["replication_copy_mode"]=replicationcopymode
                   replication_params["replicate_configuration"]=replicationconfiguration
                   replication_params["policy_schedule"]=policy_schedule
-        else: if(type == "file_snapshot"):
+        elif(type == "file_snapshot"):
                   snapshot_expire_params["expire_type"]=snapshot_expire_type
                   snapshot_expire_value["expire_value"]=snapshot_expire_value
                   snapshot_params["snapshot_name_pattern"]=snapshotnamepattern
@@ -182,16 +184,17 @@ class FilePolicy(object):
         create_request["replication_params"]=replication_params
         create_request["snapshot_params"]=snapshot_params
 
-        body = json.dumps(create_request)
-        (s, h) = common.service_json_request(self.__ipAddr, self.__port,
-                    "POST",FilePolicy.URI_FILE_POLICIES,body)
-        if(not s):
-            return None
-        o = common.json_decode(s)
-        if(sync):
-            return self.check_for_sync(o, sync,synctimeout)
-        else:
-            return o
+        try:
+            body = json.dumps(create_request)
+            (s, h) = common.service_json_request(self.__ipAddr, self.__port,
+                        "POST",FilePolicy.URI_FILE_POLICIES,body)
+            if(not s):
+                return None
+            o = common.json_decode(s)
+            if(sync):
+                return self.check_for_sync(o, sync,synctimeout)
+            else:
+                return o
         except SOSError as e:
            errorMessage = str(e)
         if(common.is_uri(fileshare_uri)):
@@ -247,7 +250,7 @@ class FilePolicy(object):
                   replication_params["replication_copy_mode"]=replicationcopymode
                   replication_params["replicate_configuration"]=replicationconfiguration
                   replication_params["policy_schedule"]=policy_schedule
-        else: if(type == "file_snapshot"):
+        elif(type == "file_snapshot"):
                   snapshot_expire_params["expire_type"]=snapshot_expire_type
                   snapshot_expire_value["expire_value"]=snapshot_expire_value
                   snapshot_params["snapshot_name_pattern"]=snapshotnamepattern
@@ -257,16 +260,17 @@ class FilePolicy(object):
         update_request["replication_params"]=replication_params
         update_request["snapshot_params"]=snapshot_params
 
-        body = json.dumps(create_request)
-        (s, h) = common.service_json_request(self.__ipAddr, self.__port,
-                    "PUT",FilePolicy.URI_FILE_POLICY_UPDATE.format(filepolicy_uri),body)
-        if(not s):
-            return None
-        o = common.json_decode(s)
-        if(sync):
-            return self.check_for_sync(o, sync,synctimeout)
-        else:
-            return o
+        try:
+            body = json.dumps(create_request)
+            (s, h) = common.service_json_request(self.__ipAddr, self.__port,
+                        "PUT",FilePolicy.URI_FILE_POLICY_UPDATE.format(filepolicy_uri),body)
+            if(not s):
+                return None
+            o = common.json_decode(s)
+            if(sync):
+                return self.check_for_sync(o, sync,synctimeout)
+            else:
+                return o
         except SOSError as e:
            errorMessage = str(e)
         if(common.is_uri(fileshare_uri)):
@@ -412,8 +416,6 @@ def filepolicy_create(args):
                                         e.err_text, e.err_code)
 
 
-
-
 def update_parser(subcommand_parsers, common_parser):
     update_parser = subcommand_parsers.add_parser(
         'create',
@@ -531,6 +533,83 @@ def filepolicy_delete(subcommand_parsers, common_parser):
             raise e
 
 
+# FilePolicy assign
+
+def assign_parser(subcommand_parsers, common_parser):
+    update_parser = subcommand_parsers.add_parser(
+        'create',
+        description='ViPR FilePolicy assign CLI usage.',
+        parents=[common_parser], conflict_handler='resolve',
+        help='Assign FilePolicy to vpool, project, file system')
+    mandatory_args = update_parser.add_argument_group('mandatory arguments')
+    mandatory_args.add_argument('-name', '-n',
+                                metavar='<policy_name>',
+                                dest='name',
+                                help='Name of the policy',
+                                required=True)
+    mandatory_args.add_argument('-applyontargetsite', '-aptrgtsite',
+                                metavar='<apply_on_target_site>',
+                                dest='apply_on_target_site',
+                                help='Appply on target site true/false',
+                                required=True)
+    update_parser.add_argument('-assigntovpools', '-asignvpls',
+                               metavar='<assign_to_vpools>',
+                               dest='assign_to_vpools',
+                               help='assign to vpools')
+    update_parser.add_argument('-assigntoprojects', '-asignprjs',
+                                metavar='<assign_to_projects>', dest='assign_to_projects',
+                                help='Assign to projects')
+    update_parser.add_argument('-assigntoprojectsvpool', '-asignprjvpool',
+                                metavar='<project_assign_vpool>', dest='project_assign_vpool',
+                                help='vpool of to-be asssigned projects ')
+
+    update_parser.add_argument('-filesystemvpool', '-fsvpool',
+                                metavar='<filesystem_assign_vpool>', dest='filesystem_assign_vpool',
+                                help='vpool of filesystems to be assigned to')
+    
+    update_parser.set_defaults(func=filepolicy_assign)
+
+
+def filepolicy_assign(args):
+    print "calling assign policy"
+
+
+# FilePolicy unassign
+
+def unassign_parser(subcommand_parsers, common_parser):
+    update_parser = subcommand_parsers.add_parser(
+        'create',
+        description='ViPR FilePolicy unassign CLI usage.',
+        parents=[common_parser], conflict_handler='resolve',
+        help='Unassign FilePolicy from vpool, project, file system')
+    mandatory_args = update_parser.add_argument_group('mandatory arguments')
+    mandatory_args.add_argument('-name', '-n',
+                                metavar='<policy_name>',
+                                dest='name',
+                                help='Name of the policy',
+                                required=True)
+    mandatory_args.add_argument('-unassignresourcetype', '-unasngrestp',
+                                metavar='<unassign_resource_type>',
+                                dest='unassign_resource_type',
+                                help='Resource type to be unassigned from. type values : vpools or projects or filesystem',
+                                required=True)
+    update_parser.add_argument('-unassignvpools', '-unasignvpls',
+                               metavar='<unassign_from_vpools>',
+                               dest='unassign_from_vpools',
+                               help='unassign from vpools')
+    update_parser.add_argument('-unassignvpool', '-unasignvpl',
+                                metavar='<unassign_from_vpool>', dest='unassign_from_vpool',
+                                help='unassign from project\'s or filesystem\'s vpool')
+    update_parser.add_argument('-unassignfromprojects', '-unasignprjs',
+                                metavar='<unassign_from_projects>', dest='unassign_from_projects',
+                                help='unassign from projects')
+    
+    update_parser.set_defaults(func=filepolicy_unassign)
+
+
+def filepolicy_unassign(args):
+    print "unassign from policy"
+
 #
 # FilePolicy Main parser routine
 #
@@ -551,16 +630,17 @@ def filepolicy_parser(parent_subparser, common_parser):
     #show command parser
     show_parser(subcommand_parsers, common_parser)
 
-    '''
-    '''
     # create command parser
     create_parser(subcommand_parsers, common_parser)
 
     # update command parser
     update_parser(subcommand_parsers, common_parser)
 
-    
-
-
     # delete command parser
     delete_parser(subcommand_parsers, common_parser)
+
+    # policy assign command parser
+    assign_parser(subcommand_parsers, common_parser)
+
+    # policy unassign command parser
+    unassign_parser(subcommand_parsers, common_parser)

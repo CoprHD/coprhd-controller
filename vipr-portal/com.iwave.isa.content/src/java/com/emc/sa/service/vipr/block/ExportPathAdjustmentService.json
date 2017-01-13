@@ -16,10 +16,6 @@
             type:"assetType.vipr.host",
             lockable: true
         },
-        virtualArray:{
-            type:"assetType.vipr.exportPathVirtualArray",
-            lockable: true
-        },
         export:{
           type: "assetType.vipr.exportPathExport", 
           lockable: false
@@ -39,28 +35,28 @@
           omitNone: true,
           initialValue: "1"
         },
-        
         useExistingPaths: {
             type:"assetType.vipr.exportPathExistingPath",
             omitNone: true,
             initialValue: "yes"
         },
-        
         storageSystem: {
             type:"assetType.vipr.exportPathStorageSystem"
-        },       
+        },
+        virtualArray:{
+            type:"assetType.vipr.exportPathVirtualArray",
+            lockable: true
+        },
         ports:{
             type:"assetType.vipr.exportPathPorts",
             select: "many",
             required: false
         },
-        
         suspendWait:{
             type: "boolean",
             initialValue: "false",
             required: false
         },
-
 	    exportPathPreview:{
 	       type:"modal",
            items:{

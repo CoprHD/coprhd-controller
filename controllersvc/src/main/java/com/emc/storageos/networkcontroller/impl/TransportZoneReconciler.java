@@ -192,7 +192,7 @@ public class TransportZoneReconciler {
             }
         }
         
-        //TODO - Dont update the nativeID, instead create the event for the native id change
+        //TODO - Don't update the nativeID, instead create the event for the native id change
         if (!oldTransportZone.getNativeId().equals(
                 newTransportZone.getNativeId())) {
             //oldTransportZone.setNativeId(newTransportZone.getNativeId());

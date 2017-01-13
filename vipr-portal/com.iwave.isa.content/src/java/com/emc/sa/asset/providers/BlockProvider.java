@@ -17,6 +17,8 @@ import static com.emc.vipr.client.core.util.ResourceUtils.name;
 import static com.emc.vipr.client.core.util.ResourceUtils.stringId;
 
 import java.net.URI;
+import java.time.Duration;
+import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -31,6 +33,8 @@ import java.util.Set;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.ObjectUtils;
 import org.apache.commons.lang.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 import com.emc.sa.asset.AssetOptionsContext;
@@ -106,6 +110,9 @@ import com.google.common.collect.Sets;
 @Component
 @AssetNamespace("vipr")
 public class BlockProvider extends BaseAssetOptionsProvider {
+
+    private static Logger log = LoggerFactory.getLogger(BlockProvider.class);
+
     public static final String EXCLUSIVE_STORAGE = "exclusive";
     public static final String SHARED_STORAGE = "shared";
     public static final String RECOVERPOINT_BOOKMARK_SNAPSHOT_TYPE_VALUE = "rp";
@@ -788,6 +795,53 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     @Asset("vplexVolumeWithSnapshots")
     @AssetDependencies({ "project", "blockVolumeOrConsistencyType" })
     public List<AssetOption> getVplexSnapshotVolumes(AssetOptionsContext ctx, URI project, String volumeOrConsistencyType) {
+
+        final ViPRCoreClient client = api(ctx);
+        if (isVolumeType(volumeOrConsistencyType)) {
+            LocalTime startTime = LocalTime.now();
+            log.info("========== 111: startting list vols with snapshots");
+            Set<URI> volIdSets = new HashSet<>();
+            List<BlockSnapshotRestRep> snapshots = api(ctx).blockSnapshots().findByProject(project);
+            long spentTime = Duration.between(startTime, LocalTime.now()).getSeconds();
+            log.info("========== 222: got all snapshots spent time is {}", spentTime);
+            for (BlockSnapshotRestRep s : snapshots) {
+                volIdSets.add(s.getParent().getId());
+            }
+
+            List volIdList = new ArrayList();
+            volIdList.addAll(volIdSets);
+            BulkIdParam bulkIds = new BulkIdParam(volIdList);
+            List<VolumeRestRep> allVols = client.blockVolumes().getBulkResources(bulkIds);
+            spentTime = Duration.between(startTime, LocalTime.now()).getSeconds();
+            log.info("========== 333: got all volumes and spent time is {}", spentTime);
+
+            List<VolumeRestRep> vplexVols = new ArrayList<>();
+
+            for (VolumeRestRep vol: allVols) { // remove all filters, adding all for experiment
+                    vplexVols.add(vol);
+            }
+            spentTime = Duration.between(startTime, LocalTime.now()).getSeconds();
+            log.info("========== 444: Ready to generate options. spent time is {}", spentTime);
+            return createVolumeOptions(client, vplexVols);
+        } else {
+            List<BlockConsistencyGroupRestRep> consistencyGroups = client.blockConsistencyGroups().findByProject(project,
+                    new DefaultResourceFilter<BlockConsistencyGroupRestRep>() {
+                        @Override
+                        public boolean accept(BlockConsistencyGroupRestRep cg) {
+                            if (cg.getTypes() != null && cg.getTypes().contains(Types.VPLEX.name())) {
+                                return true;
+                            } else {
+                                return false;
+                            }
+                        }
+
+                    });
+            return createBaseResourceOptions(consistencyGroups);
+        }
+    }
+
+    /*
+    public List<AssetOption> getVplexSnapshotVolumes(AssetOptionsContext ctx, URI project, String volumeOrConsistencyType) {
         final ViPRCoreClient client = api(ctx);
         if (isVolumeType(volumeOrConsistencyType)) {
             List<VolumeRestRep> volumes = client.blockVolumes().findByProject(project, new DefaultResourceFilter<VolumeRestRep>() {
@@ -818,6 +872,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
             return createBaseResourceOptions(consistencyGroups);
         }
     }
+    */
 
     @Asset("vplexBlockSnapshot")
     @AssetDependencies({ "project", "blockVolumeOrConsistencyType", "vplexVolumeWithSnapshots" })

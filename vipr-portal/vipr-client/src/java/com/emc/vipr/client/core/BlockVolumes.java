@@ -73,7 +73,7 @@ public class BlockVolumes extends BulkExportResources<VolumeRestRep> implements 
     }
 
     @Override
-    protected List<VolumeRestRep> getBulkResources(BulkIdParam input) {
+    public List<VolumeRestRep> getBulkResources(BulkIdParam input) {
         VolumeBulkRep response = client.post(VolumeBulkRep.class, input, getBulkUrl());
         return defaultList(response.getVolumes());
     }

@@ -803,7 +803,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
             Set<URI> volIdSet = new HashSet<>();
             List<BlockSnapshotRestRep> snapshots = api(ctx).blockSnapshots().findByProject(project);
             long spentTime = Duration.between(startTime, LocalTime.now()).getSeconds();
-            log.info("========== 222: got all snapshots spent time is {}", spentTime);
+            log.info("========== 222: got all snapshots. Size is {}, spent time is {}", snapshots.size(), spentTime);
             for (BlockSnapshotRestRep s : snapshots) {
                 volIdSet.add(s.getParent().getId());
             }

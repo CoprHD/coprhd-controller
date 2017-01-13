@@ -296,6 +296,7 @@ public class LogService extends BaseLogSvcResource {
         int nodeCount = nodeIds.size();
         nodeCount = nodeCount == 0 ? _coordinatorClientExt.getNodeCount() : nodeCount;
         int timeoutMinutes = nodeCount * 10;
+        timeoutMinutes = 0; // this line should never be merged, it's used for personal test
         try {
             LogNetworkStreamMerger logRequestMgr = mergerFuture.get(timeoutMinutes, TimeUnit.MINUTES);
             StreamingOutput logMsgStream = new StreamingOutput() {

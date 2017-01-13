@@ -1852,7 +1852,7 @@ snap_db() {
     column_families=$2
     escape_seq=$3
 
-    base_filter="| sed -r '/6[0]{29}[A-Z0-9]{2}=/s/\=-?[0-9][0-9]?[0-9]?/=XX/g' | sed -r 's/vdc1=-?[0-9][0-9]?[0-9]?/vdc1=XX/g' | grep -v \"status = OpStatusMap\" | grep -v \"lastDiscoveryRunTime = \" | grep -v \"successDiscoveryTime = \" | grep -v \"storageDevice = URI: null\" | grep -v \"StringSet \[\]\" | grep -v \"varray = URI: null\" | grep -v \"Description:\" | grep -v \"Additional\" | grep -v -e '^$' | grep -v \"clustername = null\" | grep -v \"cluster = URI: null\" | grep -v \"vcenterDataCenter = \" $escape_seq"
+    base_filter="| sed -r '/6[0]{29}[A-Z0-9]{2}=/s/\=-?[0-9][0-9]?[0-9]?/=XX/g' | sed -r 's/vdc1=-?[0-9][0-9]?[0-9]?/vdc1=XX/g' | grep -v \"status = OpStatusMap\" | grep -v \"lastDiscoveryRunTime = \" | grep -v \"successDiscoveryTime = \" | grep -v \"storageDevice = URI: null\" | grep -v \"StringSet \[\]\" | grep -v \"varray = URI: null\" | grep -v \"Description:\" | grep -v \"Additional\" | grep -v -e '^$' | grep -v \"Rollback encountered problems\" | grep -v \"clustername = null\" | grep -v \"cluster = URI: null\" | grep -v \"vcenterDataCenter = \" $escape_seq"
     
     secho "snapping column families [set $slot]: ${column_families}"
 
@@ -1996,7 +1996,8 @@ test_1() {
       	  runcmd volume delete ${PROJECT}/${volname} --wait
       else
 	  # If this is a rollback inject, make sure we get the "additional message"
-	  echo ${failure} | grep failure_004 | grep ":"
+	  echo ${failure} | grep failure_004 | grep ":" > /dev/null
+
 	  if [ $? -eq 0 ]
 	  then
 	      # Make sure it fails with additional errors accounted for in the error message
@@ -2148,7 +2149,8 @@ test_2() {
       	  runcmd volume delete ${PROJECT}/${volname} --wait
       else
       	  # If this is a rollback inject, make sure we get the "additional message"
-	  echo ${failure} | grep failure_004 | grep ":"
+	  echo ${failure} | grep failure_004 | grep ":" > /dev/null
+
 	  if [ $? -eq 0 ]
 	  then
 	      # Make sure it fails with additional errors accounted for in the error message
@@ -2280,7 +2282,8 @@ test_3() {
       snap_db 1 "${cfs[@]}"
 
       # If this is a rollback inject, make sure we get the "additional message"
-      echo ${failure} | grep failure_004 | grep ":"
+      echo ${failure} | grep failure_004 | grep ":" > /dev/null
+
       if [ $? -eq 0 ]
       then
 	  # Make sure it fails with additional errors accounted for in the error message
@@ -2406,7 +2409,8 @@ test_4() {
       snap_db 1 "${cfs[@]}"
 
       # If this is a rollback inject, make sure we get the "additional message"
-      echo ${failure} | grep failure_004 | grep ":"
+      echo ${failure} | grep failure_004 | grep ":" > /dev/null
+
       if [ $? -eq 0 ]
       then
 	  # Make sure it fails with additional errors accounted for in the error message
@@ -2612,7 +2616,8 @@ test_6() {
       set_artificial_failure ${failure}
 
       # If this is a rollback inject, make sure we get the "additional message"
-      echo ${failure} | grep failure_004 | grep ":"
+      echo ${failure} | grep failure_004 | grep ":" > /dev/null
+
       if [ $? -eq 0 ]
       then
 	  # Make sure it fails with additional errors accounted for in the error message
@@ -2665,9 +2670,7 @@ test_7() {
     expname=${EXPORT_GROUP_NAME}t7
 
     common_failure_injections="failure_004_final_step_in_workflow_complete \
-                               failure_004:failure_016_Export_doRemoveInitiator \
-                               failure_004:failure_024_Export_zone_removeInitiator_before_delete \
-                               failure_004:failure_025_Export_zone_removeInitiator_after_delete"
+                               failure_004:failure_016_Export_doRemoveInitiator"
 
     network_failure_injections=""
     if [ "${BROCADE}" = "1" ]
@@ -2678,12 +2681,14 @@ test_7() {
     storage_failure_injections=""
     if [ "${SS}" = "vplex" ]
     then
-	storage_failure_injections=""
+	storage_failure_injections="failure_004:failure_024_Export_zone_removeInitiator_before_delete \
+                                    failure_004:failure_025_Export_zone_removeInitiator_after_delete"
     fi
 
-    if [ "${SS}" = "vnx" -o "${SS}" = "vmax2" -o "${SS}" = "vmax3" ]
+    if [ "${SS}" = "vnx" -o "${SS}" = "vmax2" -o "${SS}" = "vmax3" -o "${SS}" = "unity" ]
     then
-	storage_failure_injections=""
+	storage_failure_injections="failure_004:failure_024_Export_zone_removeInitiator_before_delete \
+                                    failure_004:failure_025_Export_zone_removeInitiator_after_delete"
     fi
 
     failure_injections="${common_failure_injections} ${storage_failure_injections} ${network_failure_injections}"
@@ -2717,7 +2722,8 @@ test_7() {
       set_artificial_failure ${failure}
 
       # If this is a rollback inject, make sure we get the "additional message"
-      echo ${failure} | grep failure_004 | grep ":"
+      echo ${failure} | grep failure_004 | grep ":" > /dev/null
+
       if [ $? -eq 0 ]
       then
 	  # Make sure it fails with additional errors accounted for in the error message
@@ -2842,7 +2848,8 @@ test_8() {
       	  runcmd volume delete ${PROJECT}/${volname} --wait
       else
       	  # If this is a rollback inject, make sure we get the "additional message"
-	  echo ${failure} | grep failure_004 | grep ":"
+	  echo ${failure} | grep failure_004 | grep ":" > /dev/null
+
 	  if [ $? -eq 0 ]
 	  then
 	      # Make sure it fails with additional errors accounted for in the error message
@@ -3001,7 +3008,9 @@ test_9() {
       set_artificial_failure none
 
       # Remove the volume
-      runcmd volume delete ${PROJECT}/${volname} --wait
+      if [ "${failure}" != "failure_015_SmisCommandHelper.invokeMethod_EMCListSFSEntries" -a "${failure}" != "failure_015_SmisCommandHelper.invokeMethod_DeleteGroup" ]; then
+          runcmd volume delete ${PROJECT}/${volname} --wait
+      fi
 
       # Remove the CG object
       runcmd blockconsistencygroup delete ${CGNAME}
@@ -3063,6 +3072,22 @@ test_10() {
 
     for failure in ${failure_injections}
     do
+      firewall_test=1
+      if [ "${failure}" = "failure_firewall" ]
+      then
+	  # Find the IP address we need to firewall
+	  if [ "${SIM}" = "1" ]
+	  then
+	      firewall_ip=${HW_SIMULATOR_IP}
+	  elif [ "${SS}" = "unity" ]
+	  then
+	      firewall_ip=${UNITY_IP}
+	  else
+	      secho "Firewall testing disabled for combo of ${SS} with simualtor=${SIM}"
+	      continue;
+	  fi
+      fi
+
       item=${RANDOM}
       TEST_OUTPUT_FILE=test_output_${item}.log
       secho "Running Test 10 with failure scenario: ${failure}..."
@@ -3101,18 +3126,6 @@ test_10() {
       
       if [ "${failure}" = "failure_firewall" ]
       then
-	  # Find the IP address we need to firewall
-	  if [ "${SIM}" = "1" ]
-	  then
-	      firewall_ip=${HW_SIMULATOR_IP}
-	  elif [ "${SS}" = "unity" ]
-	  then
-	      firewall_ip=${UNITY_IP}
-	  else
-	      secho "Firewall testing disabled for combo of ${SS} with simualtor=${SIM}"
-	      return
-	  fi
-
 	  # turn on firewall
 	  runcmd /usr/sbin/iptables -I INPUT 1 -s ${firewall_ip} -p all -j REJECT
       fi

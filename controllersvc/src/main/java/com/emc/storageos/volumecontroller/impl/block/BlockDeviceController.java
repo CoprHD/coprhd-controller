@@ -3222,7 +3222,34 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
 
     @Override
     public void deleteConsistencyGroup(URI storage, URI consistencyGroup, Boolean markInactive, String opId) throws ControllerException {
-        deleteReplicationGroupInConsistencyGroup(storage, consistencyGroup, null, false, markInactive, true, opId);
+        _log.info("START delete consistency group");
+        TaskCompleter wfCompleter = null;
+
+        try {
+            Workflow workflow = _workflowService.getNewWorkflow(this, "deleteReplicationGroupInConsistencyGroup", true, opId);
+            wfCompleter = new SimpleTaskCompleter(BlockConsistencyGroup.class, consistencyGroup, opId);
+
+            StorageSystem system = _dbClient.queryObject(StorageSystem.class, storage);
+            BlockConsistencyGroup cg = _dbClient.queryObject(BlockConsistencyGroup.class, consistencyGroup);
+            Set<String> groupNames = BlockConsistencyGroupUtils.getGroupNamesForSystemCG(cg, system);
+
+            String stepId = null;
+            for (String groupName : groupNames) {
+                Workflow.Method deleteStep = new Workflow.Method("deleteReplicationGroupInConsistencyGroup",
+                        storage, consistencyGroup, groupName, false, markInactive, true);
+                stepId = workflow.createStep("DeleteReplicationGroup", "Deleting replication group", stepId, storage,
+                        system.getSystemType(), this.getClass(), deleteStep, rollbackMethodNullMethod(), null);
+            }
+
+            String successMsg = String.format("Successfully deleted replication groups %s", Joiner.on(',').join(groupNames));
+            workflow.executePlan(wfCompleter, successMsg);
+        } catch (Exception e) {
+            if (wfCompleter != null) {
+                ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
+                wfCompleter.error(_dbClient, serviceError);
+            }
+            throw DeviceControllerException.exceptions.deleteConsistencyGroupFailed(e);
+        }
     }
 
     public void deleteReplicationGroupInConsistencyGroup(URI storage, URI consistencyGroup, String groupName, Boolean keepRGName,

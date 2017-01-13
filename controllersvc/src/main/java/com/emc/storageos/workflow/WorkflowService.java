@@ -912,6 +912,7 @@ public class WorkflowService implements WorkflowController {
         return false;
     }
 
+
     /**
      * Remove workflow from Zookeeper if necessary.
      * 
@@ -2063,6 +2064,16 @@ public class WorkflowService implements WorkflowController {
         } catch (LockRetryException ex) {
             _log.info(String.format("Lock retry exception key: %s remaining time %d", ex.getLockIdentifier(),
                     ex.getRemainingWaitTimeSeconds()));
+            if (workflow != null && !NullColumnValueGetter.isNullURI(workflow.getWorkflowURI())
+                    && workflow.getWorkflowState() == WorkflowState.CREATED) {
+                com.emc.storageos.db.client.model.Workflow wf = _dbClient.queryObject(com.emc.storageos.db.client.model.Workflow.class,
+                        workflow.getWorkflowURI());
+                if (!wf.getCompleted()) {
+                    _log.error("Marking the status to completed for the newly created workflow {}", wf.getId());
+                    wf.setCompleted(true);
+                    _dbClient.updateObject(wf);
+                }
+            }
             throw ex;
         } catch (Exception ex) {
             _log.error("Unable to acquire workflow locks", ex);
@@ -2083,8 +2094,8 @@ public class WorkflowService implements WorkflowController {
      *            - List of lock keys to be acquired
      * @param time
      *            - Maximum wait time, 0 means poll
-     * @return 
-     *      true if locks acquired, false otherwise
+     * @return
+     *         true if locks acquired, false otherwise
      */
     public boolean acquireWorkflowStepLocks(String stepId, List<String> lockKeys, long time) {
         boolean gotLocks = false;
@@ -2915,7 +2926,7 @@ public class WorkflowService implements WorkflowController {
      */
     public boolean isStepInRollbackState(String stepId) {
         Workflow workflow = _instance.getWorkflowFromStepId(stepId);
-        return workflow.isRollbackState();
+        return workflow != null && workflow.isRollbackState();
     }
 
 }

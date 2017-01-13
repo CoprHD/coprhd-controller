@@ -1804,12 +1804,6 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
                     if (storage.deviceIsType(Type.vmax) && storage.checkIfVmax3()) {
                         // if deleting snap session replication group, we need to remove the EMCSFSEntries first
                         _helper.removeSFSEntryForReplicaReplicationGroup(storage, replicationSvc, replicationGroupName);
-                    }
-
-                    if (storage.checkIfVmax3() && replicationGroupName != null) {
-                        // if deleting snap session replication group, we need to remove the EMCSFSEntries first
-                        _helper.removeSFSEntryForReplicaReplicationGroup(storage, replicationSvc, replicationGroupName);
-
                         markSnapSessionsInactiveForReplicationGroup(systemURI, consistencyGroupId, replicationGroupName);
                     }
 

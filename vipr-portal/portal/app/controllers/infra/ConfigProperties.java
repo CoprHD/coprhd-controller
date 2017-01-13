@@ -172,7 +172,7 @@ public class ConfigProperties extends Controller {
             addPage(pages, new PasswordPropertyPage(properties));
             addPage(pages, new SyslogPropertiesPage(properties));
             addPage(pages, new BackupPropertyPage(properties));
-            addPage(pages, new LogRententionPropertyPage(properties));
+            addPage(pages, new LogRetentionPropertyPage(properties));
         }
         else {
             if (PlatformUtils.isAppliance()) {
@@ -188,7 +188,7 @@ public class ConfigProperties extends Controller {
             addPage(excludePages, new PasswordPropertyPage(properties));
             addPage(excludePages, new SyslogPropertiesPage(properties));
             addPage(excludePages, new BackupPropertyPage(properties));
-            addPage(excludePages, new LogRententionPropertyPage(properties));
+            addPage(excludePages, new LogRetentionPropertyPage(properties));
         }
 
         addDefaultPages(pages, properties.values(), excludePages, isActiveSite);

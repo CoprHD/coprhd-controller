@@ -4,14 +4,8 @@
  */
 package com.emc.vipr.client.core;
 
-import java.net.URI;
-import java.util.List;
-
-import com.emc.storageos.model.BulkIdParam;
+import com.emc.storageos.model.remotereplication.RemoteReplicationGroupList;
 import com.emc.storageos.model.remotereplication.RemoteReplicationGroupRestRep;
-import com.emc.vipr.client.Task;
-import com.emc.vipr.client.Tasks;
-import com.emc.vipr.client.ViPRCoreClient;
 import com.emc.vipr.client.core.impl.PathConstants;
 import com.emc.vipr.client.impl.RestClient;
 
@@ -22,38 +16,21 @@ import com.emc.vipr.client.impl.RestClient;
  *
  * @see RemoteReplicationGroupRestRep
  */
-public class RemoteReplicationGroups extends ProjectResources<RemoteReplicationGroupRestRep> implements
-        TaskResources<RemoteReplicationGroupRestRep> {
-    public RemoteReplicationGroups(ViPRCoreClient parent, RestClient client) {
-        super(parent, client, RemoteReplicationGroupRestRep.class, PathConstants.BLOCK_REMOTE_REPLICATION_GROUP_URL);
+public class RemoteReplicationGroups {
+
+    private RestClient client;
+
+    public RemoteReplicationGroups(RestClient client) {
+        this.client = client;
     }
 
-    @Override
-    public RemoteReplicationGroups withInactive(boolean inactive) {
-        return (RemoteReplicationGroups) super.withInactive(inactive);
+    public RemoteReplicationGroupRestRep getRemoteReplicationGroupsRestRep(String uuid) {
+        return client.get(RemoteReplicationGroupRestRep.class, PathConstants.BLOCK_REMOTE_REPLICATION_GROUP_URL + "/" + uuid);
     }
 
-    @Override
-    public RemoteReplicationGroups withInternal(boolean internal) {
-        return (RemoteReplicationGroups) super.withInternal(internal);
-    }
-
-    @Override
-    public Tasks<RemoteReplicationGroupRestRep> getTasks(URI id) {
-        // TODO Auto-generated method stub
-        return null;
-    }
-
-    @Override
-    public Task<RemoteReplicationGroupRestRep> getTask(URI id, URI taskId) {
-        // TODO Auto-generated method stub
-        return null;
-    }
-
-    @Override
-    protected List<RemoteReplicationGroupRestRep> getBulkResources(BulkIdParam input) {
-        // TODO Auto-generated method stub
-        return null;
+    public RemoteReplicationGroupList listRemoteReplicationGroups() {
+        return client.get(RemoteReplicationGroupList.class,
+                PathConstants.BLOCK_REMOTE_REPLICATION_GROUP_URL);
     }
 
 }

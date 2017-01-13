@@ -30,7 +30,7 @@ public class RemoteReplicationProvider extends BaseAssetOptionsProvider {
 
         // Only provide remote Replication Sets if the selected VPool supports it
         if (isSupportedVPool(vpool)) {
-            return createBaseResourceOptions(api(ctx).remoteReplicationSets().search().byProject(projectId).run());
+            return createNamedResourceOptions(api(ctx).remoteReplicationSets().listRemoteReplicationSets().getRemoteReplicationSets());
         } else {
             return Collections.emptyList();
         }
@@ -41,7 +41,8 @@ public class RemoteReplicationProvider extends BaseAssetOptionsProvider {
     public List<AssetOption>
             getRemoteReplicationModes(AssetOptionsContext ctx, URI projectId, URI remoteReplicationSetID) {
 
-        RemoteReplicationSetRestRep remoteReplicationSet = api(ctx).remoteReplicationSets().get(remoteReplicationSetID);
+        RemoteReplicationSetRestRep remoteReplicationSet = api(ctx).remoteReplicationSets().getRemoteReplicationSetsRestRep(
+                remoteReplicationSetID.toString());
         if (remoteReplicationSet != null)
             return createStringOptions(remoteReplicationSet.getSupportedReplicationModes());
         else {
@@ -54,9 +55,10 @@ public class RemoteReplicationProvider extends BaseAssetOptionsProvider {
     public List<AssetOption> getRemoteReplicationGroups(AssetOptionsContext ctx, URI projectId, URI remoteReplicationSetID) {
 
         // Only provide remote Replication groups if the if user selected a  Set supports .
-        RemoteReplicationSetRestRep remoteReplicationSet = api(ctx).remoteReplicationSets().get(remoteReplicationSetID);
+        RemoteReplicationSetRestRep remoteReplicationSet = api(ctx).remoteReplicationSets().getRemoteReplicationSetsRestRep(
+                remoteReplicationSetID.toString());
         if (remoteReplicationSet != null) {
-            return createBaseResourceOptions(api(ctx).remoteReplicationGroups().search().byProject(projectId).run());
+            return createNamedResourceOptions(api(ctx).remoteReplicationGroups().listRemoteReplicationGroups().getRemoteReplicationGroups());
         } else {
             return Collections.emptyList();
         }

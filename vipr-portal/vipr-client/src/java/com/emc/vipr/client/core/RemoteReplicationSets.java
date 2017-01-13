@@ -4,15 +4,9 @@
  */
 package com.emc.vipr.client.core;
 
-import java.net.URI;
-import java.util.List;
-
-import com.emc.storageos.model.BulkIdParam;
 import com.emc.storageos.model.remotereplication.RemoteReplicationGroupRestRep;
+import com.emc.storageos.model.remotereplication.RemoteReplicationSetList;
 import com.emc.storageos.model.remotereplication.RemoteReplicationSetRestRep;
-import com.emc.vipr.client.Task;
-import com.emc.vipr.client.Tasks;
-import com.emc.vipr.client.ViPRCoreClient;
 import com.emc.vipr.client.core.impl.PathConstants;
 import com.emc.vipr.client.impl.RestClient;
 
@@ -23,29 +17,21 @@ import com.emc.vipr.client.impl.RestClient;
  *
  * @see RemoteReplicationGroupRestRep
  */
-public class RemoteReplicationSets extends ProjectResources<RemoteReplicationSetRestRep> implements
-        TaskResources<RemoteReplicationSetRestRep> {
-    public RemoteReplicationSets(ViPRCoreClient parent, RestClient client) {
-        super(parent, client, RemoteReplicationSetRestRep.class, PathConstants.BLOCK_REMOTE_REPLICATION_SET_URL);
-    }
+public class RemoteReplicationSets {
+    
+    private RestClient client;
 
-    @Override
-    public Tasks<RemoteReplicationSetRestRep> getTasks(URI id) {
-        // TODO Auto-generated method stub
-        return null;
-    }
+	public RemoteReplicationSets(RestClient client) {
+		this.client = client;
+	}
 
-    @Override
-    public Task<RemoteReplicationSetRestRep> getTask(URI id, URI taskId) {
-        // TODO Auto-generated method stub
-        return null;
-    }
+	public RemoteReplicationSetRestRep getRemoteReplicationSetsRestRep(String uuid) {
+        return client.get(RemoteReplicationSetRestRep.class, PathConstants.BLOCK_REMOTE_REPLICATION_SET_URL + "/" + uuid);
+	}
 
-    @Override
-    protected List<RemoteReplicationSetRestRep> getBulkResources(BulkIdParam input) {
-        // TODO Auto-generated method stub
-        return null;
-    }
-
+    public RemoteReplicationSetList listRemoteReplicationSets() {
+		return client.get(RemoteReplicationSetList.class,
+                PathConstants.BLOCK_REMOTE_REPLICATION_SET_URL);
+	}
 
 }

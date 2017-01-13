@@ -6393,6 +6393,9 @@ sbsdk_remote_replication_setup_once1()
     #The sleep allows discovery to complete, so that the subsequent commands
     #to add the system ports to the specified network completes successfully.
     sleep 60
+    #Have to wait at least 180 seconds to guarantee that remote configuration for simulator type is discovered.
+    echo "**** Waiting 3 minutes to complete discovery of remote replication configuration for $SIMULATOR_STORAGE_TYPE type *******"
+    sleep 200
 }
 
 sbsdk_remote_replication_setup()
@@ -6400,7 +6403,7 @@ sbsdk_remote_replication_setup()
     echo "***** Executing setup for SB SDK remote replication tests *****"
     sbsdk_remote_replication_setup_once
     sbsdk_remote_replication_setup_once1
-    
+
     #Define variables
     # System names are important to align with remote replication configuration in driver simulator.
     SBSDK_DRIVER_REPLICATION_SET1=replicationSet1

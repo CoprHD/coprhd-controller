@@ -365,6 +365,29 @@ remove_host_from_cluster() {
     curl -ikL --header "Content-Type: application/json" --header "username:xx" --header "password: yy" --data '{"args": "'"${args}"'"}' -X POST http://${HW_SIMULATOR_IP}:8235/vmware/modify &> /dev/null    
 }
 
+remove_initiator_from_host() {
+    host=$1
+    args="removeHBA $host 1"
+    echo "Removing initiator from $host"
+    # Uncomment for debugging
+    #echo "=== curl -ikL --header "Content-Type: application/json" --header "username:xx" --header "password: yy" --data '{"args": "${args}"}' -X POST http://${HW_SIMULATOR_IP}:8235/vmware/modify &> /dev/null"
+    curl -ikL --header "Content-Type: application/json" --header "username:xx" --header "password: yy" --data '{"args": "'"${args}"'"}' -X POST http://${HW_SIMULATOR_IP}:8235/vmware/modify &> /dev/null    
+}
+
+add_initiator_to_host() {
+    host=$1
+    args="addHBA $host 1"
+    echo "Removing initiator from $host"
+    # Uncomment for debugging
+    #echo "=== curl -ikL --header "Content-Type: application/json" --header "username:xx" --header "password: yy" --data '{"args": "${args}"}' -X POST http://${HW_SIMULATOR_IP}:8235/vmware/modify &> /dev/null"
+    curl -ikL --header "Content-Type: application/json" --header "username:xx" --header "password: yy" --data '{"args": "'"${args}"'"}' -X POST http://${HW_SIMULATOR_IP}:8235/vmware/modify &> /dev/null    
+}
+
+get_host_initiator_count() {
+    host=$1
+    echo `initiator list ${host} | grep Initiator | wc -l`
+}
+
 discover_vcenter() {
     vcenter=$1
     echo "Discovering vCenter $vcenter"
@@ -1855,3 +1878,66 @@ test_move_non_clustered_discovered_host_to_cluster() {
     #runcmd volume delete ${PROJECT}/${volume1} --wait
     #runcmd volume delete ${PROJECT}/${volume2} --wait
 }
+
+
+test_host_remove_initiator_event() {
+    test_name="test_host_remove_initiator_event"
+    failure="${HAPPY_PATH_TEST_INJECTION}"
+    echot "Running test_host_remove_initiator_event"
+    TEST_OUTPUT_FILE=test_output_${RANDOM}.log
+    reset_counts
+    expname=${EXPORT_GROUP_NAME}t2
+    item=${RANDOM}
+    cfs=("ExportGroup ExportMask Host Initiator Cluster")
+    mkdir -p results/${item}
+    set_controller_cs_discovery_refresh_interval 1
+
+    # Run the export group command
+    runcmd export_group create $PROJECT ${expname}1 $NH --type Cluster --volspec ${PROJECT}/${VOLNAME}-1 --clusters "emcworld/cluster-1"
+
+    old_initiator_count=`get_host_initiator_count "host11.sim.emc.com"`
+
+    # Remove initiator from a host in the cluster
+    remove_initiator_from_host "host11"
+
+    discover_vcenter "vcenter1"
+
+    EVENT_ID=$(get_pending_event)
+    if [ -z "$EVENT_ID" ]
+    then
+      echo "FAILED. Expected an event"
+      finish -1
+    else
+      approve_pending_event $EVENT_ID 
+    fi
+
+    current_initiator_count=`get_host_initiator_count "host11.sim.emc.com"`
+
+    echo "old_initiator_count = ${old_initiator_count}"
+    echo "new_initiator_count = ${current_initiator_count}"
+
+    # Initiator should no longer exist
+    if [[ "$old_initiator_count" > "$current_initiator_count" ]];
+    then
+             echo "Success. Initiator was deleted from the event"    
+    else
+        echo "+++ FAIL - Initiator was not deleted from host"
+        # Report results
+        incr_fail_count
+        if [ "${NO_BAILING}" != "1" ]
+        then
+            report_results ${test_name} ${failure}
+            exit 1
+        fi
+    fi
+    
+    # Remove the shared export
+    runcmd export_group delete ${PROJECT}/${expname}1
+
+    add_initiator_to_host "host11"
+    discover_vcenter "vcenter1"
+ 
+    # Report results
+    report_results ${test_name} ${failure}
+}
+

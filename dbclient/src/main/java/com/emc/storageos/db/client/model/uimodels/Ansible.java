@@ -20,19 +20,55 @@ import java.net.URI;
 
 import com.emc.storageos.db.client.model.Cf;
 import com.emc.storageos.db.client.model.Name;
+import com.emc.storageos.db.client.model.StringSet;
 
 /**
- * @author ssulliva
- *
+ * Column family that contains details for an ansible primitive definition
  */
 @Cf("Ansible")
-public class Ansible extends AnsibleMetadata {
+public class Ansible extends UserPrimitive {
 
     private static final long serialVersionUID = 1L;
 
-    private final static String ARCHIVE = "archive";
+    public static final String DESCRIPTION = "description";
+    public static final String PLAYBOOK = "playbook";
+    public static final String EXTRA_VARS = "extraVars";
+    public static final String ARCHIVE = "archive";
     
+    private String description;
+    private String playbook;
+    private StringSet extraVars;
     private URI archive;
+    
+    @Name(DESCRIPTION)
+    public String getDescription() {
+        return description;
+    }
+
+    public void setDescription(final String description) {
+        this.description = description;
+        setChanged(DESCRIPTION);
+    }
+
+    @Name(PLAYBOOK)
+    public String getPlaybook() {
+        return playbook;
+    }
+
+    public void setPlaybook(final String playbok) {
+        this.playbook = playbok;
+        setChanged(PLAYBOOK);
+    }
+
+    @Name(EXTRA_VARS)
+    public StringSet getExtraVars() {
+        return extraVars;
+    }
+
+    public void setExtraVars(final StringSet extraVars) {
+        this.extraVars = extraVars;
+        setChanged(EXTRA_VARS);
+    }
     
     @Name(ARCHIVE)
     public URI getArchive() {

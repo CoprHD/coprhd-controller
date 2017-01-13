@@ -24,7 +24,11 @@ import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.VcenterDataCenter;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.model.block.BlockObjectRestRep;
+import com.emc.storageos.model.block.VolumeRestRep;
 import com.google.common.collect.Sets;
+import com.iwave.ext.vmware.HostStorageAPI;
+import com.iwave.ext.vmware.VMwareUtils;
+import com.vmware.vim25.HostScsiDisk;
 import com.vmware.vim25.mo.ClusterComputeResource;
 import com.vmware.vim25.mo.Datastore;
 import com.vmware.vim25.mo.HostSystem;
@@ -148,23 +152,16 @@ public abstract class VMwareHostService extends ViPRService {
      * Validates the volume associated to vCenter datastore has any pending events due to external change
      */
     protected void validateDatastoreVolume(String datastoreName) {
-        List<Host> dbHosts = getModelClient().hosts().findByCluster(hostCluster.getId());
-        List<ExportGroup> exports = getModelClient().exportGroupFinder().findByHosts(dbHosts);
-        StringMap exportVolumeIds = new StringMap();
-        for (ExportGroup export : exports) {
-            exportVolumeIds.putAll(export.getVolumes());
-        }
-        for (String volume : exportVolumeIds.keySet()) {
-            URI uri = URI.create(volume);
-            BlockObjectRestRep exportVolume = BlockStorageUtils.getVolume(uri);
-            if (!BlockStorageUtils.isVolumeVMFSDatastore(exportVolume)) {
-                continue;
-            }
-            Set<String> tagSet = exportVolume.getTags();
-            for (String tag : tagSet) {
-                if (tag.contains(datastoreName)) {
-                    Volume volumeObj = getModelClient().findById(Volume.class, exportVolume.getId());
-                    BlockStorageUtils.checkEvents(volumeObj);
+        List<HostScsiDisk> disks = new HostStorageAPI(host).listScsiDisks();
+        for (HostScsiDisk entry : disks) {
+            VolumeRestRep volRep = BlockStorageUtils.getVolumeByWWN(VMwareUtils.getDiskWwn(entry));
+            if(volRep != null && BlockStorageUtils.isVolumeVMFSDatastore(volRep)){
+                Set<String> tagSet = volRep.getTags();
+                for (String tag : tagSet) {
+                    if (tag.contains(datastoreName)) {
+                        Volume volumeObj = getModelClient().findById(Volume.class, volRep.getId());
+                        BlockStorageUtils.checkEvents(volumeObj);
+                    }
                 }
             }
         }

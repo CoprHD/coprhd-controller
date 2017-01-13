@@ -57,7 +57,6 @@ public class ModelClient {
     private IpInterfaceFinder ipInterfaceDAO;
     private ClusterFinder clusterDAO;
     private ActionableEventFinder actionableEventDAO;
-    private ExportGroupFinder exportGroupDAO;
 
     public ModelClient(DBClientWrapper client) {
         this.client = client;
@@ -323,13 +322,6 @@ public class ModelClient {
             tenantPreferencesDAO = new TenantPreferencesFinder(client);
         }
         return tenantPreferencesDAO;
-    }
-    
-    public ExportGroupFinder exportGroupFinder() {
-        if (exportGroupDAO == null) {
-            exportGroupDAO = new ExportGroupFinder(client);
-        }
-        return exportGroupDAO;
     }
 
     private <T extends DataObject> boolean isNew(T model) {

@@ -23,7 +23,7 @@ import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 
 public class StaleIndexCleanerMigration extends BaseCustomMigrationCallback {
     private static final Logger log = LoggerFactory.getLogger(StaleIndexCleanerMigration.class);
-    private static final String CLEANUP_COMMAND = "/opt/storageos/bin/cqlsh -k %s -f \"%s\" localhost %s";
+    private static final String CLEANUP_COMMAND = "/opt/storageos/bin/cqlsh -k %s -f %s localhost %s";
     
     @Override
     public void process() throws MigrationCallbackException {
@@ -71,6 +71,6 @@ public class StaleIndexCleanerMigration extends BaseCustomMigrationCallback {
     
     public void execCleanupScript(String command) {
         Exec.Result result = Exec.exec(Exec.DEFAULT_CMD_TIMEOUT, command.split(" "));
-        log.info("result code is {}",result.getExitValue());
+        log.info("External command result: {}", result);
     }
 }

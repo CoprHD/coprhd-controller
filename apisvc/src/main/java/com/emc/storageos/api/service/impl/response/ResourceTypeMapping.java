@@ -18,6 +18,7 @@
 package com.emc.storageos.api.service.impl.response;
 
 import static com.emc.storageos.model.ResourceTypeEnum.ACTIONABLE_EVENT;
+import static com.emc.storageos.model.ResourceTypeEnum.ANSIBLE;
 import static com.emc.storageos.model.ResourceTypeEnum.ANSIBLE_PACKAGE;
 import static com.emc.storageos.model.ResourceTypeEnum.AUTHN_PROVIDER;
 import static com.emc.storageos.model.ResourceTypeEnum.AUTO_TIERING_POLICY;
@@ -74,6 +75,7 @@ import static com.emc.storageos.model.ResourceTypeEnum.TENANT;
 import static com.emc.storageos.model.ResourceTypeEnum.UNMANAGED_FILESYSTEMS;
 import static com.emc.storageos.model.ResourceTypeEnum.UNMANAGED_VOLUMES;
 import static com.emc.storageos.model.ResourceTypeEnum.USER_GROUP;
+import static com.emc.storageos.model.ResourceTypeEnum.USER_SCRIPT;
 import static com.emc.storageos.model.ResourceTypeEnum.VARRAY;
 import static com.emc.storageos.model.ResourceTypeEnum.VCENTER;
 import static com.emc.storageos.model.ResourceTypeEnum.VCENTERDATACENTER;
@@ -151,6 +153,7 @@ import com.emc.storageos.db.client.model.Workflow;
 import com.emc.storageos.db.client.model.WorkflowStep;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFileSystem;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
+import com.emc.storageos.db.client.model.uimodels.Ansible;
 import com.emc.storageos.db.client.model.uimodels.AnsiblePackage;
 import com.emc.storageos.db.client.model.uimodels.CatalogCategory;
 import com.emc.storageos.db.client.model.uimodels.CatalogImage;
@@ -159,6 +162,7 @@ import com.emc.storageos.db.client.model.uimodels.CatalogServiceField;
 import com.emc.storageos.db.client.model.uimodels.ExecutionWindow;
 import com.emc.storageos.db.client.model.uimodels.OrchestrationWorkflow;
 import com.emc.storageos.db.client.model.uimodels.Order;
+import com.emc.storageos.db.client.model.uimodels.UserScript;
 import com.emc.storageos.db.client.model.uimodels.WFDirectory;
 import com.emc.storageos.model.ResourceTypeEnum;
 
@@ -240,6 +244,8 @@ public class ResourceTypeMapping {
         classMapping.put(EXECUTION_WINDOW, ExecutionWindow.class);
         classMapping.put(ORCHESTRATION_WORKFLOW, OrchestrationWorkflow.class);
         classMapping.put(ANSIBLE_PACKAGE, AnsiblePackage.class);
+        classMapping.put(ANSIBLE, Ansible.class);
+        classMapping.put(USER_SCRIPT, UserScript.class);
         classMapping.put(WF_DIRECTORY, WFDirectory.class);
 
         for (Map.Entry<ResourceTypeEnum, Class<? extends DataObject>> entry : classMapping

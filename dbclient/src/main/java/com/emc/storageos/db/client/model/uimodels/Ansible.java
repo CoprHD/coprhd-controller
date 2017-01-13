@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 Dell Inc. or its subsidiaries.
+ * Copyright 2017 Dell Inc. or its subsidiaries.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,50 +16,42 @@
  */
 package com.emc.storageos.db.client.model.uimodels;
 
+import java.net.URI;
+
 import com.emc.storageos.db.client.model.Cf;
 import com.emc.storageos.db.client.model.Name;
-import com.emc.storageos.db.client.model.StringSet;
 
 /**
- * Column family that contains an ansible package
+ * @author ssulliva
+ *
  */
-@Cf("AnsiblePackage")
-public class AnsiblePackage extends PrimitiveResource {
+@Cf("Ansible")
+public class Ansible extends AnsibleMetadata {
 
     private static final long serialVersionUID = 1L;
 
-    public static final String PLAYBOOKS = "playbooks";
-
-    private StringSet playbooks;
+    private final static String ARCHIVE = "archive";
     
-    @Name(PLAYBOOKS)
-    public StringSet getPlaybooks() {
-        return playbooks;
+    private URI archive;
+    
+    @Name(ARCHIVE)
+    public URI getArchive() {
+        return archive;
     }
     
-    public void setPlaybooks(final StringSet playbooks) {
-        this.playbooks = playbooks;
-        setChanged(PLAYBOOKS);
+    public void setArchive(final URI archive) {
+        this.archive = archive;
+        setChanged(ARCHIVE);
     }
-
+    
     @Override
-    public boolean isAnsiblePackage() {
+    public boolean isAnsible() {
         return true;
     }
 
     @Override
-    public AnsiblePackage asAnsiblePackage() {
+    public Ansible asAnsible() {
         return this;
-    }
-
-    @Override
-    public boolean isUserScript() {
-        return false;
-    }
-
-    @Override
-    public UserScript asUserScript() {
-        return null;
     }
 
 }

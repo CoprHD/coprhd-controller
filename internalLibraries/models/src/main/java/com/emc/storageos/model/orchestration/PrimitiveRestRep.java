@@ -16,11 +16,9 @@
  */
 package com.emc.storageos.model.orchestration;
 
-import java.util.List;
 import java.util.Map;
 
 import javax.xml.bind.annotation.XmlElement;
-import javax.xml.bind.annotation.XmlElementWrapper;
 import javax.xml.bind.annotation.XmlRootElement;
 
 import com.emc.storageos.model.DataObjectRestRep;
@@ -29,25 +27,15 @@ import com.emc.storageos.model.RestLinkRep;
 @XmlRootElement(name = "primitive")
 public class PrimitiveRestRep extends DataObjectRestRep {
     
-    private String name;
     private String type;
     private String friendlyName;
     private String description;
     private String successCriteria;
-    private List<Attribute> attributes;
+    private  Map<String, String> attributes;
     private RestLinkRep resource;
 
     private Map<String,InputParameterRestRep> input;
     private Map<String,OutputParameterRestRep> output;
-    
-    @XmlElement(name = "name")
-    public String getName() {
-        return name;
-    }
-    
-    public void setName(final String name) {
-        this.name = name;
-    }
 
     @XmlElement(name = "type")
     public String getType() {
@@ -85,13 +73,12 @@ public class PrimitiveRestRep extends DataObjectRestRep {
         this.successCriteria = successCriteria;
     }
 
-    @XmlElementWrapper(name = "attributes")
-    @XmlElement(name = "attribute")
-    public List<Attribute> getAttributes() {
+    @XmlElement(name = "attributes")
+    public Map<String, String> getAttributes() {
         return attributes;
     }
 
-    public void setAttributes(final List<Attribute> attributes) {
+    public void setAttributes(final  Map<String, String> attributes) {
         this.attributes = attributes;
     }
 
@@ -120,28 +107,5 @@ public class PrimitiveRestRep extends DataObjectRestRep {
 
     public void setResource(RestLinkRep resource) {
         this.resource = resource;
-    }
-
-    public static class Attribute {
-        private String name;
-        private List<String> values;
-
-        @XmlElement(name = "name")
-        public String getName() {
-            return name;
-        }
-
-        public void setName(final String name) {
-            this.name = name;
-        }
-
-        @XmlElement(name = "value")
-        public List<String> getValues() {
-            return values;
-        }
-
-        public void setValues(final List<String> values) {
-            this.values = values;
-        }
     }
 }

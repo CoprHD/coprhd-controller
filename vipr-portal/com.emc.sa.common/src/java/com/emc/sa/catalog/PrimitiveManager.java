@@ -17,13 +17,19 @@
 package com.emc.sa.catalog;
 
 import java.net.URI;
+import java.util.List;
 
+import com.emc.storageos.db.client.model.uimodels.Ansible;
 import com.emc.storageos.db.client.model.uimodels.AnsiblePackage;
+import com.emc.storageos.db.client.model.uimodels.UserPrimitive;
 
 public interface PrimitiveManager {
 
+    public void save(final UserPrimitive primitive);
     public void save(final AnsiblePackage ansiblePackage);
     
-    public AnsiblePackage findById(final URI id);
+    public UserPrimitive findById(final URI id);
+    public AnsiblePackage findArchive(final URI id);
+    public List<Ansible> findAllAnsible();
 
 }

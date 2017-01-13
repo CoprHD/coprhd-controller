@@ -77,6 +77,6 @@ public abstract class UserPrimitive extends ModelObject {
         this.output = output;
     }
 
-    public abstract boolean isAnsiblePackage();
-    public abstract AnsiblePackage asAnsiblePackage(); 
+    public abstract boolean isAnsible();
+    public abstract Ansible asAnsible(); 
 }

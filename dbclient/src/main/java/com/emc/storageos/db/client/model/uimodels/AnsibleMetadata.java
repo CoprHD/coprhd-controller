@@ -28,11 +28,11 @@ public abstract class AnsibleMetadata extends UserPrimitive {
     private static final long serialVersionUID = 1L;
 
     public static final String DESCRIPTION = "description";
-    public static final String ENTRY_POINTS = "entryPoints";
+    public static final String PLAYBOOK = "playbook";
     public static final String EXTRA_VARS = "extraVars";
 
     private String description;
-    private StringSet entryPoints;
+    private String playbook;
     private StringSet extraVars;
 
     @Name(DESCRIPTION)
@@ -45,14 +45,14 @@ public abstract class AnsibleMetadata extends UserPrimitive {
         setChanged(DESCRIPTION);
     }
 
-    @Name(ENTRY_POINTS)
-    public StringSet getEntryPoints() {
-        return entryPoints;
+    @Name(PLAYBOOK)
+    public String getPlaybook() {
+        return playbook;
     }
 
-    public void setEntryPoints(final StringSet entryPoints) {
-        this.entryPoints = entryPoints;
-        setChanged(ENTRY_POINTS);
+    public void setPlaybook(final String playbok) {
+        this.playbook = playbok;
+        setChanged(PLAYBOOK);
     }
 
     @Name(EXTRA_VARS)

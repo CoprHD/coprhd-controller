@@ -22,9 +22,12 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
 import java.nio.file.FileSystems;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 
 import javax.servlet.ServletOutputStream;
 import javax.servlet.http.HttpServletRequest;
@@ -53,10 +56,14 @@ import com.emc.sa.api.mapper.PrimitiveMapper;
 import com.emc.sa.catalog.PrimitiveManager;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.StringSet;
+import com.emc.storageos.db.client.model.uimodels.Ansible;
 import com.emc.storageos.db.client.model.uimodels.AnsiblePackage;
+import com.emc.storageos.db.client.model.uimodels.UserPrimitive;
 import com.emc.storageos.model.orchestration.InputParameterRestRep;
 import com.emc.storageos.model.orchestration.OutputParameterRestRep;
+import com.emc.storageos.model.orchestration.PrimitiveCreateParam;
 import com.emc.storageos.model.orchestration.PrimitiveList;
+import com.emc.storageos.model.orchestration.PrimitiveResourceRestRep;
 import com.emc.storageos.model.orchestration.PrimitiveRestRep;
 import com.emc.storageos.model.orchestration.PrimitiveUpdateParam;
 import com.emc.storageos.primitives.Primitive;
@@ -70,6 +77,7 @@ import com.emc.storageos.security.authorization.ACL;
 import com.emc.storageos.security.authorization.DefaultPermissions;
 import com.emc.storageos.security.authorization.Role;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
+import com.emc.storageos.svcs.errorhandling.resources.BadRequestException;
 import com.emc.storageos.svcs.errorhandling.resources.NotFoundException;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -101,7 +109,7 @@ public class PrimitiveService {
     }
 
     private enum PrimitiveTypeNames {
-        VIPR("ViPRPrimitive"), ANSIBLE_PACKAGE("AnsiblePackage");
+        VIPR("ViPRPrimitive"), ANSIBLE("Ansible");
 
         private final String type;
 
@@ -163,9 +171,42 @@ public class PrimitiveService {
     @GET
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     public PrimitiveList getPrimitives() {
-        return PRIMITIVE_LIST;
+        final List<PrimitiveRestRep> list = new ArrayList<PrimitiveRestRep>();
+        list.addAll(PRIMITIVE_LIST.getPrimitives());
+        List<Ansible> userPrimitives = primitiveManager.findAllAnsible();
+        if(null != userPrimitives) {
+            for(final Ansible primitive : userPrimitives ) {
+                list.add(PrimitiveMapper.map(primitive));
+            }
+        }
+        final PrimitiveList primitiveList = new PrimitiveList();
+        primitiveList.setPrimitives(list);
+        return primitiveList;
     }
 
+    /**
+     * @param param
+     * @return
+     */
+    @POST
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    public PrimitiveRestRep makePrimitive(PrimitiveCreateParam param) {
+        final UserPrimitive primitive;
+        final PrimitiveResourceType type = PrimitiveResourceType
+                .get(param.getType());
+        if(null == type) {
+            throw BadRequestException.badRequests.parameterIsNotValid(param.getType());
+        }
+        switch(type) {
+        case ANSIBLE:
+            primitive = makeAnsiblePrimitive(param);
+            break;
+        default:
+            throw BadRequestException.badRequests.parameterIsNotValid(param.getType());
+        }
+        primitiveManager.save(primitive);
+        return PrimitiveMapper.map(primitive);
+    }
     /**
      * Get a primitive that can be used in orchestration workflows
      *
@@ -193,22 +234,28 @@ public class PrimitiveService {
                 throw APIException.notFound.unableToFindEntityInURL(id);
             }
             return primitive;
-        case ANSIBLE_PACKAGE:
-            final AnsiblePackage ansiblePackage = primitiveManager.findById(id);
-            if (null == ansiblePackage) {
+        case ANSIBLE:
+            final Ansible ansible = primitiveManager.findById(id).asAnsible();
+            if (null == ansible) {
                 throw APIException.notFound.unableToFindEntityInURL(id);
             }
-            return PrimitiveMapper.map(ansiblePackage);
+            return PrimitiveMapper.map(ansible);
         default:
             throw APIException.notFound.unableToFindEntityInURL(id);
         }
     }
 
+    /**
+     * @param request
+     * @param type
+     * @param name
+     * @return
+     */
     @POST
     @Consumes({ MediaType.APPLICATION_OCTET_STREAM })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/resource/{type}")
-    public PrimitiveRestRep uploadAnsiblePackage(
+    public PrimitiveResourceRestRep uploadAnsiblePackage(
             @Context HttpServletRequest request,
             @PathParam("type") String type, @QueryParam("name") String name) {
 
@@ -259,8 +306,8 @@ public class PrimitiveService {
                 ansiblePackage.setLabel(name);
                 ansiblePackage.setId(URIUtil.createId(AnsiblePackage.class));
 
-                ansiblePackage.setEntryPoints(entryPoints);
-                ansiblePackage.setArchive(Base64.encodeBase64(file
+                ansiblePackage.setPlaybooks(entryPoints);
+                ansiblePackage.setResource(Base64.encodeBase64(file
                         .toByteArray()));
                 primitiveManager.save(ansiblePackage);
                 return PrimitiveMapper.map(ansiblePackage);
@@ -276,6 +323,11 @@ public class PrimitiveService {
 
     }
 
+    /**
+     * @param id
+     * @param param
+     * @return
+     */
     @PUT
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
@@ -286,16 +338,23 @@ public class PrimitiveService {
                 .getTypeName(id));
 
         switch (type) {
-        case ANSIBLE_PACKAGE:
-            final AnsiblePackage ansiblePackage = primitiveManager.findById(id);
-            if (null == ansiblePackage) {
+        case ANSIBLE:
+            final Ansible ansible = primitiveManager.findById(id).asAnsible();
+            if (null == ansible) {
                 throw APIException.notFound.unableToFindEntityInURL(id);
             }
-            return updateAnsiblePackage(ansiblePackage, param);
+            return updateAnsible(ansible, param);
+        default:
+            throw APIException.notFound.unableToFindEntityInURL(id);
         }
-        return null;
     }
 
+    /**
+     * @param type
+     * @param id
+     * @param response
+     * @return
+     */
     @GET
     @Path("resource/{type}/{id}")
     public Response download(@PathParam("type") final String type,
@@ -312,9 +371,9 @@ public class PrimitiveService {
 
         switch (resourceType) {
         case ANSIBLE:
-            final AnsiblePackage ansiblePackage = primitiveManager.findById(id);
+            final AnsiblePackage ansiblePackage = primitiveManager.findArchive(id);
             final byte[] archive = Base64.decodeBase64(ansiblePackage
-                    .getArchive());
+                    .getResource());
 
             response.setContentLength(archive.length);
             response.setHeader("Content-Disposition", "attachment; filename="
@@ -341,7 +400,28 @@ public class PrimitiveService {
         }
     }
 
-    private PrimitiveRestRep updateAnsiblePackage(AnsiblePackage update,
+    private Ansible makeAnsiblePrimitive(PrimitiveCreateParam param) {
+        final Ansible primitive = new Ansible();
+        primitive.setId(URIUtil.createId(Ansible.class));
+        primitive.setLabel(param.getName());
+        primitive.setFriendlyName(param.getFriendlyName());
+        primitive.setDescription(param.getDescription());
+        primitive.setArchive(param.getResource());
+        primitive.setPlaybook(param.getAttributes().get("playbook"));
+        final StringSet extraVars = new StringSet();
+        for(String input : param.getInput()) {
+            if(input.startsWith("@extraVar")) {
+                extraVars.add(input);
+            }
+        }
+        primitive.setExtraVars(extraVars);
+        final StringSet output = new StringSet();
+        output.addAll(param.getOutput());
+        primitive.setOutput(output);
+        return primitive;
+    }
+    
+    private PrimitiveRestRep updateAnsible(Ansible update,
             final PrimitiveUpdateParam param) {
 
         if (null != param.getName()) {
@@ -391,6 +471,23 @@ public class PrimitiveService {
             update.setOutput(output);
         }
 
+        if( null != param.getAttributes()) {
+            for(Entry<String, String> attribute : param.getAttributes().entrySet()) {
+                switch(attribute.getKey()) {
+                case "playbook":
+                    final AnsiblePackage archive = primitiveManager.findArchive(update.getArchive());
+                    if(!archive.getPlaybooks().contains(attribute.getValue())) {
+                        throw BadRequestException.badRequests.parameterIsNotValid(attribute.getKey());
+                    } else {
+                        update.setPlaybook(attribute.getValue());
+                    }
+                    break;
+                    default:
+                        throw BadRequestException.badRequests.parameterIsNotValid(attribute.getKey());
+                }
+            }
+        }
+        
         primitiveManager.save(update);
         return PrimitiveMapper.map(update);
     }

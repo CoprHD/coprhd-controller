@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 Dell Inc. or its subsidiaries.
+ * Copyright 2017 Dell Inc. or its subsidiaries.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,25 +17,22 @@
 package com.emc.storageos.model.orchestration;
 
 import java.net.URI;
+import java.util.List;
 import java.util.Map;
 
 import javax.xml.bind.annotation.XmlElement;
-import javax.xml.bind.annotation.XmlRootElement;
 
-/**
- *
- */
-@XmlRootElement(name = "primitive_update_param")
-public class PrimitiveUpdateParam {
+public class PrimitiveCreateParam {
 
     private String name;
     private String friendlyName;
     private String description;
-    private InputUpdateParam input;
-    private OutputUpdateParam output;
+    private String type;
+    private List<String> input;
+    private List<String> output;
     private Map<String,String> attributes;
     private URI resource;
-
+    
     @XmlElement(name = "name")
     public String getName() {
         return name;
@@ -73,20 +70,39 @@ public class PrimitiveUpdateParam {
     }
     
     @XmlElement(name = "input")
-    public InputUpdateParam getInput() {
+    public List<String> getInput() {
         return input;
     }
 
-    public void setInput(InputUpdateParam input) {
+    public void setInput(final List<String> input) {
         this.input = input;
     }
 
     @XmlElement(name = "output")
-    public OutputUpdateParam getOutput() {
+    public List<String> getOutput() {
         return output;
     }
 
-    public void setOutput(final OutputUpdateParam output) {
+    public void setOutput(final List<String> output) {
         this.output = output;
     }
+    
+    @XmlElement(name = "resource") 
+    public URI getResource() {
+        return resource;
+    }
+    
+    public void setResource(final URI resource) {
+        this.resource = resource;
+    }
+    
+    @XmlElement(name = "type") 
+    public String getType() {
+        return type;
+    }
+    
+    public void setType(final String type) {
+        this.type = type;
+    }
+    
 }

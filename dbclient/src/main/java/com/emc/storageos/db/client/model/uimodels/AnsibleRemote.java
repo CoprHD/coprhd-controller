@@ -25,12 +25,12 @@ import com.emc.storageos.db.client.model.Cf;
 public class AnsibleRemote extends AnsibleMetadata {
 
     @Override
-    public boolean isAnsiblePackage() {
+    public boolean isAnsible() {
         return false;
     }
 
     @Override
-    public AnsiblePackage asAnsiblePackage() {
+    public Ansible asAnsible() {
         return null;
     }
 

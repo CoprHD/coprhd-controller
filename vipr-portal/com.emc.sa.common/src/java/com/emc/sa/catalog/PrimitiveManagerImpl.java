@@ -17,12 +17,16 @@
 package com.emc.sa.catalog;
 
 import java.net.URI;
+import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import com.emc.sa.model.dao.ModelClient;
+import com.emc.storageos.db.client.URIUtil;
+import com.emc.storageos.db.client.model.uimodels.Ansible;
 import com.emc.storageos.db.client.model.uimodels.AnsiblePackage;
+import com.emc.storageos.db.client.model.uimodels.UserPrimitive;
 
 @Component
 public class PrimitiveManagerImpl implements PrimitiveManager {
@@ -36,8 +40,36 @@ public class PrimitiveManagerImpl implements PrimitiveManager {
     }
 
     @Override
-    public AnsiblePackage findById(final URI id) {
+    public UserPrimitive findById(final URI id) {
+        final String type = URIUtil.getTypeName(id);
+        
+        switch(type) {
+        case "Ansible":
+            return client.findById(Ansible.class, id);
+        default:
+            throw new RuntimeException("Unknown Type " + type);
+        }
+        
+    }
+
+    @Override
+    public void save(final UserPrimitive primitive) {
+        client.save(primitive);
+    }
+
+    @Override
+    public AnsiblePackage findArchive(final URI id) {
         return client.findById(AnsiblePackage.class, id);
+    }
+
+    @Override
+    public List<Ansible> findAllAnsible() {
+        final List<URI> ids = client.findByType(Ansible.class);
+        if( null == ids) {
+            return null;
+        }
+        List<Ansible> ansiblePrimitives = client.findByIds(Ansible.class, ids);
+        return ansiblePrimitives;
     }
 
 }

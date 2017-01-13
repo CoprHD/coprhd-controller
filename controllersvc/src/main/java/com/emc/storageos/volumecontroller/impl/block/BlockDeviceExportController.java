@@ -57,6 +57,7 @@ import com.emc.storageos.volumecontroller.impl.block.taskcompleter.VolumeVpoolCh
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.VolumeWorkflowCompleter;
 import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
 import com.emc.storageos.workflow.Workflow;
+import com.emc.storageos.workflow.WorkflowState;
 import com.google.common.base.Joiner;
 
 /**
@@ -444,11 +445,12 @@ public class BlockDeviceExportController implements BlockExportController {
              */
             _log.info(String.format("Lock retry exception key: %s remaining time %d", ex.getLockIdentifier(),
                     ex.getRemainingWaitTimeSeconds()));
-            if (workflow != null && !NullColumnValueGetter.isNullURI(workflow.getWorkflowURI())) {
+            if (workflow != null && !NullColumnValueGetter.isNullURI(workflow.getWorkflowURI())
+                    && workflow.getWorkflowState() == WorkflowState.CREATED) {
                 com.emc.storageos.db.client.model.Workflow wf = _dbClient.queryObject(com.emc.storageos.db.client.model.Workflow.class,
                         workflow.getWorkflowURI());
                 if (!wf.getCompleted()) {
-                    _log.error("Found in progress workflow {} and needs to change the status to completed", wf.getId());
+                    _log.error("Marking the status to completed for the newly created workflow {}", wf.getId());
                     wf.setCompleted(true);
                     _dbClient.updateObject(wf);
                 }

@@ -53,6 +53,7 @@ import com.emc.storageos.vplexcontroller.VPlexDeviceController;
 import com.emc.storageos.workflow.Workflow;
 import com.emc.storageos.workflow.WorkflowException;
 import com.emc.storageos.workflow.WorkflowService;
+import com.emc.storageos.workflow.WorkflowState;
 
 public class BlockOrchestrationDeviceController implements BlockOrchestrationController, Controller {
     private static final Logger s_logger = LoggerFactory.getLogger(BlockOrchestrationDeviceController.class);
@@ -132,11 +133,12 @@ public class BlockOrchestrationDeviceController implements BlockOrchestrationCon
              */
             s_logger.info(String.format("Lock retry exception key: %s remaining time %d", ex.getLockIdentifier(),
                     ex.getRemainingWaitTimeSeconds()));
-            if (workflow != null && !NullColumnValueGetter.isNullURI(workflow.getWorkflowURI())) {
+            if (workflow != null && !NullColumnValueGetter.isNullURI(workflow.getWorkflowURI())
+                    && workflow.getWorkflowState() == WorkflowState.CREATED) {
                 com.emc.storageos.db.client.model.Workflow wf = s_dbClient.queryObject(com.emc.storageos.db.client.model.Workflow.class,
                         workflow.getWorkflowURI());
                 if (!wf.getCompleted()) {
-                    s_logger.error("Found in progress workflow {} and needs to change the status to completed", wf.getId());
+                    s_logger.error("Marking the status to completed for the newly created workflow {}", wf.getId());
                     wf.setCompleted(true);
                     s_dbClient.updateObject(wf);
                 }

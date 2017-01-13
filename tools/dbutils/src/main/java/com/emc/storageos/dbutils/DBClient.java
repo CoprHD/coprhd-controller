@@ -692,7 +692,7 @@ public class DBClient {
                 log.info("Force to delete object {} that can't be deleted", id);
             }
 
-            _dbClient.removeObject(object);
+            _dbClient.internalRemoveObjects(object);
             return true;
         }
 

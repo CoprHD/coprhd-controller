@@ -709,6 +709,24 @@ FS_VNXE_EXPAND_SIZE=3000000000
 FS_UNITY_SIZE=4000000000
 FS_UNITY_EXPAND_SIZE=5000000000
 
+#
+# remotereplication tests configuration
+#
+SIMULATOR_STORAGE_TYPE=driversystem
+# All namews are important to align with remote replication configuration in driver simulator.
+SBSDK_DRIVER_SYS_NAME=source_replicationGroup1_set1
+SBSDK_DRIVER_SYS_TYPE=driversystem
+SBSDK_DRIVER_SYS_NATIVEGUID=$SBSDK_DRIVER_SYS_TYPE+$SBSDK_DRIVER_SYS_NAME
+SBSDK_DRIVER_SYS_IP=10.20.30.40
+SBSDK_DRIVER_SYS_PORT=8080
+SBSDK_DRIVER_SYS_USER=user
+SBSDK_DRIVER_SYS_PASSWORD=password
+SBSDK_DRIVER_SYS_TARGET_NAME=target_replicationGroup1_set1
+SBSDK_DRIVER_SYS_TARGET_NATIVEGUID=$SBSDK_DRIVER_SYS_TYPE+$SBSDK_DRIVER_SYS_TARGET_NAME
+SBSDK_DRIVER_SYS_TARGET_IP=10.20.30.50
+#
+# remote configuration end
+#
 
 # Alternate configuration file for alternate hardware/variables
 ALTERNATE_CONFIG_FILE=myhardware.conf
@@ -6346,45 +6364,6 @@ sbsdk_setup()
 
 sbsdk_remote_replication_setup()
 {
-    echo "***** Executing setup for SB SDK remote replication tests *****"
-
-    #Define variables
-    SIMULATOR_STORAGE_TYPE=driversystem
-    # System names are important to align with remote replication configuration in driver simulator.
-    SBSDK_DRIVER_REPLICATION_SET1=replicationSet1
-    SBSDK_DRIVER_REPLICATION_SET1_GROUP1=replicationGroup1_set1
-    ##
-    SBSDK_DRIVER_SYS_NAME=source_replicationGroup1_set1
-    SBSDK_DRIVER_SYS_TYPE=driversystem
-    SBSDK_DRIVER_SYS_NATIVEGUID=$SBSDK_DRIVER_SYS_TYPE+$SBSDK_DRIVER_SYS_NAME
-    SBSDK_DRIVER_SYS_IP=10.20.30.40
-    SBSDK_DRIVER_SYS_PORT=8080
-    SBSDK_DRIVER_SYS_USER=user
-    SBSDK_DRIVER_SYS_PASSWORD=password
-    SBSDK_DRIVER_SYS_VPOOL_NAME=SBSDK_VPOOL
-    SBSDK_DRIVER_SYS_REMOTE_REPLICATION_VPOOL_NAME=SBSDK_VPOOL_RR
-    # The driver simulator creates these ports for the source system
-    SBSDK_DRIVER_SYS_PWWN10=61:FE:FE:FE:FE:FE:FE:10
-    SBSDK_DRIVER_SYS_PWWN11=61:FE:FE:FE:FE:FE:FE:11
-    SBSDK_DRIVER_SYS_PWWN12=61:FE:FE:FE:FE:FE:FE:12
-    SBSDK_DRIVER_SYS_PWWN13=61:FE:FE:FE:FE:FE:FE:13
-    SBSDK_DRIVER_SYS_PWWN14=61:FE:FE:FE:FE:FE:FE:14
-    SBSDK_DRIVER_SYS_PWWN15=61:FE:FE:FE:FE:FE:FE:15
-    SBSDK_DRIVER_SYS_PWWN16=61:FE:FE:FE:FE:FE:FE:16
-
-    # System names are important to align with remote replication configuration in driver simulator.
-    SBSDK_DRIVER_SYS_TARGET_NAME=target_replicationGroup1_set1
-    SBSDK_DRIVER_SYS_TARGET_NATIVEGUID=$SBSDK_DRIVER_SYS_TYPE+$SBSDK_DRIVER_SYS_TARGET_NAME
-    SBSDK_DRIVER_SYS_TARGET_IP=10.20.30.50
-    # The driver simulator creates these ports for the target system
-    SBSDK_DRIVER_SYS_PWWN20=62:FE:FE:FE:FE:FE:FE:10
-    SBSDK_DRIVER_SYS_PWWN21=62:FE:FE:FE:FE:FE:FE:11
-    SBSDK_DRIVER_SYS_PWWN22=62:FE:FE:FE:FE:FE:FE:12
-    SBSDK_DRIVER_SYS_PWWN23=62:FE:FE:FE:FE:FE:FE:13
-    SBSDK_DRIVER_SYS_PWWN24=62:FE:FE:FE:FE:FE:FE:14
-    SBSDK_DRIVER_SYS_PWWN25=62:FE:FE:FE:FE:FE:FE:15
-    SBSDK_DRIVER_SYS_PWWN26=62:FE:FE:FE:FE:FE:FE:16
-
     echo "**** Creating storage system type for driver simulator *******"
     run remotereplicationgroup create_storage_type $SIMULATOR_STORAGE_TYPE --type block --is_provider false --support_ssl true \
              --port 789 --ssl_port 8798 --driver_class dummy.java
@@ -6400,6 +6379,37 @@ sbsdk_remote_replication_setup()
     #The sleep allows discovery to complete, so that the subsequent commands
     #to add the system ports to the specified network completes successfully.
     sleep 60
+}
+
+sbsdk_remote_replication_setup()
+{
+    echo "***** Executing setup for SB SDK remote replication tests *****"
+    sbsdk_remote_replication_setup_once
+
+    #Define variables
+    # System names are important to align with remote replication configuration in driver simulator.
+    SBSDK_DRIVER_REPLICATION_SET1=replicationSet1
+    SBSDK_DRIVER_REPLICATION_SET1_GROUP1=replicationGroup1_set1
+    ##
+    SBSDK_DRIVER_SYS_VPOOL_NAME=SBSDK_VPOOL
+    SBSDK_DRIVER_SYS_REMOTE_REPLICATION_VPOOL_NAME=SBSDK_VPOOL_RR
+    # The driver simulator creates these ports for the source system
+    SBSDK_DRIVER_SYS_PWWN10=61:FE:FE:FE:FE:FE:FE:10
+    SBSDK_DRIVER_SYS_PWWN11=61:FE:FE:FE:FE:FE:FE:11
+    SBSDK_DRIVER_SYS_PWWN12=61:FE:FE:FE:FE:FE:FE:12
+    SBSDK_DRIVER_SYS_PWWN13=61:FE:FE:FE:FE:FE:FE:13
+    SBSDK_DRIVER_SYS_PWWN14=61:FE:FE:FE:FE:FE:FE:14
+    SBSDK_DRIVER_SYS_PWWN15=61:FE:FE:FE:FE:FE:FE:15
+    SBSDK_DRIVER_SYS_PWWN16=61:FE:FE:FE:FE:FE:FE:16
+
+    # The driver simulator creates these ports for the target system
+    SBSDK_DRIVER_SYS_PWWN20=62:FE:FE:FE:FE:FE:FE:10
+    SBSDK_DRIVER_SYS_PWWN21=62:FE:FE:FE:FE:FE:FE:11
+    SBSDK_DRIVER_SYS_PWWN22=62:FE:FE:FE:FE:FE:FE:12
+    SBSDK_DRIVER_SYS_PWWN23=62:FE:FE:FE:FE:FE:FE:13
+    SBSDK_DRIVER_SYS_PWWN24=62:FE:FE:FE:FE:FE:FE:14
+    SBSDK_DRIVER_SYS_PWWN25=62:FE:FE:FE:FE:FE:FE:15
+    SBSDK_DRIVER_SYS_PWWN26=62:FE:FE:FE:FE:FE:FE:16
 
     #Add storage ports to network
     echo "***** Adding storage ports to network *****"

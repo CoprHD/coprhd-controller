@@ -17,7 +17,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
-import com.emc.storageos.management.backup.BackupType;
 import com.emc.storageos.management.backup.ExternalServerType;
 import com.emc.storageos.management.backup.util.BackupClient;
 import com.emc.storageos.management.backup.util.CifsClient;
@@ -173,7 +172,7 @@ public class ConfigProperties extends Controller {
             addPage(pages, new PasswordPropertyPage(properties));
             addPage(pages, new SyslogPropertiesPage(properties));
             addPage(pages, new BackupPropertyPage(properties));
-            addPage(pages, new LogRententionPage(properties));
+            addPage(pages, new LogRententionPropertyPage(properties));
         }
         else {
             if (PlatformUtils.isAppliance()) {
@@ -189,7 +188,7 @@ public class ConfigProperties extends Controller {
             addPage(excludePages, new PasswordPropertyPage(properties));
             addPage(excludePages, new SyslogPropertiesPage(properties));
             addPage(excludePages, new BackupPropertyPage(properties));
-            addPage(pages, new LogRententionPage(properties));
+            addPage(excludePages, new LogRententionPropertyPage(properties));
         }
 
         addDefaultPages(pages, properties.values(), excludePages, isActiveSite);

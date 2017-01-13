@@ -95,6 +95,7 @@ verify_export() {
     HOST_INITIATORS=$1
     NUM_INITIATORS=$2
     NUM_LUNS=$3
+    HLUS=$4
 
     java -Dproperty.file=${tools_file} -jar ${tools_jar} -arrays ${array_type} -method get_mask_info -params "${HOST_INITIATORS}" > ${TMPFILE1} 2> ${TMPFILE2}
     grep -n "${HOST_INITIATORS}" ${TMPFILE1} > /dev/null
@@ -124,6 +125,7 @@ verify_export() {
 
     num_inits=`grep ${NUMBER_OF_INITIATORS} ${TMPFILE1} | awk -F: '{print $2}'`
     num_luns=`grep ${NUMBER_OF_LUNS} ${TMPFILE1} | awk -F: '{print $2}'`
+    hlus=`grep -Po '(?<=lun:":")[^"]*' ${TMPFILE1}`
     failed=false
 
     if [ ${num_inits} -ne ${NUM_INITIATORS} ]
@@ -138,12 +140,29 @@ verify_export() {
 	failed=true
     fi
 
+    if [[ ! -z "${HLUS}" ]]
+    then
+        if [ ${hlus} -ne ${HLUS} ]
+        then
+            hlu_arr=(${HLUS//,/ })
+            if [  "${hlus[*]}" != "${hlu_arr[*]}" ]
+            then
+                echo -e "\e[91mERROR\e[0m: Host HLUs: Expected: ${hlu_arr[*]} Retrieved: ${hlus[*]}";
+                failed=true
+            fi
+        fi
+    fi
+
     if [ "${failed}" = "true" ]
 	then
 	exit 1;
     fi
 
-    echo "PASSED: Host masking '$HOST_INITIATORS' contained ${NUM_INITIATORS} initiators and ${NUM_LUNS} luns"
+	if [ "${HLUS}" != "none" ]; then
+        echo "PASSED: Host masking '$HOST_INITIATORS' contained ${NUM_INITIATORS} initiators and ${NUM_LUNS} luns with hlus ${HLUS}"
+    else
+        echo "PASSED: Host masking '$HOST_INITIATORS' contained ${NUM_INITIATORS} initiators and ${NUM_LUNS} luns"
+    fi
     exit 0;
 }
 

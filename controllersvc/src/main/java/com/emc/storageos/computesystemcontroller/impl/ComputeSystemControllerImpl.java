@@ -2217,12 +2217,6 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
         try {
             completer = new VolumeCompleter(volume, taskId);
             Volume volumeObj = _dbClient.queryObject(Volume.class, volume);
-            if (volumeObj.getTag() == null) {
-                String message = "Volume update for external creation of datastore could not succeed because volume tag is null.";
-                _log.error(message);
-                ServiceError serviceError = DeviceControllerException.errors.unforeseen();
-                completer.error(_dbClient, serviceError);
-            }
             Vcenter vcenter = _dbClient.queryObject(Vcenter.class, vcenterURI);
             VCenterAPI vcenterAPI = VcenterDiscoveryAdapter.createVCenterAPI(vcenter);
             boolean success = ComputeSystemHelper.updateExternalCreatedDatastoreVolume(_dbClient, volumeObj, newDatastoreUri, vcenterAPI);

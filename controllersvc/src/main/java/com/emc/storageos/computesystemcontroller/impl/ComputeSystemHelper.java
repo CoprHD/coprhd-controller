@@ -1004,14 +1004,14 @@ public class ComputeSystemHelper {
         List<Host> hosts = CustomQueryUtility.queryActiveResourcesByConstraint(dbClient, Host.class,
                 PrefixConstraint.Factory.getFullMatchConstraint(Host.class, "label", hostSystem.getName()));
         for (Host host : hosts) {
-            if (isEsxOtherOrNoOsHost(host)) {
+            if (isEsxHost(host)) {
                 return host;
             }
         }
 
         List<Host> results = CustomQueryUtility.queryActiveResourcesByAltId(dbClient, Host.class, "hostName", hostSystem.getName());
         for (Host host : results) {
-            if (isEsxOtherOrNoOsHost(host)) {
+            if (isEsxHost(host)) {
                 return host;
             }
         }
@@ -1021,7 +1021,7 @@ public class ComputeSystemHelper {
             hosts = CustomQueryUtility.queryActiveResourcesByConstraint(dbClient, Host.class,
                     PrefixConstraint.Factory.getFullMatchConstraint(Host.class, "label", ipAddress));
             for (Host host : hosts) {
-                if (isEsxOtherOrNoOsHost(host)) {
+                if (isEsxHost(host)) {
                     return host;
                 }
             }
@@ -1048,7 +1048,7 @@ public class ComputeSystemHelper {
                     AlternateIdConstraint.Factory.getConstraint(
                             Host.class, HOST_UUID_COLUMN_NAME, uuid));
             for (Host host : hosts) {
-                if (isEsxOtherOrNoOsHost(host)) {
+                if (isEsxHost(host)) {
                     return host;
                 }
             }
@@ -1063,13 +1063,9 @@ public class ComputeSystemHelper {
      *            host to check the type
      * @return true if Esx, Other, or No OS, otherwise false
      */
-    private static boolean isEsxOtherOrNoOsHost(Host host) {
+    private static boolean isEsxHost(Host host) {
         return StringUtils.equalsIgnoreCase(host.getType(),
-                HostType.Esx.toString())
-                || StringUtils.equalsIgnoreCase(host.getType(),
-                        HostType.Other.toString())
-                || StringUtils.equalsIgnoreCase(host.getType(),
-                        HostType.No_OS.toString());
+                HostType.Esx.toString());
     }
 
     /**

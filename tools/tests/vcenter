@@ -17,7 +17,6 @@ def vcenter_create(args):
     bourne.connect(args.ip)
     task = bourne.vcenter_create(args.label, args.tenant, args.ipaddress, 
                args.port, args.username, args.password, args.osversion, args.ssl)
-    print task
 
 def vcenter_delete(args):
     bourne.connect(args.ip)
@@ -34,6 +33,10 @@ def vcenter_show(args):
 def vcenter_query(args):
     bourne.connect(args.ip)
     print bourne.vcenter_query(args.name)
+
+def vcenter_discover(args):
+    bourne.connect(args.ip)
+    task = bourne.vcenter_discover(args.name)
 
 def vcenter_list(args):
     bourne.connect(args.ip)
@@ -88,7 +91,7 @@ except:
 
 # vcenter <cmd> <cmd_args>  [--ip ipaddr]
 parser = argparse.ArgumentParser(description = 'Bourne vcenter cli usage.')
-parser.add_argument('cmd', help = 'cmd = (create | delete | show | list )')
+parser.add_argument('cmd', help = 'cmd = (create | delete | show | list | discover)')
 parser.add_argument('--ip',	metavar = 'ipaddr',	help = 'IP address of bourne', default=bourne_ip)
 
 # vcenter create label --tenant tenant
@@ -117,6 +120,10 @@ query.add_argument('name',	help = 'name of vcenter')
 # vcenter list --tenant tenant
 list = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
 list.add_argument('tenant',	help = 'tenant name', default = None)
+
+# vcenter discover name
+discover = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+discover.add_argument('name',	help = 'name of vcenter')
 
 # tag 
 resource_type="vcenter"
@@ -168,6 +175,9 @@ try:
     elif (cmd == "search"):
         args = search.parse_args()
         vcenter_search(args)
+    elif (cmd == "discover"):
+        args = discover.parse_args()
+        vcenter_discover(args)
     else:
         parser.print_help()
 except:

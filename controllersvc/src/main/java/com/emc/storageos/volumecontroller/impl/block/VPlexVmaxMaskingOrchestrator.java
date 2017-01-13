@@ -31,6 +31,7 @@ import com.emc.storageos.exceptions.DeviceControllerExceptions;
 import com.emc.storageos.locking.LockTimeoutValue;
 import com.emc.storageos.locking.LockType;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
+import com.emc.storageos.util.InvokeTestFailure;
 import com.emc.storageos.util.NetworkLite;
 import com.emc.storageos.volumecontroller.BlockStorageDevice;
 import com.emc.storageos.volumecontroller.TaskCompleter;
@@ -392,6 +393,7 @@ public class VPlexVmaxMaskingOrchestrator extends VmaxMaskingOrchestrator
             BlockStorageDevice device = _blockController.getDevice(array.getSystemType());
             exportMask = refreshExportMask(array, device, exportMask);
 
+            InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_009);
             if (!exportMask.hasAnyVolumes()) {
                 // We are creating this ExportMask on the hardware! (Maybe not the first time though...)
                 // Fetch the Initiators
@@ -427,6 +429,7 @@ public class VPlexVmaxMaskingOrchestrator extends VmaxMaskingOrchestrator
 
                 device.doExportAddVolumes(array, exportMask, initiators, volumeMap, completer);
             }
+            InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_010);
 
         } catch (Exception ex) {
             _log.error("Failed to create or add volumes to export mask for vmax: ", ex);
@@ -499,6 +502,7 @@ public class VPlexVmaxMaskingOrchestrator extends VmaxMaskingOrchestrator
                 }
             }
             
+            InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_043);
             // None of the volumes is in the export mask, so we are done.
             if (passedVolumesInMask.isEmpty()) {
                 _log.info("None of these volumes {} are in export mask {}", volumes, exportMask.forDisplay());
@@ -517,6 +521,7 @@ public class VPlexVmaxMaskingOrchestrator extends VmaxMaskingOrchestrator
                 }
                 device.doExportRemoveVolumes(array, exportMask, passedVolumesInMask, initiators, completer);
             }
+            InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_044);
         } catch (Exception ex) {
             _log.error("Failed to delete or remove volumes to export mask for vmax: ", ex);
             VPlexApiException vplexex = DeviceControllerExceptions.vplex.addStepsForCreateVolumesFailed(ex);

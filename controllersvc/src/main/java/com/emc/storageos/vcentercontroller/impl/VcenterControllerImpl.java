@@ -384,7 +384,7 @@ public class VcenterControllerImpl implements VcenterController {
 
             WorkflowStepCompleter.stepSucceded(stepId);
         } catch (Exception e) {
-            _log.error("vcenterClusterAddHostOperation exception " + e);
+            _log.error("vcenterClusterRemoveHostOperation exception ", e);
             WorkflowStepCompleter.stepFailed(stepId, VcenterControllerException.exceptions.hostException(e.getLocalizedMessage(), e));
         } finally {
             if (vcenterApiClient != null) {

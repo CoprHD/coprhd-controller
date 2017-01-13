@@ -44,7 +44,8 @@ public class RemoteReplicationGroup extends DiscoveredDataObject {
 
     // Element types for this replication group for which device supports replication link operations.
     // Can be group only, pair only or both types.
-    private StringSet supportedReplicationLinkGranularity;
+    // not needed
+    //private StringSet supportedReplicationLinkGranularity;
 
     // replication state of this group
     private com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationSet.ReplicationState replicationState;
@@ -169,13 +170,13 @@ public class RemoteReplicationGroup extends DiscoveredDataObject {
         setChanged("replicationSet");
     }
 
-    @Name("supportedReplicationLinkGranularity")
-    public StringSet getSupportedReplicationLinkGranularity() {
-        return supportedReplicationLinkGranularity;
-    }
-
-    public void setSupportedReplicationLinkGranularity(StringSet supportedReplicationLinkGranularity) {
-        this.supportedReplicationLinkGranularity = supportedReplicationLinkGranularity;
-        setChanged("supportedReplicationLinkGranularity");
-    }
+//    @Name("supportedReplicationLinkGranularity")
+//    public StringSet getSupportedReplicationLinkGranularity() {
+//        return supportedReplicationLinkGranularity;
+//    }
+//
+//    public void setSupportedReplicationLinkGranularity(StringSet supportedReplicationLinkGranularity) {
+//        this.supportedReplicationLinkGranularity = supportedReplicationLinkGranularity;
+//        setChanged("supportedReplicationLinkGranularity");
+//    }
 }

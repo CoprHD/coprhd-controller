@@ -15,7 +15,7 @@ import java.net.URI;
  * Wrapper for remotely replicated data object.
  */
 @Cf("RemoteReplicationElement")
-public class RemoteReplicationElement extends DataObject {
+public class RemoteReplicationPairElement extends DataObject {
 
     public enum ElementType {
         VOLUME,

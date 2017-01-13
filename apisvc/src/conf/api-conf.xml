@@ -475,6 +475,7 @@
     <bean id="remoteReplicationGroupService" class="com.emc.storageos.api.service.impl.resource.remotereplication.RemoteReplicationGroupService">
         <property name="dbClient" ref="dbclient"/>
         <property name="coordinator" ref="coordinator"/>
+        <property name="remoteReplicationServiceApi" ref="remoteReplicationBlockServiceApiImpl"/>
     </bean>
 
     <bean id="computeImageServerService" class="com.emc.storageos.api.service.impl.resource.ComputeImageServerService">

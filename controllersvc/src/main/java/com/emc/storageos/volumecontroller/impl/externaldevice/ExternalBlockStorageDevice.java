@@ -17,7 +17,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import com.emc.storageos.db.client.model.StringSetMap;
 import com.emc.storageos.db.client.model.remotereplication.RemoteReplicationGroup;
 import com.emc.storageos.db.client.model.remotereplication.RemoteReplicationPair;
 import com.emc.storageos.db.client.model.remotereplication.RemoteReplicationSet;
@@ -1861,47 +1860,47 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice implem
     }
 
     @Override
-    public void start(RemoteReplicationArgument replicationArgument, TaskCompleter taskCompleter) {
+    public void start(RemoteReplicationElement replicationArgument, TaskCompleter taskCompleter) {
 
     }
 
     @Override
-    public void stop(RemoteReplicationArgument replicationArgument, TaskCompleter taskCompleter) {
+    public void stop(RemoteReplicationElement replicationArgument, TaskCompleter taskCompleter) {
 
     }
 
     @Override
-    public void suspend(RemoteReplicationArgument replicationArgument, TaskCompleter taskCompleter) {
+    public void suspend(RemoteReplicationElement replicationArgument, TaskCompleter taskCompleter) {
 
     }
 
     @Override
-    public void resume(RemoteReplicationArgument replicationArgument, TaskCompleter taskCompleter) {
+    public void resume(RemoteReplicationElement replicationArgument, TaskCompleter taskCompleter) {
 
     }
 
     @Override
-    public void failover(RemoteReplicationArgument replicationArgument, TaskCompleter taskCompleter) {
+    public void failover(RemoteReplicationElement replicationArgument, TaskCompleter taskCompleter) {
 
     }
 
     @Override
-    public void failback(RemoteReplicationArgument replicationArgument, TaskCompleter taskCompleter) {
+    public void failback(RemoteReplicationElement replicationArgument, TaskCompleter taskCompleter) {
 
     }
 
     @Override
-    public void swap(RemoteReplicationArgument replicationArgument, TaskCompleter taskCompleter) {
+    public void swap(RemoteReplicationElement replicationArgument, TaskCompleter taskCompleter) {
 
     }
 
     @Override
-    public void split(RemoteReplicationArgument replicationArgument, TaskCompleter taskCompleter) {
+    public void split(RemoteReplicationElement replicationArgument, TaskCompleter taskCompleter) {
 
     }
 
     @Override
-    public void synchronize(RemoteReplicationArgument replicationArgument, TaskCompleter taskCompleter) {
+    public void synchronize(RemoteReplicationElement replicationArgument, TaskCompleter taskCompleter) {
 
     }
 

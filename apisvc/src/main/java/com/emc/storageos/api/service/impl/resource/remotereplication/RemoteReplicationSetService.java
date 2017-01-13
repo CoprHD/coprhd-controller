@@ -17,8 +17,6 @@ import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 
-import com.emc.storageos.db.client.model.remotereplication.RemoteReplicationPair;
-import com.emc.storageos.db.client.util.CustomQueryUtility;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -30,6 +28,7 @@ import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.remotereplication.RemoteReplicationGroup;
 import com.emc.storageos.db.client.model.remotereplication.RemoteReplicationSet;
+import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.storageos.model.TaskResourceRep;
@@ -131,6 +130,7 @@ public class RemoteReplicationSetService extends TaskResourceService {
         RemoteReplicationSetList rrSetList = new RemoteReplicationSetList();
 
         List<URI> ids = _dbClient.queryByType(RemoteReplicationSet.class, true);
+        _log.info("Found sets: {}", ids);
         Iterator<RemoteReplicationSet> iter = _dbClient.queryIterativeObjects(RemoteReplicationSet.class, ids);
         while (iter.hasNext()) {
             rrSetList.getRemoteReplicationSets().add(toNamedRelatedResource(iter.next()));
@@ -218,21 +218,21 @@ public class RemoteReplicationSetService extends TaskResourceService {
         }
 
         // set supported replication link granularity for this group
-        StringSet rrSetLinkGranularity = remoteReplicationSet.getSupportedReplicationLinkGranularity();
-        StringSet granularityOfLinkOperations = new StringSet();
-        if (param.getIsGroupConsistencyEnforced() != null && param.getIsGroupConsistencyEnforced()) {
-            // if group requires to enforce group consistency, only group level link operations supported
-            granularityOfLinkOperations.add(com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationSet.ElementType.REPLICATION_GROUP.toString());
-        } else if (rrSetLinkGranularity.contains(com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationSet.ElementType.REPLICATION_GROUP.toString())){
-            // if group consistency is not enforced, check if parent set supports group operations and if group allow operations on pairs
-            granularityOfLinkOperations.add(com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationSet.ElementType.REPLICATION_GROUP.toString());
-            if (param.getPairLinkOperationsSupported() != null && param.getPairLinkOperationsSupported()) {
-                granularityOfLinkOperations.add(com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationSet.ElementType.REPLICATION_PAIR.toString());
-            }
-        } else if (param.getPairLinkOperationsSupported() != null && param.getPairLinkOperationsSupported()) {
-                granularityOfLinkOperations.add(com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationSet.ElementType.REPLICATION_PAIR.toString());
-        }
-        remoteReplicationGroup.setSupportedReplicationLinkGranularity(granularityOfLinkOperations);
+//        StringSet rrSetLinkGranularity = remoteReplicationSet.getSupportedReplicationLinkGranularity();
+//        StringSet granularityOfLinkOperations = new StringSet();
+//        if (param.getIsGroupConsistencyEnforced() != null && param.getIsGroupConsistencyEnforced()) {
+//            // if group requires to enforce group consistency, only group level link operations supported
+//            granularityOfLinkOperations.add(com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationSet.ElementType.REPLICATION_GROUP.toString());
+//        } else if (rrSetLinkGranularity.contains(com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationSet.ElementType.REPLICATION_GROUP.toString())){
+//            // if group consistency is not enforced, check if parent set supports group operations and if group allow operations on pairs
+//            granularityOfLinkOperations.add(com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationSet.ElementType.REPLICATION_GROUP.toString());
+//            if (param.getPairLinkOperationsSupported() != null && param.getPairLinkOperationsSupported()) {
+//                granularityOfLinkOperations.add(com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationSet.ElementType.REPLICATION_PAIR.toString());
+//            }
+//        } else if (param.getPairLinkOperationsSupported() != null && param.getPairLinkOperationsSupported()) {
+//                granularityOfLinkOperations.add(com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationSet.ElementType.REPLICATION_PAIR.toString());
+//        }
+//        remoteReplicationGroup.setSupportedReplicationLinkGranularity(granularityOfLinkOperations);
 
         remoteReplicationGroup.setReplicationSet(parentRRSetURI);
         remoteReplicationGroup.setStorageSystemType(remoteReplicationSet.getStorageSystemType());

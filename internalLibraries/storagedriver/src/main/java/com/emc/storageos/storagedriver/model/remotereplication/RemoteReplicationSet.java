@@ -90,7 +90,8 @@ public class RemoteReplicationSet {
      * When replication link operations are supported on the SET level, defines link mode.
      * Type: Output.
      */
-    private RemoteReplicationMode replicationMode;
+    // not applicable to sets: remove
+    //private RemoteReplicationMode replicationMode;
 
 
     /**
@@ -151,13 +152,13 @@ public class RemoteReplicationSet {
         this.supportedReplicationModes = supportedReplicationModes;
     }
 
-    public RemoteReplicationMode getReplicationMode() {
-        return replicationMode;
-    }
+    //public RemoteReplicationMode getReplicationMode() {
+    //    return replicationMode;
+    //}
 
-    public void setReplicationMode(RemoteReplicationMode replicationMode) {
-        this.replicationMode = replicationMode;
-    }
+//    public void setReplicationMode(RemoteReplicationMode replicationMode) {
+//        this.replicationMode = replicationMode;
+//    }
 
     public ReplicationState getReplicationState() {
         return replicationState;

@@ -9214,6 +9214,7 @@ class Bourne:
     def replicationset_show(self, uri):
         return self.api('GET', URI_REMOTEREPLICATIONSET_INSTANCE.format(uri))
 
+    # query replication set
     def replicationset_query(self, name):
         if (self.__is_uri(name)):
             return name

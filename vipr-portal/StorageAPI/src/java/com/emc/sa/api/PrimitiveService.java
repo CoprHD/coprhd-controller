@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 Dell Inc. or its subsidiaries.
+ * Copyright 2017 Dell Inc. or its subsidiaries.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -185,8 +185,15 @@ public class PrimitiveService {
     }
 
     /**
-     * @param param
-     * @return
+     * Create a new primitive
+     * 
+     * @prereq none
+     * 
+     * @brief Create a new user defined primitive
+     * 
+     * @param param a primitive creation parameter
+     * 
+     * @return PrimitiveRestRep 
      */
     @POST
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
@@ -207,6 +214,7 @@ public class PrimitiveService {
         primitiveManager.save(primitive);
         return PrimitiveMapper.map(primitive);
     }
+    
     /**
      * Get a primitive that can be used in orchestration workflows
      *
@@ -246,16 +254,17 @@ public class PrimitiveService {
     }
 
     /**
-     * @param request
-     * @param type
-     * @param name
-     * @return
+     * Upload a resource
+     * @param request HttpServletRequest containing the file octet stream
+     * @param type The type of the primitive file resource
+     * @param name The user defined name of the resource
+     * @return A rest response containing details of the resource that was created
      */
     @POST
     @Consumes({ MediaType.APPLICATION_OCTET_STREAM })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/resource/{type}")
-    public PrimitiveResourceRestRep uploadAnsiblePackage(
+    public PrimitiveResourceRestRep upload(
             @Context HttpServletRequest request,
             @PathParam("type") String type, @QueryParam("name") String name) {
 
@@ -324,8 +333,9 @@ public class PrimitiveService {
     }
 
     /**
-     * @param id
-     * @param param
+     * Update a primitive
+     * @param id the ID of the primitivie to be updated
+     * @param param Primitive update request entity
      * @return
      */
     @PUT
@@ -350,10 +360,11 @@ public class PrimitiveService {
     }
 
     /**
-     * @param type
-     * @param id
-     * @param response
-     * @return
+     * Download a primitive file resource
+     * @param type The type of the primitive resource
+     * @param id The ID of the resource to download
+     * @param response HttpServletResponse the servlet response to update with the file octet stream
+     * @return Response containing the octet stream of the primitive file resource
      */
     @GET
     @Path("resource/{type}/{id}")
@@ -410,9 +421,7 @@ public class PrimitiveService {
         primitive.setPlaybook(param.getAttributes().get("playbook"));
         final StringSet extraVars = new StringSet();
         for(String input : param.getInput()) {
-            if(input.startsWith("@extraVar")) {
-                extraVars.add(input);
-            }
+            extraVars.add(input);
         }
         primitive.setExtraVars(extraVars);
         final StringSet output = new StringSet();
@@ -438,19 +447,10 @@ public class PrimitiveService {
             final StringSet extraVars = update.getExtraVars() == null ? new StringSet()
                     : update.getExtraVars();
             if (null != param.getInput().getAdd()) {
-                for (final String input : param.getInput().getAdd()) {
-                    if (input.startsWith("@extraVar.")) {
-                        extraVars.add(input.substring("@extraVar.".length()));
-                    }
-                }
+                extraVars.addAll(param.getInput().getAdd());
             }
             if (null != param.getInput().getRemove()) {
-                for (final String input : param.getInput().getRemove()) {
-                    if (input.startsWith("@extraVar.")) {
-                        extraVars
-                                .remove(input.substring("@extraVar.".length()));
-                    }
-                }
+                extraVars.removeAll(param.getInput().getRemove());
             }
             update.setExtraVars(extraVars);
         }

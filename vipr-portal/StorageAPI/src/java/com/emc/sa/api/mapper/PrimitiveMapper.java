@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 Dell Inc. or its subsidiaries.
+ * Copyright 2017 Dell Inc. or its subsidiaries.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -113,7 +113,7 @@ public class PrimitiveMapper {
             for (final String extraVar : from.getExtraVars()) {
                 InputParameterRestRep param = new InputParameterRestRep();
                 param.setType(ParameterType.STRING.name());
-                input.put("@extraVars." + extraVar, param);
+                input.put(extraVar, param);
             }
         }
         to.setInput(input);

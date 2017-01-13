@@ -13,6 +13,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.support.ClassPathXmlApplicationContext;
 
+import com.emc.storageos.dbcli.exportmask.ExportMaskDBUpdate;
+
 public class Main {
     private static final Logger log = LoggerFactory.getLogger(Main.class);
 
@@ -109,6 +111,12 @@ public class Main {
                 if (!args[1].equals(FILE_MARK)) {
                     throw new IllegalArgumentException(String.format("Invalid parameter: %s", args[1]));
                 }
+                return 0;
+            }
+        },
+
+        EM_UPDATE {
+            int validArgs(String[] args) {
                 return 0;
             }
         };
@@ -273,6 +281,11 @@ public class Main {
                         System.out.println(String.format("Exception %s%n in load file:%s into database.", e, fileName));
                         log.error("Exception in loading file{} into database.", fileName, e);
                     }
+                    break;
+                case EM_UPDATE:
+                    dbCli.initDbClient();
+                    ExportMaskDBUpdate handler = new ExportMaskDBUpdate(args, dbCli);
+                    handler.process();
                     break;
                 default:
                     throw new IllegalArgumentException("Invalid command");

@@ -5,17 +5,16 @@
 
 package com.emc.storageos.dbutils;
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileReader;
-import java.io.IOException;
-import java.net.URI;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.text.SimpleDateFormat;
+
+import com.emc.storageos.coordinator.client.model.Constants;
+import com.emc.storageos.db.client.impl.DbCheckerFileWriter;
+import com.emc.storageos.management.jmx.recovery.DbManagerOps;
 
 import org.apache.commons.lang3.StringUtils;
 import org.joda.time.DateTime;
@@ -23,24 +22,19 @@ import org.joda.time.DateTimeZone;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.emc.storageos.coordinator.client.model.Constants;
-import com.emc.storageos.db.client.impl.DbCheckerFileWriter;
 import com.emc.storageos.db.client.impl.TypeMap;
 import com.emc.storageos.db.client.model.GlobalLock;
 import com.emc.storageos.db.client.upgrade.BaseCustomMigrationCallback;
-import com.emc.storageos.db.client.upgrade.callbacks.StaleIndexCleanerMigration;
-import com.emc.storageos.management.jmx.recovery.DbManagerOps;
-import com.emc.storageos.services.util.Exec;
-import com.emc.storageos.svcs.errorhandling.resources.MigrationCallbackException;
 import com.google.common.base.Joiner;
 import com.netflix.astyanax.Keyspace;
 import com.netflix.astyanax.MutationBatch;
-import com.netflix.astyanax.model.Column;
-import com.netflix.astyanax.model.ColumnFamily;
-import com.netflix.astyanax.model.ColumnList;
-import com.netflix.astyanax.model.ColumnMap;
-import com.netflix.astyanax.model.ConsistencyLevel;
-import com.netflix.astyanax.model.OrderedColumnMap;
+import com.netflix.astyanax.model.*;
+
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileReader;
+import java.io.IOException;
+import java.net.URI;
 
 public abstract class CommandHandler {
     public String cfName = null;
@@ -195,8 +189,9 @@ public abstract class CommandHandler {
 
         @Override
         public void process(DBClient _client) throws Exception {
-            Exec.Result result = Exec.sudo(Exec.DEFAULT_CMD_TIMEOUT, "/opt/storageos/bin/cqlsh", "-k", "GeoStorageOS","-f", "/tmp/cleanup-GeoStorageOS.cql", "localhost", "9260");
-            log.info("result code is {}",result.getExitValue());
+            for (String id : ids) {
+                _client.delete(id, cfName, force);
+            }
         }
     }
 
@@ -679,14 +674,10 @@ public abstract class CommandHandler {
 
         @Override
         public void process(DBClient _client) {
-            StaleIndexCleanerMigration callback = new StaleIndexCleanerMigration();
-            callback.setCoordinatorClient(_client.getDbClient().getCoordinatorClient());
-            callback.setDbClient(_client.getDbClient());
-            try {
-                callback.process();
-            } catch (MigrationCallbackException e) {
-                // TODO Auto-generated catch block
-                e.printStackTrace();
+            if (specificCF) {
+                _client.checkDB(cfName);
+            } else {
+                _client.checkDB();
             }
         }
     }

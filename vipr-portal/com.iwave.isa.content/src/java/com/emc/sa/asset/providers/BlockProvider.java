@@ -831,7 +831,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
                 List<VolumeRestRep> bulkVols = client.blockVolumes().getBulkResources(bulkIds);
                 allVols.addAll(bulkVols);
                 spentTime = Duration.between(startTime, LocalTime.now()).getSeconds();
-                log.info("========== 444: got all volumes and spent time is {}", spentTime);
+                log.info("========== 444: got all volumes. Vol size is {}, Spent time is {}", allVols.size(), spentTime);
             }
 
             // remove all filters, adding all for experiment

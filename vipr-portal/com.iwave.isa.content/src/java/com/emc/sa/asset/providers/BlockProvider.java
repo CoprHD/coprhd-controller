@@ -800,29 +800,42 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         if (isVolumeType(volumeOrConsistencyType)) {
             LocalTime startTime = LocalTime.now();
             log.info("========== 111: startting list vols with snapshots");
-            Set<URI> volIdSets = new HashSet<>();
+            Set<URI> volIdSet = new HashSet<>();
             List<BlockSnapshotRestRep> snapshots = api(ctx).blockSnapshots().findByProject(project);
             long spentTime = Duration.between(startTime, LocalTime.now()).getSeconds();
             log.info("========== 222: got all snapshots spent time is {}", spentTime);
             for (BlockSnapshotRestRep s : snapshots) {
-                volIdSets.add(s.getParent().getId());
+                volIdSet.add(s.getParent().getId());
             }
 
             List volIdList = new ArrayList();
-            volIdList.addAll(volIdSets);
-            BulkIdParam bulkIds = new BulkIdParam(volIdList);
-            List<VolumeRestRep> allVols = client.blockVolumes().getBulkResources(bulkIds);
-            spentTime = Duration.between(startTime, LocalTime.now()).getSeconds();
-            log.info("========== 333: got all volumes and spent time is {}", spentTime);
 
-            List<VolumeRestRep> vplexVols = new ArrayList<>();
-
-            for (VolumeRestRep vol: allVols) { // remove all filters, adding all for experiment
-                    vplexVols.add(vol);
+            List<VolumeRestRep> allVols = new ArrayList<>();
+            int count = 0;
+            for (URI id : volIdSet) {
+                volIdList.add(id);
+                count++;
+                if (count == 4000) {
+                    BulkIdParam bulkIds = new BulkIdParam(volIdList);
+                    List<VolumeRestRep> bulkVols = client.blockVolumes().getBulkResources(bulkIds);
+                    allVols.addAll(bulkVols);
+                    spentTime = Duration.between(startTime, LocalTime.now()).getSeconds();
+                    log.info("========== 333: got a bulk of volumes and spent time is {}", spentTime);
+                    count = 0;
+                    volIdList.clear();
+                }
             }
-            spentTime = Duration.between(startTime, LocalTime.now()).getSeconds();
-            log.info("========== 444: Ready to generate options. spent time is {}", spentTime);
-            return createVolumeOptions(client, vplexVols);
+
+            if (volIdList.size() > 0) {
+                BulkIdParam bulkIds = new BulkIdParam(volIdList);
+                List<VolumeRestRep> bulkVols = client.blockVolumes().getBulkResources(bulkIds);
+                allVols.addAll(bulkVols);
+                spentTime = Duration.between(startTime, LocalTime.now()).getSeconds();
+                log.info("========== 444: got all volumes and spent time is {}", spentTime);
+            }
+
+            // remove all filters, adding all for experiment
+            return createVolumeOptions(client, allVols);
         } else {
             List<BlockConsistencyGroupRestRep> consistencyGroups = client.blockConsistencyGroups().findByProject(project,
                     new DefaultResourceFilter<BlockConsistencyGroupRestRep>() {

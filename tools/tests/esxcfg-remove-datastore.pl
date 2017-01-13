@@ -11,22 +11,10 @@ my %opts = (
       help => "Name of specific datastore to rename",
       required => 0,
    },
-   txtformat => {
-      type => "=s",
-      help => "New name for the datastore (e.g. LOCAL => LOCAL{1,2,3...}-SHORTHOSTNAME)",
-      required => 0,
-      default => 'LOCAL',
-   },
    hostlist => {
       type => "=s",
       help => "Lists of ESX(i) hosts to perform operation _IF_ they're being managed by vCenter (default is ALL hosts in vCenter)",
       required => 0,
-   },
-   txtplacement => {
-      type => "=s",
-      help => "Format placement of the hostname string [append|prepend]",
-      required => 0,
-      default => 'append',
    },
    operation => { 
       type => "=s",
@@ -41,10 +29,8 @@ Opts::parse();
 Opts::validate();
 Util::connect();
 
-my $txtformat = Opts::get_option('txtformat');
 my $datastore = Opts::get_option('datastore');
 my $hostlist = Opts::get_option('hostlist');
-my $txtplacement = Opts::get_option('txtplacement');
 my $operation = Opts::get_option('operation');
 
 my (@hosts,$content,$host_view,$host_views,$hostname,$datastores,$new_dsname,$hostdatastoresystem,$configmanager,$rescan);
@@ -93,45 +79,35 @@ sub getDatastores {
 	$hostname = &getShortHostname($host);
  	$hostdatastoresystem = &getHostDatastoreSystem($host); 
         $datastores = Vim::get_views(mo_ref_array => $host->datastore);
-        &searchDS($txtformat,$txtplacement,$hostname,$datastores,$hostdatastoresystem);
+        &searchDS($hostname,$datastores,$hostdatastoresystem);
 }
 
 sub renameDS {
-        my ($ds,$new_name,$hostdatastoresystem) = @_;
+        my ($ds,$hostdatastoresystem) = @_;
 
 	if($operation ne 'dryrun') {
-		print "\tRemoving \"" . $ds->name ."\" to \"$new_name\" ...\n";
+		print "\tRemoving \"" . $ds->name ."\" ";
         	my $task = $hostdatastoresystem->RemoveDatastore(datastore => $ds);
         	my $msg = "\tSucessfully removed datastore!\n";
         	&getStatus($task,$msg);
 	} else {
-		print "\tDRYRUN - Removing \"" . $ds->name ."\" to \"$new_name\" ...\n";
+		print "\tDRYRUN - Removing \"" . $ds->name ."\" \n";
 	}	
 }
 
 sub searchDS {
-        my ($txt,$placement,$hostname,$datastores,$hostdatastoresystem) = @_;
+        my ($hostname,$datastores,$hostdatastoresystem) = @_;
 	my $datastoreCount = 1;
 
         foreach(@$datastores) {
 		if($datastore) {
 			if($_->name eq $datastore) {
-				if($placement eq 'append') {
-                                        $new_dsname = $txt . $datastoreCount . "-" . $hostname;
-                                } else {
-                                        $new_dsname = $hostname . "-" . $txt . $datastoreCount;
-                                }
-                                &renameDS($_,$new_dsname,$hostdatastoresystem);
+				                &renameDS($_,$hostdatastoresystem);
                                 $datastoreCount++;
 				}
 		} else {
                 	if($_->summary->type eq 'VMFS' && $_->name =~ m/^datastore/) {
-                        	if($placement eq 'append') {
-                                	$new_dsname = $txt . $datastoreCount . "-" . $hostname;
-                        	} else {
-					$new_dsname = $hostname . "-" . $txt . $datastoreCount;
-				}
-				&renameDS($_,$new_dsname,$hostdatastoresystem);
+                        	&renameDS($_,$hostdatastoresystem);
 				$datastoreCount++;
 			}
                 }

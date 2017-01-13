@@ -4,35 +4,18 @@
 # All Rights Reserved
 #
 #
-# Rollback and WF Validation Tests
+# External Change Detection Tests
 # ==========================
 #
-# This test suite attempts to find inconsistencies in the ViPR database after certain operations are performed
-# that would necessitate manual cleanup and/or cause future operations to fail.
+# This test suite attempts to see that the events are generated when an external change occurs. The change will be detected after discovery is triggered and hence an event will be  #persisted in the ActionableEvents column family. These events will be approved/ declined and there will be changes in the affected resources due to the action. 
 #
-#
-# Tooling
-# ======
-#  This test suite requires the ability to scan certain objects in the database and be able to verify those objects
-# revert to their expected/original state after a specific operation completes.  A failure is when the DB is in an
-# inconsistent state.
-#
-#  This test suite requires the ability to cause failures in workflows at certain locations and to compare the
-# database after rollback, or after failure.  (We expect there to be changes in the database after failure and 
-# before rollback.
-#
-#  The product itself will attempt to get the database back to a known state, regardless of its ability to clean-up
-# the array/switch/RP resources so the operation can be tried again.  At worst, the user would need to clean up
-# the array resource before retrying, but that is an easier service operation than cleaning the ViPR database.
 #
 #set -x
 
 source $(dirname $0)/wftests_host_cluster.sh
-VIPRCLI_CMD="/opt/storageos/cli/bin/viprcli"
 LOCAL_LDAP_AUTHN_MANAGER_PWD=secret
 LOCAL_LDAP_AUTHN_DOMAINS=VIPRSANITY.COM
 LOCAL_LDAP_SUPERUSER_USERNAME=ldapViPRUser1@${LOCAL_LDAP_AUTHN_DOMAINS}
-BOURNE_IPADDR=10.247.142.208
 
 Usage()
 {
@@ -40,24 +23,6 @@ Usage()
     echo ' [setuphw|setupsim]: Run on a new ViPR database, creates SMIS, host, initiators, vpools, varray, volumes'
     echo ' [delete]: deletes export and volume resources on the array'
     exit 2
-}
-
-viprcli()
-{
-    $VIPRCLI_CMD $@ -hostname $BOURNE_IPADDR
-    return $?
-}
-
-viprcli_authenticate()
-{
-    echo "**** authenticating viprcli user ${LOCAL_LDAP_SUPERUSER_USERNAME} on host ${BOURNE_IPADDR}"
-    echo $LOCAL_LDAP_AUTHN_MANAGER_PWD | $VIPRCLI_CMD authenticate -u $LOCAL_LDAP_SUPERUSER_USERNAME -d /tmp -hostname $BOURNE_IPADDR
-}
-
-viprcli_logout()
-{
-    echo "**** logging out viprcli user ${local_ldap_superuser_username} on host ${bourne_ipaddr}"
-    viprcli logout
 }
 
 # Extra debug output
@@ -91,99 +56,6 @@ incr_fail_count() {
     TRIP_VERIFY_FAIL_COUNT=`expr $TRIP_VERIFY_FAIL_COUNT + 1`
 }
 
-# A method that reports on the status of the test, along with other 
-# important information:
-#
-# What is helpful in one line:
-# 1. storage system under test
-# 2. simulator or not
-# 3. test number
-# 4. failure scenario within that test
-# 5. git branch
-# 6. git commit SHA
-# 7. IP address
-# 8. date/time stamp
-# 9. test status
-#
-# A huge plus, but wouldn't be available on a single line is:
-# 1. output from a failed test case
-# 2. the controller/apisvc logs for the test case
-#
-# But maybe we crawl before we run.
-report_results() {
-    testname=${1}
-    failure_scenario=${2}
-    branch=`git rev-parse --abbrev-ref HEAD`
-    sha=`git rev-parse HEAD`
-    ss=${SS}
-
-    if [ "${SS}" = "vplex" ]; then
-	ss="${SS} ${VPLEX_MODE}"
-    fi
-
-    simulator="Hardware"
-    if [ "${SIM}" = "1" ]; then
-	simulator="Simulator"
-    fi
-    status="PASSED"
-    if [ ${TRIP_VERIFY_FAIL_COUNT} -gt 0 ]; then
-	status="FAILED"
-    fi
-    datetime=`date +"%Y-%m-%d.%H:%M:%S"`
-
-    result="${ss},${simulator},${testname},${failure_scenario},${branch},${sha},${ipaddr},${datetime},<a href=\"${GLOBAL_RESULTS_OUTPUT_FILES_SUBDIR}/${TEST_OUTPUT_FILE}\">${status}</a>"
-    mkdir -p /root/reliability
-    echo ${result} > /tmp/report-result.txt
-    echo ${result} >> /root/reliability/results-local-set.db
-
-    if [ "${REPORT}" = "1" ]; then
-	cat /tmp/report-result.txt | sshpass -p $SYSADMIN_PASSWORD ssh -o StrictHostKeyChecking=no root@${GLOBAL_RESULTS_IP} "cat >> ${GLOBAL_RESULTS_PATH}/results-set.csv" > /dev/null 2> /dev/null
-	cat ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE} | sshpass -p $SYSADMIN_PASSWORD ssh -o StrictHostKeyChecking=no root@${GLOBAL_RESULTS_IP} "cat >> ${GLOBAL_RESULTS_PATH}/${GLOBAL_RESULTS_OUTPUT_FILES_SUBDIR}/${TEST_OUTPUT_FILE} ; chmod 777 ${GLOBAL_RESULTS_PATH}/${GLOBAL_RESULTS_OUTPUT_FILES_SUBDIR}/${TEST_OUTPUT_FILE}" > /dev/null 2> /dev/null
-    fi
-}
-
-# Determine the mask name, given the storage system and other info
-get_masking_view_name() {
-    no_host_name=0
-    export_name=$1
-    host_name=$2
-
-    if [ "$host_name" = "-x-" ]; then
-        # The host_name parameter is special, indicating no hostname, so
-        # set it as an empty string
-        host_name=""
-        no_host_name=1
-    fi
-
-    cluster_name_if_any="_"
-    if [ "$USE_CLUSTERED_HOSTS" -eq "1" ]; then
-        cluster_name_if_any=""
-        if [ "$no_host_name" -eq 1 ]; then
-            # No hostname is applicable, so this means that the cluster name is the
-            # last part of the MaskingView name. So, it doesn't need to end with '_'
-            cluster_name_if_any="${CLUSTER}"
-        fi
-    fi
-
-    if [ "$SS" = "vmax2" -o "$SS" = "vmax3" -o "$SS" = "vnx" ]; then
-	masking_view_name="${cluster_name_if_any}${host_name}_${SERIAL_NUMBER: -3}"
-    elif [ "$SS" = "xio" ]; then
-        masking_view_name=$host_name
-    elif [ "$SS" = "vplex" ]; then
-        # TODO figure out how to account for vplex cluster (V1_ or V2_)
-        # also, the 3-char serial number suffix needs to be based on actual vplex cluster id,
-        # not just splitting the string and praying...
-        serialNumSplitOnColon=(${SERIAL_NUMBER//:/ })
-        masking_view_name="V1_${CLUSTER}_${host_name}_${serialNumSplitOnColon[0]: -3}"
-    fi
-
-    if [ "$host_name" = "-exact-" ]; then
-        masking_view_name=$export_name
-    fi
-
-    echo ${masking_view_name}
-}
-
 # Overall suite counts
 VERIFY_COUNT=0
 VERIFY_FAIL_COUNT=0
@@ -192,319 +64,11 @@ VERIFY_FAIL_COUNT=0
 TRIP_VERIFY_COUNT=0
 TRIP_VERIFY_FAIL_COUNT=0
 
-verify_export() {
-    export_name=$1
-    host_name=$2
-    shift 2
-
-    masking_view_name=`get_masking_view_name ${export_name} ${host_name}`
-
-    arrayhelper verify_export ${SERIAL_NUMBER} ${masking_view_name} $*
-    if [ $? -ne "0" ]; then
-	if [ -f ${CMD_OUTPUT} ]; then
-	    cat ${CMD_OUTPUT}
-	fi
-	echo There was a failure
-	incr_fail_count
-	cleanup
-	finish
-    fi
-    TRIP_VERIFY_COUNT=`expr $TRIP_VERIFY_COUNT + 1`
-    VERIFY_COUNT=`expr $VERIFY_COUNT + 1`
-}
 
 # Reset the trip counters on a distinct test case
 reset_counts() {
     TRIP_VERIFY_COUNT=0
     TRIP_VERIFY_FAIL_COUNT=0
-}
-
-# Extra gut-check.  Make sure we didn't just grab a different mask off the array.
-# Run this during test_0 to make sure we're not getting off on the wrong foot.
-# Even better would be to delete that mask, export_group, and try again.
-verify_maskname() {
-    export_name=$1
-    host_name=$2
-
-    masking_view_name=`get_masking_view_name ${export_name} ${host_name}`
-
-    maskname=$(/opt/storageos/bin/dbutils list ExportMask | grep maskName | grep ${masking_view_name} | awk -e ' { print $3; }')
-
-    if [ "${maskname}" = "" ]; then
-	echo -e "\e[91mERROR\e[0m: Mask was not found with the name we expected.  This is likely because there is another mask using the same WWNs from a previous run of the test on this VM."
-	echo -e "\e[91mERROR\e[0m: Recommended action: delete mask manually from array and rerun test"
-	echo -e "\e[91mERROR\e[0m: OR: rerun -setup after setting environment variable: \"export WWN=<some value between 1-9,A-F>\""
-	echo "Masks found: "
-	/opt/storageos/bin/dbutils list ExportMask | grep maskName | grep host1export
-
-	# We normally don't bail out of the suite, but this is a pretty serious issue that would prevent you from running further.
-	cleanup
-	finish
-    fi
-}
-
-# Array helper method that supports the following operations:
-# 1. add_volume_to_mask
-# 2. remove_volume_from_mask
-# 3. delete_volume
-#
-# The goal is to do minimal processing here and dispatch to the respective array type's helper to do the work.
-#
-arrayhelper() {
-    operation=$1
-    serial_number=$2
-
-    case $operation in
-    add_volume_to_mask)
-	device_id=$3
-        pattern=$4
-	masking_view_name=`get_masking_view_name no-op ${pattern}`
-	arrayhelper_volume_mask_operation $operation $serial_number $device_id $masking_view_name
-	;;
-    remove_volume_from_mask)
-	device_id=$3
-        pattern=$4
-	masking_view_name=`get_masking_view_name no-op ${pattern}`
-	arrayhelper_volume_mask_operation $operation $serial_number $device_id $masking_view_name
-	;;
-    add_initiator_to_mask)
-	pwwn=$3
-        pattern=$4
-	masking_view_name=`get_masking_view_name no-op ${pattern}`
-	arrayhelper_initiator_mask_operation $operation $serial_number $pwwn $masking_view_name
-	;;
-    remove_initiator_from_mask)
-	pwwn=$3
-        pattern=$4
-	masking_view_name=`get_masking_view_name no-op ${pattern}`
-	arrayhelper_initiator_mask_operation $operation $serial_number $pwwn $masking_view_name
-	;;
-    create_export_mask)
-        device_id=$3
-	pwwn=$4
-	name=$5
-	arrayhelper_create_export_mask_operation $operation $serial_number $device_id $pwwn $name
-	;;
-    delete_volume)
-	device_id=$3
-	arrayhelper_delete_volume $operation $serial_number $device_id
-	;;
-	delete_export_mask)
-    masking_view_name=$3
-    sg_name=$4
-    ig_name=$5
-	arrayhelper_delete_export_mask $operation $serial_number $masking_view_name $sg_name $ig_name
-	;;
-    delete_mask)
-        pattern=$4
-	masking_view_name=`get_masking_view_name no-op ${pattern}`
-	arrayhelper_delete_mask $operation $serial_number $masking_view_name
-	;;
-    verify_export)
-	masking_view_name=$3
-	shift 3
-	arrayhelper_verify_export $operation $serial_number $masking_view_name $*
-	;;
-    *)
-        echo -e "\e[91mERROR\e[0m: Invalid operation $operation specified to arrayhelper."
-	cleanup
-	finish -1
-	;;
-    esac
-}
-
-# Call the appropriate storage array helper script to perform masking operations
-# outside of the controller.
-#
-arrayhelper_create_export_mask_operation() {
-    operation=$1
-    serial_number=$2
-    device_id=$3
-    pwwn=$4
-    maskname=$5
-
-    case $SS in
-    vnx)
-         runcmd navihelper.sh $operation $serial_number $array_ip $device_id $pwwn $maskname
-	 ;;
-	vmax2|vmax3)
-	    runcmd symhelper.sh $operation $serial_number $device_id $pwwn $maskname
-	 ;;
-    *)
-         echo -e "\e[91mERROR\e[0m: Invalid platform specified in storage_type: $storage_type"
-	 cleanup
-	 finish -1
-	 ;;
-    esac
-}
-
-# Call the appropriate storage array helper script to perform masking operations
-# outside of the controller.
-#
-arrayhelper_volume_mask_operation() {
-    operation=$1
-    serial_number=$2
-    device_id=$3
-    pattern=$4
-
-    case $SS in
-    vmax2|vmax3)
-         runcmd symhelper.sh $operation $serial_number $device_id $pattern
-	 ;;
-    vnx)
-         runcmd navihelper.sh $operation $serial_number $array_ip $device_id $pattern
-	 ;;
-    xio)
-         runcmd xiohelper.sh $operation $device_id $pattern
-	 ;;
-    vplex)
-         runcmd vplexhelper.sh $operation $device_id $pattern
-	 ;;
-    *)
-         echo -e "\e[91mERROR\e[0m: Invalid platform specified in storage_type: $storage_type"
-	 cleanup
-	 finish -1
-	 ;;
-    esac
-}
-
-# Call the appropriate storage array helper script to perform masking operations
-# outside of the controller.
-#
-arrayhelper_initiator_mask_operation() {
-    operation=$1
-    serial_number=$2
-    pwwn=$3
-    pattern=$4
-
-    case $SS in
-    vmax2|vmax3)
-         runcmd symhelper.sh $operation $serial_number $pwwn $pattern
-	 ;;
-    vnx)
-         runcmd navihelper.sh $operation $serial_number $array_ip $pwwn $pattern
-	 ;;
-    xio)
-         runcmd xiohelper.sh $operation $pwwn $pattern
-	 ;;
-    vplex)
-         runcmd vplexhelper.sh $operation $pwwn $pattern
-	 ;;
-    *)
-         echo -e "\e[91mERROR\e[0m: Invalid platform specified in storage_type: $storage_type"
-	 cleanup
-	 finish -1
-	 ;;
-    esac
-}
-
-# Call the appropriate storage array helper script to perform delete volume
-# outside of the controller.
-#
-arrayhelper_delete_volume() {
-    operation=$1
-    serial_number=$2
-    device_id=$3
-
-    case $SS in
-    vmax2|vmax3)
-         runcmd symhelper.sh $operation $serial_number $device_id
-	 ;;
-    vnx)
-         runcmd navihelper.sh $operation $array_ip $device_id
-	 ;;
-    xio)
-         runcmd xiohelper.sh $operation $device_id
-	 ;;
-    vplex)
-         runcmd vplexhelper.sh $operation $device_id
-	 ;;
-    *)
-         echo -e "\e[91mERROR\e[0m: Invalid platform specified in storage_type: $storage_type"
-	 cleanup
-	 finish -1
-	 ;;
-    esac
-}
-
-# Call the appropriate storage array helper script to perform delete mask
-# outside of the controller.
-#
-arrayhelper_delete_export_mask() {
-    operation=$1
-    serial_number=$2
-    masking_view_name=$3
-    sg_name=$4
-    ig_name=$5
-
-    case $SS in
-    vmax2|vmax3)
-         runcmd symhelper.sh $operation $serial_number $masking_view_name $sg_name $ig_name
-	 ;;
-    *)
-         echo -e "\e[91mERROR\e[0m: Invalid platform specified in storage_type: $storage_type"
-	 cleanup
-	 finish -1
-	 ;;
-    esac
-}
-
-# Call the appropriate storage array helper script to perform delete mask
-# outside of the controller.
-#
-arrayhelper_delete_mask() {
-    operation=$1
-    serial_number=$2
-    pattern=$3
-
-    case $SS in
-    vmax2|vmax3)
-         runcmd symhelper.sh $operation $serial_number $pattern
-	 ;;
-    vnx)
-         runcmd navihelper.sh $operation $array_ip $pattern
-	 ;;
-    xio)
-         runcmd xiohelper.sh $operation $pattern
-	 ;;
-    vplex)
-         runcmd vplexhelper.sh $operation $pattern
-	 ;;
-    *)
-         echo -e "\e[91mERROR\e[0m: Invalid platform specified in storage_type: $storage_type"
-	 cleanup
-	 finish -1
-	 ;;
-    esac
-}
-
-# Call the appropriate storage array helper script to verify export
-#
-arrayhelper_verify_export() {
-    operation=$1
-    serial_number=$2
-    masking_view_name=$3
-    shift 3
-
-    case $SS in
-    vmax2|vmax3)
-         runcmd symhelper.sh $operation $serial_number $masking_view_name $*
-	 ;;
-    vnx)
-         runcmd navihelper.sh $operation $array_ip $macaddr $masking_view_name $*
-	 ;;
-    xio)
-         runcmd xiohelper.sh $operation $masking_view_name $*
-	 ;;
-    vplex)
-         runcmd vplexhelper.sh $operation $masking_view_name $*
-	 ;;
-    *)
-         echo -e "\e[91mERROR\e[0m: Invalid platform specified in storage_type: $storage_type"
-	 cleanup
-	 finish -1
-	 ;;
-    esac
 }
 
 # We need a way to get all of the zones that could be associated with this host
@@ -540,27 +104,6 @@ load_zones() {
     if [ ${DUTEST_DEBUG} -eq 1 ]; then
 	secho "load_zones: " $zones
     fi
-}
-
-# Verify the zones exist (or don't exist)
-verify_zones() {
-    fabricid=$1
-    check=$2
-
-    if [ "${ZONE_CHECK}" = "0" ]; then
-	return
-    fi
-
-    for zone in ${zones}
-    do
-      echo "=== zone list $BROCADE_NETWORK --fabricid ${fabricid} --zone_name ${zone}"
-      zone list $BROCADE_NETWORK --fabricid ${fabricid} --zone_name ${zone} | grep ${zone} > /dev/null
-      if [ $? -ne 0 -a "${check}" = "exists" ]; then
-	  echo -e "\e[91mERROR\e[0m: Expected to find zone ${zone}, but did not."
-      elif [ $? -eq 0 -a "${check}" = "gone" ]; then
-	  echo -e "\e[91mERROR\e[0m: Expected to not find zone ${zone}, but it is there."
-      fi
-    done
 }
 
 # Cleans zones and zone referencese ($1=fabricId, $2=host)
@@ -642,10 +185,6 @@ delete_zones() {
     fi
 }
 
-dbupdate() {
-    runcmd dbupdate.sh $*
-}
-
 finish() {
     code=${1}
     if [ $VERIFY_FAIL_COUNT -ne 0 ]; then
@@ -682,7 +221,6 @@ BOURNE_IP=${BOURNE_IP:-"localhost"}
 # Zone configuration
 #
 NH=nh
-NH2=nh2
 VCENTER="lglw8062"
 DC=CLI-DC
 stype='Shared'
@@ -732,14 +270,6 @@ drawstars() {
 
 TEST_OUTPUT_FILE=test_output_file.out
 
-echot() {
-    numchar=`echo $* | wc -c`
-    echo "" | tee -a ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE}
-    drawstars $numchar
-    echo "* $* *" | tee -a ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE}
-    drawstars $numchar
-}
-
 # General echo output
 secho()
 {
@@ -786,34 +316,6 @@ runcmd() {
 	fi
 	echo There was a failure | tee -a ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE}
 	incr_fail_count
-    fi
-}
-
-#counterpart for run
-#executes a command that is expected to fail
-fail(){
-    if [ "${1}" = "-with_error" ]; then
-      witherror=${2}
-      shift 2
-      # TODO When the cmd fails, we can check if the failure output contains this expected error message
-    fi
-    cmd=$*
-    echo === $cmd | tee -a ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE}
-    if [ "${HIDE_OUTPUT}" = "" -o "${HIDE_OUTPUT}" = "1" ]; then
-	$cmd &> ${CMD_OUTPUT}
-    else
-	$cmd 2>&1
-    fi
-
-    status=$?
-    if [ $status -eq 0 ] ; then
-        echo '**********************************************************************' | tee -a ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE}
-        echo -e "$cmd succeeded, which \e[91mshould not have happened\e[0m" | tee -a ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE}
-	cat ${CMD_OUTPUT} | tee -a ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE}
-        echo '**********************************************************************' | tee -a ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE}
-	incr_fail_count;
-    else
-	secho "$cmd failed, which \e[32mis the expected ouput\e[0m"
     fi
 }
 
@@ -1005,7 +507,7 @@ get_device_id() {
     if [ "$SS" = "xio" -o "$SS" = "vplex" ]; then
         volume show ${label} | grep device_label | awk '{print $2}' | cut -d '"' -f2
     else
-	volume show ${label} | grep native_id | awk '{print $2}' | cut -c2-6
+	volume show ${PROJECT}/${label} | grep native_id | awk '{print $2}' | cut -c2-6
     fi
 }
 
@@ -1013,20 +515,12 @@ get_device_id() {
 # We don't expect individual tests to change these, or at least if they do, we expect
 # the test to change it back.
 reset_system_props() {
-    #reset_system_props_pre_test
     set_suspend_on_class_method "none"
     set_suspend_on_error false
     set_validation_check true
     set_validation_refresh true
     set_controller_cs_discovery_refresh_interval 60
     set_controller_discovery_refresh_interval 5
-}
-
-# Reset all of the system properties so settings are back to normal that are changed 
-# during the tests themselves.
-reset_system_props_pre_test() {
-	echo "inside reset_system_props_pre_test()."    
-	#set_artificial_failure "none"
 }
 
 # Clean zones from previous tests, verify no zones are on the switch
@@ -1305,53 +799,12 @@ set_suspend_on_class_method() {
     run syssvc $SANITY_CONFIG_FILE localhost set_prop workflow_suspend_on_class_method "$1"
 }
 
-set_artificial_failure() {
-    if [ "$1" = "none" ]; then
-        # Reset the failure injection occurence counter
-        run syssvc $SANITY_CONFIG_FILE localhost set_prop artificial_failure_counter_reset "true"
-    else
-        # Start incrementing the failure occurence counter for this injection point
-        run syssvc $SANITY_CONFIG_FILE localhost set_prop artificial_failure_counter_reset "false"                                                                                                                                             
-    fi
-        
-    run syssvc $SANITY_CONFIG_FILE localhost set_prop artificial_failure "$1"
-}
-
 set_controller_cs_discovery_refresh_interval() {
     run syssvc $SANITY_CONFIG_FILE localhost set_prop controller_cs_discovery_refresh_interval $1
 }
 
 set_controller_discovery_refresh_interval() {
     run syssvc $SANITY_CONFIG_FILE localhost set_prop controller_discovery_refresh_interval $1
-}
-
-# Verify no masks
-#
-# Makes sure there are no masks on the array before running tests
-#
-verify_nomasks() {
-    echo "Verifying no masks exist on storage array"
-    verify_export ${expname}1 ${HOST1} gone
-    verify_export ${expname}1 ${HOST2} gone
-    verify_export ${expname}2 ${HOST1} gone
-    verify_export ${expname}2 ${HOST2} gone
-}
-
-# Export Test 0
-#
-# Test existing functionality of export and verifies there's good volumes, exports are clean, and tests are ready to run.
-#
-test_0() {
-    echot "Test 0 Begins"
-    expname=${EXPORT_GROUP_NAME}t0
-    verify_export ${expname}1 ${HOST1} gone
-    runcmd export_group create $PROJECT ${expname}1 $NH --type Host --volspec ${PROJECT}/${VOLNAME}-1 --hosts "${HOST1}"
-    verify_export ${expname}1 ${HOST1} 2 1
-    # Paranoia check, verify if maybe we picked up an old mask.  Exit if we did.
-    verify_maskname  ${expname}1 ${HOST1}
-    runcmd export_group delete $PROJECT/${expname}1
-    verify_export ${expname}1 ${HOST1} gone
-    verify_no_zones ${FC_ZONE_A:7} ${HOST1}
 }
 
 snap_db() {
@@ -1381,16 +834,6 @@ validate_db() {
     done
 }
 
-getdeviceid(){
-    volname1=${1}
-    shift
-    itemname=${1}
-  
-    OUTPUT="$(sed -n '/${volname1}/{n;p}' results/${itemname}/Volume-2.txt | grep virtual-volumes | cut -d'_' -f2)"
-    return "${OUTPUT}"
-
-}
-
 list_db(){
 	id=$1
 	shift
@@ -1401,7 +844,21 @@ list_db(){
 	/opt/storageos/bin/dbcli list -i ${id} ${cf} >results/${item}/${cf}-list.txt
 
 }    
-
+# Test 1
+#
+# Test renaming a datastore outside ViPR and checking if the event gets generated. 
+#
+# 1. Save off state of DB (1)
+# 2. Perform datastore create operation using Catalog Services of ViPR
+# 3. Perform datastore rename operation
+# 4. Save off state of DB (2)
+# 5. Discover the vcenter
+# 6. Save off state of DB (3)
+# 7. Approve the event if generated
+# 8. Save off state of DB (4)
+# 9. Compare state (3) and (4)
+# 10. Declare if the test PASS or FAIL according to the existence of tag.
+#
 test_1(){
   secho "Running Test 1 for datastore creation and rename."
         item=${RANDOM}
@@ -1465,6 +922,21 @@ test_1(){
 	fi       
 }
 
+# Test 2
+#
+# Test deleting a datastore outside ViPR and checking if the event gets generated. 
+#
+# 1. Save off state of DB (1)
+# 2. Perform datastore create operation using Catalog Services of ViPR
+# 3. Perform datastore delete operation
+# 4. Save off state of DB (2)
+# 5. Discover the vcenter
+# 6. Save off state of DB (3)
+# 7. Approve the event if generated
+# 8. Save off state of DB (4)
+# 9. Compare state (3) and (4)
+# 10. Declare if the test PASS or FAIL according to the existence of tag.
+#
 test_2(){
 
  secho "Running Test 10 for datastore creation and delete."
@@ -1485,7 +957,7 @@ test_2(){
 	sleep 100
 
 	#Run perl script to delete a datastore
-	runcmd  esxcfg-remove-datastore.pl --server ${VCENTER_IP} --username ${VCENTER_USER} --password ${VCENTER_PASS} --datastore ${dsname} --txtplacement prepend --txtformat local-storage- --operation remove
+	runcmd  esxcfg-remove-datastore.pl --server ${VCENTER_IP} --username ${VCENTER_USER} --password ${VCENTER_PASS} --datastore ${dsname} --operation remove
         
 	#Take the snap of the DB.
 	snap_db 2 ${cfs}
@@ -1532,7 +1004,21 @@ test_2(){
         fi
 
 }
-
+# Test 3
+#
+# Test creating a datastore outside ViPR and checking if the event gets generated. 
+#
+# 1. Save off state of DB (1)
+# 3. Perform volume create operation through ViPR and export it to a host in vcenter
+# 2. Perform datastore create outside ViPR on the volume created through ViPR
+# 4. Save off state of DB (2)
+# 5. Discover the vcenter
+# 6. Save off state of DB (3)
+# 7. Approve the event if generated
+# 8. Save off state of DB (4)
+# 9. Compare state (3) and (4)
+# 10. Declare if the test PASS or FAIL according to the existence of tag.
+#
 test_3(){
 
  secho "Running Test 3 for datastore creation outside vipr "
@@ -1844,10 +1330,10 @@ then
    for t in ${HOST_TEST_CASES}
    do
       secho Run $
-      reset_system_props_pre_test
+      
       prerun_tests
       $t
-      reset_system_props_pre_test
+      
    done
 elif [ "$1" != "" -a "${1:(-1)}" != "+"  ]
 then
@@ -1855,10 +1341,10 @@ then
    for t in $*
    do
       secho Run $t
-      reset_system_props_pre_test
+      
       prerun_tests
       $t
-      reset_system_props_pre_test
+      
    done
 else
    if [ "${1:(-1)}" = "+" ]
@@ -1870,10 +1356,8 @@ else
    # Passing tests:
    while [ ${num} -le ${test_end} ]; 
    do
-     reset_system_props_pre_test
      prerun_tests
      test_${num}
-     reset_system_props_pre_test
      num=`expr ${num} + 1`
    done
 fi

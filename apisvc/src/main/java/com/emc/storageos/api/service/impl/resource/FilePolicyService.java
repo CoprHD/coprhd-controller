@@ -324,7 +324,7 @@ public class FilePolicyService extends TaskResourceService {
 
         StringBuilder errorMsg = new StringBuilder();
         if (filepolicy.getApplyAt() != null && !param.getApplyAt().equals(filepolicy.getApplyAt())) {
-            errorMsg.append("File Policy" + id + " is already applied to :" + filepolicy.getApplyAt());
+            errorMsg.append("File Policy " + id + " is already applied to :" + filepolicy.getApplyAt());
             _log.error(errorMsg.toString());
             throw APIException.badRequests.invalidFilePolicyAssignParam(filepolicy.getFilePolicyName(), errorMsg.toString());
         }
@@ -730,10 +730,11 @@ public class FilePolicyService extends TaskResourceService {
          * if (param.getVpoolAssignParams().getAssigntoAll() != null) {
          * filepolicy.setApplyTovPools(param.getVpoolAssignParams().getAssigntoAll());
          * }
-         * if (param.getApplyOnTargetSite() != null) {
-         * filepolicy.setApplyOnTargetSite(param.getApplyOnTargetSite());
-         * }
          */
+        if (param.getApplyOnTargetSite() != null) {
+            filepolicy.setApplyOnTargetSite(param.getApplyOnTargetSite());
+        }
+
         String task = UUID.randomUUID().toString();
         TaskResourceRep taskObject = createAssignFilePolicyTask(filepolicy, task);
         FileServiceApi fileServiceApi = getDefaultFileServiceApi();
@@ -799,11 +800,11 @@ public class FilePolicyService extends TaskResourceService {
          * filepolicy.setApplyAt(FilePolicyApplyLevel.project.name());
          * filepolicy.setAssignedResources(assignedResources);
          * filepolicy.setFilePolicyVpool(param.getProjectAssignParams().getVpool());
-         * 
-         * if (param.getApplyOnTargetSite() != null) {
-         * filepolicy.setApplyOnTargetSite(param.getApplyOnTargetSite());
-         * }
          */
+        if (param.getApplyOnTargetSite() != null) {
+            filepolicy.setApplyOnTargetSite(param.getApplyOnTargetSite());
+        }
+
         String task = UUID.randomUUID().toString();
         TaskResourceRep taskObject = createAssignFilePolicyTask(filepolicy, task);
         FileServiceApi fileServiceApi = getDefaultFileServiceApi();

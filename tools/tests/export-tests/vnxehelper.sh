@@ -16,6 +16,7 @@
 #        ./vnxehelper.sh add_initiator_to_mask <NWWN:PWWN ...> <NAME_PATTERN>
 #        ./vnxehelper.sh create_volume <NAME> <POOL_ID> <SIZE>
 #        ./vnxehelper.sh create_mask <NAME> <NAME_PAATTERN> <DEVICE_ID> <HLU>
+#        ./vnxehelper.sh get_hlus <NAME_PAATTERN>
 #
 #set -x
 
@@ -23,8 +24,9 @@ TMPFILE1=/tmp/verify-${RANDOM}
 TMPFILE2=$TMPFILE1-error
 NUMBER_OF_INITIATORS="numberOfInitiators"
 NUMBER_OF_LUNS="numberOfLUNs"
+USED_HLUS="usedHLUs"
 
-## Convenience method for deleting a mask outside of ViPR (including the storage group)
+## Convenience method for deleting a host outside of ViPR
 delete_mask() {
     pattern=$1
     java -Dproperty.file=${tools_file} -jar ${tools_jar} -arrays ${array_type} -method delete_mask -params "${pattern}" 
@@ -125,7 +127,7 @@ verify_export() {
 
     num_inits=`grep ${NUMBER_OF_INITIATORS} ${TMPFILE1} | awk -F: '{print $2}'`
     num_luns=`grep ${NUMBER_OF_LUNS} ${TMPFILE1} | awk -F: '{print $2}'`
-    hlus=`grep -Po '(?<=lun:":")[^"]*' ${TMPFILE1}`
+    hlus=`grep ${USED_HLUS} ${TMPFILE1} | awk -F: '{print $2}'`
     failed=false
 
     if [ ${num_inits} -ne ${NUM_INITIATORS} ]
@@ -166,6 +168,23 @@ verify_export() {
     exit 0;
 }
 
+get_hlus() {
+    HOST_INITIATORS=$1
+    hlus=-1
+
+    java -Dproperty.file=${tools_file} -jar ${tools_jar} -arrays ${array_type} -method get_mask_info -params "${HOST_INITIATORS}" > ${TMPFILE1} 2> ${TMPFILE2}
+    grep -n "${HOST_INITIATORS}" ${TMPFILE1} > /dev/null
+    # 0 if line selected, 1 if no line selected
+    foundIt=$?
+    if [ -s $TMPFILE1 ]; then
+        if [ $foundIt -eq 0 ]; then
+            hlus=`grep ${USED_HLUS} ${TMPFILE1} | awk -F: '{print $2}'`
+        fi
+    fi
+
+    echo $hlus
+}
+
 # Check to see if this is an operational request or a verification of export request
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 tools_file="${DIR}/tools.yml"
@@ -184,6 +203,12 @@ fi
 
 if [ ! -f ${tools_jar} ]; then
     echo "${tools_jar} not found"    
+    exit 1
+fi
+
+if [[ $# -lt 2 ]]; then
+    echo "Missing operation/params"
+    echo "Usage: $0 [create_volume | create_mask | delete_mask | add_volume_to_mask | remove_volume_from_mask | add_initiator_to_mask | remove_initiator_from_mask | delete_volume | verify_export | get_hlus] {params}"
     exit 1
 fi
 
@@ -214,6 +239,9 @@ elif [ "$1" = "delete_mask" ]; then
 elif [ "$1" = "verify_export" ]; then
     shift
     verify_export "$1" "$2" "$3"
+elif [ "$1" = "get_hlus" ]; then
+    shift
+    get_hlus "$1"
 else
-    echo "Usage: $0 [create_volume | create_mask | delete_mask | add_volume_to_mask | remove_volume_from_mask | add_initiator_to_mask | remove_initiator_from_mask | delete_volume | verify_export] {params}"
+    echo "Usage: $0 [create_volume | create_mask | delete_mask | add_volume_to_mask | remove_volume_from_mask | add_initiator_to_mask | remove_initiator_from_mask | delete_volume | verify_export | get_hlus] {params}"
 fi

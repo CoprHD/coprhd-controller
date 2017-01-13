@@ -120,7 +120,7 @@ public class ExportPathAdjustmentService extends ViPRService {
             toSendRemovedPaths.add(pathParam);
         }
         
-        BlockStorageUtils.adjustExportPaths(minPaths, maxPaths, pathsPerInitiator, storageSystem, exportId, 
+        BlockStorageUtils.adjustExportPaths(virtualArray, minPaths, maxPaths, pathsPerInitiator, storageSystem, exportId,
                 toSendAffectedPaths, toSendRemovedPaths, suspendWait);
     }
     

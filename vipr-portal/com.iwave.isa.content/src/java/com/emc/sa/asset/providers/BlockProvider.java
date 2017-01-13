@@ -741,8 +741,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     @AssetDependencies({ "project", "host" })
     public List<AssetOption> getExportPathExports(AssetOptionsContext ctx, URI projectId, URI hostOrClusterId) {
         ViPRCoreClient client = api(ctx);
-        List<AssetOption> options = Lists.newArrayList();
-        
+
         List<ExportGroupRestRep> exports = new ArrayList<ExportGroupRestRep>();
 
         if (BlockStorageUtils.isHost(hostOrClusterId)) {
@@ -751,11 +750,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
             exports = client.blockExports().findByCluster(hostOrClusterId, projectId, null);
         }
 
-        for (ExportGroupRestRep export : exports) {
-            options.add(new AssetOption(export.getId(), export.getName()));
-        }
-        
-        return options;
+        return createExportWithVarrayOptions(client, exports);
     }
     
     @Asset("exportPathMinPathsOptions")

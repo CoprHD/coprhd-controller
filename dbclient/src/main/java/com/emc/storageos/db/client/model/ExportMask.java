@@ -91,6 +91,7 @@ public class ExportMask extends DataObject {
         ready,              // export mask is created
     }
 
+    @RelationIndex(cf = "RelationIndex", type = StorageSystem.class)
     @Name("storageDevice")
     public URI getStorageDevice() {
         return _storageDevice;

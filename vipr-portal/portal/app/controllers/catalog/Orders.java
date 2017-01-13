@@ -32,7 +32,6 @@ import com.emc.vipr.model.catalog.ApprovalRestRep;
 import com.emc.vipr.model.catalog.CatalogServiceRestRep;
 import com.emc.vipr.model.catalog.ExecutionLogRestRep;
 import com.emc.vipr.model.catalog.ExecutionStateRestRep;
-import com.emc.vipr.model.catalog.OrderCount;
 import com.emc.vipr.model.catalog.OrderCreateParam;
 import com.emc.vipr.model.catalog.OrderLogRestRep;
 import com.emc.vipr.model.catalog.OrderRestRep;
@@ -141,6 +140,7 @@ public class Orders extends OrderExecution {
                 renderArgs.put("disableDeleteAllAndDownload", 1);
             }
         }
+        renderArgs.put("canBeDeletedStatuses", RecentOrdersDataTable.getCanBeDeletedOrderStatuses());
 
         addMaxDaysRenderArgs();
         Common.copyRenderArgsToAngular();

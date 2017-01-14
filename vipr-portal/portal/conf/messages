@@ -149,7 +149,7 @@ nav.mobilityGroups=Mobility Groups
 nav.disasterRecovery=System Disaster Recovery
 nav.disasterRecovery.obsoleteWarning=Obsolete site
 nav.ipsec=IPsec
-nav.storageSystemTypes=Storage System Types
+nav.storageDrivers=Storage Drivers
 
 # Override messages in the Secure plugin
 secure.title=
@@ -732,6 +732,7 @@ CustomConfigs.configType.PortAllocationMetricsEnabled=Metrics Enabled
 CustomConfigs.configType.PortAllocationEmaFactor=Weight for Exponential Moving Average
 CustomConfigs.configType.PortAllocationUsePrezonedPortsFrontEnd=Zoned Ports Favored For Host Exports
 CustomConfigs.configType.PortAllocationUsePrezonedPortsBackEnd=Zoned Ports Used For Backend Exports
+CustomConfigs.configType.PortAllocationSwitchAffinityEnabled=Switch Affinity Enabled
 CustomConfigs.configType.VNXHostStorageGroupName=Host Storage Group Name
 CustomConfigs.configType.VNXClusterStorageGroupName=Cluster Storage Group Name
 CustomConfigs.configType.VMAXHostMaskingViewName=Host Masking View Name
@@ -1086,7 +1087,15 @@ nodeRecovery.status.heading=Recovery Status
 nodeRecovery.status=Status
 nodeRecovery.start.time=Start Time
 nodeRecovery.end.time=End Time
-
+#System node Recovery Vapp
+nodeRecovery.noderecoveryVapp.title=Node Recovery <small>(enabled only when the database service has been down over 5 days)</small>
+nodeRecovery.recovering.status=System is recovering database service on %s
+nodeRecovery.precheck.fail.allgood=All nodes and services are active. Node recovery not required.
+nodeRecovery.precheck.fail.drorgeo=Don't support node recovery on vApp in DR/GEO environment
+nodeRecovery.precheck.fail.unreachable=There is node unreachable, please power it on and refresh this page
+nodeRecovery.precheck.fail.quorum=Can't do node recovery because that the count of node with db service corrupted is more than quorum node count of this site
+nodeRecovery.precheck.fail.other=Node corrupted for other reason that node recovery is not support.Please contact customer support.
+nodeRecovery.precheck.success=Database service on node %s needs to be recovered
 
 # System Health Dashboard
 system.healthdashboard.title=System Health
@@ -1137,6 +1146,7 @@ system.stats.disk.util=Utilization
 system.stats.disk.avgwait=Average Wait
 system.stats.reboot=Reboot
 system.stats.restart=Restart
+system.stats.recover=Recover
 system.stats.cpu.loadavg= Load Average
 system.stats.services=Services
 system.stats.services.total=Total Services
@@ -3109,7 +3119,7 @@ recentServices.title=Recently Used Services
 recentOrders.title=Recent Orders
 allOrders.title=All Orders
 
-orders.title=My Orders
+myOrders.title=My Orders
 orders.status=Status
 orders.number=Number
 orders.service=Service
@@ -3118,14 +3128,31 @@ orders.createdDate=Date Submitted
 orders.scheduledTime=Scheduled Time
 orders.submittedBy=Submitted By
 orders.searchEmpty=No Matching Orders
-orders.maxDays=Showing orders from the last
+orders.maxDays=Showing orders from
+orders.maxDays.last=the last
 orders.1days=Day
 orders.7days=Week
 orders.14days=2 Weeks
 orders.30days=30 Days
 orders.90days=90 Days
+orders.0days=Date Range
 orders.nDays=%d Days
+orders.startDate=Start Date
+orders.endDate=End Date
 requestSearch.placeholder=Search for Orders...
+orders.warning=Based on the current filter, %s orders were found in the database. A maximum of %s orders are displayed here.
+orders.delete=Delete Orders
+orders.delete.description=Click Confirm to delete the selected (checked) orders.
+orders.delete.all=All rows are checked, all <b style="color:red">%s</b> orders will be deleted.
+orders.delete.help=We strongly recommend that you download the orders before deleting them. <p>Only one 'Download/Delete' orders job is allowed at any given time. Only orders whose status are in '%s' can be deleted.</p>
+orders.delete.submitted=Orders deletion submitted successfully.
+orders.delete.status=Deleting orders from %s to %s is in progress: %s of %s orders has been successfully deleted, %s orders failed.
+orders.download=Download Orders
+orders.download.description=Click Confirm to delete the selected (checked) orders.
+orders.download.all=All rows are checked, all <b style="color:red">%s</b> orders will be downloaded.
+orders.download.help=Only one 'Download/Delete' orders job is allowed at any given time.
+orders.download.status=Downloading orders from %s to %s is in progress: %s of %s orders have been successfully downloaded, %s orders failed.
+orders.download.status.notime=Downloading orders is in progress: %s of %s orders have been successfully downloaded, %s orders failed.
 
 catalog.corrupted-service.title=Corrupted Service
 catalog.corrupted-service.description=Unable to find this catalog service - it may have been removed or is configured incorrectly. You can still view the order details below.
@@ -3857,15 +3884,36 @@ resources.consistencygroups.deleteConfirm=Are you sure you want to delete the se
 ResourceType.VOLUME=Volume
 ResourceType.EXPORT_GROUP=Export Group
 
-storageSystemTypes.list.title=Storage System Types
-storageSystemTypes.create.title=Add New Storage System Type
-storageSystemTypes.edit.title=Edit Storage System Type
-storageSystemTypes.add.title=Enter all information needed for Storage System Type
-storageSystemTypes.deleteConfirm=Are you sure you want to delete the selected Storage System Type?
-storageSystemTypes.name=Name
+#storage drivers
+storageDrivers.list.title=Storage Drivers
+storageDrivers.driverName=Driver Name
+storageDrivers.driverVersion=Version
+storageDrivers.supportedStorageSystems=Supported Storage Systems
+storageDrivers.type=Type
+storageDrivers.defaultNonSslPort=Default Non-SSL Port
+storageDrivers.defaultSslPort= Default SSL Port
+storageDrivers.status=Status
+storageDrivers.actions=Actions
+storageDrivers.upload.title=Upload Storage Driver
+storageDrivers.name=Storage Name
+storageDrivers.installButton=Install
+storageDrivers.upgradeButton=Upgrade
+storageDrivers.upgradeButton=Upgrade
+storageDrivers.deleteButton=Delete
+storageDrivers.upgrade.confirm=Controller services will be restarted, unfinished orders may fail. Are you still willing to proceed?
+storageDrivers.delete.confirm=Controller service will be restarted, unfinished orders may fail. Are you still willing to proceed?
+
+storageDrivers.install.init.success=Install request initiated ...
+storageDrivers.delete.init.success=Uninstall request initiated ...
+storageDrivers.upgrade.init.success=Upgrade request initiated  ...
+
+storageDrivers.install.title=Install Storage Driver
+storageDrivers.upgrade.title=Upgrade Storage Driver
+storageDrivers.install.description=Browse to upload the jar file for the driver to install.
+storageDrivers.upgrade.description=Browse to upload new jar file for chosen driver to upgrade. Version checking is bypassed when "Force" is checked.
+
 storageSystemTypes.storageTypeId=Id
 storageSystemTypes.id=Id
-storageSystemTypes.storageSystemTypeDisplayName=Display Name
 storageSystemTypes.metaType=Type
 storageSystemTypes.portNumber=Port Number
 storageSystemTypes.sslPortNumber=SSL Port Number
@@ -3878,8 +3926,8 @@ storageSystemTypes.isOnlyMDM=Use Only MDM
 storageSystemTypes.isElementMgr=Is Element Manager
 storageSystemTypes.useMDM=Use MDM
 storageSystemTypes.driverClassName=Driver Class Name
-storageSystemTypes.uploadButton=Upload
-deviceDriverFile=Device Driver Jar
+driverFile=Storage Driver Jar
+force=Force
 
 tasks.task=Task
 tasks.id=ID
@@ -4070,12 +4118,14 @@ button.duplicate=Duplicate
 button.cancel=Cancel
 button.delete=Delete
 button.modify=Modify
+button.download=Download
 button.activate=Activate
 button.restore=Restore
 button.save=Save
 button.done=Done
 button.ok=OK
 button.remove=Remove
+button.confirm=Confirm
 button.rediscover=Rediscover
 button.discoverArrayAffinity=Discover Array Affinity
 button.manage=Manage
@@ -4571,6 +4621,13 @@ renderFunctions.recovery.status.sync=Syncing
 renderFunctions.recovery.status.repair=Repairing
 renderFunctions.recovery.status.failed=Failed
 renderFunctions.recovery.status.done=Done
+
+renderFunctions.storageDriver.status.ready=Ready
+renderFunctions.storageDriver.status.installing=Installing
+renderFunctions.storageDriver.status.uninstalling=Uninstalling
+renderFunctions.storageDriver.status.upgrading=Upgrading
+renderFunctions.storageDriver.status.inUse=In Use
+renderFunctions.storageDriver.status.unknown=Unknown
 
 renderFunctions.recovery.result.done=Last node recovery was successfully completed at 
 renderFunctions.recovery.result.failed=Last node recovery failed at 

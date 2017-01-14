@@ -5,8 +5,10 @@
 package util.datatable;
 
 import java.util.Collection;
+
 import org.apache.commons.lang.StringUtils;
 
+import play.Logger;
 import play.mvc.Scope;
 
 import com.google.gson.Gson;
@@ -21,7 +23,9 @@ public class DataTablesSupport {
 
     public static String createJSON(Collection data, Scope.Params requestParams) {
         Source source = createSource(data, requestParams);
-        return toJson(source);
+        //just for performance calculating, should remove when test done.
+        String result = toJson(source);
+        return result;
     }
 
     public static String createJSON(Collection data, Scope.Params requestParams, String message) {

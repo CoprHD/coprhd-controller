@@ -55,6 +55,7 @@ public class CreateMultipleBlockVolumes extends WaitForTasks<VolumeRestRep> {
             create.setConsistencyGroup(param.getConsistencyGroup());
             RemoteReplicationParameters replicationParam = new RemoteReplicationParameters();
             replicationParam.setRemoteReplicationSet(param.getRemoteReplicationSet());
+            replicationParam.setRemoteReplicationMode(param.getRemoteReplicationMode());
             replicationParam.setRemoteReplicationGroup(param.getRemoteReplicationGroup());
             create.setRemoteReplicationParameters(replicationParam);
             

@@ -111,7 +111,7 @@ public class BootVolumeHelper implements ViPRTaskHandler<VolumeRestRep> {
         String volumeName = getBootVolumeName(host);
         String volumeSize = BlockStorageUtils.gbToVolumeSize(sizeInGb);
         ViPRTaskMonitor<VolumeRestRep> task = ExecutionUtils.startViprTask(new CreateBlockVolumeByName(project,
-                virtualArray, virtualPool, volumeSize, null, null, null, volumeName));
+                virtualArray, virtualPool, volumeSize, null, volumeName));
         URI volumeId = task.getTask().getResourceId();
         volumeIdToHost.put(volumeId, host);
         return task;

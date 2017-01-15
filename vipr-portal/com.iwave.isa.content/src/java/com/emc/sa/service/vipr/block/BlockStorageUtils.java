@@ -422,10 +422,11 @@ public class BlockStorageUtils {
 
     public static List<URI> createVolumes(URI projectId, URI virtualArrayId, URI virtualPoolId,
             String baseVolumeName, double sizeInGb, Integer count, URI consistencyGroupId, URI remoteReplicationSetId,
+            String remoteReplicationMode,
             URI remoteReplicationGroupId, URI computeResource) {
         String volumeSize = gbToVolumeSize(sizeInGb);
         Tasks<VolumeRestRep> tasks = execute(new CreateBlockVolume(virtualPoolId, virtualArrayId, projectId, volumeSize,
-                count, baseVolumeName, consistencyGroupId, remoteReplicationSetId, remoteReplicationGroupId, computeResource));
+                count, baseVolumeName, consistencyGroupId, computeResource));
         List<URI> volumeIds = Lists.newArrayList();
         for (Task<VolumeRestRep> task : tasks.getTasks()) {
             URI volumeId = task.getResourceId();
@@ -440,7 +441,7 @@ public class BlockStorageUtils {
             double sizeInGb, URI consistencyGroupId, URI remoteReplicationSetId, URI remoteReplicationGroupId, String volumeName) {
         String volumeSize = gbToVolumeSize(sizeInGb);
         return execute(new CreateBlockVolumeByName(projectId, virtualArrayId,
-                virtualPoolId, volumeSize, consistencyGroupId, remoteReplicationSetId, remoteReplicationGroupId, volumeName));
+                virtualPoolId, volumeSize, consistencyGroupId, volumeName));
     }
 
     public static void expandVolumes(Collection<URI> volumeIds, double newSizeInGB) {

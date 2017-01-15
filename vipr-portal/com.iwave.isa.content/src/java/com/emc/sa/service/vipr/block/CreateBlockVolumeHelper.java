@@ -54,7 +54,7 @@ public class CreateBlockVolumeHelper {
 
     public List<URI> createVolumes(URI computeResource) {
         List<URI> volumeIds = BlockStorageUtils.createVolumes(project, virtualArray, virtualPool, nameParam,
-                sizeInGb, count, consistencyGroup, remoteReplicationSet, remoteReplicationMode, remoteReplicationGroup, computeResource);
+                sizeInGb, count, consistencyGroup, computeResource);
         for (URI volumeId : volumeIds) {
             logInfo("create.block.volume.create.volume", volumeId);
         }
@@ -89,12 +89,12 @@ public class CreateBlockVolumeHelper {
         return this.remoteReplicationSet;
     }
 
-    public URI getRemoteReplicationGroup() {
-        return this.remoteReplicationGroup;
-    }
-
     public String getRemoteReplicationMode() {
         return this.remoteReplicationMode;
+    }
+
+    public URI getRemoteReplicationGroup() {
+        return this.remoteReplicationGroup;
     }
 
     public Integer getCount() {

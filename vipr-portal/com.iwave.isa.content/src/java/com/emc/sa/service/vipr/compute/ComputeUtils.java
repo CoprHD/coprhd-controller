@@ -230,7 +230,7 @@ public class ComputeUtils {
             }
             try {
                 tasks.add(BlockStorageUtils.createVolumesByName(project, virtualArray,
-                        virtualPool, size, nullConsistencyGroup, nullRemoteReplicationSet, nullRemoteReplicationGroup, volumeName));  // does
+                        virtualPool, size, nullConsistencyGroup, volumeName));  // does
                                                                                                                                      // not
                                                                                                                              // wait for
                                                                                                                              // task

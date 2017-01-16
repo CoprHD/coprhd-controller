@@ -23,6 +23,7 @@ import org.springframework.util.CollectionUtils;
 
 import com.emc.storageos.Controller;
 import com.emc.storageos.computecontroller.impl.ComputeDeviceController;
+import com.emc.storageos.computesystemcontroller.exceptions.ComputeSystemControllerException;
 import com.emc.storageos.computesystemcontroller.ComputeSystemController;
 import com.emc.storageos.computesystemcontroller.hostmountadapters.HostDeviceInputOutput;
 import com.emc.storageos.computesystemcontroller.hostmountadapters.HostMountAdapter;
@@ -62,6 +63,7 @@ import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.locking.LockTimeoutValue;
 import com.emc.storageos.locking.LockType;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
+import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
@@ -136,6 +138,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
     private static Pattern MACHINE_TAG_REGEX = Pattern.compile("([^W]*\\:[^W]*)=(.*)");
 
     private static final String ROLLBACK_METHOD_NULL = "rollbackMethodNull";
+    private static final String REMOVE_HOST_FROM_CLUSTER_STEP = "removeHostFromClusterStep";
 
     private ComputeDeviceController computeDeviceController;
     private BlockStorageScheduler _blockScheduler;
@@ -210,6 +213,8 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
             if (deactivateOnComplete) {
                 waitFor = computeDeviceController.addStepsVcenterHostCleanup(workflow, waitFor, host);
             }
+            
+            waitFor = addStepsForRemoveHostFromCluster(workflow, waitFor, host);
 
             waitFor = addStepsForExportGroups(workflow, waitFor, host);
 
@@ -916,6 +921,44 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
             }
         }
         return false;
+    }
+
+    public String addStepsForRemoveHostFromCluster(Workflow workflow, String waitFor, URI hostId) {
+        Host host = _dbClient.queryObject(Host.class, hostId);
+        if (host != null){
+            waitFor = workflow.createStep(REMOVE_HOST_FROM_CLUSTER_STEP,
+                   String.format("Removing host %s from cluster ", host.getLabel()), waitFor,
+                   hostId, host.getLabel(), this.getClass(), new Workflow.Method("removeHostFromClusterStep",hostId),
+                   null, null);
+        }
+        return waitFor;
+    }
+  
+    public void removeHostFromClusterStep(URI hostId, String stepId){
+       _log.info("removeHostFromClusterStep {}", hostId);
+        Host host = null;
+        try {
+            WorkflowStepCompleter.stepExecuting(stepId);
+
+            host = _dbClient.queryObject(Host.class, hostId);
+
+            if (NullColumnValueGetter.isNullURI(host.getCluster())) {
+                _log.warn("cluster is null, nothing to do");
+                WorkflowStepCompleter.stepSucceded(stepId);
+                return;
+            }
+            
+            host.setCluster(NullColumnValueGetter.getNullURI());
+            _dbClient.persistObject(host);
+            _log.info("Removed cluster association for host: "+ host.getLabel());
+            WorkflowStepCompleter.stepSucceded(stepId);
+        } catch (Exception e){
+            _log.error("unexpected exception: " + e.getMessage(), e);
+            ServiceCoded serviceCoded = ComputeSystemControllerException.exceptions.unableToRemoveHostFromCluster(
+                    host != null ? host.getHostName() : hostId.toString(), e);
+            WorkflowStepCompleter.stepFailed(stepId, serviceCoded);
+        }
+            
     }
 
     public String addStepsForExportGroups(Workflow workflow, String waitFor, URI hostId) {

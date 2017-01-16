@@ -26,6 +26,7 @@ import com.emc.storageos.db.client.model.FileExportRule;
 import com.emc.storageos.db.client.model.FilePolicy;
 import com.emc.storageos.db.client.model.FilePolicy.FilePolicyApplyLevel;
 import com.emc.storageos.db.client.model.FilePolicy.FilePolicyType;
+import com.emc.storageos.db.client.model.FilePolicy.FileReplicationType;
 import com.emc.storageos.db.client.model.FileShare;
 import com.emc.storageos.db.client.model.FileShare.PersonalityTypes;
 import com.emc.storageos.db.client.model.NASServer;
@@ -33,6 +34,7 @@ import com.emc.storageos.db.client.model.NFSShareACL;
 import com.emc.storageos.db.client.model.PhysicalNAS;
 import com.emc.storageos.db.client.model.PolicyStorageResource;
 import com.emc.storageos.db.client.model.Project;
+import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.VirtualPool;
@@ -516,11 +518,25 @@ public final class FileOrchestrationUtils {
         }
         // Project policies
         if (project.getFilePolicies() != null && !project.getFilePolicies().isEmpty()) {
-            filePolicies.addAll(project.getFilePolicies());
+            for (String strPolicy : project.getFilePolicies()) {
+                FilePolicy policy = dbClient.queryObject(FilePolicy.class, URI.create(strPolicy));
+                if (policy.getFilePolicyVpool() != null
+                        && policy.getFilePolicyVpool().toString().equalsIgnoreCase(vpool.getId().toString())) {
+                    filePolicies.add(policy.getId().toString());
+                }
+
+            }
         }
         // fs policies
         if (fs != null && fs.getFilePolicies() != null && !fs.getFilePolicies().isEmpty()) {
-            filePolicies.addAll(fs.getFilePolicies());
+            for (String strPolicy : fs.getFilePolicies()) {
+                FilePolicy policy = dbClient.queryObject(FilePolicy.class, URI.create(strPolicy));
+                if (policy.getFilePolicyVpool() != null
+                        && policy.getFilePolicyVpool().toString().equalsIgnoreCase(vpool.getId().toString())) {
+                    filePolicies.add(policy.getId().toString());
+                }
+
+            }
         }
 
         if (filePolicies != null && !filePolicies.isEmpty()) {
@@ -688,7 +704,7 @@ public final class FileOrchestrationUtils {
                 devPolicyName = args.getProjectNameWithNoSpecialCharacters() + "_" + policyName;
                 break;
             case file_system:
-                devPolicyName = fileShare.getLabel() + "_" + policyName;
+                devPolicyName = fileShare.getName() + "_" + policyName;
         }
         return devPolicyName;
     }
@@ -759,6 +775,92 @@ public final class FileOrchestrationUtils {
         dbClient.updateObject(filePolicy);
         _log.info("PolicyStorageResource object created successfully for {} ",
                 system.getLabel() + policyStorageResource.getAppliedAt());
+    }
+
+    private static String generatePathForLocalTarget(FilePolicy filePolicy, FileShare fileShare, FileDeviceInputOutput args) {
+        String policyPath = "";
+        FilePolicyApplyLevel applyLevel = FilePolicyApplyLevel.valueOf(filePolicy.getApplyAt());
+        String[] fsPathParts = new String[3];
+        switch (applyLevel) {
+            case vpool:
+                String vpool = args.getVPoolNameWithNoSpecialCharacters();
+                fsPathParts = fileShare.getNativeId().split(vpool);
+                policyPath = fsPathParts[0] + vpool + "_localTarget" + fsPathParts[1];
+                break;
+            case project:
+                String project = args.getProjectNameWithNoSpecialCharacters();
+                fsPathParts = fileShare.getNativeId().split(project);
+                policyPath = fsPathParts[0] + project + "_localTarget" + fsPathParts[1];
+                break;
+            case file_system:
+                policyPath = fileShare.getNativeId();
+                break;
+            default:
+                _log.error("Not a valid policy apply level: " + applyLevel);
+        }
+        return policyPath;
+    }
+
+    /**
+     * 
+     * @param dbClient
+     * @param project
+     * @param storageSystem
+     * @return
+     */
+    public static void updateLocalTargetFileSystemPath(DbClient dbClient, StorageSystem system, FileDeviceInputOutput args) {
+        VirtualPool vpool = args.getVPool();
+        Project project = args.getProject();
+        FileShare fs = args.getFs();
+
+        List<FilePolicy> replicationPolicies = getReplicationPolices(dbClient, vpool, project, fs);
+        if (replicationPolicies != null && !replicationPolicies.isEmpty()) {
+            if (replicationPolicies.size() > 1) {
+                _log.warn("More than one replication policy found {}", replicationPolicies.size());
+            } else {
+                FilePolicy replPolicy = replicationPolicies.get(0);
+                if (fs.getPersonality() != null && fs.getPersonality().equalsIgnoreCase(PersonalityTypes.TARGET.name())
+                        && replPolicy.getFileReplicationType().equalsIgnoreCase(FileReplicationType.LOCAL.name())) {
+                    // For local replication, the path sould be different
+                    // add localTaget to file path at directory level where the policy is applied!!!
+                    String mountPath = generatePathForLocalTarget(replPolicy, fs, args);
+                    // replace extra forward slash with single one
+                    mountPath = mountPath.replaceAll("/+", "/");
+                    _log.info("Mount path to mount the Isilon File System {}", mountPath);
+                    args.setFsMountPath(mountPath);
+                    args.setFsNativeGuid(args.getFsMountPath());
+                    args.setFsNativeId(args.getFsMountPath());
+                    args.setFsPath(args.getFsMountPath());
+                }
+            }
+        } else {
+            _log.info("No replication policy found for vpool {} project {}", vpool.getLabel(), project.getLabel());
+        }
+        return;
+    }
+
+    public static String getTargetHostForReplication(DbClient dbClient, FileShare targetFS) {
+
+        StorageSystem targetSystem = dbClient.queryObject(StorageSystem.class, targetFS.getStorageDevice());
+        String targetHost = targetSystem.getIpAddress();
+
+        URIQueryResultList storagePortURIs = new URIQueryResultList();
+        dbClient.queryByConstraint(
+                ContainmentConstraint.Factory.getStorageDeviceStoragePortConstraint(targetFS.getStorageDevice()),
+                storagePortURIs);
+        Iterator<URI> storagePortIter = storagePortURIs.iterator();
+        while (storagePortIter.hasNext()) {
+            StoragePort port = dbClient.queryObject(StoragePort.class, storagePortIter.next());
+            if (port != null && !port.getInactive()) {
+                targetHost = port.getPortNetworkId();
+                // iterate until dr port found!!
+                if (port.getTag().contains("dr_port")) {
+                    _log.info("DR port {} found from storage system {} for replication", targetHost, targetSystem.getLabel());
+                    break;
+                }
+            }
+        }
+        return targetHost;
     }
 
 }

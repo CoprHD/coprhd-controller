@@ -575,12 +575,6 @@ public class FileVirtualPoolService extends VirtualPoolService {
             if (protectionParam.getAllowFilePolicyAtFSLevel() != null) {
                 vPool.setAllowFilePolicyAtFSLevel(protectionParam.getAllowFilePolicyAtFSLevel());
             }
-
-            // Validate the RPO value and type!!
-            if (validateReplArgs && validateReplicationRpoParams(protectionParam.getMinRpoValue(), protectionParam.getMinRpoType())) {
-                vPool.setFrRpoType(protectionParam.getMinRpoType());
-                vPool.setFrRpoValue(protectionParam.getMinRpoValue());
-            }
         }
 
         /*
@@ -803,22 +797,6 @@ public class FileVirtualPoolService extends VirtualPoolService {
 
             if (param.getAllowFilePolicyAtFSLevel() != null) {
                 virtualPool.setAllowFilePolicyAtFSLevel(param.getAllowFilePolicyAtFSLevel());
-            }
-
-            // Validate the RPO value and type!!
-            if (param.getMinRpoValue() != null || param.getMinRpoType() != null) {
-                Long rpoValue = virtualPool.getFrRpoValue();
-                if (param.getMinRpoValue() != null) {
-                    rpoValue = virtualPool.getFrRpoValue();
-                }
-                String rpoType = virtualPool.getFrRpoType();
-                if (param.getMinRpoType() != null) {
-                    rpoType = param.getMinRpoType();
-                }
-                if (validateReplicationRpoParams(rpoValue, rpoType)) {
-                    virtualPool.setFrRpoType(rpoType);
-                    virtualPool.setFrRpoValue(rpoValue);
-                }
             }
         }
     }

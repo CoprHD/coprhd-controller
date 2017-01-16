@@ -103,6 +103,7 @@ public class FileProtectionPolicies extends ViprResourceController {
         addDateTimeRenderArgs();
         addTenantOptionsArgs();
         addRenderApplyPolicysAt();
+        addNumWorkerThreadsArgs();
         render("@edit", schedulePolicy);
     }
 
@@ -116,6 +117,7 @@ public class FileProtectionPolicies extends ViprResourceController {
             addDateTimeRenderArgs();
             addTenantOptionsArgs();
             addRenderApplyPolicysAt();
+            addNumWorkerThreadsArgs();
             render(schedulePolicy);
         } else {
             flash.error(MessagesUtils.get(UNKNOWN, id));
@@ -157,7 +159,7 @@ public class FileProtectionPolicies extends ViprResourceController {
 
         List<StringOption> replicationCopyTypeOptions = Lists.newArrayList();
         replicationCopyTypeOptions.add(new StringOption("ASYNC", MessagesUtils.get("schedulePolicy.replicationAsync")));
-        replicationCopyTypeOptions.add(new StringOption("SEMISYNC", MessagesUtils.get("schedulePolicy.replicationSemiSync")));
+        // replicationCopyTypeOptions.add(new StringOption("SEMISYNC", MessagesUtils.get("schedulePolicy.replicationSemiSync")));
         replicationCopyTypeOptions.add(new StringOption("SYNC", MessagesUtils.get("schedulePolicy.replicationSync")));
         renderArgs.put("replicationCopyTypeOptions", replicationCopyTypeOptions);
 
@@ -218,6 +220,16 @@ public class FileProtectionPolicies extends ViprResourceController {
         renderArgs.put("hours", StringOption.options(hoursOptions));
         renderArgs.put("minutes", StringOption.options(minutesOptions));
 
+    }
+
+    private static void addNumWorkerThreadsArgs() {
+        // Number of worker threads!!
+        Map<String, String> numWorkerThreads = Maps.newLinkedHashMap();
+        for (int i = 3; i <= 10; i++) {
+            String num = String.valueOf(i);
+            numWorkerThreads.put(num, num);
+        }
+        renderArgs.put("numWorkerThreadsOptions", numWorkerThreads);
     }
 
     private static void addTenantOptionsArgs() {
@@ -489,7 +501,7 @@ public class FileProtectionPolicies extends ViprResourceController {
 
         public boolean enableTenants;
 
-        public List<String> tenants;
+        public String tenants;
 
         // Replication policy specific fields
         // Replication type local / remote
@@ -498,6 +510,8 @@ public class FileProtectionPolicies extends ViprResourceController {
         public String replicationCopyType;
         // Replication policy priority low /high
         public String priority;
+
+        public int numWorkerThreads = 3;
 
         public SchedulePolicyForm form(FilePolicyRestRep restRep) {
 
@@ -555,6 +569,10 @@ public class FileProtectionPolicies extends ViprResourceController {
                 this.priority = restRep.getPriority();
             }
 
+            if (restRep.getNumWorkerThreads() != null) {
+                this.numWorkerThreads = restRep.getNumWorkerThreads().intValue();
+            }
+
             if (restRep.getAppliedAt() != null) {
                 this.appliedAt = restRep.getAppliedAt();
             }
@@ -596,13 +614,14 @@ public class FileProtectionPolicies extends ViprResourceController {
          *            the resources from which to load the ACLs.
          */
         protected void loadTenantACLs(ACLResources resources) {
-            this.tenants = Lists.newArrayList();
+            this.tenants = "";
 
             URI policyId = ResourceUtils.uri(id);
             if (policyId != null) {
                 for (ACLEntry acl : resources.getACLs(policyId)) {
                     if (StringUtils.isNotBlank(acl.getTenant())) {
-                        this.tenants.add(acl.getTenant());
+                        this.tenants = acl.getTenant();
+                        break;
                     }
                 }
             }
@@ -621,7 +640,7 @@ public class FileProtectionPolicies extends ViprResourceController {
                 if (policyId != null) {
                     Set<String> tenantIds = Sets.newHashSet();
                     if (isTrue(enableTenants) && (tenants != null)) {
-                        tenantIds.addAll(tenants);
+                        tenantIds.add(tenants);
                     }
                     ACLUpdateBuilder builder = new ACLUpdateBuilder(resources.getACLs(policyId));
                     builder.setTenants(tenantIds);

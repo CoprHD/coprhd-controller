@@ -34,6 +34,7 @@ import com.emc.storageos.db.client.model.FileExport;
 import com.emc.storageos.db.client.model.FilePolicy;
 import com.emc.storageos.db.client.model.FilePolicy.FilePolicyApplyLevel;
 import com.emc.storageos.db.client.model.FilePolicy.FilePolicyType;
+import com.emc.storageos.db.client.model.FilePolicy.FileReplicationType;
 import com.emc.storageos.db.client.model.FileShare;
 import com.emc.storageos.db.client.model.FileShare.PersonalityTypes;
 import com.emc.storageos.db.client.model.NASServer;
@@ -922,6 +923,10 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             args.setFsNativeGuid(args.getFsMountPath());
             args.setFsNativeId(args.getFsMountPath());
             args.setFsPath(args.getFsMountPath());
+
+            // Update the mount path for local target!!!
+            FileOrchestrationUtils.updateLocalTargetFileSystemPath(_dbClient, storage, args);
+
             // Create the target directory only if the replication policy was not applied!!
             // If policy was applied at higher level, policy would create target file system directories!
             if (!FileOrchestrationUtils.isReplicationPolicyExists(_dbClient, storage, nasServer, args.getVPool(),
@@ -2757,8 +2762,11 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                 String targetFs = fs.getMirrorfsTargets().iterator().next();
                 FileShare targetFS = _dbClient.queryObject(FileShare.class, URI.create(targetFs));
                 targetPath = generatePathForPolicy(filePolicy, targetFS, args);
-                StorageSystem targetSystem = _dbClient.queryObject(StorageSystem.class, targetFS.getStorageDevice());
-                targetHost = targetSystem.getIpAddress();
+                if (filePolicy.getFileReplicationType().equalsIgnoreCase(FileReplicationType.LOCAL.name())) {
+                    targetPath = targetPath + "_localTarget";
+                }
+                // Get the target smart connect zone!!
+                targetHost = FileOrchestrationUtils.getTargetHostForReplication(_dbClient, targetFS);
             }
             if (isiSyncIQPolicies != null && !isiSyncIQPolicies.isEmpty()
                     && isReplicationPolicyExistsOnIsilon(isiSyncIQPolicies, sourcePath, filePolicy)) {

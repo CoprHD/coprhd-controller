@@ -37,6 +37,8 @@ public class FilePolicyRestRep extends DataObjectRestRep {
 
     private String priority;
 
+    private Long numWorkerThreads;
+
     private Boolean applyOnTargetSite;
 
     @XmlElement(name = "schedule")
@@ -144,6 +146,15 @@ public class FilePolicyRestRep extends DataObjectRestRep {
             assignedResources = new ArrayList<NamedRelatedResourceRep>();
         }
         assignedResources.add(resource);
+    }
+
+    @XmlElement(name = "numWorkerThreads")
+    public Long getNumWorkerThreads() {
+        return numWorkerThreads;
+    }
+
+    public void setNumWorkerThreads(Long numWorkerThreads) {
+        this.numWorkerThreads = numWorkerThreads;
     }
 
     @Override

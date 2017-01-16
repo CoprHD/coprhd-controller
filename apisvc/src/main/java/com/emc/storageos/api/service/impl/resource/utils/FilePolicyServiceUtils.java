@@ -309,28 +309,33 @@ public final class FilePolicyServiceUtils {
                 capabilities.put(VirtualPoolCapabilityValuesWrapper.FILE_REPLICATION_APPLIED_AT, policy.getApplyAt());
 
                 // Update target varrys for file placement!!
-                if (policy.getReplicationTopologies() != null && !policy.getReplicationTopologies().isEmpty()) {
-                    Set<String> targetVArrys = new HashSet<String>();
-                    for (String strTopology : policy.getReplicationTopologies()) {
-                        FileReplicationTopology dbTopology = dbClient.queryObject(FileReplicationTopology.class,
-                                URI.create(strTopology));
-                        if (currVArray.getId().toString().equalsIgnoreCase(dbTopology.getSourceVArray().toString())) {
-                            targetVArrys.addAll(dbTopology.getTargetVArrays());
-                            break;
+                Set<String> targetVArrys = new HashSet<String>();
+                if (policy.getFileReplicationType().equalsIgnoreCase(FileReplicationType.REMOTE.name())) {
+                    if (policy.getReplicationTopologies() != null && !policy.getReplicationTopologies().isEmpty()) {
+
+                        for (String strTopology : policy.getReplicationTopologies()) {
+                            FileReplicationTopology dbTopology = dbClient.queryObject(FileReplicationTopology.class,
+                                    URI.create(strTopology));
+                            if (currVArray.getId().toString().equalsIgnoreCase(dbTopology.getSourceVArray().toString())) {
+                                targetVArrys.addAll(dbTopology.getTargetVArrays());
+                                break;
+                            }
                         }
-                    }
-                    if (targetVArrys.isEmpty()) {
-                        errorMsg.append("Target VArry is not defined in replication topology for source varry "
-                                + currVArray.getId().toString());
+                        if (targetVArrys.isEmpty()) {
+                            errorMsg.append("Target VArry is not defined in replication topology for source varry "
+                                    + currVArray.getId().toString());
+                            return false;
+                        }
+                        capabilities.put(VirtualPoolCapabilityValuesWrapper.FILE_REPLICATION_TARGET_VARRAYS,
+                                targetVArrys);
+                        capabilities.put(VirtualPoolCapabilityValuesWrapper.FILE_REPLICATION_TARGET_VPOOL,
+                                vPool.getId());
+                    } else {
+                        errorMsg.append("Replication Topology is not defined for policy " + policy.getFilePolicyName());
                         return false;
                     }
-                    capabilities.put(VirtualPoolCapabilityValuesWrapper.FILE_REPLICATION_TARGET_VARRAYS,
-                            targetVArrys);
-                    capabilities.put(VirtualPoolCapabilityValuesWrapper.FILE_REPLICATION_TARGET_VPOOL,
-                            vPool.getId());
                 } else {
-                    errorMsg.append("Replication Topology is not defined for policy " + policy.getFilePolicyName());
-                    return false;
+                    targetVArrys.add(currVArray.getId().toString());
                 }
                 return true;
             }
@@ -359,5 +364,34 @@ public final class FilePolicyServiceUtils {
     public static boolean vPoolSpecifiesFileReplication(VirtualPoolCapabilityValuesWrapper capabilities) {
         return (capabilities.getFileReplicationType() != null && FileReplicationType.validFileReplication(capabilities
                 .getFileReplicationType()));
+    }
+
+    public static boolean isVPoolHasReplicationPolicy(DbClient dbClient, URI vpoolURI) {
+        VirtualPool vPool = dbClient.queryObject(VirtualPool.class, vpoolURI);
+        if (vPool != null && vPool.getFilePolicies() != null && !vPool.getFilePolicies().isEmpty()) {
+            for (String strPolicy : vPool.getFilePolicies()) {
+                FilePolicy policy = dbClient.queryObject(FilePolicy.class, URI.create(strPolicy));
+                if (policy.getFilePolicyType().equalsIgnoreCase(FilePolicyType.file_replication.name())) {
+                    _log.info("Replication policy found for vpool {} ", vPool.getLabel());
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    public static boolean isProjectHasReplicationPolicy(DbClient dbClient, URI vpoolURI, URI projectURI) {
+        Project project = dbClient.queryObject(Project.class, projectURI);
+        if (project != null && project.getFilePolicies() != null && !project.getFilePolicies().isEmpty()) {
+            for (String strPolicy : project.getFilePolicies()) {
+                FilePolicy policy = dbClient.queryObject(FilePolicy.class, URI.create(strPolicy));
+                if (policy.getFilePolicyType().equalsIgnoreCase(FilePolicyType.file_replication.name())
+                        && policy.getFilePolicyVpool().toString().equalsIgnoreCase(vpoolURI.toString())) {
+                    _log.info("Replication policy found for vpool {} and project {}", vpoolURI.toString(), project.getLabel());
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 }

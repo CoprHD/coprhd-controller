@@ -2893,9 +2893,8 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
             // has been successfully created on the VPLEX device
             exportMask.setNativeId(svInfo.getPath());
             _dbClient.updateObject(exportMask);
-
-            _dbClient.updateObject(exportGroup);
-
+            // update hlu information in exportgroup
+            ExportUtils.reconcileExportGroupsHLUs(_dbClient, exportGroup);
             WorkflowStepCompleter.stepSucceded(stepId);
         } catch (VPlexApiException vae) {
             _log.error("Exception creating VPlex Storage View: " + vae.getMessage(), vae);
@@ -3544,7 +3543,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
             _log.info("Updating volume/lun map in export mask {}", exportMask.getId());
             exportMask.addVolumes(updatedVolumeMap);
             _dbClient.updateObject(exportMask);
-
+            ExportUtils.reconcileExportGroupsHLUs(_dbClient, exportGroup);
             InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_002);
 
             completer.ready(_dbClient);
@@ -3964,6 +3963,8 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
                 }
             }
 
+            checkForConsistentLunViolation(vplex, exportGroup, initiatorURIs);
+
             // Process each host separately.
             String previousStep = null;
             for (URI hostURI : hostInitiatorsMap.keySet()) {
@@ -4011,6 +4012,44 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
             String opName = ResourceOperationTypeEnum.ADD_EXPORT_INITIATOR.getName();
             ServiceError serviceError = VPlexApiException.errors.exportGroupAddInitiatorsFailed(opName, ex);
             WorkflowStepCompleter.stepFailed(opId, serviceError);
+        }
+    }
+
+    /**
+     * Validates if there is a HLU conflict between cluster volumes and the host volumes.
+     * 
+     * @param storage the storage
+     * @param exportGroup the export group
+     * @param newInitiatorURIs the host initiators to be added to the export group
+     **/
+    public void checkForConsistentLunViolation(StorageSystem storage, ExportGroup exportGroup, List<URI> newInitiatorURIs) {
+
+        Map<String, Integer> volumeHluPair = new HashMap<String, Integer>();
+        // For 'add host to cluster' operation, validate and fail beforehand if HLU conflict is detected
+        if (exportGroup.forCluster() && exportGroup.getVolumes() != null) {
+            // get HLUs from ExportGroup as these are the volumes that will be exported to new Host.
+            Collection<String> egHlus = exportGroup.getVolumes().values();
+            Collection<Integer> clusterHlus = Collections2.transform(egHlus, CommonTransformerFunctions.FCTN_STRING_TO_INTEGER);
+            Set<Integer> newHostUsedHlus;
+            try {
+                newHostUsedHlus = findHLUsForInitiators(storage, exportGroup, newInitiatorURIs, false);
+            } catch (Exception e) {
+                String errMsg = "Encountered an error when attempting to query used HLUs for initiators: " + e.getMessage();
+                _log.error(errMsg, e);
+                throw VPlexApiException.exceptions.hluRetrievalFailed(errMsg, e);
+            }
+            // newHostUsedHlus now will contain the intersection of the two Set of HLUs which are conflicting one's
+            newHostUsedHlus.retainAll(clusterHlus);
+            if (!newHostUsedHlus.isEmpty()) {
+                _log.info("Conflicting HLUs: {}", newHostUsedHlus);
+                for (Map.Entry<String, String> entry : exportGroup.getVolumes().entrySet()) {
+                    Integer hlu = Integer.valueOf(entry.getValue());
+                    if (newHostUsedHlus.contains(hlu)) {
+                        volumeHluPair.put(entry.getKey(), hlu);
+                    }
+                }
+                throw DeviceControllerException.exceptions.addHostHLUViolation(volumeHluPair);
+            }
         }
     }
 

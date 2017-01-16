@@ -13344,8 +13344,8 @@ unityblock_export_consistent_hlu_test()
     unityblock_export_consistent_hlu_test1
     unityblock_export_consistent_hlu_test2
 
-    #unityblock_export_consistent_hlu_snap_test1
-    #unityblock_export_consistent_hlu_snap_test2
+    unityblock_export_consistent_hlu_snap_test1
+    unityblock_export_consistent_hlu_snap_test2
     echo "unity export consistent HLU tests END"
 }
 
@@ -13516,6 +13516,187 @@ unityblock_export_consistent_hlu_test2()
     run volume delete $PROJECT/${volname}-2 --wait
     run volume delete $PROJECT/${volname}-3 --wait
     run volume delete $PROJECT/${volname}-4 --wait
+}
+
+#Consistent Cluster HLU
+# CLUSTER with 2 hosts
+# Step-1: Export a volume to the cluster. Result: All hosts in the cluster sees the volume with same HLU (least unused number)
+# Step-2: Export a volume to HOST1 (exclusive). Result: HLU assigned should be unused among cluster view
+# Step-3: Export a snapshot to the cluster. Result: All hosts in the cluster sees the snapshot with same HLU (least unused number)
+# Step-4: Export a volume to HOST2 (exclusive). Result: HLU assigned should be unused among cluster view
+# Step-5: Delete the private volume from HOST1 exported in step-2
+# Step-6: Remove HOST2 from cluster
+# Step-7: Remove one shared volume from cluster exported in Step-1
+# Step-8: Add HOST2 to CLUSTER. Result: All shared volumes of cluster to be exported to this new host with the HLU for those volumes same as that of cluster's view
+# Step-9: Export 2 new snapshots to the cluster. Result: All hosts in the cluster sees the snapshot with same HLU.
+unityblock_export_consistent_hlu_snap_test1()
+{
+    HOST1=$hostbase${tenant}11
+    HOST2=$hostbase${tenant}12
+    expname=unityEG-${RANDOM}
+    volname=unityVol-${RANDOM}
+    snapname=snap-${RANDOM}
+    cluster=sanityCluster1
+
+    k=`wwnIdx 1 1`
+    nwwn1=`nwwn A$k`
+    pwwn1=`pwwn A$k`
+    H1ID=${nwwn1}:${pwwn1}
+
+    k=`wwnIdx 1 2`
+    nwwn2=`nwwn A$k`
+    pwwn2=`pwwn A$k`
+    H2ID=${nwwn2}:${pwwn2}
+
+    echo "Unity Consistent HLU Snap Test 1"
+
+    run volume create ${volname} $PROJECT $NH $COS_UNITYBLOCK_CG $BLK_SIZE --count 3
+    run blocksnapshot create $PROJECT/${volname}-1 ${snapname}-1
+    run blocksnapshot create $PROJECT/${volname}-2 ${snapname}-2
+    run blocksnapshot create $PROJECT/${volname}-3 ${snapname}-3
+
+    run export_group create $PROJECT ${expname}1 $NH --type Cluster --volspec $PROJECT/${volname}-1 --cluster ${tenant}/${cluster}
+    unity_verify_export ${HOST1} 2 1 1
+    unity_verify_export ${HOST2} 2 1 1
+
+    run export_group create $PROJECT ${expname}2 $NH --type Host --volspec $PROJECT/${volname}-2 --hosts "${HOST1}"
+    unity_verify_export ${HOST1} 2 2 0,1
+    unity_verify_export ${HOST2} 2 1 1
+
+    run export_group update $PROJECT/${expname}1 --addVolspec $PROJECT/${volname}-1/${snapname}-1
+    unity_verify_export ${HOST1} 2 3 0,1,2
+    unity_verify_export ${HOST2} 2 2 1,2
+
+    run export_group create $PROJECT ${expname}3 $NH --type Host --volspec $PROJECT/${volname}-3 --hosts "${HOST2}"
+    unity_verify_export ${HOST1} 2 3 0,1,2
+    unity_verify_export ${HOST2} 2 3 0,1,2
+
+    run export_group delete $PROJECT/${expname}2
+    unity_verify_export ${HOST1} 2 2 1,2
+    unity_verify_export ${HOST2} 2 3 0,1,2
+
+    run export_group update $PROJECT/${expname}1 --remHosts "${HOST2}"
+    unity_verify_export ${HOST1} 2 2 1,2
+    unity_verify_export ${HOST2} 2 1 0
+
+    run export_group update $PROJECT/${expname}1 --remVols $PROJECT/${volname}-1
+    unity_verify_export ${HOST1} 2 1 2
+    unity_verify_export ${HOST2} 2 1 0
+
+    run export_group update $PROJECT/${expname}1 --addHosts "${HOST2}"
+    unity_verify_export ${HOST1} 2 1 2
+    unity_verify_export ${HOST2} 2 2 0,2
+
+    run export_group update $PROJECT/${expname}1 --addVolspec "$PROJECT/${volname}-2/${snapname}-2,$PROJECT/${volname}-3/${snapname}-3"
+    unity_verify_export ${HOST1} 2 3 1,2,3
+    unity_verify_export ${HOST2} 2 4 0,1,2,3
+
+    run export_group delete $PROJECT/${expname}3
+    unity_verify_export ${HOST1} 2 3 1,2,3
+    unity_verify_export ${HOST2} 2 3 1,2,3
+
+    run export_group delete $PROJECT/${expname}1
+    unity_verify_export ${HOST1} 2 0
+    unity_verify_export ${HOST2} 2 0
+
+    run blocksnapshot delete $PROJECT/${volname}-1/${snapname}-1
+    run blocksnapshot delete $PROJECT/${volname}-2/${snapname}-2
+    run blocksnapshot delete $PROJECT/${volname}-3/${snapname}-3
+    run volume delete $PROJECT/${volname}-1 --wait
+    run volume delete $PROJECT/${volname}-2 --wait
+    run volume delete $PROJECT/${volname}-3 --wait
+}
+
+#Consistent Cluster HLU
+# CLUSTER with 2 hosts
+# Step-1: Export a volume to HOST1 (exclusive). Result: HLU assigned should be unused among cluster view
+# Step-2: Export a volume to the cluster. Result: All hosts in the cluster sees the volume with same HLU (least unused number)
+# Step-3: Export a snapshot to the cluster. Result: All hosts in the cluster sees the snapshot with same HLU (least unused number)
+# Step-4: Export a volume to HOST2 (exclusive). Result: HLU assigned should be unused among cluster view
+# Step-5: Delete the private volume from HOST1 exported in step-2
+# Step-6: Remove HOST2 from cluster
+# Step-7: Remove one shared volume from cluster exported in Step-1
+# Step-8: Add HOST2 to CLUSTER. Result: All shared volumes of cluster to be exported to this new host with the HLU for those volumes same as that of cluster's view
+# Step-9: Export a new snapshot to the cluster. Result: All hosts in the cluster sees the snapshot with same HLU.
+# Step-10: Export a new snapshot to HOST2 (exclusive). Result: HLU assigned should be unused among cluster view
+unityblock_export_consistent_hlu_snap_test2()
+{
+    HOST1=$hostbase${tenant}21
+    HOST2=$hostbase${tenant}22
+    expname=unityEG-${RANDOM}
+    volname=unityVol-${RANDOM}
+    snapname=snap-${RANDOM}
+    cluster=sanityCluster2
+
+    k=`wwnIdx 2 1`
+    nwwn1=`nwwn A$k`
+    pwwn1=`pwwn A$k`
+    H1ID=${nwwn1}:${pwwn1}
+
+    k=`wwnIdx 2 2`
+    nwwn2=`nwwn A$k`
+    pwwn2=`pwwn A$k`
+    H2ID=${nwwn2}:${pwwn2}
+
+    echo "Unity Consistent HLU Snap Test 2"
+
+    run volume create ${volname} $PROJECT $NH $COS_UNITYBLOCK_CG $BLK_SIZE --count 3
+    run blocksnapshot create $PROJECT/${volname}-1 ${snapname}-1
+    run blocksnapshot create $PROJECT/${volname}-2 ${snapname}-2
+    run blocksnapshot create $PROJECT/${volname}-3 ${snapname}-3
+
+    run export_group create $PROJECT ${expname}1 $NH --type Host --volspec $PROJECT/${volname}-1 --hosts "${HOST1}"
+    unity_verify_export ${HOST1} 2 1 0
+
+    run export_group create $PROJECT ${expname}2 $NH --type Cluster --volspec $PROJECT/${volname}-2 --cluster ${tenant}/${cluster}
+    unity_verify_export ${HOST1} 2 2 0,1
+    unity_verify_export ${HOST2} 2 1 1
+
+    run export_group update $PROJECT/${expname}2 --addVolspec $PROJECT/${volname}-1/${snapname}-1
+    unity_verify_export ${HOST1} 2 3 0,1,2
+    unity_verify_export ${HOST2} 2 2 1,2
+
+    run export_group create $PROJECT ${expname}3 $NH --type Host --volspec $PROJECT/${volname}-3 --hosts "${HOST2}"
+    unity_verify_export ${HOST1} 2 3 0,1,2
+    unity_verify_export ${HOST2} 2 3 0,1,2
+
+    run export_group delete $PROJECT/${expname}1
+    unity_verify_export ${HOST1} 2 2 1,2
+    unity_verify_export ${HOST2} 2 3 0,1,2
+
+    run export_group update $PROJECT/${expname}2 --remHosts "${HOST2}"
+    unity_verify_export ${HOST1} 2 2 1,2
+    unity_verify_export ${HOST2} 2 1 0
+
+    run export_group update $PROJECT/${expname}2 --remVols $PROJECT/${volname}-2
+    unity_verify_export ${HOST1} 2 1 2
+
+    run export_group update $PROJECT/${expname}2 --addHosts "${HOST2}"
+    unity_verify_export ${HOST1} 2 1 2
+    unity_verify_export ${HOST2} 2 2 0,2
+
+    run export_group update $PROJECT/${expname}2 --addVolspec $PROJECT/${volname}-2/${snapname}-2
+    unity_verify_export ${HOST1} 2 2 1,2
+    unity_verify_export ${HOST2} 2 3 0,1,2
+
+    run export_group update $PROJECT/${expname}3 --addVolspec $PROJECT/${volname}-3/${snapname}-3
+    unity_verify_export ${HOST1} 2 2 1,2
+    unity_verify_export ${HOST2} 2 4 0,1,2,3
+
+    run export_group delete $PROJECT/${expname}3
+    unity_verify_export ${HOST1} 2 2 1,2
+    unity_verify_export ${HOST2} 2 2 1,2
+
+    run export_group delete $PROJECT/${expname}2
+    unity_verify_export ${HOST1} 2 0
+    unity_verify_export ${HOST2} 2 0
+
+    run blocksnapshot delete $PROJECT/${volname}-1/${snapname}-1
+    run blocksnapshot delete $PROJECT/${volname}-2/${snapname}-2
+    run blocksnapshot delete $PROJECT/${volname}-3/${snapname}-3
+    run volume delete $PROJECT/${volname}-1 --wait
+    run volume delete $PROJECT/${volname}-2 --wait
+    run volume delete $PROJECT/${volname}-3 --wait
 }
 
 unityblock_cos_setup()

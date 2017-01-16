@@ -3543,7 +3543,6 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
             _log.info("Updating volume/lun map in export mask {}", exportMask.getId());
             exportMask.addVolumes(updatedVolumeMap);
             _dbClient.updateObject(exportMask);
-            ExportUtils.reconcileExportGroupsHLUs(_dbClient, exportGroup);
             InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_002);
 
             completer.ready(_dbClient);

@@ -2022,7 +2022,6 @@ xtremio_export_test_hlu2()
 
     run export_group delete $proj/${expname}2
 }
-
 #
 # SRDF
 #

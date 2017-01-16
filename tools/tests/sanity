@@ -13366,7 +13366,7 @@ unityblock_export_consistent_hlu_test1()
     HOST2=$hostbase${tenant}12
     expname=unityEG-${RANDOM}
     volname=unityVol-${RANDOM}
-	cluster=sanityCluster1
+    cluster=sanityCluster1
 
     k=`wwnIdx 1 1`
     nwwn1=`nwwn A$k`
@@ -13383,47 +13383,48 @@ unityblock_export_consistent_hlu_test1()
     run volume create ${volname} $PROJECT $NH $COS_UNITYBLOCK_CG $BLK_SIZE --count 4
 
     run export_group create $PROJECT ${expname}1 $NH --type Cluster --volspec $PROJECT/${volname}-1 --cluster ${tenant}/${cluster}
-    unity_verify_export ${HOST1} 4 1 1
-    unity_verify_export ${HOST2} 4 1 1
+    unity_verify_export ${HOST1} 2 1 1
+    unity_verify_export ${HOST2} 2 1 1
 
     run export_group create $PROJECT ${expname}2 $NH --type Host --volspec $PROJECT/${volname}-2 --hosts "${HOST1}"
-    unity_verify_export ${HOST1} 4 2 0,1
-    unity_verify_export ${HOST2} 4 1 1
+    unity_verify_export ${HOST1} 2 2 0,1
+    unity_verify_export ${HOST2} 2 1 1
 
     run export_group update $PROJECT/${expname}1 --addVols $PROJECT/${volname}-3
-    unity_verify_export ${HOST1} 4 3 0,1,2
-    unity_verify_export ${HOST2} 4 2 1,2
+    unity_verify_export ${HOST1} 2 3 0,1,2
+    unity_verify_export ${HOST2} 2 2 1,2
 
     run export_group create $PROJECT ${expname}3 $NH --type Host --volspec $PROJECT/${volname}-4 --hosts "${HOST2}"
-    unity_verify_export ${HOST1} 4 3 0,1,2
-    unity_verify_export ${HOST2} 4 3 0,1,2
+    unity_verify_export ${HOST1} 2 3 0,1,2
+    unity_verify_export ${HOST2} 2 3 0,1,2
 
     run export_group delete $PROJECT/${expname}2
-    unity_verify_export ${HOST1} 4 2 1,2
-    unity_verify_export ${HOST2} 4 3 0,1,2
+    unity_verify_export ${HOST1} 2 2 1,2
+    unity_verify_export ${HOST2} 2 3 0,1,2
 
     run export_group update $PROJECT/${expname}1 --remHosts "${HOST2}"
-    unity_verify_export ${HOST1} 4 2 1,2
-    unity_verify_export ${HOST2} 4 1 0
+    unity_verify_export ${HOST1} 2 2 1,2
+    unity_verify_export ${HOST2} 2 1 0
 
     run export_group update $PROJECT/${expname}1 --remVols $PROJECT/${volname}-1
-    unity_verify_export ${HOST1} 4 1 2
-    unity_verify_export ${HOST2} 4 1 0
+    unity_verify_export ${HOST1} 2 1 2
+    unity_verify_export ${HOST2} 2 1 0
 
-	run export_group update $PROJECT/${expname}1 --addHosts "${HOST2}"
-    unity_verify_export ${HOST1} 4 1 2
-    unity_verify_export ${HOST2} 4 2 0,2
+    run export_group update $PROJECT/${expname}1 --addHosts "${HOST2}"
+    unity_verify_export ${HOST1} 2 1 2
+    unity_verify_export ${HOST2} 2 2 0,2
 
     run export_group update $PROJECT/${expname}1 --addVols "${PROJECT}/${volname}-1,${PROJECT}/${volname}-2"
-    unity_verify_export ${HOST1} 4 3 1,2,3
-    unity_verify_export ${HOST2} 4 4 0,1,2,3
+    unity_verify_export ${HOST1} 2 3 1,2,3
+    unity_verify_export ${HOST2} 2 4 0,1,2,3
 
     run export_group delete $PROJECT/${expname}3
-    unity_verify_export ${HOST1} 4 3 1,2,3
-    unity_verify_export ${HOST2} 4 3 1,2,3
+    unity_verify_export ${HOST1} 2 3 1,2,3
+    unity_verify_export ${HOST2} 2 3 1,2,3
 
     run export_group delete $PROJECT/${expname}1
-    #TODO
+    unity_verify_export ${HOST1} 2 0
+    unity_verify_export ${HOST2} 2 0
 
     run volume delete $PROJECT/${volname}-1 --wait
     run volume delete $PROJECT/${volname}-2 --wait
@@ -13445,11 +13446,11 @@ unityblock_export_consistent_hlu_test1()
 # Step-10: Export a new volume to HOST2 (exclusive). Result: HLU assigned should be unused among cluster view
 unityblock_export_consistent_hlu_test2()
 {
-	HOST1=$hostbase${tenant}21
-	HOST2=$hostbase${tenant}22
+    HOST1=$hostbase${tenant}21
+    HOST2=$hostbase${tenant}22
     expname=unityEG-${RANDOM}
     volname=unityVol-${RANDOM}
-	cluster=sanityCluster2
+    cluster=sanityCluster2
 
     k=`wwnIdx 2 1`
     nwwn1=`nwwn A$k`
@@ -13466,49 +13467,50 @@ unityblock_export_consistent_hlu_test2()
     run volume create ${volname} $PROJECT $NH $COS_UNITYBLOCK_CG $BLK_SIZE --count 4
 
     run export_group create $PROJECT ${expname}1 $NH --type Host --volspec $PROJECT/${volname}-1 --hosts "${HOST1}"
-    unity_verify_export ${HOST1} 4 1 0
+    unity_verify_export ${HOST1} 2 1 0
 
     run export_group create $PROJECT ${expname}2 $NH --type Cluster --volspec $PROJECT/${volname}-2 --cluster ${tenant}/${cluster}
-    unity_verify_export ${HOST1} 4 2 0,1
-    unity_verify_export ${HOST2} 4 1 1
+    unity_verify_export ${HOST1} 2 2 0,1
+    unity_verify_export ${HOST2} 2 1 1
 
     run export_group update $PROJECT/${expname}2 --addVols $PROJECT/${volname}-3
-    unity_verify_export ${HOST1} 4 3 0,1,2
-    unity_verify_export ${HOST2} 4 2 1,2
+    unity_verify_export ${HOST1} 2 3 0,1,2
+    unity_verify_export ${HOST2} 2 2 1,2
 
     run export_group create $PROJECT ${expname}3 $NH --type Host --volspec $PROJECT/${volname}-4 --hosts "${HOST2}"
-    unity_verify_export ${HOST1} 4 3 0,1,2
-    unity_verify_export ${HOST2} 4 3 0,1,2
+    unity_verify_export ${HOST1} 2 3 0,1,2
+    unity_verify_export ${HOST2} 2 3 0,1,2
 
     run export_group delete $PROJECT/${expname}1
-    unity_verify_export ${HOST1} 4 2 1,2
-    unity_verify_export ${HOST2} 4 3 0,1,2
+    unity_verify_export ${HOST1} 2 2 1,2
+    unity_verify_export ${HOST2} 2 3 0,1,2
 
     run export_group update $PROJECT/${expname}2 --remHosts "${HOST2}"
-    unity_verify_export ${HOST1} 4 2 1,2
-    unity_verify_export ${HOST2} 4 1 0
+    unity_verify_export ${HOST1} 2 2 1,2
+    unity_verify_export ${HOST2} 2 1 0
 
     run export_group update $PROJECT/${expname}2 --remVols $PROJECT/${volname}-2
-    unity_verify_export ${HOST1} 4 1 2
+    unity_verify_export ${HOST1} 2 1 2
 
     run export_group update $PROJECT/${expname}2 --addHosts "${HOST2}"
-    unity_verify_export ${HOST1} 4 1 2
-    unity_verify_export ${HOST2} 4 2 0,2
+    unity_verify_export ${HOST1} 2 1 2
+    unity_verify_export ${HOST2} 2 2 0,2
 
     run export_group update $PROJECT/${expname}2 --addVols $PROJECT/${volname}-2
-    unity_verify_export ${HOST1} 4 2 1,2
-    unity_verify_export ${HOST2} 4 3 0,1,2
+    unity_verify_export ${HOST1} 2 2 1,2
+    unity_verify_export ${HOST2} 2 3 0,1,2
 
     run export_group update $PROJECT/${expname}3 --addVols $PROJECT/${volname}-1
-    unity_verify_export ${HOST1} 4 2 1,2
-    unity_verify_export ${HOST2} 4 4 0,1,2,3
+    unity_verify_export ${HOST1} 2 2 1,2
+    unity_verify_export ${HOST2} 2 4 0,1,2,3
 
     run export_group delete $PROJECT/${expname}3
-    unity_verify_export ${HOST1} 4 2 1,2
-    unity_verify_export ${HOST2} 4 2 1,2
+    unity_verify_export ${HOST1} 2 2 1,2
+    unity_verify_export ${HOST2} 2 2 1,2
 
     run export_group delete $PROJECT/${expname}2
-    #TODO
+    unity_verify_export ${HOST1} 2 0
+    unity_verify_export ${HOST2} 2 0
 
     run volume delete $PROJECT/${volname}-1 --wait
     run volume delete $PROJECT/${volname}-2 --wait

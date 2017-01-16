@@ -142,16 +142,14 @@ verify_export() {
 	failed=true
     fi
 
-    if [[ ! -z "${HLUS}" ]]
+    if [ -n "${HLUS}" ]
     then
-        if [ ${hlus} -ne ${HLUS} ]
+        hlu_arr=(${HLUS//,/, })
+        hlus=${hlus:1:-1}
+        if [  "${hlus[*]}" != "${hlu_arr[*]}" ]
         then
-            hlu_arr=(${HLUS//,/ })
-            if [  "${hlus[*]}" != "${hlu_arr[*]}" ]
-            then
-                echo -e "\e[91mERROR\e[0m: Host HLUs: Expected: ${hlu_arr[*]} Retrieved: ${hlus[*]}";
-                failed=true
-            fi
+            echo -e "\e[91mERROR\e[0m: Host HLUs: Expected: ${hlu_arr[*]} Retrieved: ${hlus[*]}";
+            failed=true
         fi
     fi
 
@@ -160,7 +158,8 @@ verify_export() {
 	exit 1;
     fi
 
-	if [ "${HLUS}" != "none" ]; then
+    if [ -n "${HLUS}" ]
+    then
         echo "PASSED: Host masking '$HOST_INITIATORS' contained ${NUM_INITIATORS} initiators and ${NUM_LUNS} luns with hlus ${HLUS}"
     else
         echo "PASSED: Host masking '$HOST_INITIATORS' contained ${NUM_INITIATORS} initiators and ${NUM_LUNS} luns"
@@ -238,7 +237,7 @@ elif [ "$1" = "delete_mask" ]; then
     delete_mask "$1"
 elif [ "$1" = "verify_export" ]; then
     shift
-    verify_export "$1" "$2" "$3"
+    verify_export "$1" "$2" "$3" "$4"
 elif [ "$1" = "get_hlus" ]; then
     shift
     get_hlus "$1"

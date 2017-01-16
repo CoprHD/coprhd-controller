@@ -6566,7 +6566,8 @@ sbsdk_remote_replication_tests()
     echo "***** Executing SB SDK remote replication sanity tests *****"
 
     #Define variables
-    VOLUME_NAME=SBSDK_Volume-${RANDOM}_RR
+    VOLUME_IN_GROUP_NAME=SBSDK_Volume_Group-${RANDOM}_RR
+    VOLUME_NO_GROUP_NAME=SBSDK_Volume_No_Group-${RANDOM}_RR
     SNAPSHOT_NAME=${VOLUME_NAME}Snap
     FULLCOPY_NAME=${VOLUME_NAME}FullCopy
     HOST_NAME=$PROJECT
@@ -6576,15 +6577,25 @@ sbsdk_remote_replication_tests()
     HOST_INIT_PORT_WWN2=10:00:00:90:FA:18:0E:99
     HOST_INIT_NODE_WWN2=20:00:00:90:FA:18:0E:99
 
-    #Create a volume
-    echo "***** Creating volume ${VOLUME_NAME} *****"
-    run volume create ${VOLUME_NAME} $PROJECT $NH $SBSDK_DRIVER_SYS_REMOTE_REPLICATION_VPOOL_NAME $BLK_SIZE \
+    #Create a volume in replication group
+    echo "***** Creating volume ${VOLUME_IN_GROUP_NAME} *****"
+    run volume create ${VOLUME_IN_GROUP_NAME} $PROJECT $NH $SBSDK_DRIVER_SYS_REMOTE_REPLICATION_VPOOL_NAME $BLK_SIZE \
                    --remote_replication "${SBSDK_DRIVER_REPLICATION_SET1}:${SBSDK_DRIVER_REPLICATION_SET1_GROUP1}:SYNCHRONOUS"
 
 
     #Delete the volume
-    echo "***** Deleting volume $VOLUME_NAME *****"
-    run volume delete $PROJECT/$VOLUME_NAME --wait
+    echo "***** Deleting volume $VOLUME_IN_GROUP_NAME *****"
+    run volume delete $PROJECT/$VOLUME_IN_GROUP_NAME --wait
+
+    #Create a volume outside of replication group
+    echo "***** Creating volume ${VOLUME_NO_GROUP_NAME} *****"
+    run volume create ${VOLUME_NO_GROUP_NAME} $PROJECT $NH $SBSDK_DRIVER_SYS_REMOTE_REPLICATION_VPOOL_NAME $BLK_SIZE \
+                    --remote_replication "${SBSDK_DRIVER_REPLICATION_SET1}::SYNCHRONOUS"
+
+
+    #Delete the volume
+    echo "***** Deleting volume $VOLUME_NO_GROUP_NAME *****"
+    run volume delete $PROJECT/$VOLUME_NO_GROUP_NAME --wait
 
     #Create a replication group
     REMOTE_REPLICATION_GROUP_NAME=SBSDK_RemoteReplicationGroup-${RANDOM}

@@ -83,7 +83,8 @@ public class InitiatorCompleter extends ComputeSystemCompleter {
      * @param dbClient the DB client
      */
     private void removeInitiator(URI initiatorUri, DbClient dbClient) {
-        if (!ComputeSystemHelper.isInitiatorInUse(dbClient, initiatorUri.toString()) && NullColumnValueGetter.isNullURI(eventId)) {
+        if (!ComputeSystemHelper.isInitiatorInUse(dbClient, initiatorUri.toString()) 
+                && (op == InitiatorOperation.REMOVE || NullColumnValueGetter.isNullURI(eventId))) {
             Initiator initiator = dbClient.queryObject(Initiator.class, initiatorUri);
             dbClient.markForDeletion(initiator);
             _logger.info("Initiator marked for deletion: " + this.getId());

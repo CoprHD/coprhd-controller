@@ -3734,18 +3734,12 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
                     hasSteps = true;
                 } else {
-                    _log.info("this mask is empty of ViPR-managed volumes, so deleting: "
+                    _log.info("this mask is empty of ViPR-managed volumes and there are no existing volumes or initiators, so deleting: "
                             + exportMask.getMaskName());
                     List<NetworkZoningParam> zoningParams = 
                         NetworkZoningParam.convertExportMasksToNetworkZoningParam(
                             exportURI, Collections.singletonList(exportMask.getId()), _dbClient);
                     hasSteps = true;
-
-                    // adding to error messages so that orchestration-level validation can be invoked if necessary
-                    errorMessages.append(
-                            String.format(
-                                    "Storage view %s would be deleted on VPLEX device. ",
-                                    exportMask.forDisplay()));
 
                     Workflow.Method deleteStorageView = deleteStorageViewMethod(vplexURI, exportMask.getId());
                     previousStep = workflow.createStep(DELETE_STORAGE_VIEW,
@@ -4812,12 +4806,6 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             _log.info("all initiators are being removed and no "
                     + "other ExportGroups reference ExportMask {}", exportMask.getMaskName());
             _log.info("creating a deleteStorageView workflow step for " + exportMask.getMaskName());
-
-            // adding to error messages so that orchestration-level validation can be invoked if necessary
-            errorMessages.append(
-                    String.format(
-                            "Storage view %s would be deleted on VPLEX device. ",
-                            exportMask.forDisplay()));
 
             Workflow.Method storageViewExecuteMethod = deleteStorageViewMethod(vplex.getId(), exportMask.getId());
             lastStep = workflow.createStep(DELETE_STORAGE_VIEW,

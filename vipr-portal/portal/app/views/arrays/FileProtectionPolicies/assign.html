@@ -1,0 +1,119 @@
+%{
+  titleKey = 'assignPolicy.title';
+}%
+#{extends 'main.html'/}
+#{set navSelected: ['nav.tenantsettings', 'nav.schedulepolicies'] /}
+#{set 'title'}&{titleKey}#{/set}
+
+<div class="container">
+#{Form.header titleKey:titleKey /}
+
+#{alerts/}
+
+#{form @saveAssignPolicy(), id:'assignPolicy', class:'form form-horizontal', autocomplete:"off"}
+  #{if assignPolicy?.id}
+    #{field 'assignPolicy.id'}
+      <input type="hidden" name="id" value="${field.value}">
+    #{/field}  
+  #{/if}
+<!--   #{field 'assignPolicy.tenantId'} -->
+        <input type="hidden" name="tenantId" value="${field.value}"/>
+  #{/field}
+ #{field 'assignPolicy.referrerUrl'}
+     <input type="hidden" name="${field.policyName}" value="${field.value}">
+  #{/field}
+  
+ 
+    #{field 'assignPolicy.policyName'}
+      %{
+        field.cssClass = 'initialFocus';
+        field.required = true
+        field.fieldKey = 'assignPolicy.policyName'
+      }%
+      #{Form.inputTextControlGroup field:field /}
+    #{/field}
+    #{field 'assignPolicy.policyType'}
+      <input type="hidden" name="policyType" value="${field.value}">
+    #{/field} 
+    
+    #{field 'assignPolicy.appliedAt'}
+       %{
+       field.disabled=true
+       }%
+      #{Form.selectOneControlGroup field:field, options:applyPolicyOptions, select:assignPolicy.appliedAt, cssClass:'span3' /}
+    #{/field} 
+    
+   <div id="projectFields"> 
+    #{field 'assignPolicy.vpool'}
+      #{Form.selectOneControlGroup field:field, options:projectVpoolOptions, select:assignPolicy.vpool, cssClass:'span3' /}
+    #{/field} 
+     #{field 'assignPolicy.projects', noLabel:noLabel}
+         #{Form.selectManyControlGroup field:field, options:projectOptions /}
+     #{/field}
+    </div>
+    
+    <div id="vpoolFields">
+     #{field 'assignPolicy.virtualPools', noLabel:noLabel}
+         #{Form.selectManyControlGroup field:field, options:vPoolOptions /}
+     #{/field}
+    </div>
+	
+	<div id="snapshotFields">           
+	   #{field 'assignPolicy.applyOnTargetSite'}
+          #{Form.booleanCheckBoxControlGroup field:field /}
+       #{/field} 
+    </div>   
+    
+  #{Form.saveCancelButtonBar size:'large', cancelHref:@list()/}
+#{/form}
+</div>
+
+#{set 'moreScripts'}
+  <script type="text/javascript">
+    $(document).ready(function() {
+      
+        // know where it came from so can navigate back;
+        // only set the referrerUrl if it has not been set at some earlier point 
+        // i.e. in multi-step flows take into account error-handling
+        var referrerUrl = $('input[name="assignPolicy.referrerUrl"]').val();
+		if(!referrerUrl)
+		  referrerUrl = document.referrer;
+        
+		// navigate back only if referral URL is different than this one
+		if(referrerUrl && referrerUrl != document.URL) {
+	        $('input[name="assignPolicy.referrerUrl"]').val(referrerUrl);
+			// navigate cancel button to referrer url
+			$('div.form-actions a.btn').attr('href', referrerUrl);
+		}
+		
+		$('#assignPolicy_appliedAt').on('change', showAssignAt);
+		showAssignAt();
+		
+		
+    });
+    
+    
+    function showAssignAt(){
+			var assignAt = $('#assignPolicy_appliedAt').val();
+            var policyType = $('#assignPolicy_policyType').val();
+				if (assignAt == 'project') {
+					$('#vpoolFields').hide();
+					$('#projectFields').show();
+				} else if (assignAt == 'vpool') {
+					$('#vpoolFields').show();
+					$('#projectFields').hide();
+				} else if (assignAt == 'file_system') {
+					$('#vpoolFields').hide();
+					$('#projectFields').hide();
+				}
+				
+				if(policyType == 'file_snapshot') {
+					$('#snapshotFields').show();
+				} else if (policyType == 'file_replication') {
+					$('#snapshotFields').hide();
+				}
+				
+			}
+    
+		</script>
+#{/set}

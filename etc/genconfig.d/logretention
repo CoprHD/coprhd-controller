@@ -11,12 +11,14 @@
 
 _gen_cleanup_logs() {
     reverse_day=$(grep RESERVE_DAYS= ${1})
-    /usr/bin/sed -i "s/${reverse_day}/RESERVE_DAYS=${_GENCONFIG_system_log_retention_days}" ${1}
+    /usr/bin/sed -i "s/${reverse_day}/RESERVE_DAYS=${_GENCONFIG_system_log_retention_days}/" ${1}
+    _genconfig_done
 }
 
 _gen_logrotate_conf() {
     last_maxage=$(grep maxage ${1})
     /usr/bin/sed -i "s/${last_maxage}/maxage ${_GENCONFIG_system_log_retention_days}/" ${1}
+    _genconfig_done
 }
 
 _genconfig_exec _gen_cleanup_logs /etc/cron.hourly/cleanup_logs

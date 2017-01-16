@@ -1745,110 +1745,6 @@ xtremio_block_tests()
     echo There were $VERIFY_EXPORT_FAIL_COUNT export verification failures
 }
 
-xtremio_export_test_hlu_snapshot_1() {
-	volname=${XTREMIOVOL}
-	snap1=$proj/${volname}1/$1
-    snap2=$proj/${volname}2/$2
-	snap3=$proj/${volname}3/$3
-	HOST1=$hostbase${tenant}11
-	HOST2=$hostbase${tenant}12
-	expname=${XTREMIOEXPORT_GROUP}Snap
-	echo "XTREMIO Consistent HLU Test Snapshot"
-	
-	run export_group create $proj ${expname}1 $NH --type Cluster --volspec "${proj}/${volname}"1 --cluster ${tenant}/${cluster}
-	verify_export ${HOST1} 4 1 1
-	verify_export ${HOST2} 4 1 1
-	
-	run export_group create $proj ${expname}2 $NH --type Host --volspec "${proj}/${volname}"2 --hosts "${HOST1}"
-	verify_export ${HOST1} 4 2 1,2
-	verify_export ${HOST2} 4 1 1
-	
-	run export_group update $proj/${expname}1 --addVolspec "${snap1}"
-	verify_export ${HOST1} 4 3 1,2,3
-	verify_export ${HOST2} 4 2 1,3
-	
-	run export_group update $proj/${expname}2 --addVolspec "${snap2}"
-	verify_export ${HOST1} 4 4 1,2,3,4
-	verify_export ${HOST2} 4 2 1,3
-	
-	run export_group delete $proj/${expname}2
-	verify_export ${HOST1} 4 2 1,3
-    verify_export ${HOST2} 4 2 1,3
-	
-	run export_group update $proj/${expname}1 --remHosts "${HOST2}"
-    verify_export ${HOST1} 4 2 1,3
-    verify_export ${HOST2} gone
-
-    run export_group update $proj/${expname}1 --addVols "${snap3}"
-    verify_export ${HOST1} 4 3 1,2,3
-
-    run export_group update $proj/${expname}1 --remVols "${proj}/${volname}"1
-    verify_export ${HOST1} 4 2 2,3
-    
-	run export_group update $proj/${expname}1 --addHosts "${HOST2}"
-    verify_export ${HOST1} 4 2 2,3
-	verify_export ${HOST2} 4 2 2,3
-    
-    run export_group update $proj/${expname}1 --addVols "$proj/${volname}3"
-    verify_export ${HOST1} 4 3 1,2,3
-    verify_export ${HOST2} 4 3 1,2,3
-
-    run export_group delete $proj/${expname}1
-
-}
-
-xtremio_export_test_hlu_snapshot_2()
-{
-	volname=${XTREMIOVOL}
-	cluster=sanityCluster2
-	snap1=$proj/${volname}1/$1
-    snap2=$proj/${volname}2/$2
-	snap3=$proj/${volname}3/$3
-	HOST1=$hostbase${tenant}21
-	HOST2=$hostbase${tenant}22
-	expname=${XTREMIOEXPORT_GROUP}
-		
-	run export_group create $proj ${expname}1 $NH --type Host --volspec "${proj}/${volname}"1 --hosts "${HOST1}"
-	verify_export ${HOST1} 4 1 1
-	
-	run export_group create $proj ${expname}2 $NH --type Cluster --volspec "${proj}/${volname}"2 --cluster ${tenant}/${cluster}
-	verify_export ${HOST1} 4 2 1,2
-	verify_export ${HOST2} 4 1 2
-	
-	run export_group update $proj/${expname}1 --addVols "${snap1}"
-	verify_export ${HOST1} 4 3 1,2,3
-	verify_export ${HOST2} 4 1 2
-	
-	run export_group update $proj/${expname}2 --addVols "${snap2}"
-	verify_export ${HOST1} 4 4 1,2,3,4
-	verify_export ${HOST2} 4 2 2,4
-	
-	run export_group delete $proj/${expname}1
-    verify_export ${HOST1} 4 2 2,4
-    verify_export ${HOST2} 4 2 2,4
-	
-	run export_group update $proj/${expname}2 --remHosts "${HOST2}"
-	verify_export ${HOST1} 4 2 2,4
-	verify_export ${HOST2} gone
-    
-    run export_group update $proj/${expname}2 --addVols "${proj}/${volname}"3
-    verify_export ${HOST1} 4 3 1,2,4
-    verify_export ${HOST2} gone
-
-    run export_group update $proj/${expname}2 --remVols "${proj}/${volname}"2
-    verify_export ${HOST1} 4 2 1,4
-
-	run export_group update $proj/${expname}2 --addHosts "${HOST2}"
-    verify_export ${HOST1} 4 2 1,4
-    verify_export ${HOST2} 4 2 1,4
-
-    run export_group update $proj/${expname}2 --addVols "${snap3}"
-	verify_export ${HOST1} 4 3 1,2,4
-	verify_export ${HOST2} 4 3 1,2,4
-
-    run export_group delete $proj/${expname}2
-}
-
 xtremio_export_test()
 {
     vol1=$PROJECT/$2
@@ -1915,7 +1811,7 @@ xtremio_export_test_hlu1()
 	HOST2=$hostbase${tenant}22
 	volname=${XTREMIOVOL}
 	
-	echo "XTREMIO Consistent HLU Test1"
+	echo "XTREMIO Consistent HLU Test 1"
 	run export_group create $proj ${expname}1 $NH --type Cluster --volspec "${proj}/${volname}"1 --cluster ${tenant}/${cluster}
 	verify_export ${HOST1} 4 1 1
 	verify_export ${HOST2} 4 1 1
@@ -1981,7 +1877,7 @@ xtremio_export_test_hlu2()
 	expname=${XTREMIOEXPORT_GROUP}
 	volname=${XTREMIOVOL}
 	cluster=sanityCluster1
-	echo "XTREMIO Consistent HLU Test2"
+	echo "XTREMIO Consistent HLU Test 2"
 	
 	run export_group create $proj ${expname}1 $NH --type Host --volspec "${proj}/${volname}"1 --hosts "${HOST1}"
 	verify_export ${HOST1} 4 1 1
@@ -2019,6 +1915,111 @@ xtremio_export_test_hlu2()
     run export_group delete $proj/${expname}3
     verify_export ${HOST1} 4 2 2,3
     verify_export ${HOST2} 4 2 2,3
+
+    run export_group delete $proj/${expname}2
+}
+
+xtremio_export_test_hlu_snapshot_1() {
+	volname=${XTREMIOVOL}
+	snap1=$proj/${volname}1/$1
+    snap2=$proj/${volname}2/$2
+	snap3=$proj/${volname}3/$3
+	HOST1=$hostbase${tenant}11
+	HOST2=$hostbase${tenant}12
+	expname=${XTREMIOEXPORT_GROUP}Snap
+	echo "XTREMIO Consistent HLU Snapshot Test 1"
+	
+	run export_group create $proj ${expname}1 $NH --type Cluster --volspec "${proj}/${volname}"1 --cluster ${tenant}/${cluster}
+	verify_export ${HOST1} 4 1 1
+	verify_export ${HOST2} 4 1 1
+	
+	run export_group create $proj ${expname}2 $NH --type Host --volspec "${proj}/${volname}"2 --hosts "${HOST1}"
+	verify_export ${HOST1} 4 2 1,2
+	verify_export ${HOST2} 4 1 1
+	
+	run export_group update $proj/${expname}1 --addVolspec "${snap1}"
+	verify_export ${HOST1} 4 3 1,2,3
+	verify_export ${HOST2} 4 2 1,3
+	
+	run export_group update $proj/${expname}2 --addVolspec "${snap2}"
+	verify_export ${HOST1} 4 4 1,2,3,4
+	verify_export ${HOST2} 4 2 1,3
+	
+	run export_group delete $proj/${expname}2
+	verify_export ${HOST1} 4 2 1,3
+    verify_export ${HOST2} 4 2 1,3
+	
+	run export_group update $proj/${expname}1 --remHosts "${HOST2}"
+    verify_export ${HOST1} 4 2 1,3
+    verify_export ${HOST2} gone
+
+    run export_group update $proj/${expname}1 --addVols "${snap3}"
+    verify_export ${HOST1} 4 3 1,2,3
+
+    run export_group update $proj/${expname}1 --remVols "${proj}/${volname}"1
+    verify_export ${HOST1} 4 2 2,3
+    
+	run export_group update $proj/${expname}1 --addHosts "${HOST2}"
+    verify_export ${HOST1} 4 2 2,3
+	verify_export ${HOST2} 4 2 2,3
+    
+    run export_group update $proj/${expname}1 --addVols "$proj/${volname}3"
+    verify_export ${HOST1} 4 3 1,2,3
+    verify_export ${HOST2} 4 3 1,2,3
+
+    run export_group delete $proj/${expname}1
+
+}
+
+xtremio_export_test_hlu_snapshot_2()
+{
+	volname=${XTREMIOVOL}
+	cluster=sanityCluster2
+	snap1=$proj/${volname}1/$1
+    snap2=$proj/${volname}2/$2
+	snap3=$proj/${volname}3/$3
+	HOST1=$hostbase${tenant}21
+	HOST2=$hostbase${tenant}22
+	expname=${XTREMIOEXPORT_GROUP}
+    echo "XTREMIO Consistent HLU Snapshot Test 2"
+	
+	run export_group create $proj ${expname}1 $NH --type Host --volspec "${proj}/${volname}"1 --hosts "${HOST1}"
+	verify_export ${HOST1} 4 1 1
+	
+	run export_group create $proj ${expname}2 $NH --type Cluster --volspec "${proj}/${volname}"2 --cluster ${tenant}/${cluster}
+	verify_export ${HOST1} 4 2 1,2
+	verify_export ${HOST2} 4 1 2
+	
+	run export_group update $proj/${expname}1 --addVols "${snap1}"
+	verify_export ${HOST1} 4 3 1,2,3
+	verify_export ${HOST2} 4 1 2
+	
+	run export_group update $proj/${expname}2 --addVols "${snap2}"
+	verify_export ${HOST1} 4 4 1,2,3,4
+	verify_export ${HOST2} 4 2 2,4
+	
+	run export_group delete $proj/${expname}1
+    verify_export ${HOST1} 4 2 2,4
+    verify_export ${HOST2} 4 2 2,4
+	
+	run export_group update $proj/${expname}2 --remHosts "${HOST2}"
+	verify_export ${HOST1} 4 2 2,4
+	verify_export ${HOST2} gone
+    
+    run export_group update $proj/${expname}2 --addVols "${proj}/${volname}"3
+    verify_export ${HOST1} 4 3 1,2,4
+    verify_export ${HOST2} gone
+
+    run export_group update $proj/${expname}2 --remVols "${proj}/${volname}"2
+    verify_export ${HOST1} 4 2 1,4
+
+	run export_group update $proj/${expname}2 --addHosts "${HOST2}"
+    verify_export ${HOST1} 4 2 1,4
+    verify_export ${HOST2} 4 2 1,4
+
+    run export_group update $proj/${expname}2 --addVols "${snap3}"
+	verify_export ${HOST1} 4 3 1,2,4
+	verify_export ${HOST2} 4 3 1,2,4
 
     run export_group delete $proj/${expname}2
 }

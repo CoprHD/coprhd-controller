@@ -1009,6 +1009,7 @@ public class BlockService extends TaskResourceService {
         if (VirtualPool.vPoolSpecifiesRemoteReplication(vpool)) {
             RemoteReplicationParameters rrParameters = param.getRemoteReplicationParameters();
            if (rrParameters != null) {
+               // todo: validate parameters --- validate that rr set and rr group exist in database.
                capabilities.put(VirtualPoolCapabilityValuesWrapper.REMOTE_REPLICATION_SET, rrParameters.getRemoteReplicationSet());
                capabilities.put(VirtualPoolCapabilityValuesWrapper.REMOTE_REPLICATION_GROUP, rrParameters.getRemoteReplicationGroup());
                capabilities.put(VirtualPoolCapabilityValuesWrapper.REMOTE_REPLICATION_MODE, rrParameters.getRemoteReplicationMode());

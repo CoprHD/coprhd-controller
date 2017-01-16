@@ -9222,6 +9222,7 @@ class Bourne:
         replicationsets = self.replicationset_list()
         for rs in replicationsets:
             replicationset = self.replicationset_show(rs['id'])
+            print '@@@@: ' + str(replicationset) + ' :@@@@'
             if (replicationset['name'] == name):
                 return replicationset['id']
         raise Exception('bad remote replication set name ' + name)

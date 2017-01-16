@@ -3158,7 +3158,7 @@
         key : "strong_ciphers",
         label : "Cipher Suite",
         description : "Cipher Suite",
-        type : "uint32",
+        type : "text",
         userConfigurable : true,
         userMutable : true,
 		hidden : true,

@@ -1,22 +1,24 @@
 package com.emc.storageos.db.client.upgrade.callbacks;
 
-import java.io.File;
-import java.util.Collection;
+import java.util.Map;
 import java.util.Map.Entry;
+import java.util.TreeMap;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.commons.io.FileUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.emc.storageos.db.client.impl.DataObjectType;
 import com.emc.storageos.db.client.impl.DbCheckerFileWriter;
 import com.emc.storageos.db.client.impl.DbClientContext;
 import com.emc.storageos.db.client.impl.DbClientImpl;
 import com.emc.storageos.db.client.impl.DbConsistencyCheckerHelper;
 import com.emc.storageos.db.client.impl.DbConsistencyCheckerHelper.CheckResult;
 import com.emc.storageos.db.client.impl.DbConsistencyCheckerHelper.IndexAndCf;
+import com.emc.storageos.db.client.impl.TypeMap;
 import com.emc.storageos.db.client.upgrade.BaseCustomMigrationCallback;
+import com.emc.storageos.db.client.util.KeyspaceUtil;
 import com.emc.storageos.services.util.Exec;
 import com.emc.storageos.svcs.errorhandling.resources.MigrationCallbackException;
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
@@ -28,11 +30,19 @@ public class StaleIndexCleanerMigration extends BaseCustomMigrationCallback {
     @Override
     public void process() throws MigrationCallbackException {
         DbConsistencyCheckerHelper checkHelper = new DbConsistencyCheckerHelper((DbClientImpl)getDbClient());
-        Collection<IndexAndCf> idxCfs = checkHelper.getAllIndices().values();
+        
+        Map<String, IndexAndCf> allIdxCfs = new TreeMap<>();
+        for (DataObjectType objType : TypeMap.getAllDoTypes()) {
+            if (KeyspaceUtil.isLocal(objType.getDataObjectClass())) {
+                Map<String, IndexAndCf> idxCfs = checkHelper.getIndicesOfCF(objType);
+                allIdxCfs.putAll(idxCfs);
+            }
+        }
+        
         CheckResult checkResult = new CheckResult();
         
         try {
-            for (IndexAndCf indexAndCf : idxCfs) {
+            for (IndexAndCf indexAndCf : allIdxCfs.values()) {
                 try {
                     checkHelper.checkIndexingCF(indexAndCf, false, checkResult, true);
                 } catch (ConnectionException e) {

@@ -13,6 +13,7 @@ import com.emc.vipr.client.Task;
 
 public class AdjustExportPaths extends WaitForTask<ExportGroupRestRep> {
 
+    private URI virtualArray;
     private Integer minPaths;
     private Integer maxPaths;
     private Integer pathsPerInitiator;
@@ -24,8 +25,9 @@ public class AdjustExportPaths extends WaitForTask<ExportGroupRestRep> {
     
     private URI exportId;
     
-    public AdjustExportPaths(Integer minPaths, Integer maxPaths, Integer pathsPerInitiator, URI storageSystemId, URI exportId, 
-            List<InitiatorPathParam> addedPaths, List<InitiatorPathParam> removedPaths, boolean suspendWait) {
+    public AdjustExportPaths(URI virtualArray, Integer minPaths, Integer maxPaths, Integer pathsPerInitiator, URI storageSystemId,
+            URI exportId, List<InitiatorPathParam> addedPaths, List<InitiatorPathParam> removedPaths, boolean suspendWait) {
+        this.virtualArray = virtualArray;
         this.minPaths = minPaths;
         this.maxPaths = maxPaths;
         this.pathsPerInitiator = pathsPerInitiator;
@@ -37,7 +39,7 @@ public class AdjustExportPaths extends WaitForTask<ExportGroupRestRep> {
         
         this.exportId = exportId;
         
-        provideDetailArgs(this.exportId, this.minPaths, this.maxPaths, this.pathsPerInitiator, 
+        provideDetailArgs(this.virtualArray, this.exportId, this.minPaths, this.maxPaths, this.pathsPerInitiator,
                 buildPathDetails(this.addedPaths), buildPathDetails(this.removedPaths));
     }
     
@@ -51,11 +53,12 @@ public class AdjustExportPaths extends WaitForTask<ExportGroupRestRep> {
         exportPathParameters.setPathsPerInitiator(pathsPerInitiator);
         
         param.setExportPathParameters(exportPathParameters);
+        param.setVirtualArray(virtualArray);
         param.setStorageSystem(storageSystemId);
-        
+
         param.setAdjustedPaths(addedPaths);
         param.setRemovedPaths(removedPaths);
-        
+
         param.setWaitBeforeRemovePaths(suspendWait);
 
         return getClient().blockExports().pathAdjustment(exportId, param);

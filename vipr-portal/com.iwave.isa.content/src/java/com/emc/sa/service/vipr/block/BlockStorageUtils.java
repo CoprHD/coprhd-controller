@@ -400,11 +400,11 @@ public class BlockStorageUtils {
         return execute(new FindEmptyExportByName(name, projectId, varrayId));
     }
     
-    public static URI adjustExportPaths(Integer minPaths, Integer maxPaths, Integer pathsPerInitiator, 
+    public static URI adjustExportPaths(URI vArray, Integer minPaths, Integer maxPaths, Integer pathsPerInitiator,
             URI storageSystemId, URI id, List<InitiatorPathParam> addedPaths, List<InitiatorPathParam> removedPaths,
             boolean suspendWait) {
         
-        Task<ExportGroupRestRep> task = execute(new AdjustExportPaths(minPaths, maxPaths, pathsPerInitiator, 
+        Task<ExportGroupRestRep> task = execute(new AdjustExportPaths(vArray, minPaths, maxPaths, pathsPerInitiator,
                 storageSystemId, id, addedPaths, removedPaths, suspendWait));
         URI exportId = task.getResourceId();
         addAffectedResource(exportId);

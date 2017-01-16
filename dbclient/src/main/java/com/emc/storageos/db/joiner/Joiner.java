@@ -447,7 +447,8 @@ public class Joiner {
                     selectionUris = andUriSet(selectionUris, allValueUris);
                 }
 
-            } else if (jc.getMetaData().isIndexed(js.getField())) {
+            } else if (jc.getMetaData().isAltIdIndex(js.getField()) 
+                    || jc.getMetaData().isPrefixIndex(js.getField())) {
 
                 // Process alternate id indexes. These are logically ANDed together.
                 for (Object value : js.getValues()) {

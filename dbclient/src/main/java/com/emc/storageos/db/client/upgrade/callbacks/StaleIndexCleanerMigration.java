@@ -66,9 +66,6 @@ public class StaleIndexCleanerMigration extends BaseCustomMigrationCallback {
                     if (DbCheckerFileWriter.WriteType.STORAGEOS.name().equalsIgnoreCase(entry.getKey())) {
                         execCleanupScript(String.format(CLEANUP_COMMAND, DbClientContext.LOCAL_KEYSPACE_NAME, entry.getValue(),
                                 DbClientContext.DB_THRIFT_PORT));
-                    } else if (DbCheckerFileWriter.WriteType.GEOSTORAGEOS.name().equalsIgnoreCase(entry.getKey())) {
-                        execCleanupScript(String.format(CLEANUP_COMMAND, DbClientContext.GEO_KEYSPACE_NAME, entry.getValue(),
-                                DbClientContext.GEODB_THRIFT_PORT));
                     }
                 }
             }

@@ -55,9 +55,12 @@
      #{field 'schedulePolicy.priority'}
        #{Form.selectOneControlGroup field:field, options:policyPriorityOptions, select:schedulePolicy.priority, cssClass:'span3' /}
      #{/field}
-     #{field 'schedulePolicy.numWorkerThreads'}
-       #{Form.selectOneControlGroup field:field, options:numWorkerThreadsOptions, select:schedulePolicy.numWorkerThreads, cssClass:'span3' /}
-     #{/field}
+      #{field 'schedulePolicy.numWorkerThreads'}
+         %{
+           field.options = numWorkerThreadsOptions   
+         }%
+         #{Form.selectOne field: field, select:schedulePolicy.numWorkerThreads/}
+      #{/field}
     
     <!-- - -->
     #{field 'schedulePolicy.scheduleTime'}

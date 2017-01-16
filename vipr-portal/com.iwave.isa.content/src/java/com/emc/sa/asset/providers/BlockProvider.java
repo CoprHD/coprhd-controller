@@ -853,6 +853,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
             }
         }
 
+        AssetOptionsUtils.sortOptionsByLabel(options);
         return options;
     }
     

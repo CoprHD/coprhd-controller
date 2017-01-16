@@ -515,7 +515,7 @@ public class DbConsistencyCheckerHelper {
     }
 
     private ObjectEntry extractObjectEntryFromIndex(String indexKey,
-            IndexColumnName name, Class<? extends DbIndex> type, boolean toConsole) {
+            CompositeIndexColumnName name, Class<? extends DbIndex> type, boolean toConsole) {
         // The className of a data object CF in a index record
         String className;
         // The id of the data object record in a index record

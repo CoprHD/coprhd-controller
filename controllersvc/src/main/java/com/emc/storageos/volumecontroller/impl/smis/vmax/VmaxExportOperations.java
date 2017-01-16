@@ -4998,8 +4998,9 @@ public class VmaxExportOperations implements ExportMaskOperations {
         for (String portGroupName : portGroupNames) {
             List<URI> storagePortUris = getPortGroupMembers(storage, portGroupName);
             if (storagePortUris.containsAll(ports)) {
-                _log.info("Found the port group " + portGroup);
+                _log.info("Found the port group " + portGroupName);
                 portGroup = portGroupName;
+                break;
             }
         }
         return portGroup;

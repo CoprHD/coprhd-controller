@@ -63,11 +63,11 @@ import com.emc.storageos.db.client.model.VirtualNAS;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.FileOperationUtils;
-import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.fileorchestrationcontroller.FileDescriptor;
 import com.emc.storageos.fileorchestrationcontroller.FileOrchestrationInterface;
+import com.emc.storageos.fileorchestrationcontroller.FileOrchestrationUtils;
 import com.emc.storageos.locking.LockTimeoutValue;
 import com.emc.storageos.locking.LockType;
 import com.emc.storageos.model.file.CifsShareACLUpdateParams;
@@ -290,8 +290,8 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                 auditType,
                 System.currentTimeMillis(),
                 operationalStatus ? AuditLogManager.AUDITLOG_SUCCESS : AuditLogManager.AUDITLOG_FAILURE,
-                description,
-                descparams);
+                        description,
+                        descparams);
     }
 
     @Override
@@ -3693,7 +3693,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
     @Override
     public String addStepsForCreateFileSystems(Workflow workflow,
             String waitFor, List<FileDescriptor> filesystems, String taskId)
-            throws InternalException {
+                    throws InternalException {
 
         if (filesystems != null && !filesystems.isEmpty()) {
             // create source filesystems
@@ -3728,7 +3728,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                                 createFileSharesMethod(descriptor),
                                 rollbackCreateFileSharesMethod(fileShareSource.getStorageDevice(), asList(fileShare.getParentFileShare()
                                         .getURI())),
-                                null);
+                                        null);
                     }
                 }
             }
@@ -3741,7 +3741,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
     @Override
     public String addStepsForDeleteFileSystems(Workflow workflow,
             String waitFor, List<FileDescriptor> filesystems, String taskId)
-            throws InternalException {
+                    throws InternalException {
         List<FileDescriptor> sourceDescriptors = FileDescriptor.filterByType(filesystems,
                 FileDescriptor.Type.FILE_DATA, FileDescriptor.Type.FILE_EXISTING_SOURCE,
                 FileDescriptor.Type.FILE_MIRROR_SOURCE);
@@ -3783,7 +3783,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                                     this.getClass(),
                                     deleteFileSharesMethod(fsTargObj.getStorageDevice(), asList(targetURI),
                                             filesystems.get(0).isForceDelete(), filesystems.get(0).getDeleteType(), taskId),
-                                    null, null);
+                                            null, null);
                         }
                     }
                 }
@@ -3796,7 +3796,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                             this.getClass(),
                             deleteFileSharesMethod(deviceURI, fileshareURIs,
                                     filesystems.get(0).isForceDelete(), filesystems.get(0).getDeleteType(), taskId),
-                            null, null);
+                                    null, null);
                 }
 
             }
@@ -3816,7 +3816,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
     @Override
     public String addStepsForExpandFileSystems(Workflow workflow, String waitFor,
             List<FileDescriptor> fileDescriptors, String taskId)
-            throws InternalException {
+                    throws InternalException {
         List<FileDescriptor> sourceDescriptors = FileDescriptor.filterByType(fileDescriptors, FileDescriptor.Type.FILE_MIRROR_SOURCE,
                 FileDescriptor.Type.FILE_EXISTING_SOURCE, FileDescriptor.Type.FILE_DATA,
                 FileDescriptor.Type.FILE_MIRROR_TARGET);
@@ -4370,7 +4370,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
     }
 
     @Override
-    public void applyFilePolicy(URI sourceFS, List<FilePolicy> filePolicies, String taskId) {
+    public void applyFilePolicy(URI sourceFS, URI policyURI, String taskId) {
         FileShare fsObj = null;
         StorageSystem storageObj = null;
         try {
@@ -4379,34 +4379,22 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             Project project = _dbClient.queryObject(Project.class, fsObj.getProject());
             storageObj = _dbClient.queryObject(StorageSystem.class, fsObj.getStorageDevice());
             FileDeviceInputOutput args = new FileDeviceInputOutput();
-
-            List<FilePolicy> fileReplicationPolicies = new ArrayList<FilePolicy>();
-            List<FilePolicy> fileSnapshotPolicies = new ArrayList<FilePolicy>();
-
-            for (FilePolicy policy : filePolicies) {
-                if (policy.getFilePolicyType().equals(FilePolicy.FilePolicyType.file_replication.name())) {
-                    fileReplicationPolicies.add(policy);
-                } else if (policy.getFilePolicyType().equals(FilePolicy.FilePolicyType.file_snapshot.name())) {
-                    fileSnapshotPolicies.add(policy);
-                }
-            }
+            FilePolicy filePolicy = _dbClient.queryObject(FilePolicy.class, policyURI);
             args.setOpId(taskId);
-            args.setFileReplicationPolicies(fileReplicationPolicies);
-            args.setFileSnapshotPolicies(fileSnapshotPolicies);
             args.addFSFileObject(fsObj);
             args.setVPool(vpool);
             args.setProject(project);
+            args.setFileProtectionPolicy(filePolicy);
+            setVirtualNASinArgs(fsObj.getVirtualNAS(), args);
             WorkflowStepCompleter.stepExecuting(taskId);
             BiosCommandResult result = getDevice(storageObj.getSystemType()).doApplyFilePolicy(storageObj, args);
             if (result.getCommandPending()) {
                 return;
-            }
-            if (!result.isCommandSuccess() && !result.getCommandPending()) {
-                WorkflowStepCompleter.stepFailed(taskId, result.getServiceCoded());
-            }
-            if (result.isCommandSuccess()) {
-                _log.info("File polices applied successfully");
+            } else if (result.isCommandSuccess()) {
+                _log.info("File policy: {} applied successfully", filePolicy.getFilePolicyName());
                 WorkflowStepCompleter.stepSucceded(taskId);
+            } else {
+                WorkflowStepCompleter.stepFailed(taskId, result.getServiceCoded());
             }
         } catch (Exception e) {
             ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
@@ -4417,7 +4405,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
     /**
      * 
      * @param storage
-     * @param filePolicy
+     * @param filePolicy URI of the file policy to be applied
      * @param policyStorageResource
      * @param opId
      * @throws ControllerException
@@ -4441,21 +4429,19 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             BiosCommandResult result = getDevice(storageObj.getSystemType()).doUnassignFilePolicy(storageObj, args);
             if (result.getCommandPending()) {
                 return;
-            }
-            if (!result.isCommandSuccess() && !result.getCommandPending()) {
-                WorkflowStepCompleter.stepFailed(opId, result.getServiceCoded());
-            }
-            if (result.isCommandSuccess()) {
-                StringSet assignedResources = filePolicy.getAssignedResources();
-                assignedResources.remove(policyRes.getAppliedAt().toString());
-                filePolicy.setAssignedResources(assignedResources);
-                if (filePolicy.getAssignedResources().isEmpty()) {
-                    filePolicy.setApplyAt(NullColumnValueGetter.getNullStr());
-                }
+
+            } else if (result.isCommandSuccess()) {
+                filePolicy.removePolicyStorageResources(policyRes.getId());
+                _dbClient.markForDeletion(policyRes);
+                filePolicy.removeAssignedResources(policyRes.getAppliedAt());
                 _dbClient.updateObject(filePolicy);
+
+                FileOrchestrationUtils.updateUnAssignedResource(filePolicy, policyRes, _dbClient);
                 _log.info("Unassigning file policy: {} from resource: {} finished successfully", policyURI.toString(),
                         policyRes.getAppliedAt().toString());
                 WorkflowStepCompleter.stepSucceded(opId);
+            } else {
+                WorkflowStepCompleter.stepFailed(opId, result.getServiceCoded());
             }
         } catch (Exception e) {
             ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
@@ -4466,7 +4452,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
     @Override
     public void assignFileSnapshotPolicyToVirtualPool(URI storageSystemURI, URI vNASURI, URI filePolicyToAssign, URI vpoolURI,
             String opId)
-                    throws ControllerException {
+            throws ControllerException {
         StorageSystem storageObj = null;
         FilePolicy filePolicy = null;
         VirtualNAS vNAS = null;
@@ -4496,7 +4482,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                 WorkflowStepCompleter.stepFailed(opId, result.getServiceCoded());
             }
             if (result.isCommandSuccess()) {
-                createFilePolicyInDB(storageSystemURI, null, vpoolURI, FilePolicyApplyLevel.vpool.name(), filePolicy);
+                createFilePolicyInDB(storageSystemURI, null, vpoolURI, FilePolicyApplyLevel.vpool, filePolicy);
                 WorkflowStepCompleter.stepSucceded(opId);
             }
         } catch (Exception e) {
@@ -4505,13 +4491,21 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
         }
     }
 
-    private void createFilePolicyInDB(URI storageURI, URI vpoolURI, URI resourceURI, String applyAt, FilePolicy filePolicy) {
+    /**
+     * 
+     * @param storageURI
+     * @param vpoolURI
+     * @param resourceURI
+     * @param vpool
+     * @param filePolicy
+     */
+    private void createFilePolicyInDB(URI storageURI, URI vpoolURI, URI resourceURI, FilePolicyApplyLevel applyAt, FilePolicy filePolicy) {
 
         PolicyStorageResource policyStorageResource = new PolicyStorageResource();
         policyStorageResource.setId(URIUtil.createId(PolicyStorageResource.class));
         policyStorageResource.setFilePolicyId(filePolicy.getId());
         policyStorageResource.setStorageSystem(storageURI);
-        String snapshotScheduleName = applyAt + "_" + filePolicy.getFilePolicyName();
+        String snapshotScheduleName = applyAt.name() + "_" + filePolicy.getFilePolicyName();
         policyStorageResource.setPolicyNativeId(snapshotScheduleName);
         policyStorageResource.setAppliedAt(filePolicy.getId());
         _dbClient.createObject(policyStorageResource);
@@ -4523,13 +4517,21 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             filePolicy.setFilePolicyVpool(vpoolURI);
         }
 
-        StringSet assignedResources = filePolicy.getAssignedResources();
-        if (assignedResources == null) {
-            assignedResources = new StringSet();
+        filePolicy.addAssignedResources(resourceURI);
+        switch (applyAt) {
+            case project:
+                Project project = _dbClient.queryObject(Project.class, resourceURI);
+                project.addFilePolicy(filePolicy.getId());
+                _dbClient.updateObject(project);
+                break;
+            case vpool:
+                VirtualPool vpool = _dbClient.queryObject(VirtualPool.class, resourceURI);
+                vpool.addFilePolicy(filePolicy.getId());
+                _dbClient.updateObject(vpool);
+                break;
+            default:
+                break;
         }
-        assignedResources.add(resourceURI.toString());
-        filePolicy.setApplyAt(applyAt);
-        filePolicy.setAssignedResources(assignedResources);
         _dbClient.updateObject(filePolicy);
 
     }
@@ -4566,7 +4568,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                 WorkflowStepCompleter.stepFailed(opId, result.getServiceCoded());
             }
             if (result.isCommandSuccess()) {
-                createFilePolicyInDB(storageSystemURI, vpoolURI, projectURI, FilePolicyApplyLevel.project.name(), filePolicy);
+                createFilePolicyInDB(storageSystemURI, vpoolURI, projectURI, FilePolicyApplyLevel.project, filePolicy);
                 WorkflowStepCompleter.stepSucceded(opId);
             }
         } catch (Exception e) {

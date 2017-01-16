@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015 EMC Corporation
+ * Copyright (c) 2017 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.db.client.model;
@@ -73,14 +73,8 @@ public class FilePolicy extends DataObjectWithACLs {
     // Actual resources where is being applied
     private StringSet policyStorageResources;
 
-    /**
-     * TRUE means: if policy has to be applied on all file system coming under specified vpool, at the time of
-     * provisioning.
-     * FALSE means : policy has to applied on the specific file system chosen at the time of provisioning..
-     */
-    private String applyToFS;
-    private String applyTovPools;
-    private String applyToProjects;
+    // This has to be converted to FileReplicationTopology
+    private StringSet replicationTopologies;
 
     private Boolean applyOnTargetSite;
 
@@ -272,16 +266,6 @@ public class FilePolicy extends DataObjectWithACLs {
         setChanged("assignedResources");
     }
 
-    @Name("applyToFS")
-    public String getApplyToFS() {
-        return this.applyToFS;
-    }
-
-    public void setApplyToFS(String applyToAllFS) {
-        this.applyToFS = applyToAllFS;
-        setChanged("applyToFS");
-    }
-
     @Name("applyOnTargetSite")
     public Boolean getApplyOnTargetSite() {
         return this.applyOnTargetSite;
@@ -322,24 +306,14 @@ public class FilePolicy extends DataObjectWithACLs {
         setChanged("policyStorageResources");
     }
 
-    @Name("applyTovPools")
-    public String getApplyTovPools() {
-        return applyTovPools;
+    @Name("replicationTopologies")
+    public StringSet getReplicationTopologies() {
+        return replicationTopologies;
     }
 
-    public void setApplyTovPools(String applyToAllvPools) {
-        this.applyTovPools = applyToAllvPools;
-        setChanged("applyTovPools");
-    }
-
-    @Name("applyToProjects")
-    public String getApplyToProjects() {
-        return applyToProjects;
-    }
-
-    public void setApplyToAllProjects(String applyToAllProjects) {
-        this.applyToProjects = applyToAllProjects;
-        setChanged("applyToProjects");
+    public void setReplicationTopologies(StringSet replicationTopologies) {
+        this.replicationTopologies = replicationTopologies;
+        setChanged("replicationTopologies");
     }
 
     @Override
@@ -351,6 +325,42 @@ public class FilePolicy extends DataObjectWithACLs {
                 + ", snapshotExpireType=" + snapshotExpireType + ", snapshotExpireTime=" + snapshotExpireTime + ", snapshotNamePattern="
                 + snapshotNamePattern + ", fileReplicationType=" + fileReplicationType + ", fileReplicationCopyMode="
                 + fileReplicationCopyMode + ", filePolicyVpool=" + filePolicyVpool + ", priority=" + priority + ", policyStorageResources="
-                + policyStorageResources + ", applyToAllFS=" + applyToFS + "]";
+                + policyStorageResources + " ]";
+    }
+
+    public void addAssignedResources(URI resourceURI) {
+        StringSet assignedRes = this.assignedResources;
+        if (assignedRes == null) {
+            assignedRes = new StringSet();
+        }
+        assignedRes.add(resourceURI.toString());
+        this.assignedResources = assignedRes;
+    }
+
+    public void removeAssignedResources(URI resourceURI) {
+        StringSet assignedRes = this.assignedResources;
+        if (assignedRes != null) {
+            assignedRes.remove(resourceURI.toString());
+            this.assignedResources = assignedRes;
+        }
+    }
+
+    public void addPolicyStorageResources(URI resourceURI) {
+        StringSet policyStrRes = this.policyStorageResources;
+        if (policyStrRes == null) {
+            policyStrRes = new StringSet();
+        }
+        policyStrRes.add(resourceURI.toString());
+
+        this.policyStorageResources = policyStrRes;
+    }
+
+    public void removePolicyStorageResources(URI resourceURI) {
+        StringSet policyStrRes = this.policyStorageResources;
+        if (policyStrRes != null) {
+            policyStrRes.remove(resourceURI.toString());
+            this.policyStorageResources = policyStrRes;
+        }
+
     }
 }

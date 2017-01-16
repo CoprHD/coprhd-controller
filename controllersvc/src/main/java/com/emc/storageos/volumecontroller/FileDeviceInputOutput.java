@@ -89,10 +89,10 @@ public class FileDeviceInputOutput {
     private List<NfsACE> nfsAclsToDelete = new ArrayList<>();
 
     // New Addition for File Policy Work
-    private List<FilePolicy> fileReplicationPolicies;
-    private List<FilePolicy> fileSnapshotPolicies;
     private FilePolicy fileProtectionPolicy;
     private PolicyStorageResource policyStorageResource;
+    private String replPolicyAt;
+    private Boolean replPolicyApplied;
 
     public String getFileSystemPath() {
         return fileSystemPath;
@@ -1045,22 +1045,6 @@ public class FileDeviceInputOutput {
         this.vNAS = vNAS;
     }
 
-    public List<FilePolicy> getFileReplicationPolicies() {
-        return fileReplicationPolicies;
-    }
-
-    public void setFileReplicationPolicies(List<FilePolicy> fileReplicationPolicies) {
-        this.fileReplicationPolicies = fileReplicationPolicies;
-    }
-
-    public List<FilePolicy> getFileSnapshotPolicies() {
-        return fileSnapshotPolicies;
-    }
-
-    public void setFileSnapshotPolicies(List<FilePolicy> fileSnapshotPolicies) {
-        this.fileSnapshotPolicies = fileSnapshotPolicies;
-    }
-
     public PolicyStorageResource getPolicyStorageResource() {
         return policyStorageResource;
     }
@@ -1076,6 +1060,22 @@ public class FileDeviceInputOutput {
 
     public void setFileProtectionPolicy(FilePolicy fileProtectionPolicy) {
         this.fileProtectionPolicy = fileProtectionPolicy;
+    }
+
+    public String getReplPolicyAt() {
+        return replPolicyAt;
+    }
+
+    public void setReplPolicyAt(String replPolicyAt) {
+        this.replPolicyAt = replPolicyAt;
+    }
+
+    public Boolean getReplPolicyApplied() {
+        return replPolicyApplied;
+    }
+
+    public void setReplPolicyApplied(Boolean replPolicyApplied) {
+        this.replPolicyApplied = replPolicyApplied;
     }
 
 }

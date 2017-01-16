@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015 EMC Corporation
+ * Copyright (c) 2017 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.model.file.policy;
@@ -8,8 +8,10 @@ package com.emc.storageos.model.file.policy;
  * @author jainm15
  */
 import java.io.Serializable;
+import java.util.Set;
 
 import javax.xml.bind.annotation.XmlElement;
+import javax.xml.bind.annotation.XmlElementWrapper;
 import javax.xml.bind.annotation.XmlRootElement;
 
 @XmlRootElement(name = "assign_file_policy")
@@ -20,9 +22,6 @@ public class FilePolicyAssignParam implements Serializable {
     }
 
     private static final long serialVersionUID = 1L;
-
-    // Level at which policy has to be applied..
-    private String applyAt;
 
     private Boolean applyOnTargetSite;
 
@@ -35,20 +34,9 @@ public class FilePolicyAssignParam implements Serializable {
     // File System assignment parameters.
     private FilePolicyFileSystemAssignParam fileSystemAssignParams;
 
-    /**
-     * Level at which policy has to applied.
-     * Valid values are vpool, project, file_system
-     * 
-     * @return
-     */
-    @XmlElement(required = true, name = "apply_at")
-    public String getApplyAt() {
-        return this.applyAt;
-    }
-
-    public void setApplyAt(String applyAt) {
-        this.applyAt = applyAt;
-    }
+    // File replication topology information
+    // Applicable only for replication type policies
+    private Set<FileReplicationTopologyParam> fileReplicationtopologies;
 
     @XmlElement(name = "apply_on_target_site")
     public Boolean getApplyOnTargetSite() {
@@ -84,6 +72,16 @@ public class FilePolicyAssignParam implements Serializable {
 
     public void setFileSystemAssignParams(FilePolicyFileSystemAssignParam fileSystemAssignParams) {
         this.fileSystemAssignParams = fileSystemAssignParams;
+    }
+
+    @XmlElementWrapper(name = "file_replication_topologies")
+    @XmlElement(name = "file_replication_topology")
+    public Set<FileReplicationTopologyParam> getFileReplicationtopologies() {
+        return fileReplicationtopologies;
+    }
+
+    public void setFileReplicationtopologies(Set<FileReplicationTopologyParam> fileReplicationtopologies) {
+        this.fileReplicationtopologies = fileReplicationtopologies;
     }
 
 }

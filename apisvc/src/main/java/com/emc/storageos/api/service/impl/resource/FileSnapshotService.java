@@ -323,7 +323,7 @@ public class FileSnapshotService extends TaskResourceService {
         Operation op = _dbClient.createTaskOpStatus(Snapshot.class, snap.getId(),
                 task, ResourceOperationTypeEnum.EXPORT_FILE_SNAPSHOT);
 
-        FileServiceApi fileServiceApi = FileService.getFileShareServiceImpl(fs, _dbClient);
+        FileServiceApi fileServiceApi = FileService.getFileShareServiceImpl(fs, null, _dbClient);
         fileServiceApi.export(device.getId(), snap.getId(), Arrays.asList(export), task);
 
         auditOp(OperationTypeEnum.EXPORT_FILE_SNAPSHOT, true, AuditLogManager.AUDITOP_BEGIN,
@@ -550,7 +550,7 @@ public class FileSnapshotService extends TaskResourceService {
                 ResourceOperationTypeEnum.UNEXPORT_FILE_SNAPSHOT);
 
         try {
-            FileServiceApi fileServiceApi = FileService.getFileShareServiceImpl(fileShare, _dbClient);
+            FileServiceApi fileServiceApi = FileService.getFileShareServiceImpl(fileShare, null, _dbClient);
             fileServiceApi.deleteExportRules(device.getId(), snapshot.getId(), false, null, false, task);
 
             auditOp(OperationTypeEnum.UNEXPORT_FILE_SNAPSHOT, true, AuditLogManager.AUDITOP_BEGIN,
@@ -732,7 +732,7 @@ public class FileSnapshotService extends TaskResourceService {
         Operation op = _dbClient.createTaskOpStatus(Snapshot.class, snap.getId(), task,
                 ResourceOperationTypeEnum.CREATE_FILE_SNAPSHOT_SHARE);
 
-        FileServiceApi fileServiceApi = FileService.getFileShareServiceImpl(fs, _dbClient);
+        FileServiceApi fileServiceApi = FileService.getFileShareServiceImpl(fs, null, _dbClient);
         fileServiceApi.share(device.getId(), snap.getId(), smbShare, task);
         auditOp(OperationTypeEnum.CREATE_FILE_SNAPSHOT_SHARE, true, AuditLogManager.AUDITOP_BEGIN,
                 smbShare.getName(), smbShare.getPermissionType(), smbShare.getPermission(),
@@ -784,7 +784,7 @@ public class FileSnapshotService extends TaskResourceService {
                 smbShare.getPermissionType(), smbShare.getPermission(), Integer.toString(smbShare
                         .getMaxUsers()),
                 smbShare.getNativeId(), smbShare.getPath());
-        FileServiceApi fileServiceApi = FileService.getFileShareServiceImpl(fs, _dbClient);
+        FileServiceApi fileServiceApi = FileService.getFileShareServiceImpl(fs, null, _dbClient);
         fileServiceApi.deleteShare(device.getId(), snap.getId(), fileSMBShare, task);
         auditOp(OperationTypeEnum.DELETE_FILE_SNAPSHOT_SHARE, true, AuditLogManager.AUDITOP_BEGIN,
                 smbShare.getName(), smbShare.getPermissionType(), smbShare.getPermission(),
@@ -854,7 +854,7 @@ public class FileSnapshotService extends TaskResourceService {
 
         Operation op = _dbClient.createTaskOpStatus(Snapshot.class, snapshot.getId(),
                 task, ResourceOperationTypeEnum.UPDATE_FILE_SNAPSHOT_SHARE_ACL);
-        FileServiceApi fileServiceApi = FileService.getFileShareServiceImpl(fs, _dbClient);
+        FileServiceApi fileServiceApi = FileService.getFileShareServiceImpl(fs, null, _dbClient);
         fileServiceApi.updateShareACLs(device.getId(), snapshot.getId(), shareName, param, task);
 
         auditOp(OperationTypeEnum.UPDATE_FILE_SNAPSHOT_SHARE_ACL, true, AuditLogManager.AUDITOP_BEGIN,
@@ -929,7 +929,7 @@ public class FileSnapshotService extends TaskResourceService {
                 taskId, ResourceOperationTypeEnum.DELETE_FILE_SNAPSHOT_SHARE_ACL);
         op.setDescription("Delete ACL of Snapshot Cifs share");
 
-        FileServiceApi fileServiceApi = FileService.getFileShareServiceImpl(fs, _dbClient);
+        FileServiceApi fileServiceApi = FileService.getFileShareServiceImpl(fs, null, _dbClient);
         fileServiceApi.deleteShareACLs(device.getId(), snapshot.getId(), shareName, taskId);
 
         auditOp(OperationTypeEnum.DELETE_FILE_SNAPSHOT_SHARE_ACL,
@@ -976,7 +976,7 @@ public class FileSnapshotService extends TaskResourceService {
                     task, ResourceOperationTypeEnum.RESTORE_FILE_SNAPSHOT);
             op = _dbClient.createTaskOpStatus(Snapshot.class, snap.getId(),
                     task, ResourceOperationTypeEnum.RESTORE_FILE_SNAPSHOT);
-            FileServiceApi fileServiceApi = FileService.getFileShareServiceImpl(fs, _dbClient);
+            FileServiceApi fileServiceApi = FileService.getFileShareServiceImpl(fs, null, _dbClient);
             fileServiceApi.restoreFS(device.getId(), fs.getId(), snap.getId(), task);
             auditOp(OperationTypeEnum.RESTORE_FILE_SNAPSHOT, true, AuditLogManager.AUDITOP_BEGIN,
                     snap.getId().toString(), fs.getId().toString());
@@ -1039,7 +1039,7 @@ public class FileSnapshotService extends TaskResourceService {
                             StorageSystem.class, fs.getStorageDevice());
                     op = _dbClient.createTaskOpStatus(Snapshot.class, snap
                             .getId(), task, ResourceOperationTypeEnum.DELETE_FILE_SNAPSHOT);
-                    FileServiceApi fileServiceApi = FileService.getFileShareServiceImpl(fs, _dbClient);
+                    FileServiceApi fileServiceApi = FileService.getFileShareServiceImpl(fs, null, _dbClient);
                     fileServiceApi.deleteSnapshot(device.getId(), null, snap.getId(),
                             false, FileControllerConstants.DeleteTypeEnum.FULL.toString(), task);
                     auditOp(OperationTypeEnum.DELETE_FILE_SNAPSHOT, true,
@@ -1246,7 +1246,7 @@ public class FileSnapshotService extends TaskResourceService {
 
             _log.info("No Errors found proceeding further {}, {}, {}", new Object[] { _dbClient, fs, param });
 
-            FileServiceApi fileServiceApi = FileService.getFileShareServiceImpl(fs, _dbClient);
+            FileServiceApi fileServiceApi = FileService.getFileShareServiceImpl(fs, null, _dbClient);
             fileServiceApi.updateExportRules(device.getId(), snap.getId(), param, false, task);
 
             auditOp(OperationTypeEnum.UPDATE_EXPORT_RULES_FILE_SNAPSHOT, true, AuditLogManager.AUDITOP_BEGIN,

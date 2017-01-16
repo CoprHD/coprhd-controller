@@ -83,7 +83,7 @@ public class ApiTestBase {
     protected static final String ROOTTENANT_NAME = "Root Provider Tenant";
 
     protected static final String SYSADMIN = "root";
-    protected static final String SYSADMIN_PASS_WORD = "ChangeMe1!";
+    protected static final String SYSADMIN_PASS_WORD = "ChangeMe";
 
     protected static final String SYSMONITOR = "sysmonitor";
     protected static final String SYSMONITOR_PASS_WORD = "ChangeMe1!";
@@ -476,8 +476,7 @@ public class ApiTestBase {
             PasswordResetParam params = new PasswordResetParam();
             params.setUsername(username);
             params.setPassword(pass_word);
-            resp = rSys.path("/password/reset").
-                    put(ClientResponse.class, params);
+            resp = rSys.path("/password/reset").put(ClientResponse.class, params);
             Assert.assertThat(resp.getStatus(), anyOf(is(200), is(400)));
 
             waitForClusterToBeStable();
@@ -641,8 +640,7 @@ public class ApiTestBase {
                         }
                         if (response.getStatus() == 302) {
                             WebResource wb = c.resource(response.getLocation());
-                            response = wb.header(AUTH_TOKEN_HEADER, _savedTokens.get(username)).
-                                    get(ClientResponse.class);
+                            response = wb.header(AUTH_TOKEN_HEADER, _savedTokens.get(username)).get(ClientResponse.class);
                         }
                         return response;
                     }
@@ -658,7 +656,7 @@ public class ApiTestBase {
     /**
      * Use this client if you want to use cookies instead of the http headers for holding the
      * auth token
-     * */
+     */
     protected Client createCookieHttpsClient(final String username, final String password)
             throws NoSuchAlgorithmException {
 
@@ -940,8 +938,7 @@ public class ApiTestBase {
             final String expectedMessage) {
         Assert.assertEquals(expectedStatusCode, actualResponse.getStatus());
         try {
-            final ServiceErrorRestRep error =
-                    actualResponse.getEntity(ServiceErrorRestRep.class);
+            final ServiceErrorRestRep error = actualResponse.getEntity(ServiceErrorRestRep.class);
             assertServiceError(expectedServiceCode.getCode(),
                     expectedServiceCode.getSummary(), expectedMessage, error);
         } catch (final ClientHandlerException e) {

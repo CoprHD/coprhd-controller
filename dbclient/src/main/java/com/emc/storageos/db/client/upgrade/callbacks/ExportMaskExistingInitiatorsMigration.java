@@ -15,15 +15,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.DbClient;
-import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
+import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
 import com.emc.storageos.db.client.model.ExportMask;
-import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.StorageSystem;
-import com.emc.storageos.db.client.model.Volume;
-import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
 import com.emc.storageos.db.client.upgrade.BaseCustomMigrationCallback;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.svcs.errorhandling.resources.MigrationCallbackException;
@@ -144,8 +141,13 @@ public class ExportMaskExistingInitiatorsMigration extends BaseCustomMigrationCa
         boolean differentResource = false;
         String maskResource = mask.getResource();
         if (!NullColumnValueGetter.isNullValue(maskResource)) { // check only if the mask has resource
-            if (URIUtil.isType(URI.create(maskResource), Host.class)) {
-                differentResource = !maskResource.equals(existingInitiator.getHost().toString());
+            if (maskResource.startsWith("urn:storageos:Host")) {
+                // We found scenarios where VPLEX Initiators/ports do not have the Host Name set and this is handled below.
+                if (!NullColumnValueGetter.isNullURI(existingInitiator.getHost())) {
+                    differentResource = !maskResource.equals(existingInitiator.getHost().toString());
+                } else {
+                    differentResource = true;
+                }
             } else {
                 differentResource = !maskResource.equals(existingInitiator.getClusterName());
             }

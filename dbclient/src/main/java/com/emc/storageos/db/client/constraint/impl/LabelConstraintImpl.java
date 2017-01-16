@@ -5,6 +5,8 @@
 package com.emc.storageos.db.client.constraint.impl;
 
 import java.net.URI;
+
+import com.emc.storageos.db.client.impl.IndexColumnNameSerializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import com.netflix.astyanax.Keyspace;
@@ -20,7 +22,7 @@ import com.emc.storageos.db.client.model.ScopedLabel;
 /**
  * find resources matching label
  */
-public class LabelConstraintImpl extends ConstraintImpl implements PrefixConstraint {
+public class LabelConstraintImpl extends ConstraintImpl<IndexColumnName> implements PrefixConstraint {
     private static final Logger log = LoggerFactory.getLogger(LabelConstraintImpl.class);
 
     private ScopedLabel _label;
@@ -29,6 +31,7 @@ public class LabelConstraintImpl extends ConstraintImpl implements PrefixConstra
 
     public LabelConstraintImpl(String label, ColumnField field) {
         super(label, field);
+        indexSerializer = IndexColumnNameSerializer.get();
 
         _label = new ScopedLabel(null, label.toLowerCase());
         _field = field;
@@ -36,6 +39,7 @@ public class LabelConstraintImpl extends ConstraintImpl implements PrefixConstra
 
     public LabelConstraintImpl(URI scope, String label, ColumnField field) {
         super(scope, label, field);
+        indexSerializer = IndexColumnNameSerializer.get();
 
         if (scope == null) {
             _label = new ScopedLabel(null, label.toLowerCase());

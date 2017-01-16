@@ -14,10 +14,12 @@ import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.FilePolicy;
 import com.emc.storageos.db.client.model.FilePolicy.FilePolicyApplyLevel;
 import com.emc.storageos.db.client.model.FilePolicy.FilePolicyType;
+import com.emc.storageos.db.client.model.FileReplicationTopology;
 import com.emc.storageos.db.client.model.FileShare;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.SchedulePolicy.SnapshotExpireType;
 import com.emc.storageos.db.client.model.StringSet;
+import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.model.ResourceTypeEnum;
@@ -25,8 +27,13 @@ import com.emc.storageos.model.file.policy.FilePolicyRestRep;
 import com.emc.storageos.model.file.policy.FilePolicyRestRep.ReplicationSettingsRestRep;
 import com.emc.storageos.model.file.policy.FilePolicyRestRep.ScheduleRestRep;
 import com.emc.storageos.model.file.policy.FilePolicyRestRep.SnapshotSettingsRestRep;
+import com.emc.storageos.model.file.policy.FileReplicationTopologyRestRep;
 
-public class FilePolicyMapper {
+public final class FilePolicyMapper {
+
+    private FilePolicyMapper() {
+
+    }
 
     public static FilePolicyRestRep map(FilePolicy from, DbClient dbClient) {
 
@@ -56,25 +63,13 @@ public class FilePolicyMapper {
             resp.setVpool(DbObjectMapper.toNamedRelatedResource(ResourceTypeEnum.FILE_VPOOL,
                     vpoolURI, vpool.getLabel()));
         }
-        String appliedToAllFS = from.getApplyToFS();
-        if (appliedToAllFS != null) {
-            resp.setAppliedToFileSystems(appliedToAllFS);
-        }
-        String appliedToAllProjects = from.getApplyToProjects();
-        if (appliedToAllProjects != null) {
-            resp.setAppliedToProjects(appliedToAllProjects);
-        }
-        String appliedToAllvPools = from.getApplyTovPools();
-        if (appliedToAllvPools != null) {
-            resp.setAppliedTovPools(appliedToAllvPools);
-        }
 
         String appliedAt = from.getApplyAt();
         if (NullColumnValueGetter.isNotNullValue(appliedAt)) {
             resp.setAppliedAt(appliedAt);
             StringSet assignedResources = from.getAssignedResources();
             if (assignedResources != null && !assignedResources.isEmpty()) {
-                List<URI> resourceURIs = new ArrayList<URI>();
+                List<URI> resourceURIs = new ArrayList<>();
                 for (Iterator<String> iterator = assignedResources.iterator(); iterator.hasNext();) {
                     String resourceId = iterator.next();
                     resourceURIs.add(URI.create(resourceId));
@@ -127,6 +122,37 @@ public class FilePolicyMapper {
             ReplicationSettingsRestRep replicationSettings = new ReplicationSettingsRestRep();
             replicationSettings.setMode(from.getFileReplicationCopyMode());
             replicationSettings.setType(from.getFileReplicationType());
+            List<FileReplicationTopologyRestRep> replicationTopologies = new ArrayList<FileReplicationTopologyRestRep>();
+            if (from.getReplicationTopologies() != null) {
+                for (String topology : from.getReplicationTopologies()) {
+                    FileReplicationTopologyRestRep replicationTopology = new FileReplicationTopologyRestRep();
+                    FileReplicationTopology dbTopology = dbClient.queryObject(FileReplicationTopology.class, URI.create(topology));
+                    if (dbTopology != null) {
+                        VirtualArray srcVArray = dbClient.queryObject(VirtualArray.class, dbTopology.getSourceVArray());
+                        replicationTopology.setSourceVArray(DbObjectMapper.toNamedRelatedResource(srcVArray));
+
+                        // Set Target varrays!!!
+                        StringSet tgtVArrays = dbTopology.getTargetVArrays();
+                        if (tgtVArrays != null && !tgtVArrays.isEmpty()) {
+                            List<URI> resourceURIs = new ArrayList<URI>();
+                            for (Iterator<String> iterator = tgtVArrays.iterator(); iterator.hasNext();) {
+                                resourceURIs.add(URI.create(iterator.next()));
+                            }
+
+                            Iterator<? extends DataObject> resourceIterator = dbClient.queryIterativeObjects(VirtualArray.class,
+                                    resourceURIs);
+                            while (resourceIterator.hasNext()) {
+                                DataObject dataObject = resourceIterator.next();
+                                replicationTopology.addTargetVArray(DbObjectMapper.toNamedRelatedResource(dataObject));
+                            }
+                        }
+
+                    }
+                    replicationTopologies.add(replicationTopology);
+
+                }
+                replicationSettings.setReplicationTopologies(replicationTopologies);
+            }
             resp.setReplicationSettings(replicationSettings);
         }
 

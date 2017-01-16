@@ -384,6 +384,22 @@ angular.module("portalApp").controller({
        }, true);
     },
     
+    filePolicyCtrl: function($scope, $http, $window, translate) {
+        $scope.add = {sourceVArray:'', targetVArray:''};
+        $scope.topologies = []
+        
+        $scope.deleteTopology = function(idx) { $scope.topologies.splice(idx, 1); }
+        $scope.addTopology = function() { $scope.topologies.push(angular.copy($scope.add)); }
+        
+        $http.get(routes.VirtualArrays_list()).success(function(data) {
+        	$scope.virtualArrayOptions = data.aaData;
+        });  
+        
+        $scope.$watch('topologies', function(newVal) {
+        	$scope.topologiesString = angular.toJson($scope.topologies, false);
+        }, true);
+     },
+    
     FileShareAclCtrl: function($scope, $http, $window, translate) {
     	
     	$scope.add = {type:'User', name:'', domain:'', permission:'Change'};
@@ -1565,6 +1581,78 @@ angular.module("portalApp").controller("ConfigBackupCtrl", function($scope) {
         }
         return 0;
     }
+});
+
+angular.module("portalApp").controller("MyOrdersCtrl", function($scope) {
+	var ORDER_MY_LIST = routes.Order_list();
+	console.info($scope);
+	var dateFormat = "YYYY-MM-DD";
+	
+	var dateDaysAgo = $scope.dateDaysAgo;
+	var startDate = $scope.startDate;
+	var endDate = $scope.endDate;
+	var current = new Date().getTime();
+		
+    angular.element("#orderSelector").ready(function () {
+        $scope.$apply(function () {        	
+            $scope.rangeStartDate = startDate != null?startDate : formatDate(dateDaysAgo, dateFormat);
+            $scope.rangeEndDate = endDate != null?endDate : formatDate(current, dateFormat);
+        });  
+    });   
+    
+    $scope.$watch('rangeEndDate', function (newVal, oldVal) {
+    	console.info("vals "+newVal+"\t|"+oldVal);
+    	if(oldVal === undefined) return;
+    	if(newVal < $scope.rangeStartDate) {
+    		alert("The End Date must be not earlier than the Start Date, please re-select.");
+    		return;
+    	}
+    	
+        var url = ORDER_MY_LIST + "?startDate=" + encodeURIComponent($scope.rangeStartDate)+
+        			"&endDate="+encodeURIComponent($scope.rangeEndDate);
+        $('.bfh-datepicker-toggle input').attr("readonly", true);
+        $('date-picker').click(false);
+        
+        console.info(url);
+        window.location.href = url;
+    });
+    
+});
+
+angular.module("portalApp").controller("AllOrdersCtrl", function($scope) {
+    var ORDER_ALL_ORDERS = routes.Order_allOrders();
+    console.info($scope);
+    var dateFormat = "YYYY-MM-DD";
+
+    var dateDaysAgo = $scope.dateDaysAgo;
+    var startDate = $scope.startDate;
+    var endDate = $scope.endDate;
+    var current = new Date().getTime();
+
+    angular.element("#orderSelector").ready(function () {
+        $scope.$apply(function () {
+            $scope.rangeStartDate = startDate != null?startDate : formatDate(dateDaysAgo, dateFormat);
+            $scope.rangeEndDate = endDate != null?endDate : formatDate(current, dateFormat);
+        });
+    });
+
+    $scope.$watch('rangeEndDate', function (newVal, oldVal) {
+        if(oldVal === undefined) return;
+        console.info("vals "+newVal+"\t|"+oldVal);
+        if(newVal < $scope.rangeStartDate) {
+            alert("The End Date must be not earlier than the Start Date, please re-select.");
+            return;
+        }
+
+        var url = ORDER_ALL_ORDERS + "?startDate=" + encodeURIComponent($scope.rangeStartDate)+
+            "&endDate="+encodeURIComponent($scope.rangeEndDate);
+        $('.bfh-datepicker-toggle input').attr("readonly", true);
+        $('date-picker').click(false);
+
+        console.info(url);
+        window.location.href = url;
+    });
+
 });
 
 angular.module("portalApp").controller("schedulerEditCtrl", function($scope) {

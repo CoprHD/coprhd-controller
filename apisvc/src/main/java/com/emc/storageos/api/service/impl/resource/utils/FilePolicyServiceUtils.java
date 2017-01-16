@@ -17,7 +17,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.api.service.impl.resource.ArgValidator;
-import com.emc.storageos.api.service.impl.resource.FilePolicyService;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.FilePolicy;
 import com.emc.storageos.db.client.model.FilePolicy.FilePolicyApplyLevel;
@@ -41,12 +40,16 @@ import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValues
 /**
  * @author jainm15
  */
-public class FilePolicyServiceUtils {
-    private static final Logger _log = LoggerFactory.getLogger(FilePolicyService.class);
+public final class FilePolicyServiceUtils {
+    private static final Logger _log = LoggerFactory.getLogger(FilePolicyServiceUtils.class);
     private static final int MIN_SNAPSHOT_EXPIRE_TIME = 2;
     private static final int MAX_SNAPSHOT_EXPIRE_TIME = 10;
     private static final long MIN_SNAPSHOT_EXPIRE_SECONDS = 7200;
     private static final long MAX_SNAPSHOT_EXPIRE_SECONDS = 10 * 365 * 24 * 3600;
+
+    private FilePolicyServiceUtils() {
+
+    }
 
     /**
      * validates whether the schedule policy parameters are valid or not
@@ -74,7 +77,8 @@ public class FilePolicyServiceUtils {
 
             // validating schedule time
             String period = " PM";
-            int hour = 0, minute = 0;
+            int hour;
+            int minute;
             boolean isValid = true;
             if (policyScheduleparams.getScheduleTime().contains(":")) {
                 String splitTime[] = policyScheduleparams.getScheduleTime().split(":");
@@ -151,7 +155,7 @@ public class FilePolicyServiceUtils {
     }
 
     public static void validateSnapshotPolicyParam(FileSnapshotPolicyParam param) {
-        boolean isValidSnapshotExpire = false;
+        boolean isValidSnapshotExpire;
 
         // check snapshot expire type is valid or not
         ArgValidator.checkFieldValueFromEnum(param.getSnapshotExpireParams().getExpireType().toUpperCase(), "expire_type",
@@ -174,7 +178,7 @@ public class FilePolicyServiceUtils {
      * @return true/false
      */
     private static boolean validateSnapshotExpireParam(FileSnapshotPolicyExpireParam expireParam) {
-        long seconds = 0;
+        long seconds;
         int expireValue = expireParam.getExpireValue();
         SnapshotExpireType expireType = SnapshotExpireType.valueOf(expireParam.getExpireType().toUpperCase());
         switch (expireType) {

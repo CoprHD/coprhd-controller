@@ -20,7 +20,6 @@ import com.emc.storageos.db.client.model.uimodels.Order;
 
 public class TimeSeriesDbIndex extends DbIndex<TimeSeriesIndexColumnName> {
     private static final Logger _log = LoggerFactory.getLogger(TimeSeriesDbIndex.class);
-
     TimeSeriesDbIndex(ColumnFamily<String, TimeSeriesIndexColumnName> indexCF) {
         super(indexCF);
     }
@@ -41,7 +40,7 @@ public class TimeSeriesDbIndex extends DbIndex<TimeSeriesIndexColumnName> {
         String indexKey = order.getTenant();
         ColumnListMutation<TimeSeriesIndexColumnName> indexColList = mutator.getIndexColumnList(indexCF, indexKey);
 
-        TimeSeriesIndexColumnName indexEntry = new TimeSeriesIndexColumnName(className, recordKey, mutator.getTimeUUID());
+        TimeSeriesIndexColumnName indexEntry = new TimeSeriesIndexColumnName(className, recordKey, column.getTimeUUID());
 
         ColumnValue.setColumn(indexColList, indexEntry, null, ttl);
 
@@ -64,7 +63,8 @@ public class TimeSeriesDbIndex extends DbIndex<TimeSeriesIndexColumnName> {
 
         ColumnListMutation<TimeSeriesIndexColumnName> indexColList = mutator.getIndexColumnList(indexCF, tid);
 
-        indexColList.deleteColumn(new TimeSeriesIndexColumnName(className, recordKey, uuid));
+        TimeSeriesIndexColumnName col = new TimeSeriesIndexColumnName(className, recordKey, uuid);
+        indexColList.deleteColumn(col);
 
         return true;
     }

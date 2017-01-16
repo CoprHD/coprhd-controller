@@ -27,6 +27,8 @@ public class ScheculePoliciesDataTable extends DataTable {
         setDefaultSortField("policyName");
     }
 
+    // Suppressing sonar violation for need of accessor methods. Accessor methods are not needed and we use public variables
+    @SuppressWarnings("ClassVariableVisibilityCheck")
     public static class FileProtectionPolicy {
         public String id;
         public String policyName;

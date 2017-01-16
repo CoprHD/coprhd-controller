@@ -327,4 +327,40 @@ public class FilePolicy extends DataObjectWithACLs {
                 + fileReplicationCopyMode + ", filePolicyVpool=" + filePolicyVpool + ", priority=" + priority + ", policyStorageResources="
                 + policyStorageResources + " ]";
     }
+
+    public void addAssignedResources(URI resourceURI) {
+        StringSet assignedRes = this.assignedResources;
+        if (assignedRes == null) {
+            assignedRes = new StringSet();
+        }
+        assignedRes.add(resourceURI.toString());
+        this.assignedResources = assignedRes;
+    }
+
+    public void removeAssignedResources(URI resourceURI) {
+        StringSet assignedRes = this.assignedResources;
+        if (assignedRes != null) {
+            assignedRes.remove(resourceURI.toString());
+            this.assignedResources = assignedRes;
+        }
+    }
+
+    public void addPolicyStorageResources(URI resourceURI) {
+        StringSet policyStrRes = this.policyStorageResources;
+        if (policyStrRes == null) {
+            policyStrRes = new StringSet();
+        }
+        policyStrRes.add(resourceURI.toString());
+
+        this.policyStorageResources = policyStrRes;
+    }
+
+    public void removePolicyStorageResources(URI resourceURI) {
+        StringSet policyStrRes = this.policyStorageResources;
+        if (policyStrRes != null) {
+            policyStrRes.remove(resourceURI.toString());
+            this.policyStorageResources = policyStrRes;
+        }
+
+    }
 }

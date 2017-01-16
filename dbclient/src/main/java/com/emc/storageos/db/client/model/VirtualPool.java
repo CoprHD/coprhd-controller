@@ -137,7 +137,7 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
     private Boolean allowFilePolicyAtFSLevel = false;
     private Long _frRpoValue;
     private String _frRpoType;
-    private StringSet filePolices;
+    private StringSet filePolicies;
 
     @Name("fileReplicationSupported")
     public Boolean getFileReplicationSupported() {
@@ -169,14 +169,41 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
         setChanged("allowFilePolicyAtFSLevel");
     }
 
-    @Name("filePolices")
-    public StringSet getFilePolices() {
-        return filePolices;
+    @Name("filePolicies")
+    public StringSet getFilePolicies() {
+        return filePolicies;
     }
 
-    public void setFilePolices(StringSet filePolices) {
-        this.filePolices = filePolices;
-        setChanged("filePolices");
+    public void setFilePolicies(StringSet filePolicies) {
+        this.filePolicies = filePolicies;
+        setChanged("filePolicies");
+    }
+
+    /**
+     * 
+     * @param vpool
+     * @param policy
+     */
+    public void addFilePolicy(URI policy) {
+        StringSet policies = filePolicies;
+        if (policies == null) {
+            policies = new StringSet();
+        }
+        policies.add(policy.toString());
+        this.filePolicies = policies;
+    }
+
+    /**
+     * 
+     * @param vpool
+     * @param policy
+     */
+    public void removeFilePolicy(URI policy) {
+        StringSet policies = filePolicies;
+        if (policies != null) {
+            policies.remove(policy.toString());
+            this.filePolicies = policies;
+        }
     }
 
     public static enum FileReplicationType {
@@ -1395,7 +1422,7 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
         if (vpool != null && vpool.getFileReplicationSupported()) {
             // Find is there any replication policy attached to vpool
             FilePolicy replPolicy = null;
-            StringSet policies = vpool.getFilePolices();
+            StringSet policies = vpool.getFilePolicies();
             if (policies != null && !policies.isEmpty()) {
                 for (String strPolicy : policies) {
                     FilePolicy policy = dbClient.queryObject(FilePolicy.class, URI.create(strPolicy));

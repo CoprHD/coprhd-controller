@@ -19,30 +19,10 @@ import javax.xml.bind.annotation.XmlRootElement;
 public class FilePolicyUnAssignParam implements Serializable {
 
     private static final long serialVersionUID = 1L;
-    private boolean unassignFromAll;
-    private boolean forceUnassign = false;
     private Set<URI> unassignfrom;
 
     public FilePolicyUnAssignParam() {
         super();
-    }
-
-    @XmlElement(name = "unassign_from_all")
-    public boolean getUnassignFromAll() {
-        return unassignFromAll;
-    }
-
-    public void setUnassignFromAll(boolean unassignFromAll) {
-        this.unassignFromAll = unassignFromAll;
-    }
-
-    @XmlElement(name = "force_unassign")
-    public boolean getForceUnassign() {
-        return forceUnassign;
-    }
-
-    public void setForceUnassign(boolean forceUnassign) {
-        this.forceUnassign = forceUnassign;
     }
 
     @XmlElementWrapper(name = "unassign_from")

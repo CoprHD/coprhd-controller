@@ -81,7 +81,6 @@ public class FileProtectionPolicies extends ViprResourceController {
 
     public static void list() {
         ScheculePoliciesDataTable dataTable = new ScheculePoliciesDataTable();
-        // TenantSelector.addRenderArgs();
         render(dataTable);
     }
 
@@ -170,7 +169,6 @@ public class FileProtectionPolicies extends ViprResourceController {
     }
 
     private static void addDateTimeRenderArgs() {
-        final String LAST_DAY_OF_MONTH = "L";
         // Days of the Week
         Map<String, String> daysOfWeek = Maps.newLinkedHashMap();
         for (int i = 1; i <= 7; i++) {
@@ -442,6 +440,8 @@ public class FileProtectionPolicies extends ViprResourceController {
         list();
     }
 
+    // Suppressing sonar violation for need of accessor methods. Accessor methods are not needed and we use public variables
+    @SuppressWarnings("ClassVariableVisibilityCheck")
     public static class SchedulePolicyForm {
 
         public String id;
@@ -637,8 +637,6 @@ public class FileProtectionPolicies extends ViprResourceController {
         Boolean policyAssignment = false;
         FilePolicyRestRep existingPolicy = getViprClient().fileProtectionPolicies().get(URI.create(assignPolicy.id));
 
-        // param.setApplyAt(assignPolicy.appliedAt);
-
         param.setApplyOnTargetSite(assignPolicy.applyOnTargetSite);
 
         // Get source and target varrays
@@ -760,6 +758,8 @@ public class FileProtectionPolicies extends ViprResourceController {
 
     }
 
+    // Suppressing sonar violation for need of accessor methods. Accessor methods are not needed and we use public variables
+    @SuppressWarnings("ClassVariableVisibilityCheck")
     public static class AssignPolicyForm {
 
         public String id;

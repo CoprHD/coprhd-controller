@@ -95,8 +95,8 @@ public class FilePolicyRestRep extends DataObjectRestRep {
         return priority;
     }
 
-    public String setPriority(String priority) {
-        return this.priority = priority;
+    public void setPriority(String priority) {
+        this.priority = priority;
     }
 
     public void setType(String type) {

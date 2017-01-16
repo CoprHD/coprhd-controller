@@ -29,7 +29,11 @@ import com.emc.storageos.model.file.policy.FilePolicyRestRep.ScheduleRestRep;
 import com.emc.storageos.model.file.policy.FilePolicyRestRep.SnapshotSettingsRestRep;
 import com.emc.storageos.model.file.policy.FileReplicationTopologyRestRep;
 
-public class FilePolicyMapper {
+public final class FilePolicyMapper {
+
+    private FilePolicyMapper() {
+
+    }
 
     public static FilePolicyRestRep map(FilePolicy from, DbClient dbClient) {
 
@@ -65,7 +69,7 @@ public class FilePolicyMapper {
             resp.setAppliedAt(appliedAt);
             StringSet assignedResources = from.getAssignedResources();
             if (assignedResources != null && !assignedResources.isEmpty()) {
-                List<URI> resourceURIs = new ArrayList<URI>();
+                List<URI> resourceURIs = new ArrayList<>();
                 for (Iterator<String> iterator = assignedResources.iterator(); iterator.hasNext();) {
                     String resourceId = iterator.next();
                     resourceURIs.add(URI.create(resourceId));

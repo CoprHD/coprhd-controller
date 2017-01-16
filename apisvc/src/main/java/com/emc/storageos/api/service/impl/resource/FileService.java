@@ -3497,29 +3497,20 @@ public class FileService extends TaskResourceService {
             throw APIException.badRequests.associatedPolicyTenantMismatch(filePolicyUri, id);
         }
 
-        FilePolicyApplyLevel appliedAt = FilePolicyApplyLevel.valueOf(filePolicy.getApplyAt());
-        StringSet assignedResources = filePolicy.getAssignedResources();
-
-        switch (appliedAt) {
-            case project:
-                if (assignedResources.contains(fs.getProject().getURI().toString())) {
-                    _log.error("File policy {} is already applied at project.", filePolicy.getFilePolicyName());
-                    throw APIException.badRequests.filePolicyAssigedAlreadyAssignedToParent(filePolicy.getApplyAt());
-                }
-                break;
-            case vpool:
-                if (assignedResources.contains(fs.getVirtualPool().toString())) {
-                    _log.error("File policy {} is already applied at virtual pool.", filePolicy.getFilePolicyName());
-                    throw APIException.badRequests.filePolicyAssigedAlreadyAssignedToParent(filePolicy.getApplyAt());
-                }
-                break;
-            default:
-                break;
+        if (filePolicy.getApplyAt().equals(FilePolicyApplyLevel.vpool) || filePolicy.getApplyAt().equals(FilePolicyApplyLevel.project)) {
+            _log.error("File policy {} is already applied at {} level.", filePolicy.getFilePolicyName(), filePolicy.getApplyAt());
+            throw APIException.badRequests.filePolicyAssigedAlreadyAssignedToParent(filePolicy.getApplyAt());
         }
 
         StringSet existingFSPolicies = fs.getFilePolicies();
-        if (existingFSPolicies.contains(filePolicyUri.toString())) {
-            throw APIException.badRequests.duplicatePolicyAssociation(filePolicyUri);
+
+        if (existingFSPolicies != null && existingFSPolicies.contains(filePolicyUri.toString())) {
+            _log.info("Provided file policy {} is already is applied to the file sytem {}", filePolicy.getId(), fs.getId());
+            Operation op = _dbClient.createTaskOpStatus(FileShare.class, fs.getId(),
+                    task, ResourceOperationTypeEnum.ASSIGN_FILE_SYSTEM_SNAPSHOT_SCHEDULE);
+            op.setDescription("Filesystem assign policy");
+            _dbClient.ready(FileShare.class, fs.getId(), task);
+            return toTask(fs, task, op);
         }
 
         if (existingFSPolicies != null && !existingFSPolicies.isEmpty()) {

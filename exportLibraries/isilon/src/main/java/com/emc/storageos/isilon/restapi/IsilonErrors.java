@@ -47,5 +47,5 @@ public interface IsilonErrors {
     public ServiceError unSupportedOperation(final String oprationName);
 
     @DeclareServiceCode(ServiceCode.ISILON_ERROR)
-    public ServiceError UnAssignPolicyFailed(final URI policyId);
+    public ServiceError unAssignPolicyFailed(final URI policyId);
 }

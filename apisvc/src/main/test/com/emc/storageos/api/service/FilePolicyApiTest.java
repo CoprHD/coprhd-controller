@@ -165,11 +165,6 @@ public class FilePolicyApiTest extends ApiTestBase {
 
         System.out.println("New snapshot policy ID: " + createdFileSnapshotPolicyURI);
 
-        /*
-         * CleanupResource cleanUpresource = new CleanupResource("delete", getFilePolicyURI(createdFilePolicy.getId()), rSys, null);
-         * registerResourceForCleanup(cleanUpresource);
-         */
-
     }
 
     @Test

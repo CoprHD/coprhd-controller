@@ -44,6 +44,7 @@ import com.emc.storageos.db.client.util.EndpointUtility;
 import com.emc.storageos.model.block.VolumeDeleteTypeEnum;
 import com.emc.storageos.model.block.VolumeRestRep;
 import com.emc.storageos.model.block.export.ExportGroupRestRep;
+import com.emc.storageos.model.compute.ComputeElementListRestRep;
 import com.emc.storageos.model.compute.OsInstallParam;
 import com.emc.storageos.model.host.HostRestRep;
 import com.emc.storageos.model.host.cluster.ClusterRestRep;
@@ -59,8 +60,6 @@ import com.google.common.collect.Lists;
 public class ComputeUtils {
 
     public static final URI nullConsistencyGroup = null;
-    public static final URI nullRemoteReplicationSet = null;
-    public static final URI nullRemoteReplicationGroup = null;
 
     public static List<Host> createHosts(URI cluster, URI vcp, List<String> hostNamesIn,
             URI varray) throws Exception {
@@ -230,10 +229,7 @@ public class ComputeUtils {
             }
             try {
                 tasks.add(BlockStorageUtils.createVolumesByName(project, virtualArray,
-                        virtualPool, size, nullConsistencyGroup, volumeName));  // does
-                                                                                                                                     // not
-                                                                                                                             // wait for
-                                                                                                                             // task
+                        virtualPool, size, nullConsistencyGroup, volumeName));  // does not wait for task
                 volumeNames.add(volumeName);
             } catch (ExecutionException e) {
                 String errorMessage = e.getMessage() == null ? "" : e.getMessage();
@@ -363,7 +359,7 @@ public class ComputeUtils {
         CapacityResponse capacityResponse = client.blockVpools()
                 .getCapacityOnVirtualArray(virtualPool, virtualArray);
         String size = capacityResponse.getFreeGb();
-        long freeCapacity = Long.parseLong(size);
+        long freeCapacity = (long) Long.parseLong(size);
         double reqSize = sizeOfBootVolumesInGb * numVols;
         long reqCapacity = (long) reqSize;
 
@@ -731,7 +727,6 @@ public class ComputeUtils {
         @Param
         protected String ips;
 
-        @Override
         public String toString() {
             return "fqdns=" + fqdns + ", ips=" + ips;
         }
@@ -741,7 +736,6 @@ public class ComputeUtils {
         @Param
         protected String fqdns;
 
-        @Override
         public String toString() {
             return "fqdns=" + fqdns;
         }

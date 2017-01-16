@@ -9,9 +9,9 @@ import static com.emc.sa.asset.providers.BlockProviderUtils.isLocalSnapshotSuppo
 import static com.emc.sa.asset.providers.BlockProviderUtils.isRPSourceVolume;
 import static com.emc.sa.asset.providers.BlockProviderUtils.isRPTargetVolume;
 import static com.emc.sa.asset.providers.BlockProviderUtils.isRemoteSnapshotSupported;
-import static com.emc.sa.asset.providers.BlockProviderUtils.isSnapshotRPBookmark;
 import static com.emc.sa.asset.providers.BlockProviderUtils.isSnapshotSessionSupportedForCG;
 import static com.emc.sa.asset.providers.BlockProviderUtils.isSnapshotSessionSupportedForVolume;
+import static com.emc.sa.asset.providers.BlockProviderUtils.isSnapshotRPBookmark;
 import static com.emc.sa.asset.providers.BlockProviderUtils.isVpoolProtectedByVarray;
 import static com.emc.vipr.client.core.util.ResourceUtils.name;
 import static com.emc.vipr.client.core.util.ResourceUtils.stringId;

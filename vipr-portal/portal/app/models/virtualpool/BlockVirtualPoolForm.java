@@ -563,7 +563,7 @@ public class BlockVirtualPoolForm extends VirtualPoolCommonForm<BlockVirtualPool
                         replications.add(remoteReplicationForm.write());
                     }
                 }
-                // TODO need to update when vpool update is done
+                // TODO support update operation.
                 // builder.setRemoteReplication(replications);
             } else {
                 // builder.disableRemoteReplication();

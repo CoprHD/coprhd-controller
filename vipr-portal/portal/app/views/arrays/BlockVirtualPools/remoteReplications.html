@@ -248,7 +248,7 @@ var remoteRep = function() {
     function serializeRemoteReplications() {
         $('[name="vpool.remoteReplicationsJson"]').val(JSON.stringify(remoteReplications));
         $('[name="vpool.remoteReplicationsJson"]').trigger("change");
-        //TO DO updateFooter();
+        //updateFooter();
     }
 
     function updateFooter() {

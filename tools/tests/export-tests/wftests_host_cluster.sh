@@ -365,6 +365,29 @@ remove_host_from_cluster() {
     curl -ikL --header "Content-Type: application/json" --header "username:xx" --header "password: yy" --data '{"args": "'"${args}"'"}' -X POST http://${HW_SIMULATOR_IP}:8235/vmware/modify &> /dev/null    
 }
 
+remove_initiator_from_host() {
+    host=$1
+    args="removeHBA $host 1"
+    echo "Removing initiator from $host"
+    # Uncomment for debugging
+    #echo "=== curl -ikL --header "Content-Type: application/json" --header "username:xx" --header "password: yy" --data '{"args": "${args}"}' -X POST http://${HW_SIMULATOR_IP}:8235/vmware/modify &> /dev/null"
+    curl -ikL --header "Content-Type: application/json" --header "username:xx" --header "password: yy" --data '{"args": "'"${args}"'"}' -X POST http://${HW_SIMULATOR_IP}:8235/vmware/modify &> /dev/null    
+}
+
+add_initiator_to_host() {
+    host=$1
+    args="addHBA $host 1"
+    echo "Removing initiator from $host"
+    # Uncomment for debugging
+    #echo "=== curl -ikL --header "Content-Type: application/json" --header "username:xx" --header "password: yy" --data '{"args": "${args}"}' -X POST http://${HW_SIMULATOR_IP}:8235/vmware/modify &> /dev/null"
+    curl -ikL --header "Content-Type: application/json" --header "username:xx" --header "password: yy" --data '{"args": "'"${args}"'"}' -X POST http://${HW_SIMULATOR_IP}:8235/vmware/modify &> /dev/null    
+}
+
+get_host_initiator_count() {
+    host=$1
+    echo `initiator list ${host} | grep Initiator | wc -l`
+}
+
 discover_vcenter() {
     vcenter=$1
     echo "Discovering vCenter $vcenter"
@@ -1439,7 +1462,7 @@ test_cluster_remove_discovered_host() {
 
     # Placeholder when a specific failure case is being worked...
     #failure_injections="${HAPPY_PATH_TEST_INJECTION}"    
-    failure_injections="${HAPPY_PATH_TEST_INJECTION} failure_029_host_cluster_ComputeSystemControllerImpl.verifyDatastore_after_verify"
+    failure_injections="failure_004_final_step_in_workflow_complete"
     
     # Real™ hosts/clusters/vcenters/datacenters provisioned during setup
     hostpostfix=".sim.emc.com"
@@ -1479,7 +1502,7 @@ test_cluster_remove_discovered_host() {
     # There are two paths to test:
     # 1. update: Meaning we remove a single discovered host from the cluster
     # 2. delete: Meaning we remove ALL discovered hosts from the cluster
-    workflowPath="updateWorkflow deleteWorkflow"
+    workflowPath="delete"
         
     for wf in ${workflowPath}
     do
@@ -1514,7 +1537,7 @@ test_cluster_remove_discovered_host() {
             done
                               
             # Check whether we are testing update or delete            
-            if [[ "${wf}" == *"deleteWorkflow"* ]]; then
+            if [[ "${wf}" == *"delete"* ]]; then
                 # Delete export group
                 secho "Delete export group path..."
                 
@@ -1570,11 +1593,14 @@ test_cluster_remove_discovered_host() {
                         
                         discover_vcenter ${vcenter}
                         sleep 20
-                        EVENT_ID=$(get_failed_event)    
+                        EVENT_ID=$(get_failed_event)
                         
                         # Turn failure injection off and retry the approval
                         secho "Re-run with failure injection off..."
                         set_artificial_failure none
+                        
+                        exit 1 
+                        
                         approve_pending_event $EVENT_ID
                     fi 
                 fi
@@ -1584,8 +1610,12 @@ test_cluster_remove_discovered_host() {
                 do                    
                     fail export_group show ${eg}                    
                     echo "+++ Confirm export group ${eg} has been deleted, expect to see an exception below if it has..."
-                    foundeg=`export_group show ${eg} | grep ${eg}`
-                    
+                    # Just get the export group name so we can grep it, format is project/egname
+                    egname=`echo ${eg} | awk -F"/" '{print $2}'`
+                    echot ${egname}
+                    foundeg=`export_group show ${eg} | grep ${egname}`
+                    echot ${foundeg}
+                     
                     if [ "${foundeg}" != "" ]; then
                         # Fail, export group should have been removed
                         echo "+++ FAIL - Expected export group ${eg} was not deleted."
@@ -1608,16 +1638,16 @@ test_cluster_remove_discovered_host() {
                 # no events are created so we do not need to approve anything.
                 # Just add the hosts back to cluster and run a re-discover of 
                 # the vcenter.
-                change_host_cluster ${host1} ${cluster2} ${cluster1} ${vcenter}
-                sleep 20                                
-                change_host_cluster ${host2} ${cluster2} ${cluster1} ${vcenter}
-                sleep 20
+                #change_host_cluster ${host1} ${cluster2} ${cluster1} ${vcenter}
+                #sleep 20                                
+                #change_host_cluster ${host2} ${cluster2} ${cluster1} ${vcenter}
+                #sleep 20
                                               
                 # Because both hosts were removed from the cluster the export group was
                 # automatically removed. Now we need to re-export the volumes to the cluster, 
                 # this will re-create the export groups.
-                export_volume_vmware $TENANT ${volume1} ${vcenter} ${datacenter} ${cluster1} ${PROJECT}
-                export_volume_vmware $TENANT ${volume2} ${vcenter} ${datacenter} ${cluster1} ${PROJECT2}
+                #export_volume_vmware $TENANT ${volume1} ${vcenter} ${datacenter} ${cluster1} ${PROJECT}
+                #export_volume_vmware $TENANT ${volume2} ${vcenter} ${datacenter} ${cluster1} ${PROJECT2}
             else
                 # Update export group
                 secho "Update export group path..."
@@ -1855,3 +1885,66 @@ test_move_non_clustered_discovered_host_to_cluster() {
     #runcmd volume delete ${PROJECT}/${volume1} --wait
     #runcmd volume delete ${PROJECT}/${volume2} --wait
 }
+
+
+test_host_remove_initiator_event() {
+    test_name="test_host_remove_initiator_event"
+    failure="${HAPPY_PATH_TEST_INJECTION}"
+    echot "Running test_host_remove_initiator_event"
+    TEST_OUTPUT_FILE=test_output_${RANDOM}.log
+    reset_counts
+    expname=${EXPORT_GROUP_NAME}t2
+    item=${RANDOM}
+    cfs=("ExportGroup ExportMask Host Initiator Cluster")
+    mkdir -p results/${item}
+    set_controller_cs_discovery_refresh_interval 1
+
+    # Run the export group command
+    runcmd export_group create $PROJECT ${expname}1 $NH --type Cluster --volspec ${PROJECT}/${VOLNAME}-1 --clusters "emcworld/cluster-1"
+
+    old_initiator_count=`get_host_initiator_count "host11.sim.emc.com"`
+
+    # Remove initiator from a host in the cluster
+    remove_initiator_from_host "host11"
+
+    discover_vcenter "vcenter1"
+
+    EVENT_ID=$(get_pending_event)
+    if [ -z "$EVENT_ID" ]
+    then
+      echo "FAILED. Expected an event"
+      finish -1
+    else
+      approve_pending_event $EVENT_ID 
+    fi
+
+    current_initiator_count=`get_host_initiator_count "host11.sim.emc.com"`
+
+    echo "old_initiator_count = ${old_initiator_count}"
+    echo "new_initiator_count = ${current_initiator_count}"
+
+    # Initiator should no longer exist
+    if [[ "$old_initiator_count" > "$current_initiator_count" ]];
+    then
+             echo "Success. Initiator was deleted from the event"    
+    else
+        echo "+++ FAIL - Initiator was not deleted from host"
+        # Report results
+        incr_fail_count
+        if [ "${NO_BAILING}" != "1" ]
+        then
+            report_results ${test_name} ${failure}
+            exit 1
+        fi
+    fi
+    
+    # Remove the shared export
+    runcmd export_group delete ${PROJECT}/${expname}1
+
+    add_initiator_to_host "host11"
+    discover_vcenter "vcenter1"
+ 
+    # Report results
+    report_results ${test_name} ${failure}
+}
+

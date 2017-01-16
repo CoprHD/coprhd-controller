@@ -1439,7 +1439,7 @@ test_cluster_remove_discovered_host() {
 
     # Placeholder when a specific failure case is being worked...
     #failure_injections="${HAPPY_PATH_TEST_INJECTION}"    
-    failure_injections="${HAPPY_PATH_TEST_INJECTION} failure_029_host_cluster_ComputeSystemControllerImpl.verifyDatastore_after_verify"
+    failure_injections="failure_004_final_step_in_workflow_complete"
     
     # Real™ hosts/clusters/vcenters/datacenters provisioned during setup
     hostpostfix=".sim.emc.com"
@@ -1479,7 +1479,7 @@ test_cluster_remove_discovered_host() {
     # There are two paths to test:
     # 1. update: Meaning we remove a single discovered host from the cluster
     # 2. delete: Meaning we remove ALL discovered hosts from the cluster
-    workflowPath="updateWorkflow deleteWorkflow"
+    workflowPath="delete"
         
     for wf in ${workflowPath}
     do
@@ -1514,7 +1514,7 @@ test_cluster_remove_discovered_host() {
             done
                               
             # Check whether we are testing update or delete            
-            if [[ "${wf}" == *"deleteWorkflow"* ]]; then
+            if [[ "${wf}" == *"delete"* ]]; then
                 # Delete export group
                 secho "Delete export group path..."
                 
@@ -1570,11 +1570,14 @@ test_cluster_remove_discovered_host() {
                         
                         discover_vcenter ${vcenter}
                         sleep 20
-                        EVENT_ID=$(get_failed_event)    
+                        EVENT_ID=$(get_failed_event)
                         
                         # Turn failure injection off and retry the approval
                         secho "Re-run with failure injection off..."
                         set_artificial_failure none
+                        
+                        exit 1 
+                        
                         approve_pending_event $EVENT_ID
                     fi 
                 fi
@@ -1584,8 +1587,12 @@ test_cluster_remove_discovered_host() {
                 do                    
                     fail export_group show ${eg}                    
                     echo "+++ Confirm export group ${eg} has been deleted, expect to see an exception below if it has..."
-                    foundeg=`export_group show ${eg} | grep ${eg}`
-                    
+                    # Just get the export group name so we can grep it, format is project/egname
+                    egname=`echo ${eg} | awk -F"/" '{print $2}'`
+                    echot ${egname}
+                    foundeg=`export_group show ${eg} | grep ${egname}`
+                    echot ${foundeg}
+                     
                     if [ "${foundeg}" != "" ]; then
                         # Fail, export group should have been removed
                         echo "+++ FAIL - Expected export group ${eg} was not deleted."
@@ -1608,16 +1615,16 @@ test_cluster_remove_discovered_host() {
                 # no events are created so we do not need to approve anything.
                 # Just add the hosts back to cluster and run a re-discover of 
                 # the vcenter.
-                change_host_cluster ${host1} ${cluster2} ${cluster1} ${vcenter}
-                sleep 20                                
-                change_host_cluster ${host2} ${cluster2} ${cluster1} ${vcenter}
-                sleep 20
+                #change_host_cluster ${host1} ${cluster2} ${cluster1} ${vcenter}
+                #sleep 20                                
+                #change_host_cluster ${host2} ${cluster2} ${cluster1} ${vcenter}
+                #sleep 20
                                               
                 # Because both hosts were removed from the cluster the export group was
                 # automatically removed. Now we need to re-export the volumes to the cluster, 
                 # this will re-create the export groups.
-                export_volume_vmware $TENANT ${volume1} ${vcenter} ${datacenter} ${cluster1} ${PROJECT}
-                export_volume_vmware $TENANT ${volume2} ${vcenter} ${datacenter} ${cluster1} ${PROJECT2}
+                #export_volume_vmware $TENANT ${volume1} ${vcenter} ${datacenter} ${cluster1} ${PROJECT}
+                #export_volume_vmware $TENANT ${volume2} ${vcenter} ${datacenter} ${cluster1} ${PROJECT2}
             else
                 # Update export group
                 secho "Update export group path..."

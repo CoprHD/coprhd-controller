@@ -117,7 +117,9 @@ public class OrderFinder extends TenantModelFinder<Order> {
             return Lists.newArrayList();
         }
 
-        List<NamedElement> orderIds = client.findAllOrdersByTimeRange(tenantId, Order.SUBMITTED, startTime, endTime, maxCount);
+        List<NamedElement> orderIds =
+                client.findAllOrdersByTimeRange(tenantId, Order.SUBMITTED, startTime, endTime, maxCount);
+
         return findByIds(toURIs(orderIds));
     }
 }

@@ -106,7 +106,8 @@ public class OrderService extends CatalogTaggedResourceService {
     private static final String ORDER_JOB_LOCK="order-jobs";
 
     private static final long INDEX_GC_GRACE_PERIOD=432000*1000L;
-    public  static final long MAX_DELETED_ORDERS_PER_GC_PERIOD=300000L;
+    //public  static final long MAX_DELETED_ORDERS_PER_GC_PERIOD=300000L;
+    private long maxOrderDeletedPerGC=300000L;
 
     private static int SCHEDULED_EVENTS_SCAN_INTERVAL = 300;
     private int scheduleInterval = SCHEDULED_EVENTS_SCAN_INTERVAL;
@@ -164,6 +165,14 @@ public class OrderService extends CatalogTaggedResourceService {
         return EVENT_SERVICE_TYPE;
     }
 
+    public long getMaxOrderDeletedPerGC() {
+        return maxOrderDeletedPerGC;
+    }
+
+    public void setMaxOrderDeletedPerGC(long maxOrderDeletedPerGC) {
+        this.maxOrderDeletedPerGC = maxOrderDeletedPerGC;
+    }
+
     /**
      * Get object specific permissions filter
      */
@@ -204,9 +213,10 @@ public class OrderService extends CatalogTaggedResourceService {
     }
 
     private void startJobQueue() {
-        log.info("Starting order service job queue");
+        log.info("Starting order service job queue maxOrderDeleted={}", maxOrderDeletedPerGC);
         try {
-            OrderServiceJobConsumer consumer = new OrderServiceJobConsumer(this, _auditMgr, _dbClient, orderManager);
+            OrderServiceJobConsumer consumer = new OrderServiceJobConsumer(this, _auditMgr, _dbClient,
+                    orderManager, maxOrderDeletedPerGC);
             queue = _coordinator.getQueue(ORDER_SERVICE_QUEUE_NAME, consumer, new OrderServiceJobSerializer(), 1);
         } catch (Exception e) {
             log.error("Failed to start order job queue", e);
@@ -248,7 +258,8 @@ public class OrderService extends CatalogTaggedResourceService {
             orderRestReps.add(OrderMapper.map(orderAndParams.getOrder(),
                     orderAndParams.getParameters()));
         }
-        return new OrderBulkRep(orderRestReps);
+        OrderBulkRep rep = new OrderBulkRep(orderRestReps);
+        return rep;
     }
 
     @Override
@@ -317,15 +328,16 @@ public class OrderService extends CatalogTaggedResourceService {
                         SearchConstants.ORDER_STATUS_PARAM + " or " + SearchConstants.START_TIME_PARAM + " or "
                                 + SearchConstants.END_TIME_PARAM);
             }
+
+            if (startTime.after(endTime)) {
+                throw APIException.badRequests.endTimeBeforeStartTime(startTime.toString(), endTime.toString());
+            }
+
             int maxCount = -1;
             List<String> c= parameters.get(SearchConstants.ORDER_MAX_COUNT);
             if (c != null) {
                 String maxCountParam = parameters.get(SearchConstants.ORDER_MAX_COUNT).get(0);
                 maxCount = Integer.parseInt(maxCountParam);
-            }
-
-            if (startTime.after(endTime)) {
-                throw APIException.badRequests.endTimeBeforeStartTime(startTime.toString(), endTime.toString());
             }
 
             orders = orderManager.findOrdersByTimeRange(uri(tenantId), startTime, endTime, maxCount);
@@ -770,7 +782,6 @@ public class OrderService extends CatalogTaggedResourceService {
     @Path("")
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     public OrderList getUserOrders() throws DatabaseException {
-
         StorageOSUser user = getUserFromContext();
 
         List<Order> orders = orderManager.getUserOrders(user, 0, System.currentTimeMillis(), -1);
@@ -785,6 +796,8 @@ public class OrderService extends CatalogTaggedResourceService {
      * @param startTimeStr start time of the query
      * @param endTimeStr  end time of the query
      * @param maxCount The max number of orders this API returns
+     * @param ordersOnlyStr if ture, only returns orders info, other info such as OrderParameter
+     *                   will not be returned
      * @return a list of orders
      * @throws DatabaseException when a DB error occurs
      */
@@ -794,13 +807,9 @@ public class OrderService extends CatalogTaggedResourceService {
     public OrderBulkRep getUserOrders(
             @DefaultValue("") @QueryParam(SearchConstants.START_TIME_PARAM) String startTimeStr,
             @DefaultValue("") @QueryParam(SearchConstants.END_TIME_PARAM) String endTimeStr,
-            @DefaultValue("-1") @QueryParam(SearchConstants.ORDER_MAX_COUNT) String maxCount) throws DatabaseException {
-
-        StorageOSUser user = getUserFromContext();
-
-        log.info("user={}", user.getName());
-
-        int max = Integer.parseInt(maxCount);
+            @DefaultValue("-1") @QueryParam(SearchConstants.ORDER_MAX_COUNT) String maxCount,
+            @DefaultValue("false") @QueryParam(SearchConstants.ORDERS_ONLY) String ordersOnlyStr)
+            throws DatabaseException {
 
         long startTimeInMS = getTime(startTimeStr, 0);
         long endTimeInMS = getTime(endTimeStr, System.currentTimeMillis());
@@ -809,13 +818,20 @@ public class OrderService extends CatalogTaggedResourceService {
             throw APIException.badRequests.endTimeBeforeStartTime(startTimeStr, endTimeStr);
         }
 
+        int max = Integer.parseInt(maxCount);
+        boolean ordersOnly = Boolean.parseBoolean(ordersOnlyStr);
+
         log.info("start={} end={} max={}", startTimeInMS, endTimeInMS, max);
+
+        StorageOSUser user = getUserFromContext();
 
         List<Order> orders = orderManager.getUserOrders(user, startTimeInMS, endTimeInMS, max);
 
-        List<OrderRestRep> list = toOrders(orders, user);
+        List<OrderRestRep> list = toOrders(orders, user, ordersOnly);
 
-        return new OrderBulkRep(list);
+        OrderBulkRep rep = new OrderBulkRep(list);
+
+        return rep;
     }
 
     private long getTime(String timeStr, long defaultTime) {
@@ -827,12 +843,14 @@ public class OrderService extends CatalogTaggedResourceService {
         return startTime.getTime();
     }
 
-    private List<OrderRestRep> toOrders(List<Order> orders, StorageOSUser user) {
-
+    private List<OrderRestRep> toOrders(List<Order> orders, StorageOSUser user, boolean ordersOnly) {
         List<OrderRestRep> orderList = new ArrayList();
 
+        List<OrderParameter> orderParameters = null;
         for (Order order : orders) {
-            List<OrderParameter> orderParameters = orderManager.getOrderParameters(order.getId());
+            if (ordersOnly == false) {
+                orderParameters = orderManager.getOrderParameters(order.getId());
+            }
             orderList.add(map(order, orderParameters));
         }
 
@@ -1031,7 +1049,7 @@ public class OrderService extends CatalogTaggedResourceService {
             APIException.internalServerErrors.genericApisvcError(errMsg, e);
         }
 
-        return Response.ok().build();
+        return Response.status(Response.Status.ACCEPTED).build();
     }
 
     private OrderStatus getOrderStatus(String statusStr, boolean deleteOnly) {
@@ -1084,7 +1102,7 @@ public class OrderService extends CatalogTaggedResourceService {
 
         long deletedOrdersInCurrentPeriod = getDeletedOrdersInCurrentPeriod(jobStatus);
 
-        if (deletedOrdersInCurrentPeriod > MAX_DELETED_ORDERS_PER_GC_PERIOD) {
+        if (deletedOrdersInCurrentPeriod > maxOrderDeletedPerGC) {
             // There are already max number of orders deleted within the current GC
             return true;
         }

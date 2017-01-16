@@ -30,6 +30,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
+import com.emc.storageos.model.search.SearchResultResourceRep;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.ObjectUtils;
 import org.apache.commons.lang.StringUtils;
@@ -797,6 +798,64 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     public List<AssetOption> getVplexSnapshotVolumes(AssetOptionsContext ctx, URI project, String volumeOrConsistencyType) {
 
         final ViPRCoreClient client = api(ctx);
+        long spentTime = 0;
+        if (isVolumeType(volumeOrConsistencyType)) {
+            LocalTime startTime = LocalTime.now();
+            log.info("========== 111: startting list vols with snapshots");
+            List<SearchResultResourceRep> volumeRefs = client.blockVolumes().findRefsByProject(project, null);
+
+            spentTime = Duration.between(startTime, LocalTime.now()).getSeconds();
+            log.info("========== 222: got a bulk ids of volumes. Spent time is {}", spentTime);
+
+            List<VolumeRestRep> allVols = new ArrayList<>();
+            List<URI> bulkIds = new ArrayList<>();
+            int count = 0;
+            for (SearchResultResourceRep volRef : volumeRefs) {
+                bulkIds.add(volRef.getId());
+                count++;
+                if (count == 500) {
+                    BulkIdParam volBulk = new BulkIdParam(bulkIds);
+                    List<VolumeRestRep> bulkVols = client.blockVolumes().getBulkResources(volBulk);
+                    allVols.addAll(bulkVols);
+                    spentTime = Duration.between(startTime, LocalTime.now()).getSeconds();
+                    log.info("========== 333: got a bulk of volumes and spent time is {}", spentTime);
+                    count = 0;
+                    bulkIds.clear();
+                }
+            }
+
+            if (bulkIds.size() > 0) {
+                BulkIdParam volBulk = new BulkIdParam(bulkIds);
+                List<VolumeRestRep> bulkVols = client.blockVolumes().getBulkResources(volBulk);
+                allVols.addAll(bulkVols);
+                spentTime = Duration.between(startTime, LocalTime.now()).getSeconds();
+            }
+            log.info("========== 444: got all volumes. Vol size is {}, Spent time is {}", allVols.size(), spentTime);
+
+            // remove all filters, adding all for experiment
+            return createVolumeOptions(client, allVols);
+        } else {
+            List<BlockConsistencyGroupRestRep> consistencyGroups = client.blockConsistencyGroups().findByProject(project,
+                    new DefaultResourceFilter<BlockConsistencyGroupRestRep>() {
+                        @Override
+                        public boolean accept(BlockConsistencyGroupRestRep cg) {
+                            if (cg.getTypes() != null && cg.getTypes().contains(Types.VPLEX.name())) {
+                                return true;
+                            } else {
+                                return false;
+                            }
+                        }
+
+                    });
+            return createBaseResourceOptions(consistencyGroups);
+        }
+    }
+/*
+    @Asset("vplexVolumeWithSnapshots")
+    @AssetDependencies({ "project", "blockVolumeOrConsistencyType" })
+    public List<AssetOption> getVplexSnapshotVolumes(AssetOptionsContext ctx, URI project, String volumeOrConsistencyType) {
+
+        final ViPRCoreClient client = api(ctx);
         if (isVolumeType(volumeOrConsistencyType)) {
             LocalTime startTime = LocalTime.now();
             log.info("========== 111: startting list vols with snapshots");
@@ -852,6 +911,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
             return createBaseResourceOptions(consistencyGroups);
         }
     }
+    */
 
     /*
     public List<AssetOption> getVplexSnapshotVolumes(AssetOptionsContext ctx, URI project, String volumeOrConsistencyType) {

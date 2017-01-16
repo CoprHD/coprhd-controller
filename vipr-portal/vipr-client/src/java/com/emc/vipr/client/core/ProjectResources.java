@@ -94,4 +94,8 @@ public abstract class ProjectResources<T extends DataObjectRestRep> extends Abst
         params.put(PROJECT_PARAM, projectId);
         return performSearch(params).size();    
     }
+
+    public List<SearchResultResourceRep> findRefsByProject(URI projectId, ResourceFilter<T> filter) {
+        return search().byProject(projectId).filter(filter).search();
+    }
 }

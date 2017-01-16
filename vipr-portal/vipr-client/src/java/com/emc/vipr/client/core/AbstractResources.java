@@ -587,4 +587,8 @@ public abstract class AbstractResources<T extends DataObjectRestRep> implements 
         }
         return results;
     }
+
+    public List<SearchResultResourceRep> getRefsWithFilter(List<SearchResultResourceRep> refs, ResourceFilter<T> filter) {
+        return refs;
+    }
 }

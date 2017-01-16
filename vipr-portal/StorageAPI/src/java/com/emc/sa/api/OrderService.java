@@ -106,7 +106,6 @@ public class OrderService extends CatalogTaggedResourceService {
     private static final String ORDER_JOB_LOCK="order-jobs";
 
     private static final long INDEX_GC_GRACE_PERIOD=432000*1000L;
-    //public  static final long MAX_DELETED_ORDERS_PER_GC_PERIOD=300000L;
     private long maxOrderDeletedPerGC=300000L;
 
     private static int SCHEDULED_EVENTS_SCAN_INTERVAL = 300;

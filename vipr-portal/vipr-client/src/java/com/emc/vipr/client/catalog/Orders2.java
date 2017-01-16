@@ -149,7 +149,8 @@ public class Orders2 extends AbstractCatalogBulkResources<OrderRestRep>implement
      * @param maxCount The max number this API returns
      * @return list of user orders
      */
-    public List<NamedRelatedResourceRep> listUserOrders(String startTime, String endTime, String maxCount) {
+    public List<NamedRelatedResourceRep> listUserOrders(String startTime, String endTime, String maxCount,
+                                                        boolean ordersOnly) {
         UriBuilder uriBuilder = client.uriBuilder(PathConstants.ORDER2_URL);
         if (startTime != null) {
             uriBuilder = uriBuilder.queryParam(SearchConstants.START_TIME_PARAM, startTime);
@@ -157,9 +158,12 @@ public class Orders2 extends AbstractCatalogBulkResources<OrderRestRep>implement
         if (endTime != null) {
             uriBuilder = uriBuilder.queryParam(SearchConstants.END_TIME_PARAM, endTime);
         }
+
         if (maxCount != null) {
             uriBuilder = uriBuilder.queryParam(SearchConstants.ORDER_MAX_COUNT, maxCount);
         }
+
+        uriBuilder = uriBuilder.queryParam(SearchConstants.ORDERS_ONLY, ordersOnly);
         OrderList response = client.getURI(OrderList.class, uriBuilder.build());
         return response.getOrders();
     }

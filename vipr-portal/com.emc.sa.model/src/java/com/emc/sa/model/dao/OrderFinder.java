@@ -62,11 +62,11 @@ public class OrderFinder extends TenantModelFinder<Order> {
     /**
      * Finds orders by status. This method is intended for use by the scheduler only, in general use
      * {@link #findByOrderStatus(String, OrderStatus)}.
-     * 
+     *
      * @param orderStatus
      *            the order status.
      * @return the list of orders with the given status.
-     * 
+     *
      * @see #findByOrderStatus(String, OrderStatus)
      */
     public List<Order> findByOrderStatus(OrderStatus orderStatus) {

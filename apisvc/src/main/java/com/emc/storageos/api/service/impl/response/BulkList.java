@@ -22,6 +22,7 @@ import com.emc.storageos.db.client.model.Cluster;
 import com.emc.storageos.db.client.model.ComputeVirtualPool;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DataObject.Flag;
+import com.emc.storageos.db.client.model.FilePolicy;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.HostInterface;
 import com.emc.storageos.db.client.model.Migration;
@@ -29,6 +30,7 @@ import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.ProjectResource;
 import com.emc.storageos.db.client.model.SchedulePolicy;
+import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.Task;
 import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.model.UserGroup;
@@ -404,6 +406,37 @@ public class BulkList<T> implements List<T> {
 
     }
 
+    public static class FilePolicyResourceFilter
+    extends PermissionsEnforcingResourceFilter<FilePolicy> {
+
+        public FilePolicyResourceFilter(StorageOSUser user,
+                PermissionsHelper permissionsHelper) {
+            super(user, permissionsHelper);
+        }
+
+        @Override
+        public boolean isAccessible(FilePolicy filePolicy) {
+            return canAccessFilePolicy(filePolicy);
+        }
+
+        private boolean canAccessFilePolicy(FilePolicy filePolicy) {
+            StringSet tenants = filePolicy.getTenantOrg();
+
+            if (tenants == null || tenants.isEmpty()) {
+                return true;
+            }
+
+            if (_permissionsHelper.userHasGivenRole(
+                    _user, null, Role.SYSTEM_ADMIN)) {
+                return true;
+            }
+
+            String userTenantId = _user.getTenantId();
+            return tenants.contains(userTenantId);
+        }
+
+    }
+
     public static class ResourceFilteringCache {
         public HashSet<URI> _accessibleParentResources = new HashSet<URI>();
         public HashSet<URI> _nonAccessibleParentResources = new HashSet<URI>();
@@ -686,10 +719,10 @@ public class BulkList<T> implements List<T> {
                     _permissionsHelper.userHasGivenRole(_user, null, Role.SYSTEM_MONITOR)) {
                 return true;
             } else {
-                    List<URI> tenantUris = _permissionsHelper.getSubtenantsWithRoles(_user); 
-                    return _permissionsHelper.tenantHasUsageACL(
-                            URI.create(_user.getTenantId()), resource)
-                            || _permissionsHelper.tenantHasUsageACL(tenantUris, resource);
+                List<URI> tenantUris = _permissionsHelper.getSubtenantsWithRoles(_user);
+                return _permissionsHelper.tenantHasUsageACL(
+                        URI.create(_user.getTenantId()), resource)
+                        || _permissionsHelper.tenantHasUsageACL(tenantUris, resource);
             }
         }
 

@@ -676,6 +676,19 @@ angular.module("portalApp").controller({
         
         getClusterInfo();
         var clusterPoller = $interval(getClusterInfo,LONG_POLLING);
+    },
+    PolicyAsignVPol: function($scope,$http, $interval){
+    	$scope.addVArray= function(){
+    		var item = schome.vArray.length+1;
+    		$scope.vArray.push({'id':'vArray'+item});
+    	};
+    	
+    	$scope.removeVArray= function(){
+    		var lastItem= $scope.vArray.length-1;
+    		$scope.choices.splice(lastItem);
+    	};
+    	
+    	console.log("Registring policy controller"+$scope.val());
     }
 });
 
@@ -1554,7 +1567,7 @@ angular.module("portalApp").controller("ConfigBackupCtrl", function($scope) {
     }
 });
 
-angular.module("portalApp").controller("MyOrdersCtrl", function($scope, $http) {
+angular.module("portalApp").controller("MyOrdersCtrl", function($scope) {
 	var ORDER_MY_LIST = routes.Order_list();
 	console.info($scope);
 	var dateFormat = "YYYY-MM-DD";
@@ -1581,7 +1594,6 @@ angular.module("portalApp").controller("MyOrdersCtrl", function($scope, $http) {
     	
         var url = ORDER_MY_LIST + "?startDate=" + encodeURIComponent($scope.rangeStartDate)+
         			"&endDate="+encodeURIComponent($scope.rangeEndDate);
-        //TODO: should disabled when go to new url
         $('.bfh-datepicker-toggle input').attr("readonly", true);
         $('date-picker').click(false);
         
@@ -1591,7 +1603,7 @@ angular.module("portalApp").controller("MyOrdersCtrl", function($scope, $http) {
     
 });
 
-angular.module("portalApp").controller("AllOrdersCtrl", function($scope, $http) {
+angular.module("portalApp").controller("AllOrdersCtrl", function($scope) {
     var ORDER_ALL_ORDERS = routes.Order_allOrders();
     console.info($scope);
     var dateFormat = "YYYY-MM-DD";
@@ -1618,7 +1630,6 @@ angular.module("portalApp").controller("AllOrdersCtrl", function($scope, $http) 
 
         var url = ORDER_ALL_ORDERS + "?startDate=" + encodeURIComponent($scope.rangeStartDate)+
             "&endDate="+encodeURIComponent($scope.rangeEndDate);
-        //TODO: should disabled when go to new url
         $('.bfh-datepicker-toggle input').attr("readonly", true);
         $('date-picker').click(false);
 

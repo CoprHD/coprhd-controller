@@ -238,4 +238,25 @@ public interface FileStorageDevice {
     public BiosCommandResult unassignFilePolicy(StorageSystem storageObj, FileDeviceInputOutput args);
 
     public BiosCommandResult listSanpshotByPolicy(StorageSystem storageObj, FileDeviceInputOutput args);
+
+    /**
+     * 
+     * @param storageObj storage device operation is to be performed on
+     * @param args FileDeviceInputOutput object holding the data objects
+     * @return command result object
+     * @throws ControllerException
+     */
+    public BiosCommandResult doApplyFilePolicy(StorageSystem storageObj, FileDeviceInputOutput args)
+            throws ControllerException;
+
+    /**
+     * 
+     * @param storage storage device operation is to be performed on
+     * @param fd FileDeviceInputOutput object holding the data objects
+     * @return command result object
+     * @throws ControllerException
+     */
+    public BiosCommandResult doUnassignFilePolicy(StorageSystem storage, FileDeviceInputOutput fd)
+            throws ControllerException;
+
 }

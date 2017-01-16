@@ -2184,9 +2184,9 @@ public class VmaxExportOperations implements ExportMaskOperations {
                 }
 
                 builder.append(
-                        String.format("XM refresh: %s initiators; add:{%s} remove:{%s}%n",
+                        String.format("XM refresh: %s initiators; add:{%s} remove:{%s}%n remove ids:{%s}%n",
                                 name, Joiner.on(',').join(initiatorsToAdd),
-                                Joiner.on(',').join(initiatorsToRemove)));
+                                Joiner.on(',').join(initiatorsToRemove), Joiner.on(',').join(initiatorIdsToRemove)));
                 builder.append(
                         String.format("XM refresh: %s volumes; add:{%s} remove:{%s}%n",
                                 name, Joiner.on(',').join(volumesToAdd.keySet()),

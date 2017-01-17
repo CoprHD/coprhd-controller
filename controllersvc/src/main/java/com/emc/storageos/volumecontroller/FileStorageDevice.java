@@ -8,7 +8,6 @@ package com.emc.storageos.volumecontroller;
 import java.util.List;
 
 import com.emc.storageos.db.client.model.FileExport;
-import com.emc.storageos.db.client.model.FilePolicy.FilePolicyApplyLevel;
 import com.emc.storageos.db.client.model.QuotaDirectory;
 import com.emc.storageos.db.client.model.SMBFileShare;
 import com.emc.storageos.db.client.model.StorageSystem;
@@ -261,6 +260,6 @@ public interface FileStorageDevice {
             throws ControllerException;
 
     public BiosCommandResult
-            checkFilePolicyExistsOrCreate(StorageSystem storageObj, FilePolicyApplyLevel vpool, FileDeviceInputOutput args);
+    checkFilePolicyExistsOrCreate(StorageSystem storageObj, FileDeviceInputOutput args);
 
 }

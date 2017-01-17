@@ -3046,8 +3046,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
     }
 
     @Override
-    public BiosCommandResult checkFilePolicyExistsOrCreate(StorageSystem storageObj, FilePolicyApplyLevel appliedAt,
-            FileDeviceInputOutput args) {
+    public BiosCommandResult checkFilePolicyExistsOrCreate(StorageSystem storageObj, FileDeviceInputOutput args) {
 
         VirtualNAS vNAS = args.getvNAS();
         FilePolicy filePolicy = args.getFileProtectionPolicy();
@@ -3100,7 +3099,8 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                     if (isilonSnapshotSchedule.getSchedule().equals(filePolicySnapshotSchedule)) {
                         result = BiosCommandResult.createSuccessfulResult();
                     } else {
-                        throw DeviceControllerException.exceptions.assignFilePolicyFailed(filePolicy.getFilePolicyName(), appliedAt.name(),
+                        throw DeviceControllerException.exceptions.assignFilePolicyFailed(filePolicy.getFilePolicyName(),
+                                filePolicy.getApplyAt(),
                                 "File policy exists for path: " + filePolicyBasePath);
                     }
                 } else {

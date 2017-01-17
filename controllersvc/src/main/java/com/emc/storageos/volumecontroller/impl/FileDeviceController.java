@@ -4473,8 +4473,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
 
             _log.info("Assigning file snapshot policy: {} to vpool: {}", filePolicyToAssign, vpoolURI);
 
-            BiosCommandResult result = getDevice(storageObj.getSystemType()).checkFilePolicyExistsOrCreate(storageObj,
-                    FilePolicy.FilePolicyApplyLevel.vpool, args);
+            BiosCommandResult result = getDevice(storageObj.getSystemType()).checkFilePolicyExistsOrCreate(storageObj, args);
             if (result.getCommandPending()) {
                 return;
             }
@@ -4482,7 +4481,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                 WorkflowStepCompleter.stepFailed(opId, result.getServiceCoded());
             }
             if (result.isCommandSuccess()) {
-                createFilePolicyInDB(storageSystemURI, null, vpoolURI, FilePolicyApplyLevel.vpool, filePolicy);
+                createFilePolicyInDB(storageSystemURI, null, vpoolURI, filePolicy);
                 WorkflowStepCompleter.stepSucceded(opId);
             }
         } catch (Exception e) {
@@ -4499,13 +4498,13 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
      * @param vpool
      * @param filePolicy
      */
-    private void createFilePolicyInDB(URI storageURI, URI vpoolURI, URI resourceURI, FilePolicyApplyLevel applyAt, FilePolicy filePolicy) {
+    private void createFilePolicyInDB(URI storageURI, URI vpoolURI, URI resourceURI, FilePolicy filePolicy) {
 
         PolicyStorageResource policyStorageResource = new PolicyStorageResource();
         policyStorageResource.setId(URIUtil.createId(PolicyStorageResource.class));
         policyStorageResource.setFilePolicyId(filePolicy.getId());
         policyStorageResource.setStorageSystem(storageURI);
-        String snapshotScheduleName = applyAt.name() + "_" + filePolicy.getFilePolicyName();
+        String snapshotScheduleName = filePolicy.getApplyAt() + "_" + filePolicy.getFilePolicyName();
         policyStorageResource.setPolicyNativeId(snapshotScheduleName);
         policyStorageResource.setAppliedAt(filePolicy.getId());
         _dbClient.createObject(policyStorageResource);
@@ -4518,6 +4517,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
         }
 
         filePolicy.addAssignedResources(resourceURI);
+        FilePolicyApplyLevel applyAt = FilePolicyApplyLevel.valueOf(filePolicy.getApplyAt());
         switch (applyAt) {
             case project:
                 Project project = _dbClient.queryObject(Project.class, resourceURI);
@@ -4559,8 +4559,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
 
             _log.info("Assigning file snapshot policy: {} to vpool {} and project: {}", filePolicyToAssign, vpoolURI, projectURI);
 
-            BiosCommandResult result = getDevice(storageObj.getSystemType()).checkFilePolicyExistsOrCreate(storageObj,
-                    FilePolicy.FilePolicyApplyLevel.project, args);
+            BiosCommandResult result = getDevice(storageObj.getSystemType()).checkFilePolicyExistsOrCreate(storageObj, args);
             if (result.getCommandPending()) {
                 return;
             }
@@ -4568,7 +4567,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                 WorkflowStepCompleter.stepFailed(opId, result.getServiceCoded());
             }
             if (result.isCommandSuccess()) {
-                createFilePolicyInDB(storageSystemURI, vpoolURI, projectURI, FilePolicyApplyLevel.project, filePolicy);
+                createFilePolicyInDB(storageSystemURI, vpoolURI, projectURI, filePolicy);
                 WorkflowStepCompleter.stepSucceded(opId);
             }
         } catch (Exception e) {

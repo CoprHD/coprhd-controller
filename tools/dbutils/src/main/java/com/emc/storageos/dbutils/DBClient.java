@@ -9,6 +9,9 @@ import com.emc.storageos.db.client.impl.DbConsistencyChecker;
 import com.emc.storageos.db.client.impl.DbCheckerFileWriter;
 import com.emc.storageos.db.client.impl.DbConsistencyCheckerHelper;
 import org.apache.commons.beanutils.BeanUtils;
+import org.apache.commons.beanutils.ConvertUtils;
+import org.apache.commons.beanutils.converters.CalendarConverter;
+import org.apache.commons.beanutils.converters.DateConverter;
 import org.apache.commons.lang3.StringUtils;
 
 import com.emc.storageos.db.client.TimeSeriesMetadata;
@@ -1215,11 +1218,54 @@ public class DBClient {
     public boolean rebuildIndex(String id, String cfName) {
         boolean runResult = false;
         try {
-            DataObject queryObject = queryObject(URI.create(id), getClassFromCFName(cfName) );
-            if(queryObject != null) {
-                BeanUtils.copyProperties(queryObject, queryObject);
-                _dbClient.updateObject(queryObject);
-                System.out.println(String.format("Successfully rebuild index for %s in cf %s", id, cfName));
+            Class clazz = getClassFromCFName(cfName);
+            DataObject queryObject = queryObject(URI.create(id), clazz);
+            if (queryObject != null) {
+                DataObject newObject = queryObject.getClass().newInstance();
+                newObject.trackChanges();
+                ConvertUtils.register(new CalendarConverter(null), Calendar.class);
+                ConvertUtils.register(new DateConverter(null), Date.class);
+                BeanUtils.copyProperties(newObject, queryObject);
+
+                // special change tracking for customized types
+                BeanInfo bInfo;
+                try {
+                    bInfo = Introspector.getBeanInfo(clazz);
+                } catch (IntrospectionException ex) {
+                    log.error("Unexpected exception getting bean info", ex);
+                    throw new RuntimeException("Unexpected exception getting bean info", ex);
+                }
+                PropertyDescriptor[] pds = bInfo.getPropertyDescriptors();
+                for (PropertyDescriptor pd : pds) {
+                    Object val = pd.getReadMethod().invoke(newObject);
+                    if (val instanceof AbstractChangeTrackingSet) {
+                        AbstractChangeTrackingSet valueSet = (AbstractChangeTrackingSet) val;
+                        valueSet.markAllForOverwrite();
+
+                    } else if (val instanceof AbstractChangeTrackingMap) {
+                        AbstractChangeTrackingMap valueMap = (AbstractChangeTrackingMap) val;
+                        valueMap.markAllForOverwrite();
+
+                    } else if (val instanceof AbstractChangeTrackingSetMap) {
+                        AbstractChangeTrackingSetMap valueMap = (AbstractChangeTrackingSetMap) val;
+                        Set<String> keys = valueMap.keySet();
+                        if (keys != null) {
+                            Iterator<String> it = keys.iterator();
+                            while (it.hasNext()) {
+                                String key = it.next();
+                                AbstractChangeTrackingSet valueSet = valueMap.get(key);
+                                valueSet.markAllForOverwrite();
+                            }
+                        }
+                    }
+                }
+
+                _dbClient.updateObject(newObject);
+                System.err.println(String.format("Successfully rebuild index for %s in cf %s", id, clazz));
+                runResult = true;
+            } else {
+                System.err.println(String.format(
+                        "Could not find data object record for %s in cf %s, no need to rebuild index. Mark as success too.", id, clazz));
                 runResult = true;
             }
         } catch (Exception e) {

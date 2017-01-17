@@ -1935,8 +1935,6 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
      *            the key (URI) of this map can reference either the volume itself or a snapshot.
      * @param workflow
      *            the controller workflow
-     * @param completer
-     *            the controller workflow ExportTaskCompleter
      * @param waitFor
      *            -- If non-null, will wait on previous workflow step
      * @param opId
@@ -2574,21 +2572,6 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             Map<URI, List<URI>> exportMasksToUpdateOnDeviceWithStoragePorts,
             List<Initiator> inits, ExportMask sharedVplexExportMask, String opId) throws Exception {
 
-        // TODO move to completer
-        List<Initiator> initsToAdd = new ArrayList<Initiator>();
-        for (Initiator init : inits) {
-            // add all the the initiators the user has requested to add
-            // to the exportMask initiators list
-            sharedVplexExportMask.addInitiator(init);
-            if (!sharedVplexExportMask.hasExistingInitiator(init)) {
-                initsToAdd.add(init);
-                // add only those initiator to the user added list
-                // which do not exist on the the storage view.
-                sharedVplexExportMask.addToUserCreatedInitiators(init);
-            }
-        }
-
-        _dbClient.updateObject(sharedVplexExportMask);
         ExportPathParams pathParams = _blockScheduler.calculateExportPathParamForVolumes(
                 blockObjectMap.keySet(), exportGroup.getNumPaths(), vplexSystem.getId(), exportGroup.getId());
 
@@ -3752,18 +3735,12 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
                     hasSteps = true;
                 } else {
-                    _log.info("this mask is empty of ViPR-managed volumes, so deleting: "
+                    _log.info("this mask is empty of ViPR-managed volumes, and there are no existing volumes or initiators, so deleting: "
                             + exportMask.getMaskName());
                     List<NetworkZoningParam> zoningParams = 
                         NetworkZoningParam.convertExportMasksToNetworkZoningParam(
                             exportURI, Collections.singletonList(exportMask.getId()), _dbClient);
                     hasSteps = true;
-
-                    // adding to error messages so that orchestration-level validation can be invoked if necessary
-                    errorMessages.append(
-                            String.format(
-                                    "Storage view %s would be deleted on VPLEX device. ",
-                                    exportMask.forDisplay()));
 
                     String exportMaskDeleteStep = workflow.createStepId();
                     ExportMaskDeleteCompleter exportMaskDeleteCompleter = 
@@ -4837,12 +4814,6 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             _log.info("all initiators are being removed and no "
                     + "other ExportGroups reference ExportMask {}", exportMask.getMaskName());
             _log.info("creating a deleteStorageView workflow step for " + exportMask.getMaskName());
-
-            // adding to error messages so that orchestration-level validation can be invoked if necessary
-            errorMessages.append(
-                    String.format(
-                            "Storage view %s would be deleted on VPLEX device. ",
-                            exportMask.forDisplay()));
 
             String exportMaskDeleteStep = workflow.createStepId();
             ExportMaskDeleteCompleter exportMaskDeleteCompleter = 

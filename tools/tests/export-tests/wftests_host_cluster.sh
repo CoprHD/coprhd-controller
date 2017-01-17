@@ -2077,6 +2077,22 @@ test_delete_cluster() {
             runcmd cluster delete ${TENANT}/${cluster} --detachstorage true          
         fi
         
+        # make sure no pending tasks
+        TASK_ID=$(get_pending_task)
+        if [[ ! -z "$TASK_ID" ]];
+        then
+            echo "+++ FAIL - Pending task ${TASK_ID} found"
+            runcmd task delete ${TASK_ID}
+
+            # Report results
+            incr_fail_count
+            if [ "${NO_BAILING}" != "1" ]
+            then
+                report_results ${test_name} ${failure}
+                exit 1
+            fi
+        fi
+   
         snap_db 4 "${cfs[@]}"
 
         # Validate that nothing was left behind

@@ -61,6 +61,7 @@ public class PrimitiveService {
         for(final Primitive primitive : PrimitiveHelper.list() ) {
             PrimitiveRestRep primitiveRestRep = new PrimitiveRestRep();
             primitiveRestRep.setName(primitive.getName());
+            primitiveRestRep.setType(primitive.getType().toString());
             primitiveRestRep.setFriendlyName(primitive.getFriendlyName());
             primitiveRestRep.setDescription(primitive.getDescription());
             primitiveRestRep.setSuccessCriteria(primitive.getSuccessCriteria());

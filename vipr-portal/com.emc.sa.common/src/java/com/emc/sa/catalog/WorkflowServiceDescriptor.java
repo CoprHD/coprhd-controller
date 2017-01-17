@@ -111,7 +111,7 @@ public class WorkflowServiceDescriptor {
                         }
                         if (null != wfInputType) {
                             ServiceField serviceField = new ServiceField();
-                            String inputName = wfInput.getKey();
+                            String inputName = wfInput.getName();
                             //TODO: change this to get description
                             serviceField.setDescription(wfInput.getFriendlyName());
                             serviceField.setLabel(wfInput.getFriendlyName());

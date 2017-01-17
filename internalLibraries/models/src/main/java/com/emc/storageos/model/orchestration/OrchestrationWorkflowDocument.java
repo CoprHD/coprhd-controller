@@ -66,7 +66,7 @@ public class OrchestrationWorkflowDocument {
 
     public static class Input {
 
-        private String key;
+        private String name;
         private String type;
         private String friendlyName;
         private String defaultValue;
@@ -75,12 +75,12 @@ public class OrchestrationWorkflowDocument {
         private boolean required = true;
         private boolean locked = false;
 
-        @XmlElement(name = "key")
-        public String getKey() {
-            return key;
+        @XmlElement(name = "name")
+        public String getName() {
+            return name;
         }
-        public void setKey(String key) {
-            this.key = key;
+        public void setName(String name) {
+            this.name = name;
         }
 
         @XmlElement(name = "type")

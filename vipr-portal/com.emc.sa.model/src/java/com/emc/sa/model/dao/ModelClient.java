@@ -405,5 +405,4 @@ public class ModelClient {
     private static synchronized <T extends DataObject> void addClass(Class<T> modelClass) {
         CLASSES.put(modelClass.getSimpleName(), modelClass);
     }
-    
 }

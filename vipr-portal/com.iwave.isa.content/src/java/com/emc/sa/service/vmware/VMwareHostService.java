@@ -18,19 +18,10 @@ import com.emc.sa.service.vipr.ViPRService;
 import com.emc.sa.service.vipr.block.BlockStorageUtils;
 import com.emc.storageos.db.client.model.Cluster;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
-import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.Host;
-import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.VcenterDataCenter;
-import com.emc.storageos.db.client.model.Volume;
-import com.emc.storageos.model.block.BlockObjectRestRep;
-import com.emc.storageos.model.block.VolumeRestRep;
 import com.google.common.collect.Sets;
-import com.iwave.ext.vmware.HostStorageAPI;
-import com.iwave.ext.vmware.VMwareUtils;
-import com.vmware.vim25.HostScsiDisk;
 import com.vmware.vim25.mo.ClusterComputeResource;
-import com.vmware.vim25.mo.Datastore;
 import com.vmware.vim25.mo.HostSystem;
 
 public abstract class VMwareHostService extends ViPRService {

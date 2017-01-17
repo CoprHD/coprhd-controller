@@ -85,7 +85,9 @@ import com.emc.storageos.workflow.Workflow.Method;
 import com.emc.storageos.workflow.WorkflowException;
 import com.emc.storageos.workflow.WorkflowService;
 import com.emc.storageos.workflow.WorkflowStepCompleter;
+import com.google.common.base.Function;
 import com.google.common.collect.Collections2;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.iwave.ext.linux.util.VolumeWWNUtils;
@@ -482,12 +484,12 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
 
             completer = new HostCompleter(eventId, hostIds, false, clusterId, vCenterDataCenterId, taskId);
 
-            waitFor = addStepForUpdatingHostAndInitiatorClusterReferences(workflow, waitFor, hostIds, clusterId, vCenterDataCenterId);
-            
             if (!NullColumnValueGetter.isNullURI(oldCluster)) {
                 waitFor = addStepsForRemoveHost(workflow, waitFor, hostIds, oldCluster, vCenterDataCenterId, isVcenter);
             }
-
+            
+            waitFor = addStepForUpdatingHostAndInitiatorClusterReferences(workflow, waitFor, hostIds, clusterId, vCenterDataCenterId);
+                        
             waitFor = addStepsForAddHost(workflow, waitFor, hostIds, clusterId, isVcenter);
 
             workflow.executePlan(completer, "Success", null, null, null, null);
@@ -509,10 +511,10 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
             Workflow workflow = _workflowService.getNewWorkflow(this, REMOVE_HOST_STORAGE_WF_NAME, true, taskId);
             String waitFor = null;
 
+            waitFor = addStepsForRemoveHost(workflow, waitFor, hostIds, clusterId, vCenterDataCenterId, isVcenter);
+            
             waitFor = addStepForUpdatingHostAndInitiatorClusterReferences(workflow, waitFor, hostIds, NullColumnValueGetter.getNullURI(),
                     vCenterDataCenterId);
-
-            waitFor = addStepsForRemoveHost(workflow, waitFor, hostIds, clusterId, vCenterDataCenterId, isVcenter);
 
             workflow.executePlan(completer, "Success", null, null, null, null);
         } catch (Exception ex) {
@@ -622,7 +624,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
      * @param hostIds List of hosts to remove
      * @param clusterId Cluster ID if this is a clustered host
      * @param vcenterDataCenter vCenter ID if this is a vCenter
-     * @param isVcenter Boolean flag for determing if vCenter enabled
+     * @param isVcenter Boolean flag for determining if vCenter enabled
      * @return Next step
      */
     public String addStepsForRemoveHost(Workflow workflow, String waitFor, List<URI> hostIds, URI clusterId, URI vcenterDataCenter,
@@ -632,16 +634,20 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
         if (isVcenter && !NullColumnValueGetter.isNullURI(vcenterDataCenter)) {
             Collection<URI> exportIds = Collections2.transform(exportGroups, CommonTransformerFunctions.fctnDataObjectToID());
             Map<URI, Collection<URI>> hostExports = Maps.newHashMap();
+            
             for (URI host : hostIds) {
                 hostExports.put(host, exportIds);
             }
+
             newWaitFor = this.verifyDatastoreForRemoval(hostExports, vcenterDataCenter, newWaitFor, workflow);
 
             newWaitFor = this.unmountAndDetachVolumes(hostExports, vcenterDataCenter, newWaitFor, workflow);
         }
+        
         for (ExportGroup export : exportGroups) {
             newWaitFor = addStepsForRemoveHostFromExport(workflow, newWaitFor, hostIds, export.getId());
         }
+        
         return newWaitFor;
     }
 
@@ -657,7 +663,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
     public String addStepsForRemoveHostFromExport(Workflow workflow, String waitFor, List<URI> hostIds, URI exportId) {
         ExportGroup export = _dbClient.queryObject(ExportGroup.class, exportId);
         String newWaitFor = waitFor;
-
+        
         Set<URI> addedClusters = new HashSet<>();
         Set<URI> removedClusters = new HashSet<>();
         Set<URI> addedHosts = new HashSet<>();

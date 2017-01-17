@@ -80,6 +80,8 @@ public class SupportPackageCreator {
     private String tenantId;
     private ViPRCatalogClient2 catalogClient;
 
+    private List<URI> tenantIds;//if is set, means need to get orders for these tenants
+
     public SupportPackageCreator(Http.Request request, ViPRSystemClient client, String tenantId, ViPRCatalogClient2 catalogClient) {
         this.request = request;
         this.client = Objects.requireNonNull(client);
@@ -113,6 +115,10 @@ public class SupportPackageCreator {
 
     public void setOrderTypes(OrderTypes orderTypes) {
         this.orderTypes = orderTypes;
+    }
+
+    public void setTenantIds(List<URI> tenantIds) {
+        this.tenantIds = tenantIds;
     }
 
     private String getDefaultStartTime() {
@@ -176,11 +182,7 @@ public class SupportPackageCreator {
     private List<OrderRestRep> getOrders() {
         if ((orderTypes == OrderTypes.ALL) || (orderTypes == OrderTypes.ERROR)) {
             List<OrderRestRep> orders = Lists.newArrayList();
-            if (Security.isSystemAdmin()) {
-                List<URI> tenantIds = Lists.newArrayList();
-                for (TenantOrgRestRep tenant : TenantUtils.getAllTenants()) {
-                    tenantIds.add(tenant.getId());
-                }
+            if (tenantIds != null) {
                 for (URI tenantId : tenantIds) {
                     SearchBuilder<OrderRestRep> search = catalogApi().orders().search().byTimeRange(
                             this.startTime, this.endTime, tenantId);

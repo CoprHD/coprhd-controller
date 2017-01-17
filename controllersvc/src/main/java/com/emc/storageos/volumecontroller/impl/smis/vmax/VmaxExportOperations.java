@@ -310,22 +310,33 @@ public class VmaxExportOperations implements ExportMaskOperations {
                     cascadedSGDataSource);
 
             // 3. PortGroup (PG)
+            String pgName = null;
             
-            // find the port group in the array
-            String pgGroupName = findPortGroup(targetURIList, storage);
-            if (pgGroupName == null) {
+            if (isReusePortGroupEnabled(storage.getSystemType())) {
+                // find the port group in the array
+                pgName = findPortGroup(targetURIList, storage);
+                if (pgName == null) {
+                    String ports = Joiner.on(',').join(targetURIList);
+                    String errMsg = String.format("createExportMask failed - maskName %s : Port group not found to match for %s",
+                            mask.getMaskName(), ports);
+                    ServiceError serviceError = DeviceControllerException.errors.jobFailedMsg(errMsg, null);
+                    _log.error(errMsg);
+                    taskCompleter.error(_dbClient, serviceError);
+                    return;
+                } else {
+                    mask.setPortGroup(pgName);
+                    _dbClient.updateObject(mask);
+                }
+            } else {
                 DataSource portGroupDataSource = ExportMaskUtils.getExportDatasource(storage, initiatorList, dataSourceFactory,
                         portGroupCustomTemplateName);
-                pgGroupName = customConfigHandler.getComputedCustomConfigValue(portGroupCustomTemplateName, storage.getSystemType(),
+                pgName = customConfigHandler.getComputedCustomConfigValue(portGroupCustomTemplateName, storage.getSystemType(),
                         portGroupDataSource);
     
                 // CTRL-9054 Always create unique port Groups.
-                pgGroupName = _helper.generateGroupName(_helper.getExistingPortGroupsFromArray(storage), pgGroupName);
-            } else {
-                mask.setPortGroup(pgGroupName);
-                _dbClient.updateObject(mask);
-            }
-            CIMObjectPath targetPortGroupPath = createTargetPortGroup(storage, pgGroupName, targetURIList, taskCompleter);
+                pgName = _helper.generateGroupName(_helper.getExistingPortGroupsFromArray(storage), pgName);
+            } 
+            CIMObjectPath targetPortGroupPath = createTargetPortGroup(storage, pgName, targetURIList, taskCompleter);
 
             // 4. ExportMask = MaskingView (MV) = IG + SG + PG
             CIMObjectPath volumeParentGroupPath = storage.checkIfVmax3() ?
@@ -1498,6 +1509,16 @@ public class VmaxExportOperations implements ExportMaskOperations {
                 List<URI> diffPorts = new ArrayList<URI>(Sets.difference(newHashSet(targetURIList), storagePortURIs));
 
                 if (!diffPorts.isEmpty()) {
+                    if (mask.getPortGroup() != null && !mask.getPortGroup().isEmpty()) {
+                        // resued the port group. we could not change the port group. fail the order
+                        String errMsg = String.format("addInitiators failed - maskName %s : could not add ports to the reused port group %s",
+                                mask.getMaskName(), mask.getPortGroup());
+                        ServiceError serviceError = DeviceControllerException.errors.jobFailedMsg(errMsg, null);
+                        _log.error(errMsg);
+                        taskCompleter.error(_dbClient, serviceError);
+                        return;
+                        
+                    }
                     CIMArgument[] inArgs = _helper.getAddTargetsToMaskingGroupInputArguments(storage, portGroupInstance.getObjectPath(),
                             mask.getMaskName(), Lists.newArrayList(diffPorts));
                     CIMArgument[] outArgs = new CIMArgument[5];
@@ -1680,11 +1701,16 @@ public class VmaxExportOperations implements ExportMaskOperations {
                         boolean removingLast = portsToRemove.size() == storagePortURIs.size();
 
                         if (!portsToRemove.isEmpty() && !removingLast) {
-                            inArgs = _helper.getRemoveTargetPortsFromMaskingGroupInputArguments(storage, pgGroupName,
-                                    Lists.newArrayList(portsToRemove));
-                            outArgs = new CIMArgument[5];
-                            _helper.invokeMethodSynchronously(storage, _cimPath.getControllerConfigSvcPath(storage),
-                                    "RemoveMembers", inArgs, outArgs, null);
+                            if (mask.getPortGroup() != null && !mask.getPortGroup().isEmpty()) {
+                                // reuse port group, don't remove any memebers
+                                _log.info("Do not remove the ports from the reused port group " + mask.getPortGroup());
+                            } else {
+                                inArgs = _helper.getRemoveTargetPortsFromMaskingGroupInputArguments(storage, pgGroupName,
+                                        Lists.newArrayList(portsToRemove));
+                                outArgs = new CIMArgument[5];
+                                _helper.invokeMethodSynchronously(storage, _cimPath.getControllerConfigSvcPath(storage),
+                                        "RemoveMembers", inArgs, outArgs, null);
+                            }
                         } else if (!removingLast) {
                             _log.info(String.format("Target ports already removed fom port group %s, likely by a previous operation.",
                                     pgGroupName));
@@ -5004,5 +5030,25 @@ public class VmaxExportOperations implements ExportMaskOperations {
             }
         }
         return portGroup;
+    }
+    
+    /**
+     * Check whether reuse port group is enabled.
+     * 
+     * @return
+     */
+     private Boolean isReusePortGroupEnabled(String systemType) {
+        Boolean reusePortGroupEnabled = false;
+
+        try {
+            reusePortGroupEnabled = Boolean.valueOf(
+                    customConfigHandler.getComputedCustomConfigValue(
+                            CustomConfigConstants.VMAX_REUSE_PORT_GROUP_ENABLED,
+                            systemType, null));
+        } catch (Exception e) {
+            _log.warn("exception while getting custom config value", e);
+        }
+        _log.info("Reuse port group is " + reusePortGroupEnabled);
+        return reusePortGroupEnabled;
     }
 }

@@ -749,6 +749,7 @@ CustomConfigs.configType.VMAXHostInitiatorGroupNameType=Host Initiator Group Nam
 CustomConfigs.configType.VMAXClusterInitiatorGroupName=Cluster Initiator Group Name
 CustomConfigs.configType.VMAXHostPortGroupName=Host Port Group Name
 CustomConfigs.configType.VMAXClusterPortGroupName=Cluster Port Group Name
+CustomConfigs.configType.VMAXReusePortGroupEnabled=Reuse Port Group Enabled
 CustomConfigs.configType.XtremIOVolumeFolderName=Volume Folder Name
 CustomConfigs.configType.XtremIOInitiatorGroupName=Initiator Group Name
 CustomConfigs.configType.XtremIOHostInitiatorGroupFolderName=Host Initiator Group Folder Name

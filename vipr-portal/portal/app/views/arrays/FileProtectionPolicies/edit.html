@@ -57,9 +57,18 @@
      #{/field}
       #{field 'schedulePolicy.numWorkerThreads'}
          %{
-           field.options = numWorkerThreadsOptions   
+           field.options = numWorkerThreadsOptions 
+           field.valueProperty = 'key'
+           field.labelProperty = 'value'  
          }%
-         #{Form.selectOne field: field, select:schedulePolicy.numWorkerThreads/}
+         <div class="row col-gap-none">
+          <div class="col-xs-4 col-xs-offset-1">
+            <label class="control-label">&{'schedulePolicy.numWorkerThreads'}:</label>
+          </div>
+          <div class="col-xs-7">
+            #{Form.selectOne field:field, select:schedulePolicy.numWorkerThreads/}
+          </div>
+        </div>
       #{/field}
     
     <!-- - -->
@@ -246,7 +255,7 @@
            if(appliedAt == 'vpool') {
                $('#aclFields').hide();
            } else  {
-               $('#aclFields').hide();
+               $('#aclFields').show();
            }
            
      }

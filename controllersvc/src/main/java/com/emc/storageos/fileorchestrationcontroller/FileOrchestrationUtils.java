@@ -26,7 +26,6 @@ import com.emc.storageos.db.client.model.FileExportRule;
 import com.emc.storageos.db.client.model.FilePolicy;
 import com.emc.storageos.db.client.model.FilePolicy.FilePolicyApplyLevel;
 import com.emc.storageos.db.client.model.FilePolicy.FilePolicyType;
-import com.emc.storageos.db.client.model.FilePolicy.FileReplicationType;
 import com.emc.storageos.db.client.model.FileShare;
 import com.emc.storageos.db.client.model.FileShare.PersonalityTypes;
 import com.emc.storageos.db.client.model.NASServer;
@@ -440,7 +439,7 @@ public final class FileOrchestrationUtils {
         return filePoliciesToCreate;
     }
 
-    public static Boolean isvPoolPolicyAppliedOnStorageSystem(DbClient dbClient, StorageSystem system, NASServer nasServer,
+    private static Boolean isvPoolPolicyAppliedOnStorageSystem(DbClient dbClient, StorageSystem system, NASServer nasServer,
             VirtualPool vpool, FilePolicy policy) {
 
         StringSet policyResources = policy.getPolicyStorageResources();
@@ -460,7 +459,7 @@ public final class FileOrchestrationUtils {
         return false;
     }
 
-    public static Boolean isProjectPolicyAppliedOnStorageSystem(DbClient dbClient, StorageSystem system, NASServer nasServer,
+    private static Boolean isProjectPolicyAppliedOnStorageSystem(DbClient dbClient, StorageSystem system, NASServer nasServer,
             Project project, FilePolicy policy) {
 
         StringSet policyResources = policy.getPolicyStorageResources();
@@ -480,7 +479,7 @@ public final class FileOrchestrationUtils {
         return false;
     }
 
-    public static Boolean isFSPolicyAppliedOnStorageSystem(DbClient dbClient, StorageSystem system, NASServer nasServer,
+    private static Boolean isFSPolicyAppliedOnStorageSystem(DbClient dbClient, StorageSystem system, NASServer nasServer,
             FileShare fs, FilePolicy policy) {
 
         StringSet policyResources = policy.getPolicyStorageResources();
@@ -501,10 +500,12 @@ public final class FileOrchestrationUtils {
     }
 
     /**
+     * Gives list of replication policies assigned at vpool/project/fs levels
      * 
      * @param dbClient
+     * @param vpool
      * @param project
-     * @param storageSystem
+     * @param fs
      * @return
      */
     public static List<FilePolicy> getReplicationPolices(DbClient dbClient, VirtualPool vpool, Project project, FileShare fs) {
@@ -547,15 +548,23 @@ public final class FileOrchestrationUtils {
                     replicationPolicies.add(filePolicy);
                 }
             }
+        } else {
+            _log.info("No replication policy assigned to vpool {} , project {} and fs {}", vpool.getLabel(), project.getLabel(),
+                    fs.getLabel());
         }
+
         return replicationPolicies;
     }
 
     /**
+     * Verify the replication policy was applied at given level
      * 
      * @param dbClient
+     * @param system
+     * @param nasServer
+     * @param vpool
      * @param project
-     * @param storageSystem
+     * @param fs
      * @return
      */
     public static Boolean isReplicationPolicyExists(DbClient dbClient, StorageSystem system, NASServer nasServer,
@@ -586,6 +595,13 @@ public final class FileOrchestrationUtils {
         return false;
     }
 
+    /**
+     * Get the physical nas server for storage system
+     * 
+     * @param dbClient
+     * @param system
+     * @return
+     */
     public static PhysicalNAS getSystemPhysicalNAS(DbClient dbClient, StorageSystem system) {
         List<URI> nasServers = dbClient.queryByType(PhysicalNAS.class, true);
         List<PhysicalNAS> phyNasServers = dbClient.queryObject(PhysicalNAS.class, nasServers);
@@ -650,7 +666,7 @@ public final class FileOrchestrationUtils {
      *            storage path
      * @return policy storage resource
      */
-    public static PolicyStorageResource findpolicyStorageResourceByNativeId(DbClient dbClient, StorageSystem system, FilePolicy filePolicy,
+    public static PolicyStorageResource findPolicyStorageResourceByNativeId(DbClient dbClient, StorageSystem system, FilePolicy filePolicy,
             FileDeviceInputOutput args, String path) {
         URIQueryResultList results = new URIQueryResultList();
         PolicyStorageResource storageRes = null;
@@ -690,6 +706,15 @@ public final class FileOrchestrationUtils {
     private static String stripSpecialCharacters(String label) {
         return label.replaceAll("[^\\dA-Za-z ]", "").replaceAll("\\s+", "_");
     }
+
+    /**
+     * Generate unique name for policy
+     * 
+     * @param filePolicy
+     * @param fileShare
+     * @return
+     *
+     */
 
     public static String generateNameForPolicy(FilePolicy filePolicy, FileShare fileShare, FileDeviceInputOutput args) {
         String devPolicyName = "";
@@ -732,6 +757,17 @@ public final class FileOrchestrationUtils {
         }
     }
 
+    /**
+     * Create/Update the File policy resource
+     * 
+     * @param dbClient
+     * @param system
+     * @param filePolicy
+     * @param args
+     * @param sourcePath
+     * @return
+     *
+     */
     public static void updatePolicyStorageResouce(DbClient dbClient, StorageSystem system, FilePolicy filePolicy,
             FileDeviceInputOutput args, String sourcePath,
             PolicyStorageResource policyStorageResource) {
@@ -777,68 +813,14 @@ public final class FileOrchestrationUtils {
                 system.getLabel() + policyStorageResource.getAppliedAt());
     }
 
-    private static String generatePathForLocalTarget(FilePolicy filePolicy, FileShare fileShare, FileDeviceInputOutput args) {
-        String policyPath = "";
-        FilePolicyApplyLevel applyLevel = FilePolicyApplyLevel.valueOf(filePolicy.getApplyAt());
-        String[] fsPathParts = new String[3];
-        switch (applyLevel) {
-            case vpool:
-                String vpool = args.getVPoolNameWithNoSpecialCharacters();
-                fsPathParts = fileShare.getNativeId().split(vpool);
-                policyPath = fsPathParts[0] + vpool + "_localTarget" + fsPathParts[1];
-                break;
-            case project:
-                String project = args.getProjectNameWithNoSpecialCharacters();
-                fsPathParts = fileShare.getNativeId().split(project);
-                policyPath = fsPathParts[0] + project + "_localTarget" + fsPathParts[1];
-                break;
-            case file_system:
-                policyPath = fileShare.getNativeId();
-                break;
-            default:
-                _log.error("Not a valid policy apply level: " + applyLevel);
-        }
-        return policyPath;
-    }
-
     /**
+     * Get the target host for replication
      * 
      * @param dbClient
-     * @param project
-     * @param storageSystem
+     * @param targetFS
      * @return
+     *
      */
-    public static void updateLocalTargetFileSystemPath(DbClient dbClient, StorageSystem system, FileDeviceInputOutput args) {
-        VirtualPool vpool = args.getVPool();
-        Project project = args.getProject();
-        FileShare fs = args.getFs();
-
-        List<FilePolicy> replicationPolicies = getReplicationPolices(dbClient, vpool, project, fs);
-        if (replicationPolicies != null && !replicationPolicies.isEmpty()) {
-            if (replicationPolicies.size() > 1) {
-                _log.warn("More than one replication policy found {}", replicationPolicies.size());
-            } else {
-                FilePolicy replPolicy = replicationPolicies.get(0);
-                if (fs.getPersonality() != null && fs.getPersonality().equalsIgnoreCase(PersonalityTypes.TARGET.name())
-                        && replPolicy.getFileReplicationType().equalsIgnoreCase(FileReplicationType.LOCAL.name())) {
-                    // For local replication, the path sould be different
-                    // add localTaget to file path at directory level where the policy is applied!!!
-                    String mountPath = generatePathForLocalTarget(replPolicy, fs, args);
-                    // replace extra forward slash with single one
-                    mountPath = mountPath.replaceAll("/+", "/");
-                    _log.info("Mount path to mount the Isilon File System {}", mountPath);
-                    args.setFsMountPath(mountPath);
-                    args.setFsNativeGuid(args.getFsMountPath());
-                    args.setFsNativeId(args.getFsMountPath());
-                    args.setFsPath(args.getFsMountPath());
-                }
-            }
-        } else {
-            _log.info("No replication policy found for vpool {} project {}", vpool.getLabel(), project.getLabel());
-        }
-        return;
-    }
-
     public static String getTargetHostForReplication(DbClient dbClient, FileShare targetFS) {
 
         StorageSystem targetSystem = dbClient.queryObject(StorageSystem.class, targetFS.getStorageDevice());

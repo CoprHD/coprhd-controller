@@ -31,11 +31,6 @@ public class FileVirtualPoolForm extends VirtualPoolCommonForm<FileVirtualPoolRe
 
     public Boolean longTermRetention;
 
-    // public String replicationCopiesJson = "[]";
-    // public ReplicationCopyForm[] replicationCopies = {};
-
-    // public String replicationType;
-    // public String replicationMode;
     public Long replicationRpo;
     public String rpRpoType;
 
@@ -66,8 +61,6 @@ public class FileVirtualPoolForm extends VirtualPoolCommonForm<FileVirtualPoolRe
     protected void doLoad(FileVirtualPoolRestRep virtualPool) {
         loadCommon(virtualPool);
         FileVirtualPoolProtectionParam protection = virtualPool.getProtection();
-        // replicationType = virtualPool.getFileReplicationType();
-        // FileVirtualPoolReplicationParam replication = protection.getReplicationParam();
         if ((protection != null) && (protection.getSnapshots() != null)) {
             maxSnapshots = protection.getSnapshots().getMaxSnapshots();
         }

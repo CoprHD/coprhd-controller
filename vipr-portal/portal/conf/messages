@@ -1359,6 +1359,7 @@ schedulePolicy.priorityHigh=High
 filePolicy.name=Policy Name
 schedule.policies.unknown=Unknown File Policy
 schedulePolicy.appliedAt=Apply Policies at
+schedulePolicy.numWorkerThreads=Worker Threads
 
 assignPolicy.title=Policy Assignment
 assignPolicy.policyName=Policies
@@ -1380,6 +1381,8 @@ assignPolicy.saved=File Pool policy assignment successful
 assignPolicy.applyAtProject=Project
 assignPolicy.applyAtVPool=Virtual Pool
 assignPolicy.applyAtFs=File System
+assignPolicy.sourceSite=Source Site
+assignPolicy.targetSites=Target Site(s)
 
 assignPolicy.project.availableVpool=Available vPools
 assignPolicy.project.appliedVpool=Applied vPools

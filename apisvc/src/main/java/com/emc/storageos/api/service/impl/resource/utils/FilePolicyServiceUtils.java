@@ -5,7 +5,6 @@
 package com.emc.storageos.api.service.impl.resource.utils;
 
 import java.net.URI;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.EnumSet;
 import java.util.HashSet;
@@ -19,7 +18,6 @@ import org.slf4j.LoggerFactory;
 import com.emc.storageos.api.service.impl.resource.ArgValidator;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.FilePolicy;
-import com.emc.storageos.db.client.model.FilePolicy.FilePolicyApplyLevel;
 import com.emc.storageos.db.client.model.FilePolicy.FilePolicyType;
 import com.emc.storageos.db.client.model.FilePolicy.ScheduleFrequency;
 import com.emc.storageos.db.client.model.FilePolicy.SnapshotExpireType;
@@ -237,40 +235,17 @@ public final class FilePolicyServiceUtils {
         }
     }
 
-    public static List<FilePolicy> getAllApplicablePolices(DbClient dbClient, URI vpool, URI project) {
-        List<FilePolicy> filePolicies = new ArrayList<FilePolicy>();
-        List<URI> policyIds = dbClient.queryByType(FilePolicy.class, true);
-        List<FilePolicy> filepolicies = dbClient.queryObject(FilePolicy.class, policyIds);
-
-        for (FilePolicy filePolicy : filepolicies) {
-            if (filePolicy.getApplyAt() != null) {
-                FilePolicyApplyLevel appliedLevel = FilePolicyApplyLevel.valueOf(filePolicy.getApplyAt());
-
-                switch (appliedLevel) {
-                    case vpool:
-                        if (filePolicy.getAssignedResources() != null && filePolicy.getAssignedResources().contains(vpool.toString())) {
-                            filePolicies.add(filePolicy);
-                        }
-                        break;
-                    case project:
-                        if (filePolicy.getAssignedResources() != null && filePolicy.getAssignedResources().contains(project.toString())
-                                && filePolicy.getFilePolicyVpool().toString().equals(vpool.toString())) {
-                            filePolicies.add(filePolicy);
-                        }
-                        break;
-                    case file_system:
-                        filePolicies.add(filePolicy);
-
-                        break;
-                    default:
-                        return null;
-                }
-            }
-        }
-        return filePolicies;
-
-    }
-
+    /**
+     * update the replication type into capabilities list from applicable replication policy
+     * 
+     * @param dbClient
+     * @param vPool
+     * @param project
+     * @param fs
+     * @param capabilities
+     * @param errorMsg
+     * @return true/false
+     */
     public static boolean updateReplicationTypeCapabilities(DbClient dbClient, VirtualPool vPool, Project project,
             FileShare fs, VirtualPoolCapabilityValuesWrapper capabilities, StringBuilder errorMsg) {
 
@@ -282,6 +257,21 @@ public final class FilePolicyServiceUtils {
         return true;
     }
 
+    /**
+     * update the replication policy capabilities into capabilities list from applicable replication policy
+     * only a single replication policy across vpool/prject/fs levels
+     * otherwise throw appropriate exception.
+     * 
+     * 
+     * @param dbClient
+     * @param currVArray
+     * @param vPool
+     * @param project
+     * @param fs
+     * @param capabilities
+     * @param errorMsg
+     * @return true/false
+     */
     public static boolean updatePolicyCapabilities(DbClient dbClient, VirtualArray currVArray, VirtualPool vPool, Project project,
             FileShare fs,
             VirtualPoolCapabilityValuesWrapper capabilities, StringBuilder errorMsg) {
@@ -346,6 +336,15 @@ public final class FilePolicyServiceUtils {
         return false;
     }
 
+    /**
+     * Verifies the vpool supports replication and has replication policy
+     * 
+     * 
+     * @param dbClient
+     * @param vPool
+     * @param fs
+     * @return true/false
+     */
     public static boolean vPoolSpecifiesFileReplication(FileShare fs, VirtualPool vPool, DbClient dbClient) {
         if (vPool == null) {
             vPool = dbClient.queryObject(VirtualPool.class, fs.getVirtualPool());
@@ -361,11 +360,26 @@ public final class FilePolicyServiceUtils {
         return vPoolSpecifiesFileReplication(capabilities);
     }
 
+    /**
+     * Verifies the vpool supports replication capability
+     * 
+     * 
+     * @param capabilities
+     * @return true/false
+     */
     public static boolean vPoolSpecifiesFileReplication(VirtualPoolCapabilityValuesWrapper capabilities) {
         return (capabilities.getFileReplicationType() != null && FileReplicationType.validFileReplication(capabilities
                 .getFileReplicationType()));
     }
 
+    /**
+     * Verifies the vpool assigned policies support replication capability
+     * 
+     * 
+     * @param dbClient
+     * @param vpoolURI
+     * @return true/false
+     */
     public static boolean isVPoolHasReplicationPolicy(DbClient dbClient, URI vpoolURI) {
         VirtualPool vPool = dbClient.queryObject(VirtualPool.class, vpoolURI);
         if (vPool != null && vPool.getFilePolicies() != null && !vPool.getFilePolicies().isEmpty()) {
@@ -380,6 +394,15 @@ public final class FilePolicyServiceUtils {
         return false;
     }
 
+    /**
+     * Verifies the project assigned policies in combination with virtual pool support replication capability
+     * 
+     * 
+     * @param dbClient
+     * @param vpoolURI
+     * @param projectURI
+     * @return true/false
+     */
     public static boolean isProjectHasReplicationPolicy(DbClient dbClient, URI vpoolURI, URI projectURI) {
         Project project = dbClient.queryObject(Project.class, projectURI);
         if (project != null && project.getFilePolicies() != null && !project.getFilePolicies().isEmpty()) {

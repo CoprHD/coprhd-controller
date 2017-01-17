@@ -47,8 +47,6 @@ import com.emc.vipr.client.core.util.ResourceUtils;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
 
 import controllers.Common;
 import controllers.deadbolt.Restrict;
@@ -159,7 +157,6 @@ public class FileProtectionPolicies extends ViprResourceController {
 
         List<StringOption> replicationCopyTypeOptions = Lists.newArrayList();
         replicationCopyTypeOptions.add(new StringOption("ASYNC", MessagesUtils.get("schedulePolicy.replicationAsync")));
-        // replicationCopyTypeOptions.add(new StringOption("SEMISYNC", MessagesUtils.get("schedulePolicy.replicationSemiSync")));
         replicationCopyTypeOptions.add(new StringOption("SYNC", MessagesUtils.get("schedulePolicy.replicationSync")));
         renderArgs.put("replicationCopyTypeOptions", replicationCopyTypeOptions);
 
@@ -358,15 +355,6 @@ public class FileProtectionPolicies extends ViprResourceController {
             Common.handleError();
         }
 
-        GsonBuilder builder = new GsonBuilder();
-        Gson gson = builder.create();
-
-        /*
-         * List<FileReplicationTopology> replicationTopologies = Arrays
-         * .asList(gson.fromJson(assignPolicy.topologiesString, FileReplicationTopology[].class));
-         * 
-         * validateTopologies(replicationTopologies); // TODO
-         */
         assignPolicy.id = params.get("id");
         FilePolicyUnAssignParam unAssignPolicyParam = new FilePolicyUnAssignParam();
         if (updateUnAssignPolicyParam(assignPolicy, unAssignPolicyParam)) {
@@ -384,10 +372,6 @@ public class FileProtectionPolicies extends ViprResourceController {
             list();
         }
 
-    }
-
-    private static void validateTopologies(List<FileReplicationTopology> topologies) {
-        // check if some null values have been sent TODO
     }
 
     private static FilePolicyParam updatePolicyParam(SchedulePolicyForm schedulePolicy, FilePolicyParam param) {
@@ -801,7 +785,6 @@ public class FileProtectionPolicies extends ViprResourceController {
 
         public boolean applyOnTargetSite;
 
-        public String topologiesString;
         public String appliedAt;
 
         public FileReplicationTopology[] replicationTopology = {};

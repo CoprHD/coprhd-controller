@@ -101,8 +101,6 @@ public class FileVirtualPoolService extends VirtualPoolService {
         checkForDuplicateName(param.getName(), VirtualPool.class);
         ArgValidator.checkFieldNotEmpty(param.getDescription(), VPOOL_DESCRIPTION);
         VirtualPoolUtil.validateFileVirtualPoolCreateParams(param, _dbClient);
-        // Map<URI, VpoolRemoteCopyProtectionSettings> remoteSettingsMap =
-        // new HashMap<URI, VpoolRemoteCopyProtectionSettings>();
 
         VirtualPool cos = prepareVirtualPool(param, true);
         if (null != param.getLongTermRetention()) {
@@ -189,7 +187,6 @@ public class FileVirtualPoolService extends VirtualPoolService {
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
     public StoragePoolList getMatchingPoolsForVirtualPoolAttributes(FileVirtualPoolParam param) {
         StoragePoolList poolList = new StoragePoolList();
-        // Map<URI, VpoolRemoteCopyProtectionSettings> fileReplRemoteSettingsMap = new HashMap<URI, VpoolRemoteCopyProtectionSettings>();
         VirtualPool vpool = prepareVirtualPool(param, false);
         List<URI> poolURIs = _dbClient.queryByType(StoragePool.class, true);
         List<StoragePool> allPools = _dbClient.queryObject(StoragePool.class, poolURIs);
@@ -576,107 +573,6 @@ public class FileVirtualPoolService extends VirtualPoolService {
                 vPool.setAllowFilePolicyAtFSLevel(protectionParam.getAllowFilePolicyAtFSLevel());
             }
         }
-
-        /*
-         * if (null != param.getProtection()) {
-         * if ((param.getProtection().getSnapshots() != null)
-         * && (param.getProtection().getSnapshots().getMaxSnapshots() != null)) {
-         * vPool.setMaxNativeSnapshots(param.getProtection().getSnapshots().getMaxSnapshots());
-         * 
-         * }
-         * if (param.getProtection().getScheduleSnapshots() != null) {
-         * vPool.setScheduleSnapshots(param.getProtection().getScheduleSnapshots());
-         * } else {
-         * vPool.setScheduleSnapshots(false);
-         * }
-         * if (param.getProtection().getReplicationParam() != null) {
-         * String copyMode = CopyModes.ASYNCHRONOUS.name();
-         * Set<VirtualPoolRemoteProtectionVirtualArraySettingsParam> copies = param.getProtection().getReplicationParam().getCopies();
-         * 
-         * FileReplicationPolicy replPolicy = param.getProtection().getReplicationParam().getSourcePolicy();
-         * if (replPolicy != null) {
-         * if (null != replPolicy.getReplicationType()) {
-         * if (!FileReplicationType.lookup(replPolicy.getReplicationType())) {
-         * throw APIException.badRequests.invalidReplicationType(replPolicy.getReplicationType());
-         * }
-         * vPool.setFileReplicationType(replPolicy.getReplicationType().toUpperCase());
-         * // Verify the remote copies given for remote replication!!!
-         * if (FileReplicationType.REMOTE.name().equalsIgnoreCase(replPolicy.getReplicationType())) {
-         * if (copies == null || copies.isEmpty()) {
-         * throw APIException.badRequests.noReplicationRemoteCopies(replPolicy.getReplicationType());
-         * }
-         * }
-         * } else {
-         * throw APIException.badRequests.noReplicationTypesSpecified();
-         * }
-         * if (null != replPolicy.getCopyMode()) {
-         * if (!CopyModes.lookup(replPolicy.getCopyMode())) {
-         * throw APIException.badRequests.invalidCopyMode(replPolicy.getCopyMode());
-         * }
-         * copyMode = replPolicy.getCopyMode();
-         * vPool.setFileReplicationCopyMode(copyMode.toUpperCase());
-         * }
-         * // Validate the RPO value and type!!
-         * if (validateReplArgs && validateReplicationRpoParams(replPolicy)) {
-         * vPool.setFrRpoType(replPolicy.getRpoType());
-         * vPool.setFrRpoValue(replPolicy.getRpoValue());
-         * }
-         * }
-         * 
-         * if (FileReplicationType.REMOTE.name().equalsIgnoreCase(vPool.getFileReplicationType()) &&
-         * copies != null && !copies.isEmpty()) {
-         * if (copies.size() > 1) {
-         * _log.error("Single remote copy supported, you have given {} copies ", copies.size());
-         * throw APIException.badRequests.moreThanOneRemoteCopiesSpecified();
-         * }
-         * // Create a Map with remote copies
-         * StringMap remoteCopiesMap = new StringMap();
-         * for (VirtualPoolRemoteProtectionVirtualArraySettingsParam remoteCopy : copies) {
-         * 
-         * VirtualArray remoteVArray = _dbClient.queryObject(VirtualArray.class, remoteCopy.getVarray());
-         * if (null == remoteVArray || remoteVArray.getInactive()) {
-         * throw APIException.badRequests.inactiveRemoteVArrayDetected(remoteCopy.getVarray());
-         * }
-         * VpoolRemoteCopyProtectionSettings remoteCopySettings = new VpoolRemoteCopyProtectionSettings();
-         * remoteCopySettings.setId(URIUtil.createId(VpoolRemoteCopyProtectionSettings.class));
-         * remoteCopySettings.setVirtualArray(remoteCopy.getVarray());
-         * if (remoteCopiesMap.containsKey(remoteCopy.getVarray().toString())) {
-         * throw APIException.badRequests.duplicateRemoteSettingsDetected(remoteCopy.getVarray());
-         * }
-         * 
-         * remoteCopySettings.setCopyMode(copyMode);
-         * VirtualPool remoteVPool = _dbClient.queryObject(VirtualPool.class, remoteCopy.getVpool());
-         * if (null == remoteVPool || remoteVPool.getInactive()) {
-         * throw APIException.badRequests.inactiveRemoteVPoolDetected(remoteCopy.getVpool());
-         * }
-         * if (remoteVPool.getVirtualArrays() != null
-         * && !remoteVPool.getVirtualArrays().contains(remoteVArray.getId().toString())) {
-         * throw APIException.badRequests.invalidVirtualPoolFromVirtualArray(
-         * remoteVPool.getId(), remoteVArray.getId());
-         * }
-         * remoteCopySettings.setVirtualPool(remoteCopy.getVpool());
-         * 
-         * remoteCopiesMap.put(remoteCopySettings.getVirtualArray().toString(),
-         * remoteCopySettings.getId().toString());
-         * remoteSettingsMap.put(remoteCopySettings.getVirtualArray(), remoteCopySettings);
-         * }
-         * 
-         * vPool.setFileRemoteCopySettings(remoteCopiesMap);
-         * vPool.setFileReplicationType(FileReplicationType.REMOTE.name());
-         * _log.info("File Replication type {} and number of remote copies {}",
-         * vPool.getFileReplicationType(), remoteCopiesMap.size());
-         * }
-         * 
-         * // Verify remote copies are there for REMOTE replication!!!
-         * if (FileReplicationType.REMOTE.name().equalsIgnoreCase(vPool.getFileReplicationType()) &&
-         * (vPool.getFileRemoteCopySettings() == null ||
-         * vPool.getFileRemoteCopySettings().isEmpty())) {
-         * _log.info("No remote copies in virtual pool for REMOTE replication ");
-         * throw APIException.badRequests.noReplicationRemoteCopies(vPool.getFileReplicationType());
-         * }
-         * }
-         * }
-         */
 
         if (null != param.getLongTermRetention()) {
             vPool.setLongTermRetention(param.getLongTermRetention());

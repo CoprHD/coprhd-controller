@@ -91,8 +91,6 @@ public class FileDeviceInputOutput {
     // New Addition for File Policy Work
     private FilePolicy fileProtectionPolicy;
     private PolicyStorageResource policyStorageResource;
-    private String replPolicyAt;
-    private Boolean replPolicyApplied;
 
     public String getFileSystemPath() {
         return fileSystemPath;
@@ -1061,21 +1059,4 @@ public class FileDeviceInputOutput {
     public void setFileProtectionPolicy(FilePolicy fileProtectionPolicy) {
         this.fileProtectionPolicy = fileProtectionPolicy;
     }
-
-    public String getReplPolicyAt() {
-        return replPolicyAt;
-    }
-
-    public void setReplPolicyAt(String replPolicyAt) {
-        this.replPolicyAt = replPolicyAt;
-    }
-
-    public Boolean getReplPolicyApplied() {
-        return replPolicyApplied;
-    }
-
-    public void setReplPolicyApplied(Boolean replPolicyApplied) {
-        this.replPolicyApplied = replPolicyApplied;
-    }
-
 }

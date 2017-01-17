@@ -3498,7 +3498,7 @@ public class ExportGroupService extends TaskResourceService {
             varray = exportGroup.getVirtualArray();
         }
 
-        validatePathAdjustment(exportGroup, system, param);
+        validatePathAdjustment(exportGroup, system, param, varray);
         Boolean wait = param.getWaitBeforeRemovePaths();
         if (wait == null) {
             wait = false;
@@ -3544,11 +3544,13 @@ public class ExportGroupService extends TaskResourceService {
     /**
      * Validate the path adjustment request parameters
      * 
-     * @param exportGroup
-     * @param system
-     * @param param
+     * @param exportGroup ExportGroup object
+     * @param system StorageSystem object
+     * @param param Export Path Adjustment Parameters
+     * @param varray URI of the virtual array, used to check any supplied ports are in correct varray
      */
-    private void validatePathAdjustment(ExportGroup exportGroup, StorageSystem system, ExportPathsAdjustmentParam param) {
+    private void validatePathAdjustment(ExportGroup exportGroup, StorageSystem system, 
+            ExportPathsAdjustmentParam param, URI varray) {
         String systemType = system.getSystemType();
         if (!Type.vmax.name().equalsIgnoreCase(systemType) &&
             !Type.vplex.name().equalsIgnoreCase(systemType)) {
@@ -3577,16 +3579,22 @@ public class ExportGroupService extends TaskResourceService {
         _dbClient.queryByConstraint(
                 ContainmentConstraint.Factory.getStorageDeviceStoragePortConstraint(system.getId()),
                 storagePortURIs);
+        // Validate the targets to be provisioned have a valid state (COMPATIBLE, REGISTERED, and VISIBLE) and
+        // that their tagged virtual array contains our varray.
         List<StoragePort> storagePorts = _dbClient.queryObject(StoragePort.class, storagePortURIs);
         for (StoragePort port : storagePorts) {
             if (!port.getInactive() && 
                     port.getCompatibilityStatus().equals(DiscoveredDataObject.CompatibilityStatus.COMPATIBLE.name()) &&
                     port.getRegistrationStatus().equals(StoragePort.RegistrationStatus.REGISTERED.name()) &&
-                    port.getDiscoveryStatus().equals(DiscoveryStatus.VISIBLE.name())) {
+                    port.getDiscoveryStatus().equals(DiscoveryStatus.VISIBLE.name()) 
+                    && port.getTaggedVirtualArrays() != null 
+                    && port.getTaggedVirtualArrays().contains(varray.toString())) {
                 systemPorts.add(port.getId());
             }
         }
         if (!systemPorts.containsAll(pathTargets)) {
+            // List only the invalid targets
+            pathTargets.removeAll(systemPorts);
             throw APIException.badRequests.exportPathAdjustmentAdjustedPathNotValid(Joiner.on(",").join(pathTargets));
         }
     }

@@ -13564,10 +13564,12 @@ unityblock_export_consistent_hlu_snap_test1()
     unity_verify_export ${HOST2} 2 1 1
 
     run export_group update $PROJECT/${expname}1 --addVolspec $PROJECT/${volname}-1/${snapname}-1
+    sleep 30 # exports involving snap and volumes requires sleep interval before verification
     unity_verify_export ${HOST1} 2 3 0,1,2
     unity_verify_export ${HOST2} 2 2 1,2
 
     run export_group create $PROJECT ${expname}3 $NH --type Host --volspec $PROJECT/${volname}-3 --hosts "${HOST2}"
+    sleep 30
     unity_verify_export ${HOST1} 2 3 0,1,2
     unity_verify_export ${HOST2} 2 3 0,1,2
 
@@ -13576,18 +13578,19 @@ unityblock_export_consistent_hlu_snap_test1()
     unity_verify_export ${HOST2} 2 3 0,1,2
 
     run export_group update $PROJECT/${expname}1 --remHosts "${HOST2}"
+    sleep 30
     unity_verify_export ${HOST1} 2 2 1,2
     unity_verify_export ${HOST2} 2 1 0
 
     run export_group update $PROJECT/${expname}1 --remVols $PROJECT/${volname}-1
     unity_verify_export ${HOST1} 2 1 2
-    unity_verify_export ${HOST2} 2 1 0
 
     run export_group update $PROJECT/${expname}1 --addHosts "${HOST2}"
     unity_verify_export ${HOST1} 2 1 2
     unity_verify_export ${HOST2} 2 2 0,2
 
     run export_group update $PROJECT/${expname}1 --addVolspec "$PROJECT/${volname}-2/${snapname}-2,$PROJECT/${volname}-3/${snapname}-3"
+    sleep 30
     unity_verify_export ${HOST1} 2 3 1,2,3
     unity_verify_export ${HOST2} 2 4 0,1,2,3
 
@@ -13653,10 +13656,12 @@ unityblock_export_consistent_hlu_snap_test2()
     unity_verify_export ${HOST2} 2 1 1
 
     run export_group update $PROJECT/${expname}2 --addVolspec $PROJECT/${volname}-1/${snapname}-1
+    sleep 30
     unity_verify_export ${HOST1} 2 3 0,1,2
     unity_verify_export ${HOST2} 2 2 1,2
 
     run export_group create $PROJECT ${expname}3 $NH --type Host --volspec $PROJECT/${volname}-3 --hosts "${HOST2}"
+    sleep 30
     unity_verify_export ${HOST1} 2 3 0,1,2
     unity_verify_export ${HOST2} 2 3 0,1,2
 
@@ -13665,6 +13670,7 @@ unityblock_export_consistent_hlu_snap_test2()
     unity_verify_export ${HOST2} 2 3 0,1,2
 
     run export_group update $PROJECT/${expname}2 --remHosts "${HOST2}"
+    sleep 30
     unity_verify_export ${HOST1} 2 2 1,2
     unity_verify_export ${HOST2} 2 1 0
 
@@ -13676,10 +13682,12 @@ unityblock_export_consistent_hlu_snap_test2()
     unity_verify_export ${HOST2} 2 2 0,2
 
     run export_group update $PROJECT/${expname}2 --addVolspec $PROJECT/${volname}-2/${snapname}-2
+    sleep 30
     unity_verify_export ${HOST1} 2 2 1,2
     unity_verify_export ${HOST2} 2 3 0,1,2
 
     run export_group update $PROJECT/${expname}3 --addVolspec $PROJECT/${volname}-3/${snapname}-3
+    sleep 30
     unity_verify_export ${HOST1} 2 2 1,2
     unity_verify_export ${HOST2} 2 4 0,1,2,3
 

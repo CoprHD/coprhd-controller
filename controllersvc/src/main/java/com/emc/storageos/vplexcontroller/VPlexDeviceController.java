@@ -4926,32 +4926,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 }
             }
 
-            // if any initiators are no longer present in any export group
-            // then we can go ahead and remove them from the export mask
-            // and from the storage view on the vplex
-            List<URI> initiatorsToRemove = new ArrayList<URI>();
-            List<ExportGroup> allExportGroups = new ArrayList<ExportGroup>();
-            allExportGroups.addAll(otherExportGroups);
-            allExportGroups.add(exportGroup);
-            _log.info("checking if initiators are no longer in use by any export group");
-            for (Initiator init : initiators) {
-                _log.info("looking at initiator " + init.getInitiatorPort());
-                boolean stillInUse = false;
-                for (ExportGroup eg : allExportGroups) {
-                    if (eg.hasInitiator(init)) {
-                        _log.info("   initiator is still in use by export group "
-                                + eg.getGeneratedName() + " (" + eg.getId() + ")");
-                        stillInUse = true;
-                        break;
-                    }
-                }
-                if (!stillInUse) {
-                    initiatorsToRemove.add(init.getId());
-                    _log.info("   initiator is no longer in use, "
-                            + "marked for removal from the VPLEX storage view");
-                }
-            }
-
+            List<URI> initiatorsToRemove = URIUtil.toUris(initiators);
             if (!initiatorsToRemove.isEmpty()) {
                 lastStep = handleInitiatorRemoval(vplex, workflow, completer, exportGroup,
                         exportMask, initiatorsToRemove, targetURIs, lastStep,

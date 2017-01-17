@@ -17,25 +17,6 @@
 
 package com.emc.sa.service.vipr.oe;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
-import org.apache.commons.lang.StringUtils;
-import org.codehaus.jackson.JsonNode;
-import org.codehaus.jackson.map.ObjectMapper;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.expression.EvaluationContext;
-import org.springframework.expression.Expression;
-import org.springframework.expression.ExpressionParser;
-import org.springframework.expression.spel.standard.SpelExpressionParser;
-import org.springframework.expression.spel.support.StandardEvaluationContext;
-
 import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.engine.service.Service;
 import com.emc.sa.service.vipr.ViPRExecutionUtils;
@@ -57,6 +38,22 @@ import com.emc.storageos.primitives.Primitive.StepType;
 import com.emc.storageos.primitives.PrimitiveHelper;
 import com.emc.storageos.primitives.ViPRPrimitive;
 import com.google.gson.Gson;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import org.apache.commons.lang.StringUtils;
+import org.codehaus.jackson.JsonNode;
+import org.codehaus.jackson.map.ObjectMapper;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.expression.EvaluationContext;
+import org.springframework.expression.Expression;
+import org.springframework.expression.ExpressionParser;
+import org.springframework.expression.spel.standard.SpelExpressionParser;
+import org.springframework.expression.spel.support.StandardEvaluationContext;
 
 @Service("OrchestrationService")
 public class OrchestrationService extends ViPRService {
@@ -220,16 +217,16 @@ public class OrchestrationService extends ViPRService {
 
         logger.info("executing Step Id: {} of Type: {}", step.getId(), step.getType());
 
-        Map<String, Input> input = step.getInput();
+        ArrayList<Input> input = step.getInput();
         if (input == null)
             return;
 
         final Map<String, List<String>> inputs = new HashMap<String, List<String>>();
 
-        final Iterator it = input.keySet().iterator();
+        final Iterator<Input> it = input.iterator();
         while (it.hasNext()) {
-            String key = it.next().toString();
-            Input value = input.get(key);
+            Input value = it.next();
+            String key = value.getKey();
             
             if (value == null) {
                 logger.error("Wrong key for input:{} Can't get input to execute the step:{}", key, step.getId());
@@ -359,17 +356,17 @@ public class OrchestrationService extends ViPRService {
      * @param result
      */
     private void updateOutputPerStep(final Step step, final String result) throws Exception {
-        final Map<String, String> output = step.getOutput();
+        final ArrayList<OrchestrationWorkflowDocument.Output> output = step.getOutput();
         if (output == null) 
             return;
 
         final Map<String, List<String>> out = new HashMap<String, List<String>>();
 
-        for(Map.Entry<String, String> e : output.entrySet()) {
+        for(OrchestrationWorkflowDocument.Output o : output) {
             if (isAnsible(step)) {
-                out.put(e.getKey(), evaluateAnsibleOut(result, e.getKey()));
+                out.put(o.getName(), evaluateAnsibleOut(result, o.getName()));
             } else {
-                out.put(e.getKey(), evaluateValue(result, e.getValue()));
+                out.put(o.getName(), evaluateValue(result, o.getName()));
             }
         }
 

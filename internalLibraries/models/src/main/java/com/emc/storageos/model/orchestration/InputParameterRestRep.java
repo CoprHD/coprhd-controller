@@ -17,28 +17,39 @@
 package com.emc.storageos.model.orchestration;
 
 import java.util.List;
+
 import javax.xml.bind.annotation.XmlElement;
 
 public class InputParameterRestRep {
 
+    private String name;
     private boolean required;
     private List<String> defaultValue;
     private String type;
-    
+
+    @XmlElement(name = "name")
+    public String getName() {
+        return name;
+    }
+
+    public void setName(final String name) {
+        this.name = name;
+    }
+
     @XmlElement(name = "required")
     public boolean getRequired() {
         return required;
     }
-    
+
     public void setRequired(final boolean required) {
         this.required = required;
     }
-    
+
     @XmlElement(name = "default_value")
     public List<String> getDefaultValue() {
         return defaultValue;
     }
-    
+
     public void setDefaultValue( final List<String> defaultValue) {
         this.defaultValue = defaultValue;
     }

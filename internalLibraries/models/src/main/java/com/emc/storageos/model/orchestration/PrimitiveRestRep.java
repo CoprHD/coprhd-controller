@@ -16,7 +16,7 @@
  */
 package com.emc.storageos.model.orchestration;
 
-import java.util.Map;
+import java.util.List;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 
@@ -28,8 +28,8 @@ public class PrimitiveRestRep {
     private String friendlyName;
     private String description;
     private String successCriteria;
-    private Map<String,InputParameterRestRep> input;
-    private Map<String,OutputParameterRestRep> output;
+    private List<InputParameterRestRep> input;
+    private List<OutputParameterRestRep> output;
     
     @XmlElement(name = "name")
     public String getName() {
@@ -77,20 +77,20 @@ public class PrimitiveRestRep {
     }
 
     @XmlElement(name = "input")
-    public Map<String,InputParameterRestRep> getInput() {
+    public List<InputParameterRestRep> getInput() {
         return input;
     }
 
-    public void setInput(final Map<String,InputParameterRestRep> input) {
+    public void setInput(final List<InputParameterRestRep> input) {
         this.input = input;
     }
 
     @XmlElement(name = "output")
-    public Map<String,OutputParameterRestRep> getOutput() {
+    public List<OutputParameterRestRep> getOutput() {
         return output;
     }
 
-    public void setOutput(final Map<String,OutputParameterRestRep> output) {
+    public void setOutput(final List<OutputParameterRestRep> output) {
         this.output = output;
     }
 }

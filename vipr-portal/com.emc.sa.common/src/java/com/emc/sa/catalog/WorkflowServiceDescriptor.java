@@ -23,17 +23,15 @@ import com.emc.storageos.db.client.constraint.NamedElementQueryResultList.NamedE
 import com.emc.storageos.db.client.model.uimodels.OrchestrationWorkflow;
 import com.emc.storageos.db.client.model.uimodels.OrchestrationWorkflow.OrchestrationWorkflowStatus;
 import com.emc.storageos.model.orchestration.OrchestrationWorkflowDocument;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Component;
-
-import javax.annotation.PostConstruct;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-import java.util.Map;
+import javax.annotation.PostConstruct;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
 
 /**
  * Service Descriptor for Workflow services
@@ -102,8 +100,7 @@ public class WorkflowServiceDescriptor {
 
             for (OrchestrationWorkflowDocument.Step step : wfDocument.getSteps()) {
                 if (null != step.getInput()) {
-                    for(Map.Entry<String, OrchestrationWorkflowDocument.Input> inputEntry: step.getInput().entrySet()) {
-                        OrchestrationWorkflowDocument.Input wfInput = inputEntry.getValue();
+                    for(OrchestrationWorkflowDocument.Input wfInput: step.getInput()) {
                         String wfInputType = null;
                         // Creating service fields for only inputs of type "inputfromuser" and "assetoption"
                         if (INPUT_FROM_USER_INPUT_TYPE.equals(wfInput.getType())) {
@@ -114,7 +111,7 @@ public class WorkflowServiceDescriptor {
                         }
                         if (null != wfInputType) {
                             ServiceField serviceField = new ServiceField();
-                            String inputName = inputEntry.getKey();
+                            String inputName = wfInput.getKey();
                             //TODO: change this to get description
                             serviceField.setDescription(wfInput.getFriendlyName());
                             serviceField.setLabel(wfInput.getFriendlyName());

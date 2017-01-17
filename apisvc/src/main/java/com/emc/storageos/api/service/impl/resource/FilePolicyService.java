@@ -824,7 +824,6 @@ public class FilePolicyService extends TaskResourceService {
         ArgValidator.checkFieldUriType(param.getProjectAssignParams().getVpool(), VirtualPool.class, "vpool");
         URI vpoolURI = param.getProjectAssignParams().getVpool();
         VirtualPool vpool = null;
-        ArgValidator.checkEntity(vpool, param.getProjectAssignParams().getVpool(), false);
 
         if (filePolicy.getFilePolicyVpool() == null) {
             ArgValidator.checkFieldNotNull(param.getProjectAssignParams().getVpool(), "vpool");

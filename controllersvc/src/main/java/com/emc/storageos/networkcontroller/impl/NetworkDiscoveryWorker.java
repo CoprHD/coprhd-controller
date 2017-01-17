@@ -24,6 +24,7 @@ import com.emc.storageos.db.client.model.StringMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.emc.storageos.api.service.impl.resource.utils.ExportUtils;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
@@ -33,6 +34,8 @@ import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
 import com.emc.storageos.db.client.model.FCEndpoint;
+import com.emc.storageos.db.client.model.Host;
+import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.Network;
 import com.emc.storageos.db.client.model.NetworkSystem;
 import com.emc.storageos.db.client.model.StorageProtocol.Transport;
@@ -504,6 +507,7 @@ public class NetworkDiscoveryWorker {
      				}
      				else{
      					//raise the event.
+     					
      		            EventUtils.createActionableEvent(dbClient,
      		                    EventUtils.EventCode.PORT_REMOVED,
      		                    TenantOrg.SYSTEM_TENANT, 
@@ -846,18 +850,35 @@ public class NetworkDiscoveryWorker {
             // before we add the endpoints, they need to be removed from their old transport zones
             NetworkAssociationHelper.handleRemoveFromOldNetworks(transportZoneMap, tzone, dbClient, _coordinator);
             
-			//raise the event.
-	        EventUtils.createActionableEvent(dbClient,
-                    EventUtils.EventCode.PORT_REMOVED,
-                    TenantOrg.SYSTEM_TENANT, 
-                    "Endpoint deleted from the Network",
-                    MessageFormat.format("Endpoing {0} deleted from {1} and added to {2}",endpoints.toArray() , tzone.getLabel()), 
-                    "Appropriate export masks have to be taken care",
-                    tzone, Lists.newArrayList(),
-                    "", new Object[] {}, "", new Object[] {} );   
+            for(String endpoint: endpoints){
+	            Initiator hostInitiator = ExportUtils.getInitiator(endpoint, dbClient);
+	            URI tenantURI = null;
+	            
+	            if(hostInitiator!=null){
+	            	Host hostObject= dbClient.queryObject(Host.class, hostInitiator.getHost());
+	            	tenantURI = hostObject.getTenant();
+	            }
+	            else{
+	            	tenantURI = TenantOrg.SYSTEM_TENANT;
+	            }
+				//raise the event.
+		        EventUtils.createActionableEvent(dbClient,
+	                    EventUtils.EventCode.PORT_REMOVED,
+	                    tenantURI, 
+	                    "Endpoint deleted from the Network",
+	                    MessageFormat.format("Endpoing {0} deleted from {1} and added to {2}",endpoints.toArray() , tzone.getLabel()), 
+	                    "Appropriate export masks have to be taken care",
+	                    tzone, Lists.newArrayList(),
+	                    "", new Object[] {}, "", new Object[] {} );   
+            }
         }
         // now, add the the endpoints
         NetworkAssociationHelper.handleEndpointsAdded(tzone, endpoints, dbClient, _coordinator);
+    }
+    
+        
+    private void portMovementApprove(){
+    	//empty function
     }
 
     private Iterator<FCEndpoint> getNetworkSystemEndPoints(NetworkSystem networkSystem) throws IOException {

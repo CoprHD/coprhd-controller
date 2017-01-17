@@ -926,7 +926,6 @@ public class ComputeSystemHelper {
     public static boolean updateExternalCreatedDatastoreVolume(DbClient dbClient, Volume volumeObj, URI datastore,
             VCenterAPI vcenterAPI) {
         Datastore createdDatastore = getDatastorefromIdentifier(datastore, vcenterAPI);
-
         if (createdDatastore == null) {
             String message = "Externally created datastore not found on vCenter";
             _log.error(message);
@@ -935,7 +934,15 @@ public class ComputeSystemHelper {
         HostSystem candidateHostSystem = getHostSystemwithVolumeWwn(volumeObj, vcenterAPI, createdDatastore);
         Host host = null;
         if (candidateHostSystem != null) {
-            host = findExistingHost(dbClient, candidateHostSystem);
+            HostHardwareInfo hw = candidateHostSystem.getHardware();
+            if (hw != null && hw.systemInfo != null && StringUtils.isNotBlank(hw.systemInfo.uuid)) {
+                // try finding host by UUID
+                String uuid = hw.systemInfo.uuid;
+                host = EsxHostDiscoveryAdapter.findHostByUuid(uuid);
+            }
+            if (host == null) {
+                host = findExistingHost(dbClient, candidateHostSystem);
+            }
         }
         if (host == null) {
             String message = "Host not found for externally created datastore on vCenter";
@@ -988,19 +995,14 @@ public class ComputeSystemHelper {
     }
     
     /**
-     * Finds the host from the hostSystem by uuid/label/hostname/ipAddress
+     * Finds the esx host from the hostSystem by uuid/label/hostname/ipAddress
      * 
      * @param dbClient
      * @param hostSystem
      * @return host
      */
     private static Host findExistingHost(DbClient dbClient, HostSystem hostSystem) {
-
-        Host candidateHost = findHostByUuid(hostSystem, dbClient);
-        if (candidateHost != null) {
-            return candidateHost;
-        }
-
+        //try finding host by label
         List<Host> hosts = CustomQueryUtility.queryActiveResourcesByConstraint(dbClient, Host.class,
                 PrefixConstraint.Factory.getFullMatchConstraint(Host.class, "label", hostSystem.getName()));
         for (Host host : hosts) {
@@ -1009,6 +1011,7 @@ public class ComputeSystemHelper {
             }
         }
 
+        //try finding host by name
         List<Host> results = CustomQueryUtility.queryActiveResourcesByAltId(dbClient, Host.class, "hostName", hostSystem.getName());
         for (Host host : results) {
             if (isEsxHost(host)) {
@@ -1016,37 +1019,11 @@ public class ComputeSystemHelper {
             }
         }
 
-        List<String> ipAddresses = getHostIpAddresses(hostSystem);
+        //try finding host by ip address
+        List<String> ipAddresses = EsxHostDiscoveryAdapter.getHostIpAddresses(hostSystem);
         for (String ipAddress : ipAddresses) {
             hosts = CustomQueryUtility.queryActiveResourcesByConstraint(dbClient, Host.class,
                     PrefixConstraint.Factory.getFullMatchConstraint(Host.class, "label", ipAddress));
-            for (Host host : hosts) {
-                if (isEsxHost(host)) {
-                    return host;
-                }
-            }
-        }
-        return null;
-    }
-
-    /**
-     * Lookup for host in the db by uuid
-     * 
-     * @param uuid
-     *            - uuid of host
-     * @param dbClient
-     * @return
-     */
-    protected static Host findHostByUuid(HostSystem hostSystem, DbClient dbClient) {
-        HostHardwareInfo hw = hostSystem.getHardware();
-        if (hw != null && hw.systemInfo != null
-                && StringUtils.isNotBlank(hw.systemInfo.uuid)) {
-            // try finding host by UUID
-            String uuid = hw.systemInfo.uuid;
-            List<Host> hosts = CustomQueryUtility.queryActiveResourcesByConstraint(
-                    dbClient, Host.class,
-                    AlternateIdConstraint.Factory.getConstraint(
-                            Host.class, HOST_UUID_COLUMN_NAME, uuid));
             for (Host host : hosts) {
                 if (isEsxHost(host)) {
                     return host;
@@ -1066,43 +1043,6 @@ public class ComputeSystemHelper {
     private static boolean isEsxHost(Host host) {
         return StringUtils.equalsIgnoreCase(host.getType(),
                 HostType.Esx.toString());
-    }
-
-    /**
-     * Get list of IP addresses for the given host
-     * 
-     * @param hostSystem
-     * @return
-     */
-    private static List<String> getHostIpAddresses(HostSystem hostSystem) {
-        List<String> ipAddresses = Lists.newArrayList();
-        for (HostVirtualNic vnic : getNics(hostSystem)) {
-            if (vnic.getSpec() != null && vnic.getSpec().getIp() != null) {
-                String ipAddress = vnic.getSpec().getIp().getIpAddress();
-                if (!StringUtils.isEmpty(ipAddress)) {
-                    ipAddresses.add(ipAddress);
-                }
-            }
-        }
-        return ipAddresses;
-    }
-
-    /**
-     * Fetch Nics for the hostsystem
-     * 
-     * @param hostSystem
-     * @return
-     */
-    protected static List<HostVirtualNic> getNics(HostSystem hostSystem) {
-        List<HostVirtualNic> nics = Lists.newArrayList();
-        HostConfigInfo config = hostSystem.getConfig();
-        if ((config != null) && (config.getNetwork() != null)
-                && (config.getNetwork().getVnic() != null)) {
-            for (HostVirtualNic nic : config.getNetwork().getVnic()) {
-                nics.add(nic);
-            }
-        }
-        return nics;
     }
 
     private static String getVMFSDatastoreTag(URI hostId, String name) {

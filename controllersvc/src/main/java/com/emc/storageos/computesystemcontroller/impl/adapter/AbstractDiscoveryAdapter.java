@@ -57,13 +57,13 @@ public abstract class AbstractDiscoveryAdapter implements ComputeSystemDiscovery
     @Autowired
     private ComputeSystemDiscoveryVersionValidator versionValidator;
 
-    protected ModelClient modelClient;
+    protected static ModelClient modelClient;
 
     protected DbClient dbClient;
 
     protected CoordinatorClient coordinator;
 
-    public ModelClient getModelClient() {
+    public static ModelClient getModelClient() {
         return modelClient;
     }
 

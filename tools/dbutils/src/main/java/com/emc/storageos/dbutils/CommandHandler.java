@@ -818,6 +818,7 @@ public abstract class CommandHandler {
         private static final Logger log = LoggerFactory.getLogger(DumpOrdersHandler.class);
         private static final SimpleDateFormat TIME = new SimpleDateFormat("ddMMyy-HHmm");
         private static final SimpleDateFormat DATE = new SimpleDateFormat("dd-MM-yy hh:mm");
+        private static final String DETAIL_INDENT = "      \t                            \t";
         private File dir;
         private OrderManager orderManager;
         DBClient client;
@@ -944,6 +945,24 @@ public abstract class CommandHandler {
                 }
             }
             return phaseLogs;
+        }
+
+        private void writeLog(StringBuilder builder, ExecutionTaskLog log) {
+            builder.append("[").append(log.getLevel()).append("]");
+            builder.append("\t").append(log.getDate());
+            if (StringUtils.isNotBlank(log.getMessage())) {
+                builder.append("\t").append(log.getMessage());
+            }
+            if (log.getElapsed() != null) {
+                builder.append("\t(").append(log.getElapsed()).append(" ms)");
+            }
+            if (StringUtils.isNotBlank(log.getDetail())) {
+                builder.append("\n").append(DETAIL_INDENT).append(log.getDetail());
+            }
+            if (StringUtils.isNotBlank(log.getStackTrace())) {
+                builder.append("\n").append(log.getStackTrace());
+            }
+            builder.append("\n");
         }
 
         private void writeLog(StringBuilder builder, ExecutionLog log) {

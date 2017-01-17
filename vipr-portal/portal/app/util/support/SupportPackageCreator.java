@@ -189,8 +189,9 @@ public class SupportPackageCreator {
                     if (orderTypes == OrderTypes.ERROR) {
                         search.filter(new FailedOrderFilter());
                     }
-                    Logger.info("Found %s Orders for tenantId %s", orders.size(), tenantId);
-                    orders.addAll(search.run());
+                    List<OrderRestRep> tenantOrders = search.run();
+                    Logger.info("Found %s Orders for tenantId %s", tenantOrders.size(), tenantId);
+                    orders.addAll(tenantOrders);
                 }
             } else {
                 SearchBuilder<OrderRestRep> search = catalogApi().orders().search().byTimeRange(

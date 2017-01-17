@@ -853,6 +853,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
             }
         }
 
+        AssetOptionsUtils.sortOptionsByLabel(options);
         return options;
     }
     
@@ -1004,6 +1005,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
        
         param.setUseExistingPaths(useExisting.equalsIgnoreCase(YES_VALUE) ? true : false);
 
+        param.setVirtualArray(vArrayId);
         param.setStorageSystem(storageSystemId);
         
         param.setExportPathParameters(exportPathParameters);

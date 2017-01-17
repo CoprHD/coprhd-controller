@@ -264,4 +264,14 @@ public abstract class AbstractFileStorageDevice implements FileStorageDevice,
             TaskCompleter completer) {
         throw DeviceControllerException.exceptions.operationNotSupported();
     }
+
+    @Override
+    public BiosCommandResult doApplyFilePolicy(StorageSystem storageObj, FileDeviceInputOutput args) {
+        throw DeviceControllerException.exceptions.operationNotSupported();
+    }
+
+    @Override
+    public BiosCommandResult doUnassignFilePolicy(StorageSystem storageObj, FileDeviceInputOutput args) {
+        throw DeviceControllerException.exceptions.operationNotSupported();
+    }
 }

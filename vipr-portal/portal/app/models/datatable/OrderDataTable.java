@@ -98,7 +98,7 @@ public class OrderDataTable extends DataTable {
     public List<OrderInfo> fetchAll() {
         List<OrderRestRep> orderRestReps = null;
         if (userInfo != null) {
-            orderRestReps = OrderUtils.getUserOrders(startDate, endDate, ORDER_MAX_COUNT_STR);
+            orderRestReps = OrderUtils.getUserOrders(startDate, endDate, ORDER_MAX_COUNT_STR, true);
         } else {
             orderRestReps = OrderUtils.getOrders(uri(this.tenantId));
         }

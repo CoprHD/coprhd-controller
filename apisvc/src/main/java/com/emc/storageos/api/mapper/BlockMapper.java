@@ -246,9 +246,9 @@ public class BlockMapper {
             List<VirtualArrayRelatedResourceRep> targets = new ArrayList<VirtualArrayRelatedResourceRep>();
             if (srdfVolume != from) {
             	// VPLEX; translate targets to corresponding VPLEX volume. if any
-            for (String target : VPlexSrdfUtil.getSrdfOrVplexTargets(dbClient, srdfVolume)) {
-                targets.add(toTargetVolumeRelatedResource(ResourceTypeEnum.VOLUME, URI.create(target), getVarray(dbClient, target)));
-            }
+                for (String target : VPlexSrdfUtil.getSrdfOrVplexTargets(dbClient, srdfVolume)) {
+                    targets.add(toTargetVolumeRelatedResource(ResourceTypeEnum.VOLUME, URI.create(target), getVarray(dbClient, target)));
+                }
             } else {
             	// Non-VPLEX
             	for (String target : from.getSrdfTargets()) {

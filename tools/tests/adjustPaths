@@ -129,7 +129,7 @@ verifynozones() {
 }
 
 source subs/discovery
-source $sconf/simvplexvmax.conf
+source /workspace/simvplexvmax.conf
 vplex=$(storagedevice list | grep vplex | awk ' {print $2;}')
 echo VPLEX $vplex
 source subs/mkvplexvarrays 
@@ -167,8 +167,6 @@ vplexSingleHost() {
     egpaths eg1 
     run export_group delete $project/eg1
     verifynozones
-}
-vplexSingleHost
 
 # Test single host using VMAX in SITE2; note only VSAN12 in SITE2.
 source subs/arrayVpools
@@ -186,8 +184,6 @@ vmaxSingleHost() {
     egpaths eg2 
     run export_group delete $project/eg2
     verifynozones
-}
-vmaxSingleHost
 
 vplexClus1() {
     echoit "Testing VPLEX cluster-1 export to cluster"
@@ -201,7 +197,34 @@ vplexClus1() {
 }
 vplexClus1
 
+volume_create $volnameC $SITE1 ${SITE1}_Local ""
+volume_create $volnameD $SITE1 ${SITE1}_Local ""
+vplexHostClust1() {
+   echoit "Testing Cluster and Host export"
+   run export_group create $project eg4 $SITE1 --type Host --hosts h1$hostseed --volspec $project/$volnameD
+   run export_group create $project eg5 $SITE1 --type Cluster --clusters ''/$clusterName --volspec $project/$volnameC
+   # adjust host to two paths
+   pathadj $project/eg4 $vplex --maxpath 2 --pathsperinit 1 --go 1
+   egpaths eg4
+   #adjust cluster to four paths
+   pathadj $project/eg5 $vplex --maxpath 4 --pathsperinit 2 --go 1
+   egpaths eg5
+   #adjust cluster to one path
+   pathadj $project/eg5 $vplex --maxpath 1 --pathsperinit 1 --go 1
+   egpaths eg5
+   # adjust host to four paths
+   pathadj $project/eg4 $vplex --maxpath 4 --go 1
+   egpaths eg4
+   # adjust cluster to four paths, but two ppi, keeping existing paths; this will make paths uneven on hosts
+   pathadj $project/eg5 $vplex --maxpath 4 --pathsperinit 2 --useexisting 1 --go 1
+   egpaths eg5
+   run export_group delete $project/eg4
+   run export_group delete $project/eg5
+   verifynozones
+}
+vplexHostClust1
+
+
 echoit "passed"
 date
-
 

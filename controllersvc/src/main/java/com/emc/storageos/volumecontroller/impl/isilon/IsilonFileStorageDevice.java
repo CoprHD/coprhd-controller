@@ -3054,6 +3054,23 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         boolean vNASExists = vNAS == null ? false : true;
         String filePolicyBasePath = null;
         BiosCommandResult result = null;
+        StringBuffer snapshotPolicySceduleNamePrefex = new StringBuffer();
+
+        if (args.getVPool() != null) {
+            snapshotPolicySceduleNamePrefex.append(args.getVPoolNameWithNoSpecialCharacters());
+        }
+
+        if (vNASExists) {
+            snapshotPolicySceduleNamePrefex.append("_").append(args.getVNASNameWithNoSpecialCharacters());
+        }
+
+        if (args.getTenantOrg() != null) {
+            snapshotPolicySceduleNamePrefex.append("_").append(args.getTenantNameWithNoSpecialCharacters());
+        }
+
+        if (args.getProject() != null) {
+            snapshotPolicySceduleNamePrefex.append("_").append(args.getProjectNameWithNoSpecialCharacters());
+        }
 
         String customPath = getCustomPath(storageObj, args);
 
@@ -3088,7 +3105,8 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                     }
                 } else {
                     // Create snapshot policy.
-                    createIsilonSnapshotPolicySchedule(storageObj, filePolicy, filePolicyBasePath, appliedAt.name());
+                    createIsilonSnapshotPolicySchedule(storageObj, filePolicy, filePolicyBasePath,
+                            snapshotPolicySceduleNamePrefex.toString());
                     result = BiosCommandResult.createSuccessfulResult();
                 }
             }
@@ -3101,8 +3119,8 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
 
     private String
     createIsilonSnapshotPolicySchedule(StorageSystem storageObj, FilePolicy filePolicy,
-            String path, String applyAt) {
-        String snapshotScheduleName = applyAt + "_" + filePolicy.getFilePolicyName();
+            String path, String snapshotSchedulePolicyNamePrefix) {
+        String snapshotScheduleName = snapshotSchedulePolicyNamePrefix + "_" + filePolicy.getFilePolicyName();
 
         String pattern = snapshotScheduleName + "_%Y-%m-%d_%H-%M";
         String scheduleValue = getIsilonPolicySchedule(filePolicy);

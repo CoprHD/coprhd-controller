@@ -21,6 +21,8 @@ import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.VcenterDataCenter;
 import com.google.common.collect.Sets;
+import com.vmware.vim25.HostRuntimeInfo;
+import com.vmware.vim25.HostSystemConnectionState;
 import com.vmware.vim25.mo.ClusterComputeResource;
 import com.vmware.vim25.mo.HostSystem;
 
@@ -63,13 +65,38 @@ public abstract class VMwareHostService extends ViPRService {
                         + "] contains no hosts");
             }
 
-            esxHost = hosts.get(0);
             cluster = vmware.getCluster(datacenter.getLabel(), hostCluster.getLabel());
+
+            esxHost = getConnectedHost(hosts, datacenter);
+
+            if (esxHost == null) {
+                throw new IllegalArgumentException("Cluster " + hostId + " does not have any connected hosts");
+            }
 
             logInfo("vmware.service.target.cluster", hostCluster.getLabel(), hosts.size());
         }
 
         host = vmware.getHostSystem(datacenter.getLabel(), esxHost.getLabel());
+    }
+
+    /**
+     * Get the first connected host from the given set of hosts
+     * 
+     * @param hosts list of hosts
+     * @param datacenter the datacenter the hosts belong to
+     * @return connected host or null if no hosts are connected
+     */
+    protected Host getConnectedHost(List<Host> hosts, VcenterDataCenter datacenter) {
+        for (Host host : hosts) {
+            HostSystem esxHost = vmware.getHostSystem(datacenter.getLabel(), host.getLabel());
+            HostRuntimeInfo runtime = esxHost.getRuntime();
+            HostSystemConnectionState connectionState = (runtime != null) ? runtime
+                    .getConnectionState() : null;
+            if (connectionState == HostSystemConnectionState.connected) {
+                return host;
+            }
+        }
+        return null;
     }
 
     protected void connectAndInitializeHost() {

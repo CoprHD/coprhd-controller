@@ -851,7 +851,7 @@ public class NetworkDiscoveryWorker {
             NetworkAssociationHelper.handleRemoveFromOldNetworks(transportZoneMap, tzone, dbClient, _coordinator);
             
             for(String endpoint: endpoints){
-	            Initiator hostInitiator = ExportUtils.getInitiator(endpoint, dbClient);
+	            Initiator hostInitiator = getInitiator(endpoint, dbClient);
 	            URI tenantURI = null;
 	            
 	            if(hostInitiator!=null){
@@ -876,7 +876,31 @@ public class NetworkDiscoveryWorker {
         NetworkAssociationHelper.handleEndpointsAdded(tzone, endpoints, dbClient, _coordinator);
     }
     
-        
+    
+    /**
+     * Get an initiator as specified by the initiator's network port.
+     *
+     * @param networkPort The initiator's port WWN or IQN.
+     * @return A reference to an initiator.
+     */
+    private static Initiator getInitiator(String networkPort, DbClient dbClient) {
+        Initiator initiator = null;
+        URIQueryResultList resultsList = new URIQueryResultList();
+
+        // find the initiator
+        dbClient.queryByConstraint(AlternateIdConstraint.Factory.getInitiatorPortInitiatorConstraint(
+                networkPort), resultsList);
+        Iterator<URI> resultsIter = resultsList.iterator();
+        while (resultsIter.hasNext()) {
+            initiator = dbClient.queryObject(Initiator.class, resultsIter.next());
+            // there should be one initiator, so return as soon as it is found
+            if (initiator != null && !initiator.getInactive()) {
+                return initiator;
+            }
+        }
+        return null;
+    }
+    
     private void portMovementApprove(){
     	//empty function
     }

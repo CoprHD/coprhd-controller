@@ -79,6 +79,7 @@ public interface CustomConfigConstants {
     public String PORT_ALLOCATION_DAYS_TO_AVERAGE_UTILIZATION = "PortAllocationDaysToAverageUtilization";
     public String PORT_ALLOCATION_EMA_FACTOR = "PortAllocationEmaFactor";
     public String PORT_ALLOCATION_METRICS_ENABLED = "PortAllocationMetricsEnabled";
+    public String PORT_ALLOCATION_SWITCH_AFFINITY_ENABLED = "PortAllocationSwitchAffinityEnabled";
 
     public String PORT_ALLOCATION_USE_PREZONED_PORT_FRONTEND = "PortAllocationUsePrezonedPortsFrontEnd";
     public String PORT_ALLOCATION_USE_PREZONED_PORT_BACKEND = "PortAllocationUsePrezonedPortsBackEnd";

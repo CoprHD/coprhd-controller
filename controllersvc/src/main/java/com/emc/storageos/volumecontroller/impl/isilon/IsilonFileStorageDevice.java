@@ -1449,7 +1449,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         // set quota - save the quota id to extensions
         String qid = isi.createQuota(qDirPath, fsSize, bThresholdsIncludeOverhead,
                 bIncludeSnapshots, qDirSize, notificationLimitSize != null ? notificationLimitSize : 0L,
-                        softLimitSize != null ? softLimitSize : 0L, softGracePeriod != null ? softGracePeriod : 0L);
+                softLimitSize != null ? softLimitSize : 0L, softGracePeriod != null ? softGracePeriod : 0L);
         return qid;
     }
 
@@ -3100,8 +3100,8 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
     }
 
     private String
-    createIsilonSnapshotPolicySchedule(StorageSystem storageObj, FilePolicy filePolicy,
-            String path, String applyAt) {
+            createIsilonSnapshotPolicySchedule(StorageSystem storageObj, FilePolicy filePolicy,
+                    String path, String applyAt) {
         String snapshotScheduleName = applyAt + "_" + filePolicy.getFilePolicyName();
 
         String pattern = snapshotScheduleName + "_%Y-%m-%d_%H-%M";
@@ -3111,6 +3111,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         _log.info("File Policy : {} creation started", filePolicy.toString());
         try {
             IsilonApi isi = getIsilonDevice(storageObj);
+            isi.createDir(path, true);
             String scheduleId = isi.createSnapshotSchedule(snapshotScheduleName, path, scheduleValue, pattern, expireValue);
             return scheduleId;
         } catch (IsilonException e) {

@@ -31,7 +31,6 @@ import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
 
 public abstract class ExportTaskCompleter extends TaskCompleter {
 
-    private static final long serialVersionUID = 1L;
     private static final Logger _logger = LoggerFactory.getLogger(ExportTaskCompleter.class);
 
     private URI _mask;

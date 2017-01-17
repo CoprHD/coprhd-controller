@@ -6,12 +6,7 @@
 package com.emc.storageos.volumecontroller.impl.block.taskcompleter;
 
 import java.net.URI;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -23,12 +18,10 @@ import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.Operation.Status;
-import com.emc.storageos.db.client.model.StringSetMap;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.security.audit.AuditLogManager;
 import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
-import com.emc.storageos.util.ExportUtils;
 import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import com.emc.storageos.volumecontroller.impl.monitoring.RecordableBourneEvent;
@@ -42,11 +35,6 @@ public abstract class ExportTaskCompleter extends TaskCompleter {
     private static final Logger _logger = LoggerFactory.getLogger(ExportTaskCompleter.class);
 
     private URI _mask;
-    private Set<URI> _exportMasksCreated;
-    private Set<URI> _exportMasksToBeAdded;
-    private Set<URI> _exportMasksToBeRemoved;
-    private Set<URI> _exportMasksToBeDeleted;
-    private Map<URI, List<URI>> _sharedExportMaskToAddedInitiatorMap;
 
     public ExportTaskCompleter(Class clazz, URI id, String opId) {
         super(clazz, id, opId);
@@ -93,68 +81,6 @@ public abstract class ExportTaskCompleter extends TaskCompleter {
     @Override
     protected void complete(DbClient dbClient, Status status, ServiceCoded coded) throws DeviceControllerException {
         updateWorkflowStatus(status, coded);
-
-        ExportGroup exportGroup = dbClient.queryObject(ExportGroup.class, getId());
-        Map<URI, ExportMask> exportMaskCache = null;
-        switch (status) {
-            case ready:
-
-                if (null != _exportMasksToBeAdded) {
-                    for (URI exportMaskUri : _exportMasksToBeAdded) {
-                        exportGroup.addExportMask(exportMaskUri);
-                    }
-                }
-
-                if (null != _exportMasksToBeRemoved) {
-                    for (URI exportMaskUri : _exportMasksToBeRemoved) {
-                        exportGroup.removeExportMask(exportMaskUri);
-                    }
-                }
-
-                if (null != _exportMasksToBeDeleted) {
-                    for (URI exportMaskUri : _exportMasksToBeDeleted) {
-                        exportGroup.removeExportMask(exportMaskUri);
-                        ExportMask exportMask = ExportUtils.getExportMaskWithCache(exportMaskCache, exportMaskUri, dbClient);
-                        dbClient.removeObject(exportMask);
-                    }
-                }
-
-                if (null != _sharedExportMaskToAddedInitiatorMap && !_sharedExportMaskToAddedInitiatorMap.isEmpty()) {
-                    for (Entry<URI, List<URI>> entry : _sharedExportMaskToAddedInitiatorMap.entrySet()) {
-                        ExportMask exportMask = ExportUtils.getExportMaskWithCache(exportMaskCache, entry.getKey(), dbClient);
-                        if (exportMask != null) {
-                            List<Initiator> inits = dbClient.queryObject(Initiator.class, entry.getValue());
-                            for (Initiator init : inits) {
-                                // add all the the initiators the user has requested to add
-                                // to the shared exportMask's initiators list
-                                exportMask.addInitiator(init);
-                                if (!exportMask.hasExistingInitiator(init)) {
-                                    // add only those initiator to the user added list
-                                    // which do not exist on the the device already.
-                                    exportMask.addToUserCreatedInitiators(init);
-                                }
-                            }
-                        }
-                    }
-                }
- 
-                break;
-            case error:
-                if (null != _exportMasksCreated && !_exportMasksCreated.isEmpty()) {
-                    // remove and delete any export masks created by this export task
-                    List<ExportMask> exportMasks = dbClient.queryObject(ExportMask.class, _exportMasksCreated);
-                    for (ExportMask exportMask : exportMasks) {
-                        exportGroup.removeExportMask(exportMask.getId());
-                        dbClient.removeObject(exportMask);
-                    }
-                }
-
-            default:
-                _logger.warn("Unhandled status: " + status);
-                break;
-        }
-        dbClient.updateObject(exportGroup);
-        ExportUtils.persistExportMaskCache(exportMaskCache, dbClient);
     }
 
     /**
@@ -184,9 +110,9 @@ public abstract class ExportTaskCompleter extends TaskCompleter {
                 case CREATE_EXPORT_GROUP:
                 case UPDATE_EXPORT_GROUP:
                 case DELETE_EXPORT_GROUP:
-                    AuditBlockUtil.auditBlock(dbClient, opType, opStatus, opStage, exportGroup.getLabel(), 
-                            exportGroup.getId().toString(), exportGroup.getVirtualArray().toString(),
-                            exportGroup.getProject().toString());
+                    AuditBlockUtil.auditBlock(dbClient, opType, opStatus, opStage, exportGroup
+                            .getLabel(), exportGroup.getId().toString(), exportGroup.getVirtualArray()
+                            .toString(), exportGroup.getProject().toString());
                     break;
                 case ADD_EXPORT_INITIATOR:
                 case DELETE_EXPORT_INITIATOR:
@@ -233,77 +159,4 @@ public abstract class ExportTaskCompleter extends TaskCompleter {
                 + exportGroup.getGeneratedName());
         return false;
     }
-
-    /**
-     * Add to the list of URIs for ExportMasks that were created as
-     * part of this export task and should be deleted in the event of
-     * failure.
-     * 
-     * @param exportMaskUri the URI of the ExportMask created
-     */
-    public void addToExportMasksCreated(URI exportMaskUri) {
-        if (_exportMasksCreated == null) {
-            _exportMasksCreated = new HashSet<URI>();
-        }
-
-        _exportMasksCreated.add(exportMaskUri);
-    }
-
-    /**
-     * Add to the list of URIs for ExportMasks that should be added to
-     * the ExportGroup at the end of the task.
-     * 
-     * @param exportMaskUri the URI of the ExportMask to add
-     */
-    public void addToExportMasksToBeAdded(URI exportMaskUri) {
-        if (_exportMasksToBeAdded == null) {
-            _exportMasksToBeAdded = new HashSet<URI>();
-        }
-
-        _exportMasksToBeAdded.add(exportMaskUri);
-    }
-
-    /**
-     * Add an ExportMask URI that should be removed from this completer's ExportGroup at the
-     * end of the workflow.
-     * 
-     * @param exportMaskUri the URI of the export mask to be removed.
-     */
-    public void addExportMaskToRemove(URI exportMaskUri) {
-        if (null == _exportMasksToBeRemoved) {
-            _exportMasksToBeRemoved = new HashSet<URI>();
-        }
-
-        _exportMasksToBeRemoved.add(exportMaskUri);
-    }
-
-    /**
-     * Add an ExportMask URI that should be removed from this completer's ExportGroup at the
-     * end of the workflow and also deleted from the database.
-     * 
-     * @param exportMaskUri the URI of the export mask to be deleted.
-     */
-    public void addExportMaskToDelete(URI exportMaskUri) {
-        if (null == _exportMasksToBeDeleted) {
-            _exportMasksToBeDeleted = new HashSet<URI>();
-        }
-
-        _exportMasksToBeDeleted.add(exportMaskUri);
-    }
-
-    /**
-     * Add a mapping for Initiator URIs that should be added to a shared 
-     * ExportMask (used by more than one host) at the end of the workflow.
-     * 
-     * @param exportMaskUri the ExportMask URI to update
-     * @param initiatorUrisToBeAdded the list of Initiator URIs to add to the ExportMask
-     */
-    public void addSharedExportMaskToAddedInitiatorMapping(URI exportMaskUri, List<URI> initiatorUrisToBeAdded) {
-        if (null == _sharedExportMaskToAddedInitiatorMap) {
-            _sharedExportMaskToAddedInitiatorMap = new HashMap<URI, List<URI>>();
-        }
-
-        _sharedExportMaskToAddedInitiatorMap.put(exportMaskUri, initiatorUrisToBeAdded);
-    }
-
 }

@@ -138,7 +138,10 @@ import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportAddInit
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportAddVolumeCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportCreateCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportDeleteCompleter;
+import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportMaskAddInitiatorCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportMaskAddVolumeCompleter;
+import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportMaskCreateCompleter;
+import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportMaskDeleteCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportMaskRemoveInitiatorCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportOrchestrationTask;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportRemoveInitiatorCompleter;
@@ -1864,7 +1867,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             if (srcVolumes != null && varrayToInitiators.get(srcVarray) != null) {
                 srcExportStepId = assembleExportMasksWorkflow(vplex, export, srcVarray,
                         varrayToInitiators.get(srcVarray),
-                        ExportMaskUtils.filterVolumeMap(volumeMap, srcVolumes), workflow, createCompleter, null, opId);
+                        ExportMaskUtils.filterVolumeMap(volumeMap, srcVolumes), workflow, null, opId);
             }
 
             // If possible, do the HA side export. To do this we must have both
@@ -1875,7 +1878,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 assembleExportMasksWorkflow(vplex, export, haVarray,
                         varrayToInitiators.get(haVarray),
                         ExportMaskUtils.filterVolumeMap(volumeMap, varrayToVolumes.get(haVarray)),
-                        workflow, createCompleter, null, opId);
+                        workflow, null, opId);
             }
 
             // Initiate the workflow.
@@ -1942,7 +1945,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
      * @throws Exception
      */
     private String assembleExportMasksWorkflow(URI vplexURI, URI export, URI varrayUri, List<URI> initiators,
-            Map<URI, Integer> blockObjectMap, Workflow workflow, ExportTaskCompleter completer, String waitFor, String opId) throws Exception {
+            Map<URI, Integer> blockObjectMap, Workflow workflow, String waitFor, String opId) throws Exception {
 
         long startAssembly = new Date().getTime();
 
@@ -2041,7 +2044,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                             // initiators or storage ports as needed, and volumes requested, if not already present.
                             setupExistingExportMaskWithNewHost(blockObjectMap, vplexSystem, exportGroup, varrayUri,
                                     exportMasksToUpdateOnDevice, exportMasksToUpdateOnDeviceWithInitiators,
-                                    exportMasksToUpdateOnDeviceWithStoragePorts, inits, sharedVplexExportMask, completer, opId);
+                                    exportMasksToUpdateOnDeviceWithStoragePorts, inits, sharedVplexExportMask, opId);
 
                             VPlexStorageViewInfo storageView = client.getStorageView(vplexClusterName, sharedVplexExportMask.getMaskName());
                             _log.info("Refreshing ExportMask {}", sharedVplexExportMask.getMaskName());
@@ -2074,7 +2077,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                                     initiatorWwnToNameMap, vplexSystem, vplexClusterName, inits, exportGroup,
                                     varrayUri, blockObjectMap,
                                     exportMasksToUpdateOnDevice, exportMasksToUpdateOnDeviceWithInitiators,
-                                    exportMasksToUpdateOnDeviceWithStoragePorts, completer, opId);
+                                    exportMasksToUpdateOnDeviceWithStoragePorts, opId);
                             long elapsed = new Date().getTime() - start;
                             _log.info("TIMER: finding an existing storage view took {} ms and returned {}",
                                     elapsed, foundMatchingStorageView);
@@ -2095,7 +2098,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                         reuseExistingExportMask(blockObjectMap, vplexSystem, exportGroup,
                                 varrayUri, exportMasksToUpdateOnDevice,
                                 exportMasksToUpdateOnDeviceWithStoragePorts, inits,
-                                allPortsFromMaskMatchForVarray, viprExportMask, completer, opId);
+                                allPortsFromMaskMatchForVarray, viprExportMask, opId);
 
                         foundMatchingStorageView = true;
 
@@ -2133,14 +2136,14 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
                         setupExistingExportMaskWithNewHost(blockObjectMap, vplexSystem, exportGroup, varrayUri,
                                 exportMasksToUpdateOnDevice, exportMasksToUpdateOnDeviceWithInitiators,
-                                exportMasksToUpdateOnDeviceWithStoragePorts, inits, sharedVplexExportMask, completer, opId);
+                                exportMasksToUpdateOnDeviceWithStoragePorts, inits, sharedVplexExportMask, opId);
                     } else {
                         // Otherwise, create a brand new ExportMask, which will enable the storage view to 
                         // be created on the VPLEX device as part of this workflow
                         _log.info("did not find a matching existing storage view anywhere, so ViPR "
                                 + "will initialize a new one and push it to the VPLEX device");
                         setupNewExportMask(blockObjectMap, vplexSystem, exportGroup, varrayUri,
-                                exportMasksToCreateOnDevice, inits, vplexClusterId, completer, opId);
+                                exportMasksToCreateOnDevice, inits, vplexClusterId, opId);
                     }
                 }
             }
@@ -2284,8 +2287,6 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
      *            a map of ExportMasks to initiators
      * @param exportMasksToUpdateOnDeviceWithStoragePorts
      *            a map of ExportMasks to storage ports
-     * @param completer
-     *            ExportTaskCompleter the export task completer
      * @param opId
      *            the workflow step id used to find the workflow to store/load zoning map
      * @return whether or not a storage view was actually found on the device
@@ -2296,8 +2297,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             ExportGroup exportGroup, URI varrayUri, Map<URI, Integer> blockObjectMap,
             List<ExportMask> exportMasksToUpdateOnDevice,
             Map<URI, List<Initiator>> exportMasksToUpdateOnDeviceWithInitiators,
-            Map<URI, List<URI>> exportMasksToUpdateOnDeviceWithStoragePorts, 
-            ExportTaskCompleter completer, String opId) throws Exception {
+            Map<URI, List<URI>> exportMasksToUpdateOnDeviceWithStoragePorts, String opId) throws Exception {
         boolean foundMatchingStorageView = false;
 
         List<String> initiatorNames = new ArrayList<String>();
@@ -2426,7 +2426,6 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             }
 
             exportMasksToUpdateOnDevice.add(exportMask);
-            completer.addToExportMasksCreated(exportMask.getId());
 
             // add the initiators to the map for the exportMask that do not exist
             // already in the storage view as to create steps to add those initiators
@@ -2461,8 +2460,6 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
      *            a flag indicating the storage port networking status
      * @param viprExportMask
      *            the ExportMask in the ViPR database to re-use
-     * @param completer
-     *            ExportTaskCompleter the export task completer
      * @param opId
      *            the workflow step id
      */
@@ -2471,10 +2468,9 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             List<ExportMask> exportMasksToUpdateOnDevice,
             Map<URI, List<URI>> exportMasksToUpdateOnDeviceWithStoragePorts,
             List<Initiator> inits, boolean allPortsFromMaskMatchForVarray,
-            ExportMask viprExportMask, ExportTaskCompleter completer, String opId) {
+            ExportMask viprExportMask, String opId) {
 
         exportMasksToUpdateOnDevice.add(viprExportMask);
-        completer.addToExportMasksToBeAdded(viprExportMask.getId());
         ExportPathParams pathParams = _blockScheduler.calculateExportPathParamForVolumes(
                 blockObjectMap.keySet(), exportGroup.getNumPaths(), vplexSystem.getId(), exportGroup.getId());
         if (exportGroup.getType() != null) {
@@ -2514,8 +2510,6 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
      *            the host initiators of the host in question
      * @param vplexCluster
      *            String representing the VPLEX cluster in question
-     * @param completer
-     *            ExportTaskCompleter the export task completer
      * @param opId
      *            the workflow step id
      * @throws Exception
@@ -2523,8 +2517,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
     private void setupNewExportMask(Map<URI, Integer> blockObjectMap,
             StorageSystem vplexSystem, ExportGroup exportGroup,
             URI varrayUri, List<ExportMask> exportMasksToCreateOnDevice,
-            List<Initiator> initiators, String vplexCluster, 
-            ExportTaskCompleter completer, String opId) throws Exception {
+            List<Initiator> initiators, String vplexCluster, String opId) throws Exception {
 
         ExportPathParams pathParams = _blockScheduler.calculateExportPathParamForVolumes(
                 blockObjectMap.keySet(), 0, vplexSystem.getId(), exportGroup.getId());
@@ -2543,7 +2536,6 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
         exportMask.addToUserCreatedInitiators(initiators);
         _dbClient.updateObject(exportMask);
 
-        completer.addToExportMasksCreated(exportMask.getId());
         exportMasksToCreateOnDevice.add(exportMask);
     }
 
@@ -2571,8 +2563,6 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
      *            List of initiators that needs to be added
      * @param sharedVplexExportMask
      *            ExportMask which represents multiple host.
-     * @param completer
-     *            ExportTaskCompleter the export task completer
      * @param opId
      *            the workflow step id used to find the workflow to locate the zoning map stored in ZK
      * @throws Exception
@@ -2582,12 +2572,23 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             URI varrayUri, List<ExportMask> exportMasksToUpdateOnDevice,
             Map<URI, List<Initiator>> exportMasksToUpdateOnDeviceWithInitiators,
             Map<URI, List<URI>> exportMasksToUpdateOnDeviceWithStoragePorts,
-            List<Initiator> inits, ExportMask sharedVplexExportMask, 
-            ExportTaskCompleter completer, String opId) throws Exception {
+            List<Initiator> inits, ExportMask sharedVplexExportMask, String opId) throws Exception {
 
-        // add old zoning map to completer so that it can be reverted in the event of failure
-        completer.addSharedExportMaskToAddedInitiatorMapping(sharedVplexExportMask.getId(), URIUtil.toUris(inits));
+        // TODO move to completer
+        List<Initiator> initsToAdd = new ArrayList<Initiator>();
+        for (Initiator init : inits) {
+            // add all the the initiators the user has requested to add
+            // to the exportMask initiators list
+            sharedVplexExportMask.addInitiator(init);
+            if (!sharedVplexExportMask.hasExistingInitiator(init)) {
+                initsToAdd.add(init);
+                // add only those initiator to the user added list
+                // which do not exist on the the storage view.
+                sharedVplexExportMask.addToUserCreatedInitiators(init);
+            }
+        }
 
+        _dbClient.updateObject(sharedVplexExportMask);
         ExportPathParams pathParams = _blockScheduler.calculateExportPathParamForVolumes(
                 blockObjectMap.keySet(), exportGroup.getNumPaths(), vplexSystem.getId(), exportGroup.getId());
 
@@ -2710,15 +2711,20 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             hostTargets.add(URI.create(targetId));
         }
 
+        String maskingStep = workflow.createStepId();
+        ExportTaskCompleter exportTaskCompleter = new ExportMaskCreateCompleter(
+                exportGroup.getId(), exportMask.getId(), inits, blockObjectMap,
+                maskingStep);
+
         // Add a step to export on the VPlex. They call this a Storage View.
         Workflow.Method storageViewExecuteMethod = new Workflow.Method(CREATE_STORAGE_VIEW,
-                vplexSystem.getId(), exportGroup.getId(), exportMask.getId(), blockObjectMap, inits, hostTargets);
+                vplexSystem.getId(), exportGroup.getId(), exportMask.getId(), blockObjectMap, inits, hostTargets, exportTaskCompleter);
         // Workflow.Method storageViewRollbackMethod = new Workflow.Method(ROLLBACK_METHOD_NULL);
-        Workflow.Method storageViewRollbackMethod = deleteStorageViewMethod(vplexSystem.getId(), exportMask.getId());
+        Workflow.Method storageViewRollbackMethod = deleteStorageViewMethod(vplexSystem.getId(), exportMask.getId(), null);
         storageViewStepId = workflow.createStep("storageView",
                 String.format("Create VPLEX Storage View for ExportGroup %s Mask %s", exportGroup.getId(), exportMask.getMaskName()),
                 storageViewStepId, vplexSystem.getId(), vplexSystem.getSystemType(),
-                this.getClass(), storageViewExecuteMethod, storageViewRollbackMethod, null);
+                this.getClass(), storageViewExecuteMethod, storageViewRollbackMethod, maskingStep);
         return storageViewStepId;
     }
 
@@ -2769,8 +2775,12 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 initiatorURIs.add(initiator.getId());
             }
 
+            String addInitStep = workflow.createStepId();
+            ExportMaskAddInitiatorCompleter completer = 
+                    new ExportMaskAddInitiatorCompleter(export, exportMask.getId(), initiatorURIs, new ArrayList<URI>(), addInitStep);
+
             Workflow.Method addInitiatorMethod = storageViewAddInitiatorsMethod(vplexSystem.getId(), export, exportMask.getId(),
-                    initiatorURIs, null, sharedVplexExportMask);
+                    initiatorURIs, null, sharedVplexExportMask, completer);
 
             Workflow.Method initiatorRollback = storageViewRemoveInitiatorsMethod(vplexSystem.getId(), export, exportMask.getId(),
                     initiatorURIs, null);
@@ -2778,15 +2788,19 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             storageViewStepId = workflow.createStep("storageView",
                     String.format("Updating VPLEX Storage View Initiators for ExportGroup %s Mask %s", export, exportMask.getMaskName()),
                     storageViewStepId, vplexSystem.getId(), vplexSystem.getSystemType(),
-                    this.getClass(), addInitiatorMethod, initiatorRollback, null);
+                    this.getClass(), addInitiatorMethod, initiatorRollback, addInitStep);
         }
 
         if (exportMasksToUpdateOnDeviceWithStoragePorts.containsKey(exportMask.getId())) {
             List<URI> storagePortURIsToAdd = exportMasksToUpdateOnDeviceWithStoragePorts.get(exportMask.getId());
 
+            String addPortStep = workflow.createStepId();
+            ExportMaskAddInitiatorCompleter completer = 
+                    new ExportMaskAddInitiatorCompleter(export, exportMask.getId(), new ArrayList<URI>(), storagePortURIsToAdd, addPortStep);
+
             // Create a Step to add storage ports to the Storage View
             Workflow.Method addPortsToViewMethod = storageViewAddStoragePortsMethod(vplexSystem.getId(), export, exportMask.getId(),
-                    storagePortURIsToAdd);
+                    storagePortURIsToAdd, completer);
 
             Workflow.Method addToViewRollbackMethod = storageViewRemoveStoragePortsMethod(vplexSystem.getId(), export, exportMask.getId(),
                     storagePortURIsToAdd);
@@ -2794,7 +2808,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             storageViewStepId = workflow.createStep("storageView",
                     String.format("Updating VPLEX Storage View StoragePorts for ExportGroup %s Mask %s", export, exportMask.getMaskName()),
                     storageViewStepId, vplexSystem.getId(), vplexSystem.getSystemType(),
-                    this.getClass(), addPortsToViewMethod, addToViewRollbackMethod, null);
+                    this.getClass(), addPortsToViewMethod, addToViewRollbackMethod, addPortStep);
         }
         return storageViewStepId;
     }
@@ -2811,12 +2825,11 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
      * @throws ControllerException
      */
     public void createStorageView(URI vplexURI, URI exportURI, URI exportMaskURI, Map<URI, Integer> blockObjectMap,
-            List<URI> initiators, List<URI> targets, String stepId) throws ControllerException {
+            List<URI> initiators, List<URI> targets, ExportMaskCreateCompleter completer, String stepId) throws ControllerException {
         String lockName = null;
         boolean lockAcquired = false;
         try {
             StorageSystem vplex = getDataObject(StorageSystem.class, vplexURI, _dbClient);
-            ExportGroup exportGroup = getDataObject(ExportGroup.class, exportURI, _dbClient);
             ExportMask exportMask = getDataObject(ExportMask.class, exportMaskURI, _dbClient);
             WorkflowStepCompleter.stepExecuting(stepId);
             VPlexApiClient client = getVPlexAPIClient(_vplexApiFactory, vplex, _dbClient);
@@ -2888,6 +2901,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             exportMask.setNativeId(svInfo.getPath());
             _dbClient.updateObject(exportMask);
 
+            completer.ready(_dbClient);
             WorkflowStepCompleter.stepSucceded(stepId);
         } catch (VPlexApiException vae) {
             _log.error("Exception creating VPlex Storage View: " + vae.getMessage(), vae);
@@ -2904,11 +2918,13 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 }
             }
 
+            completer.error(_dbClient, vae);
             WorkflowStepCompleter.stepFailed(stepId, vae);
         } catch (Exception ex) {
             _log.error("Exception creating VPlex Storage View: " + ex.getMessage(), ex);
             String opName = ResourceOperationTypeEnum.CREATE_STORAGE_VIEW.getName();
             ServiceError serviceError = VPlexApiException.errors.createStorageViewFailed(opName, ex);
+            completer.error(_dbClient, serviceError);
             WorkflowStepCompleter.stepFailed(stepId, serviceError);
         } finally {
             if (lockAcquired) {
@@ -2998,8 +3014,9 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             // back a failed export group creation.
             if (!exportGroupMasksContainExportGroupVolume(exportGroup, exportMasks)) {
                 for (ExportMask exportMask : exportMasks) {
-                    completer.addExportMaskToRemove(exportMask.getId());
+                    exportGroup.removeExportMask(exportMask.getId());
                 }
+                _dbClient.updateObject(exportGroup);
                 completer.ready(_dbClient);
                 return;
             }
@@ -3072,13 +3089,16 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
                     } else {
                         _log.info("creating a deleteStorageView workflow step for " + exportMask.getMaskName());
-                        Workflow.Method storageViewExecuteMethod = deleteStorageViewMethod(vplex, exportMask.getId());
+                        String exportMaskDeleteStep = workflow.createStepId();
+                        ExportMaskDeleteCompleter exportMaskDeleteCompleter = 
+                                new ExportMaskDeleteCompleter(exportGroup.getId(), exportMask.getId(), exportMaskDeleteStep);
+
+                        Workflow.Method storageViewExecuteMethod = deleteStorageViewMethod(vplex, exportMask.getId(), exportMaskDeleteCompleter);
                         storageViewStepId = workflow.createStep(DELETE_STORAGE_VIEW,
                                 String.format("Delete VPLEX Storage View %s for ExportGroup %s",
                                         exportMask.getMaskName(), export),
                                 storageViewStepId, vplexSystem.getId(), vplexSystem.getSystemType(),
-                                this.getClass(), storageViewExecuteMethod, null, null);
-                        completer.addExportMaskToDelete(exportMask.getId());
+                                this.getClass(), storageViewExecuteMethod, null, exportMaskDeleteStep);
                     }
 
                     if (isValidationNeeded && (removeVolumes || removeInitiators)) {
@@ -3206,10 +3226,11 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
      *
      * @param vplexURI
      * @param exportMaskURI
+     * @param completer the ExportMaskDeleteCompleter
      * @return
      */
-    private Workflow.Method deleteStorageViewMethod(URI vplexURI, URI exportMaskURI) {
-        return new Workflow.Method(DELETE_STORAGE_VIEW, vplexURI, exportMaskURI);
+    private Workflow.Method deleteStorageViewMethod(URI vplexURI, URI exportMaskURI, ExportMaskDeleteCompleter completer) {
+        return new Workflow.Method(DELETE_STORAGE_VIEW, vplexURI, exportMaskURI, completer);
     }
 
     /**
@@ -3217,10 +3238,11 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
      *
      * @param vplexURI
      * @param exportMaskURI
+     * @param completer the ExportMaskDeleteCompleter
      * @param stepId
      * @throws WorkflowException
      */
-    public void deleteStorageView(URI vplexURI, URI exportMaskURI, String stepId) throws WorkflowException {
+    public void deleteStorageView(URI vplexURI, URI exportMaskURI, ExportMaskDeleteCompleter completer, String stepId) throws WorkflowException {
         try {
             StorageSystem vplex = getDataObject(StorageSystem.class, vplexURI, _dbClient);
             Boolean[] viewFound = new Boolean[] { new Boolean(false) };
@@ -3279,20 +3301,43 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                                 + "but no errors were encountered.");
                     }
                 }
+
+                _log.info("Marking export mask for deletion from Vipr: " + exportMask.getMaskName());
+                _dbClient.markForDeletion(exportMask);
+
+                _log.info("updating ExportGroups containing this ExportMask");
+                List<ExportGroup> exportGroups = ExportMaskUtils.getExportGroups(_dbClient, exportMask);
+                for (ExportGroup exportGroup : exportGroups) {
+                    _log.info("Removing mask from ExportGroup " + exportGroup.getGeneratedName());
+                    exportGroup.removeExportMask(exportMaskURI);
+                    _dbClient.updateObject(exportGroup);
+                }
             } else {
                 _log.info("ExportMask to delete could not be found in database: " + exportMaskURI);
             }
 
+            if (completer != null) {
+                completer.ready(_dbClient);
+            }
             WorkflowStepCompleter.stepSucceded(stepId);
         } catch (VPlexApiException vae) {
             _log.error("Exception deleting ExportMask: " + exportMaskURI, vae);
+            if (completer != null) {
+                completer.error(_dbClient, vae);
+            }
             WorkflowStepCompleter.stepFailed(stepId, vae);
         } catch (DeviceControllerException ex) {
             _log.error("Exception deleting ExportMask: " + exportMaskURI, ex);
+            if (completer != null) {
+                completer.error(_dbClient, ex);
+            }
             WorkflowStepCompleter.stepFailed(stepId, ex);
         } catch (Exception ex) {
             _log.error("Exception deleting ExportMask: " + exportMaskURI, ex);
             ServiceError svcError = VPlexApiException.errors.deleteStorageViewFailed(ex);
+            if (completer != null) {
+                completer.error(_dbClient, svcError);
+            }
             WorkflowStepCompleter.stepFailed(stepId, svcError);
         }
     }
@@ -3364,7 +3409,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 srcExportStepId = assembleExportMasksWorkflow(vplexURI, exportURI, srcVarray,
                         varrayToInitiators.get(srcVarray),
                         ExportMaskUtils.filterVolumeMap(volumeMap, srcVolumes),
-                        workflow, completer, null, opId);
+                        workflow, null, opId);
             }
 
             // IF the haVarray has been set, and we have initiators with connectivity to the ha varray,
@@ -3376,7 +3421,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 assembleExportMasksWorkflow(vplexURI, exportURI, haVarray,
                         varrayToInitiators.get(haVarray),
                         ExportMaskUtils.filterVolumeMap(volumeMap, varrayToVolumes.get(haVarray)),
-                        workflow, completer, srcExportStepId, opId);
+                        workflow, srcExportStepId, opId);
             }
 
             // Initiate the workflow.
@@ -3720,11 +3765,14 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                                     "Storage view %s would be deleted on VPLEX device. ",
                                     exportMask.forDisplay()));
 
-                    Workflow.Method deleteStorageView = deleteStorageViewMethod(vplexURI, exportMask.getId());
+                    String exportMaskDeleteStep = workflow.createStepId();
+                    ExportMaskDeleteCompleter exportMaskDeleteCompleter = 
+                            new ExportMaskDeleteCompleter(exportURI, exportMask.getId(), exportMaskDeleteStep);
+
+                    Workflow.Method deleteStorageView = deleteStorageViewMethod(vplexURI, exportMask.getId(), exportMaskDeleteCompleter);
                     previousStep = workflow.createStep(DELETE_STORAGE_VIEW,
                             String.format("Deleting storage view: %s (%s)", exportMask.getMaskName(), exportMask.getId()),
-                            previousStep, vplexURI, vplex.getSystemType(), this.getClass(), deleteStorageView, null, null);
-                    completer.addExportMaskToDelete(exportMask.getId());
+                            previousStep, vplexURI, vplex.getSystemType(), this.getClass(), deleteStorageView, null, exportMaskDeleteStep);
 
                     // Unzone step (likely just a FCZoneReference removal since this is remove volume only)
                     previousStep = workflow.createStep(
@@ -3949,7 +3997,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     }
                     if (!initiators.isEmpty()) {
                         previousStep = addStepsForAddInitiators(
-                                workflow, completer, vplex, exportGroup, varrayURI,
+                                workflow, vplex, exportGroup, varrayURI,
                                 initURIs, initiators, hostURI, previousStep, opId);
                     }
                 }
@@ -3993,7 +4041,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
      *            -- step id for our operation
      * @return StepId of last step generated
      */
-    private String addStepsForAddInitiators(Workflow workflow, ExportTaskCompleter completer, StorageSystem vplex,
+    private String addStepsForAddInitiators(Workflow workflow, StorageSystem vplex,
             ExportGroup exportGroup, URI varrayURI, List<URI> hostInitiatorURIs,
             List<Initiator> initiators, URI hostURI, String previousStepId, String opId) throws Exception {
         String lastStepId = null;
@@ -4017,7 +4065,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             // Create the ExportMask if there are volumes in this varray.
             if (!varrayVolumeMap.isEmpty()) {
                 lastStepId = assembleExportMasksWorkflow(vplexURI, exportURI, varrayURI,
-                        hostInitiatorURIs, varrayVolumeMap, workflow, completer, previousStepId, opId);
+                        hostInitiatorURIs, varrayVolumeMap, workflow, previousStepId, opId);
             }
         } else {
             VPlexApiClient client = getVPlexAPIClient(_vplexApiFactory, vplex, _dbClient);
@@ -4092,8 +4140,13 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             if (null != sharedExportMask && sharedExportMask.getId().equals(exportMask.getId())) {
                 shared = true;
             }
+
+            String addInitStep = workflow.createStepId();
+            ExportMaskAddInitiatorCompleter addInitCompleter = 
+                    new ExportMaskAddInitiatorCompleter(exportURI, exportMask.getId(), hostInitiatorURIs, newTargetURIs, addInitStep);
+
             Workflow.Method addToViewMethod = storageViewAddInitiatorsMethod(vplexURI, exportURI, exportMask.getId(), hostInitiatorURIs,
-                    newTargetURIs, shared);
+                    newTargetURIs, shared, addInitCompleter);
             Workflow.Method addToViewRollbackMethod = storageViewRemoveInitiatorsMethod(vplexURI,
                     exportURI, exportMask.getId(), hostInitiatorURIs, null);
             lastStepId = workflow.createStep("storageView", "Add " + message,
@@ -4164,11 +4217,12 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
      * @param maskURI
      * @param initiatorURIs
      * @param targetURIs
+     * @param completer the ExportMaskAddInitiatorCompleter
      * @return Workflow.Method for addition to workflow.
      */
     public Workflow.Method storageViewAddInitiatorsMethod(URI vplexURI, URI exportURI, URI maskURI,
-            List<URI> initiatorURIs, List<URI> targetURIs, boolean sharedExportMask) {
-        return new Workflow.Method("storageViewAddInitiators", vplexURI, exportURI, maskURI, initiatorURIs, targetURIs, sharedExportMask);
+            List<URI> initiatorURIs, List<URI> targetURIs, boolean sharedExportMask, ExportMaskAddInitiatorCompleter completer) {
+        return new Workflow.Method("storageViewAddInitiators", vplexURI, exportURI, maskURI, initiatorURIs, targetURIs, sharedExportMask, completer);
     }
 
     /**
@@ -4189,6 +4243,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
      *            -- optional list of additional targets URIs (VPLEX FE ports) to be added.
      *            If non null, the targets (VPlex front end ports) indicated by the targetURIs will be added
      *            to the Storage View.
+     * @param completer the ExportMaskAddInitiatorCompleter
      * @param stepId
      *            -- Workflow step id.
      * @throws WorkflowException
@@ -4196,6 +4251,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
     public void storageViewAddInitiators(URI vplexURI, URI exportURI, URI maskURI,
             List<URI> initiatorURIs,
             List<URI> targetURIs, boolean sharedExportMask,
+            ExportMaskAddInitiatorCompleter completer,
             String stepId) throws DeviceControllerException {
         try {
             WorkflowStepCompleter.stepExecuting(stepId);
@@ -4319,14 +4375,17 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     }
                 }
             }
+            completer.ready(_dbClient);
             WorkflowStepCompleter.stepSucceded(stepId);
         } catch (VPlexApiException vae) {
-            _log.error("Exception adding initiator to Storage View: " + vae.getMessage(), vae);
+            _log.error("VPlexApiException adding initiator to Storage View: " + vae.getMessage(), vae);
+            completer.error(_dbClient, vae);
             WorkflowStepCompleter.stepFailed(stepId, vae);
         } catch (Exception ex) {
             _log.error("Exception adding initiator to Storage View: " + ex.getMessage(), ex);
             String opName = ResourceOperationTypeEnum.ADD_STORAGE_VIEW_INITIATOR.getName();
             ServiceError serviceError = VPlexApiException.errors.storageViewAddInitiatorFailed(opName, ex);
+            completer.error(_dbClient, serviceError);
             WorkflowStepCompleter.stepFailed(stepId, serviceError);
         }
     }
@@ -4341,11 +4400,12 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
      *            -- ExportMask URI
      * @param targetURIs
      *            -- list of targets URIs
+     * @param completer the ExportMaskAddInitiatorCompleter
      * @return Workflow.Method for addition to workflow.
      */
     public Workflow.Method storageViewAddStoragePortsMethod(URI vplexURI, URI exportURI, URI maskURI,
-            List<URI> targetURIs) {
-        return new Workflow.Method("storageViewAddStoragePorts", vplexURI, exportURI, maskURI, targetURIs);
+            List<URI> targetURIs, ExportMaskAddInitiatorCompleter completer) {
+        return new Workflow.Method("storageViewAddStoragePorts", vplexURI, exportURI, maskURI, targetURIs, completer);
     }
 
     /**
@@ -4363,12 +4423,13 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
      *            If not null, the targets (VPlex front end ports) indicated by the targetURIs will be added
      *            to the Storage View making sure they do belong to zoningMap storagePorts.
      *            If null, then ports are calculated from the zoningMap.
+     * @param completer the ExportMaskAddInitiatorCompleter
      * @param stepId
      *            -- Workflow step id.
      * @throws WorkflowException
      */
     public void storageViewAddStoragePorts(URI vplexURI, URI exportURI, URI maskURI,
-            List<URI> targetURIs,
+            List<URI> targetURIs, ExportMaskAddInitiatorCompleter completer,
             String stepId) throws DeviceControllerException {
         try {
             WorkflowStepCompleter.stepExecuting(stepId);
@@ -4433,14 +4494,17 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     }
                 }
             }
+            completer.ready(_dbClient);
             WorkflowStepCompleter.stepSucceded(stepId);
         } catch (VPlexApiException vae) {
-            _log.error("Exception adding storagePorts to Storage View: " + vae.getMessage(), vae);
+            _log.error("VPlexApiException adding storagePorts to Storage View: " + vae.getMessage(), vae);
+            completer.error(_dbClient, vae);
             WorkflowStepCompleter.stepFailed(stepId, vae);
         } catch (Exception ex) {
             _log.error("Exception adding storagePorts to Storage View: " + ex.getMessage(), ex);
             String opName = ResourceOperationTypeEnum.ADD_STORAGE_VIEW_STORAGEPORTS.getName();
             ServiceError serviceError = VPlexApiException.errors.storageViewAddStoragePortFailed(opName, ex);
+            completer.error(_dbClient, serviceError);
             WorkflowStepCompleter.stepFailed(stepId, serviceError);
         }
     }
@@ -4780,13 +4844,16 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                             "Storage view %s would be deleted on VPLEX device. ",
                             exportMask.forDisplay()));
 
-            Workflow.Method storageViewExecuteMethod = deleteStorageViewMethod(vplex.getId(), exportMask.getId());
+            String exportMaskDeleteStep = workflow.createStepId();
+            ExportMaskDeleteCompleter exportMaskDeleteCompleter = 
+                    new ExportMaskDeleteCompleter(exportGroup.getId(), exportMask.getId(), exportMaskDeleteStep);
+
+            Workflow.Method storageViewExecuteMethod = deleteStorageViewMethod(vplex.getId(), exportMask.getId(), exportMaskDeleteCompleter);
             lastStep = workflow.createStep(DELETE_STORAGE_VIEW,
                     String.format("Delete VPLEX Storage View %s for ExportGroup %s",
                             exportMask.getMaskName(), exportGroup.getId()),
                     lastStep, vplex.getId(), vplex.getSystemType(),
-                    this.getClass(), storageViewExecuteMethod, null, null);
-            completer.addExportMaskToDelete(exportMask.getId());
+                    this.getClass(), storageViewExecuteMethod, null, exportMaskDeleteStep);
 
             // Add zoning step for deleting ExportMask
             List<NetworkZoningParam> zoningParam = NetworkZoningParam.convertExportMasksToNetworkZoningParam(
@@ -9502,12 +9569,18 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             if (null != sharedExportMask && sharedExportMask.getId().equals(exportMask.getId())) {
                 shared = true;
             }
+
+            String addInitStep = workflow.createStepId();
+            ExportMaskAddInitiatorCompleter completer = 
+                    new ExportMaskAddInitiatorCompleter(
+                            exportGroup.getId(), exportMask.getId(), storageViewInitiators, newTargets, addInitStep);
+
             Workflow.Method addToViewMethod = storageViewAddInitiatorsMethod(vplex.getId(), exportGroup.getId(), exportMask.getId(),
-                    storageViewInitiators, newTargets, shared);
+                    storageViewInitiators, newTargets, shared, completer);
             Workflow.Method addToViewRollbackMethod = new Workflow.Method(ROLLBACK_METHOD_NULL);
             String viewStepId = workflow.createStep("storageView", "Add " + message,
                     ZONING_STEP, vplex.getId(), vplex.getSystemType(), this.getClass(),
-                    addToViewMethod, addToViewRollbackMethod, null);
+                    addToViewMethod, addToViewRollbackMethod, addInitStep);
         }
     }
 

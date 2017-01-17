@@ -29,6 +29,7 @@ public class ExportRemoveVolumeCompleter extends ExportTaskCompleter {
     private static final String EXPORT_REMOVE_VOLUME_MSG_FAILED_MSG = "Failed to remove volume %s from ExportGroup %s";
 
     private List<URI> _volumes;
+    private List<URI> _exportMasksToRemove;
     private Map<URI, List<URI>> _exportMaskToRemovedVolumeMap;
 
     public ExportRemoveVolumeCompleter(URI egUri, List<URI> volumes,
@@ -57,6 +58,12 @@ public class ExportRemoveVolumeCompleter extends ExportTaskCompleter {
                 case ready:
                     for (URI volumeURI : _volumes) {
                         exportGroup.removeVolume(volumeURI);
+                    }
+
+                    if (null != _exportMasksToRemove) {
+                        for (URI exportMaskUri : _exportMasksToRemove) {
+                            exportGroup.removeExportMask(exportMaskUri);
+                        }
                     }
 
                     ExportUtils.handleExportMaskVolumeRemoval(dbClient, _exportMaskToRemovedVolumeMap, getId());
@@ -93,6 +100,20 @@ public class ExportRemoveVolumeCompleter extends ExportTaskCompleter {
         return (status == Operation.Status.ready) ?
                 String.format(EXPORT_REMOVE_VOLUME_MSG, volume.getLabel(), exportGroup.getLabel()) :
                 String.format(EXPORT_REMOVE_VOLUME_MSG_FAILED_MSG, volume.getLabel(), exportGroup.getLabel());
+    }
+
+    /**
+     * Add an ExportMask URI that should be removed from this completer's ExportGroup at the
+     * end of the workflow.
+     * 
+     * @param exportMaskUri the URI of the export mask to be removed.
+     */
+    public void addExportMaskToRemove(URI exportMaskUri) {
+        if (null == _exportMasksToRemove) {
+            _exportMasksToRemove = new ArrayList<URI>();
+        }
+
+        _exportMasksToRemove.add(exportMaskUri);
     }
 
     /**

@@ -737,7 +737,7 @@ public class ExportUtils {
                         assignments, initiatorURI);
             }
         }
-        dbClient.updateObject(exportMask);
+        dbClient.persistObject(exportMask);
 
         return exportMask;
     }
@@ -2010,46 +2010,5 @@ public class ExportUtils {
         }
     }
 
-    /**
-     * Persist the ExportMasks in the supplied ExportMask cache.
-     * 
-     * @param exportMaskCache a mapping of ExportMask URI to ExportMask object
-     * @param dbClient a reference to the database client
-     */
-    public static void persistExportMaskCache(Map<URI, ExportMask> exportMaskCache, DbClient dbClient) {
-        if (exportMaskCache != null && !exportMaskCache.isEmpty()) {
-            for (ExportMask exportMask : exportMaskCache.values()) {
-                dbClient.updateObject(exportMask);
-            }
-        }
-    }
-
-    /**
-     * Gets an ExportMask object by URI from the supplied cache, or loads one
-     * from the database if not found in the cache.
-     * 
-     * @param exportMaskCache a Map of URIs to loaded ExportMask objects
-     * @param exportMaskUri the ExportMask URI to look for
-     * @param dbClient a reference to the database client
-     * @return the ExportMask for the given URI from cache,
-     *         or null if not found in the database
-     */
-    public static ExportMask getExportMaskWithCache(Map<URI, ExportMask> exportMaskCache, URI exportMaskUri, DbClient dbClient) {
-        if (exportMaskCache == null) {
-            exportMaskCache = new HashMap<URI, ExportMask>();
-        }
-
-        ExportMask exportMask = exportMaskCache.get(exportMaskUri);
-        if (exportMask == null) {
-            exportMask = dbClient.queryObject(ExportMask.class, exportMaskUri);
-            if (exportMask != null && !exportMask.getInactive()) {
-                exportMaskCache.put(exportMaskUri, exportMask);
-            } else {
-                return null;
-            }
-        }
-
-        return exportMask;
-    }
-
+    
 }

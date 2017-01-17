@@ -387,7 +387,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
                     ExportMask exportMask = _dbClient.queryObject(ExportMask.class, exportMaskURI);
                     if (exportMask == null) {
                         // If we can't find the mask, there is really no cleanup we can do.
-                        _log.info("ExportMask {} no longer exists", exportMaskURI);
+                        _log.warn("ExportMask {} no longer exists", exportMaskURI);
                         taskCompleter.ready(_dbClient);
                         return;
                     }

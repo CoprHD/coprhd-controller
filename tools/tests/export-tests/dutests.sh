@@ -1751,12 +1751,12 @@ test_3() {
     expname=${EXPORT_GROUP_NAME}t3
 
     if [ "$SS" = "xio" ]; then
-        echo "For XtremIO, we do not delete initiators for export mask delete. So skipping this test for Unity."
+        echo "For XtremIO, we do not delete initiators for export mask delete. So skipping this test for XIO."
         return
     fi
 
     if [ "$SS" = "unity" ]; then
-        echo "For Unity, we do not delete initiators for export mask delete if there is unknown volume. So skipping this test for XIO."
+        echo "For Unity, we do not delete initiators for export mask delete if there is unknown volume. So skipping this test for Unity."
         return
     fi
 
@@ -2192,16 +2192,14 @@ test_6() {
     echo === export_group update $PROJECT/${expname}1 --remInits ${HOST1}/${H1PI1}
     resultcmd=`export_group update $PROJECT/${expname}1 --remInits ${HOST1}/${H1PI1}`
 
-    if [ $? -ne 0 -a "$SS" != "unity" ]; then
+    if [ $? -ne 0 ]; then
 	echo "export group command failed outright"
 	cleanup
 	finish 6
     fi
 
     # Show the result of the export group command for now (show the task and WF IDs)
-    if [ "$SS" != "unity" ]; then
-        echo $resultcmd
-    fi
+    echo $resultcmd
 
     # Parse results (add checks here!  encapsulate!)
     taskworkflow=`echo $resultcmd | awk -F, '{print $2 $3}'`
@@ -2265,16 +2263,14 @@ test_6() {
     echo === export_group update $PROJECT/${expname}1 --remInits ${HOST1}/${H1PI1}
     resultcmd=`export_group update $PROJECT/${expname}1 --remInits ${HOST1}/${H1PI1}`
 
-    if [ $? -ne 0 -a "$SS" != "unity" ]; then
+    if [ $? -ne 0 ]; then
 	echo "export group command failed outright"
 	cleanup
 	finish 6
     fi
 
     # Show the result of the export group command for now (show the task and WF IDs)
-    if [ "$SS" != "unity" ]; then
-        echo $resultcmd
-    fi
+    echo $resultcmd
 
     # Parse results (add checks here!  encapsulate!)
     taskworkflow=`echo $resultcmd | awk -F, '{print $2 $3}'`
@@ -2308,13 +2304,10 @@ test_6() {
     set_suspend_on_class_method "none"
 
     # Try the operation again
-    if [ "$SS" != "unity" ]; then
-        runcmd export_group update $PROJECT/${expname}1 --remInits ${HOST1}/${H1PI1}
-        # Verify the mask is back to normal
-        verify_export ${expname}1 ${HOST1} 1 1
-    else
-        fail export_group update $PROJECT/${expname}1 --remInits ${HOST1}/${H1PI1}
-    fi
+    runcmd export_group update $PROJECT/${expname}1 --remInits ${HOST1}/${H1PI1}
+
+    # Verify the mask is back to normal
+    verify_export ${expname}1 ${HOST1} 1 1
 
     # Try the export operation again
     runcmd export_group update $PROJECT/${expname}1 --addInits ${HOST1}/${H1PI1}
@@ -3937,9 +3930,10 @@ test_26() {
     verify_export ${expname}1 ${HOST1} 2 2
 
     # Create a snapshot
-    snap_label1=snap1
+    label=${RANDOM}
+    snap_label1=${label}_1
     snap1=$PROJECT/${VOLNAME}-1/$snap_label1
-    snap_label2=snap2
+    snap_label2=${label}_2
     snap2=$PROJECT/${VOLNAME}-3/$snap_label2
 
     runcmd blocksnapshot create $PROJECT/${VOLNAME}-1 ${snap_label1}
@@ -4112,10 +4106,13 @@ test_27() {
         echo "Found project $PROJECT2"
     else
         run project create ${PROJECT2} --tenant $TENANT
-        isCreated=$(volume list $PROJECT2 | grep P2${VOLNAME} | wc -l)
-        if [ $isCreated -eq 0 ]; then
-            run volume create P2${VOLNAME} ${PROJECT2} ${NH} ${VPOOL_BASE} 1GB --count 2
-        fi
+    fi
+
+    isCreated=$(volume list $PROJECT2 | grep P2${VOLNAME} | wc -l)
+    if [ $isCreated -ne 0 ]; then
+        echo "Found volume in $PROJECT2"
+    else
+        run volume create P2${VOLNAME} ${PROJECT2} ${NH} ${VPOOL_BASE} 1GB --count 2
     fi
 
     # Make sure we start clean; no masking view on the array
@@ -4383,7 +4380,7 @@ H3PI1=`pwwn 04`
 H3NI1=`nwwn 04`
 H3PI2=`pwwn 05`
 H3NI2=`nwwn 05`
-H3ID="${H3NI1}:${H3PI2} ${H3NI2}:${H3PI2}"
+H3ID="${H3NI1}:${H3PI1} ${H3NI2}:${H3PI2}"
 
 # Delete and setup are optional
 if [ "$1" = "delete" ]

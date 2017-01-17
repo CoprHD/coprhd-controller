@@ -2099,11 +2099,7 @@ public class VNXeApiClient {
         }
 
         for (VNXeHostInitiator exitInit : existingNoHostInits) {
-            HostInitiatorModifyParam initModifyParam = new HostInitiatorModifyParam();
-            VNXeBase host = new VNXeBase(hostId);
-            initModifyParam.setHost(host);
-            HostInitiatorRequest req = new HostInitiatorRequest(_khClient);
-            req.modifyHostInitiator(initModifyParam, exitInit.getId());
+            setInitiatorHost(exitInit.getId(), hostId);
         }
 
         return new VNXeBase(hostId);
@@ -2869,6 +2865,20 @@ public class VNXeApiClient {
     }
 
     /**
+     * Modify initiator's parent host
+     *
+     * @param initiatorId initiator Id
+     * @param hostId host Id
+     */
+    public void setInitiatorHost(String initiatorId, String hostId) {
+        HostInitiatorModifyParam initModifyParam = new HostInitiatorModifyParam();
+        VNXeBase host = new VNXeBase(hostId);
+        initModifyParam.setHost(host);
+        HostInitiatorRequest req = new HostInitiatorRequest(_khClient);
+        req.modifyHostInitiator(initModifyParam, initiatorId);
+    }
+
+    /**
      * Delete initiator
      *
      * @param initiatorId initiator Id (IQN or WWN)
@@ -2909,10 +2919,7 @@ public class VNXeApiClient {
                 _logger.info("Could not find initiator: {}", initiatorId);
             } else {
                 // move the initiator to the dummy host
-                HostInitiatorModifyParam initModifyParam = new HostInitiatorModifyParam();
-                initModifyParam.setHost(new VNXeBase(dummyHostId));
-                HostInitiatorRequest hostInitiaotrReq = new HostInitiatorRequest(_khClient);
-                hostInitiaotrReq.modifyHostInitiator(initModifyParam, initiator.getId());
+                setInitiatorHost(initiator.getId(), dummyHostId);
             }
         }
 

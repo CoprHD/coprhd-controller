@@ -29,6 +29,7 @@ import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.HostInterface.Protocol;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.StorageSystem;
+import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
@@ -37,12 +38,12 @@ import com.emc.storageos.exceptions.DeviceControllerErrors;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.util.ExportUtils;
+import com.emc.storageos.util.InvokeTestFailure;
 import com.emc.storageos.vnxe.VNXeApiClient;
 import com.emc.storageos.vnxe.VNXeException;
 import com.emc.storageos.vnxe.models.Snap;
 import com.emc.storageos.vnxe.models.VNXeBase;
 import com.emc.storageos.vnxe.models.VNXeExportResult;
-import com.emc.storageos.vnxe.models.VNXeHost;
 import com.emc.storageos.vnxe.models.VNXeHostInitiator;
 import com.emc.storageos.vnxe.models.VNXeLunSnap;
 import com.emc.storageos.volumecontroller.TaskCompleter;
@@ -61,6 +62,11 @@ import com.google.common.base.Joiner;
 public class VNXeExportOperations extends VNXeOperations implements ExportMaskOperations {
     private static final Logger _logger = LoggerFactory.getLogger(VNXeExportOperations.class);
     private static final String OTHER = "other";
+    // maximum retries for initiator completely removed
+    private static final int MAX_REMOVE_INITIATOR_RETRIES = 10;
+    // wait 15 seconds before another try
+    private static final int WAIT_FOR_RETRY = 15000;
+
     private WorkflowService workflowService;
     private ValidatorFactory validator;
 
@@ -464,6 +470,8 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
             ExportOperationContext.insertContextOperation(taskCompleter,
                     VNXeExportOperationContext.OPERATION_ADD_VOLUMES_TO_HOST_EXPORT,
                     mappedVolumes);
+            // Test mechanism to invoke a failure. No-op on production systems.
+            InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_002);
             taskCompleter.ready(_dbClient);
 
         } catch (Exception e) {
@@ -533,7 +541,7 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
             String opId = taskCompleter.getOpId();
             Set<String> processedCGs = new HashSet<String>();
             for (URI volUri : volumes) {
-                if (hostId != null) {
+                if (hostId != null && exportMask.getVolumes().keySet().contains(volUri.toString())) {
                     BlockObject blockObject = BlockObject.fetch(_dbClient, volUri);
                     // COP-25254 this method could be called when delete vplex volume created from snapshot. in this case
                     // the volume passed in is an internal volume, representing the snapshot. we need to find the snapshot
@@ -616,12 +624,26 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
             for (Entry<Initiator, VNXeHostInitiator> entry : initiatorMap.entrySet()) {
                 VNXeHostInitiator newInit = entry.getValue();
                 VNXeHostInitiator init = apiClient.getInitiatorByWWN(newInit.getInitiatorId());
+                // COP-27752 - fresh deleted initiator may not be deleted completely
+                int retry = 0;
+                while (retry <= MAX_REMOVE_INITIATOR_RETRIES && init != null && init.getParentHost() == null) {
+                    try {
+                        Thread.sleep(WAIT_FOR_RETRY);
+                    } catch (InterruptedException e1) {
+                        Thread.currentThread().interrupt();
+                    }
+                    init = apiClient.getInitiatorByWWN(newInit.getInitiatorId());
+                }
+
                 if (init != null) {
                     // found it
                     VNXeBase host = init.getParentHost();
                     if (host != null && host.getId().equals(hostId)) {
                         // do nothing. it is already in the array
                         _logger.info("The initiator exist in the host in the array");
+                    } else if (host == null) {
+                        // initiator without parent host, add parent host
+                        apiClient.setInitiatorHost(init.getId(), hostId);
                     } else {
                         String msg = String.format(
                                 "The new initiator %s does not belong to the same host as other initiators in the ExportMask",
@@ -643,6 +665,8 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
             ExportOperationContext.insertContextOperation(taskCompleter,
                     VNXeExportOperationContext.OPERATION_ADD_INITIATORS_TO_HOST,
                     createdInitiators);
+            // Test mechanism to invoke a failure. No-op on production systems.
+            InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_003);
             taskCompleter.ready(_dbClient);
 
         } catch (Exception e) {
@@ -686,6 +710,14 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
             }
         }
 
+        StringSet initiatorsInMask = mask.getInitiators();
+        List<Initiator> initiatorToBeRemoved = new ArrayList<>();
+        for (Initiator initiator : initiators) {
+            if (initiatorsInMask.contains(initiator.getId().toString())) {
+                initiatorToBeRemoved.add(initiator);
+            }
+        }
+
         try {
             // find out if initiators being deleted are all initiator of VNXe host
             VNXeApiClient apiClient = getVnxeClient(storage);
@@ -693,7 +725,7 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
             String vnxeHostId = getHostIdFromInitiators(allInitiators, apiClient);
             if (vnxeHostId != null) {
                 List<VNXeHostInitiator> vnxeInitiators = apiClient.getInitiatorsByHostId(vnxeHostId);
-                Map<Initiator, VNXeHostInitiator> vnxeInitiatorsToBeRemoved = prepareInitiators(initiators); // initiators is a subset of allInitiators
+                Map<Initiator, VNXeHostInitiator> vnxeInitiatorsToBeRemoved = prepareInitiators(initiatorToBeRemoved); // initiators is a subset of allInitiators
 
                 Set<String> initiatorIds = new HashSet<String>();
                 for (VNXeHostInitiator vnxeInit : vnxeInitiators) {
@@ -718,7 +750,7 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
             }
 
             List<String> initiatorIdList = new ArrayList<>();
-            for (Initiator initiator : initiators) {
+            for (Initiator initiator : initiatorToBeRemoved) {
                 _logger.info("Processing initiator {}", initiator.getLabel());
                 if (vnxeHostId != null && !ExportUtils.isInitiatorSharedByMasks(_dbClient, initiator.getId())) {
                     String initiatorId = initiator.getInitiatorPort();

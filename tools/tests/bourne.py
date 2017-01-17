@@ -151,6 +151,7 @@ URI_TASK                    = URI_VDC    + "/tasks"
 URI_TASK_GET                = URI_TASK   + '/{0}'
 URI_TASK_LIST               = URI_TASK
 URI_TASK_LIST_SYSTEM        = URI_TASK   + "?tenant=system"
+URI_TASK_DELETE             = URI_TASK_GET + '/delete'
 
 URI_EVENT                   = URI_VDC    + "/events"
 URI_EVENT_GET               = URI_EVENT    + '/{0}'
@@ -3638,6 +3639,9 @@ class Bourne:
 
     def get_db_repair_status(self):
         return self.api('GET', URI_DB_REPAIR)
+
+    def task_delete(self,uri):
+        return self.api('POST', URI_TASK_DELETE.format(uri))
 
     def task_list(self):
         return self.api('GET', URI_TASK_LIST)

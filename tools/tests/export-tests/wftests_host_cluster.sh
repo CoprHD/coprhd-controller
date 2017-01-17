@@ -404,6 +404,10 @@ change_host_cluster() {
     discover_vcenter $vcenter
 }
 
+get_pending_task() {
+    echo $(task list | grep pending | awk '{print $1}')
+}
+
 get_pending_event() {
     echo $(events list emcworld | grep pending | awk '{print $1}')
 } 
@@ -1956,7 +1960,23 @@ test_delete_host() {
             # Retry move the host to first cluster
             runcmd hosts delete ${host} --detachstorage true          
         fi
-        
+     
+        # make sure no pending tasks
+        TASK_ID=$(get_pending_task)
+        if [[ ! -z "$TASK_ID" ]];
+        then
+            echo "+++ FAIL - Pending task ${TASK_ID} found"
+            runcmd task delete ${TASK_ID}
+
+            # Report results
+            incr_fail_count
+            if [ "${NO_BAILING}" != "1" ]
+            then
+                report_results ${test_name} ${failure}
+                exit 1
+            fi
+        fi
+
         snap_db 4 "${cfs[@]}"  
 
         # Validate that nothing was left behind

@@ -128,7 +128,7 @@ collect_logs() {
     set +e
     cd ${logsDir}
     mkdir info logs orders
-    /opt/storageos/bin/dbutils dump_orders "${logsDir}/orders"
+    /opt/storageos/bin/dbutils dump_orders "${logsDir}/orders" &> /dev/null
     collect_data "/opt/storageos/logs" "${logsDir}/info" "true"
     convert_log_name
     zip -r logs-${DIAGCOLLECT_MAME}.zip * &>/dev/null

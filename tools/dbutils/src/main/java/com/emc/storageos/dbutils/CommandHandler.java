@@ -15,6 +15,7 @@ import java.util.List;
 import java.util.Map;
 import java.text.SimpleDateFormat;
 
+import com.emc.sa.api.OrderService;
 import com.emc.sa.catalog.OrderManager;
 import com.emc.storageos.coordinator.client.model.Constants;
 import com.emc.storageos.db.client.DbClient;
@@ -30,10 +31,12 @@ import org.springframework.context.support.ClassPathXmlApplicationContext;
 
 import com.emc.storageos.db.client.impl.TypeMap;
 import com.emc.storageos.db.client.model.GlobalLock;
+import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.model.uimodels.CatalogService;
 import com.emc.storageos.db.client.model.uimodels.ExecutionLog;
 import com.emc.storageos.db.client.model.uimodels.ExecutionPhase;
 import com.emc.storageos.db.client.model.uimodels.ExecutionState;
+import com.emc.storageos.db.client.model.uimodels.ExecutionTaskLog;
 import com.emc.storageos.db.client.model.uimodels.Order;
 import com.emc.storageos.db.client.model.uimodels.OrderParameter;
 import com.emc.storageos.db.client.upgrade.BaseCustomMigrationCallback;
@@ -817,6 +820,7 @@ public abstract class CommandHandler {
         private static final SimpleDateFormat DATE = new SimpleDateFormat("dd-MM-yy hh:mm");
         private File dir;
         private OrderManager orderManager;
+        DBClient client;
 
         public DumpOrdersHandler(String[] args) {
             if (args == null || args.length != 2) {
@@ -832,22 +836,32 @@ public abstract class CommandHandler {
 
         @Override
         public void process(DBClient _client) throws Exception {
-            dumpOrders(_client);
+            this.client = _client;
+            dumpOrders();
         }
 
-        private void dumpOrders(DBClient _client) throws Exception {
-            Calendar begin = GregorianCalendar.getInstance();
-            begin.add(Calendar.MONTH, -1);
-            DbClient client = _client.getDbClient();
-            List<URI> ids = client.queryByType(Order.class, true);
-            Iterator<Order> it = client.queryIterativeObjects(Order.class, ids);
-            while (it.hasNext()) {
-                Order order = it.next();
-                Calendar creationTime = order.getCreationTime();
-                if (creationTime == null || begin.compareTo(creationTime) > 0) {
-                    continue;
-                }
-                CatalogService catalogService = client.queryObject(CatalogService.class, order.getCatalogServiceId());
+        private List<Order> filterOrders(Date startTime, Date endTime) {
+            List<URI> tenantIds = getAllTenantIds();
+            List<Order> orders = Lists.newArrayList();
+            for (URI tenantId : tenantIds) {
+                log.info("Collecting orders for tenant {}", tenantId);
+                orders.addAll(orderManager.findOrdersByTimeRange(tenantId, startTime, endTime, -1));
+            }
+            return orders;
+        }
+
+        private List<URI> getAllTenantIds() {
+            return client.getDbClient().queryByType(TenantOrg.class, true);
+        }
+
+        private void dumpOrders() throws Exception {
+            Calendar cal = Calendar.getInstance();
+            Date endTime = cal.getTime();
+            cal.add(Calendar.DATE, -30);
+            Date startTime = cal.getTime();
+            log.info("Starting dump orders from {} to {}", startTime, endTime);
+            for (Order order : filterOrders(startTime, endTime)) {
+                CatalogService catalogService = client.getDbClient().queryObject(CatalogService.class, order.getCatalogServiceId());
                 dumpOrder(order, catalogService);
                 log.info("Order {} has been successfully dumped", order.getId());
             }
@@ -895,24 +909,25 @@ public abstract class CommandHandler {
                 writeLog(builder, log);
             }
             // 5. Write Task Logs
-            List<ExecutionLog> precheckLogs = getTaskLogs(logs, ExecutionPhase.PRECHECK);
-            List<ExecutionLog> executeLogs = getTaskLogs(logs, ExecutionPhase.EXECUTE);
-            List<ExecutionLog> rollbackLogs = getTaskLogs(logs, ExecutionPhase.ROLLBACK);
+            List<ExecutionTaskLog> taskLogs = orderManager.getOrderExecutionTaskLogs(order);
+            List<ExecutionTaskLog> precheckLogs = getTaskLogs(taskLogs, ExecutionPhase.PRECHECK);
+            List<ExecutionTaskLog> executeLogs = getTaskLogs(taskLogs, ExecutionPhase.EXECUTE);
+            List<ExecutionTaskLog> rollbackLogs = getTaskLogs(taskLogs, ExecutionPhase.ROLLBACK);
             if (!precheckLogs.isEmpty()) {
                 writeHeader(builder, "Precheck Steps");
-                for (ExecutionLog log : precheckLogs) {
+                for (ExecutionTaskLog log : precheckLogs) {
                     writeLog(builder, log);
                 }
             }
             if (!executeLogs.isEmpty()) {
                 writeHeader(builder, "Execute Steps");
-                for (ExecutionLog log : executeLogs) {
+                for (ExecutionTaskLog log : executeLogs) {
                     writeLog(builder, log);
                 }
             }
             if (!rollbackLogs.isEmpty()) {
                 writeHeader(builder, "Rollback Steps");
-                for (ExecutionLog log : rollbackLogs) {
+                for (ExecutionTaskLog log : rollbackLogs) {
                     writeLog(builder, log);
                 }
             }
@@ -921,9 +936,9 @@ public abstract class CommandHandler {
             out.close();
         }
 
-        private List<ExecutionLog> getTaskLogs(List<ExecutionLog> logs, ExecutionPhase phase) {
-            List<ExecutionLog> phaseLogs = Lists.newArrayList();
-            for (ExecutionLog log : logs) {
+        private List<ExecutionTaskLog> getTaskLogs(List<ExecutionTaskLog> logs, ExecutionPhase phase) {
+            List<ExecutionTaskLog> phaseLogs = Lists.newArrayList();
+            for (ExecutionTaskLog log : logs) {
                 if (phase.name().equals(log.getPhase())) {
                     phaseLogs.add(log);
                 }

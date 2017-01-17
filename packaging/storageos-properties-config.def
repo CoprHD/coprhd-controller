@@ -3157,7 +3157,7 @@
 	{
         key : "strong_ciphers",
         label : "Cipher Suite",
-        description : "Cipher Suite",
+        description : "Supported Cipher Suite for secure communication",
         type : "text",
         userConfigurable : true,
         userMutable : true,

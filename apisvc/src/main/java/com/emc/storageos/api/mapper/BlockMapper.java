@@ -164,8 +164,8 @@ public class BlockMapper {
             // Get the SRDF underlying volume if present. That will be used to fill on the
             // SrdfRestRep below.
             if (projectSrdfCapable(dbClient, from.getProject().getURI(), projectSrdfCapableCache)) {
-            srdfVolume = VPlexSrdfUtil.getSrdfVolumeFromVplexVolume(dbClient, from);
-            srdfVolume = (srdfVolume != null ? srdfVolume : from);
+                srdfVolume = VPlexSrdfUtil.getSrdfVolumeFromVplexVolume(dbClient, from);
+                srdfVolume = (srdfVolume != null ? srdfVolume : from);
             }
             to.setAccessState(srdfVolume.getAccessState());
             to.setLinkStatus(srdfVolume.getLinkStatus());

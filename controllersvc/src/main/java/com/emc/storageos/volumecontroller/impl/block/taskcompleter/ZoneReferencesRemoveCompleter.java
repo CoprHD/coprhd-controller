@@ -51,9 +51,9 @@ public class ZoneReferencesRemoveCompleter extends TaskCompleter {
                     FCZoneReference ref = dbClient.queryObject(FCZoneReference.class, fabricInfo.getFcZoneReferenceId());
                     if (ref != null) {
                         refKey = ref.getPwwnKey();
-                        dbClient.markForDeletion(ref);
                         _log.info(String.format("Remove FCZoneReference key: %s volume %s id %s", ref.getPwwnKey(), ref.getVolumeUri(),
                                 ref.getId().toString()));
+                        dbClient.removeObject(ref);
                     }
                 }
             } catch (DatabaseException ex) {

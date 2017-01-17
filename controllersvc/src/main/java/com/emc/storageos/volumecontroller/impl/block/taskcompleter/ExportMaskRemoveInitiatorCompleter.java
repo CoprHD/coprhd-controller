@@ -125,7 +125,7 @@ public class ExportMaskRemoveInitiatorCompleter extends ExportTaskCompleter {
                 }
 				if (exportMask.getInitiators() == null || exportMask.getInitiators().isEmpty()) {
 					exportGroup.removeExportMask(exportMask.getId());
-					dbClient.markForDeletion(exportMask);
+					dbClient.removeObject(exportMask);
 					dbClient.updateObject(exportGroup);
 				} else {
 					if (targetPorts != null && !targetPorts.isEmpty()) {

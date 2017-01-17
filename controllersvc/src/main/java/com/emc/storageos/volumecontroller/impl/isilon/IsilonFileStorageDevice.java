@@ -37,11 +37,9 @@ import com.emc.storageos.db.client.model.FilePolicy.FilePolicyType;
 import com.emc.storageos.db.client.model.FilePolicy.FileReplicationType;
 import com.emc.storageos.db.client.model.FileShare;
 import com.emc.storageos.db.client.model.FileShare.PersonalityTypes;
-import com.emc.storageos.db.client.model.NASServer;
 import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.OpStatusMap;
 import com.emc.storageos.db.client.model.Operation;
-import com.emc.storageos.db.client.model.PhysicalNAS;
 import com.emc.storageos.db.client.model.PolicyStorageResource;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.QuotaDirectory;
@@ -878,18 +876,12 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
 
             VirtualNAS vNAS = args.getvNAS();
             String vNASPath = null;
-            NASServer nasServer = vNAS;
+
             // get the custom path from the controller configuration
             String customPath = getCustomPath(storage, args);
             if (vNAS != null) {
                 vNASPath = vNAS.getBaseDirPath();
                 _log.info("vNAS base directory path: {}", vNASPath);
-            } else {
-                // Get the physical NAS for the storage system!!
-                PhysicalNAS pNAS = FileOrchestrationUtils.getSystemPhysicalNAS(_dbClient, storage);
-                if (pNAS != null) {
-                    nasServer = pNAS;
-                }
             }
 
             String usePhysicalNASForProvisioning = customConfigHandler.getComputedCustomConfigValue(
@@ -928,7 +920,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
 
             // Create the target directory only if the replication policy was not applied!!
             // If policy was applied at higher level, policy would create target file system directories!
-            if (!FileOrchestrationUtils.isReplicationPolicyExists(_dbClient, storage, nasServer, args.getVPool(),
+            if (!FileOrchestrationUtils.isReplicationPolicyExists(_dbClient, storage, args.getVPool(),
                     args.getProject(), args.getFs())) {
                 // create directory for the file share
                 isi.createDir(args.getFsMountPath(), true);
@@ -2703,7 +2695,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             if (sourceFS != null && sourceFS.getStorageDevice() != null) {
                 StorageSystem sourceSystem = _dbClient.queryObject(StorageSystem.class, sourceFS.getStorageDevice());
                 if (sourceSystem != null) {
-                    IsilonApi sourceCluster = getIsilonDevice(storage);
+                    IsilonApi sourceCluster = getIsilonDevice(sourceSystem);
                     clusterName = sourceCluster.getClusterConfig().getName();
                     _log.debug("Generating path for target and the source cluster is is  {}", clusterName);
                 }

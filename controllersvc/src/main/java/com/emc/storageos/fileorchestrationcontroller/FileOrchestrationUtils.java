@@ -36,6 +36,7 @@ import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
+import com.emc.storageos.db.client.model.VirtualNAS;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.model.file.ExportRule;
@@ -567,26 +568,34 @@ public final class FileOrchestrationUtils {
      * @param fs
      * @return
      */
-    public static Boolean isReplicationPolicyExists(DbClient dbClient, StorageSystem system, NASServer nasServer,
+    public static Boolean isReplicationPolicyExists(DbClient dbClient, StorageSystem system,
             VirtualPool vpool, Project project, FileShare fs) {
-        List<FilePolicy> replicationPolicies = getReplicationPolices(dbClient, vpool, project, fs);
-        if (replicationPolicies != null && !replicationPolicies.isEmpty()) {
-            if (replicationPolicies.size() > 1) {
-                _log.warn("More than one replication policy found {}", replicationPolicies.size());
-            } else {
-                FilePolicy replPolicy = replicationPolicies.get(0);
-                if (fs.getPersonality() != null && fs.getPersonality().equalsIgnoreCase(PersonalityTypes.TARGET.name())) {
-                    // Get the source storage system!!
-                    StorageSystem targetSystem = dbClient.queryObject(StorageSystem.class, fs.getStorageDevice());
+        if (fs.getPersonality() != null && fs.getPersonality().equalsIgnoreCase(PersonalityTypes.TARGET.name())) {
+            List<FilePolicy> replicationPolicies = getReplicationPolices(dbClient, vpool, project, fs);
+            if (replicationPolicies != null && !replicationPolicies.isEmpty()) {
+                if (replicationPolicies.size() > 1) {
+                    _log.warn("More than one replication policy found {}", replicationPolicies.size());
+                } else {
+                    FilePolicy replPolicy = replicationPolicies.get(0);
+
+                    FileShare sourceFS = dbClient.queryObject(FileShare.class, fs.getParentFileShare().getURI());
+                    StorageSystem sourceStorage = dbClient.queryObject(StorageSystem.class, sourceFS.getStorageDevice());
+                    NASServer nasServer = null;
+                    if (sourceFS != null && sourceFS.getVirtualNAS() != null) {
+                        nasServer = dbClient.queryObject(VirtualNAS.class, sourceFS.getVirtualNAS());
+                    } else {
+                        // Get the physical NAS for the storage system!!
+                        nasServer = FileOrchestrationUtils.getSystemPhysicalNAS(dbClient, sourceStorage);
+                    }
                     if (replPolicy.getApplyAt().equalsIgnoreCase(FilePolicyApplyLevel.vpool.name())) {
-                        return isvPoolPolicyAppliedOnStorageSystem(dbClient, targetSystem, nasServer,
+                        return isvPoolPolicyAppliedOnStorageSystem(dbClient, sourceStorage, nasServer,
                                 vpool, replPolicy);
                     } else if (replPolicy.getApplyAt().equalsIgnoreCase(FilePolicyApplyLevel.project.name())) {
-                        return isProjectPolicyAppliedOnStorageSystem(dbClient, targetSystem, nasServer,
+                        return isProjectPolicyAppliedOnStorageSystem(dbClient, sourceStorage, nasServer,
                                 project, replPolicy);
                     } else if (replPolicy.getApplyAt().equalsIgnoreCase(FilePolicyApplyLevel.file_system.name())) {
                         FileShare fsParent = dbClient.queryObject(FileShare.class, fs.getParentFileShare());
-                        return isFSPolicyAppliedOnStorageSystem(dbClient, targetSystem, nasServer,
+                        return isFSPolicyAppliedOnStorageSystem(dbClient, sourceStorage, nasServer,
                                 fsParent, replPolicy);
                     }
                 }
@@ -836,7 +845,7 @@ public final class FileOrchestrationUtils {
             if (port != null && !port.getInactive()) {
                 targetHost = port.getPortNetworkId();
                 // iterate until dr port found!!
-                if (port.getTag().contains("dr_port")) {
+                if (port.getTag() != null && port.getTag().contains("dr_port")) {
                     _log.info("DR port {} found from storage system {} for replication", targetHost, targetSystem.getLabel());
                     break;
                 }

@@ -30,8 +30,12 @@ public class RefreshStorage extends ExecutionTask<Void> {
     public void execute() throws Exception {
         debug("Executing: %s", getDetail());
         for (HostSystem host : hosts) {
-            HostStorageAPI storageAPI = new HostStorageAPI(host);
-            storageAPI.refreshStorage();
+            try {
+                HostStorageAPI storageAPI = new HostStorageAPI(host);
+                storageAPI.refreshStorage();
+            } catch (Exception e) {
+                logWarn("RefreshStorage.detail.error", host.getName());
+            }
         }
     }
 }

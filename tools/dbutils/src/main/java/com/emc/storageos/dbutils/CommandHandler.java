@@ -7,12 +7,17 @@ package com.emc.storageos.dbutils;
 
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Date;
+import java.util.GregorianCalendar;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.text.SimpleDateFormat;
 
+import com.emc.sa.catalog.OrderManager;
 import com.emc.storageos.coordinator.client.model.Constants;
+import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.impl.DbCheckerFileWriter;
 import com.emc.storageos.management.jmx.recovery.DbManagerOps;
 
@@ -21,19 +26,29 @@ import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.support.ClassPathXmlApplicationContext;
 
 import com.emc.storageos.db.client.impl.TypeMap;
 import com.emc.storageos.db.client.model.GlobalLock;
+import com.emc.storageos.db.client.model.uimodels.CatalogService;
+import com.emc.storageos.db.client.model.uimodels.ExecutionLog;
+import com.emc.storageos.db.client.model.uimodels.ExecutionPhase;
+import com.emc.storageos.db.client.model.uimodels.ExecutionState;
+import com.emc.storageos.db.client.model.uimodels.Order;
+import com.emc.storageos.db.client.model.uimodels.OrderParameter;
 import com.emc.storageos.db.client.upgrade.BaseCustomMigrationCallback;
 import com.google.common.base.Joiner;
+import com.google.common.collect.Lists;
 import com.netflix.astyanax.Keyspace;
 import com.netflix.astyanax.MutationBatch;
 import com.netflix.astyanax.model.*;
 
 import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.net.URI;
 
 public abstract class CommandHandler {
@@ -792,6 +807,169 @@ public abstract class CommandHandler {
                 System.out.println(String.format("Unknown exception. Please check dbutils.log", ex.getMessage()));
                 log.error("Unexpected exception when executing migration callback", ex);
             }
+        }
+    }
+
+    public static class DumpOrdersHandler extends CommandHandler {
+
+        private static final Logger log = LoggerFactory.getLogger(DumpOrdersHandler.class);
+        private static final SimpleDateFormat TIME = new SimpleDateFormat("ddMMyy-HHmm");
+        private static final SimpleDateFormat DATE = new SimpleDateFormat("dd-MM-yy hh:mm");
+        private File dir;
+        private OrderManager orderManager;
+
+        public DumpOrdersHandler(String[] args) {
+            if (args == null || args.length != 2) {
+                throw new IllegalArgumentException("Invalid command option.");
+            }
+            File f = new File(args[1].trim());
+            if (!f.exists() || !f.isDirectory()) {
+                throw new IllegalArgumentException("Invalid orders dump path (not exist or directory)");
+            }
+            this.dir = f;
+            this.orderManager = new ClassPathXmlApplicationContext("/sa-conf.xml").getBean("orderManager", OrderManager.class);
+        }
+
+        @Override
+        public void process(DBClient _client) throws Exception {
+            dumpOrders(_client);
+        }
+
+        private void dumpOrders(DBClient _client) throws Exception {
+            Calendar begin = GregorianCalendar.getInstance();
+            begin.add(Calendar.MONTH, -1);
+            DbClient client = _client.getDbClient();
+            List<URI> ids = client.queryByType(Order.class, true);
+            Iterator<Order> it = client.queryIterativeObjects(Order.class, ids);
+            while (it.hasNext()) {
+                Order order = it.next();
+                Calendar creationTime = order.getCreationTime();
+                if (creationTime == null || begin.compareTo(creationTime) > 0) {
+                    continue;
+                }
+                CatalogService catalogService = client.queryObject(CatalogService.class, order.getCatalogServiceId());
+                dumpOrder(order, catalogService);
+                log.info("Order {} has been successfully dumped", order.getId());
+            }
+        }
+
+        private void dumpOrder(Order order, CatalogService service) throws Exception {
+            String timestamp = TIME.format(order.getCreationTime().getTime());
+            String fileName = String.format("Order-%s-%s-%s.txt", order.getOrderNumber(), order.getOrderStatus(),
+                    timestamp);
+            OutputStream out = new FileOutputStream(new File(dir, fileName));
+            StringBuilder builder = new StringBuilder();
+            // 1. Write Details
+            writeHeader(builder, "ORDER DETAILS");
+            writeField(builder, "Order ID", order.getId());
+            writeField(builder, "Order Number", order.getOrderNumber());
+            writeField(builder, "Submitted By", order.getSubmittedByUserId());
+            writeField(builder, "Date Submitted", order.getCreationTime().getTime());
+            writeField(builder, "Date Completed", order.getDateCompleted());
+            writeField(builder, "Message", order.getMessage());
+            writeField(builder, "Status", order.getOrderStatus());
+            writeField(builder, "Catalog Service", service.getTitle());
+            writeField(builder, "Catalog ID", service.getId());
+            writeField(builder, "Base Service", service.getBaseService());
+            writeField(builder, "Requires Approval?", service.getApprovalRequired());
+            writeField(builder, "Requires Execution Window?", service.getExecutionWindowRequired());
+            if (Boolean.TRUE.equals(service.getExecutionWindowRequired())) {
+                writeField(builder, "Execution Window?", service.getDefaultExecutionWindowId().getURI());
+            }
+            // 2. Write Parameters
+            writeHeader(builder, "Parameters");
+            for (OrderParameter parameter : orderManager.getOrderParameters(order.getId())) {
+                writeField(builder, parameter.getFriendlyLabel(), parameter.getFriendlyValue());
+            }
+            // 3. Write Execution State
+            ExecutionState state = orderManager.getOrderExecutionState(order.getExecutionStateId());
+            writeHeader(builder, "Execution State");
+            writeField(builder, "Execution Status", state.getExecutionStatus());
+            writeField(builder, "Start Date", state.getStartDate());
+            writeField(builder, "End Date", state.getEndDate());
+            writeField(builder, "Affected Resources", state.getAffectedResources());
+            // 4. Write Logs
+            List<ExecutionLog> logs = orderManager.getOrderExecutionLogs(order);
+            writeHeader(builder, "Logs");
+            for (ExecutionLog log : logs) {
+                writeLog(builder, log);
+            }
+            // 5. Write Task Logs
+            List<ExecutionLog> precheckLogs = getTaskLogs(logs, ExecutionPhase.PRECHECK);
+            List<ExecutionLog> executeLogs = getTaskLogs(logs, ExecutionPhase.EXECUTE);
+            List<ExecutionLog> rollbackLogs = getTaskLogs(logs, ExecutionPhase.ROLLBACK);
+            if (!precheckLogs.isEmpty()) {
+                writeHeader(builder, "Precheck Steps");
+                for (ExecutionLog log : precheckLogs) {
+                    writeLog(builder, log);
+                }
+            }
+            if (!executeLogs.isEmpty()) {
+                writeHeader(builder, "Execute Steps");
+                for (ExecutionLog log : executeLogs) {
+                    writeLog(builder, log);
+                }
+            }
+            if (!rollbackLogs.isEmpty()) {
+                writeHeader(builder, "Rollback Steps");
+                for (ExecutionLog log : rollbackLogs) {
+                    writeLog(builder, log);
+                }
+            }
+            // 6. Write To Disk
+            out.write(builder.toString().getBytes("UTF-8"));
+            out.close();
+        }
+
+        private List<ExecutionLog> getTaskLogs(List<ExecutionLog> logs, ExecutionPhase phase) {
+            List<ExecutionLog> phaseLogs = Lists.newArrayList();
+            for (ExecutionLog log : logs) {
+                if (phase.name().equals(log.getPhase())) {
+                    phaseLogs.add(log);
+                }
+            }
+            return phaseLogs;
+        }
+
+        private void writeLog(StringBuilder builder, ExecutionLog log) {
+            builder.append("[").append(log.getLevel()).append("]");
+            builder.append("\t").append(log.getDate());
+            if (StringUtils.isNotBlank(log.getMessage())) {
+                builder.append("\t").append(log.getMessage());
+            }
+            if (StringUtils.isNotBlank(log.getStackTrace())) {
+                builder.append("\n").append(log.getStackTrace());
+            }
+            builder.append("\n");
+        }
+
+        private void writeHeader(StringBuilder builder, String header) {
+            builder.append("\n");
+            builder.append(header);
+            builder.append("\n");
+            builder.append(StringUtils.repeat("-", header.length()));
+            builder.append("\n");
+        }
+        private void writeField(StringBuilder buffer, String label, Date date) {
+            if (date == null) {
+                writeField(buffer, label, "");
+            }
+            else {
+                writeField(buffer, label, DATE.format((date)));
+            }
+        }
+
+        private void writeField(StringBuilder buffer, String label, Object value) {
+            buffer.append(label);
+
+            if (!label.endsWith("?") && !label.endsWith(":")) {
+                buffer.append(":");
+            }
+            buffer.append(" ");
+            if (value != null) {
+                buffer.append(value.toString());
+            }
+            buffer.append("\n");
         }
     }
 }

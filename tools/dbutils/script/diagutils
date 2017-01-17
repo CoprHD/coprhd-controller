@@ -30,7 +30,7 @@ usage() {
     echo "       -backup [backup name]  Create a new ViPR system backup/dump of DB and ZK through bkutils, which can be restored later."
     echo "                              If the backup name is not specified, timestamp will be used instead."
     echo "                              If the backup name already exists, the utility won't create it and just copy it into the archive."
-    echo "       -logs                  Collect all system logs (/var/log/messages) and ViPR logs including the rotated ones."
+    echo "       -logs                  Collect all system logs (/var/log/messages), ViPR logs including the rotated ones and orders in recent 30 days."
     echo "       -properties            Collect system properties (version, node count, node names, etc.)."
     echo "       -health                Collect system health information (e.g. node and service status, etc.), performance data of local node from top output."
     echo "       -all                   Including the output gathered by options: backup (with default backup name), zk, logs, properties, and health."
@@ -128,6 +128,7 @@ collect_logs() {
     set +e
     cd ${logsDir}
     mkdir info logs orders
+    /opt/storageos/bin/dbutils dump_orders "${logsDir}/orders"
     collect_data "/opt/storageos/logs" "${logsDir}/info" "true"
     convert_log_name
     zip -r logs-${DIAGCOLLECT_MAME}.zip * &>/dev/null

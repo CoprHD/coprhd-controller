@@ -1453,17 +1453,11 @@ test_cluster_remove_discovered_host() {
     # Allows discover to be run every 1 sec, needed for the scripts (default is every 60 sec)
     set_controller_cs_discovery_refresh_interval 1
 
-    common_failure_injections="failure_004_final_step_in_workflow_complete \
+    common_failure_injections="${HAPPY_PATH_TEST_INJECTION} failure_004_final_step_in_workflow_complete \
                                      failure_029_host_cluster_ComputeSystemControllerImpl.verifyDatastore_after_verify \
                                      failure_030_host_cluster_ComputeSystemControllerImpl.unmountAndDetach_after_unmount \
                                      failure_031_host_cluster_ComputeSystemControllerImpl.unmountAndDetach_after_detach"
-        
-    failure_injections="${HAPPY_PATH_TEST_INJECTION} ${common_failure_injections}"
 
-    # Placeholder when a specific failure case is being worked...
-    #failure_injections="${HAPPY_PATH_TEST_INJECTION}"    
-    #failure_injections="failure_004_final_step_in_workflow_complete"
-    
     # Real™ hosts/clusters/vcenters/datacenters provisioned during setup
     hostpostfix=".sim.emc.com"
     host1="host11"
@@ -1502,10 +1496,25 @@ test_cluster_remove_discovered_host() {
     # There are two paths to test:
     # 1. update: Meaning we remove a single discovered host from the cluster
     # 2. delete: Meaning we remove ALL discovered hosts from the cluster
-    workflowPath="delete"
+    workflowPath="update delete"
         
     for wf in ${workflowPath}
     do
+        # Failure injection for update path        
+        failure_injections="${common_failure_injections} failure_026_host_cluster_ComputeSystemControllerImpl.updateExportGroup_before_update \
+                                failure_032_host_cluster_ComputeSystemControllerImpl.updateHostAndInitiatorClusterReferences_after_updateHostAndInitiator&1 \
+                                failure_033_host_cluster_ComputeSystemControllerImpl.updateHostAndInitiatorClusterReferences_after_updateHostVcenter&1 \
+                                failure_042_host_cluster_ComputeSystemControllerImpl.updateHostAndInitiatorClusterReferences"
+        
+        # Failure injection for delete path
+        if [[ "${wf}" == *"delete"* ]]; then
+            failure_injections="${common_failure_injections} failure_027_host_cluster_ComputeSystemControllerImpl.deleteExportGroup_before_delete \
+                                                    failure_028_host_cluster_ComputeSystemControllerImpl.deleteExportGroup_after_delete"
+        fi
+        
+        # Placeholder when a specific failure case is being worked...
+        #failure_injections="${HAPPY_PATH_TEST_INJECTION}"    
+        
         for failure in ${failure_injections}
         do
             echot "Running cluster_remove_discovered_host with failure scenario: ${failure} and testing path: ${wf}..."
@@ -1535,10 +1544,11 @@ test_cluster_remove_discovered_host() {
                     echo "+++ SUCCESS - All hosts present on export group ${eg}"
                 fi
             done
-                              
-            # Check whether we are testing update or delete            
+                                
             if [[ "${wf}" == *"delete"* ]]; then
-                # Delete export group
+                ############################
+                # Delete export group path #
+                ############################
                 secho "Delete export group path..."
                 
                 # Snap DB
@@ -1599,8 +1609,6 @@ test_cluster_remove_discovered_host() {
                         secho "Re-run with failure injection off..."
                         set_artificial_failure none
                         
-                        exit 1 
-                        
                         approve_pending_event $EVENT_ID
                     fi 
                 fi
@@ -1612,10 +1620,8 @@ test_cluster_remove_discovered_host() {
                     echo "+++ Confirm export group ${eg} has been deleted, expect to see an exception below if it has..."
                     # Just get the export group name so we can grep it, format is project/egname
                     egname=`echo ${eg} | awk -F"/" '{print $2}'`
-                    echot ${egname}
                     foundeg=`export_group show ${eg} | grep ${egname}`
-                    echot ${foundeg}
-                     
+
                     if [ "${foundeg}" != "" ]; then
                         # Fail, export group should have been removed
                         echo "+++ FAIL - Expected export group ${eg} was not deleted."
@@ -1638,18 +1644,20 @@ test_cluster_remove_discovered_host() {
                 # no events are created so we do not need to approve anything.
                 # Just add the hosts back to cluster and run a re-discover of 
                 # the vcenter.
-                #change_host_cluster ${host1} ${cluster2} ${cluster1} ${vcenter}
-                #sleep 20                                
-                #change_host_cluster ${host2} ${cluster2} ${cluster1} ${vcenter}
-                #sleep 20
+                change_host_cluster ${host1} ${cluster2} ${cluster1} ${vcenter}
+                sleep 20                                
+                change_host_cluster ${host2} ${cluster2} ${cluster1} ${vcenter}
+                sleep 20
                                               
                 # Because both hosts were removed from the cluster the export group was
                 # automatically removed. Now we need to re-export the volumes to the cluster, 
                 # this will re-create the export groups.
-                #export_volume_vmware $TENANT ${volume1} ${vcenter} ${datacenter} ${cluster1} ${PROJECT}
-                #export_volume_vmware $TENANT ${volume2} ${vcenter} ${datacenter} ${cluster1} ${PROJECT2}
+                export_volume_vmware $TENANT ${volume1} ${vcenter} ${datacenter} ${cluster1} ${PROJECT}
+                export_volume_vmware $TENANT ${volume2} ${vcenter} ${datacenter} ${cluster1} ${PROJECT2}
             else
-                # Update export group
+                ############################
+                # Update export group path #
+                ############################
                 secho "Update export group path..."
                 
                 # Snap DB
@@ -1739,11 +1747,12 @@ test_cluster_remove_discovered_host() {
     done
     
     # Cleanup volumes
-#    delete_datastore_and_volume ${TENANT} ${datastore1} ${vcenter} ${datacenter} ${cluster1}
-#    sleep 10
-#    delete_datastore_and_volume ${TENANT} ${datastore2} ${vcenter} ${datacenter} ${cluster1}
-#    sleep 10
-#    runcmd project delete ${PROJECT2}
+    delete_datastore_and_volume ${TENANT} ${datastore2} ${vcenter} ${datacenter} ${cluster1}
+    sleep 10
+    delete_datastore_and_volume ${TENANT} ${datastore1} ${vcenter} ${datacenter} ${cluster1}
+    sleep 10
+    
+    runcmd project delete ${PROJECT2}
     
     # Turn off validation back on
     secho "Turning ViPR validation ON"

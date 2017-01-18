@@ -5695,6 +5695,15 @@ public class SmisCommandHelper implements SmisConstants {
         Volume volume = null;
         if (URIUtil.isType(blockObjectURI, Volume.class)) {
             volume = _dbClient.queryObject(Volume.class, blockObjectURI);
+            // Using the same logic that is in the above getVMAX3FastSettingForVolume method.
+            // If the there is a BlockSnapshot with the same native GUID as the volume, then
+            // this is a backend volume representing the snapshot for the purpose of importing
+            // the snapshot into VPLEX as a VPLEX volume. Therefore, treat it like a block snapshot
+            // and use the parent volume.
+            List<BlockSnapshot> snapshots = CustomQueryUtility.getActiveBlockSnapshotByNativeGuid(_dbClient, volume.getNativeGuid());
+            if (!snapshots.isEmpty()) {
+                volume = _dbClient.queryObject(Volume.class, snapshots.get(0).getParent());
+            }
         } else if (URIUtil.isType(blockObjectURI, BlockSnapshot.class)) {
             BlockSnapshot snapshot = _dbClient.queryObject(BlockSnapshot.class, blockObjectURI);
             volume = _dbClient.queryObject(Volume.class, snapshot.getParent());

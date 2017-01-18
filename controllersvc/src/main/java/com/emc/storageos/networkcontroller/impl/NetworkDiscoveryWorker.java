@@ -30,6 +30,7 @@ import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
+import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
 import com.emc.storageos.db.client.model.FCEndpoint;
@@ -37,6 +38,7 @@ import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.Network;
 import com.emc.storageos.db.client.model.NetworkSystem;
+import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StorageProtocol.Transport;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.TenantOrg;
@@ -509,6 +511,23 @@ public class NetworkDiscoveryWorker {
      				}
      			}
      			
+     			Initiator hostInitiator = getInitiator(endpoint, dbClient);
+                URI tenantURI = null;
+                URI resourceURI = null;
+                DataObject resource = null;
+                
+                if(hostInitiator!=null){
+                	Host hostObject= dbClient.queryObject(Host.class, hostInitiator.getHost());
+                	tenantURI = hostObject.getTenant();
+                	resource = hostInitiator;
+                }
+                else{
+                	tenantURI = TenantOrg.SYSTEM_TENANT;
+                	//now get the storageport details
+                	List<StoragePort> storagePorts = getEndPointPorts(endpointRemoved , dbClient);
+                	resource = storagePorts.get(0);
+                }
+                
      			if(!bEndpointAddedInOtherZone){
  		            EventUtils.createActionableEvent(dbClient,
  		                    EventUtils.EventCode.PORT_REMOVED,
@@ -516,13 +535,28 @@ public class NetworkDiscoveryWorker {
  		                    "Endpoint deleted from the Network",
  		                    MessageFormat.format("Endpoing {0} deleted from {1}",endpointRemoved , tzone.getLabel()), 
  		                    "Appropriate export masks have to be taken care",
- 		                    tzone, Lists.newArrayList(),
+ 		                    resource, Lists.newArrayList(),
  		                    "", new Object[] {}, "", new Object[] {} );     					
      			}
      		}    		
     	}    	
     }
     
+    
+    private URI getResourceURI(String endpoint){
+    	Initiator hostInitiator = getInitiator(endpoint, dbClient);
+        URI resourceURI = null;
+        
+        if(hostInitiator!=null){
+        	resourceURI = hostInitiator.getId();
+        }
+        else{
+        	//now get the storageport details
+        	List<StoragePort> storagePorts = getEndPointPorts(endpoint , dbClient);
+        	resourceURI = storagePorts.get(0).getId();
+        }
+        return resourceURI;
+    }
     /**
      * Looks in the topology view for endpoints that accessible by routing
      * 
@@ -854,13 +888,19 @@ public class NetworkDiscoveryWorker {
         for(String endpoint: endpoints){
             Initiator hostInitiator = getInitiator(endpoint, dbClient);
             URI tenantURI = null;
+            URI resourceURI = null;
+            DataObject resource = null;
             
             if(hostInitiator!=null){
             	Host hostObject= dbClient.queryObject(Host.class, hostInitiator.getHost());
             	tenantURI = hostObject.getTenant();
+            	resource = hostInitiator;
             }
             else{
             	tenantURI = TenantOrg.SYSTEM_TENANT;
+            	//now get the storageport details
+            	List<StoragePort> storagePorts = getEndPointPorts(endpoint , dbClient);
+            	resource = storagePorts.get(0);
             }
             
             
@@ -873,7 +913,7 @@ public class NetworkDiscoveryWorker {
  		                    "Endpoint moved from one Network to another",
  		                    MessageFormat.format("Endpoing {0} moved to {1}",endpoints.toArray() , tzone.getLabel()), 
  		                    "Appropriate export masks, if any, have to be taken care",
- 		                    tzone, Lists.newArrayList(),
+ 		                    resouceURI , Lists.newArrayList(),
  		                    "", new Object[] {}, "", new Object[] {} );
  				}
  				else{
@@ -883,7 +923,7 @@ public class NetworkDiscoveryWorker {
  		                    "Endpoint added to Network",
  		                    MessageFormat.format("Endpoing {0} added to {1}",endpoints.toArray() , tzone.getLabel()), 
  		                    "Appropriate export masks, if any, have to be taken care",
- 		                    tzone, Lists.newArrayList(),
+ 		                    resourceURI, Lists.newArrayList(),
  		                    "", new Object[] {}, "", new Object[] {} );
  				}
             
@@ -916,6 +956,21 @@ public class NetworkDiscoveryWorker {
             }
         }
         return null;
+    }
+    
+    private static List<StoragePort> getEndPointPorts(String endPoint, DbClient dbClient) {
+        URIQueryResultList portUriList = new URIQueryResultList();
+        List<StoragePort> ports = new ArrayList<StoragePort>();
+        dbClient.queryByConstraint(
+                AlternateIdConstraint.Factory.getStoragePortEndpointConstraint(endPoint), portUriList);
+        Iterator<URI> itr = portUriList.iterator();
+        while (itr.hasNext()) {
+            StoragePort port = dbClient.queryObject(StoragePort.class, itr.next());
+            if (port != null && !port.getInactive()) {
+                ports.add(port);
+            }
+        }
+        return ports;
     }
     
     private void portMovementApprove(){

@@ -9,6 +9,7 @@ import java.net.URI;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
+import java.util.ListIterator;
 import java.util.concurrent.ExecutorService;
 
 import org.joda.time.DateTime;
@@ -542,7 +543,16 @@ public interface DbClient {
     <T extends DataObject> void markForDeletion(T... object);
 
     /**
-     * Delete records for objects
+     * This method will do different operation according whether object class has
+     * {@link com.emc.storageos.db.client.model.NoInactiveIndex} annotation.
+     *
+     * <p>
+     * If data object has NoInactiveIndex annotation, this method will delete object immediately from DB
+     * <p>
+     * If data object doesn't have NoInactiveIndex annotation, this method will internally call {@link DbClient#markForDeletion()}
+     *
+     * @see NoInactiveIndex
+     * @see DbClient#markForDeletion()
      * 
      * @param object array of objects to delete
      * @throws DatabaseException TODO

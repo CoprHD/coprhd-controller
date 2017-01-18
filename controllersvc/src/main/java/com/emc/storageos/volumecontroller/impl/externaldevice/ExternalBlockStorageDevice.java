@@ -1820,8 +1820,47 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice implem
     }
 
     @Override
-    public void createSetReplicationPairs(List<RemoteReplicationPair> replicationPairs, TaskCompleter taskCompleter) {
+    public void createSetReplicationPairs(List<RemoteReplicationPair> systemReplicationPairs, TaskCompleter taskCompleter) {
+        _log.info("Create Set replication pairs in set {}\n" +
+                "for remote replication pairs: {}", systemReplicationPairs.get(0).getReplicationSet(), systemReplicationPairs);
 
+        try {
+            // prepare driver replication pairs and call driver
+            List<com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationPair> driverRRPairs = new ArrayList<>();
+            prepareDriverRemoteReplicationPairs(systemReplicationPairs, driverRRPairs);
+
+            // call driver
+            RemoteReplicationDriver driver = getDriver(systemReplicationPairs.get(0));
+            DriverTask task = driver.createSetReplicationPairs(Collections.unmodifiableList(driverRRPairs), null);
+            // todo: need to implement support for async case.
+            if (task.getStatus() == DriverTask.TaskStatus.READY) {
+                // store system pairs in database
+                for (int i=0; i<driverRRPairs.size(); i++) {
+                    systemReplicationPairs.get(i).setNativeId(driverRRPairs.get(i).getNativeId());
+                }
+                dbClient.createObject(systemReplicationPairs);
+//                try {
+//                    throw new Exception("Injected error");
+//                } catch (InterruptedException e) {
+//                    _log.info("injected error", e);
+//                }
+                String msg = String.format("createSetReplicationPairs -- Created set replication pairs: %s .", task.getMessage());
+                _log.info(msg);
+                taskCompleter.ready(dbClient);
+            } else {
+                String errorMsg = String.format("createSetReplicationPairs -- Failed to create set replication pairs: %s .", task.getMessage());
+                _log.error(errorMsg);
+                ServiceError serviceError = ExternalDeviceException.errors.createSetRemoteReplicationPairsFailed(
+                        driverRRPairs.get(0).getReplicationSetNativeId(), errorMsg);
+                taskCompleter.error(dbClient, serviceError);
+            }
+        } catch (Exception e) {
+            String errorMsg = String.format("createSetReplicationPairs -- Failed to create set replication pairs");
+            _log.error(errorMsg, e);
+            ServiceError serviceError = ExternalDeviceException.errors.createSetRemoteReplicationPairsFailed(
+                    systemReplicationPairs.get(0).getReplicationSet().toString(), errorMsg);
+            taskCompleter.error(dbClient, serviceError);
+        }
     }
 
     @Override
@@ -2034,8 +2073,10 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice implem
              // set replication group and replication set native ids
              RemoteReplicationSet systemReplicationSet = dbClient.queryObject(RemoteReplicationSet.class, systemPair.getReplicationSet());
              driverPair.setReplicationSetNativeId(systemReplicationSet.getNativeId());
-             RemoteReplicationGroup systemReplicationGroup = dbClient.queryObject(RemoteReplicationGroup.class, systemPair.getReplicationGroup());
-             driverPair.setReplicationGroupNativeId(systemReplicationGroup.getNativeId());
+             if (systemPair.getReplicationGroup() != null) {
+                 RemoteReplicationGroup systemReplicationGroup = dbClient.queryObject(RemoteReplicationGroup.class, systemPair.getReplicationGroup());
+                 driverPair.setReplicationGroupNativeId(systemReplicationGroup.getNativeId());
+             }
              // set replication state
              driverPair.setReplicationState(systemPair.getReplicationState());
 

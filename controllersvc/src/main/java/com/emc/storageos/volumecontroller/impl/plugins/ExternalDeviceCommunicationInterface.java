@@ -1431,7 +1431,22 @@ public class ExternalDeviceCommunicationInterface extends
                 for (RemoteReplicationSet.ReplicationRole role : roles) {
                     roleSet.add(role.toString());
                 }
-                systemSet.addSystemRolesEntry(entry.getKey(), roleSet);
+                // check that storage system exist in system database
+                String systemNativeId = entry.getKey();
+                String nativeGuid = NativeGUIDGenerator.generateNativeGuid(storageSystemType, systemNativeId);
+                List<com.emc.storageos.db.client.model.StorageSystem> sourceSystems =
+                        queryActiveResourcesByAltId(_dbClient, com.emc.storageos.db.client.model.StorageSystem.class, "nativeGuid", nativeGuid);
+                if (sourceSystems.isEmpty()) {
+                    String message = String.format("Cannot find system %s, defined in remote replication set %s for roles %s . Set set to not reachable.",
+                            systemNativeId, driverSet.getNativeId(), roles);
+                    _log.error(message);
+                    systemSet.setReachable(false);
+                    // Add system native id to the map
+                    systemSet.addSystemRolesEntry(entry.getKey(), roleSet);
+                } else {
+                    com.emc.storageos.db.client.model.StorageSystem storageSystem = sourceSystems.get(0);
+                    systemSet.addSystemRolesEntry(storageSystem.getId().toString(), roleSet);
+                }
             }
 
             // process data related to remote replication modes

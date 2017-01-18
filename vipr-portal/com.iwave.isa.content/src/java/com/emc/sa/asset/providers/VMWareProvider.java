@@ -194,10 +194,8 @@ public class VMWareProvider extends BaseHostProvider {
                 exportedBlockResources);
         SourceTargetVolumesFilter sourceTargetVolumesFilter = new SourceTargetVolumesFilter();
         List<VolumeRestRep> volumes = client.blockVolumes().findByProject(projectId, unexportedFilter.and(sourceTargetVolumesFilter));
-        List<URI> volumeIds = getVolumeList(volumes);
-        Map<URI, Integer> volumeHlus = getVolumeHLUs(ctx, volumeIds);
 
-        return createBlockVolumeDatastoreOptions(volumeHlus, volumes, hostOrClusterId);
+        return createBlockVolumeDatastoreOptions(volumes, hostOrClusterId);
     }
 
     @Asset("assignedBlockDatastore")
@@ -214,10 +212,7 @@ public class VMWareProvider extends BaseHostProvider {
         resources.addAll(api(context).blockVolumes().getByIds(volumeIds));
         resources.addAll(api(context).blockSnapshots().getByIds(snapshotIds));
 
-        List<URI> resourceIds = getVolumeList(resources);
-        Map<URI, Integer> volumeHlus = getVolumeHLUs(context, resourceIds);
-
-        return createBlockVolumeDatastoreOptions(volumeHlus, resources, esxHost);
+        return createBlockVolumeDatastoreOptions(resources, esxHost);
     }
 
     @Asset("blockdatastore")
@@ -258,16 +253,13 @@ public class VMWareProvider extends BaseHostProvider {
         return createBaseResourceOptions(listDatacentersByVCenterAndCluster(context, vcentersForEsxCluster, esxCluster));
     }
 
-    protected static List<AssetOption> createBlockVolumeDatastoreOptions(Map<URI, Integer> volumeHlus,
-            List<? extends BlockObjectRestRep> mountedVolumes, URI hostId) {
+    protected static List<AssetOption> createBlockVolumeDatastoreOptions(List<? extends BlockObjectRestRep> mountedVolumes, URI hostId) {
         List<AssetOption> options = Lists.newArrayList();
 
         for (BlockObjectRestRep volume : mountedVolumes) {
             Set<String> datastoreNames = VMwareDatastoreTagger.getDatastoreNames(volume);
-            Integer hlu = volumeHlus.get(volume.getId());
-            String hluLabel = hlu == null ? "N/A" : hlu.toString();
             String datastoresLabel = datastoreNames.isEmpty() ? "N/A" : StringUtils.join(datastoreNames, ",");
-            options.add(newAssetOption(volume.getId(), "volume.hlu.datastore", volume.getName(), hluLabel, datastoresLabel));
+            options.add(newAssetOption(volume.getId(), "volume.hlu.datastore", volume.getName(), datastoresLabel));
         }
         AssetOptionsUtils.sortOptionsByLabel(options);
         return options;

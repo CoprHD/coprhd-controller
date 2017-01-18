@@ -764,7 +764,11 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
             }
 
             if (!initiatorIdList.isEmpty()) {
-                apiClient.deleteInitiators(initiatorIdList);
+                try {
+                    apiClient.deleteInitiators(initiatorIdList);
+                } catch (VNXeException e) {
+                    _logger.warn("Error on deleting initiators: {}", e.getMessage());
+                }
             }
 
             _dbClient.updateObject(mask);

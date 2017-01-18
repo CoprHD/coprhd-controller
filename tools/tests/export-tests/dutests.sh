@@ -3807,6 +3807,9 @@ test_24() {
 # 6. Cleanup
 #
 test_25() {
+    echot "Test 25: Remove Initiator doesn't remove zones when extra initiators are in it"
+    expname=${EXPORT_GROUP_NAME}t25
+
     if [ "$SS" = "xio" ]; then
         echo "Test 25 is not applicable for XtremIO. Skipping."
         return
@@ -3814,9 +3817,6 @@ test_25() {
         echo "Test 25 is not applicable for Unity. Skipping."
         return
     fi
-
-    echot "Test 25: Remove Initiator doesn't remove zones when extra initiators are in it"
-    expname=${EXPORT_GROUP_NAME}t25
 
     # Make sure we start clean; no masking view on the array
     verify_export ${expname}1 ${HOST1} gone

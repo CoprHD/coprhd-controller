@@ -14,8 +14,10 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.lang3.StringUtils;
+import org.apache.curator.framework.recipes.locks.InterProcessLock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeansException;
@@ -43,6 +45,7 @@ import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.volumecontroller.ControllerLockingService;
 import com.emc.storageos.volumecontroller.impl.ControllerServiceImpl;
+import com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.DataCollectionJob.JobOrigin;
 import com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.DataCollectionJobScheduler.JobIntervals;
 import com.emc.storageos.volumecontroller.impl.smis.CIMConnectionFactory;
 
@@ -180,7 +183,7 @@ public class DataCollectionJobConsumer extends
      * @param storageSystemsCache
      */
     public void triggerDiscoveryNew(
-            Map<String, StorageSystemViewObject> storageSystemsCache) throws Exception {
+            Map<String, StorageSystemViewObject> storageSystemsCache, JobOrigin origin) throws Exception {
         Set<String> sysNativeGuidSet = storageSystemsCache.keySet();
         ArrayList<DataCollectionJob> jobs = new ArrayList<DataCollectionJob>();
         for (String sysNativeGuid : sysNativeGuidSet) {
@@ -198,7 +201,7 @@ public class DataCollectionJobConsumer extends
 
                     DiscoverTaskCompleter completer = new DiscoverTaskCompleter(system.getClass(), system.getId(), taskId,
                             ControllerServiceImpl.DISCOVERY);
-                    jobs.add(new DataCollectionDiscoverJob(completer, Discovery_Namespaces.ALL.toString()));
+                    jobs.add(new DataCollectionDiscoverJob(completer, origin, Discovery_Namespaces.ALL.toString()));
                 }
             } catch (Exception e) {
                 _logger.error("Triggering Manual Array Discovery Failed {}:", system, e);
@@ -221,12 +224,20 @@ public class DataCollectionJobConsumer extends
 
         _jobScheduler.refreshProviderConnections();
         List<URI> providerList = job.getProviders();
+        String providerType = null;
+        if (!providerList.isEmpty()) {
+            providerType = _dbClient.queryObject(StorageProvider.class, providerList.iterator().next()).getInterfaceType();
+        }
         List<URI> allProviderURI = _dbClient.queryByType(StorageProvider.class, true);
-        List<StorageProvider> allProviders = _dbClient.queryObject(StorageProvider.class, allProviderURI);
+        List<StorageProvider> allProvidersAllTypes = _dbClient.queryObject(StorageProvider.class, allProviderURI);
+        List<StorageProvider> allProviders = new ArrayList<StorageProvider>();
         // since dbQuery does not return a normal list required by bookkeeping, we need to rebuild it.
         allProviderURI = new ArrayList<URI>();
-        for (StorageProvider provider : allProviders) {
-            allProviderURI.add(provider.getId());
+        for (StorageProvider provider : allProvidersAllTypes) {
+            if (providerType == null || providerType.equals(provider.getInterfaceType())) {
+                allProviderURI.add(provider.getId());
+                allProviders.add(provider);
+            }
         }
 
         Map<String, StorageSystemViewObject> storageSystemsCache = Collections
@@ -241,10 +252,14 @@ public class DataCollectionJobConsumer extends
          * Compare the list against the ones in DB, and decide the physicalStorageSystem's
          * state REACHABLE
          */
-        if (ControllerServiceImpl.Lock.SCAN_COLLECTION_LOCK
-                .acquire(ControllerServiceImpl.Lock.SCAN_COLLECTION_LOCK.getRecommendedTimeout())) {
+        String lockKey = ControllerServiceImpl.Lock.SCAN_COLLECTION_LOCK.toString();
+        if (providerType != null) {
+            lockKey += providerType;
+        }
+        InterProcessLock scanLock = _coordinator.getLock(lockKey);
+        if (scanLock.acquire(ControllerServiceImpl.Lock.SCAN_COLLECTION_LOCK.getRecommendedTimeout(), TimeUnit.SECONDS)) {
 
-            _logger.info("Acquired a lock {} to run scanning Job", ControllerServiceImpl.Lock.SCAN_COLLECTION_LOCK.toString());
+            _logger.info("Acquired a lock {} to run scanning Job", ControllerServiceImpl.Lock.SCAN_COLLECTION_LOCK.toString()+providerType);
             
             List<URI> cacheProviders = new ArrayList<URI>();
             Map<URI, Exception> cacheErrorProviders = new HashMap<URI, Exception>();
@@ -350,13 +365,14 @@ public class DataCollectionJobConsumer extends
                     job.findProviderTaskCompleter(provider).error(_dbClient, DeviceControllerErrors.dataCollectionErrors.scanFailed(ex.getLocalizedMessage(), ex));
                 }
                 
-                ControllerServiceImpl.Lock.SCAN_COLLECTION_LOCK.release();
-                _logger.info("Released a lock {} to run scanning Job", ControllerServiceImpl.Lock.SCAN_COLLECTION_LOCK.toString());
+                scanLock.release();
+                _logger.info("Released a lock {} to run scanning Job", lockKey);
                 
                 try {
                     if (!exceptionIntercepted /* && job.isSchedulerJob() */) {
                         // Manually trigger discoveries, if any new Arrays detected
-                        triggerDiscoveryNew(storageSystemsCache);
+                        triggerDiscoveryNew(storageSystemsCache, 
+                                (job.isSchedulerJob() ? DataCollectionJob.JobOrigin.SCHEDULER : DataCollectionJob.JobOrigin.USER_API));
                     }
                 } catch (Exception ex) {
                     _logger.error("Exception occurred while triggering discovery of new systems", ex);
@@ -365,7 +381,7 @@ public class DataCollectionJobConsumer extends
         }
         else {
             job.setTaskError(_dbClient, DeviceControllerErrors.dataCollectionErrors.scanLockFailed());
-            _logger.debug("Not able to Acquire Scanning lock-->{}", Thread
+            _logger.error("Not able to Acquire Scanning {} lock-->{}", lockKey, Thread
                     .currentThread().getId());
         }
     }

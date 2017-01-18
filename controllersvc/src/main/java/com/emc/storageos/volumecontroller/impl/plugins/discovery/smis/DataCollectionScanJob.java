@@ -7,7 +7,6 @@ package com.emc.storageos.volumecontroller.impl.plugins.discovery.smis;
 import java.io.Serializable;
 import java.net.URI;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 import com.emc.storageos.db.client.DbClient;
@@ -151,7 +150,7 @@ public class DataCollectionScanJob extends DataCollectionJob implements Serializ
     @Override
     public boolean matches(DataCollectionJob job) {
         return (this.getClass().equals(job.getClass())
-                && getCompleter().getJobType().equals(job.getCompleter().getJobType())
+                && getType().equals(job.getType())
                 && getNamespace().equals(job.getNamespace())
                 && providersMatch((DataCollectionScanJob) job));
     }

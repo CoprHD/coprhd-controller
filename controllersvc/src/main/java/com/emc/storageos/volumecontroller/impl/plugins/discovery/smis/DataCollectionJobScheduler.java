@@ -365,7 +365,7 @@ public class DataCollectionJobScheduler {
             }
         }
     }
-
+    
     /**
      * Core method, responsible for loading StorageProviders from DB and do scanning.
      * 
@@ -373,8 +373,32 @@ public class DataCollectionJobScheduler {
      */
     private void scheduleScannerJobs() throws Exception {
         _logger.info("Started Loading Storage Providers from DB");
-        List<URI> providerUris = _dbClient.queryByType(StorageProvider.class, true);
-        List<StorageProvider> providers = _dbClient.queryObject(StorageProvider.class, providerUris);
+        List<StorageProvider> providers = _dbClient.queryObject(StorageProvider.class, _dbClient.queryByType(StorageProvider.class, true));
+
+        Map<String, List<StorageProvider>> providersByType = new HashMap<String, List<StorageProvider>>();
+        for (StorageProvider provider : providers) {
+            if (providersByType.get(provider.getInterfaceType()) == null) {
+                providersByType.put(provider.getInterfaceType(), new ArrayList<StorageProvider>());
+            }
+            providersByType.get(provider.getInterfaceType()).add(provider);
+        }
+        for (List<StorageProvider> providersSameType : providersByType.values()) {
+            scheduleScannerJobs(providersSameType);
+        }
+    }
+
+    /**
+     * scans a list of providers in one scan job
+     * 
+     * @param providers
+     * @throws Exception
+     */
+    private void scheduleScannerJobs(List<StorageProvider> providers) throws Exception {
+        if (providers == null || providers.isEmpty()) {
+            _logger.info("No scanning needed: provider list is empty");
+            return;
+        }
+        _logger.info("Starting scan of providers of type {}", providers.iterator().next().getInterfaceType());
         DataCollectionScanJob scanJob = new DataCollectionScanJob(DataCollectionJob.JobOrigin.SCHEDULER);
 
         for (StorageProvider provider : providers) {
@@ -384,26 +408,27 @@ public class DataCollectionJobScheduler {
         }
 
         long lastScanTime = 0;
-        boolean inProgress = true;
 
         List<URI> provUris = scanJob.getProviders();
         if (provUris != null && !provUris.isEmpty()) {
             ControllerServiceImpl.Lock lock = ControllerServiceImpl.Lock.getLock(ControllerServiceImpl.SCANNER);
             if (lock.acquire(lock.getRecommendedTimeout())) {
                 try {
-                    _logger.info("Acquired a lock {} to schedule Jobs", lock.toString());
+                    _logger.info("Acquired a lock {} to schedule {} scanner Jobs", providers.iterator().next().getInterfaceType(), lock.toString());
+                    
+                    boolean inProgress = ControllerServiceImpl.isDataCollectionJobInProgress(scanJob) || ControllerServiceImpl.isDataCollectionJobQueued(scanJob);
+
                     // Find the last scan time from the provider whose scan status is not in progress or scheduled
-                    for (StorageProvider provider : providers) {
-                        if (!isInProgress(provider)) {
-                            lastScanTime = provider.getLastScanTime();
-                            inProgress = false;
-                            break;
-                        }
+                    if (!inProgress) {
+                        lastScanTime = providers.iterator().next().getLastScanTime();
                     }
+                    
                     if (isDataCollectionScanJobSchedulingNeeded(lastScanTime, inProgress)) {
                         _logger.info("Added Scan job to the Distributed Queue");
                         ControllerServiceImpl.enqueueDataCollectionJob(scanJob);
                     }
+                } catch (Exception e) {
+                    _logger.error(e.getMessage(), e);
                 } finally {
                     try {
                         lock.release();

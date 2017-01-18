@@ -26,9 +26,9 @@ from ppretty import ppretty
 class FilePolicy(object):
 
     '''
-    The class definition for operations on 'Fileshare'.
+    The class definition for operations on 'Filepolicy'.
     '''
-    # Commonly used URIs for the 'Fileshare' module
+    # Commonly used URIs for the 'Filepolicy' module
     URI_FILE_POLICIES='/file/file-policies'
     URI_FILE_POLICY_SHOW= URI_FILE_POLICIES + '/{0}'
     URI_FILE_POLICY_DELETE= URI_FILE_POLICIES+'/{0}'
@@ -47,7 +47,7 @@ class FilePolicy(object):
         self.__port = port
 
 
-    #Vnasserver Query
+    #Filepolicy Query
     def filepolicy_query(self, name):
         
         if (common.is_uri(name)):
@@ -65,7 +65,7 @@ class FilePolicy(object):
     
     def list_file_polices(self):
         '''
-        Makes REST API call and retrieves vnasserver 
+        Makes REST API call and retrieves filepolicy 
         Parameters:
             
         Returns:
@@ -186,7 +186,6 @@ class FilePolicy(object):
 
         try:
             body = json.dumps(create_request)
-            print ("VALUE :: "+body)
             (s, h) = common.service_json_request(self.__ipAddr, self.__port,
                         "POST",FilePolicy.URI_FILE_POLICIES,body)
             if(not s):
@@ -448,6 +447,7 @@ def create_parser(subcommand_parsers, common_parser):
                                 metavar='<policy_type>',
                                 dest='policy_type',
                                 help='Type of the policy, valid values are : file_snapshot, file_replication, file_quota',
+                                choices=["file_snapshot", "file_replication", "file_quota"],
                                 required=True)
     create_parser.add_argument('-description', '-dc',
                                metavar='<policy_description>',
@@ -475,13 +475,16 @@ def create_parser(subcommand_parsers, common_parser):
 
     create_parser.add_argument('-replicationtype', '-reptype',
                                 metavar='<replication_type>', dest='replication_type',
-                                help='File Replication type Valid values are: LOCAL, REMOTE')    
+                                help='File Replication type Valid values are: LOCAL, REMOTE',
+                                choices=["LOCAL", "REMOTE"])    
     create_parser.add_argument('-replicationcopymode', '-repcpmode',
                                 metavar='<replication_copy_mode>', dest='replication_copy_mode',
-                                help='File Replication copy type Valid values are: SYNC, ASYNC')    
+                                help='File Replication copy type Valid values are: SYNC, ASYNC',
+                                choices=["LOCAL", "REMOTE"])    
     create_parser.add_argument('-replicationconfiguration', '-repconf',
                                 metavar='<replicate_configuration>', dest='replicate_configuration',
-                                help='Whether to replicate File System configurations i.e CIFS shares, NFS Exports at the time of failover/failback. Default value is False')    
+                                help='Whether to replicate File System configurations i.e CIFS shares, NFS Exports at the time of failover/failback. Default value is False',
+                                choices=["True", "False","true","false"])    
 
 
     create_parser.add_argument('-snapshotnamepattern', '-snpnmptrn',
@@ -489,7 +492,8 @@ def create_parser(subcommand_parsers, common_parser):
                                 help='Snapshot pattern ')    
     create_parser.add_argument('-snapshotexpiretype', '-snpexptp',
                                 metavar='<snapshot_expire_type>', dest='snapshot_expire_type',
-                                help='Snapshot expire type e.g hours, days, weeks, months or never')     
+                                help='Snapshot expire type e.g hours, days, weeks, months or never',
+                                choices=["hours", "days", "weeks", "months","never"])     
     create_parser.add_argument('-snapshotexpirevalue', '-snpexpvl',
                                 metavar='<snapshot_expire_value>', dest='snapshot_expire_value',
                                 help='Snapshot expire after this value')  
@@ -508,6 +512,9 @@ def create_parser(subcommand_parsers, common_parser):
 
 def filepolicy_create(args):
     obj = FilePolicy(args.ip, args.port)
+    SYNC="SYNC"
+    ASYNC="ASYNC"
+    if(args)
     try:
         obj.filepolicy_create(args.name, args.policy_type, args.tenants_access,
         args.description,  args.priority,  args.policy_sched_frequnecy, args.policy_schedule_repeat,
@@ -593,7 +600,7 @@ def update_parser(subcommand_parsers, common_parser):
 def filepolicy_update(subcommand_parsers, common_parser):
     obj = FilePolicy(args.ip, args.port)
     try:
-        obj.filepolicy_create(args.name, args.tenants_access, args.description, 
+        obj.filepolicy_update(args.name, args.tenants_access, args.description, 
          args.priority, args.policyschedulefrequency, args.policyschedulerepeat,
          args.policyscheduletime, args.policyscheduleweek, args.policyschedulemonth, 
          args.replicationcopymode, args.replicationconfiguration, args.replicationtype, 
@@ -726,11 +733,11 @@ def filepolicy_unassign(args):
     try:
         if(not args.name):
             args.name = ""
-        obj.filepolicy_unassign(args.name,args.unassign_resource_type,args.unassign_from_vpools,args.unassign_from_vpool,args.unassign_from_projects)
+        obj.filepolicy_unassign(args.name,args.unassign_resource_type,args.unassign_from_vpools,args.unassign_from_vpool,unassign_from_projects)
     except SOSError as e:
         if (e.err_code == SOSError.NOT_FOUND_ERR):
             raise SOSError(SOSError.NOT_FOUND_ERR,
-                           "FilePolicy unassign failed: " + e.err_text)
+                           "FilePolicy assign failed: " + e.err_text)
         else:
             raise e
 

@@ -35,8 +35,8 @@ import org.slf4j.LoggerFactory;
 
 import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.service.vipr.oe.OrchestrationServiceConstants;
-import com.emc.storageos.model.orchestration.OrchestrationWorkflowDocument;
 import com.emc.sa.service.vipr.tasks.ViPRExecutionTask;
+import com.emc.storageos.model.orchestration.OrchestrationWorkflowDocument;
 import com.emc.storageos.model.orchestration.OrchestrationWorkflowDocument.Step;
 import com.emc.storageos.primitives.Primitive.StepType;
 import com.emc.storageos.services.util.Exec;
@@ -171,27 +171,17 @@ public class RunAnsible  extends ViPRExecutionTask<OrchestrationTaskResult> {
         return hosts;
     }
 
-    //TODO Implement for limit, tags
     //Execute Ansible playbook on remote node. Playbook is also in remote node
     private Exec.Result executeRemoteCmd(final String extraVars) {
-        logger.info("remote ansible args: bin:{} playbook:{} user:{} ip:{} hostfile:{} ans_user:{} cmd_line:{}",
-                OrchestrationServiceConstants.ANSIBLE_BIN, OrchestrationServiceConstants.ANSIBLE_PLAYBOOK, OrchestrationServiceConstants.REMOTE_USER
-        , OrchestrationServiceConstants.REMOTE_NODE, OrchestrationServiceConstants.ANSIBLE_HOST_FILE, OrchestrationServiceConstants.ANSIBLE_USER, OrchestrationServiceConstants.ANSIBLE_COMMAND_LINE);
-
-	logger.info("extra var:{}", extraVars);
-
-	logger.info("remote ansible values:  bin:{} playbook:{} user:{} ip:{} hostfile:{} ans_user:{} cmd_line:{}",
-		getVal("remote_ansible_bin"), getVal("remote_node_playbook"), getVal("remote_node_user"), getVal("remote_node_ip"), getVal("remote_host_file"), getVal("remote_ansible_user"), getVal("ansible_command_line_arg"));
-
-        final String targetNodeIps = "/data/ansible-scaleio/hosts";
-        final String targetNodeUser = "root";
-
-        final AnsibleCommandLine cmd = new AnsibleCommandLine(getVal("remote_ansible_bin"), getVal("remote_node_playbook"));
+        final AnsibleCommandLine cmd = new AnsibleCommandLine(
+                getAnsibleConnAndOptions(OrchestrationServiceConstants.ANSIBLE_BIN, inputType.getAnsible_options()), 
+                getAnsibleConnAndOptions(OrchestrationServiceConstants.ANSIBLE_PLAYBOOK, inputType.getAnsible_options()));
         final String[] cmds = cmd.setSsh(OrchestrationServiceConstants.SHELL_LOCAL_BIN)
-                .setUserAndIp(getVal("remote_node_user"), getVal("remote_node_ip"))
-                .setHostFile(getVal("remote_host_file"))
-                .setUser(getVal("remote_ansible_user"))
-                .setCommandLine(getVal("ansible_command_line_arg"))
+                .setUserAndIp(getAnsibleConnAndOptions(OrchestrationServiceConstants.REMOTE_USER, inputType.getRemote_connection()), 
+                              getAnsibleConnAndOptions(OrchestrationServiceConstants.REMOTE_NODE, inputType.getRemote_connection()))
+                .setHostFile(getAnsibleConnAndOptions(OrchestrationServiceConstants.ANSIBLE_HOST_FILE, inputType.getAnsible_options()))
+                .setUser(getAnsibleConnAndOptions(OrchestrationServiceConstants.ANSIBLE_USER, inputType.getAnsible_options()))
+                .setCommandLine(getAnsibleConnAndOptions(OrchestrationServiceConstants.ANSIBLE_COMMAND_LINE, inputType.getAnsible_options()))
                 .setExtraVars(extraVars)
                 .build();
 
@@ -218,23 +208,18 @@ public class RunAnsible  extends ViPRExecutionTask<OrchestrationTaskResult> {
 
         return Exec.exec(timeout, cmds);
     }
-   private String getVal(String key) {
 
-	logger.info("key is:{}", key);
-        Map<String, OrchestrationWorkflowDocument.Input> connection = step.getInput().getRemote_connection();
-
+    private String getAnsibleConnAndOptions(final String key, final Map<String, Input> stepInput) {
         if (params.get(key) != null) {
-		logger.info("found value in param:{}", params.get(key));
-		return StringUtils.strip(params.get(key).toString(), "\"");
+            return StringUtils.strip(params.get(key).toString(), "\"");
         }
 
-        OrchestrationWorkflowDocument.Input input = connection.get(key);
+        final OrchestrationWorkflowDocument.Input input = stepInput.get(key);
         if (input != null && input.getDefaultValue() != null) {
-		logger.info("found in default val:{}", input.getDefaultValue());
             return input.getDefaultValue();
         }
 
-        logger.error("Can;t find the value");
+        logger.error("Can't find the value for:{}", key);
         return null;
     }
 
@@ -262,10 +247,10 @@ public class RunAnsible  extends ViPRExecutionTask<OrchestrationTaskResult> {
      * @throws Exception
      */
     private String makeExtraArg(final Map<String, List<String>> input) throws Exception {
+        if (input == null) {
+            return null;
+        }
 
-	if (input == null) {
-		return null;
-	}
         final StringBuilder sb = new StringBuilder("\"");
         for (Map.Entry<String, List<String>> e : input.entrySet())
             sb.append(e.getKey()).append("=").append(e.getValue().get(0)).append(" ");

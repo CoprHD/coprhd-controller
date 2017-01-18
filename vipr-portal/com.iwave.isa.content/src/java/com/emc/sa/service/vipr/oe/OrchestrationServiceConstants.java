@@ -40,7 +40,7 @@ public final class OrchestrationServiceConstants {
     }
 
 
-    //Ansible Execution Constants
+    //Script Execution Constants
     public static final String ANSIBLE_LOCAL_BIN = "/usr/bin/ansible-playbook";
     public static final String SHELL_BIN = "/usr/bin/sh";
     public static final String SHELL_LOCAL_BIN = "/usr/bin/ssh";
@@ -58,7 +58,7 @@ public final class OrchestrationServiceConstants {
     public static final String ANSIBLE_USER = "remote_ansible_user";
     public static final String ANSIBLE_COMMAND_LINE = "ansible_command_line_arg";
 
-    //Remote ansible options
+    //Remote ansible connection
     public static final String REMOTE_USER = "remote_node_user";
     public static final String REMOTE_NODE= "remote_node_ip";
 

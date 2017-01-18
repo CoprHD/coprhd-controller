@@ -32,7 +32,7 @@ public class AnsibleCommandLine {
     private String ssh;
     private String node;
     private String extraVars;
-    final ImmutableList.Builder<String> optionalParam = ImmutableList.builder();
+    private final ImmutableList.Builder<String> optionalParam = ImmutableList.builder();
 
     public AnsibleCommandLine(final String ansiblePath, final String playbook) {
         this.ansiblePath = ansiblePath;
@@ -77,8 +77,9 @@ public class AnsibleCommandLine {
     }
 
     public AnsibleCommandLine setCommandLine(final String commandLine) {
-        if (!StringUtils.isEmpty(commandLine))
+        if (!StringUtils.isEmpty(commandLine)) {
             optionalParam.add(commandLine);
+	}
 
         return this;
     }

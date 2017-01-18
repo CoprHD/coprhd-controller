@@ -89,10 +89,10 @@ public class WorkflowServiceDescriptor {
         return wfServiceDescriptors;
     }
 
-    private ServiceDescriptor mapWorkflowToServiceDescriptor(OrchestrationWorkflow from) {
-        ServiceDescriptor to = new ServiceDescriptor();
+    private ServiceDescriptor mapWorkflowToServiceDescriptor(final OrchestrationWorkflow from) {
+        final ServiceDescriptor to = new ServiceDescriptor();
         try {
-            OrchestrationWorkflowDocument wfDocument = WorkflowHelper.toWorkflowDocument(from);
+            final OrchestrationWorkflowDocument wfDocument = WorkflowHelper.toWorkflowDocument(from);
             to.setCategory(ORCHESTRATION_SERVICE_CATEGORY);
             to.setDescription(wfDocument.getDescription());
             to.setDestructive(false);
@@ -108,7 +108,7 @@ public class WorkflowServiceDescriptor {
                 }
             }
         }
-        catch (IOException io) {
+        catch (final IOException io) {
             log.error("Error deserializing workflow", io);
             throw new IllegalStateException(String.format("Error deserializing workflow %s", from.getName()));
         }

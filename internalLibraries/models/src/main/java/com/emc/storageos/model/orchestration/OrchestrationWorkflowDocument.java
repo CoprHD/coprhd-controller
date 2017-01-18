@@ -16,13 +16,13 @@
  */
 package com.emc.storageos.model.orchestration;
 
-import org.codehaus.jackson.annotate.JsonIgnore;
-import org.codehaus.jackson.annotate.JsonIgnoreProperties;
 import java.util.List;
 import java.util.Map;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlElementWrapper;
 import javax.xml.bind.annotation.XmlRootElement;
+
+import org.codehaus.jackson.annotate.JsonIgnoreProperties;
 
 /**
  * JAXB model for Orchestration workflow Definition
@@ -157,8 +157,8 @@ public class OrchestrationWorkflowDocument {
 
     }
 
-    @JsonIgnoreProperties(ignoreUnknown = true)
-       public static class InputType {
+        @JsonIgnoreProperties(ignoreUnknown = true)
+        public static class InputType {
 
         private Map<String, Input> input_params;
         private Map<String, Input> remote_connection;
@@ -190,7 +190,6 @@ public class OrchestrationWorkflowDocument {
         public void setAnsible_options(Map<String, Input> ansible_options) {
             this.ansible_options = ansible_options;
         }
-
     }
 
     @JsonIgnoreProperties(ignoreUnknown = true)

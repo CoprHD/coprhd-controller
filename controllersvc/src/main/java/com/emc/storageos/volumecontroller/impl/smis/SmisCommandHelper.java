@@ -5709,10 +5709,16 @@ public class SmisCommandHelper implements SmisConstants {
             volume = _dbClient.queryObject(Volume.class, snapshot.getParent());
         } else if (URIUtil.isType(blockObjectURI, BlockMirror.class)) {
             BlockMirror mirror = _dbClient.queryObject(BlockMirror.class, blockObjectURI);
+            if (NullColumnValueGetter.isNullURI(mirror.getVirtualPool()) || NullColumnValueGetter.isNullURI(mirror.getPool())) {
+                return false; // This should never happen but we need this additional check.
+            }
             virtualPool = _dbClient.queryObject(VirtualPool.class, mirror.getVirtualPool());
             storagePool = _dbClient.queryObject(StoragePool.class, mirror.getPool());
         }
         if (volume != null) {
+            if (NullColumnValueGetter.isNullURI(volume.getVirtualPool()) || NullColumnValueGetter.isNullURI(volume.getPool())) {
+                return false; // This should never happen but we need this additional check.
+            }
             virtualPool = _dbClient.queryObject(VirtualPool.class, volume.getVirtualPool());
             storagePool = _dbClient.queryObject(StoragePool.class, volume.getPool());
         }

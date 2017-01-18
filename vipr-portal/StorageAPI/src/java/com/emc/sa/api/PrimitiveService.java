@@ -54,6 +54,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 
 import com.emc.sa.api.mapper.PrimitiveMapper;
 import com.emc.sa.catalog.PrimitiveManager;
+import com.emc.storageos.api.service.impl.resource.ArgValidator;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.uimodels.Ansible;
@@ -198,19 +199,25 @@ public class PrimitiveService {
     @POST
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     public PrimitiveRestRep makePrimitive(PrimitiveCreateParam param) {
+        
+        if(null != param.getType()) {
+            ArgValidator.checkFieldValueFromEnum(param.getType(), "type", PrimitiveResourceType.class);
+        } else {
+            throw APIException.badRequests.requiredParameterMissingOrEmpty("type");
+        }
+        
         final UserPrimitive primitive;
         final PrimitiveResourceType type = PrimitiveResourceType
                 .get(param.getType());
-        if(null == type) {
-            throw BadRequestException.badRequests.parameterIsNotValid(param.getType());
-        }
+        
         switch(type) {
         case ANSIBLE:
             primitive = makeAnsiblePrimitive(param);
             break;
         default:
-            throw BadRequestException.badRequests.parameterIsNotValid(param.getType());
+            throw BadRequestException.methodNotAllowed.notSupportedWithReason("Primitive creation not supported for: "+type);
         }
+        
         primitiveManager.save(primitive);
         return PrimitiveMapper.map(primitive);
     }

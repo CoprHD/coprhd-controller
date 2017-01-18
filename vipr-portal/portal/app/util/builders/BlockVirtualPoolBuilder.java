@@ -314,7 +314,6 @@ public class BlockVirtualPoolBuilder extends VirtualPoolBuilder {
         return Collections.emptySet();
     }
 
-    // ////////////////////////////////////
     protected VirtualPoolRemoteMirrorProtectionParam getRemoteCopies() {
         if (getProtection().getRemoteCopies() == null) {
             getProtection().setRemoteCopies(new VirtualPoolRemoteMirrorProtectionParam());
@@ -331,7 +330,6 @@ public class BlockVirtualPoolBuilder extends VirtualPoolBuilder {
         getRemoteCopies().setRemoteCopySettings(newValues);
         return this;
     }
-
 
     public static List<VirtualPoolRemoteProtectionVirtualArraySettingsParam> getRemoteCopySettings(
             BlockVirtualPoolRestRep virtualPool) {
@@ -351,7 +349,6 @@ public class BlockVirtualPoolBuilder extends VirtualPoolBuilder {
         return Collections.emptyList();
     }
     
-    // /////
 
     protected VirtualPoolRemoteReplicationParam getRemoteReplication() {
         if (getProtection().getRemoteReplicationParam() == null) {
@@ -390,7 +387,6 @@ public class BlockVirtualPoolBuilder extends VirtualPoolBuilder {
 
     }
 
-    // ////
 
     public BlockVirtualPoolBuilder setDedupCapable(boolean dedupCapable) {
         virtualPool.setDedupCapable(dedupCapable);

@@ -36,6 +36,9 @@ import com.emc.storageos.model.vpool.VirtualPoolProtectionVirtualArraySettingsPa
 import com.emc.storageos.model.vpool.VirtualPoolRemoteMirrorProtectionParam;
 import com.emc.storageos.model.vpool.VirtualPoolRemoteProtectionUpdateParam;
 import com.emc.storageos.model.vpool.VirtualPoolRemoteProtectionVirtualArraySettingsParam;
+import com.emc.storageos.model.vpool.VirtualPoolRemoteReplicationParam;
+import com.emc.storageos.model.vpool.VirtualPoolRemoteReplicationSettingsParam;
+import com.emc.storageos.model.vpool.VirtualPoolRemoteReplicationUpdateParam;
 import com.google.common.collect.Sets;
 
 public class BlockVirtualPoolUpdateBuilder extends VirtualPoolUpdateBuilder {
@@ -450,45 +453,7 @@ public class BlockVirtualPoolUpdateBuilder extends VirtualPoolUpdateBuilder {
         return Collections.emptyList();
     }
     
-    /*
-     * 
-     * protected VirtualPoolRemoteReplicationParam getRemoteReplication() {
-     * if (getProtection().getRemoteReplicationParam() == null) {
-     * getProtection().setRemoteReplicationParam(new VirtualPoolRemoteReplicationParam());
-     * }
-     * 
-     * return getProtection().getRemoteReplicationParam();
-     * }
-     * 
-     * public static VirtualPoolRemoteReplicationParam getRemoteReplication(BlockVirtualPoolProtectionParam protection) {
-     * return protection != null ? protection.getRemoteReplicationParam() : null;
-     * }
-     * 
-     * public BlockVirtualPoolBuilder setRemoteReplication(List<VirtualPoolRemoteReplicationSettingsParam> newValues) {
-     * getRemoteReplication().setRemoteReplicationSettings(newValues);
-     * return this;
-     * }
-     * 
-     * public static List<VirtualPoolRemoteReplicationSettingsParam> getRemoteReplicationSettings(
-     * BlockVirtualPoolRestRep virtualPool) {
-     * return getRemoteReplicationSettings(getProtection(virtualPool));
-     * }
-     * 
-     * public static List<VirtualPoolRemoteReplicationSettingsParam> getRemoteReplicationSettings(
-     * VirtualPoolRemoteReplicationParam remoteReplication) {
-     * return remoteReplication.getRemoteReplicationSettings();
-     * }
-     * 
-     * public static List<VirtualPoolRemoteReplicationSettingsParam> getRemoteReplicationSettings(
-     * BlockVirtualPoolProtectionUpdateParam protection) {
-     * 
-     * if (protection != null) {
-     * return protection.getRemoteReplicationParam().getRemoteReplicationSettings();
-     * }
-     * return Collections.emptyList();
-     * 
-     * }
-     */
+
 
     public BlockVirtualPoolUpdateBuilder setDedupCapable(boolean dedupCapable) {
         virtualPool.setDedupCapable(dedupCapable);
@@ -498,4 +463,49 @@ public class BlockVirtualPoolUpdateBuilder extends VirtualPoolUpdateBuilder {
 	public Boolean getDedupCapable(boolean dedupCapable) {
 		return virtualPool.getDedupCapable();
 	}
+
+    public BlockVirtualPoolUpdateBuilder disableRemoteReplication() {
+        getProtection().setRemoteReplicationParam(new VirtualPoolRemoteReplicationUpdateParam());
+        Set<VirtualPoolRemoteReplicationSettingsParam> rps = Sets.newHashSet();
+        setRemoteReplications(rps);
+        return this;
+    }
+
+    @SuppressWarnings("unchecked")
+    public BlockVirtualPoolUpdateBuilder setRemoteReplications(Collection<VirtualPoolRemoteReplicationSettingsParam> newValues) {
+
+        List<VirtualPoolRemoteReplicationSettingsParam> oldValues = getRemoteReplicationSettings(oldVirtualPool);
+
+        getRemoteReplications().getAdd().addAll(CollectionUtils.subtract(newValues, oldValues));
+        getRemoteReplications().getRemove().addAll(CollectionUtils.subtract(oldValues, newValues));
+        return this;
+
+    }
+
+    protected VirtualPoolRemoteReplicationUpdateParam getRemoteReplications() {
+        if (getProtection().getRemoteReplicationParam() == null) {
+            getProtection().setRemoteCopies(new VirtualPoolRemoteProtectionUpdateParam());
+        }
+
+        return getProtection().getRemoteReplicationParam();
+    }
+
+    public static List<VirtualPoolRemoteReplicationSettingsParam> getRemoteReplicationSettings(
+            BlockVirtualPoolRestRep virtualPool) {
+        return getRemoteReplicationSettings(getProtection(virtualPool));
+    }
+
+
+    private static List<VirtualPoolRemoteReplicationSettingsParam> getRemoteReplicationSettings(
+            BlockVirtualPoolProtectionParam protection) {
+        if(protection != null ){
+            
+            VirtualPoolRemoteReplicationParam param =protection.getRemoteReplicationParam();
+            return param != null ? param.getRemoteReplicationSettings() : null;
+        }
+         return null;
+    }
+
+
+
 }

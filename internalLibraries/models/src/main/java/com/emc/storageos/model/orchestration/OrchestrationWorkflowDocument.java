@@ -16,6 +16,8 @@
  */
 package com.emc.storageos.model.orchestration;
 
+import org.codehaus.jackson.annotate.JsonIgnore;
+import org.codehaus.jackson.annotate.JsonIgnoreProperties;
 import java.util.List;
 import java.util.Map;
 import javax.xml.bind.annotation.XmlElement;
@@ -155,6 +157,43 @@ public class OrchestrationWorkflowDocument {
 
     }
 
+    @JsonIgnoreProperties(ignoreUnknown = true)
+       public static class InputType {
+
+        private Map<String, Input> input_params;
+        private Map<String, Input> remote_connection;
+        private Map<String, Input> ansible_options;
+
+        @XmlElement(name = "input_params")
+        public Map<String, Input> getInput_params() {
+            return input_params;
+        }
+
+        public void setInput_params(Map<String, Input> input_params) {
+            this.input_params = input_params;
+        }
+
+        @XmlElement(name = "connection_details")
+        public Map<String, Input> getRemote_connection() {
+            return remote_connection;
+        }
+
+        public void setRemote_connection(Map<String, Input> remote_connection) {
+            this.remote_connection = remote_connection;
+        }
+
+        @XmlElement(name = "remote_ansible_options")
+        public Map<String, Input> getAnsible_options() {
+            return ansible_options;
+        }
+
+        public void setAnsible_options(Map<String, Input> ansible_options) {
+            this.ansible_options = ansible_options;
+        }
+
+    }
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
     public static class Step {
 
         private String id;
@@ -164,7 +203,7 @@ public class OrchestrationWorkflowDocument {
         private Integer positionX;
         private Integer positionY;
         private String type;
-        private Map<String, Input> input;
+        private InputType input;
         private Map<String, String> output;
         private StepAttribute attributes;
         private String successCriteria;
@@ -227,10 +266,10 @@ public class OrchestrationWorkflowDocument {
         }
 
         @XmlElement(name = "input")
-        public Map<String, Input> getInput() {
+        public InputType getInput() {
             return input;
         }
-        public void setInput(Map<String, Input> input) {
+        public void setInput(InputType input) {
             this.input = input;
         }
         

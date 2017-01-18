@@ -40,7 +40,7 @@ public final class OrchestrationServiceConstants {
     }
 
 
-    //Ansible Constants
+    //Ansible Execution Constants
     public static final String ANSIBLE_LOCAL_BIN = "/usr/bin/ansible-playbook";
     public static final String SHELL_BIN = "/usr/bin/sh";
     public static final String SHELL_LOCAL_BIN = "/usr/bin/ssh";
@@ -50,6 +50,17 @@ public final class OrchestrationServiceConstants {
     public static final String UNTAR_OPTION = "-zxvf";
     public static final String REMOVE = "/bin/rm";
     public static final String REMOVE_OPTION = "-rf";
+
+    //Ansible Options
+    public static final String ANSIBLE_BIN = "remote_ansible_bin";
+    public static final String ANSIBLE_PLAYBOOK = "remote_node_playbook";
+    public static final String ANSIBLE_HOST_FILE = "remote_host_file";
+    public static final String ANSIBLE_USER = "remote_ansible_user";
+    public static final String ANSIBLE_COMMAND_LINE = "ansible_command_line_arg";
+
+    //Remote ansible options
+    public static final String REMOTE_USER = "remote_node_user";
+    public static final String REMOTE_NODE= "remote_node_ip";
 
     public enum InputType {
         FROM_USER("InputFromUser"),

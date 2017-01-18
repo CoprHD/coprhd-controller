@@ -158,7 +158,7 @@ public class OrchestrationService extends ViPRService {
                 case LOCAL_ANSIBLE:
                 case SHELL_SCRIPT:
                 case REMOTE_ANSIBLE: {
-                    res = ViPRExecutionUtils.execute(new RunAnsible(step, inputPerStep.get(step.getId())));
+                    res = ViPRExecutionUtils.execute(new RunAnsible(step, inputPerStep.get(step.getId()), params));
 
                     break;
                 }
@@ -218,11 +218,32 @@ public class OrchestrationService extends ViPRService {
      */
     private void updateInputPerStep(final Step step) throws Exception {
 
-        logger.info("executing Step Id: {} of Type: {}", step.getId(), step.getType());
+        if (step.getInput() == null) {
+            return;
+        }
 
-        Map<String, Input> input = step.getInput();
+        logger.info("executing Step Id: {} of Type: {}", step.getId(), step.getType());
+        OrchestrationWorkflowDocument.InputType t = step.getInput();
+        Map<String, Input> connection = step.getInput().getRemote_connection();
+
+        for(Map.Entry<String, Input> e : connection.entrySet()) {
+            logger.info("connection key:{} value:{} paramval:{}", e.getKey(), e.getValue().getValue(),params.get(e.getKey()));
+        }
+
+        Map<String, Input> ansible = step.getInput().getAnsible_options();
+
+        for(Map.Entry<String, Input> e : ansible.entrySet()) {
+            logger.info("options key:{} value:{} paramval:{}", e.getKey(), e.getValue().getValue(), params.get(e.getKey()));
+        }
+
+        final Map<String, Input> input = step.getInput().getInput_params();
+        for(Map.Entry<String, Input> e : ansible.entrySet()) {
+            logger.info("extravar key:{} value:{} paramval:{}", e.getKey(), e.getValue().getValue(), params.get(e.getKey()));
+        }
         if (input == null)
             return;
+
+        logger.info("extravar is not null");
 
         final Map<String, List<String>> inputs = new HashMap<String, List<String>>();
 
@@ -230,7 +251,7 @@ public class OrchestrationService extends ViPRService {
         while (it.hasNext()) {
             String key = it.next().toString();
             Input value = input.get(key);
-            
+                    logger.info("key{} and vallue{}", key, value);    
             if (value == null) {
                 logger.error("Wrong key for input:{} Can't get input to execute the step:{}", key, step.getId());
 

@@ -102,33 +102,9 @@ public class WorkflowServiceDescriptor {
 
             for (OrchestrationWorkflowDocument.Step step : wfDocument.getSteps()) {
                 if (null != step.getInput()) {
-                    for(Map.Entry<String, OrchestrationWorkflowDocument.Input> inputEntry: step.getInput().entrySet()) {
-                        OrchestrationWorkflowDocument.Input wfInput = inputEntry.getValue();
-                        String wfInputType = null;
-                        // Creating service fields for only inputs of type "inputfromuser" and "assetoption"
-                        if (INPUT_FROM_USER_INPUT_TYPE.equals(wfInput.getType())) {
-                            wfInputType = INPUT_FROM_USER_FIELD_TYPE;
-                        }
-                        else if (ASSET_INPUT_TYPE.equals(wfInput.getType())) {
-                            wfInputType = wfInput.getValue();
-                        }
-                        if (null != wfInputType) {
-                            ServiceField serviceField = new ServiceField();
-                            String inputName = inputEntry.getKey();
-                            //TODO: change this to get description
-                            serviceField.setDescription(wfInput.getFriendlyName());
-                            serviceField.setLabel(wfInput.getFriendlyName());
-                            serviceField.setName(inputName);
-                            serviceField.setRequired(wfInput.getRequired());
-                            serviceField.setInitialValue(wfInput.getDefaultValue());
-                            // Setting all unlocked fields as lockable
-                            if (!wfInput.getLocked()) {
-                                serviceField.setLockable(true);
-                            }
-                            serviceField.setType(wfInputType);
-                            to.getItems().put(inputName, serviceField);
-                        }
-                    }
+                    addServiceDescriptorFields(step.getInput().getInput_params(), to);
+                    addServiceDescriptorFields(step.getInput().getRemote_connection(), to);
+                    addServiceDescriptorFields(step.getInput().getAnsible_options(), to);
                 }
             }
         }
@@ -138,5 +114,37 @@ public class WorkflowServiceDescriptor {
         }
         log.debug("Mapped workflow service descriptor for {}", from.getName());
         return to;
+    }
+    private void addServiceDescriptorFields(final Map<String, OrchestrationWorkflowDocument.Input> fields, final ServiceDescriptor to) {
+        if (fields == null) {
+            return;
+        }
+
+        for (final Map.Entry<String, OrchestrationWorkflowDocument.Input> inputEntry : fields.entrySet()) {
+            final OrchestrationWorkflowDocument.Input wfInput = inputEntry.getValue();
+            String wfInputType = null;
+            // Creating service fields for only inputs of type "inputfromuser" and "assetoption"
+            if (INPUT_FROM_USER_INPUT_TYPE.equals(wfInput.getType())) {
+                wfInputType = INPUT_FROM_USER_FIELD_TYPE;
+            } else if (ASSET_INPUT_TYPE.equals(wfInput.getType())) {
+                wfInputType = wfInput.getValue();
+            }
+            if (null != wfInputType) {
+                ServiceField serviceField = new ServiceField();
+                String inputName = inputEntry.getKey();
+                //TODO: change this to get description
+                serviceField.setDescription(wfInput.getFriendlyName());
+                serviceField.setLabel(wfInput.getFriendlyName());
+                serviceField.setName(inputName);
+                serviceField.setRequired(wfInput.getRequired());
+                serviceField.setInitialValue(wfInput.getDefaultValue());
+                // Setting all unlocked fields as lockable
+                if (!wfInput.getLocked()) {
+                    serviceField.setLockable(true);
+                }
+                serviceField.setType(wfInputType);
+                to.getItems().put(inputName, serviceField);
+            }
+        }
     }
 }

@@ -913,7 +913,7 @@ public class NetworkDiscoveryWorker {
  		                    "Endpoint moved from one Network to another",
  		                    MessageFormat.format("Endpoing {0} moved to {1}",endpoints.toArray() , tzone.getLabel()), 
  		                    "Appropriate export masks, if any, have to be taken care",
- 		                    resouceURI , Lists.newArrayList(),
+ 		                    resource , Lists.newArrayList(),
  		                    "", new Object[] {}, "", new Object[] {} );
  				}
  				else{
@@ -923,7 +923,7 @@ public class NetworkDiscoveryWorker {
  		                    "Endpoint added to Network",
  		                    MessageFormat.format("Endpoing {0} added to {1}",endpoints.toArray() , tzone.getLabel()), 
  		                    "Appropriate export masks, if any, have to be taken care",
- 		                    resourceURI, Lists.newArrayList(),
+ 		                    resource, Lists.newArrayList(),
  		                    "", new Object[] {}, "", new Object[] {} );
  				}
             

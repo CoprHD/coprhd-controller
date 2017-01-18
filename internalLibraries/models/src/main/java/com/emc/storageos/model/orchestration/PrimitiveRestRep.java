@@ -16,27 +16,21 @@
  */
 package com.emc.storageos.model.orchestration;
 
-import com.google.gson.annotations.SerializedName;
-import java.util.List;
+import java.util.Map;
 import javax.xml.bind.annotation.XmlElement;
-import javax.xml.bind.annotation.XmlElementWrapper;
 import javax.xml.bind.annotation.XmlRootElement;
 
 @XmlRootElement(name = "primitive")
 public class PrimitiveRestRep {
-    @SerializedName("name")
+    
     private String name;
-    @SerializedName("friendly_name")
+    private String type;
     private String friendlyName;
-    @SerializedName("description")
     private String description;
-    @SerializedName("success_criteria")
     private String successCriteria;
-    @SerializedName("input")
-    private List<InputParameterRestRep> input;
-    @SerializedName("output")
-    private List<OutputParameterRestRep> output;
-
+    private Map<String,InputParameterRestRep> input;
+    private Map<String,OutputParameterRestRep> output;
+    
     @XmlElement(name = "name")
     public String getName() {
         return name;
@@ -44,6 +38,15 @@ public class PrimitiveRestRep {
     
     public void setName(final String name) {
         this.name = name;
+    }
+
+    @XmlElement(name = "type")
+    public String getType() {
+        return type;
+    }
+
+    public void setType(final String type) {
+        this.type = type;
     }
     
     @XmlElement(name = "friendly_name")
@@ -73,23 +76,21 @@ public class PrimitiveRestRep {
         this.successCriteria = successCriteria;
     }
 
-    @XmlElementWrapper(name="input")
-    @XmlElement(name = "parameter")
-    public List<InputParameterRestRep> getInput() {
+    @XmlElement(name = "input")
+    public Map<String,InputParameterRestRep> getInput() {
         return input;
     }
 
-    public void setInput(final List<InputParameterRestRep> input) {
+    public void setInput(final Map<String,InputParameterRestRep> input) {
         this.input = input;
     }
-    
-    @XmlElementWrapper(name="output")
-    @XmlElement(name = "parameter")
-    public List<OutputParameterRestRep> getOutput() {
+
+    @XmlElement(name = "output")
+    public Map<String,OutputParameterRestRep> getOutput() {
         return output;
     }
 
-    public void setOutput(final List<OutputParameterRestRep> output) {
+    public void setOutput(final Map<String,OutputParameterRestRep> output) {
         this.output = output;
     }
 }

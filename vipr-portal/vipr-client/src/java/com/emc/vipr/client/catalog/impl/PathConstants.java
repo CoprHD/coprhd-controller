@@ -67,5 +67,8 @@ public class PathConstants {
     public static final String OE_PRIMITIVES = "/primitives";
     public static final String OE_WORKFLOWS = "/workflows";
     public static final String OE_WORKFLOW_DELETE = "/workflows/{id}/deactivate";
+    public static final String OE_WORKFLOW_VALIDATE = "/workflows/{id}/validate";
+    public static final String OE_WORKFLOW_PUBLISH = "/workflows/{id}/publish";
+    public static final String OE_WORKFLOW_UNPUBLISH = "/workflows/{id}/unpublish";
     public static final String OE_WORKFLOW = "/workflows/{id}";
 }

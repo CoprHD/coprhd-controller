@@ -24,11 +24,12 @@ import com.emc.storageos.primitives.output.OutputParameter;
  *  Base class for a primitive that represents a ViPR API call
  */
 public abstract class ViPRPrimitive extends Primitive {
+    private final static StepType TYPE = StepType.VIPR_REST;
     
     public ViPRPrimitive(String name, String friendlyName, String description,
             String successCriteria, InputParameter[] input,
             OutputParameter[] output) {
-        super(name, friendlyName, description, successCriteria, input, output);
+        super(name, friendlyName, description, successCriteria, input, output,TYPE);
     }
 
     public abstract String path();

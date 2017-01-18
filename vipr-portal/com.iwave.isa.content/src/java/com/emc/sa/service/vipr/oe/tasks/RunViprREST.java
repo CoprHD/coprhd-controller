@@ -162,7 +162,7 @@ public class RunViprREST extends ViPRExecutionTask<OrchestrationTaskResult> {
                 //TODO convert to a better exception?
                 throw new IllegalStateException("Unfulfilled path parameter: " + key);
             }
-            pathParameterMap.put(key, value);
+            pathParameterMap.put(key, value.get(0));
         }
         
         final String path = template.expand(pathParameterMap).getPath(); 
@@ -194,7 +194,7 @@ public class RunViprREST extends ViPRExecutionTask<OrchestrationTaskResult> {
         while (m.find()) {
             String pat = m.group(1);
             String newpat = "$" + pat;
-            body = body.replace(newpat, input.get(pat).get(0));
+            body = body.replace(newpat, "\"" +input.get(pat).get(0)+"\"");
         }
 
         return body;

@@ -30,7 +30,7 @@ public final class OrchestrationServiceConstants {
     public static final String WF_ID = "WorkflowId";
 
     //SuccessCriteria Constants
-    public static final String RETURN_CODE = "returnCode";
+    public static final String RETURN_CODE = "code";
     public static final String TASK = "task";
 
     public static final List<String> BODY_REST_METHOD = Arrays.asList("POST", "PUT", "DELETE");
@@ -80,35 +80,5 @@ public final class OrchestrationServiceConstants {
             return null;
         }
 
-    }
-
-    public enum StepType {
-        VIPR_REST("ViPR REST API"),
-        REST("REST API"),
-        LOCAL_ANSIBLE("Local Ansible"),
-        REMOTE_ANSIBLE("Remote Ansible"),
-        SHELL_SCRIPT("Shell Script"),
-        START("Start"),
-        END("End");
-
-        private final String stepType;
-        private StepType(final String stepType)
-        {
-            this.stepType = stepType;
-        }
-
-        @Override
-        public String toString() {
-		    return stepType;
-        }
-        public static StepType fromString(String v) {
-            for (StepType e : StepType.values())
-            {
-                if (v.equals(e.stepType)) 
-                    return e;
-            }
-
-            return null;
-        }
     }
 }

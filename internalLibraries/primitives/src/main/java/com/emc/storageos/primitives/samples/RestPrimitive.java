@@ -31,6 +31,7 @@ import com.emc.storageos.primitives.output.OutputParameter;
 public class RestPrimitive extends Primitive {
 
     private final static String FRIENDLY_NAME = "REST API";
+    private final static StepType TYPE = StepType.REST;
     private final static String DESCRIPTION = "Execute a REST API method";
     private final static String SUCCESS_CRITERIA = "code > 199 or code < 300";
     
@@ -53,6 +54,6 @@ public class RestPrimitive extends Primitive {
     private final static OutputParameter OUTPUT[] = {HEADERS,ENTITY};
     
     public RestPrimitive( ) {
-        super(RestPrimitive.class.getName(), FRIENDLY_NAME, DESCRIPTION, SUCCESS_CRITERIA, INPUT, OUTPUT);
+        super(RestPrimitive.class.getName(), FRIENDLY_NAME, DESCRIPTION, SUCCESS_CRITERIA, INPUT, OUTPUT,TYPE);
     }
 }

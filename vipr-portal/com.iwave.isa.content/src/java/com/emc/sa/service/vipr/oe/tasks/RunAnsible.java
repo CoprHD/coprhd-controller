@@ -36,6 +36,7 @@ import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.service.vipr.oe.OrchestrationServiceConstants;
 import com.emc.sa.service.vipr.tasks.ViPRExecutionTask;
 import com.emc.storageos.model.orchestration.OrchestrationWorkflowDocument.Step;
+import com.emc.storageos.primitives.Primitive.StepType;
 import com.emc.storageos.services.util.Exec;
 
 /**
@@ -71,7 +72,7 @@ public class RunAnsible  extends ViPRExecutionTask<OrchestrationTaskResult> {
             return null;
         }
 
-        final OrchestrationServiceConstants.StepType type = OrchestrationServiceConstants.StepType.fromString(step.getType());
+        final StepType type = StepType.fromString(step.getType());
 
         final Exec.Result result;
         switch (type) {
@@ -121,7 +122,7 @@ public class RunAnsible  extends ViPRExecutionTask<OrchestrationTaskResult> {
     }
 
     private String parseOut(final String out) {
-        if (step.getType().equals(OrchestrationServiceConstants.StepType.SHELL_SCRIPT.toString())) {
+        if (step.getType().equals(StepType.SHELL_SCRIPT.toString())) {
             logger.info("Type is shell script");
 
             return out;

@@ -61,6 +61,18 @@ public class OrchestrationClient {
         return client.get(OrchestrationWorkflowRestRep.class, PathConstants.OE_WORKFLOW, id);
     }
 
+    public OrchestrationWorkflowRestRep validateWorkflow(final URI id) {
+        return client.post(OrchestrationWorkflowRestRep.class,PathConstants.OE_WORKFLOW_VALIDATE,id);
+    }
+
+    public OrchestrationWorkflowRestRep publishWorkflow(final URI id) {
+        return client.post(OrchestrationWorkflowRestRep.class,PathConstants.OE_WORKFLOW_PUBLISH,id);
+    }
+
+    public OrchestrationWorkflowRestRep unpublishWorkflow(final URI id) {
+        return client.post(OrchestrationWorkflowRestRep.class,PathConstants.OE_WORKFLOW_UNPUBLISH,id);
+    }
+
     public OrchestrationWorkflowRestRep createWorkflow(final OrchestrationWorkflowCreateParam param) {
         final UriBuilder builder = client.uriBuilder(PathConstants.OE_WORKFLOWS);
         return client.postURI(OrchestrationWorkflowRestRep.class,param, builder.build());

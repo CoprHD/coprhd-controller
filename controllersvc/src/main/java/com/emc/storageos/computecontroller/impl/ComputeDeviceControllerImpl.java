@@ -606,7 +606,7 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
              */
             if (host == null){
                  log.error("No host found with Id: "+ hostId);
-            } else{
+            } else {
                  log.info("Host: " + host.getLabel() + " has no associated computeElement. So skipping service profile and boot volume deletion steps");
             }
             return waitFor;

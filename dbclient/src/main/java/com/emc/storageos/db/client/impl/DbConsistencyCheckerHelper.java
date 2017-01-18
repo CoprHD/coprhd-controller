@@ -54,11 +54,13 @@ public class DbConsistencyCheckerHelper {
     private static final String DELETE_INDEX_CQL = "delete from \"%s\" where key='%s' and column1='%s' and column2='%s' and column3='%s' and column4='%s' and column5=%s;";
     private static final String DELETE_INDEX_CQL_WITHOUT_UUID = "delete from \"%s\" where key='%s' and column1='%s' and column2='%s' and column3='%s' and column4='%s';";
     private static final String CQL_QUERY_SCHEMA_VERSION_TIMESTAMP = "SELECT key, writetime(value) FROM \"SchemaRecord\";";
+    private static final int THREAD_POOL_QUEUE_SIZE = 50;
+    private static final int WAITING_TIME_FOR_QUEUE_FULL_MS = 3000;
 
     private DbClientImpl dbClient;
     private Set<Class<? extends DataObject>> excludeClasses = new HashSet<Class<? extends DataObject>>(Arrays.asList(PasswordHistory.class));
     private Map<Long, String> schemaVersionsTime;
-    private BlockingQueue<Runnable> blockingQueue = new ArrayBlockingQueue<Runnable>(50);
+    private BlockingQueue<Runnable> blockingQueue = new ArrayBlockingQueue<Runnable>(THREAD_POOL_QUEUE_SIZE);
     private ThreadPoolExecutor executor = new ThreadPoolExecutor(5, 20, 50, TimeUnit.MILLISECONDS, blockingQueue);
     
     public DbConsistencyCheckerHelper() {
@@ -344,9 +346,9 @@ public class DbConsistencyCheckerHelper {
     private void processBatchIndexObjectsWithMultipleThreads(IndexAndCf indexAndCf, boolean toConsole,
             Map<ColumnFamily<String, CompositeColumnName>, Map<String, List<IndexEntry>>> objsToCheck, CheckResult checkResult) throws ConnectionException {
         //if waiting queue is full, wait a few seconds to avoid reject exception 
-        while (executor.getQueue().size() >= 50) {
+        while (executor.getQueue().size() >= THREAD_POOL_QUEUE_SIZE) {
             try {
-                Thread.sleep(3000);
+                Thread.sleep(WAITING_TIME_FOR_QUEUE_FULL_MS);
             } catch (InterruptedException e) {
                 //ignore
             }

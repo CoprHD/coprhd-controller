@@ -9,11 +9,22 @@ package com.emc.storageos.storagedriver;
 import java.util.List;
 
 import com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationGroup;
+import com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationOperationContext;
 import com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationPair;
 import com.emc.storageos.storagedriver.storagecapabilities.StorageCapabilities;
 
 /**
  * This class defines driver interface methods for remote replication.
+ *
+ * RemoteReplicationContext parameter, defined in the remote replication link operations, specifies remote replication set and group
+ * containers for which link operation was initiated by the controller. For example, if system operation was executed for remote replication group,
+ * the context will specify group element type, native if of the group replication set and native id of the group.
+ * Other example, if controller operation was executed for individual pairs directly, the context will specify pair element type. In this case native ids
+ * of remote replication set and group are not specified.
+ *
+ * Driver may use RemoteReplicationContext parameter to check validity of remote replication link operation. For example, if request has
+ * remote replication group context and only subset of remote replication pairs from the system group are specified (which indicates that controller has
+ * stale information about system configuration), driver may fail this request.
  */
 public interface RemoteReplicationDriver {
 
@@ -84,9 +95,10 @@ public interface RemoteReplicationDriver {
      *     become independent storage elements;
      *
      * @param replicationPairs replication pairs to delete
+     * @param capabilities storage capabilities for the pairs
      * @return  driver task
      */
-    public DriverTask deleteReplicationPairs(List<RemoteReplicationPair> replicationPairs);
+    public DriverTask deleteReplicationPairs(List<RemoteReplicationPair> replicationPairs, StorageCapabilities capabilities);
 
 
     // replication link operations
@@ -104,16 +116,19 @@ public interface RemoteReplicationDriver {
      *     replication links should be in not ready state;
      *
      * @param replicationPairs: remote replication pairs to suspend
+     * @param context: context information for this operation
+     * @param capabilities storage capabilities for this operation
      * @return driver task
      */
-    public DriverTask suspend(List<RemoteReplicationPair> replicationPairs);
+    public DriverTask suspend(List<RemoteReplicationPair> replicationPairs, RemoteReplicationOperationContext context,
+                              StorageCapabilities capabilities);
 
     /**
      * Resume remote replication link for remote replication argument.
      * Should not make any impact on replication state of any other existing replication pairs which are not specified
      * in the request. If execution of the request with this constraint is not possible, should return a failure.
      *
-     * At the completion of this operation all remote replication pairs which belong to the replication argument should
+     * At the completion of this operation all remote replication pairs specified in the request should
      * be in the following state:
      *     Pairs state: ACTIVE;
      *     No change in remote replication container (group/set) for the pairs;
@@ -123,16 +138,19 @@ public interface RemoteReplicationDriver {
      *     replication links should be in ready state;
      *
      * @param replicationPairs: remote replication pairs to resume
+     * @param capabilities storage capabilities for this operation
+     * @param context: context information for this operation
      * @return driver task
      */
-    public DriverTask resume(List<RemoteReplicationPair> replicationPairs);
+    public DriverTask resume(List<RemoteReplicationPair> replicationPairs, RemoteReplicationOperationContext context,
+                             StorageCapabilities capabilities);
 
     /**
      * Split remote replication link for remote replication pairs.
      * Should not make any impact on replication state of any other existing replication pairs which are not specified
      * in the request. If execution of the request with this constraint is not possible, should return a failure.
      *
-     * At the completion of this operation all remote replication pairs which belong to the replication argument should
+     * At the completion of this operation all remote replication pairs specified in the request should
      * be in the following state:
      *     Pairs state: SPLIT;
      *     No change in remote replication container (group/set) for the pairs;
@@ -141,16 +159,19 @@ public interface RemoteReplicationDriver {
      *     replication links should be in not ready state;
      *
      * @param replicationPairs: remote replication pairs to split
+     * @param capabilities storage capabilities for this operation
+     * @param context: context information for this operation
      * @return driver task
      */
-    public DriverTask split(List<RemoteReplicationPair> replicationPairs);
+    public DriverTask split(List<RemoteReplicationPair> replicationPairs, RemoteReplicationOperationContext context,
+                            StorageCapabilities capabilities);
 
     /**
-     * Establish replication link for remote replication argument.
+     * Establish replication link for remote replication pairs.
      * Should not make any impact on replication state of any other existing replication pairs which are not specified
      * in the request. If execution of the request with this constraint is not possible, should return a failure.
      *
-     * At the completion of this operation all remote replication pairs which belong to the replication argument should
+     * At the completion of this operation all remote replication pairs specified in the request should
      * be in the following state:
      *     Pairs state: ACTIVE;
      *     No change in remote replication container (group/set) for the pairs;
@@ -160,16 +181,19 @@ public interface RemoteReplicationDriver {
      *     replication links should be in ready state;
      *
      * @param replicationPairs remote replication pairs to establish
+     * @param capabilities storage capabilities for this operation
+     * @param context: context information for this operation
      * @return driver task
      */
-    public DriverTask establish(List<RemoteReplicationPair> replicationPairs);
+    public DriverTask establish(List<RemoteReplicationPair> replicationPairs, RemoteReplicationOperationContext context,
+                                StorageCapabilities capabilities);
 
     /**
-     * Failover remote replication link for remote replication argument.
+     * Failover remote replication link for remote replication pairs.
      * Should not make any impact on replication state of any other existing replication pairs which are not specified
      * in the request. If execution of the request with this constraint is not possible, should return a failure.
      *
-     * At the completion of this operation all remote replication pairs which belong to the replication argument should
+     * At the completion of this operation all remote replication pairs specified in the request should
      * be in the following state:
      *     Pairs state: FAILED_OVER;
      *     No change in remote replication container (group/set) for the pairs;
@@ -178,16 +202,19 @@ public interface RemoteReplicationDriver {
      *     replication links should be in not ready state;
      *
      * @param replicationPairs: remote replication pairs to failover
+     * @param context: context information for this operation
+     * @param capabilities storage capabilities for this operation
      * @return driver task
      */
-    public DriverTask failover(List<RemoteReplicationPair> replicationPairs);
+    public DriverTask failover(List<RemoteReplicationPair> replicationPairs, RemoteReplicationOperationContext context,
+                               StorageCapabilities capabilities);
 
     /**
      * Failback remote replication link for remote replication argument.
      * Should not make any impact on replication state of any other existing replication pairs which are not specified
      * in the request. If execution of the request with this constraint is not possible, should return a failure.
      *
-     * At the completion of this operation all remote replication pairs which belong to the replication argument should
+     * At the completion of this operation all remote replication pairs specified in the request should
      * be in the following state:
      *     Pairs state:ACTIVE;
      *     No change in remote replication container (group/set) for the pairs;
@@ -197,9 +224,12 @@ public interface RemoteReplicationDriver {
      *     replication links should be in ready state;
      *
      * @param replicationPairs: remote replication pairs to failback
+     * @param context: context information for this operation
+     * @param capabilities storage capabilities for this operation
      * @return driver task
      */
-    public DriverTask failback(List<RemoteReplicationPair> replicationPairs);
+    public DriverTask failback(List<RemoteReplicationPair> replicationPairs, RemoteReplicationOperationContext context,
+                               StorageCapabilities capabilities);
 
     /**
      * Swap remote replication link for remote replication argument.
@@ -207,7 +237,7 @@ public interface RemoteReplicationDriver {
      * Should not make any impact on replication state of any other existing replication pairs which are not specified
      * in the request. If execution of the request with this constraint is not possible, should return a failure.
      *
-     * At the completion of this operation all remote replication pairs which belong to the replication argument should
+     * At the completion of this operation all remote replication pairs specified in the request should
      * be in the following state:
      *     Pairs state: SWAPPED;
      *     No change in remote replication container (group/set) for the pairs;
@@ -217,9 +247,12 @@ public interface RemoteReplicationDriver {
      *     replication links should be in ready state for replication from R2 to R1;
      *
      * @param replicationPairs: remote replication pairs to swap
+     * @param context: context information for this operation
+     * @param capabilities storage capabilities for this operation
      * @return driver task
      */
-    public DriverTask swap(List<RemoteReplicationPair> replicationPairs);
+    public DriverTask swap(List<RemoteReplicationPair> replicationPairs, RemoteReplicationOperationContext context,
+                           StorageCapabilities capabilities);
 
     /**
      * Move replication pair from its parent group to other replication group.
@@ -231,7 +264,9 @@ public interface RemoteReplicationDriver {
      *
      * @param replicationPair replication pair to move
      * @param targetGroup new parent replication group for the pair
+     * @param capabilities storage capabilities for this operation
      * @return driver task
      */
-    public DriverTask movePair(RemoteReplicationPair replicationPair, RemoteReplicationGroup targetGroup);
+    public DriverTask movePair(RemoteReplicationPair replicationPair, RemoteReplicationGroup targetGroup,
+                               StorageCapabilities capabilities);
 }

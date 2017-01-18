@@ -17,6 +17,7 @@ import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 
+import com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationSet;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -113,7 +114,7 @@ public class RemoteReplicationGroupService extends TaskResourceService {
         Operation op = _dbClient.createTaskOpStatus(RemoteReplicationGroup.class, rrGroup.getId(),
                 taskId, ResourceOperationTypeEnum.FAILOVER_REMOTE_REPLICATION_GROUP_LINK);
 
-        RemoteReplicationElement rrElement = new RemoteReplicationElement(RemoteReplicationElement.ReplicationElementType.REPLICATION_GROUP, id);
+        RemoteReplicationElement rrElement = new RemoteReplicationElement(RemoteReplicationSet.ElementType.REPLICATION_GROUP, id);
         // send request to controller
         try {
             RemoteReplicationBlockServiceApiImpl rrServiceApi = getRemoteReplicationServiceApi();

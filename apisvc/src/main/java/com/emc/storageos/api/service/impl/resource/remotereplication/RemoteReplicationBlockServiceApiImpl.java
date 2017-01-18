@@ -338,6 +338,6 @@ public class RemoteReplicationBlockServiceApiImpl extends AbstractBlockServiceAp
         RemoteReplicationController controller = getController(
                 RemoteReplicationController.class, Constants.EXTERNALDEVICE);
 
-        //controller.createRemoteReplicationGroup(replicationGroupId, taskId);
+        controller.failover(remoterReplicationElement, taskId);
     }
 }

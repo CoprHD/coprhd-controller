@@ -17,10 +17,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import com.emc.storageos.db.client.model.remotereplication.RemoteReplicationGroup;
-import com.emc.storageos.db.client.model.remotereplication.RemoteReplicationPair;
-import com.emc.storageos.db.client.model.remotereplication.RemoteReplicationSet;
-import com.emc.storageos.storagedriver.RemoteReplicationDriver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -39,7 +35,11 @@ import com.emc.storageos.db.client.model.StorageProvider;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.Volume;
+import com.emc.storageos.db.client.model.remotereplication.RemoteReplicationGroup;
+import com.emc.storageos.db.client.model.remotereplication.RemoteReplicationPair;
+import com.emc.storageos.db.client.model.remotereplication.RemoteReplicationSet;
 import com.emc.storageos.db.client.model.util.BlockConsistencyGroupUtils;
+import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.exceptions.DeviceControllerException;
@@ -49,6 +49,7 @@ import com.emc.storageos.storagedriver.BlockStorageDriver;
 import com.emc.storageos.storagedriver.DriverTask;
 import com.emc.storageos.storagedriver.LockManager;
 import com.emc.storageos.storagedriver.Registry;
+import com.emc.storageos.storagedriver.RemoteReplicationDriver;
 import com.emc.storageos.storagedriver.StorageDriver;
 import com.emc.storageos.storagedriver.impl.LockManagerImpl;
 import com.emc.storageos.storagedriver.impl.RegistryImpl;
@@ -57,6 +58,7 @@ import com.emc.storageos.storagedriver.model.StorageVolume;
 import com.emc.storageos.storagedriver.model.VolumeClone;
 import com.emc.storageos.storagedriver.model.VolumeConsistencyGroup;
 import com.emc.storageos.storagedriver.model.VolumeSnapshot;
+import com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationOperationContext;
 import com.emc.storageos.storagedriver.storagecapabilities.AutoTieringPolicyCapabilityDefinition;
 import com.emc.storageos.storagedriver.storagecapabilities.CapabilityInstance;
 import com.emc.storageos.storagedriver.storagecapabilities.CommonStorageCapabilities;
@@ -1876,7 +1878,7 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice implem
 
             // call driver
             RemoteReplicationDriver driver = getDriver(systemReplicationPairs.get(0));
-            DriverTask task = driver.deleteReplicationPairs(Collections.unmodifiableList(driverRRPairs));
+            DriverTask task = driver.deleteReplicationPairs(Collections.unmodifiableList(driverRRPairs), null);
             // todo: need to implement support for async case.
             if (task.getStatus() == DriverTask.TaskStatus.READY) {
                 // delete system replication pairs in database
@@ -1899,47 +1901,102 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice implem
     }
 
     @Override
-    public void start(RemoteReplicationElement replicationArgument, TaskCompleter taskCompleter) {
+    public void start(RemoteReplicationElement replicationElement, TaskCompleter taskCompleter) {
 
     }
 
     @Override
-    public void stop(RemoteReplicationElement replicationArgument, TaskCompleter taskCompleter) {
+    public void stop(RemoteReplicationElement replicationElement, TaskCompleter taskCompleter) {
 
     }
 
     @Override
-    public void suspend(RemoteReplicationElement replicationArgument, TaskCompleter taskCompleter) {
+    public void suspend(RemoteReplicationElement replicationElement, TaskCompleter taskCompleter) {
 
     }
 
     @Override
-    public void resume(RemoteReplicationElement replicationArgument, TaskCompleter taskCompleter) {
+    public void resume(RemoteReplicationElement replicationElement, TaskCompleter taskCompleter) {
 
     }
 
     @Override
-    public void failover(RemoteReplicationElement replicationArgument, TaskCompleter taskCompleter) {
+    public void failover(RemoteReplicationElement remoteReplicationElement, TaskCompleter taskCompleter) {
+        com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationSet.ElementType elementType = remoteReplicationElement.getType();
+        URI elementURI = remoteReplicationElement.getElementUri();
+
+        _log.info("Failover remote replication element {} with system id {}", elementType.toString(), elementURI);
+        RemoteReplicationDriver driver = null;
+        RemoteReplicationOperationContext context = null;
+        List<RemoteReplicationPair> systemRRPairs = null;
+        List<com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationPair> driverRRPairs = new ArrayList<>();
+        try {
+            switch (elementType) {
+                case REPLICATION_GROUP:
+                    RemoteReplicationGroup remoteReplicationGroup = dbClient.queryObject(RemoteReplicationGroup.class, elementURI);
+                    RemoteReplicationSet remoteReplicationSet = dbClient.queryObject(RemoteReplicationSet.class,
+                            remoteReplicationGroup.getReplicationSet());
+                    context = new RemoteReplicationOperationContext(com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationSet.ElementType.REPLICATION_GROUP,
+                            remoteReplicationSet.getNativeId(), remoteReplicationGroup.getNativeId());
+                    StorageSystem sourceSystem = dbClient.queryObject(StorageSystem.class, remoteReplicationGroup.getSourceSystem());
+
+                    driver = (RemoteReplicationDriver)getDriver(sourceSystem.getSystemType());
+                    systemRRPairs = CustomQueryUtility.queryActiveResourcesByRelation(dbClient, elementURI,
+                            RemoteReplicationPair.class, "replicationGroup");
+                    break;
+                case REPLICATION_PAIR:
+                    break;
+                case REPLICATION_SET:
+                    break;
+                default:
+                    // todo this is an error
+            }
+
+            if (systemRRPairs != null && !systemRRPairs.isEmpty()) {
+                // prepare driver replication pairs and call driver
+                prepareDriverRemoteReplicationPairs(systemRRPairs, driverRRPairs);
+            }
+                DriverTask task = driver.failover(Collections.unmodifiableList(driverRRPairs), context, null);
+                // todo: need to implement support for async case.
+                if (task.getStatus() == DriverTask.TaskStatus.READY) {
+                    String msg = String.format("failover -- failed over remote replication element %s with system id %s: %s", elementType, elementURI,
+                            task.getMessage());
+                    _log.info(msg);
+                    taskCompleter.ready(dbClient);
+                } else {
+                    String errorMsg = String.format("failover -- Failed failover operation for remote replication element %s with system id %s: %s", elementType, elementURI,
+                            task.getMessage());
+                    _log.error(errorMsg);
+                    ServiceError serviceError = ExternalDeviceException.errors.createSetRemoteReplicationPairsFailed(
+                            driverRRPairs.get(0).getReplicationSetNativeId(), errorMsg);
+                    taskCompleter.error(dbClient, serviceError);
+                }
+        } catch (Exception e) {
+            String errorMsg = String.format("failover -- Failed failover operation for remote replication element %s with system id %s .", elementType, elementURI);
+            _log.error(errorMsg, e);
+            ServiceError serviceError = ExternalDeviceException.errors.remoteReplicationLinkFailoverFailed(
+                    elementType.toString(), elementURI.toString(), errorMsg);
+            taskCompleter.error(dbClient, serviceError);
+        }
+    }
+
+    @Override
+    public void failback(RemoteReplicationElement replicationElement, TaskCompleter taskCompleter) {
 
     }
 
     @Override
-    public void failback(RemoteReplicationElement replicationArgument, TaskCompleter taskCompleter) {
+    public void swap(RemoteReplicationElement replicationElement, TaskCompleter taskCompleter) {
 
     }
 
     @Override
-    public void swap(RemoteReplicationElement replicationArgument, TaskCompleter taskCompleter) {
+    public void split(RemoteReplicationElement replicationElement, TaskCompleter taskCompleter) {
 
     }
 
     @Override
-    public void split(RemoteReplicationElement replicationArgument, TaskCompleter taskCompleter) {
-
-    }
-
-    @Override
-    public void synchronize(RemoteReplicationElement replicationArgument, TaskCompleter taskCompleter) {
+    public void synchronize(RemoteReplicationElement replicationElement, TaskCompleter taskCompleter) {
 
     }
 

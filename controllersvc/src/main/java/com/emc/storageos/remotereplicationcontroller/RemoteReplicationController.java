@@ -10,6 +10,7 @@ import java.util.List;
 
 import com.emc.storageos.Controller;
 import com.emc.storageos.volumecontroller.ControllerException;
+import com.emc.storageos.volumecontroller.impl.externaldevice.RemoteReplicationElement;
 
 public interface RemoteReplicationController extends Controller {
 
@@ -149,9 +150,9 @@ public interface RemoteReplicationController extends Controller {
      *     R2 elements should be read/write enabled;
      *     replication links should be in not ready state;
      *
-     * @param replicationArgument: set/group/pair
+     * @param replicationElement: set/group/pair
      */
-    public void failover(URI replicationArgument, String opId);
+    public void failover(RemoteReplicationElement replicationElement, String opId);
 
     /**
      * Failback remote replication link for remote replication argument.
@@ -164,9 +165,9 @@ public interface RemoteReplicationController extends Controller {
      *     data on R1 elements is synchronized with new R2 data copied to R1;
      *     replication links should be in ready state;
      *
-     * @param replicationArgument: set/group/pair
+     * @param replicationElement: set/group/pair
      */
-    public void failback(URI replicationArgument, String opId);
+    public void failback(RemoteReplicationElement replicationElement, String opId);
 
     /**
      * Swap remote replication link for remote replication argument.

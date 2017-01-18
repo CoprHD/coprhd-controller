@@ -25,6 +25,8 @@ import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.BlockSnapshotRestoreCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.VolumeWorkflowCompleter;
 import com.emc.storageos.volumecontroller.impl.externaldevice.RemoteReplicationDevice;
+import com.emc.storageos.volumecontroller.impl.externaldevice.RemoteReplicationElement;
+import com.emc.storageos.volumecontroller.impl.externaldevice.taskcompleters.RemoteReplicationFailoverCompleter;
 import com.emc.storageos.volumecontroller.impl.externaldevice.taskcompleters.RemoteReplicationGroupCompleter;
 import com.emc.storageos.volumecontroller.impl.externaldevice.taskcompleters.RemoteReplicationTaskCompleter;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
@@ -141,12 +143,16 @@ public class RemoteReplicationDeviceController implements RemoteReplicationContr
     }
 
     @Override
-    public void failover(URI replicationArgument, String opId) {
+    public void failover(RemoteReplicationElement remoteReplicationElement, String opId) {
+        RemoteReplicationFailoverCompleter taskCompleter = new RemoteReplicationFailoverCompleter(remoteReplicationElement, opId);
 
+        // call device
+        RemoteReplicationDevice rrDevice = getRemoteReplicationDevice();
+        rrDevice.failover(remoteReplicationElement, taskCompleter);
     }
 
     @Override
-    public void failback(URI replicationArgument, String opId) {
+    public void failback(RemoteReplicationElement remoteReplicationElement, String opId) {
 
     }
 

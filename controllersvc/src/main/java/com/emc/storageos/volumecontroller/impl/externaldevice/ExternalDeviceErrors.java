@@ -86,4 +86,7 @@ public interface ExternalDeviceErrors {
 
     @DeclareServiceCode(ServiceCode.EXTERNALDEVICE_CREATE_REMOTE_REPLICATION_GROUP_ERROR)
     public ServiceError createRemoteReplicationGroupFailed(String groupName, String errorMsg);
+
+    @DeclareServiceCode(ServiceCode.EXTERNALDEVICE_REMOTE_REPLICATION_LINK_FAILOVER_ERROR)
+    public ServiceError remoteReplicationLinkFailoverFailed(String elementType, String elementURI, String errorMsg);
 }

@@ -4188,6 +4188,19 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
     }
 
     /**
+     * TODO: Remove - it's in NetworkDeviceController
+     * Args should match zoneRollbackMethod above except for taskId.
+     *
+     * @param exportGroupURI
+     * @param contextKey
+     * @param taskId
+     * @throws DeviceControllerException
+     */
+    public void zoneRollback(URI exportGroupURI, String contextKey, String taskId) throws DeviceControllerException {
+        _networkDeviceController.zoneRollback(exportGroupURI, contextKey, taskId);
+    }
+
+    /**
      * @see storageViewAddInitiators
      * @param vplexURI
      * @param exportURI

@@ -52,9 +52,9 @@ public class OrderUtils {
         return catalog.orders().getByTenant(tenantId);
     }
 
-    public static List<OrderRestRep> getUserOrders(Date startDate, Date endDate, String maxCount) {
+    public static List<OrderRestRep> getUserOrders(Date startDate, Date endDate, String maxCount, boolean ordersOnly) {
         ViPRCatalogClient2 catalog = getCatalogClient();
-        return catalog.orders().getUserOrders(dateToLongStr(startDate), dateToLongStr(endDate), maxCount);
+        return catalog.orders().getUserOrders(dateToLongStr(startDate), dateToLongStr(endDate), maxCount, ordersOnly);
     }
 
     public static OrderCount getUserOrdersCount(Date startDate, Date endDate) {

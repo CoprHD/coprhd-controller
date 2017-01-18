@@ -6,11 +6,13 @@ package com.emc.storageos.fileorchestrationcontroller;
 
 import java.net.URI;
 import java.util.List;
+import java.util.Set;
 
 import com.emc.storageos.Controller;
 import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.model.file.CifsShareACLUpdateParams;
 import com.emc.storageos.model.file.FileExportUpdateParams;
+import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.FileSMBShare;
 import com.emc.storageos.volumecontroller.FileShareExport;
@@ -218,4 +220,13 @@ public interface FileOrchestrationController extends Controller {
      */
     void failbackFileSystem(URI fsURI, StoragePort nfsPort, StoragePort cifsPort, boolean replicateConfiguration, String taskId)
             throws ControllerException;
+
+    /**
+     * 
+     * @param policy
+     * @param unassignFrom
+     * @param taskId
+     * @throws InternalException
+     */
+    public void unassignFilePolicy(URI policy, Set<URI> unassignFrom, String taskId) throws InternalException;
 }

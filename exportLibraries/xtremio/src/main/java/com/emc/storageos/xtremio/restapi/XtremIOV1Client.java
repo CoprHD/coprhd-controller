@@ -71,17 +71,13 @@ public class XtremIOV1Client extends XtremIOClient {
     public List<XtremIOVolume> getXtremIOVolumesForLinks(List<XtremIOObjectInfo> volumeLinks, String clusterName) throws Exception {
         List<XtremIOVolume> volumeList = new ArrayList<XtremIOVolume>();
         for (XtremIOObjectInfo volumeInfo : volumeLinks) {
-            try {
-                URI volumeURI = URI.create(URIUtil.getFromPath(volumeInfo.getHref()));
-                log.debug("Trying to get volume details for {}", volumeURI.toString());
-                ClientResponse response = get(volumeURI);
-                XtremIOVolumes volumes = getResponseObject(XtremIOVolumes.class, response);
-                log.info("Volume {}", volumes.getContent().getVolInfo().get(1) + "-"
-                        + volumes.getContent().getVolInfo().get(2));
-                volumeList.add(volumes.getContent());
-            } catch (InternalException ex) {
-                log.warn("Exception while trying to retrieve xtremio volume link {}", volumeInfo.getHref());
-            }
+            URI volumeURI = URI.create(URIUtil.getFromPath(volumeInfo.getHref()));
+            log.debug("Trying to get volume details for {}", volumeURI.toString());
+            ClientResponse response = get(volumeURI);
+            XtremIOVolumes volumes = getResponseObject(XtremIOVolumes.class, response);
+            log.info("Volume {}", volumes.getContent().getVolInfo().get(1) + "-"
+                    + volumes.getContent().getVolInfo().get(2));
+            volumeList.add(volumes.getContent());
         }
 
         return volumeList;
@@ -189,17 +185,13 @@ public class XtremIOV1Client extends XtremIOClient {
     public List<XtremIOLunMap> getXtremIOLunMapsForLinks(List<XtremIOObjectInfo> lunMapLinks, String clusterName) throws Exception {
         List<XtremIOLunMap> lunMapList = new ArrayList<XtremIOLunMap>();
         for (XtremIOObjectInfo lunMapInfo : lunMapLinks) {
-            try {
-                URI lunMapURI = URI.create(URIUtil.getFromPath(lunMapInfo.getHref()));
-                log.debug("Trying to get LunMap details for {}", lunMapURI.toString());
-                ClientResponse response = get(lunMapURI);
-                XtremIOLunMaps lunMaps = getResponseObject(XtremIOLunMaps.class, response);
-                log.debug("LunMap {}", lunMaps.getContent().getMappingInfo().get(1) + " - "
-                        + lunMaps.getContent().getMappingInfo().get(2));
-                lunMapList.add(lunMaps.getContent());
-            } catch (InternalException ex) {
-                log.warn("Exception while trying to retrieve XtremIO LunMap link {}", lunMapInfo.getHref());
-            }
+            URI lunMapURI = URI.create(URIUtil.getFromPath(lunMapInfo.getHref()));
+            log.debug("Trying to get LunMap details for {}", lunMapURI.toString());
+            ClientResponse response = get(lunMapURI);
+            XtremIOLunMaps lunMaps = getResponseObject(XtremIOLunMaps.class, response);
+            log.debug("LunMap {}", lunMaps.getContent().getMappingInfo().get(1) + " - "
+                    + lunMaps.getContent().getMappingInfo().get(2));
+            lunMapList.add(lunMaps.getContent());
         }
 
         return lunMapList;
@@ -234,16 +226,11 @@ public class XtremIOV1Client extends XtremIOClient {
     }
 
     private void createInitiatorGroupFolder(String igFolderName, String clusterName) throws Exception {
-        try {
-            XtremIOInitiatorGroupFolderCreate igFolderCreate = new XtremIOInitiatorGroupFolderCreate();
-            igFolderCreate.setCaption(igFolderName);
-            igFolderCreate.setParentFolderId("/");
-            ClientResponse response = post(XtremIOConstants.XTREMIO_INITIATOR_GROUPS_FOLDER_URI,
-                    getJsonForEntity(igFolderCreate));
-        } catch (Exception e) {
-            log.warn("Initiator Group Folder  {} already available", igFolderName);
-        }
-
+        XtremIOInitiatorGroupFolderCreate igFolderCreate = new XtremIOInitiatorGroupFolderCreate();
+        igFolderCreate.setCaption(igFolderName);
+        igFolderCreate.setParentFolderId("/");
+        ClientResponse response = post(XtremIOConstants.XTREMIO_INITIATOR_GROUPS_FOLDER_URI,
+                getJsonForEntity(igFolderCreate));
     }
 
     private void deleteInitiatorGroupFolder(String igFolderName, String clusterName) throws Exception {
@@ -341,15 +328,10 @@ public class XtremIOV1Client extends XtremIOClient {
 
     @Override
     public void createInitiatorGroup(String igName, String parentFolderId, String clusterName) throws Exception {
-        try {
-            XtremIOInitiatorGroupCreate initiatorGroupCreate = new XtremIOInitiatorGroupCreate();
-            initiatorGroupCreate.setName(igName);
-            initiatorGroupCreate.setParentFolderId(XtremIOConstants.V1_ROOT_FOLDER.concat(parentFolderId));
-            post(XtremIOConstants.XTREMIO_INITIATOR_GROUPS_URI,
-                    getJsonForEntity(initiatorGroupCreate));
-        } catch (Exception e) {
-            log.warn("Initiator Group {} already available", igName);
-        }
+        XtremIOInitiatorGroupCreate initiatorGroupCreate = new XtremIOInitiatorGroupCreate();
+        initiatorGroupCreate.setName(igName);
+        initiatorGroupCreate.setParentFolderId(XtremIOConstants.V1_ROOT_FOLDER.concat(parentFolderId));
+        post(XtremIOConstants.XTREMIO_INITIATOR_GROUPS_URI, getJsonForEntity(initiatorGroupCreate));
     }
 
     @Override
@@ -382,8 +364,11 @@ public class XtremIOV1Client extends XtremIOClient {
             XtremIOInitiators initiators = getResponseObject(XtremIOInitiators.class, response);
             return initiators.getContent();
         } catch (Exception e) {
-            // No need to log this message at error level.
-            log.warn("Exception in getInitiator - {}", e.getMessage());
+            if (null != e.getMessage() && !e.getMessage().contains(XtremIOConstants.OBJECT_NOT_FOUND)) {
+                throw e;
+            } else {
+                log.warn("Initiator {} not found on cluster {}", initiatorName, clusterName);
+            }
         }
         log.info("Initiators not registered on Array with name : {}", initiatorName);
         return null;
@@ -399,7 +384,11 @@ public class XtremIOV1Client extends XtremIOClient {
                     response);
             return igGroups.getContent();
         } catch (Exception e) {
-            log.error(e.getMessage(), e);
+            if (null != e.getMessage() && !e.getMessage().contains(XtremIOConstants.OBJECT_NOT_FOUND)) {
+                throw e;
+            } else {
+                log.warn("Initiator group {} not found on cluster {}", initiatorGroupName, clusterName);
+            }
         }
         log.info("Initiator Group not registered on Array with name : {}", initiatorGroupName);
         return null;
@@ -416,7 +405,11 @@ public class XtremIOV1Client extends XtremIOClient {
             return folderResponse.getContent();
 
         } catch (Exception e) {
-            log.error(e.getMessage(), e);
+            if (null != e.getMessage() && !e.getMessage().contains(XtremIOConstants.OBJECT_NOT_FOUND)) {
+                throw e;
+            } else {
+                log.warn("Initiator group folder {} not found on cluster {}", initiatorGroupFolderName, clusterName);
+            }
         }
         log.info("Initiator Group Folder not available on Array with name : {}",
                 initiatorGroupFolderName);
@@ -433,7 +426,11 @@ public class XtremIOV1Client extends XtremIOClient {
             return folderResponse.getContent();
 
         } catch (Exception e) {
-            log.error(e.getMessage(), e);
+            if (null != e.getMessage() && !e.getMessage().contains(XtremIOConstants.OBJECT_NOT_FOUND)) {
+                throw e;
+            } else {
+                log.warn("Volume folder {} not found on cluster {}", volumeFolderName, clusterName);
+            }
         }
         log.info("Volume Folder not available on Array with name : {}",
                 volumeFolderName);

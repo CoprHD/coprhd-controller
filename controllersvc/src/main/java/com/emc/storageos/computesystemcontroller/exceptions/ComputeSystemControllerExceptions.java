@@ -132,4 +132,7 @@ public interface ComputeSystemControllerExceptions {
 
     @DeclareServiceCode(ServiceCode.CONTROLLER_COMPUTESYSTEM_ERROR)
     public ComputeSystemControllerException commandTimedOut(final String systemType);
+
+    @DeclareServiceCode(ServiceCode.CONTROLLER_COMPUTESYSTEM_ERROR)
+    public ComputeSystemControllerException unableToExitHostFromMaintenanceMode(final String host, final Throwable cause);
 }

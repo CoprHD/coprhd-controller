@@ -25,13 +25,16 @@
 # the array/switch/RP resources so the operation can be tried again.  At worst, the user would need to clean up
 # the array resource before retrying, but that is an easier service operation than cleaning the ViPR database.
 #
-#set -x
+exec 5> command.txt
+BASH_XTRACEFD="5"
+PS4='$LINENO: '
+set -x
 
 source $(dirname $0)/wftests_host_cluster.sh
 
 Usage()
 {
-    echo 'Usage: wftests.sh <sanity conf file path> [setuphw|setupsim|delete] [vmax2 | vmax3 | vnx | vplex [local | distributed] | xio | unity]  [test1 test2 ...]'
+    echo 'Usage: wftests.sh <sanity conf file path> [setuphw|setupsim|delete] [vmax2 | vmax3 | vnx | vplex [local | distributed] | xio | unity | vblock]  [test1 test2 ...]'
     echo ' [setuphw|setupsim]: Run on a new ViPR database, creates SMIS, host, initiators, vpools, varray, volumes'
     echo ' [delete]: deletes export and volume resources on the array'
     exit 2
@@ -920,6 +923,7 @@ prerun_setup() {
     fi
 
     smisprovider list | grep SIM > /dev/null
+
     if [ $? -eq 0 ];
     then
 	ZONE_CHECK=0
@@ -1201,6 +1205,97 @@ vmax3_setup() {
 	--neighborhoods $NH                    
 
     run cos update block $VPOOL_BASE --storage ${VMAX_NATIVEGUID}
+}
+
+vblock_setup() {
+    echo "======================== Setting up vBlock environment, using real hardware =============================="
+
+    #Add compute image server
+    echo "Adding/creating compute image server details..."
+    run computeimageserver create $VBLOCK_COMPUTE_IMAGE_SERVER_NAME \
+                                  $VBLOCK_COMPUTE_IMAGE_SERVER_IP \
+                                  $VBLOCK_COMPUTE_IMAGE_SERVER_SECONDARY_IP \
+                                  $VBLOCK_COMPUTE_IMAGE_SERVER_USERNAME \
+                                  "$VBLOCK_COMPUTE_IMAGE_SERVER_PASSWORD" \
+                                  --tftpBootDir $VBLOCK_COMPUTE_IMAGE_SERVER_TFTPBOOTDIR \
+                                  --osinstall_timeout $VBLOCK_COMPUTE_IMAGE_SERVER_OS_INSTALL_TIMEOUT \
+                                  --ssh_timeout $VBLOCK_COMPUTE_IMAGE_SERVER_SSH_TIMEOUT \
+                                  --imageimport_timeout $VBLOCK_COMPUTE_IMAGE_SERVER_IMAGE_IMPORT_TIMEOUT
+
+    sleep 5
+
+    #Discover UCS
+    echo "Discover UCS compute system"
+    run computesystem create $VBLOCK_COMPUTE_SYSTEM_NAME \
+                             $VBLOCK_COMPUTE_SYSTEM_IP \
+                             $VBLOCK_COMPUTE_SYSTEM_PORT \
+                             $VBLOCK_COMPUTE_SYSTEM_USER \
+                             "$VBLOCK_COMPUTE_SYSTEM_PASSWORD" \
+                             $VBLOCK_COMPUTE_SYSTEM_TYPE \
+                             $VBLOCK_COMPUTE_SYSTEM_SSL \
+                             $VBLOCK_COMPUTE_SYSTEM_OS_INSTALL_NETWORK \
+                             --compute_image_server $VBLOCK_COMPUTE_IMAGE_SERVER_NAME
+
+    #Discover storage system to which UCS is connected
+    # do this only once
+    echo "Setting up SMIS for VMAX3"
+    storage_password=$SMIS_PASSWD
+
+    run smisprovider create $VBLOCK_VMAX_PROVIDER_NAME $VBLOCK_VMAX_SMIS_IP $VMAX_SMIS_PORT $SMIS_USER "$SMIS_PASSWD" $VMAX_SMIS_SSL
+    run storagedevice discover_all --ignore_error
+
+    # Remove all arrays that aren't VBLOCK_VMAX_NATIVEGUID
+    for id in `storagedevice list |  grep -v ${VBLOCK_VMAX_NATIVEGUID} | grep COMPLETE | awk '{print $2}'`
+    do
+       run storagedevice deregister ${id}
+       run storagedevice delete ${id}
+    done
+
+    #Discover switches to which UCS has connections
+    echo "Configuring MDS/Cisco switches"
+    run networksystem create $VBLOCK_MDS_SWITCH_1_NAME_1 mds --devip $VBLOCK_MDS_SWITCH_1_IP_1 --devport 22 --username $VBLOCK_MDS_SWITCH_1_USER --password $VBLOCK_MDS_SWITCH_1_PW
+    run networksystem create $VBLOCK_MDS_SWITCH_1_NAME_2 mds --devip $VBLOCK_MDS_SWITCH_1_IP_2 --devport 22 --username $VBLOCK_MDS_SWITCH_1_USER --password $VBLOCK_MDS_SWITCH_1_PW
+    run networksystem create $VBLOCK_MDS_SWITCH_2_NAME_1 mds --devip $VBLOCK_MDS_SWITCH_2_IP_1 --devport 22 --username $VBLOCK_MDS_SWITCH_2_USER --password $VBLOCK_MDS_SWITCH_2_PW
+    run networksystem create $VBLOCK_MDS_SWITCH_2_NAME_2 mds --devip $VBLOCK_MDS_SWITCH_2_IP_2 --devport 22 --username $VBLOCK_MDS_SWITCH_2_USER --password $VBLOCK_MDS_SWITCH_2_PW
+
+    sleep 5
+
+    #Add compute images
+    echo "Adding compute images..."
+    run computeimage create $VBLOCK_COMPUTE_IMAGE_NAME $VBLOCK_COMPUTE_IMAGE_IMAGEURL
+
+    #Setup vArray and other virtual resources...
+    run neighborhood create $NH
+    run transportzone assign VSAN_3124 ${NH}
+    run transportzone assign VSAN_3125 ${NH}
+    run storagepool update $VBLOCK_VMAX_NATIVEGUID --type block --volume_type THIN_AND_THICK
+    run storagepool update $VBLOCK_VMAX_NATIVEGUID --nhadd $NH --type block
+    run storageport update $VBLOCK_VMAX_NATIVEGUID FC --addvarrays $NH
+
+    SERIAL_NUMBER=`storagedevice list | grep COMPLETE | awk '{print $2}' | awk -F+ '{print $2}'`
+
+    run cos create block ${VPOOL_BASE}\
+    --description Base true                 \
+    --protocols FC                \
+    --multiVolumeConsistency \
+    --numpaths 2            \
+    --provisionType 'Thin'        \
+    --max_snapshots 10                      \
+    --expandable true                       \
+    --neighborhoods $NH
+
+    run cos update block $VPOOL_BASE --storage ${VBLOCK_VMAX_NATIVEGUID}
+
+    # Create and prepare compute virtual pool
+    run computevirtualpool create $VBLOCK_COMPUTE_VIRTUAL_POOL_NAME $VBLOCK_COMPUTE_SYSTEM_NAME Cisco_UCSM false $NH $VBLOCK_SERVICE_PROFILE_TEMPLATE_NAMES
+    sleep 2
+    run computevirtualpool assign $VBLOCK_COMPUTE_VIRTUAL_POOL_NAME $VBLOCK_COMPUTE_SYSTEM_NAME $VBLOCK_COMPUTE_ELEMENT_NAMES
+
+    run cos allow $VPOOL_BASE block $TENANT
+    run project create $PROJECT --tenant $TENANT
+    secho "Project $PROJECT created."
+
+    echo "======= vBlock base setup done ======="
 }
 
 vplex_sim_setup() {
@@ -1644,13 +1739,15 @@ setup() {
 	fi
     fi
 
-    if [ "${SIM}" != "1" ]; then
+    if [ "${SIM}" != "1" -a "${SS}" != "vblock" ]; then
 	run networksystem create $BROCADE_NETWORK brocade --smisip $BROCADE_IP --smisport 5988 --smisuser $BROCADE_USER --smispw $BROCADE_PW --smisssl false
     else
 	FABRIC_SIMULATOR=fabric-sim
 	if [ "${SS}" = "vplex" ]; then
 	    secho "Configuring MDS/Cisco Simulator using SSH on: $VPLEX_SIM_MDS_IP"
 	    run networksystem create $FABRIC_SIMULATOR mds --devip $VPLEX_SIM_MDS_IP --devport 22 --username $VPLEX_SIM_MDS_USER --password $VPLEX_SIM_MDS_PW
+	elif [ "${SS}" = "vblock" ]; then
+        secho "Configure vblock switches"
 	else
 	    secho "Configuring MDS/Cisco Simulator using SSH on: $SIMULATOR_CISCO_MDS"
 	    run networksystem create $FABRIC_SIMULATOR mds --devip $SIMULATOR_CISCO_MDS --devport 22 --username $SIMULATOR_CISCO_MDS_USER --password $SIMULATOR_CISCO_MDS_PW
@@ -1658,7 +1755,7 @@ setup() {
     fi
 
     ${SS}_setup
-
+  
     run cos allow $VPOOL_BASE block $TENANT
     reset_system_props
     run volume create ${VOLNAME} ${PROJECT} ${NH} ${VPOOL_BASE} 1GB --count 2
@@ -2917,7 +3014,7 @@ SS=${1}
 shift
 
 case $SS in
-    vmax2|vmax3|vnx|xio|unity)
+    vmax2|vmax3|vnx|xio|unity|vblock)
     ;;
     vplex)
         # set local or distributed mode

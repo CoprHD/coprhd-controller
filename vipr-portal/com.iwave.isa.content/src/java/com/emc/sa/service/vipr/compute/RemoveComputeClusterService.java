@@ -9,6 +9,8 @@ import static com.emc.sa.service.ServiceParams.CLUSTER;
 import java.net.URI;
 import java.util.List;
 
+import org.apache.commons.collections.CollectionUtils;
+
 import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.engine.bind.Param;
 import com.emc.sa.engine.service.Service;
@@ -27,6 +29,8 @@ public class RemoveComputeClusterService extends ViPRService {
 
     private Cluster cluster;
 
+    private List<URI> provisionedHostURIs = null;
+    private List<URI> hostURIs = null;
     @Override
     public void precheck() throws Exception {
         StringBuilder preCheckErrors = new StringBuilder();
@@ -34,7 +38,15 @@ public class RemoveComputeClusterService extends ViPRService {
         if (cluster == null) {
             preCheckErrors.append("Cluster doesn't exist for ID " + clusterId);
         }
+        hostURIs = ComputeUtils.getHostURIsByCluster(getClient(), clusterId);
+        provisionedHostURIs = ComputeUtils.getProvisionedHostURIsByCluster(clusterId);
 
+        if (!CollectionUtils.isEmpty(hostURIs) && !CollectionUtils.isEmpty(provisionedHostURIs)
+                && (hostURIs.size() > provisionedHostURIs.size() || !provisionedHostURIs.containsAll(hostURIs))) {
+            logError("computeutils.deactivatecluster.deactivate.notpossible", cluster.getLabel());
+            preCheckErrors.append("Cluster ").append(cluster.getLabel())
+            .append(" is a mixed cluster, cannot decommission a mixed cluster.");
+        }
         if (preCheckErrors.length() > 0) {
             throw new IllegalStateException(preCheckErrors.toString());
         }
@@ -43,19 +55,17 @@ public class RemoveComputeClusterService extends ViPRService {
     @Override
     public void execute() throws Exception {
 
-        List<URI> hostURIs = ComputeUtils.getHostURIsByCluster(getClient(), clusterId);
-
         // removing cluster checks for running VMs first for ESX hosts
         addAffectedResource(clusterId);
-        execute(new DeactivateCluster(cluster));
 
-        if (hostURIs.isEmpty()) {
+        if (provisionedHostURIs.isEmpty() && hostURIs.isEmpty()) {
+            execute(new DeactivateCluster(cluster));
             return;
         }
 
         // get boot vols to be deleted (so we can check afterwards)
         List<URI> bootVolsToBeDeleted = Lists.newArrayList();
-        for (URI hostURI : hostURIs) {
+        for (URI hostURI : provisionedHostURIs) {
             URI bootVolURI = BlockStorageUtils.getHost(hostURI).getBootVolumeId();
             if (bootVolURI != null) {
                 BlockObjectRestRep bootVolRep = null;
@@ -71,16 +81,20 @@ public class RemoveComputeClusterService extends ViPRService {
         }
 
         // removing hosts also removes associated boot volumes and exports
-        List<URI> successfulHostIds = ComputeUtils.deactivateHostURIs(hostURIs);
+        List<URI> successfulHostIds = ComputeUtils.deactivateHostURIs(provisionedHostURIs);
 
         // fail order if no hosts removed
         if (successfulHostIds.isEmpty()) {
             throw new IllegalStateException(ExecutionUtils.getMessage("computeutils.deactivatehost.deactivate.failure", ""));
         }
+        // Check if all hosts are deactivated successfully and only then issue the deactivateCluster call
+        if (successfulHostIds.size() == provisionedHostURIs.size() && successfulHostIds.containsAll(provisionedHostURIs)) {
+            execute(new DeactivateCluster(cluster));
+        }
 
         // check all hosts were removed
-        if (successfulHostIds.size() < hostURIs.size()) {
-            for (URI hostURI : hostURIs) {
+        if (successfulHostIds.size() < provisionedHostURIs.size()) {
+            for (URI hostURI : provisionedHostURIs) {
                 if (!successfulHostIds.contains(hostURI)) {
                     logError("computeutils.deactivatehost.failure", hostURI, clusterId);
                 }
@@ -99,4 +113,31 @@ public class RemoveComputeClusterService extends ViPRService {
 
     }
 
+    /**
+     * @return the provisionedHostURIs
+     */
+    public List<URI> getProvisionedHostURIs() {
+        return provisionedHostURIs;
+    }
+
+    /**
+     * @param provisionedHostURIs the provisionedHostURIs to set
+     */
+    public void setProvisionedHostURIs(List<URI> provisionedHostURIs) {
+        this.provisionedHostURIs = provisionedHostURIs;
+    }
+
+    /**
+     * @return the hostURIs
+     */
+    public List<URI> getHostURIs() {
+        return hostURIs;
+    }
+
+    /**
+     * @param hostURIs the hostURIs to set
+     */
+    public void setHostURIs(List<URI> hostURIs) {
+        this.hostURIs = hostURIs;
+    }
 }

@@ -77,7 +77,19 @@ public final class InvokeTestFailure {
     public static final String ARTIFICIAL_FAILURE_044 = "failure_044_VPlexVmaxMaskingOrchestrator.deleteOrRemoveVolumesToExportMask_after_operation";
     public static final String ARTIFICIAL_FAILURE_045 = "failure_045_VPlexDeviceController.createVirtualVolume_before_create_operation";
     public static final String ARTIFICIAL_FAILURE_046 = "failure_046_VPlexDeviceController.createVirtualVolume_after_create_operation";
-
+    public static final String ARTIFICIAL_FAILURE_047 = "failure_047_UcsComputeDevice.createLsServer_createServiceProfileFromTemplate";
+    public static final String ARTIFICIAL_FAILURE_048 = "failure_048_UcsComputeDevice.createLsServer_createServiceProfileFromTemplate_Poll";
+    public static final String ARTIFICIAL_FAILURE_049 = "failure_049_UcsComputeDevice.modifyLsServerNoBoot_setServiceProfileToNoBoot";
+    public static final String ARTIFICIAL_FAILURE_050 = "failure_050_UcsComputeDevice.bindServiceProfileToBlade_bindSPToComputeElement";
+    public static final String ARTIFICIAL_FAILURE_051 = "failure_051_UcsComputeDevice.bindServiceProfileToBlade_ComputeElement_DB_Failure";
+    public static final String ARTIFICIAL_FAILURE_052 = "failure_052_UcsComputeDevice.addHostPortsToVArrayNetworks_varrayAssociatedNetworks_DB_Failure";
+    public static final String ARTIFICIAL_FAILURE_053 = "failure_053_UcsComputeDevice.deleteLsServer_deleteServiceProfile";
+    public static final String ARTIFICIAL_FAILURE_054 = "failure_054_UcsComputeDevice.unbindServiceProfile_unbindServiceProfile";
+    public static final String ARTIFICIAL_FAILURE_055 = "failure_055_ComputeDeviceControllerImpl.VcenterHostCleanup_removeHostFromVcenterCluster";
+    public static final String ARTIFICIAL_FAILURE_056 = "failure_056_ComputeDeviceControllerImpl.addStepsPreOsInstall_UcsComputeDevice.unbindHostFromTemplate";
+    public static final String ARTIFICIAL_FAILURE_057 = "failure_057_ComputeDeviceControllerImpl.addStepsPreOsInstall_setLanBootTargetStep";
+    public static final String ARTIFICIAL_FAILURE_058 = "failure_058_ComputeDeviceControllerImpl.addStepsPreOsInstall_prepareOsInstallNetworkStep";
+    public static final String ARTIFICIAL_FAILURE_059 = "failure_059_ComputeDeviceControllerImpl.addStepsPostOsInstall_setSanBootTargetStep";
     private static final int FAILURE_SUBSTRING_LENGTH = 11;
 
     /**

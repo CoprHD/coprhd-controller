@@ -885,7 +885,7 @@ public class NetworkDiscoveryWorker {
  		                    "", new Object[] {}, "", new Object[] {} );
  				}
             
-			   
+            }
         }
         // now, add the the endpoints
         NetworkAssociationHelper.handleEndpointsAdded(tzone, endpoints, dbClient, _coordinator);

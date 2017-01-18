@@ -1464,14 +1464,14 @@ public class MDSDialog extends SSHDialog {
             	}
             }
             retryNeeded = checkForEnhancedZoneSession(lines, retryCount);
-
-            //Delete older clones
-            for (String zonesetClone : zonesetClonesToDelete) {
-            	_log.info(String.format("Removing zoneset (clone) %s", zonesetClone));  
-    			zonesetNameVsan(zonesetClone, vsanId, true);    	
-            }
         }
         
+
+        //Delete older clones
+        for (String zonesetClone : zonesetClonesToDelete) {
+        	_log.info(String.format("Removing zoneset (clone) %s", zonesetClone));  
+			zonesetNameVsan(zonesetClone, vsanId, true);    	
+        }
         _log.info(MessageFormat.format("Host: {0}, Port: {1} - END zonesetClone",
                 new Object[] { getSession().getSession().getHost(), getSession().getSession().getPort() }));
     }

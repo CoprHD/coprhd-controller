@@ -876,7 +876,7 @@ public class NetworkDiscoveryWorker {
  				}
  				else{
  					EventUtils.createActionableEvent(dbClient,
- 		                    EventUtils.EventCode.PORT_VSAN_CHANGE,
+ 		                    EventUtils.EventCode.PORT_ADDED,
  		                    tenantURI, 
  		                    "Endpoint added to Network",
  		                    MessageFormat.format("Endpoing {0} added to {1}",endpoints.toArray() , tzone.getLabel()), 

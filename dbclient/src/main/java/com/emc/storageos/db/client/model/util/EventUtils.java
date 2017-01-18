@@ -54,7 +54,8 @@ public class EventUtils {
         UNASSIGN_HOST_FROM_VCENTER("106"),
         	
     	PORT_REMOVED("201"),
-    	PORT_VSAN_CHANGE("202");
+    	PORT_ADDED("202"),
+    	PORT_VSAN_CHANGE("203");
     	
     	
         private String code;

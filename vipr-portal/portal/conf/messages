@@ -2698,7 +2698,7 @@ configProperties.backup.testSuccessful=Test external server settings successful
 configProperties.backup.credential.invalid=Bad user credential to access external server
 
 configProperties.syslog.settings=Syslog Settings
-configProperties.syslog.servers=Remote Server Settings
+configProperties.syslog.servers=Remote Syslog Server Settings
 configProperties.syslog.logs=Log Settings
 configProperties.syslog.setToZero.ip=Required ip value is empty.
 configProperties.syslog.setToZero.port=Required port value is empty.

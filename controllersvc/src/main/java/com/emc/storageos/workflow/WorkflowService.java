@@ -1574,9 +1574,8 @@ public class WorkflowService implements WorkflowController {
         for (Step step : workflow.getStepMap().values()) {
             // Suspended no error steps have not run, treat them as cancelled
             if (step.status.state == StepState.SUSPENDED_NO_ERROR) {
-                step.status.state = StepState.CANCELLED;
-                step.status.message = "Step cancelled because rollback was initiated";
-                step.status.serviceCode = ServiceCode.WORKFLOW_STEP_CANCELLED;
+                step.status.updateState(StepState.CANCELLED, ServiceCode.WORKFLOW_STEP_CANCELLED,
+                    "Step cancelled because rollback was initiated");
                 persistWorkflowStep(workflow, step);
                 continue;
             }

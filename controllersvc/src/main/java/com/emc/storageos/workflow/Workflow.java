@@ -908,10 +908,19 @@ public class Workflow implements Serializable {
                 if (result != 0) {
                     return result;
                 }
-
-                long aTime = a.endTime.getTime();
-                long bTime = b.endTime.getTime();
-                return Long.compare(aTime, bTime);
+                
+                if (a.endTime != null && b.endTime != null) {
+                    long aTime = a.endTime.getTime();
+                    long bTime = b.endTime.getTime();
+                    return Long.compare(aTime, bTime);
+                }
+                if (a.endTime != null) {
+                    return -1;
+                }
+                if (b.endTime != null) {
+                    return 1;
+                }
+                return 0;
             }
         });
 

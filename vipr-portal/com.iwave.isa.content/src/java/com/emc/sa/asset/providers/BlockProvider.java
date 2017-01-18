@@ -875,7 +875,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
             for (SearchResultResourceRep snapRef : snapRefs) {
                 bulkIds.add(snapRef.getId());
                 count++;
-                if (count == 500) {
+                if (count == 4000) {
                     BulkIdParam volBulk = new BulkIdParam(bulkIds);
                     List<BlockSnapshotRestRep> bulkVols = client.blockSnapshots().getBulkResources(volBulk);
                     allSnaps.addAll(bulkVols);

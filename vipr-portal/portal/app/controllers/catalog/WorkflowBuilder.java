@@ -134,8 +134,6 @@ public class WorkflowBuilder extends Controller {
         addPrimitives(topLevelNodes);
 
         renderJSON(topLevelNodes);
-        flash.error("Testing error message123s");
-        render();
     }
 
     public static void editWFDirName(String id, String newName) {

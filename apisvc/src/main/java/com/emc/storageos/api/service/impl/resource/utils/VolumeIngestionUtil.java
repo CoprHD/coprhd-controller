@@ -1531,7 +1531,7 @@ public class VolumeIngestionUtil {
             eligibleMask.getUnmanagedVolumeUris().remove(unManagedVolume.getId().toString());
         }
 
-        updateExportGroup(exportGroup, volume, dbClient, allInitiators, hosts, cluster);
+        updateExportGroup(exportGroup, volume, wwnToHluMap, dbClient, allInitiators, hosts, cluster);
 
         return exportMask;
     }
@@ -1787,9 +1787,8 @@ public class VolumeIngestionUtil {
      * @param hosts a List of Hosts for the ExportGroup
      * @param cluster a Cluster for the ExportGroup
      */
-    public static <T extends BlockObject> void updateExportGroup(ExportGroup exportGroup, T volume, DbClient dbClient,
-            List<Initiator> allInitiators,
-            List<Host> hosts, Cluster cluster) {
+    public static <T extends BlockObject> void updateExportGroup(ExportGroup exportGroup, T volume, Map<String, Integer> wwnToHluMap,
+            DbClient dbClient, List<Initiator> allInitiators, List<Host> hosts, Cluster cluster) {
 
         for (Host host : hosts) {
             if (null == exportGroup.getHosts() || !exportGroup.getHosts().contains(host.getId().toString())) {
@@ -1816,7 +1815,11 @@ public class VolumeIngestionUtil {
         // Do not add the block object to the export group if it is partially ingested
         if (!volume.checkInternalFlags(Flag.PARTIALLY_INGESTED)) {
             _logger.info("adding volume {} to export group {}", volume.forDisplay(), exportGroup.forDisplay());
-            exportGroup.addVolume(volume.getId(), ExportGroup.LUN_UNASSIGNED);
+            Integer hlu = ExportGroup.LUN_UNASSIGNED;
+            if (wwnToHluMap.containsKey(volume.getWWN())) {
+                hlu = wwnToHluMap.get(volume.getWWN());
+            }
+            exportGroup.addVolume(volume.getId(), hlu);
         } else {
             _logger.info("volume {} is partially ingested, so not adding to export group {}",
                     volume.forDisplay(), exportGroup.forDisplay());

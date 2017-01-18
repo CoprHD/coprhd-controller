@@ -463,7 +463,7 @@ public class NetworkDiscoveryWorker {
                     handleRemoveEvent(results.getAddedEndPoints(), results.getRemovedEndPoints(), tzone);
                 }
                 if (results.getAddedEndPoints().get(tzone) != null) {
-                    handleEndpointsAdded(tzone, results.getAddedEndPoints().get(tzone));                    
+                    handleEndpointsAdded(tzone, results.getAddedEndPoints().get(tzone), results.getRemovedEndPoints());                    
                     //handleAddEvent(results.getAddedEndPoints().get(tzone));
                 }
                 saveTransportZone(tzone, false);
@@ -840,7 +840,7 @@ public class NetworkDiscoveryWorker {
         return null;
     }
 
-    private void handleEndpointsAdded(Network tzone, Collection<String> endpoints) throws IOException {
+    private void handleEndpointsAdded(Network tzone, Collection<String> endpoints, Map<Network, List<String>> removedEndpoints) throws IOException {
         // find if the endpoints exit in some old transport zone
         Map<String, Network> transportZoneMap =
                 NetworkAssociationHelper.getNetworksMap(endpoints, dbClient);
@@ -848,28 +848,44 @@ public class NetworkDiscoveryWorker {
             _log.info("Added endpoints {} to transport zone {}", endpoints.toArray(), tzone.getLabel());
             // before we add the endpoints, they need to be removed from their old transport zones
             NetworkAssociationHelper.handleRemoveFromOldNetworks(transportZoneMap, tzone, dbClient, _coordinator);
+        }
+        for(String endpoint: endpoints){
+            Initiator hostInitiator = getInitiator(endpoint, dbClient);
+            URI tenantURI = null;
             
-            for(String endpoint: endpoints){
-	            Initiator hostInitiator = getInitiator(endpoint, dbClient);
-	            URI tenantURI = null;
-	            
-	            if(hostInitiator!=null){
-	            	Host hostObject= dbClient.queryObject(Host.class, hostInitiator.getHost());
-	            	tenantURI = hostObject.getTenant();
-	            }
-	            else{
-	            	tenantURI = TenantOrg.SYSTEM_TENANT;
-	            }
-				//raise the event.
-		        EventUtils.createActionableEvent(dbClient,
-	                    EventUtils.EventCode.PORT_REMOVED,
-	                    tenantURI, 
-	                    "Endpoint deleted from the Network",
-	                    MessageFormat.format("Endpoing {0} deleted from {1} and added to {2}",endpoints.toArray() , tzone.getLabel()), 
-	                    "Appropriate export masks have to be taken care",
-	                    tzone, Lists.newArrayList(),
-	                    "", new Object[] {}, "", new Object[] {} );   
+            if(hostInitiator!=null){
+            	Host hostObject= dbClient.queryObject(Host.class, hostInitiator.getHost());
+            	tenantURI = hostObject.getTenant();
             }
+            else{
+            	tenantURI = TenantOrg.SYSTEM_TENANT;
+            }
+            
+            
+            for( List<String> removedEndPointsOfTzone : removedEndpoints.values() ){
+ 				if(removedEndPointsOfTzone.contains(endpoint)){
+ 					//raise the event.
+ 			        EventUtils.createActionableEvent(dbClient,
+ 		                    EventUtils.EventCode.PORT_VSAN_CHANGE,
+ 		                    tenantURI, 
+ 		                    "Endpoint moved from one Network to another",
+ 		                    MessageFormat.format("Endpoing {0} moved to {1}",endpoints.toArray() , tzone.getLabel()), 
+ 		                    "Appropriate export masks, if any, have to be taken care",
+ 		                    tzone, Lists.newArrayList(),
+ 		                    "", new Object[] {}, "", new Object[] {} );
+ 				}
+ 				else{
+ 					EventUtils.createActionableEvent(dbClient,
+ 		                    EventUtils.EventCode.PORT_VSAN_CHANGE,
+ 		                    tenantURI, 
+ 		                    "Endpoint added to Network",
+ 		                    MessageFormat.format("Endpoing {0} added to {1}",endpoints.toArray() , tzone.getLabel()), 
+ 		                    "Appropriate export masks, if any, have to be taken care",
+ 		                    tzone, Lists.newArrayList(),
+ 		                    "", new Object[] {}, "", new Object[] {} );
+ 				}
+            
+			   
         }
         // now, add the the endpoints
         NetworkAssociationHelper.handleEndpointsAdded(tzone, endpoints, dbClient, _coordinator);

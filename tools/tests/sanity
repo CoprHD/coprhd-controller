@@ -6583,19 +6583,23 @@ sbsdk_remote_replication_tests()
                    --remote_replication "${SBSDK_DRIVER_REPLICATION_SET1}:${SBSDK_DRIVER_REPLICATION_SET1_GROUP1}:SYNCHRONOUS"
 
 
-    #Delete the volume
-    echo "***** Deleting volume $VOLUME_IN_GROUP_NAME *****"
-    run volume delete $PROJECT/$VOLUME_IN_GROUP_NAME --wait
-
     #Create a volume outside of replication group
     echo "***** Creating volume ${VOLUME_NO_GROUP_NAME} *****"
     run volume create ${VOLUME_NO_GROUP_NAME} $PROJECT $NH $SBSDK_DRIVER_SYS_REMOTE_REPLICATION_VPOOL_NAME $BLK_SIZE \
                     --remote_replication "${SBSDK_DRIVER_REPLICATION_SET1}::SYNCHRONOUS"
 
+    #Execute remote replication link operations
+    echo "**** Failover replication group: ${SBSDK_DRIVER_REPLICATION_SET1_GROUP1} *******"
+    run remotereplicationgroup failover ${SBSDK_DRIVER_REPLICATION_SET1_GROUP1}
+
 
     #Delete the volume
     echo "***** Deleting volume $VOLUME_NO_GROUP_NAME *****"
     run volume delete $PROJECT/$VOLUME_NO_GROUP_NAME --wait
+
+    #Delete the volume
+    echo "***** Deleting volume $VOLUME_IN_GROUP_NAME *****"
+    run volume delete $PROJECT/$VOLUME_IN_GROUP_NAME --wait
 
     #Create a replication group
     REMOTE_REPLICATION_GROUP_NAME=SBSDK_RemoteReplicationGroup-${RANDOM}
@@ -6603,6 +6607,7 @@ sbsdk_remote_replication_tests()
     echo "**** Creating replication group: $REMOTE_REPLICATION_GROUP_NAME *******"
     run remotereplicationgroup create $SBSDK_DRIVER_REPLICATION_SET1 $SBSDK_DRIVER_SYS_TYPE $REMOTE_REPLICATION_GROUP_NAME synchronous \
                   --source_system $SBSDK_DRIVER_SYS_NATIVEGUID --target_system $SBSDK_DRIVER_SYS_TARGET_NATIVEGUID
+
 
     echo "***** Completed SB SDK remote replication sanity tests *****"
 }

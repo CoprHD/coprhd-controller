@@ -4875,3 +4875,14 @@ gettingStarted.vpool.allflash.desc=Virtual Pool for All-Flash Storage created by
 gettingStarted.vpool.vmax.desc=Virtual Pool for EMC VMAX All-Flash Storage created by Getting Started Guide
 gettingStarted.vpool.xio.desc=Virtual Pool for EMC XtremIO Storage created by Getting Started Guide
 gettingStarted.vpool.unity.desc=Virtual Pool for EMC UNITY Storage created by Getting Started Guide
+
+# Workflow Builder Primitives
+primitive.menu.inputsOuputs=Inputs and Outputs
+primitive.menu.nameDescription=Name and Description
+primitive.menu.uploadFile=Upload File
+primitive.tabs.input=Input
+primitive.tabs.output=Output
+shell.primitive.add.title=Create Shell Script Primitive
+shellPrimitive.name=Name
+shellPrimitive.description=Description
+shellPrimitive.script=Script

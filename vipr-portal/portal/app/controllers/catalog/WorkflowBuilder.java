@@ -34,6 +34,8 @@ import com.emc.vipr.model.catalog.WFDirectoryUpdateParam;
 import com.emc.vipr.model.catalog.WFDirectoryWorkflowsUpdateParam;
 import com.google.gson.annotations.SerializedName;
 import controllers.Common;
+
+import java.io.File;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -42,6 +44,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import play.Logger;
+import play.data.validation.Required;
+import play.data.validation.Valid;
+
 import play.mvc.Controller;
 import play.mvc.With;
 import static util.BourneUtil.getCatalogClient;
@@ -129,6 +134,8 @@ public class WorkflowBuilder extends Controller {
         addPrimitives(topLevelNodes);
 
         renderJSON(topLevelNodes);
+        flash.error("Testing error message123s");
+        render();
     }
 
     public static void editWFDirName(String id, String newName) {
@@ -324,5 +331,29 @@ public class WorkflowBuilder extends Controller {
         } catch (final Exception e) {
             Logger.error(e.getMessage());
         }
+    }
+
+    public static class ShellScriptPrimitiveForm{
+        // Name and Description step
+        @Required
+        public String name;
+        @Required
+        public String description;
+        @Required
+        public File script;
+        public String inputs; //comma separated list of inputs
+        public String outputs; // comma separated list of ouputs
+
+        //TODO
+        public void validate(){
+
+        }
+    }
+
+
+    public static void create(@Valid ShellScriptPrimitiveForm shellPrimitive){
+        shellPrimitive.validate();
+        //TODO : call APIs to load script and create this primitive
+        view();
     }
 }

@@ -6,6 +6,7 @@
 #{script 'jsPlumb-2.1.7.js'/}
 #{script 'workflowbuilder.js'/}
 #{script 'jstree.min.js'/}
+#{createShellPrimitive /}
 
 <div id="builderController" ng-controller="builderController" class="row">
     <div class="builder-column">
@@ -16,15 +17,26 @@
 
         <div class="tab-content">
             <div class="tab-pane active" id="home">
+                #{alerts/}
                 <div class="col-md-3">
                     <div ng-controller="treeController" id="theSidebar" class="home-sidebar" >
                         <div class="tree_buttons" style="padding-bottom: 10px; padding-top: 10px;padding-right: 10px;float: right">
                             <button id="addFolder" type="button" class="btn btn-xs btn-primary add" value="Add Folder" title="Add Folder" ng-click="addFolder();" disabled>
                                 <span class="glyphicon glyphicon-folder-close "></span>
                             </button>
-                            <button id="addWorkflow" type="button" class="btn btn-xs btn-success add" value="Add Workflow" title="Add Workflow" ng-click="addWorkflow();" disabled>
-                                <span class="glyphicon glyphicon-plus "></span>
-                            </button>
+                            <div class="btn-group">
+                                <button type="button" class="btn btn-xs btn-success dropdown-toggle" value="Add Primitive" title="Add Primitive/Workflow" data-toggle="dropdown">
+                                    <span class="glyphicon glyphicon-plus"></span> <span class="caret"></span>
+                                </button>
+                                <ul class="dropdown-menu" role="menu">
+                                    <li><a  href="#" ng-click="addWorkflow();">Workflow</a></li>
+                                    <li role="separator" class="divider"></li>
+                                    <li class="dropdown-header">Primitives</li>
+                                    <li><a  href="#" data-target="#shellPrimitiveDialog" data-toggle="modal">Shell Script</a></li>
+                                    <li><a  href="#">Local Ansible</a></li>
+                                    <li><a  href="#">REST API</a></li>
+                                </ul>
+                            </div>
                             <button id="deleteNode" type="button" class="btn btn-xs btn-danger delete" value="Delete" title="Delete" ng-click="deleteNode();" disabled>
                                 <span class="glyphicon glyphicon-trash "></span>
                             </button>

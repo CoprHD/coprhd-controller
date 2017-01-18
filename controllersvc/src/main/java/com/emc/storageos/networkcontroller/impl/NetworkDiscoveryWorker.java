@@ -499,23 +499,25 @@ public class NetworkDiscoveryWorker {
      		for(String endpointRemoved:removedEndpointsOfTzone){
      			//check if this endpoint is being added to some other new tzone 
      			//apart from being removed from the old transport zone.
+     			boolean bEndpointAddedInOtherZone = false;
+     			
      			for( List<String> addedEndPointsOfTzone : addedEndPoints.values() ){
      				if(addedEndPointsOfTzone.contains(endpointRemoved)){
+     					bEndpointAddedInOtherZone = true;
      					//we dont raise the event. The event about removing port from one tzone adding 
      					//to another tzone will be generated as part of the addedEndpoints of the target tzone.
      				}
-     				else{
-     					//raise the event.
-     					
-     		            EventUtils.createActionableEvent(dbClient,
-     		                    EventUtils.EventCode.PORT_REMOVED,
-     		                    TenantOrg.SYSTEM_TENANT, 
-     		                    "Endpoint deleted from the Network",
-     		                    MessageFormat.format("Endpoing {0} deleted from {1}",endpointRemoved , tzone.getLabel()), 
-     		                    "Appropriate export masks have to be taken care",
-     		                    tzone, Lists.newArrayList(),
-     		                    "", new Object[] {}, "", new Object[] {} );     					
-     				}
+     			}
+     			
+     			if(!bEndpointAddedInOtherZone){
+ 		            EventUtils.createActionableEvent(dbClient,
+ 		                    EventUtils.EventCode.PORT_REMOVED,
+ 		                    TenantOrg.SYSTEM_TENANT, 
+ 		                    "Endpoint deleted from the Network",
+ 		                    MessageFormat.format("Endpoing {0} deleted from {1}",endpointRemoved , tzone.getLabel()), 
+ 		                    "Appropriate export masks have to be taken care",
+ 		                    tzone, Lists.newArrayList(),
+ 		                    "", new Object[] {}, "", new Object[] {} );     					
      			}
      		}    		
     	}    	

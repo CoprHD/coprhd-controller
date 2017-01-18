@@ -438,7 +438,6 @@ def create_parser(subcommand_parsers, common_parser):
         description='ViPR FilePolicy Create CLI usage.',
         parents=[common_parser], conflict_handler='resolve',
         help='Create a filepolicy')
-    print " within parser"
     mandatory_args = create_parser.add_argument_group('mandatory arguments')
     mandatory_args.add_argument('-name', '-n',
                                 metavar='<policy_name>',
@@ -676,7 +675,17 @@ def assign_parser(subcommand_parsers, common_parser):
 
 
 def filepolicy_assign(args):
-    print "calling assign policy"
+    obj = FilePolicy(args.ip, args.port)
+    try:
+        if(not args.name):
+            args.name = ""
+        obj.filepolicy_assign(args.name,args.apply_on_target_site,args.assign_to_vpools,args.project_assign_vpool, args.assign_to_projects, args.filesystem_assign_vpool)
+    except SOSError as e:
+        if (e.err_code == SOSError.NOT_FOUND_ERR):
+            raise SOSError(SOSError.NOT_FOUND_ERR,
+                           "FilePolicy assign failed: " + e.err_text)
+        else:
+            raise e
 
 
 # FilePolicy unassign
@@ -713,7 +722,17 @@ def unassign_parser(subcommand_parsers, common_parser):
 
 
 def filepolicy_unassign(args):
-    print "unassign from policy"
+    obj = FilePolicy(args.ip, args.port)
+    try:
+        if(not args.name):
+            args.name = ""
+        obj.filepolicy_unassign(args.name,args.unassign_resource_type,args.unassign_from_vpools,args.unassign_from_vpool,args.unassign_from_projects)
+    except SOSError as e:
+        if (e.err_code == SOSError.NOT_FOUND_ERR):
+            raise SOSError(SOSError.NOT_FOUND_ERR,
+                           "FilePolicy unassign failed: " + e.err_text)
+        else:
+            raise e
 
 #
 # FilePolicy Main parser routine

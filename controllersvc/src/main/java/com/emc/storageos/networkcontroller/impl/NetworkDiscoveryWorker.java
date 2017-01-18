@@ -48,6 +48,7 @@ import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.networkcontroller.exceptions.NetworkDeviceControllerException;
 import com.emc.storageos.services.OperationTypeEnum;
+import com.emc.storageos.util.ExternalChangeProperties;
 import com.emc.storageos.util.NetworkUtil;
 import com.emc.storageos.util.VersionChecker;
 import com.emc.storageos.volumecontroller.ControllerException;
@@ -532,9 +533,9 @@ public class NetworkDiscoveryWorker {
  		            EventUtils.createActionableEvent(dbClient,
  		                    EventUtils.EventCode.PORT_REMOVED,
  		                    TenantOrg.SYSTEM_TENANT, 
- 		                    "Endpoint deleted from the Network",
- 		                    MessageFormat.format("Endpoing {0} deleted from {1}",endpointRemoved , tzone.getLabel()), 
- 		                    "Appropriate export masks have to be taken care",
+ 		                    ExternalChangeProperties.getMessage("network.fabricPortRemovedEvent"),
+ 		                    ExternalChangeProperties.getMessage("network.fabricPortRemovedEventDescription",endpointRemoved , tzone.getLabel()),
+ 		                    ExternalChangeProperties.getMessage("network.fabricPortRemovedEventWarning"),
  		                    resource, Lists.newArrayList(),
  		                    "", new Object[] {}, "", new Object[] {} );     					
      			}
@@ -903,30 +904,34 @@ public class NetworkDiscoveryWorker {
             	resource = storagePorts.get(0);
             }
             
+            boolean bMovement = false;
             
             for( List<String> removedEndPointsOfTzone : removedEndpoints.values() ){
  				if(removedEndPointsOfTzone.contains(endpoint)){
  					//raise the event.
- 			        EventUtils.createActionableEvent(dbClient,
- 		                    EventUtils.EventCode.PORT_VSAN_CHANGE,
- 		                    tenantURI, 
- 		                    "Endpoint moved from one Network to another",
- 		                    MessageFormat.format("Endpoing {0} moved to {1}",endpoints.toArray() , tzone.getLabel()), 
- 		                    "Appropriate export masks, if any, have to be taken care",
- 		                    resource , Lists.newArrayList(),
- 		                    "", new Object[] {}, "", new Object[] {} );
+ 					bMovement = true;
  				}
- 				else{
- 					EventUtils.createActionableEvent(dbClient,
- 		                    EventUtils.EventCode.PORT_ADDED,
- 		                    tenantURI, 
- 		                    "Endpoint added to Network",
- 		                    MessageFormat.format("Endpoing {0} added to {1}",endpoints.toArray() , tzone.getLabel()), 
- 		                    "Appropriate export masks, if any, have to be taken care",
- 		                    resource, Lists.newArrayList(),
- 		                    "", new Object[] {}, "", new Object[] {} );
- 				}
+            }
             
+            if(bMovement){
+                EventUtils.createActionableEvent(dbClient,
+		                    EventUtils.EventCode.PORT_VSAN_CHANGE,
+		                    tenantURI, 
+		                    ExternalChangeProperties.getMessage("network.fabricPortMovedEvent"),
+		                    ExternalChangeProperties.getMessage("network.fabricPortMovedEventDescription",endpoint , tzone.getLabel()),
+		                    ExternalChangeProperties.getMessage("network.fabricPortMovedEventWarning"),
+		                    resource , Lists.newArrayList(),
+		                    "", new Object[] {}, "", new Object[] {} );
+            }
+            else{
+            	EventUtils.createActionableEvent(dbClient,
+		                    EventUtils.EventCode.PORT_ADDED,
+		                    tenantURI, 
+		                    "Port added to network",
+		                    "Port added to network",
+		                    "Port added to network",
+		                    resource, Lists.newArrayList(),
+		                    "", new Object[] {}, "", new Object[] {} );
             }
         }
         // now, add the the endpoints

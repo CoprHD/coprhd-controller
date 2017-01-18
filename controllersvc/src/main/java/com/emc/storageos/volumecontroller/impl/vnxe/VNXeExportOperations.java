@@ -88,6 +88,8 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
         _logger.info("{} createExportMask START...", storage.getSerialNumber());
 
         VNXeApiClient apiClient = getVnxeClient(storage);
+        List<URI> mappedVolumes = new ArrayList<URI>();
+        ExportMask mask = null;
         try {
             _logger.info("createExportMask: Export mask id: {}", exportMask);
             _logger.info("createExportMask: volume-HLU pairs: {}", Joiner.on(',').join(volumeURIHLUs));
@@ -97,7 +99,7 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
             ExportOperationContext context = new VNXeExportOperationContext();
             taskCompleter.updateWorkflowStepContext(context);
 
-            ExportMask mask = _dbClient.queryObject(ExportMask.class, exportMask);
+            mask = _dbClient.queryObject(ExportMask.class, exportMask);
             if (mask == null || mask.getInactive()) {
                 throw new DeviceControllerException("Invalid ExportMask URI: " + exportMask);
             }
@@ -107,7 +109,6 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
             VNXeBase host = apiClient.prepareHostsForExport(initiators);
 
             String opId = taskCompleter.getOpId();
-            List<URI> mappedVolumes = new ArrayList<URI>();
 
             for (VolumeURIHLU volURIHLU : volumeURIHLUs) {
                 URI volUri = volURIHLU.getVolumeURI();
@@ -146,16 +147,22 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
 
             mask.setNativeId(host.getId());
             _dbClient.updateObject(mask);
-            ExportOperationContext.insertContextOperation(taskCompleter,
-                    VNXeExportOperationContext.OPERATION_ADD_VOLUMES_TO_HOST_EXPORT,
-                    mappedVolumes);
+
             taskCompleter.ready(_dbClient);
 
         } catch (Exception e) {
             _logger.error("Unexpected error: createExportMask failed.", e);
             ServiceError error = DeviceControllerErrors.vnxe.jobFailed("createExportMask", e.getMessage());
             taskCompleter.error(_dbClient, error);
+        } finally {
+            if (!mappedVolumes.isEmpty()) {
+                _dbClient.updateObject(mask);
+                ExportOperationContext.insertContextOperation(taskCompleter,
+                        VNXeExportOperationContext.OPERATION_ADD_VOLUMES_TO_HOST_EXPORT,
+                        mappedVolumes);
+            }
         }
+
         _logger.info("{} createExportMask END...", storage.getSerialNumber());
     }
 
@@ -394,6 +401,9 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
             VolumeURIHLU[] volumeURIHLUs, List<Initiator> initiatorList, TaskCompleter taskCompleter)
             throws DeviceControllerException {
         _logger.info("{} addVolume START...", storage.getSerialNumber());
+        List<URI> mappedVolumes = new ArrayList<URI>();
+        ExportMask exportMask = null;
+
         try {
             _logger.info("addVolumes: Export mask id: {}", exportMaskUri);
             _logger.info("addVolumes: volume-HLU pairs: {}", Joiner.on(',').join(volumeURIHLUs));
@@ -405,7 +415,7 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
             taskCompleter.updateWorkflowStepContext(context);
 
             VNXeApiClient apiClient = getVnxeClient(storage);
-            ExportMask exportMask = _dbClient.queryObject(ExportMask.class, exportMaskUri);
+            exportMask = _dbClient.queryObject(ExportMask.class, exportMaskUri);
             if (exportMask == null || exportMask.getInactive()) {
                 throw new DeviceControllerException("Invalid ExportMask URI: " + exportMaskUri);
             }
@@ -416,7 +426,6 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
 
             String opId = taskCompleter.getOpId();
             Set<String> processedCGs = new HashSet<String>();
-            List<URI> mappedVolumes = new ArrayList<URI>();
 
             for (VolumeURIHLU volURIHLU : volumeURIHLUs) {
                 URI volUri = volURIHLU.getVolumeURI();
@@ -465,17 +474,20 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
 
             }
             _dbClient.updateObject(exportMask);
-            ExportOperationContext.insertContextOperation(taskCompleter,
-                    VNXeExportOperationContext.OPERATION_ADD_VOLUMES_TO_HOST_EXPORT,
-                    mappedVolumes);
             // Test mechanism to invoke a failure. No-op on production systems.
             InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_002);
             taskCompleter.ready(_dbClient);
-
         } catch (Exception e) {
             _logger.error("Add volumes error: ", e);
             ServiceError error = DeviceControllerErrors.vnxe.jobFailed("addVolume", e.getMessage());
             taskCompleter.error(_dbClient, error);
+        } finally {
+            if (!mappedVolumes.isEmpty()) {
+                _dbClient.updateObject(exportMask);
+                ExportOperationContext.insertContextOperation(taskCompleter,
+                        VNXeExportOperationContext.OPERATION_ADD_VOLUMES_TO_HOST_EXPORT,
+                        mappedVolumes);
+            }
         }
         _logger.info("{} addVolumes END...", storage.getSerialNumber());
     }
@@ -587,11 +599,14 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
             List<URI> targets, TaskCompleter taskCompleter) throws DeviceControllerException {
 
         _logger.info("{} addInitiator START...", storage.getSerialNumber());
+        List<Initiator> createdInitiators = new ArrayList<Initiator>();
+        ExportMask exportMask = null;
+
         try {
             ExportOperationContext context = new VNXeExportOperationContext();
             taskCompleter.updateWorkflowStepContext(context);
 
-            ExportMask exportMask = _dbClient.queryObject(ExportMask.class, exportMaskUri);
+            exportMask = _dbClient.queryObject(ExportMask.class, exportMaskUri);
             if (exportMask == null || exportMask.getInactive()) {
                 throw new DeviceControllerException("Invalid ExportMask URI: " + exportMaskUri);
             }
@@ -621,7 +636,6 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
             }
 
             Map<Initiator, VNXeHostInitiator> initiatorMap = prepareInitiators(initiatorList);
-            List<Initiator> createdInitiators = new ArrayList<Initiator>();
             for (Entry<Initiator, VNXeHostInitiator> entry : initiatorMap.entrySet()) {
                 VNXeHostInitiator newInit = entry.getValue();
                 VNXeHostInitiator init = apiClient.getInitiatorByWWN(newInit.getInitiatorId());
@@ -663,9 +677,6 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
                 exportMask.getInitiators().add(initiator.getId().toString());
             }
             _dbClient.updateObject(exportMask);
-            ExportOperationContext.insertContextOperation(taskCompleter,
-                    VNXeExportOperationContext.OPERATION_ADD_INITIATORS_TO_HOST,
-                    createdInitiators);
             // Test mechanism to invoke a failure. No-op on production systems.
             InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_003);
             taskCompleter.ready(_dbClient);
@@ -674,6 +685,13 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
             _logger.error("Add initiators error: ", e);
             ServiceError error = DeviceControllerErrors.vnxe.jobFailed("addInitiator", e.getMessage());
             taskCompleter.error(_dbClient, error);
+        } finally {
+            if (!createdInitiators.isEmpty()) {
+                _dbClient.updateObject(exportMask);
+                ExportOperationContext.insertContextOperation(taskCompleter,
+                        VNXeExportOperationContext.OPERATION_ADD_INITIATORS_TO_HOST,
+                        createdInitiators);
+            }
         }
 
     }

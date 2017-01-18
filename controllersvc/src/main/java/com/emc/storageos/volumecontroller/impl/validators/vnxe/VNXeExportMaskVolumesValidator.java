@@ -20,6 +20,7 @@ import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.StorageSystem;
+import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.util.ExportUtils;
@@ -113,10 +114,13 @@ public class VNXeExportMaskVolumesValidator extends AbstractVNXeValidator {
 
         Set<String> lunIds = new HashSet<>();
         for (ExportMask mask : exportMasks) {
-            for (String strUri : mask.getVolumes().keySet()) {
-                BlockObject bo = BlockObject.fetch(dbClient, URI.create(strUri));
-                if (bo != null && !bo.getInactive() && storage.getId().equals(bo.getStorageController())) {
-                    lunIds.add(bo.getNativeId());
+            StringMap volumeMap = mask.getVolumes();
+            if (volumeMap != null && !volumeMap.isEmpty()) {
+                for (String strUri : mask.getVolumes().keySet()) {
+                    BlockObject bo = BlockObject.fetch(dbClient, URI.create(strUri));
+                    if (bo != null && !bo.getInactive() && storage.getId().equals(bo.getStorageController())) {
+                        lunIds.add(bo.getNativeId());
+                    }
                 }
             }
         }

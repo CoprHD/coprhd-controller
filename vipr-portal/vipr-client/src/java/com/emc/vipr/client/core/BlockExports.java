@@ -303,7 +303,7 @@ public class BlockExports extends ProjectResources<ExportGroupRestRep> implement
     }
     
     /**
-     * TODO: write summary
+     * Generate an export path preview for use with path adjustment
      * <p>
      * API Call: <tt>POST /block/exports/{id}/paths-adjustment-preview</tt>
      *
@@ -316,13 +316,13 @@ public class BlockExports extends ProjectResources<ExportGroupRestRep> implement
     }
     
     /**
-     * TODO: write summary
+     * Create task to perform path adjustment based on information retrieved by export path preview
      * <p>
      * API Call: <tt>POST /block/exports/{id}/paths-adjustment</tt>
      *
      * @param id
      * @param input
-     * @return Port Allocate Preview
+     * @return a task for monitoring the progress of the export paths adjustment
      */
     public Task<ExportGroupRestRep> pathAdjustment(URI id, ExportPathsAdjustmentParam input) {
         return putTask(input, getIdUrl() + "/paths-adjustment", id);

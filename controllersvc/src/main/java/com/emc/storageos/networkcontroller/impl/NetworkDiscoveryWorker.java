@@ -452,7 +452,7 @@ public class NetworkDiscoveryWorker {
                 _log.info("Removed network {} which removed discovered endpoints {}", tzone.getNativeGuid(), removedEps);
             }
             for (Network tzone : results.getAdded()) {
-                handleEndpointsAdded(tzone, tzone.retrieveEndpoints());
+                handleEndpointsAdded(tzone, tzone.retrieveEndpoints(), null);
                 saveTransportZone(tzone, true);
             }
             for (Network tzone : results.getModified()) {

@@ -54,8 +54,6 @@ import com.emc.storageos.volumecontroller.impl.utils.ExportOperationContext;
 import com.emc.storageos.volumecontroller.impl.utils.ExportOperationContext.ExportOperationContextOperation;
 import com.emc.storageos.volumecontroller.impl.validators.ValidatorFactory;
 import com.emc.storageos.volumecontroller.impl.validators.contexts.ExportMaskValidationContext;
-import com.emc.storageos.volumecontroller.impl.validators.vnxe.VNXeExportMaskInitiatorsValidator;
-import com.emc.storageos.volumecontroller.impl.validators.vnxe.VNXeExportMaskVolumesValidator;
 import com.emc.storageos.workflow.WorkflowService;
 import com.google.common.base.Joiner;
 
@@ -533,9 +531,12 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
             VNXeApiClient apiClient = getVnxeClient(storage);
             String hostId = getHostIdFromInitiators(initiators, apiClient);
             if (hostId != null) {
-                VNXeExportMaskInitiatorsValidator initiatorsValidator = (VNXeExportMaskInitiatorsValidator) validator
-                        .removeVolumes(storage, exportMask.getId(), initiatorList);
-                initiatorsValidator.validate();
+                ExportMaskValidationContext ctx = new ExportMaskValidationContext();
+                ctx.setStorage(storage);
+                ctx.setExportMask(exportMask);
+                ctx.setInitiators(initiatorList);
+                ctx.setAllowExceptions(context == null);
+                validator.removeVolumes(ctx).validate();
             }
 
             String opId = taskCompleter.getOpId();
@@ -745,8 +746,7 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
                 ctx.setExportMask(mask);
                 ctx.setBlockObjects(volumeURIList, _dbClient);
                 ctx.setAllowExceptions(context == null);
-                VNXeExportMaskVolumesValidator volumeValidator = (VNXeExportMaskVolumesValidator) validator.removeInitiators(ctx);
-                volumeValidator.validate();
+                validator.removeInitiators(ctx).validate();
             }
 
             List<String> initiatorIdList = new ArrayList<>();

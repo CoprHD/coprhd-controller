@@ -89,18 +89,13 @@ public class VNXeSystemValidatorFactory implements StorageSystemValidatorFactory
     }
 
     @Override
-    public Validator removeVolumes(StorageSystem storage, URI exportMaskURI, Collection<Initiator> initiators) {
-        ExportMask exportMask = dbClient.queryObject(ExportMask.class, exportMaskURI);
-        logger = new ValidatorLogger(log, exportMask.forDisplay(), storage.forDisplay());
-        VNXeExportMaskInitiatorsValidator validator = new VNXeExportMaskInitiatorsValidator(storage, exportMask);
+    public Validator removeVolumes(ExportMaskValidationContext ctx) {
+        logger = new ValidatorLogger(log, ctx.getExportMask().forDisplay(), ctx.getStorage().forDisplay());
+        VNXeExportMaskInitiatorsValidator validator = new VNXeExportMaskInitiatorsValidator(ctx.getStorage(),
+                ctx.getExportMask());
+        validator.setExceptionContext(ctx);
         configureValidators(logger, validator);
         return validator;
-    }
-
-    @Override
-    public Validator removeVolumes(StorageSystem storage, URI exportMaskURI, Collection<Initiator> initiators,
-            Collection<? extends BlockObject> volumes) {
-        return removeVolumes(storage, exportMaskURI, initiators);
     }
 
     @Override

@@ -42,6 +42,11 @@ public class EventUtils {
     public static String removeInitiatorDecline = "removeInitiatorDecline";
     public static String addInitiatorDecline = "addInitiatorDecline";
 
+    //Fabric ActionableEvent Related Method Names
+    public static final String FABRIC_PORT_CHANGE_APPROVE = "fabricNameChange";
+    public static final String FABRIC_PORT_CHANGE_DECLINE = "fabricNameChangeDecline";
+    
+    
     private static List<EventCode> ALLOWED_DUPLICATE_EVENTS = Lists.newArrayList(EventCode.HOST_INITIATOR_ADD,
             EventCode.HOST_INITIATOR_DELETE);
 

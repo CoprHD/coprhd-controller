@@ -511,7 +511,7 @@ public class NetworkDiscoveryWorker {
      				}
      			}
      			
-     			Initiator hostInitiator = getInitiator(endpoint, dbClient);
+     			Initiator hostInitiator = getInitiator(endpointRemoved, dbClient);
                 URI tenantURI = null;
                 URI resourceURI = null;
                 DataObject resource = null;

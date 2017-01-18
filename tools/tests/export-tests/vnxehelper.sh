@@ -92,7 +92,7 @@ create_mask() {
 }
 
 verify_export() {
-    # Parameters: Storage View Name Name, Number of Initiators, Number of Luns
+    # Parameters: Storage View Name Name, Number of Initiators, Number of Luns, HLUs
     # If checking if the Storage View does not exist, then parameter $2 should be "gone"
     HOST_INITIATORS=$1
     NUM_INITIATORS=$2

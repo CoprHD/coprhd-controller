@@ -46,6 +46,7 @@ import com.emc.storageos.volumecontroller.impl.externaldevice.RemoteReplicationE
 public class RemoteReplicationGroupService extends TaskResourceService {
 
     private static final Logger _log = LoggerFactory.getLogger(RemoteReplicationGroupService.class);
+    public static final String SERVICE_TYPE = "remote_replication";
 
     // remote replication service api implementations
     private RemoteReplicationBlockServiceApiImpl remoteReplicationServiceApi;
@@ -55,6 +56,11 @@ public class RemoteReplicationGroupService extends TaskResourceService {
 
     public void setRemoteReplicationServiceApi(RemoteReplicationBlockServiceApiImpl remoteReplicationServiceApi) {
         this.remoteReplicationServiceApi = remoteReplicationServiceApi;
+    }
+
+    @Override
+    public String getServiceType() {
+        return SERVICE_TYPE;
     }
 
     /**
@@ -140,7 +146,7 @@ public class RemoteReplicationGroupService extends TaskResourceService {
 
     @Override
     protected ResourceTypeEnum getResourceType() {
-        return ResourceTypeEnum.REMOTE_REPLICATION_SET;
+        return ResourceTypeEnum.REMOTE_REPLICATION_GROUP;
     }
 
     @Override

@@ -1,5 +1,12 @@
 package com.emc.storageos.volumecontroller.impl.externaldevice.taskcompleters;
 
+import java.net.URI;
+import java.util.Collections;
+import java.util.List;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.remotereplication.RemoteReplicationGroup;
@@ -10,12 +17,6 @@ import com.emc.storageos.storagedriver.model.remotereplication.RemoteReplication
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.externaldevice.RemoteReplicationElement;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.net.URI;
-import java.util.Collections;
-import java.util.List;
 
 public class RemoteReplicationFailoverCompleter extends TaskCompleter {
 
@@ -63,26 +64,37 @@ public class RemoteReplicationFailoverCompleter extends TaskCompleter {
         setDbClient(dbClient);
 
         _logger.info("Complete operation for {} with id {} and status {}", elementType, elementURI, status);
-        if (status == Operation.Status.ready) {
-            switch (elementType) {
-                case REPLICATION_GROUP:
-                    RemoteReplicationGroup remoteReplicationGroup = dbClient.queryObject(RemoteReplicationGroup.class, elementURI);
-                    List<RemoteReplicationPair> rrPairs = CustomQueryUtility.queryActiveResourcesByRelation(dbClient, elementURI,
-                            RemoteReplicationPair.class, "replicationGroup");
-                    for (RemoteReplicationPair rrPair : rrPairs) {
-                        rrPair.setReplicationState(RemoteReplicationSet.ReplicationState.FAILED_OVER);
-                    }
-                    remoteReplicationGroup.setReplicationState(RemoteReplicationSet.ReplicationState.FAILED_OVER);
-                    dbClient.updateObject(remoteReplicationGroup);
-                    dbClient.updateObject(rrPairs);
-                    break;
-                case REPLICATION_PAIR:
-                    break;
-                case REPLICATION_SET:
-                    break;
+        try {
+            if (status == Operation.Status.ready) {
+                switch (elementType) {
+                    case REPLICATION_GROUP:
+                        RemoteReplicationGroup remoteReplicationGroup = dbClient.queryObject(RemoteReplicationGroup.class, elementURI);
+                        _logger.info("Failed over group: {}", remoteReplicationGroup.getNativeId());
+                        List<RemoteReplicationPair> rrPairs = CustomQueryUtility.queryActiveResourcesByRelation(dbClient, elementURI,
+                                RemoteReplicationPair.class, "replicationGroup");
+                        for (RemoteReplicationPair rrPair : rrPairs) {
+                            rrPair.setReplicationState(RemoteReplicationSet.ReplicationState.FAILED_OVER);
+                        }
+                        remoteReplicationGroup.setReplicationState(RemoteReplicationSet.ReplicationState.FAILED_OVER);
+                        dbClient.updateObject(remoteReplicationGroup);
+                        dbClient.updateObject(rrPairs);
+                        _logger.info("Completed operation for {} with id {} and status {}", elementType, elementURI, status);
+                        break;
+                    case REPLICATION_PAIR:
+                        break;
+                    case REPLICATION_SET:
+                        break;
+                }
             }
+        } catch (Exception e) {
+            _logger.error(String.format(
+                    "Failed to process failover completion for %s with Id: %s, OpId: %s",
+                    elementType, elementURI, getOpId()), e);
+
+        } finally {
+            setStatus(dbClient, status, coded);
+            updateWorkflowStatus(status, coded);
         }
-        setStatus(dbClient, status, coded);
-        updateWorkflowStatus(status, coded);
     }
+
 }

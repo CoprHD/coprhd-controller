@@ -792,7 +792,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
 
         return createVolumeOptions(client, mirrors);
     }
-
+/*
     @Asset("vplexVolumeWithSnapshots")
     @AssetDependencies({ "project", "blockVolumeOrConsistencyType" })
     public List<AssetOption> getVplexSnapshotVolumes(AssetOptionsContext ctx, URI project, String volumeOrConsistencyType) {
@@ -850,7 +850,8 @@ public class BlockProvider extends BaseAssetOptionsProvider {
             return createBaseResourceOptions(consistencyGroups);
         }
     }
-/*
+    */
+
     @Asset("vplexVolumeWithSnapshots")
     @AssetDependencies({ "project", "blockVolumeOrConsistencyType" })
     public List<AssetOption> getVplexSnapshotVolumes(AssetOptionsContext ctx, URI project, String volumeOrConsistencyType) {
@@ -911,7 +912,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
             return createBaseResourceOptions(consistencyGroups);
         }
     }
-    */
+
 
     /*
     public List<AssetOption> getVplexSnapshotVolumes(AssetOptionsContext ctx, URI project, String volumeOrConsistencyType) {
@@ -2339,6 +2340,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
             List<VolumeRestRep> volumes = client.blockVolumes().findByProject(project, new DefaultResourceFilter<VolumeRestRep>() {
                 @Override
                 public boolean accept(VolumeRestRep volume) {
+                    volume.
                     if (!client.blockVolumes().getFullCopies(volume.getId()).isEmpty()
                             && StringUtils.isEmpty(volume.getReplicationGroupInstance())) {
                         return true;

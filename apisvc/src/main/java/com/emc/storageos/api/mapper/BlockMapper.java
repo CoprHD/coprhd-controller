@@ -389,6 +389,7 @@ public class BlockMapper {
         // Map the consistency group
         to.setConsistencyGroup(toRelatedResource(ResourceTypeEnum.BLOCK_CONSISTENCY_GROUP, from.getConsistencyGroup()));
 
+        /*
         if (from.getParent() != null) {
             URI parentURI = from.getParent().getURI();
             URIQueryResultList results = new URIQueryResultList();
@@ -399,6 +400,10 @@ public class BlockMapper {
             }
             to.setParent(toRelatedResource(ResourceTypeEnum.VOLUME, parentURI));
         }
+        */
+        // this line is for testing
+        to.setParent(toRelatedResource(ResourceTypeEnum.VOLUME, from.getParent().getURI()));
+
         if (from.getProject() != null) {
             to.setProject(toRelatedResource(ResourceTypeEnum.PROJECT, from.getProject().getURI()));
         }

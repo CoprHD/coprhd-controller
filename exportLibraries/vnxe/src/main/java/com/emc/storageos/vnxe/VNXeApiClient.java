@@ -2201,7 +2201,7 @@ public class VNXeApiClient {
      * @return VNXeCommandJob
      */
     public VNXeCommandJob restoreLunSnap(String snapId) {
-        _logger.info("restoring lun snap:", snapId);
+        _logger.info("restoring lun snap: {}", snapId);
         LunSnapRequests req = new LunSnapRequests(_khClient);
         return req.restoreLunSnap(snapId, null);
     }
@@ -2211,7 +2211,7 @@ public class VNXeApiClient {
      * Attaching a snapshot makes the snapshot accessible to configured hosts for restoring files and data.
      */
     public VNXeCommandResult attachLunSnap(String snapId) {
-        _logger.info("attaching lun snap:", snapId);
+        _logger.info("attaching lun snap: {}", snapId);
         LunSnapRequests req = new LunSnapRequests(_khClient);
         return req.attachLunSnapSync(snapId);
     }
@@ -2220,7 +2220,7 @@ public class VNXeApiClient {
      * Detach the snapshot so hosts can no longer access it.
      */
     public VNXeCommandResult detachLunSnap(String snapId) {
-        _logger.info("detaching lun snap:", snapId);
+        _logger.info("detaching lun snap: {}", snapId);
         LunSnapRequests req = new LunSnapRequests(_khClient);
         return req.detachLunSnapSync(snapId);
     }
@@ -2306,7 +2306,7 @@ public class VNXeApiClient {
      * Attaching a snapshot makes the snapshot accessible to configured hosts for restoring files and data.
      */
     public VNXeCommandJob attachLunGroupSnap(String snapId) {
-        _logger.info("attaching lun group snap:", snapId);
+        _logger.info("attaching lun group snap: {}", snapId);
         LunGroupSnapRequests req = new LunGroupSnapRequests(_khClient);
         return req.attachLunGroupSnap(snapId);
     }
@@ -2315,7 +2315,7 @@ public class VNXeApiClient {
      * Detach the snapshot so hosts can no longer access it.
      */
     public VNXeCommandJob detachLunGroupSnap(String snapId) {
-        _logger.info("detaching lun group snap:", snapId);
+        _logger.info("detaching lun group snap: {}", snapId);
         LunGroupSnapRequests req = new LunGroupSnapRequests(_khClient);
         return req.detachLunGroupSnap(snapId);
     }
@@ -2738,7 +2738,7 @@ public class VNXeApiClient {
      * @return VNXeLunSnap
      */
     public Snap getSnapshot(String id) {
-        _logger.info("Getting the snapshot {}: ", id);
+        _logger.info("Getting the snapshot: {}", id);
         SnapRequests req = new SnapRequests(_khClient);
         return req.getSnap(id);
 
@@ -2780,7 +2780,7 @@ public class VNXeApiClient {
      * Attaching a snapshot makes the snapshot accessible to configured hosts.
      */
     public VNXeCommandResult attachSnap(String snapId) {
-        _logger.info("attaching snap:", snapId);
+        _logger.info("attaching snap: {}", snapId);
         SnapRequests req = new SnapRequests(_khClient);
         return req.attachSnapSync(snapId);
     }
@@ -2790,7 +2790,7 @@ public class VNXeApiClient {
      * Attaching a snapshot makes the snapshot accessible to configured hosts.
      */
     public VNXeCommandResult detachSnap(String snapId) {
-        _logger.info("attaching snap:", snapId);
+        _logger.info("detaching snap: {}", snapId);
         SnapRequests req = new SnapRequests(_khClient);
         return req.detachSnapSync(snapId);
     }

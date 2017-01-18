@@ -2610,7 +2610,7 @@ test_12() {
 
 # DU Prevention Validation Test 13
 #
-# Summary: add volume to mask fails after volume added, rollback doesn't remove it because there's another initiator in the mask
+# Summary: add volume to mask fails after volume added, rollback can remove volume it added, even if extra initiator is in mask
 #
 # Basic Use Case for single host, single volume
 # 1. ViPR creates 1 volume, 1 host export.
@@ -2621,10 +2621,10 @@ test_12() {
 # 6. export group update will suspend.
 # 7. Add initiator to the mask.
 # 8. Resume export group update task.  It should fail and rollback
-# 9. Rollback should leave the volume in the mask because there was another initiator we aren't managing in the mask.
+# 9. Rollback should be allowed to remove the volume it added, regardless of the extra initiator.
 #
 test_13() {
-    echot "Test 13: Test rollback of add volume, verify it does not remove volumes when initiator sneaks into mask"
+    echot "Test 13: Test rollback of add volume, verify it can remove its own volumes on rollback when initiator sneaks into mask"
     expname=${EXPORT_GROUP_NAME}t13
 
     # Make sure we start clean; no masking view on the array
@@ -2674,14 +2674,14 @@ test_13() {
     echo "*** Following the export_group update task to verify it FAILS due to the invoked failure"
     fail task follow $task
 
-    # Verify the mask still has the new volume in it (this will fail if rollback removed it)
-    verify_export ${expname}1 ${HOST1} 3 2
+    # Verify rollback was able to remove the volume it added
+    verify_export ${expname}1 ${HOST1} 3 1
 
     # Remove initiator from the mask (done differently per array type)
     arrayhelper remove_initiator_from_mask ${SERIAL_NUMBER} ${PWWN} ${HOST1}
 
     # Verify the initiator was removed
-    verify_export ${expname}1 ${HOST1} 2 2
+    verify_export ${expname}1 ${HOST1} 2 1
 
     # Delete the export group
     runcmd export_group delete $PROJECT/${expname}1
@@ -2693,7 +2693,7 @@ test_13() {
 
 # DU Prevention Validation Test 14
 #
-# Summary: add initiator to mask fails after initiator added, rollback doesn't remove it because there's another volume in the mask
+# Summary: add initiator to mask fails after initiator added, rollback allowed to remove it even though another volume in the mask
 #
 # Basic Use Case for single host, single volume
 # 1. ViPR creates 1 volume, 1 host export.
@@ -2704,7 +2704,7 @@ test_13() {
 # 6. export group update will suspend.
 # 7. Add external volume to the mask.
 # 8. Resume export group update task.  It should fail and rollback
-# 9. Rollback should leave the initiator in the mask because there was another volume we aren't managing in the mask.
+# 9. Rollback should remove the initiator in the mask that it added even if there's an existing volume in the mask.
 #
 test_14() {
     echot "Test 14: Test rollback of add initiator, verify it does not remove initiators when volume sneaks into mask"
@@ -2768,7 +2768,7 @@ test_14() {
     runcmd workflow resume $workflow
 
     # Follow the task.  It should fail because of Poka Yoke validation
-    echo "*** Following the export_group delete task to verify it FAILS because of the additional volume"
+    echo "*** Following the export_group update task to verify it FAILS because of the additional volume"
     fail task follow $task
 
     # Verify that ViPR rollback removed only the initiator that was previously added

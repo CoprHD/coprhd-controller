@@ -13,8 +13,10 @@ import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.Operation;
+import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
+import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 
 public class RollbackExportGroupCreateCompleter extends ExportTaskCompleter {
 
@@ -29,10 +31,23 @@ public class RollbackExportGroupCreateCompleter extends ExportTaskCompleter {
     protected void complete(DbClient dbClient, Operation.Status status, ServiceCoded coded) throws DeviceControllerException {
         try {
             ExportGroup exportGroup = dbClient.queryObject(ExportGroup.class, getId());
-            ExportMask exportMask = (getMask() != null) ?
-                    dbClient.queryObject(ExportMask.class, getMask()) : null;
+            ExportMask exportMask = (getMask() != null) ? dbClient.queryObject(ExportMask.class, getMask()) : null;
+
+            if ((status == Operation.Status.error) && (coded instanceof ServiceError)) {
+                ServiceError error = (ServiceError) coded;
+                String originalMessage = error.getMessage();
+                StorageSystem storageSystem = exportMask != null ? dbClient.queryObject(StorageSystem.class, exportMask.getStorageDevice())
+                        : null;
+                String additionMessage = String.format(
+                        "Rollback encountered problems cleaning up export mask %s on storage system %s and may require manual clean up",
+                        exportMask.getMaskName(), storageSystem != null ? storageSystem.forDisplay() : "Unknown");
+                String updatedMessage = String.format("%s\n%s", originalMessage, additionMessage);
+                error.setMessage(updatedMessage);
+            }
+
             if (exportMask != null) {
                 exportGroup.removeExportMask(exportMask.getId());
+                // What if this mask is being referenced by another EG?
                 dbClient.markForDeletion(exportMask);
                 dbClient.updateObject(exportGroup);
             }

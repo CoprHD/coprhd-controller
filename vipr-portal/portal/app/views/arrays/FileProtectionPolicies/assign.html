@@ -2,8 +2,13 @@
   titleKey = 'assignPolicy.title';
 }%
 #{extends 'main.html'/}
-#{set navSelected: ['nav.tenantsettings', 'nav.schedulepolicies'] /}
+#{set navSelected: ['nav.virtualStorage', 'nav.file.protectionPolicies'] /}
 #{set 'title'}&{titleKey}#{/set}
+
+#{breadcrumb.container}
+  #{breadcrumb.item @list()}&{'FileProtectionPolicies.list.title'}#{/breadcrumb.item}
+  #{breadcrumb.item active:true}#{get 'title'/}#{/breadcrumb.item}
+#{/breadcrumb.container}
 
 <div class="container">
 #{Form.header titleKey:titleKey /}
@@ -33,7 +38,7 @@
       #{Form.inputTextControlGroup field:field /}
     #{/field}
     #{field 'assignPolicy.policyType'}
-      <input type="hidden" name="policyType" value="${field.value}">
+      <input type="hidden" id="policyType" value="${field.value}">
     #{/field} 
     
     #{field 'assignPolicy.appliedAt'}
@@ -80,7 +85,6 @@
 #{set 'moreScripts'}
   <script type="text/javascript">
     $(document).ready(function() {
-      
         // know where it came from so can navigate back;
         // only set the referrerUrl if it has not been set at some earlier point 
         // i.e. in multi-step flows take into account error-handling
@@ -104,7 +108,7 @@
     
     function showAssignAt(){
 			var assignAt = $('#assignPolicy_appliedAt').val();
-            var policyType = $('#assignPolicy_policyType').val();
+            var policyType = $('#policyType').val();
 				if (assignAt == 'project') {
 					$('#vpoolFields').hide();
 					$('#projectFields').show();
@@ -118,8 +122,10 @@
 				
 				if(policyType == 'file_snapshot') {
 					$('#snapshotFields').show();
+					$('#replicationFields').hide();
 				} else if (policyType == 'file_replication') {
 					$('#snapshotFields').hide();
+					$('#replicationFields').show();
 				}
 				
 			}

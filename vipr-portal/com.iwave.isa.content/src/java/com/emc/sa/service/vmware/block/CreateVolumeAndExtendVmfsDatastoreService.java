@@ -8,21 +8,13 @@ import static com.emc.sa.service.ServiceParams.DATASTORE_NAME;
 import static com.emc.sa.service.ServiceParams.MULTIPATH_POLICY;
 
 import java.util.List;
-import java.util.Set;
-
 import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.engine.bind.Bindable;
 import com.emc.sa.engine.bind.Param;
 import com.emc.sa.engine.service.Service;
-import com.emc.sa.service.vipr.block.BlockStorageUtils;
 import com.emc.sa.service.vipr.block.CreateBlockVolumeForHostHelper;
 import com.emc.sa.service.vmware.VMwareHostService;
-import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.model.block.BlockObjectRestRep;
-import com.emc.storageos.model.block.VolumeRestRep;
-import com.iwave.ext.vmware.HostStorageAPI;
-import com.iwave.ext.vmware.VMwareUtils;
-import com.vmware.vim25.HostScsiDisk;
 import com.vmware.vim25.mo.Datastore;
 
 @Service("VMware-CreateVolumeAndExtendVmfsDatastore")

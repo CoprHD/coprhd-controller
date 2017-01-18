@@ -34,7 +34,6 @@ import models.properties.SmtpPropertyPage;
 import models.properties.SupportPropertyPage;
 import models.properties.SyslogPropertiesPage;
 import models.properties.UpgradePropertyPage;
-import models.properties.LogRetentionPropertyPage;
 
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.math.NumberUtils;
@@ -185,7 +184,6 @@ public class ConfigProperties extends Controller {
             addPage(pages, new PasswordPropertyPage(properties));
             addPage(pages, new SyslogPropertiesPage(properties));
             addPage(pages, new BackupPropertyPage(properties));
-            addPage(pages, new LogRetentionPropertyPage(properties));
         }
         else {
             if (PlatformUtils.isAppliance()) {
@@ -201,7 +199,6 @@ public class ConfigProperties extends Controller {
             addPage(excludePages, new PasswordPropertyPage(properties));
             addPage(excludePages, new SyslogPropertiesPage(properties));
             addPage(excludePages, new BackupPropertyPage(properties));
-            addPage(excludePages, new LogRetentionPropertyPage(properties));
         }
 
         addDefaultPages(pages, properties.values(), excludePages, isActiveSite);

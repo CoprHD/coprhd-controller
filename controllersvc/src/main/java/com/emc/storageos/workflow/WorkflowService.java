@@ -1320,10 +1320,6 @@ public class WorkflowService implements WorkflowController {
 
         // Look up the controller
         Controller controller = _dispatcher.getControllerMap().get(step.controllerName);
-        // Handle the NULL_METHOD defined in Workflow
-        if (step.executeMethod == Workflow.NULL_METHOD) {
-            controller = this;
-        }
         if (controller == null) {
             throw new WorkflowException("Cannot locate controller for: "
                     + step.controllerName);
@@ -2065,47 +2061,6 @@ public class WorkflowService implements WorkflowController {
         }
         return gotLocks;
     }
-    
-    
-    public static Workflow.Method acquireWorkflowLocksMethod(List<String> lockKeys, long time) {
-        return new Workflow.Method("acquireWorkflowLocksStep", lockKeys, time);
-    }
-    
-    /**
-     * Encapsulates acquiring workflow locks within a step.
-     * @param lockKeys -- the distributed lock owner lock keys required.
-     * @param time -- maximum wait time to acquire the locks
-     * @param stepId -- The step id
-     */
-    public void acquireWorkflowLocksStep(List<String> lockKeys, long time, String stepId) {
-        try {
-            completerStepExecuting(stepId);
-            Workflow workflow = getWorkflowFromStepId(stepId);
-            if (workflow == null) {
-                throw WorkflowException.exceptions.workflowNotFound(stepId);
-            }   
-            boolean gotLocks = acquireWorkflowLocks(workflow, lockKeys, time);
-            if (!gotLocks) {
-                throw WorkflowException.exceptions.workflowCannotAcquireLock(lockKeys.toString());
-            }
-            completerStepSucceded(stepId);
-        } catch (WorkflowException ex) {
-            completerStepError(stepId, ex);
-        } catch (Exception ex) {
-            completerStepError(stepId, WorkflowException.exceptions.workflowCannotAcquireLock(lockKeys.toString()));
-        }
-        
-    }
-    
-    /**
-     * This method only for use by Workflow.Method.NULL_METHOD which is a generic null method.
-     * When executed this method simply returns success. The method name is unconventional as
-     * it is used to a signal to the dispatchStep code to use the WorkflowService as the controller.
-     * @param stepId
-     */
-    public void _null_method_(String stepId) {
-        completerStepSucceded(stepId);
-    }
 
     /**
      * Acquires locks on behalf of a workflow step. The locks will be released at the
@@ -2294,13 +2249,20 @@ public class WorkflowService implements WorkflowController {
                 if (rollBackStarted) {
                     _log.info(String.format("Rollback initiated workflow %s", uri));
                 } else {
-                    // We were unable to initiate rollback, probably because there is no rollback handler somehwere
-                    // Initiate end processing on the workflow, which will release the workflowLock.
-                    doWorkflowEndProcessing(workflow, false, workflowLock);
-                    workflowLock = null;
+                    // We were unable to initiate rollback for some reason, this is an error.
+                    WorkflowState state = workflow.getWorkflowStateFromSteps();
+                    switch (state) {
+                        case SUCCESS:
+                            completer.ready(_dbClient);
+                            ;
+                            break;
+                        default:
+                            WorkflowException ex = WorkflowException.exceptions.workflowRollbackNotInitiated(uri.toString());
+                            completer.error(_dbClient, ex);
+                            ;
+                    }
                 }
             } finally {
-                completer.ready(_dbClient);
                 unlockWorkflow(workflow, workflowLock);
             }
         } catch (WorkflowException ex) {

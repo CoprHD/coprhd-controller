@@ -39,9 +39,6 @@ public class ServiceDefinition implements Serializable {
 
     /** The key of a warning message to display in the service catalog. */
     public String warningMessageKey;
-    
-    /** Whether the service will display a modal window for the service. */
-    public boolean useModal;
 
     /** The items in the service (fields/groups/tables). */
     public Map<String, ItemDefinition> items = new LinkedHashMap<>();
@@ -67,7 +64,6 @@ public class ServiceDefinition implements Serializable {
         builder.append("warningMessageKey", warningMessageKey);
         builder.append("roles", roles);
         builder.append("items", items);
-        builder.append("useModal", useModal);
         return builder.toString();
     }
 }

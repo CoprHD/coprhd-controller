@@ -505,19 +505,12 @@ public interface DeviceControllerExceptions {
 
     @DeclareServiceCode(ServiceCode.CONTROLLER_VALIDATION_EXCEPTION)
     public DeviceControllerException removeInitiatorValidationError(String initiatorsName, String storageSystemName, String details);
-    
-    @DeclareServiceCode(ServiceCode.BLOCK_CONTROLLER_ERROR)
-    public DeviceControllerException exportGroupPortRebalanceError(final Throwable cause);
 
     @DeclareServiceCode(ServiceCode.CONTROLLER_VALIDATION_EXCEPTION)
     public DeviceControllerException removeVolumesValidationError(String volumeNames, String storageSystemName, String details);
 
     @DeclareServiceCode(ServiceCode.CONTROLLER_VALIDATION_EXCEPTION)
     public DeviceControllerException deleteExportGroupValidationError(String exportGroupName, String storageSystemName, String details);
-    
-    @DeclareServiceCode(ServiceCode.BLOCK_CONTROLLER_ERROR)
-    public DeviceControllerException hostRescanUnsuccessful(String hostName, String reason);
-    
     
     @DeclareServiceCode(ServiceCode.CONTROLLER_VALIDATION_EXCEPTION)
     public DeviceControllerException noPortMembersInPortGroupError(String portGroup);

@@ -11,7 +11,6 @@ import java.util.Map;
 import java.util.Set;
 
 import com.emc.storageos.Controller;
-import com.emc.storageos.db.client.model.ExportPathParams;
 
 /**
  * An interface for managing the block object export operations.
@@ -85,21 +84,4 @@ public interface BlockExportController extends Controller {
      * @throws ControllerException
      */
     public void updatePolicyAndLimits(List<URI> volumeURIs, URI newVpoolURI, String opId) throws ControllerException;
-    
-    /**
-     * Reallocate storage ports and update export path
-     * This is done for all ExportMasks belongs to the same storage system if needed.
-     * 
-     * @param systemURI - URI of storage system
-     * @param exportGroupURI - URI of export group
-     * @param varray - URI of virtual array
-     * @param addedPaths - paths to be added or retained
-     * @param removedPaths - paths to be removed
-     * @param exportPathParam - export path parameter
-     * @param waitForApproval - if removing paths should be pending until resumed by user 
-     * @param opId - the taskId
-     * @throws ControllerException
-     */
-    public void exportGroupPortRebalance(URI systemURI, URI exportGroupURI, URI varray, Map<URI, List<URI>> addedPaths, Map<URI, List<URI>> removedPaths,
-            ExportPathParams exportPathParam, boolean waitForApproval, String opId) throws ControllerException;
 }

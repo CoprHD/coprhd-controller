@@ -10,7 +10,6 @@ public abstract class ServiceItemRestRep {
 
     public static String TYPE_GROUP = "group";
     public static String TYPE_TABLE = "table";
-    public static String TYPE_MODAL = "modal";
 
     private String name;
     private String label;
@@ -60,13 +59,9 @@ public abstract class ServiceItemRestRep {
     public boolean isTable() {
         return TYPE_TABLE.equals(type);
     }
-    
-    public boolean isModal() {
-        return TYPE_MODAL.equals(type);
-    }
 
     public boolean isField() {
-        return !(isGroup() || isTable() || isModal());
+        return !(isGroup() || isTable());
     }
 
 }

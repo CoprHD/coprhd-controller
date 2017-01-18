@@ -7241,14 +7241,4 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
         return copyAccessStates;
     }
-    
-    @Override
-    public void portRebalance(URI storageSystem, URI exportGroup, URI varray, URI exportMask, Map<URI, List<URI>> adjustedpaths,
-            Map<URI, List<URI>> removedPaths, boolean isAdd, String token) throws Exception
-    {
-        
-        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
-        
-        
-    }
 }

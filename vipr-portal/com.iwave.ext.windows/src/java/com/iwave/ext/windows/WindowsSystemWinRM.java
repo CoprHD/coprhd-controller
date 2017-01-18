@@ -21,13 +21,13 @@ import org.apache.log4j.Logger;
 
 import com.google.common.collect.Maps;
 import com.iwave.ext.command.CommandOutput;
-import com.iwave.ext.command.HostRescanAdapter;
 import com.iwave.ext.windows.model.Disk;
 import com.iwave.ext.windows.parser.DiskParser;
 import com.iwave.ext.windows.winrm.WinRMException;
 import com.iwave.ext.windows.winrm.WinRMTarget;
 import com.iwave.ext.windows.winrm.winrs.WinRS;
-public class WindowsSystemWinRM implements HostRescanAdapter {
+
+public class WindowsSystemWinRM {
     private static final String LUN_KEY_FORMAT = "HARDWARE\\DEVICEMAP\\Scsi\\Scsi Port %d\\Scsi Bus %d\\Target Id %d\\Logical Unit Id %d";
     private static final String DEVICE_ID_PAGE = "DeviceIdentifierPage";
     private static final Logger LOG = Logger.getLogger(WindowsSystemWinRM.class);
@@ -70,11 +70,6 @@ public class WindowsSystemWinRM implements HostRescanAdapter {
 
     public String rescanDisks() throws WinRMException {
         return diskPart(WindowsUtils.getRescanCommands());
-    }
-
-    @Override
-    public void rescan() throws WinRMException {
-        rescanDisks();
     }
 
     public String formatAndMountDisk(int diskNumber, String fsType, String allocationUnitSize, String label, String mountpoint,

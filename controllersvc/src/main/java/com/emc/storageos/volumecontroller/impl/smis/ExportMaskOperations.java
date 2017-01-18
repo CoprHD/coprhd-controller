@@ -102,29 +102,4 @@ public interface ExportMaskOperations {
      * @return The BlockObject URI to HLU mapping for the ExportMask
      */
     public Map<URI, Integer> getExportMaskHLUs(StorageSystem storage, ExportMask exportMask);
-    
-    /**
-     * Add paths to the export mask
-     * 
-     * @param storage
-     * @param exportMask
-     * @param newPaths
-     * @param taskCompleter
-     * @throws Exception
-     */
-    public void addPaths(StorageSystem storage, URI exportMask,
-            Map<URI, List<URI>> newPaths, TaskCompleter taskCompleter) throws DeviceControllerException;
-    
-    /**
-     * Remove paths from the export mask
-     * 
-     * @param storage
-     * @param exportMaskURI
-     * @param adjustedPaths - paths (new and/or retained) in the export mask
-     * @param removePaths - paths to be removed
-     * @param taskCompleter
-     * @throws Exception
-     */
-    public void removePaths(StorageSystem storage, URI exportMaskURI, Map<URI, List<URI>> adjustedPaths,
-            Map<URI, List<URI>> removePaths, TaskCompleter taskCompleter) throws DeviceControllerException;
 }

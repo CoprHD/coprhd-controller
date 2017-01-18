@@ -33,7 +33,6 @@ import com.emc.sa.model.dao.ModelClient;
 import com.emc.sa.model.util.CreationTimeComparator;
 import com.emc.sa.model.util.SortedIndexUtils;
 import com.emc.sa.util.ResourceType;
-import com.emc.sa.util.CatalogSerializationUtils;
 import com.emc.sa.util.TextUtils;
 import com.emc.sa.zookeeper.OrderCompletionQueue;
 import com.emc.sa.zookeeper.OrderExecutionQueue;
@@ -222,7 +221,6 @@ public class OrderManagerImpl implements OrderManager {
             case UNMANAGED_EXPORTMASK:
             case BLOCK_CONTINUOUS_COPY:
             case VPLEX_CONTINUOUS_COPY:
-            case STORAGE_PORT:
                 return true;
             default:
                 return false;
@@ -233,9 +231,6 @@ public class OrderManagerImpl implements OrderManager {
         try {
             if (canGetResourceLabel(key)) {
                 return getResourceLabel(key);
-            } else if (CatalogSerializationUtils.isSerializedObject(key)) {
-                Map<URI, List<URI>> port = (Map<URI, List<URI>>) CatalogSerializationUtils.serializeFromString(key);
-                return port.toString();
             }
             else {
                 // Defer to AssetOptions if it's not a ViPR resource
@@ -338,9 +333,6 @@ public class OrderManagerImpl implements OrderManager {
                 case VPLEX_CONTINUOUS_COPY:
                     dataObject = client.findById(VplexMirror.class, id);
                     break;
-                case STORAGE_PORT:
-                    dataObject = client.findById(StoragePort.class, id);
-                    break;
             }
         } catch (Exception e) {
             log.error(String.format("Error getting resource %s", resourceId), e);
@@ -373,8 +365,6 @@ public class OrderManagerImpl implements OrderManager {
                     return String.format("%s [cluster: %s]", dataObject.getLabel(), cluster.getLabel());
                 }
             }
-        } else if (dataObject instanceof StoragePort) {
-            return ((StoragePort) dataObject).getPortName();
         }
         return dataObject.getLabel();
     }

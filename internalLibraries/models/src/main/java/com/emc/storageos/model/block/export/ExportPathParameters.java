@@ -12,8 +12,6 @@ import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlElementWrapper;
 import javax.xml.bind.annotation.XmlRootElement;
 
-import org.slf4j.Logger;
-
 import com.emc.storageos.model.valid.Range;
 
 @XmlRootElement(name = "path_param")
@@ -78,22 +76,6 @@ public class ExportPathParameters {
 
     public void setStoragePorts(List<URI> storagePorts) {
         this.storagePorts = storagePorts;
-    }
-    public void log(Logger log) {
-    	String maxPaths = getMaxPaths() != null ? getMaxPaths().toString() : "null";
-    	String minPaths = getMinPaths() != null ? getMinPaths().toString() : "null";
-    	String pathsPerInitiator = getPathsPerInitiator() != null ? getPathsPerInitiator().toString() : "null";
-    	log.info(String.format("max_paths %s min_paths %s paths_per_initiator %s", maxPaths, minPaths, pathsPerInitiator));
-    	if (getStoragePorts() != null && !getStoragePorts().isEmpty()) {
-    		StringBuilder buffer = new StringBuilder();
-    		for (URI aPort : getStoragePorts()) {
-    			buffer.append(aPort); buffer.append(" ");
-    		}
-    		log.info("Ports: " + buffer.toString());
-    	} else {
-    		log.info("Ports not specified");
-    	}
-    	
     }
 
     @XmlElement(name = "port_group")

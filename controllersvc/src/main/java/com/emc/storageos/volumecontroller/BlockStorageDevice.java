@@ -1117,31 +1117,6 @@ public interface BlockStorageDevice {
     public String doInitiatorAliasGet(StorageSystem storage, Initiator initiator) throws Exception;
     
     /**
-     * Add paths to export mask
-     * 
-     * @param storage Storage system
-     * @param exportMask Export mask 
-     * @param addedPaths - paths to be added
-     * @param taskCompleter - task completer
-     * @throws DeviceControllerException
-     */
-    public void doExportAddPaths(StorageSystem storage, URI exportMask, Map<URI, List<URI>>addedPaths, 
-            TaskCompleter taskCompleter) throws DeviceControllerException;
-    
-    /**
-     * Remove paths from export mask
-     * 
-     * @param storage - Storage system
-     * @param exportMask - Export mask 
-     * @param adjustedPaths - new and/or retained paths in the export mask
-     * @param removedPaths - paths to be removed
-     * @param taskCompleter - task completer
-     * @throws DeviceControllerException
-     */
-    public void doExportRemovePaths(StorageSystem storage, URI exportMask, Map<URI, List<URI>> adjustedPaths, 
-            Map<URI, List<URI>>removedPaths, TaskCompleter taskCompleter) throws DeviceControllerException;
-    
-    /**
      * Get port members in the port group. it is valid for vmax only right now.
      * 
      * @param storage

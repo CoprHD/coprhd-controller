@@ -12,17 +12,16 @@ import com.emc.aix.command.ListHBAInfoCommand;
 import com.emc.aix.command.ListIPInterfacesCommand;
 import com.emc.aix.command.ListIQNsCommand;
 import com.emc.aix.command.MakeFilesystemCommand;
-import com.emc.aix.command.RescanDevicesCommand;
 import com.emc.aix.command.version.AixVersionCommand;
 import com.emc.aix.command.version.GetAixVersionCommand;
 import com.emc.aix.model.AixVersion;
 import com.iwave.ext.command.Command;
-import com.iwave.ext.command.HostRescanAdapter;
+import com.iwave.ext.command.CommandExecutor;
 import com.iwave.ext.linux.model.HBAInfo;
 import com.iwave.ext.linux.model.IPInterface;
 import com.iwave.utility.ssh.SSHCommandExecutor;
 
-public final class AixSystem extends SecureShellSupport implements HostRescanAdapter {
+public final class AixSystem extends SecureShellSupport {
 
     public AixSystem() {
         super();
@@ -67,21 +66,9 @@ public final class AixSystem extends SecureShellSupport implements HostRescanAda
     }
 
     @Override
-    public void rescan() {
-        RescanDevicesCommand command = new RescanDevicesCommand();
-        executeCommand(command, SecureShellSupport.SHORT_TIMEOUT);
-    }
-
-    @Override
-    public void executeCommand(Command command, int timeout) {
-        SSHCommandExecutor executor = new SSHCommandExecutor(getHost(), getPort(), getUsername(), getPassword());
-        executor.setCommandTimeout(timeout);
+    public void executeCommand(Command command) {
+        CommandExecutor executor = new SSHCommandExecutor(getHost(), getPort(), getUsername(), getPassword());
         command.setCommandExecutor(executor);
         command.execute();
-    }
-
-    @Override
-    public void executeCommand(Command command) {
-        executeCommand(command, SecureShellSupport.NO_TIMEOUT);
     }
 }

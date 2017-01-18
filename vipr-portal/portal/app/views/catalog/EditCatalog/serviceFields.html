@@ -65,9 +65,6 @@
                 #{elseif serviceField.select == 'many'}
                   #{Form.selectMany field:field/}
                 #{/elseif}
-                #{elseif serviceField.select == 'list'}
-                  #{Form.selectList field:field/}
-                #{/elseif}
               #{/if}
               #{elseif serviceField.type == 'choice'}
                 %{
@@ -82,9 +79,6 @@
                 #{/if}
                 #{elseif serviceField.select == 'many'}
                   #{Form.selectMany field:field/}
-                #{/elseif}
-                #{elseif serviceField.select == 'list'}
-                  #{Form.selectList field:field/}
                 #{/elseif}
               #{/elseif}
               #{elseif (['text', 'number', 'storageSize', 'expandSize'] as java.util.Set).contains(serviceField.type)}

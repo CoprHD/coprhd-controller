@@ -9,11 +9,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import com.emc.aix.SecureShellSupport;
 import com.google.common.collect.Lists;
 import com.iwave.ext.command.Command;
 import com.iwave.ext.command.CommandOutput;
-import com.iwave.ext.command.HostRescanAdapter;
 import com.iwave.ext.linux.command.AddToFSTabCommand;
 import com.iwave.ext.linux.command.FindMaxLunIdCommand;
 import com.iwave.ext.linux.command.FindMountPointCommand;
@@ -45,7 +43,7 @@ import com.iwave.utility.ssh.SSHCommandExecutor;
  * 
  * @author Chris Dail
  */
-public class LinuxSystemCLI implements HostRescanAdapter {
+public class LinuxSystemCLI {
     /** The SSH host address. */
     private String host;
     /** The SSH port (defaults to 22). */
@@ -113,15 +111,10 @@ public class LinuxSystemCLI implements HostRescanAdapter {
         this.hostId = hostId;
     }
 
-    public void executeCommand(Command command, int timeout) {
+    public void executeCommand(Command command) {
         SSHCommandExecutor executor = new SSHCommandExecutor(host, port, username, password);
-        executor.setCommandTimeout(timeout);
         command.setCommandExecutor(executor);
         command.execute();
-    }
-
-    public void executeCommand(Command command) {
-        executeCommand(command, SecureShellSupport.NO_TIMEOUT);
     }
 
     public Set<String> getAllDiskDevices() {
@@ -220,10 +213,9 @@ public class LinuxSystemCLI implements HostRescanAdapter {
         return command.getResults();
     }
 
-    @Override
-    public void rescan() throws Exception {
+    public void rescanDevices() {
         RescanDevicesCommand command = new RescanDevicesCommand();
-        executeCommand(command, SecureShellSupport.SHORT_TIMEOUT);
+        executeCommand(command);
     }
 
     public Map<String, Integer> getDeviceToLunMapping(String mpathName) {

@@ -3128,39 +3128,13 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException cantMigrateNotAllRPSourceVolumesInRequest();
-    
+
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException driverNameNotFound(String name);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException cantUninstallDriverInUse(final String driverName);
 
-    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
-    public BadRequestException varrayNotInExportGroup(String varray);
-
-    
-    
-    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
-    public BadRequestException externallyAddedInitiators(final String exportMask, final String initiators);
-    
-    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
-    public BadRequestException additionalInitiators(final String exportMask, final String initiators);
-    
-    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
-    public BadRequestException exportPathAdjustmentSystemNotSupported(final String systemType);
-    
-    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
-    public BadRequestException exportPathAdjustmentSystemExportGroupNotMatch(final String exportGroup, String system);
-    
-    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
-    public BadRequestException exportPathAdjustmentRemovingPathsNotExist(final String initiator);
-    
-    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
-    public BadRequestException exportPathAdjustmentAdjustedPathNotValid(final String initiatorOrTargets);
-    
-    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
-    public BadRequestException exportPathAdjustmentNoPathAdjustmentAllowed(final String exportGroup);
-    
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException invalidParameterWwnBadFormat(String wwn);
 

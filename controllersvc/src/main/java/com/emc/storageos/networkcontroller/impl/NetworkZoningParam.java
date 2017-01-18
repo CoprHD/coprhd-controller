@@ -8,8 +8,6 @@ package com.emc.storageos.networkcontroller.impl;
 import java.io.Serializable;
 import java.net.URI;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -19,7 +17,6 @@ import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.StorageProtocol.Transport;
-import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.StringSetMap;
 import com.emc.storageos.db.client.util.StringSetUtil;
 import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
@@ -156,53 +153,6 @@ public class NetworkZoningParam implements Serializable {
 		return zoningParams;
 	}
 
-	/**
-	 * Generate a list of NetworkZoningParam objects from paths
-	 * 
-	 * @param exportGroupURI
-	 * @param exportMaskURI
-	 * @param paths
-	 * @param dbClient
-	 * @return
-	 */
-	static public List<NetworkZoningParam> convertPathsToNetworkZoningParam(
-	        URI exportGroupURI, Map<URI, Map<URI, List<URI>>> maskRemovePaths, DbClient dbClient) {
-        ExportGroup exportGroup = dbClient.queryObject(ExportGroup.class, exportGroupURI);
-
-        List<NetworkZoningParam> result = new ArrayList<NetworkZoningParam>();
-        for (Map.Entry<URI, Map<URI, List<URI>>> maskEntry : maskRemovePaths.entrySet()) {
-            URI maskURI = maskEntry.getKey();
-            ExportMask mask = dbClient.queryObject(ExportMask.class, maskURI);
-            Map<URI, List<URI>> maskPaths = maskEntry.getValue();
-            if (maskPaths.isEmpty()) {
-                continue;
-            }
-            NetworkZoningParam zoningParam = new NetworkZoningParam(exportGroup, mask, dbClient);
-            StringSetMap zoningMap = mask.getZoningMap();
-            StringSetMap convertedZoningMap = new StringSetMap();
-            // Get the path entries in both of the exportMask zoning map and the paths
-            for (Map.Entry<URI, List<URI>> entry : maskPaths.entrySet()) {
-                URI init = entry.getKey();
-                List<URI> pathPorts = entry.getValue();
-                StringSet ports = zoningMap.get(init.toString());
-                if (ports != null && !ports.isEmpty()) {
-                    StringSet convertedPorts = new StringSet();
-                    for (URI pathPort : pathPorts) {
-                        if (ports.contains(pathPort.toString())) {
-                            convertedPorts.add(pathPort.toString());
-                        }
-                    }
-                    if (!convertedPorts.isEmpty()) {
-                        convertedZoningMap.put(init.toString(), convertedPorts);
-                    }
-                }
-            }
-            zoningParam.setZoningMap(convertedZoningMap);
-            result.add(zoningParam);
-        }
-        return result;
-    }
-	
 	public StringSetMap getZoningMap() {
 		return zoningMap;
 	}

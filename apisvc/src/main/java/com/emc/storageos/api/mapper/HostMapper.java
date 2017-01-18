@@ -225,9 +225,6 @@ public class HostMapper {
             return null;
         }
         ExportPathParametersRep to = new ExportPathParametersRep();
-        if (to.getStoragePorts() == null) {
-            to.setStoragePorts(new ArrayList<URI>());
-        }
         to.setMaxPaths(from.getMaxPaths());
         to.setMinPaths(from.getMinPaths());
         to.setPathsPerInitiator(from.getPathsPerInitiator());

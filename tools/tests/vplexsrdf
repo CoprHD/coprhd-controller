@@ -39,7 +39,7 @@ CWD=$(pwd)
 export PATH=$CWD:$PATH
 echo "PATH: " $PATH
 
-source subs/loginconfigure
+source loginconfigure
 login_nd_configure_smtp_nd_add_licenses
 
 # Tenant and project and consistency group

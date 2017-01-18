@@ -964,7 +964,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
             }
             _workflowService.storeStepData(stepId, host.getCluster());
 
-            if ((host.getCluster() == null) || NullColumnValueGetter.isNullURI(host.getCluster())) {
+            if (NullColumnValueGetter.isNullURI(host.getCluster())) {
                 _log.info("cluster is null, nothing to do");
                 WorkflowStepCompleter.stepSucceded(stepId);
                 return;
@@ -1000,7 +1000,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
 
             URI clusterURI = (URI)_workflowService.loadStepData(unassociateStepId);
 
-            if ((clusterURI == null) || NullColumnValueGetter.isNullURI(clusterURI)){
+            if (NullColumnValueGetter.isNullURI(clusterURI)){
                 _log.info("cluster is null, nothing to do");
                 WorkflowStepCompleter.stepSucceded(stepId);
                 return;
@@ -1056,7 +1056,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                         export.getId(), export.getId().toString(),
                         this.getClass(),
                         deleteExportGroupMethod(export.getId()),
-                        new Workflow.Method("rollbackNothingMethod"), null);
+                        rollbackMethodNullMethod(), null);
             } else {
                 waitFor = workflow.createStep(
                         UPDATE_EXPORT_GROUP_STEP,
@@ -1067,7 +1067,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                         this.getClass(),
                         updateExportGroupMethod(export.getId(), updatedVolumesMap,
                                 addedClusters, removedClusters, addedHosts, removedHosts, addedInitiators, removedInitiators),
-                        new Workflow.Method("rollbackNothingMethod"), null);
+                        rollbackMethodNullMethod(), null);
             }
         }
         return waitFor;

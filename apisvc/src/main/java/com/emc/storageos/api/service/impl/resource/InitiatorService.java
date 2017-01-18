@@ -38,7 +38,6 @@ import com.emc.storageos.computesystemcontroller.ComputeSystemController;
 import com.emc.storageos.computesystemcontroller.impl.ComputeSystemHelper;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.model.Cluster;
-import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.RegistrationStatus;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.Host;
@@ -71,8 +70,6 @@ import com.emc.storageos.security.authorization.Role;
 import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.volumecontroller.BlockController;
-import com.emc.storageos.volumecontroller.impl.smis.vmax.VmaxExportOperations;
-import com.emc.storageos.vplexcontroller.VPlexController;
 
 /**
  * Service providing APIs for host initiators.
@@ -166,6 +163,99 @@ public class InitiatorService extends TaskResourceService {
     }
 
     /**
+     * Associate a Host initiator to another.
+     * 
+     * @param id the URN of a ViPR initiator
+     * @param associatedId the URN of a ViPR paired initiator
+     * @prereq none
+     * @brief associate a Host initiator to another.
+     * @return the details of the updated host initiator.
+     * @throws DatabaseException when a DB error occurs
+     */
+    @PUT
+    @Path("/{id}/associate/{associatedId}")
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @CheckPermission(roles = { Role.TENANT_ADMIN })
+    public InitiatorRestRep associateInitiator(@PathParam("id") URI id,
+            @PathParam("associatedId") URI associatedId) throws DatabaseException {
+
+        if (id.compareTo(associatedId) == 0) {
+            APIException.badRequests.associateInitiatorMismatch(id, associatedId);
+        }
+
+        Initiator initiator = queryObject(Initiator.class, id, true);
+        Initiator pairInitiator = queryObject(Initiator.class, associatedId, true);
+
+        if (pairInitiator != null && initiator != null) {
+            // check initiator belong to same host
+            URI firstHost = initiator.getHost();
+            URI secondtHost = pairInitiator.getHost();
+
+            if (firstHost.compareTo(secondtHost) != 0) {
+                APIException.badRequests.initiatorsNotBelongToSameHost(id, associatedId);
+            }
+
+            // If host has already exported volume .
+            // Adding initiator one by one update export mask one by one and same storage port can not be guaranteed
+            // for initiator pair .Do not associate such initiator,
+            if (ComputeSystemHelper.isHostInUse(_dbClient, firstHost)) {
+
+                APIException.badRequests.cannotAssociateInitiatorWhileHostInUse();
+            }
+
+            initiator.setAssociatedInitiator(associatedId);
+            pairInitiator.setAssociatedInitiator(id);
+            _dbClient.updateObject(initiator);
+            _dbClient.updateObject(pairInitiator);
+            auditOp(OperationTypeEnum.UPDATE_HOST_INITIATOR, true, null,
+                    initiator.auditParameters());
+        } else {
+            throw APIException.badRequests.initiatorPortNotValid();
+        }
+        return map(queryObject(Initiator.class, id, false));
+    }
+
+    /**
+     * Dissociate a Host initiator from its pair
+     * 
+     * @param id the URN of a ViPR initiator
+     * @prereq none
+     * @brief Dissociate a Host initiator to another.
+     * @return the details of the updated host initiator.
+     * @throws DatabaseException when a DB error occurs
+     */
+    @PUT
+    @Path("/{id}/dissociate")
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @CheckPermission(roles = { Role.TENANT_ADMIN })
+    public InitiatorRestRep dissociateInitiator(@PathParam("id") URI id
+            ) throws DatabaseException {
+
+        Initiator initiator = queryObject(Initiator.class, id, true);
+        Initiator pairInitiator = null;
+        if (initiator != null) {
+            URI pairedId = initiator.getAssociatedInitiator();
+            try {
+                pairInitiator = queryObject(Initiator.class, pairedId, true);
+            } catch (Exception e) {
+                throw APIException.badRequests.associateInitiatorNotFound(id);
+            }
+            if (pairInitiator != null) {
+                initiator.setAssociatedInitiator(NullColumnValueGetter.getNullURI());
+                pairInitiator.setAssociatedInitiator(NullColumnValueGetter.getNullURI());
+                _dbClient.updateObject(initiator);
+                _dbClient.updateObject(pairInitiator);
+                auditOp(OperationTypeEnum.UPDATE_HOST_INITIATOR, true, null,
+                        initiator.auditParameters());
+            }
+        } else {
+            throw APIException.badRequests.initiatorPortNotValid();
+        }
+
+        return map(queryObject(Initiator.class, id, false));
+    }
+
+    /**
      * Deactivate an initiator.
      * 
      * @param id the URN of a ViPR initiator
@@ -198,6 +288,13 @@ public class InitiatorService extends TaskResourceService {
             controller.removeInitiatorFromExport(initiator.getHost(), initiator.getId(), taskId);
         } else {
             _dbClient.ready(Initiator.class, initiator.getId(), taskId);
+            URI associatedInitiatorId = initiator.getAssociatedInitiator();
+            if (!NullColumnValueGetter.isNullURI(associatedInitiatorId)) {
+                Initiator associatedInitiator = _dbClient.queryObject(Initiator.class, associatedInitiatorId);
+                if (associatedInitiator != null) {
+                    _dbClient.markForDeletion(associatedInitiator);
+                }
+            }
             _dbClient.markForDeletion(initiator);
         }
 

@@ -39,6 +39,9 @@ class HostInitiator(object):
     URI_INITIATOR_DEACTIVATE = "/compute/initiators/{0}/deactivate"
     URI_INITIATOR_ALIASGET = "/compute/initiators/{0}/alias/{1}"
     URI_INITIATOR_ALIASSET = "/compute/initiators/{0}/alias"
+    URI_INITIATOR_PAIR = "/compute/hosts/{0}/paired-initiators"
+    URI_INITIATOR_ASSOCIATE = "/compute/initiators/{0}/associate/{1}"
+    URI_INITIATOR_DISSOCIATE = "/compute/initiators/{0}/dissociate"
 
     INITIATOR_PROTOCOL_LIST = ['FC', 'iSCSI']
 
@@ -119,8 +122,69 @@ class HostInitiator(object):
         o = common.json_decode(s)
         return self.check_for_sync(o, sync,synctime)
         
-        
+    """
+    Initiator pair create operation
+    """
+    def create_pair(self, sync, hostlabel, protocol, initiatorwwn1, portwwn1, initname1,
+                    initiatorwwn2, portwwn2, initname2, synctime, tenant):
 
+        hostUri = self.get_host_uri(hostlabel, tenant)
+        request = {
+            "first_initiator": {
+                "protocol": protocol,
+                "initiator_node": initiatorwwn1,
+                "initiator_port": portwwn1,
+                "name": initname1
+            },
+            "second_initiator": {
+                "protocol": protocol,
+                "initiator_node": initiatorwwn2,
+                "initiator_port": portwwn2,
+                "name": initname2
+            }
+        }
+
+        if(initiatorwwn1):
+            request["first_initiator"]["initiator_node"] = initiatorwwn1
+        if(initiatorwwn2):
+            request["second_initiator"]["initiator_node"] = initiatorwwn2
+
+        body = json.dumps(request)
+      
+        (s, h) = common.service_json_request(
+            self.__ipAddr, self.__port,
+            "POST",
+            HostInitiator.URI_INITIATOR_PAIR.format(hostUri),
+            body)
+        o = common.json_decode(s)
+        return self.check_for_sync(o, sync,synctime)
+        
+    """
+    Associate initiators operation
+    """
+    def associate_initiator(self, initiatorUri, associatedInitiatorUri):
+
+        (s, h) = common.service_json_request(
+            self.__ipAddr, self.__port,
+            "PUT",
+            HostInitiator.URI_INITIATOR_ASSOCIATE.format(initiatorUri, associatedInitiatorUri),
+            None)
+        o = common.json_decode(s)
+        return o
+        
+    """
+    Dissociate initiators operation
+    """
+    def dissociate_initiator(self, initiatorUri):
+              
+        (s, h) = common.service_json_request(
+            self.__ipAddr, self.__port,
+            "PUT",
+            HostInitiator.URI_INITIATOR_DISSOCIATE.format(initiatorUri),
+            None)
+        o = common.json_decode(s)
+        return o
+    
     """
     Initiator update operation
     """
@@ -558,6 +622,126 @@ def initiator_create(args):
             "initiator",
             e.err_text,
             e.err_code)
+            
+
+def create_pair_parser(subcommand_parsers, common_parser):
+    # create command parser
+    create_pair_parser = subcommand_parsers.add_parser(
+        'create-pair',
+        description='ViPR initiator pair create CLI usage',
+        parents=[common_parser],
+        conflict_handler='resolve',
+        help='Creates a pair of initiators and links them together')
+
+    mandatory_args = create_pair_parser.add_argument_group('mandatory arguments')
+    mandatory_args.add_argument(
+        '-hl', '-hostlabel',
+        help='Host label in which initiator needs to be created',
+        metavar='<hostlabel>',
+        dest='hostlabel',
+        required=True)
+    mandatory_args.add_argument('-pl', '-protocol ',
+                                choices=HostInitiator.INITIATOR_PROTOCOL_LIST,
+                                dest='protocol',
+                                help='Initiator protocol',
+                                required=True)
+    mandatory_args.add_argument(
+        '-pwwn1', '-initiatorportwwn1',
+        help='Port WWN of the first initiator, it can be WWN for FC, IQN/EUI for iSCSI',
+        dest='initiatorportwwn1',
+        metavar='<initiatorportwwn1>',
+        required=True)
+    mandatory_args.add_argument(
+        '-pwwn2', '-initiatorportwwn2',
+        help='Port WWN of the second initiator, it can be WWN for FC, IQN/EUI for iSCSI',
+        dest='initiatorportwwn2',
+        metavar='<initiatorportwwn2>',
+        required=True)
+
+    create_pair_parser.add_argument('-wwn1', '-initiatorwwn',
+                               help='WWN of the first initiator node ',
+                               dest='initiatorwwn1',
+                               metavar='<initiatorwwn1>')
+                               
+    create_pair_parser.add_argument('-wwn2', '-initiatorwwn2',
+                               help='WWN of the second initiator node',
+                               dest='initiatorwwn2',
+                               metavar='<initiatorwwn2>')
+
+    create_pair_parser.add_argument('-synchronous', '-sync',
+                               dest='sync',
+                               help='Execute in synchronous mode',
+                               action='store_true')
+    create_pair_parser.add_argument('-synctimeout','-syncto',
+                               help='sync timeout in seconds ',
+                               dest='synctimeout',
+                               default=0,
+                               type=int)
+    
+    create_pair_parser.add_argument('-initiatorname1', '-initname1',
+                               help='Alias for first initiator',
+                               dest='initname1',
+                               metavar='<initiatorname1>')
+    create_pair_parser.add_argument('-initiatorname2', '-initname2',
+                               help='Alias for second initiator',
+                               dest='initname2',
+                               metavar='<initiatorname2>' )
+    
+    create_pair_parser.add_argument('-tenantname', '-tn',
+                               help='Tenant Name',
+                               dest='tenant',
+                               metavar='<tenantname>')
+
+    create_pair_parser.set_defaults(func=initiator_pair_create)
+    
+def initiator_pair_create(args):
+    if not args.sync and args.synctimeout !=0:
+        raise SOSError(SOSError.CMD_LINE_ERR,"error: Cannot use synctimeout without Sync ")
+    if(args.protocol == "FC" and args.initiatorwwn1 is None):
+        raise SOSError(
+            SOSError.CMD_LINE_ERR, sys.argv[0] + " " + sys.argv[1] +
+            " " + sys.argv[2] + ": error:" +
+            "-initiatorwwn1 is required for first initiator of type FC")
+
+    if(args.protocol == "iSCSI" and args.initiatorwwn1):
+        raise SOSError(
+            SOSError.CMD_LINE_ERR, sys.argv[0] + " " + sys.argv[1] +
+            " " + sys.argv[2] + ": error:" +
+            "-initiatorwwn1 is required for first initiator of type iSCSI")
+            
+    if(args.protocol == "FC" and args.initiatorwwn2 is None):
+        raise SOSError(
+            SOSError.CMD_LINE_ERR, sys.argv[0] + " " + sys.argv[1] +
+            " " + sys.argv[2] + ": error:" +
+            "-initiatorwwn2 is required for second initiator of type FC")
+
+    if(args.protocol == "iSCSI" and args.initiatorwwn1):
+        raise SOSError(
+            SOSError.CMD_LINE_ERR, sys.argv[0] + " " + sys.argv[1] +
+            " " + sys.argv[2] + ": error:" +
+            "-initiatorwwn2 is required for second initiator of type iSCSI")
+
+    initiatorObj = HostInitiator(args.ip, args.port)
+    try:
+        initiatorObj.create_pair(
+            args.sync,
+            args.hostlabel,
+            args.protocol,
+            args.initiatorwwn1,
+            args.initiatorportwwn1,
+            args.initname1,
+            args.initiatorwwn2,
+            args.initiatorportwwn2,
+            args.initname2,
+            args.synctimeout,
+            args.tenant)
+    except SOSError as e:
+        common.format_err_msg_and_raise(
+            "create",
+            "initiator pair",
+            e.err_text,
+            e.err_code)
+            
 
 
 # list command parser
@@ -693,6 +877,109 @@ def initiator_show(args):
     except SOSError as e:
         common.format_err_msg_and_raise(
             "show",
+            "initiator",
+            e.err_text,
+            e.err_code)
+
+    return
+    
+
+# associate initiator command parser
+def initiator_associate_parser(subcommand_parsers, common_parser):
+    associate_initiator_parser = subcommand_parsers.add_parser(
+        'associate',
+        description='ViPR Associate Initiator CLI usage',
+        parents=[common_parser],
+        conflict_handler='resolve',
+        help='Associate (pair) two existing initiators')
+
+    mandatory_args = associate_initiator_parser.add_argument_group('mandatory arguments')
+    mandatory_args.add_argument('-hl', '-hostlabel',
+                                help='Host label in which initiator needs to be created',
+                                metavar='<hostlabel>',
+                                dest='hostlabel',
+                                required=True)
+    mandatory_args.add_argument('-pwwn1', '-initiatorportwwn1',
+                                metavar='<name1>',
+                                dest='initiatorportwwn1',
+                                help='Port WWN of first initiator',
+                                required=True)
+    mandatory_args.add_argument('-pwwn2', '-initiatorportwwn2',
+                                metavar='<name2>',
+                                dest='initiatorportwwn2',
+                                help='Port WWN of initiator to be associated with first initiator',
+                                required=True)
+    associate_initiator_parser.add_argument('-tenantname', '-tn',
+                               help='Tenant Name',
+                               dest='tenant',
+                               metavar='<tenantname>' )
+    associate_initiator_parser.set_defaults(func=initiator_associate)
+
+
+def initiator_associate(args):
+
+    try:
+        initiatorObj = HostInitiator(args.ip, args.port)
+        initiatorUri1 = initiatorObj.query_by_portwwn(
+            args.initiatorportwwn1,
+            args.hostlabel, args.tenant)
+
+        initiatorUri2 = initiatorObj.query_by_portwwn(
+            args.initiatorportwwn2,
+            args.hostlabel, args.tenant)
+        
+        initiatorObj.associate_initiator(initiatorUri1, initiatorUri2)
+
+    except SOSError as e:
+        common.format_err_msg_and_raise(
+            "associate",
+            "initiator",
+            e.err_text,
+            e.err_code)
+
+    return
+    
+
+    # disociate initiator command parser
+def initiator_dissociate_parser(subcommand_parsers, common_parser):
+    dissociate_initiator_parser = subcommand_parsers.add_parser(
+        'dissociate',
+        description='ViPR Dissociate Initiator CLI usage',
+        parents=[common_parser],
+        conflict_handler='resolve',
+        help='Dissociate existing initiator pair')
+
+    mandatory_args = dissociate_initiator_parser.add_argument_group('mandatory arguments')
+    mandatory_args.add_argument('-hl', '-hostlabel',
+                                help='Host label in which initiator needs to be created',
+                                metavar='<hostlabel>',
+                                dest='hostlabel',
+                                required=True)
+    mandatory_args.add_argument('-pwwn', '-initiatorportwwn',
+                                metavar='<name>',
+                                dest='initiatorportwwn',
+                                help='Port WWN of initiator',
+                                required=True)
+    dissociate_initiator_parser.add_argument('-tenantname', '-tn',
+                               help='Tenant Name',
+                               dest='tenant',
+                               metavar='<tenantname>' )
+    dissociate_initiator_parser.set_defaults(func=initiator_dissociate)
+
+
+def initiator_dissociate(args):
+
+    try:
+        initiatorObj = HostInitiator(args.ip, args.port)
+        initiatorUri = initiatorObj.query_by_portwwn(
+            args.initiatorportwwn,
+            args.hostlabel, args.tenant)
+        
+        initiatorObj.dissociate_initiator(initiatorUri)
+
+    except SOSError as e:
+        common.format_err_msg_and_raise(
+            "associate",
             "initiator",
             e.err_text,
             e.err_code)
@@ -1069,4 +1356,12 @@ def initiator_parser(parent_subparser, common_parser):
 
     # alias set parser
     aliasset_parser(subcommand_parsers, common_parser)
+    
+    # create paired initiators parser
+    create_pair_parser(subcommand_parsers, common_parser)
+    
+    # associate initiator command parser
+    initiator_associate_parser(subcommand_parsers, common_parser)
 
+    # disociate initiator command parser
+    initiator_dissociate_parser(subcommand_parsers, common_parser)

@@ -24,6 +24,7 @@ import com.emc.storageos.db.client.model.IpInterface;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.Vcenter;
 import com.emc.storageos.db.client.model.VcenterDataCenter;
+import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.model.RelatedResourceRep;
 import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.storageos.model.block.export.ExportBlockParam;
@@ -55,6 +56,10 @@ public class HostMapper {
         to.setHostName(from.getHostName());
         to.setInitiatorNode(from.getInitiatorNode());
         to.setInitiatorPort(from.getInitiatorPort());
+        URI associatedInitiator = from.getAssociatedInitiator();
+        if (!NullColumnValueGetter.isNullURI(associatedInitiator)) {
+            to.setAssociatedInitiator(toRelatedResource(ResourceTypeEnum.INITIATOR, associatedInitiator));
+        }
         return to;
     }
 
@@ -140,6 +145,11 @@ public class HostMapper {
         HostRestRep to = new HostRestRep();
         mapDiscoveredSystemObjectFields(from, to);
         to.setHostName(from.getHostName());
+        if (from.getVirtualMachine() != null) {
+            to.setIsVirtualMachine(from.getVirtualMachine());
+        } else {
+            to.setIsVirtualMachine(false);
+        }
         to.setType(from.getType());
         to.setUsername(from.getUsername());
         to.setPortNumber(from.getPortNumber());

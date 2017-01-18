@@ -112,7 +112,7 @@ public class ExportUtils {
         }
         return initiatorSet;
     }
-    
+
     /**
      * A utility function method to get the user-created initiators from an export mask.
      * If an initiator is not found for a given user-created WWN, it is simply
@@ -581,9 +581,8 @@ public class ExportUtils {
      * the application creates 2 export groups and 2 export masks in ViPR and 2 different masking
      * views on the storage array, yet the masking views share the same initiator group.
      * <p>
-     * This function checks that another export masks is not sharing the same initiator group
-     * but that is not under the same export group (this is handled elsewhere) by searching
-     * for an export mask that:
+     * This function checks that another export masks is not sharing the same initiator group but that is not under the same export group
+     * (this is handled elsewhere) by searching for an export mask that:
      * <ol>
      * <li>is for the same storage system</li>
      * <li>is not one used by the same export group</li>
@@ -602,11 +601,11 @@ public class ExportUtils {
                         ContainmentConstraint.Factory.getConstraint(ExportMask.class, "initiators", initiatorUri));
         List<String> sharedExportMaskNameList = new ArrayList<>();
         for (ExportMask exportMask : results) {
-            if (exportMask != null && !exportMask.getId().equals(curExportMask.getId()) && 
+            if (exportMask != null && !exportMask.getId().equals(curExportMask.getId()) &&
                     exportMask.getStorageDevice().equals(curExportMask.getStorageDevice()) &&
                     !exportMaskURIs.contains(exportMask.getId())
                     && StringSetUtil.areEqual(exportMask.getInitiators(), curExportMask.getInitiators())) {
-                _log.info(String.format("Initiator %s is shared with mask %s.", 
+                _log.info(String.format("Initiator %s is shared with mask %s.",
                         initiatorUri, exportMask.getMaskName()));
                 sharedExportMaskNameList.add(exportMask.forDisplay());
             }
@@ -1064,6 +1063,12 @@ public class ExportUtils {
     public static boolean isInitiatorInVArraysNetworks(URI virtualArrayURI, Initiator initiator, DbClient dbClient) {
         boolean foundAnAssociatedNetwork = false;
         Set<NetworkLite> networks = NetworkUtil.getEndpointAllNetworksLite(initiator.getInitiatorPort(), dbClient);
+        // now check its associated initiator is part of network or not.
+        Initiator associatedInitiator = ExportUtils.getAssociatedInitiator(initiator, dbClient);
+        if (associatedInitiator != null) {
+            Set<NetworkLite> associatedNetworks = NetworkUtil.getEndpointAllNetworksLite(associatedInitiator.getInitiatorPort(), dbClient);
+            networks.addAll(associatedNetworks);
+        }
         if (networks == null || networks.isEmpty()) {
             // No network associated with the initiator, so it should be removed from the list
             _log.info(String.format("Initiator %s (%s) is not associated with any network.",
@@ -1206,7 +1211,7 @@ public class ExportUtils {
      * @param pathParams ExportPathParams may contain a set of allowable ports. Optional, can be null.
      * @return a list of storage ports that are in good operational status and assigned to the virtual array
      */
-    public static List<StoragePort> getStorageSystemAssignablePorts(DbClient dbClient, URI storageSystemURI, 
+    public static List<StoragePort> getStorageSystemAssignablePorts(DbClient dbClient, URI storageSystemURI,
             URI varrayURI, ExportPathParams pathParams) {
         URIQueryResultList sports = new URIQueryResultList();
         dbClient.queryByConstraint(ContainmentConstraint.Factory.
@@ -1233,7 +1238,7 @@ public class ExportUtils {
                 _log.debug("Storage port {} not selected because it is not connected " +
                         "or assigned to requested virtual array {}", sp.getNativeGuid(), varrayURI);
                 notInVarray.add(sp.qualifiedPortName());
-            } else if (pathParams != null && !pathParams.getStoragePorts().isEmpty() 
+            } else if (pathParams != null && !pathParams.getStoragePorts().isEmpty()
                     && !pathParams.getStoragePorts().contains(sp.getId().toString())) {
                 _log.debug("Storage port {} not selected because it is not in ExportPathParams port list", sp.getNativeGuid());
                 notInPathParams.add(sp.qualifiedPortName());
@@ -1251,7 +1256,7 @@ public class ExportUtils {
                     + varrayURI + " " + Joiner.on(" ").join(notInVarray));
         }
         if (!notInPathParams.isEmpty()) {
-            _log.info("Ports not selected because they are not in the ExportPathParams port list: " 
+            _log.info("Ports not selected because they are not in the ExportPathParams port list: "
                     + Joiner.on(" ").join(notInPathParams));
         }
         return spList;
@@ -1439,7 +1444,7 @@ public class ExportUtils {
 
         return String.format("VPlex_%s_%s", modfiedVPlexSerialNumber, modfiedArraySerialNumber);
     }
-    
+
     /**
      * Given an updatedBlockObjectMap (maps BlockObject URI to Lun Integer) representing the desired state,
      * and an Export Group, makes addedBlockObjects containing the entries that were added,
@@ -1449,7 +1454,7 @@ public class ExportUtils {
      * @param addedBlockObjects : OUTPUT - contains map of added Block Objects
      * @param removedBlockObjects : OUTPUT -- contains map of removed Block Objects
      */
-    public static void getAddedAndRemovedBlockObjects(Map<URI, Integer> updatedBlockObjectMap, 
+    public static void getAddedAndRemovedBlockObjects(Map<URI, Integer> updatedBlockObjectMap,
             ExportGroup exportGroup, Map<URI, Integer> addedBlockObjects, Map<URI, Integer> removedBlockObjects) {
         Map<URI, Integer> existingBlockObjectMap = StringMapUtil.stringMapToVolumeMap(exportGroup.getVolumes());
         // Determine the removed entries; they are in existing but not updated
@@ -1940,6 +1945,35 @@ public class ExportUtils {
             }
         }
     }
+    
+    public static Initiator getAssociatedInitiator(Initiator initiator, DbClient dbClient) {
+        Initiator associatedInitiator = null;
+        if (initiator != null) {
+            URI associatedInitiatorURI = initiator.getAssociatedInitiator();
+            if (!NullColumnValueGetter.isNullURI(associatedInitiatorURI)) {
+                associatedInitiator = dbClient.queryObject(Initiator.class, associatedInitiatorURI);
+            }
+        }
+        return associatedInitiator;
+
+    }
+
+    public static Initiator getAssociatedInitiator(URI initiatorURI, DbClient dbClient) {
+        Initiator initiator = dbClient.queryObject(Initiator.class, initiatorURI);
+        return getAssociatedInitiator(initiator, dbClient);
+
+    }
+
+
+    public static String getAssociatedInitiatorEndpoint(String endpoint, DbClient dbClient) {
+        String associatedInitiatorPort = null;
+        Initiator initiator = getInitiator(endpoint, dbClient);
+        Initiator associatedInitiator = getAssociatedInitiator(initiator, dbClient);
+        if (associatedInitiator != null) {
+            associatedInitiatorPort = associatedInitiator.getInitiatorPort();
+        }
+        return associatedInitiatorPort;
+    }
 
     /**
      * Handle the ExportMask Volume removal based on the ExportMaskToRemovedVolumeMap.
@@ -2010,5 +2044,33 @@ public class ExportUtils {
         }
     }
 
+    public static Initiator getAssociatedInitiator(Initiator initiator, DbClient dbClient) {
+        Initiator associatedInitiator = null;
+        if (initiator != null) {
+            URI associatedInitiatorURI = initiator.getAssociatedInitiator();
+            if (!NullColumnValueGetter.isNullURI(associatedInitiatorURI)) {
+                associatedInitiator = dbClient.queryObject(Initiator.class, associatedInitiatorURI);
+            }
+        }
+        return associatedInitiator;
+
+    }
+
+    public static Initiator getAssociatedInitiator(URI initiatorURI, DbClient dbClient) {
+        Initiator initiator = dbClient.queryObject(Initiator.class, initiatorURI);
+        return getAssociatedInitiator(initiator, dbClient);
+
+    }
+
+
+    public static String getAssociatedInitiatorEndpoint(String endpoint, DbClient dbClient) {
+        String associatedInitiatorPort = null;
+        Initiator initiator = getInitiator(endpoint, dbClient);
+        Initiator associatedInitiator = getAssociatedInitiator(initiator, dbClient);
+        if (associatedInitiator != null) {
+            associatedInitiatorPort = associatedInitiator.getInitiatorPort();
+        }
+        return associatedInitiatorPort;
+    }
     
 }

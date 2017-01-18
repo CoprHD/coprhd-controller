@@ -97,6 +97,7 @@ public class PathConstants {
     public static final String HOST_URL = "/compute/hosts";
     public static final String HOST_DETACH_STORAGE_URL = HOST_URL + "/{hostId}/detach-storage";
     public static final String INITIATOR_BY_HOST_URL = HOST_URL + "/{hostId}/initiators";
+    public static final String PAIRED_INITIATOR_BY_HOST_URL = HOST_URL + "/{hostId}/paired-initiators";
     public static final String IPINTERFACE_BY_HOST_URL = HOST_URL + "/{hostId}/ip-interfaces";
     public static final String VCENTER_URL = "/compute/vcenters";
     public static final String VCENTER_DETACH_STORAGE_URL = VCENTER_URL + "/{vcenterId}/detach-storage";
@@ -107,6 +108,8 @@ public class PathConstants {
     public static final String HOST_BY_CLUSTER_URL = CLUSTER_URL + "/{clusterId}/hosts";
     public static final String CLUSTER_UPDATE_SHARED_EXPORTS_URL = CLUSTER_URL + "/{clusterId}/update-shared-exports";
     public static final String INITIATOR_URL = "/compute/initiators";
+    public static final String ASSOCIATE_INITIATOR_URL = INITIATOR_URL + "/{id}/associate/{associatedId}";
+    public static final String DISSOCIATE_INITIATOR_URL = INITIATOR_URL + "/{id}/dissociate";
     public static final String IPINTERFACE_URL = "/compute/ip-interfaces";
     public static final String DATACENTER_URL = "/compute/vcenter-data-centers";
     public static final String DATACENTER_DETACH_STORAGE_URL = DATACENTER_URL + "/{dataCenterId}/detach-storage";

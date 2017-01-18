@@ -42,6 +42,7 @@ public class Host extends AbstractComputeSystem {
     private String provisioningStatus;
     private StringSet volumeGroupIds;
     private StringMap preferredPools;
+    private Boolean virtualMachine;
 
     /**
      * This is for recording the volumeId that was used in the OsInstallation phase. Will be used to remove the associated volume when
@@ -75,6 +76,26 @@ public class Host extends AbstractComputeSystem {
     public void setType(String type) {
         this._type = type;
         setChanged("type");
+    }
+
+    /**
+     * Gets the isVirtualMachine flag. isVirtualMachine indicates if host is a physical or virtual
+     * 
+     * @return true if host is virtual, else false
+     */
+    @Name("virtualMachine")
+    public Boolean getVirtualMachine() {
+        return virtualMachine;
+    }
+
+    /**
+     * Sets the isVirtualMachine flag. isVirtualMachine indicates if host is a physical or virtual
+     * 
+     * @param isVirtualMachine is true if host is virtual.
+     */
+    public void setVirtualMachine(Boolean isVirtualMachine) {
+        this.virtualMachine = isVirtualMachine;
+        setChanged("virtualMachine");
     }
 
     /**

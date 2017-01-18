@@ -18,6 +18,7 @@ import com.emc.storageos.model.host.InitiatorCreateParam;
 import com.emc.storageos.model.host.InitiatorList;
 import com.emc.storageos.model.host.InitiatorRestRep;
 import com.emc.storageos.model.host.InitiatorUpdateParam;
+import com.emc.storageos.model.host.PairedInitiatorCreateParam;
 import com.emc.vipr.client.Task;
 import com.emc.vipr.client.ViPRCoreClient;
 import com.emc.vipr.client.core.filters.ResourceFilter;
@@ -78,6 +79,46 @@ public class Initiators extends AbstractCoreBulkResources<InitiatorRestRep> {
      */
     public Task<InitiatorRestRep> create(URI hostId, InitiatorCreateParam input) {
         return postTask(input, PathConstants.INITIATOR_BY_HOST_URL, hostId);
+    }
+
+    /**
+     * Creates a pair of initiators for the given host.
+     * <p>
+     * API Call: <tt>POST /compute/hosts/{hostId}/paired-initiators</tt>
+     * 
+     * @param hostId
+     *            the ID of the host.
+     * @param input
+     *            the initiator configuration.
+     * @return a task for monitoring the progress of the initiator creation.
+     */
+    public Task<InitiatorRestRep> createPair(URI hostId, PairedInitiatorCreateParam input) {
+        return postTask(input, PathConstants.PAIRED_INITIATOR_BY_HOST_URL, hostId);
+    }
+
+    /**
+     * Associate a initiators to another initiator
+     * <p>
+     * API Call: <tt>POST /compute/initiators/{id}/paired-initiators</tt>
+     * 
+     * @param id The ID of the initiator.
+     * @param associatedId the ID of the associated initiator
+     * @return a task for monitoring the progress of the initiator association
+     */
+    public Task<InitiatorRestRep> associate(URI id, URI associatedId) {
+        return putTask(id, PathConstants.ASSOCIATE_INITIATOR_URL, id, associatedId);
+    }
+
+    /**
+     * Dissociate a initiators to another initiator
+     * <p>
+     * API Call: <tt>POST /compute/initiators/{id}/dissociate</tt>
+     * 
+     * @param id The ID of the initiator.
+     * @return a task for monitoring the progress of the initiator dissociation
+     */
+    public Task<InitiatorRestRep> dissociate(URI id) {
+        return putTask(id, PathConstants.DISSOCIATE_INITIATOR_URL, id);
     }
 
     /**

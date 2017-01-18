@@ -71,6 +71,7 @@ import com.emc.storageos.security.authorization.DefaultPermissions;
 import com.emc.storageos.security.authorization.Role;
 import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
+import com.emc.storageos.util.ExportUtils;
 import com.emc.storageos.util.NetworkUtil;
 import com.emc.storageos.volumecontroller.impl.monitoring.RecordableBourneEvent;
 import com.emc.storageos.volumecontroller.impl.monitoring.RecordableEventManager;
@@ -626,7 +627,13 @@ public class NetworkService extends TaggedResource {
                             EndpointUtility.isValidEndpoint(endpoint, EndpointType.WWN)) {
                         throw APIException.badRequests.invalidEndpointExpectedNonFC(endpoint);
                     }
-                    addedEp.add(endpoint);
+                    if (!addedEp.contains(endpoint)) {
+                        addedEp.add(endpoint);
+                        String associatedEndpoint = ExportUtils.getAssociatedInitiatorEndpoint(endpoint, _dbClient);
+                        if (associatedEndpoint != null && !addedEp.contains(associatedEndpoint)) {
+                            addedEp.add(associatedEndpoint);
+                        }
+                    }
                 }
             }
             // get the endpoints current networks as some may exist in other networks
@@ -659,7 +666,15 @@ public class NetworkService extends TaggedResource {
         for (String str : remEps) {
             if (network.getEndpointsMap() != null &&
                     network.getEndpointsMap().containsKey(EndpointUtility.changeCase(str))) {
-                removedEp.add(str);
+                if (!removedEp.contains(str)) {
+                    removedEp.add(str);
+                    String associatedEndpoint = ExportUtils.getAssociatedInitiatorEndpoint(EndpointUtility.changeCase(str), _dbClient);
+                    if (associatedEndpoint != null) {
+                        if (!removedEp.contains(associatedEndpoint)) {
+                            removedEp.add(associatedEndpoint);
+                        }
+                    }
+                }
             }
         }
         // make sure the end points are not discovered in the current network

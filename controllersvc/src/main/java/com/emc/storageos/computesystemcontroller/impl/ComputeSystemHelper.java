@@ -470,7 +470,18 @@ public class ComputeSystemHelper {
             }
             for (Initiator initiator : initiators) {
                 // check the initiator has connectivity
-                if (hasConnectivityToSystem(storageSystem, varrays, initiator, dbClient)) {
+                boolean hasConnectivity = false;
+                _log.info("Validating port connectivity for initiator: ({})", initiator.getInitiatorPort());
+                hasConnectivity = hasConnectivityToSystem(storageSystem, varrays, initiator, dbClient);
+                if (!hasConnectivity) {
+                    Initiator pairedInitiator = ExportUtils.getAssociatedInitiator(initiator, dbClient);
+                    if (pairedInitiator != null) {
+                        _log.info("Validating port connectivity for associated initiator: ({})", pairedInitiator.getInitiatorPort());
+                        hasConnectivity = hasConnectivityToSystem(storageSystem, varrays, pairedInitiator, dbClient);
+                    }
+                }
+
+                if (hasConnectivity) {
                     validInitiators.add(initiator);
                 }
             }

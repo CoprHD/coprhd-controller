@@ -4,15 +4,15 @@
  */
 package com.emc.storageos.model.host;
 
-import com.emc.storageos.model.valid.Endpoint;
-import com.emc.storageos.model.valid.Length;
-import com.emc.storageos.model.valid.Range;
+import java.net.URI;
 
 import javax.xml.bind.annotation.XmlElement;
 
 import org.codehaus.jackson.annotate.JsonProperty;
 
-import java.net.URI;
+import com.emc.storageos.model.valid.Endpoint;
+import com.emc.storageos.model.valid.Length;
+import com.emc.storageos.model.valid.Range;
 
 /**
  * Captures POST/PUT data for a host.
@@ -34,6 +34,7 @@ public abstract class HostParam {
     private URI tenant;
     private Boolean discoverable;
     private URI bootVolume;
+    private Boolean virtualMachine;
 
     public HostParam() {
     }
@@ -41,12 +42,12 @@ public abstract class HostParam {
     /**
      * The host type.
      * Valid values:
-     *   Windows
-     *   HPUX
-     *   Linux
-     *   Esx
-     *   SUNVCS
-     *   Other
+     * Windows
+     * HPUX
+     * Linux
+     * Esx
+     * SUNVCS
+     * Other
      * 
      */
     // @EnumType(Host.HostType.class)
@@ -198,7 +199,7 @@ public abstract class HostParam {
      * performed against this host. Defaults to true.
      * 
      * @return true if automatic discovery is enabled, false if automatic discovery is disabled.
-     * default value is true
+     *         default value is true
      */
     @XmlElement(name = "discoverable")
     public Boolean getDiscoverable() {
@@ -230,4 +231,14 @@ public abstract class HostParam {
     public void setBootVolume(URI bootVolume) {
         this.bootVolume = bootVolume;
     }
+
+    @XmlElement(name = "virtual_machine")
+    public Boolean getVirtualMachine() {
+        return virtualMachine;
+    }
+
+    public void setVirtualMachine(Boolean virtualMachine) {
+        this.virtualMachine = virtualMachine;
+    }
+
 }

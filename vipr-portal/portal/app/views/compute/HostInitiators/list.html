@@ -19,7 +19,14 @@
                       selectable:true}
   #{DataTable.buttonBar}
     #{if initiatorsEditable}
-      #{Form.button name:'button.add', class:'success', icon:'plus', action:'showDialogClick()'/}
+    <div class="btn-group">
+
+        #{Form.button name:'button.add', class:'success', icon:'plus', dropdown:true/}
+      <ul class="dropdown-menu above">
+        <li><a href="#" onclick="showDialogClick(); return false;">&{'Hosts.initiators.add'}</a></li>
+        <li><a href="#" onclick="showPairedDialogClick(); return false;">&{'Hosts.initiators.addPaired'}</a></li>
+      </ul>
+       </div>
       #{Form.button name:'button.delete', class:'danger', icon:'trash', submit:'deleteForm', 
                     data:['enabled':'selected']/}
     #{/if}
@@ -59,25 +66,80 @@
     #{/Modal.footer}
   #{/form}
 #{/Modal.dialog}
+
+#{Modal.dialog id:'addPairedDialog', cssClass:'wide', titleKey:'Hosts.initiators.addPaired.title'}
+  #{form @createPair(), id:'pairedInitiatorForm', class:'form form-horizontal', autocomplete:"off"}
+    <input type="hidden" name="hostId" value="${host?.id}">   
+    #{Modal.body}
+      #{field 'pairedInitiator.firstNode'}
+        %{
+          field.cssClass = "span6 initialFocus"
+        }%
+        #{Form.inputTextControlGroup field:field /}
+      #{/field}
+
+      #{field 'pairedInitiator.firstPort'}
+        %{
+          field.required = true
+        }%
+        #{Form.inputTextControlGroup field:field /}
+      #{/field}
+            #{field 'pairedInitiator.secondNode'}
+        %{
+          field.cssClass = "span6 initialFocus"
+        }%
+        #{Form.inputTextControlGroup field:field /}
+      #{/field}
+
+      #{field 'pairedInitiator.secondPort'}
+        %{
+          field.required = true
+        }%
+        #{Form.inputTextControlGroup field:field /}
+      #{/field}
+    #{/Modal.body}
+    #{Modal.footer}
+      #{Form.button name:'button.add', class:'primary', icon:'plus', submit:'pairedInitiatorForm'/}
+      #{Form.button name:'button.cancel', icon:'remove', data:['dismiss':'modal']/}
+    #{/Modal.footer}
+  #{/form}
+#{/Modal.dialog}
   
 <script>
   #{ifErrors}
     $(document).ready(function() {
-      showDialog();
+        var $addModal =  $('#addDialog');
+        var $addPairedModal =  $('#addPairedDialog');
+        if ($('.form-group', $addModal).hasClass("has-error")) {
+            showAddDialog();
+        }
+        if ($('.form-group', $addPairedModal).hasClass("has-error")) {
+            showAddPairedDialog();
+        }
     });
   #{/ifErrors}
 
   function showDialogClick() {
-	clearErrors();
-    showDialog();
+    clearErrors();
+    $('#addDialog').modal();
   }
-
-  function showDialog() {
-    $('.modal').modal();
+  
+  function showPairedDialogClick() {
+    clearErrors();
+    $('#addPairedDialog').modal();
+  }
+ 
+  
+  function showAddDialog() {
+    $('#addDialog').modal();
+  }
+  
+  function showAddPairedDialog() {
+    $('#addPairedDialog').modal();
   }
   
   function clearErrors() {
-    var $modal = $('.modal');
+    var $modal =  $('.modal');
     $('.form-group', $modal).removeClass("has-error");
     $('.help-inline', $modal).html("");    
   }

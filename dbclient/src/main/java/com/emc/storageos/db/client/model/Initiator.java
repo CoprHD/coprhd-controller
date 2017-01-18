@@ -4,6 +4,8 @@
  */
 package com.emc.storageos.db.client.model;
 
+import java.net.URI;
+
 import com.emc.storageos.db.client.util.EndpointUtility;
 import com.emc.storageos.db.client.util.WWNUtility;
 import com.emc.storageos.db.client.util.iSCSIUtility;
@@ -25,6 +27,9 @@ public class Initiator extends HostInterface implements Comparable<Initiator> {
     // COP-18937: Initiator may be registered to multiple storage systems using different names. XIO Arrays
     // COP-18551: Initiator may be registered to multiple storage systems using different Aliases. VMAX Arrays
     private StringMap initiatorNames;
+
+    // If two initiators are linked between, both will be paired for all operation. you can not add only one in zone or mask
+    private URI associatedInitiator;
 
     /**
      * Default Constructor. This is the constructor used by the API.
@@ -178,6 +183,26 @@ public class Initiator extends HostInterface implements Comparable<Initiator> {
      */
     public void setInitiatorNames(StringMap initiatorNames) {
         this.initiatorNames = initiatorNames;
+    }
+
+    /**
+     * get Linked associated initiator .
+     * 
+     * @return URI for the linked Initiator .
+     */
+    @Name("associatedInitiator")
+    public URI getAssociatedInitiator() {
+        return associatedInitiator;
+    }
+
+    /**
+     * link the initiator with another initiator.
+     * 
+     * @param associatedInitiator
+     */
+    public void setAssociatedInitiator(URI associatedInitiator) {
+        this.associatedInitiator = associatedInitiator;
+        setChanged("associatedInitiator");
     }
 
     /**

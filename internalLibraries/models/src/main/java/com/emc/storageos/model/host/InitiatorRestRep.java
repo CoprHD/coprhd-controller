@@ -9,6 +9,8 @@ import javax.xml.bind.annotation.XmlAccessorType;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 
+import com.emc.storageos.model.RelatedResourceRep;
+
 /**
  * REST Response representing an Initiator.
  */
@@ -20,6 +22,7 @@ public class InitiatorRestRep extends HostInterfaceRestRep {
     private String initiatorPort;
     private String clusterName;
     private String label;
+    private RelatedResourceRep associatedInitiator;
 
     public InitiatorRestRep() {
     }
@@ -101,5 +104,19 @@ public class InitiatorRestRep extends HostInterfaceRestRep {
 
     public void setLabel(String label) {
         this.label = label;
+    }
+
+    /**
+     * The associated Initiator URN
+     * 
+     * @return associated initiator URN
+     */
+    @XmlElement(name = "associated_initiator")
+    public RelatedResourceRep getAssociatedInitiator() {
+        return associatedInitiator;
+    }
+
+    public void setAssociatedInitiator(RelatedResourceRep associatedInitiator) {
+        this.associatedInitiator = associatedInitiator;
     }
 }

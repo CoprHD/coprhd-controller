@@ -347,6 +347,10 @@ public enum OperationTypeEnum {
     UPDATE_HOST_INITIATOR("UPDATE HOST INITIATOR", "", "operation to update a host initiator."),
     DELETE_HOST_INITIATOR("DELETE HOST INITIATOR", "", "operation to delete a host initiator."),
 
+    CREATE_HOST_PAIRED_INITIATOR("CREATE HOST PAIRED INITIATOR", "", "operation to create a pair of initiators for a host."),
+    UPDATE_HOST_PAIRED_INITIATOR("UPDATE HOST PAIRED INITIATOR", "", "operation to update the pair of initiators for a host"),
+    DELETE_HOST_PAIRED_INITIATOR("DELETE HOST PAIRED INITIATOR", "", "operation to delete the pair of initiators for a host"),
+
     CREATE_HOST_IPINTERFACE("CREATE HOST IPINTERFACE", "", "operation to create a host ip interface."),
     UPDATE_HOST_IPINTERFACE("UPDATE HOST IPINTERFACE", "", "operation to update a host ip interface."),
     DELETE_HOST_IPINTERFACE("DELETE HOST IPINTERFACE", "", "operation to delete a host ip interface."),
@@ -521,7 +525,7 @@ public enum OperationTypeEnum {
     REMOVE_STORAGE_SYSTEM_TYPE("REMOVE STORAGE SYSTEM TYPE", "", "operation to initiate removing a storage system type"),
     CREATE_SCHEDULE_POLICY("SchedulePolicyCreated", "", "create schedule policy."),
 
-    /* Filesystem Mount Operations*/
+    /* Filesystem Mount Operations */
 
     MOUNT_NFS_EXPORT("MOUNT NFS EXPORT", "mount nfs export operation failed", "mount nfs export operation"),
     UNMOUNT_NFS_EXPORT("UNMOUNT NFS EXPORT", "unmount nfs operation failed", "unmount nfs export operation"),

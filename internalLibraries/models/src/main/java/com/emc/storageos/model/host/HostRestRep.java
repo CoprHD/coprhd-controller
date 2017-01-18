@@ -23,6 +23,7 @@ import com.emc.storageos.model.RelatedResourceRep;
 public class HostRestRep extends ComputeSystemRestRep {
 
     private String hostName;
+    private Boolean isVirtualMachine;
     private String type;
     private String username;
     private Integer portNumber;
@@ -52,6 +53,20 @@ public class HostRestRep extends ComputeSystemRestRep {
 
     public void setCluster(RelatedResourceRep cluster) {
         this.cluster = cluster;
+    }
+
+    /**
+     * The host is virtual or not
+     * 
+     * @return
+     */
+    @XmlElement(name = "isVirtualMachine")
+    public Boolean getIsVirtualMachine() {
+        return isVirtualMachine;
+    }
+
+    public void setIsVirtualMachine(Boolean isVirtualMachine) {
+        this.isVirtualMachine = isVirtualMachine;
     }
 
     /**

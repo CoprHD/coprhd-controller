@@ -206,6 +206,7 @@ public enum ResourceOperationTypeEnum {
     DELETE_SWIFT_CONTAINER("DELETE SWIFT CONTAINER", "delete swift container"),
     CREATE_INITIATOR("CREATE INITIATOR", "create initiator"),
     ADD_HOST_INITIATOR("ADD HOST INITIATOR", "add an initiator associated with a host"),
+    ADD_HOST_PAIRED_INITIATOR("ADD HOST PAIRED INITIATOR", "add a pair of initiators to a host"),
     DELETE_INITIATOR("DELETE INITIATOR", "delete initiator"),
     CREATE_NETWORK_SYSTEM("CREATE NETWORKSYSTEM", "create a network system"),
     UPDATE_NETWORK_SYSTEM("UPDATE NETWORKSYSTEM", "update a network system"),

@@ -10,6 +10,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -137,6 +138,24 @@ public class StoragePortsAssignerTest extends StoragePortsAllocatorTest {
 			}
 		}
 
+        System.out.println("*** testing  paired initiator port assignments");
+
+        List<Initiator> initPairedA = getHostPairedInitiators(4);
+        Map<URI, List<Initiator>> net2InitiatorsPairedMapA = makeNet2InitiatorsPairedMap(initPairedA, 1, 2);
+        List<Initiator> initPairedB = getHostPairedInitiators(4);
+        Map<URI, List<Initiator>> net2InitiatorsPairedMapB = makeNet2InitiatorsPairedMap(initPairedB, 1, 2);
+
+        for (int k = 1; k <= 2; k++) { // initiators per port
+            for (int j = 1; j <= 2; j++) { // paths per initiator
+                for (int i = 1; i <= 8; i++) { // max paths
+                    System.out.println("*** Two hosts each 4 pair of initiators across 2 networks: "
+                            + "max_paths = " + i + " paths_per_initiator = " + j + " initiators per port " + k);
+                    testVMAX2NetAllocAssign(net2InitiatorsPairedMapA, net2InitiatorsPairedMapB, null, null, i, 0, j, k);
+                }
+            }
+        }
+
+        System.out.println("done!");
 		URI hostAid = initA.get(0).getHost();
 		String hostAname = initA.get(0).getHostName();
 		initC = addHostInitiators(2, hostAid, hostAname);
@@ -825,7 +844,18 @@ public class StoragePortsAssignerTest extends StoragePortsAllocatorTest {
             // Compute how many assignments should have been made
             Map<StoragePort, Integer> portUseCounts = new HashMap<StoragePort, Integer>();
             
+            List<URI> associatedList = new ArrayList<URI>();
             for (Initiator initiator : initiators) {
+
+                if (!NullColumnValueGetter.isNullURI(initiator.getAssociatedInitiator())) {
+
+                    if (associatedList.contains(initiator.getId())) {
+                        // associated Initiator is already consider for path and count
+                        continue;
+                    } else {
+                        associatedList.add(initiator.getAssociatedInitiator());
+                    }
+                }
                 // Find the assignments for this initiator
                 List<StoragePort> portAssignments = assignments.get(initiator);
                 if (portAssignments == null && existingAssignments != null) {
@@ -884,6 +914,7 @@ public class StoragePortsAssignerTest extends StoragePortsAllocatorTest {
 
     static private int hostIndex = 1;
     static private int initIndex = 1;
+    static private int pairedInitIndex = 1;
 
     /**
      * Returns initiators in a single host.
@@ -1266,6 +1297,141 @@ public class StoragePortsAssignerTest extends StoragePortsAllocatorTest {
             }
         }
         return hostInitiatorsMap;
+    }
+
+    /**
+     * Gets the associated initiator from List.
+     * 
+     * @param initiator
+     * @param assignments the map of initiator - storage ports
+     * @return the associated initiator. Null if associated initiator is not in the assignment map.
+     */
+    private static Initiator getAssociatedInitiatorFromList(Initiator initiator, List<Initiator> initiators) {
+
+
+        for (Iterator<Initiator> iterator = initiators.iterator(); iterator.hasNext();) {
+
+            Initiator initiatorInAssignments = iterator.next();
+            URI associatedInitiator2 = initiatorInAssignments.getAssociatedInitiator();
+
+            if (!NullColumnValueGetter.isNullURI(associatedInitiator2) &&
+                    initiator.getId().equals(associatedInitiator2)) {
+                return initiatorInAssignments;
+            }
+        }
+        return null;
+
+    }
+
+    /**
+     * verify that paired initiator assigned to same set of storage port or not
+     * 
+     * @param assignments
+     * @throws Exception
+     */
+    static void verifyPairedInitiatorSamePortAssignments(Map<Initiator, List<StoragePort>> assignments) throws Exception {
+        for (Initiator initiator : assignments.keySet()) {
+            List<StoragePort> storagePortList = assignments.get(initiator);
+            // convert to set to check storage port as same or not
+            Set<StoragePort> storagePortSet = new HashSet<StoragePort>(storagePortList);
+            // now get its associated assigned port.
+            Initiator assInitiator = getAssociatedInitiatorFromList(initiator, new ArrayList(assignments.keySet()));
+            if (assInitiator != null) {
+
+                storagePortList = assignments.get(assInitiator);
+                for (StoragePort storagePort : storagePortList) {
+                    boolean val = storagePortSet.add(storagePort);
+                    if (val) {
+                        throw new Exception(String.format(
+                                "storagePort %s assigned to initiator %s is not  same as to %s",
+                                storagePort, initiator.getInitiatorPort(), assInitiator.getInitiatorPort()));
+                    }
+
+                }
+            }
+
+        }
+    }
+
+
+    /**
+     * Returns initiators in a single host.
+     * 
+     * @param numberInitiators -- number of initiators
+     * @return List<Initiator>
+     */
+    static private List<Initiator> getHostPairedInitiators(int numberofPairInitiators) {
+        Host host = new Host();
+        host.setHostName("host" + hostIndex++);
+        host.setId(URI.create(host.getHostName()));
+        List<Initiator> initiators = new ArrayList<Initiator>();
+        for (int i = 0; i < numberofPairInitiators; i++)
+        {
+
+            // add first initiator start from C0
+            Initiator firstInitiator = new Initiator();
+            firstInitiator.setHost(host.getId());
+            firstInitiator.setHostName(host.getHostName());
+            String byte1 = String.format("%02x", pairedInitIndex / 256);
+            String byte0 = String.format("%02x", pairedInitIndex % 256);
+            firstInitiator.setInitiatorPort("C0:00:00:00:00:00:" + byte1 + ":" + byte0);
+            firstInitiator.setId(URI.create("firstInit" + pairedInitIndex));
+
+            // add second pair initiator start from C1 and have same pairedInitIndex
+
+            Initiator seconedInitiator = new Initiator();
+            seconedInitiator.setHost(host.getId());
+            seconedInitiator.setHostName(host.getHostName());
+            byte1 = String.format("%02x", pairedInitIndex / 256);
+            byte0 = String.format("%02x", pairedInitIndex % 256);
+            seconedInitiator.setInitiatorPort("C1:00:00:00:00:00:" + byte1 + ":" + byte0);
+            seconedInitiator.setId(URI.create("secondInit" + pairedInitIndex++));
+            // associated the initiator.
+
+            firstInitiator.setAssociatedInitiator(seconedInitiator.getId());
+            seconedInitiator.setAssociatedInitiator(firstInitiator.getId());
+            initiators.add(firstInitiator);
+            initiators.add(seconedInitiator);
+
+        }
+        return initiators;
+    }
+
+    /**
+     * Partials out the paired initiators against networks specified.
+     * 
+     * @param initiators List<Initiator>
+     * @param lowNet integer (lowest network to be used like net1)
+     * @param highNet integer (highest network to be used like net2)
+     * @param split the initiators across lowNet to highNet inclusive
+     * @return Map<URI, List<Initiator>> map from network URI to list of Initiators
+     */
+    static Map<URI, List<Initiator>> makeNet2InitiatorsPairedMap(List<Initiator> initiators, int lowNet, int highNet) {
+        HashMap<URI, List<Initiator>> map = new HashMap<URI, List<Initiator>>();
+        // Make an entry for each network.
+        for (int i = lowNet; i <= highNet; i++) {
+            URI net = (URI.create("net" + i));
+            map.put(net, new ArrayList<Initiator>());
+        }
+        // Divide the initiators among the networks.
+        // Make sure that paired initiator get same network
+        int numNetworks = highNet - lowNet + 1;
+        List<Initiator> pairedInitiorList = new ArrayList<Initiator>();
+        for (int i = 0; i < initiators.size(); i++) {
+            Initiator initiator = initiators.get(i);
+            if (pairedInitiorList.contains(initiator)) {
+                // initiator already considered
+                continue;
+            }
+            int index = i % numNetworks;
+            URI net = URI.create("net" + (index + lowNet));
+            map.get(net).add(initiator);
+            Initiator pairInitiator = getAssociatedInitiatorFromList(initiator, initiators);
+            map.get(net).add(pairInitiator);
+            pairedInitiorList.add(pairInitiator);
+
+        }
+        return map;
     }
     
     protected static PortAllocationContext createVmaxNet11() {

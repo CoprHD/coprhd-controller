@@ -816,9 +816,29 @@ public class ExportGroupService extends TaskResourceService {
             if (!CollectionUtils.isEmpty(param.getInitiators().getRemove())) {
                 for (URI uri : param.getInitiators().getRemove()) {
                     removedInitiators.add(uri);
+                    Initiator associatedInitiator = ExportUtils.getAssociatedInitiator(uri, _dbClient);
+                    if (associatedInitiator != null) {
+                        newInitiators.remove(associatedInitiator.getId());
+                        _log.info("Associated initiator removed : {} ", associatedInitiator.getId());
+                    }
                 }
             }
+
+            Set<URI> pairedInitiatorSetAdd = new HashSet<>();
+
             if (!CollectionUtils.isEmpty(param.getInitiators().getAdd())) {
+                _log.info("Checking if the list of initiators have their respective asscociated initiators..");
+                for (URI uri : param.getInitiators().getAdd()) {
+                    Initiator associatedInitiator = ExportUtils.getAssociatedInitiator(uri, _dbClient);
+                    if (associatedInitiator != null) {
+                        URI associatedInitiatorId = associatedInitiator.getId();
+                        _log.info("Associated initiator added : {} ", associatedInitiatorId);
+                        pairedInitiatorSetAdd.add(associatedInitiatorId);
+                    }
+                }
+            }
+            param.getInitiators().getAdd().addAll(pairedInitiatorSetAdd);
+            if (param.getInitiators().getAdd() != null) {
                 // TODO - Temporarily commented out for backward compatibility
                 URI initiatorHostUri = getInitiatorExportGroupHost(exportGroup);
                 for (URI uri : param.getInitiators().getAdd()) {
@@ -956,10 +976,17 @@ public class ExportGroupService extends TaskResourceService {
         }
         outVarrays.addAll(exportGroupVarrays);
         Set<NetworkLite> networks = NetworkUtil.getEndpointAllNetworksLite(initiator.getInitiatorPort(), _dbClient);
+        // now check its associated initiator is part of network or not.
+        Initiator associatedInitiator = ExportUtils.getAssociatedInitiator(initiator, _dbClient);
+        if (associatedInitiator != null) {
+            Set<NetworkLite> associatedNetworks = NetworkUtil.getEndpointAllNetworksLite(associatedInitiator.getInitiatorPort(), _dbClient);
+            networks.addAll(associatedNetworks);
+        }
         if (networks == null || networks.isEmpty()) {
             // No network associated with the initiator, so it should be removed from the list
             _log.info(String.format("Initiator %s (%s) is not associated with any network.",
                     initiator.getInitiatorPort(), initiator.getId().toString()));
+
             return false;
         } else {
             // Search through the networks determining if the any are associated with ExportGroup's VirtualArray.
@@ -1983,6 +2010,7 @@ public class ExportGroupService extends TaskResourceService {
             List<Initiator> initiators) {
         Map<URI, Map<URI, Integer>> storageMap = ExportUtils.getStorageToVolumeMap(
                 exportGroup, false, _dbClient);
+        boolean hasConnectivity = false;
         // we want to make sure the initiator can access each storage
         for (URI storage : storageMap.keySet()) {
             StorageSystem storageSystem = _dbClient.queryObject(
@@ -1990,8 +2018,19 @@ public class ExportGroupService extends TaskResourceService {
             List<URI> varrays = ExportUtils.getVarraysForStorageSystemVolumes(exportGroup, storage, _dbClient);
             for (Initiator initiator : initiators) {
                 // check the initiator has connectivity
-                if (!hasConnectivityToSystem(storageSystem, varrays, initiator)) {
-                    throw APIException.badRequests.initiatorNotConnectedToStorage(initiator.toString(), storageSystem.getNativeGuid());
+                _log.info("Validating port connectivity for initiator port: {}", initiator.getInitiatorPort());
+                hasConnectivity = hasConnectivityToSystem(storageSystem, varrays, initiator);
+                if (!hasConnectivity) {
+                    // check pair initiator has connectivity
+                    Initiator pairedInitiator = ExportUtils.getAssociatedInitiator(initiator, _dbClient);
+                    if (pairedInitiator != null) {
+                        _log.info("Validating port connectivity for associated initiator: ({})", pairedInitiator.getInitiatorPort());
+                        hasConnectivity = hasConnectivityToSystem(storageSystem, varrays, pairedInitiator);
+                    }
+                    if (!hasConnectivity) {
+                        throw APIException.badRequests.initiatorNotConnectedToStorage(initiator.toString(),
+                                storageSystem.getNativeGuid());
+                    }
                 }
             }
         }
@@ -2200,7 +2239,14 @@ public class ExportGroupService extends TaskResourceService {
             // check the initiator has connectivity
             if (!hasConnectivityToSystem(storageSystem,
                     varrays, initiator)) {
-                hasConnectivity = false;
+                // check associated initiator has connectivity
+                Initiator pairedInitiator = ExportUtils.getAssociatedInitiator(initiator, _dbClient);
+                if (pairedInitiator != null) {     
+                    _log.info("Validating port connectivity for associated initiator: ({})", pairedInitiator.getInitiatorPort());
+                    hasConnectivity = hasConnectivityToSystem(storageSystem, varrays, pairedInitiator);
+                } else {
+                    hasConnectivity = false;
+                }
                 if (connectedStorageSystems != null) {
                     connectedStorageSystems.remove(storage);
                 }

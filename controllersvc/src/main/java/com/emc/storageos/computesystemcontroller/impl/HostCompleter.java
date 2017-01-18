@@ -5,7 +5,9 @@
 package com.emc.storageos.computesystemcontroller.impl;
 
 import java.net.URI;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -23,15 +25,15 @@ public class HostCompleter extends ComputeSystemCompleter {
 
     private static final Logger _logger = LoggerFactory.getLogger(HostCompleter.class);
     private final URI eventId;
-    private URI clusterId;
-    private URI vCenterDataCenterId;
+    private final Map<URI, URI> oldHostClusters = new HashMap<URI, URI>();
+    private final Map<URI, URI> oldHostVcenterDataCenters = new HashMap<URI, URI>();
 
     public HostCompleter(URI id, boolean deactivateOnComplete, String opId) {
         this(NullColumnValueGetter.getNullURI(), id, deactivateOnComplete, opId);
     }
 
-    public HostCompleter(List<URI> ids, boolean deactivateOnComplete, URI clusterId, URI vCenterDataCenterId, String opId) {
-        this(NullColumnValueGetter.getNullURI(), ids, deactivateOnComplete, clusterId, vCenterDataCenterId, opId);
+    public HostCompleter(List<URI> ids, boolean deactivateOnComplete, String opId) {
+        this(NullColumnValueGetter.getNullURI(), ids, deactivateOnComplete, opId);
     }
 
     public HostCompleter(URI eventId, URI id, boolean deactivateOnComplete, String opId) {
@@ -39,11 +41,9 @@ public class HostCompleter extends ComputeSystemCompleter {
         this.eventId = eventId;
     }
 
-    public HostCompleter(URI eventId, List<URI> ids, boolean deactivateOnComplete, URI clusterId, URI vCenterDataCenterId, String opId) {
+    public HostCompleter(URI eventId, List<URI> ids, boolean deactivateOnComplete, String opId) {
         super(Host.class, ids, deactivateOnComplete, opId);
         this.eventId = eventId;
-        this.clusterId = clusterId;
-        this.vCenterDataCenterId = vCenterDataCenterId;
     }
 
     @Override
@@ -65,27 +65,16 @@ public class HostCompleter extends ComputeSystemCompleter {
                         }
                     }
 
-                    // Only update the cluster/vCenterDataCenter values if they both exist
-                    if (clusterId != null && vCenterDataCenterId != null) {
-                        // Get the old cluster/vcenter datacenter host values so we can properly rollback
-                        // those fields.
-                        URI oldClusterId = NullColumnValueGetter.getNullURI();
-                        URI oldvCenterDataCenterId = NullColumnValueGetter.getNullURI();
-
-                        if (host != null) {
-                            if (!NullColumnValueGetter.isNullURI(host.getCluster())) {
-                                oldClusterId = host.getCluster();
-                            }
-                            if (!NullColumnValueGetter.isNullURI(host.getVcenterDataCenter())) {
-                                oldvCenterDataCenterId = host.getVcenterDataCenter();
-                            }
-                        }
-
-                        _logger.info("Error occurred.  Setting old host values fro cluster/vcenterdatacenter");
-
-                        ComputeSystemHelper.updateHostAndInitiatorClusterReferences(dbClient, oldClusterId, id);
-                        ComputeSystemHelper.updateHostVcenterDatacenterReference(dbClient, id, oldvCenterDataCenterId);
+                    if (oldHostClusters.containsKey(id)) {
+                        _logger.info(String.format("Updating cluster to %s for host %s", oldHostClusters.get(id), id));
+                        ComputeSystemHelper.updateHostAndInitiatorClusterReferences(dbClient, oldHostClusters.get(id), id);
                     }
+
+                    if (oldHostVcenterDataCenters.containsKey(id)) {
+                        _logger.info(String.format("Updating vcenter datacenter to %s for host %s", oldHostVcenterDataCenters.get(id), id));
+                        ComputeSystemHelper.updateHostVcenterDatacenterReference(dbClient, id, oldHostVcenterDataCenters.get(id));
+                    }
+
                     dbClient.error(Host.class, id, getOpId(), coded);
                     break;
                 default:
@@ -98,5 +87,18 @@ public class HostCompleter extends ComputeSystemCompleter {
                 _logger.info("Deactivating Host: " + id);
             }
         }
+    }
+
+    /**
+     * Used to set the "old" values for cluster and vcenter data center. These values will be used for
+     * rollback if an error occurs.
+     *
+     * @param hostUri the rollback host URI
+     * @param oldClusterUri the rollback cluster URI
+     * @param oldVcenterDataCenterUri the rollback vcenter data center URI
+     */
+    public void addOldHostClusterAndVcenterDataCenter(URI hostUri, URI oldClusterUri, URI oldVcenterDataCenterUri) {
+        oldHostClusters.put(hostUri, oldClusterUri);
+        oldHostVcenterDataCenters.put(hostUri, oldVcenterDataCenterUri);
     }
 }

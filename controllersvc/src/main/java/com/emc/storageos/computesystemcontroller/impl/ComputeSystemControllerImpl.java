@@ -85,9 +85,7 @@ import com.emc.storageos.workflow.Workflow.Method;
 import com.emc.storageos.workflow.WorkflowException;
 import com.emc.storageos.workflow.WorkflowService;
 import com.emc.storageos.workflow.WorkflowStepCompleter;
-import com.google.common.base.Function;
 import com.google.common.collect.Collections2;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.iwave.ext.linux.util.VolumeWWNUtils;
@@ -471,7 +469,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
     @Override
     public void addHostsToExport(URI eventId, List<URI> hostIds, URI clusterId, String taskId, URI oldCluster, boolean isVcenter)
             throws ControllerException {
-        TaskCompleter completer = null;
+        HostCompleter completer = null;
         try {
             Workflow workflow = _workflowService.getNewWorkflow(this, REMOVE_HOST_STORAGE_WF_NAME, true, taskId);
             String waitFor = null;
@@ -482,14 +480,15 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                 vCenterDataCenterId = cluster.getVcenterDataCenter();
             }
 
-            completer = new HostCompleter(eventId, hostIds, false, clusterId, vCenterDataCenterId, taskId);
+            completer = new HostCompleter(eventId, hostIds, false, taskId);
 
             if (!NullColumnValueGetter.isNullURI(oldCluster)) {
                 waitFor = addStepsForRemoveHost(workflow, waitFor, hostIds, oldCluster, vCenterDataCenterId, isVcenter);
             }
-            
-            waitFor = addStepForUpdatingHostAndInitiatorClusterReferences(workflow, waitFor, hostIds, clusterId, vCenterDataCenterId);
-                        
+
+            waitFor = addStepForUpdatingHostAndInitiatorClusterReferences(workflow, waitFor, hostIds, clusterId, vCenterDataCenterId,
+                    completer);
+
             waitFor = addStepsForAddHost(workflow, waitFor, hostIds, clusterId, isVcenter);
 
             workflow.executePlan(completer, "Success", null, null, null, null);
@@ -505,16 +504,18 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
     public void removeHostsFromExport(URI eventId, List<URI> hostIds, URI clusterId, boolean isVcenter, URI vCenterDataCenterId,
             String taskId)
             throws ControllerException {
-        TaskCompleter completer = null;
+        HostCompleter completer = null;
         try {
-            completer = new HostCompleter(eventId, hostIds, false, NullColumnValueGetter.getNullURI(), vCenterDataCenterId, taskId);
+            completer = new HostCompleter(eventId, hostIds, false, taskId);
             Workflow workflow = _workflowService.getNewWorkflow(this, REMOVE_HOST_STORAGE_WF_NAME, true, taskId);
             String waitFor = null;
 
             waitFor = addStepsForRemoveHost(workflow, waitFor, hostIds, clusterId, vCenterDataCenterId, isVcenter);
-            
+
+            // Pass a null completer so if an error occurs we do not change the host/initiator cluster value or host
+            // vcenterdatacenter value.
             waitFor = addStepForUpdatingHostAndInitiatorClusterReferences(workflow, waitFor, hostIds, NullColumnValueGetter.getNullURI(),
-                    vCenterDataCenterId);
+                    vCenterDataCenterId, null);
 
             workflow.executePlan(completer, "Success", null, null, null, null);
         } catch (Exception ex) {
@@ -634,7 +635,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
         if (isVcenter && !NullColumnValueGetter.isNullURI(vcenterDataCenter)) {
             Collection<URI> exportIds = Collections2.transform(exportGroups, CommonTransformerFunctions.fctnDataObjectToID());
             Map<URI, Collection<URI>> hostExports = Maps.newHashMap();
-            
+
             for (URI host : hostIds) {
                 hostExports.put(host, exportIds);
             }
@@ -643,11 +644,11 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
 
             newWaitFor = this.unmountAndDetachVolumes(hostExports, vcenterDataCenter, newWaitFor, workflow);
         }
-        
+
         for (ExportGroup export : exportGroups) {
             newWaitFor = addStepsForRemoveHostFromExport(workflow, newWaitFor, hostIds, export.getId());
         }
-        
+
         return newWaitFor;
     }
 
@@ -663,7 +664,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
     public String addStepsForRemoveHostFromExport(Workflow workflow, String waitFor, List<URI> hostIds, URI exportId) {
         ExportGroup export = _dbClient.queryObject(ExportGroup.class, exportId);
         String newWaitFor = waitFor;
-        
+
         Set<URI> addedClusters = new HashSet<>();
         Set<URI> removedClusters = new HashSet<>();
         Set<URI> addedHosts = new HashSet<>();
@@ -837,7 +838,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
     }
 
     public String addStepForUpdatingHostAndInitiatorClusterReferences(Workflow workflow, String waitFor, List<URI> hostIds, URI clusterId,
-            URI vCenterDataCenterId) {
+            URI vCenterDataCenterId, HostCompleter completer) {
         for (URI hostId : hostIds) {
 
             URI oldClusterId = NullColumnValueGetter.getNullURI();
@@ -851,6 +852,11 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                 if (!NullColumnValueGetter.isNullURI(host.getVcenterDataCenter())) {
                     oldvCenterDataCenterId = host.getVcenterDataCenter();
                 }
+            }
+
+            if (completer != null) {
+                // Update the completer with the correct values to rollback
+                completer.addOldHostClusterAndVcenterDataCenter(hostId, oldClusterId, oldvCenterDataCenterId);
             }
 
             waitFor = workflow.createStep(UPDATE_HOST_AND_INITIATOR_CLUSTER_NAMES_STEP,

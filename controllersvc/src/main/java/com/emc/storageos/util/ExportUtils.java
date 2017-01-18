@@ -1449,7 +1449,6 @@ public class ExportUtils {
      * Given an updatedBlockObjectMap (maps BlockObject URI to Lun Integer) representing the desired state,
      * and an Export Group, makes addedBlockObjects containing the entries that were added,
      * and removedBlockObjects containing the entries that were removed.
-     * 
      * @param updatedBlockObjectMap : desired state of the Block Object Map
      * @param exportGroup : existing map taken from exportGroup.getVolumes()
      * @param addedBlockObjects : OUTPUT - contains map of added Block Objects
@@ -1592,47 +1591,6 @@ public class ExportUtils {
         }
         _log.info("Ports {} are going to be removed", portUris);
         return new ArrayList<URI>(portUris);
-    }
-
-    public static Initiator getAssociatedInitiator(Initiator initiator, DbClient dbClient) {
-        URI associatedInitiatorURI = initiator.getAssociatedInitiator();
-        if (!NullColumnValueGetter.isNullURI(associatedInitiatorURI)) {
-            Initiator associatedInitiator = dbClient.queryObject(Initiator.class, associatedInitiatorURI);
-            if (associatedInitiator != null && !associatedInitiator.getInactive()) {
-                return associatedInitiator;
-            }
-        }
-        return null;
-    }
-
-    public static Initiator getAssociatedInitiator(URI initiatorURI, DbClient dbClient) {
-        Initiator initiator = dbClient.queryObject(Initiator.class, initiatorURI);
-        if (initiator != null && !initiator.getInactive()) {
-            return getAssociatedInitiator(initiator, dbClient);
-        }
-
-        return null;
-    }
-
-    public static Initiator getAssociatedInitiator(String endpoint, DbClient dbClient) {
-        Initiator associatedInitiator = null;
-        Initiator initiator = getInitiator(endpoint, dbClient);
-        if (initiator != null) {
-            associatedInitiator = getAssociatedInitiator(initiator, dbClient);
-        }
-        return associatedInitiator;
-    }
-
-    public static String getAssociatedInitiatorEndpoint(String endpoint, DbClient dbClient) {
-        Initiator initiator = getInitiator(endpoint, dbClient);
-        if (initiator != null) {
-            Initiator associatedInitiator = getAssociatedInitiator(initiator, dbClient);
-            if (associatedInitiator != null) {
-                return associatedInitiator.getInitiatorPort();
-            }
-        }
-
-        return null;
     }
 
     /**
@@ -1987,25 +1945,7 @@ public class ExportUtils {
             }
         }
     }
-    
-    public static Initiator getAssociatedInitiator(Initiator initiator, DbClient dbClient) {
-        Initiator associatedInitiator = null;
-        if (initiator != null) {
-            URI associatedInitiatorURI = initiator.getAssociatedInitiator();
-            if (!NullColumnValueGetter.isNullURI(associatedInitiatorURI)) {
-                associatedInitiator = dbClient.queryObject(Initiator.class, associatedInitiatorURI);
-            }
-        }
-        return associatedInitiator;
 
-    }
-    
-      public static Initiator getAssociatedInitiator(URI initiatorURI, DbClient dbClient) {
-        Initiator initiator = dbClient.queryObject(Initiator.class, initiatorURI);
-        return getAssociatedInitiator(initiator, dbClient);
-
-
-}
     /**
      * Handle the ExportMask Volume removal based on the ExportMaskToRemovedVolumeMap.
      * 
@@ -2015,7 +1955,7 @@ public class ExportUtils {
      */
     public static void handleExportMaskVolumeRemoval(DbClient dbClient, Map<URI, List<URI>> exportMaskToRemovedVolumeMap, URI exportGroupUri) {
         if (null != exportMaskToRemovedVolumeMap) {
-  
+
             Map<URI, BlockObject> blockObjectCache = new HashMap<URI, BlockObject>();
 
             for (Entry<URI, List<URI>> entry : exportMaskToRemovedVolumeMap.entrySet()) {
@@ -2074,6 +2014,26 @@ public class ExportUtils {
             }
         }
     }
+
+    public static Initiator getAssociatedInitiator(Initiator initiator, DbClient dbClient) {
+        Initiator associatedInitiator = null;
+        if (initiator != null) {
+            URI associatedInitiatorURI = initiator.getAssociatedInitiator();
+            if (!NullColumnValueGetter.isNullURI(associatedInitiatorURI)) {
+                associatedInitiator = dbClient.queryObject(Initiator.class, associatedInitiatorURI);
+            }
+        }
+        return associatedInitiator;
+
+    }
+
+    public static Initiator getAssociatedInitiator(URI initiatorURI, DbClient dbClient) {
+        Initiator initiator = dbClient.queryObject(Initiator.class, initiatorURI);
+        return getAssociatedInitiator(initiator, dbClient);
+
+    }
+
+
     public static String getAssociatedInitiatorEndpoint(String endpoint, DbClient dbClient) {
         String associatedInitiatorPort = null;
         Initiator initiator = getInitiator(endpoint, dbClient);
@@ -2083,6 +2043,5 @@ public class ExportUtils {
         }
         return associatedInitiatorPort;
     }
-
     
 }

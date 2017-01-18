@@ -15,6 +15,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.eclipse.jetty.util.log.Log;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -27,6 +28,7 @@ import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.util.DataObjectUtils;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.util.NetworkLite;
+import com.emc.storageos.util.NetworkUtil;
 import com.emc.storageos.volumecontroller.impl.plugins.metering.smis.processor.PortMetricsProcessor;
 
 /**
@@ -60,14 +62,14 @@ public class DefaultStoragePortsAssigner implements StoragePortsAssigner {
             Map<URI, Set<Initiator>> existingInitiatorsMap, // existing initiators grouped by Network
             boolean usingSwitchAffinity,
             List<URI> networkOrder)                     // OUTPUT; order for network allocations
-                    throws PlacementException {
+            throws PlacementException {
         if (existingPortsMap == null) {
             existingPortsMap = new HashMap<URI, Set<StoragePort>>();
         }
         if (existingInitiatorsMap == null) {
             existingInitiatorsMap = new HashMap<URI, Set<Initiator>>();
         }
-
+        
         Integer allocated = 0;
         Map<URI, Integer> net2NumPortsMap = new HashMap<URI, Integer>();
 
@@ -85,7 +87,7 @@ public class DefaultStoragePortsAssigner implements StoragePortsAssigner {
             }
             allInitiatorsMap.get(netURI).addAll(initiators);
         }
-
+        
         // Get the network URIs from all the initiators.
         URI[] networkURIs = new URI[0];
         networkURIs = allInitiatorsMap.keySet().toArray(networkURIs);
@@ -94,7 +96,7 @@ public class DefaultStoragePortsAssigner implements StoragePortsAssigner {
         // This is the combination of the existing initiators and the new initiators.
         Map<URI, Integer> net2MaxHostInitiators = makeNetwork2MaxHostInitiators(
                 allInitiatorsMap);
-
+        
         // Determine the non-redundant networks. These are the networks where at least
         // one host is using that single network. For non redundant networks, we
         // will allow the lower of maxPaths or the maximum initiators for any host..
@@ -102,7 +104,7 @@ public class DefaultStoragePortsAssigner implements StoragePortsAssigner {
         // maximum number of initiators for any host.
         Map<URI, Set<URI>> hostToNetworksMap = new HashMap<URI, Set<URI>>();
         Set<URI> nonRedundantNetworks = networksNotRedundant(allInitiatorsMap, hostToNetworksMap);
-
+        
         // Generate network allocation ordering.
         networkOrder.clear();
         networkOrder.addAll(orderNetworksForAllocation(hostToNetworksMap, net2MaxHostInitiators));
@@ -138,7 +140,7 @@ public class DefaultStoragePortsAssigner implements StoragePortsAssigner {
                     pathLimit = pathsPerInitiator;
                 }
                 if (usingSwitchAffinity) {
-                	pathLimit = maxPaths * 2;
+                    pathLimit = maxPaths * 2;
                 }
                 // We also get the maxHostInitiators for this network.
                 // We never need to allocate more ports than maxHostInitiators * pathsPer_initiator
@@ -154,7 +156,7 @@ public class DefaultStoragePortsAssigner implements StoragePortsAssigner {
                 Integer currentPorts = net2NumPortsMap.get(networkURI);
                 _log.info(String.format("Network %s pathLimit %d maxHostInitiators %d currentPorts %d",
                         networkURI, pathLimit, maxHostInitiators, currentPorts));
-                if (currentPorts <= (pathLimit - pathsPerInitiator)
+                if (currentPorts <= (pathLimit - pathsPerInitiator) 
                         && currentPorts < (maxHostInitiators * pathsPerInitiator)) {
                     net2NumPortsMap.put(networkURI, currentPorts + pathsPerInitiator);
                     addedThisPass = true;
@@ -293,12 +295,11 @@ public class DefaultStoragePortsAssigner implements StoragePortsAssigner {
             Map<URI, Set<Initiator>> net2InitiatorsMap) {
         Map<URI, Integer> net2MaxHostInitiators = new HashMap<URI, Integer>();
         for (URI net : net2InitiatorsMap.keySet()) {
-            Map<URI, List<Initiator>> hostInitiatorsMap = makeHostInitiatorsMap(net2InitiatorsMap.get(net));
+            Map<URI, List<Initiator>> hostInitiatorsMap =
+                    makeHostInitiatorsMap(net2InitiatorsMap.get(net));
             int max = 0;
-
             for (URI host : hostInitiatorsMap.keySet()) {
                 List<Initiator> list = hostInitiatorsMap.get(host);
-
                 int thisHost = getInitiatorCount(list);
                 max = (thisHost > max) ? thisHost : max;
             }
@@ -307,47 +308,23 @@ public class DefaultStoragePortsAssigner implements StoragePortsAssigner {
         }
         return net2MaxHostInitiators;
     }
-
-    /**
-     * this function count actual initiator.Mean it takes list of initiator and ignore the inititoar if it has
-     * Already consider it paired
-     * 
-     * @param list
-     * @return
-     */
-    private int getInitiatorCount(List<Initiator> list) {
-        List<URI> processInitiator = new ArrayList<URI>();
-        int count = 0;
-        for (Initiator currentInitiator : list) {
-            URI pair = currentInitiator.getAssociatedInitiator();
-            if (NullColumnValueGetter.isNullURI(pair)) {
-                count++;
-            } else if (!processInitiator.contains(pair)) {
-                processInitiator.add(currentInitiator.getId());
-                count++;
-            }
-        }
-
-        return count;
-    }
-
+    
     /**
      * Determines if there are any hosts that only have connectivity to only one network.
      * We favor allocating more ports in a network if it is the only one some host has access to.
      * Returns a list of such networks.
-     * 
      * @param net2InitiatorsMap -- a map of Network URI to a set of Initiator objects in that network
      * @param hostToNetworks - outputs a map of Host URI to Netowrk URIs used by that host
      * @return URI set of networks that are not redundant
      */
-    private Set<URI> networksNotRedundant(Map<URI, Set<Initiator>> netToInitiatorsMap,
+    private Set<URI> networksNotRedundant(Map<URI, Set<Initiator>> netToInitiatorsMap, 
             Map<URI, Set<URI>> hostToNetworks) {
         hostToNetworks.clear();
         // Reverse the netToInitiatorsMap to make an Initiator to Net map.
         Map<Initiator, URI> initiatorsToNetMap = new HashMap<Initiator, URI>();
         for (Map.Entry<URI, Set<Initiator>> entry : netToInitiatorsMap.entrySet()) {
             for (Initiator initiator : entry.getValue()) {
-                initiatorsToNetMap.put(initiator, entry.getKey());
+                initiatorsToNetMap.put(initiator,  entry.getKey());
             }
         }
         Set<URI> nonredundantNets = new HashSet<URI>();
@@ -371,23 +348,20 @@ public class DefaultStoragePortsAssigner implements StoragePortsAssigner {
         }
         return nonredundantNets;
     }
-
+    
     // A class relating the Network URI to initiator count that can be sorted by initiator count
     // so as to sort the Networks by increasing initiator counts.
     private class NetworkInitiatorCount implements Comparable<NetworkInitiatorCount> {
         private URI net;
         private int count;
-
         NetworkInitiatorCount(URI net, int count) {
             this.net = net;
             this.count = count;
         }
-
         @Override
         public int hashCode() {
             return net.hashCode();
         }
-
         @Override
         public boolean equals(Object obj) {
             if (this == obj)
@@ -404,13 +378,12 @@ public class DefaultStoragePortsAssigner implements StoragePortsAssigner {
                 return false;
             return true;
         }
-
         @Override
         public int compareTo(NetworkInitiatorCount arg0) {
             return this.count - arg0.count;
         }
     };
-
+    
     /**
      * The goal of this algorithm is to order the Networks so as to pass useful context when the Storage Ports Allocator prcesses one
      * network to the network it will process next. So we want networks used by the same host(s) to be processed together, and we
@@ -421,16 +394,16 @@ public class DefaultStoragePortsAssigner implements StoragePortsAssigner {
      * 
      * @param hostToNetworks -- a map of Host URI to a set of Network URIs representing the Networks used by this host.
      * @param net2MaxHostInitiators -- a map of Network URI to the maximum number of initiators any one host has on that network.
-     *            This is an upper bound on the number of ports needed by the network (when multiplied by paths_per_initiator).
+     * This is an upper bound on the number of ports needed by the network (when multiplied by paths_per_initiator).
      * @return -- an ordered list of Network URIs representing the order the Storage Ports Allocator should process the
-     *         networks
+     * networks
      */
     List<URI> orderNetworksForAllocation(Map<URI, Set<URI>> hostToNetworks, Map<URI, Integer> net2MaxHostInitiators) {
         List<URI> orderedNetworks = new ArrayList<URI>();
         List<URI> skippedNetworks = new ArrayList<URI>();
         // Loop through each host, processing those with more than one network.
         // Record any skipped networks.
-        for (Map.Entry<URI, Set<URI>> entry : hostToNetworks.entrySet()) {
+        for (Map.Entry<URI, Set<URI>>  entry : hostToNetworks.entrySet()) {
             if (entry.getValue().size() == 1) {
                 // process single networks last, as that net may be allocated with other net
                 skippedNetworks.addAll(entry.getValue());
@@ -473,17 +446,17 @@ public class DefaultStoragePortsAssigner implements StoragePortsAssigner {
     /**
      * The goal of this routine is to handle all the assignments for a single host.
      * Outline of the algorithm for assignPortsToHost.
-     * 1. Look at each initiator that has an existing assignment.
-     * a. Validate paths per initiator
-     * b Tally up the current number of paths currently assigned
+     * 1. Look at each initiator that has an existing assignment. 
+     *    a. Validate paths per initiator
+     *    b  Tally up the current number of paths currently assigned
      * 2. Loop through Networks, picking unassigned initiator one at a time, and assigning ports.
-     * Repeat until there are no more initiators or we have met max_paths.
+     *     Repeat until there are no more initiators or we have met max_paths.
      * 3. If there are remaining unconfigured initiators, double up initiators on ports of maxinitiatorsperport is > 1.
-     * 
+     *    
      */
-    public void assignPortsToHost(Map<Initiator, List<StoragePort>> assignments,
+    public void assignPortsToHost(Map<Initiator, List<StoragePort>> assignments, 
             Map<URI, List<Initiator>> netToNewInitiators, Map<URI, List<StoragePort>> netToAllocatedPorts,
-            ExportPathParams pathParams, Map<Initiator, List<StoragePort>> argExistingAssignments, URI hostURI,
+            ExportPathParams pathParams, Map<Initiator, List<StoragePort>> argExistingAssignments, URI hostURI, 
             Map<Initiator, NetworkLite> initiatorToNetworkLiteMap, Map<URI, Map<String, List<Initiator>>> switchToInitiatorsByNet,
             Map<URI, Map<String, List<StoragePort>>> switchToStoragePortsByNet) {
         _log.info("Assigning ports for host: " + hostURI);
@@ -499,12 +472,13 @@ public class DefaultStoragePortsAssigner implements StoragePortsAssigner {
         Map<URI, List<Initiator>> existingInitiatorsMap = makeHostInitiatorsMap(existingAssignments.keySet());
         List<Initiator> hostExistingInitiators = nonNullInitiatorList(existingInitiatorsMap.get(hostURI));
 
+        
         // Calculate port use counts from the existing assignments
         for (Initiator hostExistingInitiator : hostExistingInitiators) {
             List<StoragePort> portsAssigned = existingAssignments.get(hostExistingInitiator);
             if (portsAssigned != null) {
                 for (StoragePort port : portsAssigned) {
-                    _log.info(String.format("Existing assignment initiator %s (%s) port %s (%s) net %s",
+                    _log.info(String.format("Existing assignment initiator %s (%s) port %s (%s/%s) net %s", 
                             hostExistingInitiator.getInitiatorPort(), hostExistingInitiator.getHostName(),
                             port.getPortName(), port.getPortNetworkId(), 
                             getPortSwitchName(port, portAddressToSwitchName), port.getNetwork()));
@@ -515,86 +489,87 @@ public class DefaultStoragePortsAssigner implements StoragePortsAssigner {
         
         // Put any existing initiators assignments into the assignments.
         assignments.putAll(existingAssignments);
-
+        
         // If we had existing assignments, sort the allocated ports, getting just the new ports.
         if (!portUseCounts.isEmpty()) {
             for (URI netURI : netToAllocatedPorts.keySet()) {
                 List<StoragePort> newPorts = new ArrayList<StoragePort>();
-                List<StoragePort> sortedPorts = sortPorts(netToAllocatedPorts.get(netURI), existingAssignments, newPorts);
-                netToAllocatedPorts.put(netURI, sortedPorts);
+                List<StoragePort> sortedPorts = 
+                        sortPorts(netToAllocatedPorts.get(netURI), existingAssignments, newPorts);
+                netToAllocatedPorts.put(netURI,  sortedPorts);
             }
         }
-
+        
         if (switchToInitiatorsByNet != null && !switchToInitiatorsByNet.isEmpty()) {
-        	// Pass 1: use only ports with Switch Affinity.
-        	_log.info("PASS ONE: Assigning initiators with switch affinity");
-        	iterateAssignmentPasses(assignments, netToNewInitiators, portUseCounts, netToAllocatedPorts, 
-        			initiatorToSwitchName, portAddressToSwitchName, switchToStoragePortsByNet, initiatorToNetworkLiteMap, 
-        			pathParams, true, false);
+            // Pass 1: use only ports with Switch Affinity.
+            _log.info("PASS ONE: Assigning initiators with switch affinity");
+            iterateAssignmentPasses(assignments, netToNewInitiators, portUseCounts, netToAllocatedPorts, 
+                    initiatorToSwitchName, portAddressToSwitchName, switchToStoragePortsByNet, initiatorToNetworkLiteMap, 
+                    pathParams, true, false);
 
-        	// Pass 2 - use combination switch affinity and non affinity ports
-        	_log.info("PASS TWO: Assigning initiators with partial switch affinity");
-        	iterateAssignmentPasses(assignments, netToNewInitiators, portUseCounts, netToAllocatedPorts, 
-        			initiatorToSwitchName, portAddressToSwitchName, switchToStoragePortsByNet, initiatorToNetworkLiteMap, 
-        			pathParams, true, true);
+            // Pass 2 - use combination switch affinity and non affinity ports
+            _log.info("PASS TWO: Assigning initiators with partial switch affinity");
+            iterateAssignmentPasses(assignments, netToNewInitiators, portUseCounts, netToAllocatedPorts, 
+                    initiatorToSwitchName, portAddressToSwitchName, switchToStoragePortsByNet, initiatorToNetworkLiteMap, 
+                    pathParams, true, true);
         }
 
         // Pass 3 - use only non switch affinity
         _log.info("PASS THREE: Assigning initiators without switch affinity");
         iterateAssignmentPasses(assignments, netToNewInitiators, portUseCounts, netToAllocatedPorts, 
-        		initiatorToSwitchName, portAddressToSwitchName, switchToStoragePortsByNet, initiatorToNetworkLiteMap, 
-        		pathParams, false, true);
+                initiatorToSwitchName, portAddressToSwitchName, switchToStoragePortsByNet, initiatorToNetworkLiteMap, 
+                pathParams, false, true);
 
         // Now if we can map multiple initiators per port, fill in any unprovisoned initiators
         if (pathParams.getMaxInitiatorsPerPort() > 1) {
-        	int currentStoragePaths = portUseCounts.size();
-        	_log.info("*** Adding assignments for multiple initiators using same ports, maxInitiatorsPerPort: " 
-        			+ pathParams.getMaxInitiatorsPerPort());
-        	for (Map.Entry<URI, List<Initiator>> entry : netToNewInitiators.entrySet()) {
-        		List<StoragePort> allocatedPorts = netToAllocatedPorts.get(entry.getKey());
-        		// See if we can map the yet unprovisioned initiators to already used ports
-        		for (Initiator initiator : entry.getValue()) {
-        			// If initiator is already provisioned, skip it
-        			if (assignments.containsKey(initiator)) {
-        				continue;
-        			}
-        			// Check if provisioning another initiator would put us over max paths
-        			if ((currentStoragePaths + pathParams.getPathsPerInitiator()) > pathParams.getMaxPaths()) {
-        				break;
-        			}
-        			// Try to find available ports with switch affinity.
-        			List<StoragePort> availPorts = new ArrayList<StoragePort>();
-        			String switchName = initiatorToSwitchName.get(initiator);
-        			if (switchToStoragePortsByNet != null && switchToStoragePortsByNet.containsKey(entry.getKey())) {
-        				if (switchToStoragePortsByNet.get(entry.getKey()).containsKey(switchName)) {
-        					List<StoragePort> availSwitchPorts = switchToStoragePortsByNet.get(entry.getKey()).get(switchName);
-        					List<StoragePort> affinityPorts = getAvailablePorts(initiator, initiatorToNetworkLiteMap, availSwitchPorts, 
-        							portUseCounts, pathParams.getPathsPerInitiator(), pathParams.getMaxInitiatorsPerPort() -1);
-        				    if (affinityPorts != null) {
-        				    	availPorts.addAll(affinityPorts);
-        				    }
-        				
-        				}
-        			}
-        			// Allocate paths per initiator number of ports without switch affinity
-        			int numberPortsNeeded = pathParams.getPathsPerInitiator() - availPorts.size();
-        			List<StoragePort> nonAffinityPorts = getAvailablePorts(initiator, initiatorToNetworkLiteMap,
-        					allocatedPorts, portUseCounts, numberPortsNeeded, 
-        					pathParams.getMaxInitiatorsPerPort() - 1);
-        			if (nonAffinityPorts != null) {
-        				availPorts.addAll(nonAffinityPorts);
-        			}
-        			if (availPorts != null) {
-        				// Assign them and update the current storage paths count
-        				assignPorts(assignments, entry.getKey(), initiator, availPorts, portUseCounts, 
-        						portAddressToSwitchName, initiatorToSwitchName);
-        				currentStoragePaths += pathParams.getPathsPerInitiator();
-        			} else {
-        				_log.info(String.format("No available ports for initiator %s", 
-        						initiator.getInitiatorPort()));
-        			}
-        		}
-        	}
+            int currentStoragePaths = portUseCounts.size();
+            _log.info("*** Adding assignments for multiple initiators using same ports, maxInitiatorsPerPort: " 
+                    + pathParams.getMaxInitiatorsPerPort());
+            for (Map.Entry<URI, List<Initiator>> entry : netToNewInitiators.entrySet()) {
+                List<StoragePort> allocatedPorts = netToAllocatedPorts.get(entry.getKey());
+                // See if we can map the yet unprovisioned initiators to already used ports
+                for (Initiator initiator : entry.getValue()) {
+                    // If initiator is already provisioned, skip it
+                    if (assignments.containsKey(initiator)) {
+                        continue;
+                    }
+                    // Check if provisioning another initiator would put us over max paths
+                    if ((currentStoragePaths + pathParams.getPathsPerInitiator()) > pathParams.getMaxPaths()) {
+                        break;
+                    }
+                    // Try to find available ports with switch affinity.
+                    List<StoragePort> availPorts = new ArrayList<StoragePort>();
+                    String switchName = initiatorToSwitchName.get(initiator);
+                    if (switchToStoragePortsByNet != null && switchToStoragePortsByNet.containsKey(entry.getKey())) {
+                        if (switchToStoragePortsByNet.get(entry.getKey()).containsKey(switchName)) {
+                            List<StoragePort> availSwitchPorts = switchToStoragePortsByNet.get(entry.getKey()).get(switchName);
+                            List<StoragePort> affinityPorts = getAvailablePorts(initiator, initiatorToNetworkLiteMap, availSwitchPorts, 
+                                    portUseCounts, pathParams.getPathsPerInitiator(), pathParams.getMaxInitiatorsPerPort() -1);
+                            if (affinityPorts != null) {
+                                availPorts.addAll(affinityPorts);
+                            }
+                        
+                        }
+                    }
+                    // Allocate paths per initiator number of ports without switch affinity
+                    int numberPortsNeeded = pathParams.getPathsPerInitiator() - availPorts.size();
+                    List<StoragePort> nonAffinityPorts = getAvailablePorts(initiator, initiatorToNetworkLiteMap,
+                            allocatedPorts, portUseCounts, numberPortsNeeded, 
+                            pathParams.getMaxInitiatorsPerPort() - 1);
+                    if (nonAffinityPorts != null) {
+                        availPorts.addAll(nonAffinityPorts);
+                    }
+                    if (availPorts != null) {
+                        // Assign them and update the current storage paths count
+                        assignPorts(assignments, entry.getKey(), initiator, availPorts, portUseCounts, 
+                                portAddressToSwitchName, initiatorToSwitchName);
+                        currentStoragePaths += pathParams.getPathsPerInitiator();
+                    } else {
+                        _log.info(String.format("No available ports for initiator %s", 
+                                initiator.getInitiatorPort()));
+                    }
+                }
+            }
         }
     }
     
@@ -613,34 +588,32 @@ public class DefaultStoragePortsAssigner implements StoragePortsAssigner {
      * @param useNonAffinity
      */
     private void iterateAssignmentPasses(
-    		Map<Initiator, List<StoragePort>> assignments, Map<URI, List<Initiator>> netToNewInitiators, 
-    		Map<StoragePort, Integer> portUseCounts, Map<URI, List<StoragePort>> netToAllocatedPorts,
-    		Map<Initiator, String> initiatorToSwitchName, Map<String,String> portAddressToSwitchName,
-    		Map<URI, Map<String, List<StoragePort>>> switchToStoragePortsByNet,
-    		Map<Initiator, NetworkLite> initiatorToNetworkLiteMap,
-     		ExportPathParams pathParams, boolean useAffinity, boolean useNonAffinity) {
-    	
-    	// Copy the map of network to initiators to be provisioned as this is destroyed
+            Map<Initiator, List<StoragePort>> assignments, Map<URI, List<Initiator>> netToNewInitiators, 
+            Map<StoragePort, Integer> portUseCounts, Map<URI, List<StoragePort>> netToAllocatedPorts,
+            Map<Initiator, String> initiatorToSwitchName, Map<String,String> portAddressToSwitchName,
+            Map<URI, Map<String, List<StoragePort>>> switchToStoragePortsByNet,
+            Map<Initiator, NetworkLite> initiatorToNetworkLiteMap,
+            ExportPathParams pathParams, boolean useAffinity, boolean useNonAffinity) {
+        
+        // Copy the map of network to initiators to be provisioned as this is destroyed
         Map<URI, List<Initiator>> netToInitiatorsToProvision = new HashMap<URI, List<Initiator>>();
         for (Map.Entry<URI, List<Initiator>> entry : netToNewInitiators.entrySet()) {
             // N.B. We must copy the initiator list so as not to affect caller's data
             netToInitiatorsToProvision.put(entry.getKey(), new ArrayList<Initiator>(entry.getValue()));
         }
 
-    	boolean hadInitiators = false;
-    	// Loop while progress is being made
+        boolean hadInitiators = false;
+        // Loop while progress is being made
         do {
             hadInitiators = false;
             // Loop over networks, adding equal numbers of ports per network
-            for (Map.Entry<URI, List<Initiator>> entry : netToInitiatorsToProvision.entrySet()) {
+            for (Map.Entry<URI, List<Initiator>> entry: netToInitiatorsToProvision.entrySet()) {
                 if (null == entry.getValue() || entry.getValue().isEmpty()) {
                     _log.info(String.format("No more initiators to provision net %s", entry.getKey()));
                     continue;
-                }// to do amit just for test
+                }
                 hadInitiators = true;
                 int currentStoragePaths = portUseCounts.size();
-                // check if storage port assigned to paired initiator then count it as one.
-
                 
                 // Work on the first initiator
                 Initiator initiator = entry.getValue().get(0);
@@ -648,26 +621,36 @@ public class DefaultStoragePortsAssigner implements StoragePortsAssigner {
                 // Determine the ports we can use, based on using affinity, non-affinity, or both.
                 List<StoragePort> allocatedPorts = new ArrayList<StoragePort>();
                 if (useAffinity) {
-                	allocatedPorts.addAll(getPortsWithSwitchAffinity(entry.getKey(), initiator, 
-                			initiatorToSwitchName.get(initiator), switchToStoragePortsByNet));
-                	// If there are no ports, we cannot provision this initiator, so look at next Network
+                    allocatedPorts.addAll(getPortsWithSwitchAffinity(entry.getKey(), initiator, 
+                            initiatorToSwitchName.get(initiator), switchToStoragePortsByNet));
+                    // If there are no ports, we cannot provision this initiator, so look at next Network
                     if (allocatedPorts.isEmpty()) {
-                    	entry.getValue().remove(initiator);
-                    	continue;
+                        entry.getValue().remove(initiator);
+                        continue;
                     }
                 }
                 if (useNonAffinity) {
-                	List<StoragePort> nonAffinityPorts = new ArrayList<StoragePort>();
-                	nonAffinityPorts.addAll(netToAllocatedPorts.get(entry.getKey()));
-                	// Remove duplicates
-                	nonAffinityPorts.removeAll(allocatedPorts);
-                	allocatedPorts.addAll(nonAffinityPorts);
+                    List<StoragePort> nonAffinityPorts = new ArrayList<StoragePort>();
+                    nonAffinityPorts.addAll(netToAllocatedPorts.get(entry.getKey()));
+                    // Remove duplicates
+                    nonAffinityPorts.removeAll(allocatedPorts);
+                    allocatedPorts.addAll(nonAffinityPorts);
+                }
+                
+                // give a try to assigning port form its associated initiator from assignments
+                // not considering for path as it associate is already considered.
+                boolean assigned = assignSamePortsFromAssociateInitiator(initiator, assignments);
+                if (assigned) {
+                    // Remove this initiator from further provisioning consideration
+                    // and do not add this initiator for path consideration.
+                    entry.getValue().remove(initiator);
+                    continue;
                 }
                 
                 // If there are no ports, we cannot provision this initiator, so look at next Network
                 if (allocatedPorts.isEmpty()) {
-                	entry.getValue().remove(initiator);
-                	continue;
+                    entry.getValue().remove(initiator);
+                    continue;
                 }
 
                 // Determine if ports have already been assigned (perhaps even partially but need additional ports.)
@@ -676,49 +659,32 @@ public class DefaultStoragePortsAssigner implements StoragePortsAssigner {
                 if (assignedPorts != null) {
                     alreadyAssigned = assignedPorts.size();
                     if (alreadyAssigned >= pathParams.getPathsPerInitiator()) {
-                        _log.info(String.format("Assignments sufficient for initiator %s (%s)",
-                                initiator.getInitiatorPort(), initiator.getHostName()));
-                        entry.getValue().remove(0);
+                        // Sufficient ports have already been assigned.
+                        entry.getValue().remove(initiator);
                         // This counts as we added something because we processed a previous mapping
-                        addedThisPass = true;
                         continue;
-                    }
-                } else {
-                    // initiator is not present in assignments .
-                    // give a try to assigning port form its associated initiator from assignments
-                    // not considering for path as it associate is already considered.
-                    boolean assigned = assignSamePortsFromAssociateInitiator(initiator, assignments);
-                    if (assigned) {
-                        // Remove this initiator from further provisioning consideration
-                        addedThisPass = true;
-                        entry.getValue().remove(0);
-                        continue;
+                    } else {
+                        _log.info(String.format("Retaining partial assignments Initiator %s (%s):", 
+                                initiator.getInitiatorPort(), initiator.getHostName()));
+                        for (StoragePort port : assignedPorts) {
+                            _log.info(String.format("   Port %s (%s/%s) network %s assigned to initiator %s/%s (%s)\n",
+                                    port.getPortName(), port.getPortNetworkId(), 
+                                    getPortSwitchName(port, portAddressToSwitchName), entry.getKey(),
+                                    initiator.getInitiatorPort(), getInitiatorSwitchName(initiator, initiatorToSwitchName),
+                                    initiator.getHostName()));
+                            addPortUse(portUseCounts, port);
+                        }
                     }
                 }
-                // initiator is not present in assignments.
-                // give a try to assigning port form its associated initiator from assignments
-                // not considering for path as it associate is already considered.
-                boolean assigned = assignSamePortsFromAssociateInitiator(initiator, assignments);
-                if (assigned) {
-                    // Remove this initiator from further provisioning consideration
-                    addedThisPass = true;
-                    entry.getValue().remove(0);
-                    continue;
-                }
 
-                // to do amit
-                // need to revise currentStoragePaths and alreadyAssigned based on the paired initiator.
-
-                if ((currentStoragePaths + pathParams.getPathsPerInitiator() - alreadyAssigned) <= pathParams.getMaxPaths()) {
-                    List<StoragePort> allocatedPorts = netToAllocatedPorts.get(entry.getKey());
+                if ((currentStoragePaths + pathParams.getPathsPerInitiator()-alreadyAssigned) 
+                        <= (pathParams.getMaxPaths()/pathParams.getMaxInitiatorsPerPort())) {
                     List<StoragePort> availPorts = getAvailablePorts(initiator, initiatorToNetworkLiteMap,
-                            allocatedPorts, portUseCounts, pathParams.getPathsPerInitiator() - alreadyAssigned, 0);
+                            allocatedPorts, portUseCounts, pathParams.getPathsPerInitiator()-alreadyAssigned, 0);
 
                     if (availPorts != null) {
-                        assignPorts(assignments, entry.getKey(), initiator, availPorts, portUseCounts);
-                        // Remove this initiator from further provisioning consideration
-                        entry.getValue().remove(0);
-                        addedThisPass = true;
+                        assignPorts(assignments, entry.getKey(), initiator, availPorts, portUseCounts, portAddressToSwitchName,
+                                initiatorToSwitchName);
                     } else {
                         _log.info(String.format("Insufficient ports to provision initiator %s/%s (%s)",
                                 initiator.getInitiatorPort(), getInitiatorSwitchName(initiator, initiatorToSwitchName), 
@@ -727,41 +693,9 @@ public class DefaultStoragePortsAssigner implements StoragePortsAssigner {
                 }
                 entry.getValue().remove(initiator);
             }
-        } while (addedThisPass);
-
-        // Now if we can map multiple initiators per port, fill in any unprovisoned initiators
-        if (pathParams.getMaxInitiatorsPerPort() > 1) {
-            _log.info("*** Adding assignments for multiple initiators using same ports, maxInitiatorsPerPort: "
-                    + pathParams.getMaxInitiatorsPerPort());
-            for (Map.Entry<URI, List<Initiator>> entry : netToInitiatorsToProvision.entrySet()) {
-                List<StoragePort> allocatedPorts = netToAllocatedPorts.get(entry.getKey());
-                // See if we can map the yet unprovisioned initiators to already used ports
-                // Using iterator to avoid ConcurrentModificationException
-                List<Initiator> initiatorList = entry.getValue();
-                Iterator<Initiator> iterator = initiatorList.iterator();
-                while (iterator.hasNext()) {
-                    Initiator initiator = iterator.next();
-                    boolean assigned = assignSamePortsFromAssociateInitiator(initiator, assignments);
-                    if (assigned) {
-                        // continue from further consideration for this initiator.
-                        continue;
-                    }
-
-                    List<StoragePort> availPorts = getAvailablePorts(initiator, initiatorToNetworkLiteMap,
-                            allocatedPorts, portUseCounts, pathParams.getPathsPerInitiator(),
-                            pathParams.getMaxInitiatorsPerPort() - 1);
-                    if (availPorts != null) {
-                        assignPorts(assignments, entry.getKey(), initiator, availPorts, portUseCounts);
-                        assignPortsToAssociatedInitiator(initiator, availPorts, assignments, entry.getValue());
-                    } else {
-                        _log.info(String.format("No available ports for initiator %s",
-                                initiator.getInitiatorPort()));
-                    }
-                }
-            }
-        }
+        } while (hadInitiators);
     }
-
+    
     /**
      * Given a network URI, initiator, and switchName of the initiator,
      * returns switch ports (if any) with the same switch affinity.
@@ -772,20 +706,19 @@ public class DefaultStoragePortsAssigner implements StoragePortsAssigner {
      * @return - list of StoragePorts with same switch affinity
      */
     private List<StoragePort> getPortsWithSwitchAffinity(URI netURI, Initiator initiator, String switchName, 
-    		Map<URI,Map<String, List<StoragePort>>> switchToStoragePortsByNet) {
-    	List<StoragePort> portsWithAffinity = new ArrayList<StoragePort>();
-    	// Find the initiators and storage ports are connected to the same switch.
-    	Map<String, List<StoragePort>> switchPorts = switchToStoragePortsByNet.get(netURI);
-    	if (switchPorts.containsKey(switchName)) {
-    		portsWithAffinity.addAll(switchPorts.get(switchName));
-    	}
-    	return portsWithAffinity;
+            Map<URI,Map<String, List<StoragePort>>> switchToStoragePortsByNet) {
+        List<StoragePort> portsWithAffinity = new ArrayList<StoragePort>();
+        // Find the initiators and storage ports are connected to the same switch.
+        Map<String, List<StoragePort>> switchPorts = switchToStoragePortsByNet.get(netURI);
+        if (switchPorts.containsKey(switchName)) {
+            portsWithAffinity.addAll(switchPorts.get(switchName));
+        }
+        return portsWithAffinity;
     }
     
     /**
      * Adds a use count to a port, which indicates one initiator is using the port
      * This is public static because the StoragePortsAssignerTest uses it.
-     * 
      * @param portUseCounts -- Map of StoragePort to use counts
      * @param port -- Port being used
      */
@@ -797,10 +730,9 @@ public class DefaultStoragePortsAssigner implements StoragePortsAssigner {
             portUseCounts.put(port, newCount);
         }
     }
-
+    
     /**
      * Returns true if the port is being used
-     * 
      * @param portUseCounts -- Map of Storage Port to use counts
      * @param port -- Port we are inquiring about
      * @return
@@ -808,22 +740,21 @@ public class DefaultStoragePortsAssigner implements StoragePortsAssigner {
     private boolean isPortUsed(Map<StoragePort, Integer> portUseCounts, StoragePort port) {
         return portUseCounts.containsKey(port);
     }
-
+    
     /**
      * Gets available ports with the lowest use count (must be <= maxUseCount).
-     * 
      * @param initiator -- the Initiator the ports are for
      * @param allocatedPorts -- List of allocated ports from which we can choose
      * @param portUseCounts -- Map of StoragePort to use counts
      * @param numberOfPorts -- int number of ports required (returns all or null)
-     * @param maxUseCount -- The maximum use count we want.
-     *            If zero, we want ports that are not previously used by this host (useCount == 0).
-     *            If >zero, want only ports that were previously used by this host (1 <= useCount <= maxUseCount)
+     * @param maxUseCount -- The maximum use count we want. 
+     * If zero, we want ports that are not previously used by this host (useCount == 0).
+     * If >zero, we can accept any ports for this host upto maxUseCount (1 <= useCount <= maxUseCount)
      * @return List of the ports to be used with number of ports requested, or
-     *         null if the required number of ports could not be found
+     *    null if the required number of ports could not be found
      */
     private List<StoragePort> getAvailablePorts(Initiator initiator,
-            Map<Initiator, NetworkLite> initiatorToNetworkLiteMap, List<StoragePort> allocatedPorts,
+            Map<Initiator, NetworkLite> initiatorToNetworkLiteMap, List<StoragePort> allocatedPorts, 
             Map<StoragePort, Integer> portUseCounts, int numberOfPorts, int maxUseCount) {
         List<StoragePort> availPorts = new ArrayList<StoragePort>();
         if (allocatedPorts == null || allocatedPorts.isEmpty() || numberOfPorts < 1) {
@@ -834,7 +765,7 @@ public class DefaultStoragePortsAssigner implements StoragePortsAssigner {
         int minUseCount = (maxUseCount > 0) ? 1 : 0;
         for (int useCount = minUseCount; useCount <= maxUseCount; useCount++) {
             for (StoragePort port : allocatedPorts) {
-                if (initiatorToNetworkLiteMap != null
+                if (initiatorToNetworkLiteMap != null 
                         && !isPortAssignableToInitiator(initiatorToNetworkLiteMap.get(initiator), initiator, port)) {
                     // skip this port if not assignable (because of prezoning)
                     continue;
@@ -854,10 +785,9 @@ public class DefaultStoragePortsAssigner implements StoragePortsAssigner {
         // not enough ports available
         return null;
     }
-
+    
     /**
      * Assigns the ports, updates the port use counts
-     * 
      * @param assignments Map of Initiator to List<StoragePort> for new assignments
      * @param netURI - Network these ports are in
      * @param initiator -- The initiators ports are being assigned for
@@ -866,9 +796,9 @@ public class DefaultStoragePortsAssigner implements StoragePortsAssigner {
      * @param portAddressToSwitchMap -- map of port Address to switch name
      * @param initiatorToSwitchMap - map of initiator to switch map
      */
-    private void assignPorts(Map<Initiator, List<StoragePort>> assignments,
-            URI netURI,
-            Initiator initiator, List<StoragePort> assignedPorts,
+    private void assignPorts(Map<Initiator, List<StoragePort>> assignments, 
+            URI netURI, 
+            Initiator initiator, List<StoragePort> assignedPorts, 
             Map<StoragePort, Integer> portUseCounts, Map<String, String> portAddressToSwitchMap, 
             Map<Initiator, String> initiatorToSwitchMap) {
         for (StoragePort port : assignedPorts) {
@@ -884,9 +814,97 @@ public class DefaultStoragePortsAssigner implements StoragePortsAssigner {
         } else {
             assignments.put(initiator, assignedPorts);
         }
-        _log.info("Initiator - Storageport assignments: {}", assignments);
     }
-
+    
+    /**
+     * Will generate a default empty List<Initiator> if the passed one is null.
+     * Otherwise returns original list.
+     * Used to reduce cyclomatic complexity.
+     * @param initiatorList - null or a list of initiators
+     * @return a non null list of initiators, possibly empty
+     */
+    private List<Initiator> nonNullInitiatorList(List<Initiator> initiatorList) {
+        if (initiatorList != null) {
+            return initiatorList;
+        }
+        return new ArrayList<Initiator>();
+    }
+    
+    /**
+     * Will generate an empty Map<Initiator, List<StoragePort> if the passed assignmentMap is null.
+     * Otherwise returns the original map. Used to reduce cyclomatic complexity.
+     * @param assignmentMap -- Map(Initiator, List<StoragePort>> or null
+     * @return non null Map, possibly empty
+     */
+    private Map<Initiator, List<StoragePort>> nonNullAssignmentMap(Map<Initiator, List<StoragePort>> assignmentMap) {
+        if (assignmentMap != null) {
+            return assignmentMap;
+        }
+        return new HashMap<Initiator, List<StoragePort>>();
+    }
+    
+    /**
+     * Makes a map of StoragePort portNetworkId to switch name. Used for logging.
+     * @param switchToStoragePortsByNet Map of network to map of switch name to storage ports
+     * @return Map of port network id to switch name
+     */
+    private Map<String, String> makePortAddressToSwitchMap(Map<URI, Map<String, List<StoragePort>>> switchToStoragePortsByNet) {
+        Map<String, String> result = new HashMap<String, String>();
+        if (switchToStoragePortsByNet == null) {
+            return result;
+        }
+        for (Map<String, List<StoragePort>> switchToPorts : switchToStoragePortsByNet.values()) {
+            for (Map.Entry<String, List<StoragePort>> entry : switchToPorts.entrySet()) {
+                for (StoragePort port : entry.getValue()) {
+                    result.put(port.getPortNetworkId(), entry.getKey());
+                    _log.info(String.format("%s WWN %s SWITCH %s NET %s", 
+                            port.getPortName(), port.getPortNetworkId(), entry.getKey(), port.getNetwork()));
+                }
+            }
+        }
+        return result;
+    }
+    
+    /**
+     * Given a portAddressToSwitchMap and a port, returns the switch name
+     * @param port -- StoragePort
+     * @param portAddressToSwitchMap -- map of Port NetworkId to Switch Name
+     * @return -- Switch name string
+     */
+    private String getPortSwitchName(StoragePort port, Map<String, String> portAddressToSwitchMap) {
+        if (portAddressToSwitchMap == null || !portAddressToSwitchMap.containsKey(port.getPortNetworkId())) {
+            return "sw?";
+        }
+        return portAddressToSwitchMap.get(port.getPortNetworkId());
+    }
+    
+    /**
+     * Returns a map of Initiator to Switch Name
+     * @param switchToInitiatorsByNetwork -- Map of Network to Map of SwitchName to List of Initiators
+     * @return == Map of Initiator to Switch Name
+     */
+    private Map<Initiator, String> makeInitiatorToSwitchMap(Map<URI, Map<String, List<Initiator>>> switchToInitiatorsByNetwork) {
+        Map<Initiator, String> initiatorToSwitchMap = new HashMap<Initiator, String>();
+        if (switchToInitiatorsByNetwork == null) {
+            return initiatorToSwitchMap;
+        }
+        for (Map<String, List<Initiator>> switchToInitiators: switchToInitiatorsByNetwork.values()) {
+            for (Map.Entry<String, List<Initiator>> entry : switchToInitiators.entrySet()) {
+                for (Initiator initiator : entry.getValue()) {
+                    initiatorToSwitchMap.put(initiator,  entry.getKey());
+                }
+            }
+        }
+        return initiatorToSwitchMap;
+    }
+    
+    private String getInitiatorSwitchName(Initiator initiator, Map<Initiator, String> initiatorToSwitchMap) {
+        if (initiatorToSwitchMap == null || !initiatorToSwitchMap.containsKey(initiator)) {
+            return "sw?";
+        }
+        return initiatorToSwitchMap.get(initiator);
+    }
+    
     /**
      * Gets the associated initiator from the map of assignments.
      * 
@@ -913,55 +931,26 @@ public class DefaultStoragePortsAssigner implements StoragePortsAssigner {
     }
 
     /**
-     * Will generate a default empty List<Initiator> if the passed one is null.
-     * Otherwise returns original list.
-     * Used to reduce cyclomatic complexity.
+     * this function count actual initiator.Mean it takes list of initiator and ignore the inititoar if it has
+     * Already consider it paired
      * 
-     * @param initiatorList - null or a list of initiators
-     * @return a non null list of initiators, possibly empty
+     * @param list
+     * @return
      */
-    private List<Initiator> nonNullInitiatorList(List<Initiator> initiatorList) {
-        if (initiatorList != null) {
-            return initiatorList;
-        }
-        return new ArrayList<Initiator>();
-    }
-
-    /**
-     * Will generate an empty Map<Initiator, List<StoragePort> if the passed assignmentMap is null.
-     * Otherwise returns the original map. Used to reduce cyclomatic complexity.
-     * 
-     * @param assignmentMap -- Map(Initiator, List<StoragePort>> or null
-     * @return non null Map, possibly empty
-     */
-    private Map<Initiator, List<StoragePort>> nonNullAssignmentMap(Map<Initiator, List<StoragePort>> assignmentMap) {
-        if (assignmentMap != null) {
-            return assignmentMap;
-        }
-        return new HashMap<Initiator, List<StoragePort>>();
-    }
-
-    /**
-     * Assigns the storage ports to associated initiator, it do not increase the port use count
-     * 
-     * @param initiator the initiator. Storage ports of this initiator will be assigned to its associated initiator if associated initiator
-     *            is present in the map of assignments.
-     * @param assignedPorts the storage ports to be assigned
-     * @param assignments the map of initiator - storage ports
-     * @param initiatorList the list of initiators
-     */
-    private void assignPortsToAssociatedInitiator(Initiator initiator, List<StoragePort> assignedPorts,
-            Map<Initiator, List<StoragePort>> assignments, List<Initiator> initiatorList) {
-
-        Initiator associatedInitiator = getAssociatedInitiator(initiator, assignments);
-        if (associatedInitiator != null) {
-            if (assignments.get(associatedInitiator) != null) {
-                assignments.get(associatedInitiator).addAll(assignedPorts);
-            } else {
-                assignments.put(associatedInitiator, assignedPorts);
+    private int getInitiatorCount(List<Initiator> list) {
+        List<URI> processInitiator = new ArrayList<URI>();
+        int count = 0;
+        for (Initiator currentInitiator : list) {
+            URI pair = currentInitiator.getAssociatedInitiator();
+            if (NullColumnValueGetter.isNullURI(pair)) {
+                count++;
+            } else if (!processInitiator.contains(pair)) {
+                processInitiator.add(currentInitiator.getId());
+                count++;
             }
-
         }
+
+        return count;
     }
 
     /**

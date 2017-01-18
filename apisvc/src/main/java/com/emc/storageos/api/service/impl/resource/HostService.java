@@ -99,7 +99,6 @@ import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.EndpointUtility;
 import com.emc.storageos.db.client.util.FileOperationUtils;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
-import com.emc.storageos.db.client.util.RBDUtility;
 import com.emc.storageos.db.client.util.WWNUtility;
 import com.emc.storageos.db.client.util.iSCSIUtility;
 import com.emc.storageos.db.exceptions.DatabaseException;
@@ -284,23 +283,6 @@ public class HostService extends TaskResourceService {
         if (hasPendingTasks) {
             throw APIException.badRequests.cannotUpdateHost("another operation is in progress for this host");
         }
-        // trying to modify cluster attribute on virtual machine.
-        if (updateParam.getVirtualMachine() == null && host.getVirtualMachine()) {
-            if (updateParam.getCluster() != null) {
-
-                throw APIException.badRequests.virtualHostCantNotbeInCluster();
-            }
-        }
-        // trying to modify virtual machine attribute of host which is part of cluster.
-        if (updateParam.getCluster() == null && !NullColumnValueGetter.isNullURI(host.getCluster())) {
-
-            if (updateParam.getVirtualMachine() != null && updateParam.getVirtualMachine()) {
-
-                throw APIException.badRequests.virtualHostCantNotbeInCluster();
-            }
-
-        }
-
         URI oldClusterURI = host.getCluster();
         populateHostData(host, updateParam);
         if (updateParam.getHostName() != null) {
@@ -547,7 +529,6 @@ public class HostService extends TaskResourceService {
                 throw APIException.badRequests.virtualHostCantNotbeInCluster();
 
             }
-
             cluster = queryObject(Cluster.class, hostParam.getCluster(),
                     true);
             if (!cluster.getTenant().equals(tenanUri)) {
@@ -875,7 +856,7 @@ public class HostService extends TaskResourceService {
         // if host in use. update export with new initiator
         if (ComputeSystemHelper.isHostInUse(_dbClient, host.getId())) {
             ComputeSystemController controller = getController(ComputeSystemController.class, null);
-            controller.addInitiatorToExport(initiator.getHost(), initiator.getId(), taskId);
+            controller.addInitiatorsToExport(initiator.getHost(), Arrays.asList(initiator.getId()), taskId);
         } else {
             // No updates were necessary, so we can close out the task.
             _dbClient.ready(Initiator.class, initiator.getId(), taskId);
@@ -971,6 +952,10 @@ public class HostService extends TaskResourceService {
         String protocol = param.getProtocol() != null ? param.getProtocol() : (initiator != null ? initiator.getProtocol() : null);
         String node = param.getNode() != null ? param.getNode() : (initiator != null ? initiator.getInitiatorNode() : null);
         String port = param.getPort() != null ? param.getPort() : (initiator != null ? initiator.getInitiatorPort() : null);
+        ArgValidator.checkFieldValueWithExpected(param == null
+                || HostInterface.Protocol.FC.toString().equals(protocol)
+                || HostInterface.Protocol.iSCSI.toString().equals(protocol),
+                "protocol", protocol, HostInterface.Protocol.FC, HostInterface.Protocol.iSCSI);
         // Validate the passed node and port based on the protocol.
         // Note that for iSCSI the node is optional.
         if (HostInterface.Protocol.FC.toString().equals(protocol)) {
@@ -986,7 +971,7 @@ public class HostService extends TaskResourceService {
             if (!WWNUtility.isValidWWN(node)) {
                 throw APIException.badRequests.invalidWwnForFcInitiatorNode();
             }
-        } else if (HostInterface.Protocol.iSCSI.toString().equals(protocol)) {
+        } else {
             // Make sure the port is a valid iSCSI port.
             if (!iSCSIUtility.isValidIQNPortName(port) && !iSCSIUtility.isValidEUIPortName(port)) {
                 throw APIException.badRequests.invalidIscsiInitiatorPort();
@@ -994,17 +979,6 @@ public class HostService extends TaskResourceService {
             if (param.getNode() != null) {
                 throw APIException.badRequests.invalidNodeForiScsiPort();
             }
-        } else if (HostInterface.Protocol.RBD.toString().equals(protocol)) {
-            // Make sure the port is a valid RBD pseudo port
-            if (!RBDUtility.isValidRBDPseudoPort(port)) {
-                throw APIException.badRequests.invalidRBDInitiatorPort();
-            }
-            if (param.getNode() != null) {
-                throw APIException.badRequests.invalidNodeForRBDPort();
-            }
-        } else {
-            throw APIException.badRequests.invalidParameterValueWithExpected("protocol", protocol,
-                    HostInterface.Protocol.FC, HostInterface.Protocol.iSCSI, HostInterface.Protocol.RBD);
         }
         // last validate that the initiator port is unique
         if (initiator == null || (param.getPort() != null &&
@@ -2278,8 +2252,10 @@ public class HostService extends TaskResourceService {
      * Method to check if the selected image is present on the
      * ComputeImageServer which is associated with the CoputeSystem
      *
-     * @param cs {@link ComputeSystem}
-     * @param img {@link ComputeImage} instance selected
+     * @param cs
+     *            {@link ComputeSystem}
+     * @param img
+     *            {@link ComputeImage} instance selected
      * @throws APIException
      */
     private void verifyImagePresentOnImageServer(ComputeSystem cs,

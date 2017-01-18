@@ -1946,34 +1946,6 @@ public class ExportUtils {
         }
     }
     
-    public static Initiator getAssociatedInitiator(Initiator initiator, DbClient dbClient) {
-        Initiator associatedInitiator = null;
-        if (initiator != null) {
-            URI associatedInitiatorURI = initiator.getAssociatedInitiator();
-            if (!NullColumnValueGetter.isNullURI(associatedInitiatorURI)) {
-                associatedInitiator = dbClient.queryObject(Initiator.class, associatedInitiatorURI);
-            }
-        }
-        return associatedInitiator;
-
-    }
-
-    public static Initiator getAssociatedInitiator(URI initiatorURI, DbClient dbClient) {
-        Initiator initiator = dbClient.queryObject(Initiator.class, initiatorURI);
-        return getAssociatedInitiator(initiator, dbClient);
-
-    }
-
-
-    public static String getAssociatedInitiatorEndpoint(String endpoint, DbClient dbClient) {
-        String associatedInitiatorPort = null;
-        Initiator initiator = getInitiator(endpoint, dbClient);
-        Initiator associatedInitiator = getAssociatedInitiator(initiator, dbClient);
-        if (associatedInitiator != null) {
-            associatedInitiatorPort = associatedInitiator.getInitiatorPort();
-        }
-        return associatedInitiatorPort;
-    }
 
     /**
      * Handle the ExportMask Volume removal based on the ExportMaskToRemovedVolumeMap.

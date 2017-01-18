@@ -859,39 +859,69 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         final ViPRCoreClient client = api(ctx);
         if (isVolumeType(volumeOrConsistencyType)) {
             LocalTime startTime = LocalTime.now();
+            long spentTime = 0;
             log.info("========== 111: startting list vols with snapshots");
             Set<URI> volIdSet = new HashSet<>();
-            List<BlockSnapshotRestRep> snapshots = api(ctx).blockSnapshots().findByProject(project);
-            long spentTime = Duration.between(startTime, LocalTime.now()).getSeconds();
-            log.info("========== 222: got all snapshots. Size is {}, spent time is {}", snapshots.size(), spentTime);
-            for (BlockSnapshotRestRep s : snapshots) {
+
+            // iterative call
+            // List<BlockSnapshotRestRep> snapshots = api(ctx).blockSnapshots().findByProject(project);
+
+            // bulk api
+            List<SearchResultResourceRep> snapRefs = client.blockSnapshots().findRefsByProject(project, null);
+
+            List<BlockSnapshotRestRep> allSnaps = new ArrayList<>();
+            List<URI> bulkIds = new ArrayList<>();
+            int count = 0;
+            for (SearchResultResourceRep snapRef : snapRefs) {
+                bulkIds.add(snapRef.getId());
+                count++;
+                if (count == 500) {
+                    BulkIdParam volBulk = new BulkIdParam(bulkIds);
+                    List<BlockSnapshotRestRep> bulkVols = client.blockSnapshots().getBulkResources(volBulk);
+                    allSnaps.addAll(bulkVols);
+                    spentTime = Duration.between(startTime, LocalTime.now()).getSeconds();
+                    log.info("========== 222: got a bulk of volumes and spent time is {}", spentTime);
+                    count = 0;
+                    bulkIds.clear();
+                }
+            }
+
+            if (bulkIds.size() > 0) {
+                BulkIdParam volBulk = new BulkIdParam(bulkIds);
+                List<BlockSnapshotRestRep> bulkVols = client.blockSnapshots().getBulkResources(volBulk);
+                allSnaps.addAll(bulkVols);
+                spentTime = Duration.between(startTime, LocalTime.now()).getSeconds();
+            }
+            log.info("========== 333: got all snaps. Snapshot size is {}, Spent time is {}", allSnaps.size(), spentTime);
+
+            for (BlockSnapshotRestRep s : allSnaps) {
                 volIdSet.add(s.getParent().getId());
             }
 
             List volIdList = new ArrayList();
 
             List<VolumeRestRep> allVols = new ArrayList<>();
-            int count = 0;
+            count = 0;
             for (URI id : volIdSet) {
                 volIdList.add(id);
                 count++;
-                if (count == 4000) {
-                    BulkIdParam bulkIds = new BulkIdParam(volIdList);
-                    List<VolumeRestRep> bulkVols = client.blockVolumes().getBulkResources(bulkIds);
+                if (count == 500) {
+                    BulkIdParam volBulk = new BulkIdParam(volIdList);
+                    List<VolumeRestRep> bulkVols = client.blockVolumes().getBulkResources(volBulk);
                     allVols.addAll(bulkVols);
                     spentTime = Duration.between(startTime, LocalTime.now()).getSeconds();
-                    log.info("========== 333: got a bulk of volumes and spent time is {}", spentTime);
+                    log.info("========== 444: got a bulk of volumes and spent time is {}", spentTime);
                     count = 0;
                     volIdList.clear();
                 }
             }
 
             if (volIdList.size() > 0) {
-                BulkIdParam bulkIds = new BulkIdParam(volIdList);
-                List<VolumeRestRep> bulkVols = client.blockVolumes().getBulkResources(bulkIds);
+                BulkIdParam volBulk = new BulkIdParam(volIdList);
+                List<VolumeRestRep> bulkVols = client.blockVolumes().getBulkResources(volBulk);
                 allVols.addAll(bulkVols);
                 spentTime = Duration.between(startTime, LocalTime.now()).getSeconds();
-                log.info("========== 444: got all volumes. Vol size is {}, Spent time is {}", allVols.size(), spentTime);
+                log.info("========== 555: got all volumes. Vol size is {}, Spent time is {}", allVols.size(), spentTime);
             }
 
             // remove all filters, adding all for experiment

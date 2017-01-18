@@ -1,3 +1,7 @@
+/*
+ * Copyright (c) 2017  DELL EMC Corporation
+ * All Rights Reserved
+ */
 package com.emc.sa.util;
 
 import java.io.ByteArrayInputStream;

@@ -38,6 +38,7 @@ import com.emc.sa.service.vipr.oe.OrchestrationServiceConstants;
 import com.emc.sa.service.vipr.tasks.ViPRExecutionTask;
 import com.emc.storageos.model.orchestration.OrchestrationWorkflowDocument;
 import com.emc.storageos.model.orchestration.OrchestrationWorkflowDocument.Step;
+import com.emc.storageos.model.orchestration.OrchestrationWorkflowDocument.Input;
 import com.emc.storageos.primitives.Primitive.StepType;
 import com.emc.storageos.services.util.Exec;
 
@@ -173,6 +174,10 @@ public class RunAnsible  extends ViPRExecutionTask<OrchestrationTaskResult> {
 
     //Execute Ansible playbook on remote node. Playbook is also in remote node
     private Exec.Result executeRemoteCmd(final String extraVars) {
+        final OrchestrationWorkflowDocument.InputType inputType = step.getInput();
+        if (inputType == null) {
+            return null;
+        }
         final AnsibleCommandLine cmd = new AnsibleCommandLine(
                 getAnsibleConnAndOptions(OrchestrationServiceConstants.ANSIBLE_BIN, inputType.getAnsible_options()), 
                 getAnsibleConnAndOptions(OrchestrationServiceConstants.ANSIBLE_PLAYBOOK, inputType.getAnsible_options()));

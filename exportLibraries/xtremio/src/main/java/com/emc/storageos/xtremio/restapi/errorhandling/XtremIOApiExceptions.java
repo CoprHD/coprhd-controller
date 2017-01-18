@@ -46,4 +46,7 @@ public interface XtremIOApiExceptions {
 
     @DeclareServiceCode(ServiceCode.XTREMIO_API_ERROR)
     XtremIOApiException hluRetrievalFailed(final String message, final Throwable cause);
+    @DeclareServiceCode(ServiceCode.XTREMIO_API_ERROR)
+    XtremIOApiException refreshExistingMaskFailure(final String message, final Throwable cause);
+
 }

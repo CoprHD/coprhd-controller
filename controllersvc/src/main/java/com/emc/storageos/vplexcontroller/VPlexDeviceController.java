@@ -3883,7 +3883,11 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
             }
         }
         StorageSystem vplex = _dbClient.queryObject(StorageSystem.class, exportMask.getStorageDevice());
-        validator.removeVolumes(vplex, exportMask.getId(), initiators).validate();
+        ExportMaskValidationContext ctx = new ExportMaskValidationContext();
+        ctx.setStorage(vplex);
+        ctx.setExportMask(exportMask);
+        ctx.setInitiators(initiators);
+        validator.removeVolumes(ctx).validate();
 
         // If no volumes to remove, just return.
         if (volumeURIList.isEmpty()) {

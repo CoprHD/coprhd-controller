@@ -625,9 +625,12 @@ public class WorkflowService implements WorkflowController {
                 // This try/catch block is a debug facility to allow for testing of full rollback of workflows
                 // given a set system property "artificial_failure" -> "failure_004".
                 // This will change the current (and final) step of the workflow to failure and will cause
-                // rollback to occur. It currently does not treat child or parent workflows any different.
+                // rollback to occur. It only applies to workflows with no children (the lowest workflow).
+                // otherwise the child will rollback, then the parent will think it's done, but then also try
+                // to initiate a totally separate rollback.
                 try {
-                    if (workflow.allStatesTerminal() && !workflow.isRollbackState()) {
+                    if (workflow.allStatesTerminal() && !workflow.isRollbackState()
+                            && (workflow._childWorkflows == null || workflow._childWorkflows.isEmpty())) {
                         InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_004);
                     }
                 } catch (NullPointerException npe) {
@@ -2923,7 +2926,7 @@ public class WorkflowService implements WorkflowController {
      */
     public boolean isStepInRollbackState(String stepId) {
         Workflow workflow = _instance.getWorkflowFromStepId(stepId);
-        return workflow.isRollbackState();
+        return workflow != null && workflow.isRollbackState();
     }
 
 }

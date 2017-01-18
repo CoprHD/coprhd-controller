@@ -418,6 +418,7 @@ public class FileProtectionPolicies extends ViprResourceController {
             replicationPolicyParams.setReplicationType(schedulePolicy.replicationType);
             replicationPolicyParams.setPolicySchedule(scheduleParam);
             param.setPriority(schedulePolicy.priority);
+            param.setNumWorkerThreads(schedulePolicy.numWorkerThreads);
             param.setReplicationPolicyParams(replicationPolicyParams);
         }
 
@@ -553,7 +554,7 @@ public class FileProtectionPolicies extends ViprResourceController {
                 this.priority = restRep.getPriority();
             }
 
-            if (restRep.getNumWorkerThreads() != null) {
+            if (restRep.getNumWorkerThreads() != null && restRep.getNumWorkerThreads() > 0) {
                 this.numWorkerThreads = restRep.getNumWorkerThreads().intValue();
             }
 

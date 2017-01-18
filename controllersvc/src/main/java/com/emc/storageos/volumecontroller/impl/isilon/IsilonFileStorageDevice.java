@@ -2784,6 +2784,9 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                 if (filePolicy.getFilePolicyDescription() != null) {
                     policy.setDescription(filePolicy.getFilePolicyDescription());
                 }
+                if (filePolicy.getNumWorkerThreads() != null && filePolicy.getNumWorkerThreads() > 0) {
+                    policy.setWorkersPerNode(filePolicy.getNumWorkerThreads().intValue());
+                }
                 policy.setEnabled(true);
                 String policyId = isi.createReplicationPolicy(policy);
                 if (policyId != null) {

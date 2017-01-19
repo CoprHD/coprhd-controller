@@ -2698,12 +2698,17 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
         ExportTaskCompleter exportTaskCompleter = new ExportMaskCreateCompleter(
                 exportGroup.getId(), exportMask.getId(), inits, blockObjectMap,
                 maskingStep);
-
         // Add a step to export on the VPlex. They call this a Storage View.
         Workflow.Method storageViewExecuteMethod = new Workflow.Method(CREATE_STORAGE_VIEW,
                 vplexSystem.getId(), exportGroup.getId(), exportMask.getId(), blockObjectMap, inits, hostTargets, exportTaskCompleter);
+
+        String exportMaskDeleteStep = workflow.createStepId();
+        ExportMaskDeleteCompleter rollbackCompleter = 
+                new ExportMaskDeleteCompleter(exportGroup.getId(), exportMask.getId(), exportMaskDeleteStep);
+
         // Workflow.Method storageViewRollbackMethod = new Workflow.Method(ROLLBACK_METHOD_NULL);
-        Workflow.Method storageViewRollbackMethod = deleteStorageViewMethod(vplexSystem.getId(), exportMask.getId(), null);
+        Workflow.Method storageViewRollbackMethod = deleteStorageViewMethod(
+                vplexSystem.getId(), exportMask.getId(), rollbackCompleter);
         storageViewStepId = workflow.createStep("storageView",
                 String.format("Create VPLEX Storage View for ExportGroup %s Mask %s", exportGroup.getId(), exportMask.getMaskName()),
                 storageViewStepId, vplexSystem.getId(), vplexSystem.getSystemType(),
@@ -2765,8 +2770,12 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             Workflow.Method addInitiatorMethod = storageViewAddInitiatorsMethod(vplexSystem.getId(), export, exportMask.getId(),
                     initiatorURIs, null, sharedVplexExportMask, completer);
 
+            String rollbackPortStep = workflow.createStepId();
+            ExportMaskRemoveInitiatorCompleter rollbackCompleter =
+                    new ExportMaskRemoveInitiatorCompleter(export, exportMask.getId(), initiatorURIs, rollbackPortStep);
+
             Workflow.Method initiatorRollback = storageViewRemoveInitiatorsMethod(vplexSystem.getId(), export, exportMask.getId(),
-                    initiatorURIs, null);
+                    initiatorURIs, null, rollbackCompleter);
 
             storageViewStepId = workflow.createStep("storageView",
                     String.format("Updating VPLEX Storage View Initiators for ExportGroup %s Mask %s", export, exportMask.getMaskName()),
@@ -2785,8 +2794,12 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             Workflow.Method addPortsToViewMethod = storageViewAddStoragePortsMethod(vplexSystem.getId(), export, exportMask.getId(),
                     storagePortURIsToAdd, completer);
 
+            String rollbackPortStep = workflow.createStepId();
+            ExportMaskRemoveInitiatorCompleter rollbackCompleter =
+                    new ExportMaskRemoveInitiatorCompleter(export, exportMask.getId(), new ArrayList<URI>(), rollbackPortStep);
+
             Workflow.Method addToViewRollbackMethod = storageViewRemoveStoragePortsMethod(vplexSystem.getId(), export, exportMask.getId(),
-                    storagePortURIsToAdd);
+                    storagePortURIsToAdd, rollbackCompleter);
 
             storageViewStepId = workflow.createStep("storageView",
                     String.format("Updating VPLEX Storage View StoragePorts for ExportGroup %s Mask %s", export, exportMask.getMaskName()),
@@ -3699,17 +3712,11 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
                         // Create a step to remove initiators from the storage view
                         Workflow.Method removeInitiatorMethod = storageViewRemoveInitiatorsMethod(vplexURI, exportURI,
-                                exportMask.getId(), initiatorURIs, getTargetURIs(exportMask, initiatorURIs));
+                                exportMask.getId(), initiatorURIs, getTargetURIs(exportMask, initiatorURIs), maskCompleter);
                         Workflow.Method removeInitiatorRollbackMethod = new Workflow.Method(ROLLBACK_METHOD_NULL);
                         previousStep = workflow.createStep("storageView", "Removing" + initiatorURIs.toString(),
                                 null, vplexURI, vplex.getSystemType(), this.getClass(),
                                 removeInitiatorMethod, removeInitiatorRollbackMethod, null);
-
-                        // Create a step to fire the completer removing initiators.
-                        Workflow.Method fireCompleter = fireTaskCompleterMethod(maskCompleter);
-                        previousStep = workflow.createStep("fireCompleter", "Fire ExportMaskRemoveInitiatorCompleter", previousStep, vplexURI,
-                                vplex.getSystemType(),
-                                this.getClass(), fireCompleter, null, completerStepId);
 
                         hasSteps = true;
                     }
@@ -4125,11 +4132,15 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             String addInitStep = workflow.createStepId();
             ExportMaskAddInitiatorCompleter addInitCompleter = 
                     new ExportMaskAddInitiatorCompleter(exportURI, exportMask.getId(), hostInitiatorURIs, newTargetURIs, addInitStep);
-
             Workflow.Method addToViewMethod = storageViewAddInitiatorsMethod(vplexURI, exportURI, exportMask.getId(), hostInitiatorURIs,
                     newTargetURIs, shared, addInitCompleter);
+
+            String rollbackPortStep = workflow.createStepId();
+            ExportMaskRemoveInitiatorCompleter rollbackCompleter =
+                    new ExportMaskRemoveInitiatorCompleter(exportURI, exportMask.getId(), hostInitiatorURIs, rollbackPortStep);
             Workflow.Method addToViewRollbackMethod = storageViewRemoveInitiatorsMethod(vplexURI,
-                    exportURI, exportMask.getId(), hostInitiatorURIs, null);
+                    exportURI, exportMask.getId(), hostInitiatorURIs, null, rollbackCompleter);
+
             lastStepId = workflow.createStep("storageView", "Add " + message,
                     zoningStepId, vplexURI, vplex.getSystemType(), this.getClass(), addToViewMethod, addToViewRollbackMethod, null);
         }
@@ -4513,11 +4524,13 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
      *            -- ExportMask URI
      * @param targetURIs
      *            -- list of additional targets URIs
+     * @param completer
+     *            -- the ExportMaskRemoveInitiatorCompleter 
      * @return Workflow.Method for addition to workflow.
      */
     public Workflow.Method storageViewRemoveStoragePortsMethod(URI vplexURI, URI exportURI, URI maskURI,
-            List<URI> targetURIs) {
-        return new Workflow.Method("storageViewRemoveStoragePorts", vplexURI, exportURI, maskURI, targetURIs);
+            List<URI> targetURIs, ExportMaskRemoveInitiatorCompleter completer) {
+        return new Workflow.Method("storageViewRemoveStoragePorts", vplexURI, exportURI, maskURI, targetURIs, completer);
     }
 
     /**
@@ -4534,12 +4547,14 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
      *            -- list of targets URIs (VPLEX FE ports) to be removed.
      *            If non null, the targets (VPlex front end ports) indicated by the targetURIs will be removed
      *            from the Storage View.
+     * @param completer
+     *            -- the ExportMaskRemoveInitiatorCompleter 
      * @param stepId
      *            -- Workflow step id.
      * @throws WorkflowException
      */
     public void storageViewRemoveStoragePorts(URI vplexURI, URI exportURI, URI maskURI,
-            List<URI> targetURIs,
+            List<URI> targetURIs, ExportMaskRemoveInitiatorCompleter completer,
             String stepId) throws DeviceControllerException {
         try {
             WorkflowStepCompleter.stepExecuting(stepId);
@@ -4603,14 +4618,17 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 }
             }
 
+            completer.ready(_dbClient);
             WorkflowStepCompleter.stepSucceded(stepId);
         } catch (VPlexApiException vae) {
             _log.error("Exception removing storage ports from Storage View: " + vae.getMessage(), vae);
+            completer.error(_dbClient, vae);
             WorkflowStepCompleter.stepFailed(stepId, vae);
         } catch (Exception ex) {
             _log.error("Exception removing storage ports from Storage View: " + ex.getMessage(), ex);
             String opName = ResourceOperationTypeEnum.DELETE_STORAGE_VIEW_STORAGEPORTS.getName();
             ServiceError serviceError = VPlexApiException.errors.storageViewRemoveStoragePortFailed(opName, ex);
+            completer.error(_dbClient, serviceError);
             WorkflowStepCompleter.stepFailed(stepId, serviceError);
         }
     }
@@ -4948,14 +4966,6 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 lastStep = handleInitiatorRemoval(vplex, workflow, completer, exportGroup,
                         exportMask, initiatorsToRemove, targetURIs, lastStep,
                         removeAllInits, hostURI, errorMessages);
-
-                doFireCompleter = true;
-            } else {
-                // we are not going to fire the completer because the steps are taken above
-                // and too many custom VPLEX changes would have been required
-                // in the ExportMaskRemoveInitCompleter
-                // we may want to alter the Completer to handle this special case in the future
-                doFireCompleter = false;
             }
         } else {
             // this is just a simple initiator removal, so just do it...
@@ -4964,22 +4974,6 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     removeAllInits, hostURI, errorMessages);
         }
 
-        if (doFireCompleter) {
-            // We make a separate step to fire this completer.
-            // This is because we cannot update the ExportMask until zoning has completed
-            // otherwise exportMask.removeInitiator() will remove the zone map entry prematurely.
-            String completerStepId = workflow.createStepId();
-
-            // Create a step to fire the completer after everything finishes. It's ok if we rollback and
-            // do not execute this method.
-            ExportMaskRemoveInitiatorCompleter maskCompleter = new ExportMaskRemoveInitiatorCompleter(
-                    exportGroup.getId(), exportMask.getId(), hostInitiatorURIs, completerStepId);
-
-            Workflow.Method fireCompleter = fireTaskCompleterMethod(maskCompleter);
-            lastStep = workflow.createStep("fireCompleter", "Fire ExportMaskRemoveInitiatorCompleter",
-                    lastStep, vplex.getId(), vplex.getSystemType(),
-                    this.getClass(), fireCompleter, null, completerStepId);
-        }
         return lastStep;
     }
 
@@ -5016,15 +5010,19 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             boolean removeAllInits, URI computeResourceId, StringBuffer errorMessages) {
         _log.info("these initiators are being marked for removal from export mask {}: {}",
                 exportMask.getMaskName(), CommonTransformerFunctions.collectionToString(hostInitiatorURIs));
-        String lastStep;
+
+        String lastStep = workflow.createStepId();
+        ExportMaskRemoveInitiatorCompleter maskCompleter =
+                new ExportMaskRemoveInitiatorCompleter(exportGroup.getId(), exportMask.getId(), hostInitiatorURIs, lastStep);
+
         // removeInitiatorMethod will make sure not to remove existing initiators
         // from the storage view on the vplex device.
         Workflow.Method removeInitiatorMethod = storageViewRemoveInitiatorsMethod(vplex.getId(), exportGroup.getId(),
-                exportMask.getId(), hostInitiatorURIs, targetURIs);
+                exportMask.getId(), hostInitiatorURIs, targetURIs, maskCompleter);
         Workflow.Method removeInitiatorRollbackMethod = new Workflow.Method(ROLLBACK_METHOD_NULL);
         lastStep = workflow.createStep("storageView", "Removing " + hostInitiatorURIs.toString(),
                 zoneStep, vplex.getId(), vplex.getSystemType(), this.getClass(),
-                removeInitiatorMethod, removeInitiatorRollbackMethod, null);
+                removeInitiatorMethod, removeInitiatorRollbackMethod, lastStep);
 
         // Add zoning step for removing initiators
         Map<URI, List<URI>> exportMaskToInitiators = new HashMap<URI, List<URI>>();
@@ -5121,26 +5119,6 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
         return lastStep;
     }
 
-    private Workflow.Method fireTaskCompleterMethod(TaskCompleter completer) {
-        return new Workflow.Method("fireTaskCompleter", completer);
-    }
-
-    /**
-     * Generic method to fire task completer. This can be handy if we need to
-     * delay until multiple steps are done to fire the completer.
-     * Note it will not be fired if operations are rolled back, so this
-     * cannot be the top-level completer the user sees unless the rollback
-     * is handled.
-     *
-     * @param completer
-     *            TaskCompleter
-     * @param stepId
-     *            Workflow step id -- assumed to be in the completer!
-     */
-    public void fireTaskCompleter(TaskCompleter completer, String stepId) {
-        completer.ready(_dbClient);
-    }
-
     /**
      * Returns the workflow method for storageViewRemoveInitiators.
      *
@@ -5150,12 +5128,14 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
      * @param exportMaskURI
      * @param initiatorURIs
      * @param targetURIs
+     * @param completer - the ExportMaskRemoveInitiatorCompleter 
      * @return Workflow.Method for addition into workflow.
      */
     private Workflow.Method storageViewRemoveInitiatorsMethod(URI vplexURI, URI exportGroupURI,
-            URI exportMaskURI, List<URI> initiatorURIs, List<URI> targetURIs) {
+            URI exportMaskURI, List<URI> initiatorURIs, List<URI> targetURIs,
+            ExportMaskRemoveInitiatorCompleter completer) {
         return new Workflow.Method("storageViewRemoveInitiators", vplexURI, exportGroupURI,
-                exportMaskURI, initiatorURIs, targetURIs);
+                exportMaskURI, initiatorURIs, targetURIs, completer);
     }
 
     /**
@@ -5174,12 +5154,14 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
      * @param targetURIs
      *            -- optional targets to be removed from the Storage View.
      *            If non null, a list of URIs for VPlex front-end ports that will be removed from Storage View.
+     * @param completer
+     *            -- the ExportMaskRemoveInitiatorCompleter 
      * @param stepId
      *            -- Workflow step id.
      * @throws WorkflowException
      */
     public void storageViewRemoveInitiators(URI vplexURI, URI exportGroupURI, URI exportMaskURI,
-            List<URI> initiatorURIs, List<URI> targetURIs, String stepId)
+            List<URI> initiatorURIs, List<URI> targetURIs, ExportMaskRemoveInitiatorCompleter completer, String stepId)
             throws WorkflowException {
         try {
             WorkflowStepCompleter.stepExecuting(stepId);
@@ -5274,14 +5256,18 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     }
                 }
             }
+
+            completer.ready(_dbClient);
             WorkflowStepCompleter.stepSucceded(stepId);
         } catch (VPlexApiException vae) {
             _log.error("Exception removing initiator from Storage View: " + vae.getMessage(), vae);
+            completer.error(_dbClient, vae);
             WorkflowStepCompleter.stepFailed(stepId, vae);
         } catch (Exception ex) {
             _log.error("Exception removing initiator from Storage View: " + ex.getMessage(), ex);
             String opName = ResourceOperationTypeEnum.DELETE_STORAGE_VIEW_INITIATOR.getName();
             ServiceError serviceError = VPlexApiException.errors.storageViewRemoveInitiatorFailed(opName, ex);
+            completer.error(_dbClient, serviceError);
             WorkflowStepCompleter.stepFailed(stepId, serviceError);
         }
     }

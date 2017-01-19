@@ -271,6 +271,7 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
                 ctx.setExportMask(exportMask);
                 ctx.setBlockObjects(volumeURIList, _dbClient);
                 ctx.setInitiators(initiatorList);
+                ctx.setAllowExceptions(context == null);
                 validator.exportMaskDelete(ctx).validate();
             }
 

@@ -92,9 +92,23 @@ public class Events extends Controller {
         render();
     }
 
-    public static void listAllJson(Long lastUpdated) {
+    public static void listAllJson(Long lastUpdated, Boolean systemEvents) {
+        
+        if (systemEvents == null) {
+            systemEvents = Boolean.FALSE;
+        }
+        
+        if (systemEvents && Security.isSystemAdminOrRestrictedSystemAdmin() == false) {
+            forbidden();
+        }
+        
         ViPRCoreClient client = getViprClient();
-        List<EventRestRep> eventResourceReps = client.events().getByRefs(client.events().listByTenant(uri(Models.currentAdminTenant())));
+        List<EventRestRep> eventResourceReps = null;
+        if(systemEvents) {
+            eventResourceReps = client.events().getByRefs(client.events().listByTenant(SYSTEM_TENANT));                
+        } else {
+            eventResourceReps = client.events().getByRefs(client.events().listByTenant(uri(Models.currentAdminTenant())));                
+        }        
 
         Collections.sort(eventResourceReps, orderedEventComparator);
 

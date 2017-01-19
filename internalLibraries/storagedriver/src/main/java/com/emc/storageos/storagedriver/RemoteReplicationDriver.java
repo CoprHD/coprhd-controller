@@ -11,6 +11,7 @@ import java.util.List;
 import com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationGroup;
 import com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationOperationContext;
 import com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationPair;
+import com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationSet;
 import com.emc.storageos.storagedriver.storagecapabilities.StorageCapabilities;
 
 /**
@@ -253,6 +254,20 @@ public interface RemoteReplicationDriver {
      */
     public DriverTask swap(List<RemoteReplicationPair> replicationPairs, RemoteReplicationOperationContext context,
                            StorageCapabilities capabilities);
+
+    /**
+     * Changes remote replication mode for all specified pairs.
+     * Should not make any impact on replication state of any other existing replication pairs which are not specified
+     * in the request. If execution of the request with this constraint is not possible, should return a failure.
+     *
+     * @param replicationPairs: remote replication pairs for mode change
+     * @param newReplicationMode:  new replication mode
+     * @param context: context information for this operation
+     * @param capabilities storage capabilities for this operation
+     * @return driver task
+     */
+    public DriverTask changeReplicationMode(List<RemoteReplicationPair> replicationPairs, String newReplicationMode,
+                                            RemoteReplicationOperationContext context, StorageCapabilities capabilities);
 
     /**
      * Move replication pair from its parent group to other replication group.

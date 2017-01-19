@@ -17,7 +17,7 @@ public class RemoteReplicationGroupList {
     public RemoteReplicationGroupList() {
     }
 
-    public RemoteReplicationGroupList(List<NamedRelatedResourceRep> remoteReplicationSets) {
+    public RemoteReplicationGroupList(List<NamedRelatedResourceRep> remoteReplicationGroups) {
         this.remoteReplicationGroups = remoteReplicationGroups;
     }
 

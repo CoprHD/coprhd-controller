@@ -340,4 +340,57 @@ public class RemoteReplicationBlockServiceApiImpl extends AbstractBlockServiceAp
 
         controller.failover(remoterReplicationElement, taskId);
     }
+
+    public void failbackRemoteReplicationElementLink(RemoteReplicationElement remoterReplicationElement, String taskId) {
+        RemoteReplicationController controller = getController(
+                RemoteReplicationController.class, Constants.EXTERNALDEVICE);
+
+        controller.failback(remoterReplicationElement, taskId);
+    }
+
+    public void establishRemoteReplicationElementLink(RemoteReplicationElement remoterReplicationElement, String taskId) {
+        RemoteReplicationController controller = getController(
+                RemoteReplicationController.class, Constants.EXTERNALDEVICE);
+
+        controller.establish(remoterReplicationElement, taskId);
+    }
+
+    public void splitRemoteReplicationElementLink(RemoteReplicationElement remoterReplicationElement, String taskId) {
+        RemoteReplicationController controller = getController(
+                RemoteReplicationController.class, Constants.EXTERNALDEVICE);
+
+        controller.split(remoterReplicationElement, taskId);
+    }
+
+    public void suspendRemoteReplicationElementLink(RemoteReplicationElement remoterReplicationElement, String taskId) {
+        RemoteReplicationController controller = getController(
+                RemoteReplicationController.class, Constants.EXTERNALDEVICE);
+
+        controller.suspend(remoterReplicationElement, taskId);
+    }
+
+    public void resumeRemoteReplicationElementLink(RemoteReplicationElement remoterReplicationElement, String taskId) {
+        RemoteReplicationController controller = getController(
+                RemoteReplicationController.class, Constants.EXTERNALDEVICE);
+
+        controller.resume(remoterReplicationElement, taskId);
+    }
+
+    public void swapRemoteReplicationElementLink(RemoteReplicationElement remoterReplicationElement, String taskId) {
+        RemoteReplicationController controller = getController(
+                RemoteReplicationController.class, Constants.EXTERNALDEVICE);
+
+        controller.swap(remoterReplicationElement, taskId);
+    }
+
+    public void changeRemoteReplicationMode(RemoteReplicationElement remoterReplicationElement, String newReplicationMode, String taskId) {
+        RemoteReplicationController controller = getController(
+                RemoteReplicationController.class, Constants.EXTERNALDEVICE);
+
+        controller.changeReplicationMode(remoterReplicationElement, newReplicationMode, taskId);
+    }
+
+
+
+
 }

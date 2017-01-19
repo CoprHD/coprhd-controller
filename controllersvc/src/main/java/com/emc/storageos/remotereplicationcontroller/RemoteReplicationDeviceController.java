@@ -123,22 +123,22 @@ public class RemoteReplicationDeviceController implements RemoteReplicationContr
     }
 
     @Override
-    public void suspend(URI replicationArgument, String opId) {
+    public void suspend(RemoteReplicationElement replicationElement, String opId) {
 
     }
 
     @Override
-    public void resume(URI replicationArgument, String opId) {
+    public void resume(RemoteReplicationElement replicationElement, String opId) {
 
     }
 
     @Override
-    public void split(URI replicationArgument, String opId) {
+    public void split(RemoteReplicationElement replicationElement, String opId) {
 
     }
 
     @Override
-    public void establish(URI replicationArgument, String opId) {
+    public void establish(RemoteReplicationElement replicationElement, String opId) {
 
     }
 
@@ -157,7 +157,12 @@ public class RemoteReplicationDeviceController implements RemoteReplicationContr
     }
 
     @Override
-    public void swap(URI replicationArgument, String opId) {
+    public void swap(RemoteReplicationElement replicationElement, String opId) {
+
+    }
+
+    @Override
+    public void changeReplicationMode(RemoteReplicationElement replicationElement, String newRemoteReplicationMode, String opId) {
 
     }
 

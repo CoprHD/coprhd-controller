@@ -89,7 +89,7 @@ verify_export() {
     fi
     num_inits=`grep -Po '(?<="numberOfInitiators":")[^"]*' ${TMPFILE1}`
     num_luns=`grep -Po '(?<="numberOfVolumes":")[^"]*' ${TMPFILE1}`
-	hlus=`grep -Po '(?<=lun:":")[^"]*' ${TMPFILE1}`
+	hlus=`grep -Po '(?<="usedHLUs:)[^"]*' ${TMPFILE1}`
     failed=false
     echo $num_inits $num_luns $hlus
 
@@ -105,18 +105,17 @@ verify_export() {
 	failed=true
     fi
 
-	if [[ ! -z "${HLUS}" ]]
-	then
-	if [ ${hlus} -ne ${HLUS} ]
-	then
-		hlu_arr=(${HLUS//,/ })
+	if [ -n "${HLUS}" ]
+	then	
+		hlu_arr=(${HLUS//,/, })
+		hlus=${hlus:1:-1}	
 		if [  "${hlus[*]}" != "${hlu_arr[*]}" ]
 		then
 			echo -e "\e[91mERROR\e[0m: Export group hlus: Expected: ${hlu_arr[*]} Retrieved: ${hlus[*]}";
 			failed=true
 		fi
 	fi
-	fi
+	
 
     if [ "${failed}" = "true" ]
 	then
@@ -130,7 +129,7 @@ verify_export() {
 # Check to see if this is an operational request or a verification of export request
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 tools_file="${DIR}/tools.yml"
-tools_jar="${DIR}/ArrayTools.jar"
+tools_jar="${DIR}/ArrayTools1.jar"
 if [ "$1" = "add_volume_to_mask" ]; then
     shift
     add_volume_to_mask $1 $2 $3

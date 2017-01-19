@@ -8,6 +8,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.StringWriter;
+import java.net.URI;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Collections;
@@ -22,7 +23,10 @@ import java.util.zip.ZipOutputStream;
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBException;
 
+import com.emc.storageos.model.tenant.TenantOrgRestRep;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import controllers.security.Security;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.io.output.CloseShieldOutputStream;
 import org.apache.commons.lang.StringUtils;
@@ -50,6 +54,7 @@ import com.emc.vipr.model.sys.healthmonitor.HealthRestRep;
 import com.emc.vipr.model.sys.healthmonitor.NodeHealth;
 import com.emc.vipr.model.sys.healthmonitor.StatsRestRep;
 import com.google.common.collect.Sets;
+import util.TenantUtils;
 
 public class SupportPackageCreator {
     private static final String TIMESTAMP = "ddMMyy-HHmm";
@@ -74,6 +79,8 @@ public class SupportPackageCreator {
     private ViPRSystemClient client;
     private String tenantId;
     private ViPRCatalogClient2 catalogClient;
+
+    private List<URI> tenantIds;//if is set, means need to get orders for these tenants
 
     public SupportPackageCreator(Http.Request request, ViPRSystemClient client, String tenantId, ViPRCatalogClient2 catalogClient) {
         this.request = request;
@@ -108,6 +115,10 @@ public class SupportPackageCreator {
 
     public void setOrderTypes(OrderTypes orderTypes) {
         this.orderTypes = orderTypes;
+    }
+
+    public void setTenantIds(List<URI> tenantIds) {
+        this.tenantIds = tenantIds;
     }
 
     private String getDefaultStartTime() {
@@ -170,16 +181,29 @@ public class SupportPackageCreator {
 
     private List<OrderRestRep> getOrders() {
         if ((orderTypes == OrderTypes.ALL) || (orderTypes == OrderTypes.ERROR)) {
-            SearchBuilder<OrderRestRep> search = catalogApi().orders().search().byTimeRange(
-                    this.startTime, this.endTime);
-            if (orderTypes == OrderTypes.ERROR) {
-                search.filter(new FailedOrderFilter());
+            List<OrderRestRep> orders = Lists.newArrayList();
+            if (tenantIds != null) {
+                for (URI tenantId : tenantIds) {
+                    SearchBuilder<OrderRestRep> search = catalogApi().orders().search().byTimeRange(
+                            this.startTime, this.endTime, tenantId);
+                    if (orderTypes == OrderTypes.ERROR) {
+                        search.filter(new FailedOrderFilter());
+                    }
+                    List<OrderRestRep> tenantOrders = search.run();
+                    Logger.info("Found %s Orders for tenantId %s", tenantOrders.size(), tenantId);
+                    orders.addAll(tenantOrders);
+                }
+            } else {
+                SearchBuilder<OrderRestRep> search = catalogApi().orders().search().byTimeRange(
+                        this.startTime, this.endTime);
+                if (orderTypes == OrderTypes.ERROR) {
+                    search.filter(new FailedOrderFilter());
+                }
+                orders = search.run();
+                Logger.info("Found %s Orders", orders.size());
             }
-            List<OrderRestRep> orders = search.run();
-            Logger.debug("Found %s Orders", orders.size());
             return orders;
-        }
-        else {
+        } else {
             return Collections.emptyList();
         }
     }

@@ -526,7 +526,12 @@ public class NetworkDiscoveryWorker {
                 	tenantURI = TenantOrg.SYSTEM_TENANT;
                 	//now get the storageport details
                 	List<StoragePort> storagePorts = getEndPointPorts(endpointRemoved , dbClient);
-                	resource = storagePorts.get(0);
+                	if(storagePorts.size() > 0){
+                		resource = storagePorts.get(0);
+                	}
+                	else{
+                		continue;
+                	}
                 }
                 
      			if(!bEndpointAddedInOtherZone){
@@ -544,20 +549,6 @@ public class NetworkDiscoveryWorker {
     }
     
     
-    private URI getResourceURI(String endpoint){
-    	Initiator hostInitiator = getInitiator(endpoint, dbClient);
-        URI resourceURI = null;
-        
-        if(hostInitiator!=null){
-        	resourceURI = hostInitiator.getId();
-        }
-        else{
-        	//now get the storageport details
-        	List<StoragePort> storagePorts = getEndPointPorts(endpoint , dbClient);
-        	resourceURI = storagePorts.get(0).getId();
-        }
-        return resourceURI;
-    }
     /**
      * Looks in the topology view for endpoints that accessible by routing
      * 
@@ -889,7 +880,6 @@ public class NetworkDiscoveryWorker {
         for(String endpoint: endpoints){
             Initiator hostInitiator = getInitiator(endpoint, dbClient);
             URI tenantURI = null;
-            URI resourceURI = null;
             DataObject resource = null;
             
             if(hostInitiator!=null){
@@ -901,7 +891,12 @@ public class NetworkDiscoveryWorker {
             	tenantURI = TenantOrg.SYSTEM_TENANT;
             	//now get the storageport details
             	List<StoragePort> storagePorts = getEndPointPorts(endpoint , dbClient);
-            	resource = storagePorts.get(0);
+            	if(storagePorts.size() > 0){
+            		resource = storagePorts.get(0);
+            	}
+            	else{
+            		continue;
+            	}
             }
             
             boolean bMovement = false;

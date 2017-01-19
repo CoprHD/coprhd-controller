@@ -467,7 +467,6 @@ public class NetworkDiscoveryWorker {
                 }
                 if (results.getAddedEndPoints().get(tzone) != null) {
                     handleEndpointsAdded(tzone, results.getAddedEndPoints().get(tzone), results.getRemovedEndPoints());                    
-                    //handleAddEvent(results.getAddedEndPoints().get(tzone));
                 }
                 saveTransportZone(tzone, false);
             }
@@ -488,10 +487,6 @@ public class NetworkDiscoveryWorker {
         }
     }
 
-    private void handleAddEvent(Map<Network, List<String>> addedEndPoints, 			 
-			 Network tzone) throws IOException {
-    
-    }
     
     private void handleRemoveEvent(Map<Network, List<String>> addedEndPoints, 
     								Map<Network, List<String>> removedEndpoints , 
@@ -950,6 +945,14 @@ public class NetworkDiscoveryWorker {
         return null;
     }
     
+
+    /**
+     * Looks up the storage ports for a given end point. Returns empty list if a storage port could not be found.
+     * 
+     * @param endPoint
+     * @param dbClient an instance of {@link DbClient}
+     * @return
+     */
     private static List<StoragePort> getEndPointPorts(String endPoint, DbClient dbClient) {
         URIQueryResultList portUriList = new URIQueryResultList();
         List<StoragePort> ports = new ArrayList<StoragePort>();

@@ -129,7 +129,7 @@ verify_export() {
 # Check to see if this is an operational request or a verification of export request
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 tools_file="${DIR}/tools.yml"
-tools_jar="${DIR}/ArrayTools1.jar"
+tools_jar="${DIR}/ArrayTools.jar"
 if [ "$1" = "add_volume_to_mask" ]; then
     shift
     add_volume_to_mask $1 $2 $3

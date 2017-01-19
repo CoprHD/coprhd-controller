@@ -5,8 +5,6 @@
 package com.emc.storageos.api.service.impl.resource;
 
 import java.net.URI;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
@@ -79,7 +77,7 @@ import com.google.common.collect.Sets;
 @DefaultPermissions(readRoles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN, Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, writeRoles = {
         Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN, Role.TENANT_ADMIN })
 public class TaskService extends TaggedResource {
-    private static final URI SYSTEM_TENANT = URI.create("system");
+    public static final URI SYSTEM_TENANT = URI.create("system");
     private static final Integer FETCH_ALL = -1;
 
     private static final String TENANT_QUERY_PARAM = "tenant";

@@ -489,14 +489,9 @@ public class BlockConsistencyGroupUtils {
         }
 
         if (!cgReferenced) {
-            // Remove the LOCAL type
-            StringSet cgTypes = consistencyGroup.getTypes();
-            cgTypes.remove(BlockConsistencyGroup.Types.LOCAL.name());
-            consistencyGroup.setTypes(cgTypes);
-
-            StringSet requestedTypes = consistencyGroup.getRequestedTypes();
-            requestedTypes.remove(BlockConsistencyGroup.Types.LOCAL.name());
-            consistencyGroup.setRequestedTypes(requestedTypes);
+            // Clear types and requestTypes
+            consistencyGroup.getTypes().clear();
+            consistencyGroup.getRequestedTypes().clear();
 
             // Remove the referenced storage system as well, but only if there are no other types
             // of storage systems associated with the CG.

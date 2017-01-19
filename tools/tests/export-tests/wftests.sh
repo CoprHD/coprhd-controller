@@ -1997,6 +1997,7 @@ test_1() {
       else
 	  # If this is a rollback inject, make sure we get the "additional message"
 	  echo ${failure} | grep failure_004 | grep ":" > /dev/null
+
 	  if [ $? -eq 0 ]
 	  then
 	      # Make sure it fails with additional errors accounted for in the error message
@@ -2149,6 +2150,7 @@ test_2() {
       else
       	  # If this is a rollback inject, make sure we get the "additional message"
 	  echo ${failure} | grep failure_004 | grep ":" > /dev/null
+
 	  if [ $? -eq 0 ]
 	  then
 	      # Make sure it fails with additional errors accounted for in the error message
@@ -2281,6 +2283,7 @@ test_3() {
 
       # If this is a rollback inject, make sure we get the "additional message"
       echo ${failure} | grep failure_004 | grep ":" > /dev/null
+
       if [ $? -eq 0 ]
       then
 	  # Make sure it fails with additional errors accounted for in the error message
@@ -2407,6 +2410,7 @@ test_4() {
 
       # If this is a rollback inject, make sure we get the "additional message"
       echo ${failure} | grep failure_004 | grep ":" > /dev/null
+
       if [ $? -eq 0 ]
       then
 	  # Make sure it fails with additional errors accounted for in the error message
@@ -2613,6 +2617,7 @@ test_6() {
 
       # If this is a rollback inject, make sure we get the "additional message"
       echo ${failure} | grep failure_004 | grep ":" > /dev/null
+
       if [ $? -eq 0 ]
       then
 	  # Make sure it fails with additional errors accounted for in the error message
@@ -2718,6 +2723,7 @@ test_7() {
 
       # If this is a rollback inject, make sure we get the "additional message"
       echo ${failure} | grep failure_004 | grep ":" > /dev/null
+
       if [ $? -eq 0 ]
       then
 	  # Make sure it fails with additional errors accounted for in the error message
@@ -2843,6 +2849,7 @@ test_8() {
       else
       	  # If this is a rollback inject, make sure we get the "additional message"
 	  echo ${failure} | grep failure_004 | grep ":" > /dev/null
+
 	  if [ $? -eq 0 ]
 	  then
 	      # Make sure it fails with additional errors accounted for in the error message

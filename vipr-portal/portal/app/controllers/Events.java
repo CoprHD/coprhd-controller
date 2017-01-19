@@ -28,6 +28,7 @@ import controllers.security.Security;
 import controllers.tenant.TenantSelector;
 import controllers.util.Models;
 import models.datatable.EventsDataTable;
+import models.datatable.TasksDataTable;
 import play.data.binding.As;
 import play.mvc.Controller;
 import play.mvc.Util;
@@ -62,12 +63,31 @@ public class Events extends Controller {
         }
     };
 
-    public static void listAll() {
+    /*public static void listAll() {
         TenantSelector.addRenderArgs();
 
         renderArgs.put("dataTable", new EventsDataTable(true));
 
         Common.angularRenderArgs().put("tenantId", Models.currentAdminTenant());
+
+        render();
+    }*/
+    
+    public static void listAll(Boolean systemEvents) {
+        TenantSelector.addRenderArgs();
+
+        if (systemEvents == null) {
+            systemEvents = Boolean.FALSE;
+        }
+        if (systemEvents && Security.isSystemAdminOrRestrictedSystemAdmin() == false) {
+            forbidden();
+        }
+
+        renderArgs.put("isSystemAdmin", Security.isSystemAdminOrRestrictedSystemAdmin());
+        renderArgs.put("systemEvents", systemEvents);
+        renderArgs.put("dataTable", new TasksDataTable(true));
+
+        Common.angularRenderArgs().put("tenantId", systemEvents ? "system" : Models.currentAdminTenant());
 
         render();
     }
@@ -124,13 +144,13 @@ public class Events extends Controller {
 
     public static void details(String eventId) {
         if (StringUtils.isBlank(eventId)) {
-            listAll();
+            listAll(false);
         }
 
         EventRestRep event = EventUtils.getEvent(uri(eventId));
         if (event == null) {
             flash.error(MessagesUtils.get(UNKNOWN, eventId));
-            listAll();
+            listAll(false);
         }
 
         Common.angularRenderArgs().put("event", getEventSummary(event));
@@ -200,9 +220,9 @@ public class Events extends Controller {
             flash.success(MessagesUtils.get(APPROVED_MULTIPLE));
         } catch (Exception e) {
             flashException(e);
-            listAll();
+            listAll(false);
         }
-        listAll();
+        listAll(false);
     }
 
     public static void declineEvents(@As(",") String[] ids, String confirm) {
@@ -216,9 +236,9 @@ public class Events extends Controller {
             flash.success(MessagesUtils.get(DECLINED_MULTIPLE));
         } catch (Exception e) {
             flashException(e);
-            listAll();
+            listAll(false);
         }
-        listAll();
+        listAll(false);
     }
 
     public static void approveEvent(String eventId) {

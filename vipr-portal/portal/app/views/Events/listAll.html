@@ -11,6 +11,34 @@
 
   #{alerts/}
   
+  #{if tenants || isSystemAdmin}
+      <ul id="eventTabs" class="nav nav-tabs" role="tablist" style="margin-bottom:1em;">
+        #{if tenants?.size() > 1}
+          <li class="dropdown #{ifnot systemEvents}active#{/ifnot}">
+            <a class="dropdown-toggle" data-toggle="dropdown" href="#">
+              %{
+                currentTenantName = tenants.find{it.id.equals(currentTenantId)}.name
+              }%
+              &{'resources.tasks.tenant.label', currentTenantName} <span class="caret"></span>
+            </a>
+            <ul class="dropdown-menu" role="menu">
+              #{list items:tenants, as:'tenant'}
+                <li #{if tenant.id.equals(currentTenantId)}class="active"#{/if}>
+                  <a href="@{tenant.TenantSelector.selectTenant(tenant.id, request.path)}">&{'resources.tasks.tenant.label', tenant.name}</a>
+                </li>
+              #{/list}
+            </ul>
+          </li>
+        #{/if}
+        #{deadbolt.restrict roles:[['SYSTEM_ADMIN'], ['RESTRICTED_SYSTEM_ADMIN']]}
+            #{if tenants?.size() == 1}
+                <li id="tenantEventsTab" #{ifnot systemEvents}class="active"#{/ifnot}><a href="@{listAll()}">&{'resources.tasks.tenant'}</a></li>
+            #{/if}
+            <li id="systemEventsTab" #{if systemEvents}class="active"#{/if}><a href="@{listAll(true)}">&{'resources.tasks.system'}</a></li>
+        #{/deadbolt.restrict}
+      </ul>
+   #{/if}
+  
    <div class="pull-left" style="vertical-align: middle; line-height: 20px;" ng-controller="summaryEventCountCtrl">
       <span class="text-info" style="margin-right:25px">
           <a href="#" ng-click="filterEvents('pending')" class="no-decoration">

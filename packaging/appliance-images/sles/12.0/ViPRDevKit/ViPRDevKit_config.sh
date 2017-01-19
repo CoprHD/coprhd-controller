@@ -465,6 +465,9 @@ systemctl disable wickedd-dhcp6
 #Enable docker service
 systemctl enable docker
 
+# Installed the symcli packages from symcli wrapper package
+/usr/symcli-wrapper/se8300_install.sh -install -silent
+
 # Removed the floppy 
 echo "blacklist floppy" > /etc/modprobe.d/blacklist-floppy.conf
 

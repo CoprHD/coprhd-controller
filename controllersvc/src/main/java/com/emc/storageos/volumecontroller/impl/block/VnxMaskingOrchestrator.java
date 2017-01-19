@@ -634,6 +634,14 @@ public class VnxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                             }
                             newVolumes.put(bo.getId(), requestedHLU);
                             mask.addToUserCreatedVolumes(bo);
+                        } else if (bo != null && mask.hasExistingVolume(bo)) {
+                            _log.info(String.format(
+                                    "volume %s is already in mask %s. Removing it from mask's existing volumes and adding to user created volumes",
+                                    bo.getWWN(), mask.getMaskName()));
+                            String hlu = mask.getExistingVolumes().get(BlockObject.normalizeWWN(bo.getWWN()));
+                            mask.removeFromExistingVolumes(bo);
+                            mask.addVolume(bo.getId(), Integer.parseInt(hlu));
+                            mask.addToUserCreatedVolumes(bo);
                         }
                     }
 

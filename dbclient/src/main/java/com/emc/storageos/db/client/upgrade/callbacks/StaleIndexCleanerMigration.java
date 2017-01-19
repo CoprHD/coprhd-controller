@@ -32,8 +32,8 @@ import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 /**
  * This migration handler is for COP-27665
  * If we see an object URI in index table but never see it in object table, 
- * it¡¯s definitely a potential problem for NullPointerException.
- * So, Create a new migration callback. Scan all index tables including DecommissionIndex, 
+ * it's definitely a potential problem for NullPointerException.
+ * So, create a new migration callback. Scan all index tables including DecommissionIndex, 
  * AggregatedIndex, RelationIndex etc, and delete invalid object URI
  */
 public class StaleIndexCleanerMigration extends BaseCustomMigrationCallback {

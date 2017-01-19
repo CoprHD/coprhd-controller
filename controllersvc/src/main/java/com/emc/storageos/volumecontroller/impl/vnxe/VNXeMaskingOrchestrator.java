@@ -98,11 +98,12 @@ public class VNXeMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                 // This step is for zoning. It is not specific to a single
                 // NetworkSystem, as it will look at all the initiators and targets and compute
                 // the zones required (which might be on multiple NetworkSystems.)
-                String zoningStep = generateZoningCreateWorkflow(workflow, null, exportGroup,
-                        null, volumeMap);
-
-                boolean createdSteps = determineExportGroupCreateSteps(workflow, zoningStep, device, storage, exportGroup,
+                
+                boolean createdSteps = determineExportGroupCreateSteps(workflow, null, device, storage, exportGroup,
                         initiatorURIs, volumeMap, token);
+                
+                String zoningStep = generateZoningCreateWorkflow(workflow, EXPORT_GROUP_MASKING_TASK, exportGroup,
+                        null, volumeMap);                
 
                 if (createdSteps) {
                     // Execute the plan and allow the WorkflowExecutor to fire the
@@ -140,7 +141,7 @@ public class VNXeMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
             TaskCompleter taskCompleter = new ExportOrchestrationTask(exportGroupURI,
                     token);
 
-            if (exportGroup == null || exportGroup.getInactive()) {
+            if (exportGroup == null || exportGroup.getInactive() || ExportMaskUtils.getExportMasks(_dbClient, exportGroup).isEmpty()) {
                 taskCompleter.ready(_dbClient);
                 return;
             }

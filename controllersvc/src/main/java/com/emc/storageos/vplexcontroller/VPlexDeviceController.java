@@ -4300,6 +4300,9 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
                 // Determine host of ExportMask
                 Set<URI> exportMaskHosts = VPlexUtil.getExportMaskHosts(_dbClient, exportMask, sharedExportMask);
+                
+                //Invoke artificial failure to simulate invalid storageview name on vplex
+                InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_060);
 
                 // Add new targets if specified
                 if (targetURIs != null && targetURIs.isEmpty() == false) {
@@ -5258,6 +5261,9 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             ctx.setBlockObjects(volumeURIList, _dbClient);
             ctx.setAllowExceptions(!WorkflowService.getInstance().isStepInRollbackState(stepId));
             validator.removeInitiators(ctx).validate();
+            
+            //Invoke artificial failure to simulate invalid storageview name on vplex
+            InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_060);
 
             // Optionally remove targets from the StorageView.
             // If there is any existing initiator and existing volume then we skip

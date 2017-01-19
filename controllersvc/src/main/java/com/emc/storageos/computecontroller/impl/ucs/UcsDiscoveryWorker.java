@@ -25,11 +25,13 @@ import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.emc.cloud.platform.ucs.out.model.BiosUnit;
 import com.emc.cloud.platform.ucs.out.model.ComputeBlade;
 import com.emc.cloud.platform.ucs.out.model.ComputeBoard;
 import com.emc.cloud.platform.ucs.out.model.FabricVlan;
 import com.emc.cloud.platform.ucs.out.model.FabricVsan;
 import com.emc.cloud.platform.ucs.out.model.FcPIo;
+import com.emc.cloud.platform.ucs.out.model.FirmwareRunning;
 import com.emc.cloud.platform.ucs.out.model.LsRequirement;
 import com.emc.cloud.platform.ucs.out.model.LsServer;
 import com.emc.cloud.platform.ucs.out.model.LsbootDef;
@@ -180,7 +182,7 @@ public class UcsDiscoveryWorker {
             } else {
                 cs.setLastDiscoveryStatusMessage(e.getMessage());
             }
-            _dbClient.persistObject(cs);
+            _dbClient.updateObject(cs);
             throw ComputeSystemControllerException.exceptions.discoverFailed(computeSystemURI.toString(), e);
         }
 
@@ -386,6 +388,7 @@ public class UcsDiscoveryWorker {
         computeElement.setLastDiscoveryRunTime(Calendar.getInstance().getTimeInMillis());
         computeElement.setSuccessDiscoveryTime(Calendar.getInstance().getTimeInMillis());
         computeElement.setDiscoveryStatus(DiscoveredDataObject.DataCollectionJobStatus.COMPLETE.name());
+        computeElement.setBios(getBios(computeBlade));
 
         if (lsServer != null) {
             computeElement.setAvailable(false);
@@ -403,6 +406,27 @@ public class UcsDiscoveryWorker {
             computeElement.setUuid(computeBlade.getUuid());
             computeElement.setDn(NullColumnValueGetter.getNullStr());
         }
+
+    }
+
+    private static String getBios(ComputeBlade computeBlade) {
+        String biosVersion = null;
+        biosLoop:
+            for(Serializable bladeContent : computeBlade.getContent()){
+                if((bladeContent != null) && (bladeContent instanceof JAXBElement<?>) &&
+                        (((JAXBElement)bladeContent).getValue() instanceof BiosUnit)) {
+                    BiosUnit biosUnit = (BiosUnit) ((JAXBElement)bladeContent).getValue();
+                    for(Serializable biosUnitContent : biosUnit.getContent()) {
+                        if((biosUnitContent != null) && (biosUnitContent instanceof JAXBElement<?>) &&
+                                (((JAXBElement)biosUnitContent).getValue() instanceof FirmwareRunning)) {
+                            FirmwareRunning firmwareRunning = (FirmwareRunning) ((JAXBElement)biosUnitContent).getValue();
+                            biosVersion = firmwareRunning.getVersion();
+                            break biosLoop;
+                        }
+                    }
+                }
+            }
+        return biosVersion;
     }
 
     private void reconcileVhbas(ComputeSystem cs, Map<String, LsServer> associatedLsServers, VhbaHelper lookUpVsan) {

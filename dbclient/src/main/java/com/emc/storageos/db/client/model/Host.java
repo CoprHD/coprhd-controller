@@ -64,6 +64,11 @@ public class Host extends AbstractComputeSystem {
 
     public boolean hasMixedEndianUuid() {
         // TODO   improve test when data available
+
+        if(bios == null || bios.isEmpty()) {
+            return true;  // default to newer format
+        }
+
         final String biosVersionPattern = "^B\\d+M(\\d)";
         Pattern r = Pattern.compile(biosVersionPattern);
         String biosModel = "4";  // default to newer blade model
@@ -73,13 +78,13 @@ public class Host extends AbstractComputeSystem {
                 biosModel = m.group(1);
             } 
         } catch (IllegalStateException ise){
-            return true; // default is to assume newer blade with unknown BIOS version
+            return true; // default is to assume newer blade when BIOS version is unknown
         }
         int biosModelInt = 4; // default to newer model
         try {
             biosModelInt = Integer.parseInt(biosModel);
         } catch (NumberFormatException nfe) {
-            return true; // default is to assume newer blade with unknown BIOS version
+            return true; // default is to assume newer blade when BIOS version is unknown
         }
         return biosModelInt > 3;  // old models are not mixed endian  TODO: validate this test
     }

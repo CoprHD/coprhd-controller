@@ -372,7 +372,10 @@ public class VcenterDiscoveryAdapter extends EsxHostDiscoveryAdapter {
                         }
                     }
                 }
-
+                if (hw != null && hw.biosInfo != null
+                        && StringUtils.isNotBlank(hw.biosInfo.biosVersion)) {
+                    targetHost.setBios(hw.biosInfo.biosVersion);
+                }
                 if (deletedHosts != null && deletedHosts.contains(target.getId())) {
                     deletedHosts.remove(target.getId());
                     info("Removing host " + target.getId() + " from deletedHosts. It may have been rediscovered in a different datacenter");

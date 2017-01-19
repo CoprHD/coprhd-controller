@@ -47,9 +47,10 @@ public class ComputeHostCompleter extends TaskCompleter {
                 if (host != null) {
                     if (ce != null) {
                         host.setUuid(ce.getUuid());
+                        host.setBios(ce.getBios());
                     }
                     host.setProvisioningStatus(ProvisioningJobStatus.COMPLETE.toString());
-                    dbClient.persistObject(host);
+                    dbClient.updateObject(host);
 
                     dbClient.ready(Host.class, getId(), getOpId());
 
@@ -67,7 +68,7 @@ public class ComputeHostCompleter extends TaskCompleter {
             case error:
                 if (host != null) {
                     host.setProvisioningStatus(ProvisioningJobStatus.ERROR.toString());
-                    dbClient.persistObject(host);
+                    dbClient.updateObject(host);
                     dbClient.error(Host.class, getId(), getOpId(), coded);
 
                     /**
@@ -77,7 +78,7 @@ public class ComputeHostCompleter extends TaskCompleter {
                      */
                     if (ce != null) {
                         ce.setAvailable(true);
-                        dbClient.persistObject(ce);
+                        dbClient.updateObject(ce);
                         auditMgr.recordAuditLog(null, null, serviceType, opType, System.currentTimeMillis(),
                                 AuditLogManager.AUDITLOG_FAILURE, AuditLogManager.AUDITOP_END, host.getId().toString(),
                                 ce.getAvailable(), ce.getUuid(), ce.getDn());

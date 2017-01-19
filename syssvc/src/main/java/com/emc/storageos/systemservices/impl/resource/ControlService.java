@@ -30,7 +30,7 @@ import com.emc.vipr.model.sys.ipreconfig.ClusterIpInfo;
 import com.emc.vipr.model.sys.ipreconfig.ClusterNetworkReconfigStatus;
 
 import com.emc.vipr.model.sys.recovery.DbOfflineStatus;
-import com.emc.vipr.model.sys.recovery.RecoveryPrecheckStatus;;
+import com.emc.vipr.model.sys.recovery.RecoveryPrecheckStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;

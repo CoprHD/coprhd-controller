@@ -17,6 +17,7 @@ import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.RegistrationStatus;
 import com.emc.storageos.db.client.model.FCEndpoint;
@@ -24,8 +25,12 @@ import com.emc.storageos.db.client.model.Network;
 import com.emc.storageos.db.client.model.NetworkSystem;
 import com.emc.storageos.db.client.model.StorageProtocol.Transport;
 import com.emc.storageos.db.client.model.StringSet;
+import com.emc.storageos.db.client.model.TenantOrg;
+import com.emc.storageos.db.client.model.util.EventUtils;
+import com.emc.storageos.util.ExternalChangeProperties;
 import com.emc.storageos.util.NetworkUtil;
 import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
+import com.google.common.collect.Lists;
 
 /**
  * This is a utility class that is used to handle reconciliation of newly discovered
@@ -57,7 +62,7 @@ public class TransportZoneReconciler {
      */
     public Results reconcile(NetworkSystem network, Iterator<FCEndpoint> iEndPoints,
             Map<String, String> fabricIdsMap,
-            List<Network> oldTransportZones) throws Exception {
+            List<Network> oldTransportZones, DbClient dbClient) throws Exception {
         // compute the new transport zones for the network system being
         // refreshed from the end points
         HashMap<String, Network> newTransportZones = getNewTransportZones(
@@ -83,7 +88,7 @@ public class TransportZoneReconciler {
                     _log.info("Checking if existing network {} " +
                             " needs updating.", transportZone.getLabel());
                     handleUpdatedTransportZone(network, transportZone,
-                            newTransportZones.get(fabricWwn), results);
+                            newTransportZones.get(fabricWwn), results, dbClient);
                     mutableMap.remove(fabricWwn);
                 } else if (transportZone.getNetworkSystems().contains(
                         network.getId().toString())) {
@@ -151,7 +156,7 @@ public class TransportZoneReconciler {
     }
 
     private void handleUpdatedTransportZone(NetworkSystem networkSystem,
-            Network oldTransportZone, Network newTransportZone, Results results)
+            Network oldTransportZone, Network newTransportZone, Results results, DbClient dbClient)
             throws IOException {
         List<String> removedEndPoints = new ArrayList<String>();
         List<String> addedEndPoints = new ArrayList<String>(
@@ -186,10 +191,22 @@ public class TransportZoneReconciler {
                 oldTransportZone.setRegistrationStatus(RegistrationStatus.REGISTERED.name());
             }
         }
+        
+        //TODO - Don't update the nativeID, instead create the event for the native id change
         if (!oldTransportZone.getNativeId().equals(
                 newTransportZone.getNativeId())) {
-            oldTransportZone.setNativeId(newTransportZone.getNativeId());
+            //oldTransportZone.setNativeId(newTransportZone.getNativeId());
+            EventUtils.createActionableEvent(dbClient,
+                    EventUtils.EventCode.FABRIC_NAME_CHANGED,
+                    TenantOrg.SYSTEM_TENANT, 
+                    ExternalChangeProperties.getMessage("network.fabricRenameEventName", oldTransportZone.getNativeId()),
+                    ExternalChangeProperties.getMessage("network.fabricRenameEventDescription", oldTransportZone.getNativeId(), newTransportZone.getNativeId()), 
+                    ExternalChangeProperties.getMessage("network.fabricRenameEventWarning"),
+                    oldTransportZone, Lists.newArrayList(),
+                    EventUtils.FABRIC_NAME_CHANGE_APPROVE, new Object[] {oldTransportZone.getId(), oldTransportZone.getNativeId()},
+                    EventUtils.FABRIC_NAME_CHANGE_DECLINE, new Object[] {oldTransportZone.getId()});
         }
+        
         // update the results object
         results.getModified().add(oldTransportZone);
     }

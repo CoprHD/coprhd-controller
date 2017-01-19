@@ -34,14 +34,14 @@ public class OrderDataTable extends DataTable {
     protected UserInfo userInfo;
     protected String tenantId;
 
-    protected Date startDate; //"yyyy-MM-dd 00:00:00" in local time zone
-    protected Date endDate;   //"yyyy-MM-dd 23:59:59" in local time zone
+    protected Date startDate; // "yyyy-MM-dd 00:00:00" in local time zone
+    protected Date endDate;   // "yyyy-MM-dd 23:59:59" in local time zone
 
-    private void setStartDate(Date startDate) {//set to "yyyy-MM-dd 00:00:00"
+    private void setStartDate(Date startDate) {// set to "yyyy-MM-dd 00:00:00"
         this.startDate = getStartTimeOfADay(startDate);
     }
 
-    private void setEndDate(Date endDate) {//set to "yyyy-MM-dd 23:59:59"
+    private void setEndDate(Date endDate) {// set to "yyyy-MM-dd 23:59:59"
         this.endDate = getEndTimeOfADay(endDate);
     }
 
@@ -85,7 +85,7 @@ public class OrderDataTable extends DataTable {
         setStartDate(getDateDaysAgo(maxDays));
         setEndDate(now());
     }
-    
+
     public void setByStartEndDateOrMaxDays(String startDate, String endDate, Integer maxDays) {
         if (StringUtils.isNotEmpty(startDate) && StringUtils.isNotEmpty(endDate)) {
             setStartDate(startDate);
@@ -98,8 +98,7 @@ public class OrderDataTable extends DataTable {
     public List<OrderInfo> fetchAll() {
         List<OrderRestRep> orderRestReps = null;
         if (userInfo != null) {
-            Logger.info("hlj, start to call fetchAll(), %s, %s", startDate, endDate);
-            orderRestReps = OrderUtils.getUserOrders(startDate, endDate, ORDER_MAX_COUNT_STR);
+            orderRestReps = OrderUtils.getUserOrders(startDate, endDate, ORDER_MAX_COUNT_STR, true);
         } else {
             orderRestReps = OrderUtils.getOrders(uri(this.tenantId));
         }

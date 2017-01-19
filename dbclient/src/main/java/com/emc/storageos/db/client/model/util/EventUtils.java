@@ -41,6 +41,10 @@ public class EventUtils {
     public static String hostClusterChangeDecline = "hostClusterChangeDecline";
     public static String removeInitiatorDecline = "removeInitiatorDecline";
     public static String addInitiatorDecline = "addInitiatorDecline";
+    
+    //Fabric ActionableEvent Related Method Names
+    public static final String FABRIC_NAME_CHANGE_APPROVE = "fabricNameChange";
+    public static final String FABRIC_NAME_CHANGE_DECLINE = "fabricNameChangeDecline";
 
     //Fabric ActionableEvent Related Method Names
     public static final String FABRIC_PORT_CHANGE_APPROVE = "fabricNameChange";
@@ -57,12 +61,14 @@ public class EventUtils {
         HOST_DATACENTER_CHANGE("104"),
         HOST_VCENTER_CHANGE("105"),
         UNASSIGN_HOST_FROM_VCENTER("106"),
-        	
+        
+        //Fabric Event Codes
+        //Reserved from 200 - 300
+        FABRIC_NAME_CHANGED("200");
     	PORT_REMOVED("201"),
     	PORT_ADDED("202"),
     	PORT_VSAN_CHANGE("203");
-    	
-    	
+    
         private String code;
     
         EventCode(String code) {

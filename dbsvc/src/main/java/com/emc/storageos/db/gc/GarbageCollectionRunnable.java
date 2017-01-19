@@ -13,6 +13,7 @@ import org.slf4j.LoggerFactory;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
+import com.emc.storageos.db.client.impl.DbClientImpl;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.common.DependencyChecker;
 import com.emc.storageos.db.common.DependencyTracker;
@@ -89,7 +90,7 @@ abstract class GarbageCollectionRunnable implements Runnable {
                     DataObject obj = dbClient.queryObject(type, uri);
                     if (obj != null) {
                         log.info("No dependencies found. Removing {}", uri);
-                        dbClient.removeObject(obj);
+                        ((DbClientImpl)dbClient).internalRemoveObjects(obj);
                         deleted++;
                     }
                 } catch (DatabaseException ex) {

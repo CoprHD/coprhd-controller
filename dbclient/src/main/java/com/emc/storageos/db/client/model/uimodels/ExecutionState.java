@@ -168,4 +168,20 @@ public class ExecutionState extends ModelObject {
     public Object[] auditParameters() {
         return new Object[] { getLabel(), getId() };
     }
+
+    @Override
+    public String toString() {
+        StringBuilder builder = new StringBuilder();
+        builder.append("\nExecute Status:")
+                .append(getExecutionStatus())
+                .append("\nStart Date:")
+                .append(getStartDate())
+                .append("\nEnd Date:")
+                .append(getEndDate())
+                .append("\nAffected Resources:")
+                .append(getAffectedResources())
+                .append("\n");
+
+        return builder.toString();
+    }
 }

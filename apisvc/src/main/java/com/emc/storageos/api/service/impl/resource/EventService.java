@@ -13,6 +13,7 @@ import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
@@ -334,12 +335,18 @@ public class EventService extends TaggedResource {
         } else {
             tenantId = tid;
         }
-        // this call validates the tenant id
-        TenantOrg tenant = _permissionsHelper.getObjectById(tenantId, TenantOrg.class);
-        ArgValidator.checkEntity(tenant, tenantId, isIdEmbeddedInURL(tenantId), true);
-
-        // check the user permissions for this tenant org
-        verifyAuthorizedInTenantOrg(tenantId, user);
+        
+        if (Objects.equals(tenantId, TaskService.SYSTEM_TENANT) || Objects.equals(tenantId, TenantOrg.SYSTEM_TENANT)) {
+            verifySystemAdmin();
+            tenantId = TenantOrg.SYSTEM_TENANT;
+        } else {
+            // this call validates the tenant id
+            TenantOrg tenant = _permissionsHelper.getObjectById(tenantId, TenantOrg.class);
+            ArgValidator.checkEntity(tenant, tenantId, isIdEmbeddedInURL(tenantId), true);
+            // check the user permissions for this tenant org
+            verifyAuthorizedInTenantOrg(tenantId, user);
+        }
+        
         // get all host children
         EventList list = new EventList();
         list.setEvents(DbObjectMapper.map(ResourceTypeEnum.EVENT, listChildren(tenantId, ActionableEvent.class, "label", "tenant")));
@@ -356,6 +363,12 @@ public class EventService extends TaggedResource {
         int declined = 0;
         int pending = 0;
         int failed = 0;
+        
+        if (Objects.equals(tenantId, TaskService.SYSTEM_TENANT) || Objects.equals(tenantId, TenantOrg.SYSTEM_TENANT)) {
+            verifySystemAdmin();
+            tenantId = TenantOrg.SYSTEM_TENANT;
+        } 
+        
         Constraint constraint = AggregatedConstraint.Factory.getAggregationConstraint(ActionableEvent.class, "tenant",
                 tenantId.toString(), "eventStatus");
         AggregationQueryResultList queryResults = new AggregationQueryResultList();

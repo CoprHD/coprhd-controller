@@ -37,6 +37,7 @@ import com.emc.storageos.volumecontroller.impl.ControllerLockingUtil;
 import com.emc.storageos.volumecontroller.impl.vnxunity.VNXUnityMaskingOrchestrator;
 import com.emc.storageos.volumecontroller.placement.StoragePortsAllocator;
 import com.emc.storageos.volumecontroller.placement.StoragePortsAssigner;
+import com.emc.storageos.volumecontroller.placement.StoragePortsAllocator.PortAllocationContext;
 import com.emc.storageos.vplex.api.VPlexApiException;
 import com.emc.storageos.workflow.Workflow;
 import com.emc.storageos.workflow.Workflow.Method;
@@ -103,7 +104,9 @@ public class VplexUnityMaskingOrchestrator extends VNXUnityMaskingOrchestrator i
 
     @Override
     public Set<Map<URI, List<List<StoragePort>>>> getPortGroups(Map<URI, List<StoragePort>> allocatablePorts,
-            Map<URI, NetworkLite> networkMap, URI varrayURI, int nInitiatorGroups) {
+            Map<URI, NetworkLite> networkMap, URI varrayURI, int nInitiatorGroups, 
+            Map<URI, Map<String, Integer>> switchToPortNumber,
+            Map<URI, PortAllocationContext> contextMap) {
         log.info("START - getPortGroups");
         Set<Map<URI, List<List<StoragePort>>>> portGroups = new HashSet<Map<URI, List<List<StoragePort>>>>();
         Map<URI, Integer> portsAllocatedPerNetwork = new HashMap<URI, Integer>();
@@ -121,6 +124,14 @@ public class VplexUnityMaskingOrchestrator extends VNXUnityMaskingOrchestrator i
 
         for (URI netURI : allocatablePorts.keySet()) {
             NetworkLite net = networkMap.get(netURI);
+            Map<String, Integer> switchCountMap = null;
+            PortAllocationContext context = null;
+            if (switchToPortNumber != null) {
+                switchCountMap = switchToPortNumber.get(netURI);
+            }
+            if (contextMap != null) {
+                context = contextMap.get(netURI);
+            }
             List<StoragePort> allocatedPorts = VPlexBackEndOrchestratorUtil.allocatePorts(allocator,
                     allocatablePorts.get(netURI),
                     portsAllocatedPerNetwork.get(netURI),
@@ -128,7 +139,9 @@ public class VplexUnityMaskingOrchestrator extends VNXUnityMaskingOrchestrator i
                     varrayURI,
                     simulation,
                     _blockScheduler,
-                    _dbClient);
+                    _dbClient,
+                    switchCountMap,
+                    context);
             if (portGroup.get(netURI) == null) {
                 portGroup.put(netURI, new ArrayList<List<StoragePort>>());
             }
@@ -147,9 +160,13 @@ public class VplexUnityMaskingOrchestrator extends VNXUnityMaskingOrchestrator i
 
     @Override
     public StringSetMap configureZoning(Map<URI, List<List<StoragePort>>> portGroup, Map<String, Map<URI, Set<Initiator>>> initiatorGroup,
-            Map<URI, NetworkLite> networkMap, StoragePortsAssigner assigner) {
+            Map<URI, NetworkLite> networkMap, StoragePortsAssigner assigner,
+            Map<URI, String> initiatorSwitchMap,
+            Map<URI, Map<String, List<StoragePort>>> switchStoragePortsMap,
+            Map<URI, String> portSwitchMap) {
 
-        return VPlexBackEndOrchestratorUtil.configureZoning(portGroup, initiatorGroup, networkMap, assigner);
+        return VPlexBackEndOrchestratorUtil.configureZoning(portGroup, initiatorGroup, networkMap, assigner,
+                initiatorSwitchMap, switchStoragePortsMap, portSwitchMap);
     }
 
     @Override

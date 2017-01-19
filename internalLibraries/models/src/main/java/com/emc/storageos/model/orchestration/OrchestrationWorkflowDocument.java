@@ -16,7 +16,6 @@
  */
 package com.emc.storageos.model.orchestration;
 
-import java.util.ArrayList;
 import java.util.List;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlElementWrapper;
@@ -203,8 +202,8 @@ public class OrchestrationWorkflowDocument {
         private Integer positionX;
         private Integer positionY;
         private String type;
-        private ArrayList<Input> input;
-        private ArrayList<Output> output;
+        private List<Input> input;
+        private List<Output> output;
         private StepAttribute attributes;
         private String successCriteria;
         private NextStep next;
@@ -266,18 +265,18 @@ public class OrchestrationWorkflowDocument {
         }
 
         @XmlElement(name = "input")
-        public ArrayList<Input> getInput() {
+        public List<Input> getInput() {
             return input;
         }
-        public void setInput(ArrayList<Input> input) {
+        public void setInput(List<Input> input) {
             this.input = input;
         }
         
         @XmlElement(name = "output")
-        public ArrayList<Output> getOutput() {
+        public List<Output> getOutput() {
             return output;
         }
-        public void setOutput(ArrayList<Output> output) {
+        public void setOutput(List<Output> output) {
             this.output = output;
         }
         

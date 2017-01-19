@@ -79,7 +79,8 @@ public class ExportPathAdjustmentService extends ViPRService {
     
     @Override
     public void precheck() throws Exception {
-        if (affectedPorts.isEmpty() && removedPorts.isEmpty()) {
+        if ((affectedPorts == null || affectedPorts.isEmpty()) &&
+                (removedPorts == null || removedPorts.isEmpty())) {
             // if we have no affected or removed, the preview as likely not been generated, so we're going to 
             // generate it before running the service. This is to support the api call and allowing the user
             // to omit sending the serialize string. 

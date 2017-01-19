@@ -4,12 +4,14 @@
  */
 package com.emc.storageos.db.client.upgrade.callbacks;
 
+import java.io.File;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.TreeMap;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.commons.io.FileUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -27,22 +29,22 @@ import com.emc.storageos.services.util.Exec;
 import com.emc.storageos.svcs.errorhandling.resources.MigrationCallbackException;
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 
+/**
+ * This migration handler is for COP-27665
+ * If we see an object URI in index table but never see it in object table, 
+ * it¡¯s definitely a potential problem for NullPointerException.
+ * So, Create a new migration callback. Scan all index tables including DecommissionIndex, 
+ * AggregatedIndex, RelationIndex etc, and delete invalid object URI
+ */
 public class StaleIndexCleanerMigration extends BaseCustomMigrationCallback {
     private static final Logger log = LoggerFactory.getLogger(StaleIndexCleanerMigration.class);
     private static final String CLEANUP_COMMAND = "/opt/storageos/bin/cqlsh -k %s -f %s localhost %s";
     
+    private DbConsistencyCheckerHelper checkHelper = new DbConsistencyCheckerHelper((DbClientImpl)getDbClient());
+    
     @Override
     public void process() throws MigrationCallbackException {
-        DbConsistencyCheckerHelper checkHelper = new DbConsistencyCheckerHelper((DbClientImpl)getDbClient());
-        
-        Map<String, IndexAndCf> allIdxCfs = new TreeMap<>();
-        for (DataObjectType objType : TypeMap.getAllDoTypes()) {
-            if (KeyspaceUtil.isLocal(objType.getDataObjectClass())) {
-                Map<String, IndexAndCf> idxCfs = checkHelper.getIndicesOfCF(objType);
-                allIdxCfs.putAll(idxCfs);
-            }
-        }
-        
+        Map<String, IndexAndCf> allIdxCfs = getAllIndexCFs();
         CheckResult checkResult = new CheckResult();
         
         try {
@@ -66,18 +68,34 @@ public class StaleIndexCleanerMigration extends BaseCustomMigrationCallback {
             
             log.info("Totally find {} stale index", checkResult.getTotal());
             if (checkResult.getTotal() > 0) {
-                for (Entry<String, String> entry : DbCheckerFileWriter.getCleanupfileMap().entrySet()) {
-                    if (DbCheckerFileWriter.WriteType.STORAGEOS.name().equalsIgnoreCase(entry.getKey())) {
-                        execCleanupScript(String.format(CLEANUP_COMMAND, DbClientContext.LOCAL_KEYSPACE_NAME, entry.getValue(),
-                                DbClientContext.DB_THRIFT_PORT));
-                    }
-                }
+                executeCleanupScripts();
             }
         } catch (Exception e) {
             log.error("failed to cleanup stale/invalid index:", e);
         } finally {
             DbCheckerFileWriter.close();
         }
+    }
+
+    private void executeCleanupScripts() {
+        for (Entry<String, String> entry : DbCheckerFileWriter.getCleanupfileMap().entrySet()) {
+            if (DbCheckerFileWriter.WriteType.STORAGEOS.name().equalsIgnoreCase(entry.getKey())) {
+                execCleanupScript(String.format(CLEANUP_COMMAND, DbClientContext.LOCAL_KEYSPACE_NAME, entry.getValue(),
+                        DbClientContext.DB_THRIFT_PORT));
+                FileUtils.deleteQuietly(new File(entry.getValue()));
+            }
+        }
+    }
+
+    private Map<String, IndexAndCf> getAllIndexCFs() {
+        Map<String, IndexAndCf> allIdxCfs = new TreeMap<>();
+        for (DataObjectType objType : TypeMap.getAllDoTypes()) {
+            if (KeyspaceUtil.isLocal(objType.getDataObjectClass())) {
+                Map<String, IndexAndCf> idxCfs = checkHelper.getIndicesOfCF(objType);
+                allIdxCfs.putAll(idxCfs);
+            }
+        }
+        return allIdxCfs;
     }
     
     public void execCleanupScript(String command) {

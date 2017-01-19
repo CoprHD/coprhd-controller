@@ -532,11 +532,18 @@ public class DefaultStoragePortsAssigner implements StoragePortsAssigner {
                     // If initiator is already provisioned, skip it
                     if (assignments.containsKey(initiator)) {
                         continue;
-                    }
+                    }                 
                     // Check if provisioning another initiator would put us over max paths
                     if ((currentStoragePaths + pathParams.getPathsPerInitiator()) > pathParams.getMaxPaths()) {
                         break;
                     }
+                    //try to assigning port form its associated initiator from assignments
+                    boolean assigned = assignSamePortsFromAssociateInitiator(initiator, assignments);
+                    if (assigned) {
+                        // continue from further consideration for this initiator.
+                        continue;
+                    }
+                    
                     // Try to find available ports with switch affinity.
                     List<StoragePort> availPorts = new ArrayList<StoragePort>();
                     String switchName = initiatorToSwitchName.get(initiator);
@@ -618,6 +625,16 @@ public class DefaultStoragePortsAssigner implements StoragePortsAssigner {
                 // Work on the first initiator
                 Initiator initiator = entry.getValue().get(0);
                 
+                // give a try to assigning port form its associated initiator from assignments
+                // not considering for path as it associate is already considered.
+                boolean assigned = assignSamePortsFromAssociateInitiator(initiator, assignments);
+                if (assigned) {
+                    // Remove this initiator from further provisioning consideration
+                    // and do not add this initiator for path consideration.
+                    entry.getValue().remove(initiator);
+                    continue;
+                }
+                
                 // Determine the ports we can use, based on using affinity, non-affinity, or both.
                 List<StoragePort> allocatedPorts = new ArrayList<StoragePort>();
                 if (useAffinity) {
@@ -635,16 +652,6 @@ public class DefaultStoragePortsAssigner implements StoragePortsAssigner {
                     // Remove duplicates
                     nonAffinityPorts.removeAll(allocatedPorts);
                     allocatedPorts.addAll(nonAffinityPorts);
-                }
-                
-                // give a try to assigning port form its associated initiator from assignments
-                // not considering for path as it associate is already considered.
-                boolean assigned = assignSamePortsFromAssociateInitiator(initiator, assignments);
-                if (assigned) {
-                    // Remove this initiator from further provisioning consideration
-                    // and do not add this initiator for path consideration.
-                    entry.getValue().remove(initiator);
-                    continue;
                 }
                 
                 // If there are no ports, we cannot provision this initiator, so look at next Network

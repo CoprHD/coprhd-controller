@@ -192,7 +192,7 @@ public class LogNetworkStreamMerger extends AbstractLogStreamMerger {
             } catch (Exception e) {
                 logger.error("Exception accessing node {}:", baseNodeURL, e);
                 //socketTimeoutException wrapped in ClientHandlerException
-                if (e.getCause().getCause() instanceof SocketTimeoutException) {
+                if (e.getCause() != null && e.getCause().getCause() instanceof SocketTimeoutException) {
                     throw InternalServerErrorException.internalServerErrors.logCollectionTimeout();
                 }
             }

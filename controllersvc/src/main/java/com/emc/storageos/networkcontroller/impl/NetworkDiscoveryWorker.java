@@ -900,12 +900,13 @@ public class NetworkDiscoveryWorker {
             }
             
             boolean bMovement = false;
-            
-            for( List<String> removedEndPointsOfTzone : removedEndpoints.values() ){
- 				if(removedEndPointsOfTzone.contains(endpoint)){
- 					//raise the event.
- 					bMovement = true;
- 				}
+            if(removedEndpoints!=null){
+	            for( List<String> removedEndPointsOfTzone : removedEndpoints.values() ){
+	 				if(removedEndPointsOfTzone.contains(endpoint)){
+	 					//raise the event.
+	 					bMovement = true;
+	 				}
+	            }
             }
             
             if(bMovement){
@@ -918,16 +919,7 @@ public class NetworkDiscoveryWorker {
 		                    resource , Lists.newArrayList(),
 		                    "", new Object[] {}, "", new Object[] {} );
             }
-            else{
-            	EventUtils.createActionableEvent(dbClient,
-		                    EventUtils.EventCode.PORT_ADDED,
-		                    tenantURI, 
-		                    "Port added to network",
-		                    "Port added to network",
-		                    "Port added to network",
-		                    resource, Lists.newArrayList(),
-		                    "", new Object[] {}, "", new Object[] {} );
-            }
+            
         }
         // now, add the the endpoints
         NetworkAssociationHelper.handleEndpointsAdded(tzone, endpoints, dbClient, _coordinator);

@@ -2677,7 +2677,8 @@ test_7() {
     if [ "${SS}" = "vplex" ]
     then
 	storage_failure_injections="failure_004:failure_024_Export_zone_removeInitiator_before_delete \
-                                    failure_004:failure_025_Export_zone_removeInitiator_after_delete"
+                                    failure_004:failure_025_Export_zone_removeInitiator_after_delete \
+                                    failure_060_VPlexDeviceController.storageViewAddInitiators_storageview_nonexisting"
     fi
 
     if [ "${SS}" = "vnx" -o "${SS}" = "vmax2" -o "${SS}" = "vmax3" -o "${SS}" = "unity" ]

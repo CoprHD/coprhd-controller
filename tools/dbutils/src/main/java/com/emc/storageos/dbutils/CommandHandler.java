@@ -821,7 +821,7 @@ public abstract class CommandHandler {
         private static final String DETAIL_INDENT = "      \t                            \t";
         private File dir;
         private OrderManager orderManager;
-        DBClient client;
+        private DBClient client;
 
         public DumpOrdersHandler(String[] args) {
             if (args == null || args.length != 2) {
@@ -836,8 +836,8 @@ public abstract class CommandHandler {
         }
 
         @Override
-        public void process(DBClient _client) throws Exception {
-            this.client = _client;
+        public void process(DBClient client) throws Exception {
+            this.client = client;
             dumpOrders();
         }
 
@@ -916,20 +916,20 @@ public abstract class CommandHandler {
             List<ExecutionTaskLog> rollbackLogs = getTaskLogs(taskLogs, ExecutionPhase.ROLLBACK);
             if (!precheckLogs.isEmpty()) {
                 writeHeader(builder, "Precheck Steps");
-                for (ExecutionTaskLog log : precheckLogs) {
-                    writeLog(builder, log);
+                for (ExecutionTaskLog precheckLog : precheckLogs) {
+                    writeLog(builder, precheckLog);
                 }
             }
             if (!executeLogs.isEmpty()) {
                 writeHeader(builder, "Execute Steps");
-                for (ExecutionTaskLog log : executeLogs) {
-                    writeLog(builder, log);
+                for (ExecutionTaskLog executeLog : executeLogs) {
+                    writeLog(builder, executeLog);
                 }
             }
             if (!rollbackLogs.isEmpty()) {
                 writeHeader(builder, "Rollback Steps");
-                for (ExecutionTaskLog log : rollbackLogs) {
-                    writeLog(builder, log);
+                for (ExecutionTaskLog rollbackLog : rollbackLogs) {
+                    writeLog(builder, rollbackLog);
                 }
             }
             // 6. Write To Disk
@@ -939,9 +939,9 @@ public abstract class CommandHandler {
 
         private List<ExecutionTaskLog> getTaskLogs(List<ExecutionTaskLog> logs, ExecutionPhase phase) {
             List<ExecutionTaskLog> phaseLogs = Lists.newArrayList();
-            for (ExecutionTaskLog log : logs) {
-                if (phase.name().equals(log.getPhase())) {
-                    phaseLogs.add(log);
+            for (ExecutionTaskLog phaseLog : logs) {
+                if (phase.name().equals(phaseLog.getPhase())) {
+                    phaseLogs.add(phaseLog);
                 }
             }
             return phaseLogs;

@@ -2431,7 +2431,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
             // Storage ports that needs to be added will be calculated in the
             // add storage ports method from the zoning Map.
-            exportMasksToUpdateOnDeviceWithStoragePorts.put(exportMask.getId(), null);
+            exportMasksToUpdateOnDeviceWithStoragePorts.put(exportMask.getId(), new ArrayList<URI>());
         }
 
         return foundMatchingStorageView;
@@ -2602,7 +2602,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
         // Storage ports that needs to be added will be calculated in the
         // add storage ports method from the zoning Map.
-        exportMasksToUpdateOnDeviceWithStoragePorts.put(sharedVplexExportMask.getId(), null);
+        exportMasksToUpdateOnDeviceWithStoragePorts.put(sharedVplexExportMask.getId(), new ArrayList<URI>());
 
         exportMasksToUpdateOnDevice.add(sharedVplexExportMask);
 

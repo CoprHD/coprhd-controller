@@ -88,6 +88,9 @@
     </div>
 
     %{
+     options = [
+         'fnServerParams': 'loadServerParams'
+     ]
 
       messageOverrides = [
         "sSearchPlaceHolder": "datatable.placeholder.filter",
@@ -147,6 +150,10 @@
         var itemsJson = #{jsAction @Events.itemsJson(':ids')/};
         //watchTaskState(dataTable.getDataTable(), itemsJson);
     });
+    
+    function loadServerParams(aoData) {
+        aoData.push({"name": "systemEvents", "value" : ${systemEvents}});
+    }  
 
     
   </script>    

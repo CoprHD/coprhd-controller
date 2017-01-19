@@ -85,7 +85,7 @@ public class Events extends Controller {
 
         renderArgs.put("isSystemAdmin", Security.isSystemAdminOrRestrictedSystemAdmin());
         renderArgs.put("systemEvents", systemEvents);
-        renderArgs.put("dataTable", new TasksDataTable(true));
+        renderArgs.put("dataTable", new EventsDataTable(true));
 
         Common.angularRenderArgs().put("tenantId", systemEvents ? "system" : Models.currentAdminTenant());
 

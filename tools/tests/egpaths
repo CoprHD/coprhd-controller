@@ -102,8 +102,12 @@ BEGIN	{
 	argi++;
         print ARGV[argi];
     }
-    groupName = ARGV[argi];
-    print "EG: ", groupName;
+    groupName = ARGV[argi++];
+    emmatch="all";
+    if (argi < ARGC) {
+        emmatch = ARGV[argi++];
+    }
+    print "EG: ", groupName, " EM: ", emmatch;
     if (!skip) {
         system("/opt/storageos/bin/dbutils list ExportGroup >/tmp/_eg");
         system("/opt/storageos/bin/dbutils list ExportMask >/tmp/_em");
@@ -216,8 +220,10 @@ BEGIN	{
 		for (maskid in masklist) {
                     getobj(masks, masklist[maskid], mask);
 		    storageDevice = mask["storageDevice"];
+                    maskName = mask["maskName"];
+                    if (!(emmatch ~ "all") && !(maskName ~ emmatch)) continue;
 		    sub("URI: ", "", storageDevice);
-                    printf "eg %s em %s ssys %s\n", egrp["label"], mask["maskName"], storageDevice;
+                    printf "eg %s em %s ssys %s\n", egrp["label"], maskName, storageDevice;
 		    existingVols = mask["existingVolumes"]
 		    if (existingVols != null) {
 			print "Existing volumes: ", existingVols

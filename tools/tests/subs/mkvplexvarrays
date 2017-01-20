@@ -8,21 +8,7 @@
 # It works by creating varray for each cluster of a vplex, and for that varray,
 # a simple vpool to create vplex local volumes and another vpool to create vplex
 # distributed volumes.
-
-
-echoit() {
-    echo "******************************************************************"
-    echo $*
-    echo "******************************************************************"
-}
-
-run() {
-    cmd=$*
-    date
-    echoit $cmd
-    $cmd 2>&1
-}
-
+source subs/run
 run syssvc $CONFIG_FILE $BOURNE_IP set_prop controller_vplex_director_min_port_count 1
 
 
@@ -70,7 +56,7 @@ else
    run cos create block $name true --description Automatically_generated_$name  \
         --protocols FC --numpaths 1 --highavailability vplex_distributed --haNeighborhood $haVarray \
         --provisionType Thin --neighborhoods $srcVarray $haVarray --expandable true \
-        --max_snapshots 4 --multiVolumeConsistency
+        --max_snapshots 4 --multiVolumeConsistency --auto_cross_connect true
 #cos update block $name --storage $VPLEXSRDF_SOURCE_GUID
    cos allow $name block $rootTenant
 fi
@@ -96,15 +82,67 @@ else
 fi
 }
 
-SITE1=""
-SITE2=""
-SITE3=""
-SITE4=""
 setsite() {
     if [ "$SITE1" = "" ]; then SITE1=$1
     elif [ "$SITE2" = "" ]; then SITE2=$1
     elif [ "$SITE3" = "" ]; then SITE3=$1
     elif [ "$SITE4" = "" ]; then SITE4=$1
+    fi
+}
+
+# Make varrays and vpools for a single VPLEX
+# arg1=vplexGUID
+mkvplexvarrays() {
+    vplexGUID=$1
+    varray1=""
+    varray2=""
+    #   Iterate through the clusters
+    #      Get the portWwns used by the Vple cluster
+    #      If the cluster exists and has ports,
+    #          Get the networks used by the cluster
+    #          Get the port groups used by the cluster
+    #          Make the virtual array (known as neighborhood)
+    #          Add the Vplex ports to the varray
+    #          Add the networks to the varray
+    for cluster in 1 2
+    do
+       echo VPLEX $vplexGUID CLUSTER $cluster
+       portWwns=$(getPortWwnsForVplexCluster $vplexGUID $cluster)
+       echo "\nVplex $vplexGUID cluster $cluster portWwns: "$portWwns
+       if [ "$portWwns" != "" ] ; then
+            varrayName=$(echo ${vplexGUID}_cluster${cluster} | sed 's/:/_/')
+            echo " $karray name: " $varrayName
+            networks=$(getNetworksForVplexCluster $vplexGUID $cluster)
+            echo "Vplex $vplexGUID cluster $cluster Networks: "$networks
+            portGroups=$(getPortGroupsForVplexCluster $vplexGUID $cluster)
+            echo "Port groups: " $portGroups
+	    # Create the varray
+	    neighborhood create $varrayName
+            setsite $varrayName
+	    # Add the Vplex ports. The use of portGroup is just an artifact of how
+	    # the storageport command determines which port to use. In java code, you
+	    # would just use the appropriate set of port URIs
+	    for portGroup in $portGroups
+	    do
+	        run storageport update $vplexGUID FC --group $portGroup --addvarrays $varrayName
+	    done
+            # Add the networks to the varrays
+            for network in $networks
+	    do
+	        run transportzone assign $network $varrayName
+	    done
+
+	    # Now create a local varray for the cluster
+	    run createLocalVplexVpool ${varrayName}_Local ${varrayName} $vplexGUID
+	    if [ $cluster -eq 1 ] ; then varray1=$varrayName; fi
+	    if [ $cluster -eq 2 ] ; then varray2=$varrayName; fi
+       fi
+    done
+    # If Both varrays are present, make distributed Vpools.
+    echo varray1 $varray1 varray2 $varray2
+    if [ "$varray1" != "" -a "$varray2" != "" ] ; then
+        run createDistributedVplexVpool ${varray1}_distributed $varray1 $varray2 $vplexGUID
+	run createDistributedVplexVpool ${varray2}_distributed $varray2 $varray1 $vplexGUID
     fi
 }
 
@@ -115,61 +153,14 @@ if [ $hasExistingVarrays -gt 0 ]; then
     for existingVarray in $existingVarrays ; do
         setsite $existingVarray
     done
+    echo "to add another use: mkvplexvarrays vplex-guid"
 
 else
     # Iterate through the VPLEX systems, for each:
-    #   Iterate through the clusters
-    #      Get the portWwns used by the Vple cluster
-    #      If the cluster exists and has ports,
-    #          Get the networks used by the cluster
-    #          Get the port groups used by the cluster
-    #          Make the virtual array (known as neighborhood)
-    #          Add the Vplex ports to the varray
-    #          Add the networks to the varray
+    #   Make virtual arrays and virtual pools
     for vplexGUID in $vplexGUIDs
     do
-        varray1=""
-        varray2=""
-        for cluster in 1 2
-        do
-           echo VPLEX $vplexGUID CLUSTER $cluster
-           portWwns=$(getPortWwnsForVplexCluster $vplexGUID $cluster)
-           echo "\nVplex $vplexGUID cluster $cluster portWwns: "$portWwns
-           if [ "$portWwns" != "" ] ; then
-                varrayName=$(echo ${vplexGUID}_cluster${cluster} | sed 's/:/_/')
-                echo " $karray name: " $varrayName
-                networks=$(getNetworksForVplexCluster $vplexGUID $cluster)
-                echo "Vplex $vplexGUID cluster $cluster Networks: "$networks
-                portGroups=$(getPortGroupsForVplexCluster $vplexGUID $cluster)
-                echo "Port groups: " $portGroups
-    	    # Create the varray
-    	    neighborhood create $varrayName
-                setsite $varrayName
-    	    # Add the Vplex ports. The use of portGroup is just an artifact of how
-    	    # the storageport command determines which port to use. In java code, you
-    	    # would just use the appropriate set of port URIs
-    	    for portGroup in $portGroups
-    	    do
-    	        run storageport update $vplexGUID FC --group $portGroup --addvarrays $varrayName
-    	    done
-                # Add the networks to the varrays
-                for network in $networks
-    	    do
-    	        run transportzone assign $network $varrayName
-    	    done
-    
-    	    # Now create a local varray for the cluster
-    	    run createLocalVplexVpool ${varrayName}_Local ${varrayName} $vplexGUID
-    	    if [ $cluster -eq 1 ] ; then varray1=$varrayName; fi
-    	    if [ $cluster -eq 2 ] ; then varray2=$varrayName; fi
-           fi
-        done
-        # If Both varrays are present, make distributed Vpools.
-        echo varray1 $varray1 varray2 $varray2
-        if [ "$varray1" != "" -a "$varray2" != "" ] ; then
-            run createDistributedVplexVpool ${varray1}_distributed $varray1 $varray2 $vplexGUID
-    	run createDistributedVplexVpool ${varray2}_distributed $varray2 $varray1 $vplexGUID
-        fi
+        mkvplexvarrays $vplexGUID
     done
 fi
 

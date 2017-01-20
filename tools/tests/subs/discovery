@@ -1,11 +1,5 @@
 #!/bin/sh
-
-run() {
-    cmd=$*
-    date
-    echo $*
-    $*
-}
+source subs/run
 
 disnetworksystem() {
     discovered=$(networksystem list | grep $2 | wc -l)

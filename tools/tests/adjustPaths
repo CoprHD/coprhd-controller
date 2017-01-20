@@ -25,6 +25,10 @@ if [ "$1"x != "x" ]; then
       shift
    fi
 fi
+sconf=$(dirname $CONFIG_FILE)
+
+# TODO: remove this once Nathan commits
+subs/duvalidation false
 
 if [ "$1"x != "x" ]; then
       BOURNE_IP=$1
@@ -56,34 +60,7 @@ source $CONFIG_FILE
 # Variables about volumes
 BLK_SIZE=${BLK_SIZE:-1073741824}
 
-echoit() {
-    echo "******************************************************************"
-    echo $*
-    echo "******************************************************************"
-}
-run() {
-    cmd=$*
-    date
-    echoit $cmd
-    $cmd 2>&1
-    status=$?
-    date
-    if [ $status -ne 0 ]; then
-        echoit $cmd failed
-	date
-	exit $status
-    fi
-}
-
-# $1 = failure message
-fail() {
-    [ "$1" = ""	] && {
-        $1="Failed- please see previous messages"
-    }
-    echoit fail: $1
-    date
-    exit 2
-}
+source subs/run
 
 # Subroutines for comparing the paths
 pathadj() {
@@ -129,11 +106,12 @@ verifynozones() {
 }
 
 source subs/discovery
-source /workspace/simvplexvmax.conf
-vplex=$(storagedevice list | grep vplex | awk ' {print $2;}')
+source $sconf/simvplexvmax.conf
+vplex=$(storagedevice list | grep VPLEX+FNM0013090030 |  awk ' {print $2; }')
 echo VPLEX $vplex
 source subs/mkvplexvarrays 
-
+SITE1=VPLEX+FNM00130900300_FNM00130900301_cluster1 
+SITE2=VPLEX+FNM00130900300_FNM00130900301_cluster2
 source subs/hosts
 clusterName=clus${hostseed}
 cluster_create $clusterName
@@ -151,6 +129,7 @@ volnameA=${volnameA:-"adjPathsA$hostseed"}
 volnameB=${volnameB:-"adjPathsB$hostseed"}
 volnameC=${volnameC:-"adjPathsC$hostseed"}
 volnameD=${volnameD:-"adjPathsD$hostseed"}
+volnameE=${volnameE:-"adjPathsE$hostseed"}
 
 source subs/volume
 echo SITE1 $SITE1 
@@ -165,8 +144,11 @@ vplexSingleHost() {
     egpaths eg1 
     pathadj $project/eg1 $vplex --maxpath 1 --go 1
     egpaths eg1 
-    run export_group delete $project/eg1
+    run_nofail export_group delete $project/eg1
+    run_nofail export_group delete $project/eg1
     verifynozones
+}
+#vplexSingleHost
 
 # Test single host using VMAX in SITE2; note only VSAN12 in SITE2.
 source subs/arrayVpools
@@ -182,8 +164,11 @@ vmaxSingleHost() {
     egpaths eg2 
     pathadj $project/eg2 $ssys --maxpath 1 --go 1
     egpaths eg2 
-    run export_group delete $project/eg2
+    run_nofail export_group delete $project/eg2
+    run_nofail export_group delete $project/eg2
     verifynozones
+}
+#vmaxSingleHost
 
 vplexClus1() {
     echoit "Testing VPLEX cluster-1 export to cluster"
@@ -192,10 +177,25 @@ vplexClus1() {
     egpaths eg3
     pathadj $project/eg3 $vplex --maxpath 1 --go 1
     egpaths eg3
-    run export_group delete $project/eg3
+    run_nofail export_group delete $project/eg3
+    run_nofail export_group delete $project/eg3
     verifynozones
 }
-vplexClus1
+#vplexClus1
+
+volume_create $volnameE $SITE1 ${SITE1}_distributed ""
+vplexDistributedCrossConnect() {
+    echoit "Testing VPLEX cluster-1 distributed to cluster"
+    run export_group create $project eg5 $SITE1 --type Cluster --cluster ''/$clusterName --volspec $project/$volnameE
+    pathadj $project/eg5 $vplex --varray $SITE2 --maxpath 4 --pathsperinit 2 --go 1
+    egpaths eg5 V2_
+    pathadj $project/eg5 $vplex --varray $SITE2 --maxpath 4 --pathsperinit 2 --go 1
+    egpaths eg5 V2_
+    run_nofail export_group delete $project/eg5
+    run_nofail export_group delete $project/eg5
+    verifynozones
+}
+vplexDistributedCrossConnect
 
 volume_create $volnameC $SITE1 ${SITE1}_Local ""
 volume_create $volnameD $SITE1 ${SITE1}_Local ""
@@ -218,13 +218,14 @@ vplexHostClust1() {
    # adjust cluster to four paths, but two ppi, keeping existing paths; this will make paths uneven on hosts
    pathadj $project/eg5 $vplex --maxpath 4 --pathsperinit 2 --useexisting 1 --go 1
    egpaths eg5
-   run export_group delete $project/eg4
-   run export_group delete $project/eg5
+   run_nofail export_group delete $project/eg4
+   run_nofail export_group delete $project/eg4
+   run_nofail export_group delete $project/eg5
+   run_nofail export_group delete $project/eg5
    verifynozones
 }
 vplexHostClust1
 
-
-echoit "passed"
+echoit "adjustPaths passed"
 date
 

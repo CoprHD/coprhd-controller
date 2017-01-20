@@ -39,13 +39,13 @@ import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 public class StaleIndexCleanerMigration extends BaseCustomMigrationCallback {
     private static final Logger log = LoggerFactory.getLogger(StaleIndexCleanerMigration.class);
     private static final String CLEANUP_COMMAND = "/opt/storageos/bin/cqlsh -k %s -f %s localhost %s";
-    
-    private DbConsistencyCheckerHelper checkHelper = new DbConsistencyCheckerHelper((DbClientImpl)getDbClient());
+    private DbConsistencyCheckerHelper checkHelper;
     
     @Override
     public void process() throws MigrationCallbackException {
         Map<String, IndexAndCf> allIdxCfs = getAllIndexCFs();
         CheckResult checkResult = new CheckResult();
+        checkHelper = new DbConsistencyCheckerHelper((DbClientImpl)getDbClient());
         
         try {
             for (IndexAndCf indexAndCf : allIdxCfs.values()) {

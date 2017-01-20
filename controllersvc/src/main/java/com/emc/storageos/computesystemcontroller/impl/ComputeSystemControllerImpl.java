@@ -938,14 +938,15 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
      */
     public String addStepsForRemoveHostFromCluster(Workflow workflow, String waitFor, URI hostId, String unassociateStepId) {
         Host host = _dbClient.queryObject(Host.class, hostId);
+        String newWaitFor = null;
         if (host != null){
-            waitFor = workflow.createStep(REMOVE_HOST_FROM_CLUSTER_STEP,
+            newWaitFor = workflow.createStep(REMOVE_HOST_FROM_CLUSTER_STEP,
                    String.format("Removing host %s from cluster ", host.getLabel()), waitFor,
                    hostId, host.getLabel(), this.getClass(), new Workflow.Method("removeHostFromClusterStep",hostId),
                    new Workflow.Method("rollbackRemoveHostFromClusterStep",hostId, unassociateStepId),
                    unassociateStepId);
         }
-        return waitFor;
+        return (newWaitFor!=null? newWaitFor : waitFor);
     }
  
     /**
@@ -1001,6 +1002,10 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
 
             host = _dbClient.queryObject(Host.class, hostId);
 
+            if (host == null) {
+                throw ComputeSystemControllerException.exceptions.hostNotFound(hostId.toString());
+            }
+
             URI clusterURI = (URI)_workflowService.loadStepData(unassociateStepId);
 
             if (NullColumnValueGetter.isNullURI(clusterURI)){
@@ -1026,7 +1031,6 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
         }
 
     }
-
 
     public String addStepsForExportGroups(Workflow workflow, String waitFor, URI hostId) {
 

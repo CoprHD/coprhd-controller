@@ -119,7 +119,7 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
 
             _log.info("Find and update free HLUs for Cluster Export END.");
         } else {
-            _log.info("Find and update free HLUs for Cluster Export not required");
+            _log.info("Find and update free HLUs is not required to run. HLU consistency is not guaranteed.");
         }
     }
 

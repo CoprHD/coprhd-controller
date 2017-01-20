@@ -11,7 +11,6 @@ import java.util.Map;
 
 public class FileMirrorRecommendation extends FileRecommendation {
     private String copyMode;
-    private String mirrorPolicyAt;
 
     public FileMirrorRecommendation(FileRecommendation sourceFileRecommendation) {
         super(sourceFileRecommendation);
@@ -79,13 +78,5 @@ public class FileMirrorRecommendation extends FileRecommendation {
 
     public void setCopyMode(String copyMode) {
         this.copyMode = copyMode;
-    }
-
-    public String getMirrorPolicyAt() {
-        return mirrorPolicyAt;
-    }
-
-    public void setMirrorPolicyAt(String mirrorPolicyAt) {
-        this.mirrorPolicyAt = mirrorPolicyAt;
     }
 }

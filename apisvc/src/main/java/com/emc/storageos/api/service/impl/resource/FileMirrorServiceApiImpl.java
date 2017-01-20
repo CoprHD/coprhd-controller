@@ -21,7 +21,6 @@ import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.ContainmentPrefixConstraint;
 import com.emc.storageos.db.client.constraint.PrefixConstraint;
 import com.emc.storageos.db.client.model.DataObject;
-import com.emc.storageos.db.client.model.FilePolicy.FilePolicyApplyLevel;
 import com.emc.storageos.db.client.model.FileShare;
 import com.emc.storageos.db.client.model.FileShare.FileAccessState;
 import com.emc.storageos.db.client.model.NamedURI;
@@ -290,10 +289,7 @@ public class FileMirrorServiceApiImpl extends AbstractFileServiceApiImpl<FileMir
 
                 // Stripping out the special characters like ; /-+!@#$%^&())";:[]{}\ | but allow underscore character _
                 String varrayName = varray.getLabel().replaceAll("[^\\dA-Za-z\\_]", "");
-                fileLabelBuilder = new StringBuilder(targetFsPrefix);
-                if (FilePolicyApplyLevel.file_system.name().equalsIgnoreCase(cosCapabilities.getFileReplicationAppliedAt())) {
-                    fileLabelBuilder.append("-target");
-                }
+                fileLabelBuilder = new StringBuilder(targetFsPrefix).append("-localTarget");
                 _log.info("Target file system name {}", fileLabelBuilder.toString());
                 targetFileShare = prepareEmptyFileSystem(fileLabelBuilder.toString(), sourceFileShare.getCapacity(),
                         project, recommendation, tenantOrg, varray, vpool, targetVpool, flags, task);

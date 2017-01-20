@@ -47,8 +47,6 @@ import com.emc.vipr.client.core.util.ResourceUtils;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
 
 import controllers.Common;
 import controllers.deadbolt.Restrict;
@@ -103,6 +101,7 @@ public class FileProtectionPolicies extends ViprResourceController {
         addDateTimeRenderArgs();
         addTenantOptionsArgs();
         addRenderApplyPolicysAt();
+        addNumWorkerThreadsArgs();
         render("@edit", schedulePolicy);
     }
 
@@ -116,6 +115,7 @@ public class FileProtectionPolicies extends ViprResourceController {
             addDateTimeRenderArgs();
             addTenantOptionsArgs();
             addRenderApplyPolicysAt();
+            addNumWorkerThreadsArgs();
             render(schedulePolicy);
         } else {
             flash.error(MessagesUtils.get(UNKNOWN, id));
@@ -157,7 +157,6 @@ public class FileProtectionPolicies extends ViprResourceController {
 
         List<StringOption> replicationCopyTypeOptions = Lists.newArrayList();
         replicationCopyTypeOptions.add(new StringOption("ASYNC", MessagesUtils.get("schedulePolicy.replicationAsync")));
-        replicationCopyTypeOptions.add(new StringOption("SEMISYNC", MessagesUtils.get("schedulePolicy.replicationSemiSync")));
         replicationCopyTypeOptions.add(new StringOption("SYNC", MessagesUtils.get("schedulePolicy.replicationSync")));
         renderArgs.put("replicationCopyTypeOptions", replicationCopyTypeOptions);
 
@@ -218,6 +217,16 @@ public class FileProtectionPolicies extends ViprResourceController {
         renderArgs.put("hours", StringOption.options(hoursOptions));
         renderArgs.put("minutes", StringOption.options(minutesOptions));
 
+    }
+
+    private static void addNumWorkerThreadsArgs() {
+        // Number of worker threads!!
+        Map<String, String> numWorkerThreads = Maps.newLinkedHashMap();
+        for (int i = 3; i <= 10; i++) {
+            String num = String.valueOf(i);
+            numWorkerThreads.put(num, num);
+        }
+        renderArgs.put("numWorkerThreadsOptions", numWorkerThreads);
     }
 
     private static void addTenantOptionsArgs() {
@@ -346,15 +355,6 @@ public class FileProtectionPolicies extends ViprResourceController {
             Common.handleError();
         }
 
-        GsonBuilder builder = new GsonBuilder();
-        Gson gson = builder.create();
-
-        /*
-         * List<FileReplicationTopology> replicationTopologies = Arrays
-         * .asList(gson.fromJson(assignPolicy.topologiesString, FileReplicationTopology[].class));
-         * 
-         * validateTopologies(replicationTopologies); // TODO
-         */
         assignPolicy.id = params.get("id");
         FilePolicyUnAssignParam unAssignPolicyParam = new FilePolicyUnAssignParam();
         if (updateUnAssignPolicyParam(assignPolicy, unAssignPolicyParam)) {
@@ -372,10 +372,6 @@ public class FileProtectionPolicies extends ViprResourceController {
             list();
         }
 
-    }
-
-    private static void validateTopologies(List<FileReplicationTopology> topologies) {
-        // check if some null values have been sent TODO
     }
 
     private static FilePolicyParam updatePolicyParam(SchedulePolicyForm schedulePolicy, FilePolicyParam param) {
@@ -422,6 +418,7 @@ public class FileProtectionPolicies extends ViprResourceController {
             replicationPolicyParams.setReplicationType(schedulePolicy.replicationType);
             replicationPolicyParams.setPolicySchedule(scheduleParam);
             param.setPriority(schedulePolicy.priority);
+            param.setNumWorkerThreads(schedulePolicy.numWorkerThreads);
             param.setReplicationPolicyParams(replicationPolicyParams);
         }
 
@@ -489,7 +486,7 @@ public class FileProtectionPolicies extends ViprResourceController {
 
         public boolean enableTenants;
 
-        public List<String> tenants;
+        public String tenants;
 
         // Replication policy specific fields
         // Replication type local / remote
@@ -498,6 +495,8 @@ public class FileProtectionPolicies extends ViprResourceController {
         public String replicationCopyType;
         // Replication policy priority low /high
         public String priority;
+
+        public int numWorkerThreads = 3;
 
         public SchedulePolicyForm form(FilePolicyRestRep restRep) {
 
@@ -555,6 +554,10 @@ public class FileProtectionPolicies extends ViprResourceController {
                 this.priority = restRep.getPriority();
             }
 
+            if (restRep.getNumWorkerThreads() != null && restRep.getNumWorkerThreads() > 0) {
+                this.numWorkerThreads = restRep.getNumWorkerThreads().intValue();
+            }
+
             if (restRep.getAppliedAt() != null) {
                 this.appliedAt = restRep.getAppliedAt();
             }
@@ -596,13 +599,14 @@ public class FileProtectionPolicies extends ViprResourceController {
          *            the resources from which to load the ACLs.
          */
         protected void loadTenantACLs(ACLResources resources) {
-            this.tenants = Lists.newArrayList();
+            this.tenants = "";
 
             URI policyId = ResourceUtils.uri(id);
             if (policyId != null) {
                 for (ACLEntry acl : resources.getACLs(policyId)) {
                     if (StringUtils.isNotBlank(acl.getTenant())) {
-                        this.tenants.add(acl.getTenant());
+                        this.tenants = acl.getTenant();
+                        break;
                     }
                 }
             }
@@ -621,7 +625,7 @@ public class FileProtectionPolicies extends ViprResourceController {
                 if (policyId != null) {
                     Set<String> tenantIds = Sets.newHashSet();
                     if (isTrue(enableTenants) && (tenants != null)) {
-                        tenantIds.addAll(tenants);
+                        tenantIds.add(tenants);
                     }
                     ACLUpdateBuilder builder = new ACLUpdateBuilder(resources.getACLs(policyId));
                     builder.setTenants(tenantIds);
@@ -782,7 +786,6 @@ public class FileProtectionPolicies extends ViprResourceController {
 
         public boolean applyOnTargetSite;
 
-        public String topologiesString;
         public String appliedAt;
 
         public FileReplicationTopology[] replicationTopology = {};

@@ -112,6 +112,10 @@ public final class FilePolicyMapper {
             resp.setPriority(from.getPriority());
         }
 
+        if (from.getNumWorkerThreads() != null) {
+            resp.setNumWorkerThreads(from.getNumWorkerThreads());
+        }
+
         if (from.getApplyOnTargetSite() != null) {
             resp.setApplyOnTargetSite(from.getApplyOnTargetSite());
         }

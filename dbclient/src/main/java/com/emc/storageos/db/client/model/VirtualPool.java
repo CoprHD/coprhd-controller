@@ -1414,7 +1414,7 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
         return settings;
     }
 
-    public static Map<String, FileProtectionRemoteSettings> getFileProtectionRemoteSettiings(
+    public static Map<String, FileProtectionRemoteSettings> getFileProtectionRemoteSettings(
             URI defaultVpool, final DbClient dbClient) {
         Map<String, FileProtectionRemoteSettings> settings = new HashMap<String, FileProtectionRemoteSettings>();
 

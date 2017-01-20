@@ -27,7 +27,6 @@ import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
-import com.emc.storageos.db.client.model.VpoolRemoteCopyProtectionSettings;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.volumecontroller.AttributeMatcher;
@@ -125,9 +124,6 @@ public class FileMirrorScheduler implements Scheduler {
         }
         // Process the each recommendations for targets
         for (FileRecommendation sourceFileRecommendation : sourceFileRecommendations) {
-
-            Map<URI, VpoolRemoteCopyProtectionSettings> remoteCopySettings = VirtualPool.getFileRemoteProtectionSettings(vPool, _dbClient);
-
             String srcSystemType = sourceFileRecommendation.getDeviceType();
             Set<String> systemTypes = new StringSet();
             systemTypes.add(srcSystemType);
@@ -208,7 +204,7 @@ public class FileMirrorScheduler implements Scheduler {
             // get target recommendations -step2
             targetFileRecommendations = _fileScheduler.placeFileShare(vArray, vPool, capabilities, project, attributeMap);
 
-            String copyMode = vPool.getFileReplicationCopyMode();
+            String copyMode = capabilities.getFileRpCopyMode();
             if (targetFileRecommendations != null && !targetFileRecommendations.isEmpty()) {
                 // prepare the target recommendation
                 FileRecommendation targetRecommendation = targetFileRecommendations.get(0);

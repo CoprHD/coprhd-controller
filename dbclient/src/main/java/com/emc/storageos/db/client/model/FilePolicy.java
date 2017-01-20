@@ -70,6 +70,9 @@ public class FilePolicy extends DataObjectWithACLs {
     // Policy priority Low/High
     private String priority;
 
+    // Policy priority Low/High
+    private Long numWorkerThreads;
+
     // Actual resources where is being applied
     private StringSet policyStorageResources;
 
@@ -294,6 +297,16 @@ public class FilePolicy extends DataObjectWithACLs {
     public void setPriority(String priority) {
         this.priority = priority;
         setChanged("priority");
+    }
+
+    @Name("numWorkerThreads")
+    public Long getNumWorkerThreads() {
+        return numWorkerThreads;
+    }
+
+    public void setNumWorkerThreads(Long numWorkerThreads) {
+        this.numWorkerThreads = numWorkerThreads;
+        setChanged("numWorkerThreads");
     }
 
     @Name("policyStorageResources")

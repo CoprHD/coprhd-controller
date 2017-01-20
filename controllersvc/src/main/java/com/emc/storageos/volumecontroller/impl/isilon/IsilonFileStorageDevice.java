@@ -34,13 +34,12 @@ import com.emc.storageos.db.client.model.FileExport;
 import com.emc.storageos.db.client.model.FilePolicy;
 import com.emc.storageos.db.client.model.FilePolicy.FilePolicyApplyLevel;
 import com.emc.storageos.db.client.model.FilePolicy.FilePolicyType;
+import com.emc.storageos.db.client.model.FilePolicy.FileReplicationType;
 import com.emc.storageos.db.client.model.FileShare;
 import com.emc.storageos.db.client.model.FileShare.PersonalityTypes;
-import com.emc.storageos.db.client.model.NASServer;
 import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.OpStatusMap;
 import com.emc.storageos.db.client.model.Operation;
-import com.emc.storageos.db.client.model.PhysicalNAS;
 import com.emc.storageos.db.client.model.PolicyStorageResource;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.QuotaDirectory;
@@ -54,7 +53,6 @@ import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.Task;
-import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.model.VirtualNAS;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.util.TaskUtils;
@@ -878,18 +876,12 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
 
             VirtualNAS vNAS = args.getvNAS();
             String vNASPath = null;
-            NASServer nasServer = vNAS;
+
             // get the custom path from the controller configuration
             String customPath = getCustomPath(storage, args);
             if (vNAS != null) {
                 vNASPath = vNAS.getBaseDirPath();
                 _log.info("vNAS base directory path: {}", vNASPath);
-            } else {
-                // Get the physical NAS for the storage system!!
-                PhysicalNAS pNAS = FileOrchestrationUtils.getSystemPhysicalNAS(_dbClient, storage);
-                if (pNAS != null) {
-                    nasServer = pNAS;
-                }
             }
 
             String usePhysicalNASForProvisioning = customConfigHandler.getComputedCustomConfigValue(
@@ -922,9 +914,13 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             args.setFsNativeGuid(args.getFsMountPath());
             args.setFsNativeId(args.getFsMountPath());
             args.setFsPath(args.getFsMountPath());
+
+            // Update the mount path for local target!!!
+            updateLocalTargetFileSystemPath(storage, args);
+
             // Create the target directory only if the replication policy was not applied!!
             // If policy was applied at higher level, policy would create target file system directories!
-            if (!FileOrchestrationUtils.isReplicationPolicyExists(_dbClient, storage, nasServer, args.getVPool(),
+            if (!FileOrchestrationUtils.isReplicationPolicyExists(_dbClient, storage, args.getVPool(),
                     args.getProject(), args.getFs())) {
                 // create directory for the file share
                 isi.createDir(args.getFsMountPath(), true);
@@ -964,23 +960,6 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
 
             return BiosCommandResult.createErrorResult(e);
         }
-    }
-
-    private boolean isReplicationPolicyApplied(FileDeviceInputOutput args, FileShare sourceFS) {
-
-        return false;
-    }
-
-    private boolean doCreateFileSystemNeeded(FileDeviceInputOutput args) {
-
-        FileShare fs = args.getFs();
-        if (fs.getPersonality() != null && fs.getPersonality().equalsIgnoreCase(PersonalityTypes.TARGET.name())) {
-            FileShare sourceFS = _dbClient.queryObject(FileShare.class, fs.getParentFileShare().getURI());
-            if (isReplicationPolicyApplied(args, sourceFS)) {
-                return false;
-            }
-        }
-        return true;
     }
 
     private FileDeviceInputOutput prepareFileDeviceInputOutput(boolean forceDelete, URI uri, String opId) {
@@ -2707,6 +2686,20 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
 
         IsilonApi isi = getIsilonDevice(storage);
         String clusterName = isi.getClusterConfig().getName();
+        FileShare fs = args.getFs();
+        // Source and taget path sould be same
+        // source cluster name should be included in target path instead of target cluster name.
+        if (fs != null && fs.getPersonality() != null && fs.getPersonality().equalsIgnoreCase(PersonalityTypes.TARGET.name())) {
+            FileShare sourceFS = _dbClient.queryObject(FileShare.class, fs.getParentFileShare());
+            if (sourceFS != null && sourceFS.getStorageDevice() != null) {
+                StorageSystem sourceSystem = _dbClient.queryObject(StorageSystem.class, sourceFS.getStorageDevice());
+                if (sourceSystem != null) {
+                    IsilonApi sourceCluster = getIsilonDevice(sourceSystem);
+                    clusterName = sourceCluster.getClusterConfig().getName();
+                    _log.debug("Generating path for target and the source cluster is is  {}", clusterName);
+                }
+            }
+        }
         DataSource dataSource = dataSourceFactory.createIsilonFileSystemPathDataSource(args.getProject(), args.getVPool(),
                 args.getTenantOrg(), storage);
         dataSource.addProperty(CustomConfigConstants.ISILON_CLUSTER_NAME, clusterName);
@@ -2756,15 +2749,18 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                 String targetFs = fs.getMirrorfsTargets().iterator().next();
                 FileShare targetFS = _dbClient.queryObject(FileShare.class, URI.create(targetFs));
                 targetPath = generatePathForPolicy(filePolicy, targetFS, args);
-                StorageSystem targetSystem = _dbClient.queryObject(StorageSystem.class, targetFS.getStorageDevice());
-                targetHost = targetSystem.getIpAddress();
+                if (filePolicy.getFileReplicationType().equalsIgnoreCase(FileReplicationType.LOCAL.name())) {
+                    targetPath = targetPath + "_localTarget";
+                }
+                // Get the target smart connect zone!!
+                targetHost = FileOrchestrationUtils.getTargetHostForReplication(_dbClient, targetFS);
             }
             if (isiSyncIQPolicies != null && !isiSyncIQPolicies.isEmpty()
                     && isReplicationPolicyExistsOnIsilon(isiSyncIQPolicies, sourcePath, filePolicy)) {
                 _log.info("File Policy {} is already applied and running.", filePolicy.toString());
 
                 // Verify the policy was mapped to FileStorageResource
-                if (null == FileOrchestrationUtils.findpolicyStorageResourceByNativeId(_dbClient, storageObj,
+                if (null == FileOrchestrationUtils.findPolicyStorageResourceByNativeId(_dbClient, storageObj,
                         filePolicy, args, sourcePath)) {
                     _log.info("Isilon policy found for {}, creating policy storage resouce to further management",
                             filePolicy.getFilePolicyName());
@@ -2787,6 +2783,9 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                 if (filePolicy.getFilePolicyDescription() != null) {
                     policy.setDescription(filePolicy.getFilePolicyDescription());
                 }
+                if (filePolicy.getNumWorkerThreads() != null && filePolicy.getNumWorkerThreads() > 0) {
+                    policy.setWorkersPerNode(filePolicy.getNumWorkerThreads().intValue());
+                }
                 policy.setEnabled(true);
                 String policyId = isi.createReplicationPolicy(policy);
                 if (policyId != null) {
@@ -2805,7 +2804,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                     && isSnapshotScheduleExistsOnIsilon(isiSnapshotPolicies, path)) {
                 _log.info("File Policy {} is already applied and running.", filePolicy.toString());
                 // Verify the policy was mapped to FileStorageResource
-                if (null == FileOrchestrationUtils.findpolicyStorageResourceByNativeId(_dbClient, storageObj,
+                if (null == FileOrchestrationUtils.findPolicyStorageResourceByNativeId(_dbClient, storageObj,
                         filePolicy, args, path)) {
                     _log.info("Isilon snapshot policy found for {}, creating policy storage resouce to further management",
                             filePolicy.getFilePolicyName());
@@ -3007,44 +3006,67 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         return seconds.intValue();
     }
 
-    private String genarateTargetFSPath(StorageSystem storage, FileShare targetFS) {
-
-        FileDeviceInputOutput args = new FileDeviceInputOutput();
-        String vNASPath = null;
-
-        VirtualPool vPool = _dbClient.queryObject(VirtualPool.class, targetFS.getVirtualPool());
-
-        args.addFileShare(targetFS);
-        args.setVPool(vPool);
-        Project proj = _dbClient.queryObject(Project.class, targetFS.getProject());
-        TenantOrg tenant = _dbClient.queryObject(TenantOrg.class, targetFS.getTenant());
-
-        VirtualNAS vNAS = null;
-        if (targetFS.getVirtualNAS() != null) {
-            vNAS = _dbClient.queryObject(VirtualNAS.class, targetFS.getVirtualNAS());
-            args.setvNAS(vNAS);
+    private String generatePathForLocalTarget(FilePolicy filePolicy, FileShare fileShare, FileDeviceInputOutput args) {
+        String policyPath = "";
+        FilePolicyApplyLevel applyLevel = FilePolicyApplyLevel.valueOf(filePolicy.getApplyAt());
+        String[] fsPathParts = new String[3];
+        switch (applyLevel) {
+            case vpool:
+                String vpool = args.getVPoolNameWithNoSpecialCharacters();
+                fsPathParts = fileShare.getNativeId().split(vpool);
+                policyPath = fsPathParts[0] + vpool + "_localTarget" + fsPathParts[1];
+                break;
+            case project:
+                String project = args.getProjectNameWithNoSpecialCharacters();
+                fsPathParts = fileShare.getNativeId().split(project);
+                policyPath = fsPathParts[0] + project + "_localTarget" + fsPathParts[1];
+                break;
+            case file_system:
+                policyPath = fileShare.getNativeId();
+                break;
+            default:
+                _log.error("Not a valid policy apply level: " + applyLevel);
         }
-
-        args.setTenantOrg(tenant);
-        args.setProject(proj);
-
-        // get the custom path from the controller configuration
-        String customPath = getCustomPath(storage, args);
-        if (vNAS != null) {
-            vNASPath = vNAS.getBaseDirPath();
-            _log.info("vNAS base directory path: {}", vNASPath);
-        }
-
-        String mountPath = null;
-        // Update the mount path as required
-        if (vNASPath != null && !vNASPath.trim().isEmpty()) {
-            mountPath = vNASPath + FW_SLASH + customPath + FW_SLASH + args.getFsName();
-        } else {
-            mountPath = IFS_ROOT + FW_SLASH + getSystemAccessZoneNamespace() + FW_SLASH + customPath + FW_SLASH + args.getFsName();
-        }
-        return mountPath;
+        return policyPath;
     }
 
+    /**
+     * 
+     * @param dbClient
+     * @param project
+     * @param storageSystem
+     * @return
+     */
+    public void updateLocalTargetFileSystemPath(StorageSystem system, FileDeviceInputOutput args) {
+        VirtualPool vpool = args.getVPool();
+        Project project = args.getProject();
+        FileShare fs = args.getFs();
+
+        List<FilePolicy> replicationPolicies = FileOrchestrationUtils.getReplicationPolices(_dbClient, vpool, project, fs);
+        if (replicationPolicies != null && !replicationPolicies.isEmpty()) {
+            if (replicationPolicies.size() > 1) {
+                _log.warn("More than one replication policy found {}", replicationPolicies.size());
+            } else {
+                FilePolicy replPolicy = replicationPolicies.get(0);
+                if (fs.getPersonality() != null && fs.getPersonality().equalsIgnoreCase(PersonalityTypes.TARGET.name())
+                        && replPolicy.getFileReplicationType().equalsIgnoreCase(FileReplicationType.LOCAL.name())) {
+                    // For local replication, the path sould be different
+                    // add localTaget to file path at directory level where the policy is applied!!!
+                    String mountPath = generatePathForLocalTarget(replPolicy, fs, args);
+                    // replace extra forward slash with single one
+                    mountPath = mountPath.replaceAll("/+", "/");
+                    _log.info("Mount path to mount the Isilon File System {}", mountPath);
+                    args.setFsMountPath(mountPath);
+                    args.setFsNativeGuid(args.getFsMountPath());
+                    args.setFsNativeId(args.getFsMountPath());
+                    args.setFsPath(args.getFsMountPath());
+                }
+            }
+        } else {
+            _log.info("No replication policy found for vpool {} project {}", vpool.getLabel(), project.getLabel());
+        }
+        return;
+    }
     @Override
     public BiosCommandResult checkFilePolicyExistsOrCreate(StorageSystem storageObj, FileDeviceInputOutput args) {
 

@@ -65,6 +65,18 @@ public class WorkflowBuilder extends Controller {
         render();
     }
 
+    private static enum WFBuilderNodeTypes {
+        FOLDER, WORKFLOW, SCRIPT, ANSIBLE, VIPR_REST;
+
+        public static WFBuilderNodeTypes get(final String name) {
+            try {
+                return valueOf(name.toUpperCase());
+            } catch (final IllegalArgumentException e) {
+                return null;
+            }
+        }
+    }
+
     private static class Node {
         private String id;
         private String text;
@@ -74,12 +86,6 @@ public class WorkflowBuilder extends Controller {
         private String type;
 
         Node() {
-        }
-
-        Node(String id, String text, String parentID) {
-            this.id = id;
-            this.text = text;
-            this.parentID = parentID;
         }
 
         Node(String id, String text, String parentID, String type) {
@@ -116,14 +122,14 @@ public class WorkflowBuilder extends Controller {
                 nodeParent = wfDirectoryRestRep.getParent().getId().toString();
             }
             node = new Node(wfDirectoryRestRep.getId().toString(),
-                    wfDirectoryRestRep.getName(), nodeParent);
+                    wfDirectoryRestRep.getName(), nodeParent, WFBuilderNodeTypes.FOLDER.toString());
 
             // add workflows that are under this node
             if (null != wfDirectoryRestRep.getWorkflows()) {
                 for (URI u : wfDirectoryRestRep.getWorkflows()) {
                     if (oeId2NameMap.containsKey(u)) {
                         topLevelNodes.add(new Node(u.toString(), oeId2NameMap
-                                .get(u), node.id, NODE_TYPE_FILE));
+                                .get(u), node.id, WFBuilderNodeTypes.WORKFLOW.toString()));
                     }
                 }
             }
@@ -322,7 +328,7 @@ public class WorkflowBuilder extends Controller {
                 }
                 Node node = new Node(primitive.getClass().getSimpleName(),
                         primitiveRestRep.getFriendlyName(), parent,
-                        NODE_TYPE_FILE);
+                        WFBuilderNodeTypes.VIPR_REST.toString());
                 node.data = primitiveRestRep;
                 topLevelNodes.add(node);
             }
@@ -339,6 +345,7 @@ public class WorkflowBuilder extends Controller {
         public String description;
         @Required
         public File script;
+        public String scriptName;
         public String inputs; //comma separated list of inputs
         public String outputs; // comma separated list of ouputs
 

@@ -23,82 +23,85 @@ inputOutputTabID = 'inputOutputContent';
         <div class="tab-content">
             <div class="tab-pane active" id="${nameDescTabID}">
                 #{Modal.body}
-                #{field 'shellPrimitive.name'}
-                %{
-                field.cssClass = "span6 initialFocus"
-                field.required = true
-                }%
-                #{Form.inputTextControlGroup field:field /}
-                #{/field}
+                    #{field 'shellPrimitive.name'}
+                        %{
+                        field.cssClass = "span6 initialFocus"
+                        field.required = true
+                        }%
+                        #{Form.inputTextControlGroup field:field /}
+                    #{/field}
 
-                #{field 'shellPrimitive.description'}
-                #{Form.textAreaControlGroup field:field, rows:5 /}
-                #{/field}
+                    #{field 'shellPrimitive.description'}
+                        #{Form.textAreaControlGroup field:field, rows:5 /}
+                    #{/field}
                 #{/Modal.body}
 
             </div>
             <div class="tab-pane" id="${uploadFileTabID}">
                 #{Modal.body}
-                #{field 'shellPrimitive.script'}
-                %{
-                field.required = true
-                }%
-                #{Form.fileUploadControlGroup field:field/}
-                #{/field}
+                    #{field 'shellPrimitive.script'}
+                        %{
+                        field.required = true
+                        }%
+                        #{Form.fileUploadControlGroup field:field/}
+                    #{/field}
+                    #{field 'shellPrimitive.scriptName'}
+                        #{Form.inputTextControlGroup field:field /}
+                    #{/field}
                 #{/Modal.body}
 
             </div>
             <div class="tab-pane" id="${inputOutputTabID}">
                 #{Modal.body}
-                <div>
-                    <ul id="" class="nav nav-tabs" role="tablist">
-                        <li class="active"><a href="#inputContent" role="tab" data-toggle="tab">&nbsp;&{'primitive.tabs.input'}</a>
-                        </li>
-                        <li><a href="#outputContent" role="tab" data-toggle="tab">&nbsp;&{'primitive.tabs.output'}</a>
-                        </li>
-                    </ul>
-                    <div class="tab-content" ng-controller="shellPrimitiveController">
-                        <div class="tab-pane active" id="inputContent" style="width: 300px;">
-                            <!-- Input Tab -->
-                            <div class="row" ng-repeat="info in scriptIOs.inputs" style="margin-bottom:5px;">
-                                <div class="pull-left col-sm-11" v-field="info.input">
-                                    <input-text></input-text>
+                    <div>
+                        <ul id="" class="nav nav-tabs" role="tablist">
+                            <li class="active"><a href="#inputContent" role="tab" data-toggle="tab">&nbsp;&{'primitive.tabs.input'}</a>
+                            </li>
+                            <li><a href="#outputContent" role="tab" data-toggle="tab">&nbsp;&{'primitive.tabs.output'}</a>
+                            </li>
+                        </ul>
+                        <div class="tab-content" ng-controller="shellPrimitiveController">
+                            <div class="tab-pane active" id="inputContent" style="width: 300px;">
+                                <!-- Input Tab -->
+                                <div class="row" ng-repeat="info in scriptIOs.inputs" style="margin-bottom:5px;">
+                                    <div class="pull-left col-sm-11" v-field="info.input">
+                                        <input-text></input-text>
+                                    </div>
+                                    <div class="pull-left col-sm-1" style="padding-left:0px; margin-top:5px;">
+                                        <button type="button" ng-click="deleteInput($index)" class="close">&times;</button>
+                                    </div>
                                 </div>
-                                <div class="pull-left col-sm-1" style="padding-left:0px; margin-top:5px;">
-                                    <button type="button" ng-click="deleteInput($index)" class="close">&times;</button>
+                                <div class="row">
+                                    <div class="pull-left col-sm-11">
+                                        <button type="button" ng-click="addInput()" class="btn btn-sm btn-success"><i
+                                                v-icon=plus></i> &{'button.add'}
+                                        </button>
+                                    </div>
                                 </div>
-                            </div>
-                            <div class="row">
-                                <div class="pull-left col-sm-11">
-                                    <button type="button" ng-click="addInput()" class="btn btn-sm btn-success"><i
-                                            v-icon=plus></i> &{'button.add'}
-                                    </button>
-                                </div>
-                            </div>
 
-                        </div>
-                        <div class="tab-pane" id="outputContent" style="width: 300px;">
-                            <!-- Output Tab -->
-                            <div class="row" ng-repeat="info in scriptIOs.outputs" style="margin-bottom:5px;">
-                                <div class="pull-left col-sm-11" v-field="info.output">
-                                    <input-text></input-text>
+                            </div>
+                            <div class="tab-pane" id="outputContent" style="width: 300px;">
+                                <!-- Output Tab -->
+                                <div class="row" ng-repeat="info in scriptIOs.outputs" style="margin-bottom:5px;">
+                                    <div class="pull-left col-sm-11" v-field="info.output">
+                                        <input-text></input-text>
+                                    </div>
+                                    <div class="pull-left col-sm-1" style="padding-left:0px; margin-top:5px;">
+                                        <button type="button" ng-click="deleteOutput($index)" class="close">&times;</button>
+                                    </div>
                                 </div>
-                                <div class="pull-left col-sm-1" style="padding-left:0px; margin-top:5px;">
-                                    <button type="button" ng-click="deleteOutput($index)" class="close">&times;</button>
+                                <div class="row">
+                                    <div class="pull-left col-sm-11">
+                                        <button type="button" ng-click="addOutput()" class="btn btn-sm btn-success"><i
+                                                v-icon=plus></i> &{'button.add'}
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
-                            <div class="row">
-                                <div class="pull-left col-sm-11">
-                                    <button type="button" ng-click="addOutput()" class="btn btn-sm btn-success"><i
-                                            v-icon=plus></i> &{'button.add'}
-                                    </button>
-                                </div>
-                            </div>
+                            <input type="hidden" name="shellPrimitive.inputs" ng-value="inputs"/>
+                            <input type="hidden" name="shellPrimitive.outputs" ng-value="outputs"/>
                         </div>
-                        <input type="hidden" name="shellPrimitive.inputs" ng-value="inputs"/>
-                        <input type="hidden" name="shellPrimitive.outputs" ng-value="outputs"/>
                     </div>
-                </div>
                 #{/Modal.body}
 
             </div>

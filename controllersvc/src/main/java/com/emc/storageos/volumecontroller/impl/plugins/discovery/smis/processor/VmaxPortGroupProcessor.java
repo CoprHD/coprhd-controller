@@ -45,6 +45,7 @@ public class VmaxPortGroupProcessor extends StorageProcessor{
     public void processResult(Operation operation, Object resultObj, Map<String, Object> keyMap)
             throws BaseCollectionException {
         try {
+            log.info("Process port group");
             AccessProfile profile = (AccessProfile) keyMap.get(Constants.ACCESSPROFILE);
             String serialID = (String) keyMap.get(Constants._serialID);
             dbClient = (DbClient) keyMap.get(Constants.dbClient);
@@ -58,7 +59,7 @@ public class VmaxPortGroupProcessor extends StorageProcessor{
                 if (groupPath.toString().contains(serialID)) {
                     String portGroupName = groupInstance.getPropertyValue(Constants.ELEMENTNAME).toString().toLowerCase();
                     String guid = groupPath.toString();
-                    log.info("Got the port group " + guid);
+                    log.info("Got the port group: " + guid);
                     List<String> storagePorts = new ArrayList<String>();
                     CloseableIterator<CIMInstance> iterator = null;
                     iterator = client.associatorInstances(groupPath, null,
@@ -88,7 +89,7 @@ public class VmaxPortGroupProcessor extends StorageProcessor{
             }
             doBookKeeping(device.getId());
         } catch (Exception e) {
-            log.error("Masking path discovery failed during array affinity discovery", e);
+            log.error("port group discovery failed ", e);
         }
     }
     
@@ -115,7 +116,8 @@ public class VmaxPortGroupProcessor extends StorageProcessor{
         } else {
             portGroup = new ExportPathParams();
             portGroup.setId(URIUtil.createId(ExportPathParams.class));
-            portGroup.setLabel(storage.getSerialNumber() + pgName);
+            String label = String.format("%s+%s" , storage.getSerialNumber(), pgName);
+            portGroup.setLabel(label);
             portGroup.setPortGroup(pgName);
             portGroup.setStorageDevice(storage.getId());
             portGroup.setInactive(false);

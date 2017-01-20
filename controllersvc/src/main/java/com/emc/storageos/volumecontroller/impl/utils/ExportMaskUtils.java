@@ -1351,7 +1351,7 @@ public class ExportMaskUtils {
         boolean differentResource = false;
         String maskResource = mask.getResource();
         if (!NullColumnValueGetter.isNullValue(maskResource)) { // check only if the mask has resource
-            if (URIUtil.isType(URI.create(maskResource), Host.class)) {
+            if (maskResource.startsWith("urn:storageos:Host")) {
                 differentResource = !maskResource.equals(existingInitiator.getHost().toString());
             } else {
                 differentResource = !maskResource.equals(existingInitiator.getClusterName());

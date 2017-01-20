@@ -2578,18 +2578,6 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
             Map<URI, List<URI>> exportMasksToUpdateOnDeviceWithStoragePorts,
             List<Initiator> inits, ExportMask sharedVplexExportMask, String opId) throws Exception {
 
-        for (Initiator init : inits) {
-            // add all the the initiators the user has requested to add
-            // to the exportMask initiators list, user created List and
-            // remove them from existing initiator list if present
-            sharedVplexExportMask.addInitiator(init);
-            sharedVplexExportMask.addToUserCreatedInitiators(init);
-            if (sharedVplexExportMask.hasExistingInitiator(init)) {
-                sharedVplexExportMask.removeFromExistingInitiators(init);
-            }
-        }
-
-        _dbClient.updateObject(sharedVplexExportMask);
         ExportPathParams pathParams = _blockScheduler.calculateExportPathParamForVolumes(
                 blockObjectMap.keySet(), exportGroup.getNumPaths(), vplexSystem.getId(), exportGroup.getId());
 

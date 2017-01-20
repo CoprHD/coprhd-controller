@@ -511,11 +511,19 @@ public class NetworkDiscoveryWorker {
                 URI tenantURI = null;
                 URI resourceURI = null;
                 DataObject resource = null;
+                String event = "";
+                String description = "";
+                String warning = "";
+                EventUtils.EventCode eventCode ;
                 
                 if(hostInitiator!=null){
                 	Host hostObject= dbClient.queryObject(Host.class, hostInitiator.getHost());
                 	tenantURI = hostObject.getTenant();
                 	resource = hostInitiator;
+                	event = ExternalChangeProperties.getMessage("network.HostPortRemovedEvent");
+                	description = ExternalChangeProperties.getMessage("network.HostPortRemovedDescription",endpointRemoved , tzone.getLabel());
+                	warning = ExternalChangeProperties.getMessage("network.HostPortRemovedWarning", tzone.getLabel());
+                	eventCode = EventUtils.EventCode.HOST_PORT_REMOVED;
                 }
                 else{
                 	tenantURI = TenantOrg.SYSTEM_TENANT;
@@ -523,6 +531,10 @@ public class NetworkDiscoveryWorker {
                 	List<StoragePort> storagePorts = getEndPointPorts(endpointRemoved , dbClient);
                 	if(storagePorts.size() > 0){
                 		resource = storagePorts.get(0);
+                    	event = ExternalChangeProperties.getMessage("network.StoragePortRemovedEvent");
+                    	description = ExternalChangeProperties.getMessage("network.StoragePortRemovedDescription",endpointRemoved , tzone.getLabel());
+                    	warning = ExternalChangeProperties.getMessage("network.StoragePortRemovedWarning", tzone.getLabel());
+                    	eventCode = EventUtils.EventCode.STORAGE_PORT_REMOVED;
                 	}
                 	else{
                 		continue;
@@ -531,11 +543,11 @@ public class NetworkDiscoveryWorker {
                 
      			if(!bEndpointAddedInOtherZone){
  		            EventUtils.createActionableEvent(dbClient,
- 		                    EventUtils.EventCode.PORT_REMOVED,
+ 		                    eventCode,
  		                    TenantOrg.SYSTEM_TENANT, 
- 		                    ExternalChangeProperties.getMessage("network.fabricPortRemovedEvent"),
- 		                    ExternalChangeProperties.getMessage("network.fabricPortRemovedEventDescription",endpointRemoved , tzone.getLabel()),
- 		                    ExternalChangeProperties.getMessage("network.fabricPortRemovedEventWarning"),
+ 		                    event,
+ 		                    description,
+ 		                    warning,
  		                    resource, Lists.newArrayList(),
  		                    "", new Object[] {}, "", new Object[] {} );     					
      			}
@@ -876,11 +888,19 @@ public class NetworkDiscoveryWorker {
             Initiator hostInitiator = getInitiator(endpoint, dbClient);
             URI tenantURI = null;
             DataObject resource = null;
+            String event = "";
+            String description = "";
+            String warning = "";
+            EventUtils.EventCode eventCode ;
             
             if(hostInitiator!=null){
             	Host hostObject= dbClient.queryObject(Host.class, hostInitiator.getHost());
             	tenantURI = hostObject.getTenant();
             	resource = hostInitiator;
+            	event = ExternalChangeProperties.getMessage("network.HostPortMovedEvent");
+            	description = ExternalChangeProperties.getMessage("network.HostPortMovedDescription",endpoint, tzone.getLabel());
+            	warning = ExternalChangeProperties.getMessage("network.HostPortMovedWarning", tzone.getLabel());
+            	eventCode = EventUtils.EventCode.HOST_PORT_VSAN_CHANGE;
             }
             else{
             	tenantURI = TenantOrg.SYSTEM_TENANT;
@@ -888,6 +908,10 @@ public class NetworkDiscoveryWorker {
             	List<StoragePort> storagePorts = getEndPointPorts(endpoint , dbClient);
             	if(storagePorts.size() > 0){
             		resource = storagePorts.get(0);
+                  	event = ExternalChangeProperties.getMessage("network.StoragePortMovedEvent");
+                	description = ExternalChangeProperties.getMessage("network.StoragePortMovedDescription",endpoint, tzone.getLabel());
+                	warning = ExternalChangeProperties.getMessage("network.StoragePortMovedWarning", tzone.getLabel());
+                	eventCode = EventUtils.EventCode.STORAGE_PORT_VSAN_CHANGE;
             	}
             	else{
             		continue;
@@ -906,11 +930,11 @@ public class NetworkDiscoveryWorker {
             
             if(bMovement){
                 EventUtils.createActionableEvent(dbClient,
-		                    EventUtils.EventCode.PORT_VSAN_CHANGE,
+		                    eventCode,
 		                    tenantURI, 
-		                    ExternalChangeProperties.getMessage("network.fabricPortMovedEvent"),
-		                    ExternalChangeProperties.getMessage("network.fabricPortMovedEventDescription",endpoint , tzone.getLabel()),
-		                    ExternalChangeProperties.getMessage("network.fabricPortMovedEventWarning"),
+		                    event,
+		                    description,
+		                    warning,
 		                    resource , Lists.newArrayList(),
 		                    "", new Object[] {}, "", new Object[] {} );
             }

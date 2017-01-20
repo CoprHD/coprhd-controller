@@ -47,8 +47,8 @@ public class EventUtils {
     public static final String FABRIC_NAME_CHANGE_DECLINE = "fabricNameChangeDecline";
 
     //Fabric ActionableEvent Related Method Names
-    public static final String FABRIC_PORT_CHANGE_APPROVE = "fabricNameChange";
-    public static final String FABRIC_PORT_CHANGE_DECLINE = "fabricNameChangeDecline";
+    public static final String FABRIC_PORT_CHANGE_APPROVE = "fabricPortChange";
+    public static final String FABRIC_PORT_CHANGE_DECLINE = "fabricPortChangeDecline";
     
     
     private static List<EventCode> ALLOWED_DUPLICATE_EVENTS = Lists.newArrayList(EventCode.HOST_INITIATOR_ADD,
@@ -64,10 +64,13 @@ public class EventUtils {
         
         //Fabric Event Codes
         //Reserved from 200 - 300
-        FABRIC_NAME_CHANGED("200");
-    	PORT_REMOVED("201"),
-    	PORT_ADDED("202"),
-    	PORT_VSAN_CHANGE("203");
+        FABRIC_NAME_CHANGED("200"),
+    	HOST_PORT_REMOVED("201"),
+    	HOST_PORT_ADDED("202"),
+    	HOST_PORT_VSAN_CHANGE("203"),
+    	STORAGE_PORT_REMOVED("204"),
+    	STORAGE_PORT_ADDED("205"),
+    	STORAGE_PORT_VSAN_CHANGE("206");
     
         private String code;
     

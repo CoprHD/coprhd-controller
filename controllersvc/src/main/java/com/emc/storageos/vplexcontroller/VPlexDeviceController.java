@@ -13338,7 +13338,6 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
         if (isAdd) {
             // Processing added paths only
             Workflow workflow = _workflowService.getNewWorkflow(this, "portRebalance", false, stepId);
-            String lastStep = null;
 
             // Determine initiators and targets to be added. 
             // These are initiators not already in mask that are in a host in the mask.and
@@ -13383,7 +13382,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     addPathsMethod = storageViewAddStoragePortsMethod(vplex, exportGroupURI, exportMaskURI, targetsToAdd);
                 }
                 String description = String.format("Adding paths to ExportMask %s Hosts %s", exportMask.getMaskName(), hostNames.toString());
-                lastStep = workflow.createStep("addPaths", description, null, vplex, vplexSystem.getSystemType(), this.getClass(), addPathsMethod, null, false, null);
+                workflow.createStep("addPaths", description, null, vplex, vplexSystem.getSystemType(), this.getClass(), addPathsMethod, null, false, null);
                 ExportMaskAddPathsCompleter completer = new ExportMaskAddPathsCompleter(exportGroupURI, exportMaskURI, stepId);
                 completer.setNewInitiators(initiatorsToAdd);
                 completer.setNewStoragePorts(targetsToAdd);
@@ -13394,15 +13393,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
         } else {
             // Processing the paths to be removed only, but want to see what is retained.
             Workflow workflow = _workflowService.getNewWorkflow(this, "portRebalance", false, stepId);
-            String lastStep = null;
-            List<URI> initiatorsToBeRemoved = new ArrayList<URI>();
-
-            // Any initiators in the removedPaths not in the addedPaths will be removed
-            for (URI initiator : removedPaths.keySet()) {
-                if (exportMask.hasInitiator(initiator.toString()) && !adjustedPaths.keySet().contains(initiator)) {
-                    initiatorsToBeRemoved.add(initiator);
-                }
-            }
+            
             // Compute the targets to be removed.
             Set<URI> targetsToBeRemoved = ExportMaskUtils.getAllPortsInZoneMap(removedPaths);
             Collection<URI> targetsInMask = Collections2.transform(exportMask.getStoragePorts(), 
@@ -13412,22 +13403,16 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             targetsToBeRemoved.removeAll(targetsToBeRetained);
             List<URI> portsToBeRemoved = new ArrayList<URI>(targetsToBeRemoved);
             _log.info("Targets to be removed: " + portsToBeRemoved.toString());
-            _log.info("Initiators to be removed: " + initiatorsToBeRemoved.toString());
 
             // Call either storageViewRemoveInitiators or storageViewRemoveStoragePorts
             Workflow.Method removePathsMethod = null;
-            if (!initiatorsToBeRemoved.isEmpty() || !portsToBeRemoved.isEmpty()) {
-                if (!initiatorsToBeRemoved.isEmpty()) {
-                    removePathsMethod = storageViewRemoveInitiatorsMethod(vplex, exportGroupURI, exportMaskURI, initiatorsToBeRemoved, portsToBeRemoved);
-                } else {
-                    removePathsMethod = storageViewRemoveStoragePortsMethod(vplex, exportGroupURI, exportMaskURI, portsToBeRemoved);
-                }
+            if (!portsToBeRemoved.isEmpty()) {
+                removePathsMethod = storageViewRemoveStoragePortsMethod(vplex, exportGroupURI, exportMaskURI, portsToBeRemoved);
                 String description = String.format("Removing paths to ExportMask %s Hosts %s", exportMask.getMaskName(), hostNames.toString());
-                lastStep = workflow.createStep("removePaths", description, null, vplex, vplexSystem.getSystemType(), this.getClass(), removePathsMethod, null, false, null);
+                workflow.createStep("removePaths", description, null, vplex, vplexSystem.getSystemType(), this.getClass(), removePathsMethod, null, false, null);
 
                 ExportMaskRemovePathsCompleter completer = new ExportMaskRemovePathsCompleter(exportGroupURI, exportMaskURI, stepId);
                 completer.setRemovedStoragePorts(portsToBeRemoved);
-                completer.setRemovedInitiators(initiatorsToBeRemoved);
                 workflow.executePlan(completer, description + " completed successfully");
                 return;
             }

@@ -535,7 +535,12 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
     }
 
     $scope.removeStep = function(stepId) {
-        jspInstance.remove(diagramContainer.find('#' + stepId));
+        console.log($scope.selectedId+" "+stepId)
+        if($scope.selectedId===stepId){
+            $scope.selectedId='';
+            $scope.closeMenu();
+        }
+        jspInstance.remove(diagramContainer.find('#' + stepId+'-wrapper'));
     }
 
     $scope.select = function(stepId) {
@@ -559,7 +564,7 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
         var $itemWrapper = '<div id="' + stepId + '-wrapper" class="example-item-card-wrapper"></div>';
         var $buttonContainer = '<div class="button-container"></div>';
         var $editButton = '<a class="glyphicon glyphicon-pencil button-step-close" ng-click="select(\''+stepId+'\')"></a>';
-        var $closeButton = '<a class="glyphicon glyphicon-remove button-step-close" ng-click="removeStep(\''+stepId+'-wrapper\')"></a>';
+        var $closeButton = '<a class="glyphicon glyphicon-remove button-step-close" ng-click="removeStep(\''+stepId+'\')"></a>';
         var $item = '<div id="' + stepId + '" class="item" ng-class="{\'highlighted\':selectedId == \'' + stepId + '\'}"><div class="itemText">' + stepName + '</div></div>';
         if (stepId === "Start" || stepId === "End"){
             $($item).appendTo(diagramContainer).wrap($itemWrapper);

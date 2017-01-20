@@ -3,7 +3,7 @@
         <span ng-class="{'glyphicon-chevron-left':!menuOpen,'glyphicon-chevron-right':menuOpen}" class="glyphicon"></span>
     </button>
     <div id="sliderMenu">
-        <a type="button" class="btn btn-lg" ng-click="openPage(0);">
+        <a type="button" ng-disabled="!selectedId" class="btn btn-lg" ng-click="openPage(0);">
             <span class="glyphicon glyphicon-pencil"></span>
         </a>
         <a type="button" class="btn btn-lg" ng-click="openPage(1);">

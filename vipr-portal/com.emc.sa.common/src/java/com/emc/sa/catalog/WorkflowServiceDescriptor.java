@@ -104,9 +104,8 @@ public class WorkflowServiceDescriptor {
 
             for (final Step step : wfDocument.getSteps()) {
                 if (null != step.getInput()) {
-                    for (final Map<String, Input> inputs : step.getInput().values()) {
-                        for (final Map.Entry<String, Input> inputEntry : inputs.entrySet()) {
-                            final Input wfInput = inputEntry.getValue();
+                    for (final List<Input> inputs : step.getInput().values()) {
+                        for (final Input wfInput : inputs) {
                             String wfInputType = null;
                             // Creating service fields for only inputs of type "inputfromuser" and "assetoption"
                             if (INPUT_FROM_USER_INPUT_TYPE.equals(wfInput.getType())) {
@@ -116,7 +115,7 @@ public class WorkflowServiceDescriptor {
                             }
                             if (null != wfInputType) {
                                 ServiceField serviceField = new ServiceField();
-                                String inputName = inputEntry.getKey();
+                                String inputName = wfInput.getName();
                                 //TODO: change this to get description
                                 serviceField.setDescription(wfInput.getFriendlyName());
                                 serviceField.setLabel(wfInput.getFriendlyName());

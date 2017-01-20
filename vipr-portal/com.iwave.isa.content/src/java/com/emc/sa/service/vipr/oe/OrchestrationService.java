@@ -221,7 +221,7 @@ public class OrchestrationService extends ViPRService {
             return;
         }
 
-        final Map<String, Input> input = step.getInput().get(OrchestrationServiceConstants.INPUT_PARAMS);
+        final List<Input> input = step.getInput().get(OrchestrationServiceConstants.INPUT_PARAMS);
 
         if (input == null) {
             return;
@@ -229,33 +229,26 @@ public class OrchestrationService extends ViPRService {
 
         final Map<String, List<String>> inputs = new HashMap<String, List<String>>();
 
-        for(Map.Entry<String, Input> map : input.entrySet()) {
-            String key = map.getKey();
-            Input value = map.getValue();
-
-            if (value == null) {
-                logger.error("Wrong key for input:{} Can't get input to execute the step:{}", key, step.getId());
-
-                throw new IllegalStateException();
-            }
+        for(final Input value : input) {
+            final String name = value.getName();
 
             switch (InputType.fromString(value.getType())) {
                 case FROM_USER:
                 case OTHERS:
                 case ASSET_OPTION: {
                     //TODO handle multiple , separated values
-                    final String paramVal = (params.get(key) != null) ? (StringUtils.strip(params.get(key).toString(), "\"")) : (value.getDefaultValue());
+                    final String paramVal = (params.get(name) != null) ? (StringUtils.strip(params.get(name).toString(), "\"")) : (value.getDefaultValue());
 
                     if (paramVal == null) {
                         if (value.getRequired()) {
-                            logger.error("Can't retrieve input:{} to execute step:{}", key, step.getId());
+                            logger.error("Can't retrieve input:{} to execute step:{}", name, step.getId());
 
                             throw new IllegalStateException();
                         }
                         break;
                     }
 
-                    inputs.put(key, Arrays.asList(paramVal));
+                    inputs.put(name, Arrays.asList(paramVal));
 
                     break;
                 }
@@ -264,7 +257,7 @@ public class OrchestrationService extends ViPRService {
                     
                     if(!isValidinput(value))
                     {
-                        logger.error("Can't retrieve input:{} to execute step:{}", key, step.getId());
+                        logger.error("Can't retrieve input:{} to execute step:{}", name, step.getId());
                         
                         throw new IllegalStateException();
                     }
@@ -289,14 +282,14 @@ public class OrchestrationService extends ViPRService {
                         } else {
                             logger.info("value is:{}", stepInput.get(attribute));
                             if (stepInput.get(attribute) != null) {
-                                inputs.put(key, stepInput.get(attribute));
+                                inputs.put(name, stepInput.get(attribute));
 
                                 break;
                             }
                         }   
                     }
                     if (value.getDefaultValue() != null) {
-                        inputs.put(key, Arrays.asList(value.getDefaultValue()));
+                        inputs.put(name, Arrays.asList(value.getDefaultValue()));
                         logger.info("value default is:{}", Arrays.asList(value.getDefaultValue()));
                         break;
                     }
@@ -304,7 +297,7 @@ public class OrchestrationService extends ViPRService {
                     if (false == value.getRequired()) 
                         break;
 
-                    logger.error("Can't retrieve input:{} to execute step:{}", key, step.getId());
+                    logger.error("Can't retrieve input:{} to execute step:{}", name, step.getId());
 
                     throw new IllegalStateException();
 

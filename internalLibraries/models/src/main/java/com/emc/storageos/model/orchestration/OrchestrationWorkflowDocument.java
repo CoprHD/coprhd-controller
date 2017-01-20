@@ -68,6 +68,7 @@ public class OrchestrationWorkflowDocument {
 
     public static class Input {
 
+        private String name;
         private String type;
         private String friendlyName;
         private String defaultValue;
@@ -76,6 +77,14 @@ public class OrchestrationWorkflowDocument {
         private boolean required = true;
         private boolean locked = false;
         
+        @XmlElement(name = "name")
+        public String getName() {
+            return name;
+        }
+        public void setName(String name) {
+            this.name = name;
+        }
+
         @XmlElement(name = "type")
         public String getType() {
             return type;
@@ -166,7 +175,7 @@ public class OrchestrationWorkflowDocument {
         private Integer positionX;
         private Integer positionY;
         private String type;
-        private Map<String, Map<String, Input>> input;
+        private Map<String, List<Input>> input;
         private Map<String, String> output;
         private StepAttribute attributes;
         private String successCriteria;
@@ -229,11 +238,11 @@ public class OrchestrationWorkflowDocument {
         }
 
         @XmlElement(name = "input")
-        public Map<String, Map<String, Input>> getInput() {
+        public Map<String, List<Input>> getInput() {
             return input;
         }
 
-        public void setInput(Map<String, Map<String, Input>> input) {
+        public void setInput(Map<String, List<Input>> input) {
             this.input = input;
         }
 

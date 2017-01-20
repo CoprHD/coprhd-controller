@@ -174,7 +174,7 @@ public class RunAnsible  extends ViPRExecutionTask<OrchestrationTaskResult> {
 
     //Execute Ansible playbook on remote node. Playbook is also in remote node
     private Exec.Result executeRemoteCmd(final String extraVars) {
-        final Map<String, Map<String, Input>> inputType = step.getInput();
+        final Map<String, List<Input>> inputType = step.getInput();
         if (inputType == null) {
             return null;
 	}
@@ -216,17 +216,17 @@ public class RunAnsible  extends ViPRExecutionTask<OrchestrationTaskResult> {
         return Exec.exec(timeout, cmds);
     }
 
-    private String getAnsibleConnAndOptions(final String key, final Map<String, Input> stepInput) {
-	if (stepInput == null) {
-		return null;
-	}
+    private String getAnsibleConnAndOptions(final String key, final List<Input> stepInput) {
         if (params.get(key) != null) {
             return StringUtils.strip(params.get(key).toString(), "\"");
         }
 
-        final OrchestrationWorkflowDocument.Input ansibleInput = stepInput.get(key);
-        if (ansibleInput != null && ansibleInput.getDefaultValue() != null) {
-            return ansibleInput.getDefaultValue();
+        for (final Input in : stepInput) {
+            if (in.getName().equals(key)) {
+                if (in.getDefaultValue() != null) {
+                    return in.getDefaultValue();
+                }
+            }
         }
 
         logger.error("Can't find the value for:{}", key);

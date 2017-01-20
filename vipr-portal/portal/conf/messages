@@ -4928,4 +4928,4 @@ gettingStarted.vpool.xio.desc=Virtual Pool for Dell EMC XtremIO Storage created 
 gettingStarted.vpool.unity.desc=Virtual Pool for Dell EMC UNITY Storage created by Getting Started Guide
 
 # Export Path Adjustment
-exportPathPreview.modal.title=Export Path Adjustment Preview
+exportPathAdjustment.modal.title=Export Path Adjustment Preview

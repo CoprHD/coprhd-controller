@@ -33,6 +33,8 @@ import com.emc.vipr.client.core.impl.SearchConstants;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.ObjectUtils;
 import org.apache.commons.lang.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 import com.emc.sa.asset.AssetOptionsContext;
@@ -108,6 +110,8 @@ import com.google.common.collect.Sets;
 @Component
 @AssetNamespace("vipr")
 public class BlockProvider extends BaseAssetOptionsProvider {
+
+    private static final Logger log = LoggerFactory.getLogger(BlockProvider.class);
 
     public static final int DEFAULT_BULK_SIZE = 500;
     public static final String EXCLUSIVE_STORAGE = "exclusive";
@@ -827,6 +831,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     }
 
     private List<VolumeRestRep> getVolumesByIds(ViPRCoreClient client, Set<URI> vols) {
+        log.info("Getting {} volumens", vols.size());
         List<URI> volIdList = new ArrayList<>();
         volIdList.addAll(vols);
 
@@ -843,10 +848,12 @@ public class BlockProvider extends BaseAssetOptionsProvider {
             }
         }
 
+        log.info("Got {} volumens", volumes.size());
         return volumes;
     }
 
     private List<BlockSnapshotRestRep> findSnapshotsByProject(ViPRCoreClient client, URI project) {
+        log.info("Finding snapshots by project {}", project);
         List<SearchResultResourceRep> snapshotRefs = client.blockSnapshots().performSearchBy(SearchConstants.PROJECT_PARAM, project);
         List<BlockSnapshotRestRep> snapshots = new ArrayList<>();
         List<URI> ids = new ArrayList<>();
@@ -858,7 +865,8 @@ public class BlockProvider extends BaseAssetOptionsProvider {
             SearchResultResourceRep ref = snapshotRefs.get(i);
             ids.add(ref.getId());
 
-            if ( (i+1)%DEFAULT_BULK_SIZE == 0 || i+1 == snapshotRefs.size() ) {
+            if ( ids.size() == DEFAULT_BULK_SIZE || i+1 == snapshotRefs.size() ) {
+                log.info("======== bulk size is {}", ids.size());
                 BulkIdParam bulk = new BulkIdParam(ids);
                 List<BlockSnapshotRestRep> snBatch = client.blockSnapshots().getBulkResources(bulk);
                 snapshots.addAll(snBatch);
@@ -866,6 +874,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
             }
         }
 
+        log.info("Got {} snapshots.", snapshots.size());
         return snapshots;
     }
 

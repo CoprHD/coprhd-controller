@@ -591,6 +591,37 @@ public class XtremIOProvUtils {
     }
 
     /**
+     * Gets the lun maps for the initiator group.
+     *
+     * @param igName the ig name
+     * @param clusterName the cluster name
+     * @param client the xtremio client
+     * @return the initiator group lun maps
+     * @throws Exception
+     */
+    public static List<XtremIOObjectInfo> getInitiatorGroupLunMaps(String igName, String clusterName, XtremIOClient client)
+            throws Exception {
+        List<XtremIOObjectInfo> igLunMaps = new ArrayList<XtremIOObjectInfo>();
+        if (client.isVersion2()) {
+            igLunMaps = client.getLunMapsForInitiatorGroup(igName, clusterName);
+        } else {
+            XtremIOInitiatorGroup ig = client.getInitiatorGroup(igName, clusterName);
+            if (ig == null) {
+                return igLunMaps;
+            }
+            List<XtremIOObjectInfo> lunMaps = client.getLunMaps(clusterName);
+            String igIndex = ig.getIndex();
+            for (XtremIOObjectInfo lunMap : lunMaps) {
+                String[] lunInfo = lunMap.getName().split(XtremIOConstants.UNDERSCORE);
+                if (igIndex.equals(lunInfo[1])) {
+                    igLunMaps.add(lunMap);
+                }
+            }
+        }
+        return igLunMaps;
+    }
+
+    /**
      *
      * @param storageSerialNumber
      * @param initiators

@@ -484,7 +484,7 @@ public class BlockVirtualPoolUpdateBuilder extends VirtualPoolUpdateBuilder {
 
     protected VirtualPoolRemoteReplicationUpdateParam getRemoteReplications() {
         if (getProtection().getRemoteReplicationParam() == null) {
-            getProtection().setRemoteCopies(new VirtualPoolRemoteProtectionUpdateParam());
+            getProtection().setRemoteReplicationParam(new VirtualPoolRemoteReplicationUpdateParam());
         }
 
         return getProtection().getRemoteReplicationParam();

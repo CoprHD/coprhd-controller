@@ -366,7 +366,9 @@ public class MaskingWorkflowEntryPoints implements Controller {
                         initiatorURIs.add(URI.create(initiatorId));
                     }
                 }
+                InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_050);
                 getDevice(storage).doExportDelete(storage, exportMask, volumeURIs, initiatorURIs, taskCompleter);
+                InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_051);
                 _networkDeviceController.zoneExportMasksDelete(zoningParam, volumeURIs, 
                         UUID.randomUUID().toString());
             } else {
@@ -404,9 +406,8 @@ public class MaskingWorkflowEntryPoints implements Controller {
 
             InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_018);
             getDevice(storage).doExportDelete(storage, exportMask, volumeURIs, initiatorURIs, taskCompleter);
-            InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_019);
-
             _log.info(String.format("%s end", call));
+            // doExportDelete is responsible for calling the completer at this point. No code allowed after this point.
         } catch (final InternalException e) {
             _log.info(call + " Encountered an exception", e);
             taskCompleter.error(_dbClient, e);

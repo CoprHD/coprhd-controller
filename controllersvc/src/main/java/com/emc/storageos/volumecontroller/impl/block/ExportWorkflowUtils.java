@@ -106,7 +106,7 @@ public class ExportWorkflowUtils {
         return newWorkflowStep(workflow, wfGroupId,
                 String.format("Creating export on storage array %s (%s)",
                         storageSystem.getNativeGuid(), storage.toString()),
-                storageSystem, method, rollback, waitFor);
+                storageSystem, method, rollback, waitFor, null);
     }
 
     /**
@@ -309,7 +309,7 @@ public class ExportWorkflowUtils {
         return newWorkflowStep(workflow, wfGroupId,
                 String.format("Deleting export on storage array %s (%s)",
                         storageSystem.getNativeGuid(), storage.toString()),
-                storageSystem, method, null, waitFor);
+                storageSystem, method, null, waitFor, null);
     }
 
     public String generateExportGroupAddVolumes(Workflow workflow, String wfGroupId,
@@ -332,7 +332,7 @@ public class ExportWorkflowUtils {
         return newWorkflowStep(workflow, wfGroupId,
                 String.format("Adding volumes to export on storage array %s (%s)",
                         storageSystem.getNativeGuid(), storage.toString()),
-                storageSystem, method, rollback, waitFor);
+                storageSystem, method, rollback, waitFor, null);
     }
 
     public String generateExportGroupRemoveVolumes(Workflow workflow, String wfGroupId,
@@ -348,7 +348,7 @@ public class ExportWorkflowUtils {
         return newWorkflowStep(workflow, wfGroupId,
                 String.format("Removing volumes from export on storage array %s (%s)",
                         storageSystem.getNativeGuid(), storage.toString()),
-                storageSystem, method, null, waitFor);
+                storageSystem, method, null, waitFor, null);
     }
 
     public String generateExportGroupRemoveInitiators(Workflow workflow,
@@ -365,7 +365,7 @@ public class ExportWorkflowUtils {
         return newWorkflowStep(workflow, wfGroupId,
                 String.format("Removing initiators from export on storage array %s (%s)",
                         storageSystem.getNativeGuid(), storage.toString()),
-                storageSystem, method, null, waitFor);
+                storageSystem, method, null, waitFor, null);
     }
 
     public String generateExportGroupAddInitiators(Workflow workflow, String wfGroupId,
@@ -381,7 +381,7 @@ public class ExportWorkflowUtils {
         return newWorkflowStep(workflow, wfGroupId,
                 String.format("Adding initiators from export on storage array %s (%s)",
                         storageSystem.getNativeGuid(), storage.toString()),
-                storageSystem, method, rollbackMethodNullMethod(), waitFor);
+                storageSystem, method, rollbackMethodNullMethod(), waitFor, null);
     }
 
     /**
@@ -407,7 +407,7 @@ public class ExportWorkflowUtils {
         return newWorkflowStep(workflow, wfGroupId,
                 String.format("Updated Export PathParams on storage array %s (%s, args) for volume %s (%s)",
                         storageSystem.getNativeGuid(), storageURI, volume.getLabel(), volumeURI),
-                storageSystem, method, null, waitFor);
+                storageSystem, method, null, waitFor, null);
     }
 
     /**
@@ -442,7 +442,7 @@ public class ExportWorkflowUtils {
         return newWorkflowStep(workflow, wfGroupId,
                 String.format("Updating Auto-tiering Policy on storage array %s (%s, args) for volumes %s",
                         storageSystem.getNativeGuid(), storageURI, Joiner.on("\t").join(volumeURIs)),
-                storageSystem, method, rollback, waitFor);
+                storageSystem, method, rollback, waitFor, null);
     }
 
     /**
@@ -475,7 +475,7 @@ public class ExportWorkflowUtils {
         return newWorkflowStep(workflow, wfGroupId,
                 String.format("Updating Auto-tiering Policy on storage array %s (%s, args) for volumes %s",
                         storageSystem.getNativeGuid(), storageURI, Joiner.on("\t").join(volumeURIs)),
-                storageSystem, method, rollback, waitFor);
+                storageSystem, method, rollback, waitFor, null);
     }
 
     /**
@@ -542,10 +542,10 @@ public class ExportWorkflowUtils {
      *            - String of groupId of step to wait for
      * @param stepId
      *            - step ID
-     *
      * @return String the stepId generated for the step.
      * @throws WorkflowException
-     */public String newWorkflowStep(Workflow workflow,
+     */
+    public String newWorkflowStep(Workflow workflow,
             String groupId, String description,
             DiscoveredSystemObject storageSystem,
             Workflow.Method method, Workflow.Method rollback,

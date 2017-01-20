@@ -4941,8 +4941,5 @@ gettingStarted.vpool.vmax.desc=Virtual Pool for Dell EMC VMAX All-Flash Storage 
 gettingStarted.vpool.xio.desc=Virtual Pool for Dell EMC XtremIO Storage created by Getting Started Guide
 gettingStarted.vpool.unity.desc=Virtual Pool for Dell EMC UNITY Storage created by Getting Started Guide
 
-# Port Rebalancing 
-PortRebalancing.preview.title=Export Path Adjustment Preview
-PortRebalancing.addedPort=Added Ports
-PortRebalancing.removedPort=Removed Ports
-PortRebalancing.affectedExports=Affected Exports
+# Export Path Adjustment
+exportPathAdjustment.modal.title=Export Path Adjustment Preview

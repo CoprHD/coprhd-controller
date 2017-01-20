@@ -1,3 +1,7 @@
+/*
+ * Copyright (c) 2017  DELL EMC Corporation
+ * All Rights Reserved
+ */
 package com.emc.sa.service.vipr.block;
 
 import static com.emc.sa.service.ServiceParams.HOST;
@@ -20,6 +24,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.engine.bind.Param;
 import com.emc.sa.engine.service.Service;
 import com.emc.sa.service.vipr.ViPRService;
@@ -74,7 +79,8 @@ public class ExportPathAdjustmentService extends ViPRService {
     
     @Override
     public void precheck() throws Exception {
-        if (affectedPorts.isEmpty() && removedPorts.isEmpty()) {
+        if ((affectedPorts == null || affectedPorts.isEmpty()) &&
+                (removedPorts == null || removedPorts.isEmpty())) {
             // if we have no affected or removed, the preview as likely not been generated, so we're going to 
             // generate it before running the service. This is to support the api call and allowing the user
             // to omit sending the serialize string. 
@@ -91,7 +97,7 @@ public class ExportPathAdjustmentService extends ViPRService {
                     removedPortsMap.putAll(port);
                 }
             } catch (Exception ex) {
-                // TODO: fail order, log error
+                ExecutionUtils.fail("failTask.AdjustExportPaths.deserialize", args(), ex.getMessage());
             }
         }
     }

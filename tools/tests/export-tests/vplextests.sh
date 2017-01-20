@@ -192,7 +192,7 @@ test_EXISITING_USERADDED_INITS() {
 
     #Prepare Host, Initiators and zones
     BASENUM=${BASENUM:=$RANDOM}
-    EXISTINGINITTEST=exinittest${BASENUM}
+    EXISTINGINITTEST=hosttest${BASENUM}
     USERADDEDINIT1=10:00:00:DE:AD:BE:EF:01
     USERADDEDINIT2=10:00:00:DE:AD:BE:EF:02
     EXISTINGINIT3=10:00:00:DE:AD:BE:EF:03
@@ -200,7 +200,7 @@ test_EXISITING_USERADDED_INITS() {
     PWWN3=100000DEADBEEF03
     PWWN4=100000DEADBEEF04
 
-    runcmd hosts create ${EXISTINGINITTEST} $TENANT Other ${EXISTINGINITTEST} --port 8111
+    runcmd hosts create ${EXISTINGINITTEST} $TENANT Other ${EXISTINGINITTEST} --port 8111 --cluster ${TENANT}/${CLUSTER}
     runcmd initiator create ${EXISTINGINITTEST} FC $USERADDEDINIT1 --node $USERADDEDINIT1
     runcmd initiator create ${EXISTINGINITTEST} FC $USERADDEDINIT2 --node $USERADDEDINIT2
     runcmd transportzone add $NH/${FC_ZONE_A} $USERADDEDINIT1
@@ -208,18 +208,20 @@ test_EXISITING_USERADDED_INITS() {
 
     echot "Creating an export Group and exporting the first volume to initiators 10:00:00:DE:AD:BE:EF:01 and 10:00:00:DE:AD:BE:EF:02"
     EXISTINGINITEGTEST=exinitegtest${BASENUM}
-    #verify_export $EXISTINGINITEGTEST ${EXISTINGINITTEST} gone
+    verify_export $EXISTINGINITEGTEST ${EXISTINGINITTEST} gone
 
     runcmd export_group create $PROJECT $EXISTINGINITEGTEST $NH --type Host --volspec "${PROJECT}/${VOLNAME}-1" --hosts "${EXISTINGINITTEST}"
-    #verify_export $EXISTINGINITEGTEST ${EXISTINGINITTEST} 2 1
+    verify_export $EXISTINGINITEGTEST ${EXISTINGINITTEST} 2 1
 
     echot "Adding initiators 10:00:00:DE:AD:BE:EF:03 and 10:00:00:DE:AD:BE:EF:04 to the Masking View using the CLI"
     VPLEXADDINIT=add_initiator_to_mask
-    # Add another initiator to the mask (done differently per array type)
-    #runcmd vplexhelper.sh $VPLEXADDINIT ${PWWN3} ${$EXISTINGINITEGTEST}
-    #runcmd vplexhelper.sh $VPLEXADDINIT ${PWWN4} ${$EXISTINGINITEGTEST}
+    # We need the storage view name to add the initiators to the storage view outside...
+    STORAGEVIEWNAME=`get_masking_view_name ${EXISTINGINITEGTEST} ${EXISTINGINITTEST}`
+    # Add initiators to the mask (done differently per array type)
+    runcmd arrayhelper $VPLEXADDINIT ${PWWN3} ${STORAGEVIEWNAME}
+    runcmd arrayhelper $VPLEXADDINIT ${PWWN4} ${STORAGEVIEWNAME}
     runcmd export_group update $PROJECT/$EXISTINGINITEGTEST --addVols "${PROJECT}/${VOLNAME}-2"
-    #verify_export $EXISTINGINITEGTEST ${EXISTINGINITTEST} 4 2
+    verify_export $EXISTINGINITEGTEST ${EXISTINGINITTEST} 4 2
 
 
     echot "Adding existing initiators 10:00:00:DE:AD:BE:EF:03 and 10:00:00:DE:AD:BE:EF:04 to the Host"
@@ -230,16 +232,17 @@ test_EXISITING_USERADDED_INITS() {
 
     echot "Deleting existing initiators 10:00:00:DE:AD:BE:EF:03"
     runcmd initiator delete $EXISTINGINITTEST/$EXISTINGINIT3
-    #verify_export $EXISTINGINITEGTEST ${EXISTINGINITTEST} 3 2
+    verify_export $EXISTINGINITEGTEST ${EXISTINGINITTEST} 3 2
 
     echot "Deleting Export Group"
     runcmd export_group delete $PROJECT/$EXISTINGINITEGTEST
-    #verify_export $EXISTINGINITEGTEST ${EXISTINGINITTEST} gone
+    verify_export $EXISTINGINITEGTEST ${EXISTINGINITTEST} gone
 
     runcmd initiator delete $EXISTINGINITTEST/$USERADDEDINIT1
     runcmd initiator delete $EXISTINGINITTEST/$USERADDEDINIT2
     runcmd initiator delete $EXISTINGINITTEST/$EXISTINGINIT4
     runcmd hosts delete $EXISTINGINITTEST
 
-    echoit "Existing Initiators to User Added Initiators Test C"
+    echoit "Existing Initiators to User Added Initiators Test Passed"
 }
+   

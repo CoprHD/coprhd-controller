@@ -4,6 +4,13 @@ uploadFileTabID = 'uploadFileContent';
 inputOutputTabID = 'inputOutputContent';
 }%
 
+<style>
+    .modal-body {
+        height:250px;
+        overflow:auto;
+    }
+</style>
+
 #{Modal.dialog id:'shellPrimitiveDialog', cssClass:'wide', titleKey:'shell.primitive.add.title'}
 <div class="row">
     #{form @create(), id:'shellScriptPrimitiveForm', enctype:'multipart/form-data', class:'form form-horizontal',

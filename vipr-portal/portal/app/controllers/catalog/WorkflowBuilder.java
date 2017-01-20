@@ -340,18 +340,66 @@ public class WorkflowBuilder extends Controller {
     public static class ShellScriptPrimitiveForm{
         // Name and Description step
         @Required
-        public String name;
+        private String name;
         @Required
-        public String description;
+        private String description;
         @Required
-        public File script;
-        public String scriptName;
-        public String inputs; //comma separated list of inputs
-        public String outputs; // comma separated list of ouputs
+        private File script;
+        private String scriptName;
+        private String inputs; //comma separated list of inputs
+        private String outputs; // comma separated list of ouputs
 
         //TODO
         public void validate(){
 
+        }
+
+        public String getName() {
+            return name;
+        }
+
+        public void setName(String name) {
+            this.name = name;
+        }
+
+        public String getDescription() {
+            return description;
+        }
+
+        public void setDescription(String description) {
+            this.description = description;
+        }
+
+        public File getScript() {
+            return script;
+        }
+
+        public void setScript(File script) {
+            this.script = script;
+        }
+
+        public String getScriptName() {
+            return scriptName;
+        }
+
+        public void setScriptName(String scriptName) {
+            this.scriptName = scriptName;
+        }
+
+        public String getInputs() {
+            return inputs;
+        }
+
+        public void setInputs(String inputs) {
+            this.inputs = inputs;
+        }
+
+        public String getOutputs() {
+            return outputs;
+        }
+
+        public void setOutputs(String outputs) {
+            this.outputs = outputs;
         }
     }
 

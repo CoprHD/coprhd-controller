@@ -380,6 +380,7 @@ public class BlockMapper {
     }
 
     public static BlockSnapshotRestRep map(DbClient dbClient, BlockSnapshot from) {
+        logger.info("======= Calling blcoksnapshot mapping ");
         if (from == null) {
             return null;
         }
@@ -395,7 +396,9 @@ public class BlockMapper {
             dbClient.queryByConstraint(AlternateIdConstraint.Factory.getVolumeByAssociatedVolumesConstraint(parentURI.toString()), results);
             Iterator<URI> resultsIter = results.iterator();
             if (resultsIter.hasNext()) {
+                URI assoVol = parentURI;
                 parentURI = resultsIter.next();
+                logger.info("====== virtual vol is {} and assoicated is {}", parentURI, assoVol);
             }
             to.setParent(toRelatedResource(ResourceTypeEnum.VOLUME, parentURI));
         }

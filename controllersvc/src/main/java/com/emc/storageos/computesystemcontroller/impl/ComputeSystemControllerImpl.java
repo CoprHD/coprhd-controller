@@ -339,7 +339,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
     }
 
     public String addStepsForFileShares(Workflow workflow, String waitFor, URI hostId) {
-
+        String newWaitFor = waitFor;
         List<FileShare> fileShares = ComputeSystemHelper.getFileSharesByHost(_dbClient, hostId);
         List<String> endpoints = ComputeSystemHelper.getIpInterfaceEndpoints(_dbClient, hostId);
         for (FileShare fileShare : fileShares) {
@@ -359,7 +359,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
 
                             if (clients.isEmpty()) {
                                 _log.info("Unexporting file share " + fileShare.getId());
-                                waitFor = workflow.createStep(UNEXPORT_FILESHARE_STEP,
+                                newWaitFor = workflow.createStep(UNEXPORT_FILESHARE_STEP,
                                         String.format("Unexport fileshare %s", fileShare.getId()), waitFor,
                                         fileShare.getId(), fileShare.getId().toString(),
                                         this.getClass(),
@@ -367,7 +367,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                                         rollbackMethodNullMethod(), null);
                             } else {
                                 _log.info("Updating export for file share " + fileShare.getId());
-                                waitFor = workflow.createStep(UPDATE_FILESHARE_EXPORT_STEP,
+                                newWaitFor = workflow.createStep(UPDATE_FILESHARE_EXPORT_STEP,
                                         String.format("Update fileshare export %s", fileShare.getId()), waitFor,
                                         fileShare.getId(), fileShare.getId().toString(),
                                         this.getClass(),
@@ -380,7 +380,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
             }
         }
 
-        return waitFor;
+        return newWaitFor;
     }
 
     @Override

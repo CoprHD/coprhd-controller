@@ -62,6 +62,11 @@ public final class OrchestrationServiceConstants {
     public static final String REMOTE_USER = "remote_node_user";
     public static final String REMOTE_NODE= "remote_node_ip";
 
+    //inputs
+    public static final String INPUT_PARAMS = "input_params";
+    public static final String CONNECTION_DETAILS = "connection_details";
+    public static final String ANSIBLE_OPTIONS = "ansible_options";
+
     public enum InputType {
         FROM_USER("InputFromUser"),
         FROM_STEP_INPUT("FromOtherStepInput"),

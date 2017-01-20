@@ -220,17 +220,19 @@ public class OrchestrationService extends ViPRService {
         if (step.getInput() == null) {
             return;
         }
- 
-        final Map<String, Input> input = step.getInput().getInput_params();
-        if (input == null)
+
+        final Map<String, Input> input = step.getInput().get(OrchestrationServiceConstants.INPUT_PARAMS);
+
+        if (input == null) {
             return;
+        }
 
         final Map<String, List<String>> inputs = new HashMap<String, List<String>>();
 
-        final Iterator it = input.keySet().iterator();
-        while (it.hasNext()) {
-            String key = it.next().toString();
-            Input value = input.get(key);
+        for(Map.Entry<String, Input> map : input.entrySet()) {
+            String key = map.getKey();
+            Input value = map.getValue();
+
             if (value == null) {
                 logger.error("Wrong key for input:{} Can't get input to execute the step:{}", key, step.getId());
 

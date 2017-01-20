@@ -19,8 +19,6 @@ from threading import Timer
 import schedulepolicy
 import virtualpool
 import host
-import pprint
-from ppretty import ppretty 
 
 
 class FilePolicy(object):

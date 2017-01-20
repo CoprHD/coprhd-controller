@@ -3403,11 +3403,10 @@ public class FileService extends TaskResourceService {
         VirtualPool vPool = dbClient.queryObject(VirtualPool.class, fileShare.getVirtualPool());
         Project project = dbClient.queryObject(Project.class, fileShare.getProject().getURI());
         VirtualPoolCapabilityValuesWrapper capabilities = new VirtualPoolCapabilityValuesWrapper();
+        capabilities.put(VirtualPoolCapabilityValuesWrapper.FILE_REPLICATION_TYPE, VirtualPool.FileReplicationType.NONE.name());
         StringBuilder errorMsg = new StringBuilder();
-        if (vPool.getFileReplicationSupported()
-                && FilePolicyServiceUtils.updateReplicationTypeCapabilities(dbClient, vPool, project, fileShare, capabilities, errorMsg)) {
-        } else {
-            capabilities.put(VirtualPoolCapabilityValuesWrapper.FILE_REPLICATION_TYPE, VirtualPool.FileReplicationType.NONE.name());
+        if (vPool.getFileReplicationSupported()) {
+            FilePolicyServiceUtils.updateReplicationTypeCapabilities(dbClient, vPool, project, fileShare, capabilities, errorMsg);
         }
         return getFileServiceImpl(capabilities, dbClient);
     }

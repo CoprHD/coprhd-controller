@@ -128,11 +128,11 @@ public class FileMirrorScheduler implements Scheduler {
             Set<String> systemTypes = new StringSet();
             systemTypes.add(srcSystemType);
 
-            for (String targetVArry : capabilities.getFileReplicationTargetVArray()) {
+            for (String targetVArry : capabilities.getFileReplicationTargetVArrays()) {
                 // Process for target !!!
                 FileMirrorRecommendation fileMirrorRecommendation = new FileMirrorRecommendation(sourceFileRecommendation);
-                VirtualPool targetPool = _dbClient.queryObject(VirtualPool.class, capabilities.getFileReplicationTargetVPool());
-                VirtualArray targetArray = _dbClient.queryObject(VirtualArray.class, URI.create(targetVArry));
+                VirtualPool targetVPool = _dbClient.queryObject(VirtualPool.class, capabilities.getFileReplicationTargetVPool());
+                VirtualArray targetVArray = _dbClient.queryObject(VirtualArray.class, URI.create(targetVArry));
                 // Filter the target storage pools!!!
                 Map<String, Object> attributeMap = new HashMap<String, Object>();
 
@@ -143,14 +143,14 @@ public class FileMirrorScheduler implements Scheduler {
                 capabilities.put(VirtualPoolCapabilityValuesWrapper.PERSONALITY,
                         VirtualPoolCapabilityValuesWrapper.FILE_REPLICATION_TARGET);
                 // Get target recommendations!!!
-                targetFileRecommendations = _fileScheduler.placeFileShare(targetArray, targetPool, capabilities, project, attributeMap);
+                targetFileRecommendations = _fileScheduler.placeFileShare(targetVArray, targetVPool, capabilities, project, attributeMap);
 
                 String copyMode = capabilities.getFileRpCopyMode();
                 if (targetFileRecommendations != null && !targetFileRecommendations.isEmpty()) {
                     // prepare the target recommendation
                     FileRecommendation targetRecommendation = targetFileRecommendations.get(0);
                     prepareTargetFileRecommendation(copyMode,
-                            targetArray, targetRecommendation, fileMirrorRecommendation);
+                            targetVArray, targetRecommendation, fileMirrorRecommendation);
 
                     fileMirrorRecommendations.add(fileMirrorRecommendation);
                 }

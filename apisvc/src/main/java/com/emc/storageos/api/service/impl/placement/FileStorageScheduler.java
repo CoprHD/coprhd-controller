@@ -622,7 +622,7 @@ public class FileStorageScheduler implements Scheduler {
         List<StoragePort> spList = _dbClient.queryObject(StoragePort.class,
                 spURIList);
 
-        if (spIdSet != null && !spList.isEmpty()) {
+        if (spList != null && !spList.isEmpty()) {
             for (Iterator<StoragePort> iterator = spList.iterator(); iterator
                     .hasNext();) {
                 StoragePort storagePort = iterator.next();

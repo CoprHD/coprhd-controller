@@ -864,6 +864,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         for (int i = 0; i < snapshotRefs.size(); i++) {
             SearchResultResourceRep ref = snapshotRefs.get(i);
             ids.add(ref.getId());
+            log.info("=== current ids size is {}", ids.size());
 
             if ( ids.size() == DEFAULT_BULK_SIZE || i+1 == snapshotRefs.size() ) {
                 log.info("======== bulk size is {}", ids.size());
@@ -871,6 +872,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
                 List<BlockSnapshotRestRep> snBatch = client.blockSnapshots().getBulkResources(bulk);
                 snapshots.addAll(snBatch);
                 ids.clear();
+                log.info("=== after clear. ids size is {}", ids.size());
             }
         }
 

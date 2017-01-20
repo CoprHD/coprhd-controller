@@ -41,6 +41,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import org.owasp.esapi.ESAPI;
 import play.Logger;
 import play.mvc.Controller;
 import play.mvc.With;
@@ -224,6 +225,10 @@ public class WorkflowBuilder extends Controller {
                                       final OrchestrationWorkflowDocument workflowDoc) {
         try {
             final OrchestrationWorkflowUpdateParam param = new OrchestrationWorkflowUpdateParam();
+            for (OrchestrationWorkflowDocument.Step step:workflowDoc.getSteps()){
+                String success_criteria = ESAPI.encoder().decodeForHTML(step.getSuccessCriteria());
+                step.setSuccessCriteria(success_criteria);
+            }
             param.setDocument(workflowDoc);
             final OrchestrationWorkflowRestRep orchestrationWorkflowRestRep = getCatalogClient()
                     .orchestrationPrimitives().editWorkflow(workflowId,param);

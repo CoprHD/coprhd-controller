@@ -18,10 +18,11 @@ package com.emc.storageos.primitives;
 
 import com.emc.storageos.primitives.input.InputParameter;
 import com.emc.storageos.primitives.output.OutputParameter;
+import java.net.URI;
 import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
-
 
 /**
  * Abstract Class that contains the base properties of a primitive
@@ -58,34 +59,58 @@ public abstract class Primitive {
         }
     }
 
-    private String name;
-    private StepType type;
-    private String friendlyName;
-    private String description;
-    private String successCriteria;
-    private Map<String,InputParameter> input;
-    private Map<String,OutputParameter> output;
+    public enum InputType {
+        INPUT_PARAMS("input_params"),
+        CONNECTION_DETAILS("connection_details"),
+        ANSIBLE_OPTIONS("ansible_options");
 
-    public Primitive(final String name, final String friendlyName,
+        private final String inputType;
+        private InputType(final String inputType)
+        {
+            this.inputType = inputType;
+        }
+
+        @Override
+        public String toString() {
+            return inputType;
+        }
+        public static InputType fromString(String v) {
+            for (InputType e : InputType.values())
+            {
+                if (v.equals(e.inputType))
+                    return e;
+            }
+
+            return null;
+        }
+    }
+    private final URI id;
+    private final String name;
+    private final StepType type;
+    private final String friendlyName;
+    private final String description;
+    private final String successCriteria;
+    private Map<InputType, List<InputParameter>> input;
+    private List<OutputParameter> output;
+
+    public Primitive(final URI id, final String name, final String friendlyName,
             final String description, final String successCriteria,
             final InputParameter[] input, final OutputParameter[] output, final StepType type) {
+        this.id = id;
         this.name = name;
         this.friendlyName = friendlyName;
         this.description = description;
         this.successCriteria = successCriteria;
-        this.input = Arrays.asList(input).stream().collect(
-                Collectors.toMap(InputParameter::getName, elem -> elem,(e1, e2) -> {
-                        return e1;
-                    }
-                ));
-        this.output = Arrays.asList(output).stream().collect(
-                Collectors.toMap(OutputParameter::getName, elem -> elem,(e1, e2) -> {
-                        return e1;
-                    }
-                ));
+        this.input = new HashMap<InputType, List<InputParameter>>(){{
+            put(InputType.INPUT_PARAMS,Arrays.asList(input));
+        }};
+        this.output = Arrays.asList(output);
         this.type = type;
     }
 
+    public URI getId() {
+        return id;
+    }
 
     public String getName() {
         return name;
@@ -98,7 +123,7 @@ public abstract class Primitive {
     public String getFriendlyName() {
         return friendlyName;
     }
-    
+
     public String getDescription() {
         return description;
     }
@@ -107,11 +132,11 @@ public abstract class Primitive {
         return successCriteria;
     }
 
-    public Map<String,InputParameter> getInput() {
+    public Map<InputType, List<InputParameter>> getInput() {
         return input;
     }
     
-    public Map<String,OutputParameter> getOutput() {
+    public List<OutputParameter> getOutput() {
         return output;
     }
 }

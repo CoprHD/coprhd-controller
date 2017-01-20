@@ -332,17 +332,23 @@ public class VmaxExportOperations implements ExportMaskOperations {
             String pgGroupName = null;
             if (pathParams != null) {
                 pgGroupName = pathParams.getPortGroup();
-                _log.info("port group name: " + pgGroupName);
+                if (NullColumnValueGetter.isNotNullValue(pgGroupName) && 
+                        isUsePortGroupEnabled(storage.getSystemType())) {
+                    mask.setPortGroup(pgGroupName);
+                    _dbClient.updateObject(mask);
+                    _log.info("port group name: " + pgGroupName);
+                }
             }
             if (pgGroupName == null) {
                 DataSource portGroupDataSource = ExportMaskUtils.getExportDatasource(storage, initiatorList, dataSourceFactory,
                         portGroupCustomTemplateName);
                 pgGroupName = customConfigHandler.getComputedCustomConfigValue(portGroupCustomTemplateName, storage.getSystemType(),
                         portGroupDataSource);
+                pgGroupName = _helper.generateGroupName(_helper.getExistingPortGroupsFromArray(storage), pgGroupName);
             }
 
             // CTRL-9054 Always create unique port Groups.
-            pgGroupName = _helper.generateGroupName(_helper.getExistingPortGroupsFromArray(storage), pgGroupName);
+            
             CIMObjectPath targetPortGroupPath = createTargetPortGroup(storage, pgGroupName, targetURIList, taskCompleter);
 
             // 4. ExportMask = MaskingView (MV) = IG + SG + PG
@@ -4980,4 +4986,23 @@ public class VmaxExportOperations implements ExportMaskOperations {
         }
     }
 
+    /**
+     * Check whether use port group is enabled.
+     * 
+     * @return
+     */
+     private Boolean isUsePortGroupEnabled(String systemType) {
+        Boolean reusePortGroupEnabled = false;
+
+        try {
+            reusePortGroupEnabled = Boolean.valueOf(
+                    customConfigHandler.getComputedCustomConfigValue(
+                            CustomConfigConstants.VMAX_USE_PORT_GROUP_ENABLED,
+                            systemType, null));
+        } catch (Exception e) {
+            _log.warn("exception while getting custom config value", e);
+        }
+        _log.info("Reuse port group is " + reusePortGroupEnabled);
+        return reusePortGroupEnabled;
+    }
 }

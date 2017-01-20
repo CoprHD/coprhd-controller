@@ -6,11 +6,12 @@
 package com.emc.storageos.db.client.model;
 
 import java.beans.Transient;
+import java.net.URI;
 
 import com.emc.storageos.db.client.model.ExportGroup.ExportGroupType;
 
 @Cf("ExportPathParams")
-public class ExportPathParams extends DataObject {
+public class ExportPathParams extends DiscoveredDataObject {
     private Integer maxPaths;
     private Integer minPaths;
     private Integer pathsPerInitiator;
@@ -24,6 +25,8 @@ public class ExportPathParams extends DataObject {
     private Boolean explicitlyCreated;
     // port group name predefined in the vmax
     private String portGroup;
+    
+    private URI storageDevice;
     
     /*
      * If allowFewerPorts is true, may allocate fewer than the calculated port requirement
@@ -165,6 +168,17 @@ public class ExportPathParams extends DataObject {
 
     public void setMaxInitiatorsPerPort(Integer maxInitiatorsPerPort) {
         this.maxInitiatorsPerPort = maxInitiatorsPerPort;
+    }
+    
+    @RelationIndex(cf = "ExportPathToStorageDevice", type = StorageSystem.class)
+    @Name("storageDevice")
+    public URI getStorageDevice() {
+        return storageDevice;
+    }
+
+    public void setStorageDevice(URI storageDevice) {
+        storageDevice = storageDevice;
+        setChanged("storageDevice");
     }
 
 }

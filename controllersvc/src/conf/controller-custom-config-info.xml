@@ -36,7 +36,7 @@
                 <ref bean="vmaxClusterInitiatorGroupName"/>
                 <ref bean="vmaxHostPortGroupName"/>
                 <ref bean="vmaxClusterPortGroupName"/>
-                <ref bean="vmaxReusePortGroupEnabled"/>
+                <ref bean="vmaxUsePortGroupEnabled"/>
                 <ref bean="portAllocationInitiatorCeiling"/>
                 <ref bean="portAllocationVolumeCeiling"/>
                 <ref bean="portAllocationPortUtilizationCeiling"/>

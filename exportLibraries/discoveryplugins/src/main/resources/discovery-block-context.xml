@@ -134,6 +134,7 @@
 				<ref bean="runNetworkConnectivity"/>
                 <!-- Pool Matcher -->
 				<ref bean="implicitPoolMatcher"/>
+				<ref bean="getPortGroup"/>
 				<!-- run RP Connectivity -->
 				<ref bean="runRPConnectivity"/>
 				

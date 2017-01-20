@@ -33,6 +33,7 @@ import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.storageos.model.TaskResourceRep;
 import com.emc.storageos.model.remotereplication.RemoteReplicationGroupCreate;
+import com.emc.storageos.model.remotereplication.RemoteReplicationModeChange;
 import com.emc.storageos.model.remotereplication.RemoteReplicationSetList;
 import com.emc.storageos.model.remotereplication.RemoteReplicationSetRestRep;
 import com.emc.storageos.security.audit.AuditLogManager;
@@ -415,6 +416,46 @@ public class RemoteReplicationSetService extends TaskResourceService {
         }
 
         auditOp(OperationTypeEnum.SWAP_REMOTE_REPLICATION_SET_LINK, true, AuditLogManager.AUDITOP_BEGIN,
+                rrSet.getDeviceLabel(), rrSet.getStorageSystemType());
+
+        return toTask(rrSet, taskId, op);
+    }
+
+    @POST
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/{id}/change-replication-mode")
+    public TaskResourceRep changeRemoteReplicationSetMode(@PathParam("id") URI id,
+                                                            final RemoteReplicationModeChange param) throws InternalException {
+        _log.info("Called: changeRemoteReplicationSetMode() with id {}", id);
+        ArgValidator.checkFieldUriType(id, RemoteReplicationSet.class, "id");
+        RemoteReplicationSet rrSet = queryResource(id);
+
+        String newMode = param.getNewMode();
+
+        // todo: validate that this operation is valid: if operations are allowed on sets, if set state is valid for the operation, if the set is reachable, etc.
+        // Create a task for the create remote replication set operation
+        String taskId = UUID.randomUUID().toString();
+        Operation op = _dbClient.createTaskOpStatus(RemoteReplicationSet.class, rrSet.getId(),
+                taskId, ResourceOperationTypeEnum.CHANGE_REMOTE_REPLICATION_MODE);
+
+        RemoteReplicationElement rrElement = new RemoteReplicationElement(com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationSet.ElementType.REPLICATION_SET, id);
+        // send request to controller
+        try {
+            RemoteReplicationBlockServiceApiImpl rrServiceApi = getRemoteReplicationServiceApi();
+            rrServiceApi.changeRemoteReplicationMode(rrElement, newMode, taskId);
+        } catch (final ControllerException e) {
+            _log.error("Controller Error", e);
+            op = rrSet.getOpStatus().get(taskId);
+            op.error(e);
+            rrSet.getOpStatus().updateTaskStatus(taskId, op);
+            rrSet.setInactive(true);
+            _dbClient.updateObject(rrSet);
+
+            throw e;
+        }
+
+        auditOp(OperationTypeEnum.CHANGE_REMOTE_REPLICATION_MODE, true, AuditLogManager.AUDITOP_BEGIN,
                 rrSet.getDeviceLabel(), rrSet.getStorageSystemType());
 
         return toTask(rrSet, taskId, op);

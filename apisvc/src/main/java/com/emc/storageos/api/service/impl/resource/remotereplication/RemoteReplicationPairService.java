@@ -1,7 +1,7 @@
 package com.emc.storageos.api.service.impl.resource.remotereplication;
 
-import static com.emc.storageos.api.mapper.RemoteReplicationMapper.map;
 import static com.emc.storageos.api.mapper.DbObjectMapper.toNamedRelatedResource;
+import static com.emc.storageos.api.mapper.RemoteReplicationMapper.map;
 import static com.emc.storageos.api.mapper.TaskMapper.toTask;
 
 import java.net.URI;
@@ -17,7 +17,6 @@ import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 
-import com.emc.storageos.model.remotereplication.RemoteReplicationPairList;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -28,12 +27,15 @@ import com.emc.storageos.db.client.model.remotereplication.RemoteReplicationPair
 import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.storageos.model.TaskResourceRep;
+import com.emc.storageos.model.remotereplication.RemoteReplicationModeChange;
+import com.emc.storageos.model.remotereplication.RemoteReplicationPairList;
 import com.emc.storageos.model.remotereplication.RemoteReplicationPairRestRep;
 import com.emc.storageos.security.audit.AuditLogManager;
 import com.emc.storageos.security.authorization.CheckPermission;
 import com.emc.storageos.security.authorization.DefaultPermissions;
 import com.emc.storageos.security.authorization.Role;
 import com.emc.storageos.services.OperationTypeEnum;
+import com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationSet;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.impl.externaldevice.RemoteReplicationElement;
@@ -361,6 +363,46 @@ public class RemoteReplicationPairService extends TaskResourceService {
         }
 
         auditOp(OperationTypeEnum.SWAP_REMOTE_REPLICATION_PAIR_LINK, true, AuditLogManager.AUDITOP_BEGIN,
+                rrPair.getNativeId(), rrPair.getSourceElement(), rrPair.getTargetElement());
+
+        return toTask(rrPair, taskId, op);
+    }
+
+    @POST
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/{id}/change-replication-mode")
+    public TaskResourceRep changeRemoteReplicationPairMode(@PathParam("id") URI id,
+                                                            final RemoteReplicationModeChange param) throws InternalException {
+        _log.info("Called: changeRemoteReplicationPairMode() with id {}", id);
+        ArgValidator.checkFieldUriType(id, RemoteReplicationPair.class, "id");
+        RemoteReplicationPair rrPair = queryResource(id);
+
+        String newMode = param.getNewMode();
+
+        // todo: validate that this operation is valid: if operations are allowed on pairs, if pair state is valid for the operation, if the pair is reachable, etc.
+        // Create a task for the create remote replication pair operation
+        String taskId = UUID.randomUUID().toString();
+        Operation op = _dbClient.createTaskOpStatus(RemoteReplicationPair.class, rrPair.getId(),
+                taskId, ResourceOperationTypeEnum.CHANGE_REMOTE_REPLICATION_MODE);
+
+        RemoteReplicationElement rrElement = new RemoteReplicationElement(RemoteReplicationSet.ElementType.REPLICATION_PAIR, id);
+        // send request to controller
+        try {
+            RemoteReplicationBlockServiceApiImpl rrServiceApi = getRemoteReplicationServiceApi();
+            rrServiceApi.changeRemoteReplicationMode(rrElement, newMode, taskId);
+        } catch (final ControllerException e) {
+            _log.error("Controller Error", e);
+            op = rrPair.getOpStatus().get(taskId);
+            op.error(e);
+            rrPair.getOpStatus().updateTaskStatus(taskId, op);
+            rrPair.setInactive(true);
+            _dbClient.updateObject(rrPair);
+
+            throw e;
+        }
+
+        auditOp(OperationTypeEnum.CHANGE_REMOTE_REPLICATION_MODE, true, AuditLogManager.AUDITOP_BEGIN,
                 rrPair.getNativeId(), rrPair.getSourceElement(), rrPair.getTargetElement());
 
         return toTask(rrPair, taskId, op);

@@ -8,6 +8,7 @@ package com.emc.storageos.db.client.impl;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -16,6 +17,11 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.UUID;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -48,10 +54,14 @@ public class DbConsistencyCheckerHelper {
     private static final String DELETE_INDEX_CQL = "delete from \"%s\" where key='%s' and column1='%s' and column2='%s' and column3='%s' and column4='%s' and column5=%s;";
     private static final String DELETE_INDEX_CQL_WITHOUT_UUID = "delete from \"%s\" where key='%s' and column1='%s' and column2='%s' and column3='%s' and column4='%s';";
     private static final String CQL_QUERY_SCHEMA_VERSION_TIMESTAMP = "SELECT key, writetime(value) FROM \"SchemaRecord\";";
+    private static final int THREAD_POOL_QUEUE_SIZE = 50;
+    private static final int WAITING_TIME_FOR_QUEUE_FULL_MS = 3000;
 
     private DbClientImpl dbClient;
     private Set<Class<? extends DataObject>> excludeClasses = new HashSet<Class<? extends DataObject>>(Arrays.asList(PasswordHistory.class));
     private Map<Long, String> schemaVersionsTime;
+    private BlockingQueue<Runnable> blockingQueue = new ArrayBlockingQueue<Runnable>(THREAD_POOL_QUEUE_SIZE);
+    private ThreadPoolExecutor executor = new ThreadPoolExecutor(5, 20, 50, TimeUnit.MILLISECONDS, blockingQueue);
     
     public DbConsistencyCheckerHelper() {
     }
@@ -182,6 +192,10 @@ public class DbConsistencyCheckerHelper {
             }
         }
     }
+    
+    public void checkIndexingCF(IndexAndCf indexAndCf, boolean toConsole, CheckResult checkResult) throws ConnectionException {
+        checkIndexingCF(indexAndCf, toConsole, checkResult, false);
+    }
 
     /**
      * Scan all the indices and related data object records, to find out
@@ -190,7 +204,7 @@ public class DbConsistencyCheckerHelper {
      * @return number of the corrupted rows in this index CF
      * @throws ConnectionException
      */
-    public void checkIndexingCF(IndexAndCf indexAndCf, boolean toConsole, CheckResult checkResult) throws ConnectionException {
+    public void checkIndexingCF(IndexAndCf indexAndCf, boolean toConsole, CheckResult checkResult, boolean isParallel) throws ConnectionException {
         String indexCFName = indexAndCf.cf.getName();
         Map<String, ColumnFamily<String, CompositeColumnName>> objCfs = getDataObjectCFs();
         _log.info("Start checking the index CF {}", indexCFName);
@@ -235,14 +249,24 @@ public class DbConsistencyCheckerHelper {
                 idxEntries.add(new IndexEntry(row.getKey(), column.getName()));
             }
             
-            if (getObjsSize(objsToCheck) >= INDEX_OBJECTS_BATCH_SIZE ) {
-                processBatchIndexObjects(indexAndCf, toConsole, objsToCheck, checkResult);
+            int size = getObjsSize(objsToCheck);
+            if (size >= INDEX_OBJECTS_BATCH_SIZE ) {
+                if (isParallel) {
+                    processBatchIndexObjectsWithMultipleThreads(indexAndCf, toConsole, objsToCheck, checkResult);
+                } else {
+                    processBatchIndexObjects(indexAndCf, toConsole, objsToCheck, checkResult);
+                }
+                objsToCheck = new HashMap<>();
             }
             
         }
 
         // Detect whether the DataObject CFs have the records
-        processBatchIndexObjects(indexAndCf, toConsole, objsToCheck, checkResult);
+        if (isParallel) {
+            processBatchIndexObjectsWithMultipleThreads(indexAndCf, toConsole, objsToCheck, checkResult);
+        } else {
+            processBatchIndexObjects(indexAndCf, toConsole, objsToCheck, checkResult);
+        }
     }
 
     private int getObjsSize(Map<ColumnFamily<String, CompositeColumnName>, Map<String, List<IndexEntry>>> objsToCheck) {
@@ -254,10 +278,18 @@ public class DbConsistencyCheckerHelper {
         }
         return size;
     }
+    
+    public void waitForCheckIndexFinihsed(int waitTimeInSeconds) {
+        executor.shutdown();
+        try {
+            if (!executor.awaitTermination(waitTimeInSeconds, TimeUnit.SECONDS)) {
+                executor.shutdownNow();
+            } 
+        } catch (Exception e) {
+            executor.shutdownNow();
+        }
+    }
 
-    /*
-     * We need to process index objects in batch to avoid occupy too many memory
-     * */
     private void processBatchIndexObjects(IndexAndCf indexAndCf, boolean toConsole,
             Map<ColumnFamily<String, CompositeColumnName>, Map<String, List<IndexEntry>>> objsToCheck, CheckResult checkResult) throws ConnectionException {
         for (ColumnFamily<String, CompositeColumnName> objCf : objsToCheck.keySet()) {
@@ -306,7 +338,34 @@ public class DbConsistencyCheckerHelper {
                 }
             }
         }
-        objsToCheck.clear();
+    }
+    
+    /*
+     * We need to process index objects in batch to avoid occupy too many memory
+     * */
+    private void processBatchIndexObjectsWithMultipleThreads(IndexAndCf indexAndCf, boolean toConsole,
+            Map<ColumnFamily<String, CompositeColumnName>, Map<String, List<IndexEntry>>> objsToCheck, CheckResult checkResult) throws ConnectionException {
+        //if waiting queue is full, wait a few seconds to avoid reject exception 
+        while (executor.getQueue().size() >= THREAD_POOL_QUEUE_SIZE) {
+            try {
+                Thread.sleep(WAITING_TIME_FOR_QUEUE_FULL_MS);
+            } catch (InterruptedException e) {
+                //ignore
+            }
+        }
+        
+        executor.submit(new Runnable() {
+
+            @Override
+            public void run() {
+                try {
+                    processBatchIndexObjects(indexAndCf, toConsole, objsToCheck, checkResult);
+                } catch (ConnectionException e) {
+                    _log.error("failed to check index:", e);
+                }
+            }
+            
+        });
     }
 
     public Map<String, IndexAndCf> getAllIndices() {
@@ -458,7 +517,7 @@ public class DbConsistencyCheckerHelper {
     }
 
     private ObjectEntry extractObjectEntryFromIndex(String indexKey,
-            IndexColumnName name, Class<? extends DbIndex> type, boolean toConsole) {
+            CompositeIndexColumnName name, Class<? extends DbIndex> type, boolean toConsole) {
         // The className of a data object CF in a index record
         String className;
         // The id of the data object record in a index record
@@ -676,12 +735,16 @@ public class DbConsistencyCheckerHelper {
         return selectKey == 0 ? "Unknown" : schemaVersionsTime.get(selectKey);
     }
     
+    public ThreadPoolExecutor getExecutor() {
+        return executor;
+    }
+
     public static class CheckResult {
-        private int total;
-        private Map<String, Integer> countOfVersion = new TreeMap<String, Integer>();
+        private AtomicInteger total = new AtomicInteger();
+        private Map<String, Integer> countOfVersion = Collections.synchronizedMap(new TreeMap<String, Integer>());
         
         public int getTotal() {
-            return total;
+            return total.get();
         }
 
         public Map<String, Integer> getCountOfVersion() {
@@ -694,7 +757,7 @@ public class DbConsistencyCheckerHelper {
             }
             
             countOfVersion.put(version, countOfVersion.get(version) + 1);
-            this.total++;
+            this.total.getAndIncrement();
         }
 
         @Override

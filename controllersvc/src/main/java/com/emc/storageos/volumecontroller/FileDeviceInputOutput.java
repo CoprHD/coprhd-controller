@@ -11,7 +11,9 @@ import java.util.List;
 
 import com.emc.storageos.db.client.model.FSExportMap;
 import com.emc.storageos.db.client.model.FileObject;
+import com.emc.storageos.db.client.model.FilePolicy;
 import com.emc.storageos.db.client.model.FileShare;
+import com.emc.storageos.db.client.model.PolicyStorageResource;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.QuotaDirectory;
 import com.emc.storageos.db.client.model.SMBShareMap;
@@ -85,6 +87,10 @@ public class FileDeviceInputOutput {
     private List<NfsACE> nfsAclsToAdd = new ArrayList<>();
     private List<NfsACE> nfsAclsToModify = new ArrayList<>();
     private List<NfsACE> nfsAclsToDelete = new ArrayList<>();
+
+    // New Addition for File Policy Work
+    private FilePolicy fileProtectionPolicy;
+    private PolicyStorageResource policyStorageResource;
 
     public String getFileSystemPath() {
         return fileSystemPath;
@@ -1035,6 +1041,23 @@ public class FileDeviceInputOutput {
 
     public void setvNAS(VirtualNAS vNAS) {
         this.vNAS = vNAS;
+    }
+
+    public PolicyStorageResource getPolicyStorageResource() {
+        return policyStorageResource;
+    }
+
+    public void setPolicyStorageResource(PolicyStorageResource policyStorageResource) {
+        this.policyStorageResource = policyStorageResource;
+    }
+
+    // TODO need to rename after cleanup sprint
+    public FilePolicy getFileProtectionPolicy() {
+        return fileProtectionPolicy;
+    }
+
+    public void setFileProtectionPolicy(FilePolicy fileProtectionPolicy) {
+        this.fileProtectionPolicy = fileProtectionPolicy;
     }
 
 }

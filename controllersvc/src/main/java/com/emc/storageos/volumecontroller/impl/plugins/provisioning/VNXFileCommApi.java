@@ -1294,6 +1294,32 @@ public class VNXFileCommApi {
         return fsSizeInfo;
     }
 
+    /**
+     * Get the export from the storage system based on the export path
+     * 
+     * @param system storage system details
+     * @param args FileDeviceInputOutput object with export path details
+     * @return export map
+     */
+    public Map<String, String> getNFSExport(StorageSystem system, FileDeviceInputOutput args) {
+        sshApi.setConnParams(system.getIpAddress(), system.getUsername(),
+                system.getPassword());
+        StoragePort storagePort = _dbClient.queryObject(StoragePort.class, args.getFs().getStoragePort());
+        String moverId;
+        String exportPath = args.getExportPath();
+        StorageHADomain dataMover = null;
+        URI dataMoverId = storagePort.getStorageHADomain();
+        dataMover = _dbClient.queryObject(StorageHADomain.class, dataMoverId);
+        moverId = dataMover.getName();
+
+        _log.info("Getting Mover Id {} to list FS export at {}", moverId, exportPath);
+
+        // get export from storage system.
+        sshApi.setConnParams(system.getIpAddress(), system.getUsername(), system.getPassword());
+        Map<String, String> exportMap = sshApi.getNFSExportsForPath(dataMover.getAdapterName(), exportPath).get(exportPath);
+        return exportMap;
+    }
+
     public XMLApiResult expandFS(final StorageSystem system, String fsName, long extendSize, boolean isMountRequired,
             boolean isVirtualProvisioned) throws VNXException {
         _log.info("Expand File System {} : new size requested {}", fsName, extendSize);
@@ -1344,20 +1370,20 @@ public class VNXFileCommApi {
 
     public XMLApiResult expandFS(final StorageSystem system, final FileShare fileShare, long extendSize, boolean isMountRequired,
             boolean isVirtualProvisioned) throws VNXException {
-    	// get the data mover
-    	boolean isMounted = false;
+        // get the data mover
+        boolean isMounted = false;
         StorageHADomain dataMover = this.getDataMover(fileShare);
         if (null != dataMover) {
             sshApi.setConnParams(system.getIpAddress(), system.getUsername(), system.getPassword());
             Map<String, String> existingMounts = sshApi.getFsMountpathMap(dataMover.getAdapterName());
             if (existingMounts.get(fileShare.getName()) == null) {
-            	isMounted = true;
+                isMounted = true;
             } else {
-            	isMounted = false;
+                isMounted = false;
             }
-        } 
+        }
         _log.info("expandFS for fileName{} and isMountRequired {}", fileShare.getName(), String.valueOf(isMounted));
-    	return expandFS(system, fileShare.getName(), extendSize, isMounted, isVirtualProvisioned);
+        return expandFS(system, fileShare.getName(), extendSize, isMounted, isVirtualProvisioned);
     }
 
     public XMLApiResult doRestoreSnapshot(final StorageSystem system, String fsId, String fsName, String id, String snapshotName)

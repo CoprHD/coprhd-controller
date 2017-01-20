@@ -8,14 +8,20 @@ package com.emc.storageos.db.client.impl;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.UUID;
-import java.util.Map.Entry;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -48,10 +54,14 @@ public class DbConsistencyCheckerHelper {
     private static final String DELETE_INDEX_CQL = "delete from \"%s\" where key='%s' and column1='%s' and column2='%s' and column3='%s' and column4='%s' and column5=%s;";
     private static final String DELETE_INDEX_CQL_WITHOUT_UUID = "delete from \"%s\" where key='%s' and column1='%s' and column2='%s' and column3='%s' and column4='%s';";
     private static final String CQL_QUERY_SCHEMA_VERSION_TIMESTAMP = "SELECT key, writetime(value) FROM \"SchemaRecord\";";
+    private static final int THREAD_POOL_QUEUE_SIZE = 50;
+    private static final int WAITING_TIME_FOR_QUEUE_FULL_MS = 3000;
 
     private DbClientImpl dbClient;
     private Set<Class<? extends DataObject>> excludeClasses = new HashSet<Class<? extends DataObject>>(Arrays.asList(PasswordHistory.class));
     private Map<Long, String> schemaVersionsTime;
+    private BlockingQueue<Runnable> blockingQueue = new ArrayBlockingQueue<Runnable>(THREAD_POOL_QUEUE_SIZE);
+    private ThreadPoolExecutor executor = new ThreadPoolExecutor(5, 20, 50, TimeUnit.MILLISECONDS, blockingQueue);
     
     public DbConsistencyCheckerHelper() {
     }
@@ -168,8 +178,7 @@ public class DbConsistencyCheckerHelper {
                         getIndexColumns(indexedField, column, objRow.getKey()));
                 
                 if (!isColumnInIndex) {
-                    long microsTimeFromUUID = TimeUUIDUtils.getMicrosTimeFromUUID(column.getName().getTimeUUID());
-                    String dbVersion = findDataCreatedInWhichDBVersion(microsTimeFromUUID);
+                    String dbVersion = findDataCreatedInWhichDBVersion(column.getName().getTimeUUID());
                     checkResult.increaseByVersion(dbVersion);
                     logMessage(String.format(
                             "Inconsistency found Object(%s, id: %s, field: %s) is existing, but the related Index(%s, type: %s, id: %s) is missing. This entry is updated by version %s",
@@ -183,6 +192,10 @@ public class DbConsistencyCheckerHelper {
             }
         }
     }
+    
+    public void checkIndexingCF(IndexAndCf indexAndCf, boolean toConsole, CheckResult checkResult) throws ConnectionException {
+        checkIndexingCF(indexAndCf, toConsole, checkResult, false);
+    }
 
     /**
      * Scan all the indices and related data object records, to find out
@@ -191,7 +204,7 @@ public class DbConsistencyCheckerHelper {
      * @return number of the corrupted rows in this index CF
      * @throws ConnectionException
      */
-    public void checkIndexingCF(IndexAndCf indexAndCf, boolean toConsole, CheckResult checkResult) throws ConnectionException {
+    public void checkIndexingCF(IndexAndCf indexAndCf, boolean toConsole, CheckResult checkResult, boolean isParallel) throws ConnectionException {
         String indexCFName = indexAndCf.cf.getName();
         Map<String, ColumnFamily<String, CompositeColumnName>> objCfs = getDataObjectCFs();
         _log.info("Start checking the index CF {}", indexCFName);
@@ -236,14 +249,24 @@ public class DbConsistencyCheckerHelper {
                 idxEntries.add(new IndexEntry(row.getKey(), column.getName()));
             }
             
-            if (getObjsSize(objsToCheck) >= INDEX_OBJECTS_BATCH_SIZE ) {
-                processBatchIndexObjects(indexAndCf, toConsole, objsToCheck, checkResult);
+            int size = getObjsSize(objsToCheck);
+            if (size >= INDEX_OBJECTS_BATCH_SIZE ) {
+                if (isParallel) {
+                    processBatchIndexObjectsWithMultipleThreads(indexAndCf, toConsole, objsToCheck, checkResult);
+                } else {
+                    processBatchIndexObjects(indexAndCf, toConsole, objsToCheck, checkResult);
+                }
+                objsToCheck = new HashMap<>();
             }
             
         }
 
         // Detect whether the DataObject CFs have the records
-        processBatchIndexObjects(indexAndCf, toConsole, objsToCheck, checkResult);
+        if (isParallel) {
+            processBatchIndexObjectsWithMultipleThreads(indexAndCf, toConsole, objsToCheck, checkResult);
+        } else {
+            processBatchIndexObjects(indexAndCf, toConsole, objsToCheck, checkResult);
+        }
     }
 
     private int getObjsSize(Map<ColumnFamily<String, CompositeColumnName>, Map<String, List<IndexEntry>>> objsToCheck) {
@@ -255,10 +278,18 @@ public class DbConsistencyCheckerHelper {
         }
         return size;
     }
+    
+    public void waitForCheckIndexFinihsed(int waitTimeInSeconds) {
+        executor.shutdown();
+        try {
+            if (!executor.awaitTermination(waitTimeInSeconds, TimeUnit.SECONDS)) {
+                executor.shutdownNow();
+            } 
+        } catch (Exception e) {
+            executor.shutdownNow();
+        }
+    }
 
-    /*
-     * We need to process index objects in batch to avoid occupy too many memory
-     * */
     private void processBatchIndexObjects(IndexAndCf indexAndCf, boolean toConsole,
             Map<ColumnFamily<String, CompositeColumnName>, Map<String, List<IndexEntry>>> objsToCheck, CheckResult checkResult) throws ConnectionException {
         for (ColumnFamily<String, CompositeColumnName> objCf : objsToCheck.keySet()) {
@@ -266,20 +297,35 @@ public class DbConsistencyCheckerHelper {
 
             OperationResult<Rows<String, CompositeColumnName>> objResult = indexAndCf.keyspace
                     .prepareQuery(objCf).getRowSlice(objKeysIdxEntryMap.keySet())
-                    .withColumnRange(new RangeBuilder().setLimit(1).build())
                     .execute();
             for (Row<String, CompositeColumnName> row : objResult.getResult()) {
-                if (row.getColumns().isEmpty()) { // Only support all the columns have been removed now
-                    List<IndexEntry> idxEntries = objKeysIdxEntryMap.get(row.getKey());
-                    for (IndexEntry idxEntry : idxEntries) {
-                        long microsTimeFromUUID = TimeUUIDUtils.getMicrosTimeFromUUID(idxEntry.getColumnName().getTimeUUID());
-                        String dbVersion = findDataCreatedInWhichDBVersion(microsTimeFromUUID);
+                Set<UUID> existingDataColumnUUIDSet = new HashSet<>();
+                for (Column<CompositeColumnName> column : row.getColumns()) {
+                    if (column.getName().getTimeUUID() != null) {
+                        existingDataColumnUUIDSet.add(column.getName().getTimeUUID());
+                    }
+                }
+                
+                List<IndexEntry> idxEntries = objKeysIdxEntryMap.get(row.getKey());
+                for (IndexEntry idxEntry : idxEntries) {
+                    if (row.getColumns().isEmpty()
+                            || (idxEntry.getColumnName().getTimeUUID() != null && !existingDataColumnUUIDSet.contains(idxEntry
+                                    .getColumnName().getTimeUUID()))) {
+                        String dbVersion = findDataCreatedInWhichDBVersion(idxEntry.getColumnName().getTimeUUID());
                         checkResult.increaseByVersion(dbVersion);
-                        logMessage(String.format("Inconsistency found: Index(%s, type: %s, id: %s, column: %s) is existing "
+                        if (row.getColumns().isEmpty()) {
+                            logMessage(String.format("Inconsistency found: Index(%s, type: %s, id: %s, column: %s) is existing "
                                 + "but the related object record(%s, id: %s) is missing. This entry is updated by version %s",
                                 indexAndCf.cf.getName(), indexAndCf.indexType.getSimpleName(),
                                 idxEntry.getIndexKey(), idxEntry.getColumnName(),
                                 objCf.getName(), row.getKey(), dbVersion), true, toConsole);
+                        } else {
+                            logMessage(String.format("Inconsistency found: Index(%s, type: %s, id: %s, column: %s) is existing, "
+                                    + "but the related object record(%s, id: %s) has not data column can match this index. This entry is updated by version %s",
+                                    indexAndCf.cf.getName(), indexAndCf.indexType.getSimpleName(),
+                                    idxEntry.getIndexKey(), idxEntry.getColumnName(),
+                                    objCf.getName(), row.getKey(), dbVersion), true, toConsole);
+                        }
                         UUID timeUUID = idxEntry.getColumnName().getTimeUUID();
                         DbCheckerFileWriter.writeTo(indexAndCf.keyspace.getKeyspaceName(),
                                 String.format(timeUUID != null ? DELETE_INDEX_CQL : DELETE_INDEX_CQL_WITHOUT_UUID,
@@ -292,7 +338,34 @@ public class DbConsistencyCheckerHelper {
                 }
             }
         }
-        objsToCheck.clear();
+    }
+    
+    /*
+     * We need to process index objects in batch to avoid occupy too many memory
+     * */
+    private void processBatchIndexObjectsWithMultipleThreads(IndexAndCf indexAndCf, boolean toConsole,
+            Map<ColumnFamily<String, CompositeColumnName>, Map<String, List<IndexEntry>>> objsToCheck, CheckResult checkResult) throws ConnectionException {
+        //if waiting queue is full, wait a few seconds to avoid reject exception 
+        while (executor.getQueue().size() >= THREAD_POOL_QUEUE_SIZE) {
+            try {
+                Thread.sleep(WAITING_TIME_FOR_QUEUE_FULL_MS);
+            } catch (InterruptedException e) {
+                //ignore
+            }
+        }
+        
+        executor.submit(new Runnable() {
+
+            @Override
+            public void run() {
+                try {
+                    processBatchIndexObjects(indexAndCf, toConsole, objsToCheck, checkResult);
+                } catch (ConnectionException e) {
+                    _log.error("failed to check index:", e);
+                }
+            }
+            
+        });
     }
 
     public Map<String, IndexAndCf> getAllIndices() {
@@ -363,7 +436,7 @@ public class DbConsistencyCheckerHelper {
         private Class<? extends DbIndex> indexType;
         private Keyspace keyspace;
 
-        IndexAndCf(Class<? extends DbIndex> indexType,
+        public IndexAndCf(Class<? extends DbIndex> indexType,
                 ColumnFamily<String, IndexColumnName> cf, Keyspace keyspace) {
             this.indexType = indexType;
             this.cf = cf;
@@ -444,7 +517,7 @@ public class DbConsistencyCheckerHelper {
     }
 
     private ObjectEntry extractObjectEntryFromIndex(String indexKey,
-            IndexColumnName name, Class<? extends DbIndex> type, boolean toConsole) {
+            CompositeIndexColumnName name, Class<? extends DbIndex> type, boolean toConsole) {
         // The className of a data object CF in a index record
         String className;
         // The id of the data object record in a index record
@@ -638,7 +711,19 @@ public class DbConsistencyCheckerHelper {
         return result;
     }
     
-    protected String findDataCreatedInWhichDBVersion(long createTime) {
+    public String findDataCreatedInWhichDBVersion(UUID timeUUID) {
+        
+        long createTime = 0;
+        try {
+            createTime = TimeUUIDUtils.getMicrosTimeFromUUID(timeUUID);
+        } catch (Exception e) {
+            //ignore
+        }
+        
+        return findDataCreatedInWhichDBVersion(createTime);
+    }
+    
+    public String findDataCreatedInWhichDBVersion(long createTime) {
         //small data set, no need to binary search
         long selectKey = 0;
         for (Entry<Long, String> entry : schemaVersionsTime.entrySet()) {
@@ -650,12 +735,16 @@ public class DbConsistencyCheckerHelper {
         return selectKey == 0 ? "Unknown" : schemaVersionsTime.get(selectKey);
     }
     
+    public ThreadPoolExecutor getExecutor() {
+        return executor;
+    }
+
     public static class CheckResult {
-        private int total;
-        private Map<String, Integer> countOfVersion = new TreeMap<String, Integer>();
+        private AtomicInteger total = new AtomicInteger();
+        private Map<String, Integer> countOfVersion = Collections.synchronizedMap(new TreeMap<String, Integer>());
         
         public int getTotal() {
-            return total;
+            return total.get();
         }
 
         public Map<String, Integer> getCountOfVersion() {
@@ -668,7 +757,7 @@ public class DbConsistencyCheckerHelper {
             }
             
             countOfVersion.put(version, countOfVersion.get(version) + 1);
-            this.total++;
+            this.total.getAndIncrement();
         }
 
         @Override

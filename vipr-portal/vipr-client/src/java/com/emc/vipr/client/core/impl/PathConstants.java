@@ -161,9 +161,11 @@ public class PathConstants {
     public static final String VIRTUAL_NAS_SERVER_BY_VARRAY_URL = VIRTUAL_NAS_SERVER_URL + "/varray/{varray-id}";
     public static final String VIRTUAL_NAS_SERVER_BY_PROJECT_URL = "/project/{project-id}";
     public static final String SCHEDULE_POLICIES_URL = "/schedule-policies";
+    public static final String FILE_PROTECTION_POLICIES_URL = "/file/file-policies";
+    public static final String FILE_PROTECTION_POLICY_URL = FILE_PROTECTION_POLICIES_URL + "/{id}";
     public static final String SCHEDULE_POLICIES_BY_TENANT_URL = TENANT_URL + "/{tenantId}/schedule-policies";
     public static final String VOLUME_GROUPS_BY_TENANT_URL = TENANT_URL + "/{tenantId}/volume-groups";
-    public static final String SCHEDULE_POLICIES_BY_POLICY_URL = SCHEDULE_POLICIES_URL+"/{policyId}";
+    public static final String SCHEDULE_POLICIES_BY_POLICY_URL = SCHEDULE_POLICIES_URL + "/{policyId}";
     public static final String ASSIGN_POLICY_URL = "/file/filesystems/{fs_id}/assign-file-policy/{policy_id}";
     public static final String UNASSIGN_POLICY_URL = "/file/filesystems/{fs_id}/unassign-file-policy/{policy_id}";
     public static final String FILE_POLICIES_BY_FILESYSTEM_URL = FILESYSTEM_URL + "/{fileSystemId}/file-policies";
@@ -202,4 +204,10 @@ public class PathConstants {
     public static final String APP_SUPPORT_SNAPSHOT_SET_URL = APP_SUPPORT_SNAPSHOT_URL + "/copy-sets";
     public static final String OBJECT_NAMESPACE_URL = "/vdc/object-namespaces";
     public static final String STORAGE_SYSTEM_TYPE_URL = "/vdc/storage-system-types";
+
+    public static final String STORAGE_DRIVER_LIST_URL = "/storagedriver";
+    public static final String STORAGE_DRIVER_GET_URL = "/storagedriver/{driverName}";
+    public static final String STORAGE_DRIVER_INSTALL_URL = "/storagedriver";
+    public static final String STORAGE_DRIVER_UNINSTALL_URL = "/storagedriver/{driverName}";
+    public static final String STORAGE_DRIVER_UPGRADE_URL = "/storagedriver/{driverName}";
 }

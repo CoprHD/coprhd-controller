@@ -1531,7 +1531,7 @@ public class VolumeIngestionUtil {
             eligibleMask.getUnmanagedVolumeUris().remove(unManagedVolume.getId().toString());
         }
 
-        updateExportGroup(exportGroup, volume, dbClient, allInitiators, hosts, cluster);
+        updateExportGroup(exportGroup, volume, wwnToHluMap, dbClient, allInitiators, hosts, cluster);
 
         return exportMask;
     }
@@ -1782,14 +1782,14 @@ public class VolumeIngestionUtil {
      *
      * @param exportGroup the ExportGroup to update
      * @param volume a BlockObject for the ExportGroup
+     * @param wwnToHluMap the wwn to hlu map
      * @param dbClient a reference to the database client
      * @param allInitiators a List of all initiators for the ExportGroup
      * @param hosts a List of Hosts for the ExportGroup
      * @param cluster a Cluster for the ExportGroup
      */
-    public static <T extends BlockObject> void updateExportGroup(ExportGroup exportGroup, T volume, DbClient dbClient,
-            List<Initiator> allInitiators,
-            List<Host> hosts, Cluster cluster) {
+    public static <T extends BlockObject> void updateExportGroup(ExportGroup exportGroup, T volume, Map<String, Integer> wwnToHluMap,
+            DbClient dbClient, List<Initiator> allInitiators, List<Host> hosts, Cluster cluster) {
 
         for (Host host : hosts) {
             if (null == exportGroup.getHosts() || !exportGroup.getHosts().contains(host.getId().toString())) {
@@ -1816,7 +1816,11 @@ public class VolumeIngestionUtil {
         // Do not add the block object to the export group if it is partially ingested
         if (!volume.checkInternalFlags(Flag.PARTIALLY_INGESTED)) {
             _logger.info("adding volume {} to export group {}", volume.forDisplay(), exportGroup.forDisplay());
-            exportGroup.addVolume(volume.getId(), ExportGroup.LUN_UNASSIGNED);
+            Integer hlu = ExportGroup.LUN_UNASSIGNED;
+            if (wwnToHluMap.containsKey(volume.getWWN())) {
+                hlu = wwnToHluMap.get(volume.getWWN());
+            }
+            exportGroup.addVolume(volume.getId(), hlu);
         } else {
             _logger.info("volume {} is partially ingested, so not adding to export group {}",
                     volume.forDisplay(), exportGroup.forDisplay());
@@ -3374,8 +3378,8 @@ public class VolumeIngestionUtil {
      */
     public static Integer findHlu(UnManagedVolume unManagedVolume, String exportMaskName) {
 
-        // TODO currently only the VPLEX discovery process is creating
-        // this HLU_TO_EXPORT_LABEL_MAP --- this should also be added to other
+        // TODO currently only VPLEX, VMAX, XtremIO and Unity unmanaged discovery processes
+        // are creating this HLU_TO_EXPORT_LABEL_MAP --- this should also be added to other
         // unmanaged volume discovery services if the HLU is found to be required.
         // By default, if no mapping is found, a LUN_UNASSIGNED (-1) will be returned.
 
@@ -3398,7 +3402,7 @@ public class VolumeIngestionUtil {
                             if (null != hluStr && !hluStr.isEmpty()) {
                                 try {
                                     hlu = Integer.valueOf(hluStr);
-                                    _logger.info("found hlu {} for {} in export mask "
+                                    _logger.info("found HLU {} for {} in export mask "
                                             + exportMaskName, hlu,
                                             unManagedVolume.getLabel());
                                 } catch (NumberFormatException ex) {

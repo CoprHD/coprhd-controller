@@ -352,7 +352,7 @@ public class XtremIOSnapshotOperations extends XtremIOOperations implements Snap
             String newSnapsetName = null;
             // Now get the new snapshot set name by querying back the snapshot
             XtremIOVolume xioSnap = client.getSnapShotDetails(snapshotObj.getDeviceLabel(), clusterName);
-            if (xioSnap.getSnapSetList() != null && !xioSnap.getSnapSetList().isEmpty()) {
+            if (xioSnap != null && xioSnap.getSnapSetList() != null && !xioSnap.getSnapSetList().isEmpty()) {
                 List<Object> snapsetDetails = xioSnap.getSnapSetList().get(0);
                 // The REST response for the snapsetList will contain 3 elements.
                 // Example - {"00a07269b55e42fa91c1aabadb6ea85c","SnapshotSet.1458111462198",27}

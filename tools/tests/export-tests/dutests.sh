@@ -864,6 +864,9 @@ prerun_setup() {
 	exportRemoveInitiatorsDeviceStep=ExportWorkflowEntryPoints.exportRemoveInitiators
 	exportDeleteDeviceStep=VPlexDeviceController.deleteStorageView
     fi
+    
+    set_validation_check true
+    rm /tmp/verify*
 }
 
 # get the device ID of a created volume
@@ -1436,7 +1439,11 @@ setup() {
     fi
 
     if [ "${SIM}" != "1" ]; then
-	run networksystem create $BROCADE_NETWORK brocade --smisip $BROCADE_IP --smisport 5988 --smisuser $BROCADE_USER --smispw $BROCADE_PW --smisssl false
+        isNetworkDiscovered=$(networksystem list | grep $BROCADE_NETWORK | wc -l)
+        if [ $isNetworkDiscovered -eq 0 ]; then
+            secho "Discovering Brocade SAN Switch ..."
+            run networksystem create $BROCADE_NETWORK brocade --smisip $BROCADE_IP --smisport 5988 --smisuser $BROCADE_USER --smispw $BROCADE_PW --smisssl false
+        fi
     fi
 
     ${SS}_setup
@@ -1768,8 +1775,8 @@ test_4() {
         verify_export ${expname}1 ${HOST1} 3 2
 
         # Run the export group command.  Expect it to fail with validation
-	fail export_group delete $PROJECT/${expname}1
-
+	    fail export_group delete $PROJECT/${expname}1
+        
         # Run the export group command.  Expect it to fail with validation
         fail export_group update $PROJECT/${expname}1 --remVols "${PROJECT}/${VOLNAME}-2"
 
@@ -1792,9 +1799,9 @@ test_4() {
     resultcmd=`export_group delete $PROJECT/${expname}1`
 
     if [ $? -ne 0 ]; then
-	echo "export group command failed outright"
-	cleanup
-	finish 4
+        echo "export group command failed outright"
+        cleanup
+        finish 4
     fi
 
     # Show the result of the export group command for now (show the task and WF IDs)
@@ -1839,9 +1846,9 @@ test_4() {
     resultcmd=`export_group delete $PROJECT/${expname}1`
 
     if [ $? -ne 0 ]; then
-	echo "export group command failed outright"
-	cleanup
-	finish 4
+        echo "export group command failed outright"
+        cleanup
+        finish 4
     fi
 
     # Show the result of the export group command for now (show the task and WF IDs)
@@ -1879,15 +1886,13 @@ test_4() {
 
         # Turn off suspend of export after orchestration
         set_suspend_on_class_method "none"
-
-        # Delete the export group
+        
         runcmd export_group delete $PROJECT/${expname}1
-
     else
-	# For XIO, extra initiator of different host but same cluster results in delete initiator call
-	sleep 60
-	verify_export ${expname}1 ${HOST1} 1 2
-	# Now remove the volumes from the storage group (masking view)
+        # For XIO, extra initiator of different host but same cluster results in delete initiator call
+        sleep 60
+        verify_export ${expname}1 ${HOST1} 1 2
+        # Now remove the volumes from the storage group (masking view)
         device_id=`get_device_id ${PROJECT}/${VOLNAME}-1`
         arrayhelper remove_volume_from_mask ${SERIAL_NUMBER} ${device_id} ${HOST1}
         device_id=`get_device_id ${PROJECT}/${VOLNAME}-2`
@@ -2605,7 +2610,7 @@ test_12() {
 
 # DU Prevention Validation Test 13
 #
-# Summary: add volume to mask fails after volume added, rollback doesn't remove it because there's another initiator in the mask
+# Summary: add volume to mask fails after volume added, rollback can remove volume it added, even if extra initiator is in mask
 #
 # Basic Use Case for single host, single volume
 # 1. ViPR creates 1 volume, 1 host export.
@@ -2616,10 +2621,10 @@ test_12() {
 # 6. export group update will suspend.
 # 7. Add initiator to the mask.
 # 8. Resume export group update task.  It should fail and rollback
-# 9. Rollback should leave the volume in the mask because there was another initiator we aren't managing in the mask.
+# 9. Rollback should be allowed to remove the volume it added, regardless of the extra initiator.
 #
 test_13() {
-    echot "Test 13: Test rollback of add volume, verify it does not remove volumes when initiator sneaks into mask"
+    echot "Test 13: Test rollback of add volume, verify it can remove its own volumes on rollback when initiator sneaks into mask"
     expname=${EXPORT_GROUP_NAME}t13
 
     # Make sure we start clean; no masking view on the array
@@ -2669,14 +2674,14 @@ test_13() {
     echo "*** Following the export_group update task to verify it FAILS due to the invoked failure"
     fail task follow $task
 
-    # Verify the mask still has the new volume in it (this will fail if rollback removed it)
-    verify_export ${expname}1 ${HOST1} 3 2
+    # Verify rollback was able to remove the volume it added
+    verify_export ${expname}1 ${HOST1} 3 1
 
     # Remove initiator from the mask (done differently per array type)
     arrayhelper remove_initiator_from_mask ${SERIAL_NUMBER} ${PWWN} ${HOST1}
 
     # Verify the initiator was removed
-    verify_export ${expname}1 ${HOST1} 2 2
+    verify_export ${expname}1 ${HOST1} 2 1
 
     # Delete the export group
     runcmd export_group delete $PROJECT/${expname}1
@@ -2688,7 +2693,7 @@ test_13() {
 
 # DU Prevention Validation Test 14
 #
-# Summary: add initiator to mask fails after initiator added, rollback doesn't remove it because there's another volume in the mask
+# Summary: add initiator to mask fails after initiator added, rollback allowed to remove it even though another volume in the mask
 #
 # Basic Use Case for single host, single volume
 # 1. ViPR creates 1 volume, 1 host export.
@@ -2699,7 +2704,7 @@ test_13() {
 # 6. export group update will suspend.
 # 7. Add external volume to the mask.
 # 8. Resume export group update task.  It should fail and rollback
-# 9. Rollback should leave the initiator in the mask because there was another volume we aren't managing in the mask.
+# 9. Rollback should remove the initiator in the mask that it added even if there's an existing volume in the mask.
 #
 test_14() {
     echot "Test 14: Test rollback of add initiator, verify it does not remove initiators when volume sneaks into mask"
@@ -2763,7 +2768,7 @@ test_14() {
     runcmd workflow resume $workflow
 
     # Follow the task.  It should fail because of Poka Yoke validation
-    echo "*** Following the export_group delete task to verify it FAILS because of the additional volume"
+    echo "*** Following the export_group update task to verify it FAILS because of the additional volume"
     fail task follow $task
 
     # Verify that ViPR rollback removed only the initiator that was previously added
@@ -3753,6 +3758,9 @@ test_25() {
     verify_export ${expname}1 ${HOST1} gone
     verify_no_zones ${FC_ZONE_A:7} ${HOST1}
 }
+
+# pull in the vplextests.sh so it can use the dutests framework
+source vplextests.sh
 
 cleanup() {
     if [ "${docleanup}" = "1" ]; then

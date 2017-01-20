@@ -372,4 +372,25 @@ public interface InternalServerErrorExceptions {
 
     @DeclareServiceCode(ServiceCode.UNFORSEEN_ERROR)
     public InternalServerErrorException unexpectedHostOperationError(String cause);
+
+    @DeclareServiceCode(ServiceCode.SYS_INSTALL_DRIVER_UPLOAD_FAILED)
+    public InternalServerErrorException installDriverUploadFailed(String errMsg);
+
+    @DeclareServiceCode(ServiceCode.SYS_INSTALL_DRIVER_PRECHECK_FAILED)
+    public InternalServerErrorException installDriverPrecheckFailed(String errMsg);
+
+    @DeclareServiceCode(ServiceCode.SYS_INSTALL_DRIVER_FAILED)
+    public InternalServerErrorException installDriverFailed(String errMsg);
+
+    @DeclareServiceCode(ServiceCode.SYS_UNINSTALL_DRIVER_PRECHECK_FAILED)
+    public InternalServerErrorException uninstallDriverPrecheckFailed(String errMsg);
+
+    @DeclareServiceCode(ServiceCode.SYS_UPGRADE_DRIVER_PRECHECK_FAILED)
+    public InternalServerErrorException upgradeDriverPrecheckFailed(String errMsg);
+
+    @DeclareServiceCode(ServiceCode.SYS_UNINSTALL_DRIVER_FAILED)
+    public InternalServerErrorException uninstallDriverFailed(String errMsg);
+
+    @DeclareServiceCode(ServiceCode.SYS_UPGRADE_DRIVER_FAILED)
+    public InternalServerErrorException upgradeDriverFailed(String errMsg);
 }

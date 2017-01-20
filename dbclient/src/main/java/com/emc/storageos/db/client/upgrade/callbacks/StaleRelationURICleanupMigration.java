@@ -4,6 +4,7 @@
  */
 package com.emc.storageos.db.client.upgrade.callbacks;
 
+import java.lang.reflect.InvocationTargetException;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -19,7 +20,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.impl.ColumnField;
-import com.emc.storageos.db.client.impl.CompositeColumnName;
 import com.emc.storageos.db.client.impl.DataObjectType;
 import com.emc.storageos.db.client.impl.DbClientImpl;
 import com.emc.storageos.db.client.impl.TypeMap;
@@ -31,23 +31,31 @@ import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.Snapshot;
 import com.emc.storageos.db.client.model.StoragePort;
+import com.emc.storageos.db.client.model.StringMap;
+import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.upgrade.BaseCustomMigrationCallback;
 import com.emc.storageos.svcs.errorhandling.resources.MigrationCallbackException;
 import com.netflix.astyanax.connectionpool.OperationResult;
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 import com.netflix.astyanax.model.ColumnFamily;
+import com.netflix.astyanax.model.ColumnList;
 import com.netflix.astyanax.model.CqlResult;
 import com.netflix.astyanax.model.Row;
 import com.netflix.astyanax.serializers.StringSerializer;
 
 /**
- * 
+ * This migration handler is for COP-27666
+ * Invalid relationships: Object A points to object B, but B is not existed or inactive.
+ * This migration handler will clean up such invalid relationships.For now, focus on 
+ * ExportMask/ExportGroup since most known customers issues are related to those 2 objects
  */
 public class StaleRelationURICleanupMigration extends BaseCustomMigrationCallback{
-    
     private static final Logger log = LoggerFactory.getLogger(StaleRelationURICleanupMigration.class);
+    private static final String CQL_QUERY_ACTIVE_URI = "select * from \"%s\" where key in (%s) and column1='inactive'";
     private Map<Class<? extends DataObject>, List<RelationField>> relationFields = new HashMap<>();
+    private int totalStaleURICount = 0;
+    private int totalModifiedObject = 0;
     
     @Override
     public void process() throws MigrationCallbackException {
@@ -57,14 +65,15 @@ public class StaleRelationURICleanupMigration extends BaseCustomMigrationCallbac
         for (Entry<Class<? extends DataObject>, List<RelationField>> entry : relationFields.entrySet()) {
             DataObjectType doType = TypeMap.getDoType(entry.getKey());
             
+            //for each class, query out all objects iteratively
             List<URI> uriList = dbClient.queryByType(entry.getKey(), true);
             Iterator<DataObject> resultIterator = (Iterator<DataObject>) dbClient.queryIterativeObjects(entry.getKey(), uriList, true);
+            
             while (resultIterator.hasNext()) {
                 DataObject dataObject = resultIterator.next();
                 boolean isChanged = false;
                 for (RelationField relationField : entry.getValue()) {
                     try {
-                        // get all URI data
                         ColumnField columnField = doType.getColumnField(relationField.getFieldName());
                         Object fieldValue = columnField.getFieldValue(columnField, dataObject);
                         
@@ -73,17 +82,11 @@ public class StaleRelationURICleanupMigration extends BaseCustomMigrationCallbac
                         List<String> invalidRelationURIList = ListUtils.subtract(relationURIList, validRelationURIList);
                         
                         if (!invalidRelationURIList.isEmpty()) {
-                            System.out.println("Stale URI found: " + entry.getKey() + " : " + dataObject.getId() + " : " + relationField);
-                            System.out.println(StringUtils.join(invalidRelationURIList, ","));
+                            totalStaleURICount += invalidRelationURIList.size();
+                            log.info("Stale/invalid URI found for class: {}, key: {}, field: {}", entry.getKey(), dataObject.getId(), relationField);
+                            log.info(StringUtils.join(invalidRelationURIList, ","));
                             isChanged = true;
-                            if (fieldValue instanceof Set) {
-                                ((Set)fieldValue).removeAll(invalidRelationURIList);
-                            } else if (fieldValue instanceof Map) {
-                                for (String invalidURI : invalidRelationURIList) {
-                                    ((Map)fieldValue).remove(invalidURI);
-                                }
-                            }
-                            columnField.getPropertyDescriptor().getWriteMethod().invoke(dataObject, fieldValue);
+                            saveNewURIListToObject(dataObject, columnField, fieldValue, invalidRelationURIList);
                         }
                     } catch (Exception e) {
                         log.error("Failed to run migration handler for class{}, {}", entry.getKey(), relationField, e);
@@ -91,10 +94,28 @@ public class StaleRelationURICleanupMigration extends BaseCustomMigrationCallbac
                 }
                 
                 if (isChanged) {
-                    //dbClient.updateObject(dataObject);
+                    totalModifiedObject++;
+                    dbClient.updateObject(dataObject);
                 }
             }
         }
+        
+        log.info("Totally found {} stale/invalid URI keys", totalStaleURICount);
+        log.info("Totally {} data objects have been modifed to remove stale/invalid URI", totalModifiedObject);
+    }
+
+    private void saveNewURIListToObject(DataObject dataObject, ColumnField columnField, Object fieldValue,
+            List<String> invalidRelationURIList) throws IllegalAccessException, InvocationTargetException {
+        
+        for (String invalidURI : invalidRelationURIList) {
+            if (fieldValue instanceof StringSet) {
+                ((StringSet)fieldValue).remove(invalidURI);
+            } else if (fieldValue instanceof StringMap) {
+                ((StringMap)fieldValue).remove(invalidURI);
+            }
+        }
+        
+        //columnField.getPropertyDescriptor().getWriteMethod().invoke(dataObject, fieldValue);
     }
 
     private List<String> queryValidRelationURIList(DbClientImpl dbClient, RelationField relationField, List<String> relationURIList) throws ConnectionException {
@@ -118,13 +139,15 @@ public class StaleRelationURICleanupMigration extends BaseCustomMigrationCallbac
         
         queryResult = dbClient.getLocalContext()
                 .getKeyspace().prepareQuery(targetCF)
-                .withCql(String.format("select * from \"%s\" where key in (%s) and column1='inactive'", targetCF.getName(), keyString))
+                .withCql(String.format(CQL_QUERY_ACTIVE_URI, targetCF.getName(), keyString))
                 .execute();
         
+        //only inactive=true and existing key will be added as valid URI 
         for (Row<String, String> row : queryResult.getResult().getRows()) {
-            validRelationURIList.add(row.getColumns().getColumnByIndex(0).getStringValue());
-            boolean inactive = row.getColumns().getColumnByIndex(0).getBooleanValue();
-            System.out.println(inactive);
+            ColumnList<String> columns = row.getColumns();
+            if (!columns.getBooleanValue("value", false)) {
+                validRelationURIList.add(row.getColumns().getColumnByIndex(0).getStringValue());
+            }
         }
         
         return validRelationURIList;

@@ -2144,13 +2144,14 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         List<VolumeRestRep> volumes = client.blockVolumes().findByProject(project, new SourceTargetVolumesFilter() {
             @Override
             public boolean accept(VolumeRestRep volume) {
-                if (volume.getProtection() == null) return false;
+                if (volume.getProtection() == null) {
+                    return false;
+                }
                 MirrorRestRep mirrors = volume.getProtection().getMirrorRep();
                 if (mirrors == null || mirrors.getMirrors() == null || mirrors.getMirrors().isEmpty()) {
                     return false;
-                } else {
-                    return true;
                 }
+                return true;
             }
         });
         return createVolumeOptions(client, volumes);

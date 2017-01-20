@@ -176,35 +176,30 @@ public class HostToComputeElementMatcher {
         _log.debug("Filtering out hosts with duplicate UUIDs");
         HashMap<String,List<Host>> uuidHostMap = new HashMap<>(); // key=uuid, value=list of hosts with that uuid
         for (Host host : eligibleHosts) {
-            if(!uuidHostMap.containsKey(host.getUuidOldFormat())) { // account for new UUID formatting
-                uuidHostMap.put(host.getUuidOldFormat(),new ArrayList<Host>(Arrays.asList(host)));
+            if(!uuidHostMap.containsKey(host.getUuid())) {
+                uuidHostMap.put(host.getUuid(),new ArrayList<Host>(Arrays.asList(host)));
             } else { // host has same uuid as another host already seen
-                List<Host> hostsForUuid = uuidHostMap.get(host.getUuidOldFormat());
+                List<Host> hostsForUuid = uuidHostMap.get(host.getUuid());
                 hostsForUuid.add(host); // add host to list for this uuid
-                uuidHostMap.put(host.getUuidOldFormat(),hostsForUuid); // put back in map
+                uuidHostMap.put(host.getUuid(),hostsForUuid); // put back in map
             }
         }
-        for( String uuidOldFormat : uuidHostMap.keySet()) {
-            if(uuidHostMap.get(uuidOldFormat).size() > 1) { // if >1 host for this uuid
+        for( String uuid : uuidHostMap.keySet()) {
+            if(uuidHostMap.get(uuid).size() > 1) { // if >1 host for this uuid
                 String errMsg = "";
                 Collection<Host> hostsToUpdate = new ArrayList<>();
-                for(Host host : uuidHostMap.get(uuidOldFormat)) {
-                    String uuidFormatNote = "";
-                    if(host.hasMixedEndianUuid()) {
-                        uuidFormatNote = "(Host has newer, mixed-endian format, therefore matches older format uuid on blade.)  ";
-                    }
+                for(Host host : uuidHostMap.get(uuid)) {
                     errMsg += "Host UUID conflict.  Host '" +
                             host.getLabel() + "'(" +
                             host.getId() + ")[" +
-                            uuidOldFormat + "](old UUID format) has same UUID as other Host(s). " +
-                            uuidFormatNote;
+                            uuid + "] has same UUID as other Host(s). ";
                     if( !NullColumnValueGetter.isNullURI(host.getComputeElement()) ) {
                         _log.error("Host UUID conflict.  Host has same UUID as other hosts.  " +
                                 "Removing blade association for host '" +
                                 host.getLabel() + "'(" +
                                 host.getId() + ")[" +
                                 host.getUuid() + "] to ComputeElement (" +
-                                host.getComputeElement() + "). " + uuidFormatNote);
+                                host.getComputeElement() + "). ");
                         host.setComputeElement(NullColumnValueGetter.getNullURI());
                         hostsToUpdate.add(host);
                     }
@@ -346,7 +341,7 @@ public class HostToComputeElementMatcher {
                 NullColumnValueGetter.isNullValue(computeElement.getUuid()) ) {
             return false;
         }
-        if(host.getUuidOldFormat().equals(computeElement.getUuid())) {
+        if(host.getUuid().equals(computeElement.getUuid())) {
             return true;
         }
         return false;

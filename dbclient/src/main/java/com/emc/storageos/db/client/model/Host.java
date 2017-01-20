@@ -52,41 +52,64 @@ public class Host extends AbstractComputeSystem {
     private String bios;
     public static String ALTER_ID_FIELD = "hostName";
 
-    private Map<String,Double> biosToSmBiosMap = new HashMap<>();
+    /**
+     * Older hosts report UUID in Big-Endian or "network-byte-order" (Most Significant Byte first)
+     *     e.g.: {00112233-4455-6677-8899-AABBCCDDEEFF}
+     * Newer Hosts' BIOSs supporting SMBIOS 2.6 or later report UUID in Little-Endian or "wire-format", where
+     *   first 3 parts are in byte revered order (aka: 'mixed-endian')
+     *     e.g.: {33221100-5544-7766-8899-AABBCCDDEEFF}
+     **/
+    public static String getUuidOldFormat(String uuid, String bios) {
 
-    public Host() {
-        //TODO: get real data mapping supported SMBIOS version to UCS blade BIOS
+        if(uuid == null || bios == null) {
+            return null;
+        }
+
+        //TODO: decide based on matrix when available from Cisco
+        /**
+        final Map<String,Double> biosToSmBiosMap = new HashMap<>();
         biosToSmBiosMap.put("BIOS1-V2.2",2.2);
         biosToSmBiosMap.put("BIOS2-V2.4",2.4);
         biosToSmBiosMap.put("BIOS3-V2.5",2.5);
         biosToSmBiosMap.put("B200M4.2.2.4a.0.041620151912",2.6);
-    }
+        **/
 
-    public boolean hasMixedEndianUuid() {
-        // TODO   improve test when data available
-
-        if(bios == null || bios.isEmpty()) {
-            return true;  // default to newer format
-        }
-
-        final String biosVersionPattern = "^B\\d+M(\\d)";
-        Pattern r = Pattern.compile(biosVersionPattern);
-        String biosModel = "4";  // default to newer blade model
+        // use blade model number to determine UUID format (TEMPORARY!!)
         try {
+            final String biosVersionPattern = "^B\\d+M(\\d)";
+            Pattern r = Pattern.compile(biosVersionPattern);
+            String biosModel = null;
             Matcher m = r.matcher(bios);
             if(m.find()) {
                 biosModel = m.group(1);
-            } 
-        } catch (IllegalStateException ise){
-            return true; // default is to assume newer blade when BIOS version is unknown
+            }
+            if(Integer.parseInt(biosModel) < 3 ) {
+                return uuid; // do not reverse bytes for older blades
+            }
+        } catch (NumberFormatException|IllegalStateException e) {
+            return null;  // cannot determine desired format
         }
-        int biosModelInt = 4; // default to newer model
-        try {
-            biosModelInt = Integer.parseInt(biosModel);
-        } catch (NumberFormatException nfe) {
-            return true; // default is to assume newer blade when BIOS version is unknown
+
+        // reverse bytes
+        UUID uuidObj = UUID.fromString(uuid);
+        ByteBuffer bb = ByteBuffer.wrap(new byte[16]);
+        bb.putLong(uuidObj.getMostSignificantBits());
+        bb.putLong(uuidObj.getLeastSignificantBits());
+        byte[] reorderedUuid = new byte[16];
+        reorderedUuid[0] = bb.get(3); // reverse bytes in 1st part
+        reorderedUuid[1] = bb.get(2);
+        reorderedUuid[2] = bb.get(1);
+        reorderedUuid[3] = bb.get(0);
+        reorderedUuid[4] = bb.get(5); // reverse bytes in 2nd part
+        reorderedUuid[5] = bb.get(4);
+        reorderedUuid[6] = bb.get(7); // reverse bytes in 3rd part
+        reorderedUuid[7] = bb.get(6);
+        for(int byteIndex = 8; byteIndex < 16; byteIndex++ ) {
+            reorderedUuid[byteIndex] = bb.get(byteIndex); // copy 4th & 5th parts unchanged
         }
-        return biosModelInt > 3;  // old models are not mixed endian  TODO: validate this test
+        bb = ByteBuffer.wrap(reorderedUuid);
+        UUID uuidNew = new UUID(bb.getLong(), bb.getLong());
+        return uuidNew.toString();
     }
 
     /**
@@ -425,38 +448,6 @@ public class Host extends AbstractComputeSystem {
         setChanged("bios");
     }
 
-    /**
-     * Older hosts report UUID in Big-Endian or "network-byte-order" (Most Significant Byte first)
-     *     e.g.: {00112233-4455-6677-8899-AABBCCDDEEFF}
-     * Newer Hosts' BIOSs supporting SMBIOS 2.6 or later report UUID in Little-Endian or "wire-format", where
-     *   first 3 parts are in byte revered order (aka: 'mixed-endian')
-     *     e.g.: {33221100-5544-7766-8899-AABBCCDDEEFF}
-     **/
-    public String getUuidOldFormat() {
-        if( !hasMixedEndianUuid() ) {  //TODO: update to detect all BIOS, not just ones in map?
-            return uuid;
-        } else {
-            UUID uuidObj = UUID.fromString(uuid);
-            ByteBuffer bb = ByteBuffer.wrap(new byte[16]);
-            bb.putLong(uuidObj.getMostSignificantBits());
-            bb.putLong(uuidObj.getLeastSignificantBits());
-            byte[] reorderedUuid = new byte[16];
-            reorderedUuid[0] = bb.get(3); // reverse bytes in 1st part
-            reorderedUuid[1] = bb.get(2);
-            reorderedUuid[2] = bb.get(1);
-            reorderedUuid[3] = bb.get(0);
-            reorderedUuid[4] = bb.get(5); // reverse bytes in 2nd part
-            reorderedUuid[5] = bb.get(4);
-            reorderedUuid[6] = bb.get(7); // reverse bytes in 3rd part
-            reorderedUuid[7] = bb.get(6);
-            for(int byteIndex = 8; byteIndex < 16; byteIndex++ ) {
-                reorderedUuid[byteIndex] = bb.get(byteIndex); // copy 4th & 5th parts unchanged
-            }
-            bb = ByteBuffer.wrap(reorderedUuid);
-            UUID uuidNew = new UUID(bb.getLong(), bb.getLong());
-            return uuidNew.toString();
-        }
-    }
 
     @Name("provisioningStatus")
     public String getProvisioningStatus() {

@@ -206,16 +206,18 @@ public class EsxHostDiscoveryAdapter extends AbstractHostDiscoveryAdapter {
                 }
                 targetHost.setOsVersion(hostSystem.getConfig().getProduct()
                         .getVersion());
-                if (null != uuid) {
-                    targetHost.setUuid(uuid);
-                    save(targetHost);
-                }
 
                 if (hw != null && hw.biosInfo != null
                         && StringUtils.isNotBlank(hw.biosInfo.biosVersion)) {
                     targetHost.setBios(hw.biosInfo.biosVersion);
                 }
                 
+                if (null != uuid) {
+                    // force old, non-mixed-endian format for uuid
+                    targetHost.setUuid(Host.getUuidOldFormat(uuid, targetHost.getBios()));
+                }
+                save(targetHost);
+
                 DiscoveryStatusUtils.markAsProcessing(getModelClient(),
                         targetHost);
                 try {

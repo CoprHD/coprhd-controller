@@ -372,9 +372,10 @@ public class VcenterDiscoveryAdapter extends EsxHostDiscoveryAdapter {
                         }
                     }
                 }
+                String bios = null;;
                 if (hw != null && hw.biosInfo != null
                         && StringUtils.isNotBlank(hw.biosInfo.biosVersion)) {
-                    targetHost.setBios(hw.biosInfo.biosVersion);
+                    bios = hw.biosInfo.biosVersion;
                 }
                 if (deletedHosts != null && deletedHosts.contains(target.getId())) {
                     deletedHosts.remove(target.getId());
@@ -383,7 +384,7 @@ public class VcenterDiscoveryAdapter extends EsxHostDiscoveryAdapter {
 
                 DiscoveryStatusUtils.markAsProcessing(getModelClient(), targetHost);
                 try {
-                    discoverHost(source, sourceHost, uuid, target, targetHost, newClusters, changes);
+                    discoverHost(source, sourceHost, uuid, bios, target, targetHost, newClusters, changes);
                     discoveredHosts.add(targetHost.getId());
                     DiscoveryStatusUtils.markAsSucceeded(getModelClient(), targetHost);
                 } catch (RuntimeException e) {
@@ -503,7 +504,7 @@ public class VcenterDiscoveryAdapter extends EsxHostDiscoveryAdapter {
             return targetCluster;
         }
 
-        private void discoverHost(Datacenter sourceDatacenter, HostSystem source, String uuid, VcenterDataCenter targetDatacenter,
+        private void discoverHost(Datacenter sourceDatacenter, HostSystem source, String uuid, String bios, VcenterDataCenter targetDatacenter,
                 Host target, List<Cluster> clusters, List<HostStateChange> changes) {
             URI oldDatacenterURI = target.getVcenterDataCenter();
             URI newDatacenterURI = targetDatacenter.getId();
@@ -543,8 +544,13 @@ public class VcenterDiscoveryAdapter extends EsxHostDiscoveryAdapter {
             }
             target.setHostName(target.getLabel());
             target.setOsVersion(source.getConfig().getProduct().getVersion());
+
+            if(bios != null) {
+                target.setBios(bios);
+            }
             if (uuid != null) {
-                target.setUuid(uuid);
+                // save old, non-mixed-endian format
+                target.setUuid(Host.getUuidOldFormat(uuid, bios));
             }
             save(target);
 

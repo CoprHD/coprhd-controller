@@ -217,6 +217,9 @@ public class RunAnsible  extends ViPRExecutionTask<OrchestrationTaskResult> {
     }
 
     private String getAnsibleConnAndOptions(final String key, final Map<String, Input> stepInput) {
+	if (stepInput == null) {
+		return null;
+	}
         if (params.get(key) != null) {
             return StringUtils.strip(params.get(key).toString(), "\"");
         }

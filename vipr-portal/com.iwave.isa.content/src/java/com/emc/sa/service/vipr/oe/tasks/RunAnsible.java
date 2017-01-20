@@ -221,9 +221,9 @@ public class RunAnsible  extends ViPRExecutionTask<OrchestrationTaskResult> {
             return StringUtils.strip(params.get(key).toString(), "\"");
         }
 
-        final OrchestrationWorkflowDocument.Input input = stepInput.get(key);
-        if (input != null && input.getDefaultValue() != null) {
-            return input.getDefaultValue();
+        final OrchestrationWorkflowDocument.Input ansibleInput = stepInput.get(key);
+        if (ansibleInput != null && ansibleInput.getDefaultValue() != null) {
+            return ansibleInput.getDefaultValue();
         }
 
         logger.error("Can't find the value for:{}", key);

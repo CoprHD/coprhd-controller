@@ -218,8 +218,8 @@ test_EXISITING_USERADDED_INITS() {
     # We need the storage view name to add the initiators to the storage view outside...
     STORAGEVIEWNAME=`get_masking_view_name ${EXISTINGINITEGTEST} ${EXISTINGINITTEST}`
     # Add initiators to the mask (done differently per array type)
-    runcmd arrayhelper $VPLEXADDINIT ${PWWN3} ${STORAGEVIEWNAME}
-    runcmd arrayhelper $VPLEXADDINIT ${PWWN4} ${STORAGEVIEWNAME}
+    runcmd vplexhelper.sh $VPLEXADDINIT ${PWWN3} ${STORAGEVIEWNAME}
+    runcmd vplexhelper.sh $VPLEXADDINIT ${PWWN4} ${STORAGEVIEWNAME}
     runcmd export_group update $PROJECT/$EXISTINGINITEGTEST --addVols "${PROJECT}/${VOLNAME}-2"
     verify_export $EXISTINGINITEGTEST ${EXISTINGINITTEST} 4 2
 

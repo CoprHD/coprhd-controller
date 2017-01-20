@@ -807,8 +807,8 @@ public class BlockProvider extends BaseAssetOptionsProvider {
             List<VolumeRestRep> volumes = getVolumesByIds(client, volIdSet);
             List<VolumeRestRep> filteredVols = new ArrayList<>();
             for (VolumeRestRep vol: volumes) {
-                if (vol.getHaVolumes() != null && !vol.getHaVolumes().isEmpty()
-                        && !client.blockSnapshots().getByVolume(vol.getId()).isEmpty() && !isInConsistencyGroup(vol)) {
+                log.info("===== {}, {}", vol.getHaVolumes().size(), isInConsistencyGroup(vol));
+                if (vol.getHaVolumes() != null && !vol.getHaVolumes().isEmpty() && !isInConsistencyGroup(vol)) {
                     filteredVols.add(vol);
                 }
             }

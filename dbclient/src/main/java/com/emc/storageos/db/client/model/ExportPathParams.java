@@ -177,7 +177,7 @@ public class ExportPathParams extends DiscoveredDataObject {
     }
 
     public void setStorageDevice(URI storageDevice) {
-        storageDevice = storageDevice;
+        this.storageDevice = storageDevice;
         setChanged("storageDevice");
     }
 

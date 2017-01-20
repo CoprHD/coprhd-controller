@@ -382,7 +382,7 @@ public class OrderManagerImpl implements OrderManager {
                 }
             }
         } else if (dataObject instanceof StoragePort) {
-            return ((StoragePort) dataObject).getPortName();
+            return ((StoragePort) dataObject).getPortNetworkId();
         }
         return dataObject.getLabel();
     }

@@ -801,7 +801,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
             Set<URI> volIdSet = new HashSet<>();
             List<BlockSnapshotRestRep> snapshots = findSnapshotsByProject(client, project);
             for (BlockSnapshotRestRep s : snapshots) {
-                s.getParent().getLink().getLinkName();
+                volIdSet.add(s.getParent().getId());
             }
             // Have to get volumes just as it needs vol's mount point which snapshot doesn't have.
             List<VolumeRestRep> volumes = getVolumesByIds(client, volIdSet);

@@ -15,14 +15,17 @@ import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.emc.storageos.computesystemcontroller.impl.adapter.EsxHostDiscoveryAdapter;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.NamedElementQueryResultList;
+import com.emc.storageos.db.client.constraint.PrefixConstraint;
 import com.emc.storageos.db.client.constraint.NamedElementQueryResultList.NamedElement;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.BlockObject;
@@ -30,6 +33,7 @@ import com.emc.storageos.db.client.model.Cluster;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.RegistrationStatus;
+import com.emc.storageos.db.client.model.Host.HostType;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.FileExport;
 import com.emc.storageos.db.client.model.FileShare;
@@ -56,20 +60,31 @@ import com.emc.storageos.volumecontroller.placement.PlacementException;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
+import com.iwave.ext.linux.util.VolumeWWNUtils;
+import com.iwave.ext.vmware.HostStorageAPI;
 import com.iwave.ext.vmware.VCenterAPI;
+import com.iwave.ext.vmware.VMwareUtils;
 import com.vmware.vim25.DatastoreSummary;
 import com.vmware.vim25.DatastoreSummaryMaintenanceModeState;
+import com.vmware.vim25.HostConfigInfo;
+import com.vmware.vim25.HostHardwareInfo;
+import com.vmware.vim25.HostScsiDisk;
 import com.vmware.vim25.HostService;
+import com.vmware.vim25.HostVirtualNic;
 import com.vmware.vim25.mo.Datacenter;
 import com.vmware.vim25.mo.Datastore;
+import com.vmware.vim25.mo.HostSystem;
 import com.vmware.vim25.mo.VirtualMachine;
 
 public class ComputeSystemHelper {
 
     private static final Logger _log = LoggerFactory.getLogger(ComputeSystemHelper.class);
+    
     private static final String VMFS_DATASTORE_PREFIX = "vipr:vmfsDatastore";
     //Regex pattern matches the tag like "vipr:vmfsDatastore=TestDatastore2"
     private static Pattern MACHINE_TAG_REGEX = Pattern.compile("([^W]*\\:[^W]*)=(.*)");
+
+    private static final String HOST_UUID_COLUMN_NAME = "uuid";
 
     /**
      * This function is to retrieve the children of a given class.
@@ -805,20 +820,9 @@ public class ComputeSystemHelper {
      */
     public static boolean updateDatastoreName(DbClient dbClient, Volume volumeObj, URI datastore, String oldDatastoreName,
             VCenterAPI vcenterAPI) {
-        Datastore changedDatastore = null;
-        String datastoreId = datastore.toString();
-        // get the datastore that is changed
-        for (Datacenter dc : vcenterAPI.listAllDatacenters()) {
-            for (Datastore ds : vcenterAPI.listDatastores(dc)){
-                String dsUri = ds.getInfo().getUrl();
-                if (dsUri != null && dsUri.equals(datastoreId)) {
-                    changedDatastore = ds;
-                    break;
-                }
-            } 
-        }
-        
-        if(changedDatastore == null){
+        Datastore changedDatastore = getDatastorefromIdentifier(datastore, vcenterAPI);
+
+        if (changedDatastore == null) {
             String message = "Changed datastore not found on vCenter";
             _log.error(message);
             return false;
@@ -831,10 +835,10 @@ public class ComputeSystemHelper {
             EventUtils.deleteResourceEvents(dbClient, volumeObj.getId());
             return false;
         }
-        
+
         ScopedLabel existingSl = getScopedLabel(volumeObj.getTag(), oldDatastoreName);
-        
-        if(existingSl == null){
+
+        if (existingSl == null) {
             String message = "Volume tag not found";
             _log.error(message);
             return false;
@@ -856,7 +860,7 @@ public class ComputeSystemHelper {
         dbClient.updateObject(volumeObj);
         return true;
     }
-    
+
     private static ScopedLabel getScopedLabel(ScopedLabelSet tagSet, String oldDatastoreName) {
         Iterator<ScopedLabel> tagIter = tagSet.iterator();
         while (tagIter.hasNext()) {
@@ -901,11 +905,148 @@ public class ComputeSystemHelper {
         }
 
         ScopedLabel existingSl = getScopedLabel(volumeObj.getTag(), deletedDatastoreName);
-        if(existingSl != null){
+        if (existingSl != null) {
             volumeObj.getTag().remove(existingSl);
             dbClient.updateObject(volumeObj);
         }
         return true;
+    }
+
+    /**
+     * Helper method to recheck the datastore to be created as raised by event and update the volume object
+     * 
+     * @param dbClient
+     * @param volumeObj
+     *            volume to be updated
+     * @param datastore
+     *            identifier of datastore created externally
+     * @param vcenterAPI
+     * @return true if the update is successful
+     */
+    public static boolean updateExternalCreatedDatastoreVolume(DbClient dbClient, Volume volumeObj, URI datastore,
+            VCenterAPI vcenterAPI) {
+        Datastore createdDatastore = getDatastorefromIdentifier(datastore, vcenterAPI);
+        if (createdDatastore == null) {
+            String message = "Externally created datastore not found on vCenter";
+            _log.error(message);
+            return false;
+        }
+        HostSystem candidateHostSystem = getHostSystemwithVolumeWwn(volumeObj, vcenterAPI, createdDatastore);
+        Host host = null;
+        if (candidateHostSystem != null) {
+            HostHardwareInfo hw = candidateHostSystem.getHardware();
+            if (hw != null && hw.systemInfo != null && StringUtils.isNotBlank(hw.systemInfo.uuid)) {
+                // try finding host by UUID
+                String uuid = hw.systemInfo.uuid;
+                host = EsxHostDiscoveryAdapter.findHostByUuid(uuid);
+            }
+            if (host == null) {
+                host = findExistingHost(dbClient, candidateHostSystem);
+            }
+        }
+        if (host == null) {
+            String message = "Host not found for externally created datastore on vCenter";
+            _log.error(message);
+            return false;
+        }
+        ScopedLabel newSl = new ScopedLabel();
+        String tenantUri = volumeObj.getTenant().getURI().toString();
+        newSl.setScope(tenantUri);
+        newSl.setLabel(getVMFSDatastoreTag(host.getId(), createdDatastore.getName()));
+        if (volumeObj.getTag() != null) {
+            volumeObj.getTag().add(newSl);
+        } else {
+            ScopedLabelSet tagSet = new ScopedLabelSet();
+            tagSet.add(newSl);
+            volumeObj.setTag(tagSet);
+        }
+        dbClient.updateObject(volumeObj);
+        return true;
+    }
+
+    private static Datastore getDatastorefromIdentifier(URI datastoreId, VCenterAPI vcenterAPI) {
+        String datastoreIdStr = datastoreId.toString();
+        // get the datastore that is changed
+        for (Datacenter dc : vcenterAPI.listAllDatacenters()) {
+            for (Datastore ds : vcenterAPI.listDatastores(dc)) {
+                String dsUri = ds.getInfo().getUrl();
+                if (dsUri != null && dsUri.equals(datastoreIdStr)) {
+                    return ds;
+                }
+            }
+        }
+        return null;
+    }
+
+    private static HostSystem getHostSystemwithVolumeWwn(Volume volumeObj, VCenterAPI vcenterAPI, Datastore createdDatastore) {
+        List<HostSystem> hosts = VMwareUtils.getHostsForDatastore(vcenterAPI, createdDatastore);
+        for (HostSystem host : hosts) {
+            HostStorageAPI storageApi = new HostStorageAPI(host);
+            List<HostScsiDisk> diskList = storageApi.listDisks(createdDatastore);
+            for (HostScsiDisk disk : diskList) {
+                String diskWwn = VMwareUtils.getDiskWwn(disk);
+                if (StringUtils.isNotBlank(diskWwn) && VolumeWWNUtils.wwnMatches(diskWwn, volumeObj.getWWN())) {
+                    return host;
+                }
+            }
+
+        }
+        return null;
+    }
+    
+    /**
+     * Finds the esx host from the hostSystem by uuid/label/hostname/ipAddress
+     * 
+     * @param dbClient
+     * @param hostSystem
+     * @return host
+     */
+    private static Host findExistingHost(DbClient dbClient, HostSystem hostSystem) {
+        //try finding host by label
+        List<Host> hosts = CustomQueryUtility.queryActiveResourcesByConstraint(dbClient, Host.class,
+                PrefixConstraint.Factory.getFullMatchConstraint(Host.class, "label", hostSystem.getName()));
+        for (Host host : hosts) {
+            if (isEsxHost(host)) {
+                return host;
+            }
+        }
+
+        //try finding host by name
+        List<Host> results = CustomQueryUtility.queryActiveResourcesByAltId(dbClient, Host.class, "hostName", hostSystem.getName());
+        for (Host host : results) {
+            if (isEsxHost(host)) {
+                return host;
+            }
+        }
+
+        //try finding host by ip address
+        List<String> ipAddresses = EsxHostDiscoveryAdapter.getHostIpAddresses(hostSystem);
+        for (String ipAddress : ipAddresses) {
+            hosts = CustomQueryUtility.queryActiveResourcesByConstraint(dbClient, Host.class,
+                    PrefixConstraint.Factory.getFullMatchConstraint(Host.class, "label", ipAddress));
+            for (Host host : hosts) {
+                if (isEsxHost(host)) {
+                    return host;
+                }
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Returns true if the host is of type Esx, Other, or No OS
+     * 
+     * @param host
+     *            host to check the type
+     * @return true if Esx, Other, or No OS, otherwise false
+     */
+    private static boolean isEsxHost(Host host) {
+        return StringUtils.equalsIgnoreCase(host.getType(),
+                HostType.Esx.toString());
+    }
+
+    private static String getVMFSDatastoreTag(URI hostId, String name) {
+        return VMFS_DATASTORE_PREFIX + "-" + hostId + "=" + name;
     }
 
 }

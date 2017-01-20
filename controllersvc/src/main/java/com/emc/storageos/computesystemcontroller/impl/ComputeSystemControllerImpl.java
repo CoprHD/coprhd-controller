@@ -2211,4 +2211,30 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
         }
     }
 
+    @Override
+    public void processExternalDatastoreCreate(URI volume, String taskId, URI newDatastoreUri, URI vcenterURI) throws ControllerException {
+        TaskCompleter completer = null;
+        try {
+            completer = new VolumeCompleter(volume, taskId);
+            Volume volumeObj = _dbClient.queryObject(Volume.class, volume);
+            Vcenter vcenter = _dbClient.queryObject(Vcenter.class, vcenterURI);
+            VCenterAPI vcenterAPI = VcenterDiscoveryAdapter.createVCenterAPI(vcenter);
+            boolean success = ComputeSystemHelper.updateExternalCreatedDatastoreVolume(_dbClient, volumeObj, newDatastoreUri, vcenterAPI);
+            if (success) {
+                completer.ready(_dbClient);
+            } else {
+                ServiceError serviceError = DeviceControllerException.errors.unforeseen();
+                completer.error(_dbClient, serviceError);
+            }
+
+        } catch (Exception ex) {
+            String message = "Processing of Datastore external creation event could not succeed because of exception:";
+            _log.error(message, ex);
+            ServiceError serviceError = DeviceControllerException.errors.jobFailed(ex);
+            if (completer != null) {
+                completer.error(_dbClient, serviceError);
+            }
+        }
+    }
+
 }

@@ -391,7 +391,7 @@ public class EsxHostDiscoveryAdapter extends AbstractHostDiscoveryAdapter {
      *            - uuid of host
      * @return
      */
-    protected Host findHostByUuid(String uuid) {
+    public static Host findHostByUuid(String uuid) {
         return getModelClient().hosts().findByUuid(uuid);
     }
 
@@ -475,7 +475,7 @@ public class EsxHostDiscoveryAdapter extends AbstractHostDiscoveryAdapter {
      *            {@link HostSystem} vi sdk MO
      * @return
      */
-    private List<String> getHostIpAddresses(HostSystem hostSystem) {
+    public static  List<String> getHostIpAddresses(HostSystem hostSystem) {
         List<String> ipAddresses = Lists.newArrayList();
         for (HostVirtualNic vnic : getNics(hostSystem)) {
             if (vnic.getSpec() != null && vnic.getSpec().getIp() != null) {
@@ -495,7 +495,7 @@ public class EsxHostDiscoveryAdapter extends AbstractHostDiscoveryAdapter {
      *            - {@link HostSystem} vi sdk MO
      * @return
      */
-    protected List<HostVirtualNic> getNics(HostSystem hostSystem) {
+    public static List<HostVirtualNic> getNics(HostSystem hostSystem) {
         List<HostVirtualNic> nics = Lists.newArrayList();
         HostConfigInfo config = hostSystem.getConfig();
         if ((config != null) && (config.getNetwork() != null)

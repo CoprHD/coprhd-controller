@@ -16,6 +16,7 @@
  */
 package com.emc.vipr.primitives;
 
+import java.net.URI;
 import java.util.List;
 
 import javax.lang.model.element.Modifier;
@@ -205,7 +206,6 @@ public final class ApiPrimitiveMaker {
 
                 body.append(separator + "\"" + name + "\": " + prefix);
                 if (field.isPrimitive()) {
-
                     body.append("$" + field.name);
                 } else {
                     body.append(makeBody(field.type));
@@ -238,12 +238,15 @@ public final class ApiPrimitiveMaker {
     }
 
     private static MethodSpec makeConstructor(final String name) {
+        final String id = URI.create(
+                String.format("urn:storageos:%1$s:%2$s:",
+                        ViPRPrimitive.class.getSimpleName(), name)).toString();
         return MethodSpec
                 .constructorBuilder()
                 .addModifiers(Modifier.PUBLIC)
-                .addCode(
-                        "super($L.class.getName(), FRIENDLY_NAME, DESCRIPTION, SUCCESS_CRITERIA, INPUT, OUTPUT);\n",
-                        name).build();
+                .addStatement(
+                        "super($T.create($S), $L.class.getName(), FRIENDLY_NAME, DESCRIPTION, SUCCESS_CRITERIA, INPUT, OUTPUT)",
+                        URI.class, id, name).build();
     }
 
     private static FieldSpec makeStringConstant(final String name,

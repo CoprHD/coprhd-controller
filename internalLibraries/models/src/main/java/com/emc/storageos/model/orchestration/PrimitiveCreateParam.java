@@ -16,41 +16,38 @@
  */
 package com.emc.storageos.model.orchestration;
 
-
-import com.emc.storageos.model.DataObjectRestRep;
-import com.emc.storageos.model.RestLinkRep;
+import java.net.URI;
 import java.util.List;
 import java.util.Map;
-import javax.xml.bind.annotation.XmlElement;
-import javax.xml.bind.annotation.XmlRootElement;
 
-@XmlRootElement(name = "primitive")
-public class PrimitiveRestRep extends DataObjectRestRep {
-    
-    private String type;
+import javax.xml.bind.annotation.XmlElement;
+
+public class PrimitiveCreateParam {
+
+    private String name;
     private String friendlyName;
     private String description;
-    private String successCriteria;
-    private List<InputParameterRestRep> input;
-    private List<OutputParameterRestRep> output;
-    private  Map<String, String> attributes;
-    private RestLinkRep resource;
-
-    @XmlElement(name = "type")
-    public String getType() {
-        return type;
-    }
-
-    public void setType(final String type) {
-        this.type = type;
-    }
+    private String type;
+    private List<String> input;
+    private List<String> output;
+    private Map<String,String> attributes;
+    private URI resource;
     
+    @XmlElement(name = "name")
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
     @XmlElement(name = "friendly_name")
     public String getFriendlyName() {
         return friendlyName;
     }
 
-    public void setFriendlyName(final String friendlyName) {
+    public void setFriendlyName(String friendlyName) {
         this.friendlyName = friendlyName;
     }
 
@@ -59,52 +56,53 @@ public class PrimitiveRestRep extends DataObjectRestRep {
         return description;
     }
 
-    public void setDescription(final String description) {
+    public void setDescription(String description) {
         this.description = description;
     }
 
-    @XmlElement(name = "success_criteria")
-    public String getSuccessCriteria() {
-        return successCriteria;
-    }
-
-    public void setSuccessCriteria(final String successCriteria) {
-        this.successCriteria = successCriteria;
-    }
-
-    @XmlElement(name = "attributes")
+    @XmlElement(name= "attributes") 
     public Map<String, String> getAttributes() {
         return attributes;
     }
-
-    public void setAttributes(final  Map<String, String> attributes) {
+    
+    public void setAttributes(final Map<String,String> attributes) {
         this.attributes = attributes;
     }
-
+    
     @XmlElement(name = "input")
-    public List<InputParameterRestRep> getInput() {
+    public List<String> getInput() {
         return input;
     }
 
-    public void setInput(final List<InputParameterRestRep> input) {
+    public void setInput(final List<String> input) {
         this.input = input;
     }
 
     @XmlElement(name = "output")
-    public List<OutputParameterRestRep> getOutput() {
+    public List<String> getOutput() {
         return output;
     }
 
-    public void setOutput(final List<OutputParameterRestRep> output) {
+    public void setOutput(final List<String> output) {
         this.output = output;
     }
-
-    @XmlElement(name = "resource")
-    public RestLinkRep getResource() {
+    
+    @XmlElement(name = "resource") 
+    public URI getResource() {
         return resource;
     }
-
-    public void setResource(RestLinkRep resource) {
+    
+    public void setResource(final URI resource) {
         this.resource = resource;
     }
+    
+    @XmlElement(name = "type") 
+    public String getType() {
+        return type;
+    }
+    
+    public void setType(final String type) {
+        this.type = type;
+    }
+    
 }

@@ -87,14 +87,17 @@ public class ExportPathAdjustmentService extends ViPRService {
             runExportPathsPreview();
         } else {
             try {
-                for (String affected : affectedPorts) {
-                    Map<URI, List<URI>> port = (Map<URI, List<URI>>) CatalogSerializationUtils.serializeFromString(affected);
-                    affectedPortsMap.putAll(port);
+                if (affectedPorts != null) {
+                    for (String affected : affectedPorts) {
+                        Map<URI, List<URI>> port = (Map<URI, List<URI>>) CatalogSerializationUtils.serializeFromString(affected);
+                        affectedPortsMap.putAll(port);
+                    }
                 }
-                
-                for (String removed : removedPorts) {
-                    Map<URI, List<URI>> port = (Map<URI, List<URI>>) CatalogSerializationUtils.serializeFromString(removed);
-                    removedPortsMap.putAll(port);
+                if (removedPorts != null) {
+                    for (String removed : removedPorts) {
+                        Map<URI, List<URI>> port = (Map<URI, List<URI>>) CatalogSerializationUtils.serializeFromString(removed);
+                        removedPortsMap.putAll(port);
+                   }
                 }
             } catch (Exception ex) {
                 ExecutionUtils.fail("failTask.AdjustExportPaths.deserialize", args(), ex.getMessage());

@@ -1629,7 +1629,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
 
                         if (targetACE != null &&
                                 (!targetACE.getPermissions().equals(sourceACE.getPermissions()) ||
-                                        !targetACE.getPermissionType().equals(sourceACE.getPermissionType()))) {
+                                !targetACE.getPermissionType().equals(sourceACE.getPermissionType()))) {
 
                             targetACE.setPermissions(sourceACE.getPermissions());
                             targetACE.setPermissionType(sourceACE.getPermissionType());
@@ -1926,17 +1926,27 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
                             }
                         } else {
                             s_logger.info("No vNAS servers for storage system URI: {}", storageSystemURI);
-                            String stepId = workflow.createStepId();
-                            String stepDes = String
-                                    .format("Assigning file policy: %s, to vpool: %s on storage system: %s", filePolicy.getId(),
-                                            vpoolURI,
-                                            storageSystemURI);
-                            Object[] args = new Object[] { storageSystemURI, null, filePolicyToAssign, vpoolURI };
-                            waitFor = _fileDeviceController.createMethod(workflow, waitFor,
-                                    ASSIGN_FILE_SNAPSHOT_POLICY_TO_PROJECT_METHOD,
-                                    stepId,
-                                    stepDes,
-                                    storageSystemURI, args);
+                            if (projectURIs != null && !projectURIs.isEmpty()) {
+
+                                for (Iterator<URI> projectIterator = projectURIs.iterator(); projectIterator.hasNext();) {
+                                    URI projectURI = projectIterator.next();
+
+                                    String stepId = workflow.createStepId();
+                                    String stepDes = String
+                                            .format("Assigning file policy: %s, to project: %s on storage system: %s",
+                                                    filePolicy.getId(),
+                                                    vpoolURI,
+                                                    storageSystemURI);
+                                    Object[] args = new Object[] { storageSystemURI, null, filePolicyToAssign, vpoolURI, projectURI };
+                                    waitFor = _fileDeviceController.createMethod(workflow, waitFor,
+                                            ASSIGN_FILE_SNAPSHOT_POLICY_TO_PROJECT_METHOD,
+                                            stepId,
+                                            stepDes,
+                                            storageSystemURI, args);
+
+                                }
+
+                            }
                         }
 
                     }

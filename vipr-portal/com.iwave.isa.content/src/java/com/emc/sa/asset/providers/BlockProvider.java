@@ -28,6 +28,8 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
+import com.emc.storageos.model.search.SearchResultResourceRep;
+import com.emc.vipr.client.core.impl.SearchConstants;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.ObjectUtils;
 import org.apache.commons.lang.StringUtils;
@@ -106,6 +108,8 @@ import com.google.common.collect.Sets;
 @Component
 @AssetNamespace("vipr")
 public class BlockProvider extends BaseAssetOptionsProvider {
+
+    public static final int DEFAULT_BULK_SIZE = 500;
     public static final String EXCLUSIVE_STORAGE = "exclusive";
     public static final String SHARED_STORAGE = "shared";
     public static final String RECOVERPOINT_BOOKMARK_SNAPSHOT_TYPE_VALUE = "rp";
@@ -790,18 +794,21 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     public List<AssetOption> getVplexSnapshotVolumes(AssetOptionsContext ctx, URI project, String volumeOrConsistencyType) {
         final ViPRCoreClient client = api(ctx);
         if (isVolumeType(volumeOrConsistencyType)) {
-            List<VolumeRestRep> volumes = client.blockVolumes().findByProject(project, new DefaultResourceFilter<VolumeRestRep>() {
-                @Override
-                public boolean accept(VolumeRestRep volume) {
-                    if (volume.getHaVolumes() != null && !volume.getHaVolumes().isEmpty()
-                            && !client.blockSnapshots().getByVolume(volume.getId()).isEmpty() && !isInConsistencyGroup(volume)) {
-                        return true;
-                    } else {
-                        return false;
-                    }
+            Set<URI> volIdSet = new HashSet<>();
+            List<BlockSnapshotRestRep> snapshots = findSnapshotsByProject(client, project);
+            for (BlockSnapshotRestRep s : snapshots) {
+                s.getParent().getLink().getLinkName();
+            }
+            // Have to get volumes just as it needs vol's mount point which snapshot doesn't have.
+            List<VolumeRestRep> volumes = getVolumesByIds(client, volIdSet);
+            List<VolumeRestRep> filteredVols = new ArrayList<>();
+            for (VolumeRestRep vol: volumes) {
+                if (vol.getHaVolumes() != null && !vol.getHaVolumes().isEmpty()
+                        && !client.blockSnapshots().getByVolume(vol.getId()).isEmpty() && !isInConsistencyGroup(vol)) {
+                    filteredVols.add(vol);
                 }
-            });
-            return createVolumeOptions(client, volumes);
+            }
+            return createVolumeOptions(client, filteredVols);
         } else {
             List<BlockConsistencyGroupRestRep> consistencyGroups = client.blockConsistencyGroups().findByProject(project,
                     new DefaultResourceFilter<BlockConsistencyGroupRestRep>() {
@@ -817,6 +824,49 @@ public class BlockProvider extends BaseAssetOptionsProvider {
                     });
             return createBaseResourceOptions(consistencyGroups);
         }
+    }
+
+    private List<VolumeRestRep> getVolumesByIds(ViPRCoreClient client, Set<URI> vols) {
+        List<URI> volIdList = new ArrayList<>();
+        volIdList.addAll(vols);
+
+        List<VolumeRestRep> volumes = new ArrayList<>();
+        List<URI> ids = new ArrayList<>();
+
+        for (int i = 0; i < volIdList.size(); i++) {
+            ids.add(volIdList.get(i));
+            if ( (i+1)%DEFAULT_BULK_SIZE == 0 || i+1 == volIdList.size() ) {
+                BulkIdParam bulk = new BulkIdParam(ids);
+                List<VolumeRestRep> volBatch = client.blockVolumes().getBulkResources(bulk);
+                volumes.addAll(volBatch);
+                ids.clear();
+            }
+        }
+
+        return volumes;
+    }
+
+    private List<BlockSnapshotRestRep> findSnapshotsByProject(ViPRCoreClient client, URI project) {
+        List<SearchResultResourceRep> snapshotRefs = client.blockSnapshots().performSearchBy(SearchConstants.PROJECT_PARAM, project);
+        List<BlockSnapshotRestRep> snapshots = new ArrayList<>();
+        List<URI> ids = new ArrayList<>();
+        for (SearchResultResourceRep ref: snapshotRefs) {
+            ids.add(ref.getId());
+        }
+
+        for (int i = 0; i < snapshotRefs.size(); i++) {
+            SearchResultResourceRep ref = snapshotRefs.get(i);
+            ids.add(ref.getId());
+
+            if ( (i+1)%DEFAULT_BULK_SIZE == 0 || i+1 == snapshotRefs.size() ) {
+                BulkIdParam bulk = new BulkIdParam(ids);
+                List<BlockSnapshotRestRep> snBatch = client.blockSnapshots().getBulkResources(bulk);
+                snapshots.addAll(snBatch);
+                ids.clear();
+            }
+        }
+
+        return snapshots;
     }
 
     @Asset("vplexBlockSnapshot")

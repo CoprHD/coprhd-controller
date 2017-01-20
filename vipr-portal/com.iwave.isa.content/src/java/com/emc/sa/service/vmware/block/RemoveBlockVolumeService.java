@@ -19,6 +19,7 @@ import com.emc.sa.engine.service.Service;
 import com.emc.sa.machinetags.KnownMachineTags;
 import com.emc.sa.service.vipr.block.BlockStorageUtils;
 import com.emc.sa.service.vmware.VMwareHostService;
+import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.model.block.BlockObjectRestRep;
 import com.emc.storageos.model.block.VolumeDeleteTypeEnum;
 import com.vmware.vim25.mo.Datastore;
@@ -41,6 +42,12 @@ public class RemoveBlockVolumeService extends VMwareHostService {
     public void precheck() throws Exception {
         super.precheck();
         volumes = BlockStorageUtils.getBlockResources(uris(volumeIds));
+        
+        // Checking if the volume is associated to any pending event.
+        for (BlockObjectRestRep volume : volumes) {
+            Volume volumeObj = BlockStorageUtils.getBlockVolumeById(volume.getId());
+            BlockStorageUtils.checkEvents(volumeObj);
+        }
     }
 
     @Override

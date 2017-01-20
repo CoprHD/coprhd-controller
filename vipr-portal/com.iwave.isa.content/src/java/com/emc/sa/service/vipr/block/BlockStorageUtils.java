@@ -104,6 +104,7 @@ import com.emc.sa.service.vipr.block.tasks.SwapCGContinuousCopies;
 import com.emc.sa.service.vipr.block.tasks.SwapContinuousCopies;
 import com.emc.sa.service.vipr.block.tasks.VerifyVolumeDependencies;
 import com.emc.sa.service.vipr.tasks.GetActionableEvents;
+import com.emc.sa.service.vipr.tasks.GetBlockVolumeById;
 import com.emc.sa.service.vipr.tasks.GetCluster;
 import com.emc.sa.service.vipr.tasks.GetHost;
 import com.emc.sa.service.vipr.tasks.GetStorageSystem;
@@ -119,6 +120,7 @@ import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.HostInterface.Protocol;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.StorageProvider;
+import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.Volume.ReplicationState;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.model.NamedRelatedResourceRep;
@@ -175,6 +177,13 @@ public class BlockStorageUtils {
             return null;
         }
         return execute(new GetHost(hostId));
+    }
+    
+    public static Volume getBlockVolumeById(URI volumeID) {
+        if (NullColumnValueGetter.isNullURI(volumeID)) {
+            return null;
+        }
+        return execute(new GetBlockVolumeById(volumeID));
     }
 
     public static void checkEvents(DataObject resource) {

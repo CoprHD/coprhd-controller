@@ -1440,13 +1440,14 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
         // currently zoned to ports. The method generateExportMaskAddInitiatorsWorkflow will
         // allocate additional ports for the newInitiators to be processed.
         // These will be zoned and then subsequently added to the MaskingView / ExportMask.
+        Set<URI> volumeURIs = new HashSet<URI>(StringSetUtil.stringSetToUriList(exportMask.getUserAddedVolumes().values()));
+        String stepId = generateExportMaskAddInitiatorsWorkflow(workflow, null, storageSystem,
+                exportGroup, exportMask, newInitiators, volumeURIs, token);
         Map<URI, List<URI>> zoneMasksToInitiatorsURIs = new HashMap<URI, List<URI>>();
         zoneMasksToInitiatorsURIs.put(exportMask.getId(), newInitiators);
-        String zoningStep = generateZoningAddInitiatorsWorkflow(workflow, null,
+        generateZoningAddInitiatorsWorkflow(workflow, stepId,
                 exportGroup, zoneMasksToInitiatorsURIs);
-        Set<URI> volumeURIs = new HashSet<URI>(StringSetUtil.stringSetToUriList(exportMask.getUserAddedVolumes().values()));
-        generateExportMaskAddInitiatorsWorkflow(workflow, zoningStep, storageSystem,
-                exportGroup, exportMask, newInitiators, volumeURIs, token);
+
     }
 
     public void exportGroupChangePolicyAndLimits(URI storageURI,

@@ -346,7 +346,7 @@ public class UcsComputeDevice implements ComputeDevice {
 
         try {
             // Test mechanism to invoke a failure. No-op on production systems.
-            InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_056);
+            InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_069);
             if (host != null && !NullColumnValueGetter.isNullURI(host.getComputeElement()) && host.getUuid() != null) {
                 ComputeElement ce = _dbClient.queryObject(ComputeElement.class, host.getComputeElement());
                 URI sptId = URI.create(ce.getSptId());
@@ -603,7 +603,7 @@ public class UcsComputeDevice implements ComputeDevice {
             if (spDn != null) {
                 LOGGER.info("Unbinding Service Profile : " + spDn + " from blade");
                 // Test mechanism to invoke a failure. No-op on production systems.
-                InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_054);
+                InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_067);
                 if (null == ucsmService.unbindServiceProfile(getUcsmURL(cs).toString(), cs.getUsername(),
                         cs.getPassword(), spDn)) {
                     throw new RuntimeException("Failed to unbind service profile.");
@@ -779,7 +779,7 @@ public class UcsComputeDevice implements ComputeDevice {
                     cs.getPassword(), sptDn, spRn);
             //TODO: Need to inject failure to verify rollback.
             // Test mechanism to invoke a failure. No-op on production systems.
-            InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_047);
+            InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_060);
             if (lsServer == null) {
                 throw new RuntimeException("UCS call to create service profile from template failed, null LsServer was returned.");
             }
@@ -788,7 +788,7 @@ public class UcsComputeDevice implements ComputeDevice {
                     lsServer.getDn(), LsServer.class);
             //TODO: Need to inject failure to verify rollback.
             // Test mechanism to invoke a failure. No-op on production systems.
-            InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_048);
+            InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_061);
             if (lsServer == null) {
                 throw new RuntimeException("UCS call to poll for ManagedObject failed, null LsServer was returned.");
             }
@@ -822,7 +822,7 @@ public class UcsComputeDevice implements ComputeDevice {
                     cs.getPassword(), spDn);
             //TODO: need to inject failure to test rollback.
             // Test mechanism to invoke a failure. No-op on production systems.
-            InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_049);
+            InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_062);
             if (null == lsServer) {
                 throw new RuntimeException("UCS invocation to set serviceProfile to No Boot failed, null LsServer was returned.");
             }
@@ -844,7 +844,7 @@ public class UcsComputeDevice implements ComputeDevice {
             if (spDn != null) {
                 LOGGER.info("Deleting Service Profile : " + spDn);
                 // Test mechanism to invoke a failure. No-op on production systems.
-                InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_053);
+                InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_066);
                 ucsmService.deleteServiceProfile(getUcsmURL(cs).toString(), cs.getUsername(), cs.getPassword(), spDn);
                 LOGGER.info("Done Deleting Service Profile : " + spDn);
             } else {
@@ -892,14 +892,14 @@ public class UcsComputeDevice implements ComputeDevice {
                     computeSystem.getUsername(), computeSystem.getPassword(), spDn, LsServer.class);
             //TODO: Need to inject failure to test rollback
             // Test mechanism to invoke a failure. No-op on production systems.
-            InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_050);
+            InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_063);
             if (serviceProfile == null || ASSOC_STATE_UNASSOCIATED.equals(serviceProfile.getAssocState())) {
                 LOGGER.info("SP {} AssocState is marked unassociated. Bind ServiceProfileToBlade failed", spDn);
                 throw new Exception(BIND_SERVICE_PROFILE_TO_BLADE_STEP + " failed.");
             }
             //TODO: Need to inject failure to test rollback
             // Test mechanism to invoke a failure. No-op on production systems.
-            InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_051);
+            InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_064);
             if (computeElement != null && serviceProfile != null) {
                 setComputeElementAttrFromBoundLsServer(_dbClient, computeElement, serviceProfile, host,
                         computeSystem.getSystemType(), false);
@@ -981,7 +981,7 @@ public class UcsComputeDevice implements ComputeDevice {
                 Network network = networkIdNetworkMapInVarray.get(computeElementHBA.getVsanId());
                 //TODO: Need to inject failure to test rollback
                 // Test mechanism to invoke a failure. No-op on production systems.
-                InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_052);
+                InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_065);
                 if (network == null) {
                     WorkflowStepCompleter.stepFailed(stepId, ComputeSystemControllerException.exceptions
                             .noCorrespondingNetworkForHBAInVarray(computeElementHBA.getPort(), varray.getId()

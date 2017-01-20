@@ -122,12 +122,16 @@ public class XtremIOProvUtils {
      * @param clusterName
      * @return XtremIO volume if found else null
      */
-    public static XtremIOVolume isVolumeAvailableInArray(XtremIOClient client, String label, String clusterName) {
+    public static XtremIOVolume isVolumeAvailableInArray(XtremIOClient client, String label, String clusterName) throws Exception {
         XtremIOVolume volume = null;
         try {
             volume = client.getVolumeDetails(label, clusterName);
         } catch (Exception e) {
-            _log.info("Volume {} already deleted.", label);
+            if (null != e.getMessage() && !e.getMessage().contains(XtremIOConstants.OBJECT_NOT_FOUND)) {
+                throw e;
+            } else {
+                _log.warn("Volume {} not found on cluster {}", label, clusterName);
+            }
         }
         return volume;
     }
@@ -141,12 +145,16 @@ public class XtremIOProvUtils {
      * @param clusterName
      * @return XtremIO snapshot if found else null
      */
-    public static XtremIOVolume isSnapAvailableInArray(XtremIOClient client, String label, String clusterName) {
+    public static XtremIOVolume isSnapAvailableInArray(XtremIOClient client, String label, String clusterName) throws Exception {
         XtremIOVolume volume = null;
         try {
             volume = client.getSnapShotDetails(label, clusterName);
         } catch (Exception e) {
-            _log.info("Snapshot {} not available in Array.", label);
+            if (null != e.getMessage() && !e.getMessage().contains(XtremIOConstants.OBJECT_NOT_FOUND)) {
+                throw e;
+            } else {
+                _log.info("Snapshot {} not available in Array.", label);
+            }
         }
         return volume;
     }
@@ -160,12 +168,16 @@ public class XtremIOProvUtils {
      * @param clusterName
      * @return XtremIO consistency group if found else null
      */
-    public static XtremIOConsistencyGroup isCGAvailableInArray(XtremIOClient client, String label, String clusterName) {
+    public static XtremIOConsistencyGroup isCGAvailableInArray(XtremIOClient client, String label, String clusterName) throws Exception {
         XtremIOConsistencyGroup cg = null;
         try {
             cg = client.getConsistencyGroupDetails(label, clusterName);
         } catch (Exception e) {
-            _log.info("Consistency group {} not available in Array.", label);
+            if (null != e.getMessage() && !e.getMessage().contains(XtremIOConstants.OBJECT_NOT_FOUND)) {
+                throw e;
+            } else {
+                _log.info("Consistency group {} not available in Array.", label);
+            }
         }
 
         return cg;
@@ -181,13 +193,18 @@ public class XtremIOProvUtils {
      * @param clusterName
      * @return XtrmIO tag if found else null
      */
-    public static XtremIOTag isTagAvailableInArray(XtremIOClient client, String tagName, String tagEntityType, String clusterName) {
+    public static XtremIOTag isTagAvailableInArray(XtremIOClient client, String tagName, String tagEntityType, String clusterName)
+            throws Exception {
         XtremIOTag tag = null;
 
         try {
             tag = client.getTagDetails(tagName, tagEntityType, clusterName);
         } catch (Exception e) {
+            if (null != e.getMessage() && !e.getMessage().contains(XtremIOConstants.OBJECT_NOT_FOUND)) {
+                throw e;
+            } else {
             _log.info("Tag {} not available in Array.", tagName);
+            }
         }
 
         return tag;
@@ -202,12 +219,17 @@ public class XtremIOProvUtils {
      * @param clusterName
      * @return XtremIO snapset if found else null
      */
-    public static XtremIOConsistencyGroup isSnapsetAvailableInArray(XtremIOClient client, String label, String clusterName) {
+    public static XtremIOConsistencyGroup isSnapsetAvailableInArray(XtremIOClient client, String label, String clusterName)
+            throws Exception {
         XtremIOConsistencyGroup cg = null;
         try {
             cg = client.getSnapshotSetDetails(label, clusterName);
         } catch (Exception e) {
-            _log.info("Snapshot Set {} not available in Array.", label);
+            if (null != e.getMessage() && !e.getMessage().contains(XtremIOConstants.OBJECT_NOT_FOUND)) {
+                throw e;
+            } else {
+                _log.info("Snapshot Set {} not available in Array.", label);
+            }
         }
 
         return cg;
@@ -609,17 +631,13 @@ public class XtremIOProvUtils {
     public static String getIGNameForInitiator(Initiator initiator, String storageSerialNumber, XtremIOClient client, String xioClusterName)
             throws Exception {
         String igName = null;
-        try {
-            String initiatorName = initiator.getMappedInitiatorName(storageSerialNumber);
-            if (null != initiatorName) {
-                // Get initiator by Name and find IG Group
-                XtremIOInitiator initiatorObj = client.getInitiator(initiatorName, xioClusterName);
-                if (null != initiatorObj) {
-                    igName = initiatorObj.getInitiatorGroup().get(1);
-                }
+        String initiatorName = initiator.getMappedInitiatorName(storageSerialNumber);
+        if (null != initiatorName) {
+            // Get initiator by Name and find IG Group
+            XtremIOInitiator initiatorObj = client.getInitiator(initiatorName, xioClusterName);
+            if (null != initiatorObj) {
+                igName = initiatorObj.getInitiatorGroup().get(1);
             }
-        } catch (Exception e) {
-            _log.warn("Initiator {} already deleted", initiator.getLabel());
         }
 
         return igName;

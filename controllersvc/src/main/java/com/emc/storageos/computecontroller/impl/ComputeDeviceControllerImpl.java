@@ -310,7 +310,7 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
         try {
             WorkflowStepCompleter.stepExecuting(stepId);
             // Test mechanism to invoke a failure. No-op on production systems.
-            InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_059);
+            InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_072);
             setSanBootTarget(computeSystemId, computeElementId, hostId, volumeId, true);
 
             WorkflowStepCompleter.stepSucceded(stepId);
@@ -375,7 +375,7 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
         try {
             WorkflowStepCompleter.stepExecuting(stepId);
             // Test mechanism to invoke a failure. No-op on production systems.
-            InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_057);
+            InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_070);
             setLanBootTarget(computeSystemId, computeElementId, hostId, true);
 
             WorkflowStepCompleter.stepSucceded(stepId);
@@ -627,7 +627,7 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
 
             computeSystem = _dbClient.queryObject(ComputeSystem.class, computeSystemId);
             // Test mechanism to invoke a failure. No-op on production systems.
-            InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_058);
+            InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_071);
             Map<String, Boolean> vlanMap = prepareOsInstallNetwork(computeSystemId, computeElementId);
             _workflowService.storeStepData(stepId, vlanMap);
 
@@ -1114,7 +1114,7 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
                 return;
             }
             // Test mechanism to invoke a failure. No-op on production systems.
-            InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_055);
+            InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_068);
             String taskId = UUID.randomUUID().toString();
             Operation op = new Operation();
             op.setResourceType(ResourceOperationTypeEnum.UPDATE_VCENTER_CLUSTER);

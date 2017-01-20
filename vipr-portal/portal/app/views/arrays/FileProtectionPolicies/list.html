@@ -1,0 +1,15 @@
+#{extends 'main.html'/}
+#{set navSelected: ['nav.virtualStorage', 'nav.file.protectionPolicies'] /}
+
+#{tenantSelector/}
+#{DataTable.header titleKey:'schedulepolicies.list.title' /}
+#{DataTable.formAction @assign(), id:'deregisterForm', table:'schedulepolicies'/}
+
+#{DataTable.crudTable id:'schedulepolicies', dataTable:dataTable, deleteConfirm:messages.get('schedulepolicies.deleteConfirm')}
+
+
+
+ #{Form.button name:'button.assignPolicies', submit:'deregisterForm', 
+                data:['enabled':'selected', 'selection':'single']/}
+#{/DataTable.crudTable}
+                

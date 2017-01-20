@@ -39,14 +39,16 @@ public class OrderServiceJobConsumer extends DistributedQueueConsumer<OrderServi
     OrderService orderService;
 
     AuditLogManager auditLogManager;
+    private long maxOrderDeletedPerGC;
 
     public OrderServiceJobConsumer(OrderService service, AuditLogManager auditLogManager,
-                                   DbClient client, OrderManager manager) {
+                                   DbClient client, OrderManager manager, long max) {
         dbClient = client;
         orderManager = manager;
         orderService = service;
 
         this.auditLogManager = auditLogManager;
+        maxOrderDeletedPerGC = max;
     }
 
     /**
@@ -73,11 +75,11 @@ public class OrderServiceJobConsumer extends DistributedQueueConsumer<OrderServi
                 long total = 0;
                 long numberOfOrdersDeletedInGC = orderService.getDeletedOrdersInCurrentPeriod(jobStatus);
                 long numberOfOrdersCanBeDeletedInGC =
-                        OrderService.MAX_DELETED_ORDERS_PER_GC_PERIOD - numberOfOrdersDeletedInGC;
+                        maxOrderDeletedPerGC - numberOfOrdersDeletedInGC;
 
                 if (numberOfOrdersCanBeDeletedInGC <= 0) {
                     log.info("Max number of order objects ({}) have been deleted in the current GC period",
-                            OrderService.MAX_DELETED_ORDERS_PER_GC_PERIOD);
+                            maxOrderDeletedPerGC);
                     Thread.sleep(CHECK_INTERVAL);
                     continue;
                 }
@@ -129,6 +131,7 @@ public class OrderServiceJobConsumer extends DistributedQueueConsumer<OrderServi
                 for (URI id : orderIds) {
                     Order order = orderManager.getOrderById(id);
                     try {
+                        log.info("To delete order {}", order.getId());
                         orderManager.deleteOrder(order);
                         nDeleted++;
                         auditLog(order, true, jobStatus.getTenantId(), jobStatus.getUserId());

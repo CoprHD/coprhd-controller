@@ -83,6 +83,9 @@ public class ExportMask extends DataObject {
     // as a convenience.
     private String _resource;
 
+    // port group info to identify if use port group in the array
+    private String _portGroup;
+    
     // Captures the Device Specific information that are created for this export mask.
     private StringSetMap _deviceDataMap;
 
@@ -854,6 +857,16 @@ public class ExportMask extends DataObject {
                 NullColumnValueGetter.getNullURI().toString();
     }
 
+    @Name("portGroup")
+    public String getPortGroup() {
+        return _portGroup;
+    }
+
+    public void setPortGroup(String portGroup) {
+        _portGroup = portGroup;
+        setChanged("portGroup");
+    }
+    
     public boolean checkIfVolumeHLUSet(URI volumeURI) {
         boolean isHLUSet = false;
         String volumeURIStr = volumeURI.toString();

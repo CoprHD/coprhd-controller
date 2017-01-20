@@ -333,7 +333,12 @@ public class VmaxExportOperations implements ExportMaskOperations {
             boolean reusePGName = false;
             if (pathParams != null && pathParams.getPortGroup() != null && !pathParams.getPortGroup().isEmpty()) {
                 pgGroupName = pathParams.getPortGroup();
-                _log.info("port group name: " + pgGroupName);
+                if (NullColumnValueGetter.isNotNullValue(pgGroupName) && 
+                        isUsePortGroupEnabled(storage.getSystemType())) {
+                    mask.setPortGroup(pgGroupName);
+                    _dbClient.updateObject(mask);
+                    _log.info("port group name: " + pgGroupName);
+                }
                 reusePGName = true;
             }
             if (pgGroupName == null) {
@@ -341,6 +346,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
                         portGroupCustomTemplateName);
                 pgGroupName = customConfigHandler.getComputedCustomConfigValue(portGroupCustomTemplateName, storage.getSystemType(),
                         portGroupDataSource);
+                pgGroupName = _helper.generateGroupName(_helper.getExistingPortGroupsFromArray(storage), pgGroupName);
             }
 
             // CTRL-9054 Always create unique port Groups.
@@ -4984,4 +4990,23 @@ public class VmaxExportOperations implements ExportMaskOperations {
         }
     }
 
+    /**
+     * Check whether use port group is enabled.
+     * 
+     * @return
+     */
+     private Boolean isUsePortGroupEnabled(String systemType) {
+        Boolean reusePortGroupEnabled = false;
+
+        try {
+            reusePortGroupEnabled = Boolean.valueOf(
+                    customConfigHandler.getComputedCustomConfigValue(
+                            CustomConfigConstants.VMAX_USE_PORT_GROUP_ENABLED,
+                            systemType, null));
+        } catch (Exception e) {
+            _log.warn("exception while getting custom config value", e);
+        }
+        _log.info("Reuse port group is " + reusePortGroupEnabled);
+        return reusePortGroupEnabled;
+    }
 }

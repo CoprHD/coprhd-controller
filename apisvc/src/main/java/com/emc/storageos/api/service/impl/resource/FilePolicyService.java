@@ -836,29 +836,29 @@ public class FilePolicyService extends TaskResourceService {
         VirtualPool vpool = null;
 
         if (filePolicy.getFilePolicyVpool() == null) {
-            ArgValidator.checkFieldNotNull(param.getProjectAssignParams().getVpool(), "vpool");
-            ArgValidator.checkFieldUriType(param.getProjectAssignParams().getVpool(), VirtualPool.class, "vpool");
-            vpool = _permissionsHelper.getObjectById(param.getProjectAssignParams().getVpool(), VirtualPool.class);
-            ArgValidator.checkEntity(vpool, param.getProjectAssignParams().getVpool(), false);
+            ArgValidator.checkFieldUriType(vpoolURI, VirtualPool.class, "vpool");
+            vpool = _permissionsHelper.getObjectById(vpoolURI, VirtualPool.class);
+            ArgValidator.checkEntity(vpool, vpoolURI, false);
 
             // Check if the vpool supports provided policy type..
             FilePolicyServiceUtils.validateVpoolSupportPolicyType(filePolicy, vpool);
 
             // Check if the vpool supports policy at project level..
             if (!vpool.getAllowFilePolicyAtProjectLevel()) {
-                errorMsg.append("Provided vpool :" + vpool.getId().toString() + " doesn't support policy at project level");
+                errorMsg.append("Provided vpool :" + vpool.getId().toString() + " doesn't support policy at project level.");
                 _log.error(errorMsg.toString());
                 throw APIException.badRequests.invalidFilePolicyAssignParam(filePolicy.getFilePolicyName(), errorMsg.toString());
             }
-            // filePolicy.setFilePolicyVpool(param.getProjectAssignParams().getVpool());
 
-        } else if (param.getProjectAssignParams().getVpool() != null
-                && !param.getProjectAssignParams().getVpool().equals(filePolicy.getFilePolicyVpool())) {
+        } else if (vpoolURI != null) {
             vpool = _dbClient.queryObject(VirtualPool.class, filePolicy.getFilePolicyVpool());
-            errorMsg.append("File policy :" + filePolicy.getFilePolicyName() + "is already assigned at project level under the vpool: "
-                    + vpool.getLabel());
-            _log.error(errorMsg.toString());
-            throw APIException.badRequests.invalidFilePolicyAssignParam(filePolicy.getFilePolicyName(), errorMsg.toString());
+            if (!vpoolURI.equals(filePolicy.getFilePolicyVpool())) {
+                errorMsg.append("File policy: " + filePolicy.getFilePolicyName()
+                        + " is already assigned at project level under the vpool: "
+                        + vpool.getLabel());
+                _log.error(errorMsg.toString());
+                throw APIException.badRequests.invalidFilePolicyAssignParam(filePolicy.getFilePolicyName(), errorMsg.toString());
+            }
         }
 
         ArgValidator.checkFieldNotNull(param.getProjectAssignParams().getAssigntoProjects(), "assign_to_projects");
@@ -892,7 +892,6 @@ public class FilePolicyService extends TaskResourceService {
                 _log.error(errorMsg.toString());
                 throw APIException.badRequests.invalidFilePolicyAssignParam(filePolicy.getFilePolicyName(), errorMsg.toString());
             }
-            // assignedResources.add(projetcURI.toString());
         }
 
         // update replication topology info

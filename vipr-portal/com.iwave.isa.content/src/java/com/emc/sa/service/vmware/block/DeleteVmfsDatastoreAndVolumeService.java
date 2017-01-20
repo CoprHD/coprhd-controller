@@ -10,7 +10,6 @@ import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-
 import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.engine.bind.Param;
 import com.emc.sa.engine.service.Service;
@@ -33,6 +32,7 @@ public class DeleteVmfsDatastoreAndVolumeService extends VMwareHostService {
         datastores = Maps.newHashMap();
         acquireHostLock();
         for (String datastoreName : datastoreNames) {
+            validateDatastoreVolume(datastoreName);
             Datastore datastore = vmware.getDatastore(datacenter.getLabel(), datastoreName);
             vmware.verifyDatastoreForRemoval(datastore);
             List<VolumeRestRep> volumes = vmware.findVolumesBackingDatastore(host, datastore);

@@ -20,7 +20,12 @@ import com.emc.storageos.db.client.model.Cluster;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.VcenterDataCenter;
+import com.emc.storageos.db.client.model.Volume;
+import com.emc.storageos.model.block.VolumeRestRep;
 import com.google.common.collect.Sets;
+import com.iwave.ext.vmware.HostStorageAPI;
+import com.iwave.ext.vmware.VMwareUtils;
+import com.vmware.vim25.HostScsiDisk;
 import com.vmware.vim25.mo.ClusterComputeResource;
 import com.vmware.vim25.mo.HostSystem;
 
@@ -136,6 +141,25 @@ public abstract class VMwareHostService extends ViPRService {
                 info("Hosts in cluster %s matches correctly", cluster.getLabel());
             }
 
+        }
+    }
+    
+    /**
+     * Validates the volume associated to vCenter datastore has any pending events due to external change
+     */
+    protected void validateDatastoreVolume(String datastoreName) {
+        List<HostScsiDisk> disks = new HostStorageAPI(host).listScsiDisks();
+        for (HostScsiDisk entry : disks) {
+            VolumeRestRep volRep = BlockStorageUtils.getVolumeByWWN(VMwareUtils.getDiskWwn(entry));
+            if(volRep != null && BlockStorageUtils.isVolumeVMFSDatastore(volRep)){
+                Set<String> tagSet = volRep.getTags();
+                for (String tag : tagSet) {
+                    if (tag.contains(datastoreName)) {
+                        Volume volumeObj = getModelClient().findById(Volume.class, volRep.getId());
+                        BlockStorageUtils.checkEvents(volumeObj);
+                    }
+                }
+            }
         }
     }
 }

@@ -14,6 +14,7 @@ import java.util.Collections;
 import com.emc.sa.engine.bind.Param;
 import com.emc.sa.engine.service.Service;
 import com.emc.sa.service.vipr.ViPRService;
+import com.emc.storageos.db.client.model.Volume;
 
 @Service("UnexportVolume")
 public class UnexportVolumeService extends ViPRService {
@@ -26,6 +27,12 @@ public class UnexportVolumeService extends ViPRService {
 
     @Param(EXPORT)
     protected URI exportId;
+    
+    @Override
+    public void precheck() throws Exception {
+        Volume volume = BlockStorageUtils.getBlockVolumeById(volumeId);
+        BlockStorageUtils.checkEvents(volume);
+    }
 
     @Override
     public void execute() throws Exception {

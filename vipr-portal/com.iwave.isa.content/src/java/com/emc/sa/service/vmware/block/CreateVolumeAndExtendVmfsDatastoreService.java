@@ -8,7 +8,6 @@ import static com.emc.sa.service.ServiceParams.DATASTORE_NAME;
 import static com.emc.sa.service.ServiceParams.MULTIPATH_POLICY;
 
 import java.util.List;
-
 import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.engine.bind.Bindable;
 import com.emc.sa.engine.bind.Param;
@@ -34,6 +33,7 @@ public class CreateVolumeAndExtendVmfsDatastoreService extends VMwareHostService
         super.precheck();
         createBlockVolumeHelper.precheck();
         acquireHostLock();
+        validateDatastoreVolume(datastoreName);
         datastore = vmware.getDatastore(datacenter.getLabel(), datastoreName);
         vmware.disconnect();
     }

@@ -46,6 +46,7 @@ public class GetActionableEvents extends ViPRExecutionTask<Void> {
                 }
             }
         }
+        
         return null;
     }
 

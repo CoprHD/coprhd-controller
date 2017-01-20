@@ -9,7 +9,6 @@ import static com.emc.sa.service.ServiceParams.SIZE_IN_GB;
 import static com.emc.sa.service.ServiceParams.VOLUMES;
 
 import java.net.URI;
-
 import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.engine.bind.Param;
 import com.emc.sa.engine.service.Service;
@@ -38,8 +37,9 @@ public class ExpandVmfsDatastoreService extends VMwareHostService {
         super.precheck();
         volume = BlockStorageUtils.getVolume(volumeId);
         acquireHostLock();
-        vmware.getDatastore(datacenter.getLabel(), datastoreName);
-        vmware.disconnect();
+        validateDatastoreVolume(datastoreName);
+        datastore = vmware.getDatastore(datacenter.getLabel(), datastoreName);
+		vmware.disconnect();
     }
 
     @Override

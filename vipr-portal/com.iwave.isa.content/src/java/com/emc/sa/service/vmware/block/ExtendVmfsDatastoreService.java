@@ -9,7 +9,6 @@ import static com.emc.sa.service.ServiceParams.MULTIPATH_POLICY;
 import static com.emc.sa.service.ServiceParams.VOLUME;
 
 import java.net.URI;
-
 import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.engine.bind.Param;
 import com.emc.sa.engine.service.Service;
@@ -35,6 +34,7 @@ public class ExtendVmfsDatastoreService extends VMwareHostService {
         super.precheck();
         volume = BlockStorageUtils.getVolume(volumeId);
         acquireHostLock();
+        validateDatastoreVolume(datastoreName);
         datastore = vmware.getDatastore(datacenter.getLabel(), datastoreName);
         vmware.verifySupportedMultipathPolicy(host, multipathPolicy);
         vmware.disconnect();
@@ -50,4 +50,4 @@ public class ExtendVmfsDatastoreService extends VMwareHostService {
         }
         vmware.setMultipathPolicy(host, cluster, multipathPolicy, volume);
     }
-}
+ }

@@ -1,0 +1,208 @@
+/*
+ * Copyright (c) 2017 EMC Corporation
+ * All Rights Reserved
+ */
+package com.emc.storageos.db.client.upgrade.callbacks;
+
+import java.net.URI;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.URIUtil;
+import com.emc.storageos.db.client.constraint.ContainmentConstraint;
+import com.emc.storageos.db.client.constraint.URIQueryResultList;
+import com.emc.storageos.db.client.model.FilePolicy;
+import com.emc.storageos.db.client.model.FilePolicy.FilePolicyApplyLevel;
+import com.emc.storageos.db.client.model.FilePolicy.FilePolicyType;
+import com.emc.storageos.db.client.model.FileReplicationTopology;
+import com.emc.storageos.db.client.model.FileShare;
+import com.emc.storageos.db.client.model.FileShare.PersonalityTypes;
+import com.emc.storageos.db.client.model.NASServer;
+import com.emc.storageos.db.client.model.PhysicalNAS;
+import com.emc.storageos.db.client.model.PolicyStorageResource;
+import com.emc.storageos.db.client.model.StorageSystem;
+import com.emc.storageos.db.client.model.StringSet;
+import com.emc.storageos.db.client.model.VirtualNAS;
+import com.emc.storageos.db.client.model.VirtualPool;
+import com.emc.storageos.db.client.model.VirtualPool.FileReplicationType;
+import com.emc.storageos.db.client.model.VpoolRemoteCopyProtectionSettings;
+import com.emc.storageos.db.client.upgrade.BaseCustomMigrationCallback;
+import com.emc.storageos.db.client.util.NullColumnValueGetter;
+import com.emc.storageos.svcs.errorhandling.resources.MigrationCallbackException;
+import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
+
+/**
+ * Migration handler to set the placement policy to Default policy in all existing Block vPools.
+ * Placement policy field was introduced as part of Host/Array Affinity feature in v3.5
+ * 
+ */
+public class VirtualPoolFileReplicationPolicyMigration extends BaseCustomMigrationCallback {
+    private static final Logger logger = LoggerFactory.getLogger(VirtualPoolFileReplicationPolicyMigration.class);
+
+    @Override
+    public void process() throws MigrationCallbackException {
+        logger.info("Virtual pool file replication policy migration START");
+
+        DbClient dbClient = getDbClient();
+        try {
+            List<URI> virtualPoolURIs = dbClient.queryByType(VirtualPool.class, true);
+            Iterator<VirtualPool> virtualPools = dbClient.queryIterativeObjects(VirtualPool.class, virtualPoolURIs, true);
+            List<VirtualPool> modifiedVpools = new ArrayList<VirtualPool>();
+            List<FilePolicy> replPolicies = new ArrayList<FilePolicy>();
+
+            // Create replication policy from vpool replication attributes
+            // Identify any file systems created with the replication vpool.
+            // Establish relation from policy to FilePolicyResource
+            while (virtualPools.hasNext()) {
+                VirtualPool virtualPool = virtualPools.next();
+                if (VirtualPool.Type.file.name().equals(virtualPool.getType())
+                        && virtualPool.getFileReplicationType() != null
+                        && !FileReplicationType.NONE.name().equalsIgnoreCase(virtualPool.getFileReplicationType())) {
+
+                    // Create replication policy
+                    FilePolicy replPolicy = new FilePolicy();
+                    replPolicy.setId(URIUtil.createId(FilePolicy.class));
+                    replPolicy.setFilePolicyDescription(
+                            "Policy created from virtual pool " + virtualPool.getLabel() + " while system upgrade");
+                    String polName = virtualPool.getLabel() + "_Replication_Policy";
+                    replPolicy.setLabel(polName);
+                    replPolicy.setFilePolicyName(polName);
+                    replPolicy.setFilePolicyType(FilePolicyType.file_replication.name());
+                    replPolicy.setFilePolicyVpool(virtualPool.getId());
+                    replPolicy.setApplyAt(FilePolicyApplyLevel.file_system.name());
+                    replPolicy.setFileReplicationCopyMode(virtualPool.getFileReplicationCopyMode());
+
+                    replPolicy.setFileReplicationType(virtualPool.getFileReplicationType());
+                    replPolicy.setPriority("LOW");
+
+                    // Set the policy schedule based on vPool RPO
+                    if (virtualPool.getFrRpoValue() != null && virtualPool.getFrRpoType() != null) {
+                        replPolicy.setScheduleRepeat((long) virtualPool.getFrRpoValue());
+                        replPolicy.setScheduleTime("00:00AM");
+                        replPolicy.setScheduleFrequency(virtualPool.getFrRpoType().toUpperCase());
+                        replPolicy.setScheduleDayOfWeek(NullColumnValueGetter.getNullStr());
+                        replPolicy.setScheduleDayOfMonth(0L);
+                    }
+
+                    // Create replication topology
+                    // set topology reference to policy
+                    if (FileReplicationType.REMOTE.name().equalsIgnoreCase(virtualPool.getFileReplicationType())) {
+                        StringSet replicationTopologies = new StringSet();
+                        StringSet targetVarrays = new StringSet();
+                        Map<URI, VpoolRemoteCopyProtectionSettings> remoteSettings = virtualPool.getRemoteProtectionSettings(virtualPool,
+                                dbClient);
+                        if (remoteSettings != null && !remoteSettings.isEmpty()) {
+                            targetVarrays.add(remoteSettings.keySet().iterator().next().toString());
+                        }
+
+                        for (String srcvArray : virtualPool.getVirtualArrays()) {
+                            FileReplicationTopology dbReplTopology = new FileReplicationTopology();
+                            dbReplTopology.setId(URIUtil.createId(FileReplicationTopology.class));
+                            dbReplTopology.setPolicy(replPolicy.getId());
+                            dbReplTopology.setSourceVArray(URI.create(srcvArray));
+                            dbReplTopology.setTargetVArrays(targetVarrays);
+                            dbClient.createObject(dbReplTopology);
+                            replicationTopologies.add(dbReplTopology.getId().toString());
+                        }
+                        replPolicy.setReplicationTopologies(replicationTopologies);
+                        logger.info("Updating VirtualPool (id={}) with placement policy set to default policy",
+                                virtualPool.getId().toString());
+                    }
+
+                    // Fetch if there are any file system were provisioned with the vpool
+                    // if present, link them to replication policy!!
+                    URIQueryResultList resultList = new URIQueryResultList();
+                    dbClient.queryByConstraint(
+                            ContainmentConstraint.Factory.getVirtualPoolFileshareConstraint(virtualPool.getId()), resultList);
+                    for (Iterator<URI> fileShareItr = resultList.iterator(); fileShareItr.hasNext();) {
+                        FileShare fs = dbClient.queryObject(FileShare.class, fileShareItr.next());
+                        if (!fs.getInactive() && fs.getPersonality() != null
+                                && fs.getPersonality().equalsIgnoreCase(PersonalityTypes.SOURCE.name())) {
+                            StorageSystem system = dbClient.queryObject(StorageSystem.class, fs.getStorageDevice());
+                            updatePolicyStorageResouce(system, replPolicy, fs);
+                        }
+
+                    }
+
+                    replPolicies.add(replPolicy);
+                    virtualPool.setAllowFilePolicyAtFSLevel(true);
+                    virtualPool.setFileReplicationSupported(true);
+                    modifiedVpools.add(virtualPool);
+                }
+            }
+            // Udate DB
+            if (!replPolicies.isEmpty()) {
+                dbClient.createObject(replPolicies);
+            }
+
+            if (!modifiedVpools.isEmpty()) {
+                dbClient.updateObject(modifiedVpools);
+            }
+        } catch (Exception ex) {
+            logger.error("Exception occured while migrating file replication policy for Virtual pools");
+            logger.error(ex.getMessage(), ex);
+        }
+        logger.info("Virtual pool file replication policy migration END");
+    }
+
+    private PhysicalNAS getSystemPhysicalNAS(StorageSystem system) {
+        List<URI> nasServers = dbClient.queryByType(PhysicalNAS.class, true);
+        List<PhysicalNAS> phyNasServers = dbClient.queryObject(PhysicalNAS.class, nasServers);
+        for (PhysicalNAS nasServer : phyNasServers) {
+            if (nasServer.getStorageDeviceURI().toString().equalsIgnoreCase(system.getId().toString())) {
+                return nasServer;
+            }
+        }
+        return null;
+    }
+
+    private void updatePolicyStorageResouce(StorageSystem system, FilePolicy filePolicy, FileShare fs) {
+
+        PolicyStorageResource policyStorageResource = new PolicyStorageResource();
+
+        policyStorageResource.setId(URIUtil.createId(PolicyStorageResource.class));
+        policyStorageResource.setFilePolicyId(filePolicy.getId());
+        policyStorageResource.setStorageSystem(system.getId());
+        policyStorageResource.setPolicyNativeId(fs.getName());
+        NASServer nasServer = null;
+        if (fs.getVirtualNAS() != null) {
+            nasServer = dbClient.queryObject(VirtualNAS.class, fs.getVirtualNAS());
+        } else {
+            // Get the physical NAS for the storage system!!
+            PhysicalNAS pNAS = getSystemPhysicalNAS(system);
+            if (pNAS != null) {
+                nasServer = pNAS;
+            }
+        }
+        policyStorageResource.setNasServer(nasServer.getId());
+        policyStorageResource.setAppliedAt(fs.getId());
+        policyStorageResource.setNativeGuid(NativeGUIDGenerator.generateNativeGuidForFilePolicyResource(system,
+                nasServer.getNasName(), filePolicy.getFilePolicyType(), fs.getNativeId(), NativeGUIDGenerator.FILE_STORAGE_RESOURCE));
+        dbClient.createObject(policyStorageResource);
+
+        StringSet policyStrgRes = filePolicy.getPolicyStorageResources();
+        if (policyStrgRes == null) {
+            policyStrgRes = new StringSet();
+        }
+        policyStrgRes.add(policyStorageResource.getId().toString());
+        filePolicy.setPolicyStorageResources(policyStrgRes);
+
+        StringSet assignedResources = filePolicy.getAssignedResources();
+        if (assignedResources == null) {
+            assignedResources = new StringSet();
+        }
+        assignedResources.add(fs.getId().toString());
+        filePolicy.setAssignedResources(assignedResources);
+
+        dbClient.createObject(policyStorageResource);
+        logger.info("PolicyStorageResource object created successfully for {} ",
+                system.getLabel() + policyStorageResource.getAppliedAt());
+    }
+
+}

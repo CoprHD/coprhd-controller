@@ -90,7 +90,7 @@ public class FilePolicy extends DataObjectWithACLs {
     }
 
     public static enum ScheduleFrequency {
-        DAYS, WEEKS, MONTHS
+        HOURS, MINUTES, DAYS, WEEKS, MONTHS
     }
 
     public static enum SnapshotExpireType {

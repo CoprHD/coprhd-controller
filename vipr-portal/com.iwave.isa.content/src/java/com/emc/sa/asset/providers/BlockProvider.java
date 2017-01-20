@@ -84,6 +84,7 @@ import com.emc.storageos.model.ports.StoragePortRestRep;
 import com.emc.storageos.model.project.ProjectRestRep;
 import com.emc.storageos.model.protection.ProtectionSetRestRep;
 import com.emc.storageos.model.systems.StorageSystemRestRep;
+import com.emc.storageos.model.varray.NetworkRestRep;
 import com.emc.storageos.model.varray.VirtualArrayRestRep;
 import com.emc.storageos.model.vpool.BlockVirtualPoolRestRep;
 import com.emc.storageos.model.vpool.VirtualPoolChangeOperationEnum;
@@ -841,9 +842,12 @@ public class BlockProvider extends BaseAssetOptionsProvider {
             if (port.getPortType().equals(StoragePort.PortType.frontend.toString()) && 
                     port.getStorageDevice().getId().equals(storageSystemId) &&
                     port.getOperationalStatus().equals(StoragePort.OperationalStatus.OK.toString())) {
-                String portPercentBusy = (port.getPortPercentBusy() != null) ? String.valueOf(Math.round(port.getPortPercentBusy() * 100 / 100)) + "%" : "N/A"; 
-                String label = getMessage("exportPathAdjustment.ports", port.getPortName(), portPercentBusy);
-                options.add(new AssetOption(port.getId(), label));
+                if (port.getNetwork() != null) {
+                    String portPercentBusy = (port.getPortPercentBusy() != null) ? String.valueOf(Math.round(port.getPortPercentBusy() * 100 / 100)) + "%" : "N/A";
+                    String networkName = client.networks().get(port.getNetwork().getId()).getName();
+                    String label = getMessage("exportPathAdjustment.ports", port.getPortNetworkId(), networkName, portPercentBusy);
+                    options.add(new AssetOption(port.getId(), label));
+                }
             }
         }
 
@@ -872,7 +876,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
                 exportId, minPaths, maxPaths, pathsPerInitiator, useExisting, storageSystemId, exportPathPorts);
         List<InitiatorPortMapRestRep> addedList = portPreview.getAdjustedPaths();
         
-        return buildPathOptions(addedList, "exportPathAdjustment.addedPorts");
+        return buildPathOptions(ctx, addedList, "exportPathAdjustment.addedPorts");
     }
 
     @Asset("exportPathRemovedPorts")
@@ -896,7 +900,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
                 exportId, minPaths, maxPaths, pathsPerInitiator, useExisting, storageSystemId, exportPathPorts);
         List<InitiatorPortMapRestRep> removedList = portPreview.getRemovedPaths();
         
-        return buildPathOptions(removedList, "exportPathAdjustment.removedPorts");
+        return buildPathOptions(ctx, removedList, "exportPathAdjustment.removedPorts");
     }
     
     private List<URI> parseExportPathPorts(String input) {
@@ -910,7 +914,8 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     }
      
     /* helper for building the list of asset option for affected and removed paths */
-    private List<AssetOption> buildPathOptions(List<InitiatorPortMapRestRep> list, String message) {
+    private List<AssetOption> buildPathOptions(AssetOptionsContext ctx, List<InitiatorPortMapRestRep> list, String message) {
+        ViPRCoreClient client = api(ctx);
         List<AssetOption> options = Lists.newArrayList();
         
         for (InitiatorPortMapRestRep ipm : list) {
@@ -920,7 +925,8 @@ public class BlockProvider extends BaseAssetOptionsProvider {
             String portList = new String(" ");
             List<URI> portURIs = new ArrayList<URI>();
             for (NamedRelatedResourceRep port : ports) {
-                portList += port.getName() + " ";
+                StoragePortRestRep p = client.storagePorts().get(port.getId());
+                portList += p.getPortNetworkId() + " ";
                 portURIs.add(port.getId());
             }
             

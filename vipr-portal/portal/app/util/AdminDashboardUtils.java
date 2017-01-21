@@ -40,6 +40,9 @@ public class AdminDashboardUtils {
 
     private static String LICENSE_KEY = "LICENSE_KEY";
 
+    private static String BACKUP_STATUS_LIST_KEY = "BACKUP_STATUS_LIST_KEY";
+    private static String BACKUP_STATUS_LIST_EXPIRES = "15s";
+
     private static String ASSET_COUNT_EXPIRES = "1mn";
 
     private static String FABRIC_NODE_COUNT_KEY = "FABRIC_NODE_COUNT_KEY";
@@ -194,6 +197,10 @@ public class AdminDashboardUtils {
 
     public static Date getVirtualStorageArrayCountLastUpdated() {
         return getLastUpdated(VIRTUAL_STORAGE_ARRAY_COUNT_KEY);
+    }
+
+    public static Date getBackupStatusLastUpdated() {
+        return getLastUpdated(BACKUP_STATUS_LIST_KEY);
     }
 
     public static void clearNodeHealthListCache() {

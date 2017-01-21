@@ -132,6 +132,11 @@ public class Backup {
 
     public BackupStatus getBackupStatus() {
         BackupStatus backupStatus = new BackupStatus();
+        backupStatus.setLastManualBackup("backup1", 1485004604, "success");
+        backupStatus.setLastScheduledBackup("backup2", 1485003604, "success");
+        backupStatus.setLastSuccessfulBackup("backup1", 1485004604, "manual");
+        backupStatus.setLastUploadStatus("backup1", 1485004604, "success");
+        backupStatus.setNextScheduledBackup(1485004604);
         return backupStatus;
     }
 }

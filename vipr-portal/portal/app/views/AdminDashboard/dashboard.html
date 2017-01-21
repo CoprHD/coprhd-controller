@@ -64,12 +64,12 @@
 #{alerts disappear: true/}
 
 <div class="row">
-    <div class="col-sm-2">
+    <div class="col-sm-4">
       #{license.ifController}
         #{include 'AdminDashboard/capacity.html'/}
       #{/license.ifController}
     </div>
-    <div class="col-sm-3">
+    <div class="col-sm-4">
       #{include 'AdminDashboard/physicalAssets.html'/}
       #{include 'AdminDashboard/virtualAssets.html'/}
     </div>
@@ -77,7 +77,6 @@
       #{include 'AdminDashboard/version.html'/}
       #{include 'AdminDashboard/health.html'/}
       #{include 'AdminDashboard/backupStatus.html'/}
-      #{include 'AdminDashboard/version.html'/}
       #{if isDrConfigured}
         #{include 'AdminDashboard/disasterRecovery.html'/}
       #{/if}

@@ -42,7 +42,6 @@ public class AdminDashboardUtils {
     private static String LICENSE_KEY = "LICENSE_KEY";
 
     private static String BACKUP_STATUS_LIST_KEY = "BACKUP_STATUS_LIST_KEY";
-    private static String BACKUP_STATUS_LIST_EXPIRES = "15s";
 
     private static String ASSET_COUNT_EXPIRES = "1mn";
 
@@ -100,6 +99,10 @@ public class AdminDashboardUtils {
         return BourneUtil.getSysClient().upgrade().getClusterInfo();
     }
 
+    public static BackupStatus getBackupStatus() {
+        return BourneUtil.getSysClient().backup().getBackupStatus();
+    }
+
     public static DbRepairStatus gethealthdb() {
         return BourneUtil.getSysClient().control().getdbhealth();
     }
@@ -112,7 +115,7 @@ public class AdminDashboardUtils {
         return LicenseUtils.getLicense();
     }
 
-    public static Promise<BackupStatus> getBackupStatus() {
+    public static Promise<BackupStatus> backupStatus() {
         return CallableHelper.createPromise(new BackupStatusCall(getSysClient()));
     }
 

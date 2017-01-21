@@ -18,7 +18,7 @@
                 </td>
             </tr>
             <script>
-                var lastSuccessfulCreationTime = '${backupStatus.getLastSuccessfulBackup()?.opTime}';
+                var lastSuccessfulCreationTime = '${backupStatus?.getLastSuccessfulBackup()?.opTime}';
                 (lastSuccessfulCreationTime) ? $('#lastSuccessful').append(formatLocalDateTime(new Date(lastSuccessfulCreationTime))) : $('#lastSuccessful').append("NA");
             </script>
 
@@ -39,7 +39,7 @@
                 </td>
             </tr>
             <script>
-                var lastManualCreationTime = '${backupStatus.getLastManualBackup()?.opTime}';
+                var lastManualCreationTime = '${backupStatus?.getLastManualBackup()?.opTime}';
                 if (lastManualCreationTime) {
                     $('#lastManual').append(formatLocalDateTime(new Date(lastManualCreationTime)));
 	    	    } else {
@@ -64,7 +64,7 @@
                 </td>
             </tr>
             <script>
-                var lastScheduledCreationTime = '${backupStatus.getLastScheduledBackup()?.opTime}';
+                var lastScheduledCreationTime = '${backupStatus?.getLastScheduledBackup()?.opTime}';
                 if (lastManualCreationTime) {
                     $('#lastScheduled').append(formatLocalDateTime(new Date(lastScheduledCreationTime)));
 	    	    } else {
@@ -78,7 +78,7 @@
                 <td id="nextScheduled" class="time"></td>
             </tr>
             <script>
-                var nextScheduledCreationTime = '${backupStatus.getNextScheduledBackup()?.opTime}';
+                var nextScheduledCreationTime = '${backupStatus?.getNextScheduledBackup()?.opTime}';
                 (nextScheduledCreationTime) ? $('#nextScheduled').append(formatLocalDateTime(new Date(nextScheduledCreationTime))) : $('#nextScheduled').append("NA");
             </script>
 
@@ -99,7 +99,7 @@
                 </td>
             </tr>
             <script>
-                var lastUploadTime = '${backupStatus.getLastUploadStatus()?.opTime}';
+                var lastUploadTime = '${backupStatus?.getLastUploadStatus()?.opTime}';
                 if (lastUploadTime) {
                     $('#lastUpload').append(formatLocalDateTime(new Date(lastUploadTime)));
 	    	    } else {

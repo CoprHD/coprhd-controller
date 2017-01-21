@@ -85,12 +85,12 @@ public class AdminDashboard extends Controller {
         //render();
 
         BackupStatus backupStatus = AdminDashboardUtils.getBackupStatus();
-        renderArgs.put("lastSuccessfulBackup", backupStatus.getLastSuccessfulBackup());
-        renderArgs.put("lastManualBackup", backupStatus.getLastManualBackup());
-        renderArgs.put("lastScheduledBackup", backupStatus.getLastScheduledBackup());
-        renderArgs.put("nextScheduledBackup", backupStatus.getNextScheduledBackup());
-        renderArgs.put("lastUploadStatus", backupStatus.getLastUploadStatus());
-        renderArgs.put("backupStatusLastUpdated", AdminDashboardUtils.getBackupStatusLastUpdated());
+        //renderArgs.put("lastSuccessfulBackup", backupStatus.getLastSuccessfulBackup());
+        //renderArgs.put("lastManualBackup", backupStatus.getLastManualBackup());
+        //renderArgs.put("lastScheduledBackup", backupStatus.getLastScheduledBackup());
+        //renderArgs.put("nextScheduledBackup", backupStatus.getNextScheduledBackup());
+        //renderArgs.put("lastUploadStatus", backupStatus.getLastUploadStatus());
+        //renderArgs.put("backupStatusLastUpdated", AdminDashboardUtils.getBackupStatusLastUpdated());
         render(backupStatus);
     }
 

@@ -34,6 +34,7 @@ import javax.ws.rs.core.*;
 import com.emc.storageos.management.backup.*;
 import com.emc.storageos.management.backup.util.BackupClient;
 import com.emc.storageos.management.backup.util.CifsClient;
+import com.emc.vipr.model.sys.backup.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -58,11 +59,6 @@ import com.emc.storageos.systemservices.impl.client.SysClientFactory;
 import com.emc.storageos.management.backup.exceptions.BackupException;
 import com.emc.storageos.management.backup.util.FtpClient;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
-import com.emc.vipr.model.sys.backup.BackupSets;
-import com.emc.vipr.model.sys.backup.BackupUploadStatus;
-import com.emc.vipr.model.sys.backup.BackupRestoreStatus;
-import com.emc.vipr.model.sys.backup.BackupInfo;
-import com.emc.vipr.model.sys.backup.ExternalBackups;
 
 import static com.emc.vipr.model.sys.backup.BackupUploadStatus.Status;
 
@@ -967,5 +963,26 @@ public class BackupService {
         }else {
             return new FtpClient(cfg.getExternalServerUrl(), cfg.getExternalServerUserName(), cfg.getExternalServerPassword());
         }
+    }
+
+    /**
+     *  Query backup related status
+     *  @brief  Query backup related status
+     *
+     * @return backup status
+     */
+    @GET
+    @Path("backup-status")
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR, Role.RESTRICTED_SYSTEM_ADMIN })
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    public BackupStatus queryBackupStatus() {
+        BackupStatus backupStatus = new BackupStatus();
+        backupStatus.setLastManualBackup("backup1", 1485004604, "success");
+        backupStatus.setLastScheduledBackup("backup2", 1485003604, "success");
+        backupStatus.setLastSuccessfulBackup("backup1", 1485004604, "manual");
+        backupStatus.setLastUploadStatus("backup1", 1485004604, "success");
+        backupStatus.setNextScheduledBackup(1485004604);
+        return backupStatus;
+
     }
 }

@@ -5,21 +5,14 @@
 package com.emc.vipr.client.core;
 
 import static com.emc.vipr.client.impl.jersey.ClientUtils.addQueryParam;
-import static com.emc.vipr.client.system.impl.PathConstants.BACKUP_CREATE_URL;
-import static com.emc.vipr.client.system.impl.PathConstants.BACKUP_INFO_URL;
-import static com.emc.vipr.client.system.impl.PathConstants.BACKUP_EXTERNAL_URL;
-import static com.emc.vipr.client.system.impl.PathConstants.BACKUP_PULL_CANCEL_URL;
-import static com.emc.vipr.client.system.impl.PathConstants.BACKUP_PULL_URL;
-import static com.emc.vipr.client.system.impl.PathConstants.BACKUP_UPLOAD_URL;
-import static com.emc.vipr.client.system.impl.PathConstants.BACKUP_URL;
-import static com.emc.vipr.client.system.impl.PathConstants.RESTORE_STATUS_URL;
-import static com.emc.vipr.client.system.impl.PathConstants.RESTORE_URL;
+import static com.emc.vipr.client.system.impl.PathConstants.*;
 
 import javax.ws.rs.core.UriBuilder;
 
 import com.emc.vipr.client.impl.RestClient;
 import com.emc.vipr.model.sys.backup.*;
 import com.emc.vipr.model.sys.backup.BackupSets.BackupSet;
+import com.emc.vipr.model.sys.recovery.DbRepairStatus;
 
 public class Backup {
 	protected final RestClient client;
@@ -131,12 +124,6 @@ public class Backup {
     }
 
     public BackupStatus getBackupStatus() {
-        BackupStatus backupStatus = new BackupStatus();
-        backupStatus.setLastManualBackup("backup1", 1485004604, "success");
-        backupStatus.setLastScheduledBackup("backup2", 1485003604, "success");
-        backupStatus.setLastSuccessfulBackup("backup1", 1485004604, "manual");
-        backupStatus.setLastUploadStatus("backup1", 1485004604, "success");
-        backupStatus.setNextScheduledBackup(1485004604);
-        return backupStatus;
+        return client.get(BackupStatus.class, BACKUP_STATUS_URL);
     }
 }

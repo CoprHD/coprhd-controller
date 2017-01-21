@@ -2868,6 +2868,11 @@ adminDashboard.object=Object
 adminDashboard.blockFileFreeCapacity=Free Block/File/Object
 adminDashboard.disasterRecovery=System Disaster Recovery
 adminDashboard.backupStatus=Backup Status
+adminDashboard.lastSuccessfulBackup=Last Successful Backup
+adminDashboard.lastManualBackup=Last Manual Backup
+adminDashboard.lastScheduledBackup=Last Scheduled Backup
+adminDashboard.nextScheduledBackup=Next Scheduled Backup
+adminDashboard.lastUploadStatus=Last Upload Status
 
 license.model.ViPR_Controller=ViPR Controller
 license.model.ViPR_Object=ViPR Object

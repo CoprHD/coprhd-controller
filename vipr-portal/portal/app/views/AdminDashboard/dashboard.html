@@ -43,7 +43,7 @@
       startUpdating('@{AdminDashboard.version()}', '#versionPanel', 3600);
       startUpdating('@{AdminDashboard.capacity()}', '#capacityPanel', 600);
       startUpdating('@{AdminDashboard.health()}', '#healthPanel', 60);
-      startUpdating('@{AdminDashboard.backupStatus()}', '#backupPanel', 60);
+      startUpdating('@{AdminDashboard.backupStatus()}', '#backupPanel', 600);
       startUpdating('@{AdminDashboard.disasterRecovery()}', '#disasterPanel', 65);
       startUpdating('@{AdminDashboard.physicalAssets()}', '#physicalAssetsPanel', 600);
       startUpdating('@{AdminDashboard.virtualAssets()}', '#virtualAssetsPanel', 600);
@@ -64,18 +64,20 @@
 #{alerts disappear: true/}
 
 <div class="row">
-    <div class="col-sm-4">
+    <div class="col-sm-2">
       #{license.ifController}
         #{include 'AdminDashboard/capacity.html'/}
       #{/license.ifController}
     </div>
-    <div class="col-sm-4">
+    <div class="col-sm-3">
       #{include 'AdminDashboard/physicalAssets.html'/}
       #{include 'AdminDashboard/virtualAssets.html'/}
     </div>
     <div class="col-sm-4">
       #{include 'AdminDashboard/version.html'/}
       #{include 'AdminDashboard/health.html'/}
+      #{include 'AdminDashboard/backupStatus.html'/}
+      #{include 'AdminDashboard/version.html'/}
       #{if isDrConfigured}
         #{include 'AdminDashboard/disasterRecovery.html'/}
       #{/if}

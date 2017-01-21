@@ -11,6 +11,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.concurrent.Callable;
 
+import com.emc.vipr.model.sys.backup.BackupStatus;
 import jobs.vipr.CallableHelper;
 import play.cache.Cache;
 import play.libs.F.Promise;
@@ -109,6 +110,10 @@ public class AdminDashboardUtils {
 
     public static License getLicense() {
         return LicenseUtils.getLicense();
+    }
+
+    public static Promise<BackupStatus> getBackupStatus() {
+        return CallableHelper.createPromise(new BackupStatusCall(getSysClient()));
     }
 
     public static Promise<Integer> storageArrayCount() {
@@ -323,6 +328,19 @@ public class AdminDashboardUtils {
         @Override
         public StorageStats call() throws Exception {
             return client.health().getStorageStats();
+        }
+    }
+
+    public static class BackupStatusCall implements Callable<BackupStatus> {
+        private ViPRSystemClient client;
+
+        public BackupStatusCall(ViPRSystemClient client) {
+            this.client = client;
+        }
+
+        @Override
+        public BackupStatus call() throws Exception {
+            return client.backup().getBackupStatus();
         }
     }
 }

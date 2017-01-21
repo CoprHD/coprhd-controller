@@ -18,12 +18,8 @@ import static com.emc.vipr.client.system.impl.PathConstants.RESTORE_URL;
 import javax.ws.rs.core.UriBuilder;
 
 import com.emc.vipr.client.impl.RestClient;
-import com.emc.vipr.model.sys.backup.BackupRestoreStatus;
-import com.emc.vipr.model.sys.backup.BackupSets;
+import com.emc.vipr.model.sys.backup.*;
 import com.emc.vipr.model.sys.backup.BackupSets.BackupSet;
-import com.emc.vipr.model.sys.backup.BackupUploadStatus;
-import com.emc.vipr.model.sys.backup.BackupInfo;
-import com.emc.vipr.model.sys.backup.ExternalBackups;
 
 public class Backup {
 	protected final RestClient client;
@@ -132,5 +128,10 @@ public class Backup {
         }
 
         return status;
+    }
+
+    public BackupStatus getBackupStatus() {
+        BackupStatus backupStatus = new BackupStatus();
+        return backupStatus;
     }
 }

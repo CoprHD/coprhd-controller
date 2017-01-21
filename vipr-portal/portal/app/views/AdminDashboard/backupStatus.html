@@ -1,52 +1,37 @@
+#{set isActiveSite:controllers.infra.DisasterRecovery.isActiveSite() /}
+
 <div id="backupPanel" >
     <div class="panel panel-default">
         <div class="panel-heading"><h3 class="panel-title">&{'adminDashboard.backupStatus'}</h3></div>
         <div class="panel-body">
-            #{if clusterInfo}
             <dl>
-                <div #{deadbolt.restrict roles:[['SYSTEM_ADMIN'], ['RESTRICTED_SYSTEM_ADMIN']]}onclick="window.location.href = '@{SystemHealth.systemHealth()}';" style="cursor: pointer;"#{/deadbolt.restrict}>
-                <dt class="text-muted">&{'adminDashboard.clusterStatus'}</dt>
+                <div #{deadbolt.restrict roles:[['SYSTEM_ADMIN'], ['RESTRICTED_SYSTEM_ADMIN']]}onclick="window.location.href = '@{Backup.list()}';" style="cursor: pointer;"#{/deadbolt.restrict}>
+                <dt class="text-left">&{'adminDashboard.lastSuccessfulBackup'}</dt>
                 <dd style="margin-top:5px;margin-bottom:5px;">
-                    <span id="clusterState" data-state="${clusterInfo.currentState}"></span>
+                    <span id="lastSuccessfulBackup" data-state="Grace"></span>
+                </dd>
+                <dt class="text-left">&{'adminDashboard.lastManualBackup'}</dt>
+                <dd style="margin-top:5px;margin-bottom:5px;">
+                    <span id="lastManualBackup" data-state="Grace"></span>
+                </dd>
+                <dt class="text-left">&{'adminDashboard.lastScheduledBackup'}</dt>
+                <dd style="margin-top:5px;margin-bottom:5px;">
+                    <span id="lastScheduledBackup" data-state="Grace"></span>
+                </dd>
+                <dt class="text-left">&{'adminDashboard.nextScheduledBackup'}</dt>
+                <dd style="margin-top:5px;margin-bottom:5px;">
+                    <span id="nextScheduledBackup" data-state="Grace"></span>
+                </dd>
+                <dt class="text-left">&{'adminDashboard.lastUploadStatus'}</dt>
+                <dd style="margin-top:5px;margin-bottom:5px;">
+                    <span id="lastUploadStatus" data-state="Grace"></span>
                 </dd>
             </dl>
         </div>
-        #{if clusterInfo?.controlNodes}
-        <dt class="text-muted">&{'adminDashboard.controlNodes'}</dt>
-        <dd>
-            #{list items: clusterInfo.controlNodes.entrySet(), as:'controlNode'}
-            %{
-            node = nodeHealthList.find{it.nodeId == controlNode.key};
-            }%
-            <a href="@{SystemHealth.details(node.nodeId)}" class="#{if 'good'.equalsIgnoreCase(node.status)}text-success#{/if}#{else}text-danger#{/else}"
-            >${node.nodeName}</a>#{if 'Degraded'.equalsIgnoreCase(node.status)} <span class="text-warning">#{icon 'warning-sign'/} ${node.status}</span>#{/if}<br/>
-            #{/list}
-        </dd>
-        #{/if}
-        #{if clusterInfo?.extraNodes}
-        <dt class="text-muted">&{'adminDashboard.extraNodes'}</dt>
-        <dd>
-            #{list items: clusterInfo.extraNodes.entrySet(), as:'extraNode'}
-            %{
-            node = nodeHealthList.find{it.nodeId == extraNode.key};
-            }%
-            <a href="@{SystemHealth.details(node.nodeId)}" class="#{if 'good'.equalsIgnoreCase(node.status)}text-success#{/if}#{else}text-danger#{/else}"
-            >${node.nodeId}</a><br/>
-            #{/list}
-        </dd>
-        #{/if}
-        </dl>
-        #{/if}
-        #{else}
-        <div class="loadingBox">
-            <img src="/public/img/loading-huge.gif" height="64" width="64">
-        </div>
-        #{/else}
     </div>
-    #{if nodeHealthListLastUpdated}
+    #{if backupStatusLastUpdated}
     <div class="panel-footer">
         <small>&{'adminDashboard.lastUpdated'} <span data-format-relative-time="${backupStatusLastUpdated.getTime()}"></span></small>
     </div>
     #{/if}
-</div>
 </div>

@@ -2867,6 +2867,7 @@ adminDashboard.blockCapacity=Block
 adminDashboard.object=Object
 adminDashboard.blockFileFreeCapacity=Free Block/File/Object
 adminDashboard.disasterRecovery=System Disaster Recovery
+adminDashboard.backupStatus=Backup Status
 
 license.model.ViPR_Controller=ViPR Controller
 license.model.ViPR_Object=ViPR Object

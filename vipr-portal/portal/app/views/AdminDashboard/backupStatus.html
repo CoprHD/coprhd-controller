@@ -1,0 +1,41 @@
+<div id="backupPanel" >
+    <div class="panel panel-default">
+        <div class="panel-heading"><h3 class="panel-title">&{'adminDashboard.backupStatus'}</h3></div>
+        <div class="panel-body">
+            #{if dbstatus}
+            <div #{deadbolt.restrict roles:[['SYSTEM_ADMIN'], ['RESTRICTED_SYSTEM_ADMIN']]}onclick="window.location.href = '@{SystemHealth.dbHealth()}';" style="cursor: pointer;"#{/deadbolt.restrict}>
+            <dt class="text-muted"></dt>
+            <dd style="margin-top:5px;margin-bottom:5px;">
+                <span id="dbState" data-state=${dbstatus.status}></span>
+            </dd>
+        </div>
+        #{if dbstatus.status.toString() == 'SUCCESS'}
+        #{if endTime}
+                <script>
+        	 		var endtime = '${endTime}';
+        	 		$('#end').append(formatLocalDateTime(new Date(endtime)));
+            	</script>
+        <span id="end" style="font-size: 1em;">&{'dbstatus.lastCompletionTime'}</span>
+        #{/if}
+        #{/if}
+        #{else}
+        <dd style="font-size: 1em;">${dbstatus?.progress}%</dd>
+        #{if dbstatus.status.toString() != 'NOT_STARTED'}
+        #{if startTime}
+        <script>
+        	 		var starttime = '${startTime}';
+        	 		$('#start').append(formatLocalDateTime(new Date(starttime)));
+             	</script>
+        <span id="start" style="font-size: 1em;">&{'dbstatus.startTime'}</span>
+        #{/if}
+        #{/if}
+        #{/else}
+        #{/if}
+        #{else}
+        <div class="loadingBox">
+            <img src="/public/img/loading-huge.gif" height="64" width="64">
+        </div>
+        #{/else}
+    </div>
+</div>
+</div>

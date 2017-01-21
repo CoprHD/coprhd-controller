@@ -89,10 +89,12 @@ public class BlockOrchestrationDeviceController implements BlockOrchestrationCon
         VolumeCreateWorkflowCompleter completer = new VolumeCreateWorkflowCompleter(volUris, taskId, volumes);
         Workflow workflow = null;
         try {
+	    s_logger.info("in BODC.createVolumes, taskId -> " + taskId);
             // Generate the Workflow.
             workflow = _workflowService.getNewWorkflow(this,
-                    CREATE_VOLUMES_WF_NAME, true, taskId);
-            String waitFor = null; // the wait for key returned by previous call
+                    CREATE_VOLUMES_WF_NAME, false, taskId);
+	    s_logger.info("in BODC.cV, workflow -> " + workflow.toString());
+            String waitFor = null;    // the wait for key returned by previous call
 
             s_logger.info("Generating steps for create Volume");
             // First, call the BlockDeviceController to add its methods.

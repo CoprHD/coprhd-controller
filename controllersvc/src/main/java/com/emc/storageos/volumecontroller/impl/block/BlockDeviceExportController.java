@@ -99,7 +99,12 @@ public class BlockDeviceExportController implements BlockExportController {
     public void exportGroupCreate(URI export, Map<URI, Integer> volumeMap,
             List<URI> initiatorURIs, String opId)
             throws ControllerException {
-        ExportTaskCompleter taskCompleter = new ExportCreateCompleter(export, volumeMap, opId);
+    	boolean passThroughFlag = false;
+    	if(opId.endsWith("direct")) {
+    		passThroughFlag = true;
+    		opId = opId.substring(0, opId.length() - 6);
+    	}
+        ExportTaskCompleter taskCompleter = new ExportCreateCompleter(export, opId);
         Workflow workflow = null;
         try {
             // Do some initial sanitizing of the export parameters
@@ -120,6 +125,7 @@ public class BlockDeviceExportController implements BlockExportController {
                     throw DeviceControllerException.exceptions.failedToAcquireLock(lockKeys.toString(),
                             "ExportGroupCreate: " + exportGroup.getLabel());
                 }
+                if(passThroughFlag) {
 
                 // Initialize the Map of objects to export with all objects.
                 Map<URI, Integer> objectsToAdd = new HashMap<URI, Integer>(entry.getValue());

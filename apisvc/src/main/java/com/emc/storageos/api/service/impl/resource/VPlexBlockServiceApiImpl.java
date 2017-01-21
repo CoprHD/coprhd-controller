@@ -453,16 +453,84 @@ F
         Iterator<String> varrayIter = varrayRecommendationsMap.keySet().iterator();
         while (varrayIter.hasNext()) {
             String varrayId = varrayIter.next();
-            s_logger.info("Processing backend recommendations for Virtual Array {}", varrayId);
-            List<VPlexRecommendation> vplexRecommendations = varrayRecommendationsMap.get(varrayId);
-            List<VolumeDescriptor> varrayDescriptors = makeBackendVolumeDescriptors(
-                    vplexRecommendations, project, vplexProject, vPool, volumeLabel, varrayCount,
-                    size, backendCG, vPoolCapabilities, createTask, task);
-            descriptors.addAll(varrayDescriptors);
-            List<URI> varrayURIs = VolumeDescriptor.getVolumeURIs(varrayDescriptors);
-            allVolumes.addAll(varrayURIs);
-            for (int i = 0; i < varrayURIs.size(); i++) {
-                varrayVolumeURIs[varrayCount][i] = varrayURIs.get(i);
+            s_logger.info("Processing recommendations for Virtual Array {}", varrayId);
+            int volumeCounter = 0;
+            Iterator<VPlexRecommendation> recommendationsIter = varrayRecommendationsMap.get(varrayId)
+                    .iterator();
+            while (recommendationsIter.hasNext()) {
+                VPlexRecommendation recommendation = recommendationsIter.next();
+                URI storageDeviceURI = recommendation.getSourceStorageSystem();
+                URI storagePoolURI = recommendation.getSourceStoragePool();
+                VirtualPool vpool = recommendation.getVirtualPool();
+                s_logger.info("Virtual Pool is {}", vpool.getId().toString());
+                vPoolCapabilities.put(VirtualPoolCapabilityValuesWrapper.AUTO_TIER__POLICY_NAME,
+                        vpool.getAutoTierPolicyName());
+                int resourceCount = recommendation.getResourceCount();
+                s_logger.info("Recommendation is for {} resources in pool {}", resourceCount,
+                        storagePoolURI.toString());
+                List<URI> poolVolumeURIs = new ArrayList<URI>();
+                for (int i = 0; i < resourceCount; i++) {
+                    String newVolumeLabel = generateVolumeLabel(volumeLabel, varrayCount, volumeCounter, resourceCount);
+                    validateVolumeLabel(newVolumeLabel, project);
+
+                    s_logger.info("Volume label is {}", newVolumeLabel);
+                    VirtualArray varray = _dbClient.queryObject(VirtualArray.class,
+                            URI.create(varrayId));
+
+                    long thinVolumePreAllocationSize = 0;
+                    if (null != vpool.getThinVolumePreAllocationPercentage()) {
+                        thinVolumePreAllocationSize = VirtualPoolUtil
+                                .getThinVolumePreAllocationSize(
+                                        vpool.getThinVolumePreAllocationPercentage(), size);
+                    }
+
+                    Volume volume = prepareVolume(VolumeType.BLOCK_VOLUME, null,
+                            size, thinVolumePreAllocationSize, vplexProject,
+                            varray, vpool, storageDeviceURI,
+                            storagePoolURI, newVolumeLabel, backendCG, vPoolCapabilities);
+
+                    // Check if it is RP target or journal volumes
+                    String rpPersonality = vPoolCapabilities.getPersonality();
+                    boolean isRPTargetOrJournal = false;
+                    if (rpPersonality != null && (rpPersonality.equals(PersonalityTypes.TARGET.name())
+                            || rpPersonality.equals(PersonalityTypes.METADATA.name()))) {
+                        s_logger.info("It is RP target or journal volume");
+                        isRPTargetOrJournal = true;
+                    }
+
+                    // Do not set the replicationGroupInstance if the backend volume is on XIO 3.x system which doesn't support CGs
+                    StorageSystem backendSystem = _dbClient.queryObject(StorageSystem.class, storageDeviceURI);
+                    boolean isXIO3xVersion = StorageSystem.Type.xtremio.name().equalsIgnoreCase(backendSystem.getSystemType())
+                            && !XtremIOProvUtils.is4xXtremIOModel(backendSystem.getFirmwareVersion());
+                    // Set replicationGroupInstance if CG's arrayConsistency is true
+                    if (backendCG != null && backendCG.getArrayConsistency() && !isRPTargetOrJournal && !isXIO3xVersion) {
+                        String repGroupInstance = consistencyGroup.getCgNameOnStorageSystem(storageDeviceURI);
+                        if (NullColumnValueGetter.isNullValue(repGroupInstance)) {
+                            repGroupInstance = consistencyGroup.getLabel();
+                        }
+                        volume.setReplicationGroupInstance(repGroupInstance);
+                    }
+
+                    if (consistencyGroup != null) {
+                        volume.setConsistencyGroup(consistencyGroup.getId());
+                    }
+                    volume.addInternalFlags(Flag.INTERNAL_OBJECT);
+                    _dbClient.updateObject(volume);
+
+                    URI volumeId = volume.getId();
+                    s_logger.info("Prepared volume {}", volumeId);
+                    allVolumes.add(volumeId);
+                    varrayVolumeURIs[varrayCount][volumeCounter++] = volumeId;
+                    poolVolumeURIs.add(volume.getId());
+                    VolumeDescriptor descriptor = new VolumeDescriptor(
+                            VolumeDescriptor.Type.BLOCK_DATA, storageDeviceURI, volumeId,
+                            storagePoolURI, backendCG == null ? null : backendCG.getId(),
+                            vPoolCapabilities, size);
+		    s_logger.info("Volume Descriptor INFO {}", descriptor.toString());
+                    descriptors.add(descriptor);
+
+                }
+                poolVolumeMap.put(storagePoolURI, poolVolumeURIs);
             }
             varrayCount++;
         }

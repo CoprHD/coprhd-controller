@@ -60,6 +60,48 @@ public class StorageSystemTypes {
     public static final String[] NON_SMIS_TYPES = { ISILON, VNX_FILE, NETAPP, XTREMIO, VNXe, UNITY, NETAPPC, ECS };
     public static final String[] ALL_FLASH_STORAGE_TYPES = { XTREMIO, VMAX, UNITY };
 
+    public static final StringOption[] OPTIONS = {
+            option(ISILON),
+            option(VNX_FILE),
+            option(NETAPP),
+            option(VNXe),
+            option(NETAPPC),
+            option(ECS),
+            new StringOption(VMAX, getDisplayValue(STORAGE_PROVIDER_VMAX)),
+            new StringOption(VPLEX, getDisplayValue(STORAGE_PROVIDER_VPLEX)),
+            new StringOption(HITACHI, getDisplayValue(STORAGE_PROVIDER_HITACHI)),
+            new StringOption(OPENSTACK, getDisplayValue(STORAGE_PROVIDER_OPENSTACK)),
+            new StringOption(SCALEIOAPI, getDisplayValue(STORAGE_PROVIDER_SCALEIOAPI)),
+            new StringOption(DATA_DOMAIN, getDisplayValue(STORAGE_PROVIDER_DATA_DOMAIN)),
+            new StringOption(IBMXIV, getDisplayValue(STORAGE_PROVIDER_IBMXIV)),
+            new StringOption(XTREMIO, getDisplayValue(STORAGE_PROVIDER_XTREMIO))
+    };
+  /*  public static final StringOption[] ha_OPTIONS = {
+            option(ISILON),
+            option(VNX_FILE),
+            option(NETAPP),
+            option(VNXe),
+            option(NETAPPC),
+            option(ECS),
+            new StringOption(VMAX, getDisplayValue(STORAGE_PROVIDER_VMAX)),
+            new StringOption(VPLEX, getDisplayValue(STORAGE_PROVIDER_VPLEX)),
+            new StringOption(HITACHI, getDisplayValue(STORAGE_PROVIDER_HITACHI)),
+            new StringOption(OPENSTACK, getDisplayValue(STORAGE_PROVIDER_OPENSTACK)),
+            new StringOption(SCALEIOAPI, getDisplayValue(STORAGE_PROVIDER_SCALEIOAPI)),
+            new StringOption(DATA_DOMAIN, getDisplayValue(STORAGE_PROVIDER_DATA_DOMAIN)),
+            new StringOption(IBMXIV, getDisplayValue(STORAGE_PROVIDER_IBMXIV)),
+            new StringOption(XTREMIO, getDisplayValue(STORAGE_PROVIDER_XTREMIO))
+    };
+*/
+    public static final StringOption[] SMIS_OPTIONS = StringOption.options(STORAGE_PROVIDER_TYPES, OPTION_PREFIX);
+    public static final StringOption[] NON_SMIS_OPTIONS = StringOption.options(NON_SMIS_TYPES, OPTION_PREFIX);
+    public static final StringOption[] SSL_DEFAULT_OPTIONS = StringOption.options(new String[] { VNX_BLOCK, VMAX, SCALEIOAPI, VPLEX, VNX_FILE, VNXe,
+            IBMXIV }, OPTION_PREFIX);
+    public static final StringOption[] NON_SSL_OPTIONS = StringOption.options(new String[] { SCALEIO, XTREMIO });
+    public static final StringOption[] MDM_DEFAULT_OPTIONS = StringOption.options(new String[] { SCALEIO, SCALEIOAPI });
+    public static final StringOption[] MDM_ONLY_OPTIONS = StringOption.options(new String[] {SCALEIOAPI});
+    public static final StringOption[] ELEMENT_MANAGER_OPTIONS = StringOption.options(new String[] { SCALEIO });
+
     public static boolean isNone(String type) {
         return NONE.equals(type);
     }

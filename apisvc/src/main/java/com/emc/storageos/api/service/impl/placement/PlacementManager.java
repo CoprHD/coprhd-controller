@@ -5,6 +5,7 @@
 
 package com.emc.storageos.api.service.impl.placement;
 
+
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -24,6 +25,7 @@ import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.VpoolProtectionVarraySettings;
+import com.emc.storageos.model.block.VolumeCreate;
 import com.emc.storageos.db.client.model.VpoolRemoteCopyProtectionSettings;
 import com.emc.storageos.volumecontroller.Recommendation;
 import com.emc.storageos.volumecontroller.SRDFRecommendation;

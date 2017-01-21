@@ -9,8 +9,8 @@
             <tr class="odd ng-scope openRow">
                 <td class="type" height="25px" width="170px">&{'adminDashboard.lastSuccessfulBackup'}: </td>
                 <td class="icon" height="25px" width="25px">
-                #{if 'true'.equalsIgnoreCase('${lastSuccessfulBackup?.opStatus}')}
-                    <span class="text-success">#{icon 'ok-sign'/}</span>
+                #{if backupStatus?.getLastSuccessfulBackup()?.opStatus}
+                    <span class="text-success">#{icon 'ok-sign'/} ${backupStatus?.getLastSuccessfulBackup()?.opStatus}</span>
                 #{/if}
                 </td>
                 <td class="time">
@@ -25,8 +25,8 @@
             <tr class="odd ng-scope openRow">
                 <td class="type" height="25px" width="170px">&{'adminDashboard.lastManualBackup'}: </td>
                 <td class="icon" height="25px" width="25px">
-                    #{if '${lastManualBackup?.opStatus}'}
-                        #{if 'true'.equalsIgnoreCase('${lastManualBackup?.opStatus}')}
+                    #{if backupStatus?.getLastManualBackup()?.opStatus}
+                        #{if 'success'.equalsIgnoreCase('${backupStatus?.getLastManualBackup()?.opStatus}')}
                             <span class="text-success">#{icon 'ok-sign'/}</span>
                         #{/if}
                         #{else}
@@ -50,8 +50,8 @@
             <tr class="odd ng-scope openRow">
                 <td class="type" height="25px" width="170px">&{'adminDashboard.lastScheduledBackup'}: </td>
                 <td class="icon" height="25px" width="25px">
-                    #{if '${lastScheduledBackup?.opStatus}'}
-                        #{if 'true'.equalsIgnoreCase('${lastScheduledBackup?.opStatus}')}
+                    #{if backupStatus?.getLastScheduledBackup()?.opStatus}
+                        #{if 'success'.equalsIgnoreCase('${backupStatus?.getLastScheduledBackup()?.opStatus}')}
                             <span class="text-success">#{icon 'ok-sign'/}</span>
                         #{/if}
                         #{else}
@@ -85,8 +85,8 @@
             <tr class="odd ng-scope openRow">
                 <td class="type" height="25px" width="170px">&{'adminDashboard.lastUploadStatus'}: </td>
                 <td class="icon" height="25px" width="25px">
-                    #{if '${lastUploadStatus?.opStatus}'}
-                        #{if 'true'.equalsIgnoreCase('${lastUploadStatus?.opStatus}')}
+                    #{if backupStatus?.getLastUploadStatus()?.opStatus}
+                        #{if 'true'.equalsIgnoreCase('${backupStatus?.getLastUploadStatus()?.opStatus}')}
                             <span class="text-success">#{icon 'ok-sign'/}</span>
                         #{/if}
                         #{else}

@@ -27,6 +27,7 @@ import com.emc.vipr.client.core.ComputeImages;
 import com.emc.vipr.client.core.ComputeSystems;
 import com.emc.vipr.client.core.ComputeVirtualPools;
 import com.emc.vipr.client.core.CustomConfigs;
+import com.emc.vipr.client.core.CustomServiceClient;
 import com.emc.vipr.client.core.Events;
 import com.emc.vipr.client.core.FileProtectionPolicies;
 import com.emc.vipr.client.core.FileSnapshots;
@@ -244,6 +245,10 @@ public class ViPRCoreClient {
         return new ObjectBuckets(this, client);
     }
 
+    public CustomServiceClient invokeWorkflow() {
+        return new CustomServiceClient(this, client);
+    }
+    
     public ComputeVirtualPools computeVpools() {
         return new ComputeVirtualPools(this, client);
     }

@@ -15,6 +15,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.UUID;
 
@@ -244,6 +245,53 @@ public class VPlexBackendManager {
         _directorToInitiatorIds = getDirectorToInitiatorIds(_initiatorPortMap);
     }
 
+    private void buildDataStructuresDirect(StorageSystem vplex, StorageSystem array, List<URI> networkURIs) {
+
+        // The map of Port WWN to cluster id will be used for validation
+        _portWwnToClusterMap = getPortIdToClusterMap(vplex);
+
+        // Get the initiator port map for this VPLEX and storage system
+        // for the specified network.
+        
+        _initiatorPortMap = getDirectInitiatorPortsForArray(
+                vplex.getId(), array.getId(), networkURIs);
+        _log.info("IN VplexBackendManager.buildDSDirect. _initiatorPortMap : " + _initiatorPortMap.toString());
+
+        _portWwnToNetwork = getPortWwnToNetwork(_initiatorPortMap);
+        _log.info("IN VplexBackendManager.buildDSDirect. _portWwnToNetwork : " + _portWwnToNetwork.toString());
+ 
+        populateNetworkMap(_initiatorPortMap.keySet(), _networkMap);
+
+        // If there are no networks that can be used, error.
+        if (_initiatorPortMap.isEmpty()) {
+            throw DeviceControllerException.exceptions
+                    .noNetworksConnectingVPlexToArray(vplex.getNativeGuid(),
+                            array.getNativeGuid());
+        }
+
+        // Generate maps of wwn to initiators.
+
+        for (URI networkId : _initiatorPortMap.keySet()) {
+            List<StoragePort> ports = _initiatorPortMap.get(networkId);
+            for (StoragePort port : ports) {
+                Initiator initiator = ExportUtils.getInitiator(port.getPortNetworkId(), _dbClient);
+                _log.info("IN, IN VplexBackendManager.buildDSDirect, initiator from ExportUtils" + initiator.toString());
+		if (initiator != null && !initiator.getInactive()
+                        && initiator.getRegistrationStatus().equals(RegistrationStatus.REGISTERED.name())) {
+                    _initiators.add(initiator);
+                    _idToInitiatorMap.put(initiator.getId().toString(), initiator);
+                    _portWwnToInitiatorMap.put(
+                            Initiator.normalizePort(initiator.getInitiatorPort()), initiator);
+                    _initiatorIdToNetwork.put(initiator.getId().toString(), networkId);
+                }
+            }
+        }
+        _directorToInitiatorIds = getDirectorToInitiatorIds(_initiatorPortMap);
+        _log.info("IN VplexBackendManager.buildDSDirect, _directorToInitiatorIds" + _directorToInitiatorIds.toString());
+    }
+
+
+
     /**
      * Choose one of the existing Export Masks (on VMAX: masking views) if possible in
      * which to place the volume to be exported to the VPlex. Otherwise ExportMask(s)
@@ -307,7 +355,7 @@ public class VPlexBackendManager {
             checkForRenamedExportMasks(placementDescriptor.getMasks());
 
             // Apply the filters that will remove any ExportMasks that do not fit the expected VPlex masking paradigm
-            Set<URI> invalidMasks = filterExportMasksByVPlexRequirements(vplex, array, varrayURI, placementDescriptor);
+            Set<URI> invalidMasks = filterExportMasksByVPlexRequirements(vplex, array, varrayURI, placementDescriptor, null);
 
             // If there were any invalid masks found, we can redo the volume placement into
             // an alternative ExportMask (if there are any listed by the descriptor)
@@ -321,7 +369,7 @@ public class VPlexBackendManager {
                 // meeting the
                 // VPlex criteria, or there were no existing masks for the backend at all.
                 Map<URI, Volume> volumesToPlace = placementDescriptor.getVolumesToPlace();
-                createVPlexBackendExportMasksForVolumes(vplex, array, varrayURI, placementDescriptor, invalidMasks, volumesToPlace, stepId);
+                createVPlexBackendExportMasksForVolumes(vplex, array, varrayURI, placementDescriptor, invalidMasks, volumesToPlace, stepId, null);
             } else if (placementDescriptor.hasUnPlacedVolumes()) {
                 _log.info("There were some reusable ExportMasks found, but not all volumes got placed. Will create an ExportMask to " +
                         "hold these unplaced volumes.");
@@ -332,8 +380,7 @@ public class VPlexBackendManager {
                 // We will leave the placement hint to whatever was determined by the suggestExportMasksForPlacement
                 // call
                 Map<URI, Volume> unplacedVolumes = placementDescriptor.getUnplacedVolumes();
-                createVPlexBackendExportMasksForVolumes(vplex, array, varrayURI, placementDescriptor, invalidMasks, unplacedVolumes,
-                        stepId);
+                createVPlexBackendExportMasksForVolumes(vplex, array, varrayURI, placementDescriptor, invalidMasks, unplacedVolumes, stepId, null);
             }
 
             // At this point, we have:
@@ -359,6 +406,96 @@ public class VPlexBackendManager {
         }
     }
 
+ public ExportMaskPlacementDescriptor chooseDirectBackendExportMask(StorageSystem vplex, StorageSystem array, List<URI> networkURIs,
+            Map<Volume,List<URI>> volumeMap, String stepId)
+            throws ControllerException {
+        _log.info(String.format("Searching for existing ExportMasks between Vplex %s (%s) and Array %s (%s) in Network %s",
+                vplex.getLabel(), vplex.getNativeGuid(), array.getLabel(), array.getNativeGuid(), networkURIs));
+        long startTime = System.currentTimeMillis();
+
+        // The volumeMap can contain volumes from different arrays. We are interested only in the ones for 'array'.
+        Map<URI, Volume> volumesForArray = filterVolumeMapDirect(volumeMap, array);
+        
+        // Build the data structures used for analysis and validation.
+        buildDataStructuresDirect(vplex, array, networkURIs);
+
+        VplexBackEndMaskingOrchestrator vplexBackendOrchestrator = getOrch(array);
+        BlockStorageDevice storageDevice = _blockDeviceController.getDevice(array.getSystemType());
+
+        // Lock operation.
+        String lockName = _vplexApiLockManager.getLockName(vplex.getId(), _cluster, array.getId());
+        boolean lockAcquired = false;
+
+        try {
+            if (_vplexApiLockManager != null) {
+                lockAcquired = _vplexApiLockManager.acquireLock(lockName, MAX_LOCK_WAIT_SECONDS);
+                if (!lockAcquired) {
+                    _log.info("Timed out waiting on lock- PROCEEDING ANYWAY!");
+                }
+            }
+            // Initialize the placement data structure
+            ExportMaskPlacementDescriptor placementDescriptor = ExportMaskPlacementDescriptor.create(_tenantURI, _projectURI, vplex,
+                    array, null, volumesForArray, _idToInitiatorMap.values());
+
+            // VplexBackEndMaskingOrchestrator#suggestExportMasksForPlacement should fill in the rest of the
+            // placement data structures, such that decisions on how to reuse the ExportMasks can be done here.
+            // At a minimum, this placement is done based on reading the ExportMasks off the backend array based on the initiators.
+            // Customizations can be done per array based on other factors. Most notably, for the case of VMAX, this would
+            // place volumes in appropriate ExportMasks based on the volume's AutoTieringPolicy relationship.
+            vplexBackendOrchestrator.suggestExportMasksForPlacement(array, storageDevice, _initiators, placementDescriptor);
+
+            // Check if any export mask got renamed, if they did, change the name in the ViPR DB
+            checkForRenamedExportMasks(placementDescriptor.getMasks());
+
+            // Apply the filters that will remove any ExportMasks that do not fit the expected VPlex masking paradigm
+            Set<URI> invalidMasks = filterExportMasksByVPlexRequirements(vplex, array, null, placementDescriptor, networkURIs);
+
+            // If there were any invalid masks found, we can redo the volume placement into
+            // an alternative ExportMask (if there are any listed by the descriptor)
+            putUnplacedVolumesIntoAlternativeMask(placementDescriptor);
+            
+            // Check to see if there are any available ExportMasks that can be used.
+            // If not, we will attempt to generate some.
+            if (!placementDescriptor.hasMasks()) {
+                _log.info("There weren't any ExportMasks in the placementDescriptor. Creating new ExportMasks for the volumes.");
+                // Did not find any reusable ExportMasks. Either there were some that matched initiators, but did not meeting the
+                // VPlex criteria, or there were no existing masks for the backend at all.
+                Map<URI, Volume> volumesToPlace = placementDescriptor.getVolumesToPlace();
+                createVPlexBackendExportMasksForVolumes(vplex, array, null, placementDescriptor, invalidMasks, volumesToPlace, stepId, networkURIs);
+            } else if (placementDescriptor.hasUnPlacedVolumes()) {
+                _log.info("There were some reusable ExportMasks found, but not all volumes got placed. Will create an ExportMask to " +
+                                "hold these unplaced volumes.");
+                // There were some matching ExportMasks found on the backend array, but we also have some unplaced
+                // volumes. We need to create new ExportMasks to hold these unplaced volumes.
+
+                // We will leave the placement hint to whatever was determined by the suggestExportMasksForPlacement call
+                Map<URI, Volume> unplacedVolumes = placementDescriptor.getUnplacedVolumes();
+                createVPlexBackendExportMasksForVolumes(vplex, array, null, placementDescriptor, invalidMasks, unplacedVolumes, stepId, networkURIs);
+            }
+
+            // At this point, we have:
+            //
+            // a). Requested that the backend StorageArray provide us with a list of ExportMasks that can support the initiators + volumes.
+            // b). Processed the suggested ExportMasks in case they had their names changed
+            // c). Filtered out any ExportMasks that do not fit the VPlex masking paradigm
+            // OR
+            // d). Created a set of new ExportMasks to support the initiators + volumes
+            //
+            // We will now run the final placement based on a strategy determined by looking at the placementDescriptor
+            VPlexBackendPlacementStrategyFactory.create(_dbClient, placementDescriptor).execute();
+            long elapsed = System.currentTimeMillis() - startTime;
+            _log.info(String.format("PlacementDescriptor processing took %f seconds", (double) elapsed / (double) 1000));
+            _log.info(String.format("PlacementDescriptor was created:%n%s", placementDescriptor.toString()));
+            return placementDescriptor;
+
+        } finally {
+            if (lockAcquired) {
+                _vplexApiLockManager.releaseLock(lockName);
+            }
+        }
+    }
+
+
     /**
      * Validate the mask for only non OpenStack storage systems now.
      * For OpenStack, Export Mask will get validated later before the zoning step
@@ -372,17 +509,23 @@ public class VPlexBackendManager {
     private void validateMaskAndPlaceVolumes(StorageSystem array, URI varrayURI,
             Map<URI, ExportMask> maskSet, Set<URI> invalidMasks,
             ExportMask mask, ExportMaskPlacementDescriptor placementDescriptor,
-            Map<URI, Volume> volumeMap, String logMsg) {
+            Map<URI, Volume> volumeMap, String logMsg, List<URI> networkURIs) {
 
         if (!isOpenStack(array)) {
 
             _log.info(logMsg);
-            if (VPlexBackEndOrchestratorUtil.validateExportMask(varrayURI,
+            if (varrayURI!=null && VPlexBackEndOrchestratorUtil.validateExportMask(varrayURI,
                     _initiatorPortMap, mask, invalidMasks,
                     _directorToInitiatorIds, _idToInitiatorMap, _dbClient, _coordinator, _portWwnToClusterMap)) {
                 maskSet.put(mask.getId(), mask);
                 placementDescriptor.placeVolumes(mask.getId(), volumeMap);
+            }else if (networkURIs!=null && VPlexBackEndOrchestratorUtil.validateExportMaskDirect(networkURIs,
+                    _initiatorPortMap, mask, invalidMasks,
+                    _directorToInitiatorIds, _idToInitiatorMap, _dbClient, _portWwnToClusterMap)) {
+                maskSet.put(mask.getId(), mask);
+                placementDescriptor.placeVolumes(mask.getId(), volumeMap);
             }
+
             // Any ExportMasks that were found to be invalid based on validateExportMask()
             // above, should be marked as such in the PlacementDescriptor.
             for (URI invalidMask : invalidMasks) {
@@ -511,6 +654,89 @@ public class VPlexBackendManager {
 
         return initiatorMap;
     }
+
+  /**
+     * Returns the Storage Ports on a VPlex that should be used for a particular
+     * storage array. This is done by finding ports in the VPlex and array that have
+     * common Networks. Returns a map of NetworkURI to List<StoragePort>.
+     * 
+     * @param vplexURI The URI of a VPLEX storage system
+     * @param arrayURI The URI of a connected backend storage system.
+     * @param networkURI The URI of the network connecting the backend array to the VPLEX.
+     * 
+     * @return Map<URI, List<StoragePort>> A map of Network URI to a List<StoragePort>
+     */
+    Map<URI, List<StoragePort>> getDirectInitiatorPortsForArray(URI vplexURI,
+            URI arrayURI, List<URI> networkURIs) throws ControllerException {
+
+        
+        // First, determine what Transport Zones contain VPlex backend initiators.
+        Map<URI, List<StoragePort>> vplexInitiatorMap = ConnectivityUtil.getStoragePortsOfType(_dbClient,
+                vplexURI, StoragePort.PortType.backend);
+
+        // Eliminate any VPLEX storage ports that are not explicitly assigned
+        // or implicitly connected to the passed varray.
+        Set<URI> vplexInitiatorNetworks = new HashSet<URI>();
+        vplexInitiatorNetworks.addAll(vplexInitiatorMap.keySet());
+        Iterator<URI> vplexInitiatorNetworksIter = vplexInitiatorNetworks.iterator();
+        while (vplexInitiatorNetworksIter.hasNext()) {
+            URI vplexNetworkURI = vplexInitiatorNetworksIter.next();
+            
+
+            // If this network does not match the BE network passed in then
+            // remove the entry from the VPLEX initiator port map.
+            if (!networkURIs.contains(vplexNetworkURI)) {
+                vplexInitiatorMap.remove(vplexNetworkURI);
+            }
+        }
+
+        // Check to see that there are not ports remaining from both clusters.
+        Set<String> clusterSet = new HashSet<String>();
+        for (URI vplexNetworkURI : vplexInitiatorMap.keySet()) {
+            for (StoragePort port : vplexInitiatorMap.get(vplexNetworkURI)) {
+                String cluster = ConnectivityUtil.getVplexClusterOfPort(port);
+                clusterSet.add(cluster);
+            }
+        }
+        if (clusterSet.size() > 1) {
+            _log.error(String.format(
+                    "Invalid network configuration: Vplex %s has back-end ports from more than one cluster in same Network %s",
+                    vplexURI, networkURIs));
+            throw DeviceControllerException.exceptions.vplexNetworkMixedClusters(
+                    networkURIs.toString(), vplexURI.toString());
+        }
+        _cluster = clusterSet.iterator().next(); // Record our current cluster.
+
+        // Then get the front end ports on the Storage array.
+        Map<URI, List<StoragePort>> arrayTargetMap = ConnectivityUtil.getStoragePortsOfType(_dbClient,
+                arrayURI, StoragePort.PortType.frontend);
+        _log.info("In VPlexBackendManager.getDirectInitiatorPortsForArray, 1 arrayTargetMap {}", arrayTargetMap.toString());
+        // Eliminate any storage ports that are not explicitly assigned
+        // or implicitly connected to the passed network.
+        Set<URI> arrayTargetNetworks = new HashSet<URI>();
+        arrayTargetNetworks.addAll(arrayTargetMap.keySet());
+        Iterator<URI> arrayTargetNetworksIter = arrayTargetNetworks.iterator();
+        while (arrayTargetNetworksIter.hasNext()) {
+            URI arrayNetworkURI = arrayTargetNetworksIter.next();
+            
+            // If the entry for this network is now empty then
+            // remove the entry from the target storage port map.
+            if (!networkURIs.contains(arrayNetworkURI)) {
+                arrayTargetMap.remove(arrayNetworkURI);
+            }
+        }
+
+      
+	_log.info("In VPlexBackendManager.getDirectInitiatorPortsForArray, vplexInitiatorMap : {} &&&&&&& arrayTargetMap :{}", vplexInitiatorMap.toString(), arrayTargetMap.toString());
+        // If there are no initiator ports, fail the operation, because we cannot zone.
+        if (vplexInitiatorMap.isEmpty()||arrayTargetMap.isEmpty()) {
+            throw VPlexApiException.exceptions.getInitiatorPortsForArrayFailed(vplexURI.toString(),
+                    arrayURI.toString());
+        }
+
+        return vplexInitiatorMap;
+    }
+
 
     /**
      * Compute the number of paths to use on the back end array.
@@ -797,8 +1023,12 @@ public class VPlexBackendManager {
         Map<URI, List<StoragePort>> map = new HashMap<URI, List<StoragePort>>();
 
         // find all the available storage ports
-        Map<NetworkLite, List<StoragePort>> tempMap = _blockStorageScheduler
-                .selectStoragePortsInNetworks(array.getId(), networks, varray, null);
+        Map<NetworkLite, List<StoragePort>> tempMap = null;
+        if (varray!=null){
+            tempMap = _blockStorageScheduler.selectStoragePortsInNetworks(array.getId(), networks, varray, null);
+       } else {
+	     tempMap = _blockStorageScheduler.selectPassThroughStoragePortsInNetworks(array.getId(), networks,  null);
+       }
 
         // if the user requests to use only pre-zoned ports, then filter to pre-zoned ports only
         if (_networkDeviceController.getNetworkScheduler().portAllocationUseExistingZones(array.getSystemType(), true)) {
@@ -836,6 +1066,8 @@ public class VPlexBackendManager {
                 }
             }
         }
+	_log.info("IN VplexBackendManager.generateExportMask, exportMask.getInitiator : {}",exportMask.getInitiators());
+        _log.info("IN VplexBackendManager.generateExportMask, exportMask.getToUserCreatedInitiators : {}",exportMask.getUserAddedInitiators());
         // Add all the ports in the Port Group
         for (URI networkURI : portGroup.keySet()) {
             for (List<StoragePort> portList : portGroup.get(networkURI)) {
@@ -1019,15 +1251,21 @@ public class VPlexBackendManager {
     }
 
     public Map<ExportMask, ExportGroup> generateExportMasks(
-            URI varrayURI, StorageSystem vplex, StorageSystem array, String stepId) {
+            URI varrayURI, StorageSystem vplex, StorageSystem array, String stepId, List<URI> networkURIs) {
         // Build the data structures used for analysis and validation.
+       if (varrayURI!=null){
         buildDataStructures(vplex, array, varrayURI);
+       }else {
+    	  _log.info("IN VplexBackendManager.generateExportMasks .Entering buildDataStructuresDirect");
+ 	 buildDataStructuresDirect(vplex, array, networkURIs);
+       }
 
         // Assign initiators to hosts
         String clusterName = getClusterName(vplex);
         Set<Map<String, Map<URI, Set<Initiator>>>> initiatorGroups = getInitiatorGroups(clusterName, _directorToInitiatorIds,
                 _initiatorIdToNetwork, _idToInitiatorMap,
                 array.getSystemType().equals(SystemType.vnxblock.name()), false);
+        	_log.info("IN VplexBackendManager.generateExportMasks 1 initiatorGroup : {}", initiatorGroups);
 
         // First we must determine the Initiator Groups and PortGroups to be used.
         VplexBackEndMaskingOrchestrator orca = getOrch(array);
@@ -1063,10 +1301,12 @@ public class VPlexBackendManager {
             _log.info("Generating ExportMask: " + maskName);
             if (!igIterator.hasNext()) {
                 igIterator = initiatorGroups.iterator();
+                _log.info("IN VplexBackendManager.generateExportMasks 3 initiatorGroup : {}", initiatorGroups);
             }
             Map<String, Map<URI, Set<Initiator>>> initiatorGroup = igIterator.next();
-            StringSetMap zoningMap = orca.configureZoning(portGroup, initiatorGroup, _networkMap, assigner, 
-                    initiatorSwitchMap, switchStoragePortsMap, portSwitchMap);
+	    _log.info("IN VplexBackendManager.generateExportMasks 4 initiatorGroup : {}", initiatorGroup);
+	    _log.info("IN VplexBackendManager.generateExportMasks 5 initiatorGroup : {}",initiatorGroup.toString());
+            StringSetMap zoningMap = orca.configureZoning(portGroup, initiatorGroup, _networkMap, assigner);
             ExportMask exportMask = generateExportMask(array.getId(), maskName, portGroup, initiatorGroup, zoningMap);
 
             // Set a flag indicating that we do not want to remove zoningMap entries
@@ -1085,8 +1325,8 @@ public class VPlexBackendManager {
             // Create an ExportGroup for the ExportMask.
             List<Initiator> initiators = new ArrayList<Initiator>();
             for (String director : initiatorGroup.keySet()) {
-                for (URI networkURI : initiatorGroup.get(director).keySet()) {
-                    for (Initiator initiator : initiatorGroup.get(director).get(networkURI)) {
+                for (URI networkId : initiatorGroup.get(director).keySet()) {
+                    for (Initiator initiator : initiatorGroup.get(director).get(networkId)) {
                         initiators.add(initiator);
                     }
                 }
@@ -1271,6 +1511,7 @@ public class VPlexBackendManager {
         if (dualIG) {
             initiatorGroups.add(ig2);
         }
+	_log.info("IN VplexBackendManager.getInitiatorGroups 11 initiatorGroup : {}", initiatorGroups);
         return initiatorGroups;
     }
 
@@ -1385,7 +1626,7 @@ public class VPlexBackendManager {
      * @return Set of ExportMask URIs that did not meet the selection criteria
      */
     private Set<URI> filterExportMasksByVPlexRequirements(StorageSystem vplex, StorageSystem array, URI varrayURI,
-            ExportMaskPlacementDescriptor placementDescriptor) {
+            ExportMaskPlacementDescriptor placementDescriptor, List<URI> networkURIs) {
         // The main inputs to this function come from within the placementDescriptor. The expectation is that the call
         // to get the suggested ExportMasks to reuse has already been called
         Map<URI, ExportMask> maskSet = placementDescriptor.getMasks();
@@ -1405,7 +1646,8 @@ public class VPlexBackendManager {
             _log.info(String.format("Validating ExportMask %s (%s) %s", mask.getMaskName(), mask.getId(),
                     (mask.getCreatedBySystem() ? "ViPR created" : "Externally created")));
             // No necessary to skip here for Openstack, as cinder backend orchestrator returns the empty set
-            if (VPlexBackEndOrchestratorUtil.validateExportMask(varrayURI, _initiatorPortMap, mask, invalidMasks,
+	    if (varrayURI == null){
+            if (VPlexBackEndOrchestratorUtil.validateExportMaskDirect(networkURIs, _initiatorPortMap, mask, invalidMasks,            
                     _directorToInitiatorIds, _idToInitiatorMap, _dbClient, _coordinator, _portWwnToClusterMap)) {
                 if (mask.getCreatedBySystem()) {
                     viprCreatedMasks = true;
@@ -1413,6 +1655,18 @@ public class VPlexBackendManager {
                     externallyCreatedMasks = true;
                 }
             }
+		}else {
+		if (VPlexBackEndOrchestratorUtil.validateExportMask(varrayURI, _initiatorPortMap, mask, invalidMasks,
+                    _directorToInitiatorIds, _idToInitiatorMap, _dbClient, _portWwnToClusterMap)) {
+                if (mask.getCreatedBySystem()) {
+                    viprCreatedMasks = true;
+                } else {
+                    externallyCreatedMasks = true;
+                }
+               }
+            }
+
+
         }
         for (URI invalidMask : invalidMasks) {
             placementDescriptor.invalidateExportMask(invalidMask);
@@ -1435,7 +1689,7 @@ public class VPlexBackendManager {
                 }
                 validateMaskAndPlaceVolumes(array, varrayURI, maskSet, invalidMasks, mask,
                         placementDescriptor, volumeMap, String.format("Validating uninitialized ViPR ExportMask %s (%s)",
-                                mask.getMaskName(), mask.getId()));
+                                mask.getMaskName(), mask.getId()), networkURIs);
             }
         }
 
@@ -1467,7 +1721,7 @@ public class VPlexBackendManager {
      */
     private void createVPlexBackendExportMasksForVolumes(StorageSystem vplex, StorageSystem array, URI varrayURI,
             ExportMaskPlacementDescriptor placementDescriptor, Set<URI> invalidMasks, Map<URI, Volume> volumes,
-            String stepId) throws VPlexApiException {
+            String stepId, List<URI> networkURIs) throws VPlexApiException {
         Map<URI, ExportMask> maskSet = placementDescriptor.getMasks();
 
         if (!invalidMasks.isEmpty()) {
@@ -1477,7 +1731,7 @@ public class VPlexBackendManager {
             _log.info("Did not find any existing export masks");
         }
         _log.info("Attempting to generate ExportMasks...");
-        Map<ExportMask, ExportGroup> generatedMasks = generateExportMasks(varrayURI, vplex, array, stepId);
+        Map<ExportMask, ExportGroup> generatedMasks = generateExportMasks(varrayURI, vplex, array, stepId, networkURIs);
         if (generatedMasks.isEmpty()) {
             _log.info("Unable to generate any ExportMasks");
             throw VPlexApiException.exceptions.couldNotGenerateArrayExportMask(
@@ -1487,7 +1741,7 @@ public class VPlexBackendManager {
         for (ExportMask mask : generatedMasks.keySet()) {
             validateMaskAndPlaceVolumes(array, varrayURI, maskSet, invalidMasks, mask,
                     placementDescriptor, volumes, String.format("Validating generated ViPR Export Mask %s (%s)",
-                            mask.getMaskName(), mask.getId()));
+                            mask.getMaskName(), mask.getId()), networkURIs);
         }
 
         if (maskSet.isEmpty()) {
@@ -1508,9 +1762,10 @@ public class VPlexBackendManager {
      */
     private Map<URI, Volume> filterVolumeMap(Map<URI, Volume> volumeMap, StorageSystem array) {
         Map<URI, Volume> filteredMap = new HashMap<>();
-        for (Volume volume : volumeMap.values()) {
+        for (Map.Entry<URI,Volume> volumeEntry : volumeMap.entrySet()) {
+            Volume volume = volumeEntry.getValue();
             if (volume.getStorageController().equals(array.getId())) {
-                filteredMap.put(volume.getId(), volume);
+                filteredMap.put(volumeEntry.getKey(), volume);
             }
         }
         return filteredMap;
@@ -1579,5 +1834,24 @@ public class VPlexBackendManager {
         }
         return result;
     }
+
+    /**
+     * Filter the list 'volumeMap', so that only a map of those volumes that belong to the 'array' are returned.
+     * 
+     * @param volumeMap [IN] - Map of Volume URI to Volume Object
+     * @param array [IN] - StorageSystem object
+     * @return Map of URI to Volume. All the entries in the map are volumes that should be exported on the 'array'.
+     */
+    private Map<URI, Volume> filterVolumeMapDirect(Map<Volume, List<URI>> volumeMap, StorageSystem array) {
+        Map<URI, Volume> filteredMap = new HashMap<>();
+        for (Map.Entry<Volume,List<URI>> volumeEntry : volumeMap.entrySet()) {
+            Volume volume = volumeEntry.getKey();
+            if (volume.getStorageController().equals(array.getId())) {
+                filteredMap.put(volume.getId(),volume);
+            }
+        }
+        return filteredMap;
+    }
+
 
 }

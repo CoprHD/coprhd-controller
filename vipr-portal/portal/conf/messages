@@ -58,7 +58,7 @@ nav.storage=Resources
 nav.virtualStorage=Virtual
 nav.object=Object
 nav.settings=System
-nav.driver=Direct Driver
+nav.driver=Workflow Designer
 nav.block=Block
 nav.block.volumes=Volumes
 nav.block.consistencygroups=Consistency Groups
@@ -109,6 +109,8 @@ nav.tasks=Tasks
 nav.events=Actionable Events
 # Subnavigation
 nav.createDriver=Create and Export Direct Volume
+nav.listDriver=Direct Volumes
+nav.exportDriver=Direct Exports
 nav.vdcs=Virtual Data Centers
 nav.projects=Projects
 nav.schedulepolicies=Schedule Policies
@@ -152,7 +154,12 @@ nav.mobilityGroups=Mobility Groups
 nav.disasterRecovery=System Disaster Recovery
 nav.disasterRecovery.obsoleteWarning=Obsolete site
 nav.ipsec=IPsec
+nav.customWorkflow=Workflow Modeler
 nav.storageDrivers=Storage Drivers
+
+diagram.crud.title=Workflow Diagrams
+diagrams.name=Name
+customWorkflow.title=Workflow Modeler
 
 # Override messages in the Secure plugin
 secure.title=
@@ -289,12 +296,28 @@ PoolAssignment.manual=Manual
 #Direct Driver
 CreateVolume.direct.description = Enter information needed to create volume
 volume.arrayType=Storage System Type
-volume.ipAddress=Storage System Name
+volume.project = Projects
+volume.arrayTypeForVplex = Backend Storage System Type
+volume.ipAddress=System Name
+volume.ipAddressForVplex = Storage System
+volume.ipAddress2=High Availability Storage System Name
+volume.ha=High Availability
+
 volume.hosts=Hosts
 volume.name = Name
 volume.pool = Storage Pool
+volume.poolForVplex = Storage Pool
+volume.pool2 = High Availability Storage Pool
 volume.size=Size(in GB)
 volume.count=Count
+
+directVolume.name = Volume Name
+directVolume.storage=Storage System
+directVolume.pool=Storage Pool
+directVolume.size=Size
+directVolume.host=Hosts
+directVolume.volume=Volumes
+
 
 StorageSystemType.NONE=None
 StorageSystemType.vmax=EMC VMAX
@@ -4189,6 +4212,7 @@ button.download=Download
 button.activate=Activate
 button.restore=Restore
 button.save=Save
+button.deploy=Deploy
 button.done=Done
 button.ok=OK
 button.remove=Remove

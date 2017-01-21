@@ -16,7 +16,7 @@
 <header>
   <nav class="navbar navbar-inverse navbar-fixed-top" role="navigation">
     <div class="navbar-header">
-      <a class="navbar-brand">#{Branding.applicationName/}</a>
+      <a class="navbar-brand" href="@{Dashboard.index()}">#{Branding.applicationName/}</a>
       #{if isActiveSite }
         #{if isMultiDrSite}
           <span class="navbar-brand" style="background-color:#d8d9d8">Active Site: ${localSiteName}</span>
@@ -342,9 +342,12 @@
   
   
 #{deadbolt.restrict roles:[['SECURITY_ADMIN'],['RESTRICTED_SECURITY_ADMIN'], ['SYSTEM_ADMIN'], ['RESTRICTED_SYSTEM_ADMIN'], ['SYSTEM_MONITOR'], ['SYSTEM_AUDITOR']]}
-    #{nav.menu 'driver', icon:'vipricon-settings'}
+    #{nav.menu 'driver', icon:'vipricon-san-multiplan'}
     #{nav.menuSection 'nav.driver'}
     #{nav.item 'createDriver', href: @infra.DirectDriver.createDirecVolume()/}
+    #{nav.item 'listDriver', href:@infra.DirectDriver.list()/}
+    #{nav.item 'exportDriver' , href:@infra.DirectDriver.export()/}
+	#{nav.item 'customWorkflow', href: @catalog.CustomWorkflow.diagrams()/}
     #{/nav.menuSection} 
 	#{/nav.menu}
   #{/deadbolt.restrict}

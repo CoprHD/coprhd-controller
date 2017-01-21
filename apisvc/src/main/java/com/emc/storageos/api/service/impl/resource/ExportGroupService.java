@@ -264,14 +264,68 @@ public class ExportGroupService extends TaskResourceService {
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     public TaskResourceRep createExportGroup(ExportCreateParam param) throws ControllerException {
-
+        _log.info("Reached the createExportGroup function...");
         // Validate count of number of volumes to export
         if (param.getVolumes() != null && param.getVolumes().size() > MAX_VOLUME_COUNT) {
             throw APIException.badRequests.exceedingLimit("count", MAX_VOLUME_COUNT);
         }
-
+        _log.info("Passed the createExportGroup function...");
         // validate input for the type of export
         validateCreateInputForExportType(param);
+
+        Project project = queryObject(Project.class, param.getProject(), true);
+ 
+        // Validate the project and check its permissions
+        
+        StorageOSUser user = getUserFromContext();
+        if (!(_permissionsHelper.userHasGivenRole(user, project.getTenantOrg().getURI(), Role.TENANT_ADMIN) || _permissionsHelper
+                .userHasGivenACL(user, project.getId(), ACL.OWN, ACL.ALL))) {
+            throw APIException.forbidden.insufficientPermissionsForUser(user.getName());
+        }
+        
+        // Validate the varray and check its permissions
+        VirtualArray neighborhood = _dbClient.queryObject(VirtualArray.class, param.getVarray());
+        _permissionsHelper.checkTenantHasAccessToVirtualArray(project.getTenantOrg().getURI(), neighborhood);
+
+        //Add check for PassThroughParam
+        if (param.getExportPassThroughParam() != null && !param.getExportPassThroughParam().isEmpty()){
+
+                String passThroughParam = param.getExportPassThroughParam();
+
+                if (passThroughParam.equalsIgnoreCase("direct")) {
+
+                        ExportGroup exportGroup = preparePassThroughExportGroup(project,param);
+
+                        Map<URI, Map<URI, Integer>> storageMap = new HashMap<URI, Map<URI, Integer>>();
+                        Map<URI, Integer> volumeMap = validatePassThroughBlockObjectsAndGetMap(param.getVolumes(), exportGroup, storageMap, true);
+                        _log.info("Computed storage map: {} volumes in {} storage systems: {}",
+                        new Object[] { volumeMap.size(), storageMap.size(), storageMap.keySet().toArray() });
+
+                        String task = UUID.randomUUID().toString();
+                         Operation.Status status = storageMap.isEmpty() ? Operation.Status.ready : Operation.Status.pending;
+
+                        _dbClient.createObject(exportGroup);
+
+                        Operation op = initTaskStatus(exportGroup, task, status, ResourceOperationTypeEnum.CREATE_EXPORT_GROUP);
+
+                        // persist the export group to the database
+                        auditOp(OperationTypeEnum.CREATE_EXPORT_GROUP, true, AuditLogManager.AUDITOP_BEGIN,
+                        param.getName(), "dummy_vArray", "dummy_Project");
+
+                        TaskResourceRep taskRes = toTask(exportGroup, task, op);
+
+                        CreateExportGroupSchedulingThread.executePassThroughApiTask(this, _asyncTaskService.getExecutorService(), _dbClient, neighborhood , project,
+                        exportGroup, storageMap, param.getClusters(), param.getHosts(),
+                        param.getInitiators(), volumeMap, param.getExportPathParameters(), task, taskRes);
+
+                        _log.info("Kicked off thread to perform direct export create scheduling. Returning task: " + taskRes.getId());
+
+                        return taskRes;
+                }
+                else {
+                        throw APIException.badRequests.parameterValueIsNotValid("passThroughParam");
+                }
+        }
 
         // Validate that the create is not attempting to add VPLEX
         // backend volumes to a group.
@@ -297,9 +351,6 @@ public class ExportGroupService extends TaskResourceService {
             throw APIException.forbidden.insufficientPermissionsForUser(user.getName());
         }
 
-        // Validate the varray and check its permissions
-        VirtualArray neighborhood = _dbClient.queryObject(VirtualArray.class, param.getVarray());
-        _permissionsHelper.checkTenantHasAccessToVirtualArray(project.getTenantOrg().getURI(), neighborhood);
 
         validateBlockSnapshotsForExportGroupCreate(param);
 
@@ -659,7 +710,50 @@ public class ExportGroupService extends TaskResourceService {
             Map<URI, String> systemURIToSystemTypeMap = new HashMap<>();
             // add volumes/snapshot to export group
             for (VolumeParam volumeParam : volumes) {
-                BlockObject block = getAndValidateVolume(exportGroup, volumeParam.getId());
+            	BlockObject block = getAndValidateVolume(exportGroup, volumeParam.getId());
+                Integer lun = volumeParam.getLun();
+                if (block != null) {
+                    if (block instanceof BlockSnapshot) {
+                        BlockSnapshot snapshot = (BlockSnapshot) block;
+                        checkIfOpenStackSnapshot(snapshot);
+                        checkForActiveBlockSnapshot(snapshot);
+                    } else if (block instanceof Volume) {
+                        // ignore user specified HLU for cinder volume
+                        if (lun != ExportGroup.LUN_UNASSIGNED
+                                && isCinderVolume((Volume) block, systemURIToSystemTypeMap)) {
+                            _log.info("User specified HLU ({}) is ignored for cinder type volume"
+                                    + " since Cinder API does not take HLU while exporting.", lun);
+                            lun = ExportGroup.LUN_UNASSIGNED;
+                        }
+                    }
+                }
+                exportGroup.addVolume(volumeParam.getId(), lun);
+            }
+        }
+
+        storageMap.putAll(ExportUtils.getStorageToVolumeMap(exportGroup, false, _dbClient));
+
+        // get volumes
+        Map<URI, Integer> volumeMap = new HashMap<URI, Integer>();
+        for (URI storage : storageMap.keySet()) {
+            volumeMap.putAll(storageMap.get(storage));
+        }
+        return volumeMap;
+    }
+    
+    private Map<URI, Integer> validatePassThroughBlockObjectsAndGetMap(List<VolumeParam> volumes,
+            ExportGroup exportGroup, Map<URI, Map<URI, Integer>> storageMap, boolean directBitSet) {
+        if (volumes != null) {
+            // validate volumes Lun Ids
+            validateVolumeLunIdParam(volumes);
+
+            Map<URI, String> systemURIToSystemTypeMap = new HashMap<>();
+            // add volumes/snapshot to export group
+            for (VolumeParam volumeParam : volumes) {
+            	BlockObject block = BlockObject.fetch(_dbClient, volumeParam.getId());
+            	if (block == null || block.getInactive()) {
+                    throw APIException.badRequests.invalidParameterVolumeExportMismatch(volumeParam.getId(), exportGroup.getId());
+                }
                 Integer lun = volumeParam.getLun();
                 if (block != null) {
                     if (block instanceof BlockSnapshot) {
@@ -713,7 +807,7 @@ public class ExportGroupService extends TaskResourceService {
      * Check if OpenStack snapshot and throw error
      * since snapshot export is not supported for OpenStack systems.
      *
-     * @param BLOCK the block snapshot
+     * @param block the block snapshot
      */
     private void checkIfOpenStackSnapshot(BlockSnapshot snapshot) {
         if (TechnologyType.NATIVE.toString().equalsIgnoreCase(snapshot.getTechnologyType())) {
@@ -727,7 +821,7 @@ public class ExportGroupService extends TaskResourceService {
     /**
      * Validate the blocksnapshot is active for export, if one is being exported
      *
-     * @param BLOCK - BlockSnapshot object to export
+     * @param block - BlockSnapshot object to export
      */
     private void checkForActiveBlockSnapshot(BlockSnapshot snapshot) {
         if (!TechnologyType.RP.toString().equalsIgnoreCase(snapshot.getTechnologyType())) {
@@ -1109,7 +1203,9 @@ public class ExportGroupService extends TaskResourceService {
             Set<URI> initiatorsHost = new HashSet<URI>(1);
             for (URI initiatorUri : initiators) {
                 Initiator initiator = queryObject(Initiator.class, initiatorUri, true);
+		_log.info("IN EGS initiator :  {}" , initiator);
                 if (initiator.getHost() == null || NullColumnValueGetter.isNullURI(initiator.getHost())) {
+		    _log.info("IN ExportGroupService initiator.host :{}     isNullURI : {} " , initiator.getHost() , NullColumnValueGetter.isNullURI(initiator.getHost()));
                     throw APIException.badRequests.cannotExportInitiatorWithNoCompute(exportGroup.getLabel(), initiator.getInitiatorPort());
                 }
                 validateInitiatorRegistered(initiator);
@@ -1152,6 +1248,71 @@ public class ExportGroupService extends TaskResourceService {
 
         // Validate the Host Operating Systems
         validateInitiatorHostOS(new HashSet(allInitiators));
+        _log.info("All clients were found to be valid.");
+        // now set the initiators to the export group before saving it
+        exportGroup.setInitiators(StringSetUtil.uriListToStringSet(allInitiators));
+        exportGroup.setHosts(StringSetUtil.uriListToStringSet(allHosts));
+        return allInitiators;
+    }
+
+    /**
+     * Validate the input data for clusters, hosts and initiators for {@link #createExportGroup(ExportCreateParam)}
+     *
+     * @param exportGroup the export group to populate
+     * @param project the export group project
+     * @param varray the export group varray
+     * @param storageSystems the storage systems the export group has block object in
+     * @param clusters the list of clusters to validate
+     * @param hosts the list of hosts to validate
+     * @param initiators the list of initiators to validate
+     * @param volumes The list of volumes being exported (used to calculate numPaths)
+     * @param pathParam Optional ExportPathParameters block (ignored if null)
+     * @return the aggregate list of initiators needed to export all the hosts and clusters and initiators
+     */
+    List<URI> validatePassThroughClientsAndPopulate(ExportGroup exportGroup,
+            Collection<URI> storageSystems, List<URI> clusters, List<URI> hosts, List<URI> initiators, Collection<URI> volumes, ExportPathParameters pathParam) {
+        List<URI> allInitiators = new ArrayList<URI>();
+        List<URI> allHosts = new ArrayList<URI>();
+        if (initiators != null && !initiators.isEmpty()) {
+            List<Initiator> temp = new ArrayList<Initiator>();
+            Set<URI> initiatorsHost = new HashSet<URI>(1);
+            for (URI initiatorUri : initiators) {
+                Initiator initiator = queryObject(Initiator.class, initiatorUri, true);
+      //          if (initiator.getHost() == null || NullColumnValueGetter.isNullURI(initiator.getHost())) {
+        //           throw APIException.badRequests.cannotExportInitiatorWithNoCompute(exportGroup.getLabel(), initiator.getInitiatorPort());
+        //        }
+                validateInitiatorRegistered(initiator);
+                allInitiators.add(initiator.getId());
+                initiatorsHost.add(initiator.getHost());
+                temp.add(initiator);
+            }
+         //   validateInitiatorsData(temp, initiatorsHost, exportGroup);
+        }
+        if (hosts != null && !hosts.isEmpty()) {
+            for (URI hostUri : hosts) {
+                // validate the host
+                Host host = queryObject(Host.class, hostUri, true);
+                validatePassThroughHostData(host, exportGroup, storageSystems, allInitiators);
+                allHosts.add(host.getId());
+            }
+        }
+        if (clusters != null && !clusters.isEmpty()) {
+            for (URI clusterUri : clusters) {
+                // validate the cluster
+                Cluster cluster = queryObject(Cluster.class, clusterUri, true);
+                validatePassThroughClusterData(cluster, exportGroup, storageSystems, allHosts, allInitiators);
+                exportGroup.addCluster(cluster);
+            }
+        }
+
+        if (!allInitiators.isEmpty()) {
+            // Validate StoragePorts can be assigned
+            validatePassThroughPortAssignmentOnStorageSystems(storageSystems,
+                    exportGroup, allInitiators, volumes, pathParam);
+        }
+
+        // Validate the Host Operating Systems
+        validateInitiatorHostOS(allInitiators);
         _log.info("All clients were found to be valid.");
         // now set the initiators to the export group before saving it
         exportGroup.setInitiators(StringSetUtil.uriListToStringSet(allInitiators));
@@ -1264,6 +1425,22 @@ public class ExportGroupService extends TaskResourceService {
         _log.info("Host {} was validated successfully.", host.getId().toString());
     }
 
+    //Same as validateHostData, we only need to skip the project part
+    private void validatePassThroughHostData(Host host, ExportGroup exportGroup, Collection<URI> storageSystems, List<URI> initiators) {
+        // get host connected initiators
+    	List<URI> hostInitiators = getPassThroughHostConnectedInitiators(host, storageSystems, exportGroup);
+        if (hostInitiators.isEmpty()) {
+            throw APIException.badRequests.noIntiatorsConnectedToVolumes();
+        }
+
+        for (URI uri : hostInitiators) {
+            if (!initiators.contains(uri)) {
+                initiators.add(uri);
+            }
+        }
+        _log.info("Host {} was validated successfully.", host.getId().toString());
+    }
+
     /**
      * Validates that a cluster is in the same tenant org and/or project as the export group.
      * Also makes sure that all hosts in the cluster have connectivity to all storage systems
@@ -1304,6 +1481,20 @@ public class ExportGroupService extends TaskResourceService {
         }
         _log.info("Cluster {} was validated successfully", cluster.getId().toString());
     }
+    
+    //Same as validateClusterData, we only need to skip the project part
+    private void validatePassThroughClusterData(Cluster cluster, ExportGroup exportGroup, Collection<URI> storageSystems, List<URI> allHosts, List<URI> allInitiators) {
+
+        boolean newCluster = exportGroup.getClusters() == null ||
+                !exportGroup.getClusters().contains(cluster.getId().toString());
+        
+        List<Host> clusterHosts = getChildren(cluster.getId(), Host.class, "cluster");
+        for (Host host : clusterHosts) {
+            validatePassThroughHostData(host, exportGroup, storageSystems, allInitiators);
+            allHosts.add(host.getId());
+        }
+        _log.info("Cluster {} was validated successfully", cluster.getId().toString());
+    }
 
     /**
      * For a given set of storage arrays, find the registered initiators on a host that
@@ -1322,6 +1513,30 @@ public class ExportGroupService extends TaskResourceService {
         for (Initiator initiator : hostInitiators) {
             if (initiator.getRegistrationStatus().equals(RegistrationStatus.REGISTERED.toString())
                     && hasConnectivityToAllSystems(initiator, storageSystems,
+                            exportGroup)) {
+                initiators.add(initiator.getId());
+            }
+        }
+        return initiators;
+    }
+    
+    /**
+     * For a given set of storage arrays, find the registered initiators on a host that
+     * can connect to all the storage arrays.
+     *
+     * @param host the host
+     * @param storageSystems the set of arrays
+     * @exportGroup - ExportGroup
+     * @return the list of initiators that have connectivity to all the storage
+     *         systems.
+     */
+    private List<URI> getPassThroughHostConnectedInitiators(Host host,
+            Collection<URI> storageSystems, ExportGroup exportGroup) {
+        List<URI> initiators = new ArrayList<URI>();
+        List<Initiator> hostInitiators = getChildren(host.getId(), Initiator.class, "host");
+        for (Initiator initiator : hostInitiators) {
+            if (initiator.getRegistrationStatus().equals(RegistrationStatus.REGISTERED.toString())
+                    && hasPassThroughConnectivityToAllSystems(initiator, storageSystems,
                             exportGroup)) {
                 initiators.add(initiator.getId());
             }
@@ -1860,6 +2075,30 @@ public class ExportGroupService extends TaskResourceService {
 
     /**
      *
+     * @param param
+     * @return
+     */
+    private ExportGroup preparePassThroughExportGroup(Project project , ExportCreateParam param) {
+        TenantOrg tenantOrg = _permissionsHelper.getObjectById(project.getTenantOrg().getURI(), TenantOrg.class);
+        ExportGroup exportGroup = new ExportGroup();
+        exportGroup.setLabel(param.getName());
+        // TODO - For temporary backward compatibility
+        String type = param.getType();
+        exportGroup.setType((type == null || type.equals(OLD_INITIATOR_TYPE_NAME)) ? ExportGroupType.Initiator.name() : type);
+        exportGroup.setId(URIUtil.createId(ExportGroup.class));
+
+        exportGroup.setProject(new NamedURI(project.getId(), exportGroup.getLabel()));
+        exportGroup.setTenant(new NamedURI(project.getTenantOrg().getURI(), exportGroup.getLabel()));
+        exportGroup.setVirtualArray(param.getVarray());
+
+        String generatedName = _nameGenerator.generate(tenantOrg.getLabel(), exportGroup.getLabel(), exportGroup.getId().toString(), '_', 56);
+        exportGroup.setGeneratedName(generatedName);
+        
+        return exportGroup;
+    }
+
+     /**
+     *
      * @param project
      * @param param
      * @return
@@ -1923,6 +2162,7 @@ public class ExportGroupService extends TaskResourceService {
             if (block == null || block.getInactive()) {
                 throw APIException.badRequests.invalidParameterVolumeExportMismatch(volUri, exportGroup.getId());
             }
+
             if (!exportGroup.getProject().getURI().equals(getBlockProject(block))) {
                 throw APIException.badRequests.invalidParameterVolumeExportProjectsMismatch(getBlockProject(block), exportGroup
                         .getProject().getURI());
@@ -2021,6 +2261,29 @@ public class ExportGroupService extends TaskResourceService {
                     initiator.toString(), storageSystem.getNativeGuid(), ex.getMessage());
         }
     }
+    
+    /**
+     * Checks if an initiator has connectivity to a storage system.
+     *
+     * @param storageSystem the storage system where connectivity is needed
+     * @param initiator the initiator
+     * @return true if at least one port is found
+     */
+    private boolean hasPassThroughConnectivityToSystem(StorageSystem storageSystem,
+            Initiator initiator) {
+        try {
+            return ConnectivityUtil.isPassThroughInitiatorConnectedToStorageSystem(initiator, storageSystem, _dbClient);
+        } catch (PlacementException ex) {
+            _log.info(String.format("Initiator %s (%s) has no connectivity to StorageSystem %s (%s)",
+                    initiator.getInitiatorPort(), initiator.getId(), storageSystem.getNativeGuid(),
+                    storageSystem.getId()));
+            return false;
+        } catch (Exception ex) {
+            _log.error("An error occurred while verifying Initiator connectivity: ", ex);
+            throw APIException.badRequests.errorVerifyingInitiatorConnectivity(
+                    initiator.toString(), storageSystem.getNativeGuid(), ex.getMessage());
+        }
+    }
 
     /**
      * Validate that we can assign the required number of ports for the varray(s)
@@ -2083,6 +2346,70 @@ public class ExportGroupService extends TaskResourceService {
             }
         }
     }
+    
+    /**
+     * Validate that we can assign the required number of ports for the varray(s)
+     * required to complete the export. Multiple varrays could be used if VPLEX.
+     *
+     * @param storageSystemURIs
+     * @param exportGroup
+     * @param initiatorURIs
+     * @param volumes
+     * @param pathParam optional ExportPathParameter block to override validation check
+     */
+    private void validatePassThroughPortAssignmentOnStorageSystems(Collection<URI> storageSystemURIs,
+            ExportGroup exportGroup, List<URI> initiatorURIs, Collection<URI> volumes, ExportPathParameters pathParam) {
+        // Do not validate ExportGroup Initiator type exports
+        if (exportGroup.forInitiator()) {
+            return;
+        }
+
+        for (URI storageSystemURI : storageSystemURIs) {
+            StorageSystem storageSystem = _dbClient.queryObject(
+                    StorageSystem.class, storageSystemURI);
+            // If a VPlex system, we might be exporting from either Varray for the distributed volumes.
+            // Validate the initiators in their respective varrays.
+            
+            //REVISIT IF CASE
+            if (storageSystem.getSystemType().equals(DiscoveredDataObject.Type.vplex.name())) {
+                List<URI> varrays = new ArrayList<URI>();
+                Map<URI, Set<URI>> varrayToVolumes = VPlexUtil.mapBlockObjectsToVarrays(_dbClient,
+                        volumes, storageSystemURI, exportGroup);
+                varrays.addAll(varrayToVolumes.keySet());
+                Map<URI, List<URI>> varrayToInitiatorsMap = VPlexUtil.partitionInitiatorsByVarray(_dbClient, _blockStorageScheduler,
+                        initiatorURIs, varrays, storageSystem);
+                int nValidations = 0;
+                for (URI varrayKey : varrays) {
+                    if (varrayToInitiatorsMap.get(varrayKey) == null
+                            || varrayToInitiatorsMap.get(varrayKey).isEmpty()) {
+                        continue;
+                    }
+                    List<Initiator> initiators = _dbClient.queryObject(Initiator.class, varrayToInitiatorsMap.get(varrayKey));
+                    if (varrayToVolumes.get(varrayKey) != null) {
+                        nValidations++;
+                        Collection<String> initiatorAddresses = Collections2.transform(initiators,
+                                CommonTransformerFunctions.fctnInitiatorToPortName());
+                        _log.info(String.format("Validating port assignments varray %s initiators %s",
+                                varrayKey.toString(), initiatorAddresses));
+                        validatePortAssignment(storageSystem, varrayKey, _blockStorageScheduler,
+                                initiators, varrayToVolumes.get(varrayKey), exportGroup.getId(), pathParam);
+                    }
+                }
+                if (nValidations == 0) {
+                    _log.info("No validations made for VPlex port assignment");
+                }
+            } else {
+                List<Initiator> initiators = _dbClient.queryObject(Initiator.class, initiatorURIs);
+                Collection<String> initiatorAddresses = Collections2.transform(initiators,
+                        CommonTransformerFunctions.fctnInitiatorToPortName());
+                _log.info(String.format("Validating port assignments initiators %s", initiatorAddresses));
+                validatePassThroughPortAssignment(storageSystem, _blockStorageScheduler, initiators,
+                        volumes, exportGroup.getId(), pathParam);
+                validatePassThroughPortAssignment(storageSystem, _blockStorageScheduler, initiators,
+                        volumes, exportGroup.getId(), pathParam);
+            }
+        }
+    }
 
     /**
      * Verifies that StoragePorts can be assigned for a StorageSystem given a set of Initiators.
@@ -2121,6 +2448,45 @@ public class ExportGroupService extends TaskResourceService {
             throw (ex);
         }
     }
+    
+    
+    /**
+     * Verifies that StoragePorts can be assigned for a StorageSystem given a set of Initiators.
+     * This will verify that the numPaths variable is not too low or too high to allow assignment.
+     *
+     * @param storageSystem
+     * @param blockScheduler
+     * @param initiators List<Initiators>
+     * @param exportPathParameters Optional export path parameters to affect validation
+     * @param numPaths
+     */
+    private void validatePassThroughPortAssignment(StorageSystem storageSystem,
+            BlockStorageScheduler blockScheduler, List<Initiator> initiators,
+            Collection<URI> volumes, URI exportGroupURI, ExportPathParameters exportPathParameters) {
+        try {
+
+            ExportPathParams pathParams = blockScheduler.calculateExportPathParamForVolumes(
+                    volumes, 0, storageSystem.getId(), exportGroupURI);
+            if (exportPathParameters != null) {
+                // Override the path parameters for the validity check.
+                if (exportPathParameters.getMaxPaths() != null) {
+                    pathParams.setMaxPaths(exportPathParameters.getMaxPaths());
+                }
+                if (exportPathParameters.getMinPaths() != null) {
+                    pathParams.setMinPaths(exportPathParameters.getMinPaths());
+                }
+                if (exportPathParameters.getPathsPerInitiator() != null) {
+                    pathParams.setPathsPerInitiator(exportPathParameters.getPathsPerInitiator());
+                }
+            }
+            blockScheduler.assignPassThroughStoragePorts(storageSystem,
+                    initiators, pathParams, null, volumes);
+        } catch (ControllerException ex) {
+            _log.error(ex.getLocalizedMessage());
+            throw (ex);
+        }
+    }
+
 
     /**
      * Checks if any of the volume is vplex volume if yes diverts it to VpelxImpl
@@ -2174,6 +2540,20 @@ public class ExportGroupService extends TaskResourceService {
             ExportGroup exportGroup) {
         return hasConnectivityToAllSystems(initiator, storageSystems, null, exportGroup);
     }
+    
+    /**
+     * Checks if an initiator has connectivity to a storage system.
+     *
+     * @param storageSystems the storage systems where connectivity is needed
+     * @param initiator the initiator
+     * @return true if at least one port is found
+     */
+    
+    private boolean hasPassThroughConnectivityToAllSystems(
+            Initiator initiator, Collection<URI> storageSystems,
+            ExportGroup exportGroup) {
+        return hasPassThroughConnectivityToAllSystems(initiator, storageSystems, null, exportGroup);
+    }
 
     /**
      * Checks if an initiator has connectivity to a storage system in a varray.
@@ -2200,6 +2580,37 @@ public class ExportGroupService extends TaskResourceService {
             // check the initiator has connectivity
             if (!hasConnectivityToSystem(storageSystem,
                     varrays, initiator)) {
+                hasConnectivity = false;
+                if (connectedStorageSystems != null) {
+                    connectedStorageSystems.remove(storage);
+                }
+            }
+        }
+        return hasConnectivity;
+    }
+    
+    /**
+     * Checks if an initiator has connectivity to a storage system.
+     *
+     * @param storageSystems the storage systems where connectivity is needed
+     * @param neighborhoodUri the varray of the storage volume
+     * @param blockScheduler an instance of {@link BlockStorageScheduler}
+     * @param initiator the initiator
+     * @return true if at least one port is found
+     */
+    private boolean hasPassThroughConnectivityToAllSystems(
+            Initiator initiator, Collection<URI> storageSystems, List<URI> connectedStorageSystems,
+            ExportGroup exportGroup) {
+        boolean hasConnectivity = true;
+        if (connectedStorageSystems != null) {
+            connectedStorageSystems.addAll(storageSystems);
+        }
+        // we want to make sure the initiator can access each storage
+        for (URI storage : storageSystems) {
+            StorageSystem storageSystem = _dbClient.queryObject(
+                    StorageSystem.class, storage);
+            // check the initiator has connectivity
+            if (!hasPassThroughConnectivityToSystem(storageSystem, initiator)) {
                 hasConnectivity = false;
                 if (connectedStorageSystems != null) {
                     connectedStorageSystems.remove(storage);
@@ -2819,7 +3230,7 @@ public class ExportGroupService extends TaskResourceService {
      * @param blockObjectURIs -- Collection of block object URIs, used only for validating ports
      * @return ExportPathParam suitable for persistence
      */
-    ExportPathParams validateAndCreateExportPathParam(ExportPathParameters param,
+     ExportPathParams validateAndCreateExportPathParam(ExportPathParameters param,
             ExportGroup exportGroup, Collection<URI> blockObjectURIs) {
 
         // If minPaths is specified, or pathsPerInitiator is specified, maxPaths must be specified
@@ -2907,12 +3318,12 @@ public class ExportGroupService extends TaskResourceService {
             }
             // Look up all the Export Masks for this Initiator
             List<ExportMask> exportMasks =
-                    ExportUtils.getInitiatorExportMasks(initiator, _dbClient);
+                ExportUtils.getInitiatorExportMasks(initiator, _dbClient);
             for (ExportMask exportMask : exportMasks) {
                 // If this mask is for the same Host and Storage combination, we cannot override
                 if (arrayURIs.contains(exportMask.getStorageDevice())) {
                     ExportPathParams maskParam =
-                            BlockStorageScheduler.calculateExportPathParamForExportMask(_dbClient, exportMask);
+                                BlockStorageScheduler.calculateExportPathParamForExportMask(_dbClient, exportMask);
                     _log.info(String.format("Existing mask %s (%s) parameters: %s",
                             exportMask.getMaskName(), exportMask.getId(), maskParam));
 
@@ -2931,10 +3342,9 @@ public class ExportGroupService extends TaskResourceService {
                         String systemName = (system != null) ? system.getLabel() : exportMask.getStorageDevice().toString();
                         if (!conflictingMasks.containsKey(hostName)) {
                             String msg = String.format(
-                                    "Export Mask %s for Host %s and Array %s has %d paths and paths_per_initiator %d",
-                                    exportMask.getMaskName(), hostName, systemName, maskParam.getMaxPaths(),
-                                    maskParam.getPathsPerInitiator());
-                            conflictingMasks.put(hostName, msg);
+                             "Export Mask %s for Host %s and Array %s has %d paths and paths_per_initiator %d",
+                             exportMask.getMaskName(), hostName, systemName, maskParam.getMaxPaths(), maskParam.getPathsPerInitiator());
+                        conflictingMasks.put(hostName, msg);
                         }
                     }
                 }
@@ -2964,21 +3374,28 @@ public class ExportGroupService extends TaskResourceService {
     private void validateExportPathParmPorts(ExportPathParameters param, ExportGroup exportGroup,
             Collection<URI> storageArrays) {
         if (param.getClass() == null || param.getStoragePorts() == null || param.getStoragePorts().isEmpty()) {
-            return;
+                      return;
         }
         // Get database entries for all the ports in a map of array URI to set of StoragePort.
         Map<URI, Set<StoragePort>> arrayToStoragePorts = new HashMap<URI, Set<StoragePort>>();
         for (URI portURI : param.getStoragePorts()) {
             StoragePort port = _dbClient.queryObject(StoragePort.class, portURI);
+            _log.info("ExportGroupService   >>  port Uri", portURI);
+            _log.info("StoragePost", port);
             ArgValidator.checkEntityNotNull(port, portURI, false);
             URI arrayURI = port.getStorageDevice();
+            _log.info("ExportGroupService   >>  array Uri", arrayURI);
             if (!arrayToStoragePorts.containsKey(arrayURI)) {
-                arrayToStoragePorts.put(arrayURI, new HashSet<StoragePort>());
-            }
+            	arrayToStoragePorts.put(arrayURI, new HashSet<StoragePort>());
+                }
             arrayToStoragePorts.get(arrayURI).add(port);
+
+            _log.info("ExportGroupService   >>  StoragePorts are ", arrayToStoragePorts);
+            
         }
         // Check that there are entries for all the arrays used by the volumes.
         for (URI storageArray : storageArrays) {
+        	_log.info("ExportGroupService   >>  Storage Array ",storageArrays);
             if (!arrayToStoragePorts.containsKey(storageArray)) {
                 throw APIException.badRequests.pathParameterPortsDoNotIncludeArray(storageArray);
             }
@@ -2990,6 +3407,8 @@ public class ExportGroupService extends TaskResourceService {
             }
         }
     }
+
+ 
 
     /**
      * For all the block objects in the list, checks to see if they are associated with an ExportPathParam object.

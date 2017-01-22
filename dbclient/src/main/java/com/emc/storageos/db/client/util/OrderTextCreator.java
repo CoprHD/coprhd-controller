@@ -1,8 +1,8 @@
+/*
+ * Copyright (c) 2017 EMC Corporation
+ * All Rights Reserved
+ */
 package com.emc.storageos.db.client.util;
-
-import static com.emc.storageos.api.mapper.DbObjectMapper.mapDataObjectFields;
-import static com.emc.storageos.api.mapper.DbObjectMapper.toRelatedResource;
-import static com.emc.storageos.db.client.URIUtil.uri;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -16,9 +16,6 @@ import com.emc.storageos.db.client.model.uimodels.ExecutionLog;
 import com.emc.storageos.db.client.model.uimodels.ExecutionPhase;
 import com.emc.storageos.db.client.model.uimodels.ExecutionState;
 import com.emc.storageos.db.client.model.uimodels.ExecutionTaskLog;
-import com.emc.storageos.db.client.model.uimodels.Order;
-import com.emc.storageos.db.client.model.uimodels.OrderParameter;
-import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.vipr.model.catalog.CatalogServiceRestRep;
 import com.emc.vipr.model.catalog.ExecutionLogRestRep;
 import com.emc.vipr.model.catalog.ExecutionStateRestRep;
@@ -28,7 +25,6 @@ import com.emc.vipr.model.catalog.Parameter;
 import com.google.common.collect.Lists;
 
 public class OrderTextCreator {
-    public static final String ENCRYPTED_FIELD_MASK = "**********";
     private static final String DATE_FORMAT = "dd-MM-yy hh:mm";
     private static final String DETAIL_INDENT = "      \t                            \t";
 
@@ -39,28 +35,12 @@ public class OrderTextCreator {
     private List<OrderLogRestRep> logs;
     private List<ExecutionLogRestRep> exeLogs;
 
-    public OrderRestRep getOrder() {
-        return order;
-    }
-
     public void setOrder(OrderRestRep order) {
         this.order = order;
     }
 
-    public void setOrder(Order order, List<OrderParameter> params) {
-        this.order = map(order, params);
-    }
-
-    public CatalogServiceRestRep getService() {
-        return service;
-    }
-
     public void setService(CatalogServiceRestRep service) {
         this.service = service;
-    }
-
-    public ExecutionStateRestRep getState() {
-        return state;
     }
 
     public void setState(ExecutionStateRestRep state) {
@@ -69,10 +49,6 @@ public class OrderTextCreator {
 
     public void setState(ExecutionState state) {
         this.state = map(state);
-    }
-
-    public List<OrderLogRestRep> getLogs() {
-        return logs;
     }
 
     public void setLogs(List<OrderLogRestRep> logs) {
@@ -84,10 +60,6 @@ public class OrderTextCreator {
         for (ExecutionLog log : logs) {
             this.logs.add(map(log));
         }
-    }
-
-    public List<ExecutionLogRestRep> getExeLogs() {
-        return exeLogs;
     }
 
     public void setExeLogs(List<ExecutionLogRestRep> exeLogs) {
@@ -147,56 +119,6 @@ public class OrderTextCreator {
         to.setStartDate(from.getStartDate());
         to.setLastUpdated(from.getLastUpdated());
 
-        return to;
-    }
-
-    public static OrderRestRep map(Order from, List<OrderParameter> orderParameters) {
-        if (from == null) {
-            return null;
-        }
-        OrderRestRep to = new OrderRestRep();
-        mapDataObjectFields(from, to);
-
-        if (from.getCatalogServiceId() != null) {
-            to.setCatalogService(toRelatedResource(ResourceTypeEnum.CATALOG_SERVICE, from.getCatalogServiceId()));
-        }
-        if (from.getExecutionWindowId() != null) {
-            to.setExecutionWindow(
-                    toRelatedResource(ResourceTypeEnum.EXECUTION_WINDOW, from.getExecutionWindowId().getURI()));
-        }
-        to.setDateCompleted(from.getDateCompleted());
-        to.setMessage(from.getMessage());
-        to.setOrderNumber(from.getOrderNumber());
-        to.setSummary(from.getSummary());
-        to.setSubmittedBy(from.getSubmittedByUserId());
-        to.setOrderStatus(from.getOrderStatus());
-        if (StringUtils.isNotBlank(from.getTenant())) {
-            to.setTenant(toRelatedResource(ResourceTypeEnum.TENANT, uri(from.getTenant())));
-        }
-        to.setLastUpdated(from.getLastUpdated());
-
-        if (orderParameters != null) {
-            for (OrderParameter orderParameter : orderParameters) {
-                Parameter parameter = new Parameter();
-                parameter.setEncrypted(orderParameter.getEncrypted());
-                if (parameter.isEncrypted()) {
-                    parameter.setFriendlyValue(ENCRYPTED_FIELD_MASK);
-                    parameter.setValue(ENCRYPTED_FIELD_MASK);
-                } else {
-                    parameter.setFriendlyValue(orderParameter.getFriendlyValue());
-                    parameter.setValue(orderParameter.getValue());
-                }
-                parameter.setFriendlyLabel(orderParameter.getFriendlyLabel());
-                parameter.setLabel(orderParameter.getLabel());
-                to.getParameters().add(parameter);
-            }
-        }
-        if (from.getScheduledEventId() != null) {
-            to.setScheduledEventId(from.getScheduledEventId());
-        }
-        if (from.getScheduledTime() != null) {
-            to.setScheduledTime(from.getScheduledTime());
-        }
         return to;
     }
 

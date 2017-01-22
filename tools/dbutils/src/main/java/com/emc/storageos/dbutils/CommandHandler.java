@@ -17,6 +17,7 @@ import java.text.SimpleDateFormat;
 
 import com.emc.sa.api.CatalogServiceService;
 import com.emc.sa.api.OrderService;
+import com.emc.sa.api.mapper.OrderMapper;
 import com.emc.sa.catalog.OrderManager;
 import com.emc.storageos.coordinator.client.model.Constants;
 import com.emc.storageos.db.client.DbClient;
@@ -879,7 +880,7 @@ public abstract class CommandHandler {
                     timestamp);
             OutputStream out = new FileOutputStream(new File(dir, fileName));
             OrderTextCreator creator = new OrderTextCreator();
-            creator.setOrder(order, orderManager.getOrderParameters(order.getId()));
+            creator.setOrder(OrderMapper.map(order, orderManager.getOrderParameters(order.getId())));
             creator.setService(catalogService.getCatalogService(order.getCatalogServiceId()));
             creator.setState(orderManager.getOrderExecutionState(order.getExecutionStateId()));
             creator.setRawLogs(orderManager.getOrderExecutionLogs(order));

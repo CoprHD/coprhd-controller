@@ -4,6 +4,10 @@
  */
 package com.emc.sa.api.mapper;
 
+import static com.emc.storageos.api.mapper.DbObjectMapper.mapDataObjectFields;
+import static com.emc.storageos.api.mapper.DbObjectMapper.toRelatedResource;
+import static com.emc.storageos.db.client.URIUtil.uri;
+
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
@@ -12,8 +16,10 @@ import com.emc.sa.model.util.ScheduleTimeHelper;
 import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.uimodels.*;
 import com.emc.storageos.db.client.util.OrderTextCreator;
+import com.emc.storageos.model.ResourceTypeEnum;
 
 import org.apache.commons.codec.binary.Base64;
+import org.apache.commons.lang3.StringUtils;
 
 import com.emc.sa.util.TextUtils;
 import com.emc.storageos.db.client.URIUtil;
@@ -30,9 +36,56 @@ import com.emc.vipr.model.catalog.Parameter;
 import com.google.common.collect.Lists;
 
 public class OrderMapper {
+    public static final String ENCRYPTED_FIELD_MASK = "**********";
 
     public static OrderRestRep map(Order from, List<OrderParameter> orderParameters) {
-        return OrderTextCreator.map(from, orderParameters);
+        if (from == null) {
+            return null;
+        }
+        OrderRestRep to = new OrderRestRep();
+        mapDataObjectFields(from, to);
+
+        if (from.getCatalogServiceId() != null) {
+            to.setCatalogService(toRelatedResource(ResourceTypeEnum.CATALOG_SERVICE, from.getCatalogServiceId()));
+        }
+        if (from.getExecutionWindowId() != null) {
+            to.setExecutionWindow(
+                    toRelatedResource(ResourceTypeEnum.EXECUTION_WINDOW, from.getExecutionWindowId().getURI()));
+        }
+        to.setDateCompleted(from.getDateCompleted());
+        to.setMessage(from.getMessage());
+        to.setOrderNumber(from.getOrderNumber());
+        to.setSummary(from.getSummary());
+        to.setSubmittedBy(from.getSubmittedByUserId());
+        to.setOrderStatus(from.getOrderStatus());
+        if (StringUtils.isNotBlank(from.getTenant())) {
+            to.setTenant(toRelatedResource(ResourceTypeEnum.TENANT, uri(from.getTenant())));
+        }
+        to.setLastUpdated(from.getLastUpdated());
+
+        if (orderParameters != null) {
+            for (OrderParameter orderParameter : orderParameters) {
+                Parameter parameter = new Parameter();
+                parameter.setEncrypted(orderParameter.getEncrypted());
+                if (parameter.isEncrypted()) {
+                    parameter.setFriendlyValue(ENCRYPTED_FIELD_MASK);
+                    parameter.setValue(ENCRYPTED_FIELD_MASK);
+                } else {
+                    parameter.setFriendlyValue(orderParameter.getFriendlyValue());
+                    parameter.setValue(orderParameter.getValue());
+                }
+                parameter.setFriendlyLabel(orderParameter.getFriendlyLabel());
+                parameter.setLabel(orderParameter.getLabel());
+                to.getParameters().add(parameter);
+            }
+        }
+        if (from.getScheduledEventId() != null) {
+            to.setScheduledEventId(from.getScheduledEventId());
+        }
+        if (from.getScheduledTime() != null) {
+            to.setScheduledTime(from.getScheduledTime());
+        }
+        return to;
     }
 
     public static ExecutionStateRestRep map(ExecutionState from) {
@@ -70,7 +123,8 @@ public class OrderMapper {
         return newObject;
     }
 
-    public static List<OrderParameter> createOrderParameters(Order order, OrderCreateParam param, EncryptionProvider encryption) {
+    public static List<OrderParameter> createOrderParameters(Order order, OrderCreateParam param,
+            EncryptionProvider encryption) {
 
         List<OrderParameter> orderParams = new ArrayList<OrderParameter>();
 
@@ -84,16 +138,16 @@ public class OrderMapper {
                 orderParameter.setUserInput(parameter.isUserInput());
                 orderParameter.setEncrypted(parameter.isEncrypted());
                 if (parameter.isEncrypted()) {
-                    // We have to treat this as a CSV value - pull the CSV apart, encrypt the pieces, re-CSV encode
+                    // We have to treat this as a CSV value - pull the CSV
+                    // apart, encrypt the pieces, re-CSV encode
                     List<String> values = Lists.newArrayList();
                     for (String value : TextUtils.parseCSV(parameter.getValue())) {
                         values.add(Base64.encodeBase64String(encryption.encrypt(value)));
                     }
                     String encryptedValue = TextUtils.formatCSV(values);
-                    orderParameter.setFriendlyValue(OrderTextCreator.ENCRYPTED_FIELD_MASK);
+                    orderParameter.setFriendlyValue(ENCRYPTED_FIELD_MASK);
                     orderParameter.setValue(encryptedValue);
-                }
-                else {
+                } else {
                     orderParameter.setFriendlyValue(parameter.getFriendlyValue());
                     orderParameter.setValue(parameter.getValue());
                 }

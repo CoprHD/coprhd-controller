@@ -1,6 +1,6 @@
 #{set isActiveSite:controllers.infra.DisasterRecovery.isActiveSite() /}
-#{set isExternalServerConfigured: util.BackupUtils.isExternalServerConfigured() /}
-#{set isScheduledBackupEnabled: util.BackupUtils.isScheduledBackupEnabled() /}
+#{set isExternalServerConfigured:util.BackupUtils.isExternalServerConfigured() /}
+#{set isScheduledBackupEnabled:util.BackupUtils.isScheduledBackupEnabled() /}
 
 <div id="backupPanel">
     <div class="panel panel-default">
@@ -97,7 +97,7 @@
                         $('#nextScheduled').append("NA");
                     }
                 } else {
-                    $('#nextScheduled').append("Disabled")
+                    $('#nextScheduled').append("Disabled");
                 }
             </script>
 

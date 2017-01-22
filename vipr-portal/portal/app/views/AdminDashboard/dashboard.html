@@ -25,6 +25,10 @@
         };
         update();
     }
+
+    function startUpdatingTest(url, contentId, delayInSeconds) {
+     alert("The test is called!");
+    }
     
     function refreshLastUpdated() {
       $('[data-format-relative-time]').each(function () {
@@ -38,12 +42,14 @@
         }
       });      
     }
+
     
     $(document).ready(function() {
       startUpdating('@{AdminDashboard.version()}', '#versionPanel', 3600);
       startUpdating('@{AdminDashboard.capacity()}', '#capacityPanel', 600);
       startUpdating('@{AdminDashboard.health()}', '#healthPanel', 60);
       startUpdating('@{AdminDashboard.backupStatus()}', '#backupPanel', 60);
+      startUpdatingTest('@{AdminDashboard.backupStatus()}', '#backupPanel', 60);
       startUpdating('@{AdminDashboard.disasterRecovery()}', '#disasterPanel', 65);
       startUpdating('@{AdminDashboard.physicalAssets()}', '#physicalAssetsPanel', 600);
       startUpdating('@{AdminDashboard.virtualAssets()}', '#virtualAssetsPanel', 600);

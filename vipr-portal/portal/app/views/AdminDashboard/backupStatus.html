@@ -13,6 +13,9 @@
                 #{if backupStatus?.getLastSuccessfulBackup()?.opStatus}
                     <span class="text-success">#{icon 'ok-sign'/}</span>
                 #{/if}
+                    #{else}
+                    <span class="text-danger">#{icon 'remove-sign'/}</span>
+                    #{/else}
                 </td>
                 <td class="time">
                     <a href="@{Backup.list()}" id="lastSuccessful"></a>
@@ -68,9 +71,7 @@
                         #{/else}
                     #{/if}
                     #{/if}
-                    #{else}
-                        <span class="text-warning">#{icon 'warning-sign'/}</span>
-                    #{/else}
+                    <span class="text-warning">#{icon 'warning-sign'/}</span>
                 </td>
                 <td class="time">
                     #{if isExternalServerConfigured}

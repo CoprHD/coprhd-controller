@@ -81,10 +81,11 @@
 
             <tr class="odd ng-scope openRow">
                 <td class="type" height="25px" width="170px">&{'adminDashboard.nextScheduledBackup'}: </td>
-                <td class="icon" height="25px" width="25px"></td>
+                <td class="icon" height="25px" width="25px">
                 #{if !isScheduledBackupEnabled}
                     <span class="text-warning">#{icon 'warning-sign'/}</span>
                 #{/if}
+                </td>
                 <td id="nextScheduled" class="time"></td>
             </tr>
             <script>

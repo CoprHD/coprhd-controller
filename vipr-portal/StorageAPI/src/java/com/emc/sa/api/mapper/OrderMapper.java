@@ -36,7 +36,7 @@ import com.emc.vipr.model.catalog.Parameter;
 import com.google.common.collect.Lists;
 
 public class OrderMapper {
-    public static final String ENCRYPTED_FIELD_MASK = "**********";
+    private static final String ENCRYPTED_FIELD_MASK = "**********";
 
     public static OrderRestRep map(Order from, List<OrderParameter> orderParameters) {
         if (from == null) {
@@ -49,8 +49,7 @@ public class OrderMapper {
             to.setCatalogService(toRelatedResource(ResourceTypeEnum.CATALOG_SERVICE, from.getCatalogServiceId()));
         }
         if (from.getExecutionWindowId() != null) {
-            to.setExecutionWindow(
-                    toRelatedResource(ResourceTypeEnum.EXECUTION_WINDOW, from.getExecutionWindowId().getURI()));
+            to.setExecutionWindow(toRelatedResource(ResourceTypeEnum.EXECUTION_WINDOW, from.getExecutionWindowId().getURI()));
         }
         to.setDateCompleted(from.getDateCompleted());
         to.setMessage(from.getMessage());
@@ -70,7 +69,8 @@ public class OrderMapper {
                 if (parameter.isEncrypted()) {
                     parameter.setFriendlyValue(ENCRYPTED_FIELD_MASK);
                     parameter.setValue(ENCRYPTED_FIELD_MASK);
-                } else {
+                }
+                else {
                     parameter.setFriendlyValue(orderParameter.getFriendlyValue());
                     parameter.setValue(orderParameter.getValue());
                 }

@@ -1,5 +1,6 @@
 #{set isActiveSite:controllers.infra.DisasterRecovery.isActiveSite() /}
 #{set isExternalServerConfigured: util.BackupUtils.isExternalServerConfigured() /}
+#{set isScheduledBackupEnabled: util.BackupUtils.isScheduledBackupEnabled() /}
 
 <div id="backupPanel">
     <div class="panel panel-default">
@@ -81,11 +82,22 @@
             <tr class="odd ng-scope openRow">
                 <td class="type" height="25px" width="170px">&{'adminDashboard.nextScheduledBackup'}: </td>
                 <td class="icon" height="25px" width="25px"></td>
+                #{if !isScheduledBackupEnabled}
+                    <span class="text-warning">#{icon 'warning-sign'/}</span>
+                #{/if}
                 <td id="nextScheduled" class="time"></td>
             </tr>
             <script>
-                 var nextScheduledCreationTime = '${backupStatus?.getNextScheduledBackup()?.opTime}';
-                (nextScheduledCreationTime) ? $('#nextScheduled').append(formatLocalDateTime(new Date(nextScheduledCreationTime))) : $('#nextScheduled').append("NA");
+                if (isScheduledBackupEnabled) {
+                    var nextScheduledCreationTime = '${backupStatus?.getNextScheduledBackup()?.opTime}';
+                    if (nextScheduledCreationTime) {
+                        $('#nextScheduled').append(formatLocalDateTime(new Date(nextScheduledCreationTime)));
+                    } else {
+                        $('#nextScheduled').append("NA");
+                    }
+                } else {
+                    $('#nextScheduled').append("Disabled")
+                }
             </script>
 
             <tr class="odd ng-scope openRow">
@@ -126,7 +138,6 @@
                     $('#externalServer').append(&{'adminDashboard.lastUploadStatus.notConfigured'});
                 }
             </script>
-
             </tbody>
         </table>
         </div>

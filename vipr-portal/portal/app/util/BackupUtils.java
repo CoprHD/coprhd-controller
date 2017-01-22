@@ -72,4 +72,9 @@ public class BackupUtils {
         Map<String, String> propInfo = ConfigPropertyUtils.getPropertiesFromCoordinator();
         return (propInfo.get(ConfigProperty.BACKUP_EXTERNAL_URL) != null);
     }
+
+    public static boolean isScheduledBackupEnabled() {
+        Map<String, String> propInfo = ConfigPropertyUtils.getPropertiesFromCoordinator();
+        return (propInfo.get(ConfigProperty.BACKUP_SCHEDULER_ENABLE) == "true");
+    }
 }

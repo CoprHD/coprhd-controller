@@ -28,10 +28,10 @@ public class BackupStatus {
         this.lastManualBackup = lastManualBackup;
     }
 
-    public void setLastManualBackup(String backupName, long opTime, String opStatus) {
+    public void setLastManualBackup(String backupName, long opTime, OpMessage opStatus) {
         this.lastManualBackup.backupName = backupName;
         this.lastManualBackup.opTime = opTime;
-        this.lastManualBackup.opStatus = opStatus;
+        this.lastManualBackup.opMessage = opStatus;
     }
 
     @XmlElement(name = "last_scheduled_backup")
@@ -43,10 +43,10 @@ public class BackupStatus {
         this.lastScheduledBackup = lastScheduledBackup;
     }
 
-    public void setLastScheduledBackup(String backupName, long opTime, String opStatus) {
+    public void setLastScheduledBackup(String backupName, long opTime, OpMessage opStatus) {
         this.lastScheduledBackup.backupName = backupName;
         this.lastScheduledBackup.opTime = opTime;
-        this.lastScheduledBackup.opStatus = opStatus;
+        this.lastScheduledBackup.opMessage = opStatus;
     }
 
     @XmlElement(name = "next_scheduled_backup")
@@ -67,10 +67,10 @@ public class BackupStatus {
         this.lastSuccessfulBackup = lastSuccessfulBackup;
     }
 
-    public void setLastSuccessfulBackup(String backupName, long opTime, String backupType) {
+    public void setLastSuccessfulBackup(String backupName, long opTime, OpMessage opType) {
         this.lastSuccessfulBackup.backupName = backupName;
         this.lastSuccessfulBackup.opTime = opTime;
-        this.lastSuccessfulBackup.opStatus = backupType;
+        this.lastSuccessfulBackup.opMessage = opType;
     }
 
     @XmlElement(name = "backup_upload_status")
@@ -82,10 +82,10 @@ public class BackupStatus {
         this.lastUploadStatus = lastUploadStatus;
     }
 
-    public void setLastUploadStatus(String backupName, long opTime, String backupType) {
+    public void setLastUploadStatus(String backupName, long opTime, OpMessage opStatus) {
         this.lastUploadStatus.backupName = backupName;
         this.lastUploadStatus.opTime = opTime;
-        this.lastUploadStatus.opStatus = backupType;
+        this.lastUploadStatus.opMessage = opStatus;
     }
 
     /**
@@ -96,15 +96,15 @@ public class BackupStatus {
     public static class BackupOperationStatus {
         private String backupName;
         private long opTime = 0;
-        private String opStatus;
+        private OpMessage opMessage;
 
         public BackupOperationStatus() {
         }
 
-        public BackupOperationStatus(String backupName, long opTime, String opStatus) {
+        public BackupOperationStatus(String backupName, long opTime, OpMessage opMessage) {
             this.backupName = backupName;
             this.opTime = opTime;
-            this.opStatus = opStatus;
+            this.opMessage = opMessage;
         }
 
         @XmlElement(name = "name")
@@ -126,12 +126,28 @@ public class BackupStatus {
         }
 
         @XmlElement(name = "operation_status")
-        public String getOperationStatus() {
-            return this.opStatus;
+        public OpMessage getOperationMessage() {
+            return this.opMessage;
         }
 
-        public void setOperationStatus(String operationStatus) {
-            this.opStatus = operationStatus;
+        public void setOperationMessage(OpMessage operationMessage) {
+            this.opMessage = operationMessage;
+        }
+    }
+
+    @XmlType(name = "opMessage")
+    public enum OpMessage {
+        //operation status
+        OP_SUCCESS("success"),
+        OP_FAILED("failed"),
+        //operation type
+        OP_MANUAL_BACKUP("manual"),
+        OP_SCHEDULED_BACKUP("scheduled");
+
+        private String message = "";
+
+        OpMessage(String msg) {
+            message = msg;
         }
     }
 }

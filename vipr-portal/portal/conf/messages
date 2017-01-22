@@ -2868,11 +2868,13 @@ adminDashboard.object=Object
 adminDashboard.blockFileFreeCapacity=Free Block/File/Object
 adminDashboard.disasterRecovery=System Disaster Recovery
 adminDashboard.backupStatus=Backup Status
+adminDashboard.backupStatus.none=NA
 adminDashboard.lastSuccessfulBackup=Last Successful Backup
 adminDashboard.lastManualBackup=Last Manual Backup
 adminDashboard.lastScheduledBackup=Last Scheduled Backup
 adminDashboard.nextScheduledBackup=Next Scheduled Backup
 adminDashboard.lastUploadStatus=Last Upload Status
+adminDashboard.lastUploadStatus.notConfigured=External server has not been configured
 
 license.model.ViPR_Controller=ViPR Controller
 license.model.ViPR_Object=ViPR Object

@@ -14,7 +14,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
-import org.apache.commons.collections.ListUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -23,13 +22,13 @@ import com.emc.storageos.db.client.impl.ColumnField;
 import com.emc.storageos.db.client.impl.DataObjectType;
 import com.emc.storageos.db.client.impl.DbClientImpl;
 import com.emc.storageos.db.client.impl.TypeMap;
+import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.Cluster;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Initiator;
-import com.emc.storageos.db.client.model.Snapshot;
 import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.StringSet;
@@ -79,14 +78,14 @@ public class StaleRelationURICleanupMigration extends BaseCustomMigrationCallbac
                         
                         List<String> relationURIList = getURIListFromDataObject(fieldValue);
                         List<String> validRelationURIList = queryValidRelationURIList(dbClient, relationField, relationURIList);
-                        List<String> invalidRelationURIList = ListUtils.subtract(relationURIList, validRelationURIList);
+                        relationURIList.removeAll(validRelationURIList);//get invalid URI list
                         
-                        if (!invalidRelationURIList.isEmpty()) {
-                            totalStaleURICount += invalidRelationURIList.size();
+                        if (!relationURIList.isEmpty()) {
+                            totalStaleURICount += relationURIList.size();
                             log.info("Stale/invalid URI found for class: {}, key: {}, field: {}", entry.getKey(), dataObject.getId(), relationField);
-                            log.info(StringUtils.join(invalidRelationURIList, ","));
+                            log.info(StringUtils.join(relationURIList, ","));
                             isChanged = true;
-                            saveNewURIListToObject(dataObject, columnField, fieldValue, invalidRelationURIList);
+                            saveNewURIListToObject(dataObject, columnField, fieldValue, relationURIList);
                         }
                     } catch (Exception e) {
                         log.error("Failed to run migration handler for class{}, {}", entry.getKey(), relationField, e);
@@ -106,7 +105,6 @@ public class StaleRelationURICleanupMigration extends BaseCustomMigrationCallbac
 
     private void saveNewURIListToObject(DataObject dataObject, ColumnField columnField, Object fieldValue,
             List<String> invalidRelationURIList) throws IllegalAccessException, InvocationTargetException {
-        
         for (String invalidURI : invalidRelationURIList) {
             if (fieldValue instanceof StringSet) {
                 ((StringSet)fieldValue).remove(invalidURI);
@@ -114,8 +112,6 @@ public class StaleRelationURICleanupMigration extends BaseCustomMigrationCallbac
                 ((StringMap)fieldValue).remove(invalidURI);
             }
         }
-        
-        //columnField.getPropertyDescriptor().getWriteMethod().invoke(dataObject, fieldValue);
     }
 
     private List<String> queryValidRelationURIList(DbClientImpl dbClient, RelationField relationField, List<String> relationURIList) throws ConnectionException {
@@ -163,12 +159,15 @@ public class StaleRelationURICleanupMigration extends BaseCustomMigrationCallbac
         return relactionURIList;
     }
     
+    //Currently only focus on ExporMask and ExporGroup
+    //We can consider to put these information into XML file 
+    //if thera are more model classes to be handled in future
     private void initRelationFields() {
         List<RelationField> fields = new ArrayList<>();
         fields.add(new RelationField("initiators", Initiator.class));
         fields.add(new RelationField("hosts", Host.class));
         fields.add(new RelationField("volumes", Volume.class));
-        fields.add(new RelationField("snapshots", Snapshot.class));
+        fields.add(new RelationField("snapshots", BlockSnapshot.class));
         fields.add(new RelationField("clusters", Cluster.class));
         fields.add(new RelationField("exportMasks", ExportMask.class));
         relationFields.put(ExportGroup.class, fields);

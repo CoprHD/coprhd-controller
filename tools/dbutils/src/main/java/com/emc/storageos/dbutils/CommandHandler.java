@@ -904,10 +904,10 @@ public abstract class CommandHandler {
             writeField(builder, "End Date", state.getEndDate());
             writeField(builder, "Affected Resources", state.getAffectedResources());
             // 4. Write Logs
-            List<ExecutionLog> logs = orderManager.getOrderExecutionLogs(order);
+            List<ExecutionLog> exeLogs = orderManager.getOrderExecutionLogs(order);
             writeHeader(builder, "Logs");
-            for (ExecutionLog log : logs) {
-                writeLog(builder, log);
+            for (ExecutionLog exeLog : exeLogs) {
+                writeLog(builder, exeLog);
             }
             // 5. Write Task Logs
             List<ExecutionTaskLog> taskLogs = orderManager.getOrderExecutionTaskLogs(order);

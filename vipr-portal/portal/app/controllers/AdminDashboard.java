@@ -72,26 +72,18 @@ public class AdminDashboard extends Controller {
 
     @Restrictions({ @Restrict("SYSTEM_MONITOR"), @Restrict("SYSTEM_ADMIN"), @Restrict("RESTRICTED_SYSTEM_ADMIN") })
     public static void backupStatus() {
-        //Map<String, Promise<?>> promises = Maps.newHashMap();
+        Map<String, Promise<?>> promises = Maps.newHashMap();
         //promises.put("lastSuccessfulBackup", AdminDashboardUtils.getBackupStatus());
         //promises.put("lastManualBackup", AdminDashboardUtils.getBackupStatus());
         //promises.put("lastScheduledBackup", AdminDashboardUtils.getBackupStatus());
         //promises.put("nextScheduledBackup", AdminDashboardUtils.getBackupStatus());
         //promises.put("lastUploadStatus", AdminDashboardUtils.getBackupStatus());
-        //promises.put("backupStatus", AdminDashboardUtils.backupStatus());
-        //trySetRenderArgs(promises);
-        // Add lastUpdated render args after promises are redeemed
-        //renderArgs.put("backupStatusLastUpdated", AdminDashboardUtils.getBackupStatusLastUpdated());
-        //render();
+        promises.put("backupStatus", AdminDashboardUtils.backupStatus());
 
-        BackupStatus backupStatus = AdminDashboardUtils.getBackupStatus();
-        //renderArgs.put("lastSuccessfulBackup", backupStatus.getLastSuccessfulBackup());
-        //renderArgs.put("lastManualBackup", backupStatus.getLastManualBackup());
-        //renderArgs.put("lastScheduledBackup", backupStatus.getLastScheduledBackup());
-        //renderArgs.put("nextScheduledBackup", backupStatus.getNextScheduledBackup());
-        //renderArgs.put("lastUploadStatus", backupStatus.getLastUploadStatus());
-        //renderArgs.put("backupStatusLastUpdated", AdminDashboardUtils.getBackupStatusLastUpdated());
-        render(backupStatus);
+        trySetRenderArgs(promises);
+        // Add lastUpdated render args after promises are redeemed
+        renderArgs.put("backupStatusLastUpdated", AdminDashboardUtils.getBackupStatusLastUpdated());
+        render();
     }
 
     @Restrictions({ @Restrict("SYSTEM_MONITOR"), @Restrict("SYSTEM_ADMIN"), @Restrict("RESTRICTED_SYSTEM_ADMIN") })

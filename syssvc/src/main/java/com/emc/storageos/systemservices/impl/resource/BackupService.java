@@ -983,6 +983,5 @@ public class BackupService {
         backupStatus.setLastUploadStatus("backup1", 1485004604, "success");
         backupStatus.setNextScheduledBackup(1485004604);
         return backupStatus;
-
     }
 }

@@ -13,7 +13,7 @@
                     <span class="text-success">#{icon 'ok-sign'/}</span>
                 #{/if}
                 #{else}
-                    <span class="text-warning">#{icon 'ok-sign'/}</span>
+                    <span class="text-success">#{icon 'ok-sign'/}</span>
                 #{/else}
                 </td>
                 <td class="time">
@@ -22,8 +22,9 @@
             </tr>
             <script>
                 var lastSuccessfulCreationTime = '${backupStatus?.getLastSuccessfulBackup()?.opTime}';
+                var lastSuccessfulBackupType = '${backupStatus?.getLastSuccessfulBackup()?.opMessage}';
                 if (lastSuccessfulCreationTime) {
-                    $('#lastSuccessful').append(formatLocalDateTime(new Date(lastSuccessfulCreationTime)));
+                    $('#lastSuccessful').append(formatLocalDateTime(new Date(lastSuccessfulCreationTime))).append("");
 	    	    } else {
 	    	        $('#lastSuccessful').append("NA");
 	    	    }
@@ -37,11 +38,11 @@
                             <span class="text-success">#{icon 'ok-sign'/}</span>
                         #{/if}
                         #{else}
-                            <span class="text-warning">#{icon 'remove-sign'/}</span>
+                            <span class="text-danger">#{icon 'remove-sign'/}</span>
                         #{/else}
                     #{/if}
                     #{else}
-                        <span class="text-warning">#{icon 'remove-sign'/}</span>
+                    <span class="text-danger">#{icon 'remove-sign'/}</span>
                     #{/else}
                 </td>
                 <td class="time">
@@ -65,11 +66,11 @@
                             <span class="text-success">#{icon 'ok-sign'/}</span>
                         #{/if}
                         #{else}
-                            <span class="text-warning">#{icon 'remove-sign'/}</span>
+                            <span class="text-danger">#{icon 'remove-sign'/}</span>
                         #{/else}
                     #{/if}
                     #{else}
-                        <span class="text-warning">#{icon 'warning-sign'/}</span>
+                    <span class="text-warning">#{icon 'warning-sign'/}</span>
                     #{/else}
                 </td>
                 <td class="time">
@@ -103,7 +104,7 @@
                             <span class="text-success">#{icon 'ok-sign'/}</span>
                         #{/if}
                         #{else}
-                             <span class="text-warning">#{icon 'remove-sign'/}</span>
+                             <span class="text-danger">#{icon 'remove-sign'/}</span>
                         #{/else}
                     #{/if}
                 </td>

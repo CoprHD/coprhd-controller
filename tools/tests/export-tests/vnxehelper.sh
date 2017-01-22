@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# Copyright (c) 2016 EMC Corporation
+# Copyright (c) 2017 EMC Corporation
 # All Rights Reserved
 #
 
@@ -92,11 +92,12 @@ create_mask() {
 }
 
 verify_export() {
-    # Parameters: Storage View Name Name, Number of Initiators, Number of Luns
+    # Parameters: Storage View Name Name, Number of Initiators, Number of Luns, HLUs
     # If checking if the Storage View does not exist, then parameter $2 should be "gone"
     HOST_INITIATORS=$1
     NUM_INITIATORS=$2
     NUM_LUNS=$3
+    HLUS=$4
 
     java -Dproperty.file=${tools_file} -jar ${tools_jar} -arrays ${array_type} -method get_mask_info -params "${HOST_INITIATORS}" > ${TMPFILE1} 2> ${TMPFILE2}
     grep -n "${HOST_INITIATORS}" ${TMPFILE1} > /dev/null
@@ -126,6 +127,8 @@ verify_export() {
 
     num_inits=`grep ${NUMBER_OF_INITIATORS} ${TMPFILE1} | awk -F: '{print $2}'`
     num_luns=`grep ${NUMBER_OF_LUNS} ${TMPFILE1} | awk -F: '{print $2}'`
+    hlus=`grep ${USED_HLUS} ${TMPFILE1} | awk -F: '{print $2}'`
+
     failed=false
 
     if [ ${num_inits} -ne ${NUM_INITIATORS} ]
@@ -140,12 +143,29 @@ verify_export() {
 	failed=true
     fi
 
+    if [ -n "${HLUS}" ]
+    then
+        hlu_arr=(${HLUS//,/, })
+        hlus=${hlus:1:-1}
+        if [  "${hlus[*]}" != "${hlu_arr[*]}" ]
+        then
+            echo -e "\e[91mERROR\e[0m: Host HLUs: Expected: ${hlu_arr[*]} Retrieved: ${hlus[*]}";
+            failed=true
+        fi
+    fi
+
     if [ "${failed}" = "true" ]
 	then
 	exit 1;
     fi
 
-    echo "PASSED: Host masking '$HOST_INITIATORS' contained ${NUM_INITIATORS} initiators and ${NUM_LUNS} luns"
+    if [ -n "${HLUS}" ]
+    then
+        echo "PASSED: Host masking '$HOST_INITIATORS' contained ${NUM_INITIATORS} initiators and ${NUM_LUNS} luns with hlus ${HLUS}"
+    else
+        echo "PASSED: Host masking '$HOST_INITIATORS' contained ${NUM_INITIATORS} initiators and ${NUM_LUNS} luns"
+    fi
+
     exit 0;
 }
 
@@ -219,7 +239,7 @@ elif [ "$1" = "delete_mask" ]; then
     delete_mask "$1"
 elif [ "$1" = "verify_export" ]; then
     shift
-    verify_export "$1" "$2" "$3"
+    verify_export "$1" "$2" "$3" "$4"
 elif [ "$1" = "get_hlus" ]; then
     shift
     get_hlus "$1"

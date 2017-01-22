@@ -988,7 +988,9 @@ public class BackupService {
         backupOperationStatus.setNextScheduledCreation(1485004604);
         return backupOperationStatus;*/
         try {
-            return backupOps.queryBackupOperationStatus();
+            BackupOperationStatus backupOperationStatus = backupOps.queryBackupOperationStatus();
+            backupOperationStatus.setNextScheduledCreation(backupScheduler.getNextScheduledTime().getTime());
+            return backupOperationStatus;
         } catch (Exception e) {
             log.error("Failed to get backup operation status", e);
             throw APIException.internalServerErrors.getObjectError("Operation status", e);

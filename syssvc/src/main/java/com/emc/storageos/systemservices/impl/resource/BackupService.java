@@ -977,10 +977,10 @@ public class BackupService {
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     public BackupStatus queryBackupStatus() {
         BackupStatus backupStatus = new BackupStatus();
-        backupStatus.setLastManualBackup("backup1", 1485004604, "success");
-        backupStatus.setLastScheduledBackup("backup2", 1485003604, "success");
-        backupStatus.setLastSuccessfulBackup("backup1", 1485004604, "manual");
-        backupStatus.setLastUploadStatus("backup1", 1485004604, "success");
+        backupStatus.setLastManualBackup("backup1", 1485004604, BackupStatus.OpMessage.OP_SUCCESS);
+        backupStatus.setLastScheduledBackup("backup2", 1485003604, BackupStatus.OpMessage.OP_SUCCESS);
+        backupStatus.setLastSuccessfulBackup("backup1", 1485004604, BackupStatus.OpMessage.OP_MANUAL_BACKUP);
+        backupStatus.setLastUploadStatus("backup1", 1485004604, BackupStatus.OpMessage.OP_SUCCESS);
         backupStatus.setNextScheduledBackup(1485004604);
         return backupStatus;
     }

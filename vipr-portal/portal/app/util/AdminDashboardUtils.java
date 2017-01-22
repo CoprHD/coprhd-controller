@@ -42,6 +42,7 @@ public class AdminDashboardUtils {
     private static String LICENSE_KEY = "LICENSE_KEY";
 
     private static String BACKUP_STATUS_LIST_KEY = "BACKUP_STATUS_LIST_KEY";
+    private static String BACKUP_STATUS_LIST_EXPIRES = "15s";
 
     private static String ASSET_COUNT_EXPIRES = "1mn";
 
@@ -116,7 +117,7 @@ public class AdminDashboardUtils {
     }
 
     public static Promise<BackupStatus> backupStatus() {
-        return CallableHelper.createPromise(new BackupStatusCall(getSysClient()));
+        return CallableHelper.createPromise(new BackupStatusInfo(getSysClient()));
     }
 
     public static Promise<Integer> storageArrayCount() {
@@ -334,15 +335,16 @@ public class AdminDashboardUtils {
         }
     }
 
-    public static class BackupStatusCall implements Callable<BackupStatus> {
+    public static class BackupStatusInfo extends CachingCallable<BackupStatus> {
         private ViPRSystemClient client;
 
-        public BackupStatusCall(ViPRSystemClient client) {
+        public BackupStatusInfo(ViPRSystemClient client) {
+            super(BACKUP_STATUS_LIST_KEY, BACKUP_STATUS_LIST_EXPIRES);
             this.client = client;
         }
 
         @Override
-        public BackupStatus call() throws Exception {
+        public BackupStatus doCall() throws Exception {
             return client.backup().getBackupStatus();
         }
     }

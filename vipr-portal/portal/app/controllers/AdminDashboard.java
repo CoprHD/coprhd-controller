@@ -73,7 +73,7 @@ public class AdminDashboard extends Controller {
     @Restrictions({ @Restrict("SYSTEM_MONITOR"), @Restrict("SYSTEM_ADMIN"), @Restrict("RESTRICTED_SYSTEM_ADMIN") })
     public static void backupStatus() {
         Map<String, Promise<?>> promises = Maps.newHashMap();
-        promises.put("backupOperationStatus", AdminDashboardUtils.getBackupOperationStatus());
+        promises.put("backupOperationStatus", AdminDashboardUtils.getBackupStatus());
         trySetRenderArgs(promises);
         // Add lastUpdated render args after promises are redeemed
         renderArgs.put("backupStatusLastUpdated", AdminDashboardUtils.getBackupStatusLastUpdated());

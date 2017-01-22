@@ -66,8 +66,7 @@ public class AdminDashboard extends Controller {
         trySetRenderArgs(promises);
         // Add lastUpdated render args after promises are redeemed
         renderArgs.put("nodeHealthListLastUpdated", AdminDashboardUtils.getNodeHealthListLastUpdated());
-        renderArgs.put("backupStatusLastUpdated", AdminDashboardUtils.getNodeHealthListLastUpdated());
-        System.out.printf("Grace come here: % and %", AdminDashboardUtils.getNodeHealthListLastUpdated(), AdminDashboardUtils.getBackupStatusLastUpdated());
+        //System.out.printf("Grace come here: % and %", AdminDashboardUtils.getNodeHealthListLastUpdated(), AdminDashboardUtils.getBackupStatusLastUpdated());
         render();
     }
 
@@ -77,8 +76,8 @@ public class AdminDashboard extends Controller {
         promises.put("backupStatus", AdminDashboardUtils.getBackupStatus());
         trySetRenderArgs(promises);
         // Add lastUpdated render args after promises are redeemed
-        //renderArgs.put("backupStatusLastUpdated", AdminDashboardUtils.getBackupStatusLastUpdated());
-        System.out.printf("Grace come here too: % and %", AdminDashboardUtils.getNodeHealthListLastUpdated(), AdminDashboardUtils.getBackupStatusLastUpdated());
+        renderArgs.put("backupStatusLastUpdated", AdminDashboardUtils.getBackupStatusLastUpdated());
+        //System.out.printf("Grace come here too: % and %", AdminDashboardUtils.getNodeHealthListLastUpdated(), AdminDashboardUtils.getBackupStatusLastUpdated());
         render();
     }
 

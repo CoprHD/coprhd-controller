@@ -18,15 +18,6 @@
                     <a id="lastSuccessful" href="@{Backup.list()}"></a>
                 </td>
             </tr>
-            <script>
-                var lastSuccessfulCreationTime = '${backupStatus?.getLastSuccessfulBackup()?.opTime}';
-                var lastSuccessfulBackupType = '${backupStatus?.getLastSuccessfulBackup()?.opMessage}';
-                if (lastSuccessfulCreationTime) {
-                    $('#lastSuccessful').append(formatLocalDateTime(new Date(lastSuccessfulCreationTime)));
-	    	    } else {
-	    	        $('#lastSuccessful').append("NA");
-	    	    }
-            </script>
 
             <tr class="odd ng-scope openRow">
                 <td class="type" height="25px" width="170px">&{'adminDashboard.lastManualBackup'}: </td>
@@ -44,14 +35,6 @@
                     <a id="lastManual" href="@{Backup.list()}"></a>
                 </td>
             </tr>
-            <script>
-                var lastManualCreationTime = '${backupStatus?.getLastManualBackup()?.opTime}';
-                if (lastManualCreationTime) {
-                    $('#lastManual').append(formatLocalDateTime(new Date(lastManualCreationTime)));
-	    	    } else {
-	    	        $('#lastManual').append("NA");
-	    	    }
-            </script>
 
             <tr class="odd ng-scope openRow">
                 <td class="type" height="25px" width="170px">&{'adminDashboard.lastScheduledBackup'}: </td>
@@ -69,24 +52,12 @@
                     <a id="lastScheduled" href="@{Backup.list()}"></a>
                 </td>
             </tr>
-            <script>
-                var lastScheduledCreationTime = '${backupStatus?.getLastScheduledBackup()?.opTime}';
-                if (lastManualCreationTime) {
-                    $('#lastScheduled').append(formatLocalDateTime(new Date(lastScheduledCreationTime)));
-	    	    } else {
-	    	        $('#lastScheduled').append("NA");
-	    	    }
-            </script>
 
             <tr class="odd ng-scope openRow">
                 <td class="type" height="25px" width="170px">&{'adminDashboard.nextScheduledBackup'}: </td>
                 <td class="icon" height="25px" width="25px"></td>
                 <td id="nextScheduled" class="time"></td>
             </tr>
-            <script>
-                var nextScheduledCreationTime = '${backupStatus?.getNextScheduledBackup()?.opTime}';
-                (nextScheduledCreationTime) ? $('#nextScheduled').append(formatLocalDateTime(new Date(nextScheduledCreationTime))) : $('#nextScheduled').append("NA");
-            </script>
 
             <tr class="odd ng-scope openRow">
                 <td class="type" height="25px" width="170px">&{'adminDashboard.lastUploadStatus'}: </td>
@@ -115,6 +86,31 @@
                 </td>
             </tr>
             <script>
+                var lastSuccessfulCreationTime = '${backupStatus?.getLastSuccessfulBackup()?.opTime}';
+                var lastSuccessfulBackupType = '${backupStatus?.getLastSuccessfulBackup()?.opMessage}';
+                if (lastSuccessfulCreationTime) {
+                    $('#lastSuccessful').append(formatLocalDateTime(new Date(lastSuccessfulCreationTime)));
+	    	    } else {
+	    	        $('#lastSuccessful').append("NA");
+	    	    }
+
+	    	    var lastManualCreationTime = '${backupStatus?.getLastManualBackup()?.opTime}';
+                if (lastManualCreationTime) {
+                    $('#lastManual').append(formatLocalDateTime(new Date(lastManualCreationTime)));
+	    	    } else {
+	    	        $('#lastManual').append("NA");
+	    	    }
+
+                var lastScheduledCreationTime = '${backupStatus?.getLastScheduledBackup()?.opTime}';
+                if (lastManualCreationTime) {
+                    $('#lastScheduled').append(formatLocalDateTime(new Date(lastScheduledCreationTime)));
+	    	    } else {
+	    	        $('#lastScheduled').append("NA");
+	    	    }
+
+	    	    var nextScheduledCreationTime = '${backupStatus?.getNextScheduledBackup()?.opTime}';
+                (nextScheduledCreationTime) ? $('#nextScheduled').append(formatLocalDateTime(new Date(nextScheduledCreationTime))) : $('#nextScheduled').append("NA");
+
                 if (isExternalServerConfigured) {
                     var lastUploadTime = '${backupStatus?.getLastUploadStatus()?.opTime}';
                     if (lastUploadTime) {

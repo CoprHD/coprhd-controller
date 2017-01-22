@@ -22,8 +22,8 @@
             <script>
                 var lastSuccessfulCreationTime = '${backupStatus?.getLastSuccessfulBackup()?.opTime}';
                 var lastSuccessfulBackupType = '${backupStatus?.getLastSuccessfulBackup()?.opMessage}';
-                if (lastSuccessfulCreationTime) {
-                    $('#lastSuccessful').append(formatLocalDateTime(new Date(lastSuccessfulCreationTime)));
+                if (lastSuccessfulCreationTime && lastSuccessfulBackupType) {
+                    $('#lastSuccessful').append(formatLocalDateTime(new Date(lastSuccessfulCreationTime))).append(lastSuccessfulBackupType.toString());;
                 } else {
                     $('#lastSuccessful').append("NA");
                 }
@@ -72,7 +72,7 @@
             </tr>
             <script>
                 var lastScheduledCreationTime = '${backupStatus?.getLastScheduledBackup()?.opTime}';
-                if (lastManualCreationTime) {
+                if (lastScheduledCreationTime) {
                     $('#lastScheduled').append(formatLocalDateTime(new Date(lastScheduledCreationTime)));
                 } else {
                     $('#lastScheduled').append("NA");
@@ -82,11 +82,11 @@
             <tr class="odd ng-scope openRow">
                 <td class="type" height="25px" width="170px">&{'adminDashboard.nextScheduledBackup'}: </td>
                 <td class="icon" height="25px" width="25px">
-                #{if !isScheduledBackupEnabled}
+                #{if isScheduledBackupEnabled == false}
                     <span class="text-warning">#{icon 'warning-sign'/}</span>
                 #{/if}
                 </td>
-                <td id="nextScheduled" class="time"></td>
+                <td class="time" id="nextScheduled"></td>
             </tr>
             <script>
                 if (isScheduledBackupEnabled) {
@@ -104,8 +104,8 @@
             <tr class="odd ng-scope openRow">
                 <td class="type" height="25px" width="170px">&{'adminDashboard.lastUploadStatus'}: </td>
                 <td class="icon" height="25px" width="25px">
-                    #{if isExternalServerConfigured}
-                    #{if backupStatus?.getLastUploadStatus()?.opStatus}
+                #{if isExternalServerConfigured }
+                    #{if backupStatus?.getLastUploadStatus()?.opStatus }
                         #{if 'true'.equalsIgnoreCase('${backupStatus?.getLastUploadStatus()?.opStatus}')}
                             <span class="text-success">#{icon 'ok-sign'/}</span>
                         #{/if}
@@ -113,22 +113,22 @@
                             <span class="text-danger">#{icon 'remove-sign'/}</span>
                         #{/else}
                     #{/if}
-                    #{/if}
-                    #{else}
-                        <span class="text-warning">#{icon 'warning-sign'/}</span>
-                    #{/else}
+                #{/if}
+                #{else}
+                    <span class="text-warning">#{icon 'warning-sign'/}</span>
+                #{/else}
                 </td>
                 <td class="time">
-                    #{if isExternalServerConfigured}
+                    #{if isExternalServerConfigured }
                     <a href="@{Backup.list()}" id="lastUpload"></a>
                     #{/if}
                     #{else}
-                    <a href="@{Backup.list()}" id="externalServer">${isExternalServerConfigured}</a>
+                    <a href="@{Backup.list()}" id="externalServer"></a>
                     #{/else}
                 </td>
             </tr>
             <script>
-                if (isExternalServerConfigured) {
+                if (isExternalServerConfigured == true) {
                     var lastUploadTime = '${backupStatus?.getLastUploadStatus()?.opTime}';
                     if (lastUploadTime) {
                         $('#lastUpload').append(formatLocalDateTime(new Date(lastUploadTime)));

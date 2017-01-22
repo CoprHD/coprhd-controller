@@ -40,6 +40,7 @@ import javax.management.remote.JMXServiceURL;
 
 import com.emc.storageos.management.backup.util.BackupClient;
 
+import com.emc.storageos.services.util.TimeUtils;
 import com.emc.vipr.model.sys.backup.BackupInfo;
 import com.emc.vipr.model.sys.backup.BackupOperationStatus;
 import org.apache.commons.io.FilenameUtils;
@@ -863,6 +864,7 @@ public class BackupOps {
                 }
                 log.info("Create backup({}) success", backupTag);
                 persistBackupInfo(backupTag);
+                updateBackupCreationStatus(backupTag, TimeUtils.getCurrentTime(), true);
                 return;
             } catch (Exception e) {
                 boolean retry = (e instanceof RetryableBackupException) &&
@@ -1042,15 +1044,33 @@ public class BackupOps {
         }
     }
 
+    public void updateBackupCreationStatus(String backupName, long operationTime, boolean success) {
+        BackupOperationStatus backupOperationStatus = queryBackupOperationStatus();
+        boolean isScheduledBackup = isScheduledBackupTag(backupName);
+        if (isScheduledBackup) {
+            backupOperationStatus.setLastScheduledCreation(backupName, operationTime,
+                    (success) ? BackupOperationStatus.OpMessage.OP_SUCCESS : BackupOperationStatus.OpMessage.OP_FAILED);
+        } else {
+            backupOperationStatus.setLastManualCreation(backupName, operationTime,
+                    (success) ? BackupOperationStatus.OpMessage.OP_SUCCESS : BackupOperationStatus.OpMessage.OP_FAILED);
+        }
+        if (success) {
+            backupOperationStatus.setLastSuccessfulCreation(backupName, operationTime,
+                    (isScheduledBackup) ? BackupOperationStatus.OpMessage.OP_SCHEDULED : BackupOperationStatus.OpMessage.OP_MANUAL);
+        }
+        persistBackupOperationStatus(backupOperationStatus);
+    }
+
     public BackupOperationStatus queryBackupOperationStatus() {
+        BackupOperationStatus backupOperationStatus = new BackupOperationStatus();
         Configuration config = coordinatorClient.queryConfiguration(Constants.BACKUP_OPERATION_STATUS,
                 Constants.GLOBAL_ID);
-        BackupOperationStatus backupOperationStatus = new BackupOperationStatus();
-        backupOperationStatus.setLastSuccessfulCreation(getOperationStatus(config, BackupConstants.LAST_MANUAL_CREATION));
-        backupOperationStatus.setLastManualCreation(getOperationStatus(config, BackupConstants.LAST_MANUAL_CREATION));
-        backupOperationStatus.setLastScheduledCreation(getOperationStatus(config, BackupConstants.LAST_SCHEDULED_CREATION));
-        backupOperationStatus.setLastUpload(getOperationStatus(config, BackupConstants.LAST_UPLOAD));
-
+        if (config != null) {
+            backupOperationStatus.setLastSuccessfulCreation(getOperationStatus(config, BackupConstants.LAST_MANUAL_CREATION));
+            backupOperationStatus.setLastManualCreation(getOperationStatus(config, BackupConstants.LAST_MANUAL_CREATION));
+            backupOperationStatus.setLastScheduledCreation(getOperationStatus(config, BackupConstants.LAST_SCHEDULED_CREATION));
+            backupOperationStatus.setLastUpload(getOperationStatus(config, BackupConstants.LAST_UPLOAD));
+        }
         //TODO: next scheduled backup
         log.info("Get backup operation status from ZK: {}", backupOperationStatus);
         return backupOperationStatus;
@@ -1071,23 +1091,25 @@ public class BackupOps {
         log.info("Persist backup operation status to zk successfully");
     }
 
+    private BackupOperationStatus.OperationStatus getOperationStatus(Configuration config, String operationType) {
+        BackupOperationStatus.OperationStatus operationStatus = new BackupOperationStatus.OperationStatus();
+        String opName = getOperationItem(config, operationType, BackupConstants.OPERATION_NAME);
+        if (opName != null) {
+            operationStatus.setOperationName(opName);
+        }
+        String opTime = getOperationItem(config, operationType, BackupConstants.OPERATION_TIME);
+        if (opTime != null) {
+            operationStatus.setOperationTime(Long.parseLong(opTime));
+        }
+        String opMessage = getOperationItem(config, operationType, BackupConstants.OPERATION_MESSAGE);
+        if (opMessage != null) {
+            operationStatus.setOperationMessage(BackupOperationStatus.OpMessage.valueOf(opMessage));
+        }
+        return operationStatus ;
+    }
     private String getOperationItem(Configuration config, String operationType, String operationItem) {
         String keyOperationItem = String.format(BackupConstants.BACKUP_OPERATION_STATUS_KEY_FORMAT, operationType, operationItem);
         return config.getConfig(keyOperationItem);
-    }
-
-    private BackupOperationStatus.OperationStatus getOperationStatus(Configuration config, String operationType) {
-        BackupOperationStatus.OperationStatus operationStatus = new BackupOperationStatus.OperationStatus();
-        operationStatus.setOperationName(getOperationItem(config, operationType, BackupConstants.OPERATION_NAME));
-        operationStatus.setOperationTime(Long.parseLong(getOperationItem(config, operationType, BackupConstants.OPERATION_TIME)));
-        operationStatus.setOperationMessage(BackupOperationStatus.OpMessage.valueOf(getOperationItem(config, operationType, BackupConstants.OPERATION_MESSAGE)));
-        return operationStatus ;
-    }
-
-    private Configuration setOperationItem(Configuration config, String operationType, String operationItem, String operationItemValue) {
-        String keyOperationItem = String.format(BackupConstants.BACKUP_OPERATION_STATUS_KEY_FORMAT, operationType, operationItem);
-        config.setConfig(keyOperationItem, operationItemValue);
-        return config;
     }
 
     private Configuration setOperationStatus(Configuration config, String operationType, BackupOperationStatus.OperationStatus operationStatus) {
@@ -1095,6 +1117,12 @@ public class BackupOps {
         setOperationItem(config, operationType, BackupConstants.OPERATION_TIME, String.valueOf(operationStatus.getOperationTime()));
         setOperationItem(config, operationType, BackupConstants.OPERATION_MESSAGE, operationStatus.getOperationMessage().name());
         return config ;
+    }
+
+    private Configuration setOperationItem(Configuration config, String operationType, String operationItem, String operationItemValue) {
+        String keyOperationItem = String.format(BackupConstants.BACKUP_OPERATION_STATUS_KEY_FORMAT, operationType, operationItem);
+        config.setConfig(keyOperationItem, operationItemValue);
+        return config;
     }
 
     private String getCurrentVersion() throws Exception {

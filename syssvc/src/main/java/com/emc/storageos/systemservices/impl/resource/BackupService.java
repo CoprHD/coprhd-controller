@@ -34,6 +34,7 @@ import javax.ws.rs.core.*;
 import com.emc.storageos.management.backup.*;
 import com.emc.storageos.management.backup.util.BackupClient;
 import com.emc.storageos.management.backup.util.CifsClient;
+import com.emc.storageos.services.util.TimeUtils;
 import com.emc.vipr.model.sys.backup.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -287,6 +288,7 @@ public class BackupService {
             log.error("Failed to create backup(tag={}), e=", backupTag, e);
             descParams.add(e.getLocalizedMessage());
             auditBackup(OperationTypeEnum.CREATE_BACKUP, AuditLogManager.AUDITLOG_FAILURE, null, descParams.toArray());
+            backupOps.updateBackupCreationStatus(backupTag, TimeUtils.getCurrentTime(), false);
             throw APIException.internalServerErrors.createObjectError("Backup files", e);
         }
         return Response.ok().build();
@@ -976,12 +978,20 @@ public class BackupService {
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR, Role.RESTRICTED_SYSTEM_ADMIN })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     public BackupOperationStatus getBackupOperationStatus() {
-        BackupOperationStatus backupOperationStatus = new BackupOperationStatus();
+        log.info("Received get backup operation status request");
+
+        /*BackupOperationStatus backupOperationStatus = new BackupOperationStatus();
         backupOperationStatus.setLastManualCreation("backup1", 1485004604, BackupOperationStatus.OpMessage.OP_SUCCESS);
         backupOperationStatus.setLastScheduledCreation("backup2", 1485003604, BackupOperationStatus.OpMessage.OP_SUCCESS);
-        backupOperationStatus.setLastSuccessfulCreation("backup1", 1485004604, BackupOperationStatus.OpMessage.OP_MANUAL_BACKUP);
+        backupOperationStatus.setLastSuccessfulCreation("backup1", 1485004604, BackupOperationStatus.OpMessage.OP_MANUAL);
         backupOperationStatus.setLastUpload("backup1", 1485004604, BackupOperationStatus.OpMessage.OP_SUCCESS);
         backupOperationStatus.setNextScheduledCreation(1485004604);
-        return backupOperationStatus;
+        return backupOperationStatus;*/
+        try {
+            return backupOps.queryBackupOperationStatus();
+        } catch (Exception e) {
+            log.error("Failed to get backup operation status", e);
+            throw APIException.internalServerErrors.getObjectError("Operation status", e);
+        }
     }
 }

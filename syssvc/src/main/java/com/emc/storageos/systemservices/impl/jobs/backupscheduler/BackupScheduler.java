@@ -33,6 +33,7 @@ import com.emc.storageos.systemservices.impl.resource.BackupService;
 import com.emc.storageos.systemservices.impl.upgrade.CoordinatorClientExt;
 import com.emc.storageos.systemservices.impl.util.SkipOutputStream;
 
+import com.emc.vipr.model.sys.backup.BackupOperationStatus;
 import org.apache.curator.framework.recipes.leader.LeaderSelector;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -232,6 +233,13 @@ public class BackupScheduler extends Notifier implements Runnable, Callable<Obje
 
     public void deleteBackup(String tag) {
         this.backupService.deleteBackup(tag);
+    }
+
+    public void updateBackupUploadStatus(String backupName, long operationTime, boolean success) {
+        BackupOperationStatus backupOperationStatus = backupOps.queryBackupOperationStatus();
+        backupOperationStatus.setLastUpload(backupName, operationTime,
+                (success) ? BackupOperationStatus.OpMessage.OP_SUCCESS : BackupOperationStatus.OpMessage.OP_FAILED);
+        backupOps.persistBackupOperationStatus(backupOperationStatus);
     }
 
     /**

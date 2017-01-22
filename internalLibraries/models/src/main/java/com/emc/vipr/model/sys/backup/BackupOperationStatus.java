@@ -154,8 +154,8 @@ public class BackupOperationStatus {
         OP_SUCCESS("success"),
         OP_FAILED("failed"),
         //operation type
-        OP_MANUAL_BACKUP("manual"),
-        OP_SCHEDULED_BACKUP("scheduled");
+        OP_MANUAL("manual"),
+        OP_SCHEDULED("scheduled");
 
         private String opMessage = "";
 

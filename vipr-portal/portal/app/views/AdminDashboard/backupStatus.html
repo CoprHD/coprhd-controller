@@ -15,7 +15,7 @@
                 #{/if}
                 </td>
                 <td class="time">
-                    <a href="@{Backup.list()}" id="lastSuccessful"></a>
+                    <a id="lastSuccessful" href="@{Backup.list()}"></a>
                 </td>
             </tr>
             <script>
@@ -41,7 +41,7 @@
                     #{/if}
                 </td>
                 <td class="time">
-                    <a href="@{Backup.list()}" id="lastManual"></a>
+                    <a id="lastManual" href="@{Backup.list()}"></a>
                 </td>
             </tr>
             <script>
@@ -66,7 +66,7 @@
                     #{/if}
                 </td>
                 <td class="time">
-                    <a href="@{Backup.list()}" id="lastScheduled"></a>
+                    <a id="lastScheduled" href="@{Backup.list()}"></a>
                 </td>
             </tr>
             <script>
@@ -92,21 +92,26 @@
                 <td class="type" height="25px" width="170px">&{'adminDashboard.lastUploadStatus'}: </td>
                 <td class="icon" height="25px" width="25px">
                     #{if isExternalServerConfigured}
-                        #{if backupStatus?.getLastUploadStatus()?.opStatus}
-                            #{if 'true'.equalsIgnoreCase('${backupStatus?.getLastUploadStatus()?.opStatus}')}
-                                <span class="text-success">#{icon 'ok-sign'/}</span>
-                            #{/if}
-                            #{else}
-                                <span class="text-danger">#{icon 'remove-sign'/}</span>
-                            #{/else}
+                    #{if backupStatus?.getLastUploadStatus()?.opStatus}
+                        #{if 'true'.equalsIgnoreCase('${backupStatus?.getLastUploadStatus()?.opStatus}')}
+                            <span class="text-success">#{icon 'ok-sign'/}</span>
                         #{/if}
+                        #{else}
+                            <span class="text-danger">#{icon 'remove-sign'/}</span>
+                        #{/else}
+                    #{/if}
                     #{/if}
                     #{else}
                         <span class="text-warning">#{icon 'warning-sign'/}</span>
                     #{/else}
                 </td>
                 <td class="time">
-                    <a href="@{Backup.list()}" id="lastUpload"></a>
+                    #{if isExternalServerConfigured}
+                    <a id="lastUpload" href="@{Backup.list()}"></a>
+                    #{/if}
+                    #{else}
+                    <a id="externalServer" href="@{Backup.list()}"></a>
+                    #{/else}
                 </td>
             </tr>
             <script>
@@ -118,7 +123,7 @@
 	    	            $('#lastUpload').append("NA");
 	    	        }
 	    	    } else {
-                    $('#lastUpload').append(&{'adminDashboard.lastUploadStatus.notConfigured'});
+                    $('#externalServer').append(&{'adminDashboard.lastUploadStatus.notConfigured'});
 	    	    }
             </script>
             </tbody>

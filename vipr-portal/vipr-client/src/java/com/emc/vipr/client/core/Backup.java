@@ -123,14 +123,14 @@ public class Backup {
         return status;
     }
 
-    public BackupStatus getBackupStatus() {
-        //return client.get(BackupStatus.class, BACKUP_STATUS_URL);
-        BackupStatus backupStatus = new BackupStatus();
-        backupStatus.setLastManualBackup("backup1", 1485004604, BackupStatus.OpMessage.OP_SUCCESS);
-        backupStatus.setLastScheduledBackup("backup2", 1485003604, BackupStatus.OpMessage.OP_SUCCESS);
-        backupStatus.setLastSuccessfulBackup("backup1", 1485004604, BackupStatus.OpMessage.OP_MANUAL_BACKUP);
-        backupStatus.setLastUploadStatus("backup1", 1485004604, BackupStatus.OpMessage.OP_SUCCESS);
-        backupStatus.setNextScheduledBackup(1485004604);
-        return backupStatus;
+    public BackupOperationStatus getBackupOperationStatus() {
+        //return client.get(BackupOperationStatus.class, BACKUP_STATUS_URL);
+        BackupOperationStatus backupOperationStatus = new BackupOperationStatus();
+        backupOperationStatus.setLastManualCreation("backup1", 1485004604, BackupOperationStatus.OpMessage.OP_SUCCESS);
+        backupOperationStatus.setLastScheduledCreation("backup2", 1485003604, BackupOperationStatus.OpMessage.OP_SUCCESS);
+        backupOperationStatus.setLastSuccessfulCreation("backup1", 1485004604, BackupOperationStatus.OpMessage.OP_MANUAL_BACKUP);
+        backupOperationStatus.setLastUpload("backup1", 1485004604, BackupOperationStatus.OpMessage.OP_SUCCESS);
+        backupOperationStatus.setNextScheduledCreation(1485004604);
+        return backupOperationStatus;
     }
 }

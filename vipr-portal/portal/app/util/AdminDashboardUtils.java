@@ -11,7 +11,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.concurrent.Callable;
 
-import com.emc.vipr.model.sys.backup.BackupStatus;
+import com.emc.vipr.model.sys.backup.BackupOperationStatus;
 import jobs.vipr.CallableHelper;
 import play.cache.Cache;
 import play.libs.F.Promise;
@@ -100,8 +100,8 @@ public class AdminDashboardUtils {
         return BourneUtil.getSysClient().upgrade().getClusterInfo();
     }
 
-    //public static BackupStatus getBackupStatus() {
-    //    return BourneUtil.getSysClient().backup().getBackupStatus();
+    //public static BackupOperationStatus getBackupStatus() {
+    //    return BourneUtil.getSysClient().backup().getBackupOperationStatus();
     //}
 
     public static DbRepairStatus gethealthdb() {
@@ -116,7 +116,7 @@ public class AdminDashboardUtils {
         return LicenseUtils.getLicense();
     }
 
-    public static Promise<BackupStatus> getBackupStatus() {
+    public static Promise<BackupOperationStatus> getBackupStatus() {
         return CallableHelper.createPromise(new BackupStatusInfo(getSysClient()));
     }
 
@@ -335,7 +335,7 @@ public class AdminDashboardUtils {
         }
     }
 
-    public static class BackupStatusInfo extends CachingCallable<BackupStatus> {
+    public static class BackupStatusInfo extends CachingCallable<BackupOperationStatus> {
         private ViPRSystemClient client;
 
         public BackupStatusInfo(ViPRSystemClient client) {
@@ -344,8 +344,8 @@ public class AdminDashboardUtils {
         }
 
         @Override
-        public BackupStatus doCall() throws Exception {
-            return client.backup().getBackupStatus();
+        public BackupOperationStatus doCall() throws Exception {
+            return client.backup().getBackupOperationStatus();
         }
     }
 }

@@ -975,13 +975,13 @@ public class BackupService {
     @Path("backup-status")
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR, Role.RESTRICTED_SYSTEM_ADMIN })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    public BackupStatus queryBackupStatus() {
-        BackupStatus backupStatus = new BackupStatus();
-        backupStatus.setLastManualBackup("backup1", 1485004604, BackupStatus.OpMessage.OP_SUCCESS);
-        backupStatus.setLastScheduledBackup("backup2", 1485003604, BackupStatus.OpMessage.OP_SUCCESS);
-        backupStatus.setLastSuccessfulBackup("backup1", 1485004604, BackupStatus.OpMessage.OP_MANUAL_BACKUP);
-        backupStatus.setLastUploadStatus("backup1", 1485004604, BackupStatus.OpMessage.OP_SUCCESS);
-        backupStatus.setNextScheduledBackup(1485004604);
-        return backupStatus;
+    public BackupOperationStatus getBackupOperationStatus() {
+        BackupOperationStatus backupOperationStatus = new BackupOperationStatus();
+        backupOperationStatus.setLastManualCreation("backup1", 1485004604, BackupOperationStatus.OpMessage.OP_SUCCESS);
+        backupOperationStatus.setLastScheduledCreation("backup2", 1485003604, BackupOperationStatus.OpMessage.OP_SUCCESS);
+        backupOperationStatus.setLastSuccessfulCreation("backup1", 1485004604, BackupOperationStatus.OpMessage.OP_MANUAL_BACKUP);
+        backupOperationStatus.setLastUpload("backup1", 1485004604, BackupOperationStatus.OpMessage.OP_SUCCESS);
+        backupOperationStatus.setNextScheduledCreation(1485004604);
+        return backupOperationStatus;
     }
 }

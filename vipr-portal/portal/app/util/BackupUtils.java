@@ -5,7 +5,10 @@
 package util;
 
 import java.util.List;
+import java.util.Map;
 
+import com.emc.storageos.management.backup.BackupConstants;
+import com.emc.storageos.model.property.PropertyInfo;
 import com.emc.vipr.model.sys.backup.BackupRestoreStatus;
 import com.emc.vipr.model.sys.backup.BackupSets.BackupSet;
 import com.emc.vipr.model.sys.backup.BackupUploadStatus;
@@ -63,5 +66,10 @@ public class BackupUtils {
 
     public static BackupRestoreStatus getRestoreStatus(String name, boolean isLocal) {
         return BourneUtil.getSysClient().backup().getRestoreStatus(name, isLocal);
+    }
+
+    public static boolean isExternalServerConfigured() {
+        Map<String, String> propInfo = ConfigPropertyUtils.getPropertiesFromCoordinator();
+        return (propInfo.get(ConfigProperty.BACKUP_EXTERNAL_URL) != null);
     }
 }

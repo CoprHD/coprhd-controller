@@ -214,8 +214,8 @@ public class OrderService extends CatalogTaggedResourceService {
     private void startJobQueue() {
         log.info("Starting order service job queue maxOrderDeleted={}", maxOrderDeletedPerGC);
         try {
-            OrderServiceJobConsumer consumer = new OrderServiceJobConsumer(this, _auditMgr, _dbClient,
-                    orderManager, maxOrderDeletedPerGC);
+            OrderServiceJobConsumer consumer =
+                    new OrderServiceJobConsumer(this, _dbClient, orderManager, maxOrderDeletedPerGC);
             queue = _coordinator.getQueue(ORDER_SERVICE_QUEUE_NAME, consumer, new OrderServiceJobSerializer(), 1);
         } catch (Exception e) {
             log.error("Failed to start order job queue", e);
@@ -1045,6 +1045,7 @@ public class OrderService extends CatalogTaggedResourceService {
             APIException.internalServerErrors.genericApisvcError(errMsg, e);
         }
 
+        auditOpSuccess(OperationTypeEnum.DELETE_ORDER, startTimeStr, endTimeStr);
         return Response.status(Response.Status.ACCEPTED).build();
     }
 

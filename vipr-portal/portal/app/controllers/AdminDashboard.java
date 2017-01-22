@@ -78,6 +78,7 @@ public class AdminDashboard extends Controller {
         trySetRenderArgs(promises);
         // Add lastUpdated render args after promises are redeemed
         //renderArgs.put("backupStatusLastUpdated", AdminDashboardUtils.getBackupStatusLastUpdated());
+        System.out.printf("Grace come here too: % and %", AdminDashboardUtils.getNodeHealthListLastUpdated(), AdminDashboardUtils.getBackupStatusLastUpdated());
         render();
     }
 

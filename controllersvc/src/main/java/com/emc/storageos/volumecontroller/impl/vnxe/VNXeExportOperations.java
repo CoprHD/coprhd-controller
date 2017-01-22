@@ -313,7 +313,7 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
 
             for (Initiator initiator : initiatorList) {
                 _logger.info("Processing initiator {}", initiator.getLabel());
-                if (hostId != null && lunIds.isEmpty() && !ExportUtils.isInitiatorSharedByMasks(_dbClient, initiator.getId())) {
+                if (hostId != null && lunIds.isEmpty() && !ExportUtils.isInitiatorSharedByMasks(_dbClient, exportMask, initiator.getId())) {
                     // all ViPR known LUNs has been removed, and there shouldn't any unknown LUN since the volume validation passed
                     String initiatorId = initiator.getInitiatorPort();
                     if (Protocol.FC.name().equals(initiator.getProtocol())) {
@@ -739,7 +739,6 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
         }
 
         try {
-            // find out if initiators being deleted are all initiator of VNXe host
             VNXeApiClient apiClient = getVnxeClient(storage);
             List<Initiator> allInitiators = ExportUtils.getExportMaskInitiators(exportMask, _dbClient);
             String vnxeHostId = getHostIdFromInitiators(allInitiators, apiClient);
@@ -771,7 +770,7 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
             List<String> initiatorIdList = new ArrayList<>();
             for (Initiator initiator : initiatorToBeRemoved) {
                 _logger.info("Processing initiator {}", initiator.getLabel());
-                if (vnxeHostId != null && !ExportUtils.isInitiatorSharedByMasks(_dbClient, initiator.getId())) {
+                if (vnxeHostId != null && !ExportUtils.isInitiatorSharedByMasks(_dbClient, mask, initiator.getId())) {
                     String initiatorId = initiator.getInitiatorPort();
                     if (Protocol.FC.name().equals(initiator.getProtocol())) {
                         initiatorId = initiator.getInitiatorNode() + ":" + initiatorId;

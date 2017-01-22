@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016 EMC Corporation
+ * Copyright (c) 2017 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.volumecontroller.impl.validators.vnxe;
@@ -12,14 +12,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.DbClient;
-import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.vnxe.VNXeApiClientFactory;
-import com.emc.storageos.volumecontroller.impl.validators.ChainingValidator;
 import com.emc.storageos.volumecontroller.impl.validators.StorageSystemValidatorFactory;
 import com.emc.storageos.volumecontroller.impl.validators.ValCk;
 import com.emc.storageos.volumecontroller.impl.validators.Validator;

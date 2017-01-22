@@ -720,14 +720,11 @@ public class OrderService extends CatalogTaggedResourceService {
                 return;
             }
 
-            parameters = order.auditParameters();
             dumpOrder(out, order);
             status.addCompleted(1);
             saveJobInfo(status);
-            auditOpSuccess(OperationTypeEnum.DOWNLOAD_ORDER, parameters);
         } catch (Exception e) {
             log.error("Failed to download order {} e=", id, e);
-            auditOpFailure(OperationTypeEnum.DOWNLOAD_ORDER, parameters);
             throw e;
         }
     }

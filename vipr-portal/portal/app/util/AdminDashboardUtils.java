@@ -100,9 +100,9 @@ public class AdminDashboardUtils {
         return BourneUtil.getSysClient().upgrade().getClusterInfo();
     }
 
-    public static BackupStatus getBackupStatus() {
-        return BourneUtil.getSysClient().backup().getBackupStatus();
-    }
+    //public static BackupStatus getBackupStatus() {
+    //    return BourneUtil.getSysClient().backup().getBackupStatus();
+    //}
 
     public static DbRepairStatus gethealthdb() {
         return BourneUtil.getSysClient().control().getdbhealth();
@@ -116,7 +116,7 @@ public class AdminDashboardUtils {
         return LicenseUtils.getLicense();
     }
 
-    public static Promise<BackupStatus> backupStatus() {
+    public static Promise<BackupStatus> getBackupStatus() {
         return CallableHelper.createPromise(new BackupStatusInfo(getSysClient()));
     }
 

@@ -10,7 +10,6 @@ import java.util.Date;
 import java.util.List;
 import java.util.Map;
 
-import com.emc.vipr.model.sys.backup.BackupStatus;
 import org.joda.time.DateTime;
 
 import jobs.PoweroffJob;
@@ -73,13 +72,7 @@ public class AdminDashboard extends Controller {
     @Restrictions({ @Restrict("SYSTEM_MONITOR"), @Restrict("SYSTEM_ADMIN"), @Restrict("RESTRICTED_SYSTEM_ADMIN") })
     public static void backupStatus() {
         Map<String, Promise<?>> promises = Maps.newHashMap();
-        //promises.put("lastSuccessfulBackup", AdminDashboardUtils.getBackupStatus());
-        //promises.put("lastManualBackup", AdminDashboardUtils.getBackupStatus());
-        //promises.put("lastScheduledBackup", AdminDashboardUtils.getBackupStatus());
-        //promises.put("nextScheduledBackup", AdminDashboardUtils.getBackupStatus());
-        //promises.put("lastUploadStatus", AdminDashboardUtils.getBackupStatus());
-        promises.put("backupStatus", AdminDashboardUtils.backupStatus());
-
+        promises.put("backupStatus", AdminDashboardUtils.getBackupStatus());
         trySetRenderArgs(promises);
         // Add lastUpdated render args after promises are redeemed
         renderArgs.put("backupStatusLastUpdated", AdminDashboardUtils.getBackupStatusLastUpdated());

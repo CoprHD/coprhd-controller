@@ -65,8 +65,8 @@ public class HostLun extends VNXeBase {
     }
 
     public static enum HostLUNTypeEnum {
-        LUN_SNAP(1),
-        LUN(2);
+        LUN_SNAP(2),
+        LUN(1);
 
         private int value;
 

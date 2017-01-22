@@ -44,6 +44,7 @@ import com.emc.storageos.vnxe.models.HostInitiatorCreateParam;
 import com.emc.storageos.vnxe.models.HostInitiatorModifyParam;
 import com.emc.storageos.vnxe.models.HostIpPortCreateParam;
 import com.emc.storageos.vnxe.models.HostLun;
+import com.emc.storageos.vnxe.models.HostLun.HostLUNTypeEnum;
 import com.emc.storageos.vnxe.models.HostLunModifyParam;
 import com.emc.storageos.vnxe.models.HostTypeEnum;
 import com.emc.storageos.vnxe.models.LunAddParam;
@@ -2941,8 +2942,10 @@ public class VNXeApiClient {
             if (hostLunIds != null && !hostLunIds.isEmpty()) {
                 for (VNXeBase hostLunId : hostLunIds) {
                     HostLun hostLun = getHostLun(hostLunId.getId());
-                    VNXeBase vnxelunId = hostLun.getSnap();
-                    if (vnxelunId == null) {
+                    VNXeBase vnxelunId = null;
+                    if (hostLun.getType() == HostLUNTypeEnum.LUN_SNAP.getValue()) {
+                        vnxelunId = hostLun.getSnap();
+                    } else {
                         vnxelunId = hostLun.getLun();
                     }
 

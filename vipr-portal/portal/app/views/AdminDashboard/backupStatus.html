@@ -110,11 +110,11 @@
         </table>
         </div>
     </div>
-
+    #{if backupStatusLastUpdated}
     <div class="panel-footer">
         <small>&{'adminDashboard.lastUpdated'}
             <span data-format-relative-time="${backupStatusLastUpdated.getTime()}"></span>
         </small>
     </div>
-
+    #{/if}
 </div>

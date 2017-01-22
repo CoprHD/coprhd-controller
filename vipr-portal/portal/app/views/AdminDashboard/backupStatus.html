@@ -24,7 +24,7 @@
                 var lastSuccessfulCreationTime = '${backupStatus?.getLastSuccessfulBackup()?.opTime}';
                 var lastSuccessfulBackupType = '${backupStatus?.getLastSuccessfulBackup()?.opMessage}';
                 if (lastSuccessfulCreationTime) {
-                    $('#lastSuccessful').append(formatLocalDateTime(new Date(lastSuccessfulCreationTime))).append('(').append('').append(')');
+                    $('#lastSuccessful').append(formatLocalDateTime(new Date(lastSuccessfulCreationTime)));
 	    	    } else {
 	    	        $('#lastSuccessful').append("NA");
 	    	    }

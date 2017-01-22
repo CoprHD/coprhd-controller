@@ -7,8 +7,6 @@ package util;
 import java.util.List;
 import java.util.Map;
 
-import com.emc.storageos.management.backup.BackupConstants;
-import com.emc.storageos.model.property.PropertyInfo;
 import com.emc.vipr.model.sys.backup.BackupRestoreStatus;
 import com.emc.vipr.model.sys.backup.BackupSets.BackupSet;
 import com.emc.vipr.model.sys.backup.BackupUploadStatus;

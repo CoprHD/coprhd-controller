@@ -166,12 +166,12 @@ public class BackupScheduler extends Notifier implements Runnable, Callable<Obje
     }
 
     private void scheduleNextRun() {
-        Date coming = getNextScheduledTime();
+        Date coming = getNextScheduledRunTime();
         long millisToSleep = coming.getTime() - System.currentTimeMillis();
         this.scheduledTask = this.service.schedule((Runnable) this, millisToSleep, TimeUnit.MILLISECONDS);
     }
 
-    public Date getNextScheduledTime() {
+    public Date getNextScheduledRunTime() {
         Calendar now = this.cfg.now();
         ScheduleTimeRange cur = new ScheduleTimeRange(this.cfg.interval, this.cfg.intervalMultiple, now);
         Date coming = cur.minuteOffset(this.cfg.startOffsetMinutes);

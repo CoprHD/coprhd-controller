@@ -11,7 +11,6 @@ import java.util.Date;
 import java.util.List;
 import java.util.concurrent.Callable;
 
-import com.emc.vipr.model.sys.backup.BackupOperationStatus;
 import jobs.vipr.CallableHelper;
 import play.cache.Cache;
 import play.libs.F.Promise;
@@ -24,6 +23,7 @@ import com.emc.vipr.model.sys.healthmonitor.NodeStats;
 import com.emc.vipr.model.sys.healthmonitor.StorageStats;
 import com.emc.vipr.model.sys.licensing.License;
 import com.emc.vipr.model.sys.recovery.DbRepairStatus;
+import com.emc.vipr.model.sys.backup.BackupOperationStatus;
 
 public class AdminDashboardUtils {
 

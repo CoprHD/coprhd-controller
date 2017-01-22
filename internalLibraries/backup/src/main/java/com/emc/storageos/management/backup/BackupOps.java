@@ -1071,7 +1071,6 @@ public class BackupOps {
             backupOperationStatus.setLastScheduledCreation(getOperationStatus(config, BackupConstants.LAST_SCHEDULED_CREATION));
             backupOperationStatus.setLastUpload(getOperationStatus(config, BackupConstants.LAST_UPLOAD));
         }
-        //TODO: next scheduled backup
         log.info("Get backup operation status from ZK: {}", backupOperationStatus);
         return backupOperationStatus;
     }
@@ -1086,7 +1085,6 @@ public class BackupOps {
         setOperationStatus(config, BackupConstants.LAST_SCHEDULED_CREATION, backupOperationStatus.getLastScheduledCreation());
         setOperationStatus(config, BackupConstants.LAST_UPLOAD, backupOperationStatus.getLastUpload());
 
-        //TODO: next scheduled backup
         coordinatorClient.persistServiceConfiguration(config);
         log.info("Persist backup operation status to zk successfully");
     }

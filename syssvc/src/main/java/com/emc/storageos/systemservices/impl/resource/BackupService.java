@@ -968,10 +968,10 @@ public class BackupService {
     }
 
     /**
-     *  Query backup related status
-     *  @brief  Query backup related status
+     *  Query backup operation related status
+     *  @brief  Query backup operation related status
      *
-     * @return backup status
+     * @return backup operation status
      */
     @GET
     @Path("backup-status")
@@ -989,7 +989,7 @@ public class BackupService {
         return backupOperationStatus;*/
         try {
             BackupOperationStatus backupOperationStatus = backupOps.queryBackupOperationStatus();
-            backupOperationStatus.setNextScheduledCreation(backupScheduler.getNextScheduledTime().getTime());
+            backupOperationStatus.setNextScheduledCreation(backupScheduler.getNextScheduledRunTime().getTime());
             return backupOperationStatus;
         } catch (Exception e) {
             log.error("Failed to get backup operation status", e);

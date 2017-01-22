@@ -4,10 +4,6 @@
  */
 package com.emc.sa.api.mapper;
 
-import static com.emc.storageos.api.mapper.DbObjectMapper.mapDataObjectFields;
-import static com.emc.storageos.api.mapper.DbObjectMapper.toRelatedResource;
-import static com.emc.storageos.db.client.URIUtil.uri;
-
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
@@ -15,13 +11,13 @@ import java.util.List;
 import com.emc.sa.model.util.ScheduleTimeHelper;
 import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.uimodels.*;
+import com.emc.storageos.db.client.util.OrderTextCreator;
+
 import org.apache.commons.codec.binary.Base64;
-import org.apache.commons.lang3.StringUtils;
 
 import com.emc.sa.util.TextUtils;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.EncryptionProvider;
-import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.vipr.model.catalog.ExecutionLogList;
 import com.emc.vipr.model.catalog.ExecutionLogRestRep;
 import com.emc.vipr.model.catalog.ExecutionStateRestRep;
@@ -34,105 +30,21 @@ import com.emc.vipr.model.catalog.Parameter;
 import com.google.common.collect.Lists;
 
 public class OrderMapper {
-    private static final String ENCRYPTED_FIELD_MASK = "**********";
 
     public static OrderRestRep map(Order from, List<OrderParameter> orderParameters) {
-        if (from == null) {
-            return null;
-        }
-        OrderRestRep to = new OrderRestRep();
-        mapDataObjectFields(from, to);
-
-        if (from.getCatalogServiceId() != null) {
-            to.setCatalogService(toRelatedResource(ResourceTypeEnum.CATALOG_SERVICE, from.getCatalogServiceId()));
-        }
-        if (from.getExecutionWindowId() != null) {
-            to.setExecutionWindow(toRelatedResource(ResourceTypeEnum.EXECUTION_WINDOW, from.getExecutionWindowId().getURI()));
-        }
-        to.setDateCompleted(from.getDateCompleted());
-        to.setMessage(from.getMessage());
-        to.setOrderNumber(from.getOrderNumber());
-        to.setSummary(from.getSummary());
-        to.setSubmittedBy(from.getSubmittedByUserId());
-        to.setOrderStatus(from.getOrderStatus());
-        if (StringUtils.isNotBlank(from.getTenant())) {
-            to.setTenant(toRelatedResource(ResourceTypeEnum.TENANT, uri(from.getTenant())));
-        }
-        to.setLastUpdated(from.getLastUpdated());
-
-        if (orderParameters != null) {
-            for (OrderParameter orderParameter : orderParameters) {
-                Parameter parameter = new Parameter();
-                parameter.setEncrypted(orderParameter.getEncrypted());
-                if (parameter.isEncrypted()) {
-                    parameter.setFriendlyValue(ENCRYPTED_FIELD_MASK);
-                    parameter.setValue(ENCRYPTED_FIELD_MASK);
-                }
-                else {
-                    parameter.setFriendlyValue(orderParameter.getFriendlyValue());
-                    parameter.setValue(orderParameter.getValue());
-                }
-                parameter.setFriendlyLabel(orderParameter.getFriendlyLabel());
-                parameter.setLabel(orderParameter.getLabel());
-                to.getParameters().add(parameter);
-            }
-        }
-        if (from.getScheduledEventId() != null) {
-            to.setScheduledEventId(from.getScheduledEventId());
-        }
-        if (from.getScheduledTime() != null) {
-            to.setScheduledTime(from.getScheduledTime());
-        }
-        return to;
+        return OrderTextCreator.map(from, orderParameters);
     }
 
     public static ExecutionStateRestRep map(ExecutionState from) {
-        if (from == null) {
-            return null;
-        }
-        ExecutionStateRestRep to = new ExecutionStateRestRep();
-
-        to.setAffectedResources(Lists.newArrayList(from.getAffectedResources()));
-        to.setCurrentTask(from.getCurrentTask());
-        to.setEndDate(from.getEndDate());
-        to.setExecutionStatus(from.getExecutionStatus());
-        to.setStartDate(from.getStartDate());
-        to.setLastUpdated(from.getLastUpdated());
-
-        return to;
+        return OrderTextCreator.map(from);
     }
 
     public static OrderLogRestRep map(ExecutionLog from) {
-        if (from == null) {
-            return null;
-        }
-        OrderLogRestRep to = new OrderLogRestRep();
-
-        to.setDate(from.getDate());
-        to.setLevel(from.getLevel());
-        to.setMessage(from.getMessage());
-        to.setPhase(from.getPhase());
-        to.setStackTrace(from.getStackTrace());
-
-        return to;
+        return OrderTextCreator.map(from);
     }
 
     public static ExecutionLogRestRep map(ExecutionTaskLog from) {
-        if (from == null) {
-            return null;
-        }
-        ExecutionLogRestRep to = new ExecutionLogRestRep();
-
-        to.setDate(from.getDate());
-        to.setLevel(from.getLevel());
-        to.setMessage(from.getMessage());
-        to.setPhase(from.getPhase());
-        to.setStackTrace(from.getStackTrace());
-        to.setDetail(from.getDetail());
-        to.setElapsed(from.getElapsed());
-        to.setLastUpdated(from.getLastUpdated());
-
-        return to;
+        return OrderTextCreator.map(from);
     }
 
     public static Order createNewObject(URI tenantId, OrderCreateParam param) {
@@ -178,7 +90,7 @@ public class OrderMapper {
                         values.add(Base64.encodeBase64String(encryption.encrypt(value)));
                     }
                     String encryptedValue = TextUtils.formatCSV(values);
-                    orderParameter.setFriendlyValue(ENCRYPTED_FIELD_MASK);
+                    orderParameter.setFriendlyValue(OrderTextCreator.ENCRYPTED_FIELD_MASK);
                     orderParameter.setValue(encryptedValue);
                 }
                 else {

@@ -15,6 +15,7 @@ import java.util.List;
 import java.util.Map;
 import java.text.SimpleDateFormat;
 
+import com.emc.sa.api.CatalogServiceService;
 import com.emc.sa.api.OrderService;
 import com.emc.sa.catalog.OrderManager;
 import com.emc.storageos.coordinator.client.model.Constants;
@@ -27,6 +28,7 @@ import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.ApplicationContext;
 import org.springframework.context.support.ClassPathXmlApplicationContext;
 
 import com.emc.storageos.db.client.impl.TypeMap;
@@ -40,6 +42,7 @@ import com.emc.storageos.db.client.model.uimodels.ExecutionTaskLog;
 import com.emc.storageos.db.client.model.uimodels.Order;
 import com.emc.storageos.db.client.model.uimodels.OrderParameter;
 import com.emc.storageos.db.client.upgrade.BaseCustomMigrationCallback;
+import com.emc.storageos.db.client.util.OrderTextCreator;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Lists;
 import com.netflix.astyanax.Keyspace;
@@ -48,6 +51,7 @@ import com.netflix.astyanax.model.*;
 
 import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.IOException;
@@ -817,10 +821,9 @@ public abstract class CommandHandler {
 
         private static final Logger log = LoggerFactory.getLogger(DumpOrdersHandler.class);
         private static final SimpleDateFormat TIME = new SimpleDateFormat("ddMMyy-HHmm");
-        private static final SimpleDateFormat DATE = new SimpleDateFormat("dd-MM-yy hh:mm");
-        private static final String DETAIL_INDENT = "      \t                            \t";
         private File dir;
         private OrderManager orderManager;
+        private CatalogServiceService catalogService;
         private DBClient client;
 
         public DumpOrdersHandler(String[] args) {
@@ -832,7 +835,9 @@ public abstract class CommandHandler {
                 throw new IllegalArgumentException("Invalid orders dump path (not exist or directory)");
             }
             this.dir = f;
-            this.orderManager = new ClassPathXmlApplicationContext("/sa-conf.xml").getBean("orderManager", OrderManager.class);
+            ApplicationContext context = new ClassPathXmlApplicationContext("/sa-conf.xml");
+            this.orderManager = context.getBean("orderManager", OrderManager.class);
+            this.catalogService = context.getBean("catalogServiceService", CatalogServiceService.class);
         }
 
         @Override
@@ -873,137 +878,14 @@ public abstract class CommandHandler {
             String fileName = String.format("Order-%s-%s-%s.txt", order.getOrderNumber(), order.getOrderStatus(),
                     timestamp);
             OutputStream out = new FileOutputStream(new File(dir, fileName));
-            StringBuilder builder = new StringBuilder();
-            // 1. Write Details
-            writeHeader(builder, "ORDER DETAILS");
-            writeField(builder, "Order ID", order.getId());
-            writeField(builder, "Order Number", order.getOrderNumber());
-            writeField(builder, "Submitted By", order.getSubmittedByUserId());
-            writeField(builder, "Date Submitted", order.getCreationTime().getTime());
-            writeField(builder, "Date Completed", order.getDateCompleted());
-            writeField(builder, "Message", order.getMessage());
-            writeField(builder, "Status", order.getOrderStatus());
-            writeField(builder, "Catalog Service", service.getTitle());
-            writeField(builder, "Catalog ID", service.getId());
-            writeField(builder, "Base Service", service.getBaseService());
-            writeField(builder, "Requires Approval?", service.getApprovalRequired());
-            writeField(builder, "Requires Execution Window?", service.getExecutionWindowRequired());
-            if (Boolean.TRUE.equals(service.getExecutionWindowRequired())) {
-                writeField(builder, "Execution Window?", service.getDefaultExecutionWindowId().getURI());
-            }
-            // 2. Write Parameters
-            writeHeader(builder, "Parameters");
-            for (OrderParameter parameter : orderManager.getOrderParameters(order.getId())) {
-                writeField(builder, parameter.getFriendlyLabel(), parameter.getFriendlyValue());
-            }
-            // 3. Write Execution State
-            ExecutionState state = orderManager.getOrderExecutionState(order.getExecutionStateId());
-            writeHeader(builder, "Execution State");
-            writeField(builder, "Execution Status", state.getExecutionStatus());
-            writeField(builder, "Start Date", state.getStartDate());
-            writeField(builder, "End Date", state.getEndDate());
-            writeField(builder, "Affected Resources", state.getAffectedResources());
-            // 4. Write Logs
-            List<ExecutionLog> exeLogs = orderManager.getOrderExecutionLogs(order);
-            writeHeader(builder, "Logs");
-            for (ExecutionLog exeLog : exeLogs) {
-                writeLog(builder, exeLog);
-            }
-            // 5. Write Task Logs
-            List<ExecutionTaskLog> taskLogs = orderManager.getOrderExecutionTaskLogs(order);
-            List<ExecutionTaskLog> precheckLogs = getTaskLogs(taskLogs, ExecutionPhase.PRECHECK);
-            List<ExecutionTaskLog> executeLogs = getTaskLogs(taskLogs, ExecutionPhase.EXECUTE);
-            List<ExecutionTaskLog> rollbackLogs = getTaskLogs(taskLogs, ExecutionPhase.ROLLBACK);
-            if (!precheckLogs.isEmpty()) {
-                writeHeader(builder, "Precheck Steps");
-                for (ExecutionTaskLog precheckLog : precheckLogs) {
-                    writeLog(builder, precheckLog);
-                }
-            }
-            if (!executeLogs.isEmpty()) {
-                writeHeader(builder, "Execute Steps");
-                for (ExecutionTaskLog executeLog : executeLogs) {
-                    writeLog(builder, executeLog);
-                }
-            }
-            if (!rollbackLogs.isEmpty()) {
-                writeHeader(builder, "Rollback Steps");
-                for (ExecutionTaskLog rollbackLog : rollbackLogs) {
-                    writeLog(builder, rollbackLog);
-                }
-            }
-            // 6. Write To Disk
-            out.write(builder.toString().getBytes("UTF-8"));
+            OrderTextCreator creator = new OrderTextCreator();
+            creator.setOrder(order, orderManager.getOrderParameters(order.getId()));
+            creator.setService(catalogService.getCatalogService(order.getCatalogServiceId()));
+            creator.setState(orderManager.getOrderExecutionState(order.getExecutionStateId()));
+            creator.setRawLogs(orderManager.getOrderExecutionLogs(order));
+            creator.setRawExeLogs(orderManager.getOrderExecutionTaskLogs(order));
+            out.write(creator.getText().getBytes("UTF-8"));
             out.close();
-        }
-
-        private List<ExecutionTaskLog> getTaskLogs(List<ExecutionTaskLog> logs, ExecutionPhase phase) {
-            List<ExecutionTaskLog> phaseLogs = Lists.newArrayList();
-            for (ExecutionTaskLog phaseLog : logs) {
-                if (phase.name().equals(phaseLog.getPhase())) {
-                    phaseLogs.add(phaseLog);
-                }
-            }
-            return phaseLogs;
-        }
-
-        private void writeLog(StringBuilder builder, ExecutionTaskLog log) {
-            builder.append("[").append(log.getLevel()).append("]");
-            builder.append("\t").append(log.getDate());
-            if (StringUtils.isNotBlank(log.getMessage())) {
-                builder.append("\t").append(log.getMessage());
-            }
-            if (log.getElapsed() != null) {
-                builder.append("\t(").append(log.getElapsed()).append(" ms)");
-            }
-            if (StringUtils.isNotBlank(log.getDetail())) {
-                builder.append("\n").append(DETAIL_INDENT).append(log.getDetail());
-            }
-            if (StringUtils.isNotBlank(log.getStackTrace())) {
-                builder.append("\n").append(log.getStackTrace());
-            }
-            builder.append("\n");
-        }
-
-        private void writeLog(StringBuilder builder, ExecutionLog log) {
-            builder.append("[").append(log.getLevel()).append("]");
-            builder.append("\t").append(log.getDate());
-            if (StringUtils.isNotBlank(log.getMessage())) {
-                builder.append("\t").append(log.getMessage());
-            }
-            if (StringUtils.isNotBlank(log.getStackTrace())) {
-                builder.append("\n").append(log.getStackTrace());
-            }
-            builder.append("\n");
-        }
-
-        private void writeHeader(StringBuilder builder, String header) {
-            builder.append("\n");
-            builder.append(header);
-            builder.append("\n");
-            builder.append(StringUtils.repeat("-", header.length()));
-            builder.append("\n");
-        }
-        private void writeField(StringBuilder buffer, String label, Date date) {
-            if (date == null) {
-                writeField(buffer, label, "");
-            }
-            else {
-                writeField(buffer, label, DATE.format((date)));
-            }
-        }
-
-        private void writeField(StringBuilder buffer, String label, Object value) {
-            buffer.append(label);
-
-            if (!label.endsWith("?") && !label.endsWith(":")) {
-                buffer.append(":");
-            }
-            buffer.append(" ");
-            if (value != null) {
-                buffer.append(value.toString());
-            }
-            buffer.append("\n");
         }
     }
 }

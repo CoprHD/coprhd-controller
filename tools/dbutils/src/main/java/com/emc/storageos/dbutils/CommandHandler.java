@@ -32,7 +32,6 @@ import org.springframework.context.support.ClassPathXmlApplicationContext;
 import com.emc.storageos.db.client.impl.TypeMap;
 import com.emc.storageos.db.client.model.GlobalLock;
 import com.emc.storageos.db.client.model.TenantOrg;
-import com.emc.storageos.db.client.model.uimodels.CatalogService;
 import com.emc.storageos.db.client.model.uimodels.Order;
 import com.emc.storageos.db.client.upgrade.BaseCustomMigrationCallback;
 import com.emc.storageos.db.client.util.OrderTextCreator;

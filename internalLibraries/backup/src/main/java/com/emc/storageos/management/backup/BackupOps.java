@@ -1062,7 +1062,7 @@ public class BackupOps {
                     (isScheduledBackup) ? BackupOperationStatus.OpMessage.OP_SCHEDULED : BackupOperationStatus.OpMessage.OP_MANUAL);
             log.info("updated success backup");
         }
-        log.info(String.format("Updating backup creation status(name=%, time=%, success=%) to ZK", backupName, operationTime, success));
+        log.info(String.format("Updating backup creation status(name=%s, time=%s, success=%s) to ZK", backupName, operationTime, success));
         persistBackupOperationStatus(backupOperationStatus);
     }
 

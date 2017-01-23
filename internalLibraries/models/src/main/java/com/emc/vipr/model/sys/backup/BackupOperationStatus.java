@@ -9,7 +9,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.xml.bind.annotation.*;
-import java.util.Map;
 
 @XmlRootElement(name = "backup_operation_status")
 public class BackupOperationStatus {
@@ -19,6 +18,14 @@ public class BackupOperationStatus {
     private OperationStatus lastSuccessfulCreation;
     private OperationStatus lastUpload;
     private long nextScheduledCreation;
+
+    public BackupOperationStatus() {
+        lastManualCreation = new OperationStatus();
+        lastScheduledCreation = new OperationStatus();
+        lastSuccessfulCreation = new OperationStatus();
+        lastUpload = new OperationStatus();
+        nextScheduledCreation = 0;
+    }
 
     @XmlElement(name = "last_manual_creation")
     public OperationStatus getLastManualCreation() {

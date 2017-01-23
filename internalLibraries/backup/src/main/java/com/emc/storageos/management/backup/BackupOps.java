@@ -1044,6 +1044,9 @@ public class BackupOps {
         }
     }
 
+    /**
+     * Updates backup creation related status in ZK
+     */
     public void updateBackupCreationStatus(String backupName, long operationTime, boolean success) {
         BackupOperationStatus backupOperationStatus = queryBackupOperationStatus();
         boolean isScheduledBackup = isScheduledBackupTag(backupName);
@@ -1066,6 +1069,9 @@ public class BackupOps {
         persistBackupOperationStatus(backupOperationStatus);
     }
 
+    /**
+     * Query backup operation status from ZK
+     */
     public BackupOperationStatus queryBackupOperationStatus() {
         BackupOperationStatus backupOperationStatus = new BackupOperationStatus();
         Configuration config = coordinatorClient.queryConfiguration(Constants.BACKUP_OPERATION_STATUS,
@@ -1080,7 +1086,13 @@ public class BackupOps {
         return backupOperationStatus;
     }
 
+    /**
+     * Records backup operation status to ZK
+     */
     public void persistBackupOperationStatus(BackupOperationStatus backupOperationStatus) {
+        if (backupOperationStatus == null) {
+            return;
+        }
         ConfigurationImpl config = new ConfigurationImpl();
         config.setKind(Constants.BACKUP_OPERATION_STATUS);
         config.setId(Constants.GLOBAL_ID);
@@ -1117,15 +1129,19 @@ public class BackupOps {
     }
 
     private Configuration setOperationStatus(Configuration config, String operationType, BackupOperationStatus.OperationStatus operationStatus) {
-        setOperationItem(config, operationType, BackupConstants.OPERATION_NAME, operationStatus.getOperationName());
-        setOperationItem(config, operationType, BackupConstants.OPERATION_TIME, String.valueOf(operationStatus.getOperationTime()));
-        setOperationItem(config, operationType, BackupConstants.OPERATION_MESSAGE, operationStatus.getOperationMessage().name());
+        if (operationStatus != null) {
+            setOperationItem(config, operationType, BackupConstants.OPERATION_NAME, operationStatus.getOperationName());
+            setOperationItem(config, operationType, BackupConstants.OPERATION_TIME, String.valueOf(operationStatus.getOperationTime()));
+            setOperationItem(config, operationType, BackupConstants.OPERATION_MESSAGE, operationStatus.getOperationMessage().name());
+        }
         return config ;
     }
 
     private Configuration setOperationItem(Configuration config, String operationType, String operationItem, String operationItemValue) {
-        String keyOperationItem = String.format(BackupConstants.BACKUP_OPERATION_STATUS_KEY_FORMAT, operationType, operationItem);
-        config.setConfig(keyOperationItem, operationItemValue);
+        if (operationItemValue != null) {
+            String keyOperationItem = String.format(BackupConstants.BACKUP_OPERATION_STATUS_KEY_FORMAT, operationType, operationItem);
+            config.setConfig(keyOperationItem, operationItemValue);
+        }
         return config;
     }
 

@@ -95,9 +95,9 @@ public class BackupOperationStatus {
     @XmlRootElement(name = "operation_status")
     @XmlAccessorType(XmlAccessType.NONE)
     public static class OperationStatus {
-        private String opName;
+        private String opName = "";
         private long opTime = 0;
-        private OpMessage opMessage;
+        private OpMessage opMessage = OpMessage.NONE;
 
         public OperationStatus() {
         }
@@ -150,6 +150,7 @@ public class BackupOperationStatus {
 
     @XmlType(name = "opMessage")
     public enum OpMessage {
+        NONE("none"),
         //operation status
         OP_SUCCESS("success"),
         OP_FAILED("failed"),

@@ -15,6 +15,7 @@ public class SearchConstants {
     public static final String START_TIME_PARAM = "start_time";
     public static final String END_TIME_PARAM = "end_time";
     public static final String ORDER_IDS = "order_ids";
+    public static final String ORDERS_ONLY = "orders_only";
     public static final String ORDER_MAX_COUNT = "max_count";
     public static final String JOB_TYPE = "type";
 }

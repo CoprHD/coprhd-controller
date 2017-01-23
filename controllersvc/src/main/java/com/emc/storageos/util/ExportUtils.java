@@ -22,6 +22,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.util.CollectionUtils;
 
+import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
@@ -58,6 +59,7 @@ import com.emc.storageos.db.client.util.StringMapUtil;
 import com.emc.storageos.db.client.util.StringSetUtil;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.volumecontroller.ControllerException;
+import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Collections2;
@@ -70,6 +72,17 @@ public class ExportUtils {
     private final static Logger _log = LoggerFactory.getLogger(ExportUtils.class);
 
     public static final String NO_VIPR = "NO_VIPR";   // used to exclude VIPR use of export mask
+    private static final String MAX_ALLOWED_HLU_KEY = "controller_%s_max_allowed_HLU";
+
+    private static CoordinatorClient coordinator;
+
+    public CoordinatorClient getCoordinator() {
+        return coordinator;
+    }
+
+    public void setCoordinator(CoordinatorClient coordinator) {
+        ExportUtils.coordinator = coordinator;
+    }
 
     /**
      * Get an initiator as specified by the initiator's network port.
@@ -1528,6 +1541,100 @@ public class ExportUtils {
     }
 
     /**
+     * Calculate free HLUs to use based on already assigned ones and the maximum number allowed.
+     *
+     * @param usedHlus the used hlus
+     * @param maxHLU the max hlu
+     * @return the free HLUs to use
+     */
+    public static Set<Integer> calculateFreeHLUs(Set<Integer> usedHlus, Integer maxHLU) {
+        Set<Integer> freeHLUs = new HashSet<Integer>();
+        // For max limit of 4096, 0 to 4095 can be assigned.
+        // Since it is cluster export (shared), the number can start from 1 since 0 will be used for boot lun.
+        for (int i = 1; i < maxHLU; i++) {
+            if (!usedHlus.contains(i)) {
+                freeHLUs.add(i);
+            }
+        }
+        _log.debug("free HLUs: {}", freeHLUs);
+        return freeHLUs;
+    }
+
+    /**
+     * Gets the maximum allowed HLU number for the storage array.
+     *
+     * @param storage the storage system
+     * @return the maximum allowed HLU number for the storage array
+     */
+    public static Integer getMaximumAllowedHLU(StorageSystem storage) {
+        String systemType = storage.getSystemType();
+        String maxAllowedHLUKey = String.format(MAX_ALLOWED_HLU_KEY, systemType);
+        // Get and return max allowed HLU from co-ordinator.
+        String maxHLU = ControllerUtils.getPropertyValueFromCoordinator(coordinator, maxAllowedHLUKey);
+        _log.info("Maximum allowed HLU for system type {}: {}", systemType, maxHLU);
+        if (maxHLU == null || maxHLU.isEmpty()) {
+            throw DeviceControllerException.exceptions.volumeExportMaximumHluNotAvailable(systemType);
+        }
+        return Integer.parseInt(maxHLU);
+    }
+
+    /**
+     * Update free HLUs in the volume map.
+     *
+     * @param volumeMap the volume map
+     * @param freeHLUs the free hlus
+     */
+    public static void updateFreeHLUsInVolumeMap(Map<URI, Integer> volumeMap, Set<Integer> freeHLUs) {
+        Iterator<Integer> freeHLUItr = freeHLUs.iterator();
+        for (Entry<URI, Integer> entry : volumeMap.entrySet()) {
+            if (freeHLUItr.hasNext()) {
+                entry.setValue(freeHLUItr.next());
+            } else {
+                String detailMsg = String.format("Requested volumes: {%s}, free HLUs available: {%s}",
+                        Joiner.on(',').join(volumeMap.keySet()), freeHLUs);
+                _log.warn("No more free HLU available on array to assign. {}", detailMsg);
+                throw DeviceControllerException.exceptions.volumeExportReachedMaximumHlu(detailMsg);
+            }
+        }
+        _log.info("updated volume-HLU map: {}", volumeMap);
+    }
+
+    /**
+     * Gets all hosts initiators for the given cluster.
+     *
+     * @param clusterURI the cluster uri
+     * @return the cluster initiators
+     */
+    public static List<URI> getAllInitiatorsForCluster(URI clusterURI, DbClient dbClient) {
+        List<URI> clusterInitaitors = new ArrayList<URI>();
+        List<Host> hosts =
+                CustomQueryUtility.queryActiveResourcesByConstraint(dbClient, Host.class,
+                        ContainmentConstraint.Factory.getContainedObjectsConstraint(clusterURI, Host.class, "cluster"));
+        for (Host host : hosts) {
+            List<Initiator> initiators =
+                    CustomQueryUtility.queryActiveResourcesByConstraint(dbClient, Initiator.class,
+                            ContainmentConstraint.Factory.getContainedObjectsConstraint(host.getId(), Initiator.class, "host"));
+            for (Initiator initiator : initiators) {
+                clusterInitaitors.add(initiator.getId());
+            }
+        }
+        return clusterInitaitors;
+    }
+
+    /**
+     * Returns true if the storage system implementation supports consistent HLU generation for cluster export.
+     *
+     * @param storage the storage system
+     * @return true, if the storage system supports consistent HLU generation
+     */
+    public static boolean systemSupportsConsistentHLUGeneration(StorageSystem storage) {
+        String systemType = storage.getSystemType();
+        return (DiscoveredDataObject.Type.vmax.name().equals(systemType) || DiscoveredDataObject.Type.vnxblock.name().equals(systemType)
+                || DiscoveredDataObject.Type.xtremio.name().equals(systemType) || DiscoveredDataObject.Type.unity.name().equals(systemType)
+                || DiscoveredDataObject.Type.vplex.name().equals(systemType));
+    }
+
+    /**
      * Selects and returns the list targets (storage ports) that need to be removed from
      * an export mask when the initiators are removed from the storage group. If checks if
      * the targets are used by other initiators before they can be removed. It returns
@@ -1916,7 +2023,8 @@ public class ExportUtils {
                 Collection<URI> staleClusterURIs = Collections2.transform(staleClusters,
                         CommonTransformerFunctions.FCTN_STRING_TO_URI);
                 exportGroup.removeClusters(new ArrayList<>(staleClusterURIs));
-                _log.info("Stale cluster references {} will be removed from Export Group {}", staleClusterURIs, exportGroup.getId());
+                _log.info(String.format("Stale cluster references [%s] will be removed from Export Group %s", 
+                        Joiner.on(',').join(staleClusterURIs), exportGroup.getId()));
             }
         }
     }
@@ -1989,6 +2097,4 @@ public class ExportUtils {
             }
         }
     }
-
-    
 }

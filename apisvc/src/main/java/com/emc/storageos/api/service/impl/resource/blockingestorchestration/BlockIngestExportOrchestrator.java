@@ -256,7 +256,7 @@ public abstract class BlockIngestExportOrchestrator extends ResourceService {
                     exportGroup.addExportMask(exportMask.getId().toString());
                 }
 
-                VolumeIngestionUtil.updateExportGroup(exportGroup, blockObject, _dbClient, initiators, hosts, cluster);
+                VolumeIngestionUtil.updateExportGroup(exportGroup, blockObject, wwnToHluMap, _dbClient, initiators, hosts, cluster);
 
                 _logger.info("Removing unmanaged mask {} from the list of items to process, as block object is added already",
                         unManagedExportMask.getMaskName());

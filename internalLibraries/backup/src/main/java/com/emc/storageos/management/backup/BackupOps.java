@@ -1108,21 +1108,25 @@ public class BackupOps {
     }
 
     private BackupOperationStatus.OperationStatus getOperationStatus(Configuration config, String operationType) {
-        BackupOperationStatus.OperationStatus operationStatus = new BackupOperationStatus.OperationStatus();
         String opName = getOperationItem(config, operationType, BackupConstants.OPERATION_NAME);
+        String opTime = getOperationItem(config, operationType, BackupConstants.OPERATION_TIME);
+        String opMessage = getOperationItem(config, operationType, BackupConstants.OPERATION_MESSAGE);
+        if (opName == null && opTime == null && opMessage == null) {
+            return null;
+        }
+        BackupOperationStatus.OperationStatus operationStatus = new BackupOperationStatus.OperationStatus();
         if (opName != null) {
             operationStatus.setOperationName(opName);
         }
-        String opTime = getOperationItem(config, operationType, BackupConstants.OPERATION_TIME);
         if (opTime != null) {
             operationStatus.setOperationTime(Long.parseLong(opTime));
         }
-        String opMessage = getOperationItem(config, operationType, BackupConstants.OPERATION_MESSAGE);
         if (opMessage != null) {
             operationStatus.setOperationMessage(BackupOperationStatus.OpMessage.valueOf(opMessage));
         }
         return operationStatus ;
     }
+
     private String getOperationItem(Configuration config, String operationType, String operationItem) {
         String keyOperationItem = String.format(BackupConstants.BACKUP_OPERATION_STATUS_KEY_FORMAT, operationType, operationItem);
         return config.getConfig(keyOperationItem);

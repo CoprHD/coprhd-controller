@@ -14,7 +14,7 @@ import java.io.Serializable;
 @XmlRootElement(name = "backup_operation_status")
 public class BackupOperationStatus {
     private static final Logger log = LoggerFactory.getLogger(BackupOperationStatus.class);
-    private OperationStatus lastManualCreation = new OperationStatus();
+    private OperationStatus lastManualCreation;
     private OperationStatus lastScheduledCreation = new OperationStatus();
     private OperationStatus lastSuccessfulCreation= new OperationStatus();
     private OperationStatus lastUpload = new OperationStatus();

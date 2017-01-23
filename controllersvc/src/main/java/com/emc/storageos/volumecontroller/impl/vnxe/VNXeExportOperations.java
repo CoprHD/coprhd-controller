@@ -137,7 +137,7 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
                                 volUri, nativeId));
                         result = apiClient.exportLun(host, nativeId, newhlu);
                     } else {
-                        result = apiClient.exportSnap(host, nativeId, null);
+                        result = apiClient.exportSnap(host, nativeId, newhlu);
                         setSnapWWN(apiClient, blockObject, nativeId);
                     }
                     mask.addVolume(volUri, result.getHlu());

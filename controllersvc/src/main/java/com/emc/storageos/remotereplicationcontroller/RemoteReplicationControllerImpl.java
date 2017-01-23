@@ -16,6 +16,7 @@ import com.emc.storageos.impl.AbstractDiscoveredSystemController;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.impl.Dispatcher;
+import com.emc.storageos.volumecontroller.impl.externaldevice.RemoteReplicationElement;
 
 import java.net.URI;
 import java.util.List;
@@ -84,37 +85,43 @@ public class RemoteReplicationControllerImpl implements RemoteReplicationControl
     }
 
     @Override
-    public void suspend(URI replicationArgument, String opId) {
+    public void suspend(RemoteReplicationElement replicationElement, String opId) {
 
     }
 
     @Override
-    public void resume(URI replicationArgument, String opId) {
+    public void resume(RemoteReplicationElement replicationElement, String opId) {
 
     }
 
     @Override
-    public void split(URI replicationArgument, String opId) {
+    public void split(RemoteReplicationElement replicationElement, String opId) {
 
     }
 
     @Override
-    public void establish(URI replicationArgument, String opId) {
+    public void establish(RemoteReplicationElement replicationElement, String opId) {
 
     }
 
     @Override
-    public void failover(URI replicationArgument, String opId) {
+    public void failover(RemoteReplicationElement replicationElement, String opId) {
+
+        exec("failover", replicationElement, opId);
+    }
+
+    @Override
+    public void failback(RemoteReplicationElement replicationElement, String opId) {
 
     }
 
     @Override
-    public void failback(URI replicationArgument, String opId) {
+    public void swap(RemoteReplicationElement replicationElement, String opId) {
 
     }
 
     @Override
-    public void swap(URI replicationArgument, String opId) {
+    public void changeReplicationMode(RemoteReplicationElement replicationElement, String newRemoteReplicationMode, String opId) {
 
     }
 

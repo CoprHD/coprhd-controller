@@ -479,26 +479,6 @@ public class ExportUtils {
             for (ExportGroup exportGroup : exportGroups) {
                 // Remove this mask from the export group
                 exportGroup.removeExportMask(exportMask.getId().toString());
-
-                // Remove the volumes from the export group
-                if (exportMask.getUserAddedVolumes() != null) {
-                    Set<URI> removeSet = new HashSet<>();
-                    TreeMultimap<String, URI> volumesToExportMasks =
-                            buildVolumesToExportMasksMap(dbClient, exportGroup);
-                    for (String volumeURIString : exportMask.getUserAddedVolumes().values()) {
-                        // Should only remove those volumes in the ExportGroup that are not already in another
-                        // ExportMask associated with the ExportGroup. For example, if there is an ExportGroup
-                        // for a cluster, there could be an ExportMask for each host, which could have the volume.
-                        // In that case, we do not want to remove the volume from the ExportGroup
-                        if (!volumeIsInAnotherExportMask(exportMask, volumeURIString, volumesToExportMasks)) {
-                            URI volumeURI = URI.create(volumeURIString);
-                            removeSet.add(volumeURI);
-                        }
-                    }
-                    // We do not need to remove volume reference from EG from here as ExportGroupUpdateCompleter will do the same.
-                    // List<URI> volumeURIs = new ArrayList<>(removeSet);
-                    // exportGroup.removeVolumes(volumeURIs);
-                }
             }
 
             // Update all of the export groups in the DB

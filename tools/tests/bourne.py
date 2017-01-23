@@ -43,6 +43,16 @@ except AttributeError:
 
 URI_SERVICES_BASE               = ''
 URI_CATALOG                     = URI_SERVICES_BASE + '/catalog'
+URI_CATALOG_SERVICES            = URI_CATALOG + '/services'
+URI_CATALOG_SERVICE             = URI_CATALOG_SERVICES + '/{0}'
+URI_CATALOG_SERVICE_SEARCH      = URI_CATALOG_SERVICES + '/search'
+URI_CATALOG_SERVICE_SEARCH_NAME = URI_CATALOG_SERVICE_SEARCH + '?name={0}'
+URI_CATALOG_CATEGORIES          = URI_CATALOG + '/categories'
+URI_CATALOG_CATEGORY            = URI_CATALOG_CATEGORIES + '/{0}'
+URI_CATALOG_CATEGORY_UPGRADE    = URI_CATALOG_CATEGORIES + '/upgrade?tenantId={0}'
+URI_CATALOG_ORDERS              = URI_CATALOG + '/orders'
+URI_CATALOG_ORDER               = URI_CATALOG_ORDERS + '/{0}'
+
 URI_CATALOG_VPOOL                 = URI_CATALOG       + '/vpools'
 URI_CATALOG_VPOOL_FILE            = URI_CATALOG_VPOOL   + '/file'
 URI_CATALOG_VPOOL_BLOCK           = URI_CATALOG_VPOOL   + '/block'
@@ -506,6 +516,7 @@ URI_REMOTEREPLICATIONSET_INSTANCE        = URI_SERVICES_BASE   + '/vdc/block/rem
 URI_REMOTEREPLICATIONGROUP_LIST            = URI_SERVICES_BASE   + '/vdc/block/remotereplicationgroups'
 URI_REMOTEREPLICATIONGROUP_INSTANCE        = URI_SERVICES_BASE   + '/vdc/block/remotereplicationgroups/{0}'
 URI_REMOTEREPLICATIONGROUP_CREATE        = URI_SERVICES_BASE   + '/vdc/block/remotereplicationsets/{0}/create-group'
+URI_REMOTEREPLICATIONGROUP_FAILOVER        = URI_SERVICES_BASE   + '/vdc/block/remotereplicationgroups/{0}/failover'
 URI_REMOTEREPLICATIONGROUP_TASK          = URI_SERVICES_BASE   + '/vdc/block/remotereplicationgroups/{0}/tasks/{1}'
 URI_STORAGE_SYSTEM_TYPE_CREATE           = URI_SERVICES_BASE   + '/vdc/storage-system-types/internal'
 
@@ -8366,6 +8377,62 @@ class Bourne:
         uri = self.cluster_query(name)
         return self.api('POST', URI_RESOURCE_DEACTIVATE.format(URI_CLUSTER.format(uri)))
 
+   
+    # Service Catalog 
+    def catalog_search(self, servicename, tenant):
+        catalog_services = self.api('GET', URI_CATALOG_SERVICE_SEARCH_NAME.format(servicename))
+        for catalog_service in catalog_services['resource']:
+            service = self.catalog_service_query(catalog_service['id'])
+            category = self.catalog_category_query(service['catalog_category']['id'])
+            if category['tenant']['id'] == tenant and service['name'] == servicename:
+                return service 
+        raise Exception('unable to find service ' + servicename + ' in tenant ' + tenant)
+
+    def catalog_category_query(self, id):
+        return self.api('GET', URI_CATALOG_CATEGORY.format(id))
+
+    def catalog_service_query(self, id):
+        return self.api('GET', URI_CATALOG_SERVICE.format(id))
+
+    def __catalog_poll(self, id):
+        executing = True
+        orderstatus = ""
+        while executing:
+            order = self.api('GET', URI_CATALOG_ORDER.format(id))
+            orderstatus = order['order_status']
+            if orderstatus != 'PENDING' and orderstatus != 'EXECUTING':
+                executing = False
+            else:
+                time.sleep(5)
+        if orderstatus == 'ERROR':
+            raise Exception('error during catalog order')
+        return order
+
+    def catalog_upgrade(self, tenant):
+        tenant = self.__tenant_id_from_label(tenant)
+        return self.api('POST', URI_CATALOG_CATEGORY_UPGRADE.format(tenant))
+ 
+    def catalog_order(self, servicename, tenant, parameters):
+        tenant = self.__tenant_id_from_label(tenant)
+        self.catalog_upgrade(tenant)
+        service = self.catalog_search(servicename, tenant) 
+        parms = { 'tenantId': tenant,
+                  'catalog_service': service['id']
+                }
+
+        ordervalues = [] 
+
+        for parameter in parameters.split(','):
+            values = parameter.split('=')
+            ordervalues.append({ 'label':values[0],
+                                 'value': values[1]
+                              })
+
+        parms['parameters'] = ordervalues
+
+        order = self.api('POST', URI_CATALOG_ORDERS, parms)
+        return self.__catalog_poll(order['id'])
+
     #
     # Compute Resources - Host
     #
@@ -9261,6 +9328,13 @@ class Bourne:
         }
 
         o = self.api('POST', URI_REMOTEREPLICATIONGROUP_CREATE.format(replicationset_uri), parms)
+        self.assert_is_dict(o)
+        print '@@@@: ' + str(o) + ' :@@@@'
+        s = self.api_sync_2(o['resource']['id'], o['op_id'], self.replicationgroup_show_task)
+        return s
+
+    def replicationgroup_failover(self, replicationgroup_uri):
+        o = self.api('POST', URI_REMOTEREPLICATIONGROUP_FAILOVER.format(replicationgroup_uri))
         self.assert_is_dict(o)
         print '@@@@: ' + str(o) + ' :@@@@'
         s = self.api_sync_2(o['resource']['id'], o['op_id'], self.replicationgroup_show_task)

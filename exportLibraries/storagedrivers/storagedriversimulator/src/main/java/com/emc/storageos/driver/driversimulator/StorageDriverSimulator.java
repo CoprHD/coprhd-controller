@@ -16,6 +16,7 @@ import java.util.Set;
 import java.util.UUID;
 
 import com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationGroup;
+import com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationOperationContext;
 import com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationPair;
 import org.apache.commons.lang.mutable.MutableBoolean;
 import org.apache.commons.lang.mutable.MutableInt;
@@ -1151,7 +1152,7 @@ public class StorageDriverSimulator extends DefaultStorageDriver implements Bloc
     }
 
     @Override
-    public DriverTask deleteReplicationPairs(List<RemoteReplicationPair> replicationPairs) {
+    public DriverTask deleteReplicationPairs(List<RemoteReplicationPair> replicationPairs, StorageCapabilities capabilities) {
         String driverName = this.getClass().getSimpleName();
         String taskId = String.format("%s+%s+%s", driverName, "deleteReplicationPairs", UUID.randomUUID().toString());
         DriverTask task = new DriverSimulatorTask(taskId);
@@ -1162,6 +1163,22 @@ public class StorageDriverSimulator extends DefaultStorageDriver implements Bloc
             nativeIds.add(pair.getNativeId());
         }
         String msg = String.format("%s: %s --- deleted replication pairs %s.", driverName, "deleteReplicationPairs", nativeIds);
+        _log.info(msg);
+        task.setMessage(msg);
+        return task;
+    }
+
+    @Override
+    public DriverTask failover(List<RemoteReplicationPair> replicationPairs, RemoteReplicationOperationContext context, StorageCapabilities capabilities) {
+        String driverName = this.getClass().getSimpleName();
+        String taskId = String.format("%s+%s+%s", driverName, "-failoverReplicationLink-", UUID.randomUUID().toString());
+        DriverTask task = new DriverSimulatorTask(taskId);
+        task.setStatus(DriverTask.TaskStatus.READY);
+        List<String> nativeIds = new ArrayList<>();
+        for (RemoteReplicationPair pair : replicationPairs) {
+            nativeIds.add(pair.getNativeId());
+        }
+        String msg = String.format("%s: %s --- failed over replication pairs %s.", driverName, "failover", nativeIds);
         _log.info(msg);
         task.setMessage(msg);
         return task;

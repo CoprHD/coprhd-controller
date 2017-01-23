@@ -478,6 +478,12 @@
         <property name="remoteReplicationServiceApi" ref="remoteReplicationBlockServiceApiImpl"/>
     </bean>
 
+    <bean id="remoteReplicationPairService" class="com.emc.storageos.api.service.impl.resource.remotereplication.RemoteReplicationPairService">
+        <property name="dbClient" ref="dbclient"/>
+        <property name="coordinator" ref="coordinator"/>
+        <property name="remoteReplicationServiceApi" ref="remoteReplicationBlockServiceApiImpl"/>
+    </bean>
+
     <bean id="computeImageServerService" class="com.emc.storageos.api.service.impl.resource.ComputeImageServerService">
         <property name="dbClient" ref="dbclient"/>
         <property name="coordinator" ref="coordinator"/>
@@ -561,6 +567,7 @@
                 <ref bean="authnConfigurationService" />
                 <ref bean="remoteReplicationSetService" />
                 <ref bean="remoteReplicationGroupService" />
+                <ref bean="remoteReplicationPairService" />
 
                 <bean class="com.emc.storageos.api.service.impl.resource.MeteringService">
                     <property name="dbClient" ref="dbclient"/>

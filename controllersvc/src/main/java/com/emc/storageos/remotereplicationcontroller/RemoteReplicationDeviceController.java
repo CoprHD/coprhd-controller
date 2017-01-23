@@ -25,6 +25,8 @@ import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.BlockSnapshotRestoreCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.VolumeWorkflowCompleter;
 import com.emc.storageos.volumecontroller.impl.externaldevice.RemoteReplicationDevice;
+import com.emc.storageos.volumecontroller.impl.externaldevice.RemoteReplicationElement;
+import com.emc.storageos.volumecontroller.impl.externaldevice.taskcompleters.RemoteReplicationFailoverCompleter;
 import com.emc.storageos.volumecontroller.impl.externaldevice.taskcompleters.RemoteReplicationGroupCompleter;
 import com.emc.storageos.volumecontroller.impl.externaldevice.taskcompleters.RemoteReplicationTaskCompleter;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
@@ -121,37 +123,46 @@ public class RemoteReplicationDeviceController implements RemoteReplicationContr
     }
 
     @Override
-    public void suspend(URI replicationArgument, String opId) {
+    public void suspend(RemoteReplicationElement replicationElement, String opId) {
 
     }
 
     @Override
-    public void resume(URI replicationArgument, String opId) {
+    public void resume(RemoteReplicationElement replicationElement, String opId) {
 
     }
 
     @Override
-    public void split(URI replicationArgument, String opId) {
+    public void split(RemoteReplicationElement replicationElement, String opId) {
 
     }
 
     @Override
-    public void establish(URI replicationArgument, String opId) {
+    public void establish(RemoteReplicationElement replicationElement, String opId) {
 
     }
 
     @Override
-    public void failover(URI replicationArgument, String opId) {
+    public void failover(RemoteReplicationElement remoteReplicationElement, String opId) {
+        RemoteReplicationFailoverCompleter taskCompleter = new RemoteReplicationFailoverCompleter(remoteReplicationElement, opId);
+
+        // call device
+        RemoteReplicationDevice rrDevice = getRemoteReplicationDevice();
+        rrDevice.failover(remoteReplicationElement, taskCompleter);
+    }
+
+    @Override
+    public void failback(RemoteReplicationElement remoteReplicationElement, String opId) {
 
     }
 
     @Override
-    public void failback(URI replicationArgument, String opId) {
+    public void swap(RemoteReplicationElement replicationElement, String opId) {
 
     }
 
     @Override
-    public void swap(URI replicationArgument, String opId) {
+    public void changeReplicationMode(RemoteReplicationElement replicationElement, String newRemoteReplicationMode, String opId) {
 
     }
 

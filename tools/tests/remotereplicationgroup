@@ -39,6 +39,20 @@ def remotereplicationgroup_create_storage_type(args):
     print storage_type
 
 
+# Failover remote replication group.
+def remotereplicationgroup_failover(args):
+    bourne.connect(args.ip)
+
+    replicationgroup_uri = bourne.replicationgroup_query(args.replicationgroup_name)
+    print 'Replication group uri: ' + replicationgroup_uri
+
+    s = bourne.replicationgroup_failover(replicationgroup_uri)
+    if (s['state'] == 'ready'):
+        print 'Failed over remote replication group with id ' + s['resource']['id']
+    else:
+        print 'Failed to failover remote replication group.'
+
+
 #----------------------------------------------------------------------
 # command-line parsing
 #----------------------------------------------------------------------
@@ -56,7 +70,6 @@ parser.add_argument('--ip',	metavar = 'ipaddr',	help = 'IP address of bourne', d
 # remotereplicationgroup create_storage_type
 create_storage_type = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
 create_storage_type.add_argument('storage_type_name', help = 'The name of the storage system type.')
-#create_storage_type.add_argument('storage_type_display_name', help = 'The name of the storage system type display name.')
 create_storage_type.add_argument('--type', help = 'The name of the storage type: block/file.')
 create_storage_type.add_argument('--is_provider', help = 'true in case this is provider storage type.')
 create_storage_type.add_argument('--support_ssl', help = 'true if ssl is supported.')
@@ -72,6 +85,10 @@ create.add_argument('name', help = 'The name of the remote replication group.')
 create.add_argument('replication_mode', help = 'The name of the group replication mode.')
 create.add_argument('--source_system', help = 'The Native GUID of the source storage system.')
 create.add_argument('--target_system', help = 'The Native GUID of the target storage system.')
+
+# remotereplicationgroup failover
+failover = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+failover.add_argument('replicationgroup_name', help = 'The name of the replication group.')
 
 #----------------------------------------------------------------------
 # Main script
@@ -92,6 +109,9 @@ try:
     elif (cmd == "create_storage_type"):
         args = create_storage_type.parse_args()
         remotereplicationgroup_create_storage_type(args)
+    elif (cmd == "failover"):
+        args = failover.parse_args()
+        remotereplicationgroup_failover(args)
     else:
         parser.print_help()
 

@@ -523,7 +523,31 @@ public enum OperationTypeEnum {
 
     /* Remote Replication Operations */
     CREATE_REMOTE_REPLICATION_GROUP("CREATE REMOTE REPLICATION GROUP", "CreateRemoteReplicationGroupFailed", "create remote replication group"),
-    FAILOVER_REMOTE_REPLICATION_GROUP_LINK("FAILOVER REMOTE REPLICATION GROUP LINK", "FailoverRemoteReplicationGroupLinkFailed","failover remote replication group link"),
+    FAILOVER_REMOTE_REPLICATION_GROUP_LINK("FAILOVER REMOTE REPLICATION GROUP LINK", "FailoverRemoteReplicationGroupLinkFailed", "failover remote replication group link"),
+    FAILBACK_REMOTE_REPLICATION_GROUP_LINK("FAILBACK REMOTE REPLICATION GROUP LINK", "FailbackRemoteReplicationGroupLinkFailed", "failback remote replication group link"),
+    ESTABLISH_REMOTE_REPLICATION_GROUP_LINK("ESTABLISH REMOTE REPLICATION GROUP LINK","EstablishRemoteReplicationGroupLinkFailed", "establish remote replication group link"),
+    SPLIT_REMOTE_REPLICATION_GROUP_LINK("SPLIT REMOTE REPLICATION GROUP LINK", "SplitRemoteReplicationGroupLinkFailed", "split remote replication group link"),
+    SUSPEND_REMOTE_REPLICATION_GROUP_LINK("SUSPEND REMOTE REPLICATION GROUP LINK", "SuspendRemoteReplicationGroupLinkFailed", "suspend remote replication group link"),
+    RESUME_REMOTE_REPLICATION_GROUP_LINK("RESUME REMOTE REPLICATION GROUP LINK", "ResumeRemoteReplicationGroupLinkFailed", "resume remote replication group link"),
+    SWAP_REMOTE_REPLICATION_GROUP_LINK("SWAP REMOTE REPLICATION GROUP LINK", "SwapRemoteReplicationGroupLinkFailed", "swap remote replication group link"),
+    CHANGE_REMOTE_REPLICATION_MODE("CHANGE REMOTE REPLICATION MODE", "ChangeRemoteReplicationModeFailed", "change remote replication mode"),
+    //
+    FAILOVER_REMOTE_REPLICATION_SET_LINK("FAILOVER REMOTE REPLICATION SET LINK", "FailoverRemoteReplicationSetLinkFailed", "failover remote replication set link"),
+    FAILBACK_REMOTE_REPLICATION_SET_LINK("FAILBACK REMOTE REPLICATION SET LINK", "FailbackRemoteReplicationSetLinkFailed", "failback remote replication set link"),
+    ESTABLISH_REMOTE_REPLICATION_SET_LINK("ESTABLISH REMOTE REPLICATION SET LINK","EstablishRemoteReplicationSetLinkFailed", "establish remote replication set link"),
+    SPLIT_REMOTE_REPLICATION_SET_LINK("SPLIT REMOTE REPLICATION SET LINK", "SplitRemoteReplicationSetLinkFailed", "split remote replication set link"),
+    SUSPEND_REMOTE_REPLICATION_SET_LINK("SUSPEND REMOTE REPLICATION SET LINK", "SuspendRemoteReplicationSetLinkFailed", "suspend remote replication set link"),
+    RESUME_REMOTE_REPLICATION_SET_LINK("RESUME REMOTE REPLICATION SET LINK", "ResumeRemoteReplicationSetLinkFailed", "resume remote replication set link"),
+    SWAP_REMOTE_REPLICATION_SET_LINK("SWAP REMOTE REPLICATION SET LINK", "SwapRemoteReplicationSetLinkFailed", "swap remote replication set link"),
+    //
+    FAILOVER_REMOTE_REPLICATION_PAIR_LINK("FAILOVER REMOTE REPLICATION PAIR LINK", "FailoverRemoteReplicationPairLinkFailed", "failover remote replication pair link"),
+    FAILBACK_REMOTE_REPLICATION_PAIR_LINK("FAILBACK REMOTE REPLICATION PAIR LINK", "FailbackRemoteReplicationPairLinkFailed", "failback remote replication pair link"),
+    ESTABLISH_REMOTE_REPLICATION_PAIR_LINK("ESTABLISH REMOTE REPLICATION PAIR LINK","EstablishRemoteReplicationPairLinkFailed", "establish remote replication pair link"),
+    SPLIT_REMOTE_REPLICATION_PAIR_LINK("SPLIT REMOTE REPLICATION PAIR LINK", "SplitRemoteReplicationPairLinkFailed", "split remote replication pair link"),
+    SUSPEND_REMOTE_REPLICATION_PAIR_LINK("SUSPEND REMOTE REPLICATION PAIR LINK", "SuspendRemoteReplicationPairLinkFailed", "suspend remote replication pair link"),
+    RESUME_REMOTE_REPLICATION_PAIR_LINK("RESUME REMOTE REPLICATION PAIR LINK", "ResumeRemoteReplicationPairLinkFailed", "resume remote replication pair link"),
+    SWAP_REMOTE_REPLICATION_PAIR_LINK("SWAP REMOTE REPLICATION PAIR LINK", "SwapRemoteReplicationPairLinkFailed", "swap remote replication pair link"),
+
     /* Filesystem Mount Operations*/
 
     MOUNT_NFS_EXPORT("MOUNT NFS EXPORT", "mount nfs export operation failed", "mount nfs export operation"),

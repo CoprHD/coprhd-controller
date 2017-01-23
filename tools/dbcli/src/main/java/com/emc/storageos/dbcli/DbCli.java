@@ -343,7 +343,7 @@ public class DbCli {
                             for (String key : keys) {
                                 sMap.put(key, newStringMap.get(key));
                             }
-
+                            pd.getWriteMethod().invoke(object, sMap);
                         } else if (type == StringSet.class) {
                             StringSet stringSet = FieldType.convertType(fieldNode, StringSetWrapper.class);
                             if (!verifyField(stringSet)) {

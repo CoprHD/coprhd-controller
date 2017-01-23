@@ -10,6 +10,7 @@ import java.util.List;
 
 import com.emc.storageos.Controller;
 import com.emc.storageos.volumecontroller.ControllerException;
+import com.emc.storageos.volumecontroller.impl.externaldevice.RemoteReplicationElement;
 
 public interface RemoteReplicationController extends Controller {
 
@@ -81,8 +82,8 @@ public interface RemoteReplicationController extends Controller {
 
     // replication link operations
     /**
-     * Suspend remote replication link for remote replication argument.
-     * At the completion of this operation all remote replication pairs which belong to the replication argument should
+     * Suspend remote replication link for remote replication element.
+     * At the completion of this operation all remote replication pairs which belong to the replication element should
      * be in the following state:
      *     Pairs state: SUSPENDED;
      *     No change in remote replication container (group/set) for the pairs;
@@ -90,13 +91,13 @@ public interface RemoteReplicationController extends Controller {
      *     R2 elements should be read enabled/write disabled;
      *     replication links should be in not ready state;
      *
-     * @param replicationArgument: set/group/pair
+     * @param replicationElement: set/group/pair
      */
-    public void suspend(URI replicationArgument, String opId);
+    public void suspend(RemoteReplicationElement replicationElement, String opId);
 
     /**
-     * Resume remote replication link for remote replication argument.
-     * At the completion of this operation all remote replication pairs which belong to the replication argument should
+     * Resume remote replication link for remote replication element.
+     * At the completion of this operation all remote replication pairs which belong to the replication element should
      * be in the following state:
      *     Pairs state: ACTIVE;
      *     No change in remote replication container (group/set) for the pairs;
@@ -105,13 +106,13 @@ public interface RemoteReplicationController extends Controller {
      *     data on R2 elements is synchronized with R1 data copied to R2 elements;
      *     replication links should be in ready state;
      *
-     * @param replicationArgument: set/group/pair
+     * @param replicationElement: set/group/pair
      */
-    public void resume(URI replicationArgument, String opId);
+    public void resume(RemoteReplicationElement replicationElement, String opId);
 
     /**
-     * Split remote replication link for remote replication argument.
-     * At the completion of this operation all remote replication pairs which belong to the replication argument should
+     * Split remote replication link for remote replication element.
+     * At the completion of this operation all remote replication pairs which belong to the replication element should
      * be in the following state:
      *     Pairs state: SPLIT;
      *     No change in remote replication container (group/set) for the pairs;
@@ -119,14 +120,14 @@ public interface RemoteReplicationController extends Controller {
      *     R2 elements should be read/write enabled;
      *     replication links should be in not ready state;
      *
-     * @param replicationArgument: set/group/pair
+     * @param replicationElement: set/group/pair
      */
-    public void split(URI replicationArgument, String opId);
+    public void split(RemoteReplicationElement replicationElement, String opId);
 
     /**
-     * Establish replication link for remote replication argument.
+     * Establish replication link for remote replication element.
      *
-     * At the completion of this operation all remote replication pairs which belong to the replication argument should
+     * At the completion of this operation all remote replication pairs which belong to the replication element should
      * be in the following state:
      *     Pairs state: ACTIVE;
      *     No change in remote replication container (group/set) for the pairs;
@@ -135,13 +136,13 @@ public interface RemoteReplicationController extends Controller {
      *     data on R2 elements is synchronized with R1 data;
      *     replication links should be in ready state;
      *
-     * @param replicationArgument replication argument: set/group/pair
+     * @param replicationElement replication element: set/group/pair
      */
-    public void establish(URI replicationArgument, String opId);
+    public void establish(RemoteReplicationElement replicationElement, String opId);
 
     /**
-     * Failover remote replication link for remote replication argument.
-     * At the completion of this operation all remote replication pairs which belong to the replication argument should
+     * Failover remote replication link for remote replication element.
+     * At the completion of this operation all remote replication pairs which belong to the replication element should
      * be in the following state:
      *     Pairs state: FAILED_OVER;
      *     No change in remote replication container (group/set) for the pairs;
@@ -149,13 +150,13 @@ public interface RemoteReplicationController extends Controller {
      *     R2 elements should be read/write enabled;
      *     replication links should be in not ready state;
      *
-     * @param replicationArgument: set/group/pair
+     * @param replicationElement: set/group/pair
      */
-    public void failover(URI replicationArgument, String opId);
+    public void failover(RemoteReplicationElement replicationElement, String opId);
 
     /**
-     * Failback remote replication link for remote replication argument.
-     * At the completion of this operation all remote replication pairs which belong to the replication argument should
+     * Failback remote replication link for remote replication element.
+     * At the completion of this operation all remote replication pairs which belong to the replication element should
      * be in the following state:
      *     Pairs state:ACTIVE;
      *     No change in remote replication container (group/set) for the pairs;
@@ -164,15 +165,15 @@ public interface RemoteReplicationController extends Controller {
      *     data on R1 elements is synchronized with new R2 data copied to R1;
      *     replication links should be in ready state;
      *
-     * @param replicationArgument: set/group/pair
+     * @param replicationElement: set/group/pair
      */
-    public void failback(URI replicationArgument, String opId);
+    public void failback(RemoteReplicationElement replicationElement, String opId);
 
     /**
-     * Swap remote replication link for remote replication argument.
+     * Swap remote replication link for remote replication element.
      * Changes roles of replication elements in each replication pair.
      *
-     * At the completion of this operation all remote replication pairs which belong to the replication argument should
+     * At the completion of this operation all remote replication pairs which belong to the replication element should
      * be in the following state:
      *     Pairs state: SWAPPED;
      *     No change in remote replication container (group/set) for the pairs;
@@ -181,9 +182,9 @@ public interface RemoteReplicationController extends Controller {
      *     data on R2 elements is synchronized with new R1 data copied to R2;
      *     replication links should be in ready state for replication from R2 to R1;
      *
-     * @param replicationArgument: set/group/pair
+     * @param replicationElement: set/group/pair
      */
-    public void swap(URI replicationArgument, String opId);
+    public void swap(RemoteReplicationElement replicationElement, String opId);
 
     /**
      * Move replication pair from its parent group to other replication group.
@@ -194,4 +195,14 @@ public interface RemoteReplicationController extends Controller {
      * @param targetGroup new parent replication group for the pair
      */
     public void movePair(URI replicationPair, URI targetGroup, String opId);
+
+
+    /**
+     * Change remote replication mode for the specified remote replication element.
+     *
+     * @param replicationElement replication element
+     * @param newRemoteReplicationMode
+     * @param opId
+     */
+    public void changeReplicationMode(RemoteReplicationElement replicationElement, String newRemoteReplicationMode, String opId);
 }

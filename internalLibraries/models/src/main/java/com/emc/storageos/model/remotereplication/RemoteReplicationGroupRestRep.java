@@ -2,6 +2,7 @@ package com.emc.storageos.model.remotereplication;
 
 
 import com.emc.storageos.model.DataObjectRestRep;
+import com.emc.storageos.model.RelatedResourceRep;
 
 import javax.xml.bind.annotation.XmlAccessType;
 import javax.xml.bind.annotation.XmlAccessorType;
@@ -29,6 +30,12 @@ public class RemoteReplicationGroupRestRep extends DataObjectRestRep {
 
     // Replication mode of this group
     private String replicationMode;
+
+    // Replication state
+    String replicationState;
+
+    // Replication set parent
+    private RelatedResourceRep replicationSet;
 
     @XmlElement(name = "native_id")
     public String getNativeId() {
@@ -82,5 +89,23 @@ public class RemoteReplicationGroupRestRep extends DataObjectRestRep {
 
     public void setReplicationMode(String replicationMode) {
         this.replicationMode = replicationMode;
+    }
+
+    @XmlElement(name = "replication_state")
+    public String getReplicationState() {
+        return replicationState;
+    }
+
+    public void setReplicationState(String replicationState) {
+        this.replicationState = replicationState;
+    }
+
+    @XmlElement(name = "replication_set")
+    public RelatedResourceRep getReplicationSet() {
+        return replicationSet;
+    }
+
+    public void setReplicationSet(RelatedResourceRep replicationSet) {
+        this.replicationSet = replicationSet;
     }
 }

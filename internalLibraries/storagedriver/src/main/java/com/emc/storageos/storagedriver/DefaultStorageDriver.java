@@ -9,6 +9,7 @@ import java.util.Map;
 import java.util.UUID;
 
 import com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationGroup;
+import com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationOperationContext;
 import com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationPair;
 import org.apache.commons.lang.mutable.MutableBoolean;
 import org.apache.commons.lang.mutable.MutableInt;
@@ -622,7 +623,7 @@ public class DefaultStorageDriver extends AbstractStorageDriver implements Block
     }
 
     @Override
-    public DriverTask deleteReplicationPairs(List<RemoteReplicationPair> replicationPairs) {
+    public DriverTask deleteReplicationPairs(List<RemoteReplicationPair> replicationPairs, StorageCapabilities capabilities) {
         String driverName = this.getClass().getSimpleName();
         String taskId = String.format("%s+%s+%s", driverName, "deleteReplicationPairs", UUID.randomUUID().toString());
         DriverTask task = new DefaultDriverTask(taskId);
@@ -635,42 +636,71 @@ public class DefaultStorageDriver extends AbstractStorageDriver implements Block
     }
 
     @Override
-    public DriverTask suspend(List<RemoteReplicationPair> replicationPairs) {
+    public DriverTask suspend(List<RemoteReplicationPair> replicationPairs, RemoteReplicationOperationContext context, StorageCapabilities capabilities) {
         return null;
     }
 
     @Override
-    public DriverTask resume(List<RemoteReplicationPair> replicationPairs) {
+    public DriverTask resume(List<RemoteReplicationPair> replicationPairs, RemoteReplicationOperationContext context, StorageCapabilities capabilities) {
         return null;
     }
 
     @Override
-    public DriverTask split(List<RemoteReplicationPair> replicationPairs) {
+    public DriverTask split(List<RemoteReplicationPair> replicationPairs, RemoteReplicationOperationContext context, StorageCapabilities capabilities) {
         return null;
     }
 
     @Override
-    public DriverTask establish(List<RemoteReplicationPair> replicationPairs) {
+    public DriverTask establish(List<RemoteReplicationPair> replicationPairs, RemoteReplicationOperationContext context, StorageCapabilities capabilities) {
         return null;
     }
 
     @Override
-    public DriverTask failover(List<RemoteReplicationPair> replicationPairs) {
+    public DriverTask failover(List<RemoteReplicationPair> replicationPairs, RemoteReplicationOperationContext context, StorageCapabilities capabilities) {
+        String driverName = this.getClass().getSimpleName();
+        String taskId = String.format("%s+%s+%s", driverName, "failover", UUID.randomUUID().toString());
+        DriverTask task = new DefaultDriverTask(taskId);
+        task.setStatus(DriverTask.TaskStatus.FAILED);
+
+        String msg = String.format("%s: %s --- operation is not supported.", driverName, "failover");
+        _log.warn(msg);
+        task.setMessage(msg);
+        return task;
+    }
+
+    @Override
+    public DriverTask failback(List<RemoteReplicationPair> replicationPairs, RemoteReplicationOperationContext context, StorageCapabilities capabilities) {
+        String driverName = this.getClass().getSimpleName();
+        String taskId = String.format("%s+%s+%s", driverName, "failback", UUID.randomUUID().toString());
+        DriverTask task = new DefaultDriverTask(taskId);
+        task.setStatus(DriverTask.TaskStatus.FAILED);
+
+        String msg = String.format("%s: %s --- operation is not supported.", driverName, "failback");
+        _log.warn(msg);
+        task.setMessage(msg);
+        return task;
+    }
+
+    @Override
+    public DriverTask swap(List<RemoteReplicationPair> replicationPairs, RemoteReplicationOperationContext context, StorageCapabilities capabilities) {
         return null;
     }
 
     @Override
-    public DriverTask failback(List<RemoteReplicationPair> replicationPairs) {
-        return null;
+    public DriverTask changeReplicationMode(List<RemoteReplicationPair> replicationPairs, String newReplicationMode, RemoteReplicationOperationContext context, StorageCapabilities capabilities) {
+        String driverName = this.getClass().getSimpleName();
+        String taskId = String.format("%s+%s+%s", driverName, "changeReplicationMode", UUID.randomUUID().toString());
+        DriverTask task = new DefaultDriverTask(taskId);
+        task.setStatus(DriverTask.TaskStatus.FAILED);
+
+        String msg = String.format("%s: %s --- operation is not supported.", driverName, "changeReplicationMode");
+        _log.warn(msg);
+        task.setMessage(msg);
+        return task;
     }
 
     @Override
-    public DriverTask swap(List<RemoteReplicationPair> replicationPairs) {
-        return null;
-    }
-
-    @Override
-    public DriverTask movePair(RemoteReplicationPair replicationPair, RemoteReplicationGroup targetGroup) {
+    public DriverTask movePair(RemoteReplicationPair replicationPair, RemoteReplicationGroup targetGroup, StorageCapabilities capabilities) {
         String driverName = this.getClass().getSimpleName();
         String taskId = String.format("%s+%s+%s", driverName, "movePair", UUID.randomUUID().toString());
         DriverTask task = new DefaultDriverTask(taskId);

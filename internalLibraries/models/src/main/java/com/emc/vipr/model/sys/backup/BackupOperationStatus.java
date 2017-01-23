@@ -181,17 +181,17 @@ public class BackupOperationStatus implements Serializable {
     @Override
     public String toString() {
         StringBuffer sb = new StringBuffer();
-        sb.append("LastSuccessfulCreation:[");
+        sb.append("LastSuccessfulCreation(");
         sb.append(getLastSuccessfulCreation());
-        sb.append("], LastManualCreation:[");
+        sb.append("), LastManualCreation(");
         sb.append(getLastManualCreation());
-        sb.append("], LastScheduledCreation:[");
+        sb.append("), LastScheduledCreation(");
         sb.append(getLastScheduledCreation());
-        sb.append("], NextScheduledCreation:[");
+        sb.append("), NextScheduledCreation(");
         sb.append(getNextScheduledCreation());
-        sb.append("], LastUpload:[");
+        sb.append("), LastUpload(");
         sb.append(getLastUpload());
-        sb.append("]");
+        sb.append(")");
         return sb.toString();
     }
 }

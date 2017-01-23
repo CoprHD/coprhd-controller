@@ -240,6 +240,8 @@ public class BackupScheduler extends Notifier implements Runnable, Callable<Obje
     }
 
     public void updateBackupUploadStatus(String backupName, long operationTime, boolean success) {
+        log.info(String.format("Updating backup upload status(name=%s, time=%s, success=%s) to ZK",
+                backupName, operationTime, success));
         BackupOperationStatus backupOperationStatus = backupOps.queryBackupOperationStatus();
         backupOperationStatus.setLastUpload(backupName, operationTime,
                 (success) ? BackupOperationStatus.OpMessage.OP_SUCCESS : BackupOperationStatus.OpMessage.OP_FAILED);

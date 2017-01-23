@@ -1048,6 +1048,8 @@ public class BackupOps {
      * Updates backup creation related status in ZK
      */
     public void updateBackupCreationStatus(String backupName, long operationTime, boolean success) {
+        log.info(String.format("Updating backup creation status(name=%s, time=%s, success=%s) to ZK",
+                backupName, operationTime, success));
         BackupOperationStatus backupOperationStatus = queryBackupOperationStatus();
         boolean isScheduledBackup = isScheduledBackupTag(backupName);
         if (isScheduledBackup) {
@@ -1055,7 +1057,6 @@ public class BackupOps {
             backupOperationStatus.setLastScheduledCreation(backupName, operationTime,
                     (success) ? BackupOperationStatus.OpMessage.OP_SUCCESS : BackupOperationStatus.OpMessage.OP_FAILED);
         } else {
-            log.info("updating manual backup");
             backupOperationStatus.setLastManualCreation(backupName, operationTime,
                     (success) ? BackupOperationStatus.OpMessage.OP_SUCCESS : BackupOperationStatus.OpMessage.OP_FAILED);
         }
@@ -1065,7 +1066,6 @@ public class BackupOps {
                     (isScheduledBackup) ? BackupOperationStatus.OpMessage.OP_SCHEDULED : BackupOperationStatus.OpMessage.OP_MANUAL);
             log.info("updated success backup");
         }
-        log.info(String.format("Updating backup creation status(name=%s, time=%s, success=%s) to ZK", backupName, operationTime, success));
         persistBackupOperationStatus(backupOperationStatus);
     }
 
@@ -1091,6 +1091,7 @@ public class BackupOps {
      */
     public void persistBackupOperationStatus(BackupOperationStatus backupOperationStatus) {
         if (backupOperationStatus == null) {
+            log.warn("Backup operation status is empty, no need persisting");
             return;
         }
         ConfigurationImpl config = new ConfigurationImpl();

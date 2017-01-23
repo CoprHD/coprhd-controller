@@ -158,7 +158,7 @@ public class UploadExecutor {
                 failureUploads.add(tag);
                 errMsgs.add(errMsg);
             }
-            this.cli.updateBackupUploadStatus(backupTag, TimeUtils.getCurrentTime(), (errMsg == null) ? true: false);
+            this.cli.updateBackupUploadStatus(tag, TimeUtils.getCurrentTime(), (errMsg == null) ? true: false);
         }
 
         if (!succUploads.isEmpty()) {

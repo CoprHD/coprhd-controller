@@ -134,6 +134,10 @@ public class BlockVirtualPoolForm extends VirtualPoolCommonForm<BlockVirtualPool
         else if (ProtectionSystemTypes.isSRDF(remoteProtection)) {
             validateSrdf(formName);
         }
+        // Remote Replication validation
+        else if (ProtectionSystemTypes.isRemoteReplication(remoteProtection)) {
+            validateRemoteReplication(formName);
+        }
         // High availability (vPlex) validation
         if (HighAvailability.isHighAvailability(highAvailability)) {
             validateHighAvailability(formName);
@@ -198,14 +202,10 @@ public class BlockVirtualPoolForm extends VirtualPoolCommonForm<BlockVirtualPool
     }
 
     private void validateRemoteReplication(String formName) {
-        // TODO need to do for other supported storage system
-        if (!StringUtils.equals(systemType, StorageSystemTypes.DELLSCSYSTEM)) {
-            Validation.addError(formName + ".systemType", "vpool.srdf.error.notSupported");
-        }
-
+        
         if ((remoteReplications == null) || (remoteReplications.length == 0)) {
             // Mark it as required
-            Validation.required(formName + ".srdfCopies", null);
+            Validation.required(formName + ".remoteReplications", null);
         }
         else {
             for (RemoteReplicationForm rr1 : remoteReplications) {

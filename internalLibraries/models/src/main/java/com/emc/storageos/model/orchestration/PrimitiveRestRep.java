@@ -31,7 +31,7 @@ public class PrimitiveRestRep extends DataObjectRestRep {
     private String friendlyName;
     private String description;
     private String successCriteria;
-    private List<InputParameterRestRep> input;
+    private Map<String, List<InputParameterRestRep>> input;
     private List<OutputParameterRestRep> output;
     private  Map<String, String> attributes;
     private RestLinkRep resource;
@@ -82,11 +82,11 @@ public class PrimitiveRestRep extends DataObjectRestRep {
     }
 
     @XmlElement(name = "input")
-    public List<InputParameterRestRep> getInput() {
+    public Map<String, List<InputParameterRestRep>> getInput() {
         return input;
     }
 
-    public void setInput(final List<InputParameterRestRep> input) {
+    public void setInput(final Map<String, List<InputParameterRestRep>> input) {
         this.input = input;
     }
 

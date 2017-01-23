@@ -16,40 +16,6 @@
  */
 package com.emc.sa.api;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.net.URI;
-import java.nio.file.FileSystems;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map.Entry;
-
-import javax.servlet.ServletOutputStream;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import javax.ws.rs.Consumes;
-import javax.ws.rs.GET;
-import javax.ws.rs.POST;
-import javax.ws.rs.PUT;
-import javax.ws.rs.Path;
-import javax.ws.rs.PathParam;
-import javax.ws.rs.Produces;
-import javax.ws.rs.QueryParam;
-import javax.ws.rs.core.Context;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.Response;
-
-import org.apache.commons.codec.binary.Base64;
-import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
-import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
-import org.apache.commons.compress.compressors.gzip.GzipCompressorInputStream;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-
 import com.emc.sa.api.mapper.PrimitiveMapper;
 import com.emc.sa.catalog.PrimitiveManager;
 import com.emc.storageos.api.service.impl.resource.ArgValidator;
@@ -81,6 +47,39 @@ import com.emc.storageos.svcs.errorhandling.resources.NotFoundException;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMap.Builder;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.URI;
+import java.nio.file.FileSystems;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import javax.servlet.ServletOutputStream;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import javax.ws.rs.Consumes;
+import javax.ws.rs.GET;
+import javax.ws.rs.POST;
+import javax.ws.rs.PUT;
+import javax.ws.rs.Path;
+import javax.ws.rs.PathParam;
+import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
+import javax.ws.rs.core.Context;
+import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
+import org.apache.commons.codec.binary.Base64;
+import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
+import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
+import org.apache.commons.compress.compressors.gzip.GzipCompressorInputStream;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 
 @Path("/primitives")
 @DefaultPermissions(readRoles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, readAcls = {
@@ -498,25 +497,28 @@ public class PrimitiveService {
     }
 
 
-    private static List<InputParameterRestRep> mapInput(List<InputParameter> inputParameters) {
-        List<InputParameterRestRep> inputRestRep = new ArrayList<InputParameterRestRep>();
-        int index = 0;
-        for(final InputParameter parameter : inputParameters) {
-
-            if(parameter.isBasicInputParameter()) {
-                InputParameterRestRep inputParamRestRep = new InputParameterRestRep();
-                inputParamRestRep.setName(parameter.getName());
-                inputParamRestRep.setType(parameter.getType().name());
-                BasicInputParameter<?> inputParam = parameter
-                        .asBasicInputParameter();
-                inputParamRestRep.setRequired(inputParam.getRequired());
-                if (null != inputParam.getDefaultValue()) {
-                    inputParamRestRep.setDefaultValue(Collections
-                            .singletonList(inputParam.getDefaultValue()
-                                    .toString()));
+    private static Map<String, List<InputParameterRestRep>> mapInput( Map<Primitive.InputType, List<InputParameter>> inputParameters) {
+        Map<String, List<InputParameterRestRep>> inputRestRep = new HashMap<String, List<InputParameterRestRep>>();
+        for(final Entry<Primitive.InputType, List<InputParameter>> parameterType : inputParameters.entrySet()) {
+            List<InputParameterRestRep> inputTypeRestRep = new ArrayList<InputParameterRestRep>();
+            for(final InputParameter parameter : parameterType.getValue()) {
+                int index = 0;
+                if (parameter.isBasicInputParameter()) {
+                    InputParameterRestRep inputParamRestRep = new InputParameterRestRep();
+                    inputParamRestRep.setName(parameter.getName());
+                    inputParamRestRep.setType(parameter.getType().name());
+                    BasicInputParameter<?> inputParam = parameter
+                            .asBasicInputParameter();
+                    inputParamRestRep.setRequired(inputParam.getRequired());
+                    if (null != inputParam.getDefaultValue()) {
+                        inputParamRestRep.setDefaultValue(Collections
+                                .singletonList(inputParam.getDefaultValue()
+                                        .toString()));
+                    }
+                    inputTypeRestRep.add(inputParamRestRep);
                 }
-                inputRestRep.add(index++, inputParamRestRep);
             }
+            inputRestRep.put(parameterType.getKey().toString(),inputTypeRestRep);
 
         }
         return inputRestRep;

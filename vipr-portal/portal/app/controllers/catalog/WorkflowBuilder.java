@@ -326,6 +326,7 @@ public class WorkflowBuilder extends Controller {
                     // Default grouping: "ViPR Library"
                     parent = VIPR_LIBRARY_ROOT;
                 }
+                //TODO: Handle other primitive types (ansible, script)
                 Node node = new Node(primitive.getClass().getSimpleName(),
                         primitiveRestRep.getFriendlyName(), parent,
                         WFBuilderNodeTypes.VIPR_REST.toString());

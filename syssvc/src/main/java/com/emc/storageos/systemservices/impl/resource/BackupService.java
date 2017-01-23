@@ -979,14 +979,6 @@ public class BackupService {
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     public BackupOperationStatus getBackupOperationStatus() {
         log.info("Received get backup operation status request");
-
-        /*BackupOperationStatus backupOperationStatus = new BackupOperationStatus();
-        backupOperationStatus.setLastManualCreation("backup1", 1485004604, BackupOperationStatus.OpMessage.OP_SUCCESS);
-        backupOperationStatus.setLastScheduledCreation("backup2", 1485003604, BackupOperationStatus.OpMessage.OP_SUCCESS);
-        backupOperationStatus.setLastSuccessfulCreation("backup1", 1485004604, BackupOperationStatus.OpMessage.OP_MANUAL);
-        backupOperationStatus.setLastUpload("backup1", 1485004604, BackupOperationStatus.OpMessage.OP_SUCCESS);
-        backupOperationStatus.setNextScheduledCreation(1485004604);
-        return backupOperationStatus;*/
         try {
             BackupOperationStatus backupOperationStatus = backupOps.queryBackupOperationStatus();
             backupOperationStatus.setNextScheduledCreation(backupScheduler.getNextScheduledRunTime().getTime());

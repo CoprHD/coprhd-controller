@@ -12,7 +12,9 @@ import javax.xml.bind.annotation.*;
 import java.io.Serializable;
 
 @XmlRootElement(name = "backup_operation_status")
-public class BackupOperationStatus {
+public class BackupOperationStatus implements Serializable {
+    private static final long serialVersionUID = -1127851063451833657L;
+
     private static final Logger log = LoggerFactory.getLogger(BackupOperationStatus.class);
     private OperationStatus lastManualCreation;
     private OperationStatus lastScheduledCreation;
@@ -150,7 +152,7 @@ public class BackupOperationStatus {
             sb.append(", OperationTime:");
             sb.append(getOperationTime());
             sb.append(", OperationMessage:");
-            sb.append(getOperationMessage().name());
+            sb.append(getOperationMessage().getValue());
             return sb.toString();
         }
     }
@@ -170,21 +172,26 @@ public class BackupOperationStatus {
         OpMessage(String msg) {
             this.opMessage = msg;
         }
+
+        public String getValue() {
+            return opMessage;
+        }
     }
 
     @Override
     public String toString() {
         StringBuffer sb = new StringBuffer();
-        sb.append("LastSuccessfulCreation:");
+        sb.append("LastSuccessfulCreation:[");
         sb.append(getLastSuccessfulCreation());
-        sb.append(", LastManualCreation:");
+        sb.append("], LastManualCreation:[");
         sb.append(getLastManualCreation());
-        sb.append(", LastScheduledCreation:");
+        sb.append("], LastScheduledCreation:[");
         sb.append(getLastScheduledCreation());
-        sb.append(", NextScheduledCreation:");
+        sb.append("], NextScheduledCreation:[");
         sb.append(getNextScheduledCreation());
-        sb.append(", LastUpload:");
+        sb.append("], LastUpload:[");
         sb.append(getLastUpload());
+        sb.append("]");
         return sb.toString();
     }
 }

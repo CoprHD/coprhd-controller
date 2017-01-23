@@ -268,6 +268,9 @@ public class VnxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                 queryHostInitiatorsAndAddToList(portNames, portNameToInitiatorURI,
                         initiatorURIs, hostURIs);
                 Map<String, Set<URI>> foundMatches = device.findExportMasks(storage, portNames, false);
+
+                findAndUpdateFreeHLUsForClusterExport(storage, exportGroup, new ArrayList<URI>(initiatorURIs), volumeMap);
+
                 Set<String> checkMasks = mergeWithExportGroupMaskURIs(exportGroup, foundMatches.values());
                 for (String maskURIStr : checkMasks) {
                     ExportMask exportMask = _dbClient.queryObject(ExportMask.class,
@@ -451,6 +454,12 @@ public class VnxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
         return CustomConfigConstants.VNX_HOST_STORAGE_GROUP_MASK_NAME;
     }
 
+    @Override
+    public void findAndUpdateFreeHLUsForClusterExport(StorageSystem storage, ExportGroup exportGroup, List<URI> initiatorURIs,
+            Map<URI, Integer> volumeMap) {
+        findUpdateFreeHLUsForClusterExport(storage, exportGroup, initiatorURIs, volumeMap);
+    }
+
     /**
      * Routine contains logic to create an export mask on the array
      *
@@ -502,6 +511,9 @@ public class VnxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
         // portNames. We will have to do processing differently based on whether
         // or there is an existing ExportMasks.
         Map<String, Set<URI>> matchingExportMaskURIs = device.findExportMasks(storage, portNames, false);
+
+        findAndUpdateFreeHLUsForClusterExport(storage, exportGroup, initiatorURIs, volumeMap);
+
         if (matchingExportMaskURIs.isEmpty()) {
             previousStep = checkForSnapshotsToCopyToTarget(workflow, storage, previousStep,
                     volumeMap, null);

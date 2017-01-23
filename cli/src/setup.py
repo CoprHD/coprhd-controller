@@ -73,6 +73,7 @@ distutils.core.setup(
 		      'task.py',
 		      'event.py',
                       'schedulepolicy.py',
-                      'schedevent.py']
+                      'schedevent.py',
+                      'filepolicy.py']
                  )]
 )

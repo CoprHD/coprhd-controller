@@ -7,6 +7,7 @@ package com.emc.storageos.exceptions;
 
 import java.net.URI;
 import java.util.Collection;
+import java.util.Map;
 
 import com.emc.storageos.ceph.CephExceptions;
 import com.emc.storageos.cinder.errorhandling.CinderExceptions;
@@ -488,6 +489,12 @@ public interface DeviceControllerExceptions {
     @DeclareServiceCode(ServiceCode.BLOCK_CONTROLLER_ERROR)
     public DeviceControllerException exportGroupInconsistentLunViolation(final String exportGroupName, final String details);
 
+    @DeclareServiceCode(ServiceCode.BLOCK_CONTROLLER_ERROR)
+    public DeviceControllerException volumeExportReachedMaximumHlu(final String details);
+
+    @DeclareServiceCode(ServiceCode.BLOCK_CONTROLLER_ERROR)
+    public DeviceControllerException volumeExportMaximumHluNotAvailable(final String systemType);
+
     @DeclareServiceCode(ServiceCode.CONTROLLER_VALIDATION_EXCEPTION)
     public DeviceControllerException validationError(final String type, final String details, final String remediationAction);
 
@@ -505,6 +512,9 @@ public interface DeviceControllerExceptions {
 
     @DeclareServiceCode(ServiceCode.CONTROLLER_VALIDATION_EXCEPTION)
     public DeviceControllerException removeInitiatorValidationError(String initiatorsName, String storageSystemName, String details);
+
+    @DeclareServiceCode(ServiceCode.BLOCK_CONTROLLER_ERROR)
+    public DeviceControllerException addHostHLUViolation(Map<String, Integer> volumeHluPair);
 
     @DeclareServiceCode(ServiceCode.CONTROLLER_VALIDATION_EXCEPTION)
     public DeviceControllerException removeVolumesValidationError(String volumeNames, String storageSystemName, String details);

@@ -1058,6 +1058,7 @@ public class BackupOps {
             backupOperationStatus.setLastSuccessfulCreation(backupName, operationTime,
                     (isScheduledBackup) ? BackupOperationStatus.OpMessage.OP_SCHEDULED : BackupOperationStatus.OpMessage.OP_MANUAL);
         }
+        log.info(String.format("Updating backup creation status(name=%, time=%, success=%) to ZK"), backupName, operationTime, success);
         persistBackupOperationStatus(backupOperationStatus);
     }
 
@@ -1080,13 +1081,14 @@ public class BackupOps {
         config.setKind(Constants.BACKUP_OPERATION_STATUS);
         config.setId(Constants.GLOBAL_ID);
 
+        log.info("Persisting backup operation status to zk");
         setOperationStatus(config, BackupConstants.LAST_SUCCESSFUL_CREATION, backupOperationStatus.getLastSuccessfulCreation());
         setOperationStatus(config, BackupConstants.LAST_MANUAL_CREATION, backupOperationStatus.getLastManualCreation());
         setOperationStatus(config, BackupConstants.LAST_SCHEDULED_CREATION, backupOperationStatus.getLastScheduledCreation());
         setOperationStatus(config, BackupConstants.LAST_UPLOAD, backupOperationStatus.getLastUpload());
 
         coordinatorClient.persistServiceConfiguration(config);
-        log.info("Persist backup operation status to zk successfully");
+        log.info("Persist backup operation status to zk successfully: {}", backupOperationStatus.toString());
     }
 
     private BackupOperationStatus.OperationStatus getOperationStatus(Configuration config, String operationType) {

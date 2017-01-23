@@ -48,6 +48,7 @@ import com.emc.sa.util.StringComparator;
 import com.emc.sa.util.TextUtils;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup.Types;
+import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.Volume.ReplicationState;
 import com.emc.storageos.db.client.model.VolumeGroup;
@@ -824,7 +825,11 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         List<StorageSystemRestRep> storageSystems = client.storageSystems().getByIds(storageSystemIds);
 
         for (StorageSystemRestRep storageSystem : storageSystems) {
-            options.add(new AssetOption(storageSystem.getId(), storageSystem.getName()));
+            String systemType = storageSystem.getSystemType();
+            if (Type.vmax.name().equalsIgnoreCase(systemType) ||
+                    Type.vplex.name().equalsIgnoreCase(systemType)) {
+                options.add(new AssetOption(storageSystem.getId(), storageSystem.getName()));
+            }
         }
 
         return options;

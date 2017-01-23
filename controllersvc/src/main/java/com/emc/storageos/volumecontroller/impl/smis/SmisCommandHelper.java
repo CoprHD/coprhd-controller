@@ -5710,6 +5710,8 @@ public class SmisCommandHelper implements SmisConstants {
         } else if (URIUtil.isType(blockObjectURI, BlockMirror.class)) {
             BlockMirror mirror = _dbClient.queryObject(BlockMirror.class, blockObjectURI);
             if (NullColumnValueGetter.isNullURI(mirror.getVirtualPool()) || NullColumnValueGetter.isNullURI(mirror.getPool())) {
+                _log.info("The given BlockMirror {} does not have an associated Virtual pool or Storage Pool ",
+                        blockObjectURI);
                 return false; // This should never happen but we need this additional check.
             }
             virtualPool = _dbClient.queryObject(VirtualPool.class, mirror.getVirtualPool());
@@ -5717,6 +5719,8 @@ public class SmisCommandHelper implements SmisConstants {
         }
         if (volume != null) {
             if (NullColumnValueGetter.isNullURI(volume.getVirtualPool()) || NullColumnValueGetter.isNullURI(volume.getPool())) {
+                _log.info("The given Volume {} does not have an associated Virtual pool or Storage Pool ",
+                        blockObjectURI);
                 return false; // This should never happen but we need this additional check.
             }
             virtualPool = _dbClient.queryObject(VirtualPool.class, volume.getVirtualPool());

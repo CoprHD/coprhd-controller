@@ -744,25 +744,45 @@ test_move_clustered_host_to_another_cluster() {
                 fi
            fi
            
-           # we expect an error here
-           # Ensure that all initiators are now in same cluster
-            foundinit1=`export_group show $PROJECT/${exportgroup1} | grep ${init1}`
-            foundinit2=`export_group show $PROJECT/${exportgroup1} | grep ${init2}`
-            foundinit3=`export_group show $PROJECT/${exportgroup2} | grep ${init3}`
-            foundinit4=`export_group show $PROJECT/${exportgroup2} | grep ${init4}`
-        
-            if [[ "${foundinit1}" = ""  || "${foundinit2}" = "" || "${foundinit3}" = "" || "${foundinit4}" = "" ]]; then
-                # Fail, initiators should have been added to the export group
-                echo "+++ FAIL - Some initiators were not found  in export group ${exportgroup2}...fail."
-                incr_fail_count
-                if [ "${NO_BAILING}" != "1" ]
-                then
-                    report_results ${test_name} ${failure}
-                        finish -1
-                fi
-            else
-                echo "+++ SUCCESS - All initiators from clusters present on export group ${exportgroup2}"   
-            fi
+           if [ ${failure} = "failure_042_host_cluster_ComputeSystemControllerImpl.updateHostAndInitiatorClusterReferences" ]; then
+               # Ensure that export group for cluster2 has been deleted
+
+               verify_export ${exportgroup1} ${cluster1} gone
+                
+               foundinit3=`export_group show $PROJECT/${exportgroup2} | grep ${init3}`
+               foundinit4=`export_group show $PROJECT/${exportgroup2} | grep ${init4}`
+                
+               if [[ "${foundinit3}" = "" || "${foundinit4}" = "" ]]; then
+                   # Fail, initiators should have been added to the export group
+                   echo "+++ FAIL - Some initiators were not found in correct export groups"
+                   incr_fail_count
+                   if [ "${NO_BAILING}" != "1" ]
+                   then
+                       report_results ${test_name} ${failure}
+                       finish -1
+                   fi
+               else
+                   echo "+++ SUCCESS - Initiators are in correct export groups"   
+               fi
+           else
+               foundinit1=`export_group show $PROJECT/${exportgroup1} | grep ${init1}`
+               foundinit2=`export_group show $PROJECT/${exportgroup1} | grep ${init2}`
+               foundinit3=`export_group show $PROJECT/${exportgroup2} | grep ${init3}`
+               foundinit4=`export_group show $PROJECT/${exportgroup2} | grep ${init4}`
+           
+               if [[ "${foundinit1}" = ""  || "${foundinit2}" = "" || "${foundinit3}" = "" || "${foundinit4}" = "" ]]; then
+                   # Fail, initiators should have been added to the export group
+                   echo "+++ FAIL - Some initiators were not found in correct export groups"
+                   incr_fail_count
+                   if [ "${NO_BAILING}" != "1" ]
+                   then
+                       report_results ${test_name} ${failure}
+                       finish -1
+                   fi
+               else
+                   echo "+++ SUCCESS - All initiators from clusters present on export group ${exportgroup2}"   
+               fi
+           fi
 
            set_artificial_failure none
            

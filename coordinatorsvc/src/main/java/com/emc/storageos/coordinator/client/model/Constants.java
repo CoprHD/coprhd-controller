@@ -94,6 +94,9 @@ public interface Constants {
     // service name for geodbsvc
     public static final String GEODBSVC_NAME = "geodbsvc";
 
+    // service name for syssvc
+    public static final String SYSSVC_NAME = "syssvc";
+
     // special configuration id for global config kinds, like SCHEMA_VERSION
     public static final String GLOBAL_ID = "global";
 
@@ -165,4 +168,9 @@ public interface Constants {
     public static final String DB_DOWNTIME_TRACKER_CONFIG = "dbDowntimeTracker";
     public static final String DB_CONSISTENCY_STATUS = "dbconsistencystatus";
     public static final String FAILBACK_DETECT_LEADER = "failbackDetectLeader";
+    
+    public static final String RESOURCE_LIMIT_PROJECT_VOLUMES = "resource_limit_project_volumes";
+    public static final String RESOURCE_LIMIT_PROJECT_SNAPSHOTS = "resource_limit_project_snapshots";
+    public static final String RESOURCE_LIMIT_TENANT_HOSTS = "resource_limit_tenant_hosts";
+    public static final float RESOURCE_LIMIT_ALERT_RATE = 0.9f;
 }

@@ -102,7 +102,7 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
                                 volUri, nativeId));
                         result = apiClient.exportLun(nativeId, initiators, newhlu);
                     } else {
-                        result = apiClient.exportSnap(nativeId, initiators, null);
+                        result = apiClient.exportSnap(nativeId, initiators, newhlu);
                         setSnapWWN(apiClient, blockObject, nativeId);
                     }
                     mask.addVolume(volUri, result.getHlu());
@@ -486,6 +486,12 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
     @Override
     public Map<String, Set<URI>> findExportMasks(StorageSystem storage,
             List<String> initiatorNames, boolean mustHaveAllPorts) throws DeviceControllerException {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    @Override
+    public Set<Integer> findHLUsForInitiators(StorageSystem storage, List<String> initiatorNames, boolean mustHaveAllPorts) {
         // TODO Auto-generated method stub
         return null;
     }

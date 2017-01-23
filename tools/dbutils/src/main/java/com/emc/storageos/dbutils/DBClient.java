@@ -4,23 +4,108 @@
  */
 package com.emc.storageos.dbutils;
 
-import com.emc.storageos.coordinator.client.service.DrUtil;
-import com.emc.storageos.db.client.impl.DbConsistencyChecker;
-import com.emc.storageos.db.client.impl.DbCheckerFileWriter;
-import com.emc.storageos.db.client.impl.DbConsistencyCheckerHelper;
+import java.beans.BeanInfo;
+import java.beans.IntrospectionException;
+import java.beans.Introspector;
+import java.beans.PropertyDescriptor;
+import java.io.BufferedInputStream;
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.ByteArrayInputStream;
+import java.io.DataInputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.io.StringReader;
+import java.io.StringWriter;
+import java.lang.reflect.Method;
+import java.net.URI;
+import java.nio.file.Files;
+import java.nio.file.attribute.PosixFilePermission;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Calendar;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipFile;
+import java.util.zip.ZipOutputStream;
+
+import javax.crypto.SecretKey;
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.transform.OutputKeys;
+import javax.xml.transform.Result;
+import javax.xml.transform.Source;
+import javax.xml.transform.Transformer;
+import javax.xml.transform.TransformerFactory;
+import javax.xml.transform.dom.DOMSource;
+import javax.xml.transform.stream.StreamResult;
+
 import org.apache.commons.beanutils.BeanUtils;
 import org.apache.commons.beanutils.ConvertUtils;
 import org.apache.commons.beanutils.converters.CalendarConverter;
+import org.apache.commons.beanutils.converters.DateConverter;
 import org.apache.commons.lang3.StringUtils;
+import org.joda.time.DateTime;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.context.support.ClassPathXmlApplicationContext;
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+import org.w3c.dom.NodeList;
 
+import com.emc.storageos.coordinator.client.service.DrUtil;
 import com.emc.storageos.db.client.TimeSeriesMetadata;
 import com.emc.storageos.db.client.TimeSeriesQueryResult;
 import com.emc.storageos.db.client.impl.CompositeColumnName;
 import com.emc.storageos.db.client.impl.DataObjectType;
+import com.emc.storageos.db.client.impl.DbCheckerFileWriter;
 import com.emc.storageos.db.client.impl.DbClientContext;
+import com.emc.storageos.db.client.impl.DbConsistencyChecker;
+import com.emc.storageos.db.client.impl.DbConsistencyCheckerHelper;
+import com.emc.storageos.db.client.impl.DbConsistencyCheckerHelper.CheckResult;
 import com.emc.storageos.db.client.impl.EncryptionProviderImpl;
 import com.emc.storageos.db.client.impl.TypeMap;
-import com.emc.storageos.db.client.model.*;
+import com.emc.storageos.db.client.model.AbstractChangeTrackingMap;
+import com.emc.storageos.db.client.model.AbstractChangeTrackingSet;
+import com.emc.storageos.db.client.model.AbstractChangeTrackingSetMap;
+import com.emc.storageos.db.client.model.AuditLog;
+import com.emc.storageos.db.client.model.AuditLogTimeSeries;
+import com.emc.storageos.db.client.model.Cf;
+import com.emc.storageos.db.client.model.DataObject;
+import com.emc.storageos.db.client.model.Encrypt;
+import com.emc.storageos.db.client.model.Event;
+import com.emc.storageos.db.client.model.EventTimeSeries;
+import com.emc.storageos.db.client.model.Name;
+import com.emc.storageos.db.client.model.OpStatusMap;
+import com.emc.storageos.db.client.model.ProxyToken;
+import com.emc.storageos.db.client.model.SchemaRecord;
+import com.emc.storageos.db.client.model.Stat;
+import com.emc.storageos.db.client.model.StatTimeSeries;
+import com.emc.storageos.db.client.model.StringMap;
+import com.emc.storageos.db.client.model.StringSet;
+import com.emc.storageos.db.client.model.Token;
+import com.emc.storageos.db.client.model.VdcOpLog;
+import com.emc.storageos.db.client.model.VirtualDataCenter;
 import com.emc.storageos.db.common.DataObjectScanner;
 import com.emc.storageos.db.common.DbSchemaChecker;
 import com.emc.storageos.db.common.DependencyChecker;
@@ -36,39 +121,6 @@ import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 import com.netflix.astyanax.model.Column;
 import com.sun.jersey.core.spi.scanning.PackageNamesScanner;
 import com.sun.jersey.spi.scanning.AnnotationScannerListener;
-
-import org.joda.time.DateTime;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.context.support.ClassPathXmlApplicationContext;
-import org.w3c.dom.Document;
-import org.w3c.dom.Element;
-import org.w3c.dom.NodeList;
-
-import javax.crypto.SecretKey;
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
-import javax.xml.parsers.ParserConfigurationException;
-import javax.xml.transform.*;
-import javax.xml.transform.dom.DOMSource;
-import javax.xml.transform.stream.StreamResult;
-
-import java.beans.BeanInfo;
-import java.beans.IntrospectionException;
-import java.beans.Introspector;
-import java.beans.PropertyDescriptor;
-import java.io.*;
-import java.lang.reflect.Method;
-import java.net.URI;
-import java.nio.file.Files;
-import java.nio.file.attribute.PosixFilePermission;
-import java.util.*;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.zip.ZipEntry;
-import java.util.zip.ZipFile;
-import java.util.zip.ZipOutputStream;
 
 /**
  * DBClient - uses coordinator to find the service
@@ -171,8 +223,6 @@ public class DBClient {
      */
     private <T extends DataObject> int queryAndPrintRecords(List<URI> ids, Class<T> clazz, Map<String, String> criterias)
             throws Exception {
-
-        Iterator<T> objects;
         int countLimit = 0;
         int countAll = 0;
         String input;
@@ -180,9 +230,13 @@ public class DBClient {
         boolean isPrint = true;
 
         try {
-            objects = _dbClient.queryIterativeObjects(clazz, ids);
-            while (objects.hasNext()) {
-                T object = (T) objects.next();
+            Iterator<URI> uriIter = ids.iterator();
+            while (uriIter.hasNext()) {
+                URI uri = uriIter.next();
+                T object = (T) _dbClient.queryObject(uri);
+                if (object == null) {
+                    continue;
+                }
                 isPrint = printBeanProperties(clazz, object, criterias);
                 if (isPrint) {
                     countLimit++;
@@ -394,7 +448,27 @@ public class DBClient {
             System.out.println("No records found");
             return;
         }
-        int count = queryAndPrintRecords(uris, clazz, criterias);
+
+        // The list returned by getColumnUris() is not compatible with sort, so normalize
+        // to a type that does.
+        List<URI> straightUriList = new ArrayList<URI>();
+        Iterator<URI> urisIter = uris.iterator();
+        while (urisIter.hasNext()) {
+            straightUriList.add(urisIter.next());
+        }
+
+        // Sort the URIs in alphabetical order for consistent output across executions
+        Comparator<URI> cmp = new Comparator<URI>() {
+            public int compare(URI u1, URI u2) {
+                if (u1 == null) {
+                    return 1;
+                }
+                return u1.toString().compareTo(u2.toString());
+            }
+        };
+        Collections.sort(straightUriList, cmp);
+        
+        int count = queryAndPrintRecords(straightUriList, clazz, criterias);
         System.out.println("Number of All Records is: " + count);
     }
 
@@ -619,7 +693,7 @@ public class DBClient {
                 log.info("Force to delete object {} that can't be deleted", id);
             }
 
-            _dbClient.removeObject(object);
+            _dbClient.internalRemoveObjects(object);
             return true;
         }
 
@@ -1196,18 +1270,19 @@ public class DBClient {
                     + "%d corrupted rows found.\n", dataCf.getCF().getName(), illegalCount));
 
             logMsg("\nStart to check DataObject records that the related index is missing.\n");
-            int cfCorruptedCount = helper.checkCFIndices(dataCf, true);
+            CheckResult checkResult = new CheckResult();
+            helper.checkCFIndices(dataCf, true, checkResult);
             logMsg(String.format("\nFinish to check DataObject records index for CF %s, "
-                    + "%d corrupted rows found.\n", dataCf.getCF().getName(), cfCorruptedCount));
+                    + "%d corrupted rows found.\n", dataCf.getCF().getName(), checkResult.getTotal()));
 
             logMsg("\nStart to check INDEX data that the related object records are missing.\n");
             Collection<DbConsistencyCheckerHelper.IndexAndCf> idxCfs = helper.getIndicesOfCF(dataCf).values();
-            int indexCorruptCount = 0;
+            checkResult = new CheckResult();
             for (DbConsistencyCheckerHelper.IndexAndCf indexAndCf : idxCfs) {
-                indexCorruptCount += helper.checkIndexingCF(indexAndCf, true);
+                helper.checkIndexingCF(indexAndCf, true, checkResult);
             }
             logMsg(String.format("\nFinish to check INDEX records: totally checked %d indices for CF %s and %d corrupted rows found.\n",
-                    idxCfs.size(), dataCf.getCF().getName(), indexCorruptCount));
+                    idxCfs.size(), dataCf.getCF().getName(), checkResult.getTotal()));
         } catch (ConnectionException e) {
             log.error("Database connection exception happens, fail to connect: ", e);
             System.err.println("The checker has been stopped by database connection exception. "
@@ -1312,6 +1387,7 @@ public class DBClient {
                 DataObject newObject = queryObject.getClass().newInstance();
                 newObject.trackChanges();
                 ConvertUtils.register(new CalendarConverter(null), Calendar.class);
+                ConvertUtils.register(new DateConverter(null), Date.class);
                 BeanUtils.copyProperties(newObject, queryObject);
 
                 // special change tracking for customized types

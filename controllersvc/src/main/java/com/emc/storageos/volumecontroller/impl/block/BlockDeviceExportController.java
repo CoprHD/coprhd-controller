@@ -36,6 +36,7 @@ import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.client.util.StringMapUtil;
 import com.emc.storageos.db.client.util.StringSetUtil;
 import com.emc.storageos.exceptions.DeviceControllerException;
+import com.emc.storageos.locking.LockRetryException;
 import com.emc.storageos.locking.LockTimeoutValue;
 import com.emc.storageos.locking.LockType;
 import com.emc.storageos.protectioncontroller.ProtectionExportController;
@@ -56,6 +57,7 @@ import com.emc.storageos.volumecontroller.impl.block.taskcompleter.VolumeVpoolCh
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.VolumeWorkflowCompleter;
 import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
 import com.emc.storageos.workflow.Workflow;
+import com.emc.storageos.workflow.WorkflowState;
 import com.google.common.base.Joiner;
 
 /**
@@ -134,10 +136,10 @@ public class BlockDeviceExportController implements BlockExportController {
                     _log.info(String.format(
                             "Generating exportGroupCreates steps for objects %s associated with storage system [%s]",
                             objectsToAdd, entry.getKey()));
-                    _wfUtils.
+                _wfUtils.
                             generateExportGroupCreateWorkflow(workflow, null, waitFor,
                                     entry.getKey(), export, objectsToAdd, initiatorURIs);
-                }
+            }
             }
 
             workflow.executePlan(taskCompleter, "Exported to all devices successfully.");
@@ -170,7 +172,7 @@ public class BlockDeviceExportController implements BlockExportController {
                 Set<URI> storageSystemURIs = new HashSet<URI>();
                 // Use temp set to prevent ConcurrentModificationException
                 List<ExportMask> tempExportMasks = ExportMaskUtils.getExportMasks(_dbClient, exportGroup);
-                for (ExportMask tempExportMask : tempExportMasks) {
+                for (ExportMask tempExportMask : tempExportMasks) {               
                     List<String> lockKeys = ControllerLockingUtil.getHostStorageLockKeys(
                             _dbClient, ExportGroup.ExportGroupType.valueOf(exportGroup.getType()),
                             StringSetUtil.stringSetToUriList(exportGroup.getInitiators()), tempExportMask.getStorageDevice());
@@ -418,7 +420,7 @@ public class BlockDeviceExportController implements BlockExportController {
 
             _log.info("Received request to update export group. Creating master workflow.");
             workflow = _wfUtils.newWorkflow("exportGroupUpdate", false, opId);
-
+            _log.info("Task id {} and workflow uri {}", opId, workflow.getWorkflowURI());
             for (URI storageUri : addedStorageToBlockObjects.keySet()) {
                 _log.info("Creating sub-workflow for storage system {}", String.valueOf(storageUri));
                 // TODO: Need to fix, getExportMask() returns a single mask,
@@ -436,6 +438,24 @@ public class BlockDeviceExportController implements BlockExportController {
             } else {
                 taskCompleter.ready(_dbClient);
             }
+        } catch (LockRetryException ex) {
+            /**
+             * Added this catch block to mark the current workflow as completed so that lock retry will not get exception while creating new
+             * workflow using the same taskid.
+             */
+            _log.info(String.format("Lock retry exception key: %s remaining time %d", ex.getLockIdentifier(),
+                    ex.getRemainingWaitTimeSeconds()));
+            if (workflow != null && !NullColumnValueGetter.isNullURI(workflow.getWorkflowURI())
+                    && workflow.getWorkflowState() == WorkflowState.CREATED) {
+                com.emc.storageos.db.client.model.Workflow wf = _dbClient.queryObject(com.emc.storageos.db.client.model.Workflow.class,
+                        workflow.getWorkflowURI());
+                if (!wf.getCompleted()) {
+                    _log.error("Marking the status to completed for the newly created workflow {}", wf.getId());
+                    wf.setCompleted(true);
+                    _dbClient.updateObject(wf);
+                }
+            }
+            throw ex;
         } catch (Exception ex) {
             ExportTaskCompleter taskCompleter = new ExportUpdateCompleter(export, opId);
             String message = "exportGroupUpdate caught an exception.";
@@ -558,9 +578,9 @@ public class BlockDeviceExportController implements BlockExportController {
 
     private ExportMask getExportMask(URI exportGroupUri, URI storageUri) {
         ExportGroup exportGroup = _dbClient.queryObject(ExportGroup.class, exportGroupUri);
-
+    
         for (ExportMask exportMask : ExportMaskUtils.getExportMasks(_dbClient, exportGroup)) {
-            try {
+            try {               
                 if (exportMask.getStorageDevice().equals(storageUri)) {
                     return exportMask;
                 }
@@ -569,7 +589,7 @@ public class BlockDeviceExportController implements BlockExportController {
                 _log.warn("Cannot get export mask for storage " + storageUri + " and export group " + exportGroupUri, ex);
             }
         }
-
+        
         return null;
     }
 
@@ -895,5 +915,5 @@ public class BlockDeviceExportController implements BlockExportController {
      */
     private ProtectionExportController getProtectionExportController() {
         return new RPDeviceExportController(_dbClient, _wfUtils);
-    }
+}
 }

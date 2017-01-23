@@ -79,7 +79,6 @@ public class BackupOps {
     private static final String IP_ADDR_DELIMITER = ":";
     private static final String IP_ADDR_FORMAT = "%s" + IP_ADDR_DELIMITER + "%d";
     private static final Format FORMAT = new SimpleDateFormat("yyyyMMddHHmmss");
-    private static final String BACKUP_FILE_PERMISSION = "644";
     private String serviceUrl = "service:jmx:rmi:///jndi/rmi://%s:%d/jmxrmi";
     private Map<String, String> hosts;
     private Map<String, String> dualAddrHosts;
@@ -591,7 +590,7 @@ public class BackupOps {
         return map.get(localHostName);
     }
 
-    public void updateRestoreStatus(String backupName, boolean isLocal, BackupRestoreStatus.Status status, String details,
+    public void updateRestoreStatus(String backupName, boolean isLocal, BackupRestoreStatus.Status newStatus, String details,
                                      Map<String, Long>downloadSize, long increasedSize, boolean increaseCompletedNodeNumber,
                                      List<String> backupfileNames, boolean doLog, boolean doLock) {
         InterProcessLock lock = null;
@@ -605,41 +604,41 @@ public class BackupOps {
                 }
             }
 
-            BackupRestoreStatus s = queryBackupRestoreStatus(backupName, isLocal);
+            BackupRestoreStatus currentStatus = queryBackupRestoreStatus(backupName, isLocal);
 
-            if (!canBeUpdated(status, s)) {
+            if (!canBeUpdated(newStatus, currentStatus)) {
                 return;
             }
 
-            s.setBackupName(backupName);
+            currentStatus.setBackupName(backupName);
 
-            if (status != null) {
-                s.setStatusWithDetails(status, details);
+            if (newStatus != null) {
+                currentStatus.setStatusWithDetails(newStatus, details);
             }
 
             if (downloadSize != null) {
-                s.setSizeToDownload(downloadSize);
+                currentStatus.setSizeToDownload(downloadSize);
             }
 
             if (increasedSize > 0) {
                 String localHostID = getLocalHostID();
-                s.increaseDownloadedSize(localHostID, increasedSize);
+                currentStatus.increaseDownloadedSize(localHostID, increasedSize);
             }
 
             if (increaseCompletedNodeNumber) {
-                s.increaseNodeCompleted();
+                currentStatus.increaseNodeCompleted();
             }
 
             if (backupfileNames != null) {
-                s.setBackupFileNames(backupfileNames);
+                currentStatus.setBackupFileNames(backupfileNames);
             }
 
-            updateBackupRestoreStatus(s, backupName);
+            updateBackupRestoreStatus(currentStatus, backupName);
 
-            persistBackupRestoreStatus(s, isLocal, doLog);
+            persistBackupRestoreStatus(currentStatus, isLocal, doLog);
 
             if (doLog) {
-                log.info("Persist backup restore status {} to zk successfully", s);
+                log.info("Persist backup restore newStatus {} to zk successfully", currentStatus);
             }
         }finally {
             if (doLock) {
@@ -675,21 +674,22 @@ public class BackupOps {
         }
     }
 
-    private boolean canBeUpdated(BackupRestoreStatus.Status status, BackupRestoreStatus s) {
-        if (status == BackupRestoreStatus.Status.RESTORE_FAILED
-                || status == BackupRestoreStatus.Status.RESTORING
-                || status == BackupRestoreStatus.Status.RESTORE_SUCCESS) {
+    private boolean canBeUpdated(BackupRestoreStatus.Status newStatus, BackupRestoreStatus oldStatus) {
+        if (newStatus == BackupRestoreStatus.Status.RESTORE_FAILED
+                || newStatus == BackupRestoreStatus.Status.RESTORING
+                || newStatus == BackupRestoreStatus.Status.RESTORE_SUCCESS) {
             return true;
         }
 
-        BackupRestoreStatus.Status currentStatus = s.getStatus();
+        BackupRestoreStatus.Status currentStatus = oldStatus.getStatus();
 
-        if (currentStatus == BackupRestoreStatus.Status.DOWNLOAD_SUCCESS) {
+        if (currentStatus == BackupRestoreStatus.Status.DOWNLOAD_SUCCESS ||
+                currentStatus == BackupRestoreStatus.Status.DOWNLOAD_CANCELLED) {
             return false;
         }
 
-        if ( (status == BackupRestoreStatus.Status.DOWNLOAD_CANCELLED) && (!currentStatus.canBeCanceled())) {
-            log.info("current status {} can't be canceled", s);
+        if ( (newStatus == BackupRestoreStatus.Status.DOWNLOAD_CANCELLED) && (!currentStatus.canBeCanceled())) {
+            log.info("current status {} can't be canceled", oldStatus);
             return false;
         }
 
@@ -1035,7 +1035,7 @@ public class BackupOps {
             properties.store(fos, null);
             // Guarantee ower/group owner/permissions of infoFile is consistent with other backup files
             FileUtils.chown(infoFile, BackupConstants.STORAGEOS_USER, BackupConstants.STORAGEOS_GROUP);
-            FileUtils.chmod(infoFile, BACKUP_FILE_PERMISSION);
+            FileUtils.chmod(infoFile, BackupConstants.BACKUP_FILE_PERMISSION);
         } catch (Exception ex) {
             log.error("Failed to record backup info", ex);
             throw ex;

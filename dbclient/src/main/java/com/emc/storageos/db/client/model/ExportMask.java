@@ -91,6 +91,7 @@ public class ExportMask extends DataObject {
         ready,              // export mask is created
     }
 
+    @RelationIndex(cf = "RelationIndex", type = StorageSystem.class)
     @Name("storageDevice")
     public URI getStorageDevice() {
         return _storageDevice;
@@ -573,13 +574,13 @@ public class ExportMask extends DataObject {
      * @param port [in] - Port name to add to the existing initiator list.
      */
     public void addToExistingInitiatorsIfAbsent(String port) {
-        if (_existingInitiators == null) {
-            _existingInitiators = new StringSet();
-        }
         String normalizedPort = Initiator.normalizePort(port);
-        if (!_existingInitiators.contains(normalizedPort) &&
+        if ((_existingInitiators == null || !_existingInitiators.contains(normalizedPort)) &&
                 (_userAddedInitiators == null ||
                 !_userAddedInitiators.containsKey(normalizedPort))) {
+            if (_existingInitiators == null) {
+                _existingInitiators = new StringSet();
+            }
             _existingInitiators.add(normalizedPort);
         }
     }
@@ -591,14 +592,14 @@ public class ExportMask extends DataObject {
      * @param ports [in] - List of port names to add to the existing initiator list.
      */
     public void addToExistingInitiatorsIfAbsent(List<String> ports) {
-        if (_existingInitiators == null) {
-            _existingInitiators = new StringSet();
-        }
         for (String port : ports) {
             String normalizedPort = Initiator.normalizePort(port);
-            if (!_existingInitiators.contains(normalizedPort) &&
+            if ((_existingInitiators == null || !_existingInitiators.contains(normalizedPort)) &&
                     (_userAddedInitiators == null ||
                     !_userAddedInitiators.containsKey(normalizedPort))) {
+                if (_existingInitiators == null) {
+                    _existingInitiators = new StringSet();
+                }
                 _existingInitiators.add(normalizedPort);
             }
         }
@@ -639,13 +640,13 @@ public class ExportMask extends DataObject {
      *            to the existing volumes list for this mask.
      */
     public void addToExistingVolumesIfAbsent(String volumeWWN, String hlu) {
-        if (_existingVolumes == null) {
-            _existingVolumes = new StringMap();
-        }
         String normalizedWWN = BlockObject.normalizeWWN(volumeWWN);
-        if (!_existingVolumes.containsKey(normalizedWWN) &&
+        if ((_existingVolumes == null || !_existingVolumes.containsKey(normalizedWWN)) &&
                 (_userAddedVolumes == null ||
                 !_userAddedVolumes.containsKey(normalizedWWN))) {
+            if (_existingVolumes == null) {
+                _existingVolumes = new StringMap();
+            }
             _existingVolumes.put(normalizedWWN, hlu);
         }
     }
@@ -658,18 +659,18 @@ public class ExportMask extends DataObject {
      *            to the existing volumes list for this mask.
      */
     public void addToExistingVolumesIfAbsent(Map<String, Integer> volumeWWNs) {
-        if (_existingVolumes == null) {
-            _existingVolumes = new StringMap();
-        }
         for (String wwn : volumeWWNs.keySet()) {
             String normalizedWWN = BlockObject.normalizeWWN(wwn);
-            if (!_existingVolumes.containsKey(normalizedWWN) &&
+            if ((_existingVolumes == null || !_existingVolumes.containsKey(normalizedWWN)) &&
                     (_userAddedVolumes == null ||
                     !_userAddedVolumes.containsKey(normalizedWWN))) {
                 String hluStr = ExportGroup.LUN_UNASSIGNED_STR;
-                Integer hlu = volumeWWNs.get(normalizedWWN);
+                Integer hlu = volumeWWNs.get(wwn);
                 if (hlu != null) {
                     hluStr = hlu.toString();
+                }
+                if (_existingVolumes == null) {
+                    _existingVolumes = new StringMap();
                 }
                 _existingVolumes.put(normalizedWWN, hluStr);
             }

@@ -119,18 +119,101 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
     // File Replication attributes.
     // Replication type { Local or Remote}
     private String fileReplicationType;
-    // File Replication RPO value
-    private Long _frRpoValue;
-    // File Replication RPO type
-    private String _frRpoType;
+
     // File Replication RPO type
     private String _fileReplicationCopyMode;
-    
+
     // for all flash vmax3 arrays
     private Boolean compressionEnabled;
 
     // File Repilcation copies
     private StringMap _fileRemoteCopySettings;
+
+    // File Policy Feature---temporary setting them true
+    private Boolean fileSnapshotSupported = true;
+    private Boolean fileReplicationSupported = true;
+    private Boolean filePolicyAtProjectLevel = true;
+    private Boolean filePolicyAtFSLevel = true;
+    private Long _frRpoValue;
+    private String _frRpoType;
+    private StringSet filePolicies;
+
+    @Name("fileSnapshotSupported")
+    public boolean isFileSnapshotSupported() {
+        return fileSnapshotSupported;
+    }
+
+    public void setFileSnapshotSupported(Boolean fileSnapshotSupported) {
+        this.fileSnapshotSupported = fileSnapshotSupported;
+        setChanged("fileSnapshotSupported");
+    }
+
+    @Name("fileReplicationSupported")
+    public boolean isFileReplicationSupported() {
+        return fileReplicationSupported;
+    }
+
+    public void setFileReplicationSupported(Boolean fileReplicationSupported) {
+        this.fileReplicationSupported = fileReplicationSupported;
+        setChanged("fileReplicationSupported");
+    }
+
+    @Name("filePolicyAtProjectLevel")
+    public boolean isFilePolicyAtProjectLevel() {
+        return filePolicyAtProjectLevel;
+    }
+
+    public void setFilePolicyAtProjectLevel(Boolean filePolicyAtProjectLevel) {
+        this.filePolicyAtProjectLevel = filePolicyAtProjectLevel;
+        setChanged("filePolicyAtProjectLevel");
+    }
+
+    @Name("filePolicyAtFSLevel")
+    public boolean isFilePolicyAtFSLevel() {
+        return filePolicyAtFSLevel;
+    }
+
+    public void setFilePolicyAtFSLevel(Boolean filePolicyAtFSLevel) {
+        this.filePolicyAtFSLevel = filePolicyAtFSLevel;
+        setChanged("filePolicyAtFSLevel");
+    }
+
+    @Name("filePolicies")
+    public StringSet getFilePolicies() {
+        return filePolicies;
+    }
+
+    public void setFilePolicies(StringSet filePolicies) {
+        this.filePolicies = filePolicies;
+        setChanged("filePolicies");
+    }
+
+    /**
+     * 
+     * @param vpool
+     * @param policy
+     */
+    public void addFilePolicy(URI policy) {
+        StringSet policies = filePolicies;
+        if (policies == null) {
+            policies = new StringSet();
+        }
+        policies.add(policy.toString());
+        this.filePolicies = policies;
+    }
+
+    /**
+     * 
+     * @param vpool
+     * @param policy
+     */
+    public void removeFilePolicy(URI policy) {
+        StringSet policies = filePolicies;
+        if (policies != null) {
+            policies.remove(policy.toString());
+            this.filePolicies = policies;
+        }
+    }
 
     public static enum FileReplicationType {
         LOCAL, REMOTE, NONE;
@@ -191,21 +274,16 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
     // Minimum number of data centers in this virtual pool
     // This is required only for object virtual pools
     private Integer minDataCenters;
-    
+
     // has dedup supported storage pools
     private Boolean dedupCapable;
 
     public static enum MetroPointType {
-        @XmlEnumValue("singleRemote")
-        SINGLE_REMOTE,
-        @XmlEnumValue("localOnly")
-        LOCAL_ONLY,
-        @XmlEnumValue("localRemote")
-        ONE_LOCAL_REMOTE,
-        @XmlEnumValue("twoLocalRemote")
-        TWO_LOCAL_REMOTE,
-        @XmlEnumValue("invalid")
-        INVALID
+        @XmlEnumValue("singleRemote") SINGLE_REMOTE,
+        @XmlEnumValue("localOnly") LOCAL_ONLY,
+        @XmlEnumValue("localRemote") ONE_LOCAL_REMOTE,
+        @XmlEnumValue("twoLocalRemote") TWO_LOCAL_REMOTE,
+        @XmlEnumValue("invalid") INVALID
     }
 
     // VMAX Host IO Limits attributes
@@ -217,28 +295,19 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
      * down to the RP appliance without having to jump through any hoops, like translations, etc.
      */
     public static enum RPOType {
-        @XmlEnumValue("microseconds")
-        MICROSECONDS("microseconds"),
-        @XmlEnumValue("milliseconds")
-        MILLISECONDS("milliseconds"),
-        @XmlEnumValue("seconds")
-        SECONDS("seconds"),
-        @XmlEnumValue("minutes")
-        MINUTES("minutes"),
-        @XmlEnumValue("hours")
-        HOURS("hours"),
-        @XmlEnumValue("days")
-        DAYS("days"),
-        @XmlEnumValue("bytes")
-        BYTES("bytes"),
+        @XmlEnumValue("microseconds") MICROSECONDS("microseconds"),
+        @XmlEnumValue("milliseconds") MILLISECONDS("milliseconds"),
+        @XmlEnumValue("seconds") SECONDS("seconds"),
+        @XmlEnumValue("minutes") MINUTES("minutes"),
+        @XmlEnumValue("hours") HOURS("hours"),
+        @XmlEnumValue("days") DAYS("days"),
+        @XmlEnumValue("bytes") BYTES("bytes"),
         KB("KB"),
         MB("MB"),
         GB("GB"),
         TB("TB"),
-        @XmlEnumValue("writes")
-        WRITES("writes"),
-        @XmlEnumValue("Unknown")
-        UNKNOWN("Unknown");
+        @XmlEnumValue("writes") WRITES("writes"),
+        @XmlEnumValue("Unknown") UNKNOWN("Unknown");
         private final String _value;
 
         RPOType(String v) {
@@ -277,12 +346,9 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
      * down to the RP appliance without having to jump through any hoops, like translations, etc.
      */
     public static enum RPCopyMode {
-        @XmlEnumValue("Asynchronous")
-        ASYNCHRONOUS("Asynchronous"),
-        @XmlEnumValue("Synchronous")
-        SYNCHRONOUS("Synchronous"),
-        @XmlEnumValue("Unknown")
-        UNKNOWN("Unknown");
+        @XmlEnumValue("Asynchronous") ASYNCHRONOUS("Asynchronous"),
+        @XmlEnumValue("Synchronous") SYNCHRONOUS("Synchronous"),
+        @XmlEnumValue("Unknown") UNKNOWN("Unknown");
         private final String _value;
 
         RPCopyMode(String v) {
@@ -357,7 +423,8 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
     }
 
     public static enum SystemType {
-        NONE, isilon, vnxblock, vnxfile, vmax, netapp, netappc, hds, openstack, vnxe, scaleio, datadomain, xtremio, ibmxiv, ecs, ceph, unity;
+        NONE, isilon, vnxblock, vnxfile, vmax, netapp, netappc, hds, openstack, vnxe, scaleio, datadomain, xtremio, ibmxiv, ecs, ceph,
+        unity;
         private static final SystemType[] copyOfValues = values();
 
         public static SystemType lookup(final String name) {
@@ -962,8 +1029,9 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
     public static boolean vPoolSpecifiesHighAvailability(final VirtualPool virtualPool) {
         String highAvailability = virtualPool.getHighAvailability();
         return NullColumnValueGetter.isNotNullValue(highAvailability)
-                && (VirtualPool.HighAvailabilityType.vplex_local.name().equals(highAvailability) || VirtualPool.HighAvailabilityType.vplex_distributed
-                        .name().equals(highAvailability));
+                && (VirtualPool.HighAvailabilityType.vplex_local.name().equals(highAvailability)
+                        || VirtualPool.HighAvailabilityType.vplex_distributed
+                                .name().equals(highAvailability));
     }
 
     /**
@@ -978,7 +1046,7 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
         return NullColumnValueGetter.isNotNullValue(highAvailability)
                 && (VirtualPool.HighAvailabilityType.vplex_distributed.name().equals(highAvailability));
     }
-    
+
     /**
      * Returns whether or not the passed VirtualPool specifies VPlex Local high availability.
      * 
@@ -1004,7 +1072,8 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
         String highAvailability = virtualPool.getHighAvailability();
         return metroPoint != null && metroPoint
                 && vPoolSpecifiesProtection(virtualPool)
-                && NullColumnValueGetter.isNotNullValue(highAvailability) && VirtualPool.HighAvailabilityType.vplex_distributed.name().equals(highAvailability);
+                && NullColumnValueGetter.isNotNullValue(highAvailability)
+                && VirtualPool.HighAvailabilityType.vplex_distributed.name().equals(highAvailability);
     }
 
     /**
@@ -1026,7 +1095,7 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
      */
     public static boolean vPoolSpecifiesRPVPlex(final VirtualPool virtualPool) {
         return (vPoolSpecifiesProtection(virtualPool)
-        && vPoolSpecifiesHighAvailability(virtualPool));
+                && vPoolSpecifiesHighAvailability(virtualPool));
     }
 
     /**
@@ -1195,8 +1264,7 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
 
     @Name("longTermRetention")
     public Boolean getLongTermRetention() {
-        return (_longTermRetention != null) ?
-                _longTermRetention : false;
+        return (_longTermRetention != null) ? _longTermRetention : false;
     }
 
     public void setLongTermRetention(final Boolean longTermRetention) {
@@ -1329,8 +1397,7 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
 
     public static Map<String, List<String>> groupRemoteCopyModesByVPool(final VirtualPool vpool,
             final DbClient dbClient) {
-        Map<URI, VpoolRemoteCopyProtectionSettings> remoteSettingsMap =
-                getRemoteProtectionSettings(vpool, dbClient);
+        Map<URI, VpoolRemoteCopyProtectionSettings> remoteSettingsMap = getRemoteProtectionSettings(vpool, dbClient);
         return groupRemoteCopyModesByVPool(vpool.getId(), remoteSettingsMap);
     }
 
@@ -1569,8 +1636,7 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
 
     @Name("scheduleSnapshot")
     public Boolean getScheduleSnapshots() {
-        return (scheduleSnapshot != null) ?
-                scheduleSnapshot : false;
+        return (scheduleSnapshot != null) ? scheduleSnapshot : false;
     }
 
     public void setScheduleSnapshots(Boolean scheduleSnapshot) {
@@ -1578,21 +1644,21 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
         setChanged("scheduleSnapshot");
     }
 
-	@Name("dedupCapable")
-	public Boolean getDedupCapable() {
-		if (null == dedupCapable) {
-			return false;
-		}
-		return dedupCapable;
-	}
+    @Name("dedupCapable")
+    public Boolean getDedupCapable() {
+        if (null == dedupCapable) {
+            return false;
+        }
+        return dedupCapable;
+    }
 
-	public void setDedupCapable(Boolean dedupCapable) {
-		if (null == dedupCapable) {
-			this.dedupCapable = false;
-		} else {
-			this.dedupCapable = dedupCapable;
-		}
-		setChanged("dedupCapable");
-	}
+    public void setDedupCapable(Boolean dedupCapable) {
+        if (null == dedupCapable) {
+            this.dedupCapable = false;
+        } else {
+            this.dedupCapable = dedupCapable;
+        }
+        setChanged("dedupCapable");
+    }
 
 }

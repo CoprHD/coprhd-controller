@@ -151,29 +151,23 @@ public class ExportMaskUtils {
      */
     public static List<ExportMask> getExportMasksForStorageSystem(DbClient dbClient, URI ssysURI) {
 
-        // NOTE for release 3.5:
-        // This could be replaced with the existing ContainmentConstraint.getStorageDeviceExportMaskConstraint
-        // method, but that method doesn't work at run time due to a missing index on the storageDevice field 
-        // in the ExportMask column family.  It was too late to introduce a schema change into ViPR 3.5. 
-        // -beachn
-
         List<ExportMask> returnMasks = new ArrayList<ExportMask>();
         if (!URIUtil.isValid(ssysURI)) {
-            _log.warn("invalid URI: {}", ssysURI);
+            _log.warn("invalid storage system URI: {}", ssysURI);
             return returnMasks;
         }
 
-        List<URI> exportMaskUris = dbClient.queryByType(ExportMask.class, true);
-        List<ExportMask> exportMasks = dbClient.queryObject(ExportMask.class, exportMaskUris);
-        for (ExportMask exportMask : exportMasks) {
-            if (exportMask == null || exportMask.getInactive()) {
-                continue;
-            }
-            if (URIUtil.identical(ssysURI, exportMask.getStorageDevice())) {
+        URIQueryResultList exportMaskUris = new URIQueryResultList();
+        dbClient.queryByConstraint(ContainmentConstraint.Factory.getStorageDeviceExportMaskConstraint(ssysURI), exportMaskUris);
+        Iterator<ExportMask> exportMaskIterator = dbClient.queryIterativeObjects(ExportMask.class, exportMaskUris, true);
+        while (exportMaskIterator.hasNext()) {
+            ExportMask exportMask = exportMaskIterator.next();
+            if (null != exportMask) {
                 returnMasks.add(exportMask);
             }
         }
 
+        _log.info("found {} export masks for storage system {}", returnMasks.size(), ssysURI);
         return returnMasks;
     }
 
@@ -1343,6 +1337,7 @@ public class ExportMaskUtils {
      */
     public static ExportMask getExportMaskByName(DbClient dbClient, URI storageSystemId, String name) {
         ExportMask exportMask = null;
+        ExportMask result = null;
         URIQueryResultList uriQueryList = new URIQueryResultList();
         dbClient.queryByConstraint(AlternateIdConstraint.Factory
                 .getExportMaskByNameConstraint(name), uriQueryList);
@@ -1353,10 +1348,11 @@ public class ExportMaskUtils {
                     exportMask.getStorageDevice().equals(storageSystemId)) {
                 // We're expecting there to be only one export mask of a
                 // given name for any storage array.
+                result = exportMask;
                 break;
             }
         }
-        return exportMask;
+        return result;
     }
 
     /**
@@ -1410,8 +1406,13 @@ public class ExportMaskUtils {
         boolean differentResource = false;
         String maskResource = mask.getResource();
         if (!NullColumnValueGetter.isNullValue(maskResource)) { // check only if the mask has resource
-            if (URIUtil.isType(URI.create(maskResource), Host.class)) {
-                differentResource = !maskResource.equals(existingInitiator.getHost().toString());
+            if (maskResource.startsWith("urn:storageos:Host")) {
+                // We found scenarios where VPLEX Initiators/ports do not have the Host Name set and this is handled below.
+                if (!NullColumnValueGetter.isNullURI(existingInitiator.getHost())) {
+                    differentResource = !maskResource.equals(existingInitiator.getHost().toString());
+                } else {
+                    differentResource = true;
+                }
             } else {
                 differentResource = !maskResource.equals(existingInitiator.getClusterName());
             }

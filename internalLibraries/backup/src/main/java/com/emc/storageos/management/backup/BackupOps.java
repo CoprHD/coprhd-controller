@@ -1060,6 +1060,7 @@ public class BackupOps {
             log.info("updating success backup");
             backupOperationStatus.setLastSuccessfulCreation(backupName, operationTime,
                     (isScheduledBackup) ? BackupOperationStatus.OpMessage.OP_SCHEDULED : BackupOperationStatus.OpMessage.OP_MANUAL);
+            log.info("updated success backup");
         }
         log.info(String.format("Updating backup creation status(name=%, time=%, success=%) to ZK", backupName, operationTime, success));
         persistBackupOperationStatus(backupOperationStatus);

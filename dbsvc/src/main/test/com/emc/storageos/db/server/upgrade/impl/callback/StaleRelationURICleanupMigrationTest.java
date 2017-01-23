@@ -55,18 +55,18 @@ public class StaleRelationURICleanupMigrationTest extends DbsvcTestBase {
         _dbClient.updateObject(exportMask);
         
         exportMask = _dbClient.queryObject(ExportMask.class, exportMask.getId());
-        Assert.assertTrue(exportMask.getInitiators().size() == 12);
-        Assert.assertTrue(exportMask.getStoragePorts().size() == 5);
-        Assert.assertTrue(exportMask.getVolumes().size() == 15);
+        Assert.assertEquals(12, exportMask.getInitiators().size());
+        Assert.assertEquals(5, exportMask.getStoragePorts().size());
+        Assert.assertEquals(15, exportMask.getVolumes().size());
         callback.process();
         
 		exportMask = _dbClient.queryObject(ExportMask.class, exportMask.getId());
-		Assert.assertTrue(exportMask.getInitiators().size() == existingInitiators.size());
+		Assert.assertEquals(existingInitiators.size(), exportMask.getInitiators().size());
 		for (Initiator initiator : existingInitiators) {
 			Assert.assertTrue(exportMask.getInitiators().contains(initiator.getId().toString()));
 		}
 		Assert.assertTrue(exportMask.getStoragePorts() == null || exportMask.getStoragePorts().isEmpty());
-		Assert.assertTrue(exportMask.getVolumes().size() == existingVolumeMaps.size());
+		Assert.assertEquals(existingVolumeMaps.size(), exportMask.getVolumes().size());
 		for (Entry<URI, Integer> entry : existingVolumeMaps.entrySet()) {
 			Assert.assertEquals(entry.getValue().toString(), exportMask.getVolumes().get(entry.getKey().toString()));
 		}
@@ -103,22 +103,22 @@ public class StaleRelationURICleanupMigrationTest extends DbsvcTestBase {
         _dbClient.updateObject(exportGroup);
         
         exportGroup = _dbClient.queryObject(ExportGroup.class, exportGroup.getId());
-        Assert.assertTrue(exportGroup.getInitiators().size() == 12);
-        Assert.assertTrue(exportGroup.getHosts().size() == 4);
-        Assert.assertTrue(exportGroup.getVolumes().size() == 10);
-        Assert.assertTrue(exportGroup.getSnapshots().size() == 1);
-        Assert.assertTrue(exportGroup.getClusters().size() == 10);
-        Assert.assertTrue(exportGroup.getExportMasks().size() == 1);
+        Assert.assertEquals(12, exportGroup.getInitiators().size());
+        Assert.assertEquals(4, exportGroup.getHosts().size());
+        Assert.assertEquals(10, exportGroup.getVolumes().size());
+        Assert.assertEquals(1, exportGroup.getSnapshots().size());
+        Assert.assertEquals(10, exportGroup.getClusters().size());
+        Assert.assertEquals(1, exportGroup.getExportMasks().size());
         
         callback.process();
         
         exportGroup = _dbClient.queryObject(ExportGroup.class, exportGroup.getId());
-        Assert.assertTrue(exportGroup.getInitiators().size() == existingInitiators.size());
+        Assert.assertEquals(existingInitiators.size(), exportGroup.getInitiators().size());
         for (Initiator initiator : existingInitiators) {
             Assert.assertTrue(exportGroup.getInitiators().contains(initiator.getId().toString()));
         }
         
-        Assert.assertTrue(exportGroup.getHosts().size() == existingHosts.size());
+        Assert.assertEquals(existingHosts.size(), exportGroup.getHosts().size());
         for (Host host : existingHosts) {
             Assert.assertTrue(exportGroup.getHosts().contains(host.getId().toString()));
         }
@@ -145,7 +145,7 @@ public class StaleRelationURICleanupMigrationTest extends DbsvcTestBase {
         callback.process();
         
         exportGroup = _dbClient.queryObject(ExportGroup.class, exportGroup.getId());
-        Assert.assertTrue(exportGroup.getVolumes().size() == existingVolumeMaps.size());
+        Assert.assertEquals(existingVolumeMaps.size(), exportGroup.getVolumes().size());
         for (Entry<URI, Integer> entry : existingVolumeMaps.entrySet()) {
             Assert.assertEquals(entry.getValue().toString(), exportGroup.getVolumes().get(entry.getKey().toString()));
         }

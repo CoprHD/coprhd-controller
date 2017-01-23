@@ -20,36 +20,28 @@ import java.util.List;
 
 import javax.xml.bind.annotation.XmlElement;
 
-public class InputParameterRestRep {
+/**
+ *
+ */
+public class InputUpdateParam {
+    private List<String> add;
+    private List<String> remove;
 
-    private boolean required;
-    private List<String> defaultValue;
-    private String type;
-    
-    @XmlElement(name = "required")
-    public boolean getRequired() {
-        return required;
-    }
-    
-    public void setRequired(final boolean required) {
-        this.required = required;
-    }
-    
-    @XmlElement(name = "default_value")
-    public List<String> getDefaultValue() {
-        return defaultValue;
-    }
-    
-    public void setDefaultValue( final List<String> defaultValue) {
-        this.defaultValue = defaultValue;
+    @XmlElement(name = "add")
+    public List<String> getAdd() {
+        return add;
     }
 
-    @XmlElement(name = "type")
-    public String getType() {
-        return type;
+    public void setAdd(final List<String> add) {
+        this.add = add;
     }
 
-    public void setType(final String type) {
-        this.type = type;
+    @XmlElement(name = "remove")
+    public List<String> getRemove() {
+        return remove;
+    }
+
+    public void setRemove(final List<String> remove) {
+        this.remove = remove;
     }
 }

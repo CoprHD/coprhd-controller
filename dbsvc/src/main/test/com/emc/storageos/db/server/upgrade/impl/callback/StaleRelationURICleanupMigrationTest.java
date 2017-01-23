@@ -104,6 +104,12 @@ public class StaleRelationURICleanupMigrationTest extends DbsvcTestBase {
         
         exportGroup = _dbClient.queryObject(ExportGroup.class, exportGroup.getId());
         Assert.assertTrue(exportGroup.getInitiators().size() == 12);
+        Assert.assertTrue(exportGroup.getHosts().size() == 4);
+        Assert.assertTrue(exportGroup.getVolumes().size() == 10);
+        Assert.assertTrue(exportGroup.getSnapshots().size() == 1);
+        Assert.assertTrue(exportGroup.getClusters().size() == 10);
+        Assert.assertTrue(exportGroup.getExportMasks().size() == 1);
+        
         callback.process();
         
         exportGroup = _dbClient.queryObject(ExportGroup.class, exportGroup.getId());
@@ -123,6 +129,26 @@ public class StaleRelationURICleanupMigrationTest extends DbsvcTestBase {
         Assert.assertEquals(exportMask.getId().toString(), exportGroup.getExportMasks().toArray()[0]);
         
         Assert.assertTrue(exportGroup.getVolumes() ==null || exportGroup.getVolumes().isEmpty());
+    }
+    
+    @Test
+    public void testForExportGroup2() throws Exception{
+        Map<URI, Integer> existingVolumeMaps = createActiveDataObjectMap(Volume.class, 5);
+        ExportGroup exportGroup = new ExportGroup();
+        exportGroup.setId(URIUtil.createId(ExportGroup.class));
+        exportGroup.setLabel("label");
+        exportGroup.setInactive(false);
+        exportGroup.addVolumes(existingVolumeMaps);
+        
+        _dbClient.updateObject(exportGroup);
+        
+        callback.process();
+        
+        exportGroup = _dbClient.queryObject(ExportGroup.class, exportGroup.getId());
+        Assert.assertTrue(exportGroup.getVolumes().size() == existingVolumeMaps.size());
+        for (Entry<URI, Integer> entry : existingVolumeMaps.entrySet()) {
+            Assert.assertEquals(entry.getValue().toString(), exportGroup.getVolumes().get(entry.getKey().toString()));
+        }
     }
     
     private <T extends DataObject> List<T> createFakeDataObject(Class<T> clazz, int count) throws InstantiationException, IllegalAccessException {

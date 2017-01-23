@@ -1048,13 +1048,16 @@ public class BackupOps {
         BackupOperationStatus backupOperationStatus = queryBackupOperationStatus();
         boolean isScheduledBackup = isScheduledBackupTag(backupName);
         if (isScheduledBackup) {
+            log.info("updating scheduled backup");
             backupOperationStatus.setLastScheduledCreation(backupName, operationTime,
                     (success) ? BackupOperationStatus.OpMessage.OP_SUCCESS : BackupOperationStatus.OpMessage.OP_FAILED);
         } else {
+            log.info("updating manual backup");
             backupOperationStatus.setLastManualCreation(backupName, operationTime,
                     (success) ? BackupOperationStatus.OpMessage.OP_SUCCESS : BackupOperationStatus.OpMessage.OP_FAILED);
         }
         if (success) {
+            log.info("updating success backup");
             backupOperationStatus.setLastSuccessfulCreation(backupName, operationTime,
                     (isScheduledBackup) ? BackupOperationStatus.OpMessage.OP_SCHEDULED : BackupOperationStatus.OpMessage.OP_MANUAL);
         }

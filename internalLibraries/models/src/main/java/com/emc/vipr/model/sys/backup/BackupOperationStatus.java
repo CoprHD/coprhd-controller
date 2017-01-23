@@ -12,21 +12,15 @@ import javax.xml.bind.annotation.*;
 import java.io.Serializable;
 
 @XmlRootElement(name = "backup_operation_status")
-public class BackupOperationStatus implements Serializable {
-    private static final long serialVersionUID = -1125935123451834499L;
-
+public class BackupOperationStatus {
     private static final Logger log = LoggerFactory.getLogger(BackupOperationStatus.class);
-    private OperationStatus lastManualCreation;
-    private OperationStatus lastScheduledCreation;
-    private OperationStatus lastSuccessfulCreation;
-    private OperationStatus lastUpload;
+    private OperationStatus lastManualCreation = new OperationStatus();
+    private OperationStatus lastScheduledCreation = new OperationStatus();
+    private OperationStatus lastSuccessfulCreation= new OperationStatus();
+    private OperationStatus lastUpload = new OperationStatus();
     private long nextScheduledCreation = 0;
 
     public BackupOperationStatus() {
-        lastManualCreation = new OperationStatus();
-        lastScheduledCreation = new OperationStatus();
-        lastSuccessfulCreation = new OperationStatus();
-        lastUpload = new OperationStatus();
     }
 
     @XmlElement(name = "last_manual_creation")

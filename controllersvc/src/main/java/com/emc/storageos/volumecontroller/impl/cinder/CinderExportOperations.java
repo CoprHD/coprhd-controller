@@ -357,6 +357,12 @@ public class CinderExportOperations implements ExportMaskOperations {
     }
 
     @Override
+    public Set<Integer> findHLUsForInitiators(StorageSystem storage, List<String> initiatorNames, boolean mustHaveAllPorts) {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    @Override
     public ExportMask refreshExportMask(StorageSystem storage, ExportMask mask) throws DeviceControllerException {
         // not supported for Cinder. There are no masking concepts. So, return the given mask as it is.
         return mask;

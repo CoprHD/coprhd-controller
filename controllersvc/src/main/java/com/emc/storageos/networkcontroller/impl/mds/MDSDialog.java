@@ -1450,23 +1450,28 @@ public class MDSDialog extends SSHDialog {
         String newZoneset = generateZonesetCloneName(zonesetToClone);
         List<String> zonesetClonesToDelete = findZonesetClonesToDelete(vsanId);
         _log.info("Creating new zoneset clone : " + newZoneset	);
-        String payload = MessageFormat.format(MDSDialogProperties.getString("MDSDialog.zonesetClone.cmd"), zonesetToClone, newZoneset, vsanId); //zoneset clone {0} {1} vsan {2}\n
-        lastPrompt = sendWaitFor(payload, defaultTimeout, prompts, buf);
-        String[] lines = getLines(buf);
         
-        for(String line : lines ){
-        	if (line.indexOf(errorString) >= 0) {
-        		_log.info("Zoneset clone operation failed");        		
-        		throw NetworkDeviceControllerException.exceptions.zonesetCloneFailed(newZoneset, line);
-        	}
+        boolean retryNeeded = false;
+        String payload = MessageFormat.format(MDSDialogProperties.getString("MDSDialog.zonesetClone.cmd"), zonesetToClone, newZoneset, vsanId); //zoneset clone {0} {1} vsan {2}\n
+        for (int retryCount = 0; retryCount < sessionLockRetryMax && retryNeeded; retryCount++) {
+            lastPrompt = sendWaitFor(payload, defaultTimeout, prompts, buf);
+            String[] lines = getLines(buf);
+            
+            for(String line : lines ) {
+            	if (line.indexOf(errorString) >= 0) {
+            		_log.info("Zoneset clone operation failed");        		
+            		throw NetworkDeviceControllerException.exceptions.zonesetCloneFailed(newZoneset, line);
+            	}
+            }
+            retryNeeded = checkForEnhancedZoneSession(lines, retryCount);
         }
         
+
         //Delete older clones
         for (String zonesetClone : zonesetClonesToDelete) {
         	_log.info(String.format("Removing zoneset (clone) %s", zonesetClone));  
 			zonesetNameVsan(zonesetClone, vsanId, true);    	
         }
-        	
         _log.info(MessageFormat.format("Host: {0}, Port: {1} - END zonesetClone",
                 new Object[] { getSession().getSession().getHost(), getSession().getSession().getPort() }));
     }

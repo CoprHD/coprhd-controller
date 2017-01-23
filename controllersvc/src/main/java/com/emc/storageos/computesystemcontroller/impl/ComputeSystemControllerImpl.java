@@ -26,6 +26,7 @@ import com.emc.storageos.computecontroller.impl.ComputeDeviceController;
 import com.emc.storageos.computesystemcontroller.ComputeSystemController;
 import com.emc.storageos.computesystemcontroller.hostmountadapters.HostDeviceInputOutput;
 import com.emc.storageos.computesystemcontroller.hostmountadapters.HostMountAdapter;
+import com.emc.storageos.computesystemcontroller.impl.InitiatorCompleter.InitiatorOperation;
 import com.emc.storageos.computesystemcontroller.impl.adapter.ExportGroupState;
 import com.emc.storageos.computesystemcontroller.impl.adapter.HostStateChange;
 import com.emc.storageos.computesystemcontroller.impl.adapter.VcenterDiscoveryAdapter;
@@ -76,6 +77,8 @@ import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.ControllerLockingUtil;
 import com.emc.storageos.volumecontroller.impl.ControllerServiceImpl;
 import com.emc.storageos.volumecontroller.impl.ControllerServiceImpl.Lock;
+import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportTaskCompleter;
+import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportUpdateCompleter;
 import com.emc.storageos.volumecontroller.placement.BlockStorageScheduler;
 import com.emc.storageos.workflow.Workflow;
 import com.emc.storageos.workflow.Workflow.Method;
@@ -176,7 +179,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
 
     /**
      * Empty rollback method
-     * 
+     *
      * @return workflow method that is empty
      */
     private Workflow.Method rollbackMethodNullMethod() {
@@ -188,10 +191,10 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
      * to continue to prior steps back up the workflow chain. It says the rollback step succeeded,
      * which will then allow other rollback operations to execute for other
      * workflow steps executed by the other controller.
-     * 
+     *
      * @param stepId
      *            The id of the step being rolled back.
-     * 
+     *
      * @throws WorkflowException
      */
     public void rollbackMethodNull(String stepId) throws WorkflowException {
@@ -276,9 +279,9 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
     /**
      * Gets all export groups that contain references to the provided host or initiators
      * Export groups that don't contain initiators for a host may stil reference the host
-     * 
+     *
      * @param _dbClient2
-     * 
+     *
      * @param hostId
      *            the host id
      * @param initiators
@@ -388,7 +391,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
     public void addInitiatorsToExport(URI eventId, URI hostId, List<URI> initiators, String taskId) throws ControllerException {
         TaskCompleter completer = null;
         try {
-            completer = new InitiatorCompleter(eventId, initiators, false, taskId);
+            completer = new InitiatorCompleter(eventId, initiators, InitiatorOperation.ADD, taskId);
             Workflow workflow = _workflowService.getNewWorkflow(this, ADD_INITIATOR_STORAGE_WF_NAME, true, taskId);
             String waitFor = null;
 
@@ -417,7 +420,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
     public void removeInitiatorsFromExport(URI eventId, URI hostId, List<URI> initiators, String taskId) throws ControllerException {
         TaskCompleter completer = null;
         try {
-            completer = new InitiatorCompleter(eventId, initiators, true, taskId);
+            completer = new InitiatorCompleter(eventId, initiators, InitiatorOperation.REMOVE, taskId);
             Workflow workflow = _workflowService.getNewWorkflow(this, REMOVE_INITIATOR_STORAGE_WF_NAME, true, taskId);
             String waitFor = null;
 
@@ -506,7 +509,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
     @Override
     public void removeHostsFromExport(URI eventId, List<URI> hostIds, URI clusterId, boolean isVcenter, URI vCenterDataCenterId,
             String taskId)
-                    throws ControllerException {
+            throws ControllerException {
         TaskCompleter completer = null;
         try {
             completer = new HostCompleter(eventId, hostIds, false, taskId);
@@ -579,7 +582,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                             this.getClass(),
                             updateExportGroupMethod(export.getId(), updatedVolumesMap,
                                     addedClusters, removedClusters, addedHosts, removedHosts, addedInitiators, removedInitiators),
-                            null, null);
+                            updateExportGroupRollbackMethod(export.getId()), null);
                 }
             }
         }
@@ -612,7 +615,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                         this.getClass(),
                         updateExportGroupMethod(export.getId(), updatedVolumesMap,
                                 addedClusters, removedClusters, addedHosts, removedHosts, addedInitiators, removedInitiators),
-                        null, null);
+                        updateExportGroupRollbackMethod(export.getId()), null);
             }
         }
         return waitFor;
@@ -620,7 +623,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
 
     /**
      * Assembles steps to remove a host
-     * 
+     *
      * @param workflow The current workflow
      * @param waitFor The current waitFor
      * @param hostIds List of hosts to remove
@@ -651,7 +654,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
 
     /**
      * Assembles steps to remove a host from an export group
-     * 
+     *
      * @param workflow The current workflow
      * @param waitFor The current waitFor
      * @param hostIds List of hosts to remove
@@ -696,7 +699,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                         updateExportGroupMethod(export.getId(),
                                 CollectionUtils.isEmpty(export.getInitiators()) ? new HashMap<URI, Integer>() : updatedVolumesMap,
                                 addedClusters, removedClusters, addedHosts, removedHosts, addedInitiators, removedInitiators),
-                        null, null);
+                        updateExportGroupRollbackMethod(export.getId()), null);
             }
         }
         return newWaitFor;
@@ -706,7 +709,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
      * Synchronize a cluster's export groups by following steps:
      * - Add all hosts in the cluster that are not in the cluster's export groups
      * - Remove all hosts in cluster's export groups that don't belong to the cluster
-     * 
+     *
      * @param workflow
      *            the workflow
      * @param waitFor
@@ -766,7 +769,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                     this.getClass(),
                     updateExportGroupMethod(export.getId(), updatedVolumesMap,
                             addedClusters, removedClusters, addedHosts, removedHosts, addedInitiators, removedInitiators),
-                    null, null);
+                    updateExportGroupRollbackMethod(export.getId()), null);
         }
         return waitFor;
     }
@@ -819,7 +822,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                     this.getClass(),
                     updateExportGroupMethod(eg.getId(), updatedVolumesMap,
                             addedClusters, removedClusters, addedHosts, removedHosts, addedInitiators, removedInitiators),
-                    null, null);
+                    updateExportGroupRollbackMethod(eg.getId()), null);
         }
 
         if (isVcenter) {
@@ -912,7 +915,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
 
     /**
      * Returns true if the file export contains any of the provided endpoints
-     * 
+     *
      * @param fileExport
      * @param endpoints
      * @return true if file export contains any of the endpoints, else false
@@ -968,7 +971,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                         this.getClass(),
                         updateExportGroupMethod(export.getId(), updatedVolumesMap,
                                 addedClusters, removedClusters, addedHosts, removedHosts, addedInitiators, removedInitiators),
-                        null, null);
+                        updateExportGroupRollbackMethod(export.getId()), null);
             }
         }
         return waitFor;
@@ -982,29 +985,50 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                 removedInitiators);
     }
 
+    public Workflow.Method updateExportGroupRollbackMethod(URI exportGroupURI) {
+        return new Workflow.Method("updateExportGroupRollback", exportGroupURI);
+    }
+
     public void updateExportGroup(URI exportGroup, Map<URI, Integer> newVolumesMap,
             Set<URI> addedClusters, Set<URI> removedClusters, Set<URI> adedHosts, Set<URI> removedHosts,
             Set<URI> addedInitiators,
             Set<URI> removedInitiators, String stepId) throws Exception {
+
+        Map<URI, Integer> addedBlockObjects = new HashMap<URI, Integer>();
+        Map<URI, Integer> removedBlockObjects = new HashMap<URI, Integer>();
+
         try {
-            Map<URI, Integer> addedBlockObjects = new HashMap<URI, Integer>();
-            Map<URI, Integer> removedBlockObjects = new HashMap<URI, Integer>();
             ExportGroup exportGroupObject = _dbClient.queryObject(ExportGroup.class, exportGroup);
             ExportUtils.getAddedAndRemovedBlockObjects(newVolumesMap, exportGroupObject, addedBlockObjects, removedBlockObjects);
             BlockExportController blockController = getController(BlockExportController.class, BlockExportController.EXPORT);
 
-            _dbClient.createTaskOpStatus(ExportGroup.class, exportGroup,
+            Operation op = _dbClient.createTaskOpStatus(ExportGroup.class, exportGroup,
                     stepId, ResourceOperationTypeEnum.UPDATE_EXPORT_GROUP);
+            exportGroupObject.getOpStatus().put(stepId, op);
+            _dbClient.updateObject(exportGroupObject);
 
             // Test mechanism to invoke a failure. No-op on production systems.
             InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_026);
 
             blockController.exportGroupUpdate(exportGroup, addedBlockObjects, removedBlockObjects, addedClusters,
                     removedClusters, adedHosts, removedHosts, addedInitiators, removedInitiators, stepId);
+
+            // No code should be added following the call to the block controller to preserve rollback integrity
         } catch (Exception ex) {
             _log.error("Exception occured while updating export group {}", exportGroup, ex);
+            // Clean up any pending tasks
+            ExportTaskCompleter taskCompleter = new ExportUpdateCompleter(exportGroup, addedBlockObjects, removedBlockObjects,
+                    addedInitiators, removedInitiators, adedHosts, removedHosts, addedClusters, removedClusters, stepId);
+            ServiceError serviceError = DeviceControllerException.errors.jobFailed(ex);
+            taskCompleter.error(_dbClient, serviceError);
+            // Fail the step
             WorkflowStepCompleter.stepFailed(stepId, DeviceControllerException.errors.jobFailed(ex));
         }
+    }
+
+    public void updateExportGroupRollback(URI exportGroup, String stepId) throws Exception {
+        // No specific steps yet, just pass through.
+        WorkflowStepCompleter.stepSucceded(stepId);
     }
 
     public Workflow.Method updateFileShareMethod(URI deviceId, String systemType, URI fileShareId, FileShareExport export) {
@@ -1037,7 +1061,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
 
     /**
      * Creates a workflow method to attach disks and mount datastores on a host for all volumes in a given export group
-     * 
+     *
      * @param exportGroup
      *            export group that contains volumes
      * @param hostId
@@ -1055,7 +1079,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
     /**
      * Creates a workflow method to unmount datastores and detach disks from a host for all volumes in a given export
      * group
-     * 
+     *
      * @param exportGroup
      *            export group that contains volumes
      * @param hostId
@@ -1075,7 +1099,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
      * For each volume in the export group, the associated disk is attached to the host and any datastores backed by the
      * volume are mounted
      * to the host.
-     * 
+     *
      * @param exportGroupId
      *            export group that contains volumes
      * @param hostId
@@ -1091,6 +1115,9 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
         WorkflowStepCompleter.stepExecuting(stepId);
 
         try {
+            // Test mechanism to invoke a failure. No-op on production systems.
+            InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_054);
+
             Host esxHost = _dbClient.queryObject(Host.class, hostId);
             Vcenter vCenter = _dbClient.queryObject(Vcenter.class, vCenterId);
             VcenterDataCenter vCenterDataCenter = _dbClient.queryObject(VcenterDataCenter.class, vcenterDatacenter);
@@ -1109,6 +1136,9 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                             if (VolumeWWNUtils.wwnMatches(VMwareUtils.getDiskWwn(entry), blockObject.getWWN())) {
                                 _log.info("Attach SCSI Lun " + entry.getCanonicalName() + " on host " + esxHost.getLabel());
                                 storageAPI.attachScsiLun(entry);
+
+                                // Test mechanism to invoke a failure. No-op on production systems.
+                                InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_055);
                             }
                         }
                     } catch (VMWareException ex) {
@@ -1127,6 +1157,9 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                                     if (datastore != null) {
                                         _log.info("Mounting datastore " + datastore.getName() + " on host " + esxHost.getLabel());
                                         storageAPI.mountDatastore(datastore);
+
+                                        // Test mechanism to invoke a failure. No-op on production systems.
+                                        InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_056);
                                     }
                                 } catch (VMWareException ex) {
                                     _log.warn(ex.getMessage(), ex);
@@ -1134,6 +1167,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                             }
                         }
                     }
+
                 }
             }
             WorkflowStepCompleter.stepSucceded(stepId);
@@ -1146,7 +1180,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
     /**
      * Verifies that datastores contained within an export group can be unmounted. It must not be entering maintenance mode or contain any
      * virtual machines.
-     * 
+     *
      * @param exportGroup
      *            export group that contains volumes
      * @param vcenter
@@ -1162,7 +1196,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
     /**
      * Verifies that datastores contained within an export group can be unmounted. It must not be entering maintenance mode or contain any
      * virtual machines.
-     * 
+     *
      * @param exportGroupId
      *            export group that contains volumes
      * @param vcenterId
@@ -1198,10 +1232,9 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                     }
                 }
             }
-            
+
             // Test mechanism to invoke a failure. No-op on production systems.
             InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_029);
-            
             WorkflowStepCompleter.stepSucceded(stepId);
         } catch (Exception ex) {
             _log.error(ex.getMessage(), ex);
@@ -1213,7 +1246,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
      * Unmounts and detaches every datastore and disk associated with the volumes in the export group.
      * For each volume in the export group, the backed datastore is unmounted and the associated disk is detached from
      * the host.
-     * 
+     *
      * @param exportGroupId
      *            export group that contains volumes
      * @param hostId
@@ -1263,7 +1296,6 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                     }
                     // Test mechanism to invoke a failure. No-op on production systems.
                     InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_030);
-                    
                     for (HostScsiDisk entry : storageAPI.listScsiDisks()) {
                         if (VolumeWWNUtils.wwnMatches(VMwareUtils.getDiskWwn(entry), blockObject.getWWN())) {
                             _log.info("Detach SCSI Lun " + entry.getCanonicalName() + " from host " + esxHost.getLabel());
@@ -1275,8 +1307,8 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                     // Test mechanism to invoke a failure. No-op on production systems.
                     InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_031);
                 }
-            }            
-            
+            }
+
             WorkflowStepCompleter.stepSucceded(stepId);
         } catch (Exception ex) {
             _log.error(ex.getMessage(), ex);
@@ -1286,7 +1318,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
 
     /**
      * Sets the Storage I/O control on a datastore
-     * 
+     *
      * @param vcenter
      *            vcenter API for the vcenter
      * @param datastore
@@ -1328,7 +1360,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
 
     /**
      * Cancels the VMWare Task without throwing an exception
-     * 
+     *
      * @param task
      *            the task to cancel
      */
@@ -1342,7 +1374,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
 
     /**
      * Cancels a VMWare task
-     * 
+     *
      * @param task
      *            the task to cancel
      * @throws Exception
@@ -1361,7 +1393,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
 
     /**
      * Checks if the VMWare task has completed
-     * 
+     *
      * @param task
      *            the task to check
      * @return true if the task has completed, otherwise returns false
@@ -1388,12 +1420,11 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
             BlockExportController blockController = getController(BlockExportController.class, BlockExportController.EXPORT);
             _dbClient.createTaskOpStatus(ExportGroup.class, exportGroup,
                     stepId, ResourceOperationTypeEnum.DELETE_EXPORT_GROUP);
-            
+
             // Test mechanism to invoke a failure. No-op on production systems.
             InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_027);
-            
             blockController.exportGroupDelete(exportGroup, stepId);
-            
+
             // Test mechanism to invoke a failure. No-op on production systems.
             InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_028);
         } catch (Exception ex) {
@@ -1478,7 +1509,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                         this.getClass(),
                         updateExportGroupMethod(export.getId(), updatedVolumesMap,
                                 addedClusters, removedClusters, addedHosts, removedHosts, addedInitiators, removedInitiators),
-                        null, null);
+                        updateExportGroupRollbackMethod(export.getId()), null);
             }
         }
         return waitFor;
@@ -1490,29 +1521,27 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
 
     /**
      * Updates the host and initiator references for the cluster
-     * 
+     *
      * @param hostId Host ID
      * @param clusterId Cluster ID
      * @param vCenterDataCenterId vCenter ID
-     * @param stepId Current step ID 
+     * @param stepId Current step ID
      */
     public void updateHostAndInitiatorClusterReferences(URI hostId, URI clusterId, URI vCenterDataCenterId, String stepId) {
         try {
             WorkflowStepCompleter.stepExecuting(stepId);
-            
+
             // Test mechanism to invoke a failure. No-op on production systems.
             InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_042);
-            
+
             ComputeSystemHelper.updateHostAndInitiatorClusterReferences(_dbClient, clusterId, hostId);
-            
+
             // Test mechanism to invoke a failure. No-op on production systems.
             InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_032);
-            
             ComputeSystemHelper.updateHostVcenterDatacenterReference(_dbClient, hostId, vCenterDataCenterId);
-            
+
             // Test mechanism to invoke a failure. No-op on production systems.
             InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_033);
-            
             WorkflowStepCompleter.stepSucceded(stepId);
         } catch (Exception ex) {
             _log.error("Exception occured while updating host and initiator cluster references {} - {}", hostId, clusterId, ex);
@@ -1523,7 +1552,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
     /**
      * Waits for the file export or unexport task to complete.
      * This is required because FileDeviceController does not use a workflow.
-     * 
+     *
      * @param fileShareId
      *            id of the FileShare being exported
      * @param stepId
@@ -1567,7 +1596,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
 
     /**
      * Creates workflow steps for unmounting datastores and detaching disks
-     * 
+     *
      * @param vCenterHostExportMap
      *            the map of hosts and export groups to operate on
      * @param waitFor
@@ -1606,7 +1635,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
     /**
      * Verifies that datastores contained within an export group can be unmounted. It must not be entering maintenance mode or contain any
      * virtual machines.
-     * 
+     *
      * @param vCenterHostExportMap
      *            the map of hosts and export groups to operate on
      * @param virtualDataCenter
@@ -1647,7 +1676,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
 
     /**
      * Creates workflow steps for attaching disks and mounting datastores
-     * 
+     *
      * @param vCenterHostExportMap
      *            the map of hosts and export groups to operate on
      * @param waitFor
@@ -1684,7 +1713,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
 
     /**
      * Adds the host and export to a map of host -> list of export groups
-     * 
+     *
      * @param vCenterHostExportMap
      *            the map to add the host and export
      * @param hostId
@@ -1728,7 +1757,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                             new HashSet<>(export.getAddedClusters()), new HashSet<>(export.getRemovedClusters()),
                             new HashSet<>(export.getAddedHosts()), new HashSet<>(export.getRemovedHosts()),
                             new HashSet<>(export.getAddedInitiators()), new HashSet<>(export.getRemovedInitiators())),
-                    null, null);
+                    updateExportGroupRollbackMethod(export.getId()), null);
         }
 
         return waitFor;
@@ -1736,7 +1765,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
 
     /**
      * Gets the datastore name from the tag supplied by the volume
-     * 
+     *
      * @param tag
      *            the volume tag
      * @return the datastore name
@@ -2065,7 +2094,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
 
     /**
      * Get the deviceType for a StorageSystem.
-     * 
+     *
      * @param deviceURI
      *            -- StorageSystem URI
      * @return deviceType String

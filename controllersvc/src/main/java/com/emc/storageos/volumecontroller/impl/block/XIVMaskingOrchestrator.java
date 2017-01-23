@@ -621,6 +621,13 @@ public class XIVMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
         }
     }
 
+    @Override
+    public void findAndUpdateFreeHLUsForClusterExport(StorageSystem storage, ExportGroup exportGroup, List<URI> initiatorURIs,
+            Map<URI, Integer> volumeMap) throws Exception {
+        // TODO Auto-generated method stub
+
+    }
+
     /**
      * Routine contains logic to create an export mask on the array
      * 

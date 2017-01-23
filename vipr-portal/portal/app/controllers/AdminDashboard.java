@@ -73,9 +73,12 @@ public class AdminDashboard extends Controller {
     @Restrictions({ @Restrict("SYSTEM_MONITOR"), @Restrict("SYSTEM_ADMIN"), @Restrict("RESTRICTED_SYSTEM_ADMIN") })
     public static void backupStatus() {
         Map<String, Promise<?>> promises = Maps.newHashMap();
+        System.out.println("grace: backupOperationStatus"+AdminDashboardUtils.getBackupStatus());
         promises.put("backupOperationStatus", AdminDashboardUtils.getBackupStatus());
         trySetRenderArgs(promises);
+
         // Add lastUpdated render args after promises are redeemed
+        System.out.println("grace: backupStatusLastUpdated"+AdminDashboardUtils.getBackupStatusLastUpdated());
         renderArgs.put("backupStatusLastUpdated", AdminDashboardUtils.getBackupStatusLastUpdated());
         //System.out.printf("Grace come here too: % and %", AdminDashboardUtils.getNodeHealthListLastUpdated(), AdminDashboardUtils.getBackupStatusLastUpdated());
         render();

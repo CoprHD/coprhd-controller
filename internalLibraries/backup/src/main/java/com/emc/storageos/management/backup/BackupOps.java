@@ -1072,7 +1072,7 @@ public class BackupOps {
             backupOperationStatus.setLastScheduledCreation(getOperationStatus(config, BackupConstants.LAST_SCHEDULED_CREATION));
             backupOperationStatus.setLastUpload(getOperationStatus(config, BackupConstants.LAST_UPLOAD));
         }
-        log.info("Get backup operation status from ZK: {}", backupOperationStatus);
+        log.info("Get backup operation status from ZK: {}", backupOperationStatus.toString());
         return backupOperationStatus;
     }
 

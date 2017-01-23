@@ -170,13 +170,13 @@ public class BackupOperationStatus {
         sb.append("LastSuccessfulCreation:");
         sb.append(getLastSuccessfulCreation());
         sb.append(", LastManualCreation:");
-        sb.append(getLastManualCreation().toString());
+        sb.append(getLastManualCreation());
         sb.append(", LastScheduledCreation:");
-        sb.append(getLastScheduledCreation().toString());
+        sb.append(getLastScheduledCreation());
         sb.append(", NextScheduledCreation:");
         sb.append(getNextScheduledCreation());
         sb.append(", LastUpload:");
-        sb.append(getLastUpload().toString());
+        sb.append(getLastUpload());
         return sb.toString();
     }
 }

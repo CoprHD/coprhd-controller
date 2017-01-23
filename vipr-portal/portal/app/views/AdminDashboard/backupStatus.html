@@ -6,6 +6,7 @@
     <div class="panel panel-default">
         <div class="panel-heading"><h3 class="panel-title">&{'adminDashboard.backupStatus'}</h3></div>
         <div class="panel-body">
+        #{if backupOperationStatus}
         <table style="margin-top:0px;width:100%">
             <tbody>
             <tr class="odd ng-scope openRow">
@@ -141,6 +142,12 @@
             </script>
             </tbody>
         </table>
+        #{/if}
+        #{else}
+        <div class="loadingBox">
+            <img src="/public/img/loading-huge.gif" height="64" width="64">
+        </div>
+        #{/else}
         </div>
     </div>
     #{if backupStatusLastUpdated}

@@ -608,7 +608,8 @@ public class SchemaUtil {
                 } else if (cf.getColumnSerializer() instanceof TimeSeriesColumnNameSerializer) {
                     comparator = TimeSeriesColumnNameSerializer.getComparatorName();
                 } else {
-                    throw new IllegalArgumentException();
+                    
+                    // throw new IllegalArgumentException();
                 }
             }
 

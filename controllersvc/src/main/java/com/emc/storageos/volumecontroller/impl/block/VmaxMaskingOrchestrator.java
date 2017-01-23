@@ -194,6 +194,8 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
             }
         }
 
+        checkForConsistentLunViolation(storage, exportGroup, initiatorURIs);
+
         InitiatorHelper initiatorHelper = new InitiatorHelper(initiatorURIs).process(exportGroup);
 
         boolean anyOperationsToDo = false;
@@ -857,6 +859,12 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
         }
     }
 
+    @Override
+    public void findAndUpdateFreeHLUsForClusterExport(StorageSystem storage, ExportGroup exportGroup, List<URI> initiatorURIs,
+            Map<URI, Integer> volumeMap) {
+        findUpdateFreeHLUsForClusterExport(storage, exportGroup, initiatorURIs, volumeMap);
+    }
+
     /**
      * Routine contains logic to create an export mask on the array
      *
@@ -891,6 +899,8 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
         Map<String, Set<URI>> initiatorToExportMaskPlacementMap = determineInitiatorToExportMaskPlacements(exportGroup, storage.getId(),
                 initiatorHelper.getResourceToInitiators(), device.findExportMasks(storage, initiatorHelper.getPortNames(), false),
                 initiatorHelper.getPortNameToInitiatorURI(), partialMasks);
+
+        findAndUpdateFreeHLUsForClusterExport(storage, exportGroup, initiatorURIs, volumeMap);
 
         // If we didn't find any export masks for any compute resources, then it's a total loss, and we need to
         // create new masks for each compute resource.

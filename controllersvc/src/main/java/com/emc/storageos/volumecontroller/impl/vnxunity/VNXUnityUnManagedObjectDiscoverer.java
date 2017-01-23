@@ -58,6 +58,7 @@ import com.emc.storageos.util.NetworkUtil;
 import com.emc.storageos.vnxe.VNXeApiClient;
 import com.emc.storageos.vnxe.VNXeApiClientFactory;
 import com.emc.storageos.vnxe.models.BlockHostAccess;
+import com.emc.storageos.vnxe.models.HostLun;
 import com.emc.storageos.vnxe.models.Snap;
 import com.emc.storageos.vnxe.models.StorageResource;
 import com.emc.storageos.vnxe.models.VNXUnityQuotaConfig;
@@ -70,6 +71,7 @@ import com.emc.storageos.vnxe.models.VNXeHost;
 import com.emc.storageos.vnxe.models.VNXeHostInitiator;
 import com.emc.storageos.vnxe.models.VNXeLun;
 import com.emc.storageos.vnxe.models.VNXeNfsShare;
+import com.emc.storageos.vnxe.requests.HostLunRequests;
 import com.emc.storageos.volumecontroller.FileControllerConstants;
 import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
 import com.emc.storageos.volumecontroller.impl.utils.DiscoveryUtils;
@@ -898,6 +900,13 @@ public class VNXUnityUnManagedObjectDiscoverer {
         }
         unManagedVolume.getVolumeCharacterstics().replace(unManagedVolumeCharacteristics);
 
+        // clear the mask to HLU map. Fresh data gets persisted during UnManagedExportMask discovery
+        if (unManagedVolume.getVolumeInformation().get(
+                SupportedVolumeInformation.HLU_TO_EXPORT_MASK_NAME_MAP.name()) != null) {
+            unManagedVolume.getVolumeInformation().get(
+                    SupportedVolumeInformation.HLU_TO_EXPORT_MASK_NAME_MAP.name()).clear();
+        }
+
         if (created) {
             unManagedVolumesInsert.add(unManagedVolume);
         } else {
@@ -1482,6 +1491,31 @@ public class VNXUnityUnManagedObjectDiscoverer {
                             Boolean.TRUE.toString());
                 }
                 mask.getUnmanagedVolumeUris().add(hostUnManagedVol.getId().toString());
+
+                // update mask to HLU information
+                StringSet nativeId = hostUnManagedVol.getVolumeInformation().get(SupportedVolumeInformation.NATIVE_ID.name());
+                String nativeGuid = hostUnManagedVol.getNativeGuid();
+                String lunId = (nativeId != null && nativeId.iterator().hasNext()) ? nativeId.iterator().next()
+                        : nativeGuid.substring(nativeGuid.lastIndexOf(Constants.PLUS) + 1);
+                String idCharSequence = HostLunRequests.ID_SEQUENCE_LUN;
+                if (Boolean.valueOf(hostUnManagedVol.getVolumeCharacterstics()
+                        .get(SupportedVolumeCharacterstics.IS_SNAP_SHOT.name()))) {
+                    idCharSequence = HostLunRequests.ID_SEQUENCE_SNAP;
+                    Snap snap = apiClient.getSnapshot(lunId);
+                    lunId = snap.getLun().getId(); // get snap's parent id
+                }
+                HostLun hostLun = apiClient.getHostLun(lunId, hostId, idCharSequence);
+                if (hostLun != null) {
+                    String hostHlu = host.getName() + "=" + hostLun.getHlu();
+                    StringSet existingHostHlu = hostUnManagedVol.getVolumeInformation().get(
+                            SupportedVolumeInformation.HLU_TO_EXPORT_MASK_NAME_MAP.name());
+                    if (existingHostHlu != null) {
+                        existingHostHlu.add(hostHlu);
+                    } else {
+                        hostUnManagedVol.getVolumeInformation().put(SupportedVolumeInformation.HLU_TO_EXPORT_MASK_NAME_MAP.name(), hostHlu);
+                    }
+                }
+
                 unManagedExportVolumesToUpdate.add(hostUnManagedVol);
             }
 
@@ -1746,7 +1780,7 @@ public class VNXUnityUnManagedObjectDiscoverer {
      */
     private void populateSnapInfo(UnManagedVolume unManagedVolume, Snap snap, String parentVolumeNatvieGuid,
             StringSet parentMatchedVPools) {
-        log.info(String.format("populate snap:", snap.getName()));
+        log.info("populate snap: {}", snap.getName());
         unManagedVolume.getVolumeCharacterstics().put(SupportedVolumeCharacterstics.IS_SNAP_SHOT.toString(), Boolean.TRUE.toString());
 
         StringSet parentVol = new StringSet();

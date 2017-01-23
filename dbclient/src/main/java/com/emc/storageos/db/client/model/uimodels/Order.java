@@ -220,7 +220,7 @@ public class Order extends ModelObject implements TenantDataObject {
                 .append("\nDate Submitted:")
                 .append(getCreationTime().getTime())
                 .append("\nDate Completed:")
-                .append(getDateCompleted().getTime())
+                .append(getDateCompleted() == null ? null : getDateCompleted().getTime())
                 .append("\nMessage:")
                 .append(getMessage())
                 .append("\nStatus:")

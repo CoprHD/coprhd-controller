@@ -15,9 +15,9 @@ import java.io.Serializable;
 public class BackupOperationStatus {
     private static final Logger log = LoggerFactory.getLogger(BackupOperationStatus.class);
     private OperationStatus lastManualCreation;
-    private OperationStatus lastScheduledCreation = new OperationStatus();
-    private OperationStatus lastSuccessfulCreation= new OperationStatus();
-    private OperationStatus lastUpload = new OperationStatus();
+    private OperationStatus lastScheduledCreation;
+    private OperationStatus lastSuccessfulCreation;
+    private OperationStatus lastUpload;
     private long nextScheduledCreation = 0;
 
     public BackupOperationStatus() {
@@ -33,6 +33,7 @@ public class BackupOperationStatus {
     }
 
     public void setLastManualCreation(String opName, long opTime, OpMessage opStatus) {
+        this.lastManualCreation = new OperationStatus();
         this.lastManualCreation.opName = opName;
         this.lastManualCreation.opTime = opTime;
         this.lastManualCreation.opMessage = opStatus;
@@ -48,6 +49,7 @@ public class BackupOperationStatus {
     }
 
     public void setLastScheduledCreation(String opName, long opTime, OpMessage opStatus) {
+        this.lastScheduledCreation = new OperationStatus();
         this.lastScheduledCreation.opName = opName;
         this.lastScheduledCreation.opTime = opTime;
         this.lastScheduledCreation.opMessage = opStatus;
@@ -72,6 +74,7 @@ public class BackupOperationStatus {
     }
 
     public void setLastSuccessfulCreation(String opName, long opTime, OpMessage opType) {
+        this.lastSuccessfulCreation = new OperationStatus();
         this.lastSuccessfulCreation.opName = opName;
         this.lastSuccessfulCreation.opTime = opTime;
         this.lastSuccessfulCreation.opMessage = opType;
@@ -87,6 +90,7 @@ public class BackupOperationStatus {
     }
 
     public void setLastUpload(String opName, long opTime, OpMessage opStatus) {
+        this.lastUpload = new OperationStatus();
         this.lastUpload.opName = opName;
         this.lastUpload.opTime = opTime;
         this.lastUpload.opMessage = opStatus;
@@ -98,9 +102,9 @@ public class BackupOperationStatus {
     @XmlRootElement(name = "operation_status")
     @XmlAccessorType(XmlAccessType.NONE)
     public static class OperationStatus {
-        private String opName = "";
+        private String opName;
         private long opTime = 0;
-        private OpMessage opMessage = OpMessage.NONE;
+        private OpMessage opMessage;
 
         public OperationStatus() {
         }
@@ -153,7 +157,6 @@ public class BackupOperationStatus {
 
     @XmlType(name = "opMessage")
     public enum OpMessage {
-        NONE("none"),
         //operation status
         OP_SUCCESS("success"),
         OP_FAILED("failed"),

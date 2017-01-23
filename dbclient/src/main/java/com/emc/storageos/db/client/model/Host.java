@@ -78,7 +78,7 @@ public class Host extends AbstractComputeSystem {
         try {
             final String biosVersionPattern = "^B\\d+M(\\d)";
             Pattern r = Pattern.compile(biosVersionPattern);
-            String biosModel = null;
+            String biosModel = "0"; // default is old model, since old BIOS's may not follow pattern
             Matcher m = r.matcher(bios);
             if(m.find()) {
                 biosModel = m.group(1);

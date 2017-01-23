@@ -2632,12 +2632,20 @@ public class VNXeApiClient {
             }
         }
 
+        StorageResourceRequest cgRequest = new StorageResourceRequest(_khClient);
+        StorageResource cg = cgRequest.get(cgId);
         for (String lunName : names) {
             LunParam lunParam = new LunParam();
             lunParam.setIsThinEnabled(isThin);
             lunParam.setSize(size);
             lunParam.setPool(new VNXeBase(poolId));
-
+            List<BlockHostAccess> hostAccesses = cg.getBlockHostAccess();
+            if (hostAccesses != null && !hostAccesses.isEmpty()) {
+                for (BlockHostAccess hostAccess : hostAccesses) {
+                    hostAccess.setAccessMask(HostLUNAccessEnum.NOACCESS.getValue());
+                }
+                lunParam.setHostAccess(hostAccesses);
+            }
             LunCreateParam createParam = new LunCreateParam();
             createParam.setName(lunName);
             createParam.setLunParameters(lunParam);

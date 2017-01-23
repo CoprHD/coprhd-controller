@@ -25,8 +25,9 @@ import com.emc.vipr.model.catalog.Parameter;
 import com.google.common.collect.Lists;
 
 public class OrderTextCreator {
-    private static final String DATE_FORMAT = "dd-MM-yy hh:mm";
+    private static final SimpleDateFormat DATE = new SimpleDateFormat("dd-MM-yy hh:mm");
     private static final String DETAIL_INDENT = "      \t                            \t";
+    private static final SimpleDateFormat TIME = new SimpleDateFormat("ddMMyy-HHmm");
 
     private StringBuilder builder = new StringBuilder();
     private OrderRestRep order;
@@ -120,6 +121,11 @@ public class OrderTextCreator {
         to.setLastUpdated(from.getLastUpdated());
 
         return to;
+    }
+
+    public static String genereateOrderFileName(OrderRestRep order) {
+        String timestamp = TIME.format(order.getCreationTime().getTime());
+        return String.format("Order-%s-%s-%s.txt", order.getOrderNumber(), order.getOrderStatus(), timestamp);
     }
 
     public String getText() {
@@ -257,7 +263,6 @@ public class OrderTextCreator {
     }
 
     private void writeField(String label, Date date) {
-        final SimpleDateFormat DATE = new SimpleDateFormat(DATE_FORMAT);
         if (date == null) {
             writeField(label, "");
         } else {

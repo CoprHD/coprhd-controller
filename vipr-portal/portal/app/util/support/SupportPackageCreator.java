@@ -263,9 +263,7 @@ public class SupportPackageCreator {
     }
 
     private void writeOrder(ZipOutputStream zip, OrderRestRep order) throws IOException {
-        String timestamp = formatTimestamp(order.getCreationTime());
-        String path = String.format("orders/Order-%s-%s-%s.txt", order.getOrderNumber(), order.getOrderStatus(),
-                timestamp);
+        String path = String.format("orders/%s", OrderTextCreator.genereateOrderFileName(order));
         addStringEntry(zip, path, getOrderTextCreator(order).getText());
         Logger.debug("Written Order " + order.getId() + " to archive");
     }

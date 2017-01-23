@@ -19,6 +19,7 @@ import com.emc.sa.catalog.OrderManager;
 import com.emc.storageos.coordinator.client.model.Constants;
 import com.emc.storageos.db.client.impl.DbCheckerFileWriter;
 import com.emc.storageos.management.jmx.recovery.DbManagerOps;
+import com.emc.vipr.model.catalog.OrderRestRep;
 
 import org.apache.commons.lang3.StringUtils;
 import org.joda.time.DateTime;
@@ -811,7 +812,6 @@ public abstract class CommandHandler {
     public static class DumpOrdersHandler extends CommandHandler {
 
         private static final Logger log = LoggerFactory.getLogger(DumpOrdersHandler.class);
-        private static final SimpleDateFormat TIME = new SimpleDateFormat("ddMMyy-HHmm");
         private File dir;
         private OrderManager orderManager;
         private CatalogServiceService catalogService;
@@ -858,19 +858,17 @@ public abstract class CommandHandler {
             Date startTime = cal.getTime();
             log.info("Starting dump orders from {} to {}", startTime, endTime);
             for (Order order : filterOrders(startTime, endTime)) {
-                CatalogService catalogService = client.getDbClient().queryObject(CatalogService.class, order.getCatalogServiceId());
-                dumpOrder(order, catalogService);
+                dumpOrder(order);
                 log.info("Order {} has been successfully dumped", order.getId());
             }
         }
 
-        private void dumpOrder(Order order, CatalogService service) throws Exception {
-            String timestamp = TIME.format(order.getCreationTime().getTime());
-            String fileName = String.format("Order-%s-%s-%s.txt", order.getOrderNumber(), order.getOrderStatus(),
-                    timestamp);
+        private void dumpOrder(Order order) throws Exception {
+            OrderRestRep orderResp = OrderMapper.map(order, orderManager.getOrderParameters(order.getId()));
+            String fileName = OrderTextCreator.genereateOrderFileName(orderResp);
             OutputStream out = new FileOutputStream(new File(dir, fileName));
             OrderTextCreator creator = new OrderTextCreator();
-            creator.setOrder(OrderMapper.map(order, orderManager.getOrderParameters(order.getId())));
+            creator.setOrder(orderResp);
             creator.setService(catalogService.getCatalogService(order.getCatalogServiceId()));
             creator.setState(orderManager.getOrderExecutionState(order.getExecutionStateId()));
             creator.setRawLogs(orderManager.getOrderExecutionLogs(order));

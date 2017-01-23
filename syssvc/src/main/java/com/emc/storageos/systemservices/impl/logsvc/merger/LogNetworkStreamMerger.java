@@ -8,12 +8,14 @@ import java.io.BufferedOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.net.SocketTimeoutException;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
 
 import javax.ws.rs.core.MediaType;
 
+import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorException;
 import org.apache.commons.compress.compressors.CompressorException;
 import org.apache.commons.io.output.CountingOutputStream;
 import org.slf4j.Logger;
@@ -189,6 +191,10 @@ public class LogNetworkStreamMerger extends AbstractLogStreamMerger {
                 }
             } catch (Exception e) {
                 logger.error("Exception accessing node {}:", baseNodeURL, e);
+                //socketTimeoutException wrapped in ClientHandlerException
+                if (e.getCause() != null && e.getCause().getCause() instanceof SocketTimeoutException) {
+                    throw InternalServerErrorException.internalServerErrors.logCollectionTimeout();
+                }
             }
         }
         return logNetworkStreams;

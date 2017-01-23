@@ -5,6 +5,8 @@
 
 package com.emc.storageos.db.client.model;
 
+import java.net.URI;
+
 import com.emc.storageos.db.client.model.DbKeyspace.Keyspaces;
 
 /**
@@ -20,6 +22,7 @@ public class Project extends DataObjectWithACLs {
     private Long _quotaGB;
     private Boolean _quotaEnabled;
     private StringSet assignedVNasServers;
+    private StringSet filePolicies;
 
     @NamedRelationIndex(cf = "NamedRelation", type = TenantOrg.class)
     @Name("tenantOrg")
@@ -82,4 +85,30 @@ public class Project extends DataObjectWithACLs {
         setChanged("assigned_vnas_servers");
     }
 
+    @Name("filePolicies")
+    public StringSet getFilePolicies() {
+        return filePolicies;
+    }
+
+    public void setFilePolicies(StringSet filePolicies) {
+        this.filePolicies = filePolicies;
+        setChanged("filePolicies");
+    }
+
+    public void addFilePolicy(URI policy) {
+        StringSet policies = filePolicies;
+        if (policies == null) {
+            policies = new StringSet();
+        }
+        policies.add(policy.toString());
+        this.filePolicies = policies;
+    }
+
+    public void removeFilePolicy(Project project, URI policy) {
+        StringSet policies = filePolicies;
+        if (policies != null) {
+            policies.remove(policy.toString());
+            this.filePolicies = policies;
+        }
+    }
 }

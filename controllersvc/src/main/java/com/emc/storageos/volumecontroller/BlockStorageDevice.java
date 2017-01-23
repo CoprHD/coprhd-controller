@@ -690,6 +690,18 @@ public interface BlockStorageDevice {
             List<String> initiatorNames, boolean mustHaveAllPorts) throws DeviceControllerException;
 
     /**
+     * For the given list of initiators, go to the Storage Array and get the list of HLUs that the volumes are assigned with.
+     *
+     * @param storage the storage system
+     * @param initiatorNames the initiator names
+     * @param mustHaveAllPorts
+     *            If true, *all* the passed in initiators have to be in the existing matching mask.
+     *            If false, a mask with *any* of the specified initiators will be considered a hit.
+     * @return the HLUs for the given initiators
+     */
+    public Set<Integer> findHLUsForInitiators(StorageSystem storage, List<String> initiatorNames, boolean mustHaveAllPorts);
+
+    /**
      * This call will be used to update the ExportMask with the latest data from the array.
      * 
      * @param storage

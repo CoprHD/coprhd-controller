@@ -108,8 +108,7 @@ public class UnexportVMwareVolumeService extends VMwareHostService {
         ExecutionUtils.clearRollback();
 
         for (BlockObjectRestRep volume : volumes) {
-            // Keep atleast one datastore tag on this volume so we don't lose association with the datastore name
-            if (volume.getTags() != null && VMwareDatastoreTagger.getDatastoreTags(volume).size() > 1) {
+            if (volume.getTags() != null) {
                 vmware.removeVmfsDatastoreTag(volume, hostId);
             }
         }

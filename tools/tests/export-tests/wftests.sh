@@ -3304,7 +3304,7 @@ cleanup_previous_run_artifacts() {
 	done
     fi
 
-    volume list ${PROJECT} | grep YES | grep "hijack\|fake" > /dev/null2> /dev/null
+    volume list ${PROJECT} | grep YES | grep "hijack\|fake" > /dev/null 2> /dev/null
     if [ $? -eq 0 ]; then
 	for id in `volume list ${PROJECT} | grep YES | grep "hijack\|fake" | awk '{print $7}'`
 	do

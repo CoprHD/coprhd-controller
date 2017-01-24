@@ -879,8 +879,14 @@ prerun_setup() {
        [ $? -ne 0 ] && echo "WARNING: There may be a newer version of ${TOOLS_JAR} available."
     fi
 
-    echo "Seeing if there's an existing base of volumes"
-    BASENUM=`volume list ${PROJECT} | grep YES | head -1 | awk '{print $1}' | awk -Fp '{print $2}' | awk -F- '{print $1}'`
+    project list --tenant emcworld > /dev/null 2> /dev/null
+    if [ $? -eq 0 ]; then
+	echo "Seeing if there's an existing base of volumes"
+	BASENUM=`volume list ${PROJECT} | grep YES | head -1 | awk '{print $1}' | awk -Ft '{print $3}' | awk -F- '{print $1}'`
+    else
+	BASENUM=""
+    fi
+
     if [ "${BASENUM}" != "" ]
     then
        echo "Volumes were found!  Base number is: ${BASENUM}"
@@ -950,7 +956,7 @@ prerun_setup() {
     fi
     
     set_validation_check true
-    rm /tmp/verify*
+    rm -f /tmp/verify*
 }
 
 # get the device ID of a created volume
@@ -3998,17 +4004,28 @@ cleanup() {
 
 # Clean up any exports or volumes from previous runs, but not the volumes you need to run tests
 cleanup_previous_run_artifacts() {
-   for id in `export_group list $PROJECT | grep YES | awk '{print $5}'`
-   do
-      echo "Deleting old export group: ${id}"
-      runcmd export_group delete ${id} > /dev/null
-   done
+    project list --tenant emcworld  > /dev/null 2> /dev/null
+    if [ $? -eq 1 ]; then
+	return;
+    fi
 
-   for id in `volume list ${PROJECT} | grep YES | grep hijack | awk '{print $7}'`
-   do
-      echo "Deleting old volume: ${id}"
-      runcmd volume delete ${id} --wait > /dev/null
-   done
+    export_group list $PROJECT | grep YES > /dev/null 2> /dev/null
+    if [ $? -eq 0 ]; then
+	for id in `export_group list $PROJECT | grep YES | awk '{print $5}'`
+	do
+	    echo "Deleting old export group: ${id}"
+	    runcmd export_group delete ${id} > /dev/null
+	done
+    fi
+
+    volume list ${PROJECT} | grep YES | grep "hijack\|fake" > /dev/null 2> /dev/null
+    if [ $? -eq 0 ]; then
+	for id in `volume list ${PROJECT} | grep YES | grep hijack | awk '{print $7}'`
+	do
+	    echo "Deleting old volume: ${id}"
+	    runcmd volume delete ${id} --wait > /dev/null
+	done
+    fi
 }
 
 # call this to generate a random WWN for exports.
@@ -4092,31 +4109,41 @@ esac
 
 # By default, check zones
 ZONE_CHECK=${ZONE_CHECK:-1}
-if [ "${1}" = "setuphw" -o "${1}" = "setup" -o "${1}" = "-setuphw" -o "${1}" = "-setup" ]
-then
-    echo "Setting up testing based on real hardware"
-    setup=1;
-    shift 1;
-elif [ "${1}" = "setupsim" -o "${1}" = "-setupsim" ]; then
-    if [ "$SS" = "xio" -o "$SS" = "vplex" ]; then
-	echo "Setting up testing based on simulators"
-	SIM=1;
-	ZONE_CHECK=0;
+while [ "${1:0:1}" = "-" ]
+do
+    if [ "${1}" = "setuphw" -o "${1}" = "setup" -o "${1}" = "-setuphw" -o "${1}" = "-setup" ]
+    then
+	echo "Setting up testing based on real hardware"
 	setup=1;
+	SIM=0;
 	shift 1;
-    else
-	echo "Simulator-based testing of this suite is not supported on ${SS} due to lack of CLI/arraytools support to ${SS} provider/simulator"
-	exit 1
+    elif [ "${1}" = "setupsim" -o "${1}" = "-setupsim" ]; then
+	if [ "$SS" = "xio" -o "$SS" = "vplex" ]; then
+	    echo "Setting up testing based on simulators"
+	    SIM=1;
+	    ZONE_CHECK=0;
+	    setup=1;
+	    shift 1;
+	else
+	    echo "Simulator-based testing of this suite is not supported on ${SS} due to lack of CLI/arraytools support to ${SS} provider/simulator"
+	    exit 1
+	fi
     fi
-fi
+
+    # Whether to report results to the master data collector of all things
+    if [ "${1}" = "-report" ]; then
+	REPORT=1
+	shift;
+    fi
+
+    if [ "$1" = "-cleanup" ]
+    then
+	DO_CLEANUP=1;
+	shift
+    fi
+done
 
 login
-
-if [ "$1" = "regression" ]
-then
-    test_0;
-    shift 2;
-fi
 
 # setup required by all runs, even ones where setup was already done.
 prerun_setup;
@@ -4156,10 +4183,10 @@ test_end=25
 # ./dutest.sh sanity.conf vplex local test_7+
 if [ "$1" != "" -a "${1:(-1)}" != "+"  ]
 then
-   echo Request to run $*
+   secho Request to run $*
    for t in $*
    do
-      echo Run $t
+      secho Run $t
       reset_system_props
       prerun_tests
       TEST_OUTPUT_FILE=test_output_${RANDOM}.log

@@ -159,7 +159,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
     // A logger reference.
     private static final Logger s_logger = LoggerFactory
             .getLogger(VPlexBlockServiceApiImpl.class);
-F
+
     @Autowired
     private final PermissionsHelper _permissionsHelper = null;
 
@@ -447,6 +447,7 @@ F
         // recommendations in each VirtualArray.
         int varrayCount = 0;
         String volumeLabel = param.getName();
+        Map<URI, List<URI>> poolVolumeMap = new HashMap<URI, List<URI>>();
         List<VolumeDescriptor> descriptors = new ArrayList<VolumeDescriptor>();
 
         URI[][] varrayVolumeURIs = new URI[2][vPoolCapabilities.getResourceCount()];
@@ -541,6 +542,7 @@ F
         s_logger.info("Preparing virtual volumes");
         List<URI> virtualVolumeURIs = new ArrayList<URI>();
         URI nullPoolURI = NullColumnValueGetter.getNullURI();
+        poolVolumeMap.put(nullPoolURI, virtualVolumeURIs);
         vPoolCapabilities.put(VirtualPoolCapabilityValuesWrapper.AUTO_TIER__POLICY_NAME, null);
         for (int i = 0; i < vPoolCapabilities.getResourceCount(); i++) {
             // Compute the volume label based on the label of the underlying volume

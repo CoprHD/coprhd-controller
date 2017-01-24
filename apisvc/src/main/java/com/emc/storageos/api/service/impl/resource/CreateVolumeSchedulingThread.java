@@ -762,6 +762,9 @@ class CreateVolumeSchedulingThread implements Runnable {
         _log.info("Starting scheduling/placement thread...");
         // Call out placementManager to get the recommendation for placement.
         try {
+        	Map<VpoolUse, List<Recommendation>> recommendationsMap = 
+                    this.blockService._placementManager.getRecommendationsForVirtualPool(
+                    varray, project, vpool, capabilities);
         	List<Recommendation> recommendations = new ArrayList<Recommendation>();
 		if ( param.getPassThroughParams() != null && !param.getPassThroughParams().isEmpty()
                    && param.getPassThroughParams().containsKey("VPlex-Id")  
@@ -793,7 +796,7 @@ class CreateVolumeSchedulingThread implements Runnable {
                     varray, project, vpool, capabilities);
         	}
 
-            if (recommendationMap.isEmpty()) {
+            if (recommendationsMap.isEmpty()) {
                 throw APIException.badRequests.
                 noMatchingStoragePoolsForVpoolAndVarray(vpool.getLabel(), varray.getLabel());
             }
@@ -801,12 +804,12 @@ class CreateVolumeSchedulingThread implements Runnable {
             // At this point we are committed to initiating the request.
             if (consistencyGroup != null) {
                 consistencyGroup.addRequestedTypes(requestedTypes);
-                this.blockService._dbClient.updateAndReindexObject(consistencyGroup);
+                this.blockService._dbClient.updateObject(consistencyGroup);
             }
 
             // Call out to the respective block service implementation to prepare
             // and create the volumes based on the recommendations.
-            blockServiceImpl.createVolumes(param, project, varray, vpool, recommendationMap, taskList, task, capabilities);
+            blockServiceImpl.createVolumes(param, project, varray, vpool, recommendationsMap, taskList, task, capabilities);
         } catch (Exception ex) {
             for (TaskResourceRep taskObj : taskList.getTaskList()) {
                 if (ex instanceof ServiceCoded) {

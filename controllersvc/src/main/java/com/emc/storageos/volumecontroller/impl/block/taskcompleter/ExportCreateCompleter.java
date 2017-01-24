@@ -26,12 +26,17 @@ public class ExportCreateCompleter extends ExportTaskCompleter {
 
     private final Map<URI, Integer> volumeMap;
 
-    public ExportCreateCompleter(URI egUri, Map<URI, Integer> volumes, String task) {
+	public ExportCreateCompleter(URI egUri, Map<URI, Integer> volumes, String task) {
         super(ExportGroup.class, egUri, task);
         volumeMap = new HashMap<URI, Integer>();
         volumeMap.putAll(volumes);
     }
 
+	//public ExportCreateCompleter(URI egUri, String task) {
+    //    super(ExportGroup.class, egUri, task);
+    //}
+	
+	
     @Override
     protected void complete(DbClient dbClient, Operation.Status status, ServiceCoded coded) throws DeviceControllerException {
         try {

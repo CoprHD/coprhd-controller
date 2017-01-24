@@ -730,6 +730,45 @@ public class BlockService extends TaskResourceService {
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     public TaskList createVolume(VolumeCreate param) throws InternalException {
 
+    	ArgValidator.checkFieldNotNull(param, "volume_create");
+
+        // CQECC00604134
+        ArgValidator.checkFieldUriType(param.getProject(), Project.class, "project");
+
+        // Get and validate the project.
+        Project project = _permissionsHelper.getObjectById(param.getProject(), Project.class);
+        ArgValidator.checkEntity(project, param.getProject(), isIdEmbeddedInURL(param.getProject()));
+
+        // Verify the user is authorized.
+        BlockServiceUtils.verifyUserIsAuthorizedForRequest(project, getUserFromContext(), _permissionsHelper);
+
+        // Get and validate the varray
+	    ArgValidator.checkFieldUriType(param.getVarray(), VirtualArray.class, "varray");
+        VirtualArray varray = BlockServiceUtils.verifyVirtualArrayForRequest(project,
+        		param.getVarray(), uriInfo, _permissionsHelper, _dbClient);
+        ArgValidator.checkEntity(varray, param.getVarray(), isIdEmbeddedInURL(param.getVarray()));
+
+        // Get and validate the VirtualPool.
+        VirtualPool vpool = getVirtualPoolForVolumeCreateRequest(project, param);
+        
+        
+        //Direct-RP_Volume
+        if(param.getPassThroughParams().containsKey("protectedVolume") && param.getPassThroughParams() != null
+        		&& !param.getPassThroughParams().isEmpty()){
+        	Map<String, String> passThroughParam = param.getPassThroughParams();
+        	
+        	String volumeId = passThroughParam.get("volumeId");
+        	if(volumeId == null){
+        		throw APIException.badRequests.parameterIsNullOrEmpty("passThroughParam");
+        	}
+        	String task = UUID.randomUUID().toString();
+        	TaskList taskList = createSkinyVolumeTaskList(param.getSize(), param.getName(), task, param.getCount(), 
+        			project, varray, vpool);
+        	ArrayList<String> requestedTypes = new ArrayList<String>();
+        	CreateVolumeSchedulingThread.executeSkinyApiTask(this, _asyncTaskService.getExecutorService(), _dbClient, 
+        			taskList, task, requestedTypes, param, getBlockServiceImpl("default"));
+        }
+
     	
 	//Direct-VPLEX-TO-PASS-VOLUME
         if(param.getPassThroughParams().containsKey("VPlex-Id") && param.getPassThroughParams() != null 
@@ -746,14 +785,6 @@ public class BlockService extends TaskResourceService {
             ArrayList<String> requestedTypes = new ArrayList<String>();
             CreateVolumeSchedulingThread.executeSkinyApiTask(this, _asyncTaskService.getExecutorService(), _dbClient, taskList, task, requestedTypes, param, getBlockServiceImpl("default"));
             return taskList;
-        		
-    		// VPLEX - Distributed
-    		//if(param.getPassThroughParams().isDistributed()){
-    		//	String volumeIdForHA = passThroughParam.get("volumeIdForHA");
-    		//	if (volumeIdForHA ==null ){
-    		//		throw APIException.badRequests.parameterIsNullOrEmpty("passThroughParam");
-    		//	}
-    		//}
         }
 		
 
@@ -772,7 +803,7 @@ public class BlockService extends TaskResourceService {
     		}
     		
     		String task = UUID.randomUUID().toString();
-            TaskList taskList = createSkinyVolumeTaskList(param.getSize(), param.getName(), task, param.getCount());
+            TaskList taskList = createSkinyVolumeTaskList(param.getSize(), param.getName(), task, param.getCount(), project, varray , vpool);
     		_log.info("1 TaskList {}", taskList.getTaskList());
 		_log.info("2 taskList " +taskList);	
             ArrayList<String> requestedTypes = new ArrayList<String>();
@@ -808,118 +839,7 @@ public class BlockService extends TaskResourceService {
 
 
             String task = UUID.randomUUID().toString();
-            TaskList taskList = createSkinyVolumeTaskList(param.getSize(), param.getName(), task, param.getCount());
-
-            ArrayList<String> requestedTypes = new ArrayList<String>();
-            // call thread that does the work.
-            CreateVolumeSchedulingThread.executeSkinyApiTask(this, _asyncTaskService.getExecutorService(), _dbClient, taskList, task, requestedTypes, param, getBlockServiceImpl("default"));
-
-            return taskList;
-
-
-
-        }
-        ArgValidator.checkFieldNotNull(param, "volume_create");
-
-
-        // CQECC00604134
-        ArgValidator.checkFieldUriType(param.getProject(), Project.class, "project");
-
-        // Get and validate the project.
-        Project project = _permissionsHelper.getObjectById(param.getProject(), Project.class);
-        ArgValidator.checkEntity(project, param.getProject(), isIdEmbeddedInURL(param.getProject()));
-
-        // Verify the user is authorized.
-        BlockServiceUtils.verifyUserIsAuthorizedForRequest(project, getUserFromContext(), _permissionsHelper);
-
-        // Get and validate the varray
-	       	ArgValidator.checkFieldUriType(param.getVarray(), VirtualArray.class, "varray");
-        	VirtualArray varray = BlockServiceUtils.verifyVirtualArrayForRequest(project,
-                param.getVarray(), uriInfo, _permissionsHelper, _dbClient);
-        	ArgValidator.checkEntity(varray, param.getVarray(), isIdEmbeddedInURL(param.getVarray()));
-
-        // Get and validate the VirtualPool.
-	VirtualPool vpool = getVirtualPoolForVolumeCreateRequest(project, param);
-
-	//Direct-VPLEX-TO-PASS-VOLUME
-        if(param.getPassThroughParams().containsKey("VPlex-Id") && param.getPassThroughParams() != null 
-    			&& !param.getPassThroughParams().isEmpty() && param.getPassThroughParams().containsKey("volumeId")){
-       		Map<String, String> passThroughParam = param.getPassThroughParams();
-    		
-    		String volumeId = passThroughParam.get("volumeId");
-    		String vplexId=passThroughParam.get("VPlex-Id");
-            if(volumeId == null || vplexId == null){
-            	throw APIException.badRequests.parameterIsNullOrEmpty("passThroughParam");
-            }
-    		String task = UUID.randomUUID().toString();
-
-
-            TaskList taskList = createSkinyVolumeTaskList(param.getSize(), param.getName(), task, param.getCount(),project,varray,vpool);
-            ArrayList<String> requestedTypes = new ArrayList<String>();
-            CreateVolumeSchedulingThread.executeSkinyApiTask(this, _asyncTaskService.getExecutorService(), _dbClient, taskList, task, requestedTypes, param, getBlockServiceImpl("default"));
-            return taskList;
-        		
-    		// VPLEX - Distributed
-    		//if(param.getPassThroughParams().isDistributed()){
-    		//	String volumeIdForHA = passThroughParam.get("volumeIdForHA");
-    		//	if (volumeIdForHA ==null ){
-    		//		throw APIException.badRequests.parameterIsNullOrEmpty("passThroughParam");
-    		//	}
-    		//}
-        }
-		
-
-    	//Direct-VPLEX
-        else if(param.getPassThroughParams().containsKey("VPlex-Id") && param.getPassThroughParams() != null 
-    			&& !param.getPassThroughParams().isEmpty()){
-    		_log.info("Entered BlockService.createVolume, in VPlex passThroughParams");
-    		Map<String, String> passThroughParam = param.getPassThroughParams();
-    		
-    		String SourceStorageSystemId = passThroughParam.get("storage-system");
-    		String SourceStoragePortId = passThroughParam.get("storage-pool");
-    		String vplexId=passThroughParam.get("VPlex-Id");
-    		
-    		if (SourceStorageSystemId ==null  || SourceStoragePortId == null || vplexId == null){
-                throw APIException.badRequests.parameterIsNullOrEmpty("passThroughParam");
-    		}
-    		
-    		String task = UUID.randomUUID().toString();
             TaskList taskList = createSkinyVolumeTaskList(param.getSize(), param.getName(), task, param.getCount(),project, varray , vpool);
-    		
-            ArrayList<String> requestedTypes = new ArrayList<String>();
-            // call thread that does the work.
-		_log.info("Calling Thread that does the work, from inside VPlex passThroughParam");
-            CreateVolumeSchedulingThread.executeSkinyApiTask(this, _asyncTaskService.getExecutorService(), _dbClient, taskList, task, requestedTypes, param, getBlockServiceImpl("default"));
-
-            return taskList;
-            
-            // VPLEX - Distributed
-    		//if(param.getPassThroughParams().isDistributed()){
-    		//	String TargetStorageSystemId = passThroughParam.get("target-storage-system");
-    		//	String TargetStoragePoolId = passThroughParam.get("target-storage-pool");
-    		//	if (SourceStorageSystemId ==null  || SourceStoragePortId == null){
-    		//		throw APIException.badRequests.parameterIsNullOrEmpty("passThroughParam");
-    		//	}
-    		//}
-    		
-    	}
-    	
-    	//Direct-Volume
-    	if (param.getPassThroughParams() != null && !param.getPassThroughParams().isEmpty()){
-
-                Map<String, String> passThroughParam = param.getPassThroughParams();
-
-                String storageSystemId=passThroughParam.get ("storage-system");
-                String storagePortId=passThroughParam.get ("storage-pool");
-
-                if (storageSystemId ==null  || storagePortId == null ){
-                         throw APIException.badRequests.parameterIsNullOrEmpty("passThroughParam");
-                }
-
-
-
-            String task = UUID.randomUUID().toString();
-            TaskList taskList = createSkinyVolumeTaskList(param.getSize(), param.getName(), task, param.getCount(), project, varray , vpool);
 
             ArrayList<String> requestedTypes = new ArrayList<String>();
             // call thread that does the work.
@@ -930,8 +850,8 @@ public class BlockService extends TaskResourceService {
 
 
         }
-
-        VirtualPoolCapabilityValuesWrapper capabilities = new VirtualPoolCapabilityValuesWrapper();
+        
+    	VirtualPoolCapabilityValuesWrapper capabilities = new VirtualPoolCapabilityValuesWrapper();
         // Get the count indicating the number of volumes to create. If not
         // passed
         // assume 1. Then get the volume placement recommendations.

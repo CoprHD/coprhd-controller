@@ -1382,14 +1382,14 @@ public abstract class VirtualPoolService extends TaggedResource {
         ArgValidator.checkUri(id);
         VirtualPool vpool = queryResource(id);
         ArgValidator.checkEntity(vpool, id, isIdEmbeddedInURL(id));
-
+        StringBuffer errorMessage = new StringBuffer();
         List<URI> storagePoolURIs = _dbClient.queryByType(StoragePool.class, true);
         List<StoragePool> allPools = _dbClient.queryObject(StoragePool.class, storagePoolURIs);
         List<StoragePool> matchedPools = ImplicitPoolMatcher.getMatchedPoolWithStoragePools(vpool, allPools,
                 null,
                 null,
                 null,
-                _dbClient, _coordinator, AttributeMatcher.VPOOL_MATCHERS);
+                _dbClient, _coordinator, AttributeMatcher.VPOOL_MATCHERS, errorMessage);
         
         StoragePoolRecommendations to = new StoragePoolRecommendations();
         return toPoolRecommendation("source_data", matchedPools, to);

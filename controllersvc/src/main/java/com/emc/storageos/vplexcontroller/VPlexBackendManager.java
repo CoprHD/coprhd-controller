@@ -155,6 +155,33 @@ public class VPlexBackendManager {
         this._coordinator = coordinator;
     }
 
+	    /**
+     * This class is not used as a bean. Rather when VPlexDeviceController needs to adjust the
+     * back ExportMasks on an array, it instantiates an instance of this class to do the work.
+     * 
+     * @param dbClient
+     * @param vplexDeviceController
+     * @param blockDeviceController
+     * @param blockStorageScheduler
+     * @param networkDeviceController
+     * @param projectURI
+     * @param tenantURI
+     * @param vplexApiLockManager
+     */
+    public VPlexBackendManager(DbClient dbClient, VPlexDeviceController vplexDeviceController,
+            BlockDeviceController blockDeviceController,
+            BlockStorageScheduler blockStorageScheduler, NetworkDeviceController networkDeviceController,
+            URI projectURI, URI tenantURI, VPlexApiLockManager vplexApiLockManager) {
+        this._dbClient = dbClient;
+        this._vplexDeviceController = vplexDeviceController;
+        this._blockDeviceController = blockDeviceController;
+        this._blockStorageScheduler = blockStorageScheduler;
+        this._networkDeviceController = networkDeviceController;
+        this._projectURI = projectURI;
+        this._tenantURI = tenantURI;
+        this._vplexApiLockManager = vplexApiLockManager;
+    }
+	
     /**
      * Find the orchestrator to use for a specific array type.
      * 
@@ -1306,7 +1333,8 @@ public class VPlexBackendManager {
             Map<String, Map<URI, Set<Initiator>>> initiatorGroup = igIterator.next();
 	    _log.info("IN VplexBackendManager.generateExportMasks 4 initiatorGroup : {}", initiatorGroup);
 	    _log.info("IN VplexBackendManager.generateExportMasks 5 initiatorGroup : {}",initiatorGroup.toString());
-            StringSetMap zoningMap = orca.configureZoning(portGroup, initiatorGroup, _networkMap, assigner);
+            StringSetMap zoningMap = orca.configureZoning(portGroup, initiatorGroup, _networkMap, assigner,
+            		initiatorSwitchMap, switchStoragePortsMap, portSwitchMap);
             ExportMask exportMask = generateExportMask(array.getId(), maskName, portGroup, initiatorGroup, zoningMap);
 
             // Set a flag indicating that we do not want to remove zoningMap entries
@@ -1648,7 +1676,7 @@ public class VPlexBackendManager {
             // No necessary to skip here for Openstack, as cinder backend orchestrator returns the empty set
 	    if (varrayURI == null){
             if (VPlexBackEndOrchestratorUtil.validateExportMaskDirect(networkURIs, _initiatorPortMap, mask, invalidMasks,            
-                    _directorToInitiatorIds, _idToInitiatorMap, _dbClient, _coordinator, _portWwnToClusterMap)) {
+                    _directorToInitiatorIds, _idToInitiatorMap, _dbClient, _portWwnToClusterMap)) {
                 if (mask.getCreatedBySystem()) {
                     viprCreatedMasks = true;
                 } else {
@@ -1657,7 +1685,7 @@ public class VPlexBackendManager {
             }
 		}else {
 		if (VPlexBackEndOrchestratorUtil.validateExportMask(varrayURI, _initiatorPortMap, mask, invalidMasks,
-                    _directorToInitiatorIds, _idToInitiatorMap, _dbClient, _portWwnToClusterMap)) {
+                    _directorToInitiatorIds, _idToInitiatorMap, _dbClient, _coordinator, _portWwnToClusterMap)) {
                 if (mask.getCreatedBySystem()) {
                     viprCreatedMasks = true;
                 } else {

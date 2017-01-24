@@ -104,7 +104,7 @@ public class BlockDeviceExportController implements BlockExportController {
     		passThroughFlag = true;
     		opId = opId.substring(0, opId.length() - 6);
     	}
-        ExportTaskCompleter taskCompleter = new ExportCreateCompleter(export, opId);
+        ExportTaskCompleter taskCompleter = new ExportCreateCompleter(export, volumeMap, opId);
         Workflow workflow = null;
         try {
             // Do some initial sanitizing of the export parameters
@@ -136,18 +136,18 @@ public class BlockDeviceExportController implements BlockExportController {
                 waitFor = protectionController.addStepsForExportGroupCreate(workflow, null, waitFor, export, objectsToAdd, entry.getKey(),
                         initiatorURIs);
 
-                if (!objectsToAdd.isEmpty()) {
+					if (!objectsToAdd.isEmpty()) {
                     // There are no export BlockObjects tied to the current storage system that have an associated protection
                     // system. We can just create a step to call the block controller directly for export group create.
-                    _log.info(String.format(
+						_log.info(String.format(
                             "Generating exportGroupCreates steps for objects %s associated with storage system [%s]",
                             objectsToAdd, entry.getKey()));
-                _wfUtils.
+						_wfUtils.
                             generateExportGroupCreateWorkflow(workflow, null, waitFor,
                                     entry.getKey(), export, objectsToAdd, initiatorURIs);
-            }
-            }
-
+					}
+				}
+			}
             workflow.executePlan(taskCompleter, "Exported to all devices successfully.");
         } catch (Exception ex) {
             String message = "exportGroupCreate caught an exception.";

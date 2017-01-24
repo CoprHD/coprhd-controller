@@ -81,6 +81,7 @@ public class VolumeDescriptor implements Serializable {
     public static final String PARAM_VPOOL_CHANGE_OLD_VPOOL_ID = "vpoolChangeOldVpoolId";
     public static final String PARAM_IS_COPY_SOURCE_ID = "isCopySourceId";
     public static final String PARAM_DO_NOT_DELETE_VOLUME = "doNotDeleteVolume";
+	public static String PARAM_VPLEX_BE_NETWORKS = "vplexBENetworks";
     public static final String PARAM_MIGRATION_SUSPEND_BEFORE_COMMIT = "migrationSuspendBeforeCommit";
     public static final String PARAM_MIGRATION_SUSPEND_BEFORE_DELETE_SOURCE = "migrationSuspendBeforeDeleteSource";
 

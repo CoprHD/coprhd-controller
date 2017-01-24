@@ -966,6 +966,32 @@ public class StoragePortsAllocator {
         return rule17Directors.isEmpty();
     }
 
+    /**
+     * Get the name of a SAN switch that is connected to this StoragePort.
+     * Return null if no SAN switches are connected to this StoragePort.
+     * 
+     * @param port
+     * @param dbClient
+     * @return
+     */
+    public String getSwitchName(StoragePort port, DbClient dbClient) {
+        URIQueryResultList uriList = new URIQueryResultList();
+        dbClient.queryByConstraint(
+                AlternateIdConstraint.Factory
+                        .getFCEndpointRemotePortNameConstraint(port
+                                .getPortNetworkId()), uriList);
+        for (URI uri : uriList) {
+            FCEndpoint endpoint = dbClient.queryObject(FCEndpoint.class, uri);
+            if (endpoint.getSwitchName() != null) {
+                // Return the switch name if it is known.
+                if (endpoint.getAwolCount() == 0) {
+                    return endpoint.getSwitchName();
+                }
+            }
+        }
+        return null;
+    }
+
     
     PortAllocationContext context = null;
 
@@ -1048,10 +1074,10 @@ public class StoragePortsAllocator {
      * @throws PlacementException if not enough ports are allocated
      */
     public List<StoragePort> selectPassThroughStoragePorts(DbClient dbClient,
-            Map<StoragePort, Long> sportMap, NetworkLite net, Integer numPorts,
+            Map<StoragePort, Long> sportMap, NetworkLite net, int numPorts,
             Set<StoragePort> previouslyAllocatedPorts, boolean allowFewerPorts) throws PlacementException {
 
-        if (numPorts == null || numPorts <= 0)
+        if (IfNumPortsNull(numPorts) || numPorts <= 0)
         {
             numPorts = 2; // Default value if too low
         }
@@ -1077,62 +1103,22 @@ public class StoragePortsAllocator {
                     switchName, usage);
         }
         List<StoragePort> portUris = allocator.allocatePortsForNetwork(numPorts,
-                ctx, checkConnectivity, previouslyAllocatedPorts, allowFewerPorts);
+                ctx, checkConnectivity, previouslyAllocatedPorts, allowFewerPorts, null);
         context = ctx; // save context for next TZ
         return portUris;
     }
-    
+
     /**
-     * This code is only called in the kernel code path, not in the testing code
-     * path.
-     * 
-     * @param dbClient
-     *            -- The Cassandra client.
-     * @param spList
-     *            -- A list of StoragePorts in this Transport Zone
-     * @param net
-     *            The Network itself.
+     * Method to check whether the passed param 'numPorts' is Null
      * @param numPorts
-     *            The number of ports requested to be allocated.
-     * @param allowFewerPorts
-     *            If set, allow fewer ports to be allocated than numPorts requested.
      * @return
-     * @throws PlacementException if not enough ports are allocated
      */
-    public List<StoragePort> selectPassThroughStoragePorts(DbClient dbClient,
-            Map<StoragePort, Long> sportMap, NetworkLite net, Integer numPorts,
-            Set<StoragePort> previouslyAllocatedPorts, boolean allowFewerPorts) throws PlacementException {
-
-        if (numPorts == null || numPorts <= 0)
-        {
-            numPorts = 2; // Default value if too low
-        }
-        // Determine if we should check connectivity from the Network's varray.auto_san_zoning
-        boolean checkConnectivity = true;
-        
-        // Find all the StoragePorts in the StorageArray
-        StoragePortsAllocator allocator = new StoragePortsAllocator();
-        PortAllocationContext ctx = null;
-        for (StoragePort sp : sportMap.keySet()) {
-            StorageHADomain haDomain = null;
-            if (sp.getStorageHADomain() != null) {
-                haDomain = dbClient.queryObject(StorageHADomain.class, sp.getStorageHADomain());
-            }
-            StorageSystem storageSystem = dbClient.queryObject(StorageSystem.class, sp.getStorageDevice());
-            String switchName = getSwitchName(sp, dbClient);
-            if (ctx == null) {
-                // Initialize context with Network, StorageSystem name, previous context.
-                ctx = new PortAllocationContext(net, storageSystem.getNativeGuid(), context);
-            }
-            Long usage = sportMap.get(sp);
-            ctx.addPort(sp, haDomain, StorageSystem.Type.valueOf(storageSystem.getSystemType()),
-                    switchName, usage);
-        }
-        List<StoragePort> portUris = allocator.allocatePortsForNetwork(numPorts,
-                ctx, checkConnectivity, previouslyAllocatedPorts, allowFewerPorts);
-        context = ctx; // save context for next TZ
-        return portUris;
-    }
+    private boolean IfNumPortsNull(Integer numPorts) {
+		if(numPorts == null){
+			return true;
+		}
+		return false;
+	}
 
     /**
      * Adds a list of Storage Ports to the context _alreadyAllocatedXXX sets.

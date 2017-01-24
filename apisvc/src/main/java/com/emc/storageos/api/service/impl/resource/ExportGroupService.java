@@ -341,17 +341,6 @@ public class ExportGroupService extends TaskResourceService {
             validateBlockObjectNativeId(addVolumeURIs);
         }
 
-
-
-        // Validate the project and check its permissions
-        Project project = queryObject(Project.class, param.getProject(), true);
-        StorageOSUser user = getUserFromContext();
-        if (!(_permissionsHelper.userHasGivenRole(user, project.getTenantOrg().getURI(), Role.TENANT_ADMIN) || _permissionsHelper
-                .userHasGivenACL(user, project.getId(), ACL.OWN, ACL.ALL))) {
-            throw APIException.forbidden.insufficientPermissionsForUser(user.getName());
-        }
-
-
         validateBlockSnapshotsForExportGroupCreate(param);
 
         // prepare the export group object
@@ -1273,6 +1262,7 @@ public class ExportGroupService extends TaskResourceService {
             Collection<URI> storageSystems, List<URI> clusters, List<URI> hosts, List<URI> initiators, Collection<URI> volumes, ExportPathParameters pathParam) {
         List<URI> allInitiators = new ArrayList<URI>();
         List<URI> allHosts = new ArrayList<URI>();
+        Set<URI> allSetInitiators;
         if (initiators != null && !initiators.isEmpty()) {
             List<Initiator> temp = new ArrayList<Initiator>();
             Set<URI> initiatorsHost = new HashSet<URI>(1);
@@ -1310,9 +1300,9 @@ public class ExportGroupService extends TaskResourceService {
             validatePassThroughPortAssignmentOnStorageSystems(storageSystems,
                     exportGroup, allInitiators, volumes, pathParam);
         }
-
+        allSetInitiators = new HashSet<>(allInitiators);
         // Validate the Host Operating Systems
-        validateInitiatorHostOS(allInitiators);
+        validateInitiatorHostOS(allSetInitiators);
         _log.info("All clients were found to be valid.");
         // now set the initiators to the export group before saving it
         exportGroup.setInitiators(StringSetUtil.uriListToStringSet(allInitiators));

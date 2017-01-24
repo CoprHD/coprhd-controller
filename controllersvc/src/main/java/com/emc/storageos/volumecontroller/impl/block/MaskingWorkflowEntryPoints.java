@@ -145,7 +145,7 @@ public class MaskingWorkflowEntryPoints implements Controller {
                     .queryObject(StorageSystem.class, storageURI);
 
             ExportGroup eg = _dbClient.queryObject(ExportGroup.class, exportGroupURI);
-            getDevice(storage).doExportGroupCreate(storage, exportMask, volumeMap,
+            getDevice(storage).doExportCreate(storage, exportMask, volumeMap,
                     initiators, targets, taskCompleter);
 
             _log.info(String.format("%s end", call));

@@ -581,9 +581,12 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 StorageSystem vplexSystem = getDataObject(StorageSystem.class, vplexURI, _dbClient);
 
                 // Build some needed maps to get started.
-		_log.info("In VPlexDevice.addStepsForCreateVolumes, vplexSystem ->{}  volDescriptors -> {}",vplexSystem,volDescriptors);
-                Map<URI, StorageSystem> arrayMap = buildArrayMap(vplexSystem, volDescriptors, Type.BLOCK_DATA);
+				Type[] types = new Type[] { Type.BLOCK_DATA, Type.SRDF_SOURCE, Type.SRDF_EXISTING_SOURCE, Type.SRDF_TARGET };
+                Map<URI, StorageSystem> arrayMap = buildArrayMap(vplexSystem, volDescriptors, types);
                 Map<URI, Volume> volumeMap = buildVolumeMap(vplexSystem, volDescriptors, Type.VPLEX_VIRT_VOLUME);
+		_log.info("In VPlexDevice.addStepsForCreateVolumes, vplexSystem ->{}  volDescriptors -> {}",vplexSystem,volDescriptors);
+                //Map<URI, StorageSystem> arrayMap = buildArrayMap(vplexSystem, volDescriptors, Type.BLOCK_DATA);
+                //Map<URI, Volume> volumeMap = buildVolumeMap(vplexSystem, volDescriptors, Type.VPLEX_VIRT_VOLUME);
 		_log.info("Inside, VPlexDC.addStepsforCV,,, volumeMap-> {}",volumeMap);
                 Map<URI, List<URI>> networkMap = null;
                 Map<Volume, List<URI>> volumeNetworkMap = new HashMap<Volume,List<URI>>();
@@ -633,7 +636,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 		    }else {
 
                     lastStep = createWorkflowStepsForBlockVolumeExport(workflow, vplexSystem, arrayMap,
-                            volumeMap, vplexProject.getId(), tenantURI, lastStep);
+                            volumeMap, projectURI, tenantURI, lastStep);
 		     }
                 } catch (Exception ex) {
                     _log.error("Could not create volumes for vplex: " + vplexURI, ex);

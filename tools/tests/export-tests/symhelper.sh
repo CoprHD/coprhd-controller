@@ -263,7 +263,7 @@ verify_export() {
 	failed=true
     fi
 
-    if [ "${HLUS}" != "none" ]; then
+    if [ -n "${HLUS}" ]; then
         hlu_arr=(${HLUS//,/ })
         if [  "${hlus[*]}" != "${hlu_arr[*]}" ]; then
             echo -e "\e[91mERROR\e[0m: Export group HLUs: Expected: ${hlu_arr[*]} Retrieved: ${hlus[*]}";
@@ -280,7 +280,7 @@ verify_export() {
 	exit 1;
     fi
 
-    if [ "${HLUS}" != "none" ]; then
+    if [ -n "${HLUS}" ]; then
         echo "PASSED: MaskingView '$1' contained $2 initiators and $3 luns with HLUs $4"
     else
         echo "PASSED: MaskingView '$1' contained $2 initiators and $3 luns"

@@ -8,7 +8,7 @@
 # Script to help manage storage system outside of ViPR.
 # Used to perform various operations.
 #
-# Usage: ./vplexhelper.sh verify-export <NAME_PATTERN> <NUMBER_OF_INITIATORS_EXPECTED> <NUMBER_OF_LUNS_EXPECTED>
+# Usage: ./vplexhelper.sh verify_export <NAME_PATTERN> <NUMBER_OF_INITIATORS_EXPECTED> <NUMBER_OF_LUNS_EXPECTED>
 #        ./vplexhelper.sh add_volume_to_mask <DEVICE_ID> <NAME_PATTERN>
 #        ./vplexhelper.sh remove_volume_from_mask <DEVICE_ID> <NAME_PATTERN>
 #        ./vplexhelper.sh delete_volume <DEVICE_ID>

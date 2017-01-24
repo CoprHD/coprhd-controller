@@ -493,26 +493,6 @@ public class ExportUtils {
             for (ExportGroup exportGroup : exportGroups) {
                 // Remove this mask from the export group
                 exportGroup.removeExportMask(exportMask.getId().toString());
-
-                // Remove the volumes from the export group
-                if (exportMask.getUserAddedVolumes() != null) {
-                    Set<URI> removeSet = new HashSet<>();
-                    TreeMultimap<String, URI> volumesToExportMasks =
-                            buildVolumesToExportMasksMap(dbClient, exportGroup);
-                    for (String volumeURIString : exportMask.getUserAddedVolumes().values()) {
-                        // Should only remove those volumes in the ExportGroup that are not already in another
-                        // ExportMask associated with the ExportGroup. For example, if there is an ExportGroup
-                        // for a cluster, there could be an ExportMask for each host, which could have the volume.
-                        // In that case, we do not want to remove the volume from the ExportGroup
-                        if (!volumeIsInAnotherExportMask(exportMask, volumeURIString, volumesToExportMasks)) {
-                            URI volumeURI = URI.create(volumeURIString);
-                            removeSet.add(volumeURI);
-                        }
-                    }
-                    // We do not need to remove volume reference from EG from here as ExportGroupUpdateCompleter will do the same.
-                    // List<URI> volumeURIs = new ArrayList<>(removeSet);
-                    // exportGroup.removeVolumes(volumeURIs);
-                }
             }
 
             // Update all of the export groups in the DB
@@ -626,6 +606,32 @@ public class ExportUtils {
             }
         }
         return sharedExportMaskNameList;
+    }
+
+    /**
+     * Check if initiator is used by multiple masks of same storage array
+     *
+     * @param dbClient DbClient
+     * @param mask ExportMask
+     * @initiatorUri URI of initiator
+     * @return true if shared by multiple masks, otherwise false
+     */
+    public static boolean isInitiatorSharedByMasks(DbClient dbClient, ExportMask mask, URI initiatorUri) {
+        URI storageUri = mask.getStorageDevice();
+        if (NullColumnValueGetter.isNullURI(storageUri)) {
+            return false;
+        }
+
+        List<ExportMask> results =
+                CustomQueryUtility.queryActiveResourcesByConstraint(dbClient, ExportMask.class,
+                        ContainmentConstraint.Factory.getConstraint(ExportMask.class, "initiators", initiatorUri));
+        for (ExportMask exportMask : results) {
+            if (exportMask != null && !exportMask.getId().equals(mask.getId()) && storageUri.equals(exportMask.getStorageDevice())) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     static public int getNumberOfExportGroupsWithVolume(Initiator initiator, URI blockObjectId, DbClient dbClient) {

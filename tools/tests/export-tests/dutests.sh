@@ -18,9 +18,9 @@
 #   Download the tar file for Linux, untar, run seinstall -install
 # - The provider host should allow for NOSECURE SYMAPI REMOTE access. See https://asdwiki.isus.emc.com:8443/pages/viewpage.action?pageId=28778911 for more information.
 #
-# Requirements for XtremIO and VPLEX:
+# Requirements for XtremIO, Unity and VPLEX:
 # -----------------------------------
-# - XIO and VPLEX testing requires the ArrayTools.jar file.  For now, see Bill, Tej, or Nathan for this file.
+# - XIO, Unity and VPLEX testing requires the ArrayTools.jar file.  For now, see Bill, Tej, or Nathan for this file.
 # - These platforms will create a tools.yml file that the jar file will use based on variables in sanity.conf
 #
 #set -x
@@ -38,6 +38,8 @@ DUTEST_DEBUG=${DUTEST_DEBUG:-0}
 
 SANITY_CONFIG_FILE=""
 : ${USE_CLUSTERED_HOSTS=1}
+
+SERIAL_NUMBER="XX.XX.XX"
 
 # ============================================================
 # Check if there is a sanity configuration file specified
@@ -57,6 +59,7 @@ get_masking_view_name() {
     no_host_name=0
     export_name=$1
     host_name=$2
+    get_vipr_name=$3
 
     if [ "$host_name" = "-x-" ]; then
         # The host_name parameter is special, indicating no hostname, so
@@ -79,6 +82,18 @@ get_masking_view_name() {
 	masking_view_name="${cluster_name_if_any}${host_name}_${SERIAL_NUMBER: -3}"
     elif [ "$SS" = "xio" ]; then
         masking_view_name=$host_name
+    elif [ "$SS" = "unity" ]; then
+        if [ "${get_vipr_name}" != "true" ]; then
+	    if [ "$host_name" = "$HOST1" ]; then
+                masking_view_name="$H1ID"
+	    elif [ "$host_name" = "$HOST2" ]; then
+                masking_view_name="$H2ID"
+	    elif [ "$host_name" = "$HOST3" ]; then
+                masking_view_name="$H3ID"
+	    fi
+	else
+	    masking_view_name="${cluster_name_if_any}${host_name}_${SERIAL_NUMBER: -3}"
+	fi
     elif [ "$SS" = "vplex" ]; then
         # TODO figure out how to account for vplex cluster (V1_ or V2_)
         # also, the 3-char serial number suffix needs to be based on actual vplex cluster id,
@@ -103,7 +118,7 @@ verify_export() {
 
     masking_view_name=`get_masking_view_name ${export_name} ${host_name}`
 
-    arrayhelper verify_export ${SERIAL_NUMBER} ${masking_view_name} $*
+    arrayhelper verify_export ${SERIAL_NUMBER} "${masking_view_name}" $*
     if [ $? -ne "0" ]; then
 	if [ -f ${CMD_OUTPUT} ]; then
 	    cat ${CMD_OUTPUT}
@@ -123,7 +138,7 @@ verify_maskname() {
     export_name=$1
     host_name=$2
 
-    masking_view_name=`get_masking_view_name ${export_name} ${host_name}`
+    masking_view_name=`get_masking_view_name ${export_name} ${host_name} true`
 
     maskname=$(/opt/storageos/bin/dbutils list ExportMask | grep maskName | grep ${masking_view_name} | awk -e ' { print $3; }')
 
@@ -156,25 +171,25 @@ arrayhelper() {
 	device_id=$3
         pattern=$4
 	masking_view_name=`get_masking_view_name no-op ${pattern}`
-	arrayhelper_volume_mask_operation $operation $serial_number $device_id $masking_view_name
+	arrayhelper_volume_mask_operation $operation $serial_number $device_id "$masking_view_name"
 	;;
     remove_volume_from_mask)
 	device_id=$3
         pattern=$4
 	masking_view_name=`get_masking_view_name no-op ${pattern}`
-	arrayhelper_volume_mask_operation $operation $serial_number $device_id $masking_view_name
+	arrayhelper_volume_mask_operation $operation $serial_number $device_id "$masking_view_name"
 	;;
     add_initiator_to_mask)
 	pwwn=$3
         pattern=$4
 	masking_view_name=`get_masking_view_name no-op ${pattern}`
-	arrayhelper_initiator_mask_operation $operation $serial_number $pwwn $masking_view_name
+	arrayhelper_initiator_mask_operation $operation $serial_number $pwwn "$masking_view_name"
 	;;
     remove_initiator_from_mask)
 	pwwn=$3
         pattern=$4
 	masking_view_name=`get_masking_view_name no-op ${pattern}`
-	arrayhelper_initiator_mask_operation $operation $serial_number $pwwn $masking_view_name
+	arrayhelper_initiator_mask_operation $operation $serial_number $pwwn "$masking_view_name"
 	;;
     create_export_mask)
         device_id=$3
@@ -200,7 +215,7 @@ arrayhelper() {
     verify_export)
 	masking_view_name=$3
 	shift 3
-	arrayhelper_verify_export $operation $serial_number $masking_view_name $*
+	arrayhelper_verify_export $operation $serial_number "$masking_view_name" $*
 	;;
     *)
         echo -e "\e[91mERROR\e[0m: Invalid operation $operation specified to arrayhelper."
@@ -254,6 +269,9 @@ arrayhelper_volume_mask_operation() {
     xio)
          runcmd xiohelper.sh $operation $device_id $pattern
 	 ;;
+    unity)
+         runcmd vnxehelper.sh $operation $device_id "$pattern"
+         ;;
     vplex)
          runcmd vplexhelper.sh $operation $device_id $pattern
 	 ;;
@@ -284,6 +302,9 @@ arrayhelper_initiator_mask_operation() {
     xio)
          runcmd xiohelper.sh $operation $pwwn $pattern
 	 ;;
+    unity)
+         runcmd vnxehelper.sh $operation "$pwwn" "$pattern"
+         ;;
     vplex)
          runcmd vplexhelper.sh $operation $pwwn $pattern
 	 ;;
@@ -313,6 +334,9 @@ arrayhelper_delete_volume() {
     xio)
          runcmd xiohelper.sh $operation $device_id
 	 ;;
+    unity)
+         runcmd vnxehelper.sh $operation $device_id
+         ;;
     vplex)
          runcmd vplexhelper.sh $operation $device_id
 	 ;;
@@ -364,6 +388,9 @@ arrayhelper_delete_mask() {
     xio)
          runcmd xiohelper.sh $operation $pattern
 	 ;;
+    unity)
+         runcmd vnxehelper.sh $operation "$pattern"
+         ;;
     vplex)
          runcmd vplexhelper.sh $operation $pattern
 	 ;;
@@ -393,6 +420,9 @@ arrayhelper_verify_export() {
     xio)
          runcmd xiohelper.sh $operation $masking_view_name $*
 	 ;;
+    unity)
+         runcmd vnxehelper.sh $operation "$masking_view_name" $*
+         ;;
     vplex)
          runcmd vplexhelper.sh $operation $masking_view_name $*
 	 ;;
@@ -659,13 +689,12 @@ run() {
 
 # A method to run a command that continues on failure.
 runcmd() {
-    cmd=$*
-    echo === $cmd
+    echo === $@
     rm -f ${CMD_OUTPUT}
     if [ "${HIDE_OUTPUT}" = "" -o "${HIDE_OUTPUT}" = "1" ]; then
-	$cmd &> ${CMD_OUTPUT}
+	"$@" &> ${CMD_OUTPUT}
     else
-	$cmd 2>&1
+	"$@" 2>&1
     fi
     if [ $? -ne 0 ]; then
 	if [ -f ${CMD_OUTPUT} ]; then
@@ -722,6 +751,13 @@ setup_yaml() {
 	rm $tools_file
     fi
 
+    if [ "${SS}" = "unity" ]; then
+        echo "Creating ${tools_file}"
+        touch $tools_file
+        printf 'array:\n  %s:\n  - ip: %s:%s\n    username: %s\n    password: %s' "${SS}" "$UNITY_IP" "$UNITY_PORT" "$UNITY_USER" "$UNITY_PW" >> $tools_file
+        return
+    fi
+
     if [ "${storage_password}" = "" ]; then
 	echo "storage_password is not set.  Cannot make a valid tools.yml file without a storage_password"
 	exit;
@@ -730,6 +766,8 @@ setup_yaml() {
     sstype=${SS:0:3}
     if [ "${SS}" = "xio" ]; then
 	sstype="xtremio"
+    elif [ "${SS}" = "unity" ]; then
+        sstype="unity"
     fi
 
     # create the yml file to be used for array tooling
@@ -781,7 +819,7 @@ login() {
 
 prerun_setup() {
     # Convenience, clean up known artifacts
-    cleanup_previous_run_artifacts
+    #cleanup_previous_run_artifacts
 
     # Check if we have the most recent version of preExistingConfig.jar
     DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
@@ -796,31 +834,46 @@ prerun_setup() {
     fi
 
     echo "Seeing if there's an existing base of volumes"
-    BASENUM=`volume list ${PROJECT} | grep YES | head -1 | awk '{print $1}' | awk -Fp '{print $2}' | awk -F- '{print $1}'`
-    if [ "${BASENUM}" != "" ]
-    then
-       echo "Volumes were found!  Base number is: ${BASENUM}"
-       VOLNAME=dutestexp${BASENUM}
-       EXPORT_GROUP_NAME=export${BASENUM}
-       HOST1=host1export${BASENUM}
-       HOST2=host2export${BASENUM}
-       CLUSTER=cl${BASENUM}
+    echo "Check if tenant and project exist"
+    isTenantCreated=$(tenant list | grep $TENANT | wc -l)
+    if [ $isTenantCreated -ne 0 ]; then
+        echo "Found tenant $TENANT"
 
-       sstype=${SS:0:3}
-       if [ "${SS}" = "xio" ]; then
-	   sstype="xtremio"
-       fi
+        isProjectCreated=$(project list --tenant $TENANT | grep $PROJECT | wc -l)
+        if [ $isProjectCreated -ne 0 ]; then
+            echo "Found project $PROJECT"
+            BASENUM=`volume list ${PROJECT} | grep YES | head -1 | awk '{print $1}' | awk -Fp '{print $2}' | awk -F- '{print $1}'`
+            if [ "${BASENUM}" != "" ]
+            then
+               echo "Volumes were found!  Base number is: ${BASENUM}"
+               VOLNAME=dutestexp${BASENUM}
+               EXPORT_GROUP_NAME=export${BASENUM}
+               HOST1=host1export${BASENUM}
+               HOST2=host2export${BASENUM}
+               CLUSTER=cl${BASENUM}
 
-       # figure out what type of array we're running against
-       storage_type=`storagedevice list | grep COMPLETE | grep ${sstype} | awk '{print $1}'`
-       echo "Found storage type is: $storage_type"
-       SERIAL_NUMBER=`storagedevice list | grep COMPLETE | grep ${sstype} | awk '{print $2}' | awk -F+ '{print $2}'`
-       echo "Serial number is: $SERIAL_NUMBER"
-       if [ "${storage_type}" = "xtremio" ]
-       then
-	    storage_password=${XTREMIO_3X_PASSWD}
-       fi
+               sstype=${SS:0:3}
+               if [ "${SS}" = "xio" ]; then
+	           sstype="xtremio"
+               fi
 
+               # figure out what type of array we're running against
+               storage_type=`storagedevice list | grep COMPLETE | grep ${sstype} | awk '{print $1}'`
+               echo "Found storage type is: $storage_type"
+               SERIAL_NUMBER=`storagedevice list | grep COMPLETE | grep ${sstype} | awk '{print $2}' | awk -F+ '{print $2}'`
+               echo "Serial number is: $SERIAL_NUMBER"
+               if [ "${storage_type}" = "xtremio" ]
+               then
+                   storage_password=${XTREMIO_3X_PASSWD}
+               elif [ "${storage_type}" = "unity" ]; then
+                   storage_password=${UNITY_PW}
+               fi
+            fi
+        else
+            echo "The project $PROJECT doesn't exist"
+        fi
+    else
+        echo "The tenant $TENANT doesn't exist"
     fi
 
     smisprovider list | grep SIM > /dev/null
@@ -875,6 +928,8 @@ get_device_id() {
 
     if [ "$SS" = "xio" -o "$SS" = "vplex" ]; then
         volume show ${label} | grep device_label | awk '{print $2}' | cut -d '"' -f2
+    elif [ "$SS" = "unity" ]; then
+        volume show ${label} | grep native_id | awk '{print $2}' | cut -d '"' -f2
     else
 	volume show ${label} | grep native_id | awk '{print $2}' | cut -c2-6
     fi
@@ -931,18 +986,31 @@ vnx_setup() {
 
 unity_setup()
 {
+    # do this only once
+    echo "Setting up Unity"
+    storage_password=$UNITY_PW
+    SERIAL_NUMBER=$UNITY_SN
+
+    storagedevice list
+    isSystemCreated=$(storagedevice list | grep $UNITY_SN | wc -l)
+    [ "$isSystemCreated" -gt 1 ] && return
+
+    secho "Discovering Unity ..."
     run discoveredsystem create $UNITY_DEV unity $UNITY_IP $UNITY_PORT $UNITY_USER $UNITY_PW --serialno=$UNITY_SN
+    run storagedevice discover_all
+    sleep 30
+    isSystemCreated=$(storagedevice list | grep $UNITY_SN | wc -l)
+    if [ $isSystemCreated -eq 0 ]; then
+        echo "${UNITY_SN} has not been discovered"
+        exit 1
+    fi
 
     run storagepool update $UNITY_NATIVEGUID --type block --volume_type THIN_AND_THICK
     run transportzone add ${SRDF_VMAXA_VSAN} $UNITY_INIT_PWWN1
     run transportzone add ${SRDF_VMAXA_VSAN} $UNITY_INIT_PWWN2
-    run storagedevice discover_all
 
     setup_varray
-
     common_setup
-
-    SERIAL_NUMBER=`storagedevice list | grep COMPLETE | awk '{print $2}' | awk -F+ '{print $2}'`
     
     run cos create block ${VPOOL_BASE}	\
 	--description Base true                 \
@@ -1439,10 +1507,28 @@ setup() {
     fi
 
     if [ "${SIM}" != "1" ]; then
+        echo "Existing network system list - $(networksystem list)"
         isNetworkDiscovered=$(networksystem list | grep $BROCADE_NETWORK | wc -l)
         if [ $isNetworkDiscovered -eq 0 ]; then
             secho "Discovering Brocade SAN Switch ..."
-            run networksystem create $BROCADE_NETWORK brocade --smisip $BROCADE_IP --smisport 5988 --smisuser $BROCADE_USER --smispw $BROCADE_PW --smisssl false
+	    result=$(networksystem create $BROCADE_NETWORK brocade --smisip $BROCADE_IP --smisport 5988 --smisuser $BROCADE_USER --smispw $BROCADE_PW --smisssl false 2>&1)
+	    isNetworkDiscovered=$(echo $result | grep "Network system discovered" | wc -l)
+            if [ $isNetworkDiscovered -eq 0 ]; then
+                sleep 30
+                isNetworkDiscovered=$(networksystem list | grep $BROCADE_NETWORK | wc -l)
+                if [ $isNetworkDiscovered -eq 0 ]; then
+                    echo $result
+                    exit 1
+                fi
+            fi
+
+            isNetworkDiscovered=$(transportzone listall | (grep ${SRDF_VMAXA_VSAN} || echo ''))
+	    if [ "$isNetworkDiscovered" == '' ]; then
+	        echo "Discovering network"
+	        run networksystem discover $BROCADE_NETWORK
+	        secho "Sleeping 30 seconds..."
+	        sleep 30
+	    fi
         fi
     fi
 
@@ -1493,10 +1579,12 @@ test_0() {
     echot "Test 0 Begins"
     expname=${EXPORT_GROUP_NAME}t0
     verify_export ${expname}1 ${HOST1} gone
+
     runcmd export_group create $PROJECT ${expname}1 $NH --type Host --volspec ${PROJECT}/${VOLNAME}-1 --hosts "${HOST1}"
     verify_export ${expname}1 ${HOST1} 2 1
     # Paranoia check, verify if maybe we picked up an old mask.  Exit if we did.
     verify_maskname  ${expname}1 ${HOST1}
+
     runcmd export_group delete $PROJECT/${expname}1
     verify_export ${expname}1 ${HOST1} gone
     verify_no_zones ${FC_ZONE_A:7} ${HOST1}
@@ -1667,6 +1755,10 @@ test_3() {
         return
     fi
 
+    if [ "$SS" = "unity" ]; then
+        echo "For Unity, we do not delete initiators for export mask delete if there is unknown volume. So skipping this test for Unity."
+        return
+    fi
 
     # Make sure we start clean; no masking view on the array
     verify_export ${expname}1 ${HOST1} gone
@@ -1679,8 +1771,6 @@ test_3() {
 
     # Create the volume and inventory-only delete it so we can use it later.
     HIJACK=du-hijack-volume-${RANDOM}
-
-    # Create another volume that we will inventory-only delete
     runcmd volume create ${HIJACK} ${PROJECT} ${NH} ${VPOOL_BASE} 1GB --count 1
 
     # Get the device ID of the volume we created
@@ -1709,7 +1799,7 @@ test_3() {
 
     # Add the volume to the mask (done differently per array type)
     arrayhelper add_volume_to_mask ${SERIAL_NUMBER} ${device_id} ${HOST1}
-    
+
     # Verify the mask has the new volume in it
     verify_export ${expname}1 ${HOST1} 2 2
 
@@ -1717,6 +1807,11 @@ test_3() {
     runcmd workflow resume $workflow
 
     # Follow the task.  It should fail because of Poka Yoke validation
+    if [ "$SS" = "xio" ]; then
+        echo "For XtremIO, we do not delete initiators for export mask delete. So skipping this test for XIO."
+            return
+    fi
+
     echo "*** Following the export_group delete task to verify it FAILS because of the additional volume"
     fail task follow $task
 
@@ -1760,13 +1855,16 @@ test_4() {
     # Make sure we start clean; no masking view on the array
     verify_export ${expname}1 ${HOST1} gone
 
-    # Create the mask with the 1 volume
+    # Create the mask with the 2 volume
     runcmd export_group create $PROJECT ${expname}1 $NH --type Host --volspec "${PROJECT}/${VOLNAME}-1,${PROJECT}/${VOLNAME}-2" --hosts "${HOST1}"
 
     verify_export ${expname}1 ${HOST1} 2 2
 
     if [ "$SS" != "xio" ]; then
         PWWN=`echo ${H2PI1} | sed 's/://g'`
+        if [ "$SS" = "unity" ]; then
+            PWWN="${H2NI1}:${H2PI1}"
+        fi
 
         # Add another initiator to the mask (done differently per array type)
         arrayhelper add_initiator_to_mask ${SERIAL_NUMBER} ${PWWN} ${HOST1}
@@ -1813,8 +1911,7 @@ test_4() {
     task=${answersarray[0]}
     workflow=${answersarray[1]}
 
-    PWWN=`randwwn | sed 's/://g'`
-
+    PWWN=`getwwn`
     # Add another initiator to the mask (done differently per array type)
     arrayhelper add_initiator_to_mask ${SERIAL_NUMBER} ${PWWN} ${HOST1}
     
@@ -1861,6 +1958,9 @@ test_4() {
     workflow=${answersarray[1]}
 
     PWWN=`echo ${H2PI1} | sed 's/://g'`
+    if [ "$SS" = "unity" ]; then
+        PWWN="${H2NI1}:${H2PI1}"
+    fi
 
     # Add another initiator to the mask (done differently per array type)
     arrayhelper add_initiator_to_mask ${SERIAL_NUMBER} ${PWWN} ${HOST1}
@@ -1926,7 +2026,7 @@ test_5() {
     # Make sure we start clean; no masking view on the array
     verify_export ${expname}1 ${HOST1} gone
 
-    # Create the mask with the 1 volume
+    # Create the mask with 2 volumes
     runcmd export_group create $PROJECT ${expname}1 $NH --type Host --volspec "${PROJECT}/${VOLNAME}-1,${PROJECT}/${VOLNAME}-2" --hosts "${HOST1}"
 
     verify_export ${expname}1 ${HOST1} 2 2
@@ -1953,7 +2053,7 @@ test_5() {
     task=${answersarray[0]}
     workflow=${answersarray[1]}
 
-    PWWN=`randwwn | sed 's/://g'`
+    PWWN=`getwwn`
 
     # Add another initiator to the mask (done differently per array type)
     arrayhelper add_initiator_to_mask ${SERIAL_NUMBER} ${PWWN} ${HOST1}
@@ -1995,7 +2095,10 @@ test_5() {
         workflow=${answersarray[1]}
 
         PWWN=`echo ${H2PI1} | sed 's/://g'`
-    
+        if [ "$SS" = "unity" ]; then
+            PWWN="${H2NI1}:${H2PI1}"
+        fi
+
         # Add another initiator to the mask (done differently per array type)
         arrayhelper add_initiator_to_mask ${SERIAL_NUMBER} ${PWWN} ${HOST1}
     
@@ -2079,7 +2182,7 @@ test_6() {
     # Now remove the volume from the storage group (masking view)
     arrayhelper remove_volume_from_mask ${SERIAL_NUMBER} ${known_device_id} ${HOST1}
 
-    # Verify the mask has the new volume in it
+    # Verify the mask without the new volume in it
     verify_export ${expname}1 ${HOST1} 2 1
 
     # Turn on suspend of export after orchestration
@@ -2307,6 +2410,9 @@ test_8() {
 
     # Strip out colons for array helper command
     h1pi2=`echo ${H1PI2} | sed 's/://g'`
+    if [ "$SS" = "unity" ]; then
+        h1pi2="${H1NI2}:${H1PI2}"
+    fi
 
     # Add another initiator to the mask (done differently per array type)
     arrayhelper add_initiator_to_mask ${SERIAL_NUMBER} ${h1pi2} ${HOST1}
@@ -2610,7 +2716,7 @@ test_12() {
 
 # DU Prevention Validation Test 13
 #
-# Summary: add volume to mask fails after volume added, rollback doesn't remove it because there's another initiator in the mask
+# Summary: add volume to mask fails after volume added, rollback can remove volume it added, even if extra initiator is in mask
 #
 # Basic Use Case for single host, single volume
 # 1. ViPR creates 1 volume, 1 host export.
@@ -2621,10 +2727,10 @@ test_12() {
 # 6. export group update will suspend.
 # 7. Add initiator to the mask.
 # 8. Resume export group update task.  It should fail and rollback
-# 9. Rollback should leave the volume in the mask because there was another initiator we aren't managing in the mask.
+# 9. Rollback should be allowed to remove the volume it added, regardless of the extra initiator.
 #
 test_13() {
-    echot "Test 13: Test rollback of add volume, verify it does not remove volumes when initiator sneaks into mask"
+    echot "Test 13: Test rollback of add volume, verify it can remove its own volumes on rollback when initiator sneaks into mask"
     expname=${EXPORT_GROUP_NAME}t13
 
     # Make sure we start clean; no masking view on the array
@@ -2659,7 +2765,7 @@ test_13() {
     task=${answersarray[0]}
     workflow=${answersarray[1]}
 
-    PWWN=`randwwn | sed 's/://g'`
+    PWWN=`getwwn`
 
     # Add another initiator to the mask (done differently per array type)
     arrayhelper add_initiator_to_mask ${SERIAL_NUMBER} ${PWWN} ${HOST1}
@@ -2674,14 +2780,14 @@ test_13() {
     echo "*** Following the export_group update task to verify it FAILS due to the invoked failure"
     fail task follow $task
 
-    # Verify the mask still has the new volume in it (this will fail if rollback removed it)
-    verify_export ${expname}1 ${HOST1} 3 2
+    # Verify rollback was able to remove the volume it added
+    verify_export ${expname}1 ${HOST1} 3 1
 
     # Remove initiator from the mask (done differently per array type)
     arrayhelper remove_initiator_from_mask ${SERIAL_NUMBER} ${PWWN} ${HOST1}
 
     # Verify the initiator was removed
-    verify_export ${expname}1 ${HOST1} 2 2
+    verify_export ${expname}1 ${HOST1} 2 1
 
     # Delete the export group
     runcmd export_group delete $PROJECT/${expname}1
@@ -2693,7 +2799,7 @@ test_13() {
 
 # DU Prevention Validation Test 14
 #
-# Summary: add initiator to mask fails after initiator added, rollback doesn't remove it because there's another volume in the mask
+# Summary: add initiator to mask fails after initiator added, rollback allowed to remove it even though another volume in the mask
 #
 # Basic Use Case for single host, single volume
 # 1. ViPR creates 1 volume, 1 host export.
@@ -2704,7 +2810,7 @@ test_13() {
 # 6. export group update will suspend.
 # 7. Add external volume to the mask.
 # 8. Resume export group update task.  It should fail and rollback
-# 9. Rollback should leave the initiator in the mask because there was another volume we aren't managing in the mask.
+# 9. Rollback should remove the initiator in the mask that it added even if there's an existing volume in the mask.
 #
 test_14() {
     echot "Test 14: Test rollback of add initiator, verify it does not remove initiators when volume sneaks into mask"
@@ -2768,7 +2874,7 @@ test_14() {
     runcmd workflow resume $workflow
 
     # Follow the task.  It should fail because of Poka Yoke validation
-    echo "*** Following the export_group delete task to verify it FAILS because of the additional volume"
+    echo "*** Following the export_group update task to verify it FAILS because of the additional volume"
     fail task follow $task
 
     # Verify that ViPR rollback removed only the initiator that was previously added
@@ -2847,6 +2953,9 @@ test_15() {
 
     # Strip out colons for array helper command
     h1pi2=`echo ${H1PI2} | sed 's/://g'`
+    if [ "$SS" = "unity" ]; then
+        h1pi2="${H1NI2}:${H1PI2}"
+    fi
 
     # Add another initiator to the mask (done differently per array type)
     arrayhelper add_initiator_to_mask ${SERIAL_NUMBER} ${h1pi2} ${HOST1}
@@ -3065,8 +3174,8 @@ test_17() {
     echo "*** Following the export_group delete task to verify it PASSES because validation is disabled"
     runcmd task follow $task
 
-    if [ "${SS}" = "xio" ]; then
-        # XIO will still protect the lun mapping due to the additional volume, leaving it behind
+    if [ "${SS}" = "xio" -o "${SS}" = "unity" ]; then
+        # XIO/Unity will still protect the lun mapping due to the additional volume, leaving it behind
 	verify_export ${expname}1 ${HOST1} 2 1
 	# Delete the lun mapping and mask
 	arrayhelper remove_volume_from_mask ${SERIAL_NUMBER} ${device_id} ${HOST1}
@@ -3222,7 +3331,7 @@ test_19() {
     task=${answersarray[0]}
     workflow=${answersarray[1]}
 
-    PWWN=`randwwn | sed 's/://g'`
+    PWWN=`getwwn`
 
     # Add another initiator to the mask (done differently per array type)
     arrayhelper add_initiator_to_mask ${SERIAL_NUMBER} ${PWWN} ${HOST1}
@@ -3697,13 +3806,16 @@ test_24() {
 # 6. Cleanup
 #
 test_25() {
+    echot "Test 25: Remove Initiator doesn't remove zones when extra initiators are in it"
+    expname=${EXPORT_GROUP_NAME}t25
+
     if [ "$SS" = "xio" ]; then
         echo "Test 25 is not applicable for XtremIO. Skipping."
         return
+    elif [ "$SS" = "unity" ]; then
+        echo "Test 25 is not applicable for Unity. Skipping."
+        return
     fi
-
-    echot "Test 25: Remove Initiator doesn't remove zones when extra initiators are in it"
-    expname=${EXPORT_GROUP_NAME}t25
 
     # Make sure we start clean; no masking view on the array
     verify_export ${expname}1 ${HOST1} gone
@@ -3725,7 +3837,7 @@ test_25() {
 
     verify_zones ${FC_ZONE_A:7} exists
 
-    PWWN=`randwwn | sed 's/://g'`
+    PWWN=`getwwn`
 
     # Add another initiator to the mask (done differently per array type)
     arrayhelper add_initiator_to_mask ${SERIAL_NUMBER} ${PWWN} ${HOST1}
@@ -3759,35 +3871,450 @@ test_25() {
     verify_no_zones ${FC_ZONE_A:7} ${HOST1}
 }
 
-# pull in the vplextests.sh so it can use the dutests framework
-source vplextests.sh
+# DU Prevention Validation Test 26 (Unity only)
+#
+# Summary: Test remove initiator from one export group
+#
+# Basic Use Case for single host, single export group
+# 1. Create 2 volume, 1 host export
+# 2. Create two snapshots, and add snapsots to the export group
+# 3. Add a new initiator to the host outside of ViPR
+# 4. Remove volume from the export group
+#    should fail
+# 5. Remove the unknown initiator from the host
+# 6. Remove snapshots from the host
+#    should success
+# 7. Remove first volume from the export group
+#    should success
+# 8. Remove second volume from the export group
+#    should success, export mask get deleted in ViPR DB, and host is deleted from array
+# 9. Add unknown initiator to the host again
+# 10. Delete the export group, and create 2 volume, 1 host export
+# 11. Delete export groups
+#     should fail
+# 12. Remove the unknown initiator
+# 13. Delete export group
+#     should success, the host should be deleted
+# 14. Create 2 volume, 2 snapshot, 1 host export
+# 15. Add a volume to the host outside of ViPR
+# 16. Delete export group
+#     should success, the host should not be deleted
+# 17. Create 2 volume, 2 snapshot, 1 host export
+# 18. Remove initiator from the export group
+#     should fail due to the unknown volume
+# 19. Remove the unknow volume from the host
+# 20. Remove an initiator from the export group
+#     should success, it will delete the initiator from host
+# 21. Remove the last initiator from the export group
+#     should success, the export mask is delted in ViPR DB, and the host is deleted from array
+# 22. Clean up
+#
+test_26() {
+    echot "Test 26: Export Group update/delete with one export group per host"
 
-cleanup() {
-    if [ "${docleanup}" = "1" ]; then
-	for id in `export_group list $PROJECT | grep YES | awk '{print $5}'`
-	do
-	  runcmd export_group delete ${id} > /dev/null
-	  echo "Deleted export group: ${id}"
-	done
-	runcmd volume delete --project $PROJECT --wait
+    # Check to make sure we're running Unity only
+    if [ "${SS}" != "unity" ]; then
+        echo "test_26 only runs on Unity. Bypassing for ${SS}."
+        return
     fi
-    echo There were $VERIFY_EXPORT_COUNT export verifications
-    echo There were $VERIFY_EXPORT_FAIL_COUNT export verification failures
+
+    expname=${EXPORT_GROUP_NAME}t26
+
+    # Make sure we start clean; no masking view on the array
+    verify_export ${expname}1 ${HOST1} gone
+
+    # Create the mask with the 2 volume for one project
+    runcmd export_group create $PROJECT ${expname}1 $NH --type Host --volspec "${PROJECT}/${VOLNAME}-1,${PROJECT}/${VOLNAME}-2" --hosts "${HOST1}"
+
+    verify_export ${expname}1 ${HOST1} 2 2
+
+    # Create a snapshot
+    label=${RANDOM}
+    snap_label1=${label}_1
+    snap1=$PROJECT/${VOLNAME}-1/$snap_label1
+    snap_label2=${label}_2
+    snap2=$PROJECT/${VOLNAME}-3/$snap_label2
+
+    runcmd blocksnapshot create $PROJECT/${VOLNAME}-1 ${snap_label1}
+    runcmd volume create ${VOLNAME}-3 ${PROJECT} ${NH} ${VPOOL_BASE} 1GB --count 1
+    runcmd blocksnapshot create $PROJECT/${VOLNAME}-3 ${snap_label2}
+
+    runcmd export_group update $PROJECT/${expname}1 --addVolspec "$snap1","$snap2"
+    verify_export ${expname}1 ${HOST1} 2 4
+
+    PWWN="${H2NI1}:${H2PI1}"
+    # Add another initiator to the host
+    arrayhelper add_initiator_to_mask ${SERIAL_NUMBER} ${PWWN} ${HOST1}
+
+    # Verify the mask has the new initiator in it
+    verify_export ${expname}1 ${HOST1} 3 4
+
+    # Test remove volume
+    fail export_group update $PROJECT2/${expname}1 --remVols "${PROJECT}/${VOLNAME}-1"
+    verify_export ${expname}1 ${HOST1} 3 4
+
+    # Now remove the initiator from the host
+    arrayhelper remove_initiator_from_mask ${SERIAL_NUMBER} ${PWWN} ${HOST1}
+
+    # Verify the mask is back to normal
+    verify_export ${expname}1 ${HOST1} 2 4
+
+    runcmd export_group update $PROJECT/${expname}1 --remVols "$snap1"
+    verify_export ${expname}1 ${HOST1} 2 3
+
+    runcmd export_group update $PROJECT/${expname}1 --remVols "$snap2"
+    verify_export ${expname}1 ${HOST1} 2 2
+
+    runcmd export_group update $PROJECT/${expname}1 --remVols "${PROJECT}/${VOLNAME}-1"
+    verify_export ${expname}1 ${HOST1} 2 1
+
+    runcmd export_group update $PROJECT/${expname}1 --remVols "${PROJECT}/${VOLNAME}-2"
+    verify_export ${expname}1 ${HOST1} gone
+
+    # Create the same export group again
+    runcmd export_group delete $PROJECT/${expname}1
+    runcmd export_group create $PROJECT ${expname}1 $NH --type Host --volspec "${PROJECT}/${VOLNAME}-1,${PROJECT}/${VOLNAME}-2" --hosts "${HOST1}"
+
+    # Verify the mask has the new initiator in it
+    verify_export ${expname}1 ${HOST1} 2 2
+
+    # Add unknown initiator to the host
+    arrayhelper add_initiator_to_mask ${SERIAL_NUMBER} ${PWWN} ${HOST1}
+
+    # Verify the mask has the new initiator in it
+    verify_export ${expname}1 ${HOST1} 3 2
+
+    # Run the export group command. Expect it to fail with validation
+    fail export_group delete $PROJECT/${expname}1
+
+    # Verify the mask wasn't touched
+    verify_export ${expname}1 ${HOST1} 3 2
+
+    # Now remove the initiator from the host
+    arrayhelper remove_initiator_from_mask ${SERIAL_NUMBER} ${PWWN} ${HOST1}
+
+    # Verify the mask is back to normal
+    verify_export ${expname}1 ${HOST1} 2 2
+
+    # Delete export group. Should success, and the host is deleted
+    runcmd export_group delete $PROJECT/${expname}1
+    verify_export ${expname}1 ${HOST1} gone
+
+    # Test delete mask with unknown volume
+    runcmd export_group create ${PROJECT} ${expname}1 $NH --type Host --volspec "${PROJECT}/${VOLNAME}-1,${PROJECT}/${VOLNAME}-2,$snap1,$snap2" --hosts "${HOST1}"
+    verify_export ${expname}1 ${HOST1} 2 4
+
+    # Create the volume and inventory-only delete it so we can use it later
+    HIJACK=du-hijack-volume-${RANDOM}
+    runcmd volume create ${HIJACK} ${PROJECT} ${NH} ${VPOOL_BASE} 1GB --count 1
+
+    # Get the device ID of the volume we created
+    device_id=`get_device_id ${PROJECT}/${HIJACK}`
+
+    runcmd volume delete ${PROJECT}/${HIJACK} --vipronly
+
+    # Add the volume to the mask
+    arrayhelper add_volume_to_mask ${SERIAL_NUMBER} ${device_id} ${HOST1}
+
+    # Verify the mask has the new volume in it
+    verify_export ${expname}1 ${HOST1} 2 5
+
+    runcmd export_group delete $PROJECT/${expname}1
+    verify_export ${expname}1 ${HOST1} 2 1
+
+    # Create the same export group again
+    runcmd export_group create ${PROJECT} ${expname}1 $NH --type Host --volspec "${PROJECT}/${VOLNAME}-1,${PROJECT}/${VOLNAME}-2,$snap1,$snap2" --hosts "${HOST1}"
+    verify_export ${expname}1 ${HOST1} 2 5
+
+    fail export_group update $PROJECT/${expname}1 --remInits ${HOST1}/${H1PI1}
+    verify_export ${expname}1 ${HOST1} 2 5
+
+    # Now remove the volume from the host
+    arrayhelper remove_volume_from_mask ${SERIAL_NUMBER} ${device_id} ${HOST1}
+    verify_export ${expname}1 ${HOST1} 2 4
+
+    runcmd export_group update $PROJECT/${expname}1 --remInits ${HOST1}/${H1PI1}
+    verify_export ${expname}1 ${HOST1} 1 4
+
+    runcmd export_group update $PROJECT/${expname}1 --remInits ${HOST1}/${H1PI2}
+    verify_export ${expname}1 ${HOST1} gone
+
+    # Clean up
+    arrayhelper delete_volume ${SERIAL_NUMBER} ${device_id}
+    runcmd export_group delete $PROJECT/${expname}1
+
+    runcmd blocksnapshot delete $snap1
+    runcmd blocksnapshot delete $snap2
+    runcmd volume delete $PROJECT/${VOLNAME}-3 --wait
 }
 
-# Clean up any exports or volumes from previous runs, but not the volumes you need to run tests
-cleanup_previous_run_artifacts() {
-   for id in `export_group list $PROJECT | grep YES | awk '{print $5}'`
-   do
-      echo "Deleting old export group: ${id}"
-      runcmd export_group delete ${id} > /dev/null
-   done
+# DU Prevention Validation Test 27 (Unity only)
+#
+# Summary: Test remove initiator from one export group, other export group shouldn't be impacted
+#
+# Basic Use Case for single host, multiple export groups
+# 1. Create 2 volume, 1 host export from the first project
+# 2. Create 2 volume, 1 host export with the same host from the second project
+# 3. Add a new initiator to the host outside of ViPR
+# 4. Remove volume from export group 2
+#    should fail
+# 5. Remove the unknown initiator from the host
+# 6. Remove first volume from the export group 2
+#    should success
+# 7. Remove second volume from the export group 2
+#    should success, export mask get deleted in ViPR DB
+# 8. Add unknown initiator to the host again
+# 9. Delete export group 2, and create 2 volume, 1 host export with the same host from the second project
+# 10. Delete export groups
+#     should fail
+# 11. Remove the unknown initiator
+# 12. Delete export group of the second project
+#     should success, the other export group should be untouched
+# 13. Create 2 volume, 1 host export with the same host from the second project
+# 14. Add a volume to the host outside of ViPR
+# 15. Delete export group of the second project
+#     should success, the other export group should be untouched
+# 16. Create 2 volume, 1 host export with the same host from the second project again
+# 17. Remove initiator from either export group
+#     should fail due to the unknown volume
+# 18. Remove the unknow volume from the host
+# 19. Remove an initiator from export group 1
+#     should success, but it will not delete the initiator from host
+# 20. Remove the initiator from the second export group
+#     should success, and the initiator is deleted from the host
+# 21. Remove the last initiator from export group 1
+#     should success, all volumes of the export are unmapped, and the export mask 1 is delted in ViPR DB, but it will not delete the initiator from the host
+# 22. Remove the last initiator from the second export group
+#     should success, the export mask is deleted from ViPR DB, and the host is deleted from array
+# 23. Clean up
+#
+test_27() {
+    echot "Test 27: Export Group update/delete when multiple export groups for one host"
 
-   for id in `volume list ${PROJECT} | grep YES | grep hijack | awk '{print $7}'`
-   do
-      echo "Deleting old volume: ${id}"
-      runcmd volume delete ${id} --wait > /dev/null
-   done
+    # Check to make sure we're running Unity only
+    if [ "${SS}" != "unity" ]; then
+        echo "test_27 only runs on Unity. Bypassing for ${SS}."
+        return
+    fi
+
+    expname=${EXPORT_GROUP_NAME}t27
+    PROJECT2=${PROJECT}2
+
+    isCreated=$(project list --tenant $TENANT | grep ${PROJECT2} | wc -l)
+    if [ $isCreated -ne 0 ]; then
+        echo "Found project $PROJECT2"
+    else
+        run project create ${PROJECT2} --tenant $TENANT
+    fi
+
+    isCreated=$(volume list $PROJECT2 | grep P2${VOLNAME} | wc -l)
+    if [ $isCreated -ne 0 ]; then
+        echo "Found volume in $PROJECT2"
+    else
+        run volume create P2${VOLNAME} ${PROJECT2} ${NH} ${VPOOL_BASE} 1GB --count 2
+    fi
+
+    # Make sure we start clean; no masking view on the array
+    verify_export ${expname}1 ${HOST1} gone
+
+    # Create the mask with the 2 volume for one project
+    runcmd export_group create $PROJECT ${expname}1 $NH --type Host --volspec "${PROJECT}/${VOLNAME}-1,${PROJECT}/${VOLNAME}-2" --hosts "${HOST1}"
+
+    verify_export ${expname}1 ${HOST1} 2 2
+
+    # Create the mask with the 2 volume for another project
+    runcmd export_group create ${PROJECT2} ${expname}2 $NH --type Host --volspec "${PROJECT2}/P2${VOLNAME}-1,${PROJECT2}/P2${VOLNAME}-2" --hosts "${HOST1}"
+
+    verify_export ${expname}1 ${HOST1} 2 4
+
+    PWWN="${H2NI1}:${H2PI1}"
+    # Add another initiator to the host
+    arrayhelper add_initiator_to_mask ${SERIAL_NUMBER} ${PWWN} ${HOST1}
+
+    # Verify the mask has the new initiator in it
+    verify_export ${expname}1 ${HOST1} 3 4
+
+    # Test remove volume
+    fail export_group update $PROJECT2/${expname}2 --remVols "${PROJECT2}/P2${VOLNAME}-1"
+    verify_export ${expname}1 ${HOST1} 3 4
+
+    # Now remove the initiator from the host
+    arrayhelper remove_initiator_from_mask ${SERIAL_NUMBER} ${PWWN} ${HOST1}
+
+    # Verify the mask is back to normal
+    verify_export ${expname}1 ${HOST1} 2 4
+
+    runcmd export_group update $PROJECT2/${expname}2 --remVols "${PROJECT2}/P2${VOLNAME}-1"
+    verify_export ${expname}1 ${HOST1} 2 3
+
+    runcmd export_group update $PROJECT2/${expname}2 --remVols "${PROJECT2}/P2${VOLNAME}-2"
+    verify_export ${expname}1 ${HOST1} 2 2
+
+    # Add unknown initiator to the host
+    arrayhelper add_initiator_to_mask ${SERIAL_NUMBER} ${PWWN} ${HOST1}
+
+    # Verify the mask has the new initiator in it
+    verify_export ${expname}1 ${HOST1} 3 2
+
+    runcmd export_group delete $PROJECT2/${expname}2
+    runcmd export_group create ${PROJECT2} ${expname}2 $NH --type Host --volspec "${PROJECT2}/P2${VOLNAME}-1,${PROJECT2}/P2${VOLNAME}-2" --hosts "${HOST1}"
+    verify_export ${expname}1 ${HOST1} 3 4
+
+    # Run the export group command. Expect it to fail with validation
+    fail export_group delete $PROJECT/${expname}1
+
+    # Verify the mask wasn't touched
+    verify_export ${expname}1 ${HOST1} 3 4
+
+    fail export_group delete $PROJECT2/${expname}2
+
+    # Verify the mask wasn't touched
+    verify_export ${expname}1 ${HOST1} 3 4
+
+    # Now remove the initiator from the host
+    arrayhelper remove_initiator_from_mask ${SERIAL_NUMBER} ${PWWN} ${HOST1}
+
+    # Verify the mask is back to normal
+    verify_export ${expname}1 ${HOST1} 2 4
+
+    # Only volumes of the mask will be removed, other volumes will be untouched
+    runcmd export_group delete $PROJECT2/${expname}2
+    verify_export ${expname}1 ${HOST1} 2 2
+
+    # Test delete mask with unknown volume
+    runcmd export_group create ${PROJECT2} ${expname}2 $NH --type Host --volspec "${PROJECT2}/P2${VOLNAME}-1,${PROJECT2}/P2${VOLNAME}-2" --hosts "${HOST1}"
+    verify_export ${expname}1 ${HOST1} 2 4
+
+    # Create the volume and inventory-only delete it so we can use it later.
+    HIJACK=du-hijack-volume-${RANDOM}
+    runcmd volume create ${HIJACK} ${PROJECT} ${NH} ${VPOOL_BASE} 1GB --count 1
+
+    # Get the device ID of the volume we created
+    device_id=`get_device_id ${PROJECT}/${HIJACK}`
+
+    runcmd volume delete ${PROJECT}/${HIJACK} --vipronly
+
+    # Add the volume to the mask
+    arrayhelper add_volume_to_mask ${SERIAL_NUMBER} ${device_id} ${HOST1}
+
+    # Verify the mask has the new volume in it
+    verify_export ${expname}1 ${HOST1} 2 5
+
+    runcmd export_group delete $PROJECT2/${expname}2
+    verify_export ${expname}1 ${HOST1} 2 3
+
+    # Create export group in project 2 again
+    runcmd export_group create ${PROJECT2} ${expname}2 $NH --type Host --volspec "${PROJECT2}/P2${VOLNAME}-1,${PROJECT2}/P2${VOLNAME}-2" --hosts "${HOST1}"
+    verify_export ${expname}1 ${HOST1} 2 5
+
+    fail export_group update $PROJECT/${expname}1 --remInits ${HOST1}/${H1PI1}
+    verify_export ${expname}1 ${HOST1} 2 5
+
+    fail export_group update $PROJECT2/${expname}2 --remInits ${HOST1}/${H1PI1}
+    verify_export ${expname}1 ${HOST1} 2 5
+
+    # Now remove the volume from the host
+    arrayhelper remove_volume_from_mask ${SERIAL_NUMBER} ${device_id} ${HOST1}
+    verify_export ${expname}1 ${HOST1} 2 4
+
+    runcmd export_group update $PROJECT/${expname}1 --remInits ${HOST1}/${H1PI1}
+    verify_export ${expname}1 ${HOST1} 2 4
+
+    runcmd export_group update $PROJECT2/${expname}2 --remInits ${HOST1}/${H1PI1}
+    verify_export ${expname}1 ${HOST1} 1 4
+
+    runcmd export_group update $PROJECT/${expname}1 --remInits ${HOST1}/${H1PI2}
+    verify_export ${expname}1 ${HOST1} 1 2
+
+    runcmd export_group update $PROJECT2/${expname}2 --remInits ${HOST1}/${H1PI2}
+    verify_export ${expname}1 ${HOST1} gone
+
+    # Clean up
+    arrayhelper delete_volume ${SERIAL_NUMBER} ${device_id}
+    runcmd export_group delete $PROJECT/${expname}1
+    runcmd export_group delete $PROJECT2/${expname}2
+    runcmd volume delete --project $PROJECT2 --wait
+}
+
+# DU Prevention Validation Test 28 (Unity only)
+#
+# Summary: Test remove volume, initiator from host that no longer exists on array
+#
+# Basic Use Case for single host, multiple export groups
+# 1. Create 2 volume, 2 initiator export
+# 2. Delete the host directly from array
+# 3. Remove the first volume
+#    should success
+# 4. Remove the last volume
+#    should success, export mask is deleted in ViPR
+# 5. Create 2 volume, 2 initiator export again
+# 6. Delete the host directly from array
+# 7. Delete the first initiator from ViPR
+#    should success
+# 8. Delete the last initiator from ViPR
+#    should success, export mask is deleted in ViPR
+# 9. Create 2 volume, 2 initiator export again
+# 10. Delete the host directly from array
+# 11. Delete the export group
+#     should success
+#
+test_28() {
+    echot "Test 28: Export Group update/delete with no matched host"
+
+    # Check to make sure we're running Unity only
+    if [ "${SS}" != "unity" ]; then
+        echo "test_28 only runs on Unity. Bypassing for ${SS}."
+        return
+    fi
+
+    expname=${EXPORT_GROUP_NAME}t28
+
+    # Make sure we start clean; no masking view on the array
+    verify_export ${expname}1 ${HOST1} gone
+
+    # Create the mask with 2 volumes
+    runcmd export_group create $PROJECT ${expname}1 $NH --type Host --volspec "${PROJECT}/${VOLNAME}-1,${PROJECT}/${VOLNAME}-2" --hosts "${HOST1}"
+
+    verify_export ${expname}1 ${HOST1} 2 2
+
+    # Now remove the host
+    arrayhelper delete_mask ${SERIAL_NUMBER} ${expname}1 ${HOST1}
+
+    # Verify the host is gone
+    verify_export ${expname}1 ${HOST1} gone
+
+    runcmd export_group update $PROJECT/${expname}1 --remVols "${PROJECT}/${VOLNAME}-1"
+    runcmd export_group update $PROJECT/${expname}1 --remVols "${PROJECT}/${VOLNAME}-2"
+
+    # Create the same export group again
+    runcmd export_group delete $PROJECT/${expname}1
+    runcmd export_group create $PROJECT ${expname}1 $NH --type Host --volspec "${PROJECT}/${VOLNAME}-1,${PROJECT}/${VOLNAME}-2" --hosts "${HOST1}"
+
+    # Verify the mask has the new initiator in it
+    verify_export ${expname}1 ${HOST1} 2 2
+
+    # Now remove the host
+    arrayhelper delete_mask ${SERIAL_NUMBER} ${expname}1 ${HOST1}
+
+    # Verify the host is gone
+    verify_export ${expname}1 ${HOST1} gone
+
+    # Now remove initiators
+    runcmd export_group update $PROJECT/${expname}1 --remInits ${HOST1}/${H1PI1}
+    runcmd export_group update $PROJECT/${expname}1 --remInits ${HOST1}/${H1PI2}
+
+    # Create the same export group again
+    runcmd export_group delete $PROJECT/${expname}1
+    runcmd export_group create $PROJECT ${expname}1 $NH --type Host --volspec "${PROJECT}/${VOLNAME}-1,${PROJECT}/${VOLNAME}-2" --hosts "${HOST1}"
+
+    # Verify the mask has the new initiator in it
+    verify_export ${expname}1 ${HOST1} 2 2
+
+    # Now remove the host
+    arrayhelper delete_mask ${SERIAL_NUMBER} ${expname}1 ${HOST1}
+
+    # Delete export group. Should success
+    runcmd export_group delete $PROJECT/${expname}1
 }
 
 # call this to generate a random WWN for exports.
@@ -3820,6 +4347,18 @@ randwwn() {
    echo "${PRE}:${I2}:${I3}:${I4}:${I5}:${I6}:${I7}:${POST}"   
 }
 
+getwwn() {
+    if [ "$SS" = "unity" ]; then
+        PWWN=`randwwn`
+        NWWN=`randwwn`
+        PWWN=${NWWN}:${PWWN}
+    else
+        PWWN=`randwwn | sed 's/://g'`
+    fi
+
+    echo $PWWN
+}
+
 # ============================================================
 # -    M A I N
 # ============================================================
@@ -3828,16 +4367,19 @@ H1PI1=`pwwn 00`
 H1NI1=`nwwn 00`
 H1PI2=`pwwn 01`
 H1NI2=`nwwn 01`
+H1ID="${H1NI1}:${H1PI1} ${H1NI2}:${H1PI2}"
 
 H2PI1=`pwwn 02`
 H2NI1=`nwwn 02`
 H2PI2=`pwwn 03`
 H2NI2=`nwwn 03`
+H2ID="${H2NI1}:${H2PI1} ${H2NI2}:${H2PI2}"
 
 H3PI1=`pwwn 04`
 H3NI1=`nwwn 04`
 H3PI2=`pwwn 05`
 H3NI2=`nwwn 05`
+H3ID="${H3NI1}:${H3PI1} ${H3NI2}:${H3PI2}"
 
 # Delete and setup are optional
 if [ "$1" = "delete" ]
@@ -3903,7 +4445,7 @@ prerun_setup;
 if [ ${setup} -eq 1 ]
 then
     setup
-    if [ "$SS" = "xio" -o "$SS" = "vplex" ]; then
+    if [ "$SS" = "xio" -o "$SS" = "vplex" -o "$SS" = "unity" ]; then
 	setup_yaml;
     fi
     if [ "$SS" = "vmax2" -o "$SS" = "vmax3" -o "$SS" = "vnx" ]; then
@@ -3919,7 +4461,7 @@ then
 fi
 
 test_start=0
-test_end=25
+test_end=28
 
 # If there's a last parameter, take that
 # as the name of the test to run

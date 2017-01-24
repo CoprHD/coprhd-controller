@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# Copyright (c) 2016 EMC Corporation
+# Copyright (c) 2017 EMC Corporation
 # All Rights Reserved
 #
 
@@ -92,7 +92,7 @@ create_mask() {
 }
 
 verify_export() {
-    # Parameters: Storage View Name Name, Number of Initiators, Number of Luns
+    # Parameters: Storage View Name Name, Number of Initiators, Number of Luns, HLUs
     # If checking if the Storage View does not exist, then parameter $2 should be "gone"
     HOST_INITIATORS=$1
     NUM_INITIATORS=$2
@@ -128,6 +128,7 @@ verify_export() {
     num_inits=`grep ${NUMBER_OF_INITIATORS} ${TMPFILE1} | awk -F: '{print $2}'`
     num_luns=`grep ${NUMBER_OF_LUNS} ${TMPFILE1} | awk -F: '{print $2}'`
     hlus=`grep ${USED_HLUS} ${TMPFILE1} | awk -F: '{print $2}'`
+
     failed=false
 
     if [ ${num_inits} -ne ${NUM_INITIATORS} ]
@@ -164,6 +165,7 @@ verify_export() {
     else
         echo "PASSED: Host masking '$HOST_INITIATORS' contained ${NUM_INITIATORS} initiators and ${NUM_LUNS} luns"
     fi
+
     exit 0;
 }
 

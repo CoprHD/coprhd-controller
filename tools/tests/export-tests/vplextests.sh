@@ -177,6 +177,75 @@ test_VPLEX_ORCH_3() {
     set_validation_check true
 }
 
+# Export Test EXISITING_USERADDED_INITS
+
+# Conversion of Existing Initiators to User Added initiators if they are ViPR managed within an export Mask
+# 1. Create and Export a Volume- V1 to a Host H1 with two initiators I1 and I2
+# 2. Using VPLEX add Initiator I3, I3 to the Initiator Group Associated with the Storage View.
+# 3. Create and Export a Volume- V2 to this Host. Verify that the Storage View contains 4 initators and 2 Volumes
+# 4. Add I3, I4 to Host H1. The export Mask needs to be updated accordingly as part of the Export Group Update.
+# 5. Remove I3 and Verify that the Storage View contains 3 initators and 2 Volumes
+# 6. Delete Export Group and verify that the Storage View is gone..
+
+test_EXISITING_USERADDED_INITS() {
+    echot "Existing Initiators to User Added Initiators Test Begins"
+
+    #Prepare Host, Initiators and zones
+    BASENUM=${BASENUM:=$RANDOM}
+    EXISTINGINITTEST=hosttest${BASENUM}
+    USERADDEDINIT1=10:00:00:DE:AD:BE:EF:01
+    USERADDEDINIT2=10:00:00:DE:AD:BE:EF:02
+    EXISTINGINIT3=10:00:00:DE:AD:BE:EF:03
+    EXISTINGINIT4=10:00:00:DE:AD:BE:EF:04
+    PWWN3=100000DEADBEEF03
+    PWWN4=100000DEADBEEF04
+
+    runcmd hosts create ${EXISTINGINITTEST} $TENANT Other ${EXISTINGINITTEST} --port 8111 --cluster ${TENANT}/${CLUSTER}
+    runcmd initiator create ${EXISTINGINITTEST} FC $USERADDEDINIT1 --node $USERADDEDINIT1
+    runcmd initiator create ${EXISTINGINITTEST} FC $USERADDEDINIT2 --node $USERADDEDINIT2
+    runcmd transportzone add $NH/${FC_ZONE_A} $USERADDEDINIT1
+    runcmd transportzone add $NH/${FC_ZONE_A} $USERADDEDINIT2
+
+    echot "Creating an export Group and exporting the first volume to initiators 10:00:00:DE:AD:BE:EF:01 and 10:00:00:DE:AD:BE:EF:02"
+    EXISTINGINITEGTEST=exinitegtest${BASENUM}
+    verify_export $EXISTINGINITEGTEST ${EXISTINGINITTEST} gone
+
+    runcmd export_group create $PROJECT $EXISTINGINITEGTEST $NH --type Host --volspec "${PROJECT}/${VOLNAME}-1" --hosts "${EXISTINGINITTEST}"
+    verify_export $EXISTINGINITEGTEST ${EXISTINGINITTEST} 2 1
+
+    echot "Adding initiators 10:00:00:DE:AD:BE:EF:03 and 10:00:00:DE:AD:BE:EF:04 to the Masking View using the CLI"
+    VPLEXADDINIT=add_initiator_to_mask
+    # We need the storage view name to add the initiators to the storage view outside...
+    STORAGEVIEWNAME=`get_masking_view_name ${EXISTINGINITEGTEST} ${EXISTINGINITTEST}`
+    # Add initiators to the mask (done differently per array type)
+    runcmd vplexhelper.sh $VPLEXADDINIT ${PWWN3} ${STORAGEVIEWNAME}
+    runcmd vplexhelper.sh $VPLEXADDINIT ${PWWN4} ${STORAGEVIEWNAME}
+    runcmd export_group update $PROJECT/$EXISTINGINITEGTEST --addVols "${PROJECT}/${VOLNAME}-2"
+    verify_export $EXISTINGINITEGTEST ${EXISTINGINITTEST} 4 2
+
+
+    echot "Adding existing initiators 10:00:00:DE:AD:BE:EF:03 and 10:00:00:DE:AD:BE:EF:04 to the Host"
+    runcmd transportzone add $NH/${FC_ZONE_A} $EXISTINGINIT3
+    runcmd transportzone add $NH/${FC_ZONE_A} $EXISTINGINIT4
+    runcmd initiator create ${EXISTINGINITTEST} FC $EXISTINGINIT3 --node $EXISTINGINIT3
+    runcmd initiator create ${EXISTINGINITTEST} FC $EXISTINGINIT4 --node $EXISTINGINIT4
+
+    echot "Deleting existing initiators 10:00:00:DE:AD:BE:EF:03"
+    runcmd initiator delete $EXISTINGINITTEST/$EXISTINGINIT3
+    verify_export $EXISTINGINITEGTEST ${EXISTINGINITTEST} 3 2
+
+    echot "Deleting Export Group"
+    runcmd export_group delete $PROJECT/$EXISTINGINITEGTEST
+    verify_export $EXISTINGINITEGTEST ${EXISTINGINITTEST} gone
+
+    runcmd initiator delete $EXISTINGINITTEST/$USERADDEDINIT1
+    runcmd initiator delete $EXISTINGINITTEST/$USERADDEDINIT2
+    runcmd initiator delete $EXISTINGINITTEST/$EXISTINGINIT4
+    runcmd hosts delete $EXISTINGINITTEST
+
+    echoit "Existing Initiators to User Added Initiators Test Passed"
+}
+   
 consistent_hlu_test(){
     test_VPLEX_ORCH_4;
 }

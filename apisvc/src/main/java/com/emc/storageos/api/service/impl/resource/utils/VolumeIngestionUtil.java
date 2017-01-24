@@ -1782,6 +1782,7 @@ public class VolumeIngestionUtil {
      *
      * @param exportGroup the ExportGroup to update
      * @param volume a BlockObject for the ExportGroup
+     * @param wwnToHluMap the wwn to hlu map
      * @param dbClient a reference to the database client
      * @param allInitiators a List of all initiators for the ExportGroup
      * @param hosts a List of Hosts for the ExportGroup

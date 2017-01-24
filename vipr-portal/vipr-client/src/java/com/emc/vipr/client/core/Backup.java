@@ -13,6 +13,7 @@ import com.emc.vipr.client.impl.RestClient;
 import com.emc.vipr.model.sys.backup.*;
 import com.emc.vipr.model.sys.backup.BackupSets.BackupSet;
 import com.emc.vipr.model.sys.recovery.DbRepairStatus;
+import com.sun.media.jfxmedia.logging.Logger;
 
 public class Backup {
 	protected final RestClient client;
@@ -124,7 +125,13 @@ public class Backup {
     }
 
     public BackupOperationStatus getBackupOperationStatus() {
-        return client.get(BackupOperationStatus.class, BACKUP_STATUS_URL);
+        BackupOperationStatus status = new BackupOperationStatus();
+        try {
+            status = client.get(BackupOperationStatus.class, BACKUP_STATUS_URL);
+        } catch (Exception e) {
+            System.out.println("grace: Get backup operation status failed:" +e.getMessage());
+        }
+        return status;
         /*BackupOperationStatus backupOperationStatus = new BackupOperationStatus();
         backupOperationStatus.setLastManualCreation("backup1", 1485004604, BackupOperationStatus.OpMessage.OP_SUCCESS);
         backupOperationStatus.setLastScheduledCreation("backup2", 1485003604, BackupOperationStatus.OpMessage.OP_SUCCESS);

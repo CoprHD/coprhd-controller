@@ -345,6 +345,7 @@ public class AdminDashboardUtils {
 
         @Override
         public BackupOperationStatus doCall() throws Exception {
+            System.out.println("grace: do call backup operation status");
             return client.backup().getBackupOperationStatus();
         }
     }

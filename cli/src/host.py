@@ -192,7 +192,7 @@ class Host(object):
     def update(self, hostname, hosttype, label, tenant, port,
                username, passwd, usessl, osversion, cluster,
                datacenter, vcenter, newlabel, autodiscovery,
-               bootvolume, project, updateExports=False, isVirtual):
+               bootvolume, project, isVirtual, updateExports=False):
         '''
         Takes care of creating a host system.
         Parameters:
@@ -1167,7 +1167,7 @@ def host_update(args):
                            args.newosversion, args.newcluster,
                            args.newdatacenter, args.vcentername,
                            args.newlabel, args.autodiscovery,
-                           args.bootvolume, args.project, args.updateExports, args.virtual)
+                           args.bootvolume, args.project, args.virtual, args.updateExports)
     except SOSError as e:
         common.format_err_msg_and_raise("update",
                                         "host", e.err_text, e.err_code)

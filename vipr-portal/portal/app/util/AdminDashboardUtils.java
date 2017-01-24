@@ -253,15 +253,12 @@ public class AdminDashboardUtils {
         @Override
         public T call() throws Exception {
             @SuppressWarnings("unchecked")
-            if (key == BACKUP_STATUS_LIST_KEY) {
-                System.out.println("grace: cache call" );
-            }
             T value = (T) Cache.get(key);
+            if (key == BACKUP_STATUS_LIST_KEY) {
+                System.out.println("grace: cache call result:" +  value);
+            }
             if (value == null) {
                 value = doCall();
-                if (key == BACKUP_STATUS_LIST_KEY) {
-                    System.out.println("grace: cache call result:" +  value);
-                }
                 cacheValue(key, value, expiration);
                 System.out.println("grace: cache:" + key + " and "+expiration);
             }

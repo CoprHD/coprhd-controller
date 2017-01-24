@@ -240,7 +240,23 @@ public class UCSMServiceImpl implements UCSMService {
         return associatedLsServers;
     }
 
-    public List<LsServer> getAllLsServers(String ucsmURL, String username, String password)
+    /*
+    * returns all service profile on the UCS
+    * @param ucsmURL
+    * @param username
+    * @param password
+    * returns list of LsServers on this UCS
+    */
+    @Override
+    public List<LsServer> getAllServiceProfiles(String ucsmURL, String username, String password)
+            throws ClientGeneralException {
+        List<LsServer> lsServers = getAllLsServers(ucsmURL, username,  password, true);
+        return lsServers;
+    }
+
+    
+
+    private List<LsServer> getAllLsServers(String ucsmURL, String username, String password,boolean serviceProfilesOnly )
             throws ClientGeneralException {
         List<LsServer> lsServers = Collections.synchronizedList(new ArrayList<LsServer>());
 
@@ -271,6 +287,9 @@ public class UCSMServiceImpl implements UCSMService {
                             for (JAXBElement<?> managedObject : configSet.getManagedObject()) {
                                 if (managedObject.getValue() instanceof LsServer) {
                                     LsServer lsServer = (LsServer) managedObject.getValue();
+                                    if (serviceProfilesOnly == true && !(lsServer.getType().equals("instance"))) {
+                                        continue;
+                                    }
                                     lsServers.add(lsServer);
                                 }
                             }
@@ -486,7 +505,7 @@ public class UCSMServiceImpl implements UCSMService {
 
         LsServer createdServiceProfile = null;
 
-        List<LsServer> existingLsServers = getAllLsServers(ucsmURL, username, password);
+        List<LsServer> existingLsServers = getAllLsServers(ucsmURL, username, password,false);
 
         if (StringUtils.isNotBlank(serviceProfileName)) {
             String serviceProfileNameToUse = serviceProfileName;

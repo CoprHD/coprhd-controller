@@ -270,7 +270,7 @@ public interface RemoteReplicationDriver {
                                             RemoteReplicationOperationContext context, StorageCapabilities capabilities);
 
     /**
-     * Move replication pair from its parent group to other replication group.
+     * Move replication pair from its current parent group to a different replication group parent.
      * Should not make any impact on replication state of any other existing replication pairs which are not specified
      * in the request. If execution of the request with this constraint is not possible, should return a failure.
      *

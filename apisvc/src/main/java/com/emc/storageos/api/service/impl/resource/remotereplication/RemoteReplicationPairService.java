@@ -27,7 +27,7 @@ import com.emc.storageos.db.client.model.remotereplication.RemoteReplicationPair
 import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.storageos.model.TaskResourceRep;
-import com.emc.storageos.model.remotereplication.RemoteReplicationModeChange;
+import com.emc.storageos.model.remotereplication.RemoteReplicationModeChangeParam;
 import com.emc.storageos.model.remotereplication.RemoteReplicationPairList;
 import com.emc.storageos.model.remotereplication.RemoteReplicationPairRestRep;
 import com.emc.storageos.security.audit.AuditLogManager;
@@ -373,7 +373,7 @@ public class RemoteReplicationPairService extends TaskResourceService {
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/change-replication-mode")
     public TaskResourceRep changeRemoteReplicationPairMode(@PathParam("id") URI id,
-                                                            final RemoteReplicationModeChange param) throws InternalException {
+                                                            final RemoteReplicationModeChangeParam param) throws InternalException {
         _log.info("Called: changeRemoteReplicationPairMode() with id {}", id);
         ArgValidator.checkFieldUriType(id, RemoteReplicationPair.class, "id");
         RemoteReplicationPair rrPair = queryResource(id);

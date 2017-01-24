@@ -4,7 +4,7 @@ import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 
 @XmlRootElement(name = "remote_replication_mode_update")
-public class RemoteReplicationModeChange {
+public class RemoteReplicationModeChangeParam {
     private String replicationMode;
 
     @XmlElement(name = "replication_mode")

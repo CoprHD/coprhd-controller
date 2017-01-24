@@ -29,7 +29,7 @@ import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.storageos.model.TaskResourceRep;
 import com.emc.storageos.model.remotereplication.RemoteReplicationGroupList;
 import com.emc.storageos.model.remotereplication.RemoteReplicationGroupRestRep;
-import com.emc.storageos.model.remotereplication.RemoteReplicationModeChange;
+import com.emc.storageos.model.remotereplication.RemoteReplicationModeChangeParam;
 import com.emc.storageos.security.audit.AuditLogManager;
 import com.emc.storageos.security.authorization.CheckPermission;
 import com.emc.storageos.security.authorization.DefaultPermissions;
@@ -371,7 +371,7 @@ public class RemoteReplicationGroupService extends TaskResourceService {
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/change-replication-mode")
     public TaskResourceRep changeRemoteReplicationGroupMode(@PathParam("id") URI id,
-                              final RemoteReplicationModeChange param) throws InternalException {
+                              final RemoteReplicationModeChangeParam param) throws InternalException {
         _log.info("Called: changeRemoteReplicationGroupMode() with id {}", id);
         ArgValidator.checkFieldUriType(id, RemoteReplicationGroup.class, "id");
         RemoteReplicationGroup rrGroup = queryResource(id);

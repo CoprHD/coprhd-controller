@@ -60,6 +60,7 @@ public class AdminDashboard extends Controller {
 
     @Restrictions({ @Restrict("SYSTEM_MONITOR"), @Restrict("SYSTEM_ADMIN"), @Restrict("RESTRICTED_SYSTEM_ADMIN") })
     public static void health() {
+        System.out.println("grace: health at "+ System.currentTimeMillis());
         Map<String, Promise<?>> promises = Maps.newHashMap();
         promises.put("nodeHealthList", AdminDashboardUtils.nodeHealthList());
         promises.put("clusterInfo", AdminDashboardUtils.clusterInfo());

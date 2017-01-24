@@ -47,7 +47,7 @@
             <script>
                 if ('${backupOperationStatus?.getLastManualCreation()}' != '') {
                     var lastManualCreationTime = '${backupOperationStatus?.getLastManualCreation()?.getOperationTime()}';
-                    $('#lastManual').append(formatLocalDateTime(new Date(parseLong(lastManualCreationTime))));
+                    $('#lastManual').append(formatLocalDateTime(new Date(parseInt(lastManualCreationTime))));
                 } else {
                     $('#lastManual').append("&{'adminDashboard.backupStatus.none'}");
                 }

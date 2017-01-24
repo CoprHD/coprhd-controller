@@ -46,7 +46,7 @@
             </tr>
             <script>
                 if (backupOperationStatus?.getLastManualCreation()) {
-                    $('#lastManual').append(formatLocalDateTime(new Date('${backupOperationStatus?.getLastManualCreation()?.getOperationTime()})));
+                    $('#lastManual').append(formatLocalDateTime(new Date('${backupOperationStatus?.getLastManualCreation()?.getOperationTime()}')));
                 } else {
                     $('#lastManual').append("NA");
                 }

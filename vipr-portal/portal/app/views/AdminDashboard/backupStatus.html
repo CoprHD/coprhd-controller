@@ -126,9 +126,9 @@
             </tr>
             <script>
                 if (isExternalServerConfigured) {
-                    var lastUploadTime = '${backupOperationStatus?.getLastUpload()?.getOperationTime()'};
+                    var lastUploadTime = '${backupOperationStatus?.getLastUpload()?.getOperationTime()}';
                     if (lastUploadTime) {
-                        $('#lastUpload').append(formatLocalDateTime(new Date('${lastUploadTime'})));
+                        $('#lastUpload').append(formatLocalDateTime(new Date('${lastUploadTime}')));
                     } else {
                         $('#lastUpload').append("NA");
                     }

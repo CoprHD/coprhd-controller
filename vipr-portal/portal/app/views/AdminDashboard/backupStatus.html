@@ -118,7 +118,7 @@
                 #{/else}
                 </td>
                 <td class="time">
-                    #{if isExternalServerConfigured }
+                    #{if !isExternalServerConfigured }
                     <a href="@{Backup.list()}" id="lastUpload"></a>
                     #{/if}
                     #{else}

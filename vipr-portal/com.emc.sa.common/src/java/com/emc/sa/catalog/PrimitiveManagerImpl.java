@@ -26,6 +26,9 @@ import com.emc.sa.model.dao.ModelClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.uimodels.Ansible;
 import com.emc.storageos.db.client.model.uimodels.AnsiblePackage;
+import com.emc.storageos.db.client.model.uimodels.CustomServiceScriptPrimitive;
+import com.emc.storageos.db.client.model.uimodels.CustomServiceScriptResource;
+import com.emc.storageos.db.client.model.uimodels.PrimitiveResource;
 import com.emc.storageos.db.client.model.uimodels.UserPrimitive;
 
 @Component
@@ -35,8 +38,8 @@ public class PrimitiveManagerImpl implements PrimitiveManager {
     private ModelClient client;
 
     @Override
-    public void save(final AnsiblePackage ansiblePackage) {
-        client.save(ansiblePackage);
+    public void save(final PrimitiveResource resource) {
+        client.save(resource);
     }
 
     @Override
@@ -46,6 +49,8 @@ public class PrimitiveManagerImpl implements PrimitiveManager {
         switch(type) {
         case "Ansible":
             return client.findById(Ansible.class, id);
+        case "CustomServiceScriptPrimitive":
+            return client.findById(CustomServiceScriptPrimitive.class, id);
         default:
             throw new RuntimeException("Unknown Type " + type);
         }
@@ -58,8 +63,17 @@ public class PrimitiveManagerImpl implements PrimitiveManager {
     }
 
     @Override
-    public AnsiblePackage findArchive(final URI id) {
-        return client.findById(AnsiblePackage.class, id);
+    public PrimitiveResource findResource(final URI id) {
+        final String type = URIUtil.getTypeName(id);
+        switch(type) {
+        case "AnsiblePackage":
+            return client.findById(AnsiblePackage.class, id);
+        case "CustomServiceScriptResource":
+            return client.findById(CustomServiceScriptResource.class, id);
+        default:
+            return null;
+        }
+       
     }
 
     @Override

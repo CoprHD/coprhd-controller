@@ -16,55 +16,63 @@
  */
 package com.emc.storageos.db.client.model.uimodels;
 
+import java.net.URI;
+
 import com.emc.storageos.db.client.model.Cf;
 import com.emc.storageos.db.client.model.Name;
 import com.emc.storageos.db.client.model.StringSet;
 
 /**
- * Column family that contains an ansible package
+ * Column family that represents a script that can be used in a custom service workflow
  */
-@Cf("AnsiblePackage")
-public class AnsiblePackage extends PrimitiveResource {
+@Cf("CustomServiceScriptPrimitive")
+public class CustomServiceScriptPrimitive extends UserPrimitive {
 
     private static final long serialVersionUID = 1L;
-
-    public static final String PLAYBOOKS = "playbooks";
-
-    private StringSet playbooks;
     
-    @Name(PLAYBOOKS)
-    public StringSet getPlaybooks() {
-        return playbooks;
+    public static final String INPUT = "input";
+    public static final String SCRIPT = "script";
+    
+    private StringSet input;
+    private URI script;
+    
+    @Name(INPUT)
+    public StringSet getInput() {
+        return input;
     }
     
-    public void setPlaybooks(final StringSet playbooks) {
-        this.playbooks = playbooks;
-        setChanged(PLAYBOOKS);
+    public void setInput(final StringSet input) {
+        this.input = input;
+        setChanged(INPUT);
+    }
+    
+    @Name(SCRIPT)
+    public URI getScript() {
+        return script;
+    }
+
+    public void setScript(final URI script) {
+        this.script = script;
+        setChanged(SCRIPT);
     }
 
     @Override
-    public boolean isAnsiblePackage() {
-        return true;
-    }
-
-    @Override
-    public AnsiblePackage asAnsiblePackage() {
-        return this;
-    }
-
-    @Override
-    public boolean isCustomerServiceScriptResource() {
+    public boolean isAnsible() {
         return false;
     }
 
     @Override
-    public CustomServiceScriptResource asCustomerServiceScriptResource() {
+    public Ansible asAnsible() {
         return null;
     }
 
     @Override
-    public String suffix() {
-        return ".tar";
+    public boolean isCustomeServiceScript() {
+        return true;
     }
 
+    @Override
+    public CustomServiceScriptPrimitive asCustomeServiceScript() {
+        return this;
+    }
 }

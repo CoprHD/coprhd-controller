@@ -40,10 +40,7 @@ import com.emc.storageos.model.orchestration.PrimitiveRestRep;
 import com.emc.storageos.primitives.Parameter.ParameterType;
 import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorException;
 
-/**
- *
- */
-public class PrimitiveMapper {
+public final class PrimitiveMapper {
     public final static PrimitiveMapper instance = new PrimitiveMapper();
 
     private PrimitiveMapper() {
@@ -61,7 +58,7 @@ public class PrimitiveMapper {
             playbooks.setName("playbooks");
             playbooks.setValues(Arrays.asList(from.asAnsiblePackage().getPlaybooks().toArray(new String[0])));
             to.setAttributes(Collections.singletonList(playbooks));
-        } else if(from.isUserScript()) {
+        } else if(from.isCustomerServiceScriptResource()) {
             
         } else {
             throw new RuntimeException("Uknown resource type: " + from );
@@ -93,7 +90,9 @@ public class PrimitiveMapper {
         
         switch(type) {
         case ANSIBLE:
-           return makeResourceLink(type.getService(), "ansible", resource.getId());
+           return makeResourceLink(type.getService(), "ansible", resource.asAnsible().getArchive());
+        case SCRIPT_PRIMITIVE:
+            return makeResourceLink(type.getService(), "script", resource.asCustomeServiceScript().getScript());
         default:
             return null;
         }

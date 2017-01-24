@@ -16,8 +16,10 @@
  */
 package com.emc.storageos.db.client.model.uimodels;
 
+import com.emc.storageos.db.client.model.Cf;
 
-public class UserScript extends PrimitiveResource {
+@Cf("CustomServiceScriptResource")
+public class CustomServiceScriptResource extends PrimitiveResource {
 
     private static final long serialVersionUID = 1L;
 
@@ -32,13 +34,18 @@ public class UserScript extends PrimitiveResource {
     }
 
     @Override
-    public boolean isUserScript() {
+    public boolean isCustomerServiceScriptResource() {
         return true;
     }
 
     @Override
-    public UserScript asUserScript() {
+    public CustomServiceScriptResource asCustomerServiceScriptResource() {
         return this;
+    }
+
+    @Override
+    public String suffix() {
+        return ".sh";
     }
 
 }

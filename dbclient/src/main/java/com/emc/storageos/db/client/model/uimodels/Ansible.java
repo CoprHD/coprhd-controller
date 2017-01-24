@@ -90,4 +90,14 @@ public class Ansible extends UserPrimitive {
         return this;
     }
 
+    @Override
+    public boolean isCustomeServiceScript() {
+        return false;
+    }
+
+    @Override
+    public CustomServiceScriptPrimitive asCustomeServiceScript() {
+        return null;
+    }
+
 }

@@ -61,6 +61,8 @@ import static com.emc.storageos.model.ResourceTypeEnum.PROTECTION_SYSTEM;
 import static com.emc.storageos.model.ResourceTypeEnum.QUOTA_DIR;
 import static com.emc.storageos.model.ResourceTypeEnum.RDF_GROUP;
 import static com.emc.storageos.model.ResourceTypeEnum.SCHEDULE_POLICY;
+import static com.emc.storageos.model.ResourceTypeEnum.SCRIPT_PRIMITIVE;
+import static com.emc.storageos.model.ResourceTypeEnum.SCRIPT_RESOURCE;
 import static com.emc.storageos.model.ResourceTypeEnum.SMIS_PROVIDER;
 import static com.emc.storageos.model.ResourceTypeEnum.STORAGE_POOL;
 import static com.emc.storageos.model.ResourceTypeEnum.STORAGE_PORT;
@@ -74,7 +76,6 @@ import static com.emc.storageos.model.ResourceTypeEnum.TENANT;
 import static com.emc.storageos.model.ResourceTypeEnum.UNMANAGED_FILESYSTEMS;
 import static com.emc.storageos.model.ResourceTypeEnum.UNMANAGED_VOLUMES;
 import static com.emc.storageos.model.ResourceTypeEnum.USER_GROUP;
-import static com.emc.storageos.model.ResourceTypeEnum.USER_SCRIPT;
 import static com.emc.storageos.model.ResourceTypeEnum.VARRAY;
 import static com.emc.storageos.model.ResourceTypeEnum.VCENTER;
 import static com.emc.storageos.model.ResourceTypeEnum.VCENTERDATACENTER;
@@ -158,10 +159,11 @@ import com.emc.storageos.db.client.model.uimodels.CatalogCategory;
 import com.emc.storageos.db.client.model.uimodels.CatalogImage;
 import com.emc.storageos.db.client.model.uimodels.CatalogService;
 import com.emc.storageos.db.client.model.uimodels.CatalogServiceField;
+import com.emc.storageos.db.client.model.uimodels.CustomServiceScriptPrimitive;
+import com.emc.storageos.db.client.model.uimodels.CustomServiceScriptResource;
 import com.emc.storageos.db.client.model.uimodels.ExecutionWindow;
 import com.emc.storageos.db.client.model.uimodels.OrchestrationWorkflow;
 import com.emc.storageos.db.client.model.uimodels.Order;
-import com.emc.storageos.db.client.model.uimodels.UserScript;
 import com.emc.storageos.db.client.model.uimodels.WFDirectory;
 import com.emc.storageos.model.ResourceTypeEnum;
 
@@ -244,7 +246,8 @@ public class ResourceTypeMapping {
         classMapping.put(ORCHESTRATION_WORKFLOW, OrchestrationWorkflow.class);
         classMapping.put(ANSIBLE_PACKAGE, AnsiblePackage.class);
         classMapping.put(ANSIBLE, Ansible.class);
-        classMapping.put(USER_SCRIPT, UserScript.class);
+        classMapping.put(SCRIPT_PRIMITIVE, CustomServiceScriptPrimitive.class);
+        classMapping.put(SCRIPT_RESOURCE, CustomServiceScriptResource.class);
         classMapping.put(WF_DIRECTORY, WFDirectory.class);
 
         for (Map.Entry<ResourceTypeEnum, Class<? extends DataObject>> entry : classMapping

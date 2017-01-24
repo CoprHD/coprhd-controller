@@ -79,4 +79,6 @@ public abstract class UserPrimitive extends ModelObject {
 
     public abstract boolean isAnsible();
     public abstract Ansible asAnsible(); 
+    public abstract boolean isCustomeServiceScript();
+    public abstract CustomServiceScriptPrimitive asCustomeServiceScript();
 }

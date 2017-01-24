@@ -26,14 +26,11 @@ public abstract class PrimitiveResource extends DataObject {
 
     private byte[] resource;
 
-    
-    
     public abstract boolean isAnsiblePackage();
     public abstract AnsiblePackage asAnsiblePackage();
-    public abstract boolean isUserScript();
-    public abstract UserScript asUserScript();
-    
-    
+    public abstract boolean isCustomerServiceScriptResource();
+    public abstract CustomServiceScriptResource asCustomerServiceScriptResource();
+    public abstract String suffix();
 
     @Name(RESOURCE)
     public byte[] getResource() {

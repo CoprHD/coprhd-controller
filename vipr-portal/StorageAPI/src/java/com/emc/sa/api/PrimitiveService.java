@@ -24,12 +24,12 @@ import java.net.URI;
 import java.nio.file.FileSystems;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
-import javax.servlet.ServletOutputStream;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.ws.rs.Consumes;
@@ -59,6 +59,9 @@ import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.uimodels.Ansible;
 import com.emc.storageos.db.client.model.uimodels.AnsiblePackage;
+import com.emc.storageos.db.client.model.uimodels.CustomServiceScriptPrimitive;
+import com.emc.storageos.db.client.model.uimodels.CustomServiceScriptResource;
+import com.emc.storageos.db.client.model.uimodels.PrimitiveResource;
 import com.emc.storageos.db.client.model.uimodels.UserPrimitive;
 import com.emc.storageos.model.orchestration.InputParameterRestRep;
 import com.emc.storageos.model.orchestration.OutputParameterRestRep;
@@ -69,6 +72,7 @@ import com.emc.storageos.model.orchestration.PrimitiveRestRep;
 import com.emc.storageos.model.orchestration.PrimitiveUpdateParam;
 import com.emc.storageos.primitives.Primitive;
 import com.emc.storageos.primitives.PrimitiveHelper;
+import com.emc.storageos.primitives.ViPRPrimitive;
 import com.emc.storageos.primitives.input.BasicInputParameter;
 import com.emc.storageos.primitives.input.InputParameter;
 import com.emc.storageos.primitives.output.BasicOutputParameter;
@@ -79,6 +83,7 @@ import com.emc.storageos.security.authorization.DefaultPermissions;
 import com.emc.storageos.security.authorization.Role;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.BadRequestException;
+import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorException;
 import com.emc.storageos.svcs.errorhandling.resources.NotFoundException;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -97,42 +102,66 @@ public class PrimitiveService {
     private static final Logger _log = LoggerFactory
             .getLogger(PrimitiveManager.class);
 
-    private enum PrimitiveResourceType {
-        ANSIBLE, SCRIPT;
+    private enum PrimitiveType {
+        VIPR(ViPRPrimitive.class.getSimpleName()), 
+        ANSIBLE(Ansible.class.getSimpleName(), AnsiblePackage.class.getSimpleName()), 
+        SCRIPT(CustomServiceScriptPrimitive.class.getSimpleName(), CustomServiceScriptResource.class.getSimpleName());
 
-        public static PrimitiveResourceType get(final String name) {
+        private final static EnumSet<PrimitiveType> DYNAMIC_TYPES = EnumSet.of(ANSIBLE, SCRIPT);
+        private final static String NO_RESOURCE = "NONE";
+        
+        private final String type;
+        private final String resourceType;
+
+        private PrimitiveType(final String type) {
+            this(type, NO_RESOURCE);
+        }
+        
+        private PrimitiveType(final String type, final String resourceType) {
+            this.type = type;
+            this.resourceType = resourceType;
+        }
+
+        public static PrimitiveType get(final String primitiveType) {
             try {
-                return valueOf(name.toUpperCase());
+                return PrimitiveType.valueOf(primitiveType.toUpperCase());
             } catch (final IllegalArgumentException e) {
                 return null;
             }
         }
-    }
-
-    private enum PrimitiveTypeNames {
-        VIPR("ViPRPrimitive"), ANSIBLE("Ansible");
-
-        private final String type;
-
-        private PrimitiveTypeNames(final String type) {
-            this.type = type;
-        }
-
-        public static PrimitiveTypeNames get(final String type) {
-            for (PrimitiveTypeNames typeName : PrimitiveTypeNames.values()) {
-                if (typeName.type().equals(type)) {
-                    return typeName;
+        
+        public static PrimitiveType fromTypeName(final String typeName) {
+            for(PrimitiveType primitiveType : values()) {
+                if(primitiveType.type().equals(typeName)) {
+                    return primitiveType;
                 }
             }
             return null;
         }
-
+        
+        public static PrimitiveType dynamicType(final String type) {
+            final PrimitiveType primitiveType = get(type);
+            if(null != primitiveType && DYNAMIC_TYPES.contains(primitiveType)) {
+                return primitiveType;
+            } else {
+                return null;
+            }
+        }
+        
+        public static EnumSet<PrimitiveType> dynamicTypes() {
+            return DYNAMIC_TYPES;
+        }
+        
         public String toString() {
             return type;
         }
 
         public String type() {
             return type;
+        }
+        
+        public String resourceType() {
+            return resourceType;
         }
     }
 
@@ -201,18 +230,21 @@ public class PrimitiveService {
     public PrimitiveRestRep makePrimitive(PrimitiveCreateParam param) {
         
         if(null != param.getType()) {
-            ArgValidator.checkFieldValueFromEnum(param.getType(), "type", PrimitiveResourceType.class);
+            ArgValidator.checkFieldValueFromEnum(param.getType().toUpperCase(), "type", PrimitiveType.dynamicTypes());
         } else {
             throw APIException.badRequests.requiredParameterMissingOrEmpty("type");
         }
         
         final UserPrimitive primitive;
-        final PrimitiveResourceType type = PrimitiveResourceType
+        final PrimitiveType type = PrimitiveType
                 .get(param.getType());
         
         switch(type) {
         case ANSIBLE:
             primitive = makeAnsiblePrimitive(param);
+            break;
+        case SCRIPT:
+            primitive = makeScriptPrimitive(param);
             break;
         default:
             throw BadRequestException.methodNotAllowed.notSupportedWithReason("Primitive creation not supported for: "+type);
@@ -237,7 +269,7 @@ public class PrimitiveService {
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}")
     public PrimitiveRestRep getPrimitive(@PathParam("id") final URI id) {
-        final PrimitiveTypeNames type = PrimitiveTypeNames.get(URIUtil
+        final PrimitiveType type = PrimitiveType.fromTypeName(URIUtil
                 .getTypeName(id));
         if (null == type) {
             throw APIException.notFound.unableToFindEntityInURL(id);
@@ -255,6 +287,12 @@ public class PrimitiveService {
                 throw APIException.notFound.unableToFindEntityInURL(id);
             }
             return PrimitiveMapper.map(ansible);
+        case SCRIPT:
+            final CustomServiceScriptPrimitive script = primitiveManager.findById(id).asCustomeServiceScript();
+            if (null == script) {
+                throw APIException.notFound.unableToFindEntityInURL(id);
+            }
+            return PrimitiveMapper.map(script);
         default:
             throw APIException.notFound.unableToFindEntityInURL(id);
         }
@@ -275,68 +313,28 @@ public class PrimitiveService {
             @Context HttpServletRequest request,
             @PathParam("type") String type, @QueryParam("name") String name) {
 
-        final PrimitiveResourceType resourceType = PrimitiveResourceType
-                .get(type);
-        if (null == resourceType) {
+        final PrimitiveType primitiveType = PrimitiveType
+                .dynamicType(type);
+        if (null == primitiveType) {
             throw NotFoundException.notFound.unableToFindEntityInURL(URI
                     .create(type));
         }
 
-        try {
-            final InputStream in = request.getInputStream();
-            final ByteArrayOutputStream file = new ByteArrayOutputStream();
-            final byte buffer[] = new byte[2048];
-            int nRead = 0;
-            while ((nRead = in.read(buffer)) > 0) {
-                file.write(buffer, 0, nRead);
-            }
-
-            switch (resourceType) {
-            case ANSIBLE:
-                final TarArchiveInputStream tarIn = new TarArchiveInputStream(
-                        new GzipCompressorInputStream(new ByteArrayInputStream(
-                                file.toByteArray())));
-                TarArchiveEntry entry = tarIn.getNextTarEntry();
-                final StringSet entryPoints = new StringSet();
-
-                while (entry != null) {
-                    if (entry.isFile()
-                            && entry.getName().toLowerCase().endsWith(".yml")) {
-                        
-                        final java.nio.file.Path path = FileSystems
-                                .getDefault().getPath(entry.getName());
-                        final java.nio.file.Path root = path.getRoot() != null ? path
-                                .getRoot() : FileSystems.getDefault().getPath(
-                                ".");
-                        if (path.getParent() == null
-                                || 0 == path.getParent().compareTo(root)) {
-                            final String playbook = path.getFileName().toString();
-                            _log.info("Top level playbook: " + playbook);
-                            entryPoints.add(playbook);
-                        } 
-                    }
-                    entry = tarIn.getNextTarEntry();
-                }
-
-                final AnsiblePackage ansiblePackage = new AnsiblePackage();
-                ansiblePackage.setLabel(name);
-                ansiblePackage.setId(URIUtil.createId(AnsiblePackage.class));
-
-                ansiblePackage.setPlaybooks(entryPoints);
-                ansiblePackage.setResource(Base64.encodeBase64(file
-                        .toByteArray()));
-                primitiveManager.save(ansiblePackage);
-                return PrimitiveMapper.map(ansiblePackage);
-            default:
-                throw NotFoundException.notFound.unableToFindEntityInURL(URI
-                        .create(type));
-
-            }
-
-        } catch (final IOException e) {
-            throw new RuntimeException(e);
+        final byte[] stream = read(request);
+        final PrimitiveResource resource;
+        switch (primitiveType) {
+        case ANSIBLE:
+            resource = makeAnsiblePackage(name, stream);
+            break;
+        case SCRIPT:
+            resource = makeScript(name, stream);
+            break;
+        default:
+            throw NotFoundException.notFound.unableToFindEntityInURL(URI
+                    .create(type));
         }
-
+        primitiveManager.save(resource);
+        return PrimitiveMapper.map(resource);
     }
 
     /**
@@ -351,16 +349,15 @@ public class PrimitiveService {
     @Path("/{id}")
     public PrimitiveRestRep updatePrimitive(@PathParam("id") final URI id,
             final PrimitiveUpdateParam param) {
-        final PrimitiveTypeNames type = PrimitiveTypeNames.get(URIUtil
-                .getTypeName(id));
-
+        final UserPrimitive primitive = primitiveManager.findById(id);
+        ArgValidator.checkEntity(primitive, id, true);
+        
+        final PrimitiveType type = PrimitiveType.fromTypeName(primitive.getClass().getSimpleName());
         switch (type) {
         case ANSIBLE:
-            final Ansible ansible = primitiveManager.findById(id).asAnsible();
-            if (null == ansible) {
-                throw APIException.notFound.unableToFindEntityInURL(id);
-            }
-            return updateAnsible(ansible, param);
+            return updateAnsible(primitive.asAnsible(), param);
+        case SCRIPT:
+            return updateScriptPrimitive(primitive.asCustomeServiceScript(), param);
         default:
             throw APIException.notFound.unableToFindEntityInURL(id);
         }
@@ -379,43 +376,25 @@ public class PrimitiveService {
             @PathParam("id") final URI id,
             @Context final HttpServletResponse response) {
 
-        final PrimitiveResourceType resourceType = PrimitiveResourceType
-                .get(type);
-
-        if (null == resourceType) {
+        final PrimitiveType primitiveType = PrimitiveType.get(type);
+        if (null == primitiveType || !URIUtil.getTypeName(id).equals(primitiveType.resourceType())) {
             throw NotFoundException.notFound.unableToFindEntityInURL(URI
                     .create(type));
         }
 
-        switch (resourceType) {
-        case ANSIBLE:
-            final AnsiblePackage ansiblePackage = primitiveManager.findArchive(id);
-            final byte[] archive = Base64.decodeBase64(ansiblePackage
-                    .getResource());
+        final PrimitiveResource resource = primitiveManager.findResource(id);
+        ArgValidator.checkEntity(resource, id, true);
 
-            response.setContentLength(archive.length);
-            response.setHeader("Content-Disposition", "attachment; filename="
-                    + ansiblePackage.getLabel() + ".tar");
-
-            try (final InputStream in = new ByteArrayInputStream(archive)) {
-                final ServletOutputStream outStream = response
-                        .getOutputStream();
-                final byte[] bbuf = new byte[archive.length];
-
-                int length = 0;
-                while ((in != null) && ((length = in.read(bbuf)) != -1)) {
-                    outStream.write(bbuf, 0, length);
-                }
-                outStream.flush();
-            } catch (final IOException e) {
-                throw new RuntimeException(e);
-            }
-
-            return Response.ok().build();
-        default:
-            throw NotFoundException.notFound.unableToFindEntityInURL(URI
-                    .create(type));
-        }
+   
+        
+        final byte[] bytes = Base64.decodeBase64(resource
+                .getResource());
+        response.setContentLength(bytes.length);
+        
+        
+        response.setHeader("Content-Disposition", "attachment; filename="
+                + resource.getLabel() + resource.suffix());
+        return Response.ok(bytes).build();
     }
 
     private Ansible makeAnsiblePrimitive(PrimitiveCreateParam param) {
@@ -437,18 +416,8 @@ public class PrimitiveService {
         return primitive;
     }
     
-    private PrimitiveRestRep updateAnsible(Ansible update,
+    private PrimitiveRestRep updateAnsible(final Ansible update,
             final PrimitiveUpdateParam param) {
-
-        if (null != param.getName()) {
-            update.setLabel(param.getName());
-        }
-        if (null != param.getFriendlyName()) {
-            update.setFriendlyName(param.getFriendlyName());
-        }
-        if (null != param.getDescription()) {
-            update.setDescription(param.getDescription());
-        }
 
         if (null != param.getInput()) {
             final StringSet extraVars = update.getExtraVars() == null ? new StringSet()
@@ -462,27 +431,11 @@ public class PrimitiveService {
             update.setExtraVars(extraVars);
         }
 
-        if (null != param.getOutput()) {
-            final StringSet output = update.getOutput() == null ? new StringSet()
-                    : update.getOutput();
-            if (null != param.getOutput().getAdd()) {
-                for (final String addOutput : param.getOutput().getAdd()) {
-                    output.add(addOutput);
-                }
-            }
-            if (null != param.getOutput().getRemove()) {
-                for (final String rmOutput : param.getOutput().getRemove()) {
-                    output.remove(rmOutput);
-                }
-            }
-            update.setOutput(output);
-        }
-
         if( null != param.getAttributes()) {
             for(Entry<String, String> attribute : param.getAttributes().entrySet()) {
                 switch(attribute.getKey()) {
                 case "playbook":
-                    final AnsiblePackage archive = primitiveManager.findArchive(update.getArchive());
+                    final AnsiblePackage archive = primitiveManager.findResource(update.getArchive()).asAnsiblePackage();
                     if(!archive.getPlaybooks().contains(attribute.getValue())) {
                         throw BadRequestException.badRequests.parameterIsNotValid(attribute.getKey());
                     } else {
@@ -494,9 +447,7 @@ public class PrimitiveService {
                 }
             }
         }
-        
-        primitiveManager.save(update);
-        return PrimitiveMapper.map(update);
+        return updatePrimitive(update, param);
     }
 
 
@@ -546,4 +497,123 @@ public class PrimitiveService {
         return outputRestRep;
     }
 
+    private byte[] read(final HttpServletRequest request) {
+        try {
+            final ByteArrayOutputStream file = new ByteArrayOutputStream();
+            final byte buffer[] = new byte[2048];
+            final InputStream in = request.getInputStream();
+            int nRead = 0;
+            while ((nRead = in.read(buffer)) > 0) {
+                file.write(buffer, 0, nRead);
+            }
+            return file.toByteArray();
+        } catch (IOException e) {
+            throw InternalServerErrorException.internalServerErrors.genericApisvcError("failed to read octet stream", e);
+        }
+    }
+    
+    private AnsiblePackage makeAnsiblePackage(final String name, final byte[] archive) {
+        final StringSet playbooks = getPlaybooks(archive);
+
+        final AnsiblePackage ansiblePackage = new AnsiblePackage();
+        ansiblePackage.setLabel(name);
+        ansiblePackage.setId(URIUtil.createId(AnsiblePackage.class));
+
+        ansiblePackage.setPlaybooks(playbooks);
+        ansiblePackage.setResource(Base64.encodeBase64(archive));
+        return ansiblePackage;
+    }
+
+    private StringSet getPlaybooks(final byte[] archive) {
+        try(final TarArchiveInputStream tarIn = new TarArchiveInputStream(
+                new GzipCompressorInputStream(new ByteArrayInputStream(
+                        archive)))) {
+            TarArchiveEntry entry = tarIn.getNextTarEntry();
+            final StringSet playbooks = new StringSet();
+    
+            while (entry != null) {
+                if (entry.isFile()
+                        && entry.getName().toLowerCase().endsWith(".yml")) {
+                    
+                    final java.nio.file.Path path = FileSystems
+                            .getDefault().getPath(entry.getName());
+                    final java.nio.file.Path root = path.getRoot() != null ? path
+                            .getRoot() : FileSystems.getDefault().getPath(
+                            ".");
+                    if (path.getParent() == null
+                            || 0 == path.getParent().compareTo(root)) {
+                        final String playbook = path.getFileName().toString();
+                        _log.info("Top level playbook: " + playbook);
+                        playbooks.add(playbook);
+                    } 
+                }
+                entry = tarIn.getNextTarEntry();
+            }
+            return playbooks;
+        } catch (IOException e) {
+            throw InternalServerErrorException.internalServerErrors.genericApisvcError("Invalid ansible archive", e);
+        }
+       
+    }
+    
+    private CustomServiceScriptResource makeScript(final String name, final byte[] file) {
+        CustomServiceScriptResource script = new CustomServiceScriptResource();
+        script.setId(URIUtil.createId(CustomServiceScriptResource.class));
+        script.setLabel(name);
+        script.setResource(Base64.encodeBase64(file));
+        return script;
+    }
+    
+    private CustomServiceScriptPrimitive makeScriptPrimitive(PrimitiveCreateParam param) {
+        final CustomServiceScriptPrimitive primitive = new CustomServiceScriptPrimitive();
+        primitive.setId(URIUtil.createId(CustomServiceScriptPrimitive.class));
+        primitive.setLabel(param.getName());
+        primitive.setFriendlyName(param.getFriendlyName());
+        primitive.setDescription(param.getDescription());
+        primitive.setScript(param.getResource());
+       
+        final StringSet inputs = new StringSet();
+        for(String input : param.getInput()) {
+            inputs.add(input);
+        }
+        primitive.setInput(inputs);
+        final StringSet output = new StringSet();
+        output.addAll(param.getOutput());
+        primitive.setOutput(output);
+        return primitive;
+    }
+    
+    private PrimitiveRestRep updateScriptPrimitive(final CustomServiceScriptPrimitive update, final PrimitiveUpdateParam param) {
+        return updatePrimitive(update, param);
+    }
+    
+    private PrimitiveRestRep updatePrimitive(final UserPrimitive update, final PrimitiveUpdateParam param) {
+        if (null != param.getName()) {
+            update.setLabel(param.getName());
+        }
+        if (null != param.getFriendlyName()) {
+            update.setFriendlyName(param.getFriendlyName());
+        }
+        if (null != param.getDescription()) {
+            update.setDescription(param.getDescription());
+        }
+        
+        if (null != param.getOutput()) {
+            final StringSet output = update.getOutput() == null ? new StringSet()
+                    : update.getOutput();
+            if (null != param.getOutput().getAdd()) {
+                for (final String addOutput : param.getOutput().getAdd()) {
+                    output.add(addOutput);
+                }
+            }
+            if (null != param.getOutput().getRemove()) {
+                for (final String rmOutput : param.getOutput().getRemove()) {
+                    output.remove(rmOutput);
+                }
+            }
+            update.setOutput(output);
+        }
+        primitiveManager.save(update);
+        return PrimitiveMapper.map(update);
+    }
 }

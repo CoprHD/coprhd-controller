@@ -22,9 +22,6 @@ import java.util.Map;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 
-/**
- *
- */
 @XmlRootElement(name = "primitive_update_param")
 public class PrimitiveUpdateParam {
 

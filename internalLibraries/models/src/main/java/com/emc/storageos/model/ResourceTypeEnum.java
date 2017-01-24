@@ -102,7 +102,8 @@ public enum ResourceTypeEnum {
     ORCHESTRATION_WORKFLOW("orchestration_workflow", "/workflows"),
     ANSIBLE("ansible", "/primitives"),
     ANSIBLE_PACKAGE("ansible_package", "/primitives/resource/ansible"),
-    USER_SCRIPT("user_script", "/primitives/resource/script"),
+    SCRIPT_PRIMITIVE("script_primitive","/primitives"),
+    SCRIPT_RESOURCE("script_resource", "/primitives/resource/script"),
     WF_DIRECTORY("wf_directory","/workflow/directory");
 
     private final String type;

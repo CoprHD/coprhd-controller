@@ -20,9 +20,6 @@ import java.util.List;
 
 import javax.xml.bind.annotation.XmlElement;
 
-/**
- *
- */
 public class InputUpdateParam {
     private List<String> add;
     private List<String> remove;

@@ -45,7 +45,7 @@
                 </td>
             </tr>
             <script>
-                if (backupOperationStatus?.getLastManualCreation() != null) {
+                if ('${backupOperationStatus?.getLastManualCreation()}' != '') {
                     var lastManualCreationTime = '${backupOperationStatus?.getLastManualCreation()?.getOperationTime()}';
                     $('#lastManual').append(formatLocalDateTime(new Date(lastManualCreationTime)));
                 } else {

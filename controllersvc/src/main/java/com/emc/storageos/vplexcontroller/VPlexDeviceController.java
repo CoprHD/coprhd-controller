@@ -3581,6 +3581,11 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             String previousStep = null;
 
             for (ExportMask exportMask : exportMasks) {
+                if (exportMask.getInactive()) {
+                    _log.info(String.format("ExportMask %s (%s, arg1) is inactive, skipping", 
+                            exportMask.getMaskName(), exportMask.getId()));
+                    continue;
+                }
                 String vplexClusterName = VPlexUtil.getVplexClusterName(exportMask, vplexURI, client, _dbClient);
                 Map<String, String> targetPortToPwwnMap = VPlexControllerUtils.getTargetPortToPwwnMap(client, vplexClusterName);
                 VPlexStorageViewInfo storageView = client.getStorageView(vplexClusterName, exportMask.getMaskName());

@@ -12,7 +12,7 @@
             <tr class="odd ng-scope openRow">
                 <td class="type" height="25px" width="170px">&{'adminDashboard.lastSuccessfulBackup'}: </td>
                 <td class="icon" height="25px" width="25px">
-                #{if backupOperationStatus?.getLastSuccessfulCreation()?.getOperationMessage()?.getValue() == "success"}
+                #{if backupOperationStatus?.getLastSuccessfulCreation()}
                     <span class="text-success">#{icon 'ok-sign'/}</span>
                 #{/if}
                 </td>
@@ -24,7 +24,7 @@
                 if ('${backupOperationStatus?.getLastSuccessfulCreation()}' != '') {
                     var lastSuccessfulCreationTime = '${backupOperationStatus?.getLastSuccessfulCreation()?.getOperationTime()}';
                     var lastSuccessfulBackupType = '${backupOperationStatus?.getLastSuccessfulCreation()?.getOperationMessage().getValue()}';
-                    $('#lastSuccessful').append(formatLocalDateTime(new Date(lastSuccessfulCreationTime))).append(lastSuccessfulBackupType);
+                    $('#lastSuccessful').append(formatLocalDateTime(new Date(lastSuccessfulCreationTime))).append("(").append(lastSuccessfulBackupType).append(")");
                 } else {
                     $('#lastSuccessful').append("NA");
                 }
@@ -86,6 +86,7 @@
                 <td class="time" id="nextScheduled"></td>
             </tr>
             <script>
+                console.info("isScheduledBackupEnabled:"+isScheduledBackupEnabled);
                 if (isScheduledBackupEnabled) {
                     var nextScheduledCreationTime = '${backupOperationStatus?.getNextScheduledCreation()}';
                     if (nextScheduledCreationTime != '') {
@@ -125,6 +126,7 @@
                 </td>
             </tr>
             <script>
+                console.info("isExternalServerConfigured:"+isExternalServerConfigured);
                 if (isExternalServerConfigured) {
                     var lastUploadTime = '${backupOperationStatus?.getLastUpload()?.getOperationTime()}';
                     if (lastUploadTime != '') {

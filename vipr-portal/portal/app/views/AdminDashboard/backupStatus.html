@@ -26,7 +26,7 @@
                     var lastSuccessfulBackupType = '${backupOperationStatus?.getLastSuccessfulCreation()?.getOperationMessage().getValue()}';
                     $('#lastSuccessful').append(formatLocalDateTime(new Date(lastSuccessfulCreationTime))).append("(").append(lastSuccessfulBackupType).append(")");
                 } else {
-                    $('#lastSuccessful').append("NA");
+                    $('#lastSuccessful').append("&{'adminDashboard.backupStatus.none'}");
                 }
             </script>
 
@@ -49,7 +49,7 @@
                     var lastManualCreationTime = '${backupOperationStatus?.getLastManualCreation()?.getOperationTime()}';
                     $('#lastManual').append(formatLocalDateTime(new Date(lastManualCreationTime)));
                 } else {
-                    $('#lastManual').append("NA");
+                    $('#lastManual').append("&{'adminDashboard.backupStatus.none'}");
                 }
             </script>
 
@@ -72,7 +72,7 @@
                     var lastScheduledCreationTime = '${backupOperationStatus?.getLastScheduledCreation()?.getOperationTime()}';
                     $('#lastScheduled').append(formatLocalDateTime(new Date(lastScheduledCreationTime)));
                 } else {
-                    $('#lastScheduled').append("NA");
+                    $('#lastScheduled').append("&{'adminDashboard.backupStatus.none'}");
                 }
             </script>
 
@@ -93,10 +93,10 @@
                     if (nextScheduledCreationTime != '') {
                         $('#nextScheduled').append(formatLocalDateTime(new Date(nextScheduledCreationTime)));
                     } else {
-                        $('#nextScheduled').append("NA");
+                        $('#nextScheduled').append("&{'adminDashboard.backupStatus.none'}");
                     }
                 } else {
-                    $('#nextScheduled').append("Disabled");
+                    $('#nextScheduled').append("&{'adminDashboard.nextScheduledBackup.disabled'}");
                 }
             </script>
 
@@ -128,14 +128,14 @@
             </tr>
             <script>
                 console.info("isExternalServerConfigured:"+'${isExternalServerConfigured}');
-                if (${isExternalServerConfigured}) {
+                if (!${isExternalServerConfigured}) {
                     if ('${backupOperationStatus?.getLastUpload()}' != '') {
                         console.info("have upload");
                         var lastUploadTime = '${backupOperationStatus?.getLastUpload()?.getOperationTime()}';
                         $('#lastUpload').append(formatLocalDateTime(new Date(lastUploadTime)));
                     } else {
                         console.info("have na");
-                        $('#lastUpload').append("NA");
+                        $('#lastUpload').append("&{'adminDashboard.backupStatus.none'}");
                     }
                 } else {
                     $('#externalServer').append("&{'adminDashboard.lastUploadStatus.notConfigured'}");

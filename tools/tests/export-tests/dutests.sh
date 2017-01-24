@@ -52,6 +52,74 @@ if [ "$1"x != "x" ]; then
    fi
 fi
 
+# Global test repo location
+GLOBAL_RESULTS_IP=10.247.101.46
+GLOBAL_RESULTS_PATH=/srv/www/htdocs
+LOCAL_RESULTS_PATH=/tmp
+GLOBAL_RESULTS_OUTPUT_FILES_SUBDIR=output_files
+RESULTS_SET_FILE=results-set-du.csv
+TEST_OUTPUT_FILE=default-output.txt
+
+# Reset the trip counters on a distinct test case
+reset_counts() {
+    TRIP_VERIFY_COUNT=0
+    TRIP_VERIFY_FAIL_COUNT=0
+}
+
+# A method that reports on the status of the test, along with other 
+# important information:
+#
+# What is helpful in one line:
+# 1. storage system under test
+# 2. simulator or not
+# 3. test number
+# 4. failure scenario within that test (null in this suite)
+# 5. git branch
+# 6. git commit SHA
+# 7. IP address
+# 8. date/time stamp
+# 9. test status
+#
+# A huge plus, but wouldn't be available on a single line is:
+# 1. output from a failed test case
+# 2. the controller/apisvc logs for the test case
+#
+# But maybe we crawl before we run.
+report_results() {
+    testname=${1}
+    failure_scenario=""
+    branch=`git rev-parse --abbrev-ref HEAD`
+    sha=`git rev-parse HEAD`
+    ss=${SS}
+
+    if [ "${SS}" = "vplex" ]; then
+	ss="${SS} ${VPLEX_MODE}"
+    fi
+
+    simulator="Hardware"
+    if [ "${SIM}" = "1" ]; then
+	simulator="Simulator"
+    fi
+    status="PASSED"
+    if [ ${TRIP_VERIFY_FAIL_COUNT} -gt 0 ]; then
+	status="FAILED"
+    fi
+    datetime=`date +"%Y-%m-%d.%H:%M:%S"`
+
+    result="${ss},${simulator},${testname},${failure_scenario},${branch},${sha},${ipaddr},${datetime},<a href=\"${GLOBAL_RESULTS_OUTPUT_FILES_SUBDIR}/${TEST_OUTPUT_FILE}\">${status}</a>"
+    mkdir -p /root/reliability
+    echo ${result} > /tmp/report-result.txt
+    echo ${result} >> /root/reliability/results-local-set.db
+
+    if [ "${REPORT}" = "1" ]; then
+	cat /tmp/report-result.txt | sshpass -p $SYSADMIN_PASSWORD ssh -o StrictHostKeyChecking=no root@${GLOBAL_RESULTS_IP} "cat >> ${GLOBAL_RESULTS_PATH}/${RESULTS_SET_FILE}" > /dev/null 2> /dev/null
+	cat ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE} | sshpass -p $SYSADMIN_PASSWORD ssh -o StrictHostKeyChecking=no root@${GLOBAL_RESULTS_IP} "cat >> ${GLOBAL_RESULTS_PATH}/${GLOBAL_RESULTS_OUTPUT_FILES_SUBDIR}/${TEST_OUTPUT_FILE} ; chmod 777 ${GLOBAL_RESULTS_PATH}/${GLOBAL_RESULTS_OUTPUT_FILES_SUBDIR}/${TEST_OUTPUT_FILE}" > /dev/null 2> /dev/null
+    fi
+
+    # Since there are no loops in this suite, we can reset counts here.
+    reset_counts
+}
+
 # Determine the mask name, given the storage system and other info
 get_masking_view_name() {
     no_host_name=0
@@ -94,8 +162,14 @@ get_masking_view_name() {
     echo ${masking_view_name}
 }
 
-VERIFY_EXPORT_COUNT=0
-VERIFY_EXPORT_FAIL_COUNT=0
+# Overall suite counts
+VERIFY_COUNT=0
+VERIFY_FAIL_COUNT=0
+
+# Per-test counts
+TRIP_VERIFY_COUNT=0
+TRIP_VERIFY_FAIL_COUNT=0
+
 verify_export() {
     export_name=$1
     host_name=$2
@@ -109,11 +183,9 @@ verify_export() {
 	    cat ${CMD_OUTPUT}
 	fi
 	echo There was a failure
-	VERIFY_EXPORT_FAIL_COUNT=`expr $VERIFY_EXPORT_FAIL_COUNT + 1`
-	cleanup
-	finish
+	VERIFY_FAIL_COUNT=`expr $VERIFY_FAIL_COUNT + 1`
     fi
-    VERIFY_EXPORT_COUNT=`expr $VERIFY_EXPORT_COUNT + 1`
+    VERIFY_COUNT=`expr $VERIFY_COUNT + 1`
 }
 
 # Extra gut-check.  Make sure we didn't just grab a different mask off the array.
@@ -414,7 +486,7 @@ verify_no_zones() {
 	return
     fi
 
-    echo "=== zone list $BROCADE_NETWORK --fabricid ${fabricid} --zone_name filter:${host}"
+    recho "zone list $BROCADE_NETWORK --fabricid ${fabricid} --zone_name filter:${host}"
     zone list $BROCADE_NETWORK --fabricid ${fabricid} --zone_name filter:${host} | grep ${host} > /dev/null
     if [ $? -eq 0 ]; then
 	echo -e "\e[91mERROR\e[0m: Found zones on the switch associated with host ${host}."
@@ -450,7 +522,7 @@ verify_zones() {
 
     for zone in ${zones}
     do
-      echo "=== zone list $BROCADE_NETWORK --fabricid ${fabricid} --zone_name ${zone}"
+      recho "zone list $BROCADE_NETWORK --fabricid ${fabricid} --zone_name ${zone}"
       zone list $BROCADE_NETWORK --fabricid ${fabricid} --zone_name ${zone} | grep ${zone} > /dev/null
       if [ $? -ne 0 -a "${check}" = "exists" ]; then
 	  echo -e "\e[91mERROR\e[0m: Expected to find zone ${zone}, but did not."
@@ -518,7 +590,7 @@ delete_zones() {
 
     zonesdel=0
 
-    echo "=== zone list $BROCADE_NETWORK --fabricid ${fabricid} --zone_name filter:${host}"
+    recho "zone list $BROCADE_NETWORK --fabricid ${fabricid} --zone_name filter:${host}"
     fabriczones=`zone list $BROCADE_NETWORK --fabricid ${fabricid} --zone_name filter:${host} | grep ${host}`
     if [ $? -eq 0 ]; then
 	for zonename in ${fabriczones}
@@ -545,8 +617,8 @@ dbupdate() {
 
 finish() {
     code=${1}
-    if [ $VERIFY_EXPORT_FAIL_COUNT -ne 0 ]; then
-        exit $VERIFY_EXPORT_FAIL_COUNT
+    if [ $VERIFY_FAIL_COUNT -ne 0 ]; then
+        exit $VERIFY_FAIL_COUNT
     fi
     if [ "${code}" != "" ]; then
 	exit ${code}
@@ -613,34 +685,46 @@ drawstars() {
     repeatchar=`expr $1 + 2`
     while [ ${repeatchar} -gt 0 ]
     do 
-       echo -n "*"
+       echo -n "*" | tee -a ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE}
        repeatchar=`expr ${repeatchar} - 1`
     done
-    echo "*"
+    echo "*" | tee -a ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE}
 }
 
 echot() {
     numchar=`echo $* | wc -c`
-    echo ""
+    echo "" | tee -a ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE}
     drawstars $numchar
-    echo "* $* *"
+    echo "* $* *" | tee -a ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE}
     drawstars $numchar
 }
 
 # General echo output
 secho()
 {
-    echo -e "*** $*"
+    echo -e "*** $*" | tee -a ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE}
+}
+
+# General echo output for things that are run that will suspend
+recho()
+{
+    echo -e "=== $*" | tee -a ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE}
 }
 
 # Place to put command output in case of failure
 CMD_OUTPUT=/tmp/output.txt
 rm -f ${CMD_OUTPUT}
 
+# Helper method to increment the failure counts
+incr_fail_count() {
+    VERIFY_FAIL_COUNT=`expr $VERIFY_FAIL_COUNT + 1`
+    TRIP_VERIFY_FAIL_COUNT=`expr $TRIP_VERIFY_FAIL_COUNT + 1`
+}
+
 # A method to run a command that exits on failure.
 run() {
     cmd=$*
-    echo === $cmd
+    echo === $cmd | tee -a ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE}
     rm -f ${CMD_OUTPUT}
     if [ "${HIDE_OUTPUT}" = "" -o "${HIDE_OUTPUT}" = "1" ]; then
 	$cmd &> ${CMD_OUTPUT}
@@ -651,7 +735,7 @@ run() {
 	if [ -f ${CMD_OUTPUT} ]; then
 	    cat ${CMD_OUTPUT}
 	fi
-	echo There was a failure
+	echo There was a failure | tee -a ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE}
 	cleanup
 	finish -1
     fi
@@ -660,19 +744,19 @@ run() {
 # A method to run a command that continues on failure.
 runcmd() {
     cmd=$*
-    echo === $cmd
+    echo === $cmd | tee -a ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE}
     rm -f ${CMD_OUTPUT}
     if [ "${HIDE_OUTPUT}" = "" -o "${HIDE_OUTPUT}" = "1" ]; then
 	$cmd &> ${CMD_OUTPUT}
     else
-	$cmd 2>&1
+	$cmd 2>&1 
     fi
     if [ $? -ne 0 ]; then
 	if [ -f ${CMD_OUTPUT} ]; then
-	    cat ${CMD_OUTPUT}
+	    cat ${CMD_OUTPUT} | tee -a ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE}
 	fi
-	echo There was a failure
-	VERIFY_EXPORT_FAIL_COUNT=`expr $VERIFY_EXPORT_FAIL_COUNT + 1`
+	echo There was a failure | tee -a ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE}
+	incr_fail_count
     fi
 }
 
@@ -693,7 +777,7 @@ fail(){
         echo -e "$cmd succeeded, which \e[91mshould not have happened\e[0m"
 	cat ${CMD_OUTPUT}
         echo '**********************************************************************'
-	VERIFY_EXPORT_FAIL_COUNT=`expr $VERIFY_EXPORT_FAIL_COUNT + 1`
+	VERIFY_FAIL_COUNT=`expr $VERIFY_FAIL_COUNT + 1`
     else
 	secho "$cmd failed, which \e[32mis the expected ouput\e[0m"
     fi
@@ -1517,11 +1601,15 @@ test_1() {
     verify_export ${expname}1 ${HOST1} gone
 
     # Run the export group command
-    echo === export_group create $PROJECT ${expname}1 $NH --type Host --volspec ${PROJECT}/${VOLNAME}-1 --hosts "${HOST1}"
-    resultcmd=`export_group create $PROJECT ${expname}1 $NH --type Host --volspec ${PROJECT}/${VOLNAME}-1 --hosts "${HOST1}"`
+    recho export_group create $PROJECT ${expname}1 $NH --type Host --volspec ${PROJECT}/${VOLNAME}-1 --hosts "${HOST1}"
+    resultcmd=`export_group create $PROJECT ${expname}1 $NH --type Host --volspec ${PROJECT}/${VOLNAME}-1 --hosts "${HOST1}" 2> /tmp/errors.txt`
 
     if [ $? -ne 0 ]; then
+	cat /tmp/errors.txt | tee -a ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE}
 	echo "export group command failed outright"
+	incr_fail_count
+	report_results test_1
+	return
     fi
 
     echo $resultcmd
@@ -1543,11 +1631,15 @@ test_1() {
     set_suspend_on_class_method ${exportDeleteOrchStep}
 
     # Run the export group command
-    echo === export_group delete $PROJECT/${expname}1
-    resultcmd=`export_group delete $PROJECT/${expname}1`
+    recho export_group delete $PROJECT/${expname}1
+    resultcmd=`export_group delete $PROJECT/${expname}1 2> /tmp/errors.txt`
 
     if [ $? -ne 0 ]; then
+	cat /tmp/errors.txt | tee -a ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE}
 	echo "export group command failed outright"
+	incr_fail_count
+	report_results test_1
+	return
     fi
 
     echo $resultcmd
@@ -1565,6 +1657,9 @@ test_1() {
 
     verify_export ${expname}1 ${HOST1} gone
     verify_no_zones ${FC_ZONE_A:7} ${HOST1}
+
+    # Report results
+    report_results test_1
 }
 
 # Suspend/Resume base test 2
@@ -1581,11 +1676,15 @@ test_2() {
     set_suspend_on_class_method ${exportCreateDeviceStep}
 
     # Run the export group command
-    echo === export_group create $PROJECT ${expname}1 $NH --type Host --volspec ${PROJECT}/${VOLNAME}-1 --hosts "${HOST1}"
-    resultcmd=`export_group create $PROJECT ${expname}1 $NH --type Host --volspec ${PROJECT}/${VOLNAME}-1 --hosts "${HOST1}"`
+    recho export_group create $PROJECT ${expname}1 $NH --type Host --volspec ${PROJECT}/${VOLNAME}-1 --hosts "${HOST1}"
+    resultcmd=`export_group create $PROJECT ${expname}1 $NH --type Host --volspec ${PROJECT}/${VOLNAME}-1 --hosts "${HOST1}" 2> /tmp/errors.txt`
 
     if [ $? -ne 0 ]; then
+	cat /tmp/errors.txt | tee -a ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE}
 	echo "export group command failed outright"
+	incr_fail_count
+	report_results test_2
+	return
     fi
 
     echo $resultcmd
@@ -1593,8 +1692,9 @@ test_2() {
     echo $resultcmd | grep "suspended" > /dev/null
     if [ $? -ne 0 ]; then
 	echo "export group command did not suspend";
-	cleanup
-	finish 2
+	incr_fail_count
+	report_results test_2
+	return
     fi
 
     # Parse results (add checks here!  encapsulate!)
@@ -1614,20 +1714,25 @@ test_2() {
     set_suspend_on_class_method ${exportDeleteDeviceStep}
 
     # Run the export group command
-    echo === export_group delete $PROJECT/${expname}1
-    resultcmd=`export_group delete $PROJECT/${expname}1`
+    recho export_group delete $PROJECT/${expname}1
+    resultcmd=`export_group delete $PROJECT/${expname}1 2> /tmp/errors.txt`
 
     if [ $? -ne 0 ]; then
+	cat /tmp/errors.txt | tee -a ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE}
 	echo "export group command failed outright"
+	incr_fail_count
+	report_results test_2
+	return
     fi
 
     echo $resultcmd
 
     echo $resultcmd | grep "suspended" > /dev/null
     if [ $? -ne 0 ]; then
-	echo "export group command did not suspend";
-	cleanup
-	finish 2
+	secho "export group command did not suspend";
+	incr_fail_count;
+	report_results test_2
+	return
     fi
 
     # Parse results (add checks here!  encapsulate!)
@@ -1643,6 +1748,9 @@ test_2() {
 
     verify_export ${expname}1 ${HOST1} gone
     verify_no_zones ${FC_ZONE_A:7} ${HOST1}
+
+    # Report results
+    report_results test_2
 }
 
 # DU Prevention Validation Test 3
@@ -1689,13 +1797,15 @@ test_3() {
     runcmd volume delete ${PROJECT}/${HIJACK} --vipronly
 
     # Run the export group command TODO: Do this more elegantly
-    echo === export_group delete $PROJECT/${expname}1
-    resultcmd=`export_group delete $PROJECT/${expname}1`
+    recho export_group delete $PROJECT/${expname}1
+    resultcmd=`export_group delete $PROJECT/${expname}1 2> /tmp/errors.txt`
 
     if [ $? -ne 0 ]; then
+	cat /tmp/errors.txt | tee -a ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE}
 	echo "export group command failed outright"
-	cleanup
-	finish 3
+	incr_fail_count
+	report_results test_3
+	return
     fi
 
     # Show the result of the export group command for now (show the task and WF IDs)
@@ -1738,6 +1848,9 @@ test_3() {
     # Make sure it really did kill off the mask
     verify_export ${expname}1 ${HOST1} gone
     verify_no_zones ${FC_ZONE_A:7} ${HOST1}
+
+    # Report results
+    report_results test_3
 }
 
 # Export Test 4
@@ -1795,13 +1908,15 @@ test_4() {
     set_suspend_on_class_method ${exportDeleteDeviceStep}
 
     # Run the export group command TODO: Do this more elegantly
-    echo === export_group delete $PROJECT/${expname}1
-    resultcmd=`export_group delete $PROJECT/${expname}1`
+    recho export_group delete $PROJECT/${expname}1
+    resultcmd=`export_group delete $PROJECT/${expname}1 2> /tmp/errors.txt`
 
     if [ $? -ne 0 ]; then
-        echo "export group command failed outright"
-        cleanup
-        finish 4
+	cat /tmp/errors.txt | tee -a ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE}
+	echo "export group command failed outright"
+	incr_fail_count
+	report_results test_4
+	return
     fi
 
     # Show the result of the export group command for now (show the task and WF IDs)
@@ -1842,13 +1957,15 @@ test_4() {
     set_suspend_on_class_method ${exportDeleteDeviceStep}
 
     # Run the export group command TODO: Do this more elegantly
-    echo === export_group delete $PROJECT/${expname}1
-    resultcmd=`export_group delete $PROJECT/${expname}1`
+    recho export_group delete $PROJECT/${expname}1
+    resultcmd=`export_group delete $PROJECT/${expname}1 2> /tmp/errors.txt`
 
     if [ $? -ne 0 ]; then
-        echo "export group command failed outright"
-        cleanup
-        finish 4
+	cat /tmp/errors.txt | tee -a ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE}
+	echo "export group command failed outright"
+	incr_fail_count
+	report_results test_4
+	return
     fi
 
     # Show the result of the export group command for now (show the task and WF IDs)
@@ -1904,6 +2021,9 @@ test_4() {
     # Make sure it really did kill off the mask
     verify_export ${expname}1 ${HOST1} gone
     verify_no_zones ${FC_ZONE_A:7} ${HOST1}
+
+    # Report results
+    report_results test_4
 }
 
 # Export Test 5
@@ -1935,13 +2055,15 @@ test_5() {
     set_suspend_on_class_method ${exportRemoveVolumesDeviceStep}
 
     # Run the export group command TODO: Do this more elegantly
-    echo === export_group update $PROJECT/${expname}1 --remVols ${PROJECT}/${VOLNAME}-2
-    resultcmd=`export_group update $PROJECT/${expname}1 --remVols ${PROJECT}/${VOLNAME}-2`
+    recho export_group update $PROJECT/${expname}1 --remVols ${PROJECT}/${VOLNAME}-2
+    resultcmd=`export_group update $PROJECT/${expname}1 --remVols ${PROJECT}/${VOLNAME}-2 2> /tmp/errors.txt`
 
     if [ $? -ne 0 ]; then
-	echo "export group command failed outright"
-	cleanup
-	finish 5
+	cat /tmp/errors.txt | tee -a ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE}
+	secho "export group command failed outright"
+	incr_fail_count
+	report_results test_5
+	return
     fi
 
     # Show the result of the export group command for now (show the task and WF IDs)
@@ -1976,13 +2098,15 @@ test_5() {
 
     if [ "$SS" != "xio" ]; then    
         # Run the export group command TODO: Do this more elegantly
-        echo === export_group update $PROJECT/${expname}1 --remVols "${PROJECT}/${VOLNAME}-2"
-        resultcmd=`export_group update $PROJECT/${expname}1 --remVols "${PROJECT}/${VOLNAME}-2"`
+        recho export_group update $PROJECT/${expname}1 --remVols "${PROJECT}/${VOLNAME}-2"
+        resultcmd=`export_group update $PROJECT/${expname}1 --remVols "${PROJECT}/${VOLNAME}-2" 2> /tmp/errors.txt`
 
         if [ $? -ne 0 ]; then
-	    echo "export group command failed outright"
-       	    cleanup
-	    finish 4
+	    cat /tmp/errors.txt | tee -a ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE}
+	    secho "export group command failed outright"
+	    incr_fail_count
+	    report_results test_4
+	    return
         fi
 
         # Show the result of the export group command for now (show the task and WF IDs)
@@ -2034,6 +2158,9 @@ test_5() {
     # Make sure the mask is gone
     verify_export ${expname}1 ${HOST1} gone
     verify_no_zones ${FC_ZONE_A:7} ${HOST1}
+
+    # Report results
+    report_results test_5
 }
 
 # DU Prevention Validation Test 6
@@ -2086,13 +2213,15 @@ test_6() {
     set_suspend_on_class_method ${exportRemoveInitiatorsDeviceStep}
 
     # Run the export group command TODO: Do this more elegantly
-    echo === export_group update $PROJECT/${expname}1 --remInits ${HOST1}/${H1PI1}
-    resultcmd=`export_group update $PROJECT/${expname}1 --remInits ${HOST1}/${H1PI1}`
+    recho export_group update $PROJECT/${expname}1 --remInits ${HOST1}/${H1PI1}
+    resultcmd=`export_group update $PROJECT/${expname}1 --remInits ${HOST1}/${H1PI1} 2> /tmp/errors.txt`
 
     if [ $? -ne 0 ]; then
-	echo "export group command failed outright"
-	cleanup
-	finish 6
+	cat /tmp/errors.txt | tee -a ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE}
+	secho "export group command failed outright"
+	incr_fail_count
+	report_results test_6
+	return
     fi
 
     # Show the result of the export group command for now (show the task and WF IDs)
@@ -2157,13 +2286,15 @@ test_6() {
     set_suspend_on_class_method ${exportRemoveInitiatorsDeviceStep}
 
     # Run the export group command TODO: Do this more elegantly
-    echo === export_group update $PROJECT/${expname}1 --remInits ${HOST1}/${H1PI1}
-    resultcmd=`export_group update $PROJECT/${expname}1 --remInits ${HOST1}/${H1PI1}`
+    recho export_group update $PROJECT/${expname}1 --remInits ${HOST1}/${H1PI1}
+    resultcmd=`export_group update $PROJECT/${expname}1 --remInits ${HOST1}/${H1PI1} 2> /tmp/errors.txt`
 
     if [ $? -ne 0 ]; then
-	echo "export group command failed outright"
-	cleanup
-	finish 6
+	cat /tmp/errors.txt | tee -a ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE}
+	secho "export group command failed outright"
+	incr_fail_count
+	report_results test_6
+	return
     fi
 
     # Show the result of the export group command for now (show the task and WF IDs)
@@ -2218,6 +2349,9 @@ test_6() {
     # Make sure it really did kill off the mask
     verify_export ${expname}1 ${HOST1} gone
     verify_no_zones ${FC_ZONE_A:7} ${HOST1}
+
+    # Report results
+    report_results test_6
 }
 
 # Validation Test 7
@@ -2275,6 +2409,9 @@ test_7() {
 
     # Delete the volume we created
     runcmd volume delete ${PROJECT}/${volname} --wait
+
+    # Report results
+    report_results test_7
 }
 
 # Validation Test 8
@@ -2326,6 +2463,9 @@ test_8() {
     # Make sure it really did kill off the mask
     verify_export ${expname} ${HOST1} gone
     verify_no_zones ${FC_ZONE_A:7} ${HOST1}
+
+    # Report results
+    report_results test_8
 }
 
 # DU Prevention Validation Test 9
@@ -2358,13 +2498,15 @@ test_9() {
     set_suspend_on_class_method ${exportAddVolumesDeviceStep}
 
     # Run the export group command TODO: Do this more elegantly
-    echo === export_group update $PROJECT/${expname}1 --addVols ${PROJECT}/${VOLNAME}-2
-    resultcmd=`export_group update $PROJECT/${expname}1 --addVols ${PROJECT}/${VOLNAME}-2`
+    recho export_group update $PROJECT/${expname}1 --addVols ${PROJECT}/${VOLNAME}-2
+    resultcmd=`export_group update $PROJECT/${expname}1 --addVols ${PROJECT}/${VOLNAME}-2 2> /tmp/errors.txt`
 
     if [ $? -ne 0 ]; then
-	echo "export group command failed outright"
-	cleanup
-	finish 9
+	cat /tmp/errors.txt | tee -a ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE}
+	secho "export group command failed outright"
+	incr_fail_count
+	report_results test_9
+	return
     fi
 
     # Show the result of the export group command for now (show the task and WF IDs)
@@ -2404,6 +2546,9 @@ test_9() {
     # Make sure it really did kill off the mask
     verify_export ${expname}1 ${HOST1} gone
     verify_no_zones ${FC_ZONE_A:7} ${HOST1}
+
+    # Report results
+    report_results test_9
 }
 
 # DU Prevention Validation Test 10
@@ -2467,6 +2612,9 @@ test_10() {
     # Make sure it really did kill off the mask
     verify_export ${expname}1 ${HOST1} gone
     verify_no_zones ${FC_ZONE_A:7} ${HOST1}
+
+    # Report results
+    report_results test_10
 }
 
 # DU Prevention Validation Test 11
@@ -2503,13 +2651,15 @@ test_11() {
     set_suspend_on_class_method ${exportAddVolumesDeviceStep}
 
     # Run the export group command TODO: Do this more elegantly
-    echo === export_group update $PROJECT/${expname}1 --addVols ${PROJECT}/${VOLNAME}-2
-    resultcmd=`export_group update $PROJECT/${expname}1 --addVols ${PROJECT}/${VOLNAME}-2`
+    recho export_group update $PROJECT/${expname}1 --addVols ${PROJECT}/${VOLNAME}-2
+    resultcmd=`export_group update $PROJECT/${expname}1 --addVols ${PROJECT}/${VOLNAME}-2 2> /tmp/errors.txt`
 
     if [ $? -ne 0 ]; then
-	echo "export group command failed outright"
-	cleanup
-	finish 11
+	cat /tmp/errors.txt | tee -a ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE}
+	secho "export group command failed outright"
+	incr_fail_count
+	report_results test_11
+	return
     fi
 
     # Show the result of the export group command for now (show the task and WF IDs)
@@ -2552,6 +2702,9 @@ test_11() {
     # Make sure it really did kill off the mask
     verify_export ${expname}1 ${HOST1} gone
     verify_no_zones ${FC_ZONE_A:7} ${HOST1}
+
+    # Report results
+    report_results test_11
 }
 
 # DU Prevention Validation Test 12
@@ -2606,6 +2759,9 @@ test_12() {
 
     # Delete the volume we created.
     arrayhelper delete_volume ${SERIAL_NUMBER} ${device_id}
+
+    # Report results
+    report_results test_12
 }
 
 # DU Prevention Validation Test 13
@@ -2641,13 +2797,15 @@ test_13() {
     set_artificial_failure failure_002_late_in_add_volume_to_mask
 
     # Run the export group command TODO: Do this more elegantly
-    echo === export_group update $PROJECT/${expname}1 --addVols ${PROJECT}/${VOLNAME}-2
-    resultcmd=`export_group update $PROJECT/${expname}1 --addVols ${PROJECT}/${VOLNAME}-2`
+    recho export_group update $PROJECT/${expname}1 --addVols ${PROJECT}/${VOLNAME}-2
+    resultcmd=`export_group update $PROJECT/${expname}1 --addVols ${PROJECT}/${VOLNAME}-2 2> /tmp/errors.txt`
 
     if [ $? -ne 0 ]; then
-	echo "export group command failed outright"
-	cleanup
-	finish 13
+	cat /tmp/errors.txt | tee -a ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE}
+	secho "export group command failed outright"
+	incr_fail_count
+	report_results test_13
+	return
     fi
 
     # Show the result of the export group command for now (show the task and WF IDs)
@@ -2689,6 +2847,9 @@ test_13() {
     # Make sure it really did kill off the mask
     verify_export ${expname}1 ${HOST1} gone
     verify_no_zones ${FC_ZONE_A:7} ${HOST1}
+
+    # Report results
+    report_results test_13
 }
 
 # DU Prevention Validation Test 14
@@ -2740,13 +2901,15 @@ test_14() {
     set_artificial_failure failure_003_late_in_add_initiator_to_mask
 
     # Run the export group command TODO: Do this more elegantly
-    echo === export_group update $PROJECT/${expname}1 --addInits ${HOST1}/${H1PI1}
-    resultcmd=`export_group update $PROJECT/${expname}1 --addInits ${HOST1}/${H1PI1}`
+    recho export_group update $PROJECT/${expname}1 --addInits ${HOST1}/${H1PI1}
+    resultcmd=`export_group update $PROJECT/${expname}1 --addInits ${HOST1}/${H1PI1} 2> /tmp/errors.txt`
 
     if [ $? -ne 0 ]; then
-	echo "export group command failed outright"
-	cleanup
-	finish 14
+	cat /tmp/errors.txt | tee -a ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE}
+	secho "export group command failed outright"
+	incr_fail_count
+	report_results test_14
+	return
     fi
 
     # Show the result of the export group command for now (show the task and WF IDs)
@@ -2789,6 +2952,9 @@ test_14() {
     # Make sure it really did kill off the mask
     verify_export ${expname}1 ${HOST1} gone
     verify_no_zones ${FC_ZONE_A:7} ${HOST1}
+
+    # Report results
+    report_results test_14
 }
 
 # Validation Test 15
@@ -2827,13 +2993,15 @@ test_15() {
     set_artificial_failure failure_003_late_in_add_initiator_to_mask
 
     # Run the export group command TODO: Do this more elegantly
-    echo === export_group update $PROJECT/${expname}1 --addInits ${HOST1}/${H1PI2}
-    resultcmd=`export_group update $PROJECT/${expname}1 --addInits ${HOST1}/${H1PI2}`
+    recho export_group update $PROJECT/${expname}1 --addInits ${HOST1}/${H1PI2}
+    resultcmd=`export_group update $PROJECT/${expname}1 --addInits ${HOST1}/${H1PI2} 2> /tmp/errors.txt`
 
     if [ $? -ne 0 ]; then
-	echo "export group command failed outright"
-	cleanup
-	finish 15
+	cat /tmp/errors.txt | tee -a ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE}
+	secho "export group command failed outright"
+	incr_fail_count
+	report_results test_15
+	return
     fi
 
     # Show the result of the export group command for now (show the task and WF IDs)
@@ -2880,6 +3048,9 @@ test_15() {
     # Make sure it really did kill off the mask
     verify_export ${expname}1 ${HOST1} gone
     verify_no_zones ${FC_ZONE_A:7} ${HOST1}
+
+    # Report results
+    report_results test_15
 }
 
 # Validation Test 16
@@ -2930,13 +3101,15 @@ test_16() {
     runcmd volume delete ${PROJECT}/${HIJACK} --vipronly
 
     # Run the export group command TODO: Do this more elegantly
-    echo === export_group create $PROJECT ${expname}1 $NH --type Host --volspec ${PROJECT}/${VOLNAME}-1 --hosts "${HOST1}"
-    resultcmd=`export_group create $PROJECT ${expname}1 $NH --type Host --volspec ${PROJECT}/${VOLNAME}-1 --hosts "${HOST1}"`
+    recho export_group create $PROJECT ${expname}1 $NH --type Host --volspec ${PROJECT}/${VOLNAME}-1 --hosts "${HOST1}"
+    resultcmd=`export_group create $PROJECT ${expname}1 $NH --type Host --volspec ${PROJECT}/${VOLNAME}-1 --hosts "${HOST1}" 2> /tmp/errors.txt`
 
     if [ $? -ne 0 ]; then
-	echo "export group command failed outright"
-	cleanup
-	finish 16
+	cat /tmp/errors.txt | tee -a ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE}
+	secho "export group command failed outright"
+	incr_fail_count
+	report_results test_16
+	return
     fi
 
     # Show the result of the export group command for now (show the task and WF IDs)
@@ -2991,6 +3164,9 @@ test_16() {
     # Make sure it really did kill off the mask
     verify_export ${expname}1 ${HOST1} gone
     verify_no_zones ${FC_ZONE_A:7} ${HOST1}
+
+    # Report results
+    report_results test_16
 }
 
 # DU Prevention Validation Test 17
@@ -3034,13 +3210,15 @@ test_17() {
     runcmd volume delete ${PROJECT}/${HIJACK} --vipronly
 
     # Run the export group command TODO: Do this more elegantly
-    echo === export_group delete $PROJECT/${expname}1
-    resultcmd=`export_group delete $PROJECT/${expname}1`
+    recho export_group delete $PROJECT/${expname}1
+    resultcmd=`export_group delete $PROJECT/${expname}1 2> /tmp/errors.txt`
 
     if [ $? -ne 0 ]; then
-	echo "export group command failed outright"
-	cleanup
-	finish 17
+	cat /tmp/errors.txt | tee -a ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE}
+	secho "export group command failed outright"
+	incr_fail_count
+	report_results test_17
+	return
     fi
 
     # Show the result of the export group command for now (show the task and WF IDs)
@@ -3079,6 +3257,9 @@ test_17() {
     # Delete the volume we created.
     arrayhelper delete_volume ${SERIAL_NUMBER} ${device_id}
     verify_no_zones ${FC_ZONE_A:7} ${HOST1}
+
+    # Report results
+    report_results test_17
 }
 
 # Export Test 18
@@ -3120,13 +3301,15 @@ test_18() {
     set_suspend_on_class_method ${exportRemoveVolumesDeviceStep}
 
     # Run the export group command TODO: Do this more elegantly
-    echo === export_group update $PROJECT/${expname}1 --remVols ${PROJECT}/${VOLNAME}-2
-    resultcmd=`export_group update $PROJECT/${expname}1 --remVols ${PROJECT}/${VOLNAME}-2`
+    recho export_group update $PROJECT/${expname}1 --remVols ${PROJECT}/${VOLNAME}-2
+    resultcmd=`export_group update $PROJECT/${expname}1 --remVols ${PROJECT}/${VOLNAME}-2 2> /tmp/errors.txt`
 
     if [ $? -ne 0 ]; then
-	echo "export group command failed outright"
-	cleanup
-	finish 18
+	cat /tmp/errors.txt | tee -a ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE}
+	secho "export group command failed outright"
+	incr_fail_count
+	report_results test_18
+	return
     fi
 
     # Show the result of the export group command for now (show the task and WF IDs)
@@ -3172,6 +3355,9 @@ test_18() {
     # Make sure the mask is gone
     verify_export ${expname}1 ${HOST1} gone
     verify_no_zones ${FC_ZONE_A:7} ${HOST1}
+
+    # Report results
+    report_results test_18
 }
 
 # DU Prevention Validation Test 19
@@ -3204,13 +3390,15 @@ test_19() {
     set_suspend_on_class_method ${exportRemoveInitiatorsDeviceStep}
 
     # Run the export group command TODO: Do this more elegantly
-    echo === export_group update $PROJECT/${expname}1 --remInits ${HOST1}/${H1PI1}
-    resultcmd=`export_group update $PROJECT/${expname}1 --remInits ${HOST1}/${H1PI1}`
+    recho export_group update $PROJECT/${expname}1 --remInits ${HOST1}/${H1PI1}
+    resultcmd=`export_group update $PROJECT/${expname}1 --remInits ${HOST1}/${H1PI1} 2> /tmp/errors.txt`
 
     if [ $? -ne 0 ]; then
-	echo "export group command failed outright"
-	cleanup
-	finish 19
+	cat /tmp/errors.txt | tee -a ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE}
+	secho "export group command failed outright"
+	incr_fail_count
+	report_results test_19
+	return
     fi
 
     # Show the result of the export group command for now (show the task and WF IDs)
@@ -3261,6 +3449,9 @@ test_19() {
     # Make sure it really did kill off the mask
     verify_export ${expname}1 ${HOST1} gone
     verify_no_zones ${FC_ZONE_A:7} ${HOST1}
+
+    # Report results
+    report_results test_19
 }
 
 # DU Prevention Validation Test 20
@@ -3301,13 +3492,15 @@ test_20() {
     set_suspend_on_class_method ${exportRemoveVolumesDeviceStep}
 
     # Run the export group command TODO: Do this more elegantly
-    echo === export_group update $PROJECT/${expname}1 --remVols ${PROJECT}/${VOLNAME}-2
-    resultcmd=`export_group update $PROJECT/${expname}1 --remVols ${PROJECT}/${VOLNAME}-2`
+    recho export_group update $PROJECT/${expname}1 --remVols ${PROJECT}/${VOLNAME}-2
+    resultcmd=`export_group update $PROJECT/${expname}1 --remVols ${PROJECT}/${VOLNAME}-2 2> /tmp/errors.txt`
 
     if [ $? -ne 0 ]; then
-	echo "export group command failed outright"
-	cleanup
-	finish 20
+	cat /tmp/errors.txt | tee -a ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE}
+	secho "export group command failed outright"
+	incr_fail_count
+	report_results test_20
+	return
     fi
 
 	# Show the result of the export group command for now (show the task and WF IDs)
@@ -3359,6 +3552,9 @@ test_20() {
     # Make sure it really did kill off the mask
     verify_export ${expname}1 ${HOST1} gone
     verify_no_zones ${FC_ZONE_A:7} ${HOST1}
+
+    # Report results
+    report_results test_20
 }
 
 # DU Prevention Validation Test 21
@@ -3398,13 +3594,15 @@ test_21() {
     set_suspend_on_class_method ${exportRemoveInitiatorsDeviceStep}
 
     # Run the export group command TODO: Do this more elegantly
-    echo === export_group update $PROJECT/${expname}1 --remInits ${HOST1}/${H1PI1}
-    resultcmd=`export_group update $PROJECT/${expname}1 --remInits ${HOST1}/${H1PI1}`
+    recho export_group update $PROJECT/${expname}1 --remInits ${HOST1}/${H1PI1}
+    resultcmd=`export_group update $PROJECT/${expname}1 --remInits ${HOST1}/${H1PI1} 2> /tmp/errors.txt`
 
     if [ $? -ne 0 ]; then
-	echo "export group command failed outright"
-	cleanup
-	finish 21
+	cat /tmp/errors.txt | tee -a ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE}
+	secho "export group command failed outright"
+	incr_fail_count
+	report_results test_21
+	return
     fi
 
     # Show the result of the export group command for now (show the task and WF IDs)
@@ -3459,6 +3657,9 @@ test_21() {
     # Make sure it really did kill off the mask
     verify_export ${expname}1 ${HOST1} gone
     verify_no_zones ${FC_ZONE_A:7} ${HOST1}
+
+    # Report results
+    report_results test_21
 }
 
 # Suspend/Resume of Migration test volumes
@@ -3489,11 +3690,15 @@ test_22() {
     # Run change vpool, but suspend will happen
 
     # Run the export group command
-    echo === volume change_cos ${PROJECT}/${HIJACK} ${VPOOL_BASE}_migration_tgt --suspend
-    resultcmd=`volume change_cos ${PROJECT}/${HIJACK} ${VPOOL_BASE}_migration_tgt --suspend`
+    recho volume change_cos ${PROJECT}/${HIJACK} ${VPOOL_BASE}_migration_tgt --suspend
+    resultcmd=`volume change_cos ${PROJECT}/${HIJACK} ${VPOOL_BASE}_migration_tgt --suspend 2> /tmp/errors.txt`
 
     if [ $? -ne 0 ]; then
+	cat /tmp/errors.txt | tee -a ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE}
 	echo "volume change_cos command failed outright"
+	incr_fail_count
+	report_results test_22
+	return
     fi
 
     # Show the result of the export group command for now (show the task and WF IDs)
@@ -3517,6 +3722,9 @@ test_22() {
 
     # Delete the volume we created
     runcmd volume delete ${PROJECT}/${HIJACK} --wait
+
+    # Report results
+    report_results test_22
 }
 
 # Suspend/Resume of Migration test CG
@@ -3561,11 +3769,15 @@ test_23() {
     # Run change vpool, but suspend will happen
 
     # Run the export group command
-    echo === volume change_cos "${PROJECT}/${HIJACK}-1,${PROJECT}/${HIJACK}-2" ${VPOOL_BASE}_migration_tgt --consistencyGroup=${CGNAME} --suspend
-    resultcmd=`volume change_cos "${PROJECT}/${HIJACK}-1,${PROJECT}/${HIJACK}-2" ${VPOOL_BASE}_migration_tgt --consistencyGroup=${CGNAME} --suspend`
+    recho volume change_cos "${PROJECT}/${HIJACK}-1,${PROJECT}/${HIJACK}-2" ${VPOOL_BASE}_migration_tgt --consistencyGroup=${CGNAME} --suspend
+    resultcmd=`volume change_cos "${PROJECT}/${HIJACK}-1,${PROJECT}/${HIJACK}-2" ${VPOOL_BASE}_migration_tgt --consistencyGroup=${CGNAME} --suspend 2> /tmp/errors.txt`
 
     if [ $? -ne 0 ]; then
+	cat /tmp/errors.txt | tee -a ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE}
 	echo "volume change_cos_multi command failed outright"
+	incr_fail_count
+	report_results test_23
+	return
     fi
 
     # Show the result of the export group command for now (show the task and WF IDs)
@@ -3591,6 +3803,9 @@ test_23() {
     runcmd volume delete ${PROJECT}/${HIJACK}-1 --wait
     runcmd volume delete ${PROJECT}/${HIJACK}-2 --wait
     runcmd blockconsistencygroup delete ${CGNAME}
+
+    # Report results
+    report_results test_23
 }
 
 # Export Test 24
@@ -3682,6 +3897,9 @@ test_24() {
 
     # Verify delete zones did what it is supposed to
     verify_no_zones ${FC_ZONE_A:7} ${HOST1}
+
+    # Report results
+    report_results test_24
 }
 
 # DU Prevention Validation Test 25
@@ -3757,6 +3975,9 @@ test_25() {
     # Make sure it really did kill off the mask
     verify_export ${expname}1 ${HOST1} gone
     verify_no_zones ${FC_ZONE_A:7} ${HOST1}
+
+    # Report results
+    report_results test_25
 }
 
 # pull in the vplextests.sh so it can use the dutests framework
@@ -3771,8 +3992,8 @@ cleanup() {
 	done
 	runcmd volume delete --project $PROJECT --wait
     fi
-    echo There were $VERIFY_EXPORT_COUNT export verifications
-    echo There were $VERIFY_EXPORT_FAIL_COUNT export verification failures
+    echo There were $VERIFY_COUNT export verifications
+    echo There were $VERIFY_FAIL_COUNT export verification failures
 }
 
 # Clean up any exports or volumes from previous runs, but not the volumes you need to run tests
@@ -3918,6 +4139,14 @@ then
     shift
 fi
 
+REPORT=0
+# Whether to report results to the master data collector of all things
+if [ "${1}" = "-report" ]; then
+    echo "TURNING ON REPORT"
+    REPORT=1
+    shift;
+fi
+
 test_start=0
 test_end=25
 
@@ -3933,6 +4162,7 @@ then
       echo Run $t
       reset_system_props
       prerun_tests
+      TEST_OUTPUT_FILE=test_output_${RANDOM}.log
       $t
       reset_system_props
    done
@@ -3948,14 +4178,15 @@ else
    do
      reset_system_props
      prerun_tests
+     TEST_OUTPUT_FILE=test_output_${RANDOM}.log
      test_${num}
      reset_system_props
      num=`expr ${num} + 1`
    done
 fi
 
-echo There were $VERIFY_EXPORT_COUNT export verifications
-echo There were $VERIFY_EXPORT_FAIL_COUNT export verification failures
+echo There were $VERIFY_COUNT export verifications
+echo There were $VERIFY_FAIL_COUNT export verification failures
 echo `date`
 echo `git status | grep 'On branch'`
 

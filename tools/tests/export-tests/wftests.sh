@@ -716,6 +716,12 @@ secho()
     echo -e "*** $*" | tee -a ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE}
 }
 
+# General echo output for things that are run that will suspend
+recho()
+{
+    echo -e "=== $*" | tee -a ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE}
+}
+
 # Place to put command output in case of failure
 CMD_OUTPUT=/tmp/output.txt
 rm -f ${CMD_OUTPUT}
@@ -3099,7 +3105,7 @@ test_10() {
       set_suspend_on_class_method ${exportRemoveVolumesDeviceStep}
 
       # Run the export group command TODO: Do this more elegantly
-      echo === export_group update $PROJECT/${expname}1 --remVols ${PROJECT}/${VOLNAME}-2
+      recho "export_group update $PROJECT/${expname}1 --remVols ${PROJECT}/${VOLNAME}-2"
       resultcmd=`export_group update $PROJECT/${expname}1 --remVols ${PROJECT}/${VOLNAME}-2`
 
       if [ $? -ne 0 ]; then

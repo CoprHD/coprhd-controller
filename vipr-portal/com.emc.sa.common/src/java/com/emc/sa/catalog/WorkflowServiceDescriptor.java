@@ -23,6 +23,8 @@ import com.emc.storageos.db.client.constraint.NamedElementQueryResultList.NamedE
 import com.emc.storageos.db.client.model.uimodels.OrchestrationWorkflow;
 import com.emc.storageos.db.client.model.uimodels.OrchestrationWorkflow.OrchestrationWorkflowStatus;
 import com.emc.storageos.model.orchestration.OrchestrationWorkflowDocument;
+import com.emc.storageos.model.orchestration.OrchestrationWorkflowDocument.Step;
+import com.emc.storageos.model.orchestration.OrchestrationWorkflowDocument.Input;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -89,10 +91,10 @@ public class WorkflowServiceDescriptor {
         return wfServiceDescriptors;
     }
 
-    private ServiceDescriptor mapWorkflowToServiceDescriptor(OrchestrationWorkflow from) {
-        ServiceDescriptor to = new ServiceDescriptor();
+    private ServiceDescriptor mapWorkflowToServiceDescriptor(final OrchestrationWorkflow from) {
+        final ServiceDescriptor to = new ServiceDescriptor();
         try {
-            OrchestrationWorkflowDocument wfDocument = WorkflowHelper.toWorkflowDocument(from);
+            final OrchestrationWorkflowDocument wfDocument = WorkflowHelper.toWorkflowDocument(from);
             to.setCategory(ORCHESTRATION_SERVICE_CATEGORY);
             to.setDescription(wfDocument.getDescription());
             to.setDestructive(false);
@@ -100,39 +102,39 @@ public class WorkflowServiceDescriptor {
             to.setTitle(wfDocument.getName());
             to.setWorkflowId(wfDocument.getName());
 
-            for (OrchestrationWorkflowDocument.Step step : wfDocument.getSteps()) {
+            for (final Step step : wfDocument.getSteps()) {
                 if (null != step.getInput()) {
-                    for(Map.Entry<String, OrchestrationWorkflowDocument.Input> inputEntry: step.getInput().entrySet()) {
-                        OrchestrationWorkflowDocument.Input wfInput = inputEntry.getValue();
-                        String wfInputType = null;
-                        // Creating service fields for only inputs of type "inputfromuser" and "assetoption"
-                        if (INPUT_FROM_USER_INPUT_TYPE.equals(wfInput.getType())) {
-                            wfInputType = INPUT_FROM_USER_FIELD_TYPE;
-                        }
-                        else if (ASSET_INPUT_TYPE.equals(wfInput.getType())) {
-                            wfInputType = wfInput.getValue();
-                        }
-                        if (null != wfInputType) {
-                            ServiceField serviceField = new ServiceField();
-                            String inputName = inputEntry.getKey();
-                            //TODO: change this to get description
-                            serviceField.setDescription(wfInput.getFriendlyName());
-                            serviceField.setLabel(wfInput.getFriendlyName());
-                            serviceField.setName(inputName);
-                            serviceField.setRequired(wfInput.getRequired());
-                            serviceField.setInitialValue(wfInput.getDefaultValue());
-                            // Setting all unlocked fields as lockable
-                            if (!wfInput.getLocked()) {
-                                serviceField.setLockable(true);
+                    for (final List<Input> inputs : step.getInput().values()) {
+                        for (final Input wfInput : inputs) {
+                            String wfInputType = null;
+                            // Creating service fields for only inputs of type "inputfromuser" and "assetoption"
+                            if (INPUT_FROM_USER_INPUT_TYPE.equals(wfInput.getType())) {
+                                wfInputType = INPUT_FROM_USER_FIELD_TYPE;
+                            } else if (ASSET_INPUT_TYPE.equals(wfInput.getType())) {
+                                wfInputType = wfInput.getValue();
                             }
-                            serviceField.setType(wfInputType);
-                            to.getItems().put(inputName, serviceField);
+                            if (null != wfInputType) {
+                                ServiceField serviceField = new ServiceField();
+                                String inputName = wfInput.getName();
+                                //TODO: change this to get description
+                                serviceField.setDescription(wfInput.getFriendlyName());
+                                serviceField.setLabel(wfInput.getFriendlyName());
+                                serviceField.setName(inputName);
+                                serviceField.setRequired(wfInput.getRequired());
+                                serviceField.setInitialValue(wfInput.getDefaultValue());
+                                // Setting all unlocked fields as lockable
+                                if (!wfInput.getLocked()) {
+                                    serviceField.setLockable(true);
+                                }
+                                serviceField.setType(wfInputType);
+                                to.getItems().put(inputName, serviceField);
+                            }
                         }
                     }
                 }
             }
-        }
-        catch (IOException io) {
+
+        } catch (final IOException io) {
             log.error("Error deserializing workflow", io);
             throw new IllegalStateException(String.format("Error deserializing workflow %s", from.getName()));
         }
@@ -140,3 +142,4 @@ public class WorkflowServiceDescriptor {
         return to;
     }
 }
+

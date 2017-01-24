@@ -29,8 +29,10 @@ public class AnsibleCommandLine {
     private final String ansiblePath;
     private final String playbook;
     private String prefix;
+    private String ssh;
+    private String node;
     private String extraVars;
-    final ImmutableList.Builder<String> optionalParam = ImmutableList.builder();
+    private final ImmutableList.Builder<String> optionalParam = ImmutableList.builder();
 
     public AnsibleCommandLine(final String ansiblePath, final String playbook) {
         this.ansiblePath = ansiblePath;
@@ -51,9 +53,33 @@ public class AnsibleCommandLine {
         return this;
     }
 
+    public AnsibleCommandLine setSsh(final String ssh) {
+        if (!StringUtils.isEmpty(ssh)) {
+            this.ssh = ssh;
+        }
+
+        return this;
+    }
+
+    public AnsibleCommandLine setUserAndIp(final String user, final String ip) {
+        if (!StringUtils.isEmpty(user) && !StringUtils.isEmpty(ip)) {
+            this.node = user + "@" + ip;
+        }
+
+        return this;
+    }
+
     public AnsibleCommandLine setHostFile(final String hostFile) {
         if (!StringUtils.isEmpty(hostFile))
             optionalParam.add("-i").add(hostFile);
+
+        return this;
+    }
+
+    public AnsibleCommandLine setCommandLine(final String commandLine) {
+        if (!StringUtils.isEmpty(commandLine)) {
+            optionalParam.add(commandLine);
+	}
 
         return this;
     }
@@ -83,6 +109,10 @@ public class AnsibleCommandLine {
         final ImmutableList.Builder<String> builder = ImmutableList.builder();
         if (!StringUtils.isEmpty(prefix))
             builder.add(prefix);
+
+        if (!StringUtils.isEmpty(ssh) && !StringUtils.isEmpty(node)) {
+            builder.add(ssh).add(node);
+        }
 
         final ImmutableList<String> opt = optionalParam.build();
         builder.add(ansiblePath).add(opt.toArray(new String[opt.size()])).add(playbook);

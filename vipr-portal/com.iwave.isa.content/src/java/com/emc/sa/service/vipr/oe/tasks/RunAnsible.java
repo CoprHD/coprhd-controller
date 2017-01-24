@@ -30,12 +30,15 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.apache.commons.io.FilenameUtils;
+import org.apache.commons.lang.StringUtils;
 import org.slf4j.LoggerFactory;
 
 import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.service.vipr.oe.OrchestrationServiceConstants;
 import com.emc.sa.service.vipr.tasks.ViPRExecutionTask;
+import com.emc.storageos.model.orchestration.OrchestrationWorkflowDocument;
 import com.emc.storageos.model.orchestration.OrchestrationWorkflowDocument.Step;
+import com.emc.storageos.model.orchestration.OrchestrationWorkflowDocument.Input;
 import com.emc.storageos.primitives.Primitive.StepType;
 import com.emc.storageos.services.util.Exec;
 
@@ -52,11 +55,13 @@ public class RunAnsible  extends ViPRExecutionTask<OrchestrationTaskResult> {
     private final Map<String, List<String>> input;
     private final String orderDir;
     private final long timeout;
+    private final Map<String, Object> params;
 
-    public RunAnsible(final Step step, final Map<String, List<String>> input) {
+    public RunAnsible(final Step step, final Map<String, List<String>> input, final Map<String, Object> params) {
         this.step = step;
         this.input = input;
         this.timeout = (step.getAttributes().getTimeout()!= -1)?step.getAttributes().getTimeout():Exec.DEFAULT_CMD_TIMEOUT;
+        this.params = params;
         orderDir = OrchestrationServiceConstants.PATH + "OE" + ExecutionUtils.currentContext().getOrder().getOrderNumber();
     }
 
@@ -97,12 +102,7 @@ public class RunAnsible  extends ViPRExecutionTask<OrchestrationTaskResult> {
 
                 break;
             case REMOTE_ANSIBLE:
-                //TODO get the information from JSON and primitive
-                final String ip = "10.247.66.88";
-                final String user = "root";
-                final String remotePlaybook = "/data/hello.yml";
-                final String remoteBin = "/usr/bin/ansible-playbook";
-                result = executeRemoteCmd(user, ip, remotePlaybook, remoteBin, makeExtraArg(input));
+                result = executeRemoteCmd(makeExtraArg(input));
 
                 break;
             default:
@@ -172,23 +172,26 @@ public class RunAnsible  extends ViPRExecutionTask<OrchestrationTaskResult> {
         return hosts;
     }
 
-    //TODO Implement for limit, tags
     //Execute Ansible playbook on remote node. Playbook is also in remote node
-    private Exec.Result executeRemoteCmd(final String user, final String ip, final String playbook, final String ansiblePath,
-                                         final String extraVars) {
-        //TODO get it from param
-        final String targetNodeIps = null;
-        final String targetNodeUser = null;
-
-        final AnsibleCommandLine cmd = new AnsibleCommandLine(ansiblePath, playbook);
-        final String[] cmds = cmd.setPrefix(OrchestrationServiceConstants.SHELL_LOCAL_BIN+ " " +user + "@" + ip)
-                .setHostFile(targetNodeIps)
-                .setUser(targetNodeUser)
-                .setLimit(null)
-                .setTags(null)
+    private Exec.Result executeRemoteCmd(final String extraVars) {
+        final Map<String, List<Input>> inputType = step.getInput();
+        if (inputType == null) {
+            return null;
+	}
+        
+        final AnsibleCommandLine cmd = new AnsibleCommandLine(
+                getAnsibleConnAndOptions(OrchestrationServiceConstants.ANSIBLE_BIN, inputType.get(OrchestrationServiceConstants.ANSIBLE_OPTIONS)),
+                getAnsibleConnAndOptions(OrchestrationServiceConstants.ANSIBLE_PLAYBOOK, inputType.get(OrchestrationServiceConstants.ANSIBLE_OPTIONS)));
+        final String[] cmds = cmd.setSsh(OrchestrationServiceConstants.SHELL_LOCAL_BIN)
+                .setUserAndIp(getAnsibleConnAndOptions(OrchestrationServiceConstants.REMOTE_USER, inputType.get(OrchestrationServiceConstants.CONNECTION_DETAILS)),
+                              getAnsibleConnAndOptions(OrchestrationServiceConstants.REMOTE_NODE, inputType.get(OrchestrationServiceConstants.CONNECTION_DETAILS)))
+                .setHostFile(getAnsibleConnAndOptions(OrchestrationServiceConstants.ANSIBLE_HOST_FILE, inputType.get(OrchestrationServiceConstants.ANSIBLE_OPTIONS)))
+                .setUser(getAnsibleConnAndOptions(OrchestrationServiceConstants.ANSIBLE_USER, inputType.get(OrchestrationServiceConstants.ANSIBLE_OPTIONS)))
+                .setCommandLine(getAnsibleConnAndOptions(OrchestrationServiceConstants.ANSIBLE_COMMAND_LINE, inputType.get(OrchestrationServiceConstants.ANSIBLE_OPTIONS)))
                 .setExtraVars(extraVars)
                 .build();
 
+	logger.info("cmds:{}",  Arrays. toString(cmds));
         return Exec.exec(timeout, cmds);
     }
 
@@ -211,6 +214,23 @@ public class RunAnsible  extends ViPRExecutionTask<OrchestrationTaskResult> {
         final String[] cmds = cmd.build();
 
         return Exec.exec(timeout, cmds);
+    }
+
+    private String getAnsibleConnAndOptions(final String key, final List<Input> stepInput) {
+        if (params.get(key) != null) {
+            return StringUtils.strip(params.get(key).toString(), "\"");
+        }
+
+        for (final Input in : stepInput) {
+            if (in.getName().equals(key)) {
+                if (in.getDefaultValue() != null) {
+                    return in.getDefaultValue();
+                }
+            }
+        }
+
+        logger.error("Can't find the value for:{}", key);
+        return null;
     }
 
     private Exec.Result untarPackage(final String tarFile) throws IOException {
@@ -237,6 +257,10 @@ public class RunAnsible  extends ViPRExecutionTask<OrchestrationTaskResult> {
      * @throws Exception
      */
     private String makeExtraArg(final Map<String, List<String>> input) throws Exception {
+        if (input == null) {
+            return null;
+        }
+
         final StringBuilder sb = new StringBuilder("\"");
         for (Map.Entry<String, List<String>> e : input.entrySet())
             sb.append(e.getKey()).append("=").append(e.getValue().get(0)).append(" ");

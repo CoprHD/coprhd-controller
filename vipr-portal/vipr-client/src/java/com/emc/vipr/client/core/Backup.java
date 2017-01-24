@@ -127,7 +127,9 @@ public class Backup {
     public BackupOperationStatus getBackupOperationStatus() {
         BackupOperationStatus status = new BackupOperationStatus();
         try {
+            System.out.println("grace: getting backup operation status");
             status = client.get(BackupOperationStatus.class, BACKUP_STATUS_URL);
+            System.out.println("grace: got backup operation status:" + status.toString());
         } catch (Exception e) {
             System.out.println("grace: Get backup operation status failed:" +e.getMessage());
         }

@@ -12,7 +12,7 @@
             <tr class="odd ng-scope openRow">
                 <td class="type" height="25px" width="170px">&{'adminDashboard.lastSuccessfulBackup'}: </td>
                 <td class="icon" height="25px" width="25px">
-                #{if backupOperationStatus?.getLastSuccessfulCreation()?.opStatus}
+                #{if 'success'.equalsIgnoreCase('${backupOperationStatus?.getLastSuccessfulCreation()?.getOperationMessage()?.getValue()')}
                     <span class="text-success">#{icon 'ok-sign'/}</span>
                 #{/if}
                 </td>
@@ -21,10 +21,10 @@
                 </td>
             </tr>
             <script>
-                var lastSuccessfulCreationTime = '${backupOperationStatus?.getLastSuccessfulCreation()?.opTime}';
-                var lastSuccessfulBackupType = '${backupOperationStatus?.getLastSuccessfulCreation()?.opMessage}';
-                if (lastSuccessfulCreationTime && lastSuccessfulBackupType) {
-                    $('#lastSuccessful').append(formatLocalDateTime(new Date(lastSuccessfulCreationTime))).append(lastSuccessfulBackupType.toString());;
+                var lastSuccessfulCreationTime = '${backupOperationStatus?.getLastSuccessfulCreation()?.getOperationTime()}';
+                var lastSuccessfulBackupType = '${backupOperationStatus?.getLastSuccessfulCreation()?.getOperationMessage().getValue()}';
+                if (backupOperationStatus?.getLastSuccessfulCreation()) {
+                    $('#lastSuccessful').append(formatLocalDateTime(new Date(lastSuccessfulCreationTime))).append(lastSuccessfulBackupType);
                 } else {
                     $('#lastSuccessful').append("NA");
                 }
@@ -33,8 +33,8 @@
             <tr class="odd ng-scope openRow">
                 <td class="type" height="25px" width="170px">&{'adminDashboard.lastManualBackup'}: </td>
                 <td class="icon" height="25px" width="25px">
-                    #{if backupOperationStatus?.getLastManualCreation()?.opStatus}
-                        #{if 'success'.equalsIgnoreCase('${backupOperationStatus?.getLastManualCreation()?.opStatus}')}
+                    #{if backupOperationStatus?.getLastManualCreation()}
+                        #{if 'success'.equalsIgnoreCase('${backupOperationStatus?.getLastManualCreation()?.getOperationMessage()?.getValue()')}
                             <span class="text-success">#{icon 'ok-sign'/}</span>
                         #{/if}
                         #{else}
@@ -47,7 +47,7 @@
                 </td>
             </tr>
             <script>
-                var lastManualCreationTime = '${backupOperationStatus?.getLastManualCreation()?.opTime}';
+                var lastManualCreationTime = '${backupOperationStatus?.getLastManualCreation()?.getOperationTime()}';
                 if (lastManualCreationTime) {
                     $('#lastManual').append(formatLocalDateTime(new Date(lastManualCreationTime)));
                 } else {
@@ -58,8 +58,8 @@
             <tr class="odd ng-scope openRow">
                 <td class="type" height="25px" width="170px">&{'adminDashboard.lastScheduledBackup'}: </td>
                 <td class="icon" height="25px" width="25px">
-                    #{if backupOperationStatus?.getLastScheduledCreation()?.opStatus}
-                        #{if 'success'.equalsIgnoreCase('${backupOperationStatus?.getLastScheduledCreation()?.opStatus}')}
+                    #{if backupOperationStatus?.getLastScheduledCreation()}
+                        #{if 'success'.equalsIgnoreCase('${backupOperationStatus?.getLastScheduledCreation()?.getOperationMessage()?.getValue()}')}
                             <span class="text-success">#{icon 'ok-sign'/}</span>
                         #{/if}
                         #{else}
@@ -72,7 +72,7 @@
                 </td>
             </tr>
             <script>
-                var lastScheduledCreationTime = '${backupOperationStatus?.getLastScheduledCreation()?.opTime}';
+                var lastScheduledCreationTime = '${backupOperationStatus?.getLastScheduledCreation()?.getOperationTime()}';
                 if (lastScheduledCreationTime) {
                     $('#lastScheduled').append(formatLocalDateTime(new Date(lastScheduledCreationTime)));
                 } else {
@@ -91,7 +91,7 @@
             </tr>
             <script>
                 if (isScheduledBackupEnabled) {
-                    var nextScheduledCreationTime = '${backupOperationStatus?.getNextScheduledCreation()?.opTime}';
+                    var nextScheduledCreationTime = '${backupOperationStatus?.getNextScheduledCreation()}';
                     if (nextScheduledCreationTime) {
                         $('#nextScheduled').append(formatLocalDateTime(new Date(nextScheduledCreationTime)));
                     } else {
@@ -106,8 +106,8 @@
                 <td class="type" height="25px" width="170px">&{'adminDashboard.lastUploadStatus'}: </td>
                 <td class="icon" height="25px" width="25px">
                 #{if isExternalServerConfigured }
-                    #{if backupOperationStatus?.getLastUpload()?.opStatus }
-                        #{if 'true'.equalsIgnoreCase('${backupOperationStatus?.getLastUpload()?.opStatus}')}
+                    #{if backupOperationStatus?.getLastUpload()}
+                        #{if 'success'.equalsIgnoreCase('${backupOperationStatus?.getLastUpload()?.getOperationMessage()?.getValue()}')}
                             <span class="text-success">#{icon 'ok-sign'/}</span>
                         #{/if}
                         #{else}
@@ -130,7 +130,7 @@
             </tr>
             <script>
                 if (isExternalServerConfigured == true) {
-                    var lastUploadTime = '${backupOperationStatus?.getLastUpload()?.opTime}';
+                    var lastUploadTime = '${backupOperationStatus?.getLastUpload()?.getOperationTime()}';
                     if (lastUploadTime) {
                         $('#lastUpload').append(formatLocalDateTime(new Date(lastUploadTime)));
                     } else {

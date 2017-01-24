@@ -41,7 +41,6 @@ import com.google.gson.Gson;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import org.apache.commons.lang.StringUtils;
@@ -218,7 +217,7 @@ public class OrchestrationService extends ViPRService {
             return;
         }
 
-        final List<Input> input = step.getInput().get(OrchestrationServiceConstants.INPUT_PARAMS);
+        final List<Input> input = step.getInput().get(OrchestrationServiceConstants.INPUT_PARAMS).getInputGroup();
 
         if (input == null) {
             return;

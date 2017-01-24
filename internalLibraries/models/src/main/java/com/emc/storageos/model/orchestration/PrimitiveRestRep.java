@@ -22,6 +22,7 @@ import com.emc.storageos.model.RestLinkRep;
 import java.util.List;
 import java.util.Map;
 import javax.xml.bind.annotation.XmlElement;
+import javax.xml.bind.annotation.XmlElementWrapper;
 import javax.xml.bind.annotation.XmlRootElement;
 
 @XmlRootElement(name = "primitive")
@@ -31,9 +32,9 @@ public class PrimitiveRestRep extends DataObjectRestRep {
     private String friendlyName;
     private String description;
     private String successCriteria;
-    private Map<String, List<InputParameterRestRep>> input;
+    private Map<String, InputGroup> input;
     private List<OutputParameterRestRep> output;
-    private  Map<String, String> attributes;
+    private Map<String, String> attributes;
     private RestLinkRep resource;
 
     @XmlElement(name = "type")
@@ -81,12 +82,12 @@ public class PrimitiveRestRep extends DataObjectRestRep {
         this.attributes = attributes;
     }
 
-    @XmlElement(name = "input")
-    public Map<String, List<InputParameterRestRep>> getInput() {
+    @XmlElementWrapper(name = "input")
+    public Map<String, InputGroup> getInput() {
         return input;
     }
 
-    public void setInput(final Map<String, List<InputParameterRestRep>> input) {
+    public void setInput(final Map<String, InputGroup> input) {
         this.input = input;
     }
 
@@ -106,5 +107,18 @@ public class PrimitiveRestRep extends DataObjectRestRep {
 
     public void setResource(RestLinkRep resource) {
         this.resource = resource;
+    }
+
+    public static class InputGroup {
+
+        @XmlElementWrapper(name = "input_group")
+        private List<InputParameterRestRep> inputGroup;
+
+        public void setInputGroup(List<InputParameterRestRep> inputGroup) {
+            this.inputGroup = inputGroup;
+        }
+        public List<InputParameterRestRep> getInputGroup() {
+            return inputGroup;
+        }
     }
 }

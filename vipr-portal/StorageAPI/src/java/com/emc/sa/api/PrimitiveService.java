@@ -497,8 +497,8 @@ public class PrimitiveService {
     }
 
 
-    private static Map<String, List<InputParameterRestRep>> mapInput( Map<Primitive.InputType, List<InputParameter>> inputParameters) {
-        Map<String, List<InputParameterRestRep>> inputRestRep = new HashMap<String, List<InputParameterRestRep>>();
+    private static Map<String, PrimitiveRestRep.InputGroup> mapInput(Map<Primitive.InputType, List<InputParameter>> inputParameters) {
+        Map<String, PrimitiveRestRep.InputGroup> inputRestRep = new HashMap<String, PrimitiveRestRep.InputGroup>();
         for(final Entry<Primitive.InputType, List<InputParameter>> parameterType : inputParameters.entrySet()) {
             List<InputParameterRestRep> inputTypeRestRep = new ArrayList<InputParameterRestRep>();
             for(final InputParameter parameter : parameterType.getValue()) {
@@ -518,7 +518,10 @@ public class PrimitiveService {
                     inputTypeRestRep.add(inputParamRestRep);
                 }
             }
-            inputRestRep.put(parameterType.getKey().toString(),inputTypeRestRep);
+            PrimitiveRestRep.InputGroup inputGroup = new PrimitiveRestRep.InputGroup(){{
+                setInputGroup(inputTypeRestRep);
+            }};
+            inputRestRep.put(parameterType.getKey().toString(),inputGroup);
 
         }
         return inputRestRep;

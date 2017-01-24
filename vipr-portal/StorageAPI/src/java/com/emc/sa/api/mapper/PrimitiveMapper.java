@@ -108,7 +108,7 @@ public class PrimitiveMapper {
 
     private static void mapAnsible(final Ansible from,
             final PrimitiveRestRep to) {
-        final Map<String, List<InputParameterRestRep>> input = new HashMap<String, List<InputParameterRestRep>>();
+        final Map<String, PrimitiveRestRep.InputGroup> input = new HashMap<String, PrimitiveRestRep.InputGroup>();
         if (null != from.getExtraVars()) {
             List<InputParameterRestRep> inputParam = new ArrayList<InputParameterRestRep>();
             for (final String extraVar : from.getExtraVars()) {
@@ -116,7 +116,10 @@ public class PrimitiveMapper {
                 param.setType(ParameterType.STRING.name());
                 inputParam.add(param);
             }
-            input.put("input_params",inputParam);
+            PrimitiveRestRep.InputGroup inputGroup = new PrimitiveRestRep.InputGroup(){{
+                setInputGroup(inputParam);
+            }};
+            input.put("input_params",inputGroup);
         }
         to.setInput(input);
    

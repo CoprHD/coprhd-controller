@@ -63,6 +63,18 @@ public class OrchestrationWorkflowDocument {
         this.steps = steps;
     }
 
+    public static class InputGroup {
+
+        @XmlElementWrapper(name = "input_group")
+        private List<Input> inputGroup;
+
+        public void setInputGroup(List<Input> inputGroup) {
+            this.inputGroup = inputGroup;
+        }
+        public List<Input> getInputGroup() {
+            return inputGroup;
+        }
+    }
 
     public static class Input {
 
@@ -203,7 +215,7 @@ public class OrchestrationWorkflowDocument {
         private Integer positionX;
         private Integer positionY;
         private String type;
-        private Map<String, List<Input>> input;
+        private Map<String, InputGroup> input;
         private List<Output> output;
         private StepAttribute attributes;
         private String successCriteria;
@@ -265,12 +277,12 @@ public class OrchestrationWorkflowDocument {
             this.type = type;
         }
 
-        @XmlElement(name = "input")
-        public Map<String, List<Input>> getInput() {
+        @XmlElementWrapper(name = "input")
+        public Map<String, InputGroup> getInput() {
             return input;
         }
 
-        public void setInput(Map<String, List<Input>> input) {
+        public void setInput(Map<String, InputGroup> input) {
             this.input = input;
         }
 

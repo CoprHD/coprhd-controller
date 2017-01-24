@@ -216,10 +216,10 @@ inputOutputTabID = 'inputOutputContent';
         $scope.$watch('scriptIOs', function(newVal) {
             var inputs = [], outputs = [];
             angular.forEach($scope.scriptIOs.inputs, function(obj) {
-                if (obj.input != '') inputs.push(obj.input);
+                if (obj.input !== '') inputs.push(obj.input);
             });
             angular.forEach($scope.scriptIOs.outputs, function(obj) {
-                if (obj.output != '') outputs.push(obj.output);
+                if (obj.output !== '') outputs.push(obj.output);
             });
 
             $scope.inputs = inputs.toString();

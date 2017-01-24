@@ -192,10 +192,11 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
             if (template.getUpdating()) {
 
                 waitFor = workflow.createStep(UNBIND_HOST_FROM_TEMPLATE,
-                        "prepare host for os install by unbinding it from service profile template", waitFor,
-                        cs.getId(), cs.getSystemType(), this.getClass(),
+                        "prepare host for os install by unbinding it from service profile template",
+                        waitFor, cs.getId(), cs.getSystemType(), this.getClass(),
                         new Workflow.Method("unbindHostFromTemplateStep", computeSystemId, hostId),
-                        new Workflow.Method("rollbackUnbindHostFromTemplate", computeSystemId, hostId), null);
+                        new Workflow.Method("rollbackUnbindHostFromTemplate", computeSystemId, hostId),
+                        null);
 
             }
             // Set host to boot from lan
@@ -772,13 +773,16 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
             ComputeSystem cs = _dbClient.queryObject(ComputeSystem.class, computeElement.getComputeSystem());
 
             waitFor = workflow.createStep(DEACTIVATION_MAINTENANCE_MODE,
-                    "If synced with vCenter, put the host in maintenance mode", waitFor, cs.getId(), cs.getSystemType(),
-                    this.getClass(), new Workflow.Method("putHostInMaintenanceMode", hostId), new Workflow.Method(ROLLBACK_NOTHING_METHOD), null);
+                    "If synced with vCenter, put the host in maintenance mode", waitFor, cs.getId(),
+                    cs.getSystemType(), this.getClass(), new Workflow.Method("putHostInMaintenanceMode", hostId),
+                    new Workflow.Method(ROLLBACK_NOTHING_METHOD),
+                    null);
 
             waitFor = workflow.createStep(DEACTIVATION_REMOVE_HOST_VCENTER,
-                    "If synced with vCenter, remove the host from the cluster", waitFor, cs.getId(), cs.getSystemType(),
-                    this.getClass(), new Workflow.Method("removeHostFromVcenterCluster", hostId),
-                    new Workflow.Method(ROLLBACK_NOTHING_METHOD), null);
+                    "If synced with vCenter, remove the host from the cluster", waitFor, cs.getId(),
+                    cs.getSystemType(), this.getClass(), new Workflow.Method("removeHostFromVcenterCluster", hostId),
+                    new Workflow.Method(ROLLBACK_NOTHING_METHOD),
+                    null);
         }
 
         return waitFor;
@@ -833,35 +837,35 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
             }
             //TODO: need to break this up into individual smaller steps so that we can try to recover using rollback if decommission failed
             waitFor = workflow.createStep(DEACTIVATION_COMPUTE_SYSTEM_HOST, "Unbind blade from service profile",
-                    waitFor, cs.getId(), cs.getSystemType(), this.getClass(),
-                    new Workflow.Method("deactiveComputeSystemHost", cs.getId(), hostId), null, null);
+                    waitFor, cs.getId(), cs.getSystemType(), this.getClass(), new Workflow.Method(
+                            "deactiveComputeSystemHost", cs.getId(), hostId),
+                    new Workflow.Method(ROLLBACK_NOTHING_METHOD), null);
 
-            if (deactivateBootVolume && !NullColumnValueGetter.isNullURI(host.getBootVolumeId())) {
+            if (deactivateBootVolume && host.getBootVolumeId() != null) {
                 waitFor = workflow.createStep(DEACTIVATION_COMPUTE_SYSTEM_BOOT_VOLUME,
-                        "Delete the boot volume for the host", waitFor, cs.getId(), cs.getSystemType(), this.getClass(),
-                        new Workflow.Method("deleteBlockBootVolume", hostId), null, null);
+                        "Delete the boot volume for the host", waitFor, cs.getId(), cs.getSystemType(),
+                        this.getClass(), new Workflow.Method("deleteBlockVolume", hostId),
+                        new Workflow.Method(ROLLBACK_NOTHING_METHOD), null);
             } else if (!deactivateBootVolume) {
-                log.info("flag deactivateBootVolume set to false");
-            } else if (NullColumnValueGetter.isNullURI(host.getBootVolumeId())) {
-                log.info("Host " + host.getLabel() + " has no bootVolume association");
+                 log.info("flag deactivateBootVolume set to false");
+            } else if (host.getBootVolumeId() == null){
+                 log.info("Host "+ host.getLabel() + " has no bootVolume association");
             }
         } else {
-            log.error("Host " + host.getLabel() + " has associated computeElementURI: " + host.getComputeElement()
-            + " which is an invalid reference");
+            log.error("Host "+ host.getLabel()+ " has associated computeElementURI: "+ host.getComputeElement()+ " which is an invalid reference");
         }
 
         return waitFor;
     }
 
     /**
-     * A cluster could have only discovered hosts, only provisioned hosts, or
-     * mixed. If cluster has only provisioned hosts, then the hosts will be
-     * deleted from vCenter. If cluster has only discovered hosts, then the
-     * hosts will not be deleted from vCenter. If cluster is mixed, then the
-     * hosts will not be deleted from the vCenter; however, the provisioned
-     * hosts will still be decommissioned, and their state in vCenter will be
-     * "disconnected". If a cluster is provisioned or mixed, then check VMs step
-     * will be executed since hosts with running VMs may endup decommissioned.
+     * A cluster could have only discovered hosts, only provisioned hosts, or mixed.
+     * If cluster has only provisioned hosts, then the hosts will be deleted from vCenter.
+     * If cluster has only discovered hosts, then the hosts will not be deleted from vCenter.
+     * If cluster is mixed, then the hosts will not be deleted from the vCenter; however, the
+     * provisioned hosts will still be decommissioned, and their state in vCenter will be "disconnected".
+     * If a cluster is provisioned or mixed, then check VMs step will be executed since hosts with running
+     * VMs may endup decommissioned.
      */
     @Override
     public String addStepsVcenterClusterCleanup(Workflow workflow, String waitFor, URI clusterId)
@@ -877,8 +881,7 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
             return waitFor;
         }
         List<URI> clusterHosts = ComputeSystemHelper.getChildrenUris(_dbClient, clusterId, Host.class, "cluster");
-        // Check if cluster has hosts, if cluster is empty then safely remove
-        // from vcenter.
+        // Check if cluster has hosts, if cluster is empty then safely remove from vcenter.
         if (null == clusterHosts || clusterHosts.isEmpty()) {
             VcenterDataCenter vcenterDataCenter = _dbClient.queryObject(VcenterDataCenter.class,
                     cluster.getVcenterDataCenter());

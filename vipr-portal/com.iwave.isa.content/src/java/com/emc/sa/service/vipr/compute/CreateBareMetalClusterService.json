@@ -40,6 +40,15 @@
       validation:{
         min:1
       }
+    },
+    hlu: {
+          type:"number",
+          lockable: true,
+          required: false,
+          initialValue: "0",
+          validation: {
+            min:-1
+          }
     }
   }  
 }

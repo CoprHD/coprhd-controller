@@ -295,7 +295,7 @@ public class ComputeUtils {
         }
     }
 
-    public static List<URI> exportBootVols(List<URI> volumeIds, List<Host> hosts, URI project, URI virtualArray) {
+    public static List<URI> exportBootVols(List<URI> volumeIds, List<Host> hosts, URI project, URI virtualArray, Integer hlu) {
 
         if ((hosts == null) || (volumeIds == null)) {
             return Collections.emptyList();
@@ -309,7 +309,7 @@ public class ComputeUtils {
                      * Don't determine HLUs at all, even for the boot volumes. Let the system decide them for you. Hence passing -1
                      */
                     Task<ExportGroupRestRep> task = BlockStorageUtils.createHostExportNoWait(project,
-                            virtualArray, Arrays.asList(volumeIds.get(x)), -1, hosts.get(x));
+                            virtualArray, Arrays.asList(volumeIds.get(x)), hlu, hosts.get(x));
                     tasks.add(task);
                 } catch (ExecutionException e) {
                     String errorMessage = e.getMessage() == null ? "" : e.getMessage();

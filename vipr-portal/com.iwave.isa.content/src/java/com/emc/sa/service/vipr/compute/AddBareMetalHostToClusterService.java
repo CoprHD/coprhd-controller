@@ -5,6 +5,7 @@
 package com.emc.sa.service.vipr.compute;
 
 import static com.emc.sa.service.ServiceParams.CLUSTER;
+import static com.emc.sa.service.ServiceParams.HLU;
 import static com.emc.sa.service.ServiceParams.PROJECT;
 import static com.emc.sa.service.ServiceParams.SIZE_IN_GB;
 import static com.emc.sa.service.ServiceParams.VIRTUAL_ARRAY;
@@ -46,6 +47,9 @@ public class AddBareMetalHostToClusterService extends ViPRService {
 
     @Param(SIZE_IN_GB)
     protected Double size;
+
+    @Param(value = HLU, required = false)
+    protected Integer hlu;
 
     @Bindable(itemType = FqdnTable.class)
     protected FqdnTable[] fqdnValues;
@@ -153,7 +157,7 @@ public class AddBareMetalHostToClusterService extends ViPRService {
             logInfo("compute.cluster.boot.volumes.created", ComputeUtils.nonNull(bootVolumeIds).size());
             hosts = ComputeUtils.deactivateHostsWithNoBootVolume(hosts, bootVolumeIds, cluster);
 
-            List<URI> exportIds = ComputeUtils.exportBootVols(bootVolumeIds, hosts, project, virtualArray);
+            List<URI> exportIds = ComputeUtils.exportBootVols(bootVolumeIds, hosts, project, virtualArray, hlu);
             logInfo("compute.cluster.exports.created", ComputeUtils.nonNull(exportIds).size());
             hosts = ComputeUtils.deactivateHostsWithNoExport(hosts, exportIds, bootVolumeIds, cluster);
             ComputeUtils.setHostBootVolumes(hosts, bootVolumeIds);

@@ -260,7 +260,9 @@ public class AdminDashboardUtils {
             if (value == null) {
                 value = doCall();
                 cacheValue(key, value, expiration);
-                System.out.println("grace: cache:" + key + " and "+expiration);
+                if (key == BACKUP_STATUS_LIST_KEY) {
+                    System.out.println("grace: cache value:" + key + " and " + expiration);
+                }
             }
             return value;
         }

@@ -7,7 +7,6 @@ package com.emc.storageos.db.client.upgrade.callbacks;
 import java.lang.reflect.InvocationTargetException;
 import java.net.URI;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -15,7 +14,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
-import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.collections.ListUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -96,7 +95,7 @@ public class StaleRelationURICleanupMigration extends BaseCustomMigrationCallbac
             
             List<String> relationURIList = getURIListFromDataObject(fieldValue);
             List<String> validRelationURIList = queryValidRelationURIList((DbClientImpl)getDbClient(), relationField, relationURIList);
-            Collection<String> invalidURIs = CollectionUtils.subtract(relationURIList, validRelationURIList);//get invalid URI list
+            List<String> invalidURIs = ListUtils.subtract(relationURIList, validRelationURIList);//get invalid URI list
             
             if (!invalidURIs.isEmpty()) {
                 totalStaleURICount += invalidURIs.size();
@@ -112,7 +111,7 @@ public class StaleRelationURICleanupMigration extends BaseCustomMigrationCallbac
     }
 
     private void saveNewURIListToObject(DataObject dataObject, ColumnField columnField, Object fieldValue,
-            Collection<String> invalidRelationURIList) throws IllegalAccessException, InvocationTargetException {
+            List<String> invalidRelationURIList) throws IllegalAccessException, InvocationTargetException {
         for (String invalidURI : invalidRelationURIList) {
             if (fieldValue instanceof StringSet) {
                 ((StringSet)fieldValue).remove(invalidURI);

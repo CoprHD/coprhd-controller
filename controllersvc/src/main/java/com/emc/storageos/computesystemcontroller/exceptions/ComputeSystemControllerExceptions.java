@@ -146,5 +146,5 @@ public interface ComputeSystemControllerExceptions {
     public ComputeSystemControllerException commandTimedOut(final String systemType);
 
     @DeclareServiceCode(ServiceCode.CONTROLLER_COMPUTESYSTEM_ERROR)
-    public ComputeSystemControllerException unableToExitHostFromMaintenanceMode(final String host, final Throwable cause);
+    public ComputeSystemControllerException unableToAddHostPortsToVArrayNetworks(final String array, final Throwable cause);
 }

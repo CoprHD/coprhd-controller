@@ -62,6 +62,11 @@ def computesystem_get_computeelement_id(args):
         ceIdList.append(bourne.computesystem_get_computeelement_id(args.name, ce))
     return ceIdList
 
+def computesystem_discover(args):
+    bourne.connect(args.ip)
+    s = bourne.computesystem_discover(args.name)
+    print s
+
 #
 # display computesystem in list form
 #
@@ -106,7 +111,7 @@ except:
 
 # computesystem <cmd> <cmd_args>  [--ip ipaddr]
 parser = argparse.ArgumentParser(description = 'Bourne computesystem cli usage.')
-parser.add_argument('cmd', help = 'cmd = (create | update | delete | show | list | getSPTid | get_computeelement_id)')
+parser.add_argument('cmd', help = 'cmd = (create | update | delete | show | list | getSPTid | get_computeelement_id | discover)')
 parser.add_argument('--ip',	metavar = 'ipaddr',	help = 'IP address of bourne', default=bourne_ip)
 
 # computesystem create label
@@ -151,6 +156,9 @@ get_computeelement_id= argparse.ArgumentParser(parents = [parser], conflict_hand
 get_computeelement_id.add_argument('name',   help = 'compute system name')
 get_computeelement_id.add_argument('cename',   help = 'compute element name')
 
+# compute system discover
+discover = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+discover.add_argument('name', help='name of compute system being discovered')
 
 # tag 
 resource_type="computesystem"
@@ -211,6 +219,9 @@ try:
     elif (cmd == "search"):
         args = search.parse_args()
         computesystem_search(args)
+    elif (cmd == "discover"):
+        args = discover.parse_args()
+        computesystem_discover(args)
     else:
         parser.print_help()
 except:

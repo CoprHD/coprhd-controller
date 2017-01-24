@@ -136,6 +136,8 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
      *            {@link URI} computesystem Id
      * @param vcpoolId
      *            {@link URI} vcpoolId
+     * @param varray
+     *            {@link URI} varray Id
      * @param hostId
      *            {@link URI} host Id
      * @param opId
@@ -811,15 +813,15 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
 
         Host host = _dbClient.queryObject(Host.class, hostId);
 
-        /**
-         * No steps need to be added - as this was not a host that we created in
-         * ViPR. If it was computeElement property of the host would have been
-         * set.
-         */
         if (host == null) {
             log.error("No host found with Id: {}", hostId);
             return waitFor;
         } else if (NullColumnValueGetter.isNullURI(host.getComputeElement())) {
+            /**
+             * No steps need to be added - as this was not a host that we created in
+             * ViPR. If it was computeElement property of the host would have been
+             * set.
+             */
             log.info(
                     "Host: {} has no associated computeElement. So skipping service profile and boot volume deletion steps",
                     host.getLabel());
@@ -847,9 +849,9 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
                         this.getClass(), new Workflow.Method("deleteBlockVolume", hostId),
                         new Workflow.Method(ROLLBACK_NOTHING_METHOD), null);
             } else if (!deactivateBootVolume) {
-                 log.info("flag deactivateBootVolume set to false");
+                log.info("flag deactivateBootVolume set to false");
             } else if (host.getBootVolumeId() == null){
-                 log.info("Host "+ host.getLabel() + " has no bootVolume association");
+                log.info("Host "+ host.getLabel() + " has no bootVolume association");
             }
         } else {
             log.error("Host "+ host.getLabel()+ " has associated computeElementURI: "+ host.getComputeElement()+ " which is an invalid reference");
@@ -1305,56 +1307,5 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
 
         WorkflowStepCompleter.stepSucceded(stepId);
 
-    }
-
-    /**
-     * This will attempt to exit the host from maintenance mode on a Vcenter.
-     *
-     * @param hostId
-     * @param stepId
-     */
-    public void exitHostFromMaintenanceMode(URI hostId, String stepId) {
-        log.info("exitHostFromMaintenanceMode {}", hostId);
-        Host host = null;
-        try {
-            WorkflowStepCompleter.stepExecuting(stepId);
-
-            host = _dbClient.queryObject(Host.class, hostId);
-
-            if (NullColumnValueGetter.isNullURI(host.getVcenterDataCenter())) {
-                log.info("datacenter is null, nothing to do");
-                WorkflowStepCompleter.stepSucceded(stepId);
-                return;
-            }
-            if (NullColumnValueGetter.isNullURI(host.getCluster())) {
-                log.warn("cluster is null, nothing to do");
-                WorkflowStepCompleter.stepSucceded(stepId);
-                return;
-            }
-
-            vcenterController.exitMaintenanceMode(host.getVcenterDataCenter(), host.getCluster(), host.getId());
-
-            WorkflowStepCompleter.stepSucceded(stepId);
-        } catch (VcenterControllerException e) {
-            log.warn("VcenterControllerException when trying to exitHostFromMaintenanceMode: " + e.getMessage(), e);
-            if (e.getCause() instanceof VcenterObjectNotFoundException) {
-                log.info("did not find the host, considering success");
-                WorkflowStepCompleter.stepSucceded(stepId);
-            } else if (e.getCause() instanceof VcenterObjectConnectionException) {
-                log.info("host is not connected, considering success");
-                WorkflowStepCompleter.stepSucceded(stepId);
-            } else {
-                log.error("failure " + e);
-                WorkflowStepCompleter.stepFailed(stepId, e);
-            }
-        } catch (InternalException e) {
-            log.error("InternalException when trying to exitHostFromMaintenanceMode: " + e.getMessage(), e);
-            WorkflowStepCompleter.stepFailed(stepId, e);
-        } catch (Exception e) {
-            log.error("unexpected exception" + e.getMessage(), e);
-            ServiceCoded serviceCoded = ComputeSystemControllerException.exceptions
-                    .unableToExitHostFromMaintenanceMode(host != null ? host.getHostName() : hostId.toString(), e);
-            WorkflowStepCompleter.stepFailed(stepId, serviceCoded);
-        }
     }
 }

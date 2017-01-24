@@ -358,9 +358,9 @@ public class UcsComputeDevice implements ComputeDevice {
                     URL ucsmURL = getUcsmURL(cs);
                     if(null == ucsmService.unbindSPFromTemplate(ucsmURL.toString(), cs.getUsername(), cs.getPassword(),
                             sp.getDn())) {
-                        LOGGER.error("Failed to unbind service profile from template.");
+                        LOGGER.error("Failed to unbind service profile from template due to error from UCSM Service.");
                         throw new RuntimeException(
-                                "Failed to unbind service profile from template.");
+                                "Failed to unbind service profile from template due to error from UCSM Service.");
                     }
                     LOGGER.info("Successfully unbound host {} from template {}", host.getLabel(), template.getLabel());
                 } else {
@@ -783,7 +783,7 @@ public class UcsComputeDevice implements ComputeDevice {
             if (lsServer == null) {
                 throw new RuntimeException("UCS call to create service profile from template failed, null LsServer was returned.");
             }
-
+            workflowService.storeStepData(stepId, lsServer.getDn());
             lsServer = pullAndPollManagedObject(getUcsmURL(cs).toString(), cs.getUsername(), cs.getPassword(),
                     lsServer.getDn(), LsServer.class);
             //TODO: Need to inject failure to verify rollback.
@@ -792,7 +792,7 @@ public class UcsComputeDevice implements ComputeDevice {
             if (lsServer == null) {
                 throw new RuntimeException("UCS call to poll for ManagedObject failed, null LsServer was returned.");
             }
-            workflowService.storeStepData(stepId, lsServer.getDn());
+
             WorkflowStepCompleter.stepSucceded(stepId);
             LOGGER.info("Done Creating Service Profile : " + spRn + " from Service Profile Template : " + sptDn);
 
@@ -940,82 +940,91 @@ public class UcsComputeDevice implements ComputeDevice {
                 + host.getHostName());
 
         WorkflowStepCompleter.stepExecuting(stepId);
+        try {
 
-        if (!NullColumnValueGetter.isNullURI(host.getComputeElement())) {
+            if (!NullColumnValueGetter.isNullURI(host.getComputeElement())) {
 
-            Map<Network, List<String>> networkToInitiatorMap = Collections
-                    .synchronizedMap(new HashMap<Network, List<String>>());
+                Map<Network, List<String>> networkToInitiatorMap = Collections
+                        .synchronizedMap(new HashMap<Network, List<String>>());
 
-            Map<String, Network> networkIdNetworkMapInVarray = getVarrayNetworkMap(_dbClient, varray.getId());
+                Map<String, Network> networkIdNetworkMapInVarray = getVarrayNetworkMap(_dbClient, varray.getId());
 
-            URIQueryResultList ceHBAUriList = new URIQueryResultList();
+                URIQueryResultList ceHBAUriList = new URIQueryResultList();
 
-            _dbClient.queryByConstraint(ContainmentConstraint.Factory.getHostComputeElemetHBAsConstraint(host
-                    .getId()), ceHBAUriList);
+                _dbClient.queryByConstraint(ContainmentConstraint.Factory.getHostComputeElemetHBAsConstraint(host
+                        .getId()), ceHBAUriList);
 
-            Iterator<URI> ceHBAUriListIterator = ceHBAUriList.iterator();
+                Iterator<URI> ceHBAUriListIterator = ceHBAUriList.iterator();
 
-            Cluster cluster = null;
-            if (host.getCluster() != null) {
-                cluster = _dbClient.queryObject(Cluster.class, host.getCluster());
-            }
-
-            while (ceHBAUriListIterator.hasNext()) {
-                URI ceHBAUri = ceHBAUriListIterator.next();
-
-                ComputeElementHBA computeElementHBA = _dbClient.queryObject(ComputeElementHBA.class, ceHBAUri);
-                Initiator initiator = new Initiator();
-                initiator.setHost(host.getId());
-                initiator.setHostName(host.getHostName());
-                initiator.setId(URIUtil.createId(Initiator.class));
-
-                if (cluster != null) {
-                    initiator.setClusterName(cluster.getLabel());
+                Cluster cluster = null;
+                if (host.getCluster() != null) {
+                    cluster = _dbClient.queryObject(Cluster.class, host.getCluster());
                 }
 
-                initiator.setInitiatorNode(computeElementHBA.getNode());
-                initiator.setInitiatorPort(computeElementHBA.getPort());
-                initiator.setProtocol(computeElementHBA.getProtocol() != null ? computeElementHBA.getProtocol()
-                        .toUpperCase() : null);
+                while (ceHBAUriListIterator.hasNext()) {
+                    URI ceHBAUri = ceHBAUriListIterator.next();
 
-                Network network = networkIdNetworkMapInVarray.get(computeElementHBA.getVsanId());
-                //TODO: Need to inject failure to test rollback
-                // Test mechanism to invoke a failure. No-op on production systems.
-                InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_065);
-                if (network == null) {
-                    WorkflowStepCompleter.stepFailed(stepId, ComputeSystemControllerException.exceptions
-                            .noCorrespondingNetworkForHBAInVarray(computeElementHBA.getPort(), varray.getId()
-                                    .toString(), null));
-                    return;
+                    ComputeElementHBA computeElementHBA = _dbClient.queryObject(ComputeElementHBA.class, ceHBAUri);
+                    Initiator initiator = new Initiator();
+                    initiator.setHost(host.getId());
+                    initiator.setHostName(host.getHostName());
+                    initiator.setId(URIUtil.createId(Initiator.class));
 
-                } else {
-
-                    if (networkToInitiatorMap.get(network) == null) {
-                        networkToInitiatorMap.put(network, new ArrayList<String>());
+                    if (cluster != null) {
+                        initiator.setClusterName(cluster.getLabel());
                     }
 
-                    networkToInitiatorMap.get(network).add(computeElementHBA.getPort());
+                    initiator.setInitiatorNode(computeElementHBA.getNode());
+                    initiator.setInitiatorPort(computeElementHBA.getPort());
+                    initiator.setProtocol(computeElementHBA.getProtocol() != null ? computeElementHBA.getProtocol()
+                            .toUpperCase() : null);
+
+                    Network network = networkIdNetworkMapInVarray.get(computeElementHBA.getVsanId());
+                    //TODO: Need to inject failure to test rollback
+                    // Test mechanism to invoke a failure. No-op on production systems.
+                    InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_065);
+                    if (network == null) {
+                        LOGGER.error("No corresponding Network for HBA {} in vArray {}.  Network null from DB.",
+                                computeElementHBA.getPort(), varray.getId());
+                        throw new RuntimeException(
+                                ComputeSystemControllerException.exceptions.noCorrespondingNetworkForHBAInVarray(
+                                        computeElementHBA.getPort(), varray.getLabel(), null));
+
+                    } else {
+
+                        if (networkToInitiatorMap.get(network) == null) {
+                            networkToInitiatorMap.put(network, new ArrayList<String>());
+                        }
+
+                        networkToInitiatorMap.get(network).add(computeElementHBA.getPort());
+                    }
+
+                    _dbClient.createObject(initiator);
                 }
 
-                _dbClient.createObject(initiator);
+                /**
+                 * Add all the newly added endpoints to their respective networks!
+                 */
+                for (Network network : networkToInitiatorMap.keySet()) {
+
+                    network.addEndpoints(networkToInitiatorMap.get(network), false);
+
+                    _dbClient.persistObject(network);
+
+                    handleEndpointsAdded(network, networkToInitiatorMap.get(network), _dbClient, _coordinator);
+                }
             }
 
-            /**
-             * Add all the newly added endpoints to their respective networks!
-             */
-            for (Network network : networkToInitiatorMap.keySet()) {
+            WorkflowStepCompleter.stepSucceded(stepId);
+            LOGGER.info("Done adding host ports to networks in Varray : " + varray.getLabel() + "for Host: "
+                    + host.getHostName());
+        } catch (Exception ex) {
+            LOGGER.error("Exception while adding host ports to vArray networks. {}", ex);
+            WorkflowStepCompleter.stepFailed(stepId, ComputeSystemControllerException.exceptions
+                    .unableToAddHostPortsToVArrayNetworks(varray.getLabel()
+                            .toString(), ex));
 
-                network.addEndpoints(networkToInitiatorMap.get(network), false);
-
-                _dbClient.persistObject(network);
-
-                handleEndpointsAdded(network, networkToInitiatorMap.get(network), _dbClient, _coordinator);
-            }
         }
-
-        WorkflowStepCompleter.stepSucceded(stepId);
-        LOGGER.info("Done adding host ports to networks in Varray : " + varray.getLabel() + "for Host: "
-                + host.getHostName());
     }
 
     private void handleEndpointsAdded(Network network, Collection<String> endpoints, DbClient dbClient,
@@ -1054,12 +1063,15 @@ public class UcsComputeDevice implements ComputeDevice {
 
         try {
             if (null != computeElement) {
-                ucsmService.setServiceProfileToNoBoot(getUcsmURL(cs).toString(), cs.getUsername(), cs.getPassword(),
+                LsServer lsServer = ucsmService.setServiceProfileToNoBoot(getUcsmURL(cs).toString(), cs.getUsername(), cs.getPassword(),
                         computeElement.getDn());
-
-                if (waitForServerRestart) {
-                    pullAndPollManagedObject(getUcsmURL(cs).toString(), cs.getUsername(), cs.getPassword(),
-                            computeElement.getDn(), LsServer.class);
+                if (lsServer != null) {
+                    if (waitForServerRestart) {
+                        pullAndPollManagedObject(getUcsmURL(cs).toString(), cs.getUsername(), cs.getPassword(),
+                                computeElement.getDn(), LsServer.class);
+                    }
+                }else {
+                    throw new RuntimeException("Failed to set no boot target due to error from UCSM Service");
                 }
             } else {
                 throw new RuntimeException("ComputeElement object is null for id " + computeElementId);
@@ -1080,12 +1092,15 @@ public class UcsComputeDevice implements ComputeDevice {
 
         try {
             if (null != computeElement) {
-                ucsmService.setServiceProfileToLanBoot(getUcsmURL(cs).toString(), cs.getUsername(), cs.getPassword(),
+                LsServer lsServer = ucsmService.setServiceProfileToLanBoot(getUcsmURL(cs).toString(), cs.getUsername(), cs.getPassword(),
                         computeElement.getDn());
-
-                if (waitForServerRestart) {
-                    pullAndPollManagedObject(getUcsmURL(cs).toString(), cs.getUsername(), cs.getPassword(),
-                            computeElement.getDn(), LsServer.class);
+                if (lsServer != null) {
+                    if (waitForServerRestart) {
+                        pullAndPollManagedObject(getUcsmURL(cs).toString(), cs.getUsername(), cs.getPassword(),
+                                computeElement.getDn(), LsServer.class);
+                    }
+                }else {
+                    throw new RuntimeException("Failed to set LAN boot target due to error from UCSM Service");
                 }
             } else {
                 throw new RuntimeException("ComputeElement object is null for id " + computeElementId);
@@ -1105,12 +1120,15 @@ public class UcsComputeDevice implements ComputeDevice {
         Map<String, Map<String, Integer>> hbaToStoragePorts = getHBAToStoragePorts(volumeId, hostId);
         try {
             if (null != computeElement) {
-                ucsmService.setServiceProfileToSanBoot(getUcsmURL(cs).toString(), cs.getUsername(), cs.getPassword(),
+                LsServer lsServer = ucsmService.setServiceProfileToSanBoot(getUcsmURL(cs).toString(), cs.getUsername(), cs.getPassword(),
                         computeElement.getDn(), hbaToStoragePorts);
-
-                if (waitForServerRestart) {
-                    pullAndPollManagedObject(getUcsmURL(cs).toString(), cs.getUsername(), cs.getPassword(),
-                            computeElement.getDn(), LsServer.class);
+                if (lsServer != null) {
+                    if (waitForServerRestart) {
+                        pullAndPollManagedObject(getUcsmURL(cs).toString(), cs.getUsername(), cs.getPassword(),
+                                computeElement.getDn(), LsServer.class);
+                    }
+                }else {
+                    throw new RuntimeException("Failed to set SAN boot target due to error from UCSM Service");
                 }
             } else {
                 throw new RuntimeException("ComputeElement object is null for id " + computeElementId);
@@ -1287,7 +1305,7 @@ public class UcsComputeDevice implements ComputeDevice {
 
     private static final String ROLLBACK_NOTHING_METHOD = "rollbackNothingMethod";
     /**
-     * This is needed if any of the workflow steps have a real rollback method.
+     * This is needed if any of the workflow steps do not have a real rollback method.
      *
      * @param stepId
      */

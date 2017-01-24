@@ -27,6 +27,11 @@ public interface ImageServerController extends Controller {
      */
     void installOperatingSystem(AsyncTask task, URI computeImageJob) throws InternalException;
 
+    /**
+     * Verify image server and import existing images on to the image server
+     * @param task {@link AsyncTask} instance
+     * @param opName {@link String} operation name
+     */
     void verifyImageServerAndImportExistingImages(AsyncTask task, String opName);
 
     /**

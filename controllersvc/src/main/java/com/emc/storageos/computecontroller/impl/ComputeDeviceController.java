@@ -27,6 +27,7 @@ public interface ComputeDeviceController extends Controller {
      *            {@link URI} computesystem Id
      * @param vcpoolId
      *            {@link URI} vcpoolId
+     * @param varray {@link URI} varray id
      * @param hostId
      *            {@link URI} host Id
      * @param opId
@@ -119,6 +120,7 @@ public interface ComputeDeviceController extends Controller {
      *            StepGroup.
      * @param clusterId
      *            {@link URI} cluster URI
+     * @return waitFor step name
      */
     public String addStepsVcenterClusterCleanup(Workflow workflow, String waitFor, URI clusterId)
             throws InternalException;

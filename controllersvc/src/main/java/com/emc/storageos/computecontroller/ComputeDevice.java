@@ -82,7 +82,7 @@ public interface ComputeDevice extends Controller {
             throws InternalException;
 
     /**
-     * Power up/on the the compute element
+     * Power up/on the compute element
      * @param computeSystemId {@link URI} computeSystem id
      * @param computeElementId {@link URI} computeElement id
      * @throws InternalException
@@ -91,7 +91,7 @@ public interface ComputeDevice extends Controller {
             throws InternalException;
 
     /**
-     * Power down the the compute element
+     * Power down the compute element
      * @param computeSystemId {@link URI} computeSystem id
      * @param computeElementId {@link URI} computeElement id
      * @throws InternalException

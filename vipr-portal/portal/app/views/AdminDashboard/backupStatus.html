@@ -21,9 +21,9 @@
                 </td>
             </tr>
             <script>
-                var lastSuccessfulCreationTime = backupOperationStatus?.getLastSuccessfulCreation()?.getOperationTime();
-                var lastSuccessfulBackupType = backupOperationStatus?.getLastSuccessfulCreation()?.getOperationMessage().getValue();
                 if (backupOperationStatus?.getLastSuccessfulCreation()) {
+                    var lastSuccessfulCreationTime = '${backupOperationStatus?.getLastSuccessfulCreation()?.getOperationTime()}';
+                    var lastSuccessfulBackupType = '${backupOperationStatus?.getLastSuccessfulCreation()?.getOperationMessage().getValue()}';
                     $('#lastSuccessful').append(formatLocalDateTime(new Date(lastSuccessfulCreationTime))).append(lastSuccessfulBackupType);
                 } else {
                     $('#lastSuccessful').append("NA");
@@ -33,23 +33,20 @@
             <tr class="odd ng-scope openRow">
                 <td class="type" height="25px" width="170px">&{'adminDashboard.lastManualBackup'}: </td>
                 <td class="icon" height="25px" width="25px">
-                    #{if backupOperationStatus?.getLastManualCreation() != null}
-                        #{if backupOperationStatus?.getLastManualCreation()?.getOperationMessage()?.getValue() == "success"}
-                            <span class="text-success">#{icon 'ok-sign'/}</span>
-                        #{/if}
-                        #{else}
-                            <span class="text-danger">#{icon 'remove-sign'/}</span>
-                        #{/else}
+                    #{if backupOperationStatus?.getLastManualCreation()?.getOperationMessage()?.getValue() == "success"}
+                    <span class="text-success">#{icon 'ok-sign'/}</span>
                     #{/if}
+                    #{else}
+                    <span class="text-danger">#{icon 'remove-sign'/}</span>
+                    #{/else}
                 </td>
                 <td class="time">
                     <a href="@{Backup.list()}" id="lastManual"></a>
                 </td>
             </tr>
             <script>
-                var lastManualCreationTime = backupOperationStatus?.getLastManualCreation()?.getOperationTime();
-                if (lastManualCreationTime) {
-                    $('#lastManual').append(formatLocalDateTime(new Date(lastManualCreationTime)));
+                if (backupOperationStatus?.getLastManualCreation()) {
+                    $('#lastManual').append(formatLocalDateTime(new Date('${backupOperationStatus?.getLastManualCreation()?.getOperationTime()})));
                 } else {
                     $('#lastManual').append("NA");
                 }
@@ -58,14 +55,12 @@
             <tr class="odd ng-scope openRow">
                 <td class="type" height="25px" width="170px">&{'adminDashboard.lastScheduledBackup'}: </td>
                 <td class="icon" height="25px" width="25px">
-                    #{if backupOperationStatus?.getLastScheduledCreation() != null}
-                        #{if backupOperationStatus?.getLastScheduledCreation()?.getOperationMessage()?.getValue() == "success"}
-                            <span class="text-success">#{icon 'ok-sign'/}</span>
-                        #{/if}
-                        #{else}
-                            <span class="text-danger">#{icon 'remove-sign'/}</span>
-                        #{/else}
+                    #{if backupOperationStatus?.getLastScheduledCreation()?.getOperationMessage()?.getValue() == "success"}
+                    <span class="text-success">#{icon 'ok-sign'/}</span>
                     #{/if}
+                    #{else}
+                    <span class="text-danger">#{icon 'remove-sign'/}</span>
+                    #{/else}
                 </td>
                 <td class="time">
                     <a href="@{Backup.list()}" id="lastScheduled"></a>

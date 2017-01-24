@@ -638,11 +638,8 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 		    }else {
 
                     lastStep = createWorkflowStepsForBlockVolumeExport(workflow, vplexSystem, arrayMap,
-<<<<<<< HEAD
                             volumeMap, projectURI, tenantURI, lastStep);
-=======
-                            volumeMap, vplexProject.getId(), tenantURI, lastStep);
->>>>>>> e5514cdb49fff2ce12c9402b4d271839f9375d21
+
 		     }
                 } catch (Exception ex) {
                     _log.error("Could not create volumes for vplex: " + vplexURI, ex);

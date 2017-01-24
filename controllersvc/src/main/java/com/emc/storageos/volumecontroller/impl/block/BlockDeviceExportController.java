@@ -147,15 +147,10 @@ public class BlockDeviceExportController implements BlockExportController {
 						_wfUtils.
                             generateExportGroupCreateWorkflow(workflow, null, waitFor,
                                     entry.getKey(), export, objectsToAdd, initiatorURIs);
-<<<<<<< HEAD
+
 					}
 				}
-			}
-=======
             }
-            }
-
->>>>>>> e5514cdb49fff2ce12c9402b4d271839f9375d21
             workflow.executePlan(taskCompleter, "Exported to all devices successfully.");
         } catch (Exception ex) {
             String message = "exportGroupCreate caught an exception.";

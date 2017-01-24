@@ -555,6 +555,7 @@ initiator.node.help=Node WWN for Fibre-Channel ports, empty for iSCSI
 initiator.port=Port
 initiator.port.help=Port WWN for Fibre-Channel ports, IQN for iSCSI
 initiator.deleteConfirm=Are you sure you want to delete the selected Initiator(s)?
+initiator.prerequisite=Before adding an initiator to a host, rediscover the Fabric Manager and verify the initiator is part of the correct Network. This allows ViPR Controller to perform automatic export updates.
 
 cluster.name=Cluster
 cluster.discovered=Discovered

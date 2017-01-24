@@ -42,7 +42,10 @@ public class ConfigPropertyUtils {
         if (StorageOsPlugin.isEnabled()) {
             CoordinatorClient coordinatorClient = StorageOsPlugin.getInstance().getCoordinatorClient();
             com.emc.storageos.model.property.PropertyInfo propertyInfo = coordinatorClient.getPropertyInfo();
+            System.out.println("grace: getPropertiesFromCoordinator: "+ propertyInfo);
             if (propertyInfo != null) {
+                System.out.println("grace: BACKUP_EXTERNAL_URL: "+ propertyInfo.getAllProperties().get(ConfigProperty.BACKUP_EXTERNAL_URL));
+                System.out.println("grace: BACKUP_SCHEDULER_ENABLE: "+ propertyInfo.getAllProperties().get(ConfigProperty.BACKUP_SCHEDULER_ENABLE));
                 return propertyInfo.getAllProperties();
             }
         }

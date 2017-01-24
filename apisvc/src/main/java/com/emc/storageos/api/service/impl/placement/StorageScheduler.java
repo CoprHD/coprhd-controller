@@ -563,9 +563,9 @@ public class StorageScheduler implements Scheduler {
                     provMapBuilder.putAttributeInMap(Attributes.file_replication_copy_mode.toString(), capabilities.getFileRpCopyMode());
                 }
 
-                if (capabilities.getFileReplicationTargetVArray() != null) {
+                if (capabilities.getFileReplicationTargetVArrays() != null) {
                     provMapBuilder.putAttributeInMap(Attributes.file_replication_target_varray.toString(),
-                            capabilities.getFileReplicationTargetVArray());
+                            capabilities.getFileReplicationTargetVArrays());
                 }
 
                 if (capabilities.getFileReplicationTargetVPool() != null) {

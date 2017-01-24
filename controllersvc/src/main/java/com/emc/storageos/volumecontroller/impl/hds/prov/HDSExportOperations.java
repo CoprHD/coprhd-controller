@@ -1440,42 +1440,43 @@ public class HDSExportOperations implements ExportMaskOperations {
                     ExportMask.class, activeMaskIdsInDb);
             if (null != matchedHostHSDsMap && !matchedHostHSDsMap.isEmpty()) {
                 // Iterate through each host
-                for (URI hostURI : hostToInitiatorMap.keySet()) {
-                    Set<URI> hostInitiators = hostToInitiatorMap.get(hostURI);
-                    boolean isNewExportMask = false;
-                    // Create single ExportMask for each hsd having host initiators
-                    List<ExportMask> exportMaskWithHostInitiators = fetchExportMasksFromDB(activeMasks,
-                            hostInitiators, storage);
-                    for (HostStorageDomain hsd : matchedHostHSDsMap.get(hostURI)) {
-                        String storagePortOFHDSURI = getStoragePortURIs(Arrays.asList(hsd.getPortID()), storage).get(0);
-                        ExportMask maskForHSD = null;
-                        for (ExportMask exportMaskhavingInitiators : exportMaskWithHostInitiators) {
-                            if(exportMaskhavingInitiators.getStoragePorts().contains(storagePortOFHDSURI)) {
-                                maskForHSD = exportMaskhavingInitiators;
-                                break;
-                            }
-                        }
-                        if (null == maskForHSD) {
-                            isNewExportMask = true;
-                            maskForHSD = new ExportMask();
-                            maskForHSD.setId(URIUtil.createId(ExportMask.class));
-                            maskForHSD.setStorageDevice(storage.getId());
-                            maskForHSD.setCreatedBySystem(false);
-                        }
-                        Set<HostStorageDomain> hsdSet = new HashSet<>();
-                        hsdSet.add(hsd);
-                        updateHSDInfoInExportMask(maskForHSD, hostInitiators, hsdSet, storage, matchingMasks);
-                        if (isNewExportMask) {
-                            dbClient.createObject(maskForHSD);
-                        } else {
-                            ExportMaskUtils.sanitizeExportMaskContainers(dbClient, maskForHSD);
-                            dbClient.updateAndReindexObject(maskForHSD);
-                        }
-                        updateMatchingMasksForHost(
-                                matchedHostInitiators.get(hostURI), maskForHSD,
-                                matchingMasks);
-                    }
-                }
+				for (URI hostURI : hostToInitiatorMap.keySet()) {
+					if (matchedHostHSDsMap.get(hostURI) != null) {
+						Set<URI> hostInitiators = hostToInitiatorMap.get(hostURI);
+						boolean isNewExportMask = false;
+
+						List<ExportMask> exportMaskWithHostInitiators = fetchExportMasksFromDB(activeMasks,
+								hostInitiators, storage);
+						for (HostStorageDomain hsd : matchedHostHSDsMap.get(hostURI)) {
+							String storagePortOFHDSURI = getStoragePortURIs(Arrays.asList(hsd.getPortID()), storage)
+									.get(0);
+							ExportMask maskForHSD = null;
+							for (ExportMask exportMaskhavingInitiators : exportMaskWithHostInitiators) {
+								if (exportMaskhavingInitiators.getStoragePorts().contains(storagePortOFHDSURI)) {
+									maskForHSD = exportMaskhavingInitiators;
+									break;
+								}
+							}
+							if (null == maskForHSD) {
+								isNewExportMask = true;
+								maskForHSD = new ExportMask();
+								maskForHSD.setId(URIUtil.createId(ExportMask.class));
+								maskForHSD.setStorageDevice(storage.getId());
+								maskForHSD.setCreatedBySystem(false);
+							}
+							Set<HostStorageDomain> hsdSet = new HashSet<>();
+							hsdSet.add(hsd);
+							updateHSDInfoInExportMask(maskForHSD, hostInitiators, hsdSet, storage, matchingMasks);
+							if (isNewExportMask) {
+								dbClient.createObject(maskForHSD);
+							} else {
+								ExportMaskUtils.sanitizeExportMaskContainers(dbClient, maskForHSD);
+								dbClient.updateAndReindexObject(maskForHSD);
+							}
+							updateMatchingMasksForHost(matchedHostInitiators.get(hostURI), maskForHSD, matchingMasks);
+						}
+					}
+				}
             }
 
         } catch (Exception e) {
@@ -1560,28 +1561,29 @@ public class HDSExportOperations implements ExportMaskOperations {
                 exportMask
                         .addToExistingInitiatorsIfAbsent(initiatorsExistsOnHSD);
 
+                Set<String> VolumesList = new StringSet();
+                if (null != exportMask.getExistingVolumes()
+                        && !exportMask.getExistingVolumes().isEmpty()) {
+                	VolumesList = exportMask.getExistingVolumes().keySet();
+                }
+                
                 builder.append(String
                         .format("XM is matching. " + "EI: { %s }, EV: { %s }\n",
                                 Joiner.on(',').join(
                                         exportMask.getExistingInitiators()),
-                                Joiner.on(',').join(
-                                        exportMask.getExistingVolumes()
-                                                .keySet())));
+								Joiner.on(',').join(VolumesList)));
 
             }
-            
             if (null == exportMask.getDeviceDataMap()
                     || exportMask.getDeviceDataMap().isEmpty()) {
                 exportMask.addDeviceDataMap(deviceDataMapEntries);
                 log.info("export mask info  when device map is getting newly added  {}",exportMask.toString());
                 log.info("deviceDataMapEntries new value  {}",deviceDataMapEntries.toString());
             } else {
-                //exportMask.replaceDeviceDataMapEntries(deviceDataMapEntries);
                 exportMask.addDeviceDataMap(deviceDataMapEntries);
                 log.info("export mask info  when device map is getting updated  {}",exportMask.toString());
                 log.info("deviceDataMapEntries updated value  {}",deviceDataMapEntries.toString());
             }
-
         }
 
         log.info(builder.toString());

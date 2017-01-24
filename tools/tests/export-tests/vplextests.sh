@@ -178,7 +178,7 @@ test_VPLEX_ORCH_3() {
 }
 
 consistent_hlu_test(){
-	test_VPLEX_ORCH_4;
+    test_VPLEX_ORCH_4;
 }
 
 test_VPLEX_ORCH_4(){
@@ -189,7 +189,7 @@ test_VPLEX_ORCH_4(){
     verify_export ${expname}1 ${HOST1} gone
     verify_export ${expname}1 ${HOST2} gone
 
-    set_validation_check true
+    set_validation_check false
 
     # Create the cluster export and masks with a volume
     runcmd export_group create $PROJECT ${expname}1 $NH --type Cluster --volspec "${PROJECT}/${VOLNAME}-1" --clusters "${TENANT}/${CLUSTER}"
@@ -203,16 +203,49 @@ test_VPLEX_ORCH_4(){
     verify_export ${expname}1 ${HOST2} 2 2 1,88
 
     runcmd export_group update ${PROJECT}/${expname}1 --addVols "${PROJECT}/${VOLNAME}-3"
-	
+    
     verify_export ${expname}1 ${HOST1} 2 3 1,2,88
     verify_export ${expname}1 ${HOST2} 2 3 1,2,88
 
     runcmd export_group update ${PROJECT}/${expname}1 --remVols "${PROJECT}/${VOLNAME}-3"
-	
+    
     verify_export ${expname}1 ${HOST1} 2 2 1,88
     verify_export ${expname}1 ${HOST2} 2 2 1,88
-	
-	# Verify the zone names, as we know them, are on the switch
+    
+    
+    runcmd export_group update ${PROJECT}/${expname}1 --remHosts "${HOST2}"
+    
+    verify_export ${expname}1 ${HOST1} 2 2 1,88
+    verify_export ${expname}1 ${HOST2} gone
+    
+    runcmd export_group update ${PROJECT}/${expname}1 --addHosts "${HOST2}"
+    
+    verify_export ${expname}1 ${HOST1} 2 2 1,88
+    verify_export ${expname}1 ${HOST2} 2 2 1,88
+    
+    runcmd export_group update ${PROJECT}/${expname}1 --remVols "${PROJECT}/${VOLNAME}-1"
+    
+    verify_export ${expname}1 ${HOST1} 2 1 88
+    verify_export ${expname}1 ${HOST2} 2 1 88
+    
+    runcmd export_group create $PROJECT ${expname}2 $NH --type Host --volspec ${PROJECT}/${VOLNAME}-3 --hosts "${HOST2}"
+    
+    verify_export ${expname}1 ${HOST1} 2 1 88
+    verify_export ${expname}1 ${HOST2} 2 2 0,88
+    
+    runcmd export_group update ${PROJECT}/${expname}1 --addVols "${PROJECT}/${VOLNAME}-1"
+    
+    verify_export ${expname}1 ${HOST1} 2 2 1,88
+    verify_export ${expname}1 ${HOST2} 2 3 0,1,88
+    
+    # Delete the export group
+    runcmd export_group delete $PROJECT/${expname}2
+    
+    verify_export ${expname}1 ${HOST1} 2 2 1,88
+    verify_export ${expname}1 ${HOST2} 2 2 1,88
+    
+    
+    # Verify the zone names, as we know them, are on the switch
     load_zones ${HOST1} 
     verify_zones ${FC_ZONE_A:7} exists
 
@@ -220,7 +253,7 @@ test_VPLEX_ORCH_4(){
 
     # Delete the export group
     runcmd export_group delete $PROJECT/${expname}1
-	
+    
     # Make sure the mask is gone
     verify_export ${expname}1 ${HOST1} gone
     verify_export ${expname}1 ${HOST2} gone

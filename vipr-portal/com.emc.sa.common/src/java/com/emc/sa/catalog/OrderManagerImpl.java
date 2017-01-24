@@ -235,7 +235,20 @@ public class OrderManagerImpl implements OrderManager {
                 return getResourceLabel(key);
             } else if (CatalogSerializationUtils.isSerializedObject(key)) {
                 Map<URI, List<URI>> port = (Map<URI, List<URI>>) CatalogSerializationUtils.serializeFromString(key);
-                return port.toString();
+                String s = new String("{");
+                for (Map.Entry<URI, List<URI> > entry : port.entrySet()) {
+                    s += getResourceLabel(entry.getKey().toString());
+                    s += ":[";
+                    List<String> portLabels = new ArrayList<String>();
+                    for (URI p : entry.getValue()) {
+                        portLabels.add(getResourceLabel(p.toString()));
+                    }
+                    s += String.join(",", portLabels);
+                    s += "]";
+                }
+                s += "}";
+                log.info(String.format("Serialized label: %s", s));
+                return s;
             }
             else {
                 // Defer to AssetOptions if it's not a ViPR resource
@@ -340,6 +353,9 @@ public class OrderManagerImpl implements OrderManager {
                     break;
                 case STORAGE_PORT:
                     dataObject = client.findById(StoragePort.class, id);
+                    break;
+                case INITIATOR:
+                    dataObject = client.findById(Initiator.class, id);
                     break;
             }
         } catch (Exception e) {

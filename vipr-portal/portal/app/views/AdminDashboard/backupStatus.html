@@ -87,7 +87,8 @@
             </tr>
             <script>
                 console.info("isScheduledBackupEnabled:"+'${isScheduledBackupEnabled}');
-                if ('${isScheduledBackupEnabled}' == 'true') {
+                if (${isScheduledBackupEnabled}) {
+                    console.info("isScheduledBackupEnabled");
                     var nextScheduledCreationTime = '${backupOperationStatus?.getNextScheduledCreation()}';
                     if (nextScheduledCreationTime != '') {
                         $('#nextScheduled').append(formatLocalDateTime(new Date(nextScheduledCreationTime)));
@@ -129,9 +130,11 @@
                 console.info("isExternalServerConfigured:"+'${isExternalServerConfigured}');
                 if ('${isExternalServerConfigured}' == 'true') {
                     if ('${backupOperationStatus?.getLastUpload()}' != '') {
+                        console.info("have upload");
                         var lastUploadTime = '${backupOperationStatus?.getLastUpload()?.getOperationTime()}';
                         $('#lastUpload').append(formatLocalDateTime(new Date(lastUploadTime)));
                     } else {
+                        console.info("have na");
                         $('#lastUpload').append("NA");
                     }
                 } else {

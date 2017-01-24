@@ -86,8 +86,8 @@
                 <td class="time" id="nextScheduled"></td>
             </tr>
             <script>
-                console.info("isScheduledBackupEnabled:"+isScheduledBackupEnabled);
-                if (isScheduledBackupEnabled) {
+                console.info("isScheduledBackupEnabled:"+'${isScheduledBackupEnabled}');
+                if ('${isScheduledBackupEnabled}' == 'true') {
                     var nextScheduledCreationTime = '${backupOperationStatus?.getNextScheduledCreation()}';
                     if (nextScheduledCreationTime != '') {
                         $('#nextScheduled').append(formatLocalDateTime(new Date(nextScheduledCreationTime)));
@@ -126,8 +126,8 @@
                 </td>
             </tr>
             <script>
-                console.info("isExternalServerConfigured:"+isExternalServerConfigured);
-                if (isExternalServerConfigured) {
+                console.info("isExternalServerConfigured:"+'${isExternalServerConfigured}');
+                if ('${isExternalServerConfigured}' == 'true') {
                     var lastUploadTime = '${backupOperationStatus?.getLastUpload()?.getOperationTime()}';
                     if (lastUploadTime != '') {
                         $('#lastUpload').append(formatLocalDateTime(new Date(lastUploadTime)));

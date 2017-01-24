@@ -47,6 +47,7 @@ class ExportGroup(object):
     # 'Exclusive' is for backward compatibility only
     EXPORTGROUP_TYPE = ['Initiator', 'Host', 'Cluster', 'Exclusive']
     URI_EXPORT_GROUP_TAG = URI_EXPORT_GROUPS_SHOW + '/tags'
+    PATH_ADJ_OPERATION = False 
 
     def __init__(self, ipAddr, port):
         '''
@@ -715,7 +716,7 @@ class ExportGroup(object):
     # Common rou:wtine to build the parameters for path_adjustment and path_adjustment_preview
     def exportgroup_pathadjustment_parms(self, name, project, tenant, storagesystem, varray,
                     minpaths, maxpaths, pathsperinitiator, maxinitiatorsperport,
-                    storageports, useexisting, hosts, wait, dorealloc):
+                    storageports, useexisting, hosts, verbose, wait, dorealloc):
         varrayuri = None
         if(varray):
             varrayObject = VirtualArray(self.__ipAddr, self.__port)
@@ -772,7 +773,7 @@ class ExportGroup(object):
  		rep = self.exportgroup_pathadjustment(name, project, tenant,
                                                storagesystem, varray, 
                                                minpaths, maxpaths, pathsperinitiator,
-                                               maxinitiatorsperport, storageports, useexisting, hosts, None, False)
+                                               maxinitiatorsperport, storageports, useexisting, hosts, None, verbose, False)
 		adjustedpaths = rep['adjusted_paths']
 	    	adjusted_paths = []
 	    	for path in adjustedpaths:
@@ -814,7 +815,8 @@ class ExportGroup(object):
 
     def exportgroup_pathadjustment(self, name, project, tenant, storagesystem, varray, 
 				   minpaths, maxpaths, pathsperinitiator, maxinitiatorsperport,
-		 		   storageports, useexistingpaths, hosts, wait, dorealloc):
+		 		   storageports, useexistingpaths, hosts, verbose, wait, dorealloc):
+
 	parms = {}
 	varrayuri = None
 	if(varray):
@@ -824,13 +826,22 @@ class ExportGroup(object):
 	exportgroup_uri = self.exportgroup_query(name,
 						 project, tenant, varrayuri)
 
+	# PATH_ADJ_OPERATION is a boolean to keep track of what operation is being invoked.
+	# Since path adjustment also invokes preview, we storage this so that we can always display the output of preview and 
+        # display path_adjustment output only when verbose flag is passed in true.
+	if (dorealloc):
+		self.PATH_ADJ_OPERATION = True 
+
 	parms = self.exportgroup_pathadjustment_parms(name, project, tenant, storagesystem, varray, 
 						      minpaths, maxpaths, pathsperinitiator, maxinitiatorsperport, 
-						      storageports, useexistingpaths, hosts, wait, dorealloc)
+						      storageports, useexistingpaths, hosts, verbose, wait, dorealloc)
 
 	body = json.dumps(parms)
-	print 'body'
-	print(json.dumps(parms, sort_keys=True, indent=4))
+
+        if (verbose):
+		print 'BODY : '
+		print(json.dumps(parms, sort_keys=True, indent=4))
+	 	print ' '
 
 	operation = 'Path Adjustment' 
 	if (dorealloc):
@@ -844,9 +855,14 @@ class ExportGroup(object):
 						     self.__port, "POST",
 						     self.URI_EXPORT_GROUP_PATH_ADJUSTMENT_PREVIEW.format(exportgroup_uri),
 						     body)
-	output = common.json_decode(s)
-	print 'output : ', operation  
-	print json.dumps(output, sort_keys=True, indent=4) 
+        output = common.json_decode(s)
+
+	# Display output when verbose is set to true or if the operation is Preview.
+ 	if (verbose or not self.PATH_ADJ_OPERATION):
+		print 'OUTPUT : ', operation  
+		print json.dumps(output, sort_keys=True, indent=4) 
+	 	print ' '
+
 	return output
 
 def exportgroup_pathadjustment_parser(subcommand_parsers, common_parser):
@@ -909,6 +925,11 @@ def exportgroup_pathadjustment_parser(subcommand_parsers, common_parser):
 			       dest='useexistingpaths',
 			       default=False,
 			       help='use existing paths')
+	path_adjustment_preview_parser.add_argument('-verbose', '-vb',
+			       metavar='<verbose>',
+			       dest='verbose',
+			       default=False,
+			       help='Print verbose output')
 	path_adjustment_preview_parser.add_argument('-hosts', '-hosts',
 			       metavar='<hosts>',
 			       dest='hosts',
@@ -938,7 +959,7 @@ def exportgroup_pathadjustment(args):
 	obj.exportgroup_pathadjustment(args.name, args.project, args.tenant,
 				       args.storagesystem, args.varray,
 				       args.minpaths, args.maxpaths, args.pathsperinitiator, 
-				       args.maxinitiatorsperport, args.storageports, args.useexistingpaths, args.hosts, args.wait, True)
+				       args.maxinitiatorsperport, args.storageports, args.useexistingpaths, args.hosts, args.verbose, args.wait, True)
     except SOSError as e:
 	raise common.format_err_msg_and_raise("pathadjustment", "exportgroup",
 					      e.err_text, e.err_code)
@@ -948,7 +969,7 @@ def exportgroup_pathadjustment_preview(args):
 	obj.exportgroup_pathadjustment(args.name, args.project, args.tenant,
 			       args.storagesystem, args.varray, 
 			       args.minpaths, args.maxpaths, args.pathsperinitiator, 
-			       args.maxinitiatorsperport, args.storageports, args.useexistingpaths, args.hosts, None, False)
+			       args.maxinitiatorsperport, args.storageports, args.useexistingpaths, args.hosts, args.verbose, None, False)
     except SOSError as e:
 	raise common.format_err_msg_and_raise("pathadjustment_preview", "exportgroup",
 				      e.err_text, e.err_code)

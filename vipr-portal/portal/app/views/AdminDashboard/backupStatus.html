@@ -129,7 +129,7 @@
             <script>
                 console.info("isExternalServerConfigured:"+'${isExternalServerConfigured}');
                 if (${isExternalServerConfigured}) {
-                    if (${backupOperationStatus?.getLastUpload()} != null) {
+                    if ('${backupOperationStatus?.getLastUpload()}' != '') {
                         console.info("have upload");
                         var lastUploadTime = '${backupOperationStatus?.getLastUpload()?.getOperationTime()}';
                         $('#lastUpload').append(formatLocalDateTime(new Date(lastUploadTime)));

@@ -70,7 +70,7 @@
             <script>
                 if (backupOperationStatus?.getLastScheduledCreation() != null) {
                     var lastScheduledCreationTime = '${backupOperationStatus?.getLastScheduledCreation()?.getOperationTime()}';
-                    $('#lastScheduled').append(formatLocalDateTime(new Date('${lastScheduledCreationTime}')));
+                    $('#lastScheduled').append(formatLocalDateTime(new Date(lastScheduledCreationTime)));
                 } else {
                     $('#lastScheduled').append("NA");
                 }
@@ -125,7 +125,7 @@
                 </td>
             </tr>
             <script>
-                if ('${isExternalServerConfigured'}) {
+                if (isExternalServerConfigured) {
                     var lastUploadTime = '${backupOperationStatus?.getLastUpload()?.getOperationTime()'};
                     if (lastUploadTime) {
                         $('#lastUpload').append(formatLocalDateTime(new Date('${lastUploadTime'})));

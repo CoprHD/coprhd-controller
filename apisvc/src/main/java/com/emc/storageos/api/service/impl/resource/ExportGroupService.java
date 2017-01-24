@@ -340,7 +340,6 @@ public class ExportGroupService extends TaskResourceService {
              */
             validateBlockObjectNativeId(addVolumeURIs);
         }
-
         validateBlockSnapshotsForExportGroupCreate(param);
 
         // prepare the export group object

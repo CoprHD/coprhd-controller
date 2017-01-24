@@ -730,9 +730,10 @@ public class BlockService extends TaskResourceService {
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     public TaskList createVolume(VolumeCreate param) throws InternalException {
 
+
     	ArgValidator.checkFieldNotNull(param, "volume_create");
 
-        // CQECC00604134
+    	// CQECC00604134
         ArgValidator.checkFieldUriType(param.getProject(), Project.class, "project");
 
         // Get and validate the project.
@@ -769,7 +770,6 @@ public class BlockService extends TaskResourceService {
         			taskList, task, requestedTypes, param, getBlockServiceImpl("default"));
         }
 
-    	
 	//Direct-VPLEX-TO-PASS-VOLUME
         if(param.getPassThroughParams().containsKey("VPlex-Id") && param.getPassThroughParams() != null 
     			&& !param.getPassThroughParams().isEmpty() && param.getPassThroughParams().containsKey("volumeId")){
@@ -785,6 +785,14 @@ public class BlockService extends TaskResourceService {
             ArrayList<String> requestedTypes = new ArrayList<String>();
             CreateVolumeSchedulingThread.executeSkinyApiTask(this, _asyncTaskService.getExecutorService(), _dbClient, taskList, task, requestedTypes, param, getBlockServiceImpl("default"));
             return taskList;
+        		
+    		// VPLEX - Distributed
+    		//if(param.getPassThroughParams().isDistributed()){
+    		//	String volumeIdForHA = passThroughParam.get("volumeIdForHA");
+    		//	if (volumeIdForHA ==null ){
+    		//		throw APIException.badRequests.parameterIsNullOrEmpty("passThroughParam");
+    		//	}
+    		//}
         }
 		
 
@@ -803,7 +811,7 @@ public class BlockService extends TaskResourceService {
     		}
     		
     		String task = UUID.randomUUID().toString();
-            TaskList taskList = createSkinyVolumeTaskList(param.getSize(), param.getName(), task, param.getCount(), project, varray , vpool);
+            TaskList taskList = createSkinyVolumeTaskList(param.getSize(), param.getName(), task, param.getCount(),project,varray,vpool);
     		_log.info("1 TaskList {}", taskList.getTaskList());
 		_log.info("2 taskList " +taskList);	
             ArrayList<String> requestedTypes = new ArrayList<String>();
@@ -813,15 +821,6 @@ public class BlockService extends TaskResourceService {
 
             return taskList;
             
-            // VPLEX - Distributed
-    		//if(param.getPassThroughParams().isDistributed()){
-    		//	String TargetStorageSystemId = passThroughParam.get("target-storage-system");
-    		//	String TargetStoragePoolId = passThroughParam.get("target-storage-pool");
-    		//	if (SourceStorageSystemId ==null  || SourceStoragePortId == null){
-    		//		throw APIException.badRequests.parameterIsNullOrEmpty("passThroughParam");
-    		//	}
-    		//}
-    		
     	}
     	
     	//Direct-Volume
@@ -839,7 +838,7 @@ public class BlockService extends TaskResourceService {
 
 
             String task = UUID.randomUUID().toString();
-            TaskList taskList = createSkinyVolumeTaskList(param.getSize(), param.getName(), task, param.getCount(),project, varray , vpool);
+            TaskList taskList = createSkinyVolumeTaskList(param.getSize(), param.getName(), task, param.getCount(),project,varray,vpool);
 
             ArrayList<String> requestedTypes = new ArrayList<String>();
             // call thread that does the work.

@@ -104,7 +104,9 @@ public class BlockDeviceExportController implements BlockExportController {
     		passThroughFlag = true;
     		opId = opId.substring(0, opId.length() - 6);
     	}
+
         ExportTaskCompleter taskCompleter = new ExportCreateCompleter(export, volumeMap, opId);
+
         Workflow workflow = null;
         try {
             // Do some initial sanitizing of the export parameters
@@ -145,9 +147,15 @@ public class BlockDeviceExportController implements BlockExportController {
 						_wfUtils.
                             generateExportGroupCreateWorkflow(workflow, null, waitFor,
                                     entry.getKey(), export, objectsToAdd, initiatorURIs);
+<<<<<<< HEAD
 					}
 				}
 			}
+=======
+            }
+            }
+
+>>>>>>> e5514cdb49fff2ce12c9402b4d271839f9375d21
             workflow.executePlan(taskCompleter, "Exported to all devices successfully.");
         } catch (Exception ex) {
             String message = "exportGroupCreate caught an exception.";

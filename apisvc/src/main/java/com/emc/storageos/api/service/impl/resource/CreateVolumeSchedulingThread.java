@@ -762,6 +762,7 @@ class CreateVolumeSchedulingThread implements Runnable {
         _log.info("Starting scheduling/placement thread...");
         // Call out placementManager to get the recommendation for placement.
         try {
+
         	Map<VpoolUse, List<Recommendation>> recommendationsMap = 
                     this.blockService._placementManager.getRecommendationsForVirtualPool(
                     varray, project, vpool, capabilities);
@@ -804,7 +805,7 @@ class CreateVolumeSchedulingThread implements Runnable {
             // At this point we are committed to initiating the request.
             if (consistencyGroup != null) {
                 consistencyGroup.addRequestedTypes(requestedTypes);
-                this.blockService._dbClient.updateObject(consistencyGroup);
+                this.blockService._dbClient.updateAndReindexObject(consistencyGroup);
             }
 
             // Call out to the respective block service implementation to prepare

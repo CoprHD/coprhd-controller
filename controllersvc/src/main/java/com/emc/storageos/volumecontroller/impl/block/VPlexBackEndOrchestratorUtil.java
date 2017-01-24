@@ -407,7 +407,6 @@ public class VPlexBackEndOrchestratorUtil {
     }
 
 
-
     /**
      * This function tries to select a port for a given initiator and tries to minimize the number
      * of initiators using the same port. When the ports being assigned are pre-zoned, this

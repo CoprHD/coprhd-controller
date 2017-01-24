@@ -4,15 +4,8 @@
  */
 package controllers.arrays;
 
-import com.emc.storageos.model.RelatedResourceRep;
-import com.emc.storageos.model.systems.StorageSystemRestRep;
-
 import static com.emc.vipr.client.core.util.ResourceUtils.id;
 import static com.emc.vipr.client.core.util.ResourceUtils.uris;
-
-import com.google.gson.JsonArray;
-import com.google.gson.JsonObject;
-
 import static controllers.Common.angularRenderArgs;
 import static controllers.Common.copyRenderArgsToAngular;
 import static controllers.Common.flashException;
@@ -51,6 +44,7 @@ import models.datatable.VirtualPoolDataTable;
 import models.datatable.VirtualPoolDataTable.VirtualPoolInfo;
 import models.virtualpool.BlockVirtualPoolForm;
 import models.virtualpool.RPCopyForm;
+import models.virtualpool.RemoteReplicationForm;
 import models.virtualpool.SrdfCopyForm;
 
 import org.apache.commons.beanutils.BeanUtils;
@@ -77,9 +71,11 @@ import util.VirtualArrayUtils;
 import util.VirtualPoolUtils;
 import util.datatable.DataTablesSupport;
 
+import com.emc.storageos.model.RelatedResourceRep;
 import com.emc.storageos.model.pools.StoragePoolRestRep;
 import com.emc.storageos.model.storagesystem.type.StorageSystemTypeList;
 import com.emc.storageos.model.storagesystem.type.StorageSystemTypeRestRep;
+import com.emc.storageos.model.systems.StorageSystemRestRep;
 import com.emc.storageos.model.varray.VirtualArrayRestRep;
 import com.emc.storageos.model.vpool.BlockVirtualPoolRestRep;
 import com.emc.storageos.model.vpool.FileVirtualPoolRestRep;
@@ -88,6 +84,8 @@ import com.emc.vipr.client.exceptions.ViPRException;
 import com.emc.vipr.client.exceptions.ViPRHttpException;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonObject;
 
 import controllers.Common;
 import controllers.deadbolt.Restrict;
@@ -554,6 +552,28 @@ public class BlockVirtualPools extends ViprResourceController {
         renderJSON(dataObjectOptions(pools));
     }
 
+    public static void listRemoteReplicationVirtualArraysJson(BlockVirtualPoolForm vpool) {
+        if (vpool == null) {
+            renderJSON(Collections.emptyList());
+        }
+        vpool.deserialize();
+        List<StringOption> actualOptions = Lists.newArrayList();
+        List<VirtualArrayRestRep> virtualArrays = await(vpool.remoteReplicationVirtualArrays().asPromise());
+        for (StringOption option : dataObjectOptions(virtualArrays)) {
+                actualOptions.add(option);
+
+        }
+        renderJSON(actualOptions);
+    }
+
+    public static void listRemoteReplicationVirtualPoolsJson(String virtualArray) {
+        if (virtualArray == null) {
+            renderJSON(Collections.emptyList());
+        }
+        List<BlockVirtualPoolRestRep> pools = await(new ConnectedBlockVirtualPoolsCall(uris(virtualArray)).asPromise());
+        renderJSON(dataObjectOptions(pools));
+    }
+
     public static void listHighAvailabilityVirtualArraysJson(BlockVirtualPoolForm vpool) {
         if (vpool == null) {
             renderJSON(Collections.emptyList());
@@ -657,6 +677,19 @@ public class BlockVirtualPools extends ViprResourceController {
         }
     }
 
+    public static void validateRemoteReplication(RemoteReplicationForm remoteReplication) {
+        if (remoteReplication == null) {
+            renderJSON(ValidationResponse.invalid());
+        }
+        remoteReplication.validate("remoteReplication");
+        if (Validation.hasErrors()) {
+            renderJSON(ValidationResponse.collectErrors());
+        }
+        else {
+            renderJSON(ValidationResponse.valid());
+        }
+    }
+
     public static void save(BlockVirtualPoolForm vpool) {
         if (vpool == null) {
             list();
@@ -679,6 +712,16 @@ public class BlockVirtualPools extends ViprResourceController {
     private static boolean varrayAlreadyInSRDFCopies(String varrayId, SrdfCopyForm[] copies) {
         for (SrdfCopyForm copy : copies) {
             if (copy.virtualArray.equals(varrayId)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static boolean varrayAlreadyInRemoteReplication(String varrayId, RemoteReplicationForm[] remoteReplications) {
+        for (RemoteReplicationForm remoteReplication : remoteReplications) {
+            if (remoteReplication.virtualArray.equals(varrayId)) {
                 return true;
             }
         }
@@ -775,7 +818,8 @@ public class BlockVirtualPools extends ViprResourceController {
                 ));
         renderArgs.put("remoteProtectionOptions", Lists.newArrayList(
                 ProtectionSystemTypes.option(ProtectionSystemTypes.RECOVERPOINT),
-                ProtectionSystemTypes.option(ProtectionSystemTypes.SRDF)
+                ProtectionSystemTypes.option(ProtectionSystemTypes.SRDF),
+                ProtectionSystemTypes.option(ProtectionSystemTypes.REMOTEREPLICATION)
                 ));
         renderArgs.put("rpRemoteCopyModeOptions", RemoteCopyMode.OPTIONS);
         renderArgs.put("rpRpoTypeOptions", RpoType.OPTIONS);
@@ -802,6 +846,8 @@ public class BlockVirtualPools extends ViprResourceController {
         Promise<List<BlockVirtualPoolRestRep>> sourceJournalVirtualPools = vpool.sourceRpJournalVirtualPools().asPromise();
         Promise<List<BlockVirtualPoolRestRep>> haJournalVirtualPools = vpool.haRpJournalVirtualPools().asPromise();
         Promise<List<VirtualArrayRestRep>> srdfVirtualArrays = vpool.srdfVirtualArrays().asPromise();
+        Promise<List<VirtualArrayRestRep>> remoteReplicationVirtualArrays = vpool.remoteReplicationVirtualArrays().asPromise();
+        Promise<List<BlockVirtualPoolRestRep>> remoteReplicationVirtualPools = vpool.remoteReplicationVirtualPools().asPromise();
 
         if (TenantUtils.canReadAllTenants() && VirtualPoolUtils.canUpdateACLs()) {
             addDataObjectOptions("tenantOptions", new TenantsCall().asPromise());
@@ -819,6 +865,8 @@ public class BlockVirtualPools extends ViprResourceController {
         addDataObjectOptions("vpoolHAJournalVirtualPoolOptions", haJournalVirtualPools);
         addDataObjectOptions("srdfVirtualArrayOptions", srdfVirtualArrays);
         addDataObjectOptions("srdfVirtualPoolOptions", connectedVirtualPools);
+        addDataObjectOptions("remoteReplicationVirtualArrayOptions", remoteReplicationVirtualArrays);
+        addDataObjectOptions("remoteReplicationVirtualPoolOptions", remoteReplicationVirtualPools);
     }
 
     private static Map<String, String> allFlashVirtualPool() {

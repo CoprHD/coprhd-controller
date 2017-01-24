@@ -46,7 +46,26 @@
         consistencyGroup:{
             type:"assetType.vipr.consistencyGroup",
             required:false
+        },
+        remoteReplication:{
+         type:"group",
+     	 collapsed:false,
+         items:{
+          remoteReplicationSet:{
+            type:"assetType.vipr.remoteReplicationSet",
+            required:false
+          },
+          remoteReplicationGroup:{
+            type:"assetType.vipr.remoteReplicationGroup",
+            required:false
+          },
+          remoteReplicationMode:{
+            type:"assetType.vipr.remoteReplicationMode",
+            required:false
+         }
         }
+      }
+        
     }
 
 }

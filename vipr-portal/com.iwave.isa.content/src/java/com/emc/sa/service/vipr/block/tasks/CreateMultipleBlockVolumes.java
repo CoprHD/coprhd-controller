@@ -12,6 +12,7 @@ import com.emc.sa.service.vipr.block.CreateBlockVolumeHelper;
 import com.emc.sa.service.vipr.tasks.WaitForTasks;
 import com.emc.storageos.model.block.VolumeCreate;
 import com.emc.storageos.model.block.VolumeRestRep;
+import com.emc.storageos.model.remotereplication.RemoteReplicationParameters;
 import com.emc.vipr.client.Tasks;
 import com.emc.vipr.client.exceptions.ServiceErrorException;
 import com.google.common.base.Joiner;
@@ -52,6 +53,13 @@ public class CreateMultipleBlockVolumes extends WaitForTasks<VolumeRestRep> {
             }
             create.setCount(numberOfVolumes);
             create.setConsistencyGroup(param.getConsistencyGroup());
+            if (param.getRemoteReplicationSet() != null) {
+                RemoteReplicationParameters replicationParam = new RemoteReplicationParameters();
+                replicationParam.setRemoteReplicationSet(param.getRemoteReplicationSet());
+                replicationParam.setRemoteReplicationMode(param.getRemoteReplicationMode());
+                replicationParam.setRemoteReplicationGroup(param.getRemoteReplicationGroup());
+                create.setRemoteReplicationParameters(replicationParam);
+            }
             
             try {
                 if (tasks == null) {

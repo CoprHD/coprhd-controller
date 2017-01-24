@@ -860,6 +860,9 @@ public class BlockVirtualPoolService extends VirtualPoolService {
 
             // Handle SRDF update
             updateRemoteCopyVPool(virtualPool, param);
+            
+            //Handle Remote protection Update            
+            updateRemoteReplicationVPool(virtualPool, param);
 
             // Handle the RP protection updates
             if (param.getRecoverPoint() != null) {
@@ -1120,6 +1123,44 @@ public class BlockVirtualPoolService extends VirtualPoolService {
             }
         }
     }
+    
+    private void updateRemoteReplicationVPool(VirtualPool virtualPool,
+            BlockVirtualPoolProtectionUpdateParam param) {
+        if (param.getRemoteReplicationParam() != null) {
+            StringMap remoteReplicationSettingsMap = virtualPool.getRemoteReplicationProtectionSettings();
+            if (remoteReplicationSettingsMap == null) {
+                remoteReplicationSettingsMap = new StringMap();
+               
+            }
+       
+            if (param.getRemoteReplicationParam().getRemove() != null && !param.getRemoteReplicationParam().getRemove().isEmpty()) {
+                for (VirtualPoolRemoteReplicationSettingsParam remoteSettings : param.getRemoteReplicationParam().getRemove()) {
+                    if (remoteSettings.getVarray() != null && remoteReplicationSettingsMap.containsKey(remoteSettings.getVarray().toString())) {
+                        remoteReplicationSettingsMap.remove(remoteSettings.getVarray().toString());
+                    }
+                }
+            }
+            if (param.getRemoteReplicationParam().getAdd() != null && !param.getRemoteReplicationParam().getAdd().isEmpty()) {
+                // already existing remote VArrays
+                List<String> existingRemoteUris = new ArrayList<String>(remoteReplicationSettingsMap.keySet());
+                for (VirtualPoolRemoteReplicationSettingsParam remoteSettings : param.getRemoteReplicationParam().getAdd()) {
+                    VirtualArray remoteVArray = _dbClient.queryObject(VirtualArray.class, remoteSettings.getVarray());
+                    if (null == remoteVArray || remoteVArray.getInactive()) {
+                        throw APIException.badRequests.inactiveRemoteVArrayDetected(remoteSettings.getVarray());
+                    }
+                    if (existingRemoteUris.contains(remoteSettings.getVarray().toString()) ||
+                            remoteReplicationSettingsMap.containsKey(remoteSettings.getVarray().toString())) {
+                        throw APIException.badRequests.duplicateRemoteSettingsDetected(remoteSettings.getVarray());
+                    }
+                    remoteReplicationSettingsMap.put(remoteSettings.getVarray().toString(), remoteSettings.getVpool().toString());
+
+                }
+                virtualPool.setRemoteReplicationProtectionSettings(remoteReplicationSettingsMap);
+                _dbClient.updateObject(virtualPool);
+            }
+        }
+    }
+
 
     private void updateProtectionMirrorVPool(URI vPoolUri, VirtualPool virtualPool) {
         ArgValidator.checkUri(vPoolUri);

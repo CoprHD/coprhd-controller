@@ -164,8 +164,9 @@ public class ExportMaskUtils {
         }
 
         List<URI> exportMaskUris = dbClient.queryByType(ExportMask.class, true);
-        List<ExportMask> exportMasks = dbClient.queryObject(ExportMask.class, exportMaskUris);
-        for (ExportMask exportMask : exportMasks) {
+        Iterator<ExportMask> exportMasks = dbClient.queryIterativeObjects(ExportMask.class, exportMaskUris, true);
+        while (exportMasks.hasNext()) {
+            ExportMask exportMask = exportMasks.next();
             if (exportMask == null || exportMask.getInactive()) {
                 continue;
             }
@@ -1410,7 +1411,7 @@ public class ExportMaskUtils {
         boolean differentResource = false;
         String maskResource = mask.getResource();
         if (!NullColumnValueGetter.isNullValue(maskResource)) { // check only if the mask has resource
-            if (URIUtil.isType(URI.create(maskResource), Host.class)) {
+            if (maskResource.startsWith("urn:storageos:Host")) {
                 differentResource = !maskResource.equals(existingInitiator.getHost().toString());
             } else {
                 differentResource = !maskResource.equals(existingInitiator.getClusterName());

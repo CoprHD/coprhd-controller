@@ -70,6 +70,7 @@ import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.StringSetUtil;
+import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.networkcontroller.impl.NetworkAssociationHelper;
@@ -453,7 +454,7 @@ public class UcsComputeDevice implements ComputeDevice {
                     computeSystem.getId(), computeSystem.getSystemType(), this.getClass(), new Workflow.Method(
                             "createLsServer", computeSystem, sptDn, host.getHostName()),
                     new Workflow.Method(
-                            "deleteLsServer", computeSystem, createSpToken),
+                            "deleteLsServer", computeSystem, host.getId(), createSpToken),
                     createSpToken);
 
             String modifySpBootToken = workflow.createStepId();
@@ -463,7 +464,7 @@ public class UcsComputeDevice implements ComputeDevice {
                             "Modify the created service profile to have an Empty boot policy, if a boot policy was associated, it will be over-written!",
                             createSpToken, computeSystem.getId(), computeSystem.getSystemType(), this.getClass(),
                             new Workflow.Method("modifyLsServerNoBoot", computeSystem, createSpToken),
-                            new Workflow.Method("deleteLsServer", computeSystem, createSpToken), modifySpBootToken);
+                            new Workflow.Method("deleteLsServer", computeSystem,host.getId(), createSpToken), modifySpBootToken);
 
             String bindSPStepId = workflow.createStepId();
             bindSPStepId = workflow.createStep(BIND_SERVICE_PROFILE_TO_BLADE_STEP,
@@ -819,7 +820,7 @@ public class UcsComputeDevice implements ComputeDevice {
         return lsServer;
     }
 
-    public void deleteLsServer(ComputeSystem cs, String createSpStepId, String stepId) throws ClientGeneralException {
+    public void deleteLsServer(ComputeSystem cs, URI hostURI, String createSpStepId, String stepId) throws ClientGeneralException {
         WorkflowStepCompleter.stepExecuting(stepId);
         String spDn = (String) workflowService.loadStepData(createSpStepId);
         try {
@@ -830,6 +831,12 @@ public class UcsComputeDevice implements ComputeDevice {
             } else {
                 LOGGER.info("No OP");
             }
+            Host host = _dbClient.queryObject(Host.class, hostURI);
+            if (host!=null && host.getComputeElement()!=null){
+               host.setComputeElement(NullColumnValueGetter.getNullURI());
+               _dbClient.persistObject(host);
+            }
+
             WorkflowStepCompleter.stepSucceded(stepId);
         } catch (Exception e) {
             LOGGER.error("Unable to deleteLsServer...", e);

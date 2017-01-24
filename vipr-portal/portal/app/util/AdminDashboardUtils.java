@@ -42,7 +42,7 @@ public class AdminDashboardUtils {
     private static String LICENSE_KEY = "LICENSE_KEY";
 
     private static String BACKUP_STATUS_LIST_KEY = "BACKUP_STATUS_LIST_KEY";
-    private static String BACKUP_STATUS_LIST_EXPIRES = "3mn";
+    private static String BACKUP_STATUS_LIST_EXPIRES = "1mn";
 
     private static String ASSET_COUNT_EXPIRES = "1mn";
 

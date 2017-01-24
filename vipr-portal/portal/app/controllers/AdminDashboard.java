@@ -71,7 +71,7 @@ public class AdminDashboard extends Controller {
 
     @Restrictions({ @Restrict("SYSTEM_MONITOR"), @Restrict("SYSTEM_ADMIN"), @Restrict("RESTRICTED_SYSTEM_ADMIN") })
     public static void backupStatus() {
-        System.out.println("grace: backupOperationStatus");
+        System.out.println("grace: backupOperationStatus at "+ System.currentTimeMillis());
         trySetRenderArg("backupOperationStatus", AdminDashboardUtils.getBackupStatus());
 
         // Add lastUpdated render args after promises are redeemed

@@ -17,6 +17,7 @@ import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 
+import com.emc.storageos.model.remotereplication.RemoteReplicationGroupParam;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -407,6 +408,57 @@ public class RemoteReplicationPairService extends TaskResourceService {
 
         return toTask(rrPair, taskId, op);
     }
+
+    /**
+     * Move remote replication pair from current parent group to different group in the same replication set.
+     *
+     * @param id
+     * @param param new remote replication group for the pair
+     * @return
+     * @throws InternalException
+     */
+    @POST
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/{id}/change-group")
+    public TaskResourceRep moveRemoteReplicationPair(@PathParam("id") URI id,
+                                                           final RemoteReplicationGroupParam param) throws InternalException {
+        _log.info("Called: moveRemoteReplicationPair() with id {} and new group {}", id, param.getRemoteReplicationGroup());
+        ArgValidator.checkFieldUriType(id, RemoteReplicationPair.class, "id");
+        RemoteReplicationPair rrPair = queryResource(id);
+
+        URI newGroup = param.getRemoteReplicationGroup();
+
+        // todo: validate that this operation is valid: if operations are allowed on pair, if pair state is valid for the operation, if the pair is reachable,
+        // todo: if new group has the same source, target and mode as the original group, etc.
+        // Create a task for the create remote replication pair operation
+        String taskId = UUID.randomUUID().toString();
+        Operation op = _dbClient.createTaskOpStatus(RemoteReplicationPair.class, rrPair.getId(),
+                taskId, ResourceOperationTypeEnum.CHANGE_REMOTE_REPLICATION_MODE);
+
+        RemoteReplicationElement rrElement = new RemoteReplicationElement(RemoteReplicationSet.ElementType.REPLICATION_PAIR, id);
+        // send request to controller
+        try {
+            RemoteReplicationBlockServiceApiImpl rrServiceApi = getRemoteReplicationServiceApi();
+            rrServiceApi.moveRemoteReplicationPair(id, newGroup, taskId);
+        } catch (final ControllerException e) {
+            _log.error("Controller Error", e);
+            op = rrPair.getOpStatus().get(taskId);
+            op.error(e);
+            rrPair.getOpStatus().updateTaskStatus(taskId, op);
+            rrPair.setInactive(true);
+            _dbClient.updateObject(rrPair);
+
+            throw e;
+        }
+
+        auditOp(OperationTypeEnum.CHANGE_REMOTE_REPLICATION_MODE, true, AuditLogManager.AUDITOP_BEGIN,
+                rrPair.getNativeId(), rrPair.getSourceElement(), rrPair.getTargetElement());
+
+        return toTask(rrPair, taskId, op);
+    }
+
+
 
     @Override
     protected ResourceTypeEnum getResourceType() {

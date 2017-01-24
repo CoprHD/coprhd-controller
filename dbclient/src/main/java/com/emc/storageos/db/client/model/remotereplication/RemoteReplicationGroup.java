@@ -170,6 +170,11 @@ public class RemoteReplicationGroup extends DiscoveredDataObject {
         setChanged("replicationSet");
     }
 
+    @Override
+    public String toString() {
+        return getLabel()+"/"+_id;
+    }
+
 //    @Name("supportedReplicationLinkGranularity")
 //    public StringSet getSupportedReplicationLinkGranularity() {
 //        return supportedReplicationLinkGranularity;

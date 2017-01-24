@@ -9,7 +9,7 @@ import java.net.URI;
  * Remote replication group change parameters
  */
 @XmlRootElement(name = "remote_replication_group")
-public class RemoteReplicationGroupChangeParam {
+public class RemoteReplicationGroupParam {
     URI remoteReplicationGroup;
 
     @XmlElement(name = "replication_group")

@@ -3,6 +3,7 @@ package com.emc.storageos.api.service.impl.resource.remotereplication;
 import static com.emc.storageos.api.mapper.DbObjectMapper.toNamedRelatedResource;
 import static com.emc.storageos.api.mapper.RemoteReplicationMapper.map;
 import static com.emc.storageos.api.mapper.TaskMapper.toTask;
+import static com.emc.storageos.db.client.util.CustomQueryUtility.queryActiveResourcesByAltId;
 
 import java.net.URI;
 import java.util.Iterator;
@@ -15,8 +16,13 @@ import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 
+import com.emc.storageos.db.client.model.Project;
+import com.emc.storageos.db.client.model.StorageSystemType;
+import com.emc.storageos.db.client.model.remotereplication.RemoteReplicationPair;
+import com.emc.storageos.model.remotereplication.RemoteReplicationGroupList;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -160,6 +166,58 @@ public class RemoteReplicationSetService extends TaskResourceService {
         return restRep;
     }
 
+    /**
+     * Get remote replication groups in the remote replication set
+     * @return groups in the set
+     */
+    @GET
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/{id}/groups")
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR })
+    public RemoteReplicationGroupList getRemoteReplicationGroups(@PathParam("id") URI id) {
+        _log.info("Called: getRemoteReplicationGroups() for replication set {}", id);
+        ArgValidator.checkFieldUriType(id, RemoteReplicationSet.class, "id");
+        List<RemoteReplicationGroup> rrGroups = CustomQueryUtility.queryActiveResourcesByRelation(_dbClient, id, RemoteReplicationGroup.class, "replicationSet");
+        RemoteReplicationGroupList rrGroupList = new RemoteReplicationGroupList();
+        if (rrGroups != null) {
+            _log.info("Found groups: {}", rrGroups);
+            Iterator<RemoteReplicationGroup> iter = rrGroups.iterator();
+            while (iter.hasNext()) {
+                rrGroupList.getRemoteReplicationGroups().add(toNamedRelatedResource(iter.next()));
+            }
+        }
+        return rrGroupList;
+    }
+
+    /**
+     * Get remote replication sets for a given storage type
+     *
+     * @param storageTypeURI uri of a storage type
+     * @return
+     */
+    @GET
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR })
+    public RemoteReplicationSetList getRemoteReplicationSetsForStorageType(@QueryParam("storageType") URI storageTypeURI) {
+        _log.info("Called: getRemoteReplicationSetsForStorageType() for type {}", storageTypeURI);
+
+        ArgValidator.checkFieldUriType(storageTypeURI, StorageSystemType.class, "id");
+        StorageSystemType storageSystemType = _dbClient.queryObject(StorageSystemType.class, storageTypeURI);
+        ArgValidator.checkEntity(storageSystemType, storageTypeURI, false);
+
+        List<RemoteReplicationSet> rrSets =
+                queryActiveResourcesByAltId(_dbClient, RemoteReplicationSet.class, "storageSystemType", storageSystemType.getStorageTypeName());
+        RemoteReplicationSetList rrSetList = new RemoteReplicationSetList();
+
+        if (rrSets != null) {
+            _log.info("Found sets: {}", rrSets);
+            Iterator<RemoteReplicationSet> iter = rrSets.iterator();
+            while (iter.hasNext()) {
+                rrSetList.getRemoteReplicationSets().add(toNamedRelatedResource(iter.next()));
+            }
+        }
+        return rrSetList;
+    }
 
     @POST
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })

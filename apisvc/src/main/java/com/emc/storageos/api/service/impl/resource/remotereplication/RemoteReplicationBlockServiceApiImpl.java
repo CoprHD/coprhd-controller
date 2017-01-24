@@ -390,7 +390,12 @@ public class RemoteReplicationBlockServiceApiImpl extends AbstractBlockServiceAp
         controller.changeReplicationMode(remoterReplicationElement, newReplicationMode, taskId);
     }
 
+    public void moveRemoteReplicationPair(URI remoterReplicationPair, URI replicationGroup, String taskId) {
+        RemoteReplicationController controller = getController(
+                RemoteReplicationController.class, Constants.EXTERNALDEVICE);
 
+        controller.movePair(remoterReplicationPair, replicationGroup, taskId);
+    }
 
 
 }

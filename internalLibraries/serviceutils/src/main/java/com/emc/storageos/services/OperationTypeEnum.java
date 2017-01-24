@@ -531,6 +531,7 @@ public enum OperationTypeEnum {
     RESUME_REMOTE_REPLICATION_GROUP_LINK("RESUME REMOTE REPLICATION GROUP LINK", "ResumeRemoteReplicationGroupLinkFailed", "resume remote replication group link"),
     SWAP_REMOTE_REPLICATION_GROUP_LINK("SWAP REMOTE REPLICATION GROUP LINK", "SwapRemoteReplicationGroupLinkFailed", "swap remote replication group link"),
     CHANGE_REMOTE_REPLICATION_MODE("CHANGE REMOTE REPLICATION MODE", "ChangeRemoteReplicationModeFailed", "change remote replication mode"),
+    CHANGE_REMOTE_REPLICATION_GROUP("CHANGE REMOTE REPLICATION GROUP", "ChangeRemoteReplicationGroupFailed", "change remote replication group"),
     //
     FAILOVER_REMOTE_REPLICATION_SET_LINK("FAILOVER REMOTE REPLICATION SET LINK", "FailoverRemoteReplicationSetLinkFailed", "failover remote replication set link"),
     FAILBACK_REMOTE_REPLICATION_SET_LINK("FAILBACK REMOTE REPLICATION SET LINK", "FailbackRemoteReplicationSetLinkFailed", "failback remote replication set link"),

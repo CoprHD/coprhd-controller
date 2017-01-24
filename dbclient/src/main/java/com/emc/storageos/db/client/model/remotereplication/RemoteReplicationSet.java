@@ -240,4 +240,9 @@ public class RemoteReplicationSet extends DiscoveredDataObject {
         }
         return targetSystems;
     }
+
+    @Override
+    public String toString() {
+        return getLabel()+"/"+_id;
+    }
 }

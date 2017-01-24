@@ -6,8 +6,8 @@
     <div class="panel panel-default">
         <div class="panel-heading"><h3 class="panel-title">&{'adminDashboard.backupStatus'}</h3></div>
         <div class="panel-body">
-        #{if backupOperationStatus}
-        <table style="margin-top:0px;width:100%">
+            #{if backupOperationStatus}
+            <table style="margin-top:0px;width:100%">
             <tbody>
             <tr class="odd ng-scope openRow">
                 <td class="type" height="25px" width="170px">&{'adminDashboard.lastSuccessfulBackup'}: </td>
@@ -59,7 +59,7 @@
                 <td class="type" height="25px" width="170px">&{'adminDashboard.lastScheduledBackup'}: </td>
                 <td class="icon" height="25px" width="25px">
                     #{if backupOperationStatus?.getLastScheduledCreation() != null}
-                        #{if 'success'.equalsIgnoreCase('${backupOperationStatus?.getLastScheduledCreation()?.getOperationMessage()?.getValue()}')}
+                        #{if backupOperationStatus?.getLastScheduledCreation()?.getOperationMessage()?.getValue() == "success"}
                             <span class="text-success">#{icon 'ok-sign'/}</span>
                         #{/if}
                         #{else}
@@ -72,8 +72,8 @@
                 </td>
             </tr>
             <script>
-                var lastScheduledCreationTime = '${backupOperationStatus?.getLastScheduledCreation()?.getOperationTime()}';
-                if (lastScheduledCreationTime) {
+                var lastScheduledCreationTime = backupOperationStatus?.getLastScheduledCreation()?.getOperationTime();
+                if (backupOperationStatus?.getLastScheduledCreation() != null) {
                     $('#lastScheduled').append(formatLocalDateTime(new Date(lastScheduledCreationTime)));
                 } else {
                     $('#lastScheduled').append("NA");
@@ -91,8 +91,8 @@
             </tr>
             <script>
                 if (isScheduledBackupEnabled) {
-                    var nextScheduledCreationTime = '${backupOperationStatus?.getNextScheduledCreation()}';
-                    if (nextScheduledCreationTime) {
+                    var nextScheduledCreationTime = backupOperationStatus?.getNextScheduledCreation();
+                    if (nextScheduledCreationTime != null) {
                         $('#nextScheduled').append(formatLocalDateTime(new Date(nextScheduledCreationTime)));
                     } else {
                         $('#nextScheduled').append("NA");
@@ -107,7 +107,7 @@
                 <td class="icon" height="25px" width="25px">
                 #{if isExternalServerConfigured }
                     #{if backupOperationStatus?.getLastUpload() != null}
-                        #{if 'success'.equalsIgnoreCase('${backupOperationStatus?.getLastUpload()?.getOperationMessage()?.getValue()}')}
+                        #{if backupOperationStatus?.getLastUpload()?.getOperationMessage()?.getValue() == 'success'}
                             <span class="text-success">#{icon 'ok-sign'/}</span>
                         #{/if}
                         #{else}
@@ -130,7 +130,7 @@
             </tr>
             <script>
                 if (isExternalServerConfigured == true) {
-                    var lastUploadTime = '${backupOperationStatus?.getLastUpload()?.getOperationTime()}';
+                    var lastUploadTime = backupOperationStatus?.getLastUpload()?.getOperationTime()';
                     if (lastUploadTime) {
                         $('#lastUpload').append(formatLocalDateTime(new Date(lastUploadTime)));
                     } else {
@@ -142,19 +142,19 @@
             </script>
             </tbody>
         </table>
+            #{/if}
+            #{else}
+            <div class="loadingBox">
+                <img src="/public/img/loading-huge.gif" height="64" width="64">
+            </div>
+            #{/else}
+        </div>
+        #{if backupStatusLastUpdated}
+        <div class="panel-footer">
+            <small>&{'adminDashboard.lastUpdated'}
+                <span data-format-relative-time="${backupStatusLastUpdated.getTime()}"></span>
+            </small>
+        </div>
         #{/if}
-        #{else}
-        <div class="loadingBox">
-            <img src="/public/img/loading-huge.gif" height="64" width="64">
-        </div>
-        #{/else}
-        </div>
     </div>
-    #{if backupStatusLastUpdated}
-    <div class="panel-footer">
-        <small>&{'adminDashboard.lastUpdated'}
-            <span data-format-relative-time="${backupStatusLastUpdated.getTime()}"></span>
-        </small>
-    </div>
-    #{/if}
 </div>

@@ -209,6 +209,7 @@ public class AdminDashboardUtils {
     }
 
     public static Date getBackupStatusLastUpdated() {
+        System.out.println("grace: getBackupStatusLastUpdated");
         return getLastUpdated(BACKUP_STATUS_LIST_KEY);
     }
 

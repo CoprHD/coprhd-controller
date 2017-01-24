@@ -1077,7 +1077,7 @@ public class BackupOps {
         Configuration config = coordinatorClient.queryConfiguration(Constants.BACKUP_OPERATION_STATUS,
                 Constants.GLOBAL_ID);
         if (config != null) {
-            backupOperationStatus.setLastSuccessfulCreation(getOperationStatus(config, BackupConstants.LAST_MANUAL_CREATION));
+            backupOperationStatus.setLastSuccessfulCreation(getOperationStatus(config, BackupConstants.LAST_SUCCESSFUL_CREATION));
             backupOperationStatus.setLastManualCreation(getOperationStatus(config, BackupConstants.LAST_MANUAL_CREATION));
             backupOperationStatus.setLastScheduledCreation(getOperationStatus(config, BackupConstants.LAST_SCHEDULED_CREATION));
             backupOperationStatus.setLastUpload(getOperationStatus(config, BackupConstants.LAST_UPLOAD));

@@ -164,8 +164,8 @@ public class BlockMapper {
             // Get the SRDF underlying volume if present. That will be used to fill on the
             // SrdfRestRep below.
             if (projectSrdfCapable(dbClient, from.getProject().getURI(), projectSrdfCapableCache)) {
-            srdfVolume = VPlexSrdfUtil.getSrdfVolumeFromVplexVolume(dbClient, from);
-            srdfVolume = (srdfVolume != null ? srdfVolume : from);
+                srdfVolume = VPlexSrdfUtil.getSrdfVolumeFromVplexVolume(dbClient, from);
+                srdfVolume = (srdfVolume != null ? srdfVolume : from);
             }
             to.setAccessState(srdfVolume.getAccessState());
             to.setLinkStatus(srdfVolume.getLinkStatus());
@@ -246,9 +246,9 @@ public class BlockMapper {
             List<VirtualArrayRelatedResourceRep> targets = new ArrayList<VirtualArrayRelatedResourceRep>();
             if (srdfVolume != from) {
             	// VPLEX; translate targets to corresponding VPLEX volume. if any
-            for (String target : VPlexSrdfUtil.getSrdfOrVplexTargets(dbClient, srdfVolume)) {
-                targets.add(toTargetVolumeRelatedResource(ResourceTypeEnum.VOLUME, URI.create(target), getVarray(dbClient, target)));
-            }
+                for (String target : VPlexSrdfUtil.getSrdfOrVplexTargets(dbClient, srdfVolume)) {
+                    targets.add(toTargetVolumeRelatedResource(ResourceTypeEnum.VOLUME, URI.create(target), getVarray(dbClient, target)));
+                }
             } else {
             	// Non-VPLEX
             	for (String target : from.getSrdfTargets()) {

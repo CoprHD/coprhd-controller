@@ -167,14 +167,14 @@ public class BackupOperationStatus implements Serializable {
         OP_MANUAL("manual"),
         OP_SCHEDULED("scheduled");
 
-        private String opMessage = "";
+        private String message = "";
 
         OpMessage(String msg) {
-            this.opMessage = msg;
+            this.message = msg;
         }
 
         public String getValue() {
-            return opMessage;
+            return message;
         }
     }
 

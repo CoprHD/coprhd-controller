@@ -12,7 +12,7 @@
             <tr class="odd ng-scope openRow">
                 <td class="type" height="25px" width="170px">&{'adminDashboard.lastSuccessfulBackup'}: </td>
                 <td class="icon" height="25px" width="25px">
-                #{if backupOperationStatus?.getLastSuccessfulCreation()?.getOperationMessage()?.getValue() == "success"}
+                #{if backupOperationStatus?.lastSuccessfulCreation?.opMessage?.opMessage == "success"}
                     <span class="text-success">#{icon 'ok-sign'/}</span>
                 #{/if}
                 </td>

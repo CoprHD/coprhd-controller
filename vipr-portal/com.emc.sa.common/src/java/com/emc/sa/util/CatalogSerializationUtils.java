@@ -18,10 +18,7 @@ public class CatalogSerializationUtils {
     public static final String SERIAL_PREFIX = "serial";
 
     public static boolean isSerializedObject(String resource) {
-        if (resource.contains(CatalogSerializationUtils.SERIAL_PREFIX)) {
-            return true;
-        }
-        return false;
+        return resource.contains(CatalogSerializationUtils.SERIAL_PREFIX);
     }
 
     /** Write the object to a Base64 string. */

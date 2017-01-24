@@ -4166,14 +4166,6 @@ then
     shift
 fi
 
-REPORT=0
-# Whether to report results to the master data collector of all things
-if [ "${1}" = "-report" ]; then
-    echo "TURNING ON REPORT"
-    REPORT=1
-    shift;
-fi
-
 test_start=0
 test_end=25
 

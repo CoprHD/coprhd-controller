@@ -1450,7 +1450,7 @@ setup() {
 
     run cos allow $VPOOL_BASE block $TENANT
     sleep 30
-    run volume create ${VOLNAME} ${PROJECT} ${NH} ${VPOOL_BASE} 1GB --count 2
+    run volume create ${VOLNAME} ${PROJECT} ${NH} ${VPOOL_BASE} 1GB --count 3
 }
 
 set_suspend_on_error() {

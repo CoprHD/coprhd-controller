@@ -55,12 +55,13 @@ add_initiator_to_mask() {
 }
 
 verify_export() {
-    # Parameters: Storage View Name Name, Number of Initiators, Number of Luns
+    # Parameters: Storage View Name Name, Number of Initiators, Number of Luns, HLUs for Luns
     # If checking if the Storage View does not exist, then parameter $2 should be "gone"
     STORAGE_VIEW_NAME=$1
     NUM_INITIATORS=$2
     NUM_LUNS=$3
-
+    HLUS=$4
+	
     java -Dproperty.file=${tools_file} -jar ${tools_jar} -arrays vplex -method get_storage_view -params ${STORAGE_VIEW_NAME} > ${TMPFILE1} 2> ${TMPFILE2}
     grep -n ${STORAGE_VIEW_NAME} ${TMPFILE1} > /dev/null
     # 0 if line selected, 1 if no line selected
@@ -83,9 +84,10 @@ verify_export() {
         echo -e "\e[91mERROR\e[0m: empty or invalid response from vplex"
         exit 1;
     fi
-
+	
     num_inits=`grep numberOfInitiators ${TMPFILE1} | awk -F: '{print $2}'`
     num_luns=`grep numberOfVolumes ${TMPFILE1} | awk -F: '{print $2}'`
+    hlus=`grep usedHLUs ${TMPFILE1} | awk -F: '{print $2}'`
     failed=false
 
     if [ ${num_inits} -ne ${NUM_INITIATORS} ]
@@ -99,6 +101,14 @@ verify_export() {
 	echo -e "\e[91mERROR\e[0m: Export group luns: Expected: ${NUM_LUNS}, Retrieved: ${num_luns}";
 	failed=true
     fi
+	
+    if [ ! -z $HLUS ]; then
+        if [ ${HLUS} != ${hlus} ]
+        then
+        echo -e "\e[91mERROR\e[0m: Export group hlus: Expected: ${HLUS}, Retrieved: ${hlus}";
+        failed=true
+        fi
+	fi
 
     if [ "${failed}" = "true" ]
 	then
@@ -113,6 +123,8 @@ verify_export() {
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 tools_file="${DIR}/tools.yml"
 tools_jar="${DIR}/ArrayTools.jar"
+
+
 
 if [ "$1" = "add_volume_to_mask" ]; then
     shift

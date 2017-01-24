@@ -478,29 +478,26 @@ public class ComputeUtils {
 
     public static List<URI> deactivateHostURIs(List<URI> hostURIs) {
         ArrayList<Task<HostRestRep>> tasks = new ArrayList<>();
-        // Temporary fix that makes the action/tasks of deactivating hosts
-        // sequential due the concurrent export group update issue which leaves
-        // the export group in an inconsistent state.
-        // TODO: need to revert this fix once the actual export group update issue is fixed.
         ExecutionUtils.currentContext().logInfo("computeutils.deactivatehost.inprogress", hostURIs);
         // monitor tasks
         List<URI> successfulHostIds = Lists.newArrayList();
         for (URI hostURI : hostURIs) {
             tasks.add(execute(new DeactivateHostNoWait(hostURI, true)));
-            while (!tasks.isEmpty()) {
-                waitAndRefresh(tasks);
-                for (Task<HostRestRep> successfulTask : getSuccessfulTasks(tasks)) {
-                    successfulHostIds.add(successfulTask.getResourceId());
-                    addAffectedResource(successfulTask.getResourceId());
-                    tasks.remove(successfulTask);
-                }
-                for (Task<HostRestRep> failedTask : getFailedTasks(tasks)) {
-                    ExecutionUtils.currentContext().logError("computeutils.deactivatehost.deactivate.failure",
-                            failedTask.getResource().getName(), failedTask.getMessage());
-                    tasks.remove(failedTask);
-                }
+        }
+        while (!tasks.isEmpty()) {
+            waitAndRefresh(tasks);
+            for (Task<HostRestRep> successfulTask : getSuccessfulTasks(tasks)) {
+                successfulHostIds.add(successfulTask.getResourceId());
+                addAffectedResource(successfulTask.getResourceId());
+                tasks.remove(successfulTask);
+            }
+            for (Task<HostRestRep> failedTask : getFailedTasks(tasks)) {
+                ExecutionUtils.currentContext().logError("computeutils.deactivatehost.deactivate.failure",
+                        failedTask.getResource().getName(), failedTask.getMessage());
+                tasks.remove(failedTask);
             }
         }
+        
         return successfulHostIds;
     }
 

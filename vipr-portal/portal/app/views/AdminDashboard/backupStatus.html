@@ -128,8 +128,8 @@
             <script>
                 console.info("isExternalServerConfigured:"+'${isExternalServerConfigured}');
                 if ('${isExternalServerConfigured}' == 'true') {
-                    var lastUploadTime = '${backupOperationStatus?.getLastUpload()?.getOperationTime()}';
-                    if (lastUploadTime != '') {
+                    if ('${backupOperationStatus?.getLastUpload()}' != '') {
+                        var lastUploadTime = '${backupOperationStatus?.getLastUpload()?.getOperationTime()}';
                         $('#lastUpload').append(formatLocalDateTime(new Date(lastUploadTime)));
                     } else {
                         $('#lastUpload').append("NA");

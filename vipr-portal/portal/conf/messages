@@ -2480,6 +2480,7 @@ remoteReplication.virtualArray.help=Select the target Virtual Array for this Rem
 remoteReplication.virtualArray.error.duplicate=Virtual Arrays can only be used in once in the list of Remote Replication
 remoteReplication.virtualPool=Virtual Pool
 remoteReplication.virtualPool.help=Optionally select a target Virtual Pool for this Remote Replications(defaults to same Virtual Pool as the source volume)
+remoteReplications.virtualArray.error.duplicate=Virtual Arrays can only be used in once in the list of Remote Replications.
 
 # Quota
 vpool.enableQuota=Enable Quota

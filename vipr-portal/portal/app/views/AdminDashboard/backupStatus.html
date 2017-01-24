@@ -24,9 +24,9 @@
                 if ('${backupOperationStatus?.getLastSuccessfulCreation()}' != '') {
                     var lastSuccessfulCreationTime = '${backupOperationStatus?.getLastSuccessfulCreation()?.getOperationTime()}';
                     var lastSuccessfulCreationDateTime = formatLocalDateTime(new Date(parseInt(lastSuccessfulCreationTime)));
-                    var lastSuccessfulBackupType = '${backupOperationStatus?.getLastSuccessfulCreation()?.getOperationMessage().getValue()}';
+                    var lastSuccessfulBackupType = '${backupOperationStatus?.getLastSuccessfulCreation()?.getOperationMessage()?.getValue()}';
                     var offset = new Date().getTimezoneOffset();
-                    $('#lastSuccessful').append((new Date(lastSuccessfulCreationDateTime + 'UTC')).toString()).append("(").append(lastSuccessfulBackupType).append(")");
+                    $('#lastSuccessful').append((new Date('lastSuccessfulCreationDateTime'+'UTC').toString()).toString()).append("(").append(lastSuccessfulBackupType).append(")");
                 } else {
                     $('#lastSuccessful').append("&{'adminDashboard.backupStatus.none'}");
                 }

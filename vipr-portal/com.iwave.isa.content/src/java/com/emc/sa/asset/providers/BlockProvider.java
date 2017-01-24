@@ -807,7 +807,6 @@ public class BlockProvider extends BaseAssetOptionsProvider {
             List<VolumeRestRep> volumes = getVolumesByIds(client, volIdSet);
             List<VolumeRestRep> filteredVols = new ArrayList<>();
             for (VolumeRestRep vol: volumes) {
-                log.info("===== {}, {}", vol.getHaVolumes().size(), isInConsistencyGroup(vol));
                 if (vol.getHaVolumes() != null && !vol.getHaVolumes().isEmpty() && !isInConsistencyGroup(vol)) {
                     filteredVols.add(vol);
                 }
@@ -831,7 +830,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     }
 
     private List<VolumeRestRep> getVolumesByIds(ViPRCoreClient client, Set<URI> vols) {
-        log.info("Getting {} volumens", vols.size());
+        log.info("Getting volumens: [{}]", vols.size());
         List<URI> volIdList = new ArrayList<>(vols);
 
         List<VolumeRestRep> volumes = new ArrayList<>();
@@ -848,7 +847,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
             }
         }
 
-        log.info("Got {} volumens", volumes.size());
+        log.info("Got volumens [{}]", volumes.size());
         return volumes;
     }
 
@@ -871,7 +870,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
             }
         }
 
-        log.info("Got {} snapshots.", snapshots.size());
+        log.info("Got snapshots: [{}]", snapshots.size());
         return snapshots;
     }
 

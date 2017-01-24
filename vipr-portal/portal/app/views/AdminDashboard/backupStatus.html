@@ -24,7 +24,7 @@
                 if ('${backupOperationStatus?.getLastSuccessfulCreation()}' != '') {
                     var lastSuccessfulCreationTime = '${backupOperationStatus?.getLastSuccessfulCreation()?.getOperationTime()}';
                     var lastSuccessfulBackupType = '${backupOperationStatus?.getLastSuccessfulCreation()?.getOperationMessage().getValue()}';
-                    $('#lastSuccessful').append(formatLocalDateTime(new Date(lastSuccessfulCreationTime))).append("(").append(lastSuccessfulBackupType).append(")");
+                    $('#lastSuccessful').append(formatLocalDateTime(new Date(parseInt(lastSuccessfulCreationTime)))).append("(").append(lastSuccessfulBackupType).append(")");
                 } else {
                     $('#lastSuccessful').append("&{'adminDashboard.backupStatus.none'}");
                 }
@@ -70,7 +70,7 @@
             <script>
                 if ('${backupOperationStatus?.getLastScheduledCreation()}' != '') {
                     var lastScheduledCreationTime = '${backupOperationStatus?.getLastScheduledCreation()?.getOperationTime()}';
-                    $('#lastScheduled').append(formatLocalDateTime(new Date(lastScheduledCreationTime)));
+                    $('#lastScheduled').append(formatLocalDateTime(new Date(parseInt(lastScheduledCreationTime))));
                 } else {
                     $('#lastScheduled').append("&{'adminDashboard.backupStatus.none'}");
                 }
@@ -89,7 +89,7 @@
                 if (${isScheduledBackupEnabled}) {
                     var nextScheduledCreationTime = '${backupOperationStatus?.getNextScheduledCreation()}';
                     if (nextScheduledCreationTime != '') {
-                        $('#nextScheduled').append(formatLocalDateTime(new Date(nextScheduledCreationTime)));
+                        $('#nextScheduled').append(formatLocalDateTime(new Date(parseInt(nextScheduledCreationTime))));
                     } else {
                         $('#nextScheduled').append("&{'adminDashboard.backupStatus.none'}");
                     }
@@ -128,7 +128,7 @@
                 if (${isExternalServerConfigured}) {
                     if ('${backupOperationStatus?.getLastUpload()}' != '') {
                         var lastUploadTime = '${backupOperationStatus?.getLastUpload()?.getOperationTime()}';
-                        $('#lastUpload').append(formatLocalDateTime(new Date(lastUploadTime)));
+                        $('#lastUpload').append(formatLocalDateTime(new Date(parseInt(lastUploadTime))));
                     } else {
                         $('#lastUpload').append("&{'adminDashboard.backupStatus.none'}");
                     }

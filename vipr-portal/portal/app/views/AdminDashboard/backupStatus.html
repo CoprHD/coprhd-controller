@@ -21,10 +21,10 @@
                 </td>
             </tr>
             <script>
-                if (backupOperationStatus?.getLastSuccessfulCreation()) {
+                if ('${backupOperationStatus?.getLastSuccessfulCreation()}' != '') {
                     var lastSuccessfulCreationTime = '${backupOperationStatus?.getLastSuccessfulCreation()?.getOperationTime()}';
                     var lastSuccessfulBackupType = '${backupOperationStatus?.getLastSuccessfulCreation()?.getOperationMessage().getValue()}';
-                    $('#lastSuccessful').append(formatLocalDateTime(new Date('${lastSuccessfulCreationTime}'))).append('${lastSuccessfulBackupType}');
+                    $('#lastSuccessful').append(formatLocalDateTime(new Date(lastSuccessfulCreationTime))).append(lastSuccessfulBackupType);
                 } else {
                     $('#lastSuccessful').append("NA");
                 }
@@ -45,9 +45,9 @@
                 </td>
             </tr>
             <script>
-                if (backupOperationStatus?.getLastManualCreation()) {
+                if (backupOperationStatus?.getLastManualCreation() != null) {
                     var lastManualCreationTime = '${backupOperationStatus?.getLastManualCreation()?.getOperationTime()}';
-                    $('#lastManual').append(formatLocalDateTime(new Date('${lastManualCreationTime}')));
+                    $('#lastManual').append(formatLocalDateTime(new Date(lastManualCreationTime)));
                 } else {
                     $('#lastManual').append("NA");
                 }
@@ -68,7 +68,7 @@
                 </td>
             </tr>
             <script>
-                if (backupOperationStatus?.getLastScheduledCreation() != null) {
+                if ('${backupOperationStatus?.getLastScheduledCreation()}' != '') {
                     var lastScheduledCreationTime = '${backupOperationStatus?.getLastScheduledCreation()?.getOperationTime()}';
                     $('#lastScheduled').append(formatLocalDateTime(new Date(lastScheduledCreationTime)));
                 } else {
@@ -86,10 +86,10 @@
                 <td class="time" id="nextScheduled"></td>
             </tr>
             <script>
-                if ('${isScheduledBackupEnabled}' != '') {
+                if (isScheduledBackupEnabled) {
                     var nextScheduledCreationTime = '${backupOperationStatus?.getNextScheduledCreation()}';
-                    if ('${nextScheduledCreationTime}' != '') {
-                        $('#nextScheduled').append(formatLocalDateTime(new Date('${nextScheduledCreationTime}')));
+                    if (nextScheduledCreationTime != '') {
+                        $('#nextScheduled').append(formatLocalDateTime(new Date(nextScheduledCreationTime)));
                     } else {
                         $('#nextScheduled').append("NA");
                     }
@@ -103,7 +103,7 @@
                 <td class="icon" height="25px" width="25px">
                 #{if isExternalServerConfigured}
                     #{if backupOperationStatus?.getLastUpload()}
-                        #{if backupOperationStatus?.getLastUpload()?.getOperationMessage()?.getValue() == 'success'}
+                        #{if backupOperationStatus?.getLastUpload()?.getOperationMessage()?.getValue() == "success"}
                             <span class="text-success">#{icon 'ok-sign'/}</span>
                         #{/if}
                         #{else}
@@ -127,8 +127,8 @@
             <script>
                 if (isExternalServerConfigured) {
                     var lastUploadTime = '${backupOperationStatus?.getLastUpload()?.getOperationTime()}';
-                    if (lastUploadTime) {
-                        $('#lastUpload').append(formatLocalDateTime(new Date('${lastUploadTime}')));
+                    if (lastUploadTime != '') {
+                        $('#lastUpload').append(formatLocalDateTime(new Date(lastUploadTime)));
                     } else {
                         $('#lastUpload').append("NA");
                     }

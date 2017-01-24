@@ -125,6 +125,7 @@ public class Backup {
     }
 
     public BackupOperationStatus getBackupOperationStatus() {
+        System.out.println("grace: Try to get backup operation status");
         BackupOperationStatus status = new BackupOperationStatus();
         try {
             System.out.println("grace: getting backup operation status");

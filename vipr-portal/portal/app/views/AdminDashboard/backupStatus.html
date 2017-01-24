@@ -21,7 +21,7 @@
                 </td>
             </tr>
             <script>
-                if ('${backupOperationStatus?.getLastSuccessfulCreation()}' != '') {
+                if (! ${backupOperationStatus?.getLastSuccessfulCreation()}) {
                     var lastSuccessfulCreationTime = '${backupOperationStatus?.getLastSuccessfulCreation()?.getOperationTime()}';
                     var lastSuccessfulBackupType = '${backupOperationStatus?.getLastSuccessfulCreation()?.getOperationMessage().getValue()}';
                     $('#lastSuccessful').append(formatLocalDateTime(new Date(lastSuccessfulCreationTime))).append("(").append(lastSuccessfulBackupType).append(")");
@@ -138,7 +138,7 @@
                         $('#lastUpload').append("NA");
                     }
                 } else {
-                    $('#externalServer').append("ftp not configured");
+                    $('#externalServer').append("&{'adminDashboard.lastUploadStatus.notConfigured'}");
                 }
             </script>
             </tbody>

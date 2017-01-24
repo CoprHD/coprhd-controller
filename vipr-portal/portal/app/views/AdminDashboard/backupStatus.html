@@ -45,8 +45,8 @@
                 </td>
             </tr>
             <script>
-                if ('${backupOperationStatus?.getLastManualCreation()}' != '') {
-                    var lastManualCreationTime = '${backupOperationStatus?.getLastManualCreation()?.getOperationTime()}';
+                if (${backupOperationStatus?.getLastManualCreation()} !== null) {
+                    var lastManualCreationTime = ${backupOperationStatus?.getLastManualCreation()?.getOperationTime()};
                     $('#lastManual').append(formatLocalDateTime(new Date(lastManualCreationTime)));
                 } else {
                     $('#lastManual').append("&{'adminDashboard.backupStatus.none'}");
@@ -86,9 +86,7 @@
                 <td class="time" id="nextScheduled"></td>
             </tr>
             <script>
-                console.info("isScheduledBackupEnabled:"+'${isScheduledBackupEnabled}');
                 if (${isScheduledBackupEnabled}) {
-                    console.info("isScheduledBackupEnabled");
                     var nextScheduledCreationTime = '${backupOperationStatus?.getNextScheduledCreation()}';
                     if (nextScheduledCreationTime != '') {
                         $('#nextScheduled').append(formatLocalDateTime(new Date(nextScheduledCreationTime)));
@@ -118,7 +116,7 @@
                 #{/else}
                 </td>
                 <td class="time">
-                    #{if !isExternalServerConfigured }
+                    #{if isExternalServerConfigured }
                     <a href="@{Backup.list()}" id="lastUpload"></a>
                     #{/if}
                     #{else}
@@ -127,14 +125,11 @@
                 </td>
             </tr>
             <script>
-                console.info("isExternalServerConfigured:"+'${isExternalServerConfigured}');
-                if (!${isExternalServerConfigured}) {
+                if (${isExternalServerConfigured}) {
                     if ('${backupOperationStatus?.getLastUpload()}' != '') {
-                        console.info("have upload");
                         var lastUploadTime = '${backupOperationStatus?.getLastUpload()?.getOperationTime()}';
                         $('#lastUpload').append(formatLocalDateTime(new Date(lastUploadTime)));
                     } else {
-                        console.info("have na");
                         $('#lastUpload').append("&{'adminDashboard.backupStatus.none'}");
                     }
                 } else {

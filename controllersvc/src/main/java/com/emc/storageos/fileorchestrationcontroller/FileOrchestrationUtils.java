@@ -367,6 +367,7 @@ public final class FileOrchestrationUtils {
     }
 
     /**
+     * Return list of policies to be applied at vpool
      * 
      * @param dbClient
      * @param vpool
@@ -401,6 +402,7 @@ public final class FileOrchestrationUtils {
     }
 
     /**
+     * Return list of policies to be applied at project
      * 
      * @param dbClient
      * @param project

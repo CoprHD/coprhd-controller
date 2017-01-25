@@ -81,6 +81,7 @@ public class PolicyStorageResource extends DataObject {
 
     public void setResourcePath(String resourcePath) {
         this.resourcePath = resourcePath;
+        setChanged("resourcePath");
     }
 
     @AlternateId("AltIdIndex")

@@ -1651,19 +1651,21 @@ setup() {
 	    VMAX_SMIS_IP=${VMAX2_DUTEST_SMIS_IP}
 	fi
 
-        echo "SYMAPI_SERVER - TCPIP  $VMAX_SMIS_IP - 2707 ANY" >> /usr/emc/API/symapi/config/netcnfg
-        echo "Added entry into /usr/emc/API/symapi/config/netcnfg"
+	if [ "${SIM}" != "1" ]; then
+            echo "SYMAPI_SERVER - TCPIP  $VMAX_SMIS_IP - 2707 ANY" >> /usr/emc/API/symapi/config/netcnfg
+            echo "Added entry into /usr/emc/API/symapi/config/netcnfg"
 
-        echo "Verifying SYMAPI connection to $VMAX_SMIS_IP ..."
-        symapi_verify="/opt/emc/SYMCLI/bin/symcfg list"
-        echo $symapi_verify
-        result=`$symapi_verify`
-        if [ $? -ne 0 ]; then
-            echo "SYMAPI verification failed: $result"
-            echo "Check the setup on $VMAX_SMIS_IP. See if the SYAMPI service is running"
-            exit 1
-        fi
-        echo $result
+            echo "Verifying SYMAPI connection to $VMAX_SMIS_IP ..."
+            symapi_verify="/opt/emc/SYMCLI/bin/symcfg list"
+            echo $symapi_verify
+            result=`$symapi_verify`
+            if [ $? -ne 0 ]; then
+		echo "SYMAPI verification failed: $result"
+		echo "Check the setup on $VMAX_SMIS_IP. See if the SYAMPI service is running"
+		exit 1
+            fi
+            echo $result
+	fi
     fi
 
     if [ "${SIM}" != "1" ]; then
@@ -1679,8 +1681,8 @@ setup() {
                 if [ $isNetworkDiscovered -eq 0 ]; then
                     echo $result
                     exit 1
-        fi
-    fi
+		fi
+	    fi
 
             isNetworkDiscovered=$(transportzone listall | (grep ${SRDF_VMAXA_VSAN} || echo ''))
 	    if [ "$isNetworkDiscovered" == '' ]; then
@@ -1690,6 +1692,15 @@ setup() {
 	        sleep 30
 	    fi
         fi
+    else
+	FABRIC_SIMULATOR=fabric-sim
+	if [ "${SS}" = "vplex" ]; then
+	    secho "Configuring MDS/Cisco Simulator using SSH on: $VPLEX_SIM_MDS_IP"
+	    run networksystem create $FABRIC_SIMULATOR mds --devip $VPLEX_SIM_MDS_IP --devport 22 --username $VPLEX_SIM_MDS_USER --password $VPLEX_SIM_MDS_PW
+	else
+	    secho "Configuring MDS/Cisco Simulator using SSH on: $SIMULATOR_CISCO_MDS"
+	    run networksystem create $FABRIC_SIMULATOR mds --devip $SIMULATOR_CISCO_MDS --devport 22 --username $SIMULATOR_CISCO_MDS_USER --password $SIMULATOR_CISCO_MDS_PW
+	fi
     fi
 
     ${SS}_setup

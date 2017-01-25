@@ -385,7 +385,7 @@ test_VPLEX_ORCH_5(){
     verify_export ${expname}1 ${HOST2} 2 1 1
     
     #Expecting failure here due to consistent lun violation
-    fail runcmd export_group update ${PROJECT}/${expname}1 --addHosts "${HOST2}"
+    runcmd fail export_group update ${PROJECT}/${expname}1 --addHosts "${HOST2}"
     
     verify_export ${expname}1 ${HOST1} 2 1 1
     verify_export ${expname}1 ${HOST2} 2 1 1

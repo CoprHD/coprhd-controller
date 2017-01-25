@@ -940,25 +940,38 @@ public class Volume extends BlockObject implements ProjectResource {
      * @return
      */
     public static Volume fetchVplexVolume(DbClient dbClient, Volume volume) {
-        Volume vplexVolume = null;
+        URI vplexVolumeURI = fetchVplexVolume(dbClient, volume.getId());
+        if (vplexVolumeURI != null) {
+            return dbClient.queryObject(Volume.class, vplexVolumeURI);
+        }
+        return null;
+    }
+
+    /**
+     * Given a volume, this is an utility method that returns the VPLEX virtual volume ID that this volume is associated
+     * with. It is a more efficient implementation comparing with the other fetchVplexVOlume. Sometimes we need volume URI only
+     * 
+     * @param dbClient
+     * @param volumeUri 
+     * @return
+     */
+    public static URI fetchVplexVolume(DbClient dbClient, URI volumeUri) {
         URIQueryResultList queryResults = new URIQueryResultList();
         dbClient.queryByConstraint(AlternateIdConstraint.Factory
-                .getVolumeByAssociatedVolumesConstraint(volume.getId().toString()),
+                .getVolumeByAssociatedVolumesConstraint(volumeUri.toString()),
                 queryResults);
 
         if (queryResults.iterator().hasNext()) {
             while (queryResults.iterator().hasNext()) {
                 URI vplexVolumeURI = queryResults.iterator().next();
                 if (vplexVolumeURI != null) {
-                    vplexVolume = dbClient.queryObject(Volume.class, vplexVolumeURI);
-                    break;
+                    return vplexVolumeURI;
                 }
             }
         }
-
-        return vplexVolume;
+        return null;
     }
-
+    
     /**
      * Check if the volume is a VPLEX volume.
      *

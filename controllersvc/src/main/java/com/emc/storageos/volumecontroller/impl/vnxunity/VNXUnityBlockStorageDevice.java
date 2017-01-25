@@ -786,6 +786,11 @@ public class VNXUnityBlockStorageDevice extends VNXUnityOperations
     }
 
     @Override
+    public Set<Integer> findHLUsForInitiators(StorageSystem storage, List<String> initiatorNames, boolean mustHaveAllPorts) {
+        return exportMaskOperationsHelper.findHLUsForInitiators(storage, initiatorNames, mustHaveAllPorts);
+    }
+
+    @Override
     public ExportMask refreshExportMask(StorageSystem storage, ExportMask mask) throws DeviceControllerException {
         // TODO Auto-generated method stub
         return null;

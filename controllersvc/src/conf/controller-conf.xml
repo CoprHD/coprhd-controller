@@ -554,7 +554,11 @@
         <property name="creatorFactory" ref="vnxCIMObjectPathFactory"></property>
         <property name="queryFactory" ref="vnxCIMObjectPathQueryFactory"></property>
         <property name="defaultFactory" value="creator"></property> <!-- or "query" -->
-        <!-- No query methods for VNX -->
+        <property name="queryMethods"> <!-- or "creatorMethods" -->
+            <set>
+                <value>getInitiatorToInitiatorPath</value>
+            </set>
+        </property>
     </bean>
 
     <!--
@@ -615,7 +619,7 @@
     <bean id="vnxExportMaskOperationsHelper" class="com.emc.storageos.volumecontroller.impl.smis.vnx.VnxExportOperations">
         <property name="smisCommandHelper" ref="vnxSmisCommandHelper"/>
         <property name="dbClient" ref="dbclient"/>
-        <property name="cimObjectPathFactory" ref="vnxCIMObjectPathFactory"/>
+        <property name="cimObjectPathFactory" ref="vnxCIMObjectPathFactoryAdapter"/>
         <property name="validator" ref="validatorFactory"/>
     </bean>
     
@@ -629,12 +633,14 @@
         <property name="dbClient" ref="dbclient"/>
         <property name="vnxeApiClientFactory" ref="vnxeApiClientFactory"/>
         <property name="workflowService" ref="workflowService" />
+        <property name="validator" ref="validatorFactory"/>
     </bean>
     
     <bean id="vnxunityExportMaskOperationsHelper" class="com.emc.storageos.volumecontroller.impl.vnxunity.VNXUnityExportOperations">
         <property name="dbClient" ref="dbclient"/>
         <property name="vnxeApiClientFactory" ref="vnxeApiClientFactory"/>
         <property name="workflowService" ref="workflowService" />
+        <property name="validator" ref="validatorFactory"/>
     </bean>
 
     <bean id="blockcontroller" class="com.emc.storageos.volumecontroller.impl.BlockControllerImpl">
@@ -799,7 +805,7 @@
         <property name="networkScheduler" ref="networkScheduler"/>
         <property name="exportWorkflowUtils" ref="exportWorkflowUtils" />
         <property name="vplexApiLockManager" ref="vplexlockmgr" />
-	    <property name="blockStorageScheduler" ref="blockscheduler"/>
+	    <property name="blockScheduler" ref="blockscheduler"/>
 	    <property name="coordinator" ref="coordinator"/>
 	    <property name="consistencyGroupManagers">
             <map>
@@ -1123,7 +1129,11 @@
     
     <bean id="versionChecker" class="com.emc.storageos.util.VersionChecker">
         <property name="coordinator" ref="coordinator"/>
-    </bean>    
+    </bean>
+
+    <bean id="exportUtils" class="com.emc.storageos.util.ExportUtils">
+        <property name="coordinator" ref="coordinator"/>
+    </bean>
 
     <bean id="workflowScrubber" class="com.emc.storageos.workflow.WorkflowScrubberExecutor">
         <property name="dbClient" ref="dbclient"/>
@@ -1718,6 +1728,12 @@
         <property name="cimPath" ref="vmaxCIMObjectPathFactoryAdapter"/>
     </bean>
 
+    <bean id="vnxeValidatorFactory" class="com.emc.storageos.volumecontroller.impl.validators.vnxe.VNXeSystemValidatorFactory">
+        <property name="dbClient" ref="dbclient"/>
+        <property name="vnxeApiClientFactory" ref="vnxeApiClientFactory"/>
+        <property name="config" ref="validatorConfig"/>
+    </bean>
+
     <bean id="xtremioValidatorFactory" class="com.emc.storageos.volumecontroller.impl.validators.xtremio.XtremioSystemValidatorFactory">
         <property name="dbClient" ref="dbclient"/>
         <property name="config" ref="validatorConfig"/>
@@ -1742,6 +1758,8 @@
             <map>
                 <entry key="vmax" value-ref="vmaxValidatorFactory"/>
                 <entry key="xtremio" value-ref="xtremioValidatorFactory"/>
+                <entry key="vnxe" value-ref="vnxeValidatorFactory"/>
+                <entry key="unity" value-ref="vnxeValidatorFactory"/>
                 <entry key="vplex" value-ref="vplexValidatorFactory"/>
                 <entry key="vnxblock" value-ref="vnxValidatorFactory"/>
             </map>

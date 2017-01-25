@@ -839,8 +839,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         for (int i = 0; i < volIdList.size(); i++) {
             ids.add(volIdList.get(i));
             if ( (i+1)%DEFAULT_BULK_SIZE == 0 || i+1 == volIdList.size() ) {
-                BulkIdParam bulk = new BulkIdParam(ids);
-                List<VolumeRestRep> volBatch = client.blockVolumes().getBulkResources(bulk);
+                List<VolumeRestRep> volBatch = client.blockVolumes().getByIds(ids);
                 volumes.addAll(volBatch);
                 log.info("Got a batch of volumes");
                 ids.clear();
@@ -862,8 +861,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
             ids.add(ref.getId());
 
             if ( ids.size() == DEFAULT_BULK_SIZE || i+1 == snapshotRefs.size() ) {
-                BulkIdParam bulk = new BulkIdParam(ids);
-                List<BlockSnapshotRestRep> snBatch = client.blockSnapshots().getBulkResources(bulk);
+                List<BlockSnapshotRestRep> snBatch = client.blockSnapshots().getByIds(ids);
                 snapshots.addAll(snBatch);
                 log.info("Got a batch of snapshots");
                 ids.clear();

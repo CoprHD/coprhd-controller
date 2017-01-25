@@ -50,7 +50,7 @@ public class BlockSnapshots extends ProjectResources<BlockSnapshotRestRep> imple
     }
 
     @Override
-    public List<BlockSnapshotRestRep> getBulkResources(BulkIdParam input) {
+    protected List<BlockSnapshotRestRep> getBulkResources(BulkIdParam input) {
         BlockSnapshotBulkRep response = client.post(BlockSnapshotBulkRep.class, input, getBulkUrl());
         return defaultList(response.getBlockSnapshots());
     }

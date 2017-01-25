@@ -217,7 +217,7 @@ public class OrchestrationService extends ViPRService {
             return;
         }
 
-        final List<Input> input = step.getInput().get(OrchestrationServiceConstants.INPUT_PARAMS).getInputList();
+        final List<Input> input = step.getInput().get(OrchestrationServiceConstants.INPUT_PARAMS).getInputGroup();
 
         if (input == null) {
             return;

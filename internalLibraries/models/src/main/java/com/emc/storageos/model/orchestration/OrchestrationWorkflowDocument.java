@@ -65,14 +65,16 @@ public class OrchestrationWorkflowDocument {
 
     public static class InputGroup {
 
-        @XmlElementWrapper(name = "input_list")
-        private List<Input> inputList;
+        private List<Input> inputGroup;
 
-        public void setInputList(List<Input> inputList) {
-            this.inputList = inputList;
+        public void setInputGroup(List<Input> inputGroup) {
+            this.inputGroup = inputGroup;
         }
-        public List<Input> getInputList() {
-            return inputList;
+
+        @XmlElementWrapper(name = "inputGroup")
+        @XmlElement(name="input")
+        public List<Input> getInputGroup() {
+            return inputGroup;
         }
     }
 
@@ -277,7 +279,7 @@ public class OrchestrationWorkflowDocument {
             this.type = type;
         }
 
-        @XmlElementWrapper(name = "input")
+        @XmlElementWrapper(name = "inputGroups")
         public Map<String, InputGroup> getInput() {
             return input;
         }

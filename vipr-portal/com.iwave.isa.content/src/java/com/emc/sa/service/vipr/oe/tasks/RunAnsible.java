@@ -178,14 +178,14 @@ public class RunAnsible  extends ViPRExecutionTask<OrchestrationTaskResult> {
 	}
         
         final AnsibleCommandLine cmd = new AnsibleCommandLine(
-                getAnsibleConnAndOptions(OrchestrationServiceConstants.ANSIBLE_BIN, inputType.get(OrchestrationServiceConstants.ANSIBLE_OPTIONS).getInputList()),
-                getAnsibleConnAndOptions(OrchestrationServiceConstants.ANSIBLE_PLAYBOOK, inputType.get(OrchestrationServiceConstants.ANSIBLE_OPTIONS).getInputList()));
+                getAnsibleConnAndOptions(OrchestrationServiceConstants.ANSIBLE_BIN, inputType.get(OrchestrationServiceConstants.ANSIBLE_OPTIONS).getInputGroup()),
+                getAnsibleConnAndOptions(OrchestrationServiceConstants.ANSIBLE_PLAYBOOK, inputType.get(OrchestrationServiceConstants.ANSIBLE_OPTIONS).getInputGroup()));
         final String[] cmds = cmd.setSsh(OrchestrationServiceConstants.SHELL_LOCAL_BIN)
-                .setUserAndIp(getAnsibleConnAndOptions(OrchestrationServiceConstants.REMOTE_USER, inputType.get(OrchestrationServiceConstants.CONNECTION_DETAILS).getInputList()),
-                              getAnsibleConnAndOptions(OrchestrationServiceConstants.REMOTE_NODE, inputType.get(OrchestrationServiceConstants.CONNECTION_DETAILS).getInputList()))
-                .setHostFile(getAnsibleConnAndOptions(OrchestrationServiceConstants.ANSIBLE_HOST_FILE, inputType.get(OrchestrationServiceConstants.ANSIBLE_OPTIONS).getInputList()))
-                .setUser(getAnsibleConnAndOptions(OrchestrationServiceConstants.ANSIBLE_USER, inputType.get(OrchestrationServiceConstants.ANSIBLE_OPTIONS).getInputList()))
-                .setCommandLine(getAnsibleConnAndOptions(OrchestrationServiceConstants.ANSIBLE_COMMAND_LINE, inputType.get(OrchestrationServiceConstants.ANSIBLE_OPTIONS).getInputList()))
+                .setUserAndIp(getAnsibleConnAndOptions(OrchestrationServiceConstants.REMOTE_USER, inputType.get(OrchestrationServiceConstants.CONNECTION_DETAILS).getInputGroup()),
+                              getAnsibleConnAndOptions(OrchestrationServiceConstants.REMOTE_NODE, inputType.get(OrchestrationServiceConstants.CONNECTION_DETAILS).getInputGroup()))
+                .setHostFile(getAnsibleConnAndOptions(OrchestrationServiceConstants.ANSIBLE_HOST_FILE, inputType.get(OrchestrationServiceConstants.ANSIBLE_OPTIONS).getInputGroup()))
+                .setUser(getAnsibleConnAndOptions(OrchestrationServiceConstants.ANSIBLE_USER, inputType.get(OrchestrationServiceConstants.ANSIBLE_OPTIONS).getInputGroup()))
+                .setCommandLine(getAnsibleConnAndOptions(OrchestrationServiceConstants.ANSIBLE_COMMAND_LINE, inputType.get(OrchestrationServiceConstants.ANSIBLE_OPTIONS).getInputGroup()))
                 .setExtraVars(extraVars)
                 .build();
 

@@ -195,6 +195,7 @@ public class RemoteReplicationSetService extends TaskResourceService {
      */
     @GET
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/storage-type/sets")
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR })
     public RemoteReplicationSetList getRemoteReplicationSetsForStorageType(@QueryParam("storageType") URI storageTypeURI) {
         _log.info("Called: getRemoteReplicationSetsForStorageType() for type {}", storageTypeURI);

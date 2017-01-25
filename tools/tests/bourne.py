@@ -8385,7 +8385,7 @@ class Bourne:
     def catalog_order(self, servicename, tenant, parameters):
         tenant = self.__tenant_id_from_label(tenant)
         self.catalog_upgrade(tenant)
-        service = self.catalog_search(servicename, tenant) 
+        service = self.catalog_search(servicename, tenant)
         parms = { 'tenantId': tenant,
                   'catalog_service': service['id']
                 }
@@ -9494,7 +9494,6 @@ class Bourne:
             return name
 
         computevpools = self.computevirtualpool_list()
-        print computevpools
         for cvp in computevpools['computevirtualpool']:
             #computeimage = self.computeimage_show(image['id'])
             if (cvp['name'] == name):

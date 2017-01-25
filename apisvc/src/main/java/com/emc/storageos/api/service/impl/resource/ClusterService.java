@@ -579,7 +579,7 @@ public class ClusterService extends TaskResourceService {
         // check the user permissions
         verifyAuthorizedInTenantOrg(cluster.getTenant(), getUserFromContext());
         HostList list = new HostList();
-        list.setHosts(map(ResourceTypeEnum.HOST, getVblockHostsFromCluster(id, "cluster")));
+        list.setHosts(map(ResourceTypeEnum.HOST, getVblockHostsFromCluster(id)));
         return list;
     }
 
@@ -592,13 +592,12 @@ public class ClusterService extends TaskResourceService {
      *            name in {@link NamedRelatedResourceRep}. Note this field should be a required
      *            field because, objects for which this field is null will not be returned by
      *            this function.
-     * @param linkField the name of the field in the child class that stored the parent id
+     *
      * @return a list of children of tenant for the given class
      */
-    private <T extends DataObject> List<NamedElementQueryResultList.NamedElement> getVblockHostsFromCluster(URI id,
-            String linkField) {
+    private <T extends DataObject> List<NamedElementQueryResultList.NamedElement> getVblockHostsFromCluster(URI id) {
         List<Host> hosts = CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient, Host.class,
-                ContainmentConstraint.Factory.getContainedObjectsConstraint(id, Host.class, linkField));
+                ContainmentConstraint.Factory.getContainedObjectsConstraint(id, Host.class, "Cluster"));
         if (hosts != null && !hosts.isEmpty()) {
             List<NamedElementQueryResultList.NamedElement> elements = new ArrayList<NamedElementQueryResultList.NamedElement>(
                     hosts.size());

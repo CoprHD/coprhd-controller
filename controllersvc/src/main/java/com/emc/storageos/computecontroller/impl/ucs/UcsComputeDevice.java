@@ -883,33 +883,35 @@ public class UcsComputeDevice implements ComputeDevice {
 
             computeElement = _dbClient.queryObject(ComputeElement.class, host.getComputeElement());
 
-            LOGGER.info("Binding Service Profile : " + spDn + " to blade : " + computeElement.getLabel());
+            if (computeElement != null) {
+                LOGGER.info("Binding Service Profile : " + spDn + " to blade : " + computeElement.getLabel());
+                serviceProfile = ucsmService.bindSPToComputeElement(getUcsmURL(computeSystem).toString(),
+                        computeSystem.getUsername(), computeSystem.getPassword(), spDn, computeElement.getLabel());
 
-            serviceProfile = ucsmService.bindSPToComputeElement(getUcsmURL(computeSystem).toString(),
-                    computeSystem.getUsername(), computeSystem.getPassword(), spDn, computeElement.getLabel());
+                serviceProfile = pullAndPollManagedObject(getUcsmURL(computeSystem).toString(),
+                        computeSystem.getUsername(), computeSystem.getPassword(), spDn, LsServer.class);
 
-            serviceProfile = pullAndPollManagedObject(getUcsmURL(computeSystem).toString(),
-                    computeSystem.getUsername(), computeSystem.getPassword(), spDn, LsServer.class);
+                // Test mechanism to invoke a failure. No-op on production
+                // systems.
+                InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_063);
+                if (serviceProfile == null || ASSOC_STATE_UNASSOCIATED.equals(serviceProfile.getAssocState())) {
+                    LOGGER.info("SP {} AssocState is marked unassociated. Bind ServiceProfileToBlade failed", spDn);
+                    throw new Exception(BIND_SERVICE_PROFILE_TO_BLADE_STEP + " failed.  ServiceProfile state is "
+                            + serviceProfile == null ? "null" : serviceProfile.getAssocState());
+                }
 
-            // Test mechanism to invoke a failure. No-op on production systems.
-            InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_063);
-            if (serviceProfile == null || ASSOC_STATE_UNASSOCIATED.equals(serviceProfile.getAssocState())) {
-                LOGGER.info("SP {} AssocState is marked unassociated. Bind ServiceProfileToBlade failed", spDn);
-                throw new Exception(BIND_SERVICE_PROFILE_TO_BLADE_STEP + " failed.");
-            }
-
-            // Test mechanism to invoke a failure. No-op on production systems.
-            InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_064);
-            if (computeElement != null && serviceProfile != null) {
+                // Test mechanism to invoke a failure. No-op on production
+                // systems.
+                InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_064);
                 setComputeElementAttrFromBoundLsServer(_dbClient, computeElement, serviceProfile, host,
                         computeSystem.getSystemType(), false);
+                LOGGER.info("Done binding Service Profile : " + spDn + " to blade : " + computeElement.getLabel());
+
+                WorkflowStepCompleter.stepSucceded(stepId);
             } else {
-                LOGGER.info("Unable to associate computeElement and LsServer/serviceProfile attribute.  ComputeElement or serviceProfile is null.");
+                LOGGER.info("Unable to associate computeElement and LsServer/serviceProfile attribute.  ComputeElement is null.");
                 throw new Exception(BIND_SERVICE_PROFILE_TO_BLADE_STEP + " failed.");
             }
-            LOGGER.info("Done binding Service Profile : " + spDn + " to blade : " + computeElement.getLabel());
-
-            WorkflowStepCompleter.stepSucceded(stepId);
         } catch (Exception e) {
             LOGGER.error("Step : " + BIND_SERVICE_PROFILE_TO_BLADE_STEP + " Failed...", e);
             WorkflowStepCompleter.stepFailed(

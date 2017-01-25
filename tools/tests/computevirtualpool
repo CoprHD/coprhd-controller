@@ -14,7 +14,6 @@ from bourne import *
 #----------------------------------------------------------------------
 def computevirtualpool_create(args):
     bourne.connect(args.ip)
-    print args
     task = bourne.computevirtualpool_create(args.name, args.computesysname, args.systemtype, args.usematchedpools, args.varray, args.template)
     print task
 
@@ -24,16 +23,13 @@ def computevirtualpool_query(args):
 
 def computevirtualpool_assign(args):
     bourne.connect(args.ip)
-    print args
     #Get compute vpool id 
     cvpURI = bourne.computevirtualpool_query(args.name)
-    print cvpURI
     #get compute element id
     addceIDs = []
     cenames = args.celist.split(",")
     for ce in cenames:
         computele_uri = bourne.computesystem_get_computeelement_id(args.computesysname, ce)
-        print computele_uri
         addceIDs.append(computele_uri)
     #get
     add_vpool = {'compute_element': addceIDs}

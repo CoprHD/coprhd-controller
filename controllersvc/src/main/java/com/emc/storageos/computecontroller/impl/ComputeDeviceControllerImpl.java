@@ -846,7 +846,7 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
             if (deactivateBootVolume && host.getBootVolumeId() != null) {
                 waitFor = workflow.createStep(DEACTIVATION_COMPUTE_SYSTEM_BOOT_VOLUME,
                         "Delete the boot volume for the host", waitFor, cs.getId(), cs.getSystemType(),
-                        this.getClass(), new Workflow.Method("deleteBlockVolume", hostId),
+                        this.getClass(), new Workflow.Method("deleteBlockBootVolume", hostId),
                         new Workflow.Method(ROLLBACK_NOTHING_METHOD), null);
             } else if (!deactivateBootVolume) {
                 log.info("flag deactivateBootVolume set to false");
@@ -1280,23 +1280,27 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
             ComputeSystem cs = _dbClient.queryObject(ComputeSystem.class, csId);
 
             host = _dbClient.queryObject(Host.class, hostId);
-
-            if (NullColumnValueGetter.isNullURI(host.getComputeElement())) {
-                // NO-OP
-                log.info("Host " + host.getLabel() + " has no computeElement association");
-                WorkflowStepCompleter.stepSucceded(stepId);
-                return;
-            } else {
-                ComputeElement computeElement = _dbClient.queryObject(ComputeElement.class, host.getComputeElement());
-                if (NullColumnValueGetter.isNullValue(computeElement.getDn())) {
-                    log.info("Host " + host.getLabel() + " has computeElement " + host.getComputeElement()
-                    + " with label " + computeElement.getLabel() + " and Dn " + computeElement.getDn());
+            if (null != host) {
+                if (NullColumnValueGetter.isNullURI(host.getComputeElement())) {
+                    // NO-OP
+                    log.info("Host " + host.getLabel() + " has no computeElement association");
                     WorkflowStepCompleter.stepSucceded(stepId);
                     return;
+                } else {
+                    ComputeElement computeElement = _dbClient.queryObject(ComputeElement.class,
+                            host.getComputeElement());
+                    if (NullColumnValueGetter.isNullValue(computeElement.getDn())) {
+                        log.info("Host " + host.getLabel() + " has computeElement " + host.getComputeElement()
+                        + " with label " + computeElement.getLabel() + " and Dn " + computeElement.getDn());
+                        WorkflowStepCompleter.stepSucceded(stepId);
+                        return;
+                    }
                 }
-            }
 
-            getDevice(cs.getSystemType()).deactivateHost(cs, host);
+                getDevice(cs.getSystemType()).deactivateHost(cs, host);
+            }else {
+                throw new RuntimeException("Host null for uri "+ hostId);
+            }
 
         } catch (Exception exception) {
             ServiceCoded serviceCoded = ComputeSystemControllerException.exceptions

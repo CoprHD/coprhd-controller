@@ -45,6 +45,7 @@ import com.emc.storageos.api.service.impl.placement.VirtualPoolUtil;
 import com.emc.storageos.api.service.impl.resource.utils.CapacityUtils;
 import com.emc.storageos.api.service.impl.resource.utils.CifsShareUtility;
 import com.emc.storageos.api.service.impl.resource.utils.ExportVerificationUtility;
+import com.emc.storageos.api.service.impl.resource.utils.FilePolicyServiceUtils;
 import com.emc.storageos.api.service.impl.resource.utils.FileSystemReplicationUtils;
 import com.emc.storageos.api.service.impl.resource.utils.NfsACLUtility;
 import com.emc.storageos.api.service.impl.resource.utils.VirtualPoolChangeAnalyzer;
@@ -392,7 +393,12 @@ public class FileService extends TaskResourceService {
             capabilities.put(VirtualPoolCapabilityValuesWrapper.THIN_PROVISIONING, Boolean.TRUE);
         }
 
-        setProtectionCapWrapper(cos, capabilities);
+        StringBuilder errorMsg = new StringBuilder();
+        if (cos.getFileReplicationSupported()
+                && !FilePolicyServiceUtils.updatePolicyCapabilities(_dbClient, neighborhood, cos, project, null, capabilities, errorMsg)) {
+            _log.error("File system can not be created, ", errorMsg.toString());
+            throw APIException.badRequests.unableToProcessRequest(errorMsg.toString());
+        }
 
         ArgValidator.checkFieldMaximum(param.getSoftLimit(), 100, "softLimit");
         ArgValidator.checkFieldMaximum(param.getNotificationLimit(), 100, "notificationLimit");
@@ -414,7 +420,7 @@ public class FileService extends TaskResourceService {
         String suggestedNativeFsId = param.getFsId() == null ? "" : param.getFsId();
 
         // Find the implementation that services this vpool and fileshare
-        FileServiceApi fileServiceApi = getFileServiceImpl(cos, _dbClient);
+        FileServiceApi fileServiceApi = getFileServiceImpl(capabilities, _dbClient);
         TaskList taskList = createFileTaskList(param, project, tenant, neighborhood, cos, flags, task);
 
         // call thread that does the work.
@@ -2620,7 +2626,13 @@ public class FileService extends TaskResourceService {
         capabilities.put(VirtualPoolCapabilityValuesWrapper.EXISTING_SOURCE_FILE_SYSTEM, fs);
         capabilities.put(VirtualPoolCapabilityValuesWrapper.SOURCE_STORAGE_SYSTEM, device);
 
-        FileServiceApi fileServiceApi = getFileServiceImpl(newVpool, _dbClient);
+        StringBuilder errorMsg = new StringBuilder();
+        if (!FilePolicyServiceUtils.updatePolicyCapabilities(_dbClient, varray, newVpool, project, null, capabilities, errorMsg)) {
+            _log.error("File system can not be created, ", errorMsg.toString());
+            throw APIException.badRequests.unableToProcessRequest(errorMsg.toString());
+        }
+
+        FileServiceApi fileServiceApi = getFileServiceImpl(capabilities, _dbClient);
 
         try {
             // Call out placementManager to get the recommendation for placement.
@@ -2722,6 +2734,12 @@ public class FileService extends TaskResourceService {
         capabilities.put(VirtualPoolCapabilityValuesWrapper.EXISTING_SOURCE_FILE_SYSTEM, fs);
         capabilities.put(VirtualPoolCapabilityValuesWrapper.SOURCE_STORAGE_SYSTEM, device);
 
+        StringBuilder errorMsg = new StringBuilder();
+        if (!FilePolicyServiceUtils.updatePolicyCapabilities(_dbClient, varray, currentVpool, project, null, capabilities, errorMsg)) {
+            _log.error("File system can not be created, ", errorMsg.toString());
+            throw APIException.badRequests.unableToProcessRequest(errorMsg.toString());
+        }
+
         if (param.getCopyName() != null && !param.getCopyName().isEmpty()) {
             // No need to generate any name -- Since the requirement is to use the customizing label we should use the
             // same.
@@ -2732,7 +2750,7 @@ public class FileService extends TaskResourceService {
 
         }
 
-        FileServiceApi fileServiceApi = getFileShareServiceImpl(fs, _dbClient);
+        FileServiceApi fileServiceApi = getFileShareServiceImpl(capabilities, _dbClient);
 
         try {
             // Call out placementManager to get the recommendation for placement.
@@ -3366,9 +3384,30 @@ public class FileService extends TaskResourceService {
      *            db client
      * @return file service implementation object
      */
+    public static FileServiceApi getFileShareServiceImpl(VirtualPoolCapabilityValuesWrapper capabilities, DbClient dbClient) {
+        return getFileServiceImpl(capabilities, dbClient);
+    }
+
+    /**
+     * Returns the bean responsible for servicing the request
+     * 
+     * @param fileShare
+     *            fileshare
+     * @param dbClient
+     *            db client
+     * @return file service implementation object
+     */
     public static FileServiceApi getFileShareServiceImpl(FileShare fileShare, DbClient dbClient) {
+
         VirtualPool vPool = dbClient.queryObject(VirtualPool.class, fileShare.getVirtualPool());
-        return getFileServiceImpl(vPool, dbClient);
+        Project project = dbClient.queryObject(Project.class, fileShare.getProject().getURI());
+        VirtualPoolCapabilityValuesWrapper capabilities = new VirtualPoolCapabilityValuesWrapper();
+        capabilities.put(VirtualPoolCapabilityValuesWrapper.FILE_REPLICATION_TYPE, VirtualPool.FileReplicationType.NONE.name());
+        StringBuilder errorMsg = new StringBuilder();
+        if (vPool.getFileReplicationSupported()) {
+            FilePolicyServiceUtils.updateReplicationTypeCapabilities(dbClient, vPool, project, fileShare, capabilities, errorMsg);
+        }
+        return getFileServiceImpl(capabilities, dbClient);
     }
 
     /**
@@ -3380,13 +3419,13 @@ public class FileService extends TaskResourceService {
      *            db client
      * @return file service implementation object
      */
-    private static FileServiceApi getFileServiceImpl(VirtualPool vpool, DbClient dbClient) {
+    private static FileServiceApi getFileServiceImpl(VirtualPoolCapabilityValuesWrapper capabilities, DbClient dbClient) {
         // Mutually exclusive logic that selects an implementation of the file service
 
-        if (VirtualPool.vPoolSpecifiesFileReplication(vpool)) {
-            if (vpool.getFileReplicationType().equals(VirtualPool.FileReplicationType.LOCAL.name())) {
+        if (FilePolicyServiceUtils.vPoolSpecifiesFileReplication(capabilities)) {
+            if (capabilities.getFileReplicationType().equals(VirtualPool.FileReplicationType.LOCAL.name())) {
                 return getFileServiceApis("localmirror");
-            } else if (vpool.getFileReplicationType().equals(VirtualPool.FileReplicationType.REMOTE.name())) {
+            } else if (capabilities.getFileReplicationType().equals(VirtualPool.FileReplicationType.REMOTE.name())) {
                 return getFileServiceApis("remotemirror");
             }
         }
@@ -3403,10 +3442,10 @@ public class FileService extends TaskResourceService {
      *            db client
      * @return file service implementation object
      */
-    private static FileServiceApi getFileServiceImpl(VirtualPool vpool, FilePolicy filePolicy) {
+    private static FileServiceApi getFileServiceImpl(VirtualPoolCapabilityValuesWrapper capabilities, FilePolicy filePolicy) {
         // Mutually exclusive logic that selects an implementation of the file service
 
-        if (VirtualPool.vPoolSpecifiesFileReplication(vpool)) {
+        if (FilePolicyServiceUtils.vPoolSpecifiesFileReplication(capabilities)) {
             if (filePolicy.getFileReplicationType().equals(FilePolicy.FileReplicationType.LOCAL.name())) {
                 return getFileServiceApis("localmirror");
             } else if (filePolicy.getFileReplicationType().equals(FilePolicy.FileReplicationType.REMOTE.name())) {
@@ -4025,7 +4064,7 @@ public class FileService extends TaskResourceService {
     private boolean doBasicMirrorValidation(FileShare fs, VirtualPool currentVpool, StringBuffer notSuppReasonBuff) {
 
         // file system virtual pool must be enabled with replication..
-        if (!VirtualPool.vPoolSpecifiesFileReplication(currentVpool)) {
+        if (!FilePolicyServiceUtils.vPoolSpecifiesFileReplication(fs, currentVpool, _dbClient)) {
             notSuppReasonBuff.append(String.format("File replication is not enabled in virtual pool - %s"
                     + " of the requested file system -%s ", currentVpool.getLabel(), fs.getLabel()));
             _log.info(notSuppReasonBuff.toString());

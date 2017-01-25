@@ -2771,8 +2771,8 @@ consistencygroup_block_cos_setup()
 
 vplex_cos_setup()
 {
-    run cos create block cosvplexlocal true                   \
-                     --description 'Local-Vpool-for-VPLEX'      \
+    run cos create block cosvplexlocal false                  \
+                     --description 'Local-Vpool-for-VPLEX'    \
                      --protocols FC                           \
                      --numpaths 2                             \
                      --provisionType 'Thin'                   \
@@ -2787,8 +2787,8 @@ vplex_cos_setup()
         run cos update block cosvplexlocal --storage $VPLEX_SIM_VMAX1_NATIVEGUID
         run cos update block cosvplexlocal --storage $VPLEX_SIM_VMAX2_NATIVEGUID
 
-        run cos create block vplexdistbackingvpool true                   \
-                         --description 'Local-backing-vpool-for-VPLEX'      \
+        run cos create block vplexdistbackingvpool false                   \
+                         --description 'Local-backing-vpool-for-VPLEX'     \
                          --protocols FC                           \
                          --numpaths 2                             \
                          --provisionType 'Thin'                   \
@@ -2818,8 +2818,8 @@ vplex_cos_setup()
 
         run cos allow vplexdistbackingvpool block $TENANT
 
-        run cos create block cosvplexdist true                          \
-                         --description 'Distributed-Vpool-for-VPLEX'      \
+        run cos create block cosvplexdist false                         \
+                         --description 'Distributed-Vpool-for-VPLEX'    \
                          --protocols FC                                 \
                          --numpaths 2                                   \
                          --provisionType 'Thin'                         \
@@ -2836,8 +2836,8 @@ vplex_cos_setup()
         run cos update block cosvplexdist --storage $VPLEX_SIM_VMAX2_NATIVEGUID
 
     else
-        run cos create block cosvplexdist true                          \
-                     --description 'Distributed-Vpool-for-VPLEX'      \
+        run cos create block cosvplexdist false                     \
+                     --description 'Distributed-Vpool-for-VPLEX'    \
                      --protocols FC                                 \
                      --numpaths 2                                   \
                      --provisionType 'Thin'                         \
@@ -13423,8 +13423,8 @@ unityblock_export_consistent_hlu_test1()
     unity_verify_export ${HOST2} 2 3 1,2,3
 
     run export_group delete $PROJECT/${expname}1
-    unity_verify_export ${HOST1} 2 0
-    unity_verify_export ${HOST2} 2 0
+    unity_verify_export ${HOST1} gone
+    unity_verify_export ${HOST2} gone
 
     run volume delete $PROJECT/${volname}-1 --wait
     run volume delete $PROJECT/${volname}-2 --wait
@@ -13509,8 +13509,8 @@ unityblock_export_consistent_hlu_test2()
     unity_verify_export ${HOST2} 2 2 1,2
 
     run export_group delete $PROJECT/${expname}2
-    unity_verify_export ${HOST1} 2 0
-    unity_verify_export ${HOST2} 2 0
+    unity_verify_export ${HOST1} gone
+    unity_verify_export ${HOST2} gone
 
     run volume delete $PROJECT/${volname}-1 --wait
     run volume delete $PROJECT/${volname}-2 --wait
@@ -13599,8 +13599,8 @@ unityblock_export_consistent_hlu_snap_test1()
     unity_verify_export ${HOST2} 2 3 1,2,3
 
     run export_group delete $PROJECT/${expname}1
-    unity_verify_export ${HOST1} 2 0
-    unity_verify_export ${HOST2} 2 0
+    unity_verify_export ${HOST1} gone
+    unity_verify_export ${HOST2} gone
 
     run blocksnapshot delete $PROJECT/${volname}-1/${snapname}-1
     run blocksnapshot delete $PROJECT/${volname}-2/${snapname}-2
@@ -13696,8 +13696,8 @@ unityblock_export_consistent_hlu_snap_test2()
     unity_verify_export ${HOST2} 2 2 1,2
 
     run export_group delete $PROJECT/${expname}2
-    unity_verify_export ${HOST1} 2 0
-    unity_verify_export ${HOST2} 2 0
+    unity_verify_export ${HOST1} gone
+    unity_verify_export ${HOST2} gone
 
     run blocksnapshot delete $PROJECT/${volname}-1/${snapname}-1
     run blocksnapshot delete $PROJECT/${volname}-2/${snapname}-2

@@ -904,7 +904,7 @@ login() {
 
 prerun_setup() {
     # Convenience, clean up known artifacts
-    #cleanup_previous_run_artifacts
+    cleanup_previous_run_artifacts
 
     # Check if we have the most recent version of preExistingConfig.jar
     DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
@@ -918,9 +918,7 @@ prerun_setup() {
        [ $? -ne 0 ] && echo "WARNING: There may be a newer version of ${TOOLS_JAR} available."
     fi
 
-    project list --tenant emcworld > /dev/null 2> /dev/null
-    if [ $? -eq 0 ]; then
-	echo "Seeing if there's an existing base of volumes"
+    BASENUM=""
     echo "Check if tenant and project exist"
     isTenantCreated=$(tenant list | grep $TENANT | wc -l)
     if [ $isTenantCreated -ne 0 ]; then
@@ -930,32 +928,32 @@ prerun_setup() {
         if [ $isProjectCreated -ne 0 ]; then
             echo "Found project $PROJECT"
             BASENUM=`volume list ${PROJECT} | grep YES | head -1 | awk '{print $1}' | awk -Fp '{print $2}' | awk -F- '{print $1}'`
-    if [ "${BASENUM}" != "" ]
-    then
-       echo "Volumes were found!  Base number is: ${BASENUM}"
-       VOLNAME=dutestexp${BASENUM}
-       EXPORT_GROUP_NAME=export${BASENUM}
-       HOST1=host1export${BASENUM}
-       HOST2=host2export${BASENUM}
-       CLUSTER=cl${BASENUM}
+	    if [ "${BASENUM}" != "" ]
+	    then
+		echo "Volumes were found!  Base number is: ${BASENUM}"
+		VOLNAME=dutestexp${BASENUM}
+		EXPORT_GROUP_NAME=export${BASENUM}
+		HOST1=host1export${BASENUM}
+		HOST2=host2export${BASENUM}
+		CLUSTER=cl${BASENUM}
 
-       sstype=${SS:0:3}
-       if [ "${SS}" = "xio" ]; then
-	   sstype="xtremio"
-       fi
+		sstype=${SS:0:3}
+		if [ "${SS}" = "xio" ]; then
+		    sstype="xtremio"
+		fi
 
-       # figure out what type of array we're running against
-       storage_type=`storagedevice list | grep COMPLETE | grep ${sstype} | awk '{print $1}'`
-       echo "Found storage type is: $storage_type"
-       SERIAL_NUMBER=`storagedevice list | grep COMPLETE | grep ${sstype} | awk '{print $2}' | awk -F+ '{print $2}'`
-       echo "Serial number is: $SERIAL_NUMBER"
-       if [ "${storage_type}" = "xtremio" ]
-       then
-	    storage_password=${XTREMIO_3X_PASSWD}
-               elif [ "${storage_type}" = "unity" ]; then
-                   storage_password=${UNITY_PW}
-       fi
-    fi
+		# figure out what type of array we're running against
+		storage_type=`storagedevice list | grep COMPLETE | grep ${sstype} | awk '{print $1}'`
+		echo "Found storage type is: $storage_type"
+		SERIAL_NUMBER=`storagedevice list | grep COMPLETE | grep ${sstype} | awk '{print $2}' | awk -F+ '{print $2}'`
+		echo "Serial number is: $SERIAL_NUMBER"
+		if [ "${storage_type}" = "xtremio" ]
+		then
+		    storage_password=${XTREMIO_3X_PASSWD}
+		elif [ "${storage_type}" = "unity" ]; then
+                    storage_password=${UNITY_PW}
+		fi
+	    fi
         else
             echo "The project $PROJECT doesn't exist"
         fi
@@ -4609,6 +4607,34 @@ H3ID="${H3NI1}:${H3PI1} ${H3NI2}:${H3PI2}"
 
 # pull in the vplextests.sh so it can use the dutests framework
 source vplextests.sh
+
+cleanup() {
+    if [ "${docleanup}" = "1" ]; then
+	for id in `export_group list $PROJECT | grep YES | awk '{print $5}'`
+	do
+	  runcmd export_group delete ${id} > /dev/null
+	  echo "Deleted export group: ${id}"
+	done
+	runcmd volume delete --project $PROJECT --wait
+    fi
+    echo There were $VERIFY_COUNT export verifications
+    echo There were $VERIFY_FAIL_COUNT export verification failures
+}
+
+# Clean up any exports or volumes from previous runs, but not the volumes you need to run tests
+cleanup_previous_run_artifacts() {
+   for id in `export_group list $PROJECT | grep YES | awk '{print $5}'`
+   do
+      echo "Deleting old export group: ${id}"
+      runcmd export_group delete ${id} > /dev/null
+   done
+
+   for id in `volume list ${PROJECT} | grep YES | grep hijack | awk '{print $7}'`
+   do
+      echo "Deleting old volume: ${id}"
+      runcmd volume delete ${id} --wait > /dev/null
+   done
+}
 
 # Delete and setup are optional
 if [ "$1" = "delete" ]

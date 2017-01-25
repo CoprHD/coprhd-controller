@@ -100,10 +100,6 @@ public class AdminDashboardUtils {
         return BourneUtil.getSysClient().upgrade().getClusterInfo();
     }
 
-    //public static BackupOperationStatus getBackupStatus() {
-    //    return BourneUtil.getSysClient().backup().getBackupOperationStatus();
-    //}
-
     public static DbRepairStatus gethealthdb() {
         return BourneUtil.getSysClient().control().getdbhealth();
     }
@@ -209,7 +205,6 @@ public class AdminDashboardUtils {
     }
 
     public static Date getBackupStatusLastUpdated() {
-        System.out.println("grace: getBackupStatusLastUpdated");
         return getLastUpdated(BACKUP_STATUS_LIST_KEY);
     }
 
@@ -254,13 +249,9 @@ public class AdminDashboardUtils {
         public T call() throws Exception {
             @SuppressWarnings("unchecked")
             T value = (T) Cache.get(key);
-            System.out.println("grace: "+ key+ " at "+ System.currentTimeMillis() +"cache call result:" +  value);
             if (value == null) {
                 value = doCall();
                 cacheValue(key, value, expiration);
-                if (key == BACKUP_STATUS_LIST_KEY) {
-                    System.out.println("grace: cache value:" + key + " and " + expiration);
-                }
             }
             return value;
         }
@@ -350,7 +341,6 @@ public class AdminDashboardUtils {
 
         @Override
         public BackupOperationStatus doCall() throws Exception {
-            System.out.println("grace: do call backup operation status:" + client.backup().getBackupOperationStatus().toString());
             return client.backup().getBackupOperationStatus();
         }
     }

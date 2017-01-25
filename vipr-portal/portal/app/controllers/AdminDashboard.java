@@ -60,7 +60,6 @@ public class AdminDashboard extends Controller {
 
     @Restrictions({ @Restrict("SYSTEM_MONITOR"), @Restrict("SYSTEM_ADMIN"), @Restrict("RESTRICTED_SYSTEM_ADMIN") })
     public static void health() {
-        System.out.println("grace: health at "+ System.currentTimeMillis());
         Map<String, Promise<?>> promises = Maps.newHashMap();
         promises.put("nodeHealthList", AdminDashboardUtils.nodeHealthList());
         promises.put("clusterInfo", AdminDashboardUtils.clusterInfo());
@@ -72,11 +71,8 @@ public class AdminDashboard extends Controller {
 
     @Restrictions({ @Restrict("SYSTEM_MONITOR"), @Restrict("SYSTEM_ADMIN"), @Restrict("RESTRICTED_SYSTEM_ADMIN") })
     public static void backupStatus() {
-        System.out.println("grace: backupOperationStatus at "+ System.currentTimeMillis());
         trySetRenderArg("backupOperationStatus", AdminDashboardUtils.getBackupStatus());
-
         // Add lastUpdated render args after promises are redeemed
-        System.out.println("grace: backupStatusLastUpdated: " + AdminDashboardUtils.getBackupStatusLastUpdated());
         renderArgs.put("backupStatusLastUpdated", AdminDashboardUtils.getBackupStatusLastUpdated());
         render();
     }

@@ -125,22 +125,12 @@ public class Backup {
     }
 
     public BackupOperationStatus getBackupOperationStatus() {
-        System.out.println("grace: Try to get backup operation status");
         BackupOperationStatus status = new BackupOperationStatus();
         try {
-            System.out.println("grace: getting backup operation status");
             status = client.get(BackupOperationStatus.class, BACKUP_STATUS_URL);
-            System.out.println("grace: got backup operation status:" + status.toString());
         } catch (Exception e) {
-            System.out.println("grace: Get backup operation status failed:" +e.getMessage());
+            System.out.println("Get backup operation status failed:" +e.getMessage());
         }
         return status;
-        /*BackupOperationStatus backupOperationStatus = new BackupOperationStatus();
-        backupOperationStatus.setLastManualCreation("backup1", 1485004604, BackupOperationStatus.OpMessage.OP_SUCCESS);
-        backupOperationStatus.setLastScheduledCreation("backup2", 1485003604, BackupOperationStatus.OpMessage.OP_SUCCESS);
-        backupOperationStatus.setLastSuccessfulCreation("backup1", 1485004604, BackupOperationStatus.OpMessage.OP_MANUAL);
-        backupOperationStatus.setLastUpload("backup1", 1485004604, BackupOperationStatus.OpMessage.OP_SUCCESS);
-        backupOperationStatus.setNextScheduledCreation(1485004604);
-        return backupOperationStatus;*/
     }
 }

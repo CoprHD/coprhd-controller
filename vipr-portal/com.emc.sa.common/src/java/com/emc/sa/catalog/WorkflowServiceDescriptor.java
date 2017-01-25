@@ -102,8 +102,8 @@ public class WorkflowServiceDescriptor {
             to.setWorkflowId(wfDocument.getName());
 
             for (final Step step : wfDocument.getSteps()) {
-                if (null != step.getInput()) {
-                    for (final OrchestrationWorkflowDocument.InputGroup inputs : step.getInput().values()) {
+                if (null != step.getInputGroups()) {
+                    for (final OrchestrationWorkflowDocument.InputGroup inputs : step.getInputGroups().values()) {
                         for (final Input wfInput : inputs.getInputGroup()) {
                             String wfInputType = null;
                             // Creating service fields for only inputs of type "inputfromuser" and "assetoption"

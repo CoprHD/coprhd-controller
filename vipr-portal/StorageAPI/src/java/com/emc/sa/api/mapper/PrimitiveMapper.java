@@ -117,11 +117,11 @@ public class PrimitiveMapper {
                 inputParam.add(param);
             }
             PrimitiveRestRep.InputGroup inputGroup = new PrimitiveRestRep.InputGroup(){{
-                setInputList(inputParam);
+                setInputGroup(inputParam);
             }};
             input.put("input_params",inputGroup);
         }
-        to.setInput(input);
+        to.setInputGroups(input);
    
         Map<String, String> attributes = new HashMap<String, String>();
         if (null != from.getPlaybook()) {

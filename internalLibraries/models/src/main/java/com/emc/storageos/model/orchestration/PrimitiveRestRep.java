@@ -32,7 +32,7 @@ public class PrimitiveRestRep extends DataObjectRestRep {
     private String friendlyName;
     private String description;
     private String successCriteria;
-    private Map<String, InputGroup> input;
+    private Map<String, InputGroup> inputGroups;
     private List<OutputParameterRestRep> output;
     private Map<String, String> attributes;
     private RestLinkRep resource;
@@ -82,13 +82,13 @@ public class PrimitiveRestRep extends DataObjectRestRep {
         this.attributes = attributes;
     }
 
-    @XmlElementWrapper(name = "input")
-    public Map<String, InputGroup> getInput() {
-        return input;
+    @XmlElementWrapper(name = "inputGroups")
+    public Map<String, InputGroup> getInputGroups() {
+        return inputGroups;
     }
 
-    public void setInput(final Map<String, InputGroup> input) {
-        this.input = input;
+    public void setInputGroups(final Map<String, InputGroup> inputGroups) {
+        this.inputGroups = inputGroups;
     }
 
     @XmlElement(name = "output")
@@ -113,7 +113,7 @@ public class PrimitiveRestRep extends DataObjectRestRep {
 
         private List<InputParameterRestRep> inputGroup;
 
-        public void setInputList(List<InputParameterRestRep> inputGroup) {
+        public void setInputGroup(List<InputParameterRestRep> inputGroup) {
             this.inputGroup = inputGroup;
         }
 

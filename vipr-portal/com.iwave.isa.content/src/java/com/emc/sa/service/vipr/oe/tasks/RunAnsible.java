@@ -172,7 +172,7 @@ public class RunAnsible  extends ViPRExecutionTask<OrchestrationTaskResult> {
 
     //Execute Ansible playbook on remote node. Playbook is also in remote node
     private Exec.Result executeRemoteCmd(final String extraVars) {
-        final Map<String,OrchestrationWorkflowDocument.InputGroup> inputType = step.getInput();
+        final Map<String,OrchestrationWorkflowDocument.InputGroup> inputType = step.getInputGroups();
         if (inputType == null) {
             return null;
 	}

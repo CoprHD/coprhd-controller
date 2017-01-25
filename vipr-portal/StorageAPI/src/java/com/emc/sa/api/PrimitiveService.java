@@ -144,7 +144,7 @@ public class PrimitiveService {
             primitiveRestRep.setFriendlyName(primitive.getFriendlyName());
             primitiveRestRep.setDescription(primitive.getDescription());
             primitiveRestRep.setSuccessCriteria(primitive.getSuccessCriteria());
-            primitiveRestRep.setInput(mapInput(primitive.getInput()));
+            primitiveRestRep.setInputGroups(mapInput(primitive.getInput()));
             primitiveRestRep.setOutput(mapOutput(primitive.getOutput()));
             builder.put(primitiveRestRep.getId(), primitiveRestRep);
         }
@@ -519,7 +519,7 @@ public class PrimitiveService {
                 }
             }
             PrimitiveRestRep.InputGroup inputGroup = new PrimitiveRestRep.InputGroup(){{
-                setInputList(inputTypeRestRep);
+                setInputGroup(inputTypeRestRep);
             }};
             inputRestRep.put(parameterType.getKey().toString(),inputGroup);
 

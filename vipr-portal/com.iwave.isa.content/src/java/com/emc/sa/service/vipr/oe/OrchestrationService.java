@@ -213,11 +213,11 @@ public class OrchestrationService extends ViPRService {
      * @param step It is the JSON Object of Step
      */
     private void updateInputPerStep(final Step step) throws Exception {
-        if (step.getInput() == null) {
+        if (step.getInputGroups() == null) {
             return;
         }
 
-        final List<Input> input = step.getInput().get(OrchestrationServiceConstants.INPUT_PARAMS).getInputGroup();
+        final List<Input> input = step.getInputGroups().get(OrchestrationServiceConstants.INPUT_PARAMS).getInputGroup();
 
         if (input == null) {
             return;

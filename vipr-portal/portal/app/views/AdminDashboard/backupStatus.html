@@ -91,7 +91,7 @@
             <script>
                 if (${isScheduledBackupEnabled}) {
                     var nextScheduledCreationTime = '${backupOperationStatus?.getNextScheduledCreation()}';
-                    if (nextScheduledCreationTime != '') {
+                    if (nextScheduledCreationTime != '' && nextScheduledCreationTime != '0') {
                         $('#nextScheduled').append(formatLocalDateTime(new Date(parseInt(nextScheduledCreationTime))));
                     } else {
                         $('#nextScheduled').append("&{'adminDashboard.backupStatus.none'}");

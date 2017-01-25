@@ -919,6 +919,7 @@ public class BackupOps {
         if (dbFailedCnt == 0 && geodbFailedCnt == 0 && zkFailedCnt < hosts.size()) {
             try {
                 persistBackupInfo(backupTag);
+                updateBackupCreationStatus(backupTag, TimeUtils.getCurrentTime(), true);
                 log.info("Create backup({}) success", backupTag);
                 return true;
             }catch (Exception e) {
@@ -931,6 +932,7 @@ public class BackupOps {
             log.warn("Create backup({}) on nodes({}) failed, but force ignore the errors", backupTag, errorList);
             try {
                 persistBackupInfo(backupTag);
+                updateBackupCreationStatus(backupTag, TimeUtils.getCurrentTime(), true);
                 return true;
             }catch (Exception e) {
                 //ignore

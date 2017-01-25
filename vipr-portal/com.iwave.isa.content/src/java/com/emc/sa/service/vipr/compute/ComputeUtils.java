@@ -31,7 +31,7 @@ import com.emc.sa.service.vipr.compute.tasks.DeactivateHost;
 import com.emc.sa.service.vipr.compute.tasks.DeactivateHostNoWait;
 import com.emc.sa.service.vipr.compute.tasks.FindCluster;
 import com.emc.sa.service.vipr.compute.tasks.FindHostsInCluster;
-import com.emc.sa.service.vipr.compute.tasks.FindProvisionedHostsInCluster;
+import com.emc.sa.service.vipr.compute.tasks.FindVblockHostsInCluster;
 import com.emc.sa.service.vipr.compute.tasks.InstallOs;
 import com.emc.sa.service.vipr.compute.tasks.RemoveHostFromCluster;
 import com.emc.sa.service.vipr.compute.tasks.SetBootVolume;
@@ -497,7 +497,7 @@ public class ComputeUtils {
                 tasks.remove(failedTask);
             }
         }
-        
+
         return successfulHostIds;
     }
 
@@ -809,12 +809,12 @@ public class ComputeUtils {
     }
 
     /**
-     * This method fetches all provisioned hosts for the given cluster
+     * This method fetches all vblock hosts for the given cluster
      * @param clusterId cluster id URI
      * @return
      */
-    public static List<URI> getProvisionedHostURIsByCluster(URI clusterId) {
-        List<HostRestRep> resp = getProvisionedHostsInCluster(clusterId);
+    public static List<URI> getVblockHostURIsByCluster(URI clusterId) {
+        List<HostRestRep> resp = getVblockHostsInCluster(clusterId);
         List<URI> provisionedHostURIs = Lists.newArrayList();
         for (HostRestRep r : resp) {
             provisionedHostURIs.add(r.getId());
@@ -822,7 +822,7 @@ public class ComputeUtils {
         return provisionedHostURIs;
     }
 
-    public static List<HostRestRep> getProvisionedHostsInCluster(URI clusterId) {
-        return execute(new FindProvisionedHostsInCluster(clusterId));
+    public static List<HostRestRep> getVblockHostsInCluster(URI clusterId) {
+        return execute(new FindVblockHostsInCluster(clusterId));
     }
 }

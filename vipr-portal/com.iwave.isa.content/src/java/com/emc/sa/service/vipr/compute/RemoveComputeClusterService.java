@@ -29,7 +29,7 @@ public class RemoveComputeClusterService extends ViPRService {
 
     private Cluster cluster;
 
-    private List<URI> provisionedHostURIs = null;
+    private List<URI> vblockHostURIs = null;
     private List<URI> hostURIs = null;
     @Override
     public void precheck() throws Exception {
@@ -39,10 +39,10 @@ public class RemoveComputeClusterService extends ViPRService {
             preCheckErrors.append("Cluster doesn't exist for ID " + clusterId);
         }
         hostURIs = ComputeUtils.getHostURIsByCluster(getClient(), clusterId);
-        provisionedHostURIs = ComputeUtils.getProvisionedHostURIsByCluster(clusterId);
+        vblockHostURIs = ComputeUtils.getVblockHostURIsByCluster(clusterId);
 
-        if (!CollectionUtils.isEmpty(hostURIs) && !CollectionUtils.isEmpty(provisionedHostURIs)
-                && (hostURIs.size() > provisionedHostURIs.size() || !provisionedHostURIs.containsAll(hostURIs))) {
+        if (!CollectionUtils.isEmpty(hostURIs) && !CollectionUtils.isEmpty(vblockHostURIs)
+                && (hostURIs.size() > vblockHostURIs.size() || !vblockHostURIs.containsAll(hostURIs))) {
             logError("computeutils.deactivatecluster.deactivate.notpossible", cluster.getLabel());
             preCheckErrors.append("Cluster ").append(cluster.getLabel())
             .append(" is a mixed cluster, cannot decommission a mixed cluster.");
@@ -58,14 +58,14 @@ public class RemoveComputeClusterService extends ViPRService {
         // removing cluster checks for running VMs first for ESX hosts
         addAffectedResource(clusterId);
 
-        if (provisionedHostURIs.isEmpty() && hostURIs.isEmpty()) {
+        if (vblockHostURIs.isEmpty() && hostURIs.isEmpty()) {
             execute(new DeactivateCluster(cluster));
             return;
         }
 
         // get boot vols to be deleted (so we can check afterwards)
         List<URI> bootVolsToBeDeleted = Lists.newArrayList();
-        for (URI hostURI : provisionedHostURIs) {
+        for (URI hostURI : vblockHostURIs) {
             URI bootVolURI = BlockStorageUtils.getHost(hostURI).getBootVolumeId();
             if (bootVolURI != null) {
                 BlockObjectRestRep bootVolRep = null;
@@ -81,20 +81,20 @@ public class RemoveComputeClusterService extends ViPRService {
         }
 
         // removing hosts also removes associated boot volumes and exports
-        List<URI> successfulHostIds = ComputeUtils.deactivateHostURIs(provisionedHostURIs);
+        List<URI> successfulHostIds = ComputeUtils.deactivateHostURIs(vblockHostURIs);
 
         // fail order if no hosts removed
         if (successfulHostIds.isEmpty()) {
             throw new IllegalStateException(ExecutionUtils.getMessage("computeutils.deactivatehost.deactivate.failure", ""));
         }
         // Check if all hosts are deactivated successfully and only then issue the deactivateCluster call
-        if (successfulHostIds.size() == provisionedHostURIs.size() && successfulHostIds.containsAll(provisionedHostURIs)) {
+        if (successfulHostIds.size() == vblockHostURIs.size() && successfulHostIds.containsAll(vblockHostURIs)) {
             execute(new DeactivateCluster(cluster));
         }
 
         // check all hosts were removed
-        if (successfulHostIds.size() < provisionedHostURIs.size()) {
-            for (URI hostURI : provisionedHostURIs) {
+        if (successfulHostIds.size() < vblockHostURIs.size()) {
+            for (URI hostURI : vblockHostURIs) {
                 if (!successfulHostIds.contains(hostURI)) {
                     logError("computeutils.deactivatehost.failure", hostURI, clusterId);
                 }
@@ -114,17 +114,17 @@ public class RemoveComputeClusterService extends ViPRService {
     }
 
     /**
-     * @return the provisionedHostURIs
+     * @return the vblockHostURIs
      */
-    public List<URI> getProvisionedHostURIs() {
-        return provisionedHostURIs;
+    public List<URI> getVblockHostURIs() {
+        return vblockHostURIs;
     }
 
     /**
-     * @param provisionedHostURIs the provisionedHostURIs to set
+     * @param vblockHostURIs the vblockHostURIs to set
      */
-    public void setProvisionedHostURIs(List<URI> provisionedHostURIs) {
-        this.provisionedHostURIs = provisionedHostURIs;
+    public void setVblockHostURIs(List<URI> vblockHostURIs) {
+        this.vblockHostURIs = vblockHostURIs;
     }
 
     /**

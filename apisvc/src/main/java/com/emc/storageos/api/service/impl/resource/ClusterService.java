@@ -564,23 +564,22 @@ public class ClusterService extends TaskResourceService {
     }
 
     /**
-     * List the provisioned hosts of a cluster.
+     * List the vblock hosts of a cluster.
      *
      * @param id the URN of a ViPR cluster
-     * @prereq none
-     * @brief List cluster provisionedhosts
-     * @return The list of provisioned hosts of the cluster.
+     *
+     * @return The list of vblock hosts in the cluster.
      * @throws DatabaseException when a DB error occurs.
      */
     @GET
-    @Path("/{id}/provisioned-hosts")
+    @Path("/{id}/vblock-hosts")
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    public HostList getClusterProvisionedHosts(@PathParam("id") URI id) throws DatabaseException {
+    public HostList getClusterVblockHosts(@PathParam("id") URI id) throws DatabaseException {
         Cluster cluster = queryObject(Cluster.class, id, true);
         // check the user permissions
         verifyAuthorizedInTenantOrg(cluster.getTenant(), getUserFromContext());
         HostList list = new HostList();
-        list.setHosts(map(ResourceTypeEnum.HOST, getProvisionedHostsFromCluster(id, "cluster")));
+        list.setHosts(map(ResourceTypeEnum.HOST, getVblockHostsFromCluster(id, "cluster")));
         return list;
     }
 
@@ -596,7 +595,7 @@ public class ClusterService extends TaskResourceService {
      * @param linkField the name of the field in the child class that stored the parent id
      * @return a list of children of tenant for the given class
      */
-    private <T extends DataObject> List<NamedElementQueryResultList.NamedElement> getProvisionedHostsFromCluster(URI id,
+    private <T extends DataObject> List<NamedElementQueryResultList.NamedElement> getVblockHostsFromCluster(URI id,
             String linkField) {
         List<Host> hosts = CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient, Host.class,
                 ContainmentConstraint.Factory.getContainedObjectsConstraint(id, Host.class, linkField));

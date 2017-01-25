@@ -12,10 +12,10 @@ import com.emc.sa.service.vipr.tasks.ViPRExecutionTask;
 import com.emc.storageos.model.host.HostRestRep;
 import com.google.common.collect.Lists;
 
-public class FindProvisionedHostsInCluster extends ViPRExecutionTask<List<HostRestRep>> {
+public class FindVblockHostsInCluster extends ViPRExecutionTask<List<HostRestRep>> {
     private final URI clusterId;
 
-    public FindProvisionedHostsInCluster(URI clusterId) {
+    public FindVblockHostsInCluster(URI clusterId) {
         this.clusterId = clusterId;
         provideDetailArgs(clusterId);
     }
@@ -25,7 +25,7 @@ public class FindProvisionedHostsInCluster extends ViPRExecutionTask<List<HostRe
         List<HostRestRep> hosts = Lists.newArrayList();
         try {
             debug(ExecutionUtils.getMessage("compute.cluster.find.cluster.debug", clusterId));
-            hosts = getClient().hosts().getProvisionedHostsByCluster(clusterId);
+            hosts = getClient().hosts().getVblockHostsByCluster(clusterId);
         } catch (Exception e) {
             // catches if cluster was removed & marked for delete
             ExecutionUtils.currentContext().logError("compute.cluster.get.hosts.failed", e.getMessage());

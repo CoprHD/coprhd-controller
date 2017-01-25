@@ -376,27 +376,27 @@ TaskResources<HostRestRep> {
     }
 
     /**
-     * Lists the hosts in the given cluster.
+     * Lists the vblock hosts in the given cluster.
      * <p>
-     * API Call: <tt>GET /compute/clusters/{clusterId}/hosts</tt>
+     * API Call: <tt>GET /compute/clusters/{clusterId}/vblock-hosts</tt>
      *
      * @param clusterId
      *            the ID of the cluster.
      * @return the list of host references.
      */
-    public List<NamedRelatedResourceRep> listProvisionedHostsByCluster(URI clusterId) {
-        return getList(PathConstants.PROVISOIONED_HOST_BY_CLUSTER_URL, clusterId);
+    public List<NamedRelatedResourceRep> listVblockHostsByCluster(URI clusterId) {
+        return getList(PathConstants.VBLOCK_HOST_BY_CLUSTER_URL, clusterId);
     }
 
     /**
-     * Gets the list of hosts in the given cluster.
+     * Gets the list of vblock hosts in the given cluster.
      *
      * @param clusterId
      *            the ID of the cluster.
-     * @return the list of hosts.
+     * @return the list of vblock hosts.
      */
-    public List<HostRestRep> getProvisionedHostsByCluster(URI clusterId) {
-        List<NamedRelatedResourceRep> refs = listProvisionedHostsByCluster(clusterId);
+    public List<HostRestRep> getVblockHostsByCluster(URI clusterId) {
+        List<NamedRelatedResourceRep> refs = listVblockHostsByCluster(clusterId);
         return getByRefs(refs);
     }
 }

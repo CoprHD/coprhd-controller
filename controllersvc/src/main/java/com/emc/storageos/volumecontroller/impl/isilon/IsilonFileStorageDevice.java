@@ -3067,6 +3067,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         }
         return;
     }
+
     @Override
     public BiosCommandResult checkFilePolicyExistsOrCreate(StorageSystem storageObj, FileDeviceInputOutput args) {
 
@@ -3117,10 +3118,14 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                 ArrayList<IsilonSnapshotSchedule> isiSnapshotPolicies = isi.getSnapshotSchedules().getList();
                 IsilonSnapshotSchedule isilonSnapshotSchedule = getIsilonSnapshotScheduleForPath(isiSnapshotPolicies, filePolicyBasePath);
                 if (isilonSnapshotSchedule != null) {
+
                     String filePolicySnapshotSchedule = getIsilonPolicySchedule(filePolicy);
-                    if (isilonSnapshotSchedule.getSchedule().equals(filePolicySnapshotSchedule)) {
+                    _log.info("Comparing snapshot schedule between CoprHD policy: {} and Isilon policy: {}.", filePolicySnapshotSchedule,
+                            isilonSnapshotSchedule.getSchedule());
+                    if (isilonSnapshotSchedule.getSchedule().equalsIgnoreCase(filePolicySnapshotSchedule)) {
                         result = BiosCommandResult.createSuccessfulResult();
                     } else {
+                        _log.error("Snapshot schedule differs between Isilon policy and CoprHD file policy.");
                         throw DeviceControllerException.exceptions.assignFilePolicyFailed(filePolicy.getFilePolicyName(),
                                 filePolicy.getApplyAt(),
                                 "File policy exists for path: " + filePolicyBasePath);

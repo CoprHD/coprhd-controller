@@ -203,7 +203,8 @@ public class TransportZoneReconciler {
                     ExternalChangeProperties.getMessage("network.fabricRenameEventDescription", oldTransportZone.getNativeId(), newTransportZone.getNativeId()), 
                     ExternalChangeProperties.getMessage("network.fabricRenameEventWarning"),
                     oldTransportZone, Lists.newArrayList(),
-                    EventUtils.FABRIC_NAME_CHANGE_APPROVE, new Object[] {oldTransportZone.getId(), oldTransportZone.getNativeId()},
+                    EventUtils.FABRIC_NAME_CHANGE_APPROVE, new Object[] {oldTransportZone.getId(), oldTransportZone.getNativeId(),
+                            newTransportZone.getNativeId()},
                     EventUtils.FABRIC_NAME_CHANGE_DECLINE, new Object[] {oldTransportZone.getId()});
         }
         

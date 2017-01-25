@@ -2875,7 +2875,7 @@ public class ExportGroupService extends TaskResourceService {
         if (param.getStoragePorts() != null) {
             pathParam.setStoragePorts(StringSetUtil.uriListToStringSet(param.getStoragePorts()));
         }
-        if (param.getPortGroup() != null && !param.getPortGroup().isEmpty()) {
+        if (param.getPortGroup() != null) {
             pathParam.setPortGroup(param.getPortGroup());
         }
         pathParam.setExplicitlyCreated(false);

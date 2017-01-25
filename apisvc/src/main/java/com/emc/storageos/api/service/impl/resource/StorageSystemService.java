@@ -37,6 +37,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.emc.storageos.api.mapper.functions.MapStoragePort;
+import com.emc.storageos.api.mapper.functions.MapStoragePortGroup;
 import com.emc.storageos.api.service.impl.resource.utils.AsyncTaskExecutorIntf;
 import com.emc.storageos.api.service.impl.resource.utils.DiscoveredObjectTaskScheduler;
 import com.emc.storageos.api.service.impl.resource.utils.PurgeRunnable;
@@ -66,6 +67,7 @@ import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StoragePort.OperationalStatus;
 import com.emc.storageos.db.client.model.StoragePort.PortType;
 import com.emc.storageos.db.client.model.StoragePort.TransportType;
+import com.emc.storageos.db.client.model.StoragePortGroup;
 import com.emc.storageos.db.client.model.StorageProvider;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StorageSystem.Discovery_Namespaces;
@@ -95,6 +97,8 @@ import com.emc.storageos.model.object.ObjectUserSecretKeyAddRestRep;
 import com.emc.storageos.model.object.ObjectUserSecretKeyRequestParam;
 import com.emc.storageos.model.pools.StoragePoolList;
 import com.emc.storageos.model.pools.StoragePoolRestRep;
+import com.emc.storageos.model.portgroup.StoragePortGroupList;
+import com.emc.storageos.model.portgroup.StoragePortGroupRestRep;
 import com.emc.storageos.model.ports.StoragePortList;
 import com.emc.storageos.model.ports.StoragePortRequestParam;
 import com.emc.storageos.model.ports.StoragePortRestRep;
@@ -2034,6 +2038,71 @@ public class StorageSystemService extends TaskResourceService {
 
     public void setPortMetricsProcessor(PortMetricsProcessor portMetricsProcessor) {
         this.portMetricsProcessor = portMetricsProcessor;
+    }
+    
+    /**
+     * Get all storage port groups for the registered storage system with the passed
+     * id.
+     * 
+     * @param id the URN of a ViPR storage system.
+     * 
+     * @brief List storage system storage port groups
+     * @return A reference to a StoragePortGroupList specifying the id and self link
+     *         for each port group.
+     */
+    @GET
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/{id}/storage-port-groups")
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR })
+    public StoragePortGroupList getAllStoragePortGroups(@PathParam("id") URI id) {
+        // Make sure the storage system is registered.
+        ArgValidator.checkFieldUriType(id, StorageSystem.class, "id");
+        StorageSystem system = queryResource(id);
+        ArgValidator.checkEntity(system, id, isIdEmbeddedInURL(id));
+        URIQueryResultList portGroupURIs = new URIQueryResultList();
+        _dbClient.queryByConstraint(
+                ContainmentConstraint.Factory.getStorageDevicePortGroupConstraint(id),
+                portGroupURIs);
+        
+        StoragePortGroupList portList = new StoragePortGroupList();
+        
+        Iterator<URI> portGroupIter = portGroupURIs.iterator();
+        while (portGroupIter.hasNext()) {
+            URI pgURI = portGroupIter.next();
+            StoragePortGroup portGroup = _dbClient.queryObject(StoragePortGroup.class, pgURI);
+            if (portGroup != null && !portGroup.getInactive()) {
+                portList.getPortGroups().add(toNamedRelatedResource(portGroup, portGroup.getNativeGuid()));
+            }
+        }
+        return portList;
+    }
+    
+    /**
+     * Get information about the storage port group with the passed id on the
+     * registered storage system with the passed id.
+     * 
+     * @param id the URN of a ViPR storage system.
+     * @param portGroupId The id of the storage portgroup.
+     * 
+     * @brief Show storage system storage port
+     * @return A StoragePortGroupRestRep reference specifying the data for the
+     *         requested port group.
+     */
+    @GET
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/{id}/storage-port-groups/{portGroupId}")
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR })
+    public StoragePortGroupRestRep getStoragePortGroup(@PathParam("id") URI id,
+            @PathParam("portGroupId") URI portGroupId) {
+        // Make sure the storage system is registered.
+        ArgValidator.checkFieldUriType(id, StorageSystem.class, "id");
+        StorageSystem system = queryResource(id);
+        ArgValidator.checkEntity(system, id, isIdEmbeddedInURL(id));
+
+        ArgValidator.checkFieldUriType(portGroupId, StoragePortGroup.class, "portGroupId");
+        StoragePortGroup portGroup = _dbClient.queryObject(StoragePortGroup.class, portGroupId);
+        ArgValidator.checkEntity(portGroup, portGroupId, isIdEmbeddedInURL(portGroupId));
+        return MapStoragePortGroup.getInstance(_dbClient).toStoragePortGroupRestRep(portGroup);
     }
 
 }

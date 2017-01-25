@@ -21,9 +21,12 @@ import static com.google.common.collect.Collections2.transform;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
+import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
+import com.emc.storageos.db.client.model.DiscoveredDataObject.RegistrationStatus;
 import com.emc.storageos.db.client.model.ExportPathParams;
 import com.emc.storageos.db.client.model.Initiator;
+import com.emc.storageos.db.client.model.StoragePortGroup;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.util.CommonTransformerFunctions;
 import com.emc.storageos.db.client.util.StringSetUtil;
@@ -44,8 +47,8 @@ public class VmaxPortGroupProcessor extends StorageProcessor{
     @Override
     public void processResult(Operation operation, Object resultObj, Map<String, Object> keyMap)
             throws BaseCollectionException {
+        log.info("Process port group");
         try {
-            log.info("Process port group");
             AccessProfile profile = (AccessProfile) keyMap.get(Constants.ACCESSPROFILE);
             String serialID = (String) keyMap.get(Constants._serialID);
             dbClient = (DbClient) keyMap.get(Constants.dbClient);
@@ -58,8 +61,11 @@ public class VmaxPortGroupProcessor extends StorageProcessor{
                 CIMObjectPath groupPath = groupInstance.getObjectPath();
                 if (groupPath.toString().contains(serialID)) {
                     String portGroupName = groupInstance.getPropertyValue(Constants.ELEMENTNAME).toString().toLowerCase();
-                    String guid = groupPath.toString();
-                    log.info("Got the port group: " + guid);
+                    if (portGroupName == null || portGroupName.isEmpty()) {
+                        log.info(String.format("The port group %s name is null, skip", groupPath.toString()));
+                        continue;
+                    }
+                    log.info("Got the port group: " + portGroupName);
                     List<String> storagePorts = new ArrayList<String>();
                     CloseableIterator<CIMInstance> iterator = null;
                     iterator = client.associatorInstances(groupPath, null,
@@ -73,8 +79,8 @@ public class VmaxPortGroupProcessor extends StorageProcessor{
                         log.info("port member: " + fixedName);
                     }
                     if (!storagePorts.isEmpty()) {
-                        ExportPathParams portGroup = getPortGroupInDB(guid, portGroupName, device);
-                        allPortGroupNativeGuids.add(guid);
+                        StoragePortGroup portGroup = getPortGroupInDB(portGroupName, device);
+                        allPortGroupNativeGuids.add(portGroup.getNativeGuid());
                         List<URI> storagePortURIs = new ArrayList<URI>();
                         storagePortURIs.addAll(transform(ExportUtils.storagePortNamesToURIs(dbClient, storagePorts),
                                 CommonTransformerFunctions.FCTN_STRING_TO_URI));
@@ -82,46 +88,50 @@ public class VmaxPortGroupProcessor extends StorageProcessor{
                         dbClient.updateObject(portGroup);
                     } else {
                         // no storage ports in the port group, remove it
-                        log.info(String.format("The port group %s does not have any storage ports, ignore", guid));
+                        log.info(String.format("The port group %s does not have any storage ports, ignore", portGroupName));
                     }
                     
                 }
             }
-            doBookKeeping(device.getId());
+            if (!allPortGroupNativeGuids.isEmpty()) { 
+                doBookKeeping(device.getId());
+            } else {
+                log.info("Did not get any port group, skip book keeping");
+            }
         } catch (Exception e) {
             log.error("port group discovery failed ", e);
+        } finally {
+            allPortGroupNativeGuids.clear();
         }
     }
     
     /**
      * Get the port group from DB if it is discovered before, or create a new port group if it is a new one.
-     * 
-     * @param guid - nativeGuid of the port group
      * @param pgName - port group name
      * @param storage - storage system
      * @return - the existing or newly created port group
      */
-    private ExportPathParams getPortGroupInDB(String guid, String pgName, StorageSystem storage) {
+    private StoragePortGroup getPortGroupInDB(String pgName, StorageSystem storage) {
+        String guid = String.format("%s+%s" , storage.getSerialNumber(), pgName);
         URIQueryResultList result = new URIQueryResultList();
         dbClient.queryByConstraint(AlternateIdConstraint.Factory
-                .getExportPathParamsNativeGUIdConstraint(guid), result);
-        ExportPathParams portGroup = null;
+                .getPortGroupNativeGUIdConstraint(guid), result);
+        StoragePortGroup portGroup = null;
         Iterator<URI> it = result.iterator();
         if (it.hasNext()) {
-            portGroup = dbClient.queryObject(ExportPathParams.class, it.next());
+            portGroup = dbClient.queryObject(StoragePortGroup.class, it.next());
         }
         if (portGroup != null && !portGroup.getInactive()) {
         
             return portGroup;
         } else {
-            portGroup = new ExportPathParams();
-            portGroup.setId(URIUtil.createId(ExportPathParams.class));
-            String label = String.format("%s+%s" , storage.getSerialNumber(), pgName);
-            portGroup.setLabel(label);
-            portGroup.setPortGroup(pgName);
+            portGroup = new StoragePortGroup();
+            portGroup.setId(URIUtil.createId(StoragePortGroup.class));
+            portGroup.setLabel(pgName);
+            portGroup.setNativeGuid(guid);
             portGroup.setStorageDevice(storage.getId());
             portGroup.setInactive(false);
-            portGroup.setExplicitlyCreated(true);
+            portGroup.setRegistrationStatus(RegistrationStatus.REGISTERED.name());
             dbClient.createObject(portGroup);
         }
         return portGroup;
@@ -134,11 +144,11 @@ public class VmaxPortGroupProcessor extends StorageProcessor{
      */
     private void doBookKeeping(URI deviceURI) {
         URIQueryResultList result = new URIQueryResultList();
-        dbClient.queryByConstraint(AlternateIdConstraint.Factory
-                .getPortGroupByStorageSystemConstraint(deviceURI), result);
-        List<ExportPathParams> portGroups = dbClient.queryObject(ExportPathParams.class, result);
+        dbClient.queryByConstraint(
+                ContainmentConstraint.Factory.getStorageDevicePortGroupConstraint(deviceURI), result);
+        List<StoragePortGroup> portGroups = dbClient.queryObject(StoragePortGroup.class, result);
         if (portGroups != null) {
-            for (ExportPathParams portGroup : portGroups) {
+            for (StoragePortGroup portGroup : portGroups) {
                 String nativeGuid = portGroup.getNativeGuid();
                 if (nativeGuid != null && !nativeGuid.isEmpty() &&
                         !allPortGroupNativeGuids.contains(nativeGuid)) {

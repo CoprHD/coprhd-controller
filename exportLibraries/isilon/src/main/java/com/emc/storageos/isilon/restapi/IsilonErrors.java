@@ -27,7 +27,7 @@ import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
 public interface IsilonErrors {
     @DeclareServiceCode(ServiceCode.ISILON_ERROR)
     public ServiceError doExpandFSFailed(final URI id);
-    
+
     @DeclareServiceCode(ServiceCode.ISILON_ERROR)
     public ServiceError unableToUpdateFileSystem(final URI id);
 
@@ -46,4 +46,12 @@ public interface IsilonErrors {
     @DeclareServiceCode(ServiceCode.ISILON_ERROR)
     public ServiceError unSupportedOperation(final String oprationName);
 
+    @DeclareServiceCode(ServiceCode.ISILON_ERROR)
+    public ServiceError unAssignPolicyFailed(final URI policyId);
+
+    @DeclareServiceCode(ServiceCode.ISILON_ERROR)
+    public ServiceError unableToCreateSnapshotPolicy(final String storageSystem);
+
+    @DeclareServiceCode(ServiceCode.ISILON_ERROR)
+    public ServiceError unableToCreateReplicationPolicy(final String storageSystem);
 }

@@ -148,4 +148,10 @@ public class IsilonSnapshotSchedule {
         this.id = id;
     }
 
+    @Override
+    public String toString() {
+        return "IsilonSnapshotSchedule [id=" + id + ", name=" + name + ", path=" + path + ", schedule=" + schedule + ", pattern=" + pattern
+                + ", alias=" + alias + ", duration=" + duration + "]";
+    }
+
 }

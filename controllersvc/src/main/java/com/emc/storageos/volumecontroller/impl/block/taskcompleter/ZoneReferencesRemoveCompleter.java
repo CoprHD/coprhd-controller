@@ -23,37 +23,37 @@ import com.emc.storageos.volumecontroller.TaskCompleter;
 public class ZoneReferencesRemoveCompleter extends TaskCompleter {
     private static final Logger _log = LoggerFactory.getLogger(ZoneReferencesRemoveCompleter.class);
 
-    List<NetworkFCZoneInfo> zoneInfoList;
-    boolean isZoneAddTask;
+    private List<NetworkFCZoneInfo> zoneInfoList;
+    private boolean removeZoneReferences;
 
     /**
      * Constructor for ZoneReferencesRemoveCompleter.
      * 
-     * @param zoneList
-     * @param task
-     *            -- API task id.
+     * @param zoneList List of FCZoneInfo instance
+     * @param removeZoneRefs True if Zone needs to be removed or Zone was added and needs to be removed in rollback call. Else False.
+     * @param opId Operation ID.
      */
-    public ZoneReferencesRemoveCompleter(List<NetworkFCZoneInfo> zoneList, boolean isZoneAdd, String opId) {
+    public ZoneReferencesRemoveCompleter(List<NetworkFCZoneInfo> zoneList, boolean removeZoneRefs, String opId) {
         super();
         zoneInfoList = new ArrayList<NetworkFCZoneInfo>();
         zoneInfoList.addAll(zoneList);
-        isZoneAddTask = isZoneAdd;
+        removeZoneReferences = removeZoneRefs;
     }
 
     @Override
-    protected void complete(DbClient _dbClient, Operation.Status status, ServiceCoded coded)
+    protected void complete(DbClient dbClient, Operation.Status status, ServiceCoded coded)
             throws DeviceControllerException {
 
-        if (isZoneAddTask && status == Status.error) {
+        if (removeZoneReferences && status == Status.error) {
             String refKey = null;
             try {
                 for (NetworkFCZoneInfo fabricInfo : zoneInfoList) {
-                    FCZoneReference ref = _dbClient.queryObject(FCZoneReference.class, fabricInfo.getFcZoneReferenceId());
+                    FCZoneReference ref = dbClient.queryObject(FCZoneReference.class, fabricInfo.getFcZoneReferenceId());
                     if (ref != null) {
                         refKey = ref.getPwwnKey();
-                        _dbClient.markForDeletion(ref);
                         _log.info(String.format("Remove FCZoneReference key: %s volume %s id %s", ref.getPwwnKey(), ref.getVolumeUri(),
                                 ref.getId().toString()));
+                        dbClient.removeObject(ref);
                     }
                 }
             } catch (DatabaseException ex) {

@@ -532,6 +532,9 @@ public class BlockConsistencyGroupUtils {
      * @return                  Set of group names or an empty set if none exist.
      */
     public static Set<String> getGroupNamesForSystemCG(BlockConsistencyGroup consistencyGroup, StorageSystem storageSystem) {
+        checkNotNull(consistencyGroup);
+        checkNotNull(storageSystem);
+
         Set<String> result = new HashSet<>();
         StringSetMap systemConsistencyGroups = consistencyGroup.getSystemConsistencyGroups();
         if (systemConsistencyGroups != null) {

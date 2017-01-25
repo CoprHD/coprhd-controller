@@ -2633,10 +2633,4 @@ abstract public class AbstractDefaultMaskingOrchestrator {
         return resourceMaskMap;
     }
     
-    /**
-     * Return the StorageDevice.
-     *
-     * @return
-     */
-    public abstract BlockStorageDevice getDevice();
 }

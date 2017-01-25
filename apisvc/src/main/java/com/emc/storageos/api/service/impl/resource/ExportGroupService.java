@@ -80,6 +80,7 @@ import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.ScopedLabel;
 import com.emc.storageos.db.client.model.ScopedLabelSet;
 import com.emc.storageos.db.client.model.StoragePort;
+import com.emc.storageos.db.client.model.StoragePortGroup;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.StringSet;
@@ -2875,8 +2876,15 @@ public class ExportGroupService extends TaskResourceService {
         if (param.getStoragePorts() != null) {
             pathParam.setStoragePorts(StringSetUtil.uriListToStringSet(param.getStoragePorts()));
         }
-        if (param.getPortGroup() != null) {
-            pathParam.setPortGroup(param.getPortGroup());
+        if (!NullColumnValueGetter.isNullURI(param.getPortGroup())) {
+            URI pgURI = param.getPortGroup();
+            ArgValidator.checkFieldUriType(pgURI, StoragePortGroup.class, "portGroupId");
+            StoragePortGroup portGroup = _dbClient.queryObject(StoragePortGroup.class, pgURI);
+            if (portGroup == null || 
+                    !portGroup.getRegistrationStatus().equalsIgnoreCase(RegistrationStatus.REGISTERED.toString())) {
+                throw APIException.badRequests.portGroupInvalid(pgURI.toString());
+            }
+            pathParam.setPortGroup(pgURI);
         }
         pathParam.setExplicitlyCreated(false);
 

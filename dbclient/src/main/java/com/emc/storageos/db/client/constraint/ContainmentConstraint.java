@@ -843,5 +843,11 @@ public interface ContainmentConstraint extends Constraint {
             ColumnField field = doType.getColumnField(STORAGE_DEVICE);
             return new ContainmentConstraintImpl(device, StoragePortGroup.class, field);
         }
+        
+        public static ContainmentConstraint getStoragePortPortGroupConstraint(URI id) {
+            DataObjectType doType = TypeMap.getDoType(StoragePortGroup.class);
+            ColumnField field = doType.getColumnField("storagePorts");
+            return new ContainmentConstraintImpl(id, StoragePortGroup.class, field);
+        }
     }
 }

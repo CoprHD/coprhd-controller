@@ -30,6 +30,8 @@ public class StoragePortGroup extends DiscoveredDataObject {
         setChanged("storageDevice");
     }
 
+    @RelationIndex(cf = "RelationIndex", type = StoragePort.class)
+    @IndexByKey
     @Name("storagePorts")
     public StringSet getStoragePorts() {
         return storagePorts;

@@ -56,6 +56,7 @@ import com.emc.storageos.db.client.model.DiscoveredDataObject.DiscoveryStatus;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.RegistrationStatus;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.EndpointUtility;
+import com.emc.storageos.db.client.util.StringSetUtil;
 import com.emc.storageos.db.common.VdcUtil;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.model.BulkIdParam;
@@ -69,6 +70,7 @@ import com.emc.storageos.model.block.tier.AutoTierPolicyList;
 import com.emc.storageos.model.compute.ComputeSystemBulkRep;
 import com.emc.storageos.model.compute.ComputeSystemRestRep;
 import com.emc.storageos.model.pools.StoragePoolList;
+import com.emc.storageos.model.portgroup.StoragePortGroupList;
 import com.emc.storageos.model.ports.StoragePortList;
 import com.emc.storageos.model.search.SearchResultResourceRep;
 import com.emc.storageos.model.search.SearchResults;
@@ -1621,5 +1623,64 @@ public class VirtualArrayService extends TaggedResource {
         if (!invalidIds.isEmpty()) {
             throw APIException.badRequests.theURIsOfParametersAreNotValid("virtual arrays", invalidIds);
         }
+    }
+    
+    @GET
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/{id}/storage-port-groups")
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR }, acls = { ACL.USE })
+    public StoragePortGroupList getVirtualArrayStoragePortGroups(@PathParam("id") URI id,
+            @QueryParam("storage_system") URI storageURI) {
+
+        // Get and validate the varray with the passed id.
+        ArgValidator.checkFieldUriType(id, VirtualArray.class, "id");
+        VirtualArray varray = _dbClient.queryObject(VirtualArray.class, id);
+        ArgValidator.checkEntity(varray, id, isIdEmbeddedInURL(id));
+        Set<URI> portURIs = new HashSet<URI> ();
+        Map<URI, Set<URI>> storagePortsMap = new HashMap<URI, Set<URI>> ();
+        // Query the database for the storage ports associated with the
+        // VirtualArray. 
+        URIQueryResultList storagePortURIs = new URIQueryResultList();
+        _dbClient.queryByConstraint(AlternateIdConstraint.Factory
+                .getVirtualArrayStoragePortsConstraint(id.toString()), storagePortURIs);
+        for (URI portURI : storagePortURIs) {
+            portURIs.add(portURI);
+        }
+        URIQueryResultList connectedPortURIs = new URIQueryResultList();
+        _dbClient.queryByConstraint(AlternateIdConstraint.Factory
+                .getImplicitVirtualArrayStoragePortsConstraint(id.toString()),
+                connectedPortURIs);
+        for (URI portURI : connectedPortURIs) {
+            portURIs.add(portURI);
+        }
+        
+        Set<URI> portGroupURIs = new HashSet<URI>();
+        for (URI portURI : portURIs) {
+            // Get port groups for each port
+            StoragePort port = _dbClient.queryObject(StoragePort.class, portURI);
+            if ((port != null)
+                    && (RegistrationStatus.REGISTERED.toString().equals(port
+                            .getRegistrationStatus()))
+                    && DiscoveryStatus.VISIBLE.toString().equals(port.getDiscoveryStatus())) {
+                URIQueryResultList pgURIs = new URIQueryResultList();
+                _dbClient.queryByConstraint(ContainmentConstraint.Factory.
+                        getStoragePortPortGroupConstraint(portURI), pgURIs);
+                for (URI groupURI : pgURIs) {
+                    portGroupURIs.add(groupURI);
+                }                
+            }
+        }
+        // Create and return the result.
+        StoragePortGroupList portGroups = new StoragePortGroupList();
+        for (URI uri : portGroupURIs) {
+            StoragePortGroup portGroup= _dbClient.queryObject(StoragePortGroup.class, uri);
+            if ((portGroup != null)
+                    && (RegistrationStatus.REGISTERED.toString().equals(portGroup.getRegistrationStatus()))) {
+                if (portURIs.containsAll(StringSetUtil.stringSetToUriList(portGroup.getStoragePorts()))) {
+                    portGroups.getPortGroups().add(toNamedRelatedResource(portGroup, portGroup.getNativeGuid()));
+                }
+            }
+        }
+        return portGroups;
     }
 }

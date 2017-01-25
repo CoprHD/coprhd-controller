@@ -273,6 +273,9 @@ public interface DeviceControllerExceptions {
     public DeviceControllerException createFileSystemOnPhysicalNASDisabled();
 
     @DeclareServiceCode(ServiceCode.FILE_CONTROLLER_ERROR)
+    public DeviceControllerException noNasServerFoundToAddStepsToApplyPolicy(final String storage);
+
+    @DeclareServiceCode(ServiceCode.FILE_CONTROLLER_ERROR)
     public DeviceControllerException unableToConnectToStorageDeviceForMonitoringDbException(
             final String storage, final Throwable cause);
 

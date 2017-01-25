@@ -81,6 +81,7 @@ public class PolicyStorageResource extends DataObject {
 
     public void setResourcePath(String resourcePath) {
         this.resourcePath = resourcePath;
+        setChanged("resourcePath");
     }
 
     @AlternateId("AltIdIndex")
@@ -91,6 +92,7 @@ public class PolicyStorageResource extends DataObject {
 
     public void setNativeGuid(String nativeGuid) {
         this.nativeGuid = nativeGuid;
+        setChanged("nativeGuid");
     }
 
 }

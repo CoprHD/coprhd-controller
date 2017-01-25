@@ -1737,6 +1737,11 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
             }
         }
 
+        if (nasServer == null) {
+            s_logger.error(String.format("Adding steps to apply policies failed : No Nas server found on system {}", system.getLabel()));
+            throw DeviceControllerException.exceptions.noNasServerFoundToAddStepsToApplyPolicy(system.getLabel());
+        }
+
         VirtualPool vpool = s_dbClient.queryObject(VirtualPool.class, sourceFS.getVirtualPool());
         List<FilePolicy> fileVpoolPolicies = FileOrchestrationUtils.getAllVpoolLevelPolices(s_dbClient, vpool, sourceFS.getStorageDevice(),
                 nasServer);

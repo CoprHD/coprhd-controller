@@ -250,6 +250,27 @@ consistent_hlu_test(){
     test_VPLEX_ORCH_4;
 }
 
+# Consistent HLU Tests
+# 1. Export a volume to cluster. Result: HLU should be 1.
+# 2. Add another volume to existing cluster Export with user specified HLU. 
+#       Result: HLU for the newly added volume should be user choice.
+# 3. Add one more volume to the cluster export. 
+#       Result: All hosts in the cluster sees the volume with same HLU (least unused number among all its hosts views)
+# 4. Remove one volume from cluster export.
+# 5. Remove host from Cluster. 
+#       Result: StorageView should be deleted on array.
+# 6. Add the host again to cluster. 
+#       Result: New storageview for the added host should be created on array and all the volumes available in EG 
+#               should be added into Storage vew with the same HLU.
+# 7. Remove one volume from cluster export and use the volume to create new export group for one of the Host.
+#       Result: Newly added host's storageView should have one additional volume that the other host.
+# 8. Export a new volume to cluster export and verify the HLU.
+# 9. Delete Host's export group.
+#       Result: Exclusing volume should be removed from the Host's storageView.
+# 10. Delete Cluster's Export Group.
+#       Result: All the StorageViews should be deleted on array.
+
+
 test_VPLEX_ORCH_4(){
     echot "Test VPLEX_ORCH_4: Consistent HLU Validation."
     expname=${EXPORT_GROUP_NAME}tvo1
@@ -328,7 +349,7 @@ test_VPLEX_ORCH_4(){
     verify_export ${expname}1 ${HOST2} gone
 
     verify_no_zones ${FC_ZONE_A:7} ${HOST1}
-    
+
     set_validation_check true
 }
 

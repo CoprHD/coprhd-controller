@@ -4312,7 +4312,6 @@ test_26() {
 #
 test_27() {
     echot "Test 27: Export Group update/delete when multiple export groups for one host"
-    fi
 
     # Check to make sure we're running Unity only
     if [ "${SS}" != "unity" ]; then
@@ -4457,7 +4456,6 @@ test_27() {
     runcmd export_group delete $PROJECT/${expname}1
     runcmd export_group delete $PROJECT2/${expname}2
     runcmd volume delete --project $PROJECT2 --wait
-    fi
 }
 
 # DU Prevention Validation Test 28 (Unity only)

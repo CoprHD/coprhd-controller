@@ -607,6 +607,32 @@ public class ExportUtils {
         return sharedExportMaskNameList;
     }
 
+    /**
+     * Check if initiator is used by multiple masks of same storage array
+     *
+     * @param dbClient DbClient
+     * @param mask ExportMask
+     * @initiatorUri URI of initiator
+     * @return true if shared by multiple masks, otherwise false
+     */
+    public static boolean isInitiatorSharedByMasks(DbClient dbClient, ExportMask mask, URI initiatorUri) {
+        URI storageUri = mask.getStorageDevice();
+        if (NullColumnValueGetter.isNullURI(storageUri)) {
+            return false;
+        }
+
+        List<ExportMask> results =
+                CustomQueryUtility.queryActiveResourcesByConstraint(dbClient, ExportMask.class,
+                        ContainmentConstraint.Factory.getConstraint(ExportMask.class, "initiators", initiatorUri));
+        for (ExportMask exportMask : results) {
+            if (exportMask != null && !exportMask.getId().equals(mask.getId()) && storageUri.equals(exportMask.getStorageDevice())) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     static public int getNumberOfExportGroupsWithVolume(Initiator initiator, URI blockObjectId, DbClient dbClient) {
         List<ExportGroup> list = getInitiatorVolumeExportGroups(initiator, blockObjectId, dbClient);
         return (list != null) ? list.size() : 0;

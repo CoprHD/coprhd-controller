@@ -244,7 +244,7 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
                     if (operation != null
                             && XtremIOExportOperationContext.OPERATION_ADD_VOLUMES_TO_INITIATOR_GROUP.equals(operation.getOperation())) {
                         addedVolumes = (List<URI>) operation.getArgs().get(0);
-                        _log.info("Removing volumes {} as part of rollback", Joiner.on(',').join(volumeUris));
+                        _log.info("Removing volumes {} as part of rollback", Joiner.on(',').join(addedVolumes));
                     }
                 }
                 volumeUris = addedVolumes;

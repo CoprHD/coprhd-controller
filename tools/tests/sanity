@@ -13630,8 +13630,8 @@ unityblock_export_consistent_hlu_test1()
     unity_verify_export ${HOST2} 2 3 1,2,3
 
     run export_group delete $PROJECT/${expname}1
-    unity_verify_export ${HOST1} 2 0
-    unity_verify_export ${HOST2} 2 0
+    unity_verify_export ${HOST1} gone
+    unity_verify_export ${HOST2} gone
 
     run volume delete $PROJECT/${volname}-1 --wait
     run volume delete $PROJECT/${volname}-2 --wait
@@ -13716,8 +13716,8 @@ unityblock_export_consistent_hlu_test2()
     unity_verify_export ${HOST2} 2 2 1,2
 
     run export_group delete $PROJECT/${expname}2
-    unity_verify_export ${HOST1} 2 0
-    unity_verify_export ${HOST2} 2 0
+    unity_verify_export ${HOST1} gone
+    unity_verify_export ${HOST2} gone
 
     run volume delete $PROJECT/${volname}-1 --wait
     run volume delete $PROJECT/${volname}-2 --wait
@@ -13806,8 +13806,8 @@ unityblock_export_consistent_hlu_snap_test1()
     unity_verify_export ${HOST2} 2 3 1,2,3
 
     run export_group delete $PROJECT/${expname}1
-    unity_verify_export ${HOST1} 2 0
-    unity_verify_export ${HOST2} 2 0
+    unity_verify_export ${HOST1} gone
+    unity_verify_export ${HOST2} gone
 
     run blocksnapshot delete $PROJECT/${volname}-1/${snapname}-1
     run blocksnapshot delete $PROJECT/${volname}-2/${snapname}-2
@@ -13903,8 +13903,8 @@ unityblock_export_consistent_hlu_snap_test2()
     unity_verify_export ${HOST2} 2 2 1,2
 
     run export_group delete $PROJECT/${expname}2
-    unity_verify_export ${HOST1} 2 0
-    unity_verify_export ${HOST2} 2 0
+    unity_verify_export ${HOST1} gone
+    unity_verify_export ${HOST2} gone
 
     run blocksnapshot delete $PROJECT/${volname}-1/${snapname}-1
     run blocksnapshot delete $PROJECT/${volname}-2/${snapname}-2

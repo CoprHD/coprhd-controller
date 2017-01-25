@@ -5695,15 +5695,34 @@ public class SmisCommandHelper implements SmisConstants {
         Volume volume = null;
         if (URIUtil.isType(blockObjectURI, Volume.class)) {
             volume = _dbClient.queryObject(Volume.class, blockObjectURI);
+            // Using the same logic that is in the above getVMAX3FastSettingForVolume method.
+            // If the there is a BlockSnapshot with the same native GUID as the volume, then
+            // this is a backend volume representing the snapshot for the purpose of importing
+            // the snapshot into VPLEX as a VPLEX volume. Therefore, treat it like a block snapshot
+            // and use the parent volume.
+            List<BlockSnapshot> snapshots = CustomQueryUtility.getActiveBlockSnapshotByNativeGuid(_dbClient, volume.getNativeGuid());
+            if (!snapshots.isEmpty()) {
+                volume = _dbClient.queryObject(Volume.class, snapshots.get(0).getParent());
+            }
         } else if (URIUtil.isType(blockObjectURI, BlockSnapshot.class)) {
             BlockSnapshot snapshot = _dbClient.queryObject(BlockSnapshot.class, blockObjectURI);
             volume = _dbClient.queryObject(Volume.class, snapshot.getParent());
         } else if (URIUtil.isType(blockObjectURI, BlockMirror.class)) {
             BlockMirror mirror = _dbClient.queryObject(BlockMirror.class, blockObjectURI);
+            if (NullColumnValueGetter.isNullURI(mirror.getVirtualPool()) || NullColumnValueGetter.isNullURI(mirror.getPool())) {
+                _log.info("The given BlockMirror {} does not have an associated Virtual pool or Storage Pool ",
+                        blockObjectURI);
+                return false; // This should never happen but we need this additional check.
+            }
             virtualPool = _dbClient.queryObject(VirtualPool.class, mirror.getVirtualPool());
             storagePool = _dbClient.queryObject(StoragePool.class, mirror.getPool());
         }
         if (volume != null) {
+            if (NullColumnValueGetter.isNullURI(volume.getVirtualPool()) || NullColumnValueGetter.isNullURI(volume.getPool())) {
+                _log.info("The given Volume {} does not have an associated Virtual pool or Storage Pool ",
+                        blockObjectURI);
+                return false; // This should never happen but we need this additional check.
+            }
             virtualPool = _dbClient.queryObject(VirtualPool.class, volume.getVirtualPool());
             storagePool = _dbClient.queryObject(StoragePool.class, volume.getPool());
         }

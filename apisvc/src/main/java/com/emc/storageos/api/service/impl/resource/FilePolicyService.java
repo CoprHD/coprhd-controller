@@ -12,9 +12,12 @@ import static com.emc.storageos.api.mapper.TaskMapper.toTask;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.EnumSet;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.UUID;
 
@@ -35,8 +38,13 @@ import org.springframework.beans.factory.annotation.Autowired;
 
 import com.emc.storageos.api.mapper.functions.MapFilePolicy;
 import com.emc.storageos.api.service.authorization.PermissionsHelper;
+import com.emc.storageos.api.service.impl.placement.FileMirrorRecommendation;
+import com.emc.storageos.api.service.impl.placement.FileMirrorRecommendation.Target;
+import com.emc.storageos.api.service.impl.placement.FilePlacementManager;
+import com.emc.storageos.api.service.impl.placement.FileRecommendation;
 import com.emc.storageos.api.service.impl.resource.utils.FilePolicyServiceUtils;
 import com.emc.storageos.api.service.impl.response.BulkList;
+import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.FilePolicy;
 import com.emc.storageos.db.client.model.FilePolicy.FilePolicyApplyLevel;
@@ -44,11 +52,14 @@ import com.emc.storageos.db.client.model.FilePolicy.FilePolicyType;
 import com.emc.storageos.db.client.model.FilePolicy.FileReplicationType;
 import com.emc.storageos.db.client.model.FilePolicy.SnapshotExpireType;
 import com.emc.storageos.db.client.model.FileReplicationTopology;
+import com.emc.storageos.db.client.model.OpStatusMap;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.StringSet;
+import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.fileorchestrationcontroller.FileOrchestrationController;
+import com.emc.storageos.fileorchestrationcontroller.FileStorageSystemAssociation;
 import com.emc.storageos.model.BulkIdParam;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.model.ResourceTypeEnum;
@@ -74,6 +85,7 @@ import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.BadRequestException;
 import com.emc.storageos.volumecontroller.impl.monitoring.RecordableEventManager;
+import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
 
 /**
  * @author jainm15
@@ -89,15 +101,32 @@ public class FilePolicyService extends TaskResourceService {
 
     private static final String EVENT_SERVICE_TYPE = "FilePolicy";
 
+    // File service implementations
+    static volatile private Map<String, FileServiceApi> _fileServiceApis;
+
     @Autowired
     private RecordableEventManager _evtMgr;
 
     @Autowired
     private NetworkService networkSvc;
 
+    private FilePlacementManager _filePlacementManager;
+
+    public void setFilePlacementManager(FilePlacementManager placementManager) {
+        _filePlacementManager = placementManager;
+    }
+
     @Override
     public String getServiceType() {
         return EVENT_SERVICE_TYPE;
+    }
+
+    public static void setFileServiceApis(Map<String, FileServiceApi> _fileServiceApis) {
+        FilePolicyService._fileServiceApis = _fileServiceApis;
+    }
+
+    public static FileServiceApi getDefaultFileServiceApi() {
+        return _fileServiceApis.get("default");
     }
 
     @Override
@@ -142,7 +171,8 @@ public class FilePolicyService extends TaskResourceService {
     /**
      * Retrieve resource representations based on input ids.
      * 
-     * @param param POST data containing the id list.
+     * @param param
+     *            POST data containing the id list.
      * @brief List of file policies of given ids.
      * @return list of representations.
      */
@@ -158,7 +188,8 @@ public class FilePolicyService extends TaskResourceService {
     /**
      * @brief Create File Snapshot, Replication Policy
      * 
-     * @param param FilePolicyParam
+     * @param param
+     *            FilePolicyParam
      * @return FilePolicyCreateResp
      */
     @POST
@@ -272,7 +303,8 @@ public class FilePolicyService extends TaskResourceService {
     /**
      * @brief Get details of a file policy.
      * 
-     * @param id of the file policy.
+     * @param id
+     *            of the file policy.
      * @return File policy information.
      */
     @GET
@@ -289,7 +321,8 @@ public class FilePolicyService extends TaskResourceService {
 
     /**
      * @brief Delete file policy.
-     * @param id of the file policy.
+     * @param id
+     *            of the file policy.
      * @return
      */
     @DELETE
@@ -325,8 +358,10 @@ public class FilePolicyService extends TaskResourceService {
     /**
      * @brief Assign File Policy to vpool, project, file system
      * 
-     * @param id of the file policy.
-     * @param param FilePolicyAssignParam
+     * @param id
+     *            of the file policy.
+     * @param param
+     *            FilePolicyAssignParam
      * @return FilePolicyAssignResp
      */
     @POST
@@ -352,7 +387,8 @@ public class FilePolicyService extends TaskResourceService {
 
     /**
      * @brief Unassign File Policy from vpool, project, file system.
-     * @param id of the file policy.
+     * @param id
+     *            of the file policy.
      * @param FilePolicyUnAssignParam
      * @return TaskResourceRep
      */
@@ -415,10 +451,13 @@ public class FilePolicyService extends TaskResourceService {
     }
 
     /**
-     * Add or remove individual File Policy ACL entry(s). Request body must include at least one add or remove operation.
+     * Add or remove individual File Policy ACL entry(s). Request body must include at least one add or remove
+     * operation.
      * 
-     * @param id the URN of a ViPR File Policy
-     * @param changes ACL assignment changes
+     * @param id
+     *            the URN of a ViPR File Policy
+     * @param changes
+     *            ACL assignment changes
      * @brief Add or remove ACL entries from file store VirtualPool
      * @return No data returned in response body
      */
@@ -440,7 +479,8 @@ public class FilePolicyService extends TaskResourceService {
     /**
      * Get File Policy ACLs
      * 
-     * @param id the URI of a ViPR FilePolicy
+     * @param id
+     *            the URI of a ViPR FilePolicy
      * @brief Show ACL entries for File policy
      * @return ACL Assignment details
      */
@@ -463,8 +503,10 @@ public class FilePolicyService extends TaskResourceService {
     /**
      * @brief Update the file policy
      * 
-     * @param id the URI of a ViPR FilePolicy
-     * @param param FilePolicyUpdateParam
+     * @param id
+     *            the URI of a ViPR FilePolicy
+     * @param param
+     *            FilePolicyUpdateParam
      * @return FilePolicyCreateResp
      */
     @PUT
@@ -787,9 +829,99 @@ public class FilePolicyService extends TaskResourceService {
         updateFileReplicationTopologyInfo(param, filePolicy, errorMsg);
 
         _dbClient.updateObject(filePolicy);
+
+        Project project = null;
+        List<FileRecommendation> recommendations = new ArrayList<FileRecommendation>();
+        for (URI vpoolURI : vpoolURIs) {
+            VirtualPool vpool = _dbClient.queryObject(VirtualPool.class, vpoolURI);
+            Iterator<FileReplicationTopologyParam> it = param.getFileReplicationtopologies().iterator();
+            while (it.hasNext()) {
+                VirtualPoolCapabilityValuesWrapper capabilities = new VirtualPoolCapabilityValuesWrapper();
+                capabilities.put(VirtualPoolCapabilityValuesWrapper.VPOOL_PROJECT_POLICY_ASSIGN, true);
+                VirtualArray srcVarray = _dbClient.queryObject(VirtualArray.class, it.next().getSourceVArray());
+                updatePolicyCapabilities(_dbClient, srcVarray, vpool, project, filePolicy, capabilities, errorMsg);
+                List<FileRecommendation> newRecs = _filePlacementManager.getRecommendationsForFileCreateRequest(srcVarray, project,
+                        vpool, capabilities);
+                for (FileRecommendation rec : newRecs) {
+                    rec.setVirtualPool(vpool);
+                }
+                recommendations.addAll(newRecs);
+            }
+        }
+
+        String task = UUID.randomUUID().toString();
+        TaskResourceRep taskObject = createAssignFilePolicyTask(filePolicy, task);
+
+        FileServiceApi fileServiceApi = getDefaultFileServiceApi();
+
+        fileServiceApi.assignFileReplicationPolicyToVirtualPool(convertRecommendationsToStorageSystemAssociations(recommendations),
+                filePolicy.getId(), task);
+
         return new FilePolicyAssignResp(filePolicy.getId(), toLink(ResourceTypeEnum.FILE_POLICY,
                 filePolicy.getId()), filePolicy.getLabel(), filePolicy.getApplyAt(), filePolicy.getAssignedResources());
 
+    }
+
+    public static boolean updatePolicyCapabilities(DbClient dbClient, VirtualArray currVArray, VirtualPool vPool, Project project,
+            FilePolicy fp,
+            VirtualPoolCapabilityValuesWrapper capabilities, StringBuilder errorMsg) {
+        FilePolicy policy = fp;
+        // Update replication policy capabilities!!
+        capabilities.put(VirtualPoolCapabilityValuesWrapper.FILE_REPLICATION_TYPE, policy.getFileReplicationType());
+        capabilities.put(VirtualPoolCapabilityValuesWrapper.FILE_REPLICATION_COPY_MODE, policy.getFileReplicationCopyMode());
+        if (vPool.getFrRpoType() != null) { // rpo type can be DAYS or HOURS
+            capabilities.put(VirtualPoolCapabilityValuesWrapper.FILE_REPLICATION_RPO_TYPE, vPool.getFrRpoType());
+        }
+        if (vPool.getFrRpoValue() != null) {
+            capabilities.put(VirtualPoolCapabilityValuesWrapper.FILE_REPLICATION_RPO_VALUE, vPool.getFrRpoValue());
+        }
+        capabilities.put(VirtualPoolCapabilityValuesWrapper.FILE_REPLICATION_APPLIED_AT, policy.getApplyAt());
+
+        // Update target varrys for file placement!!
+        if (policy.getReplicationTopologies() != null && !policy.getReplicationTopologies().isEmpty()) {
+            Set<String> targetVArrys = new HashSet<String>();
+            for (String strTopology : policy.getReplicationTopologies()) {
+                FileReplicationTopology dbTopology = dbClient.queryObject(FileReplicationTopology.class,
+                        URI.create(strTopology));
+                if (currVArray.getId().toString().equalsIgnoreCase(dbTopology.getSourceVArray().toString())) {
+                    targetVArrys.addAll(dbTopology.getTargetVArrays());
+                    break;
+                }
+            }
+            if (targetVArrys.isEmpty()) {
+                errorMsg.append("Target VArry is not defined in replication topology for source varry "
+                        + currVArray.getId().toString());
+                return false;
+            }
+            capabilities.put(VirtualPoolCapabilityValuesWrapper.FILE_REPLICATION_TARGET_VARRAYS,
+                    targetVArrys);
+            capabilities.put(VirtualPoolCapabilityValuesWrapper.FILE_REPLICATION_TARGET_VPOOL,
+                    vPool.getId());
+        } else {
+            errorMsg.append("Replication Topology is not defined for policy " + policy.getFilePolicyName());
+            return false;
+        }
+        return true;
+    }
+
+    private List<FileStorageSystemAssociation> convertRecommendationsToStorageSystemAssociations(List<FileRecommendation> recs) {
+        List<FileStorageSystemAssociation> associations = new ArrayList<FileStorageSystemAssociation>();
+        for (FileRecommendation rec : recs) {
+            FileMirrorRecommendation mirrorRec = (FileMirrorRecommendation) rec;
+            FileStorageSystemAssociation association = new FileStorageSystemAssociation();
+            association.setSourceSystem(mirrorRec.getSourceStorageSystem());
+            association.setSourceVNAS(mirrorRec.getvNAS());
+            Map<URI, URI> targetInfo = new HashMap<URI, URI>();
+            Iterator<Entry<URI, Target>> it = mirrorRec.getVirtualArrayTargetMap().entrySet().iterator();
+            while (it.hasNext()) {
+                Target target = it.next().getValue();
+                targetInfo.put(target.getTargetStorageDevice(), target.getTargetvNASURI());
+                association.setTargetInfo(targetInfo);
+            }
+            association.setVpool(rec.getVirtualPool().getId());
+            associations.add(association);
+        }
+        return associations;
     }
 
     private FilePolicyAssignResp assignFilePolicyToProject(FilePolicyAssignParam param, FilePolicy filePolicy) {
@@ -1020,5 +1152,14 @@ public class FilePolicyService extends TaskResourceService {
             }
         }
         return false;
+    }
+
+    private TaskResourceRep createAssignFilePolicyTask(FilePolicy filepolicy, String taskId) {
+        filepolicy.setOpStatus(new OpStatusMap());
+        Operation op = new Operation();
+        op.setResourceType(ResourceOperationTypeEnum.ASSIGN_FILE_POLICY);
+        filepolicy.getOpStatus().createTaskStatus(taskId, op);
+        _dbClient.updateObject(filepolicy);
+        return toTask(filepolicy, taskId);
     }
 }

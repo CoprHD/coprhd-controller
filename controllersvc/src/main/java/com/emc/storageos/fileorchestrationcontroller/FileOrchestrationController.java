@@ -229,4 +229,10 @@ public interface FileOrchestrationController extends Controller {
      * @throws InternalException
      */
     public void unassignFilePolicy(URI policy, Set<URI> unassignFrom, String taskId) throws InternalException;
+
+    public void assignFileReplicationPolicyToVirtualPool(List<FileStorageSystemAssociation> associations, URI filePolicyToAssign,
+            String taskId);
+
+    public void assignFileReplicationPolicyToProject(List<FileStorageSystemAssociation> associations, List<URI> projectURIs,
+            URI filePolicyToAssign, String taskId);
 }

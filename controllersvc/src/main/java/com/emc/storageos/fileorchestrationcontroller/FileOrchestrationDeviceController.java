@@ -93,6 +93,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
     static final String DELETE_FILESYSTEM_SHARE_ACLS_WF_NAME = "DELETE_FILESYSTEM_SHARE_ACLS_WORKFLOW";
     static final String REPLICATE_QUOTA_DIR_SETTINGS_TO_TARGET_WF_NAME = "REPLICATE_QUOTA_DIR_SETTINGS_TO_TARGET_WORKFLOW";
     static final String UNASSIGN_FILE_POLICY_WF_NAME = "UNASSIGN_FILE_POLICY_WORKFLOW";
+    static final String ASSIGN_FILE_POLICY_WF_NAME = "ASSIGN_FILE_POLICY_WORKFLOW";
 
     static final String FAILOVER_FILESYSTEMS_WF_NAME = "FAILOVER_FILESYSTEM_WORKFLOW";
     static final String FAILBACK_FILESYSTEMS_WF_NAME = "FAILBACK_FILESYSTEM_WORKFLOW";
@@ -130,6 +131,8 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
 
     private static final String APPLY_FILE_POLICY_METHOD = "applyFilePolicy";
     private static final String UNASSIGN_FILE_POLICY_METHOD = "unassignFilePolicy";
+    private static final String ASSIGN_FILE_REPLICATION_POLICY_TO_VIRTUAL_POOL_METHOD = "assignFileReplicationPolicyToVirtualPool";
+    private static final String ASSIGN_FILE_REPLICATION_POLICY_TO_PROJECT_METHOD = "assignFileReplicationPolicyToProject";
 
     /*
      * (non-Javadoc)
@@ -1806,6 +1809,81 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
         } catch (Exception ex) {
             s_logger.error(String.format("unassigning file policy : %s,  from resource: %s failed,", filePolicy.getId(), unassignFrom), ex);
             ServiceError serviceError = DeviceControllerException.errors.unassignFilePolicyFailed(policy.toString(), opName, ex);
+            completer.error(s_dbClient, _locker, serviceError);
+        }
+    }
+
+    @Override
+    public void assignFileReplicationPolicyToVirtualPool(List<FileStorageSystemAssociation> associations, URI filePolicyToAssign,
+            String taskId) {
+        FilePolicy filePolicy = s_dbClient.queryObject(FilePolicy.class, filePolicyToAssign);
+        String opName = ResourceOperationTypeEnum.ASSIGN_FILE_POLICY.getName();
+        TaskCompleter completer = new FilePolicyWorkflowCompleter(filePolicyToAssign, taskId);
+
+        try {
+            String waitFor = null;
+            Workflow workflow = _workflowService.getNewWorkflow(this, ASSIGN_FILE_POLICY_WF_NAME, false, taskId, completer);
+
+            for (FileStorageSystemAssociation association : associations) {
+                s_logger.info("Generating steps for assigning file policy {} to vpool: {}.", filePolicyToAssign, association);
+
+                String stepId = workflow.createStepId();
+                String stepDes = String.format("Assigning file policy: %s, to vpool: %s on storage system: %s", filePolicy.getId(),
+                        association.getVpool(), association.getSourceSystem());
+                Object[] args = new Object[] { association, filePolicyToAssign, association.getVpool() };
+                waitFor = _fileDeviceController.createMethod(workflow, waitFor,
+                        ASSIGN_FILE_REPLICATION_POLICY_TO_VIRTUAL_POOL_METHOD,
+                        stepId,
+                        stepDes,
+                        association.getSourceSystem(), args);
+            }
+
+            String successMessage = String.format("Assigning file policy : %s, to vpool(s) successful.",
+                    filePolicy.getId());
+            workflow.executePlan(completer, successMessage);
+        } catch (Exception ex) {
+            s_logger.error(String.format("Assigning file policy : %s to vpool(s) failed", filePolicy.getId()), ex);
+            ServiceError serviceError = DeviceControllerException.errors
+                    .assignFilePolicyToVirtualPoolFailed(filePolicyToAssign.toString(), opName, ex);
+            completer.error(s_dbClient, _locker, serviceError);
+        }
+    }
+
+    @Override
+    public void assignFileReplicationPolicyToProject(List<FileStorageSystemAssociation> associations, List<URI> projectURIs,
+            URI filePolicyToAssign,
+            String taskId) {
+        FilePolicy filePolicy = s_dbClient.queryObject(FilePolicy.class, filePolicyToAssign);
+        String opName = ResourceOperationTypeEnum.ASSIGN_FILE_POLICY.getName();
+        TaskCompleter completer = new FilePolicyWorkflowCompleter(filePolicyToAssign, taskId);
+
+        try {
+            String waitFor = null;
+            Workflow workflow = _workflowService.getNewWorkflow(this, ASSIGN_FILE_POLICY_WF_NAME, false, taskId, completer);
+
+            for (FileStorageSystemAssociation association : associations) {
+                s_logger.info("Generating steps for assigning file policy {} to vpool: {}.", filePolicyToAssign, association.getVpool());
+
+                for (URI projectURI : projectURIs) {
+                    String stepId = workflow.createStepId();
+                    String stepDes = String.format("Assigning file policy: %s, to project: %s on storage system: %s", filePolicy.getId(),
+                            projectURI, association.getSourceSystem());
+                    Object[] args = new Object[] { association, filePolicyToAssign, association.getVpool(), projectURI };
+                    waitFor = _fileDeviceController.createMethod(workflow, waitFor,
+                            ASSIGN_FILE_REPLICATION_POLICY_TO_VIRTUAL_POOL_METHOD,
+                            stepId,
+                            stepDes,
+                            association.getSourceSystem(), args);
+                }
+            }
+
+            String successMessage = String.format("Assigning file policy : %s, to vpool(s) successful.",
+                    filePolicy.getId());
+            workflow.executePlan(completer, successMessage);
+        } catch (Exception ex) {
+            s_logger.error(String.format("Assigning file policy : %s to vpool(s) failed", filePolicy.getId()), ex);
+            ServiceError serviceError = DeviceControllerException.errors
+                    .assignFilePolicyToVirtualPoolFailed(filePolicyToAssign.toString(), opName, ex);
             completer.error(s_dbClient, _locker, serviceError);
         }
     }

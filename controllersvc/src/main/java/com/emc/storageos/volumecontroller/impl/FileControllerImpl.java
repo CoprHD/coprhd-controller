@@ -18,6 +18,7 @@ import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
 import com.emc.storageos.db.client.model.DiscoveredSystemObject;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.exceptions.ClientControllerException;
+import com.emc.storageos.fileorchestrationcontroller.FileStorageSystemAssociation;
 import com.emc.storageos.impl.AbstractDiscoveredSystemController;
 import com.emc.storageos.model.file.CifsShareACLUpdateParams;
 import com.emc.storageos.model.file.FileExportUpdateParams;
@@ -248,6 +249,18 @@ public class FileControllerImpl extends AbstractDiscoveredSystemController imple
     @Override
     public void applyFilePolicy(URI fs, URI filePolicy, String taskId) throws InternalException {
         execFS("applyFilePolicy", fs, filePolicy, taskId);
+    }
+
+    @Override
+    public void assignFileReplicationPolicyToVirtualPool(FileStorageSystemAssociation association, URI filePolicyToAssign, URI vpoolURI,
+            String opId) throws ControllerException {
+        execFS("assignFileReplicationPolicyToVirtualPool", association, filePolicyToAssign, opId);
+    }
+
+    @Override
+    public void assignFileReplicationPolicyToProject(FileStorageSystemAssociation association, URI filePolicyToAssign, URI vpoolURI,
+            URI projectURI, String opId) throws InternalException {
+        execFS("assignFileReplicationPolicyToProject", association, filePolicyToAssign, opId);
     }
 
 }

@@ -50,6 +50,7 @@ import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.exceptions.DeviceControllerErrors;
 import com.emc.storageos.exceptions.DeviceControllerException;
+import com.emc.storageos.fileorchestrationcontroller.FileStorageSystemAssociation;
 import com.emc.storageos.model.file.ExportRule;
 import com.emc.storageos.plugins.common.Constants;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
@@ -2458,9 +2459,9 @@ public class VNXeStorageDevice extends VNXeOperations
             }
 
             // find out the change between array and CoprHD database.
-            Set<String> arrayExtraReadOnlyHost = Sets.difference((Set<String>) arrayReadOnlyHost, dbReadOnlyHost);
-            Set<String> arrayExtraReadWriteHost = Sets.difference((Set<String>) arrayReadWriteHost, dbReadWriteHost);
-            Set<String> arrayExtraRootHost = Sets.difference((Set<String>) arrayRootHost, dbRootHost);
+            Set<String> arrayExtraReadOnlyHost = Sets.difference(arrayReadOnlyHost, dbReadOnlyHost);
+            Set<String> arrayExtraReadWriteHost = Sets.difference(arrayReadWriteHost, dbReadWriteHost);
+            Set<String> arrayExtraRootHost = Sets.difference(arrayRootHost, dbRootHost);
             // if change found update the exportRuleMap
             if (!arrayExtraReadOnlyHost.isEmpty() || !arrayExtraReadWriteHost.isEmpty() || !arrayExtraRootHost.isEmpty()) {
                 ExportRule extraRuleFromArray = new ExportRule();
@@ -2761,5 +2762,12 @@ public class VNXeStorageDevice extends VNXeOperations
     public BiosCommandResult doUnassignFilePolicy(StorageSystem storage, FileDeviceInputOutput fd) throws ControllerException {
         return BiosCommandResult.createErrorResult(
                 DeviceControllerErrors.vnxe.operationNotSupported("un assign File Policy", "VNXe"));
+    }
+
+    @Override
+    public BiosCommandResult checkFileReplicationPolicyExistsOrCreate(FileStorageSystemAssociation association,
+            FileDeviceInputOutput args) {
+        return BiosCommandResult.createErrorResult(
+                DeviceControllerErrors.vnxe.operationNotSupported("assign File Policy", "VNXe"));
     }
 }

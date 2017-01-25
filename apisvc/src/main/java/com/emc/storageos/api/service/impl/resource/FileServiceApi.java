@@ -10,6 +10,7 @@ import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
+import com.emc.storageos.fileorchestrationcontroller.FileStorageSystemAssociation;
 import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.TaskResourceRep;
 import com.emc.storageos.model.file.CifsShareACLUpdateParams;
@@ -273,4 +274,10 @@ public interface FileServiceApi {
      * @throws InternalException
      */
     void deleteShareACLs(URI storage, URI uri, String shareName, String taskId) throws InternalException;
+
+    void assignFileReplicationPolicyToVirtualPool(List<FileStorageSystemAssociation> associations, URI filePolicyToAssign,
+            String taskId);
+
+    void assignFileReplicationPolicyToProject(List<FileStorageSystemAssociation> associations, List<URI> projectURIs,
+            URI filePolicyToAssign, String taskId);
 }

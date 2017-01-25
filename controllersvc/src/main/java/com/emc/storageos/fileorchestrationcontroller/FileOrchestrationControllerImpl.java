@@ -122,6 +122,20 @@ public class FileOrchestrationControllerImpl implements FileOrchestrationControl
 
     }
 
+    @Override
+    public void assignFileReplicationPolicyToVirtualPool(List<FileStorageSystemAssociation> associations, URI filePolicyToAssign,
+            String taskId) {
+        execOrchestration("assignFileReplicationPolicyToVirtualPool", associations, filePolicyToAssign, taskId);
+
+    }
+
+    @Override
+    public void assignFileReplicationPolicyToProject(List<FileStorageSystemAssociation> associations, List<URI> projectURIs,
+            URI filePolicyToAssign, String taskId) {
+        execOrchestration("assignFileReplicationPolicyToProject", associations, filePolicyToAssign, taskId);
+
+    }
+
     // getter and setter methods
     public FileOrchestrationController getController() {
         return _controller;
@@ -151,5 +165,4 @@ public class FileOrchestrationControllerImpl implements FileOrchestrationControl
         _dispatcher.queue(NullColumnValueGetter.getNullURI(), FILE_ORCHESTRATION_DEVICE,
                 getController(), methodName, args);
     }
-
 }

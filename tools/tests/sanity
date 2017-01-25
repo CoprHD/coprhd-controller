@@ -16,7 +16,7 @@ Usage()
 {
     echo 'Usage: sanity <configuration_file> <bourne_ip>|<[bourne_ipv6]> {all | snapvx | isilon | vplex [normal|quick|xio|vnx] [noingest|ingest [all|exported|unexported]] | vplexexport | vplexsnap | custvolname | vnxblock | ingestblock | vnxblock_flex_varray | netapp | netappc | recoverpoint | xtremio | srdf |
  vnxfile | datadomainfile | vmaxblock | hds | vmaxblock_flex_varray | combined_block | blocksnapshot | blockmirror | full_copy | blockconsistencygroup | init | quick | sbsdk |
- errorhandling | vnxe | security | syssvc | audit | monitor | vdc | catalog | recovery | backuprestore backupserver-uri username password | dr | ipsec | ceph} [local|ldap] [<timeslot>] | sanzoning | application | unityblock | unityfile | arrayaffinity'
+ errorhandling | vnxe | security | syssvc | audit | monitor | vdc | catalog | recovery | backuprestore backupserver-uri username password | dr | ipsec | ceph} [local|ldap] [<timeslot>] | sanzoning | application | unityblock [all|block|vplex|rp|hlu] | unityfile | arrayaffinity'
     echo 'E.g.:  sanity conf/sanity.conf 137.69.169.21 all'
     echo 'E.g.:  sanity ~/.sanity/sanity.conf 137.69.169.21 isilon'
     echo 'Note: IPv6 needs to be square bracket surrounded. E.g.:  sanity [2620:0:170:2842::180] security'
@@ -121,6 +121,9 @@ elif [ ${SS} = "sbsdk" ]; then
     EXTRA_PARAM=${6}
 elif [ ${SS} = "xtremio" ]; then
     XIO_QUICK_PARAM=${4:-'quick'}
+    if [ "$XIO_QUICK_PARAM" != "quick" ] && [ "$XIO_QUICK_PARAM" = "hlu" ]; then
+        XIO_HLU_PARAM=1
+    fi
     AUTH=${5:-ldap}
     EXTRA_PARAM=${6}
 elif [ ${SS} = "snapvx" ]; then
@@ -1625,6 +1628,12 @@ xtremio_tests()
        xtremio_block_tests
        xtremio_blockconsistency_tests
    fi
+
+   # HLU specific tests
+   if [ $XIO_HLU_PARAM -eq 1 ]; then
+       xtremio_export_test_hlu
+   fi
+
    # Ingest specific tests
    if [ "$XIO_INGESTTESTS" = "1" ]; then
         secho "XIO ingest volumes"
@@ -1634,7 +1643,6 @@ xtremio_tests()
         secho "XIO ingest exported volumes"
         xtremio_ingest_export_test
         secho "XIO ingest tests complete"
-
    fi
 }
 
@@ -1716,33 +1724,21 @@ xtremio_block_tests()
     cos2=$XTREMIO_4X_COS_FC
     snap1_label=snap1-${HOSTNAME}-${RANDOM}
     snap2_label=snap2-${HOSTNAME}-${RANDOM}
-    snap3_label=snap3-${HOSTNAME}-${RANDOM}
             
     run volume create ${volume}1 $PROJECT $NH $cos2 $BLK_SIZE --thinVolume true
     run volume create ${volume}2 $PROJECT $NH $cos2 $BLK_SIZE --thinVolume true
-    run volume create ${volume}3 $PROJECT $NH $cos2 $BLK_SIZE --thinVolume true
-    run volume create ${volume}4 $PROJECT $NH $cos2 $BLK_SIZE --thinVolume true
-    run volume create ${volume}5 $PROJECT $NH $cos2 $BLK_SIZE --thinVolume true
     run blocksnapshot create $PROJECT/${volume}1 ${snap1_label}
     run blocksnapshot create $PROJECT/${volume}2 ${snap2_label}
-    run blocksnapshot create $PROJECT/${volume}3 ${snap3_label}
     
     xtremio_export_test ${export_name}1 ${volume}1 ${volume}2 ${snap1_label} ${snap2_label}
-    xtremio_export_test_hlu ${snap1_label} ${snap2_label} ${snap3_label}
 
     run blocksnapshot restore $snap2
     run volume bulkget
 
     run blocksnapshot delete $PROJECT/${volume}1/${snap1_label}
     run blocksnapshot delete $PROJECT/${volume}2/${snap2_label}
-    run blocksnapshot delete $PROJECT/${volume}3/${snap3_label}
     run volume delete $PROJECT/${volume}1 --wait
     run volume delete $PROJECT/${volume}2 --wait
-    run volume delete $PROJECT/${volume}3 --wait
-    run volume delete $PROJECT/${volume}4 --wait
-    run volume delete $PROJECT/${volume}5 --wait
-    echo There were $VERIFY_EXPORT_COUNT export verifications
-    echo There were $VERIFY_EXPORT_FAIL_COUNT export verification failures
 }
 
 xtremio_export_test()
@@ -1787,10 +1783,40 @@ xtremio_export_test()
 }
 
 xtremio_export_test_hlu() {
-	xtremio_export_test_hlu1
-	xtremio_export_test_hlu2
-	xtremio_export_test_hlu_snapshot_1 $1 $2 $3
-	xtremio_export_test_hlu_snapshot_2 $1 $2 $3
+    echo "xtremio export consistent HLU tests START"
+    cos1=$XTREMIO_3X_COS_FC
+    volume=${XTREMIOVOL}
+    cos2=$XTREMIO_4X_COS_FC
+    snap1_label=snap1-${HOSTNAME}-${RANDOM}
+    snap2_label=snap2-${HOSTNAME}-${RANDOM}
+    snap3_label=snap3-${HOSTNAME}-${RANDOM}
+
+    run volume create ${volume}1 $PROJECT $NH $cos2 $BLK_SIZE --thinVolume true
+    run volume create ${volume}2 $PROJECT $NH $cos2 $BLK_SIZE --thinVolume true
+    run volume create ${volume}3 $PROJECT $NH $cos2 $BLK_SIZE --thinVolume true
+    run volume create ${volume}4 $PROJECT $NH $cos2 $BLK_SIZE --thinVolume true
+    run volume create ${volume}5 $PROJECT $NH $cos2 $BLK_SIZE --thinVolume true
+    run blocksnapshot create $PROJECT/${volume}1 ${snap1_label}
+    run blocksnapshot create $PROJECT/${volume}2 ${snap2_label}
+    run blocksnapshot create $PROJECT/${volume}3 ${snap3_label}
+
+    xtremio_export_test_hlu1
+    xtremio_export_test_hlu2
+    xtremio_export_test_hlu_snapshot_1 ${snap1_label} ${snap2_label} ${snap3_label}
+    xtremio_export_test_hlu_snapshot_2 ${snap1_label} ${snap2_label} ${snap3_label}
+
+    run blocksnapshot delete $PROJECT/${volume}1/${snap1_label}
+    run blocksnapshot delete $PROJECT/${volume}2/${snap2_label}
+    run blocksnapshot delete $PROJECT/${volume}3/${snap3_label}
+    run volume delete $PROJECT/${volume}1 --wait
+    run volume delete $PROJECT/${volume}2 --wait
+    run volume delete $PROJECT/${volume}3 --wait
+    run volume delete $PROJECT/${volume}4 --wait
+    run volume delete $PROJECT/${volume}5 --wait
+
+    echo There were $VERIFY_EXPORT_COUNT export verifications
+    echo There were $VERIFY_EXPORT_FAIL_COUNT export verification failures
+    echo "xtremio export consistent HLU tests END"
 }
 
 #Consistent Cluster HLU
@@ -13270,6 +13296,10 @@ unityblock_tests()
     if [ "${UNITY_OPTION}" = "all" -o "${UNITY_OPTION}" = "rp" ]; then
         rpunity_tests
     fi
+
+    if [ "${UNITY_OPTION}" = "hlu" ]; then
+        unityblock_export_consistent_hlu_tests
+    fi
 }
 
 unityblock_base_tests()
@@ -13302,8 +13332,6 @@ unityblock_base_tests()
     run volume delete $PROJECT/$vol1 --wait
     run hosts delete $hostLbl
 
-    unityblock_export_consistent_hlu_test
-
     echo "unity consistency group tests"
 	    
     run blockconsistencygroup create $PROJECT $consistency_group
@@ -13316,9 +13344,6 @@ unityblock_base_tests()
     run volume delete $PROJECT/$vol2 --wait
     run blockconsistencygroup delete $consistency_group
     echo "**** Done unity block"
-
-    echo There were $VERIFY_EXPORT_COUNT export verifications
-    echo There were $VERIFY_EXPORT_FAIL_COUNT export verification failures
 }
 
 unity_verify_export() {
@@ -13338,15 +13363,18 @@ unity_verify_export() {
     VERIFY_EXPORT_COUNT=`expr $VERIFY_EXPORT_COUNT + 1`
 }
 
-unityblock_export_consistent_hlu_test()
+unityblock_export_consistent_hlu_tests()
 {
-    echo "unity export consistent HLU tests START"
+    echo "unity block export consistent HLU tests START"
     unityblock_export_consistent_hlu_test1
     unityblock_export_consistent_hlu_test2
 
     unityblock_export_consistent_hlu_snap_test1
     unityblock_export_consistent_hlu_snap_test2
-    echo "unity export consistent HLU tests END"
+
+    echo There were $VERIFY_EXPORT_COUNT export verifications
+    echo There were $VERIFY_EXPORT_FAIL_COUNT export verification failures
+    echo "unity block export consistent HLU tests END"
 }
 
 #Consistent Cluster HLU

@@ -154,6 +154,11 @@ public class StorageSystemService extends TaskResourceService {
     protected static final String POOL_EVENT_SERVICE_SOURCE = "StoragePoolService";
     private static final String POOL_EVENT_SERVICE_TYPE = "storagepool";
     protected static final String STORAGEPOOL_REGISTERED_DESCRIPTION = "Storage Pool Registered";
+    
+    protected static final String PORT_GROUP_EVENT_SERVICE_SOURCE = "StoragePortGroupService";
+    private static final String PORT_GROUP_EVENT_SERVICE_TYPE = "storageportGroup";
+    protected static final String STORAGEPORTGROUP_REGISTERED_DESCRIPTION = "Storage Port Group Registered";
+    protected static final String STORAGEPORTGROUP_DEREGISTERED_DESCRIPTION = "Storage Port Group Deregistered";
 
     private static final String TRUE_STR = "true";
 
@@ -1523,6 +1528,9 @@ public class StorageSystemService extends TaskResourceService {
         if (resType.equalsIgnoreCase("StoragePool")) {
             service = POOL_EVENT_SERVICE_TYPE;
             eventSource = POOL_EVENT_SERVICE_SOURCE;
+        } else if(resType.equalsIgnoreCase("StoragePortGroup")) {
+            service = PORT_GROUP_EVENT_SERVICE_TYPE;
+            eventSource = PORT_GROUP_EVENT_SERVICE_SOURCE;
         }
 
         RecordableBourneEvent event = new RecordableBourneEvent(
@@ -2105,4 +2113,71 @@ public class StorageSystemService extends TaskResourceService {
         return MapStoragePortGroup.getInstance(_dbClient).toStoragePortGroupRestRep(portGroup);
     }
 
+    /**
+     * Allows the user to deregister a registered storage port group so that it
+     * is no longer used by the system. This simply sets the
+     * registration_status of the storage port group to UNREGISTERED.
+     * 
+     * @param id the URN of a ViPR storage port.
+     * 
+     * @brief Unregister storage port
+     * @return Status response indicating success or failure
+     */
+    @POST
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/{id}/storage-port-groups/{portGroupId}/deregister")
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
+    public StoragePortGroupRestRep deregisterStoragePortGroup(@PathParam("portGroupId") URI portGroupId) {
+
+        ArgValidator.checkFieldUriType(portGroupId, StoragePortGroup.class, "portGroupId");
+        StoragePortGroup portGroup = _dbClient.queryObject(StoragePortGroup.class, portGroupId);
+        if (RegistrationStatus.REGISTERED.toString().equalsIgnoreCase(
+                portGroup.getRegistrationStatus())) {
+            // Setting status to UNREGISTERED.
+            portGroup.setRegistrationStatus(RegistrationStatus.UNREGISTERED.toString());
+            _dbClient.updateObject(portGroup);
+
+            // Record the storage port deregister event.
+            recordStoragePoolPortEvent(OperationTypeEnum.DEREGISTER_STORAGE_PORT_GROUP,
+                    STORAGEPORTGROUP_DEREGISTERED_DESCRIPTION, portGroup.getId(), "StoragePortGroup");
+
+            auditOp(OperationTypeEnum.DEREGISTER_STORAGE_PORT_GROUP, true, null,
+                    portGroup.getLabel(), portGroup.getId().toString());
+        }
+        return MapStoragePortGroup.getInstance(_dbClient).toStoragePortGroupRestRep(portGroup);
+    }
+    
+    /**
+     * Allows the user to register a unregistered storage port group so that it
+     * is no longer used by the system. This simply sets the
+     * registration_status of the storage port group to REGISTERED.
+     * 
+     * @param id the URN of a ViPR storage port.
+     * 
+     * @brief Register storage port
+     * @return Status response indicating success or failure
+     */
+    @POST
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/{id}/storage-port-groups/{portGroupId}/register")
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
+    public StoragePortGroupRestRep registerStoragePortGroup(@PathParam("portGroupId") URI portGroupId) {
+
+        ArgValidator.checkFieldUriType(portGroupId, StoragePortGroup.class, "portGroupId");
+        StoragePortGroup portGroup = _dbClient.queryObject(StoragePortGroup.class, portGroupId);
+        if (RegistrationStatus.UNREGISTERED.toString().equalsIgnoreCase(
+                portGroup.getRegistrationStatus())) {
+            // Setting status to UNREGISTERED.
+            portGroup.setRegistrationStatus(RegistrationStatus.REGISTERED.toString());
+            _dbClient.updateObject(portGroup);
+
+            // Record the storage port deregister event.
+            recordStoragePoolPortEvent(OperationTypeEnum.REGISTER_STORAGE_PORT_GROUP,
+                    STORAGEPORTGROUP_REGISTERED_DESCRIPTION, portGroup.getId(), "StoragePortGroup");
+
+            auditOp(OperationTypeEnum.REGISTER_STORAGE_PORT_GROUP, true, null,
+                    portGroup.getLabel(), portGroup.getId().toString());
+        }
+        return MapStoragePortGroup.getInstance(_dbClient).toStoragePortGroupRestRep(portGroup);
+    }
 }

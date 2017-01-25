@@ -3298,27 +3298,4 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
             throw DeviceControllerException.exceptions.couldNotPerformAliasOperation(errMsg);
         }
     }
-    
-    @Override
-    public List<URI> getPortGroupMembers(StorageSystem storage, String portGroup) throws Exception{
-        if (storage.getSystemType().equals(Type.vnxblock)) {
-            return null;
-        }
-        WBEMClient client = _helper.getConnection(storage).getCimClient();
-        CIMObjectPath portGroupPath = _cimPath.getMaskingGroupPath(storage, portGroup,
-                SmisConstants.MASKING_GROUP_TYPE.SE_TargetMaskingGroup);
-        CIMInstance instance = _helper.checkExists(storage, portGroupPath, false, false);
-        if (instance == null) {
-            _log.warn("Could not find the port group " + portGroup);
-            return null;
-        }
-        List<String> storagePorts = _helper.getStoragePortsFromLunMaskingInstance(client,
-                instance);
-        _log.info("port group members : {}", Joiner.on(',').join(storagePorts));
-        List<URI> storagePortURIs = new ArrayList<URI>();
-        storagePortURIs.addAll(transform(ExportUtils.storagePortNamesToURIs(_dbClient, storagePorts),
-                CommonTransformerFunctions.FCTN_STRING_TO_URI));
-        _log.info("port group members : {}", Joiner.on(',').join(storagePortURIs));
-        return storagePortURIs;
-    }
 }

@@ -3103,13 +3103,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
                                 this.getClass(), storageViewExecuteMethod, null, exportMaskDeleteStep);
                     }
 
-                    if (isValidationNeeded && (removeVolumes || removeInitiators)) {
-                        if (removeVolumes) {
-                            errorMessages.append("Volumes (" + volumeURIList + ") ");
-                        }
-                        if (removeVolumes && removeInitiators) {
-                            errorMessages.append("and ");
-                        }
+                    if (isValidationNeeded && removeInitiators) {
                         if (removeInitiators) {
                             errorMessages.append("Initiators (" + exportMask.getInitiators() + ") ");
                         }

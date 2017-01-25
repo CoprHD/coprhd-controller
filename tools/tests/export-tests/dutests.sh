@@ -1035,38 +1035,64 @@ prerun_tests() {
     verify_no_zones ${FC_ZONE_A:7} ${HOST1}
 }
 
+vnx_sim_setup() {
+    VNX_PROVIDER_NAME=VNX-PROVIDER-SIM
+    VNX_SMIS_IP=$SIMULATOR_SMIS_IP
+    VNX_SMIS_PORT=5988
+    SMIS_USER=$SMIS_USER
+    SMIS_PASSWD=$SMIS_PASSWD
+    VNX_SMIS_SSL=false
+    VNXB_NATIVEGUID=$SIMULATOR_VNX_NATIVEGUID
+}
+
 vnx_setup() {
     SMISPASS=0
     # do this only once
     echo "Setting up SMIS for VNX"
     storage_password=$SMIS_PASSWD
 
-    run smisprovider create VNX-PROVIDER $VNX_SMIS_IP $VNX_SMIS_PORT $SMIS_USER "$SMIS_PASSWD" $VNX_SMIS_SSL
+    VNX_PROVIDER_NAME=VNX-PROVIDER
+    if [ "${SIM}" = "1" ]; then
+	vnx_sim_setup
+    fi
+
+    run smisprovider create ${VNX_PROVIDER_NAME} ${VNX_SMIS_IP} ${VNX_SMIS_PORT} ${SMIS_USER} "$SMIS_PASSWD" ${VNX_SMIS_SSL}
     run storagedevice discover_all --ignore_error
 
-    run storagepool update $VNXB_NATIVEGUID --type block --volume_type THIN_ONLY
+    # Remove all arrays that aren't VNXB_NATIVEGUID
+    for id in `storagedevice list |  grep -v ${VNXB_NATIVEGUID} | grep COMPLETE | awk '{print $2}'`
+    do
+	run storagedevice deregister ${id}
+	run storagedevice delete ${id}
+    done
+
     run storagepool update $VNXB_NATIVEGUID --type block --volume_type THICK_ONLY
 
     setup_varray
 
     run storagepool update $VNXB_NATIVEGUID --nhadd $NH --type block
-    # Can no longer do this since network discovers where the ports are
-    #run storageport update $VNXB_NATIVEGUID FC --tzone $NH/$FC_ZONE_A
-    storageport $VNXB_NATIVEGUID list --v | grep FABRIC
 
     common_setup
 
     SERIAL_NUMBER=`storagedevice list | grep COMPLETE | awk '{print $2}' | awk -F+ '{print $2}'`
     
+    # Chose thick because we need a thick pool for VNX metas
     run cos create block ${VPOOL_BASE}	\
 	--description Base true                 \
 	--protocols FC 			                \
 	--numpaths 2				            \
-	--provisionType 'Thin'			        \
+	--multiVolumeConsistency \
+	--provisionType 'Thick'			        \
 	--max_snapshots 10                      \
-	--neighborhoods $NH                    
+	--neighborhoods $NH  
 
-    run cos update block $VPOOL_BASE --storage ${VNXB_NATIVEGUID}
+    if [ "${SIM}" = "1" ]
+    then
+	# Remove the thin pool that doesn't support metas on the VNX simulator
+	run cos update_pools block $VPOOL_BASE --rem ${VNXB_NATIVEGUID}/${VNXB_NATIVEGUID}+POOL+U+TP0000
+    else
+	run cos update block $VPOOL_BASE --storage ${VNXB_NATIVEGUID}
+    fi
 }
 
 unity_setup()
@@ -1108,49 +1134,41 @@ unity_setup()
     run cos update block $VPOOL_BASE --storage ${UNITY_NATIVEGUID}
 }
 
+
+vmax2_sim_setup() {
+    VMAX_PROVIDER_NAME=VMAX2-PROVIDER-SIM
+    VMAX_SMIS_IP=$SIMULATOR_SMIS_IP
+    VMAX_SMIS_PORT=7009
+    SMIS_USER=$SMIS_USER
+    SMIS_PASSWD=$SMIS_PASSWD
+    VMAX_SMIS_SSL=true
+    VMAX_NATIVEGUID=$SIMULATOR_VMAX2_NATIVEGUID
+    FC_ZONE_A=${CLUSTER1NET_SIM_NAME}
+}
+
 vmax2_setup() {
     SMISPASS=0
+
+    if [ "${SIM}" = "1" ]; then
+	   vmax2_sim_setup
+    else
+        VMAX_PROVIDER_NAME=VMAX2-PROVIDER-HW
+        VMAX_NATIVEGUID=${VMAX2_DUTEST_NATIVEGUID}
+    fi
+ 
     # do this only once
     echo "Setting up SMIS for VMAX2"
     storage_password=$SMIS_PASSWD
 
-    run smisprovider create VMAX2-PROVIDER $VMAX2_DUTEST_SMIS_IP $VMAX2_SMIS_PORT $SMIS_USER "$SMIS_PASSWD" $VMAX2_SMIS_SSL
+    run smisprovider create $VMAX_PROVIDER_NAME $VMAX_SMIS_IP $VMAX_SMIS_PORT $SMIS_USER "$SMIS_PASSWD" $VMAX_SMIS_SSL
     run storagedevice discover_all --ignore_error
 
-    run storagepool update $VMAX2_DUTEST_NATIVEGUID --type block --volume_type THIN_ONLY
-    run storagepool update $VMAX2_DUTEST_NATIVEGUID --type block --volume_type THICK_ONLY
-
-    setup_varray
-
-    run storagepool update $VMAX2_DUTEST_NATIVEGUID --nhadd $NH --type block
-    if [ "${SIM}" = "1" ]; then
-       run storageport update $VMAX2_DUTEST_NATIVEGUID FC --tzone $NH/$FC_ZONE_A
-    fi
-
-    common_setup
-
-    SERIAL_NUMBER=`storagedevice list | grep COMPLETE | awk '{print $2}' | awk -F+ '{print $2}'`
-    
-    run cos create block ${VPOOL_BASE}	\
-	--description Base true                 \
-	--protocols FC 			                \
-	--numpaths 1				            \
-	--provisionType 'Thin'			        \
-	--max_snapshots 10                      \
-	--expandable true                       \
-	--neighborhoods $NH                    
-
-    run cos update block $VPOOL_BASE --storage ${VMAX2_DUTEST_NATIVEGUID}
-}
-
-vmax3_setup() {
-    SMISPASS=0
-    # do this only once
-    echo "Setting up SMIS for VMAX3"
-    storage_password=$SMIS_PASSWD
-
-    run smisprovider create VMAX-PROVIDER $VMAX_SMIS_IP $VMAX_SMIS_PORT $SMIS_USER "$SMIS_PASSWD" $VMAX_SMIS_SSL
-    run storagedevice discover_all --ignore_error
+    # Remove all arrays that aren't VMAX_NATIVEGUID
+    for id in `storagedevice list |  grep -v ${VMAX_NATIVEGUID} | grep COMPLETE | awk '{print $2}'`
+    do
+	run storagedevice deregister ${id}
+	run storagedevice delete ${id}
+    done
 
     run storagepool update $VMAX_NATIVEGUID --type block --volume_type THIN_ONLY
     run storagepool update $VMAX_NATIVEGUID --type block --volume_type THICK_ONLY
@@ -1158,9 +1176,6 @@ vmax3_setup() {
     setup_varray
 
     run storagepool update $VMAX_NATIVEGUID --nhadd $NH --type block
-    if [ "${SIM}" = 0 ]; then
-       run storageport update $VMAX_NATIVEGUID FC --tzone $NH/$FC_ZONE_A
-    fi
 
     common_setup
 
@@ -1169,13 +1184,73 @@ vmax3_setup() {
     run cos create block ${VPOOL_BASE}	\
 	--description Base true                 \
 	--protocols FC 			                \
-	--numpaths 1				            \
+	--multiVolumeConsistency \
+	--numpaths 2				            \
 	--provisionType 'Thin'			        \
 	--max_snapshots 10                      \
 	--expandable true                       \
-	--neighborhoods $NH                    
+	--neighborhoods $NH  
 
     run cos update block $VPOOL_BASE --storage ${VMAX_NATIVEGUID}
+}
+
+vmax3_sim_setup() {
+    VMAX_PROVIDER_NAME=VMAX3-PROVIDER-SIM
+    VMAX_SMIS_IP=$SIMULATOR_SMIS_IP
+    VMAX_SMIS_PORT=7009
+    SMIS_USER=$SMIS_USER
+    SMIS_PASSWD=$SMIS_PASSWD
+    VMAX_SMIS_SSL=true
+    VMAX_NATIVEGUID=$SIMULATOR_VMAX3_NATIVEGUID
+    FC_ZONE_A=${CLUSTER1NET_SIM_NAME}
+}
+
+vmax3_setup() {
+    SMISPASS=0
+
+    if [ "${SIM}" = "1" ]; then
+	   vmax3_sim_setup
+    else
+        VMAX_PROVIDER_NAME=VMAX3-PROVIDER-HW
+    fi
+ 
+   # do this only once
+    echo "Setting up SMIS for VMAX3"
+    storage_password=$SMIS_PASSWD
+
+    run smisprovider create $VMAX_PROVIDER_NAME $VMAX_SMIS_IP $VMAX_SMIS_PORT $SMIS_USER "$SMIS_PASSWD" $VMAX_SMIS_SSL
+    run storagedevice discover_all --ignore_error
+
+    # Remove all arrays that aren't VMAX_NATIVEGUID
+    for id in `storagedevice list |  grep -v ${VMAX_NATIVEGUID} | grep COMPLETE | awk '{print $2}'`
+    do
+	run storagedevice deregister ${id}
+	run storagedevice delete ${id}
+    done
+
+    run storagepool update $VMAX_NATIVEGUID --type block --volume_type THIN_ONLY
+    run storagepool update $VMAX_NATIVEGUID --type block --volume_type THICK_ONLY
+
+    setup_varray
+
+    run storagepool update $VMAX_NATIVEGUID --nhadd $NH --type block
+
+    common_setup
+
+    SERIAL_NUMBER=`storagedevice list | grep COMPLETE | awk '{print $2}' | awk -F+ '{print $2}'`
+    
+    run cos create block ${VPOOL_BASE}	\
+	--description Base true                 \
+	--protocols FC 			                \
+	--multiVolumeConsistency \
+	--numpaths 2				            \
+	--provisionType 'Thin'			        \
+	--max_snapshots 10                      \
+	--expandable true                       \
+	--neighborhoods $NH
+
+    run cos update block $VPOOL_BASE --storage ${VMAX_NATIVEGUID}
+
 }
 
 vplex_sim_setup() {
@@ -4686,7 +4761,7 @@ do
 	SIM=0;
 	shift 1;
     elif [ "${1}" = "setupsim" -o "${1}" = "-setupsim" ]; then
-	if [ "$SS" = "xio" -o "$SS" = "vplex" ]; then
+	if [ "$SS" = "xio" -o "$SS" = "vmax3" -o "$SS" = "vmax2" -o "$SS" = "vnx" -o "$SS" = "vplex" ]; then
 	    echo "Setting up testing based on simulators"
 	    SIM=1;
 	    ZONE_CHECK=0;

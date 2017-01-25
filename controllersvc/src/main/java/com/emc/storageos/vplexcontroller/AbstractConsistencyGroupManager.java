@@ -59,7 +59,7 @@ public abstract class AbstractConsistencyGroupManager implements ConsistencyGrou
     protected static final String DELETE_CG_METHOD_NAME = "deleteCG";
     protected static final String ROLLBACK_METHOD_NULL = "rollbackMethodNull";
     protected static final String UPDATE_CONSISTENCY_GROUP_METHOD_NAME = "updateConsistencyGroup";
-    protected static final String DELETE_CONSISTENCY_GROUP_METHOD_NAME = "deleteConsistencyGroup";
+    protected static final String DELETE_CONSISTENCY_GROUP_METHOD_NAME = "deleteReplicationGroupInConsistencyGroup";
     protected static final String CREATE_CONSISTENCY_GROUP_METHOD_NAME = "createConsistencyGroup";
     protected static final String RB_DELETE_CG_METHOD_NAME = "rollbackDeleteCG";
     protected static final String RB_CREATE_CG_METHOD_NAME = "rollbackCreateCG";
@@ -167,7 +167,7 @@ public abstract class AbstractConsistencyGroupManager implements ConsistencyGrou
                         localSystemUri, dbClient);
                 String localCgName = cg.getCgNameOnStorageSystem(localSystemUri);
                 Workflow.Method deleteCGMethod = new Workflow.Method(
-                        DELETE_CONSISTENCY_GROUP_METHOD_NAME, localSystemUri, cgURI, Boolean.FALSE);
+                        DELETE_CONSISTENCY_GROUP_METHOD_NAME, localSystemUri, cgURI, null, false, Boolean.FALSE, true);
                 Workflow.Method rollbackDeleteCGMethod = new Workflow.Method(
                         CREATE_CONSISTENCY_GROUP_METHOD_NAME, localSystemUri, cgURI);
                 waitFor = workflow.createStep(DELETE_LOCAL_CG_STEP, String.format(

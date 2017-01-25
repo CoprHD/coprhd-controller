@@ -247,6 +247,10 @@ arrayhelper() {
     add_initiator_to_mask)
 	pwwn=$3
         pattern=$4
+       echo "=========operation ${operation}"
+       echo "=========serial_number ${serial_number}"
+       echo "=========pwwn ${pwwn}"
+       echo "=========Pattern ${pattern}"
 	masking_view_name=`get_masking_view_name no-op ${pattern}`
 	arrayhelper_initiator_mask_operation $operation $serial_number $pwwn $masking_view_name
 	;;
@@ -356,6 +360,7 @@ arrayhelper_initiator_mask_operation() {
 
     case $SS in
     vmax2|vmax3)
+         secho "Calling symhelper"
          runcmd symhelper.sh $operation $serial_number $pwwn $pattern
 	 ;;
     vnx)
@@ -855,10 +860,12 @@ setup_provider() {
     storage_type=`storagedevice list | grep COMPLETE | grep ${sstype} | awk '{print $1}'`
     storage_name=`storagedevice list | grep COMPLETE | grep ${sstype} | awk '{print $2}'`
     storage_version=`storagedevice show ${storage_name} | grep firmware_version | awk '{print $2}' | cut -d '"' -f2`
-    storage_ip=`storagedevice show ${storage_name} | grep smis_provider_ip | awk '{print $2}' | cut -d '"' -f2`
-    storage_port=`storagedevice show ${storage_name} | grep smis_port_number | awk '{print $2}' | cut -d ',' -f1`
-    storage_user=`storagedevice show ${storage_name} | grep smis_user_name | awk '{print $2}' | cut -d '"' -f2`
+    storage_ip=10.247.99.71
+    storage_port=5989
+    storage_user=admin
+    storage_password="#1Password"
     ##update provider properties file with the array details
+    secho "*******************Writing file"
     printf 'provider.ip=%s\nprovider.cisco_ip=1.1.1.1\nprovider.username=%s\nprovider.password=%s\nprovider.port=%s\n' "$storage_ip" "$storage_user" "$storage_password" "$storage_port" >> $tools_file
 }
 
@@ -911,7 +918,7 @@ prerun_setup() {
        # figure out what type of array we're running against
        storage_type=`storagedevice list | grep COMPLETE | grep ${sstype} | awk '{print $1}'`
        echo "Found storage type is: $storage_type"
-       SERIAL_NUMBER=`storagedevice list | grep COMPLETE | grep ${sstype} | awk '{print $2}' | awk -F+ '{print $2}'`
+       SERIAL_NUMBER=000196801612
        echo "Serial number is: $SERIAL_NUMBER"
        if [ "${storage_type}" = "xtremio" ]
        then
@@ -1055,14 +1062,12 @@ vnx_setup() {
     SERIAL_NUMBER=`storagedevice list | grep COMPLETE | awk '{print $2}' | awk -F+ '{print $2}'`
     
     # Chose thick because we need a thick pool for VNX metas
-    # Choose SATA as drive type because simulator's non-Unified pool is SATA.
     run cos create block ${VPOOL_BASE}	\
-	--description Base false                \
+	--description Base true                 \
 	--protocols FC 			                \
 	--numpaths 2				            \
 	--multiVolumeConsistency \
 	--provisionType 'Thick'			        \
-	--drive_type 'SATA' \
 	--max_snapshots 10                      \
 	--neighborhoods $NH  
 
@@ -1203,6 +1208,7 @@ vmax3_sim_setup() {
     SMIS_PASSWD=$SMIS_PASSWD
     VMAX_SMIS_SSL=true
     VMAX_NATIVEGUID=$SIMULATOR_VMAX3_NATIVEGUID
+    VMAX_NATIVEGUID_2=$VPLEX_SIM_VMAX3_NATIVEGUID
     FC_ZONE_A=${CLUSTER1NET_SIM_NAME}
 }
 
@@ -1223,25 +1229,28 @@ vmax3_setup() {
     run storagedevice discover_all --ignore_error
 
     # Remove all arrays that aren't VMAX_NATIVEGUID
-    for id in `storagedevice list |  grep -v ${VMAX_NATIVEGUID} | grep COMPLETE | awk '{print $2}'`
-    do
-	run storagedevice deregister ${id}
-	run storagedevice delete ${id}
-    done
+    #for id in `storagedevice list |  grep -v ${VMAX_NATIVEGUID} | grep COMPLETE | awk '{print $2}'`
+    #do
+    #	run storagedevice deregister ${id}
+    #	run storagedevice delete ${id}
+    #done
 
     run storagepool update $VMAX_NATIVEGUID --type block --volume_type THIN_ONLY
     run storagepool update $VMAX_NATIVEGUID --type block --volume_type THICK_ONLY
+    run storagepool update $VMAX_NATIVEGUID_2 --type block --volume_type THIN_ONLY
+    run storagepool update $VMAX_NATIVEGUID_2 --type block --volume_type THICK_ONLY
 
     setup_varray
 
     run storagepool update $VMAX_NATIVEGUID --nhadd $NH --type block
+    run storagepool update $VMAX_NATIVEGUID_2 --nhadd $NH --type block
 
     common_setup
 
     SERIAL_NUMBER=`storagedevice list | grep COMPLETE | awk '{print $2}' | awk -F+ '{print $2}'`
     
-    run cos create block ${VPOOL_BASE}	\
-	--description Base true                 \
+    run cos create block ${VPOOL_BASE} false	\
+	--description Base                 \
 	--protocols FC 			                \
 	--multiVolumeConsistency \
 	--numpaths 2				            \
@@ -1250,8 +1259,8 @@ vmax3_setup() {
 	--expandable true                       \
 	--neighborhoods $NH
 
-    run cos create block ${VPOOL_CHANGE}	\
-	--description Base true                 \
+    run cos create block ${VPOOL_CHANGE}	false \
+	--description Base                 \
 	--protocols FC 			                \
 	--multiVolumeConsistency \
 	--numpaths 4				            \
@@ -1261,8 +1270,120 @@ vmax3_setup() {
 	--neighborhoods $NH                    
 
     run cos update block $VPOOL_BASE --storage ${VMAX_NATIVEGUID}
-    run cos update block $VPOOL_CHANGE --storage ${VMAX_NATIVEGUID}
+    run cos update block $VPOOL_CHANGE --storage ${VMAX_NATIVEGUID_2}
+}
 
+test_98() {
+    echot "Test 98 Begins"
+    expname=${EXPORT_GROUP_NAME}t98
+
+    failure_injections="failure_015_SmisCommandHelper.invokeMethod_AddMembers"
+
+    for failure in ${failure_injections}
+    do
+      item=${RANDOM}
+      TEST_OUTPUT_FILE=test_output_${item}.log
+      secho "Running Test 98 with failure scenario: ${failure}..."
+      cfs=("ExportGroup ExportMask FCZoneReference Host Volume Initiator")
+      mkdir -p results/${item}
+      volname1=${VOLNAME}-${RANDOM}
+      reset_counts
+
+      runcmd volume create ${volname1} ${PROJECT} ${NH} ${VPOOL_BASE} 1GB
+            
+      # Export both volumes to a host.
+      runcmd export_group create $PROJECT ${expname}1 $NH --type Host --volspec "${PROJECT}/${volname1}" --hosts "${HOST1}"
+
+      # Snap db
+      snap_db 1 "${cfs[@]}"
+
+      # Add a new initiator to the network
+      run transportzone add $NH/${FC_ZONE_A} $H1PI3
+
+      # Turn on failure at a specific point
+      #set_artificial_failure ${failure}
+
+      # Add the new initiator to the host, which should add it to existing masks,
+      # which hopefully will fail adding to the second mask.
+      runcmd initiator create ${HOST1} FC ${H1PI3} --node ${H1NI3}
+
+      # Verify injected failures were hit
+      #verify_failures ${failure}
+
+      # Perform any DB validation in here
+      snap_db 2 "${cfs[@]}"
+
+      # Validate nothing was left behind
+      validate_db 1 2 "${cfs[@]}"
+
+      # Rerun the command
+      set_artificial_failure none
+      #runcmd initiator create ${HOST1} FC ${H1PI3} --node ${H1NI3}
+
+      # Report results
+      report_results test_98{failure}
+    done
+}
+
+
+test_99() {
+    echot "Test 99 Begins"
+    expname=${EXPORT_GROUP_NAME}t99
+
+    failure_injections="failure_015_SmisCommandHelper.invokeMethod_AddMembers&2"
+
+    for failure in ${failure_injections}
+    do
+      item=${RANDOM}
+      TEST_OUTPUT_FILE=test_output_${item}.log
+      secho "Running Test 99 with failure scenario: ${failure}..."
+      cfs=("ExportGroup ExportMask FCZoneReference Host Volume Initiator")
+      mkdir -p results/${item}
+      volname1=${VOLNAME}-${RANDOM}
+      volname2=${VOLNAME}-${RANDOM}
+      reset_counts
+
+      # Create 2 volumes on 2 different backend arrays
+      runcmd volume create ${volname1} ${PROJECT} ${NH} ${VPOOL_BASE} 1GB
+      runcmd volume create ${volname2} ${PROJECT} ${NH} ${VPOOL_CHANGE} 1GB
+
+      # Export both volumes to a host.
+      runcmd export_group create $PROJECT ${expname}1 $NH --type Host --volspec "${PROJECT}/${volname1},${PROJECT}/${volname2}" --hosts "${HOST1}"
+
+      # Snap DB
+      snap_db 1 "${cfs[@]}"
+
+      # Add a new initiator to the network
+      run transportzone add $NH/${FC_ZONE_A} $H1PI3
+
+      # Turn on failure at a specific point
+      set_artificial_failure ${failure}
+
+      # Add the new initiator to the host, which should add it to existing masks,
+      # which hopefully will fail adding to the second mask.
+      fail initiator create ${HOST1} FC ${H1PI3} --node ${H1NI3}
+
+      # Verify injected failures were hit
+      verify_failures ${failure}
+
+      # Snap DB again
+      snap_db 2 "${cfs[@]}"
+
+      secho "========== Trying export group update =========="
+      export_group update ${PROJECT}/${expname}1 --addInits ${HOST1}/${H1PI3}
+
+      # Snap DB again
+      snap_db 3 "${cfs[@]}"
+
+      # Validate nothing was left behind
+      #validate_db 1 2 "${cfs[@]}"
+
+      # Reset failures
+      set_artificial_failure none
+
+      # Report results
+      report_results test_99{failure}
+    done
 }
 
 vplex_sim_setup() {
@@ -1764,9 +1885,11 @@ setup() {
     fi
 
     if [ "${SIM}" != "1" ]; then
+       secho "***************************** Here"
 	run networksystem create $BROCADE_NETWORK brocade --smisip $BROCADE_IP --smisport 5988 --smisuser $BROCADE_USER --smispw $BROCADE_PW --smisssl false
 	BROCADE=1;
     else
+       secho "***************************** Here2"
 	FABRIC_SIMULATOR=fabric-sim
 	if [ "${SS}" = "vplex" ]; then
 	    secho "Configuring MDS/Cisco Simulator using SSH on: $VPLEX_SIM_MDS_IP"
@@ -1781,7 +1904,7 @@ setup() {
 
     run cos allow $VPOOL_BASE block $TENANT
     reset_system_props
-    run volume create ${VOLNAME} ${PROJECT} ${NH} ${VPOOL_BASE} 1GB --count 2
+    #run volume create ${VOLNAME} ${PROJECT} ${NH} ${VPOOL_BASE} 1GB --count 2
 }
 
 set_suspend_on_error() {
@@ -1854,7 +1977,7 @@ snap_db() {
     column_families=$2
     escape_seq=$3
 
-    base_filter="| sed -r '/6[0]{29}[A-Z0-9]{2}=/s/\=-?[0-9][0-9]?[0-9]?/=XX/g' | sed -r 's/vdc1=-?[0-9][0-9]?[0-9]?/vdc1=XX/g' | grep -v \"status = OpStatusMap\" | grep -v \"lastDiscoveryRunTime = \" | grep -v \"successDiscoveryTime = \" | grep -v \"storageDevice = URI: null\" | grep -v \"StringSet \[\]\" | grep -v \"varray = URI: null\" | grep -v \"Description:\" | grep -v \"Additional\" | grep -v -e '^$' | grep -v \"Rollback encountered problems\" | grep -v \"clustername = null\" | grep -v \"cluster = URI: null\" | grep -v \"vcenterDataCenter = \" $escape_seq"
+    base_filter="| sed -r '/6[0]{29}[A-Z0-9]{2}=/s/\=-?[0-9][0-9]?[0-9]?/=XX/g' | sed -r 's/vdc1=-?[0-9][0-9]?[0-9]?/vdc1=XX/g' | grep -v \"status = OpStatusMap\" | grep -v \"lastDiscoveryRunTime = \" | grep -v \"successDiscoveryTime = \" | grep -v \"storageDevice = URI: null\" | grep -v \"StringSet \[\]\" | grep -v \"varray = URI: null\" | grep -v \"Description:\" | grep -v \"Additional\" | grep -v -e '^$' | grep -v \"clustername = null\" | grep -v \"cluster = URI: null\" | grep -v \"vcenterDataCenter = \" $escape_seq"
     
     secho "snapping column families [set $slot]: ${column_families}"
 
@@ -1997,17 +2120,8 @@ test_1() {
 	  # Remove the volume
       	  runcmd volume delete ${PROJECT}/${volname} --wait
       else
-	  # If this is a rollback inject, make sure we get the "additional message"
-	  echo ${failure} | grep failure_004 | grep ":" > /dev/null
-
-	  if [ $? -eq 0 ]
-	  then
-	      # Make sure it fails with additional errors accounted for in the error message
-      	      fail -with_error "Additional errors occurred" volume create ${volname} ${PROJECT} ${NH} ${VPOOL_BASE} 1GB
-	  else
-      	      # Create the volume
-      	      fail volume create ${volname} ${PROJECT} ${NH} ${VPOOL_BASE} 1GB
-	  fi
+      	  # Create the volume
+      	  fail volume create ${volname} ${PROJECT} ${NH} ${VPOOL_BASE} 1GB
 
 	  # Verify injected failures were hit
 	  verify_failures ${failure}
@@ -2150,17 +2264,8 @@ test_2() {
 	  # Remove the volume
       	  runcmd volume delete ${PROJECT}/${volname} --wait
       else
-      	  # If this is a rollback inject, make sure we get the "additional message"
-	  echo ${failure} | grep failure_004 | grep ":" > /dev/null
-
-	  if [ $? -eq 0 ]
-	  then
-	      # Make sure it fails with additional errors accounted for in the error message
-      	      fail -with_error "Additional errors occurred" volume create ${volname} ${PROJECT} ${NH} ${VPOOL_BASE} 1GB --consistencyGroup=${CGNAME}
-	  else
-      	      # Create the volume
-	      fail volume create ${volname} ${PROJECT} ${NH} ${VPOOL_BASE} 1GB --consistencyGroup=${CGNAME}
-	  fi
+      	  # Create the volume
+      	  fail volume create ${volname} ${PROJECT} ${NH} ${VPOOL_BASE} 1GB --consistencyGroup=${CGNAME}
 
 	  # Verify injected failures were hit
 	  verify_failures ${failure}
@@ -2283,17 +2388,8 @@ test_3() {
       # Check the state of the volume that doesn't exist
       snap_db 1 "${cfs[@]}"
 
-      # If this is a rollback inject, make sure we get the "additional message"
-      echo ${failure} | grep failure_004 | grep ":" > /dev/null
-
-      if [ $? -eq 0 ]
-      then
-	  # Make sure it fails with additional errors accounted for in the error message
-      	  fail -with_error "Additional errors occurred" volume create ${volname} ${project} ${NH} ${VPOOL_BASE} 1GB --count 8
-      else
-	  # Create the volume
-	  fail volume create ${volname} ${project} ${NH} ${VPOOL_BASE} 1GB --count 8
-      fi
+      # Create the volume
+      fail volume create ${volname} ${project} ${NH} ${VPOOL_BASE} 1GB --count 8
 
       # Verify injected failures were hit
       verify_failures ${failure}
@@ -2309,7 +2405,7 @@ test_3() {
 
       # Rerun the command
       set_artificial_failure none
-      # Determine if re-running the command under certain failure scenarios is expected to fail (like Unity) or succeed.
+      # Determine if re-running the command under certain failure scenario's is expected to fail (like Unity) or succeed.
       if [ "${SS}" = "unity" ] && [ "${failure}" = "failure_023" ]
       then
           # Unity is expected to fail because the array doesn't like duplicate LUN names
@@ -2390,7 +2486,7 @@ test_4() {
     failure_injections="${common_failure_injections} ${storage_failure_injections} ${network_failure_injections}"
 
     # Placeholder when a specific failure case is being worked...
-    # failure_injections="failure_004:failure_018_Export_doRollbackExportCreate_before_delete"
+    # failure_injections="failure_004:failure_021_Export_zoneRollback_after_delete"
 
     for failure in ${failure_injections}
     do
@@ -2410,17 +2506,8 @@ test_4() {
       # Check the state of the export that doesn't exist
       snap_db 1 "${cfs[@]}"
 
-      # If this is a rollback inject, make sure we get the "additional message"
-      echo ${failure} | grep failure_004 | grep ":" > /dev/null
-
-      if [ $? -eq 0 ]
-      then
-	  # Make sure it fails with additional errors accounted for in the error message
-	  fail -with_error "Additional errors occurred" export_group create $PROJECT ${expname}1 $NH --type Host --volspec ${PROJECT}/${VOLNAME}-1 --hosts "${HOST1}"
-      else
-	  # Create the export
-	  fail export_group create $PROJECT ${expname}1 $NH --type Host --volspec ${PROJECT}/${VOLNAME}-1 --hosts "${HOST1}"
-      fi
+      # Create the export
+      fail export_group create $PROJECT ${expname}1 $NH --type Host --volspec ${PROJECT}/${VOLNAME}-1 --hosts "${HOST1}"
 
       # Verify injected failures were hit
       verify_failures ${failure}
@@ -2617,17 +2704,8 @@ test_6() {
       # Turn on failure at a specific point
       set_artificial_failure ${failure}
 
-      # If this is a rollback inject, make sure we get the "additional message"
-      echo ${failure} | grep failure_004 | grep ":" > /dev/null
-
-      if [ $? -eq 0 ]
-      then
-	  # Make sure it fails with additional errors accounted for in the error message
-      	  fail -with_error "Additional errors occurred" export_group update ${PROJECT}/${expname}1 --addVol ${PROJECT}/${VOLNAME}-2
-      else
-	  # Delete the export
-	  fail export_group update ${PROJECT}/${expname}1 --addVol ${PROJECT}/${VOLNAME}-2
-      fi
+      # Delete the export
+      fail export_group update ${PROJECT}/${expname}1 --addVol ${PROJECT}/${VOLNAME}-2
 
       # Verify injected failures were hit
       verify_failures ${failure}
@@ -2672,7 +2750,9 @@ test_7() {
     expname=${EXPORT_GROUP_NAME}t7
 
     common_failure_injections="failure_004_final_step_in_workflow_complete \
-                               failure_004:failure_016_Export_doRemoveInitiator"
+                               failure_004:failure_016_Export_doRemoveInitiator \
+                               failure_004:failure_024_Export_zone_removeInitiator_before_delete \
+                               failure_004:failure_025_Export_zone_removeInitiator_after_delete"
 
     network_failure_injections=""
     if [ "${BROCADE}" = "1" ]
@@ -2683,15 +2763,12 @@ test_7() {
     storage_failure_injections=""
     if [ "${SS}" = "vplex" ]
     then
-	storage_failure_injections="failure_004:failure_024_Export_zone_removeInitiator_before_delete \
-                                    failure_004:failure_025_Export_zone_removeInitiator_after_delete \
-                                    failure_060_VPlexDeviceController.storageViewAddInitiators_storageview_nonexisting"
+	storage_failure_injections=""
     fi
 
-    if [ "${SS}" = "vnx" -o "${SS}" = "vmax2" -o "${SS}" = "vmax3" -o "${SS}" = "unity" ]
+    if [ "${SS}" = "vnx" -o "${SS}" = "vmax2" -o "${SS}" = "vmax3" ]
     then
-	storage_failure_injections="failure_004:failure_024_Export_zone_removeInitiator_before_delete \
-                                    failure_004:failure_025_Export_zone_removeInitiator_after_delete"
+	storage_failure_injections=""
     fi
 
     failure_injections="${common_failure_injections} ${storage_failure_injections} ${network_failure_injections}"
@@ -2724,17 +2801,8 @@ test_7() {
       # Turn on failure at a specific point
       set_artificial_failure ${failure}
 
-      # If this is a rollback inject, make sure we get the "additional message"
-      echo ${failure} | grep failure_004 | grep ":" > /dev/null
-
-      if [ $? -eq 0 ]
-      then
-	  # Make sure it fails with additional errors accounted for in the error message
-      	  fail -with_error "Additional errors occurred" export_group update ${PROJECT}/${expname}1 --addInits ${HOST1}/${H1PI2}
-      else
-	  # Attempt to add an initiator
-	  fail export_group update ${PROJECT}/${expname}1 --addInits ${HOST1}/${H1PI2}
-      fi
+      # Attempt to add an initiator
+      fail export_group update ${PROJECT}/${expname}1 --addInits ${HOST1}/${H1PI2}
 
       # Verify injected failures were hit
       verify_failures ${failure}
@@ -2777,6 +2845,12 @@ test_7() {
 test_8() {
     echot "Test 8 Begins"
 
+    if [ "${SIM}" != "1" ]
+    then
+	echo "Test case does not execute for hardware configurations because it creates unreasonably large volumes"
+	return;
+    fi
+
     if [ "${SS}" != "vmax2" -a "${SS}" != "vnx" ]
     then
 	echo "Test case only executes for vmax2 and vnx."
@@ -2784,7 +2858,7 @@ test_8() {
     fi
 
     common_failure_injections="failure_004_final_step_in_workflow_complete"
-    meta_size=260GB
+    meta_size=240GB
 
     storage_failure_injections=""
     if [ "${SS}" = "vplex" ]
@@ -2804,11 +2878,7 @@ test_8() {
 
     if [ "${SS}" = "vnx" ]
     then
-	if [ "${SIM}" != "1" ]
-	then
-	    meta_size=280GB
-	fi
-	storage_failure_injections="failure_015_SmisCommandHelper.invokeMethod_CreateOrModifyElementFromStoragePool \
+	storage_failure_injections="failure_015_SmisCommandHelper.invokeMethod_GetCompositeElements \
                                     failure_015_SmisCommandHelper.invokeMethod_CreateOrModifyCompositeElement"
     fi
 
@@ -2848,17 +2918,8 @@ test_8() {
 	  # Remove the volume
       	  runcmd volume delete ${PROJECT}/${volname} --wait
       else
-      	  # If this is a rollback inject, make sure we get the "additional message"
-	  echo ${failure} | grep failure_004 | grep ":" > /dev/null
-
-	  if [ $? -eq 0 ]
-	  then
-	      # Make sure it fails with additional errors accounted for in the error message
-	      fail -with_error "Additional errors occurred" volume create ${volname} ${PROJECT} ${NH} ${VPOOL_BASE} ${meta_size}
-	  else
-      	      # Create the volume
-	      fail volume create ${volname} ${PROJECT} ${NH} ${VPOOL_BASE} ${meta_size}
-	  fi
+      	  # Create the volume
+      	  fail volume create ${volname} ${PROJECT} ${NH} ${VPOOL_BASE} ${meta_size}
 
 	  # Verify injected failures were hit
 	  verify_failures ${failure}
@@ -3009,9 +3070,7 @@ test_9() {
       set_artificial_failure none
 
       # Remove the volume
-      if [ "${failure}" != "failure_015_SmisCommandHelper.invokeMethod_EMCListSFSEntries" -a "${failure}" != "failure_015_SmisCommandHelper.invokeMethod_DeleteGroup" ]; then
-          runcmd volume delete ${PROJECT}/${volname} --wait
-      fi
+      runcmd volume delete ${PROJECT}/${volname} --wait
 
       # Remove the CG object
       runcmd blockconsistencygroup delete ${CGNAME}
@@ -3044,7 +3103,7 @@ test_9() {
 #
 test_10() {
     echot "Test 10 Begins"
-    expname=${EXPORT_GROUP_NAME}t10
+    expname=${EXPORT_GROUP_NAME}t6
 
     common_failure_injections="failure_004_final_step_in_workflow_complete failure_firewall"
 
@@ -3073,25 +3132,9 @@ test_10() {
 
     for failure in ${failure_injections}
     do
-      firewall_test=1
-      if [ "${failure}" = "failure_firewall" ]
-      then
-	  # Find the IP address we need to firewall
-	  if [ "${SIM}" = "1" ]
-	  then
-	      firewall_ip=${HW_SIMULATOR_IP}
-	  elif [ "${SS}" = "unity" ]
-	  then
-	      firewall_ip=${UNITY_IP}
-	  else
-	      secho "Firewall testing disabled for combo of ${SS} with simualtor=${SIM}"
-	      continue;
-	  fi
-      fi
-
       item=${RANDOM}
       TEST_OUTPUT_FILE=test_output_${item}.log
-      secho "Running Test 10 with failure scenario: ${failure}..."
+      secho "Running Test 6 with failure scenario: ${failure}..."
       cfs=("ExportGroup ExportMask FCZoneReference")
       mkdir -p results/${item}
       volname=${VOLNAME}-${item}
@@ -3127,6 +3170,18 @@ test_10() {
       
       if [ "${failure}" = "failure_firewall" ]
       then
+	  # Find the IP address we need to firewall
+	  if [ "${SIM}" = "1" ]
+	  then
+	      firewall_ip=${HW_SIMULATOR_IP}
+	  elif [ "${SS}" = "unity" ]
+	  then
+	      firewall_ip=${UNITY_IP}
+	  else
+	      secho "Firewall testing disabled for combo of ${SS} with simualtor=${SIM}"
+	      return
+	  fi
+
 	  # turn on firewall
 	  runcmd /usr/sbin/iptables -I INPUT 1 -s ${firewall_ip} -p all -j REJECT
       fi
@@ -3302,7 +3357,7 @@ cleanup_previous_run_artifacts() {
 	for id in `export_group list $PROJECT | grep YES | awk '{print $5}'`
 	do
 	    echo "Deleting old export group: ${id}"
-	    runcmd export_group delete ${id} > /dev/null2> /dev/null
+	    #runcmd export_group delete ${id} > /dev/null2> /dev/null
 	done
     fi
 
@@ -3368,10 +3423,12 @@ randwwn() {
 # -    M A I N
 # ============================================================
 
-H1PI1=`pwwn 00`
-H1NI1=`nwwn 00`
-H1PI2=`pwwn 01`
-H1NI2=`nwwn 01`
+H1PI1=`pwwn 04`
+H1NI1=`nwwn 04`
+H1PI2=`pwwn 05`
+H1NI2=`nwwn 05`
+H1PI3=`pwwn 06`
+H1NI3=`nwwn 06`
 
 H2PI1=`pwwn 02`
 H2NI1=`nwwn 02`

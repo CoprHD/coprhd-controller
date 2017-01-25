@@ -94,7 +94,7 @@ public final class InvokeTestFailure {
     public static final String ARTIFICIAL_FAILURE_058 = "failure_057_NetworkDeviceController.zoneExportAddInitiators_before_zone";
     public static final String ARTIFICIAL_FAILURE_059 = "failure_058_NetworkDeviceController.zoneExportAddInitiators_after_zone";
     public static final String ARTIFICIAL_FAILURE_060 = "failure_060_VPlexDeviceController.storageViewAddInitiators_storageview_nonexisting";
-    
+
     private static final int FAILURE_SUBSTRING_LENGTH = 11;
 
     private static final String FAILURE_OCCURRENCE_SPLIT = "&";
@@ -225,7 +225,7 @@ public final class InvokeTestFailure {
      * @throws WBEMException
      */
     public static void internalOnlyInvokeSmisTestFailure(String methodName, String failureKey) throws WBEMException {
-        // Invoke an artificial failure, if set (experimental, testing only)
+        /*// Invoke an artificial failure, if set (experimental, testing only)
         String invokeArtificialFailure = _coordinator.getPropertyInfo().getProperty(ARTIFICIAL_FAILURE);
 
         // Decipher which method we are supposed to fail on:
@@ -243,6 +243,29 @@ public final class InvokeTestFailure {
                 log("Injecting failure: " + ARTIFICIAL_FAILURE_015 + methodName);
                 throw new WBEMException("CIM_ERROR_FAILED (Unable to connect)");
             }
+        }*/
+        
+        // Invoke an artificial failure, if set (experimental, testing only)
+        String invokeArtificialFailure = _coordinator.getPropertyInfo().getProperty(ARTIFICIAL_FAILURE);
+
+        // Decipher which method we are supposed to fail on:
+        if (!invokeArtificialFailure.contains("invokeMethod")) {
+            return;
+        }
+
+        // Extract the method name from the system property
+        if (failureCounters.get(failureKey) == null) {
+            failureCounters.put(failureKey, 0);
+        }
+        
+        // Get the failure occurrence counter for the current failure key. Increment by 1 and overwrite existing count in the map.
+        int failureOccurrenceCount = failureCounters.get(failureKey);
+        failureOccurrenceCount++;
+        failureCounters.put(failureKey, failureOccurrenceCount);
+
+        if (canInvokeFailure(failureKey)) {  
+            log("Injecting failure: " + ARTIFICIAL_FAILURE_015 + methodName);
+            throw new WBEMException("CIM_ERROR_FAILED (Unable to connect)");
         }
     }
 

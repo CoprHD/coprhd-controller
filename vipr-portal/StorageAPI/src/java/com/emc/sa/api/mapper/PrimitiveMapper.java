@@ -117,7 +117,7 @@ public class PrimitiveMapper {
                 inputParam.add(param);
             }
             PrimitiveRestRep.InputGroup inputGroup = new PrimitiveRestRep.InputGroup(){{
-                setInputGroup(inputParam);
+                setInputList(inputParam);
             }};
             input.put("input_params",inputGroup);
         }

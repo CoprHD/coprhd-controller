@@ -519,7 +519,7 @@ public class PrimitiveService {
                 }
             }
             PrimitiveRestRep.InputGroup inputGroup = new PrimitiveRestRep.InputGroup(){{
-                setInputGroup(inputTypeRestRep);
+                setInputList(inputTypeRestRep);
             }};
             inputRestRep.put(parameterType.getKey().toString(),inputGroup);
 

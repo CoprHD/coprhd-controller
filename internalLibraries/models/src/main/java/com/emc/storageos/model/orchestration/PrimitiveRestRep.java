@@ -111,14 +111,14 @@ public class PrimitiveRestRep extends DataObjectRestRep {
 
     public static class InputGroup {
 
-        @XmlElementWrapper(name = "input_group")
-        private List<InputParameterRestRep> inputGroup;
+        @XmlElementWrapper(name = "input_list")
+        private List<InputParameterRestRep> inputList;
 
-        public void setInputGroup(List<InputParameterRestRep> inputGroup) {
-            this.inputGroup = inputGroup;
+        public void setInputList(List<InputParameterRestRep> inputList) {
+            this.inputList = inputList;
         }
-        public List<InputParameterRestRep> getInputGroup() {
-            return inputGroup;
+        public List<InputParameterRestRep> getInputList() {
+            return inputList;
         }
     }
 }

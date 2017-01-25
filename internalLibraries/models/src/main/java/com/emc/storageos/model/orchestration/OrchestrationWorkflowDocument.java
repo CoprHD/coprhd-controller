@@ -65,14 +65,14 @@ public class OrchestrationWorkflowDocument {
 
     public static class InputGroup {
 
-        @XmlElementWrapper(name = "input_group")
-        private List<Input> inputGroup;
+        @XmlElementWrapper(name = "input_list")
+        private List<Input> inputList;
 
-        public void setInputGroup(List<Input> inputGroup) {
-            this.inputGroup = inputGroup;
+        public void setInputList(List<Input> inputList) {
+            this.inputList = inputList;
         }
-        public List<Input> getInputGroup() {
-            return inputGroup;
+        public List<Input> getInputList() {
+            return inputList;
         }
     }
 

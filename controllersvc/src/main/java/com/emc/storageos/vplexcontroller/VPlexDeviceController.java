@@ -3104,9 +3104,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
                     }
 
                     if (isValidationNeeded && removeInitiators) {
-                        if (removeInitiators) {
-                            errorMessages.append("Initiators (" + exportMask.getInitiators() + ") ");
-                        }
+                        errorMessages.append("Initiators (" + exportMask.getInitiators() + ") ");
                         errorMessages.append("would be removed from ExportMask " + exportMask.forDisplay() + ". ");
                     }
 

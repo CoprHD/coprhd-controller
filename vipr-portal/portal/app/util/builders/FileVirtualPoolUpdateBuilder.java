@@ -8,8 +8,6 @@ import org.apache.commons.lang.ObjectUtils;
 
 import com.emc.storageos.model.vpool.FileVirtualPoolProtectionParam;
 import com.emc.storageos.model.vpool.FileVirtualPoolProtectionUpdateParam;
-import com.emc.storageos.model.vpool.FileVirtualPoolReplicationParam;
-import com.emc.storageos.model.vpool.FileVirtualPoolReplicationUpdateParam;
 import com.emc.storageos.model.vpool.FileVirtualPoolRestRep;
 import com.emc.storageos.model.vpool.FileVirtualPoolUpdateParam;
 import com.emc.storageos.model.vpool.VirtualPoolProtectionSnapshotsParam;
@@ -51,9 +49,45 @@ public class FileVirtualPoolUpdateBuilder extends VirtualPoolUpdateBuilder {
         }
         return null;
     }
+
     private Boolean getOldScheduleSnapshots() {
         if ((oldVirtualPool.getProtection() != null) && (oldVirtualPool.getProtection().getScheduleSnapshots() != null)) {
             return oldVirtualPool.getProtection().getScheduleSnapshots();
+        }
+        return null;
+    }
+
+    private Boolean getOldReplicationSupported() {
+        if ((oldVirtualPool.getProtection() != null) && (oldVirtualPool.getProtection().getReplicationSupported() != null)) {
+            return oldVirtualPool.getProtection().getReplicationSupported();
+        }
+        return null;
+    }
+
+    private Boolean getOldAllowPolicyAtProject() {
+        if ((oldVirtualPool.getProtection() != null) && (oldVirtualPool.getProtection().getAllowFilePolicyAtProjectLevel() != null)) {
+            return oldVirtualPool.getProtection().getAllowFilePolicyAtProjectLevel();
+        }
+        return null;
+    }
+
+    private Boolean getOldAllowPolicyAtFS() {
+        if ((oldVirtualPool.getProtection() != null) && (oldVirtualPool.getProtection().getAllowFilePolicyAtFSLevel() != null)) {
+            return oldVirtualPool.getProtection().getAllowFilePolicyAtFSLevel();
+        }
+        return null;
+    }
+
+    private Long getOldRPOValue() {
+        if ((oldVirtualPool.getProtection() != null) && (oldVirtualPool.getProtection().getMinRpoValue() != null)) {
+            return oldVirtualPool.getProtection().getMinRpoValue();
+        }
+        return null;
+    }
+
+    private String getOldRPOType() {
+        if ((oldVirtualPool.getProtection() != null) && (oldVirtualPool.getProtection().getMinRpoType() != null)) {
+            return oldVirtualPool.getProtection().getMinRpoType();
         }
         return null;
     }
@@ -83,45 +117,95 @@ public class FileVirtualPoolUpdateBuilder extends VirtualPoolUpdateBuilder {
         }
         return this;
     }
-    
-    protected FileVirtualPoolReplicationUpdateParam getReplicationParam() {
-        if (getProtection().getReplicationParam() == null) {
-            getProtection().setReplicationParam(new FileVirtualPoolReplicationUpdateParam());
 
-        }
-        return virtualPool.getProtection().getReplicationParam();
-    }
-    
-    public FileVirtualPoolReplicationParam getOldReplicationParam() {
-        if (getProtection().getReplicationParam() == null) {
-            getProtection().setReplicationParam(new FileVirtualPoolReplicationUpdateParam());
-
-        }
-        return oldVirtualPool.getProtection().getReplicationParam();
-    }
-
-    public static FileVirtualPoolReplicationParam getReplicationParam(FileVirtualPoolRestRep virtualPool) {
-        return virtualPool != null ? virtualPool.getProtection().getReplicationParam() : null;
-    }
-
-    public FileVirtualPoolUpdateBuilder setReplicationParam(FileVirtualPoolReplicationUpdateParam replicationParam) {
-        getProtection().setReplicationParam(replicationParam);
-        return this;
-    }
-    
     public FileVirtualPoolUpdateBuilder setScheduleSnapshots(Boolean scheduleSnapshots) {
         if (!ObjectUtils.equals(scheduleSnapshots, getOldScheduleSnapshots())) {
             getProtection().setScheduleSnapshots(scheduleSnapshots);
         }
         return this;
     }
-    
+
     public static Boolean getScheduleSnapshots(FileVirtualPoolRestRep virtualPool) {
         return getScheduleSnapshots(getProtection(virtualPool));
     }
 
     public static Boolean getScheduleSnapshots(FileVirtualPoolProtectionParam protection) {
         return protection != null ? protection.getScheduleSnapshots() : null;
+    }
+
+    public FileVirtualPoolUpdateBuilder setReplicationSupported(Boolean replicationSupported) {
+        if (!ObjectUtils.equals(replicationSupported, getOldReplicationSupported())) {
+            getProtection().setReplicationSupported(replicationSupported);
+        }
+        return this;
+    }
+
+    public static Boolean getReplicationSupported(FileVirtualPoolProtectionParam protection) {
+        return protection != null ? protection.getReplicationSupported() : null;
+    }
+
+    public static Boolean getReplicationSupported(FileVirtualPoolRestRep virtualPool) {
+        return getReplicationSupported(getProtection(virtualPool));
+    }
+
+    public FileVirtualPoolUpdateBuilder setAllowPolicyAtProject(Boolean allowPolicyAtProject) {
+        if (!ObjectUtils.equals(allowPolicyAtProject, getOldAllowPolicyAtProject())) {
+            getProtection().setAllowFilePolicyAtProjectLevel(allowPolicyAtProject);
+        }
+        return this;
+    }
+
+    public static Boolean getAllowPolicyAtProject(FileVirtualPoolProtectionParam protection) {
+        return protection != null ? protection.getAllowFilePolicyAtProjectLevel() : null;
+    }
+
+    public static Boolean getAllowPolicyAtProject(FileVirtualPoolRestRep virtualPool) {
+        return getAllowPolicyAtProject(getProtection(virtualPool));
+    }
+
+    public FileVirtualPoolUpdateBuilder setAllowPolicyAtFS(Boolean allowPolicyAtFS) {
+        if (!ObjectUtils.equals(allowPolicyAtFS, getOldAllowPolicyAtFS())) {
+            getProtection().setAllowFilePolicyAtFSLevel(allowPolicyAtFS);
+        }
+        return this;
+    }
+
+    public static Boolean getAllowPolicyAtFS(FileVirtualPoolProtectionParam protection) {
+        return protection != null ? protection.getAllowFilePolicyAtFSLevel() : null;
+    }
+
+    public static Boolean getAllowPolicyAtFS(FileVirtualPoolRestRep virtualPool) {
+        return getAllowPolicyAtFS(getProtection(virtualPool));
+    }
+
+    public FileVirtualPoolUpdateBuilder setMinRPO(Long rpo) {
+        if (!ObjectUtils.equals(rpo, getOldRPOValue())) {
+            getProtection().setMinRpoValue(rpo);
+        }
+        return this;
+    }
+
+    public static Long getMinRPO(FileVirtualPoolProtectionParam protection) {
+        return protection != null ? protection.getMinRpoValue() : null;
+    }
+
+    public static Long getMinRPO(FileVirtualPoolRestRep virtualPool) {
+        return getMinRPO(getProtection(virtualPool));
+    }
+
+    public FileVirtualPoolUpdateBuilder setMinRPOType(String rpoType) {
+        if (!ObjectUtils.equals(rpoType, getOldRPOType())) {
+            getProtection().setMinRpoType(rpoType);
+        }
+        return this;
+    }
+
+    public static String getMinRPOType(FileVirtualPoolProtectionParam protection) {
+        return protection != null ? protection.getMinRpoType() : null;
+    }
+
+    public static String getMinRPOType(FileVirtualPoolRestRep virtualPool) {
+        return getMinRPOType(getProtection(virtualPool));
     }
 
 }

@@ -9,9 +9,9 @@ import java.net.URI;
 
 import com.emc.storageos.db.client.constraint.impl.LabelConstraintImpl;
 import com.emc.storageos.db.client.constraint.impl.PrefixConstraintImpl;
+import com.emc.storageos.db.client.impl.ColumnField;
 import com.emc.storageos.db.client.impl.DataObjectType;
 import com.emc.storageos.db.client.impl.TypeMap;
-import com.emc.storageos.db.client.impl.ColumnField;
 import com.emc.storageos.db.client.model.DataObject;
 
 /**
@@ -33,6 +33,13 @@ public interface PrefixConstraint extends Constraint {
         public static PrefixConstraint getLabelPrefixConstraint(Class<? extends DataObject> clazz, String prefix) {
             DataObjectType doType = TypeMap.getDoType(clazz);
             return new PrefixConstraintImpl(prefix, doType.getColumnField("label"));
+        }
+
+        // tags - prefix search
+        // This method allow system admin to get prefix constraint for system objects!!!
+        public static PrefixConstraint getTagsPrefixConstraint(Class<? extends DataObject> clazz, String prefix) {
+            DataObjectType doType = TypeMap.getDoType(clazz);
+            return new PrefixConstraintImpl(prefix, doType.getColumnField("tags"));
         }
 
         // prefix indexed field - prefix search

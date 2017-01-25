@@ -53,7 +53,7 @@ public class RemoteReplicationSet extends DiscoveredDataObject {
     //private String replicationMode;
 
     // When replication link operations are supported on the SET level, defines state of the link for this set.
-    private com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationSet.ReplicationState replicationState;
+    String replicationState;
 
     // Element types supported by this replication set.
     private StringSet supportedElementTypes;
@@ -172,12 +172,22 @@ public class RemoteReplicationSet extends DiscoveredDataObject {
         setChanged("replicationModesNoGroupConsistency");
     }
 
+//    @Name("replicationMode")
+//    public String getReplicationMode() {
+//        return replicationMode;
+//    }
+//
+//    public void setReplicationMode(String replicationMode) {
+//        this.replicationMode = replicationMode;
+//        setChanged("replicationMode");
+//    }
+
     @Name("replicationState")
-    public com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationSet.ReplicationState getReplicationState() {
+    public String getReplicationState() {
         return replicationState;
     }
 
-    public void setReplicationState(com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationSet.ReplicationState replicationState) {
+    public void setReplicationState(String replicationState) {
         this.replicationState = replicationState;
         setChanged("replicationState");
     }
@@ -205,7 +215,7 @@ public class RemoteReplicationSet extends DiscoveredDataObject {
 
         for (Map.Entry<String, AbstractChangeTrackingSet<String>> entry : getSystemToRolesMap().entrySet()) {
             AbstractChangeTrackingSet<String> roles = entry.getValue();
-            if (roles.contains(com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationSet.ReplicationRole.SOURCE.toString())) {
+            if (roles.contains("SOURCE")) {
                 sourceSystems.add(entry.getKey());
             }
         }
@@ -224,7 +234,7 @@ public class RemoteReplicationSet extends DiscoveredDataObject {
 
         for (Map.Entry<String, AbstractChangeTrackingSet<String>> entry : getSystemToRolesMap().entrySet()) {
             AbstractChangeTrackingSet<String> roles = entry.getValue();
-            if (roles.contains(com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationSet.ReplicationRole.TARGET.toString())) {
+            if (roles.contains("TARGET")) {
                 targetSystems.add(entry.getKey());
             }
         }

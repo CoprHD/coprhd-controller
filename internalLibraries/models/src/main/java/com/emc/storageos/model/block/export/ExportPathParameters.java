@@ -20,7 +20,7 @@ public class ExportPathParameters {
     private Integer pathsPerInitiator;
     private Integer minPaths;
     private List<URI> storagePorts;
-    private String portGroup;
+    private URI portGroup;
 
     @XmlElement(name = "max_paths")
     @Range(min = 1, max = 65535)
@@ -79,11 +79,11 @@ public class ExportPathParameters {
     }
 
     @XmlElement(name = "port_group")
-    public String getPortGroup() {
+    public URI getPortGroup() {
         return portGroup;
     }
 
-    public void setPortGroup(String portGroup) {
+    public void setPortGroup(URI portGroup) {
         this.portGroup = portGroup;
     }
 

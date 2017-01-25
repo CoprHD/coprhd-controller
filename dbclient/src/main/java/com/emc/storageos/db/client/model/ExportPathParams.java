@@ -23,8 +23,8 @@ public class ExportPathParams extends DiscoveredDataObject {
     // If explicitly created is true, a user specifically create an ExportPathParam record.
     // If explicitly created is false, the entry was created as a side effect of an export operation.
     private Boolean explicitlyCreated;
-    // port group name predefined in the vmax
-    private String portGroup;
+    // port group URI
+    private URI portGroup;
     
     private URI storageDevice;
     
@@ -110,11 +110,11 @@ public class ExportPathParams extends DiscoveredDataObject {
     }
 
     @Name("portGroup")
-    public String getPortGroup() {
+    public URI getPortGroup() {
         return portGroup;
     }
     
-    public void setPortGroup(String portGroup) {
+    public void setPortGroup(URI portGroup) {
         this.portGroup = portGroup;
         setChanged("portGroup");
     }

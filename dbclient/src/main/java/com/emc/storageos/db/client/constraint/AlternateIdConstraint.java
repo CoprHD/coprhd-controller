@@ -51,6 +51,7 @@ import com.emc.storageos.db.client.model.StorageOSUserDAO;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StoragePoolSetting;
 import com.emc.storageos.db.client.model.StoragePort;
+import com.emc.storageos.db.client.model.StoragePortGroup;
 import com.emc.storageos.db.client.model.StorageProvider;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StorageTier;
@@ -778,14 +779,9 @@ public interface AlternateIdConstraint extends Constraint {
             return new AlternateIdConstraintImpl(doType.getColumnField(ExecutionWindow.TENANT), altId);
         }
         
-        public static AlternateIdConstraint getExportPathParamsNativeGUIdConstraint(String altId) {
-            DataObjectType doType = TypeMap.getDoType(ExportPathParams.class);
+        public static AlternateIdConstraint getPortGroupNativeGUIdConstraint(String altId) {
+            DataObjectType doType = TypeMap.getDoType(StoragePortGroup.class);
             return new AlternateIdConstraintImpl(doType.getColumnField(NATIVE_GUID), altId);
-        }
-        
-        public static AlternateIdConstraint getPortGroupByStorageSystemConstraint(URI storageDevice) {
-            DataObjectType doType = TypeMap.getDoType(ExportPathParams.class);
-            return new AlternateIdConstraintImpl(doType.getColumnField("storageDevice"), storageDevice.toString());
         }
 
     }

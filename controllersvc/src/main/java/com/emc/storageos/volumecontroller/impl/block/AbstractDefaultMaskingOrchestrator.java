@@ -43,6 +43,7 @@ import com.emc.storageos.db.client.model.ExportPathParams;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.StoragePort;
+import com.emc.storageos.db.client.model.StoragePortGroup;
 import com.emc.storageos.db.client.model.StorageProtocol;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringMap;
@@ -323,14 +324,15 @@ abstract public class AbstractDefaultMaskingOrchestrator {
             pathParams.setAllowFewerPorts(true);
         }
         if (pathParams.getPortGroup() != null) {
-            String portGroup = pathParams.getPortGroup();
-            _log.info("port group is " + portGroup);
-            List<URI> storagePorts = getDevice().getPortGroupMembers(storage, portGroup);
+            URI portGroupURI = pathParams.getPortGroup();
+            StoragePortGroup portGroup = _dbClient.queryObject(StoragePortGroup.class, portGroupURI);
+            _log.info("port group is " + portGroup.getLabel());
+            List<URI> storagePorts = StringSetUtil.stringSetToUriList(portGroup.getStoragePorts());
             if (storagePorts != null && !storagePorts.isEmpty()) {
                 pathParams.setStoragePorts(StringSetUtil.uriListToStringSet(storagePorts));
             } else {
                 _log.error(String.format("The port group %s does not have any port members", portGroup));
-                throw DeviceControllerException.exceptions.noPortMembersInPortGroupError(portGroup);
+                throw DeviceControllerException.exceptions.noPortMembersInPortGroupError(portGroup.getLabel());
             }
         }
         Map<URI, List<URI>> assignments = _blockScheduler.assignStoragePorts(storage, exportGroup,

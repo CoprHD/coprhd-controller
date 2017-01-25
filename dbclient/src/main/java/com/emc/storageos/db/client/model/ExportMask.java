@@ -83,8 +83,8 @@ public class ExportMask extends DataObject {
     // as a convenience.
     private String _resource;
 
-    // port group info to identify if use port group in the array
-    private String _portGroup;
+    // port group uri to identify if use port group in the array
+    private URI _portGroup;
     
     // Captures the Device Specific information that are created for this export mask.
     private StringSetMap _deviceDataMap;
@@ -858,11 +858,11 @@ public class ExportMask extends DataObject {
     }
 
     @Name("portGroup")
-    public String getPortGroup() {
+    public URI getPortGroup() {
         return _portGroup;
     }
 
-    public void setPortGroup(String portGroup) {
+    public void setPortGroup(URI portGroup) {
         _portGroup = portGroup;
         setChanged("portGroup");
     }

@@ -10,6 +10,7 @@ import java.util.Collection;
 
 import com.emc.storageos.ceph.CephExceptions;
 import com.emc.storageos.cinder.errorhandling.CinderExceptions;
+import com.emc.storageos.db.client.model.StoragePortGroup;
 import com.emc.storageos.hds.HDSExceptions;
 import com.emc.storageos.isilon.restapi.IsilonExceptions;
 import com.emc.storageos.netapp.NetAppExceptions;

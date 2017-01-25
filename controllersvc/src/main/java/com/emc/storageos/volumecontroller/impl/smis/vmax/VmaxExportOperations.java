@@ -56,6 +56,7 @@ import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.ExportPathParams;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Initiator;
+import com.emc.storageos.db.client.model.StoragePortGroup;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.StringSet;
@@ -329,27 +330,29 @@ public class VmaxExportOperations implements ExportMaskOperations {
                     pathParams = _dbClient.queryObject(ExportPathParams.class, exportPathParamsUri);
                 }
             }
-            String pgGroupName = null;
+            String portGroupName = null;
             if (pathParams != null) {
-                pgGroupName = pathParams.getPortGroup();
-                if (NullColumnValueGetter.isNotNullValue(pgGroupName) && 
+                URI pgURI = pathParams.getPortGroup();
+                if (!NullColumnValueGetter.isNullURI(pgURI) && 
                         isUsePortGroupEnabled(storage.getSystemType())) {
-                    mask.setPortGroup(pgGroupName);
+                    mask.setPortGroup(pgURI);
+                    StoragePortGroup pg = _dbClient.queryObject(StoragePortGroup.class, pgURI);
+                    portGroupName = pg.getLabel();
                     _dbClient.updateObject(mask);
-                    _log.info("port group name: " + pgGroupName);
+                    _log.info("port group name: " + portGroupName);
                 }
             }
-            if (pgGroupName == null) {
+            if (portGroupName == null) {
                 DataSource portGroupDataSource = ExportMaskUtils.getExportDatasource(storage, initiatorList, dataSourceFactory,
                         portGroupCustomTemplateName);
-                pgGroupName = customConfigHandler.getComputedCustomConfigValue(portGroupCustomTemplateName, storage.getSystemType(),
+                portGroupName = customConfigHandler.getComputedCustomConfigValue(portGroupCustomTemplateName, storage.getSystemType(),
                         portGroupDataSource);
-                pgGroupName = _helper.generateGroupName(_helper.getExistingPortGroupsFromArray(storage), pgGroupName);
+                portGroupName = _helper.generateGroupName(_helper.getExistingPortGroupsFromArray(storage), portGroupName);
             }
 
             // CTRL-9054 Always create unique port Groups.
             
-            CIMObjectPath targetPortGroupPath = createTargetPortGroup(storage, pgGroupName, targetURIList, taskCompleter);
+            CIMObjectPath targetPortGroupPath = createTargetPortGroup(storage, portGroupName, targetURIList, taskCompleter);
 
             // 4. ExportMask = MaskingView (MV) = IG + SG + PG
             CIMObjectPath volumeParentGroupPath = storage.checkIfVmax3() ?

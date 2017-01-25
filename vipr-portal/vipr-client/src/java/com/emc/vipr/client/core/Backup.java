@@ -12,8 +12,6 @@ import javax.ws.rs.core.UriBuilder;
 import com.emc.vipr.client.impl.RestClient;
 import com.emc.vipr.model.sys.backup.*;
 import com.emc.vipr.model.sys.backup.BackupSets.BackupSet;
-import com.emc.vipr.model.sys.recovery.DbRepairStatus;
-import com.sun.media.jfxmedia.logging.Logger;
 
 public class Backup {
 	protected final RestClient client;

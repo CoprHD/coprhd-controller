@@ -1049,23 +1049,23 @@ public class BackupOps {
      * Updates backup creation related status in ZK
      */
     public void updateBackupCreationStatus(String backupName, long operationTime, boolean success) {
-        log.info(String.format("Updating backup creation status(name=%s, time=%s, success=%s) to ZK",
-                backupName, operationTime, success));
+        log.info("Updating backup creation status(name={}, time={}, success={}) to ZK",
+                new Object[] {backupName, operationTime, success});
         BackupOperationStatus backupOperationStatus = queryBackupOperationStatus();
         boolean isScheduledBackup = isScheduledBackupTag(backupName);
         if (isScheduledBackup) {
-            log.info("updating scheduled backup");
+            log.info("updating scheduled backup creation status");
             backupOperationStatus.setLastScheduledCreation(backupName, operationTime,
                     (success) ? BackupOperationStatus.OpMessage.OP_SUCCESS : BackupOperationStatus.OpMessage.OP_FAILED);
         } else {
+            log.info("updating manual backup creation status");
             backupOperationStatus.setLastManualCreation(backupName, operationTime,
                     (success) ? BackupOperationStatus.OpMessage.OP_SUCCESS : BackupOperationStatus.OpMessage.OP_FAILED);
         }
         if (success) {
-            log.info("updating success backup");
+            log.info("updating successful backup creation status");
             backupOperationStatus.setLastSuccessfulCreation(backupName, operationTime,
                     (isScheduledBackup) ? BackupOperationStatus.OpMessage.OP_SCHEDULED : BackupOperationStatus.OpMessage.OP_MANUAL);
-            log.info("updated success backup");
         }
         persistBackupOperationStatus(backupOperationStatus);
     }
@@ -1083,7 +1083,7 @@ public class BackupOps {
             backupOperationStatus.setLastScheduledCreation(getOperationStatus(config, BackupConstants.LAST_SCHEDULED_CREATION));
             backupOperationStatus.setLastUpload(getOperationStatus(config, BackupConstants.LAST_UPLOAD));
         }
-        log.info("Get backup operation status from ZK: {}", backupOperationStatus.toString());
+        log.info("Get backup operation status from ZK: {}", backupOperationStatus);
         return backupOperationStatus;
     }
 
@@ -1106,7 +1106,7 @@ public class BackupOps {
         setOperationStatus(config, BackupConstants.LAST_UPLOAD, backupOperationStatus.getLastUpload());
 
         coordinatorClient.persistServiceConfiguration(config);
-        log.info("Persist backup operation status to zk successfully: {}", backupOperationStatus.toString());
+        log.info("Persist backup operation status to zk successfully: {}", backupOperationStatus);
     }
 
     private BackupOperationStatus.OperationStatus getOperationStatus(Configuration config, String operationType) {

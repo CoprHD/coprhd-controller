@@ -1059,5 +1059,4 @@ public class FileDeviceInputOutput {
     public void setFileProtectionPolicy(FilePolicy fileProtectionPolicy) {
         this.fileProtectionPolicy = fileProtectionPolicy;
     }
-
 }

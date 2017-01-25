@@ -74,8 +74,7 @@ public class FileReplicationAttrMatcher extends AttributeMatcher {
             List<StoragePool> allPools, Map<String, Object> attributeMap,
             StringBuffer errorMessage) {
 
-        Map<String, List<String>> remoteCopySettings = (Map<String, List<String>>)
-                attributeMap.get(Attributes.file_replication.toString());
+        Map<String, List<String>> remoteCopySettings = (Map<String, List<String>>) attributeMap.get(Attributes.file_replication.toString());
 
         _logger.info("Pools matching file replication protection  Started :  {} ",
                 Joiner.on("\t").join(getNativeGuidFromPools(allPools)));
@@ -97,10 +96,12 @@ public class FileReplicationAttrMatcher extends AttributeMatcher {
             copyMode = (String) attributeMap.get(Attributes.file_replication_copy_mode.toString());
         }
 
-        if (remoteCopySettings != null && !remoteCopySettings.isEmpty()) {
+        // For remote replication!!
+        if (replicationType != null && SupportedFileReplicationTypes.REMOTE.toString().equalsIgnoreCase(replicationType)) {
 
+            URI remoteVpool = (URI) attributeMap.get(Attributes.file_replication_target_vpool.toString());
             // Get the assigned or matched storage pools of remote virtual pool!!!
-            remotePoolUris = returnRemotePoolsAssociatedWithRemoteCopySettings(remoteCopySettings, getPoolUris(allPools));
+            remotePoolUris = returnRemotePoolsAssociatedWithRemoteCopySettings(remoteVpool, getPoolUris(allPools));
 
             // Get Remote Storage Systems associated with given remote Settings via VPool's matched or
             // assigned Pools
@@ -261,23 +262,20 @@ public class FileReplicationAttrMatcher extends AttributeMatcher {
      * @param remoteCopySettings
      * @return
      */
-    private Set<String> returnRemotePoolsAssociatedWithRemoteCopySettings(
-            Map<String, List<String>> remoteCopySettings,
-            Set<String> poolUris) {
+    private Set<String> returnRemotePoolsAssociatedWithRemoteCopySettings(URI remotePool, Set<String> poolUris) {
         Set<String> remotePoolUris = new HashSet<String>();
-        for (Entry<String, List<String>> entry : remoteCopySettings.entrySet()) {
-            VirtualPool vPool = _objectCache.queryObject(VirtualPool.class,
-                    URI.create(entry.getKey()));
-            if (null == vPool) {
-                remotePoolUris.addAll(poolUris);
-            } else if (null != vPool.getUseMatchedPools() && vPool.getUseMatchedPools()) {
-                if (null != vPool.getMatchedStoragePools()) {
-                    remotePoolUris.addAll(vPool.getMatchedStoragePools());
-                }
-            } else if (null != vPool.getAssignedStoragePools()) {
-                remotePoolUris.addAll(vPool.getAssignedStoragePools());
+
+        VirtualPool vPool = _objectCache.queryObject(VirtualPool.class, remotePool);
+        if (null == vPool) {
+            remotePoolUris.addAll(poolUris);
+        } else if (null != vPool.getUseMatchedPools() && vPool.getUseMatchedPools()) {
+            if (null != vPool.getMatchedStoragePools()) {
+                remotePoolUris.addAll(vPool.getMatchedStoragePools());
             }
+        } else if (null != vPool.getAssignedStoragePools()) {
+            remotePoolUris.addAll(vPool.getAssignedStoragePools());
         }
+
         return remotePoolUris;
     }
 

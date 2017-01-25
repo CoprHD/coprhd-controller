@@ -5,25 +5,15 @@
 package com.emc.vipr.client.core;
 
 import static com.emc.vipr.client.impl.jersey.ClientUtils.addQueryParam;
-import static com.emc.vipr.client.system.impl.PathConstants.BACKUP_CREATE_URL;
-import static com.emc.vipr.client.system.impl.PathConstants.BACKUP_INFO_URL;
-import static com.emc.vipr.client.system.impl.PathConstants.BACKUP_EXTERNAL_URL;
-import static com.emc.vipr.client.system.impl.PathConstants.BACKUP_PULL_CANCEL_URL;
-import static com.emc.vipr.client.system.impl.PathConstants.BACKUP_PULL_URL;
-import static com.emc.vipr.client.system.impl.PathConstants.BACKUP_UPLOAD_URL;
-import static com.emc.vipr.client.system.impl.PathConstants.BACKUP_URL;
-import static com.emc.vipr.client.system.impl.PathConstants.RESTORE_STATUS_URL;
-import static com.emc.vipr.client.system.impl.PathConstants.RESTORE_URL;
+import static com.emc.vipr.client.system.impl.PathConstants.*;
 
 import javax.ws.rs.core.UriBuilder;
 
 import com.emc.vipr.client.impl.RestClient;
-import com.emc.vipr.model.sys.backup.BackupRestoreStatus;
-import com.emc.vipr.model.sys.backup.BackupSets;
+import com.emc.vipr.model.sys.backup.*;
 import com.emc.vipr.model.sys.backup.BackupSets.BackupSet;
-import com.emc.vipr.model.sys.backup.BackupUploadStatus;
-import com.emc.vipr.model.sys.backup.BackupInfo;
-import com.emc.vipr.model.sys.backup.ExternalBackups;
+import com.emc.vipr.model.sys.recovery.DbRepairStatus;
+import com.sun.media.jfxmedia.logging.Logger;
 
 public class Backup {
 	protected final RestClient client;
@@ -132,5 +122,25 @@ public class Backup {
         }
 
         return status;
+    }
+
+    public BackupOperationStatus getBackupOperationStatus() {
+        System.out.println("grace: Try to get backup operation status");
+        BackupOperationStatus status = new BackupOperationStatus();
+        try {
+            System.out.println("grace: getting backup operation status");
+            status = client.get(BackupOperationStatus.class, BACKUP_STATUS_URL);
+            System.out.println("grace: got backup operation status:" + status.toString());
+        } catch (Exception e) {
+            System.out.println("grace: Get backup operation status failed:" +e.getMessage());
+        }
+        return status;
+        /*BackupOperationStatus backupOperationStatus = new BackupOperationStatus();
+        backupOperationStatus.setLastManualCreation("backup1", 1485004604, BackupOperationStatus.OpMessage.OP_SUCCESS);
+        backupOperationStatus.setLastScheduledCreation("backup2", 1485003604, BackupOperationStatus.OpMessage.OP_SUCCESS);
+        backupOperationStatus.setLastSuccessfulCreation("backup1", 1485004604, BackupOperationStatus.OpMessage.OP_MANUAL);
+        backupOperationStatus.setLastUpload("backup1", 1485004604, BackupOperationStatus.OpMessage.OP_SUCCESS);
+        backupOperationStatus.setNextScheduledCreation(1485004604);
+        return backupOperationStatus;*/
     }
 }

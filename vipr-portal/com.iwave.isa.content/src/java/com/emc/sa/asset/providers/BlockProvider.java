@@ -2119,18 +2119,21 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     public List<AssetOption> getBlockVolumesWithSnapshot(AssetOptionsContext context, URI project, String volumeOrConsistencyType) {
         final ViPRCoreClient client = api(context);
         if (isVolumeType(volumeOrConsistencyType)) {
-            List<VolumeRestRep> volumes = client.blockVolumes().findByProject(project, new DefaultResourceFilter<VolumeRestRep>() {
-                @Override
-                public boolean accept(VolumeRestRep volume) {
-                    if (!(client.blockSnapshots().getByVolume(volume.getId())).isEmpty()
-                            && StringUtils.isEmpty(volume.getReplicationGroupInstance())) {
-                        return true;
-                    } else {
-                        return false;
-                    }
+
+            Set<URI> volIdSet = new HashSet<>();
+            List<BlockSnapshotRestRep> snapshots = findSnapshotsByProject(client, project);
+            for (BlockSnapshotRestRep s : snapshots) {
+                volIdSet.add(s.getParent().getId());
+            }
+            // Have to get volumes just as it needs vol's mount point which snapshot doesn't have.
+            List<VolumeRestRep> volumes = getVolumesByIds(client, volIdSet);
+            List<VolumeRestRep> filteredVols = new ArrayList<>();
+            for (VolumeRestRep vol: volumes) {
+                if (StringUtils.isEmpty(vol.getReplicationGroupInstance())) {
+                    filteredVols.add(vol);
                 }
-            });
-            return createVolumeOptions(client, volumes);
+            }
+            return createVolumeOptions(client, filteredVols);
         } else {
             List<BlockConsistencyGroupRestRep> consistencyGroups = client.blockConsistencyGroups()
                     .search()

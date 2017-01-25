@@ -4381,6 +4381,9 @@ H3PI2=`pwwn 05`
 H3NI2=`nwwn 05`
 H3ID="${H3NI1}:${H3PI1} ${H3NI2}:${H3PI2}"
 
+# pull in the vplextests.sh so it can use the dutests framework
+source vplextests.sh
+
 # Delete and setup are optional
 if [ "$1" = "delete" ]
 then

@@ -1637,7 +1637,7 @@ public class VirtualArrayService extends TaggedResource {
         VirtualArray varray = _dbClient.queryObject(VirtualArray.class, id);
         ArgValidator.checkEntity(varray, id, isIdEmbeddedInURL(id));
         Set<URI> portURIs = new HashSet<URI> ();
-        Map<URI, Set<URI>> storagePortsMap = new HashMap<URI, Set<URI>> ();
+
         // Query the database for the storage ports associated with the
         // VirtualArray. 
         URIQueryResultList storagePortURIs = new URIQueryResultList();
@@ -1658,6 +1658,9 @@ public class VirtualArrayService extends TaggedResource {
         for (URI portURI : portURIs) {
             // Get port groups for each port
             StoragePort port = _dbClient.queryObject(StoragePort.class, portURI);
+            if (port == null || (storageURI != null && !storageURI.equals(port.getStorageDevice()))) {
+                continue;
+            }
             if ((port != null)
                     && (RegistrationStatus.REGISTERED.toString().equals(port
                             .getRegistrationStatus()))

@@ -249,6 +249,7 @@ test_EXISITING_USERADDED_INITS() {
 consistent_hlu_test(){
     test_VPLEX_ORCH_4;
     test_VPLEX_ORCH_5;
+    test_VPLEX_ORCH_6;
 }
 
 # Consistent HLU Tests
@@ -402,3 +403,104 @@ test_VPLEX_ORCH_5(){
 
     set_validation_check true
 }
+# Consistent HLU of VPLEX Snaoshot
+# 1. Create two vplex snapshot and create vplex volumes from the created snapshots.
+# 2. Export Volume V1 to a Cluster. Result: HLU should be 1.
+# 3. ExportVolume V2 to one of the Host H2. Result: HLU for the exclusive volume should be 0.
+# 4. Export a snapshot1 to a cluster. Result: Snapshot's HLU should be 2 on both the storage views.
+# 5. Export a snapshot2 to a host H2. Result: snap2's HLU should be 3 and it should be available only on H2 StorageView.
+# 6. Unexport snapshot1 from a cluster.
+# 7. Unexport snapshot2 from a host H2.
+# 8. Delete vplex volumes created using the snapshots and delete the snapshots. 
+
+test_VPLEX_ORCH_6(){
+    echot "Test VPLEX_ORCH_6: Consistent HLU Validation."
+    expname=${EXPORT_GROUP_NAME}tvo6
+    
+    # Make sure we start clean; no masking view on the array
+    verify_export ${expname}1 ${HOST1} gone
+    verify_export ${expname}1 ${HOST2} gone
+    localSnapshot=VPlexLocalSnap
+    
+    set_validation_check false
+    
+    runcmd blocksnapshot create ${PROJECT}/${VOLNAME}-1 ${localSnapshot}-1
+    runcmd blocksnapshot list ${PROJECT}/${VOLNAME}-1
+    # blocksnapshot show ${PROJECT}/${VOLNAME}-1/$localSnapshot-1
+    secho "Creating VPLEX volume from snapshot1"
+    blocksnapshot expose ${PROJECT}/${VOLNAME}-1/$localSnapshot-1
+    
+    runcmd blocksnapshot create ${PROJECT}/${VOLNAME}-2 ${localSnapshot}-2
+    runcmd blocksnapshot list ${PROJECT}/${VOLNAME}-2
+    # blocksnapshot show ${PROJECT}/${VOLNAME}-2/$localSnapshot-2
+    secho "Creating VPLEX volume from snapshot2"
+    blocksnapshot expose ${PROJECT}/${VOLNAME}-2/$localSnapshot-2
+    
+    
+    # Create the cluster export and masks with a volume
+    runcmd export_group create $PROJECT ${expname}1 $NH --type Cluster --volspec "${PROJECT}/${VOLNAME}-1" --clusters "${TENANT}/${CLUSTER}"
+
+    verify_export ${expname}1 ${HOST1} 2 1 1
+    verify_export ${expname}1 ${HOST2} 2 1 1
+    
+    runcmd export_group create $PROJECT ${expname}2 $NH --type Host --volspec ${PROJECT}/${VOLNAME}-2 --hosts "${HOST2}"
+    
+    verify_export ${expname}1 ${HOST1} 2 1 1
+    verify_export ${expname}1 ${HOST2} 2 2 0,1
+    
+    runcmd export_group update ${PROJECT}/${expname}1 --addVolspec ${PROJECT}/${localSnapshot}-1
+    
+    verify_export ${expname}1 ${HOST1} 2 2 1,2
+    verify_export ${expname}1 ${HOST2} 2 3 0,1,2
+    
+    runcmd export_group update ${PROJECT}/${expname}2 --addVolspec ${PROJECT}/${localSnapshot}-2
+    
+    verify_export ${expname}1 ${HOST1} 2 2 1,2
+    verify_export ${expname}1 ${HOST2} 2 4 0,1,2,3
+    
+    runcmd export_group update ${PROJECT}/${expname}1 --remVols "${PROJECT}/${localSnapshot}-1"
+    
+    verify_export ${expname}1 ${HOST1} 2 1 1
+    verify_export ${expname}1 ${HOST2} 2 3 0,1,3
+    
+    runcmd export_group update ${PROJECT}/${expname}2 --remVols "${PROJECT}/${localSnapshot}-2"
+    
+    verify_export ${expname}1 ${HOST1} 2 1 1
+    verify_export ${expname}1 ${HOST2} 2 2 0,1
+    
+    
+    
+    # runcmd export_group update ${PROJECT}/${expname}1 --remHosts "${HOST2}"
+    
+    # verify_export ${expname}1 ${HOST1} 2 2 1,2
+    # verify_export ${expname}1 ${HOST2} 2 2 0,3
+    
+    
+    runcmd export_group delete $PROJECT/${expname}2
+    
+    verify_export ${expname}1 ${HOST1} 2 1 1
+    verify_export ${expname}1 ${HOST2} 2 1 1
+    
+    runcmd export_group delete $PROJECT/${expname}1
+    
+    # Make sure the mask is gone
+    verify_export ${expname}1 ${HOST1} gone
+    verify_export ${expname}1 ${HOST2} gone
+    
+    secho "Deleting VPLEX volume built on snapshot1"
+    run volume delete $PROJECT/$localSnapshot-1 --wait
+
+    secho "Deleting snapshot"
+    run blocksnapshot delete $PROJECT/${VOLNAME}-1/$localSnapshot-1
+    
+    secho "Deleting VPLEX volume built on snapshot2"
+    run volume delete $PROJECT/$localSnapshot-2 --wait
+
+    secho "Deleting snapshot"
+    run blocksnapshot delete $PROJECT/${VOLNAME}-2/$localSnapshot-2
+    
+    verify_no_zones ${FC_ZONE_A:7} ${HOST1}
+
+    set_validation_check true
+}
+

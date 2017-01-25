@@ -777,7 +777,7 @@ public class UcsComputeDevice implements ComputeDevice {
         try {
             lsServer = ucsmService.createServiceProfileFromTemplate(getUcsmURL(cs).toString(), cs.getUsername(),
                     cs.getPassword(), sptDn, spRn);
-            //TODO: Need to inject failure to verify rollback.
+
             // Test mechanism to invoke a failure. No-op on production systems.
             InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_060);
             if (lsServer == null) {
@@ -786,7 +786,7 @@ public class UcsComputeDevice implements ComputeDevice {
             workflowService.storeStepData(stepId, lsServer.getDn());
             lsServer = pullAndPollManagedObject(getUcsmURL(cs).toString(), cs.getUsername(), cs.getPassword(),
                     lsServer.getDn(), LsServer.class);
-            //TODO: Need to inject failure to verify rollback.
+
             // Test mechanism to invoke a failure. No-op on production systems.
             InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_061);
             if (lsServer == null) {
@@ -820,7 +820,7 @@ public class UcsComputeDevice implements ComputeDevice {
         try {
             lsServer = ucsmService.setServiceProfileToNoBoot(getUcsmURL(cs).toString(), cs.getUsername(),
                     cs.getPassword(), spDn);
-            //TODO: need to inject failure to test rollback.
+
             // Test mechanism to invoke a failure. No-op on production systems.
             InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_062);
             if (null == lsServer) {
@@ -890,14 +890,14 @@ public class UcsComputeDevice implements ComputeDevice {
 
             serviceProfile = pullAndPollManagedObject(getUcsmURL(computeSystem).toString(),
                     computeSystem.getUsername(), computeSystem.getPassword(), spDn, LsServer.class);
-            //TODO: Need to inject failure to test rollback
+
             // Test mechanism to invoke a failure. No-op on production systems.
             InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_063);
             if (serviceProfile == null || ASSOC_STATE_UNASSOCIATED.equals(serviceProfile.getAssocState())) {
                 LOGGER.info("SP {} AssocState is marked unassociated. Bind ServiceProfileToBlade failed", spDn);
                 throw new Exception(BIND_SERVICE_PROFILE_TO_BLADE_STEP + " failed.");
             }
-            //TODO: Need to inject failure to test rollback
+
             // Test mechanism to invoke a failure. No-op on production systems.
             InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_064);
             if (computeElement != null && serviceProfile != null) {
@@ -980,7 +980,7 @@ public class UcsComputeDevice implements ComputeDevice {
                             .toUpperCase() : null);
 
                     Network network = networkIdNetworkMapInVarray.get(computeElementHBA.getVsanId());
-                    //TODO: Need to inject failure to test rollback
+
                     // Test mechanism to invoke a failure. No-op on production systems.
                     InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_065);
                     if (network == null) {

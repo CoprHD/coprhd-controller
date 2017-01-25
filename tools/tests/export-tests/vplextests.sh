@@ -248,6 +248,7 @@ test_EXISITING_USERADDED_INITS() {
    
 consistent_hlu_test(){
     test_VPLEX_ORCH_4;
+    test_VPLEX_ORCH_5;
 }
 
 # Consistent HLU Tests
@@ -273,7 +274,7 @@ consistent_hlu_test(){
 
 test_VPLEX_ORCH_4(){
     echot "Test VPLEX_ORCH_4: Consistent HLU Validation."
-    expname=${EXPORT_GROUP_NAME}tvo1
+    expname=${EXPORT_GROUP_NAME}tvo4
 
     # Make sure we start clean; no masking view on the array
     verify_export ${expname}1 ${HOST1} gone
@@ -352,4 +353,52 @@ test_VPLEX_ORCH_4(){
 
     set_validation_check true
 }
+# Test case for consistent lun violation whileing adding host into cluster.
+# 1. Export a volume V1 to cluster C1.
+# 2. Remove one host H2 from cluster.
+# 3. Export a volume V2 to Host H2 with HLU 1. 
+# 4. Add H2 into cluster C1. Result: Export Group update should fail as there is an consistent lun violation here.
+test_VPLEX_ORCH_5(){
+    echot "Test VPLEX_ORCH_5: Consistent HLU Validation."
+    expname=${EXPORT_GROUP_NAME}tvo5
 
+    # Make sure we start clean; no masking view on the array
+    verify_export ${expname}1 ${HOST1} gone
+    verify_export ${expname}1 ${HOST2} gone
+
+    set_validation_check false
+
+    # Create the cluster export and masks with a volume
+    runcmd export_group create $PROJECT ${expname}1 $NH --type Cluster --volspec "${PROJECT}/${VOLNAME}-1" --clusters "${TENANT}/${CLUSTER}"
+
+    verify_export ${expname}1 ${HOST1} 2 1 1
+    verify_export ${expname}1 ${HOST2} 2 1 1
+    
+    runcmd export_group update ${PROJECT}/${expname}1 --remHosts "${HOST2}"
+    
+    verify_export ${expname}1 ${HOST1} 2 1 1
+    verify_export ${expname}1 ${HOST2} gone
+    
+    runcmd export_group create $PROJECT ${expname}2 $NH --type Host --volspec "${PROJECT}/${VOLNAME}-2+1" --hosts "${HOST2}"
+    
+    verify_export ${expname}1 ${HOST1} 2 1 1
+    verify_export ${expname}1 ${HOST2} 2 1 1
+    
+    #Expecting failure here due to consistent lun violation
+    fail runcmd export_group update ${PROJECT}/${expname}1 --addHosts "${HOST2}"
+    
+    verify_export ${expname}1 ${HOST1} 2 1 1
+    verify_export ${expname}1 ${HOST2} 2 1 1
+    
+    # Delete the export group
+    runcmd export_group delete $PROJECT/${expname}2
+    runcmd export_group delete $PROJECT/${expname}1
+    
+    # Make sure the mask is gone
+    verify_export ${expname}1 ${HOST1} gone
+    verify_export ${expname}1 ${HOST2} gone
+
+    verify_no_zones ${FC_ZONE_A:7} ${HOST1}
+
+    set_validation_check true
+}

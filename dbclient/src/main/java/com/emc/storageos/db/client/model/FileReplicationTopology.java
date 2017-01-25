@@ -37,6 +37,14 @@ public class FileReplicationTopology extends DataObject {
         setChanged("targetVArrays");
     }
 
+    public void addTargetVArrays(StringSet targetVArrays) {
+        if (this.targetVArrays == null) {
+            this.targetVArrays = new StringSet();
+        }
+        this.targetVArrays.addAll(targetVArrays);
+        setChanged("targetVArrays");
+    }
+
     @Name("numCopies")
     public Long getNumCopies() {
         return numCopies;

@@ -3385,7 +3385,6 @@ public class FileService extends TaskResourceService {
      * @return file service implementation object
      */
     public static FileServiceApi getFileShareServiceImpl(VirtualPoolCapabilityValuesWrapper capabilities, DbClient dbClient) {
-        // VirtualPool vPool = dbClient.queryObject(VirtualPool.class, fileShare.getVirtualPool());
         return getFileServiceImpl(capabilities, dbClient);
     }
 

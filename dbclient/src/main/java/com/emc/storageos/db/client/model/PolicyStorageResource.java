@@ -91,6 +91,7 @@ public class PolicyStorageResource extends DataObject {
 
     public void setNativeGuid(String nativeGuid) {
         this.nativeGuid = nativeGuid;
+        setChanged("nativeGuid");
     }
 
 }

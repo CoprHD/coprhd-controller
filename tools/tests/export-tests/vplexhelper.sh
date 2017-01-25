@@ -114,8 +114,13 @@ verify_export() {
 	then
 	exit 1;
     fi
-
-    echo "PASSED: Initiator group '$1' contained $2 initiators and $3 luns"
+    
+	if [ ! -z $HLUS ]; then
+        echo "PASSED: Initiator group '$1' contained $2 initiators $3 luns and $4 hlus"
+	else
+        echo "PASSED: Initiator group '$1' contained $2 initiators and $3 luns"
+    fi
+    
     exit 0;
 }
 
@@ -123,8 +128,6 @@ verify_export() {
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 tools_file="${DIR}/tools.yml"
 tools_jar="${DIR}/ArrayTools.jar"
-
-
 
 if [ "$1" = "add_volume_to_mask" ]; then
     shift

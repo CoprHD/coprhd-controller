@@ -33,15 +33,15 @@ test_VPLEX_ORCH_1() {
     # Create the cluster export and masks with the 2 volumes
     runcmd export_group create $PROJECT ${expname}1 $NH --type Cluster --volspec "${PROJECT}/${VOLNAME}-1,${PROJECT}/${VOLNAME}-2" --clusters "${TENANT}/${CLUSTER}"
 
-    verify_export ${expname}1 ${HOST1} 2 2 1,2
-    verify_export ${expname}1 ${HOST2} 2 2 1,2
+    verify_export ${expname}1 ${HOST1} 2 2
+    verify_export ${expname}1 ${HOST2} 2 2
 
     # Run the export group command.  Expect it to fail with validation
     fail export_group update $PROJECT/${expname}1 --remInits ${HOST1}/${H1PI1},${HOST1}/${H1PI2}
 
     # Verify exports still exist
-    verify_export ${expname}1 ${HOST1} 2 2 1,2
-    verify_export ${expname}1 ${HOST2} 2 2 1,2
+    verify_export ${expname}1 ${HOST1} 2 2
+    verify_export ${expname}1 ${HOST2} 2 2
 
     # Verify the zone names, as we know them, are on the switch
     load_zones ${HOST1} 
@@ -89,7 +89,7 @@ test_VPLEX_ORCH_2() {
     # Create the mask with the 1 volume
     runcmd export_group create $PROJECT ${expname}1 $NH --type Host --volspec "${PROJECT}/${VOLNAME}-1" --hosts "${HOST1}"
 
-    verify_export ${expname}1 ${HOST1} 2 1 
+    verify_export ${expname}1 ${HOST1} 2 1
 
     # Run the export group command.  Expect it to fail with validation
     fail export_group update $PROJECT/${expname}1 --remVols "${PROJECT}/${VOLNAME}-1"
@@ -245,7 +245,7 @@ test_EXISITING_USERADDED_INITS() {
 
     echoit "Existing Initiators to User Added Initiators Test Passed"
 }
-   
+# Vplex Consistent HLU related tests.   
 consistent_hlu_test(){
     test_VPLEX_ORCH_4;
     test_VPLEX_ORCH_5;

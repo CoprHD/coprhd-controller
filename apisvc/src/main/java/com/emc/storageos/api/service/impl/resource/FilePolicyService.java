@@ -69,7 +69,6 @@ import com.emc.storageos.model.TaskResourceRep;
 import com.emc.storageos.model.auth.ACLAssignmentChanges;
 import com.emc.storageos.model.auth.ACLAssignments;
 import com.emc.storageos.model.file.policy.FilePolicyAssignParam;
-import com.emc.storageos.model.file.policy.FilePolicyAssignResp;
 import com.emc.storageos.model.file.policy.FilePolicyBulkRep;
 import com.emc.storageos.model.file.policy.FilePolicyCreateParam;
 import com.emc.storageos.model.file.policy.FilePolicyCreateResp;
@@ -371,20 +370,23 @@ public class FilePolicyService extends TaskResourceService {
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.TENANT_ADMIN })
-    public FilePolicyAssignResp assignFilePolicy(@PathParam("id") URI id, FilePolicyAssignParam param) {
-        FilePolicyAssignResp resp = new FilePolicyAssignResp();
+    public TaskResourceRep assignFilePolicy(@PathParam("id") URI id, FilePolicyAssignParam param) {
+        // FilePolicyAssignResp resp = new FilePolicyAssignResp();
         ArgValidator.checkFieldUriType(id, FilePolicy.class, "id");
         FilePolicy filepolicy = this._dbClient.queryObject(FilePolicy.class, id);
         ArgValidator.checkEntity(filepolicy, id, true);
 
-        if (filepolicy.getApplyAt().equals(FilePolicyApplyLevel.vpool.name())) {
-            return assignFilePolicyToVpool(param, filepolicy);
-        } else if (filepolicy.getApplyAt().equals(FilePolicyApplyLevel.project.name())) {
-            return assignFilePolicyToProject(param, filepolicy);
-        } else if (filepolicy.getApplyAt().equals(FilePolicyApplyLevel.file_system.name())) {
-            return assignFilePolicyToFS(param, filepolicy);
+        String applyAt = filepolicy.getApplyAt();
+
+        FilePolicyApplyLevel appliedAt = FilePolicyApplyLevel.valueOf(applyAt);
+        switch (appliedAt) {
+            case vpool:
+                return assignFilePolicyToVpool(param, filepolicy);
+            case project:
+                return assignFilePolicyToProject(param, filepolicy);
+            default:
+                throw APIException.badRequests.invalidFilePolicyApplyLevel(appliedAt.name());
         }
-        return resp;
     }
 
     /**
@@ -830,7 +832,7 @@ public class FilePolicyService extends TaskResourceService {
      * @param param
      * @param filepolicy
      */
-    private FilePolicyAssignResp assignFilePolicyToVpool(FilePolicyAssignParam param, FilePolicy filePolicy) {
+    private TaskResourceRep assignFilePolicyToVpool(FilePolicyAssignParam param, FilePolicy filePolicy) {
         StringBuilder errorMsg = new StringBuilder();
         ArgValidator.checkFieldNotNull(param.getVpoolAssignParams(), "vpool_assign_param");
 
@@ -900,8 +902,7 @@ public class FilePolicyService extends TaskResourceService {
         fileServiceApi.assignFileReplicationPolicyToVirtualPool(convertRecommendationsToStorageSystemAssociations(recommendations),
                 filePolicy.getId(), task);
 
-        return new FilePolicyAssignResp(filePolicy.getId(), toLink(ResourceTypeEnum.FILE_POLICY,
-                filePolicy.getId()), filePolicy.getLabel(), filePolicy.getApplyAt(), filePolicy.getAssignedResources());
+        return taskObject;
 
     }
 
@@ -967,7 +968,7 @@ public class FilePolicyService extends TaskResourceService {
         return associations;
     }
 
-    private FilePolicyAssignResp assignFilePolicyToProject(FilePolicyAssignParam param, FilePolicy filePolicy) {
+    private TaskResourceRep assignFilePolicyToProject(FilePolicyAssignParam param, FilePolicy filePolicy) {
         StringBuilder errorMsg = new StringBuilder();
         ArgValidator.checkFieldNotNull(param.getProjectAssignParams(), "project_assign_param");
 
@@ -1033,12 +1034,40 @@ public class FilePolicyService extends TaskResourceService {
             filePolicy.setApplyOnTargetSite(param.getApplyOnTargetSite());
         }
         _dbClient.updateObject(filePolicy);
-        return new FilePolicyAssignResp(filePolicy.getId(), toLink(ResourceTypeEnum.FILE_POLICY, filePolicy.getId()), filePolicy.getLabel(),
-                filePolicy.getApplyAt(), filePolicy.getAssignedResources());
+
+        List<FileRecommendation> recommendations = new ArrayList<FileRecommendation>();
+        for (URI projectURI : projectURIs) {
+            VirtualPool vpool = _dbClient.queryObject(VirtualPool.class, param.getProjectAssignParams().getVpool());
+            Project project = _dbClient.queryObject(Project.class, projectURI);
+            Iterator<FileReplicationTopologyParam> it = param.getFileReplicationtopologies().iterator();
+            while (it.hasNext()) {
+                VirtualPoolCapabilityValuesWrapper capabilities = new VirtualPoolCapabilityValuesWrapper();
+                capabilities.put(VirtualPoolCapabilityValuesWrapper.VPOOL_PROJECT_POLICY_ASSIGN, true);
+                VirtualArray srcVarray = _dbClient.queryObject(VirtualArray.class, it.next().getSourceVArray());
+                updatePolicyCapabilities(_dbClient, srcVarray, vpool, project, filePolicy, capabilities, errorMsg);
+                List<FileRecommendation> newRecs = _filePlacementManager.getRecommendationsForFileCreateRequest(srcVarray, project,
+                        vpool, capabilities);
+                for (FileRecommendation rec : newRecs) {
+                    rec.setVirtualPool(vpool);
+                }
+                recommendations.addAll(newRecs);
+            }
+        }
+
+        String task = UUID.randomUUID().toString();
+        TaskResourceRep taskObject = createAssignFilePolicyTask(filePolicy, task);
+
+        FileServiceApi fileServiceApi = getDefaultFileServiceApi();
+        List<URI> projects = new ArrayList<URI>();
+        projects.addAll(projectURIs);
+
+        fileServiceApi.assignFileReplicationPolicyToProject(convertRecommendationsToStorageSystemAssociations(recommendations),
+                projects, filePolicy.getId(), task);
+        return taskObject;
 
     }
 
-    private FilePolicyAssignResp assignFilePolicyToFS(FilePolicyAssignParam param, FilePolicy filepolicy) {
+    private TaskResourceRep assignFilePolicyToFS(FilePolicyAssignParam param, FilePolicy filepolicy) {
         StringBuilder errorMsg = new StringBuilder();
 
         ArgValidator.checkFieldNotNull(param.getFileSystemAssignParams(), "filesystem_assign_param");
@@ -1085,8 +1114,8 @@ public class FilePolicyService extends TaskResourceService {
             throw APIException.badRequests.invalidFilePolicyAssignParam(filepolicy.getFilePolicyName(), errorMsg.toString());
         }
         this._dbClient.updateObject(filepolicy);
-        return new FilePolicyAssignResp(filepolicy.getId(), toLink(ResourceTypeEnum.FILE_POLICY,
-                filepolicy.getId()), filepolicy.getLabel(), filepolicy.getApplyAt());
+        // TODO Remove this and create a proper resource
+        return new TaskResourceRep();
     }
 
     private void canUserUnAssignPolicyAtGivenLevel(FilePolicy policy, URI res) {

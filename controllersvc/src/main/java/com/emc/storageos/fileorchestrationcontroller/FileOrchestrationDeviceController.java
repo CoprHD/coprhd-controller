@@ -1935,7 +1935,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
                                     String stepDes = String
                                             .format("Assigning file policy: %s, to project: %s on storage system: %s",
                                                     filePolicy.getId(),
-                                                    vpoolURI,
+                                                    projectURI,
                                                     storageSystemURI);
                                     Object[] args = new Object[] { storageSystemURI, null, filePolicyToAssign, vpoolURI, projectURI };
                                     waitFor = _fileDeviceController.createMethod(workflow, waitFor,
@@ -1955,7 +1955,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
                 }
             }
 
-            String successMessage = String.format("Assigning file policy : %s, to vpool(s) successful.",
+            String successMessage = String.format("Assigning file policy : %s, to project(s) successful.",
                     filePolicy.getId(), vpoolToStorageSystemMap);
             workflow.executePlan(completer, successMessage);
         } catch (Exception ex) {

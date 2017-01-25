@@ -48,7 +48,7 @@ public class RemoteReplicationGroup extends DiscoveredDataObject {
     //private StringSet supportedReplicationLinkGranularity;
 
     // replication state of this group
-    private com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationSet.ReplicationState replicationState;
+    private String replicationState;
 
     // Defines if group consistency of link operations is enforced.
     private Boolean isGroupConsistencyEnforced;
@@ -150,11 +150,11 @@ public class RemoteReplicationGroup extends DiscoveredDataObject {
     }
 
     @Name("replicationState")
-    public com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationSet.ReplicationState getReplicationState() {
+    public String getReplicationState() {
         return replicationState;
     }
 
-    public void setReplicationState(com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationSet.ReplicationState replicationState) {
+    public void setReplicationState(String replicationState) {
         this.replicationState = replicationState;
         setChanged("replicationState");
     }

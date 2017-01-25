@@ -547,11 +547,10 @@ public class RemoteReplicationSetService extends TaskResourceService {
 
         remoteReplicationGroup.setDisplayName(param.getDisplayName());
         if (param.getReplicationState() != null ) {
-            remoteReplicationGroup.setReplicationState(
-                    com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationSet.ReplicationState.valueOf(param.getReplicationState()));
+            remoteReplicationGroup.setReplicationState(param.getReplicationState());
         } else {
             // set to active by default
-            remoteReplicationGroup.setReplicationState(com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationSet.ReplicationState.ACTIVE);
+            remoteReplicationGroup.setReplicationState("ACTIVE");
         }
         remoteReplicationGroup.setIsGroupConsistencyEnforced(param.getIsGroupConsistencyEnforced());
 

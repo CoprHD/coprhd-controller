@@ -2135,7 +2135,9 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice implem
                  driverPair.setReplicationGroupNativeId(systemReplicationGroup.getNativeId());
              }
              // set replication state
-             driverPair.setReplicationState(systemPair.getReplicationState());
+             com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationSet.ReplicationState replicationState =
+                     com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationSet.ReplicationState.valueOf(systemPair.getReplicationState());
+             driverPair.setReplicationState(replicationState);
 
              driverRRPairs.add(driverPair);
          }

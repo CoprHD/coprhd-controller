@@ -73,9 +73,9 @@ public class RemoteReplicationFailoverCompleter extends TaskCompleter {
                         List<RemoteReplicationPair> rrPairs = CustomQueryUtility.queryActiveResourcesByRelation(dbClient, elementURI,
                                 RemoteReplicationPair.class, "replicationGroup");
                         for (RemoteReplicationPair rrPair : rrPairs) {
-                            rrPair.setReplicationState(RemoteReplicationSet.ReplicationState.FAILED_OVER);
+                            rrPair.setReplicationState(RemoteReplicationSet.ReplicationState.FAILED_OVER.toString());
                         }
-                        remoteReplicationGroup.setReplicationState(RemoteReplicationSet.ReplicationState.FAILED_OVER);
+                        remoteReplicationGroup.setReplicationState(RemoteReplicationSet.ReplicationState.FAILED_OVER.toString());
                         dbClient.updateObject(remoteReplicationGroup);
                         dbClient.updateObject(rrPairs);
                         _logger.info("Completed operation for {} with id {} and status {}", elementType, elementURI, status);

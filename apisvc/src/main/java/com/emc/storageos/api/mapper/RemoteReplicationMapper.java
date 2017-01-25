@@ -65,7 +65,7 @@ public class RemoteReplicationMapper {
         to.setNativeId(from.getNativeId());
         to.setElementType(from.getElementType().toString());
         to.setReplicationMode(from.getReplicationMode());
-        to.setReplicationState(from.getReplicationState().toString());
+        to.setReplicationState(from.getReplicationState());
         to.setSourceElement(from.getSourceElement().getURI());
         to.setTargetElement(from.getTargetElement().getURI());
         if (from.getReplicationSet() != null) {

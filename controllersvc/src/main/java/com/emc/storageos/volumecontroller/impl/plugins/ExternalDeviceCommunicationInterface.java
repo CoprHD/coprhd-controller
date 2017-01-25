@@ -1416,8 +1416,7 @@ public class ExternalDeviceCommunicationInterface extends
 
             // set replication state
             RemoteReplicationSet.ReplicationState replicationState = driverSet.getReplicationState();
-            systemSet.setReplicationState(
-                    RemoteReplicationSet.ReplicationState.valueOf(replicationState.toString()));
+            systemSet.setReplicationState(replicationState.toString());
 
 
             // set systems to roles map
@@ -1500,8 +1499,7 @@ public class ExternalDeviceCommunicationInterface extends
             }
             // set replication state
             RemoteReplicationSet.ReplicationState replicationState = driverGroup.getReplicationState();
-            systemGroup.setReplicationState(
-                    RemoteReplicationSet.ReplicationState.valueOf(replicationState.toString()));
+            systemGroup.setReplicationState(replicationState.toString());
 
             // set replication mode for this group
             if (driverGroup.getReplicationMode() != null) {

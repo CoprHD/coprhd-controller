@@ -37,6 +37,8 @@ public class FilePolicyRestRep extends DataObjectRestRep {
 
     private String priority;
 
+    private Long numWorkerThreads;
+
     private Boolean applyOnTargetSite;
 
     @XmlElement(name = "schedule")
@@ -144,6 +146,15 @@ public class FilePolicyRestRep extends DataObjectRestRep {
             assignedResources = new ArrayList<NamedRelatedResourceRep>();
         }
         assignedResources.add(resource);
+    }
+
+    @XmlElement(name = "numWorkerThreads")
+    public Long getNumWorkerThreads() {
+        return numWorkerThreads;
+    }
+
+    public void setNumWorkerThreads(Long numWorkerThreads) {
+        this.numWorkerThreads = numWorkerThreads;
     }
 
     @Override
@@ -302,6 +313,9 @@ public class FilePolicyRestRep extends DataObjectRestRep {
         private String mode;
         private Boolean replicateConfiguration;
 
+        // Represent the replication source and target site relation
+        private List<FileReplicationTopologyRestRep> replicationTopologies;
+
         @XmlElement(name = "type")
         public String getType() {
             return type;
@@ -327,6 +341,15 @@ public class FilePolicyRestRep extends DataObjectRestRep {
 
         public void setReplicateConfiguration(Boolean replicateConfiguration) {
             this.replicateConfiguration = replicateConfiguration;
+        }
+
+        @XmlElement(name = "replication_topologies")
+        public List<FileReplicationTopologyRestRep> getReplicationTopologies() {
+            return replicationTopologies;
+        }
+
+        public void setReplicationTopologies(List<FileReplicationTopologyRestRep> replicationTopologies) {
+            this.replicationTopologies = replicationTopologies;
         }
 
         @Override

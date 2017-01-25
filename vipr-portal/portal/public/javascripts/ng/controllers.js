@@ -384,6 +384,22 @@ angular.module("portalApp").controller({
        }, true);
     },
     
+    filePolicyCtrl: function($scope, $http, $window, translate) {
+        $scope.add = {sourceVArray:'', targetVArray:''};
+        $scope.topologies = []
+        
+        $scope.deleteTopology = function(idx) { $scope.topologies.splice(idx, 1); }
+        $scope.addTopology = function() { $scope.topologies.push(angular.copy($scope.add)); }
+        
+        $http.get(routes.VirtualArrays_list()).success(function(data) {
+        	$scope.virtualArrayOptions = data.aaData;
+        });  
+        
+        $scope.$watch('topologies', function(newVal) {
+        	$scope.topologiesString = angular.toJson($scope.topologies, false);
+        }, true);
+     },
+    
     FileShareAclCtrl: function($scope, $http, $window, translate) {
     	
     	$scope.add = {type:'User', name:'', domain:'', permission:'Change'};

@@ -4621,17 +4621,28 @@ cleanup() {
 
 # Clean up any exports or volumes from previous runs, but not the volumes you need to run tests
 cleanup_previous_run_artifacts() {
-   for id in `export_group list $PROJECT | grep YES | awk '{print $5}'`
-   do
-      echo "Deleting old export group: ${id}"
-      runcmd export_group delete ${id} > /dev/null
-   done
+    project list --tenant emcworld  > /dev/null 2> /dev/null
+    if [ $? -eq 1 ]; then
+	return;
+    fi
 
-   for id in `volume list ${PROJECT} | grep YES | grep hijack | awk '{print $7}'`
-   do
-      echo "Deleting old volume: ${id}"
-      runcmd volume delete ${id} --wait > /dev/null
-   done
+    export_group list $PROJECT | grep YES > /dev/null 2> /dev/null
+    if [ $? -eq 0 ]; then
+	for id in `export_group list $PROJECT | grep YES | awk '{print $5}'`
+	do
+	    echo "Deleting old export group: ${id}"
+	    runcmd export_group delete ${id} > /dev/null
+	done
+    fi
+
+    volume list ${PROJECT} | grep YES | grep "hijack\|fake" > /dev/null 2> /dev/null
+    if [ $? -eq 0 ]; then
+	for id in `volume list ${PROJECT} | grep YES | grep hijack | awk '{print $7}'`
+	do
+	    echo "Deleting old volume: ${id}"
+	    runcmd volume delete ${id} --wait > /dev/null
+	done
+    fi
 }
 
 # Delete and setup are optional

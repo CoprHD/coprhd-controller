@@ -278,6 +278,26 @@ public class NetworkDeviceController implements NetworkController {
                     uri.toString(), date.toString(), ex);
         }
     }
+    
+    
+    @Override
+    public Map<String, String> getFabricIdsMap(URI uri) throws ControllerException {
+        NetworkSystem device = getDeviceObject(uri);
+        // Get the file device reference for the type of file device managed
+        // by the controller.
+        NetworkSystemDevice networkDevice = getDevice(device.getSystemType());
+        if (networkDevice == null) {
+            throw NetworkDeviceControllerException.exceptions.getFabricIdsFailedNull(device.getSystemType());
+        }
+        try {
+            Map<String, String> fabricIdsMap = networkDevice.getFabricIdsMap(device);
+            return fabricIdsMap;
+        } catch (Exception ex) {
+            Date date = new Date();
+            throw NetworkDeviceControllerException.exceptions.getFabricIdsFailedExc(
+                    uri.toString(), date.toString(), ex);
+        }
+    }
 
     @Override
     public List<Zoneset> getZonesets(URI uri, String fabricId, String fabricWwn, String zoneName, boolean excludeMembers,

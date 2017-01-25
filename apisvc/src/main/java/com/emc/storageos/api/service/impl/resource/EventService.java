@@ -10,6 +10,7 @@ import java.net.URI;
 import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -29,6 +30,7 @@ import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.emc.storageos.Controller;
 import com.emc.storageos.api.mapper.DbObjectMapper;
 import com.emc.storageos.api.mapper.EventMapper;
 import com.emc.storageos.api.mapper.functions.MapEvent;
@@ -57,6 +59,7 @@ import com.emc.storageos.model.event.EventRestRep;
 import com.emc.storageos.model.event.EventStatsRestRep;
 import com.emc.storageos.model.search.SearchResultResourceRep;
 import com.emc.storageos.model.search.SearchResults;
+import com.emc.storageos.networkcontroller.NetworkController;
 import com.emc.storageos.security.authentication.StorageOSUser;
 import com.emc.storageos.security.authorization.ACL;
 import com.emc.storageos.security.authorization.CheckPermission;
@@ -81,6 +84,25 @@ public class EventService extends TaggedResource {
     private static final String RESOURCE_QUERY_PARAM = "resource";
 
     private static final String DETAILS_SUFFIX = "Details";
+    
+    @SuppressWarnings("rawtypes")
+    private static final Map<String, Class> methodVsExecutorClass = new HashMap<String, Class>();
+    static {
+        methodVsExecutorClass.put(EventUtils.hostVcenterUnassign, ActionableEventExecutor.class);
+        methodVsExecutorClass.put(EventUtils.hostVcenterChange, ActionableEventExecutor.class);
+        methodVsExecutorClass.put(EventUtils.hostDatacenterChange, ActionableEventExecutor.class);
+        methodVsExecutorClass.put(EventUtils.hostClusterChange, ActionableEventExecutor.class);
+        methodVsExecutorClass.put(EventUtils.removeInitiator, ActionableEventExecutor.class);
+        methodVsExecutorClass.put(EventUtils.addInitiator, ActionableEventExecutor.class);
+        methodVsExecutorClass.put(EventUtils.hostVcenterUnassignDecline, ActionableEventExecutor.class);
+        methodVsExecutorClass.put(EventUtils.hostVcenterChangeDecline, ActionableEventExecutor.class);
+        methodVsExecutorClass.put(EventUtils.hostDatacenterChangeDecline, ActionableEventExecutor.class);
+        methodVsExecutorClass.put(EventUtils.hostClusterChangeDecline, ActionableEventExecutor.class);
+        methodVsExecutorClass.put(EventUtils.removeInitiatorDecline, ActionableEventExecutor.class);
+        methodVsExecutorClass.put(EventUtils.addInitiatorDecline, ActionableEventExecutor.class);
+        methodVsExecutorClass.put(EventUtils.FABRIC_NAME_CHANGE_APPROVE, FabricActionableEventExecutor.class);
+        methodVsExecutorClass.put(EventUtils.FABRIC_NAME_CHANGE_DECLINE, FabricActionableEventExecutor.class);
+    }
 
     @Override
     public String getServiceType() {
@@ -173,12 +195,11 @@ public class EventService extends TaggedResource {
         String eventMethodName = eventMethod.getMethodName() + DETAILS_SUFFIX;
 
         try {
-            Method classMethod = getMethod(ActionableEventExecutor.class, eventMethodName);
+            Method classMethod = getMethod(methodVsExecutorClass.get(eventMethod.getMethodName()), eventMethodName);
             if (classMethod == null) {
                 return Lists.newArrayList("N/A");
             } else {
-                ComputeSystemController controller = getController(ComputeSystemController.class, null);
-                ActionableEventExecutor executor = new ActionableEventExecutor(_dbClient, controller);
+                EventExecutor executor = getEventExecutor(event.getEventCode());
                 return (List<String>) classMethod.invoke(executor, eventMethod.getArgs());
             }
         } catch (SecurityException | IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
@@ -220,9 +241,8 @@ public class EventService extends TaggedResource {
         }
 
         try {
-            Method classMethod = getMethod(ActionableEventExecutor.class, eventMethod.getMethodName());
-            ComputeSystemController controller = getController(ComputeSystemController.class, null);
-            ActionableEventExecutor executor = new ActionableEventExecutor(_dbClient, controller);
+            Method classMethod = getMethod(methodVsExecutorClass.get(eventMethod.getMethodName()), eventMethod.getMethodName());
+            EventExecutor executor = getEventExecutor(event.getEventCode());
             Object[] parameters = Arrays.copyOf(eventMethod.getArgs(), eventMethod.getArgs().length + 1);
             parameters[parameters.length - 1] = event.getId();
             TaskResourceRep result = (TaskResourceRep) classMethod.invoke(executor, parameters);
@@ -240,6 +260,21 @@ public class EventService extends TaggedResource {
         }
     }
 
+    private EventExecutor getEventExecutor(String eventCode) {
+        int code = Integer.parseInt(eventCode);
+        Controller controller = null;
+        EventExecutor executor = null;
+        if(code >= 101 && code <= 106) {
+            controller = getController(ComputeSystemController.class, null);
+            executor = new ActionableEventExecutor(_dbClient, (ComputeSystemController)controller);
+        } else {
+            controller = getController(NetworkController.class, null);
+            executor = new FabricActionableEventExecutor(_dbClient, (NetworkController)controller);
+        }
+        
+        return executor;
+    }
+
     /**
      * Returns a reference to a method for the given class with the given name
      * 
@@ -247,7 +282,7 @@ public class EventService extends TaggedResource {
      * @param name the name of the method
      * @return method or null if it doesn't exist
      */
-    private Method getMethod(Class clazz, String name) {
+    private Method getMethod(Class<EventExecutor> clazz, String name) {
         for (Method method : clazz.getMethods()) {
             if (method.getName().equalsIgnoreCase(name)) {
                 return method;
@@ -311,7 +346,7 @@ public class EventService extends TaggedResource {
     @Override
     public EventBulkRep queryFilteredBulkResourceReps(List<URI> ids) {
         Iterator<ActionableEvent> _dbIterator = _dbClient.queryIterativeObjects(getResourceClass(), ids);
-        BulkList.ResourceFilter filter = new BulkList.EventFilter(getUserFromContext(), _permissionsHelper);
+        BulkList.ResourceFilter<ActionableEvent> filter = new BulkList.EventFilter(getUserFromContext(), _permissionsHelper);
         return new EventBulkRep(BulkList.wrapping(_dbIterator, MapEvent.getInstance(), filter));
     }
 

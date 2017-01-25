@@ -42,8 +42,8 @@ import com.google.common.collect.Lists;
  * 
  */
 public class TransportZoneReconciler {
-    private static String PREFIX_VSAN = "VSAN_";
-    private static String PREFIX_FABRIC = "FABRIC_";
+    public static String PREFIX_VSAN = "VSAN_";
+    public static String PREFIX_FABRIC = "FABRIC_";
 
     private static final Logger _log = LoggerFactory
             .getLogger(TransportZoneReconciler.class);

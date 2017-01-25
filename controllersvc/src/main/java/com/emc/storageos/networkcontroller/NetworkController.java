@@ -7,6 +7,7 @@ package com.emc.storageos.networkcontroller;
 
 import java.net.URI;
 import java.util.List;
+import java.util.Map;
 
 import javax.ws.rs.QueryParam;
 
@@ -73,6 +74,17 @@ public interface NetworkController extends Controller {
      * @throws InternalException
      */
     public List<String> getFabricIds(URI network) throws InternalException;
+    
+    /**
+     * Gets the map of fabric identifiers of all fabrics managed by the device
+     * to its WWN.
+     * For Cisco MDS, this is the Vsan ID.
+     * 
+     * @param network URI for the network controller.
+     * @return Map of fabric ID and its WWN.
+     * @throws InternalException
+     */
+    public Map<String, String> getFabricIdsMap(URI network) throws InternalException;
 
     /**
      * Gets the list of zonesets for the specified network device and fabric ID (which is the Vsan ID for MDS).

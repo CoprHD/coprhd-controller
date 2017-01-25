@@ -6,6 +6,7 @@ package com.emc.storageos.networkcontroller.impl;
 
 import java.net.URI;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import org.slf4j.Logger;
@@ -92,6 +93,19 @@ public class NetworkControllerImpl extends AbstractDiscoveredSystemController im
             NetworkSystem device = _dbClient.queryObject(NetworkSystem.class, network);
             NetworkDeviceController devController = (NetworkDeviceController) lookupDeviceController(device);
             return devController.getFabricIds(network);
+        } catch (InternalException ex) {
+            throw ex;
+        } catch (Exception ex) {
+            throw ClientControllerException.fatals.unableToLocateDeviceController("Network Device Controller");
+        }
+    }
+    
+    @Override
+    public Map<String, String> getFabricIdsMap(URI network) throws InternalException {
+        try {
+            NetworkSystem device = _dbClient.queryObject(NetworkSystem.class, network);
+            NetworkDeviceController devController = (NetworkDeviceController) lookupDeviceController(device);
+            return devController.getFabricIdsMap(network);
         } catch (InternalException ex) {
             throw ex;
         } catch (Exception ex) {

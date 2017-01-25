@@ -39,7 +39,7 @@ import com.emc.storageos.model.TaskResourceRep;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
-public class ActionableEventExecutor {
+public class ActionableEventExecutor implements EventExecutor {
 
     private DbClient _dbClient;
     private ComputeSystemController computeController;

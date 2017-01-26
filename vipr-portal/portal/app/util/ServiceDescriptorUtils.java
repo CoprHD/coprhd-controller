@@ -77,8 +77,8 @@ public class ServiceDescriptorUtils {
                 }
             }
             else if (item instanceof ServiceFieldModalRestRep) {
-                ServiceFieldModalRestRep table = (ServiceFieldModalRestRep) item;
-                ServiceFieldRestRep field = findField(table.getItems(), name);
+                ServiceFieldModalRestRep modal = (ServiceFieldModalRestRep) item;
+                ServiceFieldRestRep field = findField(modal.getItems(), name);
                 if (field != null) {
                     return field;
                 }

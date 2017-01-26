@@ -3412,7 +3412,15 @@ public class ExportGroupService extends TaskResourceService {
             
             // Populate the existing paths map.
             StringSetMap zoningMap = exportMask.getZoningMap();
-            if (zoningMap != null) {
+            if (zoningMap == null || zoningMap.isEmpty()) {
+                _log.info(String.format("Constructing zoningMap from initiators and ports mask %s (%s)",
+                        exportMask.getMaskName(), exportMask.getId()));
+                 // We need to construct existing paths based on the cross product of initiators and ports.
+                zoningMap = ExportMaskUtils.buildZoningMapFromInitiatorsAndPorts(exportMask, varray, _dbClient);
+                exportMask.setZoningMap(zoningMap);
+                _dbClient.updateObject(exportMask);
+            }
+            if (zoningMap != null && !zoningMap.isEmpty()) {
                 for (String initiator : zoningMap.keySet()) {
                     if (zoningMap.get(initiator).isEmpty()) {
                         // No ports for the initiator, inconsistent
@@ -3423,10 +3431,7 @@ public class ExportGroupService extends TaskResourceService {
                     }
                     existingPaths.get(initiator).addAll(zoningMap.get(initiator));
                 }    
-            } else {
-                // We need to construct existing paths based on the cross product of initiators and ports.
-                zoningMap = ExportMaskUtils.buildZoningMapFromInitiatorsAndPorts(exportMask, varray, _dbClient);
-            }
+            } 
                 
             Set<Initiator> maskInitiators = ExportMaskUtils.getInitiatorsForExportMask(_dbClient, exportMask, null);
             Set<String> additionalInitiators = new HashSet<String>();

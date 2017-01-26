@@ -1727,6 +1727,12 @@ public class HDSExportOperations implements ExportMaskOperations {
     }
 
     @Override
+    public Set<Integer> findHLUsForInitiators(StorageSystem storage, List<String> initiatorNames, boolean mustHaveAllPorts) {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    @Override
     public ExportMask refreshExportMask(StorageSystem storage, ExportMask mask) throws DeviceControllerException {
 
         try {
@@ -1820,7 +1826,6 @@ public class HDSExportOperations implements ExportMaskOperations {
             throw HDSException.exceptions.refreshExistingMaskFailure(mask.getLabel());
         }
         return mask;
-
     }
 
     /**

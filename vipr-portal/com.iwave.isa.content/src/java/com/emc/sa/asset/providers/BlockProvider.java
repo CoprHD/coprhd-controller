@@ -48,6 +48,7 @@ import com.emc.sa.util.StringComparator;
 import com.emc.sa.util.TextUtils;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup.Types;
+import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.Volume.ReplicationState;
 import com.emc.storageos.db.client.model.VolumeGroup;
@@ -69,6 +70,7 @@ import com.emc.storageos.model.block.BlockSnapshotSessionRestRep;
 import com.emc.storageos.model.block.NamedVolumesList;
 import com.emc.storageos.model.block.VolumeDeleteTypeEnum;
 import com.emc.storageos.model.block.VolumeRestRep;
+import com.emc.storageos.model.block.VolumeRestRep.MirrorRestRep;
 import com.emc.storageos.model.block.VolumeRestRep.ProtectionRestRep;
 import com.emc.storageos.model.block.export.ExportBlockParam;
 import com.emc.storageos.model.block.export.ExportGroupRestRep;
@@ -202,6 +204,9 @@ public class BlockProvider extends BaseAssetOptionsProvider {
 
     private static final String NONE_TYPE = "None";
     private static final String IBMXIV_SYSTEM_TYPE = "ibmxiv";
+
+    private static final int EXPORT_PATH_MIN = 1;
+    private static final int EXPORT_PATH_MAX = 32;
 
     public static boolean isExclusiveStorage(String storageType) {
         return EXCLUSIVE_STORAGE.equals(storageType);
@@ -752,7 +757,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     public List<AssetOption> getExportPathMinOptions(AssetOptionsContext ctx) {
         List<AssetOption> options = Lists.newArrayList();
         
-        for (int i = 1; i <= 32; ++i) {
+        for (int i = EXPORT_PATH_MIN; i <= EXPORT_PATH_MAX; ++i) {
             options.add(new AssetOption(Integer.toString(i), Integer.toString(i)));
         }
         
@@ -763,7 +768,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     public List<AssetOption> getExportPathMaxOptions(AssetOptionsContext ctx) {
         List<AssetOption> options = Lists.newArrayList();
         
-        for (int i = 1; i <= 32; ++i) {
+        for (int i = EXPORT_PATH_MIN; i <= EXPORT_PATH_MAX; ++i) {
             options.add(new AssetOption(Integer.toString(i), Integer.toString(i)));
         }
         
@@ -774,7 +779,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     public List<AssetOption> getExportPathPathsPerOptions(AssetOptionsContext ctx) {
         List<AssetOption> options = Lists.newArrayList();
         
-        for (int i = 1; i <= 32; ++i) {
+        for (int i = EXPORT_PATH_MIN; i <= EXPORT_PATH_MAX; ++i) {
             options.add(new AssetOption(Integer.toString(i), Integer.toString(i)));
         }
         
@@ -824,7 +829,11 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         List<StorageSystemRestRep> storageSystems = client.storageSystems().getByIds(storageSystemIds);
 
         for (StorageSystemRestRep storageSystem : storageSystems) {
-            options.add(new AssetOption(storageSystem.getId(), storageSystem.getName()));
+            String systemType = storageSystem.getSystemType();
+            if (Type.vmax.name().equalsIgnoreCase(systemType) ||
+                    Type.vplex.name().equalsIgnoreCase(systemType)) {
+                options.add(new AssetOption(storageSystem.getId(), storageSystem.getName()));
+            }
         }
 
         return options;
@@ -2457,8 +2466,15 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         final ViPRCoreClient client = api(ctx);
         List<VolumeRestRep> volumes = client.blockVolumes().findByProject(project, new SourceTargetVolumesFilter() {
             @Override
-            public boolean acceptId(URI id) {
-                return !client.blockVolumes().getContinuousCopies(id).isEmpty();
+            public boolean accept(VolumeRestRep volume) {
+                if (volume.getProtection() == null) {
+                    return false;
+                }
+                MirrorRestRep mirrors = volume.getProtection().getMirrorRep();
+                if (mirrors == null || mirrors.getMirrors() == null || mirrors.getMirrors().isEmpty()) {
+                    return false;
+                }
+                return true;
             }
         });
         return createVolumeOptions(client, volumes);
@@ -3364,17 +3380,14 @@ public class BlockProvider extends BaseAssetOptionsProvider {
             getContinuousCopyOptionsForProject(AssetOptionsContext ctx, URI project, URI volumeId, ResourceFilter<BlockMirrorRestRep> filter) {
         ViPRCoreClient client = api(ctx);
         
-        VolumeRestRep volume = client.blockVolumes().get(volumeId);
-        
-        List<BlockMirrorRestRep> copies = client.blockVolumes().getContinuousCopies(volume.getId(), filter);
+        List<BlockMirrorRestRep> copies = client.blockVolumes().getContinuousCopies(volumeId, filter);
         return constructCopiesOptions(client, project, copies);
     }
     
     protected List<AssetOption> constructCopiesOptions(ViPRCoreClient client, URI project, List<BlockMirrorRestRep> copies) {
         List<AssetOption> options = Lists.newArrayList();
-        Map<URI, VolumeRestRep> volumeNames = getProjectVolumeNames(client, project);
         for (BlockMirrorRestRep copy : copies) {
-            options.add(new AssetOption(copy.getId(), getBlockObjectLabel(client, copy, volumeNames)));
+            options.add(new AssetOption(copy.getId(), getBlockObjectLabel(client, copy, null)));
         }
         AssetOptionsUtils.sortOptionsByLabel(options);
         return options;

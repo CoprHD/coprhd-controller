@@ -1838,12 +1838,13 @@ xtremio_export_test_hlu() {
 # Step-9: Add HOST2 to CLUSTER. Result: All shared volumes of cluster to be exported to this new host with the HLU for those volumes same as that of cluster's view
 xtremio_export_test_hlu1()
 {
-    expname=${XTREMIOEXPORT_GROUP}
-	HOST1=$hostbase${tenant}21
-	HOST2=$hostbase${tenant}22
+	HOST1=$hostbase${tenant}11
+	HOST2=$hostbase${tenant}12
+	expname=${XTREMIOEXPORT_GROUP}
 	volname=${XTREMIOVOL}
-	
+	cluster=sanityCluster1
 	echo "XTREMIO Consistent HLU Test 1"
+
 	run export_group create $proj ${expname}1 $NH --type Cluster --volspec "${proj}/${volname}"1 --cluster ${tenant}/${cluster}
 	verify_export ${HOST1} 4 1 1
 	verify_export ${HOST2} 4 1 1
@@ -1904,11 +1905,11 @@ xtremio_export_test_hlu1()
 # Step-9: Add HOST2 to CLUSTER. Result: All shared volumes of cluster to be exported to this new host with the HLU for those volumes same as that of cluster's view
 xtremio_export_test_hlu2()
 {
-	HOST1=$hostbase${tenant}11
-	HOST2=$hostbase${tenant}12
+	HOST1=$hostbase${tenant}21
+	HOST2=$hostbase${tenant}22
 	expname=${XTREMIOEXPORT_GROUP}
 	volname=${XTREMIOVOL}
-	cluster=sanityCluster1
+	cluster=sanityCluster2
 	echo "XTREMIO Consistent HLU Test 2"
 	
 	run export_group create $proj ${expname}1 $NH --type Host --volspec "${proj}/${volname}"1 --hosts "${HOST1}"
@@ -1958,6 +1959,7 @@ xtremio_export_test_hlu_snapshot_1() {
 	snap3=$proj/${volname}3/$3
 	HOST1=$hostbase${tenant}11
 	HOST2=$hostbase${tenant}12
+	cluster=sanityCluster1
 	expname=${XTREMIOEXPORT_GROUP}Snap
 	echo "XTREMIO Consistent HLU Snapshot Test 1"
 	

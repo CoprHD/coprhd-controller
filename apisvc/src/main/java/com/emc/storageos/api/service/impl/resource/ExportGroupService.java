@@ -3397,7 +3397,6 @@ public class ExportGroupService extends TaskResourceService {
         // Remove any initiators not retained because of hosts specification
         initiators.removeAll(initiatorsToRemove);
         // Find the Export Masks for this Storage System 
-        List<ExportMask> exportMasks = ExportMaskUtils.getExportMasks(_dbClient,  exportGroup, system.getId());
         for (ExportMask exportMask : exportMasks) {
             // For VPLEX, must verify the Export Mask is in the appropriate Varray
             if (!ExportMaskUtils.exportMaskInVarray(_dbClient,  exportMask,  varray)) {

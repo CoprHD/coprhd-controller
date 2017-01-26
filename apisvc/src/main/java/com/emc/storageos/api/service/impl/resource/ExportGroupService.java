@@ -3375,6 +3375,13 @@ public class ExportGroupService extends TaskResourceService {
             StorageSystem system, URI varray, Set<URI> hosts,
             ExportPathsAdjustmentPreviewRestRep response, StringSetMap existingPaths) {
         Set<URI> affectedGroupURIs = new HashSet<URI>();
+        
+        List<ExportMask> exportMasks = ExportMaskUtils.getExportMasks(_dbClient,  exportGroup, system.getId());
+        if (exportMasks.isEmpty()) {
+            throw APIException.badRequests.exportPathAdjustmentSystemExportGroupNotMatch(exportGroup.getLabel(), 
+            			system.getNativeGuid());
+        }
+        
         // Make a map of Export Group initiator URI to Initiator Object
         Map<URI, Initiator> initiatorMap = new HashMap<URI, Initiator>();
         List<Initiator> initiatorsToRemove = new ArrayList<Initiator>();

@@ -19,6 +19,8 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 
+import com.emc.storageos.db.client.model.remotereplication.RemoteReplicationPair;
+import com.emc.storageos.model.remotereplication.RemoteReplicationPairList;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -216,6 +218,60 @@ public class RemoteReplicationSetService extends TaskResourceService {
             }
         }
         return rrSetList;
+    }
+
+    /**
+     * Get remote replication pairs which belong directly to the replication set (no group container)
+     * @return pairs in the set
+     */
+    @GET
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/{id}/set-pairs")
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR })
+    public RemoteReplicationPairList getRemoteReplicationSetPairs(@PathParam("id") URI id) {
+        _log.info("Called: get" +
+                "getRemoteReplicationSetPairs() for replication set {}", id);
+        ArgValidator.checkFieldUriType(id, com.emc.storageos.db.client.model.remotereplication.RemoteReplicationSet.class, "id");
+        List<RemoteReplicationPair> rrPairs = CustomQueryUtility.queryActiveResourcesByRelation(_dbClient, id, RemoteReplicationPair.class, "replicationSet");
+        RemoteReplicationPairList rrPairList = new RemoteReplicationPairList();
+        if (rrPairs != null) {
+            _log.info("Found total pairs: {}", rrPairs.size());
+            int size = 0;
+            for (RemoteReplicationPair rrPair : rrPairs) {
+                if(rrPair.getReplicationGroup() == null) {
+                    // return only pairs directly in replication set
+                    rrPairList.getRemoteReplicationPairs().add(toNamedRelatedResource(rrPair));
+                    size++;
+                }
+                _log.info("Found pairs: {} directly in the set", size);
+            }
+        }
+        return rrPairList;
+    }
+
+    /**
+     * Get all remote replication pairs in the remote replication set, including pairs directly in the set and
+     * pairs in the groups, which belong to the set.
+     * @return pairs in the group
+     */
+    @GET
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/{id}/pairs")
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR })
+    public RemoteReplicationPairList getRemoteReplicationPairs(@PathParam("id") URI id) {
+        _log.info("Called: get" +
+                "RemoteReplicationPairs() for replication set {}", id);
+        ArgValidator.checkFieldUriType(id, com.emc.storageos.db.client.model.remotereplication.RemoteReplicationGroup.class, "id");
+        List<RemoteReplicationPair> rrPairs = CustomQueryUtility.queryActiveResourcesByRelation(_dbClient, id, RemoteReplicationPair.class, "replicationSet");
+        RemoteReplicationPairList rrPairList = new RemoteReplicationPairList();
+        if (rrPairs != null) {
+            _log.info("Found total pairs: {}", rrPairs.size());
+            Iterator<RemoteReplicationPair> iter = rrPairs.iterator();
+            while (iter.hasNext()) {
+                rrPairList.getRemoteReplicationPairs().add(toNamedRelatedResource(iter.next()));
+            }
+        }
+        return rrPairList;
     }
 
     @POST

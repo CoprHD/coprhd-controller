@@ -24,12 +24,15 @@ import com.emc.storageos.api.service.impl.resource.ArgValidator;
 import com.emc.storageos.api.service.impl.resource.TaskResourceService;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.remotereplication.RemoteReplicationGroup;
+import com.emc.storageos.db.client.model.remotereplication.RemoteReplicationPair;
+import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.storageos.model.TaskResourceRep;
 import com.emc.storageos.model.remotereplication.RemoteReplicationGroupList;
 import com.emc.storageos.model.remotereplication.RemoteReplicationGroupRestRep;
 import com.emc.storageos.model.remotereplication.RemoteReplicationModeChangeParam;
+import com.emc.storageos.model.remotereplication.RemoteReplicationPairList;
 import com.emc.storageos.security.audit.AuditLogManager;
 import com.emc.storageos.security.authorization.CheckPermission;
 import com.emc.storageos.security.authorization.DefaultPermissions;
@@ -104,6 +107,30 @@ public class RemoteReplicationGroupService extends TaskResourceService {
         RemoteReplicationGroup rrGroup = queryResource(id);
         RemoteReplicationGroupRestRep restRep = map(rrGroup);
         return restRep;
+    }
+
+    /**
+     * Get remote replication pairs in the remote replication group
+     * @return pairs in the group
+     */
+    @GET
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/{id}/pairs")
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR })
+    public RemoteReplicationPairList getRemoteReplicationPairs(@PathParam("id") URI id) {
+        _log.info("Called: get" +
+                "RemoteReplicationPairs() for replication group {}", id);
+        ArgValidator.checkFieldUriType(id, com.emc.storageos.db.client.model.remotereplication.RemoteReplicationGroup.class, "id");
+        List<RemoteReplicationPair> rrPairs = CustomQueryUtility.queryActiveResourcesByRelation(_dbClient, id, RemoteReplicationPair.class, "replicationGroup");
+        RemoteReplicationPairList rrPairList = new RemoteReplicationPairList();
+        if (rrPairs != null) {
+            _log.info("Found pairs: {}", rrPairs);
+            Iterator<RemoteReplicationPair> iter = rrPairs.iterator();
+            while (iter.hasNext()) {
+                rrPairList.getRemoteReplicationPairs().add(toNamedRelatedResource(iter.next()));
+            }
+        }
+        return rrPairList;
     }
 
     @POST

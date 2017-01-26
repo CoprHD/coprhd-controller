@@ -11,6 +11,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -1574,7 +1575,7 @@ public class ExportUtils {
      * @return the free HLUs to use
      */
     public static Set<Integer> calculateFreeHLUs(Set<Integer> usedHlus, Integer maxHLU) {
-        Set<Integer> freeHLUs = new HashSet<Integer>();
+        Set<Integer> freeHLUs = new LinkedHashSet<>();
         // For max limit of 4096, 0 to 4095 can be assigned.
         // Since it is cluster export (shared), the number can start from 1 since 0 will be used for boot lun.
         for (int i = 1; i < maxHLU; i++) {

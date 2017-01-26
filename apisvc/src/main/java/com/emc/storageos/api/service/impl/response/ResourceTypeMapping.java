@@ -180,6 +180,7 @@ public class ResourceTypeMapping {
         classMapping.put(STORAGE_POOL, StoragePool.class);
         classMapping.put(STORAGE_TIER, StorageTier.class);
         classMapping.put(STORAGE_PORT, StoragePort.class);
+        classMapping.put(STORAGE_PORT_GROUP, StoragePortGroup.class);
         classMapping.put(RDF_GROUP, RemoteDirectorGroup.class);
         classMapping.put(PROTECTION_SYSTEM, ProtectionSystem.class);
         classMapping.put(PROTECTION_SET, ProtectionSet.class);

@@ -903,6 +903,9 @@ login() {
 }
 
 prerun_setup() {
+    # Reset system properties
+    reset_system_props
+
     # Convenience, clean up known artifacts
     cleanup_previous_run_artifacts
 

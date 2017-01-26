@@ -414,6 +414,8 @@ public class VPlexVmaxMaskingOrchestrator extends VmaxMaskingOrchestrator
                 // The default completer passed in is for add volume, create correct one
                 completer = new ExportMaskCreateCompleter(exportGroupURI, exportMaskURI,
                         initiatorURIs, volumeMap, stepId);
+                // Note that there should not be any code after the call to the device as the completer
+                // will be invoked causing the workflow to continue execution with the next step.
                 device.doExportCreate(array, exportMask, volumeMap,
                         initiators, targets, completer);
             } else {
@@ -427,10 +429,10 @@ public class VPlexVmaxMaskingOrchestrator extends VmaxMaskingOrchestrator
                     }
                 }
 
+                // Note that there should not be any code after the call to the device as the completer
+                // will be invoked causing the workflow to continue execution with the next step.
                 device.doExportAddVolumes(array, exportMask, initiators, volumeMap, completer);
             }
-            InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_010);
-
         } catch (Exception ex) {
             _log.error("Failed to create or add volumes to export mask for vmax: ", ex);
             VPlexApiException vplexex = DeviceControllerExceptions.vplex.addStepsForCreateVolumesFailed(ex);

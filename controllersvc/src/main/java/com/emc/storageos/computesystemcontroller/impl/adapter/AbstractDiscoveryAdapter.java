@@ -679,6 +679,11 @@ public abstract class AbstractDiscoveryAdapter implements ComputeSystemDiscovery
                             new Object[] { newInitiator.getId() }, EventUtils.addInitiatorDecline,
                             new Object[] { newInitiator.getId() });
                 }
+            } else {
+                for (Initiator oldInitiator : oldInitiatorObjects) {
+                    log.info("Initiator marked for deletion: " + oldInitiator.getId());
+                    dbClient.markForDeletion(oldInitiator);
+                }
             }
         }
 

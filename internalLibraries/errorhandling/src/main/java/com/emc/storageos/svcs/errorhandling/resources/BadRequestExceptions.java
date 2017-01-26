@@ -3190,4 +3190,7 @@ public interface BadRequestExceptions {
   
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException invalidFilePolicyUnAssignParam(final String policyName, final String errorMsg);
+    
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException storagePortsNotInVarray(final String ports, final String exportMask, final String varray);
 }

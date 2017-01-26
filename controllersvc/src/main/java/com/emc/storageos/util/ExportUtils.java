@@ -2137,7 +2137,8 @@ public class ExportUtils {
                 Collection<URI> staleClusterURIs = Collections2.transform(staleClusters,
                         CommonTransformerFunctions.FCTN_STRING_TO_URI);
                 exportGroup.removeClusters(new ArrayList<>(staleClusterURIs));
-                _log.info("Stale cluster references {} will be removed from Export Group {}", staleClusterURIs, exportGroup.getId());
+                _log.info(String.format("Stale cluster references [%s] will be removed from Export Group %s", 
+                        Joiner.on(',').join(staleClusterURIs), exportGroup.getId()));
             }
             
         } 
@@ -2217,6 +2218,4 @@ public class ExportUtils {
             }
         }
     }
-
-    
 }

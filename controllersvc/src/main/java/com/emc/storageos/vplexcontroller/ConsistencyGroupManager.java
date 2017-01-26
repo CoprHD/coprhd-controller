@@ -42,6 +42,23 @@ public interface ConsistencyGroupManager {
             boolean willBeRemovedByEarlierStep) throws ControllerException;
 
     /**
+     * Adds the workflow steps to delete the VPLEX consistency group.
+     * 
+     * @param workflow The workflow to which the steps are added.
+     * @param waitFor The previous workflow step for which these steps will
+     *            wait.
+     * @param vplexSystemURI The URI of the VPLEX storage system.
+     * @param cgURI The URI of the consistency group.
+     * @param markInactive if true, consistency group will be marked inactive
+     * 
+     * @return The workflow step for which any additional steps should wait.
+     * 
+     * @throws ControllerException
+     */
+    public String addStepsForDeleteConsistencyGroup(Workflow workflow, String waitFor,
+            URI vplexSystemURI, URI cgURI, boolean markInactive) throws ControllerException;
+
+    /**
      * Deletes the VPLEX consistency group with the passed URI on the VPLEX
      * storage system with the passed URI. Assumes that the consistency group
      * has no volumes in at the time of deletion.

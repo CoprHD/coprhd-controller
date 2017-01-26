@@ -1260,11 +1260,6 @@ vmax3_setup() {
 vplex_sim_setup() {
     secho "Setting up VPLEX environment connected to simulators on: ${VPLEX_SIM_IP}"
 
-    # Discover the Brocade SAN switch.
-    secho "Configuring MDS/Cisco Simulator using SSH on: $VPLEX_SIM_MDS_IP"
-    FABRIC_SIMULATOR=fabric-sim
-    run networksystem create $FABRIC_SIMULATOR  mds --devip $VPLEX_SIM_MDS_IP --devport 22 --username $VPLEX_SIM_MDS_USER --password $VPLEX_SIM_MDS_PW
-
     # Discover the storage systems 
     secho "Discovering back-end storage arrays using ECOM/SMIS simulator on: $VPLEX_SIM_SMIS_IP..."
     run smisprovider create $VPLEX_SIM_SMIS_DEV_NAME $VPLEX_SIM_SMIS_IP $VPLEX_VMAX_SMIS_SIM_PORT $VPLEX_SIM_SMIS_USER "$VPLEX_SIM_SMIS_PASSWD" false
@@ -1395,13 +1390,6 @@ vplex_setup() {
     if [ "${SIM}" = "1" ]; then
 	vplex_sim_setup
 	return
-    fi
-
-    isNetworkDiscovered=$(networksystem list | grep $BROCADE_NETWORK | wc -l)
-    if [ $isNetworkDiscovered -eq 0 ]; then
-        secho "Discovering Brocade SAN Switch ..."
-        run networksystem create $BROCADE_NETWORK brocade --smisip $BROCADE_IP --smisport 5988 --smisuser $BROCADE_USER --smispw $BROCADE_PW --smisssl false
-        sleep 30
     fi
 
     secho "Discovering VPLEX Storage Assets"
@@ -1546,12 +1534,26 @@ vplex_setup() {
     esac
 }
 
+xio_sim_setup() {
+    XTREMIO_PROVIDER_NAME=XIO-PROVIDER-SIM
+    XTREMIO_3X_IP=$XIO_SIMULATOR_IP
+    XTREMIO_PORT=$XIO_4X_SIMULATOR_PORT
+    XTREMIO_NATIVEGUID=$XIO_4X_SIM_NATIVEGUID
+}
+
 xio_setup() {
     # do this only once
     echo "Setting up XtremIO"
-    XTREMIO_NATIVEGUID=XTREMIO+$XTREMIO_3X_SN
     storage_password=$XTREMIO_3X_PASSWD
-    run storageprovider create XIO-PROVIDER $XTREMIO_3X_IP 443 $XTREMIO_3X_USER "$XTREMIO_3X_PASSWD" xtremio
+    XTREMIO_PORT=443
+    XTREMIO_NATIVEGUID=XTREMIO+$XTREMIO_3X_SN
+    XTREMIO_PROVIDER_NAME=XIO-PROVIDER
+
+    if [ "${SIM}" = "1" ]; then
+	xio_sim_setup
+    fi    
+    
+    run storageprovider create ${XTREMIO_PROVIDER_NAME} $XTREMIO_3X_IP $XTREMIO_PORT $XTREMIO_3X_USER "$XTREMIO_3X_PASSWD" xtremio
     run storagedevice discover_all --ignore_error
 
     run storagepool update $XTREMIO_NATIVEGUID --type block --volume_type THIN_ONLY
@@ -1559,9 +1561,6 @@ xio_setup() {
     setup_varray
 
     run storagepool update $XTREMIO_NATIVEGUID --nhadd $NH --type block
-    if [ "${SIM}" = "1" ]; then
-	run storageport update $XTREMIO_NATIVEGUID FC --tzone $NH/$FC_ZONE_A
-    fi
 
     common_setup
 
@@ -1573,6 +1572,7 @@ xio_setup() {
 	--numpaths 1				            \
 	--provisionType 'Thin'			        \
 	--max_snapshots 10                      \
+        --multiVolumeConsistency        \
 	--neighborhoods $NH                    
 
     run cos update block $VPOOL_BASE --storage ${XTREMIO_NATIVEGUID}

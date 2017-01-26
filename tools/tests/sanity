@@ -14,7 +14,7 @@ CONFIG_FILE=${1}
 
 Usage()
 {
-    echo 'Usage: sanity <configuration_file> <bourne_ip>|<[bourne_ipv6]> {all | snapvx | isilon | vplex [normal|quick|xio|vnx] [noingest|ingest [all|exported|unexported]] | vplexexport | vplexsnap | custvolname | vnxblock | ingestblock | vnxblock_flex_varray | netapp | netappc | recoverpoint | xtremio | srdf |
+    echo 'Usage: sanity <configuration_file> <bourne_ip>|<[bourne_ipv6]> {all | snapvx | isilon | vplex [normal|quick|xio|vnx] [noingest|ingest [all|exported|unexported]] | vplexexport | vplexsnap | custvolname | vnxblock | ingestblock | vnxblock_flex_varray | netapp | netappc | recoverpoint | xtremio [quick|hlu|quick hlu] | srdf |
  vnxfile | datadomainfile | vmaxblock | hds | vmaxblock_flex_varray | combined_block | blocksnapshot | blockmirror | full_copy | blockconsistencygroup | init | quick | sbsdk |
  errorhandling | vnxe | security | syssvc | audit | monitor | vdc | catalog | recovery | backuprestore backupserver-uri username password | dr | ipsec | ceph} [local|ldap] [<timeslot>] | sanzoning | application | unityblock [all|block|vplex|rp|hlu] | unityfile | arrayaffinity'
     echo 'E.g.:  sanity conf/sanity.conf 137.69.169.21 all'
@@ -123,6 +123,11 @@ elif [ ${SS} = "xtremio" ]; then
     XIO_QUICK_PARAM=${4:-'quick'}
     if [ "$XIO_QUICK_PARAM" != "quick" ] && [ "$XIO_QUICK_PARAM" = "hlu" ]; then
         XIO_HLU_PARAM=1
+    elif [ ${XIO_QUICK_PARAM} = "quick" ]; then
+        if [ ${5} = "hlu" ]; then
+            XIO_HLU_PARAM=1
+            shift
+        fi
     fi
     AUTH=${5:-ldap}
     EXTRA_PARAM=${6}
@@ -1624,21 +1629,22 @@ xtremio_setup()
 xtremio_tests()
 {
    echo 'xtremio tests invoked'
-   if [ "$XIO_BLOCK_TESTS" = "1" ]; then
-       xtremio_block_tests
-       xtremio_blockconsistency_tests
-   fi
 
    # HLU specific tests
    if [ $XIO_HLU_PARAM -eq 1 ]; then
        xtremio_export_test_hlu
+	   return
+   fi
+
+   if [ "$XIO_BLOCK_TESTS" = "1" ]; then
+       xtremio_block_tests
+       xtremio_blockconsistency_tests
    fi
 
    # Ingest specific tests
    if [ "$XIO_INGESTTESTS" = "1" ]; then
         secho "XIO ingest volumes"
         xtremio_ingest_test
-        secho "XIO ingest tests complete"
 
         secho "XIO ingest exported volumes"
         xtremio_ingest_export_test
@@ -1783,7 +1789,7 @@ xtremio_export_test()
 }
 
 xtremio_export_test_hlu() {
-    echo "xtremio export consistent HLU tests START"
+    echo "XtremIO export consistent HLU tests START"
     cos1=$XTREMIO_3X_COS_FC
     volume=${XTREMIOVOL}
     cos2=$XTREMIO_4X_COS_FC
@@ -1816,7 +1822,7 @@ xtremio_export_test_hlu() {
 
     echo There were $VERIFY_EXPORT_COUNT export verifications
     echo There were $VERIFY_EXPORT_FAIL_COUNT export verification failures
-    echo "xtremio export consistent HLU tests END"
+    echo "XtremIO export consistent HLU tests END"
 }
 
 #Consistent Cluster HLU

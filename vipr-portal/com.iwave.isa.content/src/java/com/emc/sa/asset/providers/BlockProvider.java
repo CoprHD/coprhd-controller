@@ -113,7 +113,6 @@ public class BlockProvider extends BaseAssetOptionsProvider {
 
     private static final Logger log = LoggerFactory.getLogger(BlockProvider.class);
 
-    public static final int DEFAULT_BULK_SIZE = 500;
     public static final String EXCLUSIVE_STORAGE = "exclusive";
     public static final String SHARED_STORAGE = "shared";
     public static final String RECOVERPOINT_BOOKMARK_SNAPSHOT_TYPE_VALUE = "rp";
@@ -832,20 +831,12 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     private List<VolumeRestRep> getVolumesByIds(ViPRCoreClient client, Set<URI> vols) {
         log.info("Getting volumens: [{}]", vols.size());
         List<URI> volIdList = new ArrayList<>(vols);
-
-        List<VolumeRestRep> volumes = new ArrayList<>();
         List<URI> ids = new ArrayList<>();
-
         for (int i = 0; i < volIdList.size(); i++) {
             ids.add(volIdList.get(i));
-            if ( (i+1)%DEFAULT_BULK_SIZE == 0 || i+1 == volIdList.size() ) {
-                List<VolumeRestRep> volBatch = client.blockVolumes().getByIds(ids);
-                volumes.addAll(volBatch);
-                log.info("Got a batch of volumes");
-                ids.clear();
-            }
         }
 
+        List<VolumeRestRep> volumes = client.blockVolumes().getByIds(ids);
         log.info("Got volumens [{}]", volumes.size());
         return volumes;
     }
@@ -853,21 +844,13 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     private List<BlockSnapshotRestRep> findSnapshotsByProject(ViPRCoreClient client, URI project) {
         log.info("Finding snapshots by project {}", project);
         List<SearchResultResourceRep> snapshotRefs = client.blockSnapshots().performSearchBy(SearchConstants.PROJECT_PARAM, project);
-        List<BlockSnapshotRestRep> snapshots = new ArrayList<>();
         List<URI> ids = new ArrayList<>();
-
         for (int i = 0; i < snapshotRefs.size(); i++) {
             SearchResultResourceRep ref = snapshotRefs.get(i);
             ids.add(ref.getId());
-
-            if ( ids.size() == DEFAULT_BULK_SIZE || i+1 == snapshotRefs.size() ) {
-                List<BlockSnapshotRestRep> snBatch = client.blockSnapshots().getByIds(ids);
-                snapshots.addAll(snBatch);
-                log.info("Got a batch of snapshots");
-                ids.clear();
-            }
         }
 
+        List<BlockSnapshotRestRep> snapshots = client.blockSnapshots().getByIds(ids);
         log.info("Got snapshots: [{}]", snapshots.size());
         return snapshots;
     }

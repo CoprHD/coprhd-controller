@@ -1317,10 +1317,11 @@ schedulepolicies.projects=Project(s)
 schedulepolicies.priority=Priority
 schedulepolicies.description=Description
 schedulepolicies.list.title=File Protection Policies
+FileProtectionPolicies.list.title=File Protection Policies
 schedulepolicies.deleted=File Protection Policies deleted successfully.
 schedulepolicies.deleteConfirm=Are you sure you want to delete these Policies?
-schedulepolicies.create.title=Create Policy
-schedulepolicies.edit.title=Edit Policy
+schedulepolicies.create.title=Create File Protection Policy
+schedulepolicies.edit.title=Edit File Protection Policy
 schedulePolicy.policyName=Name
 schedulePolicy.policyType=Type
 schedulePolicy.scheduleTime=Schedule Time
@@ -1360,6 +1361,7 @@ schedulePolicy.priorityHigh=High
 filePolicy.name=Policy Name
 schedule.policies.unknown=Unknown File Policy
 schedulePolicy.appliedAt=Apply Policies at
+schedulePolicy.numWorkerThreads=Worker Threads
 
 assignPolicy.title=Policy Assignment
 assignPolicy.policyName=Policies
@@ -1381,6 +1383,8 @@ assignPolicy.saved=File Pool policy assignment successful
 assignPolicy.applyAtProject=Project
 assignPolicy.applyAtVPool=Virtual Pool
 assignPolicy.applyAtFs=File System
+assignPolicy.sourceSite=Source Site
+assignPolicy.targetSites=Target Site(s)
 
 assignPolicy.project.availableVpool=Available vPools
 assignPolicy.project.appliedVpool=Applied vPools
@@ -2229,6 +2233,7 @@ storageArrayPorts.initiatorLoad=Initiator Load
 storageArrayPorts.volumeLoad=Volume Load
 storageArrayPort.portTypes.IP=IP
 storageArrayPort.portTypes.FC=Fiber Channel
+storageArrayPorts.isDRPort=DR Port
 
 StorageSystems.savedPort=Saved '%s'
 
@@ -2430,6 +2435,12 @@ vpool.remoteVirtualArray=Virtual Array
 vpool.remoteVirtualPool=Virtual Pool
 vpool.replicationType=Replication Type
 vpool.scheduleSnapshots=Schedule Snapshots
+
+vpool.replicationSupported=Replication
+vpool.snapshotSupported=Snapshots
+vpool.allowPolicyApplyAtProject=Allow Policies at Project
+vpool.allowPolicyApplyAtFS=Allow Policies at File System
+
 # File Replication
 replicationCopy.virtualArray=Virtual Array
 replicationCopy.virtualPool=Virtual Pool
@@ -2665,7 +2676,7 @@ consistencyGroups.edit.title=Edit Consistency Group
 consistencyGroups.create.title=New Consistency Group
 consistencyGroup.name=Name
 consistencyGroup.arrayConsistency=Enable Array Consistency
-consistencyGroup.name.help=Use only alphanumeric characters for groups intended for use with SRDF
+consistencyGroup.name.help=Use only alphanumeric characters for groups
 consistencyGroup.arrayConsistency.help=Disable check for VPLEX/RP/VPLEX+RP Application Support
 consistencyGroups.saved=Consistency Group %s Saved
 consistencyGroups.name=Name
@@ -2867,6 +2878,15 @@ adminDashboard.blockCapacity=Block
 adminDashboard.object=Object
 adminDashboard.blockFileFreeCapacity=Free Block/File/Object
 adminDashboard.disasterRecovery=System Disaster Recovery
+adminDashboard.backupStatus=Backup Status
+adminDashboard.backupStatus.none=NA
+adminDashboard.lastSuccessfulBackup=Last Successful Backup
+adminDashboard.lastManualBackup=Last Manual Backup
+adminDashboard.lastScheduledBackup=Last Scheduled Backup
+adminDashboard.nextScheduledBackup=Next Scheduled Backup
+adminDashboard.nextScheduledBackup.disabled=Scheduled backup is disabled
+adminDashboard.lastUploadStatus=Last Upload Status
+adminDashboard.lastUploadStatus.notConfigured=External server is not configured
 
 license.model.ViPR_Controller=ViPR Controller
 license.model.ViPR_Object=ViPR Object
@@ -4220,6 +4240,9 @@ button.mirroring.pause=Pause
 button.mirroring.resume=Resume
 
 button.driverupload=Upload Driver
+
+button.setDR=Set as DR Port
+button.unsetDR=Unset as DR Port
 
 common.yes=Yes
 common.no=No

@@ -1295,6 +1295,7 @@ public class NetworkDeviceController implements NetworkController {
 
             // If there are no zones to do, we were successful.
             if (context.getZoneInfos().isEmpty()) {
+                _log.info("No zoning information provided.");
                 WorkflowStepCompleter.stepSucceded(stepId);
                 return true;
             }

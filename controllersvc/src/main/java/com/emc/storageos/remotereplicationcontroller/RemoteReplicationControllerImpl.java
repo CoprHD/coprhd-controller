@@ -112,7 +112,7 @@ public class RemoteReplicationControllerImpl implements RemoteReplicationControl
 
     @Override
     public void failback(RemoteReplicationElement replicationElement, String opId) {
-
+        exec("failback", replicationElement, opId);
     }
 
     @Override

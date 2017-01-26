@@ -25,6 +25,7 @@ public class StorageSystemTypeAddParam {
     private String sslPort;
     private String driverClassName;
     private boolean isSecretKey = false;
+    private boolean isNative = true;
 
     public StorageSystemTypeAddParam() {
     }
@@ -138,6 +139,18 @@ public class StorageSystemTypeAddParam {
 
     public void setIsSecretKey(boolean isSecretKey) {
         this.isSecretKey = isSecretKey;
+    }
+
+    /**
+     * Defines if storage system type is native of driver managed.
+     * @return
+     */
+    public boolean getIsNative() {
+        return isNative;
+    }
+
+    public void setIsNative(boolean isNative) {
+        this.isNative = isNative;
     }
 
     /**

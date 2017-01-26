@@ -167,6 +167,7 @@ public class StorageSystemTypeService extends TaskResourceService {
         ssType.setIsOnlyMDM(addparam.getIsOnlyMDM());
         ssType.setIsElementMgr(addparam.getIsElementMgr());
         ssType.setIsSecretKey(addparam.getIsSecretKey());
+        ssType.setIsNative(addparam.getIsNative());
 
         _dbClient.createObject(ssType);
 

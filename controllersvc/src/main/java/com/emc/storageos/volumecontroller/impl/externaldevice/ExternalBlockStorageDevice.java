@@ -1967,22 +1967,77 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice implem
                     String errorMsg = String.format("failover -- Failed failover operation for remote replication element %s with system id %s: %s", elementType, elementURI,
                             task.getMessage());
                     _log.error(errorMsg);
-                    ServiceError serviceError = ExternalDeviceException.errors.createSetRemoteReplicationPairsFailed(
-                            driverRRPairs.get(0).getReplicationSetNativeId(), errorMsg);
+                    ServiceError serviceError = ExternalDeviceException.errors.remoteReplicationLinkOperationFailed(
+                            "failover", elementType.toString(), elementURI.toString(), errorMsg);
                     taskCompleter.error(dbClient, serviceError);
                 }
         } catch (Exception e) {
             String errorMsg = String.format("failover -- Failed failover operation for remote replication element %s with system id %s .", elementType, elementURI);
             _log.error(errorMsg, e);
-            ServiceError serviceError = ExternalDeviceException.errors.remoteReplicationLinkFailoverFailed(
-                    elementType.toString(), elementURI.toString(), errorMsg);
+            ServiceError serviceError = ExternalDeviceException.errors.remoteReplicationLinkOperationFailed(
+                    "failover", elementType.toString(), elementURI.toString(), errorMsg);
             taskCompleter.error(dbClient, serviceError);
         }
     }
 
     @Override
-    public void failback(RemoteReplicationElement replicationElement, TaskCompleter taskCompleter) {
+    public void failback(RemoteReplicationElement remoteReplicationElement, TaskCompleter taskCompleter) {
+        com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationSet.ElementType elementType = remoteReplicationElement.getType();
+        URI elementURI = remoteReplicationElement.getElementUri();
 
+        _log.info("Failback remote replication element {} with system id {}", elementType.toString(), elementURI);
+        RemoteReplicationDriver driver = null;
+        RemoteReplicationOperationContext context = null;
+        List<RemoteReplicationPair> systemRRPairs = null;
+        List<com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationPair> driverRRPairs = new ArrayList<>();
+        try {
+            switch (elementType) {
+                case REPLICATION_GROUP:
+                    RemoteReplicationGroup remoteReplicationGroup = dbClient.queryObject(RemoteReplicationGroup.class, elementURI);
+                    RemoteReplicationSet remoteReplicationSet = dbClient.queryObject(RemoteReplicationSet.class,
+                            remoteReplicationGroup.getReplicationSet());
+                    context = new RemoteReplicationOperationContext(com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationSet.ElementType.REPLICATION_GROUP,
+                            remoteReplicationSet.getNativeId(), remoteReplicationGroup.getNativeId());
+                    StorageSystem sourceSystem = dbClient.queryObject(StorageSystem.class, remoteReplicationGroup.getSourceSystem());
+
+                    driver = (RemoteReplicationDriver)getDriver(sourceSystem.getSystemType());
+                    systemRRPairs = CustomQueryUtility.queryActiveResourcesByRelation(dbClient, elementURI,
+                            RemoteReplicationPair.class, "replicationGroup");
+                    break;
+                case REPLICATION_PAIR:
+                    break;
+                case REPLICATION_SET:
+                    break;
+                default:
+                    // todo this is an error
+            }
+
+            if (systemRRPairs != null && !systemRRPairs.isEmpty()) {
+                // prepare driver replication pairs and call driver
+                prepareDriverRemoteReplicationPairs(systemRRPairs, driverRRPairs);
+            }
+            DriverTask task = driver.failback(Collections.unmodifiableList(driverRRPairs), context, null);
+            // todo: need to implement support for async case.
+            if (task.getStatus() == DriverTask.TaskStatus.READY) {
+                String msg = String.format("failback -- failed back remote replication element %s with system id %s: %s", elementType, elementURI,
+                        task.getMessage());
+                _log.info(msg);
+                taskCompleter.ready(dbClient);
+            } else {
+                String errorMsg = String.format("failedback -- Failed failedback operation for remote replication element %s with system id %s: %s",
+                        elementType, elementURI, task.getMessage());
+                _log.error(errorMsg);
+                ServiceError serviceError = ExternalDeviceException.errors.remoteReplicationLinkOperationFailed(
+                        "failback", elementType.toString(), elementURI.toString(), errorMsg);
+                taskCompleter.error(dbClient, serviceError);
+            }
+        } catch (Exception e) {
+            String errorMsg = String.format("failedback -- Failed failedback operation for remote replication element %s with system id %s .", elementType, elementURI);
+            _log.error(errorMsg, e);
+            ServiceError serviceError = ExternalDeviceException.errors.remoteReplicationLinkOperationFailed(
+                    "failback", elementType.toString(), elementURI.toString(), errorMsg);
+            taskCompleter.error(dbClient, serviceError);
+        }
     }
 
     @Override

@@ -26,7 +26,7 @@ public class CreateVplexVolumeFromAppSnapshotService extends ViPRService {
     private String applicationCopySet;
 
     @Param(ServiceParams.APPLICATION_SUB_GROUP)
-    protected List<String> subGroups;
+    private List<String> subGroups;
 
     @Override
     public void execute() throws Exception {

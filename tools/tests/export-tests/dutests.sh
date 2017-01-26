@@ -977,6 +977,10 @@ prerun_setup() {
         FC_ZONE_A=FABRIC_VPlex_LGL6220_FID_30-10:00:00:27:f8:58:f6:c1
     fi
 
+    if [ "${SIM}" = "1" ]; then
+	FC_ZONE_A=${CLUSTER1NET_SIM_NAME}	  
+    fi
+
     # All export operations orchestration go through the same entry-points
     exportCreateOrchStep=ExportWorkflowEntryPoints.exportGroupCreate
     exportAddVolumesOrchStep=ExportWorkflowEntryPoints.exportAddVolumes
@@ -1610,11 +1614,7 @@ common_setup() {
 
 setup_varray() {
     run neighborhood create $NH
-    if [ "${SIM}" = "1" ]; then
-	run transportzone create $FC_ZONE_A $NH --type FC
-    else
-	run transportzone assign ${FC_ZONE_A} ${NH}
-    fi
+    run transportzone assign ${FC_ZONE_A} ${NH}
 }
 
 setup() {

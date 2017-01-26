@@ -68,6 +68,7 @@ import com.emc.storageos.model.block.BlockSnapshotSessionRestRep;
 import com.emc.storageos.model.block.NamedVolumesList;
 import com.emc.storageos.model.block.VolumeDeleteTypeEnum;
 import com.emc.storageos.model.block.VolumeRestRep;
+import com.emc.storageos.model.block.VolumeRestRep.MirrorRestRep;
 import com.emc.storageos.model.block.VolumeRestRep.ProtectionRestRep;
 import com.emc.storageos.model.block.export.ExportBlockParam;
 import com.emc.storageos.model.block.export.ExportGroupRestRep;
@@ -227,10 +228,6 @@ public class BlockProvider extends BaseAssetOptionsProvider {
 
     protected static boolean isInConsistencyGroup(BlockObjectRestRep volume) {
         return volume.getConsistencyGroup() != null;
-    }
-
-    protected static boolean hasXIO3XVolumes(VolumeRestRep volume) {
-        return volume.getHasXIO3XVolumes() != null && volume.getHasXIO3XVolumes() == true;
     }
 
     @Asset("blockVolumeOrConsistencyType")
@@ -1112,7 +1109,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
                     public boolean accept(BlockSnapshotRestRep snapshot) {
                         VolumeRestRep parentVolume = client.blockVolumes().get(snapshot.getParent().getId());
                         return ((isRPSourceVolume(parentVolume) && !isSnapshotRPBookmark(snapshot)) ||
-                                !isInConsistencyGroup(snapshot) || hasXIO3XVolumes(parentVolume));
+                                !isInConsistencyGroup(snapshot));
                     }
                 });
 
@@ -2146,8 +2143,15 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         final ViPRCoreClient client = api(ctx);
         List<VolumeRestRep> volumes = client.blockVolumes().findByProject(project, new SourceTargetVolumesFilter() {
             @Override
-            public boolean acceptId(URI id) {
-                return !client.blockVolumes().getContinuousCopies(id).isEmpty();
+            public boolean accept(VolumeRestRep volume) {
+                if (volume.getProtection() == null) {
+                    return false;
+                }
+                MirrorRestRep mirrors = volume.getProtection().getMirrorRep();
+                if (mirrors == null || mirrors.getMirrors() == null || mirrors.getMirrors().isEmpty()) {
+                    return false;
+                }
+                return true;
             }
         });
         return createVolumeOptions(client, volumes);
@@ -3053,17 +3057,14 @@ public class BlockProvider extends BaseAssetOptionsProvider {
             getContinuousCopyOptionsForProject(AssetOptionsContext ctx, URI project, URI volumeId, ResourceFilter<BlockMirrorRestRep> filter) {
         ViPRCoreClient client = api(ctx);
         
-        VolumeRestRep volume = client.blockVolumes().get(volumeId);
-        
-        List<BlockMirrorRestRep> copies = client.blockVolumes().getContinuousCopies(volume.getId(), filter);
+        List<BlockMirrorRestRep> copies = client.blockVolumes().getContinuousCopies(volumeId, filter);
         return constructCopiesOptions(client, project, copies);
     }
     
     protected List<AssetOption> constructCopiesOptions(ViPRCoreClient client, URI project, List<BlockMirrorRestRep> copies) {
         List<AssetOption> options = Lists.newArrayList();
-        Map<URI, VolumeRestRep> volumeNames = getProjectVolumeNames(client, project);
         for (BlockMirrorRestRep copy : copies) {
-            options.add(new AssetOption(copy.getId(), getBlockObjectLabel(client, copy, volumeNames)));
+            options.add(new AssetOption(copy.getId(), getBlockObjectLabel(client, copy, null)));
         }
         AssetOptionsUtils.sortOptionsByLabel(options);
         return options;

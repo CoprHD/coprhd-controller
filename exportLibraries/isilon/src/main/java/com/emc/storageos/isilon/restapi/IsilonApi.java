@@ -645,9 +645,9 @@ public class IsilonApi {
      */
     public String createSnapshotSchedule(String name, String path, String schedule, String pattern, Integer duration)
             throws IsilonException {
-        return createSnapshotSchedule(_baseUrl.resolve(URI_SNAPSHOT_SCHEDULES), "schedule", new IsilonSnapshotSchedule(name, path,
-                schedule, pattern,
-                duration));
+        IsilonSnapshotSchedule isiSchedule = new IsilonSnapshotSchedule(name, path, schedule, pattern, duration);
+        sLogger.info("Isilon snapshot schedule: {} creation started", isiSchedule.toString());
+        return createSnapshotSchedule(_baseUrl.resolve(URI_SNAPSHOT_SCHEDULES), "schedule", isiSchedule);
     }
 
     /**
@@ -682,6 +682,15 @@ public class IsilonApi {
             e.printStackTrace();
         }
         deleteSnapshotSchedule(_baseUrl.resolve(URI_SNAPSHOT_SCHEDULES + "/" + id));
+    }
+
+    /**
+     * 
+     * @return
+     * @throws IsilonException
+     */
+    public IsilonList<IsilonSnapshotSchedule> getSnapshotSchedules() throws IsilonException {
+        return list(_baseUrl.resolve(URI_SNAPSHOT_SCHEDULES), "schedules", IsilonSnapshotSchedule.class, "");
     }
 
     /**
@@ -1011,6 +1020,26 @@ public class IsilonApi {
     }
 
     /* SmartQuotas */
+    
+    /**
+     * List all smartquotas for given 
+     * 
+     * @param resumeToken
+     * @param pathBaseDir
+     * @return
+     * @throws IsilonException
+     */
+    public IsilonList<IsilonSmartQuota> listFileQuotas(String resumeToken) throws IsilonException {
+        URI uri = URI_QUOTAS;
+        StringBuffer URLBuffer = new StringBuffer(_baseUrl.resolve(uri).toString());
+        URLBuffer.append("?path=").append("&recurse_path_children=true&type=directory");
+        uri = URI.create(URLBuffer.toString());
+        sLogger.info("get list of smart quotas of type directory for uri {}", uri.toString());
+        uri = _baseUrl.resolve(uri);
+        return list(uri, "quotas", IsilonSmartQuota.class, resumeToken);
+    }
+    
+    
 
     /**
      * List all smartquotas
@@ -1446,9 +1475,11 @@ public class IsilonApi {
             fspath = fspath.substring(1);// remove '/' prefix
             fspath = URLEncoder.encode(fspath, "UTF-8");
             fspath = fspath.concat("?acl");// add suffix ?acl
+
         } catch (UnsupportedEncodingException e) {
             e.printStackTrace();
         }
+
         put(_baseUrl.resolve(URI_IFS), fspath, "ACL", acl);
     }
 
@@ -1973,6 +2004,16 @@ public class IsilonApi {
      */
     public IsilonSyncPolicy getReplicationPolicy(String id) throws IsilonException {
         return get(_baseUrl.resolve(URI_REPLICATION_POLICIES), id, "policies", IsilonSyncPolicy.class);
+    }
+
+    /**
+     * Get All Replication Policies information from the Isilon array
+     * 
+     * @return IsilonList<IsilonSyncPolicy>
+     * @throws IsilonException
+     */
+    public IsilonList<IsilonSyncPolicy> getReplicationPolicies() throws IsilonException {
+        return list(_baseUrl.resolve(URI_REPLICATION_POLICIES), "policies", IsilonSyncPolicy.class, "");
     }
 
     /**

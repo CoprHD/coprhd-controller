@@ -6,8 +6,6 @@
 package com.emc.storageos.db.server;
 
 import static org.junit.Assert.fail;
-import static org.mockito.Mockito.doReturn;
-import static org.mockito.Mockito.mock;
 
 import java.beans.Introspector;
 import java.io.File;
@@ -30,7 +28,6 @@ import org.junit.BeforeClass;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.support.ClassPathXmlApplicationContext;
-
 import org.apache.cassandra.service.StorageService;
 import org.apache.cassandra.service.StorageServiceMBean;
 
@@ -46,6 +43,8 @@ import com.emc.storageos.db.client.impl.DbClientContext;
 import com.emc.storageos.db.client.impl.DbClientImpl;
 import com.emc.storageos.db.client.impl.EncryptionProviderImpl;
 import com.emc.storageos.db.client.impl.TypeMap;
+import com.emc.storageos.db.client.model.DataObject;
+import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.upgrade.BaseCustomMigrationCallback;
 import com.emc.storageos.db.client.upgrade.InternalDbClient;
 import com.emc.storageos.db.common.DataObjectScanner;
@@ -59,8 +58,6 @@ import com.emc.storageos.db.server.impl.SchemaUtil;
 import com.emc.storageos.db.server.upgrade.MockMigrationHandler;
 import com.emc.storageos.db.server.util.StubBeaconImpl;
 import com.emc.storageos.db.server.util.StubCoordinatorClientImpl;
-import com.emc.storageos.security.authentication.InternalApiSignatureKeyGenerator;
-import com.emc.storageos.security.authentication.InternalApiSignatureKeyGenerator.SignatureKeyType;
 import com.emc.storageos.security.geo.GeoDependencyChecker;
 import com.emc.storageos.security.password.PasswordUtils;
 import com.emc.storageos.services.util.JmxServerWrapper;
@@ -412,5 +409,20 @@ public class DbsvcTestBase {
             }
             
         }
+    }
+    
+    protected void cleanupDataObjectCF(Class<? extends DataObject> clazz) {
+        List<URI> uriList = _dbClient.queryByType(Volume.class, false);
+        List<DataObject> dataObjects = new ArrayList<DataObject>();
+        for (URI uri : uriList) {
+            try {
+                DataObject dataObject = clazz.newInstance();
+                dataObject.setId(uri);
+                dataObjects.add(dataObject);
+            } catch (Exception e) {
+                _log.error("Failed to create instance of Class {} e", clazz, e);
+            }
+        }
+        _dbClient.internalRemoveObjects(dataObjects.toArray(new DataObject[0]));
     }
 }

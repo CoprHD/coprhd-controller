@@ -4,29 +4,21 @@
  */
 package com.emc.storageos.security.authorization;
 
-import com.emc.storageos.coordinator.client.service.CoordinatorClient;
-import com.emc.storageos.db.client.DbClient;
-import com.emc.storageos.db.client.URIUtil;
-import com.emc.storageos.db.client.constraint.*;
-import com.emc.storageos.db.client.constraint.NamedElementQueryResultList.NamedElement;
-import com.emc.storageos.db.client.model.*;
-import com.emc.storageos.db.client.model.uimodels.CatalogCategory;
-import com.emc.storageos.db.client.model.uimodels.CatalogService;
-import com.emc.storageos.db.client.util.CustomQueryUtility;
-import com.emc.storageos.db.client.util.DataObjectUtils;
-import com.emc.storageos.db.client.util.NullColumnValueGetter;
-import com.emc.storageos.db.common.VdcUtil;
-import com.emc.storageos.db.exceptions.DatabaseException;
-import com.emc.storageos.db.exceptions.FatalDatabaseException;
-import com.emc.storageos.model.ResourceTypeEnum;
-import com.emc.storageos.model.auth.ACLEntry;
-import com.emc.storageos.model.tenant.UserMappingAttributeParam;
-import com.emc.storageos.model.tenant.UserMappingParam;
-import com.emc.storageos.model.usergroup.UserAttributeParam;
-import com.emc.storageos.security.SecurityDisabler;
-import com.emc.storageos.security.authentication.StorageOSUser;
-import com.emc.storageos.security.exceptions.SecurityException;
-import com.emc.storageos.svcs.errorhandling.resources.APIException;
+import java.io.IOException;
+import java.net.URI;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+
+import javax.xml.bind.annotation.XmlElement;
+
 import org.apache.commons.lang.StringUtils;
 import org.codehaus.jackson.JsonGenerationException;
 import org.codehaus.jackson.JsonParseException;
@@ -37,10 +29,54 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.util.CollectionUtils;
 
-import javax.xml.bind.annotation.XmlElement;
-import java.io.IOException;
-import java.net.URI;
-import java.util.*;
+import com.emc.storageos.coordinator.client.service.CoordinatorClient;
+import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.URIUtil;
+import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
+import com.emc.storageos.db.client.constraint.ContainmentConstraint;
+import com.emc.storageos.db.client.constraint.ContainmentPermissionsConstraint;
+import com.emc.storageos.db.client.constraint.NamedElementQueryResultList;
+import com.emc.storageos.db.client.constraint.NamedElementQueryResultList.NamedElement;
+import com.emc.storageos.db.client.constraint.PrefixConstraint;
+import com.emc.storageos.db.client.constraint.QueryResultList;
+import com.emc.storageos.db.client.constraint.URIQueryResultList;
+import com.emc.storageos.db.client.model.AbstractChangeTrackingSet;
+import com.emc.storageos.db.client.model.Cluster;
+import com.emc.storageos.db.client.model.ComputeVirtualPool;
+import com.emc.storageos.db.client.model.DataObject;
+import com.emc.storageos.db.client.model.FilePolicy;
+import com.emc.storageos.db.client.model.Host;
+import com.emc.storageos.db.client.model.Initiator;
+import com.emc.storageos.db.client.model.IpInterface;
+import com.emc.storageos.db.client.model.NamedURI;
+import com.emc.storageos.db.client.model.Project;
+import com.emc.storageos.db.client.model.StorageOSUserDAO;
+import com.emc.storageos.db.client.model.StringSet;
+import com.emc.storageos.db.client.model.StringSetMap;
+import com.emc.storageos.db.client.model.TenantOrg;
+import com.emc.storageos.db.client.model.TenantResource;
+import com.emc.storageos.db.client.model.UserGroup;
+import com.emc.storageos.db.client.model.Vcenter;
+import com.emc.storageos.db.client.model.VcenterDataCenter;
+import com.emc.storageos.db.client.model.VirtualArray;
+import com.emc.storageos.db.client.model.VirtualDataCenter;
+import com.emc.storageos.db.client.model.VirtualPool;
+import com.emc.storageos.db.client.model.Volume;
+import com.emc.storageos.db.client.model.uimodels.CatalogCategory;
+import com.emc.storageos.db.client.model.uimodels.CatalogService;
+import com.emc.storageos.db.client.util.CustomQueryUtility;
+import com.emc.storageos.db.client.util.NullColumnValueGetter;
+import com.emc.storageos.db.common.VdcUtil;
+import com.emc.storageos.db.exceptions.DatabaseException;
+import com.emc.storageos.db.exceptions.FatalDatabaseException;
+import com.emc.storageos.model.auth.ACLEntry;
+import com.emc.storageos.model.tenant.UserMappingAttributeParam;
+import com.emc.storageos.model.tenant.UserMappingParam;
+import com.emc.storageos.model.usergroup.UserAttributeParam;
+import com.emc.storageos.security.SecurityDisabler;
+import com.emc.storageos.security.authentication.StorageOSUser;
+import com.emc.storageos.security.exceptions.SecurityException;
+import com.emc.storageos.svcs.errorhandling.resources.APIException;
 
 /**
  * Class provides helper methods for accessing roles and acls from db
@@ -523,8 +559,7 @@ public class BasePermissionsHelper {
                 public URI createQueryHit(URI uri, Object entry) {
                     if (entry instanceof String) {
                         return createQueryHit(uri, (String) entry, null);
-                    }
-                    else {
+                    } else {
                         return createQueryHit(uri);
                     }
                 }
@@ -618,6 +653,23 @@ public class BasePermissionsHelper {
      */
     public <T extends DataObject> T getObjectById(NamedURI id, Class<T> clazz) {
         return getObjectById(id.getURI(), clazz, false);
+    }
+
+    /**
+     * Get parent of of the object. Now Vplex volume is the only supported case, return null for other types of object
+     * 
+     * @param obj
+     * @return
+     */
+    public Volume getParentObject(DataObject obj) {
+        final List<Volume> vplexVolumes = CustomQueryUtility.queryActiveResourcesByConstraint(
+                _dbClient, Volume.class,
+                AlternateIdConstraint.Factory.getVolumesByAssociatedId(obj.getId().toString()));
+
+        if (vplexVolumes == null || vplexVolumes.isEmpty()) {
+            return null;
+        }
+        return vplexVolumes.get(0); // Assuming there is only parent
     }
 
     /**
@@ -984,6 +1036,46 @@ public class BasePermissionsHelper {
     }
 
     /**
+     * Returns true if the user's tenant has a usage acl on the FilePolicy
+     * 
+     * @param tenantUri
+     * @param filePolicy
+     * @return
+     */
+    public boolean tenantHasUsageACL(URI tenantUri, FilePolicy filePolicy) {
+        if (_disabler != null) {
+            return true;
+        }
+        // Make CoS open to all by default, restriction kicks in once a acl assignment is done
+        if (CollectionUtils.isEmpty(filePolicy.getAcls())) {
+            return true;
+        }
+        Set<String> acls = filePolicy.getAclSet(new PermissionsKey(PermissionsKey.Type.TENANT,
+                tenantUri.toString()).toString());
+        if (acls != null && acls.contains(ACL.USE.toString())) {
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * Returns true if any tenant in the list has a usage acl on the FilePolicy
+     *
+     * @param tenantUris
+     * @param filePolicy
+     * @return
+     */
+    public boolean tenantHasUsageACL(List<URI> tenantUris, FilePolicy filePolicy) {
+        for (URI tenantUri : tenantUris) {
+            if (tenantHasUsageACL(tenantUri, filePolicy)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
      * Returns true if any tenant in the list has a usage acl on the VirtualPool
      *
      * @param tenantUris
@@ -1102,7 +1194,7 @@ public class BasePermissionsHelper {
                 role.equalsIgnoreCase(Role.SYSTEM_MONITOR.toString()) ||
                 role.equalsIgnoreCase(Role.SYSTEM_AUDITOR.toString()) ||
                 role.equalsIgnoreCase(Role.RESTRICTED_SECURITY_ADMIN.toString()) || role.equalsIgnoreCase(Role.RESTRICTED_SYSTEM_ADMIN
-                .toString()));
+                        .toString()));
     }
 
     /**
@@ -1189,7 +1281,8 @@ public class BasePermissionsHelper {
             if (onTenant) {
                 _dbClient.queryByConstraint(
                         ContainmentPermissionsConstraint.Factory.getTenantsWithPermissionsConstraint(
-                                new PermissionsKey(PermissionsKey.Type.SID, user.getName()).toString()), results);
+                                new PermissionsKey(PermissionsKey.Type.SID, user.getName()).toString()),
+                        results);
                 for (Iterator<URI> iterator = results.iterator(); iterator.hasNext(); iterator.next()) {
                     ;
                 }
@@ -1197,7 +1290,8 @@ public class BasePermissionsHelper {
                     for (String group : user.getGroups()) {
                         _dbClient.queryByConstraint(
                                 ContainmentPermissionsConstraint.Factory.getTenantsWithPermissionsConstraint(
-                                        new PermissionsKey(PermissionsKey.Type.GROUP, group).toString()), results);
+                                        new PermissionsKey(PermissionsKey.Type.GROUP, group).toString()),
+                                results);
                         for (Iterator<URI> iterator = results.iterator(); iterator.hasNext(); iterator.next()) {
                             ;
                         }
@@ -1209,7 +1303,8 @@ public class BasePermissionsHelper {
                 _dbClient.queryByConstraint(
                         ContainmentPermissionsConstraint.Factory.getObjsWithPermissionsConstraint(
                                 new PermissionsKey(PermissionsKey.Type.SID, user.getName(), tenantId).toString(),
-                                Project.class), results);
+                                Project.class),
+                        results);
                 for (Iterator<URI> iterator = results.iterator(); iterator.hasNext(); iterator.next()) {
                     ;
                 }
@@ -1218,7 +1313,8 @@ public class BasePermissionsHelper {
                         _dbClient.queryByConstraint(
                                 ContainmentPermissionsConstraint.Factory.getObjsWithPermissionsConstraint(
                                         new PermissionsKey(PermissionsKey.Type.GROUP, group, tenantId).toString(),
-                                        Project.class), results);
+                                        Project.class),
+                                results);
                         for (Iterator<URI> iterator = results.iterator(); iterator.hasNext(); iterator.next()) {
                             ;
                         }
@@ -2162,7 +2258,7 @@ public class BasePermissionsHelper {
      *
      * @param acls to be used to find out the tenant of the resource.
      * @return the URI of the resource if the resource contains only
-     *          one acl entry otherwise null URI.
+     *         one acl entry otherwise null URI.
      */
     public static URI getTenant(StringSetMap acls) {
         Set<URI> usageUris = getUsageURIsFromAcls(acls);
@@ -2215,7 +2311,7 @@ public class BasePermissionsHelper {
      *
      * @param domains to get all the user mappings.
      * @return returns the map of tenantID to user mappings
-     * of the domains.
+     *         of the domains.
      */
     public Map<URI, List<UserMapping>> getAllUserMappingsForDomain(StringSet domains) {
         Map<URI, List<UserMapping>> tenantUserMappingMap = new HashMap<URI, List<UserMapping>>();

@@ -5,6 +5,7 @@
 
 package com.emc.storageos.management.backup;
 
+import com.emc.storageos.services.util.TimeUtils;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.HelpFormatter;
@@ -166,9 +167,15 @@ public class BackupCmd {
         }
 
         System.out.println("Start to create backup...");
-        backupOps.createBackup(backupName, force);
-        System.out.println(
-                String.format("Backup (%s) is created successfully", backupName));
+        try {
+            backupOps.createBackup(backupName, force);
+            System.out.println(
+                    String.format("Backup (%s) is created successfully", backupName));
+        } catch (Exception ex){
+            log.error("Create backup({}) failed: ", backupName, ex);
+            backupOps.updateBackupCreationStatus(backupName, TimeUtils.getCurrentTime(), false);
+            throw ex;
+        }
     }
 
     private static void listBackup() {

@@ -21,7 +21,6 @@ import java.nio.file.attribute.UserPrincipalLookupService;
 import java.util.Date;
 import java.util.EnumSet;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
@@ -53,7 +52,7 @@ public class DbCheckerFileWriter {
     private static final String STORAGEOS_NAME = "storageos";
     private static String owner = STORAGEOS_NAME;
     private static String group = STORAGEOS_NAME;
-    private static final Set<String> cleanupFiles = new HashSet<String>();
+    private static final Map<String, String> cleanupFiles = new HashMap<>();
     private static final Map<String, BufferedWriter> writers = new HashMap<String, BufferedWriter>();
     private static final Logger log = LoggerFactory.getLogger(DbCheckerFileWriter.class);
 
@@ -76,7 +75,9 @@ public class DbCheckerFileWriter {
         if (writer == null) {
             writer = init(type.filename, type.usage);
             writers.put(type.filename, writer);
-            cleanupFiles.add(type.filename);
+            if (!cleanupFiles.containsKey(name)) {
+                cleanupFiles.put(name, type.filename);
+            }
         }
         return writer;
     }
@@ -114,7 +115,11 @@ public class DbCheckerFileWriter {
     }
 
     public static String getGeneratedFileNames() {
-        return StringUtils.join(cleanupFiles, " ");
+        return StringUtils.join(cleanupFiles.values(), " ");
+    }
+
+    public static Map<String, String> getCleanupfileMap() {
+        return cleanupFiles;
     }
 
     private static void deleteIfExists(String fileName) {
@@ -135,10 +140,12 @@ public class DbCheckerFileWriter {
         Files.setPosixFilePermissions(path, permissions);
     }
     
-    enum WriteType {
+    public static enum WriteType {
         STORAGEOS(WRITER_STORAGEOS, CLEANUP_FILE_STORAGEOS, USAGE_STORAGEOS),
         GEOSTORAGEOS(WRITER_GEOSTORAGEOS, CLEANUP_FILE_GEOSTORAGEOS, USAGE_GEOSTORAGEOS),
-        REBUILD_INDEX(WRITER_REBUILD_INDEX, CLEANUP_FILE_REBUILD_INDEX, USAGE_REBUILDINDEX);
+        REBUILD_INDEX(WRITER_REBUILD_INDEX, CLEANUP_FILE_REBUILD_INDEX, USAGE_REBUILDINDEX),
+        //just for UT
+        TEST("Test", CLEANUP_FILE_STORAGEOS, USAGE_STORAGEOS);
         String type;
         String filename;
         String usage;

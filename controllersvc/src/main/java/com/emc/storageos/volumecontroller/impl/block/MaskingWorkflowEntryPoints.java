@@ -22,7 +22,6 @@ import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.StorageSystem;
-import com.emc.storageos.db.client.util.StringSetUtil;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.networkcontroller.impl.NetworkDeviceController;
 import com.emc.storageos.networkcontroller.impl.NetworkZoningParam;
@@ -366,7 +365,9 @@ public class MaskingWorkflowEntryPoints implements Controller {
                         initiatorURIs.add(URI.create(initiatorId));
                     }
                 }
+                InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_050);
                 getDevice(storage).doExportDelete(storage, exportMask, volumeURIs, initiatorURIs, taskCompleter);
+                InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_051);
                 _networkDeviceController.zoneExportMasksDelete(zoningParam, volumeURIs, 
                         UUID.randomUUID().toString());
             } else {
@@ -402,9 +403,10 @@ public class MaskingWorkflowEntryPoints implements Controller {
             StorageSystem storage = _dbClient
                     .queryObject(StorageSystem.class, storageURI);
 
+            InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_018);
             getDevice(storage).doExportDelete(storage, exportMask, volumeURIs, initiatorURIs, taskCompleter);
-
             _log.info(String.format("%s end", call));
+            // doExportDelete is responsible for calling the completer at this point. No code allowed after this point.
         } catch (final InternalException e) {
             _log.info(call + " Encountered an exception", e);
             taskCompleter.error(_dbClient, e);
@@ -436,6 +438,9 @@ public class MaskingWorkflowEntryPoints implements Controller {
             if (initiatorURIs != null && !initiatorURIs.isEmpty()) {
                 initiators = _dbClient.queryObject(Initiator.class, initiatorURIs);
             }
+
+            // Test mechanism to invoke a failure. No-op on production systems.
+            InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_017);
 
             getDevice(storage).doExportRemoveVolumes(storage, exportMask, volumeURIs,
                     initiators, taskCompleter);
@@ -585,6 +590,9 @@ public class MaskingWorkflowEntryPoints implements Controller {
                     .queryObject(StorageSystem.class, storageURI);
             List<Initiator> initiators = _dbClient
                     .queryObject(Initiator.class, initiatorURIs);
+
+            // Test mechanism to invoke a failure. No-op on production systems.
+            InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_016);
 
             List<URI> targetPorts = ExportUtils.getRemoveInitiatorStoragePorts(exportMask, initiators, _dbClient);
             getDevice(storage).doExportRemoveInitiators(storage, exportMask,

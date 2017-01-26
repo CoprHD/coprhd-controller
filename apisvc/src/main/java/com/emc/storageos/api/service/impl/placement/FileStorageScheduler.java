@@ -10,6 +10,7 @@ import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -114,13 +115,17 @@ public class FileStorageScheduler implements Scheduler {
 
         _log.debug("Schedule storage for {} resource(s) of size {}.",
                 capabilities.getResourceCount(), capabilities.getSize());
+        // create map object if null, it used to receive the error message
+        if (optionalAttributes == null) {
+            optionalAttributes = new HashMap<String, Object>();
+        }
 
         // Get all storage pools that match the passed vpool params and
         // protocols. In addition, the pool must have enough capacity
         // to hold at least one resource of the requested size.
         List<StoragePool> candidatePools = _scheduler.getMatchingPools(vArray,
                 vPool, capabilities, optionalAttributes);
-        
+
         if (CollectionUtils.isEmpty(candidatePools)) {
             StringBuffer errorMessage = new StringBuffer();
             if (optionalAttributes.get(AttributeMatcher.ERROR_MESSAGE) != null) {
@@ -580,8 +585,7 @@ public class FileStorageScheduler implements Scheduler {
                         iterator.remove();
                         invalidNasServers.add(vNAS);
                     }
-                } else if (!ProjectUtility.
-                        doesProjectDomainMatchesWithVNASDomain(projectDomains, vNAS)) {
+                } else if (!ProjectUtility.doesProjectDomainMatchesWithVNASDomain(projectDomains, vNAS)) {
                     _log.info("Removing vNAS {} as its domain does not match with project's domain: {}",
                             vNAS.getNasName(), projectDomains);
                     iterator.remove();
@@ -600,11 +604,11 @@ public class FileStorageScheduler implements Scheduler {
      * Get list of associated storage ports of VNAS server which are part of given virtual array.
      * 
      * @param vNAS
-     * @param vArrayURI virtual array 
+     * @param vArrayURI virtual array
      * @return spList
      * 
      */
-    private List<StoragePort> getAssociatedStoragePorts(VirtualNAS vNAS,  URI vArrayURI) {
+    private List<StoragePort> getAssociatedStoragePorts(VirtualNAS vNAS, URI vArrayURI) {
 
         StringSet spIdSet = vNAS.getStoragePorts();
 
@@ -614,29 +618,30 @@ public class FileStorageScheduler implements Scheduler {
                 spURIList.add(URI.create(id));
             }
         }
-        
-        List<StoragePort> spList = _dbClient.queryObject(StoragePort.class,
-        		spURIList);
 
-        if (spIdSet != null && !spList.isEmpty()) {
+        List<StoragePort> spList = _dbClient.queryObject(StoragePort.class,
+                spURIList);
+
+        if (spList != null && !spList.isEmpty()) {
             for (Iterator<StoragePort> iterator = spList.iterator(); iterator
                     .hasNext();) {
                 StoragePort storagePort = iterator.next();
                 if (storagePort.getInactive()
                         || storagePort.getTaggedVirtualArrays() == null
                         || !storagePort.getTaggedVirtualArrays().contains(
-                        		vArrayURI.toString())
+                                vArrayURI.toString())
                         || !RegistrationStatus.REGISTERED.toString()
                                 .equalsIgnoreCase(
                                         storagePort.getRegistrationStatus())
                         || (StoragePort.OperationalStatus.valueOf(storagePort
                                 .getOperationalStatus()))
-                                .equals(StoragePort.OperationalStatus.NOT_OK)
+                                        .equals(StoragePort.OperationalStatus.NOT_OK)
                         || !DiscoveredDataObject.CompatibilityStatus.COMPATIBLE
                                 .name().equals(
                                         storagePort.getCompatibilityStatus())
                         || !DiscoveryStatus.VISIBLE.name().equals(
-                                storagePort.getDiscoveryStatus())) {
+                                storagePort.getDiscoveryStatus())
+                        || (storagePort.getTag() != null && storagePort.getTag().contains("dr_port"))) {
 
                     iterator.remove();
                 }
@@ -794,11 +799,12 @@ public class FileStorageScheduler implements Scheduler {
                             .equalsIgnoreCase(temp.getRegistrationStatus())
                     || (StoragePort.OperationalStatus.valueOf(temp
                             .getOperationalStatus()))
-                            .equals(StoragePort.OperationalStatus.NOT_OK)
+                                    .equals(StoragePort.OperationalStatus.NOT_OK)
                     || !DiscoveredDataObject.CompatibilityStatus.COMPATIBLE
                             .name().equals(temp.getCompatibilityStatus())
                     || !DiscoveryStatus.VISIBLE.name().equals(
-                            temp.getDiscoveryStatus())) {
+                            temp.getDiscoveryStatus())
+                    || (temp.getTag() != null && temp.getTag().contains("dr_port"))) {
                 itr.remove();
             }
         }
@@ -899,15 +905,16 @@ public class FileStorageScheduler implements Scheduler {
             // TODO: normalize behavior across file arrays so that this check is
             // not required.
             // TODO: Implement fake storageHADomain for DD to fit the viPR model
-            // For unity, file system can be created only on vNas. There is no reason to find a matching HADomain if no vnas servers were found
+            // For unity, file system can be created only on vNas. There is no reason to find a matching HADomain if no vnas servers were
+            // found
             if (storage.getSystemType().equals(Type.unity.toString())) {
-                 continue;
+                continue;
             }
 
             if (!storage.getSystemType().equals(Type.netapp.toString())
                     && !storage.getSystemType().equals(Type.netappc.toString())
                     && !storage.getSystemType().equals(Type.vnxe.toString())
-                    && !storage.getSystemType().equals(Type.vnxfile.toString()) 
+                    && !storage.getSystemType().equals(Type.vnxfile.toString())
                     && !storage.getSystemType().equals(
                             Type.datadomain.toString())) {
                 result.add(rec);

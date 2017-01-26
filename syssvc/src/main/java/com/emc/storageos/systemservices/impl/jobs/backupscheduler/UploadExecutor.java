@@ -9,6 +9,7 @@ import com.emc.storageos.management.backup.BackupFileSet;
 import com.emc.storageos.security.audit.AuditLogManager;
 import com.emc.storageos.services.OperationTypeEnum;
 
+import com.emc.storageos.services.util.TimeUtils;
 import org.apache.commons.lang.StringUtils;
 import com.emc.vipr.model.sys.backup.BackupUploadStatus;
 import com.emc.vipr.model.sys.backup.BackupUploadStatus.Status;
@@ -157,6 +158,7 @@ public class UploadExecutor {
                 failureUploads.add(tag);
                 errMsgs.add(errMsg);
             }
+            this.cli.updateBackupUploadStatus(tag, TimeUtils.getCurrentTime(), (errMsg == null) ? true: false);
         }
 
         if (!succUploads.isEmpty()) {

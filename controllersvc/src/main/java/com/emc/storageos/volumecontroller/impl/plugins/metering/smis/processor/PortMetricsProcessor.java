@@ -1466,7 +1466,7 @@ public class PortMetricsProcessor {
         }
         return portMetricsAllocationEnabled;
     }
-
+    
     /**
      * ViPR allocate port based on collected usage metrics, used initiator and volume. The ports which are being heavily used and
      * exceeded configured ceiling, will be eliminated from candidate pools.
@@ -1497,10 +1497,11 @@ public class PortMetricsProcessor {
     /**
      * Compute and set each storage pool's average port usage metric. The average port metrics is
      * actually pool's storage system's port metric.
-     * 
+     *
      * @param storagePools
+     * @return storageSystemAvgPortMetricsMap
      */
-    public void computeStoragePoolsAvgPortMetrics(List<StoragePool> storagePools) {
+    public Map<URI, Double> computeStoragePoolsAvgPortMetrics(List<StoragePool> storagePools) {
         Map<URI, Double> storageSystemAvgPortMetricsMap = new HashMap<URI, Double>();
 
         // compute storage system average port metric
@@ -1519,6 +1520,7 @@ public class PortMetricsProcessor {
 
             storagePool.setAvgStorageDevicePortMetrics(storageSystemAvgPortMetricsMap.get(storageSystemURI));
         }
+        return storageSystemAvgPortMetricsMap;
     }
 
     /**

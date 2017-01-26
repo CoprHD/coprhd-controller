@@ -86,6 +86,105 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
     }
 
     /**
+     * This method is different than findAndUpdateFreeHLUsForClusterExport(). It is
+     * a common method which each Orchestrator can call and make use of.
+     * 
+     * Finds the next available HLU for cluster export by querying the cluster's hosts'
+     * used HLUs and updates the volumeHLU map with free HLUs.
+     *
+     * @param storage the storage system
+     * @param exportGroup the export group
+     * @param initiatorURIs the initiator uris
+     * @param volumeMap the volume HLU map
+     */
+    public void findUpdateFreeHLUsForClusterExport(StorageSystem storage, ExportGroup exportGroup,
+            List<URI> initiatorURIs, Map<URI, Integer> volumeMap) {
+        if (exportGroup.forCluster() && volumeMap.values().contains(ExportGroup.LUN_UNASSIGNED)
+                && ExportUtils.systemSupportsConsistentHLUGeneration(storage)) {
+            _log.info("Find and update free HLUs for Cluster Export START..");
+            /**
+             * Group the initiators by Host. For each Host, call device.findHLUsForInitiators() to get used HLUs.
+             * Add all hosts's HLUs to a Set.
+             * Get the maximum allowed HLU for the storage array.
+             * Calculate the free lowest available HLUs.
+             * Update the new values in the VolumeHLU Map.
+             */
+            Set<Integer> usedHlus = findHLUsForClusterHosts(storage, exportGroup, initiatorURIs);
+
+            Integer maxHLU = ExportUtils.getMaximumAllowedHLU(storage);
+
+            Set<Integer> freeHLUs = ExportUtils.calculateFreeHLUs(usedHlus, maxHLU);
+
+            ExportUtils.updateFreeHLUsInVolumeMap(volumeMap, freeHLUs);
+
+            _log.info("Find and update free HLUs for Cluster Export END.");
+        } else {
+            _log.info("Find and update free HLUs is not required to run. HLU consistency is not guaranteed.");
+        }
+    }
+
+    /**
+     * Find HLUs for cluster hosts.
+     *
+     * @param storage the storage
+     * @param exportGroup the export group
+     * @param initiatorURIs the initiator uris
+     * @return the used HLUs
+     */
+    private Set<Integer> findHLUsForClusterHosts(StorageSystem storage, ExportGroup exportGroup, List<URI> initiatorURIs) {
+        Map<String, List<URI>> computeResourceToInitiators = mapInitiatorsToComputeResource(exportGroup, initiatorURIs);
+        Set<Integer> usedHlus = new HashSet<Integer>();
+        for (Entry<String, List<URI>> entry : computeResourceToInitiators.entrySet()) {
+            List<URI> hostInitiatorURIs = entry.getValue();
+            List<String> initiatorNames = new ArrayList<String>();
+            Map<String, URI> portNameToInitiatorURI = new HashMap<String, URI>();
+            List<URI> hostURIs = new ArrayList<URI>();
+            processInitiators(exportGroup, hostInitiatorURIs, initiatorNames, portNameToInitiatorURI, hostURIs);
+            queryHostInitiatorsAndAddToList(initiatorNames, portNameToInitiatorURI, initiatorURIs, hostURIs);
+
+            Set<Integer> hostUsedHlus = getDevice().findHLUsForInitiators(storage, initiatorNames, false);
+            usedHlus.addAll(hostUsedHlus);
+        }
+        return usedHlus;
+    }
+
+    /**
+     * Validates if there is a HLU conflict between cluster volumes and the host volumes.
+     * 
+     * @param storage the storage
+     * @param exportGroup the export group
+     * @param newInitiatorURIs the host initiators to be added to the export group
+     **/
+    public void checkForConsistentLunViolation(StorageSystem storage, ExportGroup exportGroup, List<URI> newInitiatorURIs) {
+
+        Map<String, Integer> volumeHluPair = new HashMap<String, Integer>();
+        // For 'add host to cluster' operation, validate and fail beforehand if HLU conflict is detected
+        if (exportGroup.forCluster() && exportGroup.getVolumes() != null
+                && ExportUtils.systemSupportsConsistentHLUGeneration(storage)) {
+            // get HLUs from ExportGroup as these are the volumes that will be exported to new Host.
+            Collection<String> egHlus = exportGroup.getVolumes().values();
+            Collection<Integer> clusterHlus = Collections2.transform(egHlus, CommonTransformerFunctions.FCTN_STRING_TO_INTEGER);
+
+            List<Initiator> initiators = _dbClient.queryObject(Initiator.class, newInitiatorURIs);
+            Collection<String> initiatorNames = Collections2.transform(initiators, CommonTransformerFunctions.fctnInitiatorToPortName());
+            Set<Integer> newHostUsedHlus = getDevice().findHLUsForInitiators(storage, new ArrayList<String>(initiatorNames), false);
+
+            // newHostUsedHlus now will contain the intersection of the two Set of HLUs which are conflicting one's
+            newHostUsedHlus.retainAll(clusterHlus);
+            if (!newHostUsedHlus.isEmpty()) {
+                _log.info("Conflicting HLUs: {}", newHostUsedHlus);
+                for (Map.Entry<String, String> entry : exportGroup.getVolumes().entrySet()) {
+                    Integer hlu = Integer.valueOf(entry.getValue());
+                    if (newHostUsedHlus.contains(hlu)) {
+                        volumeHluPair.put(entry.getKey(), hlu);
+                    }
+                }
+                throw DeviceControllerException.exceptions.addHostHLUViolation(volumeHluPair);
+            }
+        }
+    }
+
+    /**
      * Generates snapshot related workflow steps.
      *
      * @param workflow
@@ -222,6 +321,7 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
 
         boolean anyOperationsToDo = false;
         Map<String, Set<URI>> matchingExportMaskURIs = device.findExportMasks(storage, portNames, false);
+
         if (matchingExportMaskURIs != null && !matchingExportMaskURIs.isEmpty()) {
             // There were some exports out there that already have some or all of the
             // initiators that we are attempting to add. We need to only add
@@ -314,24 +414,7 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
                         }
                     }
 
-                    // Update the list of volumes and initiators for the mask
-                    Map<URI, Integer> volumeMapForExistingMask = existingMasksToUpdateWithNewVolumes
-                            .get(mask.getId());
-                    if (volumeMapForExistingMask != null && !volumeMapForExistingMask.isEmpty()) {
-                        mask.addVolumes(volumeMapForExistingMask);
-                    }
-
-                    Set<Initiator> initiatorSetForExistingMask = existingMasksToUpdateWithNewInitiators
-                            .get(mask.getId());
-                    if (initiatorSetForExistingMask != null && !initiatorSetForExistingMask.isEmpty()) {
-                        mask.addInitiators(initiatorSetForExistingMask);
-                    }
-
-                    updateZoningMap(exportGroup, mask);
-                    _dbClient.updateAndReindexObject(mask);
-                    // TODO: All export group modifications should be moved to completers
-                    exportGroup.addExportMask(mask.getId());
-                    _dbClient.updateAndReindexObject(exportGroup);
+                    updateZoningMap(exportGroup, mask, true);
                 }
             }
 
@@ -1457,13 +1540,14 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
         // currently zoned to ports. The method generateExportMaskAddInitiatorsWorkflow will
         // allocate additional ports for the newInitiators to be processed.
         // These will be zoned and then subsequently added to the MaskingView / ExportMask.
+        Set<URI> volumeURIs = new HashSet<URI>(StringSetUtil.stringSetToUriList(exportMask.getUserAddedVolumes().values()));
+        String stepId = generateExportMaskAddInitiatorsWorkflow(workflow, null, storageSystem,
+                exportGroup, exportMask, newInitiators, volumeURIs, token);
         Map<URI, List<URI>> zoneMasksToInitiatorsURIs = new HashMap<URI, List<URI>>();
         zoneMasksToInitiatorsURIs.put(exportMask.getId(), newInitiators);
-        String zoningStep = generateZoningAddInitiatorsWorkflow(workflow, null,
+        generateZoningAddInitiatorsWorkflow(workflow, stepId,
                 exportGroup, zoneMasksToInitiatorsURIs);
-        Set<URI> volumeURIs = new HashSet<URI>(StringSetUtil.stringSetToUriList(exportMask.getUserAddedVolumes().values()));
-        generateExportMaskAddInitiatorsWorkflow(workflow, zoningStep, storageSystem,
-                exportGroup, exportMask, newInitiators, volumeURIs, token);
+
     }
 
     public void exportGroupChangePolicyAndLimits(URI storageURI,

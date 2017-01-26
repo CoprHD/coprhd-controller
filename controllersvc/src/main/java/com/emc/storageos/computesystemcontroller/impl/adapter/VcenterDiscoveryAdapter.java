@@ -534,7 +534,8 @@ public class VcenterDiscoveryAdapter extends EsxHostDiscoveryAdapter {
             }
 
             if (target.getType() == null ||
-                    StringUtils.equalsIgnoreCase(target.getType(), HostType.Other.toString())) {
+                    StringUtils.equalsIgnoreCase(target.getType(), HostType.Other.toString()) ||
+                    StringUtils.equalsIgnoreCase(target.getType(), HostType.No_OS.toString())) {
                 target.setType(Host.HostType.Esx.name());
             }
             target.setHostName(target.getLabel());

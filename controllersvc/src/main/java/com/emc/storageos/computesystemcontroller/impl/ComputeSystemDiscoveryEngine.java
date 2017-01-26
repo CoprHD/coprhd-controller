@@ -94,7 +94,7 @@ public class ComputeSystemDiscoveryEngine {
         } finally {
             lock.release();
             if (LOG.isInfoEnabled()) {
-                LOG.info(String.format("Lock Released for compute system discovery: " + targetId));
+                LOG.info(String.format("Lock Released for compute system discovery: %s", targetId));
             }
         }
     }

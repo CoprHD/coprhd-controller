@@ -12501,7 +12501,7 @@ application_tests()
         APPLICATION_SNAPSHOT_SUPPORTED=1
         APPLICATION_RESYNC_SNAP_SUPPORTED=1
         APPLICATION_LINK_SNAP_SUPPORTED=0
-        APPLICATION_EXPOSE_SNAP_SUPPORTED=1
+        APPLICATION_EXPOSE_SNAP_SUPPORTED=0
         APPLICATION_SNAP_TYPE='snapshot'
         if [ $APPLICATION_TEST_BLOCK -eq 1 ]; then
             secho "running block vmax2 tests"
@@ -12527,6 +12527,7 @@ application_tests()
             VG_VARRAY_CG=$APP_VARRAY1
             APP_RUNNING_BLOCK_TEST=0
             APPLICATION_CREATE_INACTIVE_SUPPORTED=0
+            APPLICATION_EXPOSE_SNAP_SUPPORTED=1
 
             app_test_subgroup1a="${VG_CGNAME1}a"
             app_test_subgroup1b="${VG_CGNAME1}b"

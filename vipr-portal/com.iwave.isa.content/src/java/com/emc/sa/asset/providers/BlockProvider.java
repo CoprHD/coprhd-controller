@@ -853,7 +853,8 @@ public class BlockProvider extends BaseAssetOptionsProvider {
                 if (port.getNetwork() != null) {
                     String portPercentBusy = (port.getPortPercentBusy() != null) ? String.valueOf(Math.round(port.getPortPercentBusy() * 100 / 100)) + "%" : "N/A";
                     String networkName = client.networks().get(port.getNetwork().getId()).getName();
-                    String label = getMessage("exportPathAdjustment.ports", port.getPortNetworkId(), networkName, portPercentBusy);
+                    String label = getMessage("exportPathAdjustment.ports", port.getPortName(), networkName, 
+                            port.getPortNetworkId(), portPercentBusy);
                     options.add(new AssetOption(port.getId(), label));
                 }
             }
@@ -934,7 +935,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
             List<URI> portURIs = new ArrayList<URI>();
             for (NamedRelatedResourceRep port : ports) {
                 StoragePortRestRep p = client.storagePorts().get(port.getId());
-                portList += p.getPortNetworkId() + " ";
+                portList += p.getPortName() + " ";
                 portURIs.add(port.getId());
             }
             

@@ -49,11 +49,8 @@ public class RemoteReplicationSet extends DiscoveredDataObject {
     // Set of replication modes for which group consistency cannot be enforced on device.
     private StringSet replicationModesNoGroupConsistency;
 
-    // When replication link operations are supported on the SET level, defines link mode.
-    //private String replicationMode;
-
     // When replication link operations are supported on the SET level, defines state of the link for this set.
-    String replicationState;
+    private String replicationState;
 
     // Element types supported by this replication set.
     private StringSet supportedElementTypes;
@@ -172,15 +169,6 @@ public class RemoteReplicationSet extends DiscoveredDataObject {
         setChanged("replicationModesNoGroupConsistency");
     }
 
-//    @Name("replicationMode")
-//    public String getReplicationMode() {
-//        return replicationMode;
-//    }
-//
-//    public void setReplicationMode(String replicationMode) {
-//        this.replicationMode = replicationMode;
-//        setChanged("replicationMode");
-//    }
 
     @Name("replicationState")
     public String getReplicationState() {

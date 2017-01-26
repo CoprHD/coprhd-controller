@@ -42,10 +42,6 @@ public class RemoteReplicationGroup extends DiscoveredDataObject {
     // replication mode of this group
     private String replicationMode;
 
-    // Element types for this replication group for which device supports replication link operations.
-    // Can be group only, pair only or both types.
-    // not needed
-    //private StringSet supportedReplicationLinkGranularity;
 
     // replication state of this group
     private String replicationState;

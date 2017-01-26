@@ -692,9 +692,13 @@ test_move_clustered_host_to_another_cluster() {
         runcmd initiator create ${host2} FC ${init4} --node ${node4}
     
         # Export the volumes to the fake clusters    
-        runcmd export_group create $PROJECT ${exportgroup1} $NH --type Cluster --volspec ${PROJECT}/${volume1} --clusters ${TENANT}/${cluster1}
         runcmd export_group create $PROJECT ${exportgroup2} $NH --type Cluster --volspec ${PROJECT}/${volume2} --clusters ${TENANT}/${cluster2}
-        
+       
+        # Snap DB
+        snap_db 2 "${column_family[@]}"
+
+        runcmd export_group create $PROJECT ${exportgroup1} $NH --type Cluster --volspec ${PROJECT}/${volume1} --clusters ${TENANT}/${cluster1}
+ 
         # Double check the export groups to ensure the initiators are present
         foundinit1=`export_group show $PROJECT/${exportgroup1} | grep ${init1}`
         foundinit2=`export_group show $PROJECT/${exportgroup1} | grep ${init2}`
@@ -725,6 +729,12 @@ test_move_clustered_host_to_another_cluster() {
             set_artificial_failure ${failure}
             fail hosts update $host1 --cluster ${TENANT}/${cluster2}
             
+            # Snap DB
+            snap_db 3 "${column_family[@]}"
+
+            # Validate DB
+            validate_db 2 3 "${column_family[@]}"
+
             # Verify injected failures were hit
             verify_failures ${failure}
             # Let the async jobs calm down
@@ -830,10 +840,10 @@ test_move_clustered_host_to_another_cluster() {
         runcmd export_group delete $PROJECT/${exportgroup2}
         
         # Snap DB
-        snap_db 2 "${column_family[@]}"
+        snap_db 4 "${column_family[@]}"
     
         # Validate DB
-        validate_db 1 2 "${column_family[@]}"
+        validate_db 1 4 "${column_family[@]}"
 
         # Report results
         report_results ${test_name} ${failure}

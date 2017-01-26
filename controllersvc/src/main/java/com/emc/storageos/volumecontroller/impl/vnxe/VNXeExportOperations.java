@@ -216,6 +216,7 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
             List<Initiator> initiatorList, TaskCompleter taskCompleter)
             throws DeviceControllerException {
         _logger.info("{} deleteExportMask START...", storage.getSerialNumber());
+        boolean removeSharedInitiator = false;
 
         try {
             _logger.info("Export mask id: {}", exportMaskUri);
@@ -226,7 +227,10 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
                 _logger.info("deleteExportMask: assignments: {}", Joiner.on(',').join(targetURIList));
             }
             if (initiatorList != null) {
-                _logger.info("deleteExportMask: initiators: {}", Joiner.on(',').join(initiatorList));
+                if (!initiatorList.isEmpty()) {
+                    removeSharedInitiator = true;
+                    _logger.info("deleteExportMask: initiators: {}", Joiner.on(',').join(initiatorList));
+                }
             }
 
             List<URI> volumesToBeUnmapped = new ArrayList<URI>();
@@ -313,7 +317,7 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
 
             for (Initiator initiator : initiatorList) {
                 _logger.info("Processing initiator {}", initiator.getLabel());
-                if (hostId != null && lunIds.isEmpty() && !ExportUtils.isInitiatorSharedByMasks(_dbClient, exportMask, initiator.getId())) {
+                if (hostId != null && lunIds.isEmpty() && (removeSharedInitiator || !ExportUtils.isInitiatorSharedByMasks(_dbClient, exportMask, initiator.getId()))) {
                     // all ViPR known LUNs has been removed, and there shouldn't any unknown LUN since the volume validation passed
                     String initiatorId = initiator.getInitiatorPort();
                     if (Protocol.FC.name().equals(initiator.getProtocol())) {
@@ -770,7 +774,7 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
             List<String> initiatorIdList = new ArrayList<>();
             for (Initiator initiator : initiatorToBeRemoved) {
                 _logger.info("Processing initiator {}", initiator.getLabel());
-                if (vnxeHostId != null && !ExportUtils.isInitiatorSharedByMasks(_dbClient, mask, initiator.getId())) {
+                if (vnxeHostId != null) {
                     String initiatorId = initiator.getInitiatorPort();
                     if (Protocol.FC.name().equals(initiator.getProtocol())) {
                         initiatorId = initiator.getInitiatorNode() + ":" + initiatorId;

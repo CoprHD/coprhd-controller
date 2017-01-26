@@ -3377,6 +3377,13 @@ public class ExportGroupService extends TaskResourceService {
             ExportPathsAdjustmentPreviewRestRep response, StringSetMap existingPaths,
             Boolean useExistingPaths) {
         Set<URI> affectedGroupURIs = new HashSet<URI>();
+        
+        List<ExportMask> exportMasks = ExportMaskUtils.getExportMasks(_dbClient,  exportGroup, system.getId());
+        if (exportMasks.isEmpty()) {
+            throw APIException.badRequests.exportPathAdjustmentSystemExportGroupNotMatch(exportGroup.getLabel(), 
+            			system.getNativeGuid());
+        }
+        
         // Make a map of Export Group initiator URI to Initiator Object
         Map<URI, Initiator> initiatorMap = new HashMap<URI, Initiator>();
         List<Initiator> initiatorsToRemove = new ArrayList<Initiator>();
@@ -3392,7 +3399,6 @@ public class ExportGroupService extends TaskResourceService {
         // Remove any initiators not retained because of hosts specification
         initiators.removeAll(initiatorsToRemove);
         // Find the Export Masks for this Storage System 
-        List<ExportMask> exportMasks = ExportMaskUtils.getExportMasks(_dbClient,  exportGroup, system.getId());
         for (ExportMask exportMask : exportMasks) {
             // For VPLEX, must verify the Export Mask is in the appropriate Varray
             List<URI> portsNotInVarray = ExportMaskUtils.getExportMaskStoragePortsNotInVarray(_dbClient, exportMask, varray);

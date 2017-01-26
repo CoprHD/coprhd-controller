@@ -29,6 +29,7 @@ import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.util.CommonTransformerFunctions;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
+import com.emc.storageos.util.ExportUtils;
 import com.emc.storageos.volumecontroller.BlockStorageDevice;
 import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.ControllerServiceImpl;
@@ -201,6 +202,8 @@ public class VNXeMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
 
             taskCompleter = new ExportOrchestrationTask(exportGroupURI, token);
 
+            checkForConsistentLunViolation(storage, exportGroup, initiatorURIs);
+
             Map<URI, Integer> volumes = selectExportMaskVolumes(exportGroup, storageURI);
             _log.info("Volumes  : {}", Joiner.on(",").join(volumes.keySet()));
             if (exportMasks != null && !exportMasks.isEmpty()) {
@@ -365,8 +368,7 @@ public class VNXeMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                 List<Initiator> inits = exportMasksMap.get(exportMask);
 
                 if (exportMask.getInitiators().size() == inits.size() &&
-                        exportMask.getVolumes() != null &&
-                        exportMask.getStoragePorts() != null) {
+                        exportMask.getVolumes() != null) {
                     _log.info(String.format("deleting the exportMask: %s",
                             exportMask.getId().toString()));
                     deleteStep = generateExportMaskDeleteWorkflow(workflow, deleteStep, storage,
@@ -426,6 +428,10 @@ public class VNXeMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
 
                 List<URI> volumeURIs = new ArrayList<URI>();
                 volumeURIs.addAll(volumeMap.keySet());
+
+                Collection<URI> initiatorURIs = Collections2.transform(exportGroup.getInitiators(),
+                        CommonTransformerFunctions.FCTN_STRING_TO_URI);
+                findAndUpdateFreeHLUsForClusterExport(storage, exportGroup, new ArrayList<URI>(initiatorURIs), volumeMap);
 
                 String zoningStep = generateZoningAddVolumesWorkflow(workflow, null,
                         exportGroup, exportMasks, volumeURIs);
@@ -560,6 +566,12 @@ public class VNXeMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
         }
     }
 
+    @Override
+    public void findAndUpdateFreeHLUsForClusterExport(StorageSystem storage, ExportGroup exportGroup, List<URI> initiatorURIs,
+            Map<URI, Integer> volumeMap) {
+        findUpdateFreeHLUsForClusterExport(storage, exportGroup, initiatorURIs, volumeMap);
+    }
+
     /**
      * Routine contains logic to create an export mask on the array
      * 
@@ -599,6 +611,8 @@ public class VNXeMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
         // existing exports for a given host.
         queryHostInitiatorsAndAddToList(portNames, portNameToInitiatorURI,
                 initiatorURIs, hostURIs);
+
+        findAndUpdateFreeHLUsForClusterExport(storage, exportGroup, initiatorURIs, volumeMap);
 
         // Bogus URI for those initiators without a host object, helps maintain a good map.
         // We want to put bunch up the non-host initiators together.

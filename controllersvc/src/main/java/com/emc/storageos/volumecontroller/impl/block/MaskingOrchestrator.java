@@ -101,6 +101,26 @@ public interface MaskingOrchestrator {
             String token) throws Exception;
 
     /**
+     * Finds the next available HLU for cluster export by querying the cluster's hosts'
+     * used HLUs and updates the volumeHLU map with free HLUs.
+     * 
+     * If it is a host export where the host belongs to a cluster, then the exclusive export
+     * to this host should not be assigned with any of cluster view's HLU. ViPR does not need to
+     * take care of it as Array does that.
+     * 
+     * Each Masking Orchestrator should implement it and it is Orchestrator class' responsibility
+     * to call it during export operation (create export, add volume to export).
+     *
+     * @param storage the storage
+     * @param exportGroup the export group
+     * @param initiatorURIs the initiator uris
+     * @param volumeMap the volume URI to HLU map
+     * @throws Exception the exception
+     */
+    public void findAndUpdateFreeHLUsForClusterExport(StorageSystem storage, ExportGroup exportGroup,
+            List<URI> initiatorURIs, Map<URI, Integer> volumeMap) throws Exception;
+
+    /**
      * Update the Path Parameters for the volume specified in any of the Export Mask(s)
      * in the Export Group specified.
      * 

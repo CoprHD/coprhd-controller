@@ -1363,6 +1363,10 @@ angular.module("portalApp").controller("SystemLogsCtrl", function($scope, $http,
     function fetchError(data, status, headers, config) {
         $scope.loading = false;
         $scope.error = data;
+        // For log collecting error, show warning instead of error
+        if ($scope.error.code === 30070) {
+            $("#log_info_box").removeClass("alert-danger").addClass("alert-warning");
+        }
     }
 });
 

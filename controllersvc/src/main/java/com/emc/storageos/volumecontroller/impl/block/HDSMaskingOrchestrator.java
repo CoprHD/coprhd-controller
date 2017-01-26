@@ -661,6 +661,13 @@ public class HDSMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                 rollback, taskCompleter);
     }
 
+    @Override
+    public void findAndUpdateFreeHLUsForClusterExport(StorageSystem storage, ExportGroup exportGroup, List<URI> initiatorURIs,
+            Map<URI, Integer> volumeMap) throws Exception {
+        // TODO Auto-generated method stub
+
+    }
+
     /**
      * Generates workflow step to Mark ExportMask inActive.
      * 

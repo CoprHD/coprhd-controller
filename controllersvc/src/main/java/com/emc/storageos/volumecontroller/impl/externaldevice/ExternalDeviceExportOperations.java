@@ -15,6 +15,7 @@ import java.util.Map;
 import java.util.Set;
 
 import com.emc.storageos.db.client.model.VirtualArray;
+
 import org.apache.commons.lang.mutable.MutableBoolean;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -634,6 +635,12 @@ public class ExternalDeviceExportOperations implements ExportMaskOperations {
     public Map<String, Set<URI>> findExportMasks(StorageSystem storage,
                                                  List<String> initiatorNames, boolean mustHaveAllPorts) throws DeviceControllerException {
         // not supported. There are no common masking concepts. So, return null.
+        return null;
+    }
+
+    @Override
+    public Set<Integer> findHLUsForInitiators(StorageSystem storage, List<String> initiatorNames, boolean mustHaveAllPorts) {
+        // TODO Auto-generated method stub
         return null;
     }
 

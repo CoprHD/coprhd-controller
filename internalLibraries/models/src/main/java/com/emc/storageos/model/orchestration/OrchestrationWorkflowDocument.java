@@ -71,7 +71,6 @@ public class OrchestrationWorkflowDocument {
             this.inputGroup = inputGroup;
         }
 
-        @XmlElementWrapper(name = "inputGroup")
         @XmlElement(name="input")
         public List<Input> getInputGroup() {
             return inputGroup;

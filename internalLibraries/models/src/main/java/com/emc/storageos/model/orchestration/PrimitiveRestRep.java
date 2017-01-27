@@ -117,7 +117,6 @@ public class PrimitiveRestRep extends DataObjectRestRep {
             this.inputGroup = inputGroup;
         }
 
-        @XmlElementWrapper(name = "inputGroup")
         @XmlElement(name="input")
         public List<InputParameterRestRep> getInputGroup() {
             return inputGroup;

@@ -28,6 +28,7 @@
                 <div id="uid3" class="panel-collapse in collapse" style="height: auto;">
                     <div class="panel-body sidenav-panel">
                         <table>
+                            <tbody>
                             <tr>
                                 <td><strong>name</strong></td>
                                 <td><strong>label</strong></td>
@@ -38,16 +39,19 @@
                                 <td><strong>locked</strong></td>
                                 <td><strong>group</strong></td>
                             </tr>
-                            <tr ng-repeat="input in stepData.input">
-                                <td>{{ input.name }}</td>
-                                <td><input ng-model="input.friendlyName" /></td>
-                                <td><input ng-model="input.type" /></td>
-                                <td><input ng-model="input.required" /></td>
-                                <td><input ng-model="input.default_value" /></td>
-                                <td><input ng-model="input.value" /></td>
-                                <td><input ng-model="input.locked" /></td>
-                                <td><input ng-model="input.group" /></td>
-                            </tr>
+                            </tbody>
+                            <tbody ng-repeat="inputParam in stepData.inputGroups.input_params">
+                                <tr ng-repeat="input in inputParam">
+                                    <td>{{ input.name }}</td>
+                                    <td><input ng-model="input.friendlyName" /></td>
+                                    <td><input ng-model="input.type" /></td>
+                                    <td><input ng-model="input.required" /></td>
+                                    <td><input ng-model="input.default_value" /></td>
+                                    <td><input ng-model="input.value" /></td>
+                                    <td><input ng-model="input.locked" /></td>
+                                    <td><input ng-model="input.group" /></td>
+                                </tr>
+                            </tbody>
                         </table>
 
                     </div>

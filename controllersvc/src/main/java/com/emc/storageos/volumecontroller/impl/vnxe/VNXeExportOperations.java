@@ -17,6 +17,8 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
+import com.emc.storageos.util.ExportUtils;
+import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportMaskDeleteCompleter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -37,7 +39,6 @@ import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.exceptions.DeviceControllerErrors;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
-import com.emc.storageos.util.ExportUtils;
 import com.emc.storageos.util.InvokeTestFailure;
 import com.emc.storageos.vnxe.VNXeApiClient;
 import com.emc.storageos.vnxe.VNXeException;
@@ -300,6 +301,9 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
                         }
                     }
                 }
+                // Adding the volume to the completer helps remove it from the ExportGroup, if no other masks are
+                // using it.
+                ((ExportMaskDeleteCompleter) taskCompleter).addVolume(volUri);
                 // update the exportMask object
                 exportMask.removeVolume(volUri);
             }

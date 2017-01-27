@@ -6,7 +6,8 @@
 package com.emc.storageos.volumecontroller.impl.block.taskcompleter;
 
 import java.net.URI;
-
+import java.util.Collection;
+import java.util.HashSet;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -20,17 +21,37 @@ import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.util.ExportUtils;
 
+import static com.emc.storageos.util.ExportUtils.removeVolumesFromExportGroup;
+
 @SuppressWarnings("serial")
 public class ExportMaskDeleteCompleter extends ExportTaskCompleter {
     private static final Logger _log = LoggerFactory.getLogger(ExportMaskDeleteCompleter.class);
+
+    private transient Collection<URI> volumes;
 
     public ExportMaskDeleteCompleter(URI egUri, URI emUri, String task) {
         super(ExportGroup.class, egUri, emUri, task);
     }
 
+    public void addVolume(URI volume) {
+        getVolumes().add(volume);
+    }
+
+    public void setVolumes(Collection<URI> volumes) {
+        this.volumes = volumes;
+    }
+
+    public Collection<URI> getVolumes() {
+        if (volumes == null) {
+            volumes = new HashSet<>();
+        }
+        return volumes;
+    }
+
     @Override
     protected void complete(DbClient dbClient, Operation.Status status, ServiceCoded coded) throws DeviceControllerException {
         try {
+            ExportGroup exportGroup = dbClient.queryObject(ExportGroup.class, getId());
             ExportMask exportMask = (getMask() != null) ?
                     dbClient.queryObject(ExportMask.class, getMask()) : null;
             if ((status == Operation.Status.error) && (isRollingBack()) && (coded instanceof ServiceError)) {
@@ -49,6 +70,9 @@ public class ExportMaskDeleteCompleter extends ExportTaskCompleter {
                 ExportUtils.cleanupAssociatedMaskResources(dbClient, exportMask);
                 dbClient.markForDeletion(exportMask);
             }
+
+            removeVolumesFromExportGroup(dbClient, exportGroup, volumes);
+
             _log.info(String.format("Done ExportMaskDelete - EG: %s, OpId: %s, status: %s",
                     getId().toString(), getOpId(), status.name()));
         } catch (Exception e) {

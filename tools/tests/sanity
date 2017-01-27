@@ -1545,8 +1545,8 @@ xtremio_simulator_setup()
     
     run syssvc $CONFIG_FILE $BOURNE_IPADDR set_prop controller_discovery_refresh_interval 5
  
-    storageprovider create xtremio3x $XIO_SIMULATOR_IP 4430 root root xtremio 
-    storageprovider create xtremio4x $XIO_SIMULATOR_IP 4431 root root xtremio
+    storageprovider create xtremio3x $XIO_SIMULATOR_IP 4431 root root xtremio
+    storageprovider create xtremio4x $XIO_SIMULATOR_IP 4430 root root xtremio
     run networksystem create $FABRIC_SIMULATOR  mds --devip $SIMULATOR_CISCO_MDS --devport 22 --username $RP_FABRIC_SIM_USER --password $RP_FABRIC_SIM_PW
     
     storagedevice discover_all

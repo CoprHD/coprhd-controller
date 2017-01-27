@@ -1909,27 +1909,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
             createCompleter.error(_dbClient, serviceError);
         }
     }
-
-    /**
-     * Filter out any initiators that do not have storage port assignments.
-     *
-     * @param initiators
-     * @param exportMask
-     * @return
-     */
-    public List<URI> filterInitiators(List<URI> initiators, ExportMask exportMask) {
-        // Only include initiators that were assigned ports in the Storage View.
-        List<URI> storageViewInitiators = new ArrayList<URI>();
-        for (URI initiator : initiators) {
-            if (exportMask.getZoningMap() != null
-                    && exportMask.getZoningMap().containsKey(initiator.toString())
-                    && !exportMask.getZoningMap().get(initiator.toString()).isEmpty()) {
-                storageViewInitiators.add(initiator);
-            }
-        }
-        return storageViewInitiators;
-    }
-
+    
     /**
      * Method to assemble the find or create VPLEX storage views (export masks) workflow for the given
      * ExportGroup, Initiators, and the block object Map.
@@ -2686,14 +2666,6 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
         List<URI> inits = new ArrayList<URI>();
         for (String init : exportMask.getInitiators()) {
             inits.add(URI.create(init));
-        }
-
-        // Filter the initiators, so that any initiators not assigned a port will
-        // not be put in the StorageView. Otherwise StorageView creation will fail.
-        // Only if zoneAllInitiators is not true which will used by RP Vplex, if this
-        // flag is true all initiators will be assigned ports.
-        if (!exportGroup.getZoneAllInitiators()) {
-            inits = filterInitiators(inits, exportMask);
         }
 
         // Make the targets for this host.
@@ -9496,13 +9468,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
             // If we include any inititators that are not assigned and zoned to ports,
             // creation or update of the Storage View will fail because we won't be
             // able to register those initiators.
-            List<URI> storageViewInitiators;
-            if (exportGroup.getZoneAllInitiators()) {
-                // For RP Vplex all initiators will be zoned so no need to filter.
-                storageViewInitiators = newInitiators;
-            } else {
-                storageViewInitiators = filterInitiators(newInitiators, exportMask);
-            }
+            List<URI> storageViewInitiators = newInitiators;
 
             // Create a Step to add the SAN Zone
             String zoningStepId = workflow.createStepId();

@@ -110,6 +110,7 @@ verifynozones() {
 	cat .zones.out
         fail "left-over zones"
     fi
+    echo "Verified no remaining zones"
 }
 
 source subs/discovery
@@ -144,11 +145,13 @@ volnameB=${volnameB:-"adjPathsB$hostseed"}
 volnameC=${volnameC:-"adjPathsC$hostseed"}
 volnameD=${volnameD:-"adjPathsD$hostseed"}
 volnameE=${volnameE:-"adjPathsE$hostseed"}
+volnameF=${volnameF:-"adjPathsF$hostseed"}
+volnameG=${volnameG:-"adjPathsG$hostseed"}
 
 source subs/volume
 echo SITE1 $SITE1 
-volume_create $volnameA $SITE1 ${SITE1}_Local ""
 
+volume_create $volnameA $SITE1 ${SITE1}_Local ""
 # Test single host using VPLEX local in SITE1; note only VSAN11 talks to cluster1
 vplexSingleHost() {
     echoit "Testing VPLEX local single host"
@@ -161,7 +164,6 @@ vplexSingleHost() {
     run export_group delete $project/eg1
     verifynozones
 }
-#vplexSingleHost
 
 # Test single host using VMAX in SITE2; note only VSAN12 in SITE2.
 source subs/arrayVpools
@@ -180,7 +182,6 @@ vmaxSingleHost() {
     run export_group delete $project/eg2
     verifynozones
 }
-#vmaxSingleHost
 
 vplexClus1() {
     echoit "Testing VPLEX cluster-1 export to cluster"
@@ -192,7 +193,67 @@ vplexClus1() {
     run export_group delete $project/eg3
     verifynozones
 }
-#vplexClus1
+
+volume_create $volnameC $SITE1 ${SITE1}_Local ""
+volume_create $volnameD $SITE1 ${SITE1}_Local ""
+volume_create $volnameG $SITE1 ${SITE1}_Local ""
+vplexHostClust1() {
+   echoit "Testing VPLEX Cluster and Host export"
+   run export_group create $project eg4 $SITE1 --type Host --hosts h1$hostseed --volspec $project/$volnameD --maxpath 1 --pathsperinit 1
+   ./egpaths eg4
+   run export_group create $project eg5 $SITE1 --type Cluster --clusters ''/$aclusterName --volspec $project/$volnameC 
+   ./egpaths eg5
+   # adjust host to two paths
+   pathadj $project/eg4 $vplex --maxpath 2 --pathsperinit 1 --go 1
+   egpaths eg4
+   run export_group update $project/eg4 --addVolspec $project/$volnameG
+   #adjust cluster to four paths
+   pathadj $project/eg5 $vplex --maxpath 4 --pathsperinit 2 --go 1
+   egpaths eg5
+   #adjust cluster to one path
+   pathadj $project/eg5 $vplex --maxpath 1 --pathsperinit 1 --go 1
+   egpaths eg5
+   # adjust host to four paths
+   pathadj $project/eg4 $vplex --maxpath 4 --go 1
+   egpaths eg4
+   # adjust cluster to four paths, but two ppi, keeping existing paths; this will make paths uneven on hosts
+   pathadj $project/eg5 $vplex --maxpath 4 --pathsperinit 2 --useexisting 1 --go 1
+   egpaths eg5
+   run export_group delete $project/eg4
+   run export_group delete $project/eg5
+   verifynozones
+}
+
+createArrayVpool vmax2 vmax $SITE2
+volume_create $volnameB $SITE2 vmax2 ""
+ssysB=$(getVolumeSystem $volnameB)
+volume_create $volnameF $SITE2 vmax2 ""
+ssysF=$(getVolumeSystem $volnameF)
+vmaxHostClust1() {
+   echoit "Testing VMAX Cluster and Host export"
+   run export_group create $project eg4 $SITE2 --type Host --hosts h1$hostseed --volspec $project/$volnameB --maxpath 1 --pathsperinit 1
+   ./egpaths eg4
+   run export_group create $project eg5 $SITE2 --type Cluster --clusters ''/$aclusterName --volspec $project/$volnameF --maxpath 4
+   ./egpaths eg5
+   # adjust host to two paths
+   pathadj $project/eg4 $ssysB --maxpath 2 --pathsperinit 1 --go 1
+   egpaths eg4
+   #adjust cluster to four paths
+   pathadj $project/eg5 $ssysF --maxpath 4 --pathsperinit 2 --go 1
+   egpaths eg5
+   #adjust cluster to one path
+   pathadj $project/eg5 $ssysF --maxpath 1 --pathsperinit 1 --go 1
+   egpaths eg5
+   # adjust host to four paths
+   pathadj $project/eg4 $ssysB --maxpath 4 --go 1
+   egpaths eg4
+   # adjust cluster to four paths, but two ppi, keeping existing paths; this will make paths uneven on hosts
+   pathadj $project/eg5 $ssysF --maxpath 4 --pathsperinit 2 --useexisting 1 --go 1
+   egpaths eg5
+   run export_group delete $project/eg4
+   run export_group delete $project/eg5
+   verifynozones
+}
 
 volume_create $volnameE $SITE1 ${SITE1}_distributed ""
 vplexDistributedCrossConnect() {
@@ -206,7 +267,6 @@ vplexDistributedCrossConnect() {
     run export_group delete $project/eg5
     verifynozones
 }
-#vplexDistributedCrossConnect
 
 vplexDistributedIncreasingPaths() {
     echoit "Testing VPLEX distributed increasing paths"
@@ -231,36 +291,15 @@ vplexDistributedIncreasingPaths() {
     export_group delete ap/eg6
     verifynozones
 }
-vplexDistributedIncreasingPaths
 
-volume_create $volnameC $SITE1 ${SITE1}_Local ""
-volume_create $volnameD $SITE1 ${SITE1}_Local ""
-vplexHostClust1() {
-   echoit "Testing Cluster and Host export"
-   run export_group create $project eg4 $SITE1 --type Host --hosts h1$hostseed --volspec $project/$volnameD --maxpath 4
-   ./egpaths eg4
-   run export_group create $project eg5 $SITE1 --type Cluster --clusters ''/$aclusterName --volspec $project/$volnameC --maxpath 4
-   ./egpaths eg5
-   # adjust host to two paths
-   pathadj $project/eg4 $vplex --maxpath 2 --pathsperinit 1 --go 1
-   egpaths eg4
-   #adjust cluster to four paths
-   pathadj $project/eg5 $vplex --maxpath 4 --pathsperinit 2 --go 1
-   egpaths eg5
-   #adjust cluster to one path
-   pathadj $project/eg5 $vplex --maxpath 1 --pathsperinit 1 --go 1
-   egpaths eg5
-   # adjust host to four paths
-   pathadj $project/eg4 $vplex --maxpath 4 --go 1
-   egpaths eg4
-   # adjust cluster to four paths, but two ppi, keeping existing paths; this will make paths uneven on hosts
-   pathadj $project/eg5 $vplex --maxpath 4 --pathsperinit 2 --useexisting 1 --go 1
-   egpaths eg5
-   run export_group delete $project/eg4
-   run export_group delete $project/eg5
-   verifynozones
-}
-#vplexHostClust1
+# Tests to be run are listed here
+vplexSingleHost
+vmaxSingleHost
+vplexClus1
+vplexHostClust1
+vmaxHostClust1
+#vplexDistributedCrossConnect
+#vplexDistributedIncreasingPaths
 
 echoit "adjustPaths passed"
 date

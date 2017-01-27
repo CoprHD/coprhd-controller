@@ -836,7 +836,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
             ids.add(volIdList.get(i));
         }
 
-        List<VolumeRestRep> volumes = client.blockVolumes().getByIds(ids);
+        List<VolumeRestRep> volumes = client.blockVolumes().getByIds(ids, null);
         log.info("Got volumens [{}]", volumes.size());
         return volumes;
     }
@@ -850,7 +850,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
             ids.add(ref.getId());
         }
 
-        List<BlockSnapshotRestRep> snapshots = client.blockSnapshots().getByIds(ids);
+        List<BlockSnapshotRestRep> snapshots = client.blockSnapshots().getByIds(ids, null);
         log.info("Got snapshots: [{}]", snapshots.size());
         return snapshots;
     }

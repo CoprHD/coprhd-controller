@@ -38,6 +38,7 @@ import static com.emc.storageos.model.ResourceTypeEnum.COMPUTE_IMAGESERVER;
 import static com.emc.storageos.model.ResourceTypeEnum.COMPUTE_SYSTEM;
 import static com.emc.storageos.model.ResourceTypeEnum.COMPUTE_VPOOL;
 import static com.emc.storageos.model.ResourceTypeEnum.CUSTOM_CONFIG;
+import static com.emc.storageos.model.ResourceTypeEnum.CUSTOM_SERVICE_PRIMITIVE;
 import static com.emc.storageos.model.ResourceTypeEnum.DATA_STORE;
 import static com.emc.storageos.model.ResourceTypeEnum.EXECUTION_WINDOW;
 import static com.emc.storageos.model.ResourceTypeEnum.EXPORT_GROUP;
@@ -164,6 +165,7 @@ import com.emc.storageos.db.client.model.uimodels.CustomServiceScriptResource;
 import com.emc.storageos.db.client.model.uimodels.ExecutionWindow;
 import com.emc.storageos.db.client.model.uimodels.OrchestrationWorkflow;
 import com.emc.storageos.db.client.model.uimodels.Order;
+import com.emc.storageos.db.client.model.uimodels.UserPrimitive;
 import com.emc.storageos.db.client.model.uimodels.WFDirectory;
 import com.emc.storageos.model.ResourceTypeEnum;
 
@@ -249,6 +251,7 @@ public class ResourceTypeMapping {
         classMapping.put(SCRIPT_PRIMITIVE, CustomServiceScriptPrimitive.class);
         classMapping.put(SCRIPT_RESOURCE, CustomServiceScriptResource.class);
         classMapping.put(WF_DIRECTORY, WFDirectory.class);
+        classMapping.put(CUSTOM_SERVICE_PRIMITIVE, UserPrimitive.class);
 
         for (Map.Entry<ResourceTypeEnum, Class<? extends DataObject>> entry : classMapping
                 .entrySet()) {

@@ -20,6 +20,7 @@ import java.net.URI;
 import java.util.List;
 
 import com.emc.storageos.db.client.model.uimodels.Ansible;
+import com.emc.storageos.db.client.model.uimodels.CustomServiceScriptPrimitive;
 import com.emc.storageos.db.client.model.uimodels.PrimitiveResource;
 import com.emc.storageos.db.client.model.uimodels.UserPrimitive;
 
@@ -31,5 +32,6 @@ public interface PrimitiveManager {
     public UserPrimitive findById(final URI id);
     public PrimitiveResource findResource(final URI id);
     public List<Ansible> findAllAnsible();
+    public List<CustomServiceScriptPrimitive> findAllScriptPrimitives();
 
 }

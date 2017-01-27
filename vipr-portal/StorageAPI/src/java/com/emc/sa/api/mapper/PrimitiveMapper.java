@@ -40,13 +40,13 @@ import com.emc.storageos.model.orchestration.PrimitiveRestRep;
 import com.emc.storageos.primitives.Parameter.ParameterType;
 import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorException;
 
-public final class PrimitiveMapper {
+public final class  PrimitiveMapper {
     public final static PrimitiveMapper instance = new PrimitiveMapper();
 
     private PrimitiveMapper() {
     };
 
-    public PrimitiveMapper getInstance() {
+    public static PrimitiveMapper getInstance() {
         return instance;
     }
     

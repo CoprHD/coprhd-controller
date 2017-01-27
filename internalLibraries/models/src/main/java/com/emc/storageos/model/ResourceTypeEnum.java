@@ -104,8 +104,9 @@ public enum ResourceTypeEnum {
     ANSIBLE_PACKAGE("ansible_package", "/primitives/resource/ansible"),
     SCRIPT_PRIMITIVE("script_primitive","/primitives"),
     SCRIPT_RESOURCE("script_resource", "/primitives/resource/script"),
-    WF_DIRECTORY("wf_directory","/workflow/directory");
-
+    WF_DIRECTORY("wf_directory","/workflow/directory"),
+    CUSTOM_SERVICE_PRIMITIVE("primitive", "/primitives");
+    
     private final String type;
     private final String service;
     

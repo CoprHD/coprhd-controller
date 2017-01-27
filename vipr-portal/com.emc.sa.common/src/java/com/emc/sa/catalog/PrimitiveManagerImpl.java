@@ -86,4 +86,13 @@ public class PrimitiveManagerImpl implements PrimitiveManager {
         return ansiblePrimitives;
     }
 
+    @Override
+    public List<CustomServiceScriptPrimitive> findAllScriptPrimitives() {
+        final List<URI> ids = client.findByType(CustomServiceScriptPrimitive.class);
+        if( null == ids) {
+            return null;
+        }
+        List<CustomServiceScriptPrimitive> scriptPrimitives = client.findByIds(CustomServiceScriptPrimitive.class, ids);
+        return scriptPrimitives;
+    }
 }

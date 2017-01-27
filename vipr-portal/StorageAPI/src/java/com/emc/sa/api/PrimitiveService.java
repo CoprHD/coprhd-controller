@@ -23,6 +23,7 @@ import java.io.InputStream;
 import java.net.URI;
 import java.nio.file.FileSystems;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashMap;
@@ -55,7 +56,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import com.emc.sa.api.mapper.PrimitiveMapper;
 import com.emc.sa.catalog.PrimitiveManager;
 import com.emc.storageos.api.service.impl.resource.ArgValidator;
+import com.emc.storageos.api.service.impl.response.BulkList;
 import com.emc.storageos.db.client.URIUtil;
+import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.uimodels.Ansible;
 import com.emc.storageos.db.client.model.uimodels.AnsiblePackage;
@@ -63,8 +66,11 @@ import com.emc.storageos.db.client.model.uimodels.CustomServiceScriptPrimitive;
 import com.emc.storageos.db.client.model.uimodels.CustomServiceScriptResource;
 import com.emc.storageos.db.client.model.uimodels.PrimitiveResource;
 import com.emc.storageos.db.client.model.uimodels.UserPrimitive;
+import com.emc.storageos.model.BulkIdParam;
+import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.storageos.model.orchestration.InputParameterRestRep;
 import com.emc.storageos.model.orchestration.OutputParameterRestRep;
+import com.emc.storageos.model.orchestration.PrimitiveBulkRestRep;
 import com.emc.storageos.model.orchestration.PrimitiveCreateParam;
 import com.emc.storageos.model.orchestration.PrimitiveList;
 import com.emc.storageos.model.orchestration.PrimitiveResourceRestRep;
@@ -85,15 +91,21 @@ import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.BadRequestException;
 import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorException;
 import com.emc.storageos.svcs.errorhandling.resources.NotFoundException;
+import com.google.common.base.Function;
+import com.google.common.base.Functions;
+import com.google.common.base.Predicates;
+import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMap.Builder;
+import com.google.common.collect.Multimaps;
 
 @Path("/primitives")
 @DefaultPermissions(readRoles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, readAcls = {
         ACL.OWN, ACL.ALL }, writeRoles = { Role.TENANT_ADMIN }, writeAcls = {
         ACL.OWN, ACL.ALL })
-public class PrimitiveService {
+public class PrimitiveService extends CatalogTaggedResourceService {
     @Autowired
     private PrimitiveManager primitiveManager;
 
@@ -103,22 +115,26 @@ public class PrimitiveService {
             .getLogger(PrimitiveManager.class);
 
     private enum PrimitiveType {
-        VIPR(ViPRPrimitive.class.getSimpleName()), 
-        ANSIBLE(Ansible.class.getSimpleName(), AnsiblePackage.class.getSimpleName()), 
-        SCRIPT(CustomServiceScriptPrimitive.class.getSimpleName(), CustomServiceScriptResource.class.getSimpleName());
+        VIPR(ViPRPrimitive.class.getSimpleName(), 0x02), 
+        ANSIBLE(Ansible.class.getSimpleName(), 0x04, AnsiblePackage.class.getSimpleName()), 
+        SCRIPT(CustomServiceScriptPrimitive.class.getSimpleName(), 0x08, CustomServiceScriptResource.class.getSimpleName());
 
+        public final static int ALL_MASK = 0xFF;
+        
         private final static EnumSet<PrimitiveType> DYNAMIC_TYPES = EnumSet.of(ANSIBLE, SCRIPT);
         private final static String NO_RESOURCE = "NONE";
         
         private final String type;
         private final String resourceType;
+        private final int mask;
 
-        private PrimitiveType(final String type) {
-            this(type, NO_RESOURCE);
+        private PrimitiveType(final String type, final int mask) {
+            this(type, mask, NO_RESOURCE);
         }
         
-        private PrimitiveType(final String type, final String resourceType) {
+        private PrimitiveType(final String type, final int mask, final String resourceType) {
             this.type = type;
+            this.mask = mask;
             this.resourceType = resourceType;
         }
 
@@ -163,6 +179,10 @@ public class PrimitiveService {
         public String resourceType() {
             return resourceType;
         }
+        
+        public int mask() {
+            return mask;
+        }
     }
 
     public PrimitiveService() {
@@ -200,15 +220,38 @@ public class PrimitiveService {
      */
     @GET
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    public PrimitiveList getPrimitives() {
+    public PrimitiveList getPrimitives(@QueryParam("type") final String type) {
+        final int mask;
+        if( null == type || type.equalsIgnoreCase("all")) {
+            mask = PrimitiveType.ALL_MASK;
+        } else {
+            ArgValidator.checkFieldValueFromEnum(type.toUpperCase(), "type", PrimitiveType.class);
+            mask = PrimitiveType.get(type).mask();
+        }
         final List<PrimitiveRestRep> list = new ArrayList<PrimitiveRestRep>();
-        list.addAll(PRIMITIVE_LIST.getPrimitives());
-        List<Ansible> userPrimitives = primitiveManager.findAllAnsible();
-        if(null != userPrimitives) {
-            for(final Ansible primitive : userPrimitives ) {
-                list.add(PrimitiveMapper.map(primitive));
+        
+        if( (PrimitiveType.VIPR.mask() & mask) != 0) {
+            list.addAll(PRIMITIVE_LIST.getPrimitives());
+        } 
+        
+        if( (PrimitiveType.ANSIBLE.mask() & mask) != 0 ) {
+            final List<Ansible> ansiblePrimitives = primitiveManager.findAllAnsible();
+            if(null != ansiblePrimitives) {
+                for(final Ansible primitive : ansiblePrimitives ) {
+                    list.add(PrimitiveMapper.map(primitive));
+                }
             }
         }
+        
+        if( (PrimitiveType.SCRIPT.mask() & mask ) != 0) {
+            final List<CustomServiceScriptPrimitive> scriptPrimitives = primitiveManager.findAllScriptPrimitives();
+            if(null != scriptPrimitives) {
+                for(final CustomServiceScriptPrimitive primitive : scriptPrimitives ) {
+                    list.add(PrimitiveMapper.map(primitive));
+                }
+            }
+        }
+        
         final PrimitiveList primitiveList = new PrimitiveList();
         primitiveList.setPrimitives(list);
         return primitiveList;
@@ -395,6 +438,13 @@ public class PrimitiveService {
         response.setHeader("Content-Disposition", "attachment; filename="
                 + resource.getLabel() + resource.suffix());
         return Response.ok(bytes).build();
+    }
+    
+    @POST
+    @Path("/bulk")
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    public PrimitiveBulkRestRep bulkGetPrimitives(final BulkIdParam ids) {
+        return (PrimitiveBulkRestRep) super.getBulkResources(ids);
     }
 
     private Ansible makeAnsiblePrimitive(PrimitiveCreateParam param) {
@@ -615,5 +665,83 @@ public class PrimitiveService {
         }
         primitiveManager.save(update);
         return PrimitiveMapper.map(update);
+    }
+
+    @Override
+    protected DataObject queryResource(URI id) {
+        return primitiveManager.findById(id);
+    }
+
+    @Override
+    protected URI getTenantOwner(URI id) {
+        return null;
+    }
+
+    @Override
+    protected ResourceTypeEnum getResourceType() {
+        return ResourceTypeEnum.CUSTOM_SERVICE_PRIMITIVE;
+        
+    }
+    
+    @Override
+    public Class<UserPrimitive> getResourceClass() {
+        return UserPrimitive.class;
+    }
+    
+    @Override
+    public PrimitiveBulkRestRep queryBulkResourceReps(final List<URI> ids) {
+        return new PrimitiveBulkRestRep(getPrimitiveRestReps(ids));
+    }
+    
+    @Override
+    public PrimitiveBulkRestRep queryFilteredBulkResourceReps(final List<URI> ids) { 
+        //TODO do we need any filtering?
+        return new PrimitiveBulkRestRep(getPrimitiveRestReps(ids));
+    }
+    
+    private List<PrimitiveRestRep> getPrimitiveRestReps(final List<URI> ids) {
+        final ImmutableListMultimap<PrimitiveService.PrimitiveType, URI> idGroups = Multimaps.index(ids, new Function<URI, PrimitiveService.PrimitiveType>() {
+            @Override
+            public PrimitiveType apply(final URI id) {
+                PrimitiveType type = PrimitiveType.fromTypeName(URIUtil.getTypeName(id));
+                if( null == type) {
+                    throw BadRequestException.badRequests.invalidParameter("id", id.toString());
+                }
+                return type;
+            }
+        });
+        
+        final ImmutableList.Builder<PrimitiveRestRep> builder = ImmutableList.<PrimitiveRestRep>builder();
+        for( final Entry<PrimitiveType, Collection<URI>> entry : idGroups.asMap().entrySet()) {
+            switch(entry.getKey()) {
+            case VIPR:
+                builder.addAll(Collections2.transform(Collections2.filter(entry.getValue(), Predicates.in(PRIMITIVE_MAP.keySet())), Functions.forMap(PRIMITIVE_MAP)));
+                break;
+            case ANSIBLE:
+                
+                builder.addAll(BulkList.wrapping(_dbClient.queryIterativeObjects(Ansible.class, entry.getValue()), new Function<Ansible, PrimitiveRestRep>() {
+
+                    @Override
+                    public PrimitiveRestRep apply(final Ansible from) {
+                        return PrimitiveMapper.map(from);
+                    }
+                    
+                }).iterator());
+                break;
+            case SCRIPT:
+                builder.addAll(BulkList.wrapping(_dbClient.queryIterativeObjects(CustomServiceScriptPrimitive.class, entry.getValue()), new Function<CustomServiceScriptPrimitive, PrimitiveRestRep>() {
+
+                    @Override
+                    public PrimitiveRestRep apply(final CustomServiceScriptPrimitive from) {
+                        return PrimitiveMapper.map(from);
+                    }
+                    
+                }).iterator());
+                break;
+            default:
+                throw InternalServerErrorException.internalServerErrors.genericApisvcError("Unknown Primitive type", new RuntimeException("Primitive type "+ entry.getKey() + " not supported by bulk API"));  
+            }
+        }
+        return builder.build();
     }
 }

@@ -2910,11 +2910,15 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         return isiMatchedPolicy;
     }
 
-    private String getNameWithNoSpecialCharacters(String str) {
-        // Custom configuration using the below regular expression to generate name with no special symbols.
+    private String getNameWithNoSpecialCharacters(String str, FileDeviceInputOutput args) {
+        // Custom configuration using the below two level regular expressions to generate name with no special symbols.
         // Using the same here.
         String regex = STR_WITH_NO_SPECIAL_SYMBOLS;
-        return str.replaceAll(regex, "");
+        String path = str.replaceAll(regex, "");
+        if (path != null && !path.isEmpty()) {
+            path = args.getPathWithoutSpecialCharacters(path);
+        }
+        return path;
     }
 
     private String generatePathForPolicy(FilePolicy filePolicy, FileShare fileShare, FileDeviceInputOutput args) {
@@ -2922,11 +2926,11 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         FilePolicyApplyLevel applyLevel = FilePolicyApplyLevel.valueOf(filePolicy.getApplyAt());
         switch (applyLevel) {
             case vpool:
-                String vpool = getNameWithNoSpecialCharacters(args.getVPool().getLabel());
+                String vpool = getNameWithNoSpecialCharacters(args.getVPool().getLabel(), args);
                 policyPath = fileShare.getNativeId().split(vpool)[0] + vpool;
                 break;
             case project:
-                String project = getNameWithNoSpecialCharacters(args.getProject().getLabel());
+                String project = getNameWithNoSpecialCharacters(args.getProject().getLabel(), args);
                 policyPath = fileShare.getNativeId().split(project)[0] + project;
                 break;
             case file_system:

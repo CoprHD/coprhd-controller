@@ -9,6 +9,7 @@ import static com.emc.storageos.api.mapper.DbObjectMapper.mapDiscoveredDataObjec
 import static com.emc.storageos.api.mapper.DbObjectMapper.toLink;
 import static com.emc.storageos.api.mapper.DbObjectMapper.toNamedRelatedResource;
 import static com.emc.storageos.api.mapper.DbObjectMapper.toRelatedResource;
+import static com.emc.storageos.db.client.constraint.ContainmentConstraint.Factory.getVolumesByConsistencyGroup;
 
 import java.net.URI;
 import java.util.ArrayList;
@@ -32,7 +33,6 @@ import com.emc.storageos.db.client.model.BlockMirror;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.BlockSnapshotSession;
-import com.emc.storageos.db.client.model.CustomConfig;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.Migration;
 import com.emc.storageos.db.client.model.NamedURI;
@@ -76,11 +76,10 @@ import com.emc.storageos.model.block.tier.StorageTierRestRep;
 import com.emc.storageos.model.vpool.NamedRelatedVirtualPoolRep;
 import com.emc.storageos.model.vpool.VirtualPoolChangeOperationEnum;
 import com.emc.storageos.model.vpool.VirtualPoolChangeRep;
-import com.emc.storageos.util.VPlexSrdfUtil;
 import com.emc.storageos.protectioncontroller.impl.recoverpoint.RPHelper;
+import com.emc.storageos.util.VPlexSrdfUtil;
 import com.emc.storageos.util.VPlexUtil;
 import com.emc.storageos.volumecontroller.impl.smis.srdf.SRDFUtils;
-import com.emc.storageos.volumecontroller.impl.xtremio.prov.utils.XtremIOProvUtils;
 
 public class BlockMapper {
 
@@ -164,8 +163,8 @@ public class BlockMapper {
             // Get the SRDF underlying volume if present. That will be used to fill on the
             // SrdfRestRep below.
             if (projectSrdfCapable(dbClient, from.getProject().getURI(), projectSrdfCapableCache)) {
-            srdfVolume = VPlexSrdfUtil.getSrdfVolumeFromVplexVolume(dbClient, from);
-            srdfVolume = (srdfVolume != null ? srdfVolume : from);
+                srdfVolume = VPlexSrdfUtil.getSrdfVolumeFromVplexVolume(dbClient, from);
+                srdfVolume = (srdfVolume != null ? srdfVolume : from);
             }
             to.setAccessState(srdfVolume.getAccessState());
             to.setLinkStatus(srdfVolume.getLinkStatus());
@@ -246,9 +245,9 @@ public class BlockMapper {
             List<VirtualArrayRelatedResourceRep> targets = new ArrayList<VirtualArrayRelatedResourceRep>();
             if (srdfVolume != from) {
             	// VPLEX; translate targets to corresponding VPLEX volume. if any
-            for (String target : VPlexSrdfUtil.getSrdfOrVplexTargets(dbClient, srdfVolume)) {
-                targets.add(toTargetVolumeRelatedResource(ResourceTypeEnum.VOLUME, URI.create(target), getVarray(dbClient, target)));
-            }
+                for (String target : VPlexSrdfUtil.getSrdfOrVplexTargets(dbClient, srdfVolume)) {
+                    targets.add(toTargetVolumeRelatedResource(ResourceTypeEnum.VOLUME, URI.create(target), getVarray(dbClient, target)));
+                }
             } else {
             	// Non-VPLEX
             	for (String target : from.getSrdfTargets()) {
@@ -604,41 +603,39 @@ public class BlockMapper {
         if (from.getTypes() != null) {
             to.setTypes(from.getTypes());
         }
-
-        if (dbClient != null && volumes != null) {
-            Iterator<URI> volumeIterator = volumes.iterator();
+        
+        if (dbClient != null) {
+            List<RelatedResourceRep> volumesResourceRep = new ArrayList<RelatedResourceRep>();
+            final URIQueryResultList cgVolumesResults = new URIQueryResultList();
+            dbClient.queryByConstraint(getVolumesByConsistencyGroup(from.getId()), cgVolumesResults);
+            Iterator<Volume> volumeIterator = dbClient.queryIterativeObjects(Volume.class, cgVolumesResults);
+            boolean first = true;
             while(volumeIterator.hasNext()) {
                 // Get the first RP or SRDF volume. From this we are able to obtain the
                 // link status and protection set (RP) information for all volumes in the
                 // CG.
-                Volume volume = dbClient.queryObject(Volume.class, volumeIterator.next());
+                Volume volume = volumeIterator.next();
 
-                if (from.getTypes().contains(BlockConsistencyGroup.Types.RP.toString())
-                        && !NullColumnValueGetter.isNullNamedURI(volume.getProtectionSet())) {
-                    // Get the protection set from the first volume and set the appropriate fields
-                    ProtectionSet protectionSet = dbClient.queryObject(ProtectionSet.class, volume.getProtectionSet());
-                    to.setRpConsistenyGroupId(protectionSet.getProtectionId());
-                    to.setLinkStatus(protectionSet.getProtectionStatus());
-                    to.setRpProtectionSystem(protectionSet.getProtectionSystem());
-                    break;
-                } else if (from.getTypes().contains(BlockConsistencyGroup.Types.SRDF.toString())) {
-                    // Operations cannot be performed individually on volumes within an SRDF CG, hence
-                    // we can take any one of the volume's link status and update the CG link status.
-                    to.setLinkStatus(volume.getLinkStatus());
-                    break;
+                if (first) {
+                    if (from.getTypes().contains(BlockConsistencyGroup.Types.RP.toString())
+                            && !NullColumnValueGetter.isNullNamedURI(volume.getProtectionSet())) {
+                        // Get the protection set from the first volume and set the appropriate fields
+                        ProtectionSet protectionSet = dbClient.queryObject(ProtectionSet.class, volume.getProtectionSet());
+                        to.setRpConsistenyGroupId(protectionSet.getProtectionId());
+                        to.setLinkStatus(protectionSet.getProtectionStatus());
+                        to.setRpProtectionSystem(protectionSet.getProtectionSystem());
+                    } else if (from.getTypes().contains(BlockConsistencyGroup.Types.SRDF.toString())) {
+                        // Operations cannot be performed individually on volumes within an SRDF CG, hence
+                        // we can take any one of the volume's link status and update the CG link status.
+                        to.setLinkStatus(volume.getLinkStatus());
+                    }
                 }
-            }
-        }
-
-        if (volumes != null) {
-            List<RelatedResourceRep> volumesResourceRep = new ArrayList<RelatedResourceRep>();
-            for (URI volumeUri : volumes) {
-                Volume volume = dbClient.queryObject(Volume.class, volumeUri);
                 // Only display CG volumes that are non-RP or RP source volumes. Exclude RP+VPlex backing volumes.
                 if ((!volume.checkForRp() && !RPHelper.isAssociatedToAnyRpVplexTypes(volume, dbClient))
                         || (volume.checkForRp() && PersonalityTypes.SOURCE.name().equals(volume.getPersonality()))) {
-                    volumesResourceRep.add(toRelatedResource(ResourceTypeEnum.VOLUME, volumeUri));
+                    volumesResourceRep.add(toRelatedResource(ResourceTypeEnum.VOLUME, volume.getId()));
                 }
+                first = false;
             }
             to.setVolumes(volumesResourceRep);
         }

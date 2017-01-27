@@ -30,7 +30,6 @@ import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.Volume.PersonalityTypes;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
-import com.google.common.base.Preconditions;
 
 public class BlockConsistencyGroupUtils {
     /**
@@ -490,14 +489,9 @@ public class BlockConsistencyGroupUtils {
         }
 
         if (!cgReferenced) {
-            // Remove the LOCAL type
-            StringSet cgTypes = consistencyGroup.getTypes();
-            cgTypes.remove(BlockConsistencyGroup.Types.LOCAL.name());
-            consistencyGroup.setTypes(cgTypes);
-
-            StringSet requestedTypes = consistencyGroup.getRequestedTypes();
-            requestedTypes.remove(BlockConsistencyGroup.Types.LOCAL.name());
-            consistencyGroup.setRequestedTypes(requestedTypes);
+            // Clear types and requestTypes
+            consistencyGroup.getTypes().clear();
+            consistencyGroup.getRequestedTypes().clear();
 
             // Remove the referenced storage system as well, but only if there are no other types
             // of storage systems associated with the CG.
@@ -528,5 +522,27 @@ public class BlockConsistencyGroupUtils {
                                           Boolean markInactive, DbClient dbClient) {
         cleanUpCG(consistencyGroup, storageId, replicationGroupName, markInactive, dbClient);
         dbClient.updateObject(consistencyGroup);
+    }
+
+    /**
+     * Return a set of ReplicationGroup names for the given storage system and consistency group.
+     *
+     * @param consistencyGroup  Consistency group
+     * @param storageSystem     Storage system
+     * @return                  Set of group names or an empty set if none exist.
+     */
+    public static Set<String> getGroupNamesForSystemCG(BlockConsistencyGroup consistencyGroup, StorageSystem storageSystem) {
+        checkNotNull(consistencyGroup);
+        checkNotNull(storageSystem);
+
+        Set<String> result = new HashSet<>();
+        StringSetMap systemConsistencyGroups = consistencyGroup.getSystemConsistencyGroups();
+        if (systemConsistencyGroups != null) {
+            StringSet cgsForSystem = systemConsistencyGroups.get(storageSystem.getId().toString());
+            if (cgsForSystem != null || !cgsForSystem.isEmpty()) {
+                result.addAll(cgsForSystem);
+            }
+        }
+        return result;
     }
 }

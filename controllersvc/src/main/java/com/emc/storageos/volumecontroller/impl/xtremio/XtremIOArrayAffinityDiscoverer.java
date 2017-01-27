@@ -96,7 +96,7 @@ public class XtremIOArrayAffinityDiscoverer {
         ArrayListMultimap<String, Initiator> groupInitiatorsByIG = ArrayListMultimap.create();
         for (Initiator initiator : hostInitiators) {
             log.info("Processing host initiator {}", initiator.getLabel());
-            String igName = getIGNameForInitiator(initiator, system.getSerialNumber(), xtremIOClient, xioClusterName);
+            String igName = XtremIOProvUtils.getIGNameForInitiator(initiator, system.getSerialNumber(), xtremIOClient, xioClusterName);
             if (igName != null && !igName.isEmpty()) {
                 groupInitiatorsByIG.put(igName, initiator);
             }
@@ -254,28 +254,6 @@ public class XtremIOArrayAffinityDiscoverer {
             }
         }
         return maskType;
-    }
-
-    /**
-     * Gets the IG name for the given initiator.
-     */
-    private String getIGNameForInitiator(Initiator initiator, String storageSerialNumber, XtremIOClient client, String xioClusterName)
-            throws Exception {
-        String igName = null;
-        try {
-            String initiatorName = initiator.getMappedInitiatorName(storageSerialNumber);
-            if (null != initiatorName) {
-                // Get initiator by Name and find IG Group
-                XtremIOInitiator initiatorObj = client.getInitiator(initiatorName, xioClusterName);
-                if (null != initiatorObj) {
-                    igName = initiatorObj.getInitiatorGroup().get(1);
-                }
-            }
-        } catch (Exception e) {
-            log.warn("Initiator {} not found", initiator.getLabel());
-        }
-
-        return igName;
     }
 
     /**

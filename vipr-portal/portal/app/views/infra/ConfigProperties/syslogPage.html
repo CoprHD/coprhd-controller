@@ -260,6 +260,8 @@
 </script>
 #{/set}
 
+<br/>
+#{ConfigProperties.property property:page.logRetentionDays, disabled:unstable/}
 #{ConfigProperties.property property:page.syslogEnable, disabled:unstable/}
 %{
 property = page.syslogDriverCa

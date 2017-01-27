@@ -19,7 +19,7 @@ public class FileProtectionRemoteSettings implements Serializable {
     private String replicationType;
     private String replicationCopyMode;
     private String targetVirtualPool;
-    private List<String> targetVirtualArrys;
+    private List<String> targetVirtualArrays;
 
     public FileProtectionRemoteSettings() {
 
@@ -62,18 +62,18 @@ public class FileProtectionRemoteSettings implements Serializable {
     }
 
     public List<String> getTargetVirtualArrys() {
-        return targetVirtualArrys;
+        return targetVirtualArrays;
     }
 
     public void setTargetVirtualArrys(List<String> targetVirtualArrys) {
-        this.targetVirtualArrys = targetVirtualArrys;
+        this.targetVirtualArrays = targetVirtualArrys;
     }
 
-    public void addTargetVirtualArry(String targetVirtualArry) {
-        if (this.targetVirtualArrys == null) {
-            this.targetVirtualArrys = new ArrayList<String>();
+    public void addTargetVirtualArry(String targetVirtualArray) {
+        if (this.targetVirtualArrays == null) {
+            this.targetVirtualArrays = new ArrayList<String>();
         }
-        this.targetVirtualArrys.add(targetVirtualArry);
+        this.targetVirtualArrays.add(targetVirtualArray);
     }
 
 }

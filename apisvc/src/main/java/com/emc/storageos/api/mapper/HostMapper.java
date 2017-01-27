@@ -24,6 +24,7 @@ import com.emc.storageos.db.client.model.IpInterface;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.Vcenter;
 import com.emc.storageos.db.client.model.VcenterDataCenter;
+import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.model.RelatedResourceRep;
 import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.storageos.model.block.export.ExportBlockParam;
@@ -55,6 +56,9 @@ public class HostMapper {
         to.setHostName(from.getHostName());
         to.setInitiatorNode(from.getInitiatorNode());
         to.setInitiatorPort(from.getInitiatorPort());
+        if (NullColumnValueGetter.isNotNullValue(from.getClusterName())) {
+            to.setClusterName(from.getClusterName());
+        }
         return to;
     }
 

@@ -920,8 +920,9 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
 
             // Create the target directory only if the replication policy was not applied!!
             // If policy was applied at higher level, policy would create target file system directories!
-            if (!FileOrchestrationUtils.isReplicationPolicyExists(_dbClient, storage, args.getVPool(),
-                    args.getProject(), args.getFs())) {
+            if (FileOrchestrationUtils.isPrimaryFileSystemOrNormalFileSystem(args.getFs())
+                    || !FileOrchestrationUtils.isReplicationPolicyExistsOnTarget(_dbClient, storage, args.getVPool(),
+                            args.getProject(), args.getFs())) {
                 // create directory for the file share
                 isi.createDir(args.getFsMountPath(), true);
 
@@ -2821,9 +2822,15 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
 
                     if (policyId != null) {
                         _log.info("Isilon File Policy {} created successfully.", policyId);
-                        FileOrchestrationUtils.updatePolicyStorageResouce(_dbClient, storageObj, filePolicy, args, path,
+                        FileOrchestrationUtils.updatePolicyStorageResource(_dbClient, storageObj, filePolicy, args, path,
                                 snapshotScheduleName);
                         return BiosCommandResult.createSuccessfulResult();
+                    } else {
+                        String errMsg = "Failed to create isilon snapshot policy";
+                        _log.error(errMsg);
+                        ServiceError serviceError = DeviceControllerErrors.isilon.unableToCreateSnapshotPolicy(storageObj.getLabel());
+                        serviceError.setMessage(errMsg);
+                        return BiosCommandResult.createErrorResult(serviceError);
                     }
                 }
             }
@@ -3044,8 +3051,6 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                     args.setFsPath(args.getFsMountPath());
                 }
             }
-        } else {
-            _log.info("No replication policy found for vpool {} project {}", vpool.getLabel(), project.getLabel());
         }
         return;
     }

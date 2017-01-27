@@ -314,8 +314,8 @@ public class NativeGUIDGenerator {
         if (OBJECT_TYPE_SET.contains(type)) {
             typeStr = type;
         }
-        return String.format("%s+%s+%s+%s+%s", _deviceTypeMap.get(device.getSystemType()), device.getSerialNumber(), nasServer, policyType,
-                path);
+        return String.format("%s+%s+%s+%s+%s+%s", _deviceTypeMap.get(device.getSystemType()), device.getSerialNumber(), typeStr,
+                nasServer, policyType, path);
     }
 
     /**

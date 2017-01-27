@@ -11,6 +11,7 @@ import java.io.Serializable;
 import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URL;
+import java.util.Arrays;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collection;
@@ -65,6 +66,7 @@ import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.Operation.Status;
 import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StringSet;
+import com.emc.storageos.db.client.model.UCSServiceProfile;
 import com.emc.storageos.db.client.model.UCSServiceProfileTemplate;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.Volume;
@@ -182,6 +184,31 @@ public class UcsComputeDevice implements ComputeDevice {
         discoveryWorker.discoverComputeSystem(computeSystemId);
     }
 
+    private UCSServiceProfile persistServiceProfileForHost(LsServer lsServer, ComputeSystem cs, URI hostId){
+        Host host = _dbClient.queryObject(Host.class, hostId);
+        if (host == null){
+             LOGGER.error("Host not found for URI:"+ hostId.toString());
+             throw ComputeSystemControllerException.exceptions.hostNotFound(hostId.toString());
+        }
+        UCSServiceProfile serviceProfile = new UCSServiceProfile();
+        URI uri = URIUtil.createId(UCSServiceProfile.class);
+        serviceProfile.setComputeSystem(cs.getId());
+        serviceProfile.setInactive(false);
+        serviceProfile.setId(uri);
+        serviceProfile.setSystemType(cs.getSystemType());
+        serviceProfile.setCreationTime(Calendar.getInstance());
+        serviceProfile.setDn(lsServer.getDn());
+        serviceProfile.setLabel(lsServer.getName());
+        serviceProfile.setUuid(lsServer.getUuid());
+        serviceProfile.setNativeGuid(NativeGUIDGenerator.generateNativeGuid(cs, serviceProfile));
+        serviceProfile.setHost(hostId);
+        _dbClient.createObject(serviceProfile);
+         
+        host.setServiceProfile(serviceProfile.getId());
+        _dbClient.persistObject(host);
+
+        return serviceProfile;
+    }
     private void setComputeElementAttrFromBoundLsServer(DbClient dbClient, ComputeElement computeElement,
             LsServer lsServer, Host host, String systemType, boolean markUnregistered) {
 
@@ -452,7 +479,7 @@ public class UcsComputeDevice implements ComputeDevice {
             createSpToken = workflow.createStep(CREATE_SP_FROM_SPT_STEP,
                     "create a service profile from the ServiceProfile template selected in the VCP", null,
                     computeSystem.getId(), computeSystem.getSystemType(), this.getClass(), new Workflow.Method(
-                            "createLsServer", computeSystem, sptDn, host.getHostName()),
+                            "createLsServer", computeSystem, sptDn, host),
                     new Workflow.Method(
                             "deleteLsServer", computeSystem, host.getId(), createSpToken),
                     createSpToken);
@@ -754,18 +781,18 @@ public class UcsComputeDevice implements ComputeDevice {
 
     }
 
-    public LsServer createLsServer(ComputeSystem cs, String sptDn, String spRn, String stepId) {
+    public LsServer createLsServer(ComputeSystem cs, String sptDn, Host host, String stepId) {
 
         WorkflowStepCompleter.stepExecuting(stepId);
-        LOGGER.info("Creating Service Profile : " + spRn + " from Service Profile Template : " + sptDn);
+        LOGGER.info("Creating Service Profile : " + host.getHostName() + " from Service Profile Template : " + sptDn);
         LsServer lsServer = null;
         try {
             lsServer = ucsmService.createServiceProfileFromTemplate(getUcsmURL(cs).toString(), cs.getUsername(),
-                    cs.getPassword(), sptDn, spRn);
+                    cs.getPassword(), sptDn, host.getHostName());
 
             if (lsServer == null) {
                 throw ComputeSystemControllerException.exceptions.unableToProvisionHost(
-                        spRn, cs.getNativeGuid(), null);
+                        host.getHostName(), cs.getNativeGuid(), null);
             }
 
             lsServer = pullAndPollManagedObject(getUcsmURL(cs).toString(), cs.getUsername(), cs.getPassword(),
@@ -773,17 +800,46 @@ public class UcsComputeDevice implements ComputeDevice {
 
             workflowService.storeStepData(stepId, lsServer.getDn());
 
+            UCSServiceProfile serviceProfile = persistServiceProfileForHost(lsServer,cs, host.getId());
+            validateNewServiceProfile(cs, serviceProfile, host);
+
         } catch (Exception e) {
             LOGGER.error("Unable to createLsServer...", e);
             WorkflowStepCompleter.stepFailed(stepId,
-                    ComputeSystemControllerException.exceptions.unableToProvisionHost(spRn, cs.getNativeGuid(), e));
+                    ComputeSystemControllerException.exceptions.unableToProvisionHost(host.getHostName(), cs.getNativeGuid(), e));
             return null;
         }
 
         WorkflowStepCompleter.stepSucceded(stepId);
-        LOGGER.info("Done Creating Service Profile : " + spRn + " from Service Profile Template : " + sptDn);
+        LOGGER.info("Done Creating Service Profile : " + host.getHostName() + " from Service Profile Template : " + sptDn);
         return lsServer;
     }
+
+    private void validateNewServiceProfile(ComputeSystem cs, UCSServiceProfile serviceProfile, Host newHost){
+        Collection<URI> allHostUris = _dbClient.queryByType(Host.class, true);
+        Collection<Host> hosts = _dbClient.queryObjectFields(Host.class,
+                Arrays.asList("uuid", "computeElement", "registrationStatus", "inactive"), getFullyImplementedCollection(allHostUris));
+        for (Host host: hosts) {
+            if (host.getUuid()!=null && host.getUuid().equals(serviceProfile.getUuid()) && !host.getId().equals(newHost.getId()) && (host.getInactive()!=true)){
+                LOGGER.error("Newly created service profile :"+ serviceProfile.getLabel() + " shares same uuid "+ serviceProfile.getUuid() +" as existing active host: " + host.getLabel());
+                throw ComputeSystemControllerException.exceptions.newServiceProfileDuplicateUuid(serviceProfile.getLabel(),  serviceProfile.getUuid(), host.getLabel());
+            }
+        }
+
+
+    }
+
+    private static <T> Collection<T> getFullyImplementedCollection(Collection<T> collectionIn) {
+        // Convert objects (like URIQueryResultList) that only implement iterator to
+        // fully implemented Collection
+        Collection<T> collectionOut = new ArrayList<>();
+        Iterator<T> iter = collectionIn.iterator();
+        while (iter.hasNext()) {
+            collectionOut.add(iter.next());
+        }
+        return collectionOut;
+    }
+ 
 
     public LsServer modifyLsServerNoBoot(ComputeSystem cs, String contextStepId, String stepId) {
 
@@ -820,11 +876,25 @@ public class UcsComputeDevice implements ComputeDevice {
                 LOGGER.info("No OP");
             }
             Host host = _dbClient.queryObject(Host.class, hostURI);
-            if (host!=null && host.getComputeElement()!=null){
-               host.setComputeElement(NullColumnValueGetter.getNullURI());
-               _dbClient.persistObject(host);
+            if (host!=null){
+                if (!NullColumnValueGetter.isNullURI(host.getComputeElement())){
+                     ComputeElement computeElement = _dbClient.queryObject(ComputeElement.class, host.getComputeElement());
+                     if (computeElement!=null){
+                         computeElement.setAvailable(true);
+                         _dbClient.persistObject(computeElement);
+                     }
+                     host.setComputeElement(NullColumnValueGetter.getNullURI());
+                }
+                if (!NullColumnValueGetter.isNullURI(host.getServiceProfile())){
+                     UCSServiceProfile profile = _dbClient.queryObject(UCSServiceProfile.class, host.getServiceProfile());
+                     if (profile!=null){
+                         _dbClient.markForDeletion(profile);
+                     }
+                     host.setServiceProfile(NullColumnValueGetter.getNullURI());
+                }
+                _dbClient.persistObject(host);
             }
-
+   
             WorkflowStepCompleter.stepSucceded(stepId);
         } catch (Exception e) {
             LOGGER.error("Unable to deleteLsServer...", e);

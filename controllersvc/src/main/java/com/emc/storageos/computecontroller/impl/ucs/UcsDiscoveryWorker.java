@@ -429,7 +429,10 @@ public class UcsDiscoveryWorker {
         Map<String, UCSServiceProfile> addServiceProfiles = new HashMap<>();
 
         List<UCSServiceProfile> serviceProfiles = _dbClient.queryObject(UCSServiceProfile.class, uris, true);
+        Map<String, UCSServiceProfile> existingUuidMap = new HashMap<>();
+
         for (UCSServiceProfile serviceProfile : serviceProfiles) {
+            existingUuidMap.put(serviceProfile.getUuid(), serviceProfile);
             removeServiceProfiles.put(serviceProfile.getDn(), serviceProfile);
         }
 
@@ -441,6 +444,12 @@ public class UcsDiscoveryWorker {
                 updateUCSServiceProfile(serviceProfile, lsServer);
                 updateServiceProfiles.put(lsServer.getDn(), serviceProfile);
             } else {
+              /*  UCSServiceProfile existingServiceProfile = existingUuidMap.get(lsServer.getUuid());
+                if (existingServiceProfile != null){
+                     _log.error("Cannot create service profile {} in ViPR db. Found existing active service profile {} with same uuid {}",
+                               lsServer.getDn(),existingServiceProfile, lsServer.getUuid()); 
+                     throw ComputeSystemControllerException.exceptions.serviceProfileUuidDuplicate(lsServer.getDn(), existingServiceProfile.getDn(), lsServer.getUuid());
+                }*/
                 serviceProfile = new UCSServiceProfile();
                 createUCSServiceProfile(cs, serviceProfile, lsServer);
                 addServiceProfiles.put(lsServer.getDn(), serviceProfile);
@@ -449,11 +458,14 @@ public class UcsDiscoveryWorker {
         createDataObjects(new ArrayList<DataObject>(addServiceProfiles.values()));
         persistDataObjects(new ArrayList<DataObject>(updateServiceProfiles.values()));
 
-        for (String key : removeServiceProfiles.keySet()) {
-            _log.info("Marked for deletion UCSServiceProfile: " + key);
+        if (!removeServiceProfiles.isEmpty()){
+            for (String key : removeServiceProfiles.keySet()) {
+               _log.info("Marked for deletion UCSServiceProfile: " + key);
+            }   
+            
+            removeServiceProfilesFromHosts(removeServiceProfiles.values());
+            deleteDataObjects(new ArrayList<DataObject>(removeServiceProfiles.values()));
         }
-
-        deleteDataObjects(new ArrayList<DataObject>(removeServiceProfiles.values()));
 
     }
 
@@ -467,6 +479,7 @@ public class UcsDiscoveryWorker {
         serviceProfile.setSystemType(cs.getSystemType());
         serviceProfile.setCreationTime(Calendar.getInstance());
         serviceProfile.setDn(lsServer.getDn());
+        serviceProfile.setNativeGuid(NativeGUIDGenerator.generateNativeGuid(cs, serviceProfile));
         updateUCSServiceProfile(serviceProfile, lsServer);
     }
 
@@ -478,7 +491,7 @@ public class UcsDiscoveryWorker {
         // Fail discovery if a service profile's uuid changes!
         if (serviceProfile.getUuid() == null) {
             serviceProfile.setUuid(lsServer.getUuid());
-        }else if (!serviceProfile.getUuid().equals(lsServer.getUuid())){
+        }else if (!serviceProfile.getUuid().equals(lsServer.getUuid())  && !NullColumnValueGetter.isNullURI(serviceProfile.getHost())){
             String errorMessage = "uuid of service profile" + lsServer.getDn() + " changed from : "+ serviceProfile.getUuid() + " to : "+ lsServer.getUuid();
             _log.error(errorMessage);
             throw ComputeSystemControllerException.exceptions.serviceProfileUuidChanged(lsServer.getDn(), serviceProfile.getUuid(), lsServer.getUuid());
@@ -1735,7 +1748,32 @@ public class UcsDiscoveryWorker {
         computeVnic.setNativeVlan(nativeVlan);
         computeVnic.setVlans(vlans);
     }
+    private void removeServiceProfilesFromHosts(Collection<UCSServiceProfile> serviceProfiles) {
+        List<URI> ids = _dbClient.queryByType(Host.class, true);
+        Iterator<Host> iter = _dbClient.queryIterativeObjects(Host.class, ids);
+        List<UCSServiceProfile> serviceProfilesToUpdate = new ArrayList<UCSServiceProfile>();
 
+        while (iter.hasNext()) {
+            Host host = iter.next();
+            for (UCSServiceProfile serviceProfile : serviceProfiles) {
+                if (host.getServiceProfile() != null
+                        && host.getServiceProfile().equals(serviceProfile.getId())) {
+                    _log.info("Removing UCSServiceProfile {} association from Host {} ", serviceProfile.getDn(), host.getLabel());
+                    host.setServiceProfile(NullColumnValueGetter.getNullURI());
+                    _dbClient.persistObject(host);
+                    _log.info("Removing Host association from service profile {}",  serviceProfile.getDn());
+                    serviceProfile.setHost(NullColumnValueGetter.getNullURI());
+                    serviceProfilesToUpdate.add(serviceProfile);
+                    break;
+                }
+            }
+
+        }
+        if (!serviceProfilesToUpdate.isEmpty()){
+            persistDataObjects(new ArrayList<DataObject>(serviceProfilesToUpdate));
+        }
+
+    }
     private void removeBladesFromHosts(Collection<ComputeElement> removeBlades) {
         List<URI> ids = _dbClient.queryByType(Host.class, true);
         Iterator<Host> iter = _dbClient.queryIterativeObjects(Host.class, ids);

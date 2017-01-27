@@ -34,6 +34,8 @@ import com.emc.vipr.model.catalog.WFDirectoryUpdateParam;
 import com.emc.vipr.model.catalog.WFDirectoryWorkflowsUpdateParam;
 import com.google.gson.annotations.SerializedName;
 import controllers.Common;
+
+import java.io.File;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -43,6 +45,9 @@ import java.util.Map;
 import java.util.Set;
 import org.owasp.esapi.ESAPI;
 import play.Logger;
+import play.data.validation.Required;
+import play.data.validation.Valid;
+
 import play.mvc.Controller;
 import play.mvc.With;
 import static util.BourneUtil.getCatalogClient;
@@ -61,6 +66,18 @@ public class WorkflowBuilder extends Controller {
         render();
     }
 
+    private static enum WFBuilderNodeTypes {
+        FOLDER, WORKFLOW, SCRIPT, ANSIBLE, VIPR_REST;
+
+        public static WFBuilderNodeTypes get(final String name) {
+            try {
+                return valueOf(name.toUpperCase());
+            } catch (final IllegalArgumentException e) {
+                return null;
+            }
+        }
+    }
+
     private static class Node {
         private String id;
         private String text;
@@ -70,12 +87,6 @@ public class WorkflowBuilder extends Controller {
         private String type;
 
         Node() {
-        }
-
-        Node(String id, String text, String parentID) {
-            this.id = id;
-            this.text = text;
-            this.parentID = parentID;
         }
 
         Node(String id, String text, String parentID, String type) {
@@ -112,14 +123,14 @@ public class WorkflowBuilder extends Controller {
                 nodeParent = wfDirectoryRestRep.getParent().getId().toString();
             }
             node = new Node(wfDirectoryRestRep.getId().toString(),
-                    wfDirectoryRestRep.getName(), nodeParent);
+                    wfDirectoryRestRep.getName(), nodeParent, WFBuilderNodeTypes.FOLDER.toString());
 
             // add workflows that are under this node
             if (null != wfDirectoryRestRep.getWorkflows()) {
                 for (URI u : wfDirectoryRestRep.getWorkflows()) {
                     if (oeId2NameMap.containsKey(u)) {
                         topLevelNodes.add(new Node(u.toString(), oeId2NameMap
-                                .get(u), node.id, NODE_TYPE_FILE));
+                                .get(u), node.id, WFBuilderNodeTypes.WORKFLOW.toString()));
                     }
                 }
             }
@@ -320,14 +331,88 @@ public class WorkflowBuilder extends Controller {
                     // Default grouping: "ViPR Library"
                     parent = VIPR_LIBRARY_ROOT;
                 }
+                //TODO: Handle other primitive types (ansible, script)
                 Node node = new Node(primitive.getClass().getSimpleName(),
                         primitiveRestRep.getFriendlyName(), parent,
-                        NODE_TYPE_FILE);
+                        WFBuilderNodeTypes.VIPR_REST.toString());
                 node.data = primitiveRestRep;
                 topLevelNodes.add(node);
             }
         } catch (final Exception e) {
             Logger.error(e.getMessage());
         }
+    }
+
+    public static class ShellScriptPrimitiveForm{
+        // Name and Description step
+        @Required
+        private String name;
+        @Required
+        private String description;
+        @Required
+        private File script;
+        private String scriptName;
+        private String inputs; //comma separated list of inputs
+        private String outputs; // comma separated list of ouputs
+
+        //TODO
+        public void validate(){
+
+        }
+
+        public String getName() {
+            return name;
+        }
+
+        public void setName(String name) {
+            this.name = name;
+        }
+
+        public String getDescription() {
+            return description;
+        }
+
+        public void setDescription(String description) {
+            this.description = description;
+        }
+
+        public File getScript() {
+            return script;
+        }
+
+        public void setScript(File script) {
+            this.script = script;
+        }
+
+        public String getScriptName() {
+            return scriptName;
+        }
+
+        public void setScriptName(String scriptName) {
+            this.scriptName = scriptName;
+        }
+
+        public String getInputs() {
+            return inputs;
+        }
+
+        public void setInputs(String inputs) {
+            this.inputs = inputs;
+        }
+
+        public String getOutputs() {
+            return outputs;
+        }
+
+        public void setOutputs(String outputs) {
+            this.outputs = outputs;
+        }
+    }
+
+
+    public static void create(@Valid ShellScriptPrimitiveForm shellPrimitive){
+        shellPrimitive.validate();
+        //TODO : call APIs to load script and create this primitive
+        view();
     }
 }

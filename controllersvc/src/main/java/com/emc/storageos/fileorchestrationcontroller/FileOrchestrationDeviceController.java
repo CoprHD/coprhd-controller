@@ -1629,7 +1629,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
 
                         if (targetACE != null &&
                                 (!targetACE.getPermissions().equals(sourceACE.getPermissions()) ||
-                                !targetACE.getPermissionType().equals(sourceACE.getPermissionType()))) {
+                                        !targetACE.getPermissionType().equals(sourceACE.getPermissionType()))) {
 
                             targetACE.setPermissions(sourceACE.getPermissions());
                             targetACE.setPermissionType(sourceACE.getPermissionType());
@@ -1836,7 +1836,8 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
                 if (storageSystemURIList != null && !storageSystemURIList.isEmpty()) {
                     for (URI storageSystemURI : storageSystemURIList) {
 
-                        List<URI> vNASURIList = FileOrchestrationUtils.getVNASServersOfStorageSystem(s_dbClient, storageSystemURI);
+                        List<URI> vNASURIList = FileOrchestrationUtils
+                                .getVNASServersOfStorageSystemAndVarrayOfVpool(s_dbClient, storageSystemURI, vpoolURI);
                         if (vNASURIList != null && !vNASURIList.isEmpty()) {
                             for (Iterator<URI> iterator = vNASURIList.iterator(); iterator.hasNext();) {
 
@@ -1854,7 +1855,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
                                         storageSystemURI, args);
                             }
                         } else {
-                            s_logger.info("No vNAS servers for storage system URI: {}", storageSystemURI);
+                            s_logger.info("No vNAS servers found for matching storage system: {} and varrays.", storageSystemURI);
                             String stepId = workflow.createStepId();
                             String stepDes = String
                                     .format("Assigning file policy: %s, to vpool: %s on storage system: %s", filePolicy.getId(),
@@ -1903,7 +1904,8 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
                 if (storageSystemURIList != null && !storageSystemURIList.isEmpty()) {
                     for (URI storageSystemURI : storageSystemURIList) {
 
-                        List<URI> vNASURIList = FileOrchestrationUtils.getVNASServersOfStorageSystem(s_dbClient, storageSystemURI);
+                        List<URI> vNASURIList = FileOrchestrationUtils.getVNASServersOfStorageSystemAndVarrayOfVpool(s_dbClient,
+                                storageSystemURI, vpoolURI);
                         if (vNASURIList != null && !vNASURIList.isEmpty()) {
                             for (Iterator<URI> iterator = vNASURIList.iterator(); iterator.hasNext();) {
                                 URI vNASURI = iterator.next();
@@ -1930,7 +1932,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
                                 }
                             }
                         } else {
-                            s_logger.info("No vNAS servers for storage system URI: {}", storageSystemURI);
+                            s_logger.info("No vNAS servers found for matching storage system: {} and varrays.", storageSystemURI);
                             if (projectURIs != null && !projectURIs.isEmpty()) {
 
                                 for (Iterator<URI> projectIterator = projectURIs.iterator(); projectIterator.hasNext();) {

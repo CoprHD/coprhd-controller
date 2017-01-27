@@ -872,7 +872,9 @@ public final class FileOrchestrationUtils {
         return targetHost;
     }
 
-    public static List<URI> getVNASServersOfStorageSystem(DbClient dbClient, URI storageSystemURI) {
+    public static List<URI> getVNASServersOfStorageSystemAndVarrayOfVpool(DbClient dbClient, URI storageSystemURI, URI vpoolURI) {
+        VirtualPool vpool = dbClient.queryObject(VirtualPool.class, vpoolURI);
+        StringSet varraySet = vpool.getVirtualArrays();
         URIQueryResultList vNasURIs = new URIQueryResultList();
         List<URI> vNASURIList = new ArrayList<URI>();
         dbClient.queryByConstraint(
@@ -884,7 +886,10 @@ public final class FileOrchestrationUtils {
             VirtualNAS vNas = dbClient.queryObject(VirtualNAS.class,
                     vNasURI);
             if (vNas != null && !vNas.getInactive()) {
-                vNASURIList.add(vNas.getId());
+                StringSet vNASVarraySet = vNas.getAssignedVirtualArrays();
+                if (varraySet != null && !varraySet.isEmpty() && vNASVarraySet != null && vNASVarraySet.containsAll(varraySet)) {
+                    vNASURIList.add(vNas.getId());
+                }
             }
         }
 

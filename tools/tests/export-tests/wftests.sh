@@ -2674,7 +2674,7 @@ test_7() {
     common_failure_injections="failure_004_final_step_in_workflow_complete \
                                failure_004:failure_016_Export_doRemoveInitiator"
 
-    network_failure_injections=""
+    network_failure_injections="failure_047_NetworkDeviceController.zoneExportMaskCreate_before_zone"
     if [ "${BROCADE}" = "1" ]
     then
 	network_failure_injections="failure_049_BrocadeNetworkSMIS.getWEBMClient"

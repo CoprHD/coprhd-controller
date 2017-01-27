@@ -39,6 +39,7 @@ public class IsilonSyncPolicy {
     private String schedule;
     private String description;
     private JobState last_job_state;
+    private Integer workers_per_node;
 
     /*
      * If set to true, replication jobs are automatically run based on the
@@ -140,6 +141,14 @@ public class IsilonSyncPolicy {
 
     public Integer getLastStarted() {
         return last_started;
+    }
+
+    public Integer getWorkersPerNode() {
+        return workers_per_node;
+    }
+
+    public void setWorkersPerNode(Integer workers_per_node) {
+        this.workers_per_node = workers_per_node;
     }
 
     @Override

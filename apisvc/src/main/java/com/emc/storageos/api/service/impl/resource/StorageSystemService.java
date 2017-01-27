@@ -449,7 +449,10 @@ public class StorageSystemService extends TaskResourceService {
         Operation op = _dbClient.createTaskOpStatus(StorageSystem.class, system.getId(),
                 taskId, ResourceOperationTypeEnum.DELETE_STORAGE_SYSTEM);
 
-        if (StringUtils.isNotBlank(system.getNativeGuid()) && system.isStorageSystemManagedByProvider()) {
+        // (COP-22167) Create DecommissionedResource object only if the system is actively managed by a storage provider.
+        // Otherwise, the created decommissioned object will not be cleared when the provider is removed and added back.
+        if (StringUtils.isNotBlank(system.getNativeGuid()) && system.isStorageSystemManagedByProvider()
+                && system.getActiveProviderURI() != null) {
             DecommissionedResource oldStorage = null;
             List<URI> oldResources = _dbClient.queryByConstraint(AlternateIdConstraint.Factory.getDecommissionedResourceIDConstraint(id
                     .toString()));
@@ -479,7 +482,7 @@ public class StorageSystemService extends TaskResourceService {
                     StringSet providerDecomSys = new StringSet();
                     providerDecomSys.add(oldStorage.getId().toString());
                     provider.setDecommissionedSystems(providerDecomSys);
-                    _dbClient.persistObject(provider);
+                    _dbClient.updateObject(provider);
                 }
             }
         }

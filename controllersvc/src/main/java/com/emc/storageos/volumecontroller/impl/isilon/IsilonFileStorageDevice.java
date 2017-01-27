@@ -104,6 +104,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
     private static final String EXPORT_OP_NAME = "Snapshot Export";
     private static final String SHARE_OP_NAME = "Snapshot Share";
     public static final long SEC_IN_MILLI = 1000L;
+    private static final String STR_WITH_NO_SPECIAL_SYMBOLS = "[^A-Za-z0-9_\\-/]";
 
     private IsilonApiFactory _factory;
     private HashMap<String, String> configinfo;
@@ -2881,16 +2882,27 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         }
     }
 
+    private String getNameWithNoSpecialCharacters(String str, FileDeviceInputOutput args) {
+        // Custom configuration using the below two level regular expressions to generate name with no special symbols.
+        // Using the same here.
+        String regex = STR_WITH_NO_SPECIAL_SYMBOLS;
+        String path = str.replaceAll(regex, "");
+        if (path != null && !path.isEmpty()) {
+            path = args.getPathWithoutSpecialCharacters(path);
+        }
+        return path;
+    }
+
     private String generatePathForPolicy(FilePolicy filePolicy, FileShare fileShare, FileDeviceInputOutput args) {
         String policyPath = "";
         FilePolicyApplyLevel applyLevel = FilePolicyApplyLevel.valueOf(filePolicy.getApplyAt());
         switch (applyLevel) {
             case vpool:
-                String vpool = args.getVPoolNameWithNoSpecialCharacters();
+                String vpool = getNameWithNoSpecialCharacters(args.getVPool().getLabel(), args);
                 policyPath = fileShare.getNativeId().split(vpool)[0] + vpool;
                 break;
             case project:
-                String project = args.getProjectNameWithNoSpecialCharacters();
+                String project = getNameWithNoSpecialCharacters(args.getProject().getLabel(), args);
                 policyPath = fileShare.getNativeId().split(project)[0] + project;
                 break;
             case file_system:

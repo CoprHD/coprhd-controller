@@ -162,8 +162,7 @@ public class RemoteReplicationSetService extends TaskResourceService {
         _log.info("Called: getRemoteReplicationSet() with id {}", id);
         ArgValidator.checkFieldUriType(id, RemoteReplicationSet.class, "id");
         RemoteReplicationSet rrSet = queryResource(id);
-        RemoteReplicationSetRestRep restRep = map(rrSet);
-        return restRep;
+        return map(rrSet);
     }
 
     /**
@@ -261,7 +260,7 @@ public class RemoteReplicationSetService extends TaskResourceService {
     public RemoteReplicationPairList getRemoteReplicationPairs(@PathParam("id") URI id) {
         _log.info("Called: get" +
                 "RemoteReplicationPairs() for replication set {}", id);
-        ArgValidator.checkFieldUriType(id, com.emc.storageos.db.client.model.remotereplication.RemoteReplicationGroup.class, "id");
+        ArgValidator.checkFieldUriType(id, com.emc.storageos.db.client.model.remotereplication.RemoteReplicationSet.class, "id");
         List<RemoteReplicationPair> rrPairs = CustomQueryUtility.queryActiveResourcesByRelation(_dbClient, id, RemoteReplicationPair.class, "replicationSet");
         RemoteReplicationPairList rrPairList = new RemoteReplicationPairList();
         if (rrPairs != null) {

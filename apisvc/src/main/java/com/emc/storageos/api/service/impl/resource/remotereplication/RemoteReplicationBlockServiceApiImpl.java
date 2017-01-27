@@ -204,9 +204,8 @@ public class RemoteReplicationBlockServiceApiImpl extends AbstractBlockServiceAp
             List<Volume> volumes = _dbClient.queryObject(Volume.class, volumeURIs);
             for (Volume volume : volumes) {
                 Operation op = new Operation();
-                // todo: add right error code
                 ServiceCoded coded = ServiceError.buildServiceError(
-                        ServiceCode.API_RP_VOLUME_CREATE_ERROR, errorMsg);
+                        ServiceCode.API_REMOTE_REPLICATION_VOLUME_CREATE_ERROR, errorMsg);
                 op.setMessage(errorMsg);
                 op.error(coded);
                 _dbClient.createTaskOpStatus(Volume.class, volume.getId(), task, op);

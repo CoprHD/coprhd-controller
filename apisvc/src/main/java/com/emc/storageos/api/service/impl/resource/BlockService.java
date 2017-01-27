@@ -41,7 +41,9 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 
+import com.emc.storageos.db.client.model.remotereplication.RemoteReplicationGroup;
 import com.emc.storageos.db.client.model.remotereplication.RemoteReplicationPair;
+import com.emc.storageos.db.client.model.remotereplication.RemoteReplicationSet;
 import com.emc.storageos.model.remotereplication.RemoteReplicationParameters;
 import com.emc.storageos.plugins.common.Constants;
 import org.slf4j.Logger;
@@ -1005,20 +1007,17 @@ public class BlockService extends TaskResourceService {
             capabilities.put(VirtualPoolCapabilityValuesWrapper.COMPUTE, computeURI.toString());
         }
 
-        // set remote replication parameters
+        // process remote replication parameters
         if (VirtualPool.vPoolSpecifiesRemoteReplication(vpool)) {
             RemoteReplicationParameters rrParameters = param.getRemoteReplicationParameters();
-           if (rrParameters != null) {
-               // todo: validate parameters --- validate that rr set and rr group exist in database.
-               capabilities.put(VirtualPoolCapabilityValuesWrapper.REMOTE_REPLICATION_SET, rrParameters.getRemoteReplicationSet());
-               capabilities.put(VirtualPoolCapabilityValuesWrapper.REMOTE_REPLICATION_GROUP, rrParameters.getRemoteReplicationGroup());
-               capabilities.put(VirtualPoolCapabilityValuesWrapper.REMOTE_REPLICATION_MODE, rrParameters.getRemoteReplicationMode());
-               capabilities.put(VirtualPoolCapabilityValuesWrapper.REMOTE_REPLICATION_CREATE_INACTIVE, rrParameters.getCreateInactive());
-           } else {
-               // error
-               // todo:
-               // throw APIException.badRequests.volumeCreateDoesNotSpecifyRemoteReplicationParameters();
-           }
+            if (rrParameters == null) {
+                throw APIException.badRequests.requiredParameterMissingOrEmpty("remoteReplicationParameters");
+            }
+            validateRemoteReplicationParameters(rrParameters);
+            capabilities.put(VirtualPoolCapabilityValuesWrapper.REMOTE_REPLICATION_SET, rrParameters.getRemoteReplicationSet());
+            capabilities.put(VirtualPoolCapabilityValuesWrapper.REMOTE_REPLICATION_GROUP, rrParameters.getRemoteReplicationGroup());
+            capabilities.put(VirtualPoolCapabilityValuesWrapper.REMOTE_REPLICATION_MODE, rrParameters.getRemoteReplicationMode());
+            capabilities.put(VirtualPoolCapabilityValuesWrapper.REMOTE_REPLICATION_CREATE_INACTIVE, rrParameters.getCreateInactive());
         }
 
 
@@ -5605,6 +5604,46 @@ public class BlockService extends TaskResourceService {
                 if (Mode.ACTIVE.equals(Mode.valueOf(targetVolume.getSrdfCopyMode()))) {
                     throw BadRequestException.badRequests.cannotExpandSRDFActiveVolume(srdfVolume.getLabel());
                 }
+            }
+        }
+    }
+
+    /**
+     * Validate that remote replication parameters are valid.
+     * Replication set URI should be specified and exist in db.
+     * Replication group is optional based on supported element types in the set.
+     * If group is specified, replication mode is defined in the group, otherwise replicaion mode should be specified.
+     *
+     * @param rrParameters remote replication parameters
+     */
+    private void validateRemoteReplicationParameters(RemoteReplicationParameters rrParameters) {
+        ArgValidator.checkFieldUriType(rrParameters.getRemoteReplicationSet(), RemoteReplicationSet.class, "id");
+        RemoteReplicationSet rrSet = _dbClient.queryObject(RemoteReplicationSet.class, rrParameters.getRemoteReplicationSet());
+        if (rrSet == null) {
+            throw APIException.badRequests.unableToFindEntity(rrParameters.getRemoteReplicationSet());
+        }
+
+        StringSet supportedElements = rrSet.getSupportedElementTypes();
+        if (rrParameters.getRemoteReplicationGroup() != null) {
+            // if group  is specified check that this is supported.
+            if (!supportedElements.contains(com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationSet.ElementType.REPLICATION_GROUP.toString())) {
+                throw APIException.badRequests.invalidParameter(VirtualPoolCapabilityValuesWrapper.REMOTE_REPLICATION_GROUP,
+                        rrParameters.getRemoteReplicationGroup().toString());
+            }
+            ArgValidator.checkFieldUriType(rrParameters.getRemoteReplicationGroup(), RemoteReplicationGroup.class, "id");
+            RemoteReplicationGroup rrGroup = _dbClient.queryObject(RemoteReplicationGroup.class, rrParameters.getRemoteReplicationGroup());
+            if (rrGroup == null) {
+                throw APIException.badRequests.unableToFindEntity(rrParameters.getRemoteReplicationGroup());
+            }
+        } else {
+            // if group is not specified, check that this is supported and that replication mode is valid
+            if (!supportedElements.contains(com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationSet.ElementType.REPLICATION_PAIR.toString())) {
+                throw APIException.badRequests.requiredParameterMissingOrEmpty(VirtualPoolCapabilityValuesWrapper.REMOTE_REPLICATION_GROUP);
+            }
+            StringSet supportedModes = rrSet.getSupportedReplicationModes();
+            if (rrParameters.getRemoteReplicationMode() == null || !supportedModes.contains(rrParameters.getRemoteReplicationMode())) {
+                throw APIException.badRequests.invalidParameter(VirtualPoolCapabilityValuesWrapper.REMOTE_REPLICATION_MODE,
+                        rrParameters.getRemoteReplicationMode());
             }
         }
     }

@@ -119,12 +119,13 @@ public class RemoteReplicationScheduler implements Scheduler {
         // and also match passed target vpool params and
         // protocols. In addition, the pool must have enough capacity
         // to hold at least one resource of the requested size.
-        VirtualPoolCapabilityValuesWrapper targetCapabilities;
         StringMap remoteReplicationSettings = vPool.getRemoteReplicationProtectionSettings();
-        VirtualArray targetVirtualArray = null;
+        List<StoragePool> targetPools = new ArrayList<>();
         VirtualPool targetVirtualPool = vPool;
-        List<StoragePool> targetPools = null;
-        // todo: we support only single target virtual array for remote replication for now.
+        VirtualArray targetVirtualArray  = vArray;
+        VirtualPoolCapabilityValuesWrapper targetCapabilities;
+
+        // There can be multiple entries for target varray and vpool combinations in the vpool
         for (Map.Entry<String, String> entry : remoteReplicationSettings.entrySet()) {
             String targetVirtualArrayId = entry.getKey();
             targetVirtualArray = _dbClient.queryObject(VirtualArray.class, URIUtil.uri(targetVirtualArrayId));
@@ -139,30 +140,29 @@ public class RemoteReplicationScheduler implements Scheduler {
             if (targetVirtualPool.getId().equals(vPool.getId())) {
                 targetCapabilities = capabilities;
             } else {
-                // build capabilities based on target vpool
-                // todo:
-                // temporary use original capabilities
-                targetCapabilities = capabilities;
+                targetCapabilities = buildTargetCapabilities(targetVirtualPool, capabilities);
             }
             attributeMap.put(AttributeMatcher.Attributes.storage_system.name(), targetStorageSystems);
-            targetPools = _blockScheduler.getMatchingPools(targetVirtualArray, targetVirtualPool, targetCapabilities, attributeMap);
-
-            if (targetPools == null || targetPools.isEmpty()) {
-                _log.error(
-                        "No matching storage pools found for the target side of remotely replicated volumes. /n" +
-                                "Target storage systems: {0} . /n" +
-                                "There are no storage pools that "
-                                + "match the passed vpool parameters and protocols and/or there are no pools that have enough capacity to "
-                                + "hold at least one resource of the requested size.",
-                        targetStorageSystems);
-                StringBuffer errorMessage = new StringBuffer();
-                if (attributeMap.get(AttributeMatcher.ERROR_MESSAGE) != null) {
-                    errorMessage = (StringBuffer) attributeMap.get(AttributeMatcher.ERROR_MESSAGE);
-                }
-                throw APIException.badRequests.noStoragePools(targetVirtualArray.getLabel(), targetVirtualPool.getLabel(),
-                        errorMessage.toString());
-            }
+            List<StoragePool> targetPoolsForTargetVArray = _blockScheduler.getMatchingPools(targetVirtualArray, targetVirtualPool, targetCapabilities, attributeMap);
+            addNewPools(targetPools, targetPoolsForTargetVArray);
+            // we support single pair for target varray and target vpool in remote replication protection settings
+            // todo: evaluate support for multiple entries, if it is really needed.
             break;
+        }
+
+        if (targetPools.isEmpty()) {
+            _log.error(
+                    "No matching storage pools found for the target side of remotely replicated volumes. /n" +
+                            "Target storage systems: {0} . /n" +
+                            "There are no storage pools that "
+                            + "match the passed vpool parameters and protocols and/or there are no pools that have enough capacity to "
+                            + "hold at least one resource of the requested size.",
+                    targetStorageSystems);
+            StringBuffer errorMessage = new StringBuffer();
+            if (attributeMap.get(AttributeMatcher.ERROR_MESSAGE) != null) {
+                errorMessage = (StringBuffer) attributeMap.get(AttributeMatcher.ERROR_MESSAGE);
+            }
+            throw APIException.badRequests.noStoragePools(vArray.getLabel(), vPool.getLabel(), errorMessage.toString());
         }
 
         // list of recommendations for all volumes
@@ -177,14 +177,14 @@ public class RemoteReplicationScheduler implements Scheduler {
             throw APIException.badRequests.noStoragePools(vArray.getLabel(), vPool.getLabel(), msg);
         }
 
+        // Note: We pass target varray Id as null, since we may have multiple varrays for target volumes
         List<Recommendation> targetRecommendationsForPools = _blockScheduler.getRecommendationsForPools(targetVirtualArray.getId().toString(),
                 targetPools, capabilities);
         if (targetRecommendationsForPools.isEmpty()) {
             String msg = String.format(
-                    "Could not build recommendations for target pools for VArray %s & VPool %s",
-                    targetVirtualArray.getId(), targetVirtualPool.getId());
+                    "Could not build recommendations for target volumes for source vpool %s", vPool.getLabel());
             _log.error(msg);
-            throw APIException.badRequests.noStoragePools(targetVirtualArray.getLabel(), targetVirtualPool.getLabel(), msg);
+            throw APIException.badRequests.noStoragePools(vArray.getLabel(), vPool.getLabel(), msg);
         }
 
         // Build recommendation for each volume
@@ -238,6 +238,55 @@ public class RemoteReplicationScheduler implements Scheduler {
         _log.info("Recommendations for target RR volumes: {}", volumeRecommendations);
 
         return volumeRecommendations;
+    }
+
+    /**
+     * Adds new pools to the current pools.
+     *
+     * @param currentPools
+     * @param newPools
+     */
+    private void addNewPools(List<StoragePool> currentPools, List<StoragePool> newPools) {
+        Set<URI> poolIdSet= new HashSet<>();
+
+        for (StoragePool pool : currentPools) {
+            poolIdSet.add(pool.getId());
+        }
+        for (StoragePool pool : newPools) {
+            if (!poolIdSet.contains(pool.getId())) {
+                currentPools.add(pool);
+            }
+        }
+    }
+
+    /**
+     * Builds capabilities for target virtual pool based on source capabilities
+     *
+     * @param targetVirtualPool target vpool for target volumes
+     * @param sourceCapabilities capabilities built based on source vpool
+     * @return capabilities based on target vpool
+     */
+    private VirtualPoolCapabilityValuesWrapper  buildTargetCapabilities(VirtualPool targetVirtualPool, VirtualPoolCapabilityValuesWrapper sourceCapabilities) {
+        VirtualPoolCapabilityValuesWrapper targetCapabilities = new VirtualPoolCapabilityValuesWrapper(sourceCapabilities);
+
+        Long volumeSize = sourceCapabilities.getSize();
+        if (null != targetVirtualPool.getThinVolumePreAllocationPercentage()
+                && 0 < targetVirtualPool.getThinVolumePreAllocationPercentage()) {
+            targetCapabilities.put(VirtualPoolCapabilityValuesWrapper.THIN_VOLUME_PRE_ALLOCATE_SIZE, VirtualPoolUtil
+                    .getThinVolumePreAllocationSize(targetVirtualPool.getThinVolumePreAllocationPercentage(), volumeSize));
+        }
+
+        if (VirtualPool.ProvisioningType.Thin.toString().equalsIgnoreCase(
+                targetVirtualPool.getSupportedProvisioningType())) {
+            targetCapabilities.put(VirtualPoolCapabilityValuesWrapper.THIN_PROVISIONING, Boolean.TRUE);
+        }
+
+        // Does vpool supports dedup
+        if (null != targetVirtualPool.getDedupCapable() && targetVirtualPool.getDedupCapable()) {
+            targetCapabilities.put(VirtualPoolCapabilityValuesWrapper.DEDUP, Boolean.TRUE);
+        }
+
+        return targetCapabilities;
     }
 
     @Override

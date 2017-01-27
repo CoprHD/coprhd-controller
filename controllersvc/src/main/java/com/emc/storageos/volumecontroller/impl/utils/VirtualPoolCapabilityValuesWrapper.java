@@ -246,6 +246,23 @@ public class VirtualPoolCapabilityValuesWrapper implements Serializable {
         if (capabilities.contains(CHANGE_VPOOL_VOLUME)) {
             _vpoolCapabilities.put(CHANGE_VPOOL_VOLUME, capabilities.getChangeVpoolVolume());
         }
+
+        if (capabilities.contains(REMOTE_REPLICATION_SET)) {
+            _vpoolCapabilities.put(REMOTE_REPLICATION_SET, capabilities.getRemoteReplicationSet());
+        }
+
+        if (capabilities.contains(REMOTE_REPLICATION_CREATE_INACTIVE)) {
+            _vpoolCapabilities.put(REMOTE_REPLICATION_CREATE_INACTIVE, capabilities.getRemoteReplicationCreateInactive());
+        }
+
+        if (capabilities.contains(REMOTE_REPLICATION_MODE)) {
+            _vpoolCapabilities.put(REMOTE_REPLICATION_MODE, capabilities.getRemoteReplicationMode());
+        }
+
+        if (capabilities.contains(REMOTE_REPLICATION_GROUP)) {
+            _vpoolCapabilities.put(REMOTE_REPLICATION_GROUP, capabilities.getRemoteReplicationGroup());
+        }
+
     }
 
     public String getVirtualArrays() {

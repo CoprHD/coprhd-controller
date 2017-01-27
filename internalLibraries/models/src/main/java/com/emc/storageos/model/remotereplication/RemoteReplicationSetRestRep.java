@@ -26,11 +26,17 @@ public class RemoteReplicationSetRestRep extends DataObjectRestRep {
     // Type of storage systems in this replication set.
     private String storageSystemType;
 
+    // Replication state
+    String replicationState;
+
     // Supported element types in this set: group/pair
     private Set<String> supportedElementTypes;
 
     // Supported remote replication modes
     private Set<String> supportedReplicationModes;
+
+    // Supported replication link granularities
+    private Set<String> supportedReplicationLinkGranularity;
 
     @XmlElement(name = "native_id")
     public String getNativeId() {
@@ -70,8 +76,8 @@ public class RemoteReplicationSetRestRep extends DataObjectRestRep {
     }
 
     @XmlElementWrapper(name = "supported_element_types")
-     @XmlElement(name = "supported_element_type")
-     public Set<String> getSupportedElementTypes() {
+    @XmlElement(name = "supported_element_type")
+    public Set<String> getSupportedElementTypes() {
         if (supportedElementTypes == null) {
             supportedElementTypes = new HashSet<>();
         }
@@ -93,5 +99,24 @@ public class RemoteReplicationSetRestRep extends DataObjectRestRep {
 
     public void setSupportedReplicationModes(Set<String> supportedReplicationModes) {
         this.supportedReplicationModes = supportedReplicationModes;
+    }
+
+    @XmlElementWrapper(name = "supported_replication_link_granularities")
+    @XmlElement(name = "supported_replication_link_granularity")
+    public Set<String> getSupportedReplicationLinkGranularity() {
+        return supportedReplicationLinkGranularity;
+    }
+
+    public void setSupportedReplicationLinkGranularity(Set<String> supportedReplicationLinkGranularity) {
+        this.supportedReplicationLinkGranularity = supportedReplicationLinkGranularity;
+    }
+
+    @XmlElement(name = "replication_state")
+    public String getReplicationState() {
+        return replicationState;
+    }
+
+    public void setReplicationState(String replicationState) {
+        this.replicationState = replicationState;
     }
 }

@@ -24,11 +24,16 @@ public class RemoteReplicationMapper {
         to.setNativeId(from.getNativeId());
         to.setReachable(from.getReachable());
         to.setStorageSystemType(from.getStorageSystemType());
+        to.setReplicationState(from.getReplicationState());
         if (from.getSupportedElementTypes() != null) {
             to.setSupportedElementTypes(from.getSupportedElementTypes());
         }
         if (from.getSupportedReplicationModes() != null) {
             to.setSupportedReplicationModes(from.getSupportedReplicationModes());
+        }
+
+        if (from.getSupportedReplicationLinkGranularity() != null) {
+            to.setSupportedReplicationLinkGranularity(from.getSupportedReplicationLinkGranularity());
         }
 
         return to;

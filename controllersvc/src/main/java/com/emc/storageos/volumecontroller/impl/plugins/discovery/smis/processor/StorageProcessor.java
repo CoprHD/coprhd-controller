@@ -35,6 +35,7 @@ import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.StringSet;
+import com.emc.storageos.db.client.model.StringSetMap;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.RemoteDirectorGroup.SupportedCopyModes;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
@@ -492,15 +493,15 @@ public abstract class StorageProcessor extends PoolProcessor {
      */
     protected UnManagedVolume injectVolumeInformation(
             UnManagedVolume storageVolumeInfo, CIMInstance volumeInstance,
-            Map<String, StringSet> volumeInformation) {
+            StringSetMap volumeInformation) {
         if (null == volumeInformation) {
-            volumeInformation = new HashMap<String, StringSet>();
+            volumeInformation = new StringSetMap();
         }
         for (SupportedVolumeInformation volumeInfo : SupportedVolumeInformation.values()) {
             injectIntoVolumeInformationContainer(volumeInformation,
                     volumeInfo.getInfoKey(), volumeInfo.getAlternateKey(), volumeInstance);
         }
-        storageVolumeInfo.addVolumeInformation(volumeInformation);
+        storageVolumeInfo.setVolumeInformation(volumeInformation);
         return storageVolumeInfo;
     }
 
@@ -513,7 +514,7 @@ public abstract class StorageProcessor extends PoolProcessor {
      * @param volumeInstance
      */
     protected void injectIntoVolumeInformationContainer(
-            Map<String, StringSet> volumeInformation, String infoKey, String altKey,
+            StringSetMap volumeInformation, String infoKey, String altKey,
             CIMInstance volumeInstance) {
         // till now, only string values are used, hence didn't had a need to return Object
         Object value = getCIMPropertyValue(volumeInstance, infoKey);

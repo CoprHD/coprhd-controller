@@ -59,11 +59,13 @@ public abstract class XtremIOClient extends StandardRestClient implements XtremI
         int errorCode = status.getStatusCode();
         if (errorCode >= 300) {
             JSONObject obj = null;
+            String extraExceptionInfo = null;
             int xtremIOCode = 0;
             try {
                 obj = response.getEntity(JSONObject.class);
                 xtremIOCode = obj.getInt(XtremIOConstants.ERROR_CODE);
             } catch (Exception e) {
+                extraExceptionInfo = e.getMessage();
                 log.error("Parsing the failure response object failed", e);
             }
 
@@ -72,8 +74,13 @@ public abstract class XtremIOClient extends StandardRestClient implements XtremI
             } else if (xtremIOCode == 401) {
                 throw XtremIOApiException.exceptions.authenticationFailure(uri.toString());
             } else {
-                // Sometimes the response object can be null, just empty when it is null.
+                // Sometimes the response object can be null, just set it to empty when it is null.
                 String objStr = (obj == null) ? "" : obj.toString();
+                // Append extra exception info if present
+                if (extraExceptionInfo != null) {
+                    objStr = String.format("%s%s", 
+                            (objStr.isEmpty()) ? objStr : objStr + " | ", extraExceptionInfo);
+                }
                 throw XtremIOApiException.exceptions.internalError(uri.toString(), objStr);
             }
         } else {

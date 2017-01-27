@@ -586,7 +586,7 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
 
         } catch (Exception e) {
             if (null != e.getMessage() && !e.getMessage().contains(XtremIOConstants.OBJECT_NOT_FOUND)) {
-                String msg = String.format("Error when refreshing export mask %s", mask.getMaskName());
+                String msg = String.format("Error when refreshing export mask %s, details: %s", mask.getMaskName(), e.getMessage());
                 throw XtremIOApiException.exceptions.refreshExistingMaskFailure(msg, e);
             } else {
                 _log.warn("Error refreshing export mask {}", mask.getMaskName());
@@ -714,7 +714,6 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
                         } catch (Exception e) {
                             failedVolumes.add(volumeUri.toString().concat(XtremIOConstants.DASH).concat(e.getMessage()));
                             _log.warn("Deletion of Lun Map {} failed}", lunMap, e);
-
                         }
                     }
                 } else {
@@ -735,7 +734,6 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
             }
 
             // Clean IGs if empty
-
             deleteInitiatorGroup(groupInitiatorsByIG, client, xioClusterName);
             // delete IG Folder as well if IGs are empty
             deleteInitiatorGroupFolder(client, xioClusterName, clusterName, hostName, storage);
@@ -747,7 +745,6 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
             ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
             taskCompleter.error(dbClient, serviceError);
         }
-
     }
 
     /**
@@ -795,7 +792,7 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
             initiatorsValidator.validate();
 
             Set<String> igNames = groupInitiatorsByIG.keySet();
-            List<URI> failedVolumes = new ArrayList<URI>();
+            List<String> failedVolumes = new ArrayList<String>();
             List<String> failedIGs = new ArrayList<String>();
             for (URI volumeUri : volumes) {
                 BlockObject blockObj = BlockObject.fetch(dbClient, volumeUri);
@@ -894,7 +891,7 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
                         try {
                             client.deleteLunMap(lunMap, xioClusterName);
                         } catch (Exception e) {
-                            failedVolumes.add(volumeUri);
+                            failedVolumes.add(volumeUri.toString().concat(XtremIOConstants.DASH).concat(e.getMessage()));
                             _log.warn("Deletion of Lun Map {} failed}", lunMap, e);
                         }
                     }

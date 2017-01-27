@@ -491,13 +491,13 @@ verify_no_zones() {
     host=$2
 
     if [ "${ZONE_CHECK}" = "0" ]; then
-	return
+	   return
     fi
 
     echo "=== zone list $BROCADE_NETWORK --fabricid ${fabricid} --zone_name filter:${host}"
     zone list $BROCADE_NETWORK --fabricid ${fabricid} --zone_name filter:${host} | grep ${host} > /dev/null
     if [ $? -eq 0 ]; then
-	echo -e "\e[91mERROR\e[0m: Found zones on the switch associated with host ${host}."
+	   echo -e "\e[91mERROR\e[0m: Found zones on the switch associated with host ${host}."
     fi
 }
 
@@ -545,7 +545,7 @@ clean_zones() {
     fabricid=$1
 
     if [ "${ZONE_CHECK}" = "0" ]; then
-	return
+	   return
     fi
 
     load_zones $2
@@ -888,10 +888,10 @@ prerun_setup() {
 
     project list --tenant emcworld > /dev/null 2> /dev/null
     if [ $? -eq 0 ]; then
-	echo "Seeing if there's an existing base of volumes"
-	BASENUM=`volume list ${PROJECT} | grep YES | head -1 | awk '{print $1}' | awk -Ft '{print $3}' | awk -F- '{print $1}'`
+	   echo "Seeing if there's an existing base of volumes"
+	   BASENUM=`volume list ${PROJECT} | grep YES | head -1 | awk '{print $1}' | awk -Ft '{print $3}' | awk -F- '{print $1}'`
     else
-	BASENUM=""
+	   BASENUM=""
     fi
 
     if [ "${BASENUM}" != "" ]
@@ -905,7 +905,7 @@ prerun_setup() {
 
        sstype=${SS:0:3}
        if [ "${SS}" = "xio" ]; then
-	   sstype="xtremio"
+	       sstype="xtremio"
        fi
 
        # figure out what type of array we're running against
@@ -920,7 +920,7 @@ prerun_setup() {
 
     fi
 
-    smisprovider list | grep SIM > /dev/null
+    storageprovider list | grep SIM > /dev/null
     if [ $? -eq 0 ];
     then
 	   ZONE_CHECK=0
@@ -938,15 +938,15 @@ prerun_setup() {
     fi
     
     if [ "${SIM}" = "1" ]; then
-	FC_ZONE_A=${CLUSTER1NET_SIM_NAME}	  
+        FC_ZONE_A=${CLUSTER1NET_SIM_NAME}	  
     fi
 
     # Some failures are brocade or cisco specific
     /opt/storageos/bin/dbutils list NetworkSystem | grep -i brocade > /dev/null
     if [ $? -eq 0 ]
     then
-	BROCADE=1
-	secho "Found Brocade switch"
+	   BROCADE=1
+	   secho "Found Brocade switch"
     fi
 
     # All export operations orchestration go through the same entry-points
@@ -959,20 +959,20 @@ prerun_setup() {
 
     # The actual steps that the orchestration generates varies depending on the device type
     if [ "${SS}" != "vplex" ]; then
-	exportCreateDeviceStep=MaskingWorkflowEntryPoints.doExportGroupCreate
-	exportAddVolumesDeviceStep=MaskingWorkflowEntryPoints.doExportGroupAddVolumes
-	exportRemoveVolumesDeviceStep=MaskingWorkflowEntryPoints.doExportGroupRemoveVolumes
-	exportAddInitiatorsDeviceStep=MaskingWorkflowEntryPoints.doExportGroupAddInitiators
-	exportRemoveInitiatorsDeviceStep=MaskingWorkflowEntryPoints.doExportGroupRemoveInitiators
-	exportDeleteDeviceStep=MaskingWorkflowEntryPoints.doExportGroupDelete
+    	exportCreateDeviceStep=MaskingWorkflowEntryPoints.doExportGroupCreate
+    	exportAddVolumesDeviceStep=MaskingWorkflowEntryPoints.doExportGroupAddVolumes
+    	exportRemoveVolumesDeviceStep=MaskingWorkflowEntryPoints.doExportGroupRemoveVolumes
+    	exportAddInitiatorsDeviceStep=MaskingWorkflowEntryPoints.doExportGroupAddInitiators
+    	exportRemoveInitiatorsDeviceStep=MaskingWorkflowEntryPoints.doExportGroupRemoveInitiators
+    	exportDeleteDeviceStep=MaskingWorkflowEntryPoints.doExportGroupDelete
     else
-	# VPLEX-specific entrypoints
-	exportCreateDeviceStep=VPlexDeviceController.createStorageView
-	exportAddVolumesDeviceStep=ExportWorkflowEntryPoints.exportAddVolumes
-	exportRemoveVolumesDeviceStep=ExportWorkflowEntryPoints.exportRemoveVolumes
-	exportAddInitiatorsDeviceStep=ExportWorkflowEntryPoints.exportAddInitiators
-	exportRemoveInitiatorsDeviceStep=ExportWorkflowEntryPoints.exportRemoveInitiators
-	exportDeleteDeviceStep=VPlexDeviceController.deleteStorageView
+        # VPLEX-specific entrypoints
+        exportCreateDeviceStep=VPlexDeviceController.createStorageView
+    	exportAddVolumesDeviceStep=ExportWorkflowEntryPoints.exportAddVolumes
+    	exportRemoveVolumesDeviceStep=ExportWorkflowEntryPoints.exportRemoveVolumes
+    	exportAddInitiatorsDeviceStep=ExportWorkflowEntryPoints.exportAddInitiators
+    	exportRemoveInitiatorsDeviceStep=ExportWorkflowEntryPoints.exportRemoveInitiators
+    	exportDeleteDeviceStep=VPlexDeviceController.deleteStorageView
     fi
 }
 
@@ -1192,7 +1192,6 @@ vmax2_setup() {
 
     run cos update block $VPOOL_BASE --storage ${VMAX_NATIVEGUID}
     run cos update block $VPOOL_CHANGE --storage ${VMAX_NATIVEGUID}
-
 }
 
 vmax3_sim_setup() {
@@ -1262,7 +1261,6 @@ vmax3_setup() {
 
     run cos update block $VPOOL_BASE --storage ${VMAX_NATIVEGUID}
     run cos update block $VPOOL_CHANGE --storage ${VMAX_NATIVEGUID}
-
 }
 
 vplex_sim_setup() {
@@ -1598,6 +1596,7 @@ xio_sim_setup() {
     XTREMIO_3X_IP=$XIO_SIMULATOR_IP
     XTREMIO_PORT=$XIO_4X_SIMULATOR_PORT
     XTREMIO_NATIVEGUID=$XIO_4X_SIM_NATIVEGUID
+    FC_ZONE_A=${CLUSTER1NET_SIM_NAME}
 }
 
 xio_setup() {
@@ -1609,7 +1608,7 @@ xio_setup() {
     XTREMIO_PROVIDER_NAME=XIO-PROVIDER
 
     if [ "${SIM}" = "1" ]; then
-	xio_sim_setup
+	   xio_sim_setup
     fi    
     
     run storageprovider create ${XTREMIO_PROVIDER_NAME} $XTREMIO_3X_IP $XTREMIO_PORT $XTREMIO_3X_USER "$XTREMIO_3X_PASSWD" xtremio
@@ -1626,13 +1625,13 @@ xio_setup() {
     SERIAL_NUMBER=`storagedevice list | grep COMPLETE | awk '{print $2}' | awk -F+ '{print $2}'`
     
     run cos create block ${VPOOL_BASE}	\
-	--description Base true                 \
-	--protocols FC 			                \
-	--numpaths 1				            \
-	--provisionType 'Thin'			        \
-	--max_snapshots 10                      \
+        --description Base true \
+        --protocols FC 			                \
+        --numpaths 1				            \
+        --provisionType 'Thin'			        \
+        --max_snapshots 10                      \
         --multiVolumeConsistency        \
-	--neighborhoods $NH                    
+        --neighborhoods $NH                    
 
     run cos create block ${VPOOL_CHANGE}	\
 	--description Base true                 \
@@ -3364,6 +3363,11 @@ randwwn() {
    echo "${PRE}:${I2}:${I3}:${I4}:${I5}:${I6}:${I7}:${POST}"   
 }
 
+# Create an XIO Fail-On-Demand
+create_fod() {
+    curl -ikL --header "Content-Type: application/json" -X POST http://${HW_SIMULATOR_IP}:8020/fail-on-demand -d '{"uri":"api/json/v2/types/initiator-groups","method":"POST","conditions":{"fail-on":"response"}}'  &> /dev/null    
+}
+
 # ============================================================
 # -    M A I N
 # ============================================================
@@ -3465,10 +3469,10 @@ if [ ${setup} -eq 1 ]
 then
     setup
     if [ "$SS" = "xio" -o "$SS" = "vplex" ]; then
-	setup_yaml;
+	   setup_yaml;
     fi
     if [ "$SS" = "vmax2" -o "$SS" = "vmax3" -o "$SS" = "vnx" ]; then
-	setup_provider;
+	   setup_provider;
     fi
 fi
 

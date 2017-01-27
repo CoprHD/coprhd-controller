@@ -123,7 +123,7 @@ public class ClusterService extends TaskResourceService {
         populateCluster(updateParam, cluster);
         _dbClient.persistObject(cluster);
         if (!Strings.isNullOrEmpty(updateParam.findName())) {
-            ComputeSystemHelper.updateInitiatorClusterNames(_dbClient, cluster.getId());
+            ComputeSystemHelper.updateInitiatorClusterName(_dbClient, cluster.getId());
         }
         auditOp(OperationTypeEnum.UPDATE_CLUSTER, true, null,
                 cluster.auditParameters());

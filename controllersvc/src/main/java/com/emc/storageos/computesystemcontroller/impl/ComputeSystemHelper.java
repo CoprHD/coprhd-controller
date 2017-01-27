@@ -585,10 +585,12 @@ public class ComputeSystemHelper {
      * @param dbClient dbclient
      * @param clusterURI the cluster id
      */
-    public static void updateInitiatorClusterNames(DbClient dbClient, URI clusterURI) {
-        List<URI> clusterHosts = ComputeSystemHelper.getChildrenUris(dbClient, clusterURI, Host.class, "cluster");
-        for (URI hostURI : clusterHosts) {
-            updateInitiatorClusterName(dbClient, clusterURI, hostURI);
+    public static void updateInitiatorClusterName(DbClient dbClient, URI clusterURI) {
+        if (!NullColumnValueGetter.isNullURI(clusterURI)) {
+            List<URI> clusterHosts = ComputeSystemHelper.getChildrenUris(dbClient, clusterURI, Host.class, "cluster");
+            for (URI hostURI : clusterHosts) {
+                updateInitiatorClusterName(dbClient, clusterURI, hostURI);
+            }
         }
     }
 

@@ -818,9 +818,9 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
             return waitFor;
         } else if (NullColumnValueGetter.isNullURI(host.getComputeElement())) {
             /**
-             * No steps need to be added - as this was not a host that we created in
-             * ViPR. If it was computeElement property of the host would have been
-             * set.
+             * No steps need to be added - as this was not a host that we
+             * created in ViPR. If it was computeElement property of the host
+             * would have been set.
              */
             log.info(
                     "Host: {} has no associated computeElement. So skipping service profile and boot volume deletion steps",

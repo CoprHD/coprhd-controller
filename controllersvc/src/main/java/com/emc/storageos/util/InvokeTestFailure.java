@@ -93,7 +93,7 @@ public final class InvokeTestFailure {
     public static final String ARTIFICIAL_FAILURE_057 = "failure_057_MdsNetworkSystemDevice.removeZones";
     public static final String ARTIFICIAL_FAILURE_058 = "failure_057_NetworkDeviceController.zoneExportAddInitiators_before_zone";
     public static final String ARTIFICIAL_FAILURE_059 = "failure_058_NetworkDeviceController.zoneExportAddInitiators_after_zone";
-    public static final String ARTIFICIAL_FAILURE_060 = "failure_060_UcsComputeDevice.createLsServer_createServiceProfileFromTemplate";
+    public static final String ARTIFICIAL_FAILURE_060 = "failure_060_VPlexDeviceController.storageViewAddInitiators_storageview_nonexisting";
     public static final String ARTIFICIAL_FAILURE_061 = "failure_061_UcsComputeDevice.createLsServer_createServiceProfileFromTemplate_Poll";
     public static final String ARTIFICIAL_FAILURE_062 = "failure_062_UcsComputeDevice.modifyLsServerNoBoot_setServiceProfileToNoBoot";
     public static final String ARTIFICIAL_FAILURE_063 = "failure_063_UcsComputeDevice.bindServiceProfileToBlade_bindSPToComputeElement";
@@ -106,6 +106,7 @@ public final class InvokeTestFailure {
     public static final String ARTIFICIAL_FAILURE_070 = "failure_070_ComputeDeviceControllerImpl.addStepsPreOsInstall_setLanBootTargetStep";
     public static final String ARTIFICIAL_FAILURE_071 = "failure_071_ComputeDeviceControllerImpl.addStepsPreOsInstall_prepareOsInstallNetworkStep";
     public static final String ARTIFICIAL_FAILURE_072 = "failure_072_ComputeDeviceControllerImpl.addStepsPostOsInstall_setSanBootTargetStep";
+    public static final String ARTIFICIAL_FAILURE_073 = "failure_073_UcsComputeDevice.createLsServer_createServiceProfileFromTemplate";
 
     private static final int FAILURE_SUBSTRING_LENGTH = 11;
 

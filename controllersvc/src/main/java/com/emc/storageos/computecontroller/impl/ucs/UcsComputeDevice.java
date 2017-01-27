@@ -779,7 +779,7 @@ public class UcsComputeDevice implements ComputeDevice {
                     cs.getPassword(), sptDn, spRn);
 
             // Test mechanism to invoke a failure. No-op on production systems.
-            InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_060);
+            InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_073);
             if (lsServer == null) {
                 throw new RuntimeException("UCS call to create service profile from template failed, null LsServer was returned.");
             }

@@ -2007,7 +2007,7 @@ test_vblock_add_bare_metal_host() {
                                failure_065_UcsComputeDevice.addHostPortsToVArrayNetworks_varrayAssociatedNetworks_DB_Failure"
     #vblock_failure_injections="failure_060_UcsComputeDevice.createLsServer_createServiceProfileFromTemplate"
     common_failure_injections="failure_004_final_step_in_workflow_complete"
-    failure_injections="${vblock_failure_injections} ${common_failure_injections}"
+    failure_injections="${vblock_failure_injections}" # ${common_failure_injections}"
 
     for failure in ${failure_injections}
     do

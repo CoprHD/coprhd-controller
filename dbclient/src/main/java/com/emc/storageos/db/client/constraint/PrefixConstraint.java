@@ -36,6 +36,7 @@ public interface PrefixConstraint extends Constraint {
         }
 
         // tags - prefix search
+        // This method allow system admin to get prefix constraint for system objects!!!
         public static PrefixConstraint getTagsPrefixConstraint(Class<? extends DataObject> clazz, String prefix) {
             DataObjectType doType = TypeMap.getDoType(clazz);
             return new PrefixConstraintImpl(prefix, doType.getColumnField("tags"));

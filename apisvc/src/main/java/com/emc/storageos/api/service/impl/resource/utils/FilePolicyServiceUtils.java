@@ -218,7 +218,7 @@ public final class FilePolicyServiceUtils {
                 if (virtualPool.getScheduleSnapshots()) {
                     break;
                 } else {
-                    errorMsg.append("Provided vpool :" + virtualPool.getId().toString() + " doesn't support file snapshot policy.");
+                    errorMsg.append("Provided vpool :" + virtualPool.getLabel() + " doesn't support file snapshot policy.");
                     _log.error(errorMsg.toString());
                     throw APIException.badRequests.invalidFilePolicyAssignParam(filepolicy.getFilePolicyName(), errorMsg.toString());
                 }
@@ -226,7 +226,7 @@ public final class FilePolicyServiceUtils {
                 if (virtualPool.getFileReplicationSupported()) {
                     break;
                 } else {
-                    errorMsg.append("Provided vpool :" + virtualPool.getId().toString() + " doesn't support file replication policy");
+                    errorMsg.append("Provided vpool :" + virtualPool.getLabel() + " doesn't support file replication policy");
                     _log.error(errorMsg.toString());
                     throw APIException.badRequests.invalidFilePolicyAssignParam(filepolicy.getFilePolicyName(), errorMsg.toString());
                 }
@@ -246,7 +246,7 @@ public final class FilePolicyServiceUtils {
      * @param errorMsg
      * @return true/false
      */
-    public static boolean updateReplicationTypeCapabilities(DbClient dbClient, VirtualPool vPool, Project project,
+    public static void updateReplicationTypeCapabilities(DbClient dbClient, VirtualPool vPool, Project project,
             FileShare fs, VirtualPoolCapabilityValuesWrapper capabilities, StringBuilder errorMsg) {
 
         capabilities.put(VirtualPoolCapabilityValuesWrapper.FILE_REPLICATION_TYPE, FileReplicationType.NONE.name());
@@ -254,7 +254,7 @@ public final class FilePolicyServiceUtils {
         if (eligiblePolicies != null && !eligiblePolicies.isEmpty()) {
             capabilities.put(VirtualPoolCapabilityValuesWrapper.FILE_REPLICATION_TYPE, eligiblePolicies.get(0).getFileReplicationType());
         }
-        return true;
+        return;
     }
 
     /**
@@ -285,53 +285,56 @@ public final class FilePolicyServiceUtils {
                 // Single replication policy across vpool/project/fs
                 errorMsg.append("More than one replication policy could not be applied accross vpool/project/fs");
                 return false;
-            } else {
-                FilePolicy policy = eligiblePolicies.get(0);
-                // Update replication policy capabilities!!
-                capabilities.put(VirtualPoolCapabilityValuesWrapper.FILE_REPLICATION_TYPE, policy.getFileReplicationType());
-                capabilities.put(VirtualPoolCapabilityValuesWrapper.FILE_REPLICATION_COPY_MODE, policy.getFileReplicationCopyMode());
-                if (vPool.getFrRpoType() != null) { // rpo type can be DAYS or HOURS
-                    capabilities.put(VirtualPoolCapabilityValuesWrapper.FILE_REPLICATION_RPO_TYPE, vPool.getFrRpoType());
-                }
-                if (vPool.getFrRpoValue() != null) {
-                    capabilities.put(VirtualPoolCapabilityValuesWrapper.FILE_REPLICATION_RPO_VALUE, vPool.getFrRpoValue());
-                }
-                capabilities.put(VirtualPoolCapabilityValuesWrapper.FILE_REPLICATION_APPLIED_AT, policy.getApplyAt());
+            }
 
-                // Update target varrys for file placement!!
-                Set<String> targetVArrys = new HashSet<String>();
-                if (policy.getFileReplicationType().equalsIgnoreCase(FileReplicationType.REMOTE.name())) {
-                    if (policy.getReplicationTopologies() != null && !policy.getReplicationTopologies().isEmpty()) {
+            FilePolicy policy = eligiblePolicies.get(0);
+            // Update replication policy capabilities!!
+            capabilities.put(VirtualPoolCapabilityValuesWrapper.FILE_REPLICATION_TYPE, policy.getFileReplicationType());
+            capabilities.put(VirtualPoolCapabilityValuesWrapper.FILE_REPLICATION_COPY_MODE, policy.getFileReplicationCopyMode());
+            if (vPool.getFrRpoType() != null) { // rpo type can be DAYS or HOURS
+                capabilities.put(VirtualPoolCapabilityValuesWrapper.FILE_REPLICATION_RPO_TYPE, vPool.getFrRpoType());
+            }
+            if (vPool.getFrRpoValue() != null) {
+                capabilities.put(VirtualPoolCapabilityValuesWrapper.FILE_REPLICATION_RPO_VALUE, vPool.getFrRpoValue());
+            }
+            capabilities.put(VirtualPoolCapabilityValuesWrapper.FILE_REPLICATION_APPLIED_AT, policy.getApplyAt());
 
-                        for (String strTopology : policy.getReplicationTopologies()) {
-                            FileReplicationTopology dbTopology = dbClient.queryObject(FileReplicationTopology.class,
-                                    URI.create(strTopology));
-                            if (currVArray.getId().toString().equalsIgnoreCase(dbTopology.getSourceVArray().toString())) {
-                                targetVArrys.addAll(dbTopology.getTargetVArrays());
-                                break;
-                            }
+            // Update target varrys for file placement!!
+            Set<String> targetVArrys = new HashSet<String>();
+            if (policy.getFileReplicationType().equalsIgnoreCase(FileReplicationType.REMOTE.name())) {
+                if (policy.getReplicationTopologies() != null && !policy.getReplicationTopologies().isEmpty()) {
+
+                    for (String strTopology : policy.getReplicationTopologies()) {
+                        FileReplicationTopology dbTopology = dbClient.queryObject(FileReplicationTopology.class,
+                                URI.create(strTopology));
+                        if (currVArray.getId().toString().equalsIgnoreCase(dbTopology.getSourceVArray().toString())) {
+                            targetVArrys.addAll(dbTopology.getTargetVArrays());
+                            break;
                         }
-                        if (targetVArrys.isEmpty()) {
-                            errorMsg.append("Target VArry is not defined in replication topology for source varry "
-                                    + currVArray.getId().toString());
-                            return false;
-                        }
-                        capabilities.put(VirtualPoolCapabilityValuesWrapper.FILE_REPLICATION_TARGET_VARRAYS,
-                                targetVArrys);
-                        capabilities.put(VirtualPoolCapabilityValuesWrapper.FILE_REPLICATION_TARGET_VPOOL,
-                                vPool.getId());
-                    } else {
-                        errorMsg.append("Replication Topology is not defined for policy " + policy.getFilePolicyName());
+                    }
+                    if (targetVArrys.isEmpty()) {
+                        errorMsg.append("Target VArry is not defined in replication topology for source varry "
+                                + currVArray.getId().toString());
                         return false;
                     }
+                    capabilities.put(VirtualPoolCapabilityValuesWrapper.FILE_REPLICATION_TARGET_VARRAYS,
+                            targetVArrys);
+                    capabilities.put(VirtualPoolCapabilityValuesWrapper.FILE_REPLICATION_TARGET_VPOOL,
+                            vPool.getId());
                 } else {
-                    targetVArrys.add(currVArray.getId().toString());
+                    errorMsg.append("Replication Topology is not defined for policy " + policy.getFilePolicyName());
+                    return false;
                 }
-                return true;
+            } else {
+                targetVArrys.add(currVArray.getId().toString());
             }
+            return true;
+
         } else if (vPool.getFileReplicationSupported()) {
+            capabilities.put(VirtualPoolCapabilityValuesWrapper.FILE_REPLICATION_TYPE, FileReplicationType.NONE.name());
             errorMsg.append("No replication policy assigned at any level for virtual pool ").append(vPool.getLabel());
-            return false;
+            _log.warn(errorMsg.toString());
+            return true;
         }
         return false;
     }
@@ -351,11 +354,10 @@ public final class FilePolicyServiceUtils {
         }
         Project project = dbClient.queryObject(Project.class, fs.getProject().getURI());
         VirtualPoolCapabilityValuesWrapper capabilities = new VirtualPoolCapabilityValuesWrapper();
+        capabilities.put(VirtualPoolCapabilityValuesWrapper.FILE_REPLICATION_TYPE, FileReplicationType.NONE.name());
         StringBuilder errorMsg = new StringBuilder();
-        if (vPool.getFileReplicationSupported()
-                && FilePolicyServiceUtils.updateReplicationTypeCapabilities(dbClient, vPool, project, fs, capabilities, errorMsg)) {
-        } else {
-            capabilities.put(VirtualPoolCapabilityValuesWrapper.FILE_REPLICATION_TYPE, VirtualPool.FileReplicationType.NONE.name());
+        if (vPool.getFileReplicationSupported()) {
+            updateReplicationTypeCapabilities(dbClient, vPool, project, fs, capabilities, errorMsg);
         }
         return vPoolSpecifiesFileReplication(capabilities);
     }
@@ -380,7 +382,7 @@ public final class FilePolicyServiceUtils {
      * @param vpoolURI
      * @return true/false
      */
-    public static boolean isVPoolHasReplicationPolicy(DbClient dbClient, URI vpoolURI) {
+    public static boolean vPoolHasReplicationPolicy(DbClient dbClient, URI vpoolURI) {
         VirtualPool vPool = dbClient.queryObject(VirtualPool.class, vpoolURI);
         if (vPool != null && vPool.getFilePolicies() != null && !vPool.getFilePolicies().isEmpty()) {
             for (String strPolicy : vPool.getFilePolicies()) {
@@ -403,7 +405,7 @@ public final class FilePolicyServiceUtils {
      * @param projectURI
      * @return true/false
      */
-    public static boolean isProjectHasReplicationPolicy(DbClient dbClient, URI vpoolURI, URI projectURI) {
+    public static boolean projectHasReplicationPolicy(DbClient dbClient, URI projectURI, URI vpoolURI) {
         Project project = dbClient.queryObject(Project.class, projectURI);
         if (project != null && project.getFilePolicies() != null && !project.getFilePolicies().isEmpty()) {
             for (String strPolicy : project.getFilePolicies()) {

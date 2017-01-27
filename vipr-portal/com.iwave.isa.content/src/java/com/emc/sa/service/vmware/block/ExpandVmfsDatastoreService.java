@@ -38,12 +38,15 @@ public class ExpandVmfsDatastoreService extends VMwareHostService {
         super.precheck();
         volume = BlockStorageUtils.getVolume(volumeId);
         acquireHostLock();
-        datastore = vmware.getDatastore(datacenter.getLabel(), datastoreName);
+        vmware.getDatastore(datacenter.getLabel(), datastoreName);
+        vmware.disconnect();
     }
 
     @Override
     public void execute() throws Exception {
         BlockStorageUtils.expandVolume(volumeId, sizeInGb);
+        connectAndInitializeHost();
+        datastore = vmware.getDatastore(datacenter.getLabel(), datastoreName);
         vmware.refreshStorage(host, cluster);
         vmware.expandVmfsDatastore(host, cluster, hostId, volume, datastore);
         if (hostId != null) {

@@ -1913,8 +1913,6 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                 }
             }
             
-            String[] remoteAccessZonePaths = (String[]) tempAccessZonePath.toArray(); 
-            
             /*
              *Corner case code: JIRA COP-27008
              * code scenario : remote remote-access-zone path starts in another access-zone path 

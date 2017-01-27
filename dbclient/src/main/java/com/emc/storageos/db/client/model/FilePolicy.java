@@ -82,7 +82,7 @@ public class FilePolicy extends DataObjectWithACLs {
     private Boolean applyOnTargetSite;
 
     public static enum FileReplicationType {
-        LOCAL, REMOTE;
+        LOCAL, REMOTE, NONE;
     }
 
     public static enum FileReplicationCopyMode {
@@ -329,6 +329,22 @@ public class FilePolicy extends DataObjectWithACLs {
         setChanged("replicationTopologies");
     }
 
+    public void addReplicationTopology(String replicationTopology) {
+        if (this.replicationTopologies == null) {
+            this.replicationTopologies = new StringSet();
+        }
+        this.replicationTopologies.add(replicationTopology);
+        setChanged("replicationTopologies");
+    }
+
+    public void removeReplicationTopology(String topology) {
+        if (this.replicationTopologies != null) {
+            this.replicationTopologies.remove(topology);
+            setChanged("replicationTopologies");
+        }
+
+    }
+
     @Override
     public String toString() {
         return "FilePolicy [filePolicyType=" + filePolicyType + ", filePolicyName=" + filePolicyName + ", filePolicyDescription="
@@ -348,6 +364,7 @@ public class FilePolicy extends DataObjectWithACLs {
         }
         assignedRes.add(resourceURI.toString());
         this.assignedResources = assignedRes;
+        setChanged("assignedResources");
     }
 
     public void removeAssignedResources(URI resourceURI) {
@@ -355,6 +372,7 @@ public class FilePolicy extends DataObjectWithACLs {
         if (assignedRes != null) {
             assignedRes.remove(resourceURI.toString());
             this.assignedResources = assignedRes;
+            setChanged("assignedResources");
         }
     }
 
@@ -366,6 +384,7 @@ public class FilePolicy extends DataObjectWithACLs {
         policyStrRes.add(resourceURI.toString());
 
         this.policyStorageResources = policyStrRes;
+        setChanged("policyStorageResources");
     }
 
     public void removePolicyStorageResources(URI resourceURI) {
@@ -373,6 +392,7 @@ public class FilePolicy extends DataObjectWithACLs {
         if (policyStrRes != null) {
             policyStrRes.remove(resourceURI.toString());
             this.policyStorageResources = policyStrRes;
+            setChanged("policyStorageResources");
         }
 
     }

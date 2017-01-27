@@ -13,4 +13,9 @@ _get_auth_props() {
     _get_props node_index node_id
 }
 
+_get_cipher_props() {
+    _get_props strong_ciphers
+}
+
 _genconfig_exec _gen_template_cluster    /opt/storageos/conf/auth-var.xml    $(_get_auth_props)
+_genconfig_exec _gen_template_cluster    /opt/storageos/conf/security-ciphers.xml    $(_get_cipher_props)

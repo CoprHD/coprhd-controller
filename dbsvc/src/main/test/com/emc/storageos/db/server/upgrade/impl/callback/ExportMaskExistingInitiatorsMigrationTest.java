@@ -255,7 +255,7 @@ public class ExportMaskExistingInitiatorsMigrationTest extends DbSimpleMigration
             String exportMaskLabel = exportMask.getLabel();
             log.info("Processing exportMask with name {}", exportMaskLabel);
             if (exportMaskLabel.contains("Basic")){
-                if (exportMaskLabel.contains("VMAX")) {
+                if (exportMaskLabel.contains("VMAX") || exportMaskLabel.contains("VPLEX")) {
                     if ((exportMask.getInitiators() != null) && exportMask.getInitiators().size() != 4) {
                         log.error("ExportMask with name {} has {} Initiators instead of 4", exportMaskLabel,
                                 exportMask.getInitiators().size());
@@ -288,7 +288,7 @@ public class ExportMaskExistingInitiatorsMigrationTest extends DbSimpleMigration
                                 exportMask.getExistingInitiators().size());
                     }
             } else if (exportMaskLabel.contains("Existing")) {
-                if (exportMaskLabel.contains("VMAX")) {
+                if (exportMaskLabel.contains("VMAX") || exportMaskLabel.contains("VPLEX")) {
                     if ((exportMask.getInitiators() != null) && exportMask.getInitiators().size() != 4) {
                         log.error("ExportMask with name {} has {} Initiators instead of 4", exportMaskLabel,
                                 exportMask.getInitiators().size());
@@ -308,7 +308,7 @@ public class ExportMaskExistingInitiatorsMigrationTest extends DbSimpleMigration
                     }
                 }
             } else if (exportMaskLabel.contains("Mixed")){
-                if (exportMaskLabel.contains("VMAX")) {
+                if (exportMaskLabel.contains("VMAX") || exportMaskLabel.contains("VPLEX")) {
                     if ((exportMask.getInitiators() != null) && exportMask.getInitiators().size() != 4) {
                         log.error("ExportMask with name {} has {} Initiators instead of 4", exportMaskLabel,
                                 exportMask.getInitiators().size());

@@ -506,6 +506,11 @@ public class VPlexMeteringTest {
         }
 
         @Override
+        public Operation pending(Class<? extends DataObject> clazz, URI id, String opId, String message, boolean resetStartTime) {
+            return null;
+        }
+
+        @Override
         public Operation error(Class<? extends DataObject> clazz, URI id, String opId, ServiceCoded serviceCoded) {
             return null;
         }

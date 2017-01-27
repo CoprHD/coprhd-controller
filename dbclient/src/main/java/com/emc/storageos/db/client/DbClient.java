@@ -9,7 +9,6 @@ import java.net.URI;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
-import java.util.ListIterator;
 import java.util.concurrent.ExecutorService;
 
 import org.joda.time.DateTime;
@@ -18,6 +17,7 @@ import com.emc.storageos.db.client.constraint.Constraint;
 import com.emc.storageos.db.client.constraint.QueryResultList;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.NamedURI;
+import com.emc.storageos.db.client.model.NoInactiveIndex;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.TimeSeries;
 import com.emc.storageos.db.client.model.TimeSeriesSerializer;
@@ -380,6 +380,19 @@ public interface DbClient {
      * @throws DatabaseException
      */
     Operation pending(Class<? extends DataObject> clazz, URI id, String opId, String message);
+
+    /**
+     * Convenience method for setting operation status to pending for given
+     * object; optionally, the start time can be reset
+     * 
+     * @param clazz resource class type
+     * @param id resource id
+     * @param opId operation/task/request id (maps to requestId in Task)
+     * @param message
+     * @param resetStartTime resets the start time on the tasks if true
+     * @return
+     */
+    Operation pending(Class<? extends DataObject> clazz, URI id, String opId, String message, boolean resetStartTime);
 
     /**
      * Sets operation status to suspended. This means that it is not currently executing, but

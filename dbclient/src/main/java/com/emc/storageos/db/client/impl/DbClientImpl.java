@@ -1675,6 +1675,11 @@ public class DbClientImpl implements DbClient {
 
     private Operation updateTaskStatus(Class<? extends DataObject> clazz, URI id,
             String opId, Operation updateOperation) {
+        return updateTaskStatus(clazz, id, opId, updateOperation, false);
+    }
+
+    private Operation updateTaskStatus(Class<? extends DataObject> clazz, URI id,
+            String opId, Operation updateOperation, boolean resetStartTime) {
         List<URI> ids = new ArrayList<URI>(Arrays.asList(id));
         List<? extends DataObject> objs = queryObjectField(clazz, "status", ids);
         if (objs == null || objs.isEmpty()) {
@@ -1690,7 +1695,7 @@ public class DbClientImpl implements DbClient {
 
         DataObject doobj = objs.get(0);
         _log.info(String.format("Updating operation %s for object %s with status %s", opId, doobj.getId(), updateOperation.getStatus()));
-        Operation op = doobj.getOpStatus().updateTaskStatus(opId, updateOperation);
+        Operation op = doobj.getOpStatus().updateTaskStatus(opId, updateOperation, resetStartTime);
         if (op == null)
         {
             // OpStatusMap does not have entry for a given opId. The entry already expired based on ttl.
@@ -1702,7 +1707,7 @@ public class DbClientImpl implements DbClient {
                 // Create operation instance for the task
                 Operation operation = TaskUtils.createOperation(task);
                 doobj.getOpStatus().createTaskStatus(opId, operation);
-                op = doobj.getOpStatus().updateTaskStatus(opId, updateOperation);
+                op = doobj.getOpStatus().updateTaskStatus(opId, updateOperation, false);
                 if (op == null) {
                     _log.error(String.format("Failed to update operation %s for object %s ", opId, doobj.getId()));
                     return null;
@@ -1758,9 +1763,17 @@ public class DbClientImpl implements DbClient {
 
     @Override
     public Operation pending(Class<? extends DataObject> clazz, URI id, String opId, String message) throws DatabaseException {
+        return pending(clazz, id, opId, message, false);
+    }
+
+    /* (non-Javadoc)
+     * @see com.emc.storageos.db.client.DbClient#pending(java.lang.Class, java.net.URI, java.lang.String, java.lang.String, boolean)
+     */
+    @Override
+    public Operation pending(Class<? extends DataObject> clazz, URI id, String opId, String message, boolean resetStartTime) {
         Operation updateOperation = new Operation();
         updateOperation.setMessage(message);
-        return updateTaskStatus(clazz, id, opId, updateOperation);
+        return updateTaskStatus(clazz, id, opId, updateOperation, true);
     }
 
     /**

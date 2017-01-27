@@ -72,6 +72,20 @@ public class OpStatusMap extends AbstractChangeTrackingMap<Operation> {
      */
     public Operation updateTaskStatus(String task, Operation update)
             throws IllegalArgumentException {
+        return updateTaskStatus(task,update, false);
+    }
+
+    /**
+     * Update progress for an existing task status in the map
+     * 
+     * @param task task id
+     * @param update
+     * @param resetStartTime reset the start time to the current time if status is pending
+     * @throws IllegalArgumentException - if trying to update task with non
+     *             modifiable fields.
+     */
+    public Operation updateTaskStatus(String task, Operation update, boolean resetStartTime)
+            throws IllegalArgumentException {
         if (containsKey(task)) {
             Operation op = get(task);
             Set<String> updatedFields = new HashSet<String>();
@@ -96,6 +110,9 @@ public class OpStatusMap extends AbstractChangeTrackingMap<Operation> {
                                 || (status.equalsIgnoreCase(Operation.Status.error.name()
                                         .toUpperCase()))) {
                             op.setEndTime(Calendar.getInstance());
+                        } else if (resetStartTime && status.equalsIgnoreCase(Operation.Status.pending.name()
+                                .toUpperCase())) {
+                            op.setStartTime(Calendar.getInstance());
                         }
                     }
                 } else if (field.equals(Operation.SERVICE_CODE_FIELD)) {

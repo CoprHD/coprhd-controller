@@ -110,7 +110,10 @@
         <property name="dbClient" ref="dbclient"/>
         <property name="coordinator" ref="coordinator"/>	
 	</bean>
-	<bean id="primitiveService" class="com.emc.sa.api.PrimitiveService"/>
+    <bean id="primitiveService" class="com.emc.sa.api.PrimitiveService">
+         <property name="dbClient" ref="dbclient"/>
+         <property name="coordinator" ref="coordinator"/>
+    </bean>
     <bean id="wfDirectoryService" class="com.emc.sa.api.WFDirectoryService">
         <property name="dbClient" ref="dbclient"/>
         <property name="coordinator" ref="coordinator"/>

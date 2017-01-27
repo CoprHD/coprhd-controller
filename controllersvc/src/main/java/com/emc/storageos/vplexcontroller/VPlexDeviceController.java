@@ -3151,7 +3151,11 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
                     }
 
                     if (isValidationNeeded && removeInitiators) {
-                        errorMessages.append("Initiators (" + exportMask.getInitiators() + ") ");
+                        List<Initiator> initiators = 
+                                _dbClient.queryObject(Initiator.class, URIUtil.toURIList(exportMask.getInitiators()));
+                        Collection<String> initiatorPorts = Collections2.transform(initiators,
+                                CommonTransformerFunctions.fctnInitiatorToPortName());
+                        errorMessages.append("Initiators (" + Joiner.on(", ").join(initiatorPorts) + ") ");
                         errorMessages.append("would be removed from ExportMask " + exportMask.forDisplay() + ". ");
                     }
 

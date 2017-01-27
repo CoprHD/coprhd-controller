@@ -479,7 +479,10 @@ public class StorageSystemService extends TaskResourceService {
 
             StorageProvider provider = _dbClient.queryObject(StorageProvider.class, system.getActiveProviderURI());
             if (provider != null) {
-                StringSet providerDecomSys = new StringSet();
+                StringSet providerDecomSys = provider.getDecommissionedSystems();
+                if (providerDecomSys == null) {
+                    providerDecomSys = new StringSet();
+                }
                 providerDecomSys.add(oldStorage.getId().toString());
                 provider.setDecommissionedSystems(providerDecomSys);
                 _dbClient.updateObject(provider);

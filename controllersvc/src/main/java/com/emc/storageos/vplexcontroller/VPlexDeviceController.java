@@ -3643,6 +3643,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
                 String vplexClusterName = VPlexUtil.getVplexClusterName(exportMask, vplexURI, client, _dbClient);
                 Map<String, String> targetPortToPwwnMap = VPlexControllerUtils.getTargetPortToPwwnMap(client, vplexClusterName);
                 VPlexStorageViewInfo storageView = client.getStorageView(vplexClusterName, exportMask.getMaskName());
+                //If (null == storageView) {}
                 _log.info("Refreshing ExportMask {}", exportMask.getMaskName());
                 VPlexControllerUtils.refreshExportMask(
                         _dbClient, storageView, exportMask, targetPortToPwwnMap, _networkDeviceController);
@@ -3681,33 +3682,44 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
                 exportMask = _dbClient.queryObject(ExportMask.class, exportMask.getId());
 
                 boolean existingVolumes = exportMask.hasAnyExistingVolumes();
+                // The useradded -existing initiatros enhancement made in refreshExportMask, guarantees that all the discovered initiators are added to userAdded,
+                // irrespective of whether its already registered on the Array manually.
                 boolean existingInitiators = exportMask.hasAnyExistingInitiators();
+                
+                boolean canMaskBeDeleted = remainingVolumesInMask.isEmpty() && !existingInitiators && !existingVolumes;
 
-                if (!remainingVolumesInMask.isEmpty()) {
-                    _log.info("this mask is not empty, so just updating: "
-                            + exportMask.getMaskName());
+                if (!canMaskBeDeleted) {
+                   
+                        _log.info("this mask is not empty, so just updating: " + exportMask.getMaskName());
+                        
+                        completer.addExportMaskToRemovedVolumeMapping(exportMask.getId(), volumeURIList);
+                        Workflow.Method storageViewRemoveVolume = storageViewRemoveVolumesMethod(vplex.getId(), exportMask,
+                                volumeURIList);
+                        previousStep = workflow.createStep("removeVolumes", String.format(
+                                "Removing volumes from export on storage array %s (%s) for export mask %s (%s)",
+                                vplex.getNativeGuid(), vplex.getId().toString(), exportMask.getMaskName(), exportMask.getId()),
+                                previousStep, vplex.getId(), vplex.getSystemType(), this.getClass(), storageViewRemoveVolume,
+                                rollbackMethodNullMethod(), null);
+                        
+                        // Add zoning step for removing volumes
+                        List<NetworkZoningParam> zoningParam = NetworkZoningParam.convertExportMasksToNetworkZoningParam(
+                                exportGroup.getId(), Collections.singletonList(exportMask.getId()), _dbClient);
+                        Workflow.Method zoneRemoveVolumesMethod = _networkDeviceController.zoneExportRemoveVolumesMethod(
+                                zoningParam, volumeURIList);
+                        previousStep = workflow.createStep(null, "Zone remove volumes mask: " + exportMask.getMaskName(),
+                                previousStep, nullURI, "network-system", _networkDeviceController.getClass(),
+                                zoneRemoveVolumesMethod, _networkDeviceController.zoneNullRollbackMethod(), null);
+                        
+                        hasSteps = true;
+                    
+                    
+                    /**
+                     * 
+                     * ExportremoveVolumeCompleter should be enhanced to remove export mask from export group  if last volume removed.
+                     * We already take care of this.
+                     */
 
-                    completer.addExportMaskToRemovedVolumeMapping(exportMask.getId(), volumeURIList);
-                    Workflow.Method storageViewRemoveVolume = storageViewRemoveVolumesMethod(vplex.getId(),
-                            exportMask, volumeURIList);
-                    previousStep = workflow.createStep("removeVolumes",
-                            String.format("Removing volumes from export on storage array %s (%s) for export mask %s (%s)",
-                                    vplex.getNativeGuid(), vplex.getId().toString(), exportMask.getMaskName(), exportMask.getId()),
-                            previousStep, vplex.getId(), vplex.getSystemType(),
-                            this.getClass(), storageViewRemoveVolume, rollbackMethodNullMethod(), null);
-
-                    // Add zoning step for removing volumes
-                    List<NetworkZoningParam> zoningParam = NetworkZoningParam.convertExportMasksToNetworkZoningParam(
-                            exportGroup.getId(), Collections.singletonList(exportMask.getId()), _dbClient);
-                    Workflow.Method zoneRemoveVolumesMethod = _networkDeviceController.zoneExportRemoveVolumesMethod(
-                            zoningParam, volumeURIList);
-                    previousStep = workflow.createStep(null, "Zone remove volumes mask: " + exportMask.getMaskName(), 
-                            previousStep, nullURI, "network-system", _networkDeviceController.getClass(),
-                            zoneRemoveVolumesMethod, _networkDeviceController.zoneNullRollbackMethod(), null);
-
-                    hasSteps = true;
-
-                    // this next chunk of code covers the situation where the export mask
+              /*      // this next chunk of code covers the situation where the export mask
                     // is referenced by another export group containing different
                     // volumes.
                     //
@@ -3732,63 +3744,8 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
                     }
                     if (!volumesFromThisMaskAreStillInExportGroup) {
                         completer.addExportMaskToRemove(exportMask.getId());
-                    }
-                } else if (remainingVolumesInMask.isEmpty() && (existingInitiators || existingVolumes)) {
-                    // If all the volumes are getting removed and there are existing
-                    // initiators and existing volumes then remove all the initiators
-                    // as well. Remove initiators method will make sure
-                    // not to remove existing initiators.
-                    _log.info("this mask is empty of ViPR-managed volumes, but has existing volumes ({}) or initiators ({}) "
-                            + "so just removing ViPR-managed volumes and initiators: {}", 
-                            existingVolumes, existingInitiators, exportMask.getMaskName());
-
-                    if (!existingVolumes) {
-                        // create workflow and steps to remove zones and initiators
-                        String completerStepId = workflow.createStepId();
-                        ExportMaskRemoveInitiatorCompleter maskCompleter = new ExportMaskRemoveInitiatorCompleter(
-                                exportURI, exportMask.getId(), URIUtil.toURIList(exportMask.getInitiators()), completerStepId);
-
-                        List<URI> initiatorURIs = URIUtil.toURIList(exportMask.getInitiators());
-
-                        List<Initiator> initiators = _dbClient.queryObject(Initiator.class, initiatorURIs);
-                        String initiatorsForDisplay = Joiner.on(", ").join(
-                                Collections2.transform(initiators, 
-                                        CommonTransformerFunctions.fctnDataObjectToForDisplay()));
-                        errorMessages.append(String.format("One or more initiators would be removed from storage view %s: %s. ",
-                                exportMask.forDisplay(), initiatorsForDisplay));
-
-                        // Create a step to remove initiators from the storage view
-                        Workflow.Method removeInitiatorMethod = storageViewRemoveInitiatorsMethod(vplexURI, exportURI,
-                                exportMask.getId(), initiatorURIs, getTargetURIs(exportMask, initiatorURIs), maskCompleter);
-                        Workflow.Method removeInitiatorRollbackMethod = new Workflow.Method(ROLLBACK_METHOD_NULL);
-                        previousStep = workflow.createStep("storageView", "Removing" + initiatorURIs.toString(),
-                                null, vplexURI, vplex.getSystemType(), this.getClass(),
-                                removeInitiatorMethod, removeInitiatorRollbackMethod, null);
-
-                        hasSteps = true;
-                    }
-
-                    // Remove volumes from the storage view.
-                    completer.addExportMaskToRemovedVolumeMapping(exportMask.getId(), volumeURIList);
-                    Workflow.Method storageViewRemoveVolume = storageViewRemoveVolumesMethod(vplex.getId(),
-                            exportMask, volumeURIList);
-                    previousStep = workflow.createStep("removeVolumes",
-                            String.format("Removing volumes from export on storage array %s (%s) for export mask %s (%s)",
-                                    vplex.getNativeGuid(), vplex.getId().toString(), exportMask.getMaskName(), exportMask.getId()),
-                            previousStep, vplex.getId(), vplex.getSystemType(),
-                            this.getClass(), storageViewRemoveVolume, rollbackMethodNullMethod(), null);
-
-                    // Add zoning step for removing volumes
-                    List<NetworkZoningParam> zoningParam = NetworkZoningParam.convertExportMasksToNetworkZoningParam(
-                            exportGroup.getId(), Collections.singletonList(exportMask.getId()), _dbClient);
-                    Workflow.Method zoneRemoveVolumesMethod = _networkDeviceController.zoneExportRemoveVolumesMethod(
-                            zoningParam, volumeURIList);
-                    previousStep = workflow.createStep(null, "Zone remove volumes mask: " + exportMask.getMaskName(), 
-                            previousStep, nullURI, "network-system", _networkDeviceController.getClass(),
-                            zoneRemoveVolumesMethod, _networkDeviceController.zoneNullRollbackMethod(), null);
-
-                    hasSteps = true;
-                } else {
+                    }*/
+                }  else {
                     _log.info("this mask is empty of ViPR-managed volumes, and there are no existing volumes or initiators, so deleting: "
                             + exportMask.getMaskName());
                     List<NetworkZoningParam> zoningParams = 
@@ -4933,7 +4890,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
         boolean otherExportGroupsPresent = !otherExportGroups.isEmpty();
         boolean removeAllInits = (hostInitiatorURIs.size() >= exportMask.getInitiators().size());
 
-        if (removeAllInits && !exportMask.hasAnyExistingInitiators() && !otherExportGroupsPresent && !exportMask.hasAnyExistingVolumes()) {
+        if (removeAllInits && !exportMask.hasAnyExistingInitiators()  &&  !exportMask.hasAnyExistingVolumes()) {
             _log.info("all initiators are being removed and no "
                     + "other ExportGroups reference ExportMask {}", exportMask.getMaskName());
             _log.info("creating a deleteStorageView workflow step for " + exportMask.getMaskName());
@@ -11363,6 +11320,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
             List<URI> volumeURIs) {
 
         List<URI> volumeURIList = new ArrayList<URI>();
+        //FIX NEEDED : We cannot get all volumes from export Group, if volume URI is null.
         if (volumeURIs == null) {
             _log.info("volumeURIs is null, so get volumes from exportGroup");
             if (exportGroup.getVolumes() != null) {
@@ -11439,6 +11397,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
         }
 
         List<URI> volumesNotInMask = new ArrayList<URI>();
+        //FIX NEEDED : We have to make sure the volume is removed from the export mask and export group if not shared.
         for (URI volumeURI : volumeURIList) {
             if (!exportMask.getVolumes().keySet().contains(volumeURI.toString())) {
                 volumesNotInMask.add(volumeURI);

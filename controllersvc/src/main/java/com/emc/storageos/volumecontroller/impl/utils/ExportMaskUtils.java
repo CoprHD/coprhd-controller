@@ -1093,6 +1093,7 @@ public class ExportMaskUtils {
      */
     public static List<URI> filterVolumesByExportMask(List<URI> volumeURIs, ExportMask exportMask) {
         List<URI> result = new ArrayList<URI>();
+        
         for (URI uri : volumeURIs) {
             if (exportMask.hasVolume(uri)) {
                 result.add(uri);

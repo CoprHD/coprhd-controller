@@ -2212,13 +2212,13 @@ test_host_remove_initiator_event() {
 test_vblock_provision_bare_metal_host() {
     test_name="test_vblock_provision_bare_metal_host"
     echot "Test vblock_provision_bare_metal_host Begins"
-    vblock_failure_injections="failure_060_UcsComputeDevice.createLsServer_createServiceProfileFromTemplate \
+    vblock_failure_injections="failure_073_UcsComputeDevice.createLsServer_createServiceProfileFromTemplate \
                                failure_061_UcsComputeDevice.createLsServer_createServiceProfileFromTemplate_Poll \
                                failure_062_UcsComputeDevice.modifyLsServerNoBoot_setServiceProfileToNoBoot \
                                failure_063_UcsComputeDevice.bindServiceProfileToBlade_bindSPToComputeElement \
                                failure_064_UcsComputeDevice.bindServiceProfileToBlade_ComputeElement_DB_Failure \
                                failure_065_UcsComputeDevice.addHostPortsToVArrayNetworks_varrayAssociatedNetworks_DB_Failure"
-    #vblock_failure_injections="failure_060_UcsComputeDevice.createLsServer_createServiceProfileFromTemplate"
+    #vblock_failure_injections="failure_073_UcsComputeDevice.createLsServer_createServiceProfileFromTemplate"
     common_failure_injections="failure_004_final_step_in_workflow_complete"
     failure_injections="${vblock_failure_injections} ${common_failure_injections}"
 
@@ -2266,13 +2266,13 @@ test_vblock_add_bare_metal_host() {
     test_name="test_vblock_add_bare_metal_host"
     echot "Test vblock_add_bare_metal_host Begins"
 
-    vblock_failure_injections="failure_060_UcsComputeDevice.createLsServer_createServiceProfileFromTemplate \
+    vblock_failure_injections="failure_073_UcsComputeDevice.createLsServer_createServiceProfileFromTemplate \
                                failure_061_UcsComputeDevice.createLsServer_createServiceProfileFromTemplate_Poll \
                                failure_062_UcsComputeDevice.modifyLsServerNoBoot_setServiceProfileToNoBoot \
                                failure_063_UcsComputeDevice.bindServiceProfileToBlade_bindSPToComputeElement \
                                failure_064_UcsComputeDevice.bindServiceProfileToBlade_ComputeElement_DB_Failure \
                                failure_065_UcsComputeDevice.addHostPortsToVArrayNetworks_varrayAssociatedNetworks_DB_Failure"
-    #vblock_failure_injections="failure_060_UcsComputeDevice.createLsServer_createServiceProfileFromTemplate"
+    #vblock_failure_injections="failure_073_UcsComputeDevice.createLsServer_createServiceProfileFromTemplate"
     common_failure_injections="failure_004_final_step_in_workflow_complete"
     failure_injections="${vblock_failure_injections}" # ${common_failure_injections}"
 

@@ -556,7 +556,6 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
     }
 
     $scope.removeStep = function(stepId) {
-        console.log($scope.selectedId+" "+stepId)
         if($scope.selectedId===stepId){
             $scope.selectedId='';
             $scope.closeMenu();

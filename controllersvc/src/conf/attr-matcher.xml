@@ -53,7 +53,7 @@
         <ref bean="softLimitMatcher"/>
         <ref bean="notificationLimitMatcher"/>
         <ref bean="srdfMetroMatcher"/>
-        <ref bean="fileReplicationMatcher" />
+        <ref bean="fileReplicationPolicyMatcher" />
         <ref bean="copyModeMatcher" />
         <ref bean="fileScheduleSnapshotMatcher" />
         <ref bean="bucketquotaMatcher" />

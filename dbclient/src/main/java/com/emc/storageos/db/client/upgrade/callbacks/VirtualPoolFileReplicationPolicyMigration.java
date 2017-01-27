@@ -47,7 +47,7 @@ public class VirtualPoolFileReplicationPolicyMigration extends BaseCustomMigrati
 
     @Override
     public void process() throws MigrationCallbackException {
-        logger.info("Virtual pool file replication policy migration START");
+        logger.info("File Virtual pool to file replication policy migration START");
 
         DbClient dbClient = getDbClient();
         try {
@@ -65,6 +65,7 @@ public class VirtualPoolFileReplicationPolicyMigration extends BaseCustomMigrati
                         && virtualPool.getFileReplicationType() != null
                         && !FileReplicationType.NONE.name().equalsIgnoreCase(virtualPool.getFileReplicationType())) {
 
+                    logger.info("vpool {} has enabled with replication, Creating appropriate file policy.....", virtualPool.getLabel());
                     // Create replication policy
                     FilePolicy replPolicy = new FilePolicy();
                     replPolicy.setId(URIUtil.createId(FilePolicy.class));
@@ -75,6 +76,7 @@ public class VirtualPoolFileReplicationPolicyMigration extends BaseCustomMigrati
                     replPolicy.setFilePolicyName(polName);
                     replPolicy.setFilePolicyType(FilePolicyType.file_replication.name());
                     replPolicy.setFilePolicyVpool(virtualPool.getId());
+                    // Replication policy was created always at file system level!!
                     replPolicy.setApplyAt(FilePolicyApplyLevel.file_system.name());
                     replPolicy.setFileReplicationCopyMode(virtualPool.getFileReplicationCopyMode());
 
@@ -86,6 +88,8 @@ public class VirtualPoolFileReplicationPolicyMigration extends BaseCustomMigrati
                         replPolicy.setScheduleRepeat((long) virtualPool.getFrRpoValue());
                         replPolicy.setScheduleTime("00:00AM");
                         replPolicy.setScheduleFrequency(virtualPool.getFrRpoType().toUpperCase());
+                        // Virtual pool was supporting only Minutes/Hours/Days for RPO type
+                        // Day of the week and month is not applicable!!
                         replPolicy.setScheduleDayOfWeek(NullColumnValueGetter.getNullStr());
                         replPolicy.setScheduleDayOfMonth(0L);
                     }
@@ -93,26 +97,30 @@ public class VirtualPoolFileReplicationPolicyMigration extends BaseCustomMigrati
                     // Create replication topology
                     // set topology reference to policy
                     if (FileReplicationType.REMOTE.name().equalsIgnoreCase(virtualPool.getFileReplicationType())) {
+                        logger.info("Creating replication topology for remote replication vpool {} .....", virtualPool.getLabel());
                         StringSet replicationTopologies = new StringSet();
                         StringSet targetVarrays = new StringSet();
                         Map<URI, VpoolRemoteCopyProtectionSettings> remoteSettings = virtualPool.getRemoteProtectionSettings(virtualPool,
                                 dbClient);
                         if (remoteSettings != null && !remoteSettings.isEmpty()) {
+                            // till now CoprHD supports only single target!!
                             targetVarrays.add(remoteSettings.keySet().iterator().next().toString());
                         }
 
-                        for (String srcvArray : virtualPool.getVirtualArrays()) {
-                            FileReplicationTopology dbReplTopology = new FileReplicationTopology();
-                            dbReplTopology.setId(URIUtil.createId(FileReplicationTopology.class));
-                            dbReplTopology.setPolicy(replPolicy.getId());
-                            dbReplTopology.setSourceVArray(URI.create(srcvArray));
-                            dbReplTopology.setTargetVArrays(targetVarrays);
-                            dbClient.createObject(dbReplTopology);
-                            replicationTopologies.add(dbReplTopology.getId().toString());
+                        if (virtualPool.getVirtualArrays() != null && !virtualPool.getVirtualArrays().isEmpty()) {
+                            for (String srcvArray : virtualPool.getVirtualArrays()) {
+                                FileReplicationTopology dbReplTopology = new FileReplicationTopology();
+                                dbReplTopology.setId(URIUtil.createId(FileReplicationTopology.class));
+                                dbReplTopology.setPolicy(replPolicy.getId());
+                                dbReplTopology.setSourceVArray(URI.create(srcvArray));
+                                dbReplTopology.setTargetVArrays(targetVarrays);
+                                dbClient.createObject(dbReplTopology);
+                                replicationTopologies.add(dbReplTopology.getId().toString());
+                            }
+                            replPolicy.setReplicationTopologies(replicationTopologies);
+                            logger.info("Created {} replication topologies from vpool {}", replicationTopologies.size(),
+                                    virtualPool.getLabel().toString());
                         }
-                        replPolicy.setReplicationTopologies(replicationTopologies);
-                        logger.info("Updating VirtualPool (id={}) with placement policy set to default policy",
-                                virtualPool.getId().toString());
                     }
 
                     // Fetch if there are any file system were provisioned with the vpool
@@ -138,10 +146,12 @@ public class VirtualPoolFileReplicationPolicyMigration extends BaseCustomMigrati
             }
             // Udate DB
             if (!replPolicies.isEmpty()) {
+                logger.info("Created {} replication policies ", replPolicies.size());
                 dbClient.createObject(replPolicies);
             }
 
             if (!modifiedVpools.isEmpty()) {
+                logger.info("Modified {} vpools ", modifiedVpools.size());
                 dbClient.updateObject(modifiedVpools);
             }
         } catch (Exception ex) {
@@ -164,12 +174,14 @@ public class VirtualPoolFileReplicationPolicyMigration extends BaseCustomMigrati
 
     private void updatePolicyStorageResouce(StorageSystem system, FilePolicy filePolicy, FileShare fs) {
 
+        logger.info("Creating policy storage resource for storage {} fs {} and policy {} ", system.getLabel(), fs.getLabel(),
+                filePolicy.getFilePolicyName());
         PolicyStorageResource policyStorageResource = new PolicyStorageResource();
-
         policyStorageResource.setId(URIUtil.createId(PolicyStorageResource.class));
         policyStorageResource.setFilePolicyId(filePolicy.getId());
         policyStorageResource.setStorageSystem(system.getId());
         policyStorageResource.setPolicyNativeId(fs.getName());
+        policyStorageResource.setAppliedAt(fs.getId());
         NASServer nasServer = null;
         if (fs.getVirtualNAS() != null) {
             nasServer = dbClient.queryObject(VirtualNAS.class, fs.getVirtualNAS());
@@ -180,27 +192,17 @@ public class VirtualPoolFileReplicationPolicyMigration extends BaseCustomMigrati
                 nasServer = pNAS;
             }
         }
-        policyStorageResource.setNasServer(nasServer.getId());
-        policyStorageResource.setAppliedAt(fs.getId());
-        policyStorageResource.setNativeGuid(NativeGUIDGenerator.generateNativeGuidForFilePolicyResource(system,
-                nasServer.getNasName(), filePolicy.getFilePolicyType(), fs.getNativeId(), NativeGUIDGenerator.FILE_STORAGE_RESOURCE));
+        if (nasServer != null) {
+            logger.info("Found NAS server {} ", nasServer.getNasName());
+            policyStorageResource.setNasServer(nasServer.getId());
+            policyStorageResource.setNativeGuid(NativeGUIDGenerator.generateNativeGuidForFilePolicyResource(system,
+                    nasServer.getNasName(), filePolicy.getFilePolicyType(), fs.getNativeId(), NativeGUIDGenerator.FILE_STORAGE_RESOURCE));
+        }
+
         dbClient.createObject(policyStorageResource);
 
-        StringSet policyStrgRes = filePolicy.getPolicyStorageResources();
-        if (policyStrgRes == null) {
-            policyStrgRes = new StringSet();
-        }
-        policyStrgRes.add(policyStorageResource.getId().toString());
-        filePolicy.setPolicyStorageResources(policyStrgRes);
-
-        StringSet assignedResources = filePolicy.getAssignedResources();
-        if (assignedResources == null) {
-            assignedResources = new StringSet();
-        }
-        assignedResources.add(fs.getId().toString());
-        filePolicy.setAssignedResources(assignedResources);
-
-        dbClient.createObject(policyStorageResource);
+        filePolicy.addPolicyStorageResources(policyStorageResource.getId());
+        filePolicy.addAssignedResources(fs.getId());
         logger.info("PolicyStorageResource object created successfully for {} ",
                 system.getLabel() + policyStorageResource.getAppliedAt());
     }

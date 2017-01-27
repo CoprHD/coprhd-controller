@@ -113,13 +113,12 @@ report_results() {
     echo ${result} > /tmp/report-result.txt
     echo ${result} >> /root/reliability/results-local-set.db
 
+    echo -e "${result}\n$(cat ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE})" > ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE}
+
     if [ "${REPORT}" = "1" ]; then
 	cat /tmp/report-result.txt | sshpass -p $SYSADMIN_PASSWORD ssh -o StrictHostKeyChecking=no root@${GLOBAL_RESULTS_IP} "cat >> ${GLOBAL_RESULTS_PATH}/${RESULTS_SET_FILE}" > /dev/null 2> /dev/null
-	cat ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE} | sshpass -p $SYSADMIN_PASSWORD ssh -o StrictHostKeyChecking=no root@${GLOBAL_RESULTS_IP} "cat >> ${GLOBAL_RESULTS_PATH}/${GLOBAL_RESULTS_OUTPUT_FILES_SUBDIR}/${TEST_OUTPUT_FILE} ; chmod 777 ${GLOBAL_RESULTS_PATH}/${GLOBAL_RESULTS_OUTPUT_FILES_SUBDIR}/${TEST_OUTPUT_FILE}" > /dev/null 2> /dev/null
+	cat ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE} | sshpass -p $SYSADMIN_PASSWORD ssh -o StrictHostKeyChecking=no root@${GLOBAL_RESULTS_IP} "cat > ${GLOBAL_RESULTS_PATH}/${GLOBAL_RESULTS_OUTPUT_FILES_SUBDIR}/${TEST_OUTPUT_FILE} ; chmod 777 ${GLOBAL_RESULTS_PATH}/${GLOBAL_RESULTS_OUTPUT_FILES_SUBDIR}/${TEST_OUTPUT_FILE}" > /dev/null 2> /dev/null
     fi
-
-    # Since there are no loops in this suite, we can reset counts here.
-    reset_counts
 }
 
 # Determine the mask name, given the storage system and other info
@@ -788,6 +787,43 @@ runcmd() {
 	echo There was a failure | tee -a ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE}
 	incr_fail_count
     fi
+}
+
+# Utility for running a command that is expected to pause.
+# It will fill in variables needed for resume and follow operations
+#
+runcmd_suspend() {
+    testname=$1
+    shift
+    cmd=$*
+    # Run the export group command
+    recho $*
+    resultcmd=`$* 2> /tmp/errors.txt`
+
+    if [ $? -ne 0 ]; then
+	echo "Command was expected to suspend, however it failed outright"
+	incr_fail_count
+	report_results ${testname}
+	return
+    fi
+
+    cat /tmp/errors.txt | tee -a ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE}
+    echo ${resultcmd}
+
+    # Parse results (add checks here!  encapsulate!)
+    taskworkflow=`echo $resultcmd | awk -F, '{print $2 $3}'`
+    answersarray=($taskworkflow)
+    task=${answersarray[0]}
+    workflow=${answersarray[1]}
+}
+
+# Utility for resuming the most recently suspended workflow and following its task
+resume_follow_task() {
+    # Resume the workflow
+    runcmd workflow resume $workflow
+
+    # Follow the task
+    runcmd task follow $task
 }
 
 #counterpart for run
@@ -1777,60 +1813,24 @@ test_1() {
     verify_export ${expname}1 ${HOST1} gone
 
     # Run the export group command
-    recho export_group create $PROJECT ${expname}1 $NH --type Host --volspec ${PROJECT}/${VOLNAME}-1 --hosts "${HOST1}"
-    resultcmd=`export_group create $PROJECT ${expname}1 $NH --type Host --volspec ${PROJECT}/${VOLNAME}-1 --hosts "${HOST1}" 2> /tmp/errors.txt`
+    runcmd_suspend test_1 export_group create $PROJECT ${expname}1 $NH --type Host --volspec ${PROJECT}/${VOLNAME}-1 --hosts "${HOST1}"
 
-    if [ $? -ne 0 ]; then
-	cat /tmp/errors.txt | tee -a ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE}
-	echo "export group command failed outright"
-	incr_fail_count
-	report_results test_1
-	return
-    fi
-
-    echo $resultcmd
-
-    # Parse results (add checks here!  encapsulate!)
-    taskworkflow=`echo $resultcmd | awk -F, '{print $2 $3}'`
-    answersarray=($taskworkflow)
-    task=${answersarray[0]}
-    workflow=${answersarray[1]}
-
-    # Resume the workflow
-    runcmd workflow resume $workflow
-    # Follow the task
-    runcmd task follow $task
+    # Resume the workflow and follow
+    resume_follow_task
     
+    # Perform verifications
     verify_export ${expname}1 ${HOST1} 2 1
 
     # Turn on suspend of export before orchestration
     set_suspend_on_class_method ${exportDeleteOrchStep}
 
-    # Run the export group command
-    recho export_group delete $PROJECT/${expname}1
-    resultcmd=`export_group delete $PROJECT/${expname}1 2> /tmp/errors.txt`
+    # run export group, which is expected to suspend
+    runcmd_suspend test_1 export_group delete $PROJECT/${expname}1
 
-    if [ $? -ne 0 ]; then
-	cat /tmp/errors.txt | tee -a ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE}
-	echo "export group command failed outright"
-	incr_fail_count
-	report_results test_1
-	return
-    fi
+    # resume and follow the task to completion
+    resume_follow_task
 
-    echo $resultcmd
-
-    # Parse results (add checks here!  encapsulate!)
-    taskworkflow=`echo $resultcmd | awk -F, '{print $2 $3}'`
-    answersarray=($taskworkflow)
-    task=${answersarray[0]}
-    workflow=${answersarray[1]}
-
-    # Resume the workflow
-    runcmd workflow resume $workflow
-    # Follow the task
-    runcmd task follow $task
-
+    # Make verifications
     verify_export ${expname}1 ${HOST1} gone
     verify_no_zones ${FC_ZONE_A:7} ${HOST1}
 
@@ -1856,14 +1856,13 @@ test_2() {
     resultcmd=`export_group create $PROJECT ${expname}1 $NH --type Host --volspec ${PROJECT}/${VOLNAME}-1 --hosts "${HOST1}" 2> /tmp/errors.txt`
 
     if [ $? -ne 0 ]; then
-	cat /tmp/errors.txt | tee -a ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE}
 	echo "export group command failed outright"
 	incr_fail_count
 	report_results test_2
 	return
     fi
 
-    echo $resultcmd
+    cat /tmp/errors.txt | tee -a ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE}
 
     echo $resultcmd | grep "suspended" > /dev/null
     if [ $? -ne 0 ]; then
@@ -1894,14 +1893,13 @@ test_2() {
     resultcmd=`export_group delete $PROJECT/${expname}1 2> /tmp/errors.txt`
 
     if [ $? -ne 0 ]; then
-	cat /tmp/errors.txt | tee -a ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE}
 	echo "export group command failed outright"
 	incr_fail_count
 	report_results test_2
 	return
     fi
 
-    echo $resultcmd
+    cat /tmp/errors.txt | tee -a ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE}
 
     echo $resultcmd | grep "suspended" > /dev/null
     if [ $? -ne 0 ]; then
@@ -1979,7 +1977,6 @@ test_3() {
     resultcmd=`export_group delete $PROJECT/${expname}1 2> /tmp/errors.txt`
 
     if [ $? -ne 0 ]; then
-	cat /tmp/errors.txt | tee -a ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE}
 	echo "export group command failed outright"
 	incr_fail_count
 	report_results test_3
@@ -1987,7 +1984,7 @@ test_3() {
     fi
 
     # Show the result of the export group command for now (show the task and WF IDs)
-    echo $resultcmd
+    cat /tmp/errors.txt | tee -a ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE}
 
     # Parse results (add checks here!  encapsulate!)
     taskworkflow=`echo $resultcmd | awk -F, '{print $2 $3}'`
@@ -2098,7 +2095,6 @@ test_4() {
     resultcmd=`export_group delete $PROJECT/${expname}1 2> /tmp/errors.txt`
 
     if [ $? -ne 0 ]; then
-	cat /tmp/errors.txt | tee -a ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE}
 	echo "export group command failed outright"
 	incr_fail_count
 	report_results test_4
@@ -2106,7 +2102,7 @@ test_4() {
     fi
 
     # Show the result of the export group command for now (show the task and WF IDs)
-    echo $resultcmd
+    cat /tmp/errors.txt | tee -a ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE}
 
     # Parse results (add checks here!  encapsulate!)
     taskworkflow=`echo $resultcmd | awk -F, '{print $2 $3}'`
@@ -2146,7 +2142,6 @@ test_4() {
     resultcmd=`export_group delete $PROJECT/${expname}1 2> /tmp/errors.txt`
 
     if [ $? -ne 0 ]; then
-	cat /tmp/errors.txt | tee -a ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE}
 	echo "export group command failed outright"
 	incr_fail_count
 	report_results test_4
@@ -2154,7 +2149,7 @@ test_4() {
     fi
 
     # Show the result of the export group command for now (show the task and WF IDs)
-    echo $resultcmd
+    cat /tmp/errors.txt | tee -a ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE}
 
     # Parse results (add checks here!  encapsulate!)
     taskworkflow=`echo $resultcmd | awk -F, '{print $2 $3}'`
@@ -2247,7 +2242,6 @@ test_5() {
     resultcmd=`export_group update $PROJECT/${expname}1 --remVols ${PROJECT}/${VOLNAME}-2 2> /tmp/errors.txt`
 
     if [ $? -ne 0 ]; then
-	cat /tmp/errors.txt | tee -a ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE}
 	secho "export group command failed outright"
 	incr_fail_count
 	report_results test_5
@@ -2255,7 +2249,7 @@ test_5() {
     fi
 
     # Show the result of the export group command for now (show the task and WF IDs)
-    echo $resultcmd
+    cat /tmp/errors.txt | tee -a ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE}
 
     # Parse results (add checks here!  encapsulate!)
     taskworkflow=`echo $resultcmd | awk -F, '{print $2 $3}'`
@@ -2290,7 +2284,6 @@ test_5() {
         resultcmd=`export_group update $PROJECT/${expname}1 --remVols "${PROJECT}/${VOLNAME}-2" 2> /tmp/errors.txt`
 
         if [ $? -ne 0 ]; then
-	    cat /tmp/errors.txt | tee -a ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE}
 	    secho "export group command failed outright"
 	    incr_fail_count
 	    report_results test_4
@@ -2298,7 +2291,7 @@ test_5() {
         fi
 
         # Show the result of the export group command for now (show the task and WF IDs)
-        echo $resultcmd
+	cat /tmp/errors.txt | tee -a ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE}
 
         # Parse results (add checks here!  encapsulate!)
         taskworkflow=`echo $resultcmd | awk -F, '{print $2 $3}'`
@@ -2408,7 +2401,6 @@ test_6() {
     resultcmd=`export_group update $PROJECT/${expname}1 --remInits ${HOST1}/${H1PI1} 2> /tmp/errors.txt`
 
     if [ $? -ne 0 ]; then
-	cat /tmp/errors.txt | tee -a ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE}
 	secho "export group command failed outright"
 	incr_fail_count
 	report_results test_6
@@ -2416,7 +2408,7 @@ test_6() {
     fi
 
     # Show the result of the export group command for now (show the task and WF IDs)
-    echo $resultcmd
+    cat /tmp/errors.txt | tee -a ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE}
 
     # Parse results (add checks here!  encapsulate!)
     taskworkflow=`echo $resultcmd | awk -F, '{print $2 $3}'`
@@ -2481,7 +2473,6 @@ test_6() {
     resultcmd=`export_group update $PROJECT/${expname}1 --remInits ${HOST1}/${H1PI1} 2> /tmp/errors.txt`
 
     if [ $? -ne 0 ]; then
-	cat /tmp/errors.txt | tee -a ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE}
 	secho "export group command failed outright"
 	incr_fail_count
 	report_results test_6
@@ -2489,7 +2480,7 @@ test_6() {
     fi
 
     # Show the result of the export group command for now (show the task and WF IDs)
-    echo $resultcmd
+    cat /tmp/errors.txt | tee -a ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE}
 
     # Parse results (add checks here!  encapsulate!)
     taskworkflow=`echo $resultcmd | awk -F, '{print $2 $3}'`
@@ -2696,7 +2687,6 @@ test_9() {
     resultcmd=`export_group update $PROJECT/${expname}1 --addVols ${PROJECT}/${VOLNAME}-2 2> /tmp/errors.txt`
 
     if [ $? -ne 0 ]; then
-	cat /tmp/errors.txt | tee -a ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE}
 	secho "export group command failed outright"
 	incr_fail_count
 	report_results test_9
@@ -2704,7 +2694,7 @@ test_9() {
     fi
 
     # Show the result of the export group command for now (show the task and WF IDs)
-    echo $resultcmd
+    cat /tmp/errors.txt | tee -a ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE}
 
     # Parse results (add checks here!  encapsulate!)
     taskworkflow=`echo $resultcmd | awk -F, '{print $2 $3}'`
@@ -2849,7 +2839,6 @@ test_11() {
     resultcmd=`export_group update $PROJECT/${expname}1 --addVols ${PROJECT}/${VOLNAME}-2 2> /tmp/errors.txt`
 
     if [ $? -ne 0 ]; then
-	cat /tmp/errors.txt | tee -a ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE}
 	secho "export group command failed outright"
 	incr_fail_count
 	report_results test_11
@@ -2857,7 +2846,7 @@ test_11() {
     fi
 
     # Show the result of the export group command for now (show the task and WF IDs)
-    echo $resultcmd
+    cat /tmp/errors.txt | tee -a ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE}
 
     # Parse results (add checks here!  encapsulate!)
     taskworkflow=`echo $resultcmd | awk -F, '{print $2 $3}'`
@@ -2995,7 +2984,6 @@ test_13() {
     resultcmd=`export_group update $PROJECT/${expname}1 --addVols ${PROJECT}/${VOLNAME}-2 2> /tmp/errors.txt`
 
     if [ $? -ne 0 ]; then
-	cat /tmp/errors.txt | tee -a ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE}
 	secho "export group command failed outright"
 	incr_fail_count
 	report_results test_13
@@ -3003,7 +2991,7 @@ test_13() {
     fi
 
     # Show the result of the export group command for now (show the task and WF IDs)
-    echo $resultcmd
+    cat /tmp/errors.txt | tee -a ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE}
 
     # Parse results (add checks here!  encapsulate!)
     taskworkflow=`echo $resultcmd | awk -F, '{print $2 $3}'`
@@ -3099,7 +3087,6 @@ test_14() {
     resultcmd=`export_group update $PROJECT/${expname}1 --addInits ${HOST1}/${H1PI1} 2> /tmp/errors.txt`
 
     if [ $? -ne 0 ]; then
-	cat /tmp/errors.txt | tee -a ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE}
 	secho "export group command failed outright"
 	incr_fail_count
 	report_results test_14
@@ -3107,7 +3094,7 @@ test_14() {
     fi
 
     # Show the result of the export group command for now (show the task and WF IDs)
-    echo $resultcmd
+    cat /tmp/errors.txt | tee -a ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE}
 
     # Parse results (add checks here!  encapsulate!)
     taskworkflow=`echo $resultcmd | awk -F, '{print $2 $3}'`
@@ -3191,7 +3178,6 @@ test_15() {
     resultcmd=`export_group update $PROJECT/${expname}1 --addInits ${HOST1}/${H1PI2} 2> /tmp/errors.txt`
 
     if [ $? -ne 0 ]; then
-	cat /tmp/errors.txt | tee -a ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE}
 	secho "export group command failed outright"
 	incr_fail_count
 	report_results test_15
@@ -3199,7 +3185,7 @@ test_15() {
     fi
 
     # Show the result of the export group command for now (show the task and WF IDs)
-    echo $resultcmd
+    cat /tmp/errors.txt | tee -a ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE}
 
     # Parse results (add checks here!  encapsulate!)
     taskworkflow=`echo $resultcmd | awk -F, '{print $2 $3}'`
@@ -3302,7 +3288,6 @@ test_16() {
     resultcmd=`export_group create $PROJECT ${expname}1 $NH --type Host --volspec ${PROJECT}/${VOLNAME}-1 --hosts "${HOST1}" 2> /tmp/errors.txt`
 
     if [ $? -ne 0 ]; then
-	cat /tmp/errors.txt | tee -a ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE}
 	secho "export group command failed outright"
 	incr_fail_count
 	report_results test_16
@@ -3310,7 +3295,7 @@ test_16() {
     fi
 
     # Show the result of the export group command for now (show the task and WF IDs)
-    echo $resultcmd
+    cat /tmp/errors.txt | tee -a ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE}
 
     # Parse results (add checks here!  encapsulate!)
     taskworkflow=`echo $resultcmd | awk -F, '{print $2 $3}'`
@@ -3411,7 +3396,6 @@ test_17() {
     resultcmd=`export_group delete $PROJECT/${expname}1 2> /tmp/errors.txt`
 
     if [ $? -ne 0 ]; then
-	cat /tmp/errors.txt | tee -a ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE}
 	secho "export group command failed outright"
 	incr_fail_count
 	report_results test_17
@@ -3419,7 +3403,7 @@ test_17() {
     fi
 
     # Show the result of the export group command for now (show the task and WF IDs)
-    echo $resultcmd
+    cat /tmp/errors.txt | tee -a ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE}
 
     # Parse results (add checks here!  encapsulate!)
     taskworkflow=`echo $resultcmd | awk -F, '{print $2 $3}'`
@@ -3502,7 +3486,6 @@ test_18() {
     resultcmd=`export_group update $PROJECT/${expname}1 --remVols ${PROJECT}/${VOLNAME}-2 2> /tmp/errors.txt`
 
     if [ $? -ne 0 ]; then
-	cat /tmp/errors.txt | tee -a ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE}
 	secho "export group command failed outright"
 	incr_fail_count
 	report_results test_18
@@ -3510,7 +3493,7 @@ test_18() {
     fi
 
     # Show the result of the export group command for now (show the task and WF IDs)
-    echo $resultcmd
+    cat /tmp/errors.txt | tee -a ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE}
 
     # Parse results (add checks here!  encapsulate!)
     taskworkflow=`echo $resultcmd | awk -F, '{print $2 $3}'`
@@ -3591,7 +3574,6 @@ test_19() {
     resultcmd=`export_group update $PROJECT/${expname}1 --remInits ${HOST1}/${H1PI1} 2> /tmp/errors.txt`
 
     if [ $? -ne 0 ]; then
-	cat /tmp/errors.txt | tee -a ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE}
 	secho "export group command failed outright"
 	incr_fail_count
 	report_results test_19
@@ -3599,7 +3581,7 @@ test_19() {
     fi
 
     # Show the result of the export group command for now (show the task and WF IDs)
-    echo $resultcmd
+    cat /tmp/errors.txt | tee -a ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE}
 
     # Parse results (add checks here!  encapsulate!)
     taskworkflow=`echo $resultcmd | awk -F, '{print $2 $3}'`
@@ -3693,15 +3675,14 @@ test_20() {
     resultcmd=`export_group update $PROJECT/${expname}1 --remVols ${PROJECT}/${VOLNAME}-2 2> /tmp/errors.txt`
 
     if [ $? -ne 0 ]; then
-	cat /tmp/errors.txt | tee -a ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE}
 	secho "export group command failed outright"
 	incr_fail_count
 	report_results test_20
 	return
     fi
 
-	# Show the result of the export group command for now (show the task and WF IDs)
-    echo $resultcmd
+    # Show the result of the export group command for now (show the task and WF IDs)
+    cat /tmp/errors.txt | tee -a ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE}
 
     # Parse results (add checks here!  encapsulate!)
     taskworkflow=`echo $resultcmd | awk -F, '{print $2 $3}'`
@@ -3795,7 +3776,6 @@ test_21() {
     resultcmd=`export_group update $PROJECT/${expname}1 --remInits ${HOST1}/${H1PI1} 2> /tmp/errors.txt`
 
     if [ $? -ne 0 ]; then
-	cat /tmp/errors.txt | tee -a ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE}
 	secho "export group command failed outright"
 	incr_fail_count
 	report_results test_21
@@ -3803,7 +3783,7 @@ test_21() {
     fi
 
     # Show the result of the export group command for now (show the task and WF IDs)
-    echo $resultcmd
+    cat /tmp/errors.txt | tee -a ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE}
 
     # Parse results (add checks here!  encapsulate!)
     taskworkflow=`echo $resultcmd | awk -F, '{print $2 $3}'`
@@ -3891,7 +3871,6 @@ test_22() {
     resultcmd=`volume change_cos ${PROJECT}/${HIJACK} ${VPOOL_BASE}_migration_tgt --suspend 2> /tmp/errors.txt`
 
     if [ $? -ne 0 ]; then
-	cat /tmp/errors.txt | tee -a ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE}
 	echo "volume change_cos command failed outright"
 	incr_fail_count
 	report_results test_22
@@ -3899,7 +3878,7 @@ test_22() {
     fi
 
     # Show the result of the export group command for now (show the task and WF IDs)
-    echo $resultcmd
+    cat /tmp/errors.txt | tee -a ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE}
 
     # Parse results (add checks here!  encapsulate!)
     taskworkflow=`echo $resultcmd | awk -F, '{print $2 $3}'`
@@ -3970,7 +3949,6 @@ test_23() {
     resultcmd=`volume change_cos "${PROJECT}/${HIJACK}-1,${PROJECT}/${HIJACK}-2" ${VPOOL_BASE}_migration_tgt --consistencyGroup=${CGNAME} --suspend 2> /tmp/errors.txt`
 
     if [ $? -ne 0 ]; then
-	cat /tmp/errors.txt | tee -a ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE}
 	echo "volume change_cos_multi command failed outright"
 	incr_fail_count
 	report_results test_23
@@ -3978,7 +3956,7 @@ test_23() {
     fi
 
     # Show the result of the export group command for now (show the task and WF IDs)
-    echo $resultcmd
+    cat /tmp/errors.txt | tee -a ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE}
 
     # Parse results (add checks here!  encapsulate!)
     taskworkflow=`echo $resultcmd | awk -F, '{print $2 $3}'`
@@ -4837,6 +4815,7 @@ then
       reset_system_props
       prerun_tests
       TEST_OUTPUT_FILE=test_output_${RANDOM}.log
+      reset_counts
       $t
       reset_system_props
    done
@@ -4853,6 +4832,7 @@ else
      reset_system_props
      prerun_tests
      TEST_OUTPUT_FILE=test_output_${RANDOM}.log
+     reset_counts
      test_${num}
      reset_system_props
      num=`expr ${num} + 1`

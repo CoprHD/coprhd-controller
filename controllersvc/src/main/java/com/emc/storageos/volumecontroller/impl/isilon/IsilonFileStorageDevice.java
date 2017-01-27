@@ -104,6 +104,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
     private static final String EXPORT_OP_NAME = "Snapshot Export";
     private static final String SHARE_OP_NAME = "Snapshot Share";
     public static final long SEC_IN_MILLI = 1000L;
+    private static final String STR_WITH_NO_SPECIAL_SYMBOLS = "[^A-Za-z0-9_\\-/]";
 
     private IsilonApiFactory _factory;
     private HashMap<String, String> configinfo;
@@ -2909,10 +2910,10 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         return isiMatchedPolicy;
     }
 
-    public String getNameWithNoSpecialCharacters(String str) {
+    private String getNameWithNoSpecialCharacters(String str) {
         // Custom configuration using the below regular expression to generate name with no special symbols.
         // Using the same here.
-        String regex = "[^A-Za-z0-9_\\-/]";
+        String regex = STR_WITH_NO_SPECIAL_SYMBOLS;
         return str.replaceAll(regex, "");
     }
 

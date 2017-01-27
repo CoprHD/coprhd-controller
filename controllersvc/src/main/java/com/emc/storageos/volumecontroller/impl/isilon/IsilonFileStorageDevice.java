@@ -2755,7 +2755,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                         targetPath = targetPath + "_localTarget";
                     }
                     // Get the target smart connect zone!!
-                    targetHost = FileOrchestrationUtils.getTargetHostForReplication(_dbClient, targetFS);
+                    targetHost = FileOrchestrationUtils.getTargetHostPortForReplication(_dbClient, targetFS);
                 }
                 IsilonSyncPolicy isiSynIQPolicy = getEquivalentIsilonSyncIQPolicy(isi, sourcePath);
 
@@ -2767,7 +2767,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                             filePolicy, args, sourcePath)) {
                         _log.info("Isilon policy found for {}, creating policy storage resouce to further management",
                                 filePolicy.getFilePolicyName());
-                        FileOrchestrationUtils.updatePolicyStorageResouce(_dbClient, storageObj, filePolicy,
+                        FileOrchestrationUtils.updatePolicyStorageResource(_dbClient, storageObj, filePolicy,
                                 args, sourcePath, isiSynIQPolicy.getName());
                     }
                     return BiosCommandResult.createSuccessfulResult();
@@ -2789,7 +2789,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                     String policyId = isi.createReplicationPolicy(policy);
                     if (policyId != null) {
                         _log.info("Isilon File Policy {} created successfully.", policyId);
-                        FileOrchestrationUtils.updatePolicyStorageResouce(_dbClient, storageObj, filePolicy, args, sourcePath, policyName);
+                        FileOrchestrationUtils.updatePolicyStorageResource(_dbClient, storageObj, filePolicy, args, sourcePath, policyName);
                         return BiosCommandResult.createSuccessfulResult();
                     }
                 }
@@ -2805,7 +2805,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                             filePolicy, args, path)) {
                         _log.info("Isilon snapshot policy found for {}, creating policy storage resouce to further management",
                                 filePolicy.getFilePolicyName());
-                        FileOrchestrationUtils.updatePolicyStorageResouce(_dbClient, storageObj, filePolicy,
+                        FileOrchestrationUtils.updatePolicyStorageResource(_dbClient, storageObj, filePolicy,
                                 args, path, isiSnapshotSch.getName());
                     }
                     _log.info("File Policy {} is already applied and running.", filePolicy.getFilePolicyName());

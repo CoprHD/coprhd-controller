@@ -133,7 +133,7 @@ public class FilePolicyApiTest extends ApiTestBase {
         return param;
     }
 
-    // @Test
+    @Test
     public void testFileSnapshotPolicyCreate() {
 
         FilePolicyCreateParam param = new FilePolicyCreateParam();
@@ -169,7 +169,7 @@ public class FilePolicyApiTest extends ApiTestBase {
 
     }
 
-    // @Test
+    @Test
     public void testCreatePolicyWithoutName() {
         FilePolicyCreateParam param = new FilePolicyCreateParam();
         ClientResponse createFilePolicyResp = rSys.path(FILE_POLICIES).post(ClientResponse.class,
@@ -177,7 +177,7 @@ public class FilePolicyApiTest extends ApiTestBase {
         Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, createFilePolicyResp.getStatus());
     }
 
-    // @Test
+    @Test
     public void testCreatePolicyWithInValidApplyAt() {
         FilePolicyCreateParam param = new FilePolicyCreateParam();
         param.setPolicyName(filePolicyName);
@@ -189,7 +189,7 @@ public class FilePolicyApiTest extends ApiTestBase {
         Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, createFilePolicyResp.getStatus());
     }
 
-    // @Test
+    @Test
     public void testCreatePolicyWithInValidPolicyType() {
         FilePolicyCreateParam param = new FilePolicyCreateParam();
         param.setPolicyName(filePolicyName);
@@ -201,7 +201,7 @@ public class FilePolicyApiTest extends ApiTestBase {
         Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, createFilePolicyResp.getStatus());
     }
 
-    // @Test
+    @Test
     public void testCreatePolicyWithInValidPolicyScheduleFrequency() {
 
         FilePolicyCreateParam param = new FilePolicyCreateParam();
@@ -224,7 +224,7 @@ public class FilePolicyApiTest extends ApiTestBase {
         Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, createFilePolicyResp.getStatus());
     }
 
-    // @Test
+    @Test
     public void testCreatePolicyWithInValidPolicyScheduleRepeat() {
         FilePolicyCreateParam param = new FilePolicyCreateParam();
         setFilePolicyMandatoryParams(param);
@@ -247,7 +247,7 @@ public class FilePolicyApiTest extends ApiTestBase {
         Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, createFilePolicyResp.getStatus());
     }
 
-    // @Test
+    @Test
     public void testCreatePolicyWithInValidPolicyScheduleTime() {
         FilePolicyCreateParam param = new FilePolicyCreateParam();
         setFilePolicyMandatoryParams(param);
@@ -270,7 +270,7 @@ public class FilePolicyApiTest extends ApiTestBase {
         Assert.assertEquals(createFilePolicyResp.toString(), HttpStatus.SC_BAD_REQUEST, createFilePolicyResp.getStatus());
     }
 
-    // @Test
+    @Test
     public void testCreatePolicyWithInValidPolicyScheduleDayOfWeek() {
         FilePolicyCreateParam param = new FilePolicyCreateParam();
         setFilePolicyMandatoryParams(param);
@@ -294,7 +294,7 @@ public class FilePolicyApiTest extends ApiTestBase {
         Assert.assertEquals(createFilePolicyResp.toString(), HttpStatus.SC_BAD_REQUEST, createFilePolicyResp.getStatus());
     }
 
-    // @Test
+    @Test
     public void testCreatePolicyWithInValidPolicyScheduleDayOfMonth() {
         FilePolicyCreateParam param = new FilePolicyCreateParam();
         setFilePolicyMandatoryParams(param);
@@ -318,7 +318,7 @@ public class FilePolicyApiTest extends ApiTestBase {
         Assert.assertEquals(createFilePolicyResp.toString(), HttpStatus.SC_BAD_REQUEST, createFilePolicyResp.getStatus());
     }
 
-    // @Test
+    @Test
     public void testCreateSnapshotPolicyInvalidExpireType() {
         FilePolicyCreateParam param = new FilePolicyCreateParam();
         setFilePolicyMandatoryParams(param);
@@ -339,7 +339,7 @@ public class FilePolicyApiTest extends ApiTestBase {
         Assert.assertEquals(createFilePolicyResp.toString(), HttpStatus.SC_BAD_REQUEST, createFilePolicyResp.getStatus());
     }
 
-    // @Test
+    @Test
     public void testCreateSnapshotPolicyInvalidExpireValue() {
         FilePolicyCreateParam param = new FilePolicyCreateParam();
         setFilePolicyMandatoryParams(param);
@@ -361,7 +361,7 @@ public class FilePolicyApiTest extends ApiTestBase {
         Assert.assertEquals(createFilePolicyResp.toString(), HttpStatus.SC_BAD_REQUEST, createFilePolicyResp.getStatus());
     }
 
-    // @Test
+    @Test
     public void testCreateSnapshotPolicyWithoutParams() {
         FilePolicyCreateParam param = new FilePolicyCreateParam();
         setFilePolicyMandatoryParams(param);
@@ -384,14 +384,14 @@ public class FilePolicyApiTest extends ApiTestBase {
         Assert.assertEquals(createFilePolicyResp.toString(), HttpStatus.SC_BAD_REQUEST, createFilePolicyResp.getStatus());
     }
 
-    // @Test
+    @Test
     public void testGetFileSnapshotPolicy() {
         FilePolicyRestRep fileSnapshotPolicyResp = rSys.path(getFilePolicyURI(createdFileSnapshotPolicyURI)).get(FilePolicyRestRep.class);
         Assert.assertNotNull(fileSnapshotPolicyResp);
         Assert.assertTrue(createdFileSnapshotPolicyURI.equals(fileSnapshotPolicyResp.getId()));
     }
 
-    // @Test
+    @Test
     public void testListFileSnapshotPolicies() {
         FilePolicyListRestRep filePolicyListResp = rSys.path(FILE_POLICIES).get(FilePolicyListRestRep.class);
         Assert.assertNotNull(filePolicyListResp);

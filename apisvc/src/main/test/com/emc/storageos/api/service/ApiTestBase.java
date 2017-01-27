@@ -83,7 +83,7 @@ public class ApiTestBase {
     protected static final String ROOTTENANT_NAME = "Root Provider Tenant";
 
     protected static final String SYSADMIN = "root";
-    protected static final String SYSADMIN_PASS_WORD = "Mudit420#";
+    protected static final String SYSADMIN_PASS_WORD = "ChangeMe";
 
     protected static final String SYSMONITOR = "sysmonitor";
     protected static final String SYSMONITOR_PASS_WORD = "ChangeMe1!";

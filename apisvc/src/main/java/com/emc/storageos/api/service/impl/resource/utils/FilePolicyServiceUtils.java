@@ -331,8 +331,10 @@ public final class FilePolicyServiceUtils {
             return true;
 
         } else if (vPool.getFileReplicationSupported()) {
+            capabilities.put(VirtualPoolCapabilityValuesWrapper.FILE_REPLICATION_TYPE, FileReplicationType.NONE.name());
             errorMsg.append("No replication policy assigned at any level for virtual pool ").append(vPool.getLabel());
-            return false;
+            _log.warn(errorMsg.toString());
+            return true;
         }
         return false;
     }

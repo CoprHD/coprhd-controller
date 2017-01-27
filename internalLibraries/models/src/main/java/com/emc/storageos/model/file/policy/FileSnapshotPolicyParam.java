@@ -48,7 +48,7 @@ public class FileSnapshotPolicyParam implements Serializable {
         this.snapshotExpireParams = snapshotExpireParams;
     }
 
-    @XmlElement(name = "policy_schedule")
+    @XmlElement(required = true, name = "policy_schedule")
     public FilePolicyScheduleParams getPolicySchedule() {
         return this.policySchedule;
     }

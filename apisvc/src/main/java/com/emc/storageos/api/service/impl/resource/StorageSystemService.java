@@ -452,7 +452,7 @@ public class StorageSystemService extends TaskResourceService {
         // (COP-22167) Create DecommissionedResource object only if the system is actively managed by a storage provider.
         // Otherwise, the created decommissioned object will not be cleared when the provider is removed and added back.
         if (StringUtils.isNotBlank(system.getNativeGuid()) && system.isStorageSystemManagedByProvider()
-                && system.getActiveProviderURI() != null) {
+                && !NullColumnValueGetter.isNullURI(system.getActiveProviderURI())) {
             DecommissionedResource oldStorage = null;
             List<URI> oldResources = _dbClient.queryByConstraint(AlternateIdConstraint.Factory.getDecommissionedResourceIDConstraint(id
                     .toString()));
@@ -476,14 +476,13 @@ public class StorageSystemService extends TaskResourceService {
                 oldStorage.setId(URIUtil.createId(DecommissionedResource.class));
                 _dbClient.createObject(oldStorage);
             }
-            if (system.getActiveProviderURI() != null) {
-                StorageProvider provider = _dbClient.queryObject(StorageProvider.class, system.getActiveProviderURI());
-                if (provider != null) {
-                    StringSet providerDecomSys = new StringSet();
-                    providerDecomSys.add(oldStorage.getId().toString());
-                    provider.setDecommissionedSystems(providerDecomSys);
-                    _dbClient.updateObject(provider);
-                }
+
+            StorageProvider provider = _dbClient.queryObject(StorageProvider.class, system.getActiveProviderURI());
+            if (provider != null) {
+                StringSet providerDecomSys = new StringSet();
+                providerDecomSys.add(oldStorage.getId().toString());
+                provider.setDecommissionedSystems(providerDecomSys);
+                _dbClient.updateObject(provider);
             }
         }
 

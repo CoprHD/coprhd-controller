@@ -28,16 +28,15 @@ import com.google.common.base.Joiner;
 public class FileReplicationMatcher extends AttributeMatcher {
 
     private static final Logger _logger = LoggerFactory.getLogger(FileReplicationMatcher.class);
-    private static final String CHECKPOINT_SCHEDULE = "checkpoint_schedule";
 
     @Override
     public List<StoragePool> matchStoragePoolsWithAttributeOn(List<StoragePool> pools, Map<String, Object> attributeMap,
             StringBuffer errorMessage) {
         _logger.info("FileReplicationMatcher Started : {}", Joiner.on("\t").join(getNativeGuidFromPools(pools)));
 
-        Boolean schedule = (Boolean) attributeMap.get(Attributes.file_snapshot_supported.toString());
+        Boolean replicationRequired = (Boolean) attributeMap.get(Attributes.file_replication_supported.toString());
         // if replication flag is not true do not filter the pool.
-        if (!schedule) {
+        if (!replicationRequired) {
             return pools;
         }
         List<StoragePool> matchedPools = new ArrayList<StoragePool>();

@@ -151,29 +151,23 @@ public class ExportMaskUtils {
      */
     public static List<ExportMask> getExportMasksForStorageSystem(DbClient dbClient, URI ssysURI) {
 
-        // NOTE for release 3.5:
-        // This could be replaced with the existing ContainmentConstraint.getStorageDeviceExportMaskConstraint
-        // method, but that method doesn't work at run time due to a missing index on the storageDevice field 
-        // in the ExportMask column family.  It was too late to introduce a schema change into ViPR 3.5. 
-        // -beachn
-
         List<ExportMask> returnMasks = new ArrayList<ExportMask>();
         if (!URIUtil.isValid(ssysURI)) {
-            _log.warn("invalid URI: {}", ssysURI);
+            _log.warn("invalid storage system URI: {}", ssysURI);
             return returnMasks;
         }
 
-        List<URI> exportMaskUris = dbClient.queryByType(ExportMask.class, true);
-        List<ExportMask> exportMasks = dbClient.queryObject(ExportMask.class, exportMaskUris);
-        for (ExportMask exportMask : exportMasks) {
-            if (exportMask == null || exportMask.getInactive()) {
-                continue;
-            }
-            if (URIUtil.identical(ssysURI, exportMask.getStorageDevice())) {
+        URIQueryResultList exportMaskUris = new URIQueryResultList();
+        dbClient.queryByConstraint(ContainmentConstraint.Factory.getStorageDeviceExportMaskConstraint(ssysURI), exportMaskUris);
+        Iterator<ExportMask> exportMaskIterator = dbClient.queryIterativeObjects(ExportMask.class, exportMaskUris, true);
+        while (exportMaskIterator.hasNext()) {
+            ExportMask exportMask = exportMaskIterator.next();
+            if (null != exportMask) {
                 returnMasks.add(exportMask);
             }
         }
 
+        _log.info("found {} export masks for storage system {}", returnMasks.size(), ssysURI);
         return returnMasks;
     }
 

@@ -5,6 +5,7 @@
 package util;
 
 import java.util.List;
+import java.util.Map;
 
 import com.emc.vipr.model.sys.backup.BackupRestoreStatus;
 import com.emc.vipr.model.sys.backup.BackupSets.BackupSet;
@@ -63,5 +64,15 @@ public class BackupUtils {
 
     public static BackupRestoreStatus getRestoreStatus(String name, boolean isLocal) {
         return BourneUtil.getSysClient().backup().getRestoreStatus(name, isLocal);
+    }
+
+    public static boolean isExternalServerConfigured() {
+        Map<String, String> propInfo = ConfigPropertyUtils.getPropertiesFromCoordinator();
+        return !(propInfo.get(ConfigProperty.BACKUP_EXTERNAL_URL).equals(""));
+    }
+
+    public static boolean isScheduledBackupEnabled() {
+        Map<String, String> propInfo = ConfigPropertyUtils.getPropertiesFromCoordinator();
+        return (propInfo.get(ConfigProperty.BACKUP_SCHEDULER_ENABLE).equals("true"));
     }
 }

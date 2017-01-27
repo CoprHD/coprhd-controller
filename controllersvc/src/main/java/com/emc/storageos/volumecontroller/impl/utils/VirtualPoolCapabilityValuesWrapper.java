@@ -214,7 +214,7 @@ public class VirtualPoolCapabilityValuesWrapper implements Serializable {
         }
 
         if (capabilities.contains(FILE_REPLICATION_TARGET_VARRAYS)) {
-            _vpoolCapabilities.put(FILE_REPLICATION_TARGET_VARRAYS, capabilities.getFileReplicationTargetVArray());
+            _vpoolCapabilities.put(FILE_REPLICATION_TARGET_VARRAYS, capabilities.getFileReplicationTargetVArrays());
         }
 
         if (capabilities.contains(FILE_REPLICATION_TARGET_VPOOL)) {
@@ -320,7 +320,7 @@ public class VirtualPoolCapabilityValuesWrapper implements Serializable {
         return value != null ? (String) value : null;
     }
 
-    public Set<String> getFileReplicationTargetVArray() {
+    public Set<String> getFileReplicationTargetVArrays() {
         Object value = _vpoolCapabilities.get(FILE_REPLICATION_TARGET_VARRAYS);
         return value != null ? (Set<String>) value : null;
     }

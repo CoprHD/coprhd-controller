@@ -1515,6 +1515,12 @@ public class VNXeStorageDevice extends VNXeOperations
     }
 
     @Override
+    public Set<Integer> findHLUsForInitiators(StorageSystem storage, List<String> initiatorNames, boolean mustHaveAllPorts) {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    @Override
     public ExportMask refreshExportMask(StorageSystem storage, ExportMask mask) throws DeviceControllerException {
         // TODO Auto-generated method stub
         return null;

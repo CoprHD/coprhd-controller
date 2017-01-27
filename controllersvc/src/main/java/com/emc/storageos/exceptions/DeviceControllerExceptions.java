@@ -7,6 +7,7 @@ package com.emc.storageos.exceptions;
 
 import java.net.URI;
 import java.util.Collection;
+import java.util.Map;
 
 import com.emc.storageos.ceph.CephExceptions;
 import com.emc.storageos.cinder.errorhandling.CinderExceptions;
@@ -271,6 +272,9 @@ public interface DeviceControllerExceptions {
     public DeviceControllerException createFileSystemOnPhysicalNASDisabled();
 
     @DeclareServiceCode(ServiceCode.FILE_CONTROLLER_ERROR)
+    public DeviceControllerException noNasServerFoundToAddStepsToApplyPolicy(final String storage);
+
+    @DeclareServiceCode(ServiceCode.FILE_CONTROLLER_ERROR)
     public DeviceControllerException unableToConnectToStorageDeviceForMonitoringDbException(
             final String storage, final Throwable cause);
 
@@ -367,10 +371,9 @@ public interface DeviceControllerExceptions {
     @DeclareServiceCode(ServiceCode.CONTROLLER_ENTITY_NOT_FOUND)
     public DeviceControllerException virtualArrayNotFound();
 
-    @DeclareServiceCode(ServiceCode
-            .CONTROLLER_VMAX_MULTIPLE_MATCHING_COMPUTE_RESOURCE_MASKS)
+    @DeclareServiceCode(ServiceCode.CONTROLLER_VMAX_MULTIPLE_MATCHING_COMPUTE_RESOURCE_MASKS)
     public DeviceControllerException
-    vmaxMultipleMatchingComputeResourceMasks(String maskNames);
+            vmaxMultipleMatchingComputeResourceMasks(String maskNames);
 
     @DeclareServiceCode(ServiceCode.CONTROLLER_ERROR_ASSIGNING_STORAGE_PORTS)
     public DeviceControllerException
@@ -488,6 +491,12 @@ public interface DeviceControllerExceptions {
     @DeclareServiceCode(ServiceCode.BLOCK_CONTROLLER_ERROR)
     public DeviceControllerException exportGroupInconsistentLunViolation(final String exportGroupName, final String details);
 
+    @DeclareServiceCode(ServiceCode.BLOCK_CONTROLLER_ERROR)
+    public DeviceControllerException volumeExportReachedMaximumHlu(final String details);
+
+    @DeclareServiceCode(ServiceCode.BLOCK_CONTROLLER_ERROR)
+    public DeviceControllerException volumeExportMaximumHluNotAvailable(final String systemType);
+
     @DeclareServiceCode(ServiceCode.CONTROLLER_VALIDATION_EXCEPTION)
     public DeviceControllerException validationError(final String type, final String details, final String remediationAction);
 
@@ -505,6 +514,9 @@ public interface DeviceControllerExceptions {
 
     @DeclareServiceCode(ServiceCode.CONTROLLER_VALIDATION_EXCEPTION)
     public DeviceControllerException removeInitiatorValidationError(String initiatorsName, String storageSystemName, String details);
+
+    @DeclareServiceCode(ServiceCode.BLOCK_CONTROLLER_ERROR)
+    public DeviceControllerException addHostHLUViolation(Map<String, Integer> volumeHluPair);
 
     @DeclareServiceCode(ServiceCode.CONTROLLER_VALIDATION_EXCEPTION)
     public DeviceControllerException removeVolumesValidationError(String volumeNames, String storageSystemName, String details);

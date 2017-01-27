@@ -244,6 +244,9 @@ public interface DeviceControllerErrors {
     public ServiceError unassignFilePolicyFailed(final String Uri, final String operationName, final Throwable cause);
 
     @DeclareServiceCode(ServiceCode.CONTROLLER_JOB_ERROR)
+    public ServiceError noNasServerFoundToAddStepsToApplyPolicy(final String system);
+
+    @DeclareServiceCode(ServiceCode.CONTROLLER_JOB_ERROR)
     public ServiceError removeVolumeFromMaskFailed(final String volumeURIs);
 
     @DeclareServiceCode(ServiceCode.CONTROLLER_JOB_ERROR)

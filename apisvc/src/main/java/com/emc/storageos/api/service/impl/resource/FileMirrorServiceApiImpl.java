@@ -307,9 +307,9 @@ public class FileMirrorServiceApiImpl extends AbstractFileServiceApiImpl<FileMir
                 preparedFileSystems.add(sourceFileShare);
 
                 List<VirtualArray> virtualArrayTargets = new ArrayList<VirtualArray>();
-                if (cosCapabilities.getFileReplicationTargetVArray() != null
-                        & !cosCapabilities.getFileReplicationTargetVArray().isEmpty()) {
-                    for (String strVarray : cosCapabilities.getFileReplicationTargetVArray()) {
+                if (cosCapabilities.getFileReplicationTargetVArrays() != null
+                        & !cosCapabilities.getFileReplicationTargetVArrays().isEmpty()) {
+                    for (String strVarray : cosCapabilities.getFileReplicationTargetVArrays()) {
                         virtualArrayTargets.add(_dbClient.queryObject(VirtualArray.class, URI.create(strVarray)));
                     }
                 }
@@ -318,6 +318,8 @@ public class FileMirrorServiceApiImpl extends AbstractFileServiceApiImpl<FileMir
 
                     if (cosCapabilities.getFileReplicationTargetVPool() != null) {
                         targetVpool = _dbClient.queryObject(VirtualPool.class, cosCapabilities.getFileReplicationTargetVPool());
+                    } else {
+                        targetVpool = vpool;
                     }
 
                     // Stripping out the special characters like ; /-+!@#$%^&())";:[]{}\ | but allow underscore character _

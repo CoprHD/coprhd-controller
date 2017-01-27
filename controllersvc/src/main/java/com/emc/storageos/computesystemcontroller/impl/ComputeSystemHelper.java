@@ -8,6 +8,7 @@ import java.net.URI;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -79,10 +80,11 @@ public class ComputeSystemHelper {
         List<URI> uris = dbClient.queryByConstraint(
                 ContainmentConstraint.Factory.getContainedObjectsConstraint(id, clzz, linkField));
         if (uris != null && !uris.isEmpty()) {
-            List<T> dataObjects = dbClient.queryObjectField(clzz, nameField, uris);
+            Iterator<T> dataObjects = dbClient.queryIterativeObjectField(clzz, nameField, uris);
             List<NamedElementQueryResultList.NamedElement> elements =
-                    new ArrayList<NamedElementQueryResultList.NamedElement>(dataObjects.size());
-            for (T dataObject : dataObjects) {
+                    new ArrayList<NamedElementQueryResultList.NamedElement>();
+            while (dataObjects.hasNext()) {
+                T dataObject = dataObjects.next();
                 Object name = DataObjectUtils.getPropertyValue(clzz, dataObject, nameField);
                 elements.add(NamedElementQueryResultList.NamedElement.createElement(
                         dataObject.getId(), name == null ? "" : name.toString()));
@@ -578,12 +580,15 @@ public class ComputeSystemHelper {
     }
 
     public static void updateInitiatorClusterName(DbClient dbClient, URI clusterURI, URI hostURI) {
-        Cluster cluster = dbClient.queryObject(Cluster.class, clusterURI);
+        Cluster cluster = null;
+        if (!NullColumnValueGetter.isNullURI(clusterURI)) {
+            cluster = dbClient.queryObject(Cluster.class, clusterURI);
+        }
         List<Initiator> initiators = ComputeSystemHelper.queryInitiators(dbClient, hostURI);
         for (Initiator initiator : initiators) {
-            initiator.setClusterName(cluster != null ? cluster.getLabel() : "");
+            initiator.setClusterName(cluster != null ? cluster.getLabel() : "null");
         }
-        dbClient.persistObject(initiators);
+        dbClient.updateObject(initiators);
     }
 
     public static void updateInitiatorHostName(DbClient dbClient, Host host) {
@@ -591,7 +596,7 @@ public class ComputeSystemHelper {
         for (Initiator initiator : initiators) {
             initiator.setHostName(host.getHostName());
         }
-        dbClient.persistObject(initiators);
+        dbClient.updateObject(initiators);
     }
 
     /**

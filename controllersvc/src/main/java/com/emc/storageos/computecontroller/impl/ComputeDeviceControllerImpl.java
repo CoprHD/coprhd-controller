@@ -581,12 +581,14 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
 
             waitFor = workflow.createStep(DEACTIVATION_MAINTENANCE_MODE,
                     "If synced with vCenter, put the host in maintenance mode", waitFor, cs.getId(),
-                    cs.getSystemType(), this.getClass(), new Workflow.Method("putHostInMaintenanceMode", hostId), null,
+                    cs.getSystemType(), this.getClass(), new Workflow.Method("putHostInMaintenanceMode", hostId),
+                    new Workflow.Method(ROLLBACK_NOTHING_METHOD),
                     null);
 
             waitFor = workflow.createStep(DEACTIVATION_REMOVE_HOST_VCENTER,
                     "If synced with vCenter, remove the host from the cluster", waitFor, cs.getId(),
-                    cs.getSystemType(), this.getClass(), new Workflow.Method("removeHostFromVcenterCluster", hostId), null,
+                    cs.getSystemType(), this.getClass(), new Workflow.Method("removeHostFromVcenterCluster", hostId),
+                    new Workflow.Method(ROLLBACK_NOTHING_METHOD),
                     null);
         }
 
@@ -606,7 +608,7 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
              */
             if (host == null){
                  log.error("No host found with Id: "+ hostId);
-            } else{
+            } else {
                  log.info("Host: " + host.getLabel() + " has no associated computeElement. So skipping service profile and boot volume deletion steps");
             }
             return waitFor;
@@ -624,12 +626,13 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
             waitFor = workflow.createStep(DEACTIVATION_COMPUTE_SYSTEM_HOST, "Unbind blade from service profile",
                     waitFor, cs.getId(), cs.getSystemType(), this.getClass(), new Workflow.Method(
                             "deactiveComputeSystemHost", cs.getId(), hostId),
-                    null, null);
+                    new Workflow.Method(ROLLBACK_NOTHING_METHOD), null);
 
             if (deactivateBootVolume && host.getBootVolumeId() != null) {
                 waitFor = workflow.createStep(DEACTIVATION_COMPUTE_SYSTEM_BOOT_VOLUME,
                         "Delete the boot volume for the host", waitFor, cs.getId(), cs.getSystemType(),
-                        this.getClass(), new Workflow.Method("deleteBlockVolume", hostId), null, null);
+                        this.getClass(), new Workflow.Method("deleteBlockVolume", hostId),
+                        new Workflow.Method(ROLLBACK_NOTHING_METHOD), null);
             } else if (!deactivateBootVolume) {
                  log.info("flag deactivateBootVolume set to false");
             } else if (host.getBootVolumeId() == null){

@@ -43,6 +43,16 @@ except AttributeError:
 
 URI_SERVICES_BASE               = ''
 URI_CATALOG                     = URI_SERVICES_BASE + '/catalog'
+URI_CATALOG_SERVICES            = URI_CATALOG + '/services'
+URI_CATALOG_SERVICE             = URI_CATALOG_SERVICES + '/{0}'
+URI_CATALOG_SERVICE_SEARCH      = URI_CATALOG_SERVICES + '/search'
+URI_CATALOG_SERVICE_SEARCH_NAME = URI_CATALOG_SERVICE_SEARCH + '?name={0}'
+URI_CATALOG_CATEGORIES          = URI_CATALOG + '/categories'
+URI_CATALOG_CATEGORY            = URI_CATALOG_CATEGORIES + '/{0}'
+URI_CATALOG_CATEGORY_UPGRADE    = URI_CATALOG_CATEGORIES + '/upgrade?tenantId={0}'
+URI_CATALOG_ORDERS              = URI_CATALOG + '/orders'
+URI_CATALOG_ORDER               = URI_CATALOG_ORDERS + '/{0}'
+
 URI_CATALOG_VPOOL                 = URI_CATALOG       + '/vpools'
 URI_CATALOG_VPOOL_FILE            = URI_CATALOG_VPOOL   + '/file'
 URI_CATALOG_VPOOL_BLOCK           = URI_CATALOG_VPOOL   + '/block'
@@ -141,6 +151,7 @@ URI_TASK                    = URI_VDC    + "/tasks"
 URI_TASK_GET                = URI_TASK   + '/{0}'
 URI_TASK_LIST               = URI_TASK
 URI_TASK_LIST_SYSTEM        = URI_TASK   + "?tenant=system"
+URI_TASK_DELETE             = URI_TASK_GET + '/delete'
 
 URI_EVENT                   = URI_VDC    + "/events"
 URI_EVENT_GET               = URI_EVENT    + '/{0}'
@@ -355,6 +366,7 @@ URI_EXPORTGROUP_SEARCH_PROJECT  = URI_EXPORTGROUP_LIST + '/search?project={0}'
 
 URI_HOSTS                       = URI_SERVICES_BASE   + '/compute/hosts'
 URI_HOST                        = URI_SERVICES_BASE   + '/compute/hosts/{0}'
+URI_HOST_DEACTIVATE             = URI_HOST            + '/deactivate?detach_storage={1}'
 URI_HOSTS_BULKGET               = URI_HOSTS           + '/bulk'
 URI_HOST_INITIATORS             = URI_SERVICES_BASE   + '/compute/hosts/{0}/initiators'
 URI_HOST_IPINTERFACES           = URI_SERVICES_BASE   + '/compute/hosts/{0}/ip-interfaces'
@@ -377,6 +389,7 @@ URI_VCENTERS_BULKGET            = URI_VCENTERS        + '/bulk'
 URI_VCENTER_DATACENTERS         = URI_VCENTER         + '/vcenter-data-centers'
 URI_CLUSTERS                    = URI_SERVICES_BASE   + '/compute/clusters'
 URI_CLUSTER                     = URI_SERVICES_BASE   + '/compute/clusters/{0}'
+URI_CLUSTER_DEACTIVATE          = URI_CLUSTER         + '/deactivate?detach-storage={1}'
 URI_CLUSTERS_BULKGET            = URI_CLUSTERS        + '/bulk'
 URI_DATACENTERS                 = URI_SERVICES_BASE   + '/compute/vcenter-data-centers'
 URI_DATACENTER                  = URI_SERVICES_BASE   + '/compute/vcenter-data-centers/{0}'
@@ -3626,6 +3639,9 @@ class Bourne:
 
     def get_db_repair_status(self):
         return self.api('GET', URI_DB_REPAIR)
+
+    def task_delete(self,uri):
+        return self.api('POST', URI_TASK_DELETE.format(uri))
 
     def task_list(self):
         return self.api('GET', URI_TASK_LIST)
@@ -8319,9 +8335,73 @@ class Bourne:
         uri = self.cluster_query(name)
         return self.api('GET', URI_CLUSTER.format(uri))
 
-    def cluster_delete(self, name):
+    def cluster_delete(self, name, detachstorage):
         uri = self.cluster_query(name)
-        return self.api('POST', URI_RESOURCE_DEACTIVATE.format(URI_CLUSTER.format(uri)))
+        o = self.api('POST', URI_CLUSTER_DEACTIVATE.format(uri, detachstorage))
+        self.assert_is_dict(o)
+        s = self.api_sync_2(o['resource']['id'], o['id'], self.cluster_show_task)
+        return (o,s)
+  
+    def cluster_show_task(self, uri, task):
+        uri_cluster_task = URI_CLUSTER + '/tasks/{1}'
+        return self.api('GET', uri_cluster_task.format(uri, task))
+
+
+   
+    # Service Catalog 
+    def catalog_search(self, servicename, tenant):
+        catalog_services = self.api('GET', URI_CATALOG_SERVICE_SEARCH_NAME.format(servicename))
+        for catalog_service in catalog_services['resource']:
+            service = self.catalog_service_query(catalog_service['id'])
+            category = self.catalog_category_query(service['catalog_category']['id'])
+            if category['tenant']['id'] == tenant and service['name'] == servicename:
+                return service 
+        raise Exception('unable to find service ' + servicename + ' in tenant ' + tenant)
+
+    def catalog_category_query(self, id):
+        return self.api('GET', URI_CATALOG_CATEGORY.format(id))
+
+    def catalog_service_query(self, id):
+        return self.api('GET', URI_CATALOG_SERVICE.format(id))
+
+    def __catalog_poll(self, id):
+        executing = True
+        orderstatus = ""
+        while executing:
+            order = self.api('GET', URI_CATALOG_ORDER.format(id))
+            orderstatus = order['order_status']
+            if orderstatus != 'PENDING' and orderstatus != 'EXECUTING':
+                executing = False
+            else:
+                time.sleep(5)
+        if orderstatus == 'ERROR':
+            raise Exception('error during catalog order')
+        return order
+
+    def catalog_upgrade(self, tenant):
+        tenant = self.__tenant_id_from_label(tenant)
+        return self.api('POST', URI_CATALOG_CATEGORY_UPGRADE.format(tenant))
+ 
+    def catalog_order(self, servicename, tenant, parameters):
+        tenant = self.__tenant_id_from_label(tenant)
+        self.catalog_upgrade(tenant)
+        service = self.catalog_search(servicename, tenant) 
+        parms = { 'tenantId': tenant,
+                  'catalog_service': service['id']
+                }
+
+        ordervalues = [] 
+
+        for parameter in parameters.split(','):
+            values = parameter.split('=')
+            ordervalues.append({ 'label':values[0],
+                                 'value': values[1]
+                              })
+
+        parms['parameters'] = ordervalues
+
+        order = self.api('POST', URI_CATALOG_ORDERS, parms)
+        return self.__catalog_poll(order['id'])
 
     #
     # Compute Resources - Host
@@ -8400,9 +8480,12 @@ class Bourne:
         uri = self.host_query(name)
         return self.api('GET', URI_HOST.format(uri))
 
-    def host_delete(self, name):
+    def host_delete(self, name, detachstorage):
         uri = self.host_query(name)
-        return self.api('POST', URI_RESOURCE_DEACTIVATE.format(URI_HOST.format(uri)))
+        o = self.api('POST', URI_HOST_DEACTIVATE.format(uri, detachstorage))
+        self.assert_is_dict(o)
+        s = self.api_sync_2(o['resource']['id'], o['id'], self.host_show_task)
+        return (o,s)
 
     def initiator_show_tasks(self, uri):
         uri_initiator_task = URI_INITIATORS + '/tasks'

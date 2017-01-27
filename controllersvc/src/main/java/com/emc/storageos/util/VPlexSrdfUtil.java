@@ -4,18 +4,17 @@
  */
 package com.emc.storageos.util;
 
-import static com.emc.storageos.db.client.constraint.AlternateIdConstraint.Factory.getVolumesByAssociatedId;
 
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.Volume;
-import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 
 /**
@@ -35,8 +34,13 @@ public class VPlexSrdfUtil {
      */
     static public Volume getSrdfVolumeFromVplexVolume(DbClient dbClient, Volume vplexVolume) {
         if (null != vplexVolume.getAssociatedVolumes()) {
-            for (String assocVolumeId : vplexVolume.getAssociatedVolumes()) {
-                Volume assocVolume = dbClient.queryObject(Volume.class, URI.create(assocVolumeId));
+            List<URI> volumeUriList = new ArrayList<>();
+            for (String associatedVolumeId : vplexVolume.getAssociatedVolumes()) {
+                volumeUriList.add(URI.create(associatedVolumeId));
+            }
+            Iterator<Volume> volumes = dbClient.queryIterativeObjects(Volume.class, volumeUriList, true);
+            while (volumes.hasNext()) {
+                Volume assocVolume = volumes.next();
                 if (assocVolume == null || assocVolume.getInactive()) {
                     continue;
                 }
@@ -87,16 +91,14 @@ public class VPlexSrdfUtil {
      */
     static public StringSet getSrdfOrVplexTargets(DbClient dbClient, Volume srdfVolume) {
         StringSet targets = new StringSet();
-        for (String target : srdfVolume.getSrdfTargets()) {
-            Volume srdfTarget = dbClient.queryObject(Volume.class, URI.create(target));
-            if (srdfTarget == null) { 
-                continue;
-            }
-            Volume vplexTarget = getVplexVolumeFromSrdfVolume(dbClient, srdfTarget);
-            if (vplexTarget != null) {
-                targets.add(vplexTarget.getId().toString());
+        
+        for (String targetVolumeId : srdfVolume.getSrdfTargets()) {
+            URI srdfTargetUri = URI.create(targetVolumeId);
+            URI vplexTargetUri = Volume.fetchVplexVolume(dbClient, srdfTargetUri);
+            if (vplexTargetUri != null) {
+                targets.add(vplexTargetUri.toString());
             } else {
-                targets.add(srdfTarget.getId().toString());
+                targets.add(srdfTargetUri.toString());
             }
         }
         return targets;

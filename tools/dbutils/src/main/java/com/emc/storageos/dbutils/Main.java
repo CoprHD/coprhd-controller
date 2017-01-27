@@ -42,7 +42,8 @@ public class Main {
         CHECK_DB,
         REPAIR_DB,
         REBUILD_INDEX,
-        RUN_MIGRATION_CALLBACK
+        RUN_MIGRATION_CALLBACK,
+        DUMP_ORDERS
     };
 
     private static final String TYPE_EVENTS = "events";
@@ -275,6 +276,10 @@ public class Main {
                     _client.init();
                     handler = new RunMigrationCallback(args);
                     break;    
+                case DUMP_ORDERS:
+                    _client.init();
+                    handler = new DumpOrdersHandler(args);
+                    break;
                 default:
                     throw new IllegalArgumentException("Invalid command ");
             }

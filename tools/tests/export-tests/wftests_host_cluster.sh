@@ -404,6 +404,10 @@ change_host_cluster() {
     discover_vcenter $vcenter
 }
 
+get_pending_task() {
+    echo $(task list | grep pending | awk '{print $1}')
+}
+
 get_pending_event() {
     echo $(events list emcworld | grep pending | awk '{print $1}')
 } 
@@ -688,9 +692,13 @@ test_move_clustered_host_to_another_cluster() {
         runcmd initiator create ${host2} FC ${init4} --node ${node4}
     
         # Export the volumes to the fake clusters    
-        runcmd export_group create $PROJECT ${exportgroup1} $NH --type Cluster --volspec ${PROJECT}/${volume1} --clusters ${TENANT}/${cluster1}
         runcmd export_group create $PROJECT ${exportgroup2} $NH --type Cluster --volspec ${PROJECT}/${volume2} --clusters ${TENANT}/${cluster2}
-        
+       
+        # Snap DB
+        snap_db 2 "${column_family[@]}"
+
+        runcmd export_group create $PROJECT ${exportgroup1} $NH --type Cluster --volspec ${PROJECT}/${volume1} --clusters ${TENANT}/${cluster1}
+ 
         # Double check the export groups to ensure the initiators are present
         foundinit1=`export_group show $PROJECT/${exportgroup1} | grep ${init1}`
         foundinit2=`export_group show $PROJECT/${exportgroup1} | grep ${init2}`
@@ -721,6 +729,12 @@ test_move_clustered_host_to_another_cluster() {
             set_artificial_failure ${failure}
             fail hosts update $host1 --cluster ${TENANT}/${cluster2}
             
+            # Snap DB
+            snap_db 3 "${column_family[@]}"
+
+            # Validate DB
+            validate_db 2 3 "${column_family[@]}"
+
             # Verify injected failures were hit
             verify_failures ${failure}
             # Let the async jobs calm down
@@ -826,10 +840,10 @@ test_move_clustered_host_to_another_cluster() {
         runcmd export_group delete $PROJECT/${exportgroup2}
         
         # Snap DB
-        snap_db 2 "${column_family[@]}"
+        snap_db 4 "${column_family[@]}"
     
         # Validate DB
-        validate_db 1 2 "${column_family[@]}"
+        validate_db 1 4 "${column_family[@]}"
 
         # Report results
         report_results ${test_name} ${failure}
@@ -1923,6 +1937,225 @@ test_move_non_clustered_discovered_host_to_cluster() {
     #runcmd volume delete ${PROJECT}/${volume2} --wait
 }
 
+test_delete_host() {
+    test_name="test_delete_host"
+    echot "Test test_delete_host"
+    host=fakehost-${RANDOM}
+    exclusive_export=${host}
+ 
+    cfs=("ExportGroup ExportMask Network Host Initiator")
+
+    common_failure_injections="failure_004_final_step_in_workflow_complete \
+                               failure_027_host_cluster_ComputeSystemControllerImpl.deleteExportGroup_before_delete \
+                               failure_028_host_cluster_ComputeSystemControllerImpl.deleteExportGroup_after_delete"
+    
+    fake_pwwn1=`randwwn`
+    fake_nwwn1=`randwwn`
+
+    volume1=${VOLNAME}-1
+
+    # Add initator WWNs to the network
+    run transportzone add $NH/${FC_ZONE_A} ${fake_pwwn1}
+            
+    failure_injections="${HAPPY_PATH_TEST_INJECTION} ${common_failure_injections}"
+
+    for failure in ${failure_injections}
+    do
+        if [ ${failure} == ${HAPPY_PATH_TEST_INJECTION} ]; then
+            secho "Running happy path test for delete host..."
+        else    
+            secho "Running delete host with failure scenario: ${failure}..."
+        fi    
+       
+        TEST_OUTPUT_FILE=test_output_${RANDOM}.log
+        reset_counts
+        item=${RANDOM}
+        mkdir -p results/${item}
+        #cluster1_export=clusterexport-${item}
+
+        snap_db 1 "${cfs[@]}"
+
+        # Create fake host
+        runcmd hosts create $host $TENANT Esx ${host}.lss.emc.com --port 1
+
+        # Create new initators and add to fakehost
+        runcmd initiator create $host FC ${fake_pwwn1} --node ${fake_nwwn1}
+
+        runcmd export_group create $PROJECT ${exclusive_export} $NH --type Host --volspec ${PROJECT}/${volume1} --hosts ${host}
+ 
+        snap_db 2 "${cfs[@]}"
+
+        move_host="false"
+        if [ ${failure} == ${HAPPY_PATH_TEST_INJECTION} ]; then
+            # Move the host to first cluster
+            #runcmd hosts update ${host} --cluster ${TENANT}/${cluster1}
+            runcmd hosts delete ${host} --detachstorage true
+        else    
+            # Turn on failure at a specific point
+            set_artificial_failure ${failure}
+            
+            # Move the host to the cluster
+            fail hosts delete ${host} --detachstorage true
+   
+            if [[ $(export_contains $PROJECT/$exclusive_export $host) == "" ]]; then
+               echo "Failure: Host ${host} removed from export ${exclusive_export}"  
+
+               # Report results
+               incr_fail_count
+               if [ "${NO_BAILING}" != "1" ]; then
+                   report_results ${test_name} ${failure}
+                   finish -1
+               fi
+            fi
+ 
+            # Rerun the command
+            set_artificial_failure none
+
+            # Retry move the host to first cluster
+            runcmd hosts delete ${host} --detachstorage true          
+        fi
+     
+        # make sure no pending tasks
+        TASK_ID=$(get_pending_task)
+        if [[ ! -z "$TASK_ID" ]];
+        then
+            echo "+++ FAIL - Pending task ${TASK_ID} found"
+            runcmd task delete ${TASK_ID}
+
+            # Report results
+            incr_fail_count
+            if [ "${NO_BAILING}" != "1" ]
+            then
+                report_results ${test_name} ${failure}
+                exit 1
+            fi
+        fi
+
+        snap_db 4 "${cfs[@]}"  
+
+        # Validate that nothing was left behind
+        validate_db 1 4 "${cfs[@]}"
+
+        # Report results
+        report_results ${test_name} ${failure}
+  
+    done
+}
+
+test_delete_cluster() {
+    test_name="test_delete_cluster"
+    echot "Test test_delete_cluster"
+    host1=fakehost-1-${RANDOM}
+    host2=fakehost-2-${RANDOM}
+    cluster=fakecluster-${RANDOM}
+    cluster_export=${cluster}
+ 
+    cfs=("ExportGroup ExportMask Network Host Initiator Cluster")
+
+    common_failure_injections="failure_004_final_step_in_workflow_complete \
+                               failure_027_host_cluster_ComputeSystemControllerImpl.deleteExportGroup_before_delete \
+                               failure_028_host_cluster_ComputeSystemControllerImpl.deleteExportGroup_after_delete"
+ 
+    fake_pwwn1=`randwwn`
+    fake_nwwn1=`randwwn`
+    fake_pwwn2=`randwwn`
+    fake_nwwn2=`randwwn`
+
+    volume1=${VOLNAME}-1
+
+    # Add initator WWNs to the network
+    run transportzone add $NH/${FC_ZONE_A} ${fake_pwwn1}
+    run transportzone add $NH/${FC_ZONE_A} ${fake_pwwn2}
+            
+    failure_injections="${HAPPY_PATH_TEST_INJECTION} ${common_failure_injections}"
+
+    # Create fake host
+    runcmd hosts create $host1 $TENANT Esx ${host1}.lss.emc.com --port 1 
+    runcmd hosts create $host2 $TENANT Esx ${host2}.lss.emc.com --port 1
+
+    # Create new initators and add to fakehost
+    runcmd initiator create $host1 FC ${fake_pwwn1} --node ${fake_nwwn1}
+    runcmd initiator create $host2 FC ${fake_pwwn2} --node ${fake_nwwn2}
+
+    for failure in ${failure_injections}
+    do
+        if [ ${failure} == ${HAPPY_PATH_TEST_INJECTION} ]; then
+            secho "Running happy path test for delete cluster..."
+        else    
+            secho "Running delete cluster with failure scenario: ${failure}..."
+        fi    
+       
+        TEST_OUTPUT_FILE=test_output_${RANDOM}.log
+        reset_counts
+        item=${RANDOM}
+        mkdir -p results/${item}
+        #cluster1_export=clusterexport-${item}
+
+        snap_db 1 "${cfs[@]}"
+       
+        runcmd cluster create $cluster $TENANT
+
+        runcmd hosts update $host1 --cluster ${TENANT}/${cluster}
+        runcmd hosts update $host2 --cluster ${TENANT}/${cluster}
+ 
+        runcmd export_group create $PROJECT ${cluster_export} $NH --type Cluster --volspec ${PROJECT}/${volume1} --cluster ${TENANT}/${cluster}
+ 
+        snap_db 2 "${cfs[@]}"
+
+        move_host="false"
+        if [ ${failure} == ${HAPPY_PATH_TEST_INJECTION} ]; then
+            # Move the host to first cluster
+            #runcmd hosts update ${host} --cluster ${TENANT}/${cluster1}
+            runcmd cluster delete ${TENANT}/${cluster} --detachstorage true
+        else    
+            # Turn on failure at a specific point
+            set_artificial_failure ${failure}
+            
+            fail cluster delete ${TENANT}/${cluster} --detachstorage true
+   
+            if [[ $(export_contains $PROJECT/$cluster_export $cluster) == "" ]]; then
+               echo "Failure: Cluster ${cluster} removed from export ${cluster_export}"  
+
+               # Report results
+               incr_fail_count
+               if [ "${NO_BAILING}" != "1" ]; then
+                   report_results ${test_name} ${failure}
+                   finish -1
+               fi
+            fi
+ 
+            # Rerun the command
+            set_artificial_failure none
+
+            # Retry move the host to first cluster
+            runcmd cluster delete ${TENANT}/${cluster} --detachstorage true          
+        fi
+        
+        # make sure no pending tasks
+        TASK_ID=$(get_pending_task)
+        if [[ ! -z "$TASK_ID" ]];
+        then
+            echo "+++ FAIL - Pending task ${TASK_ID} found"
+            runcmd task delete ${TASK_ID}
+
+            # Report results
+            incr_fail_count
+            if [ "${NO_BAILING}" != "1" ]
+            then
+                report_results ${test_name} ${failure}
+                exit 1
+            fi
+        fi
+   
+        snap_db 4 "${cfs[@]}"
+
+        # Validate that nothing was left behind
+        validate_db 1 4 "${cfs[@]}"
+
+        # Report results
+        report_results ${test_name} ${failure}
+    done
+}
 
 test_host_remove_initiator_event() {
     test_name="test_host_remove_initiator_event"
@@ -1984,4 +2217,3 @@ test_host_remove_initiator_event() {
     # Report results
     report_results ${test_name} ${failure}
 }
-

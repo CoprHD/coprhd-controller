@@ -66,6 +66,8 @@ import com.google.common.collect.Collections2;
 import com.google.common.collect.Sets;
 import com.google.common.collect.TreeMultimap;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 public class ExportUtils {
 
     // Logger
@@ -605,6 +607,32 @@ public class ExportUtils {
             }
         }
         return sharedExportMaskNameList;
+    }
+
+    /**
+     * Check if initiator is used by multiple masks of same storage array
+     *
+     * @param dbClient DbClient
+     * @param mask ExportMask
+     * @initiatorUri URI of initiator
+     * @return true if shared by multiple masks, otherwise false
+     */
+    public static boolean isInitiatorSharedByMasks(DbClient dbClient, ExportMask mask, URI initiatorUri) {
+        URI storageUri = mask.getStorageDevice();
+        if (NullColumnValueGetter.isNullURI(storageUri)) {
+            return false;
+        }
+
+        List<ExportMask> results =
+                CustomQueryUtility.queryActiveResourcesByConstraint(dbClient, ExportMask.class,
+                        ContainmentConstraint.Factory.getConstraint(ExportMask.class, "initiators", initiatorUri));
+        for (ExportMask exportMask : results) {
+            if (exportMask != null && !exportMask.getId().equals(mask.getId()) && storageUri.equals(exportMask.getStorageDevice())) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     static public int getNumberOfExportGroupsWithVolume(Initiator initiator, URI blockObjectId, DbClient dbClient) {
@@ -2095,6 +2123,57 @@ public class ExportUtils {
                     dbClient.updateObject(exportMask);
                 }
             }
+        }
+    }
+
+    /**
+     * Routine examines the passed in ExportGroup to see if any of the BlockObject URIs
+     * referenced in its volumes are referenced in any of its associated ExportMasks.
+     * If it is not, then this completer should clean up references to the volumes in
+     * the ExportGroup.
+     *
+     * @param dbClient      DbClient Object used for accessing DB.
+     * @param exportGroup   ExportGroup object to examine and update.
+     * @param volumes       Volume URIs being removed.
+     */
+    public static void removeVolumesFromExportGroup(DbClient dbClient, ExportGroup exportGroup, Collection<URI> volumes) {
+        checkNotNull(dbClient);
+        checkNotNull(exportGroup);
+        checkNotNull(volumes);
+
+        // Populate a a set of volumes that should be removed and a set of
+        // volumes that were found to be in one of the associated ExportMasks
+        Set<URI> copyOfVolumes = new HashSet<>(volumes); // Initially have all the volumes
+        Set<URI> volumesInAnExportMask = new HashSet<>();
+        for (ExportMask associatedMask : ExportMaskUtils.getExportMasks(dbClient, exportGroup)) {
+            if (associatedMask.getVolumes() != null) {
+                for (URI volumeURI : ExportMaskUtils.getVolumeURIs(associatedMask)) {
+                    if (volumes.contains(volumeURI)) {
+                        volumesInAnExportMask.add(volumeURI);
+                        // Remove the volumes from _volumes copy
+                        copyOfVolumes.remove(volumeURI);
+                    }
+                }
+            }
+        }
+
+        if (!volumesInAnExportMask.isEmpty()) {
+            _log.info(String.
+                    format("The following volumes are in an ExportMask associated with ExportGroup %s (%s): %s",
+                            exportGroup.getLabel(), exportGroup.getId(), Joiner.on(',').join(volumesInAnExportMask)));
+        }
+
+        // Anything that's remaining in the copy is a volume that was not
+        // found in any of the associated ExportMasks.
+        if (!copyOfVolumes.isEmpty()) {
+            for (URI uri : copyOfVolumes) {
+                exportGroup.removeVolume(uri);
+            }
+            dbClient.updateObject(exportGroup);
+            _log.info(String.
+                    format("The following volumes were removed from ExportGroup %s (%s): %s",
+                            exportGroup.getLabel(), exportGroup.getId(),
+                            Joiner.on(',').join(copyOfVolumes)));
         }
     }
 }

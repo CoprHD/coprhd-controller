@@ -201,8 +201,6 @@ public class XtremIOMaskingOrchestrator extends AbstractBasicMaskingOrchestrator
                     if (exportMask.getStorageDevice().equals(storageURI)) {
                         refreshExportMask(storage, getDevice(), exportMask);
                         log.info("export_volume_add: adding volume to an existing export");
-                        exportMask.addVolumes(volumeMap);
-                        _dbClient.persistObject(exportMask);
                         masks.add(exportMask);
                     }
                 }

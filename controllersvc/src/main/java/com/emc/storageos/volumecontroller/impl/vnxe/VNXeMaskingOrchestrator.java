@@ -368,8 +368,7 @@ public class VNXeMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                 List<Initiator> inits = exportMasksMap.get(exportMask);
 
                 if (exportMask.getInitiators().size() == inits.size() &&
-                        exportMask.getVolumes() != null &&
-                        exportMask.getStoragePorts() != null) {
+                        exportMask.getVolumes() != null) {
                     _log.info(String.format("deleting the exportMask: %s",
                             exportMask.getId().toString()));
                     deleteStep = generateExportMaskDeleteWorkflow(workflow, deleteStep, storage,
@@ -530,7 +529,7 @@ public class VNXeMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                         deleteStep = generateExportMaskDeleteWorkflow(workflow, deleteStep, storage,
                                 exportGroup, exportMask, null, null, null);
                     }
-                    generateZoningDeleteWorkflow(workflow, null,
+                    generateZoningDeleteWorkflow(workflow, deleteStep,
                             exportGroup, exportMasks);
                 }
                 if (!updateMasks.isEmpty()) {

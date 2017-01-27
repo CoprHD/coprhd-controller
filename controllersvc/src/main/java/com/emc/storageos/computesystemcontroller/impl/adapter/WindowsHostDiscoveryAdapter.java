@@ -142,6 +142,7 @@ public class WindowsHostDiscoveryAdapter extends AbstractHostDiscoveryAdapter {
         if (cluster != null) {
             cluster.setLabel(name);
             dbClient.updateObject(cluster);
+            ComputeSystemHelper.updateInitiatorClusterNames(dbClient, clusterId);
         }
     }
 

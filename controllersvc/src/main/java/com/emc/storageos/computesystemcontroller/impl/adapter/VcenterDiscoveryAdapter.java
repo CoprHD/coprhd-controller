@@ -445,6 +445,7 @@ public class VcenterDiscoveryAdapter extends EsxHostDiscoveryAdapter {
                 targetCluster.setExternalId(vcenterClusterId);
 
                 save(targetCluster);
+                ComputeSystemHelper.updateInitiatorClusterNames(dbClient, targetCluster.getId());
                 newClusters.add(targetCluster);
             }
         }

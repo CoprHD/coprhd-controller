@@ -579,6 +579,19 @@ public class ComputeSystemHelper {
         dbClient.updateObject(host);
     }
 
+    /**
+     * Update the cluster reference for all initiators that belong to hosts in the cluster
+     * 
+     * @param dbClient dbclient
+     * @param clusterURI the cluster id
+     */
+    public static void updateInitiatorClusterNames(DbClient dbClient, URI clusterURI) {
+        List<URI> clusterHosts = ComputeSystemHelper.getChildrenUris(dbClient, clusterURI, Host.class, "cluster");
+        for (URI hostURI : clusterHosts) {
+            updateInitiatorClusterName(dbClient, clusterURI, hostURI);
+        }
+    }
+
     public static void updateInitiatorClusterName(DbClient dbClient, URI clusterURI, URI hostURI) {
         Cluster cluster = null;
         if (!NullColumnValueGetter.isNullURI(clusterURI)) {
@@ -586,7 +599,7 @@ public class ComputeSystemHelper {
         }
         List<Initiator> initiators = ComputeSystemHelper.queryInitiators(dbClient, hostURI);
         for (Initiator initiator : initiators) {
-            initiator.setClusterName(cluster != null ? cluster.getLabel() : "null");
+            initiator.setClusterName(cluster != null ? cluster.getLabel() : "");
         }
         dbClient.updateObject(initiators);
     }

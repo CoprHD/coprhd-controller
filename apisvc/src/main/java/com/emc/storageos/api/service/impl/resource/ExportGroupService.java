@@ -3235,7 +3235,8 @@ public class ExportGroupService extends TaskResourceService {
         ExportPathsAdjustmentPreviewRestRep response = new ExportPathsAdjustmentPreviewRestRep();
         List<Initiator> initiators = getInitiators(exportGroup);
         StringSetMap existingPathMap = new StringSetMap();
-        validatePathAdjustment(exportGroup, initiators, system, varray, param.getHosts(), response, existingPathMap);
+        validatePathAdjustment(exportGroup, initiators, system, varray, param.getHosts(), response, existingPathMap,
+                param.getUseExistingPaths());
         
         try {
             // Manufacture an ExportPathParams structure from the REST ExportPathParameters structure
@@ -3373,7 +3374,8 @@ public class ExportGroupService extends TaskResourceService {
      */
     private void validatePathAdjustment(ExportGroup exportGroup, List<Initiator> initiators, 
             StorageSystem system, URI varray, Set<URI> hosts,
-            ExportPathsAdjustmentPreviewRestRep response, StringSetMap existingPaths) {
+            ExportPathsAdjustmentPreviewRestRep response, StringSetMap existingPaths,
+            Boolean useExistingPaths) {
         Set<URI> affectedGroupURIs = new HashSet<URI>();
         // Add our Export Group to the affected resources.
         affectedGroupURIs.add(exportGroup.getId()); 
@@ -3401,8 +3403,14 @@ public class ExportGroupService extends TaskResourceService {
         // Find the Export Masks for this Storage System 
         for (ExportMask exportMask : exportMasks) {
             // For VPLEX, must verify the Export Mask is in the appropriate Varray
-            if (!ExportMaskUtils.exportMaskInVarray(_dbClient,  exportMask,  varray)) {
-                continue;
+            List<URI> portsNotInVarray = ExportMaskUtils.getExportMaskStoragePortsNotInVarray(_dbClient, exportMask, varray);
+            if (!portsNotInVarray.isEmpty() && !useExistingPaths) {
+                String errorPorts = Joiner.on(',').join(portsNotInVarray);
+                String error = String.format("The ports : %s are in the exportMask %s, but not in the varray %s", 
+                      errorPorts, exportMask.getId().toString(), varray.toString());
+                _log.error(error);
+                throw APIException.badRequests.storagePortsNotInVarray(errorPorts, exportMask.getId().toString(), 
+                        varray.toString());    
             }
             // Now look to see if there are any existing initiators in the ExportMask
             if (exportMask.hasAnyExistingInitiators()) {

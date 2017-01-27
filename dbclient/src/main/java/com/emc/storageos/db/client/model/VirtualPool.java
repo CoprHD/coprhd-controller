@@ -1480,7 +1480,6 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
         setChanged("remoteReplicationProtectionSettings");
     }
 
-
     // this field is not used in 2.0
     @Name("nonDisruptiveExpansion")
     public Boolean getNonDisruptiveExpansion() {

@@ -597,7 +597,7 @@ public class ClusterService extends TaskResourceService {
      */
     private <T extends DataObject> List<NamedElementQueryResultList.NamedElement> getVblockHostsFromCluster(URI id) {
         List<Host> hosts = CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient, Host.class,
-                ContainmentConstraint.Factory.getContainedObjectsConstraint(id, Host.class, "Cluster"));
+                ContainmentConstraint.Factory.getContainedObjectsConstraint(id, Host.class, "cluster"));
         if (hosts != null && !hosts.isEmpty()) {
             List<NamedElementQueryResultList.NamedElement> elements = new ArrayList<NamedElementQueryResultList.NamedElement>(
                     hosts.size());

@@ -1691,6 +1691,10 @@ public class NetworkDeviceController implements NetworkController {
      */
     private FCZoneReference addZoneReference(URI exportGroupURI, NetworkFCZoneInfo zoneInfo, String[] newOrExisting) {
         String refKey = zoneInfo.makeEndpointsKey();
+        // If ExportGroup specified in zone info, use it instead of the default of the order
+        if (zoneInfo.getExportGroup() != null) {
+            exportGroupURI = zoneInfo.getExportGroup();
+        }
         FCZoneReference ref = addZoneReference(exportGroupURI, zoneInfo.getVolumeId(), refKey, zoneInfo.getFabricId(),
                 zoneInfo.getNetworkDeviceId(), zoneInfo.getZoneName(), zoneInfo.isExistingZone(), newOrExisting);
         return ref;

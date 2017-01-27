@@ -1069,6 +1069,29 @@ public class ExportMaskUtils {
         }
         return true;
     }
+    
+    /**
+     * Get storage ports not in the given varray.
+     *
+     * @param exportMask -- ExportMask
+     * @param varrayURI -- Varray URI
+     * @return list of storage ports not tagged for the given Varray
+     */
+    public static List<URI> getExportMaskStoragePortsNotInVarray(DbClient dbClient, ExportMask exportMask, URI varrayURI) {
+        List<URI> ports = new ArrayList<URI> ();
+        if (exportMask.getStoragePorts() == null || exportMask.getStoragePorts().isEmpty()) {
+            return ports;
+        }
+        List<URI> targetURIs = StringSetUtil.stringSetToUriList(exportMask.getStoragePorts());
+        List<StoragePort> sports = dbClient.queryObject(StoragePort.class, targetURIs);
+        for (StoragePort port : sports) {
+            if (port.getTaggedVirtualArrays() == null
+                    || !port.getTaggedVirtualArrays().contains(varrayURI.toString())) {
+                ports.add(port.getId());
+            }
+        }
+        return ports;
+    }
 
     /**
      * Filter the volumeMap to only contain the desired includedVolumes.

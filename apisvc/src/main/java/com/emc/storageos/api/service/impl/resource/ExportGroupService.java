@@ -3235,7 +3235,8 @@ public class ExportGroupService extends TaskResourceService {
         ExportPathsAdjustmentPreviewRestRep response = new ExportPathsAdjustmentPreviewRestRep();
         List<Initiator> initiators = getInitiators(exportGroup);
         StringSetMap existingPathMap = new StringSetMap();
-        validatePathAdjustment(exportGroup, initiators, system, varray, param.getHosts(), response, existingPathMap);
+        validatePathAdjustment(exportGroup, initiators, system, varray, param.getHosts(), response, existingPathMap,
+                param.getUseExistingPaths());
         
         try {
             // Manufacture an ExportPathParams structure from the REST ExportPathParameters structure
@@ -3373,8 +3374,11 @@ public class ExportGroupService extends TaskResourceService {
      */
     private void validatePathAdjustment(ExportGroup exportGroup, List<Initiator> initiators, 
             StorageSystem system, URI varray, Set<URI> hosts,
-            ExportPathsAdjustmentPreviewRestRep response, StringSetMap existingPaths) {
+            ExportPathsAdjustmentPreviewRestRep response, StringSetMap existingPaths,
+            Boolean useExistingPaths) {
         Set<URI> affectedGroupURIs = new HashSet<URI>();
+        // Add our Export Group to the affected resources.
+        affectedGroupURIs.add(exportGroup.getId()); 
         
         List<ExportMask> exportMasks = ExportMaskUtils.getExportMasks(_dbClient,  exportGroup, system.getId());
         if (exportMasks.isEmpty()) {
@@ -3397,13 +3401,18 @@ public class ExportGroupService extends TaskResourceService {
         // Remove any initiators not retained because of hosts specification
         initiators.removeAll(initiatorsToRemove);
         // Find the Export Masks for this Storage System 
-        List<ExportMask> exportMasks = ExportMaskUtils.getExportMasks(_dbClient,  exportGroup, system.getId());
         for (ExportMask exportMask : exportMasks) {
             // For VPLEX, must verify the Export Mask is in the appropriate Varray
-            if (!ExportMaskUtils.exportMaskInVarray(_dbClient,  exportMask,  varray)) {
-                continue;
+            List<URI> portsNotInVarray = ExportMaskUtils.getExportMaskStoragePortsNotInVarray(_dbClient, exportMask, varray);
+            if (!portsNotInVarray.isEmpty() && !useExistingPaths) {
+                String errorPorts = Joiner.on(',').join(portsNotInVarray);
+                String error = String.format("The ports : %s are in the exportMask %s, but not in the varray %s", 
+                      errorPorts, exportMask.getId().toString(), varray.toString());
+                _log.error(error);
+                throw APIException.badRequests.storagePortsNotInVarray(errorPorts, exportMask.getId().toString(), 
+                        varray.toString());    
             }
-            // Now look to see if there are any initiators in the ExportMask not in the Export Group
+            // Now look to see if there are any existing initiators in the ExportMask
             if (exportMask.hasAnyExistingInitiators()) {
                 _log.info("ExportMask has existing initiators: " + exportMask.getMaskName());
                 throw APIException.badRequests.externallyAddedInitiators(
@@ -3436,7 +3445,11 @@ public class ExportGroupService extends TaskResourceService {
             Set<Initiator> maskInitiators = ExportMaskUtils.getInitiatorsForExportMask(_dbClient, exportMask, null);
             Set<String> additionalInitiators = new HashSet<String>();
             boolean hasMatchingInitiator = false;
+            Set<URI> hostURIsForInitiators = new HashSet<URI>();
             for (Initiator maskInitiator : maskInitiators) {
+                if (maskInitiator.getHost() != null) {
+                    hostURIsForInitiators.add(maskInitiator.getHost());
+                }
                 if (initiatorMap.keySet().contains(maskInitiator.getId())) {
                     hasMatchingInitiator = true;
                 }
@@ -3444,11 +3457,30 @@ public class ExportGroupService extends TaskResourceService {
                     additionalInitiators.add(maskInitiator.getInitiatorPort());
                 }
             }
+            
             // We may not have any matching initiators if the user specified a set of
             // hosts and this host wasn't present. If not, we just skip this mask.
             if (!hasMatchingInitiator) {
                 continue;
             }
+            
+            // Check if this is a mask for a single ComputeResource and if there are additional usable initiators.
+            // If so add them to the list of initiators.
+            List<Host> hostsForInitiators = _dbClient.queryObject(Host.class, hostURIsForInitiators);
+            for (Host host : hostsForInitiators) {
+                _log.info(String.format("Checking connected initiators for host %s (%s)", host.getHostName(), host.getId()));
+                List<URI> hostConnectedInitiators = getHostConnectedInitiators(host, Arrays.asList(system.getId()), exportGroup);
+                for (URI hostConnectedInitiator : hostConnectedInitiators) {
+                    if (!initiators.contains(hostConnectedInitiator)) {
+                        Initiator newInitiator = _dbClient.queryObject(Initiator.class, hostConnectedInitiator);
+                        _log.info(String.format("Found connected initiator %s host %s (%s) to add to initiators", 
+                                newInitiator.getInitiatorPort(), newInitiator.getHostName(), newInitiator.getId()));
+                        initiators.add(newInitiator);
+                    }
+                }
+                _log.info("Connected Initiators check completed host: " + host.getHostName());
+            }
+            
             if (!additionalInitiators.isEmpty()) {
                 _log.info("ExportMask has additional initiators: ", exportMask.getMaskName());
                 throw APIException.badRequests.additionalInitiators(exportMask.getMaskName(), additionalInitiators.toString());
@@ -3576,10 +3608,31 @@ public class ExportGroupService extends TaskResourceService {
         // check adjusted paths are valid. initiators are in the export group, and the targets are in the storage system, and
         // in valid state.
         Map<URI, List<URI>>adjustedPaths = convertInitiatorPathParamToMap(param.getAdjustedPaths());
-        List<URI> pathInitiators = new ArrayList<URI>(adjustedPaths.keySet());
+        List<URI> pathInitiatorURIs = new ArrayList<URI>(adjustedPaths.keySet());
         StringSet initiatorIds = exportGroup.getInitiators();
-        if (!initiatorIds.containsAll(StringSetUtil.uriListToStringSet(pathInitiators))) {
-            throw APIException.badRequests.exportPathAdjustmentAdjustedPathNotValid(Joiner.on(",").join(pathInitiators));
+        if (!initiatorIds.containsAll(StringSetUtil.uriListToStringSet(pathInitiatorURIs))) {
+            // Determine all the host URIs for the egInitiators
+            Set<URI> egHostURIs = new HashSet<URI>();
+            List<Initiator> egInitiators = ExportUtils.getExportGroupInitiators(exportGroup, _dbClient);
+            for (Initiator egInitiator : egInitiators) {
+                if (egInitiator.getHost() != null) {
+                    egHostURIs.add(egInitiator.getHost());
+                }
+            }
+            // Now, only through error if there are initiators that are not of any of the egHostURIs
+            List<Initiator> pathInitiators = _dbClient.queryObject(Initiator.class, pathInitiatorURIs);
+            List<String> badInitiators = new ArrayList<String>();
+            for (Initiator pathInitiator : pathInitiators) {
+                // Bad if not in the EG initiatorIds AND not from an identifiable host or not from a host in EG
+                if (!initiatorIds.contains(pathInitiator.getId().toString())) {
+                    if (pathInitiator.getHost() == null || !egHostURIs.contains(pathInitiator.getHost())) {
+                        badInitiators.add(pathInitiator.getHostName() + "-" + pathInitiator.getInitiatorPort());
+                    }
+                }
+            }
+            if (!badInitiators.isEmpty()) {
+                throw APIException.badRequests.exportPathAdjustmentAdjustedPathNotValid(Joiner.on(", ").join(badInitiators));
+            }
         }
         Set<URI> pathTargets = new HashSet<URI>();
         for (List<URI> targets : adjustedPaths.values()) {

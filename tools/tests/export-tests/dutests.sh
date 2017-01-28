@@ -2786,6 +2786,8 @@ test_13() {
     # Run the export group command 
     runcmd_suspend test_13 export_group update $PROJECT/${expname}1 --addVols ${PROJECT}/${VOLNAME}-2
 
+    PWWN=`getwwn`
+
     # Add another initiator to the mask (done differently per array type)
     arrayhelper add_initiator_to_mask ${SERIAL_NUMBER} ${PWWN} ${HOST1}
     

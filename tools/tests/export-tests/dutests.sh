@@ -1932,6 +1932,7 @@ test_3() {
     # Run the export group command 
     runcmd_suspend test_3 export_group delete $PROJECT/${expname}1
 
+    # Add volume to mask
     arrayhelper add_volume_to_mask ${SERIAL_NUMBER} ${device_id} ${HOST1}
     
     # Verify the mask has the new volume in it
@@ -3036,6 +3037,9 @@ test_16() {
     # Run the export group command 
     runcmd_suspend test_16 export_group create $PROJECT ${expname}1 $NH --type Host --volspec ${PROJECT}/${VOLNAME}-1 --hosts "${HOST1}"
 
+    # Strip out colons for array helper command
+    h1pi2=`echo ${H1PI2} | sed 's/://g'`
+
     # 4. Create the storage group (different name) with the unmanaged volume with host
     arrayhelper create_export_mask ${SERIAL_NUMBER} ${device_id} ${h1pi2} ${SGNAME}
 
@@ -3123,6 +3127,9 @@ test_17() {
 
     # Run the export group command 
     runcmd_suspend test_17 export_group delete $PROJECT/${expname}1
+
+    # Add the volume to the mask (done differently per array type)
+    arrayhelper add_volume_to_mask ${SERIAL_NUMBER} ${device_id} ${HOST1}
 
     # Verify the mask has the new volume in it
     verify_export ${expname}1 ${HOST1} 2 2
@@ -3506,8 +3513,6 @@ test_22() {
     # Create another volume that we will inventory-only delete
     runcmd volume create ${HIJACK} ${PROJECT} ${NH} ${VPOOL_BASE}_migration_src 1GB --count 1
 
-    # Run change vpool, but suspend will happen
-
     # Run the export group command
     runcmd_suspend test_22 volume change_cos ${PROJECT}/${HIJACK} ${VPOOL_BASE}_migration_tgt --suspend
 
@@ -3516,6 +3521,9 @@ test_22() {
 
     # Resume and follow the workflow/task (again)
     resume_follow_task
+
+    # Delete the volume we created
+    runcmd volume delete ${PROJECT}/${HIJACK} --wait
 
     # Report results
     report_results test_22
@@ -3569,7 +3577,8 @@ test_23() {
     # Resume and follow the workflow/task (again)
     resume_follow_task
 
-    # Clean up
+    # Delete the volumes we created
+    runcmd volume delete ${PROJECT}/${HIJACK}-1 --wait
     runcmd volume delete ${PROJECT}/${HIJACK}-2 --wait
     runcmd blockconsistencygroup delete ${CGNAME}
 

@@ -1971,6 +1971,16 @@ public class ExportUtils {
             }
             if (!CollectionUtils.isEmpty(staleMasks)) {
                 exportGroup.removeExportMasks(staleMasks);
+                for (URI maskURI : staleMasks) {
+                    List<ExportGroup> exportGroups = getExportGroupsForMask(maskURI, dbClient);
+                    if (exportGroups.isEmpty() || (exportGroups.size() == 1 && exportGroups.get(0).getId().equals(exportGroup.getId()))) {
+                        ExportMask maskObj = dbClient.queryObject(ExportMask.class, maskURI);
+                        if (maskObj != null) {
+                            _log.info("Deleting export mask {} because it is no longer in use by an export group", maskObj);
+                            dbClient.markForDeletion(maskObj);
+                        }
+                    }
+                }
             }
         }
     }

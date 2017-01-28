@@ -5641,7 +5641,7 @@ public class BlockService extends TaskResourceService {
                 throw APIException.badRequests.requiredParameterMissingOrEmpty(VirtualPoolCapabilityValuesWrapper.REMOTE_REPLICATION_GROUP);
             }
             StringSet supportedModes = rrSet.getSupportedReplicationModes();
-            if (rrParameters.getRemoteReplicationMode() == null || !supportedModes.contains(rrParameters.getRemoteReplicationMode())) {
+            if (rrParameters.getRemoteReplicationMode() == null || !supportedModes.contains(rrParameters.getRemoteReplicationMode().toLowerCase())) {
                 throw APIException.badRequests.invalidParameter(VirtualPoolCapabilityValuesWrapper.REMOTE_REPLICATION_MODE,
                         rrParameters.getRemoteReplicationMode());
             }

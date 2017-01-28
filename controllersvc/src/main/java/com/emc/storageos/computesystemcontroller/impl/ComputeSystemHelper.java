@@ -580,15 +580,12 @@ public class ComputeSystemHelper {
     }
 
     public static void updateInitiatorClusterName(DbClient dbClient, URI clusterURI, URI hostURI) {
-        Cluster cluster = null;
-        if (!NullColumnValueGetter.isNullURI(clusterURI)) {
-            cluster = dbClient.queryObject(Cluster.class, clusterURI);
-        }
+        Cluster cluster = dbClient.queryObject(Cluster.class, clusterURI);
         List<Initiator> initiators = ComputeSystemHelper.queryInitiators(dbClient, hostURI);
         for (Initiator initiator : initiators) {
-            initiator.setClusterName(cluster != null ? cluster.getLabel() : "null");
+            initiator.setClusterName(cluster != null ? cluster.getLabel() : "");
         }
-        dbClient.updateObject(initiators);
+        dbClient.persistObject(initiators);
     }
 
     public static void updateInitiatorHostName(DbClient dbClient, Host host) {
@@ -596,7 +593,7 @@ public class ComputeSystemHelper {
         for (Initiator initiator : initiators) {
             initiator.setHostName(host.getHostName());
         }
-        dbClient.updateObject(initiators);
+        dbClient.persistObject(initiators);
     }
 
     /**

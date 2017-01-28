@@ -817,7 +817,7 @@ runcmd_suspend() {
     cat /tmp/errors.txt | tee -a ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE}
     echo ${resultcmd}
 
-    # Parse results (add checks here!  encapsulate!)
+    # Parse results and store results in variables to be used later
     taskworkflow=`echo $resultcmd | awk -F, '{print $2 $3}'`
     answersarray=($taskworkflow)
     task=${answersarray[0]}

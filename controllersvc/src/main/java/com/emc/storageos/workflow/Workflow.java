@@ -916,9 +916,9 @@ public class Workflow implements Serializable {
                 Date bTime = b.endTime;
                 
                 if (aTime != null && bTime == null) {
-                    return 1; // a hasn't ended, so a is greater than b (b has a lower time)
+                    return 1; // b hasn't ended, so b has an infinite time in comparison
                 } else if (aTime == null && bTime != null) {
-                    return -1; // b hasn't ended, so b is greater than a (a has a lower time)
+                    return -1; // a hasn't ended, so a is greater than b
                 } else if (aTime == null && bTime == null) {
                     // If neither step has a valid end time, they're both in flight.
                     // So compare their start times instead.

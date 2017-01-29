@@ -915,20 +915,26 @@ public class Workflow implements Serializable {
                 Date aTime = a.endTime;
                 Date bTime = b.endTime;
                 
+                // Comparison based on end time is as follows:
+                // If a step hasn't finished yet, its endTime is null.
+                // That time is interpreted as "infinity" for comparison purposes below.
                 if (aTime != null && bTime == null) {
-                    return 1; // b hasn't ended, so b has an infinite time in comparison
+                    return -1; // b hasn't ended, so b has an infinite time in comparison
                 } else if (aTime == null && bTime != null) {
-                    return -1; // a hasn't ended, so a is greater than b
+                    return 1; // a hasn't ended, so a is greater than b
                 } else if (aTime == null && bTime == null) {
                     // If neither step has a valid end time, they're both in flight.
                     // So compare their start times instead.
                     Date cTime = a.startTime;
                     Date dTime = b.startTime;
 
+                    // Comparison based on start time is as follows:
+                    // If a step hasn't started yet, its startTime is null.
+                    // That time is interpreted as ZERO for comparison purposes below.
                     if (cTime != null && dTime == null) {
-                        return -1; // b (dTime) hasn't started, so a is less than b
+                        return 1; // b (dTime) hasn't started, so b is zero and a is greater
                     } else if (cTime == null && dTime != null) {
-                        return 1; // a (cTime) hasn't started, so a is greater than b
+                        return -1; // a (cTime) hasn't started, so b is greater than a
                     } else if (cTime == null && dTime == null) {
                         // no start or end times on neither, return equal.
                         return 0;

@@ -162,13 +162,13 @@ public class NetworkZoningParam implements Serializable {
 	}
 
 	/**
-	 * Generate a list of NetworkZoningParam objects hen removing paths in path adjustment (port rebalance).
+	 * Generate a list of NetworkZoningParam objects when removing paths in path adjustment (port rebalance).
 	 * This is not as straight forward as it might appear, because each ExportMask may also be
 	 * referenced by alternate Export Groups, and their references would also need to be removed.
 	 * 
 	 * @param exportGroupURI -- The invoking EG URI
 	 * @param exportMaskURI -- The export mask being processed
-	 * @param paths -- paths that will be removed
+	 * @param maskRemovePaths -- paths that will be removed
 	 * @param dbClient -- database client
 	 * @return
 	 */

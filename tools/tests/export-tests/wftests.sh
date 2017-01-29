@@ -716,6 +716,12 @@ secho()
     echo -e "*** $*" | tee -a ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE}
 }
 
+# General echo output for things that are run that will suspend
+recho()
+{
+    echo -e "=== $*" | tee -a ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE}
+}
+
 # Place to put command output in case of failure
 CMD_OUTPUT=/tmp/output.txt
 rm -f ${CMD_OUTPUT}
@@ -3099,7 +3105,7 @@ test_10() {
       set_suspend_on_class_method ${exportRemoveVolumesDeviceStep}
 
       # Run the export group command TODO: Do this more elegantly
-      echo === export_group update $PROJECT/${expname}1 --remVols ${PROJECT}/${VOLNAME}-2
+      recho "export_group update $PROJECT/${expname}1 --remVols ${PROJECT}/${VOLNAME}-2"
       resultcmd=`export_group update $PROJECT/${expname}1 --remVols ${PROJECT}/${VOLNAME}-2`
 
       if [ $? -ne 0 ]; then
@@ -3298,7 +3304,7 @@ cleanup_previous_run_artifacts() {
 	done
     fi
 
-    volume list ${PROJECT} | grep YES | grep "hijack\|fake" > /dev/null2> /dev/null
+    volume list ${PROJECT} | grep YES | grep "hijack\|fake" > /dev/null 2> /dev/null
     if [ $? -eq 0 ]; then
 	for id in `volume list ${PROJECT} | grep YES | grep "hijack\|fake" | awk '{print $7}'`
 	do

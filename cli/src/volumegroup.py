@@ -51,6 +51,7 @@ class VolumeGroup(object):
     URI_VOLUME_GROUP_SNAPSHOT_ACTIVATE = URI_VOLUME_GROUP_SNAPSHOT + "/activate"
     URI_VOLUME_GROUP_SNAPSHOT_SHOW= URI_VOLUME_GROUP_SNAPSHOT + "/{1}"
     URI_VOLUME_GROUP_SNAPSHOT_GET_COPY_SETS= URI_VOLUME_GROUP_SNAPSHOT + "/copy-sets"
+    URI_VOLUME_GROUP_SNAPSHOT_EXPOSE = URI_VOLUME_GROUP_SNAPSHOT + "/expose"
 
     # URIs for VolumeGroup Snapshot Session Operations
     URI_VOLUME_GROUP_SNAPSHOT_SESSION = "/volume-groups/block/{0}/protection/snapshot-sessions"
@@ -647,7 +648,7 @@ class VolumeGroup(object):
 
     def volume_group_snapshot_operation(self, name, copysetname, subGroups, snapshots, partial, uri):
         '''
-        Makes REST API call to acitvate/deactivate/restore/resync volume group snapshot
+        Makes REST API call to acitvate/deactivate/restore/resync/expose volume group snapshot
         Parameters:
             partial: Enable the flag to operate on snapshots for subset of VolumeGroup.
                      Please specify one snapshot from each Array Replication Group
@@ -2140,6 +2141,23 @@ def snapshot_resync_parser(subcommand_parsers, common_parser):
 def volume_group_snapshot_resync(args):
     volume_group_snapshot_operation(args, "resynchronize", VolumeGroup.URI_VOLUME_GROUP_SNAPSHOT_RESYNCHRONIZE)
 
+# snapshot_expose_parser
+def snapshot_expose_parser(subcommand_parsers, common_parser):
+    snapshot_expose_parser = subcommand_parsers.add_parser(
+        'snapshot-expose',
+        parents=[common_parser],
+        conflict_handler='resolve',
+        help='Export volume group snapshot to VPlex',
+        description='ViPR Export Snapshot of a VolumeGroup to VPlex CLI usage.')
+
+    # Add parameter from common snapshot parser.
+    volume_group_snapshot_common_parser(snapshot_expose_parser)
+    snapshot_expose_parser.set_defaults(func=volume_group_snapshot_expose)
+
+# Export Snapshot Function
+def volume_group_snapshot_expose(args):
+    volume_group_snapshot_operation(args, "expose", VolumeGroup.URI_VOLUME_GROUP_SNAPSHOT_EXPOSE)
+
 # snapshot_list_parser
 def snapshot_list_parser(subcommand_parsers, common_parser):
     snapshot_list_parser = subcommand_parsers.add_parser(
@@ -2950,6 +2968,9 @@ def volume_group_parser(parent_subparser, common_parser):
 
     # snapshot resync command parser
     snapshot_resync_parser(subcommand_parsers, common_parser)
+
+    # snapshot expose command parser
+    snapshot_expose_parser(subcommand_parsers, common_parser)
 
     # Get snapshot list of a volume group command parser
     snapshot_list_parser(subcommand_parsers, common_parser)

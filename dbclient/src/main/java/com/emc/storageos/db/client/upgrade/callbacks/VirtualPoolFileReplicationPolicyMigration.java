@@ -35,7 +35,6 @@ import com.emc.storageos.db.client.model.VpoolRemoteCopyProtectionSettings;
 import com.emc.storageos.db.client.upgrade.BaseCustomMigrationCallback;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.svcs.errorhandling.resources.MigrationCallbackException;
-import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
 
 /**
  * Migration handler to set the placement policy to Default policy in all existing Block vPools.
@@ -44,6 +43,9 @@ import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
  */
 public class VirtualPoolFileReplicationPolicyMigration extends BaseCustomMigrationCallback {
     private static final Logger logger = LoggerFactory.getLogger(VirtualPoolFileReplicationPolicyMigration.class);
+
+    public static final String FILE_STORAGE_RESOURCE = "FILESTORAGERESOURCE";
+    public static final String FILE_STORAGE_DEVICE_TYPE = "ISILON";
 
     @Override
     public void process() throws MigrationCallbackException {
@@ -172,6 +174,12 @@ public class VirtualPoolFileReplicationPolicyMigration extends BaseCustomMigrati
         return null;
     }
 
+    private String generateNativeGuidForFilePolicyResource(StorageSystem device, String nasServer, String policyType,
+            String path) {
+        return String.format("%s+%s+%s+%s+%s+%s", FILE_STORAGE_DEVICE_TYPE, device.getSerialNumber(), FILE_STORAGE_RESOURCE,
+                nasServer, policyType, path);
+    }
+
     private void updatePolicyStorageResouce(StorageSystem system, FilePolicy filePolicy, FileShare fs) {
 
         logger.info("Creating policy storage resource for storage {} fs {} and policy {} ", system.getLabel(), fs.getLabel(),
@@ -195,8 +203,8 @@ public class VirtualPoolFileReplicationPolicyMigration extends BaseCustomMigrati
         if (nasServer != null) {
             logger.info("Found NAS server {} ", nasServer.getNasName());
             policyStorageResource.setNasServer(nasServer.getId());
-            policyStorageResource.setNativeGuid(NativeGUIDGenerator.generateNativeGuidForFilePolicyResource(system,
-                    nasServer.getNasName(), filePolicy.getFilePolicyType(), fs.getNativeId(), NativeGUIDGenerator.FILE_STORAGE_RESOURCE));
+            policyStorageResource.setNativeGuid(generateNativeGuidForFilePolicyResource(system,
+                    nasServer.getNasName(), filePolicy.getFilePolicyType(), fs.getNativeId()));
         }
 
         dbClient.createObject(policyStorageResource);

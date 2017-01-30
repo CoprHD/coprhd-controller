@@ -4931,7 +4931,8 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
             // Host are being asked to remove and the export mask is being shared.
             if (ExportGroupType.Cluster.toString().equalsIgnoreCase(current.getType())
                     && ExportGroupType.Host.toString().equalsIgnoreCase(exportGroup.getType()) &&
-                    !CollectionUtils.isEmpty(exportGroup.getInitiators())) {
+                    !CollectionUtils.isEmpty(exportGroup.getInitiators()) &&
+                    !CollectionUtils.isEmpty(exportGroup.getVolumes())) {
                 _log.info("Export Mask is being shared with other Export Groups, and the export Group {} type is different from the current processed {}."
                         + "Assuming this mask contains both shared and exclusive volumes ,removing the initiators might affect.");
                 return true;

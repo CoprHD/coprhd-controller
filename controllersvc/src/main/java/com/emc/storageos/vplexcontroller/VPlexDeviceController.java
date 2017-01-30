@@ -3806,12 +3806,6 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
         }
 
         StorageSystem vplex = _dbClient.queryObject(StorageSystem.class, exportMask.getStorageDevice());
-        ExportMaskValidationContext ctx = new ExportMaskValidationContext();
-        ctx.setStorage(vplex);
-        ctx.setExportMask(exportMask);
-        ctx.setInitiators(initiators);
-        ctx.setBlockObjects(volumeURIList, _dbClient);
-        validator.removeVolumes(ctx).validate();
 
         // Determine the virtual volume names.
         List<String> blockObjectNames = new ArrayList<String>();

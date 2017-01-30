@@ -231,19 +231,23 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
 
             List<URI> volumesToBeUnmapped = new ArrayList<URI>();
             // Get the context from the task completer, in case this is a rollback.
-            ExportOperationContext context = (ExportOperationContext) WorkflowService.getInstance().loadStepData(taskCompleter.getOpId());
-            if (context != null && context.getOperations() != null) {
-                _logger.info("Handling deleteExportMask as a result of rollback");
+            boolean isRollback = WorkflowService.getInstance().isStepInRollbackState(taskCompleter.getOpId());
+            if (isRollback) {
                 List<URI> addedVolumes = new ArrayList<URI>();
-                ListIterator li = context.getOperations().listIterator(context.getOperations().size());
-                while (li.hasPrevious()) {
-                    ExportOperationContextOperation operation = (ExportOperationContextOperation) li.previous();
-                    if (operation != null
-                            && VNXeExportOperationContext.OPERATION_ADD_VOLUMES_TO_HOST_EXPORT.equals(operation.getOperation())) {
-                        addedVolumes = (List<URI>) operation.getArgs().get(0);
-                        _logger.info("Removing volumes {} as part of rollback", Joiner.on(',').join(volumeURIList));
+                ExportOperationContext context = (ExportOperationContext) WorkflowService.getInstance().loadStepData(taskCompleter.getOpId());
+                if (context != null && context.getOperations() != null) {
+                    _logger.info("Handling deleteExportMask as a result of rollback");
+                    ListIterator li = context.getOperations().listIterator(context.getOperations().size());
+                    while (li.hasPrevious()) {
+                        ExportOperationContextOperation operation = (ExportOperationContextOperation) li.previous();
+                        if (operation != null
+                                && VNXeExportOperationContext.OPERATION_ADD_VOLUMES_TO_HOST_EXPORT.equals(operation.getOperation())) {
+                            addedVolumes = (List<URI>) operation.getArgs().get(0);
+                            _logger.info("Removing volumes {} as part of rollback", Joiner.on(',').join(volumeURIList));
+                        }
                     }
                 }
+
                 volumesToBeUnmapped = addedVolumes;
                 if (volumesToBeUnmapped == null || volumesToBeUnmapped.isEmpty()) {
                     _logger.info("There was no context found for add volumes. So there is nothing to rollback.");
@@ -271,7 +275,8 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
                 ctx.setExportMask(exportMask);
                 ctx.setBlockObjects(volumeURIList, _dbClient);
                 ctx.setInitiators(initiatorList);
-                ctx.setAllowExceptions(context == null);
+                // Allow exceptions to be thrown when not rolling back
+                ctx.setAllowExceptions(!isRollback);
                 validator.exportMaskDelete(ctx).validate();
             }
 
@@ -506,20 +511,24 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
                 _logger.info("removeVolumes: impacted initiators: {}", Joiner.on(",").join(initiatorList));
             }
 
-            // Get the context from the task completer, in case this is a rollback.
-            ExportOperationContext context = (ExportOperationContext) WorkflowService.getInstance().loadStepData(taskCompleter.getOpId());
-            if (context != null && context.getOperations() != null) {
-                _logger.info("Handling removeVolumes as a result of rollback");
+            boolean isRollback = WorkflowService.getInstance().isStepInRollbackState(taskCompleter.getOpId());
+            if (isRollback) {
                 List<URI> addedVolumes = new ArrayList<URI>();
-                ListIterator li = context.getOperations().listIterator(context.getOperations().size());
-                while (li.hasPrevious()) {
-                    ExportOperationContextOperation operation = (ExportOperationContextOperation) li.previous();
-                    if (operation != null
-                            & VNXeExportOperationContext.OPERATION_ADD_VOLUMES_TO_HOST_EXPORT.equals(operation.getOperation())) {
-                        addedVolumes = (List<URI>) operation.getArgs().get(0);
-                        _logger.info("Removing volumes {} as part of rollback", Joiner.on(',').join(addedVolumes));
+                // Get the context from the task completer, in case this is a rollback.
+                ExportOperationContext context = (ExportOperationContext) WorkflowService.getInstance().loadStepData(taskCompleter.getOpId());
+                if (context != null && context.getOperations() != null) {
+                    _logger.info("Handling removeVolumes as a result of rollback");
+                    ListIterator li = context.getOperations().listIterator(context.getOperations().size());
+                    while (li.hasPrevious()) {
+                        ExportOperationContextOperation operation = (ExportOperationContextOperation) li.previous();
+                        if (operation != null
+                                & VNXeExportOperationContext.OPERATION_ADD_VOLUMES_TO_HOST_EXPORT.equals(operation.getOperation())) {
+                            addedVolumes = (List<URI>) operation.getArgs().get(0);
+                            _logger.info("Removing volumes {} as part of rollback", Joiner.on(',').join(addedVolumes));
+                        }
                     }
                 }
+
                 volumes = addedVolumes;
                 if (volumes == null || volumes.isEmpty()) {
                     _logger.info("There was no context found for add volumes. So there is nothing to rollback.");
@@ -548,7 +557,8 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
                 ctx.setStorage(storage);
                 ctx.setExportMask(exportMask);
                 ctx.setInitiators(initiatorList);
-                ctx.setAllowExceptions(context == null);
+                // Allow exceptions to be thrown when not rolling back
+                ctx.setAllowExceptions(!isRollback);
                 validator.removeVolumes(ctx).validate();
             }
 
@@ -708,20 +718,24 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
             throw DeviceControllerException.exceptions.invalidObjectNull();
         }
 
-        // Get the context from the task completer, in case this is a rollback.
-        ExportOperationContext context = (ExportOperationContext) WorkflowService.getInstance().loadStepData(taskCompleter.getOpId());
-        if (context != null && context.getOperations() != null) {
-            _logger.info("Handling removeInitiators as a result of rollback");
+        boolean isRollback = WorkflowService.getInstance().isStepInRollbackState(taskCompleter.getOpId());
+        if (isRollback) {
             List<Initiator> addedInitiators = new ArrayList<Initiator>();
-            ListIterator li = context.getOperations().listIterator(context.getOperations().size());
-            while (li.hasPrevious()) {
-                ExportOperationContextOperation operation = (ExportOperationContextOperation) li.previous();
-                if (operation != null
-                        && VNXeExportOperationContext.OPERATION_ADD_INITIATORS_TO_HOST.equals(operation.getOperation())) {
-                    addedInitiators = (List<Initiator>) operation.getArgs().get(0);
-                    _logger.info("Removing initiators {} as part of rollback", Joiner.on(',').join(initiators));
+            // Get the context from the task completer, in case this is a rollback.
+            ExportOperationContext context = (ExportOperationContext) WorkflowService.getInstance().loadStepData(taskCompleter.getOpId());
+            if (context != null && context.getOperations() != null) {
+                _logger.info("Handling removeInitiators as a result of rollback");
+                ListIterator li = context.getOperations().listIterator(context.getOperations().size());
+                while (li.hasPrevious()) {
+                    ExportOperationContextOperation operation = (ExportOperationContextOperation) li.previous();
+                    if (operation != null
+                            && VNXeExportOperationContext.OPERATION_ADD_INITIATORS_TO_HOST.equals(operation.getOperation())) {
+                        addedInitiators = (List<Initiator>) operation.getArgs().get(0);
+                        _logger.info("Removing initiators {} as part of rollback", Joiner.on(',').join(initiators));
+                    }
                 }
             }
+
             initiators = addedInitiators;
             if (initiators == null || initiators.isEmpty()) {
                 _logger.info("There was no context found for add initiator. So there is nothing to rollback.");
@@ -763,7 +777,8 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
                 ctx.setStorage(storage);
                 ctx.setExportMask(mask);
                 ctx.setBlockObjects(volumeURIList, _dbClient);
-                ctx.setAllowExceptions(context == null);
+                // Allow exceptions to be thrown when not rolling back
+                ctx.setAllowExceptions(!isRollback);
                 validator.removeInitiators(ctx).validate();
             }
 

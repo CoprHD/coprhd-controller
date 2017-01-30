@@ -310,6 +310,7 @@ public abstract class AbstractDiscoveryAdapter implements ComputeSystemDiscovery
                 throw new IllegalArgumentException(e);
             }
             model.setLabel(label);
+            info("Creating new instance of %s with label %s", modelClass.getSimpleName(), label);
         } else {
             models.remove(model);
         }
@@ -678,11 +679,6 @@ public abstract class AbstractDiscoveryAdapter implements ComputeSystemDiscovery
                             host, Lists.newArrayList(host.getId(), newInitiator.getId()), EventUtils.addInitiator,
                             new Object[] { newInitiator.getId() }, EventUtils.addInitiatorDecline,
                             new Object[] { newInitiator.getId() });
-                }
-            } else {
-                for (Initiator oldInitiator : oldInitiatorObjects) {
-                    log.info("Initiator marked for deletion: " + oldInitiator.getId());
-                    dbClient.markForDeletion(oldInitiator);
                 }
             }
         }

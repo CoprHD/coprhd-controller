@@ -236,8 +236,8 @@ public class WorkflowBuilder extends Controller {
                                       final OrchestrationWorkflowDocument workflowDoc) {
         try {
             final OrchestrationWorkflowUpdateParam param = new OrchestrationWorkflowUpdateParam();
-            for (OrchestrationWorkflowDocument.Step step:workflowDoc.getSteps()){
-                String success_criteria = ESAPI.encoder().decodeForHTML(step.getSuccessCriteria());
+            for (final OrchestrationWorkflowDocument.Step step : workflowDoc.getSteps()){
+                final String success_criteria = ESAPI.encoder().decodeForHTML(step.getSuccessCriteria());
                 step.setSuccessCriteria(success_criteria);
             }
             param.setDocument(workflowDoc);

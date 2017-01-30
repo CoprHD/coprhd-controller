@@ -16,13 +16,15 @@
  */
 package com.emc.storageos.model.orchestration;
 
-import java.util.Map;
-
-import javax.xml.bind.annotation.XmlElement;
-import javax.xml.bind.annotation.XmlRootElement;
 
 import com.emc.storageos.model.DataObjectRestRep;
 import com.emc.storageos.model.RestLinkRep;
+import java.util.List;
+import java.util.Map;
+
+import javax.xml.bind.annotation.XmlElement;
+import javax.xml.bind.annotation.XmlElementWrapper;
+import javax.xml.bind.annotation.XmlRootElement;
 
 @XmlRootElement(name = "primitive")
 public class PrimitiveRestRep extends DataObjectRestRep {
@@ -31,11 +33,10 @@ public class PrimitiveRestRep extends DataObjectRestRep {
     private String friendlyName;
     private String description;
     private String successCriteria;
-    private  Map<String, String> attributes;
+    private Map<String, InputGroup> inputGroups;
+    private List<OutputParameterRestRep> output;
+    private Map<String, String> attributes;
     private RestLinkRep resource;
-
-    private Map<String,InputParameterRestRep> input;
-    private Map<String,OutputParameterRestRep> output;
 
     @XmlElement(name = "type")
     public String getType() {
@@ -82,21 +83,21 @@ public class PrimitiveRestRep extends DataObjectRestRep {
         this.attributes = attributes;
     }
 
-    @XmlElement(name = "input")
-    public Map<String,InputParameterRestRep> getInput() {
-        return input;
+    @XmlElementWrapper(name = "inputGroups")
+    public Map<String, InputGroup> getInputGroups() {
+        return inputGroups;
     }
 
-    public void setInput(final Map<String,InputParameterRestRep> input) {
-        this.input = input;
+    public void setInputGroups(final Map<String, InputGroup> inputGroups) {
+        this.inputGroups = inputGroups;
     }
 
     @XmlElement(name = "output")
-    public Map<String,OutputParameterRestRep> getOutput() {
+    public List<OutputParameterRestRep> getOutput() {
         return output;
     }
 
-    public void setOutput(final Map<String,OutputParameterRestRep> output) {
+    public void setOutput(final List<OutputParameterRestRep> output) {
         this.output = output;
     }
 
@@ -107,5 +108,19 @@ public class PrimitiveRestRep extends DataObjectRestRep {
 
     public void setResource(RestLinkRep resource) {
         this.resource = resource;
+    }
+
+    public static class InputGroup {
+
+        private List<InputParameterRestRep> inputGroup;
+
+        public void setInputGroup(List<InputParameterRestRep> inputGroup) {
+            this.inputGroup = inputGroup;
+        }
+
+        @XmlElement(name="input")
+        public List<InputParameterRestRep> getInputGroup() {
+            return inputGroup;
+        }
     }
 }

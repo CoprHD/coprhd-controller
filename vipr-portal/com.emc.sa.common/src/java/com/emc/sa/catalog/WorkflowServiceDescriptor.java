@@ -35,7 +35,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-import java.util.Map;
 
 /**
  * Service Descriptor for Workflow services
@@ -103,9 +102,9 @@ public class WorkflowServiceDescriptor {
             to.setWorkflowId(wfDocument.getName());
 
             for (final Step step : wfDocument.getSteps()) {
-                if (null != step.getInput()) {
-                    for (final List<Input> inputs : step.getInput().values()) {
-                        for (final Input wfInput : inputs) {
+                if (null != step.getInputGroups()) {
+                    for (final OrchestrationWorkflowDocument.InputGroup inputs : step.getInputGroups().values()) {
+                        for (final Input wfInput : inputs.getInputGroup()) {
                             String wfInputType = null;
                             // Creating service fields for only inputs of type "inputfromuser" and "assetoption"
                             if (INPUT_FROM_USER_INPUT_TYPE.equals(wfInput.getType())) {

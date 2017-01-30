@@ -17,14 +17,6 @@
 package com.emc.sa.api.mapper;
 
 import static com.emc.storageos.api.mapper.DbObjectMapper.mapDataObjectFields;
-
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
-
 import com.emc.storageos.api.service.impl.response.ResourceTypeMapping;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.uimodels.Ansible;
@@ -39,6 +31,15 @@ import com.emc.storageos.model.orchestration.PrimitiveResourceRestRep.Attribute;
 import com.emc.storageos.model.orchestration.PrimitiveRestRep;
 import com.emc.storageos.primitives.Parameter.ParameterType;
 import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorException;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
 
 public final class  PrimitiveMapper {
     public final static PrimitiveMapper instance = new PrimitiveMapper();
@@ -107,15 +108,20 @@ public final class  PrimitiveMapper {
 
     private static void mapAnsible(final Ansible from,
             final PrimitiveRestRep to) {
-        final Map<String, InputParameterRestRep> input = new HashMap<String, InputParameterRestRep>();
+        final Map<String, PrimitiveRestRep.InputGroup> input = new HashMap<String, PrimitiveRestRep.InputGroup>();
         if (null != from.getExtraVars()) {
+            List<InputParameterRestRep> inputParam = new ArrayList<InputParameterRestRep>();
             for (final String extraVar : from.getExtraVars()) {
                 InputParameterRestRep param = new InputParameterRestRep();
                 param.setType(ParameterType.STRING.name());
-                input.put(extraVar, param);
+                inputParam.add(param);
             }
+            PrimitiveRestRep.InputGroup inputGroup = new PrimitiveRestRep.InputGroup(){{
+                setInputGroup(inputParam);
+            }};
+            input.put("input_params",inputGroup);
         }
-        to.setInput(input);
+        to.setInputGroups(input);
    
         Map<String, String> attributes = new HashMap<String, String>();
         if (null != from.getPlaybook()) {
@@ -132,13 +138,13 @@ public final class  PrimitiveMapper {
         to.setOutput(mapOutput(from.getOutput()));
     }
 
-    private static Map<String, OutputParameterRestRep> mapOutput(StringSet from) {
-        final Map<String, OutputParameterRestRep> to = new HashMap<String, OutputParameterRestRep>();
+    private static List<OutputParameterRestRep> mapOutput(StringSet from) {
+        final List<OutputParameterRestRep> to = new ArrayList<OutputParameterRestRep>();
         if (null != from) {
             for (final String parameter : from) {
                 final OutputParameterRestRep paramRestRep = new OutputParameterRestRep();
                 paramRestRep.setType(ParameterType.STRING.name());
-                to.put(parameter, paramRestRep);
+                to.add(paramRestRep);
             }
         }
         return to;

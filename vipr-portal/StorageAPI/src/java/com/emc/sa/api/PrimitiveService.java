@@ -16,6 +16,7 @@
  */
 package com.emc.sa.api;
 
+
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -196,7 +197,7 @@ public class PrimitiveService extends CatalogTaggedResourceService {
             primitiveRestRep.setFriendlyName(primitive.getFriendlyName());
             primitiveRestRep.setDescription(primitive.getDescription());
             primitiveRestRep.setSuccessCriteria(primitive.getSuccessCriteria());
-            primitiveRestRep.setInput(mapInput(primitive.getInput()));
+            primitiveRestRep.setInputGroups(mapInput(primitive.getInput()));
             primitiveRestRep.setOutput(mapOutput(primitive.getOutput()));
             builder.put(primitiveRestRep.getId(), primitiveRestRep);
         }
@@ -296,7 +297,7 @@ public class PrimitiveService extends CatalogTaggedResourceService {
         primitiveManager.save(primitive);
         return PrimitiveMapper.map(primitive);
     }
-    
+
     /**
      * Get a primitive that can be used in orchestration workflows
      *
@@ -305,7 +306,7 @@ public class PrimitiveService extends CatalogTaggedResourceService {
      *
      * @brief Get a primitive by name
      *
-     * @param name
+     * @param id
      * @return PrimitiveRestRep
      */
     @GET
@@ -338,6 +339,7 @@ public class PrimitiveService extends CatalogTaggedResourceService {
             return PrimitiveMapper.map(script);
         default:
             throw APIException.notFound.unableToFindEntityInURL(id);
+
         }
     }
 
@@ -503,46 +505,55 @@ public class PrimitiveService extends CatalogTaggedResourceService {
     }
 
 
-    private static Map<String,InputParameterRestRep> mapInput(Map<String,InputParameter> inputParameters) {
-        Map<String,InputParameterRestRep> inputRestRep = new HashMap<String,InputParameterRestRep>();
-        for(final InputParameter parameter : inputParameters.values()) {
-            String key = parameter.getName();
-            if(parameter.isBasicInputParameter()) {
-                InputParameterRestRep inputParamRestRep = new InputParameterRestRep();
-                inputParamRestRep.setType(parameter.getType().name());
-                BasicInputParameter<?> inputParam = parameter
-                        .asBasicInputParameter();
-                inputParamRestRep.setRequired(inputParam.getRequired());
-                if (null != inputParam.getDefaultValue()) {
-                    inputParamRestRep.setDefaultValue(Collections
-                            .singletonList(inputParam.getDefaultValue()
-                                    .toString()));
+    private static Map<String, PrimitiveRestRep.InputGroup> mapInput(Map<Primitive.InputType, List<InputParameter>> inputParameters) {
+        Map<String, PrimitiveRestRep.InputGroup> inputRestRep = new HashMap<String, PrimitiveRestRep.InputGroup>();
+        for(final Entry<Primitive.InputType, List<InputParameter>> parameterType : inputParameters.entrySet()) {
+            List<InputParameterRestRep> inputTypeRestRep = new ArrayList<InputParameterRestRep>();
+            for(final InputParameter parameter : parameterType.getValue()) {
+                int index = 0;
+                if (parameter.isBasicInputParameter()) {
+                    InputParameterRestRep inputParamRestRep = new InputParameterRestRep();
+                    inputParamRestRep.setName(parameter.getName());
+                    inputParamRestRep.setType(parameter.getType().name());
+                    BasicInputParameter<?> inputParam = parameter
+                            .asBasicInputParameter();
+                    inputParamRestRep.setRequired(inputParam.getRequired());
+                    if (null != inputParam.getDefaultValue()) {
+                        inputParamRestRep.setDefaultValue(Collections
+                                .singletonList(inputParam.getDefaultValue()
+                                        .toString()));
+                    }
+                    inputTypeRestRep.add(inputParamRestRep);
                 }
-                inputRestRep.put(key, inputParamRestRep);
             }
-
+            PrimitiveRestRep.InputGroup inputGroup = new PrimitiveRestRep.InputGroup(){{
+                setInputGroup(inputTypeRestRep);
+            }};
+            inputRestRep.put(parameterType.getKey().toString(),inputGroup);
         }
         return inputRestRep;
     }
-    
-    private static Map<String,OutputParameterRestRep> mapOutput(Map<String,OutputParameter> output) {
-        Map<String,OutputParameterRestRep> outputRestRep = new HashMap<String,OutputParameterRestRep>();
-        for(final OutputParameter parameter : output.values()) {
-            String key = parameter.getName();
+
+    private static List<OutputParameterRestRep> mapOutput(List<OutputParameter> output) {
+        List<OutputParameterRestRep> outputRestRep = new ArrayList<OutputParameterRestRep>();
+        int index = 0;
+        for(final OutputParameter parameter : output) {
             if(parameter.isBasicOutputParameter()) {
                 BasicOutputParameter outputParam = parameter.asBasicOutputParameter();
                 OutputParameterRestRep parameterRestRep = new OutputParameterRestRep();
+                parameterRestRep.setName(outputParam.getName());
                 parameterRestRep.setType(outputParam.getType().name());
-                outputRestRep.put(key, parameterRestRep);
+                outputRestRep.add(index++, parameterRestRep);
             } else {
                 TableOutputParameter outputParam = parameter
                         .asTableOutputParameter();
                 for (final BasicOutputParameter column : outputParam
                         .getColumns()) {
                     OutputParameterRestRep parameterRestRep = new OutputParameterRestRep();
+                    parameterRestRep.setName(column.getName());
                     parameterRestRep.setType(column.getType().name());
                     parameterRestRep.setTable(outputParam.getName());
-                    outputRestRep.put(key, parameterRestRep);
+                    outputRestRep.add(index++, parameterRestRep);
                 }
             }
         }

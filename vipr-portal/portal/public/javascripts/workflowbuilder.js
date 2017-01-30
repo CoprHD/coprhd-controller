@@ -18,13 +18,18 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
 .controller('treeController', function($element, $scope, $compile, $http, $rootScope) { //NOSONAR ("Suppressing Sonar violations of max 100 lines in a function and function complexity")
 
     var jstreeContainer = $element.find('#jstree_demo');
+    var folderNodeType = "FOLDER";
+    var workflowNodeType = "WORKFLOW";
+    var shellNodeType = "SHELL";
+    var localAnsibleNodeType = "LOCAL_ANSIBLE"
+    var fileNodeTypes = [workflowNodeType, shellNodeType, localAnsibleNodeType]
 
     // -- populate tree data
     //TODO: get ViPR Library nodes from API (pending)
     var dirJSON = [
-        {"id":"myLib", "parent":"#","text":"My Library"},
-        {"id":"viprLib","parent":"#","text":"ViPR Library"},
-        {"id":"viprrest","parent":"viprLib","text":"ViPR REST Primitives"}
+        {"id":"myLib", "parent":"#","text":"My Library", "type":folderNodeType},
+        {"id":"viprLib","parent":"#","text":"ViPR Library", "type":folderNodeType},
+        {"id":"viprrest","parent":"viprLib","text":"ViPR REST Primitives", "type":folderNodeType}
     ]
 
 
@@ -61,11 +66,16 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
                     "icon": "glyphicon glyphicon-folder-close",
                     "valid_children": ["default"]
                 },
-                "default": {
+                "FOLDER": {
                     "icon": "glyphicon glyphicon-folder-close",
-                    "valid_children": ["default", "file"]
+                    "valid_children": ["default"]
                 },
-                "file": {
+                "WORKFLOW": {
+                    "icon": "glyphicon glyphicon-file",
+                    "valid_children": [],
+                    "li_attr": {"class": "draggable-card"}
+                },
+                "default": {
                     "icon": "glyphicon glyphicon-file",
                     "valid_children": [],
                     "li_attr": {"class": "draggable-card"}
@@ -92,7 +102,7 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
                                      "seperator_after" : false,
                                      "label" : "Workflow",
                                      action : function () {
-                                         $node = tree.create_node($node,{"type":"file"});
+                                         $node = tree.create_node($node,{"type":workflowNodeType});
                                          tree.edit($node);
                                      }
                                  },
@@ -156,7 +166,7 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
     jstreeContainer.on("select_node.jstree", selectDir);
 
     function createDir(event, data) {
-        if ("file" !== data.node.type) {
+        if (folderNodeType === data.node.type) {
             $http.get(routes.WF_directory_create({"name": data.node.text,"parent": data.node.parent})).then(function (resp) {
                 data.instance.set_id(data.node, resp.data.id);
             });
@@ -169,7 +179,7 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
     };
 
     function deleteDir(event, data) {
-        if ("file" !== data.node.type) {
+        if (folderNodeType === data.node.type) {
             $http.get(routes.WF_directory_delete({"id": data.node.id}));
         }
         else {
@@ -183,7 +193,7 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
             createDir(event, data);
         }
         else {
-            if ("file" !== data.node.type) {
+            if (folderNodeType === data.node.type) {
                 $http.get(routes.WF_directory_edit_name({"id": data.node.id, "newName": data.text}));
             }
             else {
@@ -199,7 +209,13 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
     var viprLibIDs = ["viprrest", "viprLib"]
 
     var validActions = [];
+    // default preview
+    $scope.shellPreview = false;
+    $scope.noPreview = true;
+
     function selectDir(event, data) {
+        $scope.shellPreview = false;
+        $scope.noPreview = true;
         // If current node is vipr library or its parent is vipr library, disable all
         if($.inArray(data.node.id, viprLibIDs) > -1 || $.inArray(data.node.parent, viprLibIDs) > -1) {
             // ViPR Library nodes - disable all buttons
@@ -209,9 +225,14 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
             // My Library root
             validActions = validActionsOnMyLib;
         }
-        else if ("file" === data.node.type) {
-            // Workflows
+        else if ($.inArray(data.node.type, fileNodeTypes) > -1) {
+            // workflows, shell script, ansible
             validActions = validActionsOnWorkflow;
+            if (shellNodeType === data.node.type) {
+                //preview Shell script
+                $scope.shellPreview = true;
+                $scope.noPreview = false;
+            }
         }
         else {
             // Other directories in My Library
@@ -236,7 +257,7 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
             sel = ref.get_selected();
         if(!sel.length) { return false; }
         sel = sel[0];
-        sel = ref.create_node(sel);
+        sel = ref.create_node(sel, {"type":folderNodeType});
         if(sel) {
             ref.edit(sel);
         }
@@ -247,7 +268,7 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
             sel = ref.get_selected();
         if(!sel.length) { return false; }
         sel = sel[0];
-        sel = ref.create_node(sel, {"type":"file"});
+        sel = ref.create_node(sel, {"type":workflowNodeType});
         if(sel) {
             ref.edit(sel);
         }
@@ -535,7 +556,11 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
     }
 
     $scope.removeStep = function(stepId) {
-        jspInstance.remove(diagramContainer.find('#' + stepId));
+        if($scope.selectedId===stepId){
+            $scope.selectedId='';
+            $scope.closeMenu();
+        }
+        jspInstance.remove(diagramContainer.find('#' + stepId+'-wrapper'));
     }
 
     $scope.select = function(stepId) {
@@ -559,7 +584,7 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
         var $itemWrapper = '<div id="' + stepId + '-wrapper" class="example-item-card-wrapper"></div>';
         var $buttonContainer = '<div class="button-container"></div>';
         var $editButton = '<a class="glyphicon glyphicon-pencil button-step-close" ng-click="select(\''+stepId+'\')"></a>';
-        var $closeButton = '<a class="glyphicon glyphicon-remove button-step-close" ng-click="removeStep(\''+stepId+'-wrapper\')"></a>';
+        var $closeButton = '<a class="glyphicon glyphicon-remove button-step-close" ng-click="removeStep(\''+stepId+'\')"></a>';
         var $item = '<div id="' + stepId + '" class="item" ng-class="{\'highlighted\':selectedId == \'' + stepId + '\'}"><div class="itemText">' + stepName + '</div></div>';
         if (stepId === "Start" || stepId === "End"){
             $($item).appendTo(diagramContainer).wrap($itemWrapper);

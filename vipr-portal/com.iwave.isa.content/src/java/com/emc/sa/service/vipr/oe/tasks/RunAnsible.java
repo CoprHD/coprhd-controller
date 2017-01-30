@@ -17,6 +17,14 @@
 
 package com.emc.sa.service.vipr.oe.tasks;
 
+import com.emc.sa.engine.ExecutionUtils;
+import com.emc.sa.service.vipr.oe.OrchestrationServiceConstants;
+import com.emc.sa.service.vipr.tasks.ViPRExecutionTask;
+import com.emc.storageos.model.orchestration.OrchestrationWorkflowDocument;
+import com.emc.storageos.model.orchestration.OrchestrationWorkflowDocument.Input;
+import com.emc.storageos.model.orchestration.OrchestrationWorkflowDocument.Step;
+import com.emc.storageos.primitives.Primitive.StepType;
+import com.emc.storageos.services.util.Exec;
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.Charset;
@@ -28,19 +36,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.LoggerFactory;
-
-import com.emc.sa.engine.ExecutionUtils;
-import com.emc.sa.service.vipr.oe.OrchestrationServiceConstants;
-import com.emc.sa.service.vipr.tasks.ViPRExecutionTask;
-import com.emc.storageos.model.orchestration.OrchestrationWorkflowDocument;
-import com.emc.storageos.model.orchestration.OrchestrationWorkflowDocument.Step;
-import com.emc.storageos.model.orchestration.OrchestrationWorkflowDocument.Input;
-import com.emc.storageos.primitives.Primitive.StepType;
-import com.emc.storageos.services.util.Exec;
 
 /**
  * Runs Orchestration Shell script or Ansible Playbook.
@@ -174,20 +172,20 @@ public class RunAnsible  extends ViPRExecutionTask<OrchestrationTaskResult> {
 
     //Execute Ansible playbook on remote node. Playbook is also in remote node
     private Exec.Result executeRemoteCmd(final String extraVars) {
-        final Map<String, List<Input>> inputType = step.getInput();
+        final Map<String,OrchestrationWorkflowDocument.InputGroup> inputType = step.getInputGroups();
         if (inputType == null) {
             return null;
 	}
         
         final AnsibleCommandLine cmd = new AnsibleCommandLine(
-                getAnsibleConnAndOptions(OrchestrationServiceConstants.ANSIBLE_BIN, inputType.get(OrchestrationServiceConstants.ANSIBLE_OPTIONS)),
-                getAnsibleConnAndOptions(OrchestrationServiceConstants.ANSIBLE_PLAYBOOK, inputType.get(OrchestrationServiceConstants.ANSIBLE_OPTIONS)));
+                getAnsibleConnAndOptions(OrchestrationServiceConstants.ANSIBLE_BIN, inputType.get(OrchestrationServiceConstants.ANSIBLE_OPTIONS).getInputGroup()),
+                getAnsibleConnAndOptions(OrchestrationServiceConstants.ANSIBLE_PLAYBOOK, inputType.get(OrchestrationServiceConstants.ANSIBLE_OPTIONS).getInputGroup()));
         final String[] cmds = cmd.setSsh(OrchestrationServiceConstants.SHELL_LOCAL_BIN)
-                .setUserAndIp(getAnsibleConnAndOptions(OrchestrationServiceConstants.REMOTE_USER, inputType.get(OrchestrationServiceConstants.CONNECTION_DETAILS)),
-                              getAnsibleConnAndOptions(OrchestrationServiceConstants.REMOTE_NODE, inputType.get(OrchestrationServiceConstants.CONNECTION_DETAILS)))
-                .setHostFile(getAnsibleConnAndOptions(OrchestrationServiceConstants.ANSIBLE_HOST_FILE, inputType.get(OrchestrationServiceConstants.ANSIBLE_OPTIONS)))
-                .setUser(getAnsibleConnAndOptions(OrchestrationServiceConstants.ANSIBLE_USER, inputType.get(OrchestrationServiceConstants.ANSIBLE_OPTIONS)))
-                .setCommandLine(getAnsibleConnAndOptions(OrchestrationServiceConstants.ANSIBLE_COMMAND_LINE, inputType.get(OrchestrationServiceConstants.ANSIBLE_OPTIONS)))
+                .setUserAndIp(getAnsibleConnAndOptions(OrchestrationServiceConstants.REMOTE_USER, inputType.get(OrchestrationServiceConstants.CONNECTION_DETAILS).getInputGroup()),
+                              getAnsibleConnAndOptions(OrchestrationServiceConstants.REMOTE_NODE, inputType.get(OrchestrationServiceConstants.CONNECTION_DETAILS).getInputGroup()))
+                .setHostFile(getAnsibleConnAndOptions(OrchestrationServiceConstants.ANSIBLE_HOST_FILE, inputType.get(OrchestrationServiceConstants.ANSIBLE_OPTIONS).getInputGroup()))
+                .setUser(getAnsibleConnAndOptions(OrchestrationServiceConstants.ANSIBLE_USER, inputType.get(OrchestrationServiceConstants.ANSIBLE_OPTIONS).getInputGroup()))
+                .setCommandLine(getAnsibleConnAndOptions(OrchestrationServiceConstants.ANSIBLE_COMMAND_LINE, inputType.get(OrchestrationServiceConstants.ANSIBLE_OPTIONS).getInputGroup()))
                 .setExtraVars(extraVars)
                 .build();
 

@@ -22,8 +22,6 @@ import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlElementWrapper;
 import javax.xml.bind.annotation.XmlRootElement;
 
-import org.codehaus.jackson.annotate.JsonIgnoreProperties;
-
 /**
  * JAXB model for Orchestration workflow Definition
  */
@@ -65,6 +63,19 @@ public class OrchestrationWorkflowDocument {
         this.steps = steps;
     }
 
+    public static class InputGroup {
+
+        private List<Input> inputGroup;
+
+        public void setInputGroup(List<Input> inputGroup) {
+            this.inputGroup = inputGroup;
+        }
+
+        @XmlElement(name="input")
+        public List<Input> getInputGroup() {
+            return inputGroup;
+        }
+    }
 
     public static class Input {
 
@@ -76,7 +87,7 @@ public class OrchestrationWorkflowDocument {
         private String group;
         private boolean required = true;
         private boolean locked = false;
-        
+
         @XmlElement(name = "name")
         public String getName() {
             return name;
@@ -142,6 +153,36 @@ public class OrchestrationWorkflowDocument {
         }
     }
 
+    public static class Output {
+
+        private String name;
+        private String type;
+        private String table;
+
+        @XmlElement(name = "name")
+        public String getName() {
+            return name;
+        }
+        public void setName(String name) {
+            this.name = name;
+        }
+
+        @XmlElement(name = "type")
+        public String getType() {
+            return type;
+        }
+        public void setType(String type) {
+            this.type = type;
+        }
+
+        @XmlElement(name = "table")
+        public String getTable() {
+            return table;
+        }
+        public void setTable(String table) {
+            this.table = table;
+        }
+    }
 
     public static class StepAttribute {
 
@@ -175,8 +216,8 @@ public class OrchestrationWorkflowDocument {
         private Integer positionX;
         private Integer positionY;
         private String type;
-        private Map<String, List<Input>> input;
-        private Map<String, String> output;
+        private Map<String, InputGroup> inputGroups;
+        private List<Output> output;
         private StepAttribute attributes;
         private String successCriteria;
         private NextStep next;
@@ -237,20 +278,20 @@ public class OrchestrationWorkflowDocument {
             this.type = type;
         }
 
-        @XmlElement(name = "input")
-        public Map<String, List<Input>> getInput() {
-            return input;
+        @XmlElementWrapper(name = "inputGroups")
+        public Map<String, InputGroup> getInputGroups() {
+            return inputGroups;
         }
 
-        public void setInput(Map<String, List<Input>> input) {
-            this.input = input;
+        public void setInputGroups(Map<String, InputGroup> inputGroups) {
+            this.inputGroups = inputGroups;
         }
 
         @XmlElement(name = "output")
-        public Map<String, String> getOutput() {
+        public List<Output> getOutput() {
             return output;
         }
-        public void setOutput(Map<String, String> output) {
+        public void setOutput(List<Output> output) {
             this.output = output;
         }
         

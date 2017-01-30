@@ -44,6 +44,7 @@ public class PrimitiveManagerImpl implements PrimitiveManager {
 
     @Override
     public UserPrimitive findById(final URI id) {
+        // TODO: move down the enum constant defined in PrimitiveService.java and use that here.
         final String type = URIUtil.getTypeName(id);
         
         switch(type) {
@@ -64,6 +65,7 @@ public class PrimitiveManagerImpl implements PrimitiveManager {
 
     @Override
     public PrimitiveResource findResource(final URI id) {
+     // TODO: move down the enum constant defined in PrimitiveService.java and use that here.
         final String type = URIUtil.getTypeName(id);
         switch(type) {
         case "AnsiblePackage":

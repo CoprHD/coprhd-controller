@@ -356,6 +356,8 @@ public class PrimitiveService extends CatalogTaggedResourceService {
             @Context HttpServletRequest request,
             @PathParam("type") String type, @QueryParam("name") String name) {
 
+        ArgValidator.checkFieldNotNull(name, "name");
+        
         final PrimitiveType primitiveType = PrimitiveType
                 .dynamicType(type);
         if (null == primitiveType) {

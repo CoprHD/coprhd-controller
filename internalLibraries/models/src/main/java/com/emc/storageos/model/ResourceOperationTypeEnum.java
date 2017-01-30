@@ -379,8 +379,8 @@ public enum ResourceOperationTypeEnum {
     SUSPEND_REMOTE_REPLICATION_PAIR_LINK("SUSPEND REMOTE REPLICATION PAIR LINK", "suspend remote replication pair link"),
     RESUME_REMOTE_REPLICATION_PAIR_LINK("RESUME REMOTE REPLICATION PAIR LINK", "resume remote replication pair link"),
     SWAP_REMOTE_REPLICATION_PAIR_LINK("SWAP REMOTE REPLICATION PAIR LINK", "swap remote replication pair link"),
-
-    LIST_MOUNTED_EXPORTS("LIST MOUNTED EXPORTS", "list mounted exports operation");
+    LIST_MOUNTED_EXPORTS("LIST MOUNTED EXPORTS", "list mounted exports operation"),
+    ASSIGN_FILE_POLICY("ASSIGN FILE POLICY", "assign file policy to resource");
 
     private final String name;
     private final String description;

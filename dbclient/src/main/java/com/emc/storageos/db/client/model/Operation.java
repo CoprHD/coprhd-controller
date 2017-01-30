@@ -374,4 +374,13 @@ public class Operation extends AbstractSerializableNestedObject implements Clock
         }
         return valid;
     }
+    
+    /**
+     * Verifies the Terminal state of the task status
+     * @param status Status of task
+     * @return True if status is error or ready. Else false
+     */
+    public static boolean isTerminalState(Status status) {
+    	return (status == Status.ready || status == Status.error);
+    }
 }

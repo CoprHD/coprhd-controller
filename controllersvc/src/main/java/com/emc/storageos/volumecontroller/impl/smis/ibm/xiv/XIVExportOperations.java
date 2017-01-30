@@ -23,6 +23,7 @@ import javax.cim.CIMProperty;
 import javax.wbem.CloseableIterator;
 import javax.wbem.WBEMException;
 
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -785,6 +786,12 @@ public class XIVExportOperations implements ExportMaskOperations {
         }
 
         return matchingMasks;
+    }
+
+    @Override
+    public Set<Integer> findHLUsForInitiators(StorageSystem storage, List<String> initiatorNames, boolean mustHaveAllPorts) {
+        // TODO Auto-generated method stub
+        return null;
     }
 
     private ExportMask refreshSMISExportMask(StorageSystem storage, ExportMask mask) {

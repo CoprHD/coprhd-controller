@@ -43,6 +43,16 @@ except AttributeError:
 
 URI_SERVICES_BASE               = ''
 URI_CATALOG                     = URI_SERVICES_BASE + '/catalog'
+URI_CATALOG_SERVICES            = URI_CATALOG + '/services'
+URI_CATALOG_SERVICE             = URI_CATALOG_SERVICES + '/{0}'
+URI_CATALOG_SERVICE_SEARCH      = URI_CATALOG_SERVICES + '/search'
+URI_CATALOG_SERVICE_SEARCH_NAME = URI_CATALOG_SERVICE_SEARCH + '?name={0}'
+URI_CATALOG_CATEGORIES          = URI_CATALOG + '/categories'
+URI_CATALOG_CATEGORY            = URI_CATALOG_CATEGORIES + '/{0}'
+URI_CATALOG_CATEGORY_UPGRADE    = URI_CATALOG_CATEGORIES + '/upgrade?tenantId={0}'
+URI_CATALOG_ORDERS              = URI_CATALOG + '/orders'
+URI_CATALOG_ORDER               = URI_CATALOG_ORDERS + '/{0}'
+
 URI_CATALOG_VPOOL                 = URI_CATALOG       + '/vpools'
 URI_CATALOG_VPOOL_FILE            = URI_CATALOG_VPOOL   + '/file'
 URI_CATALOG_VPOOL_BLOCK           = URI_CATALOG_VPOOL   + '/block'
@@ -1143,7 +1153,7 @@ class Bourne:
         while True:
             try:
                 obj_op = show_opfn(id, op)
-                if (obj_op['state'] != 'pending'):
+                if (obj_op['state'] != 'pending' and obj_op['state'] != 'queued'):
                     break
 
             except requests.exceptions.ConnectionError:
@@ -1158,6 +1168,9 @@ class Bourne:
         if (type(obj_op) is dict):
             if (obj_op['state'] == 'pending'):
                 raise Exception('Timed out waiting for request in pending state: ' + op)
+
+            if (obj_op['state'] == 'queued'):
+                raise Exception('Timed out waiting for request in queued state: ' + op)
 
             if (obj_op['state'] == 'error' and not ignore_error):
                 self.pretty_print_json(obj_op)
@@ -1195,27 +1208,37 @@ class Bourne:
 
         return obj_op
 
+    # 
+    # Handles looping over a task object.  If the task is suspended, we will loop waiting 
+    # for it to come out of suspended.  It has a short trigger since some tests go from one
+    # suspended state to another, and the state transitions happen too fast for this method
+    # to detect.  So don't wait for more than a minute.  If we return the same suspended state
+    # in the test case, the test will fail down the road anyway.
     def api_sync_4(self, id, showfn, ignore_error=False):
         obj_op = showfn(id)
         tmo = 0
 	seen_pending = 0
 
-        while (obj_op['state'] == 'pending' or obj_op['state'] == 'suspended_no_error'):
+        while (obj_op['state'] == 'pending' or obj_op['state'] == 'suspended_no_error' or obj_op['state'] == 'queued'):
             time.sleep(1)
 	    if (obj_op['state'] == 'pending'):
 		seen_pending = 1;
+                tmo = 0;
 	    if (obj_op['state'] == 'suspended_no_error' and seen_pending == 1):
 		break
 		
             obj_op = showfn(id)
             tmo += 1
-            if (tmo > API_SYNC_TIMEOUT):
+            if (tmo > API_SYNC_TIMEOUT or tmo > 30):
                 break
 
         if (type(obj_op) is dict):
             print str(obj_op)
             if (obj_op['state'] == 'pending'):
                 raise Exception('Timed out waiting for request in pending state: ' + op)
+
+            if (obj_op['state'] == 'queued'):
+                raise Exception('Timed out waiting for request in queued state: ' + op)
 
             if (obj_op['state'] == 'error' and not ignore_error):
                 raise Exception('There was an error encountered:\n' + json.dumps(obj_op, sort_keys=True, indent=4))
@@ -8322,6 +8345,62 @@ class Bourne:
     def cluster_delete(self, name):
         uri = self.cluster_query(name)
         return self.api('POST', URI_RESOURCE_DEACTIVATE.format(URI_CLUSTER.format(uri)))
+
+   
+    # Service Catalog 
+    def catalog_search(self, servicename, tenant):
+        catalog_services = self.api('GET', URI_CATALOG_SERVICE_SEARCH_NAME.format(servicename))
+        for catalog_service in catalog_services['resource']:
+            service = self.catalog_service_query(catalog_service['id'])
+            category = self.catalog_category_query(service['catalog_category']['id'])
+            if category['tenant']['id'] == tenant and service['name'] == servicename:
+                return service 
+        raise Exception('unable to find service ' + servicename + ' in tenant ' + tenant)
+
+    def catalog_category_query(self, id):
+        return self.api('GET', URI_CATALOG_CATEGORY.format(id))
+
+    def catalog_service_query(self, id):
+        return self.api('GET', URI_CATALOG_SERVICE.format(id))
+
+    def __catalog_poll(self, id):
+        executing = True
+        orderstatus = ""
+        while executing:
+            order = self.api('GET', URI_CATALOG_ORDER.format(id))
+            orderstatus = order['order_status']
+            if orderstatus != 'PENDING' and orderstatus != 'EXECUTING':
+                executing = False
+            else:
+                time.sleep(5)
+        if orderstatus == 'ERROR':
+            raise Exception('error during catalog order')
+        return order
+
+    def catalog_upgrade(self, tenant):
+        tenant = self.__tenant_id_from_label(tenant)
+        return self.api('POST', URI_CATALOG_CATEGORY_UPGRADE.format(tenant))
+ 
+    def catalog_order(self, servicename, tenant, parameters):
+        tenant = self.__tenant_id_from_label(tenant)
+        self.catalog_upgrade(tenant)
+        service = self.catalog_search(servicename, tenant) 
+        parms = { 'tenantId': tenant,
+                  'catalog_service': service['id']
+                }
+
+        ordervalues = [] 
+
+        for parameter in parameters.split(','):
+            values = parameter.split('=')
+            ordervalues.append({ 'label':values[0],
+                                 'value': values[1]
+                              })
+
+        parms['parameters'] = ordervalues
+
+        order = self.api('POST', URI_CATALOG_ORDERS, parms)
+        return self.__catalog_poll(order['id'])
 
     #
     # Compute Resources - Host

@@ -376,8 +376,72 @@ public class VmaxExportOperations implements ExportMaskOperations {
             if (null != groupName) {
                 childGroupsByFast = _helper.groupStorageGroupsByAssociation(storage, groupName);
             } else {
-                _log.info("Masking View {} doesn't have any SGs associated, probably removed manually from Array",
-                        maskingViewName);
+                _log.info("Masking View {} doesn't have any SGs associated, probably removed manually from Array", maskingViewName);
+                if (isVmax3) {
+                    // If we did not find the storage group associated with the masking view it could be
+                    // the case that were were unexporting volumes and successfully deleted the masking
+                    // but failed at some point thereafter, and now the operation is being retried. If
+                    // that is the case, then for VMAX3 we want to make sure that none of the volumes being
+                    // unexported are still in non parking storage groups. If we find such volume we remove
+                    // them and add them to the parking storage group.
+                    ExportMask exportMask = _dbClient.queryObject(ExportMask.class, exportMaskURI);
+                    if (exportMask == null) {
+                        // If we can't find the mask, there is really no cleanup we can do.
+                        _log.warn("ExportMask {} no longer exists", exportMaskURI);
+                        taskCompleter.ready(_dbClient);
+                        return;
+                    }
+                    
+                    // See if any of the mask's volumes are still in a non-parking storage group. Map the
+                    // volumes by group name.
+                    List<URI> volumeURIs = ExportMaskUtils.getVolumeURIs(exportMask);
+                    Map<String, List<URI>> volumesInNonParkingStorageGroup = _helper.getVolumesInNonParkingStorageGroup(storage, volumeURIs);
+                    if (!volumesInNonParkingStorageGroup.isEmpty()) {
+                        Map<String, Set<String>> volumeDeviceIdsMap = new HashMap<>();
+                        for (Entry<String, List<URI>> storageGroupEntry : volumesInNonParkingStorageGroup.entrySet()) {
+                            String storageGroupName = storageGroupEntry.getKey();
+                            List<URI> storageGroupVolumeURIs = storageGroupEntry.getValue();
+
+                            // If the storage group has multiple parents or is associated with other masking views,
+                            // then just skip the volume, we cannot clean it up as we may impact other exports.
+                            if (_helper.findStorageGroupsAssociatedWithMultipleParents(storage, storageGroupName) || 
+                                    _helper.findStorageGroupsAssociatedWithOtherMaskingViews(storage, storageGroupName)) {
+                                _log.info("Storage group {} is associated with multiple paranets or other masking views", storageGroupName);
+                                continue;
+                            }
+                            
+                            // Otherwise, remove the volumes from the storage group.
+                            _log.info("Removing volumes {} from non parking storage group {}", storageGroupVolumeURIs, storageGroupName);
+                            _helper.removeVolumesFromStorageGroup(storage, storageGroupName, storageGroupVolumeURIs, true);
+                            
+                            // Add the device ids of the volume in the group with the appropriate 
+                            // parking storage group policy so that they can be added to the correct
+                            // parking storage group. 
+                            for (URI storageGroupVolumeURI : storageGroupVolumeURIs) {
+                                Volume storageGroupVolume = _dbClient.queryObject(Volume.class, storageGroupVolumeURI);
+                                if (storageGroupVolume != null) {
+                                    String policyName = ControllerUtils.getAutoTieringPolicyName(storageGroupVolumeURI, _dbClient);
+                                    String policyKey = _helper.getVMAX3FastSettingForVolume(storageGroupVolumeURI, policyName);
+                                    if (volumeDeviceIdsMap.containsKey(policyKey)) {
+                                        volumeDeviceIdsMap.get(policyKey).add(storageGroupVolume.getNativeId());
+                                    } else {
+                                        Set<String> volumeDeviceIds = new HashSet<>();
+                                        volumeDeviceIds.add(storageGroupVolume.getNativeId());
+                                        volumeDeviceIdsMap.put(policyKey, volumeDeviceIds);
+                                    }
+                                }
+                            }                            
+                        }
+                        
+                        // Finally for each parking storage group policy, add the volumes associated parking storage group.
+                        for (Entry<String, Set<String>> volumeDeviceIdsMapEntry : volumeDeviceIdsMap.entrySet()) {
+                            _log.info("Adding volumes {} on system {} to parking storage group for policy {}",
+                                    volumeDeviceIdsMapEntry.getValue(), storage.getNativeGuid(), volumeDeviceIdsMapEntry.getKey());
+                            addVolumesToParkingStorageGroup(storage, volumeDeviceIdsMapEntry.getKey(), volumeDeviceIdsMapEntry.getValue());
+                        }
+                    }
+                }
+                
                 taskCompleter.ready(_dbClient);
                 return;
             }
@@ -398,6 +462,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
                     exportMaskRollback(storage, context, taskCompleter);
                 }
             } else {
+            	ExportOperationContext context = (ExportOperationContext) WorkflowService.getInstance().loadStepData(taskCompleter.getOpId());
                 ExportMask exportMask = _dbClient.queryObject(ExportMask.class, exportMaskURI);
                 List<URI> volumeURIs = ExportMaskUtils.getVolumeURIs(exportMask);
 
@@ -406,6 +471,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
                 ctx.setExportMask(exportMask);
                 ctx.setBlockObjects(volumeURIList, _dbClient);
                 ctx.setInitiators(initiatorList);
+                ctx.setAllowExceptions(context == null);
                 validator.exportMaskDelete(ctx).validate();
 
                 if (!deleteMaskingView(storage, exportMaskURI, childGroupsByFast, taskCompleter)) {
@@ -1123,12 +1189,21 @@ public class VmaxExportOperations implements ExportMaskOperations {
             }
 
             List<? extends BlockObject> blockObjects = BlockObject.fetchAll(_dbClient, volumeURIList);
-            validator.removeVolumes(storage, exportMaskURI, initiatorList, blockObjects).validate();
+            ExportMask exportMask = _dbClient.queryObject(ExportMask.class, exportMaskURI);
+            // Get the context from the task completer, in case this is a rollback.
+            ExportOperationContext context = (ExportOperationContext) WorkflowService.getInstance().loadStepData(taskCompleter.getOpId());
+
+            ExportMaskValidationContext ctx = new ExportMaskValidationContext();
+            ctx.setStorage(storage);
+            ctx.setExportMask(exportMask);
+            ctx.setBlockObjects(blockObjects);
+            ctx.setInitiators(initiatorList);
+            // Allow exceptions to be thrown when not rolling back, i.e. when context is null
+            ctx.setAllowExceptions(context == null);
+            validator.removeVolumes(ctx).validate();
 
             boolean isVmax3 = storage.checkIfVmax3();
             WBEMClient client = _helper.getConnection(storage).getCimClient();
-            // Get the context from the task completer, in case this is a rollback.
-            ExportOperationContext context = (ExportOperationContext) WorkflowService.getInstance().loadStepData(taskCompleter.getOpId());
             if (context != null) {
                 exportMaskRollback(storage, context, taskCompleter);
                 taskCompleter.ready(_dbClient);
@@ -1991,7 +2066,72 @@ public class VmaxExportOperations implements ExportMaskOperations {
         return masksWithReusableIGs;
     }
 
+    @Override
+    public Set<Integer> findHLUsForInitiators(StorageSystem storage, List<String> initiatorNames, boolean mustHaveAllPorts) {
+        long startTime = System.currentTimeMillis();
+        Set<Integer> usedHLUs = new HashSet<Integer>();
+        CloseableIterator<CIMInstance> maskInstanceItr = null;
+        try {
+            // Get a mapping of the initiator port names to their CIMObjectPaths on the provider
+            WBEMClient client = _helper.getConnection(storage).getCimClient();
+            HashMap<String, CIMObjectPath> initiatorPathsMap = _cimPath.getInitiatorToInitiatorPath(storage, initiatorNames);
+            List<String> maskNames = new ArrayList<String>();
 
+            // Iterate through each initiator port name ...
+            for (String initiatorName : initiatorPathsMap.keySet()) {
+                CIMObjectPath initiatorPath = initiatorPathsMap.get(initiatorName);
+
+                // Find out if there is a MaskingView associated with the initiator...
+                maskInstanceItr = _helper.getAssociatorInstances(storage, initiatorPath, null, SmisConstants.SYMM_LUN_MASKING_VIEW, null,
+                        null, SmisConstants.PS_LUN_MASKING_CNTRL_NAME_AND_ROLE);
+                while (maskInstanceItr.hasNext()) {
+                    // Found a MaskingView...
+                    CIMInstance instance = maskInstanceItr.next();
+                    String systemName = CIMPropertyFactory.getPropertyValue(instance, SmisConstants.CP_SYSTEM_NAME);
+
+                    if (!systemName.contains(storage.getSerialNumber())) {
+                        // We're interested in the specific StorageSystem's masks.
+                        // The above getSymmLunMaskingViews call will get
+                        // a listing of for all the protocol controllers seen by the
+                        // SMISProvider pointed to by 'storage' system.
+                        continue;
+                    }
+
+                    String name = CIMPropertyFactory.getPropertyValue(instance, SmisConstants.CP_ELEMENT_NAME);
+                    if (!maskNames.contains(name)) {
+                        _log.info("Found matching mask {}", name);
+                        maskNames.add(name);
+
+                        // Find all the initiators associated with the MaskingView
+                        List<String> initiatorPorts = _helper.getInitiatorsFromLunMaskingInstance(client, instance);
+
+                        // Get volumes for the MaskingView
+                        Map<String, Integer> volumeWWNs = _helper.getVolumesFromLunMaskingInstance(client, instance);
+
+                        // add HLUs to set
+                        usedHLUs.addAll(volumeWWNs.values());
+                        _log.info(String.format("%nXM:%s I:{%s} V:{%s} HLU:{%s}%n", name,
+                                Joiner.on(',').join(initiatorPorts),
+                                Joiner.on(',').join(volumeWWNs.keySet()), volumeWWNs.values()));
+                    }
+                }
+            }
+
+            _log.info(String.format("HLUs found for Initiators { %s }: %s",
+                    Joiner.on(',').join(initiatorNames), usedHLUs));
+        } catch (Exception e) {
+            String errMsg = "Encountered an SMIS error when attempting to query used HLUs for initiators: " + e.getMessage();
+            _log.error(errMsg, e);
+            throw SmisException.exceptions.hluRetrievalFailed(errMsg, e);
+        } finally {
+            if (maskInstanceItr != null) {
+                maskInstanceItr.close();
+            }
+            long totalTime = System.currentTimeMillis() - startTime;
+            _log.info(String.format("find used HLUs for Initiators took %f seconds", (double) totalTime / (double) 1000));
+        }
+        return usedHLUs;
+    }
 
     @Override
     public ExportMask refreshExportMask(StorageSystem storage, ExportMask mask) throws DeviceControllerException {
@@ -2119,9 +2259,9 @@ public class VmaxExportOperations implements ExportMaskOperations {
                 }
 
                 builder.append(
-                        String.format("XM refresh: %s initiators; add:{%s} remove:{%s}%n",
+                        String.format("XM refresh: %s initiators; add:{%s} remove:{%s}%n remove ids:{%s}%n",
                                 name, Joiner.on(',').join(initiatorsToAdd),
-                                Joiner.on(',').join(initiatorsToRemove)));
+                                Joiner.on(',').join(initiatorsToRemove), Joiner.on(',').join(initiatorIdsToRemove)));
                 builder.append(
                         String.format("XM refresh: %s volumes; add:{%s} remove:{%s}%n",
                                 name, Joiner.on(',').join(volumesToAdd.keySet()),
@@ -2861,10 +3001,6 @@ public class VmaxExportOperations implements ExportMaskOperations {
                             .unableToDeleteIGs(groupName));
                     return false;
                 }
-
-                // Perform post-mask-delete cleanup steps
-                ExportUtils.cleanupAssociatedMaskResources(_dbClient, exportMask);
-
             } else {
                 String opName = ResourceOperationTypeEnum.DELETE_EXPORT_GROUP.getName();
                 ServiceError serviceError = DeviceControllerException.errors.jobFailedOp(opName);

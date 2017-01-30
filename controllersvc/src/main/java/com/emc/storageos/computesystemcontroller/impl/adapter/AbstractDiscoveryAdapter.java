@@ -310,6 +310,7 @@ public abstract class AbstractDiscoveryAdapter implements ComputeSystemDiscovery
                 throw new IllegalArgumentException(e);
             }
             model.setLabel(label);
+            info("Creating new instance of %s with label %s", modelClass.getSimpleName(), label);
         } else {
             models.remove(model);
         }

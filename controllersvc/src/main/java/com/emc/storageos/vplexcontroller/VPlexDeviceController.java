@@ -3790,6 +3790,11 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
     private void removeVolumesFromStorageViewAndMask(
             VPlexApiClient client, ExportMask exportMask, List<URI> volumeURIList) throws Exception {
 
+        // If no volumes to remove, just return.
+        if (volumeURIList.isEmpty()) {
+            return;
+        }
+
         // validate the remove volume operation against the export mask initiators
         List<Initiator> initiators = new ArrayList<Initiator>();
         if (exportMask.getUserAddedInitiators() != null && !exportMask.getUserAddedInitiators().isEmpty()) {
@@ -3799,17 +3804,14 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
                 initiators.add(initItr.next());
             }
         }
+
         StorageSystem vplex = _dbClient.queryObject(StorageSystem.class, exportMask.getStorageDevice());
         ExportMaskValidationContext ctx = new ExportMaskValidationContext();
         ctx.setStorage(vplex);
         ctx.setExportMask(exportMask);
         ctx.setInitiators(initiators);
+        ctx.setBlockObjects(volumeURIList, _dbClient);
         validator.removeVolumes(ctx).validate();
-
-        // If no volumes to remove, just return.
-        if (volumeURIList.isEmpty()) {
-            return;
-        }
 
         // Determine the virtual volume names.
         List<String> blockObjectNames = new ArrayList<String>();

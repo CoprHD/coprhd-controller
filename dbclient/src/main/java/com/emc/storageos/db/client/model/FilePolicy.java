@@ -82,7 +82,7 @@ public class FilePolicy extends DataObjectWithACLs {
     private Boolean applyOnTargetSite;
 
     public static enum FileReplicationType {
-        LOCAL, REMOTE;
+        LOCAL, REMOTE, NONE;
     }
 
     public static enum FileReplicationCopyMode {

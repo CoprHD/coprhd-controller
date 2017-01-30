@@ -32,6 +32,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.util.Assert;
+import org.springframework.util.CollectionUtils;
 
 import com.emc.storageos.blockorchestrationcontroller.BlockOrchestrationDeviceController;
 import com.emc.storageos.blockorchestrationcontroller.BlockOrchestrationInterface;
@@ -93,7 +94,6 @@ import com.emc.storageos.exceptions.DeviceControllerExceptions;
 import com.emc.storageos.locking.LockTimeoutValue;
 import com.emc.storageos.locking.LockType;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
-import com.emc.storageos.networkcontroller.impl.NetworkDeviceController;
 import com.emc.storageos.networkcontroller.impl.NetworkScheduler;
 import com.emc.storageos.networkcontroller.impl.NetworkZoningParam;
 import com.emc.storageos.protectioncontroller.impl.recoverpoint.RPDeviceController;
@@ -127,7 +127,6 @@ import com.emc.storageos.volumecontroller.impl.block.BlockDeviceController;
 import com.emc.storageos.volumecontroller.impl.block.ExportMaskPlacementDescriptor;
 import com.emc.storageos.volumecontroller.impl.block.ExportWorkflowEntryPoints;
 import com.emc.storageos.volumecontroller.impl.block.ExportWorkflowUtils;
-import com.emc.storageos.volumecontroller.impl.block.MaskingOrchestrator;
 import com.emc.storageos.volumecontroller.impl.block.MaskingWorkflowEntryPoints;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.BlockSnapshotRestoreCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.BlockSnapshotResyncCompleter;
@@ -1395,18 +1394,12 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
         }
 
         // Segregate by device and loop over each VPLEX system.
-        // Sort the volumes by its system, and consistency group
-        Map<URI, Set<URI>> cgVolsMap = new HashMap<URI, Set<URI>>();
         Map<URI, List<VolumeDescriptor>> vplexMap = VolumeDescriptor.getDeviceMap(vplexVolumes);
         for (URI vplexURI : vplexMap.keySet()) {
             List<URI> vplexVolumeURIs = VolumeDescriptor.getVolumeURIs(vplexMap.get(vplexURI));
             List<URI> forgetVolumeURIs = new ArrayList<URI>();
             for (URI vplexVolumeURI : vplexVolumeURIs) {
                 Volume vplexVolume = getDataObject(Volume.class, vplexVolumeURI, _dbClient);
-                boolean inCG = false;
-                if (!NullColumnValueGetter.isNullURI(vplexVolume.getConsistencyGroup())) {
-                    inCG = true;
-                }
                 if (null == vplexVolume.getAssociatedVolumes()) {
                     _log.warn("VPLEX volume {} has no backend volumes. It was possibly ingested 'Virtual Volume Only'.", 
                             vplexVolume.forDisplay());
@@ -1415,15 +1408,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
                         forgetVolumeURIs.add(URI.create(forgetVolumeId));
                     }
                 }
-                if (inCG) {
-                    Set<URI> cgVols = cgVolsMap.get(vplexVolume.getConsistencyGroup());
-                    if (cgVols == null) {
-                        cgVols = new HashSet<URI>();
-                        cgVolsMap.put(vplexVolume.getConsistencyGroup(), cgVols);
-                    }
-                    cgVols.add(vplexVolumeURI);
-                    cgVols.addAll(forgetVolumeURIs);
-                }
+
                 // Adding the VPLEX mirror backend volume to forgetVolumeURIs
                 if (vplexVolume.getMirrors() != null && !(vplexVolume.getMirrors().isEmpty())) {
                     for (String mirrorId : vplexVolume.getMirrors()) {
@@ -1453,29 +1438,6 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
                 vplexURI, DiscoveredDataObject.Type.vplex.name(), this.getClass(),
                 markVolumesInactiveMethod(allVplexVolumeURIs),
                 markVolumesInactiveMethod(allVplexVolumeURIs), null);
-
-
-        if (cgVolsMap.isEmpty()) {
-            return waitFor;
-        }
-        Volume vol = getDataObject(Volume.class, allVplexVolumeURIs.get(0), _dbClient);
-        ConsistencyGroupManager consistencyGroupManager = getConsistencyGroupManager(vol);
-
-        for (URI cgURI : cgVolsMap.keySet()) {
-            // find member volumes in the group
-            List<Volume> volumeList = new ArrayList<Volume>();
-            Iterator<Volume> volumeIterator = _dbClient.queryIterativeObjects(Volume.class, cgVolsMap.get(cgURI), true);
-            while (volumeIterator.hasNext()) {
-                volumeList.add(volumeIterator.next());
-            }
-            Volume firstVol = volumeList.get(0);
-            URI storage = firstVol.getStorageController();
-            // delete replication group from array
-            if (ControllerUtils.cgHasNoOtherVolume(_dbClient, cgURI, volumeList)) {
-                _log.info(String.format("Adding step to delete the consistency group %s", cgURI));
-                waitFor = consistencyGroupManager.addStepsForDeleteConsistencyGroup(workflow, waitFor, storage, cgURI, false);
-            }
-        }
 
         return waitFor;
     }
@@ -1565,10 +1527,6 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
                 createForgetVolumesMethod(vplexSystemURI, nativeVolumeInfoList), null, null);
     }
 
-    private void addStepsToDeleteVplexCG(Workflow workflow, URI vplexSystemURI,
-            List<URI> volumeURIs, String waitFor) {
-
-    }
     /**
      * Gets the native volume information required by the VPLEX client for
      * the passed backend volumes.
@@ -1912,6 +1870,15 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
 
             Workflow workflow = _workflowService.getNewWorkflow(this, "exportGroupCreate", true, opId);
 
+            // If possible, do the HA side export. To do this we must have both
+            // HA side initiators, and volumes accessible from the HA side.
+            if (haVarray != null && varrayToInitiators.get(haVarray) != null) {
+                exportGroup.putAltVirtualArray(vplex.toString(), haVarray.toString());
+                _dbClient.updateObject(exportGroup);
+            }
+
+            findAndUpdateFreeHLUsForClusterExport(vplexSystem, exportGroup, initiators, volumeMap);
+
             // Do the source side export if there are src side volumes and initiators.
             String srcExportStepId = null;
             if (srcVolumes != null && varrayToInitiators.get(srcVarray) != null) {
@@ -1923,8 +1890,6 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
             // If possible, do the HA side export. To do this we must have both
             // HA side initiators, and volumes accessible from the HA side.
             if (haVarray != null && varrayToInitiators.get(haVarray) != null) {
-                exportGroup.putAltVirtualArray(vplex.toString(), haVarray.toString());
-                _dbClient.updateObject(exportGroup);
                 assembleExportMasksWorkflow(vplex, export, haVarray,
                         varrayToInitiators.get(haVarray),
                         ExportMaskUtils.filterVolumeMap(volumeMap, varrayToVolumes.get(haVarray)),
@@ -3144,16 +3109,8 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
                                 this.getClass(), storageViewExecuteMethod, null, exportMaskDeleteStep);
                     }
 
-                    if (isValidationNeeded && (removeVolumes || removeInitiators)) {
-                        if (removeVolumes) {
-                            errorMessages.append("Volumes (" + volumeURIList + ") ");
-                        }
-                        if (removeVolumes && removeInitiators) {
-                            errorMessages.append("and ");
-                        }
-                        if (removeInitiators) {
-                            errorMessages.append("Initiators (" + exportMask.getInitiators() + ") ");
-                        }
+                    if (isValidationNeeded && removeInitiators) {
+                        errorMessages.append("Initiators (" + exportMask.getInitiators() + ") ");
                         errorMessages.append("would be removed from ExportMask " + exportMask.forDisplay() + ". ");
                     }
 
@@ -3434,9 +3391,10 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
             if (haVarray != null) {
                 varrayURIs.add(haVarray);
             }
+            List<URI> exportGroupInitiatorList = StringSetUtil.stringSetToUriList(exportGroup.getInitiators());
             Map<URI, List<URI>> varrayToInitiators = VPlexUtil.partitionInitiatorsByVarray(
                     _dbClient, _blockScheduler,
-                    StringSetUtil.stringSetToUriList(exportGroup.getInitiators()),
+                    exportGroupInitiatorList,
                     varrayURIs, vplexSystem);
 
             if (varrayToInitiators.isEmpty()) {
@@ -3444,6 +3402,8 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
                         .exportCreateNoinitiatorsHaveCorrectConnectivity(
                                 exportGroup.getInitiators().toString(), varrayURIs.toString());
             }
+
+            findAndUpdateFreeHLUsForClusterExport(vplexSystem, exportGroup, exportGroupInitiatorList, volumeMap);
 
             // Add all the volumes to the SRC varray if there are src side volumes and
             // initiators that have connectivity to the source side.
@@ -3587,7 +3547,6 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
             _log.info("Updating volume/lun map in export mask {}", exportMask.getId());
             exportMask.addVolumes(updatedVolumeMap);
             _dbClient.updateObject(exportMask);
-
             InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_002);
 
             completer.ready(_dbClient);
@@ -4003,6 +3962,8 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
                 }
             }
 
+            checkForConsistentLunViolation(vplex, exportGroup, initiatorURIs);
+
             // Process each host separately.
             String previousStep = null;
             for (URI hostURI : hostInitiatorsMap.keySet()) {
@@ -4050,6 +4011,44 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
             String opName = ResourceOperationTypeEnum.ADD_EXPORT_INITIATOR.getName();
             ServiceError serviceError = VPlexApiException.errors.exportGroupAddInitiatorsFailed(opName, ex);
             WorkflowStepCompleter.stepFailed(opId, serviceError);
+        }
+    }
+
+    /**
+     * Validates if there is a HLU conflict between cluster volumes and the host volumes.
+     * 
+     * @param storage the storage
+     * @param exportGroup the export group
+     * @param newInitiatorURIs the host initiators to be added to the export group
+     **/
+    public void checkForConsistentLunViolation(StorageSystem storage, ExportGroup exportGroup, List<URI> newInitiatorURIs) {
+
+        Map<String, Integer> volumeHluPair = new HashMap<String, Integer>();
+        // For 'add host to cluster' operation, validate and fail beforehand if HLU conflict is detected
+        if (exportGroup.forCluster() && exportGroup.getVolumes() != null) {
+            // get HLUs from ExportGroup as these are the volumes that will be exported to new Host.
+            Collection<String> egHlus = exportGroup.getVolumes().values();
+            Collection<Integer> clusterHlus = Collections2.transform(egHlus, CommonTransformerFunctions.FCTN_STRING_TO_INTEGER);
+            Set<Integer> newHostUsedHlus;
+            try {
+                newHostUsedHlus = findHLUsForInitiators(storage, exportGroup, newInitiatorURIs, false);
+            } catch (Exception e) {
+                String errMsg = "Encountered an error when attempting to query used HLUs for initiators: " + e.getMessage();
+                _log.error(errMsg, e);
+                throw VPlexApiException.exceptions.hluRetrievalFailed(errMsg, e);
+            }
+            // newHostUsedHlus now will contain the intersection of the two Set of HLUs which are conflicting one's
+            newHostUsedHlus.retainAll(clusterHlus);
+            if (!newHostUsedHlus.isEmpty()) {
+                _log.info("Conflicting HLUs: {}", newHostUsedHlus);
+                for (Map.Entry<String, String> entry : exportGroup.getVolumes().entrySet()) {
+                    Integer hlu = Integer.valueOf(entry.getValue());
+                    if (newHostUsedHlus.contains(hlu)) {
+                        volumeHluPair.put(entry.getKey(), hlu);
+                    }
+                }
+                throw DeviceControllerException.exceptions.addHostHLUViolation(volumeHluPair);
+            }
         }
     }
 
@@ -4324,9 +4323,6 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
 
                 // Determine host of ExportMask
                 Set<URI> exportMaskHosts = VPlexUtil.getExportMaskHosts(_dbClient, exportMask, sharedExportMask);
-                
-                //Invoke artificial failure to simulate invalid storageview name on vplex
-                InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_060);
 
                 // Add new targets if specified
                 if (targetURIs != null && targetURIs.isEmpty() == false) {
@@ -5236,9 +5232,6 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
             ctx.setBlockObjects(volumeURIList, _dbClient);
             ctx.setAllowExceptions(!WorkflowService.getInstance().isStepInRollbackState(stepId));
             validator.removeInitiators(ctx).validate();
-            
-            //Invoke artificial failure to simulate invalid storageview name on vplex
-            InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_060);
 
             // Optionally remove targets from the StorageView.
             // If there is any existing initiator and existing volume then we skip
@@ -5323,12 +5316,117 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
         }
     }
 
+    /**
+     * Finds the next available HLU for cluster export by querying the cluster's hosts'
+     * used HLUs and updates the volumeHLU map with free HLUs.
+     */
     @Override
     public void findAndUpdateFreeHLUsForClusterExport(StorageSystem storage, ExportGroup exportGroup, List<URI> initiatorURIs,
             Map<URI, Integer> volumeMap) {
-        // ExportUtils.findAndUpdateFreeHLUsForClusterExport(getInstance(), getDevice(), storage, exportGroup, initiatorURIs, volumeMap,
-        // _dbClient);
+        try {
+            if (exportGroup.forCluster() && volumeMap.values().contains(ExportGroup.LUN_UNASSIGNED)
+                    && ExportUtils.systemSupportsConsistentHLUGeneration(storage)) {
+                _log.info("Find and update free HLUs for Cluster Export START..");
+                /**
+                 * Group the initiators by Host. For each Host, call device.findHLUsForInitiators() to get used HLUs.
+                 * Add all hosts's HLUs to a Set.
+                 * Get the maximum allowed HLU for the storage array.
+                 * Calculate the free lowest available HLUs.
+                 * Update the new values in the VolumeHLU Map.
+                 */
+                Set<Integer> usedHlus = findHLUsForInitiators(storage, exportGroup, initiatorURIs, false);
+                Integer maxHLU = ExportUtils.getMaximumAllowedHLU(storage);
+                Set<Integer> freeHLUs = ExportUtils.calculateFreeHLUs(usedHlus, maxHLU);
+
+                ExportUtils.updateFreeHLUsInVolumeMap(volumeMap, freeHLUs);
+
+                _log.info("Find and update free HLUs for Cluster Export END.");
+            } else {
+                _log.info("Find and update free HLUs for Cluster Export not required");
+            }
+        } catch (Exception e) {
+            String errMsg = "Encountered an error when attempting to query used HLUs for initiators: " + e.getMessage();
+            _log.error(errMsg, e);
+            throw VPlexApiException.exceptions.hluRetrievalFailed(errMsg, e);
+        }
     }
+    
+    /**
+     * 
+     * @param vplexStorageSystem
+     * @param exportGroup
+     * @param initiatorURIs
+     * @param mustHaveAllPorts
+     * @return
+     * @throws Exception
+     */
+    public Set<Integer> findHLUsForInitiators(StorageSystem vplexStorageSystem, ExportGroup exportGroup, List<URI> initiatorURIs,
+            boolean mustHaveAllPorts) throws Exception {
+        long startTime = System.currentTimeMillis();
+        Set<Integer> usedHLUs = new HashSet<Integer>();
+        VPlexApiClient client = VPlexControllerUtils.getVPlexAPIClient(_vplexApiFactory, vplexStorageSystem, _dbClient);
+        
+        URI srcVarrayURI = exportGroup.getVirtualArray();
+        /**
+         * Find used HLUs here for VPLEX local and distributed
+         */
+        _log.info("varray uri :{} Vplex URI :{}", srcVarrayURI, vplexStorageSystem.getId());
+        String vplexClusterName = VPlexUtil.getVplexClusterName(srcVarrayURI, vplexStorageSystem.getId(), client, _dbClient);
+        _log.info("vplexClusterName :{}", vplexClusterName);
+
+        Map<String, String> initiatorWwnToNameMap = null;
+        initiatorWwnToNameMap = client.getInitiatorWwnToNameMap(vplexClusterName);
+        Iterator<Initiator> inits = _dbClient.queryIterativeObjects(Initiator.class, initiatorURIs);
+        List<String> initiatorNames = new ArrayList<String>();
+        while (inits.hasNext()) {
+            Initiator ini = inits.next();
+            String portWwn = ini.getInitiatorPort();
+            String initiatorName = initiatorWwnToNameMap.get(WWNUtility.getUpperWWNWithNoColons(portWwn));
+            if (initiatorName != null) {
+                initiatorNames.add(initiatorName);
+            }
+        }
+
+        List<VPlexStorageViewInfo> storageViewInfos = client.getStorageViewsContainingInitiators(
+                vplexClusterName, initiatorNames); 
+        _log.info("initiatorNames {}", initiatorNames);
+        if (exportGroup.hasAltVirtualArray(vplexStorageSystem.getId().toString())) {
+            // If there is an alternate Varray entry for this Vplex, it indicates we have HA volumes.
+            URI haVarrayURI = URI.create(exportGroup.getAltVirtualArrays().get(vplexStorageSystem.getId().toString()));
+            _log.info("haVarrayURI :{} Vplex URI :{}", haVarrayURI, vplexStorageSystem.getId());
+            String vplexHAClusterName = VPlexUtil.getVplexClusterName(haVarrayURI, vplexStorageSystem.getId(), client, _dbClient);
+            _log.info("vplexHAClusterName :{}", vplexHAClusterName);
+
+            initiatorWwnToNameMap = client.getInitiatorWwnToNameMap(vplexHAClusterName);
+            inits = _dbClient.queryIterativeObjects(Initiator.class, initiatorURIs);
+            List<String> haInitiatorNames = new ArrayList<String>();
+            while (inits.hasNext()) {
+                Initiator ini = inits.next();
+                String portWwn = ini.getInitiatorPort();
+                String initiatorName = initiatorWwnToNameMap.get(WWNUtility.getUpperWWNWithNoColons(portWwn));
+                if (initiatorName != null) {
+                    haInitiatorNames.add(initiatorName);
+                }
+            }
+            storageViewInfos.addAll(client.getStorageViewsContainingInitiators(
+                    vplexHAClusterName, haInitiatorNames));
+        }
+        
+        for (VPlexStorageViewInfo storageViewInfo : storageViewInfos) {
+            if(storageViewInfo!=null && !CollectionUtils.isEmpty(storageViewInfo.getWwnToHluMap())){
+                _log.info("storageViewInfo.getWwnToHluMap() :{}", storageViewInfo.getWwnToHluMap());
+                usedHLUs.addAll(storageViewInfo.getWwnToHluMap().values());
+            }
+        }
+
+        _log.info(String.format("HLUs found for Initiators { %s }: %s",
+                Joiner.on(',').join(initiatorNames), usedHLUs));
+        long totalTime = System.currentTimeMillis() - startTime;
+        _log.info(String.format("find used HLUs for Initiators took %f seconds", (double) totalTime / (double) 1000));
+        return usedHLUs;
+    }
+
+
 
     public void setVplexApiFactory(VPlexApiFactory _vplexApiFactory) {
         this._vplexApiFactory = _vplexApiFactory;

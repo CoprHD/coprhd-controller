@@ -43,17 +43,17 @@ def task_delete(args):
         names = args.name.split(',')
         for name in names:
             print "Querying for task: " + name
-            task = bourne.task_show(name)
+            task = bourne.task_show(uri)
             # Only remove active tasks
             if (not task['inactive']):
-                uris.append(task['id'])
+                uris.append(uri)
     start = time.time()
     if (len(uris) > 1):
         print "Multi task delete"
         (o, s, m) = bourne.task_multi_delete(uris, args.wait, args.vipronly, args.force)
     elif (len(uris) == 1):
         print "Single task delete"
-        o = bourne.task_delete(uris[0])
+        (o, s, m) = bourne.task_delete(uris[0], args.wait, args.vipronly, args.force)
     else:
         print "No active tasks to delete"
         o = "There were no active tasks to delete"

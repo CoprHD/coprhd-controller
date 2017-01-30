@@ -647,6 +647,19 @@ public class IsilonApi {
             throws IsilonException {
         IsilonSnapshotSchedule isiSchedule = new IsilonSnapshotSchedule(name, path, schedule, pattern, duration);
         sLogger.info("Isilon snapshot schedule: {} creation started", isiSchedule.toString());
+        return createSnapshotSchedule(isiSchedule);
+    }
+
+    /**
+     * Create snapshot schedule
+     * 
+     * @param isiSchedule
+     * @return String identifier for the snapshot schedule created
+     * @throws IsilonException
+     */
+    public String createSnapshotSchedule(IsilonSnapshotSchedule isiSchedule)
+            throws IsilonException {
+        sLogger.info("Isilon snapshot schedule: {} creation started", isiSchedule.toString());
         return createSnapshotSchedule(_baseUrl.resolve(URI_SNAPSHOT_SCHEDULES), "schedule", isiSchedule);
     }
 
@@ -1020,9 +1033,9 @@ public class IsilonApi {
     }
 
     /* SmartQuotas */
-    
+
     /**
-     * List all smartquotas for given 
+     * List all smartquotas for given
      * 
      * @param resumeToken
      * @param pathBaseDir
@@ -1038,8 +1051,6 @@ public class IsilonApi {
         uri = _baseUrl.resolve(uri);
         return list(uri, "quotas", IsilonSmartQuota.class, resumeToken);
     }
-    
-    
 
     /**
      * List all smartquotas
@@ -1089,7 +1100,7 @@ public class IsilonApi {
         if (thresholds != null && thresholds.length > 0) {
             quota = constructIsilonSmartQuotaObjectWithThreshold(path, "directory", null, false, false, thresholds);
             quota.setContainer(true); // set to true, so user see hard limit not
-                                      // cluster size.
+            // cluster size.
         } else {
             quota = new IsilonSmartQuota(path);
         }
@@ -1756,7 +1767,7 @@ public class IsilonApi {
                             statValueCurrent.error.toString());
                 }
                 statValueCurrent.value = new Gson()
-                        .fromJson(SecurityUtils.sanitizeJsonString(entryObj.getString("value")), valueType);
+                .fromJson(SecurityUtils.sanitizeJsonString(entryObj.getString("value")), valueType);
                 retMap.put(entryKey, statValueCurrent);
             }
             return retMap;

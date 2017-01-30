@@ -1066,12 +1066,14 @@ vnx_setup() {
     SERIAL_NUMBER=`storagedevice list | grep COMPLETE | awk '{print $2}' | awk -F+ '{print $2}'`
     
     # Chose thick because we need a thick pool for VNX metas
+    # Choose SATA as drive type because simulator's non-Unified pool is SATA.
     run cos create block ${VPOOL_BASE}	\
-	--description Base true                 \
+	--description Base false                \
 	--protocols FC 			                \
 	--numpaths 2				            \
 	--multiVolumeConsistency \
 	--provisionType 'Thick'			        \
+	--drive_type 'SATA' \
 	--max_snapshots 10                      \
 	--neighborhoods $NH  
 
@@ -2007,6 +2009,7 @@ test_1() {
       else
 	  # If this is a rollback inject, make sure we get the "additional message"
 	  echo ${failure} | grep failure_004 | grep ":" > /dev/null
+
 	  if [ $? -eq 0 ]
 	  then
 	      # Make sure it fails with additional errors accounted for in the error message
@@ -2159,6 +2162,7 @@ test_2() {
       else
       	  # If this is a rollback inject, make sure we get the "additional message"
 	  echo ${failure} | grep failure_004 | grep ":" > /dev/null
+
 	  if [ $? -eq 0 ]
 	  then
 	      # Make sure it fails with additional errors accounted for in the error message
@@ -2291,6 +2295,7 @@ test_3() {
 
       # If this is a rollback inject, make sure we get the "additional message"
       echo ${failure} | grep failure_004 | grep ":" > /dev/null
+
       if [ $? -eq 0 ]
       then
 	  # Make sure it fails with additional errors accounted for in the error message
@@ -2417,6 +2422,7 @@ test_4() {
 
       # If this is a rollback inject, make sure we get the "additional message"
       echo ${failure} | grep failure_004 | grep ":" > /dev/null
+
       if [ $? -eq 0 ]
       then
 	  # Make sure it fails with additional errors accounted for in the error message
@@ -2623,6 +2629,7 @@ test_6() {
 
       # If this is a rollback inject, make sure we get the "additional message"
       echo ${failure} | grep failure_004 | grep ":" > /dev/null
+
       if [ $? -eq 0 ]
       then
 	  # Make sure it fails with additional errors accounted for in the error message
@@ -2677,7 +2684,7 @@ test_7() {
     common_failure_injections="failure_004_final_step_in_workflow_complete \
                                failure_004:failure_016_Export_doRemoveInitiator"
 
-    network_failure_injections=""
+    network_failure_injections="failure_047_NetworkDeviceController.zoneExportMaskCreate_before_zone"
     if [ "${BROCADE}" = "1" ]
     then
 	network_failure_injections="failure_049_BrocadeNetworkSMIS.getWEBMClient"
@@ -2687,7 +2694,8 @@ test_7() {
     if [ "${SS}" = "vplex" ]
     then
 	storage_failure_injections="failure_004:failure_024_Export_zone_removeInitiator_before_delete \
-                                    failure_004:failure_025_Export_zone_removeInitiator_after_delete"
+                                    failure_004:failure_025_Export_zone_removeInitiator_after_delete \
+                                    failure_060_VPlexDeviceController.storageViewAddInitiators_storageview_nonexisting"
     fi
 
     if [ "${SS}" = "vnx" -o "${SS}" = "vmax2" -o "${SS}" = "vmax3" -o "${SS}" = "unity" ]
@@ -2728,6 +2736,7 @@ test_7() {
 
       # If this is a rollback inject, make sure we get the "additional message"
       echo ${failure} | grep failure_004 | grep ":" > /dev/null
+
       if [ $? -eq 0 ]
       then
 	  # Make sure it fails with additional errors accounted for in the error message
@@ -2778,12 +2787,6 @@ test_7() {
 test_8() {
     echot "Test 8 Begins"
 
-    if [ "${SIM}" != "1" ]
-    then
-	echo "Test case does not execute for hardware configurations because it creates unreasonably large volumes"
-	return;
-    fi
-
     if [ "${SS}" != "vmax2" -a "${SS}" != "vnx" ]
     then
 	echo "Test case only executes for vmax2 and vnx."
@@ -2791,7 +2794,7 @@ test_8() {
     fi
 
     common_failure_injections="failure_004_final_step_in_workflow_complete"
-    meta_size=240GB
+    meta_size=260GB
 
     storage_failure_injections=""
     if [ "${SS}" = "vplex" ]
@@ -2811,7 +2814,11 @@ test_8() {
 
     if [ "${SS}" = "vnx" ]
     then
-	storage_failure_injections="failure_015_SmisCommandHelper.invokeMethod_GetCompositeElements \
+	if [ "${SIM}" != "1" ]
+	then
+	    meta_size=280GB
+	fi
+	storage_failure_injections="failure_015_SmisCommandHelper.invokeMethod_CreateOrModifyElementFromStoragePool \
                                     failure_015_SmisCommandHelper.invokeMethod_CreateOrModifyCompositeElement"
     fi
 
@@ -2853,6 +2860,7 @@ test_8() {
       else
       	  # If this is a rollback inject, make sure we get the "additional message"
 	  echo ${failure} | grep failure_004 | grep ":" > /dev/null
+
 	  if [ $? -eq 0 ]
 	  then
 	      # Make sure it fails with additional errors accounted for in the error message

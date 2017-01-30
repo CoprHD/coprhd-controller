@@ -78,6 +78,7 @@ import com.vmware.vim25.mo.HostSystem;
  */
 @Component
 public class VcenterDiscoveryAdapter extends EsxHostDiscoveryAdapter {
+    private static final String EVENT_AUTO_REMEDIATION_ENABLE = "auto_remediation_enable";
     @Override
     public boolean isSupportedTarget(String targetId) {
         return URIUtil.isType(URI.create(targetId), Vcenter.class);
@@ -810,6 +811,9 @@ public class VcenterDiscoveryAdapter extends EsxHostDiscoveryAdapter {
                                 new Object[] { volume.getId(), newDsUri, newDsName, vcenterURI }, EventUtils.vcenterDatastoreCreateDecline,
                                 new Object[] { volume.getId() });
                     }
+                    if(getConfigProperty(EVENT_AUTO_REMEDIATION_ENABLE)){
+                        //TODO: call the approve method: either call from the api side or transfer the methos in the controller side.
+                    }
                 }
             }
         }
@@ -888,5 +892,16 @@ public class VcenterDiscoveryAdapter extends EsxHostDiscoveryAdapter {
             diskList.addAll(new HostStorageAPI(host).listDisks(ds));
         }
         return diskList;
+    }
+    
+    private boolean getConfigProperty(String propertyName) {
+        String value = coordinator.getPropertyInfo().getProperty(propertyName);
+
+        if (value != null && StringUtils.isNotBlank(value)) {
+            return Boolean.valueOf(value);
+        } else {
+            error("Configuration property " + propertyName + " not found, returning true.");
+            return true;
+        }
     }
 }

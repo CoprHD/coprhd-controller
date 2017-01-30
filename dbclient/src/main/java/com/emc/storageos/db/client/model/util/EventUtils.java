@@ -53,6 +53,10 @@ public class EventUtils {
             EventCode.VCENTER_DATASTORE_RENAME, 
             EventCode.VCENTER_DATASTORE_DELETE, 
             EventCode.VCENTER_DATASTORE_CREATE);
+    
+    private static List<EventCode> AUTO_REMEDIATE_EVENTS = Lists.newArrayList( EventCode.VCENTER_DATASTORE_RENAME, 
+            EventCode.VCENTER_DATASTORE_DELETE, 
+            EventCode.VCENTER_DATASTORE_CREATE);
 
     public enum EventCode {
         HOST_CLUSTER_CHANGE("101"),
@@ -132,6 +136,7 @@ public class EventUtils {
                     + " Approve Method: " + approveMethod
                     + " Decline Method: " + declineMethod);
         }
+        
     }
 
     /**
@@ -176,6 +181,20 @@ public class EventUtils {
             }
         }
         return null;
+    }
+    
+    /**
+     * Returns if the event is an auto remediable event.
+     * 
+     * @param event
+     * @return
+     */
+    public static boolean isAutoRemediateEvents(ActionableEvent event) {
+        if ((event.getEventStatus().equalsIgnoreCase(ActionableEvent.Status.pending.name()))
+                || (AUTO_REMEDIATE_EVENTS.contains(event.getEventCode()))) {
+            return true;
+        }
+        return false;
     }
 
     /**

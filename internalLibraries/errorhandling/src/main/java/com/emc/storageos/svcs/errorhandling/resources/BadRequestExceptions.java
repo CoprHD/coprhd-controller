@@ -3183,6 +3183,9 @@ public interface BadRequestExceptions {
     public BadRequestException invalidFilePolicyType(final String policyType);
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException invalidFilePolicyApplyLevel(final String applyLevel);
+
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException invalidFileReplicationPolicyParam(final String policyName, final String errorMsg);
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
@@ -3190,7 +3193,7 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException failedToDeleteFilePolicy(final String policyName, final String reason);
-  
+
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException invalidFilePolicyUnAssignParam(final String policyName, final String errorMsg);
     

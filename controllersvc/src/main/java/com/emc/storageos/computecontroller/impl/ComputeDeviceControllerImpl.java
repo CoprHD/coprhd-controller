@@ -832,9 +832,8 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
 
         if (computeElement != null) {
             ComputeSystem cs = _dbClient.queryObject(ComputeSystem.class, computeElement.getComputeSystem());
-            if (cs == null) {
-                log.error("ComputeElement " + computeElement.getLabel() + " has an invalid computeSystem reference: "
-                        + computeElement.getComputeSystem());
+            if (cs == null){
+                log.error("ComputeElement " + computeElement.getLabel() + " has an invalid computeSystem reference: " + computeElement.getComputeSystem());
                 return waitFor;
             }
             //TODO: need to break this up into individual smaller steps so that we can try to recover using rollback if decommission failed

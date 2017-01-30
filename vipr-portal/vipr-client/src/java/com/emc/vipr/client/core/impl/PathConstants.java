@@ -181,6 +181,7 @@ public class PathConstants {
 
     public static final String APP_SUPPORT_RESYNCHRONIZE_SNAPSHOT_URL = APP_SUPPORT_SNAPSHOT_URL + "/resynchronize";
     public static final String APP_SUPPORT_DEACTIVATE_SNAPSHOT_URL = APP_SUPPORT_SNAPSHOT_URL + "/deactivate";
+    public static final String APP_SUPPORT_EXPOSE_SNAPSHOT_URL = APP_SUPPORT_SNAPSHOT_URL + "/expose";
 
     public static final String APP_SUPPORT_CREATE_SNAPSHOT_URL = APP_SUPPORT_SNAPSHOT_URL;
 

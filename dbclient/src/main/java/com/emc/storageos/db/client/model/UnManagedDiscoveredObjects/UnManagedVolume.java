@@ -211,18 +211,6 @@ public class UnManagedVolume extends UnManagedDiscoveredObject {
         }
     }
 
-    public void addVolumeInformation(Map<String, StringSet> volumeInfo) {
-        if (null == _volumeInformation) {
-            setVolumeInformation(new StringSetMap());
-        } else {
-            _volumeInformation.clear();
-        }
-
-        if (volumeInfo.size() > 0) {
-            _volumeInformation.putAll(volumeInfo);
-        }
-    }
-
     public void setVolumeInformation(StringSetMap volumeInfo) {
         _volumeInformation = volumeInfo;
     }

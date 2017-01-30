@@ -596,8 +596,8 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
     }
 
     @Override
-    public String addStepsDeactivateHost(Workflow workflow, String waitFor, URI hostId, boolean deactivateBootVolume)
-            throws InternalException {
+    public String addStepsDeactivateHost(Workflow workflow, String waitFor, URI hostId,
+            boolean deactivateBootVolume, List<VolumeDescriptor> volumeDescriptors) throws InternalException {
 
         Host host = _dbClient.queryObject(Host.class, hostId);
         if (host == null || host.getComputeElement() == null) {
@@ -631,7 +631,7 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
             if (deactivateBootVolume && host.getBootVolumeId() != null) {
                 waitFor = workflow.createStep(DEACTIVATION_COMPUTE_SYSTEM_BOOT_VOLUME,
                         "Delete the boot volume for the host", waitFor, cs.getId(), cs.getSystemType(),
-                        this.getClass(), new Workflow.Method("deleteBlockVolume", hostId),
+                        this.getClass(), new Workflow.Method("deleteBlockVolume", hostId, volumeDescriptors),
                         new Workflow.Method(ROLLBACK_NOTHING_METHOD), null);
             } else if (!deactivateBootVolume) {
                  log.info("flag deactivateBootVolume set to false");
@@ -716,7 +716,7 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
         return waitFor;
     }
 
-    public void deleteBlockVolume(URI hostId, String stepId) {
+    public void deleteBlockVolume(URI hostId, List<VolumeDescriptor> volumeDescriptors, String stepId) {
 
         log.info("deleteBlockVolume");
 
@@ -728,22 +728,16 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
 
             host = _dbClient.queryObject(Host.class, hostId);
 
-            List<VolumeDescriptor> volumeDescriptors = new ArrayList<VolumeDescriptor>();
-
             if (host != null && host.getBootVolumeId() != null) {
 
-                Volume volume = _dbClient.queryObject(Volume.class, host.getBootVolumeId());
-                if (volume.getPool() != null) {
-                    StoragePool storagePool = _dbClient.queryObject(StoragePool.class, volume.getPool());
-                    if (storagePool != null && storagePool.getStorageDevice() != null) {
-
-                        volumeDescriptors.add(new VolumeDescriptor(VolumeDescriptor.Type.BLOCK_DATA, storagePool
-                                .getStorageDevice(), host.getBootVolumeId(), null, null));
-
-                    }
+                if(volumeDescriptors.isEmpty()) {
+                    throw new IllegalStateException("Could not locate VolumeDescriptor(s) for boot volume " +
+                            host.getLabel() + " [" + host.getBootVolumeId() + "]");
                 }
 
                 String task = UUID.randomUUID().toString();
+
+                Volume volume = _dbClient.queryObject(Volume.class, host.getBootVolumeId());
 
                 Operation op = _dbClient.createTaskOpStatus(Volume.class, volume.getId(), task,
                         ResourceOperationTypeEnum.DELETE_BLOCK_VOLUME);

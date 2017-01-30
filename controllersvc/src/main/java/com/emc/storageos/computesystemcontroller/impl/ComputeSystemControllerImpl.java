@@ -22,6 +22,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.util.CollectionUtils;
 
 import com.emc.storageos.Controller;
+import com.emc.storageos.blockorchestrationcontroller.VolumeDescriptor;
 import com.emc.storageos.computecontroller.impl.ComputeDeviceController;
 import com.emc.storageos.computesystemcontroller.exceptions.ComputeSystemControllerException;
 import com.emc.storageos.computesystemcontroller.ComputeSystemController;
@@ -205,7 +206,8 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
     }
 
     @Override
-    public void detachHostStorage(URI host, boolean deactivateOnComplete, boolean deactivateBootVolume, String taskId)
+    public void detachHostStorage(URI host, boolean deactivateOnComplete, boolean deactivateBootVolume,
+            List<VolumeDescriptor> volumeDescriptors, String taskId)
             throws ControllerException {
         TaskCompleter completer = null;
         try {
@@ -225,7 +227,8 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
             waitFor = addStepsForFileShares(workflow, waitFor, host);
 
             if (deactivateOnComplete) {
-                waitFor = computeDeviceController.addStepsDeactivateHost(workflow, waitFor, host, deactivateBootVolume);
+                waitFor = computeDeviceController.addStepsDeactivateHost(workflow, waitFor,
+                        host,deactivateBootVolume, volumeDescriptors);
             }
 
             workflow.executePlan(completer, "Success", null, null, null, null);

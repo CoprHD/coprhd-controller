@@ -8,6 +8,7 @@ import java.net.URI;
 import java.util.List;
 
 import com.emc.storageos.Controller;
+import com.emc.storageos.blockorchestrationcontroller.VolumeDescriptor;
 import com.emc.storageos.computesystemcontroller.impl.adapter.HostStateChange;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.volumecontroller.AsyncTask;
@@ -31,12 +32,13 @@ public interface ComputeSystemController extends Controller {
      *            if true, deactivate the host when complete
      * @param deactivateBootVolume
      *            if true, and if the Host has a boot Volume associated with it, deactivate the boot volume
+     * @param bootVolDescriptors
      * @param opId
      *            operation id created by the API
      * @throws InternalException
      */
-    public void detachHostStorage(URI host, boolean deactivateOnComplete, boolean deactivateBootVolume, String opId)
-            throws InternalException;
+    public void detachHostStorage(URI host, boolean deactivateOnComplete, boolean deactivateBootVolume,
+            List<VolumeDescriptor> bootVolDescriptors, String opId) throws InternalException;
 
     /**
      * Detach all storage (export groups) that are used by a cluster.

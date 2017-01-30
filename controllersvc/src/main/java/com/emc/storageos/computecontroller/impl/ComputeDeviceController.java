@@ -5,8 +5,10 @@
 package com.emc.storageos.computecontroller.impl;
 
 import java.net.URI;
+import java.util.List;
 
 import com.emc.storageos.Controller;
+import com.emc.storageos.blockorchestrationcontroller.VolumeDescriptor;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.workflow.Workflow;
 
@@ -22,8 +24,8 @@ public interface ComputeDeviceController extends Controller {
     public String addStepsPostOsInstall(Workflow workflow, String waitFor, URI computeSystemId, URI computeElementId,
             URI hostId, String contextStepId, URI volumeId);
 
-    public String addStepsDeactivateHost(Workflow workflow, String waitFor, URI hostId, boolean deactivateBootVolume)
-            throws InternalException;
+    public String addStepsDeactivateHost(Workflow workflow, String waitFor, URI hostId,
+            boolean deactivateBootVolume, List<VolumeDescriptor> volumeDescriptors) throws InternalException;
 
     public String addStepsVcenterClusterCleanup(Workflow workflow, String waitFor, URI clusterId)
             throws InternalException;

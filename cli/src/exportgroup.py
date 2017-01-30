@@ -838,12 +838,7 @@ class ExportGroup(object):
 
 	body = json.dumps(parms)
 
-        if (verbose):
-		print 'BODY : '
-		print(json.dumps(parms, sort_keys=True, indent=4))
-	 	print ' '
-
-	operation = 'Path Adjustment' 
+	operation = 'ExportGroup Path Adjustment' 
 	if (dorealloc):
 		(s, h) = common.service_json_request(self.__ipAddr,
 						     self.__port, "PUT",
@@ -857,11 +852,20 @@ class ExportGroup(object):
 						     body)
         output = common.json_decode(s)
 
+
+
 	# Display output when verbose is set to true or if the operation is Preview.
  	if (verbose or not self.PATH_ADJ_OPERATION):
-		print 'OUTPUT : ', operation  
+    		print operation
 		print json.dumps(output, sort_keys=True, indent=4) 
 	 	print ' '
+
+	# If opeation is path_adjustment and wait is true and no verbose option selected, then display the task id of the suspended task
+	if (not verbose and self.PATH_ADJ_OPERATION):
+		if (output.get('id')) :
+    		    print operation
+		    print 'There are tasks (URIs listed below) that are suspended as part of this operation. Manually resume the tasks.'
+		    print  output['id']
 
 	return output
 

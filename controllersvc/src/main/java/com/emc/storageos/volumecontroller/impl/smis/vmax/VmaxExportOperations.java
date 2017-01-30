@@ -2866,46 +2866,46 @@ public class VmaxExportOperations implements ExportMaskOperations {
             CIMArgument[] inArgsFromFailedCommand,
             SmisCommandHelper.MASKING_GROUP_TYPE groupType)
                     throws Exception {
-        _log.info("{} handleCreateMaskingGroupException START....", storage.getSerialNumber());
+        _log.debug("{} handleCreateMaskingGroupException START....", storage.getSerialNumber());
         CIMObjectPath resultMaskingGroupPath = null;
         List<CIMObjectPath> expectedMembers = getMembersFromArguments(inArgsFromFailedCommand);
         if (expectedMembers.isEmpty()) {
-            _log.info("{} handleCreateMaskingGroupException END....No expected members found in arguments.",
+            _log.debug("{} handleCreateMaskingGroupException END....No expected members found in arguments.",
                     storage.getSerialNumber());
             return null;
         } else {
-            _log.info("Trying to create a masking group with #members {}, members: {}",
+            _log.debug("Trying to create a masking group with #members {}, members: {}",
                     expectedMembers.size(), expectedMembers);
         }
         String associatorName = expectedMembers.get(0).getObjectName();
         if (associatorName == null) {
-            _log.info("{} handleCreateMaskingGroupException END...Could not determine associatorName for groupType: {}",
+            _log.debug("{} handleCreateMaskingGroupException END...Could not determine associatorName for groupType: {}",
                     storage.getSerialNumber(), groupType.name());
             return null;
         }
         try {
             CIMObjectPath maskingGroupPath = _cimPath.getMaskingGroupPath(storage, groupName, groupType);
-            _log.info("Fetch existing members using maskingGroupPath: {}, associatorName: {}", maskingGroupPath,
+            _log.debug("Fetch existing members using maskingGroupPath: {}, associatorName: {}", maskingGroupPath,
                     associatorName);
             List<CIMObjectPath> existingMembers = getExistingMaskingGroupMembers(storage, maskingGroupPath,
                     associatorName);
-            _log.info("MaskingGroupPath {} has {} existing members.", maskingGroupPath, existingMembers.size());
+            _log.debug("MaskingGroupPath {} has {} existing members.", maskingGroupPath, existingMembers.size());
             if (!existingMembers.isEmpty()) {
                 List<String> existingMemberIds = getMaskingGroupMemberIdsFromPaths(existingMembers, groupType);
                 List<String> expectedMemberIds = getMaskingGroupMemberIdsFromPaths(expectedMembers, groupType);
                 expectedMemberIds.removeAll(existingMemberIds);
                 if (expectedMemberIds.isEmpty()) {
-                    _log.info("Returning masking group {}, with required members.", maskingGroupPath);
+                    _log.debug("Returning masking group {}, with required members.", maskingGroupPath);
                     resultMaskingGroupPath = maskingGroupPath;
                 } else {
-                    _log.info("Masking group {}, members do not match !", maskingGroupPath);
+                    _log.debug("Masking group {}, members do not match !", maskingGroupPath);
                 }
             }
         } catch (Exception e) {
-            _log.info(String.format("Caught exception in handleCreateMaskingGroupException - array: %s",
+            _log.debug(String.format("Caught exception in handleCreateMaskingGroupException - array: %s",
                     storage.getSerialNumber()), e);
         }
-        _log.info("{} handleCreateMaskingGroupException END....", storage.getSerialNumber());
+        _log.debug("{} handleCreateMaskingGroupException END....", storage.getSerialNumber());
         return resultMaskingGroupPath;
     }
 

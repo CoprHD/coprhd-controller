@@ -70,13 +70,13 @@ public abstract class AbstractHostDiscoveryAdapter extends AbstractDiscoveryAdap
     protected void discoverHost(Host host, HostStateChange changes) {
         setNativeGuid(host);
 
-        info(String.format("Discovering IP interfaces for host %s", host.forDisplay()));
+        info("Discovering IP interfaces for host %s", host.forDisplay());
         List<IpInterface> oldIpInterfaces = new ArrayList<IpInterface>();
         Iterables.addAll(oldIpInterfaces, getIpInterfaces(host));
         discoverIpInterfaces(host, oldIpInterfaces);
         removeDiscoveredInterfaces(oldIpInterfaces);
 
-        info(String.format("Discovering initiators for host %s", host.forDisplay()));
+        info("Discovering initiators for host %s", host.forDisplay());
         List<Initiator> oldInitiators = new ArrayList<Initiator>();
         Iterables.addAll(oldInitiators, getInitiators(host));
         discoverInitiators(host, oldInitiators, changes);

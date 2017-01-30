@@ -83,18 +83,18 @@ public class ComputeSystemDiscoveryEngine {
     public void discover(String targetId) throws Exception {
         InterProcessLock lock = coordinatorClient.getLock(targetId);
         if (LOG.isInfoEnabled()) {
-            LOG.info(String.format("Acquiring lock for compute system discovery: %s", targetId));
+            LOG.info("Acquiring lock for compute system discovery: {}", targetId);
         }
         lock.acquire();
         try {
             if (LOG.isInfoEnabled()) {
-                LOG.info(String.format("Acquired lock for compute system discovery: %s", targetId));
+                LOG.info("Acquired lock for compute system discovery: {}", targetId);
             }
             discoverInLock(targetId);
         } finally {
             lock.release();
             if (LOG.isInfoEnabled()) {
-                LOG.info(String.format("Lock Released for compute system discovery: %s", targetId));
+                LOG.info("Lock Released for compute system discovery: {}", targetId);
             }
         }
     }

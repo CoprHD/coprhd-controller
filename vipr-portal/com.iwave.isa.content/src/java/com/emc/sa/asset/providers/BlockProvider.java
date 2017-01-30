@@ -2248,18 +2248,15 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     public List<AssetOption> getVolumesWithFullCopies(AssetOptionsContext ctx, URI project, String volumeOrConsistencyType) {
         final ViPRCoreClient client = api(ctx);
         if (isVolumeType(volumeOrConsistencyType)) {
-            List<VolumeRestRep> volumes = client.blockVolumes().findByProject(project, new DefaultResourceFilter<VolumeRestRep>() {
-                @Override
-                public boolean accept(VolumeRestRep volume) {
-                    if (!client.blockVolumes().getFullCopies(volume.getId()).isEmpty()
-                            && StringUtils.isEmpty(volume.getReplicationGroupInstance())) {
-                        return true;
-                    } else {
-                        return false;
-                    }
+            List<VolumeRestRep> volumes = findVolumesByProject();
+            List<VolumeRestRep> filteredVols = new ArrayList<>();
+            for (VolumeRestRep vol: volumes) {
+                if (!vol.getProtection().getFullCopyRep().getFullCopyVolumes().isEmpty() &&
+                        StringUtils.isEmpty(vol.getReplicationGroupInstance())) {
+                    filteredVols.add(vol);
                 }
-            });
-            return createVolumeOptions(client, volumes);
+            }
+            return createVolumeOptions(client, filteredVols);
         } else {
             List<BlockConsistencyGroupRestRep> consistencyGroups = api(ctx).blockConsistencyGroups()
                     .search()
@@ -2268,6 +2265,20 @@ public class BlockProvider extends BaseAssetOptionsProvider {
 
             return createBaseResourceOptions(consistencyGroups);
         }
+    }
+
+    private List<VolumeRestRep> findVolumesByProject(ViPRCoreClient client, URI project) {
+            log.info("Finding volumes by project {}", project);
+            List<SearchResultResourceRep> volRefs = client.blockVolumes().performSearchBy(SearchConstants.PROJECT_PARAM, project);
+            List<URI> ids = new ArrayList<>();
+            for (SearchResultResourceRep volRef: volRefs) {
+                ids.add(volRef.getId());
+            }
+
+            List<VolumeRestRep> volumes = client.blockVolumes().getByIds(ids, null);
+            log.info("Got volumes: [{}]", volumes.size());
+
+            return volumes;
     }
 
     @Asset("fullCopy")

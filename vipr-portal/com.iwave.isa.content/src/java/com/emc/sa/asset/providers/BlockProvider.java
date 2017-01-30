@@ -2251,13 +2251,14 @@ public class BlockProvider extends BaseAssetOptionsProvider {
             List<VolumeRestRep> volumes = findVolumesByProject(client, project);
             List<VolumeRestRep> filteredVols = new ArrayList<>();
             for (VolumeRestRep vol: volumes) {
-                if ( vol.getProtection() != null &&
-                        vol.getProtection().getFullCopyRep() != null &&
-                        vol.getProtection().getFullCopyRep().getFullCopyVolumes() != null &&
-                        ! vol.getProtection().getFullCopyRep().getFullCopyVolumes().isEmpty() &&
-                        StringUtils.isEmpty(vol.getReplicationGroupInstance())) {
-                    filteredVols.add(vol);
+                if ( vol.getProtection() == null ||
+                        vol.getProtection().getFullCopyRep() == null ||
+                        vol.getProtection().getFullCopyRep().getFullCopyVolumes() == null ||
+                        vol.getProtection().getFullCopyRep().getFullCopyVolumes().isEmpty() ||
+                        ! StringUtils.isEmpty(vol.getReplicationGroupInstance())) {
+                    continue;
                 }
+                filteredVols.add(vol);
             }
             log.info("Got volumes with full copies: [{}]", filteredVols.size());
             return createVolumeOptions(client, filteredVols);

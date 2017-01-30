@@ -1326,6 +1326,40 @@ public class ExportMaskUtils {
     }
 
     /**
+     * Update missing HLUs for volumes in export mask and export group with the discovered information from array.
+     *
+     * @param mask the export mask
+     * @param discoveredVolumes the discovered volumes
+     * @param dbClient the db client
+     */
+    public static void updateMissingHLUsInExportMask(ExportMask mask, Map<String, Integer> discoveredVolumes, DbClient dbClient) {
+        boolean updateMask = false;
+        for (String wwn : discoveredVolumes.keySet()) {
+            URIQueryResultList volumeList = new URIQueryResultList();
+            dbClient.queryByConstraint(AlternateIdConstraint.Factory.getVolumeWwnConstraint(wwn), volumeList);
+            if (volumeList.iterator().hasNext()) {
+                URI volumeURI = volumeList.iterator().next();
+                Integer discoveredHLU = discoveredVolumes.get(wwn);
+                if (mask.hasVolume(volumeURI)
+                        && ExportGroup.LUN_UNASSIGNED_DECIMAL_STR.equals(mask.returnVolumeHLU(volumeURI))
+                        && discoveredHLU != ExportGroup.LUN_UNASSIGNED) {
+                    mask.addVolume(volumeURI, discoveredHLU);
+                    updateMask = true;
+                }
+            }
+        }
+        if (updateMask) {
+            dbClient.updateObject(mask);
+        }
+
+        List<ExportGroup> exportGroups = getExportGroups(dbClient, mask);
+        for (ExportGroup exportGroup : exportGroups) {
+            ExportUtils.reconcileExportGroupsHLUs(dbClient, exportGroup);
+        }
+        dbClient.updateObject(exportGroups);
+    }
+
+    /**
      * Routine returns the ExportMask by name from the DB that is associated with the StorageSystem.
      * Inactive ExportMasks are ignored.
      *

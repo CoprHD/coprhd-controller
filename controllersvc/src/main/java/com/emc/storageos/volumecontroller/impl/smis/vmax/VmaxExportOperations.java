@@ -2229,6 +2229,9 @@ public class VmaxExportOperations implements ExportMaskOperations {
                     removeVolumes = !volumesToRemove.isEmpty();
                 }
 
+                // Check export mask's user added volumes for missing HLU, and update if required (COP-27711)
+                ExportMaskUtils.updateMissingHLUsInExportMask(mask, discoveredVolumes, _dbClient);
+
                 // Grab the storage ports that have been allocated for this
                 // existing mask and update them.
                 List<String> storagePorts = _helper.getStoragePortsFromLunMaskingInstance(client,

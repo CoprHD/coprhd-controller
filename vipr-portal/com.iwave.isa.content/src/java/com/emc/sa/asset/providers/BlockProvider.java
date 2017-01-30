@@ -2251,7 +2251,9 @@ public class BlockProvider extends BaseAssetOptionsProvider {
             List<VolumeRestRep> volumes = findVolumesByProject(client, project);
             List<VolumeRestRep> filteredVols = new ArrayList<>();
             for (VolumeRestRep vol: volumes) {
-                if (!vol.getProtection().getFullCopyRep().getFullCopyVolumes().isEmpty() &&
+                if ( vol.getProtection().getFullCopyRep() != null &&
+                        vol.getProtection().getFullCopyRep().getFullCopyVolumes() != null &&
+                        ! vol.getProtection().getFullCopyRep().getFullCopyVolumes().isEmpty() &&
                         StringUtils.isEmpty(vol.getReplicationGroupInstance())) {
                     filteredVols.add(vol);
                 }

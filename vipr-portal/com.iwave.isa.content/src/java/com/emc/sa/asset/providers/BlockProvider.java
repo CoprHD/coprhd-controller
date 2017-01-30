@@ -2259,6 +2259,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
                     filteredVols.add(vol);
                 }
             }
+            log.info("Got volumes with full copies: [{}]", filteredVols.size());
             return createVolumeOptions(client, filteredVols);
         } else {
             List<BlockConsistencyGroupRestRep> consistencyGroups = api(ctx).blockConsistencyGroups()

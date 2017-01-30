@@ -23,8 +23,17 @@ public class RemoteReplicationPair extends DataObject {
         FILE_SYSTEM
     }
 
+    public enum ReplicationDirection {
+        SOURCE_TO_TARGET,
+        TARGET_TO_SOURCE
+    }
+
     // Element type (block or file element)
     private ElementType elementType;
+
+
+    // Replication direction for the pair
+    private ReplicationDirection replicationDirection = ReplicationDirection.SOURCE_TO_TARGET;
 
     // Device nativeId of replication pair.
     private String nativeId;
@@ -131,6 +140,16 @@ public class RemoteReplicationPair extends DataObject {
     public void setElementType(ElementType elementType) {
         this.elementType = elementType;
         setChanged("elementType");
+    }
+
+
+    @Name("replicationDirection")
+    public ReplicationDirection getReplicationDirection() {
+        return replicationDirection;
+    }
+
+    public void setReplicationDirection(ReplicationDirection replicationDirection) {
+        this.replicationDirection = replicationDirection;
     }
 
     @Override

@@ -2177,8 +2177,15 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice implem
              if (systemPair.getNativeId() != null) {
                  driverPair.setNativeId(systemPair.getNativeId());
              }
-             driverPair.setSourceVolume(driverSourceVolume);
-             driverPair.setTargetVolume(driverTargetVolume);
+
+             // Set source/target elements for a driver based on system pair replication direction.
+             if (systemPair.getReplicationDirection() == RemoteReplicationPair.ReplicationDirection.SOURCE_TO_TARGET) {
+                 driverPair.setSourceVolume(driverSourceVolume);
+                 driverPair.setTargetVolume(driverTargetVolume);
+             } else {
+                 driverPair.setSourceVolume(driverTargetVolume);
+                 driverPair.setTargetVolume(driverSourceVolume);
+             }
 
              // set replication mode
              driverPair.setReplicationMode(systemPair.getReplicationMode());

@@ -3,6 +3,7 @@ package com.emc.storageos.api.service.impl.resource.remotereplication;
 import static com.emc.storageos.api.mapper.DbObjectMapper.toNamedRelatedResource;
 import static com.emc.storageos.api.mapper.RemoteReplicationMapper.map;
 import static com.emc.storageos.api.mapper.TaskMapper.toTask;
+import static com.emc.storageos.db.client.util.CustomQueryUtility.queryActiveResourcesByRelation;
 
 import java.net.URI;
 import java.util.Iterator;
@@ -15,6 +16,7 @@ import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 
 import org.slf4j.Logger;
@@ -22,6 +24,8 @@ import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.api.service.impl.resource.ArgValidator;
 import com.emc.storageos.api.service.impl.resource.TaskResourceService;
+import com.emc.storageos.db.client.URIUtil;
+import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.remotereplication.RemoteReplicationPair;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
@@ -105,6 +109,42 @@ public class RemoteReplicationPairService extends TaskResourceService {
         RemoteReplicationPair rrPair = queryResource(id);
         RemoteReplicationPairRestRep restRep = map(rrPair);
         return restRep;
+    }
+
+    /**
+     * Get remote replication pairs for a given storage element.
+     * Returns all pairs where the storage element is source or target element.
+     *
+     * @param storageElementURI uri of a storage element
+     * @return
+     */
+    @GET
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR })
+    public RemoteReplicationPairList getRemoteReplicationPairsForStorageElement(@QueryParam("storageElement") URI storageElementURI) {
+        _log.info("Called: getRemoteReplicationPairsForStorageElement() for for storage element {}", storageElementURI);
+
+        ArgValidator.checkUri(storageElementURI);
+        Class modelType = URIUtil.getModelClass(storageElementURI);
+        DataObject storageElement = _dbClient.queryObject(modelType, storageElementURI);
+        ArgValidator.checkEntity(storageElement, storageElementURI, false);
+
+        List<com.emc.storageos.db.client.model.remotereplication.RemoteReplicationPair> rrPairs =
+                queryActiveResourcesByRelation(_dbClient, storageElementURI, com.emc.storageos.db.client.model.remotereplication.RemoteReplicationPair.class,
+                        "sourceElement");
+
+        List<com.emc.storageos.db.client.model.remotereplication.RemoteReplicationPair> rrPairsForTarget =
+                queryActiveResourcesByRelation(_dbClient, storageElementURI, com.emc.storageos.db.client.model.remotereplication.RemoteReplicationPair.class,
+                        "targetElement");
+        rrPairs.addAll(rrPairsForTarget);
+        _log.info("Found pairs: {}", rrPairs);
+
+        RemoteReplicationPairList rrPairList = new RemoteReplicationPairList();
+        Iterator<com.emc.storageos.db.client.model.remotereplication.RemoteReplicationPair> iter = rrPairs.iterator();
+        while (iter.hasNext()) {
+            rrPairList.getRemoteReplicationPairs().add(toNamedRelatedResource(iter.next()));
+        }
+        return rrPairList;
     }
 
 

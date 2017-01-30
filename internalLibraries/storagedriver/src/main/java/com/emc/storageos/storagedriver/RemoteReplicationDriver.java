@@ -39,18 +39,18 @@ public interface RemoteReplicationDriver {
 
     /**
      * Create replication pairs in existing replication group container.
-     * At the completion of this operation all remote replication pairs should be associated to their group and should
-     * be in the following state as defined in the replicationPair argument:
-     *  a) Pairs state: ACTIVE;
-     *     R1 elements should be read/write enabled;
-     *     R2 elements should be read enabled/write disabled;
-     *     data on R2 elements is synchronized with R1 data copied to R2;
-     *     replication links are set to ready state;
+     * At the completion of this operation each created remote replication pair on device should be associated to its group and should
+     * be in the following state, as defined for the pair in the replicationPairs argument:
+     *  a) Pair state: ACTIVE;
+     *     R1 element should be read/write enabled;
+     *     R2 element should be read enabled/write disabled;
+     *     data on R2 element is synchronized with R1 data (R1 data is copied to R2);
+     *     replication link between R1 and R2 elements on device is set to ready state;
      *
-     *  b) Pairs state: SPLIT;
-     *     R1 elements should be read/write enabled;
-     *     R2 elements should be read/write enabled;
-     *     replication links are set to not ready state;
+     *  b) Pair state: SPLIT;
+     *     R1 element should be read/write enabled;
+     *     R2 element should be read/write enabled;
+     *     replication link between R1 and R2 elements on device is set to not-ready state;
      *     The state of replication pairs is same as after 'split' operation.
      *
      * @param replicationPairs list of replication pairs to create; each pair is in either active or split state
@@ -61,18 +61,19 @@ public interface RemoteReplicationDriver {
 
     /**
      * Create replication pairs in existing replication set. Pairs are created outside of group container.
-     * At the completion of this operation all remote replication pairs should be associated to their set and should
-     * be in the following state:
-     *  a) Pairs state: ACTIVE;
-     *     R1 elements should be read/write enabled;
-     *     R2 elements should be read enabled/write disabled;
-     *     data on R2 elements is synchronized with R1 data copied to R2;
-     *     replication links are set to ready state;
      *
-     *  b) Pairs state: SPLIT;
-     *     R1 elements should be read/write enabled;
-     *     R2 elements should be read/write enabled;
-     *     replication links are set to not ready state;
+     * At the completion of this operation each created remote replication pair on device should be associated to its set and should
+     * be in the following state, as defined for the pair in the replicationPairs argument:
+     *  a) Pair state: ACTIVE;
+     *     R1 element should be read/write enabled;
+     *     R2 element should be read enabled/write disabled;
+     *     data on R2 element is synchronized with R1 data (R1 data is copied to R2);
+     *     replication link between R1 and R2 elements on device is set to ready state;
+     *
+     *  b) Pair state: SPLIT;
+     *     R1 element should be read/write enabled;
+     *     R2 element should be read/write enabled;
+     *     replication link between R1 and R2 elements on device is set to not-ready state;
      *     The state of replication pairs is same as after 'split' operation.
      *
      * @param replicationPairs list of replication pairs to create; each pair is in either active or split state
@@ -87,11 +88,11 @@ public interface RemoteReplicationDriver {
      * Should not make any impact on replication state of any other existing replication pairs which are not specified
      * in the request. If execution of the request with this constraint is not possible, should return a failure.
      *
-     * At the completion of this operation all remote replication elements from the pairs
+     * At the completion of this operation all remote replication elements from the replicationPairs
      * should be in the following state:
      *     R1 elements should be read/write enabled;
      *     R2 elements should be read/write enabled;
-     *     replication links are not ready;
+     *     replication links between R1 and R2 elements on device are disabled;
      *     R1 and R2 elements are disassociated from their remote replication containers and
      *     become independent storage elements;
      *
@@ -110,11 +111,11 @@ public interface RemoteReplicationDriver {
      * in the request. If execution of the request with this constraint is not possible, should return a failure.
      *
      * At the completion of this operation all remote replication pairs should be in the following state:
-     *     Pairs state: SUSPENDED;
+     *     Pair state: SUSPENDED;
      *     No change in remote replication container (group/set) for the pairs;
-     *     R1 elements should be read/write enabled;
-     *     R2 elements should be read enabled/write disabled;
-     *     replication links should be in not ready state;
+     *     R1 element should be read/write enabled;
+     *     R2 element should be read enabled/write disabled;
+     *     replication link on device should be in not ready state;
      *
      * @param replicationPairs: remote replication pairs to suspend
      * @param context: context information for this operation
@@ -125,18 +126,18 @@ public interface RemoteReplicationDriver {
                               StorageCapabilities capabilities);
 
     /**
-     * Resume remote replication link for remote replication argument.
+     * Resume remote replication link for remote replication pairs.
      * Should not make any impact on replication state of any other existing replication pairs which are not specified
      * in the request. If execution of the request with this constraint is not possible, should return a failure.
      *
      * At the completion of this operation all remote replication pairs specified in the request should
      * be in the following state:
-     *     Pairs state: ACTIVE;
+     *     Pair state: ACTIVE;
      *     No change in remote replication container (group/set) for the pairs;
-     *     R1 elements should be read/write enabled;
-     *     R2 elements should be read enabled/write disabled;
-     *     data on R2 elements is synchronized with R1 data copied to R2 elements;
-     *     replication links should be in ready state;
+     *     R1 element should be read/write enabled;
+     *     R2 element should be read enabled/write disabled;
+     *     data on R2 elements is synchronized with R1 data (R1 data copied to R2);
+     *     replication link on device should be in ready state;
      *
      * @param replicationPairs: remote replication pairs to resume
      * @param capabilities storage capabilities for this operation
@@ -153,11 +154,11 @@ public interface RemoteReplicationDriver {
      *
      * At the completion of this operation all remote replication pairs specified in the request should
      * be in the following state:
-     *     Pairs state: SPLIT;
-     *     No change in remote replication container (group/set) for the pairs;
-     *     R1 elements should be read/write enabled;
-     *     R2 elements should be read/write enabled;
-     *     replication links should be in not ready state;
+     *     Pair state: SPLIT;
+     *     No change in remote replication container (group/set) for the pair;
+     *     R1 element should be read/write enabled;
+     *     R2 element should be read/write enabled;
+     *     replication link on device should be in not ready state;
      *
      * @param replicationPairs: remote replication pairs to split
      * @param capabilities storage capabilities for this operation
@@ -174,12 +175,12 @@ public interface RemoteReplicationDriver {
      *
      * At the completion of this operation all remote replication pairs specified in the request should
      * be in the following state:
-     *     Pairs state: ACTIVE;
-     *     No change in remote replication container (group/set) for the pairs;
-     *     R1 elements should be read/write enabled;
-     *     R2 elements should be read enabled/write disabled;
-     *     data on R2 elements is synchronized with R1 data;
-     *     replication links should be in ready state;
+     *     Pair state: ACTIVE;
+     *     No change in remote replication container (group/set) for the pair;
+     *     R1 element should be read/write enabled;
+     *     R2 element should be read enabled/write disabled;
+     *     data on R2 element is synchronized with R1 data(R1 data copied to R2);
+     *     replication link on device should be in ready state;
      *
      * @param replicationPairs remote replication pairs to establish
      * @param capabilities storage capabilities for this operation
@@ -196,10 +197,11 @@ public interface RemoteReplicationDriver {
      *
      * At the completion of this operation all remote replication pairs specified in the request should
      * be in the following state:
-     *     Pairs state: FAILED_OVER;
+     *     Pair state: FAILED_OVER;
      *     No change in remote replication container (group/set) for the pairs;
-     *     R1 elements should be write disabled;
-     *     R2 elements should be read/write enabled;
+     *     Original R1 element should be write disabled;
+     *     Original R2 element should be read/write enabled;
+     *     R1 and R2 elements on device switch replication roles for all future link operations;
      *     replication links should be in not ready state;
      *
      * @param replicationPairs: remote replication pairs to failover
@@ -211,18 +213,19 @@ public interface RemoteReplicationDriver {
                                StorageCapabilities capabilities);
 
     /**
-     * Failback remote replication link for remote replication argument.
+     * Failback remote replication link for remote replication pairs.
      * Should not make any impact on replication state of any other existing replication pairs which are not specified
      * in the request. If execution of the request with this constraint is not possible, should return a failure.
      *
      * At the completion of this operation all remote replication pairs specified in the request should
      * be in the following state:
-     *     Pairs state:ACTIVE;
+     *     Pair state:ACTIVE;
      *     No change in remote replication container (group/set) for the pairs;
-     *     R1 elements should be read/write enabled;
-     *     R2 elements should be write disabled;
-     *     data on R1 elements is synchronized with new R2 data copied to R1;
-     *     replication links should be in ready state;
+     *     R2 element is synchronized with new R1 data (R1 data is copied to R2);
+     *     Original R1 element should be write disabled;
+     *     Original R2 element should be read/write enabled;
+     *     R1 and R2 elements on device switch replication roles for all future link operations;
+     *     Replication link on device should be in ready state;
      *
      * @param replicationPairs: remote replication pairs to failback
      * @param context: context information for this operation
@@ -233,19 +236,20 @@ public interface RemoteReplicationDriver {
                                StorageCapabilities capabilities);
 
     /**
-     * Swap remote replication link for remote replication argument.
+     * Swap remote replication link for remote replication pairs.
      * Changes roles of replication elements in each replication pair.
      * Should not make any impact on replication state of any other existing replication pairs which are not specified
      * in the request. If execution of the request with this constraint is not possible, should return a failure.
      *
      * At the completion of this operation all remote replication pairs specified in the request should
      * be in the following state:
-     *     Pairs state: SWAPPED;
+     *     Pair state: SWAPPED;
      *     No change in remote replication container (group/set) for the pairs;
-     *     R1 elements should be read enabled/write disabled;
-     *     R2 elements should be read/write enabled;
-     *     data on R2 elements is synchronized with new R1 data copied to R2;
-     *     replication links should be in ready state for replication from R2 to R1;
+     *     R2 element is synchronized with new R1 data (R1 data is copied to R2);
+     *     Original R1 element should be read enabled/write disabled;
+     *     Original R2 element should be read/write enabled;
+     *     R1 and R2 elements on device switch replication roles for all future link operations;
+     *     Replication link on device should be in ready state;
      *
      * @param replicationPairs: remote replication pairs to swap
      * @param context: context information for this operation

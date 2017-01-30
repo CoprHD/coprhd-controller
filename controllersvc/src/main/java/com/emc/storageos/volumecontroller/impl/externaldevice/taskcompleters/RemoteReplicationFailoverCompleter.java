@@ -4,6 +4,7 @@ import java.net.URI;
 import java.util.Collections;
 import java.util.List;
 
+import com.emc.storageos.db.client.model.NamedURI;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -74,6 +75,12 @@ public class RemoteReplicationFailoverCompleter extends TaskCompleter {
                                 RemoteReplicationPair.class, "replicationGroup");
                         for (RemoteReplicationPair rrPair : rrPairs) {
                             rrPair.setReplicationState(RemoteReplicationSet.ReplicationState.FAILED_OVER.toString());
+                            // change replication direction:
+                            if (rrPair.getReplicationDirection() == RemoteReplicationPair.ReplicationDirection.SOURCE_TO_TARGET) {
+                                rrPair.setReplicationDirection(RemoteReplicationPair.ReplicationDirection.TARGET_TO_SOURCE);
+                            } else {
+                                rrPair.setReplicationDirection(RemoteReplicationPair.ReplicationDirection.SOURCE_TO_TARGET);
+                            }
                         }
                         remoteReplicationGroup.setReplicationState(RemoteReplicationSet.ReplicationState.FAILED_OVER.toString());
                         dbClient.updateObject(remoteReplicationGroup);

@@ -135,14 +135,6 @@ public class RemoteReplicationGroup {
         this.isGroupConsistencyEnforced = isGroupConsistencyEnforced;
     }
 
-//    public Set<RemoteReplicationSet.ElementType> getReplicationLinkGranularity() {
-//        return replicationLinkGranularity;
-//    }
-//
-//    public void setReplicationLinkGranularity(Set<RemoteReplicationSet.ElementType> replicationLinkGranularity) {
-//        this.replicationLinkGranularity = replicationLinkGranularity;
-//    }
-
     public String getSourceSystemNativeId() {
         return sourceSystemNativeId;
     }

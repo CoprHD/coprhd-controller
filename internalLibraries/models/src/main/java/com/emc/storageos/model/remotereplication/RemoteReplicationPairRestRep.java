@@ -21,6 +21,9 @@ public class RemoteReplicationPairRestRep extends DataObjectRestRep {
     // Element type (block or file element)
     private String elementType;
 
+    // Replication direction for the pair
+    private String replicationDirection;
+
     // If replication pair is part of replication group should be set to replication group link, otherwise null.
     private RelatedResourceRep replicationGroup;
 
@@ -109,5 +112,14 @@ public class RemoteReplicationPairRestRep extends DataObjectRestRep {
 
     public void setReplicationMode(String replicationMode) {
         this.replicationMode = replicationMode;
+    }
+
+    @XmlElement(name = "replication_direction")
+    public String getReplicationDirection() {
+        return replicationDirection;
+    }
+
+    public void setReplicationDirection(String replicationDirection) {
+        this.replicationDirection = replicationDirection;
     }
 }

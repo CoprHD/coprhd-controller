@@ -13,6 +13,7 @@ import java.net.URI;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.commons.lang.StringUtils;
 
@@ -32,6 +33,8 @@ import play.data.binding.As;
 import play.mvc.Controller;
 import play.mvc.Util;
 import play.mvc.With;
+import util.ConfigProperty;
+import util.ConfigPropertyUtils;
 import util.EventUtils;
 import util.MessagesUtils;
 import util.datatable.DataTablesSupport;
@@ -42,6 +45,7 @@ import util.datatable.DataTablesSupport;
  */
 @With(Common.class)
 public class Events extends Controller {
+    private static Boolean isAutoRemedyEnabled;
     private static final String UNKNOWN = "resources.event.unknown";
     private static final String APPROVED = "resources.event.approved";
     private static final String APPROVED_MULTIPLE = "resources.event.approved.multiple";
@@ -73,6 +77,7 @@ public class Events extends Controller {
     }
 
     public static void listAllJson(Long lastUpdated) {
+        setIsAutoRemedyEnabled();
         ViPRCoreClient client = getViprClient();
         List<EventRestRep> eventResourceReps = client.events().getByRefs(client.events().listByTenant(uri(Models.currentAdminTenant())));
 
@@ -81,6 +86,9 @@ public class Events extends Controller {
         List<EventsDataTable.Event> events = Lists.newArrayList();
         if (eventResourceReps != null) {
             for (EventRestRep eventRestRep : eventResourceReps) {
+                if(isAutoRemedyEnabled && EventUtils.isAutoRemediateEvents(eventRestRep)){
+                    getViprClient().events().approve(eventRestRep.getId());
+                }
                 EventsDataTable.Event event = new EventsDataTable.Event(eventRestRep);
                 events.add(event);
             }
@@ -268,6 +276,18 @@ public class Events extends Controller {
         }
 
         render(approveDetails, declineDetails, event, tasks);
+    }
+    
+    private static void setIsAutoRemedyEnabled() {
+        Map<String, String> properties = ConfigPropertyUtils.getProperties();
+        String value = properties.get(ConfigProperty.EVENT_AUTO_REMEDIATION_ENABLE);
+
+        if (value != null && StringUtils.isNotBlank(value)) {
+            isAutoRemedyEnabled =  Boolean.valueOf(value);
+        } else {
+            error("Configuration property " + ConfigProperty.EVENT_AUTO_REMEDIATION_ENABLE + " not found, returning true.");
+            isAutoRemedyEnabled =  true;
+        }
     }
 
     // "Suppressing Sonar violation of Field names should comply with naming convention"

@@ -115,14 +115,7 @@ public class EventUtils {
             duplicateEvent.setDescription(description);
             duplicateEvent.setWarning(warning);
             duplicateEvent.setAffectedResources(getAffectedResources(affectedResources));
-            if(isAutoRemedyEnabled && isAutoRemediateEvents(duplicateEvent)){
-                List<Object> tempParamList = Arrays.asList(approveParameters);
-                tempParamList.add(true);
-                Object[] updatedApproveParameters =tempParamList.toArray(new Object[tempParamList.size()]);
-                setEventMethods(duplicateEvent, approveMethod, updatedApproveParameters, declineMethod, declineParameters);
-            } else {
-                setEventMethods(duplicateEvent, approveMethod, approveParameters, declineMethod, declineParameters);
-            }
+            setEventMethods(duplicateEvent, approveMethod, approveParameters, declineMethod, declineParameters);
             dbClient.updateObject(duplicateEvent);
         } else {
             ActionableEvent event = new ActionableEvent();
@@ -134,14 +127,7 @@ public class EventUtils {
             event.setEventStatus(ActionableEvent.Status.pending.name());
             event.setResource(new NamedURI(resource.getId(), resource.getLabel()));
             event.setAffectedResources(getAffectedResources(affectedResources));
-            if(isAutoRemedyEnabled && isAutoRemediateEvents(event)){
-                List<Object> tempParamList = Arrays.asList(approveParameters);
-                tempParamList.add(true);
-                Object[] updatedApproveParameters =tempParamList.toArray(new Object[tempParamList.size()]);
-                setEventMethods(event, approveMethod, updatedApproveParameters, declineMethod, declineParameters);
-            } else {
-                setEventMethods(event, approveMethod, approveParameters, declineMethod, declineParameters);
-            }
+            setEventMethods(event, approveMethod, approveParameters, declineMethod, declineParameters);
             event.setLabel(name);
             dbClient.createObject(event);
             log.info("Created Actionable Event: " + event.getId() + " Tenant: " + event.getTenant() + " Description: "
@@ -197,20 +183,7 @@ public class EventUtils {
         }
         return null;
     }
-    
-    /**
-     * Returns if the event is an auto remediable event.
-     * 
-     * @param event
-     * @return
-     */
-    public static boolean isAutoRemediateEvents(ActionableEvent event) {
-        if ((event.getEventStatus().equalsIgnoreCase(ActionableEvent.Status.pending.name()))
-                || (AUTO_REMEDIATE_EVENTS.contains(event.getEventCode()))) {
-            return true;
-        }
-        return false;
-    }
+
 
     /**
      * Delete all actionable events for a given resource

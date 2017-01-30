@@ -59,4 +59,6 @@ public class ConfigProperty {
     public static final String SYSLOG_ENABLE = "system_syslog_enable";
     public static final String SYSLOG_TRANSPORT_PROTOCOL = "system_syslog_transport_protocol";
     public static final String SYSLOG_DRIVER_CA = "system_syslog_driver_ca";
+    
+    public static final String EVENT_AUTO_REMEDIATION_ENABLE = "auto_remediation_enable";
 }

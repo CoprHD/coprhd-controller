@@ -4888,6 +4888,8 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
      * 1. Create volumes from different projects and export to same compute resource.
      * 2. Export Mask has both exclusive and shared volumes.
      * 
+     * A storage view for a host can be deleted, if there are shared volumes from multiple projects.
+     * A storage view cannot be deleted, if there are excluisve volumes on the storage view along with shared volumes.
      * We have to return true only for Case 2.
      * 
      * @return
@@ -4898,9 +4900,9 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
             // This piece of code gets executed only when all the initiators of
             // Host are being asked to remove and the export mask is being shared.
             if (ExportGroupType.Cluster.toString().equalsIgnoreCase(current.getType())
-                    && ExportGroupType.Host.toString().equalsIgnoreCase(exportGroup.getType())) {
-                _log.info("Export Mask is being shared with other Export Groups, and the"
-                        + " export Group {} type is different from the current processed {}."
+                    && ExportGroupType.Host.toString().equalsIgnoreCase(exportGroup.getType()) &&
+                    !CollectionUtils.isEmpty(exportGroup.getInitiators())) {
+                _log.info("Export Mask is being shared with other Export Groups, and the export Group {} type is different from the current processed {}."
                         + "Assuming this mask contains both shared and exclusive volumes ,removing the initiators might affect.");
                 return true;
             }

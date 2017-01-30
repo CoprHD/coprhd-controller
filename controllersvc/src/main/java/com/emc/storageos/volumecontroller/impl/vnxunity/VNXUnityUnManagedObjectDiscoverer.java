@@ -801,7 +801,7 @@ public class VNXUnityUnManagedObjectDiscoverer {
 
         unManagedVolume.setLabel(lun.getName());
 
-        Map<String, StringSet> unManagedVolumeInformation = new HashMap<String, StringSet>();
+        StringSetMap unManagedVolumeInformation = new StringSetMap();
         Map<String, String> unManagedVolumeCharacteristics = new HashMap<String, String>();
 
         Boolean isVolumeExported = false;
@@ -893,7 +893,7 @@ public class VNXUnityUnManagedObjectDiscoverer {
 
         }
 
-        unManagedVolume.addVolumeInformation(unManagedVolumeInformation);
+        unManagedVolume.setVolumeInformation(unManagedVolumeInformation);
 
         if (unManagedVolume.getVolumeCharacterstics() == null) {
             unManagedVolume.setVolumeCharacterstics(new StringMap());
@@ -1687,7 +1687,7 @@ public class VNXUnityUnManagedObjectDiscoverer {
 
         unManagedVolume.setLabel(snap.getName());
 
-        Map<String, StringSet> unManagedVolumeInformation = new HashMap<String, StringSet>();
+        StringSetMap unManagedVolumeInformation = new StringSetMap();
         Map<String, String> unManagedVolumeCharacteristics = new HashMap<String, String>();
 
         Boolean isSnapExported = false;
@@ -1754,7 +1754,7 @@ public class VNXUnityUnManagedObjectDiscoverer {
         unManagedVolumeCharacteristics.put(SupportedVolumeCharacterstics.IS_THINLY_PROVISIONED.toString(),
                 lun.getIsThinEnabled().toString());
 
-        unManagedVolume.addVolumeInformation(unManagedVolumeInformation);
+        unManagedVolume.setVolumeInformation(unManagedVolumeInformation);
 
         if (unManagedVolume.getVolumeCharacterstics() == null) {
             unManagedVolume.setVolumeCharacterstics(new StringMap());

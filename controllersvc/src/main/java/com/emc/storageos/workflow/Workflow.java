@@ -4,12 +4,25 @@
  */
 package com.emc.storageos.workflow;
 
+import static com.google.common.collect.Collections2.filter;
+import static com.google.common.collect.Lists.newArrayList;
+
 import java.io.ObjectStreamField;
 import java.io.Serializable;
 import java.net.URI;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
 
-import com.google.common.base.Predicate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -18,9 +31,7 @@ import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
 import com.emc.storageos.volumecontroller.TaskCompleter;
-
-import static com.google.common.collect.Collections2.filter;
-import static com.google.common.collect.Lists.newArrayList;
+import com.google.common.base.Predicate;
 
 /**
  * A Workflow represents a sequence of steps that can be executed by Controllers to
@@ -901,9 +912,39 @@ public class Workflow implements Serializable {
                     return result;
                 }
 
-                long aTime = a.endTime.getTime();
-                long bTime = b.endTime.getTime();
-                return Long.compare(aTime, bTime);
+                Date aTime = a.endTime;
+                Date bTime = b.endTime;
+                
+                // Comparison based on end time is as follows:
+                // If a step hasn't finished yet, its endTime is null.
+                // That time is interpreted as "infinity" for comparison purposes below.
+                if (aTime != null && bTime == null) {
+                    return -1; // b hasn't ended, so b has an infinite time in comparison
+                } else if (aTime == null && bTime != null) {
+                    return 1; // a hasn't ended, so a is greater than b
+                } else if (aTime == null && bTime == null) {
+                    // If neither step has a valid end time, they're both in flight.
+                    // So compare their start times instead.
+                    Date cTime = a.startTime;
+                    Date dTime = b.startTime;
+
+                    // Comparison based on start time is as follows:
+                    // If a step hasn't started yet, its startTime is null.
+                    // That time is interpreted as ZERO for comparison purposes below.
+                    if (cTime != null && dTime == null) {
+                        return 1; // b (dTime) hasn't started, so b is zero and a is greater
+                    } else if (cTime == null && dTime != null) {
+                        return -1; // a (cTime) hasn't started, so b is greater than a
+                    } else if (cTime == null && dTime == null) {
+                        // no start or end times on neither, return equal.
+                        return 0;
+                    }
+
+                    // Both start times are valid, so sort based on those values
+                    return Long.compare(cTime.getTime(), dTime.getTime());
+                }
+                
+                return Long.compare(aTime.getTime(), bTime.getTime());
             }
         });
 

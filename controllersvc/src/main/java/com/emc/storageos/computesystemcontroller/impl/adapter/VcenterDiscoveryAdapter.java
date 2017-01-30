@@ -78,7 +78,6 @@ import com.vmware.vim25.mo.HostSystem;
  */
 @Component
 public class VcenterDiscoveryAdapter extends EsxHostDiscoveryAdapter {
-    private static final String EVENT_AUTO_REMEDIATION_ENABLE = "auto_remediation_enable";
     @Override
     public boolean isSupportedTarget(String targetId) {
         return URIUtil.isType(URI.create(targetId), Vcenter.class);
@@ -809,10 +808,7 @@ public class VcenterDiscoveryAdapter extends EsxHostDiscoveryAdapter {
                                 ComputeSystemDialogProperties.getMessage("ComputeSystem.vcenterDatastoreCreateWarning", volume.getLabel()),
                                 volume, Lists.newArrayList(volume.getId()), EventUtils.vcenterDatastoreCreate,
                                 new Object[] { volume.getId(), newDsUri, newDsName, vcenterURI }, EventUtils.vcenterDatastoreCreateDecline,
-                                new Object[] { volume.getId() });
-                    }
-                    if(getConfigProperty(EVENT_AUTO_REMEDIATION_ENABLE)){
-                        //TODO: call the approve method: either call from the api side or transfer the methos in the controller side.
+                                new Object[] { volume.getId() }, isAutoRemedyEnabled);
                     }
                 }
             }
@@ -856,7 +852,7 @@ public class VcenterDiscoveryAdapter extends EsxHostDiscoveryAdapter {
                         ComputeSystemDialogProperties.getMessage("ComputeSystem.vcenterDatastoreDeleteWarning"), volume,
                         Lists.newArrayList(volume.getId()), EventUtils.vcenterDatastoreDelete,
                         new Object[] { volume.getId(), candidateDatastoreName, vcenterURI },
-                        EventUtils.vcenterDatastoreDeleteDecline, new Object[] { volume.getId() });
+                        EventUtils.vcenterDatastoreDeleteDecline, new Object[] { volume.getId() }, isAutoRemedyEnabled);
             } else if (!candidateDatastoreName.equals(newDatastore.getName())) {
                 URI changedDsUri = URI.create(newDatastore.getInfo().getUrl());
                 EventUtils.createActionableEvent(dbClient, EventUtils.EventCode.VCENTER_DATASTORE_RENAME, volume.getTenant().getURI(),
@@ -865,7 +861,7 @@ public class VcenterDiscoveryAdapter extends EsxHostDiscoveryAdapter {
                         ComputeSystemDialogProperties.getMessage("ComputeSystem.vcenterDatastoreRenameWarning"), volume,
                         Lists.newArrayList(volume.getId()), EventUtils.vcenterDatastoreRename,
                         new Object[] { volume.getId(), changedDsUri, newDatastore.getName(), candidateDatastoreName, vcenterURI },
-                        EventUtils.vcenterDatastoreRenameDecline, new Object[] { volume.getId() });
+                        EventUtils.vcenterDatastoreRenameDecline, new Object[] { volume.getId() }, isAutoRemedyEnabled);
             }
         }
     }
@@ -894,14 +890,4 @@ public class VcenterDiscoveryAdapter extends EsxHostDiscoveryAdapter {
         return diskList;
     }
     
-    private boolean getConfigProperty(String propertyName) {
-        String value = coordinator.getPropertyInfo().getProperty(propertyName);
-
-        if (value != null && StringUtils.isNotBlank(value)) {
-            return Boolean.valueOf(value);
-        } else {
-            error("Configuration property " + propertyName + " not found, returning true.");
-            return true;
-        }
-    }
 }

@@ -51,6 +51,8 @@ import com.google.common.collect.Sets;
 public abstract class AbstractDiscoveryAdapter implements ComputeSystemDiscoveryAdapter {
     private Logger log;
 
+    private static final String EVENT_AUTO_REMEDIATION_ENABLE = "auto_remediation_enable";
+
     protected final static String CONTROLLER_SVC = "controllersvc";
     protected final static String CONTROLLER_SVC_VER = "1";
 
@@ -58,6 +60,8 @@ public abstract class AbstractDiscoveryAdapter implements ComputeSystemDiscovery
     private ComputeSystemDiscoveryVersionValidator versionValidator;
 
     protected static ModelClient modelClient;
+    
+    protected Boolean isAutoRemedyEnabled;
 
     protected DbClient dbClient;
 
@@ -505,6 +509,7 @@ public abstract class AbstractDiscoveryAdapter implements ComputeSystemDiscovery
     }
 
     public void processHostChanges(HostStateChange changes) {
+        setIsAutoRemedyEnabled();
         processHostChanges(Collections.singletonList(changes), Collections.<URI> emptyList(), Collections.<URI> emptyList(), false);
     }
 
@@ -571,7 +576,7 @@ public abstract class AbstractDiscoveryAdapter implements ComputeSystemDiscovery
                                     currentDatacenter.getId(), isVCenter },
                             EventUtils.hostVcenterChangeDecline,
                             new Object[] { host.getId(), cluster != null ? cluster.getId() : NullColumnValueGetter.getNullURI(),
-                                    currentDatacenter.getId(), isVCenter });
+                                    currentDatacenter.getId(), isVCenter }, isAutoRemedyEnabled);
                 } else {
                     EventUtils.createActionableEvent(dbClient, EventUtils.EventCode.HOST_DATACENTER_CHANGE, host.getTenant(),
                             ComputeSystemDialogProperties.getMessage("ComputeSystem.hostDatacenterChangeLabel", oldDatacenter.getLabel(),
@@ -586,7 +591,7 @@ public abstract class AbstractDiscoveryAdapter implements ComputeSystemDiscovery
                                     currentDatacenter.getId(), isVCenter },
                             EventUtils.hostDatacenterChangeDecline,
                             new Object[] { host.getId(), cluster != null ? cluster.getId() : NullColumnValueGetter.getNullURI(),
-                                    currentDatacenter.getId(), isVCenter });
+                                    currentDatacenter.getId(), isVCenter }, isAutoRemedyEnabled);
                 }
             } else if ((change.getOldCluster() == null && change.getNewCluster() != null)
                     || (change.getOldCluster() != null && change.getNewCluster() == null)
@@ -641,7 +646,7 @@ public abstract class AbstractDiscoveryAdapter implements ComputeSystemDiscovery
                             new Object[] { host.getId(), cluster != null ? cluster.getId() : NullColumnValueGetter.getNullURI(),
                                     NullColumnValueGetter.isNullURI(change.getNewDatacenter()) ? NullColumnValueGetter.getNullURI()
                                             : change.getNewDatacenter(),
-                                    isVCenter });
+                                    isVCenter }, isAutoRemedyEnabled);
                 } else {
                     host.setCluster(cluster == null ? NullColumnValueGetter.getNullURI() : cluster.getId());
                     dbClient.updateObject(host);
@@ -667,7 +672,7 @@ public abstract class AbstractDiscoveryAdapter implements ComputeSystemDiscovery
                             ComputeSystemDialogProperties.getMessage("ComputeSystem.removeInitiatorWarning"),
                             host, Lists.newArrayList(host.getId(), oldInitiator.getId()), EventUtils.removeInitiator,
                             new Object[] { oldInitiator.getId() }, EventUtils.removeInitiatorDecline,
-                            new Object[] { oldInitiator.getId() });
+                            new Object[] { oldInitiator.getId() }, isAutoRemedyEnabled);
                 }
                 for (Initiator newInitiator : newInitiatorObjects) {
                     EventUtils.createActionableEvent(dbClient, EventUtils.EventCode.HOST_INITIATOR_ADD, host.getTenant(),
@@ -677,7 +682,7 @@ public abstract class AbstractDiscoveryAdapter implements ComputeSystemDiscovery
                             ComputeSystemDialogProperties.getMessage("ComputeSystem.addInitiatorWarning"),
                             host, Lists.newArrayList(host.getId(), newInitiator.getId()), EventUtils.addInitiator,
                             new Object[] { newInitiator.getId() }, EventUtils.addInitiatorDecline,
-                            new Object[] { newInitiator.getId() });
+                            new Object[] { newInitiator.getId() }, isAutoRemedyEnabled);
                 }
             }
         }
@@ -709,7 +714,7 @@ public abstract class AbstractDiscoveryAdapter implements ComputeSystemDiscovery
                         ComputeSystemDialogProperties.getMessage("ComputeSystem.hostVcenterUnassignWarning"),
                         host, Lists.newArrayList(host.getId(), host.getCluster()),
                         EventUtils.hostVcenterUnassign, new Object[] { deletedHost },
-                        EventUtils.hostVcenterUnassignDecline, new Object[] { deletedHost });
+                        EventUtils.hostVcenterUnassignDecline, new Object[] { deletedHost }, isAutoRemedyEnabled);
             }
         }
 
@@ -731,6 +736,17 @@ public abstract class AbstractDiscoveryAdapter implements ComputeSystemDiscovery
     // TODO: move to AbstractHostDiscoveryAdapter once EsxHostDiscoveryAdatper is moved to extend it
     public void matchHostsToComputeElements(URI hostId) {
         log.warn("Matching host to compute element not supported for this host type.");
+    }
+
+    protected void setIsAutoRemedyEnabled() {
+        String value = coordinator.getPropertyInfo().getProperty(EVENT_AUTO_REMEDIATION_ENABLE);
+
+        if (value != null && StringUtils.isNotBlank(value)) {
+            isAutoRemedyEnabled =  Boolean.valueOf(value);
+        } else {
+            error("Configuration property " + EVENT_AUTO_REMEDIATION_ENABLE + " not found, returning true.");
+            isAutoRemedyEnabled =  true;
+        }
     }
 
 }

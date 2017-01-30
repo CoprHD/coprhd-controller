@@ -5,6 +5,7 @@
 package com.emc.storageos.db.client.model.util;
 
 import java.net.URI;
+import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Collection;
 import java.util.Iterator;
@@ -99,7 +100,7 @@ public class EventUtils {
     public static void createActionableEvent(DbClient dbClient, EventUtils.EventCode eventCode, URI tenant, String name, String description,
             String warning,
             DataObject resource, Collection<URI> affectedResources, String approveMethod, Object[] approveParameters,
-            String declineMethod, Object[] declineParameters) {
+            String declineMethod, Object[] declineParameters, boolean isAutoRemedyEnabled) {
         ActionableEvent duplicateEvent = null;
         if (ALLOWED_DUPLICATE_EVENTS.contains(eventCode)) {
             duplicateEvent = getDuplicateEvent(dbClient, eventCode.getCode(), resource.getId(), affectedResources);
@@ -114,7 +115,14 @@ public class EventUtils {
             duplicateEvent.setDescription(description);
             duplicateEvent.setWarning(warning);
             duplicateEvent.setAffectedResources(getAffectedResources(affectedResources));
-            setEventMethods(duplicateEvent, approveMethod, approveParameters, declineMethod, declineParameters);
+            if(isAutoRemedyEnabled && isAutoRemediateEvents(duplicateEvent)){
+                List<Object> tempParamList = Arrays.asList(approveParameters);
+                tempParamList.add(true);
+                Object[] updatedApproveParameters =tempParamList.toArray(new Object[tempParamList.size()]);
+                setEventMethods(duplicateEvent, approveMethod, updatedApproveParameters, declineMethod, declineParameters);
+            } else {
+                setEventMethods(duplicateEvent, approveMethod, approveParameters, declineMethod, declineParameters);
+            }
             dbClient.updateObject(duplicateEvent);
         } else {
             ActionableEvent event = new ActionableEvent();
@@ -126,7 +134,14 @@ public class EventUtils {
             event.setEventStatus(ActionableEvent.Status.pending.name());
             event.setResource(new NamedURI(resource.getId(), resource.getLabel()));
             event.setAffectedResources(getAffectedResources(affectedResources));
-            setEventMethods(event, approveMethod, approveParameters, declineMethod, declineParameters);
+            if(isAutoRemedyEnabled && isAutoRemediateEvents(event)){
+                List<Object> tempParamList = Arrays.asList(approveParameters);
+                tempParamList.add(true);
+                Object[] updatedApproveParameters =tempParamList.toArray(new Object[tempParamList.size()]);
+                setEventMethods(event, approveMethod, updatedApproveParameters, declineMethod, declineParameters);
+            } else {
+                setEventMethods(event, approveMethod, approveParameters, declineMethod, declineParameters);
+            }
             event.setLabel(name);
             dbClient.createObject(event);
             log.info("Created Actionable Event: " + event.getId() + " Tenant: " + event.getTenant() + " Description: "
@@ -155,9 +170,9 @@ public class EventUtils {
      */
     public static void createActionableEvent(DbClient dbClient, EventUtils.EventCode eventCode, URI tenant, String name, String description,
             String warning,
-            DataObject resource, List<URI> affectedResources, String approveMethod, Object[] approveParameters) {
+            DataObject resource, List<URI> affectedResources, String approveMethod, Object[] approveParameters, boolean isAutoRemedyEnabled) {
         createActionableEvent(dbClient, eventCode, tenant, name, description, warning,
-                resource, affectedResources, approveMethod, approveParameters, null, null);
+                resource, affectedResources, approveMethod, approveParameters, null, null, isAutoRemedyEnabled);
     }
 
     /**

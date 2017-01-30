@@ -829,14 +829,8 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     }
 
     private List<VolumeRestRep> getVolumesByIds(ViPRCoreClient client, Set<URI> vols) {
-        log.info("Getting volumens: [{}]", vols.size());
-        List<URI> volIdList = new ArrayList<>(vols);
-        List<URI> ids = new ArrayList<>();
-        for (int i = 0; i < volIdList.size(); i++) {
-            ids.add(volIdList.get(i));
-        }
-
-        List<VolumeRestRep> volumes = client.blockVolumes().getByIds(ids, null);
+        log.info("Getting volumes: [{}]", vols.size());
+        List<VolumeRestRep> volumes = client.blockVolumes().getByIds(vols, null);
         log.info("Got volumens [{}]", volumes.size());
         return volumes;
     }
@@ -845,8 +839,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         log.info("Finding snapshots by project {}", project);
         List<SearchResultResourceRep> snapshotRefs = client.blockSnapshots().performSearchBy(SearchConstants.PROJECT_PARAM, project);
         List<URI> ids = new ArrayList<>();
-        for (int i = 0; i < snapshotRefs.size(); i++) {
-            SearchResultResourceRep ref = snapshotRefs.get(i);
+        for (SearchResultResourceRep ref: snapshotRefs) {
             ids.add(ref.getId());
         }
 

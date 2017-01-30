@@ -3379,6 +3379,11 @@ public class ExportGroupService extends TaskResourceService {
         affectedGroupURIs.add(exportGroup.getId());
         response.getAffectedExportGroups().add(toNamedRelatedResource(exportGroup, exportGroup.getLabel()));
         
+        if (!Type.vmax.name().equalsIgnoreCase(system.getSystemType()) &&
+                !Type.vplex.name().equalsIgnoreCase(system.getSystemType())) {
+                throw APIException.badRequests.exportPathAdjustmentSystemNotSupported(system.getSystemType()); 
+        }
+        
         List<ExportMask> exportMasks = ExportMaskUtils.getExportMasks(_dbClient,  exportGroup, system.getId());
         if (exportMasks.isEmpty()) {
             throw APIException.badRequests.exportPathAdjustmentSystemExportGroupNotMatch(exportGroup.getLabel(), 

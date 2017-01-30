@@ -14,6 +14,7 @@ import static com.emc.vipr.client.core.impl.PathConstants.APP_SUPPORT_DEACTIVATE
 import static com.emc.vipr.client.core.impl.PathConstants.APP_SUPPORT_DEACTIVATE_SNAPSHOT_URL;
 import static com.emc.vipr.client.core.impl.PathConstants.APP_SUPPORT_DELETE_APP_URL;
 import static com.emc.vipr.client.core.impl.PathConstants.APP_SUPPORT_DETACH_FULL_COPY_URL;
+import static com.emc.vipr.client.core.impl.PathConstants.APP_SUPPORT_EXPOSE_SNAPSHOT_URL;
 import static com.emc.vipr.client.core.impl.PathConstants.APP_SUPPORT_FULL_COPY_URL;
 import static com.emc.vipr.client.core.impl.PathConstants.APP_SUPPORT_GET_CLUSTERS_APP_URL;
 import static com.emc.vipr.client.core.impl.PathConstants.APP_SUPPORT_GET_HOSTS_APP_URL;
@@ -297,6 +298,19 @@ public class ApplicationSupport extends AbstractResources<VolumeGroupRestRep> {
      */
     public TaskList resynchronizeApplicationSnapshot(URI id, VolumeGroupSnapshotOperationParam input) {
         UriBuilder uriBuilder = client.uriBuilder(APP_SUPPORT_RESYNCHRONIZE_SNAPSHOT_URL);
+        return client.postURI(TaskList.class, input, uriBuilder.build(id));
+    }
+
+    /**
+     * Expose a snapshot of an application to Vplex.
+     * API Call: POST /volume-groups/block/{id}/protection/snapshots/expose
+     * 
+     * @param id application id with snapshot session
+     * @param input input parameters for application snapshot session request
+     * @return list of tasks
+     */
+    public TaskList exposeApplicationSnapshot(URI id, VolumeGroupSnapshotOperationParam input) {
+        UriBuilder uriBuilder = client.uriBuilder(APP_SUPPORT_EXPOSE_SNAPSHOT_URL);
         return client.postURI(TaskList.class, input, uriBuilder.build(id));
     }
 

@@ -402,7 +402,7 @@ public class VnxExportOperations implements ExportMaskOperations {
                         if (operation != null
                                 && VnxExportOperationContext.OPERATION_ADD_VOLUMES_TO_STORAGE_GROUP.equals(operation.getOperation())) {
                             addedVolumes = (List<URI>) operation.getArgs().get(0);
-                            _log.info("Removing volumes {} as part of rollback", Joiner.on(',').join(volumeURIList));
+                            _log.info("Removing volumes {} as part of rollback", Joiner.on(',').join(addedVolumes));
                         }
                     }
                 }

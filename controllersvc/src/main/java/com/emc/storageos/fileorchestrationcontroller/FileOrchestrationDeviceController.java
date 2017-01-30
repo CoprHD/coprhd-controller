@@ -24,6 +24,7 @@ import com.emc.storageos.db.client.model.FSExportMap;
 import com.emc.storageos.db.client.model.FileExport;
 import com.emc.storageos.db.client.model.FileObject;
 import com.emc.storageos.db.client.model.FilePolicy;
+import com.emc.storageos.db.client.model.FilePolicy.FilePolicyApplyLevel;
 import com.emc.storageos.db.client.model.FileShare;
 import com.emc.storageos.db.client.model.FileShare.PersonalityTypes;
 import com.emc.storageos.db.client.model.PhysicalNAS;
@@ -1814,7 +1815,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
             workflow.executePlan(completer, successMessage);
         } catch (Exception ex) {
             s_logger.error(String.format("unassigning file policy : %s,  from resource: %s failed,", filePolicy.getId(), unassignFrom), ex);
-            ServiceError serviceError = DeviceControllerException.errors.unassignFilePolicyFailed(policy.toString(), opName, ex);
+            ServiceError serviceError = DeviceControllerException.errors.unassignFilePolicyFailed(policy.toString(), ex);
             completer.error(s_dbClient, _locker, serviceError);
         }
     }
@@ -1881,7 +1882,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
         } catch (Exception ex) {
             s_logger.error(String.format("Assigning file policy : %s to vpool(s) failed", filePolicy.getId()), ex);
             ServiceError serviceError = DeviceControllerException.errors
-                    .assignFilePolicyToVirtualPoolFailed(filePolicyToAssign.toString(), opName, ex);
+                    .assignFilePolicyFailed(filePolicyToAssign.toString(), FilePolicyApplyLevel.vpool.name(), ex);
             completer.error(s_dbClient, _locker, serviceError);
         }
 
@@ -1968,7 +1969,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
         } catch (Exception ex) {
             s_logger.error(String.format("Assigning file policy : %s to vpool(s) failed", filePolicy.getId()), ex);
             ServiceError serviceError = DeviceControllerException.errors
-                    .assignFilePolicyToVirtualPoolFailed(filePolicyToAssign.toString(), opName, ex);
+                    .assignFilePolicyFailed(filePolicyToAssign.toString(), FilePolicyApplyLevel.project.name(), ex);
             completer.error(s_dbClient, _locker, serviceError);
         }
 

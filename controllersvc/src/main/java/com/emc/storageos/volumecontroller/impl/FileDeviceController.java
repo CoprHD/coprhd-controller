@@ -4508,9 +4508,8 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
         policyStorageResource.setPolicyNativeId(snapshotScheduleName);
         policyStorageResource.setAppliedAt(filePolicy.getId());
         _dbClient.createObject(policyStorageResource);
-        StringSet policyStrgRes = new StringSet();
-        policyStrgRes.add(policyStorageResource.getId().toString());
-        filePolicy.setPolicyStorageResources(policyStrgRes);
+
+        filePolicy.addPolicyStorageResources(policyStorageResource.getId());
 
         if (vpoolURI != null) {
             filePolicy.setFilePolicyVpool(vpoolURI);

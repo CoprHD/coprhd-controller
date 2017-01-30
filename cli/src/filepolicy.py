@@ -19,8 +19,6 @@ from threading import Timer
 import schedulepolicy
 import virtualpool
 import host
-import pprint
-from ppretty import ppretty 
 
 
 class FilePolicy(object):
@@ -514,17 +512,17 @@ def filepolicy_create(args):
     obj = FilePolicy(args.ip, args.port)
     SYNC="SYNC"
     ASYNC="ASYNC"
-    if(args)
-    try:
-        obj.filepolicy_create(args.name, args.policy_type, args.tenants_access,
-        args.description,  args.priority,  args.policy_sched_frequnecy, args.policy_schedule_repeat,
-        args.policy_schedule_time, args.policy_schedule_week, args.policy_schedule_month, args.replication_copy_mode,
-        args.replicate_configuration, args.replication_type,  args.snapshot_name_pattern,
-        args.snapshot_expire_type,  args.snapshot_expire_value, args.apply_at)
+    if(args):
+        try:
+            obj.filepolicy_create(args.name, args.policy_type, args.tenants_access,
+            args.description,  args.priority,  args.policy_sched_frequnecy, args.policy_schedule_repeat,
+            args.policy_schedule_time, args.policy_schedule_week, args.policy_schedule_month, args.replication_copy_mode,
+            args.replicate_configuration, args.replication_type,  args.snapshot_name_pattern,
+            args.snapshot_expire_type,  args.snapshot_expire_value, args.apply_at)
 
-    except SOSError as e:
-        common.format_err_msg_and_raise("create", "filepolicy",
-                                        e.err_text, e.err_code)
+        except SOSError as e:
+            common.format_err_msg_and_raise("create", "filepolicy",
+                                            e.err_text, e.err_code)
 
 
 def update_parser(subcommand_parsers, common_parser):

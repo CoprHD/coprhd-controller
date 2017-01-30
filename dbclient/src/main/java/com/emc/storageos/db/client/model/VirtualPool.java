@@ -17,7 +17,9 @@ import javax.xml.bind.annotation.XmlEnumValue;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
+import com.emc.storageos.db.client.model.FilePolicy.FilePolicyType;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
+import com.emc.storageos.model.file.policy.FileProtectionRemoteSettings;
 import com.emc.storageos.model.valid.EnumType;
 
 /**
@@ -82,6 +84,8 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
     private StringMap _protectionVarraySettings;
     // SRDF Protection
     private StringMap _protectionRemoteCopySettings;
+    // Remote replication settings: key: target varray, value: target vpool
+    private StringMap _remoteReplicationProtectionSettings;
     // percentage to specify thinVolumePreAllocateSize during provisioning.
     private Integer _thinVolumePreAllocationPercentage;
     private Long _quotaGB;
@@ -93,8 +97,6 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
     public final static int MAX_DISABLED = 0;
     // Maximum number of native snapshots allowed (0 == disabled, -1 == unlimited)
     private Integer _maxNativeSnapshots;
-    // It indicates whether virtual pool supports schedule snapshot
-    private Boolean scheduleSnapshot = false;
     // Maximum number of native continuous copies allowed (0 == disabled, -1 == unlimited)
     private Integer _maxNativeContinuousCopies;
     // This attribute is applicable only to Block Systems.
@@ -129,27 +131,18 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
     // File Repilcation copies
     private StringMap _fileRemoteCopySettings;
 
-    // File Policy Feature---temporary setting them true
-    private Boolean fileSnapshotSupported = true;
-    private Boolean fileReplicationSupported = true;
-    private Boolean filePolicyAtProjectLevel = true;
-    private Boolean filePolicyAtFSLevel = true;
+    // Replication and snapshot attributes;
+    // It indicates whether virtual pool supports schedule snapshot
+    private Boolean scheduleSnapshot = false;
+    private Boolean fileReplicationSupported = false;
+    private Boolean allowFilePolicyAtProjectLevel = false;
+    private Boolean allowFilePolicyAtFSLevel = false;
     private Long _frRpoValue;
     private String _frRpoType;
     private StringSet filePolicies;
 
-    @Name("fileSnapshotSupported")
-    public boolean isFileSnapshotSupported() {
-        return fileSnapshotSupported;
-    }
-
-    public void setFileSnapshotSupported(Boolean fileSnapshotSupported) {
-        this.fileSnapshotSupported = fileSnapshotSupported;
-        setChanged("fileSnapshotSupported");
-    }
-
     @Name("fileReplicationSupported")
-    public boolean isFileReplicationSupported() {
+    public Boolean getFileReplicationSupported() {
         return fileReplicationSupported;
     }
 
@@ -158,24 +151,24 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
         setChanged("fileReplicationSupported");
     }
 
-    @Name("filePolicyAtProjectLevel")
-    public boolean isFilePolicyAtProjectLevel() {
-        return filePolicyAtProjectLevel;
+    @Name("allowFilePolicyAtProjectLevel")
+    public Boolean getAllowFilePolicyAtProjectLevel() {
+        return allowFilePolicyAtProjectLevel;
     }
 
-    public void setFilePolicyAtProjectLevel(Boolean filePolicyAtProjectLevel) {
-        this.filePolicyAtProjectLevel = filePolicyAtProjectLevel;
-        setChanged("filePolicyAtProjectLevel");
+    public void setAllowFilePolicyAtProjectLevel(Boolean filePolicyAtProjectLevel) {
+        this.allowFilePolicyAtProjectLevel = filePolicyAtProjectLevel;
+        setChanged("allowFilePolicyAtProjectLevel");
     }
 
-    @Name("filePolicyAtFSLevel")
-    public boolean isFilePolicyAtFSLevel() {
-        return filePolicyAtFSLevel;
+    @Name("allowFilePolicyAtFSLevel")
+    public Boolean getAllowFilePolicyAtFSLevel() {
+        return allowFilePolicyAtFSLevel;
     }
 
-    public void setFilePolicyAtFSLevel(Boolean filePolicyAtFSLevel) {
-        this.filePolicyAtFSLevel = filePolicyAtFSLevel;
-        setChanged("filePolicyAtFSLevel");
+    public void setAllowFilePolicyAtFSLevel(Boolean filePolicyAtFSLevel) {
+        this.allowFilePolicyAtFSLevel = filePolicyAtFSLevel;
+        setChanged("allowFilePolicyAtFSLevel");
     }
 
     @Name("filePolicies")
@@ -1190,6 +1183,21 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
     }
 
     /**
+     * Convenience method to determine if the Virtual Pool supports remote replication (SB SDK)
+     *
+     * @param virtualPool
+     *            virtual pool
+     * @return true if supports remote replication
+     */
+    public static boolean vPoolSpecifiesRemoteReplication(final VirtualPool virtualPool) {
+        if (virtualPool.getRemoteReplicationProtectionSettings() == null
+                || virtualPool.getRemoteReplicationProtectionSettings().size() == 0) {
+            return false;
+        }
+        return true;
+    }
+
+    /**
      * Returns whether or not the passed VirtualPool specifies Protection
      * 
      * @param virtualPool
@@ -1423,6 +1431,36 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
         return settings;
     }
 
+    public static Map<String, FileProtectionRemoteSettings> getFileProtectionRemoteSettings(
+            URI defaultVpool, final DbClient dbClient) {
+        Map<String, FileProtectionRemoteSettings> settings = new HashMap<String, FileProtectionRemoteSettings>();
+
+        VirtualPool vpool = dbClient.queryObject(VirtualPool.class, defaultVpool);
+        if (vpool != null && vpool.getFileReplicationSupported()) {
+            // Find is there any replication policy attached to vpool
+            FilePolicy replPolicy = null;
+            StringSet policies = vpool.getFilePolicies();
+            if (policies != null && !policies.isEmpty()) {
+                for (String strPolicy : policies) {
+                    FilePolicy policy = dbClient.queryObject(FilePolicy.class, URI.create(strPolicy));
+                    if (FilePolicyType.file_replication.name().equalsIgnoreCase(policy.getFilePolicyType())) {
+                        replPolicy = policy;
+                        break;
+                    }
+                }
+            }
+            if (replPolicy != null) {
+                // Fill the replication type and copy mode!!
+                FileProtectionRemoteSettings fileReplSettings = new FileProtectionRemoteSettings();
+                fileReplSettings.setReplicationCopyMode(replPolicy.getFileReplicationCopyMode());
+                fileReplSettings.setReplicationType(replPolicy.getFileReplicationType());
+                fileReplSettings.setTargetVirtualPool(defaultVpool.toString());
+                settings.put(defaultVpool.toString(), fileReplSettings);
+            }
+        }
+        return settings;
+    }
+
     @Name("remoteProtectionSettings")
     public StringMap getProtectionRemoteCopySettings() {
         return _protectionRemoteCopySettings;
@@ -1430,6 +1468,16 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
 
     public void setProtectionRemoteCopySettings(final StringMap _protectionRemoteCopySettings) {
         this._protectionRemoteCopySettings = _protectionRemoteCopySettings;
+    }
+
+    @Name("remoteReplicationProtectionSettings")
+    public StringMap getRemoteReplicationProtectionSettings() {
+        return _remoteReplicationProtectionSettings;
+    }
+
+    public void setRemoteReplicationProtectionSettings(final StringMap remoteReplicationProtectionSettings) {
+        this._remoteReplicationProtectionSettings = remoteReplicationProtectionSettings;
+        setChanged("remoteReplicationProtectionSettings");
     }
 
     // this field is not used in 2.0

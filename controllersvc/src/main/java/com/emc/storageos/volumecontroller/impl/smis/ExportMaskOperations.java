@@ -89,6 +89,19 @@ public interface ExportMaskOperations {
      */
     public ExportMask refreshExportMask(StorageSystem storage, ExportMask mask) throws DeviceControllerException;
 
+    /**
+     * This call will be used to find the HLUs that have been assigned for volumes
+     * which are exported to the given list of initiators.
+     *
+     * @param storage the storage system
+     * @param initiatorNames the initiator names
+     * @param mustHaveAllPorts
+     *            If true, *all* the passed in initiators have to be in the existing matching mask.
+     *            If false, a mask with *any* of the specified initiators will be considered a hit.
+     * @return the HLUs used for the given initiators
+     */
+    public Set<Integer> findHLUsForInitiators(StorageSystem storage, List<String> initiatorNames, boolean mustHaveAllPorts);
+
     public void updateStorageGroupPolicyAndLimits(StorageSystem storage, ExportMask exportMask,
             List<URI> volumeURIs, VirtualPool newVirtualPool, boolean rollback,
             TaskCompleter taskCompleter) throws Exception;

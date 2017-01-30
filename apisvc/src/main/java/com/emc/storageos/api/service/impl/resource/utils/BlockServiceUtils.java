@@ -35,6 +35,7 @@ import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
+import com.emc.storageos.db.client.model.ActionableEvent;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockMirror;
 import com.emc.storageos.db.client.model.BlockObject;
@@ -52,6 +53,7 @@ import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.VolumeGroup;
 import com.emc.storageos.db.client.model.VplexMirror;
+import com.emc.storageos.db.client.model.util.EventUtils;
 import com.emc.storageos.db.client.model.util.TaskUtils;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
@@ -608,6 +610,34 @@ public class BlockServiceUtils {
             throw APIException.badRequests.cannotExecuteOperationWhilePendingTask(pendingListStr);
         }
     }
+
+    /**
+     * Validate there are no pending or failed events (actionable events) against the volumes
+     * 
+     * @param dbClient
+     * @param boURIList
+     *            list of block volume object
+     */
+    public static void checkForPendingEvents(DbClient dbClient, List<URI> boURIList) {
+        StringBuffer errMsg = new StringBuffer();
+        // Query for actionable events with these resources
+        for (URI boURI : boURIList) {
+            List<ActionableEvent> events = EventUtils.findAffectedResourceEvents(dbClient, boURI);
+            if (events != null && !events.isEmpty()) {
+                for (ActionableEvent event : events) {
+                    if (event.getEventStatus().equalsIgnoreCase(ActionableEvent.Status.pending.name())
+                            || event.getEventStatus().equalsIgnoreCase(ActionableEvent.Status.failed.name())) {
+                        errMsg.append(event.forDisplay() + "\n");
+                    }
+                }
+            }
+        }
+
+        if (errMsg.length() != 0) {
+            throw APIException.badRequests.cannotExecuteOperationWhilePendingOrFailedEvent(errMsg.toString());
+        }
+    }
+
 
     /**
      * Group volumes by storage system and replication group

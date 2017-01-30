@@ -39,6 +39,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.util.CollectionUtils;
 
 import com.emc.storageos.api.service.authorization.PermissionsHelper;
+import com.emc.storageos.api.service.impl.resource.utils.BlockServiceUtils;
 import com.emc.storageos.api.service.impl.response.BulkList;
 import com.emc.storageos.api.service.impl.response.BulkList.PermissionsEnforcingResourceFilter;
 import com.emc.storageos.api.service.impl.response.BulkList.ResourceFilter;
@@ -1413,6 +1414,7 @@ public class ExportGroupService extends TaskResourceService {
                     boURIList.add(volURI);
                 }
                 validateVolumesNotMounted(exportGroup, param.getVolumes().getRemove());
+                BlockServiceUtils.checkForPendingEvents(_dbClient, URIUtil.toURIList(exportGroup.getVolumes().keySet()));
             }
         }
         validateBlockObjectNativeId(boURIList);
@@ -1776,6 +1778,7 @@ public class ExportGroupService extends TaskResourceService {
         // Validate that none of the volumes are mounted (datastores, etc)
         if (exportGroup.getVolumes() != null) {
             validateVolumesNotMounted(exportGroup, URIUtil.toURIList(exportGroup.getVolumes().keySet()));
+            BlockServiceUtils.checkForPendingEvents(_dbClient, URIUtil.toURIList(exportGroup.getVolumes().keySet()));
         }
 
         // Don't allow deactivation if there is an operation in progress.
@@ -3091,5 +3094,5 @@ public class ExportGroupService extends TaskResourceService {
             }
         }
     }
-
+    
 }

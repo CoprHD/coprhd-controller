@@ -1317,6 +1317,7 @@ public class BlockService extends TaskResourceService {
         // Get the volume.
         ArgValidator.checkFieldUriType(id, Volume.class, "id");
         Volume volume = queryVolumeResource(id);
+        BlockServiceUtils.checkForPendingEvents(_dbClient, Lists.newArrayList(id));
 
         // Verify that the volume is 'expandable'
         VirtualPool virtualPool = _dbClient.queryObject(VirtualPool.class, volume.getVirtualPool());
@@ -2075,6 +2076,7 @@ public class BlockService extends TaskResourceService {
             @DefaultValue("FULL") @QueryParam("type") String type) throws InternalException {
         // Verify the some volumes were passed in the request.
         BlockService.checkVolumesParameter(volumeURIs);
+        BlockServiceUtils.checkForPendingEvents(_dbClient, volumeURIs.getIds());
 
         // For volume operations, user need to has TENANT_ADMIN role or proper ACLs etc.
         StorageOSUser user = getUserFromContext();

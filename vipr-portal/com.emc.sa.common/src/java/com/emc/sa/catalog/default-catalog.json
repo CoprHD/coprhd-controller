@@ -86,6 +86,10 @@
                    {
                       "image": "icon_application_unlink_snapshot.png",
                       "baseService": "UnlinkSnapshotOfApplication"
+                   },
+                   {
+                      "image": "icon_application_create_vplex_vol_from_snapshot.png",
+                      "baseService": "CreateVplexVolumeFromAppSnapshot"
                    }
 	           ]
 	        }

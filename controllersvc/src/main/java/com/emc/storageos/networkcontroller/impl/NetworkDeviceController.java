@@ -1769,6 +1769,9 @@ public class NetworkDeviceController implements NetworkController {
     }
 
     private void logZones(List<NetworkFCZoneInfo> zones) {
+        if (zones.isEmpty()) {
+            _log.info("No zones to log in logZones");
+        }
         for (NetworkFCZoneInfo zone : zones) {
             _log.info(String.format("zone %s endpoints %s vol %s last %s ref %s existing %s",
                     zone.getZoneName(), zone.getEndPoints(), zone.getVolumeId(),

@@ -156,6 +156,7 @@ public class StorageSystemType extends DataObject {
         setChanged("supportAutoTierPolicy");
     }
 
+    @AlternateId("AltIdIndex")
     @Name("storageTypeName")
     public String getStorageTypeName() {
         return storageTypeName;

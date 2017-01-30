@@ -1,5 +1,6 @@
 dependencies {
-    compile library(apache_cassandra),
+    compile "commons-collections:commons-collections:3.2.1",
+    		library(apache_cassandra),
             library(commons_io),
             library(jna),
             library(javassist),

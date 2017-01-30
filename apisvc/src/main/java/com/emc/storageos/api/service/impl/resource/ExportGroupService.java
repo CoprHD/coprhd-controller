@@ -3175,13 +3175,12 @@ public class ExportGroupService extends TaskResourceService {
     }
     
     /**
-     * TODO: fix this documentation
-     * This call does a PORT Allocation which is used for a port rebalancing preview operation.
+     * This call does a PORT Allocation which is used for a path adjustment preview operation.
      * If the user is satisfied with the ports that are selected, they will invoke the provisioning through a
      * separate API.
      *
      * Inputs are the the Export Group URI, Storage System URI, an optional Varray URI, and the ExportPath parameters.
-     * There is also a boolean that specifies the allocation should start assuming the existing paths (or not).
+     * There is also a boolean that specifies the allocation should start assuming the existing paths are used (or not).
      *
      * @param id the URN of a ViPR export group to be updated; ports will be allocated in this context
      * @param param -- ExportPortAllocateParam block containing Storage System URI, Varray URI, ExportPathParameters
@@ -3194,15 +3193,14 @@ public class ExportGroupService extends TaskResourceService {
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/paths-adjustment-preview")
     @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.OWN, ACL.ALL })
-    public ExportPathsAdjustmentPreviewRestRep pathsAdjustmentPreview(@PathParam("id") URI id, ExportPathsAdjustmentPreviewParam param)
-            throws ControllerException {
+    public ExportPathsAdjustmentPreviewRestRep pathsAdjustmentPreview(@PathParam("id") URI id, 
+            ExportPathsAdjustmentPreviewParam param)  throws ControllerException {
          // Basic validation of ExportGroup and update request
         ExportGroup exportGroup = queryObject(ExportGroup.class, id, true);
         if (exportGroup.checkInternalFlags(DataObject.Flag.DELETION_IN_PROGRESS)) {
             throw BadRequestException.badRequests.deletionInProgress(
                     exportGroup.getClass().getSimpleName(), exportGroup.getLabel());
         }
-        Project project = queryObject(Project.class, exportGroup.getProject().getURI(), true);
         validateInitiatorsInExportGroup(exportGroup);
         validateExportGroupNoPendingEvents(exportGroup);
         
@@ -3308,7 +3306,7 @@ public class ExportGroupService extends TaskResourceService {
      * @param exportGroup -- Export Group on which provisioning was initiated
      * @param system -- StorageSystem
      * @param varray -- Virtual Array URI
-     * @param hosts -- For cluster export group, the hosts that are being processed
+     * @param hosts -- For cluster export group, the hosts that are being processed. Assumes all if emptySet.
      */
     private void calculateRemovedPaths(ExportPathsAdjustmentPreviewRestRep response, Map<URI, List<URI>> zoningMap, 
             ExportGroup exportGroup, StorageSystem system, URI varray, Set<URI> hosts) {
@@ -3619,7 +3617,7 @@ public class ExportGroupService extends TaskResourceService {
                     egHostURIs.add(egInitiator.getHost());
                 }
             }
-            // Now, only through error if there are initiators that are not of any of the egHostURIs
+            // Now, only throw error if there are initiators that are not of any of the egHostURIs
             List<Initiator> pathInitiators = _dbClient.queryObject(Initiator.class, pathInitiatorURIs);
             List<String> badInitiators = new ArrayList<String>();
             for (Initiator pathInitiator : pathInitiators) {

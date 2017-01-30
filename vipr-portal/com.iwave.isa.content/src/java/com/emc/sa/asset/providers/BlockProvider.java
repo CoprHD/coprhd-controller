@@ -2248,7 +2248,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     public List<AssetOption> getVolumesWithFullCopies(AssetOptionsContext ctx, URI project, String volumeOrConsistencyType) {
         final ViPRCoreClient client = api(ctx);
         if (isVolumeType(volumeOrConsistencyType)) {
-            List<VolumeRestRep> volumes = findVolumesByProject();
+            List<VolumeRestRep> volumes = findVolumesByProject(client, project);
             List<VolumeRestRep> filteredVols = new ArrayList<>();
             for (VolumeRestRep vol: volumes) {
                 if (!vol.getProtection().getFullCopyRep().getFullCopyVolumes().isEmpty() &&

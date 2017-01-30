@@ -17,6 +17,7 @@
 
 package com.emc.sa.service.vipr.oe;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -74,16 +75,32 @@ public class OrchestrationService extends ViPRService {
     final private Map<String, Step> stepsHash = new HashMap<String, OrchestrationWorkflowDocument.Step>();
 
     private static final org.slf4j.Logger logger = LoggerFactory.getLogger(OrchestrationService.class);
-
+    private OrchestrationWorkflowDocument obj;
     private int code;
 
     @Override
     public void precheck() throws Exception {
-
         // get input params from order form
         params = ExecutionUtils.currentContext().getParameters();
+        final String raw = ExecutionUtils.currentContext().getOrder().getWorkflowDocument();
+        if( null == raw) {
+            throw new IllegalStateException("Invalid orchestration service.  Workflow document cannot be null");
+        }
 
+        obj = WorkflowHelper.toWorkflowDocument(raw);
+        final List<Step> steps = obj.getSteps();
+        for (final Step step : steps)
+            stepsHash.put(step.getId(), step);
+
+        if (stepsHash.get(StepType.START.toString()) == null || stepsHash.get(StepType.END.toString()) == null) {
+            throw CustomServiceException.exceptions.customServiceException("input name not defined");
+        }
+
+        ValidateCustomServiceWorkflow validate = new ValidateCustomServiceWorkflow(params, stepsHash);
+        validate.validateInputs();
     }
+
+
 
     @Override
     public void execute() throws Exception {
@@ -107,32 +124,20 @@ public class OrchestrationService extends ViPRService {
     public void wfExecutor() throws Exception {
 
         logger.info("Parsing Workflow Definition");
-        
-        final String raw = ExecutionUtils.currentContext().getOrder().getWorkflowDocument();
-        if( null == raw) {
-            throw new IllegalStateException("Invalid orchestration service.  Workflow document cannot be null");
-        }
-        
-        final OrchestrationWorkflowDocument obj = WorkflowHelper.toWorkflowDocument(raw);
 
         ExecutionUtils.currentContext().logInfo("orchestrationService.status", obj.getName(), obj.getDescription());
 
-        final List<Step> steps = obj.getSteps();
-        for (Step step : steps)
-            stepsHash.put(step.getId(), step);
 
         Step step = stepsHash.get(StepType.START.toString());
         String next = step.getNext().getDefaultStep();
 
+        long timeout = System.currentTimeMillis();
         while (next != null && !next.equals(StepType.END.toString())) {
             step = stepsHash.get(next);
 
             ExecutionUtils.currentContext().logInfo("orchestrationService.stepStatus", step.getId(), step.getType());
 
             updateInputPerStep(step);
-
-            //TODO implement waitfortask
-            StepAttribute stepAttribute = step.getAttributes();
 
             final OrchestrationTaskResult res;
 
@@ -141,7 +146,6 @@ public class OrchestrationService extends ViPRService {
                 case VIPR_REST: {
             	    Primitive primitive = PrimitiveHelper.get(step.getOperation());
                     if( null == primitive) {
-                        //TODO fail workflow
                         throw new IllegalStateException("Primitive not found: " + step.getOperation());
                     }
 
@@ -178,12 +182,17 @@ public class OrchestrationService extends ViPRService {
                     isSuccess = false;
                 }
             }
-	    next = getNext(isSuccess, res, step);
+	        next = getNext(isSuccess, res, step);
 
             if (next == null) {
-                logger.error("Orchestration Engine failed to retrieve next step:{}", step.getId());
+                if (!isSuccess) {
+                    logger.error("Failed to execute step:{}",step.getId());
+                }
+                throw new IllegalStateException("Failed to retrieve Next Step Might be rollback spe is not defined");
+            }
 
-                throw new IllegalStateException("Failed to retrieve Next Step");
+            if ((System.currentTimeMillis() - timeout) > OrchestrationServiceConstants.TIMEOUT) {
+                throw new IllegalStateException("Operation Type not supported" + type);
             }
         }
     }
@@ -236,71 +245,41 @@ public class OrchestrationService extends ViPRService {
                 case FROM_USER:
                 case OTHERS:
                 case ASSET_OPTION: {
-                    //TODO handle multiple , separated values
-                    final String paramVal = (params.get(name) != null) ? (StringUtils.strip(params.get(name).toString(), "\"")) : (value.getDefaultValue());
-
-                    if (paramVal == null) {
-                        if (value.getRequired()) {
-                            logger.error("Can't retrieve input:{} to execute step:{}", name, step.getId());
-
-                            throw new IllegalStateException();
+                    if (params.get(name) != null) {
+                        inputs.put(name, createInputList(StringUtils.strip(params.get(name).toString())));
+                    } else {
+                        if (value.getDefaultValue() != null) {
+                            inputs.put(name, createInputList(value.getDefaultValue()));
                         }
-                        break;
                     }
-
-                    inputs.put(name, Arrays.asList(paramVal));
-
                     break;
                 }
                 case FROM_STEP_INPUT:
                 case FROM_STEP_OUTPUT: {
-                    
-                    if(!isValidinput(value))
-                    {
-                        logger.error("Can't retrieve input:{} to execute step:{}", name, step.getId());
-                        
-                        throw new IllegalStateException();
-                    }
+                    final String[] paramVal = value.getValue().split("\\.");
+                    final String stepId = paramVal[OrchestrationServiceConstants.STEP_ID];
+                    final String attribute = paramVal[OrchestrationServiceConstants.INPUT_FIELD];
 
-                    if (value.getValue() != null) {
-                        final String[] paramVal = value.getValue().split("\\.");
-                        final String stepId = paramVal[OrchestrationServiceConstants.STEP_ID];
-                        final String attribute = paramVal[OrchestrationServiceConstants.INPUT_FIELD];
+                    Map<String, List<String>> stepInput;
+                    if (value.getType().equals(InputType.FROM_STEP_INPUT.toString()))
+                        stepInput = inputPerStep.get(stepId);
+                    else
+                        stepInput = outputPerStep.get(stepId);
 
-                        Map<String, List<String>> stepInput;
-                        if (value.getType().equals(InputType.FROM_STEP_INPUT.toString()))
-                            stepInput = inputPerStep.get(stepId);
-                        else
-                            stepInput = outputPerStep.get(stepId);
+                    if (stepInput != null) {
+                        logger.info("value is:{}", stepInput.get(attribute));
+                        if (stepInput.get(attribute) != null) {
+                            inputs.put(name, stepInput.get(attribute));
 
-                        if (stepInput == null) {
-                            logger.info("stepInput is null {}", attribute);
-                            //TODO waitfortask
-                            
                             break;
-                            
-                        } else {
-                            logger.info("value is:{}", stepInput.get(attribute));
-                            if (stepInput.get(attribute) != null) {
-                                inputs.put(name, stepInput.get(attribute));
-
-                                break;
-                            }
-                        }   
+                        }
                     }
+
                     if (value.getDefaultValue() != null) {
                         inputs.put(name, Arrays.asList(value.getDefaultValue()));
                         logger.info("value default is:{}", Arrays.asList(value.getDefaultValue()));
                         break;
                     }
-
-                    if (false == value.getRequired()) 
-                        break;
-
-                    logger.error("Can't retrieve input:{} to execute step:{}", name, step.getId());
-
-                    throw new IllegalStateException();
-
                 }
                 default:
                     logger.error("Input Type:{} is Invalid", value.getType());
@@ -311,16 +290,13 @@ public class OrchestrationService extends ViPRService {
 
         inputPerStep.put(step.getId(), inputs);
     }
-    
-    private boolean isValidinput(Input value)
-    {
-        if (value.getValue() == null && value.getDefaultValue() == null && value.getRequired()) {
-            return false;
-        }
-        
-        return true;
 
+    private List<String> createInputList(final String inputString) {
+        final String[] inputs = inputString.split(",");
+
+        return Arrays.asList(inputs);
     }
+
     private List<String> evaluateAnsibleOut(final String result, final String key) throws Exception
     {
         final List<String> out = new ArrayList<String>();
@@ -360,7 +336,10 @@ public class OrchestrationService extends ViPRService {
 
         final Map<String, List<String>> out = new HashMap<String, List<String>>();
 
-        for(Map.Entry<String, String> e : output.entrySet()) {
+        for(final Map.Entry<String, String> e : output.entrySet()) {
+            if (e.getValue() == null || e.getValue().isEmpty()) {
+                continue;
+            }
             if (isAnsible(step)) {
                 out.put(e.getKey(), evaluateAnsibleOut(result, e.getKey()));
             } else {

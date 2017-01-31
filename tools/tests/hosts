@@ -29,7 +29,7 @@ def host_update(args):
 def host_delete(args):
     bourne.connect(args.ip)
     uri = bourne.host_query(args.name)
-    res = bourne.host_delete(uri, args.detachstorage)
+    res = bourne.host_delete(uri)
     print res
 
 def host_show(args):
@@ -121,7 +121,6 @@ update.add_argument('--cluster', help = 'host cluster or specify null if looking
 # host delete uri
 delete = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
 delete.add_argument('name',	help = 'name of host')
-delete.add_argument('--detachstorage',    help = 'detach storage before deleting host', default='false')
 
 # host show uri
 show = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')

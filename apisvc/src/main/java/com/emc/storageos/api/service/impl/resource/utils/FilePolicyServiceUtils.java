@@ -38,7 +38,7 @@ import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValues
 /**
  * @author jainm15
  */
-public final class FilePolicyServiceUtils {
+public class FilePolicyServiceUtils {
     private static final Logger _log = LoggerFactory.getLogger(FilePolicyServiceUtils.class);
     private static final int MIN_SNAPSHOT_EXPIRE_TIME = 2;
     private static final int MAX_SNAPSHOT_EXPIRE_TIME = 10;

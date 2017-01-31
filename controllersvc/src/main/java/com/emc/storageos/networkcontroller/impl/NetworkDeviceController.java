@@ -151,6 +151,7 @@ public class NetworkDeviceController implements NetworkController {
      * @throws ControllerException
      */
     private NetworkSystem getDeviceObject(URI network) throws ControllerException {
+        _log.info("PARASH -- NetworkDeviceController getDeviceObject network URI is "+network.toString());
         NetworkSystem networkDev = null;
         try {
             networkDev = _dbClient.queryObject(NetworkSystem.class, network);

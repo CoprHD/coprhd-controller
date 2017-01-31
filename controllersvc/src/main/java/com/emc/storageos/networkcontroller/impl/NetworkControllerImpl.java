@@ -103,7 +103,10 @@ public class NetworkControllerImpl extends AbstractDiscoveredSystemController im
     @Override
     public Map<String, String> getFabricIdsMap(URI network) throws InternalException {
         try {
+            _log.info("PARASH -- NetworkControllerImpl getFabricIdsMap network URI is "+network.toString());
             NetworkSystem device = _dbClient.queryObject(NetworkSystem.class, network);
+            _log.info("PARASH -- NetworkControllerImpl getFabricIdsMap URI "+device.getId().toString());
+            _log.info("PARASH -- NetworkControllerImpl getFabricIdsMap system type "+device.getSystemType());
             NetworkDeviceController devController = (NetworkDeviceController) lookupDeviceController(device);
             return devController.getFabricIdsMap(network);
         } catch (InternalException ex) {

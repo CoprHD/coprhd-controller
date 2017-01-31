@@ -32,6 +32,7 @@ public final class OrchestrationServiceConstants {
     //SuccessCriteria Constants
     public static final String RETURN_CODE = "code";
     public static final String TASK = "task";
+    public static final long TIMEOUT = 3600*1000;
 
     public static final List<String> BODY_REST_METHOD = Arrays.asList("POST", "PUT", "DELETE");
 

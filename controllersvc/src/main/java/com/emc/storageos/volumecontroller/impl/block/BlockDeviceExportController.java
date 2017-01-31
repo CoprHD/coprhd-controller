@@ -1034,6 +1034,9 @@ public class BlockDeviceExportController implements BlockExportController {
             }
         } catch (Exception ex) {
             _log.error("Unexpected exception: ", ex);
+            if (workflow != null) {
+                _wfUtils.getWorkflowService().releaseAllWorkflowLocks(workflow);
+            }
             ServiceError serviceError = DeviceControllerException.errors.jobFailed(ex);
             taskCompleter.error(_dbClient, serviceError);
         }

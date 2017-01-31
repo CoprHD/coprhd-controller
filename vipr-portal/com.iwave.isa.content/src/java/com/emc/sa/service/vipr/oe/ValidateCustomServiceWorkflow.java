@@ -89,7 +89,8 @@ public class ValidateCustomServiceWorkflow {
 
                     break;
                 default:
-                    throw InternalServerErrorException.internalServerErrors.customeServiceExecutionFailed("Invalid Input type");            }
+                    throw InternalServerErrorException.internalServerErrors.customeServiceExecutionFailed("Invalid Input type");
+            }
         }
     }
 

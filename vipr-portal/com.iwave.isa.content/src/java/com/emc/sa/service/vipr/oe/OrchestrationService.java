@@ -131,7 +131,7 @@ public class OrchestrationService extends ViPRService {
 
         Step step = stepsHash.get(StepType.START.toString());
         String next = step.getNext().getDefaultStep();
-	long timeout = System.currentTimeMillis();
+	    long timeout = System.currentTimeMillis();
         while (next != null && !next.equals(StepType.END.toString())) {
             step = stepsHash.get(next);
 
@@ -182,7 +182,7 @@ public class OrchestrationService extends ViPRService {
                     isSuccess = false;
                 }
             }
-	    next = getNext(isSuccess, res, step);
+	        next = getNext(isSuccess, res, step);
 
             if (next == null) {
                 if (!isSuccess) {
@@ -269,7 +269,7 @@ public class OrchestrationService extends ViPRService {
                         logger.info("value is:{}", stepInput.get(attribute));
                         if (stepInput.get(attribute) != null) {
                             inputs.put(name, stepInput.get(attribute));
-			    break;
+			                break;
                         }   
                     }
                     if (value.getDefaultValue() != null) {

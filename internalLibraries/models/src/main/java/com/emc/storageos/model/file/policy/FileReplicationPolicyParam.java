@@ -70,7 +70,7 @@ public class FileReplicationPolicyParam implements Serializable {
         this.replicateConfiguration = replicateConfiguration;
     }
 
-    @XmlElement(required = true, name = "policy_schedule")
+    @XmlElement(name = "policy_schedule")
     public FilePolicyScheduleParams getPolicySchedule() {
         return this.policySchedule;
     }

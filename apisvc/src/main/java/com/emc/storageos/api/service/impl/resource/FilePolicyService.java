@@ -521,7 +521,7 @@ public class FilePolicyService extends TaskResourceService {
         if (param.getReplicationPolicyParams() == null) {
             errorMsg.append("Required parameter replication_params was missing or empty");
             _log.error("Failed to create snapshot policy due to {} ", errorMsg.toString());
-            throw APIException.badRequests.invalidFilePolicyScheduleParam(param.getPolicyName(), errorMsg.toString());
+            throw APIException.badRequests.invalidFileReplicationPolicyParam(param.getPolicyName(), errorMsg.toString());
         }
 
         // Validate replication policy schedule parameters
@@ -570,7 +570,7 @@ public class FilePolicyService extends TaskResourceService {
         if (param.getSnapshotPolicyPrams() == null) {
             errorMsg.append("Required parameter snapshot_params was missing or empty");
             _log.error("Failed to create snapshot policy due to {} ", errorMsg.toString());
-            throw APIException.badRequests.invalidFilePolicyScheduleParam(param.getPolicyName(), errorMsg.toString());
+            throw APIException.badRequests.invalidFileSnapshotPolicyParam(param.getPolicyName(), errorMsg.toString());
         }
 
         // Validate snapshot policy schedule parameters

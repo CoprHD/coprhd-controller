@@ -85,7 +85,7 @@ public class MetroPointVolumeInternalSiteNameMigration extends BaseCustomMigrati
                         && NullColumnValueGetter.isNotNullValue(backingVolume.getInternalSiteName())
                         && !backingVolume.getInternalSiteName().equals(volume.getInternalSiteName())) {
                     log.info(String
-                            .format("Found that volume %s has invalid internal site name %s. Updating the internal site name to %s based on corresponding backing volume %s.",
+                            .format("MetroPoint source volume [%s] has an invalid internal site name [%s]. Updating the internal site name to [%s] based on corresponding backing volume [%s].",
                                     volume.getId(), volume.getInternalSiteName(), backingVolume.getInternalSiteName(),
                                     backingVolume.getId()));
                     volume.setInternalSiteName(backingVolume.getInternalSiteName());

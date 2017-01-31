@@ -124,40 +124,22 @@ $(document).ready(function() {
        #{VirtualPools.locked locked:locked, field:field /}
        #{Form.booleanCheckBoxControlGroup field:field /}
       #{/field}
-      #{field 'vpool.replicationType'}
-        #{VirtualPools.locked locked:locked, field:field /}
-        #{Form.selectOneControlGroup field:field, options:replicationTypeOptions, cssClass:'span4' /}
+      
+      #{field 'vpool.replicationSupported'}
+       #{VirtualPools.locked locked:locked, field:field /}
+       #{Form.booleanCheckBoxControlGroup field:field /}
       #{/field}
       
-   <div data-source="vpool_replicationType" data-hide="${models.FileProtectionSystemTypes.NONE}">
-      #{field 'vpool.replicationMode'}
-        #{VirtualPools.locked locked:locked, field:field /}
-        #{Form.selectOneControlGroup field:field, options:replicationModeOptions, cssClass:'span4' /}
+      #{field 'vpool.allowPolicyApplyAtProject'}
+       #{VirtualPools.locked locked:locked, field:field /}
+       #{Form.booleanCheckBoxControlGroup field:field /}
       #{/field}
       
-    #{field 'vpool.replicationRpo'}
-     #{Form.controlGroup field:field, width:width}
-     <div class="row col-gap-sm">
-        <div class="col-xs-6">
-          #{VirtualPools.locked locked:locked, field:field /}
-          #{Form.inputText field: field/}
-        </div>
-        <div class="col-xs-6">
-          #{field 'vpool.rpRpoType'}
-            %{
-              field.options = replicationRpoTypeOptions   
-            }%
-            #{VirtualPools.locked locked:locked, field:field /}
-            #{Form.selectOne field: field/}
-          #{/field}
-        </div>
-     </div>
-      #{/Form.controlGroup}      
-    #{/field}
-      <div data-source="vpool_replicationType" data-show="${models.FileProtectionSystemTypes.REMOTE}">
-		       #{include 'arrays/FileVirtualPools/replicationCopies.html' /}
-      </div>
-   </div>
+      #{field 'vpool.allowPolicyApplyAtFS'}
+       #{VirtualPools.locked locked:locked, field:field /}
+       #{Form.booleanCheckBoxControlGroup field:field /}
+      #{/field}
+      
   #{/collapse}
   
   #{collapse 'vpool.group.archive', icon:'floppy-disk'}

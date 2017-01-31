@@ -105,6 +105,7 @@ public class PathConstants {
     public static final String CLUSTER_URL = "/compute/clusters";
     public static final String CLUSTER_DETACH_STORAGE_URL = CLUSTER_URL + "/{clusterId}/detach-storage";
     public static final String HOST_BY_CLUSTER_URL = CLUSTER_URL + "/{clusterId}/hosts";
+    public static final String VBLOCK_HOST_BY_CLUSTER_URL = CLUSTER_URL + "/{clusterId}/vblock-hosts";
     public static final String CLUSTER_UPDATE_SHARED_EXPORTS_URL = CLUSTER_URL + "/{clusterId}/update-shared-exports";
     public static final String INITIATOR_URL = "/compute/initiators";
     public static final String IPINTERFACE_URL = "/compute/ip-interfaces";
@@ -180,6 +181,7 @@ public class PathConstants {
 
     public static final String APP_SUPPORT_RESYNCHRONIZE_SNAPSHOT_URL = APP_SUPPORT_SNAPSHOT_URL + "/resynchronize";
     public static final String APP_SUPPORT_DEACTIVATE_SNAPSHOT_URL = APP_SUPPORT_SNAPSHOT_URL + "/deactivate";
+    public static final String APP_SUPPORT_EXPOSE_SNAPSHOT_URL = APP_SUPPORT_SNAPSHOT_URL + "/expose";
 
     public static final String APP_SUPPORT_CREATE_SNAPSHOT_URL = APP_SUPPORT_SNAPSHOT_URL;
 

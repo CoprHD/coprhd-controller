@@ -1,0 +1,163 @@
+#!/usr/bin/python
+#
+# Copyright (c) 2017 EMC Corporation
+# All Rights Reserved
+#
+
+import argparse
+import sys
+import os
+from bourne import *
+
+#----------------------------------------------------------------------
+# computeimage cli functions
+#----------------------------------------------------------------------
+def computeimage_create(args):
+    bourne.connect(args.ip)
+    task = bourne.computeimage_create(args.name, args.image_url)
+    print task    
+
+def computeimage_delete(args):
+    bourne.connect(args.ip)
+    uri = bourne.computeimage_query(args.name)
+    res = bourne.computeimage_delete(uri)
+    print res
+
+def computeimage_show(args):
+    bourne.connect(args.ip)
+    uri = bourne.computeimage_query(args.name)
+    computeimage = bourne.computeimage_show(uri)
+    print computeimage
+
+def computeimage_query(args):
+    bourne.connect(args.ip)
+    print bourne.computeimage_query(args.name)
+
+def computeimage_list(args):
+    bourne.connect(args.ip)
+    computeimage_display_hdr()
+    res = bourne.computeimage_list()
+    for r in res:
+        computeimage = bourne.computeimage_show(r['id'])
+        computeimage_display(computeimage)
+
+#
+# display computeimage in list form
+#
+computeimage_display_fmt = '{0:16s} {1:16s} {2:10s}'
+
+def computeimage_display_hdr():
+    print computeimage_display_fmt.format('name', 'image_url', 'id')
+
+def computeimage_display(computeimage):
+    print computeimage_display_fmt.format(computeimage['name'], computeimage['image_url'], computeimage['id'])
+
+# tag
+#def computeimage_tag(args):
+    bourne.connect(args.ip)
+    if (args.id == None):
+        args.id = bourne.computeimage_query(args.name)
+    print 'Tagging compute image', args.id
+    bourne.tag(args.resource_type, args.id, args.tags)
+
+# search
+def computeimage_search(args):
+    bourne.connect(args.ip)
+    if (args.scope != None):
+        # query tenant id from tenant name
+        args.scope = bourne.tenant_query(args.scope)
+    array = bourne.search(args.resource_type, args.scope, args.prefix, args.project, args.tag)
+    print 'Searching compute image with ' + args.prefix
+    if (len(array) == 0):
+        raise Exception('Failed to search with prefix ' + args.prefix)
+    else:
+        print 'Result: ', array
+
+#----------------------------------------------------------------------
+# command-line parsing
+#----------------------------------------------------------------------
+
+try:
+    bourne_ip = os.environ['BOURNE_IPADDR']
+except:
+    bourne_ip = 'localhost'
+
+# computeimage <cmd> <cmd_args>  [--ip ipaddr]
+parser = argparse.ArgumentParser(description = 'Bourne computeimage cli usage.')
+parser.add_argument('cmd', help = 'cmd = (create | delete | show | list )')
+parser.add_argument('--ip',	metavar = 'ipaddr',	help = 'IP address of bourne', default=bourne_ip)
+
+# computeimage create label
+create = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+create.add_argument('name',			help = 'label for the computeimage')
+create.add_argument('image_url',		help = 'compute image URL - FTP file location')
+
+# computeimage delete uri
+delete = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+delete.add_argument('name',	help = 'name of computeimage')
+
+# computeimage show uri
+show = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+show.add_argument('name',	help = 'name of computeimage')
+
+# computeimage query name
+query = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+query.add_argument('name',	help = 'name of computeimage')
+
+# computeimage provider list 
+list = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+
+# tag 
+resource_type="computeimage"
+tag = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+tag.add_argument('--resource_type',   metavar = 'resource_type',     help = 'resource type', default=resource_type)
+tag.add_argument('--id',     metavar = 'id',     help = 'resource id', default=None)
+tag.add_argument('name',     metavar = 'name',   help = 'resource name')
+tag.add_argument('tags',     metavar = 'tags',   help = 'tags', nargs='+', default=None)
+
+# search
+search = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+search.add_argument('--resource_type',   metavar = 'resource_type',     help = 'resource type', default=resource_type)
+search.add_argument('--scope',   metavar = 'scope',  help = 'scope(global or tenant) for searching', default=None)
+search.add_argument('prefix',    metavar = 'prefix', help = 'prefix for search name or tag')
+search.add_argument('--tag',     metavar = 'tag',    help = 'boolean for search tag or not (search from name)', default=None)
+search.add_argument('--project', metavar = 'project',help = 'search name within project', default=None)
+
+
+#----------------------------------------------------------------------
+# Main script
+#----------------------------------------------------------------------
+
+try:
+    if (len(sys.argv) > 1):
+        cmd = sys.argv[1]
+    else:
+        cmd = None
+
+    bourne = Bourne()
+
+    if   (cmd == "create"):
+        args = create.parse_args()
+        computeimage_create(args)
+    elif (cmd == "delete"):
+        args = delete.parse_args()
+        computeimage_delete(args)
+    elif (cmd == "show"):
+        args = show.parse_args()
+        computeimage_show(args)
+    elif (cmd == "query"):
+        args = query.parse_args()
+        computeimage_query(args)
+    elif (cmd == "list"):
+        args = list.parse_args()
+        computeimage_list(args)
+    elif(cmd == "tag"):
+        args = tag.parse_args()
+        computeimage_tag(args)
+    elif (cmd == "search"):
+        args = search.parse_args()
+        computeimage_search(args)
+    else:
+        parser.print_help()
+except:
+    raise

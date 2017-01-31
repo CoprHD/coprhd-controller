@@ -7,33 +7,46 @@ package com.emc.storageos.dbutils;
 
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.text.SimpleDateFormat;
 
+import com.emc.sa.api.CatalogServiceService;
+import com.emc.sa.api.mapper.OrderMapper;
+import com.emc.sa.catalog.OrderManager;
 import com.emc.storageos.coordinator.client.model.Constants;
 import com.emc.storageos.db.client.impl.DbCheckerFileWriter;
 import com.emc.storageos.management.jmx.recovery.DbManagerOps;
+import com.emc.vipr.model.catalog.OrderRestRep;
 
 import org.apache.commons.lang3.StringUtils;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.ApplicationContext;
+import org.springframework.context.support.ClassPathXmlApplicationContext;
 
 import com.emc.storageos.db.client.impl.TypeMap;
 import com.emc.storageos.db.client.model.GlobalLock;
+import com.emc.storageos.db.client.model.TenantOrg;
+import com.emc.storageos.db.client.model.uimodels.Order;
 import com.emc.storageos.db.client.upgrade.BaseCustomMigrationCallback;
+import com.emc.storageos.db.client.util.OrderTextCreator;
 import com.google.common.base.Joiner;
+import com.google.common.collect.Lists;
 import com.netflix.astyanax.Keyspace;
 import com.netflix.astyanax.MutationBatch;
 import com.netflix.astyanax.model.*;
 
 import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.net.URI;
 
 public abstract class CommandHandler {
@@ -792,6 +805,75 @@ public abstract class CommandHandler {
                 System.out.println(String.format("Unknown exception. Please check dbutils.log", ex.getMessage()));
                 log.error("Unexpected exception when executing migration callback", ex);
             }
+        }
+    }
+
+    public static class DumpOrdersHandler extends CommandHandler {
+
+        private static final Logger log = LoggerFactory.getLogger(DumpOrdersHandler.class);
+        private File dir;
+        private OrderManager orderManager;
+        private CatalogServiceService catalogService;
+        private DBClient client;
+
+        public DumpOrdersHandler(String[] args) {
+            if (args == null || args.length != 2) {
+                throw new IllegalArgumentException("Invalid command option.");
+            }
+            File f = new File(args[1].trim());
+            if (!f.exists() || !f.isDirectory()) {
+                throw new IllegalArgumentException("Invalid orders dump path (not exist or directory)");
+            }
+            this.dir = f;
+            ApplicationContext context = new ClassPathXmlApplicationContext("/sa-conf.xml");
+            this.orderManager = context.getBean("orderManager", OrderManager.class);
+            this.catalogService = context.getBean("catalogServiceService", CatalogServiceService.class);
+        }
+
+        @Override
+        public void process(DBClient client) throws Exception {
+            this.client = client;
+            dumpOrders();
+        }
+
+        private List<Order> filterOrders(Date startTime, Date endTime) {
+            List<URI> tenantIds = getAllTenantIds();
+            List<Order> orders = Lists.newArrayList();
+            for (URI tenantId : tenantIds) {
+                log.info("Collecting orders for tenant {}", tenantId);
+                orders.addAll(orderManager.findOrdersByTimeRange(tenantId, startTime, endTime, -1));
+            }
+            return orders;
+        }
+
+        private List<URI> getAllTenantIds() {
+            return client.getDbClient().queryByType(TenantOrg.class, true);
+        }
+
+        private void dumpOrders() throws Exception {
+            Calendar cal = Calendar.getInstance();
+            Date endTime = cal.getTime();
+            cal.add(Calendar.DATE, -30);
+            Date startTime = cal.getTime();
+            log.info("Starting dump orders from {} to {}", startTime, endTime);
+            for (Order order : filterOrders(startTime, endTime)) {
+                dumpOrder(order);
+                log.info("Order {} has been successfully dumped", order.getId());
+            }
+        }
+
+        private void dumpOrder(Order order) throws Exception {
+            OrderRestRep orderResp = OrderMapper.map(order, orderManager.getOrderParameters(order.getId()));
+            String fileName = OrderTextCreator.genereateOrderFileName(orderResp);
+            OutputStream out = new FileOutputStream(new File(dir, fileName));
+            OrderTextCreator creator = new OrderTextCreator();
+            creator.setOrder(orderResp);
+            creator.setService(catalogService.getCatalogService(order.getCatalogServiceId()));
+            creator.setState(orderManager.getOrderExecutionState(order.getExecutionStateId()));
+            creator.setRawLogs(orderManager.getOrderExecutionLogs(order));
+            creator.setRawExeLogs(orderManager.getOrderExecutionTaskLogs(order));
+            out.write(creator.getText().getBytes("UTF-8"));
+            out.close();
         }
     }
 }

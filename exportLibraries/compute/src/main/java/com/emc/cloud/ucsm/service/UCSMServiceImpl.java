@@ -3,7 +3,7 @@
  * All Rights Reserved
  */
 /**
- * 
+ *
  */
 package com.emc.cloud.ucsm.service;
 
@@ -65,7 +65,7 @@ import com.emc.cloud.platform.ucs.out.model.VnicSanConnTempl;
 
 /**
  * @author prabhj
- * 
+ *
  */
 public class UCSMServiceImpl implements UCSMService {
 
@@ -178,6 +178,7 @@ public class UCSMServiceImpl implements UCSMService {
 
     }
 
+    @Override
     public Map<String, LsServer> getAllAssociatedLsServers(String ucsmURL, String username, String password)
             throws ClientGeneralException {
 
@@ -307,7 +308,7 @@ public class UCSMServiceImpl implements UCSMService {
     }
 
     /**
-     * 
+     *
      * @param ucsmURL
      * @param username
      * @param password
@@ -319,6 +320,7 @@ public class UCSMServiceImpl implements UCSMService {
      * @return
      * @throws ClientGeneralException
      */
+    @Override
     public LsServer setLsServerPowerState(String ucsmURL, String username, String password, String lsServerDN,
             String powerState) throws ClientGeneralException {
 
@@ -487,7 +489,7 @@ public class UCSMServiceImpl implements UCSMService {
 
     /**
      * Create Service Profile from ServiceProfileTemplate
-     * 
+     *
      * @param ucsmURL
      * @param username
      * @param password
@@ -495,6 +497,7 @@ public class UCSMServiceImpl implements UCSMService {
      * @return
      * @throws ClientGeneralException
      */
+    @Override
     public LsServer createServiceProfileFromTemplate(String ucsmURL, String username, String password,
             String serviceProfileTemplateDn, String serviceProfileName) throws ClientGeneralException {
 
@@ -571,7 +574,7 @@ public class UCSMServiceImpl implements UCSMService {
                          */
                         for (Serializable contentElement : namedTemplateOut.getContent()) {
                             if (contentElement instanceof JAXBElement<?>
-                                    && ((JAXBElement<?>) contentElement).getValue() != null) {
+                            && ((JAXBElement<?>) contentElement).getValue() != null) {
                                 if (((JAXBElement<?>) contentElement).getValue() instanceof ConfigSet) {
                                     ConfigSet configSet = (ConfigSet) ((JAXBElement<?>) contentElement).getValue();
                                     for (JAXBElement<?> contentElement2 : configSet.getManagedObject()) {
@@ -600,6 +603,7 @@ public class UCSMServiceImpl implements UCSMService {
         return createdServiceProfile;
     }
 
+    @Override
     public LsServer bindSPToComputeElement(String ucsmURL, String username, String password, String serviceProfileDn,
             String computeElementDn) throws ClientGeneralException {
 
@@ -624,6 +628,7 @@ public class UCSMServiceImpl implements UCSMService {
         return pushLsServer(computeSession, factory, bindSPToCEConfigConfMo);
     }
 
+    @Override
     public LsServer unbindSPFromTemplate(String ucsmURL, String username, String password, String serviceProfileDn)
             throws ClientGeneralException {
 
@@ -643,6 +648,7 @@ public class UCSMServiceImpl implements UCSMService {
         return pushLsServer(computeSession, factory, unbindSPFromSPTConfigConfMo);
     }
 
+    @Override
     public LsServer bindSPToTemplate(String ucsmURL, String username, String password, String serviceProfileDn,
             String sptDn) throws ClientGeneralException {
 
@@ -757,7 +763,7 @@ public class UCSMServiceImpl implements UCSMService {
     @Override
     public LsServer setServiceProfileToSanBoot(String ucsmURL, String username, String password, String spDn,
             Map<String, Map<String, Integer>> hbaToStoragePortMap)
-            throws ClientGeneralException {
+                    throws ClientGeneralException {
 
         return setLsBootDefOnLsServer(ucsmURL, username, password, spDn, BootType.SAN, hbaToStoragePortMap);
 
@@ -820,25 +826,26 @@ public class UCSMServiceImpl implements UCSMService {
         lsbootDef.setRebootOnUpdate("yes");
 
         switch (bootType) {
-            case NONE:
-                lsbootDef.setStatus(MO_DELETED_STATUS);
-                return lsbootDef;
-            case EMPTY:
-                lsbootDef.setRebootOnUpdate("no");
-                return lsbootDef;
-            case LAN:
-                lsbootDef.getContent().add(factory.createLsbootLan(createLsbootLan(lsServerCurrent, "1")));
-                break;
-            case SAN:
+        case NONE:
+            lsbootDef.setStatus(MO_DELETED_STATUS);
+            return lsbootDef;
+        case EMPTY:
+            lsbootDef.setRebootOnUpdate("no");
+            return lsbootDef;
+        case LAN:
+            lsbootDef.getContent().add(factory.createLsbootLan(createLsbootLan(lsServerCurrent, "1")));
+            break;
+        case SAN:
 
-                if (UcsmVersionChecker.verifyVersionDetails("2.2", version) < 0) {
-                    lsbootDef.getContent()
-                            .add(factory.createLsbootStorage(createLsbootStorage(spDN, hbaToStoragePortMap, lsServerCurrent)));
-                } else {
-                    lsbootDef.getContent().add(factory.createLsbootSan(createLsbootSan(spDN, hbaToStoragePortMap, lsServerCurrent)));
-                }
-                lsbootDef.getContent().add(factory.createLsbootLan(createLsbootLan(lsServerCurrent, "2")));
-                break;
+            if (UcsmVersionChecker.verifyVersionDetails("2.2", version) < 0) {
+                lsbootDef.getContent().add(
+                        factory.createLsbootStorage(createLsbootStorage(spDN, hbaToStoragePortMap, lsServerCurrent)));
+            } else {
+                lsbootDef.getContent()
+                .add(factory.createLsbootSan(createLsbootSan(spDN, hbaToStoragePortMap, lsServerCurrent)));
+            }
+            lsbootDef.getContent().add(factory.createLsbootLan(createLsbootLan(lsServerCurrent, "2")));
+            break;
         }
         return lsbootDef;
 
@@ -934,7 +941,7 @@ public class UCSMServiceImpl implements UCSMService {
         }
         if (vnics != null && vnics.size() >= 2) {
             lsbootLan.getContent()
-                    .add(factory.createLsbootLanImagePath(createLsbootLanImagePath(LanImagePathType.secondary, vnics.get(1))));
+            .add(factory.createLsbootLanImagePath(createLsbootLanImagePath(LanImagePathType.secondary, vnics.get(1))));
         }
 
         return lsbootLan;
@@ -956,8 +963,18 @@ public class UCSMServiceImpl implements UCSMService {
         ComputeSession computeSession = sessionManager.getSession(ucsmURL, username, password);
 
         FabricVlan fabricVlan = getVlanById(ucsmURL, username, password, osInstallVlanId);
+        if(null == fabricVlan){
+            log.error("Unable to fetch FabricVlan {}",osInstallVlanId);
+            String[] s = {"Unable to fetch FabricVlan - " + osInstallVlanId};
+            throw new ClientGeneralException(ClientMessageKeys.UNEXPECTED_FAILURE, s);
+        }
 
         LsServer lsServerOut = getManagedObject(ucsmURL, username, password, spDn, true, LsServer.class);
+        if(null == lsServerOut){
+            log.error("Unable to fetch LsServer for spDn {}", spDn);
+            String[] s = {"Unable to fetch LsServer for spDn " + spDn};
+            throw new ClientGeneralException(ClientMessageKeys.UNEXPECTED_FAILURE, s);
+        }
 
         String interfaceName = getFirstVnic(lsServerOut).getName();
         log.info("Selecting OS install interface " + interfaceName + " on " + lsServerOut.getName());
@@ -1154,6 +1171,16 @@ public class UCSMServiceImpl implements UCSMService {
         lsServer.setDn(spDn);
 
         LsServer lsServerOut = getManagedObject(ucsmURL, username, password, spDn, true, LsServer.class);
+        if(null == fabricVlan){
+            log.error("Unable to fetch FabricVlan {}",osInstallVlanId);
+            String[] s = {"Unable to fetch FabricVlan - " + osInstallVlanId};
+            throw new ClientGeneralException(ClientMessageKeys.UNEXPECTED_FAILURE, s);
+        }
+        if(null == lsServerOut){
+            log.error("Unable to fetch LsServer for spDn {}", spDn);
+            String[] s = {"Unable to fetch LsServer for spDn " + spDn};
+            throw new ClientGeneralException(ClientMessageKeys.UNEXPECTED_FAILURE, s);
+        }
         com.emc.cloud.platform.ucs.out.model.VnicEther firstVnic = getFirstVnic(lsServerOut);
 
         String interfaceName = firstVnic.getName();
@@ -1330,6 +1357,7 @@ public class UCSMServiceImpl implements UCSMService {
         return uplinkFcInterfaceMap;
     }
 
+    @Override
     public String getDeviceVersion(String ucsmURL, String username, String password) throws ClientGeneralException {
         ComputeSession computeSession = sessionManager.getSession(ucsmURL, username, password);
         ConfigResolveDn configResolveDn = new ConfigResolveDn();
@@ -1390,6 +1418,7 @@ public class UCSMServiceImpl implements UCSMService {
         return switchFcInterfaceMap;
     }
 
+    @Override
     public Map<String, SwFcSanPc> getUplinkPortChannels(String ucsmURL, String username, String password)
             throws ClientGeneralException {
 
@@ -1513,6 +1542,7 @@ public class UCSMServiceImpl implements UCSMService {
 
     }
 
+    @Override
     public LsServer getLsServer(String ucsmURL, String username, String password, String uuid)
             throws ClientGeneralException {
         try {

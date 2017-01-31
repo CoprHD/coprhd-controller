@@ -1632,7 +1632,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
 
                         if (targetACE != null &&
                                 (!targetACE.getPermissions().equals(sourceACE.getPermissions()) ||
-                                        !targetACE.getPermissionType().equals(sourceACE.getPermissionType()))) {
+                                !targetACE.getPermissionType().equals(sourceACE.getPermissionType()))) {
 
                             targetACE.setPermissions(sourceACE.getPermissions());
                             targetACE.setPermissionType(sourceACE.getPermissionType());
@@ -2008,7 +2008,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
         } catch (Exception ex) {
             s_logger.error(String.format("Assigning file policy : %s to vpool(s) failed", filePolicy.getId()), ex);
             ServiceError serviceError = DeviceControllerException.errors
-                    .assignFilePolicyToVirtualPoolFailed(filePolicyToAssign.toString(), opName, ex);
+                    .assignFilePolicyFailed(filePolicyToAssign.toString(), filePolicy.getApplyAt(), ex);
             completer.error(s_dbClient, _locker, serviceError);
         }
     }
@@ -2047,7 +2047,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
         } catch (Exception ex) {
             s_logger.error(String.format("Assigning file policy : %s to vpool(s) failed", filePolicy.getId()), ex);
             ServiceError serviceError = DeviceControllerException.errors
-                    .assignFilePolicyToVirtualPoolFailed(filePolicyToAssign.toString(), opName, ex);
+                    .assignFilePolicyFailed(filePolicyToAssign.toString(), filePolicy.getApplyAt(), ex);
             completer.error(s_dbClient, _locker, serviceError);
         }
     }

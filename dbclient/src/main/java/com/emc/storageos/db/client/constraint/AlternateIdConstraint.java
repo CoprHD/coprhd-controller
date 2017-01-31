@@ -784,5 +784,9 @@ public interface AlternateIdConstraint extends Constraint {
             return new AlternateIdConstraintImpl(doType.getColumnField(NATIVE_GUID), altId);
         }
 
+        public static AlternateIdConstraint getExportMasksByPortGroup(String portGroupId) {
+            DataObjectType doType = TypeMap.getDoType(ExportMask.class);
+            return new AlternateIdConstraintImpl(doType.getColumnField("portGroup"), portGroupId);
+        }
     }
 }

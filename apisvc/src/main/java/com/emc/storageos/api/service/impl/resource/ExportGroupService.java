@@ -320,10 +320,12 @@ public class ExportGroupService extends TaskResourceService {
 
         // If ExportPathParameter block is present, and volumes are present, validate have permissions.
         // Processing will be in the aysnc. task.
-        if (param.getExportPathParameters() != null && !volumeMap.keySet().isEmpty()) {
+        ExportPathParameters pathParam = param.getExportPathParameters();
+        if (pathParam != null && !volumeMap.keySet().isEmpty()) {
             // Only [RESTRICTED_]SYSTEM_ADMIN may override the Vpool export parameters
             if (!_permissionsHelper.userHasGivenRole(user,
-                    null, Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN)) {
+                    null, Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN) &&
+                    pathParam.getPortGroup() == null) {
                 throw APIException.forbidden.onlySystemAdminsCanOverrideVpoolPathParameters(exportGroup.getLabel());
             }
         }

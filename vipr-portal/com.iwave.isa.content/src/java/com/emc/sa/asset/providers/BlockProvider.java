@@ -2272,6 +2272,12 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         }
     }
 
+    /**
+     * Find all volumes by a project
+     * @param client
+     * @param project
+     * @return  a list of volume REST representations.
+     */
     private List<VolumeRestRep> findVolumesByProject(ViPRCoreClient client, URI project) {
             log.info("Finding volumes by project {}", project);
             List<SearchResultResourceRep> volRefs = client.blockVolumes().performSearchBy(SearchConstants.PROJECT_PARAM, project);

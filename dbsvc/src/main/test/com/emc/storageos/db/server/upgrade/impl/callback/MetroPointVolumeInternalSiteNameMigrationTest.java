@@ -17,10 +17,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.URIUtil;
+import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.VirtualArray;
+import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.Volume.PersonalityTypes;
+import com.emc.storageos.db.client.model.VpoolProtectionVarraySettings;
 import com.emc.storageos.db.client.upgrade.BaseCustomMigrationCallback;
 import com.emc.storageos.db.client.upgrade.callbacks.MetroPointVolumeInternalSiteNameMigration;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
@@ -46,6 +49,8 @@ public class MetroPointVolumeInternalSiteNameMigrationTest extends DbSimpleMigra
 
     private static List<URI> validVolumeURIs = new ArrayList<URI>();
     private static List<URI> invalidVolumeURIs = new ArrayList<URI>();
+    private static URI nonMetroPointRPVplexVolumeURI;
+    private static URI nonRPVolumeURI;
     private static URI nullInternalSiteNamesVolume;
 
     @SuppressWarnings("serial")
@@ -64,10 +69,10 @@ public class MetroPointVolumeInternalSiteNameMigrationTest extends DbSimpleMigra
     protected void prepareData() throws Exception {
         // Prepare a mixture of "valid" VPlex MetroPoint volumes where 10 have the correct source site name and 10 have the
         // incorrect source site name.
-        List<Volume> validVolumesValidInternalSite = createVolumeData("valid-site-vol", 10, SOURCE_INTERNAL_SITE,
-                PersonalityTypes.SOURCE.name(), SOURCE_RP_COPY_NAME, sourceVirtualArrayURI);
-        List<Volume> validVolumesInvalidInternalSite = createVolumeData("invalid-site-vol", 10, STANDBY_INTERNAL_SITE,
-                PersonalityTypes.SOURCE.name(), SOURCE_RP_COPY_NAME, sourceVirtualArrayURI);
+        List<Volume> validVolumesValidInternalSite = createRPVolumeData("valid-site-vol", 10, SOURCE_INTERNAL_SITE,
+                PersonalityTypes.SOURCE.name(), SOURCE_RP_COPY_NAME, sourceVirtualArrayURI, true);
+        List<Volume> validVolumesInvalidInternalSite = createRPVolumeData("invalid-site-vol", 10, STANDBY_INTERNAL_SITE,
+                PersonalityTypes.SOURCE.name(), SOURCE_RP_COPY_NAME, sourceVirtualArrayURI, true);
         List<Volume> validVolumes = new ArrayList<Volume>();
         validVolumes.addAll(validVolumesValidInternalSite);
         validVolumes.addAll(validVolumesInvalidInternalSite);
@@ -79,24 +84,25 @@ public class MetroPointVolumeInternalSiteNameMigrationTest extends DbSimpleMigra
 
         // Create a VPlex MetroPoint source volume with a null internal site name. Migration should set the
         // internal site name correctly on the source VPlex volume here.
-        List<Volume> invalidSiteNameVolumes = createVolumeData("invalid-inernalsitename", 1, NullColumnValueGetter.getNullStr(),
-                PersonalityTypes.SOURCE.name(), SOURCE_RP_COPY_NAME, sourceVirtualArrayURI);
+        List<Volume> invalidSiteNameVolumes = createRPVolumeData("invalid-inernalsitename", 1, NullColumnValueGetter.getNullStr(),
+                PersonalityTypes.SOURCE.name(), SOURCE_RP_COPY_NAME, sourceVirtualArrayURI, true);
         Volume invalidSiteNameVolume = invalidSiteNameVolumes.get(0);
         createBackingVolumes(invalidSiteNameVolume, 2, sourceVirtualArrayURI, SOURCE_INTERNAL_SITE);
         _dbClient.createObject(invalidSiteNameVolume);
         validVolumeURIs.add(invalidSiteNameVolume.getId());
 
         // Create a VPlex MetroPoint source volume with a null RP copy name
-        List<Volume> invalidCopyNameVolumes = createVolumeData("invalid-rpcopy", 1, STANDBY_INTERNAL_SITE, PersonalityTypes.SOURCE.name(),
-                NullColumnValueGetter.getNullStr(), sourceVirtualArrayURI);
+        List<Volume> invalidCopyNameVolumes = createRPVolumeData("invalid-rpcopy", 1, STANDBY_INTERNAL_SITE,
+                PersonalityTypes.SOURCE.name(),
+                NullColumnValueGetter.getNullStr(), sourceVirtualArrayURI, true);
         Volume invalidCopyNameVolume = invalidCopyNameVolumes.get(0);
         createBackingVolumes(invalidCopyNameVolume, 2, sourceVirtualArrayURI, SOURCE_INTERNAL_SITE);
         _dbClient.createObject(invalidCopyNameVolume);
         invalidVolumeURIs.add(invalidCopyNameVolume.getId());
 
         // Create a VPlex MetroPoint source volume with a null virtual array
-        List<Volume> invalidVirtualArrayVolumes = createVolumeData("invalid-varray", 1, STANDBY_INTERNAL_SITE,
-                PersonalityTypes.SOURCE.name(), SOURCE_RP_COPY_NAME, NullColumnValueGetter.getNullURI());
+        List<Volume> invalidVirtualArrayVolumes = createRPVolumeData("invalid-varray", 1, STANDBY_INTERNAL_SITE,
+                PersonalityTypes.SOURCE.name(), SOURCE_RP_COPY_NAME, NullColumnValueGetter.getNullURI(), true);
         Volume invalidVirtualArrayVolume = invalidVirtualArrayVolumes.get(0);
         createBackingVolumes(invalidVirtualArrayVolume, 2, sourceVirtualArrayURI, SOURCE_INTERNAL_SITE);
         _dbClient.createObject(invalidVirtualArrayVolume);
@@ -107,37 +113,51 @@ public class MetroPointVolumeInternalSiteNameMigrationTest extends DbSimpleMigra
         // want to verify that the internal site name was unable to be changed.
 
         // Create a VPlex MetroPoint source volume with only 1 backing volume (invalid)
-        List<Volume> invalidAssociatedVolumes = createVolumeData("invalid-associatedvols", 1, STANDBY_INTERNAL_SITE,
-                PersonalityTypes.SOURCE.name(), SOURCE_RP_COPY_NAME, sourceVirtualArrayURI);
+        List<Volume> invalidAssociatedVolumes = createRPVolumeData("invalid-associatedvols", 1, STANDBY_INTERNAL_SITE,
+                PersonalityTypes.SOURCE.name(), SOURCE_RP_COPY_NAME, sourceVirtualArrayURI, true);
         Volume invalidAssociatedVolume = invalidAssociatedVolumes.get(0);
         createBackingVolumes(invalidAssociatedVolume, 1, sourceVirtualArrayURI, SOURCE_INTERNAL_SITE);
         _dbClient.createObject(invalidAssociatedVolume);
         invalidVolumeURIs.add(invalidAssociatedVolume.getId());
 
         // Create a VPlex MetroPoint source volume where the source side backing volume has a null virtual array
-        List<Volume> invalidBackingVarrayVolumes = createVolumeData("invalid-backing-varray", 1, STANDBY_INTERNAL_SITE,
-                PersonalityTypes.SOURCE.name(), SOURCE_RP_COPY_NAME, sourceVirtualArrayURI);
+        List<Volume> invalidBackingVarrayVolumes = createRPVolumeData("invalid-backing-varray", 1, STANDBY_INTERNAL_SITE,
+                PersonalityTypes.SOURCE.name(), SOURCE_RP_COPY_NAME, sourceVirtualArrayURI, true);
         Volume invalidBackingVarrayVolume = invalidBackingVarrayVolumes.get(0);
         createBackingVolumes(invalidBackingVarrayVolume, 2, NullColumnValueGetter.getNullURI(), SOURCE_INTERNAL_SITE);
         _dbClient.createObject(invalidBackingVarrayVolume);
         invalidVolumeURIs.add(invalidBackingVarrayVolume.getId());
 
         // Create a VPlex MetroPoint source volume where the source side backing volume has a null internal site name
-        List<Volume> invalidBackingSiteNameVolumes = createVolumeData("invalid-backing-backing-site", 1, STANDBY_INTERNAL_SITE,
-                PersonalityTypes.SOURCE.name(), SOURCE_RP_COPY_NAME, sourceVirtualArrayURI);
+        List<Volume> invalidBackingSiteNameVolumes = createRPVolumeData("invalid-backing-backing-site", 1, STANDBY_INTERNAL_SITE,
+                PersonalityTypes.SOURCE.name(), SOURCE_RP_COPY_NAME, sourceVirtualArrayURI, true);
         Volume invalidBackingSiteNameVolume = invalidBackingSiteNameVolumes.get(0);
         createBackingVolumes(invalidBackingSiteNameVolume, 2, sourceVirtualArrayURI, NullColumnValueGetter.getNullStr());
         _dbClient.createObject(invalidBackingSiteNameVolume);
         invalidVolumeURIs.add(invalidBackingSiteNameVolume.getId());
 
         // Create a VPlex MetroPoint source volume where the parent and source side backing volumes have a null internal site name
-        List<Volume> invalidSourceAndBackingSiteNameVolumes = createVolumeData("invalid-source-and-backing-site", 1,
+        List<Volume> invalidSourceAndBackingSiteNameVolumes = createRPVolumeData("invalid-source-and-backing-site", 1,
                 NullColumnValueGetter.getNullStr(),
-                PersonalityTypes.SOURCE.name(), SOURCE_RP_COPY_NAME, sourceVirtualArrayURI);
+                PersonalityTypes.SOURCE.name(), SOURCE_RP_COPY_NAME, sourceVirtualArrayURI, true);
         Volume invalidSourceAndBackingSiteNameVolume = invalidSourceAndBackingSiteNameVolumes.get(0);
         createBackingVolumes(invalidSourceAndBackingSiteNameVolume, 2, sourceVirtualArrayURI, NullColumnValueGetter.getNullStr());
         _dbClient.createObject(invalidSourceAndBackingSiteNameVolume);
         nullInternalSiteNamesVolume = invalidSourceAndBackingSiteNameVolume.getId();
+
+        // Create non-MetroPoint RPVPlex volume
+        List<Volume> rpVplexNonMetroPointVolumes = createRPVolumeData("non-metropoint-rpvplex", 1,
+                STANDBY_INTERNAL_SITE, PersonalityTypes.SOURCE.name(), SOURCE_RP_COPY_NAME, sourceVirtualArrayURI, false);
+        Volume rpVplexNonMetroPointVolume = rpVplexNonMetroPointVolumes.get(0);
+        createBackingVolumes(rpVplexNonMetroPointVolume, 2, sourceVirtualArrayURI, NullColumnValueGetter.getNullStr());
+        _dbClient.createObject(rpVplexNonMetroPointVolume);
+        nonMetroPointRPVplexVolumeURI = rpVplexNonMetroPointVolume.getId();
+
+        // Create non-RP volume
+        List<Volume> nonRpVolumes = createVolumeData("non-rp", 1, sourceVirtualArrayURI);
+        Volume nonRpVolume = nonRpVolumes.get(0);
+        _dbClient.createObject(nonRpVolume);
+        nonRPVolumeURI = nonRpVolume.getId();
     }
 
     @Override
@@ -146,7 +166,7 @@ public class MetroPointVolumeInternalSiteNameMigrationTest extends DbSimpleMigra
     }
 
     /**
-     * Creates Volume objects.
+     * Creates RecoverPoint Volume objects.
      *
      * @param name the name of the volume
      * @param numVolumes the number of volumes to create
@@ -156,18 +176,49 @@ public class MetroPointVolumeInternalSiteNameMigrationTest extends DbSimpleMigra
      * @param virtualArray the virtual array of the volume(s)
      * @return a List of Volumes
      */
-    private List<Volume> createVolumeData(String name, int numVolumes, String internalSiteName, String personality, String copyName,
-            URI virtualArray) {
+    private List<Volume> createRPVolumeData(String name, int numVolumes, String internalSiteName, String personality, String copyName,
+            URI virtualArray, boolean isMetroPoint) {
         List<Volume> volumes = new ArrayList<Volume>();
         for (int i = 1; i <= numVolumes; i++) {
             Volume volume = new Volume();
             URI volumeURI = URIUtil.createId(Volume.class);
+
+            String volName = name + i;
+
             volume.setId(volumeURI);
             volume.setLabel(name + i);
             volume.setPersonality(personality);
             volume.setRpCopyName(copyName);
             volume.setVirtualArray(virtualArray);
             volume.setInternalSiteName(internalSiteName);
+            volume.setVirtualPool(createRPVirtualPool(volName + "target-varray", volName + "-vpool", isMetroPoint));
+
+            volumes.add(volume);
+        }
+
+        return volumes;
+    }
+
+    /**
+     * Creates Volume objects.
+     *
+     * @param name the name of the volume
+     * @param numVolumes the number of volumes to create
+     * @param virtualArray the virtual array of the volume(s)
+     * @return a List of Volumes
+     */
+    private List<Volume> createVolumeData(String name, int numVolumes, URI virtualArray) {
+        List<Volume> volumes = new ArrayList<Volume>();
+        for (int i = 1; i <= numVolumes; i++) {
+            Volume volume = new Volume();
+            URI volumeURI = URIUtil.createId(Volume.class);
+
+            String volName = name + i;
+
+            volume.setId(volumeURI);
+            volume.setLabel(name + i);
+            volume.setVirtualArray(virtualArray);
+            volume.setVirtualPool(createVirtualPool(volName + "-vpool"));
 
             volumes.add(volume);
         }
@@ -193,6 +244,7 @@ public class MetroPointVolumeInternalSiteNameMigrationTest extends DbSimpleMigra
         backingVolume1.setVirtualArray(sourceVirtualArray);
         backingVolume1.setInternalSiteName(sourceInternalSiteName);
         backingVolume1.setRpCopyName(SOURCE_RP_COPY_NAME);
+        backingVolume1.setVirtualPool(createVirtualPool(volumeName + "-source-vpool"));
         _dbClient.createObject(backingVolume1);
 
         Volume backingVolume2 = new Volume();
@@ -202,6 +254,7 @@ public class MetroPointVolumeInternalSiteNameMigrationTest extends DbSimpleMigra
         backingVolume2.setVirtualArray(standbyVirtualArrayURI);
         backingVolume2.setInternalSiteName(STANDBY_INTERNAL_SITE);
         backingVolume2.setRpCopyName(STANDBY_RP_COPY_NAME);
+        backingVolume2.setVirtualPool(createVirtualPool(volumeName + "-standby-vpool"));
         _dbClient.createObject(backingVolume2);
 
         StringSet associatedVols = new StringSet();
@@ -213,6 +266,48 @@ public class MetroPointVolumeInternalSiteNameMigrationTest extends DbSimpleMigra
         }
 
         volume.setAssociatedVolumes(associatedVols);
+    }
+
+    private URI createVirtualPool(String vpoolName) {
+        VirtualPool virtualPool = new VirtualPool();
+        URI virtualPoolURI = URIUtil.createId(VirtualPool.class);
+        virtualPool.setId(virtualPoolURI);
+        virtualPool.setLabel(vpoolName);
+
+        _dbClient.createObject(virtualPool);
+
+        return virtualPool.getId();
+    }
+
+    private URI createRPVirtualPool(String protectionVarrayName, String vpoolName, boolean metroPoint) {
+        VirtualArray virtualArray = new VirtualArray();
+        URI virtualArrayURI = URIUtil.createId(VirtualArray.class);
+        virtualArray.setId(virtualArrayURI);
+        virtualArray.setLabel(protectionVarrayName);
+        _dbClient.createObject(virtualArray);
+
+        VpoolProtectionVarraySettings protectionSettings = new VpoolProtectionVarraySettings();
+        URI protectionSettingsURI = URIUtil.createId(VpoolProtectionVarraySettings.class);
+        protectionSettings.setId(protectionSettingsURI);
+        protectionSettings.setJournalSize("min");
+        _dbClient.createObject(protectionSettings);
+
+        VirtualPool virtualPool = new VirtualPool();
+        URI virtualPoolURI = URIUtil.createId(VirtualPool.class);
+        virtualPool.setId(virtualPoolURI);
+        virtualPool.setLabel(vpoolName);
+        StringMap protectionVarraySettings = new StringMap();
+        protectionVarraySettings.put(virtualArrayURI.toString(), protectionSettingsURI.toString());
+        virtualPool.setProtectionVarraySettings(protectionVarraySettings);
+
+        if (metroPoint) {
+            virtualPool.setHighAvailability(VirtualPool.HighAvailabilityType.vplex_distributed.name());
+            virtualPool.setMetroPoint(Boolean.TRUE);
+        }
+
+        _dbClient.createObject(virtualPool);
+
+        return virtualPool.getId();
     }
 
     /**
@@ -250,6 +345,24 @@ public class MetroPointVolumeInternalSiteNameMigrationTest extends DbSimpleMigra
                     "Migration for Volume %s should not have happened.  The internalSiteName field should still be set to null.",
                     nullInternalSiteNamesVol.getId()),
                     NullColumnValueGetter.isNullValue(nullInternalSiteNamesVol.getInternalSiteName()));
+        }
+
+        if (nonMetroPointRPVplexVolumeURI != null) {
+            Volume nonMetroPointRPVplexVolume = _dbClient.queryObject(Volume.class, nonMetroPointRPVplexVolumeURI);
+            Assert.assertTrue(
+                    String.format(
+                            "Volume %s is not a MetroPoint volume and its internalSiteName field should not have been changed and should still be set to %s.",
+                            nonMetroPointRPVplexVolume.getId(), STANDBY_INTERNAL_SITE),
+                    STANDBY_INTERNAL_SITE.equals(nonMetroPointRPVplexVolume.getInternalSiteName()));
+        }
+
+        if (nonRPVolumeURI != null) {
+            Volume nonRPVolume = _dbClient.queryObject(Volume.class, nonRPVolumeURI);
+            Assert.assertTrue(
+                    String.format(
+                            "Volume %s is not a MetroPoint volume and its internalSiteName field should not have been changed and should still be set to %s.",
+                            nonRPVolume.getId(), NullColumnValueGetter.getNullStr()),
+                    NullColumnValueGetter.isNullValue(nonRPVolume.getInternalSiteName()));
         }
     }
 }

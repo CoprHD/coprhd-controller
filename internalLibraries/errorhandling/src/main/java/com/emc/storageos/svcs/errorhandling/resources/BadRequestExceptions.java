@@ -3162,6 +3162,9 @@ public interface BadRequestExceptions {
     public BadRequestException exportPathAdjustmentSystemExportGroupNotMatch(final String exportGroup, String system);
     
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException exportPathAdjustmentSystemExportGroupHostsMismatch(String mismatchHosts);
+    
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException exportPathAdjustmentRemovingPathsNotExist(final String initiator);
     
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
@@ -3183,6 +3186,9 @@ public interface BadRequestExceptions {
     public BadRequestException invalidFilePolicyType(final String policyType);
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException invalidFilePolicyApplyLevel(final String applyLevel);
+
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException invalidFileReplicationPolicyParam(final String policyName, final String errorMsg);
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
@@ -3190,7 +3196,7 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException failedToDeleteFilePolicy(final String policyName, final String reason);
-  
+
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException invalidFilePolicyUnAssignParam(final String policyName, final String errorMsg);
     

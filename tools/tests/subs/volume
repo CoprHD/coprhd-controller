@@ -29,5 +29,13 @@ cluster_create() {
 # Get the storage system for a volume
 getVolumeSystem() {
 volume show $project/$1 | grep "storage_controller" | awk ' { ssys=$2; gsub(".*urn", "urn", ssys); gsub("vdc1.*", "vdc1", ssys); print ssys; }'
+}
 
+# Delete all the volumes in the project
+deleteAllVolumes() {
+    vols=$(volume list $project | awk ' { print $1; }' | grep -v "name" | grep -v '^----')
+    for vol in $vols
+    do
+        run volume delete $project/$vol
+    done
 }

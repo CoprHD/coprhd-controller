@@ -95,15 +95,32 @@ verifyzones() {
     done
 }
 
+# $1=fabricid, $2...$* zone names
+deletezones() {
+    fabricid=$1
+    shift
+    for i in $*
+    do
+        echo zone delete ciscosim --fabricid $fabricid --zones $i
+        zone delete ciscosim --fabricid $fabricid --zones $i
+    done
+    zone activate ciscosim --fabricid $fabricid
+    zone list ciscosim --fabricid $fabricid
+}
+
 verifynozones() {
-    rm .zones.out
-    zone list ciscosim --fabricid 11 >>.zones.out
-    zone list ciscosim --fabricid 12 >>.zones.out
     existingVols=$(grep "Existing volumes" .egpath.out | wc -l)
     if [ $existingVols -ne 0 ] ; then
         echo "Can't verify zone removal because of Existing volumes"
+        zone list ciscosim --fabric 11 | grep org >.11zones.out
+        deletezones 11 $(cat .11zones.out)
+        zone list ciscosim --fabric 12 | grep org >.12zones.out
+        deletezones 12 $(cat .12zones.out)
         return 0;
     fi
+    rm .zones.out
+    zone list ciscosim --fabricid 11 >>.zones.out
+    zone list ciscosim --fabricid 12 >>.zones.out
     num=$(grep .org .zones.out | grep ${hostseed} | wc -l)
     if [ $num -gt 0 ]; then
         echo "left-over zones:"
@@ -298,8 +315,9 @@ vmaxSingleHost
 vplexClus1
 vplexHostClust1
 vmaxHostClust1
-#vplexDistributedCrossConnect
-#vplexDistributedIncreasingPaths
+vplexDistributedCrossConnect
+vplexDistributedIncreasingPaths
+deleteAllVolumes
 
 echoit "adjustPaths passed"
 date

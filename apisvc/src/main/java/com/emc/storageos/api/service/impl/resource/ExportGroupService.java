@@ -3203,6 +3203,7 @@ public class ExportGroupService extends TaskResourceService {
         }
         validateInitiatorsInExportGroup(exportGroup);
         validateExportGroupNoPendingEvents(exportGroup);
+        validateHostsInExportGroup(exportGroup, param.getHosts());
         
         // Validate storage system 
         ArgValidator.checkUri(param.getStorageSystem());
@@ -3376,7 +3377,8 @@ public class ExportGroupService extends TaskResourceService {
             Boolean useExistingPaths) {
         Set<URI> affectedGroupURIs = new HashSet<URI>();
         // Add our Export Group to the affected resources.
-        affectedGroupURIs.add(exportGroup.getId()); 
+        affectedGroupURIs.add(exportGroup.getId());
+        response.getAffectedExportGroups().add(toNamedRelatedResource(exportGroup, exportGroup.getLabel()));
         
         if (!Type.vmax.name().equalsIgnoreCase(system.getSystemType()) &&
                 !Type.vplex.name().equalsIgnoreCase(system.getSystemType())) {
@@ -3406,6 +3408,13 @@ public class ExportGroupService extends TaskResourceService {
         // Find the Export Masks for this Storage System 
         for (ExportMask exportMask : exportMasks) {
             // For VPLEX, must verify the Export Mask is in the appropriate Varray
+            if (system.getSystemType().equalsIgnoreCase(StorageSystem.Type.vplex.name()) &&
+                    !ExportMaskUtils.exportMaskInVarray(_dbClient, exportMask, varray)) {
+                _log.info(String.format("VPLEX ExportMask %s (%s) not in selected varray %s, skipping", 
+                        exportMask.getMaskName(), exportMask.getId(), varray));
+                continue;
+            }
+            // For other array types, throw error if ports not in the varray
             List<URI> portsNotInVarray = ExportMaskUtils.getExportMaskStoragePortsNotInVarray(_dbClient, exportMask, varray);
             if (!portsNotInVarray.isEmpty() && !useExistingPaths) {
                 String errorPorts = Joiner.on(',').join(portsNotInVarray);
@@ -3499,6 +3508,37 @@ public class ExportGroupService extends TaskResourceService {
             }
         }
     }
+
+	/**
+	 * Validates that the hosts in the exportgroup against the passed in list of hosts.
+	 * If there is atleast one host that doesnt match, an exception is thrown.
+	 * @param exportGroup
+	 * @param hosts
+	 */
+	private void validateHostsInExportGroup(ExportGroup exportGroup, Set<URI> hosts) {
+		StringSet egHosts = exportGroup.getHosts();
+        Set<URI> egHostURIs = new HashSet<URI>();
+        for (String egHost : egHosts) {
+        	egHostURIs.add(URI.create(egHost));
+        }
+        
+        Set<Host> mismatchHosts = new HashSet<Host>();
+        for (URI host : hosts) {
+        	if (!egHostURIs.contains(host)) {
+        		Host h = _dbClient.queryObject(Host.class, host);
+        		_log.info("Host %s is not part of the specified ExportGroup", h.getHostName());
+        		mismatchHosts.add(h);
+        	}
+        }
+        
+        if (mismatchHosts.size() > 0) {
+        	StringBuilder mismatchHostsStr =  new StringBuilder();
+        	for (Host mismatchHost : mismatchHosts) {
+        		mismatchHostsStr.append(mismatchHost.getHostName() + " ");
+        	}
+        	throw APIException.badRequests.exportPathAdjustmentSystemExportGroupHostsMismatch(mismatchHostsStr.toString());
+        }
+	}
    
     /**
      * Export paths adjustment

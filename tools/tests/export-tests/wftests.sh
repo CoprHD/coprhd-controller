@@ -31,9 +31,14 @@ source $(dirname $0)/wftests_host_cluster.sh
 
 Usage()
 {
-    echo 'Usage: wftests.sh <sanity conf file path> [setuphw|setupsim|delete] [vmax2 | vmax3 | vnx | vplex [local | distributed] | xio | unity]  [test1 test2 ...]'
-    echo ' [setuphw|setupsim]: Run on a new ViPR database, creates SMIS, host, initiators, vpools, varray, volumes'
-    echo ' [delete]: deletes export and volume resources on the array'
+    echo 'Usage: wftests.sh <sanity conf file path> (vmax2 | vmax3 | vnx | vplex [local | distributed] | xio | unity] [-setuphw|-setupsim) [-report] [-cleanup]  [test1 test2 ...]'
+    echo ' (vmax 2 | vmax3 ...: Storage platform to run on.'
+    echo ' [-setup(hw) | setupsim]: Run on a new ViPR database, creates SMIS, host, initiators, vpools, varray, volumes (Required to run first, can be used with tests'
+    echo ' [-report]: Report results to reporting server: http://lglw1046.lss.emc.com:8081/index.html (Optional)'
+    echo ' [-cleanup]: Clean up the pre-created volumes and exports associated with -setup operation (Optional)'
+    echo ' test names: Space-delimited list of tests to run.  Use + to start at a specific test.  (Optional, default will run all tests in suite)'
+    echo ' Example:  ./wftests.sh sanity.conf vmax3 -setupsim -report -cleanup test_7+'
+    echo '           Will start from clean DB, report results to reporting server, clean-up when done, and start on test_7 (and run all tests after test_7'
     exit 2
 }
 

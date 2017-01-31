@@ -16,8 +16,8 @@ import socket
 import commands
 from common import SOSError
 from threading import Timer
+from virtualpool import VirtualPool
 import schedulepolicy
-import virtualpool
 import host
 
 
@@ -55,8 +55,7 @@ class FilePolicy(object):
 
         for policy in policies:
             if(policy['name'] == name):
-                filepolicy = self.filepolicy_show_by_uri(policy['id'], False)
-                return filepolicy
+                return policy['id']
 
         raise SOSError(SOSError.NOT_FOUND_ERR,
                        "filepolicy " + name + ": not found")
@@ -83,7 +82,8 @@ class FilePolicy(object):
 
     def filepolicy_show(self, label, xml=False):
 
-        filepolicy = self.filepolicy_query(label)
+        filepolicy_uri = self.filepolicy_query(label)
+		filepolicy = self.filepolicy_show_by_uri(filepolicy_uri, xml)
         return filepolicy
 
 
@@ -106,7 +106,7 @@ class FilePolicy(object):
             return None
         return o
 
-    def filepolicy_delete_by_uri(self, uri):
+     def filepolicy_delete_by_uri(self, uri):
         '''
         Deletes a filepolicy based on project UUID
         Parameters:
@@ -116,7 +116,7 @@ class FilePolicy(object):
                     "DELETE", FilePolicy.URI_FILE_POLICY_DELETE.format(uri), None)
         return
 
-    def filepolicy_delete(self, name):
+     def filepolicy_delete(self, name):
         '''
         Deletes a filepolicy based on policy name
         Parameters:
@@ -125,9 +125,9 @@ class FilePolicy(object):
         filepolicy_uri = self.filepolicy_query(name)
         return self.filepolicy_delete_by_uri(filepolicy_uri)
 
-    def filepolicy_create(self, name ,type, tenants_access, description, priority,
+     def filepolicy_create(self, name ,type, tenants_access, description, priority,
        policyschedulefrequency, policyschedulerepeat, policyscheduletime, policyscheduleweek,
-       policyschedulemonth, replicationcopymode, replicationconfiguration, replicationtype,
+       policyschedulemonth, replicationtype, replicationcopymode, replicationconfiguration,
        snapshotnamepattern, snapshotexpiretype, snapshotexpirevalue,applyat):
         '''
         Creates a filepolicy based on policy name
@@ -151,7 +151,7 @@ class FilePolicy(object):
         create_request={}
         policy_schedule={}
         snapshot_params={}
-        replication_params={}
+        file_replication_params={}
         snapshot_expire_params={}
 
         create_request["policy_type"]=type
@@ -168,10 +168,10 @@ class FilePolicy(object):
         policy_schedule["schedule_day_of_month"]=policyschedulemonth
 
         if(type =="file_replication"):
-                  replication_params["replication_type"]=replicationtype
-                  replication_params["replication_copy_mode"]=replicationcopymode
-                  replication_params["replicate_configuration"]=replicationconfiguration
-                  replication_params["policy_schedule"]=policy_schedule
+                  file_replication_params["replication_type"]=replicationtype
+				  file_replication_params["replication_copy_mode"]=replicationcopymode
+				  file_replication_params["replicate_configuration"]=replicationconfiguration
+                  file_replication_params["policy_schedule"]=policy_schedule
         elif(type == "file_snapshot"):
                   snapshot_expire_params["expire_type"]=snapshotexpiretype
                   snapshot_expire_params["expire_value"]=snapshotexpirevalue
@@ -179,7 +179,7 @@ class FilePolicy(object):
                   snapshot_params["snapshot_expire_params"]=snapshot_expire_params
                   snapshot_params["policy_schedule"]=policy_schedule
 
-        create_request["replication_params"]=replication_params
+        create_request["file_replication_params"]=file_replication_params
         create_request["snapshot_params"]=snapshot_params
 
         try:
@@ -201,7 +201,7 @@ class FilePolicy(object):
 
     def filepolicy_update(self, name , tenants_access, description, priority,
        policyschedulefrequency, policyschedulerepeat, policyscheduletime, policyscheduleweek,
-       policyschedulemonth, replicationcopymode, replicationconfiguration, replicationtype,
+       policyschedulemonth,replicationtype, replicationcopymode, replicationconfiguration,
        snapshotnamepattern, snapshotexpiretype, snapshotexpirevalue,applyat):
         '''
         Creates a filepolicy based on policy name
@@ -232,7 +232,7 @@ class FilePolicy(object):
 
         policy_schedule={}
         snapshot_params={}
-        replication_params={}
+        file_replication_params={}
         snapshot_expire_params={}
 
         policy_schedule["schedule_frequency"]=policyschedulefrequency
@@ -242,10 +242,10 @@ class FilePolicy(object):
         policy_schedule["schedule_day_of_month"]=policyschedulemonth
 
         if(type =="file_replication"):
-                  replication_params["replication_type"]=replicationtype
-                  replication_params["replication_copy_mode"]=replicationcopymode
-                  replication_params["replicate_configuration"]=replicationconfiguration
-                  replication_params["policy_schedule"]=policy_schedule
+                  file_replication_params["replication_type"]=replicationtype
+				  file_replication_params["replication_copy_mode"]=replicationcopymode
+				  file_replication_params["replicate_configuration"]=replicationconfiguration
+                  file_replication_params["policy_schedule"]=policy_schedule
         elif(type == "file_snapshot"):
                   snapshot_expire_params["expire_type"]=snapshot_expire_type
                   snapshot_expire_value["expire_value"]=snapshot_expire_value
@@ -253,7 +253,7 @@ class FilePolicy(object):
                   snapshot_params["snapshot_expire_params"]=snapshot_expire_params
                   snapshot_params["policy_schedule"]=policy_schedule
 
-        update_request["replication_params"]=replication_params
+        update_request["file_replication_params"]=file_replication_params
         update_request["snapshot_params"]=snapshot_params
 
         try:
@@ -288,7 +288,10 @@ class FilePolicy(object):
         assign_request_projects={}
 
 
-        vpool_names=assign_to_vpools.split(",")
+        if(len(assign_to_vpools))
+			vpool_names=assign_to_vpools.split(",")
+		else
+			vpool_names=assign_to_vpools
         
         for name in vpool_names:
             uri = VirtualPool.vpool_query(name,'file')
@@ -420,12 +423,14 @@ def filepolicy_show(args):
     obj = FilePolicy(args.ip, args.port)
     try:
         res = obj.filepolicy_show(args.name, args.xml)
-        if(res):
-            if (args.xml == True):
-                return common.format_xml(res)
-            return common.format_json_object(res)
+        if(args.xml):
+            return common.format_xml(res)
+
+        return common.format_json_object(res)
     except SOSError as e:
-        raise e
+        except SOSError as e:
+        common.format_err_msg_and_raise("show", "filepolicy",
+                                        e.err_text, e.err_code)
 
 
 
@@ -469,22 +474,19 @@ def create_parser(subcommand_parsers, common_parser):
                                 help='Day of week when policy run')    
     create_parser.add_argument('-policyschedulemonth', '-plscmn',
                                 metavar='<policy_schedule_month>', dest='policy_schedule_month',
-                                help='Day of month when policy run')    
-
+                                help='Day of month when policy run')     
     create_parser.add_argument('-replicationtype', '-reptype',
                                 metavar='<replication_type>', dest='replication_type',
                                 help='File Replication type Valid values are: LOCAL, REMOTE',
-                                choices=["LOCAL", "REMOTE"])    
-    create_parser.add_argument('-replicationcopymode', '-repcpmode',
+                                choices=["LOCAL", "REMOTE"]) 
+	create_parser.add_argument('-replicationcopymode', '-repcpmode',
                                 metavar='<replication_copy_mode>', dest='replication_copy_mode',
                                 help='File Replication copy type Valid values are: SYNC, ASYNC',
-                                choices=["LOCAL", "REMOTE"])    
+                                choices=["SYNC", "ASYNC"])    
     create_parser.add_argument('-replicationconfiguration', '-repconf',
                                 metavar='<replicate_configuration>', dest='replicate_configuration',
                                 help='Whether to replicate File System configurations i.e CIFS shares, NFS Exports at the time of failover/failback. Default value is False',
-                                choices=["True", "False","true","false"])    
-
-
+                                choices=["True", "False","true","false"])
     create_parser.add_argument('-snapshotnamepattern', '-snpnmptrn',
                                 metavar='<snapshot_name_pattern>', dest='snapshot_name_pattern',
                                 help='Snapshot pattern ')    
@@ -515,10 +517,10 @@ def filepolicy_create(args):
     if(args):
         try:
             obj.filepolicy_create(args.name, args.policy_type, args.tenants_access,
-            args.description,  args.priority,  args.policy_sched_frequnecy, args.policy_schedule_repeat,
-            args.policy_schedule_time, args.policy_schedule_week, args.policy_schedule_month, args.replication_copy_mode,
-            args.replicate_configuration, args.replication_type,  args.snapshot_name_pattern,
-            args.snapshot_expire_type,  args.snapshot_expire_value, args.apply_at)
+            args.description, args.priority, args.policy_sched_frequnecy, args.policy_schedule_repeat,
+            args.policy_schedule_time, args.policy_schedule_week, args.policy_schedule_month, 
+			args.replication_type, args.replication_copy_mode, args.replicate_configuration, args.snapshot_name_pattern,
+            args.snapshot_expire_type, args.snapshot_expire_value, args.apply_at)
 
         except SOSError as e:
             common.format_err_msg_and_raise("create", "filepolicy",
@@ -565,16 +567,16 @@ def update_parser(subcommand_parsers, common_parser):
     update_parser.add_argument('-policyschedulemonth', '-plscmn',
                                 metavar='<policy_schedule_month>', dest='policy_sched_month',
                                 help='Day of month when policy run')    
-
+    
     update_parser.add_argument('-replicationtype', '-reptype',
                                 metavar='<replication_type>', dest='replication_type',
-                                help='File Replication type Valid values are: LOCAL, REMOTE')    
-    update_parser.add_argument('-replicationcopymode', '-repcpmode',
+                                help='File Replication type Valid values are: LOCAL, REMOTE')
+	update_parser.add_argument('-replicationcopymode', '-repcpmode',
                                 metavar='<replication_copy_mode>', dest='replication_copy_mode',
                                 help='File Replication copy type Valid values are: SYNC, ASYNC')    
     update_parser.add_argument('-replicationconfiguration', '-repconf',
                                 metavar='<replicate_configuration>', dest='replicate_configuration',
-                                help='Whether to replicate File System configurations i.e CIFS shares, NFS Exports at the time of failover/failback. Default value is False')    
+                                help='Whether to replicate File System configurations i.e CIFS shares, NFS Exports at the time of failover/failback. Default value is False')
 
 
     update_parser.add_argument('-snapshotnamepattern', '-snpnmptrn',
@@ -601,7 +603,7 @@ def filepolicy_update(subcommand_parsers, common_parser):
         obj.filepolicy_update(args.name, args.tenants_access, args.description, 
          args.priority, args.policyschedulefrequency, args.policyschedulerepeat,
          args.policyscheduletime, args.policyscheduleweek, args.policyschedulemonth, 
-         args.replicationcopymode, args.replicationconfiguration, args.replicationtype, 
+         args.replication_type, args.replication_copy_mode, args.replicate_configuration,
          args.snapshotnamepattern, args.snapshotexpiretype, args.snapshotexpirevalue)
 
     except SOSError as e:

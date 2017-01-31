@@ -184,6 +184,7 @@ get_masking_view_name() {
 # Overall suite counts
 VERIFY_COUNT=0
 VERIFY_FAIL_COUNT=0
+VERIFY_EXPORT_STATUS=0
 
 # Per-test counts
 TRIP_VERIFY_COUNT=0
@@ -197,13 +198,6 @@ verify_export() {
     masking_view_name=`get_masking_view_name ${export_name} ${host_name}`
 
     arrayhelper verify_export ${SERIAL_NUMBER} "${masking_view_name}" $*
-    if [ $? -ne "0" ]; then
-	if [ -f ${CMD_OUTPUT} ]; then
-	    cat ${CMD_OUTPUT}
-	fi
-	echo There was a failure
-	VERIFY_FAIL_COUNT=`expr $VERIFY_FAIL_COUNT + 1`
-    fi
     VERIFY_COUNT=`expr $VERIFY_COUNT + 1`
 }
 
@@ -292,6 +286,7 @@ arrayhelper() {
 	masking_view_name=$3
 	shift 3
 	arrayhelper_verify_export $operation $serial_number "$masking_view_name" $*
+	VERIFY_EXPORT_STATUS=$?
 	;;
     *)
         echo -e "\e[91mERROR\e[0m: Invalid operation $operation specified to arrayhelper."
@@ -485,29 +480,36 @@ arrayhelper_verify_export() {
     serial_number=$2
     masking_view_name=$3
     shift 3
+    return_status=0
 
     case $SS in
     vmax2|vmax3)
          runcmd symhelper.sh $operation $serial_number $masking_view_name $*
+         return_status=$?
 	 ;;
     vnx)
          runcmd navihelper.sh $operation $array_ip $macaddr $masking_view_name $*
+         return_status=$?
 	 ;;
     xio)
          runcmd xiohelper.sh $operation $masking_view_name $*
+         return_status=$?
 	 ;;
     unity)
          runcmd vnxehelper.sh $operation "$masking_view_name" $*
+         return_status=$?
          ;;
     vplex)
          runcmd vplexhelper.sh $operation $masking_view_name $*
-	 ;;
+         return_status=$?
+	;;
     *)
          echo -e "\e[91mERROR\e[0m: Invalid platform specified in storage_type: $storage_type"
 	 cleanup
 	 finish -1
 	 ;;
     esac
+    return $return_status
 }
 
 # We need a way to get all of the zones that could be associated with this host
@@ -791,6 +793,7 @@ runcmd() {
 	fi
 	echo There was a failure | tee -a ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE}
 	incr_fail_count
+	return 1
     fi
 }
 
@@ -1083,6 +1086,13 @@ reset_system_props() {
 prerun_tests() {
     clean_zones ${FC_ZONE_A:7} ${HOST1}
     verify_no_zones ${FC_ZONE_A:7} ${HOST1}
+    verify_export ${expname}1 ${HOST1} gone
+    if [ ${VERIFY_EXPORT_STATUS} -ne 0 ]; then
+        echo "The export was found on the device, attempting to delete..."
+        arrayhelper delete_mask ${SERIAL_NUMBER} ${expname}1 ${HOST1}
+        VERIFY_EXPORT_STATUS=0
+    fi
+    date
 }
 
 vnx_sim_setup() {
@@ -2837,7 +2847,7 @@ test_13() {
 # 9. Rollback should remove the initiator in the mask that it added even if there's an existing volume in the mask.
 #
 test_14() {
-    echot "Test 14: Test rollback of add initiator, verify it does not remove initiators when volume sneaks into mask"
+    echot "Test 14: Test rollback of add initiator, verify it removes the new initiators when volume sneaks into mask"
     expname=${EXPORT_GROUP_NAME}t14-${RANDOM}
 
     # Make sure we start clean; no masking view on the array

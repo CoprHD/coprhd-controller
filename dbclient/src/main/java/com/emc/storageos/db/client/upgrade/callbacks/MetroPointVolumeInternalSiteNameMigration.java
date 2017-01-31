@@ -15,6 +15,7 @@ import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.FileShare.PersonalityTypes;
+import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.upgrade.BaseCustomMigrationCallback;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
@@ -51,9 +52,15 @@ public class MetroPointVolumeInternalSiteNameMigration extends BaseCustomMigrati
                 Volume volume = volumes.next();
                 if (volume != null && NullColumnValueGetter.isNotNullValue(volume.getRpCopyName())
                         && PersonalityTypes.SOURCE.name().equals(volume.getPersonality())
-                        && volume.getAssociatedVolumes() != null && volume.getAssociatedVolumes().size() == 2) {
-                    // This is a MetroPoint VPlex source volume, add it to the list.
-                    metroPointSourceVolumes.add(volume);
+                        && volume.getAssociatedVolumes() != null && volume.getAssociatedVolumes().size() == 2
+                        && !NullColumnValueGetter.isNullURI(volume.getVirtualPool())) {
+
+                    // Get the volume's virtual pool and use that to determine if this is a MetroPoint volume
+                    VirtualPool vpool = dbClient.queryObject(VirtualPool.class, volume.getVirtualPool());
+                    if (vpool != null && VirtualPool.vPoolSpecifiesMetroPoint(vpool)) {
+                        // This is a MetroPoint VPlex source volume, add it to the list.
+                        metroPointSourceVolumes.add(volume);
+                    }
                 }
 
             }

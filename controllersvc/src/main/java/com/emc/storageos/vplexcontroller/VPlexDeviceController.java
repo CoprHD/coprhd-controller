@@ -3634,13 +3634,13 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
                  boolean existingInitiators = exportMask.hasAnyExistingInitiators();
                  boolean canMaskBeDeleted = remainingVolumesInMask.isEmpty() && !existingInitiators && !existingVolumes;
 
-                if (canMaskBeDeleted) {
+                if (!canMaskBeDeleted) {
                     _log.info("this mask is not empty, so just updating: "
                             + exportMask.getMaskName());
 
                     completer.addExportMaskToRemovedVolumeMapping(exportMask.getId(), volumeURIList);
                     Workflow.Method storageViewRemoveVolume = storageViewRemoveVolumesMethod(vplex.getId(),
-                            exportMask, volumeURIList);
+                            exportMask, volumeURIList, opId);
                     previousStep = workflow.createStep("removeVolumes",
                             String.format("Removing volumes from export on storage array %s (%s) for export mask %s (%s)",
                                     vplex.getNativeGuid(), vplex.getId().toString(), exportMask.getMaskName(), exportMask.getId()),
@@ -3737,9 +3737,10 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
      *            -- URI of virtual volumes
      * @return
      */
-    public Workflow.Method storageViewRemoveVolumesMethod(URI vplexURI, ExportMask exportMask, List<URI> volumeURIList) {
+    public Workflow.Method storageViewRemoveVolumesMethod(URI vplexURI, ExportMask exportMask, 
+            List<URI> volumeURIList, String parentStepId) {
         return new Workflow.Method("storageViewRemoveVolumes", vplexURI, exportMask,
-                volumeURIList);
+                volumeURIList, parentStepId);
     }
 
     /**
@@ -3749,11 +3750,14 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
      *            -- ExportMask corresonding to the StorageView
      * @param volumeURIList
      *            -- URI of virtual volumes
+     * @param parentStepId
+     *            -- Workflow parent step id
      * @param stepId
      *            -- Workflow step id
      * @throws WorkflowException
      */
-    public void storageViewRemoveVolumes(URI vplexURI, ExportMask exportMask, List<URI> volumeURIList, String stepId)
+    public void storageViewRemoveVolumes(URI vplexURI, ExportMask exportMask, 
+            List<URI> volumeURIList, String parentStepId, String stepId)
             throws WorkflowException {
         try {
             WorkflowStepCompleter.stepExecuting(stepId);
@@ -3763,7 +3767,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
 
             // Removes the specified volumes from the storage view
             // and updates the export mask.
-            removeVolumesFromStorageViewAndMask(client, exportMask, volumeURIList, stepId);
+            removeVolumesFromStorageViewAndMask(client, exportMask, volumeURIList, parentStepId);
 
             WorkflowStepCompleter.stepSucceded(stepId);
         } catch (VPlexApiException vae) {
@@ -3787,12 +3791,12 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
      *            -- ExportMask corresonding to the StorageView
      * @param volumeURIList
      *            -- URI of virtual volumes
-     * @param stepId
-     *            -- the step id
+     * @param parentStepId
+     *            -- the parent step id
      * @throws Exception
      */
     private void removeVolumesFromStorageViewAndMask(
-            VPlexApiClient client, ExportMask exportMask, List<URI> volumeURIList, String stepId) throws Exception {
+            VPlexApiClient client, ExportMask exportMask, List<URI> volumeURIList, String parentStepId) throws Exception {
 
         // If no volumes to remove, just return.
         if (volumeURIList.isEmpty()) {
@@ -3814,7 +3818,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
         ctx.setStorage(vplex);
         ctx.setExportMask(exportMask);
         ctx.setInitiators(initiators);
-        ctx.setAllowExceptions(!WorkflowService.getInstance().isStepInRollbackState(stepId));
+        ctx.setAllowExceptions(!WorkflowService.getInstance().isStepInRollbackState(parentStepId));
         validator.removeVolumes(ctx).validate();
 
         // Determine the virtual volume names.
@@ -4855,7 +4859,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
 
                     completer.addExportMaskToRemovedVolumeMapping(exportMask.getId(), volumeURIList);
                     Workflow.Method storageViewRemoveVolume = storageViewRemoveVolumesMethod(vplex.getId(),
-                            exportMask, volumeURIList);
+                            exportMask, volumeURIList, lastStep);
                     lastStep = workflow.createStep("removeVolumes",
                             String.format("Removing volumes from export on storage array %s (%s) for export mask %s (%s)",
                                     vplex.getNativeGuid(), vplex.getId().toString(), exportMask.getMaskName(), exportMask.getId()),

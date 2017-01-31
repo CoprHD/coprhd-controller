@@ -17,15 +17,6 @@
 
 package com.emc.sa.service.vipr.oe;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
 import org.apache.commons.lang.StringUtils;
 import org.codehaus.jackson.JsonNode;
 import org.codehaus.jackson.map.ObjectMapper;
@@ -59,6 +50,21 @@ import com.emc.storageos.primitives.Primitive.StepType;
 import com.emc.storageos.primitives.PrimitiveHelper;
 import com.emc.storageos.primitives.ViPRPrimitive;
 import com.google.gson.Gson;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import org.apache.commons.lang.StringUtils;
+import org.codehaus.jackson.JsonNode;
+import org.codehaus.jackson.map.ObjectMapper;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.expression.EvaluationContext;
+import org.springframework.expression.Expression;
+import org.springframework.expression.ExpressionParser;
+import org.springframework.expression.spel.standard.SpelExpressionParser;
+import org.springframework.expression.spel.support.StandardEvaluationContext;
 
 @Service("OrchestrationService")
 public class OrchestrationService extends ViPRService {
@@ -85,8 +91,7 @@ public class OrchestrationService extends ViPRService {
         params = ExecutionUtils.currentContext().getParameters();
         final String raw = ExecutionUtils.currentContext().getOrder().getWorkflowDocument();
         if( null == raw) {
-            throw InternalServerErrorException.internalServerErrors.
-                    customeServiceExecutionFailed("Invalid orchestration service.  Workflow document cannot be null");
+            throw new IllegalStateException("Invalid orchestration service.  Workflow document cannot be null");
         }
 
         obj = WorkflowHelper.toWorkflowDocument(raw);
@@ -94,13 +99,12 @@ public class OrchestrationService extends ViPRService {
         for (final Step step : steps)
             stepsHash.put(step.getId(), step);
 
-        if (stepsHash.get(StepType.START.toString()) == null || stepsHash.get(StepType.END.toString()) == null) {
-            throw InternalServerErrorException.internalServerErrors.customeServiceExecutionFailed("Start or End step Not present");
-        }
-
+	logger.info("Validating the input in pre check");
         ValidateCustomServiceWorkflow validate = new ValidateCustomServiceWorkflow(params, stepsHash);
-        validate.validateInputs();
+        validate.validate();
     }
+
+
 
     @Override
     public void execute() throws Exception {
@@ -226,11 +230,11 @@ public class OrchestrationService extends ViPRService {
      * @param step It is the JSON Object of Step
      */
     private void updateInputPerStep(final Step step) throws Exception {
-        if (step.getInput() == null) {
+        if (step.getInputGroups() == null) {
             return;
         }
 
-        final List<Input> input = step.getInput().get(OrchestrationServiceConstants.INPUT_PARAMS);
+        final List<Input> input = step.getInputGroups().get(OrchestrationServiceConstants.INPUT_PARAMS).getInputGroup();
 
         if (input == null) {
             return;
@@ -330,20 +334,17 @@ public class OrchestrationService extends ViPRService {
      * @param result
      */
     private void updateOutputPerStep(final Step step, final String result) throws Exception {
-        final Map<String, String> output = step.getOutput();
+        final List<OrchestrationWorkflowDocument.Output> output = step.getOutput();
         if (output == null) 
             return;
 
         final Map<String, List<String>> out = new HashMap<String, List<String>>();
 
-        for(final Map.Entry<String, String> e : output.entrySet()) {
-            if (e.getValue() == null || e.getValue().isEmpty()) {
-                continue;
-            }
+        for(OrchestrationWorkflowDocument.Output o : output) {
             if (isAnsible(step)) {
-                out.put(e.getKey(), evaluateAnsibleOut(result, e.getKey()));
+                out.put(o.getName(), evaluateAnsibleOut(result, o.getName()));
             } else {
-                out.put(e.getKey(), evaluateValue(result, e.getValue()));
+                out.put(o.getName(), evaluateValue(result, o.getName()));
             }
         }
 

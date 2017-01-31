@@ -193,7 +193,7 @@ public class XtremIOMaskingOrchestrator extends AbstractBasicMaskingOrchestrator
                 // Set up workflow steps.
                 Workflow workflow = _workflowService.getNewWorkflow(
                         MaskingWorkflowEntryPoints.getInstance(),
-                        "exportGroupAddVolumes", true,
+                        "exportGroupAddVolumes - Added volumes to existing mask", true,
                         token);
                 // For each export mask in export group, invoke add Volumes if export Mask belongs to the same storage Array
                 List<ExportMask> masks = new ArrayList<ExportMask>();
@@ -201,8 +201,6 @@ public class XtremIOMaskingOrchestrator extends AbstractBasicMaskingOrchestrator
                     if (exportMask.getStorageDevice().equals(storageURI)) {
                         refreshExportMask(storage, getDevice(), exportMask);
                         log.info("export_volume_add: adding volume to an existing export");
-                        exportMask.addVolumes(volumeMap);
-                        _dbClient.persistObject(exportMask);
                         masks.add(exportMask);
                     }
                 }
@@ -682,7 +680,9 @@ public class XtremIOMaskingOrchestrator extends AbstractBasicMaskingOrchestrator
                     .queryObject(StorageSystem.class, storageURI);
             TaskCompleter taskCompleter = new ExportOrchestrationTask(exportGroupURI,
                     token);
-            if (exportGroup == null || exportGroup.getInactive() || ExportMaskUtils.getExportMasks(_dbClient, exportGroup).isEmpty()) {
+            if (exportGroup != null && exportGroup.getInactive()) {
+                exportGroup.getVolumes().clear();
+                _dbClient.updateObject(exportGroup);
                 taskCompleter.ready(_dbClient);
                 return;
             }
@@ -697,6 +697,13 @@ public class XtremIOMaskingOrchestrator extends AbstractBasicMaskingOrchestrator
 
             String previousStep = null;
 
+            if (exportGroup != null && (null == exportMasks || exportMasks.isEmpty())) {
+                exportGroup.getVolumes().clear();
+                _dbClient.updateObject(exportGroup);
+                taskCompleter.ready(_dbClient);
+                return;
+            }
+
             /**
              * TODO
              * Right now,to make orchestration simple , we decided not to share export masks across Export Groups.
@@ -704,16 +711,15 @@ public class XtremIOMaskingOrchestrator extends AbstractBasicMaskingOrchestrator
              * 1. If export mask is shared across export groups ,deleting an export mask means identifying the
              * right set of initiators and volumes to be removed from both the export Groups.
              */
-            if (!exportMasks.isEmpty()) {
-                for (ExportMask exportMask : exportMasks) {
-                    refreshExportMask(storage, getDevice(), exportMask);
-                    List<URI> initiators = StringSetUtil.stringSetToUriList(exportMask.getInitiators());
-                    List<URI> volumesInMask = ExportMaskUtils.getUserAddedVolumeURIs(exportMask);
-                    previousStep = generateExportMaskDeleteWorkflow(workflow, previousStep, storage, exportGroup,
-                            exportMask, volumesInMask, initiators, null);
-                }
-                previousStep = generateZoningDeleteWorkflow(workflow, previousStep, exportGroup, exportMasks);
+            for (ExportMask exportMask : exportMasks) {
+                refreshExportMask(storage, getDevice(), exportMask);
+                List<URI> initiators = StringSetUtil.stringSetToUriList(exportMask.getInitiators());
+                List<URI> volumesInMask = ExportMaskUtils.getUserAddedVolumeURIs(exportMask);
+                previousStep = generateExportMaskDeleteWorkflow(workflow, previousStep, storage, exportGroup,
+                        exportMask, volumesInMask, initiators, null);
             }
+
+            previousStep = generateZoningDeleteWorkflow(workflow, previousStep, exportGroup, exportMasks);
 
             String successMessage = String.format(
                     "Export was successfully removed from StorageArray %s",

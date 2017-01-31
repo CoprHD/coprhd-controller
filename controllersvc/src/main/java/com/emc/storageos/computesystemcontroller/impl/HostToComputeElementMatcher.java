@@ -17,6 +17,7 @@ import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.ComputeElement;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.RegistrationStatus;
 import com.emc.storageos.db.client.model.Host;
+import com.emc.storageos.db.client.util.NullColumnValueGetter;
 
 public class HostToComputeElementMatcher {
 
@@ -125,7 +126,7 @@ public class HostToComputeElementMatcher {
                 }
             }
             if (updateHost && matchedComputeElement != null) {
-                if ((host.getComputeElement() != null) &&
+                if ((!NullColumnValueGetter.isNullURI(host.getComputeElement())) &&
                         host.getComputeElement().equals(matchedComputeElement.getId())) {
                     _log.debug("Skipping " + host.getId() + " which is already matched to " +
                             matchedComputeElement.getId());

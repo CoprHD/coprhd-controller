@@ -116,7 +116,7 @@ function updateDatatableRows(datatable, items, fields, ids) {
  * @param extraFields (optional) an array of fields to update in addition to the standard discovery fields.
  */
 function watchDiscoveryStatus(datatable, itemsJson, extraFields) {
-    var fields = ['discoveryStatus', 'lastDiscoveredDate', 'errorSummary', 'errorDetails', 'statusMessage', 'expandDetails'];
+    var fields = ['discoveryInProgress', 'discoveryStatus', 'lastDiscoveredDate', 'errorSummary', 'errorDetails', 'statusMessage', 'expandDetails'];
     if (extraFields != null) {
         fields = fields.concat(extraFields);
     }

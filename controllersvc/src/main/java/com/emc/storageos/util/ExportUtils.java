@@ -11,6 +11,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -1576,7 +1577,7 @@ public class ExportUtils {
      * @return the free HLUs to use
      */
     public static Set<Integer> calculateFreeHLUs(Set<Integer> usedHlus, Integer maxHLU) {
-        Set<Integer> freeHLUs = new HashSet<Integer>();
+        Set<Integer> freeHLUs = new LinkedHashSet<>();
         // For max limit of 4096, 0 to 4095 can be assigned.
         // Since it is cluster export (shared), the number can start from 1 since 0 will be used for boot lun.
         for (int i = 1; i < maxHLU; i++) {
@@ -1931,10 +1932,10 @@ public class ExportUtils {
         cleanStaleHostReferences(exportGroup, dbClient);
 
         cleanStaleClusterReferences(exportGroup, dbClient);
-
+        
         dbClient.updateObject(exportGroup);
     }
-
+    
     /**
      * Cleans stale mask references from export group instance
      * 
@@ -1946,6 +1947,7 @@ public class ExportUtils {
         StringSet exportMasks = exportGroup.getExportMasks();
         if (!CollectionUtils.isEmpty(exportMasks)) {
             List<URI> staleMasks = new ArrayList<>();
+            List<URI> unstaleMasks = new ArrayList<>();
             StringSet exportGroupInitiators = exportGroup.getInitiators();
             for (String mask : exportMasks) {
                 boolean isStaleMask = false;
@@ -1967,6 +1969,8 @@ public class ExportUtils {
                 if (isStaleMask) {
                     staleMasks.add(maskURI);
                     _log.info("Stale mask {} will be removed from Export Group {}", maskURI, exportGroup.getId());
+                } else {
+                    unstaleMasks.add(maskURI);
                 }
             }
             if (!CollectionUtils.isEmpty(staleMasks)) {
@@ -1982,6 +1986,34 @@ public class ExportUtils {
                     }
                 }
             }
+            
+            // Make sure the zoning map contains no stale entries for 
+            // masks that are not stale.
+            if (!CollectionUtils.isEmpty(unstaleMasks)) {
+                cleanStaleZoningMapEntries(unstaleMasks, dbClient);
+            }
+        }
+    }
+    
+    /**
+     * Cleanup any stale entries in the zoning maps for the export masks with the passed URIs.
+     * 
+     * @param maskURIs The URIs of the export masks to examine.
+     * @param dbClient A reference to a database client.
+     */
+    private static void cleanStaleZoningMapEntries(List<URI> maskURIs, DbClient dbClient) {
+        for (URI maskURI : maskURIs) {
+            ExportMask maskObj = dbClient.queryObject(ExportMask.class, maskURI);
+            StringSetMap zoningMap = maskObj.getZoningMap();
+            StringSet maskInitIds = maskObj.getInitiators();
+            Set<String> zoningMapInitIds = new HashSet<>(zoningMap.keySet());
+            for (String zoningMapInitId : zoningMapInitIds) {
+                if (maskInitIds == null || maskInitIds.isEmpty() || !maskInitIds.contains(zoningMapInitId)) {
+                    zoningMap.remove(zoningMapInitId);
+                }
+            }
+            maskObj.setZoningMap(zoningMap);
+            dbClient.updateObject(maskObj);
         }
     }
 

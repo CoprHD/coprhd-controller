@@ -1156,7 +1156,7 @@ class Bourne:
         while True:
             try:
                 obj_op = show_opfn(id, op)
-                if (obj_op['state'] != 'pending'):
+                if (obj_op['state'] != 'pending' and obj_op['state'] != 'queued'):
                     break
 
             except requests.exceptions.ConnectionError:
@@ -1171,6 +1171,9 @@ class Bourne:
         if (type(obj_op) is dict):
             if (obj_op['state'] == 'pending'):
                 raise Exception('Timed out waiting for request in pending state: ' + op)
+
+            if (obj_op['state'] == 'queued'):
+                raise Exception('Timed out waiting for request in queued state: ' + op)
 
             if (obj_op['state'] == 'error' and not ignore_error):
                 self.pretty_print_json(obj_op)
@@ -1208,27 +1211,37 @@ class Bourne:
 
         return obj_op
 
+    # 
+    # Handles looping over a task object.  If the task is suspended, we will loop waiting 
+    # for it to come out of suspended.  It has a short trigger since some tests go from one
+    # suspended state to another, and the state transitions happen too fast for this method
+    # to detect.  So don't wait for more than a minute.  If we return the same suspended state
+    # in the test case, the test will fail down the road anyway.
     def api_sync_4(self, id, showfn, ignore_error=False):
         obj_op = showfn(id)
         tmo = 0
 	seen_pending = 0
 
-        while (obj_op['state'] == 'pending' or obj_op['state'] == 'suspended_no_error'):
+        while (obj_op['state'] == 'pending' or obj_op['state'] == 'suspended_no_error' or obj_op['state'] == 'queued'):
             time.sleep(1)
 	    if (obj_op['state'] == 'pending'):
 		seen_pending = 1;
+                tmo = 0;
 	    if (obj_op['state'] == 'suspended_no_error' and seen_pending == 1):
 		break
 		
             obj_op = showfn(id)
             tmo += 1
-            if (tmo > API_SYNC_TIMEOUT):
+            if (tmo > API_SYNC_TIMEOUT or tmo > 30):
                 break
 
         if (type(obj_op) is dict):
             print str(obj_op)
             if (obj_op['state'] == 'pending'):
                 raise Exception('Timed out waiting for request in pending state: ' + op)
+
+            if (obj_op['state'] == 'queued'):
+                raise Exception('Timed out waiting for request in queued state: ' + op)
 
             if (obj_op['state'] == 'error' and not ignore_error):
                 raise Exception('There was an error encountered:\n' + json.dumps(obj_op, sort_keys=True, indent=4))

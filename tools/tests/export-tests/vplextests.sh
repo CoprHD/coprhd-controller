@@ -249,7 +249,7 @@ test_EXISTING_USERADDED_INITS1() {
     runcmd initiator delete $DEADBEEFHOST/$DEADBEEFINIT4
     runcmd hosts delete $DEADBEEFHOST
 
-    echoit "Existing Initiators to User Added Initiators Test1 Passed"
+    echot "Existing Initiators to User Added Initiators Test1 Passed"
 
 }
 
@@ -313,7 +313,7 @@ test_EXISTING_USERADDED_INITS2()
     runcmd initiator delete $DEADBEEFHOST/$DEADBEEFINIT4
     runcmd hosts delete $DEADBEEFHOST
 
-    echoit "Existing Initiators to User Added Initiators Test2 Passed"
+    echot "Existing Initiators to User Added Initiators Test2 Passed"
 
 }
 

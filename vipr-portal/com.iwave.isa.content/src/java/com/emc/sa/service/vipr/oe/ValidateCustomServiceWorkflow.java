@@ -1,17 +1,32 @@
+/*
+ * Copyright 2017 Dell Inc. or its subsidiaries.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ */
+
 package com.emc.sa.service.vipr.oe;
 
 import com.emc.storageos.model.orchestration.OrchestrationWorkflowDocument.Input;
 import com.emc.storageos.model.orchestration.OrchestrationWorkflowDocument.Step;
 import com.emc.storageos.primitives.Primitive;
+import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorException;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
-/**
- * Created by sonalisahu on 1/30/17.
- */
 public class ValidateCustomServiceWorkflow {
 
     private final Map<String, Object> params;
@@ -25,43 +40,29 @@ public class ValidateCustomServiceWorkflow {
 
     public void validateInputs() throws CustomServiceException, IOException {
 
-	logger.info("validating inputs");
-        Step step = stepsHash.get(Primitive.StepType.START.toString());
-
-        if(step == null) {
-            logger.info("no start step");
-            //throw
-            return;
-        }
-        step = stepsHash.get(Primitive.StepType.END.toString());
-        if(step == null) {
-            logger.info("no End step");
-            //throw
-            return;
+        if(stepsHash.get(Primitive.StepType.START.toString()) == null) {
+            throw InternalServerErrorException.internalServerErrors.customeServiceExecutionFailed("No Start Step defined");
         }
 
-        for (Step step1 : stepsHash.values()) {
-        	String next = validateStep(step);
-        	if (next == null) {
-              		logger.info("valied to validate step");
-			return;
-        	}
+        if(stepsHash.get(Primitive.StepType.END.toString()) == null) {
+            throw InternalServerErrorException.internalServerErrors.customeServiceExecutionFailed("No End Step defined");
+        }
 
+        for (final Step step1 : stepsHash.values()) {
+        	validateStep(step1);
             logger.info("Validate step input");
             validateStepInput(step1);
-
         }
-
     }
 
-    private void validateStepInput(Step step) {
-        Map<String, List<Input>> input = step.getInput();
+    private void validateStepInput(final Step step) {
+        final Map<String, List<Input>> input = step.getInput();
         if (input == null) {
             logger.info("No Input is defined");
 
             return;
         }
-        List<Input> listInput = input.get(OrchestrationServiceConstants.INPUT_PARAMS);
+        final List<Input> listInput = input.get(OrchestrationServiceConstants.INPUT_PARAMS);
         if (listInput == null) {
             logger.info("No input param is defined");
 
@@ -139,15 +140,19 @@ public class ValidateCustomServiceWorkflow {
             }
         }
     }
-    private String validateStep(Step step) {
-        if (step == null || step.getNext() == null) {
-            if (step.getId().equals(Primitive.StepType.END.toString())) {
-                logger.info("End step");
-            } else {
-                return null;
-            }
+    private void validateStep(final Step step) {
+        if (step == null || step.getId() == null) {
+            throw InternalServerErrorException.internalServerErrors.customeServiceExecutionFailed("Workflow Step is null");
         }
-
-        return "value";
+        if (step.getId().equals(Primitive.StepType.END.toString())) {
+            return;
+        }
+        if (step.getNext() == null) {
+            throw InternalServerErrorException.internalServerErrors.customeServiceExecutionFailed("Next Step Not defined");
+        }
+        if (step.getNext().getDefaultStep() == null && step.getNext().getFailedStep() == null) {
+            throw InternalServerErrorException.internalServerErrors.
+                    customeServiceExecutionFailed("Next step not defined");
+        }
     }
 }

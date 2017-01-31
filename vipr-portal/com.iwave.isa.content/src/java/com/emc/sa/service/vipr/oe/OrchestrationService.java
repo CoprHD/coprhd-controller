@@ -85,7 +85,8 @@ public class OrchestrationService extends ViPRService {
         params = ExecutionUtils.currentContext().getParameters();
         final String raw = ExecutionUtils.currentContext().getOrder().getWorkflowDocument();
         if( null == raw) {
-            throw new IllegalStateException("Invalid orchestration service.  Workflow document cannot be null");
+            throw InternalServerErrorException.internalServerErrors.
+                    customeServiceExecutionFailed("Invalid orchestration service.  Workflow document cannot be null");
         }
 
         obj = WorkflowHelper.toWorkflowDocument(raw);
@@ -94,15 +95,12 @@ public class OrchestrationService extends ViPRService {
             stepsHash.put(step.getId(), step);
 
         if (stepsHash.get(StepType.START.toString()) == null || stepsHash.get(StepType.END.toString()) == null) {
-            throw InternalServerErrorException.internalServerErrors.customeServiceExecutionFailed("input name not defined");
+            throw InternalServerErrorException.internalServerErrors.customeServiceExecutionFailed("Start or End step Not present");
         }
 
-	logger.info("Validating the input in pre check");
         ValidateCustomServiceWorkflow validate = new ValidateCustomServiceWorkflow(params, stepsHash);
         validate.validateInputs();
     }
-
-
 
     @Override
     public void execute() throws Exception {

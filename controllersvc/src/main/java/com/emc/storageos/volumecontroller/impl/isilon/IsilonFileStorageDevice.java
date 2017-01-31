@@ -2082,12 +2082,30 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
 
     @Override
     public BiosCommandResult updateShareACLs(StorageSystem storage, FileDeviceInputOutput args) {
-        // Requested Export Rules
+        // Requested Share ACL
         List<ShareACL> aclsToAdd = args.getShareAclsToAdd();
         List<ShareACL> aclsToDelete = args.getShareAclsToDelete();
-        List<ShareACL> aclsToModify = args.getShareAclsToModify();
+        List<ShareACL> aclsToModify = args.getShareAclsToModify();        
+        try {
+            // add the new Share ACL from the array into the update request.
+            Set<ShareACL> arrayExtraShareACL = extraShareACLFromArray(storage, args);
+            if (!arrayExtraShareACL.isEmpty()) {
+                if (aclsToModify != null) {
+                    // now add the remaining Share ACL
+                    aclsToModify.addAll(arrayExtraShareACL);
+                } else {
+                    // if exportModify is null then create a new Share ACL and add
+                    aclsToModify = new ArrayList<ShareACL>();
+                    aclsToModify.addAll(arrayExtraShareACL);
 
-        // Get existing Acls for the share
+                }
+            }
+        } catch (Exception e) {
+            // TODO Auto-generated catch block
+            _log.error("Not able to fetch latest Share ACL from backend array.", e);
+
+        }
+       // Get existing Acls for the share
         List<ShareACL> aclsToProcess = args.getExistingShareAcls();
 
         _log.info("Share name : {}", args.getShareName());
@@ -2167,6 +2185,72 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         return result;
 
     }
+
+    /**
+     * Get the Share ACL  which are present in array but not in CoprHD Database.
+     * 
+     * @param storage
+     * @param args
+     * @return Set with ShareACL
+     */
+    private Set<ShareACL> extraShareACLFromArray(StorageSystem storage, FileDeviceInputOutput args) {
+
+        Set<ShareACL> arrayShareACL = new HashSet<>();
+        // get all Share ACL from CoprHD data base
+        List<ShareACL> existingDBShareACL = args.getExistingShareAcls();
+
+        // get the all the Share ACL  from the storage system.
+        IsilonApi isi = getIsilonDevice(storage);
+        String zoneName = getZoneName(args.getvNAS());
+        IsilonSMBShare share =getIsilonSMBShare(isi,args.getShareName(),zoneName);
+        List<Permission> permissions =share.getPermissions();
+        for (Permission perm : permissions) {
+            if(perm.getPermissionType().equalsIgnoreCase(Permission.PERMISSION_TYPE_ALLOW)){
+                ShareACL shareACL= new ShareACL();
+                shareACL.setPermission(perm.getPermission());
+                String  userOrDomain = perm.getTrustee().getName();
+                String[] usersAndDomains = new String[2];
+                usersAndDomains =userOrDomain.split("\\");
+                if(usersAndDomains[1] !=null && !usersAndDomains[1].isEmpty() ){
+                    shareACL.setUser(usersAndDomains[1]);
+                    shareACL.setDomain(usersAndDomains[0]);
+                }else{
+                    shareACL.setUser(usersAndDomains[0]);
+                }
+
+                arrayShareACL.add(shareACL);
+            }
+
+        }
+        Set<ShareACL> dbShareACL  = new HashSet<>(existingDBShareACL);
+        // find out the change between array and CoprHD database.
+        Set<ShareACL> arrayExtraShareACL = Sets.difference((Set<ShareACL>) arrayShareACL, dbShareACL);           
+        // if change found update the exportRuleMap
+        return arrayExtraShareACL;
+
+    }
+    
+    /**
+     * get share details
+     * 
+     * @param isilonApi
+     * @param shareId
+     * @return
+     */
+    private IsilonSMBShare getIsilonSMBShare(IsilonApi isilonApi, String shareId, String zoneName) {
+        _log.debug("call getIsilonSMBShare for {} ", shareId);
+        IsilonSMBShare isilonSMBShare = null;
+        try {
+            if (isilonApi != null) {
+                isilonSMBShare = isilonApi.getShare(shareId, zoneName);
+                _log.debug("call getIsilonSMBShare {}", isilonSMBShare.toString());
+            }
+        } catch (Exception e) {
+            _log.error("Exception while getting SMBShare for {}", shareId);
+        }
+        return isilonSMBShare;
+    }
+
 
     @Override
     public BiosCommandResult deleteShareACLs(StorageSystem storage, FileDeviceInputOutput args) {

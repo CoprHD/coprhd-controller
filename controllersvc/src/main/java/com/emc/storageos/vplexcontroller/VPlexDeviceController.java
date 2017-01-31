@@ -3526,6 +3526,8 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
                             wwn, exportMask.forDisplay());
                     exportMask.removeFromExistingVolumes(wwn);
                 }
+
+                exportMask.addToUserCreatedVolumes(volume);
             }
 
             // We also need to update the volume/lun id map in the export mask
@@ -3655,8 +3657,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
                             zoneRemoveVolumesMethod, _networkDeviceController.zoneNullRollbackMethod(), null);
 
                     hasSteps = true;
-                    
-                    
+
                     /**
                      * TODO
                      * ExportremoveVolumeCompleter should be enhanced to remove export mask from export group  if last volume removed.

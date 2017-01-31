@@ -48,6 +48,7 @@ import com.emc.sa.service.vipr.oe.tasks.OrchestrationTaskResult;
 import com.emc.sa.service.vipr.oe.tasks.RunAnsible;
 import com.emc.sa.service.vipr.oe.tasks.RunViprREST;
 import com.emc.sa.workflow.WorkflowHelper;
+import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorException;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.model.orchestration.OrchestrationWorkflowDocument;
 import com.emc.storageos.model.orchestration.OrchestrationWorkflowDocument.Input;
@@ -93,9 +94,10 @@ public class OrchestrationService extends ViPRService {
             stepsHash.put(step.getId(), step);
 
         if (stepsHash.get(StepType.START.toString()) == null || stepsHash.get(StepType.END.toString()) == null) {
-            throw CustomServiceException.exceptions.customServiceException("input name not defined");
+            throw InternalServerErrorException.internalServerErrors.customeServiceExecutionFailed("input name not defined");
         }
 
+	logger.info("Validating the input in pre check");
         ValidateCustomServiceWorkflow validate = new ValidateCustomServiceWorkflow(params, stepsHash);
         validate.validateInputs();
     }
@@ -246,7 +248,7 @@ public class OrchestrationService extends ViPRService {
                 case OTHERS:
                 case ASSET_OPTION: {
                     if (params.get(name) != null) {
-                        inputs.put(name, createInputList(StringUtils.strip(params.get(name).toString())));
+                        inputs.put(name, createInputList(StringUtils.strip(params.get(name).toString(), "\"")));
                     } else {
                         if (value.getDefaultValue() != null) {
                             inputs.put(name, createInputList(value.getDefaultValue()));

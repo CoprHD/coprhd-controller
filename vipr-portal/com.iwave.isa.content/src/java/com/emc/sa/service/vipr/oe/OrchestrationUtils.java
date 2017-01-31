@@ -33,6 +33,7 @@ import com.emc.sa.service.vipr.oe.gson.ViprOperation;
 import com.emc.sa.service.vipr.oe.gson.ViprTask;
 import com.emc.sa.service.vipr.oe.tasks.TaskState;
 import com.emc.storageos.db.client.model.StringSet;
+import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorException;
 import com.emc.storageos.model.TaskResourceRep;
 import com.emc.storageos.model.orchestration.OrchestrationWorkflowDocument;
 import com.emc.storageos.oe.api.restapi.OrchestrationEngineRestClient;
@@ -200,7 +201,7 @@ public class OrchestrationUtils {
 
     public static Map<URI, String> waitForTasks(final List<URI> tasksStartedByOe, final ViPRCoreClient client) throws InterruptedException {
         if (tasksStartedByOe.isEmpty()) {
-            return null;
+            throw InternalServerErrorException.internalServerErrors.customeServiceExecutionFailed("No tasks to wait for");
         }
         ExecutionUtils.currentContext().logInfo("orchestrationService.waitforTask");
 

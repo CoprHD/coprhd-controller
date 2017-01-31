@@ -25,15 +25,33 @@ public class ValidateCustomServiceWorkflow {
 
     public void validateInputs() throws CustomServiceException, IOException {
 
+	logger.info("validating inputs");
         Step step = stepsHash.get(Primitive.StepType.START.toString());
 
-        String next = validateStep(step);
+        if(step == null) {
+            logger.info("no start step");
+            //throw
+            return;
+        }
+        step = stepsHash.get(Primitive.StepType.END.toString());
+        if(step == null) {
+            logger.info("no End step");
+            //throw
+            return;
+        }
 
-        while (next != null && !next.equals(Primitive.StepType.END.toString())) {
-            step = stepsHash.get(next);
-            validateStepInput(step);
+        for (Step step1 : stepsHash.values()) {
+        	String next = validateStep(step);
+        	if (next == null) {
+              		logger.info("valied to validate step");
+			return;
+        	}
+
+            logger.info("Validate step input");
+            validateStepInput(step1);
 
         }
+
     }
 
     private void validateStepInput(Step step) {
@@ -49,10 +67,14 @@ public class ValidateCustomServiceWorkflow {
 
             return;
         }
+
+	logger.info("validateStepInput");
         for (Input in : listInput) {
+		logger.info("input is:{}", in);
             final String name = in.getName();
             if (name == null || name.isEmpty()) {
-                throw CustomServiceException.exceptions.customServiceException("input name not defined");
+		logger.info("name == null || name.isEmpty()");
+                //throw CustomServiceException.exceptions.customServiceException("input name not defined");
             }
 
             switch (OrchestrationServiceConstants.InputType.fromString(in.getType())) {
@@ -68,31 +90,33 @@ public class ValidateCustomServiceWorkflow {
                     break;
                 default:
                     logger.error("Invalid Input type");
-                    throw CustomServiceException.exceptions.customServiceException("input type not supported");
+                    //throw CustomServiceException.exceptions.customServiceException("input type not supported");
             }
         }
     }
 
     private void validateInputUserParams(Input in) {
+	logger.info("validateInputUserParams");
         if (params.get(in.getName()) == null && in.getDefaultValue() == null && in.getRequired()) {
-            throw CustomServiceException.exceptions.customServiceException("input param is not there");
+		logger.info("params.get(in.getName()) == null && in.getDefaultValue() == null && in.getRequired()");
+            //throw CustomServiceException.exceptions.customServiceException("input param is not there");
         }
     }
 
     private void validateOtherStepParams(Input in) {
         if (in.getValue() == null || in.getValue().isEmpty()) {
-            throw CustomServiceException.exceptions.customServiceException("input value is not defined");
+            //throw CustomServiceException.exceptions.customServiceException("input value is not defined");
         }
         final String[] paramVal = in.getValue().split("\\.");
         final String stepId = paramVal[0];
         final String attribute = paramVal[1];
         Step step1 = stepsHash.get(stepId);
         if (step1 == null) {
-            throw CustomServiceException.exceptions.customServiceException("step for type not defined");
+            //throw CustomServiceException.exceptions.customServiceException("step for type not defined");
         }
         if (in.getType().equals(OrchestrationServiceConstants.InputType.FROM_STEP_INPUT.toString())) {
             if (step1.getInput() == null || step1.getInput().get(OrchestrationServiceConstants.INPUT_PARAMS) == null) {
-                throw CustomServiceException.exceptions.customServiceException("step for type not defined");
+                //throw CustomServiceException.exceptions.customServiceException("step for type not defined");
             }
 
             List<Input> in1 = step1.getInput().get(OrchestrationServiceConstants.INPUT_PARAMS);
@@ -103,24 +127,27 @@ public class ValidateCustomServiceWorkflow {
                 }
             }
             if (!found) {
-                throw CustomServiceException.exceptions.customServiceException("step for type not defined");
+                //throw CustomServiceException.exceptions.customServiceException("step for type not defined");
             }
         } else if (in.getType().equals(OrchestrationServiceConstants.InputType.FROM_STEP_OUTPUT.toString())) {
             if (step1.getOutput() == null) {
-                throw CustomServiceException.exceptions.customServiceException("step for type not defined");
+                //throw CustomServiceException.exceptions.customServiceException("step for type not defined");
             }
 
             if (step1.getOutput().get(attribute) == null) {
-                throw CustomServiceException.exceptions.customServiceException("step for type not defined");
+                //throw CustomServiceException.exceptions.customServiceException("step for type not defined");
             }
         }
     }
-
     private String validateStep(Step step) {
-        if (step == null || step.getNext() == null || step.getNext().getDefaultStep() == null) {
-            throw CustomServiceException.exceptions.customServiceException("Start Step could not be found");
+        if (step == null || step.getNext() == null) {
+            if (step.getId().equals(Primitive.StepType.END.toString())) {
+                logger.info("End step");
+            } else {
+                return null;
+            }
         }
 
-        return step.getNext().getDefaultStep();
+        return "value";
     }
 }

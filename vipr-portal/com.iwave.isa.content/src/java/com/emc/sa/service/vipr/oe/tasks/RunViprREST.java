@@ -36,6 +36,7 @@ import com.emc.sa.service.vipr.oe.gson.ViprOperation;
 import com.emc.sa.service.vipr.oe.OrchestrationServiceConstants;
 import com.emc.sa.service.vipr.oe.OrchestrationUtils;
 import com.emc.sa.service.vipr.tasks.ViPRExecutionTask;
+import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorException;
 import com.emc.storageos.primitives.ViPRPrimitive;
 import com.emc.vipr.client.impl.RestClient;
 import com.sun.jersey.api.client.ClientResponse;
@@ -83,11 +84,11 @@ public class RunViprREST extends ViPRExecutionTask<OrchestrationTaskResult> {
         return result;
     }
 
-    private Map<URI, String> waitForTask(final String result)
+    private Map<URI, String> waitForTask(final String result) throws InternalServerErrorException
     {
         final ViprOperation res = OrchestrationUtils.parseViprTasks(result);
         if (res == null) {
-            return null;
+            throw InternalServerErrorException.internalServerErrors.customeServiceExecutionFailed("no task found");
         }
 
         try {
@@ -138,11 +139,14 @@ public class RunViprREST extends ViPRExecutionTask<OrchestrationTaskResult> {
             return null;
         }
 
-        final Map<URI, String> taskState = waitForTask(responseString);
-        if (taskState == null)
-            return null;
+        try {
+            final Map<URI, String> taskState = waitForTask(responseString);
 
-        return new OrchestrationTaskResult(responseString, responseString, response.getStatus(), taskState);
+            return new OrchestrationTaskResult(responseString, responseString, response.getStatus(), taskState);
+        } catch (final InternalServerErrorException e) {
+            logger.info("Received custome service exception");
+            return new OrchestrationTaskResult(responseString, responseString, response.getStatus(), null);
+        }
     }
 
 

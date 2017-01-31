@@ -429,10 +429,8 @@ public class UcsDiscoveryWorker {
         Map<String, UCSServiceProfile> addServiceProfiles = new HashMap<>();
 
         List<UCSServiceProfile> serviceProfiles = _dbClient.queryObject(UCSServiceProfile.class, uris, true);
-        Map<String, UCSServiceProfile> existingUuidMap = new HashMap<>();
 
         for (UCSServiceProfile serviceProfile : serviceProfiles) {
-            existingUuidMap.put(serviceProfile.getUuid(), serviceProfile);
             removeServiceProfiles.put(serviceProfile.getDn(), serviceProfile);
         }
 
@@ -444,12 +442,6 @@ public class UcsDiscoveryWorker {
                 updateUCSServiceProfile(serviceProfile, lsServer);
                 updateServiceProfiles.put(lsServer.getDn(), serviceProfile);
             } else {
-              /*  UCSServiceProfile existingServiceProfile = existingUuidMap.get(lsServer.getUuid());
-                if (existingServiceProfile != null){
-                     _log.error("Cannot create service profile {} in ViPR db. Found existing active service profile {} with same uuid {}",
-                               lsServer.getDn(),existingServiceProfile, lsServer.getUuid()); 
-                     throw ComputeSystemControllerException.exceptions.serviceProfileUuidDuplicate(lsServer.getDn(), existingServiceProfile.getDn(), lsServer.getUuid());
-                }*/
                 serviceProfile = new UCSServiceProfile();
                 createUCSServiceProfile(cs, serviceProfile, lsServer);
                 addServiceProfiles.put(lsServer.getDn(), serviceProfile);
@@ -466,7 +458,26 @@ public class UcsDiscoveryWorker {
             removeServiceProfilesFromHosts(removeServiceProfiles.values());
             deleteDataObjects(new ArrayList<DataObject>(removeServiceProfiles.values()));
         }
+        validateServiceProfileUuids(cs);
 
+    }
+   
+    private void validateServiceProfileUuids(ComputeSystem cs){
+        URIQueryResultList uris = new URIQueryResultList();
+        _dbClient.queryByConstraint(ContainmentConstraint.Factory
+                .getComputeSystemServiceProfilesConstraint(cs.getId()), uris);
+
+        List<UCSServiceProfile> serviceProfiles = _dbClient.queryObject(UCSServiceProfile.class, uris, true);
+        Map<String,UCSServiceProfile> uuidMap = new HashMap<>();
+        for (UCSServiceProfile serviceProfile : serviceProfiles) {
+            UCSServiceProfile anotherProfile = uuidMap.get(serviceProfile.getUuid());
+            if (anotherProfile == null) {
+                uuidMap.put(serviceProfile.getUuid(), serviceProfile);
+            }else {
+                _log.info("Found two service profiles {} , {}  that have same uuid: {} ", serviceProfile.getDn(), anotherProfile.getDn(), serviceProfile.getUuid());
+                throw ComputeSystemControllerException.exceptions.serviceProfileUuidDuplicate(serviceProfile.getDn(), anotherProfile.getDn(), serviceProfile.getUuid());
+            }
+        }
     }
 
     private void createUCSServiceProfile(ComputeSystem cs, UCSServiceProfile serviceProfile, LsServer lsServer) {
@@ -488,13 +499,17 @@ public class UcsDiscoveryWorker {
         _log.info("Updating UCSServiceProfile id: " + serviceProfile.getId());
         serviceProfile.setLabel(lsServer.getName());
         serviceProfile.setComputeElementDn(lsServer.getPnDn());
-        // Fail discovery if a service profile's uuid changes!
+        // Fail discovery if the uuid of a service profile matching a managed host changes!
         if (serviceProfile.getUuid() == null) {
             serviceProfile.setUuid(lsServer.getUuid());
-        }else if (!serviceProfile.getUuid().equals(lsServer.getUuid())  && !NullColumnValueGetter.isNullURI(serviceProfile.getHost())){
-            String errorMessage = "uuid of service profile" + lsServer.getDn() + " changed from : "+ serviceProfile.getUuid() + " to : "+ lsServer.getUuid();
-            _log.error(errorMessage);
-            throw ComputeSystemControllerException.exceptions.serviceProfileUuidChanged(lsServer.getDn(), serviceProfile.getUuid(), lsServer.getUuid());
+        }else if (!serviceProfile.getUuid().equals(lsServer.getUuid()) ){
+            if ( !NullColumnValueGetter.isNullURI(serviceProfile.getHost())){
+                String errorMessage = "uuid of service profile" + lsServer.getDn() + " changed from : "+ serviceProfile.getUuid() + " to : "+ lsServer.getUuid();
+                _log.error(errorMessage);
+                throw ComputeSystemControllerException.exceptions.serviceProfileUuidChanged(lsServer.getDn(), serviceProfile.getUuid(), lsServer.getUuid());
+            }else {
+                serviceProfile.setUuid(lsServer.getUuid());
+            }
         }
 
         serviceProfile.setLastDiscoveryRunTime(Calendar.getInstance().getTimeInMillis());

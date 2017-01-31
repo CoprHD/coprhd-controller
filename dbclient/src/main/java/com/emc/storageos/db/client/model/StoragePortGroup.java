@@ -18,7 +18,9 @@ public class StoragePortGroup extends DiscoveredDataObject {
     private StringSet storagePorts;
     // Registration status
     private String registrationStatus = RegistrationStatus.REGISTERED.toString();
-
+    // performance data
+    private StringMap metrics;
+    
     @RelationIndex(cf = "RelationIndex", type = StorageSystem.class)
     @Name("storageDevice")
     public URI getStorageDevice() {
@@ -51,6 +53,19 @@ public class StoragePortGroup extends DiscoveredDataObject {
     public void setRegistrationStatus(String registrationStatus) {
         this.registrationStatus = registrationStatus;
         setChanged("registrationStatus");
+    }
+    
+    @Name("metrics")
+    public StringMap getMetrics() {
+        if (this.metrics == null) {
+            this.metrics = new StringMap();
+        }
+        return this.metrics;
+    }
+
+    public void setMetrics(StringMap metrics) {
+        this.metrics = metrics;
+        setChanged("metrics");
     }
 
 }

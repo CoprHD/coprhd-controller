@@ -858,6 +858,7 @@ public class ExportMask extends DataObject {
     }
 
     @Name("portGroup")
+    @AlternateId("ExportMaskPortGroup")
     public URI getPortGroup() {
         return _portGroup;
     }

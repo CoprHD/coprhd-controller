@@ -267,9 +267,12 @@ public interface DeviceControllerExceptions {
 
     @DeclareServiceCode(ServiceCode.FILE_CONTROLLER_ERROR)
     public DeviceControllerException unableToRestoreFileSystemFromSnapshot(final Throwable cause);
-    
+
     @DeclareServiceCode(ServiceCode.FILE_CONTROLLER_ERROR)
     public DeviceControllerException createFileSystemOnPhysicalNASDisabled();
+
+    @DeclareServiceCode(ServiceCode.FILE_CONTROLLER_ERROR)
+    public DeviceControllerException noNasServerFoundToAddStepsToApplyPolicy(final String storage);
 
     @DeclareServiceCode(ServiceCode.FILE_CONTROLLER_ERROR)
     public DeviceControllerException unableToConnectToStorageDeviceForMonitoringDbException(
@@ -368,18 +371,17 @@ public interface DeviceControllerExceptions {
     @DeclareServiceCode(ServiceCode.CONTROLLER_ENTITY_NOT_FOUND)
     public DeviceControllerException virtualArrayNotFound();
 
-    @DeclareServiceCode(ServiceCode
-            .CONTROLLER_VMAX_MULTIPLE_MATCHING_COMPUTE_RESOURCE_MASKS)
-            public DeviceControllerException
+    @DeclareServiceCode(ServiceCode.CONTROLLER_VMAX_MULTIPLE_MATCHING_COMPUTE_RESOURCE_MASKS)
+    public DeviceControllerException
             vmaxMultipleMatchingComputeResourceMasks(String maskNames);
 
     @DeclareServiceCode(ServiceCode.CONTROLLER_ERROR_ASSIGNING_STORAGE_PORTS)
     public DeviceControllerException
-            exceptionAssigningStoragePorts(String message, Throwable ex);
+    exceptionAssigningStoragePorts(String message, Throwable ex);
 
     @DeclareServiceCode(ServiceCode.CONTROLLER_ERROR_ASSIGNING_STORAGE_PORTS)
     public DeviceControllerException
-            unexpectedExceptionAssigningPorts(Throwable ex);
+    unexpectedExceptionAssigningPorts(Throwable ex);
 
     @DeclareServiceCode(ServiceCode.CONTROLLER_JOB_ERROR)
     public DeviceControllerException cannotFindActiveProviderForStorageSystem();
@@ -413,11 +415,11 @@ public interface DeviceControllerExceptions {
 
     @DeclareServiceCode(ServiceCode.CONTROLLER_ERROR)
     public DeviceControllerException
-            failedToAddMembersToConsistencyGroup(String name, String deviceLabel, String error);
+    failedToAddMembersToConsistencyGroup(String name, String deviceLabel, String error);
 
     @DeclareServiceCode(ServiceCode.CONTROLLER_ERROR)
     public DeviceControllerException
-            failedToRemoveMembersToConsistencyGroup(String name, String deviceLabel, String error);
+    failedToRemoveMembersToConsistencyGroup(String name, String deviceLabel, String error);
 
     @DeclareServiceCode(ServiceCode.CONTROLLER_ERROR)
     public DeviceControllerException failedToUpdateConsistencyGroup(String message);
@@ -449,7 +451,7 @@ public interface DeviceControllerExceptions {
 
     @DeclareServiceCode(ServiceCode.CONTROLLER_ERROR_ASSIGNING_STORAGE_PORTS)
     public DeviceControllerException unexpectedCondition(String message);
-    
+
     @DeclareServiceCode(ServiceCode.BLOCK_CONTROLLER_ERROR)
     public DeviceControllerException failedToUpdateVolumesFromAppication(String application, String error);
 
@@ -479,7 +481,7 @@ public interface DeviceControllerExceptions {
 
     @DeclareServiceCode(ServiceCode.BLOCK_CONTROLLER_ERROR)
     public DeviceControllerException couldNotFindSyncObjectToUnlinkTarget(final String deviceId);
-    
+
     @DeclareServiceCode(ServiceCode.BLOCK_CONTROLLER_ERROR)
     public DeviceControllerException couldNotDeleteReplicationGroup(final String reason);
 
@@ -500,7 +502,7 @@ public interface DeviceControllerExceptions {
 
     @DeclareServiceCode(ServiceCode.BLOCK_CONTROLLER_ERROR)
     public DeviceControllerException couldNotPerformAliasOperation(final String reason);
-    
+
     @DeclareServiceCode(ServiceCode.BLOCK_CONTROLLER_ERROR)
     public DeviceControllerException volumeSizeExceedingPoolSize(final String volumeName);
 
@@ -521,4 +523,7 @@ public interface DeviceControllerExceptions {
 
     @DeclareServiceCode(ServiceCode.CONTROLLER_VALIDATION_EXCEPTION)
     public DeviceControllerException deleteExportGroupValidationError(String exportGroupName, String storageSystemName, String details);
+
+    @DeclareServiceCode(ServiceCode.FILE_CONTROLLER_ERROR)
+    public DeviceControllerException assignFilePolicyFailed(String filePolicyName, String appliedAt, String details);
 }

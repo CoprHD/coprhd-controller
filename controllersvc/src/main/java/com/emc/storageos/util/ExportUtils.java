@@ -11,6 +11,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -604,6 +605,32 @@ public class ExportUtils {
             }
         }
         return sharedExportMaskNameList;
+    }
+
+    /**
+     * Check if initiator is used by multiple masks of same storage array
+     *
+     * @param dbClient DbClient
+     * @param mask ExportMask
+     * @initiatorUri URI of initiator
+     * @return true if shared by multiple masks, otherwise false
+     */
+    public static boolean isInitiatorSharedByMasks(DbClient dbClient, ExportMask mask, URI initiatorUri) {
+        URI storageUri = mask.getStorageDevice();
+        if (NullColumnValueGetter.isNullURI(storageUri)) {
+            return false;
+        }
+
+        List<ExportMask> results =
+                CustomQueryUtility.queryActiveResourcesByConstraint(dbClient, ExportMask.class,
+                        ContainmentConstraint.Factory.getConstraint(ExportMask.class, "initiators", initiatorUri));
+        for (ExportMask exportMask : results) {
+            if (exportMask != null && !exportMask.getId().equals(mask.getId()) && storageUri.equals(exportMask.getStorageDevice())) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     static public int getNumberOfExportGroupsWithVolume(Initiator initiator, URI blockObjectId, DbClient dbClient) {
@@ -1553,7 +1580,7 @@ public class ExportUtils {
      * @return the free HLUs to use
      */
     public static Set<Integer> calculateFreeHLUs(Set<Integer> usedHlus, Integer maxHLU) {
-        Set<Integer> freeHLUs = new HashSet<Integer>();
+        Set<Integer> freeHLUs = new LinkedHashSet<>();
         // For max limit of 4096, 0 to 4095 can be assigned.
         // Since it is cluster export (shared), the number can start from 1 since 0 will be used for boot lun.
         for (int i = 1; i < maxHLU; i++) {

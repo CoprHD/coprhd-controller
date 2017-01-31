@@ -32,6 +32,7 @@ usage()
     echo "           delete-copy [snapshot | snapsession] <name> <copy-set-name> [<subgroup,subgroup,...>]"
     echo "           detach-copy clone <name> <copy-set-name> [<subgroup,subgroup,...>]"
     echo "           resync-copy [clone | snapshot] <name> <copy-set-name> [<subgroup,subgroup,...>]"
+    echo "           expose-copy snapshot <name> <copy-set-name> [<subgroup,subgroup,...>]"
     echo "           restore-copy [clone | snapshot | snapsession] <name> <copy-set-name> [<subgroup,subgroup,...>]"
     echo "           link-copy snapsession <name> <copy-set-name> [<subgroup,subgroup,...>]"
     echo "           relink-copy snapsession <name> <copy-set-name> [<subgroup,subgroup,...>]"
@@ -346,6 +347,34 @@ volume_group_resync_copy()
       volume_group_wait_for_tasks $application $copy_type
     fi
     echo "volume group ${application} resync ${copy_type} ${copy_set_name} subgroups <${subgroups}> completed with return code ${retval}"
+    return $retval
+}
+
+#
+# expose a full copy of an applicaiton
+#
+volume_group_expose_copy()
+{
+    copy_type=$1
+    application=$2
+    copy_set_name=$3
+    subgroups=$4
+    echo "expose ${copy_type} ${copy_set_name} of application ${application} subgroups <${subgroups}>"
+    viprcli_authenticate >$ dev/null
+    if [[ $subgroups == "" ]]; then
+        echo "viprcli volumegroup ${copy_type}-expose -name ${application} -copysetname ${copy_set_name}"
+        viprcli volumegroup ${copy_type}-expose -name $application -copysetname $copy_set_name
+    else
+        # for partial support
+        echo "viprcli volumegroup ${copy_type}-expose -name ${application} -copysetname ${copy_set_name} -subgroups ${subgroups}"
+        viprcli volumegroup ${copy_type}-expose -name $application -copysetname $copy_set_name -subgroups $subgroups
+    fi
+    retval=$?
+    viprcli_logout >$ dev/null
+    if [ $retval -eq 0 ]; then
+      volume_group_wait_for_tasks $application $copy_type
+    fi
+    echo "volume group ${application} expose ${copy_type} ${copy_set_name} subgroups <${subgroups}> completed with return code ${retval}"
     return $retval
 }
 
@@ -909,6 +938,10 @@ elif [ $1 == 'resync-copy' ]; then
     [ $# -ge 3 ] || usage
     shift
     volume_group_resync_copy "$@"
+elif [ $1 == 'expose-copy' ]; then
+    [ $# -ge 3 ] || usage
+    shift
+    volume_group_expose_copy "$@"
 elif [ $1 == 'restore-copy' ]; then
     [ $# -ge 3 ] || usage
     shift

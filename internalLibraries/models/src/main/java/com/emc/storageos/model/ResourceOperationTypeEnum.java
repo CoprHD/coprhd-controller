@@ -355,7 +355,8 @@ public enum ResourceOperationTypeEnum {
     WORKFLOW_ROLLBACK("WORKFLOW_ROLLBACK", "Rollback a workflow"),
     MOUNT_NFS_EXPORT("MOUNT NFS EXPORT", "mount nfs export operation"),
     UNMOUNT_NFS_EXPORT("UNMOUNT NFS EXPORT", "unmount nfs export operation"),
-    LIST_MOUNTED_EXPORTS("LIST MOUNTED EXPORTS", "list mounted exports operation");
+    LIST_MOUNTED_EXPORTS("LIST MOUNTED EXPORTS", "list mounted exports operation"),
+    ASSIGN_FILE_POLICY("ASSIGN FILE POLICY", "assign file policy to resource");
 
     private final String name;
     private final String description;

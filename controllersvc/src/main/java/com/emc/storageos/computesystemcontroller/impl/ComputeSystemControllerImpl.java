@@ -23,6 +23,7 @@ import org.springframework.util.CollectionUtils;
 
 import com.emc.storageos.Controller;
 import com.emc.storageos.computecontroller.impl.ComputeDeviceController;
+import com.emc.storageos.computesystemcontroller.exceptions.ComputeSystemControllerException;
 import com.emc.storageos.computesystemcontroller.ComputeSystemController;
 import com.emc.storageos.computesystemcontroller.hostmountadapters.HostDeviceInputOutput;
 import com.emc.storageos.computesystemcontroller.hostmountadapters.HostMountAdapter;
@@ -63,6 +64,7 @@ import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.locking.LockTimeoutValue;
 import com.emc.storageos.locking.LockType;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
+import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
@@ -139,6 +141,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
     private static Pattern MACHINE_TAG_REGEX = Pattern.compile("([^W]*\\:[^W]*)=(.*)");
 
     private static final String ROLLBACK_METHOD_NULL = "rollbackMethodNull";
+    private static final String REMOVE_HOST_FROM_CLUSTER_STEP = "removeHostFromClusterStep";
 
     private ComputeDeviceController computeDeviceController;
     private BlockStorageScheduler _blockScheduler;
@@ -213,6 +216,9 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
             if (deactivateOnComplete) {
                 waitFor = computeDeviceController.addStepsVcenterHostCleanup(workflow, waitFor, host);
             }
+            String unassociateStepId = workflow.createStepId();
+            
+            waitFor = addStepsForRemoveHostFromCluster(workflow, waitFor, host, unassociateStepId);
 
             waitFor = addStepsForExportGroups(workflow, waitFor, host);
 
@@ -333,7 +339,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
     }
 
     public String addStepsForFileShares(Workflow workflow, String waitFor, URI hostId) {
-
+        String newWaitFor = waitFor;
         List<FileShare> fileShares = ComputeSystemHelper.getFileSharesByHost(_dbClient, hostId);
         List<String> endpoints = ComputeSystemHelper.getIpInterfaceEndpoints(_dbClient, hostId);
         for (FileShare fileShare : fileShares) {
@@ -353,20 +359,20 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
 
                             if (clients.isEmpty()) {
                                 _log.info("Unexporting file share " + fileShare.getId());
-                                waitFor = workflow.createStep(UNEXPORT_FILESHARE_STEP,
+                                newWaitFor = workflow.createStep(UNEXPORT_FILESHARE_STEP,
                                         String.format("Unexport fileshare %s", fileShare.getId()), waitFor,
                                         fileShare.getId(), fileShare.getId().toString(),
                                         this.getClass(),
                                         unexportFileShareMethod(device.getId(), device.getSystemType(), fileShare.getId(), export),
-                                        null, null);
+                                        rollbackMethodNullMethod(), null);
                             } else {
                                 _log.info("Updating export for file share " + fileShare.getId());
-                                waitFor = workflow.createStep(UPDATE_FILESHARE_EXPORT_STEP,
+                                newWaitFor = workflow.createStep(UPDATE_FILESHARE_EXPORT_STEP,
                                         String.format("Update fileshare export %s", fileShare.getId()), waitFor,
                                         fileShare.getId(), fileShare.getId().toString(),
                                         this.getClass(),
                                         updateFileShareMethod(device.getId(), device.getSystemType(), fileShare.getId(), export),
-                                        null, null);
+                                        rollbackMethodNullMethod(), null);
                             }
                         }
                     }
@@ -374,7 +380,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
             }
         }
 
-        return waitFor;
+        return newWaitFor;
     }
 
     @Override
@@ -929,6 +935,111 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
         return false;
     }
 
+    /**
+     * Returns stepId to waitFor
+     *
+     * @param workflow
+     * @param stepId of previous step
+     * @param hostURI
+     * @param stepId to use for this step
+     * @return stepId 
+     */
+    public String addStepsForRemoveHostFromCluster(Workflow workflow, String waitFor, URI hostId, String unassociateStepId) {
+        Host host = _dbClient.queryObject(Host.class, hostId);
+        String newWaitFor = null;
+        if (host != null){
+            newWaitFor = workflow.createStep(REMOVE_HOST_FROM_CLUSTER_STEP,
+                   String.format("Removing host %s from cluster ", host.getLabel()), waitFor,
+                   hostId, host.getLabel(), this.getClass(), new Workflow.Method("removeHostFromClusterStep",hostId),
+                   new Workflow.Method("rollbackRemoveHostFromClusterStep",hostId, unassociateStepId),
+                   unassociateStepId);
+        }
+        return (newWaitFor!=null? newWaitFor : waitFor);
+    }
+ 
+    /**
+     * Clears the cluster association of the host being decommissioned.
+     *
+     * @param hostId
+     * @param stepId
+     * @return 
+     */  
+    public void removeHostFromClusterStep(URI hostId, String stepId){
+       _log.info("removeHostFromClusterStep {}", hostId);
+        Host host = null;
+        try {
+            WorkflowStepCompleter.stepExecuting(stepId);
+
+            host = _dbClient.queryObject(Host.class, hostId);
+            if (host == null) {
+                throw ComputeSystemControllerException.exceptions.hostNotFound(hostId.toString());
+            }
+            _workflowService.storeStepData(stepId, host.getCluster());
+
+            if (NullColumnValueGetter.isNullURI(host.getCluster())) {
+                _log.info("cluster is null, nothing to do");
+                WorkflowStepCompleter.stepSucceded(stepId);
+                return;
+            }
+            host.setCluster(NullColumnValueGetter.getNullURI());
+            _dbClient.persistObject(host);
+            _log.info("Removed cluster association for host: "+ host.getLabel());
+            WorkflowStepCompleter.stepSucceded(stepId);
+        } catch (Exception e){
+            _log.error("unexpected exception: " + e.getMessage(), e);
+            ServiceCoded serviceCoded = ComputeSystemControllerException.exceptions.unableToRemoveHostFromCluster(
+                    host != null ? host.getHostName() : hostId.toString(), e);
+            WorkflowStepCompleter.stepFailed(stepId, serviceCoded);
+        }
+            
+    }
+
+    /**
+     * Re-associates the host that failed decommissioning to the cluster as part of rollback
+     *
+     * @param hostId
+     * @param stepId of the removeHostFromClusterStep
+     * @param stepId of this rollback step
+     * @return 
+     */
+    public void rollbackRemoveHostFromClusterStep(URI hostId, String unassociateStepId,String stepId){
+       _log.info("rollbackRemoveHostFromClusterStep {}", hostId);
+        Host host = null;
+        try {
+            WorkflowStepCompleter.stepExecuting(stepId);
+
+            host = _dbClient.queryObject(Host.class, hostId);
+
+            if (host == null) {
+                throw ComputeSystemControllerException.exceptions.hostNotFound(hostId.toString());
+            }
+
+            URI clusterURI = (URI)_workflowService.loadStepData(unassociateStepId);
+
+            if (NullColumnValueGetter.isNullURI(clusterURI)){
+                _log.info("cluster is null, nothing to do");
+                WorkflowStepCompleter.stepSucceded(stepId);
+                return;
+            }
+
+            Cluster cluster = _dbClient.queryObject(Cluster.class, clusterURI);
+            if (cluster == null){
+               throw ComputeSystemControllerException.exceptions.clusterNotFound(clusterURI.toString());
+            }
+
+            host.setCluster(cluster.getId());
+            _dbClient.persistObject(host);
+            _log.info("Re-associated host to cluster as part of rollback");
+            WorkflowStepCompleter.stepSucceded(stepId);
+        } catch (Exception e){
+            _log.error("unexpected exception: " + e.getMessage(), e);
+            ServiceCoded serviceCoded = ComputeSystemControllerException.exceptions.unableToReAddHostToCluster(
+                    host != null ? host.getHostName() : hostId.toString(), e);
+            WorkflowStepCompleter.stepFailed(stepId, serviceCoded);
+        }
+
+    }
+
     public String addStepsForExportGroups(Workflow workflow, String waitFor, URI hostId) {
 
         List<Initiator> hostInitiators = ComputeSystemHelper.queryInitiators(_dbClient, hostId);
@@ -960,7 +1071,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                         export.getId(), export.getId().toString(),
                         this.getClass(),
                         deleteExportGroupMethod(export.getId()),
-                        null, null);
+                        rollbackMethodNullMethod(), null);
             } else {
                 waitFor = workflow.createStep(
                         UPDATE_EXPORT_GROUP_STEP,

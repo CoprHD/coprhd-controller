@@ -122,6 +122,9 @@ public class ClusterService extends TaskResourceService {
         validateClusterData(updateParam, cluster.getTenant(), cluster, _dbClient);
         populateCluster(updateParam, cluster);
         _dbClient.persistObject(cluster);
+        if (!Strings.isNullOrEmpty(updateParam.findName())) {
+            ComputeSystemHelper.updateInitiatorClusterName(_dbClient, cluster.getId());
+        }
         auditOp(OperationTypeEnum.UPDATE_CLUSTER, true, null,
                 cluster.auditParameters());
 

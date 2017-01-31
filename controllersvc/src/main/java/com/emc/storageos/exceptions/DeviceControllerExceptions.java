@@ -377,11 +377,11 @@ public interface DeviceControllerExceptions {
 
     @DeclareServiceCode(ServiceCode.CONTROLLER_ERROR_ASSIGNING_STORAGE_PORTS)
     public DeviceControllerException
-            exceptionAssigningStoragePorts(String message, Throwable ex);
+    exceptionAssigningStoragePorts(String message, Throwable ex);
 
     @DeclareServiceCode(ServiceCode.CONTROLLER_ERROR_ASSIGNING_STORAGE_PORTS)
     public DeviceControllerException
-            unexpectedExceptionAssigningPorts(Throwable ex);
+    unexpectedExceptionAssigningPorts(Throwable ex);
 
     @DeclareServiceCode(ServiceCode.CONTROLLER_JOB_ERROR)
     public DeviceControllerException cannotFindActiveProviderForStorageSystem();
@@ -415,11 +415,11 @@ public interface DeviceControllerExceptions {
 
     @DeclareServiceCode(ServiceCode.CONTROLLER_ERROR)
     public DeviceControllerException
-            failedToAddMembersToConsistencyGroup(String name, String deviceLabel, String error);
+    failedToAddMembersToConsistencyGroup(String name, String deviceLabel, String error);
 
     @DeclareServiceCode(ServiceCode.CONTROLLER_ERROR)
     public DeviceControllerException
-            failedToRemoveMembersToConsistencyGroup(String name, String deviceLabel, String error);
+    failedToRemoveMembersToConsistencyGroup(String name, String deviceLabel, String error);
 
     @DeclareServiceCode(ServiceCode.CONTROLLER_ERROR)
     public DeviceControllerException failedToUpdateConsistencyGroup(String message);
@@ -530,4 +530,6 @@ public interface DeviceControllerExceptions {
     @DeclareServiceCode(ServiceCode.BLOCK_CONTROLLER_ERROR)
     public DeviceControllerException hostRescanUnsuccessful(String hostName, String reason);
     
+    @DeclareServiceCode(ServiceCode.FILE_CONTROLLER_ERROR)
+    public DeviceControllerException assignFilePolicyFailed(String filePolicyName, String appliedAt, String details);
 }

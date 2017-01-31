@@ -317,6 +317,7 @@ public class EsxHostDiscoveryAdapter extends AbstractHostDiscoveryAdapter {
             List<Initiator> addedInitiators) {
 
         // discover ipInterfaces
+        info(String.format("Discovering IP interfaces for %s", targetHost.forDisplay()));
         List<IpInterface> oldIpInterfaces = new ArrayList<IpInterface>();
         Iterables.addAll(oldIpInterfaces, getIpInterfaces(targetHost));
         for (HostVirtualNic nic : getNics(hostSystem)) {
@@ -333,6 +334,7 @@ public class EsxHostDiscoveryAdapter extends AbstractHostDiscoveryAdapter {
         }
         removeDiscoveredInterfaces(oldIpInterfaces);
 
+        info(String.format("Discovering initiators for %s", targetHost.forDisplay()));
         Iterables.addAll(oldInitiators, getInitiators(targetHost));
         for (HostHostBusAdapter hba : getHostBusAdapters(hostSystem)) {
             if (hba instanceof HostFibreChannelHba) {

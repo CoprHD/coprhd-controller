@@ -3377,7 +3377,8 @@ public class ExportGroupService extends TaskResourceService {
             Boolean useExistingPaths) {
         Set<URI> affectedGroupURIs = new HashSet<URI>();
         // Add our Export Group to the affected resources.
-        affectedGroupURIs.add(exportGroup.getId()); 
+        affectedGroupURIs.add(exportGroup.getId());
+        response.getAffectedExportGroups().add(toNamedRelatedResource(exportGroup, exportGroup.getLabel()));
         
         if (!Type.vmax.name().equalsIgnoreCase(system.getSystemType()) &&
                 !Type.vplex.name().equalsIgnoreCase(system.getSystemType())) {
@@ -3407,6 +3408,13 @@ public class ExportGroupService extends TaskResourceService {
         // Find the Export Masks for this Storage System 
         for (ExportMask exportMask : exportMasks) {
             // For VPLEX, must verify the Export Mask is in the appropriate Varray
+            if (system.getSystemType().equalsIgnoreCase(StorageSystem.Type.vplex.name()) &&
+                    !ExportMaskUtils.exportMaskInVarray(_dbClient, exportMask, varray)) {
+                _log.info(String.format("VPLEX ExportMask %s (%s) not in selected varray %s, skipping", 
+                        exportMask.getMaskName(), exportMask.getId(), varray));
+                continue;
+            }
+            // For other array types, throw error if ports not in the varray
             List<URI> portsNotInVarray = ExportMaskUtils.getExportMaskStoragePortsNotInVarray(_dbClient, exportMask, varray);
             if (!portsNotInVarray.isEmpty() && !useExistingPaths) {
                 String errorPorts = Joiner.on(',').join(portsNotInVarray);

@@ -17,7 +17,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
-import com.emc.storageos.management.backup.BackupType;
 import com.emc.storageos.management.backup.ExternalServerType;
 import com.emc.storageos.management.backup.util.BackupClient;
 import com.emc.storageos.management.backup.util.CifsClient;

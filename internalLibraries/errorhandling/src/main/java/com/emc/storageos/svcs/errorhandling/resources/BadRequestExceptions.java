@@ -1750,6 +1750,9 @@ public interface BadRequestExceptions {
     public BadRequestException groupNameCannotExceedEightCharactersoronlyAlphaNumericAllowed();
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException groupNameonlyAlphaNumericAllowed();
+
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException cannotRemovePoolWithResources(final Set<String> poolIds);
 
     @DeclareServiceCode(ServiceCode.OBJ_PROJECT_INVALID)

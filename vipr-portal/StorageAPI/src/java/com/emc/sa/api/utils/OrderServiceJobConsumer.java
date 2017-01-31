@@ -22,8 +22,6 @@ import com.emc.storageos.db.client.model.uimodels.OrderStatus;
 
 import com.emc.storageos.security.audit.AuditLogManager;
 
-import com.emc.storageos.services.OperationTypeEnum;
-
 import com.emc.storageos.svcs.errorhandling.resources.BadRequestException;
 
 import com.emc.sa.api.OrderService;
@@ -38,15 +36,13 @@ public class OrderServiceJobConsumer extends DistributedQueueConsumer<OrderServi
     OrderManager orderManager;
     OrderService orderService;
 
-    AuditLogManager auditLogManager;
+    private long maxOrderDeletedPerGC;
 
-    public OrderServiceJobConsumer(OrderService service, AuditLogManager auditLogManager,
-                                   DbClient client, OrderManager manager) {
+    public OrderServiceJobConsumer(OrderService service, DbClient client, OrderManager manager, long max) {
         dbClient = client;
         orderManager = manager;
         orderService = service;
-
-        this.auditLogManager = auditLogManager;
+        maxOrderDeletedPerGC = max;
     }
 
     /**
@@ -73,11 +69,11 @@ public class OrderServiceJobConsumer extends DistributedQueueConsumer<OrderServi
                 long total = 0;
                 long numberOfOrdersDeletedInGC = orderService.getDeletedOrdersInCurrentPeriod(jobStatus);
                 long numberOfOrdersCanBeDeletedInGC =
-                        OrderService.MAX_DELETED_ORDERS_PER_GC_PERIOD - numberOfOrdersDeletedInGC;
+                        maxOrderDeletedPerGC - numberOfOrdersDeletedInGC;
 
                 if (numberOfOrdersCanBeDeletedInGC <= 0) {
                     log.info("Max number of order objects ({}) have been deleted in the current GC period",
-                            OrderService.MAX_DELETED_ORDERS_PER_GC_PERIOD);
+                            maxOrderDeletedPerGC);
                     Thread.sleep(CHECK_INTERVAL);
                     continue;
                 }
@@ -129,16 +125,14 @@ public class OrderServiceJobConsumer extends DistributedQueueConsumer<OrderServi
                 for (URI id : orderIds) {
                     Order order = orderManager.getOrderById(id);
                     try {
+                        log.info("To delete order {}", order.getId());
                         orderManager.deleteOrder(order);
                         nDeleted++;
-                        auditLog(order, true, jobStatus.getTenantId(), jobStatus.getUserId());
                     } catch (BadRequestException e) {
                         log.warn("Failed to delete order {} e=", id, e);
-                        auditLog(order, false, jobStatus.getTenantId(), jobStatus.getUserId());
                         nFailed++;
                     } catch (Exception e) {
                         log.warn("Failed to delete order={} e=", id, e);
-                        auditLog(order, false, jobStatus.getTenantId(), jobStatus.getUserId());
                         nFailed++;
                     }
                 }
@@ -165,12 +159,5 @@ public class OrderServiceJobConsumer extends DistributedQueueConsumer<OrderServi
 
         log.info("remove order job from the queue");
         callback.itemProcessed();
-    }
-
-    private void auditLog(Order order, boolean success, URI tid, URI uid) {
-        String operationStatus = success ? AuditLogManager.AUDITLOG_SUCCESS : AuditLogManager.AUDITLOG_FAILURE;
-        auditLogManager.recordAuditLog(tid, uid, orderService.getServiceType(),
-                OperationTypeEnum.DELETE_ORDER, System.currentTimeMillis(),
-                operationStatus, null, order.auditParameters());
     }
 }

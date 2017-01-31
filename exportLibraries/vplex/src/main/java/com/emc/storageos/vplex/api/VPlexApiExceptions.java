@@ -844,4 +844,7 @@ public interface VPlexApiExceptions {
     
     @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
     public VPlexApiException failedGettingDistributedDevice(final String name);
+
+    @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
+    VPlexApiException hluRetrievalFailed(final String message, final Throwable cause);
 }

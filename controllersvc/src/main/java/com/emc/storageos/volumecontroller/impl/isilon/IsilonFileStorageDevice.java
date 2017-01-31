@@ -108,6 +108,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
     private static final String EXPORT_OP_NAME = "Snapshot Export";
     private static final String SHARE_OP_NAME = "Snapshot Share";
     public static final long SEC_IN_MILLI = 1000L;
+    private static final String STR_WITH_NO_SPECIAL_SYMBOLS = "[^A-Za-z0-9_\\-/]";
 
     private IsilonApiFactory _factory;
     private HashMap<String, String> configinfo;
@@ -1063,7 +1064,6 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             _log.error("doExport failed.", e);
             return BiosCommandResult.createErrorResult(e);
         }
-
     }
 
     @Override
@@ -1434,7 +1434,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         // set quota - save the quota id to extensions
         String qid = isi.createQuota(qDirPath, fsSize, bThresholdsIncludeOverhead,
                 bIncludeSnapshots, qDirSize, notificationLimitSize != null ? notificationLimitSize : 0L,
-                softLimitSize != null ? softLimitSize : 0L, softGracePeriod != null ? softGracePeriod : 0L);
+                        softLimitSize != null ? softLimitSize : 0L, softGracePeriod != null ? softGracePeriod : 0L);
         return qid;
     }
 
@@ -2914,16 +2914,27 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         return isiMatchedPolicy;
     }
 
+    private String getNameWithNoSpecialCharacters(String str, FileDeviceInputOutput args) {
+        // Custom configuration using the below two level regular expressions to generate name with no special symbols.
+        // Using the same here.
+        String regex = STR_WITH_NO_SPECIAL_SYMBOLS;
+        String path = str.replaceAll(regex, "");
+        if (path != null && !path.isEmpty()) {
+            path = args.getPathWithoutSpecialCharacters(path);
+        }
+        return path;
+    }
+
     private String generatePathForPolicy(FilePolicy filePolicy, FileShare fileShare, FileDeviceInputOutput args) {
         String policyPath = "";
         FilePolicyApplyLevel applyLevel = FilePolicyApplyLevel.valueOf(filePolicy.getApplyAt());
         switch (applyLevel) {
             case vpool:
-                String vpool = args.getVPoolNameWithNoSpecialCharacters();
+                String vpool = getNameWithNoSpecialCharacters(args.getVPool().getLabel(), args);
                 policyPath = fileShare.getNativeId().split(vpool)[0] + vpool;
                 break;
             case project:
-                String project = args.getProjectNameWithNoSpecialCharacters();
+                String project = getNameWithNoSpecialCharacters(args.getProject().getLabel(), args);
                 policyPath = fileShare.getNativeId().split(project)[0] + project;
                 break;
             case file_system:
@@ -2936,12 +2947,18 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
     }
 
     private static boolean isSnapshotScheduleExistsOnIsilon(ArrayList<IsilonSnapshotSchedule> isiSnapshotPolicies, String path) {
+        IsilonSnapshotSchedule isilonSnapshotSchedule = getIsilonSnapshotScheduleForPath(isiSnapshotPolicies, path);
+        return (isilonSnapshotSchedule == null) ? false : true;
+    }
+
+    private static IsilonSnapshotSchedule getIsilonSnapshotScheduleForPath(ArrayList<IsilonSnapshotSchedule> isiSnapshotPolicies,
+            String path) {
         for (IsilonSnapshotSchedule isiSnapshotPolicy : isiSnapshotPolicies) {
             if (isiSnapshotPolicy.getPath().equals(path)) {
-                return true;
+                return isiSnapshotPolicy;
             }
         }
-        return false;
+        return null;
     }
 
     private static boolean isReplicationPolicyExistsOnIsilon(ArrayList<IsilonSyncPolicy> isiReplicationPolicies, String path,
@@ -3078,6 +3095,102 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             }
         }
         return;
+    }
+
+    @Override
+    public BiosCommandResult checkFilePolicyExistsOrCreate(StorageSystem storageObj, FileDeviceInputOutput args) {
+
+        VirtualNAS vNAS = args.getvNAS();
+        FilePolicy filePolicy = args.getFileProtectionPolicy();
+        boolean vNASExists = vNAS == null ? false : true;
+        String filePolicyBasePath = null;
+        BiosCommandResult result = null;
+        StringBuffer snapshotPolicySceduleNamePrefex = new StringBuffer();
+
+        if (args.getVPool() != null) {
+            snapshotPolicySceduleNamePrefex.append(args.getVPoolNameWithNoSpecialCharacters());
+        }
+
+        if (vNASExists) {
+            snapshotPolicySceduleNamePrefex.append("_").append(args.getVNASNameWithNoSpecialCharacters());
+        }
+
+        if (args.getTenantOrg() != null) {
+            snapshotPolicySceduleNamePrefex.append("_").append(args.getTenantNameWithNoSpecialCharacters());
+        }
+
+        if (args.getProject() != null) {
+            snapshotPolicySceduleNamePrefex.append("_").append(args.getProjectNameWithNoSpecialCharacters());
+        }
+
+        String customPath = getCustomPath(storageObj, args);
+
+        if (vNASExists) {
+            String vNASPath = vNAS.getBaseDirPath();
+            if (vNASPath != null && !vNASPath.trim().isEmpty()) {
+                filePolicyBasePath = vNASPath + FW_SLASH + customPath;
+            } else {
+                filePolicyBasePath = IFS_ROOT + FW_SLASH + getSystemAccessZoneNamespace() + FW_SLASH + customPath;
+            }
+
+        } else {
+            filePolicyBasePath = IFS_ROOT + FW_SLASH + getSystemAccessZoneNamespace() + FW_SLASH + customPath;
+        }
+
+        filePolicyBasePath = filePolicyBasePath.replaceAll("/+", "/").replaceAll("/$", "");
+
+        _log.info("Computed file policy path: {}", filePolicyBasePath);
+
+        try {
+            IsilonApi isi = getIsilonDevice(storageObj);
+            if (FilePolicy.FilePolicyType.file_snapshot.name().equals(filePolicy.getFilePolicyType())) {
+                ArrayList<IsilonSnapshotSchedule> isiSnapshotPolicies = isi.getSnapshotSchedules().getList();
+                IsilonSnapshotSchedule isilonSnapshotSchedule = getIsilonSnapshotScheduleForPath(isiSnapshotPolicies, filePolicyBasePath);
+                if (isilonSnapshotSchedule != null) {
+
+                    String filePolicySnapshotSchedule = getIsilonPolicySchedule(filePolicy);
+                    _log.info("Comparing snapshot schedule between CoprHD policy: {} and Isilon policy: {}.", filePolicySnapshotSchedule,
+                            isilonSnapshotSchedule.getSchedule());
+                    if (isilonSnapshotSchedule.getSchedule().equalsIgnoreCase(filePolicySnapshotSchedule)) {
+                        result = BiosCommandResult.createSuccessfulResult();
+                    } else {
+                        _log.error("Snapshot schedule differs between Isilon policy and CoprHD file policy.");
+                        throw DeviceControllerException.exceptions.assignFilePolicyFailed(filePolicy.getFilePolicyName(),
+                                filePolicy.getApplyAt(),
+                                "File policy exists for path: " + filePolicyBasePath);
+                    }
+                } else {
+                    // Create snapshot policy.
+                    createIsilonSnapshotPolicySchedule(storageObj, filePolicy, filePolicyBasePath,
+                            snapshotPolicySceduleNamePrefex.toString());
+                    result = BiosCommandResult.createSuccessfulResult();
+                }
+            }
+        } catch (IsilonException e) {
+            _log.error("Assigning file policy failed.", e);
+            result = BiosCommandResult.createErrorResult(e);
+        }
+        return result;
+    }
+
+    private String
+    createIsilonSnapshotPolicySchedule(StorageSystem storageObj, FilePolicy filePolicy,
+            String path, String snapshotSchedulePolicyNamePrefix) {
+        String snapshotScheduleName = snapshotSchedulePolicyNamePrefix + "_" + filePolicy.getFilePolicyName();
+
+        String pattern = snapshotScheduleName + "_%Y-%m-%d_%H-%M";
+        String scheduleValue = getIsilonPolicySchedule(filePolicy);
+        Integer expireValue = getIsilonSnapshotExpireValue(filePolicy);
+
+        _log.info("File Policy : {} creation started", filePolicy.toString());
+        try {
+            IsilonApi isi = getIsilonDevice(storageObj);
+            isi.createDir(path, true);
+            String scheduleId = isi.createSnapshotSchedule(snapshotScheduleName, path, scheduleValue, pattern, expireValue);
+            return scheduleId;
+        } catch (IsilonException e) {
+            throw e;
+        }
     }
 
     @Override

@@ -277,6 +277,13 @@ public abstract class AbstractFileStorageDevice implements FileStorageDevice,
     }
 
     @Override
+    public BiosCommandResult
+            checkFilePolicyExistsOrCreate(StorageSystem storageObj, FileDeviceInputOutput args) {
+        throw DeviceControllerException.exceptions.operationNotSupported();
+    }
+
+
+    @Override
     public BiosCommandResult checkFileReplicationPolicyExistsOrCreate(FileStorageSystemAssociation association,
             FileDeviceInputOutput args) {
         throw DeviceControllerException.exceptions.operationNotSupported();

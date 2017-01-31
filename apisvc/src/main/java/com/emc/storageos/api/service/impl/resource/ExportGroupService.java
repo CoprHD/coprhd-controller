@@ -3203,6 +3203,7 @@ public class ExportGroupService extends TaskResourceService {
         }
         validateInitiatorsInExportGroup(exportGroup);
         validateExportGroupNoPendingEvents(exportGroup);
+        validateHostsInExportGroup(exportGroup, param.getHosts());
         
         // Validate storage system 
         ArgValidator.checkUri(param.getStorageSystem());
@@ -3499,6 +3500,37 @@ public class ExportGroupService extends TaskResourceService {
             }
         }
     }
+
+	/**
+	 * Validates that the hosts in the exportgroup against the passed in list of hosts.
+	 * If there is atleast one host that doesnt match, an exception is thrown.
+	 * @param exportGroup
+	 * @param hosts
+	 */
+	private void validateHostsInExportGroup(ExportGroup exportGroup, Set<URI> hosts) {
+		StringSet egHosts = exportGroup.getHosts();
+        Set<URI> egHostURIs = new HashSet<URI>();
+        for (String egHost : egHosts) {
+        	egHostURIs.add(URI.create(egHost));
+        }
+        
+        Set<Host> mismatchHosts = new HashSet<Host>();
+        for (URI host : hosts) {
+        	if (!egHostURIs.contains(host)) {
+        		Host h = _dbClient.queryObject(Host.class, host);
+        		_log.info("Host %s is not part of the specified ExportGroup", h.getHostName());
+        		mismatchHosts.add(h);
+        	}
+        }
+        
+        if (mismatchHosts.size() > 0) {
+        	StringBuilder mismatchHostsStr =  new StringBuilder();
+        	for (Host mismatchHost : mismatchHosts) {
+        		mismatchHostsStr.append(mismatchHost.getHostName() + " ");
+        	}
+        	throw APIException.badRequests.exportPathAdjustmentSystemExportGroupHostsMismatch(mismatchHostsStr.toString());
+        }
+	}
    
     /**
      * Export paths adjustment

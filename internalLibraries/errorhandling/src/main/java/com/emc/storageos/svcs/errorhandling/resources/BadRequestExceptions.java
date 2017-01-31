@@ -3162,6 +3162,9 @@ public interface BadRequestExceptions {
     public BadRequestException exportPathAdjustmentSystemExportGroupNotMatch(final String exportGroup, String system);
     
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException exportPathAdjustmentSystemExportGroupHostsMismatch(String mismatchHosts);
+    
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException exportPathAdjustmentRemovingPathsNotExist(final String initiator);
     
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)

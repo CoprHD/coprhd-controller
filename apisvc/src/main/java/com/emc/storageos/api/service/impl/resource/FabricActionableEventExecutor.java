@@ -19,6 +19,7 @@ import org.slf4j.LoggerFactory;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
+import com.emc.storageos.db.client.model.ActionableEvent;
 import com.emc.storageos.db.client.model.FCZoneReference;
 import com.emc.storageos.db.client.model.Network;
 import com.emc.storageos.db.client.model.Operation;
@@ -59,12 +60,12 @@ public class FabricActionableEventExecutor  implements EventExecutor {
      * @param newName - New nativeid of the network
      * @return
      */
-    public TaskResourceRep fabricNameChange(URI networkURI, String existingName, String newName) {
+    public TaskResourceRep fabricNameChange(URI networkURI, String existingName, String newName, URI eventId) {
         
         String networkWWN = "";
         Network network = _dbClient.queryObject(Network.class, networkURI);
         if(null != network) {
-            networkWWN = network.getNativeGuid().split("+")[2];
+            networkWWN = network.getNativeGuid().split("\\+")[2];
         }
         
         String taskId = UUID.randomUUID().toString();
@@ -115,23 +116,43 @@ public class FabricActionableEventExecutor  implements EventExecutor {
             }
             network.setLabel(newLabel);
             _dbClient.updateObject(network);    
+            _dbClient.ready(Network.class, networkURI, taskId);
             
         } catch(NetworkDeviceControllerException ndce) {
             _log.error(ndce.getLocalizedMessage(), ndce);
+            markEventFailed(eventId);
             _dbClient.error(Network.class, networkURI, taskId, ndce);
             
         } catch (Exception ex) {
             String message = "Update fabric name caught an exception and failed";
             _log.error(message, ex);
             InternalServerErrorException serviceError = APIException.internalServerErrors.updateObjectError(networkURI.toString(), ex);
+            markEventFailed(eventId);
             _dbClient.error(Network.class, networkURI, taskId, serviceError);
         }
-            
-        
-        _dbClient.ready(Network.class, networkURI, taskId);
+
         return toTask(network, taskId, op);
         
         
+    }
+    
+    public void markEventFailed(URI eventId) {
+        ActionableEvent event = _dbClient.queryObject(ActionableEvent.class, eventId);
+        if (event != null) {
+            event.setEventStatus(ActionableEvent.Status.failed.name());
+            _dbClient.updateObject(event);
+        }
+    }
+    
+    /**
+     * Decline method for fabric rename event
+     * 
+     * @param network
+     * @param eventId
+     * @return
+     */
+    public TaskResourceRep fabricNameChangeDecline(URI network, URI eventId) {
+        return null;
     }
 
 }

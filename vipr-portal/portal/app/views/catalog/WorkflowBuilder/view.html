@@ -7,6 +7,7 @@
 #{script 'workflowbuilder.js'/}
 #{script 'jstree.min.js'/}
 #{createShellPrimitive /}
+#{createLocalAnsiblePrimitive ansibleResourceNames/}
 
 <style>
     .dl-horizontal dt
@@ -17,6 +18,13 @@
     .dl-horizontal dd
     {
         padding-bottom: 10px;
+    }
+    .modal-body {
+        height:250px;
+        overflow:auto;
+    }
+    .modal-footer {
+        border-top: none;
     }
 </style>
 
@@ -45,7 +53,7 @@
                                     <li role="separator" class="divider"></li>
                                     <li class="dropdown-header">Primitives</li>
                                     <li><a  href="#" data-target="#shellPrimitiveDialog" data-toggle="modal">Shell Script</a></li>
-                                    <li><a  href="#">Local Ansible</a></li>
+                                    <li><a  href="#" data-target="#localAnsiblePrimitiveDialog" data-toggle="modal">Local Ansible</a></li>
                                     <li><a  href="#">REST API</a></li>
                                 </ul>
                             </div>

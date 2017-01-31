@@ -287,7 +287,7 @@ public class UCSMServiceImpl implements UCSMService {
                             for (JAXBElement<?> managedObject : configSet.getManagedObject()) {
                                 if (managedObject.getValue() instanceof LsServer) {
                                     LsServer lsServer = (LsServer) managedObject.getValue();
-                                    if (serviceProfilesOnly == true && !(lsServer.getType().equals("instance"))) {
+                                    if (serviceProfilesOnly && !(lsServer.getType().equals("instance"))) {
                                         continue;
                                     }
                                     lsServers.add(lsServer);

@@ -26,7 +26,6 @@ public class UCSServiceProfile extends DiscoveredSystemObject {
         setChanged("name");
     }
 
-//    @RelationIndex(cf = "RelationIndex", type = Host.class)
     @Name("host")
     public URI getHost() {
         return host;

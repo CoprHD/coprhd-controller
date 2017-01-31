@@ -224,13 +224,15 @@ public class EventService extends TaggedResource {
             ActionableEventExecutor executor = new ActionableEventExecutor(_dbClient, controller);
             Object[] parameters = Arrays.copyOf(eventMethod.getArgs(), eventMethod.getArgs().length + 1);
             parameters[parameters.length - 1] = event.getId();
-            TaskResourceRep result = (TaskResourceRep) classMethod.invoke(executor, parameters);
             event.setEventStatus(eventStatus);
+            _dbClient.updateObject(event); 
+            TaskResourceRep result = (TaskResourceRep) classMethod.invoke(executor, parameters);
             if (result != null && result.getId() != null) {
                 Collection<String> taskCollection = Lists.newArrayList(result.getId().toString());
+                event = _dbClient.queryObject(ActionableEvent.class, event.getId());
                 event.setTaskIds(new StringSet(taskCollection));
+                _dbClient.updateObject(event);
             }
-            _dbClient.updateObject(event);
             taskList.addTask(result);
             return taskList;
         } catch (SecurityException | IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {

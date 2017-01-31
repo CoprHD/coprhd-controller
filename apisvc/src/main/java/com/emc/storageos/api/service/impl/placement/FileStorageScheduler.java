@@ -398,7 +398,7 @@ public class FileStorageScheduler implements Scheduler {
             _log.info(
                     "Get matching recommendations based on assigned VNAS to project {}",
                     project.getLabel());
-            getVNASServersInProject(project, vArrayURI, vPool, invalidNasServers);
+            vNASList = getVNASServersInProject(project, vArrayURI, vPool, invalidNasServers);
         }
 
         if (vNASList == null || vNASList.isEmpty()) {
@@ -585,7 +585,7 @@ public class FileStorageScheduler implements Scheduler {
                     iterator.remove();
                     invalidNasServers.add(vNAS);
                 } else if (!vNAS.isNotAssignedToProject()) {
-                    if (!vNAS.getAssociatedProjects().contains(project.getId())) {
+                    if (project != null && !vNAS.getAssociatedProjects().contains(project.getId())) {
                         _log.info("Removing vNAS {} as it is assigned to project",
                                 vNAS.getNasName());
                         iterator.remove();
@@ -642,7 +642,7 @@ public class FileStorageScheduler implements Scheduler {
                                         storagePort.getRegistrationStatus())
                         || (StoragePort.OperationalStatus.valueOf(storagePort
                                 .getOperationalStatus()))
-                                        .equals(StoragePort.OperationalStatus.NOT_OK)
+                                                .equals(StoragePort.OperationalStatus.NOT_OK)
                         || !DiscoveredDataObject.CompatibilityStatus.COMPATIBLE
                                 .name().equals(
                                         storagePort.getCompatibilityStatus())

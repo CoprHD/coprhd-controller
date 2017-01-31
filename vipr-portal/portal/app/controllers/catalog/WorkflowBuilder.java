@@ -379,7 +379,7 @@ public class WorkflowBuilder extends Controller {
 
         //TODO
         public void validate(){
-
+            // check if script is not null
         }
 
         public String getName() {
@@ -434,7 +434,33 @@ public class WorkflowBuilder extends Controller {
 
     public static void create(@Valid ShellScriptPrimitiveForm shellPrimitive){
         shellPrimitive.validate();
-        //TODO : call APIs to load script and create this primitive
+
+        try {
+            PrimitiveResourceRestRep primitiveResourceRestRep = getCatalogClient().orchestrationPrimitives().createPrimitiveResource("SCRIPT", shellPrimitive.script, shellPrimitive.scriptName);
+            if (null != primitiveResourceRestRep) {
+                PrimitiveCreateParam primitiveCreateParam = new PrimitiveCreateParam();
+                //TODO - remove this hardcoded string once the enum is available
+                primitiveCreateParam.setType("SCRIPT");
+                primitiveCreateParam.setName(shellPrimitive.getName());
+                primitiveCreateParam.setDescription(shellPrimitive.getDescription());
+                primitiveCreateParam.setResource(primitiveResourceRestRep.getId());
+                if (StringUtils.isNotEmpty(shellPrimitive.getInputs())) {
+                    primitiveCreateParam.setInput(Arrays.asList(shellPrimitive.getInputs().split(",")));
+                }
+                if (StringUtils.isNotEmpty(shellPrimitive.getOutputs())) {
+                    primitiveCreateParam.setOutput(Arrays.asList(shellPrimitive.getOutputs().split(",")));
+                }
+                getCatalogClient().orchestrationPrimitives().createPrimitive(primitiveCreateParam);
+            }
+            else {
+                //TODO: throw error
+            }
+
+        }
+        catch (final Exception e) {
+            Logger.error(e.getMessage());
+        }
+
         view();
     }
 	
@@ -442,11 +468,11 @@ public class WorkflowBuilder extends Controller {
         @Required
         private String name;
         public String description;
-
         private boolean existing;
         private String existingResource;
         private File ansiblePackage;
         private String ansiblePackageName;
+        @Required
         private String ansiblePlaybook;
         @Required
         private String hostFilePath;

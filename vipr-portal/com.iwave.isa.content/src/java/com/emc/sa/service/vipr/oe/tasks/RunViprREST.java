@@ -26,7 +26,6 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
 import org.apache.commons.io.IOUtils;
 import org.slf4j.LoggerFactory;
 import org.springframework.web.util.UriTemplate;
@@ -38,6 +37,7 @@ import com.emc.sa.service.vipr.oe.OrchestrationUtils;
 import com.emc.sa.service.vipr.tasks.ViPRExecutionTask;
 import com.emc.storageos.primitives.ViPRPrimitive;
 import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorException;
+import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
 import com.emc.vipr.client.impl.RestClient;
 import com.sun.jersey.api.client.ClientResponse;
 

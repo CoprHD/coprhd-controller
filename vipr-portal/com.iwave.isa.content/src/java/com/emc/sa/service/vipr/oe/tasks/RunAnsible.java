@@ -25,6 +25,8 @@ import com.emc.storageos.model.orchestration.OrchestrationWorkflowDocument.Input
 import com.emc.storageos.model.orchestration.OrchestrationWorkflowDocument.Step;
 import com.emc.storageos.primitives.Primitive.StepType;
 import com.emc.storageos.services.util.Exec;
+import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorException;
+
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.Charset;
@@ -37,7 +39,7 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorException;
+
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.LoggerFactory;

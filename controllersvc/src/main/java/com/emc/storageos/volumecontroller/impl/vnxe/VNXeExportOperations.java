@@ -129,7 +129,9 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
                 if (URIUtil.isType(volUri, Volume.class)) {
                     result = apiClient.exportLun(host, nativeId, newhlu);
                     mask.addVolume(volUri, result.getHlu());
-                    mappedVolumes.add(volUri);
+                    if (result.isNewAccess()) {
+                        mappedVolumes.add(volUri);
+                    }
                 } else if (URIUtil.isType(volUri, BlockSnapshot.class)) {
                     if (BlockObject.checkForRP(_dbClient, volUri)) {
                         _logger.info(String.format(
@@ -141,7 +143,9 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
                         setSnapWWN(apiClient, blockObject, nativeId);
                     }
                     mask.addVolume(volUri, result.getHlu());
-                    mappedVolumes.add(volUri);
+                    if (result.isNewAccess()) {
+                        mappedVolumes.add(volUri);
+                    }
                 }
             }
 
@@ -460,11 +464,15 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
                 if (URIUtil.isType(volUri, Volume.class)) {
                     result = apiClient.exportLun(host, nativeId, newhlu);
                     exportMask.addVolume(volUri, result.getHlu());
-                    mappedVolumes.add(volUri);
+                    if (result.isNewAccess()) {
+                        mappedVolumes.add(volUri);
+                    }
                 } else if (URIUtil.isType(volUri, BlockSnapshot.class)) {
                     result = apiClient.exportSnap(host, nativeId, newhlu);
                     exportMask.addVolume(volUri, result.getHlu());
-                    mappedVolumes.add(volUri);
+                    if (result.isNewAccess()) {
+                        mappedVolumes.add(volUri);
+                    }
                     String snapWWN = setSnapWWN(apiClient, blockObject, nativeId);
                     if (isVplexVolumeFromSnap) {
                         Volume backendVol = _dbClient.queryObject(Volume.class, vplexBackendVol);

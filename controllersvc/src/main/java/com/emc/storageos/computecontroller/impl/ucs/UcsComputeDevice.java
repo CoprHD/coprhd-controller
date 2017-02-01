@@ -830,7 +830,6 @@ public class UcsComputeDevice implements ComputeDevice {
             LOGGER.error("Unable to createLsServer...", e);
             WorkflowStepCompleter.stepFailed(stepId,
                     ComputeSystemControllerException.exceptions.unableToProvisionHost(host.getHostName(), cs.getNativeGuid(), e));
-            return null;
         }
 
         WorkflowStepCompleter.stepSucceded(stepId);

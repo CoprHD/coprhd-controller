@@ -418,7 +418,7 @@ public class UcsDiscoveryWorker {
     }
 
     private void reconcileServiceProfiles(ComputeSystem cs, List<LsServer> allLsServers){
-        _log.info("Reconciling LsServers");
+        _log.info("Reconciling UCS Service Profiles");
 
         URIQueryResultList uris = new URIQueryResultList();
         _dbClient.queryByConstraint(ContainmentConstraint.Factory
@@ -2262,7 +2262,7 @@ public class UcsDiscoveryWorker {
         List<UCSServiceProfile> serviceProfilesWithoutHost = new ArrayList<UCSServiceProfile>();
         for (UCSServiceProfile serviceProfile : allServiceProfiles) {
             if (NullColumnValueGetter.isNullURI(serviceProfile.getHost())){
-                 if ((serviceProfile.getUuid() == null) || serviceProfile.getInactive()) {
+                 if (NullColumnValueGetter.isNullValue(serviceProfile.getUuid()) || serviceProfile.getInactive()) {
                     _log.debug("Skipping: service profile "+ serviceProfile.getDn() +" is inactive or has no UUID");
                     continue;  // skip if no UUID or not active
                  }

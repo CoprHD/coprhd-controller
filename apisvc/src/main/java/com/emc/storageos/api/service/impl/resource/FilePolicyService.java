@@ -320,11 +320,6 @@ public class FilePolicyService extends TaskResourceService {
 
         ArgValidator.checkReference(FilePolicy.class, id, checkForDelete(filepolicy));
 
-        String policyAppliedAt = filepolicy.getApplyAt();
-        if (policyAppliedAt != null) {
-            _log.error("Delete file policy failed because the policy is applied at " + policyAppliedAt);
-            throw APIException.badRequests.failedToDeleteFilePolicy(filepolicy.getLabel(), "This policy is applied at: " + policyAppliedAt);
-        }
         StringSet assignedResources = filepolicy.getAssignedResources();
 
         if (assignedResources != null && !assignedResources.isEmpty()) {

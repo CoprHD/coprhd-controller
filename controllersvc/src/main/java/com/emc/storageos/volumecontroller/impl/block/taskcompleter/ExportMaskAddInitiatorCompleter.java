@@ -5,27 +5,29 @@
 
 package com.emc.storageos.volumecontroller.impl.block.taskcompleter;
 
+import static com.emc.storageos.volumecontroller.impl.smis.vmax.VmaxExportOperationContext.OPERATION_ADD_EXISTING_INITIATOR_TO_EXPORT_GROUP;
+import static com.emc.storageos.volumecontroller.impl.smis.vmax.VmaxExportOperationContext.OPERATION_ADD_INITIATORS_TO_INITIATOR_GROUP;
+import static com.emc.storageos.volumecontroller.impl.smis.vmax.VmaxExportOperationContext.OPERATION_ADD_PORTS_TO_PORT_GROUP;
+
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.emc.storageos.volumecontroller.impl.utils.ExportOperationContext;
-import com.emc.storageos.volumecontroller.impl.utils.ExportOperationContext.ExportOperationContextOperation;
-import com.emc.storageos.workflow.WorkflowService;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.Operation;
+import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.util.ExportUtils;
-
-import static com.emc.storageos.volumecontroller.impl.smis.vmax.VmaxExportOperationContext.OPERATION_ADD_EXISTING_INITIATOR_TO_EXPORT_GROUP;
-import static com.emc.storageos.volumecontroller.impl.smis.vmax.VmaxExportOperationContext.OPERATION_ADD_PORTS_TO_PORT_GROUP;
-import static com.emc.storageos.volumecontroller.impl.smis.vmax.VmaxExportOperationContext.OPERATION_ADD_INITIATORS_TO_INITIATOR_GROUP;
+import com.emc.storageos.volumecontroller.impl.utils.ExportOperationContext;
+import com.emc.storageos.volumecontroller.impl.utils.ExportOperationContext.ExportOperationContextOperation;
+import com.emc.storageos.workflow.WorkflowService;
 
 public class ExportMaskAddInitiatorCompleter extends ExportMaskInitiatorCompleter {
     private static final org.slf4j.Logger _log = LoggerFactory
@@ -106,43 +108,72 @@ public class ExportMaskAddInitiatorCompleter extends ExportMaskInitiatorComplete
      * @return          true, if the status is ready or the volumes were added despite error status.
      */
     private boolean shouldUpdateDatabase(Operation.Status status) {
-        return wereInitiatorsAdded() || status == Operation.Status.ready;
+        return wereInitiatorsOrPortsPhysicallyAdded() || status == Operation.Status.ready;
     }
 
-    private boolean wereInitiatorsAdded() {
-        boolean initsAdded = false;
+    /**
+     * This method will determine if any initiators/ports were added as a result of this operation.
+     * 
+     * @return true if initiators were added, otherwise false.
+     */
+    private boolean wereInitiatorsOrPortsPhysicallyAdded() {
+        // If there were initiators or ports added to the mask (physically), we will have a context
         ExportOperationContext context = (ExportOperationContext) WorkflowService.getInstance().loadStepData(getOpId());
-        if (context != null) {
-            List<ExportOperationContext.ExportOperationContextOperation> operations = context.getOperations();
-            if (operations != null) {
-                for (ExportOperationContextOperation op : operations) {
-                    if ((op.getOperation().equals(OPERATION_ADD_PORTS_TO_PORT_GROUP)) ||
-                            (op.getOperation().equals(OPERATION_ADD_EXISTING_INITIATOR_TO_EXPORT_GROUP)) ||
-                            (op.getOperation().equals(OPERATION_ADD_INITIATORS_TO_INITIATOR_GROUP))) {
-                        List<Object> opArgs = op.getArgs();
-                        if (opArgs != null && !opArgs.isEmpty()) {
-                            for (Object opArg : opArgs) {
-                                if (opArg instanceof List) {
-                                    List<Object> opArgObjList = (List<Object>) opArg;
-                                    if (!opArgObjList.isEmpty()) {
-                                        Object opArgObjListEntry = opArgObjList.get(0);
-                                        if (opArgObjListEntry instanceof Initiator) {
-                                            initsAdded = true;
-                                            break;
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    
-                    if (initsAdded) {
-                        break;
-                    }
+        if (context == null) {
+            return false;
+        }
+
+        // If initiators/ports were added to the mask, there will be operations hanging off the context
+        List<ExportOperationContext.ExportOperationContextOperation> operations = context.getOperations();
+        if (operations == null || operations.isEmpty()) {
+            return false;
+        }
+
+        // Go through the operations in the context and find at least one initiator/port object.
+        for (ExportOperationContextOperation op : operations) {
+
+            // These are the specific operations that add initiators/ports to the mask.
+            // So if the operation saved isn't one of these, skip it.
+            if (!((op.getOperation().equals(OPERATION_ADD_PORTS_TO_PORT_GROUP)) ||
+                    (op.getOperation().equals(OPERATION_ADD_EXISTING_INITIATOR_TO_EXPORT_GROUP)) ||
+                    (op.getOperation().equals(OPERATION_ADD_INITIATORS_TO_INITIATOR_GROUP)))) {
+                continue;
+            }
+
+            // Check for valid arguments for this operation. If there are none, skip it.
+            List<Object> opArgs = op.getArgs();
+            if (opArgs == null || opArgs.isEmpty()) {
+                continue;
+            }
+
+            // Look for a List<URI> object within the list.
+            for (Object opArg : opArgs) {
+
+                // We're only interested in List types, skip all others
+                if (!(opArg instanceof List)) {
+                    continue;
+                }
+
+                // Cast to a List<Object> to see if it contains anything.
+                List<Object> opArgObjList = (List<Object>) opArg;
+                if (opArgObjList.isEmpty()) {
+                    continue;
+                }
+
+                // Grab the first object of the list. We assume the List contains same-typed objects
+                Object opArgObjListEntry = opArgObjList.get(0);
+                if (!(opArgObjListEntry instanceof URI)) {
+                    continue;
+                }
+
+                // If the object is a URI of type Initiator or StoragePort, then we have added an initiator or port
+                URI uri = (URI) opArgObjListEntry;
+                if (URIUtil.isType(uri, Initiator.class) || URIUtil.isType(uri, StoragePort.class)) {
+                    return true;
                 }
             }
         }
 
-        return initsAdded;
+        return false;
     }
 }

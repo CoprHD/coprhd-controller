@@ -335,8 +335,6 @@ public abstract class AbstractConsistencyGroupManager implements ConsistencyGrou
                         cgRef, vplexSystemURI.toString()));
                 cg.removeSystemConsistencyGroup(vplexSystemURI.toString(), cgRef);
             }
-
-            dbClient.updateObject(cg);
         }
 
         // Only mark the ViPR CG for deletion when all associated VPlex CGs

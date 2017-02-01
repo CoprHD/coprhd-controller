@@ -656,29 +656,6 @@ public final class FileOrchestrationUtils {
         }
     }
 
-    public static void updateUnAssignedResource(FilePolicy filePolicy, PolicyStorageResource policyRes, DbClient dbClient) {
-        FilePolicyApplyLevel applyLevel = FilePolicyApplyLevel.valueOf(filePolicy.getApplyAt());
-        switch (applyLevel) {
-            case vpool:
-                VirtualPool vpool = dbClient.queryObject(VirtualPool.class, policyRes.getAppliedAt());
-                vpool.removeFilePolicy(filePolicy.getId());
-                dbClient.updateObject(vpool);
-                break;
-            case project:
-                Project project = dbClient.queryObject(Project.class, policyRes.getAppliedAt());
-                project.removeFilePolicy(project, filePolicy.getId());
-                dbClient.updateObject(project);
-                break;
-            case file_system:
-                FileShare fs = dbClient.queryObject(FileShare.class, policyRes.getAppliedAt());
-                fs.removeFilePolicy(filePolicy.getId());
-                dbClient.updateObject(fs);
-                break;
-            default:
-                _log.error("Not a valid policy apply level: " + applyLevel);
-        }
-    }
-
     /**
      * Find the file storage resource by Native ID
      * 
@@ -825,14 +802,13 @@ public final class FileOrchestrationUtils {
                 nasServer.getNasName(), filePolicy.getFilePolicyType(), sourcePath, NativeGUIDGenerator.FILE_STORAGE_RESOURCE));
         dbClient.createObject(policyStorageResource);
 
-        StringSet policyStrgRes = filePolicy.getPolicyStorageResources();
-        if (policyStrgRes == null) {
-            policyStrgRes = new StringSet();
-        }
-        policyStrgRes.add(policyStorageResource.getId().toString());
-        filePolicy.setPolicyStorageResources(policyStrgRes);
+        filePolicy.addPolicyStorageResources(policyStorageResource.getId());
+
         if (filePolicy.getApplyAt().equals(FilePolicyApplyLevel.file_system.name())) {
             filePolicy.addAssignedResources(args.getFs().getId());
+        }
+        if (filePolicy.getApplyAt().equals(FilePolicyApplyLevel.project.name())) {
+            filePolicy.setFilePolicyVpool(args.getVPool().getId());
         }
         dbClient.updateObject(filePolicy);
         _log.info("PolicyStorageResource object created successfully for {} ",

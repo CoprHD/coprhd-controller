@@ -1430,7 +1430,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         // set quota - save the quota id to extensions
         String qid = isi.createQuota(qDirPath, fsSize, bThresholdsIncludeOverhead,
                 bIncludeSnapshots, qDirSize, notificationLimitSize != null ? notificationLimitSize : 0L,
-                softLimitSize != null ? softLimitSize : 0L, softGracePeriod != null ? softGracePeriod : 0L);
+                        softLimitSize != null ? softLimitSize : 0L, softGracePeriod != null ? softGracePeriod : 0L);
         return qid;
     }
 
@@ -3130,7 +3130,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                 } else {
                     // Create snapshot policy.
                     createIsilonSnapshotPolicySchedule(storageObj, filePolicy, filePolicyBasePath,
-                            snapshotPolicySceduleNamePrefex.toString());
+                            snapshotPolicySceduleNamePrefex.toString(), args, filePolicyBasePath);
                     result = BiosCommandResult.createSuccessfulResult();
                 }
             }
@@ -3141,9 +3141,8 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         return result;
     }
 
-    private String
-            createIsilonSnapshotPolicySchedule(StorageSystem storageObj, FilePolicy filePolicy,
-                    String path, String snapshotSchedulePolicyNamePrefix) {
+    private void createIsilonSnapshotPolicySchedule(StorageSystem storageObj, FilePolicy filePolicy,
+            String path, String snapshotSchedulePolicyNamePrefix, FileDeviceInputOutput args, String filePolicyBasePath) {
         String snapshotScheduleName = snapshotSchedulePolicyNamePrefix + "_" + filePolicy.getFilePolicyName();
 
         String pattern = snapshotScheduleName + "_%Y-%m-%d_%H-%M";
@@ -3154,8 +3153,10 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         try {
             IsilonApi isi = getIsilonDevice(storageObj);
             isi.createDir(path, true);
-            String scheduleId = isi.createSnapshotSchedule(snapshotScheduleName, path, scheduleValue, pattern, expireValue);
-            return scheduleId;
+            isi.createSnapshotSchedule(snapshotScheduleName, path, scheduleValue, pattern, expireValue);
+            _log.info("Isilon File Policy {} created successfully.", snapshotScheduleName);
+            FileOrchestrationUtils.updatePolicyStorageResource(_dbClient, storageObj, filePolicy, args, filePolicyBasePath,
+                    snapshotScheduleName);
         } catch (IsilonException e) {
             throw e;
         }

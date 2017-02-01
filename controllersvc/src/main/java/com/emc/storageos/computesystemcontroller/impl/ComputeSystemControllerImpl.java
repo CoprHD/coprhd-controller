@@ -1886,7 +1886,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
     @Override
     public void setHostSanBootTargets(URI hostId, URI volumeId) throws ControllerException {
         Host host = _dbClient.queryObject(Host.class, hostId);
-        if (host != null && host.getComputeElement() != null) {
+        if (host != null && !NullColumnValueGetter.isNullURI(host.getComputeElement())) {
             ComputeElement computeElement = _dbClient.queryObject(ComputeElement.class, host.getComputeElement());
 
             if (computeElement != null) {

@@ -38,6 +38,7 @@ import com.emc.storageos.db.client.model.DataObject.Flag;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.DiscoveryStatus;
 import com.emc.storageos.db.client.model.ExportGroup;
+import com.emc.storageos.db.client.model.ExportGroup.ExportGroupType;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.ExportPathParams;
 import com.emc.storageos.db.client.model.Host;
@@ -2144,7 +2145,8 @@ public class ExportUtils {
             }
             
         } 
-        if(CollectionUtils.isEmpty(exportGroup.getClusters())) {
+        if(ExportGroupType.Cluster.toString().equalsIgnoreCase(exportGroup.getType())
+                && CollectionUtils.isEmpty(exportGroup.getClusters())) {
             //COP-27689 - Even if all the export masks got cleared, the export Group still remains with initiators and volumes.
             //Clean up all the initiators, volumes and ports as there are no available export masks or we could delete the export Group too. 
             _log.info("There are no clusters in the export Group {}-->{} , hence deleting export group...",exportGroup.getId(),exportGroup.getLabel());

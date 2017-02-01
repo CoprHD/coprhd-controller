@@ -145,22 +145,17 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
                 }
             }
 
+            ExportOperationContext.insertContextOperation(taskCompleter,
+                    VNXeExportOperationContext.OPERATION_ADD_VOLUMES_TO_HOST_EXPORT,
+                    mappedVolumes);
             mask.setNativeId(host.getId());
             _dbClient.updateObject(mask);
-
             taskCompleter.ready(_dbClient);
 
         } catch (Exception e) {
             _logger.error("Unexpected error: createExportMask failed.", e);
             ServiceError error = DeviceControllerErrors.vnxe.jobFailed("createExportMask", e.getMessage());
             taskCompleter.error(_dbClient, error);
-        } finally {
-            if (!mappedVolumes.isEmpty()) {
-                _dbClient.updateObject(mask);
-                ExportOperationContext.insertContextOperation(taskCompleter,
-                        VNXeExportOperationContext.OPERATION_ADD_VOLUMES_TO_HOST_EXPORT,
-                        mappedVolumes);
-            }
         }
 
         _logger.info("{} createExportMask END...", storage.getSerialNumber());
@@ -477,8 +472,10 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
                         _dbClient.updateObject(backendVol);                        
                     }
                 }
-
             }
+            ExportOperationContext.insertContextOperation(taskCompleter,
+                    VNXeExportOperationContext.OPERATION_ADD_VOLUMES_TO_HOST_EXPORT,
+                    mappedVolumes);
             _dbClient.updateObject(exportMask);
             // Test mechanism to invoke a failure. No-op on production systems.
             InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_002);
@@ -487,13 +484,6 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
             _logger.error("Add volumes error: ", e);
             ServiceError error = DeviceControllerErrors.vnxe.jobFailed("addVolume", e.getMessage());
             taskCompleter.error(_dbClient, error);
-        } finally {
-            if (!mappedVolumes.isEmpty()) {
-                _dbClient.updateObject(exportMask);
-                ExportOperationContext.insertContextOperation(taskCompleter,
-                        VNXeExportOperationContext.OPERATION_ADD_VOLUMES_TO_HOST_EXPORT,
-                        mappedVolumes);
-            }
         }
         _logger.info("{} addVolumes END...", storage.getSerialNumber());
     }
@@ -688,6 +678,9 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
                 exportMask.getInitiators().add(initiator.getId().toString());
             }
             _dbClient.updateObject(exportMask);
+            ExportOperationContext.insertContextOperation(taskCompleter,
+                    VNXeExportOperationContext.OPERATION_ADD_INITIATORS_TO_HOST,
+                    createdInitiators);
             // Test mechanism to invoke a failure. No-op on production systems.
             InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_003);
             taskCompleter.ready(_dbClient);
@@ -696,15 +689,7 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
             _logger.error("Add initiators error: ", e);
             ServiceError error = DeviceControllerErrors.vnxe.jobFailed("addInitiator", e.getMessage());
             taskCompleter.error(_dbClient, error);
-        } finally {
-            if (!createdInitiators.isEmpty()) {
-                _dbClient.updateObject(exportMask);
-                ExportOperationContext.insertContextOperation(taskCompleter,
-                        VNXeExportOperationContext.OPERATION_ADD_INITIATORS_TO_HOST,
-                        createdInitiators);
-            }
         }
-
     }
 
     @Override

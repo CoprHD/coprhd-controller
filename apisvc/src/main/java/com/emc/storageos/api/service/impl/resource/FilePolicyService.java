@@ -899,15 +899,13 @@ public class FilePolicyService extends TaskResourceService {
                         updatePolicyCapabilities(_dbClient, srcVarray, vpool, filePolicy, capabilities, errorMsg);
                         List<FileRecommendation> newRecs = _filePlacementManager.getRecommendationsForFileCreateRequest(srcVarray, null,
                                 vpool, capabilities);
-                        for (FileRecommendation rec : newRecs) {
-                            rec.setVirtualPool(vpool);
-                        }
+
                         recommendations.addAll(newRecs);
                     }
                 }
                 taskObject = createAssignFilePolicyTask(filePolicy, task);
                 fileServiceApi.assignFileReplicationPolicyToVirtualPool(convertRecommendationsToStorageSystemAssociations(recommendations),
-                        filePolicy.getId(), task);
+                        vpoolURIs, filePolicy.getId(), task);
             default:
                 break;
         }
@@ -961,19 +959,29 @@ public class FilePolicyService extends TaskResourceService {
     }
 
     private List<FileStorageSystemAssociation> convertRecommendationsToStorageSystemAssociations(List<FileRecommendation> recs) {
+
         List<FileStorageSystemAssociation> associations = new ArrayList<FileStorageSystemAssociation>();
+
         for (FileRecommendation rec : recs) {
             FileMirrorRecommendation mirrorRec = (FileMirrorRecommendation) rec;
             FileStorageSystemAssociation association = new FileStorageSystemAssociation();
             association.setSourceSystem(mirrorRec.getSourceStorageSystem());
             association.setSourceVNAS(mirrorRec.getvNAS());
-            Map<URI, URI> targetInfo = new HashMap<URI, URI>();
+            Map<URI, Set<URI>> targetStorageDeviceToVNASMap = new HashMap<URI, Set<URI>>();
             Iterator<Entry<URI, Target>> it = mirrorRec.getVirtualArrayTargetMap().entrySet().iterator();
             while (it.hasNext()) {
                 Target target = it.next().getValue();
-                targetInfo.put(target.getTargetStorageDevice(), target.getTargetvNASURI());
-                association.setTargetInfo(targetInfo);
+                URI targetStorageDevice = target.getTargetStorageDevice();
+                if (targetStorageDeviceToVNASMap.containsKey(targetStorageDevice)) {
+                    Set<URI> vNASSet = targetStorageDeviceToVNASMap.get(targetStorageDevice);
+                    vNASSet.add(target.getTargetvNASURI());
+                } else {
+                    Set<URI> vNASSet = new HashSet<URI>();
+                    vNASSet.add(target.getTargetvNASURI());
+                    targetStorageDeviceToVNASMap.put(targetStorageDevice, vNASSet);
+                }
             }
+            association.setTargetStorageDeviceToVNASMap(targetStorageDeviceToVNASMap);
             association.setVpool(rec.getVirtualPool().getId());
             associations.add(association);
         }
@@ -1139,7 +1147,7 @@ public class FilePolicyService extends TaskResourceService {
         // update replication topology info
         updateFileReplicationTopologyInfo(param, filepolicy);
         if ((param.getFileSystemAssignParams().getVpool() != null
-        && !param.getFileSystemAssignParams().getVpool().equals(filepolicy.getFilePolicyVpool()))) {
+                && !param.getFileSystemAssignParams().getVpool().equals(filepolicy.getFilePolicyVpool()))) {
             VirtualPool vpool = _dbClient.queryObject(VirtualPool.class, filepolicy.getFilePolicyVpool());
             errorMsg.append("File policy :" + filepolicy.getFilePolicyName()
                     + " is already assigned at file system level under the vpool: "

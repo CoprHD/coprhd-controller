@@ -264,14 +264,14 @@ public interface FileController extends StorageController {
 
     public void assignFileSnapshotPolicyToVirtualPool(URI storageSystemURI, URI vNASURI, URI filePolicyToAssign, URI vpoolURI,
             String taskId)
-            throws InternalException;
+                    throws InternalException;
 
     public void assignFileSnapshotPolicyToProject(URI storageSystemURI, URI vNASURI, URI filePolicyToAssign, URI vpoolURI, URI projectURI,
             String taskId)
-            throws InternalException;
+                    throws InternalException;
 
-    public void assignFileReplicationPolicyToVirtualPool(FileStorageSystemAssociation association, URI filePolicyToAssign, URI vpoolURI,
-            String opId) throws ControllerException;
+    public void assignFileReplicationPolicyToVirtualPool(URI storageSystemURI, URI targetSystemURI,
+            URI sourceVNasURI, URI targetVNasURI, URI filePolicyToAssign, URI vpoolURI, String opId) throws ControllerException;
 
     public void assignFileReplicationPolicyToProject(FileStorageSystemAssociation association, URI filePolicyToAssign, URI vpoolURI,
             URI projectURI, String opId) throws InternalException;

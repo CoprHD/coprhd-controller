@@ -243,8 +243,8 @@ public interface FileOrchestrationController extends Controller {
     public abstract void assignFileSnapshotPolicyToProject(Map<URI, List<URI>> vpoolToStorageSystemMap, List<URI> projectURIs,
             URI filePolicyToAssign, String taskId);
 
-    public void assignFileReplicationPolicyToVirtualPool(List<FileStorageSystemAssociation> associations, URI filePolicyToAssign,
-            String taskId);
+    public void assignFileReplicationPolicyToVirtualPool(List<FileStorageSystemAssociation> associations,
+            Set<URI> vpoolURIs, URI filePolicyToAssign, String taskId);
 
     public void assignFileReplicationPolicyToProject(List<FileStorageSystemAssociation> associations, List<URI> projectURIs,
             URI filePolicyToAssign, String taskId);

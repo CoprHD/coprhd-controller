@@ -1632,7 +1632,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
 
                         if (targetACE != null &&
                                 (!targetACE.getPermissions().equals(sourceACE.getPermissions()) ||
-                                !targetACE.getPermissionType().equals(sourceACE.getPermissionType()))) {
+                                        !targetACE.getPermissionType().equals(sourceACE.getPermissionType()))) {
 
                             targetACE.setPermissions(sourceACE.getPermissions());
                             targetACE.setPermissionType(sourceACE.getPermissionType());
@@ -1953,7 +1953,6 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
                                             stepId,
                                             stepDes,
                                             storageSystemURI, args);
-
                                 }
 
                             }
@@ -1978,28 +1977,65 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
     }
 
     @Override
-    public void assignFileReplicationPolicyToVirtualPool(List<FileStorageSystemAssociation> associations, URI filePolicyToAssign,
-            String taskId) {
+    public void assignFileReplicationPolicyToVirtualPool(List<FileStorageSystemAssociation> associations,
+            Set<URI> vpoolURIs, URI filePolicyToAssign, String taskId) {
+
         FilePolicy filePolicy = s_dbClient.queryObject(FilePolicy.class, filePolicyToAssign);
-        String opName = ResourceOperationTypeEnum.ASSIGN_FILE_POLICY.getName();
         TaskCompleter completer = new FilePolicyWorkflowCompleter(filePolicyToAssign, taskId);
 
         try {
             String waitFor = null;
+            String stepId = null;
+            String stepDes = null;
             Workflow workflow = _workflowService.getNewWorkflow(this, ASSIGN_FILE_POLICY_WF_NAME, false, taskId, completer);
 
-            for (FileStorageSystemAssociation association : associations) {
-                s_logger.info("Generating steps for assigning file policy {} to vpool: {}.", filePolicyToAssign, association);
+            s_logger.info("Generating steps for assigning file replication policy to vpool: {}.", filePolicyToAssign);
 
-                String stepId = workflow.createStepId();
-                String stepDes = String.format("Assigning file policy: %s, to vpool: %s on storage system: %s", filePolicy.getId(),
-                        association.getVpool(), association.getSourceSystem());
-                Object[] args = new Object[] { association, filePolicyToAssign, association.getVpool() };
-                waitFor = _fileDeviceController.createMethod(workflow, waitFor,
-                        ASSIGN_FILE_REPLICATION_POLICY_TO_VIRTUAL_POOL_METHOD,
-                        stepId,
-                        stepDes,
-                        association.getSourceSystem(), args);
+            for (Iterator<URI> vpoolIterator = vpoolURIs.iterator(); vpoolIterator.hasNext();) {
+                URI vpoolURI = vpoolIterator.next();
+
+                for (FileStorageSystemAssociation association : associations) {
+                    Map<URI, Set<URI>> targetStorageDeviceToVNASMap = association.getTargetStorageDeviceToVNASMap();
+
+                    if (targetStorageDeviceToVNASMap != null && !targetStorageDeviceToVNASMap.isEmpty()) {
+                        for (URI targetStorage : targetStorageDeviceToVNASMap.keySet()) {
+
+                            Set<URI> targetVNASSet = targetStorageDeviceToVNASMap.get(targetStorage);
+                            if (targetVNASSet != null && !targetVNASSet.isEmpty()) {
+                                for (Iterator<URI> iterator = targetVNASSet.iterator(); iterator.hasNext();) {
+
+                                    URI targetVNASURI = iterator.next();
+                                    stepId = workflow.createStepId();
+                                    stepDes = String.format("Assigning file policy: %s, to vpool: %s on storage system: %s",
+                                            filePolicy.getId(),
+                                            association.getVpool(), association.getSourceSystem());
+
+                                    Object[] args = new Object[] { association.getSourceSystem(), targetStorage,
+                                            association.getSourceVNAS(), targetVNASURI, filePolicyToAssign, vpoolURI };
+                                    waitFor = _fileDeviceController.createMethod(workflow, waitFor,
+                                            ASSIGN_FILE_REPLICATION_POLICY_TO_VIRTUAL_POOL_METHOD,
+                                            stepId,
+                                            stepDes,
+                                            association.getSourceSystem(), args);
+                                }
+                            } else {
+                                s_logger.info("No vNAS server for target storage: {}", targetStorage);
+                                stepId = workflow.createStepId();
+                                stepDes = String.format("Assigning file policy: %s, to vpool: %s on storage system: %s",
+                                        filePolicy.getId(),
+                                        association.getVpool(), association.getSourceSystem());
+
+                                Object[] args = new Object[] { association.getSourceSystem(), targetStorage,
+                                        association.getSourceVNAS(), null, filePolicyToAssign, vpoolURI };
+                                waitFor = _fileDeviceController.createMethod(workflow, waitFor,
+                                        ASSIGN_FILE_REPLICATION_POLICY_TO_VIRTUAL_POOL_METHOD,
+                                        stepId,
+                                        stepDes,
+                                        association.getSourceSystem(), args);
+                            }
+                        }
+                    }
+                }
             }
 
             String successMessage = String.format("Assigning file policy : %s, to vpool(s) successful.",
@@ -2041,11 +2077,11 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
                 }
             }
 
-            String successMessage = String.format("Assigning file policy : %s, to vpool(s) successful.",
+            String successMessage = String.format("Assigning file policy : %s, to project(s) successful.",
                     filePolicy.getId());
             workflow.executePlan(completer, successMessage);
         } catch (Exception ex) {
-            s_logger.error(String.format("Assigning file policy : %s to vpool(s) failed", filePolicy.getId()), ex);
+            s_logger.error(String.format("Assigning file policy : %s to project(s) failed", filePolicy.getId()), ex);
             ServiceError serviceError = DeviceControllerException.errors
                     .assignFilePolicyFailed(filePolicyToAssign.toString(), filePolicy.getApplyAt(), ex);
             completer.error(s_dbClient, _locker, serviceError);

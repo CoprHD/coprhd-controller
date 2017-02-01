@@ -137,9 +137,9 @@ public class FileOrchestrationControllerImpl implements FileOrchestrationControl
     }
 
     @Override
-    public void assignFileReplicationPolicyToVirtualPool(List<FileStorageSystemAssociation> associations, URI filePolicyToAssign,
-            String taskId) {
-        execOrchestration("assignFileReplicationPolicyToVirtualPool", associations, filePolicyToAssign, taskId);
+    public void assignFileReplicationPolicyToVirtualPool(List<FileStorageSystemAssociation> associations,
+            Set<URI> vpoolURIs, URI filePolicyToAssign, String taskId) {
+        execOrchestration("assignFileReplicationPolicyToVirtualPool", associations, vpoolURIs, filePolicyToAssign, taskId);
 
     }
 

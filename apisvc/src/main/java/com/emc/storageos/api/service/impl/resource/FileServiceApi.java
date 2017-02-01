@@ -3,6 +3,7 @@ package com.emc.storageos.api.service.impl.resource;
 import java.net.URI;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.FileShare;
@@ -282,8 +283,8 @@ public interface FileServiceApi {
     void assignFilePolicyToProject(Map<URI, List<URI>> vpoolToStorageSystemMap, List<URI> projectURIs, URI filePolicyToAssign,
             String taskId);
 
-    void assignFileReplicationPolicyToVirtualPool(List<FileStorageSystemAssociation> associations, URI filePolicyToAssign,
-            String taskId);
+    void assignFileReplicationPolicyToVirtualPool(List<FileStorageSystemAssociation> associations,
+            Set<URI> vpoolURIs, URI filePolicyToAssign, String taskId);
 
     void assignFileReplicationPolicyToProject(List<FileStorageSystemAssociation> associations, List<URI> projectURIs,
             URI filePolicyToAssign, String taskId);

@@ -4578,20 +4578,39 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
     }
 
     @Override
-    public void assignFileReplicationPolicyToVirtualPool(FileStorageSystemAssociation association, URI filePolicyToAssign, URI vpoolURI,
-            String opId)
-                    throws ControllerException {
-        StorageSystem sourceSystem = _dbClient.queryObject(StorageSystem.class, association.getSourceSystem());
+    public void assignFileReplicationPolicyToVirtualPool(URI storageSystemURI, URI targetSystemURI,
+            URI sourceVNasURI, URI targetVNasURI, URI filePolicyToAssign, URI vpoolURI, String opId) throws ControllerException {
+
         try {
             WorkflowStepCompleter.stepExecuting(opId);
-            FileDeviceInputOutput args = new FileDeviceInputOutput();
+            StorageSystem sourceSystem = _dbClient.queryObject(StorageSystem.class, storageSystemURI);
+            StorageSystem targetSystem = _dbClient.queryObject(StorageSystem.class, targetSystemURI);
+
             FilePolicy filePolicy = _dbClient.queryObject(FilePolicy.class, filePolicyToAssign);
-            args.setFileProtectionPolicy(filePolicy);
-            args.setVPool(_dbClient.queryObject(VirtualPool.class, vpoolURI));
+            VirtualPool vpool = _dbClient.queryObject(VirtualPool.class, vpoolURI);
+            VirtualNAS sourceVNAS = _dbClient.queryObject(VirtualNAS.class, sourceVNasURI);
+            VirtualNAS targetVNAS = null;
+            if (targetVNasURI != null) {
+                targetVNAS = _dbClient.queryObject(VirtualNAS.class, targetVNasURI);
+            }
+
+            FileDeviceInputOutput sourceArgs = new FileDeviceInputOutput();
+            sourceArgs.setFileProtectionPolicy(filePolicy);
+            sourceArgs.setVPool(vpool);
+            sourceArgs.setvNAS(sourceVNAS);
+
+            // Target Path
+            FileDeviceInputOutput targetArgs = new FileDeviceInputOutput();
+            targetArgs.setVPool(vpool);
+            if (targetVNAS != null) {
+                targetArgs.setvNAS(targetVNAS);
+            }
 
             _log.info("Assigning file Replication policy: {} to vpool: {}", filePolicyToAssign, vpoolURI);
 
-            BiosCommandResult result = getDevice(sourceSystem.getSystemType()).checkFileReplicationPolicyExistsOrCreate(association, args);
+            BiosCommandResult result = getDevice(sourceSystem.getSystemType()).checkFileReplicationPolicyExistsOrCreate(
+                    sourceSystem, targetSystem, sourceArgs, targetArgs);
+
             if (result.getCommandPending()) {
                 return;
             }

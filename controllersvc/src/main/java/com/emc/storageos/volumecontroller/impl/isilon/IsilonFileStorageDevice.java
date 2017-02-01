@@ -14,7 +14,6 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.concurrent.TimeUnit;
@@ -61,7 +60,6 @@ import com.emc.storageos.db.client.model.util.TaskUtils;
 import com.emc.storageos.exceptions.DeviceControllerErrors;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.fileorchestrationcontroller.FileOrchestrationUtils;
-import com.emc.storageos.fileorchestrationcontroller.FileStorageSystemAssociation;
 import com.emc.storageos.isilon.restapi.IsilonApi;
 import com.emc.storageos.isilon.restapi.IsilonApi.IsilonList;
 import com.emc.storageos.isilon.restapi.IsilonApiFactory;
@@ -3100,46 +3098,10 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
     @Override
     public BiosCommandResult checkFilePolicyExistsOrCreate(StorageSystem storageObj, FileDeviceInputOutput args) {
 
-        VirtualNAS vNAS = args.getvNAS();
         FilePolicy filePolicy = args.getFileProtectionPolicy();
-        boolean vNASExists = vNAS == null ? false : true;
-        String filePolicyBasePath = null;
         BiosCommandResult result = null;
-        StringBuffer snapshotPolicySceduleNamePrefex = new StringBuffer();
-
-        if (args.getVPool() != null) {
-            snapshotPolicySceduleNamePrefex.append(args.getVPoolNameWithNoSpecialCharacters());
-        }
-
-        if (vNASExists) {
-            snapshotPolicySceduleNamePrefex.append("_").append(args.getVNASNameWithNoSpecialCharacters());
-        }
-
-        if (args.getTenantOrg() != null) {
-            snapshotPolicySceduleNamePrefex.append("_").append(args.getTenantNameWithNoSpecialCharacters());
-        }
-
-        if (args.getProject() != null) {
-            snapshotPolicySceduleNamePrefex.append("_").append(args.getProjectNameWithNoSpecialCharacters());
-        }
-
-        String customPath = getCustomPath(storageObj, args);
-
-        if (vNASExists) {
-            String vNASPath = vNAS.getBaseDirPath();
-            if (vNASPath != null && !vNASPath.trim().isEmpty()) {
-                filePolicyBasePath = vNASPath + FW_SLASH + customPath;
-            } else {
-                filePolicyBasePath = IFS_ROOT + FW_SLASH + getSystemAccessZoneNamespace() + FW_SLASH + customPath;
-            }
-
-        } else {
-            filePolicyBasePath = IFS_ROOT + FW_SLASH + getSystemAccessZoneNamespace() + FW_SLASH + customPath;
-        }
-
-        filePolicyBasePath = filePolicyBasePath.replaceAll("/+", "/").replaceAll("/$", "");
-
-        _log.info("Computed file policy path: {}", filePolicyBasePath);
+        String snapshotPolicySceduleNamePrefex = getIsilonPolicyNamePrefix(args);
+        String filePolicyBasePath = getFilePolicyPath(storageObj, args);
 
         try {
             IsilonApi isi = getIsilonDevice(storageObj);
@@ -3162,7 +3124,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                 } else {
                     // Create snapshot policy.
                     createIsilonSnapshotPolicySchedule(storageObj, filePolicy, filePolicyBasePath,
-                            snapshotPolicySceduleNamePrefex.toString());
+                            snapshotPolicySceduleNamePrefex);
                     result = BiosCommandResult.createSuccessfulResult();
                 }
             }
@@ -3173,8 +3135,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         return result;
     }
 
-    private String
-    createIsilonSnapshotPolicySchedule(StorageSystem storageObj, FilePolicy filePolicy,
+    private String createIsilonSnapshotPolicySchedule(StorageSystem storageObj, FilePolicy filePolicy,
             String path, String snapshotSchedulePolicyNamePrefix) {
         String snapshotScheduleName = snapshotSchedulePolicyNamePrefix + "_" + filePolicy.getFilePolicyName();
 
@@ -3194,58 +3155,39 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
     }
 
     @Override
-    public BiosCommandResult checkFileReplicationPolicyExistsOrCreate(FileStorageSystemAssociation association,
-            FileDeviceInputOutput args) {
+    public BiosCommandResult checkFileReplicationPolicyExistsOrCreate(StorageSystem sourceStorageObj, StorageSystem targetStorageObj,
+            FileDeviceInputOutput sourceSytemArgs, FileDeviceInputOutput targetSytemArgs) {
 
-        StorageSystem source = _dbClient.queryObject(StorageSystem.class, association.getSourceSystem());
-        VirtualNAS sourceVNAS = null;
-        if (association.getSourceVNAS() != null) {
-            sourceVNAS = _dbClient.queryObject(VirtualNAS.class, association.getSourceVNAS());
-        }
-        Entry<URI, URI> targetInfo = association.getTargetInfo().entrySet().iterator().next();
-        StorageSystem target = _dbClient.queryObject(StorageSystem.class, targetInfo.getKey());
-        VirtualNAS targetVNAS = null;
-        if (targetInfo.getValue() != null) {
-            targetVNAS = _dbClient.queryObject(VirtualNAS.class, targetInfo.getValue());
-        }
-
-        FilePolicy filePolicy = args.getFileProtectionPolicy();
+        FilePolicy filePolicy = sourceSytemArgs.getFileProtectionPolicy();
 
         // Source Path
-        args.setvNAS(sourceVNAS);
-        String sourcePath = getPolicyPath(source, args);
-        // Target Path
-        FileDeviceInputOutput targetArgs = new FileDeviceInputOutput();
-        targetArgs.setVPool(args.getVPool());
-        targetArgs.setvNAS(targetVNAS);
-        targetArgs.setProject(args.getProject());
-        targetArgs.setTenantOrg(args.getTenantOrg());
-
-        String targetPath = getPolicyPath(target, targetArgs);
+        String sourcePath = getFilePolicyPath(sourceStorageObj, sourceSytemArgs);
+        String targetPath = getFilePolicyPath(targetStorageObj, targetSytemArgs);
         // Policy Name
-        String policyNamePrefix = getPolicyName(args);
+        String policyNamePrefix = getIsilonPolicyNamePrefix(sourceSytemArgs);
         BiosCommandResult result = null;
 
         try {
-            IsilonApi isi = getIsilonDevice(source);
+            IsilonApi isi = getIsilonDevice(sourceStorageObj);
             if (FilePolicy.FilePolicyType.file_replication.name().equals(filePolicy.getFilePolicyType())) {
                 ArrayList<IsilonSyncPolicy> isiReplicationPolicies = isi.getReplicationPolicies().getList();
                 IsilonSyncPolicy isilonReplicationSchedule = checkForReplicationPolicyOnIsilon(isiReplicationPolicies,
-                        filePolicy, sourcePath, targetPath, target.getIpAddress());
+                        filePolicy, sourcePath, targetPath, targetStorageObj.getIpAddress());
                 if (isilonReplicationSchedule != null) {
-                    List<String> changedValues = validateIsilonReplicationPolicy(isilonReplicationSchedule, filePolicy, targetPath,
-                            target.getIpAddress(), source.getIpAddress());
-                    if (changedValues.isEmpty()) {
+                    boolean validPolicy = validateIsilonReplicationPolicy(isilonReplicationSchedule, filePolicy, targetPath,
+                            targetStorageObj.getIpAddress(), sourceStorageObj.getIpAddress());
+                    if (validPolicy) {
                         result = BiosCommandResult.createSuccessfulResult();
                     } else {
                         throw DeviceControllerException.exceptions.assignFilePolicyFailed(filePolicy.getFilePolicyName(),
                                 filePolicy.getApplyAt(),
-                                "File policy exists with inconsistent properties: " + StringUtils.join(changedValues, ", ") + " for path: "
+                                "File policy and Isilon syncIQ policy differs for path: "
                                         + sourcePath);
                     }
                 } else {
                     // Create snapshot policy.
-                    createIsilonSyncPolicy(source, filePolicy, sourcePath, targetPath, target.getIpAddress(), policyNamePrefix);
+                    createIsilonSyncPolicy(sourceStorageObj, filePolicy, sourcePath, targetPath, targetStorageObj.getIpAddress(),
+                            policyNamePrefix);
                     result = BiosCommandResult.createSuccessfulResult();
                 }
             }
@@ -3275,30 +3217,28 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         }
     }
 
-    private static List<String> validateIsilonReplicationPolicy(IsilonSyncPolicy isiMatchedPolicy, FilePolicy filePolicy, String targetPath,
+    private static boolean validateIsilonReplicationPolicy(IsilonSyncPolicy isiMatchedPolicy, FilePolicy filePolicy,
+            String targetPath,
             String targetSystemIP, String sourceSystemIP) {
-        List<String> changedValues = new ArrayList<String>();
+        _log.info("Comparing filepolicy: {} with SyncIQ policy: {}", filePolicy.getFilePolicyName(), isiMatchedPolicy.getName());
 
         if (isiMatchedPolicy != null) {
-            // replicationtype validation
+            // replication type validation
             if (!isiMatchedPolicy.getAction().equals(IsilonSyncPolicy.Action.sync)) {
-                // invalid
-                changedValues.add("Action");
+                _log.error("Isilon policy replication type is not valid: {}", isiMatchedPolicy.getAction().name());
+                return false;
             }
-
-            // copy type validation
-            // Isilon only supports async so no validation needed
 
             // remote or local?
             if (sourceSystemIP.equalsIgnoreCase(targetSystemIP)) {
                 if (!filePolicy.getFileReplicationType().equalsIgnoreCase(FilePolicy.FileReplicationType.LOCAL.name())) {
-                    // invalid
-                    changedValues.add("Replication target local/remote");
+                    _log.error("Source and target system IPs are same. But, file policy type is not LOCAL replication.");
+                    return false;
                 }
             } else {
                 if (!filePolicy.getFileReplicationType().equalsIgnoreCase(FilePolicy.FileReplicationType.REMOTE.name())) {
-                    // invalid
-                    changedValues.add("Replication target local/remote");
+                    _log.error("Source and target system IPs are different. But, file policy type is not REMOTE replication.");
+                    return false;
                 }
             }
 
@@ -3306,22 +3246,20 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             String viprSchedule = getIsilonPolicySchedule(filePolicy);
             String isiSchedule = StringUtils.substringBefore(isiMatchedPolicy.getSchedule(), " between");
             if (!viprSchedule.equalsIgnoreCase(isiSchedule)) {
-                changedValues.add("Schedule");
+                _log.error("File policy schedule: {} is different compared to isilon SyncIQ schedule: {}", viprSchedule, isiSchedule);
+                return false;
             }
 
             // target path validation
             if (!isiMatchedPolicy.getTargetPath().equals(targetPath)) {
-                changedValues.add("target path");
+                _log.error("Target path: {} is different compared to SyncIQ policy path: {}", targetPath, isiMatchedPolicy);
+                return false;
             }
         }
-        return changedValues;
+        return true;
     }
 
-    private String stripSpecialCharacters(String label) {
-        return label.replaceAll("[^\\dA-Za-z ]", "").replaceAll("\\s+", "_");
-    }
-
-    public String getPolicyName(FileDeviceInputOutput args) {
+    private String getIsilonPolicyNamePrefix(FileDeviceInputOutput args) {
         StringBuffer syncPolicyNamePrefix = new StringBuffer();
 
         if (args.getVPool() != null) {
@@ -3342,11 +3280,12 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         return syncPolicyNamePrefix.toString();
     }
 
-    public String getPolicyPath(StorageSystem storageObj, FileDeviceInputOutput args) {
+    private String getFilePolicyPath(StorageSystem storageObj, FileDeviceInputOutput args) {
         String customPath = getCustomPath(storageObj, args);
-        String filePolicyBasePath;
-        if (args.getvNAS() != null) {
-            String vNASPath = args.getvNAS().getBaseDirPath();
+        String filePolicyBasePath = null;
+        VirtualNAS vNAS = args.getvNAS();
+        if (vNAS != null) {
+            String vNASPath = vNAS.getBaseDirPath();
             if (vNASPath != null && !vNASPath.trim().isEmpty()) {
                 filePolicyBasePath = vNASPath + FW_SLASH + customPath;
             } else {

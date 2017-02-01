@@ -11,7 +11,6 @@ import com.emc.storageos.db.client.model.FileExport;
 import com.emc.storageos.db.client.model.QuotaDirectory;
 import com.emc.storageos.db.client.model.SMBFileShare;
 import com.emc.storageos.db.client.model.StorageSystem;
-import com.emc.storageos.fileorchestrationcontroller.FileStorageSystemAssociation;
 import com.emc.storageos.volumecontroller.impl.BiosCommandResult;
 
 /**
@@ -299,9 +298,9 @@ public interface FileStorageDevice {
     public BiosCommandResult doUnassignFilePolicy(StorageSystem storage, FileDeviceInputOutput fd)
             throws ControllerException;
 
-    public BiosCommandResult
-    checkFilePolicyExistsOrCreate(StorageSystem storageObj, FileDeviceInputOutput args);
+    public BiosCommandResult checkFilePolicyExistsOrCreate(StorageSystem storageObj, FileDeviceInputOutput args);
 
-    public BiosCommandResult checkFileReplicationPolicyExistsOrCreate(FileStorageSystemAssociation association, FileDeviceInputOutput args);
+    public BiosCommandResult checkFileReplicationPolicyExistsOrCreate(StorageSystem sourceStorageObj, StorageSystem targetStorageObj,
+            FileDeviceInputOutput sourceSytemArgs, FileDeviceInputOutput targetSytemArgs);
 
 }

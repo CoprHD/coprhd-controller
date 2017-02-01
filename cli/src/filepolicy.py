@@ -15,6 +15,7 @@ import tag
 import json
 import socket
 import commands
+from project import Project
 from common import SOSError
 from threading import Timer
 from virtualpool import VirtualPool
@@ -51,14 +52,11 @@ class FilePolicy(object):
 
     def filepolicy_query(self, name):
 
-        if common.is_uri(name):
-            return name
-
         policies = self.list_file_polices()
 
         for policy in policies:
             if policy['name'] == name:
-                return policy['id']
+		return policy
 
         raise SOSError(SOSError.NOT_FOUND_ERR, 'filepolicy ' + name
                        + ': not found')
@@ -85,10 +83,9 @@ class FilePolicy(object):
 
     def filepolicy_show(self, label, xml=False):
 
-        filepolicy_uri = self.filepolicy_query(label)
-        filepolicy = self.filepolicy_show_by_uri(filepolicy_uri, xml)
-        return filepolicy
-
+        filepolicy = self.filepolicy_query(label)
+	return self.filepolicy_show_by_uri(filepolicy['id'], xml)
+        
     def filepolicy_show_by_uri(self, uri, xml=False):
 
         if xml:
@@ -114,27 +111,18 @@ class FilePolicy(object):
             return None
         return o
 
-    def filepolicy_delete_by_uri(self, uri):
-        '''
-        Deletes a filepolicy based on project UUID
-        Parameters:
-            uri: UUID of filepolicy
-        '''
-
-        (s, h) = common.service_json_request(self.__ipAddr,
-                self.__port, 'DELETE',
-                FilePolicy.URI_FILE_POLICY_DELETE.format(uri), None)
-        return
-
-    def filepolicy_delete(self, name):
+    def filepolicy_delete(self, label):
         '''
         Deletes a filepolicy based on policy name
         Parameters:
             name: name of filepolicy
         '''
 
-        filepolicy_uri = self.filepolicy_query(name)
-        return self.filepolicy_delete_by_uri(filepolicy_uri)
+	filepolicy = self.filepolicy_query(label)
+	(s, h) = common.service_json_request(self.__ipAddr,
+                self.__port, "DELETE",
+                FilePolicy.URI_FILE_POLICY_DELETE.format(filepolicy['id']), None)
+        return
 
     def filepolicy_create(
         self,
@@ -179,7 +167,7 @@ class FilePolicy(object):
         create_request = {}
         policy_schedule = {}
         snapshot_params = {}
-        file_replication_params = {}
+        replication_params = {}
         snapshot_expire_params = {}
 
         create_request['policy_type'] = type
@@ -196,13 +184,13 @@ class FilePolicy(object):
         policy_schedule['schedule_day_of_month'] = policyschedulemonth
 
         if type == 'file_replication':
-            file_replication_params['replication_type'] = \
+            replication_params['replication_type'] = \
                 replicationtype
-            file_replication_params['replication_copy_mode'] = \
+            replication_params['replication_copy_mode'] = \
                 replicationcopymode
-            file_replication_params['replicate_configuration'] = \
+            replication_params['replicate_configuration'] = \
                 replicationconfiguration
-            file_replication_params['policy_schedule'] = policy_schedule
+            replication_params['policy_schedule'] = policy_schedule
         elif type == 'file_snapshot':
             snapshot_expire_params['expire_type'] = snapshotexpiretype
             snapshot_expire_params['expire_value'] = snapshotexpirevalue
@@ -212,8 +200,8 @@ class FilePolicy(object):
                 snapshot_expire_params
             snapshot_params['policy_schedule'] = policy_schedule
 
-        create_request['file_replication_params'] = \
-            file_replication_params
+        create_request['replication_params'] = \
+            replication_params
         create_request['snapshot_params'] = snapshot_params
 
         try:
@@ -224,10 +212,7 @@ class FilePolicy(object):
             if not s:
                 return None
             o = common.json_decode(s)
-            if sync:
-                return self.check_for_sync(o, sync, synctimeout)
-            else:
-                return o
+	    return o
         except SOSError, e:
             errorMessage = str(e)
         common.format_err_msg_and_raise('create', 'filepolicy',
@@ -271,7 +256,7 @@ class FilePolicy(object):
         snapshotexpirevalue
         '''
 
-        filepolicy_uri = self.filepolicy_query(name)
+        filepolicy = self.filepolicy_query(name)
 
         update_request = {}
         update_request['policy_name'] = name
@@ -282,7 +267,7 @@ class FilePolicy(object):
 
         policy_schedule = {}
         snapshot_params = {}
-        file_replication_params = {}
+        replication_params = {}
         snapshot_expire_params = {}
 
         policy_schedule['schedule_frequency'] = policyschedulefrequency
@@ -292,13 +277,13 @@ class FilePolicy(object):
         policy_schedule['schedule_day_of_month'] = policyschedulemonth
 
         if type == 'file_replication':
-            file_replication_params['replication_type'] = \
+            replication_params['replication_type'] = \
                 replicationtype
-            file_replication_params['replication_copy_mode'] = \
+            replication_params['replication_copy_mode'] = \
                 replicationcopymode
-            file_replication_params['replicate_configuration'] = \
+            replication_params['replicate_configuration'] = \
                 replicationconfiguration
-            file_replication_params['policy_schedule'] = policy_schedule
+            replication_params['policy_schedule'] = policy_schedule
         elif type == 'file_snapshot':
             snapshot_expire_params['expire_type'] = snapshot_expire_type
             snapshot_expire_value['expire_value'] = \
@@ -309,24 +294,20 @@ class FilePolicy(object):
                 snapshot_expire_params
             snapshot_params['policy_schedule'] = policy_schedule
 
-        update_request['file_replication_params'] = \
-            file_replication_params
+        update_request['replication_params'] = \
+            replication_params
         update_request['snapshot_params'] = snapshot_params
 
         try:
             body = json.dumps(create_request)
             (s, h) = common.service_json_request(self.__ipAddr,
                     self.__port, 'POST',
-                    FilePolicy.URI_FILE_POLICY_UPDATE.format(filepolicy_uri),
+                    FilePolicy.URI_FILE_POLICY_UPDATE.format(filepolicy['id']),
                     body)
             if not s:
                 return None
             o = common.json_decode(s)
-
-            if sync:
-                return self.check_for_sync(o, sync, synctimeout)
-            else:
-                return o
+            return o
         except SOSError, e:
             errorMessage = str(e)
         if common.is_uri(filepolicy_uri):
@@ -344,55 +325,97 @@ class FilePolicy(object):
         filesystem_assign_vpool,
         ):
 
-        filepolicy_uri = self.filepolicy_query(name)
-        assign_request = {}
-
-        vpool_assign_param = {}
-        project_assign_param = {}
-        filesystem_assign_param = {}
-
-        assign_request_vpools = {}
-        assign_request_projects = {}
-        if len(assign_to_vpools):
-            vpool_names = assign_to_vpools.split(',')
-        else:
-            vpool_names = assign_to_vpools
-
-        for name in vpool_names:
-            uri = VirtualPool.vpool_query(name, 'file')
-            assign_request_vpools.append(uri)
-
-        vpool_assign_param['assign_to_vpools'] = assign_request_vpools
-
-        project_names = assign_to_projects.split(',')
-        for name in project_names:
-            uri = Project.project_query(name)
-            assign_request_projects.append(uri)
-
-        project_assign_param['vpool'] = project_assign_vpool
-        project_assign_param['assign_to_projects'] = \
-            assign_request_projects
-
-        filesystem_assign_param['vpool'] = filesystem_assign_vpool
+        filepolicy = self.filepolicy_query(name)
+        (s, h) = common.service_json_request(
+                self.__ipAddr,
+                self.__port,
+                'GET',
+                FilePolicy.URI_FILE_POLICY_SHOW.format(filepolicy['id']),
+                None,
+                None,
+                False,
+                )
+	o = common.json_decode(s)
+	appliedat = common.get_node_value(o,"applied_at")
+	assign_request = {}
 
         assign_request['apply_on_target_site'] = apply_on_target_site
-        assign_request['vpool_assign_param'] = vpool_assign_param
-        assign_request['filesystem_assign_param'] = \
-            filesystem_assign_param
+
+	if ( appliedat  == "vpool"):
+		vpool_assign_param = {}
+		assign_request_vpools = []
+		if assign_to_vpools is None:
+           		raise SOSError(SOSError.VALUE_ERR,"File policyassign error:"+ "Vpool value should be provided")
+		elif( len(assign_to_vpools)>1):
+            		vpool_names = assign_to_vpools.split(',')
+            		vpool_obj = VirtualPool(self.__ipAddr, self.__port)
+			for name in vpool_names:
+                 		uri = vpool_obj.vpool_query(name, 'file')
+                 		assign_request_vpools.append(uri)
+        	elif( assign_to_vpools is not None ):
+            		uri = vpool_obj.vpool_query(assign_to_vpools, 'file')
+            		assign_request_vpools.append(uri)
+        	vpool_assign_param['assign_to_vpools'] = assign_request_vpools
+		assign_request['vpool_assign_param'] = vpool_assign_param
+	elif ( appliedat == "project"):
+		project_assign_param = {}
+		assign_request_projects = []
+		assign_request_project_vpools = []
+		project_obj = Project(self.__ipAddr, self.__port)
+		if assign_to_projects is None or project_assign_vpool is None:
+                        raise SOSError(SOSError.VALUE_ERR,"File policyassign error:"+ "Vpool and project value should be provided")
+                
+		if( len(assign_to_projects)>1):
+            		project_names = assign_to_projects.split(',')
+            		for name in project_names:
+                 		uri = project_obj.project_query(name) 
+		 		assign_request_projects.append(uri)
+        	else:
+            		uri = project_obj.project_query(assign_to_projects)
+            		assign_request_projects.append(uri)
+	
+		if ( len(project_assign_vpool)>1):
+            		vpool_names = project_assign_vpool.split(',')
+            		vpool_obj = VirtualPool(self.__ipAddr, self.__port)
+            		for name in vpool_names:
+                 		uri = vpool_obj.vpool_query(name, 'file')
+                 		assign_request_project_vpools.append(uri)
+        	else:
+            		uri = vpool_obj.vpool_query(project_assign_vpool, 'file')
+            		assign_request_project_vpools.append(uri)
+
+        	project_assign_param['vpool'] = assign_request_project_vpools
+        	project_assign_param['assign_to_projects'] = assign_request_projects
+		assign_request['project_assign_param'] = project_assign_param
+	else:
+		filesystem_assign_param = {}
+		assign_request_filesystems = []
+      		
+		if filesystem_assign_vpool is None:
+           		raise SOSError(SOSError.VALUE_ERR,"File policyassign error:"+ "Vpool value should be provided")
+        
+        	if ( len(filesystem_assign_vpool)>1):
+            		vpool_names = filesystem_assign_vpool.split(',')
+            		vpool_obj = VirtualPool(self.__ipAddr, self.__port)
+            		for name in vpool_names:
+                 		uri = vpool_obj.vpool_query(name, 'file')
+                 		assign_request_filesystems.append(uri)
+        	else:
+            		uri = vpool_obj.vpool_query(filesystem_assign_vpool, 'file')
+            		assign_request_filesystems.append(uri)
+		filesystem_assign_param['vpool'] = assign_request_filesystems
+        	assign_request['filesystem_assign_param'] = filesystem_assign_param
 
         try:
             body = json.dumps(assign_request)
             (s, h) = common.service_json_request(self.__ipAddr,
                     self.__port, 'POST',
-                    FilePolicy.URI_FILE_POLICY_ASSIGN.format(filepolicy_uri),
+                    FilePolicy.URI_FILE_POLICY_ASSIGN.format(filepolicy['id']),
                     body)
             if not s:
                 return None
             o = common.json_decode(s)
-            if sync:
-                return self.check_for_sync(o, sync, synctimeout)
-            else:
-                return o
+            return o
         except SOSError, e:
             errorMessage = str(e)
         if common.is_uri(filepolicy_uri):
@@ -409,7 +432,7 @@ class FilePolicy(object):
         unassign_from_projects,
         ):
 
-        filepolicy_uri = self.filepolicy_query(name)
+        filepolicy = self.filepolicy_query(name)
         unassign_request = {}
 
         projects_uris = {}
@@ -437,19 +460,16 @@ class FilePolicy(object):
             body = json.dumps(unassign_request)
             (s, h) = common.service_json_request(self.__ipAddr,
                     self.__port, 'POST',
-                    FilePolicy.URI_FILE_POLICY_UNASSIGN.format(filepolicy_uri),
+                    FilePolicy.URI_FILE_POLICY_UNASSIGN.format(filepolicy['id']),
                     body)
             if not s:
                 return None
             o = common.json_decode(s)
-            if sync:
-                return self.check_for_sync(o, sync, synctimeout)
-            else:
-                return o
+	    return o
         except SOSError, e:
             errorMessage = str(e)
         if common.is_uri(filepolicy_uri):
-            errorMessage = str(e).replace(filepolicy_uri, name)
+            errorMessage = str(e).replace(filepolicy['id'], name)
         common.format_err_msg_and_raise('unassign', 'filepolicy',
                 errorMessage, e.err_code)
 
@@ -534,6 +554,58 @@ def create_parser(subcommand_parsers, common_parser):
         choices=['file_snapshot', 'file_replication', 'file_quota'],
         required=True,
         )
+    mandatory_args.add_argument(
+	'-policyschedulefrequency',
+	'-plscfr',
+        metavar='<policy_schedule_frequency>',
+        dest='policy_sched_frequnecy',
+        help='Type of schedule policy e.g days, weeks or months',
+	required=True,
+	)
+    mandatory_args.add_argument(
+	'-policyschedulerepeat', 
+	'-plscrp',
+        metavar='<policy_schedule_repeat>',
+        dest='policy_schedule_repeat',
+        help='Policy run on every',
+	required=True,
+	)
+    mandatory_args.add_argument(
+	'-policyscheduletime', 
+	'-plsctm',
+        metavar='<policy_schedule_time>',
+        dest='policy_schedule_time',
+        help='Time when policy run',
+	required=True,
+	)
+    mandatory_args.add_argument(
+        '-replicationtype',
+        '-reptype',
+        metavar='<replication_type>',
+        dest='replication_type',
+        help='File Replication type Valid values are: LOCAL, REMOTE',
+        choices=['LOCAL', 'REMOTE'],
+        required=True,
+	)
+    mandatory_args.add_argument(
+        '-replicationcopymode',
+        '-repcpmode',
+        metavar='<replication_copy_mode>',
+        dest='replication_copy_mode',
+        help='File Replication copy type Valid values are: SYNC, ASYNC'
+            ,
+        choices=['SYNC', 'ASYNC'],
+	required=True,        
+	)  
+    mandatory_args.add_argument(
+        '-apply_at',
+        '-aplat',
+        metavar='<apply_at>',
+        dest='apply_at',
+        help='Level at which policy has to applied. Valid values are vpool, project, file_system'
+            ,
+        required=True,
+        )    
     create_parser.add_argument('-description', '-dc',
                                metavar='<policy_description>',
                                dest='description',
@@ -541,20 +613,6 @@ def create_parser(subcommand_parsers, common_parser):
     create_parser.add_argument('-priority', '-pr', metavar='<priority>'
                                , dest='priority',
                                help='Priority of the policy')
-
-    create_parser.add_argument('-policyschedulefrequency', '-plscfr',
-                               metavar='<policy_schedule_frequency>',
-                               dest='policy_sched_frequnecy',
-                               help='Type of schedule policy e.g days, weeks or months'
-                               )
-    create_parser.add_argument('-policyschedulerepeat', '-plscrp',
-                               metavar='<policy_schedule_repeat>',
-                               dest='policy_schedule_repeat',
-                               help='Policy run on every')
-    create_parser.add_argument('-policyscheduletime', '-plsctm',
-                               metavar='<policy_schedule_time>',
-                               dest='policy_schedule_time',
-                               help='Time when policy run')
     create_parser.add_argument('-policyscheduleweek', '-plscwk',
                                metavar='<policy_schedule_week>',
                                dest='policy_schedule_week',
@@ -563,23 +621,6 @@ def create_parser(subcommand_parsers, common_parser):
                                metavar='<policy_schedule_month>',
                                dest='policy_schedule_month',
                                help='Day of month when policy run')
-    create_parser.add_argument(
-        '-replicationtype',
-        '-reptype',
-        metavar='<replication_type>',
-        dest='replication_type',
-        help='File Replication type Valid values are: LOCAL, REMOTE',
-        choices=['LOCAL', 'REMOTE'],
-        )
-    create_parser.add_argument(
-        '-replicationcopymode',
-        '-repcpmode',
-        metavar='<replication_copy_mode>',
-        dest='replication_copy_mode',
-        help='File Replication copy type Valid values are: SYNC, ASYNC'
-            ,
-        choices=['SYNC', 'ASYNC'],
-        )
     create_parser.add_argument(
         '-replicationconfiguration',
         '-repconf',
@@ -615,16 +656,6 @@ def create_parser(subcommand_parsers, common_parser):
         help='Tenants access',
         required=False,
         )
-    mandatory_args.add_argument(
-        '-apply_at',
-        '-aplat',
-        metavar='<apply_at>',
-        dest='apply_at',
-        help='Level at which policy has to applied. Valid values are vpool, project, file_system'
-            ,
-        required=False,
-        )
-
     create_parser.set_defaults(func=filepolicy_create)
 
 
@@ -801,7 +832,7 @@ def delete_parser(subcommand_parsers, common_parser):
     delete_parser.set_defaults(func=filepolicy_delete)
 
 
-def filepolicy_delete(subcommand_parsers, common_parser):
+def filepolicy_delete(args):
     obj = FilePolicy(args.ip, args.port)
     try:
         if not args.name:
@@ -842,9 +873,9 @@ def assign_parser(subcommand_parsers, common_parser):
         required=True,
         )
     update_parser.add_argument('-assigntovpools', '-asignvpls',
-                               metavar='<assign_to_vpools>',
-                               dest='assign_to_vpools',
-                               help='assign to vpools')
+        		       metavar='<assign_to_vpools>',
+       			       dest='assign_to_vpools',
+        		       help='assign to vpools')
     update_parser.add_argument('-assigntoprojects', '-asignprjs',
                                metavar='<assign_to_projects>',
                                dest='assign_to_projects',

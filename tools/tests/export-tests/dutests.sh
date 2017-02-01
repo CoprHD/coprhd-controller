@@ -1090,9 +1090,11 @@ prerun_tests() {
     if [ ${VERIFY_EXPORT_STATUS} -ne 0 ]; then
         echo "The export was found on the device, attempting to delete..."
         arrayhelper delete_mask ${SERIAL_NUMBER} ${expname}1 ${HOST1}
+        # reset variables because this is just a clean up task
         VERIFY_EXPORT_STATUS=0
+        VERIFY_COUNT=`expr $VERIFY_COUNT - 1`
+        VERIFY_FAIL_COUNT=`expr $VERIFY_FAIL_COUNT - 1`
     fi
-    date
 }
 
 vnx_sim_setup() {
@@ -3662,7 +3664,7 @@ test_24() {
     verify_zones ${FC_ZONE_A:7} exists
 
     # Now add back the other vipr volume to the mask
-    runcmd export_group update $PROJECT/${expname}1 --addVols "${PROJECT}/${VOLNAME}-2"
+    runcmd export_group create $PROJECT ${expname}1 $NH --type Host --volspec "${PROJECT}/${VOLNAME}-2" --hosts "${HOST1}"
 
     # Verify the volume is added
     verify_export ${expname}1 ${HOST1} 2 2
@@ -4420,6 +4422,7 @@ then
    for t in $*
    do
       secho Run $t
+      secho "Start time: $(date)"
       reset_system_props
       prerun_tests
       TEST_OUTPUT_FILE=test_output_${RANDOM}.log
@@ -4441,6 +4444,7 @@ else
      prerun_tests
      TEST_OUTPUT_FILE=test_output_${RANDOM}.log
      reset_counts
+     secho "Start time: $(date)"
      test_${num}
      reset_system_props
      num=`expr ${num} + 1`

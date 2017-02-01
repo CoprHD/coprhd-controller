@@ -36,6 +36,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorException;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.LoggerFactory;
@@ -69,50 +71,49 @@ public class RunAnsible  extends ViPRExecutionTask<OrchestrationTaskResult> {
         ExecutionUtils.currentContext().logInfo("runAnsible.statusInfo", step.getId());
         //TODO Get playbook/package from DB
 
-        //TODO After the column family implementation will use this context directory instead of PATH
+        //TODO After the column family implementation will use this context directory instead of PATH. Handle Cleanup also
         if (!createOrderDir(orderDir)) {
             logger.error("Failed to create Order directory:{}", orderDir);
             return null;
         }
 
+
         final StepType type = StepType.fromString(step.getType());
 
         final Exec.Result result;
-        switch (type) {
-            case SHELL_SCRIPT:
-                result = executeCmd(OrchestrationServiceConstants.PATH + "runscript.sh", makeParam(input));
-                cleanUp("runscript.sh", false);
+        try {
+            switch (type) {
+                case SHELL_SCRIPT:
+                    result = executeCmd(OrchestrationServiceConstants.PATH + "runscript.sh", makeParam(input));
+                    cleanUp("runscript.sh", false);
 
-                break;
-            case LOCAL_ANSIBLE:
-                try {
+                    break;
+                case LOCAL_ANSIBLE:
                     untarPackage("ansi.tar");
                     final String hosts = getHostFile();
                     result = executeLocal(hosts, makeExtraArg(input), OrchestrationServiceConstants.PATH +
-                            FilenameUtils.removeExtension("ansi.tar") + "/" + "helloworld.yml", "root");
-                } catch (final IOException e) {
-                    logger.info("Unable to perform Local Ansible task {}", e);
+                                FilenameUtils.removeExtension("ansi.tar") + "/" + "helloworld.yml", "root");
 
-                    return null;
-                } finally {
                     cleanUp("ansi.tar", true);
-                }
+                    break;
+                case REMOTE_ANSIBLE:
+                    result = executeRemoteCmd(makeExtraArg(input));
 
-                break;
-            case REMOTE_ANSIBLE:
-                result = executeRemoteCmd(makeExtraArg(input));
+                    break;
+                default:
+                    logger.error("Ansible Operation type:{} not supported", type);
 
-                break;
-            default:
-                logger.error("Ansible Operation type:{} not supported", type);
-
-                throw new IllegalStateException("Unsupported Operation");
+                    throw InternalServerErrorException.internalServerErrors.customServiceExecutionFailed("Unsupported Operation");
+            }
+        } catch (final Exception e) {
+            throw InternalServerErrorException.internalServerErrors.customServiceExecutionFailed("Custom Service Task Failed" + e);
         }
 
         ExecutionUtils.currentContext().logInfo("runAnsible.doneInfo", step.getId());
 
-        if (result == null)
-            return null;
+        if (result == null) {
+            throw InternalServerErrorException.internalServerErrors.customServiceExecutionFailed("Script/Ansible execution Failed");
+        }
 
         logger.info("Ansible Execution result:output{} error{} exitValue:{}", result.getStdOutput(), result.getStdError(), result.getExitValue());
 
@@ -189,7 +190,6 @@ public class RunAnsible  extends ViPRExecutionTask<OrchestrationTaskResult> {
                 .setExtraVars(extraVars)
                 .build();
 
-	logger.info("cmds:{}",  Arrays. toString(cmds));
         return Exec.exec(timeout, cmds);
     }
 

@@ -657,6 +657,7 @@ public enum ServiceCode {
 
     //Custom Service Exception code
     CUSTOM_SERVICE_EXCEPTION(69000),
+    CUSTOM_SERVICE_NOTASK(69001),
 
     // ****************************
     // Old style of Service codes

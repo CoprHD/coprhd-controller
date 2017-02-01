@@ -201,7 +201,7 @@ public class OrchestrationUtils {
 
     public static Map<URI, String> waitForTasks(final List<URI> tasksStartedByOe, final ViPRCoreClient client) throws InterruptedException {
         if (tasksStartedByOe.isEmpty()) {
-		    throw InternalServerErrorException.internalServerErrors.customeServiceExecutionFailed("No tasks to wait for");
+		    throw InternalServerErrorException.internalServerErrors.customServiceNoTaskFound("No tasks to wait for");
         }
         ExecutionUtils.currentContext().logInfo("orchestrationService.waitforTask");
 

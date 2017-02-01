@@ -374,5 +374,8 @@ public interface InternalServerErrorExceptions {
     public InternalServerErrorException unexpectedHostOperationError(String cause);
 
     @DeclareServiceCode(ServiceCode.CUSTOM_SERVICE_EXCEPTION)
-    public InternalServerErrorException customeServiceExecutionFailed(String cause);
+    public InternalServerErrorException customServiceExecutionFailed(String cause);
+
+    @DeclareServiceCode(ServiceCode.CUSTOM_SERVICE_NOTASK)
+    public InternalServerErrorException customServiceNoTaskFound(String cause);
 }

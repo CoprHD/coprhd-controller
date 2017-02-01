@@ -6,7 +6,6 @@
 package com.emc.storageos.db.client.upgrade.callbacks;
 
 import java.net.URI;
-import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
@@ -43,10 +42,8 @@ public class MetroPointVolumeInternalSiteNameMigration extends BaseCustomMigrati
         log.info("Migrating MetroPoint Volume internalSiteName fields.");
         try {
             DbClient dbClient = getDbClient();
-            List<URI> volumeURIs = dbClient.queryByType(Volume.class, false);
+            List<URI> volumeURIs = dbClient.queryByType(Volume.class, true);
             Iterator<Volume> volumes = dbClient.queryIterativeObjects(Volume.class, volumeURIs);
-
-            List<Volume> metroPointSourceVolumes = new ArrayList<Volume>();
 
             while (volumes.hasNext()) {
                 Volume volume = volumes.next();
@@ -58,14 +55,12 @@ public class MetroPointVolumeInternalSiteNameMigration extends BaseCustomMigrati
                     // Get the volume's virtual pool and use that to determine if this is a MetroPoint volume
                     VirtualPool vpool = dbClient.queryObject(VirtualPool.class, volume.getVirtualPool());
                     if (vpool != null && VirtualPool.vPoolSpecifiesMetroPoint(vpool)) {
-                        // This is a MetroPoint VPlex source volume, add it to the list.
-                        metroPointSourceVolumes.add(volume);
+                        // This is a MetroPoint VPlex source volume, so update it.
+                        updateVolume(volume);
                     }
                 }
 
             }
-
-            updateVolumes(metroPointSourceVolumes);
         } catch (Exception e) {
             String errorMsg = String.format("%s encounter unexpected error %s", this.getName(), e.getMessage());
             throw new MigrationCallbackException(errorMsg, e);
@@ -78,26 +73,24 @@ public class MetroPointVolumeInternalSiteNameMigration extends BaseCustomMigrati
      *
      * @param volumes the volumes to verify and update
      */
-    private void updateVolumes(List<Volume> volumes) {
-        for (Volume volume : volumes) {
-            for (String volUri : volume.getAssociatedVolumes()) {
-                Volume backingVolume = dbClient.queryObject(Volume.class, URI.create(volUri));
+    private void updateVolume(Volume volume) {
+        for (String volUri : volume.getAssociatedVolumes()) {
+            Volume backingVolume = dbClient.queryObject(Volume.class, URI.create(volUri));
 
-                // Get the associated volumes and determine which one is the active production volume
-                // based on the virtual array. The backing volume matching the virtual array of the source
-                // VPlex volume is the active production backing volume. Only update the VPlex source
-                // volume's internalSiteName if it is different from the corresponding backing volume.
-                if (!NullColumnValueGetter.isNullURI(volume.getVirtualArray())
-                        && volume.getVirtualArray().equals(backingVolume.getVirtualArray())
-                        && NullColumnValueGetter.isNotNullValue(backingVolume.getInternalSiteName())
-                        && !backingVolume.getInternalSiteName().equals(volume.getInternalSiteName())) {
-                    log.info(String
-                            .format("MetroPoint source volume [%s] has an invalid internal site name [%s]. Updating the internal site name to [%s] based on corresponding backing volume [%s].",
-                                    volume.getId(), volume.getInternalSiteName(), backingVolume.getInternalSiteName(),
-                                    backingVolume.getId()));
-                    volume.setInternalSiteName(backingVolume.getInternalSiteName());
-                    dbClient.updateObject(volume);
-                }
+            // Get the associated volumes and determine which one is the active production volume
+            // based on the virtual array. The backing volume matching the virtual array of the source
+            // VPlex volume is the active production backing volume. Only update the VPlex source
+            // volume's internalSiteName if it is different from the corresponding backing volume.
+            if (!NullColumnValueGetter.isNullURI(volume.getVirtualArray())
+                    && volume.getVirtualArray().equals(backingVolume.getVirtualArray())
+                    && NullColumnValueGetter.isNotNullValue(backingVolume.getInternalSiteName())
+                    && !backingVolume.getInternalSiteName().equals(volume.getInternalSiteName())) {
+                log.info(String
+                        .format("MetroPoint source volume [%s] has an invalid internal site name [%s]. Updating the internal site name to [%s] based on corresponding backing volume [%s].",
+                                volume.getId(), volume.getInternalSiteName(), backingVolume.getInternalSiteName(),
+                                backingVolume.getId()));
+                volume.setInternalSiteName(backingVolume.getInternalSiteName());
+                dbClient.updateObject(volume);
             }
         }
     }

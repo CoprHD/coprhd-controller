@@ -151,7 +151,7 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
                                 && XtremIOExportOperationContext.OPERATION_ADD_VOLUMES_TO_INITIATOR_GROUP
                                         .equals(operation.getOperation())) {
                             addedVolumes = (List<URI>) operation.getArgs().get(0);
-                            _log.info("Removing volumes {} as part of rollback", Joiner.on(',').join(volumeURIList));
+                            _log.info("Removing volumes {} as part of rollback", Joiner.on(',').join(addedVolumes));
                         }
                     }
                 }
@@ -531,8 +531,8 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
             for (XtremIOInitiator initiator : initiators) {
                 URIQueryResultList initiatorResult = new URIQueryResultList();
                 dbClient
-                .queryByConstraint(AlternateIdConstraint.Factory.getInitiatorPortInitiatorConstraint(initiator.getPortAddress()),
-                        initiatorResult);
+                        .queryByConstraint(AlternateIdConstraint.Factory.getInitiatorPortInitiatorConstraint(initiator.getPortAddress()),
+                                initiatorResult);
                 if (initiatorResult.iterator().hasNext()) {
                     Initiator initiatorObj = dbClient.queryObject(Initiator.class, initiatorResult.iterator().next());
                     _log.info("Updating Initiator label from {} to {} in ViPR DB", initiatorObj.getLabel(), initiator.getName());
@@ -921,7 +921,8 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
                         ctx.setBlockObjects(volumes, dbClient);
                         ctx.setAllowExceptions(!WorkflowService.getInstance().isStepInRollbackState(taskCompleter.getOpId()));
                         // DU validation when removing initiators
-                        XtremIOExportMaskVolumesValidator volumeValidator = (XtremIOExportMaskVolumesValidator) validator.removeInitiators(ctx);
+                        XtremIOExportMaskVolumesValidator volumeValidator = (XtremIOExportMaskVolumesValidator) validator
+                                .removeInitiators(ctx);
                         volumeValidator.setIgNames(groupInitiatorsByIG.keySet());
                         volumeValidator.validate();
                         List<Initiator> initiatorsToBeRemoved = new ArrayList<Initiator>();
@@ -935,7 +936,7 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
                                 ExportOperationContextOperation operation = (ExportOperationContextOperation) li.previous();
                                 if (operation != null
                                         && XtremIOExportOperationContext.OPERATION_ADD_INITIATORS_TO_INITIATOR_GROUP
-                                        .equals(operation.getOperation())) {
+                                                .equals(operation.getOperation())) {
                                     initiatorsToBeRemoved = (List<Initiator>) operation.getArgs().get(0);
                                     _log.info("Removing initiators {} as part of rollback", Joiner.on(',').join(initiatorsToBeRemoved));
                                 }
@@ -1054,7 +1055,7 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
                     igGroup.getNumberOfInitiators());
 
         }
-        
+
         // add all the left out initiators to this folder
         for (Initiator remainingInitiator : initiatorsToBeCreated) {
             _log.info("Initiator {} Label {} ", remainingInitiator.getInitiatorPort(),
@@ -1157,7 +1158,7 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
                     volumesToIGMap.put(igName, igVolume.getVolInfo().get(1));
                 }
             }
-            
+
             InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_052);
 
             // create Lun Maps

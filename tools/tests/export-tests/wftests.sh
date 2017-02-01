@@ -770,6 +770,55 @@ runcmd() {
     fi
 }
 
+# Utility for running a command that is expected to pause.
+# It will fill in variables needed for resume and follow operations
+#
+runcmd_suspend() {
+    testname=$1
+    shift
+    cmd=$*
+    # Print the command that will be run
+    recho $*
+
+    # Actually run the cmd, put stdout to the resultcmd variable.  the rest goes to errors.txt
+    resultcmd=`$* 2> /tmp/errors.txt`
+
+    if [ $? -ne 0 ]; then
+	echo "Command was expected to suspend, however it failed outright"
+	incr_fail_count
+	report_results ${testname}
+	return
+    fi
+
+    echo ${resultcmd} | grep "Operation suspended" 1> /dev/null
+    if [ $? -ne 0 ]; then
+	echo "Command returned output, but that output did not contain the suspend information.  This is a failure."
+	cat /tmp/errors.txt | tee -a ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE}
+	echo ${resultcmd}
+	incr_fail_count
+	report_results ${testname}
+	return
+    fi
+    
+    cat /tmp/errors.txt | tee -a ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE}
+    echo ${resultcmd}
+
+    # Parse results and store results in variables to be used later
+    taskworkflow=`echo $resultcmd | awk -F, '{print $2 $3}'`
+    answersarray=($taskworkflow)
+    task=${answersarray[0]}
+    workflow=${answersarray[1]}
+}
+
+# Utility for resuming the most recently suspended workflow and following its task
+resume_follow_task() {
+    # Resume the workflow
+    runcmd workflow resume $workflow
+
+    # Follow the task
+    runcmd task follow $task
+}
+
 #counterpart for run
 #executes a command that is expected to fail
 fail(){
@@ -3039,7 +3088,7 @@ test_9() {
 
 # Test 10
 #
-# Test removing a volumes while injecting several different failures that cause the job to not get
+# Test removing volumes while injecting several different failures that cause the job to not get
 # done, or not get done effectively enough.
 #
 # 1. Save off state of DB (1)
@@ -3116,24 +3165,8 @@ test_10() {
       # Turn on suspend of export after orchestration
       set_suspend_on_class_method ${exportRemoveVolumesDeviceStep}
 
-      # Run the export group command TODO: Do this more elegantly
-      recho "export_group update $PROJECT/${expname}1 --remVols ${PROJECT}/${VOLNAME}-2"
-      resultcmd=`export_group update $PROJECT/${expname}1 --remVols ${PROJECT}/${VOLNAME}-2`
-
-      if [ $? -ne 0 ]; then
-	  echo "export group command failed outright"
-	  cleanup
-	  finish 5
-      fi
-
-      # Show the result of the export group command for now (show the task and WF IDs)
-      echo $resultcmd
-      
-      # Parse results (add checks here!  encapsulate!)
-      taskworkflow=`echo $resultcmd | awk -F, '{print $2 $3}'`
-      answersarray=($taskworkflow)
-      task=${answersarray[0]}
-      workflow=${answersarray[1]}
+      # Run the export group command
+      runcmd_suspend test_10 export_group update $PROJECT/${expname}1 --remVols ${PROJECT}/${VOLNAME}-2
       
       if [ "${failure}" = "failure_firewall" ]
       then
@@ -3365,6 +3398,285 @@ test_12() {
     done
 }
 
+# Test 13
+#
+# Test to ensure rerunnability of a failed remove host operation (export group update remove host)
+#
+# 1. Save off state of DB (1)
+# 2. Export a volume to two hosts
+# 4. Inject a failure in the upcoming remove host operation
+# 5. Run export group update remove host, expect failure
+# 7. Retry operation without failure injection
+# 8. Save off state of DB (2)
+# 9. Compare state (1) and (4)
+#
+test_13() {
+    echot "Test 13 Begins"
+    expname=${EXPORT_GROUP_NAME}t13
+
+    common_failure_injections="failure_004_final_step_in_workflow_complete"
+    # Removing check for firewall as a regular test because it takes a very long time, but it is supported.
+    # common_failure_injections="failure_004_final_step_in_workflow_complete \
+    #                           failure_firewall"
+
+    storage_failure_injections=""
+    if [ "${SS}" = "vplex" ]
+    then
+	storage_failure_injections=""
+    fi
+
+    if [ "${SS}" = "unity" -o "${SS}" = "xio" ]
+    then
+	storage_failure_injections="failure_017_Export_doRemoveInitiator"
+    fi
+
+    if [ "${SS}" = "vnx" -o "${SS}" = "vmax2" -o "${SS}" = "vmax3" ]
+    then
+	storage_failure_injections="failure_016_Export_doRemoveInitiator \
+                                    failure_024_Export_zone_removeInitiator_before_delete \
+                                    failure_025_Export_zone_removeInitiator_after_delete \
+                                    failure_015_SmisCommandHelper.invokeMethod_*"
+    fi
+
+    failure_injections="${common_failure_injections} ${storage_failure_injections}"
+
+    # Placeholder when a specific failure case is being worked...
+    # failure_injections="failure_firewall"
+    # failure_injections="failure_015_SmisCommandHelper.invokeMethod_DeleteGroup"
+
+    for failure in ${failure_injections}
+    do
+      firewall_test=1
+      if [ "${failure}" = "failure_firewall" ]
+      then
+	  # Find the IP address we need to firewall
+	  if [ "${SIM}" = "1" ]
+	  then
+	      firewall_ip=${HW_SIMULATOR_IP}
+	  elif [ "${SS}" = "unity" ]
+	  then
+	      firewall_ip=${UNITY_IP}
+	  else
+	      secho "Firewall testing disabled for combo of ${SS} with simualtor=${SIM}"
+	      continue;
+	  fi
+      fi
+
+      item=${RANDOM}
+      TEST_OUTPUT_FILE=test_output_${item}.log
+      secho "Running Test 13 with failure scenario: ${failure}..."
+      cfs=("ExportGroup ExportMask FCZoneReference")
+      mkdir -p results/${item}
+      volname=${VOLNAME}-${item}
+      reset_counts
+      
+      # Snap the state before the export is created
+      snap_db 1 "${cfs[@]}"
+
+      # prime the export
+      runcmd export_group create $PROJECT ${expname}1 $NH --type Host --volspec "${PROJECT}/${VOLNAME}-1,${PROJECT}/${VOLNAME}-2" --hosts "${HOST1}"
+
+      # Remove an initiator
+      runcmd export_group update $PROJECT/${expname}1 --remInits ${HOST1}/${H1PI1}
+
+      # Snap the state after the initiator is removed so we have something to compare against
+      snap_db 2 "${cfs[@]}"
+
+      # Readd it
+      runcmd export_group update $PROJECT/${expname}1 --addInits ${HOST1}/${H1PI1}
+      
+      # Turn on suspend of export after orchestration
+      set_suspend_on_class_method ${exportRemoveInitiatorsDeviceStep}
+
+      # Run the export group command
+      runcmd_suspend test_13 export_group update $PROJECT/${expname}1 --remInits ${HOST1}/${H1PI1}
+
+      if [ "${failure}" = "failure_firewall" ]
+      then
+	  # turn on firewall
+	  runcmd /usr/sbin/iptables -I INPUT 1 -s ${firewall_ip} -p all -j REJECT
+      fi
+	
+      # Turn on failure at a specific point
+      set_artificial_failure ${failure}
+
+      # Turn off suspend of export after orchestration
+      set_suspend_on_class_method none
+
+      # Resume the workflow
+      runcmd workflow resume $workflow
+
+      # Follow the task. 
+      echo "*** Following the export_group update task to verify it FAILS because of injection or firewall..."
+      fail task follow $task
+
+      if [ "${failure}" = "failure_firewall" ]
+      then
+	  # turn off firewall
+	  runcmd /usr/sbin/iptables -D INPUT 1
+      elif [ "${failure}" != "failure_015_SmisCommandHelper.invokeMethod_*" ]
+      then
+	  # Verify injected failures were hit
+	  verify_failures ${failure}
+      fi
+
+      # rerun the command
+      set_artificial_failure none
+      runcmd export_group update ${PROJECT}/${expname}1 --remInits ${HOST1}/${H1PI1}
+
+      # Validate the DB is back to the state before we added init 1
+      snap_db 3 "${cfs[@]}"
+      validate_db 2 3 "${cfs[@]}"
+
+      # Delete the export group
+      runcmd export_group delete ${PROJECT}/${expname}1
+
+      # Validate the DB is back to its original state
+      snap_db 4 "${cfs[@]}"
+      validate_db 1 4 "${cfs[@]}"
+
+      # Report results
+      report_results test_13 ${failure}
+    done
+}
+
+# Test 14
+#
+# Test to ensure rerunnability of a failed remove host operation (export group update remove host)
+#
+# 1. Save off state of DB (1)
+# 2. Export a volume to two hosts
+# 4. Inject a failure in the upcoming remove host operation
+# 5. Run export group update remove host, expect failure
+# 7. Retry operation without failure injection
+# 8. Save off state of DB (2)
+# 9. Compare state (1) and (4)
+#
+test_14() {
+    echot "Test 14 Begins"
+    expname=${EXPORT_GROUP_NAME}t14
+
+    common_failure_injections="failure_004_final_step_in_workflow_complete"
+    # Removing check for firewall as a regular test because it takes a very long time, but it is supported.
+    # common_failure_injections="failure_004_final_step_in_workflow_complete \
+    #                           failure_firewall"
+
+    storage_failure_injections=""
+    if [ "${SS}" = "vplex" ]
+    then
+	storage_failure_injections=""
+    fi
+
+    if [ "${SS}" = "unity" -o "${SS}" = "xio" ]
+    then
+	storage_failure_injections="failure_017_Export_doRemoveInitiator"
+    fi
+
+    if [ "${SS}" = "vnx" -o "${SS}" = "vmax2" -o "${SS}" = "vmax3" ]
+    then
+	storage_failure_injections="failure_015_SmisCommandHelper.invokeMethod_DeleteGroup \
+                                    failure_015_SmisCommandHelper.invokeMethod_*"
+    fi
+
+    failure_injections="${common_failure_injections} ${storage_failure_injections}"
+
+    # Placeholder when a specific failure case is being worked...
+    # failure_injections="failure_firewall"
+    # failure_injections="failure_015_SmisCommandHelper.invokeMethod_DeleteGroup"
+
+    for failure in ${failure_injections}
+    do
+      firewall_test=1
+      if [ "${failure}" = "failure_firewall" ]
+      then
+	  # Find the IP address we need to firewall
+	  if [ "${SIM}" = "1" ]
+	  then
+	      firewall_ip=${HW_SIMULATOR_IP}
+	  elif [ "${SS}" = "unity" ]
+	  then
+	      firewall_ip=${UNITY_IP}
+	  else
+	      secho "Firewall testing disabled for combo of ${SS} with simualtor=${SIM}"
+	      continue;
+	  fi
+      fi
+
+      item=${RANDOM}
+      TEST_OUTPUT_FILE=test_output_${item}.log
+      secho "Running Test 14 with failure scenario: ${failure}..."
+      cfs=("ExportGroup ExportMask FCZoneReference")
+      mkdir -p results/${item}
+      volname=${VOLNAME}-${item}
+      reset_counts
+      
+      # Snap the state before the export is created
+      snap_db 1 "${cfs[@]}"
+
+      # prime the export
+      runcmd export_group create $PROJECT ${expname}1 $NH --type Host --volspec "${PROJECT}/${VOLNAME}-1,${PROJECT}/${VOLNAME}-2" --hosts "${HOST1}"
+
+      # Snap the state before the second host was added.  This is the state we expect after successful retry of remHost later.
+      snap_db 2 "${cfs[@]}"
+
+      # Add the second host
+      runcmd export_group update $PROJECT/${expname}1 --addHosts ${HOST2}
+
+      # Turn on suspend of export after orchestration
+      set_suspend_on_class_method ${exportDeleteDeviceStep}
+
+      # Run the export group command
+      runcmd_suspend test_14 export_group update $PROJECT/${expname}1 --remHosts ${HOST2}
+
+      if [ "${failure}" = "failure_firewall" ]
+      then
+	  # turn on firewall
+	  runcmd /usr/sbin/iptables -I INPUT 1 -s ${firewall_ip} -p all -j REJECT
+      fi
+	
+      # Turn on failure at a specific point
+      set_artificial_failure ${failure}
+
+      # Turn off suspend of export after orchestration
+      set_suspend_on_class_method none
+
+      # Resume the workflow
+      runcmd workflow resume $workflow
+
+      # Follow the task. 
+      echo "*** Following the export_group update task to verify it FAILS because of injection or firewall..."
+      fail task follow $task
+
+      if [ "${failure}" = "failure_firewall" ]
+      then
+	  # turn off firewall
+	  runcmd /usr/sbin/iptables -D INPUT 1
+      elif [ "${failure}" != "failure_015_SmisCommandHelper.invokeMethod_*" ]
+      then
+	  # Verify injected failures were hit
+	  verify_failures ${failure}
+      fi
+
+      # rerun the command
+      set_artificial_failure none
+      runcmd export_group update ${PROJECT}/${expname}1 --remHosts ${HOST2}
+
+      # Validate the DB is back to the state before we added host2
+      snap_db 3 "${cfs[@]}"
+      validate_db 2 3 "${cfs[@]}"
+
+      # Delete the export group
+      runcmd export_group delete ${PROJECT}/${expname}1
+
+      # Validate the DB is back to its original state
+      snap_db 4 "${cfs[@]}"
+      validate_db 1 4 "${cfs[@]}"
+
+      # Report results
+      report_results test_14 ${failure}
+    done
+}
+
 cleanup() {
     if [ "${DO_CLEANUP}" = "1" ]; then
 	for id in `export_group list $PROJECT | grep YES | awk '{print $5}'`
@@ -3575,7 +3887,7 @@ fi
 
 
 test_start=1
-test_end=10
+test_end=14
 
 # If there's a last parameter, take that
 # as the name of the test to run

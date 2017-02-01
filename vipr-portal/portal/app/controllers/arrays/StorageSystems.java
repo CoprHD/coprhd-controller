@@ -4,49 +4,15 @@
  */
 package controllers.arrays;
 
-import com.emc.storageos.db.client.model.DiscoveredDataObject;
-import com.emc.storageos.db.client.util.EndpointUtility;
-import com.emc.storageos.model.NamedRelatedResourceRep;
-import com.emc.storageos.model.pools.StoragePoolRestRep;
-import com.emc.storageos.model.pools.StoragePoolUpdate;
-import com.emc.storageos.model.ports.StoragePortRequestParam;
-import com.emc.storageos.model.ports.StoragePortRestRep;
-import com.emc.storageos.model.ports.StoragePortUpdate;
-import com.emc.storageos.model.project.ProjectRestRep;
-import com.emc.storageos.model.project.VirtualNasParam;
-import com.emc.storageos.model.smis.StorageProviderRestRep;
-import com.emc.storageos.model.storagesystem.type.StorageSystemTypeList;
-import com.emc.storageos.model.storagesystem.type.StorageSystemTypeRestRep;
-import com.emc.storageos.model.systems.StorageSystemRequestParam;
-import com.emc.storageos.model.systems.StorageSystemRestRep;
-import com.emc.storageos.model.systems.StorageSystemUpdateRequestParam;
-import com.emc.storageos.model.valid.Endpoint;
-import com.emc.storageos.model.vnas.VirtualNASRestRep;
-import com.emc.vipr.client.Task;
-
 import static com.emc.vipr.client.core.util.ResourceUtils.id;
 import static com.emc.vipr.client.core.util.ResourceUtils.uri;
 import static com.emc.vipr.client.core.util.ResourceUtils.uris;
-
-import com.google.common.collect.Lists;
-import com.google.gson.JsonArray;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
-
-import controllers.Common;
-import controllers.arrays.StorageProviders.StorageProviderForm;
-import controllers.deadbolt.Restrict;
-import controllers.deadbolt.Restrictions;
 import static controllers.security.Security.isProjectAdmin;
 import static controllers.security.Security.isTenantAdmin;
-import controllers.util.FlashException;
-import controllers.util.ViprResourceController;
+import static util.BourneUtil.getViprClient;
 
 import java.net.URI;
 import java.net.URL;
-import java.net.URLDecoder;
-import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -58,6 +24,36 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 
+import org.apache.commons.lang.StringUtils;
+
+import com.emc.storageos.db.client.model.DiscoveredDataObject;
+import com.emc.storageos.db.client.util.EndpointUtility;
+import com.emc.storageos.model.NamedRelatedResourceRep;
+import com.emc.storageos.model.pools.StoragePoolRestRep;
+import com.emc.storageos.model.pools.StoragePoolUpdate;
+import com.emc.storageos.model.ports.StoragePortRequestParam;
+import com.emc.storageos.model.ports.StoragePortRestRep;
+import com.emc.storageos.model.ports.StoragePortUpdate;
+import com.emc.storageos.model.project.ProjectRestRep;
+import com.emc.storageos.model.project.VirtualNasParam;
+import com.emc.storageos.model.smis.StorageProviderRestRep;
+import com.emc.storageos.model.storagesystem.type.StorageSystemTypeRestRep;
+import com.emc.storageos.model.systems.StorageSystemRequestParam;
+import com.emc.storageos.model.systems.StorageSystemRestRep;
+import com.emc.storageos.model.systems.StorageSystemUpdateRequestParam;
+import com.emc.storageos.model.valid.Endpoint;
+import com.emc.storageos.model.vnas.VirtualNASRestRep;
+import com.emc.vipr.client.Task;
+import com.google.common.collect.Lists;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonObject;
+
+import controllers.Common;
+import controllers.arrays.StorageProviders.StorageProviderForm;
+import controllers.deadbolt.Restrict;
+import controllers.deadbolt.Restrictions;
+import controllers.util.FlashException;
+import controllers.util.ViprResourceController;
 import models.BlockProtocols;
 import models.PoolTypes;
 import models.RegistrationStatus;
@@ -71,10 +67,6 @@ import models.datatable.StorageSystemDataTable;
 import models.datatable.StorageSystemDataTable.StorageSystemInfo;
 import models.datatable.VirtualNasServerDataTable;
 import models.datatable.VirtualNasServerDataTable.VirtualNasServerInfo;
-
-import org.apache.commons.lang.StringUtils;
-
-import play.Logger;
 import play.data.binding.As;
 import play.data.validation.Max;
 import play.data.validation.MaxSize;
@@ -82,14 +74,12 @@ import play.data.validation.Min;
 import play.data.validation.MinSize;
 import play.data.validation.Required;
 import play.data.validation.Validation;
-import play.mvc.Http;
 import play.mvc.With;
-import static util.BourneUtil.getViprClient;
+import util.BourneUtil;
 import util.EnumOption;
 import util.MessagesUtils;
 import util.StoragePoolUtils;
 import util.StoragePortUtils;
-import util.StorageSystemTypeUtils;
 import util.StorageSystemUtils;
 import util.StringOption;
 import util.TenantUtils;
@@ -177,14 +167,14 @@ public class StorageSystems extends ViprResourceController {
 
     public static void discoveryCheckJson(@As(",") String[] ids) {
         List<String> failedDiscovery = new ArrayList<String>();
-        for (String id:ids) {
+        for (String id : ids) {
             StorageSystemRestRep storageSystem = StorageSystemUtils
                     .getStorageSystem(id);
             if (storageSystem == null || storageSystem.getRegistrationStatus().equals("UNREGISTERED")) {
-                //ignore for now
+                // ignore for now
                 continue;
             }
-            if (!storageSystem.getDiscoveryJobStatus().equals("COMPLETE")){
+            if (!storageSystem.getDiscoveryJobStatus().equals("COMPLETE")) {
                 failedDiscovery.add(storageSystem.getName());
                 continue;
             }
@@ -221,18 +211,17 @@ public class StorageSystems extends ViprResourceController {
     }
 
     public static void create() {
-    	// Check add is called from guide wizard, yes only AFA
-       	JsonObject jobject = getCookieAsJson(VIPR_START_GUIDE);
-       	String isGuideAdd = null;
-       	if (jobject != null && jobject.get(GUIDE_VISIBLE) != null) {
-       		isGuideAdd = jobject.get(GUIDE_VISIBLE).getAsString();
-       	}
-       	if( isGuideAdd != null && StringUtils.equalsIgnoreCase(isGuideAdd, "true")) {
-       		addReferenceDataAllFlash();
-       	}
-       	else {
-       		addReferenceData();
-       	}
+        // Check add is called from guide wizard, yes only AFA
+        JsonObject jobject = getCookieAsJson(VIPR_START_GUIDE);
+        String isGuideAdd = null;
+        if (jobject != null && jobject.get(GUIDE_VISIBLE) != null) {
+            isGuideAdd = jobject.get(GUIDE_VISIBLE).getAsString();
+        }
+        if (isGuideAdd != null && StringUtils.equalsIgnoreCase(isGuideAdd, "true")) {
+            addReferenceDataAllFlash();
+        } else {
+            addReferenceData();
+        }
         StorageSystemForm storageArray = new StorageSystemForm();
         // put all "initial create only" defaults here rather than field initializers
         storageArray.type = StorageSystemTypes.VMAX;
@@ -305,32 +294,32 @@ public class StorageSystems extends ViprResourceController {
         Task<?> sp = storageArray.save();
         String message = storageArray.isStorageProviderManaged()
                 && StringUtils.isEmpty(storageArray.id) ? MessagesUtils.get(
-                SAVED_SMIS, storageArray.name) : MessagesUtils.get(SAVED_ARRAY, storageArray.name);
+                        SAVED_SMIS, storageArray.name) : MessagesUtils.get(SAVED_ARRAY, storageArray.name);
         flash.success(message);
 
-        //check if checklist is running on this step
+        // check if checklist is running on this step
         JsonObject jobject = getCookieAsJson(VIPR_START_GUIDE);
-        if(jobject != null && jobject.get(GUIDE_COMPLETED_STEP) != null && jobject.get(GUIDE_VISIBLE) != null) {
-			if (jobject.get(GUIDE_COMPLETED_STEP).getAsInt() == 3
-					&& jobject.get(GUIDE_VISIBLE).getAsBoolean()) {
-				JsonObject dataObject = getCookieAsJson(GUIDE_DATA);
+        if (jobject != null && jobject.get(GUIDE_COMPLETED_STEP) != null && jobject.get(GUIDE_VISIBLE) != null) {
+            if (jobject.get(GUIDE_COMPLETED_STEP).getAsInt() == 3
+                    && jobject.get(GUIDE_VISIBLE).getAsBoolean()) {
+                JsonObject dataObject = getCookieAsJson(GUIDE_DATA);
 
-				JsonArray storage_systems = dataObject
-						.getAsJsonArray(STORAGE_SYSTEMS);
-				if (storage_systems == null) {
-					storage_systems = new JsonArray();
-				}
-				JsonObject storage = new JsonObject();
-				storage.addProperty("id", sp.getResourceId().toString());
-				storage.addProperty("name", storageArray.name);
-				storage_systems.add(storage);
-				dataObject.add(STORAGE_SYSTEMS, storage_systems);
-				saveJsonAsCookie(GUIDE_DATA, dataObject);
-				list();
-			}
+                JsonArray storage_systems = dataObject
+                        .getAsJsonArray(STORAGE_SYSTEMS);
+                if (storage_systems == null) {
+                    storage_systems = new JsonArray();
+                }
+                JsonObject storage = new JsonObject();
+                storage.addProperty("id", sp.getResourceId().toString());
+                storage.addProperty("name", storageArray.name);
+                storage_systems.add(storage);
+                dataObject.add(STORAGE_SYSTEMS, storage_systems);
+                saveJsonAsCookie(GUIDE_DATA, dataObject);
+                list();
+            }
         }
 
-        //TODO: cleanup referrer
+        // TODO: cleanup referrer
         if (StringUtils.isNotEmpty(storageArray.referrerUrl)) {
             redirect(storageArray.referrerUrl);
         }
@@ -399,6 +388,24 @@ public class StorageSystems extends ViprResourceController {
     private static void registerPorts(List<URI> ids, String arrayId) {
         performSuccessFail(ids, new RegisterPortOperation(arrayId),
                 REGISTER_SUCCESS, REGISTER_ERROR);
+        ports(arrayId);
+    }
+
+    public static void untagAsDRPorts(@As(",") String[] ids, String arrayId) {
+        Set<String> removeTags = new HashSet<String>();
+        removeTags.add("dr_port");
+        for (int i = 0; i < ids.length; i++) {
+            BourneUtil.getViprClient().storagePorts().removeTags(uri(ids[i]), removeTags);
+        }
+        ports(arrayId);
+    }
+
+    public static void tagAsDRPorts(@As(",") String[] ids, String arrayId) {
+        Set<String> addTags = new HashSet<String>();
+        addTags.add("dr_port");
+        for (int i = 0; i < ids.length; i++) {
+            BourneUtil.getViprClient().storagePorts().addTags(uri(ids[i]), addTags);
+        }
         ports(arrayId);
     }
 
@@ -919,7 +926,7 @@ public class StorageSystems extends ViprResourceController {
         public String referrerUrl;
 
         public boolean unregistered;
-        
+
         @MaxSize(2048)
         public String hyperScaleUsername;
 
@@ -932,7 +939,7 @@ public class StorageSystems extends ViprResourceController {
         public String hyperScaleHost;
 
         public String hyperScalePort;
-        
+
         public URL url;
 
         public String secondaryURL;
@@ -1076,6 +1083,7 @@ public class StorageSystems extends ViprResourceController {
             }
             return nonNativeSystemProviderMap.get(type);
         }
+
         public void setSecondaryParameters() {
             if (StringUtils.isNotEmpty(this.hyperScaleUsername)) {
                 this.secondaryUsername = this.hyperScaleUsername;
@@ -1086,10 +1094,10 @@ public class StorageSystems extends ViprResourceController {
             if (StringUtils.isNotEmpty(this.hyperScalePasswordConfirm)) {
                 this.secondaryPasswordConfirm = this.hyperScalePasswordConfirm;
             }
-            if (StringUtils.isNotEmpty(this.hyperScaleHost)&&StringUtils.isNotEmpty(this.hyperScalePort)) {
+            if (StringUtils.isNotEmpty(this.hyperScaleHost) && StringUtils.isNotEmpty(this.hyperScalePort)) {
                 try {
-                    url = new URL(HTTPS, this.hyperScaleHost, Integer.parseInt(this.hyperScalePort),"");
-                }catch(Exception e) {
+                    url = new URL(HTTPS, this.hyperScaleHost, Integer.parseInt(this.hyperScalePort), "");
+                } catch (Exception e) {
                     flash.error(MessagesUtils.get(PARSE_ERROR));
                 }
                 this.secondaryURL = url.toString();
@@ -1182,7 +1190,7 @@ public class StorageSystems extends ViprResourceController {
                         smisProviderConfirmPassword)) {
                     Validation.addError(fieldName
                             + ".smisProviderConfirmPassword", MessagesUtils
-                            .get("storageArray.confirmPassword.not.match"));
+                                    .get("storageArray.confirmPassword.not.match"));
                 }
 
                 Validation.required(fieldName + ".smisProviderIpAddress",
@@ -1191,24 +1199,23 @@ public class StorageSystems extends ViprResourceController {
                         this.smisProviderPortNumber);
             }
 
-            if(isXIV()) {
+            if (isXIV()) {
                 if ((StringUtils.isNotEmpty(this.hyperScaleHost) && StringUtils.isNotEmpty(this.hyperScalePort))) {
                     if (StringUtils.isEmpty(hyperScaleUsername)) {
-                        Validation.addError(fieldName + ".hyperScaleUsername",MessagesUtils
+                        Validation.addError(fieldName + ".hyperScaleUsername", MessagesUtils
                                 .get(SECONDARY_USER_MISSING));
                     }
-                }
-                else if (!(StringUtils.isEmpty(this.hyperScaleHost) && StringUtils.isEmpty(this.hyperScalePort))) {
-                    Validation.addError(fieldName + ".hyperScaleHost",MessagesUtils
+                } else if (!(StringUtils.isEmpty(this.hyperScaleHost) && StringUtils.isEmpty(this.hyperScalePort))) {
+                    Validation.addError(fieldName + ".hyperScaleHost", MessagesUtils
                             .get(SECONDARY_DETAIL_MISSING));
-                    Validation.addError(fieldName + ".hyperScalePort",MessagesUtils
+                    Validation.addError(fieldName + ".hyperScalePort", MessagesUtils
                             .get(SECONDARY_DETAIL_MISSING));
                 }
-                if(StringUtils.isNotEmpty(this.hyperScaleUsername)) {
+                if (StringUtils.isNotEmpty(this.hyperScaleUsername)) {
                     if ((StringUtils.isEmpty(this.hyperScaleHost) || StringUtils.isEmpty(this.hyperScalePort))) {
-                        Validation.addError(fieldName + ".hyperScaleHost",MessagesUtils
+                        Validation.addError(fieldName + ".hyperScaleHost", MessagesUtils
                                 .get(SECONDARY_DETAIL_MISSING));
-                        Validation.addError(fieldName + ".hyperScalePort",MessagesUtils
+                        Validation.addError(fieldName + ".hyperScalePort", MessagesUtils
                                 .get(SECONDARY_DETAIL_MISSING));
                     }
                 }
@@ -1377,6 +1384,10 @@ public class StorageSystems extends ViprResourceController {
             }
             if (StorageSystemTypes.isECS(storageSystem.getSystemType())) {
                 alterColumns("portGroup", "iqn", "alias").hidden();
+            }
+
+            if (StorageSystemTypes.isIsilon((storageSystem.getSystemType()))) {
+                alterColumns("isDRPort").setVisible(true);
             }
         }
     }

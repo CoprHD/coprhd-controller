@@ -17,20 +17,26 @@ import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
+import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
+import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.CifsShareACL;
 import com.emc.storageos.db.client.model.FileExport;
 import com.emc.storageos.db.client.model.FileExportRule;
 import com.emc.storageos.db.client.model.FilePolicy;
 import com.emc.storageos.db.client.model.FilePolicy.FilePolicyApplyLevel;
+import com.emc.storageos.db.client.model.FilePolicy.FilePolicyType;
 import com.emc.storageos.db.client.model.FileShare;
+import com.emc.storageos.db.client.model.FileShare.PersonalityTypes;
 import com.emc.storageos.db.client.model.NASServer;
 import com.emc.storageos.db.client.model.NFSShareACL;
 import com.emc.storageos.db.client.model.PhysicalNAS;
 import com.emc.storageos.db.client.model.PolicyStorageResource;
 import com.emc.storageos.db.client.model.Project;
+import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
+import com.emc.storageos.db.client.model.VirtualNAS;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.model.file.ExportRule;
@@ -38,6 +44,8 @@ import com.emc.storageos.model.file.FileNfsACLUpdateParams;
 import com.emc.storageos.model.file.NfsACE;
 import com.emc.storageos.model.file.ShareACL;
 import com.emc.storageos.volumecontroller.FileControllerConstants;
+import com.emc.storageos.volumecontroller.FileDeviceInputOutput;
+import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
 
 /**
  * File orchestration Utility Class
@@ -359,14 +367,15 @@ public final class FileOrchestrationUtils {
     }
 
     /**
+     * Return list of policies to be applied at vpool
      * 
      * @param dbClient
      * @param vpool
      * @param storageSystem
      * @return
      */
-    public static List<FilePolicy> getAllVpoolLevelPolices(DbClient dbClient, VirtualPool vpool, NASServer nasServer, URI storageSystem) {
-        List<FilePolicy> filePoliciesToCreate = new ArrayList<>();
+    public static List<FilePolicy> getAllVpoolLevelPolices(DbClient dbClient, VirtualPool vpool, URI storageSystem, URI nasServer) {
+        List<FilePolicy> filePoliciesToCreate = new ArrayList<FilePolicy>();
         StringSet fileVpoolPolicies = vpool.getFilePolicies();
 
         if (fileVpoolPolicies != null && !fileVpoolPolicies.isEmpty()) {
@@ -379,9 +388,9 @@ public final class FileOrchestrationUtils {
                         PolicyStorageResource strRes = dbClient.queryObject(PolicyStorageResource.class, URIUtil.uri(policyStrRe));
                         if (strRes.getAppliedAt().toString().equals(vpool.getId().toString())
                                 && strRes.getStorageSystem().toString().equals(storageSystem.toString())
-                                && strRes.getNasServer().toString().equalsIgnoreCase(nasServer.getId().toString())) {
-                            _log.info("File Policy {} is already for vpool {} , storage system {}", filePolicy.getFilePolicyName(),
-                                    vpool.getLabel(), storageSystem.toString());
+                                && strRes.getNasServer().toString().equalsIgnoreCase(nasServer.toString())) {
+                            _log.info("File Policy {} is already exists for vpool {} , storage system {} and nas server {}",
+                                    filePolicy.getFilePolicyName(), vpool.getLabel(), storageSystem.toString(), strRes);
                             filePoliciesToCreate.remove(filePolicy);
                             break;
                         }
@@ -393,15 +402,17 @@ public final class FileOrchestrationUtils {
     }
 
     /**
+     * Return list of policies to be applied at project
      * 
      * @param dbClient
      * @param project
      * @param storageSystem
      * @return
      */
-    public static List<FilePolicy> getAllProjectLevelPolices(DbClient dbClient, Project project, VirtualPool vpool, NASServer nasServer,
-            URI storageSystem) {
-        List<FilePolicy> filePoliciesToCreate = new ArrayList<>();
+
+    public static List<FilePolicy> getAllProjectLevelPolices(DbClient dbClient, Project project, VirtualPool vpool,
+            URI storageSystem, URI nasServer) {
+        List<FilePolicy> filePoliciesToCreate = new ArrayList<FilePolicy>();
         StringSet fileProjectPolicies = project.getFilePolicies();
 
         if (fileProjectPolicies != null && !fileProjectPolicies.isEmpty()) {
@@ -415,11 +426,11 @@ public final class FileOrchestrationUtils {
                 if (policyStrRes != null && !policyStrRes.isEmpty()) {
                     for (String policyStrRe : policyStrRes) {
                         PolicyStorageResource strRes = dbClient.queryObject(PolicyStorageResource.class, URIUtil.uri(policyStrRe));
-                        if (strRes.getAppliedAt().toString().equals(project.getId().toString())
+                        if (strRes != null && strRes.getAppliedAt().toString().equals(project.getId().toString())
                                 && strRes.getStorageSystem().toString().equals(storageSystem.toString())
-                                && strRes.getNasServer().toString().equalsIgnoreCase(nasServer.getId().toString())) {
-                            _log.info("File Policy {} is already for project {} , storage system {}", filePolicy.getFilePolicyName(),
-                                    project.getLabel(), storageSystem.toString());
+                                && strRes.getNasServer().toString().equalsIgnoreCase(nasServer.toString())) {
+                            _log.info("File Policy {} is already exists for project {} , storage system {} and nas server {}",
+                                    filePolicy.getFilePolicyName(), project.getLabel(), storageSystem.toString(), strRes);
                             filePoliciesToCreate.remove(filePolicy);
                             break;
                         }
@@ -428,6 +439,221 @@ public final class FileOrchestrationUtils {
             }
         }
         return filePoliciesToCreate;
+    }
+
+    private static Boolean isvPoolPolicyAppliedOnStorageSystem(DbClient dbClient, StorageSystem system, NASServer nasServer,
+            VirtualPool vpool, FilePolicy policy) {
+
+        StringSet policyResources = policy.getPolicyStorageResources();
+        if (policyResources != null && !policyResources.isEmpty()) {
+            for (String strPolicyRes : policyResources) {
+                PolicyStorageResource policyRes = dbClient.queryObject(PolicyStorageResource.class, URIUtil.uri(strPolicyRes));
+                if (policyRes.getAppliedAt().toString().equals(vpool.getId().toString())
+                        && policyRes.getStorageSystem().toString().equals(system.getId().toString())
+                        && policyRes.getNasServer().toString().equalsIgnoreCase(nasServer.getId().toString())) {
+                    _log.info("File Policy {} exists already for vpool {} , storage system {}", policy.getFilePolicyName(),
+                            vpool.getLabel(), system.getLabel());
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    private static Boolean isProjectPolicyAppliedOnStorageSystem(DbClient dbClient, StorageSystem system, NASServer nasServer,
+            Project project, FilePolicy policy) {
+
+        StringSet policyResources = policy.getPolicyStorageResources();
+        if (policyResources != null && !policyResources.isEmpty()) {
+            for (String strPolicyRes : policyResources) {
+                PolicyStorageResource policyRes = dbClient.queryObject(PolicyStorageResource.class, URIUtil.uri(strPolicyRes));
+                if (policyRes.getAppliedAt().toString().equals(project.getId().toString())
+                        && policyRes.getStorageSystem().toString().equals(system.getId().toString())
+                        && policyRes.getNasServer().toString().equalsIgnoreCase(nasServer.getId().toString())) {
+                    _log.info("File Policy {} exists already for project {} , storage system {}", policy.getFilePolicyName(),
+                            project.getLabel(), system.getLabel());
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    private static Boolean isFSPolicyAppliedOnStorageSystem(DbClient dbClient, StorageSystem system, NASServer nasServer,
+            FileShare fs, FilePolicy policy) {
+
+        StringSet policyResources = policy.getPolicyStorageResources();
+        if (policyResources != null && !policyResources.isEmpty()) {
+            for (String strPolicyRes : policyResources) {
+                PolicyStorageResource policyRes = dbClient.queryObject(PolicyStorageResource.class, URIUtil.uri(strPolicyRes));
+                if (policyRes.getAppliedAt().toString().equals(fs.getId().toString())
+                        && policyRes.getStorageSystem().toString().equals(system.getId().toString())
+                        && policyRes.getNasServer().toString().equalsIgnoreCase(nasServer.getId().toString())) {
+                    _log.info("File Policy {} exists already for file system {} , storage system {}", policy.getFilePolicyName(),
+                            fs.getLabel(), system.getLabel());
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Gives list of replication policies assigned at vpool/project/fs levels
+     * 
+     * @param dbClient
+     * @param vpool
+     * @param project
+     * @param fs
+     * @return
+     */
+    public static List<FilePolicy> getReplicationPolices(DbClient dbClient, VirtualPool vpool, Project project, FileShare fs) {
+        List<FilePolicy> replicationPolicies = new ArrayList<FilePolicy>();
+
+        StringSet filePolicies = new StringSet();
+
+        // vPool policies
+        if (vpool.getFilePolicies() != null && !vpool.getFilePolicies().isEmpty()) {
+            filePolicies.addAll(vpool.getFilePolicies());
+        }
+        // Project policies
+        if (project.getFilePolicies() != null && !project.getFilePolicies().isEmpty()) {
+            for (String strPolicy : project.getFilePolicies()) {
+                FilePolicy policy = dbClient.queryObject(FilePolicy.class, URI.create(strPolicy));
+                if (policy.getFilePolicyVpool() != null
+                        && policy.getFilePolicyVpool().toString().equalsIgnoreCase(vpool.getId().toString())) {
+                    filePolicies.add(policy.getId().toString());
+                }
+
+            }
+        }
+        // fs policies
+        if (fs != null && fs.getFilePolicies() != null && !fs.getFilePolicies().isEmpty()) {
+            for (String strPolicy : fs.getFilePolicies()) {
+                FilePolicy policy = dbClient.queryObject(FilePolicy.class, URI.create(strPolicy));
+                if (policy.getFilePolicyVpool() != null
+                        && policy.getFilePolicyVpool().toString().equalsIgnoreCase(vpool.getId().toString())) {
+                    filePolicies.add(policy.getId().toString());
+                }
+
+            }
+        }
+
+        if (filePolicies != null && !filePolicies.isEmpty()) {
+            for (String strPolicy : filePolicies) {
+                FilePolicy filePolicy = dbClient.queryObject(FilePolicy.class, URIUtil.uri(strPolicy));
+
+                if (FilePolicyType.file_replication.name().equalsIgnoreCase(filePolicy.getFilePolicyType())) {
+                    replicationPolicies.add(filePolicy);
+                }
+            }
+        } else {
+            if (fs != null) {
+                _log.info("No replication policy assigned to vpool {} , project {} and fs {}", vpool.getLabel(), project.getLabel(),
+                        fs.getLabel());
+            } else {
+                _log.info("No replication policy assigned to vpool {} and project {} ", vpool.getLabel(), project.getLabel());
+            }
+        }
+
+        return replicationPolicies;
+    }
+
+    /**
+     * Verify the replication policy was applied at given level
+     * 
+     * @param dbClient
+     * @param system
+     * @param nasServer
+     * @param vpool
+     * @param project
+     * @param fs
+     * @return
+     */
+    public static Boolean isReplicationPolicyExistsOnTarget(DbClient dbClient, StorageSystem system,
+            VirtualPool vpool, Project project, FileShare fs) {
+        if (fs.getPersonality() != null && fs.getPersonality().equalsIgnoreCase(PersonalityTypes.TARGET.name())) {
+            List<FilePolicy> replicationPolicies = getReplicationPolices(dbClient, vpool, project, fs);
+            if (replicationPolicies != null && !replicationPolicies.isEmpty()) {
+                if (replicationPolicies.size() > 1) {
+                    _log.warn("More than one replication policy found {}", replicationPolicies.size());
+                } else {
+                    FilePolicy replPolicy = replicationPolicies.get(0);
+
+                    FileShare sourceFS = dbClient.queryObject(FileShare.class, fs.getParentFileShare().getURI());
+                    StorageSystem sourceStorage = dbClient.queryObject(StorageSystem.class, sourceFS.getStorageDevice());
+                    NASServer nasServer = null;
+                    if (sourceFS != null && sourceFS.getVirtualNAS() != null) {
+                        nasServer = dbClient.queryObject(VirtualNAS.class, sourceFS.getVirtualNAS());
+                    } else {
+                        // Get the physical NAS for the storage system!!
+                        nasServer = FileOrchestrationUtils.getSystemPhysicalNAS(dbClient, sourceStorage);
+                    }
+                    if (replPolicy.getApplyAt().equalsIgnoreCase(FilePolicyApplyLevel.vpool.name())) {
+                        return isvPoolPolicyAppliedOnStorageSystem(dbClient, sourceStorage, nasServer,
+                                vpool, replPolicy);
+                    } else if (replPolicy.getApplyAt().equalsIgnoreCase(FilePolicyApplyLevel.project.name())) {
+                        return isProjectPolicyAppliedOnStorageSystem(dbClient, sourceStorage, nasServer,
+                                project, replPolicy);
+                    } else if (replPolicy.getApplyAt().equalsIgnoreCase(FilePolicyApplyLevel.file_system.name())) {
+                        FileShare fsParent = dbClient.queryObject(FileShare.class, fs.getParentFileShare());
+                        return isFSPolicyAppliedOnStorageSystem(dbClient, sourceStorage, nasServer,
+                                fsParent, replPolicy);
+                    }
+                }
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Verify the file system is a primary fs or file system with no replication.
+     * 
+     * @param fs
+     * @return
+     */
+    public static Boolean isPrimaryFileSystemOrNormalFileSystem(FileShare fs) {
+        if (fs.getPersonality() == null
+                || fs.getPersonality().equalsIgnoreCase(PersonalityTypes.SOURCE.name())) {
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * Get the physical nas server for storage system
+     * 
+     * @param dbClient
+     * @param system
+     * @return
+     */
+    public static PhysicalNAS getSystemPhysicalNAS(DbClient dbClient, StorageSystem system) {
+        List<URI> nasServers = dbClient.queryByType(PhysicalNAS.class, true);
+        List<PhysicalNAS> phyNasServers = dbClient.queryObject(PhysicalNAS.class, nasServers);
+        for (PhysicalNAS nasServer : phyNasServers) {
+            if (nasServer.getStorageDeviceURI().toString().equalsIgnoreCase(system.getId().toString())) {
+                return nasServer;
+            }
+        }
+        return null;
+    }
+
+    private static void setPolicyStorageAppliedAt(FilePolicy filePolicy, FileDeviceInputOutput args,
+            PolicyStorageResource policyStorageResource) {
+        FilePolicyApplyLevel applyLevel = FilePolicyApplyLevel.valueOf(filePolicy.getApplyAt());
+        switch (applyLevel) {
+            case vpool:
+                policyStorageResource.setAppliedAt(args.getVPool().getId());
+                break;
+            case project:
+                policyStorageResource.setAppliedAt(args.getProject().getId());
+                break;
+            case file_system:
+                policyStorageResource.setAppliedAt(args.getFileObj().getId());
+        }
     }
 
     public static void updateUnAssignedResource(FilePolicy filePolicy, PolicyStorageResource policyRes, DbClient dbClient) {
@@ -453,6 +679,93 @@ public final class FileOrchestrationUtils {
         }
     }
 
+    /**
+     * Find the file storage resource by Native ID
+     * 
+     * @param dbClient
+     *
+     * @param system
+     *            storage system
+     * @param filePolicy
+     *            file policy
+     * @param args
+     * 
+     * @param path
+     *            storage path
+     * @return policy storage resource
+     */
+    public static PolicyStorageResource findPolicyStorageResourceByNativeId(DbClient dbClient, StorageSystem system, FilePolicy filePolicy,
+            FileDeviceInputOutput args, String path) {
+        URIQueryResultList results = new URIQueryResultList();
+        PolicyStorageResource storageRes = null;
+
+        NASServer nasServer = null;
+        if (args.getvNAS() != null) {
+            nasServer = args.getvNAS();
+        } else {
+            // Get the physical NAS for the storage system!!
+            PhysicalNAS pNAS = getSystemPhysicalNAS(dbClient, system);
+            if (pNAS != null) {
+                nasServer = pNAS;
+            } else {
+                _log.error("Unable to find physical NAS on storage system {}", system.getLabel());
+                return null;
+            }
+        }
+
+        // Set storage port details to vNas
+        String nasNativeGuid = NativeGUIDGenerator.generateNativeGuidForFilePolicyResource(system,
+                nasServer.getNasName(), filePolicy.getFilePolicyType(), path, NativeGUIDGenerator.FILE_STORAGE_RESOURCE);
+
+        dbClient.queryByConstraint(
+                AlternateIdConstraint.Factory.getPolicyStorageResourceByNativeGuidConstraint(nasNativeGuid),
+                results);
+        Iterator<URI> iter = results.iterator();
+        PolicyStorageResource tmpStorageres = null;
+        while (iter.hasNext()) {
+            tmpStorageres = dbClient.queryObject(PolicyStorageResource.class, iter.next());
+
+            if (tmpStorageres != null && !tmpStorageres.getInactive()) {
+                storageRes = tmpStorageres;
+                _log.info("found File policy storage resource for {}",
+                        tmpStorageres.getNativeGuid() + ":" + tmpStorageres.getFilePolicyId());
+                break;
+            }
+        }
+        return storageRes;
+    }
+
+    private static String stripSpecialCharacters(String label) {
+        return label.replaceAll("[^\\dA-Za-z ]", "").replaceAll("\\s+", "_");
+    }
+
+    /**
+     * Generate unique name for policy
+     * 
+     * @param filePolicy
+     * @param fileShare
+     * @return
+     *
+     */
+
+    public static String generateNameForPolicy(FilePolicy filePolicy, FileShare fileShare, FileDeviceInputOutput args) {
+        String devPolicyName = "";
+        String policyName = stripSpecialCharacters(filePolicy.getFilePolicyName());
+
+        FilePolicyApplyLevel applyLevel = FilePolicyApplyLevel.valueOf(filePolicy.getApplyAt());
+        switch (applyLevel) {
+            case vpool:
+                devPolicyName = args.getVPoolNameWithNoSpecialCharacters() + "_" + policyName;
+                break;
+            case project:
+                devPolicyName = args.getProjectNameWithNoSpecialCharacters() + "_" + policyName;
+                break;
+            case file_system:
+                devPolicyName = fileShare.getName() + "_" + policyName;
+        }
+        return devPolicyName;
+    }
+
     public static void updateUnAssignedResource(FilePolicy filePolicy, URI unassignRes, DbClient dbClient) {
         FilePolicyApplyLevel applyLevel = FilePolicyApplyLevel.valueOf(filePolicy.getApplyAt());
         switch (applyLevel) {
@@ -476,14 +789,111 @@ public final class FileOrchestrationUtils {
         }
     }
 
-    public static PhysicalNAS getSystemPhysicalNAS(DbClient dbClient, StorageSystem system) {
-        List<URI> nasServers = dbClient.queryByType(PhysicalNAS.class, true);
-        List<PhysicalNAS> phyNasServers = dbClient.queryObject(PhysicalNAS.class, nasServers);
-        for (PhysicalNAS nasServer : phyNasServers) {
-            if (nasServer.getStorageDeviceURI().toString().equalsIgnoreCase(system.getId().toString())) {
-                return nasServer;
+    /**
+     * Create/Update the File policy resource
+     * 
+     * @param dbClient
+     * @param system
+     * @param filePolicy
+     * @param args
+     * @param sourcePath
+     * @return
+     *
+     */
+    public static void updatePolicyStorageResource(DbClient dbClient, StorageSystem system, FilePolicy filePolicy,
+            FileDeviceInputOutput args, String sourcePath,
+            PolicyStorageResource policyStorageResource) {
+        if (policyStorageResource == null) {
+            policyStorageResource = new PolicyStorageResource();
+        }
+        policyStorageResource.setId(URIUtil.createId(PolicyStorageResource.class));
+        policyStorageResource.setFilePolicyId(filePolicy.getId());
+        policyStorageResource.setStorageSystem(system.getId());
+        policyStorageResource.setPolicyNativeId(stripSpecialCharacters(filePolicy.getFilePolicyName()));
+        NASServer nasServer = null;
+        if (args.getvNAS() != null) {
+            nasServer = args.getvNAS();
+        } else {
+            // Get the physical NAS for the storage system!!
+            PhysicalNAS pNAS = getSystemPhysicalNAS(dbClient, system);
+            if (pNAS != null) {
+                nasServer = pNAS;
             }
         }
-        return null;
+        policyStorageResource.setNasServer(nasServer.getId());
+        setPolicyStorageAppliedAt(filePolicy, args, policyStorageResource);
+        policyStorageResource.setNativeGuid(NativeGUIDGenerator.generateNativeGuidForFilePolicyResource(system,
+                nasServer.getNasName(), filePolicy.getFilePolicyType(), sourcePath, NativeGUIDGenerator.FILE_STORAGE_RESOURCE));
+        dbClient.createObject(policyStorageResource);
+
+        StringSet policyStrgRes = filePolicy.getPolicyStorageResources();
+        if (policyStrgRes == null) {
+            policyStrgRes = new StringSet();
+        }
+        policyStrgRes.add(policyStorageResource.getId().toString());
+        filePolicy.setPolicyStorageResources(policyStrgRes);
+        if (filePolicy.getApplyAt().equals(FilePolicyApplyLevel.file_system.name())) {
+            filePolicy.addAssignedResources(args.getFs().getId());
+        }
+        dbClient.updateObject(filePolicy);
+        _log.info("PolicyStorageResource object created successfully for {} ",
+                system.getLabel() + policyStorageResource.getAppliedAt());
     }
+
+    /**
+     * Get the target host for replication
+     * 
+     * @param dbClient
+     * @param targetFS
+     * @return
+     *
+     */
+    public static String getTargetHostPortForReplication(DbClient dbClient, FileShare targetFS) {
+
+        StorageSystem targetSystem = dbClient.queryObject(StorageSystem.class, targetFS.getStorageDevice());
+        String targetHost = targetSystem.getIpAddress();
+
+        URIQueryResultList storagePortURIs = new URIQueryResultList();
+        dbClient.queryByConstraint(
+                ContainmentConstraint.Factory.getStorageDeviceStoragePortConstraint(targetFS.getStorageDevice()),
+                storagePortURIs);
+        Iterator<URI> storagePortIter = storagePortURIs.iterator();
+        while (storagePortIter.hasNext()) {
+            StoragePort port = dbClient.queryObject(StoragePort.class, storagePortIter.next());
+            if (port != null && !port.getInactive()) {
+                targetHost = port.getPortNetworkId();
+                // iterate until dr port found!!
+                if (port.getTag() != null && port.getTag().contains("dr_port")) {
+                    _log.info("DR port {} found from storage system {} for replication", targetHost, targetSystem.getLabel());
+                    break;
+                }
+            }
+        }
+        return targetHost;
+    }
+
+    public static List<URI> getVNASServersOfStorageSystemAndVarrayOfVpool(DbClient dbClient, URI storageSystemURI, URI vpoolURI) {
+        VirtualPool vpool = dbClient.queryObject(VirtualPool.class, vpoolURI);
+        StringSet varraySet = vpool.getVirtualArrays();
+        URIQueryResultList vNasURIs = new URIQueryResultList();
+        List<URI> vNASURIList = new ArrayList<URI>();
+        dbClient.queryByConstraint(
+                ContainmentConstraint.Factory.getStorageDeviceVirtualNasConstraint(storageSystemURI),
+                vNasURIs);
+        Iterator<URI> vNasIter = vNasURIs.iterator();
+        while (vNasIter.hasNext()) {
+            URI vNasURI = vNasIter.next();
+            VirtualNAS vNas = dbClient.queryObject(VirtualNAS.class,
+                    vNasURI);
+            if (vNas != null && !vNas.getInactive()) {
+                StringSet vNASVarraySet = vNas.getAssignedVirtualArrays();
+                if (varraySet != null && !varraySet.isEmpty() && vNASVarraySet != null && vNASVarraySet.containsAll(varraySet)) {
+                    vNASURIList.add(vNas.getId());
+                }
+            }
+        }
+
+        return vNASURIList;
+    }
+
 }

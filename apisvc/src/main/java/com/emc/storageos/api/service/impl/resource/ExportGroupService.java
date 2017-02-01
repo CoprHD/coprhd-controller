@@ -3234,8 +3234,7 @@ public class ExportGroupService extends TaskResourceService {
         ExportPathsAdjustmentPreviewRestRep response = new ExportPathsAdjustmentPreviewRestRep();
         List<Initiator> initiators = getInitiators(exportGroup);
         StringSetMap existingPathMap = new StringSetMap();
-        validatePathAdjustment(exportGroup, initiators, system, varray, param.getHosts(), response, existingPathMap,
-                param.getUseExistingPaths());
+        validatePathAdjustment(exportGroup, initiators, system, varray, param.getHosts(), response, existingPathMap);
         
         try {
             // Manufacture an ExportPathParams structure from the REST ExportPathParameters structure
@@ -3373,8 +3372,7 @@ public class ExportGroupService extends TaskResourceService {
      */
     private void validatePathAdjustment(ExportGroup exportGroup, List<Initiator> initiators, 
             StorageSystem system, URI varray, Set<URI> hosts,
-            ExportPathsAdjustmentPreviewRestRep response, StringSetMap existingPaths,
-            Boolean useExistingPaths) {
+            ExportPathsAdjustmentPreviewRestRep response, StringSetMap existingPaths) {
         Set<URI> affectedGroupURIs = new HashSet<URI>();
         // Add our Export Group to the affected resources.
         affectedGroupURIs.add(exportGroup.getId());
@@ -3416,7 +3414,7 @@ public class ExportGroupService extends TaskResourceService {
             }
             // For other array types, throw error if ports not in the varray
             List<URI> portsNotInVarray = ExportMaskUtils.getExportMaskStoragePortsNotInVarray(_dbClient, exportMask, varray);
-            if (!portsNotInVarray.isEmpty() && !useExistingPaths) {
+            if (!portsNotInVarray.isEmpty()) {
                 String errorPorts = Joiner.on(',').join(portsNotInVarray);
                 String error = String.format("The ports : %s are in the exportMask %s, but not in the varray %s", 
                       errorPorts, exportMask.getId().toString(), varray.toString());

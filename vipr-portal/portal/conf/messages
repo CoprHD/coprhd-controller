@@ -109,6 +109,7 @@ nav.tasks=Tasks
 nav.events=Actionable Events
 # Subnavigation
 nav.createDriver=Create and Export Direct Volume
+nav.recoverPoint=Recover Point
 nav.listDriver=Direct Volumes
 nav.exportDriver=Direct Exports
 nav.vdcs=Virtual Data Centers
@@ -296,20 +297,28 @@ PoolAssignment.manual=Manual
 #Direct Driver
 CreateVolume.direct.description = Enter information needed to create volume
 volume.arrayType=Storage System Type
-volume.project = Projects
-volume.arrayTypeForVplex = Backend Storage System Type
+volume.varray = VArray
+volume.varrayForHA = VArray For HA
+volume.project=Projects
+volume.arrayTypeForVplex=Backend Storage System Type
 volume.ipAddress=System Name
-volume.ipAddressForVplex = Storage System
-volume.ipAddress2=High Availability Storage System Name
+volume.vplexId=Storage System
+volume.ipAddressForHA=High Availability Storage System Name
 volume.ha=High Availability
 
 volume.hosts=Hosts
-volume.name = Name
-volume.pool = Storage Pool
-volume.poolForVplex = Storage Pool
-volume.pool2 = High Availability Storage Pool
+volume.name=Name
+volume.pool=Storage Pool
+volume.poolForHA=High Availability Storage Pool
+volume.vpool=VPool
+volume.vpoolForHA = VPool For HA
 volume.size=Size(in GB)
 volume.count=Count
+
+volume.backendNetwork_1=Network System 1
+volume.backendNetwork_2=Network System 2
+volume.haBackendNetwork_1=Network System For HA 1
+volume.haBackendNetwork_2=Network System For HA 2
 
 directVolume.name = Volume Name
 directVolume.storage=Storage System

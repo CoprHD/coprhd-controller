@@ -58,14 +58,24 @@
 	    #{Form.selectOneControlGroup field:field /}
 	  #{/field}
 	  
+	  #{field 'volume.vplexId'}
+	    %{	
+	      field.required = true        
+              field.cssClass = 'span3'
+           }%
+           #{Form.selectOneControlGroup options:ipList, field:field /}
+	  #{/field}
 
-    #{field 'volume.ipAddress'}
-      %{
-        field.required = true        
-        field.cssClass = 'span3'
-      }%
-      #{Form.selectOneControlGroup options:ipList, field:field /}
-    #{/field}
+  	  #{field 'volume.arrayTypeForVplex'}
+	    %{
+	      field.options = storageArrayTypeListForVplex
+	      field.addEmptyOption = true
+	      field.emptyOptionLabel = "Select an Option"
+	      field.required = true
+	      field.cssClass = 'span6 initialFocus'
+	    }%
+	    #{Form.selectOneControlGroup field:field /}
+	  #{/field}
 
 	  #{field 'volume.ha'}
 	    %{
@@ -73,33 +83,13 @@
 	    }%
 	    #{Form.selectOneControlGroup field:field /}
 	  #{/field}
-	  
-    
-	  #{field 'volume.arrayTypeForVplex'}
-	    %{
-	      field.options = storageArrayTypeList
-	      field.addEmptyOption = true
-    	  field.emptyOptionLabel = "Select an Option"
-	      field.required = true
-	      field.cssClass = 'span6 initialFocus'
-	    }%
-	    #{Form.selectOneControlGroup field:field /}
-	  #{/field}
-    
-        #{field 'volume.ipAddressForVplex'}
+
+    #{field 'volume.ipAddress'}
       %{
         field.required = true        
         field.cssClass = 'span3'
       }%
       #{Form.selectOneControlGroup options:ipList, field:field /}
-    #{/field}
-    
-        #{field 'volume.poolForVplex'}
-    %{
-    	field.required = true
-    	field.cssClass = 'span3'
-    }%
-	      #{Form.selectOneControlGroup options:poolList, field:field /}
     #{/field}
      
     #{field 'volume.pool'}
@@ -110,22 +100,71 @@
 	      #{Form.selectOneControlGroup options:poolList, field:field /}
     #{/field}
     
+    	#{field 'volume.backendNetwork_1'}
+	    %{
+	      field.options = networkList
+	      field.cssClass = 'span3'
+	    }%
+	    #{Form.selectOneControlGroup options:networkList, field:field /}
+	 	#{/field}
+    
+    	#{field 'volume.backendNetwork_2'}
+	    %{
+	      field.options = networkList
+	      field.cssClass = 'span3'
+	    }%
+	    #{Form.selectOneControlGroup options:networkList, field:field /}
+	 	#{/field}
 	  
-	  #{field 'volume.ipAddress2'}
-	  %{
+  	 #{field 'volume.varrayForHA'}
+  	 %{
+  	 	field.options = varrayOptions
+  	 	field.required = true
+  	 }%
+	  #{Form.selectOneControlGroup field:field /}
+	  #{/field}
+
+  	 #{field 'volume.vpoolForHA'}
+  	 %{
+  	 	field.options = vpoolOptions
+  	 	field.required = true
+  	 }%
+	 #{Form.selectOneControlGroup field:field /}
+	 #{/field}
+	  
+	 #{field 'volume.ipAddressForHA'}
+	 %{
 	    field.required = true        
         field.cssClass = 'span3'
-      }%
-      #{Form.selectOneControlGroup options:ipList, field:field /}
-	  #{/field}
+     }%
+     #{Form.selectOneControlGroup options:ipList, field:field /}
+	 #{/field}
     
-      #{field 'volume.pool2'}
-	    %{
-	      field.options = ha_Options
-	    }%
-	    #{Form.selectOneControlGroup field:field /}
-	  #{/field}
-	  
+     #{field 'volume.poolForHA'}
+	 %{
+    	field.required = true
+    	field.cssClass = 'span3'
+	 }%
+	 #{Form.selectOneControlGroup options:poolList, field:field /}
+	 #{/field}
+
+	#{field 'volume.haBackendNetwork_1'}
+	%{
+		field.options = networkList
+    	field.required = true
+	    field.cssClass = 'span3'
+	}%
+	#{Form.selectOneControlGroup field:field /}
+	#{/field}
+
+	#{field 'volume.haBackendNetwork_2'}
+	 %{
+	    field.options = networkList
+    	field.required = true
+	    field.cssClass = 'span3'
+	 }%
+	 #{Form.selectOneControlGroup field:field /}
+	 #{/field}
 
     #{field 'volume.hosts'}
     %{
@@ -165,124 +204,166 @@
 </div>
 <script>
 var editVersion = -1;
+var arrayType = $('#volume_arrayType');
+var vplexType = $('#volume_arrayTypeForVplex');	
 var ipSelectId = $('#volume_ipAddress');
 var storagePool = $('#volume_pool');
-var ipSelectIdForVplex = $('#volume_ipAddressForVplex');
-var storagePoolForVplex = $('#volume_poolForVplex');
+var ipSelectIdForVplex = $('#volume_vplexId');
+var ipSelectIdForHA = $('#volume_ipAddressForHA');
+var storagePoolForHA = $('#volume_poolForHA');
+var networkSystem1 = $('#volume_backendNetwork_1');
+var networkSystemForHA1 = $('#volume_haBackendNetwork_1');
+var networkSystem2 = $('#volume_backendNetwork_2');
+var networkSystemForHA2 = $('#volume_haBackendNetwork_2');
 
 $(document).ready(function () {
-	$('#volume_arrayType').on('change', systemTypeChanged);
-	$('#volume_arrayTypeForVplex').on('change', systemTypeChangedForVplex);
-	$('#volume_ha').on('change', availabilityChanged);
 	$('#volume_haControlGroup').hide();
 	$('#volume_arrayTypeForVplexControlGroup').hide();
-	$('#volume_ipAddressForVplexControlGroup').hide();
-	$('#volume_poolForVplexControlGroup').hide();
-	$('#volume_ipAddress2ControlGroup').hide();
-	$('#volume_pool2ControlGroup').hide();
+	$('#volume_vplexIdControlGroup').hide();
+	$('#volume_ipAddressForHAControlGroup').hide();
+	$('#volume_poolForHAControlGroup').hide();
+	$('#volume_backendNetwork_1ControlGroup').hide();
+	$('#volume_backendNetwork_2ControlGroup').hide();
+	$('#volume_haBackendNetwork_1ControlGroup').hide();
+	$('#volume_haBackendNetwork_2ControlGroup').hide();
+	$('#volume_varrayForHAControlGroup').hide();
+	$('#volume_vpoolForHAControlGroup').hide();
 
-	function systemTypeChanged(){
-		var handler = function(data, textStatus, jqXHR) {
-			ipSelectId.empty();
-            for (var i = 0; i < data.length; i++) {
-                var option ='<option value="'+data[i].id+'"';
-                option += '>'+data[i].name+'</option>';
-                ipSelectId.append(option);
-            }
-            $("#volume_ipAddress").trigger('chosen:updated');
-            loadstoragePool();
-            triggerSelectUpdated(ipSelectId);
-           
-        };
-        var type = $('#volume_arrayType').val();
-        if(type=="vplex") {
-        	$('#volume_haControlGroup').show();
-        	$('#volume_arrayTypeForVplexControlGroup').show();
-        	$('#volume_ipAddressForVplexControlGroup').show();
-        	$('#volume_poolForVplexControlGroup').show();
+	$('#volume_arrayType').on('change', function() {
+		show(arrayType);
+	});
 
- 			$('#volume_poolControlGroup').hide();
-        } else {
-        	$('#volume_haControlGroup').hide();
-        	$('#volume_arrayTypeForVplexControlGroup').hide();
-        	$('#volume_ipAddressForVplexControlGroup').hide();
-        	$('#volume_poolForVplexControlGroup').hide();
-        	$('#volume_ipAddress2ControlGroup').hide();
-        	$('#volume_pool2ControlGroup').hide();
- 			$('#volume_poolControlGroup').show();
-        }
+	$('#volume_arrayType').on('change', function() {
+		systemTypeChanged(arrayType, ipSelectId, storagePool);
+	});
+	
+	$('#volume_ha').on('change', availabilityChanged);
 
-		var url = "@{getIpFromType()}";
-		$.get(url,"type="+type, handler,'json' );
+	$('#volume_arrayTypeForVplex').on('change', function() {
+		systemTypeChanged(vplexType,ipSelectId, storagePool);
+	});
+		
+	$('#volume_arrayTypeForVplex').on('change', function(){
+		systemTypeChanged(vplexType,ipSelectIdForHA, storagePoolForHA);
+	});
+	
+	$('#volume_ipAddress').on('change', function() {
+		loadstoragePool(storagePool,ipSelectId);
+	});
+
+	$('#volume_ipAddressForHA').on('change', function() {
+		loadstoragePool(storagePoolForHA, ipSelectIdForHA);
+	});
+	
+	$('#volume_arrayType').on('change', function() {
+		type=arrayType.val();
+		if(type=="vplex")
+			loadNetworkSystem(networkSystem1);
+			loadNetworkSystem(networkSystem2);
+	});
+
+	$('#volume_ha').on('change', function() {
+		loadNetworkSystem(networkSystemForHA1);
+		loadNetworkSystem(networkSystemForHA2);
+	});
+
+	
+	
+	function show(systemType){
+		var type = systemType.val();
+		if (type =="vplex"){
+		   	$('#volume_haControlGroup').show();
+		   	$('#volume_arrayTypeForVplexControlGroup').show();
+    		$('#volume_vplexIdControlGroup').show();
+    		$('#volume_backendNetwork_1ControlGroup').show();
+    		$('#volume_backendNetwork_2ControlGroup').show();
+		}
+		else{
+			$('#volume_haControlGroup').hide();
+			$('#volume_arrayTypeForVplexControlGroup').hide();
+			$('#volume_vplexIdControlGroup').hide();
+			$('#volume_ipAddressForHAControlGroup').hide();
+			$('#volume_poolForHAControlGroup').hide();
+			$('#volume_backendNetwork_1ControlGroup').hide();
+			$('#volume_haBackendNetwork_1ControlGroup').hide();
+			$('#volume_backendNetwork_2ControlGroup').hide();
+			$('#volume_haBackendNetwork_2ControlGroup').hide();
+
+		}
+	}
+
+	function systemTypeChanged(systemType, systemName, storagePool){
+ 		var type = systemType.val(); 
+		if(type != "vplex"){
+			var handler = function(data, textStatus, jqXHR) {
+			  systemName.empty();
+            		  for (var i = 0; i < data.length; i++) {
+                	   	var option ='<option value="'+data[i].id+'"';
+                 	   	option += '>'+data[i].name+'</option>';
+                	   	systemName.append(option);
+            		  }
+            		  systemName.trigger('chosen:updated');
+            		  loadstoragePool(storagePool, systemName);
+            		  triggerSelectUpdated(ipSelectId);
+        		};
+        		var url = "@{getIpFromType()}";
+			$.get(url,"type="+type, handler,'json' );
+		}
+		else{
+			systemTypeChangedForVplex();
+      		}
 	}
 	
-	function loadstoragePool() {
+	function loadstoragePool(storagePool, systemName) {
 		var handler = function(data, textStatus, jqXHR) {
 			storagePool.empty();
-            for (var i = 0; i < data.length; i++) {
-                var option ='<option value="'+data[i].id+'"';
-                option += '>'+data[i].name+'</option>';
-                storagePool.append(option);
-            }
-            $("#volume_pool").trigger('chosen:updated');
-            triggerSelectUpdated(storagePool);
-           
-        };
-        var type = $('#volume_ipAddress').val();
+            		for (var i = 0; i < data.length; i++) {
+               	 		var option ='<option value="'+data[i].id+'"';
+                		option += '>'+data[i].name+'</option>';
+                		storagePool.append(option);
+            		}
+            		storagePool.trigger('chosen:updated');
+            		triggerSelectUpdated(storagePool);
+        	};
+        	var type = systemName.val();
 		var url = "@{getPoolsFromSystem()}";
 		$.get(url,"id="+type, handler,'json' );
 	}
 	
+	function loadNetworkSystem(networkSystem) {
+		var handler = function(data, textStatus, jqXHR) {
+			networkSystem.empty();
+            		for (var i = 0; i < data.length; i++) {
+                		var option ='<option value="'+data[i].id+'"';
+                		option += '>'+data[i].name+'</option>';
+                		networkSystem.append(option);
+            		}
+            		networkSystem.trigger('chosen:updated');
+            		triggerSelectUpdated(networkSystem);
+           
+        	};
+        	var type = $('#volume_ipAddress').val();
+		var url = "@{getNetworksFromSystem()}";
+		$.get(url,"id="+type, handler,'json' );
+	
+	}
+	
 	function availabilityChanged() {
 		var hatype = $('#volume_ha').val();
-        if(hatype=="vplex_distributed") {
-        	$('#volume_ipAddress2ControlGroup').show();
-        	$('#volume_pool2ControlGroup').show();
-        } else {
-        	$('#volume_ipAddress2ControlGroup').hide();
-        	$('#volume_pool2ControlGroup').hide();
-        }
+        	if(hatype=="vplex_distributed") {
+        		$('#volume_ipAddressForHAControlGroup').show();
+        		$('#volume_poolForHAControlGroup').show();
+           		$('#volume_haBackendNetwork_1ControlGroup').show();
+           		$('#volume_haBackendNetwork_2ControlGroup').show();
+           		$('#volume_varrayForHAControlGroup').show();
+           		$('#volume_vpoolForHAControlGroup').show();
+          	}
+	  	else {
+        		$('#volume_ipAddressForHAControlGroup').hide();
+        		$('#volume_poolForHAControlGroup').hide();
+           		$('#volume_haBackendNetwork_1ControlGroup').hide();
+           		$('#volume_haBackendNetwork_2ControlGroup').hide();
+           		$('#volume_varrayForHAControlGroup').hide();
+           		$('#volume_vpoolForHAControlGroup').hide();
+          	}
 	}
-	
-	function triggerSelectUpdated(select) {
-        select.trigger("change");
-    }
-	
-	function systemTypeChangedForVplex(){
-		var handler = function(data, textStatus, jqXHR) {
-			ipSelectIdForVplex.empty();
-            for (var i = 0; i < data.length; i++) {
-                var option ='<option value="'+data[i].id+'"';
-                option += '>'+data[i].name+'</option>';
-                ipSelectIdForVplex.append(option);
-            }
-            $("#volume_ipAddressForVplex").trigger('chosen:updated');
-            loadstoragePoolForVplex();
-            triggerSelectUpdated(ipSelectIdForVplex);
-           
-        };
-        var type = $('#volume_arrayTypeForVplex').val();
-		var url = "@{getIpFromType()}";
-		$.get(url,"type="+type, handler,'json' );
-	}
-	
-	function loadstoragePoolForVplex() {
-		var handler = function(data, textStatus, jqXHR) {
-			storagePoolForVplex.empty();
-            for (var i = 0; i < data.length; i++) {
-                var option ='<option value="'+data[i].id+'"';
-                option += '>'+data[i].name+'</option>';
-                storagePoolForVplex.append(option);
-            }
-            $("#volume_poolForVplex").trigger('chosen:updated');
-            triggerSelectUpdated(storagePoolForVplex);
-           
-        };
-        var type = $('#volume_ipAddressForVplex').val();
-		var url = "@{getPoolsFromSystem()}";
-		$.get(url,"id="+type, handler,'json');
-	}
-	
-
-});
-</script>

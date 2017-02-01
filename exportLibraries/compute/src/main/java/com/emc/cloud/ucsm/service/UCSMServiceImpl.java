@@ -75,6 +75,7 @@ public class UCSMServiceImpl implements UCSMService {
      * decommissioning operations
      */
     private static final String MO_DELETED_STATUS = "deleted";
+    private static final String ASSOC_STATE_UNASSOCIATED = "unassociated";
 
     ComputeSessionManager sessionManager;
 
@@ -621,7 +622,13 @@ public class UCSMServiceImpl implements UCSMService {
 
         unbindSPFromSPTConfigConfMo.getContent().add(factory.createConfigConfMoInConfig(configConfig));
 
-        return pushLsServer(computeSession, factory, unbindSPFromSPTConfigConfMo);
+        LsServer pushedObject = pushLsServer(computeSession, factory, unbindSPFromSPTConfigConfMo);
+
+        if( (pushedObject == null) || !ASSOC_STATE_UNASSOCIATED.equals(pushedObject.getAssocState()) ) { // COP-26669
+            throw new ClientGeneralException(ClientMessageKeys.UNEXPECTED_FAILURE,
+                    new String[] { "ServiceProfile failed to disassociate : " + serviceProfileDn });
+        }
+        return pushedObject;
     }
 
     public LsServer bindSPToTemplate(String ucsmURL, String username, String password, String serviceProfileDn,
@@ -643,35 +650,52 @@ public class UCSMServiceImpl implements UCSMService {
         return pushLsServer(computeSession, factory, bindSPToSPTConfigConfMo);
     }
 
-    private LsServer pushLsServer(ComputeSession computeSession, ObjectFactory factory, ConfigConfMo configConfMo)
-            throws ClientGeneralException {
+    private LsServer pushLsServer(ComputeSession computeSession, ObjectFactory factory,
+            ConfigConfMo configConfMo) throws ClientGeneralException {
+        return (LsServer) pushManagedObject(computeSession, factory, configConfMo, LsServer.class);
+    }
+
+    private <T> Object pushManagedObject(ComputeSession computeSession, ObjectFactory factory,
+            ConfigConfMo configConfMo, Class<T> clazz) throws ClientGeneralException {
 
         if (configConfMo == null || configConfMo.getContent().isEmpty()) {
-            throw new ClientGeneralException(ClientMessageKeys.BAD_REQUEST, new String[] { "Unable to push lsServer : "
-                    + configConfMo.getDn() });
+            throw new ClientGeneralException(ClientMessageKeys.BAD_REQUEST,
+                    new String[] { "Unable to push " + clazz.getName() } );
         }
 
         com.emc.cloud.platform.ucs.out.model.ConfigConfMo configConfMoOut = computeSession.execute(
                 factory.createConfigConfMo(configConfMo), com.emc.cloud.platform.ucs.out.model.ConfigConfMo.class);
-        if (configConfMoOut != null && !configConfMoOut.getContent().isEmpty()) {
 
-            for (Serializable object : configConfMoOut.getContent()) {
+        List<T> subElements = new ArrayList<>();
+        if (configConfMoOut != null) {
+            subElements = getSubElements(configConfMoOut.getContent(), clazz);
+        }
+
+        if(subElements.isEmpty()) {
+            throw new ClientGeneralException(ClientMessageKeys.UNEXPECTED_FAILURE,   // COP-26669
+                    new String[] { "Failed to push " + clazz.getName() } );
+        }
+
+        return subElements.get(0);  // expecting 1 element (the one we pushed)
+    }
+
+    private <T> List<T> getSubElements(List<Serializable> list, Class<T> clazz) {
+        List<T> returnList = new ArrayList<>();
+        if (list != null && !list.isEmpty()) {
+            for (Serializable object : list) {
                 if (object instanceof JAXBElement<?>) {
                     if (((JAXBElement) object).getValue() instanceof com.emc.cloud.platform.ucs.out.model.ConfigConfig) {
-                        com.emc.cloud.platform.ucs.out.model.ConfigConfig configConfigOut = ((JAXBElement<com.emc.cloud.platform.ucs.out.model.ConfigConfig>) object)
-                                .getValue();
-
-                        if (configConfigOut != null && configConfigOut.getManagedObject() != null
-                                && configConfigOut.getManagedObject().getValue() instanceof LsServer) {
-                            return (LsServer) configConfigOut.getManagedObject().getValue();
+                        com.emc.cloud.platform.ucs.out.model.ConfigConfig configConfigOut =
+                                ((JAXBElement<com.emc.cloud.platform.ucs.out.model.ConfigConfig>) object).getValue();
+                        if ( (configConfigOut != null) && (configConfigOut.getManagedObject() != null) &&
+                                clazz.isInstance((configConfigOut.getManagedObject().getValue()))) {
+                            returnList.add(clazz.cast(configConfigOut.getManagedObject().getValue()));
                         }
-
                     }
                 }
             }
         }
-        return null;
-
+        return returnList;
     }
 
     @Override
@@ -1184,11 +1208,26 @@ public class UCSMServiceImpl implements UCSMService {
 
         ConfigConfig configConfig = new ConfigConfig();
         configConfig.setManagedObject(factory.createVnicEther(vnicEther));
-
         setOsInstallVlanConfMo.getContent().add(factory.createConfigConfMoInConfig(configConfig));
 
-        computeSession.execute(factory.createConfigConfMo(setOsInstallVlanConfMo),
-                com.emc.cloud.platform.ucs.out.model.ConfigConfMo.class);
+        VnicEther returnedVnicEther = (VnicEther) pushManagedObject(computeSession, factory,
+                setOsInstallVlanConfMo, com.emc.cloud.platform.ucs.out.model.VnicEther.class);
+
+        List<VnicEtherIf> vnicEtherIfs = getSubElements(returnedVnicEther.getContent(),VnicEtherIf.class);
+        for (String vlan : vlanMap.keySet()) {
+            for(VnicEtherIf vnicEtherIf : vnicEtherIfs ) {
+                if(vnicEtherIf.getName().equals(vlan)) {
+                    throw new ClientGeneralException(ClientMessageKeys.UNEXPECTED_FAILURE,
+                            new String[]{"Failed to restore vNIC after OS Install with vLAN " + vlan});
+                }
+            }
+        }
+        for(VnicEtherIf vnicEtherIf : vnicEtherIfs ) {
+            if(vnicEtherIf.getName().equals(fabricVlan.getName())) {
+                throw new ClientGeneralException(ClientMessageKeys.UNEXPECTED_FAILURE,
+                        new String[]{"Failed to remove OS Install vLAN " + fabricVlan.getName()});
+            }
+        }
     }
 
     private Map<String, Boolean> getVlansSetOnInterface(LsServer lsServer, String interfaceName) {

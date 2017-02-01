@@ -1981,7 +1981,7 @@ public class ExportUtils {
                         ExportMask maskObj = dbClient.queryObject(ExportMask.class, maskURI);
                         if (maskObj != null) {
                             _log.info("Deleting export mask {} because it is no longer in use by an export group", maskObj);
-                            dbClient.markForDeletion(maskObj);
+                            dbClient.removeObject(maskObj);
                         }
                     }
                 }

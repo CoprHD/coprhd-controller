@@ -28,9 +28,13 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
+import com.emc.storageos.model.search.SearchResultResourceRep;
+import com.emc.vipr.client.core.impl.SearchConstants;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.ObjectUtils;
 import org.apache.commons.lang.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 import com.emc.sa.asset.AssetOptionsContext;
@@ -107,6 +111,9 @@ import com.google.common.collect.Sets;
 @Component
 @AssetNamespace("vipr")
 public class BlockProvider extends BaseAssetOptionsProvider {
+
+    private static final Logger log = LoggerFactory.getLogger(BlockProvider.class);
+
     public static final String EXCLUSIVE_STORAGE = "exclusive";
     public static final String SHARED_STORAGE = "shared";
     public static final String RECOVERPOINT_BOOKMARK_SNAPSHOT_TYPE_VALUE = "rp";
@@ -791,18 +798,20 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     public List<AssetOption> getVplexSnapshotVolumes(AssetOptionsContext ctx, URI project, String volumeOrConsistencyType) {
         final ViPRCoreClient client = api(ctx);
         if (isVolumeType(volumeOrConsistencyType)) {
-            List<VolumeRestRep> volumes = client.blockVolumes().findByProject(project, new DefaultResourceFilter<VolumeRestRep>() {
-                @Override
-                public boolean accept(VolumeRestRep volume) {
-                    if (volume.getHaVolumes() != null && !volume.getHaVolumes().isEmpty()
-                            && !client.blockSnapshots().getByVolume(volume.getId()).isEmpty() && !isInConsistencyGroup(volume)) {
-                        return true;
-                    } else {
-                        return false;
-                    }
+            Set<URI> volIdSet = new HashSet<>();
+            List<BlockSnapshotRestRep> snapshots = findSnapshotsByProject(client, project);
+            for (BlockSnapshotRestRep s : snapshots) {
+                volIdSet.add(s.getParent().getId());
+            }
+            // Have to get volumes just as it needs vol's mount point which snapshot doesn't have.
+            List<VolumeRestRep> volumes = getVolumesByIds(client, volIdSet);
+            List<VolumeRestRep> filteredVols = new ArrayList<>();
+            for (VolumeRestRep vol: volumes) {
+                if (vol.getHaVolumes() != null && !vol.getHaVolumes().isEmpty() && !isInConsistencyGroup(vol)) {
+                    filteredVols.add(vol);
                 }
-            });
-            return createVolumeOptions(client, volumes);
+            }
+            return createVolumeOptions(client, filteredVols);
         } else {
             List<BlockConsistencyGroupRestRep> consistencyGroups = client.blockConsistencyGroups().findByProject(project,
                     new DefaultResourceFilter<BlockConsistencyGroupRestRep>() {
@@ -818,6 +827,26 @@ public class BlockProvider extends BaseAssetOptionsProvider {
                     });
             return createBaseResourceOptions(consistencyGroups);
         }
+    }
+
+    private List<VolumeRestRep> getVolumesByIds(ViPRCoreClient client, Set<URI> vols) {
+        log.info("Getting volumes: [{}]", vols.size());
+        List<VolumeRestRep> volumes = client.blockVolumes().getByIds(vols, null);
+        log.info("Got volumens [{}]", volumes.size());
+        return volumes;
+    }
+
+    private List<BlockSnapshotRestRep> findSnapshotsByProject(ViPRCoreClient client, URI project) {
+        log.info("Finding snapshots by project {}", project);
+        List<SearchResultResourceRep> snapshotRefs = client.blockSnapshots().performSearchBy(SearchConstants.PROJECT_PARAM, project);
+        List<URI> ids = new ArrayList<>();
+        for (SearchResultResourceRep ref: snapshotRefs) {
+            ids.add(ref.getId());
+        }
+
+        List<BlockSnapshotRestRep> snapshots = client.blockSnapshots().getByIds(ids, null);
+        log.info("Got snapshots: [{}]", snapshots.size());
+        return snapshots;
     }
 
     @Asset("vplexBlockSnapshot")
@@ -2065,18 +2094,21 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     public List<AssetOption> getBlockVolumesWithSnapshot(AssetOptionsContext context, URI project, String volumeOrConsistencyType) {
         final ViPRCoreClient client = api(context);
         if (isVolumeType(volumeOrConsistencyType)) {
-            List<VolumeRestRep> volumes = client.blockVolumes().findByProject(project, new DefaultResourceFilter<VolumeRestRep>() {
-                @Override
-                public boolean accept(VolumeRestRep volume) {
-                    if (!(client.blockSnapshots().getByVolume(volume.getId())).isEmpty()
-                            && StringUtils.isEmpty(volume.getReplicationGroupInstance())) {
-                        return true;
-                    } else {
-                        return false;
-                    }
+
+            Set<URI> volIdSet = new HashSet<>();
+            List<BlockSnapshotRestRep> snapshots = findSnapshotsByProject(client, project);
+            for (BlockSnapshotRestRep snapshot : snapshots) {
+                volIdSet.add(snapshot.getParent().getId());
+            }
+            // Have to get volumes just as it needs vol's mount point which snapshot doesn't have.
+            List<VolumeRestRep> volumes = getVolumesByIds(client, volIdSet);
+            List<VolumeRestRep> filteredVols = new ArrayList<>();
+            for (VolumeRestRep vol: volumes) {
+                if (StringUtils.isEmpty(vol.getReplicationGroupInstance())) {
+                    filteredVols.add(vol);
                 }
-            });
-            return createVolumeOptions(client, volumes);
+            }
+            return createVolumeOptions(client, filteredVols);
         } else {
             List<BlockConsistencyGroupRestRep> consistencyGroups = client.blockConsistencyGroups()
                     .search()
@@ -2216,18 +2248,20 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     public List<AssetOption> getVolumesWithFullCopies(AssetOptionsContext ctx, URI project, String volumeOrConsistencyType) {
         final ViPRCoreClient client = api(ctx);
         if (isVolumeType(volumeOrConsistencyType)) {
-            List<VolumeRestRep> volumes = client.blockVolumes().findByProject(project, new DefaultResourceFilter<VolumeRestRep>() {
-                @Override
-                public boolean accept(VolumeRestRep volume) {
-                    if (!client.blockVolumes().getFullCopies(volume.getId()).isEmpty()
-                            && StringUtils.isEmpty(volume.getReplicationGroupInstance())) {
-                        return true;
-                    } else {
-                        return false;
-                    }
+            List<VolumeRestRep> volumes = findVolumesByProject(client, project);
+            List<VolumeRestRep> filteredVols = new ArrayList<>();
+            for (VolumeRestRep vol: volumes) {
+                if ( vol.getProtection() == null ||
+                        vol.getProtection().getFullCopyRep() == null ||
+                        vol.getProtection().getFullCopyRep().getFullCopyVolumes() == null ||
+                        vol.getProtection().getFullCopyRep().getFullCopyVolumes().isEmpty() ||
+                        ! StringUtils.isEmpty(vol.getReplicationGroupInstance())) {
+                    continue;
                 }
-            });
-            return createVolumeOptions(client, volumes);
+                filteredVols.add(vol);
+            }
+            log.info("Got volumes with full copies: [{}]", filteredVols.size());
+            return createVolumeOptions(client, filteredVols);
         } else {
             List<BlockConsistencyGroupRestRep> consistencyGroups = api(ctx).blockConsistencyGroups()
                     .search()
@@ -2236,6 +2270,26 @@ public class BlockProvider extends BaseAssetOptionsProvider {
 
             return createBaseResourceOptions(consistencyGroups);
         }
+    }
+
+    /**
+     * Find all volumes by a project
+     * @param client
+     * @param project
+     * @return  a list of volume REST representations.
+     */
+    private List<VolumeRestRep> findVolumesByProject(ViPRCoreClient client, URI project) {
+            log.info("Finding volumes by project {}", project);
+            List<SearchResultResourceRep> volRefs = client.blockVolumes().performSearchBy(SearchConstants.PROJECT_PARAM, project);
+            List<URI> ids = new ArrayList<>();
+            for (SearchResultResourceRep volRef: volRefs) {
+                ids.add(volRef.getId());
+            }
+
+            List<VolumeRestRep> volumes = client.blockVolumes().getByIds(ids, null);
+            log.info("Got volumes: [{}]", volumes.size());
+
+            return volumes;
     }
 
     @Asset("fullCopy")

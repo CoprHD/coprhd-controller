@@ -332,7 +332,7 @@ public class HostService extends TaskResourceService {
          * for satisfying some high level requirements, although it may not be
          * sufficient from an API purity standpoint
          */
-        if (host.getComputeElement() != null && updateParam.getBootVolume() != null) {
+        if (!NullColumnValueGetter.isNullURI(host.getComputeElement()) && !NullColumnValueGetter.isNullURI(updateParam.getBootVolume())) {
             controller.setHostSanBootTargets(host.getId(), updateParam.getBootVolume());
         }
 
@@ -651,10 +651,10 @@ public class HostService extends TaskResourceService {
         List<Initiator> initiators = CustomQueryUtility.queryActiveResourcesByRelation(_dbClient, host.getId(),Initiator.class, "host");
  
         if (StringUtils.equalsIgnoreCase(host.getType(),HostType.No_OS.toString()) && (initiators == null || initiators.isEmpty())) {
-            if (host.getComputeElement() != null){
+            if (!NullColumnValueGetter.isNullURI(host.getComputeElement())){
                 computeElement = _dbClient.queryObject(ComputeElement.class, host.getComputeElement());
             }
-            if (host.getBootVolumeId() != null){
+            if (!NullColumnValueGetter.isNullURI(host.getBootVolumeId())){
                 bootVolume =  _dbClient.queryObject(Volume.class, host.getBootVolumeId());
             }
             if (computeElement != null || bootVolume != null) {
@@ -2051,7 +2051,7 @@ public class HostService extends TaskResourceService {
         ArgValidator.checkEntity(host, hostId, isIdEmbeddedInURL(hostId));
 
         // only support os install on hosts with compute elements
-        if (host.getComputeElement() == null) {
+        if (NullColumnValueGetter.isNullURI(host.getComputeElement())) {
             throw APIException.badRequests.invalidParameterHostHasNoComputeElement();
         }
 

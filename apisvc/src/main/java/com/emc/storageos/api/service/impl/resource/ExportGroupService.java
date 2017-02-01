@@ -3407,10 +3407,25 @@ public class ExportGroupService extends TaskResourceService {
         for (ExportMask exportMask : exportMasks) {
             // For VPLEX, must verify the Export Mask is in the appropriate Varray
             if (system.getSystemType().equalsIgnoreCase(StorageSystem.Type.vplex.name()) &&
-                    !ExportMaskUtils.exportMaskInVarray(_dbClient, exportMask, varray)) {
-                _log.info(String.format("VPLEX ExportMask %s (%s) not in selected varray %s, skipping", 
+                    !ExportMaskUtils.exportMaskInVarray(_dbClient, exportMask, exportGroup.getVirtualArray())) {
+                boolean isAltVarray = false;
+                StringMap altVarrays = exportGroup.getAltVirtualArrays();
+                if (altVarrays != null) {
+                    String altVarray = altVarrays.get(system.getId());
+                    if(NullColumnValueGetter.isNotNullValue(altVarray)) {
+                        URI altURI = URI.create(altVarray);
+                        if (ExportMaskUtils.exportMaskInVarray(_dbClient, exportMask, altURI)) {
+                            isAltVarray = true;
+                        }
+                    }
+                }
+                if (isAltVarray) {
+                    _log.info(String.format("VPLEX ExportMask %s (%s) not in selected varray %s, skipping", 
                         exportMask.getMaskName(), exportMask.getId(), varray));
-                continue;
+                    continue;
+                } else {
+                    throw APIException.badRequests.exportMaskNotInVarray(exportMask.getId().toString());
+                }
             }
             // For other array types, throw error if ports not in the varray
             List<URI> portsNotInVarray = ExportMaskUtils.getExportMaskStoragePortsNotInVarray(_dbClient, exportMask, varray);

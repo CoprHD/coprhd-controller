@@ -3202,4 +3202,7 @@ public interface BadRequestExceptions {
     
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException storagePortsNotInVarray(final String ports, final String exportMask, final String varray);
+    
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException exportMaskNotInVarray(final String exportMask);
 }

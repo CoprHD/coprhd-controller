@@ -646,7 +646,7 @@ public class HostService extends TaskResourceService {
              if (serviceProfile!=null && !NullColumnValueGetter.isNullURI(serviceProfile.getComputeSystem())){
                   ComputeSystem ucs = _dbClient.queryObject(ComputeSystem.class, serviceProfile.getComputeSystem());
                   if ( ucs!=null && ucs.getDiscoveryStatus().equals(DataCollectionJobStatus.ERROR.name())){
-                      throw APIException.badRequests.resourceCannotBeDeleted("Host has service profile on a Compute System that failed to discover and ");
+                      throw APIException.badRequests.resourceCannotBeDeleted("Host has service profile on a Compute System that failed to discover; ");
                   }
              }               
         }
@@ -660,11 +660,11 @@ public class HostService extends TaskResourceService {
             if (!NullColumnValueGetter.isNullURI(host.getBootVolumeId())){
                 bootVolume =  _dbClient.queryObject(Volume.class, host.getBootVolumeId());
             }
-            if (computeElement != null || bootVolume != null) {
-                _log.error("No OS host: " + host.getLabel() +" with no initiators, but with compute element or boot volume association found. Cannot deactivate.");
-                throw APIException.badRequests.resourceCannotBeDeleted("No OS host with no initiators, but with compute element or boot volume association found. Please contact DELL EMC support to resolve inconsistency detected. Host ");
+            if (computeElement != null || bootVolume != null || serviceProfile != null) {
+                _log.error("No OS host: " + host.getLabel() +" with no initiators, but with compute element or service profile or boot volume association found. Cannot deactivate.");
+                throw APIException.badRequests.resourceCannotBeDeleted("No OS host with no initiators, but with compute element or service profile or boot volume association found. Please contact DELL EMC support to resolve inconsistency detected. Host ");
             } else {
-                _log.info("No OS host: " + host.getLabel() +" with no initiators and without valid computeElement or boot volume associations found. Will proceed with deactivation.");
+                _log.info("No OS host: " + host.getLabel() +" with no initiators and without valid computeElement, service profile or boot volume associations found. Will proceed with deactivation.");
             }
         }
         String taskId = UUID.randomUUID().toString();

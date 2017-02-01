@@ -820,9 +820,6 @@ public class UcsComputeDevice implements ComputeDevice {
                 throw new RuntimeException("UCS call to poll for ManagedObject failed, null LsServer was returned.");
             }
 
-            WorkflowStepCompleter.stepSucceded(stepId);
-            LOGGER.info("Done Creating Service Profile : " + spRn + " from Service Profile Template : " + sptDn);
-
             UCSServiceProfile serviceProfile = persistServiceProfileForHost(lsServer,cs, host.getId());
             validateNewServiceProfile(cs, serviceProfile, host);
 
@@ -833,7 +830,7 @@ public class UcsComputeDevice implements ComputeDevice {
         }
 
         WorkflowStepCompleter.stepSucceded(stepId);
-        LOGGER.info("Done Creating Service Profile : " + host.getHostName() + " from Service Profile Template : " + sptDn);
+        LOGGER.info("Done Creating Service Profile : " + lsServer.getDn() + " from Service Profile Template : " + sptDn);
         return lsServer;
     }
 
@@ -1301,6 +1298,13 @@ public class UcsComputeDevice implements ComputeDevice {
        }
 
     }
+   /*
+   * Unbinds the host's service profile from the associated blade.
+   * Determines the service profile to unbind using host's serviceProfile association.
+   * In case of host provisioned using pre-Anakin version of ViPR and no serviceProfile association yet set,
+   * serviceprofile to unbind will be determined by trying to find a serviceProfile that matches
+   * the host's uuid. This logic may miss the service profile if the host uuid and service profile uuid are in different formats.
+   */
     private void unbindHostFromComputeElement(ComputeSystem cs, Host host) throws ClientGeneralException{
         if (host != null && !NullColumnValueGetter.isNullURI(host.getComputeElement())) {
             ComputeElement computeElement = _dbClient.queryObject(ComputeElement.class, host.getComputeElement());
@@ -1311,7 +1315,20 @@ public class UcsComputeDevice implements ComputeDevice {
             }
             String spDn = null;
             LOGGER.info("Host.uuid: "+host.getUuid() + " ComputeElement.uuid: "+  computeElement.getUuid());
-            if (!NullColumnValueGetter.isNullURI(host.getServiceProfile())){
+            if (NullColumnValueGetter.isNullURI(host.getServiceProfile())){
+                LOGGER.info("Host has no service profile asscoaition. trying to determine service profile to unbind based on host uuidi: "+ host.getUuid());
+                if (host.getUuid() != null ) {
+                    LsServer sp = ucsmService.getLsServer(getUcsmURL(cs).toString(),
+                            cs.getUsername(), cs.getPassword(), host.getUuid());
+                    if (sp!=null){
+                        spDn = sp.getDn();
+                        LOGGER.info("Found service profile {} matching uuid {}", spDn, host.getUuid());
+                    }else{
+                        LOGGER.info("No service profile found with uuid {}. Nothing to unbind.", host.getUuid());
+                        return;
+                    }
+               }
+            }else{
                 UCSServiceProfile serviceProfile =  _dbClient.queryObject(UCSServiceProfile.class, host.getServiceProfile());
                 if (serviceProfile == null){
                     LOGGER.error("Host "+ host.getLabel()+ " has associated serviceProfileURI: "+ host.getServiceProfile()+ " which is an invalid reference");
@@ -1320,48 +1337,84 @@ public class UcsComputeDevice implements ComputeDevice {
                 }else {
                     spDn = serviceProfile.getDn();
                     LOGGER.info("Host.uuid: "+host.getUuid() + " ComputeElement.uuid: "+  computeElement.getUuid() + "serviceProfile.uuid:" + serviceProfile.getUuid());
-                    LOGGER.info("Unbinding service profile with dn: "+ spDn);
-                    LsServer unboundServiceProfile = ucsmService.unbindServiceProfile(getUcsmURL(cs).toString(),
-                         cs.getUsername(), cs.getPassword(), spDn);
-                    LOGGER.debug("Operational state of Deleted Service Profile : " + unboundServiceProfile.getOperState());
-                    ComputeBlade computeBlade = pullAndPollManagedObject(getUcsmURL(cs).toString(), cs.getUsername(), cs.getPassword(),
-                            computeElement.getLabel(), ComputeBlade.class);
-                    if (computeBlade == null){
-                        LOGGER.info("ComputeBlade "+ computeElement.getLabel()+ " not found on UCS");
-                    } else {
-                        LOGGER.info("No service profile with uuid: " + host.getUuid() + " found on the UCS. Nothing to delete. ");
-                    }
-
                 }
-             } else {
-                 LOGGER.info("No service profile associated with host "+ host.getLabel()+ " . Nothing to unbind. ");
+            }
+            if (spDn!=null){
+                LOGGER.info("Unbinding service profile with dn: "+ spDn);
+                LsServer unboundServiceProfile = ucsmService.unbindServiceProfile(getUcsmURL(cs).toString(),
+                     cs.getUsername(), cs.getPassword(), spDn);
+                LOGGER.debug("Operational state of Deleted Service Profile : " + unboundServiceProfile.getOperState());
+                ComputeBlade computeBlade = pullAndPollManagedObject(getUcsmURL(cs).toString(), cs.getUsername(), cs.getPassword(),
+                        computeElement.getLabel(), ComputeBlade.class);
+                if (computeBlade == null){
+                    LOGGER.info("ComputeBlade "+ computeElement.getLabel()+ " not found on UCS");
+                } else {
+                    // Release the computeElement back into the pool as soon as we have unbound it from the service profile
+                    if (LsServerOperStates.UNASSOCIATED.equals(LsServerOperStates.fromString(computeBlade.getOperState()))) {
+                         computeElement.setAvailable(true);
+                         _dbClient.persistObject(computeElement);
+                    }
+                }
+      
              }
         }else {
-           LOGGER.info("NO OP");
+           LOGGER.info("NO OP. Host is null or has no asscoaited computeElement");
         }
     }
 
+  /*
+   * Deletes the host's service profile.
+   * Determines the service profile to delete using host's serviceProfile association.
+   * In case of host provisioned using pre-Anakin version of ViPR and no serviceProfile association yet set,
+   * serviceprofile to delete will be determined by trying to find a serviceProfile that matches
+   * the host's uuid. This logic may miss the service profile if the host uuid and service profile uuid are in different formats.
+   */
+
     private void deleteServiceProfile(ComputeSystem cs, Host host) throws ClientGeneralException {
-        if (host!=null && !NullColumnValueGetter.isNullURI(host.getServiceProfile())){
-            UCSServiceProfile serviceProfile =  _dbClient.queryObject(UCSServiceProfile.class, host.getServiceProfile());
-            if (serviceProfile == null){
-                LOGGER.error("Host "+ host.getLabel()+ " has associated serviceProfileURI: "+ host.getServiceProfile()+ " which is an invalid reference");
-                LOGGER.info("Service profile deletion will not be triggered");
-            }else {
-                LOGGER.info("Deleting serviceProfile " + serviceProfile.getDn() );
-                ucsmService.deleteServiceProfile(getUcsmURL(cs).toString(), cs.getUsername(), cs.getPassword(),
-                                serviceProfile.getDn());
+        UCSServiceProfile serviceProfile = null;
+        if (host!=null){
+            String spDn = null;
+            if (NullColumnValueGetter.isNullURI(host.getServiceProfile())){
+                LOGGER.info("Host has no associated service profile. Trying to determine service profile to delete based on host's uuid {}", host.getUuid());
+                if (host.getUuid() != null ) {
+                    LsServer sp = ucsmService.getLsServer(getUcsmURL(cs).toString(),
+                            cs.getUsername(), cs.getPassword(), host.getUuid());
+                    if (sp!=null){
+                        spDn = sp.getDn();
+                        LOGGER.info("Found service profile {} matching uuid {}", spDn, host.getUuid());
+                    }else{
+                        LOGGER.info("No service profile found with uuid {}. Nothing to delete.", host.getUuid());
+                        return;
+                    }
+               }
+            } else {
+                serviceProfile =  _dbClient.queryObject(UCSServiceProfile.class, host.getServiceProfile());
+                if (serviceProfile == null){
+                   LOGGER.error("Host "+ host.getLabel()+ " has associated serviceProfileURI: "+ host.getServiceProfile()+ " which is an invalid reference");
+                   LOGGER.info("Service profile deletion will not be triggered");
+                   return;
+                }else {
+                   spDn = serviceProfile.getDn();
+                }
+            }
+            if (spDn!=null){
+                LOGGER.info("Deleting serviceProfile " + spDn );
+                ucsmService.deleteServiceProfile(getUcsmURL(cs).toString(), cs.getUsername(), cs.getPassword(),spDn);
                 host.setServiceProfile(NullColumnValueGetter.getNullURI());
                 _dbClient.persistObject(host);
-                _dbClient.markForDeletion(serviceProfile);
+                if (serviceProfile!=null){
+                    _dbClient.markForDeletion(serviceProfile);
+                }
 
+            } else {
+                LOGGER.info("No service profile to delete");
             }
-        }else {
-           LOGGER.info("No service profile to delete");
-        }
-        // On successful deletion of the service profile - get rid of the objects that represent objects from the service profile
-        LOGGER.info("Removing host endpoints");
-        removeHostInitiatorsFromNetworks(host);
+            // On successful deletion of the service profile - get rid of the objects that represent objects from the service profile
+            LOGGER.info("Removing host endpoints");
+            removeHostInitiatorsFromNetworks(host);
+       }else {
+           LOGGER.info("host is null. NO OP");
+       }
 
     }
     /**

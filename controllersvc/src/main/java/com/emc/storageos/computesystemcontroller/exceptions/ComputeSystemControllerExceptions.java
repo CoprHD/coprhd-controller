@@ -136,9 +136,6 @@ public interface ComputeSystemControllerExceptions {
     public ComputeSystemControllerException serviceProfileUuidDuplicate(final String lsServerDn, final String serviceProfileDn, final String uuid);
 
     @DeclareServiceCode(ServiceCode.CONTROLLER_COMPUTESYSTEM_ERROR)
-    public ComputeSystemControllerException hostNotFound(final String hostId);
-
-    @DeclareServiceCode(ServiceCode.CONTROLLER_COMPUTESYSTEM_ERROR)
     public ComputeSystemControllerException newServiceProfileDuplicateUuid(final String serviceProfile, final String uuid, final String host);
 
     @DeclareServiceCode(ServiceCode.CONTROLLER_COMPUTESYSTEM_ERROR)

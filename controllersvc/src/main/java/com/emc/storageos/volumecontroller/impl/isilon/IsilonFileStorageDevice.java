@@ -1430,7 +1430,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         // set quota - save the quota id to extensions
         String qid = isi.createQuota(qDirPath, fsSize, bThresholdsIncludeOverhead,
                 bIncludeSnapshots, qDirSize, notificationLimitSize != null ? notificationLimitSize : 0L,
-                        softLimitSize != null ? softLimitSize : 0L, softGracePeriod != null ? softGracePeriod : 0L);
+                softLimitSize != null ? softLimitSize : 0L, softGracePeriod != null ? softGracePeriod : 0L);
         return qid;
     }
 
@@ -2085,18 +2085,18 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         // Requested Share ACL
         List<ShareACL> aclsToAdd = args.getShareAclsToAdd();
         List<ShareACL> aclsToDelete = args.getShareAclsToDelete();
-        List<ShareACL> aclsToModify = args.getShareAclsToModify();        
+        List<ShareACL> aclsToModify = args.getShareAclsToModify();
         try {
             // add the new Share ACL from the array into the update request.
-            Set<ShareACL> arrayExtraShareACL = extraShareACLFromArray(storage, args);
+            Map<String, ShareACL> arrayExtraShareACL = extraShareACLFromArray(storage, args);
             if (!arrayExtraShareACL.isEmpty()) {
                 if (aclsToModify != null) {
                     // now add the remaining Share ACL
-                    aclsToModify.addAll(arrayExtraShareACL);
+                    aclsToModify.addAll(arrayExtraShareACL.values());
                 } else {
                     // if exportModify is null then create a new Share ACL and add
                     aclsToModify = new ArrayList<ShareACL>();
-                    aclsToModify.addAll(arrayExtraShareACL);
+                    aclsToModify.addAll(arrayExtraShareACL.values());
 
                 }
             }
@@ -2105,7 +2105,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             _log.error("Not able to fetch latest Share ACL from backend array.", e);
 
         }
-       // Get existing Acls for the share
+        // Get existing Acls for the share
         List<ShareACL> aclsToProcess = args.getExistingShareAcls();
 
         _log.info("Share name : {}", args.getShareName());
@@ -2187,49 +2187,78 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
     }
 
     /**
-     * Get the Share ACL  which are present in array but not in CoprHD Database.
+     * Get the Share ACL which are present in array but not in CoprHD Database.
      * 
      * @param storage
      * @param args
-     * @return Set with ShareACL
+     * @return Map with domain+ group or username with ShareACL
      */
-    private Set<ShareACL> extraShareACLFromArray(StorageSystem storage, FileDeviceInputOutput args) {
+    private Map<String, ShareACL> extraShareACLFromArray(StorageSystem storage, FileDeviceInputOutput args) {
 
-        Set<ShareACL> arrayShareACL = new HashSet<>();
         // get all Share ACL from CoprHD data base
         List<ShareACL> existingDBShareACL = args.getExistingShareAcls();
 
-        // get the all the Share ACL  from the storage system.
+        Map<String, ShareACL> arrayShareACLMap = new HashMap<>();
+
+        // get the all the Share ACL from the storage system.
         IsilonApi isi = getIsilonDevice(storage);
         String zoneName = getZoneName(args.getvNAS());
-        IsilonSMBShare share =getIsilonSMBShare(isi,args.getShareName(),zoneName);
-        List<Permission> permissions =share.getPermissions();
+        IsilonSMBShare share = getIsilonSMBShare(isi, args.getShareName(), zoneName);
+        List<Permission> permissions = share.getPermissions();
         for (Permission perm : permissions) {
-            if(perm.getPermissionType().equalsIgnoreCase(Permission.PERMISSION_TYPE_ALLOW)){
-                ShareACL shareACL= new ShareACL();
+            if (perm.getPermissionType().equalsIgnoreCase(Permission.PERMISSION_TYPE_ALLOW)) {
+                ShareACL shareACL = new ShareACL();
+                shareACL.setFileSystemId(args.getFsId());
+                shareACL.setShareName(args.getShareName());
                 shareACL.setPermission(perm.getPermission());
-                String  userOrDomain = perm.getTrustee().getName();
-                String[] usersAndDomains = new String[2];
-                usersAndDomains =userOrDomain.split("\\");
-                if(usersAndDomains[1] !=null && !usersAndDomains[1].isEmpty() ){
-                    shareACL.setUser(usersAndDomains[1]);
-                    shareACL.setDomain(usersAndDomains[0]);
-                }else{
-                    shareACL.setUser(usersAndDomains[0]);
+                String userAndDomain = perm.getTrustee().getName();
+                String[] trustees = new String[2];
+                trustees = userAndDomain.split("\\\\");
+                String trusteesType = perm.getTrustee().getType();
+                if (trustees.length > 1) {
+                    shareACL.setDomain(trustees[0]);
+                    if (trusteesType.equals("group")) {
+                        shareACL.setGroup(trustees[1]);
+                    } else {
+                        shareACL.setUser(trustees[1]);
+                    }
+                } else {
+                    if (trusteesType.equals("group")) {
+                        shareACL.setGroup(trustees[0]);
+                    } else {
+                        shareACL.setUser(trustees[0]);
+                    }
                 }
+                perm.getTrustee().getType();
+                arrayShareACLMap.put(perm.getTrustee().getName(), shareACL);
 
-                arrayShareACL.add(shareACL);
             }
-
         }
-        Set<ShareACL> dbShareACL  = new HashSet<>(existingDBShareACL);
-        // find out the change between array and CoprHD database.
-        Set<ShareACL> arrayExtraShareACL = Sets.difference((Set<ShareACL>) arrayShareACL, dbShareACL);           
+        for (Iterator iterator = existingDBShareACL.iterator(); iterator.hasNext();) {
+            ShareACL shareACL = (ShareACL) iterator.next();
+            String key = "";
+            String domain = "";
+            String user = shareACL.getUser();
+            String group = shareACL.getGroup();
+            if (shareACL.getDomain() != null && !shareACL.getDomain().isEmpty()) {
+                domain = domain + "\\";
+            }
+            if (user != null && !user.isEmpty()) {
+                key = domain + user;
+            } else if (group != null && !group.isEmpty()) {
+                key = domain + group;
+            }
+            if (arrayShareACLMap.containsKey(key)) {
+
+                arrayShareACLMap.remove(key);
+            }
+        }
+
         // if change found update the exportRuleMap
-        return arrayExtraShareACL;
+        return arrayShareACLMap;
 
     }
-    
+
     /**
      * get share details
      * 
@@ -2250,7 +2279,6 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         }
         return isilonSMBShare;
     }
-
 
     @Override
     public BiosCommandResult deleteShareACLs(StorageSystem storage, FileDeviceInputOutput args) {
@@ -3253,8 +3281,8 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
     }
 
     private String
-    createIsilonSnapshotPolicySchedule(StorageSystem storageObj, FilePolicy filePolicy,
-            String path, String snapshotSchedulePolicyNamePrefix) {
+            createIsilonSnapshotPolicySchedule(StorageSystem storageObj, FilePolicy filePolicy,
+                    String path, String snapshotSchedulePolicyNamePrefix) {
         String snapshotScheduleName = snapshotSchedulePolicyNamePrefix + "_" + filePolicy.getFilePolicyName();
 
         String pattern = snapshotScheduleName + "_%Y-%m-%d_%H-%M";

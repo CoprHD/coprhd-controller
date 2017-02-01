@@ -39,6 +39,7 @@ import controllers.Common;
 
 import java.io.File;
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -234,15 +235,8 @@ public class WorkflowBuilder extends Controller {
                     .orchestrationPrimitives().createWorkflow(param);
 
             // Add this workflowid to directory
-            if (!MY_LIBRARY_ROOT.equals(dirID) && null != orchestrationWorkflowRestRep) {
-                final WFDirectoryUpdateParam wfDirectoryParam = new WFDirectoryUpdateParam();
-                final Set<URI> addWorkflows = new HashSet<URI>();
-                addWorkflows.add(orchestrationWorkflowRestRep.getId());
-                wfDirectoryParam
-                        .setWorkflows(new WFDirectoryWorkflowsUpdateParam(
-                                addWorkflows, null));
-                getCatalogClient().wfDirectories().edit(new URI(dirID),
-                        wfDirectoryParam);
+            if (null != orchestrationWorkflowRestRep) {
+                addResourceToWFDirectory(orchestrationWorkflowRestRep.getId(), dirID);
             } else {
                 flash.error("Error creating workflow");
             }
@@ -253,6 +247,22 @@ public class WorkflowBuilder extends Controller {
             flash.error("Error creating workflow");
         }
     }
+
+    private static void addResourceToWFDirectory(URI resourceID, String dirID) throws URISyntaxException{
+        if (MY_LIBRARY_ROOT.equals(dirID)){
+            return;
+        }
+        final WFDirectoryUpdateParam wfDirectoryParam = new WFDirectoryUpdateParam();
+        final Set<URI> addWorkflows = new HashSet<URI>();
+        addWorkflows.add(resourceID);
+        wfDirectoryParam
+                .setWorkflows(new WFDirectoryWorkflowsUpdateParam(
+                        addWorkflows, null));
+        getCatalogClient().wfDirectories().edit(new URI(dirID),
+                wfDirectoryParam);
+
+    }
+
 
     public static void saveWorkflow(final URI workflowId,
                                       final OrchestrationWorkflowDocument workflowDoc) {
@@ -377,6 +387,9 @@ public class WorkflowBuilder extends Controller {
         private String inputs; //comma separated list of inputs
         private String outputs; // comma separated list of ouputs
 
+        @Required
+        private String wfDirID;
+
         //TODO
         public void validate(){
             // check if script is not null
@@ -429,16 +442,24 @@ public class WorkflowBuilder extends Controller {
         public void setOutputs(String outputs) {
             this.outputs = outputs;
         }
+
+        public String getWfDirID() {
+            return wfDirID;
+        }
+
+        public void setWfDirID(String wfDirID) {
+            this.wfDirID = wfDirID;
+        }
     }
 
 
-    public static void create(@Valid ShellScriptPrimitiveForm shellPrimitive){
+    public static void createShellScriptPrimitive(@Valid final ShellScriptPrimitiveForm shellPrimitive){
         shellPrimitive.validate();
 
         try {
-            PrimitiveResourceRestRep primitiveResourceRestRep = getCatalogClient().orchestrationPrimitives().createPrimitiveResource("SCRIPT", shellPrimitive.script, shellPrimitive.scriptName);
+            final PrimitiveResourceRestRep primitiveResourceRestRep = getCatalogClient().orchestrationPrimitives().createPrimitiveResource("SCRIPT", shellPrimitive.script, shellPrimitive.scriptName);
             if (null != primitiveResourceRestRep) {
-                PrimitiveCreateParam primitiveCreateParam = new PrimitiveCreateParam();
+                final PrimitiveCreateParam primitiveCreateParam = new PrimitiveCreateParam();
                 //TODO - remove this hardcoded string once the enum is available
                 primitiveCreateParam.setType("SCRIPT");
                 primitiveCreateParam.setName(shellPrimitive.getName());
@@ -450,7 +471,14 @@ public class WorkflowBuilder extends Controller {
                 if (StringUtils.isNotEmpty(shellPrimitive.getOutputs())) {
                     primitiveCreateParam.setOutput(Arrays.asList(shellPrimitive.getOutputs().split(",")));
                 }
-                getCatalogClient().orchestrationPrimitives().createPrimitive(primitiveCreateParam);
+                PrimitiveRestRep primitiveRestRep = getCatalogClient().orchestrationPrimitives().createPrimitive(primitiveCreateParam);
+                if (primitiveRestRep != null) {
+                    // add this to wf directory
+                    addResourceToWFDirectory(primitiveRestRep.getId(), shellPrimitive.getWfDirID());
+                }
+                else {
+                    //TODO: throw error
+                }
             }
             else {
                 //TODO: throw error
@@ -478,6 +506,9 @@ public class WorkflowBuilder extends Controller {
         private String hostFilePath;
         private String inputs; //comma separated list of inputs
         private String outputs; // comma separated list of ouputs
+
+        @Required
+        private String wfDirID;
 
         //TODO
         public void validate(){
@@ -563,9 +594,17 @@ public class WorkflowBuilder extends Controller {
         public void setExisting(boolean existing) {
             this.existing = existing;
         }
+
+        public String getWfDirID() {
+            return wfDirID;
+        }
+
+        public void setWfDirID(String wfDirID) {
+            this.wfDirID = wfDirID;
+        }
     }
 
-    public static void createLocalAnsiblePrimitive(@Valid LocalAnsiblePrimitiveForm localAnsible){
+    public static void createLocalAnsiblePrimitive(@Valid final LocalAnsiblePrimitiveForm localAnsible){
         localAnsible.validate();
 
         try {
@@ -580,7 +619,7 @@ public class WorkflowBuilder extends Controller {
 
             // Create Primitive
             if (null != primitiveResourceRestRep) {
-                PrimitiveCreateParam primitiveCreateParam = new PrimitiveCreateParam();
+                final PrimitiveCreateParam primitiveCreateParam = new PrimitiveCreateParam();
                 //TODO - remove this hardcoded string once the enum is available
                 primitiveCreateParam.setType("ANSIBLE");
                 primitiveCreateParam.setName(localAnsible.getName());
@@ -595,7 +634,14 @@ public class WorkflowBuilder extends Controller {
                     primitiveCreateParam.setOutput(Arrays.asList(localAnsible.getOutputs().split(",")));
                 }
 
-                getCatalogClient().orchestrationPrimitives().createPrimitive(primitiveCreateParam);
+                final PrimitiveRestRep primitiveRestRep = getCatalogClient().orchestrationPrimitives().createPrimitive(primitiveCreateParam);
+                if (primitiveRestRep != null) {
+                    // add this to wf directory
+                    addResourceToWFDirectory(primitiveRestRep.getId(), localAnsible.getWfDirID());
+                }
+                else {
+                    //TODO: throw error
+                }
             }
             else {
                 //TODO: throw error
@@ -611,9 +657,9 @@ public class WorkflowBuilder extends Controller {
 
     private static void setAnsibleResources() {
         //TODO - Get these resources using API and remove this temporary data
-        List<StringOption> ansibleResourceNames = new ArrayList<StringOption>();
+        final List<StringOption> ansibleResourceNames = new ArrayList<StringOption>();
         ansibleResourceNames.add(new StringOption("1x","CreateHostPackage"));
-        ansibleResourceNames.add(new StringOption("2x","Create Project Package"));
+        ansibleResourceNames.add(new StringOption("urn:storageos:AnsiblePackage:32efea07-d2b7-4581-b577-60c7d95c7f53:vdc1","Create Project Package"));
         renderArgs.put("ansibleResourceNames", ansibleResourceNames);
 
     }

@@ -11,6 +11,7 @@ ansibleResourceNames = _arg;
 <div class="row">
     #{form @createLocalAnsiblePrimitive(), id:'localAnsiblePrimitiveForm', enctype:'multipart/form-data', class:'form form-horizontal',
     autocomplete:"off"}
+    <input type="hidden" name="localAnsible.wfDirID" id="localAnsible_wfDirID"/>
     <div class="col-md-3 tabbable">
         <ul class="nav nav-pills nav-stacked">
             <li role="presentation" class="active"><a href="${'#'+nameDescTabID}" data-toggle="tab"><span class="badge">1</span>
@@ -190,6 +191,9 @@ ansibleResourceNames = _arg;
     }
 
     $('#localAnsiblePrimitiveDialog').on('shown.bs.modal', function () {
+        // Setting selected workflow directory ID
+        $('#localAnsible_wfDirID').val($('#jstree_demo').jstree(true).get_selected()[0]);
+
         //on start hiding finish and back buttons
         $('#finishButtonLA').hide();
         $('#backButtonLA').hide();

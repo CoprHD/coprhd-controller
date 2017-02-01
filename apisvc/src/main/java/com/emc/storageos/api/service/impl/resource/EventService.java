@@ -229,9 +229,9 @@ public class EventService extends TaggedResource {
             TaskResourceRep result = (TaskResourceRep) classMethod.invoke(executor, parameters);
             if (result != null && result.getId() != null) {
                 Collection<String> taskCollection = Lists.newArrayList(result.getId().toString());
-                event = _dbClient.queryObject(ActionableEvent.class, event.getId());
-                event.setTaskIds(new StringSet(taskCollection));
-                _dbClient.updateObject(event);
+                ActionableEvent updatedEvent = _dbClient.queryObject(ActionableEvent.class, event.getId());
+                updatedEvent.setTaskIds(new StringSet(taskCollection));
+                _dbClient.updateObject(updatedEvent);
             }
             taskList.addTask(result);
             return taskList;

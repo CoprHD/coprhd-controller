@@ -179,6 +179,11 @@ test_VPLEX_ORCH_3() {
 
 # Export Test EXISITING_USERADDED_INITS
 
+test_existing_useradded(){
+    test_EXISTING_USERADDED_INITS1;
+    test_EXISTING_USERADDED_INITS2;
+}
+
 # Conversion of Existing Initiators to User Added initiators if they are ViPR managed within an export Mask
 # test-1
 # 1. Export a Volume- V1 to a Host H1 with two initiators I1 and I2
@@ -187,19 +192,6 @@ test_VPLEX_ORCH_3() {
 # 4. Add I3, I4 to Host H1. The export Mask needs to be updated accordingly as part of the Export Group Update.
 # 5. Remove I3 and Verify that the Storage View contains 3 initators and 2 Volumes
 # 6. Delete Export Group and verify that the Storage View is gone..
-# test-2
-# 1. Export a Volume- V1 to a Host H1 with two initiators I1 and I2. Delete the associated Mask and Export Group as part of DB Utils.
-# 2. Export a Volume- V2 to this Host. Verify that the Storage View contains 2 initators and 2 Volumes. A new Export Mask and Export Group will be created
-# 3. Remove Volume- V1 using VPLEX as this is now and existing Volume WWN
-# 3. Using VIPR add Initiator I3, I4 and add them to Host H1. 
-# 4. Verify that the Storage View contains 4 initators and 1 Volumes
-# 5. Remove I3 and Verify that the Storage View contains 3 initators and 1 Volumes
-# 6. Delete Export Group and verify that the Storage View is gone..
-
-test_existing_useradded(){
-    test_EXISTING_USERADDED_INITS1;
-    test_EXISTING_USERADDED_INITS2;
-}
 
 test_EXISTING_USERADDED_INITS1() {
     echot "Existing Initiators to User Added Initiators Test1 Begins"
@@ -252,6 +244,15 @@ test_EXISTING_USERADDED_INITS1() {
     echot "Existing Initiators to User Added Initiators Test1 Passed"
 
 }
+
+# test-2
+# 1. Export a Volume- V1 to a Host H1 with two initiators I1 and I2. Delete the associated Mask and Export Group as part of DB Utils.
+# 2. Export a Volume- V2 to this Host. Verify that the Storage View contains 2 initators and 2 Volumes. A new Export Mask and Export Group will be created
+# 3. Remove Volume- V1 using VPLEX as this is now and existing Volume WWN
+# 3. Using VIPR add Initiator I3, I4 and add them to Host H1. 
+# 4. Verify that the Storage View contains 4 initators and 1 Volumes
+# 5. Remove I3 and Verify that the Storage View contains 3 initators and 1 Volumes
+# 6. Delete Export Group and verify that the Storage View is gone..
 
 test_EXISTING_USERADDED_INITS2()
 {

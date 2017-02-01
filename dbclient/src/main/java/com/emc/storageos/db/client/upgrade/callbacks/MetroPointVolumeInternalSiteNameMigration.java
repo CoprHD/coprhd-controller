@@ -6,6 +6,7 @@
 package com.emc.storageos.db.client.upgrade.callbacks;
 
 import java.net.URI;
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
@@ -45,8 +46,19 @@ public class MetroPointVolumeInternalSiteNameMigration extends BaseCustomMigrati
             List<URI> volumeURIs = dbClient.queryByType(Volume.class, true);
             Iterator<Volume> volumes = dbClient.queryIterativeObjects(Volume.class, volumeURIs);
 
+            List<String> updatedVolumes = new ArrayList<String>();
+            List<String> invalidVolumes = new ArrayList<String>();
+
             while (volumes.hasNext()) {
                 Volume volume = volumes.next();
+
+                if (PersonalityTypes.SOURCE.name().equals(volume.getPersonality())
+                        && (NullColumnValueGetter.isNullNamedURI(volume.getProtectionSet()) || NullColumnValueGetter.isNullURI(volume
+                                .getConsistencyGroup()))) {
+                    invalidVolumes.add(volume.getId().toString());
+                    continue;
+                }
+
                 if (volume != null && NullColumnValueGetter.isNotNullValue(volume.getRpCopyName())
                         && PersonalityTypes.SOURCE.name().equals(volume.getPersonality())
                         && volume.getAssociatedVolumes() != null && volume.getAssociatedVolumes().size() == 2
@@ -56,11 +68,18 @@ public class MetroPointVolumeInternalSiteNameMigration extends BaseCustomMigrati
                     VirtualPool vpool = dbClient.queryObject(VirtualPool.class, volume.getVirtualPool());
                     if (vpool != null && VirtualPool.vPoolSpecifiesMetroPoint(vpool)) {
                         // This is a MetroPoint VPlex source volume, so update it.
-                        updateVolume(volume);
+                        if (updateVolume(volume)) {
+                            updatedVolumes.add(volume.getId().toString());
+                        }
                     }
                 }
-
             }
+
+            log.info(String.format("MetroPointVolumeInternalSiteNameMigration has updated %d MetroPoint source volumes: %s",
+                    updatedVolumes.size(), updatedVolumes.toString()));
+            log.info(String
+                    .format("MetroPointVolumeInternalSiteNameMigration has found %d invalid volumes.  These volumes have an invalid protection set or consistency group reference: %s",
+                            invalidVolumes.size(), invalidVolumes.toString()));
         } catch (Exception e) {
             String errorMsg = String.format("%s encounter unexpected error %s", this.getName(), e.getMessage());
             throw new MigrationCallbackException(errorMsg, e);
@@ -73,7 +92,7 @@ public class MetroPointVolumeInternalSiteNameMigration extends BaseCustomMigrati
      *
      * @param volumes the volumes to verify and update
      */
-    private void updateVolume(Volume volume) {
+    private boolean updateVolume(Volume volume) {
         for (String volUri : volume.getAssociatedVolumes()) {
             Volume backingVolume = dbClient.queryObject(Volume.class, URI.create(volUri));
 
@@ -91,7 +110,10 @@ public class MetroPointVolumeInternalSiteNameMigration extends BaseCustomMigrati
                                 backingVolume.getId()));
                 volume.setInternalSiteName(backingVolume.getInternalSiteName());
                 dbClient.updateObject(volume);
+                // volume has been updated to return true;
+                return true;
             }
         }
+        return false;
     }
 }

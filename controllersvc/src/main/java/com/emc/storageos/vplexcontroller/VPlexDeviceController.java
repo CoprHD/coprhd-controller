@@ -1388,9 +1388,11 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
         List<VolumeDescriptor> descriptorsToRemove = VolumeDescriptor.getDoNotDeleteDescriptors(vplexVolumes);
         vplexVolumes.removeAll(descriptorsToRemove);
 
+        String returnWaitFor = waitFor;
+
         // If there are no VPlex volumes, just return
         if (vplexVolumes.isEmpty()) {
-            return waitFor;
+            return returnWaitFor;
         }
 
         // Segregate by device and loop over each VPLEX system.
@@ -1438,7 +1440,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
 
             // Add a step to forget the backend volumes for the deleted
             // VPLEX volumes on this VPLEX system.
-            addStepToForgetVolumes(workflow, vplexURI, forgetVolumeURIs, waitFor);
+            addStepToForgetVolumes(workflow, vplexURI, forgetVolumeURIs, returnWaitFor);
         }
 
         // Get the VPlex Volume URIs and any VPLEX system URI. It does not matter which
@@ -1448,14 +1450,14 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
 
         // Add a step to the Workflow to mark the Virtual Volumes inactive.
         // Rollback does the same thing.
-        waitFor = workflow.createStep(null, "Mark virtual volumes inactive", VOLUME_FORGET_STEP,
+        returnWaitFor = workflow.createStep(null, "Mark virtual volumes inactive", VOLUME_FORGET_STEP,
                 vplexURI, DiscoveredDataObject.Type.vplex.name(), this.getClass(),
                 markVolumesInactiveMethod(allVplexVolumeURIs),
                 markVolumesInactiveMethod(allVplexVolumeURIs), null);
 
 
         if (cgVolsMap.isEmpty()) {
-            return waitFor;
+            return returnWaitFor;
         }
         Volume vol = getDataObject(Volume.class, allVplexVolumeURIs.get(0), _dbClient);
         ConsistencyGroupManager consistencyGroupManager = getConsistencyGroupManager(vol);
@@ -1472,11 +1474,11 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
             // delete replication group from array
             if (ControllerUtils.cgHasNoOtherVolume(_dbClient, cgURI, volumeList)) {
                 _log.info(String.format("Adding step to delete the consistency group %s", cgURI));
-                waitFor = consistencyGroupManager.addStepsForDeleteConsistencyGroup(workflow, waitFor, storage, cgURI, false);
+                returnWaitFor = consistencyGroupManager.addStepsForDeleteConsistencyGroup(workflow, returnWaitFor, storage, cgURI, false);
             }
         }
 
-        return waitFor;
+        return returnWaitFor;
     }
 
     public Workflow.Method markVolumesInactiveMethod(List<URI> volumes) {

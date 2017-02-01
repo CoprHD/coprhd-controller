@@ -420,7 +420,7 @@ test_VPLEX_ORCH_6(){
     # Make sure we start clean; no masking view on the array
     verify_export ${expname}1 ${HOST1} gone
     verify_export ${expname}1 ${HOST2} gone
-    localSnapshot=VPlexLocalSnap
+    localSnapshot=VPlexLocalSnap-${RANDOM}
     
     set_validation_check false
     

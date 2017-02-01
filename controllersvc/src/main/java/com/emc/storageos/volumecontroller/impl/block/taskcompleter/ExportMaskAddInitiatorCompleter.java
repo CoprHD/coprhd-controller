@@ -47,7 +47,7 @@ public class ExportMaskAddInitiatorCompleter extends ExportMaskInitiatorComplete
     protected void complete(DbClient dbClient, Operation.Status status, ServiceCoded coded) throws DeviceControllerException {
         try {
 
-            if (shouldUpdateDatabase(status)) {
+            if (wereInitiatorsOrPortsPhysicallyAdded() || status == Operation.Status.ready) {
                 updateDatabase(dbClient);
             }
 
@@ -100,27 +100,23 @@ public class ExportMaskAddInitiatorCompleter extends ExportMaskInitiatorComplete
     }
 
     /**
-     * This completer may complete with a ready or error status.  In the case of an error status,
-     * we can check the {@link ExportOperationContext} to see if the volumes were added and perform
-     * the necessary database updates.
-     *
-     * @param status    Status of the operation.
-     * @return          true, if the status is ready or the volumes were added despite error status.
-     */
-    private boolean shouldUpdateDatabase(Operation.Status status) {
-        return wereInitiatorsOrPortsPhysicallyAdded() || status == Operation.Status.ready;
-    }
-
-    /**
      * This method will determine if any initiators/ports were added as a result of this operation.
      * 
      * @return true if initiators were added, otherwise false.
      */
     private boolean wereInitiatorsOrPortsPhysicallyAdded() {
-        // If there were initiators or ports added to the mask (physically), we will have a context
-        ExportOperationContext context = (ExportOperationContext) WorkflowService.getInstance().loadStepData(getOpId());
-        if (context == null) {
-            return false;
+
+        ExportOperationContext context = null;
+        try {
+            // Only specific platforms create a context object. If there is no context object, default to updating the
+            // object in the DB
+            context = (ExportOperationContext) WorkflowService.getInstance().loadStepData(getOpId());
+            if (context == null) {
+                return true;
+            }
+        } catch (ClassCastException cce) {
+            // Step state data was stored, but it's not a context object, so return true by default.
+            return true;
         }
 
         // If initiators/ports were added to the mask, there will be operations hanging off the context

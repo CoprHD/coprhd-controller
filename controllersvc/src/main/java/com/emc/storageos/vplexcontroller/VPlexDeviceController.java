@@ -1563,11 +1563,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
                 waitFor, vplexSystemURI, DiscoveredDataObject.Type.vplex.name(), this.getClass(),
                 createForgetVolumesMethod(vplexSystemURI, nativeVolumeInfoList), null, null);
     }
-
-    private void addStepsToDeleteVplexCG(Workflow workflow, URI vplexSystemURI,
-            List<URI> volumeURIs, String waitFor) {
-
-    }
+    
     /**
      * Gets the native volume information required by the VPLEX client for
      * the passed backend volumes.

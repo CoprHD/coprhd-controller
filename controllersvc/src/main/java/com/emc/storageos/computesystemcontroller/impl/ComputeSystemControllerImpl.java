@@ -17,6 +17,7 @@ import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.util.CollectionUtils;
@@ -398,7 +399,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
             Workflow workflow = _workflowService.getNewWorkflow(this, ADD_INITIATOR_STORAGE_WF_NAME, true, taskId);
             String waitFor = null;
 
-            waitFor = addStepsForAddInitiators(workflow, waitFor, hostId, initiators);
+            waitFor = addStepsForAddInitiators(workflow, waitFor, hostId, initiators, eventId);
 
             workflow.executePlan(completer, "Success", null, null, null, null);
         } catch (Exception ex) {
@@ -552,7 +553,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
         }
     }
 
-    public String addStepsForAddInitiators(Workflow workflow, String waitFor, URI hostId, Collection<URI> inits) {
+    public String addStepsForAddInitiators(Workflow workflow, String waitFor, URI hostId, Collection<URI> inits, URI eventId) {
         List<Initiator> initiators = _dbClient.queryObject(Initiator.class, inits);
         List<ExportGroup> exportGroups = ComputeSystemHelper.findExportsByHost(_dbClient, hostId.toString());
 
@@ -587,6 +588,9 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                                     addedClusters, removedClusters, addedHosts, removedHosts, addedInitiators, removedInitiators),
                             updateExportGroupRollbackMethod(export.getId()), null);
                 }
+            } else if (!NullColumnValueGetter.isNullURI(eventId)) {
+                throw ComputeSystemControllerException.exceptions.noInitiatorPortConnectivity(StringUtils.join(initiators, ","),
+                        export.forDisplay());
             }
         }
         return waitFor;

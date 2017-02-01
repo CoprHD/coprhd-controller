@@ -2814,7 +2814,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
             CIMObjectPath targetPortGroupPath,
             CIMObjectPath initiatorGroupPath,
             TaskCompleter taskCompleter) throws Exception {
-        _log.debug("{} createMaskingView START...", storage.getSerialNumber());
+        _log.info("{} createMaskingView START...", storage.getSerialNumber());
         // Flag to indicate whether or not we need to use the EMCForce flag on this operation.
         // We currently use this flag when dealing with RP Volumes as they are tagged for RP and the
         // operation on these volumes would fail otherwise.
@@ -2847,6 +2847,10 @@ public class VmaxExportOperations implements ExportMaskOperations {
             if (cimJobPath != null) {
                 ControllerServiceImpl.enqueueJob(new QueueJob(new SmisCreateMaskingViewJob(cimJobPath,
                         storage.getId(), exportMaskURI, volumeURIHLUs, volumeGroupPath, taskCompleter)));
+            } else {
+                // Treat a null cimJobPath as an exception, although we've generally only seen this occur in
+                // simulated environments
+                throw new WBEMException("No output argument was returned from CreateMaskingView operation");
             }
             // Rollback context is set in the job upon completion.
         } catch (WBEMException we) {
@@ -2860,7 +2864,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
                 throw we;
             }
         }
-        _log.debug("{} createMaskingView END...", storage.getSerialNumber());
+        _log.info("{} createMaskingView END...", storage.getSerialNumber());
     }
 
     private CIMObjectPath handleCreateMaskingGroupException(StorageSystem storage,

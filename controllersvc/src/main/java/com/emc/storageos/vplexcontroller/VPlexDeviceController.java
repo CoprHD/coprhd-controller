@@ -2758,6 +2758,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
         String exportMaskDeleteStep = workflow.createStepId();
         ExportMaskDeleteCompleter rollbackCompleter = 
                 new ExportMaskDeleteCompleter(exportGroup.getId(), exportMask.getId(), exportMaskDeleteStep);
+        ((ExportMaskDeleteCompleter) exportTaskCompleter).setVolumes(blockObjectMap.keySet());
 
         // Workflow.Method storageViewRollbackMethod = new Workflow.Method(ROLLBACK_METHOD_NULL);
         Workflow.Method storageViewRollbackMethod = deleteStorageViewMethod(
@@ -3141,6 +3142,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
                         String exportMaskDeleteStep = workflow.createStepId();
                         ExportMaskDeleteCompleter exportMaskDeleteCompleter = 
                                 new ExportMaskDeleteCompleter(exportGroup.getId(), exportMask.getId(), exportMaskDeleteStep);
+                        ((ExportMaskDeleteCompleter) exportMaskDeleteCompleter).setVolumes(volumeURIList);
 
                         Workflow.Method storageViewExecuteMethod = deleteStorageViewMethod(vplex, exportMask.getId(), exportMaskDeleteCompleter);
                         storageViewStepId = workflow.createStep(DELETE_STORAGE_VIEW,
@@ -3799,6 +3801,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
                     String exportMaskDeleteStep = workflow.createStepId();
                     ExportMaskDeleteCompleter exportMaskDeleteCompleter = 
                             new ExportMaskDeleteCompleter(exportURI, exportMask.getId(), exportMaskDeleteStep);
+                    ((ExportMaskDeleteCompleter) exportMaskDeleteCompleter).setVolumes(volumeURIs);
 
                     Workflow.Method deleteStorageView = deleteStorageViewMethod(vplexURI, exportMask.getId(), exportMaskDeleteCompleter);
                     previousStep = workflow.createStep(DELETE_STORAGE_VIEW,
@@ -4941,6 +4944,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
             String exportMaskDeleteStep = workflow.createStepId();
             ExportMaskDeleteCompleter exportMaskDeleteCompleter = 
                     new ExportMaskDeleteCompleter(exportGroup.getId(), exportMask.getId(), exportMaskDeleteStep);
+            ((ExportMaskDeleteCompleter) exportMaskDeleteCompleter).setVolumes(ExportMaskUtils.getVolumeURIs(exportMask));
 
             Workflow.Method storageViewExecuteMethod = deleteStorageViewMethod(vplex.getId(), exportMask.getId(), exportMaskDeleteCompleter);
             lastStep = workflow.createStep(DELETE_STORAGE_VIEW,

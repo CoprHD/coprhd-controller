@@ -5,9 +5,12 @@
 
 package com.emc.storageos.volumecontroller.impl.block.taskcompleter;
 
+import static com.emc.storageos.util.ExportUtils.removeVolumesFromExportGroup;
+
 import java.net.URI;
 import java.util.Collection;
 import java.util.HashSet;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -21,13 +24,11 @@ import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.util.ExportUtils;
 
-import static com.emc.storageos.util.ExportUtils.removeVolumesFromExportGroup;
-
 @SuppressWarnings("serial")
 public class ExportMaskDeleteCompleter extends ExportTaskCompleter {
     private static final Logger _log = LoggerFactory.getLogger(ExportMaskDeleteCompleter.class);
 
-    private transient Collection<URI> volumes;
+    private Collection<URI> volumes;
 
     public ExportMaskDeleteCompleter(URI egUri, URI emUri, String task) {
         super(ExportGroup.class, egUri, emUri, task);

@@ -3478,7 +3478,7 @@ public class ExportGroupService extends TaskResourceService {
         	}
         }
         
-        if (mismatchHosts.size() > 0) {
+        if (!mismatchHosts.isEmpty()) {
         	StringBuilder mismatchHostsStr =  new StringBuilder();
         	for (Host mismatchHost : mismatchHosts) {
         		mismatchHostsStr.append(mismatchHost.getHostName() + " ");

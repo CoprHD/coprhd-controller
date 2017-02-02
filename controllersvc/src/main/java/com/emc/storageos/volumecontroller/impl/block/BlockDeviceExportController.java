@@ -938,7 +938,7 @@ public class BlockDeviceExportController implements BlockExportController {
             boolean acquiredLocks = _wfUtils.getWorkflowService().acquireWorkflowLocks(
                     workflow, lockKeys, LockTimeoutValue.get(LockType.EXPORT_GROUP_OPS));
             if (!acquiredLocks) {
-                _log.error("Paths adjustment could not require log");
+                _log.error("Paths adjustment could not require locks");
                 ServiceError serviceError = DeviceControllerException.errors.jobFailedOpMsg("paths adjustment", "Could not acquire workflow loc");
                 taskCompleter.error(_dbClient, serviceError);
                 return;
@@ -987,8 +987,7 @@ public class BlockDeviceExportController implements BlockExportController {
             
             
             if (removedPaths != null && !removedPaths.isEmpty() ) {
-                boolean isPending = waitBeforeRemovePaths;
-                if (isPending) {
+                if (waitBeforeRemovePaths) {
                     // Insert a step that will be suspended. When it resumes, it will re-acquire the lock keys,
                     // which are released when the workflow suspends.
                     String suspendMessage = "Adjust/rescan host/cluster paths. Press \"Resume\" to start removal of unnecessary paths."
@@ -998,7 +997,7 @@ public class BlockDeviceExportController implements BlockExportController {
                     Workflow.Method rollbackNull = Workflow.NULL_METHOD;
                     stepId = _wfUtils.newWorkflowStep(workflow, "AcquireLocks",
                             "Suspending for user verification of host/cluster connectivity.", systemURI,
-                            WorkflowService.class, method, rollbackNull, stepId, isPending, suspendMessage);
+                            WorkflowService.class, method, rollbackNull, stepId, waitBeforeRemovePaths, suspendMessage);
                 }
                 
                 // Iterate through the ExportMasks, generating a step to remove unneeded paths.

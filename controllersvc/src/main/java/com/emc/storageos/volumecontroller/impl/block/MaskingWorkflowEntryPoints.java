@@ -677,7 +677,7 @@ public class MaskingWorkflowEntryPoints implements Controller {
             Map<URI, List<URI>> adjustedPaths,
             Map<URI, List<URI>> removePaths,
             TaskCompleter taskCompleter, String token) throws ControllerException {
-        String call = String.format("doExporMaskAddPaths(%s, %s, %s, %s, %s)",
+        String call = String.format("doExporMaskRemovePaths(%s, %s, %s, %s, %s)",
                 storageURI.toString(),
                 exportGroupURI.toString(),
                 exportMaskURI.toString(),

@@ -2713,15 +2713,13 @@ public class NetworkDeviceController implements NetworkController {
                         result.getMessage());
                 taskCompleter.error(_dbClient, svcError);
             }
-
-            return status;
         } catch (Exception ex) {
             _log.error("Exception zoning add paths", ex);
             ServiceError svcError = NetworkDeviceControllerException.errors.zoneExportAddPathsFailed(
                     ex.getMessage(), ex);
             taskCompleter.error(_dbClient, svcError);
-            return status;
         }
+        return status;
     }
     
     /**
@@ -2777,14 +2775,13 @@ public class NetworkDeviceController implements NetworkController {
                         result.getMessage());
                 taskCompleter.error(_dbClient, svcError);
             }
-            return status;
 
         } catch (Exception ex) {
             _log.error("Exception zoning remove initiators", ex);
             ServiceError svcError = NetworkDeviceControllerException.errors.zoneExportRemovePathsFailed(
                     ex.getMessage(), ex);
             taskCompleter.error(_dbClient, svcError);
-            return status;
         }
+        return status;
     }
 }

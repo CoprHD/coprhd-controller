@@ -82,6 +82,14 @@ public class ExportWorkflowUtils {
     public void setNetworkDeviceController(NetworkDeviceController networkDeviceController) {
         this.networkDeviceController = networkDeviceController;
     }
+    
+    public HostRescanDeviceController getHostRescanDeviceController() {
+        return hostRescanDeviceController;
+    }
+
+    public void setHostRescanDeviceController(HostRescanDeviceController hostRescanDeviceController) {
+        this.hostRescanDeviceController = hostRescanDeviceController;
+    }
 
     public String generateExportGroupCreateWorkflow(Workflow workflow, String wfGroupId,
             String waitFor, URI storage,
@@ -832,13 +840,5 @@ public class ExportWorkflowUtils {
      */
     private ProtectionExportController getProtectionExportController() {
         return new RPDeviceExportController(_dbClient, this);
-    }
-
-    public HostRescanDeviceController getHostRescanDeviceController() {
-        return hostRescanDeviceController;
-    }
-
-    public void setHostRescanDeviceController(HostRescanDeviceController hostRescanDeviceController) {
-        this.hostRescanDeviceController = hostRescanDeviceController;
     }
 }

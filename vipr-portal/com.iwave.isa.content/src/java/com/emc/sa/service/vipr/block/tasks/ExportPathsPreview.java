@@ -38,7 +38,7 @@ public class ExportPathsPreview extends ViPRExecutionTask<ExportPathsAdjustmentP
         this.exportId = exportId;
         
         provideDetailArgs(this.exportId, this.hostOrClusterId, this.virtualArray, this.minPaths, this.maxPaths, 
-                this.pathsPerInitiator, this.storageSystemId, this.ports.toString());
+                this.pathsPerInitiator, this.storageSystemId, ports != null ? this.ports.toString() : "N/A");
     }
     
     @Override
@@ -50,7 +50,9 @@ public class ExportPathsPreview extends ViPRExecutionTask<ExportPathsAdjustmentP
         exportPathParameters.setMaxPaths(maxPaths);
         exportPathParameters.setPathsPerInitiator(pathsPerInitiator);
         
-        exportPathParameters.setStoragePorts(ports);
+        if (ports != null) {
+            exportPathParameters.setStoragePorts(ports);
+        }
  
         param.setStorageSystem(storageSystemId);
         param.setVirtualArray(virtualArray);

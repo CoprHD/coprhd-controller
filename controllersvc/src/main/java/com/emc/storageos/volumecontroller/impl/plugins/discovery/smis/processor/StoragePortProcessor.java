@@ -259,7 +259,11 @@ public class StoragePortProcessor extends StorageProcessor {
             Long portSpeedInGbps = portSpeedInBitsPerSec / GB;
             port.setPortSpeed(portSpeedInGbps);
         }
-        setCompatibilityByACLXFlag(device, portInstance, port);
+
+        if ("2".equalsIgnoreCase(getCIMPropertyValue(portInstance, USAGERESTRICTION))) {// front end only....
+            setCompatibilityByACLXFlag(device, portInstance, port);
+        }
+
         if (flag) {
             if (newPort) {
                 _logger.info("Creating port - {}:{}", port.getLabel(), port.getNativeGuid());
@@ -290,12 +294,6 @@ public class StoragePortProcessor extends StorageProcessor {
             if ("2".equalsIgnoreCase(getCIMPropertyValue(portInstance, LINKTECHNOLOGY))) {
                 foundACLXFlag = true;
             }
-
-            // VMAX RF ports should continue to report status as COMAPTIBLE
-            if ("3".equalsIgnoreCase(getCIMPropertyValue(portInstance, USAGERESTRICTION))) {
-                foundACLXFlag = true;
-            }
-
             String compatibilityStatus = (foundACLXFlag) ? DiscoveredDataObject.CompatibilityStatus.COMPATIBLE.name() :
                     DiscoveredDataObject.CompatibilityStatus.INCOMPATIBLE.name();
             _logger.info(String.format("setCompatibilityByACLXFlag(%s) = %s",

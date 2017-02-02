@@ -74,11 +74,16 @@ import com.emc.storageos.workflow.WorkflowController;
 import com.emc.storageos.workflow.WorkflowState;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Path("/vdc/tasks")
 @DefaultPermissions(readRoles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN, Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, writeRoles = {
         Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN, Role.TENANT_ADMIN })
 public class TaskService extends TaggedResource {
+
+    private static Logger log = LoggerFactory.getLogger(TaskService.class);
+
     private static final URI SYSTEM_TENANT = URI.create("system");
     private static final Integer FETCH_ALL = -1;
 
@@ -214,16 +219,20 @@ public class TaskService extends TaggedResource {
         // Fetch index entries and load into sorted set
         List<NamedRelatedResourceRep> resourceReps = Lists.newArrayList();
         for (URI normalizedTenantId : tenantIds) {
+            log.info("========= tenant id is {}", normalizedTenantId);
+
             TimestampedURIQueryResult taskIds = new TimestampedURIQueryResult();
             _dbClient.queryByConstraint(
                     ContainmentConstraint.Factory.getTimedTenantOrgTaskConstraint(normalizedTenantId, startWindowDate, endWindowDate),
                     taskIds);
+            log.info("========= query by Constr done");
 
             Iterator<TimestampedURIQueryResult.TimestampedURI> it = taskIds.iterator();
             while (it.hasNext()) {
                 TimestampedURIQueryResult.TimestampedURI timestampedURI = it.next();
                 sortedIndexEntries.add(timestampedURI);
             }
+            log.info("========= iterate done");
         }
 
         if (max_count == null || max_count < 0) {
@@ -244,6 +253,7 @@ public class TaskService extends TaggedResource {
             pos++;
         }
 
+        log.info("========= all done");
         return new TasksList(resourceReps);
     }
 

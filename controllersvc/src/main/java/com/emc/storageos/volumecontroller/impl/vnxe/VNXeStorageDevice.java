@@ -50,7 +50,6 @@ import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.exceptions.DeviceControllerErrors;
 import com.emc.storageos.exceptions.DeviceControllerException;
-import com.emc.storageos.fileorchestrationcontroller.FileStorageSystemAssociation;
 import com.emc.storageos.model.file.ExportRule;
 import com.emc.storageos.plugins.common.Constants;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
@@ -2771,16 +2770,16 @@ public class VNXeStorageDevice extends VNXeOperations
     }
 
     @Override
-    public BiosCommandResult
-            checkFilePolicyExistsOrCreate(StorageSystem storageObj, FileDeviceInputOutput args) {
+    public BiosCommandResult checkFilePolicyExistsOrCreate(StorageSystem storageObj, FileDeviceInputOutput args) {
         return BiosCommandResult.createErrorResult(
                 DeviceControllerErrors.vnxe.operationNotSupported("Assign File Policy", "VNXe"));
     }
 
     @Override
-    public BiosCommandResult checkFileReplicationPolicyExistsOrCreate(FileStorageSystemAssociation association,
-            FileDeviceInputOutput args) {
+    public BiosCommandResult checkFileReplicationPolicyExistsOrCreate(StorageSystem sourceStorageObj, StorageSystem targetStorageObj,
+            FileDeviceInputOutput sourceSytemArgs, FileDeviceInputOutput targetSytemArgs) {
         return BiosCommandResult.createErrorResult(
                 DeviceControllerErrors.vnxe.operationNotSupported("assign File Policy", "VNXe"));
     }
+
 }

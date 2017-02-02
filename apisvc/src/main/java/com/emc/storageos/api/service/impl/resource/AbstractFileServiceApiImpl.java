@@ -9,7 +9,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -333,7 +332,7 @@ public abstract class AbstractFileServiceApiImpl<T> implements FileServiceApi {
 
     @Override
     public void assignFileReplicationPolicyToVirtualPool(List<FileStorageSystemAssociation> associations,
-            Set<URI> vpoolURIs, URI filePolicyToAssign, String taskId) {
+            List<URI> vpoolURIs, URI filePolicyToAssign, String taskId) {
         FileOrchestrationController controller = getController(FileOrchestrationController.class,
                 FileOrchestrationController.FILE_ORCHESTRATION_DEVICE);
         controller.assignFileReplicationPolicyToVirtualPool(associations, vpoolURIs, filePolicyToAssign, taskId);
@@ -341,11 +340,11 @@ public abstract class AbstractFileServiceApiImpl<T> implements FileServiceApi {
     }
 
     @Override
-    public void assignFileReplicationPolicyToProject(List<FileStorageSystemAssociation> associations, List<URI> projectURIs,
+    public void assignFileReplicationPolicyToProject(List<FileStorageSystemAssociation> associations, URI vpoolURI, List<URI> projectURIs,
             URI filePolicyToAssign, String taskId) {
         FileOrchestrationController controller = getController(FileOrchestrationController.class,
                 FileOrchestrationController.FILE_ORCHESTRATION_DEVICE);
-        controller.assignFileReplicationPolicyToProject(associations, projectURIs, filePolicyToAssign, taskId);
+        controller.assignFileReplicationPolicyToProject(associations, vpoolURI, projectURIs, filePolicyToAssign, taskId);
 
     }
 }

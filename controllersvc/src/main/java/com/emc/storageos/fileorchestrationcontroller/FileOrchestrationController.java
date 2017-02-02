@@ -244,8 +244,8 @@ public interface FileOrchestrationController extends Controller {
             URI filePolicyToAssign, String taskId);
 
     public void assignFileReplicationPolicyToVirtualPool(List<FileStorageSystemAssociation> associations,
-            Set<URI> vpoolURIs, URI filePolicyToAssign, String taskId);
+            List<URI> vpoolURIs, URI filePolicyToAssign, String taskId);
 
-    public void assignFileReplicationPolicyToProject(List<FileStorageSystemAssociation> associations, List<URI> projectURIs,
+    public void assignFileReplicationPolicyToProject(List<FileStorageSystemAssociation> associations, URI vpoolURI, List<URI> projectURIs,
             URI filePolicyToAssign, String taskId);
 }

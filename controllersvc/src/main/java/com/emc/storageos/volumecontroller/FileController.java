@@ -8,7 +8,6 @@ package com.emc.storageos.volumecontroller;
 import java.net.URI;
 import java.util.List;
 
-import com.emc.storageos.fileorchestrationcontroller.FileStorageSystemAssociation;
 import com.emc.storageos.model.file.CifsShareACLUpdateParams;
 import com.emc.storageos.model.file.FileExportUpdateParams;
 import com.emc.storageos.model.file.NfsACLUpdateParams;
@@ -264,16 +263,17 @@ public interface FileController extends StorageController {
 
     public void assignFileSnapshotPolicyToVirtualPool(URI storageSystemURI, URI vNASURI, URI filePolicyToAssign, URI vpoolURI,
             String taskId)
-                    throws InternalException;
+            throws InternalException;
 
     public void assignFileSnapshotPolicyToProject(URI storageSystemURI, URI vNASURI, URI filePolicyToAssign, URI vpoolURI, URI projectURI,
             String taskId)
-                    throws InternalException;
+            throws InternalException;
 
     public void assignFileReplicationPolicyToVirtualPool(URI storageSystemURI, URI targetSystemURI,
             URI sourceVNasURI, URI targetVNasURI, URI filePolicyToAssign, URI vpoolURI, String opId) throws ControllerException;
 
-    public void assignFileReplicationPolicyToProject(FileStorageSystemAssociation association, URI filePolicyToAssign, URI vpoolURI,
-            URI projectURI, String opId) throws InternalException;
+    public void assignFileReplicationPolicyToProject(URI storageSystemURI, URI targetSystemURI,
+            URI sourceVNasURI, URI targetVNasURI, URI filePolicyToAssign, URI vpoolURI, URI projectURI, String opId)
+            throws InternalException;
 
 }

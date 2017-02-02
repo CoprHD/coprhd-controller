@@ -17,7 +17,6 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Set;
 import java.util.UUID;
 
@@ -377,6 +376,9 @@ public class FilePolicyService extends TaskResourceService {
         ArgValidator.checkFieldUriType(id, FilePolicy.class, "id");
         FilePolicy filepolicy = this._dbClient.queryObject(FilePolicy.class, id);
         ArgValidator.checkEntity(filepolicy, id, true);
+
+        // Verify user has permission to assign policy
+        canUserAssignPolicyAtGivenLevel(filepolicy);
 
         String applyAt = filepolicy.getApplyAt();
 
@@ -836,13 +838,14 @@ public class FilePolicyService extends TaskResourceService {
      */
     private TaskResourceRep assignFilePolicyToVpool(FilePolicyAssignParam param, FilePolicy filePolicy) {
         StringBuilder errorMsg = new StringBuilder();
-        ArgValidator.checkFieldNotNull(param.getVpoolAssignParams(), "vpool_assign_param");
 
+        ArgValidator.checkFieldNotNull(param.getVpoolAssignParams(), "vpool_assign_param");
         // Policy has to be applied on specified file vpools..
         ArgValidator.checkFieldNotNull(param.getVpoolAssignParams().getAssigntoVpools(), "assign_to_vpools");
         Set<URI> vpoolURIs = param.getVpoolAssignParams().getAssigntoVpools();
         Map<URI, List<URI>> vpoolToStorageSystemMap = new HashMap<URI, List<URI>>();
 
+        List<URI> filteredVpoolURIs = new ArrayList<URI>();
         for (URI vpoolURI : vpoolURIs) {
             ArgValidator.checkFieldUriType(vpoolURI, VirtualPool.class, "vpool");
             VirtualPool virtualPool = _permissionsHelper.getObjectById(vpoolURI, VirtualPool.class);
@@ -860,12 +863,12 @@ public class FilePolicyService extends TaskResourceService {
                 _log.error(errorMsg.toString());
                 throw APIException.badRequests.invalidFilePolicyAssignParam(filePolicy.getFilePolicyName(), errorMsg.toString());
             }
-            // Verify user has permission to assign policy
-            canUserAssignPolicyAtGivenLevel(filePolicy);
+
             ArgValidator.checkEntity(virtualPool, vpoolURI, false);
 
             FilePolicyServiceUtils.validateVpoolSupportPolicyType(filePolicy, virtualPool);
             vpoolToStorageSystemMap.put(vpoolURI, getAssociatedStorageSystemsByVPool(virtualPool));
+            filteredVpoolURIs.add(vpoolURI);
         }
 
         if (param.getApplyOnTargetSite() != null) {
@@ -889,23 +892,24 @@ public class FilePolicyService extends TaskResourceService {
                 // update replication topology info
                 updateFileReplicationTopologyInfo(param, filePolicy);
                 List<FileRecommendation> recommendations = new ArrayList<FileRecommendation>();
-                for (URI vpoolURI : vpoolURIs) {
-                    VirtualPool vpool = _dbClient.queryObject(VirtualPool.class, vpoolURI);
-                    Iterator<FileReplicationTopologyParam> it = param.getFileReplicationtopologies().iterator();
-                    while (it.hasNext()) {
+                for (URI vpoolURI : filteredVpoolURIs) {
+                    VirtualPool vpool = _permissionsHelper.getObjectById(vpoolURI, VirtualPool.class);
+                    StringSet sourceVArraysSet = vpool.getVirtualArrays();
+                    for (Iterator<String> iterator = sourceVArraysSet.iterator(); iterator.hasNext();) {
+                        String vArrayURI = iterator.next();
                         VirtualPoolCapabilityValuesWrapper capabilities = new VirtualPoolCapabilityValuesWrapper();
                         capabilities.put(VirtualPoolCapabilityValuesWrapper.VPOOL_PROJECT_POLICY_ASSIGN, true);
-                        VirtualArray srcVarray = _dbClient.queryObject(VirtualArray.class, it.next().getSourceVArray());
+                        VirtualArray srcVarray = _dbClient.queryObject(VirtualArray.class, URI.create(vArrayURI));
                         updatePolicyCapabilities(_dbClient, srcVarray, vpool, filePolicy, capabilities, errorMsg);
                         List<FileRecommendation> newRecs = _filePlacementManager.getRecommendationsForFileCreateRequest(srcVarray, null,
                                 vpool, capabilities);
-
                         recommendations.addAll(newRecs);
                     }
+
                 }
                 taskObject = createAssignFilePolicyTask(filePolicy, task);
-                fileServiceApi.assignFileReplicationPolicyToVirtualPool(convertRecommendationsToStorageSystemAssociations(recommendations),
-                        vpoolURIs, filePolicy.getId(), task);
+                List<FileStorageSystemAssociation> associations = convertRecommendationsToStorageSystemAssociations(recommendations);
+                fileServiceApi.assignFileReplicationPolicyToVirtualPool(associations, filteredVpoolURIs, filePolicy.getId(), task);
             default:
                 break;
         }
@@ -967,20 +971,17 @@ public class FilePolicyService extends TaskResourceService {
             FileStorageSystemAssociation association = new FileStorageSystemAssociation();
             association.setSourceSystem(mirrorRec.getSourceStorageSystem());
             association.setSourceVNAS(mirrorRec.getvNAS());
-            Map<URI, Set<URI>> targetStorageDeviceToVNASMap = new HashMap<URI, Set<URI>>();
-            Iterator<Entry<URI, Target>> it = mirrorRec.getVirtualArrayTargetMap().entrySet().iterator();
-            while (it.hasNext()) {
-                Target target = it.next().getValue();
-                URI targetStorageDevice = target.getTargetStorageDevice();
-                if (targetStorageDeviceToVNASMap.containsKey(targetStorageDevice)) {
-                    Set<URI> vNASSet = targetStorageDeviceToVNASMap.get(targetStorageDevice);
-                    vNASSet.add(target.getTargetvNASURI());
-                } else {
-                    Set<URI> vNASSet = new HashSet<URI>();
-                    vNASSet.add(target.getTargetvNASURI());
-                    targetStorageDeviceToVNASMap.put(targetStorageDevice, vNASSet);
-                }
-            }
+
+            // Constructing a map useful when one-to-many replication is supported in future
+            Map<URI, URI> targetStorageDeviceToVNASMap = new HashMap<URI, URI>();
+
+            Map<URI, Target> virtualArrayTargetMap = mirrorRec.getVirtualArrayTargetMap();
+            // Getting the first target because we support one-to-one replication now.
+            Target target = virtualArrayTargetMap.entrySet().iterator().next().getValue();
+            URI targetStorageDevice = target.getTargetStorageDevice();
+            URI targetVNasURI = target.getTargetvNASURI();
+            targetStorageDeviceToVNASMap.put(targetStorageDevice, targetVNasURI);
+
             association.setTargetStorageDeviceToVNASMap(targetStorageDeviceToVNASMap);
             association.setVpool(rec.getVirtualPool().getId());
             associations.add(association);
@@ -1030,7 +1031,7 @@ public class FilePolicyService extends TaskResourceService {
 
         ArgValidator.checkFieldNotNull(param.getProjectAssignParams().getAssigntoProjects(), "assign_to_projects");
         Set<URI> projectURIs = param.getProjectAssignParams().getAssigntoProjects();
-
+        List<URI> filteredProjectURIs = new ArrayList<URI>();
         for (URI projectURI : projectURIs) {
             ArgValidator.checkFieldUriType(projectURI, Project.class, "project");
             Project project = _permissionsHelper.getObjectById(projectURI, Project.class);
@@ -1049,8 +1050,7 @@ public class FilePolicyService extends TaskResourceService {
                 _log.error(errorMsg.toString());
                 throw APIException.badRequests.invalidFilePolicyAssignParam(filePolicy.getFilePolicyName(), errorMsg.toString());
             }
-            // Verify user has permission to assign policy
-            canUserAssignPolicyAtGivenLevel(filePolicy);
+            filteredProjectURIs.add(projectURI);
         }
 
         if (param.getApplyOnTargetSite() != null) {
@@ -1067,36 +1067,38 @@ public class FilePolicyService extends TaskResourceService {
                 Map<URI, List<URI>> vpoolToStorageSystemMap = new HashMap<URI, List<URI>>();
                 vpoolToStorageSystemMap.put(vpoolURI, getAssociatedStorageSystemsByVPool(vpool));
                 AssignFileSnapshotPolicyToProjectSchedulingThread.executeApiTask(this, _asyncTaskService.getExecutorService(), _dbClient,
-                        filePolicy.getId(), vpoolToStorageSystemMap, new ArrayList<URI>(projectURIs), fileServiceApi, taskObject, task);
+                        filePolicy.getId(), vpoolToStorageSystemMap, filteredProjectURIs, fileServiceApi, taskObject, task);
                 break;
             case file_replication:
                 // update replication topology info
                 updateFileReplicationTopologyInfo(param, filePolicy);
                 List<FileRecommendation> recommendations = new ArrayList<FileRecommendation>();
-                for (URI projectURI : projectURIs) {
-                    Project project = _dbClient.queryObject(Project.class, projectURI);
-                    Iterator<FileReplicationTopologyParam> it = param.getFileReplicationtopologies().iterator();
-                    while (it.hasNext()) {
+
+                StringSet sourceVArraysSet = vpool.getVirtualArrays();
+                for (Iterator<String> iterator = sourceVArraysSet.iterator(); iterator.hasNext();) {
+                    String vArrayURI = iterator.next();
+                    for (URI projectURI : filteredProjectURIs) {
+                        Project project = _dbClient.queryObject(Project.class, projectURI);
                         VirtualPoolCapabilityValuesWrapper capabilities = new VirtualPoolCapabilityValuesWrapper();
                         capabilities.put(VirtualPoolCapabilityValuesWrapper.VPOOL_PROJECT_POLICY_ASSIGN, true);
-                        VirtualArray srcVarray = _dbClient.queryObject(VirtualArray.class, it.next().getSourceVArray());
+                        VirtualArray srcVarray = _dbClient.queryObject(VirtualArray.class, URI.create(vArrayURI));
                         updatePolicyCapabilities(_dbClient, srcVarray, vpool, filePolicy, capabilities, errorMsg);
-                        List<FileRecommendation> newRecs = _filePlacementManager.getRecommendationsForFileCreateRequest(srcVarray, project,
+                        List<FileRecommendation> newRecs = _filePlacementManager.getRecommendationsForFileCreateRequest(srcVarray,
+                                project,
                                 vpool, capabilities);
-                        for (FileRecommendation rec : newRecs) {
-                            rec.setVirtualPool(vpool);
-                        }
                         recommendations.addAll(newRecs);
                     }
                 }
 
-                List<URI> projects = new ArrayList<URI>();
-                projects.addAll(projectURIs);
+                if (filteredProjectURIs.isEmpty()) {
+                    throw APIException.badRequests.invalidFilePolicyAssignParam(filePolicy.getFilePolicyName(),
+                            "No projects to assign to policy.");
+                }
 
-                fileServiceApi.assignFileReplicationPolicyToProject(convertRecommendationsToStorageSystemAssociations(recommendations),
-                        projects, filePolicy.getId(), task);
+                List<FileStorageSystemAssociation> associations = convertRecommendationsToStorageSystemAssociations(recommendations);
+                fileServiceApi.assignFileReplicationPolicyToProject(associations, vpoolURI,
+                        filteredProjectURIs, filePolicy.getId(), task);
                 break;
-
             default:
                 break;
         }

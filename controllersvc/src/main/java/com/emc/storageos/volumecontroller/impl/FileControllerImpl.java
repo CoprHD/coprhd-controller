@@ -18,7 +18,6 @@ import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
 import com.emc.storageos.db.client.model.DiscoveredSystemObject;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.exceptions.ClientControllerException;
-import com.emc.storageos.fileorchestrationcontroller.FileStorageSystemAssociation;
 import com.emc.storageos.impl.AbstractDiscoveredSystemController;
 import com.emc.storageos.model.file.CifsShareACLUpdateParams;
 import com.emc.storageos.model.file.FileExportUpdateParams;
@@ -265,15 +264,18 @@ public class FileControllerImpl extends AbstractDiscoveredSystemController imple
     }
 
     @Override
-    public void assignFileReplicationPolicyToVirtualPool(FileStorageSystemAssociation association, URI filePolicyToAssign, URI vpoolURI,
-            String opId) throws ControllerException {
-        execFS("assignFileReplicationPolicyToVirtualPool", association, filePolicyToAssign, opId);
+    public void assignFileReplicationPolicyToVirtualPool(URI storageSystemURI, URI targetSystemURI,
+            URI sourceVNasURI, URI targetVNasURI, URI filePolicyToAssign, URI vpoolURI, String opId) throws ControllerException {
+        execFS("assignFileReplicationPolicyToVirtualPool", storageSystemURI, targetSystemURI,
+                sourceVNasURI, targetVNasURI, filePolicyToAssign, vpoolURI, opId);
     }
 
     @Override
-    public void assignFileReplicationPolicyToProject(FileStorageSystemAssociation association, URI filePolicyToAssign, URI vpoolURI,
-            URI projectURI, String opId) throws InternalException {
-        execFS("assignFileReplicationPolicyToProject", association, filePolicyToAssign, opId);
+    public void assignFileReplicationPolicyToProject(URI storageSystemURI, URI targetSystemURI,
+            URI sourceVNasURI, URI targetVNasURI, URI filePolicyToAssign, URI vpoolURI, URI projectURI, String opId)
+            throws InternalException {
+        execFS("assignFileReplicationPolicyToProject", storageSystemURI, targetSystemURI,
+                sourceVNasURI, targetVNasURI, filePolicyToAssign, vpoolURI, projectURI, opId);
     }
 
 }

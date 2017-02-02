@@ -34,7 +34,6 @@ import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.util.NameGenerator;
 import com.emc.storageos.exceptions.DeviceControllerErrors;
 import com.emc.storageos.exceptions.DeviceControllerException;
-import com.emc.storageos.fileorchestrationcontroller.FileStorageSystemAssociation;
 import com.emc.storageos.model.file.ExportRule;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.vnxe.VNXeApiClient;
@@ -1751,20 +1750,20 @@ public class VNXUnityFileStorageDevice extends VNXUnityOperations
     @Override
     public BiosCommandResult doUnassignFilePolicy(StorageSystem storage, FileDeviceInputOutput fd) throws ControllerException {
         return BiosCommandResult.createErrorResult(
-                DeviceControllerErrors.vnxe.operationNotSupported("Unassign File Policy", "VNXUnity"));
+                DeviceControllerErrors.vnxe.operationNotSupported("Unassign File Policy", "Unity"));
     }
 
     @Override
-    public BiosCommandResult
-            checkFilePolicyExistsOrCreate(StorageSystem storageObj, FileDeviceInputOutput args) {
+    public BiosCommandResult checkFilePolicyExistsOrCreate(StorageSystem storageObj, FileDeviceInputOutput args) {
         return BiosCommandResult.createErrorResult(
-                DeviceControllerErrors.vnxe.operationNotSupported("Assign File Policy", "VNXUnity"));
+                DeviceControllerErrors.vnxe.operationNotSupported("Assign File Policy", "Unity"));
     }
 
     @Override
-    public BiosCommandResult checkFileReplicationPolicyExistsOrCreate(FileStorageSystemAssociation association,
-            FileDeviceInputOutput args) {
+    public BiosCommandResult checkFileReplicationPolicyExistsOrCreate(StorageSystem sourceStorageObj, StorageSystem targetStorageObj,
+            FileDeviceInputOutput sourceSytemArgs, FileDeviceInputOutput targetSytemArgs) {
         return BiosCommandResult.createErrorResult(
-                DeviceControllerErrors.vnxe.operationNotSupported("Assign File Policy", "VNXUnity"));
+                DeviceControllerErrors.vnxe.operationNotSupported("Assign File Policy", "Unity"));
     }
+
 }

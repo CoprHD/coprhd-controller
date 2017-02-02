@@ -57,13 +57,11 @@ import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
-import com.emc.storageos.db.client.model.StringSetMap;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.Volume.PersonalityTypes;
 import com.emc.storageos.db.client.util.CommonTransformerFunctions;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
-import com.emc.storageos.db.client.util.StringSetUtil;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.networkcontroller.impl.NetworkDeviceController;
@@ -5126,7 +5124,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
             throws DeviceControllerException {
         _log.info("{} removePaths START...", storage.getSerialNumber());
         
-        //Find out if any storage port in the remove paths should be removed.
+        // Find out if any storage port in the remove paths should be removed.
         // If the storage ports does not show up in the zoning map other than the removing paths, remove the storage ports from the
         // port group
         try {
@@ -5240,15 +5238,12 @@ public class VmaxExportOperations implements ExportMaskOperations {
             _log.info(String.format("Target ports already removed fom port group %s, likely by a previous operation.",
                     pgGroupName));
         } else {
-            // In this case, some programming, orchestration, or
-            // user-fiddling-with-things-outside-of-ViPR situation led us
-            // to this scenario.
-            // It's best to just print the ports and port group and leave it alone.
+            // In this case, some programming, orchestration, or user-fiddling-with-things-outside-of-ViPR situation led
+            // us to this scenario. It's best to just print the ports and port group and leave it alone.
             _log.error(String
                     .format("Removing target ports would cause an empty port group %s, which is not allowed on VMAX.  Manual port removal may be required.",
                             pgGroupName));
-            // This can lead to an inaccuracy in the ExportMask object, but may be recitified next time
-            // it's refreshed.
+            // This can lead to an inaccuracy in the ExportMask object, but may be rectified next time it's refreshed.
         }
         return portsToRemove;
     }

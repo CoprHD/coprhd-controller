@@ -24,7 +24,6 @@ import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
-import com.emc.storageos.db.client.model.DiscoveredSystemObject;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.ExportPathParams;
@@ -60,7 +59,6 @@ import com.emc.storageos.volumecontroller.impl.block.taskcompleter.VolumeVpoolCh
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.VolumeWorkflowCompleter;
 import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
 import com.emc.storageos.workflow.Workflow;
-import com.emc.storageos.workflow.WorkflowException;
 import com.emc.storageos.workflow.WorkflowService;
 import com.emc.storageos.workflow.WorkflowState;
 import com.google.common.base.Joiner;
@@ -998,7 +996,8 @@ public class BlockDeviceExportController implements BlockExportController {
                     Workflow.Method method = WorkflowService.acquireWorkflowLocksMethod(lockKeys, 
                             LockTimeoutValue.get(LockType.EXPORT_GROUP_OPS));
                     Workflow.Method rollbackNull = Workflow.NULL_METHOD;
-                   stepId =  _wfUtils.newWorkflowStep(workflow, "AcquireLocks", "Suspending for user verification of host/cluster connectivity.", systemURI, 
+                    stepId = _wfUtils.newWorkflowStep(workflow, "AcquireLocks",
+                            "Suspending for user verification of host/cluster connectivity.", systemURI,
                             WorkflowService.class, method, rollbackNull, stepId, isPending, suspendMessage);
                 }
                 

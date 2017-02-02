@@ -3130,7 +3130,6 @@ public class ExportGroupService extends TaskResourceService {
             throw BadRequestException.badRequests.deletionInProgress(
                     exportGroup.getClass().getSimpleName(), exportGroup.getLabel());
         }
-        validateInitiatorsInExportGroup(exportGroup);
         validateExportGroupNoPendingEvents(exportGroup);
         validateHostsInExportGroup(exportGroup, param.getHosts());
         

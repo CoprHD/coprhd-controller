@@ -46,7 +46,7 @@ public class WorkflowServiceDescriptor {
     private static final String INPUT_FROM_USER_INPUT_TYPE = "InputFromUser";
     private static final String ASSET_INPUT_TYPE = "AssetOption";
     private static final String INPUT_FROM_USER_FIELD_TYPE = "text";
-    private static final String ORCHESTRATION_SERVICE_CATEGORY = "Orchestration Services";
+    private static final String CUSTOM_SERVICE_CATEGORY = "Custom Services";
 
 
     @PostConstruct
@@ -94,7 +94,7 @@ public class WorkflowServiceDescriptor {
         final ServiceDescriptor to = new ServiceDescriptor();
         try {
             final OrchestrationWorkflowDocument wfDocument = WorkflowHelper.toWorkflowDocument(from);
-            to.setCategory(ORCHESTRATION_SERVICE_CATEGORY);
+            to.setCategory(CUSTOM_SERVICE_CATEGORY);
             to.setDescription(wfDocument.getDescription());
             to.setDestructive(false);
             to.setServiceId(wfDocument.getName());

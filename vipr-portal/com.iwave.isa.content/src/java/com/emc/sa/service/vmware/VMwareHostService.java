@@ -67,13 +67,15 @@ public abstract class VMwareHostService extends ViPRService {
 
             cluster = vmware.getCluster(datacenter.getLabel(), hostCluster.getLabel());
 
-            host = getConnectedHost(hosts, datacenter);
+            esxHost = getConnectedHost(hosts, datacenter);
 
             if (esxHost == null) {
                 throw new IllegalArgumentException("Cluster " + hostId + " does not have any connected hosts");
             }
 
             logInfo("vmware.service.target.cluster", hostCluster.getLabel(), hosts.size());
+            
+            host = vmware.getHostSystem(datacenter.getLabel(), esxHost.getLabel(), true);
         }
     }
 
@@ -84,12 +86,12 @@ public abstract class VMwareHostService extends ViPRService {
      * @param datacenter the datacenter the hosts belong to
      * @return connected host or null if no hosts are connected
      */
-    protected HostSystem getConnectedHost(List<Host> hosts, VcenterDataCenter datacenter) {
+    protected Host getConnectedHost(List<Host> hosts, VcenterDataCenter datacenter) {
         for (Host host : hosts) {
             HostSystem esxHost = null;
             esxHost = vmware.getHostSystem(datacenter.getLabel(), host.getLabel(), false);
             if (VMwareSupport.isHostConnected(esxHost)) {
-                return esxHost;
+                return host;
             }
         }
         return null;

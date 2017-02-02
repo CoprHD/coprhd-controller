@@ -2768,7 +2768,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
         String exportMaskDeleteStep = workflow.createStepId();
         ExportMaskDeleteCompleter rollbackCompleter = 
                 new ExportMaskDeleteCompleter(exportGroup.getId(), exportMask.getId(), exportMaskDeleteStep);
-        ((ExportMaskDeleteCompleter) exportTaskCompleter).setVolumes(blockObjectMap.keySet());
+        rollbackCompleter.setVolumes(new ArrayList<URI>(blockObjectMap.keySet()));
 
         // Workflow.Method storageViewRollbackMethod = new Workflow.Method(ROLLBACK_METHOD_NULL);
         Workflow.Method storageViewRollbackMethod = deleteStorageViewMethod(

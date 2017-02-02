@@ -2911,7 +2911,6 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
             _dbClient.updateObject(exportMask);
 
             completer.ready(_dbClient);
-            WorkflowStepCompleter.stepSucceded(stepId);
         } catch (VPlexApiException vae) {
             _log.error("Exception creating VPlex Storage View: " + vae.getMessage(), vae);
 
@@ -3298,8 +3297,9 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
 
             if (completer != null) {
                 completer.ready(_dbClient);
+            } else {
+                WorkflowStepCompleter.stepSucceded(stepId);
             }
-            WorkflowStepCompleter.stepSucceded(stepId);
         } catch (VPlexApiException vae) {
             _log.error("Exception deleting ExportMask: " + exportMaskURI, vae);
             if (completer != null) {
@@ -4351,17 +4351,14 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
                 }
             }
             completer.ready(_dbClient);
-            WorkflowStepCompleter.stepSucceded(stepId);
         } catch (VPlexApiException vae) {
             _log.error("VPlexApiException adding initiator to Storage View: " + vae.getMessage(), vae);
             completer.error(_dbClient, vae);
-            WorkflowStepCompleter.stepFailed(stepId, vae);
         } catch (Exception ex) {
             _log.error("Exception adding initiator to Storage View: " + ex.getMessage(), ex);
             String opName = ResourceOperationTypeEnum.ADD_STORAGE_VIEW_INITIATOR.getName();
             ServiceError serviceError = VPlexApiException.errors.storageViewAddInitiatorFailed(opName, ex);
             completer.error(_dbClient, serviceError);
-            WorkflowStepCompleter.stepFailed(stepId, serviceError);
         }
     }
 
@@ -4470,17 +4467,14 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
                 }
             }
             completer.ready(_dbClient);
-            WorkflowStepCompleter.stepSucceded(stepId);
         } catch (VPlexApiException vae) {
             _log.error("VPlexApiException adding storagePorts to Storage View: " + vae.getMessage(), vae);
             completer.error(_dbClient, vae);
-            WorkflowStepCompleter.stepFailed(stepId, vae);
         } catch (Exception ex) {
             _log.error("Exception adding storagePorts to Storage View: " + ex.getMessage(), ex);
             String opName = ResourceOperationTypeEnum.ADD_STORAGE_VIEW_STORAGEPORTS.getName();
             ServiceError serviceError = VPlexApiException.errors.storageViewAddStoragePortFailed(opName, ex);
             completer.error(_dbClient, serviceError);
-            WorkflowStepCompleter.stepFailed(stepId, serviceError);
         }
     }
 
@@ -4589,17 +4583,14 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
             }
 
             completer.ready(_dbClient);
-            WorkflowStepCompleter.stepSucceded(stepId);
         } catch (VPlexApiException vae) {
             _log.error("Exception removing storage ports from Storage View: " + vae.getMessage(), vae);
             completer.error(_dbClient, vae);
-            WorkflowStepCompleter.stepFailed(stepId, vae);
         } catch (Exception ex) {
             _log.error("Exception removing storage ports from Storage View: " + ex.getMessage(), ex);
             String opName = ResourceOperationTypeEnum.DELETE_STORAGE_VIEW_STORAGEPORTS.getName();
             ServiceError serviceError = VPlexApiException.errors.storageViewRemoveStoragePortFailed(opName, ex);
             completer.error(_dbClient, serviceError);
-            WorkflowStepCompleter.stepFailed(stepId, serviceError);
         }
     }
 
@@ -5116,17 +5107,14 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
             }
 
             completer.ready(_dbClient);
-            WorkflowStepCompleter.stepSucceded(stepId);
         } catch (VPlexApiException vae) {
             _log.error("Exception removing initiator from Storage View: " + vae.getMessage(), vae);
             completer.error(_dbClient, vae);
-            WorkflowStepCompleter.stepFailed(stepId, vae);
         } catch (Exception ex) {
             _log.error("Exception removing initiator from Storage View: " + ex.getMessage(), ex);
             String opName = ResourceOperationTypeEnum.DELETE_STORAGE_VIEW_INITIATOR.getName();
             ServiceError serviceError = VPlexApiException.errors.storageViewRemoveInitiatorFailed(opName, ex);
             completer.error(_dbClient, serviceError);
-            WorkflowStepCompleter.stepFailed(stepId, serviceError);
         }
     }
 

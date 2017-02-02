@@ -2397,7 +2397,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
             exportMask.addToExistingInitiatorsIfAbsent(initiatorPorts);
 
             // Create zoningMap for the matched initiators and storagePorts
-            _networkDeviceController.updateZoningMap(exportGroup, exportMask, false);
+            _networkDeviceController.updateZoningMapForInitiators(exportGroup, exportMask, false);
 
             _dbClient.createObject(exportMask);
 

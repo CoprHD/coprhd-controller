@@ -242,7 +242,7 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
                         if (operation != null
                                 && VNXeExportOperationContext.OPERATION_ADD_VOLUMES_TO_HOST_EXPORT.equals(operation.getOperation())) {
                             addedVolumes = (List<URI>) operation.getArgs().get(0);
-                            _logger.info("Removing volumes {} as part of rollback", Joiner.on(',').join(volumeURIList));
+                            _logger.info("Removing volumes {} as part of rollback", Joiner.on(',').join(addedVolumes));
                         }
                     }
                 }
@@ -724,7 +724,7 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
                     if (operation != null
                             && VNXeExportOperationContext.OPERATION_ADD_INITIATORS_TO_HOST.equals(operation.getOperation())) {
                         addedInitiators = (List<Initiator>) operation.getArgs().get(0);
-                        _logger.info("Removing initiators {} as part of rollback", Joiner.on(',').join(initiators));
+                        _logger.info("Removing initiators {} as part of rollback", Joiner.on(',').join(addedInitiators));
                     }
                 }
             }

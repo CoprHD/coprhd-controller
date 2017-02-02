@@ -2,6 +2,9 @@
     baseKey:"ExportPathAdjustment.Block",
     serviceId:"ExportPathAdjustment",
     useModal: true,
+    roles: [
+        "SYSTEM_ADMIN"
+    ],
     fields:{
         project:{
             type:"assetType.vipr.project",
@@ -60,14 +63,14 @@
 	    exportPathPreview:{
 	       type:"modal",
            items:{
-                affectedPorts:{
-                    type:"assetType.vipr.exportPathAddedPorts",
+                resultingPaths:{
+                    type:"assetType.vipr.exportPathResultingPaths",
                     select: "list",
                     required: false,
                     omitNone: true
                 },
-                removedPorts:{
-                    type:"assetType.vipr.exportPathRemovedPorts",
+                removedPaths:{
+                    type:"assetType.vipr.exportPathRemovedPaths",
                     select: "list",
                     required: false,
                     omitNone: true

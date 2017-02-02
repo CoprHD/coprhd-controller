@@ -88,8 +88,8 @@ public interface ServiceParams {
     public String MIGRATION_SUSPEND = "migrationSuspend";
     public String DISPLAY_JOURNALS = "displayJournals";
     public String PORTS = "ports";
-    public String AFFECTED_PORTS = "affectedPorts";
-    public String REMOVED_PORTS = "removedPorts";
+    public String RESULTING_PATHS = "resultingPaths";
+    public String REMOVED_PATHS = "removedPaths";
     public String USE_EXISTING_PATHS = "useExistingPaths";
     public String SUSPEND_WAIT = "suspendWait";
 

@@ -7,6 +7,7 @@ package controllers.infra;
 import static util.BourneUtil.getViprClient;
 
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
@@ -27,6 +28,8 @@ import models.datatable.DirectDriverVolumeDataTable.DirectDriverVolume;
 import static com.emc.vipr.client.core.util.ResourceUtils.uri;
 
 import com.emc.storageos.api.service.impl.resource.StorageSystemService;
+import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.model.NamedRelatedResourceRep;
@@ -91,6 +94,7 @@ public class DirectDriver extends Controller{
         renderArgs.put("vpoolOptions", VirtualPoolUtils.getBlockVirtualPools());
        render();
     }
+    
     public static void getIpFromType(String type) {
         List<StorageSystemRestRep> storageSystems = StorageSystemUtils.getStorageSystems();
         List<StorageSystemRestRep> results = Lists.newArrayList();
@@ -159,6 +163,7 @@ public class DirectDriver extends Controller{
     	}
         createDirecVolume();
     }
+    
     
     public static void cancel() {
         
@@ -301,6 +306,7 @@ public class DirectDriver extends Controller{
 				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
+			
 			ViPRCoreClient client = BourneUtil.getViprClient();
 			List<NamedRelatedResourceRep> storagePortsList = client.storagePorts().listByStorageSystem(ipAddress1);
 			List<URI> initiators = new ArrayList<URI>();

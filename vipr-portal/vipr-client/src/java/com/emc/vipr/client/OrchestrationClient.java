@@ -58,13 +58,13 @@ public class OrchestrationClient {
         return client.getURI(PrimitiveList.class, builder.build());
     }
 
-    public PrimitiveList getPrimitivesByType(String type) {
+    public PrimitiveList getPrimitivesByType(final String type) {
         final UriBuilder builder = client.uriBuilder(PathConstants.OE_PRIMITIVES);
         builder.queryParam("type", type);
         return client.getURI(PrimitiveList.class, builder.build());
     }
 
-    public PrimitiveResourceRestRep createPrimitiveResource(String resourceType, File resource, String resourceName) throws IOException{
+    public PrimitiveResourceRestRep createPrimitiveResource(final String resourceType, final File resource, final String resourceName) throws IOException{
         final UriBuilder builder = client.uriBuilder(PathConstants.OE_PRIMITIVE_RESOURCE);
         builder.queryParam("name", resourceName);
         return client.postURIOctet(PrimitiveResourceRestRep.class, new FileInputStream(resource), builder.build(resourceType));

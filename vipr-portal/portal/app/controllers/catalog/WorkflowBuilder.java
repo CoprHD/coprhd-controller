@@ -155,11 +155,12 @@ public class WorkflowBuilder extends Controller {
     }
 
 	// Preparing top level nodes in workflow directory
-    private static void prepareRootNodes(List<Node> topLevelNodes) {
+    private static void prepareRootNodes(final List<Node> topLevelNodes) {
         topLevelNodes.add(new Node(MY_LIBRARY_ROOT, MY_LIBRARY, NO_PARENT, WFBuilderNodeTypes.FOLDER.toString()));
         topLevelNodes.add(new Node(VIPR_LIBRARY_ROOT, VIPR_LIBRARY, NO_PARENT, WFBuilderNodeTypes.FOLDER.toString()));
         topLevelNodes.add(new Node(VIPR_PRIMITIVE_ROOT, VIPR_PRIMITIVE_LIBRARY, VIPR_LIBRARY_ROOT, WFBuilderNodeTypes.FOLDER.toString()));
     }
+
     public static void editWFDirName(String id, String newName) {
         try {
             WFDirectoryUpdateParam param = new WFDirectoryUpdateParam();
@@ -465,16 +466,17 @@ public class WorkflowBuilder extends Controller {
                     addResourceToWFDirectory(primitiveRestRep.getId(), shellPrimitive.getWfDirID());
                 }
                 else {
-                    //TODO: handle error - log or flash exception
+                    flash.error("Error while creating primitive");
                 }
             }
             else {
-                //TODO: handle error
+                flash.error("Error while uploading primitive resource");
             }
 
         }
         catch (final Exception e) {
             Logger.error(e.getMessage());
+            flash.error(e.getMessage());
         }
 
         view();
@@ -629,15 +631,16 @@ public class WorkflowBuilder extends Controller {
                     addResourceToWFDirectory(primitiveRestRep.getId(), localAnsible.getWfDirID());
                 }
                 else {
-                    //TODO: handle error - log and flash exception
+                    flash.error("Error while creating primitive");
                 }
             }
             else {
-                //TODO: handle error
+                flash.error("Error while uploading primitive resource");
             }
         }
         catch (final Exception e) {
             Logger.error(e.getMessage());
+            flash.error(e.getMessage());
         }
 
         view();

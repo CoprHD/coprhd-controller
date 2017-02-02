@@ -239,6 +239,8 @@ public interface FileStorageDevice {
 
     public BiosCommandResult listSanpshotByPolicy(StorageSystem storageObj, FileDeviceInputOutput args);
 
+    public BiosCommandResult getFileProtectionPolicyFromStorageSystem(StorageSystem storage, FileDeviceInputOutput args);
+
     /**
      * 
      * @param storageObj storage device operation is to be performed on

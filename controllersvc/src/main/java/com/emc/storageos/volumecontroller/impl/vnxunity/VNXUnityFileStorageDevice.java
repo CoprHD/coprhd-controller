@@ -230,7 +230,7 @@ public class VNXUnityFileStorageDevice extends VNXUnityOperations
     @Override
     public BiosCommandResult doExport(StorageSystem storage,
             FileDeviceInputOutput args, List<FileExport> exportList)
-                    throws ControllerException {
+            throws ControllerException {
 
         _logger.info("exporting the file system: " + args.getFsName());
         if (args.getFileObjExports() == null || args.getFileObjExports().isEmpty()) {
@@ -1617,9 +1617,9 @@ public class VNXUnityFileStorageDevice extends VNXUnityOperations
             }
 
             // find out the change between array and CoprHD database.
-            Set<String> arrayExtraReadOnlyHost = Sets.difference((Set<String>) arrayReadOnlyHost, dbReadOnlyHost);
-            Set<String> arrayExtraReadWriteHost = Sets.difference((Set<String>) arrayReadWriteHost, dbReadWriteHost);
-            Set<String> arrayExtraRootHost = Sets.difference((Set<String>) arrayRootHost, dbRootHost);
+            Set<String> arrayExtraReadOnlyHost = Sets.difference(arrayReadOnlyHost, dbReadOnlyHost);
+            Set<String> arrayExtraReadWriteHost = Sets.difference(arrayReadWriteHost, dbReadWriteHost);
+            Set<String> arrayExtraRootHost = Sets.difference(arrayRootHost, dbRootHost);
             // if change found update the exportRuleMap
             if (!arrayExtraReadOnlyHost.isEmpty() || !arrayExtraReadWriteHost.isEmpty() || !arrayExtraRootHost.isEmpty()) {
                 ExportRule extraRuleFromArray = new ExportRule();
@@ -1727,6 +1727,12 @@ public class VNXUnityFileStorageDevice extends VNXUnityOperations
     public BiosCommandResult listSanpshotByPolicy(StorageSystem storageObj, FileDeviceInputOutput args) {
         return BiosCommandResult.createErrorResult(
                 DeviceControllerErrors.vnxe.operationNotSupported("List Snapshot By Policy", "Unity"));
+    }
+
+    @Override
+    public BiosCommandResult getFileProtectionPolicyFromStorageSystem(StorageSystem storageObj, FileDeviceInputOutput args) {
+        return BiosCommandResult.createErrorResult(
+                DeviceControllerErrors.vnxe.operationNotSupported("Get storage system protection policy", "Unity"));
     }
 
     @Override

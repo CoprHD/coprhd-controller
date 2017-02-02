@@ -192,6 +192,8 @@ public interface FileController extends StorageController {
 
     public void listSanpshotByPolicy(URI storage, URI fs, URI policy, String opId) throws InternalException;
 
+    public void getFileProtectionPolicyFromStorageSystem(URI storage, URI policy, URI policyRes, String opId) throws InternalException;
+
     /**
      * Apply file policy to a file system
      * 

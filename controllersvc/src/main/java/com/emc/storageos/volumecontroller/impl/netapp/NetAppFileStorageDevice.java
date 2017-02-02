@@ -1862,4 +1862,10 @@ public class NetAppFileStorageDevice extends AbstractFileStorageDevice {
                 DeviceControllerErrors.netapp.operationNotSupported());
     }
 
+    @Override
+    public BiosCommandResult getFileProtectionPolicyFromStorageSystem(StorageSystem storageObj, FileDeviceInputOutput args) {
+        return BiosCommandResult.createErrorResult(
+                DeviceControllerErrors.datadomain.operationNotSupported());
+    }
+
 }

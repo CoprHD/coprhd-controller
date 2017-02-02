@@ -11,6 +11,7 @@ import java.util.List;
 
 import com.emc.storageos.model.BulkIdParam;
 import com.emc.storageos.model.NamedRelatedResourceRep;
+import com.emc.storageos.model.portgroup.StoragePortGroupList;
 import com.emc.storageos.model.smis.StorageSystemSMISCreateParam;
 import com.emc.storageos.model.systems.StorageSystemBulkRep;
 import com.emc.storageos.model.systems.StorageSystemConnectivityList;
@@ -270,5 +271,17 @@ public class StorageSystems extends AbstractCoreBulkResources<StorageSystemRestR
     public List<StorageSystemRestRep> getBySmisProvider(URI smisProviderId) {
         List<NamedRelatedResourceRep> refs = listBySmisProvider(smisProviderId);
         return getByRefs(refs);
+    }
+
+    /**
+     * Gets the list of storage port group from a storage system
+     *
+     * @param storageSystemId
+     *            the ID of the storage system.
+     * @return the list of storage port groups.
+     */
+    public List<NamedRelatedResourceRep> getStoragePortGroups(URI storageSystemId) {
+        StoragePortGroupList portGroups = client.get(StoragePortGroupList.class, baseUrl + "/{id}/storage-port-groups", storageSystemId);
+       return defaultList(portGroups.getPortGroups());
     }
 }

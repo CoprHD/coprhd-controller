@@ -10,6 +10,7 @@ import static com.emc.sa.service.ServiceParams.HOST;
 import static com.emc.sa.service.ServiceParams.MAX_PATHS;
 import static com.emc.sa.service.ServiceParams.MIN_PATHS;
 import static com.emc.sa.service.ServiceParams.PATHS_PER_INITIATOR;
+import static com.emc.sa.service.ServiceParams.PORT_GROUP;
 import static com.emc.sa.service.ServiceParams.PROJECT;
 import static com.emc.sa.service.ServiceParams.SNAPSHOTS;
 import static com.emc.sa.service.ServiceParams.VIRTUAL_ARRAY;
@@ -70,6 +71,9 @@ public class ExportBlockVolumeHelper {
 
     @Param(value = PATHS_PER_INITIATOR, required = false)
     protected Integer pathsPerInitiator;
+
+    @Param(value = PORT_GROUP, required = false)
+    protected URI portGroup;
 
     protected Host host;
     protected Cluster cluster;
@@ -199,10 +203,10 @@ public class ExportBlockVolumeHelper {
             URI exportId = null;
             if (cluster != null) {
                 exportId = BlockStorageUtils.createClusterExport(projectId, virtualArrayId, newVolumes, currentHlu, cluster, volumeHlus,
-                        minPaths, maxPaths, pathsPerInitiator);
+                        minPaths, maxPaths, pathsPerInitiator, portGroup);
             } else {
                 exportId = BlockStorageUtils.createHostExport(projectId, virtualArrayId, newVolumes, currentHlu, host, volumeHlus,
-                        minPaths, maxPaths, pathsPerInitiator);
+                        minPaths, maxPaths, pathsPerInitiator, portGroup);
             }
             ExportGroupRestRep export = BlockStorageUtils.getExport(exportId);
 

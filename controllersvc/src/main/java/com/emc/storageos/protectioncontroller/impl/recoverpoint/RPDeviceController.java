@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013 EMC Corporation
+* Copyright (c) 2013 EMC Corporation
  * All Rights Reserved
  */
 
@@ -7253,9 +7253,6 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
     public void portRebalance(URI storageSystem, URI exportGroup, URI varray, URI exportMask, Map<URI, List<URI>> adjustedpaths,
             Map<URI, List<URI>> removedPaths, boolean isAdd, String token) throws Exception
     {
-        
         throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
-        
-        
     }
 }

@@ -38,7 +38,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.util.CollectionUtils;
-import org.springframework.util.StringUtils;
 
 import com.emc.storageos.api.mapper.HostMapper;
 import com.emc.storageos.api.service.authorization.PermissionsHelper;
@@ -143,7 +142,6 @@ import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
 import com.emc.storageos.volumecontroller.impl.validators.ValidatorConfig;
 import com.emc.storageos.volumecontroller.placement.BlockStorageScheduler;
 import com.emc.storageos.volumecontroller.placement.PlacementException;
-import com.emc.storageos.vplexcontroller.VPlexControllerUtils;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.Lists;
@@ -1364,75 +1362,6 @@ public class ExportGroupService extends TaskResourceService {
         }
         return retDataObjects;
     }
-
-    /**
-     * Validates the ExportGroup initaitor's identity to avoid DU case.
-     * Export Group should not have initiators from multiple Host or clusters.
-     * 
-     * @param exportGroup
-     */
-    private void validateInitiatorsInExportGroup(ExportGroup exportGroup) {
-        /*
-         * Export Group should not have initiators(non vplex and non RP) from multiple cluster/host.
-         * This validation is a extra check to prevent DU.
-         */
-
-        if (exportGroup != null && exportGroup.getInitiators() != null) {
-            Initiator initiator = null;
-            boolean isCluster = exportGroup.forCluster();
-            /**
-             * Key - cluster name / host name
-             * Value - list of cluster initiators or host initiators
-             */
-            Map<String, Set<URI>> initiatorMap = new HashMap<>();
-            Iterator<String> existingInitiatorsIterator = exportGroup.getInitiators().iterator();
-            List<URI> staleInitiatorList = new ArrayList<>();
-            URI initiatorURI = null;
-            while (existingInitiatorsIterator.hasNext()) {
-                initiatorURI = URI.create(existingInitiatorsIterator.next());
-                initiator = _dbClient.queryObject(Initiator.class, initiatorURI);
-                String name = null;
-                if (initiator != null && !initiator.getInactive()) {
-                    if (!VPlexControllerUtils.isVplexInitiator(initiator, _dbClient)
-                            && !ExportUtils.checkIfInitiatorsForRP(Arrays.asList(initiator))) {
-                        if (isCluster && StringUtils.hasText(initiator.getClusterName()) && StringUtils.hasText(initiator.getHostName())) {
-                            name = initiator.getClusterName();
-                        } else if (!StringUtils.hasText(initiator.getHostName())
-                                || (isCluster && !StringUtils.hasText(initiator.getClusterName()))) {
-                            _log.error("Initiator {} does not have host/cluster name", initiator.getId());
-                            throw APIException.badRequests.invalidInitiatorName(initiator.getId(), exportGroup.getId());
-                        }
-
-                        Set<URI> set = null;
-                        if (initiatorMap.get(name) == null) {
-                            set = new HashSet<URI>();
-                            initiatorMap.put(name, set);
-                        } else {
-                            set = initiatorMap.get(name);
-                        }
-                        set.add(initiator.getId());
-                    }
-                } else {
-                    _log.error("Stale initiator URI {} is in ExportGroup and can be removed from ExportGroup{}", initiatorURI,
-                            exportGroup.getId());
-                    staleInitiatorList.add(initiatorURI);
-                }
-            }
-            if (!staleInitiatorList.isEmpty()) {
-                exportGroup.removeInitiators(staleInitiatorList);
-                _dbClient.updateObject(exportGroup);
-                _log.info("Stale initiator URIs {} has been removed from from ExportGroup {}", staleInitiatorList, exportGroup.getId());
-            }
-            _log.info("{}", initiatorMap);
-            if (exportGroup.getType().equals(ExportGroupType.Cluster.name()) && initiatorMap.size() > 1) {
-                _log.error("Export Group {} is having initiators from multiple cluster/host. List of cluster/host names :{}",
-                        exportGroup.getId(), Joiner.on(",").join(initiatorMap.keySet()));
-                throw APIException.badRequests.invalidGroupOfInitiators(exportGroup.getId(),
-                        Joiner.on(",").join(initiatorMap.keySet()));
-            }
-        }
-    }
-
 
     /**
      * Update an export group which includes:

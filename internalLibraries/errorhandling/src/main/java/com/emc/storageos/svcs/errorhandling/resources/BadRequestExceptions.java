@@ -3147,8 +3147,6 @@ public interface BadRequestExceptions {
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException varrayNotInExportGroup(String varray);
 
-    
-    
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException externallyAddedInitiators(final String exportMask, final String initiators);
     

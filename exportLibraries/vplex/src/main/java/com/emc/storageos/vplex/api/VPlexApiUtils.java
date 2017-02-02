@@ -334,6 +334,8 @@ public class VPlexApiUtils {
                         result.append(" ");
                     }
                 }
+            } else {
+                result.append(exceptionMessage);
             }
         }
         return result.toString();

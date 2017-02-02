@@ -2718,9 +2718,10 @@ public class VPlexApiDiscoveryManager {
                     s_logger.info("Forget volumes is completing asynchronously");
                     _vplexApiClient.waitForCompletion(response);
                 } else {
-                    s_logger.error("Request to forget logical units failed with Status: {}",
-                            response.getStatus());
-                    return;
+                    String cause = VPlexApiUtils.getCauseOfFailureFromResponse(responseStr);
+                    String errorMsg = String.format("Forget logical units failed with Status %s: %s",
+                            response.getStatus(), cause);
+                    throw new Exception(errorMsg);
                 }
             }
             s_logger.info("Successfully forgot logical units");

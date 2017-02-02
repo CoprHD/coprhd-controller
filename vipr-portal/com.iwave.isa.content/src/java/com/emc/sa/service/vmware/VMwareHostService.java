@@ -21,8 +21,6 @@ import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.VcenterDataCenter;
 import com.google.common.collect.Sets;
-import com.vmware.vim25.HostRuntimeInfo;
-import com.vmware.vim25.HostSystemConnectionState;
 import com.vmware.vim25.mo.ClusterComputeResource;
 import com.vmware.vim25.mo.HostSystem;
 
@@ -52,8 +50,10 @@ public abstract class VMwareHostService extends ViPRService {
             }
 
             logInfo("vmware.service.target.host", esxHost.getLabel());
-        }
-        else {
+
+            host = vmware.getHostSystem(datacenter.getLabel(), esxHost.getLabel(), true);
+
+        } else {
             hostCluster = getModelClient().clusters().findById(hostId);
             if (hostCluster == null) {
                 throw new IllegalArgumentException("Cluster " + hostId + " not found");
@@ -67,7 +67,7 @@ public abstract class VMwareHostService extends ViPRService {
 
             cluster = vmware.getCluster(datacenter.getLabel(), hostCluster.getLabel());
 
-            esxHost = getConnectedHost(hosts, datacenter);
+            host = getConnectedHost(hosts, datacenter);
 
             if (esxHost == null) {
                 throw new IllegalArgumentException("Cluster " + hostId + " does not have any connected hosts");
@@ -75,8 +75,6 @@ public abstract class VMwareHostService extends ViPRService {
 
             logInfo("vmware.service.target.cluster", hostCluster.getLabel(), hosts.size());
         }
-
-        host = vmware.getHostSystem(datacenter.getLabel(), esxHost.getLabel());
     }
 
     /**
@@ -86,14 +84,12 @@ public abstract class VMwareHostService extends ViPRService {
      * @param datacenter the datacenter the hosts belong to
      * @return connected host or null if no hosts are connected
      */
-    protected Host getConnectedHost(List<Host> hosts, VcenterDataCenter datacenter) {
+    protected HostSystem getConnectedHost(List<Host> hosts, VcenterDataCenter datacenter) {
         for (Host host : hosts) {
-            HostSystem esxHost = vmware.getHostSystem(datacenter.getLabel(), host.getLabel());
-            HostRuntimeInfo runtime = esxHost.getRuntime();
-            HostSystemConnectionState connectionState = (runtime != null) ? runtime
-                    .getConnectionState() : null;
-            if (connectionState == HostSystemConnectionState.connected) {
-                return host;
+            HostSystem esxHost = null;
+            esxHost = vmware.getHostSystem(datacenter.getLabel(), host.getLabel(), false);
+            if (VMwareSupport.isHostConnected(esxHost)) {
+                return esxHost;
             }
         }
         return null;

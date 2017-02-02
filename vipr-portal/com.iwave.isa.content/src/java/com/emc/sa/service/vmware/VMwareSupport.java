@@ -76,7 +76,9 @@ import com.iwave.ext.vmware.VMWareException;
 import com.iwave.ext.vmware.VMwareUtils;
 import com.vmware.vim25.DatastoreHostMount;
 import com.vmware.vim25.DatastoreSummaryMaintenanceModeState;
+import com.vmware.vim25.HostRuntimeInfo;
 import com.vmware.vim25.HostScsiDisk;
+import com.vmware.vim25.HostSystemConnectionState;
 import com.vmware.vim25.MethodFault;
 import com.vmware.vim25.mo.ClusterComputeResource;
 import com.vmware.vim25.mo.Datastore;
@@ -119,8 +121,8 @@ public class VMwareSupport {
         return execute(new GetCluster(clusterId));
     }
 
-    public HostSystem getHostSystem(String datacenterName, String esxHostName) {
-        return execute(new FindESXHost(datacenterName, esxHostName));
+    public HostSystem getHostSystem(String datacenterName, String esxHostName, boolean checkConnection) {
+        return execute(new FindESXHost(datacenterName, esxHostName, checkConnection));
     }
 
     public ClusterComputeResource getCluster(String datacenterName, String clusterName) {
@@ -214,8 +216,10 @@ public class VMwareSupport {
             if (cluster != null) {
                 List<HostSystem> clusterHosts = Lists.newArrayList(cluster.getHosts());
                 for (HostSystem clusterHost : clusterHosts) {
-                    HostScsiDisk disk = execute(new FindHostScsiDiskForLun(clusterHost, volume));
-                    hostDisks.put(clusterHost, disk);
+                    if (isHostConnected(clusterHost)) {
+                        HostScsiDisk disk = execute(new FindHostScsiDiskForLun(clusterHost, volume));
+                        hostDisks.put(clusterHost, disk);
+                    }
                 }
             } else if (host != null) {
                 HostScsiDisk disk = execute(new FindHostScsiDiskForLun(host, volume));
@@ -345,7 +349,7 @@ public class VMwareSupport {
         if (hosts.isEmpty()) {
             throw new IllegalStateException("Datastore is not mounted by any hosts");
         }
-
+        verifyHostsConnected(hosts);
         enterMaintenanceMode(datastore);
         setStorageIOControl(datastore, false);
 
@@ -370,6 +374,14 @@ public class VMwareSupport {
             });
         }
         removeVmfsDatastoreTag(volumes, hostOrClusterId);
+    }
+
+    public static void verifyHostsConnected(List<HostSystem> hosts) {
+        for (HostSystem host : hosts) {
+            if (!VMwareSupport.isHostConnected(host)) {
+                throw new IllegalStateException("Host '" + host.getName() + "' is not connected. Check host configuration in vCenter");
+            }
+        }
     }
 
     private Map<HostSystem, List<HostScsiDisk>> buildHostDiskMap(List<HostSystem> hosts, Datastore datastore) {
@@ -462,6 +474,7 @@ public class VMwareSupport {
         if (hosts.isEmpty()) {
             throw new IllegalStateException("Datastore is not mounted by any hosts");
         }
+        verifyHostsConnected(hosts);
         enterMaintenanceMode(datastore);
         setStorageIOControl(datastore, false);
         for (HostSystem host : hosts) {
@@ -612,12 +625,27 @@ public class VMwareSupport {
                 if (StringUtils.equals(host.getName(), otherHost.getName())) {
                     continue;
                 }
-                HostScsiDisk otherDisk = execute(new FindHostScsiDiskForLun(otherHost, volume, availableDiskOnly));
-                disks.put(otherHost, otherDisk);
+                if (VMwareSupport.isHostConnected(otherHost)) {
+                    HostScsiDisk otherDisk = execute(new FindHostScsiDiskForLun(otherHost, volume, availableDiskOnly));
+                    disks.put(otherHost, otherDisk);
+                }
             }
         }
 
         return disk;
+    }
+
+    /**
+     * Returns true if the host is in a connected state
+     * 
+     * @param host the host to check
+     * @return true if host is connected, otherwise returns false
+     */
+    public static boolean isHostConnected(HostSystem host) {
+        HostRuntimeInfo runtime = host.getRuntime();
+        HostSystemConnectionState connectionState = (runtime != null) ? runtime
+                .getConnectionState() : null;
+        return connectionState == HostSystemConnectionState.connected;
     }
 
     /**

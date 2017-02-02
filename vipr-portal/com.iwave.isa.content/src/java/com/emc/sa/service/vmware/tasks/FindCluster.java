@@ -8,8 +8,6 @@ import javax.inject.Inject;
 
 import com.emc.sa.engine.ExecutionTask;
 import com.iwave.ext.vmware.VCenterAPI;
-import com.iwave.ext.vmware.VMwareUtils;
-import com.vmware.vim25.HostSystemConnectionState;
 import com.vmware.vim25.mo.ClusterComputeResource;
 import com.vmware.vim25.mo.HostSystem;
 
@@ -38,24 +36,7 @@ public class FindCluster extends ExecutionTask<ClusterComputeResource> {
         if (hosts == null) {
             throw stateException("FindCluster.illegalState.unableToListHost", clusterName);
         }
-        for (HostSystem host : hosts) {
-            checkConnectionState(host);
-        }
-        return cluster;
-    }
 
-    private void checkConnectionState(HostSystem host) {
-        // Check the connection state of this host
-        HostSystemConnectionState connectionState = VMwareUtils.getConnectionState(host);
-        logInfo("find.cluster.host.state", host.getName(), connectionState);
-        if (connectionState == null) {
-            throw stateException("FindCluster.illegalState.noHostState", host.getName(), datacenterName);
-        }
-        else if (connectionState == HostSystemConnectionState.notResponding) {
-            throw stateException("FindCluster.illegalState.notResponding", host.getName());
-        }
-        else if (connectionState == HostSystemConnectionState.disconnected) {
-            throw stateException("FindCluster.illegalState.notConnected", host.getName());
-        }
+        return cluster;
     }
 }

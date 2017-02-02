@@ -17,10 +17,12 @@ public class FindESXHost extends ExecutionTask<HostSystem> {
     private VCenterAPI vcenter;
     private String datacenterName;
     private String esxHostName;
+    private boolean checkConnection;
 
-    public FindESXHost(String datacenterName, String esxHostName) {
+    public FindESXHost(String datacenterName, String esxHostName, boolean checkConnection) {
         this.datacenterName = datacenterName;
         this.esxHostName = esxHostName;
+        this.checkConnection = checkConnection;
         provideDetailArgs(esxHostName, datacenterName);
     }
 
@@ -31,17 +33,17 @@ public class FindESXHost extends ExecutionTask<HostSystem> {
         if (host == null) {
             throw stateException("FindESXHost.illegalState.noHost", datacenterName, esxHostName);
         }
-        // Check the connection state of this host
-        HostSystemConnectionState connectionState = VMwareUtils.getConnectionState(host);
-        logInfo("find.esx.host.state", esxHostName, connectionState);
-        if (connectionState == null) {
-            throw stateException("FindESXHost.illegalState.noState", esxHostName, datacenterName);
-        }
-        else if (connectionState == HostSystemConnectionState.notResponding) {
-            throw stateException("FindESXHost.illegalState.notResponding", esxHostName);
-        }
-        else if (connectionState == HostSystemConnectionState.disconnected) {
-            throw stateException("FindESXHost.illegalState.notConnected", esxHostName);
+        if (checkConnection) {
+            // Check the connection state of this host
+            HostSystemConnectionState connectionState = VMwareUtils.getConnectionState(host);
+            logInfo("find.esx.host.state", esxHostName, connectionState);
+            if (connectionState == null) {
+                throw stateException("FindESXHost.illegalState.noState", esxHostName, datacenterName);
+            } else if (connectionState == HostSystemConnectionState.notResponding) {
+                throw stateException("FindESXHost.illegalState.notResponding", esxHostName);
+            } else if (connectionState == HostSystemConnectionState.disconnected) {
+                throw stateException("FindESXHost.illegalState.notConnected", esxHostName);
+            }
         }
         return host;
     }

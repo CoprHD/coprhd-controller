@@ -54,12 +54,12 @@ public class OrchestrationClient {
     }
 
     public PrimitiveList getPrimitives() {
-        UriBuilder builder = client.uriBuilder(PathConstants.OE_PRIMITIVES);
+        final UriBuilder builder = client.uriBuilder(PathConstants.OE_PRIMITIVES);
         return client.getURI(PrimitiveList.class, builder.build());
     }
 
     public PrimitiveList getPrimitivesByType(String type) {
-        UriBuilder builder = client.uriBuilder(PathConstants.OE_PRIMITIVES);
+        final UriBuilder builder = client.uriBuilder(PathConstants.OE_PRIMITIVES);
         builder.queryParam("type", type);
         return client.getURI(PrimitiveList.class, builder.build());
     }
@@ -76,7 +76,7 @@ public class OrchestrationClient {
     }
 
     public OrchestrationWorkflowList getWorkflows() {
-        UriBuilder builder = client.uriBuilder(PathConstants.OE_WORKFLOWS);
+        final UriBuilder builder = client.uriBuilder(PathConstants.OE_WORKFLOWS);
         return client.getURI(OrchestrationWorkflowList.class, builder.build());
     }
 

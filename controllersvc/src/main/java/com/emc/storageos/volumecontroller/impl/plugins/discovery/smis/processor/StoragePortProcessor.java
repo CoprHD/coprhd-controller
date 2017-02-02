@@ -290,6 +290,12 @@ public class StoragePortProcessor extends StorageProcessor {
             if ("2".equalsIgnoreCase(getCIMPropertyValue(portInstance, LINKTECHNOLOGY))) {
                 foundACLXFlag = true;
             }
+
+            // VMAX RF ports should continue to report status as COMAPTIBLE
+            if ("3".equalsIgnoreCase(getCIMPropertyValue(portInstance, USAGERESTRICTION))) {
+                foundACLXFlag = true;
+            }
+
             String compatibilityStatus = (foundACLXFlag) ? DiscoveredDataObject.CompatibilityStatus.COMPATIBLE.name() :
                     DiscoveredDataObject.CompatibilityStatus.INCOMPATIBLE.name();
             _logger.info(String.format("setCompatibilityByACLXFlag(%s) = %s",

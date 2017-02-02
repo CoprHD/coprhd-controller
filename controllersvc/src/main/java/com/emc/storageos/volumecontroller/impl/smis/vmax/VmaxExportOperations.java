@@ -627,7 +627,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
     @SuppressWarnings({ "unchecked", "rawtypes" })
     private void exportMaskRollback(StorageSystem storage, ExportOperationContext context, TaskCompleter taskCompleter) throws Exception {
         // Go through each operation and roll it back.
-        if (context.getOperations() != null) {
+        if (context != null && context.getOperations() != null) {
             WBEMClient client = _helper.getConnection(storage).getCimClient();
             ListIterator li = context.getOperations().listIterator(context.getOperations().size());
             while (li.hasPrevious()) {
@@ -1192,21 +1192,23 @@ public class VmaxExportOperations implements ExportMaskOperations {
 
             List<? extends BlockObject> blockObjects = BlockObject.fetchAll(_dbClient, volumeURIList);
             ExportMask exportMask = _dbClient.queryObject(ExportMask.class, exportMaskURI);
-            // Get the context from the task completer, in case this is a rollback.
-            ExportOperationContext context = (ExportOperationContext) WorkflowService.getInstance().loadStepData(taskCompleter.getOpId());
+            boolean isRollback = WorkflowService.getInstance().isStepInRollbackState(taskCompleter.getOpId());
 
             ExportMaskValidationContext ctx = new ExportMaskValidationContext();
             ctx.setStorage(storage);
             ctx.setExportMask(exportMask);
             ctx.setBlockObjects(blockObjects);
             ctx.setInitiators(initiatorList);
-            // Allow exceptions to be thrown when not rolling back, i.e. when context is null
-            ctx.setAllowExceptions(context == null);
+            // Allow exceptions to be thrown when not rolling back
+            ctx.setAllowExceptions(!isRollback);
             validator.removeVolumes(ctx).validate();
 
             boolean isVmax3 = storage.checkIfVmax3();
             WBEMClient client = _helper.getConnection(storage).getCimClient();
-            if (context != null) {
+            if (isRollback) {
+                // Get the context from the task completer as this is a rollback.
+                ExportOperationContext context = (ExportOperationContext) WorkflowService.getInstance()
+                        .loadStepData(taskCompleter.getOpId());
                 exportMaskRollback(storage, context, taskCompleter);
                 taskCompleter.ready(_dbClient);
                 return;
@@ -1620,10 +1622,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
                 if (targetURIList != null) {
                     _log.info("removeInitiators: targets : {}", Joiner.on(',').join(targetURIList));
                 }
-
-                // Get the context from the task completer, in case this is a rollback.
-                ExportOperationContext context = (ExportOperationContext) WorkflowService.getInstance().loadStepData(
-                        taskCompleter.getOpId());
+                boolean isRollback = WorkflowService.getInstance().isStepInRollbackState(taskCompleter.getOpId());
 
                 ExportMask exportMask = _dbClient.queryObject(ExportMask.class, exportMaskURI);
 
@@ -1632,11 +1631,14 @@ public class VmaxExportOperations implements ExportMaskOperations {
                 ctx.setExportMask(exportMask);
                 ctx.setBlockObjects(volumeURIList, _dbClient);
                 ctx.setInitiators(initiatorList);
-                // Allow exceptions to be thrown when not rolling back, i.e. when context is null
-                ctx.setAllowExceptions(context == null);
+                // Allow exceptions to be thrown when not rolling back.
+                ctx.setAllowExceptions(!isRollback);
                 validator.removeInitiators(ctx).validate();
 
-                if (context != null) {
+                if (isRollback) {
+                    // Get the context from the task completer as this is a rollback.
+                    ExportOperationContext context = (ExportOperationContext) WorkflowService.getInstance().loadStepData(
+                            taskCompleter.getOpId());
                     exportMaskRollback(storage, context, taskCompleter);
                 } else {
                     CIMArgument[] inArgs;

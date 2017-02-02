@@ -2087,18 +2087,20 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         List<ShareACL> aclsToDelete = args.getShareAclsToDelete();
         List<ShareACL> aclsToModify = args.getShareAclsToModify();
         try {
-            // add the new Share ACL from the array into the update request.
+            // add the new Share ACL from the array into the add request.
             Map<String, ShareACL> arrayExtraShareACL = extraShareACLFromArray(storage, args);
             if (!arrayExtraShareACL.isEmpty()) {
-                if (aclsToModify != null) {
+                if (aclsToAdd != null) {
                     // now add the remaining Share ACL
-                    aclsToModify.addAll(arrayExtraShareACL.values());
+                    aclsToAdd.addAll(arrayExtraShareACL.values());
                 } else {
-                    // if exportModify is null then create a new Share ACL and add
-                    aclsToModify = new ArrayList<ShareACL>();
-                    aclsToModify.addAll(arrayExtraShareACL.values());
-
+                    // if add acl is null then create a new Share ACL and add
+                    aclsToAdd = new ArrayList<ShareACL>();
+                    aclsToAdd.addAll(arrayExtraShareACL.values());
+                    // update the args so new acl get persisted in CoprHD DB.
+                    args.setShareAclsToAdd(aclsToAdd);
                 }
+
             }
         } catch (Exception e) {
             // TODO Auto-generated catch block
@@ -2208,8 +2210,6 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         for (Permission perm : permissions) {
             if (perm.getPermissionType().equalsIgnoreCase(Permission.PERMISSION_TYPE_ALLOW)) {
                 ShareACL shareACL = new ShareACL();
-                shareACL.setFileSystemId(args.getFsId());
-                shareACL.setShareName(args.getShareName());
                 shareACL.setPermission(perm.getPermission());
                 String userAndDomain = perm.getTrustee().getName();
                 String[] trustees = new String[2];
@@ -2253,8 +2253,6 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                 arrayShareACLMap.remove(key);
             }
         }
-
-        // if change found update the exportRuleMap
         return arrayShareACLMap;
 
     }

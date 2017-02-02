@@ -26,9 +26,6 @@ import com.emc.storageos.model.orchestration.PrimitiveCreateParam;
 import com.emc.storageos.model.orchestration.PrimitiveList;
 import com.emc.storageos.model.orchestration.PrimitiveRestRep;
 import com.emc.storageos.model.orchestration.PrimitiveResourceRestRep;
-import com.emc.storageos.primitives.Primitive;
-import com.emc.storageos.primitives.PrimitiveHelper;
-import com.emc.storageos.primitives.ViPRPrimitive;
 import com.emc.vipr.model.catalog.WFBulkRep;
 import com.emc.vipr.model.catalog.WFDirectoryParam;
 import com.emc.vipr.model.catalog.WFDirectoryRestRep;
@@ -79,7 +76,7 @@ public class WorkflowBuilder extends Controller {
     }
 
     private static enum WFBuilderNodeTypes {
-        FOLDER, WORKFLOW, SCRIPT, ANSIBLE, VIPR_REST;
+        FOLDER, WORKFLOW, SCRIPT, ANSIBLE, VIPR;
 
         public static WFBuilderNodeTypes get(final String name) {
             try {
@@ -110,24 +107,14 @@ public class WorkflowBuilder extends Controller {
     }
 
     public static void getWFDirectories() {
-        // GET workflow ids and names
-        Map<URI, String> oeId2NameMap = new HashMap<URI, String>();
-        OrchestrationWorkflowList orchestrationWorkflowList = getCatalogClient()
-                .orchestrationPrimitives().getWorkflows();
-        if (null != orchestrationWorkflowList
-                && null != orchestrationWorkflowList.getWorkflows()) {
-            for (NamedRelatedResourceRep o : orchestrationWorkflowList
-                    .getWorkflows()) {
-                oeId2NameMap.put(o.getId(), o.getName());
-            }
-        }
+
+        final List<Node> topLevelNodes = new ArrayList<Node>();
+		prepareRootNodes(topLevelNodes);
 
         // get workflow directories and prepare nodes
-        WFBulkRep wfBulkRep = getCatalogClient().wfDirectories().getAll();
-        List<Node> topLevelNodes = new ArrayList<Node>();
-		prepareRootNodes(topLevelNodes);
-        Node node;
+        final WFBulkRep wfBulkRep = getCatalogClient().wfDirectories().getAll();
         String nodeParent;
+        final Map<URI, WFDirectoryRestRep> fileParents = new HashMap<URI, WFDirectoryRestRep>();
         for (WFDirectoryRestRep wfDirectoryRestRep : wfBulkRep
                 .getWfDirectories()) {
             if (null == wfDirectoryRestRep.getParent()) {
@@ -135,27 +122,34 @@ public class WorkflowBuilder extends Controller {
             } else {
                 nodeParent = wfDirectoryRestRep.getParent().getId().toString();
             }
-            node = new Node(wfDirectoryRestRep.getId().toString(),
+            final Node node = new Node(wfDirectoryRestRep.getId().toString(),
                     wfDirectoryRestRep.getName(), nodeParent, WFBuilderNodeTypes.FOLDER.toString());
 
             // add workflows that are under this node
             if (null != wfDirectoryRestRep.getWorkflows()) {
                 for (URI u : wfDirectoryRestRep.getWorkflows()) {
-                    if (oeId2NameMap.containsKey(u)) {
-                        topLevelNodes.add(new Node(u.toString(), oeId2NameMap
-                                .remove(u), node.id, WFBuilderNodeTypes.WORKFLOW.toString()));
-                    }
+                    fileParents.put(u, wfDirectoryRestRep);
                 }
             }
             topLevelNodes.add(node);
         }
 
-		//add remaining workflows with no parent to default root - My_Library_root
-        for(Map.Entry<URI,String> entry : oeId2NameMap.entrySet()) {
-            topLevelNodes.add(new Node(entry.getKey().toString(), entry.getValue(), MY_LIBRARY_ROOT, WFBuilderNodeTypes.WORKFLOW.toString()));
+        //Add primitives
+        addPrimitivesByType(topLevelNodes, WFBuilderNodeTypes.ANSIBLE.toString(), MY_LIBRARY_ROOT, fileParents);
+        addPrimitivesByType(topLevelNodes, WFBuilderNodeTypes.SCRIPT.toString(), MY_LIBRARY_ROOT, fileParents);
+        addPrimitivesByType(topLevelNodes, WFBuilderNodeTypes.VIPR.toString(), VIPR_PRIMITIVE_ROOT, null);
+
+        //Add workflows
+        final OrchestrationWorkflowList orchestrationWorkflowList = getCatalogClient()
+                .orchestrationPrimitives().getWorkflows();
+        if (null != orchestrationWorkflowList
+                && null != orchestrationWorkflowList.getWorkflows()) {
+            for (NamedRelatedResourceRep o : orchestrationWorkflowList
+                    .getWorkflows()) {
+                final String parent = fileParents.containsKey(o.getId()) ? fileParents.get(o.getId()).getId().toString() : MY_LIBRARY_ROOT;
+                topLevelNodes.add(new Node(o.getId().toString(), o.getName(), parent, WFBuilderNodeTypes.WORKFLOW.toString()));
+            }
         }
-        // Get primitives data and prepare nodes
-        addPrimitives(topLevelNodes);
 
         renderJSON(topLevelNodes);
     }
@@ -344,34 +338,27 @@ public class WorkflowBuilder extends Controller {
         }
     }
 
-    // Get Primitives and add them to directory list
-    private static void addPrimitives(List<Node> topLevelNodes) {
-        try {
-            PrimitiveList primitiveList = getCatalogClient()
-                    .orchestrationPrimitives().getPrimitives();
-            if (null == primitiveList) {
-                return;
+    private static void addPrimitivesByType(final List<Node> topLevelNodes, final String type, String parentDefault, final Map<URI, WFDirectoryRestRep> fileParents) {
+        final PrimitiveList primitiveList = getCatalogClient()
+                .orchestrationPrimitives().getPrimitivesByType(type);
+        if (null == primitiveList || null == primitiveList.getPrimitives()) {
+            return;
+        }
+        for (PrimitiveRestRep primitiveRestRep : primitiveList.getPrimitives()) {
+            final String parent = (fileParents!=null && fileParents.containsKey(primitiveRestRep.getId())) ? fileParents.get(primitiveRestRep.getId()).getId().toString() : parentDefault;
+            Node node;
+            if (WFBuilderNodeTypes.VIPR.toString().equals(type)) {
+                node = new Node(primitiveRestRep.getId().toString(),
+                        primitiveRestRep.getFriendlyName(), parent, type);
             }
-            for (PrimitiveRestRep primitiveRestRep : primitiveList
-                    .getPrimitives()) {
-                String parent;
-                String primitiveName = primitiveRestRep.getName();
-                Primitive primitive = PrimitiveHelper.get(primitiveName);
-                if (primitive instanceof ViPRPrimitive) {
-                    parent = VIPR_PRIMITIVE_ROOT;
-                } else {
-                    // Default grouping: "ViPR Library"
-                    parent = VIPR_LIBRARY_ROOT;
-                }
-                //TODO: Handle other primitive types (ansible, script)
-                Node node = new Node(primitive.getClass().getSimpleName(),
-                        primitiveRestRep.getFriendlyName(), parent,
-                        WFBuilderNodeTypes.VIPR_REST.toString());
-                node.data = primitiveRestRep;
-                topLevelNodes.add(node);
+            else {
+                node = new Node(primitiveRestRep.getId().toString(),
+                        primitiveRestRep.getName(), parent, type);
             }
-        } catch (final Exception e) {
-            Logger.error(e.getMessage());
+
+            //TODO: remove this later
+            node.data = primitiveRestRep;
+            topLevelNodes.add(node);
         }
     }
 
@@ -463,6 +450,7 @@ public class WorkflowBuilder extends Controller {
                 //TODO - remove this hardcoded string once the enum is available
                 primitiveCreateParam.setType("SCRIPT");
                 primitiveCreateParam.setName(shellPrimitive.getName());
+                primitiveCreateParam.setFriendlyName(shellPrimitive.getName());
                 primitiveCreateParam.setDescription(shellPrimitive.getDescription());
                 primitiveCreateParam.setResource(primitiveResourceRestRep.getId());
                 if (StringUtils.isNotEmpty(shellPrimitive.getInputs())) {
@@ -471,17 +459,17 @@ public class WorkflowBuilder extends Controller {
                 if (StringUtils.isNotEmpty(shellPrimitive.getOutputs())) {
                     primitiveCreateParam.setOutput(Arrays.asList(shellPrimitive.getOutputs().split(",")));
                 }
-                PrimitiveRestRep primitiveRestRep = getCatalogClient().orchestrationPrimitives().createPrimitive(primitiveCreateParam);
+                final PrimitiveRestRep primitiveRestRep = getCatalogClient().orchestrationPrimitives().createPrimitive(primitiveCreateParam);
                 if (primitiveRestRep != null) {
                     // add this to wf directory
                     addResourceToWFDirectory(primitiveRestRep.getId(), shellPrimitive.getWfDirID());
                 }
                 else {
-                    //TODO: throw error
+                    //TODO: handle error - log or flash exception
                 }
             }
             else {
-                //TODO: throw error
+                //TODO: handle error
             }
 
         }
@@ -495,7 +483,7 @@ public class WorkflowBuilder extends Controller {
 	public static class LocalAnsiblePrimitiveForm {
         @Required
         private String name;
-        public String description;
+        private String description;
         private boolean existing;
         private String existingResource;
         private File ansiblePackage;
@@ -624,6 +612,7 @@ public class WorkflowBuilder extends Controller {
                 primitiveCreateParam.setType("ANSIBLE");
                 primitiveCreateParam.setName(localAnsible.getName());
                 primitiveCreateParam.setDescription(localAnsible.getDescription());
+                primitiveCreateParam.setFriendlyName(localAnsible.getName());
                 primitiveCreateParam.setResource(primitiveResourceRestRep.getId());
                 primitiveCreateParam.setAttributes(new HashMap<String, String>());
                 primitiveCreateParam.getAttributes().put("playbook", localAnsible.getAnsiblePlaybook());
@@ -640,11 +629,11 @@ public class WorkflowBuilder extends Controller {
                     addResourceToWFDirectory(primitiveRestRep.getId(), localAnsible.getWfDirID());
                 }
                 else {
-                    //TODO: throw error
+                    //TODO: handle error - log and flash exception
                 }
             }
             else {
-                //TODO: throw error
+                //TODO: handle error
             }
         }
         catch (final Exception e) {

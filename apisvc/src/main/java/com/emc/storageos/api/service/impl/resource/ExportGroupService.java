@@ -3334,36 +3334,42 @@ public class ExportGroupService extends TaskResourceService {
         // Find the Export Masks for this Storage System 
         for (ExportMask exportMask : exportMasks) {
             // For VPLEX, must verify the Export Mask is in the appropriate Varray
-            if (system.getSystemType().equalsIgnoreCase(StorageSystem.Type.vplex.name()) &&
-                    !ExportMaskUtils.exportMaskInVarray(_dbClient, exportMask, exportGroup.getVirtualArray())) {
-                boolean isAltVarray = false;
-                StringMap altVarrays = exportGroup.getAltVirtualArrays();
-                if (altVarrays != null) {
-                    String altVarray = altVarrays.get(system.getId());
-                    if(NullColumnValueGetter.isNotNullValue(altVarray)) {
-                        URI altURI = URI.create(altVarray);
-                        if (ExportMaskUtils.exportMaskInVarray(_dbClient, exportMask, altURI)) {
-                            isAltVarray = true;
+            if (system.getSystemType().equalsIgnoreCase(StorageSystem.Type.vplex.name())) {
+                if (!ExportMaskUtils.exportMaskInVarray(_dbClient, exportMask, varray)) {
+                    // Check if storage ports belongs to the other varray
+                    URI otherVarray = null;
+                    if (!exportGroup.getVirtualArray().equals(varray)) {
+                        otherVarray = exportGroup.getVirtualArray();
+                    } else {
+                        StringMap altVarrays = exportGroup.getAltVirtualArrays();
+                        if (altVarrays != null) {
+                            String altVarray = altVarrays.get(system.getId().toString());
+                            if(NullColumnValueGetter.isNotNullValue(altVarray)) {
+                                otherVarray = URI.create(altVarray);
+                            }
                         }
                     }
+                    
+                    if (otherVarray != null && ExportMaskUtils.exportMaskInVarray(_dbClient, exportMask, otherVarray)) {
+                        _log.info(String.format("VPLEX ExportMask %s (%s) not in selected varray %s, skipping", 
+                            exportMask.getMaskName(), exportMask.getId(), varray));
+                        continue;
+                    } else {
+                        throw APIException.badRequests.exportMaskNotInVarray(exportMask.getId().toString());
+                    }
+                    
+                } 
+            } else {
+                // For other array types, throw error if ports not in the varray
+                List<URI> portsNotInVarray = ExportMaskUtils.getExportMaskStoragePortsNotInVarray(_dbClient, exportMask, varray);
+                if (!portsNotInVarray.isEmpty()) {
+                    String errorPorts = Joiner.on(',').join(portsNotInVarray);
+                    String error = String.format("The ports : %s are in the exportMask %s, but not in the varray %s", 
+                          errorPorts, exportMask.getId().toString(), varray.toString());
+                    _log.error(error);
+                    throw APIException.badRequests.storagePortsNotInVarray(errorPorts, exportMask.getId().toString(), 
+                            varray.toString());    
                 }
-                if (isAltVarray) {
-                    _log.info(String.format("VPLEX ExportMask %s (%s) not in selected varray %s, skipping", 
-                        exportMask.getMaskName(), exportMask.getId(), varray));
-                    continue;
-                } else {
-                    throw APIException.badRequests.exportMaskNotInVarray(exportMask.getId().toString());
-                }
-            }
-            // For other array types, throw error if ports not in the varray
-            List<URI> portsNotInVarray = ExportMaskUtils.getExportMaskStoragePortsNotInVarray(_dbClient, exportMask, varray);
-            if (!portsNotInVarray.isEmpty()) {
-                String errorPorts = Joiner.on(',').join(portsNotInVarray);
-                String error = String.format("The ports : %s are in the exportMask %s, but not in the varray %s", 
-                      errorPorts, exportMask.getId().toString(), varray.toString());
-                _log.error(error);
-                throw APIException.badRequests.storagePortsNotInVarray(errorPorts, exportMask.getId().toString(), 
-                        varray.toString());    
             }
             // Now look to see if there are any existing initiators in the ExportMask
             if (exportMask.hasAnyExistingInitiators()) {

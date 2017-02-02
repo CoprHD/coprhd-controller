@@ -73,6 +73,7 @@ import com.emc.storageos.isilon.restapi.IsilonSnapshot;
 import com.emc.storageos.isilon.restapi.IsilonSnapshotSchedule;
 import com.emc.storageos.isilon.restapi.IsilonSshApi;
 import com.emc.storageos.isilon.restapi.IsilonSyncPolicy;
+import com.emc.storageos.isilon.restapi.IsilonSyncPolicy.JobState;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.model.file.ExportRule;
 import com.emc.storageos.model.file.NfsACE;
@@ -1430,7 +1431,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         // set quota - save the quota id to extensions
         String qid = isi.createQuota(qDirPath, fsSize, bThresholdsIncludeOverhead,
                 bIncludeSnapshots, qDirSize, notificationLimitSize != null ? notificationLimitSize : 0L,
-                        softLimitSize != null ? softLimitSize : 0L, softGracePeriod != null ? softGracePeriod : 0L);
+                softLimitSize != null ? softLimitSize : 0L, softGracePeriod != null ? softGracePeriod : 0L);
         return qid;
     }
 
@@ -2516,6 +2517,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         return this.doDeleteFS(system, fileInputOutput);
     }
 
+    @Deprecated
     @Override
     public BiosCommandResult assignFilePolicy(StorageSystem storage, FileDeviceInputOutput args) {
         // for isilon we need to create a new policy for each individual file system
@@ -2537,6 +2539,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         return BiosCommandResult.createSuccessfulResult();
     }
 
+    @Deprecated
     @Override
     public BiosCommandResult unassignFilePolicy(StorageSystem storageObj, FileDeviceInputOutput args) {
 
@@ -2553,6 +2556,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
 
     }
 
+    @Deprecated
     private String getIsilonScheduleString(SchedulePolicy schedule) {
         StringBuilder builder = new StringBuilder();
 
@@ -2590,6 +2594,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
 
     }
 
+    @Deprecated
     private Integer getSnapshotExpireValue(SchedulePolicy schedulePolicy) {
         Long seconds = 0L;
         String snapshotExpire = schedulePolicy.getSnapshotExpireType();
@@ -2619,6 +2624,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         return seconds.intValue();
     }
 
+    @Deprecated
     @Override
     public BiosCommandResult listSanpshotByPolicy(StorageSystem storageObj, FileDeviceInputOutput args) {
         SchedulePolicy sp = args.getFilePolicy();
@@ -2855,6 +2861,19 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                 IsilonSyncPolicy isiSyncPolicy = getEquivalentIsilonSyncIQPolicy(isi, policyResource.getResourcePath());
                 if (isiSyncPolicy != null) {
                     _log.info("deleting Isilon replication policy: {}", isiSyncPolicy.toString());
+                    IsilonSyncPolicy policy = isi.getReplicationPolicy(isiSyncPolicy.getName());
+                    String policyName = isiSyncPolicy.getName();
+                    JobState policyState = policy.getLastJobState();
+
+                    if (policyState.equals(JobState.running) || policyState.equals(JobState.paused)) {
+                        _log.info("Canceling Replication Policy  -{} because policy is in - {} state ", policyName,
+                                policyState);
+                        IsilonSyncPolicy modifiedPolicy = new IsilonSyncPolicy();
+                        modifiedPolicy.setName(policyName);
+                        modifiedPolicy.setLastJobState(JobState.canceled);
+                        isi.modifyReplicationPolicy(policyName, modifiedPolicy);
+                    }
+                    isi.deleteReplicationPolicy(policyName);
                     isi.deleteReplicationPolicy(policyResource.getPolicyNativeId());
                 } else {
                     _log.info("replication policy: {} doesn't exists on storage system", filePolicy.toString());

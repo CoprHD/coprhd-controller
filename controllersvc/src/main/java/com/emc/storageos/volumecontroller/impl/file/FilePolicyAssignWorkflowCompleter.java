@@ -24,7 +24,7 @@ import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 public class FilePolicyAssignWorkflowCompleter extends FilePolicyWorkflowCompleter {
 
     private static final long serialVersionUID = 1L;
-    protected static final Logger _log = LoggerFactory.getLogger(FilePolicyWorkflowCompleter.class);
+    protected static final Logger _log = LoggerFactory.getLogger(FilePolicyAssignWorkflowCompleter.class);
     private ArrayList<URI> assignToResource;
 
     public FilePolicyAssignWorkflowCompleter(URI policyUri, Set<URI> assignToResource, String task) {

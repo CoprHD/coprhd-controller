@@ -2241,7 +2241,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             String user = shareACL.getUser();
             String group = shareACL.getGroup();
             if (shareACL.getDomain() != null && !shareACL.getDomain().isEmpty()) {
-                domain = domain + "\\";
+                domain = shareACL.getDomain() + "\\";
             }
             if (user != null && !user.isEmpty()) {
                 key = domain + user;

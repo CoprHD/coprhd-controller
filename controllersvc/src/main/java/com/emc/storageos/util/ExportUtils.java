@@ -2078,8 +2078,7 @@ public class ExportUtils {
      * @param dbClient {@link DbClient}
      */
     private static void cleanStaleHostReferences(ExportGroup exportGroup, DbClient dbClient) {
-        if(null == exportGroup || exportGroup.getInactive() 
-                || (!exportGroup.getType().equals(ExportGroup.ExportGroupType.Host.name()))) {
+        if(null == exportGroup || exportGroup.getInactive()) {
             return;
         }
         StringSet exportGroupInitiators = exportGroup.getInitiators();
@@ -2122,8 +2121,7 @@ public class ExportUtils {
      * @param dbClient {@link DbClient}
      */
     private static void cleanStaleClusterReferences(ExportGroup exportGroup, DbClient dbClient) {
-        if(null == exportGroup || exportGroup.getInactive() 
-                || (!exportGroup.getType().equals(ExportGroup.ExportGroupType.Cluster.name()))) {
+        if(null == exportGroup || exportGroup.getInactive()) {
             return;
         }
         StringSet exportGroupInitiators = exportGroup.getInitiators();

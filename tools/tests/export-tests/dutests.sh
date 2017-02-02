@@ -3761,9 +3761,6 @@ test_25() {
     # Verify the zones we know about are gone
     verify_zones ${FC_ZONE_A:7} gone
 
-    # Delete the export group
-    runcmd export_group delete $PROJECT/${expname}1
-
     # The mask is out of our control at this point, delete mask
     arrayhelper delete_mask ${SERIAL_NUMBER} ${expname}1 ${HOST1}
 

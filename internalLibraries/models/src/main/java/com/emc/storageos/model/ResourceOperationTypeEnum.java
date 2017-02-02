@@ -122,7 +122,7 @@ public enum ResourceOperationTypeEnum {
     CREATE_FILE_SYSTEM_QUOTA_DIR("CREATE FILESYSTEM QUOTA DIR", "create filesystem quota directory"),
     DELETE_FILE_SYSTEM_QUOTA_DIR("DELETE FILESYSTEM QUOTA DIR", "delete filesystem quota directory"),
     UPDATE_FILE_SYSTEM_QUOTA_DIR("UPDATE FILESYSTEM QUOTA DIR", "update filesystem quota directory"),
-    UNASSIGN_FILE_POLICY("UNASSIGN FILE POLICY", "unassign file policy"),
+    UNASSIGN_FILE_POLICY("UNASSIGN FILE POLICY", "unassign file policy from resource"),
     UPDATE_BUCKET("UPDATE BUCKET", "update bucket operation"),
     DELETE_BUCKET("DELETE BUCKET", "delete bucket operation"),
     CREATE_BUCKET("CREATE BUCKET", "create bucket operation"),
@@ -354,7 +354,8 @@ public enum ResourceOperationTypeEnum {
     WORKFLOW_ROLLBACK("WORKFLOW_ROLLBACK", "Rollback a workflow"),
     MOUNT_NFS_EXPORT("MOUNT NFS EXPORT", "mount nfs export operation"),
     UNMOUNT_NFS_EXPORT("UNMOUNT NFS EXPORT", "unmount nfs export operation"),
-    LIST_MOUNTED_EXPORTS("LIST MOUNTED EXPORTS", "list mounted exports operation");
+    LIST_MOUNTED_EXPORTS("LIST MOUNTED EXPORTS", "list mounted exports operation"),
+    ASSIGN_FILE_POLICY("ASSIGN FILE POLICY", "assign file policy to resource");
 
     private final String name;
     private final String description;

@@ -17,6 +17,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.URIUtil;
+import com.emc.storageos.db.client.model.BlockConsistencyGroup;
+import com.emc.storageos.db.client.model.NamedURI;
+import com.emc.storageos.db.client.model.ProtectionSet;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.VirtualArray;
@@ -52,6 +55,8 @@ public class MetroPointVolumeInternalSiteNameMigrationTest extends DbSimpleMigra
     private static URI nonMetroPointRPVplexVolumeURI;
     private static URI nonRPVolumeURI;
     private static URI nullInternalSiteNamesVolume;
+    private static URI blockConsistencyGroupURI;
+    private static URI protectionSetURI;
 
     @SuppressWarnings("serial")
     @BeforeClass
@@ -67,6 +72,9 @@ public class MetroPointVolumeInternalSiteNameMigrationTest extends DbSimpleMigra
 
     @Override
     protected void prepareData() throws Exception {
+        blockConsistencyGroupURI = createBlockConsistencyGroup();
+        protectionSetURI = createProtectionSet();
+
         // Prepare a mixture of "valid" VPlex MetroPoint volumes where 10 have the correct source site name and 10 have the
         // incorrect source site name.
         List<Volume> validVolumesValidInternalSite = createRPVolumeData("valid-site-vol", 10, SOURCE_INTERNAL_SITE,
@@ -192,11 +200,35 @@ public class MetroPointVolumeInternalSiteNameMigrationTest extends DbSimpleMigra
             volume.setVirtualArray(virtualArray);
             volume.setInternalSiteName(internalSiteName);
             volume.setVirtualPool(createRPVirtualPool(volName + "target-varray", volName + "-vpool", isMetroPoint));
+            volume.setConsistencyGroup(blockConsistencyGroupURI);
+            volume.setProtectionSet(new NamedURI(protectionSetURI, name + i));
 
             volumes.add(volume);
         }
 
         return volumes;
+    }
+
+    private URI createBlockConsistencyGroup() {
+        BlockConsistencyGroup cg = new BlockConsistencyGroup();
+        URI cgURI = URIUtil.createId(BlockConsistencyGroup.class);
+        cg.setId(cgURI);
+        cg.setLabel("consistencyGroup");
+
+        _dbClient.createObject(cg);
+
+        return cgURI;
+    }
+
+    private URI createProtectionSet() {
+        ProtectionSet ps = new ProtectionSet();
+        URI psURI = URIUtil.createId(ProtectionSet.class);
+        ps.setId(psURI);
+        ps.setLabel("protectionSet");
+
+        _dbClient.createObject(ps);
+
+        return psURI;
     }
 
     /**

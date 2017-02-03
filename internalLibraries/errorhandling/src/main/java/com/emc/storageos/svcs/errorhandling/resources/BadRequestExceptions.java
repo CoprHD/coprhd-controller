@@ -3147,8 +3147,6 @@ public interface BadRequestExceptions {
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException varrayNotInExportGroup(String varray);
 
-    
-    
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException externallyAddedInitiators(final String exportMask, final String initiators);
     
@@ -3160,6 +3158,9 @@ public interface BadRequestExceptions {
     
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException exportPathAdjustmentSystemExportGroupNotMatch(final String exportGroup, String system);
+    
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException exportPathAdjustmentSystemExportGroupHostsMismatch(String mismatchHosts);
     
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException exportPathAdjustmentRemovingPathsNotExist(final String initiator);
@@ -3199,4 +3200,7 @@ public interface BadRequestExceptions {
     
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException storagePortsNotInVarray(final String ports, final String exportMask, final String varray);
+    
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException exportMaskNotInVarray(final String exportMask);
 }

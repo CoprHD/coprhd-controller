@@ -1656,14 +1656,14 @@ public class ExportMaskUtils {
     }
     
     /**
-     * Get adjusted paths per export mask. the members in the adjusted paths could belong to different export masks in the same export group
+     * Get adjusted paths per export mask. The members in the given adjusted paths could belong to different export masks in the same export group
      * This method would check on the initiators in the export mask, if the path initiator belong to the same host as the initiators in the 
      * export mask, then the path belongs to the export mask.
      * 
      * @param exportMask - export mask
      * @param adjustedPaths - The list of the adjusted paths (new and retained) for the export group
      * @param dbClient
-     * @return The path belongs to the export mask
+     * @return The adjusted paths (map of initiator to storage ports) for the export mask
      */
     public static Map<URI, List<URI>> getAdjustedPathsForExportMask(ExportMask exportMask, Map<URI, List<URI>> adjustedPaths, DbClient dbClient) {
         Map<URI, List<URI>> result = new HashMap<URI, List<URI>> ();
@@ -1719,6 +1719,7 @@ public class ExportMaskUtils {
      * @param mask -- The ExportMask being manipulated
      * @param varray -- The Virtual Array (normally from the ExportGroup)
      * @param dbClient -- DbClient 
+     * @return - The built zoningMap
      * 
      *            Assumption: the export mask has up to date initiators and storage ports
      */
@@ -1741,14 +1742,7 @@ public class ExportMaskUtils {
             StringSet storagePorts = new StringSet();
             for (URI portURI : storagePortList) {
                 StoragePort port = dbClient.queryObject(StoragePort.class, portURI);
-                URI portNetworkId = port.getNetwork();
-                if (!DiscoveredDataObject.CompatibilityStatus.COMPATIBLE.name()
-                        .equals(port.getCompatibilityStatus())
-                        || !DiscoveryStatus.VISIBLE.name().equals(port.getDiscoveryStatus())
-                        || NullColumnValueGetter.isNullURI(portNetworkId)
-                        || !port.getRegistrationStatus().equals(
-                                StoragePort.RegistrationStatus.REGISTERED.name())
-                        || StoragePort.PortType.valueOf(port.getPortType()) != StoragePort.PortType.frontend) {
+                if (!port.isUsable()) {
                     _log.debug(
                             "Storage port {} is not selected because it is inactive, is not compatible, is not visible, not on a network, "
                                     + "is not registered, or is not a frontend port",

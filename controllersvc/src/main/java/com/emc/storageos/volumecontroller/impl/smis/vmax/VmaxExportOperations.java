@@ -57,13 +57,11 @@ import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
-import com.emc.storageos.db.client.model.StringSetMap;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.Volume.PersonalityTypes;
 import com.emc.storageos.db.client.util.CommonTransformerFunctions;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
-import com.emc.storageos.db.client.util.StringSetUtil;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.networkcontroller.impl.NetworkDeviceController;
@@ -629,7 +627,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
     @SuppressWarnings({ "unchecked", "rawtypes" })
     private void exportMaskRollback(StorageSystem storage, ExportOperationContext context, TaskCompleter taskCompleter) throws Exception {
         // Go through each operation and roll it back.
-        if (context.getOperations() != null) {
+        if (context != null && context.getOperations() != null) {
             WBEMClient client = _helper.getConnection(storage).getCimClient();
             ListIterator li = context.getOperations().listIterator(context.getOperations().size());
             while (li.hasPrevious()) {
@@ -1194,21 +1192,23 @@ public class VmaxExportOperations implements ExportMaskOperations {
 
             List<? extends BlockObject> blockObjects = BlockObject.fetchAll(_dbClient, volumeURIList);
             ExportMask exportMask = _dbClient.queryObject(ExportMask.class, exportMaskURI);
-            // Get the context from the task completer, in case this is a rollback.
-            ExportOperationContext context = (ExportOperationContext) WorkflowService.getInstance().loadStepData(taskCompleter.getOpId());
+            boolean isRollback = WorkflowService.getInstance().isStepInRollbackState(taskCompleter.getOpId());
 
             ExportMaskValidationContext ctx = new ExportMaskValidationContext();
             ctx.setStorage(storage);
             ctx.setExportMask(exportMask);
             ctx.setBlockObjects(blockObjects);
             ctx.setInitiators(initiatorList);
-            // Allow exceptions to be thrown when not rolling back, i.e. when context is null
-            ctx.setAllowExceptions(context == null);
+            // Allow exceptions to be thrown when not rolling back
+            ctx.setAllowExceptions(!isRollback);
             validator.removeVolumes(ctx).validate();
 
             boolean isVmax3 = storage.checkIfVmax3();
             WBEMClient client = _helper.getConnection(storage).getCimClient();
-            if (context != null) {
+            if (isRollback) {
+                // Get the context from the task completer as this is a rollback.
+                ExportOperationContext context = (ExportOperationContext) WorkflowService.getInstance()
+                        .loadStepData(taskCompleter.getOpId());
                 exportMaskRollback(storage, context, taskCompleter);
                 taskCompleter.ready(_dbClient);
                 return;
@@ -1622,10 +1622,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
                 if (targetURIList != null) {
                     _log.info("removeInitiators: targets : {}", Joiner.on(',').join(targetURIList));
                 }
-
-                // Get the context from the task completer, in case this is a rollback.
-                ExportOperationContext context = (ExportOperationContext) WorkflowService.getInstance().loadStepData(
-                        taskCompleter.getOpId());
+                boolean isRollback = WorkflowService.getInstance().isStepInRollbackState(taskCompleter.getOpId());
 
                 ExportMask exportMask = _dbClient.queryObject(ExportMask.class, exportMaskURI);
 
@@ -1634,11 +1631,14 @@ public class VmaxExportOperations implements ExportMaskOperations {
                 ctx.setExportMask(exportMask);
                 ctx.setBlockObjects(volumeURIList, _dbClient);
                 ctx.setInitiators(initiatorList);
-                // Allow exceptions to be thrown when not rolling back, i.e. when context is null
-                ctx.setAllowExceptions(context == null);
+                // Allow exceptions to be thrown when not rolling back.
+                ctx.setAllowExceptions(!isRollback);
                 validator.removeInitiators(ctx).validate();
 
-                if (context != null) {
+                if (isRollback) {
+                    // Get the context from the task completer as this is a rollback.
+                    ExportOperationContext context = (ExportOperationContext) WorkflowService.getInstance().loadStepData(
+                            taskCompleter.getOpId());
                     exportMaskRollback(storage, context, taskCompleter);
                 } else {
                     CIMArgument[] inArgs;
@@ -5126,7 +5126,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
             throws DeviceControllerException {
         _log.info("{} removePaths START...", storage.getSerialNumber());
         
-        //Find out if any storage port in the remove paths should be removed.
+        // Find out if any storage port in the remove paths should be removed.
         // If the storage ports does not show up in the zoning map other than the removing paths, remove the storage ports from the
         // port group
         try {
@@ -5141,20 +5141,20 @@ public class VmaxExportOperations implements ExportMaskOperations {
             }
             taskCompleter.ready(_dbClient);
         } catch (Exception e) {
-            _log.error(String.format("remvoePaths failed - maskName: %s", exportMaskURI.toString()), e);
+            _log.error(String.format("removePaths failed - maskName: %s", exportMaskURI.toString()), e);
             ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
             taskCompleter.error(_dbClient, serviceError);
         }         
     }
     
     /**
+     * Add storage ports to the port group
      * 
-     * 
-     * @param storage
-     * @param ports
-     * @param exportMask
-     * @param taskCompleter
-     * @return
+     * @param storage - Storage system
+     * @param ports - Storage ports to be added
+     * @param exportMask - Export mask
+     * @param taskCompleter - Task completer
+     * @return - Storage ports added to the port group
      * @throws Exception
      */
     private List<URI> addStoragePorts(StorageSystem storage, Set<URI> ports, ExportMask exportMask, TaskCompleter taskCompleter) throws Exception {
@@ -5203,6 +5203,16 @@ public class VmaxExportOperations implements ExportMaskOperations {
         
     }
 
+    /**
+     * Remove storage ports from the port group.
+     * 
+     * @param storage - Storage system
+     * @param exportMaskURI - Export mask URI
+     * @param targetURIList - Storage ports to be removed
+     * @param taskCompleter - Task completer
+     * @return - Removed storage ports
+     * @throws Exception
+     */
     private Set<URI> removeStoragePorts(StorageSystem storage, URI exportMaskURI, List<URI> targetURIList, 
             TaskCompleter taskCompleter) throws Exception {
         _log.info("Removing storage ports...");
@@ -5220,7 +5230,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
         }
         String pgGroupName = (String) portGroupInstance.getPropertyValue(SmisConstants.CP_ELEMENT_NAME);
 
-        // Get the current ports off of the storage group; only add the ones that aren't there already.
+        // Get the current ports off of the storage group; only remove the ones that are there.
         WBEMClient client = _helper.getConnection(storage).getCimClient();
         List<String> storagePorts = _helper.getStoragePortsFromLunMaskingInstance(client,
                 portGroupInstance);
@@ -5240,25 +5250,21 @@ public class VmaxExportOperations implements ExportMaskOperations {
             _log.info(String.format("Target ports already removed fom port group %s, likely by a previous operation.",
                     pgGroupName));
         } else {
-            // In this case, some programming, orchestration, or
-            // user-fiddling-with-things-outside-of-ViPR situation led us
-            // to this scenario.
-            // It's best to just print the ports and port group and leave it alone.
+            // In this case, some programming, orchestration, or user-fiddling-with-things-outside-of-ViPR situation led
+            // us to this scenario. It's best to just print the ports and port group and leave it alone.
             _log.error(String
                     .format("Removing target ports would cause an empty port group %s, which is not allowed on VMAX.  Manual port removal may be required.",
                             pgGroupName));
-            // This can lead to an inaccuracy in the ExportMask object, but may be recitified next time
-            // it's refreshed.
+            // This can lead to an inaccuracy in the ExportMask object, but may be rectified next time it's refreshed.
         }
         return portsToRemove;
     }
     
     /**
-     * Get storage ports that will be removed from the export mask because of the paths are going to be removed.
+     * Get storage ports that will be removed from the export mask because the paths are going to be removed.
      * 
-     * @param maskURI
-     * @param removePaths
-     * @param dbClient
+     * @param adjustedPaths - Adjusted paths
+     * @param removePaths - Removed paths
      * @return The list of storage ports that is going to be removed from the export mask
      */
     private static List<URI> getRemovedStoragePortsForRemovePaths(Map<URI, List<URI>> adjustedPaths, Map<URI, List<URI>>removePaths) {

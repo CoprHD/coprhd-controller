@@ -38,7 +38,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.util.CollectionUtils;
-import org.springframework.util.StringUtils;
 
 import com.emc.storageos.api.mapper.HostMapper;
 import com.emc.storageos.api.service.authorization.PermissionsHelper;
@@ -143,7 +142,6 @@ import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
 import com.emc.storageos.volumecontroller.impl.validators.ValidatorConfig;
 import com.emc.storageos.volumecontroller.placement.BlockStorageScheduler;
 import com.emc.storageos.volumecontroller.placement.PlacementException;
-import com.emc.storageos.vplexcontroller.VPlexControllerUtils;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.Lists;
@@ -1364,75 +1362,6 @@ public class ExportGroupService extends TaskResourceService {
         }
         return retDataObjects;
     }
-
-    /**
-     * Validates the ExportGroup initaitor's identity to avoid DU case.
-     * Export Group should not have initiators from multiple Host or clusters.
-     * 
-     * @param exportGroup
-     */
-    private void validateInitiatorsInExportGroup(ExportGroup exportGroup) {
-        /*
-         * Export Group should not have initiators(non vplex and non RP) from multiple cluster/host.
-         * This validation is a extra check to prevent DU.
-         */
-
-        if (exportGroup != null && exportGroup.getInitiators() != null) {
-            Initiator initiator = null;
-            boolean isCluster = exportGroup.forCluster();
-            /**
-             * Key - cluster name / host name
-             * Value - list of cluster initiators or host initiators
-             */
-            Map<String, Set<URI>> initiatorMap = new HashMap<>();
-            Iterator<String> existingInitiatorsIterator = exportGroup.getInitiators().iterator();
-            List<URI> staleInitiatorList = new ArrayList<>();
-            URI initiatorURI = null;
-            while (existingInitiatorsIterator.hasNext()) {
-                initiatorURI = URI.create(existingInitiatorsIterator.next());
-                initiator = _dbClient.queryObject(Initiator.class, initiatorURI);
-                String name = null;
-                if (initiator != null && !initiator.getInactive()) {
-                    if (!VPlexControllerUtils.isVplexInitiator(initiator, _dbClient)
-                            && !ExportUtils.checkIfInitiatorsForRP(Arrays.asList(initiator))) {
-                        if (isCluster && StringUtils.hasText(initiator.getClusterName()) && StringUtils.hasText(initiator.getHostName())) {
-                            name = initiator.getClusterName();
-                        } else if (!StringUtils.hasText(initiator.getHostName())
-                                || (isCluster && !StringUtils.hasText(initiator.getClusterName()))) {
-                            _log.error("Initiator {} does not have host/cluster name", initiator.getId());
-                            throw APIException.badRequests.invalidInitiatorName(initiator.getId(), exportGroup.getId());
-                        }
-
-                        Set<URI> set = null;
-                        if (initiatorMap.get(name) == null) {
-                            set = new HashSet<URI>();
-                            initiatorMap.put(name, set);
-                        } else {
-                            set = initiatorMap.get(name);
-                        }
-                        set.add(initiator.getId());
-                    }
-                } else {
-                    _log.error("Stale initiator URI {} is in ExportGroup and can be removed from ExportGroup{}", initiatorURI,
-                            exportGroup.getId());
-                    staleInitiatorList.add(initiatorURI);
-                }
-            }
-            if (!staleInitiatorList.isEmpty()) {
-                exportGroup.removeInitiators(staleInitiatorList);
-                _dbClient.updateObject(exportGroup);
-                _log.info("Stale initiator URIs {} has been removed from from ExportGroup {}", staleInitiatorList, exportGroup.getId());
-            }
-            _log.info("{}", initiatorMap);
-            if (exportGroup.getType().equals(ExportGroupType.Cluster.name()) && initiatorMap.size() > 1) {
-                _log.error("Export Group {} is having initiators from multiple cluster/host. List of cluster/host names :{}",
-                        exportGroup.getId(), Joiner.on(",").join(initiatorMap.keySet()));
-                throw APIException.badRequests.invalidGroupOfInitiators(exportGroup.getId(),
-                        Joiner.on(",").join(initiatorMap.keySet()));
-            }
-        }
-    }
-
 
     /**
      * Update an export group which includes:
@@ -3201,8 +3130,8 @@ public class ExportGroupService extends TaskResourceService {
             throw BadRequestException.badRequests.deletionInProgress(
                     exportGroup.getClass().getSimpleName(), exportGroup.getLabel());
         }
-        validateInitiatorsInExportGroup(exportGroup);
         validateExportGroupNoPendingEvents(exportGroup);
+        validateHostsInExportGroup(exportGroup, param.getHosts());
         
         // Validate storage system 
         ArgValidator.checkUri(param.getStorageSystem());
@@ -3233,8 +3162,7 @@ public class ExportGroupService extends TaskResourceService {
         ExportPathsAdjustmentPreviewRestRep response = new ExportPathsAdjustmentPreviewRestRep();
         List<Initiator> initiators = getInitiators(exportGroup);
         StringSetMap existingPathMap = new StringSetMap();
-        validatePathAdjustment(exportGroup, initiators, system, varray, param.getHosts(), response, existingPathMap,
-                param.getUseExistingPaths());
+        validatePathAdjustment(exportGroup, initiators, system, varray, param.getHosts(), response, existingPathMap);
         
         try {
             // Manufacture an ExportPathParams structure from the REST ExportPathParameters structure
@@ -3372,8 +3300,7 @@ public class ExportGroupService extends TaskResourceService {
      */
     private void validatePathAdjustment(ExportGroup exportGroup, List<Initiator> initiators, 
             StorageSystem system, URI varray, Set<URI> hosts,
-            ExportPathsAdjustmentPreviewRestRep response, StringSetMap existingPaths,
-            Boolean useExistingPaths) {
+            ExportPathsAdjustmentPreviewRestRep response, StringSetMap existingPaths) {
         Set<URI> affectedGroupURIs = new HashSet<URI>();
         // Add our Export Group to the affected resources.
         affectedGroupURIs.add(exportGroup.getId());
@@ -3407,21 +3334,42 @@ public class ExportGroupService extends TaskResourceService {
         // Find the Export Masks for this Storage System 
         for (ExportMask exportMask : exportMasks) {
             // For VPLEX, must verify the Export Mask is in the appropriate Varray
-            if (system.getSystemType().equalsIgnoreCase(StorageSystem.Type.vplex.name()) &&
-                    !ExportMaskUtils.exportMaskInVarray(_dbClient, exportMask, varray)) {
-                _log.info(String.format("VPLEX ExportMask %s (%s) not in selected varray %s, skipping", 
-                        exportMask.getMaskName(), exportMask.getId(), varray));
-                continue;
-            }
-            // For other array types, throw error if ports not in the varray
-            List<URI> portsNotInVarray = ExportMaskUtils.getExportMaskStoragePortsNotInVarray(_dbClient, exportMask, varray);
-            if (!portsNotInVarray.isEmpty() && !useExistingPaths) {
-                String errorPorts = Joiner.on(',').join(portsNotInVarray);
-                String error = String.format("The ports : %s are in the exportMask %s, but not in the varray %s", 
-                      errorPorts, exportMask.getId().toString(), varray.toString());
-                _log.error(error);
-                throw APIException.badRequests.storagePortsNotInVarray(errorPorts, exportMask.getId().toString(), 
-                        varray.toString());    
+            if (system.getSystemType().equalsIgnoreCase(StorageSystem.Type.vplex.name())) {
+                if (!ExportMaskUtils.exportMaskInVarray(_dbClient, exportMask, varray)) {
+                    // Check if storage ports belongs to the other varray
+                    URI otherVarray = null;
+                    if (!exportGroup.getVirtualArray().equals(varray)) {
+                        otherVarray = exportGroup.getVirtualArray();
+                    } else {
+                        StringMap altVarrays = exportGroup.getAltVirtualArrays();
+                        if (altVarrays != null) {
+                            String altVarray = altVarrays.get(system.getId().toString());
+                            if(NullColumnValueGetter.isNotNullValue(altVarray)) {
+                                otherVarray = URI.create(altVarray);
+                            }
+                        }
+                    }
+                    
+                    if (otherVarray != null && ExportMaskUtils.exportMaskInVarray(_dbClient, exportMask, otherVarray)) {
+                        _log.info(String.format("VPLEX ExportMask %s (%s) not in selected varray %s, skipping", 
+                            exportMask.getMaskName(), exportMask.getId(), varray));
+                        continue;
+                    } else {
+                        throw APIException.badRequests.exportMaskNotInVarray(exportMask.getId().toString());
+                    }
+                    
+                } 
+            } else {
+                // For other array types, throw error if ports not in the varray
+                List<URI> portsNotInVarray = ExportMaskUtils.getExportMaskStoragePortsNotInVarray(_dbClient, exportMask, varray);
+                if (!portsNotInVarray.isEmpty()) {
+                    String errorPorts = Joiner.on(',').join(portsNotInVarray);
+                    String error = String.format("The ports : %s are in the exportMask %s, but not in the varray %s", 
+                          errorPorts, exportMask.getId().toString(), varray.toString());
+                    _log.error(error);
+                    throw APIException.badRequests.storagePortsNotInVarray(errorPorts, exportMask.getId().toString(), 
+                            varray.toString());    
+                }
             }
             // Now look to see if there are any existing initiators in the ExportMask
             if (exportMask.hasAnyExistingInitiators()) {
@@ -3507,6 +3455,37 @@ public class ExportGroupService extends TaskResourceService {
             }
         }
     }
+
+	/**
+	 * Validates that the hosts in the exportgroup against the passed in list of hosts.
+	 * If there is atleast one host that doesnt match, an exception is thrown.
+	 * @param exportGroup
+	 * @param hosts
+	 */
+	private void validateHostsInExportGroup(ExportGroup exportGroup, Set<URI> hosts) {
+		StringSet egHosts = exportGroup.getHosts();
+        Set<URI> egHostURIs = new HashSet<URI>();
+        for (String egHost : egHosts) {
+        	egHostURIs.add(URI.create(egHost));
+        }
+        
+        Set<Host> mismatchHosts = new HashSet<Host>();
+        for (URI host : hosts) {
+        	if (!egHostURIs.contains(host)) {
+        		Host h = _dbClient.queryObject(Host.class, host);
+        		_log.info("Host %s is not part of the specified ExportGroup", h.getHostName());
+        		mismatchHosts.add(h);
+        	}
+        }
+        
+        if (!mismatchHosts.isEmpty()) {
+        	StringBuilder mismatchHostsStr =  new StringBuilder();
+        	for (Host mismatchHost : mismatchHosts) {
+        		mismatchHostsStr.append(mismatchHost.getHostName() + " ");
+        	}
+        	throw APIException.badRequests.exportPathAdjustmentSystemExportGroupHostsMismatch(mismatchHostsStr.toString());
+        }
+	}
    
     /**
      * Export paths adjustment

@@ -27,6 +27,7 @@ from storagesystem import StorageSystem
 import uuid
 import json
 import pprint
+import argparse
 
 
 class ExportGroup(object):
@@ -938,7 +939,7 @@ def exportgroup_pathadjustment_parser(subcommand_parsers, common_parser):
 			       metavar='<hosts>',
 			       dest='hosts',
 			       nargs='+',
-			       help='hosts')
+			       help=argparse.SUPPRESS)
 
 	#Path Adjustment parser, using preview parser as parent
 	path_adjustment_parser = subcommand_parsers.add_parser(

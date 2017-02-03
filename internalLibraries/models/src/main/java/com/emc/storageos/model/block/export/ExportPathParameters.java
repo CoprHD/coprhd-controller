@@ -15,6 +15,7 @@ import javax.xml.bind.annotation.XmlRootElement;
 import org.slf4j.Logger;
 
 import com.emc.storageos.model.valid.Range;
+import com.google.common.base.Joiner;
 
 @XmlRootElement(name = "path_param")
 public class ExportPathParameters {
@@ -76,16 +77,13 @@ public class ExportPathParameters {
     }
     
     public void log(Logger log) {
-    	String maxPaths = getMaxPaths() != null ? getMaxPaths().toString() : "null";
-    	String minPaths = getMinPaths() != null ? getMinPaths().toString() : "null";
-    	String pathsPerInitiator = getPathsPerInitiator() != null ? getPathsPerInitiator().toString() : "null";
-    	log.info(String.format("max_paths %s min_paths %s paths_per_initiator %s", maxPaths, minPaths, pathsPerInitiator));
+    	String maxPathsString = getMaxPaths() != null ? getMaxPaths().toString() : "null";
+    	String minPathsString = getMinPaths() != null ? getMinPaths().toString() : "null";
+    	String pathsPerInitiatorString = getPathsPerInitiator() != null ? getPathsPerInitiator().toString() : "null";
+    	log.info(String.format("max_paths %s min_paths %s paths_per_initiator %s", maxPathsString, minPathsString, pathsPerInitiatorString));
     	if (getStoragePorts() != null && !getStoragePorts().isEmpty()) {
-    		StringBuilder buffer = new StringBuilder();
-    		for (URI aPort : getStoragePorts()) {
-    			buffer.append(aPort); buffer.append(" ");
-    		}
-    		log.info("Ports: " + buffer.toString());
+    		String ports = Joiner.on(" ").join(getStoragePorts());
+    		log.info("Ports: " + ports);
     	} else {
     		log.info("Ports not specified");
     	}

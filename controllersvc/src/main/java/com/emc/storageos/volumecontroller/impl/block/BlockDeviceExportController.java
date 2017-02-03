@@ -24,7 +24,6 @@ import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
-import com.emc.storageos.db.client.model.DiscoveredSystemObject;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.ExportPathParams;
@@ -60,7 +59,6 @@ import com.emc.storageos.volumecontroller.impl.block.taskcompleter.VolumeVpoolCh
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.VolumeWorkflowCompleter;
 import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
 import com.emc.storageos.workflow.Workflow;
-import com.emc.storageos.workflow.WorkflowException;
 import com.emc.storageos.workflow.WorkflowService;
 import com.emc.storageos.workflow.WorkflowState;
 import com.google.common.base.Joiner;
@@ -940,7 +938,7 @@ public class BlockDeviceExportController implements BlockExportController {
             boolean acquiredLocks = _wfUtils.getWorkflowService().acquireWorkflowLocks(
                     workflow, lockKeys, LockTimeoutValue.get(LockType.EXPORT_GROUP_OPS));
             if (!acquiredLocks) {
-                _log.error("Paths adjustment could not require log");
+                _log.error("Paths adjustment could not require locks");
                 ServiceError serviceError = DeviceControllerException.errors.jobFailedOpMsg("paths adjustment", "Could not acquire workflow loc");
                 taskCompleter.error(_dbClient, serviceError);
                 return;
@@ -989,8 +987,7 @@ public class BlockDeviceExportController implements BlockExportController {
             
             
             if (removedPaths != null && !removedPaths.isEmpty() ) {
-                boolean isPending = waitBeforeRemovePaths;
-                if (isPending) {
+                if (waitBeforeRemovePaths) {
                     // Insert a step that will be suspended. When it resumes, it will re-acquire the lock keys,
                     // which are released when the workflow suspends.
                     String suspendMessage = "Adjust/rescan host/cluster paths. Press \"Resume\" to start removal of unnecessary paths."
@@ -998,8 +995,9 @@ public class BlockDeviceExportController implements BlockExportController {
                     Workflow.Method method = WorkflowService.acquireWorkflowLocksMethod(lockKeys, 
                             LockTimeoutValue.get(LockType.EXPORT_GROUP_OPS));
                     Workflow.Method rollbackNull = Workflow.NULL_METHOD;
-                   stepId =  _wfUtils.newWorkflowStep(workflow, "AcquireLocks", "Suspending for user verification of host/cluster connectivity.", systemURI, 
-                            WorkflowService.class, method, rollbackNull, stepId, isPending, suspendMessage);
+                    stepId = _wfUtils.newWorkflowStep(workflow, "AcquireLocks",
+                            "Suspending for user verification of host/cluster connectivity.", systemURI,
+                            WorkflowService.class, method, rollbackNull, stepId, waitBeforeRemovePaths, suspendMessage);
                 }
                 
                 // Iterate through the ExportMasks, generating a step to remove unneeded paths.
@@ -1034,6 +1032,9 @@ public class BlockDeviceExportController implements BlockExportController {
             }
         } catch (Exception ex) {
             _log.error("Unexpected exception: ", ex);
+            if (workflow != null) {
+                _wfUtils.getWorkflowService().releaseAllWorkflowLocks(workflow);
+            }
             ServiceError serviceError = DeviceControllerException.errors.jobFailed(ex);
             taskCompleter.error(_dbClient, serviceError);
         }

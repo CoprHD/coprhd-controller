@@ -1035,6 +1035,10 @@ public class FileDeviceInputOutput {
         return existingShareAcls;
     }
 
+    public void setShareAclsToAdd(List<ShareACL> shareAclsToAdd) {
+        this.shareAclsToAdd = shareAclsToAdd;
+    }
+
     public void setExistingShareAcls(List<ShareACL> existingShareAcls) {
         this.existingShareAcls = existingShareAcls;
     }

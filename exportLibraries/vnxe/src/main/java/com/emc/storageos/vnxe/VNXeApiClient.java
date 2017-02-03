@@ -1569,6 +1569,7 @@ public class VNXeApiClient {
         result.setHlu(hluResult);
         result.setLunId(lunId);
         result.setHostId(host.getId());
+        result.setNewAccess(!lunHostAccessExists);
         _logger.info("Done exporting lun: {}", lunId);
         return result;
     }
@@ -1758,6 +1759,7 @@ public class VNXeApiClient {
         VNXeExportResult result = new VNXeExportResult();
         result.setHlu(hluResult);
         result.setHostId(host.getId());
+        result.setNewAccess(!snapHostAccessExists);
         _logger.info("Done exporting lun snap: {}", snapId);
         return result;
     }

@@ -3203,4 +3203,7 @@ public interface BadRequestExceptions {
     
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException exportMaskNotInVarray(final String exportMask);
+
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException invalidFileSnapshotPolicyParam(final String policyName, final String errorMsg);
 }

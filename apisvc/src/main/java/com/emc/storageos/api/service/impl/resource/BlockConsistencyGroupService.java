@@ -256,6 +256,8 @@ public class BlockConsistencyGroupService extends TaskResourceService {
             final BlockConsistencyGroupCreate param) {
         checkForDuplicateName(param.getName(), BlockConsistencyGroup.class);
 
+        ArgValidator.checkIsAlphaNumeric(param.getName());
+
         // Validate name
         ArgValidator.checkFieldNotEmpty(param.getName(), "name");
 
@@ -2311,6 +2313,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         }
         return taskList;
     }
+
 
     /**
      * Since all of the protection operations are very similar, this method does all of the work.

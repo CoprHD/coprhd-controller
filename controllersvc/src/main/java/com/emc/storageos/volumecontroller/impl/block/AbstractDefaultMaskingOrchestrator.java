@@ -412,6 +412,7 @@ abstract public class AbstractDefaultMaskingOrchestrator {
         } else {
             exportTaskCompleter = new ExportMaskDeleteCompleter(exportGroupURI,
                     exportMaskURI, maskingStep);
+            ((ExportMaskDeleteCompleter) exportTaskCompleter).setVolumes(volumes);
         }
 
         Workflow.Method maskingExecuteMethod = new Workflow.Method(

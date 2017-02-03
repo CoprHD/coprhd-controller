@@ -110,9 +110,7 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
              * Update the new values in the VolumeHLU Map.
              */
             Set<Integer> usedHlus = findHLUsForClusterHosts(storage, exportGroup, initiatorURIs);
-
             Integer maxHLU = ExportUtils.getMaximumAllowedHLU(storage);
-
             Set<Integer> freeHLUs = ExportUtils.calculateFreeHLUs(usedHlus, maxHLU);
 
             ExportUtils.updateFreeHLUsInVolumeMap(volumeMap, freeHLUs);

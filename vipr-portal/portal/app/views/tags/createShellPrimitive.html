@@ -4,20 +4,11 @@ uploadFileTabID = 'uploadFileContent';
 inputOutputTabID = 'inputOutputContent';
 }%
 
-<style>
-    .modal-body {
-        height:250px;
-        overflow:auto;
-    }
-    .modal-footer {
-        border-top: none;
-    }
-</style>
-
 #{Modal.dialog id:'shellPrimitiveDialog', cssClass:'wide', titleKey:'shell.primitive.add.title'}
 <div class="row">
-    #{form @create(), id:'shellScriptPrimitiveForm', enctype:'multipart/form-data', class:'form form-horizontal',
+    #{form @createShellScriptPrimitive(), id:'shellScriptPrimitiveForm', enctype:'multipart/form-data', class:'form form-horizontal',
     autocomplete:"off"}
+    <input type="hidden" name="shellPrimitive.wfDirID" id="shellPrimitive_wfDirID"/>
     <div class="col-md-3 tabbable">
         <ul class="nav nav-pills nav-stacked">
             <li role="presentation" class="active"><a href="${'#'+nameDescTabID}" data-toggle="tab"><span class="badge">1</span>
@@ -148,7 +139,10 @@ inputOutputTabID = 'inputOutputContent';
         }
     }
 
-    $(document).ready(function() {
+    $('#shellPrimitiveDialog').on('shown.bs.modal', function () {
+        // Setting selected workflow directory ID
+        $('#shellPrimitive_wfDirID').val($('#jstree_demo').jstree(true).get_selected()[0]);
+
         //on start hiding finish and back buttons
         $('#finishButton').hide();
         $('#backButton').hide();

@@ -24,21 +24,9 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
     var localAnsibleNodeType = "LOCAL_ANSIBLE"
     var fileNodeTypes = [workflowNodeType, shellNodeType, localAnsibleNodeType]
 
-    // -- populate tree data
-    //TODO: get ViPR Library nodes from API (pending)
-    var dirJSON = [
-        {"id":"myLib", "parent":"#","text":"My Library", "type":folderNodeType},
-        {"id":"viprLib","parent":"#","text":"ViPR Library", "type":folderNodeType},
-        {"id":"viprrest","parent":"viprLib","text":"ViPR REST Primitives", "type":folderNodeType}
-    ]
+    initializeJsTree();
 
-
-    $http.get(routes.WF_directories()).then(function (data) {
-        initializeJsTree(dirJSON.concat(data.data))
-    });
-    // --
-
-    function initializeJsTree(dirJSON){
+    function initializeJsTree(){
         var to = null;
         var searchElem = $element.find(".search-input");
         searchElem.keyup(function() {
@@ -54,7 +42,10 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
                 "animation": 0,
                 "check_callback": true,
                 "themes": {"stripes": false},
-                "data": dirJSON
+                "data": {
+                    "url" : "getWFDirectories",
+                    "type":"get"
+                }
             },
             "types": {
                 "#": {
@@ -68,7 +59,7 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
                 },
                 "FOLDER": {
                     "icon": "glyphicon glyphicon-folder-close",
-                    "valid_children": ["default"]
+                    "valid_children": ["WORKFLOW","FOLDER"]
                 },
                 "WORKFLOW": {
                     "icon": "glyphicon glyphicon-file",
@@ -87,54 +78,6 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
             "search" : {
                   'case_sensitive' : false,
                   'show_only_matches' : true
-            },
-            "contextmenu" : {
-                 "items": function($node) {
-                     var tree = jstreeContainer.jstree(true);
-                     return {
-                         "Create": {
-                             "separator_before": false,
-                             "separator_after": false,
-                             "label": "Create",
-                             "submenu": {
-                                 "create_file" : {
-                                     "seperator_before" : false,
-                                     "seperator_after" : false,
-                                     "label" : "Workflow",
-                                     action : function () {
-                                         $node = tree.create_node($node,{"type":workflowNodeType});
-                                         tree.edit($node);
-                                     }
-                                 },
-                                 "create_folder" : {
-                                     "seperator_before" : false,
-                                     "seperator_after" : false,
-                                     "label" : "Folder",
-                                     action : function () {
-                                         $node = tree.create_node($node);
-                                         tree.edit($node);
-                                     }
-                                 }
-                             }
-                         },
-                         "Rename": {
-                             "separator_before": false,
-                             "separator_after": false,
-                             "label": "Rename",
-                             "action": function () {
-                                 tree.edit($node);
-                             }
-                         },
-                         "Remove": {
-                             "separator_before": false,
-                             "separator_after": false,
-                             "label": "Remove",
-                             "action": function () {
-                                 tree.delete_node($node);
-                             }
-                         }
-                     };
-                 }
             }
         }).on('ready.jstree', function() {
             jstreeContainer.find( ".draggable-card" ).draggable({handle: "a",scroll: false,helper: getDraggableStepHTML,appendTo: 'body',cursorAt: { top: 8, left: -16 }});

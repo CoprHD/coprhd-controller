@@ -185,6 +185,7 @@ public class StaleRelationURICleanupMigration extends BaseCustomMigrationCallbac
         fields.add(new RelationField("initiators", Initiator.class));
         fields.add(new RelationField("storagePorts", StoragePort.class));
         fields.add(new RelationField("volumes", Volume.class));
+        fields.add(new RelationField("zoningMap", Initiator.class));
         relationFields.put(ExportMask.class, fields);
     }
     

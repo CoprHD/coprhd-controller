@@ -460,13 +460,19 @@ public class PrimitiveService extends CatalogTaggedResourceService {
         primitive.setArchive(param.getResource());
         primitive.setPlaybook(param.getAttributes().get("playbook"));
         final StringSet extraVars = new StringSet();
-        for(String input : param.getInput()) {
-            extraVars.add(input);
+        if( null != param.getInput() ) {
+            for(String input : param.getInput()) {
+                extraVars.add(input);
+            }
         }
         primitive.setExtraVars(extraVars);
+        
         final StringSet output = new StringSet();
-        output.addAll(param.getOutput());
+        if(param.getOutput() != null ) {
+            output.addAll(param.getOutput());
+        }
         primitive.setOutput(output);
+        
         return primitive;
     }
     
@@ -510,7 +516,6 @@ public class PrimitiveService extends CatalogTaggedResourceService {
         for(final Entry<Primitive.InputType, List<InputParameter>> parameterType : inputParameters.entrySet()) {
             List<InputParameterRestRep> inputTypeRestRep = new ArrayList<InputParameterRestRep>();
             for(final InputParameter parameter : parameterType.getValue()) {
-                int index = 0;
                 if (parameter.isBasicInputParameter()) {
                     InputParameterRestRep inputParamRestRep = new InputParameterRestRep();
                     inputParamRestRep.setName(parameter.getName());
@@ -636,12 +641,14 @@ public class PrimitiveService extends CatalogTaggedResourceService {
         primitive.setScript(param.getResource());
        
         final StringSet inputs = new StringSet();
-        for(String input : param.getInput()) {
-            inputs.add(input);
+        if( null != param.getInput() ) {
+            inputs.addAll(param.getInput());
         }
         primitive.setInput(inputs);
         final StringSet output = new StringSet();
-        output.addAll(param.getOutput());
+        if(param.getOutput() != null ) {
+            output.addAll(param.getOutput());
+        }
         primitive.setOutput(output);
         return primitive;
     }

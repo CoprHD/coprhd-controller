@@ -858,6 +858,7 @@ public abstract class VirtualPoolService extends TaggedResource {
 	        }
         }
         
+        //check if any file policies are assigned to the vpool
         if(!vpool.getFilePolicies().isEmpty()) {
             throw APIException.badRequests.cannotDeleteVpoolAssignedFilePolicy(vpool.getLabel());
         }

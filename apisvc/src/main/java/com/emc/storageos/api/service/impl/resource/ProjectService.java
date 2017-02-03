@@ -481,6 +481,7 @@ public class ProjectService extends TaggedResource {
     public Response deactivateProject(@PathParam("id") URI id) {
         Project project = getProjectById(id, true);
         
+        //check if any filepolicies are assigned to project
         if(!project.getFilePolicies().isEmpty()){
             throw APIException.badRequests.cannotDeleteProjectAssignedFilePolicy(project.getLabel());
         }

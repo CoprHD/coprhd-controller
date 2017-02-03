@@ -9,6 +9,11 @@
 
 # Method to retrieve all of the tools needed that do not get stored directly in the git repo
 retrieve_tooling() {
+    if [ "${TOOLING_AT_JAR_NAME}" = "" ]
+    then
+	echo "ERROR: No tooling variables are defined.  Please update to the latest sanity.conf that contains these entries"
+	exit;
+    fi
     retrieve_arraytools
     retrieve_preexistingconfig
 }

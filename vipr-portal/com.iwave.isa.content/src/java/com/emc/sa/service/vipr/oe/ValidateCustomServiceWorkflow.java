@@ -23,6 +23,7 @@ import com.emc.storageos.model.orchestration.OrchestrationWorkflowDocument.Step;
 import com.emc.storageos.primitives.Primitive;
 import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorException;
 
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
@@ -53,30 +54,42 @@ public class ValidateCustomServiceWorkflow {
         }
     }
 
-    private void validateStepInput(final Step step) {
-        final Map<String, OrchestrationWorkflowDocument.InputGroup> input = step.getInputGroups();
+    private boolean validateInput(Map<String, OrchestrationWorkflowDocument.InputGroup> input) throws InternalServerErrorException {
         if (input == null) {
             logger.info("No Input is defined");
-            return;
+            return true;
         }
         final OrchestrationWorkflowDocument.InputGroup inputGroup = input.get(OrchestrationServiceConstants.INPUT_PARAMS);
         if (inputGroup == null) {
             logger.info("No input params defined");
-            return;
+            return true;
         }
         final List<Input> listInput = inputGroup.getInputGroup();
         if (listInput == null) {
             logger.info("No input param is defined");
-            return;
+            return true;
         }
 
+        return false;
+    }
+
+    private void checkNameAndType(final Input in) throws InternalServerErrorException {
+        if (StringUtils.isEmpty(in.getName())) {
+            throw InternalServerErrorException.internalServerErrors.customServiceExecutionFailed("Input name not defined");
+        }
+        if (StringUtils.isEmpty(in.getType())) {
+            throw InternalServerErrorException.internalServerErrors.customServiceExecutionFailed("Input type not defined for:" + in.getName());
+        }
+    }
+
+    private void validateStepInput(final Step step) throws InternalServerErrorException {
+        final Map<String, OrchestrationWorkflowDocument.InputGroup> input = step.getInputGroups();
+        if (validateInput(input)) {
+            return;
+        }
+        final List<Input> listInput = input.get(OrchestrationServiceConstants.INPUT_PARAMS).getInputGroup();
         for (final Input in : listInput) {
-            if (in.getName() == null || in.getName().isEmpty()) {
-                throw InternalServerErrorException.internalServerErrors.customServiceExecutionFailed("Input name not defined");
-            }
-            if (in.getType() == null || in.getType().isEmpty()) {
-                throw InternalServerErrorException.internalServerErrors.customServiceExecutionFailed("Input type not defined");
-            }
+            checkNameAndType(in);
             switch (OrchestrationServiceConstants.InputType.fromString(in.getType())) {
                 case FROM_USER:
                 case ASSET_OPTION:
@@ -89,7 +102,7 @@ public class ValidateCustomServiceWorkflow {
 
                     break;
                 default:
-                    throw InternalServerErrorException.internalServerErrors.customServiceExecutionFailed("Invalid Input type");
+                    throw InternalServerErrorException.internalServerErrors.customServiceExecutionFailed("Invalid Input type:" + in.getType());
             }
         }
     }
@@ -97,12 +110,48 @@ public class ValidateCustomServiceWorkflow {
     private void validateInputUserParams(final Input in) {
         if (params.get(in.getName()) == null && in.getDefaultValue() == null && in.getRequired()) {
             throw InternalServerErrorException.internalServerErrors.
-                    customServiceExecutionFailed("input param is required but no value defined");
+                    customServiceExecutionFailed("input param is required but no value defined for:" + in.getName());
         }
     }
 
-    private void validateOtherStepParams(final Input in) {
-        if (in.getValue() == null || in.getValue().isEmpty()) {
+    private void validateOtherStepInput(final Step step, final Input in, final String attribute) throws InternalServerErrorException{
+        if (step.getInputGroups() == null
+                || step.getInputGroups().get(OrchestrationServiceConstants.INPUT_PARAMS) == null
+                || step.getInputGroups().get(OrchestrationServiceConstants.INPUT_PARAMS).getInputGroup() == null)
+        {
+            throw InternalServerErrorException.internalServerErrors.
+                    customServiceExecutionFailed("Other Step Input param not defined for input" + in.getName());
+        }
+
+        final List<Input> in1 = step.getInputGroups().get(OrchestrationServiceConstants.INPUT_PARAMS).getInputGroup();
+
+        for (final Input e : in1) {
+            if (e.getName().equals(attribute)) {
+                return;
+            }
+        }
+
+        throw InternalServerErrorException.internalServerErrors.
+                customServiceExecutionFailed("Cannot find value for input param" + in.getName());
+    }
+
+    private void validateOtherStepOutput(final Step step, final Input in, final String attribute) throws InternalServerErrorException {
+        if (step.getOutput() == null) {
+            throw InternalServerErrorException.internalServerErrors.
+                    customServiceExecutionFailed("Other Step Output param not defined for input:" + in.getName());
+        }
+        for (OrchestrationWorkflowDocument.Output out : step.getOutput()) {
+            if (out.getName().equals(attribute)) {
+                return;
+            }
+        }
+
+        throw InternalServerErrorException.internalServerErrors.
+                customServiceExecutionFailed("Cannot find value for input param" + in.getName());
+    }
+
+    private void validateOtherStepParams(final Input in) throws InternalServerErrorException {
+        if (StringUtils.isEmpty(in.getValue())) {
             throw InternalServerErrorException.internalServerErrors.
                     customServiceExecutionFailed("input from other step value is not defined");
         }
@@ -112,35 +161,15 @@ public class ValidateCustomServiceWorkflow {
         final Step step1 = stepsHash.get(stepId);
         if (step1 == null) {
             throw InternalServerErrorException.internalServerErrors.
-                    customServiceExecutionFailed("Step not defined. Cannot get value");
+                    customServiceExecutionFailed("Step not defined. Cannot get value for:" + in.getName());
         }
+
         if (in.getType().equals(OrchestrationServiceConstants.InputType.FROM_STEP_INPUT.toString())) {
-            if (step1.getInputGroups() == null
-                    || step1.getInputGroups().get(OrchestrationServiceConstants.INPUT_PARAMS) == null
-                    || step1.getInputGroups().get(OrchestrationServiceConstants.INPUT_PARAMS).getInputGroup() == null)
-            {
-                throw InternalServerErrorException.internalServerErrors.
-                        customServiceExecutionFailed("Other Step Input param not defined");
-            }
-
-            final List<Input> in1 = step1.getInputGroups().get(OrchestrationServiceConstants.INPUT_PARAMS).getInputGroup();
-
-            for (final Input e : in1) {
-                if (e.getName().equals(attribute)) {
-                    return;
-                }
-            }
+            validateOtherStepInput(step1, in, attribute);
         } else if (in.getType().equals(OrchestrationServiceConstants.InputType.FROM_STEP_OUTPUT.toString())) {
-            if (step1.getOutput() == null) {
-                throw InternalServerErrorException.internalServerErrors.
-                        customServiceExecutionFailed("Other Step Output param not defined");
-            }
-            for (OrchestrationWorkflowDocument.Output out : step1.getOutput()) {
-                if (out.getName().equals(attribute)) {
-                    return;
-                }
-            }
+            validateOtherStepOutput(step1, in, attribute);
         }
+
         throw InternalServerErrorException.internalServerErrors.
                 customServiceExecutionFailed("Cannot find value for input param" + in.getName());
     }
@@ -153,11 +182,11 @@ public class ValidateCustomServiceWorkflow {
             return;
         }
         if (step.getNext() == null) {
-            throw InternalServerErrorException.internalServerErrors.customServiceExecutionFailed("Next Step Not defined");
+            throw InternalServerErrorException.internalServerErrors.customServiceExecutionFailed("Next step not defined for step:" + step.getId());
         }
         if (step.getNext().getDefaultStep() == null && step.getNext().getFailedStep() == null) {
             throw InternalServerErrorException.internalServerErrors.
-                    customServiceExecutionFailed("Next step not defined");
+                    customServiceExecutionFailed("Next step not defined for step:" + step.getId());
         }
     }
 }

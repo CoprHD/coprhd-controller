@@ -93,10 +93,8 @@ public class RunViprREST extends ViPRExecutionTask<OrchestrationTaskResult> {
 
         try {
             return OrchestrationUtils.waitForTasks(res.getTaskIds(), getClient());
-        } catch (final InterruptedException e) {
-            throw InternalServerErrorException.internalServerErrors.customServiceExecutionFailed("Task Timed Out");
         } catch (final URISyntaxException e) {
-            throw InternalServerErrorException.internalServerErrors.customServiceExecutionFailed("Failed to parse REST response");
+            throw InternalServerErrorException.internalServerErrors.customServiceExecutionFailed("Failed to parse REST response" + e);
         }
     }
 

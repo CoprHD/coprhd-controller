@@ -985,7 +985,6 @@ public class FilePolicyService extends TaskResourceService {
             targetStorageDeviceToVNASMap.put(targetStorageDevice, targetVNasURI);
 
             association.setTargetStorageDeviceToVNASMap(targetStorageDeviceToVNASMap);
-            association.setVpool(rec.getVirtualPool().getId());
             associations.add(association);
         }
         return associations;
@@ -1151,7 +1150,7 @@ public class FilePolicyService extends TaskResourceService {
         // update replication topology info
         updateFileReplicationTopologyInfo(param, filepolicy);
         if ((param.getFileSystemAssignParams().getVpool() != null
-                && !param.getFileSystemAssignParams().getVpool().equals(filepolicy.getFilePolicyVpool()))) {
+        && !param.getFileSystemAssignParams().getVpool().equals(filepolicy.getFilePolicyVpool()))) {
             VirtualPool vpool = _dbClient.queryObject(VirtualPool.class, filepolicy.getFilePolicyVpool());
             errorMsg.append("File policy :" + filepolicy.getFilePolicyName()
                     + " is already assigned at file system level under the vpool: "

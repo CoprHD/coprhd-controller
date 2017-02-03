@@ -9,7 +9,6 @@ public class FileStorageSystemAssociation implements Serializable {
     private URI sourceVNAS;
 
     private Map<URI, URI> targetStorageDeviceToVNASMap;
-    private URI vpool;
 
     public URI getSourceSystem() {
         return sourceSystem;
@@ -25,14 +24,6 @@ public class FileStorageSystemAssociation implements Serializable {
 
     public void setSourceVNAS(URI sourceVNAS) {
         this.sourceVNAS = sourceVNAS;
-    }
-
-    public URI getVpool() {
-        return vpool;
-    }
-
-    public void setVpool(URI vpool) {
-        this.vpool = vpool;
     }
 
     public Map<URI, URI> getTargetStorageDeviceToVNASMap() {

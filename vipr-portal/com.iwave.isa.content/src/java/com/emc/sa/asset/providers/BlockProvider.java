@@ -1135,7 +1135,9 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         List<BlockSnapshotRestRep> snapshots = findSnapshotsByProject(client, project);
         List<BlockSnapshotRestRep> filteredSnap = new ArrayList<>();
         for (BlockSnapshotRestRep snapshot: snapshots) {
-            if ( !isInConsistencyGroup(snapshot) ) { // If not in CG, means that not a RP bookmark
+            VolumeRestRep parentVolume = client.blockVolumes().get(snapshot.getParent().getId());
+            if ( ( isRPSourceVolume(parentVolume) && !isSnapshotRPBookmark(snapshot) ) ||
+                    !isInConsistencyGroup(snapshot) ) {
                 filteredSnap.add(snapshot);
             }
         }
@@ -1148,6 +1150,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         List<BlockSnapshotRestRep> snapshots = findSnapshotsByProject(client, project);
         List<BlockSnapshotRestRep> filteredSnap = new ArrayList<>();
         for (BlockSnapshotRestRep snapshot: snapshots) {
+            VolumeRestRep parentVolume = client.blockVolumes().get(snapshot.getParent().getId());
             if ( isSnapshotRPBookmark(snapshot) ) {
                 filteredSnap.add(snapshot);
             }

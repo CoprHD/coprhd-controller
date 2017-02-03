@@ -656,29 +656,6 @@ public final class FileOrchestrationUtils {
         }
     }
 
-    public static void updateUnAssignedResource(FilePolicy filePolicy, PolicyStorageResource policyRes, DbClient dbClient) {
-        FilePolicyApplyLevel applyLevel = FilePolicyApplyLevel.valueOf(filePolicy.getApplyAt());
-        switch (applyLevel) {
-            case vpool:
-                VirtualPool vpool = dbClient.queryObject(VirtualPool.class, policyRes.getAppliedAt());
-                vpool.removeFilePolicy(filePolicy.getId());
-                dbClient.updateObject(vpool);
-                break;
-            case project:
-                Project project = dbClient.queryObject(Project.class, policyRes.getAppliedAt());
-                project.removeFilePolicy(project, filePolicy.getId());
-                dbClient.updateObject(project);
-                break;
-            case file_system:
-                FileShare fs = dbClient.queryObject(FileShare.class, policyRes.getAppliedAt());
-                fs.removeFilePolicy(filePolicy.getId());
-                dbClient.updateObject(fs);
-                break;
-            default:
-                _log.error("Not a valid policy apply level: " + applyLevel);
-        }
-    }
-
     /**
      * Find the file storage resource by Native ID
      * 
@@ -801,15 +778,14 @@ public final class FileOrchestrationUtils {
      *
      */
     public static void updatePolicyStorageResource(DbClient dbClient, StorageSystem system, FilePolicy filePolicy,
-            FileDeviceInputOutput args, String sourcePath,
-            PolicyStorageResource policyStorageResource) {
-        if (policyStorageResource == null) {
-            policyStorageResource = new PolicyStorageResource();
-        }
+            FileDeviceInputOutput args, String sourcePath, String policyNativeId) {
+        PolicyStorageResource policyStorageResource = new PolicyStorageResource();
+
         policyStorageResource.setId(URIUtil.createId(PolicyStorageResource.class));
         policyStorageResource.setFilePolicyId(filePolicy.getId());
         policyStorageResource.setStorageSystem(system.getId());
-        policyStorageResource.setPolicyNativeId(stripSpecialCharacters(filePolicy.getFilePolicyName()));
+        policyStorageResource.setPolicyNativeId(policyNativeId);
+        policyStorageResource.setResourcePath(sourcePath);
         NASServer nasServer = null;
         if (args.getvNAS() != null) {
             nasServer = args.getvNAS();
@@ -826,14 +802,13 @@ public final class FileOrchestrationUtils {
                 nasServer.getNasName(), filePolicy.getFilePolicyType(), sourcePath, NativeGUIDGenerator.FILE_STORAGE_RESOURCE));
         dbClient.createObject(policyStorageResource);
 
-        StringSet policyStrgRes = filePolicy.getPolicyStorageResources();
-        if (policyStrgRes == null) {
-            policyStrgRes = new StringSet();
-        }
-        policyStrgRes.add(policyStorageResource.getId().toString());
-        filePolicy.setPolicyStorageResources(policyStrgRes);
+        filePolicy.addPolicyStorageResources(policyStorageResource.getId());
+
         if (filePolicy.getApplyAt().equals(FilePolicyApplyLevel.file_system.name())) {
             filePolicy.addAssignedResources(args.getFs().getId());
+        }
+        if (filePolicy.getApplyAt().equals(FilePolicyApplyLevel.project.name())) {
+            filePolicy.setFilePolicyVpool(args.getVPool().getId());
         }
         dbClient.updateObject(filePolicy);
         _log.info("PolicyStorageResource object created successfully for {} ",
@@ -870,6 +845,30 @@ public final class FileOrchestrationUtils {
             }
         }
         return targetHost;
+    }
+
+    public static List<URI> getVNASServersOfStorageSystemAndVarrayOfVpool(DbClient dbClient, URI storageSystemURI, URI vpoolURI) {
+        VirtualPool vpool = dbClient.queryObject(VirtualPool.class, vpoolURI);
+        StringSet varraySet = vpool.getVirtualArrays();
+        URIQueryResultList vNasURIs = new URIQueryResultList();
+        List<URI> vNASURIList = new ArrayList<URI>();
+        dbClient.queryByConstraint(
+                ContainmentConstraint.Factory.getStorageDeviceVirtualNasConstraint(storageSystemURI),
+                vNasURIs);
+        Iterator<URI> vNasIter = vNasURIs.iterator();
+        while (vNasIter.hasNext()) {
+            URI vNasURI = vNasIter.next();
+            VirtualNAS vNas = dbClient.queryObject(VirtualNAS.class,
+                    vNasURI);
+            if (vNas != null && !vNas.getInactive()) {
+                StringSet vNASVarraySet = vNas.getAssignedVirtualArrays();
+                if (varraySet != null && !varraySet.isEmpty() && vNASVarraySet != null && vNASVarraySet.containsAll(varraySet)) {
+                    vNASURIList.add(vNas.getId());
+                }
+            }
+        }
+
+        return vNASURIList;
     }
 
 }

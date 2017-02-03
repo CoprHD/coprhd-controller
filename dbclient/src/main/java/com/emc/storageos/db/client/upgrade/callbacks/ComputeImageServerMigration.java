@@ -8,21 +8,21 @@ import java.net.URI;
 import java.util.Iterator;
 import java.util.List;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.coordinator.client.model.PropertyInfoExt;
 import com.emc.storageos.coordinator.common.Configuration;
 import com.emc.storageos.db.client.URIUtil;
+import com.emc.storageos.db.client.impl.EncryptionProviderImpl;
 import com.emc.storageos.db.client.model.ComputeImage;
-import com.emc.storageos.db.client.model.ComputeImageServer;
 import com.emc.storageos.db.client.model.ComputeImage.ComputeImageStatus;
+import com.emc.storageos.db.client.model.ComputeImageServer;
 import com.emc.storageos.db.client.model.ComputeSystem;
 import com.emc.storageos.db.client.model.EncryptionProvider;
 import com.emc.storageos.db.client.model.StringSet;
-import com.emc.storageos.db.client.impl.EncryptionProviderImpl;
 import com.emc.storageos.db.client.upgrade.BaseCustomMigrationCallback;
 import com.emc.storageos.model.property.PropertyInfo;
 import com.emc.storageos.svcs.errorhandling.resources.MigrationCallbackException;
@@ -78,8 +78,7 @@ public class ComputeImageServerMigration extends BaseCustomMigrationCallback {
                     imageServer.setImageServerPassword(encryptionProvider.decrypt(Base64.decodeBase64(encryptedPassword)));
                 } catch (Exception e) {
                     log.error("Can't decrypt image server password :" + e.getLocalizedMessage());
-                    e.printStackTrace();
-                    log.error("Failed to save image server details into database during migration");
+                    log.error("Failed to save image server details into database during migration", e);
                     throw e;
                 }
                 associateComputeImages(imageServer);

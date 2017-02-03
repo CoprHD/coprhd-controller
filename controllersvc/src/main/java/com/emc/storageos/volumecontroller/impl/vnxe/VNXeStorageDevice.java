@@ -2780,4 +2780,11 @@ public class VNXeStorageDevice extends VNXeOperations
         return BiosCommandResult.createErrorResult(
                 DeviceControllerErrors.vnxe.operationNotSupported("un assign File Policy", "VNXe"));
     }
+
+    @Override
+    public BiosCommandResult
+            checkFilePolicyExistsOrCreate(StorageSystem storageObj, FileDeviceInputOutput args) {
+        return BiosCommandResult.createErrorResult(
+                DeviceControllerErrors.vnxe.operationNotSupported("Assign File Policy", "VNXe"));
+    }
 }

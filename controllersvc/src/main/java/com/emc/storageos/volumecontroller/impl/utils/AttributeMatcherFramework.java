@@ -77,6 +77,7 @@ public class AttributeMatcherFramework implements ApplicationContextAware {
                 List<AttributeMatcher> attrMatcherList = (List<AttributeMatcher>) getBeanFromContext(matcherGroupName);
                 ObjectLocalCache cache = new ObjectLocalCache(dbClient);
                 initializeCommonReferencesForAllMatchers(cache, coordinator);
+                errorMessage.setLength(0); // Clear the existing content before matcher
                 for (AttributeMatcher matcher : attrMatcherList) {
                     int poolSizeAtTheStart = matchedPools.size();
                     if (!matchedPools.isEmpty()) {

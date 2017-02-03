@@ -190,6 +190,7 @@ public class VirtualPoolFileReplicationPolicyMigration extends BaseCustomMigrati
         policyStorageResource.setStorageSystem(system.getId());
         policyStorageResource.setPolicyNativeId(fs.getName());
         policyStorageResource.setAppliedAt(fs.getId());
+        policyStorageResource.setResourcePath(fs.getMountPath());
         NASServer nasServer = null;
         if (fs.getVirtualNAS() != null) {
             nasServer = dbClient.queryObject(VirtualNAS.class, fs.getVirtualNAS());

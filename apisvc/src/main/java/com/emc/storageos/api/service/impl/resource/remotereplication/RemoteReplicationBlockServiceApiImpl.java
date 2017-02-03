@@ -161,8 +161,11 @@ public class RemoteReplicationBlockServiceApiImpl extends AbstractBlockServiceAp
         URI targetVArrayUri = volRecommendations.get(0).getVirtualArray();
         VirtualArray targetVArray = _dbClient.queryObject(VirtualArray.class, targetVArrayUri);
         VirtualPool targetVPool = volRecommendations.get(0).getVirtualPool();
+        VirtualPoolCapabilityValuesWrapper targetCapabilities = RemoteReplicationScheduler.buildTargetCapabilities(targetVArray, targetVPool,
+                capabilities, _dbClient);
+
         List<VolumeDescriptor> targetVolumeDescriptors = createVolumesAndDescriptors(existingDescriptors,
-                param.getName()+"_TARGET", size, project, targetVArray, targetVPool, volRecommendations, taskList, task, capabilities,
+                param.getName()+"_TARGET", size, project, targetVArray, targetVPool, volRecommendations, taskList, task, targetCapabilities,
                 Volume.PersonalityTypes.TARGET);
         _log.info("Target volume descriptors: {}", targetVolumeDescriptors);
         List<VolumeDescriptor> blockVolumeDescriptors = new ArrayList<>(sourceVolumeDescriptors);
@@ -174,7 +177,7 @@ public class RemoteReplicationBlockServiceApiImpl extends AbstractBlockServiceAp
         List<VolumeDescriptor> remoteReplicationSourceDescriptor = buildRemoteReplicationDescriptors(sourceVolumeDescriptors, capabilities, VolumeDescriptor.Type.REMOTE_REPLICATION_SOURCE);
         _log.info("RR Source volume descriptors: {}", remoteReplicationSourceDescriptor);
 
-        List<VolumeDescriptor> remoteReplicationTargetDescriptor = buildRemoteReplicationDescriptors(targetVolumeDescriptors, capabilities, VolumeDescriptor.Type.REMOTE_REPLICATION_TARGET);
+        List<VolumeDescriptor> remoteReplicationTargetDescriptor = buildRemoteReplicationDescriptors(targetVolumeDescriptors, targetCapabilities, VolumeDescriptor.Type.REMOTE_REPLICATION_TARGET);
         _log.info("RR Target volume descriptors: {}", remoteReplicationTargetDescriptor);
 
         // We are done with all descriptors. Collect them in one final list.
@@ -273,6 +276,9 @@ public class RemoteReplicationBlockServiceApiImpl extends AbstractBlockServiceAp
         List<Volume> volumes = _dbClient.queryObject(Volume.class, volumeURIs);
         for (Volume volume : volumes) {
             volume.setPersonality(personality.toString());
+            // for target volumes set target side consistency group if source volume is in consistency group
+            // TODO: find consistency group with the same label in target volume system, if exist set it in target volume and in target descriptor, if does not exist --
+            // create and do the same.
         }
         _dbClient.updateObject(volumes);
 

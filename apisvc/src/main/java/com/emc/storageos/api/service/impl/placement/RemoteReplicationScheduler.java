@@ -13,6 +13,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import com.emc.storageos.remotereplicationcontroller.RemoteReplicationUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,6 +22,9 @@ import com.emc.storageos.api.service.authorization.PermissionsHelper;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
+import com.emc.storageos.db.client.constraint.PrefixConstraint;
+import com.emc.storageos.db.client.model.BlockConsistencyGroup;
+import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StringMap;
@@ -28,6 +32,7 @@ import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.remotereplication.RemoteReplicationGroup;
 import com.emc.storageos.db.client.model.remotereplication.RemoteReplicationSet;
+import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.volumecontroller.AttributeMatcher;
 import com.emc.storageos.volumecontroller.Recommendation;
@@ -36,7 +41,7 @@ import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValues
 public class RemoteReplicationScheduler implements Scheduler {
 
     public static final Logger _log = LoggerFactory.getLogger(RemoteReplicationScheduler.class);
-
+    public static final String CG_NAME_FORMAT = "%s-TARGET-%s";
     @Autowired
     protected PermissionsHelper _permissionsHelper = null;
 
@@ -97,6 +102,10 @@ public class RemoteReplicationScheduler implements Scheduler {
         // passed vpool params and protocols. In addition, the pool must have enough capacity
         // to hold at least one resource of the requested size.
         attributeMap.put(AttributeMatcher.Attributes.storage_system.name(), sourceStorageSystems);
+        // set multi-volume consistency
+        if (capabilities.getBlockConsistencyGroup() != null) {
+            attributeMap.put(AttributeMatcher.Attributes.multi_volume_consistency.name(), true);
+        }
         List<StoragePool> sourcePools = _blockScheduler.getMatchingPools(vArray, vPool, capabilities, attributeMap);
 
         if (sourcePools == null || sourcePools.isEmpty()) {
@@ -119,36 +128,15 @@ public class RemoteReplicationScheduler implements Scheduler {
         // and also match passed target vpool params and
         // protocols. In addition, the pool must have enough capacity
         // to hold at least one resource of the requested size.
-        StringMap remoteReplicationSettings = vPool.getRemoteReplicationProtectionSettings();
         List<StoragePool> targetPools = new ArrayList<>();
-        VirtualPool targetVirtualPool = vPool;
-        VirtualArray targetVirtualArray  = vArray;
-        VirtualPoolCapabilityValuesWrapper targetCapabilities;
+        VirtualPool targetVirtualPool = RemoteReplicationUtils.getTargetVPool(vPool, _dbClient);
+        VirtualArray targetVirtualArray  = RemoteReplicationUtils.getTargetVArray(vPool, _dbClient);
+        VirtualPoolCapabilityValuesWrapper targetCapabilities = buildTargetCapabilities(targetVirtualArray, targetVirtualPool, capabilities, _dbClient);
 
-        // There can be multiple entries for target varray and vpool combinations in the vpool
-        for (Map.Entry<String, String> entry : remoteReplicationSettings.entrySet()) {
-            String targetVirtualArrayId = entry.getKey();
-            targetVirtualArray = _dbClient.queryObject(VirtualArray.class, URIUtil.uri(targetVirtualArrayId));
-            String targetVirtualPoolId = entry.getValue();
-            if (targetVirtualPoolId == null) {
-                targetVirtualPool = vPool;
-            } else {
-                targetVirtualPool = _dbClient.queryObject(VirtualPool.class, URIUtil.uri(targetVirtualPoolId));
-            }
+        attributeMap.put(AttributeMatcher.Attributes.storage_system.name(), targetStorageSystems);
+        List<StoragePool> targetPoolsForTargetVArray = _blockScheduler.getMatchingPools(targetVirtualArray, targetVirtualPool, targetCapabilities, attributeMap);
+        addNewPools(targetPools, targetPoolsForTargetVArray);
 
-            // if target virtual pool is the same as the source virtual pool use original capabilities
-            if (targetVirtualPool.getId().equals(vPool.getId())) {
-                targetCapabilities = capabilities;
-            } else {
-                targetCapabilities = buildTargetCapabilities(targetVirtualPool, capabilities);
-            }
-            attributeMap.put(AttributeMatcher.Attributes.storage_system.name(), targetStorageSystems);
-            List<StoragePool> targetPoolsForTargetVArray = _blockScheduler.getMatchingPools(targetVirtualArray, targetVirtualPool, targetCapabilities, attributeMap);
-            addNewPools(targetPools, targetPoolsForTargetVArray);
-            // we support single pair for target varray and target vpool in remote replication protection settings
-            // todo: evaluate support for multiple entries, if it is really needed.
-            break;
-        }
 
         if (targetPools.isEmpty()) {
             _log.error(
@@ -177,9 +165,8 @@ public class RemoteReplicationScheduler implements Scheduler {
             throw APIException.badRequests.noStoragePools(vArray.getLabel(), vPool.getLabel(), msg);
         }
 
-        // Note: We pass target varray Id as null, since we may have multiple varrays for target volumes
         List<Recommendation> targetRecommendationsForPools = _blockScheduler.getRecommendationsForPools(targetVirtualArray.getId().toString(),
-                targetPools, capabilities);
+                targetPools, targetCapabilities);
         if (targetRecommendationsForPools.isEmpty()) {
             String msg = String.format(
                     "Could not build recommendations for target volumes for source vpool %s", vPool.getLabel());
@@ -217,7 +204,7 @@ public class RemoteReplicationScheduler implements Scheduler {
             int count = targetRecommendation.getResourceCount();
             while (count > 0) {
                 VolumeRecommendation volumeRecommendation = new VolumeRecommendation(VolumeRecommendation.VolumeType.BLOCK_VOLUME,
-                        capabilities.getSize(), targetVirtualPool, targetVirtualArray.getId());
+                        targetCapabilities.getSize(), targetVirtualPool, targetVirtualArray.getId());
                 volumeRecommendation.setSourceStoragePool(targetRecommendation.getSourceStoragePool());
                 volumeRecommendation.setSourceStorageSystem(targetRecommendation.getSourceStorageSystem());
                 volumeRecommendation.setVirtualArray(targetVirtualArray.getId());
@@ -225,8 +212,8 @@ public class RemoteReplicationScheduler implements Scheduler {
                 volumeRecommendation.setResourceCount(1);
                 volumeRecommendation.addStoragePool(targetRecommendation.getSourceStoragePool());
                 volumeRecommendation.addStorageSystem(targetRecommendation.getSourceStorageSystem());
-                if (capabilities.getBlockConsistencyGroup() != null) {
-                    volumeRecommendation.setParameter(VolumeRecommendation.ARRAY_CG, capabilities.getBlockConsistencyGroup());
+                if (targetCapabilities.getBlockConsistencyGroup() != null) {
+                    volumeRecommendation.setParameter(VolumeRecommendation.ARRAY_CG, targetCapabilities.getBlockConsistencyGroup());
                 }
                 // set source volume recommendation as underlying recommendation
                 volumeRecommendation.setRecommendation(sourceVolumeRecommendations.get(sourceVolumeRecommendationIndex++));
@@ -266,7 +253,8 @@ public class RemoteReplicationScheduler implements Scheduler {
      * @param sourceCapabilities capabilities built based on source vpool
      * @return capabilities based on target vpool
      */
-    private VirtualPoolCapabilityValuesWrapper  buildTargetCapabilities(VirtualPool targetVirtualPool, VirtualPoolCapabilityValuesWrapper sourceCapabilities) {
+    public static VirtualPoolCapabilityValuesWrapper  buildTargetCapabilities(VirtualArray targetVirtualArray, VirtualPool targetVirtualPool,
+                                                                        VirtualPoolCapabilityValuesWrapper sourceCapabilities, DbClient dbClient) {
         VirtualPoolCapabilityValuesWrapper targetCapabilities = new VirtualPoolCapabilityValuesWrapper(sourceCapabilities);
 
         Long volumeSize = sourceCapabilities.getSize();
@@ -284,6 +272,38 @@ public class RemoteReplicationScheduler implements Scheduler {
         // Does vpool supports dedup
         if (null != targetVirtualPool.getDedupCapable() && targetVirtualPool.getDedupCapable()) {
             targetCapabilities.put(VirtualPoolCapabilityValuesWrapper.DEDUP, Boolean.TRUE);
+        }
+
+        // Check if we need to set consistency group for target volumes in the target capabilities
+        URI sourceCGURI = sourceCapabilities.getBlockConsistencyGroup();
+        if (!URIUtil.isNull(sourceCGURI) && URIUtil.isValid(sourceCGURI)) {
+            BlockConsistencyGroup sourceCG = dbClient.queryObject(BlockConsistencyGroup.class, sourceCGURI);
+
+            // Generate the target BlockConsistencyGroup name
+            String targetCGName = String.format(CG_NAME_FORMAT, sourceCG.getLabel(), targetVirtualArray.getLabel());
+
+            // Check for existing target group
+            List<BlockConsistencyGroup> groups = CustomQueryUtility.queryActiveResourcesByConstraint(dbClient,
+                    BlockConsistencyGroup.class, PrefixConstraint.Factory
+                            .getFullMatchConstraint(BlockConsistencyGroup.class, "label", targetCGName));
+            BlockConsistencyGroup targetCG = null;
+            if (!groups.isEmpty()) {
+                targetCG = groups.get(0);
+                _log.info("Using existing target consistency group: {}", targetCG.getLabel());
+            } else {
+                _log.info("Creating target consistency group: {}", targetCGName);
+                Project project = dbClient.queryObject(Project.class, sourceCG.getProject().getURI());
+                // create CG
+                targetCG = new BlockConsistencyGroup();
+                targetCG.setId(URIUtil.createId(BlockConsistencyGroup.class));
+                targetCG.setLabel(targetCGName );
+                targetCG.setProject(sourceCG.getProject());
+                targetCG.setTenant(new NamedURI(project.getTenantOrg().getURI(),
+                        project.getTenantOrg().getName()));
+                targetCG.setAlternateLabel(sourceCG.getLabel());
+                dbClient.createObject(targetCG);
+            }
+            targetCapabilities.put(VirtualPoolCapabilityValuesWrapper.BLOCK_CONSISTENCY_GROUP, targetCG.getId());
         }
 
         return targetCapabilities;

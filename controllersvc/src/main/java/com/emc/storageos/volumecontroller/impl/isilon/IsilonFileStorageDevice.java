@@ -2837,7 +2837,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         try {
             if (existingPolicy.getFilePolicyType().equals(FilePolicy.FilePolicyType.file_replication.name())) {
                 storageSystemPolicy = getReplicationPolicyForPolicyStorageResource(isi, policyRes, existingPolicy);
-            } else if (existingPolicy.getFilePolicyType().equals(FilePolicy.FilePolicyType.file_replication.name())) {
+            } else if (existingPolicy.getFilePolicyType().equals(FilePolicy.FilePolicyType.file_snapshot.name())) {
                 storageSystemPolicy = getSnapshotPolicyForPolicyStorageResource(isi, policyRes, existingPolicy);
             } else {
                 String errorMsg = "Invalid policy type {} " + existingPolicy.getFilePolicyType();

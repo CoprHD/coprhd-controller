@@ -26,14 +26,19 @@ retrieve_jar() {
     TOOLING_REPO_DIR=$4
     DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
     if [ ! -f "${DIR}/${TOOLS_JAR}.jar" ]; then
-	jar_version=`sshpass -p ${TOOLING_REPO_PW} ssh -o StrictHostKeyChecking=no root@${TOOLING_REPO_IP} "ls -t ${TOOLING_REPO_DIR} | head -1"`
+	jar_version=`sshpass -p ${TOOLING_REPO_PW} ssh -o StrictHostKeyChecking=no root@${TOOLING_REPO_IP} "ls -t ${TOOLING_REPO_DIR} | grep -v jar | head -1"`
 	if [ $? -ne 0 ]; then
 	    echo "ERROR: Could not reach repo for ${TOOLING_JAR_NAME}.jar, and it is required for execution."
 	    exit;
 	fi
 
-	echo "Enter password: ${TOOLING_REPO_PW}"
 	sshpass -p ${TOOLING_REPO_PW} scp root@${TOOLING_REPO_IP}:${TOOLING_REPO_DIR}/${jar_version}/${TOOLING_JAR_NAME}-${jar_version}.jar ${TOOLING_JAR_NAME}.jar
+	if [ $? -ne 0 -o ! -f ${TOOLING_JAR_NAME}.jar ]; then
+	    echo "ERROR: Could not get ${TOOLING_JAR_NAME}.jar, and it is required for execution."
+	    exit;
+	fi
+
+	echo "Downloaded latest ${TOOLING_JAR_NAME} (version ${jar_version}) from repository"
     fi	
 }
 

@@ -145,6 +145,9 @@ prerun_setup() {
     # Convenience, clean up known artifacts
     cleanup_previous_run_artifacts
 
+    # Get the latest tools
+    retrieve_tooling
+
     project list --tenant emcworld > /dev/null 2> /dev/null
     if [ $? -eq 0 ]; then
 	   echo "Seeing if there's an existing base of volumes"
@@ -974,9 +977,6 @@ setup_varray() {
 
 setup() {
     storage_type=$1;
-
-    # Get the latest tools
-    retrieve_tooling
 
     syssvc $SANITY_CONFIG_FILE localhost setup
     security add_authn_provider ldap ldap://${LOCAL_LDAP_SERVER_IP} cn=manager,dc=viprsanity,dc=com secret ou=ViPR,dc=viprsanity,dc=com uid=%U CN Local_Ldap_Provider VIPRSANITY.COM ldapViPR* SUBTREE --group_object_classes groupOfNames,groupOfUniqueNames,posixGroup,organizationalRole --group_member_attributes member,uniqueMember,memberUid,roleOccupant

@@ -1984,7 +1984,8 @@ public class ExportUtils {
            
         }
         
-        if(CollectionUtils.isEmpty(exportGroup.getExportMasks())) {
+        if(CollectionUtils.isEmpty(exportGroup.getExportMasks())
+                && !exportGroup.checkInternalFlags(DataObject.Flag.INTERNAL_OBJECT)) {
             //COP-27689 - Even if all the export masks got cleared, the export Group still remains with initiators and volumes.
             //Clean up all the initiators, volumes and ports as there are no available export masks or we could delete the export Group too. 
             _log.info("There are no masks in the export Group {}-->{} , hence deleting export group...",exportGroup.getId(),exportGroup.getLabel());

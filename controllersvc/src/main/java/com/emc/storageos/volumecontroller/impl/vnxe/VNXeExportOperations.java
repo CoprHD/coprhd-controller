@@ -278,7 +278,7 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
 
             // Clear out the pre-populated volume list from the completer's creator.
             // We will add volumes individually in the for-loop below.
-            ((ExportMaskDeleteCompleter) taskCompleter).setVolumes(new HashSet<URI>());
+            ((ExportMaskDeleteCompleter) taskCompleter).setVolumes(new ArrayList<URI>());
 
             String opId = taskCompleter.getOpId();
             Set<String> processedCGs = new HashSet<String>();

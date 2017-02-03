@@ -857,6 +857,10 @@ public abstract class VirtualPoolService extends TaggedResource {
 	            }
 	        }
         }
+        
+        if(!vpool.getFilePolicies().isEmpty()) {
+            throw APIException.badRequests.cannotDeleteVpoolAssignedFilePolicy(vpool.getLabel());
+        }
 
         if (!vpool.getType().equals(type.name())) {
             throw APIException.badRequests.providedVirtualPoolNotCorrectType();

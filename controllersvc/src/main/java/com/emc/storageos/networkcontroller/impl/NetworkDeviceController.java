@@ -2264,12 +2264,6 @@ public class NetworkDeviceController implements NetworkController {
      * @param doPersist a boolean that indicates if the changes should be persisted in the db
      */
     public void updateZoningMapForInitiators(ExportGroup exportGroup, ExportMask exportMask, boolean doPersist) {
-        if (exportMask.getCreatedBySystem()) {
-            _log.info((String.format("Export mask %s (%s, args) created by Vipr, not importing zones", 
-                    exportMask.getMaskName(), exportMask.getId())));
-            return;
-        }
-        // we have a mask that was not created by ViPR
         if (exportMask.getZoningMap() == null || exportMask.getZoningMap().isEmpty()) {
             Long start = System.currentTimeMillis();
             // possibly the first time this export mask is processed, populate from existing zones

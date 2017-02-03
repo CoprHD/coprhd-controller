@@ -2261,9 +2261,9 @@ public class VmaxExportOperations implements ExportMaskOperations {
                 }
 
                 builder.append(
-                        String.format("XM refresh: %s initiators; add:{%s} remove:{%s}%n remove ids:{%s}%n",
+                        String.format("XM refresh: %s existing initiators; add:{%s} remove:{%s}%n",
                                 name, Joiner.on(',').join(initiatorsToAdd),
-                                Joiner.on(',').join(initiatorsToRemove), Joiner.on(',').join(initiatorIdsToRemove)));
+                                Joiner.on(',').join(initiatorsToRemove)));                                
                 builder.append(
                         String.format("XM refresh: %s volumes; add:{%s} remove:{%s}%n",
                                 name, Joiner.on(',').join(volumesToAdd.keySet()),
@@ -2275,14 +2275,12 @@ public class VmaxExportOperations implements ExportMaskOperations {
 
                 // Any changes indicated, then update the mask and persist it
                 if (addInitiators || removeInitiators || addVolumes ||
-                        removeVolumes || addStoragePorts || removeStoragePorts) {
-                    builder.append("XM refresh: There are changes to mask, " +
-                            "updating it...\n");
+                        removeVolumes || addStoragePorts || removeStoragePorts) {                    
                     mask.removeFromExistingInitiators(initiatorsToRemove);
                     if (initiatorIdsToRemove != null && !initiatorIdsToRemove.isEmpty()) {
                         mask.removeInitiators(_dbClient.queryObject(Initiator.class, initiatorIdsToRemove));
                         mask.removeFromUserAddedInitiatorsByURI(initiatorIdsToRemove);
-                    }
+                    } 
                     // https://coprhd.atlassian.net/browse/COP-17224 - For those cases where InitiatorGroups are shared
                     // by
                     // MaskingViews, if CoprHD processes one ExportMask by updating it with new initiators, then it
@@ -2294,6 +2292,12 @@ public class VmaxExportOperations implements ExportMaskOperations {
                     List<Initiator> userAddedInitiators = ExportMaskUtils.findIfInitiatorsAreUserAddedInAnotherMask(mask, initiatorObjectsForComputeResource,
                             _dbClient);
                     mask.addToUserCreatedInitiators(userAddedInitiators);
+                                        
+                    builder.append(
+                            String.format("XM refresh: %s user added initiators; add:{%s} remove:{%s}%n",
+                                    name, Joiner.on(',').join(userAddedInitiators),
+                                    Joiner.on(',').join(initiatorIdsToRemove)));
+                    
                     mask.addToExistingInitiatorsIfAbsent(initiatorsToAdd);
                     mask.addInitiators(initiatorObjectsForComputeResource);
                     mask.addToUserCreatedInitiators(initiatorObjectsForComputeResource);
@@ -2302,6 +2306,8 @@ public class VmaxExportOperations implements ExportMaskOperations {
                     mask.getStoragePorts().addAll(storagePortsToAdd);
                     mask.getStoragePorts().removeAll(storagePortsToRemove);
                     ExportMaskUtils.sanitizeExportMaskContainers(_dbClient, mask);
+                    builder.append("XM refresh: There are changes to mask, " +
+                            "updating it...\n");
                     _dbClient.updateObject(mask);
                 } else {
                     builder.append("XM refresh: There are no changes to the mask\n");

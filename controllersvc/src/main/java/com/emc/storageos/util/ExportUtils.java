@@ -2002,8 +2002,9 @@ public class ExportUtils {
      * @param dbClient A reference to a database client.
      */
     private static void cleanStaleZoningMapEntries(List<URI> maskURIs, DbClient dbClient) {
-        for (URI maskURI : maskURIs) {
-            ExportMask maskObj = dbClient.queryObject(ExportMask.class, maskURI);
+        Iterator<ExportMask> maskIter = dbClient.queryIterativeObjects(ExportMask.class, maskURIs);
+        while (maskIter.hasNext()) {
+            ExportMask maskObj = maskIter.next();
             StringSetMap zoningMap = maskObj.getZoningMap();
             StringSet maskInitIds = maskObj.getInitiators();
             Set<String> zoningMapInitIds = new HashSet<>(zoningMap.keySet());

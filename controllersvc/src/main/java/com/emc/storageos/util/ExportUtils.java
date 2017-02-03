@@ -2024,7 +2024,8 @@ public class ExportUtils {
            
         }
         
-        if(CollectionUtils.isEmpty(exportGroup.getInitiators())) {
+        if(CollectionUtils.isEmpty(exportGroup.getInitiators())
+                && !exportGroup.checkInternalFlags(DataObject.Flag.INTERNAL_OBJECT)) {
             //COP-27689 - Even if all the export masks got cleared, the export Group still remains with initiators and volumes.
             //Clean up all the initiators, volumes and ports as there are no available export masks or we could delete the export Group too. 
             _log.info("There are no initiators in the export Group {}-->{} , hence deleting export group...",exportGroup.getId(),exportGroup.getLabel());
@@ -2061,7 +2062,8 @@ public class ExportUtils {
                 _log.info("Stale volumes {}  removed from Export Group {}", volumeDiff, exportGroup.getId());
             }
         }
-        if (CollectionUtils.isEmpty(exportGroup.getVolumes())) {
+        if (CollectionUtils.isEmpty(exportGroup.getVolumes())
+                && !exportGroup.checkInternalFlags(DataObject.Flag.INTERNAL_OBJECT)) {
             // COP-27689 - Even if all the export masks got cleared, the export
             // Group still remains with initiators and volumes.
             // Clean up all the initiators, volumes and ports as there are no
@@ -2106,7 +2108,8 @@ public class ExportUtils {
            
         } 
         if (!ExportGroupType.Initiator.toString().equalsIgnoreCase(exportGroup.getType())
-                && CollectionUtils.isEmpty(exportGroup.getHosts())) {
+                && CollectionUtils.isEmpty(exportGroup.getHosts())
+                && !exportGroup.checkInternalFlags(DataObject.Flag.INTERNAL_OBJECT)) {
             //COP-27689 - Even if all the export masks got cleared, the export Group still remains with initiators and volumes.
             //Clean up all the initiators, volumes and ports as there are no available export masks or we could delete the export Group too. 
             _log.info("There are no hosts in the export Group {}-->{} , hence deleting export group...", exportGroup.getId(),
@@ -2146,7 +2149,8 @@ public class ExportUtils {
             
         } 
         if(ExportGroupType.Cluster.toString().equalsIgnoreCase(exportGroup.getType())
-                && CollectionUtils.isEmpty(exportGroup.getClusters())) {
+                && CollectionUtils.isEmpty(exportGroup.getClusters())
+                && !exportGroup.checkInternalFlags(DataObject.Flag.INTERNAL_OBJECT)) {
             //COP-27689 - Even if all the export masks got cleared, the export Group still remains with initiators and volumes.
             //Clean up all the initiators, volumes and ports as there are no available export masks or we could delete the export Group too. 
             _log.info("There are no clusters in the export Group {}-->{} , hence deleting export group...",exportGroup.getId(),exportGroup.getLabel());

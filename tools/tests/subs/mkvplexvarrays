@@ -9,7 +9,10 @@
 # a simple vpool to create vplex local volumes and another vpool to create vplex
 # distributed volumes.
 source subs/run
-run syssvc $CONFIG_FILE $BOURNE_IP set_prop controller_vplex_director_min_port_count 1
+if [ "$CONFIG_FILE" != "" -a "$BOURNE_IP" != "" ]; then
+    run syssvc $CONFIG_FILE $BOURNE_IP set_prop controller_vplex_director_min_port_count 1
+fi
+rootTenant=`tenant root`
 
 
 ############################################################################

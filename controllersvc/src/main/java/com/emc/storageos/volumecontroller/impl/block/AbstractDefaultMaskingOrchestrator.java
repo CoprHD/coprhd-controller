@@ -2555,7 +2555,7 @@ abstract public class AbstractDefaultMaskingOrchestrator {
      *            a boolean that indicate if the changes should be persisted
      */
     protected void updateZoningMap(ExportGroup exportGroup, ExportMask exportMask, boolean doPersist) {
-        _networkDeviceController.updateZoningMap(exportGroup, exportMask, doPersist);
+        _networkDeviceController.updateZoningMapForInitiators(exportGroup, exportMask, doPersist);
     }
 
     /**

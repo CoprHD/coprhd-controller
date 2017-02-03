@@ -45,6 +45,7 @@ import com.emc.storageos.db.client.model.NetworkSystem;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StorageProtocol.Transport;
+import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.StringSetMap;
 import com.emc.storageos.db.client.model.VirtualArray;
@@ -2200,21 +2201,32 @@ public class NetworkDeviceController implements NetworkController {
      * Finds all the zone paths that exists between a list of initiators and storage ports.
      * 
      * @param initiators the list of initiators
-     * @param storagePorts a map of storage port keyed by the port WWN
+     * @param portsMap a map of storage port keyed by the port WWN
      * @param initiatorWwnToZonesMap an OUT parameter used to store the zones retrieved mapped by initiator
+     * @param networkSystemURI - an OUT parameter indicating the NetworkSystem's URI that found the zones
      * 
      * @return a zoning map of zones that exists on the network systems
      */
     public StringSetMap getZoningMap(NetworkLite network, List<Initiator> initiators,
-            Map<String, StoragePort> portsMap, Map<String, List<Zone>> initiatorWwnToZonesMap) {
+            Map<String, StoragePort> portsMap, Map<String, List<Zone>> initiatorWwnToZonesMap, 
+            URI[] networkSystemURI) {
         StringSetMap map = new StringSetMap();
+        
+        StringSet initiatorWwns = new StringSet();
+        for (Initiator initiator : initiators) {
+            initiatorWwns.add(initiator.getInitiatorPort());
+        }
+        _log.info(String.format("Looking for zones from iniiators %s to targets %s", initiatorWwns, portsMap.keySet()));
 
         // find all the zones for the initiators as a map of initiator WWN to zones
         if (initiatorWwnToZonesMap == null) {
             initiatorWwnToZonesMap = new HashMap<String, List<Zone>>();
         }
         // of the zones retrieved from the network system, select the once
-        fetchInitiatorsZones(network, initiators, initiatorWwnToZonesMap);
+        NetworkSystem networkSystem = fetchInitiatorsZones(network, initiators, initiatorWwnToZonesMap);
+        if (networkSystem != null && networkSystemURI != null) {
+            networkSystemURI[0] = networkSystem.getId();
+        }
         initiatorWwnToZonesMap = selectZonesForInitiatorsAndPorts(network, initiatorWwnToZonesMap, portsMap);
         // build the map object
         for (Initiator initiator : initiators) {
@@ -2222,6 +2234,7 @@ public class NetworkDeviceController implements NetworkController {
             List<Zone> zones = initiatorWwnToZonesMap.get(initiator.getInitiatorPort());
             if (zones != null) {
                 for (Zone zone : zones) {
+                    _log.info(zone.getLogString());
                     for (ZoneMember member : zone.getMembers()) {
                         if (portsMap.containsKey(member.getAddress())) {
                             // There can be multiple zones with the same initiator and port
@@ -2239,40 +2252,98 @@ public class NetworkDeviceController implements NetworkController {
                 new Object[] { map, initiatorWwnToZonesMap.keySet(), portsMap.keySet() });
         return map;
     }
-
+    
     /**
      * Update the zoning map for a newly "accepted" export mask. This applies to
      * brown field scenarios where a export mask was found on the storage array.
-     * This function finds the zones of the export mask existing initiators and
+     * This function finds the zones of the export mask initiators and
      * existing ports and creates the zoning map between the two sets.
      * 
      * @param exportGroup the masking view export group
      * @param exportMask the export mask being updated.
      * @param doPersist a boolean that indicates if the changes should be persisted in the db
      */
-    public void updateZoningMap(ExportGroup exportGroup, ExportMask exportMask, boolean doPersist) {
-        if (exportMask.getCreatedBySystem() == false && exportMask.getExistingInitiators() != null
-                && !exportMask.getExistingInitiators().isEmpty()) {
-            // we have a mask that was not created by ViPR
-            if (exportMask.getZoningMap() == null || exportMask.getZoningMap().isEmpty()) {
-                // possibly the first time this export mask is processed, populate from existing zones
-                List<StoragePort> storagePorts = ExportUtils.getStoragePorts(exportMask, _dbClient);
-                List<Initiator> initiators = ExportUtils.getExportMaskExistingInitiators(exportMask, _dbClient);
-                Map<NetworkLite, List<Initiator>> initiatorsByNetworkMap = NetworkUtil.getInitiatorsByNetwork(initiators, _dbClient);
+    public void updateZoningMapForInitiators(ExportGroup exportGroup, ExportMask exportMask, boolean doPersist) {
+        if (exportMask.getZoningMap() == null || exportMask.getZoningMap().isEmpty()) {
+            Long start = System.currentTimeMillis();
+            // possibly the first time this export mask is processed, populate from existing zones
+            List<StoragePort> storagePorts = ExportUtils.getStoragePorts(exportMask, _dbClient);
+            Set<Initiator> initiators = ExportMaskUtils.getInitiatorsForExportMask(_dbClient,  exportMask, Transport.FC);
+            Map<NetworkLite, List<Initiator>> initiatorsByNetworkMap = NetworkUtil.getInitiatorsByNetwork(initiators, _dbClient);
 
-                StringSetMap zoningMap = new StringSetMap();
-                for (NetworkLite network : initiatorsByNetworkMap.keySet()) {
-                    if (!Transport.FC.toString().equals(network.getTransportType())) {
+            StringSetMap zoningMap = new StringSetMap();
+            for (NetworkLite network : initiatorsByNetworkMap.keySet()) {
+                if (!Transport.FC.toString().equals(network.getTransportType())) {
+                    continue;
+                }
+                Map<String, StoragePort> initiatorPortsMap = NetworkUtil.getPortsInNetworkMap(network, storagePorts);
+                if (!initiatorPortsMap.isEmpty()) {
+                    Map<String, List<Zone>> initiatorWwnToZonesMap = new HashMap<String, List<Zone>>();
+                    URI[] networkSystemURIUsed = new URI[1];
+                    zoningMap.putAll(
+                            getZoningMap(network, initiatorsByNetworkMap.get(network), initiatorPortsMap, 
+                                    initiatorWwnToZonesMap, networkSystemURIUsed));
+                    createZoneReferences(network, networkSystemURIUsed[0], exportGroup, exportMask, initiatorWwnToZonesMap);
+                }
+            }
+            _log.info(String.format("Elapsed time to updateZoningMap %d seconds", ((System.currentTimeMillis()-start)/1000L)));
+            exportMask.setZoningMap(zoningMap);
+            if (doPersist) {
+                _dbClient.updateAndReindexObject(exportMask);
+            }
+        } else {
+            _log.info((String.format("Export mask %s (%s, args) already has a zoning map, not importing zones", 
+                    exportMask.getMaskName(), exportMask.getId())));
+        }
+    }
+    
+    /**
+     * Create zone references when we discover zones off the switch. 
+     * Normally this routine will not do anything, because the ExportMask is freshly created, and
+     * will therefore have no volumes in it.
+     * @param network -- Network Lite
+     * @param networkSystem -- URI of network system
+     * @param exportGroup -- ExportGroup
+     * @param exportMask -- ExportMask
+     * @param initiatorWwntoZonesMap -- Map of initiator WWN string to a list of corresponding Zones
+     */
+    void createZoneReferences(NetworkLite network, URI networkSystem, 
+            ExportGroup exportGroup, ExportMask exportMask, Map<String, List<Zone>> initiatorWwntoZonesMap) {
+        StringMap maskVolumes = exportMask.getVolumes();
+        if (maskVolumes == null || maskVolumes.isEmpty()) {
+            _log.info(String.format("No volumes in ExportMask %s %s so no zone references created",  
+                    exportMask.getMaskName(), exportMask.getId()));
+            return;
+        }
+        // Create zone reference for each volume and zone. In the case of zones with multiple targets,
+        // create a separate zone reference for each initiator - target pair.
+        for (String maskVolume : maskVolumes.keySet()) {
+            for (List<Zone> zones : initiatorWwntoZonesMap.values()) {
+                for (Zone zone : zones) {
+                    // Find the initiatorWwn
+                    String initiatorWwn = null;
+                    for (ZoneMember member : zone.getMembers()) {
+                        if (initiatorWwntoZonesMap.containsKey(member.getAddress())) {
+                            initiatorWwn = member.getAddress();
+                            break;
+                        }
+                    }
+                    if (initiatorWwn == null) {
+                        // Could not locate the initiator
+                        _log.info("Could not locat the initiator: " + zone.getName());
                         continue;
                     }
-                    Map<String, StoragePort> initiatorPortsMap = NetworkUtil.getPortsInNetworkMap(network, storagePorts);
-                    if (!initiatorPortsMap.isEmpty()) {
-                        zoningMap.putAll(getZoningMap(network, initiatorsByNetworkMap.get(network), initiatorPortsMap, null));
+                    for (ZoneMember member : zone.getMembers()) {
+                        if (initiatorWwn.equals(member.getAddress())) {
+                            continue;
+                        }
+                        String key = FCZoneReference.makeEndpointsKey(initiatorWwn, member.getAddress());
+                        String[] newOrExisting = new String[1];
+                        FCZoneReference ref = addZoneReference(exportGroup.getId(),  URI.create(maskVolume), key, network.getNativeId(), 
+                                networkSystem, zone.getName(), true, newOrExisting);
+                        _log.info(String.format("Created FCZoneReference for existing zone %s %s %s %s", 
+                                ref.getZoneName(), ref.getPwwnKey(), ref.getVolumeUri(), ref.getGroupUri()));
                     }
-                }
-                exportMask.setZoningMap(zoningMap);
-                if (doPersist) {
-                    _dbClient.updateAndReindexObject(exportMask);
                 }
             }
         }

@@ -2213,8 +2213,9 @@ public class BlockStorageScheduler {
                 continue;
             }
             Map<String, StoragePort> portByWwn = DataObjectUtils.mapByProperty(portByNetwork.get(network), "portNetworkId");
+            URI[] networkSystemURIUsed = new URI[1];
             zonesInNetwork = networkDeviceController.getZoningMap(network, networkInitiators,
-                    portByWwn, initiatorWwnToZonesMap);
+                    portByWwn, initiatorWwnToZonesMap, networkSystemURIUsed);
             _log.info("Existing zones in network {} are {}", network.getNativeGuid(), zonesInNetwork);
 
             // if the OUT parameter is not null, fill in the discovered zones

@@ -384,7 +384,6 @@ public class BlockDeviceExportController implements BlockExportController {
 
         Workflow workflow = null;
         try {
-
             computeDiffs(export,
                     addedBlockObjectMap, removedBlockObjectMap, addedStorageToBlockObjects,
                     removedStorageToBlockObjects, addedInitiators,
@@ -397,7 +396,6 @@ public class BlockDeviceExportController implements BlockExportController {
             // into the completer, so we strip that out of the map for the benefit of
             // keeping the completer simple.
             Map<URI, Integer> addedBlockObjects = new HashMap<>();
-
             for (URI storageUri : addedStorageToBlockObjects.keySet()) {
                 addedBlockObjects.putAll(addedStorageToBlockObjects.get(storageUri));
             }
@@ -432,6 +430,7 @@ public class BlockDeviceExportController implements BlockExportController {
                                 removedStorageToBlockObjects.get(storageUri),
                                 new ArrayList(addedInitiators), new ArrayList(removedInitiators), storageUri);
             }
+            
             if (!workflow.getAllStepStatus().isEmpty()) {
                 _log.info("The updateExportWorkflow has {} steps. Starting the workflow.", workflow.getAllStepStatus().size());
                 workflow.executePlan(taskCompleter, "Update the export group on all storage systems successfully.");

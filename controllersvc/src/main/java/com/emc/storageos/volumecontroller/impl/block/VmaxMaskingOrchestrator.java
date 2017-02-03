@@ -844,7 +844,6 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
         }
     }
 
-
     @Override
     protected boolean useComputedMaskName() {
         return true;

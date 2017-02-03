@@ -10051,7 +10051,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
                         StorageProvider.InterfaceType.vplex.name());
         for (StorageProvider vplexMnmgtServer : vplexMnmgtServers) {
             try {
-                if (!ConnectivityUtil.ping(vplexMnmgtServer.getIPAddress())) {
+                if (ConnectivityUtil.ping(vplexMnmgtServer.getIPAddress())) {
                     VPlexApiClient client = getVPlexAPIClient(_vplexApiFactory,
                             vplexMnmgtServer, _dbClient);
                     client.verifyConnectivity();

@@ -57,7 +57,7 @@ public class DataDomainUtils {
         List<URI> activeProviders = new ArrayList<URI>();
         for (StorageProvider storageProvider : ddProviderList) {
             try {
-                if (!ConnectivityUtil.ping(storageProvider.getIPAddress())) {
+                if (ConnectivityUtil.ping(storageProvider.getIPAddress())) {
                     // Is the DDMC reachable
                     DataDomainClient ddClient = getDataDomainClient(storageProvider, ddClientFactory);
                     if (ddClient == null) {

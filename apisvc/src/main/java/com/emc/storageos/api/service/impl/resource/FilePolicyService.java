@@ -567,7 +567,7 @@ public class FilePolicyService extends TaskResourceService {
     @Path("/{id}/policy-storage-resources/{resId}")
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR, Role.TENANT_ADMIN })
-    public FilePolicyStorageResourceRestRep getFilePolicyStorageResource(@PathParam("id") URI id, @PathParam("id") URI resId) {
+    public FilePolicyStorageResourceRestRep getFilePolicyStorageResource(@PathParam("id") URI id, @PathParam("resId") URI resId) {
 
         _log.info("Request recieved to list of storage resource for the policy {}", id);
         FilePolicy filepolicy = queryResource(id);
@@ -588,7 +588,7 @@ public class FilePolicyService extends TaskResourceService {
     @Path("/{id}/policy-storage-resources/{resId}/policy")
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR, Role.TENANT_ADMIN })
-    public FilePolicyRestRep getFileProtectionPolicyFromPolicyStorageResource(@PathParam("id") URI id, @PathParam("id") URI resId) {
+    public FilePolicyRestRep getFileProtectionPolicyFromPolicyStorageResource(@PathParam("id") URI id, @PathParam("resId") URI resId) {
 
         _log.info("Request recieved to list of storage resource for the policy {}", id);
         FilePolicy filepolicy = queryResource(id);

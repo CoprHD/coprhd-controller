@@ -24,6 +24,7 @@ public class PolicyStorageResource extends DataObject {
     private String resourcePath;
     private String nativeGuid;
 
+    @RelationIndex(cf = "RelationIndex", type = FilePolicy.class)
     @Name("filePolicyId")
     public URI getFilePolicyId() {
         return filePolicyId;

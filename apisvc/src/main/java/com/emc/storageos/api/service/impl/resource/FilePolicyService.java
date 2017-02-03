@@ -894,15 +894,17 @@ public class FilePolicyService extends TaskResourceService {
                 // update replication topology info
                 updateFileReplicationTopologyInfo(param, filePolicy);
                 List<FileRecommendation> recommendations = new ArrayList<FileRecommendation>();
+
                 for (URI vpoolURI : filteredVpoolURIs) {
                     VirtualPool vpool = _permissionsHelper.getObjectById(vpoolURI, VirtualPool.class);
                     StringSet sourceVArraysSet = vpool.getVirtualArrays();
+                    VirtualPoolCapabilityValuesWrapper capabilities = new VirtualPoolCapabilityValuesWrapper();
+
+                    updatePolicyCapabilities(_dbClient, sourceVArraysSet, vpool, filePolicy, capabilities, errorMsg);
+
                     for (Iterator<String> iterator = sourceVArraysSet.iterator(); iterator.hasNext();) {
                         String vArrayURI = iterator.next();
-                        VirtualPoolCapabilityValuesWrapper capabilities = new VirtualPoolCapabilityValuesWrapper();
-                        capabilities.put(VirtualPoolCapabilityValuesWrapper.VPOOL_PROJECT_POLICY_ASSIGN, true);
                         VirtualArray srcVarray = _dbClient.queryObject(VirtualArray.class, URI.create(vArrayURI));
-                        updatePolicyCapabilities(_dbClient, srcVarray, vpool, filePolicy, capabilities, errorMsg);
                         List<FileRecommendation> newRecs = _filePlacementManager.getRecommendationsForFileCreateRequest(srcVarray, null,
                                 vpool, capabilities);
                         recommendations.addAll(newRecs);
@@ -923,10 +925,11 @@ public class FilePolicyService extends TaskResourceService {
 
     }
 
-    public static boolean updatePolicyCapabilities(DbClient dbClient, VirtualArray currVArray, VirtualPool vPool, FilePolicy policy,
+    public static boolean updatePolicyCapabilities(DbClient dbClient, StringSet sourceVArraySet, VirtualPool vPool, FilePolicy policy,
             VirtualPoolCapabilityValuesWrapper capabilities, StringBuilder errorMsg) {
 
         // Update replication policy capabilities!!
+        capabilities.put(VirtualPoolCapabilityValuesWrapper.VPOOL_PROJECT_POLICY_ASSIGN, true);
         capabilities.put(VirtualPoolCapabilityValuesWrapper.FILE_REPLICATION_TYPE, policy.getFileReplicationType());
         capabilities.put(VirtualPoolCapabilityValuesWrapper.FILE_REPLICATION_COPY_MODE, policy.getFileReplicationCopyMode());
         if (vPool.getFrRpoType() != null) { // rpo type can be DAYS or HOURS
@@ -943,14 +946,14 @@ public class FilePolicyService extends TaskResourceService {
             for (String strTopology : policy.getReplicationTopologies()) {
                 FileReplicationTopology dbTopology = dbClient.queryObject(FileReplicationTopology.class,
                         URI.create(strTopology));
-                if (currVArray.getId().toString().equalsIgnoreCase(dbTopology.getSourceVArray().toString())) {
+                if (sourceVArraySet.contains(dbTopology.getSourceVArray().toString())) {
                     targetVArrays.addAll(dbTopology.getTargetVArrays());
                     break;
                 }
             }
             if (targetVArrays.isEmpty()) {
-                errorMsg.append("Target Varray is not defined in replication topology for source varray "
-                        + currVArray.getLabel() + ". ");
+                errorMsg.append("Target Varrays are not defined in replication topology for source varrays "
+                        + sourceVArraySet + ". ");
                 return false;
             }
             capabilities.put(VirtualPoolCapabilityValuesWrapper.FILE_REPLICATION_TARGET_VARRAYS,
@@ -1074,16 +1077,14 @@ public class FilePolicyService extends TaskResourceService {
                 // update replication topology info
                 updateFileReplicationTopologyInfo(param, filePolicy);
                 List<FileRecommendation> recommendations = new ArrayList<FileRecommendation>();
-
+                VirtualPoolCapabilityValuesWrapper capabilities = new VirtualPoolCapabilityValuesWrapper();
                 StringSet sourceVArraysSet = vpool.getVirtualArrays();
+                updatePolicyCapabilities(_dbClient, sourceVArraysSet, vpool, filePolicy, capabilities, errorMsg);
                 for (Iterator<String> iterator = sourceVArraysSet.iterator(); iterator.hasNext();) {
                     String vArrayURI = iterator.next();
                     for (URI projectURI : filteredProjectURIs) {
                         Project project = _dbClient.queryObject(Project.class, projectURI);
-                        VirtualPoolCapabilityValuesWrapper capabilities = new VirtualPoolCapabilityValuesWrapper();
-                        capabilities.put(VirtualPoolCapabilityValuesWrapper.VPOOL_PROJECT_POLICY_ASSIGN, true);
                         VirtualArray srcVarray = _dbClient.queryObject(VirtualArray.class, URI.create(vArrayURI));
-                        updatePolicyCapabilities(_dbClient, srcVarray, vpool, filePolicy, capabilities, errorMsg);
                         List<FileRecommendation> newRecs = _filePlacementManager.getRecommendationsForFileCreateRequest(srcVarray,
                                 project,
                                 vpool, capabilities);
@@ -1150,7 +1151,7 @@ public class FilePolicyService extends TaskResourceService {
         // update replication topology info
         updateFileReplicationTopologyInfo(param, filepolicy);
         if ((param.getFileSystemAssignParams().getVpool() != null
-        && !param.getFileSystemAssignParams().getVpool().equals(filepolicy.getFilePolicyVpool()))) {
+                && !param.getFileSystemAssignParams().getVpool().equals(filepolicy.getFilePolicyVpool()))) {
             VirtualPool vpool = _dbClient.queryObject(VirtualPool.class, filepolicy.getFilePolicyVpool());
             errorMsg.append("File policy :" + filepolicy.getFilePolicyName()
                     + " is already assigned at file system level under the vpool: "

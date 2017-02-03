@@ -54,7 +54,6 @@ import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.client.util.StringSetUtil;
 import com.emc.storageos.db.joiner.Joiner;
-import com.emc.storageos.model.TaskList;
 import com.emc.storageos.security.authorization.BasePermissionsHelper;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorException;
@@ -160,9 +159,13 @@ public class VPlexUtil {
         }
 
         // Get the backend volume either source or ha.
+        List<URI> volumeUriList = new ArrayList<>();
         for (String associatedVolumeId : associatedVolumeIds) {
-            Volume associatedVolume = dbClient.queryObject(Volume.class,
-                    URI.create(associatedVolumeId));
+            volumeUriList.add(URI.create(associatedVolumeId));
+        }
+        Iterator<Volume> volumes = dbClient.queryIterativeObjects(Volume.class, volumeUriList, true);
+        while (volumes.hasNext()) {
+            Volume associatedVolume = volumes.next();
             if (associatedVolume != null) {
                 if (sourceVolume && associatedVolume.getVirtualArray().equals(vplexVolume.getVirtualArray())) {
                     backendVolume = associatedVolume;
@@ -336,21 +339,18 @@ public class VPlexUtil {
                         varrayToBlockObjects.get(varray).add(blockObjectURI);
                     }
                     // Look at the Virtual pool to determine if distributed.
-                    // Also make sure it has more than one associated volumes (indicating it is distributed).
-                    if (volume.getAssociatedVolumes() != null && volume.getAssociatedVolumes().size() > 1) {
-                        if (NullColumnValueGetter.isNotNullValue(vpool.getHighAvailability())) {
-                            if (vpool.getHighAvailability().equals(VirtualPool.HighAvailabilityType.vplex_distributed.name())) {
-                                if (vpool.getHaVarrayVpoolMap() != null) {
-                                    for (String varrayId : vpool.getHaVarrayVpoolMap().keySet()) {
-                                        // The HA varray counts if it matches the ExportGroup varray, or
-                                        // if the Vpool autoCrossConnectExport flag is set.
-                                        URI varrayURI = URI.create(varrayId);
-                                        if (varrayURI.equals(exportGroupVarray) || vpool.getAutoCrossConnectExport()) {
-                                            if (!varrayToBlockObjects.containsKey(varrayURI)) {
-                                                varrayToBlockObjects.put(varrayURI, new HashSet<URI>());
-                                            }
-                                            varrayToBlockObjects.get(varrayURI).add(blockObjectURI);
+                    if (NullColumnValueGetter.isNotNullValue(vpool.getHighAvailability())) {
+                        if (vpool.getHighAvailability().equals(VirtualPool.HighAvailabilityType.vplex_distributed.name())) {
+                            if (vpool.getHaVarrayVpoolMap() != null) {
+                                for (String varrayId : vpool.getHaVarrayVpoolMap().keySet()) {
+                                    // The HA varray counts if it matches the ExportGroup varray, or
+                                    // if the Vpool autoCrossConnectExport flag is set.
+                                    URI varrayURI = URI.create(varrayId);
+                                    if (varrayURI.equals(exportGroupVarray) || vpool.getAutoCrossConnectExport()) {
+                                        if (!varrayToBlockObjects.containsKey(varrayURI)) {
+                                            varrayToBlockObjects.put(varrayURI, new HashSet<URI>());
                                         }
+                                        varrayToBlockObjects.get(varrayURI).add(blockObjectURI);
                                     }
                                 }
                             }

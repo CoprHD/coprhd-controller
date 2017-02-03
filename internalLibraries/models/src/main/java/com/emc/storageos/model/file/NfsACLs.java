@@ -14,17 +14,21 @@ import javax.xml.bind.annotation.XmlRootElement;
 @XmlRootElement(name = "nfs_acls")
 public class NfsACLs implements Serializable {
 
-    /*
-     * response data attributes.
-     */
-
-    private static final long serialVersionUID = -5805098581764691677L;
+    private static final long serialVersionUID = 1780598964262028652L;
 
     private URI fileSystemId;
     private URI snapshotId;
     private List<NfsACL> nfsACLs;
 
-    @XmlElement(name = "fsID")
+    public NfsACLs() {
+    }
+
+    @XmlElement(name = "nfs_acl")
+    public List<NfsACL> getNfsACLs() {
+        return nfsACLs;
+    }
+
+    @XmlElement(name = "file_system_id")
     public URI getFileSystemId() {
         return fileSystemId;
     }
@@ -33,7 +37,7 @@ public class NfsACLs implements Serializable {
         this.fileSystemId = fileSystemId;
     }
 
-    @XmlElement(name = "snapShotID")
+    @XmlElement(name = "snapshot_id")
     public URI getSnapshotId() {
         return snapshotId;
     }
@@ -42,13 +46,29 @@ public class NfsACLs implements Serializable {
         this.snapshotId = snapshotId;
     }
 
-    @XmlElement(name = "nfs_acl")
-    public List<NfsACL> getNfsACLs() {
-        return nfsACLs;
-    }
-
     public void setNfsACLs(List<NfsACL> nfsACLs) {
         this.nfsACLs = nfsACLs;
     }
 
+    @Override
+    public String toString() {
+        StringBuilder builder = new StringBuilder();
+        builder.append("NfsACLs [");
+        if (fileSystemId != null) {
+            builder.append("fileSystemId=");
+            builder.append(fileSystemId);
+            builder.append(", ");
+        }
+        if (snapshotId != null) {
+            builder.append("snapshotId=");
+            builder.append(snapshotId);
+            builder.append(", ");
+        }
+        if (nfsACLs != null) {
+            builder.append("nfsACLs=");
+            builder.append(nfsACLs);
+        }
+        builder.append("]");
+        return builder.toString();
+    }
 }

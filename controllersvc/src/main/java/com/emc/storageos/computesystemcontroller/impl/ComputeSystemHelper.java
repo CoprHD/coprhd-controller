@@ -8,6 +8,7 @@ import java.net.URI;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -79,10 +80,11 @@ public class ComputeSystemHelper {
         List<URI> uris = dbClient.queryByConstraint(
                 ContainmentConstraint.Factory.getContainedObjectsConstraint(id, clzz, linkField));
         if (uris != null && !uris.isEmpty()) {
-            List<T> dataObjects = dbClient.queryObjectField(clzz, nameField, uris);
+            Iterator<T> dataObjects = dbClient.queryIterativeObjectField(clzz, nameField, uris);
             List<NamedElementQueryResultList.NamedElement> elements =
-                    new ArrayList<NamedElementQueryResultList.NamedElement>(dataObjects.size());
-            for (T dataObject : dataObjects) {
+                    new ArrayList<NamedElementQueryResultList.NamedElement>();
+            while (dataObjects.hasNext()) {
+                T dataObject = dataObjects.next();
                 Object name = DataObjectUtils.getPropertyValue(clzz, dataObject, nameField);
                 elements.add(NamedElementQueryResultList.NamedElement.createElement(
                         dataObject.getId(), name == null ? "" : name.toString()));
@@ -575,6 +577,21 @@ public class ComputeSystemHelper {
         Host host = dbClient.queryObject(Host.class, hostURI);
         host.setVcenterDataCenter(vCenterDataCenterId);
         dbClient.updateObject(host);
+    }
+
+    /**
+     * Update the cluster reference for all initiators that belong to hosts in the cluster
+     * 
+     * @param dbClient dbclient
+     * @param clusterURI the cluster id
+     */
+    public static void updateInitiatorClusterName(DbClient dbClient, URI clusterURI) {
+        if (!NullColumnValueGetter.isNullURI(clusterURI)) {
+            List<URI> clusterHosts = ComputeSystemHelper.getChildrenUris(dbClient, clusterURI, Host.class, "cluster");
+            for (URI hostURI : clusterHosts) {
+                updateInitiatorClusterName(dbClient, clusterURI, hostURI);
+            }
+        }
     }
 
     public static void updateInitiatorClusterName(DbClient dbClient, URI clusterURI, URI hostURI) {

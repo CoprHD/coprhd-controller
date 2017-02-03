@@ -28,6 +28,7 @@ import com.emc.vipr.client.core.ComputeSystems;
 import com.emc.vipr.client.core.ComputeVirtualPools;
 import com.emc.vipr.client.core.CustomConfigs;
 import com.emc.vipr.client.core.Events;
+import com.emc.vipr.client.core.FileProtectionPolicies;
 import com.emc.vipr.client.core.FileSnapshots;
 import com.emc.vipr.client.core.FileSystems;
 import com.emc.vipr.client.core.FileVirtualPools;
@@ -47,6 +48,7 @@ import com.emc.vipr.client.core.ProtectionSystems;
 import com.emc.vipr.client.core.QuotaDirectories;
 import com.emc.vipr.client.core.SchedulePolicies;
 import com.emc.vipr.client.core.Site;
+import com.emc.vipr.client.core.StorageDriver;
 import com.emc.vipr.client.core.StoragePools;
 import com.emc.vipr.client.core.StoragePorts;
 import com.emc.vipr.client.core.StorageProviders;
@@ -418,6 +420,10 @@ public class ViPRCoreClient {
     public SchedulePolicies schedulePolicies() {
         return new SchedulePolicies(this, client);
     }
+    
+    public FileProtectionPolicies fileProtectionPolicies() {
+        return new FileProtectionPolicies(this, client);
+    }
 
     public ApplicationSupport application() {
         return new ApplicationSupport(client);
@@ -429,5 +435,9 @@ public class ViPRCoreClient {
 
     public StorageSystemType storageSystemType() {
         return new StorageSystemType(client);
+    }
+
+    public StorageDriver storageDriver() {
+        return new StorageDriver(client);
     }
 }

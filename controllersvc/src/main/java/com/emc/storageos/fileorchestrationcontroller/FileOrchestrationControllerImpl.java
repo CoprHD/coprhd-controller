@@ -6,12 +6,15 @@ package com.emc.storageos.fileorchestrationcontroller;
 
 import java.net.URI;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.model.file.CifsShareACLUpdateParams;
 import com.emc.storageos.model.file.FileExportUpdateParams;
+import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.FileSMBShare;
 import com.emc.storageos.volumecontroller.FileShareExport;
@@ -112,6 +115,25 @@ public class FileOrchestrationControllerImpl implements FileOrchestrationControl
     @Override
     public void deleteShareACLs(URI storage, URI uri, String shareName, String taskId) throws ControllerException {
         execOrchestration("deleteShareACLs", storage, uri, shareName, taskId);
+    }
+
+    @Override
+    public void unassignFilePolicy(URI policy, Set<URI> unassignFrom, String taskId) throws InternalException {
+        execOrchestration("unassignFilePolicy", policy, unassignFrom, taskId);
+
+    }
+
+    @Override
+    public void assignFileSnapshotPolicyToVirtualPool(Map<URI, List<URI>> vpoolToStorageSystemMap, URI filePolicyToAssign, String taskId)
+            throws InternalException {
+        execOrchestration("assignFileSnapshotPolicyToVirtualPool", vpoolToStorageSystemMap, filePolicyToAssign, taskId);
+    }
+
+    @Override
+    public void assignFileSnapshotPolicyToProject(Map<URI, List<URI>> vpoolToStorageSystemMap, List<URI> projectURIs,
+            URI filePolicyToAssign, String taskId) {
+        execOrchestration("assignFileSnapshotPolicyToProject", vpoolToStorageSystemMap, projectURIs, filePolicyToAssign, taskId);
+
     }
 
     // getter and setter methods

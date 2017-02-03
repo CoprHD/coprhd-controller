@@ -19,6 +19,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -31,6 +32,7 @@ import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.Network;
 import com.emc.storageos.db.client.model.StorageHADomain;
+import com.emc.storageos.db.client.model.StorageSystemType;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
@@ -73,6 +75,8 @@ public class ExternalDeviceCommunicationInterface extends
     private static final String EXISTING = "existing";
     private Logger _log = LoggerFactory.getLogger(ExternalDeviceCommunicationInterface.class);
     private Map<String, AbstractStorageDriver> drivers;
+    // Indicate if driver info has been fetched from db and merged into drivers member
+    private boolean initialized = false;
     
     // The common capability definitions supported by the SB SDK.
     private Map<String, CapabilityDefinition> capabilityDefinitions;
@@ -100,6 +104,42 @@ public class ExternalDeviceCommunicationInterface extends
         this.capabilityDefinitions = capabilityDefinitions;
     }    
 
+    private void initDrivers() {
+        if (initialized) {
+            return;
+        }
+        List<URI> ids = _dbClient.queryByType(StorageSystemType.class, true);
+        Iterator<StorageSystemType> it = _dbClient.queryIterativeObjects(StorageSystemType.class, ids);
+        Map<String, AbstractStorageDriver> cachedDriverInstances = new HashMap<>();
+        while (it.hasNext()) {
+            StorageSystemType type = it.next();
+            if (type.getIsNative() == null ||type.getIsNative()) {
+                continue;
+            }
+            if (!StringUtils.equals(type.getMetaType(), StorageSystemType.META_TYPE.BLOCK.toString())) {
+                continue;
+            }
+            String typeName = type.getStorageTypeName();
+            String className = type.getDriverClassName();
+            // provider and managed system should use the same driver instance
+            if (cachedDriverInstances.containsKey(className)) {
+                drivers.put(typeName, cachedDriverInstances.get(className));
+                _log.info("Driver info for storage system type {} has been set into externaldevice instance", typeName);
+                continue;
+            }
+            String mainClassName = type.getDriverClassName();
+            try {
+                AbstractStorageDriver driverInstance = (AbstractStorageDriver) Class.forName(mainClassName) .newInstance();
+                drivers.put(typeName, driverInstance);
+                cachedDriverInstances.put(className, driverInstance);
+                _log.info("Driver info for storage system type {} has been set into externaldevice instance", typeName);
+            } catch (Exception e) {
+                _log.error("Error happened when instantiating class {}", mainClassName);
+            }
+        }
+        initialized = true;
+    }
+
     /**
      * Get device driver based on the driver type.
      * @param driverType
@@ -114,8 +154,12 @@ public class ExternalDeviceCommunicationInterface extends
             // init driver
             AbstractStorageDriver driver = drivers.get(driverType);
             if (driver == null) {
-                _log.info("No driver entry defined for device type: {} . ", driverType);
-                return null;
+                initDrivers();
+                driver = drivers.get(driverType);
+                if (driver == null) {
+                    _log.info("No driver entry defined for device type: {} . ", driverType);
+                    return null;
+                }
             }
             init(driver);
             discoveryDrivers.put(driverType, driver);
@@ -245,7 +289,6 @@ public class ExternalDeviceCommunicationInterface extends
 
     @Override
     public void discover(AccessProfile accessProfile) throws BaseCollectionException {
-
         // Get discovery driver class based on storage device type
         String deviceType = accessProfile.getSystemType();
         AbstractStorageDriver driver = getDriver(deviceType);
@@ -514,7 +557,6 @@ public class ExternalDeviceCommunicationInterface extends
 
                         pool.setSupportedResourceTypes(storagePool.getSupportedResourceType());
                         pool.setInactive(false);
-                        pool.setDiscoveryStatus(DiscoveredDataObject.DiscoveryStatus.VISIBLE.name());
                         newPools.add(pool);
                     } else if (pools.size() == 1) {
                         _log.info("Pool {} was previously discovered, native GUID {}", storagePool.getNativeId(), poolNativeGuid);
@@ -533,6 +575,7 @@ public class ExternalDeviceCommunicationInterface extends
                     pool.setOperationalStatus(storagePool.getOperationalStatus());
                     pool.addDriveTypes(storagePool.getSupportedDriveTypes());
                     pool.addSupportedRaidLevels(storagePool.getSupportedRaidLevels());
+                    pool.setDiscoveryStatus(DiscoveredDataObject.DiscoveryStatus.VISIBLE.name());
                     
                     // Discover the auto tiering policies supported by the storage pool.
                     discoverAutoTieringPoliciesForStoragePool(driverStorageSystem, storagePool, pool,

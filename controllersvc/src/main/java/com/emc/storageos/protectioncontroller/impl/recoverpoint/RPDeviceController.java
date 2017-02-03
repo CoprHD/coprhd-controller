@@ -4568,11 +4568,17 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
         //
         for (URI protectionVolumeID : volumeIDs) {
             Volume protectionVolume = _dbClient.queryObject(Volume.class, protectionVolumeID);
+            if (protectionVolume == null || protectionVolume.getInactive()) {
+                continue;
+            }
             if ((protectionVolume.checkPersonality(Volume.PersonalityTypes.TARGET.toString()))
                     && (protectionVolume.getRpCopyName().equals(volume.getRpCopyName()))) {
                 // This is a TARGET we failed over to. We need to build up all of its targets
                 for (URI potentialTargetVolumeID : volumeIDs) {
                     Volume potentialTargetVolume = _dbClient.queryObject(Volume.class, potentialTargetVolumeID);
+                    if (potentialTargetVolume == null || potentialTargetVolume.getInactive()) {
+                        continue;
+                    }
                     if (!potentialTargetVolume.checkPersonality(Volume.PersonalityTypes.METADATA.toString())
                             && NullColumnValueGetter.isNotNullValue(potentialTargetVolume.getRSetName())
                             && potentialTargetVolume.getRSetName().equals(protectionVolume.getRSetName())
@@ -4628,6 +4634,9 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
         for (URI protectionVolumeID : volumeIDs) {
             Volume protectionVolume = _dbClient.queryObject(Volume.class, protectionVolumeID);
+            if (protectionVolume == null || protectionVolume.getInactive()) {
+                continue;
+            }
             if ((protectionVolume.checkPersonality(Volume.PersonalityTypes.TARGET.toString()))
                     && (protectionVolume.getRpCopyName().equals(volume.getRpCopyName()))) {
                 _log.info("Change flags of failover target " + RPHelper.getRPWWn(protectionVolume.getId(), _dbClient));
@@ -4665,6 +4674,9 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
         for (URI protectionVolumeID : volumeIDs) {
             Volume protectionVolume = _dbClient.queryObject(Volume.class, protectionVolumeID);
+            if (protectionVolume == null || protectionVolume.getInactive()) {
+                continue;
+            }
             if ((protectionVolume.checkPersonality(Volume.PersonalityTypes.TARGET.toString()))
                     && (protectionVolume.getRpCopyName().equals(volume.getRpCopyName()))) {
                 _log.info("Change flags of failover target " + RPHelper.getRPWWn(protectionVolume.getId(), _dbClient));
@@ -6329,7 +6341,14 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
     }
 
     @Override
-    public void exportGroupChangePathParams(URI storageURI, URI exportGroupURI, URI volumeURI, String token) throws Exception {
+    public void findAndUpdateFreeHLUsForClusterExport(StorageSystem storageSystem, ExportGroup exportGroup,
+            List<URI> initiatorURIs, Map<URI, Integer> volumeMap) {
+        // TODO
+    }
+
+    @Override
+    public void exportGroupChangePathParams(URI storageURI, URI exportGroupURI,
+            URI volumeURI, String token) throws Exception {
         // Not supported, will not be called because API code not present
     }
 

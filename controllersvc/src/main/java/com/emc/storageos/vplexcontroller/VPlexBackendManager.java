@@ -30,6 +30,7 @@ import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.RegistrationStatus;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportMask;
+import com.emc.storageos.db.client.model.ExportPathParams;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StorageProtocol.Transport;
@@ -66,8 +67,11 @@ import com.emc.storageos.volumecontroller.impl.block.VplexXtremIOMaskingOrchestr
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportMaskAddVolumeCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportMaskOnlyRemoveVolumeCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportTaskCompleter;
+import com.emc.storageos.volumecontroller.impl.plugins.metering.smis.processor.PortMetricsProcessor;
 import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
 import com.emc.storageos.volumecontroller.placement.BlockStorageScheduler;
+import com.emc.storageos.volumecontroller.placement.PlacementUtils;
+import com.emc.storageos.volumecontroller.placement.StoragePortsAllocator;
 import com.emc.storageos.volumecontroller.placement.StoragePortsAssigner;
 import com.emc.storageos.volumecontroller.placement.StoragePortsAssignerFactory;
 import com.emc.storageos.vplex.api.VPlexApiException;
@@ -1039,10 +1043,17 @@ public class VPlexBackendManager {
         // get the existing zones in zonesByNetwork
         Map<NetworkLite, StringSetMap> zonesByNetwork = new HashMap<NetworkLite, StringSetMap>();
         Map<URI, List<StoragePort>> allocatablePorts = getAllocatablePorts(array, _networkMap.keySet(), varrayURI, zonesByNetwork, stepId);
+        Map<URI, Map<String, Integer>> switchToPortNumber = getSwitchToMaxPortNumberMap(array);
         Set<Map<URI, List<List<StoragePort>>>> portGroups = orca.getPortGroups(allocatablePorts, _networkMap, varrayURI,
-                initiatorGroups.size());
+                initiatorGroups.size(), switchToPortNumber, null);
 
         // Now generate the Masking Views that will be needed.
+        Map<URI, String> initiatorSwitchMap = new HashMap<URI, String>();
+        Map<URI, Map<String, List<StoragePort>>> switchStoragePortsMap = new HashMap<URI, Map<String, List<StoragePort>>>();
+        Map<URI, List<StoragePort>> storageports = getStoragePorts(portGroups);
+        Map<URI, String> portSwitchMap = new HashMap<URI, String>();
+        PlacementUtils.getSwitchNameForInititaorsStoragePorts(_initiators, storageports, _dbClient, array, 
+                initiatorSwitchMap, switchStoragePortsMap, portSwitchMap);
         Map<ExportMask, ExportGroup> exportMasksMap = new HashMap<ExportMask, ExportGroup>();
         Iterator<Map<String, Map<URI, Set<Initiator>>>> igIterator = initiatorGroups.iterator();
         // get the assigner needed - it is with a pre-zoned ports assigner or the default
@@ -1054,7 +1065,8 @@ public class VPlexBackendManager {
                 igIterator = initiatorGroups.iterator();
             }
             Map<String, Map<URI, Set<Initiator>>> initiatorGroup = igIterator.next();
-            StringSetMap zoningMap = orca.configureZoning(portGroup, initiatorGroup, _networkMap, assigner);
+            StringSetMap zoningMap = orca.configureZoning(portGroup, initiatorGroup, _networkMap, assigner, 
+                    initiatorSwitchMap, switchStoragePortsMap, portSwitchMap);
             ExportMask exportMask = generateExportMask(array.getId(), maskName, portGroup, initiatorGroup, zoningMap);
 
             // Set a flag indicating that we do not want to remove zoningMap entries
@@ -1502,6 +1514,70 @@ public class VPlexBackendManager {
             }
         }
         return filteredMap;
+    }
+    
+    /**
+     * Get the map of number of max path numbers could be per switch per network based on the initiators.
+     * 
+     * @param initiators initiators
+     * @param  the export path params
+     * @return the map
+     */
+    private Map<URI, Map<String, Integer>> getSwitchToMaxPortNumberMap(StorageSystem array) {
+        Map<URI, Map<String, Integer>> result = new HashMap<URI, Map<String, Integer>>();
+        boolean isSwitchAffinityEnabled = BlockStorageScheduler.isSwitchAffinityAllocationEnabled(
+                DiscoveredDataObject.Type.vplex.name());
+        if(!isSwitchAffinityEnabled) {
+            _log.info("Switch affinity for port allocation is disabled");
+            return result;
+        }
+        int path = 1;
+        if (array.getSystemType().equals(DiscoveredDataObject.Type.vnxblock.name())) {
+            path = 2;
+        }
+        for (Initiator initiator : _idToInitiatorMap.values()) {
+            String switchName = PlacementUtils.getSwitchName(initiator.getInitiatorPort(), _dbClient);
+            URI networkId = _initiatorIdToNetwork.get(initiator.getId().toString());
+            if (switchName != null && !switchName.isEmpty()) {
+                Map<String, Integer> switchCount = result.get(networkId);
+                if (switchCount == null) {
+                    switchCount = new HashMap<String, Integer>();
+                    result.put(networkId, switchCount);
+                }
+                Integer count = switchCount.get(switchName);
+                if (count != null) {
+                    count = count + path;
+                } else {
+                    count = path;
+                }
+                switchCount.put(switchName, count);
+            }
+        }
+        return result;
+    }
+    
+    /**
+     * Get all storage ports in the portGroups
+     * 
+     * @param portGroups
+     * @return the map of network to storage ports
+     */
+    private Map<URI, List<StoragePort>> getStoragePorts(Set<Map<URI, List<List<StoragePort>>>> portGroups) {
+        Map<URI, List<StoragePort>> result = new HashMap<URI, List<StoragePort>>();
+        for (Map<URI, List<List<StoragePort>>> portGroup : portGroups) {
+            for (Map.Entry<URI, List<List<StoragePort>>> portGroupEntry : portGroup.entrySet()) {
+                URI net = portGroupEntry.getKey();
+                List<StoragePort> resultPorts = result.get(net);
+                if (resultPorts == null ) {
+                    resultPorts = new ArrayList<StoragePort> ();
+                    result.put(net, resultPorts);
+                }
+                for (List<StoragePort> ports : portGroupEntry.getValue()) {
+                    resultPorts.addAll(ports);
+                }
+            }
+        }
+        return result;
     }
 
 }

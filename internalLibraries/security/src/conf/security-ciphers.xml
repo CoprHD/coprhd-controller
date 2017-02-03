@@ -4,10 +4,6 @@
        xsi:schemaLocation="http://www.springframework.org/schema/beans
        http://www.springframework.org/schema/beans/spring-beans.xsd">
     <bean id="strongCiphers" class = "java.lang.String">
-        <constructor-arg>
-            <value type="java.lang.String">
-                TLS_RSA_WITH_AES_128_CBC_SHA,
-             </value>
-        </constructor-arg>
+        <constructor-arg type="java.lang.String" value="TLS_RSA_WITH_AES_128_CBC_SHA256,TLS_RSA_WITH_AES_128_CBC_SHA" />
     </bean>
 </beans>

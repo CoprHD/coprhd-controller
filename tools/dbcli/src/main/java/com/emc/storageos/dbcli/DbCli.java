@@ -343,7 +343,7 @@ public class DbCli {
                             for (String key : keys) {
                                 sMap.put(key, newStringMap.get(key));
                             }
-
+                            pd.getWriteMethod().invoke(object, sMap);
                         } else if (type == StringSet.class) {
                             StringSet stringSet = FieldType.convertType(fieldNode, StringSetWrapper.class);
                             if (!verifyField(stringSet)) {
@@ -839,7 +839,7 @@ public class DbCli {
                 log.info("Force to delete object {} that can't be deleted", id);
             }
 
-            _dbClient.removeObject(object);
+            _dbClient.internalRemoveObjects(object);
             return true;
         }
 

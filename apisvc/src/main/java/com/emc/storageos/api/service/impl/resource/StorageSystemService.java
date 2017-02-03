@@ -115,7 +115,8 @@ import com.emc.storageos.security.authorization.Role;
 import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
-import com.emc.storageos.svcs.errorhandling.resources.ServiceCodeException;
+import com.emc.storageos.coordinator.common.Service;
+import com.emc.storageos.coordinator.exceptions.CoordinatorException;
 import com.emc.storageos.volumecontroller.ArrayAffinityAsyncTask;
 import com.emc.storageos.volumecontroller.AsyncTask;
 import com.emc.storageos.volumecontroller.BlockController;
@@ -277,6 +278,11 @@ public class StorageSystemService extends TaskResourceService {
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
     public TaskResourceRep createStorageSystem(StorageSystemRequestParam param) throws Exception {
 
+        if (!isControllerServiceOnline()) {
+            _log.error("Controller services are not started yet");
+            throw APIException.serviceUnavailable.controllerServiceUnavailable();
+        }
+
         ArgValidator.checkFieldNotEmpty(param.getSystemType(), "system_type");
         if (!StorageSystem.Type.isDriverManagedStorageSystem(param.getSystemType())) {
 
@@ -333,6 +339,19 @@ public class StorageSystemService extends TaskResourceService {
             TaskList taskList = discoverStorageSystems(tasks, controller);
             return taskList.getTaskList().listIterator().next();
         }
+    }
+
+    private boolean isControllerServiceOnline() {
+        List<Service> services = null;
+        try {
+            services = _coordinator.locateAllServices(CONTROLLER_SVC, CONTROLLER_SVC_VER, null, null);
+        } catch (CoordinatorException e) {
+            _log.error("Error happened when querying controller service beacons", e);
+        }
+        if (services != null && !services.isEmpty()) {
+            return true;
+        }
+        return false;
     }
 
     /**
@@ -430,7 +449,10 @@ public class StorageSystemService extends TaskResourceService {
         Operation op = _dbClient.createTaskOpStatus(StorageSystem.class, system.getId(),
                 taskId, ResourceOperationTypeEnum.DELETE_STORAGE_SYSTEM);
 
-        if (StringUtils.isNotBlank(system.getNativeGuid()) && system.isStorageSystemManagedByProvider()) {
+        // (COP-22167) Create DecommissionedResource object only if the system is actively managed by a storage provider.
+        // Otherwise, the created decommissioned object will not be cleared when the provider is removed and added back.
+        if (StringUtils.isNotBlank(system.getNativeGuid()) && system.isStorageSystemManagedByProvider()
+                && !NullColumnValueGetter.isNullURI(system.getActiveProviderURI())) {
             DecommissionedResource oldStorage = null;
             List<URI> oldResources = _dbClient.queryByConstraint(AlternateIdConstraint.Factory.getDecommissionedResourceIDConstraint(id
                     .toString()));
@@ -454,14 +476,16 @@ public class StorageSystemService extends TaskResourceService {
                 oldStorage.setId(URIUtil.createId(DecommissionedResource.class));
                 _dbClient.createObject(oldStorage);
             }
-            if (system.getActiveProviderURI() != null) {
-                StorageProvider provider = _dbClient.queryObject(StorageProvider.class, system.getActiveProviderURI());
-                if (provider != null) {
-                    StringSet providerDecomSys = new StringSet();
-                    providerDecomSys.add(oldStorage.getId().toString());
+
+            StorageProvider provider = _dbClient.queryObject(StorageProvider.class, system.getActiveProviderURI());
+            if (provider != null) {
+                StringSet providerDecomSys = provider.getDecommissionedSystems();
+                if (providerDecomSys == null) {
+                    providerDecomSys = new StringSet();
                     provider.setDecommissionedSystems(providerDecomSys);
-                    _dbClient.persistObject(provider);
                 }
+                providerDecomSys.add(oldStorage.getId().toString());
+                _dbClient.updateObject(provider);
             }
         }
 

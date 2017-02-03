@@ -10,8 +10,10 @@ import com.emc.storageos.model.storagesystem.type.StorageSystemTypeRestRep;
 import com.google.common.collect.Lists;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Collections;
 import org.apache.commons.lang.StringUtils;
 import util.StorageSystemTypeUtils;
 import util.StringOption;
@@ -37,6 +39,7 @@ public class StorageSystemTypes {
     public static final String DATA_DOMAIN = "datadomain";
     public static final String ECS = "ecs";
     public static final String CEPH = "ceph";
+    public static final String DELLSCSYSTEM = "dellscsystem";
     private static final String SMIS = "smis";
     private static final String HP3PAR = "hp3par";
 
@@ -53,7 +56,7 @@ public class StorageSystemTypes {
 
     public static final String[] BLOCK_TYPES = { VMAX, VNX_BLOCK, VPLEX, HITACHI, OPENSTACK, SCALEIO, SCALEIOAPI, XTREMIO, VNXe, IBMXIV, CEPH, UNITY, HP3PAR };
     public static final String[] FILE_TYPES = { ISILON, VNX_FILE, NETAPP, DATA_DOMAIN, VNXe, UNITY, NETAPPC };
-    public static final String[] STORAGE_PROVIDER_TYPES = { SMIS, VNX_BLOCK, HITACHI, VPLEX, OPENSTACK, SCALEIO, SCALEIOAPI, DATA_DOMAIN, IBMXIV, XTREMIO, CEPH };
+    public static final String[] STORAGE_PROVIDER_TYPES = { SMIS, VNX_BLOCK, HITACHI, VPLEX, OPENSTACK, SCALEIO, SCALEIOAPI, DATA_DOMAIN, IBMXIV, XTREMIO, CEPH, DELLSCSYSTEM};
     public static final String[] NON_SMIS_TYPES = { ISILON, VNX_FILE, NETAPP, XTREMIO, VNXe, UNITY, NETAPPC, ECS };
     public static final String[] ALL_FLASH_STORAGE_TYPES = { XTREMIO, VMAX, UNITY };
 
@@ -168,33 +171,50 @@ public class StorageSystemTypes {
     public static List<StringOption> getStorageTypeOptions() {
         Map<String, String> arrayProviderMap = StorageSystemTypesInitUtils.getProviderDsiplayNameMap();
         List<StringOption> options = new ArrayList<StringOption>();
-        StorageSystemTypeList typeList = StorageSystemTypeUtils.getAllStorageSystemTypes(StorageSystemTypeUtils.ALL_TYPE);
+        Map<String, StorageSystemTypeRestRep> typeMap = buildTypeMap();
 
-        for (StorageSystemTypeRestRep type : typeList.getStorageSystemTypes()) {
+        for (StorageSystemTypeRestRep type : typeMap.values()) {
             String typeName = type.getStorageTypeName();
-            // ignore SMIS providers except VPLEX, SCALEIO, IBMXIV, XTREMIO
-            if (type.getIsSmiProvider() && !StringUtils.equals(VPLEX, typeName)
-                    && !StringUtils.equals(SCALEIOAPI, typeName)
-                    && !StringUtils.equals(IBMXIV, typeName)
-                    && !StringUtils.equals(XTREMIO, typeName)
-                    && !StringUtils.equals(CEPH, typeName)) {
-                continue;
-            }
-
-            String provider = arrayProviderMap.get(typeName);
-            if (provider != null) {
-                if (StringUtils.equals(VMAX, typeName)) {
-                    options.add(new StringOption(SMIS, provider));
-                } else {
-                    options.add(new StringOption(typeName, provider));
+            if (type.isNative()) {
+                // ignore SMIS providers except VPLEX, SCALEIO, IBMXIV, XTREMIO
+                if (type.getIsSmiProvider() && !StringUtils.equals(VPLEX, typeName)
+                        && !StringUtils.equals(SCALEIOAPI, typeName)
+                        && !StringUtils.equals(IBMXIV, typeName)
+                        && !StringUtils.equals(XTREMIO, typeName)
+                        && !StringUtils.equals(CEPH, typeName)) {
+                    continue;
                 }
-            } else if (!StringUtils.equals(VNX_BLOCK, typeName)) { // VNX block is covered by VMAX
+
+                String provider = arrayProviderMap.get(typeName);
+                if (provider != null) {
+                    if (StringUtils.equals(VMAX, typeName)) {
+                        options.add(new StringOption(SMIS, provider));
+                    } else {
+                        options.add(new StringOption(typeName, provider));
+                    }
+                } else if (!StringUtils.equals(VNX_BLOCK, typeName)) { // VNX block is covered by VMAX
+                    options.add(new StringOption(typeName, type.getStorageTypeDispName()));
+                }
+            } else if (type.getIsSmiProvider()) {
+                continue;
+            } else if (type.getManagedBy() != null) {
+                options.add(new StringOption(typeName, typeMap.get(type.getManagedBy()).getStorageTypeDispName()));
+            } else {
                 options.add(new StringOption(typeName, type.getStorageTypeDispName()));
             }
         }
         return options;
     }
-    
+
+    public static Map<String, StorageSystemTypeRestRep> buildTypeMap() {
+        StorageSystemTypeList list = StorageSystemTypeUtils.getAllStorageSystemTypes(StorageSystemTypeUtils.ALL_TYPE);
+        Map<String, StorageSystemTypeRestRep> typeMap = new HashMap<String, StorageSystemTypeRestRep>();
+        for (StorageSystemTypeRestRep type : list.getStorageSystemTypes()) {
+            typeMap.put(type.getStorageTypeId(), type);
+        }
+        return typeMap;
+    }
+
     /**
      * Inside structure of StringOption is "storage type name: provider name (or storage type display name)
      */
@@ -210,14 +230,15 @@ public class StorageSystemTypes {
             if (provider != null) {
                 if (StringUtils.equals(VMAX, typeName)) {
                     options.add(new StringOption(SMIS, provider));
-                } 
+                }
                 else if (StringUtils.equals(XTREMIO, typeName)) {
                     options.add(new StringOption(XTREMIO, provider));
                 }
-            } else if (StringUtils.equals(UNITY, typeName)) { 
+            } else if (StringUtils.equals(UNITY, typeName)) {
                 options.add(new StringOption(typeName, type.getStorageTypeDispName()));
             }
         }
+        Collections.sort(options);
         return options;
     }
 

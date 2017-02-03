@@ -445,6 +445,7 @@ public class VcenterDiscoveryAdapter extends EsxHostDiscoveryAdapter {
                 targetCluster.setExternalId(vcenterClusterId);
 
                 save(targetCluster);
+                ComputeSystemHelper.updateInitiatorClusterName(dbClient, targetCluster.getId());
                 newClusters.add(targetCluster);
             }
         }
@@ -534,7 +535,8 @@ public class VcenterDiscoveryAdapter extends EsxHostDiscoveryAdapter {
             }
 
             if (target.getType() == null ||
-                    StringUtils.equalsIgnoreCase(target.getType(), HostType.Other.toString())) {
+                    StringUtils.equalsIgnoreCase(target.getType(), HostType.Other.toString()) ||
+                    StringUtils.equalsIgnoreCase(target.getType(), HostType.No_OS.toString())) {
                 target.setType(Host.HostType.Esx.name());
             }
             target.setHostName(target.getLabel());
@@ -546,6 +548,7 @@ public class VcenterDiscoveryAdapter extends EsxHostDiscoveryAdapter {
 
             // Only attempt to update ip interfaces or initiators for connected hosts
             HostSystemConnectionState connectionState = getConnectionState(source);
+            info("Connection status for host %s is %s", target.forDisplay(), connectionState);
             if (connectionState == HostSystemConnectionState.connected) {
 
                 // discover initiators

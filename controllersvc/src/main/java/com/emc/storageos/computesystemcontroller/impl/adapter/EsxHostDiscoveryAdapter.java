@@ -317,6 +317,7 @@ public class EsxHostDiscoveryAdapter extends AbstractHostDiscoveryAdapter {
             List<Initiator> addedInitiators) {
 
         // discover ipInterfaces
+        info(String.format("Discovering IP interfaces for %s", targetHost.forDisplay()));
         List<IpInterface> oldIpInterfaces = new ArrayList<IpInterface>();
         Iterables.addAll(oldIpInterfaces, getIpInterfaces(targetHost));
         for (HostVirtualNic nic : getNics(hostSystem)) {
@@ -333,6 +334,7 @@ public class EsxHostDiscoveryAdapter extends AbstractHostDiscoveryAdapter {
         }
         removeDiscoveredInterfaces(oldIpInterfaces);
 
+        info(String.format("Discovering initiators for %s", targetHost.forDisplay()));
         Iterables.addAll(oldInitiators, getInitiators(targetHost));
         for (HostHostBusAdapter hba : getHostBusAdapters(hostSystem)) {
             if (hba instanceof HostFibreChannelHba) {
@@ -409,7 +411,7 @@ public class EsxHostDiscoveryAdapter extends AbstractHostDiscoveryAdapter {
                         .getFullMatchConstraint(Host.class, "label",
                                 hostSystem.getName()));
         for (Host host : hosts) {
-            if (isEsxOrOtherHost(host)) {
+            if (isEsxOtherOrNoOsHost(host)) {
                 return host;
             }
         }
@@ -417,7 +419,7 @@ public class EsxHostDiscoveryAdapter extends AbstractHostDiscoveryAdapter {
         List<Host> results = CustomQueryUtility.queryActiveResourcesByAltId(
                 dbClient, Host.class, "hostName", hostSystem.getName());
         for (Host host : results) {
-            if (isEsxOrOtherHost(host)) {
+            if (isEsxOtherOrNoOsHost(host)) {
                 return host;
             }
         }
@@ -429,7 +431,7 @@ public class EsxHostDiscoveryAdapter extends AbstractHostDiscoveryAdapter {
                             .getFullMatchConstraint(Host.class, "label",
                                     ipAddress));
             for (Host host : hosts) {
-                if (isEsxOrOtherHost(host)) {
+                if (isEsxOtherOrNoOsHost(host)) {
                     return host;
                 }
             }
@@ -453,17 +455,19 @@ public class EsxHostDiscoveryAdapter extends AbstractHostDiscoveryAdapter {
     }
 
     /**
-     * Returns true if the host is of type Esx or Other
+     * Returns true if the host is of type Esx, Other, or No OS
      * 
      * @param host
      *            host to check the type
-     * @return true if Esx or Other, otherwise false
+     * @return true if Esx, Other, or No OS, otherwise false
      */
-    private boolean isEsxOrOtherHost(Host host) {
+    private boolean isEsxOtherOrNoOsHost(Host host) {
         return StringUtils.equalsIgnoreCase(host.getType(),
                 HostType.Esx.toString())
                 || StringUtils.equalsIgnoreCase(host.getType(),
-                        HostType.Other.toString());
+                        HostType.Other.toString())
+                || StringUtils.equalsIgnoreCase(host.getType(),
+                        HostType.No_OS.toString());
     }
 
     /**

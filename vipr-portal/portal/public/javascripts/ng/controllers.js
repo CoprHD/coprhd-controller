@@ -384,6 +384,22 @@ angular.module("portalApp").controller({
        }, true);
     },
     
+    filePolicyCtrl: function($scope, $http, $window, translate) {
+        $scope.add = {sourceVArray:'', targetVArray:''};
+        $scope.topologies = []
+        
+        $scope.deleteTopology = function(idx) { $scope.topologies.splice(idx, 1); }
+        $scope.addTopology = function() { $scope.topologies.push(angular.copy($scope.add)); }
+        
+        $http.get(routes.VirtualArrays_list()).success(function(data) {
+        	$scope.virtualArrayOptions = data.aaData;
+        });  
+        
+        $scope.$watch('topologies', function(newVal) {
+        	$scope.topologiesString = angular.toJson($scope.topologies, false);
+        }, true);
+     },
+    
     FileShareAclCtrl: function($scope, $http, $window, translate) {
     	
     	$scope.add = {type:'User', name:'', domain:'', permission:'Change'};
@@ -676,6 +692,19 @@ angular.module("portalApp").controller({
         
         getClusterInfo();
         var clusterPoller = $interval(getClusterInfo,LONG_POLLING);
+    },
+    PolicyAsignVPol: function($scope,$http, $interval){
+    	$scope.addVArray= function(){
+    		var item = schome.vArray.length+1;
+    		$scope.vArray.push({'id':'vArray'+item});
+    	};
+    	
+    	$scope.removeVArray= function(){
+    		var lastItem= $scope.vArray.length-1;
+    		$scope.choices.splice(lastItem);
+    	};
+    	
+    	console.log("Registring policy controller"+$scope.val());
     }
 });
 
@@ -1346,6 +1375,10 @@ angular.module("portalApp").controller("SystemLogsCtrl", function($scope, $http,
     function fetchError(data, status, headers, config) {
         $scope.loading = false;
         $scope.error = data;
+        // For log collecting error, show warning instead of error
+        if ($scope.error.code === 30070) {
+            $("#log_info_box").removeClass("alert-danger").addClass("alert-warning");
+        }
     }
 });
 
@@ -1552,6 +1585,78 @@ angular.module("portalApp").controller("ConfigBackupCtrl", function($scope) {
         }
         return 0;
     }
+});
+
+angular.module("portalApp").controller("MyOrdersCtrl", function($scope) {
+	var ORDER_MY_LIST = routes.Order_list();
+	console.info($scope);
+	var dateFormat = "YYYY-MM-DD";
+	
+	var dateDaysAgo = $scope.dateDaysAgo;
+	var startDate = $scope.startDate;
+	var endDate = $scope.endDate;
+	var current = new Date().getTime();
+		
+    angular.element("#orderSelector").ready(function () {
+        $scope.$apply(function () {        	
+            $scope.rangeStartDate = startDate != null?startDate : formatDate(dateDaysAgo, dateFormat);
+            $scope.rangeEndDate = endDate != null?endDate : formatDate(current, dateFormat);
+        });  
+    });   
+    
+    $scope.$watch('rangeEndDate', function (newVal, oldVal) {
+    	console.info("vals "+newVal+"\t|"+oldVal);
+    	if(oldVal === undefined) return;
+    	if(newVal < $scope.rangeStartDate) {
+    		alert("The End Date must be not earlier than the Start Date, please re-select.");
+    		return;
+    	}
+    	
+        var url = ORDER_MY_LIST + "?startDate=" + encodeURIComponent($scope.rangeStartDate)+
+        			"&endDate="+encodeURIComponent($scope.rangeEndDate);
+        $('.bfh-datepicker-toggle input').attr("readonly", true);
+        $('date-picker').click(false);
+        
+        console.info(url);
+        window.location.href = url;
+    });
+    
+});
+
+angular.module("portalApp").controller("AllOrdersCtrl", function($scope) {
+    var ORDER_ALL_ORDERS = routes.Order_allOrders();
+    console.info($scope);
+    var dateFormat = "YYYY-MM-DD";
+
+    var dateDaysAgo = $scope.dateDaysAgo;
+    var startDate = $scope.startDate;
+    var endDate = $scope.endDate;
+    var current = new Date().getTime();
+
+    angular.element("#orderSelector").ready(function () {
+        $scope.$apply(function () {
+            $scope.rangeStartDate = startDate != null?startDate : formatDate(dateDaysAgo, dateFormat);
+            $scope.rangeEndDate = endDate != null?endDate : formatDate(current, dateFormat);
+        });
+    });
+
+    $scope.$watch('rangeEndDate', function (newVal, oldVal) {
+        if(oldVal === undefined) return;
+        console.info("vals "+newVal+"\t|"+oldVal);
+        if(newVal < $scope.rangeStartDate) {
+            alert("The End Date must be not earlier than the Start Date, please re-select.");
+            return;
+        }
+
+        var url = ORDER_ALL_ORDERS + "?startDate=" + encodeURIComponent($scope.rangeStartDate)+
+            "&endDate="+encodeURIComponent($scope.rangeEndDate);
+        $('.bfh-datepicker-toggle input').attr("readonly", true);
+        $('date-picker').click(false);
+
+        console.info(url);
+        window.location.href = url;
+    });
+
 });
 
 angular.module("portalApp").controller("schedulerEditCtrl", function($scope) {
@@ -2272,6 +2377,7 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
     $(colWiz).on('shown.bs.popover', function(){
         $(colWiz).popover('toggle');
     });
+
     $(colWiz).popover({
         delay : {
             show : 0,
@@ -2282,6 +2388,23 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
         trigger : 'manual',
         content : translate("gettingStarted.popover"),
         selector : 'colWiz'
+
+    });
+
+    $('.menuTree .active').on('shown.bs.popover', function(){
+        $('.menuTree .active').popover('toggle');
+    });
+
+    $('.menuTree .active').popover({
+        delay : {
+            show : 0,
+            hide : 5000
+        },
+        placement : 'bottom',
+        html : true,
+        trigger : 'manual',
+        content : translate("gettingStarted.navmenu.popover"),
+        selector : '.menuTree .active'
 
     });
 
@@ -2323,6 +2446,17 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
         $window.location.reload(true);
     }
 
+    $scope.$watchCollection('[guideVisible, guideMode]', function(newValues) {
+        var guideVisible = newValues[0];
+        var guideMode = newValues[1];
+        var body = $(document.body);
+        if (guideVisible && guideMode === "full") {
+            body.addClass('noscroll');
+            window.scrollTo(0, 0);
+        } else {
+            body.removeClass('noscroll');
+        }
+     });
 
     $scope.$watch('guideVisible', function(newValue, oldValue) {
         if (newValue != oldValue){
@@ -2338,6 +2472,7 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
         if(newValue) {
             $('.rootNav , .navMenu a').on('click', function(event) {
                 $('.wizard-side-next').popover('show');
+                $('.menuTree .active').popover('show');
                 return false;
             });
             guideMonitor = window.setInterval(checkCookieChanged, 500);

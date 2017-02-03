@@ -31,17 +31,20 @@ import com.emc.sa.service.vipr.compute.tasks.DeactivateHost;
 import com.emc.sa.service.vipr.compute.tasks.DeactivateHostNoWait;
 import com.emc.sa.service.vipr.compute.tasks.FindCluster;
 import com.emc.sa.service.vipr.compute.tasks.FindHostsInCluster;
+import com.emc.sa.service.vipr.compute.tasks.FindVblockHostsInCluster;
 import com.emc.sa.service.vipr.compute.tasks.InstallOs;
 import com.emc.sa.service.vipr.compute.tasks.RemoveHostFromCluster;
 import com.emc.sa.service.vipr.compute.tasks.SetBootVolume;
+import com.emc.sa.service.vipr.compute.tasks.UpdateCluster;
+import com.emc.sa.service.vipr.compute.tasks.UpdateClusterExports;
 import com.emc.sa.service.vipr.compute.tasks.UpdateVcenterCluster;
 import com.emc.sa.service.vipr.tasks.GetHost;
 import com.emc.storageos.db.client.model.Cluster;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.util.EndpointUtility;
+import com.emc.storageos.model.block.VolumeDeleteTypeEnum;
 import com.emc.storageos.model.block.VolumeRestRep;
 import com.emc.storageos.model.block.export.ExportGroupRestRep;
-import com.emc.storageos.model.compute.ComputeElementListRestRep;
 import com.emc.storageos.model.compute.OsInstallParam;
 import com.emc.storageos.model.host.HostRestRep;
 import com.emc.storageos.model.host.cluster.ClusterRestRep;
@@ -103,7 +106,7 @@ public class ComputeUtils {
             }
         }
         else { // If all the hosts failed, then the tasks are returned as null.
-               // In this case we need to deactivate all the hosts that we wanted to create.
+            // In this case we need to deactivate all the hosts that we wanted to create.
             for (HostRestRep hostRep : hostsInCluster) {
                 if (hostNames.contains(hostRep.getName())) {
                     hostURIsToDeactivate.add(hostRep.getId());
@@ -292,7 +295,7 @@ public class ComputeUtils {
         }
     }
 
-    public static List<URI> exportBootVols(List<URI> volumeIds, List<Host> hosts, URI project, URI virtualArray) {
+    public static List<URI> exportBootVols(List<URI> volumeIds, List<Host> hosts, URI project, URI virtualArray, Integer hlu) {
 
         if ((hosts == null) || (volumeIds == null)) {
             return Collections.emptyList();
@@ -300,13 +303,13 @@ public class ComputeUtils {
 
         List<Task<ExportGroupRestRep>> tasks = new ArrayList<>();
         for (int x = 0; x < hosts.size(); x++) {
-            if ((volumeIds.get(x) != null) && (hosts.get(x) != null)) {
+            if ((volumeIds.get(x) != null) && (hosts.get(x) != null) && !(hosts.get(x).getInactive())) {
                 try {
                     /**
                      * Don't determine HLUs at all, even for the boot volumes. Let the system decide them for you. Hence passing -1
                      */
                     Task<ExportGroupRestRep> task = BlockStorageUtils.createHostExportNoWait(project,
-                            virtualArray, Arrays.asList(volumeIds.get(x)), -1, hosts.get(x));
+                            virtualArray, Arrays.asList(volumeIds.get(x)), hlu, hosts.get(x));
                     tasks.add(task);
                 } catch (ExecutionException e) {
                     String errorMessage = e.getMessage() == null ? "" : e.getMessage();
@@ -356,7 +359,7 @@ public class ComputeUtils {
         CapacityResponse capacityResponse = client.blockVpools()
                 .getCapacityOnVirtualArray(virtualPool, virtualArray);
         String size = capacityResponse.getFreeGb();
-        long freeCapacity = (long) Long.parseLong(size);
+        long freeCapacity = Long.parseLong(size);
         double reqSize = sizeOfBootVolumesInGb * numVols;
         long reqCapacity = (long) reqSize;
 
@@ -367,7 +370,7 @@ public class ComputeUtils {
     }
 
     public static List<Host> deactivateHostsWithNoBootVolume(List<Host> hosts,
-            List<URI> bootVolumeIds) {
+            List<URI> bootVolumeIds, Cluster cluster) {
         if (hosts == null) {
             return Lists.newArrayList();
         }
@@ -381,25 +384,36 @@ public class ComputeUtils {
                             host.getHostName(), e.getMessage());
                 }
                 hostsToRemove.add(host);
+                host.setInactive(true);
             }
         }
         if (!hostsToRemove.isEmpty()) {
             try {
-                return deactivateHosts(hostsToRemove);
+                deactivateHosts(hostsToRemove);
+                for (Host hostRemoved : hostsToRemove) {
+                    for (Host hostCreated : hosts) {
+                        if(hostCreated.getId().equals(hostRemoved.getId())) {
+                            hosts.set(hosts.indexOf(hostCreated), null);
+                        }
+                    }
+                }
             } catch (Exception e) {
                 ExecutionUtils.currentContext().logError("computeutils.deactivatehost.deactivate.failure",
                         e.getMessage());
             }
+            ComputeUtils.updateClusterSharedExports(cluster.getId(), cluster.getLabel());
+            ExecutionUtils.currentContext().logInfo("compute.cluster.sharedexports.update.rollback.done", cluster.getLabel());
         }
         return hosts;
     }
 
     public static List<Host> deactivateHostsWithNoExport(List<Host> hosts,
-            List<URI> exportIds) {
+            List<URI> exportIds, List<URI> bootVolumeIds, Cluster cluster) {
         if (hosts == null) {
             return Lists.newArrayList();
         }
         List<Host> hostsToRemove = Lists.newArrayList();
+        List<URI> bootVolsToRemove = Lists.newArrayList();
 
         for (Host host : hosts) {
             if ((exportIds.get(hosts.indexOf(host)) == null) && (host != null)) {
@@ -410,13 +424,35 @@ public class ComputeUtils {
                             host.getHostName(), e.getMessage());
                 }
                 hostsToRemove.add(host);
+                host.setInactive(true);
+                // remove the corresponding boot volume of the host too, if the
+                // boot volume export failed.
+                bootVolsToRemove.add(bootVolumeIds.get(hosts.indexOf(host)));
             }
         }
         if (!hostsToRemove.isEmpty()) {
             try {
-                return deactivateHosts(hostsToRemove);
+                deactivateHosts(hostsToRemove);
+                for (Host hostRemoved : hostsToRemove) {
+                    for (Host hostCreated : hosts) {
+                        if(hostCreated.getId().equals(hostRemoved.getId())) {
+                            hosts.set(hosts.indexOf(hostCreated), null);
+                        }
+                    }
+                }
             } catch (Exception e) {
                 ExecutionUtils.currentContext().logError("computeutils.deactivatehost.deactivate.failure",
+                        e.getMessage());
+            }
+            ComputeUtils.updateClusterSharedExports(cluster.getId(), cluster.getLabel());
+            ExecutionUtils.currentContext().logInfo("compute.cluster.sharedexports.update.rollback.done", cluster.getLabel());
+        }
+        // Cleanup all bootvolumes of the deactivated host so that we do not leave any unsed boot volumes.
+        if (!bootVolsToRemove.isEmpty()) {
+            try {
+                BlockStorageUtils.deactivateVolumes(bootVolsToRemove, VolumeDeleteTypeEnum.FULL);
+            }catch (Exception e) {
+                ExecutionUtils.currentContext().logError("computeutils.bootvolume.deactivate.failure",
                         e.getMessage());
             }
         }
@@ -436,17 +472,18 @@ public class ComputeUtils {
                 hostItr.set(null);
             }
         }
+        ExecutionUtils.currentContext().logInfo("computeutils.deactivatehost.completed", successfulHostURIs);
         return hosts;
     }
 
     public static List<URI> deactivateHostURIs(List<URI> hostURIs) {
         ArrayList<Task<HostRestRep>> tasks = new ArrayList<>();
-        for (URI hostURI : hostURIs) {
-            tasks.add(execute(new DeactivateHostNoWait(hostURI, true)));
-        }
         ExecutionUtils.currentContext().logInfo("computeutils.deactivatehost.inprogress", hostURIs);
         // monitor tasks
         List<URI> successfulHostIds = Lists.newArrayList();
+        for (URI hostURI : hostURIs) {
+            tasks.add(execute(new DeactivateHostNoWait(hostURI, true)));
+        }
         while (!tasks.isEmpty()) {
             waitAndRefresh(tasks);
             for (Task<HostRestRep> successfulTask : getSuccessfulTasks(tasks)) {
@@ -460,6 +497,7 @@ public class ComputeUtils {
                 tasks.remove(failedTask);
             }
         }
+
         return successfulHostIds;
     }
 
@@ -587,10 +625,10 @@ public class ComputeUtils {
         return true;
     }
 
-    public static boolean isComputePoolCapacityAvailable(ViPRCoreClient client, URI vcp, int numHosts) {
-        ComputeElementListRestRep resp = client.computeVpools().getMatchedComputeElements(vcp);
-        int size = resp.getList().size();
-        return size < numHosts ? false : true;
+    public static boolean isComputePoolCapacityAvailable(ViPRCoreClient client, URI poolURI, int numHosts) {
+        ComputeVirtualPoolRestRep resp = client.computeVpools().getComputeVirtualPool(poolURI);
+        int numAvailableBlades = resp.getAvailableMatchedComputeElements().size();
+        return numAvailableBlades < numHosts ? false : true;
     }
 
     public static boolean isValidIpAddress(String ipAddress) {
@@ -619,7 +657,7 @@ public class ComputeUtils {
 
     public static String getOrderErrors(Cluster cluster,
             List<String> hostNames, URI computeImage, URI vcenterId) {
-        StringBuffer orderErrors = new StringBuffer();
+        StringBuilder orderErrors = new StringBuilder();
 
         List<HostRestRep> hosts = Lists.newArrayList();
 
@@ -686,6 +724,7 @@ public class ComputeUtils {
         @Param
         protected String ips;
 
+        @Override
         public String toString() {
             return "fqdns=" + fqdns + ", ips=" + ips;
         }
@@ -695,6 +734,7 @@ public class ComputeUtils {
         @Param
         protected String fqdns;
 
+        @Override
         public String toString() {
             return "fqdns=" + fqdns;
         }
@@ -703,7 +743,7 @@ public class ComputeUtils {
     public static void setHostBootVolumes(List<Host> hosts,
             List<URI> bootVolumeIds) {
         for (Host host : hosts) {
-            if (host != null) {
+            if (host != null && !host.getInactive()) {
                 host.setBootVolumeId(bootVolumeIds.get(hosts.indexOf(host)));
                 ViPRExecutionUtils.execute(new SetBootVolume(host, bootVolumeIds.get(hosts.indexOf(host))));
             }
@@ -730,4 +770,59 @@ public class ComputeUtils {
         return client.computeVpools().getComputeVirtualPool(cvp);
     }
 
+    public static Cluster updateCluster(URI clusterID, String clusterName) {
+        ClusterRestRep clusterRestRep = execute(new UpdateCluster(clusterID, clusterName));
+        return (clusterRestRep == null) ? null : BlockStorageUtils
+                .getCluster(clusterRestRep.getId());
+    }
+
+    /**
+     * Method to updated the shared exports groups of a given cluster, this method
+     * monitors the task until done and returns a successful cluster URI back, if failed
+     * null is returned.
+     * @param clusterID cluster id URI
+     * @param clusterName name of cluster
+     * @return returns a successful cluster URI back, if failed
+     * null is returned.
+     */
+    public static URI updateClusterSharedExports(URI clusterID, String clusterName) {
+        ArrayList<Task<ClusterRestRep>> tasks = Lists.newArrayList();
+
+        tasks.add(execute(new UpdateClusterExports(clusterID, clusterName)));
+
+        List<URI> successfulIds = Lists.newArrayList();
+        while (!tasks.isEmpty()) {
+            waitAndRefresh(tasks);
+            for (Task<ClusterRestRep> successfulTask : getSuccessfulTasks(tasks)) {
+                successfulIds.add(successfulTask.getResourceId());
+                addAffectedResource(successfulTask.getResourceId());
+                tasks.remove(successfulTask);
+            }
+            for (Task<ClusterRestRep> failedTask : getFailedTasks(tasks)) {
+                String errorMessage = failedTask.getMessage() == null ? "" : failedTask.getMessage();
+                ExecutionUtils.currentContext().logError("compute.cluster.sharedexports.update.failed", clusterName,
+                        errorMessage);
+                tasks.remove(failedTask);
+            }
+        }
+        return (successfulIds.isEmpty()) ? null : successfulIds.get(0);
+    }
+
+    /**
+     * This method fetches all vblock hosts for the given cluster
+     * @param clusterId cluster id URI
+     * @return
+     */
+    public static List<URI> getVblockHostURIsByCluster(URI clusterId) {
+        List<HostRestRep> resp = getVblockHostsInCluster(clusterId);
+        List<URI> provisionedHostURIs = Lists.newArrayList();
+        for (HostRestRep r : resp) {
+            provisionedHostURIs.add(r.getId());
+        }
+        return provisionedHostURIs;
+    }
+
+    public static List<HostRestRep> getVblockHostsInCluster(URI clusterId) {
+        return execute(new FindVblockHostsInCluster(clusterId));
+    }
 }

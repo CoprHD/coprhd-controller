@@ -1536,6 +1536,14 @@ public class VmaxExportOperations implements ExportMaskOperations {
 
             createOrUpdateInitiatorGroups(storage, exportMaskURI, cigName, initiatorGroupCustomTemplateName,
                     initiatorList, taskCompleter);
+            
+            if (taskCompleter.isCompleted()) {
+                // Exception log messsages and completers are updated are
+                // already inside the method.
+                //COP_27456
+                _log.info("Task {} already marked to Error.Returning", taskCompleter.getId());
+                return;
+            }
 
             ExportMask exportMask = _dbClient.queryObject(ExportMask.class, exportMaskURI);
 
@@ -3740,6 +3748,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
         Map<String, List<Initiator>> initiatorListByHost = clubInitiatorsByHostname(initiatorList);
 
         List<CIMObjectPath> initiatorGroupPaths = new ArrayList<CIMObjectPath>();
+        
         CIMObjectPath initiatorGroupPath = null;
         // Hosts that were grouped together for single IG support
         Set<String> groupedHosts = new HashSet<>();

@@ -762,28 +762,20 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     
     @Asset("exportPathMinPathsOptions")
     public List<AssetOption> getExportPathMinOptions(AssetOptionsContext ctx) {
-        List<AssetOption> options = Lists.newArrayList();
-        
-        for (int i = EXPORT_PATH_MIN; i <= EXPORT_PATH_MAX; ++i) {
-            options.add(new AssetOption(Integer.toString(i), Integer.toString(i)));
-        }
-        
-        return options;
+        return generatePathOptions();
     }
     
     @Asset("exportPathMaxPathsOptions")
     public List<AssetOption> getExportPathMaxOptions(AssetOptionsContext ctx) {
-        List<AssetOption> options = Lists.newArrayList();
-        
-        for (int i = EXPORT_PATH_MIN; i <= EXPORT_PATH_MAX; ++i) {
-            options.add(new AssetOption(Integer.toString(i), Integer.toString(i)));
-        }
-        
-        return options;
+        return generatePathOptions();
     }
     
     @Asset("exportPathPathsPerInitiatorOptions")
     public List<AssetOption> getExportPathPathsPerOptions(AssetOptionsContext ctx) {
+        return generatePathOptions();
+    }
+
+    private List<AssetOption> generatePathOptions() {
         List<AssetOption> options = Lists.newArrayList();
         
         for (int i = EXPORT_PATH_MIN; i <= EXPORT_PATH_MAX; ++i) {
@@ -872,59 +864,59 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         return options;
     }
     
-    @Asset("exportPathAddedPorts")
+    @Asset("exportPathResultingPaths")
     @AssetDependencies({ "host", "exportPathVirtualArray", "exportPathExport", "exportPathMinPathsOptions",
         "exportPathMaxPathsOptions", "exportPathPathsPerInitiatorOptions", "exportPathExistingPath", "exportPathStorageSystem"})
-    public List<AssetOption> getAddedPorts(AssetOptionsContext ctx, URI hostOrClusterId, URI vArrayId, URI exportId, 
+    public List<AssetOption> getResultingPaths(AssetOptionsContext ctx, URI hostOrClusterId, URI vArrayId, URI exportId,
             Integer minPaths, Integer maxPaths, Integer pathsPerInitiator, String useExisting, URI storageSystemId) {
 
-        return getAddedPorts(ctx, hostOrClusterId, vArrayId, exportId, minPaths, maxPaths, pathsPerInitiator, 
+        return getResultingPaths(ctx, hostOrClusterId, vArrayId, exportId, minPaths, maxPaths, pathsPerInitiator,
                 useExisting, storageSystemId, new String(""));
     }
     
-    @Asset("exportPathAddedPorts")
+    @Asset("exportPathResultingPaths")
     @AssetDependencies({ "host", "exportPathVirtualArray", "exportPathExport", "exportPathMinPathsOptions",
         "exportPathMaxPathsOptions", "exportPathPathsPerInitiatorOptions", "exportPathExistingPath", 
         "exportPathStorageSystem", "exportPathPorts" })
-    public List<AssetOption> getAddedPorts(AssetOptionsContext ctx, URI hostOrClusterId, URI vArrayId, URI exportId, 
+    public List<AssetOption> getResultingPaths(AssetOptionsContext ctx, URI hostOrClusterId, URI vArrayId, URI exportId,
             Integer minPaths, Integer maxPaths, Integer pathsPerInitiator, String useExisting, URI storageSystemId, String ports) {
         List<URI> exportPathPorts = parseExportPathPorts(ports);
-        ExportPathsAdjustmentPreviewRestRep portPreview =  generateExportPathPreview(ctx, hostOrClusterId, vArrayId, 
+        ExportPathsAdjustmentPreviewRestRep portPreview =  generateExportPathPreview(ctx, hostOrClusterId, vArrayId,
                 exportId, minPaths, maxPaths, pathsPerInitiator, useExisting, storageSystemId, exportPathPorts);
         List<InitiatorPortMapRestRep> addedList = portPreview.getAdjustedPaths();
         
-        return buildPathOptions(ctx, addedList, "exportPathAdjustment.addedPorts");
+        return buildPathOptions(ctx, addedList, "exportPathAdjustment.resultingPaths");
     }
 
-    @Asset("exportPathRemovedPorts")
+    @Asset("exportPathRemovedPaths")
     @AssetDependencies({ "host", "exportPathVirtualArray", "exportPathExport", "exportPathMinPathsOptions",
         "exportPathMaxPathsOptions", "exportPathPathsPerInitiatorOptions", "exportPathExistingPath", "exportPathStorageSystem"})
-    public List<AssetOption> getRemovedPorts(AssetOptionsContext ctx, URI hostOrClusterId, URI vArrayId, URI exportId, 
+    public List<AssetOption> getRemovedPaths(AssetOptionsContext ctx, URI hostOrClusterId, URI vArrayId, URI exportId,
             Integer minPaths, Integer maxPaths, Integer pathsPerInitiator, String useExisting, URI storageSystemId) {
 
-        return getRemovedPorts(ctx, hostOrClusterId, vArrayId, exportId, minPaths, maxPaths, pathsPerInitiator, 
+        return getRemovedPaths(ctx, hostOrClusterId, vArrayId, exportId, minPaths, maxPaths, pathsPerInitiator,
                 useExisting, storageSystemId, new String(""));
     }
     
-    @Asset("exportPathRemovedPorts")
+    @Asset("exportPathRemovedPaths")
     @AssetDependencies({ "host", "exportPathVirtualArray", "exportPathExport", "exportPathMinPathsOptions",
         "exportPathMaxPathsOptions", "exportPathPathsPerInitiatorOptions", "exportPathExistingPath", 
         "exportPathStorageSystem", "exportPathPorts" })
-    public List<AssetOption> getRemovedPorts(AssetOptionsContext ctx, URI hostOrClusterId, URI vArrayId, URI exportId, 
+    public List<AssetOption> getRemovedPaths(AssetOptionsContext ctx, URI hostOrClusterId, URI vArrayId, URI exportId,
             Integer minPaths, Integer maxPaths, Integer pathsPerInitiator, String useExisting, URI storageSystemId, String ports) {
         List<URI> exportPathPorts = parseExportPathPorts(ports);
-        ExportPathsAdjustmentPreviewRestRep portPreview =  generateExportPathPreview(ctx, hostOrClusterId, vArrayId, 
+        ExportPathsAdjustmentPreviewRestRep portPreview =  generateExportPathPreview(ctx, hostOrClusterId, vArrayId,
                 exportId, minPaths, maxPaths, pathsPerInitiator, useExisting, storageSystemId, exportPathPorts);
         List<InitiatorPortMapRestRep> removedList = portPreview.getRemovedPaths();
         
-        return buildPathOptions(ctx, removedList, "exportPathAdjustment.removedPorts");
+        return buildPathOptions(ctx, removedList, "exportPathAdjustment.removedPaths");
     }
     
     private List<URI> parseExportPathPorts(String input) {
         List<URI> ports = new ArrayList<URI>();
         
-        List<String> parsedVolumeIds = TextUtils.parseCSV(input);            
-        for (String id : parsedVolumeIds) {
+        List<String> parsedIds = TextUtils.parseCSV(input);
+        for (String id : parsedIds) {
             ports.add(uri(id));
         }
         return ports;

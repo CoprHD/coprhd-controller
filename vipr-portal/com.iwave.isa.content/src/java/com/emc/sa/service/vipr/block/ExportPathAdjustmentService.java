@@ -12,8 +12,8 @@ import static com.emc.sa.service.ServiceParams.PATHS_PER_INITIATOR;
 import static com.emc.sa.service.ServiceParams.PORTS;
 import static com.emc.sa.service.ServiceParams.STORAGE_SYSTEM;
 import static com.emc.sa.service.ServiceParams.VIRTUAL_ARRAY;
-import static com.emc.sa.service.ServiceParams.AFFECTED_PORTS;
-import static com.emc.sa.service.ServiceParams.REMOVED_PORTS;
+import static com.emc.sa.service.ServiceParams.RESULTING_PATHS;
+import static com.emc.sa.service.ServiceParams.REMOVED_PATHS;
 import static com.emc.sa.service.ServiceParams.USE_EXISTING_PATHS;
 import static com.emc.sa.service.ServiceParams.SUSPEND_WAIT;
 
@@ -68,35 +68,35 @@ public class ExportPathAdjustmentService extends ViPRService {
     @Param(SUSPEND_WAIT)
     protected boolean suspendWait;
     
-    @Param(value = AFFECTED_PORTS, required = false)
-    protected List<String> affectedPorts;
+    @Param(value = RESULTING_PATHS, required = false)
+    protected List<String> resultingPaths;
     
-    @Param(value = REMOVED_PORTS, required = false)
-    protected List<String> removedPorts;
+    @Param(value = REMOVED_PATHS, required = false)
+    protected List<String> removedPaths;
     
-    private Map<URI, List<URI>> affectedPortsMap = new HashMap<URI, List<URI>>();
-    private Map<URI, List<URI>> removedPortsMap = new HashMap<URI, List<URI>>();
+    private Map<URI, List<URI>> resultingPathsMap = new HashMap<URI, List<URI>>();
+    private Map<URI, List<URI>> removedPathsMap = new HashMap<URI, List<URI>>();
     
     @Override
     public void precheck() throws Exception {
-        if ((affectedPorts == null || affectedPorts.isEmpty()) &&
-                (removedPorts == null || removedPorts.isEmpty())) {
+        if ((resultingPaths == null || resultingPaths.isEmpty()) &&
+                (removedPaths == null || removedPaths.isEmpty())) {
             // if we have no affected or removed, the preview as likely not been generated, so we're going to 
             // generate it before running the service. This is to support the api call and allowing the user
             // to omit sending the serialize string. 
             runExportPathsPreview();
         } else {
             try {
-                if (affectedPorts != null) {
-                    for (String affected : affectedPorts) {
+                if (resultingPaths != null) {
+                    for (String affected : resultingPaths) {
                         Map<URI, List<URI>> port = (Map<URI, List<URI>>) CatalogSerializationUtils.serializeFromString(affected);
-                        affectedPortsMap.putAll(port);
+                        resultingPathsMap.putAll(port);
                     }
                 }
-                if (removedPorts != null) {
-                    for (String removed : removedPorts) {
+                if (removedPaths != null) {
+                    for (String removed : removedPaths) {
                         Map<URI, List<URI>> port = (Map<URI, List<URI>>) CatalogSerializationUtils.serializeFromString(removed);
-                        removedPortsMap.putAll(port);
+                        removedPathsMap.putAll(port);
                    }
                 }
             } catch (Exception ex) {
@@ -109,7 +109,7 @@ public class ExportPathAdjustmentService extends ViPRService {
     public void execute() throws Exception {
         // build affect paths
         List<InitiatorPathParam> toSendAffectedPaths = new ArrayList<InitiatorPathParam>();
-        for (Map.Entry<URI, List<URI>> entry : affectedPortsMap.entrySet()) {
+        for (Map.Entry<URI, List<URI>> entry : resultingPathsMap.entrySet()) {
             InitiatorPathParam pathParam = new InitiatorPathParam();
             
             pathParam.setInitiator(entry.getKey());
@@ -120,7 +120,7 @@ public class ExportPathAdjustmentService extends ViPRService {
        
         // build removed paths
         List<InitiatorPathParam> toSendRemovedPaths = new ArrayList<InitiatorPathParam>();
-        for (Map.Entry<URI, List<URI>> entry : removedPortsMap.entrySet()) {
+        for (Map.Entry<URI, List<URI>> entry : removedPathsMap.entrySet()) {
             InitiatorPathParam pathParam = new InitiatorPathParam();
             
             pathParam.setInitiator(entry.getKey());
@@ -145,7 +145,7 @@ public class ExportPathAdjustmentService extends ViPRService {
             for (NamedRelatedResourceRep port : ipm.getStoragePorts()) {
                 portList.add(port.getId());
             }
-            affectedPortsMap.put(ipm.getInitiator().getId(), portList);
+            resultingPathsMap.put(ipm.getInitiator().getId(), portList);
         }
         
         // build the removed path 
@@ -154,7 +154,7 @@ public class ExportPathAdjustmentService extends ViPRService {
             for (NamedRelatedResourceRep port : ipm.getStoragePorts()) {
                 portList.add(port.getId());
             }
-            removedPortsMap.put(ipm.getInitiator().getId(), portList);
+            removedPathsMap.put(ipm.getInitiator().getId(), portList);
         }
     }
 }

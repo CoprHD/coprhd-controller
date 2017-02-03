@@ -1433,7 +1433,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         // set quota - save the quota id to extensions
         String qid = isi.createQuota(qDirPath, fsSize, bThresholdsIncludeOverhead,
                 bIncludeSnapshots, qDirSize, notificationLimitSize != null ? notificationLimitSize : 0L,
-                softLimitSize != null ? softLimitSize : 0L, softGracePeriod != null ? softGracePeriod : 0L);
+                        softLimitSize != null ? softLimitSize : 0L, softGracePeriod != null ? softGracePeriod : 0L);
         return qid;
     }
 
@@ -3157,7 +3157,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         String sourcePath = getFilePolicyPath(sourceStorageObj, sourceSytemArgs);
         String targetPath = getFilePolicyPath(targetStorageObj, targetSytemArgs);
 
-        if (FileReplicationType.LOCAL.name() == filePolicy.getFileReplicationType()) {
+        if (FileReplicationType.LOCAL.name().equalsIgnoreCase(filePolicy.getFileReplicationType())) {
             targetPath = targetPath + "_localTarget";
         }
         // Policy Name

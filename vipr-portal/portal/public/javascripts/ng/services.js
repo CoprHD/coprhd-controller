@@ -65,6 +65,9 @@ angular.module("services", []).directive({
                         	}
                         	$scope[dependencyName].disableCount += 1;
                         });
+                        if (item.select == "list") {
+                        	item.options = "";
+                        }
                         $http.get("/api/options/" + fieldDescriptor.assetType, {params: params }).success(function(data) {
                             item.disabled = false;
                             if (item.select == 'field') {

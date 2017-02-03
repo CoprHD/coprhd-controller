@@ -2104,7 +2104,7 @@ public class ExportUtils {
             }
            
         } 
-        if (ExportGroupType.Host.toString().equalsIgnoreCase(exportGroup.getType())
+        if (!ExportGroupType.Initiator.toString().equalsIgnoreCase(exportGroup.getType())
                 && CollectionUtils.isEmpty(exportGroup.getHosts())) {
             //COP-27689 - Even if all the export masks got cleared, the export Group still remains with initiators and volumes.
             //Clean up all the initiators, volumes and ports as there are no available export masks or we could delete the export Group too. 

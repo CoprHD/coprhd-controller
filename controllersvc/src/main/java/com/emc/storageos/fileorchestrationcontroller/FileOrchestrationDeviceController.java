@@ -1633,7 +1633,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
 
                         if (targetACE != null &&
                                 (!targetACE.getPermissions().equals(sourceACE.getPermissions()) ||
-                                        !targetACE.getPermissionType().equals(sourceACE.getPermissionType()))) {
+                                !targetACE.getPermissionType().equals(sourceACE.getPermissionType()))) {
 
                             targetACE.setPermissions(sourceACE.getPermissions());
                             targetACE.setPermissionType(sourceACE.getPermissionType());
@@ -2000,7 +2000,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
                                 stepId = workflow.createStepId();
                                 stepDes = String.format("Assigning file policy: %s, to vpool: %s on storage system: %s",
                                         filePolicy.getId(),
-                                        association.getVpool(), association.getSourceSystem());
+                                        vpoolURI, association.getSourceSystem());
 
                                 Object[] args = new Object[] { association.getSourceSystem(), targetStorage,
                                         association.getSourceVNAS(), targetVNASURI, filePolicyToAssign, vpoolURI };
@@ -2015,7 +2015,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
                                 stepId = workflow.createStepId();
                                 stepDes = String.format("Assigning file policy: %s, to vpool: %s on storage system: %s",
                                         filePolicy.getId(),
-                                        association.getVpool(), association.getSourceSystem());
+                                        vpoolURI, association.getSourceSystem());
 
                                 Object[] args = new Object[] { association.getSourceSystem(), targetStorage,
                                         association.getSourceVNAS(), null, filePolicyToAssign, vpoolURI };
@@ -2066,9 +2066,9 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
                             URI targetVNASURI = targetStorageDeviceToVNASMap.get(targetStorage);
                             if (targetVNASURI != null) {
                                 stepId = workflow.createStepId();
-                                stepDes = String.format("Assigning file policy: %s, to vpool: %s on storage system: %s",
+                                stepDes = String.format("Assigning file policy: %s, to project: %s on storage system: %s",
                                         filePolicy.getId(),
-                                        association.getVpool(), association.getSourceSystem());
+                                        projectURI, association.getSourceSystem());
 
                                 Object[] args = new Object[] { association.getSourceSystem(), targetStorage,
                                         association.getSourceVNAS(), targetVNASURI, filePolicyToAssign, vpoolURI, projectURI };
@@ -2081,9 +2081,9 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
                             } else {
                                 s_logger.info("No vNAS server for target storage: {}", targetStorage);
                                 stepId = workflow.createStepId();
-                                stepDes = String.format("Assigning file policy: %s, to vpool: %s on storage system: %s",
+                                stepDes = String.format("Assigning file policy: %s, to project: %s on storage system: %s",
                                         filePolicy.getId(),
-                                        association.getVpool(), association.getSourceSystem());
+                                        projectURI, association.getSourceSystem());
 
                                 Object[] args = new Object[] { association.getSourceSystem(), targetStorage,
                                         association.getSourceVNAS(), null, filePolicyToAssign, vpoolURI, projectURI };

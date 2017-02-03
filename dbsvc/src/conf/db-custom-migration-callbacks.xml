@@ -145,6 +145,7 @@
                 <bean class="com.emc.storageos.db.client.upgrade.callbacks.RebuildIndexDuplicatedCFNameMigration"/>
                 <bean class="com.emc.storageos.db.client.upgrade.callbacks.StaleRelationURICleanupMigration"/>
                 <bean class="com.emc.storageos.db.client.upgrade.callbacks.StaleIndexCleanerMigration"/>
+                <bean class="com.emc.storageos.db.client.upgrade.callbacks.MetroPointVolumeInternalSiteNameMigration"/>
             </list>
         </entry>
     </util:map>

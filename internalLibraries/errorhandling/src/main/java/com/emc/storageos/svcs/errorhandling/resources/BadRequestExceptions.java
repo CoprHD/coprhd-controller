@@ -3170,4 +3170,7 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException invalidFilePolicyUnAssignParam(final String policyName, final String errorMsg);
+
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException invalidFileSnapshotPolicyParam(final String policyName, final String errorMsg);
 }

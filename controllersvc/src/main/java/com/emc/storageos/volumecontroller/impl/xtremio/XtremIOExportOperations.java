@@ -33,6 +33,7 @@ import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.StorageSystem;
+import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
@@ -135,20 +136,27 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
                 _log.info("deleteExportMask: initiators: {}", Joiner.on(',').join(initiatorList));
             }
             List<URI> volumesToBeUnmapped = new ArrayList<URI>();
-            // Get the context from the task completer, in case this is a rollback.
-            ExportOperationContext context = (ExportOperationContext) WorkflowService.getInstance().loadStepData(taskCompleter.getOpId());
-            if (context != null && context.getOperations() != null) {
+            boolean isRollback = WorkflowService.getInstance().isStepInRollbackState(taskCompleter.getOpId());
+            if (isRollback) {
                 _log.info("Handling deleteExportMask as a result of rollback");
                 List<URI> addedVolumes = new ArrayList<URI>();
-                ListIterator li = context.getOperations().listIterator(context.getOperations().size());
-                while (li.hasPrevious()) {
-                    ExportOperationContextOperation operation = (ExportOperationContextOperation) li.previous();
-                    if (operation != null
-                            && XtremIOExportOperationContext.OPERATION_ADD_VOLUMES_TO_INITIATOR_GROUP.equals(operation.getOperation())) {
-                        addedVolumes = (List<URI>) operation.getArgs().get(0);
-                        _log.info("Removing volumes {} as part of rollback", Joiner.on(',').join(volumeURIList));
+
+                // Get the context from the task completer
+                ExportOperationContext context = (ExportOperationContext) WorkflowService.getInstance()
+                        .loadStepData(taskCompleter.getOpId());
+                if (context != null && context.getOperations() != null) {
+                    ListIterator li = context.getOperations().listIterator(context.getOperations().size());
+                    while (li.hasPrevious()) {
+                        ExportOperationContextOperation operation = (ExportOperationContextOperation) li.previous();
+                        if (operation != null
+                                && XtremIOExportOperationContext.OPERATION_ADD_VOLUMES_TO_INITIATOR_GROUP
+                                        .equals(operation.getOperation())) {
+                            addedVolumes = (List<URI>) operation.getArgs().get(0);
+                            _log.info("Removing volumes {} as part of rollback", Joiner.on(',').join(addedVolumes));
+                        }
                     }
                 }
+
                 volumesToBeUnmapped = addedVolumes;
                 if (volumesToBeUnmapped == null || volumesToBeUnmapped.isEmpty()) {
                     _log.info("There was no context found for add volumes. So there is nothing to rollback.");
@@ -232,19 +240,23 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
             if (initiatorList != null) {
                 _log.info("removeVolumes: impacted initiators: {}", Joiner.on(",").join(initiatorList));
             }
-
-            // Get the context from the task completer, in case this is a rollback.
-            ExportOperationContext context = (ExportOperationContext) WorkflowService.getInstance().loadStepData(taskCompleter.getOpId());
-            if (context != null && context.getOperations() != null) {
+            boolean isRollback = WorkflowService.getInstance().isStepInRollbackState(taskCompleter.getOpId());
+            if (isRollback) {
                 _log.info("Handling removeVolumes as a result of rollback");
                 List<URI> addedVolumes = new ArrayList<URI>();
-                ListIterator li = context.getOperations().listIterator(context.getOperations().size());
-                while (li.hasPrevious()) {
-                    ExportOperationContextOperation operation = (ExportOperationContextOperation) li.previous();
-                    if (operation != null
-                            && XtremIOExportOperationContext.OPERATION_ADD_VOLUMES_TO_INITIATOR_GROUP.equals(operation.getOperation())) {
-                        addedVolumes = (List<URI>) operation.getArgs().get(0);
-                        _log.info("Removing volumes {} as part of rollback", Joiner.on(',').join(addedVolumes));
+                // Get the context from the task completer.
+                ExportOperationContext context = (ExportOperationContext) WorkflowService.getInstance()
+                        .loadStepData(taskCompleter.getOpId());
+                if (context != null && context.getOperations() != null) {
+                    ListIterator li = context.getOperations().listIterator(context.getOperations().size());
+                    while (li.hasPrevious()) {
+                        ExportOperationContextOperation operation = (ExportOperationContextOperation) li.previous();
+                        if (operation != null
+                                && XtremIOExportOperationContext.OPERATION_ADD_VOLUMES_TO_INITIATOR_GROUP
+                                        .equals(operation.getOperation())) {
+                            addedVolumes = (List<URI>) operation.getArgs().get(0);
+                            _log.info("Removing volumes {} as part of rollback", Joiner.on(',').join(addedVolumes));
+                        }
                     }
                 }
                 volumeUris = addedVolumes;
@@ -332,20 +344,24 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
             List<URI> volumeURIList, List<Initiator> initiators, List<URI> targets, TaskCompleter taskCompleter)
                     throws DeviceControllerException {
         _log.info("{} removeInitiators START...", storage.getSerialNumber());
-        // Get the context from the task completer, in case this is a rollback.
-        ExportOperationContext context = (ExportOperationContext) WorkflowService.getInstance().loadStepData(taskCompleter.getOpId());
-        if (context != null && context.getOperations() != null) {
+        boolean isRollback = WorkflowService.getInstance().isStepInRollbackState(taskCompleter.getOpId());
+        if (isRollback) {
             _log.info("Handling removeInitiators as a result of rollback");
             List<Initiator> addedInitiators = new ArrayList<Initiator>();
-            ListIterator li = context.getOperations().listIterator(context.getOperations().size());
-            while (li.hasPrevious()) {
-                ExportOperationContextOperation operation = (ExportOperationContextOperation) li.previous();
-                if (operation != null
-                        && XtremIOExportOperationContext.OPERATION_ADD_INITIATORS_TO_INITIATOR_GROUP.equals(operation.getOperation())) {
-                    addedInitiators = (List<Initiator>) operation.getArgs().get(0);
-                    _log.info("Removing initiators {} as part of rollback", Joiner.on(',').join(initiators));
+            // Get the context from the task completer.
+            ExportOperationContext context = (ExportOperationContext) WorkflowService.getInstance().loadStepData(taskCompleter.getOpId());
+            if (context != null && context.getOperations() != null) {
+                ListIterator li = context.getOperations().listIterator(context.getOperations().size());
+                while (li.hasPrevious()) {
+                    ExportOperationContextOperation operation = (ExportOperationContextOperation) li.previous();
+                    if (operation != null
+                            && XtremIOExportOperationContext.OPERATION_ADD_INITIATORS_TO_INITIATOR_GROUP.equals(operation.getOperation())) {
+                        addedInitiators = (List<Initiator>) operation.getArgs().get(0);
+                        _log.info("Removing initiators {} as part of rollback", Joiner.on(',').join(addedInitiators));
+                    }
                 }
             }
+
             // Update the initiators in the task completer such that we update the export mask/group correctly
             for (Initiator initiator : initiators) {
                 if (addedInitiators == null || !addedInitiators.contains(initiator)) {
@@ -359,6 +375,7 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
                 return;
             }
         }
+
         ExportMask exportMask = dbClient.queryObject(ExportMask.class, exportMaskURI);
         if (exportMask == null || exportMask.getInactive()) {
             throw new DeviceControllerException("Invalid ExportMask URI: " + exportMaskURI);
@@ -410,7 +427,7 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
             ctx.setStorage(storage);
             ctx.setExportMask(exportMask);
             ctx.setBlockObjects(volumeURIList, dbClient);
-            ctx.setAllowExceptions(context == null);
+            ctx.setAllowExceptions(!isRollback);
             XtremIOExportMaskVolumesValidator volumeValidator = (XtremIOExportMaskVolumesValidator) validator.removeInitiators(ctx);
             volumeValidator.setIgNames(groupInitiatorsByIG.keySet());
             volumeValidator.validate();
@@ -572,6 +589,11 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
             // Clear the existing volumes to update with the latest info
             if (mask.getExistingVolumes() != null && !mask.getExistingVolumes().isEmpty()) {
                 mask.getExistingVolumes().clear();
+            }
+            
+            //COP-27296 fix
+            if (null == mask.getUserAddedVolumes()) {
+                mask.setUserAddedVolumes(new StringMap());
             }
 
             Set<String> existingVolumes = Sets.difference(discoveredVolumes.keySet(), mask.getUserAddedVolumes().keySet());

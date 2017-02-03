@@ -51,6 +51,8 @@ GLOBAL_RESULTS_IP=10.247.101.46
 GLOBAL_RESULTS_PATH=/srv/www/htdocs
 LOCAL_RESULTS_PATH=/tmp
 GLOBAL_RESULTS_OUTPUT_FILES_SUBDIR=output_files
+RESULTS_SET_FILE=results-set.csv
+TEST_OUTPUT_FILE=default-output.txt
 
 SANITY_CONFIG_FILE=""
 : ${USE_CLUSTERED_HOSTS=1}
@@ -131,8 +133,6 @@ if [ -f "./myhardware.conf" ]; then
     echo Using ./myhardware.conf
     source ./myhardware.conf
 fi
-
-TEST_OUTPUT_FILE=test_output_file.out
 
 # Place to put command output in case of failure
 CMD_OUTPUT=/tmp/output.txt

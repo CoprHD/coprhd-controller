@@ -117,9 +117,9 @@ public final class  PrimitiveMapper {
             final PrimitiveRestRep to) {
         final Map<String, PrimitiveRestRep.InputGroup> input = new HashMap<String, PrimitiveRestRep.InputGroup>();
         if (null != from.getExtraVars()) {
-            List<InputParameterRestRep> inputParam = new ArrayList<InputParameterRestRep>();
+            final List<InputParameterRestRep> inputParam = new ArrayList<InputParameterRestRep>();
             for (final String extraVar : from.getExtraVars()) {
-                InputParameterRestRep param = new InputParameterRestRep();
+                final InputParameterRestRep param = new InputParameterRestRep();
                 param.setName(extraVar);
                 param.setType(ParameterType.STRING.name());
                 inputParam.add(param);
@@ -141,9 +141,9 @@ public final class  PrimitiveMapper {
     private static void mapScript(final CustomServiceScriptPrimitive from, final PrimitiveRestRep to) {
         final Map<String, PrimitiveRestRep.InputGroup> input = new HashMap<String, PrimitiveRestRep.InputGroup>();
         if (null != from.getInput()) {
-            List<InputParameterRestRep> inputParam = new ArrayList<InputParameterRestRep>();
+            final List<InputParameterRestRep> inputParam = new ArrayList<InputParameterRestRep>();
             for (final String arg : from.getInput()) {
-                InputParameterRestRep param = new InputParameterRestRep();
+                final InputParameterRestRep param = new InputParameterRestRep();
                 param.setName(arg);
                 param.setType(ParameterType.STRING.name());
                 inputParam.add(param);

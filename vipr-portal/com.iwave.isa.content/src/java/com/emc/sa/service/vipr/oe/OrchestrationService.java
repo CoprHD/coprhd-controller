@@ -182,7 +182,7 @@ public class OrchestrationService extends ViPRService {
                 next = getNext(isSuccess, res, step);
 
             } catch (final Exception e) {
-                logger.warn("Failed to execute Step:{}", step.getId());
+                logger.info("Failed to execute Step:{} msg:{}", step.getId(), e.getMessage());
                 next = getNext(false, null, step);
             }
 

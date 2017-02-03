@@ -338,11 +338,6 @@ public class FilePolicyService extends TaskResourceService {
 
         ArgValidator.checkReference(FilePolicy.class, id, checkForDelete(filepolicy));
 
-        String policyAppliedAt = filepolicy.getApplyAt();
-        if (policyAppliedAt != null) {
-            _log.error("Delete file policy failed because the policy is applied at " + policyAppliedAt);
-            throw APIException.badRequests.failedToDeleteFilePolicy(filepolicy.getLabel(), "This policy is applied at: " + policyAppliedAt);
-        }
         StringSet assignedResources = filepolicy.getAssignedResources();
 
         if (assignedResources != null && !assignedResources.isEmpty()) {
@@ -548,6 +543,12 @@ public class FilePolicyService extends TaskResourceService {
         StringBuilder errorMsg = new StringBuilder();
         FilePolicy fileReplicationPolicy = new FilePolicy();
 
+        if (param.getReplicationPolicyParams() == null) {
+            errorMsg.append("Required parameter replication_params was missing or empty");
+            _log.error("Failed to create snapshot policy due to {} ", errorMsg.toString());
+            throw APIException.badRequests.invalidFileReplicationPolicyParam(param.getPolicyName(), errorMsg.toString());
+        }
+
         // Validate replication policy schedule parameters
         boolean isValidSchedule = FilePolicyServiceUtils.validatePolicySchdeuleParam(
                 param.getReplicationPolicyParams().getPolicySchedule(), fileReplicationPolicy, errorMsg);
@@ -591,6 +592,12 @@ public class FilePolicyService extends TaskResourceService {
         StringBuilder errorMsg = new StringBuilder();
         FilePolicy fileSnapshotPolicy = new FilePolicy();
 
+        if (param.getSnapshotPolicyPrams() == null) {
+            errorMsg.append("Required parameter snapshot_params was missing or empty");
+            _log.error("Failed to create snapshot policy due to {} ", errorMsg.toString());
+            throw APIException.badRequests.invalidFileSnapshotPolicyParam(param.getPolicyName(), errorMsg.toString());
+        }
+
         // Validate snapshot policy schedule parameters
         boolean isValidSchedule = FilePolicyServiceUtils.validatePolicySchdeuleParam(
                 param.getSnapshotPolicyPrams().getPolicySchedule(), fileSnapshotPolicy, errorMsg);
@@ -600,13 +607,8 @@ public class FilePolicyService extends TaskResourceService {
         }
 
         // Validate snapshot policy expire parameters..
-        if (param.getSnapshotPolicyPrams() != null) {
-            FilePolicyServiceUtils.validateSnapshotPolicyParam(param.getSnapshotPolicyPrams());
-        } else {
-            errorMsg.append("Required parameter snapshot_params was missing or empty");
-            _log.error("Failed to create snapshot policy due to {} ", errorMsg.toString());
-            throw APIException.badRequests.invalidFilePolicyScheduleParam(param.getPolicyName(), errorMsg.toString());
-        }
+        FilePolicyServiceUtils.validateSnapshotPolicyExpireParam(param.getSnapshotPolicyPrams());
+
         fileSnapshotPolicy.setId(URIUtil.createId(FilePolicy.class));
         fileSnapshotPolicy.setLabel(param.getPolicyName());
         fileSnapshotPolicy.setFilePolicyType(param.getPolicyType());
@@ -721,7 +723,7 @@ public class FilePolicyService extends TaskResourceService {
         }
         // Validate snapshot policy expire parameters..
         if (param.getSnapshotPolicyPrams() != null) {
-            FilePolicyServiceUtils.validateSnapshotPolicyParam(param.getSnapshotPolicyPrams());
+            FilePolicyServiceUtils.validateSnapshotPolicyExpireParam(param.getSnapshotPolicyPrams());
 
             if (param.getSnapshotPolicyPrams().getSnapshotExpireParams().getExpireType() != null) {
                 fileSnapshotPolicy.setSnapshotExpireType(param.getSnapshotPolicyPrams().getSnapshotExpireParams().getExpireType());

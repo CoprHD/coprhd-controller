@@ -59,7 +59,8 @@ import com.emc.storageos.volumecontroller.impl.FileDeviceController;
 import com.emc.storageos.volumecontroller.impl.file.CreateMirrorFileSystemsCompleter;
 import com.emc.storageos.volumecontroller.impl.file.FileCreateWorkflowCompleter;
 import com.emc.storageos.volumecontroller.impl.file.FileDeleteWorkflowCompleter;
-import com.emc.storageos.volumecontroller.impl.file.FilePolicyWorkflowCompleter;
+import com.emc.storageos.volumecontroller.impl.file.FilePolicyAssignWorkflowCompleter;
+import com.emc.storageos.volumecontroller.impl.file.FilePolicyUnAssignWorkflowCompleter;
 import com.emc.storageos.volumecontroller.impl.file.FileSnapshotWorkflowCompleter;
 import com.emc.storageos.volumecontroller.impl.file.FileWorkflowCompleter;
 import com.emc.storageos.volumecontroller.impl.file.MirrorFileFailoverTaskCompleter;
@@ -1781,8 +1782,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
     @Override
     public void unassignFilePolicy(URI policy, Set<URI> unassignFrom, String taskId) throws InternalException {
         FilePolicy filePolicy = s_dbClient.queryObject(FilePolicy.class, policy);
-        String opName = ResourceOperationTypeEnum.UNASSIGN_FILE_POLICY.getName();
-        TaskCompleter completer = new FilePolicyWorkflowCompleter(policy, taskId);
+        TaskCompleter completer = new FilePolicyUnAssignWorkflowCompleter(policy, unassignFrom, taskId);
         try {
             Workflow workflow = _workflowService.getNewWorkflow(this, UNASSIGN_FILE_POLICY_WF_NAME, false, taskId, completer);
             s_logger.info("Generating steps for unassigning file policy {} from resources", policy);
@@ -1826,8 +1826,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
     public void assignFileSnapshotPolicyToVirtualPool(Map<URI, List<URI>> vpoolToStorageSystemMap, URI filePolicyToAssign, String taskId)
             throws InternalException {
         FilePolicy filePolicy = s_dbClient.queryObject(FilePolicy.class, filePolicyToAssign);
-        String opName = ResourceOperationTypeEnum.ASSIGN_FILE_POLICY.getName();
-        TaskCompleter completer = new FilePolicyWorkflowCompleter(filePolicyToAssign, taskId);
+        TaskCompleter completer = new FilePolicyAssignWorkflowCompleter(filePolicyToAssign, vpoolToStorageSystemMap.keySet(), taskId);
 
         try {
             String waitFor = null;
@@ -1895,7 +1894,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
             URI filePolicyToAssign, String taskId) {
         FilePolicy filePolicy = s_dbClient.queryObject(FilePolicy.class, filePolicyToAssign);
         String opName = ResourceOperationTypeEnum.ASSIGN_FILE_POLICY.getName();
-        TaskCompleter completer = new FilePolicyWorkflowCompleter(filePolicyToAssign, taskId);
+        TaskCompleter completer = new FilePolicyAssignWorkflowCompleter(filePolicyToAssign, projectURIs, taskId);
 
         try {
             String waitFor = null;
@@ -1929,9 +1928,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
                                                 stepId,
                                                 stepDes,
                                                 storageSystemURI, args);
-
                                     }
-
                                 }
                             }
                         } else {
@@ -1954,10 +1951,8 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
                                             stepDes,
                                             storageSystemURI, args);
                                 }
-
                             }
                         }
-
                     }
                 } else {
                     s_logger.info("No storage system(s) present for vpool: {}", vpoolURI);

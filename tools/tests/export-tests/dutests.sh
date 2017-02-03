@@ -897,8 +897,6 @@ setup_yaml() {
     sstype=${SS:0:3}
     if [ "${SS}" = "xio" ]; then
 	sstype="xtremio"
-    elif [ "${SS}" = "unity" ]; then
-        sstype="unity"
     fi
 
     # create the yml file to be used for array tooling
@@ -1090,9 +1088,11 @@ prerun_tests() {
     if [ ${VERIFY_EXPORT_STATUS} -ne 0 ]; then
         echo "The export was found on the device, attempting to delete..."
         arrayhelper delete_mask ${SERIAL_NUMBER} ${expname}1 ${HOST1}
+        # reset variables because this is just a clean up task
         VERIFY_EXPORT_STATUS=0
+        VERIFY_COUNT=`expr $VERIFY_COUNT - 1`
+        VERIFY_FAIL_COUNT=`expr $VERIFY_FAIL_COUNT - 1`
     fi
-    date
 }
 
 vnx_sim_setup() {
@@ -2885,14 +2885,14 @@ test_14() {
     # Add the volume to the mask
     arrayhelper add_volume_to_mask ${SERIAL_NUMBER} ${device_id} ${HOST1}
     
-    # Verify the mask has the new initiator in it
+    # Verify the mask has the new volume in it
     verify_export ${expname}1 ${HOST1} 1 2
 
     # Resume the workflow
     runcmd workflow resume $workflow
 
-    # Follow the task.  It should fail because of Poka Yoke validation
-    echo "*** Following the export_group update task to verify it FAILS because of the additional volume"
+    # Follow the task.  It should fail because of artificial failure
+    echo "*** Following the export_group update task to verify it FAILS because of artificial failure"
     fail task follow $task
 
     # Verify that ViPR rollback removed only the initiator that was previously added
@@ -3662,7 +3662,7 @@ test_24() {
     verify_zones ${FC_ZONE_A:7} exists
 
     # Now add back the other vipr volume to the mask
-    runcmd export_group update $PROJECT/${expname}1 --addVols "${PROJECT}/${VOLNAME}-2"
+    runcmd export_group create $PROJECT ${expname}1 $NH --type Host --volspec "${PROJECT}/${VOLNAME}-2" --hosts "${HOST1}"
 
     # Verify the volume is added
     verify_export ${expname}1 ${HOST1} 2 2
@@ -3758,9 +3758,6 @@ test_25() {
 
     # Verify the zones we know about are gone
     verify_zones ${FC_ZONE_A:7} gone
-
-    # Delete the export group
-    runcmd export_group delete $PROJECT/${expname}1
 
     # The mask is out of our control at this point, delete mask
     arrayhelper delete_mask ${SERIAL_NUMBER} ${expname}1 ${HOST1}
@@ -4420,6 +4417,7 @@ then
    for t in $*
    do
       secho Run $t
+      secho "Start time: $(date)"
       reset_system_props
       prerun_tests
       TEST_OUTPUT_FILE=test_output_${RANDOM}.log
@@ -4441,6 +4439,7 @@ else
      prerun_tests
      TEST_OUTPUT_FILE=test_output_${RANDOM}.log
      reset_counts
+     secho "Start time: $(date)"
      test_${num}
      reset_system_props
      num=`expr ${num} + 1`

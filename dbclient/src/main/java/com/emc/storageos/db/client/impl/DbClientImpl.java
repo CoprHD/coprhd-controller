@@ -145,6 +145,7 @@ public class DbClientImpl implements DbClient {
     private boolean initDone = false;
     private String _geoVersion;
     private DrUtil drUtil;
+    private DbConsistencyCheckerHelper consistencyChecker;
 
     public String getGeoVersion() {
         if (this._geoVersion == null) {
@@ -267,6 +268,8 @@ public class DbClientImpl implements DbClient {
         _indexCleaner = new IndexCleaner();
 
         initDone = true;
+        
+        consistencyChecker = new DbConsistencyCheckerHelper(this);
     }
 
     public boolean isInitDone() {
@@ -1157,6 +1160,8 @@ public class DbClientImpl implements DbClient {
             Rows<String, CompositeColumnName> rows = fetchNewest(clazz, ks, objectsToCleanup);
             cleanupOldColumns(clazz, ks, rows);
         }
+        
+        consistencyChecker.checkSingleObjectConsistency(ks, clazz, dataobjects);
     }
 
     protected <T extends DataObject> List<URI> insertNewColumns(Keyspace ks, Collection<T> dataobjects) {

@@ -1860,6 +1860,12 @@ public class NetAppClusterModeDevice extends AbstractFileStorageDevice {
     @Override
     public BiosCommandResult getFileProtectionPolicyFromStorageSystem(StorageSystem storageObj, FileDeviceInputOutput args) {
         return BiosCommandResult.createErrorResult(
-                DeviceControllerErrors.datadomain.operationNotSupported());
+                DeviceControllerErrors.netappc.operationNotSupported());
+    }
+
+    @Override
+    public BiosCommandResult updateStorageSystemFileProtectionPolicy(StorageSystem storageObj, FileDeviceInputOutput args) {
+        return BiosCommandResult.createErrorResult(
+                DeviceControllerErrors.netappc.operationNotSupported());
     }
 }

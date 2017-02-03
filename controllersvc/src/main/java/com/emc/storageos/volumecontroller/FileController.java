@@ -11,6 +11,7 @@ import java.util.List;
 import com.emc.storageos.model.file.CifsShareACLUpdateParams;
 import com.emc.storageos.model.file.FileExportUpdateParams;
 import com.emc.storageos.model.file.NfsACLUpdateParams;
+import com.emc.storageos.model.file.policy.FilePolicyUpdateParam;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 
 /**
@@ -193,6 +194,9 @@ public interface FileController extends StorageController {
     public void listSanpshotByPolicy(URI storage, URI fs, URI policy, String opId) throws InternalException;
 
     public void getFileProtectionPolicyFromStorageSystem(URI storage, URI policy, URI policyRes, String opId) throws InternalException;
+
+    public void updateStorageSystemFileProtectionPolicy(URI storage, URI policy, URI policyRes, FilePolicyUpdateParam policyUpdateParam,
+            String opId) throws InternalException;
 
     /**
      * Apply file policy to a file system

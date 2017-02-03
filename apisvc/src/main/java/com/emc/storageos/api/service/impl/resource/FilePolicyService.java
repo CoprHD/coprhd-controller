@@ -487,8 +487,7 @@ public class FilePolicyService extends TaskResourceService {
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
-    public FilePolicyCreateResp updateFilePolicy(@PathParam("id") URI id, FilePolicyUpdateParam param) {
-        FilePolicyCreateResp resp = new FilePolicyCreateResp();
+    public TaskResourceRep updateFilePolicy(@PathParam("id") URI id, FilePolicyUpdateParam param) {
         ArgValidator.checkFieldUriType(id, FilePolicy.class, "id");
         FilePolicy filePolicy = this._dbClient.queryObject(FilePolicy.class, id);
         ArgValidator.checkEntity(filePolicy, id, true);
@@ -500,14 +499,27 @@ public class FilePolicyService extends TaskResourceService {
             _log.error(errorMsg.toString());
             throw APIException.badRequests.providePolicyStorageResource(errorMsg.toString());
         }
-        _log.info("file policy updation started -- ");
+        _log.info("validate and update file policy parameters started -- ");
         if (filePolicy.getFilePolicyType().equals(FilePolicyType.file_replication.name())) {
-            return updateFileReplicationPolicy(filePolicy, param);
+            updateFileReplicationPolicy(filePolicy, param);
 
         } else if (filePolicy.getFilePolicyType().equals(FilePolicyType.file_snapshot.name())) {
-            return updateFileSnapshotPolicy(filePolicy, param);
+            updateFileSnapshotPolicy(filePolicy, param);
         }
-        return resp;
+        _log.info("validate file policy parameters Done");
+        if (filePolicy.getPolicyStorageResources() != null && !filePolicy.getPolicyStorageResources().isEmpty()
+                && param.getPolicyStorageResource() != null) {
+            PolicyStorageResource storageRes = _dbClient.queryObject(PolicyStorageResource.class, param.getPolicyStorageResource());
+            ArgValidator.checkEntity(storageRes, id, true);
+            _log.info("Updating the storage system policy started..");
+            return updateStorageSystemFileProtectionPolicy(filePolicy, storageRes, param);
+        } else {
+            String task = UUID.randomUUID().toString();
+            Operation op = _dbClient.createTaskOpStatus(FilePolicy.class, filePolicy.getId(),
+                    task, ResourceOperationTypeEnum.UPDATE_FILE_POLICY_BY_POLICY_STORAGE_RESOURCE);
+            op.setDescription("update file protection policy by policy storage resource");
+            return toTask(filePolicy, task, op);
+        }
     }
 
     /**
@@ -853,6 +865,38 @@ public class FilePolicyService extends TaskResourceService {
             throw APIException.badRequests.unableToProcessRequest(e.getMessage());
         }
         return storageSystemPolicyRep;
+
+    }
+
+    private TaskResourceRep updateStorageSystemFileProtectionPolicy(FilePolicy policy, PolicyStorageResource policyRes,
+            FilePolicyUpdateParam param) {
+
+        String task = UUID.randomUUID().toString();
+        StorageSystem device = _dbClient.queryObject(StorageSystem.class, policyRes.getStorageSystem());
+        FileController controller = getController(FileController.class, device.getSystemType());
+        Operation op = _dbClient.createTaskOpStatus(FilePolicy.class, policyRes.getFilePolicyId(),
+                task, ResourceOperationTypeEnum.UPDATE_FILE_POLICY_BY_POLICY_STORAGE_RESOURCE);
+        op.setDescription("update file protection policy by policy storage resource");
+
+        try {
+            _log.info("Update file protection policy on storage system for file storage resource {}, {}", device.getLabel(),
+                    policyRes.getResourcePath());
+            controller.updateStorageSystemFileProtectionPolicy(device.getId(), policy.getId(), policyRes.getId(), param, task);
+
+            auditOp(OperationTypeEnum.UPDATE_STORAGE_SYSTEM_POLICY_BY_POLICY_RESOURCE, true, AuditLogManager.AUDITOP_BEGIN,
+                    policy.getId().toString(), device.getId().toString(), policyRes.getId());
+
+            _log.info("Updated file protection policy on storage system for file storage resource {}, {}", device.getLabel(),
+                    policyRes.getResourcePath());
+        } catch (BadRequestException e) {
+            op = _dbClient.error(FilePolicy.class, policy.getId(), task, e);
+            _log.error("Error Unassigning File policy {}, {}", e.getMessage(), e);
+            throw e;
+        } catch (Exception e) {
+            _log.error("Error Unassigning Files Policy {}, {}", e.getMessage(), e);
+            throw APIException.badRequests.unableToProcessRequest(e.getMessage());
+        }
+        return toTask(policy, task, op);
 
     }
 

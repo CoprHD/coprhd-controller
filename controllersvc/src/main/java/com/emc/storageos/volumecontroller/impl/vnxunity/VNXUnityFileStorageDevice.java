@@ -1736,6 +1736,12 @@ public class VNXUnityFileStorageDevice extends VNXUnityOperations
     }
 
     @Override
+    public BiosCommandResult updateStorageSystemFileProtectionPolicy(StorageSystem storageObj, FileDeviceInputOutput args) {
+        return BiosCommandResult.createErrorResult(
+                DeviceControllerErrors.vnxe.operationNotSupported("Update storage system protection policy", "Unity"));
+    }
+
+    @Override
     public BiosCommandResult updateNfsACLs(StorageSystem storage, FileDeviceInputOutput args) {
         return BiosCommandResult.createErrorResult(
                 DeviceControllerErrors.vnxe.operationNotSupported(" Add or Update NFS Share ACLs", "Unity"));

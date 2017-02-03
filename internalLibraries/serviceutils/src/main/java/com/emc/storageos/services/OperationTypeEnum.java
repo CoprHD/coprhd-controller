@@ -152,6 +152,8 @@ public enum OperationTypeEnum {
             "FileSystem Schedule Snapshot List"),
     GET_STORAGE_SYSTEM_POLICY_BY_POLICY_RESOURCE("StorageSystemPolicyForPolicyResource", "StorageSystemPolicyForPolicyResourceFailed",
             "Get Storage System Policy For Policy Resource"),
+    UPDATE_STORAGE_SYSTEM_POLICY_BY_POLICY_RESOURCE("StorageSystemPolicyForPolicyResource", "StorageSystemPolicyForPolicyResourceFailed",
+            "Get Storage System Policy For Policy Resource"),
 
     CREATE_FILE_SYSTEM_SNAPSHOT("FileSystemSnapshotCreated", "FileSystemSnapshotCreateFailed", "FileSystem snapshot created"),
     DELETE_FILE_SNAPSHOT("FileSystemSnapshotDeleted", "FileSystemSnapshotDeleteFailed", "FileSystem snapshot deleted"),

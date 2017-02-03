@@ -2748,6 +2748,12 @@ public class VNXeStorageDevice extends VNXeOperations
     }
 
     @Override
+    public BiosCommandResult updateStorageSystemFileProtectionPolicy(StorageSystem storageObj, FileDeviceInputOutput args) {
+        return BiosCommandResult.createErrorResult(
+                DeviceControllerErrors.vnxe.operationNotSupported("Update storage system protection policy ", "VNXe"));
+    }
+
+    @Override
     public void doInitiatorAliasSet(StorageSystem storage, Initiator initiator, String initiatorAlias) throws Exception {
         throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
     }

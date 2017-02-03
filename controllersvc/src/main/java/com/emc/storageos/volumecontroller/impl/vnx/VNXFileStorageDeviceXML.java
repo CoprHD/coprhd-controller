@@ -1552,6 +1552,12 @@ public class VNXFileStorageDeviceXML extends AbstractFileStorageDevice {
     @Override
     public BiosCommandResult getFileProtectionPolicyFromStorageSystem(StorageSystem storageObj, FileDeviceInputOutput args) {
         return BiosCommandResult.createErrorResult(
-                DeviceControllerErrors.datadomain.operationNotSupported());
+                DeviceControllerErrors.vnx.operationNotSupported());
+    }
+
+    @Override
+    public BiosCommandResult updateStorageSystemFileProtectionPolicy(StorageSystem storageObj, FileDeviceInputOutput args) {
+        return BiosCommandResult.createErrorResult(
+                DeviceControllerErrors.vnx.operationNotSupported());
     }
 }

@@ -22,6 +22,7 @@ import com.emc.storageos.impl.AbstractDiscoveredSystemController;
 import com.emc.storageos.model.file.CifsShareACLUpdateParams;
 import com.emc.storageos.model.file.FileExportUpdateParams;
 import com.emc.storageos.model.file.NfsACLUpdateParams;
+import com.emc.storageos.model.file.policy.FilePolicyUpdateParam;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.volumecontroller.AsyncTask;
 import com.emc.storageos.volumecontroller.ControllerException;
@@ -248,6 +249,13 @@ public class FileControllerImpl extends AbstractDiscoveredSystemController imple
     @Override
     public void getFileProtectionPolicyFromStorageSystem(URI storage, URI policy, URI policyRes, String opId) throws InternalException {
         execFS("getFileProtectionPolicyFromStorageSystem", storage, policy, policyRes, opId);
+
+    }
+
+    @Override
+    public void updateStorageSystemFileProtectionPolicy(URI storage, URI policy, URI policyRes, FilePolicyUpdateParam policyUpdateParam,
+            String opId) throws InternalException {
+        execFS("updateStorageSystemFileProtectionPolicy", storage, policy, policyRes, policyUpdateParam, opId);
 
     }
 

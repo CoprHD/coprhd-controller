@@ -168,6 +168,25 @@ public class VPlexStorageViewInfo extends VPlexResourceInfo {
     }
 
     /**
+     * Gets the volume name for the wwn in the storage view.
+     * 
+     * @param volumeName The WWN of the volume
+     * 
+     * @return The volume name, or null if not found.
+     */
+    public String getVolumeNameForWWN(String wwn) {
+        if (wwn != null) {
+            for (Entry<String, String> entry : virtualVolumeWWNMap.entrySet()) {
+                if (wwn.equalsIgnoreCase(entry.getValue())) {
+                    return entry.getKey();
+                }
+            }
+        }
+
+        return null;
+    }
+
+    /**
      * Gets the HLU for the volume in the storage view.
      * 
      * @param volumeName The volume name.

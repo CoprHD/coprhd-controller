@@ -894,8 +894,6 @@ setup_yaml() {
     sstype=${SS:0:3}
     if [ "${SS}" = "xio" ]; then
 	sstype="xtremio"
-    elif [ "${SS}" = "unity" ]; then
-        sstype="unity"
     fi
 
     # create the yml file to be used for array tooling
@@ -2875,14 +2873,14 @@ test_14() {
     # Add the volume to the mask
     arrayhelper add_volume_to_mask ${SERIAL_NUMBER} ${device_id} ${HOST1}
     
-    # Verify the mask has the new initiator in it
+    # Verify the mask has the new volume in it
     verify_export ${expname}1 ${HOST1} 1 2
 
     # Resume the workflow
     runcmd workflow resume $workflow
 
-    # Follow the task.  It should fail because of Poka Yoke validation
-    echo "*** Following the export_group update task to verify it FAILS because of the additional volume"
+    # Follow the task.  It should fail because of artificial failure
+    echo "*** Following the export_group update task to verify it FAILS because of artificial failure"
     fail task follow $task
 
     # Verify that ViPR rollback removed only the initiator that was previously added

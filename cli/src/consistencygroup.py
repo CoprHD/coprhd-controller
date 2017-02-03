@@ -129,7 +129,7 @@ class ConsistencyGroup(object):
             return None
         return s
 
-    def create(self, name, project, tenant):
+    def create(self, name, project, tenant, arrayconsistency):
         '''
         This function will take consistency group name and project name
         as input and It will create the consistency group with given name.
@@ -151,7 +151,7 @@ class ConsistencyGroup(object):
                 projobj = Project(self.__ipAddr, self.__port)
                 projuri = projobj.project_query(fullproj)
 
-                parms = {'name': name, 'project': projuri, }
+                parms = {'name': name, 'project': projuri, 'array_consistency': arrayconsistency.lower()}
                 body = json.dumps(parms)
 
                 (s, h) = common.service_json_request(
@@ -523,13 +523,18 @@ def create_parser(subcommand_parsers, common_parser):
                                metavar='<tenantname>',
                                dest='tenant',
                                help='container tenant name')
+    create_parser.add_argument('-array-consistent', '-ac',
+                               metavar='<arrayconsistency>',
+                               dest='arrayconsistency',
+                               default='true',
+                               help='for RP and VPLEX volumes determines if volumes in the CG should be consistent on the array; default to true')
     create_parser.set_defaults(func=consistencygroup_create)
 
 
 def consistencygroup_create(args):
     try:
         obj = ConsistencyGroup(args.ip, args.port)
-        res = obj.create(args.name, args.project, args.tenant)
+        res = obj.create(args.name, args.project, args.tenant, args.arrayconsistency)
     except SOSError as e:
         common.format_err_msg_and_raise("create", "consistency group",
                                         e.err_text, e.err_code)

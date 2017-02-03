@@ -745,7 +745,7 @@ public class DbConsistencyCheckerHelper {
         return executor;
     }
     
-    public <T extends DataObject> boolean checkSingleObjectConsistency(Keyspace ks, Class<? extends T> clazz, Collection<T> dataobjects, boolean printStack) {
+    public <T extends DataObject> boolean checkSingleObjectConsistency(Keyspace ks, Class<? extends T> clazz, Collection<T> dataobjects) {
         _log.info("checkSingleObjectConsistency for {}", clazz);
         CheckResult checkResult = new CheckResult();
         Map<String, ColumnField> indexedFields = new HashMap<String, ColumnField>();

@@ -8796,13 +8796,12 @@ export_initiator()
     run export_group update $exp --remInits "$hostname/$pwwn1"
     run export_group show $exp
     run export_group update $exp --remVols $vol2,$snap1
-    run export_group show $exp
+    # export group will be deleted by clean up process in ExportUpdateCompleter
 
     if [ "$BOURNE_SECURITY_DISABLED" != '1' ] ; then
         run bulkapi exportgroups $LOCAL_LDAP_SUPERUSER_USERNAME $LOCAL_LDAP_SUPERUSER_PASSWORD $LOCAL_LDAP_USER_PASSWORD_1
     fi
 
-    run export_group delete $exp
     run blocksnapshot delete $snap1
     # TODO Only for vmax3
     if ! [ ${SS} = "vnxblock" -o ${SS} = "vnxblock_flex_varray" ]; then
@@ -8892,13 +8891,11 @@ export_host()
     run export_group update $exp --remInits "$hostname2/$pwwn21,$hostname2/$pwwn23"
     run export_group show $exp
     run export_group update $exp --remVols $vol2
-    run export_group show $exp
+    # export group will be deleted by clean up process in ExportUpdateCompleter
 
     if [ "$BOURNE_SECURITY_DISABLED" != '1' ] ; then
         run bulkapi exportgroups $LOCAL_LDAP_SUPERUSER_USERNAME $LOCAL_LDAP_SUPERUSER_PASSWORD $LOCAL_LDAP_USER_PASSWORD_1
     fi
-
-    run export_group delete $exp
 }
 
 # =======================================================================================

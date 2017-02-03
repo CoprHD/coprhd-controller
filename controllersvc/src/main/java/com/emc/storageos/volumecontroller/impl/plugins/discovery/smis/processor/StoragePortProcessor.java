@@ -62,6 +62,10 @@ public class StoragePortProcessor extends StorageProcessor {
     private static final String ISCSI = "iSCSI";
     private static final String OPERATIONALSTATUS = "OperationalStatus";
     private static final String EMC_PORT_ATTRIBUTES = "EMCPortAttributes";
+    private static final String FRONTEND_PORT = "2";
+    private static final String BACKEND_PORT = "3";
+    private static final String LINKTECHNOLOGY_ETHERNET = "2";
+    private static final String LINKTECHNOLOGY_FC = "4";
     private static final UnsignedInteger16 EMC_PORT_ATTRIBUTE_ACLX_FLAG = new UnsignedInteger16(1);
     private AccessProfile profile = null;
     private List<StoragePort> _newPortList = null;
@@ -71,6 +75,7 @@ public class StoragePortProcessor extends StorageProcessor {
     private List<Object> args;
     private static final UnsignedInteger16 ok_code = new UnsignedInteger16(2);
     private static final UnsignedInteger16 stopped_code = new UnsignedInteger16(10);
+
 
     /**
      * {@inheritDoc}
@@ -112,7 +117,7 @@ public class StoragePortProcessor extends StorageProcessor {
                     // skip back end ports other than RDF Ports
                     if (!HADomainType.REMOTE.name().equalsIgnoreCase(
                             haDomain.getAdapterType())
-                            && "3".equalsIgnoreCase(getCIMPropertyValue(portInstance, USAGERESTRICTION))) {
+                            && BACKEND_PORT.equalsIgnoreCase(getCIMPropertyValue(portInstance, USAGERESTRICTION))) {
                         continue;
                     }
                     // only if its an EthernetPort, as protocolEnd point needs
@@ -120,7 +125,7 @@ public class StoragePortProcessor extends StorageProcessor {
                     // Ports , because SCSI address we don't have it in
                     // CIM_LogicalPort Class
                     // 2 - Ethernet Port 4 - FC Port
-                    if ("2".equalsIgnoreCase(getCIMPropertyValue(portInstance, LINKTECHNOLOGY))) {
+                    if (LINKTECHNOLOGY_ETHERNET.equalsIgnoreCase(getCIMPropertyValue(portInstance, LINKTECHNOLOGY))) {
                         port = createStoragePort(null, portInstance, profile, haDomain, false, IP, device);
                         checkProtocolAlreadyExists(protocols, ISCSI);
                         String deviceId = getCIMPropertyValue(portInstance, DEVICEID);
@@ -139,7 +144,7 @@ public class StoragePortProcessor extends StorageProcessor {
                         _logger.debug("Adding iSCSI Port instance {} to keyMap", deviceId);
                         keyMap.put(deviceId, port);
                         addPath(keyMap, operation.getResult(), portInstance.getObjectPath());
-                    } else if ("4".equalsIgnoreCase(getCIMPropertyValue(portInstance, LINKTECHNOLOGY))) {
+                    } else if (LINKTECHNOLOGY_FC.equalsIgnoreCase(getCIMPropertyValue(portInstance, LINKTECHNOLOGY))) {
                         port = checkStoragePortExistsInDB(portInstance, device, _dbClient);
                         checkProtocolAlreadyExists(protocols, FC);
                         createStoragePort(port, portInstance, profile, haDomain, true, FC, device);
@@ -259,7 +264,11 @@ public class StoragePortProcessor extends StorageProcessor {
             Long portSpeedInGbps = portSpeedInBitsPerSec / GB;
             port.setPortSpeed(portSpeedInGbps);
         }
-        setCompatibilityByACLXFlag(device, portInstance, port);
+
+        if (FRONTEND_PORT.equalsIgnoreCase(getCIMPropertyValue(portInstance, USAGERESTRICTION))) {
+            setCompatibilityByACLXFlag(device, portInstance, port);
+        }
+
         if (flag) {
             if (newPort) {
                 _logger.info("Creating port - {}:{}", port.getLabel(), port.getNativeGuid());
@@ -287,7 +296,7 @@ public class StoragePortProcessor extends StorageProcessor {
             }
             // VMAX GIGE ports do not report EMC_PORT_ATTRIBUTE_ACLX_FLAG
             // If there is Virtual ProtocolEndpoint associated to this physical port, consider masking is enabled...
-            if ("2".equalsIgnoreCase(getCIMPropertyValue(portInstance, LINKTECHNOLOGY))) {
+            if (LINKTECHNOLOGY_ETHERNET.equalsIgnoreCase(getCIMPropertyValue(portInstance, LINKTECHNOLOGY))) {
                 foundACLXFlag = true;
             }
             String compatibilityStatus = (foundACLXFlag) ? DiscoveredDataObject.CompatibilityStatus.COMPATIBLE.name() :
@@ -299,9 +308,9 @@ public class StoragePortProcessor extends StorageProcessor {
     }
 
     private void setPortType(StoragePort port, CIMInstance portInstance) {
-        if ("2".equalsIgnoreCase(getCIMPropertyValue(portInstance, USAGERESTRICTION))) {
+        if (FRONTEND_PORT.equalsIgnoreCase(getCIMPropertyValue(portInstance, USAGERESTRICTION))) {
             port.setPortType(PortType.frontend.toString());
-        } else if ("3".equalsIgnoreCase(getCIMPropertyValue(portInstance, USAGERESTRICTION))) {
+        } else if (BACKEND_PORT.equalsIgnoreCase(getCIMPropertyValue(portInstance, USAGERESTRICTION))) {
             port.setPortType(PortType.rdf.toString());
         } else {
             port.setPortType(PortType.Unknown.toString());

@@ -100,51 +100,56 @@ public class RunViprREST extends ViPRExecutionTask<OrchestrationTaskResult> {
         }
     }
 
-    private OrchestrationTaskResult makeRestCall(final String path, final Object requestBody, final String method) throws Exception {
+    private OrchestrationTaskResult makeRestCall(final String path, final Object requestBody, final String method) throws InternalServerErrorException {
 
-        final ClientResponse response;
+        ClientResponse response = null;
+        String responseString = null;
         OrchestrationServiceConstants.restMethods restmethod = OrchestrationServiceConstants.restMethods.valueOf(method);
 
-        switch(restmethod) {
-            case GET:
-                response = client.get(ClientResponse.class, path);
-                break;
-            case PUT: 
-                response = client.put(ClientResponse.class, requestBody, path);
-                break;
-            case POST:
-                response = client.post(ClientResponse.class, requestBody, path);
-                break;
-            case DELETE:
-                response = client.delete(ClientResponse.class, path);
-                break;
-            default:
-                throw InternalServerErrorException.internalServerErrors.
-                        customServiceExecutionFailed("Invalid REST method type" + method);
-        }
-
-        if (response == null) {
-            throw InternalServerErrorException.internalServerErrors.
-                    customServiceExecutionFailed("REST Execution Failed" + response);
-        }
-
-        logger.info("Status of ViPR REST Operation:{} is :{}", primitive.getName(), response.getStatus());
-
-        String responseString = null;
         try {
+            switch (restmethod) {
+                case GET:
+                    response = client.get(ClientResponse.class, path);
+                    break;
+                case PUT:
+                    response = client.put(ClientResponse.class, requestBody, path);
+                    break;
+                case POST:
+                    response = client.post(ClientResponse.class, requestBody, path);
+                    break;
+                case DELETE:
+                    response = client.delete(ClientResponse.class, path);
+                    break;
+                default:
+                    throw InternalServerErrorException.internalServerErrors.
+                            customServiceExecutionFailed("Invalid REST method type" + method);
+            }
+
+            if (response == null) {
+                throw InternalServerErrorException.internalServerErrors.
+                        customServiceExecutionFailed("REST Execution Failed. Response returned is null");
+            }
+
+            logger.info("Status of ViPR REST Operation:{} is :{}", primitive.getName(), response.getStatus());
+
+
             responseString = IOUtils.toString(response.getEntityInputStream(), "UTF-8");
 
             final Map<URI, String> taskState = waitForTask(responseString);
             return new OrchestrationTaskResult(responseString, responseString, response.getStatus(), taskState);
+
         } catch (final InternalServerErrorException e) {
+
             if (e.getServiceCode().getCode() == ServiceCode.CUSTOM_SERVICE_NOTASK.getCode()) {
-                logger.info("service code is:{}", ServiceCode.CUSTOM_SERVICE_NOTASK.getCode());
                 return new OrchestrationTaskResult(responseString, responseString, response.getStatus(), null);
             }
-            throw InternalServerErrorException.internalServerErrors.customServiceExecutionFailed("Failed to Execute REST request");
-        } catch (final IOException e) {
+
             throw InternalServerErrorException.internalServerErrors.
-                    customServiceExecutionFailed("Unable to get response" + response);
+                    customServiceExecutionFailed("Failed to Execute REST request" + e.getMessage());
+        } catch (final Exception e) {
+
+            throw InternalServerErrorException.internalServerErrors.
+                    customServiceExecutionFailed("REST Execution Failed" + e.getMessage());
         }
     }
 

@@ -135,6 +135,7 @@ public class OrchestrationService extends ViPRService {
 
             final OrchestrationTaskResult res;
             Primitive primitive = PrimitiveHelper.get(step.getOperation());
+
             if( null == primitive) {
                 throw InternalServerErrorException.internalServerErrors.
                         customServiceExecutionFailed("Primitive not found: " + step.getOperation());
@@ -180,7 +181,7 @@ public class OrchestrationService extends ViPRService {
                 }
                 next = getNext(isSuccess, res, step);
 
-            } catch (final InternalServerErrorException e) {
+            } catch (final Exception e) {
                 logger.warn("Failed to execute Step:{}", step.getId());
                 next = getNext(false, null, step);
             }

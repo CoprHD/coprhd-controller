@@ -4256,6 +4256,9 @@ test_28() {
     # Create export group 2 again with different sets of initiators
     runcmd export_group delete $PROJECT2/${expname}2
 
+    echo "Sleep 60 seconds"
+    sleep 60
+
     runcmd export_group create ${PROJECT2} ${expname}2 $NH --type Host --volspec "${PROJECT2}/P2${VOLNAME}-1" --hosts "${HOST1}"
     verify_export ${expname}1 ${HOST1} 2 2
 

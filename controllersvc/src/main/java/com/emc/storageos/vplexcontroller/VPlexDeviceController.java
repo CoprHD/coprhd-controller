@@ -3574,7 +3574,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
 
             for (ExportMask exportMask : exportMasks) {
                 if (exportMask.getInactive()) {
-                    _log.info(String.format("ExportMask %s (%s, arg1) is inactive, skipping", 
+                    _log.info(String.format("ExportMask %s (%s) is inactive, skipping", 
                             exportMask.getMaskName(), exportMask.getId()));
                     continue;
                 }
@@ -13357,7 +13357,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
         if (exportGroup == null || exportMask == null || exportGroup.getInactive() || exportMask.getInactive() || 
         		!exportGroup.hasMask(exportMaskURI)) {
         	String reason = String.format("Bad exportGroup %s or exportMask %s", exportGroupURI, exportMaskURI);
-        	_log.info(reason);
+        	_log.error(reason);
         	ServiceCoded coded = WorkflowException.exceptions.workflowConstructionError(reason);
         	WorkflowStepCompleter.stepFailed(stepId, coded);
         	return;
@@ -13382,13 +13382,12 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
         
         // Determine hosts in ExportMask
         Set<URI> hostsInExportMask = new HashSet<URI>();
-        Set<String> hostNames = new HashSet<String>();
+        Set<String> hostNames = ExportMaskUtils.getHostNamesInMask(exportMask, _dbClient);
         Set<Initiator> initiatorsInMask = ExportMaskUtils.getInitiatorsForExportMask(_dbClient, exportMask, null);
         for (Initiator initiator : initiatorsInMask) {
             if (initiator.getHost() != null) {
                hostsInExportMask.add(initiator.getHost());
             }
-            hostNames.add(initiator.getHostName());
         }
         boolean sharedMask = (hostsInExportMask.size() > 1);
         
@@ -13397,8 +13396,10 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
             Workflow workflow = _workflowService.getNewWorkflow(this, "portRebalance", false, stepId);
 
             // Determine initiators and targets to be added. 
-            // These are initiators not already in mask that are in a host in the mask.and
-            // initiators already in the mask with new ports.
+            // These are initiators not in mask that are in a host in the mask.
+            // Earlier versions of the Vplex code may not have had all the initiators in the mask, as
+            // earlier code only put initiators in the Storage View for which ports were added.
+            // Targets to be added may be on existing initiators or newly added initiators.
             List<URI> initiatorsToAdd = new ArrayList<URI>();
             List<URI> targetsToAdd = new ArrayList<URI>();
             for (URI initiatorURI : adjustedPaths.keySet()) {
@@ -13430,7 +13431,8 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
             _log.info("Targets to add: " + targetsToAdd.toString());
             _log.info("Initiators to add: " + initiatorsToAdd.toString());
             
-            // Invoke either storageViewAddInitiators or storageViewAddPorts as a step
+            // Invoke either storageViewAddInitiators if there are initiators to be added (it will add targets also),
+            // or storageViewAddStoragePorts if no initiators to be added (which adds only targets).
             Workflow.Method addPathsMethod = null;
             if (!initiatorsToAdd.isEmpty() || !targetsToAdd.isEmpty()) {
                 String addInitiatorStepId = workflow.createStepId();
@@ -13444,14 +13446,13 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
                 String description = String.format("Adding paths to ExportMask %s Hosts %s", exportMask.getMaskName(), hostNames.toString());
                 workflow.createStep("addPaths", description, null, vplex, vplexSystem.getSystemType(), this.getClass(), addPathsMethod, null, false, addInitiatorStepId);
                 ExportMaskAddPathsCompleter workflowCompleter = new ExportMaskAddPathsCompleter(exportGroupURI, exportMaskURI, stepId);
-//                workflowCompleter.setNewInitiators(initiatorsToAdd);
-//                workflowCompleter.setNewStoragePorts(targetsToAdd);
                 workflow.executePlan(workflowCompleter, description + " completed successfully");
                 return;
             }
             
         } else {
-            // Processing the paths to be removed only, but want to see what is retained.
+            // Processing the paths to be removed only, Paths not in the removedPaths map will be retained.
+            // Note that we only remove ports (targets), never initiators.
             Workflow workflow = _workflowService.getNewWorkflow(this, "portRebalance", false, stepId);
             
             // Compute the targets to be removed.
@@ -13464,7 +13465,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
             List<URI> portsToBeRemoved = new ArrayList<URI>(targetsToBeRemoved);
             _log.info("Targets to be removed: " + portsToBeRemoved.toString());
 
-            // Call either storageViewRemoveInitiators or storageViewRemoveStoragePorts
+            // Call storageViewRemoveStoragePorts to remove any necessary targets.
             Workflow.Method removePathsMethod = null;
             if (!portsToBeRemoved.isEmpty()) {
                 String removeInitiatorStepId = workflow.createStepId();

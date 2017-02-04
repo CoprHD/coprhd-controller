@@ -88,7 +88,10 @@ public interface BlockExportController extends Controller {
     
     /**
      * Reallocate storage ports and update export path
-     * This is done for all ExportMasks belongs to the same storage system if needed.
+     * This is done for all ExportMasks that match the storage system provided 
+     * and that match the varray (in case of Vplex cross connected they may not match varray)
+     * and where paths were computed for the mask. (It's possible to specify as subset of all the hosts in an EG,
+     * such that only certain EMs will be have paths, although this option is not supported currently in GUI.)
      * 
      * @param systemURI - URI of storage system
      * @param exportGroupURI - URI of export group

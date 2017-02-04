@@ -4,11 +4,15 @@
 # All Rights Reserved
 #
 
+# Use: adjustPaths sanity.conf bourne_ip
+# where sanity.conf is the full pathname to your sanity.conf file
+# and bourne_ip is the IP address of the system running the test
+
 
 # Save the command arguments
 ARGC=$#
 [ $ARGC -eq 0 ] && {
-    echo "usage: vplexsrdf config_file bourne_ip"
+    echo "usage: adjustPaths config_file bourne_ip"
     exit 2;
 }
 

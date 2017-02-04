@@ -946,7 +946,7 @@ public class BlockDeviceExportController implements BlockExportController {
             }
             
             String stepId = null;
-            Map<URI, Map<URI, List<URI>>> maskAjustedPathMap = new HashMap<URI, Map<URI, List<URI>>>();
+            Map<URI, Map<URI, List<URI>>> maskAdjustedPathMap = new HashMap<URI, Map<URI, List<URI>>>();
             Map<URI, Map<URI, List<URI>>> maskRemovePathMap = new HashMap<URI, Map<URI, List<URI>>>();
             List<ExportMask> affectedMasks = new ArrayList<ExportMask>();
             for (ExportMask mask : exportMasks) {
@@ -963,7 +963,7 @@ public class BlockDeviceExportController implements BlockExportController {
                 affectedMasks.add(mask);
                 Map<URI, List<URI>> adjustedPathForMask = ExportMaskUtils.getAdjustedPathsForExportMask(mask, adjustedPaths, _dbClient);
                 Map<URI, List<URI>> removedPathForMask = ExportMaskUtils.getRemovePathsForExportMask(mask, removedPaths);
-                maskAjustedPathMap.put(mask.getId(), adjustedPathForMask);
+                maskAdjustedPathMap.put(mask.getId(), adjustedPathForMask);
                 maskRemovePathMap.put(mask.getId(), removedPathForMask);
                 
             }
@@ -974,10 +974,10 @@ public class BlockDeviceExportController implements BlockExportController {
                 for (ExportMask mask : affectedMasks) {                    
                     URI maskURI = mask.getId();
                     stepId = _wfUtils.generateExportAddPathsWorkflow(workflow, "Export add paths", stepId, systemURI, exportGroup.getId(),
-                            varray, mask, maskAjustedPathMap.get(maskURI), maskRemovePathMap.get(maskURI));
+                            varray, mask, maskAdjustedPathMap.get(maskURI), maskRemovePathMap.get(maskURI));
                 }
     
-                stepId = _wfUtils.generateZoningAddPathsWorkflow(workflow, "Zoning add paths", systemURI, exportGroupURI, maskAjustedPathMap,
+                stepId = _wfUtils.generateZoningAddPathsWorkflow(workflow, "Zoning add paths", systemURI, exportGroupURI, maskAdjustedPathMap,
                         newPaths, stepId);
                 
                 stepId = _wfUtils.generateHostRescanWorkflowSteps(workflow, newPaths, stepId);
@@ -1006,10 +1006,10 @@ public class BlockDeviceExportController implements BlockExportController {
                     Map<URI, List<URI>> removingPaths = maskRemovePathMap.get(maskURI);
                     if (!removingPaths.isEmpty()) {
                         stepId = _wfUtils.generateExportRemovePathsWorkflow(workflow, "Export remove paths", stepId, 
-                                systemURI, exportGroupURI, varray, mask, maskAjustedPathMap.get(maskURI), removingPaths);
+                                systemURI, exportGroupURI, varray, mask, maskAdjustedPathMap.get(maskURI), removingPaths);
                     }
                 }
-                stepId = _wfUtils.generateZoningRemovePathsWorkflow(workflow, "Zoning remove paths", systemURI, exportGroupURI, maskAjustedPathMap,
+                stepId = _wfUtils.generateZoningRemovePathsWorkflow(workflow, "Zoning remove paths", systemURI, exportGroupURI, maskAdjustedPathMap,
                         maskRemovePathMap, stepId);
                 
                 stepId = _wfUtils.generateHostRescanWorkflowSteps(workflow, removedPaths, stepId);

@@ -5,6 +5,7 @@
 package com.emc.storageos.computecontroller.impl;
 
 import java.net.URI;
+import java.util.ArrayList;
 import java.util.List;
 
 import org.eclipse.jetty.util.log.Log;
@@ -18,11 +19,13 @@ import com.emc.storageos.computesystemcontroller.impl.adapter.EsxHostDiscoveryAd
 import com.emc.storageos.computesystemcontroller.impl.adapter.VcenterDiscoveryAdapter;
 import com.emc.storageos.computesystemcontroller.impl.adapter.WindowsHostDiscoveryAdapter;
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.model.AuthnProvider;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Host.HostType;
 import com.emc.storageos.db.client.model.Vcenter;
 import com.emc.storageos.db.client.model.VcenterDataCenter;
 import com.emc.storageos.exceptions.DeviceControllerException;
+import com.emc.storageos.util.KerberosUtil;
 import com.emc.storageos.workflow.Workflow;
 import com.emc.storageos.workflow.Workflow.Method;
 import com.emc.storageos.workflow.WorkflowStepCompleter;
@@ -77,10 +80,12 @@ public class HostRescanDeviceController implements HostRescanController {
         } else if (host.getType().equalsIgnoreCase(HostType.HPUX.name())) {
             return new HpuxSystem(host.getHostName(), host.getPortNumber(), host.getUsername(), host.getPassword());
         } else if (host.getType().equalsIgnoreCase(HostType.Windows.name())) {
-            // TODO: initialize kerberos
-            // List<AuthnProvider> authProviders = new ArrayList<AuthnProvider>();
-            // Iterables.addAll(authProviders, _dbClient.qu().of(AuthnProvider.class).findAll(true));
-            // KerberosUtil.initializeKerberos(authProviders);
+            List<AuthnProvider> authProviders = new ArrayList<AuthnProvider>();
+            for (URI authProviderId : getDbClient().queryByType(AuthnProvider.class, true)) {
+                 AuthnProvider authProvider = getDbClient().queryObject(AuthnProvider.class, authProviderId);
+                 authProviders.add(authProvider);
+            }
+            KerberosUtil.initializeKerberos(authProviders);
             return WindowsHostDiscoveryAdapter.createWindowsSystem(host);
         } else if (host.getType().equalsIgnoreCase(HostType.Esx.name())) {
             if (host.getUsername() != null && host.getPassword() != null) {

@@ -45,8 +45,14 @@ public class InitiatorPortMapRestRep {
     public class NamedRelatedResourceRepComparator implements Comparator<NamedRelatedResourceRep> {
         @Override
         public int compare(NamedRelatedResourceRep o1, NamedRelatedResourceRep o2) {
-           if (o1.getName() == null || o2.getName() == null) {
+           if (o1.getName() == null && o2.getName() == null) {
                return 0;
+           }
+           if (o1.getName() == null) {
+               return -1;
+           }
+           if (o2.getName() == null) {
+               return 1;
            }
            return(o1.getName().compareTo(o2.getName()));
         }

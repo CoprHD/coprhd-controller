@@ -1663,7 +1663,7 @@ public class ExportMaskUtils {
      * @param exportMask - export mask
      * @param adjustedPaths - The list of the adjusted paths (new and retained) for the export group
      * @param dbClient
-     * @return The adjusted paths (map of initiator to storage ports) for the export mask
+     * @return The adjusted paths (map of initiator to storage ports) for the export mask that is desired as a result of path adjustment
      */
     public static Map<URI, List<URI>> getAdjustedPathsForExportMask(ExportMask exportMask, Map<URI, List<URI>> adjustedPaths, DbClient dbClient) {
         Map<URI, List<URI>> result = new HashMap<URI, List<URI>> ();
@@ -1712,16 +1712,17 @@ public class ExportMaskUtils {
      * Builds a default zoneMap from the initiators and ports.
      
      * For the targets in the mask, they are paired with the initiators they can service,
-     * i.e. that are on the same or a routeable network, and are usable in the varray,
+     * i.e. that are on the same or a route-able network, and are usable in the varray,
      * and the corresponding zones are put in the zoning map.
-     * 
      * 
      * @param mask -- The ExportMask being manipulated
      * @param varray -- The Virtual Array (normally from the ExportGroup)
      * @param dbClient -- DbClient 
-     * @return - The built zoningMap
+     * @return - The zoning map represented as a string set map that is constructed from the 
+     * cross product of mask initiators and mask storage ports. Initiators are only paired
+     * with ports on the same network.
      * 
-     *            Assumption: the export mask has up to date initiators and storage ports
+     *       Assumption: the export mask has up to date initiators and storage ports
      */
     public static StringSetMap buildZoningMapFromInitiatorsAndPorts(ExportMask mask, URI varray, DbClient dbClient) {
         _log.info(String.format("Creating zoning map for ExportMask %s (%s) from the initiator and port sets",

@@ -1692,11 +1692,12 @@ public class NetworkDeviceController implements NetworkController {
      */
     private FCZoneReference addZoneReference(URI exportGroupURI, NetworkFCZoneInfo zoneInfo, String[] newOrExisting) {
         String refKey = zoneInfo.makeEndpointsKey();
+        URI egURI = exportGroupURI;
         // If ExportGroup specified in zone info, use it instead of the default of the order
         if (zoneInfo.getExportGroup() != null) {
-            exportGroupURI = zoneInfo.getExportGroup();
+            egURI = zoneInfo.getExportGroup();
         }
-        FCZoneReference ref = addZoneReference(exportGroupURI, zoneInfo.getVolumeId(), refKey, zoneInfo.getFabricId(),
+        FCZoneReference ref = addZoneReference(egURI, zoneInfo.getVolumeId(), refKey, zoneInfo.getFabricId(),
                 zoneInfo.getNetworkDeviceId(), zoneInfo.getZoneName(), zoneInfo.isExistingZone(), newOrExisting);
         return ref;
     }
@@ -2746,7 +2747,7 @@ public class NetworkDeviceController implements NetworkController {
             TaskCompleter taskCompleter,
             String token) throws ControllerException {
         NetworkFCContext context = new NetworkFCContext();
-        boolean status = false;
+        boolean completedSucessfully = false;
         ExportGroup exportGroup = _dbClient
                 .queryObject(ExportGroup.class, exportGroupURI);
         _log.info(String.format("Entering zoneExportAddPaths for ExportGroup: %s (%s)",
@@ -2773,11 +2774,11 @@ public class NetworkDeviceController implements NetworkController {
                 return true;
             }
 
-            // Now call addZones to add all the required zones.
+            // Now call addRemoveZones to add all the required zones.
             BiosCommandResult result = addRemoveZones(exportGroup.getId(),
                     context.getZoneInfos(), false);
-            status = result.isCommandSuccess();
-            if (status) {
+            completedSucessfully = result.isCommandSuccess();
+            if (completedSucessfully) {
                 taskCompleter.ready(_dbClient);
             } else {
                 ServiceError svcError = NetworkDeviceControllerException.errors.zoneExportAddPathsError(
@@ -2790,7 +2791,7 @@ public class NetworkDeviceController implements NetworkController {
                     ex.getMessage(), ex);
             taskCompleter.error(_dbClient, svcError);
         }
-        return status;
+        return completedSucessfully;
     }
     
     /**
@@ -2812,7 +2813,7 @@ public class NetworkDeviceController implements NetworkController {
             return true;
         }
         NetworkFCContext context = new NetworkFCContext();
-        boolean status = false;
+        boolean completedSuccessfully = false;
         URI exportGroupId = zoningParams.get(0).getExportGroupId();
         URI virtualArray = zoningParams.get(0).getVirtualArray();
         _log.info(String.format("Entering zoneExportRemovePaths for ExportGroup: %s",
@@ -2835,11 +2836,11 @@ public class NetworkDeviceController implements NetworkController {
                 return true;
             }
 
-            // Now call removeZones to remove all the required zones.
+            // Now call addRemoveZones to remove all the required zones.
             BiosCommandResult result = addRemoveZones(exportGroupId, context.getZoneInfos(), true);
-            status = result.isCommandSuccess();
+            completedSuccessfully = result.isCommandSuccess();
 
-            if (status) {
+            if (completedSuccessfully) {
                 taskCompleter.ready(_dbClient);
             } else {
                 ServiceError svcError = NetworkDeviceControllerException.errors.zoneExportRemovePathsError(
@@ -2853,6 +2854,6 @@ public class NetworkDeviceController implements NetworkController {
                     ex.getMessage(), ex);
             taskCompleter.error(_dbClient, svcError);
         }
-        return status;
+        return completedSuccessfully;
     }
 }

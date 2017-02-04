@@ -3533,10 +3533,7 @@ public class ExportGroupService extends TaskResourceService {
         }
 
         validatePathAdjustment(exportGroup, system, param, varray);
-        Boolean wait = param.getWaitBeforeRemovePaths();
-        if (wait == null) {
-            wait = false;
-        }
+        Boolean wait = new Boolean(param.getWaitBeforeRemovePaths());
         
         String task = UUID.randomUUID().toString();
         Operation op = initTaskStatus(exportGroup, task, Operation.Status.pending, ResourceOperationTypeEnum.EXPORT_PATHS_ADJUSTMENT);

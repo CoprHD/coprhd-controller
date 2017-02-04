@@ -86,8 +86,8 @@ public class FileProtectionPolicies extends AbstractCoreBulkResources<FilePolicy
      * @param input
      *            the update configuration.
      */
-    public void update(URI id, FilePolicyUpdateParam input) {
-        client.put(FilePolicyCreateResp.class, input, PathConstants.FILE_PROTECTION_POLICY_URL, id);
+    public TaskResourceRep update(URI id, FilePolicyUpdateParam input) {
+        return client.put(TaskResourceRep.class, input, PathConstants.FILE_PROTECTION_POLICY_URL, id);
     }
 
     /**

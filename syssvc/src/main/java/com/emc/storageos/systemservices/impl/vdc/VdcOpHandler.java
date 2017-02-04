@@ -1381,9 +1381,9 @@ public abstract class VdcOpHandler {
             Site activeSite = drUtil.getActiveSite();
             int waitingNodeCount = getWaitingNodeCount(nChildrenOnBarrier, activeSite.getUuid(),
                     siteInfo.getVdcConfigVersion());
-            this.barrier = coordinator.getCoordinatorClient().getDistributedDoubleBarrier(barrierPath, waitingNodeCount);
-            log.info("Created VdcPropBarrier on {} with the children number {}/{}", barrierPath,
-                    waitingNodeCount, nChildrenOnBarrier);
+            barrier = coordinator.getCoordinatorClient().getDistributedDoubleBarrier(barrierPath, waitingNodeCount);
+            log.info("Created VdcPropBarrier on {} with the children number {}/{}",
+                    barrierPath, waitingNodeCount, nChildrenOnBarrier);
         }
 
         private int getWaitingNodeCount(int siteNodeCount, String siteId, long targetVdcConfigVersion) {
@@ -1414,6 +1414,7 @@ public abstract class VdcOpHandler {
 
             return waitingNodeCount;
         }
+
         public VdcPropertyBarrier(String path, int timeout, int memberQty, boolean crossSite) {
             this.timeout = timeout;
             barrierPath = getBarrierPath(path, crossSite);

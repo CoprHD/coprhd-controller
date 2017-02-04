@@ -19,7 +19,7 @@ import com.emc.storageos.model.RelatedResourceRep;
  *
  */
 
-@XmlRootElement(name = "file_policy_storage_resource")
+@XmlRootElement
 public class FilePolicyStorageResourceRestRep extends DataObjectRestRep {
 
     private static final long serialVersionUID = 1L;

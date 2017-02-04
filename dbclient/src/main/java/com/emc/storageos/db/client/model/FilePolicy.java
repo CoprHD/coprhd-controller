@@ -109,6 +109,10 @@ public class FilePolicy extends DataObjectWithACLs {
         all, selected
     }
 
+    public static enum FilePolicyPriority {
+        HIGH, LOW;
+    }
+
     @Name("fileReplicationType")
     public String getFileReplicationType() {
         return this.fileReplicationType;

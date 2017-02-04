@@ -265,6 +265,10 @@ public class VirtualPoolMapper {
         to.getProtection().setScheduleSnapshots(from.getScheduleSnapshots());
         to.setLongTermRetention(from.getLongTermRetention());
 
+        if (from.getFilePolicies() != null && !from.getFilePolicies().isEmpty()) {
+            to.setFileProtectionPolicies(from.getFilePolicies());
+        }
+
         return mapVirtualPoolFields(from, to, null);
     }
 

@@ -68,7 +68,7 @@ public class VNXeExportMaskInitiatorsValidator extends AbstractVNXeValidator {
                         if (NullColumnValueGetter.isNullURI(hostId)) {
                             hostId = viprInitiator.getHost();
                         } else if (!hostId.equals(viprInitiator.getHost())) {
-                            log.info("Initiator {} belongs to different ViPR host", portWWN);
+                            log.info("Initiator {} belongs to different host", portWWN);
                             setRemediation(misMatchInitiatorRemediation);
                             getLogger().logDiff(exportMask.getId().toString(), "initiators", ValidatorLogger.NO_MATCHING_ENTRY,
                                     initiator.getPortWWN());

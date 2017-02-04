@@ -3871,7 +3871,6 @@ test_26() {
     verify_export ${expname}1 ${HOST1} gone
 
     # Create the same export group again
-    runcmd export_group delete $PROJECT/${expname}1
     runcmd export_group create $PROJECT ${expname}1 $NH --type Host --volspec "${PROJECT}/${VOLNAME}-1,${PROJECT}/${VOLNAME}-2" --hosts "${HOST1}"
 
     # Verify the mask has the new initiator in it
@@ -3940,7 +3939,6 @@ test_26() {
 
     # Clean up
     arrayhelper delete_volume ${SERIAL_NUMBER} ${device_id}
-    runcmd export_group delete $PROJECT/${expname}1
 
     runcmd blocksnapshot delete $snap1
     runcmd blocksnapshot delete $snap2
@@ -4056,7 +4054,6 @@ test_27() {
     # Verify the mask has the new initiator in it
     verify_export ${expname}1 ${HOST1} 3 2
 
-    runcmd export_group delete $PROJECT2/${expname}2
     runcmd export_group create ${PROJECT2} ${expname}2 $NH --type Host --volspec "${PROJECT2}/P2${VOLNAME}-1,${PROJECT2}/P2${VOLNAME}-2" --hosts "${HOST1}"
     verify_export ${expname}1 ${HOST1} 3 4
 
@@ -4131,8 +4128,6 @@ test_27() {
 
     # Clean up
     arrayhelper delete_volume ${SERIAL_NUMBER} ${device_id}
-    runcmd export_group delete $PROJECT/${expname}1
-    runcmd export_group delete $PROJECT2/${expname}2
     runcmd volume delete --project $PROJECT2 --wait
 }
 
@@ -4241,9 +4236,6 @@ test_28() {
     verify_export ${expname}1 ${HOST1} gone
 
     # Create two export groups again with different sets of initiators
-    runcmd export_group delete $PROJECT/${expname}1
-    runcmd export_group delete $PROJECT2/${expname}2
-
     runcmd export_group create ${PROJECT} ${expname}1 $NH --type Host --volspec "${PROJECT}/${VOLNAME}-1" --hosts "${HOST1}"
     verify_export ${expname}1 ${HOST1} 2 1
 
@@ -4261,8 +4253,6 @@ test_28() {
     verify_export ${expname}1 ${HOST1} 1 1
 
     # Create export group 2 again with different sets of initiators
-    runcmd export_group delete $PROJECT2/${expname}2
-
     echo "Sleep 60 seconds"
     sleep 60
 
@@ -4274,7 +4264,6 @@ test_28() {
     verify_export ${expname}1 ${HOST1} 2 1
 
     # Create two export groups again with shared and non shared initiators
-    runcmd export_group delete $PROJECT/${expname}1
     runcmd export_group delete $PROJECT2/${expname}2
 
     runcmd export_group create ${PROJECT} ${expname}1 $NH --type Host --volspec "${PROJECT}/${VOLNAME}-1" --hosts "${HOST1}"
@@ -4324,9 +4313,6 @@ test_28() {
     runcmd export_group update $PROJECT2/${expname}2 --remInits ${HOST1}/${H1PI2}
     verify_export ${expname}1 ${HOST1} gone
 
-    runcmd export_group delete $PROJECT/${expname}1
-    runcmd export_group delete $PROJECT2/${expname}2
-
     # Create export groups with disjointed initiators
     runcmd export_group create ${PROJECT} ${expname}1 $NH --volspec "${PROJECT}/${VOLNAME}-1" --inits ${HOST1}/${H1PI1}
     verify_export ${expname}1 ${HOST1} 1 1
@@ -4342,9 +4328,6 @@ test_28() {
 
     runcmd export_group update $PROJECT2/${expname}2 --remVols "${PROJECT2}/P2${VOLNAME}-1"
     verify_export ${expname}1 ${HOST1} gone
-
-    runcmd export_group delete $PROJECT/${expname}1
-    runcmd export_group delete $PROJECT2/${expname}2
 
     # Create export groups with disjointed initiators
     runcmd export_group create ${PROJECT} ${expname}1 $NH --volspec "${PROJECT}/${VOLNAME}-1" --inits ${HOST1}/${H1PI1}
@@ -4417,7 +4400,6 @@ test_29() {
     runcmd export_group update $PROJECT/${expname}1 --remVols "${PROJECT}/${VOLNAME}-2"
 
     # Create the same export group again
-    runcmd export_group delete $PROJECT/${expname}1
     runcmd export_group create $PROJECT ${expname}1 $NH --type Host --volspec "${PROJECT}/${VOLNAME}-1,${PROJECT}/${VOLNAME}-2" --hosts "${HOST1}"
 
     # Verify the mask has the new initiator in it
@@ -4434,7 +4416,6 @@ test_29() {
     runcmd export_group update $PROJECT/${expname}1 --remInits ${HOST1}/${H1PI2}
 
     # Create the same export group again
-    runcmd export_group delete $PROJECT/${expname}1
     runcmd export_group create $PROJECT ${expname}1 $NH --type Host --volspec "${PROJECT}/${VOLNAME}-1,${PROJECT}/${VOLNAME}-2" --hosts "${HOST1}"
 
     # Verify the mask has the new initiator in it

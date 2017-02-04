@@ -81,6 +81,7 @@ import com.emc.storageos.model.file.policy.FilePolicyUnAssignParam;
 import com.emc.storageos.model.file.policy.FilePolicyUpdateParam;
 import com.emc.storageos.model.file.policy.FileReplicationPolicyParam;
 import com.emc.storageos.model.file.policy.FileReplicationTopologyParam;
+import com.emc.storageos.model.file.policy.FileSnapshotPolicyExpireParam;
 import com.emc.storageos.model.search.SearchResultResourceRep;
 import com.emc.storageos.security.audit.AuditLogManager;
 import com.emc.storageos.security.authentication.StorageOSUser;
@@ -198,6 +199,9 @@ public class FilePolicyService extends TaskResourceService {
         FilePolicyCreateResp resp = new FilePolicyCreateResp();
         // Make policy name as mandatory field
         ArgValidator.checkFieldNotNull(param.getPolicyName(), "policyName");
+
+        // Make apply at as mandatory field
+        ArgValidator.checkFieldNotNull(param.getPolicyName(), "apply_at");
 
         // Check for duplicate policy name
         if (param.getPolicyName() != null && !param.getPolicyName().isEmpty()) {
@@ -526,6 +530,9 @@ public class FilePolicyService extends TaskResourceService {
             _log.info("Updating the storage system policy started..");
             return updateStorageSystemFileProtectionPolicy(filePolicy, storageRes, param);
         } else {
+            // if No storage resource, update the original policy template!!
+            _dbClient.updateObject(filePolicy);
+
             String task = UUID.randomUUID().toString();
             Operation op = _dbClient.createTaskOpStatus(FilePolicy.class, filePolicy.getId(),
                     task, ResourceOperationTypeEnum.UPDATE_FILE_POLICY_BY_POLICY_STORAGE_RESOURCE);
@@ -712,7 +719,7 @@ public class FilePolicyService extends TaskResourceService {
      * @param param
      * @return
      */
-    private FilePolicyCreateResp updateFileReplicationPolicy(FilePolicy fileReplicationPolicy, FilePolicyUpdateParam param) {
+    private void updateFileReplicationPolicy(FilePolicy fileReplicationPolicy, FilePolicyUpdateParam param) {
         StringBuilder errorMsg = new StringBuilder();
         // validate and update common parameters!!
         updatePolicyCommonParameters(fileReplicationPolicy, param);
@@ -725,20 +732,6 @@ public class FilePolicyService extends TaskResourceService {
             fileReplicationPolicy.setNumWorkerThreads((long) param.getNumWorkerThreads());
         }
 
-        // Validate replication policy schedule parameters
-        if (param.getReplicationPolicyParams().getPolicySchedule() != null) {
-            boolean isValidSchedule = FilePolicyServiceUtils.validatePolicySchdeuleParam(
-                    param.getReplicationPolicyParams().getPolicySchedule(), fileReplicationPolicy, errorMsg);
-            if (!isValidSchedule && errorMsg.length() > 0) {
-                _log.error("Failed to update file replication policy due to {} ", errorMsg.toString());
-                throw APIException.badRequests.invalidFilePolicyScheduleParam(fileReplicationPolicy.getFilePolicyName(),
-                        errorMsg.toString());
-            }
-            if (param.getReplicationPolicyParams().getPolicySchedule().getScheduleFrequency() != null &&
-                    !param.getReplicationPolicyParams().getPolicySchedule().getScheduleFrequency().isEmpty()) {
-                fileReplicationPolicy.setScheduleFrequency(param.getReplicationPolicyParams().getPolicySchedule().getScheduleFrequency());
-            }
-        }
         // validate and update replication parameters!!!
         if (param.getReplicationPolicyParams() != null) {
             FileReplicationPolicyParam replParam = param.getReplicationPolicyParams();
@@ -757,16 +750,23 @@ public class FilePolicyService extends TaskResourceService {
 
                 fileReplicationPolicy.setFileReplicationType(replParam.getReplicationType());
             }
-        }
 
-        _dbClient.updateObject(fileReplicationPolicy);
-        // <TODO>
-        // If policy was applied on storage system resources
-        // then, Change all existing/applied policy parameters!!!
-        // and return task as response to this api
-        _log.info("File Policy {} updated successfully", fileReplicationPolicy.toString());
-        return new FilePolicyCreateResp(fileReplicationPolicy.getId(), toLink(ResourceTypeEnum.FILE_POLICY,
-                fileReplicationPolicy.getId()), fileReplicationPolicy.getLabel());
+            // Validate replication policy schedule parameters
+            if (replParam.getPolicySchedule() != null) {
+                boolean isValidSchedule = FilePolicyServiceUtils.validatePolicySchdeuleParam(
+                        replParam.getPolicySchedule(), fileReplicationPolicy, errorMsg);
+                if (!isValidSchedule && errorMsg.length() > 0) {
+                    _log.error("Failed to update file replication policy due to {} ", errorMsg.toString());
+                    throw APIException.badRequests.invalidFilePolicyScheduleParam(fileReplicationPolicy.getFilePolicyName(),
+                            errorMsg.toString());
+                }
+                if (replParam.getPolicySchedule().getScheduleFrequency() != null &&
+                        !replParam.getPolicySchedule().getScheduleFrequency().isEmpty()) {
+                    fileReplicationPolicy
+                            .setScheduleFrequency(replParam.getPolicySchedule().getScheduleFrequency());
+                }
+            }
+        }
     }
 
     /**
@@ -776,7 +776,7 @@ public class FilePolicyService extends TaskResourceService {
      * @param fileSnapshotPolicy
      * @return
      */
-    private FilePolicyCreateResp updateFileSnapshotPolicy(FilePolicy fileSnapshotPolicy, FilePolicyUpdateParam param) {
+    private void updateFileSnapshotPolicy(FilePolicy fileSnapshotPolicy, FilePolicyUpdateParam param) {
         StringBuilder errorMsg = new StringBuilder();
         // validate and update common parameters!!
         updatePolicyCommonParameters(fileSnapshotPolicy, param);
@@ -797,29 +797,23 @@ public class FilePolicyService extends TaskResourceService {
         }
         // Validate snapshot policy expire parameters..
         if (param.getSnapshotPolicyPrams() != null) {
-            FilePolicyServiceUtils.validateSnapshotPolicyExpireParam(param.getSnapshotPolicyPrams());
 
-            if (param.getSnapshotPolicyPrams().getSnapshotExpireParams().getExpireType() != null) {
-                fileSnapshotPolicy.setSnapshotExpireType(param.getSnapshotPolicyPrams().getSnapshotExpireParams().getExpireType());
+            if (param.getSnapshotPolicyPrams().getSnapshotExpireParams() != null) {
+                // Validate the snapshot expire parameters!!
+                FileSnapshotPolicyExpireParam snapExpireParam = param.getSnapshotPolicyPrams().getSnapshotExpireParams();
+                FilePolicyServiceUtils.validateSnapshotPolicyExpireParam(param.getSnapshotPolicyPrams());
+                if (snapExpireParam.getExpireType() != null) {
+                    fileSnapshotPolicy.setSnapshotExpireType(snapExpireParam.getExpireType());
+                    if (!SnapshotExpireType.NEVER.toString().equalsIgnoreCase(snapExpireParam.getExpireType())) {
+                        fileSnapshotPolicy.setSnapshotExpireTime((long) snapExpireParam.getExpireValue());
+                    }
+                }
             }
-            if (!SnapshotExpireType.NEVER.toString().equalsIgnoreCase(
-                    param.getSnapshotPolicyPrams().getSnapshotExpireParams().getExpireType())) {
-                fileSnapshotPolicy.setSnapshotExpireTime((long) param.getSnapshotPolicyPrams().getSnapshotExpireParams().getExpireValue());
-            }
+
             if (param.getSnapshotPolicyPrams().getSnapshotNamePattern() != null) {
                 fileSnapshotPolicy.setSnapshotNamePattern(param.getSnapshotPolicyPrams().getSnapshotNamePattern());
             }
         }
-        _dbClient.updateObject(fileSnapshotPolicy);
-
-        // <TODO>
-        // If policy was applied on storage system resources
-        // then, Change all existing/applied policy parameters!!!
-        // and return task as response to this api
-        _log.info("Snapshot policy {} updated successfully", fileSnapshotPolicy.toString());
-
-        return new FilePolicyCreateResp(fileSnapshotPolicy.getId(), toLink(ResourceTypeEnum.FILE_POLICY,
-                fileSnapshotPolicy.getId()), fileSnapshotPolicy.getLabel());
     }
 
     private FilePolicyRestRep getFileProtectionPolicyFromPolicyStorageResource(FilePolicy policy, PolicyStorageResource policyRes) {

@@ -825,7 +825,7 @@ public class FilePolicyService extends TaskResourceService {
                 // Validate snapshot policy schedule parameters
                 if (param.getSnapshotPolicyPrams().getPolicySchedule() != null) {
                     boolean isValidSchedule = FilePolicyServiceUtils.validatePolicySchdeuleParam(
-                            param.getReplicationPolicyParams().getPolicySchedule(), policy, errorMsg);
+                            param.getSnapshotPolicyPrams().getPolicySchedule(), policy, errorMsg);
                     if (!isValidSchedule && errorMsg.length() > 0) {
                         _log.error("Failed to update file replication policy due to {} ", errorMsg.toString());
                         throw APIException.badRequests.invalidFilePolicyScheduleParam(policy.getFilePolicyName(),
@@ -859,15 +859,15 @@ public class FilePolicyService extends TaskResourceService {
             // Validate snapshot policy schedule parameters
             if (param.getSnapshotPolicyPrams().getPolicySchedule() != null) {
                 boolean isValidSchedule = FilePolicyServiceUtils.validateAndUpdatePolicySchdeuleParam(
-                        param.getReplicationPolicyParams().getPolicySchedule(), fileSnapshotPolicy, errorMsg);
+                        param.getSnapshotPolicyPrams().getPolicySchedule(), fileSnapshotPolicy, errorMsg);
                 if (!isValidSchedule && errorMsg.length() > 0) {
                     _log.error("Failed to update file replication policy due to {} ", errorMsg.toString());
                     throw APIException.badRequests.invalidFilePolicyScheduleParam(fileSnapshotPolicy.getFilePolicyName(),
                             errorMsg.toString());
                 }
                 if (param.getSnapshotPolicyPrams().getPolicySchedule().getScheduleFrequency() != null &&
-                        !param.getReplicationPolicyParams().getPolicySchedule().getScheduleFrequency().isEmpty()) {
-                    fileSnapshotPolicy.setScheduleFrequency(param.getReplicationPolicyParams().getPolicySchedule().getScheduleFrequency());
+                        !param.getSnapshotPolicyPrams().getPolicySchedule().getScheduleFrequency().isEmpty()) {
+                    fileSnapshotPolicy.setScheduleFrequency(param.getSnapshotPolicyPrams().getPolicySchedule().getScheduleFrequency());
                 }
             }
 

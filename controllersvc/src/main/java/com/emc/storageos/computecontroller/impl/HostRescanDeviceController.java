@@ -52,7 +52,7 @@ public class HostRescanDeviceController implements HostRescanController {
         if (host == null || host.getInactive()) {
             throw DeviceControllerException.exceptions.objectNotFound(hostId);
         }
-        Log.info(String.format("Initiating rescan on host %s (%s) type %s", host.getHostName(), host.getId(), host.getType()));
+        log.info(String.format("Initiating rescan on host %s (%s) type %s", host.getHostName(), host.getId(), host.getType()));
         HostRescanAdapter adapter = getRescanAdapter(host);
         if (adapter == null) {
             throw DeviceControllerException.exceptions.hostRescanUnsuccessful(host.getHostName(), 

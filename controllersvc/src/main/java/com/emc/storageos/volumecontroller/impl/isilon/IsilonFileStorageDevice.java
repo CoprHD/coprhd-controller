@@ -2901,6 +2901,12 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
 
     private void updateFilePolicySchedule(FilePolicy policy, String schedule) {
         if (schedule != null && !schedule.isEmpty()) {
+            // Yearly schedule!!
+            if (schedule.startsWith("yearly")) {
+
+            } else if (schedule.startsWith("the")) {
+
+            }
 
         }
         return;

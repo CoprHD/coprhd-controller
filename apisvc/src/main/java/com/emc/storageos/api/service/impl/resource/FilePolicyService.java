@@ -634,7 +634,7 @@ public class FilePolicyService extends TaskResourceService {
         }
 
         // Validate replication policy schedule parameters
-        boolean isValidSchedule = FilePolicyServiceUtils.validatePolicySchdeuleParam(
+        boolean isValidSchedule = FilePolicyServiceUtils.validateAndUpdatePolicySchdeuleParam(
                 param.getReplicationPolicyParams().getPolicySchedule(), fileReplicationPolicy, errorMsg);
         if (!isValidSchedule && errorMsg.length() > 0) {
             _log.error("Failed to create file replication policy due to {} ", errorMsg.toString());
@@ -683,7 +683,7 @@ public class FilePolicyService extends TaskResourceService {
         }
 
         // Validate snapshot policy schedule parameters
-        boolean isValidSchedule = FilePolicyServiceUtils.validatePolicySchdeuleParam(
+        boolean isValidSchedule = FilePolicyServiceUtils.validateAndUpdatePolicySchdeuleParam(
                 param.getSnapshotPolicyPrams().getPolicySchedule(), fileSnapshotPolicy, errorMsg);
         if (!isValidSchedule && errorMsg.length() > 0) {
             _log.error("Failed to create file snapshot policy due to {} ", errorMsg.toString());

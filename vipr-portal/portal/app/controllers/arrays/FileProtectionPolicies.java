@@ -261,10 +261,6 @@ public class FileProtectionPolicies extends ViprResourceController {
                 }
             }
         }
-
-        if (TenantUtils.canReadAllTenants() && VirtualPoolUtils.canUpdateACLs()) {
-            addDataObjectOptions("tenantOptions", new TenantsCall().asPromise());
-        }
     }
 
     private static void addRenderApplyPolicysAt() {
@@ -301,23 +297,26 @@ public class FileProtectionPolicies extends ViprResourceController {
                 vPools.add(vpool);
             } else if (FilePolicyType.file_replication.name().equalsIgnoreCase(policy.getType()) &&
                     vpool.getProtection() != null && vpool.getProtection().getReplicationSupported()) {
-                // Filter vpools which are already assigned with replication policy!!
-                if (vpool.getFileProtectionPolicies() == null || vpool.getFileProtectionPolicies().isEmpty()) {
-                    vPools.add(vpool);
-                } else {
-                    boolean vpoolHasReplicationPolicy = false;
-                    for (String strPolicy : vpool.getFileProtectionPolicies()) {
-                        FilePolicyRestRep vpoolPolicy = getViprClient().fileProtectionPolicies().get(URI.create(strPolicy));
-                        if (vpoolPolicy != null && !vpoolPolicy.getInactive()
-                                && FilePolicyType.file_replication.name().equalsIgnoreCase(vpoolPolicy.getType())) {
-                            vpoolHasReplicationPolicy = true;
-                            break;
-                        }
-                    }
-                    if (!vpoolHasReplicationPolicy) {
-                        vPools.add(vpool);
-                    }
-                }
+                vPools.add(vpool);
+                /*
+                 * // Filter vpools which are already assigned with replication policy!!
+                 * if (vpool.getFileProtectionPolicies() == null || vpool.getFileProtectionPolicies().isEmpty()) {
+                 * vPools.add(vpool);
+                 * } else {
+                 * boolean vpoolHasReplicationPolicy = false;
+                 * for (String strPolicy : vpool.getFileProtectionPolicies()) {
+                 * FilePolicyRestRep vpoolPolicy = getViprClient().fileProtectionPolicies().get(URI.create(strPolicy));
+                 * if (vpoolPolicy != null && !vpoolPolicy.getInactive()
+                 * && FilePolicyType.file_replication.name().equalsIgnoreCase(vpoolPolicy.getType())) {
+                 * vpoolHasReplicationPolicy = true;
+                 * break;
+                 * }
+                 * }
+                 * if (!vpoolHasReplicationPolicy) {
+                 * vPools.add(vpool);
+                 * }
+                 * }
+                 */
             }
         }
 

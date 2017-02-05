@@ -418,7 +418,8 @@ public final class FileOrchestrationUtils {
         if (fileProjectPolicies != null && !fileProjectPolicies.isEmpty()) {
             for (String fileProjectPolicy : fileProjectPolicies) {
                 FilePolicy filePolicy = dbClient.queryObject(FilePolicy.class, URIUtil.uri(fileProjectPolicy));
-                if (!filePolicy.getFilePolicyVpool().toString().equals(vpool.getId().toString())) {
+                if (filePolicy.getFilePolicyVpool() == null
+                        || !filePolicy.getFilePolicyVpool().toString().equals(vpool.getId().toString())) {
                     continue;
                 }
                 filePoliciesToCreate.add(filePolicy);

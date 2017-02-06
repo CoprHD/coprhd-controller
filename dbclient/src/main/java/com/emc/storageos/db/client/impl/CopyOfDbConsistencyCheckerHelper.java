@@ -775,7 +775,7 @@ public class CopyOfDbConsistencyCheckerHelper {
         }
         
         if (checkResult.getTotal() > 0) {
-            _log.error("Find inconsitency data object {}", (new Exception()).getStackTrace());
+            _log.error("Find inconsitency data object {}", new Exception());
         }
         
         return true;

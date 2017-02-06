@@ -229,7 +229,7 @@ public class OrchestrationUtils {
                 throw InternalServerErrorException.internalServerErrors.customServiceExecutionFailed("Custom Service Task Timedout");
             }
         } catch (final InterruptedException e) {
-            throw InternalServerErrorException.internalServerErrors.customServiceExecutionFailed("Custom Service Task Timedout" + e);
+            throw InternalServerErrorException.internalServerErrors.customServiceExecutionFailed("Custom Service Task is interrupted" + e);
         }
     }
 

@@ -49,24 +49,24 @@ public class ValidateCustomServiceWorkflow {
 
         for (final Step step1 : stepsHash.values()) {
         	validateStep(step1);
-            logger.info("Validate step input");
+            logger.debug("Validate step input");
             validateStepInput(step1);
         }
     }
 
-    private boolean validateInput(Map<String, OrchestrationWorkflowDocument.InputGroup> input) throws InternalServerErrorException {
+    private boolean isInputEmpty(Map<String, OrchestrationWorkflowDocument.InputGroup> input, final String type) throws InternalServerErrorException {
         if (input == null) {
-            logger.info("No Input is defined");
+            logger.debug("No Input is defined");
             return true;
         }
-        final OrchestrationWorkflowDocument.InputGroup inputGroup = input.get(OrchestrationServiceConstants.INPUT_PARAMS);
+        final OrchestrationWorkflowDocument.InputGroup inputGroup = input.get(type);
         if (inputGroup == null) {
-            logger.info("No input params defined");
+            logger.debug("No input params defined");
             return true;
         }
         final List<Input> listInput = inputGroup.getInputGroup();
         if (listInput == null) {
-            logger.info("No input param is defined");
+            logger.debug("No input param is defined");
             return true;
         }
 
@@ -84,10 +84,19 @@ public class ValidateCustomServiceWorkflow {
 
     private void validateStepInput(final Step step) throws InternalServerErrorException {
         final Map<String, OrchestrationWorkflowDocument.InputGroup> input = step.getInputGroups();
-        if (validateInput(input)) {
-            return;
+
+        if (!isInputEmpty(input, OrchestrationServiceConstants.INPUT_PARAMS)) {
+            validateInput(input.get(OrchestrationServiceConstants.INPUT_PARAMS).getInputGroup());
         }
-        final List<Input> listInput = input.get(OrchestrationServiceConstants.INPUT_PARAMS).getInputGroup();
+        if (!isInputEmpty(input, OrchestrationServiceConstants.CONNECTION_DETAILS)) {
+            validateInput(input.get(OrchestrationServiceConstants.CONNECTION_DETAILS).getInputGroup());
+        }
+        if (!isInputEmpty(input, OrchestrationServiceConstants.ANSIBLE_OPTIONS)) {
+            validateInput(input.get(OrchestrationServiceConstants.ANSIBLE_OPTIONS).getInputGroup());
+        }
+    }
+
+    private void validateInput(final List<Input> listInput){
         for (final Input in : listInput) {
             checkNameAndType(in);
             switch (OrchestrationServiceConstants.InputType.fromString(in.getType())) {

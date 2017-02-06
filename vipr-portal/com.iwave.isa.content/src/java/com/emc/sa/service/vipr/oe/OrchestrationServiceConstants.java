@@ -73,7 +73,8 @@ public final class OrchestrationServiceConstants {
         FROM_STEP_INPUT("FromOtherStepInput"),
         FROM_STEP_OUTPUT("FromOtherStepOutput"),
         OTHERS("Others"),
-        ASSET_OPTION("AssetOption");
+        ASSET_OPTION("AssetOption"),
+        INVALID("Invalid");
 
         private final String inputType;
         private InputType(final String inputType)
@@ -94,8 +95,7 @@ public final class OrchestrationServiceConstants {
                     return e;
             }
 
-            return null;
+            return INVALID;
         }
-
     }
 }

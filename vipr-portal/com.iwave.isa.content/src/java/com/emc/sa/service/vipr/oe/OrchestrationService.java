@@ -68,35 +68,37 @@ public class OrchestrationService extends ViPRService {
     final private Map<String, Map<String, List<String>>> inputPerStep = new HashMap<String, Map<String, List<String>>>();
     final private Map<String, Map<String, List<String>>> outputPerStep = new HashMap<String, Map<String, List<String>>>();
 
-    private ImmutableMap<String, Step> stepsHash;
+    final private ImmutableMap<String, Step> stepsHash;
 
     private static final org.slf4j.Logger logger = LoggerFactory.getLogger(OrchestrationService.class);
-
+    final OrchestrationWorkflowDocument obj;
     private int code;
 
-
-    @Override
-    public void precheck() throws Exception {
-
-        // get input params from order form
-        params = ExecutionUtils.currentContext().getParameters();
+    public OrchestrationService() throws Exception {
         final String raw = ExecutionUtils.currentContext().getOrder().getWorkflowDocument();
         if( null == raw) {
             throw InternalServerErrorException.internalServerErrors.
                     customServiceExecutionFailed("Invalid orchestration service.  Workflow document cannot be null");
         }
 
-        final OrchestrationWorkflowDocument obj = WorkflowHelper.toWorkflowDocument(raw);
+        obj = WorkflowHelper.toWorkflowDocument(raw);
         final List<Step> steps = obj.getSteps();
         final ImmutableMap.Builder builder=new ImmutableMap.Builder();
         for (final Step step : steps) {
             builder.put(step.getId(), step);
         }
         stepsHash = builder.build();
+    }
+
+    @Override
+    public void precheck() throws Exception {
+
+        // get input params from order form
+        params = ExecutionUtils.currentContext().getParameters();
 
         ValidateCustomServiceWorkflow validate = new ValidateCustomServiceWorkflow(params, stepsHash);
         validate.validate();
-        ExecutionUtils.currentContext().logInfo("orchestrationService.status", obj.getName(), obj.getDescription());
+
     }
 
     @Override
@@ -112,7 +114,6 @@ public class OrchestrationService extends ViPRService {
         }
     }
 
-
     /**
      * Method to parse Workflow Definition JSON
      *
@@ -121,7 +122,7 @@ public class OrchestrationService extends ViPRService {
     public void wfExecutor() throws Exception {
 
         logger.info("Parsing Workflow Definition");
-
+        ExecutionUtils.currentContext().logInfo("orchestrationService.status", obj.getName(), obj.getDescription());
         Step step = stepsHash.get(StepType.START.toString());
         String next = step.getNext().getDefaultStep();
 	    long timeout = System.currentTimeMillis();

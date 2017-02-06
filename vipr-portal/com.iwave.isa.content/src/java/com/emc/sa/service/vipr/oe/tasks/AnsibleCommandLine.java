@@ -129,9 +129,9 @@ public class AnsibleCommandLine {
             builder.add("--extra-vars").add(extraVars);
 
         if (!StringUtils.isEmpty(shellArgs)) {
-            String[] splited = shellArgs.split("\\s+");
+            final String[] splited = shellArgs.split("\\s+");
 
-            for (String part : splited)
+            for (final String part : splited)
                 builder.add(part);
         }
 

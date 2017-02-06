@@ -1538,6 +1538,12 @@ public class VmaxExportOperations implements ExportMaskOperations {
 
             createOrUpdateInitiatorGroups(storage, exportMaskURI, cigName, initiatorGroupCustomTemplateName,
                     initiatorList, taskCompleter);
+            
+            if (taskCompleter.isCompleted()) {
+                //COP-27456- task already set to error in the above method if any fails.
+                _log.info("{} addInitiators END...", storage == null ? null : storage.getSerialNumber());
+                return;
+            }
 
             ExportMask exportMask = _dbClient.queryObject(ExportMask.class, exportMaskURI);
 

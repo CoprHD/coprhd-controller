@@ -217,6 +217,7 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
             throws DeviceControllerException {
         _logger.info("{} deleteExportMask START...", storage.getSerialNumber());
 
+        List<URI> volumesToBeUnmapped = new ArrayList<URI>();
         try {
             _logger.info("Export mask id: {}", exportMaskUri);
             if (volumeURIList != null) {
@@ -228,8 +229,7 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
             if (initiatorList != null) {
                 _logger.info("deleteExportMask: initiators: {}", Joiner.on(',').join(initiatorList));
             }
-
-            List<URI> volumesToBeUnmapped = new ArrayList<URI>();
+            
             // Get the context from the task completer, in case this is a rollback.
             boolean isRollback = WorkflowService.getInstance().isStepInRollbackState(taskCompleter.getOpId());
             if (isRollback) {
@@ -280,10 +280,6 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
                 validator.exportMaskDelete(ctx).validate();
             }
 
-            // Clear out the pre-populated volume list from the completer's creator.
-            // We will add volumes individually in the for-loop below.
-            ((ExportMaskDeleteCompleter) taskCompleter).setVolumes(new ArrayList<URI>());
-
             String opId = taskCompleter.getOpId();
             Set<String> processedCGs = new HashSet<String>();
             for (URI volUri : volumesToBeUnmapped) {
@@ -309,11 +305,9 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
                         }
                     }
                 }
-                // Adding the volume to the completer helps remove it from the ExportGroup, if no other masks are
-                // using it.
-                ((ExportMaskDeleteCompleter) taskCompleter).addVolume(volUri);
+                
                 // update the exportMask object
-                exportMask.removeVolume(volUri);
+                exportMask.removeVolume(volUri);                
             }
 
             // check if there are LUNs on array
@@ -357,13 +351,13 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
                     }
                 }
             }
-
+            
             List<ExportGroup> exportGroups = ExportMaskUtils.getExportGroups(_dbClient, exportMask);
             if (exportGroups != null) {
                 // Remove the mask references in the export group
                 for (ExportGroup exportGroup : exportGroups) {
                     // Remove this mask from the export group
-                    exportGroup.removeExportMask(exportMask.getId().toString());
+                    exportGroup.removeExportMask(exportMask.getId().toString());                    
                 }
                 // Update all of the export groups in the DB
                 _dbClient.updateObject(exportGroups);
@@ -375,6 +369,7 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
             ServiceError error = DeviceControllerErrors.vnxe.jobFailed("deleteExportMask", e.getMessage());
             taskCompleter.error(_dbClient, error);
         }
+        
         _logger.info("{} deleteExportMask END...", storage.getSerialNumber());
     }
 

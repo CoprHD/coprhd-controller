@@ -756,23 +756,28 @@ resume_follow_task() {
 #counterpart for run
 #executes a command that is expected to fail
 fail(){
+    if [ "${1}" = "-with_error" ]; then
+      witherror=${2}
+      shift 2
+      # TODO When the cmd fails, we can check if the failure output contains this expected error message
+    fi
     cmd=$*
-    echo === $cmd
+    echo === $cmd | tee -a ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE}
     if [ "${HIDE_OUTPUT}" = "" -o "${HIDE_OUTPUT}" = "1" ]; then
-	$cmd &> ${CMD_OUTPUT}
+        $cmd &> ${CMD_OUTPUT}
     else
-	$cmd 2>&1
+        $cmd 2>&1
     fi
 
     status=$?
     if [ $status -eq 0 ] ; then
-        echo '**********************************************************************'
-        echo -e "$cmd succeeded, which \e[91mshould not have happened\e[0m"
-	cat ${CMD_OUTPUT}
-        echo '**********************************************************************'
-	VERIFY_FAIL_COUNT=`expr $VERIFY_FAIL_COUNT + 1`
+        echo '**********************************************************************' | tee -a ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE}
+        echo -e "$cmd succeeded, which \e[91mshould not have happened\e[0m" | tee -a ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE}
+        cat ${CMD_OUTPUT} | tee -a ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE}
+        echo '**********************************************************************' | tee -a ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE}
+        incr_fail_count;
     else
-	secho "$cmd failed, which \e[32mis the expected ouput\e[0m"
+        secho "$cmd failed, which \e[32mis the expected ouput\e[0m"
     fi
 }
 

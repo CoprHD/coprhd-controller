@@ -58,6 +58,7 @@ public class VirtualPoolCapabilityValuesWrapper implements Serializable {
     public static final String EXCLUDED_STORAGE_SYSTEM = "excluded_storage_system";
     public static final String FILE_TARGET_COPY_NAME = "file_target_copy_name";
     public static final String CHANGE_VPOOL_VOLUME = "changeVpoolVolume";
+    public static final String PORT_GROUP = "portGroup";
 
     // meta volume capabilities
     public static final String IS_META_VOLUME = "isMetaVolume";
@@ -219,6 +220,10 @@ public class VirtualPoolCapabilityValuesWrapper implements Serializable {
         
         if (capabilities.contains(CHANGE_VPOOL_VOLUME)) {
             _vpoolCapabilities.put(CHANGE_VPOOL_VOLUME, capabilities.getChangeVpoolVolume());
+        }
+        
+        if (capabilities.contains(PORT_GROUP)) {
+            _vpoolCapabilities.put(PORT_GROUP, capabilities.getPortGroup());
         }
     }
 
@@ -432,5 +437,10 @@ public class VirtualPoolCapabilityValuesWrapper implements Serializable {
         if(_vpoolCapabilities.get(keyEntry) != null) {
             _vpoolCapabilities.remove(keyEntry);
         }
+    }
+    
+    public URI getPortGroup() {
+        Object value = _vpoolCapabilities.get(PORT_GROUP);
+        return value != null ? (URI) value : null;
     }
 }

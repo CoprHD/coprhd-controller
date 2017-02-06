@@ -19,9 +19,12 @@ public class StoragePortGroupRestRep extends DiscoveredDataObjectRestRep {
     private String registrationStatus;
     private RelatedResourceRep storageDevice;
     private StoragePortList storagePorts;
+    private Double portMetric;
+    private Long volumeCount;
 
-    public StoragePortGroupRestRep () {}
-    
+    public StoragePortGroupRestRep() {
+    }
+
     @XmlElement(name = "registration_status")
     public String getRegistrationStatus() {
         return registrationStatus;
@@ -49,6 +52,24 @@ public class StoragePortGroupRestRep extends DiscoveredDataObjectRestRep {
 
     public void setStoragePorts(StoragePortList storagePorts) {
         this.storagePorts = storagePorts;
+    }
+
+    @XmlElement(name = "port_metric")
+    public Double getPortMetric() {
+        return portMetric;
+    }
+
+    public void setPortMetric(Double portMetric) {
+        this.portMetric = portMetric;
+    }
+
+    @XmlElement(name = "volume_count")
+    public Long getVolumeCount() {
+        return volumeCount;
+    }
+
+    public void setVolumeCount(Long volumeCount) {
+        this.volumeCount = volumeCount;
     }
 
 }

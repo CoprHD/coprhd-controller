@@ -35,6 +35,7 @@ import com.emc.storageos.db.client.model.StoragePortGroup;
 import com.emc.storageos.db.client.model.StorageProvider;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StorageSystemType;
+import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.VirtualNAS;
 import com.emc.storageos.model.ResourceTypeEnum;
@@ -507,6 +508,17 @@ public class SystemsMapper {
         to.setName(from.getLabel());
         to.setStorageDevice(toRelatedResource(ResourceTypeEnum.STORAGE_SYSTEM, from.getStorageDevice()));
         to.setRegistrationStatus(from.getRegistrationStatus());
+        StringMap metrics= from.getMetrics();
+        if (metrics != null && !metrics.isEmpty()) {
+            Double portMetric = MetricsKeys.getDoubleOrNull(MetricsKeys.portMetric, metrics);
+            if (portMetric != null) {
+                to.setPortMetric(portMetric);
+            }
+            Long volumeCount = MetricsKeys.getLong(MetricsKeys.volumeCount, metrics);
+            if (volumeCount != null) {
+                to.setVolumeCount(volumeCount);
+            }
+        }
         return to;
     }
 }

@@ -84,6 +84,8 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
     private StringMap _protectionVarraySettings;
     // SRDF Protection
     private StringMap _protectionRemoteCopySettings;
+    // Remote replication settings: key: target varray, value: target vpool
+    private StringMap _remoteReplicationProtectionSettings;
     // percentage to specify thinVolumePreAllocateSize during provisioning.
     private Integer _thinVolumePreAllocationPercentage;
     private Long _quotaGB;
@@ -1181,6 +1183,21 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
     }
 
     /**
+     * Convenience method to determine if the Virtual Pool supports remote replication (SB SDK)
+     *
+     * @param virtualPool
+     *            virtual pool
+     * @return true if supports remote replication
+     */
+    public static boolean vPoolSpecifiesRemoteReplication(final VirtualPool virtualPool) {
+        if (virtualPool.getRemoteReplicationProtectionSettings() == null
+                || virtualPool.getRemoteReplicationProtectionSettings().size() == 0) {
+            return false;
+        }
+        return true;
+    }
+
+    /**
      * Returns whether or not the passed VirtualPool specifies Protection
      * 
      * @param virtualPool
@@ -1451,6 +1468,16 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
 
     public void setProtectionRemoteCopySettings(final StringMap _protectionRemoteCopySettings) {
         this._protectionRemoteCopySettings = _protectionRemoteCopySettings;
+    }
+
+    @Name("remoteReplicationProtectionSettings")
+    public StringMap getRemoteReplicationProtectionSettings() {
+        return _remoteReplicationProtectionSettings;
+    }
+
+    public void setRemoteReplicationProtectionSettings(final StringMap remoteReplicationProtectionSettings) {
+        this._remoteReplicationProtectionSettings = remoteReplicationProtectionSettings;
+        setChanged("remoteReplicationProtectionSettings");
     }
 
     // this field is not used in 2.0

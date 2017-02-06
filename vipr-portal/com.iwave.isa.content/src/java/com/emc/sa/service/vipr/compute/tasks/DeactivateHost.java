@@ -41,6 +41,7 @@ public class DeactivateHost extends WaitForTask<HostRestRep> {
     @Override
     public Task<HostRestRep> doExecute() throws Exception {
         Task<HostRestRep> task = getClient().hosts().deactivate(hostId, detachStorage);
+        addOrderIdTag(task.getTaskResource().getId());
         return task;
     }
 }

@@ -10,22 +10,24 @@ import java.util.ArrayList;
 import java.util.List;
 
 import com.emc.storageos.volumecontroller.impl.utils.ExportOperationContext;
-import com.emc.storageos.volumecontroller.impl.utils.ExportOperationContext.ExportOperationContextOperation;
 import com.emc.storageos.workflow.WorkflowService;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.Operation;
+import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.util.ExportUtils;
 
 import static com.emc.storageos.volumecontroller.impl.smis.vmax.VmaxExportOperationContext.OPERATION_ADD_EXISTING_INITIATOR_TO_EXPORT_GROUP;
 import static com.emc.storageos.volumecontroller.impl.smis.vmax.VmaxExportOperationContext.OPERATION_ADD_PORTS_TO_PORT_GROUP;
-import static com.emc.storageos.volumecontroller.impl.smis.vmax.VmaxExportOperationContext.OPERATION_ADD_INITIATORS_TO_INITIATOR_GROUP;
+import static com.google.common.collect.Sets.newHashSet;
+import static java.util.Collections.disjoint;
 
 public class ExportMaskAddInitiatorCompleter extends ExportMaskInitiatorCompleter {
     private static final org.slf4j.Logger _log = LoggerFactory
@@ -110,39 +112,20 @@ public class ExportMaskAddInitiatorCompleter extends ExportMaskInitiatorComplete
     }
 
     private boolean wereInitiatorsAdded() {
-        boolean initsAdded = false;
         ExportOperationContext context = (ExportOperationContext) WorkflowService.getInstance().loadStepData(getOpId());
+
         if (context != null) {
             List<ExportOperationContext.ExportOperationContextOperation> operations = context.getOperations();
+
             if (operations != null) {
-                for (ExportOperationContextOperation op : operations) {
-                    if ((op.getOperation().equals(OPERATION_ADD_PORTS_TO_PORT_GROUP)) ||
-                            (op.getOperation().equals(OPERATION_ADD_EXISTING_INITIATOR_TO_EXPORT_GROUP)) ||
-                            (op.getOperation().equals(OPERATION_ADD_INITIATORS_TO_INITIATOR_GROUP))) {
-                        List<Object> opArgs = op.getArgs();
-                        if (opArgs != null && !opArgs.isEmpty()) {
-                            for (Object opArg : opArgs) {
-                                if (opArg instanceof List) {
-                                    List<Object> opArgObjList = (List<Object>) opArg;
-                                    if (!opArgObjList.isEmpty()) {
-                                        Object opArgObjListEntry = opArgObjList.get(0);
-                                        if (opArgObjListEntry instanceof Initiator) {
-                                            initsAdded = true;
-                                            break;
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    
-                    if (initsAdded) {
-                        break;
-                    }
-                }
+
+                boolean hasOperationOfInterest = disjoint(operations,
+                        newHashSet(OPERATION_ADD_PORTS_TO_PORT_GROUP,
+                                OPERATION_ADD_EXISTING_INITIATOR_TO_EXPORT_GROUP));
+                return hasOperationOfInterest;
             }
         }
 
-        return initsAdded;
+        return false;
     }
 }

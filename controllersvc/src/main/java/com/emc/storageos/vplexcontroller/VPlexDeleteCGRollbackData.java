@@ -11,7 +11,7 @@ import java.net.URI;
  * Captures the data necessary to recreate a VPLEX consistency Group
  * after a workflow failure.
  */
-public class VPlexCGRollbackData implements Serializable {
+public class VPlexDeleteCGRollbackData implements Serializable {
 
     private static final long serialVersionUID = 1L;
 
@@ -20,7 +20,7 @@ public class VPlexCGRollbackData implements Serializable {
     Boolean isDistributed;
     URI vplexSystemURI;
 
-    public VPlexCGRollbackData() {
+    public VPlexDeleteCGRollbackData() {
     }
 
     public void setCgName(String val) {

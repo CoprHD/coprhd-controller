@@ -14,7 +14,6 @@ import com.emc.storageos.model.TaskResourceRep;
 import com.emc.storageos.model.auth.ACLAssignmentChanges;
 import com.emc.storageos.model.auth.ACLEntry;
 import com.emc.storageos.model.file.policy.FilePolicyAssignParam;
-import com.emc.storageos.model.file.policy.FilePolicyAssignResp;
 import com.emc.storageos.model.file.policy.FilePolicyBulkRep;
 import com.emc.storageos.model.file.policy.FilePolicyCreateParam;
 import com.emc.storageos.model.file.policy.FilePolicyCreateResp;
@@ -29,7 +28,7 @@ import com.emc.vipr.client.core.impl.PathConstants;
 import com.emc.vipr.client.impl.RestClient;
 
 public class FileProtectionPolicies extends AbstractCoreBulkResources<FilePolicyRestRep>
-        implements TaskResources<FilePolicyRestRep>, ACLResources {
+implements TaskResources<FilePolicyRestRep>, ACLResources {
 
     public FileProtectionPolicies(ViPRCoreClient parent, RestClient client) {
 
@@ -127,8 +126,8 @@ public class FileProtectionPolicies extends AbstractCoreBulkResources<FilePolicy
      * @param input
      *            the update configuration.
      */
-    public FilePolicyAssignResp assignPolicy(URI id, FilePolicyAssignParam input) {
-        return client.post(FilePolicyAssignResp.class, input, getAssignPolicyUrl(), id);
+    public TaskResourceRep assignPolicy(URI id, FilePolicyAssignParam input) {
+        return client.post(TaskResourceRep.class, input, getAssignPolicyUrl(), id);
     }
 
     /**

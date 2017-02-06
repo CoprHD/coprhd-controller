@@ -27,9 +27,14 @@
 
 Usage()
 {
-    echo 'Usage: dutests.sh <sanity conf file path> [setuphw|setupsim|delete] [vmax2 | vmax3 | vnx | vplex [local | distributed] | xio | unity]  [test1 test2 ...]'
-    echo ' [setuphw|setupsim]: Run on a new ViPR database, creates SMIS, host, initiators, vpools, varray, volumes'
-    echo ' [delete]: Will exports and volumes'
+    echo 'Usage: dutests.sh <sanity conf file path> (vmax2 | vmax3 | vnx | vplex [local | distributed] | xio | unity] [-setuphw|-setupsim) [-report] [-cleanup]  [test1 test2 ...]'
+    echo ' (vmax 2 | vmax3 ...: Storage platform to run on.'
+    echo ' [-setup(hw) | setupsim]: Run on a new ViPR database, creates SMIS, host, initiators, vpools, varray, volumes (Required to run first, can be used with tests'
+    echo ' [-report]: Report results to reporting server: http://lglw1046.lss.emc.com:8081/index.html (Optional)'
+    echo ' [-cleanup]: Clean up the pre-created volumes and exports associated with -setup operation (Optional)'
+    echo ' test names: Space-delimited list of tests to run.  Use + to start at a specific test.  (Optional, default will run all tests in suite)'
+    echo ' Example:  ./dutests.sh sanity.conf vmax3 -setupsim -report -cleanup test_7+'
+    echo '           Will start from clean DB, report results to reporting server, clean-up when done, and start on test_7 (and run all tests after test_7'
     exit 2
 }
 
@@ -113,13 +118,12 @@ report_results() {
     echo ${result} > /tmp/report-result.txt
     echo ${result} >> /root/reliability/results-local-set.db
 
+    echo -e "${result}\n$(cat ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE})" > ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE}
+
     if [ "${REPORT}" = "1" ]; then
 	cat /tmp/report-result.txt | sshpass -p $SYSADMIN_PASSWORD ssh -o StrictHostKeyChecking=no root@${GLOBAL_RESULTS_IP} "cat >> ${GLOBAL_RESULTS_PATH}/${RESULTS_SET_FILE}" > /dev/null 2> /dev/null
-	cat ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE} | sshpass -p $SYSADMIN_PASSWORD ssh -o StrictHostKeyChecking=no root@${GLOBAL_RESULTS_IP} "cat >> ${GLOBAL_RESULTS_PATH}/${GLOBAL_RESULTS_OUTPUT_FILES_SUBDIR}/${TEST_OUTPUT_FILE} ; chmod 777 ${GLOBAL_RESULTS_PATH}/${GLOBAL_RESULTS_OUTPUT_FILES_SUBDIR}/${TEST_OUTPUT_FILE}" > /dev/null 2> /dev/null
+	cat ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE} | sshpass -p $SYSADMIN_PASSWORD ssh -o StrictHostKeyChecking=no root@${GLOBAL_RESULTS_IP} "cat > ${GLOBAL_RESULTS_PATH}/${GLOBAL_RESULTS_OUTPUT_FILES_SUBDIR}/${TEST_OUTPUT_FILE} ; chmod 777 ${GLOBAL_RESULTS_PATH}/${GLOBAL_RESULTS_OUTPUT_FILES_SUBDIR}/${TEST_OUTPUT_FILE}" > /dev/null 2> /dev/null
     fi
-
-    # Since there are no loops in this suite, we can reset counts here.
-    reset_counts
 }
 
 # Determine the mask name, given the storage system and other info
@@ -180,6 +184,7 @@ get_masking_view_name() {
 # Overall suite counts
 VERIFY_COUNT=0
 VERIFY_FAIL_COUNT=0
+VERIFY_EXPORT_STATUS=0
 
 # Per-test counts
 TRIP_VERIFY_COUNT=0
@@ -193,13 +198,6 @@ verify_export() {
     masking_view_name=`get_masking_view_name ${export_name} ${host_name}`
 
     arrayhelper verify_export ${SERIAL_NUMBER} "${masking_view_name}" $*
-    if [ $? -ne "0" ]; then
-	if [ -f ${CMD_OUTPUT} ]; then
-	    cat ${CMD_OUTPUT}
-	fi
-	echo There was a failure
-	VERIFY_FAIL_COUNT=`expr $VERIFY_FAIL_COUNT + 1`
-    fi
     VERIFY_COUNT=`expr $VERIFY_COUNT + 1`
 }
 
@@ -288,6 +286,7 @@ arrayhelper() {
 	masking_view_name=$3
 	shift 3
 	arrayhelper_verify_export $operation $serial_number "$masking_view_name" $*
+	VERIFY_EXPORT_STATUS=$?
 	;;
     *)
         echo -e "\e[91mERROR\e[0m: Invalid operation $operation specified to arrayhelper."
@@ -481,29 +480,36 @@ arrayhelper_verify_export() {
     serial_number=$2
     masking_view_name=$3
     shift 3
+    return_status=0
 
     case $SS in
     vmax2|vmax3)
          runcmd symhelper.sh $operation $serial_number $masking_view_name $*
+         return_status=$?
 	 ;;
     vnx)
          runcmd navihelper.sh $operation $array_ip $macaddr $masking_view_name $*
+         return_status=$?
 	 ;;
     xio)
          runcmd xiohelper.sh $operation $masking_view_name $*
+         return_status=$?
 	 ;;
     unity)
          runcmd vnxehelper.sh $operation "$masking_view_name" $*
+         return_status=$?
          ;;
     vplex)
          runcmd vplexhelper.sh $operation $masking_view_name $*
-	 ;;
+         return_status=$?
+	;;
     *)
          echo -e "\e[91mERROR\e[0m: Invalid platform specified in storage_type: $storage_type"
 	 cleanup
 	 finish -1
 	 ;;
     esac
+    return $return_status
 }
 
 # We need a way to get all of the zones that could be associated with this host
@@ -787,7 +793,47 @@ runcmd() {
 	fi
 	echo There was a failure | tee -a ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE}
 	incr_fail_count
+	return 1
     fi
+}
+
+# Utility for running a command that is expected to pause.
+# It will fill in variables needed for resume and follow operations
+#
+runcmd_suspend() {
+    testname=$1
+    shift
+    cmd=$*
+    # Print the command that will be run
+    recho $*
+
+    # Actually run the cmd, put stdout to the resultcmd variable.  the rest goes to errors.txt
+    resultcmd=`$* 2> /tmp/errors.txt`
+
+    if [ $? -ne 0 ]; then
+	echo "Command was expected to suspend, however it failed outright"
+	incr_fail_count
+	report_results ${testname}
+	return
+    fi
+
+    cat /tmp/errors.txt | tee -a ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE}
+    echo ${resultcmd}
+
+    # Parse results and store results in variables to be used later
+    taskworkflow=`echo $resultcmd | awk -F, '{print $2 $3}'`
+    answersarray=($taskworkflow)
+    task=${answersarray[0]}
+    workflow=${answersarray[1]}
+}
+
+# Utility for resuming the most recently suspended workflow and following its task
+resume_follow_task() {
+    # Resume the workflow
+    runcmd workflow resume $workflow
+
+    # Follow the task
+    runcmd task follow $task
 }
 
 #counterpart for run
@@ -851,8 +897,6 @@ setup_yaml() {
     sstype=${SS:0:3}
     if [ "${SS}" = "xio" ]; then
 	sstype="xtremio"
-    elif [ "${SS}" = "unity" ]; then
-        sstype="unity"
     fi
 
     # create the yml file to be used for array tooling
@@ -903,6 +947,9 @@ login() {
 }
 
 prerun_setup() {
+    # Reset system properties
+    reset_system_props
+
     # Convenience, clean up known artifacts
     cleanup_previous_run_artifacts
 
@@ -1037,6 +1084,15 @@ reset_system_props() {
 prerun_tests() {
     clean_zones ${FC_ZONE_A:7} ${HOST1}
     verify_no_zones ${FC_ZONE_A:7} ${HOST1}
+    verify_export ${expname}1 ${HOST1} gone
+    if [ ${VERIFY_EXPORT_STATUS} -ne 0 ]; then
+        echo "The export was found on the device, attempting to delete..."
+        arrayhelper delete_mask ${SERIAL_NUMBER} ${expname}1 ${HOST1}
+        # reset variables because this is just a clean up task
+        VERIFY_EXPORT_STATUS=0
+        VERIFY_COUNT=`expr $VERIFY_COUNT - 1`
+        VERIFY_FAIL_COUNT=`expr $VERIFY_FAIL_COUNT - 1`
+    fi
 }
 
 vnx_sim_setup() {
@@ -1314,7 +1370,7 @@ vplex_sim_setup() {
     case "$VPLEX_MODE" in 
         local)
             secho "Setting up the virtual pool for local VPLEX provisioning"
-            run cos create block $VPOOL_BASE true                            \
+            run cos create block $VPOOL_BASE false                              \
                              --description 'vpool-for-vplex-local-volumes'      \
                              --protocols FC                                     \
                              --numpaths 2                                       \
@@ -1325,9 +1381,7 @@ vplex_sim_setup() {
                              --max_mirrors 0                                    \
                              --expandable true 
 
-            run cos update block $VPOOL_BASE --storage $VPLEX_SIM_VMAX1_NATIVEGUID
             run cos update block $VPOOL_BASE --storage $VPLEX_SIM_VMAX2_NATIVEGUID
-            run cos update block $VPOOL_BASE --storage $VPLEX_SIM_VMAX3_NATIVEGUID
 
 	    # Migration vpool test
             secho "Setting up the virtual pool for local VPLEX provisioning and migration (source)"
@@ -1776,60 +1830,24 @@ test_1() {
     verify_export ${expname}1 ${HOST1} gone
 
     # Run the export group command
-    recho export_group create $PROJECT ${expname}1 $NH --type Host --volspec ${PROJECT}/${VOLNAME}-1 --hosts "${HOST1}"
-    resultcmd=`export_group create $PROJECT ${expname}1 $NH --type Host --volspec ${PROJECT}/${VOLNAME}-1 --hosts "${HOST1}" 2> /tmp/errors.txt`
+    runcmd_suspend test_1 export_group create $PROJECT ${expname}1 $NH --type Host --volspec ${PROJECT}/${VOLNAME}-1 --hosts "${HOST1}"
 
-    if [ $? -ne 0 ]; then
-	cat /tmp/errors.txt | tee -a ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE}
-	echo "export group command failed outright"
-	incr_fail_count
-	report_results test_1
-	return
-    fi
-
-    echo $resultcmd
-
-    # Parse results (add checks here!  encapsulate!)
-    taskworkflow=`echo $resultcmd | awk -F, '{print $2 $3}'`
-    answersarray=($taskworkflow)
-    task=${answersarray[0]}
-    workflow=${answersarray[1]}
-
-    # Resume the workflow
-    runcmd workflow resume $workflow
-    # Follow the task
-    runcmd task follow $task
+    # Resume the workflow and follow
+    resume_follow_task
     
+    # Perform verifications
     verify_export ${expname}1 ${HOST1} 2 1
 
     # Turn on suspend of export before orchestration
     set_suspend_on_class_method ${exportDeleteOrchStep}
 
-    # Run the export group command
-    recho export_group delete $PROJECT/${expname}1
-    resultcmd=`export_group delete $PROJECT/${expname}1 2> /tmp/errors.txt`
+    # run export group, which is expected to suspend
+    runcmd_suspend test_1 export_group delete $PROJECT/${expname}1
 
-    if [ $? -ne 0 ]; then
-	cat /tmp/errors.txt | tee -a ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE}
-	echo "export group command failed outright"
-	incr_fail_count
-	report_results test_1
-	return
-    fi
+    # resume and follow the task to completion
+    resume_follow_task
 
-    echo $resultcmd
-
-    # Parse results (add checks here!  encapsulate!)
-    taskworkflow=`echo $resultcmd | awk -F, '{print $2 $3}'`
-    answersarray=($taskworkflow)
-    task=${answersarray[0]}
-    workflow=${answersarray[1]}
-
-    # Resume the workflow
-    runcmd workflow resume $workflow
-    # Follow the task
-    runcmd task follow $task
-
+    # Make verifications
     verify_export ${expname}1 ${HOST1} gone
     verify_no_zones ${FC_ZONE_A:7} ${HOST1}
 
@@ -1851,76 +1869,24 @@ test_2() {
     set_suspend_on_class_method ${exportCreateDeviceStep}
 
     # Run the export group command
-    recho export_group create $PROJECT ${expname}1 $NH --type Host --volspec ${PROJECT}/${VOLNAME}-1 --hosts "${HOST1}"
-    resultcmd=`export_group create $PROJECT ${expname}1 $NH --type Host --volspec ${PROJECT}/${VOLNAME}-1 --hosts "${HOST1}" 2> /tmp/errors.txt`
+    runcmd_suspend test_2 export_group create $PROJECT ${expname}1 $NH --type Host --volspec ${PROJECT}/${VOLNAME}-1 --hosts "${HOST1}"
 
-    if [ $? -ne 0 ]; then
-	cat /tmp/errors.txt | tee -a ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE}
-	echo "export group command failed outright"
-	incr_fail_count
-	report_results test_2
-	return
-    fi
+    # Resume and follow the workflow/task
+    resume_follow_task
 
-    echo $resultcmd
-
-    echo $resultcmd | grep "suspended" > /dev/null
-    if [ $? -ne 0 ]; then
-	echo "export group command did not suspend";
-	incr_fail_count
-	report_results test_2
-	return
-    fi
-
-    # Parse results (add checks here!  encapsulate!)
-    taskworkflow=`echo $resultcmd | awk -F, '{print $2 $3}'`
-    answersarray=($taskworkflow)
-    task=${answersarray[0]}
-    workflow=${answersarray[1]}
-
-    # Resume the workflow
-    runcmd workflow resume $workflow
-    # Follow the task
-    runcmd task follow $task
-    
+    # Verify results
     verify_export ${expname}1 ${HOST1} 2 1
 
     # Turn on suspend of export after orchestration
     set_suspend_on_class_method ${exportDeleteDeviceStep}
 
     # Run the export group command
-    recho export_group delete $PROJECT/${expname}1
-    resultcmd=`export_group delete $PROJECT/${expname}1 2> /tmp/errors.txt`
+    runcmd_suspend test_2 export_group delete $PROJECT/${expname}1
 
-    if [ $? -ne 0 ]; then
-	cat /tmp/errors.txt | tee -a ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE}
-	echo "export group command failed outright"
-	incr_fail_count
-	report_results test_2
-	return
-    fi
+    # Resume and follow the workflow/task
+    resume_follow_task
 
-    echo $resultcmd
-
-    echo $resultcmd | grep "suspended" > /dev/null
-    if [ $? -ne 0 ]; then
-	secho "export group command did not suspend";
-	incr_fail_count;
-	report_results test_2
-	return
-    fi
-
-    # Parse results (add checks here!  encapsulate!)
-    taskworkflow=`echo $resultcmd | awk -F, '{print $2 $3}'`
-    answersarray=($taskworkflow)
-    task=${answersarray[0]}
-    workflow=${answersarray[1]}
-
-    # Resume the workflow
-    runcmd workflow resume $workflow
-    # Follow the task
-    runcmd task follow $task
-
+    # Verify results
     verify_export ${expname}1 ${HOST1} gone
     verify_no_zones ${FC_ZONE_A:7} ${HOST1}
 
@@ -1973,28 +1939,10 @@ test_3() {
 
     runcmd volume delete ${PROJECT}/${HIJACK} --vipronly
 
-    # Run the export group command TODO: Do this more elegantly
-    recho export_group delete $PROJECT/${expname}1
-    resultcmd=`export_group delete $PROJECT/${expname}1 2> /tmp/errors.txt`
+    # Run the export group command 
+    runcmd_suspend test_3 export_group delete $PROJECT/${expname}1
 
-    if [ $? -ne 0 ]; then
-	cat /tmp/errors.txt | tee -a ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE}
-	echo "export group command failed outright"
-	incr_fail_count
-	report_results test_3
-	return
-    fi
-
-    # Show the result of the export group command for now (show the task and WF IDs)
-    echo $resultcmd
-
-    # Parse results (add checks here!  encapsulate!)
-    taskworkflow=`echo $resultcmd | awk -F, '{print $2 $3}'`
-    answersarray=($taskworkflow)
-    task=${answersarray[0]}
-    workflow=${answersarray[1]}
-
-    # Add the volume to the mask (done differently per array type)
+    # Add volume to mask
     arrayhelper add_volume_to_mask ${SERIAL_NUMBER} ${device_id} ${HOST1}
     
     # Verify the mask has the new volume in it
@@ -2006,7 +1954,7 @@ test_3() {
     # Follow the task.  It should fail because of Poka Yoke validation
     if [ "$SS" = "xio" ]; then
         echo "For XtremIO, we do not delete initiators for export mask delete. So skipping this test for XIO."
-            return
+        return
     fi
 
     echo "*** Following the export_group delete task to verify it FAILS because of the additional volume"
@@ -2073,7 +2021,7 @@ test_4() {
         verify_export ${expname}1 ${HOST1} 3 2
 
         # Run the export group command.  Expect it to fail with validation
-	    fail export_group delete $PROJECT/${expname}1
+	fail export_group delete $PROJECT/${expname}1
         
         # Run the export group command.  Expect it to fail with validation
         fail export_group update $PROJECT/${expname}1 --remVols "${PROJECT}/${VOLNAME}-2"
@@ -2092,26 +2040,8 @@ test_4() {
     # Turn on suspend of export after orchestration
     set_suspend_on_class_method ${exportDeleteDeviceStep}
 
-    # Run the export group command TODO: Do this more elegantly
-    recho export_group delete $PROJECT/${expname}1
-    resultcmd=`export_group delete $PROJECT/${expname}1 2> /tmp/errors.txt`
-
-    if [ $? -ne 0 ]; then
-	cat /tmp/errors.txt | tee -a ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE}
-	echo "export group command failed outright"
-	incr_fail_count
-	report_results test_4
-	return
-    fi
-
-    # Show the result of the export group command for now (show the task and WF IDs)
-    echo $resultcmd
-
-    # Parse results (add checks here!  encapsulate!)
-    taskworkflow=`echo $resultcmd | awk -F, '{print $2 $3}'`
-    answersarray=($taskworkflow)
-    task=${answersarray[0]}
-    workflow=${answersarray[1]}
+    # Run the export group command 
+    runcmd_suspend test_4 export_group delete $PROJECT/${expname}1
 
     PWWN=`getwwn`
     # Add another initiator to the mask (done differently per array type)
@@ -2140,26 +2070,8 @@ test_4() {
     # Turn on suspend of export after orchestration
     set_suspend_on_class_method ${exportDeleteDeviceStep}
 
-    # Run the export group command TODO: Do this more elegantly
-    recho export_group delete $PROJECT/${expname}1
-    resultcmd=`export_group delete $PROJECT/${expname}1 2> /tmp/errors.txt`
-
-    if [ $? -ne 0 ]; then
-	cat /tmp/errors.txt | tee -a ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE}
-	echo "export group command failed outright"
-	incr_fail_count
-	report_results test_4
-	return
-    fi
-
-    # Show the result of the export group command for now (show the task and WF IDs)
-    echo $resultcmd
-
-    # Parse results (add checks here!  encapsulate!)
-    taskworkflow=`echo $resultcmd | awk -F, '{print $2 $3}'`
-    answersarray=($taskworkflow)
-    task=${answersarray[0]}
-    workflow=${answersarray[1]}
+    # Run the export group command 
+    runcmd_suspend test_4 export_group delete $PROJECT/${expname}1
 
     PWWN=`echo ${H2PI1} | sed 's/://g'`
     if [ "$SS" = "unity" ]; then
@@ -2241,26 +2153,8 @@ test_5() {
     # Turn on suspend of export after orchestration
     set_suspend_on_class_method ${exportRemoveVolumesDeviceStep}
 
-    # Run the export group command TODO: Do this more elegantly
-    recho export_group update $PROJECT/${expname}1 --remVols ${PROJECT}/${VOLNAME}-2
-    resultcmd=`export_group update $PROJECT/${expname}1 --remVols ${PROJECT}/${VOLNAME}-2 2> /tmp/errors.txt`
-
-    if [ $? -ne 0 ]; then
-	cat /tmp/errors.txt | tee -a ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE}
-	secho "export group command failed outright"
-	incr_fail_count
-	report_results test_5
-	return
-    fi
-
-    # Show the result of the export group command for now (show the task and WF IDs)
-    echo $resultcmd
-
-    # Parse results (add checks here!  encapsulate!)
-    taskworkflow=`echo $resultcmd | awk -F, '{print $2 $3}'`
-    answersarray=($taskworkflow)
-    task=${answersarray[0]}
-    workflow=${answersarray[1]}
+    # Run the export group command 
+    runcmd_suspend test_5 export_group update $PROJECT/${expname}1 --remVols ${PROJECT}/${VOLNAME}-2
 
     PWWN=`getwwn`
 
@@ -2284,26 +2178,8 @@ test_5() {
     verify_export ${expname}1 ${HOST1} 2 2
 
     if [ "$SS" != "xio" ]; then    
-        # Run the export group command TODO: Do this more elegantly
-        recho export_group update $PROJECT/${expname}1 --remVols "${PROJECT}/${VOLNAME}-2"
-        resultcmd=`export_group update $PROJECT/${expname}1 --remVols "${PROJECT}/${VOLNAME}-2" 2> /tmp/errors.txt`
-
-        if [ $? -ne 0 ]; then
-	    cat /tmp/errors.txt | tee -a ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE}
-	    secho "export group command failed outright"
-	    incr_fail_count
-	    report_results test_4
-	    return
-        fi
-
-        # Show the result of the export group command for now (show the task and WF IDs)
-        echo $resultcmd
-
-        # Parse results (add checks here!  encapsulate!)
-        taskworkflow=`echo $resultcmd | awk -F, '{print $2 $3}'`
-        answersarray=($taskworkflow)
-        task=${answersarray[0]}
-        workflow=${answersarray[1]}
+        # Run the export group command 
+	runcmd_suspend test_5 export_group update $PROJECT/${expname}1 --remVols "${PROJECT}/${VOLNAME}-2"
 
         PWWN=`echo ${H2PI1} | sed 's/://g'`
         if [ "$SS" = "unity" ]; then
@@ -2402,26 +2278,8 @@ test_6() {
     # Turn on suspend of export after orchestration
     set_suspend_on_class_method ${exportRemoveInitiatorsDeviceStep}
 
-    # Run the export group command TODO: Do this more elegantly
-    recho export_group update $PROJECT/${expname}1 --remInits ${HOST1}/${H1PI1}
-    resultcmd=`export_group update $PROJECT/${expname}1 --remInits ${HOST1}/${H1PI1} 2> /tmp/errors.txt`
-
-    if [ $? -ne 0 ]; then
-	cat /tmp/errors.txt | tee -a ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE}
-	secho "export group command failed outright"
-	incr_fail_count
-	report_results test_6
-	return
-    fi
-
-    # Show the result of the export group command for now (show the task and WF IDs)
-    echo $resultcmd
-
-    # Parse results (add checks here!  encapsulate!)
-    taskworkflow=`echo $resultcmd | awk -F, '{print $2 $3}'`
-    answersarray=($taskworkflow)
-    task=${answersarray[0]}
-    workflow=${answersarray[1]}
+    # Run the export group command 
+    runcmd_suspend test_6 export_group update $PROJECT/${expname}1 --remInits ${HOST1}/${H1PI1}
 
     # Add the volume to the mask (done differently per array type)
     arrayhelper add_volume_to_mask ${SERIAL_NUMBER} ${known_device_id} ${HOST1}
@@ -2475,26 +2333,8 @@ test_6() {
     # Turn on suspend of export after orchestration
     set_suspend_on_class_method ${exportRemoveInitiatorsDeviceStep}
 
-    # Run the export group command TODO: Do this more elegantly
-    recho export_group update $PROJECT/${expname}1 --remInits ${HOST1}/${H1PI1}
-    resultcmd=`export_group update $PROJECT/${expname}1 --remInits ${HOST1}/${H1PI1} 2> /tmp/errors.txt`
-
-    if [ $? -ne 0 ]; then
-	cat /tmp/errors.txt | tee -a ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE}
-	secho "export group command failed outright"
-	incr_fail_count
-	report_results test_6
-	return
-    fi
-
-    # Show the result of the export group command for now (show the task and WF IDs)
-    echo $resultcmd
-
-    # Parse results (add checks here!  encapsulate!)
-    taskworkflow=`echo $resultcmd | awk -F, '{print $2 $3}'`
-    answersarray=($taskworkflow)
-    task=${answersarray[0]}
-    workflow=${answersarray[1]}
+    # Run the export group command 
+    runcmd_suspend test_6 export_group update $PROJECT/${expname}1 --remInits ${HOST1}/${H1PI1}
 
     # Add the volume to the mask (done differently per array type)
     arrayhelper add_volume_to_mask ${SERIAL_NUMBER} ${device_id} ${HOST1}
@@ -2690,26 +2530,8 @@ test_9() {
     # Turn on suspend of export after orchestration
     set_suspend_on_class_method ${exportAddVolumesDeviceStep}
 
-    # Run the export group command TODO: Do this more elegantly
-    recho export_group update $PROJECT/${expname}1 --addVols ${PROJECT}/${VOLNAME}-2
-    resultcmd=`export_group update $PROJECT/${expname}1 --addVols ${PROJECT}/${VOLNAME}-2 2> /tmp/errors.txt`
-
-    if [ $? -ne 0 ]; then
-	cat /tmp/errors.txt | tee -a ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE}
-	secho "export group command failed outright"
-	incr_fail_count
-	report_results test_9
-	return
-    fi
-
-    # Show the result of the export group command for now (show the task and WF IDs)
-    echo $resultcmd
-
-    # Parse results (add checks here!  encapsulate!)
-    taskworkflow=`echo $resultcmd | awk -F, '{print $2 $3}'`
-    answersarray=($taskworkflow)
-    task=${answersarray[0]}
-    workflow=${answersarray[1]}
+    # Run the export group command 
+    runcmd_suspend test_9 export_group update $PROJECT/${expname}1 --addVols ${PROJECT}/${VOLNAME}-2
 
     # Create another volume, but don't export it through ViPR (yet)
     volname="${VOLNAME}-2"
@@ -2843,26 +2665,8 @@ test_11() {
     # Turn on suspend of export after orchestration
     set_suspend_on_class_method ${exportAddVolumesDeviceStep}
 
-    # Run the export group command TODO: Do this more elegantly
-    recho export_group update $PROJECT/${expname}1 --addVols ${PROJECT}/${VOLNAME}-2
-    resultcmd=`export_group update $PROJECT/${expname}1 --addVols ${PROJECT}/${VOLNAME}-2 2> /tmp/errors.txt`
-
-    if [ $? -ne 0 ]; then
-	cat /tmp/errors.txt | tee -a ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE}
-	secho "export group command failed outright"
-	incr_fail_count
-	report_results test_11
-	return
-    fi
-
-    # Show the result of the export group command for now (show the task and WF IDs)
-    echo $resultcmd
-
-    # Parse results (add checks here!  encapsulate!)
-    taskworkflow=`echo $resultcmd | awk -F, '{print $2 $3}'`
-    answersarray=($taskworkflow)
-    task=${answersarray[0]}
-    workflow=${answersarray[1]}
+    # Run the export group command 
+    runcmd_suspend test_11 export_group update $PROJECT/${expname}1 --addVols ${PROJECT}/${VOLNAME}-2
 
     # Add the volume to the mask
     arrayhelper add_volume_to_mask ${SERIAL_NUMBER} ${device_id} ${HOST1}
@@ -2989,26 +2793,8 @@ test_13() {
     set_suspend_on_class_method ${exportAddVolumesDeviceStep}
     set_artificial_failure failure_002_late_in_add_volume_to_mask
 
-    # Run the export group command TODO: Do this more elegantly
-    recho export_group update $PROJECT/${expname}1 --addVols ${PROJECT}/${VOLNAME}-2
-    resultcmd=`export_group update $PROJECT/${expname}1 --addVols ${PROJECT}/${VOLNAME}-2 2> /tmp/errors.txt`
-
-    if [ $? -ne 0 ]; then
-	cat /tmp/errors.txt | tee -a ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE}
-	secho "export group command failed outright"
-	incr_fail_count
-	report_results test_13
-	return
-    fi
-
-    # Show the result of the export group command for now (show the task and WF IDs)
-    echo $resultcmd
-
-    # Parse results (add checks here!  encapsulate!)
-    taskworkflow=`echo $resultcmd | awk -F, '{print $2 $3}'`
-    answersarray=($taskworkflow)
-    task=${answersarray[0]}
-    workflow=${answersarray[1]}
+    # Run the export group command 
+    runcmd_suspend test_13 export_group update $PROJECT/${expname}1 --addVols ${PROJECT}/${VOLNAME}-2
 
     PWWN=`getwwn`
 
@@ -3061,7 +2847,7 @@ test_13() {
 # 9. Rollback should remove the initiator in the mask that it added even if there's an existing volume in the mask.
 #
 test_14() {
-    echot "Test 14: Test rollback of add initiator, verify it does not remove initiators when volume sneaks into mask"
+    echot "Test 14: Test rollback of add initiator, verify it removes the new initiators when volume sneaks into mask"
     expname=${EXPORT_GROUP_NAME}t14-${RANDOM}
 
     # Make sure we start clean; no masking view on the array
@@ -3093,38 +2879,20 @@ test_14() {
     set_suspend_on_class_method ${exportAddInitiatorsDeviceStep}
     set_artificial_failure failure_003_late_in_add_initiator_to_mask
 
-    # Run the export group command TODO: Do this more elegantly
-    recho export_group update $PROJECT/${expname}1 --addInits ${HOST1}/${H1PI1}
-    resultcmd=`export_group update $PROJECT/${expname}1 --addInits ${HOST1}/${H1PI1} 2> /tmp/errors.txt`
-
-    if [ $? -ne 0 ]; then
-	cat /tmp/errors.txt | tee -a ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE}
-	secho "export group command failed outright"
-	incr_fail_count
-	report_results test_14
-	return
-    fi
-
-    # Show the result of the export group command for now (show the task and WF IDs)
-    echo $resultcmd
-
-    # Parse results (add checks here!  encapsulate!)
-    taskworkflow=`echo $resultcmd | awk -F, '{print $2 $3}'`
-    answersarray=($taskworkflow)
-    task=${answersarray[0]}
-    workflow=${answersarray[1]}
+    # Run the export group command 
+    runcmd_suspend test_14 export_group update $PROJECT/${expname}1 --addInits ${HOST1}/${H1PI1}
 
     # Add the volume to the mask
     arrayhelper add_volume_to_mask ${SERIAL_NUMBER} ${device_id} ${HOST1}
     
-    # Verify the mask has the new initiator in it
+    # Verify the mask has the new volume in it
     verify_export ${expname}1 ${HOST1} 1 2
 
     # Resume the workflow
     runcmd workflow resume $workflow
 
-    # Follow the task.  It should fail because of Poka Yoke validation
-    echo "*** Following the export_group update task to verify it FAILS because of the additional volume"
+    # Follow the task.  It should fail because of artificial failure
+    echo "*** Following the export_group update task to verify it FAILS because of artificial failure"
     fail task follow $task
 
     # Verify that ViPR rollback removed only the initiator that was previously added
@@ -3185,26 +2953,8 @@ test_15() {
     set_suspend_on_class_method ${exportAddInitiatorsDeviceStep}
     set_artificial_failure failure_003_late_in_add_initiator_to_mask
 
-    # Run the export group command TODO: Do this more elegantly
-    recho export_group update $PROJECT/${expname}1 --addInits ${HOST1}/${H1PI2}
-    resultcmd=`export_group update $PROJECT/${expname}1 --addInits ${HOST1}/${H1PI2} 2> /tmp/errors.txt`
-
-    if [ $? -ne 0 ]; then
-	cat /tmp/errors.txt | tee -a ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE}
-	secho "export group command failed outright"
-	incr_fail_count
-	report_results test_15
-	return
-    fi
-
-    # Show the result of the export group command for now (show the task and WF IDs)
-    echo $resultcmd
-
-    # Parse results (add checks here!  encapsulate!)
-    taskworkflow=`echo $resultcmd | awk -F, '{print $2 $3}'`
-    answersarray=($taskworkflow)
-    task=${answersarray[0]}
-    workflow=${answersarray[1]}
+    # Run the export group command 
+    runcmd_suspend test_15 export_group update $PROJECT/${expname}1 --addInits ${HOST1}/${H1PI2}
 
     # Strip out colons for array helper command
     h1pi2=`echo ${H1PI2} | sed 's/://g'`
@@ -3296,26 +3046,8 @@ test_16() {
     
     runcmd volume delete ${PROJECT}/${HIJACK} --vipronly
 
-    # Run the export group command TODO: Do this more elegantly
-    recho export_group create $PROJECT ${expname}1 $NH --type Host --volspec ${PROJECT}/${VOLNAME}-1 --hosts "${HOST1}"
-    resultcmd=`export_group create $PROJECT ${expname}1 $NH --type Host --volspec ${PROJECT}/${VOLNAME}-1 --hosts "${HOST1}" 2> /tmp/errors.txt`
-
-    if [ $? -ne 0 ]; then
-	cat /tmp/errors.txt | tee -a ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE}
-	secho "export group command failed outright"
-	incr_fail_count
-	report_results test_16
-	return
-    fi
-
-    # Show the result of the export group command for now (show the task and WF IDs)
-    echo $resultcmd
-
-    # Parse results (add checks here!  encapsulate!)
-    taskworkflow=`echo $resultcmd | awk -F, '{print $2 $3}'`
-    answersarray=($taskworkflow)
-    task=${answersarray[0]}
-    workflow=${answersarray[1]}
+    # Run the export group command 
+    runcmd_suspend test_16 export_group create $PROJECT ${expname}1 $NH --type Host --volspec ${PROJECT}/${VOLNAME}-1 --hosts "${HOST1}"
 
     # Strip out colons for array helper command
     h1pi2=`echo ${H1PI2} | sed 's/://g'`
@@ -3405,30 +3137,12 @@ test_17() {
 
     runcmd volume delete ${PROJECT}/${HIJACK} --vipronly
 
-    # Run the export group command TODO: Do this more elegantly
-    recho export_group delete $PROJECT/${expname}1
-    resultcmd=`export_group delete $PROJECT/${expname}1 2> /tmp/errors.txt`
-
-    if [ $? -ne 0 ]; then
-	cat /tmp/errors.txt | tee -a ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE}
-	secho "export group command failed outright"
-	incr_fail_count
-	report_results test_17
-	return
-    fi
-
-    # Show the result of the export group command for now (show the task and WF IDs)
-    echo $resultcmd
-
-    # Parse results (add checks here!  encapsulate!)
-    taskworkflow=`echo $resultcmd | awk -F, '{print $2 $3}'`
-    answersarray=($taskworkflow)
-    task=${answersarray[0]}
-    workflow=${answersarray[1]}
+    # Run the export group command 
+    runcmd_suspend test_17 export_group delete $PROJECT/${expname}1
 
     # Add the volume to the mask (done differently per array type)
     arrayhelper add_volume_to_mask ${SERIAL_NUMBER} ${device_id} ${HOST1}
-    
+
     # Verify the mask has the new volume in it
     verify_export ${expname}1 ${HOST1} 2 2
 
@@ -3496,26 +3210,8 @@ test_18() {
     # Turn on suspend of export after orchestration
     set_suspend_on_class_method ${exportRemoveVolumesDeviceStep}
 
-    # Run the export group command TODO: Do this more elegantly
-    recho export_group update $PROJECT/${expname}1 --remVols ${PROJECT}/${VOLNAME}-2
-    resultcmd=`export_group update $PROJECT/${expname}1 --remVols ${PROJECT}/${VOLNAME}-2 2> /tmp/errors.txt`
-
-    if [ $? -ne 0 ]; then
-	cat /tmp/errors.txt | tee -a ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE}
-	secho "export group command failed outright"
-	incr_fail_count
-	report_results test_18
-	return
-    fi
-
-    # Show the result of the export group command for now (show the task and WF IDs)
-    echo $resultcmd
-
-    # Parse results (add checks here!  encapsulate!)
-    taskworkflow=`echo $resultcmd | awk -F, '{print $2 $3}'`
-    answersarray=($taskworkflow)
-    task=${answersarray[0]}
-    workflow=${answersarray[1]}
+    # Run the export group command 
+    runcmd_suspend test_18 export_group update $PROJECT/${expname}1 --remVols ${PROJECT}/${VOLNAME}-2
 
     # Add an unrelated initiator to the mask (done differently per array type)
     arrayhelper add_volume_to_mask ${SERIAL_NUMBER} ${device_id} ${HOST1}
@@ -3585,26 +3281,8 @@ test_19() {
     # Turn on suspend of export after orchestration
     set_suspend_on_class_method ${exportRemoveInitiatorsDeviceStep}
 
-    # Run the export group command TODO: Do this more elegantly
-    recho export_group update $PROJECT/${expname}1 --remInits ${HOST1}/${H1PI1}
-    resultcmd=`export_group update $PROJECT/${expname}1 --remInits ${HOST1}/${H1PI1} 2> /tmp/errors.txt`
-
-    if [ $? -ne 0 ]; then
-	cat /tmp/errors.txt | tee -a ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE}
-	secho "export group command failed outright"
-	incr_fail_count
-	report_results test_19
-	return
-    fi
-
-    # Show the result of the export group command for now (show the task and WF IDs)
-    echo $resultcmd
-
-    # Parse results (add checks here!  encapsulate!)
-    taskworkflow=`echo $resultcmd | awk -F, '{print $2 $3}'`
-    answersarray=($taskworkflow)
-    task=${answersarray[0]}
-    workflow=${answersarray[1]}
+    # Run the export group command 
+    runcmd_suspend test_19 export_group update $PROJECT/${expname}1 --remInits ${HOST1}/${H1PI1}
 
     PWWN=`getwwn`
 
@@ -3687,26 +3365,8 @@ test_20() {
     # Turn on suspend of export after orchestration
     set_suspend_on_class_method ${exportRemoveVolumesDeviceStep}
 
-    # Run the export group command TODO: Do this more elegantly
-    recho export_group update $PROJECT/${expname}1 --remVols ${PROJECT}/${VOLNAME}-2
-    resultcmd=`export_group update $PROJECT/${expname}1 --remVols ${PROJECT}/${VOLNAME}-2 2> /tmp/errors.txt`
-
-    if [ $? -ne 0 ]; then
-	cat /tmp/errors.txt | tee -a ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE}
-	secho "export group command failed outright"
-	incr_fail_count
-	report_results test_20
-	return
-    fi
-
-	# Show the result of the export group command for now (show the task and WF IDs)
-    echo $resultcmd
-
-    # Parse results (add checks here!  encapsulate!)
-    taskworkflow=`echo $resultcmd | awk -F, '{print $2 $3}'`
-    answersarray=($taskworkflow)
-    task=${answersarray[0]}
-    workflow=${answersarray[1]}
+    # Run the export group command 
+    runcmd_suspend test_20 export_group update $PROJECT/${expname}1 --remVols ${PROJECT}/${VOLNAME}-2
 
     # Create another mask and add the volumes
     HOST1_CSG="${HOST1}_${SERIAL_NUMBER: -3}_CSG"
@@ -3789,26 +3449,8 @@ test_21() {
     # Turn on suspend of export after orchestration
     set_suspend_on_class_method ${exportRemoveInitiatorsDeviceStep}
 
-    # Run the export group command TODO: Do this more elegantly
-    recho export_group update $PROJECT/${expname}1 --remInits ${HOST1}/${H1PI1}
-    resultcmd=`export_group update $PROJECT/${expname}1 --remInits ${HOST1}/${H1PI1} 2> /tmp/errors.txt`
-
-    if [ $? -ne 0 ]; then
-	cat /tmp/errors.txt | tee -a ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE}
-	secho "export group command failed outright"
-	incr_fail_count
-	report_results test_21
-	return
-    fi
-
-    # Show the result of the export group command for now (show the task and WF IDs)
-    echo $resultcmd
-
-    # Parse results (add checks here!  encapsulate!)
-    taskworkflow=`echo $resultcmd | awk -F, '{print $2 $3}'`
-    answersarray=($taskworkflow)
-    task=${answersarray[0]}
-    workflow=${answersarray[1]}
+    # Run the export group command 
+    runcmd_suspend test_21 export_group update $PROJECT/${expname}1 --remInits ${HOST1}/${H1PI1}
 
     # Get the device ID of 2nd volume
     device_id=`get_device_id ${PROJECT}/${VOLNAME}-2`
@@ -3883,38 +3525,14 @@ test_22() {
     # Create another volume that we will inventory-only delete
     runcmd volume create ${HIJACK} ${PROJECT} ${NH} ${VPOOL_BASE}_migration_src 1GB --count 1
 
-    # Run change vpool, but suspend will happen
-
     # Run the export group command
-    recho volume change_cos ${PROJECT}/${HIJACK} ${VPOOL_BASE}_migration_tgt --suspend
-    resultcmd=`volume change_cos ${PROJECT}/${HIJACK} ${VPOOL_BASE}_migration_tgt --suspend 2> /tmp/errors.txt`
+    runcmd_suspend test_22 volume change_cos ${PROJECT}/${HIJACK} ${VPOOL_BASE}_migration_tgt --suspend
 
-    if [ $? -ne 0 ]; then
-	cat /tmp/errors.txt | tee -a ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE}
-	echo "volume change_cos command failed outright"
-	incr_fail_count
-	report_results test_22
-	return
-    fi
+    # Resume and follow the workflow/task
+    resume_follow_task
 
-    # Show the result of the export group command for now (show the task and WF IDs)
-    echo $resultcmd
-
-    # Parse results (add checks here!  encapsulate!)
-    taskworkflow=`echo $resultcmd | awk -F, '{print $2 $3}'`
-    answersarray=($taskworkflow)
-    task=${answersarray[0]}
-    workflow=${answersarray[1]}
-
-    # Resume the workflow
-    runcmd workflow resume $workflow
-    # Follow the task
-    runcmd task follow $task
-
-    # Resume the workflow
-    runcmd workflow resume $workflow
-    # Follow the task
-    runcmd task follow $task
+    # Resume and follow the workflow/task (again)
+    resume_follow_task
 
     # Delete the volume we created
     runcmd volume delete ${PROJECT}/${HIJACK} --wait
@@ -3963,39 +3581,15 @@ test_23() {
     runcmd volume create ${HIJACK} ${PROJECT} ${NH} ${VPOOL_BASE}_migration_src 1GB --count 2 --consistencyGroup=${CGNAME}
 
     # Run change vpool, but suspend will happen
+    runcmd_suspend test_23 volume change_cos "${PROJECT}/${HIJACK}-1,${PROJECT}/${HIJACK}-2" ${VPOOL_BASE}_migration_tgt --consistencyGroup=${CGNAME} --suspend
 
-    # Run the export group command
-    recho volume change_cos "${PROJECT}/${HIJACK}-1,${PROJECT}/${HIJACK}-2" ${VPOOL_BASE}_migration_tgt --consistencyGroup=${CGNAME} --suspend
-    resultcmd=`volume change_cos "${PROJECT}/${HIJACK}-1,${PROJECT}/${HIJACK}-2" ${VPOOL_BASE}_migration_tgt --consistencyGroup=${CGNAME} --suspend 2> /tmp/errors.txt`
+    # Resume and follow the workflow/task
+    resume_follow_task
 
-    if [ $? -ne 0 ]; then
-	cat /tmp/errors.txt | tee -a ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE}
-	echo "volume change_cos_multi command failed outright"
-	incr_fail_count
-	report_results test_23
-	return
-    fi
+    # Resume and follow the workflow/task (again)
+    resume_follow_task
 
-    # Show the result of the export group command for now (show the task and WF IDs)
-    echo $resultcmd
-
-    # Parse results (add checks here!  encapsulate!)
-    taskworkflow=`echo $resultcmd | awk -F, '{print $2 $3}'`
-    answersarray=($taskworkflow)
-    task=${answersarray[0]}
-    workflow=${answersarray[1]}
-
-    # Resume the workflow
-    runcmd workflow resume $workflow
-    # Follow the task
-    runcmd task follow $task
-
-    # Resume the workflow
-    runcmd workflow resume $workflow
-    # Follow the task
-    runcmd task follow $task
-
-    # Delete the volume we created
+    # Delete the volumes we created
     runcmd volume delete ${PROJECT}/${HIJACK}-1 --wait
     runcmd volume delete ${PROJECT}/${HIJACK}-2 --wait
     runcmd blockconsistencygroup delete ${CGNAME}
@@ -4068,7 +3662,7 @@ test_24() {
     verify_zones ${FC_ZONE_A:7} exists
 
     # Now add back the other vipr volume to the mask
-    runcmd export_group update $PROJECT/${expname}1 --addVols "${PROJECT}/${VOLNAME}-2"
+    runcmd export_group create $PROJECT ${expname}1 $NH --type Host --volspec "${PROJECT}/${VOLNAME}-2" --hosts "${HOST1}"
 
     # Verify the volume is added
     verify_export ${expname}1 ${HOST1} 2 2
@@ -4164,9 +3758,6 @@ test_25() {
 
     # Verify the zones we know about are gone
     verify_zones ${FC_ZONE_A:7} gone
-
-    # Delete the export group
-    runcmd export_group delete $PROJECT/${expname}1
 
     # The mask is out of our control at this point, delete mask
     arrayhelper delete_mask ${SERIAL_NUMBER} ${expname}1 ${HOST1}
@@ -4813,13 +4404,6 @@ then
     fi
 fi
 
-docleanup=0;
-if [ "$1" = "-cleanup" ]
-then
-    docleanup=1;
-    shift
-fi
-
 test_start=0
 test_end=28
 
@@ -4833,9 +4417,11 @@ then
    for t in $*
    do
       secho Run $t
+      secho "Start time: $(date)"
       reset_system_props
       prerun_tests
       TEST_OUTPUT_FILE=test_output_${RANDOM}.log
+      reset_counts
       $t
       reset_system_props
    done
@@ -4852,11 +4438,15 @@ else
      reset_system_props
      prerun_tests
      TEST_OUTPUT_FILE=test_output_${RANDOM}.log
+     reset_counts
+     secho "Start time: $(date)"
      test_${num}
      reset_system_props
      num=`expr ${num} + 1`
    done
 fi
+
+cleanup_previous_run_artifacts
 
 echo There were $VERIFY_COUNT export verifications
 echo There were $VERIFY_FAIL_COUNT export verification failures

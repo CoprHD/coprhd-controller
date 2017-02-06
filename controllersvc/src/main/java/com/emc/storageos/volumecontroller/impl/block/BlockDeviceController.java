@@ -1110,41 +1110,41 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                         _dbClient.updateAndReindexObject(volume);
                     }
                 }
-            
-            
+
                 // Check for loose export groups associated with this rolled-back volume
                 URIQueryResultList exportGroupURIs = new URIQueryResultList();
-                _dbClient.queryByConstraint(ContainmentConstraint.Factory.getVolumeExportGroupConstraint(volume.getId()), exportGroupURIs);
+                _dbClient.queryByConstraint(ContainmentConstraint.Factory.getVolumeExportGroupConstraint(
+                        volume.getId()), exportGroupURIs);
                 while (exportGroupURIs.iterator().hasNext()) {
-                	URI exportGroupURI = exportGroupURIs.iterator().next();
+                    URI exportGroupURI = exportGroupURIs.iterator().next();
                     ExportGroup exportGroup = _dbClient.queryObject(ExportGroup.class, exportGroupURI);
                     if (!exportGroup.getInactive()) {
-                    	exportGroup.removeVolume(volume.getId());
-                        boolean canRemoveGroup = false;
-                        List<ExportMask> exportMasks = ExportMaskUtils.getExportMasks(_dbClient, exportGroup);
-                    	// Make sure the volume is not in an export mask
-                        for (ExportMask exportMask : exportMasks) {
-                        	exportMask.removeVolume(volume.getId());
-                    		exportMask.removeFromUserCreatedVolumes(volume);
-                            exportMask.removeFromExistingVolumes(volume);
-                    		if (!exportMask.getCreatedBySystem() && !exportMask.hasAnyVolumes() && exportMask.emptyVolumes()) {
-                    			canRemoveGroup = true;
-                    			_dbClient.removeObject(exportMask);
-                            } else {
-                            	_dbClient.updateObject(exportMask);
-                            }
-                        }                            
+                        if (exportGroup.checkInternalFlags(Flag.INTERNAL_OBJECT)) {
+                            // Make sure the volume is not in an export mask
+                            boolean foundInMask = false;
+                            
+                            for (ExportMask exportMask : ExportMaskUtils.getExportMasks(_dbClient, exportGroup)) {                                  
+                                if (exportMask.hasVolume(volume.getId())) {
+                                    foundInMask = true;
+                                    break;
+                                }
+                            }                            
 
-                        // If we didn't find that volume in a mask, it's OK to remove it.
-                        if (canRemoveGroup && exportMasks.size() == 1 && exportGroup.getVolumes().isEmpty()) {
-                            _dbClient.removeObject(exportGroup);
-                        } else {
-                            _dbClient.updateObject(exportGroup);
+                            // If we didn't find that volume in a mask, it's OK to remove it.
+                            if (!foundInMask) {
+                                exportGroup.removeVolume(volume.getId());
+                                if (exportGroup.getVolumes().isEmpty()) {
+                                    _dbClient.removeObject(exportGroup);
+                                } else {
+                                    _dbClient.updateObject(exportGroup);
+                                }
+                            }
                         }
                     }
                 }
-            }                  		
-                           
+            }
+
+            // Call regular delete volumes
             InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_013);
             deleteVolumesWithCompleter(systemURI, volumeURIs, completer);
             InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_014);

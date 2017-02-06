@@ -24,7 +24,6 @@ import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.StringSetMap;
-import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
@@ -150,7 +149,6 @@ public class ExportMaskRemoveInitiatorCompleter extends ExportTaskCompleter {
         	super.complete(dbClient, status, coded);
         }
     }
-    
     /*
      * Remove unused storage Ports from export mask
      */
@@ -159,27 +157,13 @@ public class ExportMaskRemoveInitiatorCompleter extends ExportTaskCompleter {
 		StringSetMap zoningMap = exportMask.getZoningMap();
 		Set<String> zonedTarget = new HashSet<String>();
 		for (String initiator : initiators) {
-		    StringSet zoneEntry = zoningMap.get(initiator);
-		    if (zoneEntry != null) {
-		        zonedTarget.addAll(zoneEntry);
-		    } else {
-		        _log.warn(String.format(
-                        "removeUnusedTargets() - tried looking up initiator [%s] in zoningMap for "
-                        + "Export Mask [%s - %s], but no entry found - continue...", initiator, 
-                        exportMask.getMaskName(), exportMask.getId())); 
-		    }
+            StringSet targets = zoningMap.get(initiator);
+            if (targets != null && !targets.isEmpty()) {
+                zonedTarget.addAll(targets);
+            }
 		}
-		StringSet emStoragePorts = new StringSet();
-		
-		if (exportMask.getStoragePorts() != null) {
-		    emStoragePorts = exportMask.getStoragePorts();
-		} else {
-		    _log.warn(String.format(
-                    "removeUnusedTargets() - could not find any storage ports for"
-                    + "Export Mask [%s - %s].", exportMask.getMaskName(), exportMask.getId()));
-		}
-		
-		Set<String> targets = new HashSet<String>(emStoragePorts);
+
+		Set<String> targets = new HashSet<String>(exportMask.getStoragePorts());
 		if (!targets.removeAll(zonedTarget)) {
 			for (String zonedPort : zonedTarget) {
 				exportMask.addTarget(URIUtil.uri(zonedPort));
@@ -188,6 +172,7 @@ public class ExportMaskRemoveInitiatorCompleter extends ExportTaskCompleter {
 		for (String targetPort : targets) {
 			exportMask.removeTarget(URIUtil.uri(targetPort));
 		}
+
 	}
 
 	public boolean removeInitiator(URI initiator) {

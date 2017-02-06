@@ -31,9 +31,14 @@ source $(dirname $0)/wftests_host_cluster.sh
 
 Usage()
 {
-    echo 'Usage: wftests.sh <sanity conf file path> [setuphw|setupsim|delete] [vmax2 | vmax3 | vnx | vplex [local | distributed] | xio | unity]  [test1 test2 ...]'
-    echo ' [setuphw|setupsim]: Run on a new ViPR database, creates SMIS, host, initiators, vpools, varray, volumes'
-    echo ' [delete]: deletes export and volume resources on the array'
+    echo 'Usage: wftests.sh <sanity conf file path> (vmax2 | vmax3 | vnx | vplex [local | distributed] | xio | unity | vblock] [-setuphw|-setupsim) [-report] [-cleanup]  [test1 test2 ...]'
+    echo ' (vmax 2 | vmax3 ...: Storage platform to run on.'
+    echo ' [-setup(hw) | setupsim]: Run on a new ViPR database, creates SMIS, host, initiators, vpools, varray, volumes (Required to run first, can be used with tests'
+    echo ' [-report]: Report results to reporting server: http://lglw1046.lss.emc.com:8081/index.html (Optional)'
+    echo ' [-cleanup]: Clean up the pre-created volumes and exports associated with -setup operation (Optional)'
+    echo ' test names: Space-delimited list of tests to run.  Use + to start at a specific test.  (Optional, default will run all tests in suite)'
+    echo ' Example:  ./wftests.sh sanity.conf vmax3 -setupsim -report -cleanup test_7+'
+    echo '           Will start from clean DB, report results to reporting server, clean-up when done, and start on test_7 (and run all tests after test_7'
     exit 2
 }
 
@@ -1014,8 +1019,10 @@ reset_system_props_pre_test() {
 
 # Clean zones from previous tests, verify no zones are on the switch
 prerun_tests() {
-    clean_zones ${FC_ZONE_A:7} ${HOST1}
-    verify_no_zones ${FC_ZONE_A:7} ${HOST1}
+    if [ "${SS}" != "vblock" ]; then
+        clean_zones ${FC_ZONE_A:7} ${HOST1}
+        verify_no_zones ${FC_ZONE_A:7} ${HOST1}
+    fi
     cleanup_previous_run_artifacts
 }
 
@@ -1061,14 +1068,12 @@ vnx_setup() {
     SERIAL_NUMBER=`storagedevice list | grep COMPLETE | awk '{print $2}' | awk -F+ '{print $2}'`
     
     # Chose thick because we need a thick pool for VNX metas
-    # Choose SATA as drive type because simulator's non-Unified pool is SATA.
     run cos create block ${VPOOL_BASE}	\
-	--description Base false                \
+	--description Base true                 \
 	--protocols FC 			                \
 	--numpaths 2				            \
 	--multiVolumeConsistency \
 	--provisionType 'Thick'			        \
-	--drive_type 'SATA' \
 	--max_snapshots 10                      \
 	--neighborhoods $NH  
 
@@ -1769,9 +1774,11 @@ setup() {
 	fi
     fi
 
-    if [ "${SIM}" != "1" ]; then
+    if [ "${SIM}" != "1" -a "${SS}" != "vblock" ]; then
 	run networksystem create $BROCADE_NETWORK brocade --smisip $BROCADE_IP --smisport 5988 --smisuser $BROCADE_USER --smispw $BROCADE_PW --smisssl false
 	BROCADE=1;
+    elif [ "${SS}" = "vblock" ]; then
+        secho "Configure vblock switches"
     else
 	FABRIC_SIMULATOR=fabric-sim
 	if [ "${SS}" = "vplex" ]; then
@@ -2005,7 +2012,6 @@ test_1() {
       else
 	  # If this is a rollback inject, make sure we get the "additional message"
 	  echo ${failure} | grep failure_004 | grep ":" > /dev/null
-
 	  if [ $? -eq 0 ]
 	  then
 	      # Make sure it fails with additional errors accounted for in the error message
@@ -2158,7 +2164,6 @@ test_2() {
       else
       	  # If this is a rollback inject, make sure we get the "additional message"
 	  echo ${failure} | grep failure_004 | grep ":" > /dev/null
-
 	  if [ $? -eq 0 ]
 	  then
 	      # Make sure it fails with additional errors accounted for in the error message
@@ -2291,7 +2296,6 @@ test_3() {
 
       # If this is a rollback inject, make sure we get the "additional message"
       echo ${failure} | grep failure_004 | grep ":" > /dev/null
-
       if [ $? -eq 0 ]
       then
 	  # Make sure it fails with additional errors accounted for in the error message
@@ -2418,7 +2422,6 @@ test_4() {
 
       # If this is a rollback inject, make sure we get the "additional message"
       echo ${failure} | grep failure_004 | grep ":" > /dev/null
-
       if [ $? -eq 0 ]
       then
 	  # Make sure it fails with additional errors accounted for in the error message
@@ -2625,7 +2628,6 @@ test_6() {
 
       # If this is a rollback inject, make sure we get the "additional message"
       echo ${failure} | grep failure_004 | grep ":" > /dev/null
-
       if [ $? -eq 0 ]
       then
 	  # Make sure it fails with additional errors accounted for in the error message
@@ -2680,7 +2682,7 @@ test_7() {
     common_failure_injections="failure_004_final_step_in_workflow_complete \
                                failure_004:failure_016_Export_doRemoveInitiator"
 
-    network_failure_injections="failure_047_NetworkDeviceController.zoneExportMaskCreate_before_zone"
+    network_failure_injections=""
     if [ "${BROCADE}" = "1" ]
     then
 	network_failure_injections="failure_049_BrocadeNetworkSMIS.getWEBMClient"
@@ -2690,8 +2692,7 @@ test_7() {
     if [ "${SS}" = "vplex" ]
     then
 	storage_failure_injections="failure_004:failure_024_Export_zone_removeInitiator_before_delete \
-                                    failure_004:failure_025_Export_zone_removeInitiator_after_delete \
-                                    failure_060_VPlexDeviceController.storageViewAddInitiators_storageview_nonexisting"
+                                    failure_004:failure_025_Export_zone_removeInitiator_after_delete"
     fi
 
     if [ "${SS}" = "vnx" -o "${SS}" = "vmax2" -o "${SS}" = "vmax3" -o "${SS}" = "unity" ]
@@ -2732,7 +2733,6 @@ test_7() {
 
       # If this is a rollback inject, make sure we get the "additional message"
       echo ${failure} | grep failure_004 | grep ":" > /dev/null
-
       if [ $? -eq 0 ]
       then
 	  # Make sure it fails with additional errors accounted for in the error message
@@ -2783,6 +2783,12 @@ test_7() {
 test_8() {
     echot "Test 8 Begins"
 
+    if [ "${SIM}" != "1" ]
+    then
+	echo "Test case does not execute for hardware configurations because it creates unreasonably large volumes"
+	return;
+    fi
+
     if [ "${SS}" != "vmax2" -a "${SS}" != "vnx" ]
     then
 	echo "Test case only executes for vmax2 and vnx."
@@ -2790,7 +2796,7 @@ test_8() {
     fi
 
     common_failure_injections="failure_004_final_step_in_workflow_complete"
-    meta_size=260GB
+    meta_size=240GB
 
     storage_failure_injections=""
     if [ "${SS}" = "vplex" ]
@@ -2810,11 +2816,7 @@ test_8() {
 
     if [ "${SS}" = "vnx" ]
     then
-	if [ "${SIM}" != "1" ]
-	then
-	    meta_size=280GB
-	fi
-	storage_failure_injections="failure_015_SmisCommandHelper.invokeMethod_CreateOrModifyElementFromStoragePool \
+	storage_failure_injections="failure_015_SmisCommandHelper.invokeMethod_GetCompositeElements \
                                     failure_015_SmisCommandHelper.invokeMethod_CreateOrModifyCompositeElement"
     fi
 
@@ -2856,7 +2858,6 @@ test_8() {
       else
       	  # If this is a rollback inject, make sure we get the "additional message"
 	  echo ${failure} | grep failure_004 | grep ":" > /dev/null
-
 	  if [ $? -eq 0 ]
 	  then
 	      # Make sure it fails with additional errors accounted for in the error message
@@ -3304,7 +3305,7 @@ cleanup_previous_run_artifacts() {
     fi
 
     export_group list $PROJECT | grep YES > /dev/null 2> /dev/null
-    if [ $? -eq 0 ]; then
+    if [ $? -eq 0 -a "${SS}" != "vblock" ]; then
 	for id in `export_group list $PROJECT | grep YES | awk '{print $5}'`
 	do
 	    echo "Deleting old export group: ${id}"
@@ -3370,6 +3371,100 @@ randwwn() {
    echo "${PRE}:${I2}:${I3}:${I4}:${I5}:${I6}:${I7}:${POST}"   
 }
 
+# vblock setup
+vblock_setup() {
+    echo "======================== Setting up vBlock environment, using real hardware =============================="
+
+    #Add compute image server
+    echo "Adding/creating compute image server details..."
+    run computeimageserver create $VBLOCK_COMPUTE_IMAGE_SERVER_NAME \
+                                  $VBLOCK_COMPUTE_IMAGE_SERVER_IP \
+                                  $VBLOCK_COMPUTE_IMAGE_SERVER_SECONDARY_IP \
+                                  $VBLOCK_COMPUTE_IMAGE_SERVER_USERNAME \
+                                  "$VBLOCK_COMPUTE_IMAGE_SERVER_PASSWORD" \
+                                  --tftpBootDir $VBLOCK_COMPUTE_IMAGE_SERVER_TFTPBOOTDIR \
+                                  --osinstall_timeout $VBLOCK_COMPUTE_IMAGE_SERVER_OS_INSTALL_TIMEOUT \
+                                  --ssh_timeout $VBLOCK_COMPUTE_IMAGE_SERVER_SSH_TIMEOUT \
+                                  --imageimport_timeout $VBLOCK_COMPUTE_IMAGE_SERVER_IMAGE_IMPORT_TIMEOUT
+
+    sleep 2
+
+    #Discover UCS
+    echo "Discover UCS compute system"
+    run computesystem create $VBLOCK_COMPUTE_SYSTEM_NAME \
+                             $VBLOCK_COMPUTE_SYSTEM_IP \
+                             $VBLOCK_COMPUTE_SYSTEM_PORT \
+                             $VBLOCK_COMPUTE_SYSTEM_USER \
+                             "$VBLOCK_COMPUTE_SYSTEM_PASSWORD" \
+                             $VBLOCK_COMPUTE_SYSTEM_TYPE \
+                             $VBLOCK_COMPUTE_SYSTEM_SSL \
+                             $VBLOCK_COMPUTE_SYSTEM_OS_INSTALL_NETWORK \
+                             --compute_image_server $VBLOCK_COMPUTE_IMAGE_SERVER_NAME
+
+    #Discover storage system to which UCS is connected
+    # do this only once
+    echo "Setting up SMIS for VMAX3"
+    storage_password=$SMIS_PASSWD
+
+    run smisprovider create $VBLOCK_VMAX_PROVIDER_NAME $VBLOCK_VMAX_SMIS_IP $VMAX_SMIS_PORT $SMIS_USER "$SMIS_PASSWD" $VMAX_SMIS_SSL
+    run storagedevice discover_all --ignore_error
+
+    # Remove all arrays that aren't VBLOCK_VMAX_NATIVEGUID
+    for id in `storagedevice list |  grep -v ${VBLOCK_VMAX_NATIVEGUID} | grep COMPLETE | awk '{print $2}'`
+    do
+       run storagedevice deregister ${id}
+       run storagedevice delete ${id}
+    done
+
+    #Discover switches to which UCS has connections
+    echo "Configuring MDS/Cisco switches"
+    run networksystem create $VBLOCK_MDS_SWITCH_1_NAME_1 mds --devip $VBLOCK_MDS_SWITCH_1_IP_1 --devport 22 --username $VBLOCK_MDS_SWITCH_1_USER --password $VBLOCK_MDS_SWITCH_1_PW
+    run networksystem create $VBLOCK_MDS_SWITCH_1_NAME_2 mds --devip $VBLOCK_MDS_SWITCH_1_IP_2 --devport 22 --username $VBLOCK_MDS_SWITCH_1_USER --password $VBLOCK_MDS_SWITCH_1_PW
+    run networksystem create $VBLOCK_MDS_SWITCH_2_NAME_1 mds --devip $VBLOCK_MDS_SWITCH_2_IP_1 --devport 22 --username $VBLOCK_MDS_SWITCH_2_USER --password $VBLOCK_MDS_SWITCH_2_PW
+    run networksystem create $VBLOCK_MDS_SWITCH_2_NAME_2 mds --devip $VBLOCK_MDS_SWITCH_2_IP_2 --devport 22 --username $VBLOCK_MDS_SWITCH_2_USER --password $VBLOCK_MDS_SWITCH_2_PW
+
+    sleep 5
+
+    #Add compute images
+    echo "Adding compute images..."
+    run computeimage create $VBLOCK_COMPUTE_IMAGE_NAME $VBLOCK_COMPUTE_IMAGE_IMAGEURL
+
+    #Setup vArray and other virtual resources...
+    run neighborhood create $NH
+    run transportzone assign VSAN_3124 ${NH}
+    run transportzone assign VSAN_3125 ${NH}
+    run storagepool update $VBLOCK_VMAX_NATIVEGUID --type block --volume_type THIN_AND_THICK
+    run storagepool update $VBLOCK_VMAX_NATIVEGUID --nhadd $NH --type block
+    run storageport update $VBLOCK_VMAX_NATIVEGUID FC --addvarrays $NH
+
+    SERIAL_NUMBER=`storagedevice list | grep COMPLETE | awk '{print $2}' | awk -F+ '{print $2}'`
+
+    run cos create block ${VPOOL_BASE}\
+    --description Base true                 \
+    --protocols FC                \
+    --multiVolumeConsistency \
+    --numpaths 2            \
+    --provisionType 'Thin'        \
+    --max_snapshots 10                      \
+    --expandable true                       \
+    --neighborhoods $NH
+
+    run cos update block $VPOOL_BASE --storage ${VBLOCK_VMAX_NATIVEGUID}
+
+    # Create and prepare compute virtual pool
+    run computevirtualpool create $VBLOCK_COMPUTE_VIRTUAL_POOL_NAME $VBLOCK_COMPUTE_SYSTEM_NAME Cisco_UCSM false $NH $VBLOCK_SERVICE_PROFILE_TEMPLATE_NAMES
+    sleep 2
+    run computevirtualpool assign $VBLOCK_COMPUTE_VIRTUAL_POOL_NAME $VBLOCK_COMPUTE_SYSTEM_NAME $VBLOCK_COMPUTE_ELEMENT_NAMES
+
+    run cos allow $VPOOL_BASE block $TENANT
+    run project create $PROJECT --tenant $TENANT
+    secho "Project $PROJECT created."
+
+    #run bourne.catalog_order $VBLOCK_CATALOG_PROVISION_CLUSTER $TENANT
+
+    echo "======= vBlock base setup done ======="
+}
+
 # ============================================================
 # -    M A I N
 # ============================================================
@@ -3407,7 +3502,7 @@ SS=${1}
 shift
 
 case $SS in
-    vmax2|vmax3|vnx|xio|unity)
+    vmax2|vmax3|vnx|xio|unity|vblock)
     ;;
     vplex)
         # set local or distributed mode

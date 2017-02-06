@@ -37,6 +37,7 @@ import com.emc.storageos.primitives.Primitive.StepType;
 import com.emc.storageos.primitives.PrimitiveHelper;
 import com.emc.storageos.primitives.ViPRPrimitive;
 import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorException;
+import com.google.common.collect.ImmutableMap;
 import com.google.gson.Gson;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -67,12 +68,12 @@ public class OrchestrationService extends ViPRService {
     final private Map<String, Map<String, List<String>>> inputPerStep = new HashMap<String, Map<String, List<String>>>();
     final private Map<String, Map<String, List<String>>> outputPerStep = new HashMap<String, Map<String, List<String>>>();
 
-    final private Map<String, Step> stepsHash = new HashMap<String, OrchestrationWorkflowDocument.Step>();
+    private ImmutableMap<String, Step> stepsHash;
 
     private static final org.slf4j.Logger logger = LoggerFactory.getLogger(OrchestrationService.class);
 
     private int code;
-    private OrchestrationWorkflowDocument obj;
+
 
     @Override
     public void precheck() throws Exception {
@@ -85,13 +86,17 @@ public class OrchestrationService extends ViPRService {
                     customServiceExecutionFailed("Invalid orchestration service.  Workflow document cannot be null");
         }
 
-        obj = WorkflowHelper.toWorkflowDocument(raw);
+        final OrchestrationWorkflowDocument obj = WorkflowHelper.toWorkflowDocument(raw);
         final List<Step> steps = obj.getSteps();
-        for (final Step step : steps)
-            stepsHash.put(step.getId(), step);
+        final ImmutableMap.Builder builder=new ImmutableMap.Builder();
+        for (final Step step : steps) {
+            builder.put(step.getId(), step);
+        }
+        stepsHash = builder.build();
 
         ValidateCustomServiceWorkflow validate = new ValidateCustomServiceWorkflow(params, stepsHash);
         validate.validate();
+        ExecutionUtils.currentContext().logInfo("orchestrationService.status", obj.getName(), obj.getDescription());
     }
 
     @Override
@@ -116,12 +121,6 @@ public class OrchestrationService extends ViPRService {
     public void wfExecutor() throws Exception {
 
         logger.info("Parsing Workflow Definition");
-
-        ExecutionUtils.currentContext().logInfo("orchestrationService.status", obj.getName(), obj.getDescription());
-
-        final List<Step> steps = obj.getSteps();
-        for (Step step : steps)
-            stepsHash.put(step.getId(), step);
 
         Step step = stepsHash.get(StepType.START.toString());
         String next = step.getNext().getDefaultStep();
@@ -245,10 +244,10 @@ public class OrchestrationService extends ViPRService {
                 case OTHERS:
                 case ASSET_OPTION: {
                     if (params.get(name) != null) {
-                        inputs.put(name, createInputList(StringUtils.strip(params.get(name).toString(), "\"")));
+                        inputs.put(name, Arrays.asList(params.get(name).toString()));
                     } else {
                         if (value.getDefaultValue() != null) {
-                            inputs.put(name, createInputList(value.getDefaultValue()));
+                            inputs.put(name, Arrays.asList(value.getDefaultValue()));
                         }
                     }
                     break;
@@ -285,12 +284,6 @@ public class OrchestrationService extends ViPRService {
         }
 
         inputPerStep.put(step.getId(), inputs);
-    }
-   
-    private List<String> createInputList(final String inputString) {
-        final String[] inputs = inputString.split(",");
-
-        return Arrays.asList(inputs);
     }
  
     private List<String> evaluateAnsibleOut(final String result, final String key) throws Exception

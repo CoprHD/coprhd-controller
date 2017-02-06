@@ -62,7 +62,11 @@ public class RunAnsible  extends ViPRExecutionTask<OrchestrationTaskResult> {
     public RunAnsible(final Step step, final Map<String, List<String>> input, final Map<String, Object> params) {
         this.step = step;
         this.input = input;
-        this.timeout = (step.getAttributes().getTimeout()!= -1)?step.getAttributes().getTimeout():Exec.DEFAULT_CMD_TIMEOUT;
+        if (step.getAttributes() == null || step.getAttributes().getTimeout() == -1) {
+            this.timeout = Exec.DEFAULT_CMD_TIMEOUT;
+        } else {
+            this.timeout = step.getAttributes().getTimeout();
+        }
         this.params = params;
         orderDir = OrchestrationServiceConstants.PATH + "OE" + ExecutionUtils.currentContext().getOrder().getOrderNumber();
     }
@@ -211,6 +215,7 @@ public class RunAnsible  extends ViPRExecutionTask<OrchestrationTaskResult> {
     //Execute Ansible playbook on localhost
     private Exec.Result executeCmd(final String playbook, final String extraVars) {
         final AnsibleCommandLine cmd = new AnsibleCommandLine(OrchestrationServiceConstants.SHELL_BIN, playbook);
+        cmd.setShellArgs(extraVars);
         final String[] cmds = cmd.build();
 
         return Exec.exec(timeout, cmds);

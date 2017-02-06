@@ -32,6 +32,7 @@ public class AnsibleCommandLine {
     private String ssh;
     private String node;
     private String extraVars;
+    private String shellArgs;
     private final ImmutableList.Builder<String> optionalParam = ImmutableList.builder();
 
     public AnsibleCommandLine(final String ansiblePath, final String playbook) {
@@ -105,6 +106,13 @@ public class AnsibleCommandLine {
         return this;
     }
 
+    public AnsibleCommandLine setShellArgs(final String vars) {
+        if (!StringUtils.isEmpty(vars))
+            this.shellArgs = vars;
+
+        return this;
+    }
+
     public String[] build() {
         final ImmutableList.Builder<String> builder = ImmutableList.builder();
         if (!StringUtils.isEmpty(prefix))
@@ -120,8 +128,16 @@ public class AnsibleCommandLine {
         if (!StringUtils.isEmpty(extraVars))
             builder.add("--extra-vars").add(extraVars);
 
+        if (!StringUtils.isEmpty(shellArgs)) {
+            String[] splited = shellArgs.split("\\s+");
+
+            for (String part : splited)
+                builder.add(part);
+        }
+
         final ImmutableList<String> cmdList = builder.build();
 
         return cmdList.toArray(new String[cmdList.size()]);
     }
+
 }

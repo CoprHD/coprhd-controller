@@ -199,7 +199,7 @@ public class RunViprREST extends ViPRExecutionTask<OrchestrationTaskResult> {
         while (m.find()) {
             String pat = m.group(1);
             String newpat = "$" + pat;
-            body = body.replace(newpat, "\"" +input.get(pat).get(0)+"\"");
+            body = body.replace(newpat, "\"" +input.get(pat).get(0).replace("\"","")+"\"");
         }
 
         return body;

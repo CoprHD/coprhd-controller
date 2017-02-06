@@ -25,6 +25,7 @@ public class VolumeCreate {
     private URI project;
     private URI consistencyGroup;
     private URI computeResource;
+    private URI portGroup;
 
     public VolumeCreate() {
     }
@@ -159,4 +160,17 @@ public class VolumeCreate {
 	public void setComputeResource(URI computeResource) {
 		this.computeResource = computeResource;
 	}
+	
+	/**
+     * The port group which the volume is exported through
+     * @return
+     */
+	@XmlElement(name = "port_group")
+    public URI getPortGroup() {
+        return portGroup;
+    }
+
+    public void setPortGroup(URI portGroup) {
+        this.portGroup = portGroup;
+    }
 }

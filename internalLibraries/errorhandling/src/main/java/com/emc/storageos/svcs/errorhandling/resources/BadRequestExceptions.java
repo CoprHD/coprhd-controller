@@ -3143,4 +3143,11 @@ public interface BadRequestExceptions {
     
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException portGroupInvalid(String portGroupURI);
+    
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException portGroupValidForVMAXOnly();
+    
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException cgPortGroupNotMatch(final String portGroup, final String consistencyGroup);
+    
 }

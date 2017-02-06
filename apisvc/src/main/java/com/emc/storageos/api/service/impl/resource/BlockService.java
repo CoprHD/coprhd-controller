@@ -79,6 +79,7 @@ import com.emc.storageos.db.client.model.BlockMirror;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.BlockSnapshot.TechnologyType;
+import com.emc.storageos.db.client.model.DiscoveredDataObject.RegistrationStatus;
 import com.emc.storageos.db.client.model.BlockSnapshotSession;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
@@ -94,6 +95,7 @@ import com.emc.storageos.db.client.model.RemoteDirectorGroup;
 import com.emc.storageos.db.client.model.RemoteDirectorGroup.SupportedCopyModes;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StoragePort;
+import com.emc.storageos.db.client.model.StoragePortGroup;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.StringSet;
@@ -790,6 +792,20 @@ public class BlockService extends TaskResourceService {
             capabilities.put(VirtualPoolCapabilityValuesWrapper.DEDUP, Boolean.TRUE);
         }
 
+        // Validate the port group
+        URI portGroupURI = param.getPortGroup();
+        if (portGroupURI != null) {
+            ArgValidator.checkFieldUriType(portGroupURI, StoragePortGroup.class, "portGroup");
+            StoragePortGroup portGroup = _dbClient.queryObject(StoragePortGroup.class, portGroupURI);
+            if (portGroup == null || 
+                    !portGroup.getRegistrationStatus().equalsIgnoreCase(RegistrationStatus.REGISTERED.name())) {
+                throw APIException.internalServerErrors.invalidObject(portGroupURI.toString());
+            }
+            // check if port group's storage system is associated to the requested virtual array
+            validatePortGroupValidWithVirtualArray(portGroup, varray.getId());
+            capabilities.put(VirtualPoolCapabilityValuesWrapper.PORT_GROUP, portGroupURI);
+        }
+        
         // Find the implementation that services this vpool and volume request
         BlockServiceApi blockServiceImpl = getBlockServiceImpl(vpool, _dbClient);
 
@@ -5572,6 +5588,26 @@ public class BlockService extends TaskResourceService {
                 }
                 if (Mode.ACTIVE.equals(Mode.valueOf(targetVolume.getSrdfCopyMode()))) {
                     throw BadRequestException.badRequests.cannotExpandSRDFActiveVolume(srdfVolume.getLabel());
+                }
+            }
+        }
+    }
+    
+    /*
+     * Validate if the storage ports in the port group is associated to the virtual array
+     * 
+     * @param portGroup
+     * @param varray virtual array URI
+     */
+    private void validatePortGroupValidWithVirtualArray(StoragePortGroup portGroup, URI varray) {        
+        List<URI> ports = StringSetUtil.stringSetToUriList(portGroup.getStoragePorts());
+        for (URI portURI : ports) {
+            StoragePort port = _dbClient.queryObject(StoragePort.class, portURI);
+            List<URI>varrays = StringSetUtil.stringSetToUriList(port.getTaggedVirtualArrays());
+            if (!varrays.contains(varray)) {
+                List<URI> connectedVarrays = StringSetUtil.stringSetToUriList(port.getConnectedVirtualArrays());
+                if (!connectedVarrays.contains(varray)) {
+                    throw APIException.badRequests.portGroupInvalid(portGroup.getId().toString());
                 }
             }
         }

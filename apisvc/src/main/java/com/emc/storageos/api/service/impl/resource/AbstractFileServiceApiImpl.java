@@ -19,6 +19,7 @@ import com.emc.storageos.api.service.authorization.PermissionsHelper;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.DataObject;
+import com.emc.storageos.db.client.model.FilePolicy;
 import com.emc.storageos.db.client.model.FileShare;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.StoragePort;
@@ -146,7 +147,7 @@ public abstract class AbstractFileServiceApiImpl<T> implements FileServiceApi {
             VirtualArray varray, VirtualPool vpool, TenantOrg tenantOrg, DataObject.Flag[] flags,
             List<Recommendation> recommendations, TaskList taskList,
             String task, VirtualPoolCapabilityValuesWrapper vpoolCapabilities)
-                    throws InternalException {
+            throws InternalException {
         throw APIException.methodNotAllowed.notSupported();
 
     }
@@ -327,6 +328,14 @@ public abstract class AbstractFileServiceApiImpl<T> implements FileServiceApi {
                 FileOrchestrationController.FILE_ORCHESTRATION_DEVICE);
         controller.assignFileSnapshotPolicyToProject(vpoolToStorageSystemMap, projectURIs, filePolicyToAssign, taskId);
 
+    }
+
+    @Override
+    public TaskResourceRep assignFileReplicationPolicyToFS(FileShare fs, FilePolicy filePolicy, Project project, VirtualPool vpool,
+            VirtualArray varray, TaskList taskList, String task, List<Recommendation> recommendations,
+            VirtualPoolCapabilityValuesWrapper vpoolCapabilities)
+            throws InternalException {
+        throw APIException.methodNotAllowed.notSupported();
     }
 
 }

@@ -69,6 +69,7 @@ import com.emc.storageos.db.client.model.FileExport;
 import com.emc.storageos.db.client.model.FileExportRule;
 import com.emc.storageos.db.client.model.FilePolicy;
 import com.emc.storageos.db.client.model.FilePolicy.FilePolicyApplyLevel;
+import com.emc.storageos.db.client.model.FilePolicy.FilePolicyType;
 import com.emc.storageos.db.client.model.FileShare;
 import com.emc.storageos.db.client.model.FileShare.MirrorStatus;
 import com.emc.storageos.db.client.model.FileShare.PersonalityTypes;
@@ -3476,7 +3477,8 @@ public class FileService extends TaskResourceService {
     public TaskResourceRep assignFilePolicy(@PathParam("id") URI id,
             @PathParam("filePolicyUri") URI filePolicyUri) throws InternalException {
 
-        // log input received.
+        TaskResourceRep resp = new TaskResourceRep();
+        StringBuilder errorMsg = new StringBuilder();
         _log.info("Assigning file policy {} to file system {}", filePolicyUri, id);
         String task = UUID.randomUUID().toString();
         // Validate the FS id.
@@ -3489,12 +3491,13 @@ public class FileService extends TaskResourceService {
         ArgValidator.checkUri(filePolicyUri);
         FilePolicy filePolicy = _permissionsHelper.getObjectById(filePolicyUri, FilePolicy.class);
         ArgValidator.checkEntityNotNull(filePolicy, filePolicyUri, isIdEmbeddedInURL(filePolicyUri));
+
         // verify the file system tenant is same as policy tenant
         if (!filePolicy.getTenantOrg().contains(fs.getTenant().getURI().toString())) {
             throw APIException.badRequests.associatedPolicyTenantMismatch(filePolicyUri, id);
         }
 
-        if (filePolicy.getApplyAt().equals(FilePolicyApplyLevel.vpool) || filePolicy.getApplyAt().equals(FilePolicyApplyLevel.project)) {
+        if (!filePolicy.getApplyAt().equals(FilePolicyApplyLevel.file_system)) {
             _log.error("File policy {} is already applied at {} level.", filePolicy.getFilePolicyName(), filePolicy.getApplyAt());
             throw APIException.badRequests.filePolicyAssigedAlreadyAssignedToParent(filePolicy.getApplyAt());
         }
@@ -3504,81 +3507,35 @@ public class FileService extends TaskResourceService {
         if (existingFSPolicies != null && existingFSPolicies.contains(filePolicyUri.toString())) {
             _log.info("Provided file policy {} is already is applied to the file sytem {}", filePolicy.getId(), fs.getId());
             Operation op = _dbClient.createTaskOpStatus(FileShare.class, fs.getId(),
-                    task, ResourceOperationTypeEnum.ASSIGN_FILE_SYSTEM_SNAPSHOT_SCHEDULE);
-            op.setDescription("Filesystem assign policy");
+                    task, ResourceOperationTypeEnum.ASSIGN_FILE_POLICY);
+            op.setDescription("assign file policy to file system");
             _dbClient.ready(FileShare.class, fs.getId(), task);
             return toTask(fs, task, op);
         }
 
+        // check if same TYPE of policy already applied to file system
         if (existingFSPolicies != null && !existingFSPolicies.isEmpty()) {
-            List<URI> existingFSPolicyURIs = new ArrayList<URI>();
-            for (String filePolicyURI : existingFSPolicies) {
-                existingFSPolicyURIs.add(URI.create(filePolicyURI));
-            }
-            boolean snapshotPolicyPresent = false;
-            boolean replicationPolicyPresent = false;
-            Iterator<FilePolicy> iterator = _dbClient.queryIterativeObjects(FilePolicy.class, existingFSPolicyURIs, true);
-            while (iterator.hasNext()) {
-                FilePolicy fp = iterator.next();
-                if (FilePolicy.FilePolicyType.file_replication.name().equals(fp.getFilePolicyType())) {
-                    replicationPolicyPresent = true;
-                    break;
-                }
-                if (FilePolicy.FilePolicyType.file_snapshot.name().equals(fp.getFilePolicyType())) {
-                    snapshotPolicyPresent = true;
-                    break;
-                }
-            }
-
-            if (snapshotPolicyPresent && FilePolicy.FilePolicyType.file_snapshot.name().equals(filePolicy.getFilePolicyType())) {
-                _log.error("File policy of same type is already applied to the file system {}.", filePolicy.getFilePolicyType());
-                throw APIException.badRequests.duplicateFilePolicyTypeAssociation(FilePolicy.FilePolicyType.file_snapshot.name());
-            }
-
-            if (replicationPolicyPresent && FilePolicy.FilePolicyType.file_replication.name().equals(filePolicy.getFilePolicyType())) {
-                _log.error("File policy of same type is already applied to the file system {}.", filePolicy.getFilePolicyType());
-                throw APIException.badRequests.duplicateFilePolicyTypeAssociation(FilePolicy.FilePolicyType.file_replication.name());
-            }
-
+            checkForDuplicatePolicyApplied(filePolicy, existingFSPolicies);
         }
 
-        if (FilePolicy.FilePolicyType.file_snapshot.name().equals(filePolicy.getFilePolicyType())) {
-            // Check for VirtualPool support snapshot or not
-            VirtualPool vpool = _dbClient.queryObject(VirtualPool.class, fs.getVirtualPool());
-            if (!vpool.getScheduleSnapshots()) {
-                throw APIException.methodNotAllowed.notSupportedWithReason("Snapshot file policy is not supported by vpool: "
-                        + vpool.getLabel());
-            }
+        // Check if the vpool supports provided policy type..
+        VirtualPool vpool = _dbClient.queryObject(VirtualPool.class, fs.getVirtualPool());
+        FilePolicyServiceUtils.validateVpoolSupportPolicyType(filePolicy, vpool);
 
-            // TODO Check if this policy can be applied by tenants of this file system
+        // Check if the vpool supports policy at file system level..
+        if (!vpool.getAllowFilePolicyAtFSLevel()) {
+            errorMsg.append("Provided vpool :" + vpool.getLabel() + " doesn't support policy at file system level");
+            _log.error(errorMsg.toString());
+            throw APIException.badRequests.invalidFilePolicyAssignParam(filePolicy.getFilePolicyName(), errorMsg.toString());
         }
 
-        StorageSystem device = _dbClient.queryObject(StorageSystem.class, fs.getStorageDevice());
-        FileController controller = getController(FileController.class, device.getSystemType());
+        if (filePolicy.getFilePolicyType().equals(FilePolicyType.file_replication.name()) && fs.getMirrorfsTargets().isEmpty()) {
 
-        Operation op = _dbClient.createTaskOpStatus(FileShare.class, fs.getId(),
-                task, ResourceOperationTypeEnum.ASSIGN_FILE_SYSTEM_SNAPSHOT_SCHEDULE);
-        op.setDescription("Filesystem assign policy");
-
-        try {
-
-            _log.info("No Errors found proceeding further {}, {}, {}", new Object[] { _dbClient, fs, filePolicy });
-
-            controller.applyFilePolicy(fs.getId(), filePolicy.getId(), task);
-            auditOp(OperationTypeEnum.ASSIGN_FILE_POLICY, true, AuditLogManager.AUDITOP_BEGIN,
-                    fs.getId().toString(), device.getId().toString(), filePolicy.getId());
-
-        } catch (BadRequestException e) {
-            op = _dbClient.error(FileShare.class, fs.getId(), task, e);
-            _log.error("Error Assigning Filesystem policy {}, {}", e.getMessage(), e);
-            throw e;
-        } catch (Exception e) {
-            _log.error("Error Assigning Filesystem policy {}, {}", e.getMessage(), e);
-            throw APIException.badRequests.unableToProcessRequest(e.getMessage());
+        } else if (filePolicy.getFilePolicyType().equals(FilePolicyType.file_snapshot.name())
+                || (filePolicy.getFilePolicyType().equals(FilePolicyType.file_replication.name()) && !fs.getMirrorfsTargets().isEmpty())) {
+            return assignFilePolicyToFS(fs, filePolicy, task);
         }
-
-        return toTask(fs, task, op);
-
+        return resp;
     }
 
     /**
@@ -4384,4 +4341,119 @@ public class FileService extends TaskResourceService {
         return false;
     }
 
+    private void checkForDuplicatePolicyApplied(FilePolicy filePolicy, StringSet existingFSPolicies) {
+
+        List<URI> existingFSPolicyURIs = new ArrayList<>();
+        for (String filePolicyURI : existingFSPolicies) {
+            existingFSPolicyURIs.add(URI.create(filePolicyURI));
+        }
+        boolean snapshotPolicyPresent = false;
+        boolean replicationPolicyPresent = false;
+        Iterator<FilePolicy> iterator = _dbClient.queryIterativeObjects(FilePolicy.class, existingFSPolicyURIs, true);
+        while (iterator.hasNext()) {
+            FilePolicy fp = iterator.next();
+            if (FilePolicy.FilePolicyType.file_replication.name().equals(fp.getFilePolicyType())) {
+                replicationPolicyPresent = true;
+                break;
+            }
+            if (FilePolicy.FilePolicyType.file_snapshot.name().equals(fp.getFilePolicyType())) {
+                snapshotPolicyPresent = true;
+                break;
+            }
+        }
+
+        if (snapshotPolicyPresent && FilePolicyType.file_snapshot.name().equals(filePolicy.getFilePolicyType())) {
+            _log.error("File policy of same type is already applied to the file system {}.", filePolicy.getFilePolicyType());
+            throw APIException.badRequests.duplicateFilePolicyTypeAssociation(FilePolicy.FilePolicyType.file_snapshot.name());
+        }
+
+        if (replicationPolicyPresent && FilePolicyType.file_replication.name().equals(filePolicy.getFilePolicyType())) {
+            _log.error("File policy of same type is already applied to the file system {}.", filePolicy.getFilePolicyType());
+            throw APIException.badRequests.duplicateFilePolicyTypeAssociation(FilePolicy.FilePolicyType.file_replication.name());
+        }
+    }
+
+    private TaskResourceRep assignFilePolicyToFS(FileShare fs, FilePolicy filePolicy, String task) {
+        StorageSystem device = _dbClient.queryObject(StorageSystem.class, fs.getStorageDevice());
+        FileController controller = getController(FileController.class, device.getSystemType());
+        Operation op = _dbClient.createTaskOpStatus(FileShare.class, fs.getId(),
+                task, ResourceOperationTypeEnum.ASSIGN_FILE_POLICY);
+        op.setDescription("assign file policy to file system");
+        try {
+            _log.info("No Errors found proceeding further {}, {}, {}", new Object[] { _dbClient, fs, filePolicy });
+            controller.applyFilePolicy(fs.getId(), filePolicy.getId(), task);
+            auditOp(OperationTypeEnum.ASSIGN_FILE_POLICY, true, AuditLogManager.AUDITOP_BEGIN,
+                    fs.getId().toString(), device.getId().toString(), filePolicy.getId());
+        } catch (BadRequestException e) {
+            _dbClient.error(FileShare.class, fs.getId(), task, e);
+            _log.error("Error Assigning Filesystem policy {}, {}", e.getMessage(), e);
+            throw e;
+        } catch (Exception e) {
+            _log.error("Error Assigning Filesystem policy {}, {}", e.getMessage(), e);
+            throw APIException.badRequests.unableToProcessRequest(e.getMessage());
+        }
+        return toTask(fs, task, op);
+    }
+
+    private TaskResourceRep assignFileReplicationPolicyToFS(FileShare fs, FilePolicy filePolicy, String task) {
+
+        VirtualArray varray = _dbClient.queryObject(VirtualArray.class, fs.getVirtualArray());
+        // Get the project.
+        URI projectURI = fs.getProject().getURI();
+        Project project = _permissionsHelper.getObjectById(projectURI, Project.class);
+
+        VirtualPool vpool = _dbClient.queryObject(VirtualPool.class, fs.getVirtualPool());
+
+        // New operation
+        TaskList taskList = new TaskList();
+        Operation op = new Operation();
+        op.setResourceType(ResourceOperationTypeEnum.CREATE_FILE_SYSTEM_MIRROR_COPIES);
+        op.setDescription("Create file system mirror operation");
+        op = _dbClient.createTaskOpStatus(FileShare.class, fs.getId(), task, op);
+
+        TaskResourceRep fileSystemTask = toTask(fs, task, op);
+        taskList.getTaskList().add(fileSystemTask);
+        StorageSystem device = _dbClient.queryObject(StorageSystem.class, fs.getStorageDevice());
+
+        // prepare vpool capability values
+        VirtualPoolCapabilityValuesWrapper capabilities = new VirtualPoolCapabilityValuesWrapper();
+        capabilities.put(VirtualPoolCapabilityValuesWrapper.SIZE, fs.getCapacity());
+        capabilities.put(VirtualPoolCapabilityValuesWrapper.RESOURCE_COUNT, new Integer(1));
+        if (VirtualPool.ProvisioningType.Thin.toString().equalsIgnoreCase(vpool.getSupportedProvisioningType())) {
+            capabilities.put(VirtualPoolCapabilityValuesWrapper.THIN_PROVISIONING, Boolean.TRUE);
+        }
+        // Set the source file system details
+        // source fs details used in finding recommendations for target fs!!
+        capabilities.put(VirtualPoolCapabilityValuesWrapper.FILE_SYSTEM_CREATE_MIRROR_COPY, Boolean.TRUE);
+        capabilities.put(VirtualPoolCapabilityValuesWrapper.EXISTING_SOURCE_FILE_SYSTEM, fs);
+        capabilities.put(VirtualPoolCapabilityValuesWrapper.SOURCE_STORAGE_SYSTEM, device);
+        capabilities.put(VirtualPoolCapabilityValuesWrapper.FILE_TARGET_COPY_NAME, fs.getName() + "_target");
+
+        StringBuilder errorMsg = new StringBuilder();
+        if (!FilePolicyServiceUtils.updatePolicyCapabilities(_dbClient, varray, vpool, project, null, capabilities, errorMsg)) {
+            _log.error("File system can not be created, ", errorMsg.toString());
+            throw APIException.badRequests.unableToProcessRequest(errorMsg.toString());
+        }
+
+        FileServiceApi fileServiceApi = getFileShareServiceImpl(capabilities, _dbClient);
+
+        try {
+            // Call out placementManager to get the recommendation for placement.
+            List recommendations = _filePlacementManager.getRecommendationsForFileCreateRequest(
+                    varray, project, vpool, capabilities);
+
+            // Verify the source virtual pool recommendations meets source fs storage!!!
+            fileServiceApi.createTargetsForExistingSource(fs, filePolicy, project,
+                    vpool, varray, taskList, task, recommendations, capabilities);
+
+        } catch (Exception e) {
+            _log.error("Create file system mirror copy failed  {}, {}", e.getMessage(), e);
+            throw APIException.badRequests.unableToProcessRequest(e.getMessage());
+        }
+        auditOp(OperationTypeEnum.CREATE_MIRROR_FILE_SYSTEM, true, AuditLogManager.AUDITOP_BEGIN,
+                fs.getLabel(), vpool.getLabel(), fs.getLabel(),
+                project == null ? null : project.getId().toString());
+
+        return taskList.getTaskList().get(0);
+    }
 }

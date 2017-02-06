@@ -97,6 +97,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
     static final String REPLICATE_QUOTA_DIR_SETTINGS_TO_TARGET_WF_NAME = "REPLICATE_QUOTA_DIR_SETTINGS_TO_TARGET_WORKFLOW";
     static final String UNASSIGN_FILE_POLICY_WF_NAME = "UNASSIGN_FILE_POLICY_WORKFLOW";
     static final String ASSIGN_FILE_POLICY_WF_NAME = "ASSIGN_FILE_POLICY_WORKFLOW";
+    static final String ASSIGN_FILE_POLICY_TO_FS_WF_NAME = "ASSIGN_FILE_POLICY_TO_FILE_SYSTEM_WORKFLOW";
 
     static final String FAILOVER_FILESYSTEMS_WF_NAME = "FAILOVER_FILESYSTEM_WORKFLOW";
     static final String FAILBACK_FILESYSTEMS_WF_NAME = "FAILBACK_FILESYSTEM_WORKFLOW";
@@ -232,9 +233,8 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
             // To create target file systems!!
             waitFor = _fileDeviceController.addStepsForCreateFileSystems(workflow, waitFor,
                     fileDescriptors, taskId);
-            // second, call create replication link or pair
-            waitFor = _fileReplicationDeviceController.addStepsForCreateFileSystems(workflow, waitFor,
-                    fileDescriptors, taskId);
+            // second, check for policies that has to applied on this file system..
+            waitFor = addStepsForApplyingPolicies(workflow, waitFor, fileDescriptors);
 
             // Finish up and execute the plan.
             // The Workflow will handle the TaskCompleter
@@ -1920,7 +1920,8 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
                                                         filePolicy.getId(),
                                                         vpoolURI,
                                                         storageSystemURI);
-                                        Object[] args = new Object[] { storageSystemURI, vNASURI, filePolicyToAssign, vpoolURI, projectURI };
+                                        Object[] args = new Object[] { storageSystemURI, vNASURI, filePolicyToAssign, vpoolURI,
+                                                projectURI };
                                         waitFor = _fileDeviceController.createMethod(workflow, waitFor,
                                                 ASSIGN_FILE_SNAPSHOT_POLICY_TO_PROJECT_METHOD,
                                                 stepId,
@@ -1969,4 +1970,45 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
 
     }
 
+    @Override
+    public void assignFileReplicationPolicyToFS(FilePolicy filePolicy, List<FileDescriptor> fileDescriptors, String taskId)
+            throws ControllerException {
+        Workflow workflow = null;
+        List<URI> fsUris = FileDescriptor.getFileSystemURIs(fileDescriptors);
+        FileDescriptor sourceDescriptors = FileDescriptor
+                .filterByType(fileDescriptors, FileDescriptor.Type.FILE_DATA, FileDescriptor.Type.FILE_MIRROR_SOURCE).get(0);
+        FileShare sourceFS = s_dbClient.queryObject(FileShare.class, sourceDescriptors.getFsURI());
+        CreateMirrorFileSystemsCompleter completer = new CreateMirrorFileSystemsCompleter(fsUris, taskId, fileDescriptors);
+        try {
+            workflow = _workflowService.getNewWorkflow(this,
+                    ASSIGN_FILE_POLICY_TO_FS_WF_NAME, false, taskId);
+            String waitFor = null;
+
+            s_logger.info("Generating steps for creating mirror filesystems...");
+
+            // First, call the FileDeviceController to add its methods to create target file system
+            waitFor = _fileDeviceController.addStepsForCreateFileSystems(workflow, waitFor,
+                    fileDescriptors, taskId);
+
+            // Second apply the replication policy
+            String stepDescription = String.format("applying file replication policy : %s  for file system : %s", filePolicy.getId(),
+                    sourceFS.getId());
+            String applyFilePolicyStep = workflow.createStepId();
+            Object[] args = new Object[] { sourceFS.getId(), filePolicy.getId() };
+            _fileDeviceController.createMethod(workflow, waitFor, APPLY_FILE_POLICY_METHOD, applyFilePolicyStep,
+                    stepDescription, sourceFS.getStorageDevice(), args);
+
+            // Finish up and execute the plan.
+            String successMessage = String.format("Assigning file policy : %s, to file system successful.",
+                    filePolicy.getId(), sourceFS.getId());
+            workflow.executePlan(completer, successMessage);
+
+        } catch (Exception ex) {
+            s_logger.error(String.format("Assigning file policy : %s to file system : %s failed", filePolicy.getId(), sourceFS.getId()),
+                    ex);
+            ServiceError serviceError = DeviceControllerException.errors
+                    .assignFilePolicyFailed(filePolicy.toString(), FilePolicyApplyLevel.file_system.name(), ex);
+            completer.error(s_dbClient, _locker, serviceError);
+        }
+    }
 }

@@ -992,6 +992,56 @@ public class DataCollectionJobScheduler {
     public void setConnectionFactory(CIMConnectionFactory cimConnectionFactory) {
         _connectionFactory = cimConnectionFactory;
     }
+    
+    /**
+     * refresh all provider connections for an interface type
+     * 
+     * @param interfaceType
+     * @return the list of reachable providers for an interface type
+     */
+    public List<URI> refreshProviderConnections(String interfaceType) {
+        List<URI> activeProviderURIs = new ArrayList<URI>();
+        if (StorageProvider.InterfaceType.smis.name().equalsIgnoreCase(interfaceType)) {
+            activeProviderURIs.addAll(_connectionFactory.refreshConnections(
+                    CustomQueryUtility.getActiveStorageProvidersByInterfaceType(
+                            _dbClient, StorageProvider.InterfaceType.smis.name())));
+        } else if (StorageProvider.InterfaceType.ibmxiv.name().equalsIgnoreCase(interfaceType)) {
+            activeProviderURIs.addAll(_connectionFactory.refreshConnections(
+                    CustomQueryUtility.getActiveStorageProvidersByInterfaceType(
+                            _dbClient, StorageProvider.InterfaceType.ibmxiv.name())));
+        } else if (StorageProvider.InterfaceType.vplex.name().equalsIgnoreCase(interfaceType)) {
+            activeProviderURIs.addAll(VPlexDeviceController.getInstance()
+                    .refreshConnectionStatusForAllVPlexManagementServers());
+        } else if (StorageProvider.InterfaceType.hicommand.name().equalsIgnoreCase(interfaceType)) {
+            activeProviderURIs.addAll(HDSUtils.refreshHDSConnections(
+                    CustomQueryUtility.getActiveStorageProvidersByInterfaceType(
+                            _dbClient, StorageProvider.InterfaceType.hicommand.name()),
+                    _dbClient, hdsApiFactory));
+        } else if (StorageProvider.InterfaceType.cinder.name().equalsIgnoreCase(interfaceType)) {
+            activeProviderURIs.addAll(CinderUtils.refreshCinderConnections(
+                    CustomQueryUtility.getActiveStorageProvidersByInterfaceType(
+                            _dbClient, StorageProvider.InterfaceType.cinder.name()),
+                    _dbClient));
+        } else if (StorageProvider.InterfaceType.ddmc.name().equalsIgnoreCase(interfaceType)) {
+            activeProviderURIs.addAll(DataDomainUtils.refreshDDConnections(
+                    CustomQueryUtility.getActiveStorageProvidersByInterfaceType(
+                            _dbClient, StorageProvider.InterfaceType.ddmc.name()),
+                    _dbClient, ddClientFactory));
+        } else if (StorageProvider.InterfaceType.xtremio.name().equalsIgnoreCase(interfaceType)) {
+            activeProviderURIs.addAll(XtremIOProvUtils.refreshXtremeIOConnections(
+                    CustomQueryUtility.getActiveStorageProvidersByInterfaceType(
+                            _dbClient, StorageProvider.InterfaceType.xtremio.name()),
+                    _dbClient, xioClientFactory));
+        } else if (StorageProvider.InterfaceType.ceph.name().equalsIgnoreCase(interfaceType)) {
+            activeProviderURIs.addAll(CephUtils.refreshCephConnections(
+                    CustomQueryUtility.getActiveStorageProvidersByInterfaceType(
+                            _dbClient, StorageProvider.InterfaceType.ceph.name()),
+                    _dbClient));
+        } else  {
+            activeProviderURIs.addAll(ExternalDeviceUtils.refreshProviderConnections(_dbClient));
+        }
+        return activeProviderURIs;
+    }
 
     public List<URI> refreshProviderConnections() {
 

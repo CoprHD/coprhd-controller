@@ -221,13 +221,14 @@ public class DataCollectionJobConsumer extends
      */
     private void triggerScanning(DataCollectionScanJob job) throws Exception {
         _logger.info("Started scanning Providers : triggerScanning()");
-
-        _jobScheduler.refreshProviderConnections();
+        
         List<URI> providerList = job.getProviders();
         String providerType = null;
         if (!providerList.isEmpty()) {
             providerType = _dbClient.queryObject(StorageProvider.class, providerList.iterator().next()).getInterfaceType();
         }
+
+        _jobScheduler.refreshProviderConnections(providerType);
         List<URI> allProviderURI = _dbClient.queryByType(StorageProvider.class, true);
         List<StorageProvider> allProvidersAllTypes = _dbClient.queryObject(StorageProvider.class, allProviderURI);
         List<StorageProvider> allProviders = new ArrayList<StorageProvider>();

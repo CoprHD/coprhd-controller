@@ -25,8 +25,6 @@ import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.workflow.WorkflowService;
 
-import static com.emc.storageos.util.ExportUtils.removeVolumesFromExportGroup;
-
 public class ExportMaskRemoveVolumeCompleter extends ExportTaskCompleter {
     private static final Logger _log = LoggerFactory.getLogger(ExportMaskRemoveVolumeCompleter.class);
 
@@ -98,8 +96,6 @@ public class ExportMaskRemoveVolumeCompleter extends ExportTaskCompleter {
                             dbClient.updateObject(exportMask);
                         }
                     }
-
-                    removeVolumesFromExportGroup(dbClient, exportGroup, _volumes);
 
                     _log.info(String.format(
                             "Done ExportMaskRemoveVolume - Id: %s, OpId: %s, status: %s",

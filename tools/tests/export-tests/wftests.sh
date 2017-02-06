@@ -1732,18 +1732,7 @@ test_5() {
     echot "Test 5 Begins"
     expname=${EXPORT_GROUP_NAME}t5
 
-    common_failure_injections="failure_004_final_step_in_workflow_complete \
-                               failure_007_NetworkDeviceController.zoneExportRemoveVolumes_before_unzone \
-                               failure_008_NetworkDeviceController.zoneExportRemoveVolumes_after_unzone \
-                               failure_018_Export_doRollbackExportCreate_before_delete"
-
-    network_failure_injections=""
-    if [ "${BROCADE}" = "1" ]
-    then
-	network_failure_injections="failure_049_BrocadeNetworkSMIS.getWEBMClient"
-    else
-        network_failure_injections="failure_057_MdsNetworkSystemDevice.removeZones"
-    fi
+    common_failure_injections="failure_018_Export_doRollbackExportCreate_before_delete"
 
     storage_failure_injections=""
     if [ "${SS}" = "vplex" ]
@@ -2519,92 +2508,6 @@ test_11() {
 }
 
 # Test 12
-# 
-# Tests removing the last volume from a CG with failures.
-# 1. Create 2 volumes
-# 2. Save state
-# 3. Export both to a host
-# 4. Remove one volume from export group
-# 5. Set failure
-# 6. Remove last volume from export group
-# 7. Verify failures were hit
-# 8. Re-run the operation, it should be a NOOP
-# 9. Delete the export group
-# 10. Save state
-# 11. Compare before/after states.  There should be no orphaned export masks.
-test_12() {
-    echot "Test 12 Begins"
-    expname=${EXPORT_GROUP_NAME}t12
-
-    common_failure_injections="failure_007_NetworkDeviceController.zoneExportRemoveVolumes_before_unzone"
-
-    if [ "${SS}" != "unity" ]; then
-      echo "Only applicable for Unity."
-      exit 1
-    fi
-    
-    failure_injections="${common_failure_injections}"
-
-    # Placeholder when a specific failure case is being worked...
-    # failure_injections="failure_057_NetworkDeviceController.zoneExportAddInitiators_before_zone"
-
-    for failure in ${failure_injections}
-    do
-      item=${RANDOM}
-      TEST_OUTPUT_FILE=test_output_${item}.log
-      secho "Running Test 12 with failure scenario: ${failure}..."
-      cfs=("ExportGroup ExportMask FCZoneReference")
-      mkdir -p results/${item}
-      volname=${VOLNAME}-${item}
-      reset_counts
-      
-      runcmd volume create ${volname} ${PROJECT} ${NH} ${VPOOL_BASE} 1GB --count 2
-      volname1=${volname}-1
-      volname2=${volname}-2
-
-      # Check the state of the export that it doesn't exist
-      snap_db 1 "${cfs[@]}"
-
-      # prime the export
-      runcmd export_group create $PROJECT ${expname} $NH --type Host --volspec ${PROJECT}/${volname1},${PROJECT}/${volname2} --hosts "${HOST1}"
-
-      # Successfully remove first volume
-      export_group update ${PROJECT}/${expname} --remVol ${PROJECT}/${volname1}
-
-      # Set failure for removing the last volume
-      set_artificial_failure ${failure}
-
-      # Attempt to remove the last volume
-      fail export_group update ${PROJECT}/${expname} --remVol ${PROJECT}/${volname2}
-
-      # Verify injected failures were hit
-      verify_failures ${failure}
-
-      # Disable failures
-      set_artificial_failure "none"
-
-      # Re-run the operation, it should perform a NOOP.
-      runcmd export_group update ${PROJECT}/${expname} --remVol ${PROJECT}/${volname2}
-
-      # Delete the export
-      runcmd export_group delete ${PROJECT}/${expname}
-
-      # If all went well, we should be in the original state (no orphaned ExportMask instances).
-      snap_db 2 "${cfs[@]}"
-
-      # Verify the DB is back to the original state
-      validate_db 1 2 "${cfs[@]}"
-
-      # Remove the volumes
-      runcmd volume delete ${PROJECT}/${volname1} --wait
-      runcmd volume delete ${PROJECT}/${volname2} --wait
-
-      # Report results
-      report_results test_12 ${failure}
-    done
-}
-
-# Test 13
 #
 # Test to ensure rerunnability of a failed remove host operation (export group update remove host)
 #
@@ -2616,9 +2519,9 @@ test_12() {
 # 8. Save off state of DB (2)
 # 9. Compare state (1) and (4)
 #
-test_13() {
-    echot "Test 13 Begins"
-    expname=${EXPORT_GROUP_NAME}t13
+test_12() {
+    echot "Test 12 Begins"
+    expname=${EXPORT_GROUP_NAME}t12
 
     common_failure_injections="failure_004_final_step_in_workflow_complete"
     # Removing check for firewall as a regular test because it takes a very long time, but it is supported.
@@ -2670,7 +2573,7 @@ test_13() {
 
       item=${RANDOM}
       TEST_OUTPUT_FILE=test_output_${item}.log
-      secho "Running Test 13 with failure scenario: ${failure}..."
+      secho "Running Test 12 with failure scenario: ${failure}..."
       cfs=("ExportGroup ExportMask FCZoneReference")
       mkdir -p results/${item}
       volname=${VOLNAME}-${item}
@@ -2746,7 +2649,7 @@ test_13() {
     done
 }
 
-# Test 14
+# Test 13
 #
 # Test to ensure rerunnability of a failed remove host operation (export group update remove host)
 #
@@ -2758,9 +2661,9 @@ test_13() {
 # 8. Save off state of DB (2)
 # 9. Compare state (1) and (4)
 #
-test_14() {
-    echot "Test 14 Begins"
-    expname=${EXPORT_GROUP_NAME}t14
+test_13() {
+    echot "Test 13 Begins"
+    expname=${EXPORT_GROUP_NAME}t13
 
     common_failure_injections="failure_004_final_step_in_workflow_complete"
     # Removing check for firewall as a regular test because it takes a very long time, but it is supported.
@@ -2810,7 +2713,7 @@ test_14() {
 
       item=${RANDOM}
       TEST_OUTPUT_FILE=test_output_${item}.log
-      secho "Running Test 14 with failure scenario: ${failure}..."
+      secho "Running Test 13 with failure scenario: ${failure}..."
       cfs=("ExportGroup ExportMask FCZoneReference")
       mkdir -p results/${item}
       volname=${VOLNAME}-${item}

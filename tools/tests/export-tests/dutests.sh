@@ -72,6 +72,7 @@ TEST_OUTPUT_FILE=default-output.txt
 # Overall suite counts
 VERIFY_COUNT=0
 VERIFY_FAIL_COUNT=0
+VERIFY_EXPORT_STATUS=0
 
 # Per-test counts
 TRIP_VERIFY_COUNT=0
@@ -135,6 +136,7 @@ fi
 # Place to put command output in case of failure
 CMD_OUTPUT=/tmp/output.txt
 rm -f ${CMD_OUTPUT}
+
 
 dbupdate() {
     runcmd dbupdate.sh $*
@@ -269,6 +271,15 @@ reset_system_props() {
 prerun_tests() {
     clean_zones ${FC_ZONE_A:7} ${HOST1}
     verify_no_zones ${FC_ZONE_A:7} ${HOST1}
+    verify_export ${expname}1 ${HOST1} gone
+    if [ ${VERIFY_EXPORT_STATUS} -ne 0 ]; then
+        echo "The export was found on the device, attempting to delete..."
+        arrayhelper delete_mask ${SERIAL_NUMBER} ${expname}1 ${HOST1}
+        # reset variables because this is just a clean up task
+        VERIFY_EXPORT_STATUS=0
+        VERIFY_COUNT=`expr $VERIFY_COUNT - 1`
+        VERIFY_FAIL_COUNT=`expr $VERIFY_FAIL_COUNT - 1`
+    fi
 }
 
 vnx_sim_setup() {
@@ -2023,7 +2034,7 @@ test_13() {
 # 9. Rollback should remove the initiator in the mask that it added even if there's an existing volume in the mask.
 #
 test_14() {
-    echot "Test 14: Test rollback of add initiator, verify it does not remove initiators when volume sneaks into mask"
+    echot "Test 14: Test rollback of add initiator, verify it removes the new initiators when volume sneaks into mask"
     expname=${EXPORT_GROUP_NAME}t14-${RANDOM}
 
     # Make sure we start clean; no masking view on the array
@@ -2838,7 +2849,7 @@ test_24() {
     verify_zones ${FC_ZONE_A:7} exists
 
     # Now add back the other vipr volume to the mask
-    runcmd export_group update $PROJECT/${expname}1 --addVols "${PROJECT}/${VOLNAME}-2"
+    runcmd export_group create $PROJECT ${expname}1 $NH --type Host --volspec "${PROJECT}/${VOLNAME}-2" --hosts "${HOST1}"
 
     # Verify the volume is added
     verify_export ${expname}1 ${HOST1} 2 2
@@ -2934,9 +2945,6 @@ test_25() {
 
     # Verify the zones we know about are gone
     verify_zones ${FC_ZONE_A:7} gone
-
-    # Delete the export group
-    runcmd export_group delete $PROJECT/${expname}1
 
     # The mask is out of our control at this point, delete mask
     arrayhelper delete_mask ${SERIAL_NUMBER} ${expname}1 ${HOST1}
@@ -3516,6 +3524,7 @@ then
    for t in $*
    do
       secho Run $t
+      secho "Start time: $(date)"
       reset_system_props
       prerun_tests
       TEST_OUTPUT_FILE=test_output_${RANDOM}.log
@@ -3537,6 +3546,7 @@ else
      prerun_tests
      TEST_OUTPUT_FILE=test_output_${RANDOM}.log
      reset_counts
+     secho "Start time: $(date)"
      test_${num}
      reset_system_props
      num=`expr ${num} + 1`

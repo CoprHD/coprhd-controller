@@ -36,11 +36,15 @@ import com.emc.storageos.db.client.model.FilePolicy;
 import com.emc.storageos.db.client.model.FilePolicy.FilePolicyApplyLevel;
 import com.emc.storageos.db.client.model.FilePolicy.FilePolicyType;
 import com.emc.storageos.db.client.model.FilePolicy.FileReplicationType;
+import com.emc.storageos.db.client.model.FileReplicaPolicyTarget;
+import com.emc.storageos.db.client.model.FileReplicaPolicyTargetMap;
 import com.emc.storageos.db.client.model.FileShare;
 import com.emc.storageos.db.client.model.FileShare.PersonalityTypes;
+import com.emc.storageos.db.client.model.NASServer;
 import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.OpStatusMap;
 import com.emc.storageos.db.client.model.Operation;
+import com.emc.storageos.db.client.model.PhysicalNAS;
 import com.emc.storageos.db.client.model.PolicyStorageResource;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.QuotaDirectory;
@@ -3170,6 +3174,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             ArrayList<IsilonSyncPolicy> isiReplicationPolicies = isi.getReplicationPolicies().getList();
             IsilonSyncPolicy isilonReplicationSchedule = checkForReplicationPolicyOnIsilon(isiReplicationPolicies,
                     filePolicy, sourcePath, targetPath, targetStorageObj.getIpAddress());
+
             if (isilonReplicationSchedule != null) {
                 boolean validPolicy = validateIsilonReplicationPolicy(isilonReplicationSchedule, filePolicy, targetPath,
                         targetStorageObj.getIpAddress(), sourceStorageObj.getIpAddress());
@@ -3183,8 +3188,9 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                 }
             } else {
                 // Create replication sync policy.
-                createIsilonSyncPolicy(sourceStorageObj, filePolicy, sourcePath, targetPath,
-                        targetStorageObj.getIpAddress(), policyNamePrefix, sourceSytemArgs);
+                createIsilonSyncPolicy(sourceStorageObj, targetStorageObj, filePolicy, sourcePath, targetPath,
+                        policyNamePrefix, sourceSytemArgs, targetSytemArgs);
+
                 result = BiosCommandResult.createSuccessfulResult();
             }
         } catch (IsilonException e) {
@@ -3194,22 +3200,57 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         return result;
     }
 
-    private String createIsilonSyncPolicy(StorageSystem storageObj, FilePolicy filePolicy,
-            String sourcePath, String targetPath, String targetIP, String syncPolicyNamePrefix, FileDeviceInputOutput args) {
+    private String createIsilonSyncPolicy(StorageSystem storageObj, StorageSystem targetStorage,
+            FilePolicy filePolicy, String sourcePath, String targetPath, String syncPolicyNamePrefix,
+            FileDeviceInputOutput sourceSystemArgs, FileDeviceInputOutput targetSystemArgs) {
+
         String replicationScheduleName = syncPolicyNamePrefix + "_" + filePolicy.getFilePolicyName();
         String scheduleValue = getIsilonPolicySchedule(filePolicy);
 
-        _log.info("File Policy : {} creation started", filePolicy.toString());
+        _log.info("File replication policy : {} creation started", filePolicy.toString());
+
         try {
+            String targetHost = FileOrchestrationUtils.getTargetHostPortForReplication(_dbClient, targetStorage.getId());
             IsilonApi isi = getIsilonDevice(storageObj);
             isi.createDir(sourcePath, true);
-            IsilonSyncPolicy replicationPolicy = new IsilonSyncPolicy(replicationScheduleName, sourcePath, targetPath, targetIP,
+            IsilonSyncPolicy replicationPolicy = new IsilonSyncPolicy(replicationScheduleName, sourcePath, targetPath, targetHost,
                     Action.sync);
+            if (scheduleValue != null && !scheduleValue.isEmpty()) {
+                replicationPolicy.setSchedule(scheduleValue);
+            }
+            if (filePolicy.getFilePolicyDescription() != null) {
+                replicationPolicy.setDescription(filePolicy.getFilePolicyDescription());
+            }
+            if (filePolicy.getNumWorkerThreads() != null && filePolicy.getNumWorkerThreads() > 0) {
+                replicationPolicy.setWorkersPerNode(filePolicy.getNumWorkerThreads().intValue());
+            }
+            replicationPolicy.setEnabled(true);
             replicationPolicy.setSchedule(scheduleValue);
             String scheduleId = isi.createReplicationPolicy(replicationPolicy);
 
-            FileOrchestrationUtils.updatePolicyStorageResource(_dbClient, storageObj, filePolicy, args, sourcePath,
-                    replicationScheduleName);
+            PolicyStorageResource policyStorageResource = FileOrchestrationUtils.updatePolicyStorageResource(_dbClient, storageObj,
+                    filePolicy, sourceSystemArgs, sourcePath, replicationScheduleName);
+
+            FileReplicaPolicyTargetMap fileReplicaPolicyTargetMap = new FileReplicaPolicyTargetMap();
+            FileReplicaPolicyTarget value = new FileReplicaPolicyTarget();
+
+            NASServer nasServer = targetSystemArgs.getvNAS();
+            if (nasServer != null) {
+                value.setNasServer(targetSystemArgs.getVNASNameWithNoSpecialCharacters());
+            } else {
+                PhysicalNAS pNAS = FileOrchestrationUtils.getSystemPhysicalNAS(_dbClient, targetStorage);
+                if (pNAS != null) {
+                    nasServer = pNAS;
+                }
+            }
+
+            value.setAppliedAt(filePolicy.getApplyAt());
+            value.setStorageSystem(targetStorage.getLabel());
+            value.setPath(targetPath);
+            String key = value.getFileTargetReplicaKey();
+            fileReplicaPolicyTargetMap.put(key, value);
+            policyStorageResource.setFileReplicaPolicyTargetMap(fileReplicaPolicyTargetMap);
+            _dbClient.updateObject(policyStorageResource);
             return scheduleId;
         } catch (IsilonException e) {
             throw e;

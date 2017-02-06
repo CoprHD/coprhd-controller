@@ -12,7 +12,7 @@ import java.util.Comparator;
 import java.util.List;
 
 import org.apache.commons.lang.StringUtils;
-
+import com.emc.sa.util.ResourceType;
 import play.mvc.Controller;
 import play.mvc.Util;
 import util.AppSupportUtil;
@@ -95,7 +95,9 @@ public class ResourceController extends Controller {
 
     @Util
     public static void setActiveProjectId(String activeProjectId) {
+	if (StringUtils.isNotBlank(activeProjectId) && ResourceType.PROJECT.equals(ResourceType.fromResourceId(activeProjectId))) {
             session.put(ACTIVE_PROJECT_ID, activeProjectId);
+        }
     }
 
 }

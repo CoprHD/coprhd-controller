@@ -2656,7 +2656,7 @@ public class VPlexApiDiscoveryManager {
      * @param nativeVolumeInfoList The native volume information for the
      *            storage volumes to be forgotten.
      */
-    void forgetVolumes(List<VolumeInfo> nativeVolumeInfoList) {
+    void forgetVolumes(List<VolumeInfo> nativeVolumeInfoList) throws Exception {
 
         // For the volumes to be forgotten, map them by their
         // storage system Guids.
@@ -2718,14 +2718,16 @@ public class VPlexApiDiscoveryManager {
                     s_logger.info("Forget volumes is completing asynchronously");
                     _vplexApiClient.waitForCompletion(response);
                 } else {
-                    s_logger.error("Request to forget logical units failed with Status: {}",
-                            response.getStatus());
-                    return;
+                    String cause = VPlexApiUtils.getCauseOfFailureFromResponse(responseStr);
+                    String errorMsg = String.format("Forget logical units failed with Status %s: %s",
+                            response.getStatus(), cause);
+                    throw new Exception(errorMsg);
                 }
             }
             s_logger.info("Successfully forgot logical units");
         } catch (Exception e) {
             s_logger.error("Exception forgetting logical units: %s", e.getMessage(), e);
+            throw e;
         }
     }
 

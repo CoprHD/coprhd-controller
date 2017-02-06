@@ -1620,6 +1620,8 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
      *            The id of the workflow step that invoked this method.
      */
     public void forgetVolumes(URI vplexSystemURI, List<VolumeInfo> volumeInfo, String stepId) {
+        String warnMsg = null;
+        String vplexSystemName = null;
         try {
             // Workflow step is executing.
             WorkflowStepCompleter.stepExecuting(stepId);
@@ -1627,18 +1629,28 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
             // Get the VPLEX client for this VPLEX system.
             StorageSystem vplexSystem = _dbClient.queryObject(StorageSystem.class,
                     vplexSystemURI);
+            vplexSystemName = vplexSystem.getLabel();
             VPlexApiClient client = getVPlexAPIClient(_vplexApiFactory, vplexSystem, _dbClient);
 
             // Tell the VPLEX system to forget about these volumes.
             client.forgetVolumes(volumeInfo);
         } catch (Exception ex) {
-            _log.error("An exception occurred forgetting volumes on VPLEX system {}",
-                    vplexSystemURI, ex);
+            StringBuffer forgottenVolumeInfo = new StringBuffer();
+            for (VolumeInfo vInfo : volumeInfo) {
+                if (forgottenVolumeInfo.length() != 0) {
+                    forgottenVolumeInfo.append(", ");
+                }
+                forgottenVolumeInfo.append(vInfo.getVolumeWWN());
+            }
+            ServiceCoded sc = VPlexApiException.exceptions.forgetVolumesFailed(forgottenVolumeInfo.toString(), 
+                    vplexSystemName, ex.getMessage(), ex);
+            warnMsg = sc.getMessage();
+            _log.warn(warnMsg);
         }
 
         // This is a cleanup step that we don't want to impact the
         // workflow execution if it fails.
-        WorkflowStepCompleter.stepSucceded(stepId);
+        WorkflowStepCompleter.stepSucceeded(stepId, warnMsg);
     }
 
     /**
@@ -2756,7 +2768,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
         String exportMaskDeleteStep = workflow.createStepId();
         ExportMaskDeleteCompleter rollbackCompleter = 
                 new ExportMaskDeleteCompleter(exportGroup.getId(), exportMask.getId(), exportMaskDeleteStep);
-        ((ExportMaskDeleteCompleter) exportTaskCompleter).setVolumes(blockObjectMap.keySet());
+        rollbackCompleter.setVolumes(new ArrayList<URI>(blockObjectMap.keySet()));
 
         // Workflow.Method storageViewRollbackMethod = new Workflow.Method(ROLLBACK_METHOD_NULL);
         Workflow.Method storageViewRollbackMethod = deleteStorageViewMethod(

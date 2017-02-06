@@ -2002,8 +2002,9 @@ public class ExportUtils {
      * @param dbClient A reference to a database client.
      */
     private static void cleanStaleZoningMapEntries(List<URI> maskURIs, DbClient dbClient) {
-        for (URI maskURI : maskURIs) {
-            ExportMask maskObj = dbClient.queryObject(ExportMask.class, maskURI);
+        Iterator<ExportMask> maskIter = dbClient.queryIterativeObjects(ExportMask.class, maskURIs);
+        while (maskIter.hasNext()) {
+            ExportMask maskObj = maskIter.next();
             StringSetMap zoningMap = maskObj.getZoningMap();
             StringSet maskInitIds = maskObj.getInitiators();
             Set<String> zoningMapInitIds = new HashSet<>(zoningMap.keySet());
@@ -2033,13 +2034,14 @@ public class ExportUtils {
                     allMaskInitiators.addAll(maskObj.getInitiators());
                 }
             }
-            // Stale initiators = EG intiators - all initiators available in all the eg.masks
+            // Stale initiators = EG initiators - all initiators available in all the eg.masks
             Set<String> staleInitiators = Sets.difference(exportGroupInitiators, allMaskInitiators);
             if (!CollectionUtils.isEmpty(staleInitiators)) {
-                Collection<URI> staleInitiatorURIS = Collections2.transform(staleInitiators,
+                Collection<URI> staleInitiatorURIs = Collections2.transform(staleInitiators,
                         CommonTransformerFunctions.FCTN_STRING_TO_URI);
-                exportGroup.removeInitiators(new ArrayList<>(staleInitiatorURIS));
-                _log.info("Stale initiators {} will be removed from Export Group {}", staleInitiatorURIS, exportGroup.getId());
+                _log.info(String.format("Stale initiators [%s] will be removed from Export Group %s", 
+                        Joiner.on(',').join(staleInitiatorURIs), exportGroup.getId()));
+                exportGroup.removeInitiators(new ArrayList<>(staleInitiatorURIs));                
             }
         }
     }
@@ -2065,8 +2067,9 @@ public class ExportUtils {
             if (!CollectionUtils.isEmpty(staleHosts)) {
                 Collection<URI> staleHostURIs = Collections2.transform(staleHosts,
                         CommonTransformerFunctions.FCTN_STRING_TO_URI);
-                exportGroup.removeHosts(new ArrayList<>(staleHostURIs));
-                _log.info("Stale host references {} will be removed from Export Group {}", staleHostURIs, exportGroup.getId());
+                _log.info(String.format("Stale host references [%s] will be removed from Export Group %s", 
+                        Joiner.on(',').join(staleHostURIs), exportGroup.getId()));
+                exportGroup.removeHosts(new ArrayList<>(staleHostURIs));                
             }
         }
     }
@@ -2092,9 +2095,9 @@ public class ExportUtils {
             if (!CollectionUtils.isEmpty(staleClusters)) {
                 Collection<URI> staleClusterURIs = Collections2.transform(staleClusters,
                         CommonTransformerFunctions.FCTN_STRING_TO_URI);
-                exportGroup.removeClusters(new ArrayList<>(staleClusterURIs));
                 _log.info(String.format("Stale cluster references [%s] will be removed from Export Group %s", 
                         Joiner.on(',').join(staleClusterURIs), exportGroup.getId()));
+                exportGroup.removeClusters(new ArrayList<>(staleClusterURIs));               
             }
         }
     }

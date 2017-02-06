@@ -152,7 +152,7 @@ public class FilePolicyServiceUtils {
         return true;
     }
 
-    public static void validateSnapshotPolicyParam(FileSnapshotPolicyParam param) {
+    public static void validateSnapshotPolicyExpireParam(FileSnapshotPolicyParam param) {
         boolean isValidSnapshotExpire;
 
         // check snapshot expire type is valid or not

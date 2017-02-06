@@ -218,15 +218,15 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
             if (deactivateOnComplete) {
                 waitFor = computeDeviceController.addStepsVcenterHostCleanup(workflow, waitFor, host);
             }
+            
             String unassociateStepId = workflow.createStepId();
             
-            waitFor = addStepsForRemoveHostFromCluster(workflow, waitFor, host, unassociateStepId);
-
             waitFor = addStepsForExportGroups(workflow, waitFor, host);
 
             waitFor = addStepsForFileShares(workflow, waitFor, host);
 
             if (deactivateOnComplete) {
+                waitFor = addStepsForRemoveHostFromCluster(workflow, waitFor, host, unassociateStepId);                
                 waitFor = computeDeviceController.addStepsDeactivateHost(workflow, waitFor, host, deactivateBootVolume);
             }
 

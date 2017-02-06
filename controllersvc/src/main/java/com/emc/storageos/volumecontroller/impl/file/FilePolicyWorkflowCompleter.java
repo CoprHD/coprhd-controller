@@ -26,7 +26,7 @@ public class FilePolicyWorkflowCompleter extends FileTaskCompleter {
     }
 
     @Override
-    protected void complete(DbClient dbClient, Operation.Status status, ServiceCoded serviceCoded) {
+    protected void setStatus(DbClient dbClient, Operation.Status status, ServiceCoded serviceCoded) {
         switch (status) {
             case error:
                 dbClient.error(FilePolicy.class, getId(), getOpId(), serviceCoded);

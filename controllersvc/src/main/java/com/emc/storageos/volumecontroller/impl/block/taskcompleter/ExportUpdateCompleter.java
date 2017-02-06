@@ -173,5 +173,4 @@ public class ExportUpdateCompleter extends ExportTaskCompleter {
             exportGroup.removeVolumes(_removedBlockObjects);
         }
     }
-
 }

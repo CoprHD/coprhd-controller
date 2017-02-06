@@ -640,11 +640,12 @@ public class HostService extends TaskResourceService {
         if (hasPendingTasks) {
             throw APIException.badRequests.resourceCannotBeDeleted("Host with another operation in progress");
         }
+        
         boolean isHostInUse = ComputeSystemHelper.isHostInUse(_dbClient, host.getId());
-
         if (isHostInUse && !(detachStorage || detachStorageDeprecated)) {
             throw APIException.badRequests.resourceHasActiveReferences(Host.class.getSimpleName(), id);
         }
+        
         ComputeElement computeElement = null;
         Volume bootVolume = null;
     
@@ -664,6 +665,7 @@ public class HostService extends TaskResourceService {
                 _log.info("No OS host: " + host.getLabel() +" with no initiators and without valid computeElement or boot volume associations found. Will proceed with deactivation.");
             }
         }
+        
         String taskId = UUID.randomUUID().toString();
         Operation op = _dbClient.createTaskOpStatus(Host.class, host.getId(), taskId,
                 ResourceOperationTypeEnum.DELETE_HOST);
@@ -676,12 +678,17 @@ public class HostService extends TaskResourceService {
         auditOp(OperationTypeEnum.DELETE_HOST, true, op.getStatus(),
                 host.auditParameters());
         return toTask(host, taskId, op);
-        
     }
 
-    private boolean hostHasPendingTasks(URI id) {
+    /**
+     * Check for pending tasks on the Host
+     * 
+     * @param hostURI Host ID
+     * @return true if the host has pending tasks, false otherwise
+     */
+    private boolean hostHasPendingTasks(URI hostURI) {
         boolean hasPendingTasks = false;
-        List<Task> taskList = TaskUtils.findResourceTasks(_dbClient, id);
+        List<Task> taskList = TaskUtils.findResourceTasks(_dbClient, hostURI);
         for (Task task : taskList) {
             if (task.isPending()) {
                 hasPendingTasks = true;

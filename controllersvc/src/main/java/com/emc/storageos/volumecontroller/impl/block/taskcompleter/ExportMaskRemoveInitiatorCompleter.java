@@ -24,7 +24,6 @@ import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.StringSetMap;
-import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
@@ -158,6 +157,7 @@ public class ExportMaskRemoveInitiatorCompleter extends ExportTaskCompleter {
 		StringSet initiators = exportMask.getInitiators();
 		StringSetMap zoningMap = exportMask.getZoningMap();
 		Set<String> zonedTarget = new HashSet<String>();
+        boolean isRollback = WorkflowService.getInstance().isStepInRollbackState(getOpId());
 		for (String initiator : initiators) {
 		    StringSet zoneEntry = zoningMap.get(initiator);
 		    if (zoneEntry != null) {
@@ -169,17 +169,23 @@ public class ExportMaskRemoveInitiatorCompleter extends ExportTaskCompleter {
                         exportMask.getMaskName(), exportMask.getId())); 
 		    }
 		}
-		StringSet emStoragePorts = new StringSet();
-		
-		if (exportMask.getStoragePorts() != null) {
-		    emStoragePorts = exportMask.getStoragePorts();
-		} else {
-		    _log.warn(String.format(
-                    "removeUnusedTargets() - could not find any storage ports for"
-                    + "Export Mask [%s - %s].", exportMask.getMaskName(), exportMask.getId()));
+
+        Set<String> targets = new HashSet<String>(exportMask.getStoragePorts());
+        if (isRollback) {
+            StringSet emStoragePorts = new StringSet();
+
+            if (exportMask.getStoragePorts() != null) {
+                emStoragePorts = exportMask.getStoragePorts();
+            } else {
+                _log.warn(String.format(
+                        "removeUnusedTargets() - could not find any storage ports for"
+                                + "Export Mask [%s - %s].",
+                        exportMask.getMaskName(), exportMask.getId()));
+            }
+
+            targets = new HashSet<String>(emStoragePorts);
 		}
-		
-		Set<String> targets = new HashSet<String>(emStoragePorts);
+
 		if (!targets.removeAll(zonedTarget)) {
 			for (String zonedPort : zonedTarget) {
 				exportMask.addTarget(URIUtil.uri(zonedPort));

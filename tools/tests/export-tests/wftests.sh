@@ -1575,7 +1575,7 @@ test_3() {
       # Rerun the command
       set_artificial_failure none
       # Determine if re-running the command under certain failure scenarios is expected to fail (like Unity) or succeed.
-      if [ "${SS}" = "unity" ] && [ "${failure}" = "failure_023" ]
+      if [ "${SS}" = "unity" ] && [ "${failure}" = "failure_023_VNXeStorageDevice_CreateVolume_after_async_job" ]
       then
           # Unity is expected to fail because the array doesn't like duplicate LUN names
           fail -with_error "LUN with this name already exists" volume create ${volname} ${project} ${NH} ${VPOOL_BASE} 1GB --count 8

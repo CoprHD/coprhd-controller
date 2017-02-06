@@ -1148,7 +1148,6 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         List<BlockSnapshotRestRep> snapshots = findSnapshotsByProject(client, project);
         List<BlockSnapshotRestRep> filteredSnap = new ArrayList<>();
         for (BlockSnapshotRestRep snapshot: snapshots) {
-            VolumeRestRep parentVolume = client.blockVolumes().get(snapshot.getParent().getId());
             if ( isSnapshotRPBookmark(snapshot) ) {
                 filteredSnap.add(snapshot);
             }

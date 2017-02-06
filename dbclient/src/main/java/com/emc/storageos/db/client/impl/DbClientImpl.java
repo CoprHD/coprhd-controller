@@ -145,7 +145,7 @@ public class DbClientImpl implements DbClient {
     private boolean initDone = false;
     private String _geoVersion;
     private DrUtil drUtil;
-    private DbConsistencyCheckerHelper consistencyChecker;
+    private CopyOfDbConsistencyCheckerHelper consistencyChecker;
 
     public String getGeoVersion() {
         if (this._geoVersion == null) {
@@ -269,7 +269,7 @@ public class DbClientImpl implements DbClient {
 
         initDone = true;
         
-        consistencyChecker = new DbConsistencyCheckerHelper(this);
+        consistencyChecker = new CopyOfDbConsistencyCheckerHelper(this);
     }
 
     public boolean isInitDone() {

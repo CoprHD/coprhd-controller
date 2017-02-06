@@ -8,7 +8,6 @@ package com.emc.storageos.db.client.impl;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -82,11 +81,11 @@ public class DbConsistencyCheckerHelper {
         int dirtyCount = 0;
         Class<? extends DataObject> dataObjectClass = doType.getDataObjectClass();
         
-		_log.info("Check CF {}", dataObjectClass.getName());
+        _log.info("Check CF {}", dataObjectClass.getName());
         
         if (excludeClasses.contains(dataObjectClass)) {
-        	_log.info("Skip CF {} since its URI is special", dataObjectClass);
-        	return 0;
+            _log.info("Skip CF {} since its URI is special", dataObjectClass);
+            return 0;
         }
         
         try {
@@ -96,18 +95,18 @@ public class DbConsistencyCheckerHelper {
                     .withColumnRange(new RangeBuilder().setLimit(1).build())
                     .execute();
             for (Row<String, CompositeColumnName> row : result.getResult()) {
-            	try {
-	            	if (!isValidDataObjectKey(URI.create(row.getKey()), dataObjectClass)) {
-	            		dirtyCount++;
-	    		        logMessage(String.format("Inconsistency found: Row key '%s' failed to convert to URI in CF %s",
-	    		                row.getKey(), dataObjectClass.getName()), true, toConsole);
-	            	}
-            	} catch (Exception ex) {
-            		dirtyCount++;
-            		logMessage(String.format("Inconsistency found: Row key '%s' failed to convert to URI in CF %s with exception %s",
+                try {
+                    if (!isValidDataObjectKey(URI.create(row.getKey()), dataObjectClass)) {
+                        dirtyCount++;
+                        logMessage(String.format("Inconsistency found: Row key '%s' failed to convert to URI in CF %s",
+                                row.getKey(), dataObjectClass.getName()), true, toConsole);
+                    }
+                } catch (Exception ex) {
+                    dirtyCount++;
+                    logMessage(String.format("Inconsistency found: Row key '%s' failed to convert to URI in CF %s with exception %s",
                             row.getKey(), dataObjectClass.getName(),
                             ex.getMessage()), true, toConsole);
-            	}
+                }
             }
 
         } catch (ConnectionException e) {
@@ -132,7 +131,7 @@ public class DbConsistencyCheckerHelper {
         Map<String, ColumnField> indexedFields = new HashMap<String, ColumnField>();
         for (ColumnField field : doType.getColumnFields()) {
             if (field.getIndex() != null) {
-            	indexedFields.put(field.getName(), field);
+                indexedFields.put(field.getName(), field);
             }
         }
 
@@ -145,56 +144,51 @@ public class DbConsistencyCheckerHelper {
         OperationResult<Rows<String, CompositeColumnName>> result = query.getAllRows().setRowLimit(dbClient.DEFAULT_PAGE_SIZE).execute();
 
         for (Row<String, CompositeColumnName> objRow : result.getResult()) {
-            checkDataObject2Index(toConsole, checkResult, indexedFields, keyspace, objRow);
-        }
-    }
-
-    private void checkDataObject2Index(boolean toConsole, CheckResult checkResult, Map<String, ColumnField> indexedFields,
-            Keyspace keyspace, Row<String, CompositeColumnName> objRow) throws ConnectionException {
-        boolean inactiveObject = false;
-        
-        for (Column<CompositeColumnName> column : objRow.getColumns()) {
-            if (column.getName().getOne().equals(DataObject.INACTIVE_FIELD_NAME) && column.getBooleanValue()) {
-            	inactiveObject = true;
-            	break;
-            }
-        }
-        
-        if (inactiveObject) {
-        	return;
-        }
-
-        for (Column<CompositeColumnName> column : objRow.getColumns()) {
-        	if (!indexedFields.containsKey(column.getName().getOne())) {
-        		continue;
-        	}
-        	
-        	// we don't build index if the value is null, refer to ColumnField.
-            if (!column.hasValue()) {
-                continue;
-            }
-        	
-        	ColumnField indexedField = indexedFields.get(column.getName().getOne());
-        	String indexKey = getIndexKey(indexedField, column);
-        	
-            if (indexKey == null) {
-                continue;
+            boolean inactiveObject = false;
+            
+            for (Column<CompositeColumnName> column : objRow.getColumns()) {
+                if (column.getName().getOne().equals(DataObject.INACTIVE_FIELD_NAME) && column.getBooleanValue()) {
+                    inactiveObject = true;
+                    break;
+                }
             }
             
-            boolean isColumnInIndex = isColumnInIndex(keyspace, indexedField.getIndexCF(), indexKey,
-                    getIndexColumns(indexedField, column, objRow.getKey()));
-            
-            if (!isColumnInIndex) {
-                String dbVersion = findDataCreatedInWhichDBVersion(column.getName().getTimeUUID());
-                checkResult.increaseByVersion(dbVersion);
-                logMessage(String.format(
-                        "Inconsistency found Object(%s, id: %s, field: %s) is existing, but the related Index(%s, type: %s, id: %s) is missing. This entry is updated by version %s",
-                        indexedField.getDataObjectType().getSimpleName(), objRow.getKey(), indexedField.getName(),
-                        indexedField.getIndexCF().getName(), indexedField.getIndex().getClass().getSimpleName(), indexKey, dbVersion),
-                        true, toConsole);
-                DbCheckerFileWriter.writeTo(DbCheckerFileWriter.WRITER_REBUILD_INDEX,
-                        String.format("id:%s, cfName:%s", objRow.getKey(),
-                                indexedField.getDataObjectType().getSimpleName()));
+            if (inactiveObject) {
+                continue;
+            }
+
+            for (Column<CompositeColumnName> column : objRow.getColumns()) {
+                if (!indexedFields.containsKey(column.getName().getOne())) {
+                    continue;
+                }
+                
+                // we don't build index if the value is null, refer to ColumnField.
+                if (!column.hasValue()) {
+                    continue;
+                }
+                
+                ColumnField indexedField = indexedFields.get(column.getName().getOne());
+                String indexKey = getIndexKey(indexedField, column);
+                
+                if (indexKey == null) {
+                    continue;
+                }
+                
+                boolean isColumnInIndex = isColumnInIndex(keyspace, indexedField.getIndexCF(), indexKey,
+                        getIndexColumns(indexedField, column, objRow.getKey()));
+                
+                if (!isColumnInIndex) {
+                    String dbVersion = findDataCreatedInWhichDBVersion(column.getName().getTimeUUID());
+                    checkResult.increaseByVersion(dbVersion);
+                    logMessage(String.format(
+                            "Inconsistency found Object(%s, id: %s, field: %s) is existing, but the related Index(%s, type: %s, id: %s) is missing. This entry is updated by version %s",
+                            indexedField.getDataObjectType().getSimpleName(), objRow.getKey(), indexedField.getName(),
+                            indexedField.getIndexCF().getName(), indexedField.getIndex().getClass().getSimpleName(), indexKey, dbVersion),
+                            true, toConsole);
+                    DbCheckerFileWriter.writeTo(DbCheckerFileWriter.WRITER_REBUILD_INDEX,
+                            String.format("id:%s, cfName:%s", objRow.getKey(),
+                                    indexedField.getDataObjectType().getSimpleName()));
+                }
             }
         }
     }
@@ -695,7 +689,7 @@ public class DbConsistencyCheckerHelper {
     }
     
     private boolean isValidDataObjectKey(URI uri, final Class<? extends DataObject> type) {
-    	return uri != null && URIUtil.isValid(uri) && URIUtil.isType(uri, type);
+        return uri != null && URIUtil.isValid(uri) && URIUtil.isType(uri, type);
     }
 
     protected Map<Long, String> querySchemaVersions() {
@@ -743,42 +737,6 @@ public class DbConsistencyCheckerHelper {
     
     public ThreadPoolExecutor getExecutor() {
         return executor;
-    }
-    
-    public <T extends DataObject> boolean checkSingleObjectConsistency(Keyspace ks, Class<? extends T> clazz, Collection<T> dataobjects) {
-        _log.info("checkSingleObjectConsistency for {}", clazz);
-        CheckResult checkResult = new CheckResult();
-        Map<String, ColumnField> indexedFields = new HashMap<String, ColumnField>();
-        DataObjectType doType = TypeMap.getDoType(clazz);
-        for (ColumnField field : doType.getColumnFields()) {
-            if (field.getIndex() != null) {
-                indexedFields.put(field.getName(), field);
-            }
-        }
-
-        if (indexedFields.isEmpty()) {
-            return true;
-        }
-        
-        List<URI> uriList = new ArrayList<URI>();
-        for (T object : dataobjects) {
-            uriList.add(object.getId());
-        }
-        
-        Rows<String, CompositeColumnName> rows = getDbClient().queryRowsWithAllColumns(ks, uriList, doType.getCF());
-        for (Row<String, CompositeColumnName> objRow : rows) {
-            try {
-                checkDataObject2Index(false, checkResult, indexedFields, ks, objRow);
-            } catch (ConnectionException e) {
-                _log.error("Failed to check single object:", e);
-            }
-        }
-        
-        if (checkResult.getTotal() > 0) {
-            _log.error("Find inconsitency data object {}", (new Exception()).getStackTrace());
-        }
-        
-        return true;
     }
 
     public static class CheckResult {

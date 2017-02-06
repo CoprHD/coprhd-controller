@@ -687,7 +687,6 @@ public class HDSMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
         } else {
             exportTaskCompleter = new ExportMaskDeleteCompleter(exportGroupURI,
                     exportMask.getId(), stepId);
-            ((ExportMaskDeleteCompleter) exportTaskCompleter).setVolumes(ExportMaskUtils.getVolumeURIs(exportMask));
         }
 
         Workflow.Method markExportMaskInActiveExecuteMethod = new Workflow.Method(

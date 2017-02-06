@@ -4868,7 +4868,9 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
                 String exportMaskDeleteStep = workflow.createStepId();
                 ExportMaskDeleteCompleter exportMaskDeleteCompleter = new ExportMaskDeleteCompleter(exportGroup.getId(),
                         exportMask.getId(), exportMaskDeleteStep);
-                exportMaskDeleteCompleter.setVolumes(ExportMaskUtils.getVolumeURIs(exportMask));
+
+                // TODO below line no longer required? introduced by merge conflict
+                // exportMaskDeleteCompleter.setVolumes(ExportMaskUtils.getVolumeURIs(exportMask));
 
                 Workflow.Method storageViewExecuteMethod = deleteStorageViewMethod(vplex.getId(), exportMask.getId(),
                         exportMaskDeleteCompleter);

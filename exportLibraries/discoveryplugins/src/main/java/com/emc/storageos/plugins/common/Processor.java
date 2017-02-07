@@ -366,11 +366,13 @@ public abstract class Processor {
     public Object getFromOutputArgs(CIMArgument[] outputArguments, String key) {
         Object element = null;
         for (CIMArgument outArg : outputArguments) {
-            if (outArg != null) {
+            if (outArg != null && null != outArg.getName()) {
                 if (outArg.getName().equals(key)) {
                     element = outArg.getValue();
                     break;
                 }
+            } else {
+                _logger.info("Provider returned unexpected values");
             }
         }
         return element;

@@ -1608,7 +1608,7 @@
     {
         key : "vasa_base_url",
         label : "VASA Base URL",
-        description : "ViPR instance URL that the VASA storage provider can utilize. By default the VASA provider utilizes the local ViPR node.",
+        description : "ViPR instance URL that the VASA storage provider can utilize. By default the VASA provider utilizes this URL: 'https://localhost:4443'.",
         type : "url",
         userConfigurable : false, 
         userMutable : true,
@@ -1617,7 +1617,7 @@
         reconfigRequired : false,
         rebootRequired : true,
         controlNodeOnly : true,
-        value : "", 
+        value : "https://localhost:4443", 
     },
     {
         key : "system_login_banner",

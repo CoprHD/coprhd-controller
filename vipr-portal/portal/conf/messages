@@ -3223,7 +3223,7 @@ orders.delete.description=Click Confirm to delete the selected (checked) orders.
 orders.delete.all=All rows are checked, all <b style="color:red">%s</b> orders will be deleted.
 orders.delete.help=We strongly recommend that you download the orders before deleting them. <p>Only one 'Download/Delete' orders job is allowed at any given time. Only orders whose status are in '%s' can be deleted.</p>
 orders.delete.submitted=Orders deletion submitted successfully.
-orders.delete.status=Deleting orders from %s to %s is in progress: %s of %s orders has been successfully deleted, %s orders failed.
+orders.delete.status=Deleting orders from %s to %s is in progress: %s of %s orders have been successfully deleted, %s orders failed.
 orders.download=Download Orders
 orders.download.description=Click Confirm to delete the selected (checked) orders.
 orders.download.all=All rows are checked, all <b style="color:red">%s</b> orders will be downloaded.

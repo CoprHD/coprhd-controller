@@ -127,6 +127,7 @@ public class OrderServiceJobConsumer extends DistributedQueueConsumer<OrderServi
                     try {
                         log.info("To delete order {}", order.getId());
                         orderManager.deleteOrder(order);
+                        jobStatus.addCompleted(1);
                         nDeleted++;
                     } catch (BadRequestException e) {
                         log.warn("Failed to delete order {} e=", id, e);
@@ -135,10 +136,11 @@ public class OrderServiceJobConsumer extends DistributedQueueConsumer<OrderServi
                         log.warn("Failed to delete order={} e=", id, e);
                         nFailed++;
                     }
-                }
 
-                jobStatus.addCompleted(nDeleted);
-                jobStatus.setFailed(nFailed);
+                    jobStatus.setFailed(nFailed);
+
+                    orderService.saveJobInfo(jobStatus);
+                }
 
                 long end = System.currentTimeMillis();
                 long speed = (end - start) / (nDeleted + nFailed);

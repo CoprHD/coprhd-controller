@@ -43,8 +43,8 @@ class ExportGroup(object):
     URI_EXPORT_GROUP_UPDATE = '/block/exports/{0}'
     URI_EXPORT_GROUP_TASKS_LIST = '/block/exports/{0}/tasks'
     URI_EXPORT_GROUP_TASK = URI_EXPORT_GROUP_TASKS_LIST + '/{1}'
-    URI_EXPORT_GROUP_PATH_ADJUSTMENT_PREVIEW = URI_EXPORT_GROUP + '/{0}' + '/paths-adjustment-preview'
-    URI_EXPORT_GROUP_PATH_ADJUSTMENT = URI_EXPORT_GROUP + '/{0}' + '/paths-adjustment'
+    URI_EXPORT_GROUP_PATH_ADJUSTMENT_PREVIEW = URI_EXPORT_SHOW +  '/paths-adjustment-preview'
+    URI_EXPORT_GROUP_PATH_ADJUSTMENT = URI_EXPORT_SHOW +  '/paths-adjustment'
     # 'Exclusive' is for backward compatibility only
     EXPORTGROUP_TYPE = ['Initiator', 'Host', 'Cluster', 'Exclusive']
     URI_EXPORT_GROUP_TAG = URI_EXPORT_GROUPS_SHOW + '/tags'

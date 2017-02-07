@@ -63,23 +63,23 @@ public class HostRescanDeviceController implements HostRescanController {
         WorkflowStepCompleter.stepSucceeded(taskId, String.format("Rescan complete host %s", host.getHostName()));
         
         } catch (DeviceControllerException ex) {
-            log.info(String.format("Exception trying to rescan host %s : %s", hostId, ex.getMessage()));
+            log.error(String.format("Exception trying to rescan host %s : %s", hostId, ex.getMessage()));
             WorkflowStepCompleter.stepFailed(taskId, ex);
         } catch (Exception ex) {
-            log.info(String.format("Exception trying to rescan host %s : %s", hostId, ex.getMessage(), ex));
+            log.error(String.format("Exception trying to rescan host %s : %s", hostId, ex.getMessage(), ex));
             WorkflowStepCompleter.stepFailed(taskId, 
                     DeviceControllerException.exceptions.hostRescanUnsuccessful(hostId.toString(), "Unanticipated exception"));
         }
     }
     
     private HostRescanAdapter getRescanAdapter(Host host) {
-        if (host.getType().equalsIgnoreCase(HostType.Linux.name())) {
+        if (HostType.Linux.name().equalsIgnoreCase(host.getType())) {
             return new LinuxSystemCLI(host.getHostName(), host.getPortNumber(), host.getUsername(), host.getPassword());
-        } else if (host.getType().equalsIgnoreCase(HostType.AIX.name())) {
+        } else if (HostType.AIX.name().equalsIgnoreCase(host.getType())) {
             return new AixSystem(host.getHostName(), host.getPortNumber(), host.getUsername(), host.getPassword());
-        } else if (host.getType().equalsIgnoreCase(HostType.HPUX.name())) {
+        } else if (HostType.HPUX.name().equalsIgnoreCase(host.getType())) {
             return new HpuxSystem(host.getHostName(), host.getPortNumber(), host.getUsername(), host.getPassword());
-        } else if (host.getType().equalsIgnoreCase(HostType.Windows.name())) {
+        } else if (HostType.Windows.name().equalsIgnoreCase(host.getType())) {
             List<AuthnProvider> authProviders = new ArrayList<AuthnProvider>();
             for (URI authProviderId : getDbClient().queryByType(AuthnProvider.class, true)) {
                  AuthnProvider authProvider = getDbClient().queryObject(AuthnProvider.class, authProviderId);
@@ -87,7 +87,7 @@ public class HostRescanDeviceController implements HostRescanController {
             }
             KerberosUtil.initializeKerberos(authProviders);
             return WindowsHostDiscoveryAdapter.createWindowsSystem(host);
-        } else if (host.getType().equalsIgnoreCase(HostType.Esx.name())) {
+        } else if (HostType.Esx.name().equalsIgnoreCase(host.getType())) {
             if (host.getUsername() != null && host.getPassword() != null) {
                 VCenterAPI vcenterAPI = EsxHostDiscoveryAdapter.createVCenterAPI(host);
                 List<HostSystem> hostSystems = vcenterAPI.listAllHostSystems();

@@ -805,7 +805,6 @@ public class ExportWorkflowUtils {
         
         
         // Loop through each Host. Generate a step to rescan the host if it is not type Other.
-        boolean generatedStep = false;
         String stepGroup = "hostRescan" + (waitFor != null ? waitFor : "");
         boolean queuedStep = false;
         for (URI hostURI : hostURIs) {
@@ -814,8 +813,8 @@ public class ExportWorkflowUtils {
                 _log.info(String.format("Host not found or inactive: %s", hostURI));
                 continue;
             }
-            if (host.getType().equalsIgnoreCase(HostType.Other.name())) {
-                _log.info(String.format("Manually entered host %s, cannot rescan", host.getHostName()));
+            if (!host.getDiscoverable()) {
+                _log.info(String.format("Host %s is not discoverable, so cannot rescan", host.getHostName()));
                 continue;
             }
             Workflow.Method rescan = hostRescanDeviceController.rescanHostStorageMethod(hostURI);

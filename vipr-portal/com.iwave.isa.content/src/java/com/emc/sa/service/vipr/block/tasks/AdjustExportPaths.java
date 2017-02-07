@@ -69,18 +69,18 @@ public class AdjustExportPaths extends WaitForTask<ExportGroupRestRep> {
     }
     
     private String buildPathDetails(List<InitiatorPathParam> param) {
-        String str = new String("");
+        StringBuilder builder = new StringBuilder();
         
         for (InitiatorPathParam ini : param) {
-            str += " " + ini.getInitiator().toString() + ": [";
+            builder.append(" " + ini.getInitiator().toString() + ": [");
             List<String> ports = new ArrayList<String>();
             for (URI uri : ini.getStoragePorts()) {
                 ports.add(uri.toString());
             }
-            str += String.join(", ", ports);
-            str += "],";
+            builder.append(String.join(", ", ports));
+            builder.append("],");
         }
         
-        return str;
+        return builder.toString();
     }
 }

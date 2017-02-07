@@ -23,6 +23,7 @@ import org.apache.curator.framework.recipes.locks.InterProcessLock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.util.CollectionUtils;
 
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.customconfigcontroller.CustomConfigConstants;
@@ -1771,8 +1772,9 @@ public class NetworkDeviceController implements NetworkController {
     }
 
     private void logZones(List<NetworkFCZoneInfo> zones) {
-        if (zones.isEmpty()) {
+        if (CollectionUtils.isEmpty(zones)) {
             _log.info("No zones to log in logZones");
+            return;
         }
         for (NetworkFCZoneInfo zone : zones) {
             _log.info(String.format("zone %s endpoints %s vol %s last %s ref %s existing %s",

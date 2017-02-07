@@ -94,9 +94,7 @@ public class ExportPortRebalanceCompleter extends ExportTaskCompleter{
     
     /**
      * Update export group pathParameters for the impacted volumes
-     * 
      * @param dbClient
-     * @param exportGroup
      */
     private void updateVolumeExportPathParam(DbClient dbClient) {
         log.info("updating path param map.");

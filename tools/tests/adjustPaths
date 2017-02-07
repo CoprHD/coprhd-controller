@@ -141,6 +141,7 @@ echo VPLEX $vplex
 source subs/mkvplexvarrays 
 SITE1=VPLEX+FNM00130900300_FNM00130900301_cluster1 
 SITE2=VPLEX+FNM00130900300_FNM00130900301_cluster2
+
 source subs/hosts
 aclusterName=aclus${hostseed}
 cluster_create $aclusterName
@@ -171,6 +172,7 @@ volnameG=${volnameG:-"adjPathsG$hostseed"}
 
 source subs/volume
 echo SITE1 $SITE1 
+
 
 volume_create $volnameA $SITE1 ${SITE1}_Local ""
 # Test single host using VPLEX local in SITE1; note only VSAN11 talks to cluster1

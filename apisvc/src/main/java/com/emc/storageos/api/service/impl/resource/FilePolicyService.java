@@ -596,6 +596,10 @@ public class FilePolicyService extends TaskResourceService {
             throw APIException.badRequests.invalidFileReplicationPolicyParam(param.getPolicyName(), errorMsg.toString());
         }
 
+        // Make apply at as mandatory field
+        ArgValidator.checkFieldNotNull(param.getReplicationPolicyParams().getReplicationCopyMode(), "replication_copy_mode");
+        ArgValidator.checkFieldNotNull(param.getReplicationPolicyParams().getReplicationType(), "replication_type");
+
         // Validate replication policy schedule parameters
         boolean isValidSchedule = FilePolicyServiceUtils.validateAndUpdatePolicySchdeuleParam(
                 param.getReplicationPolicyParams().getPolicySchedule(), fileReplicationPolicy, errorMsg);
@@ -711,10 +715,18 @@ public class FilePolicyService extends TaskResourceService {
             if (replParam.getReplicationType() != null && !replParam.getReplicationType().isEmpty()) {
                 ArgValidator.checkFieldValueFromEnum(replParam.getReplicationType(), "replicationType",
                         EnumSet.allOf(FilePolicy.FileReplicationType.class));
-                // <TODO>
                 // Dont change the replication type, if policy was applied to storage resources!!
-
-                fileReplicationPolicy.setFileReplicationType(replParam.getReplicationType());
+                if (!replParam.getReplicationType().equalsIgnoreCase(fileReplicationPolicy.getFileReplicationType())) {
+                    if (fileReplicationPolicy.getPolicyStorageResources() != null
+                            && !fileReplicationPolicy.getPolicyStorageResources().isEmpty()) {
+                        errorMsg.append("Active resources exist on the policy");
+                        _log.error("Failed to update file replication policy due to {} ", errorMsg.toString());
+                        throw APIException.badRequests.invalidFileReplicationPolicyParam(fileReplicationPolicy.getFilePolicyName(),
+                                errorMsg.toString());
+                    } else {
+                        fileReplicationPolicy.setFileReplicationType(replParam.getReplicationType());
+                    }
+                }
             }
 
             // Validate replication policy schedule parameters

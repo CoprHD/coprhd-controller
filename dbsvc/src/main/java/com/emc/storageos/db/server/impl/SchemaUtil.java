@@ -1112,7 +1112,6 @@ public class SchemaUtil {
                         @Override
                         public String internalExecute(Cassandra.Client client, ConnectionContext context) throws Exception {
                             client.set_keyspace(_keyspaceName);
-                            //return client.system_update_column_family(((ThriftColumnFamilyDefinitionImpl) def)
                             return client.system_update_column_family(def.getThriftColumnFamilyDefinition());
                         }
                     }, context.getAstyanaxConfiguration().getRetryPolicy().duplicate()).getResult();

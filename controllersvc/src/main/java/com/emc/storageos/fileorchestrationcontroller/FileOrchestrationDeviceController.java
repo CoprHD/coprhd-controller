@@ -48,6 +48,7 @@ import com.emc.storageos.model.file.MountInfo;
 import com.emc.storageos.model.file.NfsACE;
 import com.emc.storageos.model.file.ShareACL;
 import com.emc.storageos.model.file.ShareACLs;
+import com.emc.storageos.model.file.policy.FilePolicyUpdateParam;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.volumecontroller.ControllerException;
@@ -61,6 +62,7 @@ import com.emc.storageos.volumecontroller.impl.file.FileCreateWorkflowCompleter;
 import com.emc.storageos.volumecontroller.impl.file.FileDeleteWorkflowCompleter;
 import com.emc.storageos.volumecontroller.impl.file.FilePolicyAssignWorkflowCompleter;
 import com.emc.storageos.volumecontroller.impl.file.FilePolicyUnAssignWorkflowCompleter;
+import com.emc.storageos.volumecontroller.impl.file.FileProtectionPolicyUpdateCompleter;
 import com.emc.storageos.volumecontroller.impl.file.FileSnapshotWorkflowCompleter;
 import com.emc.storageos.volumecontroller.impl.file.FileWorkflowCompleter;
 import com.emc.storageos.volumecontroller.impl.file.MirrorFileFailoverTaskCompleter;
@@ -97,6 +99,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
     static final String REPLICATE_QUOTA_DIR_SETTINGS_TO_TARGET_WF_NAME = "REPLICATE_QUOTA_DIR_SETTINGS_TO_TARGET_WORKFLOW";
     static final String UNASSIGN_FILE_POLICY_WF_NAME = "UNASSIGN_FILE_POLICY_WORKFLOW";
     static final String ASSIGN_FILE_POLICY_WF_NAME = "ASSIGN_FILE_POLICY_WORKFLOW";
+    static final String UPDATE_FILE_POLICY_WF_NAME = "UPDATE_FILE_POLICY_WORKFLOW";
 
     static final String FAILOVER_FILESYSTEMS_WF_NAME = "FAILOVER_FILESYSTEM_WORKFLOW";
     static final String FAILBACK_FILESYSTEMS_WF_NAME = "FAILBACK_FILESYSTEM_WORKFLOW";
@@ -136,6 +139,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
     private static final String UNASSIGN_FILE_POLICY_METHOD = "unassignFilePolicy";
     private static final String ASSIGN_FILE_SNAPSHOT_POLICY_TO_VIRTUAL_POOL_METHOD = "assignFileSnapshotPolicyToVirtualPool";
     private static final String ASSIGN_FILE_SNAPSHOT_POLICY_TO_PROJECT_METHOD = "assignFileSnapshotPolicyToProject";
+    private static final String UPDATE_STORAGE_SYSTEM_FILE_PROTECTION_POLICY_METHOD = "updateStorageSystemFileProtectionPolicy";
 
     /*
      * (non-Javadoc)
@@ -1920,7 +1924,8 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
                                                         filePolicy.getId(),
                                                         vpoolURI,
                                                         storageSystemURI);
-                                        Object[] args = new Object[] { storageSystemURI, vNASURI, filePolicyToAssign, vpoolURI, projectURI };
+                                        Object[] args = new Object[] { storageSystemURI, vNASURI, filePolicyToAssign, vpoolURI,
+                                                projectURI };
                                         waitFor = _fileDeviceController.createMethod(workflow, waitFor,
                                                 ASSIGN_FILE_SNAPSHOT_POLICY_TO_PROJECT_METHOD,
                                                 stepId,
@@ -1964,6 +1969,53 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
             s_logger.error(String.format("Assigning file policy : %s to vpool(s) failed", filePolicy.getId()), ex);
             ServiceError serviceError = DeviceControllerException.errors
                     .assignFilePolicyFailed(filePolicyToAssign.toString(), FilePolicyApplyLevel.project.name(), ex);
+            completer.error(s_dbClient, _locker, serviceError);
+        }
+
+    }
+
+    @Override
+    public void updateFileProtectionPolicy(URI policy, FilePolicyUpdateParam param, String taskId) {
+        FilePolicy filePolicy = s_dbClient.queryObject(FilePolicy.class, policy);
+        String opName = ResourceOperationTypeEnum.UPDATE_FILE_PROTECTION_POLICY.getName();
+        FileProtectionPolicyUpdateCompleter completer = new FileProtectionPolicyUpdateCompleter(policy, taskId);
+
+        try {
+            String waitFor = null;
+            Workflow workflow = _workflowService.getNewWorkflow(this, UPDATE_FILE_POLICY_WF_NAME, false, taskId, completer);
+            completer.setWorkFlowId(workflow.getWorkflowURI());
+            // Get the file policy storage resources!!!
+            List<PolicyStorageResource> policyStorageResources = FileOrchestrationUtils.getFilePolicyStorageResources(s_dbClient,
+                    filePolicy);
+            if (policyStorageResources != null && !policyStorageResources.isEmpty()) {
+                s_logger.info("Generating steps for updating file policy {} ", filePolicy.getFilePolicyName());
+                for (PolicyStorageResource policyStorageRes : policyStorageResources) {
+                    StorageSystem system = s_dbClient.queryObject(StorageSystem.class, policyStorageRes.getStorageSystem());
+                    String stepId = workflow.createStepId();
+                    String stepDes = String
+                            .format("Updating policy on storage system %s, at path: %s",
+                                    system.getLabel(),
+                                    policyStorageRes.getResourcePath());
+                    Object[] args = new Object[] { policyStorageRes.getStorageSystem(), policy, policyStorageRes.getId(), param };
+                    // Try to update all storage system policies
+                    // Dont use waitFor for next step!!!
+                    _fileDeviceController.createMethod(workflow, waitFor,
+                            UPDATE_STORAGE_SYSTEM_FILE_PROTECTION_POLICY_METHOD,
+                            stepId,
+                            stepDes,
+                            policyStorageRes.getStorageSystem(), args);
+                }
+                String successMessage = String.format("Updating file policy {} is successful.", filePolicy.getFilePolicyName());
+                workflow.executePlan(completer, successMessage);
+
+            } else {
+                s_logger.info("No File Policy Storage resource for policy {} to update", filePolicy.getFilePolicyName());
+            }
+
+        } catch (Exception ex) {
+            s_logger.error(String.format("Updating file protection policy {} failed", filePolicy.getFilePolicyName()), ex);
+            ServiceError serviceError = DeviceControllerException.errors
+                    .updateFilePolicyFailed(filePolicy.toString(), ex);
             completer.error(s_dbClient, _locker, serviceError);
         }
 

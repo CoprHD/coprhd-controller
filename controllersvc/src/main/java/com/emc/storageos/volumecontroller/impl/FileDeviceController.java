@@ -4213,15 +4213,19 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                 BiosCommandResult result = getDevice(storageObj.getSystemType())
                         .updateStorageSystemFileProtectionPolicy(storageObj, args);
 
-                filePolicy.getOpStatus().updateTaskStatus(opId, result.toOperation());
+                if (!result.isCommandSuccess() && !result.getCommandPending()) {
+                    WorkflowStepCompleter.stepFailed(opId, result.getServiceCoded());
+                }
+                if (result.isCommandSuccess()) {
+                    WorkflowStepCompleter.stepSucceded(opId);
+                }
             } else {
                 throw DeviceControllerException.exceptions.invalidObjectNull();
             }
         } catch (Exception e) {
-            String[] params = { storage.toString(), policy.toString(), e.getMessage() };
-            _log.error("Unable to get storage system policy for storage resource : storage system {}, Policy URI {},: Error {}", params);
+            ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
+            WorkflowStepCompleter.stepFailed(opId, serviceError);
         }
-
     }
 
     public void unmountDevice(URI hostId, URI resId, String mountPath, String opId) {

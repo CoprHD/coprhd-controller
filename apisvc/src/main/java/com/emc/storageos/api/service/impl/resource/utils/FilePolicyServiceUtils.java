@@ -5,11 +5,9 @@
 package com.emc.storageos.api.service.impl.resource.utils;
 
 import java.net.URI;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.EnumSet;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
@@ -19,15 +17,12 @@ import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.api.service.impl.resource.ArgValidator;
 import com.emc.storageos.db.client.DbClient;
-import com.emc.storageos.db.client.constraint.ContainmentConstraint;
-import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.FilePolicy;
 import com.emc.storageos.db.client.model.FilePolicy.FilePolicyType;
 import com.emc.storageos.db.client.model.FilePolicy.ScheduleFrequency;
 import com.emc.storageos.db.client.model.FilePolicy.SnapshotExpireType;
 import com.emc.storageos.db.client.model.FileReplicationTopology;
 import com.emc.storageos.db.client.model.FileShare;
-import com.emc.storageos.db.client.model.PolicyStorageResource;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
@@ -503,29 +498,5 @@ public class FilePolicyServiceUtils {
             }
         }
         return false;
-    }
-
-    /**
-     * Get the set of file policy storage resource for given policy
-     * 
-     * @param dbClient
-     * @param policy
-     * @return
-     *
-     */
-    public static List<PolicyStorageResource> getFilePolicyStorageResources(DbClient dbClient, FilePolicy policy) {
-        URIQueryResultList policyResourceURIs = new URIQueryResultList();
-        dbClient.queryByConstraint(
-                ContainmentConstraint.Factory.getFilePolicyStorageResourceConstraint(policy.getId()),
-                policyResourceURIs);
-        List<PolicyStorageResource> policyStorageResources = new ArrayList<PolicyStorageResource>();
-        Iterator<URI> policyStorageResIter = policyResourceURIs.iterator();
-        while (policyStorageResIter.hasNext()) {
-            PolicyStorageResource policyStorageRes = dbClient.queryObject(PolicyStorageResource.class, policyStorageResIter.next());
-            if (policyStorageRes != null && !policyStorageRes.getInactive()) {
-                policyStorageResources.add(policyStorageRes);
-            }
-        }
-        return policyStorageResources;
     }
 }

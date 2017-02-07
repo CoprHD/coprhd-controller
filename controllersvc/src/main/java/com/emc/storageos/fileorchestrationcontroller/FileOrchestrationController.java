@@ -13,6 +13,7 @@ import com.emc.storageos.Controller;
 import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.model.file.CifsShareACLUpdateParams;
 import com.emc.storageos.model.file.FileExportUpdateParams;
+import com.emc.storageos.model.file.policy.FilePolicyUpdateParam;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.FileSMBShare;
@@ -242,4 +243,6 @@ public interface FileOrchestrationController extends Controller {
 
     public abstract void assignFileSnapshotPolicyToProject(Map<URI, List<URI>> vpoolToStorageSystemMap, List<URI> projectURIs,
             URI filePolicyToAssign, String taskId);
+
+    public abstract void updateFileProtectionPolicy(URI policy, FilePolicyUpdateParam param, String taskId);
 }

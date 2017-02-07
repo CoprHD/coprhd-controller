@@ -872,4 +872,28 @@ public final class FileOrchestrationUtils {
         return vNASURIList;
     }
 
+    /**
+     * Get the set of file policy storage resource for given policy
+     * 
+     * @param dbClient
+     * @param policy
+     * @return
+     *
+     */
+    public static List<PolicyStorageResource> getFilePolicyStorageResources(DbClient dbClient, FilePolicy policy) {
+        URIQueryResultList policyResourceURIs = new URIQueryResultList();
+        dbClient.queryByConstraint(
+                ContainmentConstraint.Factory.getFilePolicyStorageResourceConstraint(policy.getId()),
+                policyResourceURIs);
+        List<PolicyStorageResource> policyStorageResources = new ArrayList<PolicyStorageResource>();
+        Iterator<URI> policyStorageResIter = policyResourceURIs.iterator();
+        while (policyStorageResIter.hasNext()) {
+            PolicyStorageResource policyStorageRes = dbClient.queryObject(PolicyStorageResource.class, policyStorageResIter.next());
+            if (policyStorageRes != null && !policyStorageRes.getInactive()) {
+                policyStorageResources.add(policyStorageRes);
+            }
+        }
+        return policyStorageResources;
+    }
+
 }

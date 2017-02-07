@@ -49,6 +49,7 @@ import com.emc.storageos.vnxe.models.VNXeLunSnap;
 import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.VolumeURIHLU;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportMaskDeleteCompleter;
+import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportMaskRemoveInitiatorCompleter;
 import com.emc.storageos.volumecontroller.impl.smis.ExportMaskOperations;
 import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
 import com.emc.storageos.volumecontroller.impl.utils.ExportOperationContext;
@@ -731,7 +732,12 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
                     }
                 }
             }
-
+            // Update the initiators in the task completer such that we update the export mask/group correctly
+            for (Initiator initiator : initiators) {
+                if (addedInitiators == null || !addedInitiators.contains(initiator)) {
+                    ((ExportMaskRemoveInitiatorCompleter) taskCompleter).removeInitiator(initiator.getId());
+                }
+            }
             initiators = addedInitiators;
             if (initiators == null || initiators.isEmpty()) {
                 _logger.info("There was no context found for add initiator. So there is nothing to rollback.");

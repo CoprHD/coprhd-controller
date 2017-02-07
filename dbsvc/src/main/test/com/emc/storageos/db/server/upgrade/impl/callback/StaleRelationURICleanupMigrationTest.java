@@ -11,6 +11,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import org.apache.commons.collections.SetUtils;
 import org.apache.commons.lang.math.RandomUtils;
 import org.junit.Assert;
 import org.junit.Before;
@@ -29,6 +30,7 @@ import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.upgrade.callbacks.StaleRelationURICleanupMigration;
 import com.emc.storageos.db.server.DbsvcTestBase;
+import com.google.common.collect.Maps;
 
 public class StaleRelationURICleanupMigrationTest extends DbsvcTestBase {
     private StaleRelationURICleanupMigration callback;
@@ -56,24 +58,31 @@ public class StaleRelationURICleanupMigrationTest extends DbsvcTestBase {
         exportMask.addVolumes(createFakeDataObjectMap(Volume.class, 5));
         exportMask.addVolumes(createInactiveDataObjectMap(Volume.class, 5));
 		exportMask.addVolumes(existingVolumeMaps);
+		for (String initiator : exportMask.getInitiators()) {
+		    exportMask.addZoningMapEntry(initiator, new StringSet());
+		}
+		
         _dbClient.updateObject(exportMask);
         
-        exportMask = _dbClient.queryObject(ExportMask.class, exportMask.getId());
-        Assert.assertEquals(12, exportMask.getInitiators().size());
-        Assert.assertEquals(5, exportMask.getStoragePorts().size());
-        Assert.assertEquals(15, exportMask.getVolumes().size());
+        ExportMask target = _dbClient.queryObject(ExportMask.class, exportMask.getId());
+        Assert.assertTrue(SetUtils.isEqualSet(target.getInitiators(), exportMask.getInitiators()));
+        Assert.assertTrue(SetUtils.isEqualSet(target.getStoragePorts(), exportMask.getStoragePorts()));
+        Assert.assertTrue(Maps.difference(target.getVolumes(), exportMask.getVolumes()).areEqual());
         callback.process();
         
-		exportMask = _dbClient.queryObject(ExportMask.class, exportMask.getId());
-		Assert.assertEquals(existingInitiators.size(), exportMask.getInitiators().size());
+        target = _dbClient.queryObject(ExportMask.class, exportMask.getId());
+		Assert.assertEquals(existingInitiators.size(), target.getInitiators().size());
 		for (Initiator initiator : existingInitiators) {
-			Assert.assertTrue(exportMask.getInitiators().contains(initiator.getId().toString()));
+			Assert.assertTrue(target.getInitiators().contains(initiator.getId().toString()));
 		}
-		Assert.assertTrue(exportMask.getStoragePorts() == null || exportMask.getStoragePorts().isEmpty());
-		Assert.assertEquals(existingVolumeMaps.size(), exportMask.getVolumes().size());
+		Assert.assertTrue(target.getStoragePorts() == null || target.getStoragePorts().isEmpty());
+		Assert.assertEquals(existingVolumeMaps.size(), target.getVolumes().size());
 		for (Entry<URI, Integer> entry : existingVolumeMaps.entrySet()) {
-			Assert.assertEquals(entry.getValue().toString(), exportMask.getVolumes().get(entry.getKey().toString()));
+			Assert.assertEquals(entry.getValue().toString(), target.getVolumes().get(entry.getKey().toString()));
 		}
+		for (Initiator initiator : existingInitiators) {
+            Assert.assertTrue(exportMask.getZoningMap().containsKey(initiator.getId().toString()));
+        }
     }
     
     @Test
@@ -106,33 +115,33 @@ public class StaleRelationURICleanupMigrationTest extends DbsvcTestBase {
         
         _dbClient.updateObject(exportGroup);
         
-        exportGroup = _dbClient.queryObject(ExportGroup.class, exportGroup.getId());
-        Assert.assertEquals(12, exportGroup.getInitiators().size());
-        Assert.assertEquals(4, exportGroup.getHosts().size());
-        Assert.assertEquals(10, exportGroup.getVolumes().size());
-        Assert.assertEquals(1, exportGroup.getSnapshots().size());
-        Assert.assertEquals(10, exportGroup.getClusters().size());
-        Assert.assertEquals(1, exportGroup.getExportMasks().size());
+        ExportGroup target = _dbClient.queryObject(ExportGroup.class, exportGroup.getId());
+        Assert.assertTrue(SetUtils.isEqualSet(exportGroup.getInitiators(), target.getInitiators()));
+        Assert.assertTrue(SetUtils.isEqualSet(exportGroup.getHosts(), target.getHosts()));
+        Assert.assertTrue(Maps.difference(exportGroup.getVolumes(), target.getVolumes()).areEqual());
+        Assert.assertTrue(SetUtils.isEqualSet(exportGroup.getSnapshots(), target.getSnapshots()));
+        Assert.assertTrue(SetUtils.isEqualSet(exportGroup.getClusters(), target.getClusters()));
+        Assert.assertTrue(SetUtils.isEqualSet(exportGroup.getExportMasks(), target.getExportMasks()));
         
         callback.process();
         
-        exportGroup = _dbClient.queryObject(ExportGroup.class, exportGroup.getId());
-        Assert.assertEquals(existingInitiators.size(), exportGroup.getInitiators().size());
+        target = _dbClient.queryObject(ExportGroup.class, exportGroup.getId());
+        Assert.assertEquals(existingInitiators.size(), target.getInitiators().size());
         for (Initiator initiator : existingInitiators) {
-            Assert.assertTrue(exportGroup.getInitiators().contains(initiator.getId().toString()));
+            Assert.assertTrue(target.getInitiators().contains(initiator.getId().toString()));
         }
         
-        Assert.assertEquals(existingHosts.size(), exportGroup.getHosts().size());
+        Assert.assertEquals(existingHosts.size(), target.getHosts().size());
         for (Host host : existingHosts) {
-            Assert.assertTrue(exportGroup.getHosts().contains(host.getId().toString()));
+            Assert.assertTrue(target.getHosts().contains(host.getId().toString()));
         }
         
-        Assert.assertTrue(exportGroup.getSnapshots() == null || exportGroup.getSnapshots().isEmpty());
-        Assert.assertTrue(exportGroup.getClusters() == null || exportGroup.getClusters().isEmpty());
-        Assert.assertEquals(1, exportGroup.getExportMasks().size());
-        Assert.assertEquals(exportMask.getId().toString(), exportGroup.getExportMasks().toArray()[0]);
+        Assert.assertTrue(target.getSnapshots() == null || target.getSnapshots().isEmpty());
+        Assert.assertTrue(target.getClusters() == null || target.getClusters().isEmpty());
+        Assert.assertEquals(1, target.getExportMasks().size());
+        Assert.assertEquals(exportMask.getId().toString(), target.getExportMasks().toArray()[0]);
         
-        Assert.assertTrue(exportGroup.getVolumes() ==null || exportGroup.getVolumes().isEmpty());
+        Assert.assertTrue(target.getVolumes() ==null || target.getVolumes().isEmpty());
     }
     
     @Test

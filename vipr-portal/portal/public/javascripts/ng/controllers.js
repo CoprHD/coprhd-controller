@@ -1591,6 +1591,7 @@ angular.module("portalApp").controller("MyOrdersCtrl", function($scope) {
 	var ORDER_MY_LIST = routes.Order_list();
 	console.info($scope);
 	var dateFormat = "YYYY-MM-DD";
+	var watchFlag = false;
 	
 	var dateDaysAgo = $scope.dateDaysAgo;
 	var startDate = $scope.startDate;
@@ -1602,24 +1603,33 @@ angular.module("portalApp").controller("MyOrdersCtrl", function($scope) {
             $scope.rangeStartDate = startDate != null?startDate : formatDate(dateDaysAgo, dateFormat);
             $scope.rangeEndDate = endDate != null?endDate : formatDate(current, dateFormat);
         });  
-    });   
+    });
     
     $scope.$watch('rangeEndDate', function (newVal, oldVal) {
-    	console.info("vals "+newVal+"\t|"+oldVal);
-    	if(oldVal === undefined) return;
-    	if(newVal < $scope.rangeStartDate) {
-    		alert("The End Date must be not earlier than the Start Date, please re-select.");
+    	console.info("vals "+oldVal+"\t|"+newVal+"\t|"+$scope.rangeStartDate+"\t|"+$scope.rangeEndDate);
+    	if(watchFlag === false || oldVal === undefined || oldVal === newVal) {
+    		watchFlag = false;
     		return;
-    	}
-    	
-        var url = ORDER_MY_LIST + "?startDate=" + encodeURIComponent($scope.rangeStartDate)+
+    	} else if(newVal < $scope.rangeStartDate) {
+    		alert("The End Date must be not earlier than the Start Date, please re-select.");
+    		watchFlag = false;
+    		return;
+    	} else {
+    		console.info("vals22 "+oldVal+"\t|"+newVal);
+    		var url = ORDER_MY_LIST + "?startDate=" + encodeURIComponent($scope.rangeStartDate)+
         			"&endDate="+encodeURIComponent($scope.rangeEndDate);
-        $('.bfh-datepicker-toggle input').attr("readonly", true);
-        $('date-picker').click(false);
+    		$('.bfh-datepicker-toggle input').attr("readonly", true);
+    		$('date-picker').click(false);
         
-        console.info(url);
-        window.location.href = url;
+    		console.info(url);
+    		window.location.href = url;
+        }
     });
+    
+    angular.element("#endDatePicker").on("click", "table", function(e) {
+        console.info("endDatePicker click listener");
+        watchFlag = true;
+    });   
     
 });
 

@@ -1358,10 +1358,16 @@ test_2() {
                                     failure_015_SmisCommandHelper.invokeMethod_AddMembers \
                                     failure_011_VNXVMAX_Post_Placement_outside_trycatch \
                                     failure_012_VNXVMAX_Post_Placement_inside_trycatch \
-                                    failure_004:failure_015_SmisCommandHelper.invokeMethod_EMCListSFSEntries
                                     failure_004:failure_015_SmisCommandHelper.invokeMethod_RemoveMembers \
                                     failure_004:failure_015_SmisCommandHelper.invokeMethod_DeleteGroup \
                                     failure_004:failure_015_SmisCommandHelper.invokeMethod_ReturnElementsToStoragePool"
+    fi
+
+    # VMAX3 only failure injections
+    if [ "${SS}" = "vmax3" ]
+    then
+      storage_failure_injections="${storage_failure_injections} \
+                                  failure_004:failure_015_SmisCommandHelper.invokeMethod_EMCListSFSEntries"
     fi
 
     if [ "${SS}" = "vnx" ]

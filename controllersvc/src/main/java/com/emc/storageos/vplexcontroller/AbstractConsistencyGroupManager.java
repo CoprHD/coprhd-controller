@@ -173,7 +173,7 @@ public abstract class AbstractConsistencyGroupManager implements ConsistencyGrou
                         CREATE_CONSISTENCY_GROUP_METHOD_NAME, localSystemUri, cgURI);
                 returnWaitFor = workflow.createStep(DELETE_LOCAL_CG_STEP, String.format(
                         "Deleting Consistency Group %s on local system %s", localCgName,
-                        localSystemUri.toString()), null, localSystemUri, localSystem.getSystemType(),
+                        localSystemUri.toString()), returnWaitFor, localSystemUri, localSystem.getSystemType(),
                         BlockDeviceController.class, deleteCGMethod, rollbackDeleteCGMethod, null);
             }
         }

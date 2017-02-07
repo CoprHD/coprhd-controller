@@ -31,8 +31,10 @@ import com.emc.storageos.vplex.api.VPlexApiExceptions;
 /**
  * This interface holds all the methods and interfaces used to create {@link DeviceControllerException}s
  * <p/>
- * Remember to add the English message associated to the method in DeviceControllerExceptions.properties and use the annotation
- * {@link DeclareServiceCode} to set the service code associated to this error condition. You may need to create a new service code if there
+ * Remember to add the English message associated to the method in DeviceControllerExceptions.properties and use the
+ * annotation
+ * {@link DeclareServiceCode} to set the service code associated to this error condition. You may need to create a new
+ * service code if there
  * is no an existing one suitable for your error condition.
  * <p/>
  * For more information or to see an example, check the Developers Guide section in the Error Handling Wiki page:
@@ -372,16 +374,13 @@ public interface DeviceControllerExceptions {
     public DeviceControllerException virtualArrayNotFound();
 
     @DeclareServiceCode(ServiceCode.CONTROLLER_VMAX_MULTIPLE_MATCHING_COMPUTE_RESOURCE_MASKS)
-    public DeviceControllerException
-            vmaxMultipleMatchingComputeResourceMasks(String maskNames);
+    public DeviceControllerException vmaxMultipleMatchingComputeResourceMasks(String maskNames);
 
     @DeclareServiceCode(ServiceCode.CONTROLLER_ERROR_ASSIGNING_STORAGE_PORTS)
-    public DeviceControllerException
-    exceptionAssigningStoragePorts(String message, Throwable ex);
+    public DeviceControllerException exceptionAssigningStoragePorts(String message, Throwable ex);
 
     @DeclareServiceCode(ServiceCode.CONTROLLER_ERROR_ASSIGNING_STORAGE_PORTS)
-    public DeviceControllerException
-    unexpectedExceptionAssigningPorts(Throwable ex);
+    public DeviceControllerException unexpectedExceptionAssigningPorts(Throwable ex);
 
     @DeclareServiceCode(ServiceCode.CONTROLLER_JOB_ERROR)
     public DeviceControllerException cannotFindActiveProviderForStorageSystem();
@@ -414,12 +413,10 @@ public interface DeviceControllerExceptions {
     public DeviceControllerException consistencyGroupNotFoundForProvider(String name, String label, String provider);
 
     @DeclareServiceCode(ServiceCode.CONTROLLER_ERROR)
-    public DeviceControllerException
-    failedToAddMembersToConsistencyGroup(String name, String deviceLabel, String error);
+    public DeviceControllerException failedToAddMembersToConsistencyGroup(String name, String deviceLabel, String error);
 
     @DeclareServiceCode(ServiceCode.CONTROLLER_ERROR)
-    public DeviceControllerException
-    failedToRemoveMembersToConsistencyGroup(String name, String deviceLabel, String error);
+    public DeviceControllerException failedToRemoveMembersToConsistencyGroup(String name, String deviceLabel, String error);
 
     @DeclareServiceCode(ServiceCode.CONTROLLER_ERROR)
     public DeviceControllerException failedToUpdateConsistencyGroup(String message);

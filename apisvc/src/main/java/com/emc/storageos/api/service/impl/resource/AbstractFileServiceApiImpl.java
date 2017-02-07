@@ -28,6 +28,7 @@ import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.common.DependencyChecker;
 import com.emc.storageos.fileorchestrationcontroller.FileDescriptor;
 import com.emc.storageos.fileorchestrationcontroller.FileOrchestrationController;
+import com.emc.storageos.fileorchestrationcontroller.FileStorageSystemAssociation;
 import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.TaskResourceRep;
 import com.emc.storageos.model.file.CifsShareACLUpdateParams;
@@ -335,6 +336,24 @@ public abstract class AbstractFileServiceApiImpl<T> implements FileServiceApi {
         FileOrchestrationController controller = getController(FileOrchestrationController.class,
                 FileOrchestrationController.FILE_ORCHESTRATION_DEVICE);
         controller.updateFileProtectionPolicy(policy, param, taskId);
+
+    }
+
+    @Override
+    public void assignFileReplicationPolicyToVirtualPool(List<FileStorageSystemAssociation> associations,
+            List<URI> vpoolURIs, URI filePolicyToAssign, String taskId) {
+        FileOrchestrationController controller = getController(FileOrchestrationController.class,
+                FileOrchestrationController.FILE_ORCHESTRATION_DEVICE);
+        controller.assignFileReplicationPolicyToVirtualPool(associations, vpoolURIs, filePolicyToAssign, taskId);
+
+    }
+
+    @Override
+    public void assignFileReplicationPolicyToProject(List<FileStorageSystemAssociation> associations, URI vpoolURI, List<URI> projectURIs,
+            URI filePolicyToAssign, String taskId) {
+        FileOrchestrationController controller = getController(FileOrchestrationController.class,
+                FileOrchestrationController.FILE_ORCHESTRATION_DEVICE);
+        controller.assignFileReplicationPolicyToProject(associations, vpoolURI, projectURIs, filePolicyToAssign, taskId);
 
     }
 

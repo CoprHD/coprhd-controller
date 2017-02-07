@@ -23,6 +23,7 @@ public class PolicyStorageResource extends DataObject {
     private String policyNativeId;
     private String resourcePath;
     private String nativeGuid;
+    private FileReplicaPolicyTargetMap fileReplicaPolicyTargetMap;
 
     @RelationIndex(cf = "RelationIndex", type = FilePolicy.class)
     @Name("filePolicyId")
@@ -94,6 +95,15 @@ public class PolicyStorageResource extends DataObject {
     public void setNativeGuid(String nativeGuid) {
         this.nativeGuid = nativeGuid;
         setChanged("nativeGuid");
+    }
+
+    @Name("filePolicyTargetMap")
+    public FileReplicaPolicyTargetMap getFileReplicaPolicyTargetMap() {
+        return fileReplicaPolicyTargetMap;
+    }
+
+    public void setFileReplicaPolicyTargetMap(FileReplicaPolicyTargetMap fileReplicaPolicyTargetMap) {
+        this.fileReplicaPolicyTargetMap = fileReplicaPolicyTargetMap;
     }
 
 }

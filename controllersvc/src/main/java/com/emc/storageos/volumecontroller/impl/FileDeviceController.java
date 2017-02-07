@@ -4442,7 +4442,8 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
     /**
      * 
      * @param storage
-     * @param filePolicy URI of the file policy to be applied
+     * @param filePolicy
+     *            URI of the file policy to be applied
      * @param policyStorageResource
      * @param opId
      * @throws ControllerException
@@ -4523,8 +4524,8 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
     }
 
     @Override
-    public void assignFileSnapshotPolicyToProject(URI storageSystemURI, URI vNASURI, URI filePolicyToAssign, URI vpoolURI, URI projectURI,
-            String opId) throws InternalException {
+    public void assignFileSnapshotPolicyToProject(URI storageSystemURI, URI vNASURI,
+            URI filePolicyToAssign, URI vpoolURI, URI projectURI, String opId) throws InternalException {
         try {
             WorkflowStepCompleter.stepExecuting(opId);
             FileDeviceInputOutput args = new FileDeviceInputOutput();
@@ -4560,4 +4561,111 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             WorkflowStepCompleter.stepFailed(opId, serviceError);
         }
     }
+
+    @Override
+    public void assignFileReplicationPolicyToVirtualPool(URI storageSystemURI, URI targetSystemURI,
+            URI sourceVNasURI, URI targetVNasURI, URI filePolicyToAssign, URI vpoolURI, String opId) throws ControllerException {
+
+        try {
+            WorkflowStepCompleter.stepExecuting(opId);
+            StorageSystem sourceSystem = _dbClient.queryObject(StorageSystem.class, storageSystemURI);
+            StorageSystem targetSystem = _dbClient.queryObject(StorageSystem.class, targetSystemURI);
+
+            FilePolicy filePolicy = _dbClient.queryObject(FilePolicy.class, filePolicyToAssign);
+            VirtualPool vpool = _dbClient.queryObject(VirtualPool.class, vpoolURI);
+            VirtualNAS sourceVNAS = null;
+            VirtualNAS targetVNAS = null;
+
+            FileDeviceInputOutput sourceArgs = new FileDeviceInputOutput();
+            FileDeviceInputOutput targetArgs = new FileDeviceInputOutput();
+
+            sourceArgs.setFileProtectionPolicy(filePolicy);
+            sourceArgs.setVPool(vpool);
+            if (sourceVNasURI != null) {
+                sourceVNAS = _dbClient.queryObject(VirtualNAS.class, sourceVNasURI);
+                sourceArgs.setvNAS(sourceVNAS);
+            }
+
+            targetArgs.setVPool(vpool);
+
+            if (targetVNasURI != null) {
+                targetVNAS = _dbClient.queryObject(VirtualNAS.class, targetVNasURI);
+                targetArgs.setvNAS(targetVNAS);
+            }
+
+            _log.info("Assigning file replication policy: {} to vpool: {}", filePolicyToAssign, vpoolURI);
+
+            BiosCommandResult result = getDevice(sourceSystem.getSystemType()).checkFileReplicationPolicyExistsOrCreate(
+                    sourceSystem, targetSystem, sourceArgs, targetArgs);
+
+            if (result.getCommandPending()) {
+                return;
+            }
+            if (!result.isCommandSuccess() && !result.getCommandPending()) {
+                WorkflowStepCompleter.stepFailed(opId, result.getServiceCoded());
+            }
+            if (result.isCommandSuccess()) {
+                WorkflowStepCompleter.stepSucceded(opId);
+            }
+        } catch (Exception e) {
+            ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
+            WorkflowStepCompleter.stepFailed(opId, serviceError);
+        }
+    }
+
+    @Override
+    public void assignFileReplicationPolicyToProject(URI storageSystemURI, URI targetSystemURI,
+            URI sourceVNasURI, URI targetVNasURI, URI filePolicyToAssign, URI vpoolURI, URI projectURI, String opId)
+                    throws InternalException {
+        try {
+            WorkflowStepCompleter.stepExecuting(opId);
+            StorageSystem sourceSystem = _dbClient.queryObject(StorageSystem.class, storageSystemURI);
+            StorageSystem targetSystem = _dbClient.queryObject(StorageSystem.class, targetSystemURI);
+            FilePolicy filePolicy = _dbClient.queryObject(FilePolicy.class, filePolicyToAssign);
+            VirtualPool vpool = _dbClient.queryObject(VirtualPool.class, vpoolURI);
+            Project project = _dbClient.queryObject(Project.class, projectURI);
+            TenantOrg tenant = _dbClient.queryObject(TenantOrg.class, project.getTenantOrg());
+
+            VirtualNAS sourceVNAS = null;
+            VirtualNAS targetVNAS = null;
+
+            FileDeviceInputOutput sourceArgs = new FileDeviceInputOutput();
+            FileDeviceInputOutput targetArgs = new FileDeviceInputOutput();
+
+            sourceArgs.setFileProtectionPolicy(filePolicy);
+            sourceArgs.setVPool(vpool);
+            sourceArgs.setProject(project);
+            sourceArgs.setTenantOrg(tenant);
+            if (sourceVNasURI != null) {
+                sourceVNAS = _dbClient.queryObject(VirtualNAS.class, sourceVNasURI);
+                sourceArgs.setvNAS(sourceVNAS);
+            }
+
+            targetArgs.setVPool(vpool);
+            targetArgs.setProject(project);
+            targetArgs.setTenantOrg(tenant);
+            if (targetVNasURI != null) {
+                targetVNAS = _dbClient.queryObject(VirtualNAS.class, targetVNasURI);
+                targetArgs.setvNAS(targetVNAS);
+            }
+
+            _log.info("Assigning file snapshot policy: {} to vpool {} and project: {}", filePolicyToAssign, vpoolURI, projectURI);
+
+            BiosCommandResult result = getDevice(sourceSystem.getSystemType()).checkFileReplicationPolicyExistsOrCreate(
+                    sourceSystem, targetSystem, sourceArgs, targetArgs);
+            if (result.getCommandPending()) {
+                return;
+            }
+            if (!result.isCommandSuccess() && !result.getCommandPending()) {
+                WorkflowStepCompleter.stepFailed(opId, result.getServiceCoded());
+            }
+            if (result.isCommandSuccess()) {
+                WorkflowStepCompleter.stepSucceded(opId);
+            }
+        } catch (Exception e) {
+            ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
+            WorkflowStepCompleter.stepFailed(opId, serviceError);
+        }
+    }
+
 }

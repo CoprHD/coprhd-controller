@@ -25,9 +25,6 @@ public class RemoteReplicationGroupCreate {
     // replication mode of this group
     private String replicationMode;
 
-    // If link operations on individual pairs in this group should be supported
-    private Boolean pairLinkOperationsSupported;
-
     // replication state of this group
     private String replicationState;
 
@@ -78,15 +75,6 @@ public class RemoteReplicationGroupCreate {
 
     public void setReplicationMode(String replicationMode) {
         this.replicationMode = replicationMode;
-    }
-
-    @XmlElement(name = "pair_link_operations_supported")
-    public Boolean getPairLinkOperationsSupported() {
-        return pairLinkOperationsSupported;
-    }
-
-    public void setPairLinkOperationsSupported(Boolean pairLinkOperationsSupported) {
-        this.pairLinkOperationsSupported = pairLinkOperationsSupported;
     }
 
     @XmlElement(name = "replication_state")

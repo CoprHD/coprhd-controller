@@ -34,11 +34,6 @@ public class RemoteReplicationGroup {
     private String deviceLabel;
 
     /**
-     * NativeId of replication set on device. Type: Output.
-     */
-    private String replicationSetNativeId;
-
-    /**
      * Replication mode of the group.
      * Type: Input/Output.
      */
@@ -55,14 +50,7 @@ public class RemoteReplicationGroup {
      * replication pairs in the group.
      * When false, link operations are allowed on individual pairs in the group.
      */
-    private boolean isGroupConsistencyEnforced;
-
-    /**
-     * Defines types of group elements for which replication link operations are supported.
-     * Could be either group or pair level. Type: Output.
-     */
-    //not needed: remove
-    //private Set<RemoteReplicationSet.ElementType> replicationLinkGranularity = new HashSet<>();
+    private boolean isGroupConsistencyEnforced = false;
 
     /**
      * Native id of the source storage system in this replication group. Type: Input/Output.
@@ -101,14 +89,6 @@ public class RemoteReplicationGroup {
 
     public void setDeviceLabel(String deviceLabel) {
         this.deviceLabel = deviceLabel;
-    }
-
-    public String getReplicationSetNativeId() {
-        return replicationSetNativeId;
-    }
-
-    public void setReplicationSetNativeId(String replicationSetNativeId) {
-        this.replicationSetNativeId = replicationSetNativeId;
     }
 
     public String getReplicationMode() {
@@ -165,10 +145,9 @@ public class RemoteReplicationGroup {
                         "\n\t\t replication mode: %s, replication state: %s" +
                         "\n\t\t is group consistency enforced: %s" +
                         "\n\t\t source system %s" +
-                        "\n\t\t target system %s" +
-                        "\n\t\t parent replication set: %s",
+                        "\n\t\t target system %s",
                 nativeId,  replicationMode, replicationState, isGroupConsistencyEnforced,
-                sourceSystemNativeId, targetSystemNativeId, replicationSetNativeId);
+                sourceSystemNativeId, targetSystemNativeId);
 
         return(msg);
     }

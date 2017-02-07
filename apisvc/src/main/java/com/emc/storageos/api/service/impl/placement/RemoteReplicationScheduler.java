@@ -13,7 +13,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import com.emc.storageos.remotereplicationcontroller.RemoteReplicationUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -27,12 +26,13 @@ import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.StoragePool;
-import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.remotereplication.RemoteReplicationGroup;
 import com.emc.storageos.db.client.model.remotereplication.RemoteReplicationSet;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
+import com.emc.storageos.db.client.util.NullColumnValueGetter;
+import com.emc.storageos.remotereplicationcontroller.RemoteReplicationUtils;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.volumecontroller.AttributeMatcher;
 import com.emc.storageos.volumecontroller.Recommendation;
@@ -101,6 +101,20 @@ public class RemoteReplicationScheduler implements Scheduler {
         // Get all storage pools for source volumes that match set of source storage systems and also match
         // passed vpool params and protocols. In addition, the pool must have enough capacity
         // to hold at least one resource of the requested size.
+
+        // if cg is specified, check that storage system in cg is part of source systems
+        final BlockConsistencyGroup consistencyGroup = capabilities.getBlockConsistencyGroup() == null ? null : _dbClient
+                .queryObject(BlockConsistencyGroup.class, capabilities.getBlockConsistencyGroup());
+        if (consistencyGroup != null) {
+            URI cgStorageSystemURI = consistencyGroup.getStorageController();
+            if (!NullColumnValueGetter.isNullURI(cgStorageSystemURI) && !sourceStorageSystems.contains(cgStorageSystemURI.toString())) {
+                // error no pools for source
+                String errorMessage = String.format("Consistency group storage system %s does not belong to remote replication source source storage systems: %s ",
+                        cgStorageSystemURI, sourceStorageSystems);
+                throw APIException.badRequests.noStoragePools(vArray.getLabel(), vPool.getLabel(), errorMessage);
+            }
+        }
+
         attributeMap.put(AttributeMatcher.Attributes.storage_system.name(), sourceStorageSystems);
         // set multi-volume consistency
         if (capabilities.getBlockConsistencyGroup() != null) {
@@ -133,6 +147,18 @@ public class RemoteReplicationScheduler implements Scheduler {
         VirtualArray targetVirtualArray  = RemoteReplicationUtils.getTargetVArray(vPool, _dbClient);
         VirtualPoolCapabilityValuesWrapper targetCapabilities = buildTargetCapabilities(targetVirtualArray, targetVirtualPool, capabilities, _dbClient);
 
+        // if cg is specified, check that storage system in cg is part of target systems
+        final BlockConsistencyGroup targetConsistencyGroup = targetCapabilities.getBlockConsistencyGroup() == null ? null : _dbClient
+                .queryObject(BlockConsistencyGroup.class, targetCapabilities.getBlockConsistencyGroup());
+        if (targetConsistencyGroup != null) {
+            URI targetCgStorageSystemURI = targetConsistencyGroup.getStorageController();
+            if (!NullColumnValueGetter.isNullURI(targetCgStorageSystemURI) && !targetStorageSystems.contains(targetCgStorageSystemURI.toString())) {
+                // error no pools for target
+                String errorMessage = String.format("Target consistency group storage system %s does not belong to remote replication target storage systems: %s ",
+                        targetCgStorageSystemURI, targetStorageSystems);
+                throw APIException.badRequests.noStoragePools(targetVirtualArray.getLabel(), targetVirtualPool.getLabel(), errorMessage);
+            }
+        }
         attributeMap.put(AttributeMatcher.Attributes.storage_system.name(), targetStorageSystems);
         List<StoragePool> targetPoolsForTargetVArray = _blockScheduler.getMatchingPools(targetVirtualArray, targetVirtualPool, targetCapabilities, attributeMap);
         addNewPools(targetPools, targetPoolsForTargetVArray);

@@ -9,6 +9,7 @@ import java.util.List;
 
 import com.emc.storageos.storagedriver.model.StorageHostComponent;
 import com.emc.storageos.storagedriver.model.StorageProvider;
+import com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationGroup;
 import com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationSet;
 import org.apache.commons.lang.mutable.MutableInt;
 
@@ -86,5 +87,16 @@ public interface DiscoveryDriver extends StorageDriver {
      */
     public DriverTask discoverRemoteReplicationSets(List<String> storageSystemNativeIds, List<String> storageProviderNativeIds,
                                                     List<RemoteReplicationSet> remoteReplicationSets);
+
+
+    /**
+     * Discover remote replication groups for a given storage system.
+     * Should discover all groups where storage system is either source or target system.
+     *
+     * @param driverStorageSystem storage system. Type: Input.
+     * @param remoteReplicationGroups remote replication group for storage system. Type: Output.
+     * @return
+     */
+    public DriverTask discoverRemoteReplicationGroups(StorageSystem driverStorageSystem, List<RemoteReplicationGroup> remoteReplicationGroups);
 
 }

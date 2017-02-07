@@ -562,6 +562,7 @@ public class DefaultStorageDriver extends AbstractStorageDriver implements Block
         throw new UnsupportedOperationException(msg);
     }
 
+    @Override
     public DriverTask discoverRemoteReplicationSets(List<String> storageSystemNativeIds, List<String> storageProviderNativeIds,
                                                     List<RemoteReplicationSet> remoteReplicationSets) {
         String driverName = this.getClass().getSimpleName();
@@ -570,6 +571,20 @@ public class DefaultStorageDriver extends AbstractStorageDriver implements Block
         task.setStatus(DriverTask.TaskStatus.FAILED);
 
         String msg = String.format("%s: %s --- operation is not supported.", driverName, "discoverRemoteReplicationSets");
+        _log.warn(msg);
+        task.setMessage(msg);
+        return task;
+    }
+
+    @Override
+    public DriverTask discoverRemoteReplicationGroups(StorageSystem driverStorageSystem, List<RemoteReplicationGroup> remoteReplicationGroups)
+    {
+        String driverName = this.getClass().getSimpleName();
+        String taskId = String.format("%s+%s+%s", driverName, "discoverRemoteReplicationGroups", UUID.randomUUID().toString());
+        DriverTask task = new DefaultDriverTask(taskId);
+        task.setStatus(DriverTask.TaskStatus.FAILED);
+
+        String msg = String.format("%s: %s --- operation is not supported.", driverName, "discoverRemoteReplicationGroups");
         _log.warn(msg);
         task.setMessage(msg);
         return task;

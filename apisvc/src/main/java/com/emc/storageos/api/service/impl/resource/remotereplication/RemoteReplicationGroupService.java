@@ -3,6 +3,8 @@ package com.emc.storageos.api.service.impl.resource.remotereplication;
 import static com.emc.storageos.api.mapper.DbObjectMapper.toNamedRelatedResource;
 import static com.emc.storageos.api.mapper.RemoteReplicationMapper.map;
 import static com.emc.storageos.api.mapper.TaskMapper.toTask;
+import static com.emc.storageos.db.client.util.CustomQueryUtility.queryActiveResourcesByAltId;
+import static com.emc.storageos.db.client.util.CustomQueryUtility.queryActiveResourcesByRelation;
 
 import java.net.URI;
 import java.util.Iterator;
@@ -22,13 +24,17 @@ import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.api.service.impl.resource.ArgValidator;
 import com.emc.storageos.api.service.impl.resource.TaskResourceService;
+import com.emc.storageos.db.client.URIUtil;
+import com.emc.storageos.db.client.model.OpStatusMap;
 import com.emc.storageos.db.client.model.Operation;
+import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.remotereplication.RemoteReplicationGroup;
 import com.emc.storageos.db.client.model.remotereplication.RemoteReplicationPair;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.storageos.model.TaskResourceRep;
+import com.emc.storageos.model.remotereplication.RemoteReplicationGroupCreate;
 import com.emc.storageos.model.remotereplication.RemoteReplicationGroupList;
 import com.emc.storageos.model.remotereplication.RemoteReplicationGroupRestRep;
 import com.emc.storageos.model.remotereplication.RemoteReplicationModeChangeParam;
@@ -39,6 +45,7 @@ import com.emc.storageos.security.authorization.DefaultPermissions;
 import com.emc.storageos.security.authorization.Role;
 import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationSet;
+import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.impl.externaldevice.RemoteReplicationElement;
@@ -132,6 +139,56 @@ public class RemoteReplicationGroupService extends TaskResourceService {
         }
         return rrPairList;
     }
+
+    @POST
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/create-group")
+    public TaskResourceRep createRemoteReplicationGroup(final RemoteReplicationGroupCreate param) throws InternalException {
+
+        _log.info("Called: createRemoteReplicationGroup()");
+        List<com.emc.storageos.db.client.model.remotereplication.RemoteReplicationGroup> rrGroupsForSystem =
+                queryActiveResourcesByRelation(_dbClient, param.getSourceSystem(), com.emc.storageos.db.client.model.remotereplication.RemoteReplicationGroup.class,
+                        "sourceSystem");
+
+        if (rrGroupsForSystem != null) {
+            for (RemoteReplicationGroup group : rrGroupsForSystem) {
+                if (group.getLabel() != null && group.getLabel().equalsIgnoreCase(param.getDisplayName())) {
+                    throw APIException.badRequests.duplicateLabel(param.getDisplayName());
+                }
+            }
+        }
+
+        RemoteReplicationGroup rrGroup = prepareRRGroup(param);
+        _dbClient.createObject(rrGroup);
+
+        // Create a task for the create remote replication group operation
+        String taskId = UUID.randomUUID().toString();
+        Operation op = _dbClient.createTaskOpStatus(RemoteReplicationGroup.class, rrGroup.getId(),
+                taskId, ResourceOperationTypeEnum.CREATE_REMOTE_REPLICATION_GROUP);
+
+        // send request to controller
+        try {
+            RemoteReplicationBlockServiceApiImpl rrServiceApi = getRemoteReplicationServiceApi();
+            rrServiceApi.createRemoteReplicationGroup(rrGroup.getId(), taskId);
+        } catch (final ControllerException e) {
+            _log.error("Controller Error", e);
+            op = rrGroup.getOpStatus().get(taskId);
+            op.error(e);
+            rrGroup.getOpStatus().updateTaskStatus(taskId, op);
+            rrGroup.setInactive(true);
+            _dbClient.updateObject(rrGroup);
+
+            throw e;
+        }
+
+        auditOp(OperationTypeEnum.CREATE_REMOTE_REPLICATION_GROUP, true, AuditLogManager.AUDITOP_BEGIN,
+                rrGroup.getDisplayName(), rrGroup.getStorageSystemType(), rrGroup.getReplicationMode());
+
+        return toTask(rrGroup, taskId, op);
+
+    }
+
 
     @POST
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
@@ -398,7 +455,7 @@ public class RemoteReplicationGroupService extends TaskResourceService {
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/change-replication-mode")
     public TaskResourceRep changeRemoteReplicationGroupMode(@PathParam("id") URI id,
-                              final RemoteReplicationModeChangeParam param) throws InternalException {
+                                                            final RemoteReplicationModeChangeParam param) throws InternalException {
         _log.info("Called: changeRemoteReplicationGroupMode() with id {}", id);
         ArgValidator.checkFieldUriType(id, RemoteReplicationGroup.class, "id");
         RemoteReplicationGroup rrGroup = queryResource(id);
@@ -431,6 +488,56 @@ public class RemoteReplicationGroupService extends TaskResourceService {
                 rrGroup.getDisplayName(), rrGroup.getStorageSystemType(), rrGroup.getReplicationMode());
 
         return toTask(rrGroup, taskId, op);
+    }
+
+    private RemoteReplicationGroup prepareRRGroup(RemoteReplicationGroupCreate param) {
+
+        RemoteReplicationGroup remoteReplicationGroup = new RemoteReplicationGroup();
+        remoteReplicationGroup.setId(URIUtil.createId(RemoteReplicationGroup.class));
+        remoteReplicationGroup.setIsDriverManaged(true);
+        remoteReplicationGroup.setReachable(true);
+        remoteReplicationGroup.setLabel(param.getDisplayName());
+        remoteReplicationGroup.setOpStatus(new OpStatusMap());
+
+        remoteReplicationGroup.setDisplayName(param.getDisplayName());
+        if (param.getReplicationState() != null ) {
+            remoteReplicationGroup.setReplicationState(param.getReplicationState());
+        } else {
+            // set to active by default
+            remoteReplicationGroup.setReplicationState("ACTIVE");
+        }
+        remoteReplicationGroup.setIsGroupConsistencyEnforced(param.getIsGroupConsistencyEnforced());
+
+        // set replication mode
+        List<com.emc.storageos.db.client.model.remotereplication.RemoteReplicationSet> rrSets =
+                queryActiveResourcesByAltId(_dbClient, com.emc.storageos.db.client.model.remotereplication.RemoteReplicationSet.class,
+                        "storageSystemType", param.getStorageSystemType());
+        if (!rrSets.isEmpty()) {
+            com.emc.storageos.db.client.model.remotereplication.RemoteReplicationSet rrSet = rrSets.get(0);
+            StringSet rrSetSupportedReplicationModes = rrSet.getSupportedReplicationModes();
+            String rrGroupReplicationMode = param.getReplicationMode();
+            if (rrGroupReplicationMode != null && rrSetSupportedReplicationModes.contains(rrGroupReplicationMode)) {
+                remoteReplicationGroup.setReplicationMode(rrGroupReplicationMode);
+            } else {
+                throw APIException.badRequests.invalidReplicationMode(param.getReplicationMode());
+            }
+            // verify that isGroupConsistencyEnforced settings for this group comply with parent set settings
+            StringSet rrModesNoGroupConsistency = rrSet.getReplicationModesNoGroupConsistency();
+            StringSet rrModeGroupConsistencyEnforced = rrSet.getReplicationModesGroupConsistencyEnforced();
+            if (param.getIsGroupConsistencyEnforced() != null && rrModeGroupConsistencyEnforced.contains(rrGroupReplicationMode) &&
+                    !param.getIsGroupConsistencyEnforced()) {
+                throw APIException.badRequests.invalidIsGroupConsistencyEnforced(param.getIsGroupConsistencyEnforced().toString());
+            } else if (param.getIsGroupConsistencyEnforced() != null && rrModesNoGroupConsistency.contains(rrGroupReplicationMode) &&
+                    param.getIsGroupConsistencyEnforced()) {
+                throw APIException.badRequests.invalidIsGroupConsistencyEnforced(param.getIsGroupConsistencyEnforced().toString());
+            }
+        }
+
+        remoteReplicationGroup.setStorageSystemType(param.getStorageSystemType());
+        remoteReplicationGroup.setSourceSystem(param.getSourceSystem());
+        remoteReplicationGroup.setTargetSystem(param.getTargetSystem());
+
+        return remoteReplicationGroup;
     }
 
 

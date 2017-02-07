@@ -194,22 +194,14 @@ public class RemoteReplicationSet {
 
     @Override
     public String toString() {
-        List<String> groupIds = new ArrayList<>();
-        Set<RemoteReplicationGroup> replicationGroups = getReplicationGroups();
-        if (replicationGroups !=null) {
-            for (RemoteReplicationGroup group : replicationGroups) {
-                groupIds.add(group.getNativeId());
-            }
-        }
 
        String msg = String.format("\n\tSet nativeId %s: " +
                "\n\t\t supported replication modes: %s, " +
                "\n\t\t replication state: %s" +
                "\n\t\t supported link granularity: %s" +
-               "\n\t\t system map: %s" +
-               "\n\t\t groups: %s",
+               "\n\t\t system map: %s",
                nativeId,  supportedReplicationModes, replicationState, replicationLinkGranularity,
-               systemMap, groupIds);
+               systemMap);
 
         return(msg);
     }

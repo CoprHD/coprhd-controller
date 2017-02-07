@@ -52,10 +52,7 @@ public class RemoteReplicationMapper {
         to.setStorageSystemType(from.getStorageSystemType());
         to.setDisplayName(from.getDisplayName());
         to.setReplicationMode(from.getReplicationMode());
-        to.setReplicationState(from.getReplicationState().toString());
-        if (from.getReplicationSet() != null) {
-            to.setReplicationSet(toRelatedResource(ResourceTypeEnum.REMOTE_REPLICATION_SET, from.getReplicationSet()));
-        }
+        to.setReplicationState(from.getReplicationState());
 
         return to;
     }

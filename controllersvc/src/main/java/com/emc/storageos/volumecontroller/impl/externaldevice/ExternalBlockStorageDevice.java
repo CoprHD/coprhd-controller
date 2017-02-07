@@ -1732,8 +1732,7 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice implem
     public void createRemoteReplicationGroup(URI groupURI, TaskCompleter taskCompleter) {
 
         RemoteReplicationGroup systemGroup = dbClient.queryObject(RemoteReplicationGroup.class, groupURI);
-        RemoteReplicationSet systemSet = dbClient.queryObject(RemoteReplicationSet.class, systemGroup.getReplicationSet());
-        _log.info("Create remote replication group: {}, id: {} in replication set: {}", systemGroup.getLabel(), groupURI, systemSet.getDeviceLabel());
+        _log.info("Create remote replication group: {}, id: {} .", systemGroup.getLabel(), groupURI);
 
         try {
             StorageSystem sourceSystem = dbClient.queryObject(StorageSystem.class, systemGroup.getSourceSystem());
@@ -1751,19 +1750,14 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice implem
                 systemGroup.setNativeId(driverGroup.getNativeId());
                 systemGroup.setDeviceLabel(driverGroup.getDeviceLabel());
 
-                systemSet.addSystemRole(sourceSystem.getNativeId(),
-                        com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationSet.ReplicationRole.SOURCE.toString());
-                systemSet.addSystemRole(targetSystem.getNativeId(),
-                        com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationSet.ReplicationRole.TARGET.toString());
-
                 dbClient.updateObject(systemGroup);
-                dbClient.updateObject(systemSet);
                 String msg = String.format("createRemoteReplicationGroup -- Created remote replication group: %s .", task.getMessage());
                 _log.info(msg);
                 taskCompleter.ready(dbClient);
             } else {
                 String errorMsg = String.format("createRemoteReplicationGroup -- Failed to create remote replication group: %s .", task.getMessage());
                 _log.error(errorMsg);
+                systemGroup.setInactive(true);
                 ServiceError serviceError = ExternalDeviceException.errors.createRemoteReplicationGroupFailed(systemGroup.getLabel(), errorMsg);
                 taskCompleter.error(dbClient, serviceError);
             }
@@ -1934,10 +1928,8 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice implem
             switch (elementType) {
                 case REPLICATION_GROUP:
                     RemoteReplicationGroup remoteReplicationGroup = dbClient.queryObject(RemoteReplicationGroup.class, elementURI);
-                    RemoteReplicationSet remoteReplicationSet = dbClient.queryObject(RemoteReplicationSet.class,
-                            remoteReplicationGroup.getReplicationSet());
                     context = new RemoteReplicationOperationContext(com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationSet.ElementType.REPLICATION_GROUP,
-                            remoteReplicationSet.getNativeId(), remoteReplicationGroup.getNativeId());
+                            null, remoteReplicationGroup.getNativeId());
                     StorageSystem sourceSystem = dbClient.queryObject(StorageSystem.class, remoteReplicationGroup.getSourceSystem());
 
                     driver = (RemoteReplicationDriver)getDriver(sourceSystem.getSystemType());
@@ -1994,10 +1986,8 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice implem
             switch (elementType) {
                 case REPLICATION_GROUP:
                     RemoteReplicationGroup remoteReplicationGroup = dbClient.queryObject(RemoteReplicationGroup.class, elementURI);
-                    RemoteReplicationSet remoteReplicationSet = dbClient.queryObject(RemoteReplicationSet.class,
-                            remoteReplicationGroup.getReplicationSet());
                     context = new RemoteReplicationOperationContext(com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationSet.ElementType.REPLICATION_GROUP,
-                            remoteReplicationSet.getNativeId(), remoteReplicationGroup.getNativeId());
+                            null, remoteReplicationGroup.getNativeId());
                     StorageSystem sourceSystem = dbClient.queryObject(StorageSystem.class, remoteReplicationGroup.getSourceSystem());
 
                     driver = (RemoteReplicationDriver)getDriver(sourceSystem.getSystemType());

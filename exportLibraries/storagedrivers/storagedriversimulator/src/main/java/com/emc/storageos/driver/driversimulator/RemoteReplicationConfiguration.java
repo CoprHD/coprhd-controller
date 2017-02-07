@@ -76,7 +76,7 @@ public class RemoteReplicationConfiguration {
         replicationGroup1_set1.setNativeId(ReplicationGroups.replicationGroup1_set1.toString());
         replicationGroup1_set1.setDeviceLabel(ReplicationGroups.replicationGroup1_set1.toString());
         replicationGroup1_set1.setDisplayName(ReplicationGroups.replicationGroup1_set1.toString());
-        replicationGroup1_set1.setReplicationSetNativeId(ReplicationSets.replicationSet1.toString());
+        //replicationGroup1_set1.setReplicationSetNativeId(ReplicationSets.replicationSet1.toString());
         replicationGroup1_set1.setIsGroupConsistencyEnforced(true);
         replicationGroup1_set1.setReplicationState(RemoteReplicationSet.ReplicationState.ACTIVE);
         // group replication mode
@@ -92,7 +92,7 @@ public class RemoteReplicationConfiguration {
         replicationGroup2_set1.setNativeId(ReplicationGroups.replicationGroup2_set1.toString());
         replicationGroup2_set1.setDeviceLabel(ReplicationGroups.replicationGroup2_set1.toString());
         replicationGroup2_set1.setDisplayName(ReplicationGroups.replicationGroup2_set1.toString());
-        replicationGroup2_set1.setReplicationSetNativeId(ReplicationSets.replicationSet1.toString());
+        //replicationGroup2_set1.setReplicationSetNativeId(ReplicationSets.replicationSet1.toString());
         replicationGroup2_set1.setIsGroupConsistencyEnforced(true);
         replicationGroup2_set1.setReplicationState(RemoteReplicationSet.ReplicationState.ACTIVE);
         // group replication mode
@@ -110,7 +110,7 @@ public class RemoteReplicationConfiguration {
         replicationGroup1_set2.setNativeId(ReplicationGroups.replicationGroup1_set2.toString());
         replicationGroup1_set2.setDeviceLabel(ReplicationGroups.replicationGroup1_set2.toString());
         replicationGroup1_set2.setDisplayName(ReplicationGroups.replicationGroup1_set2.toString());
-        replicationGroup1_set2.setReplicationSetNativeId(ReplicationSets.replicationSet1.toString());
+        //replicationGroup1_set2.setReplicationSetNativeId(ReplicationSets.replicationSet1.toString());
         replicationGroup1_set2.setIsGroupConsistencyEnforced(true);
         replicationGroup1_set2.setReplicationState(RemoteReplicationSet.ReplicationState.ACTIVE);
         // group replication mode
@@ -129,7 +129,7 @@ public class RemoteReplicationConfiguration {
         replicationGroup2_set2.setNativeId(ReplicationGroups.replicationGroup2_set2.toString());
         replicationGroup2_set2.setDeviceLabel(ReplicationGroups.replicationGroup2_set2.toString());
         replicationGroup2_set2.setDisplayName(ReplicationGroups.replicationGroup2_set2.toString());
-        replicationGroup2_set2.setReplicationSetNativeId(ReplicationSets.replicationSet1.toString());
+        //replicationGroup2_set2.setReplicationSetNativeId(ReplicationSets.replicationSet1.toString());
         replicationGroup2_set2.setIsGroupConsistencyEnforced(true);
         replicationGroup2_set2.setReplicationState(RemoteReplicationSet.ReplicationState.ACTIVE);
         // group replication mode

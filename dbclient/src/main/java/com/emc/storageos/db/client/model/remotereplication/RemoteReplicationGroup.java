@@ -13,6 +13,7 @@ import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.Name;
 import com.emc.storageos.db.client.model.RelationIndex;
+import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
 
 @Cf("RemoteReplicationGroup")
@@ -48,9 +49,6 @@ public class RemoteReplicationGroup extends DiscoveredDataObject {
 
     // Defines if group consistency of link operations is enforced.
     private Boolean isGroupConsistencyEnforced;
-
-    // Parent replication set
-    private URI replicationSet;
 
     @Name("nativeId")
     public String getNativeId() {
@@ -105,6 +103,7 @@ public class RemoteReplicationGroup extends DiscoveredDataObject {
         setChanged("displayName");
     }
 
+    @RelationIndex(cf = "RelationIndex", type = StorageSystem.class)
     @Name("sourceSystem")
     public URI getSourceSystem() {
         return sourceSystem;
@@ -115,6 +114,7 @@ public class RemoteReplicationGroup extends DiscoveredDataObject {
         setChanged("sourceSystem");
     }
 
+    @RelationIndex(cf = "RelationIndex", type = StorageSystem.class)
     @Name("targetSystem")
     public URI getTargetSystem() {
         return targetSystem;
@@ -153,17 +153,6 @@ public class RemoteReplicationGroup extends DiscoveredDataObject {
     public void setReplicationState(String replicationState) {
         this.replicationState = replicationState;
         setChanged("replicationState");
-    }
-
-    @RelationIndex(cf = "RelationIndex", type = RemoteReplicationSet.class)
-    @Name("replicationSet")
-    public URI getReplicationSet() {
-        return replicationSet;
-    }
-
-    public void setReplicationSet(URI replicationSet) {
-        this.replicationSet = replicationSet;
-        setChanged("replicationSet");
     }
 
     @Override

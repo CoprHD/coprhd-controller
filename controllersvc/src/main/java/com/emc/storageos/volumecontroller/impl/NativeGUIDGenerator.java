@@ -867,9 +867,9 @@ public class NativeGUIDGenerator {
     }
 
     public static String generateRemoteReplicationGroupNativeGuid(String systemType,
-                                                                  String remoteReplicationSetNativeId,
+                                                                  String sourceSystemNativeId,
                                                                   String remoteReplicationGroupNativeId) {
-        return String.format("%s+%s" + REMOTE_REPLICATION_GROUP + "+%s", systemType, remoteReplicationSetNativeId,
+        return String.format("%s+%s" + REMOTE_REPLICATION_GROUP + "+%s", systemType, sourceSystemNativeId,
                 remoteReplicationGroupNativeId);
     }
 

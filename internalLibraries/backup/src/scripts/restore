@@ -88,44 +88,20 @@ validate_backup_files() {
         exit 2
     elif [ ${fileNodeCount} -lt $[ $BACKUP_NODE_COUNT / 2 + 1 ] ]; then
         echo -e -n "\nThis backupset is invalid, "
-        if [ ${FORCE} == true ]; then
-            echo "force restore may still be failed."
-            user_confirm "Are you sure you want to continue?"
-        else
-            echo "exiting.."
-            exit 2
-        fi
+        check_if_force_restore "force restore may still be failed."
     elif [ ${fileNodeCount} -lt $BACKUP_NODE_COUNT ]; then
         echo -n "WARNING: This is an incomplete backupset.."
         if [ $NODE_COUNT != $BACKUP_NODE_COUNT ]; then
             echo -e -n "\nCluster nodes count can't change in restoring with incomplete backupset, "
-            if [ ${FORCE} == true ]; then
-                echo "force restore may still be failed."
-                user_confirm "Are you sure you want to continue?"
-            else
-                echo "exiting.."
-                exit 2
-            fi
+            check_if_force_restore "force restore may still be failed."
         fi
     elif [ ${fileNodeCount} -eq $BACKUP_NODE_COUNT ]; then
         if [ $NODE_COUNT -lt $[ $BACKUP_NODE_COUNT / 2 + 1 ] ]; then
             echo -e -n "\nNodes count of cluster to be restored should not be less than quorum nodes count of cluster taken backup, "
-            if [ ${FORCE} == true ]; then
-                echo "force restore may cause db data lost."
-                user_confirm "Are you sure you want to continue?"
-            else
-                echo "exiting.."
-                exit 2
-            fi
+            check_if_force_restore "force restore may cause db data lost."
         elif [ $BACKUP_NODE_COUNT -lt $[ $NODE_COUNT / 2 + 1 ] ]; then
             echo -e -n "\nNodes count of cluster taken backup should not be less than quorum nodes count of cluster to be restored, "
-            if [ ${FORCE} == true ]; then
-                echo "force restore may cause db data lost."
-                user_confirm "Are you sure you want to continue?"
-            else
-                echo "exiting.."
-                exit 2
-            fi
+            check_if_force_restore "force restore may cause db data lost."
         elif [ $NODE_COUNT != $BACKUP_NODE_COUNT ]; then
             if [[ ${IS_CONNECTED_VDC} == true ]]; then
                 echo -e "\nCluster nodes count can't change when backup was taken in geo system, exiting.."
@@ -134,6 +110,18 @@ validate_backup_files() {
                 echo -n "WARNING: Cluster nodes count changed.."
             fi
         fi
+    fi
+}
+
+check_if_force_restore() {
+    local message=$1
+
+    if [ ${FORCE} == true ]; then
+        echo ${message}
+        user_confirm "Are you sure you want to continue?"
+    else
+        echo "exiting.."
+        exit 2
     fi
 }
 

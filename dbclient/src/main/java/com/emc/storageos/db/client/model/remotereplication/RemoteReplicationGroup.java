@@ -103,7 +103,7 @@ public class RemoteReplicationGroup extends DiscoveredDataObject {
         setChanged("displayName");
     }
 
-    @RelationIndex(cf = "RelationIndex", type = StorageSystem.class)
+    @RelationIndex(cf = "RRGroupSourceSystem", type = StorageSystem.class)
     @Name("sourceSystem")
     public URI getSourceSystem() {
         return sourceSystem;
@@ -114,7 +114,7 @@ public class RemoteReplicationGroup extends DiscoveredDataObject {
         setChanged("sourceSystem");
     }
 
-    @RelationIndex(cf = "RelationIndex", type = StorageSystem.class)
+    @RelationIndex(cf = "RRGroupTargetSystem", type = StorageSystem.class)
     @Name("targetSystem")
     public URI getTargetSystem() {
         return targetSystem;

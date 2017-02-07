@@ -53,7 +53,9 @@ public class ExportMaskAddInitiatorCompleter extends ExportMaskInitiatorComplete
                 List<URI> uris = getInitiatorsOrPortsPhysicallyAdded();
 
                 // Update the database with the context initiators and ports only
-                updateDatabase(dbClient, uris);
+                if (uris != null && !uris.isEmpty()) {
+                    updateDatabase(dbClient, uris);
+                }
             } else if (status == Operation.Status.ready) {
                 updateDatabase(dbClient, null);
             }

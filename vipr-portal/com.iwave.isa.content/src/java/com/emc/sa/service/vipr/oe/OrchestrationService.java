@@ -68,13 +68,18 @@ public class OrchestrationService extends ViPRService {
     final private Map<String, Map<String, List<String>>> inputPerStep = new HashMap<String, Map<String, List<String>>>();
     final private Map<String, Map<String, List<String>>> outputPerStep = new HashMap<String, Map<String, List<String>>>();
 
-    final private ImmutableMap<String, Step> stepsHash;
+    private ImmutableMap<String, Step> stepsHash;
 
     private static final org.slf4j.Logger logger = LoggerFactory.getLogger(OrchestrationService.class);
-    final OrchestrationWorkflowDocument obj;
+    private OrchestrationWorkflowDocument obj;
     private int code;
 
-    public OrchestrationService() throws Exception {
+
+    @Override
+    public void precheck() throws Exception {
+
+        // get input params from order form
+        params = ExecutionUtils.currentContext().getParameters();
         final String raw = ExecutionUtils.currentContext().getOrder().getWorkflowDocument();
         if( null == raw) {
             throw InternalServerErrorException.internalServerErrors.
@@ -88,17 +93,8 @@ public class OrchestrationService extends ViPRService {
             builder.put(step.getId(), step);
         }
         stepsHash = builder.build();
-    }
-
-    @Override
-    public void precheck() throws Exception {
-
-        // get input params from order form
-        params = ExecutionUtils.currentContext().getParameters();
-
         ValidateCustomServiceWorkflow validate = new ValidateCustomServiceWorkflow(params, stepsHash);
         validate.validate();
-
     }
 
     @Override

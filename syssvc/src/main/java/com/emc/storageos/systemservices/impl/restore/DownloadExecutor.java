@@ -243,7 +243,7 @@ public final class DownloadExecutor implements  Runnable {
             while (zentry != null) {
                 String filename = zentry.getName();
                 log.info("Extract backup file {}", filename);
-                persistBackupFile(backupFolder, filename, bzin, buf, false, false);
+                persistBackupFile(backupFolder, filename, bzin, buf, false, true);
 
                 if (!isGeo) {
                     isGeo = backupOps.isGeoBackup(filename);
@@ -329,10 +329,11 @@ public final class DownloadExecutor implements  Runnable {
 
     private File pullBackupFileFromRemoteServer(File downloadDir, String backupFileName,
                                                 BufferedInputStream in, byte[] buffer) throws IOException {
-        return persistBackupFile(downloadDir, backupFileName, in, buffer, true, false);
+        return persistBackupFile(downloadDir, backupFileName, in, buffer, true, true);
     }
 
-    private File persistBackupFile(File downloadDir, String backupFileName, BufferedInputStream in, byte[] buffer, boolean updateDownloadedSize, boolean doLock) throws IOException {
+    private File persistBackupFile(File downloadDir, String backupFileName, BufferedInputStream in,
+                                   byte[] buffer, boolean updateDownloadedSize, boolean doLock) throws IOException {
         File file = new File(downloadDir, backupFileName);
 
         if (!file.exists()) {
@@ -346,7 +347,7 @@ public final class DownloadExecutor implements  Runnable {
         log.info("To skip={} bytes", skip);
         in.skip(file.length());
 
-        backupOps.updateDownloadedSize(remoteBackupFileName, skip, doLock);
+        backupOps.updateDownloadedSize(remoteBackupFileName, skip, true);
 
         int length;
         try (BufferedOutputStream out = new BufferedOutputStream(new FileOutputStream(file, true))) {
@@ -359,7 +360,7 @@ public final class DownloadExecutor implements  Runnable {
 
                 out.write(buffer, 0, length);
                 if (updateDownloadedSize) {
-                    backupOps.updateDownloadedSize(remoteBackupFileName, length, doLock);
+                    backupOps.updateDownloadedSize(remoteBackupFileName, length, true);
                 }
             }
         } catch(IOException e) {

@@ -506,6 +506,7 @@ public class SystemsMapper {
         }
         StoragePortGroupRestRep to = new StoragePortGroupRestRep();
         to.setName(from.getLabel());
+        to.setId(from.getId());
         to.setStorageDevice(toRelatedResource(ResourceTypeEnum.STORAGE_SYSTEM, from.getStorageDevice()));
         to.setRegistrationStatus(from.getRegistrationStatus());
         StringMap metrics= from.getMetrics();

@@ -43,6 +43,7 @@ public class StoragePortGroupRestRep extends DiscoveredDataObjectRestRep {
         this.storageDevice = storageDevice;
     }
 
+    @XmlElement(name = "storage_ports")
     public StoragePortList getStoragePorts() {
         if (storagePorts == null) {
             storagePorts = new StoragePortList();

@@ -55,6 +55,7 @@ public abstract class AbstractHostDiscoveryAdapter extends AbstractDiscoveryAdap
     public void discoverTarget(String targetId) {
         Host host = getModelClient().hosts().findById(targetId);
         HostStateChange changes = new HostStateChange(host, host.getCluster());
+        changes.setNewCluster(host.getCluster());
         discoverHost(host, changes);
         processHostChanges(changes);
     }

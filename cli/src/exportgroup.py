@@ -799,19 +799,8 @@ class ExportGroup(object):
 			removed_path['storage_ports'] = removed_ports
 			removed_paths.append(removed_path)
 
-	       	affectedEGs=rep['affected_export_groups']
-	    	for eg in affectedEGs:
-			egid=eg['id']
-			egdb=self.export_group_show(egid);
-			projid=egdb['project']['id'];
-			projobj = Project(self.__ipAddr, self.__port)
-        		fullproj = tenant + "/" + project
-        		projuri = projobj.project_query(fullproj)
-			project=Project.project_show(projid);
-			#print project['name'], "/", eg['name']
         	parms['adjusted_paths'] = adjusted_paths
         	parms['removed_paths'] = removed_paths
-
 	return parms
 
     def exportgroup_pathadjustment(self, name, project, tenant, storagesystem, varray, 

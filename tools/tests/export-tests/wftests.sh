@@ -1716,8 +1716,12 @@ host_setup() {
 
     run transportzone add $NH/${FC_ZONE_A} $H1PI1
     run transportzone add $NH/${FC_ZONE_A} $H1PI2
+    run transportzone add $NH/${FC_ZONE_A} $H1PI3
+    run transportzone add $NH/${FC_ZONE_A} $H1PI4
     run transportzone add $NH/${FC_ZONE_A} $H2PI1
     run transportzone add $NH/${FC_ZONE_A} $H2PI2
+    run transportzone add $NH/${FC_ZONE_A} $H2PI3
+    run transportzone add $NH/${FC_ZONE_A} $H2PI4
     run transportzone add $NH/${FC_ZONE_A} $H3PI1
     run transportzone add $NH/${FC_ZONE_A} $H3PI2
 
@@ -1727,18 +1731,26 @@ host_setup() {
         run hosts create ${HOST1} $TENANT Windows ${HOST1} --port 8111 --username user --password 'password' --osversion 1.0 --cluster ${TENANT}/${CLUSTER}
         run initiator create ${HOST1} FC $H1PI1 --node $H1NI1
         run initiator create ${HOST1} FC $H1PI2 --node $H1NI2
+        run initiator create ${HOST1} FC $H1PI3 --node $H1NI3
+        run initiator create ${HOST1} FC $H1PI4 --node $H1NI4
 
         run hosts create ${HOST2} $TENANT Windows ${HOST2} --port 8111 --username user --password 'password' --osversion 1.0 --cluster ${TENANT}/${CLUSTER}
         run initiator create ${HOST2} FC $H2PI1 --node $H2NI1
         run initiator create ${HOST2} FC $H2PI2 --node $H2NI2
+        run initiator create ${HOST2} FC $H2PI3 --node $H2NI3
+        run initiator create ${HOST2} FC $H2PI4 --node $H2NI4
     else
         run hosts create ${HOST1} $TENANT Windows ${HOST1} --port 8111 --username user --password 'password' --osversion 1.0
         run initiator create ${HOST1} FC $H1PI1 --node $H1NI1
         run initiator create ${HOST1} FC $H1PI2 --node $H1NI2
+        run initiator create ${HOST1} FC $H1PI4 --node $H1NI3
+        run initiator create ${HOST1} FC $H1PI2 --node $H1NI4
 
         run hosts create ${HOST2} $TENANT Windows ${HOST2} --port 8111 --username user --password 'password' --osversion 1.0
         run initiator create ${HOST2} FC $H2PI1 --node $H2NI1
         run initiator create ${HOST2} FC $H2PI2 --node $H2NI2
+        run initiator create ${HOST2} FC $H2PI3 --node $H2NI3
+        run initiator create ${HOST2} FC $H2PI4 --node $H2NI4
     fi
 }
 
@@ -3259,7 +3271,7 @@ test_11() {
     failure_injections="${common_failure_injections} ${storage_failure_injections}"
 
     # Placeholder when a specific failure case is being worked...
-    # failure_injections="failure_057_NetworkDeviceController.zoneExportAddInitiators_before_zone"
+    # failure_injections="failure_003_late_in_add_initiator_to_mask"
 
     for failure in ${failure_injections}
     do
@@ -3883,16 +3895,24 @@ H1PI1=`pwwn 00`
 H1NI1=`nwwn 00`
 H1PI2=`pwwn 01`
 H1NI2=`nwwn 01`
+H1PI3=`pwwn 02`
+H1NI3=`nwwn 02`
+H1PI4=`pwwn 03`
+H1NI4=`nwwn 03`
 
-H2PI1=`pwwn 02`
-H2NI1=`nwwn 02`
-H2PI2=`pwwn 03`
-H2NI2=`nwwn 03`
+H2PI1=`pwwn 04`
+H2NI1=`nwwn 04`
+H2PI2=`pwwn 05`
+H2NI2=`nwwn 05`
+H2PI3=`pwwn 06`
+H2NI3=`nwwn 06`
+H2PI4=`pwwn 07`
+H2NI4=`nwwn 07`
 
-H3PI1=`pwwn 04`
-H3NI1=`nwwn 04`
-H3PI2=`pwwn 05`
-H3NI2=`nwwn 05`
+H3PI1=`pwwn 08`
+H3NI1=`nwwn 08`
+H3PI2=`pwwn 09`
+H3NI2=`nwwn 09`
 
 # Delete and setup are optional
 if [ "$1" = "delete" ]

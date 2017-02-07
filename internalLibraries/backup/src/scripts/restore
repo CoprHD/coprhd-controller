@@ -182,12 +182,13 @@ check_standby() {
     fi
 }
 
+# Paramters validation
+FORCE=false
 if [ $# -eq 1 ]; then
     if [ "$1" == "--help" -o "$1" == "-h" -o "$1" == "-help" ]; then
         usage
         exit 0
     fi
-    FORCE=false
 elif [ $# -eq 2 ] && [ "$2" == "-f" ]; then
     FORCE=true
 else

@@ -514,7 +514,7 @@ public class FilePolicyService extends TaskResourceService {
             _log.info("validating file policy update parameters.");
 
             validateFilePolicyUpdateParams(filePolicy, param);
-            // if No storage resource, update the original policy template!!
+            // there are some storage resource, Updated them as well!!
             _dbClient.updateObject(filePolicy);
 
             _log.info("Updating the storage system policy started..");
@@ -528,6 +528,9 @@ public class FilePolicyService extends TaskResourceService {
             } else if (filePolicy.getFilePolicyType().equals(FilePolicyType.file_snapshot.name())) {
                 updateFileSnapshotPolicy(filePolicy, param);
             }
+
+            // if No storage resource, update the original policy template!!
+            _dbClient.updateObject(filePolicy);
 
             String task = UUID.randomUUID().toString();
             Operation op = _dbClient.createTaskOpStatus(FilePolicy.class, filePolicy.getId(),

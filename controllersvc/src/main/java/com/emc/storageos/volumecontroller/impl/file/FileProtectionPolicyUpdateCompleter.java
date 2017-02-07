@@ -56,7 +56,7 @@ public class FileProtectionPolicyUpdateCompleter extends FilePolicyWorkflowCompl
                 }
             }
             if (numStepsFailed > 0) {
-
+                _log.error("Update file protection policy failed  with {}" + strErrorMsg.toString());
             }
 
         }

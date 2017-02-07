@@ -247,12 +247,6 @@ public class FileControllerImpl extends AbstractDiscoveredSystemController imple
     }
 
     @Override
-    public void getFileProtectionPolicyFromStorageSystem(URI storage, URI policy, URI policyRes, String opId) throws InternalException {
-        execFS("getFileProtectionPolicyFromStorageSystem", storage, policy, policyRes, opId);
-
-    }
-
-    @Override
     public void updateStorageSystemFileProtectionPolicy(URI storage, URI policy, URI policyRes, FilePolicyUpdateParam policyUpdateParam,
             String opId) throws InternalException {
         execFS("updateStorageSystemFileProtectionPolicy", storage, policy, policyRes, policyUpdateParam, opId);
@@ -267,7 +261,7 @@ public class FileControllerImpl extends AbstractDiscoveredSystemController imple
     @Override
     public void
             assignFileSnapshotPolicyToVirtualPool(URI storageSystemURI, URI vNASURI, URI filePolicyToAssign, URI vpoolURI, String taskId)
-            throws InternalException {
+                    throws InternalException {
         execFS("assignFileSnapshotPolicyToVirtualPool", storageSystemURI, vNASURI, filePolicyToAssign, vpoolURI, taskId);
     }
 

@@ -32,7 +32,6 @@ import com.emc.storageos.model.file.policy.FilePolicyRestRep;
 import com.emc.storageos.model.file.policy.FilePolicyRestRep.ReplicationSettingsRestRep;
 import com.emc.storageos.model.file.policy.FilePolicyRestRep.SnapshotSettingsRestRep;
 import com.emc.storageos.model.file.policy.FilePolicyScheduleParams;
-import com.emc.storageos.model.file.policy.FilePolicyStorageResourceRestRep;
 import com.emc.storageos.model.file.policy.FilePolicyUnAssignParam;
 import com.emc.storageos.model.file.policy.FilePolicyUpdateParam;
 import com.emc.storageos.model.file.policy.FilePolicyVpoolAssignParam;
@@ -42,7 +41,6 @@ import com.emc.storageos.model.file.policy.FileReplicationTopologyRestRep;
 import com.emc.storageos.model.file.policy.FileSnapshotPolicyExpireParam;
 import com.emc.storageos.model.file.policy.FileSnapshotPolicyParam;
 import com.emc.storageos.model.project.ProjectRestRep;
-import com.emc.storageos.model.systems.StorageSystemRestRep;
 import com.emc.storageos.model.vpool.FileVirtualPoolRestRep;
 import com.emc.vipr.client.core.ACLResources;
 import com.emc.vipr.client.core.util.ResourceUtils;
@@ -118,7 +116,6 @@ public class FileProtectionPolicies extends ViprResourceController {
             addTenantOptionsArgs();
             addRenderApplyPolicysAt();
             addNumWorkerThreadsArgs();
-            addStorageResourceOptionsArgs(id);
             render(schedulePolicy);
         } else {
             flash.error(MessagesUtils.get(UNKNOWN, id));
@@ -239,30 +236,6 @@ public class FileProtectionPolicies extends ViprResourceController {
         }
     }
 
-    private static void addStorageResourceOptionsArgs(String id) {
-
-        if (id != null && !id.isEmpty()) {
-            List<FilePolicyStorageResourceRestRep> policyResources = getViprClient().fileProtectionPolicies()
-                    .getPolicyStorageResources(uri(id));
-            // format the policy storage resource options!!
-            if (policyResources != null && !policyResources.isEmpty()) {
-                List<StringOption> storageResourceOptions = Lists.newArrayList();
-                for (FilePolicyStorageResourceRestRep resource : policyResources) {
-                    StringBuilder resourceValue = new StringBuilder();
-                    StorageSystemRestRep system = getViprClient().storageSystems().get(resource.getStorageSystem().getId());
-                    if (system != null) {
-                        resourceValue.append(system.getName()).append("-");
-                    }
-                    resourceValue.append(resource.getResourcePath());
-                    storageResourceOptions.add(new StringOption(resource.getId().toString(), resourceValue.toString()));
-                }
-                if (!storageResourceOptions.isEmpty()) {
-                    renderArgs.put("policyStorageResourceOptions", storageResourceOptions);
-                }
-            }
-        }
-    }
-
     private static void addRenderApplyPolicysAt() {
 
         List<StringOption> applyPolicyAtOptions = Lists.newArrayList();
@@ -298,25 +271,6 @@ public class FileProtectionPolicies extends ViprResourceController {
             } else if (FilePolicyType.file_replication.name().equalsIgnoreCase(policy.getType()) &&
                     vpool.getProtection() != null && vpool.getProtection().getReplicationSupported()) {
                 vPools.add(vpool);
-                /*
-                 * // Filter vpools which are already assigned with replication policy!!
-                 * if (vpool.getFileProtectionPolicies() == null || vpool.getFileProtectionPolicies().isEmpty()) {
-                 * vPools.add(vpool);
-                 * } else {
-                 * boolean vpoolHasReplicationPolicy = false;
-                 * for (String strPolicy : vpool.getFileProtectionPolicies()) {
-                 * FilePolicyRestRep vpoolPolicy = getViprClient().fileProtectionPolicies().get(URI.create(strPolicy));
-                 * if (vpoolPolicy != null && !vpoolPolicy.getInactive()
-                 * && FilePolicyType.file_replication.name().equalsIgnoreCase(vpoolPolicy.getType())) {
-                 * vpoolHasReplicationPolicy = true;
-                 * break;
-                 * }
-                 * }
-                 * if (!vpoolHasReplicationPolicy) {
-                 * vPools.add(vpool);
-                 * }
-                 * }
-                 */
             }
         }
 
@@ -373,9 +327,6 @@ public class FileProtectionPolicies extends ViprResourceController {
             FilePolicyRestRep schedulePolicyRestRep = getViprClient().fileProtectionPolicies().get(uri(schedulePolicy.id));
             FilePolicyUpdateParam input = new FilePolicyUpdateParam();
             updatePolicyParam(schedulePolicy, input);
-            if (schedulePolicy.policyStorageResource != null && !schedulePolicy.policyStorageResource.isEmpty()) {
-                input.setPolicyStorageResource(URI.create(schedulePolicy.policyStorageResource));
-            }
             getViprClient().fileProtectionPolicies().update(schedulePolicyRestRep.getId(), input);
             policyId = schedulePolicyRestRep.getId();
         }
@@ -546,8 +497,6 @@ public class FileProtectionPolicies extends ViprResourceController {
         public String priority;
 
         public int numWorkerThreads = 3;
-
-        public String policyStorageResource;
 
         public SchedulePolicyForm form(FilePolicyRestRep restRep) {
 

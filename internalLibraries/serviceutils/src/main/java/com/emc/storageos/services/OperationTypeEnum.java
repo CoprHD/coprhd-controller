@@ -150,8 +150,6 @@ public enum OperationTypeEnum {
     DELETE_FILE_SYSTEM_SHARE("FileSystemShareDeleted", "FileSystemShareDeleteFailed", "FileSystem share deleted"),
     GET_FILE_SYSTEM_SNAPSHOT_BY_SCHEDULE("FileSystemScheduleSnapshot", "FileSystemScheduleSnapshotFailed",
             "FileSystem Schedule Snapshot List"),
-    GET_STORAGE_SYSTEM_POLICY_BY_POLICY_RESOURCE("StorageSystemPolicyForPolicyResource", "StorageSystemPolicyForPolicyResourceFailed",
-            "Get Storage System Policy For Policy Resource"),
     UPDATE_STORAGE_SYSTEM_POLICY_BY_POLICY_RESOURCE("StorageSystemPolicyForPolicyResource", "StorageSystemPolicyForPolicyResourceFailed",
             "Get Storage System Policy For Policy Resource"),
 

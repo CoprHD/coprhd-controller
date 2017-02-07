@@ -48,15 +48,6 @@
       }%
       #{Form.inputTextControlGroup field:field /}
     #{/field}
-    
-    #{field 'schedulePolicy.policyStorageResource'} 
-     %{
-  	  field.options=policyStorageResourceOptions
-  	  field.cssClass = 'span3'
-  	 }%
-    #{Form.selectOneControlGroup field:field/}
-    
-  #{/field}
   
     #{field 'schedulePolicy.snapshotNamePattern'}
       %{
@@ -267,13 +258,6 @@
                $('#schedulePolicy_priorityControlGroup').show();
                $('#schedulePolicy_expirationControlGroup').hide();
                $('#schedulePolicy_numWorkerThreadsControlGroup').show();
-          }
-          
-          var editMode = #{get 'editMode'/};
-          if(editMode && policyStorageResourceOptions) {
-              $('#schedulePolicy_policyStorageResourceControlGroup').show();
-          } else {
-              $('#schedulePolicy_policyStorageResourceControlGroup').hide();
           }
           
            if(appliedAt == 'vpool') {

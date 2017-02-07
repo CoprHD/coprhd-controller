@@ -19,7 +19,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.TimeUnit;
 
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
@@ -41,27 +40,21 @@ import com.emc.storageos.api.mapper.functions.MapFilePolicy;
 import com.emc.storageos.api.service.authorization.PermissionsHelper;
 import com.emc.storageos.api.service.impl.resource.utils.FilePolicyServiceUtils;
 import com.emc.storageos.api.service.impl.response.BulkList;
-import com.emc.storageos.api.service.impl.response.SearchedResRepList;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
-import com.emc.storageos.db.client.constraint.PrefixConstraint;
 import com.emc.storageos.db.client.model.FilePolicy;
 import com.emc.storageos.db.client.model.FilePolicy.FilePolicyApplyLevel;
 import com.emc.storageos.db.client.model.FilePolicy.FilePolicyType;
 import com.emc.storageos.db.client.model.FilePolicy.FileReplicationType;
 import com.emc.storageos.db.client.model.FilePolicy.SnapshotExpireType;
 import com.emc.storageos.db.client.model.FileReplicationTopology;
-import com.emc.storageos.db.client.model.FileShare;
 import com.emc.storageos.db.client.model.OpStatusMap;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.PolicyStorageResource;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.StoragePool;
-import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
-import com.emc.storageos.db.client.model.Task;
 import com.emc.storageos.db.client.model.VirtualPool;
-import com.emc.storageos.db.client.model.util.TaskUtils;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.fileorchestrationcontroller.FileOrchestrationController;
 import com.emc.storageos.fileorchestrationcontroller.FileOrchestrationUtils;
@@ -84,7 +77,6 @@ import com.emc.storageos.model.file.policy.FilePolicyUpdateParam;
 import com.emc.storageos.model.file.policy.FileReplicationPolicyParam;
 import com.emc.storageos.model.file.policy.FileReplicationTopologyParam;
 import com.emc.storageos.model.file.policy.FileSnapshotPolicyExpireParam;
-import com.emc.storageos.model.search.SearchResultResourceRep;
 import com.emc.storageos.security.audit.AuditLogManager;
 import com.emc.storageos.security.authentication.StorageOSUser;
 import com.emc.storageos.security.authorization.CheckPermission;
@@ -93,7 +85,6 @@ import com.emc.storageos.security.authorization.Role;
 import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.BadRequestException;
-import com.emc.storageos.volumecontroller.FileController;
 import com.emc.storageos.volumecontroller.impl.monitoring.RecordableEventManager;
 
 /**
@@ -510,32 +501,26 @@ public class FilePolicyService extends TaskResourceService {
         FilePolicy filePolicy = this._dbClient.queryObject(FilePolicy.class, id);
         ArgValidator.checkEntity(filePolicy, id, true);
 
+        _log.info("validate and update file policy parameters started -- ");
+        if (filePolicy.getFilePolicyType().equals(FilePolicyType.file_replication.name())) {
+            updateFileReplicationPolicy(filePolicy, param);
+        } else if (filePolicy.getFilePolicyType().equals(FilePolicyType.file_snapshot.name())) {
+            updateFileSnapshotPolicy(filePolicy, param);
+        }
+        // if No storage resource, update the original policy template!!
+        _dbClient.updateObject(filePolicy);
+
+        String task = UUID.randomUUID().toString();
+        Operation op = _dbClient.createTaskOpStatus(FilePolicy.class, filePolicy.getId(),
+                task, ResourceOperationTypeEnum.UPDATE_FILE_POLICY_BY_POLICY_STORAGE_RESOURCE);
+        op.setDescription("update file protection policy by policy storage resource");
+
         if (filePolicy.getPolicyStorageResources() != null && !filePolicy.getPolicyStorageResources().isEmpty()) {
-            _log.info("validating file policy update parameters.");
-
-            validateFilePolicyUpdateParams(filePolicy, param);
-            // there are some storage resource, Updated them as well!!
-            _dbClient.updateObject(filePolicy);
-
             _log.info("Updating the storage system policy started..");
-            return updateStorageSystemFileProtectionPolicy(filePolicy, param);
-
+            updateStorageSystemFileProtectionPolicy(filePolicy, param, task);
+            return toTask(filePolicy, task, op);
         } else {
-            _log.info("validate and update file policy parameters started -- ");
-            if (filePolicy.getFilePolicyType().equals(FilePolicyType.file_replication.name())) {
-                updateFileReplicationPolicy(filePolicy, param);
-
-            } else if (filePolicy.getFilePolicyType().equals(FilePolicyType.file_snapshot.name())) {
-                updateFileSnapshotPolicy(filePolicy, param);
-            }
-
-            // if No storage resource, update the original policy template!!
-            _dbClient.updateObject(filePolicy);
-
-            String task = UUID.randomUUID().toString();
-            Operation op = _dbClient.createTaskOpStatus(FilePolicy.class, filePolicy.getId(),
-                    task, ResourceOperationTypeEnum.UPDATE_FILE_POLICY_BY_POLICY_STORAGE_RESOURCE);
-            op.setDescription("update file protection policy by policy storage resource");
+            op = _dbClient.ready(FilePolicy.class, filePolicy.getId(), task);
             return toTask(filePolicy, task, op);
         }
     }
@@ -563,56 +548,6 @@ public class FilePolicyService extends TaskResourceService {
         }
         resources.setStorageResources(policyResources);
         return resources;
-    }
-
-    /**
-     * @brief Get the list of policy storage resources of a file policy.
-     * 
-     * @param id of the file policy.
-     * @return List of policy storage resource information.
-     */
-    @GET
-    @Path("/{id}/policy-storage-resources/{resId}")
-    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR, Role.TENANT_ADMIN })
-    public FilePolicyStorageResourceRestRep getFilePolicyStorageResource(@PathParam("id") URI id, @PathParam("resId") URI resId) {
-
-        _log.info("Request recieved to list of storage resource for the policy {}", id);
-        FilePolicy filepolicy = queryResource(id);
-        ArgValidator.checkEntity(filepolicy, id, true);
-
-        ArgValidator.checkUri(resId);
-        PolicyStorageResource storageRes = _dbClient.queryObject(PolicyStorageResource.class, resId);
-        return FilePolicyMapper.mapPolicyStorageResource(storageRes, filepolicy, _dbClient);
-    }
-
-    /**
-     * @brief Get the list of policy storage resources of a file policy.
-     * 
-     * @param id of the file policy.
-     * @return List of policy storage resource information.
-     */
-    @GET
-    @Path("/{id}/policy-storage-resources/{resId}/policy")
-    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR, Role.TENANT_ADMIN })
-    public FilePolicyRestRep getFileProtectionPolicyFromPolicyStorageResource(@PathParam("id") URI id, @PathParam("resId") URI resId) {
-
-        _log.info("Request recieved to list of storage resource for the policy {}", id);
-        FilePolicy filepolicy = queryResource(id);
-        ArgValidator.checkEntity(filepolicy, id, true);
-
-        ArgValidator.checkUri(resId);
-        PolicyStorageResource storageRes = _dbClient.queryObject(PolicyStorageResource.class, resId);
-        if (filepolicy != null && storageRes != null
-                && storageRes.getFilePolicyId().toString().equalsIgnoreCase(filepolicy.getId().toString())) {
-            return getFileProtectionPolicyFromPolicyStorageResource(filepolicy, storageRes);
-        } else {
-            String errorMsg = "Provided storage resource URI " + resId + " is not belongs to file policy:" + filepolicy.getId()
-                    + " or it is a invalid URI";
-            _log.error(errorMsg.toString());
-            throw APIException.badRequests.invalidPolicyResourceParam(errorMsg.toString());
-        }
     }
 
     /**
@@ -771,75 +706,6 @@ public class FilePolicyService extends TaskResourceService {
     }
 
     /**
-     * validate policy parameters.
-     * 
-     * @param policy
-     * @param param
-     * @return
-     */
-    private void validateFilePolicyUpdateParams(FilePolicy policy, FilePolicyUpdateParam param) {
-        StringBuilder errorMsg = new StringBuilder();
-
-        // Verify the policy name!!!
-        if (param.getPolicyName() != null && !param.getPolicyName().isEmpty()
-                && !policy.getLabel().equalsIgnoreCase(param.getPolicyName())) {
-            checkForDuplicateName(param.getPolicyName(), FilePolicy.class);
-        }
-
-        if (param.getPriority() != null) {
-            ArgValidator.checkFieldValueFromEnum(param.getPriority(), "priority",
-                    EnumSet.allOf(FilePolicy.FilePolicyPriority.class));
-        }
-
-        if (FilePolicyType.file_replication.name().equalsIgnoreCase(policy.getFilePolicyType())) {
-            // validate replication parameters!!!
-            if (param.getReplicationPolicyParams() != null) {
-                FileReplicationPolicyParam replParam = param.getReplicationPolicyParams();
-
-                if (replParam.getReplicationCopyMode() != null && !replParam.getReplicationCopyMode().isEmpty()) {
-                    ArgValidator.checkFieldValueFromEnum(param.getReplicationPolicyParams().getReplicationCopyMode(), "replicationCopyMode",
-                            EnumSet.allOf(FilePolicy.FileReplicationCopyMode.class));
-                }
-
-                if (replParam.getReplicationType() != null && !replParam.getReplicationType().isEmpty()) {
-                    ArgValidator.checkFieldValueFromEnum(replParam.getReplicationType(), "replicationType",
-                            EnumSet.allOf(FilePolicy.FileReplicationType.class));
-                }
-
-                // Validate replication policy schedule parameters
-                if (replParam.getPolicySchedule() != null) {
-                    boolean isValidSchedule = FilePolicyServiceUtils.validatePolicySchdeuleParam(
-                            replParam.getPolicySchedule(), policy, errorMsg);
-                    if (!isValidSchedule && errorMsg.length() > 0) {
-                        _log.error("Invalid policy paramters: {} ", errorMsg.toString());
-                        throw APIException.badRequests.invalidFilePolicyScheduleParam(policy.getFilePolicyName(),
-                                errorMsg.toString());
-                    }
-                }
-            }
-        } else if (FilePolicyType.file_snapshot.name().equalsIgnoreCase(policy.getFilePolicyType())) {
-
-            if (param.getSnapshotPolicyPrams() != null) {
-                // Validate snapshot policy schedule parameters
-                if (param.getSnapshotPolicyPrams().getPolicySchedule() != null) {
-                    boolean isValidSchedule = FilePolicyServiceUtils.validatePolicySchdeuleParam(
-                            param.getSnapshotPolicyPrams().getPolicySchedule(), policy, errorMsg);
-                    if (!isValidSchedule && errorMsg.length() > 0) {
-                        _log.error("Failed to update file replication policy due to {} ", errorMsg.toString());
-                        throw APIException.badRequests.invalidFilePolicyScheduleParam(policy.getFilePolicyName(),
-                                errorMsg.toString());
-                    }
-                }
-
-                // Validate snapshot policy expire parameters..
-                if (param.getSnapshotPolicyPrams().getSnapshotExpireParams() != null) {
-                    FilePolicyServiceUtils.validateSnapshotPolicyExpireParam(param.getSnapshotPolicyPrams());
-                }
-            }
-        }
-    }
-
-    /**
      * Update snapshot policy.
      * 
      * @param param
@@ -887,112 +753,20 @@ public class FilePolicyService extends TaskResourceService {
         }
     }
 
-    private FilePolicyRestRep getFileProtectionPolicyFromPolicyStorageResource(FilePolicy policy, PolicyStorageResource policyRes) {
-
-        FilePolicyRestRep storageSystemPolicyRep = new FilePolicyRestRep();
-        int timeout = 100;
-        // valid value of timeout is 10 sec to 10 min
-        if (timeout < 10 || timeout > 600) {
-            timeout = 30;// default timeout value.
-        }
-
-        String task = UUID.randomUUID().toString();
-        StorageSystem device = _dbClient.queryObject(StorageSystem.class, policyRes.getStorageSystem());
-        FileController controller = getController(FileController.class, device.getSystemType());
-        Operation op = _dbClient.createTaskOpStatus(FileShare.class, policyRes.getFilePolicyId(),
-                task, ResourceOperationTypeEnum.GET_FILE_POLICY_BY_POLICY_STORAGE_RESOURCE);
-        op.setDescription("file protection policy by policy storage resource");
-
-        try {
-
-            _log.info("Getting file protection policy on storage system for file storage resource {}, {}", device.getLabel(),
-                    policyRes.getResourcePath());
-
-            controller.getFileProtectionPolicyFromStorageSystem(device.getId(), policy.getId(), policyRes.getId(), task);
-            Task taskObject = null;
-            auditOp(OperationTypeEnum.GET_STORAGE_SYSTEM_POLICY_BY_POLICY_RESOURCE, true, AuditLogManager.AUDITOP_BEGIN,
-                    policy.getId().toString(), device.getId().toString(), policyRes.getId());
-            int timeoutCounter = 0;
-            // wait till timeout or result from controller service ,whichever is earlier
-            do {
-                TimeUnit.SECONDS.sleep(1);
-                taskObject = TaskUtils.findTaskForRequestId(_dbClient, policy.getId(), task);
-                timeoutCounter++;
-                // exit the loop if task is completed with error/success or timeout
-            } while ((taskObject != null && !(taskObject.isReady() || taskObject.isError())) && timeoutCounter < timeout);
-
-            if (taskObject == null) {
-                throw APIException.badRequests
-                        .unableToProcessRequest("Error occured while getting storage sytem policy for policy storage resouce");
-            } else if (taskObject.isReady()) {
-                FilePolicy storageSystemPolicy = getTaggedStorageSystemPolicyFromDB("StorageSystem Policy");
-                storageSystemPolicyRep = map(storageSystemPolicy, _dbClient);
-                // Mark the temporary policy as deleted!!!
-                storageSystemPolicy.setInactive(true);
-                _dbClient.updateObject(storageSystemPolicy);
-            } else if (taskObject.isError()) {
-                throw APIException.badRequests
-                        .unableToProcessRequest("Error occured while getting storage sytem policy for policy storage resouce due to"
-                                + taskObject.getMessage());
-            } else {
-                throw APIException.badRequests
-                        .unableToProcessRequest(
-                                "Error occured while getting storage sytem policy for policy storage resouce due to timeout");
-            }
-
-        } catch (BadRequestException e) {
-            op = _dbClient.error(FilePolicy.class, policy.getId(), task, e);
-            _log.error("Error while getting storage sytem policy for policy storage resouce {}, {}", e.getMessage(), e);
-            throw APIException.badRequests.unableToProcessRequest(e.getMessage());
-        } catch (Exception e) {
-            _log.error("Error while getting storage sytem policy for policy storage resouce {}, {}", e.getMessage(), e);
-            throw APIException.badRequests.unableToProcessRequest(e.getMessage());
-        }
-        return storageSystemPolicyRep;
-
-    }
-
-    private TaskResourceRep updateStorageSystemFileProtectionPolicy(FilePolicy policy, FilePolicyUpdateParam param) {
-
-        String task = UUID.randomUUID().toString();
-        Operation op = _dbClient.createTaskOpStatus(FilePolicy.class, policy.getId(),
-                task, ResourceOperationTypeEnum.UPDATE_FILE_POLICY_BY_POLICY_STORAGE_RESOURCE);
-        op.setDescription("update file protection policy by policy storage resource");
+    private void updateStorageSystemFileProtectionPolicy(FilePolicy policy, FilePolicyUpdateParam param, String task) {
 
         try {
             FileServiceApi fileServiceApi = getDefaultFileServiceApi();
             fileServiceApi.updateFileProtectionPolicy(policy.getId(), param, task);
             _log.info("Updated file protection policy {}", policy.getFilePolicyName());
         } catch (BadRequestException e) {
-            op = _dbClient.error(FilePolicy.class, policy.getId(), task, e);
+            Operation op = _dbClient.error(FilePolicy.class, policy.getId(), task, e);
             _log.error("Error Unassigning File policy {}, {}", e.getMessage(), e);
             throw e;
         } catch (Exception e) {
             _log.error("Error Unassigning Files Policy {}, {}", e.getMessage(), e);
             throw APIException.badRequests.unableToProcessRequest(e.getMessage());
         }
-        return toTask(policy, task, op);
-
-    }
-
-    private FilePolicy getTaggedStorageSystemPolicyFromDB(String tagName) {
-        SearchedResRepList resRepList = null;
-        if (tagName != null && !tagName.isEmpty()) {
-            resRepList = new SearchedResRepList(getResourceType());
-            _dbClient.queryByConstraint(
-                    PrefixConstraint.Factory.getTagsPrefixConstraint(getResourceClass(), tagName),
-                    resRepList);
-            for (SearchResultResourceRep resource : resRepList) {
-                FilePolicy policy = _dbClient.queryObject(FilePolicy.class, resource.getId());
-                if (policy != null && !policy.getInactive()) {
-                    _log.info("Got Storage resouce file policy {}", policy.getFilePolicyName());
-                    return policy;
-                }
-
-            }
-        }
-        _log.info("No Storage resouce file policy with tag {}", tagName);
-        return null;
     }
 
     private boolean updatePolicyCommonParameters(FilePolicy existingPolicy, FilePolicyUpdateParam param) {

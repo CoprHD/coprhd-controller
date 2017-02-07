@@ -136,8 +136,6 @@ public enum ResourceOperationTypeEnum {
             "assign snapshot schedule policy to a filesystem"),
     GET_FILE_SYSTEM_SNAPSHOT_BY_SCHEDULE("GET SNAPSHOT  CREATED BY SCHEDULE POLICY ",
             "get  snapshot created by schedule policy "),
-    GET_FILE_POLICY_BY_POLICY_STORAGE_RESOURCE("GET FILE POLICY BY POLICY STORAGE RESOURCE ",
-            "get  file protection policy by policy storage resource "),
     UPDATE_FILE_POLICY_BY_POLICY_STORAGE_RESOURCE("UPDATE FILE POLICY BY POLICY STORAGE RESOURCE ",
             "Update  file protection policy by policy storage resource "),
     UNASSIGN_FILE_SYSTEM_SNAPSHOT_SCHEDULE("UNASSIGN SNAPSHOT SCHEDULE POLICY TO A FILESYSTEM",

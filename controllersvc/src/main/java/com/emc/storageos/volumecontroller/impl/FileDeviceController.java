@@ -4158,39 +4158,6 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
     }
 
     @Override
-    public void getFileProtectionPolicyFromStorageSystem(URI storage, URI policy, URI policyRes, String opId) throws InternalException {
-        ControllerUtils.setThreadLocalLogData(policy, opId);
-        FileDeviceInputOutput args = new FileDeviceInputOutput();
-        try {
-            FilePolicy filePolicy = _dbClient.queryObject(FilePolicy.class, policy);
-            PolicyStorageResource policyResource = _dbClient.queryObject(PolicyStorageResource.class, policyRes);
-
-            if (filePolicy != null && policyResource != null) {
-                StorageSystem storageObj = _dbClient.queryObject(StorageSystem.class, storage);
-
-                _log.info("Controller Recieved File Policy  {}", policy);
-                args.setFileProtectionPolicy(filePolicy);
-                args.setPolicyStorageResource(policyResource);
-                args.setFileOperation(true);
-                args.setOpId(opId);
-
-                // Do the Operation on device.
-                BiosCommandResult result = getDevice(storageObj.getSystemType())
-                        .getFileProtectionPolicyFromStorageSystem(storageObj, args);
-
-                filePolicy.getOpStatus().updateTaskStatus(opId, result.toOperation());
-                _dbClient.updateObject(filePolicy);
-            } else {
-                throw DeviceControllerException.exceptions.invalidObjectNull();
-            }
-        } catch (Exception e) {
-            String[] params = { storage.toString(), policy.toString(), e.getMessage() };
-            _log.error("Unable to get storage system policy for storage resource : storage system {}, Policy URI {},: Error {}", params);
-        }
-
-    }
-
-    @Override
     public void updateStorageSystemFileProtectionPolicy(URI storage, URI policy, URI policyRes, FilePolicyUpdateParam policyUpdateParam,
             String opId) throws InternalException {
         ControllerUtils.setThreadLocalLogData(policy, opId);

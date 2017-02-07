@@ -239,8 +239,6 @@ public interface FileStorageDevice {
 
     public BiosCommandResult listSanpshotByPolicy(StorageSystem storageObj, FileDeviceInputOutput args);
 
-    public BiosCommandResult getFileProtectionPolicyFromStorageSystem(StorageSystem storage, FileDeviceInputOutput args);
-
     public BiosCommandResult updateStorageSystemFileProtectionPolicy(StorageSystem storage, FileDeviceInputOutput args);
 
     /**
@@ -264,6 +262,6 @@ public interface FileStorageDevice {
             throws ControllerException;
 
     public BiosCommandResult
-    checkFilePolicyExistsOrCreate(StorageSystem storageObj, FileDeviceInputOutput args);
+            checkFilePolicyExistsOrCreate(StorageSystem storageObj, FileDeviceInputOutput args);
 
 }

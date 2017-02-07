@@ -4837,8 +4837,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
                 // export Mask has shared and exclusive volumes, removing the volumes.
                 // The volumes can be taken from the export Group
 
-                List<URI> volumeURIList = (List<URI>) Collections2.transform(exportGroup.getVolumes().keySet(),
-                        CommonTransformerFunctions.FCTN_STRING_TO_URI);
+                List<URI> volumeURIList = URIUtil.toURIList(exportGroup.getVolumes().keySet());
 
                 if (!volumeURIList.isEmpty()) {
                     List<Volume> volumes = _dbClient.queryObject(Volume.class, volumeURIList);

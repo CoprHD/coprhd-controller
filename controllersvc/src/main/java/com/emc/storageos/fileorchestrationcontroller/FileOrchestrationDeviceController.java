@@ -1753,7 +1753,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
                 String stepDescription = String.format("creating file policy : %s  at : %s level", fileVpoolPolicy.getId(),
                         vpool.getLabel());
                 String applyFilePolicyStep = workflow.createStepId();
-                Object[] args = new Object[] { sourceFS.getId(), fileVpoolPolicy.getId() };
+                Object[] args = new Object[] { sourceFS.getStorageDevice(),sourceFS.getId(), fileVpoolPolicy.getId() };
                 waitFor = _fileDeviceController.createMethod(workflow, waitFor, APPLY_FILE_POLICY_METHOD, applyFilePolicyStep,
                         stepDescription, system.getId(), args);
             }
@@ -1769,7 +1769,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
                 String stepDescription = String.format("creating file policy : %s  at : %s level", fileProjectPolicy.getId(),
                         project.getLabel());
                 String applyFilePolicyStep = workflow.createStepId();
-                Object[] args = new Object[] { sourceFS.getId(), fileProjectPolicy.getId() };
+                Object[] args = new Object[] { sourceFS.getStorageDevice(),sourceFS.getId(), fileProjectPolicy.getId() };
                 waitFor = _fileDeviceController.createMethod(workflow, waitFor, APPLY_FILE_POLICY_METHOD, applyFilePolicyStep,
                         stepDescription, system.getId(), args);
             }

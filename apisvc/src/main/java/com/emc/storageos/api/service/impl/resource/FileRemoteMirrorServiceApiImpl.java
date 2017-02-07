@@ -131,7 +131,7 @@ public class FileRemoteMirrorServiceApiImpl extends AbstractFileServiceApiImpl<F
             VirtualArray varray,
             TaskList taskList, String task, List<Recommendation> recommendations, VirtualPoolCapabilityValuesWrapper vpoolCapabilities)
             throws InternalException {
-        return getFileMirrorServiceApiImpl().assignFilePolicyToFS(fs, project, vpool, varray, taskList, task, recommendations,
+        return getFileMirrorServiceApiImpl().assignFileReplicationPolicyToFS(fs,filePolicy, project, vpool, varray, taskList, task, recommendations,
                 vpoolCapabilities);
     }
 }

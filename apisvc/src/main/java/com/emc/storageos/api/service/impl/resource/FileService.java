@@ -3493,15 +3493,10 @@ public class FileService extends TaskResourceService {
         ArgValidator.checkEntityNotNull(filePolicy, filePolicyUri, isIdEmbeddedInURL(filePolicyUri));
 
         // verify the file system tenant is same as policy tenant
-        if (!filePolicy.getTenantOrg().contains(fs.getTenant().getURI().toString())) {
-            throw APIException.badRequests.associatedPolicyTenantMismatch(filePolicyUri, id);
-        }
-
-        if (!filePolicy.getApplyAt().equals(FilePolicyApplyLevel.file_system)) {
-            _log.error("File policy {} is already applied at {} level.", filePolicy.getFilePolicyName(), filePolicy.getApplyAt());
-            throw APIException.badRequests.filePolicyAssigedAlreadyAssignedToParent(filePolicy.getApplyAt());
-        }
-
+    //    if (!filePolicy.getTenantOrg().contains(fs.getTenant().getURI().toString())) {
+    //        throw APIException.badRequests.associatedPolicyTenantMismatch(filePolicyUri, id);
+      //  }
+        
         StringSet existingFSPolicies = fs.getFilePolicies();
 
         if (existingFSPolicies != null && existingFSPolicies.contains(filePolicyUri.toString())) {
@@ -3529,8 +3524,8 @@ public class FileService extends TaskResourceService {
             throw APIException.badRequests.invalidFilePolicyAssignParam(filePolicy.getFilePolicyName(), errorMsg.toString());
         }
 
-        if (filePolicy.getFilePolicyType().equals(FilePolicyType.file_replication.name()) && fs.getMirrorfsTargets().isEmpty()) {
-
+        if (filePolicy.getFilePolicyType().equals(FilePolicyType.file_replication.name()) && fs.getMirrorfsTargets()==null) {
+        	assignFileReplicationPolicyToFS(fs, filePolicy, task);
         } else if (filePolicy.getFilePolicyType().equals(FilePolicyType.file_snapshot.name())
                 || (filePolicy.getFilePolicyType().equals(FilePolicyType.file_replication.name()) && !fs.getMirrorfsTargets().isEmpty())) {
             return assignFilePolicyToFS(fs, filePolicy, task);
@@ -4381,7 +4376,7 @@ public class FileService extends TaskResourceService {
         op.setDescription("assign file policy to file system");
         try {
             _log.info("No Errors found proceeding further {}, {}, {}", new Object[] { _dbClient, fs, filePolicy });
-            controller.applyFilePolicy(fs.getId(), filePolicy.getId(), task);
+            controller.applyFilePolicy(device.getId(),fs.getId(), filePolicy.getId(), task);
             auditOp(OperationTypeEnum.ASSIGN_FILE_POLICY, true, AuditLogManager.AUDITOP_BEGIN,
                     fs.getId().toString(), device.getId().toString(), filePolicy.getId());
         } catch (BadRequestException e) {
@@ -4443,7 +4438,7 @@ public class FileService extends TaskResourceService {
                     varray, project, vpool, capabilities);
 
             // Verify the source virtual pool recommendations meets source fs storage!!!
-            fileServiceApi.createTargetsForExistingSource(fs, filePolicy, project,
+            fileServiceApi.assignFileReplicationPolicyToFS(fs, filePolicy, project,
                     vpool, varray, taskList, task, recommendations, capabilities);
 
         } catch (Exception e) {

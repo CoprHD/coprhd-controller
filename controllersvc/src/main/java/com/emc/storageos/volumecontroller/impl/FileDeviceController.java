@@ -4368,14 +4368,14 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
     }
 
     @Override
-    public void applyFilePolicy(URI sourceFS, URI policyURI, String taskId) {
+    public void applyFilePolicy(URI storage,URI sourceFS, URI policyURI, String taskId) throws ControllerException{
         FileShare fsObj = null;
         StorageSystem storageObj = null;
         try {
             fsObj = _dbClient.queryObject(FileShare.class, sourceFS);
             VirtualPool vpool = _dbClient.queryObject(VirtualPool.class, fsObj.getVirtualPool());
             Project project = _dbClient.queryObject(Project.class, fsObj.getProject());
-            storageObj = _dbClient.queryObject(StorageSystem.class, fsObj.getStorageDevice());
+            storageObj = _dbClient.queryObject(StorageSystem.class, storage);
             FileDeviceInputOutput args = new FileDeviceInputOutput();
             FilePolicy filePolicy = _dbClient.queryObject(FilePolicy.class, policyURI);
             args.setOpId(taskId);
@@ -4394,9 +4394,12 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             } else {
                 WorkflowStepCompleter.stepFailed(taskId, result.getServiceCoded());
             }
+            fsObj.getOpStatus().updateTaskStatus(taskId, result.toOperation());
         } catch (Exception e) {
+            _log.error("Unable to apply file policy: {} to file system: {}",policyURI,fsObj.getId()) ;
             ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
             WorkflowStepCompleter.stepFailed(taskId, serviceError);
+            updateTaskStatus(taskId, fsObj, e);
         }
     }
 

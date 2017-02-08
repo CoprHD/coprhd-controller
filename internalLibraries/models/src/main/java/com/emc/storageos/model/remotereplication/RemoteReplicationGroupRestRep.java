@@ -34,9 +34,6 @@ public class RemoteReplicationGroupRestRep extends DataObjectRestRep {
     // Replication state
     String replicationState;
 
-    // Replication set parent
-    private RelatedResourceRep replicationSet;
-
     @XmlElement(name = "native_id")
     public String getNativeId() {
         return nativeId;
@@ -98,14 +95,5 @@ public class RemoteReplicationGroupRestRep extends DataObjectRestRep {
 
     public void setReplicationState(String replicationState) {
         this.replicationState = replicationState;
-    }
-
-    @XmlElement(name = "replication_set")
-    public RelatedResourceRep getReplicationSet() {
-        return replicationSet;
-    }
-
-    public void setReplicationSet(RelatedResourceRep replicationSet) {
-        this.replicationSet = replicationSet;
     }
 }

@@ -120,6 +120,7 @@ public class RemoteReplicationPairService extends TaskResourceService {
      */
     @GET
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/with-storage-element")
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR })
     public RemoteReplicationPairList getRemoteReplicationPairsForStorageElement(@QueryParam("storageElement") URI storageElementURI) {
         _log.info("Called: getRemoteReplicationPairsForStorageElement() for for storage element {}", storageElementURI);

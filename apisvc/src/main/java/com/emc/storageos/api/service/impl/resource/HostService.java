@@ -313,11 +313,7 @@ public class HostService extends TaskResourceService {
                     && !NullColumnValueGetter.isNullURI(newClusterURI)
                     && !oldClusterURI.equals(newClusterURI)
                     && (ComputeSystemHelper.isClusterInExport(_dbClient, oldClusterURI)
-<<<<<<< HEAD
-                    || ComputeSystemHelper.isClusterInExport(_dbClient, host.getCluster()))) {
-=======
                             || ComputeSystemHelper.isClusterInExport(_dbClient, newClusterURI))) {
->>>>>>> master
                 // Clustered host being moved to another cluster
                 controller.addHostsToExport(Arrays.asList(host.getId()), newClusterURI, taskId, oldClusterURI, false);
             } else {

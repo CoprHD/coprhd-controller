@@ -98,7 +98,9 @@ import com.emc.storageos.volumecontroller.impl.VolumeURIHLU;
 import com.emc.storageos.volumecontroller.impl.block.ExportMaskPolicy;
 import com.emc.storageos.volumecontroller.impl.block.ExportMaskPolicy.IG_TYPE;
 import com.emc.storageos.volumecontroller.impl.smis.job.SmisJob;
+import com.emc.storageos.volumecontroller.impl.smis.vmax.VmaxExportOperationContext;
 import com.emc.storageos.volumecontroller.impl.utils.ConsistencyGroupUtils;
+import com.emc.storageos.volumecontroller.impl.utils.ExportOperationContext;
 import com.google.common.base.Joiner;
 import com.google.common.base.Strings;
 import com.google.common.collect.ListMultimap;
@@ -7766,5 +7768,39 @@ public class SmisCommandHelper implements SmisConstants {
         return new CIMArgument[] {
                 _cimArgument.reference(CP_EXISTING_STORAGEID, shidPath)
         };
+    }
+    
+    
+    /**
+     * Create port group
+     * 
+     * @param storage
+     * @param portGroupName
+     * @param targetURIList
+     * @param taskCompleter
+     * @return
+     * @throws Exception
+     */
+    public CIMObjectPath createTargetPortGroup(StorageSystem storage,
+            String portGroupName,
+            List<URI> targetURIList, TaskCompleter taskCompleter) throws Exception {
+        _log.debug("{} createTargetPortGroup START...", storage.getSerialNumber());
+        CIMObjectPath targetPortGroupPath = null;
+
+        CIMArgument[] inArgs = getCreateTargetPortGroupInputArguments(storage, portGroupName, targetURIList);
+        CIMArgument[] outArgs = new CIMArgument[5];
+        
+        // Try to look up the port group. If it already exists, use it,
+        // otherwise try to create it.
+        targetPortGroupPath = _cimPath.getMaskingGroupPath(storage, portGroupName,
+                SmisConstants.MASKING_GROUP_TYPE.SE_TargetMaskingGroup);
+        CIMInstance instance = checkExists(storage, targetPortGroupPath, false, false);
+        if (instance == null) {
+            invokeMethod(storage, _cimPath.getControllerConfigSvcPath(storage),
+                    "CreateGroup", inArgs, outArgs);
+            targetPortGroupPath = _cimPath.getCimObjectPathFromOutputArgs(outArgs, "MaskingGroup");
+        }     
+        _log.debug("{} createTargetPortGroup END...", storage.getSerialNumber());
+        return targetPortGroupPath;
     }
 }

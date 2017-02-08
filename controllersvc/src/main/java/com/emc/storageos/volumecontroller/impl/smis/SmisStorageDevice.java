@@ -54,6 +54,7 @@ import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.RemoteDirectorGroup;
 import com.emc.storageos.db.client.model.StoragePool;
+import com.emc.storageos.db.client.model.StoragePortGroup;
 import com.emc.storageos.db.client.model.StorageProvider;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
@@ -67,6 +68,7 @@ import com.emc.storageos.db.client.util.CommonTransformerFunctions;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NameGenerator;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
+import com.emc.storageos.db.client.util.StringSetUtil;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.exceptions.DeviceControllerErrors;
 import com.emc.storageos.exceptions.DeviceControllerException;
@@ -3296,6 +3298,20 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
                     storageSystem.getSerialNumber());
             _log.error(errMsg);
             throw DeviceControllerException.exceptions.couldNotPerformAliasOperation(errMsg);
+        }
+    }
+    
+    @Override
+    public void doCreateStoragePortGroup(StorageSystem storage, URI portGroupURI, TaskCompleter completer) throws Exception {
+        try {
+            StoragePortGroup portGroup = _dbClient.queryObject(StoragePortGroup.class, portGroupURI);
+            _log.info("Creating port group");
+            _helper.createTargetPortGroup(storage, portGroup.getLabel(), 
+                    StringSetUtil.stringSetToUriList(portGroup.getStoragePorts()), completer);
+            completer.ready(_dbClient);
+        } catch (Exception e) {
+            _log.error("Failed creating storage port group:", e);
+            completer.error(_dbClient, DeviceControllerException.errors.jobFailed(e));
         }
     }
 }

@@ -538,4 +538,9 @@ public class BlockControllerImpl extends AbstractDiscoveredSystemController impl
         BlockController blkcontroller = (BlockController) controller;
         return blkcontroller.getInitiatorAlias(systemURI, initiatorURI);
     }
+    
+    @Override
+    public void createStoragePortGroup(URI systemURI, URI portGroupURI, String opId) {
+        blockRMI("createStoragePortGroup", systemURI, portGroupURI, opId);
+    }
 }

@@ -2,6 +2,7 @@
     baseKey:"ExportPathAdjustment.Block",
     serviceId:"ExportPathAdjustment",
     useModal: true,
+    modalTitle:"exportPathAdjustment.modal.title",
     roles: [
         "SYSTEM_ADMIN"
     ],

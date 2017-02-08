@@ -91,9 +91,9 @@
                   <service-table table="item"></service-table>
                 </span>
                 <span ng-switch-when="modal">
-			      #{Modal.dialog id:'exportPathAdjustment', cssClass:'widest'}
+			      #{Modal.dialog id:'{{serviceDescriptor.modalTitle}}', cssClass:'widest'}
 			        #{Modal.body}
-			          #{Form.header titleKey:'exportPathAdjustment.modal.title'/}
+			          #{Form.header titleKey:'{{serviceDescriptor.modalTitle}}'/}
 			          <service-modal modal="item"></service-modal>
 			        #{/Modal.body}
 			        #{Modal.footer}

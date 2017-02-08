@@ -34,6 +34,7 @@ public class ServiceDescriptorMapper {
         to.setDescription(from.getDescription());
         to.setDestructive(from.isDestructive());
         to.setUseModal(from.isUseModal());
+        to.setModalTitle(from.getModalTitle());
         to.setServiceId(from.getServiceId());
         to.setTitle(from.getTitle());
         to.setRoles(from.getRoles());

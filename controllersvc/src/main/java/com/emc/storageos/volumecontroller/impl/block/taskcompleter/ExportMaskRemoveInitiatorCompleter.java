@@ -149,6 +149,7 @@ public class ExportMaskRemoveInitiatorCompleter extends ExportTaskCompleter {
         	super.complete(dbClient, status, coded);
         }
     }
+    
     /*
      * Remove unused storage Ports from export mask
      */
@@ -156,14 +157,35 @@ public class ExportMaskRemoveInitiatorCompleter extends ExportTaskCompleter {
 		StringSet initiators = exportMask.getInitiators();
 		StringSetMap zoningMap = exportMask.getZoningMap();
 		Set<String> zonedTarget = new HashSet<String>();
+        boolean isRollback = WorkflowService.getInstance().isStepInRollbackState(getOpId());
 		for (String initiator : initiators) {
-            StringSet targets = zoningMap.get(initiator);
-            if (targets != null && !targets.isEmpty()) {
-                zonedTarget.addAll(targets);
-            }
+		    StringSet zoneEntry = zoningMap.get(initiator);
+		    if (zoneEntry != null) {
+		        zonedTarget.addAll(zoneEntry);
+		    } else {
+		        _log.warn(String.format(
+                        "removeUnusedTargets() - tried looking up initiator [%s] in zoningMap for "
+                        + "Export Mask [%s - %s], but no entry found - continue...", initiator, 
+                        exportMask.getMaskName(), exportMask.getId())); 
+		    }
 		}
 
-		Set<String> targets = new HashSet<String>(exportMask.getStoragePorts());
+        Set<String> targets = new HashSet<String>(exportMask.getStoragePorts());
+        if (isRollback) {
+            StringSet emStoragePorts = new StringSet();
+
+            if (exportMask.getStoragePorts() != null) {
+                emStoragePorts = exportMask.getStoragePorts();
+            } else {
+                _log.warn(String.format(
+                        "removeUnusedTargets() - could not find any storage ports for"
+                                + "Export Mask [%s - %s].",
+                        exportMask.getMaskName(), exportMask.getId()));
+            }
+
+            targets = new HashSet<String>(emStoragePorts);
+		}
+
 		if (!targets.removeAll(zonedTarget)) {
 			for (String zonedPort : zonedTarget) {
 				exportMask.addTarget(URIUtil.uri(zonedPort));
@@ -172,7 +194,6 @@ public class ExportMaskRemoveInitiatorCompleter extends ExportTaskCompleter {
 		for (String targetPort : targets) {
 			exportMask.removeTarget(URIUtil.uri(targetPort));
 		}
-
 	}
 
 	public boolean removeInitiator(URI initiator) {

@@ -1295,6 +1295,7 @@ public class NetworkDeviceController implements NetworkController {
 
             // If there are no zones to do, we were successful.
             if (context.getZoneInfos().isEmpty()) {
+                _log.info("No zoning information provided.");
                 WorkflowStepCompleter.stepSucceded(stepId);
                 return true;
             }
@@ -2435,7 +2436,7 @@ public class NetworkDeviceController implements NetworkController {
             if (persist) {
                 _dbClient.updateAndReindexObject(exportMask);
             }
-            _log.info("Changed zones for export mask {} to {}. \nRefreshin zones took {} ms",
+            _log.info("Changed zones for export mask {} to {}. \nRefreshing zones took {} ms",
                     new Object[] { exportMask.getMaskName(), exportMask.getZoningMap(),
                             (System.currentTimeMillis() - start) });
         } catch (Exception ex) {

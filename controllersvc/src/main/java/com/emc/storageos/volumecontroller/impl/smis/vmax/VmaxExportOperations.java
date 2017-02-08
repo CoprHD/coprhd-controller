@@ -2269,9 +2269,9 @@ public class VmaxExportOperations implements ExportMaskOperations {
                 }
 
                 builder.append(
-                        String.format("XM refresh: %s initiators; add:{%s} remove:{%s}%n remove ids:{%s}%n",
+                        String.format("XM refresh: %s existing initiators; add:{%s} remove:{%s}%n",
                                 name, Joiner.on(',').join(initiatorsToAdd),
-                                Joiner.on(',').join(initiatorsToRemove), Joiner.on(',').join(initiatorIdsToRemove)));
+                                Joiner.on(',').join(initiatorsToRemove)));                                
                 builder.append(
                         String.format("XM refresh: %s volumes; add:{%s} remove:{%s}%n",
                                 name, Joiner.on(',').join(volumesToAdd.keySet()),
@@ -2283,14 +2283,12 @@ public class VmaxExportOperations implements ExportMaskOperations {
 
                 // Any changes indicated, then update the mask and persist it
                 if (addInitiators || removeInitiators || addVolumes ||
-                        removeVolumes || addStoragePorts || removeStoragePorts) {
-                    builder.append("XM refresh: There are changes to mask, " +
-                            "updating it...\n");
+                        removeVolumes || addStoragePorts || removeStoragePorts) {                    
                     mask.removeFromExistingInitiators(initiatorsToRemove);
                     if (initiatorIdsToRemove != null && !initiatorIdsToRemove.isEmpty()) {
                         mask.removeInitiators(_dbClient.queryObject(Initiator.class, initiatorIdsToRemove));
                         mask.removeFromUserAddedInitiatorsByURI(initiatorIdsToRemove);
-                    }
+                    } 
                     // https://coprhd.atlassian.net/browse/COP-17224 - For those cases where InitiatorGroups are shared
                     // by
                     // MaskingViews, if CoprHD processes one ExportMask by updating it with new initiators, then it
@@ -2302,6 +2300,12 @@ public class VmaxExportOperations implements ExportMaskOperations {
                     List<Initiator> userAddedInitiators = ExportMaskUtils.findIfInitiatorsAreUserAddedInAnotherMask(mask, initiatorObjectsForComputeResource,
                             _dbClient);
                     mask.addToUserCreatedInitiators(userAddedInitiators);
+                                        
+                    builder.append(
+                            String.format("XM refresh: %s user added initiators; add:{%s} remove:{%s}%n",
+                                    name, Joiner.on(',').join(userAddedInitiators),
+                                    Joiner.on(',').join(initiatorIdsToRemove)));
+                    
                     mask.addToExistingInitiatorsIfAbsent(initiatorsToAdd);
                     mask.addInitiators(initiatorObjectsForComputeResource);
                     mask.addToUserCreatedInitiators(initiatorObjectsForComputeResource);
@@ -2310,6 +2314,8 @@ public class VmaxExportOperations implements ExportMaskOperations {
                     mask.getStoragePorts().addAll(storagePortsToAdd);
                     mask.getStoragePorts().removeAll(storagePortsToRemove);
                     ExportMaskUtils.sanitizeExportMaskContainers(_dbClient, mask);
+                    builder.append("XM refresh: There are changes to mask, " +
+                            "updating it...\n");
                     _dbClient.updateObject(mask);
                 } else {
                     builder.append("XM refresh: There are no changes to the mask\n");
@@ -2822,7 +2828,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
             CIMObjectPath targetPortGroupPath,
             CIMObjectPath initiatorGroupPath,
             TaskCompleter taskCompleter) throws Exception {
-        _log.debug("{} createMaskingView START...", storage.getSerialNumber());
+        _log.info("{} createMaskingView START...", storage.getSerialNumber());
         // Flag to indicate whether or not we need to use the EMCForce flag on this operation.
         // We currently use this flag when dealing with RP Volumes as they are tagged for RP and the
         // operation on these volumes would fail otherwise.
@@ -2855,6 +2861,10 @@ public class VmaxExportOperations implements ExportMaskOperations {
             if (cimJobPath != null) {
                 ControllerServiceImpl.enqueueJob(new QueueJob(new SmisCreateMaskingViewJob(cimJobPath,
                         storage.getId(), exportMaskURI, volumeURIHLUs, volumeGroupPath, taskCompleter)));
+            } else {
+                // Treat a null cimJobPath as an exception, although we've generally only seen this occur in
+                // simulated environments
+                throw new WBEMException("No output argument was returned from CreateMaskingView operation");
             }
             // Rollback context is set in the job upon completion.
         } catch (WBEMException we) {
@@ -2868,7 +2878,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
                 throw we;
             }
         }
-        _log.debug("{} createMaskingView END...", storage.getSerialNumber());
+        _log.info("{} createMaskingView END...", storage.getSerialNumber());
     }
 
     private CIMObjectPath handleCreateMaskingGroupException(StorageSystem storage,
@@ -2876,46 +2886,46 @@ public class VmaxExportOperations implements ExportMaskOperations {
             CIMArgument[] inArgsFromFailedCommand,
             SmisCommandHelper.MASKING_GROUP_TYPE groupType)
                     throws Exception {
-        _log.debug("{} handleCreateMaskingGroupException START....", storage.getSerialNumber());
+        _log.info("{} handleCreateMaskingGroupException START....", storage.getSerialNumber());
         CIMObjectPath resultMaskingGroupPath = null;
         List<CIMObjectPath> expectedMembers = getMembersFromArguments(inArgsFromFailedCommand);
         if (expectedMembers.isEmpty()) {
-            _log.debug("{} handleCreateMaskingGroupException END....No expected members found in arguments.",
+            _log.info("{} handleCreateMaskingGroupException END....No expected members found in arguments.",
                     storage.getSerialNumber());
             return null;
         } else {
-            _log.debug("Trying to create a masking group with #members {}, members: {}",
+            _log.info("Trying to create a masking group with #members {}, members: {}",
                     expectedMembers.size(), expectedMembers);
         }
         String associatorName = expectedMembers.get(0).getObjectName();
         if (associatorName == null) {
-            _log.debug("{} handleCreateMaskingGroupException END...Could not determine associatorName for groupType: {}",
+            _log.info("{} handleCreateMaskingGroupException END...Could not determine associatorName for groupType: {}",
                     storage.getSerialNumber(), groupType.name());
             return null;
         }
         try {
             CIMObjectPath maskingGroupPath = _cimPath.getMaskingGroupPath(storage, groupName, groupType);
-            _log.debug("Fetch existing members using maskingGroupPath: {}, associatorName: {}", maskingGroupPath,
+            _log.info("Fetch existing members using maskingGroupPath: {}, associatorName: {}", maskingGroupPath,
                     associatorName);
             List<CIMObjectPath> existingMembers = getExistingMaskingGroupMembers(storage, maskingGroupPath,
                     associatorName);
-            _log.debug("MaskingGroupPath {} has {} existing members.", maskingGroupPath, existingMembers.size());
+            _log.info("MaskingGroupPath {} has {} existing members.", maskingGroupPath, existingMembers.size());
             if (!existingMembers.isEmpty()) {
                 List<String> existingMemberIds = getMaskingGroupMemberIdsFromPaths(existingMembers, groupType);
                 List<String> expectedMemberIds = getMaskingGroupMemberIdsFromPaths(expectedMembers, groupType);
                 expectedMemberIds.removeAll(existingMemberIds);
                 if (expectedMemberIds.isEmpty()) {
-                    _log.debug("Returning masking group {}, with required members.", maskingGroupPath);
+                    _log.info("Returning masking group {}, with required members.", maskingGroupPath);
                     resultMaskingGroupPath = maskingGroupPath;
                 } else {
-                    _log.debug("Masking group {}, members do not match !", maskingGroupPath);
+                    _log.info("Masking group {}, members do not match !", maskingGroupPath);
                 }
             }
         } catch (Exception e) {
-            _log.debug(String.format("Caught exception in handleCreateMaskingGroupException - array: %s",
+            _log.info(String.format("Caught exception in handleCreateMaskingGroupException - array: %s",
                     storage.getSerialNumber()), e);
         }
-        _log.debug("{} handleCreateMaskingGroupException END....", storage.getSerialNumber());
+        _log.info("{} handleCreateMaskingGroupException END....", storage.getSerialNumber());
         return resultMaskingGroupPath;
     }
 

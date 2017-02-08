@@ -218,6 +218,7 @@ public class ExportWorkflowUtils {
                         objectsToRemoveList);
             }
         }
+        
         if (addedBlockObjects != null && !addedBlockObjects.isEmpty()) {
             Map<URI, Integer> objectsToAdd = new HashMap<URI, Integer>(addedBlockObjects);
 

@@ -25,6 +25,8 @@
 #
 #set -x
 
+source $(dirname $0)/common_subs.sh
+
 Usage()
 {
     echo 'Usage: dutests.sh <sanity conf file path> (vmax2 | vmax3 | vnx | vplex [local | distributed] | xio | unity] [-setuphw|-setupsim) [-report] [-cleanup]  [test1 test2 ...]'
@@ -67,120 +69,6 @@ GLOBAL_RESULTS_OUTPUT_FILES_SUBDIR=output_files
 RESULTS_SET_FILE=results-set-du.csv
 TEST_OUTPUT_FILE=default-output.txt
 
-# Reset the trip counters on a distinct test case
-reset_counts() {
-    TRIP_VERIFY_COUNT=0
-    TRIP_VERIFY_FAIL_COUNT=0
-}
-
-# A method that reports on the status of the test, along with other 
-# important information:
-#
-# What is helpful in one line:
-# 1. storage system under test
-# 2. simulator or not
-# 3. test number
-# 4. failure scenario within that test (null in this suite)
-# 5. git branch
-# 6. git commit SHA
-# 7. IP address
-# 8. date/time stamp
-# 9. test status
-#
-# A huge plus, but wouldn't be available on a single line is:
-# 1. output from a failed test case
-# 2. the controller/apisvc logs for the test case
-#
-# But maybe we crawl before we run.
-report_results() {
-    testname=${1}
-    failure_scenario=""
-    branch=`git rev-parse --abbrev-ref HEAD`
-    sha=`git rev-parse HEAD`
-    ss=${SS}
-
-    if [ "${SS}" = "vplex" ]; then
-	ss="${SS} ${VPLEX_MODE}"
-    fi
-
-    simulator="Hardware"
-    if [ "${SIM}" = "1" ]; then
-	simulator="Simulator"
-    fi
-    status="PASSED"
-    if [ ${TRIP_VERIFY_FAIL_COUNT} -gt 0 ]; then
-	status="FAILED"
-    fi
-    datetime=`date +"%Y-%m-%d.%H:%M:%S"`
-
-    result="${ss},${simulator},${testname},${failure_scenario},${branch},${sha},${ipaddr},${datetime},<a href=\"${GLOBAL_RESULTS_OUTPUT_FILES_SUBDIR}/${TEST_OUTPUT_FILE}\">${status}</a>"
-    mkdir -p /root/reliability
-    echo ${result} > /tmp/report-result.txt
-    echo ${result} >> /root/reliability/results-local-set.db
-
-    echo -e "${result}\n$(cat ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE})" > ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE}
-
-    if [ "${REPORT}" = "1" ]; then
-	cat /tmp/report-result.txt | sshpass -p $SYSADMIN_PASSWORD ssh -o StrictHostKeyChecking=no root@${GLOBAL_RESULTS_IP} "cat >> ${GLOBAL_RESULTS_PATH}/${RESULTS_SET_FILE}" > /dev/null 2> /dev/null
-	cat ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE} | sshpass -p $SYSADMIN_PASSWORD ssh -o StrictHostKeyChecking=no root@${GLOBAL_RESULTS_IP} "cat > ${GLOBAL_RESULTS_PATH}/${GLOBAL_RESULTS_OUTPUT_FILES_SUBDIR}/${TEST_OUTPUT_FILE} ; chmod 777 ${GLOBAL_RESULTS_PATH}/${GLOBAL_RESULTS_OUTPUT_FILES_SUBDIR}/${TEST_OUTPUT_FILE}" > /dev/null 2> /dev/null
-    fi
-}
-
-# Determine the mask name, given the storage system and other info
-get_masking_view_name() {
-    no_host_name=0
-    export_name=$1
-    host_name=$2
-    get_vipr_name=$3
-
-    if [ "$host_name" = "-x-" ]; then
-        # The host_name parameter is special, indicating no hostname, so
-        # set it as an empty string
-        host_name=""
-        no_host_name=1
-    fi
-
-    cluster_name_if_any="_"
-    if [ "$USE_CLUSTERED_HOSTS" -eq "1" ]; then
-        cluster_name_if_any=""
-        if [ "$no_host_name" -eq 1 ]; then
-            # No hostname is applicable, so this means that the cluster name is the
-            # last part of the MaskingView name. So, it doesn't need to end with '_'
-            cluster_name_if_any="${CLUSTER}"
-        fi
-    fi
-
-    if [ "$SS" = "vmax2" -o "$SS" = "vmax3" -o "$SS" = "vnx" ]; then
-	masking_view_name="${cluster_name_if_any}${host_name}_${SERIAL_NUMBER: -3}"
-    elif [ "$SS" = "xio" ]; then
-        masking_view_name=$host_name
-    elif [ "$SS" = "unity" ]; then
-        if [ "${get_vipr_name}" != "true" ]; then
-	    if [ "$host_name" = "$HOST1" ]; then
-                masking_view_name="$H1ID"
-	    elif [ "$host_name" = "$HOST2" ]; then
-                masking_view_name="$H2ID"
-	    elif [ "$host_name" = "$HOST3" ]; then
-                masking_view_name="$H3ID"
-	    fi
-	else
-	    masking_view_name="${cluster_name_if_any}${host_name}_${SERIAL_NUMBER: -3}"
-	fi
-    elif [ "$SS" = "vplex" ]; then
-        # TODO figure out how to account for vplex cluster (V1_ or V2_)
-        # also, the 3-char serial number suffix needs to be based on actual vplex cluster id,
-        # not just splitting the string and praying...
-        serialNumSplitOnColon=(${SERIAL_NUMBER//:/ })
-        masking_view_name="V1_${CLUSTER}_${host_name}_${serialNumSplitOnColon[0]: -3}"
-    fi
-
-    if [ "$host_name" = "-exact-" ]; then
-        masking_view_name=$export_name
-    fi
-
-    echo ${masking_view_name}
-}
-
 # Overall suite counts
 VERIFY_COUNT=0
 VERIFY_FAIL_COUNT=0
@@ -189,478 +77,6 @@ VERIFY_EXPORT_STATUS=0
 # Per-test counts
 TRIP_VERIFY_COUNT=0
 TRIP_VERIFY_FAIL_COUNT=0
-
-verify_export() {
-    export_name=$1
-    host_name=$2
-    shift 2
-
-    masking_view_name=`get_masking_view_name ${export_name} ${host_name}`
-
-    arrayhelper verify_export ${SERIAL_NUMBER} "${masking_view_name}" $*
-    VERIFY_COUNT=`expr $VERIFY_COUNT + 1`
-}
-
-# Extra gut-check.  Make sure we didn't just grab a different mask off the array.
-# Run this during test_0 to make sure we're not getting off on the wrong foot.
-# Even better would be to delete that mask, export_group, and try again.
-verify_maskname() {
-    export_name=$1
-    host_name=$2
-
-    masking_view_name=`get_masking_view_name ${export_name} ${host_name} true`
-
-    maskname=$(/opt/storageos/bin/dbutils list ExportMask | grep maskName | grep ${masking_view_name} | awk -e ' { print $3; }')
-
-    if [ "${maskname}" = "" ]; then
-	echo -e "\e[91mERROR\e[0m: Mask was not found with the name we expected.  This is likely because there is another mask using the same WWNs from a previous run of the test on this VM."
-	echo -e "\e[91mERROR\e[0m: Recommended action: delete mask manually from array and rerun test"
-	echo -e "\e[91mERROR\e[0m: OR: rerun -setup after setting environment variable: \"export WWN=<some value between 1-9,A-F>\""
-	echo "Masks found: "
-	/opt/storageos/bin/dbutils list ExportMask | grep maskName | grep host1export
-
-	# We normally don't bail out of the suite, but this is a pretty serious issue that would prevent you from running further.
-	cleanup
-	finish
-    fi
-}
-
-# Array helper method that supports the following operations:
-# 1. add_volume_to_mask
-# 2. remove_volume_from_mask
-# 3. delete_volume
-#
-# The goal is to do minimal processing here and dispatch to the respective array type's helper to do the work.
-#
-arrayhelper() {
-    operation=$1
-    serial_number=$2
-
-    case $operation in
-    add_volume_to_mask)
-	device_id=$3
-        pattern=$4
-	masking_view_name=`get_masking_view_name no-op ${pattern}`
-	arrayhelper_volume_mask_operation $operation $serial_number $device_id "$masking_view_name"
-	;;
-    remove_volume_from_mask)
-	device_id=$3
-        pattern=$4
-	masking_view_name=`get_masking_view_name no-op ${pattern}`
-	arrayhelper_volume_mask_operation $operation $serial_number $device_id "$masking_view_name"
-	;;
-    add_initiator_to_mask)
-	pwwn=$3
-        pattern=$4
-	masking_view_name=`get_masking_view_name no-op ${pattern}`
-	arrayhelper_initiator_mask_operation $operation $serial_number $pwwn "$masking_view_name"
-	;;
-    remove_initiator_from_mask)
-	pwwn=$3
-        pattern=$4
-	masking_view_name=`get_masking_view_name no-op ${pattern}`
-	arrayhelper_initiator_mask_operation $operation $serial_number $pwwn "$masking_view_name"
-	;;
-    create_export_mask)
-        device_id=$3
-	pwwn=$4
-	name=$5
-	arrayhelper_create_export_mask_operation $operation $serial_number $device_id $pwwn $name
-	;;
-    delete_volume)
-	device_id=$3
-	arrayhelper_delete_volume $operation $serial_number $device_id
-	;;
-	delete_export_mask)
-    masking_view_name=$3
-    sg_name=$4
-    ig_name=$5
-	arrayhelper_delete_export_mask $operation $serial_number $masking_view_name $sg_name $ig_name
-	;;
-    delete_mask)
-        pattern=$4
-	masking_view_name=`get_masking_view_name no-op ${pattern}`
-	arrayhelper_delete_mask $operation $serial_number $masking_view_name
-	;;
-    verify_export)
-	masking_view_name=$3
-	shift 3
-	arrayhelper_verify_export $operation $serial_number "$masking_view_name" $*
-	VERIFY_EXPORT_STATUS=$?
-	;;
-    *)
-        echo -e "\e[91mERROR\e[0m: Invalid operation $operation specified to arrayhelper."
-	cleanup
-	finish -1
-	;;
-    esac
-}
-
-# Call the appropriate storage array helper script to perform masking operations
-# outside of the controller.
-#
-arrayhelper_create_export_mask_operation() {
-    operation=$1
-    serial_number=$2
-    device_id=$3
-    pwwn=$4
-    maskname=$5
-
-    case $SS in
-    vnx)
-         runcmd navihelper.sh $operation $serial_number $array_ip $device_id $pwwn $maskname
-	 ;;
-	vmax2|vmax3)
-	    runcmd symhelper.sh $operation $serial_number $device_id $pwwn $maskname
-	 ;;
-    *)
-         echo -e "\e[91mERROR\e[0m: Invalid platform specified in storage_type: $storage_type"
-	 cleanup
-	 finish -1
-	 ;;
-    esac
-}
-
-# Call the appropriate storage array helper script to perform masking operations
-# outside of the controller.
-#
-arrayhelper_volume_mask_operation() {
-    operation=$1
-    serial_number=$2
-    device_id=$3
-    pattern=$4
-
-    case $SS in
-    vmax2|vmax3)
-         runcmd symhelper.sh $operation $serial_number $device_id $pattern
-	 ;;
-    vnx)
-         runcmd navihelper.sh $operation $serial_number $array_ip $device_id $pattern
-	 ;;
-    xio)
-         runcmd xiohelper.sh $operation $device_id $pattern
-	 ;;
-    unity)
-         runcmd vnxehelper.sh $operation $device_id "$pattern"
-         ;;
-    vplex)
-         runcmd vplexhelper.sh $operation $device_id $pattern
-	 ;;
-    *)
-         echo -e "\e[91mERROR\e[0m: Invalid platform specified in storage_type: $storage_type"
-	 cleanup
-	 finish -1
-	 ;;
-    esac
-}
-
-# Call the appropriate storage array helper script to perform masking operations
-# outside of the controller.
-#
-arrayhelper_initiator_mask_operation() {
-    operation=$1
-    serial_number=$2
-    pwwn=$3
-    pattern=$4
-
-    case $SS in
-    vmax2|vmax3)
-         runcmd symhelper.sh $operation $serial_number $pwwn $pattern
-	 ;;
-    vnx)
-         runcmd navihelper.sh $operation $serial_number $array_ip $pwwn $pattern
-	 ;;
-    xio)
-         runcmd xiohelper.sh $operation $pwwn $pattern
-	 ;;
-    unity)
-         runcmd vnxehelper.sh $operation "$pwwn" "$pattern"
-         ;;
-    vplex)
-         runcmd vplexhelper.sh $operation $pwwn $pattern
-	 ;;
-    *)
-         echo -e "\e[91mERROR\e[0m: Invalid platform specified in storage_type: $storage_type"
-	 cleanup
-	 finish -1
-	 ;;
-    esac
-}
-
-# Call the appropriate storage array helper script to perform delete volume
-# outside of the controller.
-#
-arrayhelper_delete_volume() {
-    operation=$1
-    serial_number=$2
-    device_id=$3
-
-    case $SS in
-    vmax2|vmax3)
-         runcmd symhelper.sh $operation $serial_number $device_id
-	 ;;
-    vnx)
-         runcmd navihelper.sh $operation $array_ip $device_id
-	 ;;
-    xio)
-         runcmd xiohelper.sh $operation $device_id
-	 ;;
-    unity)
-         runcmd vnxehelper.sh $operation $device_id
-         ;;
-    vplex)
-         runcmd vplexhelper.sh $operation $device_id
-	 ;;
-    *)
-         echo -e "\e[91mERROR\e[0m: Invalid platform specified in storage_type: $storage_type"
-	 cleanup
-	 finish -1
-	 ;;
-    esac
-}
-
-# Call the appropriate storage array helper script to perform delete mask
-# outside of the controller.
-#
-arrayhelper_delete_export_mask() {
-    operation=$1
-    serial_number=$2
-    masking_view_name=$3
-    sg_name=$4
-    ig_name=$5
-
-    case $SS in
-    vmax2|vmax3)
-         runcmd symhelper.sh $operation $serial_number $masking_view_name $sg_name $ig_name
-	 ;;
-    *)
-         echo -e "\e[91mERROR\e[0m: Invalid platform specified in storage_type: $storage_type"
-	 cleanup
-	 finish -1
-	 ;;
-    esac
-}
-
-# Call the appropriate storage array helper script to perform delete mask
-# outside of the controller.
-#
-arrayhelper_delete_mask() {
-    operation=$1
-    serial_number=$2
-    pattern=$3
-
-    case $SS in
-    vmax2|vmax3)
-         runcmd symhelper.sh $operation $serial_number $pattern
-	 ;;
-    vnx)
-         runcmd navihelper.sh $operation $array_ip $pattern
-	 ;;
-    xio)
-         runcmd xiohelper.sh $operation $pattern
-	 ;;
-    unity)
-         runcmd vnxehelper.sh $operation "$pattern"
-         ;;
-    vplex)
-         runcmd vplexhelper.sh $operation $pattern
-	 ;;
-    *)
-         echo -e "\e[91mERROR\e[0m: Invalid platform specified in storage_type: $storage_type"
-	 cleanup
-	 finish -1
-	 ;;
-    esac
-}
-
-# Call the appropriate storage array helper script to verify export
-#
-arrayhelper_verify_export() {
-    operation=$1
-    serial_number=$2
-    masking_view_name=$3
-    shift 3
-    return_status=0
-
-    case $SS in
-    vmax2|vmax3)
-         runcmd symhelper.sh $operation $serial_number $masking_view_name $*
-         return_status=$?
-	 ;;
-    vnx)
-         runcmd navihelper.sh $operation $array_ip $macaddr $masking_view_name $*
-         return_status=$?
-	 ;;
-    xio)
-         runcmd xiohelper.sh $operation $masking_view_name $*
-         return_status=$?
-	 ;;
-    unity)
-         runcmd vnxehelper.sh $operation "$masking_view_name" $*
-         return_status=$?
-         ;;
-    vplex)
-         runcmd vplexhelper.sh $operation $masking_view_name $*
-         return_status=$?
-	;;
-    *)
-         echo -e "\e[91mERROR\e[0m: Invalid platform specified in storage_type: $storage_type"
-	 cleanup
-	 finish -1
-	 ;;
-    esac
-    return $return_status
-}
-
-# We need a way to get all of the zones that could be associated with this host
-# that makes sense for the beginning of a test case.
-verify_no_zones() {
-    fabricid=$1
-    host=$2
-
-    if [ "${ZONE_CHECK}" = "0" ]; then
-	return
-    fi
-
-    recho "zone list $BROCADE_NETWORK --fabricid ${fabricid} --zone_name filter:${host}"
-    zone list $BROCADE_NETWORK --fabricid ${fabricid} --zone_name filter:${host} | grep ${host} > /dev/null
-    if [ $? -eq 0 ]; then
-	echo -e "\e[91mERROR\e[0m: Found zones on the switch associated with host ${host}."
-    fi
-}
-
-# Load FCZoneReference zone names from the database.  To be run after an export operation
-#
-load_zones() {
-    host=$1
-
-    if [ "${ZONE_CHECK}" = "0" ]; then
-	return
-    fi
-
-    zones=`/opt/storageos/bin/dbutils list FCZoneReference | grep zoneName | grep ${HOST1} | awk -F= '{print $2}'`
-    if [ $? -ne 0 ]; then
-	echo -e "\e[91mERROR\e[0m: Could not determine the zones that were created"
-    fi
-    if [ ${DUTEST_DEBUG} -eq 1 ]; then
-	secho "load_zones: " $zones
-    fi
-}
-
-# Verify the zones exist (or don't exist)
-verify_zones() {
-    fabricid=$1
-    check=$2
-
-    if [ "${ZONE_CHECK}" = "0" ]; then
-	return
-    fi
-
-    for zone in ${zones}
-    do
-      recho "zone list $BROCADE_NETWORK --fabricid ${fabricid} --zone_name ${zone}"
-      zone list $BROCADE_NETWORK --fabricid ${fabricid} --zone_name ${zone} | grep ${zone} > /dev/null
-      if [ $? -ne 0 -a "${check}" = "exists" ]; then
-	  echo -e "\e[91mERROR\e[0m: Expected to find zone ${zone}, but did not."
-      elif [ $? -eq 0 -a "${check}" = "gone" ]; then
-	  echo -e "\e[91mERROR\e[0m: Expected to not find zone ${zone}, but it is there."
-      fi
-    done
-}
-
-# Cleans zones and zone referencese ($1=fabricId, $2=host)
-clean_zones() {
-    fabricid=$1
-
-    if [ "${ZONE_CHECK}" = "0" ]; then
-	return
-    fi
-
-    load_zones $2
-    delete_zones ${HOST1}
-    zoneUris=$(/opt/storageos/bin/dbutils list FCZoneReference | awk  -e \
-"
-/^id: / { uri=\$2; }
-/zoneName/ { name = \$3; print uri, name; }
-" | grep host1 | awk -e ' { print $1; }')
-    if [ "${zoneUris}" != "" ]; then
-	for uri in $zoneUris
-	do
-	  runcmd /opt/storageos/bin/dbutils delete FCZoneReference $uri
-	done
-    fi
-}
-
-# Deletes the zones returned by load_zones, then any remaining zones
-delete_zones() {
-    host=$1
-
-    if [ "${ZONE_CHECK}" = "0" ]; then
-	return
-    fi
-
-    zonesdel=0
-    for zone in ${zones}
-    do
-      if [ ${DUTEST_DEBUG} -eq 1 ]; then
-	  secho "deleteing zone ${zone}"
-      fi
-
-      # Delete zones that were returned by load_zones
-      runcmd zone delete $BROCADE_NETWORK --fabric ${fabricid} --zones ${zone}
-      zonesdel=1
-      if [ $? -ne 0 ]; then
-	  secho "zones not deleted"
-      fi
-    done
-
-    if [ ${zonesdel} -eq 1 ]; then
-	if [ ${DUTEST_DEBUG} -eq 1 ]; then
-	    echo "sactivating fabric ${fabricid}"
-	fi
-	runcmd zone activate $BROCADE_NETWORK --fabricid ${fabricid} | tail -1 > /dev/null
-	if [ $? -ne 0 ]; then
-	    secho "fabric not activated"
-	fi
-    fi
-
-    zonesdel=0
-
-    recho "zone list $BROCADE_NETWORK --fabricid ${fabricid} --zone_name filter:${host}"
-    fabriczones=`zone list $BROCADE_NETWORK --fabricid ${fabricid} --zone_name filter:${host} | grep ${host}`
-    if [ $? -eq 0 ]; then
-	for zonename in ${fabriczones}
-	do
-	  runcmd zone delete $BROCADE_NETWORK --fabric ${fabricid} --zones ${zonename}
-	  zonesdel=1
-	done	    
-    fi
-
-    if [ ${zonesdel} -eq 1 ]; then
-	if [ ${DUTEST_DEBUG} -eq 1 ]; then
-	    echo "sactivating fabric ${fabricid}"
-	fi
-	runcmd zone activate $BROCADE_NETWORK --fabricid ${fabricid} | tail -1 > /dev/null
-	if [ $? -ne 0 ]; then
-	    secho "fabric not activated"
-	fi
-    fi
-}
-
-dbupdate() {
-    runcmd dbupdate.sh $*
-}
-
-finish() {
-    code=${1}
-    if [ $VERIFY_FAIL_COUNT -ne 0 ]; then
-        exit $VERIFY_FAIL_COUNT
-    fi
-    if [ "${code}" != "" ]; then
-	exit ${code}
-    fi
-    exit 0
-}
 
 # The token file name will have a suffix which is this shell's PID
 # It will allow to run the sanity in parallel
@@ -717,233 +133,12 @@ if [ -f "./myhardware.conf" ]; then
     source ./myhardware.conf
 fi
 
-drawstars() {
-    repeatchar=`expr $1 + 2`
-    while [ ${repeatchar} -gt 0 ]
-    do 
-       echo -n "*" | tee -a ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE}
-       repeatchar=`expr ${repeatchar} - 1`
-    done
-    echo "*" | tee -a ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE}
-}
-
-echot() {
-    numchar=`echo $* | wc -c`
-    echo "" | tee -a ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE}
-    drawstars $numchar
-    echo "* $* *" | tee -a ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE}
-    drawstars $numchar
-}
-
-# General echo output
-secho()
-{
-    echo -e "*** $*" | tee -a ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE}
-}
-
-# General echo output for things that are run that will suspend
-recho()
-{
-    echo -e "=== $*" | tee -a ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE}
-}
-
 # Place to put command output in case of failure
 CMD_OUTPUT=/tmp/output.txt
 rm -f ${CMD_OUTPUT}
 
-# Helper method to increment the failure counts
-incr_fail_count() {
-    VERIFY_FAIL_COUNT=`expr $VERIFY_FAIL_COUNT + 1`
-    TRIP_VERIFY_FAIL_COUNT=`expr $TRIP_VERIFY_FAIL_COUNT + 1`
-}
-
-# A method to run a command that exits on failure.
-run() {
-    cmd=$*
-    echo === $cmd | tee -a ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE}
-    rm -f ${CMD_OUTPUT}
-    if [ "${HIDE_OUTPUT}" = "" -o "${HIDE_OUTPUT}" = "1" ]; then
-	$cmd &> ${CMD_OUTPUT}
-    else
-	$cmd 2>&1
-    fi
-    if [ $? -ne 0 ]; then
-	if [ -f ${CMD_OUTPUT} ]; then
-	    cat ${CMD_OUTPUT}
-	fi
-	echo There was a failure | tee -a ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE}
-	cleanup
-	finish -1
-    fi
-}
-
-# A method to run a command that continues on failure.
-runcmd() {
-    cmd=$*
-    echo === $cmd | tee -a ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE}
-    rm -f ${CMD_OUTPUT}
-    if [ "${HIDE_OUTPUT}" = "" -o "${HIDE_OUTPUT}" = "1" ]; then
-	"$@" &> ${CMD_OUTPUT}
-    else
-	"$@" 2>&1
-    fi
-    if [ $? -ne 0 ]; then
-	if [ -f ${CMD_OUTPUT} ]; then
-	    cat ${CMD_OUTPUT} | tee -a ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE}
-	fi
-	echo There was a failure | tee -a ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE}
-	incr_fail_count
-	return 1
-    fi
-}
-
-# Utility for running a command that is expected to pause.
-# It will fill in variables needed for resume and follow operations
-#
-runcmd_suspend() {
-    testname=$1
-    shift
-    cmd=$*
-    # Print the command that will be run
-    recho $*
-
-    # Actually run the cmd, put stdout to the resultcmd variable.  the rest goes to errors.txt
-    resultcmd=`$* 2> /tmp/errors.txt`
-
-    if [ $? -ne 0 ]; then
-	echo "Command was expected to suspend, however it failed outright"
-	incr_fail_count
-	report_results ${testname}
-	return
-    fi
-
-    cat /tmp/errors.txt | tee -a ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE}
-    echo ${resultcmd}
-
-    # Parse results and store results in variables to be used later
-    taskworkflow=`echo $resultcmd | awk -F, '{print $2 $3}'`
-    answersarray=($taskworkflow)
-    task=${answersarray[0]}
-    workflow=${answersarray[1]}
-}
-
-# Utility for resuming the most recently suspended workflow and following its task
-resume_follow_task() {
-    # Resume the workflow
-    runcmd workflow resume $workflow
-
-    # Follow the task
-    runcmd task follow $task
-}
-
-#counterpart for run
-#executes a command that is expected to fail
-fail(){
-    cmd=$*
-    echo === $cmd
-    if [ "${HIDE_OUTPUT}" = "" -o "${HIDE_OUTPUT}" = "1" ]; then
-	$cmd &> ${CMD_OUTPUT}
-    else
-	$cmd 2>&1
-    fi
-
-    status=$?
-    if [ $status -eq 0 ] ; then
-        echo '**********************************************************************'
-        echo -e "$cmd succeeded, which \e[91mshould not have happened\e[0m"
-	cat ${CMD_OUTPUT}
-        echo '**********************************************************************'
-	VERIFY_FAIL_COUNT=`expr $VERIFY_FAIL_COUNT + 1`
-    else
-	secho "$cmd failed, which \e[32mis the expected ouput\e[0m"
-    fi
-}
-
-pwwn()
-{
-    # Note, for VNX, the array tooling relies on the first number being "1", please don't change that for dutests on VNX.  Thanks!
-    WWN=${WWN:-0}
-    idx=$1
-    echo 1${WWN}:${macaddr}:${idx}
-}
-
-nwwn()
-{
-    WWN=${WWN:-0}
-    idx=$1
-    echo 2${WWN}:${macaddr}:${idx}
-}
-
-setup_yaml() {
-    DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-    tools_file="${DIR}/tools.yml"
-    if [ -f "$tools_file" ]; then
-	echo "stale $tools_file found. Deleting it."
-	rm $tools_file
-    fi
-
-    if [ "${SS}" = "unity" ]; then
-        echo "Creating ${tools_file}"
-        touch $tools_file
-        printf 'array:\n  %s:\n  - ip: %s:%s\n    username: %s\n    password: %s' "${SS}" "$UNITY_IP" "$UNITY_PORT" "$UNITY_USER" "$UNITY_PW" >> $tools_file
-        return
-    fi
-
-    if [ "${storage_password}" = "" ]; then
-	echo "storage_password is not set.  Cannot make a valid tools.yml file without a storage_password"
-	exit;
-    fi
-
-    sstype=${SS:0:3}
-    if [ "${SS}" = "xio" ]; then
-	sstype="xtremio"
-    fi
-
-    # create the yml file to be used for array tooling
-    touch $tools_file
-    storage_type=`storagedevice list | grep COMPLETE | grep ${sstype} | awk '{print $1}'`
-    storage_name=`storagedevice list | grep COMPLETE | grep ${sstype} | awk '{print $2}'`
-    storage_version=`storagedevice show ${storage_name} | grep firmware_version | awk '{print $2}' | cut -d '"' -f2`
-    storage_ip=`storagedevice show ${storage_name} | grep smis_provider_ip | awk '{print $2}' | cut -d '"' -f2`
-    storage_port=`storagedevice show ${storage_name} | grep smis_port_number | awk '{print $2}' | cut -d ',' -f1`
-    storage_user=`storagedevice show ${storage_name} | grep smis_user_name | awk '{print $2}' | cut -d '"' -f2`
-    ##update tools.yml file with the array details
-    printf 'array:\n  %s:\n  - ip: %s:%s\n    id: %s\n    username: %s\n    password: %s\n    version: %s' "$storage_type" "$storage_ip" "$storage_port" "$SERIAL_NUMBER" "$storage_user" "$storage_password" "$storage_version" >> $tools_file
-}
-
-setup_provider() {
-    DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-    tools_file="${DIR}/preExistingConfig.properties"
-    if [ -f "$tools_file" ]; then
-	echo "stale $tools_file found. Deleting it."
-	rm $tools_file
-    fi
-
-    if [ "${storage_password}" = "" ]; then
-	echo "storage_password is not set.  Cannot make a valid ${toos_file} file without a storage_password"
-	exit;
-    fi
-
-    sstype=${SS}
-    if [ "${SS}" = "vmax2" -o "${SS}" = "vmax3" ]; then
-	sstype="vmax"
-    fi
-
-    # create the yml file to be used for array tooling
-    touch $tools_file
-    storage_type=`storagedevice list | grep COMPLETE | grep ${sstype} | awk '{print $1}'`
-    storage_name=`storagedevice list | grep COMPLETE | grep ${sstype} | awk '{print $2}'`
-    storage_version=`storagedevice show ${storage_name} | grep firmware_version | awk '{print $2}' | cut -d '"' -f2`
-    storage_ip=`storagedevice show ${storage_name} | grep smis_provider_ip | awk '{print $2}' | cut -d '"' -f2`
-    storage_port=`storagedevice show ${storage_name} | grep smis_port_number | awk '{print $2}' | cut -d ',' -f1`
-    storage_user=`storagedevice show ${storage_name} | grep smis_user_name | awk '{print $2}' | cut -d '"' -f2`
-    ##update provider properties file with the array details
-    printf 'provider.ip=%s\nprovider.cisco_ip=1.1.1.1\nprovider.username=%s\nprovider.password=%s\nprovider.port=%s\n' "$storage_ip" "$storage_user" "$storage_password" "$storage_port" >> $tools_file
-}
-
-login() {
-    echo "Tenant is ${TENANT}";
-    security login $SYSADMIN $SYSADMIN_PASSWORD
+dbupdate() {
+    runcmd dbupdate.sh $*
 }
 
 prerun_setup() {
@@ -953,17 +148,8 @@ prerun_setup() {
     # Convenience, clean up known artifacts
     cleanup_previous_run_artifacts
 
-    # Check if we have the most recent version of preExistingConfig.jar
-    DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-    TOOLS_MD5="${DIR}/preExistingConfig.md5"
-    TOOLS_JAR="${DIR}/preExistingConfig.jar"
-    TMP_MD5=/tmp/preExistingConfig.md5
-    MD5=`cat ${TOOLS_MD5} | awk '{print $1}'`
-    echo "${MD5} ${TOOLS_JAR}" > ${TMP_MD5}
-    if [ -f "${TOOLS_JAR}" ]; then
-       md5sum -c ${TMP_MD5}
-       [ $? -ne 0 ] && echo "WARNING: There may be a newer version of ${TOOLS_JAR} available."
-    fi
+    # Get the latest tools
+    retrieve_tooling
 
     BASENUM=""
     echo "Check if tenant and project exist"
@@ -3849,7 +3035,7 @@ test_26() {
     verify_export ${expname}1 ${HOST1} 3 4
 
     # Test remove volume
-    fail export_group update $PROJECT2/${expname}1 --remVols "${PROJECT}/${VOLNAME}-1"
+    fail export_group update $PROJECT/${expname}1 --remVols "${PROJECT}/${VOLNAME}-1"
     verify_export ${expname}1 ${HOST1} 3 4
 
     # Now remove the initiator from the host
@@ -3871,7 +3057,6 @@ test_26() {
     verify_export ${expname}1 ${HOST1} gone
 
     # Create the same export group again
-    runcmd export_group delete $PROJECT/${expname}1
     runcmd export_group create $PROJECT ${expname}1 $NH --type Host --volspec "${PROJECT}/${VOLNAME}-1,${PROJECT}/${VOLNAME}-2" --hosts "${HOST1}"
 
     # Verify the mask has the new initiator in it
@@ -3940,7 +3125,6 @@ test_26() {
 
     # Clean up
     arrayhelper delete_volume ${SERIAL_NUMBER} ${device_id}
-    runcmd export_group delete $PROJECT/${expname}1
 
     runcmd blocksnapshot delete $snap1
     runcmd blocksnapshot delete $snap2
@@ -3949,7 +3133,7 @@ test_26() {
 
 # DU Prevention Validation Test 27 (Unity only)
 #
-# Summary: Test remove initiator from one export group, other export group shouldn't be impacted
+# Summary: Test export group udate/deletion when host has multiple export groups
 #
 # Basic Use Case for single host, multiple export groups
 # 1. Create 2 volume, 1 host export from the first project
@@ -3988,7 +3172,7 @@ test_26() {
 # 23. Clean up
 #
 test_27() {
-    echot "Test 27: Export Group update/delete when multiple export groups for one host"
+    echot "Test 27: Export Group update/deletion when host has multiple export groups"
 
     # Check to make sure we're running Unity only
     if [ "${SS}" != "unity" ]; then
@@ -3997,6 +3181,10 @@ test_27() {
     fi
 
     expname=${EXPORT_GROUP_NAME}t27
+
+    # Make sure we start clean; no masking view on the array
+    verify_export ${expname}1 ${HOST1} gone
+
     PROJECT2=${PROJECT}2
 
     isCreated=$(project list --tenant $TENANT | grep ${PROJECT2} | wc -l)
@@ -4012,9 +3200,6 @@ test_27() {
     else
         run volume create P2${VOLNAME} ${PROJECT2} ${NH} ${VPOOL_BASE} 1GB --count 2
     fi
-
-    # Make sure we start clean; no masking view on the array
-    verify_export ${expname}1 ${HOST1} gone
 
     # Create the mask with the 2 volume for one project
     runcmd export_group create $PROJECT ${expname}1 $NH --type Host --volspec "${PROJECT}/${VOLNAME}-1,${PROJECT}/${VOLNAME}-2" --hosts "${HOST1}"
@@ -4055,7 +3240,6 @@ test_27() {
     # Verify the mask has the new initiator in it
     verify_export ${expname}1 ${HOST1} 3 2
 
-    runcmd export_group delete $PROJECT2/${expname}2
     runcmd export_group create ${PROJECT2} ${expname}2 $NH --type Host --volspec "${PROJECT2}/P2${VOLNAME}-1,${PROJECT2}/P2${VOLNAME}-2" --hosts "${HOST1}"
     verify_export ${expname}1 ${HOST1} 3 4
 
@@ -4117,25 +3301,241 @@ test_27() {
     verify_export ${expname}1 ${HOST1} 2 4
 
     runcmd export_group update $PROJECT/${expname}1 --remInits ${HOST1}/${H1PI1}
-    verify_export ${expname}1 ${HOST1} 2 4
+    verify_export ${expname}1 ${HOST1} 1 4
 
     runcmd export_group update $PROJECT2/${expname}2 --remInits ${HOST1}/${H1PI1}
     verify_export ${expname}1 ${HOST1} 1 4
 
     runcmd export_group update $PROJECT/${expname}1 --remInits ${HOST1}/${H1PI2}
-    verify_export ${expname}1 ${HOST1} 1 2
+    verify_export ${expname}1 ${HOST1} gone
 
     runcmd export_group update $PROJECT2/${expname}2 --remInits ${HOST1}/${H1PI2}
     verify_export ${expname}1 ${HOST1} gone
 
     # Clean up
     arrayhelper delete_volume ${SERIAL_NUMBER} ${device_id}
-    runcmd export_group delete $PROJECT/${expname}1
-    runcmd export_group delete $PROJECT2/${expname}2
     runcmd volume delete --project $PROJECT2 --wait
 }
 
 # DU Prevention Validation Test 28 (Unity only)
+#
+# Summary: Test export group udate/deletion when host has multiple export groups with no or partial shared initiators
+#
+# Basic Use Case for single host, multiple export groups
+# 1. Create 1 volume, 1 host export with the same host from the first project
+# 2. Remove initiator 2 from the export group
+# 3. Create 1 volume, 1 host export with the same host from the second project
+# 4. Remove shared initiator 1 from export group 2
+#    should fail since two export groups have different sets of initiators
+# 5. Remove non shared initiator 2 from export group 2
+#    should success
+# 6. Remove last shared initiator (initiator 1) from export group 2
+#    should success, both export groups have the same initiator 1
+# 7. Remove initiator 1 from export group 1
+#    should success, initiator 1 has already removed from array
+# 8. Create two export groups with different sets of initiators
+# 9. Remove last volume of export group 2
+#    should success, non shared initiator should be removed
+# 10. Create two export groups with different sets of initiators
+# 11. Remove last volume of export group 1
+#     should success, shared initiator should not be removed
+# 12. Create two export groups again with different sets of initiators
+# 13. Delete export group 2
+#     should success, non shared initiator should be removed
+# 14. Create two export groups again with different sets of initiators
+#     should success, shared initiator should not be removed
+# 15. Create two export groups with disjointed initiator sets
+# 16. Remove initiator from export group 1
+#     should success, LUN get removed, and initiator get deleted from array
+# 17. Remove initiator from export group 2
+#     should success, LUN get removed, initiator and host get deleted from array
+# 17. Remove volume from export group 1
+#     should success, LUN get removed, and initiator get deleted from array
+# 18. Remove volume from export group 2
+#     should success, LUN get removed, initiator and host get deleted from array
+# 19. Delete export group 1
+#     should success, LUN get removed, and initiator get deleted from array
+# 20. Delete from export group 2
+#     should success, LUN get removed, initiator and host get deleted from array
+# 21. Clean up
+#
+test_28() {
+    echot "Test 28: Export Group update/deletion when host has multiple export groups with no or partial shared initiators"
+
+    # Check to make sure we're running Unity only
+    if [ "${SS}" != "unity" ]; then
+        echo "test_28 only runs on Unity. Bypassing for ${SS}."
+        return
+    fi
+
+    expname=${EXPORT_GROUP_NAME}t28
+    PWWN="${H1NI2}:${H1PI2}"
+
+    # Make sure we start clean; no masking view on the array
+    verify_export ${expname}1 ${HOST1} gone
+
+    PROJECT2=${PROJECT}2
+
+    isCreated=$(project list --tenant $TENANT | grep ${PROJECT2} | wc -l)
+    if [ $isCreated -ne 0 ]; then
+        echo "Found project $PROJECT2"
+    else
+        run project create ${PROJECT2} --tenant $TENANT
+    fi
+
+    isCreated=$(volume list $PROJECT2 | grep P2${VOLNAME} | wc -l)
+    if [ $isCreated -ne 0 ]; then
+        echo "Found volume in $PROJECT2"
+    else
+        run volume create P2${VOLNAME} ${PROJECT2} ${NH} ${VPOOL_BASE} 1GB --count 2
+    fi
+
+    #######################################################
+    # Export groups with shared and non shared initiators #
+    #######################################################
+
+    # Create two export groups again with different sets of initiators
+    runcmd export_group create ${PROJECT} ${expname}1 $NH --type Host --volspec "${PROJECT}/${VOLNAME}-1" --hosts "${HOST1}"
+    verify_export ${expname}1 ${HOST1} 2 1
+
+    runcmd export_group update $PROJECT/${expname}1 --remInits ${HOST1}/${H1PI2}
+    verify_export ${expname}1 ${HOST1} 1 1
+
+    echo "Sleep 60 seconds"
+    sleep 60
+
+    runcmd export_group create ${PROJECT2} ${expname}2 $NH --type Host --volspec "${PROJECT2}/P2${VOLNAME}-1" --hosts "${HOST1}"
+    verify_export ${expname}1 ${HOST1} 2 2
+
+    # Remove shared initiator will fail since two export groups have different sets of initiators
+    fail export_group update $PROJECT2/${expname}2 --remInits ${HOST1}/${H1PI1}
+
+    # Remove non shared initiator should success
+    run export_group update $PROJECT2/${expname}2 --remInits ${HOST1}/${H1PI2}
+    verify_export ${expname}1 ${HOST1} 1 2
+
+    # Now each export group have same initiator
+    runcmd export_group update $PROJECT2/${expname}2 --remInits ${HOST1}/${H1PI1}
+    verify_export ${expname}1 ${HOST1} gone
+
+    run export_group update $PROJECT/${expname}1 --remInits ${HOST1}/${H1PI1}
+    verify_export ${expname}1 ${HOST1} gone
+
+    # Create two export groups again with different sets of initiators
+    runcmd export_group create ${PROJECT} ${expname}1 $NH --type Host --volspec "${PROJECT}/${VOLNAME}-1" --hosts "${HOST1}"
+    verify_export ${expname}1 ${HOST1} 2 1
+
+    runcmd export_group update $PROJECT/${expname}1 --remInits ${HOST1}/${H1PI2}
+    verify_export ${expname}1 ${HOST1} 1 1
+
+    echo "Sleep 60 seconds"
+    sleep 60
+
+    runcmd export_group create ${PROJECT2} ${expname}2 $NH --type Host --volspec "${PROJECT2}/P2${VOLNAME}-1" --hosts "${HOST1}"
+    verify_export ${expname}1 ${HOST1} 2 2
+
+    # Remove last volume of export group 2
+    runcmd export_group update $PROJECT2/${expname}2 --remVols "${PROJECT2}/P2${VOLNAME}-1"
+    verify_export ${expname}1 ${HOST1} 1 1
+
+    # Create export group 2 again with different sets of initiators
+    echo "Sleep 60 seconds"
+    sleep 60
+
+    runcmd export_group create ${PROJECT2} ${expname}2 $NH --type Host --volspec "${PROJECT2}/P2${VOLNAME}-1" --hosts "${HOST1}"
+    verify_export ${expname}1 ${HOST1} 2 2
+
+    # Remove last volume of export group 1
+    runcmd export_group update $PROJECT/${expname}1 --remVols "${PROJECT}/${VOLNAME}-1"
+    verify_export ${expname}1 ${HOST1} 2 1
+
+    # Create two export groups again with shared and non shared initiators
+    runcmd export_group delete $PROJECT2/${expname}2
+
+    runcmd export_group create ${PROJECT} ${expname}1 $NH --type Host --volspec "${PROJECT}/${VOLNAME}-1" --hosts "${HOST1}"
+    verify_export ${expname}1 ${HOST1} 2 1
+
+    runcmd export_group update $PROJECT/${expname}1 --remInits ${HOST1}/${H1PI2}
+    verify_export ${expname}1 ${HOST1} 1 1
+
+    echo "Sleep 60 seconds"
+    sleep 60
+
+    runcmd export_group create ${PROJECT2} ${expname}2 $NH --type Host --volspec "${PROJECT2}/P2${VOLNAME}-1" --hosts "${HOST1}"
+    verify_export ${expname}1 ${HOST1} 2 2
+
+    # Delete export group 2
+    runcmd export_group delete $PROJECT2/${expname}2
+    verify_export ${expname}1 ${HOST1} 1 1
+
+    # Create export group 2 again with different sets of initiators
+    runcmd export_group create ${PROJECT2} ${expname}2 $NH --type Host --volspec "${PROJECT2}/P2${VOLNAME}-1" --hosts "${HOST1}"
+    verify_export ${expname}1 ${HOST1} 2 2
+
+    # Delete export group 1
+    runcmd export_group delete $PROJECT/${expname}1
+    verify_export ${expname}1 ${HOST1} 2 1
+
+    runcmd export_group delete $PROJECT2/${expname}2
+    verify_export ${expname}1 ${HOST1} gone
+
+    ################################################
+    # Export groups with disjointed initiator sets #
+    ################################################
+
+    # Create export groups with disjointed initiator sets
+    runcmd export_group create ${PROJECT} ${expname}1 $NH --volspec "${PROJECT}/${VOLNAME}-1" --inits ${HOST1}/${H1PI1}
+    verify_export ${expname}1 ${HOST1} 1 1
+
+    # Add initiator 2 to host, so that export group 2 will use the same host
+    arrayhelper add_initiator_to_mask ${SERIAL_NUMBER} ${PWWN} ${HOST1}
+
+    runcmd export_group create ${PROJECT2} ${expname}2 $NH --volspec "${PROJECT2}/P2${VOLNAME}-1" --inits ${HOST1}/${H1PI2}
+    verify_export ${expname}1 ${HOST1} 2 2
+
+    runcmd export_group update $PROJECT/${expname}1 --remInits ${HOST1}/${H1PI1}
+    verify_export ${expname}1 ${HOST1} 1 1
+
+    runcmd export_group update $PROJECT2/${expname}2 --remInits ${HOST1}/${H1PI2}
+    verify_export ${expname}1 ${HOST1} gone
+
+    # Create export groups with disjointed initiators
+    runcmd export_group create ${PROJECT} ${expname}1 $NH --volspec "${PROJECT}/${VOLNAME}-1" --inits ${HOST1}/${H1PI1}
+    verify_export ${expname}1 ${HOST1} 1 1
+
+    # Add initiator 2 to host, so that export group 2 will use the same host
+    arrayhelper add_initiator_to_mask ${SERIAL_NUMBER} ${PWWN} ${HOST1}
+
+    runcmd export_group create ${PROJECT2} ${expname}2 $NH --volspec "${PROJECT2}/P2${VOLNAME}-1" --inits ${HOST1}/${H1PI2}
+    verify_export ${expname}1 ${HOST1} 2 2
+
+    runcmd export_group update $PROJECT/${expname}1 --remVols "${PROJECT}/${VOLNAME}-1"
+    verify_export ${expname}1 ${HOST1} 1 1
+
+    runcmd export_group update $PROJECT2/${expname}2 --remVols "${PROJECT2}/P2${VOLNAME}-1"
+    verify_export ${expname}1 ${HOST1} gone
+
+    # Create export groups with disjointed initiators
+    runcmd export_group create ${PROJECT} ${expname}1 $NH --volspec "${PROJECT}/${VOLNAME}-1" --inits ${HOST1}/${H1PI1}
+    verify_export ${expname}1 ${HOST1} 1 1
+
+    # Add initiator 2 to host, so that export group 2 will use the same host
+    arrayhelper add_initiator_to_mask ${SERIAL_NUMBER} ${PWWN} ${HOST1}
+
+    runcmd export_group create ${PROJECT2} ${expname}2 $NH --volspec "${PROJECT2}/P2${VOLNAME}-1" --inits ${HOST1}/${H1PI2}
+    verify_export ${expname}1 ${HOST1} 2 2
+
+    runcmd export_group delete $PROJECT/${expname}1
+    verify_export ${expname}1 ${HOST1} 1 1
+
+    runcmd export_group delete $PROJECT2/${expname}2
+    verify_export ${expname}1 ${HOST1} gone
+
+    # Clean up
+    runcmd volume delete --project $PROJECT2 --wait
+}
+
+# DU Prevention Validation Test 29 (Unity only)
 #
 # Summary: Test remove volume, initiator from host that no longer exists on array
 #
@@ -4157,16 +3557,16 @@ test_27() {
 # 11. Delete the export group
 #     should success
 #
-test_28() {
-    echot "Test 28: Export Group update/delete with no matched host"
+test_29() {
+    echot "Test 29: Export Group update/delete with no matched host"
 
     # Check to make sure we're running Unity only
     if [ "${SS}" != "unity" ]; then
-        echo "test_28 only runs on Unity. Bypassing for ${SS}."
+        echo "test_29 only runs on Unity. Bypassing for ${SS}."
         return
     fi
 
-    expname=${EXPORT_GROUP_NAME}t28
+    expname=${EXPORT_GROUP_NAME}t29
 
     # Make sure we start clean; no masking view on the array
     verify_export ${expname}1 ${HOST1} gone
@@ -4186,7 +3586,6 @@ test_28() {
     runcmd export_group update $PROJECT/${expname}1 --remVols "${PROJECT}/${VOLNAME}-2"
 
     # Create the same export group again
-    runcmd export_group delete $PROJECT/${expname}1
     runcmd export_group create $PROJECT ${expname}1 $NH --type Host --volspec "${PROJECT}/${VOLNAME}-1,${PROJECT}/${VOLNAME}-2" --hosts "${HOST1}"
 
     # Verify the mask has the new initiator in it
@@ -4203,7 +3602,6 @@ test_28() {
     runcmd export_group update $PROJECT/${expname}1 --remInits ${HOST1}/${H1PI2}
 
     # Create the same export group again
-    runcmd export_group delete $PROJECT/${expname}1
     runcmd export_group create $PROJECT ${expname}1 $NH --type Host --volspec "${PROJECT}/${VOLNAME}-1,${PROJECT}/${VOLNAME}-2" --hosts "${HOST1}"
 
     # Verify the mask has the new initiator in it
@@ -4216,47 +3614,6 @@ test_28() {
     runcmd export_group delete $PROJECT/${expname}1
 }
 
-# call this to generate a random WWN for exports.
-# VNX (especially) does not like multiple initiator registrations on the same
-# WWN to different hostnames, which only our test scripts tend to do.
-# Give two arguments if you want the first and last pair to be something specific
-# to help with debugging/diagnostics
-randwwn() {
-   if [ "$1" = "" ]
-   then
-      PRE="87"
-   else
-      PRE=$1
-   fi
-
-   if [ "$2" = "" ]
-   then
-      POST="32"
-   else
-      POST=$2
-   fi
-
-   I2=`date +"%N" | cut -c5-6`
-   I3=`date +"%N" | cut -c5-6`
-   I4=`date +"%N" | cut -c5-6`
-   I5=`date +"%N" | cut -c5-6`
-   I6=`date +"%N" | cut -c5-6`
-   I7=`date +"%N" | cut -c5-6`
-
-   echo "${PRE}:${I2}:${I3}:${I4}:${I5}:${I6}:${I7}:${POST}"   
-}
-
-getwwn() {
-    if [ "$SS" = "unity" ]; then
-        PWWN=`randwwn`
-        NWWN=`randwwn`
-        PWWN=${NWWN}:${PWWN}
-    else
-        PWWN=`randwwn | sed 's/://g'`
-    fi
-
-    echo $PWWN
-}
 
 # ============================================================
 # -    M A I N
@@ -4282,45 +3639,6 @@ H3ID="${H3NI1}:${H3PI1} ${H3NI2}:${H3PI2}"
 
 # pull in the vplextests.sh so it can use the dutests framework
 source vplextests.sh
-
-cleanup() {
-    if [ "${docleanup}" = "1" ]; then
-	for id in `export_group list $PROJECT | grep YES | awk '{print $5}'`
-	do
-	  runcmd export_group delete ${id} > /dev/null
-	  echo "Deleted export group: ${id}"
-	done
-	runcmd volume delete --project $PROJECT --wait
-    fi
-    echo There were $VERIFY_COUNT export verifications
-    echo There were $VERIFY_FAIL_COUNT export verification failures
-}
-
-# Clean up any exports or volumes from previous runs, but not the volumes you need to run tests
-cleanup_previous_run_artifacts() {
-    project list --tenant emcworld  > /dev/null 2> /dev/null
-    if [ $? -eq 1 ]; then
-	return;
-    fi
-
-    export_group list $PROJECT | grep YES > /dev/null 2> /dev/null
-    if [ $? -eq 0 ]; then
-	for id in `export_group list $PROJECT | grep YES | awk '{print $5}'`
-	do
-	    echo "Deleting old export group: ${id}"
-	    runcmd export_group delete ${id} > /dev/null
-	done
-    fi
-
-    volume list ${PROJECT} | grep YES | grep "hijack\|fake" > /dev/null 2> /dev/null
-    if [ $? -eq 0 ]; then
-	for id in `volume list ${PROJECT} | grep YES | grep hijack | awk '{print $7}'`
-	do
-	    echo "Deleting old volume: ${id}"
-	    runcmd volume delete ${id} --wait > /dev/null
-	done
-    fi
-}
 
 # Delete and setup are optional
 if [ "$1" = "delete" ]
@@ -4405,7 +3723,7 @@ then
 fi
 
 test_start=0
-test_end=28
+test_end=29
 
 # If there's a last parameter, take that
 # as the name of the test to run

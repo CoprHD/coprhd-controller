@@ -15,8 +15,10 @@ import org.slf4j.LoggerFactory;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.DataObject;
+import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.Migration;
 import com.emc.storageos.db.client.model.Operation;
+import com.emc.storageos.db.client.model.StringSetMap;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
@@ -36,6 +38,7 @@ public class VolumeVpoolChangeTaskCompleter extends VolumeWorkflowCompleter {
     private URI oldVpool;
     private Map<URI, URI> oldVpools;
     private Map<URI, URI> newVpools;
+    private Map<URI, StringSetMap> maskToZoningMap;
     private final List<URI> migrationURIs = new ArrayList<URI>();
 
     public VolumeVpoolChangeTaskCompleter(URI volume, URI oldVpool, String task) {
@@ -71,6 +74,10 @@ public class VolumeVpoolChangeTaskCompleter extends VolumeWorkflowCompleter {
         this.oldVpools = oldVpools;
         this.migrationURIs.addAll(migrationURIs);
         this.newVpools = newVpools;
+    }
+
+    public void setMaskToZoningMap(Map<URI, StringSetMap> maskToZoningMap) {
+        this.maskToZoningMap = maskToZoningMap;
     }
 
     @Override
@@ -157,6 +164,8 @@ public class VolumeVpoolChangeTaskCompleter extends VolumeWorkflowCompleter {
                     dbClient.updateObject(volumesToUpdate);
 
                     handleVplexVolumeErrors(dbClient);
+
+                    rollbackMaskZoningMap(dbClient);
 
                     // If there's a task associated with the CG, update that as well
                     if (this.getConsistencyGroupIds() != null) {
@@ -354,5 +363,26 @@ public class VolumeVpoolChangeTaskCompleter extends VolumeWorkflowCompleter {
             String finalMessage = Joiner.on("; ").join(finalMessages) + ".";
             _log.error(finalMessage);
         }
+    }
+
+    /**
+     * Restores the zonemaps of the export masks impacted by change vpool operation
+     * 
+     * @param dbClient the DB client
+     */
+    private void rollbackMaskZoningMap(DbClient dbClient) {
+        if (maskToZoningMap == null || maskToZoningMap.isEmpty()) {
+            _log.info("There are no masks' zonemaps to be restore.");
+            return;
+        }
+
+        List<ExportMask> masks = dbClient.queryObject(ExportMask.class, maskToZoningMap.keySet());
+        for (ExportMask mask : masks) {
+            StringSetMap zoningMap = maskToZoningMap.get(mask.getId());
+            mask.getZoningMap().clear();
+            mask.addZoningMap(zoningMap);
+        }
+
+        dbClient.updateObject(masks);
     }
 }

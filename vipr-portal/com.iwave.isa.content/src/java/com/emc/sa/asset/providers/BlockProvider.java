@@ -1448,30 +1448,28 @@ public class BlockProvider extends BaseAssetOptionsProvider {
 
     private List<AssetOption> getVolumeSnapshotOptionsForProject(AssetOptionsContext ctx, URI project) {
         final ViPRCoreClient client = api(ctx);
-        List<BlockSnapshotRestRep> snapshots = client.blockSnapshots().findByProject(project,
-                new DefaultResourceFilter<BlockSnapshotRestRep>() {
-                    @Override
-                    public boolean accept(BlockSnapshotRestRep snapshot) {
-                        VolumeRestRep parentVolume = client.blockVolumes().get(snapshot.getParent().getId());
-                        return ((isRPSourceVolume(parentVolume) && !isSnapshotRPBookmark(snapshot)) ||
-                                !isInConsistencyGroup(snapshot));
-                    }
-                });
+        List<BlockSnapshotRestRep> snapshots = findSnapshotsByProject(client, project);
+        List<BlockSnapshotRestRep> filteredSnap = new ArrayList<>();
+        for (BlockSnapshotRestRep snapshot: snapshots) {
+            if ( !isSnapshotRPBookmark(snapshot) ) {
+                filteredSnap.add(snapshot);
+            }
+        }
 
-        return constructSnapshotOptions(client, project, snapshots);
+        return constructSnapshotOptions(client, project, filteredSnap);
     }
 
     private List<AssetOption> getVolumeRPSnapshotOptionsForProject(AssetOptionsContext ctx, URI project) {
         final ViPRCoreClient client = api(ctx);
-        List<BlockSnapshotRestRep> snapshots = client.blockSnapshots().findByProject(project,
-                new DefaultResourceFilter<BlockSnapshotRestRep>() {
-                    @Override
-                    public boolean accept(BlockSnapshotRestRep snapshot) {
-                        return (isSnapshotRPBookmark(snapshot));
-                    }
-                });
+        List<BlockSnapshotRestRep> snapshots = findSnapshotsByProject(client, project);
+        List<BlockSnapshotRestRep> filteredSnap = new ArrayList<>();
+        for (BlockSnapshotRestRep snapshot: snapshots) {
+            if ( isSnapshotRPBookmark(snapshot) ) {
+                filteredSnap.add(snapshot);
+            }
+        }
 
-        return constructSnapshotOptions(client, project, snapshots);
+        return constructSnapshotOptions(client, project, filteredSnap);
     }
 
     /**

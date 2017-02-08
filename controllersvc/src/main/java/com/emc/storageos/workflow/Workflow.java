@@ -890,7 +890,6 @@ public class Workflow implements Serializable {
         errorStatePriorities.put(StepState.ERROR, 0);
         errorStatePriorities.put(StepState.SUSPENDED_NO_ERROR, 1);
         errorStatePriorities.put(StepState.SUSPENDED_ERROR, 1);
-        errorStatePriorities.put(StepState.CANCELLED, 2);
 
         // Filter out non-error statuses.
         List<StepStatus> statuses = newArrayList(filter(statusMap.values(), new Predicate<StepStatus>() {

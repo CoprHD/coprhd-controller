@@ -16,6 +16,7 @@ import org.slf4j.LoggerFactory;
 import com.emc.storageos.api.service.impl.placement.FileMirrorRecommendation;
 import com.emc.storageos.api.service.impl.placement.FileMirrorRecommendation.Target;
 import com.emc.storageos.api.service.impl.placement.FileMirrorScheduler;
+import com.emc.storageos.api.service.impl.placement.FileRecommendation;
 import com.emc.storageos.api.service.impl.placement.VirtualPoolUtil;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.ContainmentPrefixConstraint;

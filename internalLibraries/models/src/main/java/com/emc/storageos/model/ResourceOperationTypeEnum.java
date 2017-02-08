@@ -355,8 +355,9 @@ public enum ResourceOperationTypeEnum {
     MOUNT_NFS_EXPORT("MOUNT NFS EXPORT", "mount nfs export operation"),
     UNMOUNT_NFS_EXPORT("UNMOUNT NFS EXPORT", "unmount nfs export operation"),
     LIST_MOUNTED_EXPORTS("LIST MOUNTED EXPORTS", "list mounted exports operation"),
-    ASSIGN_FILE_POLICY("ASSIGN FILE POLICY", "assign file policy to resource");
-
+    ASSIGN_FILE_POLICY("ASSIGN FILE POLICY", "assign file policy to resource"),
+	ASSIGN_FILE_POLICY_TO_FILE_SYSTEM("ASSIGN FILE POLICY TO FILE SYSTEM", "assign file policy to existing file system");
+	
     private final String name;
     private final String description;
 

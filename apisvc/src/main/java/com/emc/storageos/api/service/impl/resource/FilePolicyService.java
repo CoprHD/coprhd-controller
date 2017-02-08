@@ -960,7 +960,8 @@ public class FilePolicyService extends TaskResourceService {
 
                 for (URI vpoolURI : filteredVpoolURIs) {
                     VirtualPool vpool = _permissionsHelper.getObjectById(vpoolURI, VirtualPool.class);
-                    StringSet sourceVArraysSet = vpool.getVirtualArrays();
+                    StringSet sourceVArraysSet = getSourceVArraySet(vpool, filePolicy);
+
                     VirtualPoolCapabilityValuesWrapper capabilities = new VirtualPoolCapabilityValuesWrapper();
 
                     updatePolicyCapabilities(_dbClient, sourceVArraysSet, vpool, filePolicy, capabilities, errorMsg);
@@ -1141,7 +1142,7 @@ public class FilePolicyService extends TaskResourceService {
                 updateFileReplicationTopologyInfo(param, filePolicy);
                 List<FileRecommendation> recommendations = new ArrayList<FileRecommendation>();
                 VirtualPoolCapabilityValuesWrapper capabilities = new VirtualPoolCapabilityValuesWrapper();
-                StringSet sourceVArraysSet = vpool.getVirtualArrays();
+                StringSet sourceVArraysSet = getSourceVArraySet(vpool, filePolicy);
                 updatePolicyCapabilities(_dbClient, sourceVArraysSet, vpool, filePolicy, capabilities, errorMsg);
                 for (Iterator<String> iterator = sourceVArraysSet.iterator(); iterator.hasNext();) {
                     String vArrayURI = iterator.next();
@@ -1367,5 +1368,22 @@ public class FilePolicyService extends TaskResourceService {
         filepolicy.getOpStatus().createTaskStatus(taskId, op);
         _dbClient.updateObject(filepolicy);
         return toTask(filepolicy, taskId);
+    }
+
+    private StringSet getSourceVArraySet(VirtualPool vpool, FilePolicy filePolicy) {
+
+        List<FileReplicationTopology> dbTopologies = queryDBReplicationTopologies(filePolicy);
+
+        Set<String> topologyVArraySet = new HashSet<String>();
+        StringSet vpoolVArraySet = vpool.getVirtualArrays();
+
+        if (dbTopologies != null && !dbTopologies.isEmpty()) {
+            for (Iterator<FileReplicationTopology> iterator = dbTopologies.iterator(); iterator.hasNext();) {
+                FileReplicationTopology fileReplicationTopology = iterator.next();
+                topologyVArraySet.add(fileReplicationTopology.getSourceVArray().toString());
+            }
+        }
+        vpoolVArraySet.retainAll(topologyVArraySet);
+        return vpoolVArraySet;
     }
 }

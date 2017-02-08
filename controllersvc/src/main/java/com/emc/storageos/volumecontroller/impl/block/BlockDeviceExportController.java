@@ -30,6 +30,7 @@ import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.ProtectionSystem;
 import com.emc.storageos.db.client.model.StorageSystem;
+import com.emc.storageos.db.client.model.StringSetMap;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
@@ -384,7 +385,6 @@ public class BlockDeviceExportController implements BlockExportController {
 
         Workflow workflow = null;
         try {
-
             computeDiffs(export,
                     addedBlockObjectMap, removedBlockObjectMap, addedStorageToBlockObjects,
                     removedStorageToBlockObjects, addedInitiators,
@@ -397,7 +397,6 @@ public class BlockDeviceExportController implements BlockExportController {
             // into the completer, so we strip that out of the map for the benefit of
             // keeping the completer simple.
             Map<URI, Integer> addedBlockObjects = new HashMap<>();
-
             for (URI storageUri : addedStorageToBlockObjects.keySet()) {
                 addedBlockObjects.putAll(addedStorageToBlockObjects.get(storageUri));
             }
@@ -432,6 +431,7 @@ public class BlockDeviceExportController implements BlockExportController {
                                 removedStorageToBlockObjects.get(storageUri),
                                 new ArrayList(addedInitiators), new ArrayList(removedInitiators), storageUri);
             }
+            
             if (!workflow.getAllStepStatus().isEmpty()) {
                 _log.info("The updateExportWorkflow has {} steps. Starting the workflow.", workflow.getAllStepStatus().size());
                 workflow.executePlan(taskCompleter, "Update the export group on all storage systems successfully.");
@@ -642,7 +642,12 @@ public class BlockDeviceExportController implements BlockExportController {
             // Locate all the ExportMasks containing the given volume, and their Export Group.
             Map<ExportMask, ExportGroup> maskToGroupMap =
                     ExportUtils.getExportMasks(volume, _dbClient);
-
+            Map<URI, StringSetMap> maskToZoningMap = new HashMap<URI, StringSetMap>();
+            // Store the original zoning maps of the export masks to be used to restore in case of a failure
+            for (ExportMask mask : maskToGroupMap.keySet()) {
+                maskToZoningMap.put(mask.getId(), mask.getZoningMap());
+            }
+            taskCompleter.setMaskToZoningMap(maskToZoningMap);
             // Acquire all necessary locks for the workflow:
             // For each export group lock initiator's hosts and storage array keys.
             List<URI> initiatorURIs = new ArrayList<URI>();

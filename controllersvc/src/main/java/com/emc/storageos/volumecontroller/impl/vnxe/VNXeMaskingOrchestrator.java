@@ -529,7 +529,7 @@ public class VNXeMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                         deleteStep = generateExportMaskDeleteWorkflow(workflow, deleteStep, storage,
                                 exportGroup, exportMask, null, null, null);
                     }
-                    generateZoningDeleteWorkflow(workflow, null,
+                    generateZoningDeleteWorkflow(workflow, deleteStep,
                             exportGroup, exportMasks);
                 }
                 if (!updateMasks.isEmpty()) {

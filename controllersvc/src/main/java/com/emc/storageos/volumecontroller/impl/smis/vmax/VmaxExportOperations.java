@@ -1540,6 +1540,12 @@ public class VmaxExportOperations implements ExportMaskOperations {
 
             createOrUpdateInitiatorGroups(storage, exportMaskURI, cigName, initiatorGroupCustomTemplateName,
                     initiatorList, taskCompleter);
+            
+            if (taskCompleter.isCompleted()) {
+                //COP-27456- task already set to error in the above method if any fails.
+                _log.info("{} addInitiators END...", storage == null ? null : storage.getSerialNumber());
+                return;
+            }
 
             ExportMask exportMask = _dbClient.queryObject(ExportMask.class, exportMaskURI);
 
@@ -5141,20 +5147,20 @@ public class VmaxExportOperations implements ExportMaskOperations {
             }
             taskCompleter.ready(_dbClient);
         } catch (Exception e) {
-            _log.error(String.format("remvoePaths failed - maskName: %s", exportMaskURI.toString()), e);
+            _log.error(String.format("removePaths failed - maskName: %s", exportMaskURI.toString()), e);
             ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
             taskCompleter.error(_dbClient, serviceError);
         }         
     }
     
     /**
+     * Add storage ports to the port group
      * 
-     * 
-     * @param storage
-     * @param ports
-     * @param exportMask
-     * @param taskCompleter
-     * @return
+     * @param storage - Storage system
+     * @param ports - Storage ports to be added
+     * @param exportMask - Export mask
+     * @param taskCompleter - Task completer
+     * @return - Storage ports added to the port group
      * @throws Exception
      */
     private List<URI> addStoragePorts(StorageSystem storage, Set<URI> ports, ExportMask exportMask, TaskCompleter taskCompleter) throws Exception {
@@ -5203,6 +5209,16 @@ public class VmaxExportOperations implements ExportMaskOperations {
         
     }
 
+    /**
+     * Remove storage ports from the port group.
+     * 
+     * @param storage - Storage system
+     * @param exportMaskURI - Export mask URI
+     * @param targetURIList - Storage ports to be removed
+     * @param taskCompleter - Task completer
+     * @return - Removed storage ports
+     * @throws Exception
+     */
     private Set<URI> removeStoragePorts(StorageSystem storage, URI exportMaskURI, List<URI> targetURIList, 
             TaskCompleter taskCompleter) throws Exception {
         _log.info("Removing storage ports...");
@@ -5220,7 +5236,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
         }
         String pgGroupName = (String) portGroupInstance.getPropertyValue(SmisConstants.CP_ELEMENT_NAME);
 
-        // Get the current ports off of the storage group; only add the ones that aren't there already.
+        // Get the current ports off of the storage group; only remove the ones that are there.
         WBEMClient client = _helper.getConnection(storage).getCimClient();
         List<String> storagePorts = _helper.getStoragePortsFromLunMaskingInstance(client,
                 portGroupInstance);
@@ -5251,11 +5267,10 @@ public class VmaxExportOperations implements ExportMaskOperations {
     }
     
     /**
-     * Get storage ports that will be removed from the export mask because of the paths are going to be removed.
+     * Get storage ports that will be removed from the export mask because the paths are going to be removed.
      * 
-     * @param maskURI
-     * @param removePaths
-     * @param dbClient
+     * @param adjustedPaths - Adjusted paths
+     * @param removePaths - Removed paths
      * @return The list of storage ports that is going to be removed from the export mask
      */
     private static List<URI> getRemovedStoragePortsForRemovePaths(Map<URI, List<URI>> adjustedPaths, Map<URI, List<URI>>removePaths) {

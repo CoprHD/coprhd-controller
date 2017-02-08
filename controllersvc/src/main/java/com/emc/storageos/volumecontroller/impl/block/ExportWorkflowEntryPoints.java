@@ -9,6 +9,9 @@ import java.net.URI;
 import java.util.List;
 import java.util.Map;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.emc.storageos.Controller;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.DiscoveredSystemObject;
@@ -23,6 +26,8 @@ import com.emc.storageos.workflow.WorkflowStepCompleter;
 
 public class ExportWorkflowEntryPoints implements Controller {
     private static volatile String _beanName;
+    private static final Logger _log =
+            LoggerFactory.getLogger(ExportWorkflowEntryPoints.class);
     private Map<String, MaskingOrchestrator> _orchestratorMap;
     private DbClient _dbClient;
 
@@ -120,12 +125,12 @@ public class ExportWorkflowEntryPoints implements Controller {
     
     public static Workflow.Method exportRemovePathsMethod(URI storageURI, URI exportGroup, URI varray, URI exportMask,
             Map<URI, List<URI>> adjustedPaths, Map<URI, List<URI>>removedPaths) {
-        return new Workflow.Method("exportRemovePaths", storageURI, exportGroup, varray, exportMask, adjustedPaths, removedPaths);
+        return new Workflow.Method("exportRemovePathsStep", storageURI, exportGroup, varray, exportMask, adjustedPaths, removedPaths);
     }
     
     public static Workflow.Method exportAddPathsMethod(URI storageURI, URI exportGroup, URI varray, URI exportMask, Map<URI, List<URI>>adjustedPaths,
             Map<URI, List<URI>>removedPaths) {
-        return new Workflow.Method("exportAddPaths", storageURI, exportGroup, varray, exportMask, adjustedPaths, removedPaths);
+        return new Workflow.Method("exportAddPathsStep", storageURI, exportGroup, varray, exportMask, adjustedPaths, removedPaths);
     }
 
     // ====================== Methods to call Masking Orchestrator
@@ -379,7 +384,7 @@ public class ExportWorkflowEntryPoints implements Controller {
         WorkflowStepCompleter.stepSucceded(stepId);
     }
     
-    public void exportAddPaths(URI storageURI, URI exportGroupURI, URI varray, URI exportMaskURI, Map<URI, List<URI>>adjustedPaths, 
+    public void exportAddPathsStep(URI storageURI, URI exportGroupURI, URI varray, URI exportMaskURI, Map<URI, List<URI>>adjustedPaths, 
             Map<URI, List<URI>>removePaths, String token) throws ControllerException{
         try {
             WorkflowStepCompleter.stepExecuting(token);
@@ -390,6 +395,8 @@ public class ExportWorkflowEntryPoints implements Controller {
                 orchestrator.portRebalance(storageURI, exportGroupURI, varray, exportMaskURI, adjustedPaths, removePaths, true, token);
                 // Mark this workflow as created/executed so we don't do it again on retry/resume
                 WorkflowService.getInstance().markWorkflowBeenCreated(token, workflowKey);
+            } else {
+                _log.info("Sub-workflow for exportAddPathsStep was already created");
             }
         } catch (Exception e) {
             DeviceControllerException exception = DeviceControllerException.exceptions
@@ -398,7 +405,7 @@ public class ExportWorkflowEntryPoints implements Controller {
         }
     }
     
-    public void exportRemovePaths(URI storageURI, URI exportGroupURI, URI varray, URI exportMaskURI, Map<URI, List<URI>> adjustedPaths, 
+    public void exportRemovePathsStep(URI storageURI, URI exportGroupURI, URI varray, URI exportMaskURI, Map<URI, List<URI>> adjustedPaths, 
             Map<URI, List<URI>>removePaths, String token) throws ControllerException{
         try {
             WorkflowStepCompleter.stepExecuting(token);
@@ -409,6 +416,8 @@ public class ExportWorkflowEntryPoints implements Controller {
                 orchestrator.portRebalance(storageURI, exportGroupURI, varray, exportMaskURI, adjustedPaths, removePaths, false, token);
                 // Mark this workflow as created/executed so we don't do it again on retry/resume
                 WorkflowService.getInstance().markWorkflowBeenCreated(token, workflowKey);
+            } else {
+                _log.info("Sub-workflow for exportRemovePathsStep was already created");
             }
         } catch (Exception e) {
             DeviceControllerException exception = DeviceControllerException.exceptions

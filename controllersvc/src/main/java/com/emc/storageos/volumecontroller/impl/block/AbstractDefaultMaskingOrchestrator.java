@@ -2555,7 +2555,7 @@ abstract public class AbstractDefaultMaskingOrchestrator {
      *            a boolean that indicate if the changes should be persisted
      */
     protected void updateZoningMap(ExportGroup exportGroup, ExportMask exportMask, boolean doPersist) {
-        _networkDeviceController.updateZoningMap(exportGroup, exportMask, doPersist);
+        _networkDeviceController.updateZoningMapForInitiators(exportGroup, exportMask, doPersist);
     }
 
     /**
@@ -2654,7 +2654,19 @@ abstract public class AbstractDefaultMaskingOrchestrator {
         return maskingStep;
     }
       
-    
+    /**
+     * Generate export mask remove path workflow step
+     * 
+     * @param workflow - The workflow
+     * @param storage - Storage system
+     * @param exportGroupURI - Export group URI
+     * @param exportMaskURI - Export mask URI
+     * @param adjustedPaths - Adjusted paths
+     * @param removePaths - Paths to be removed
+     * @param previousStep - previous step that this step will wait for
+     * @return The created step id
+     * @throws Exception
+     */
     public String generateExportMaskRemovePathsWorkflow(Workflow workflow, StorageSystem storage, URI exportGroupURI, 
             URI exportMaskURI, Map<URI, List<URI>> adjustedPaths, Map<URI, List<URI>> removePaths, String previousStep) throws Exception {
         

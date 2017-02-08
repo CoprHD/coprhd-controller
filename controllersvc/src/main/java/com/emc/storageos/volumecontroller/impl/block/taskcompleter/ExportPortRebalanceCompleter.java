@@ -31,6 +31,7 @@ public class ExportPortRebalanceCompleter extends ExportTaskCompleter{
     private static final org.slf4j.Logger log = LoggerFactory.getLogger(ExportMaskAddPathsCompleter.class);
     private static final String EXPORT_PORT_REBALANCE_MSG = "Path adjustment to ExportGroup %s";
     private static final String EXPORT_PORT_REBALANCE_FAILED_MSG = "Failed path adjustment to ExportGroup %s";
+    private static final String EXPORT_PORT_REBALANCE_SUSPENDED_MSG = "Path adjustment to ExportGroup %s suspended";
     
     private ExportPathParams newPathParam;
     private URI systemURI;
@@ -49,34 +50,38 @@ public class ExportPortRebalanceCompleter extends ExportTaskCompleter{
     @Override
     protected void complete(DbClient dbClient, Operation.Status status, ServiceCoded coded) throws DeviceControllerException {
         try {
-
+            String eventMessage = null;
+            ExportGroup exportGroup = dbClient.queryObject(ExportGroup.class, getId());
             Operation operation = new Operation();
             switch (status) {
                 case error:
                     operation.error(coded);
+                    eventMessage = String.format(EXPORT_PORT_REBALANCE_FAILED_MSG, exportGroup.getLabel());
                     break;
                 case ready:
                     operation.ready();
                     updateVolumeExportPathParam(dbClient);
+                    eventMessage = String.format(EXPORT_PORT_REBALANCE_MSG, exportGroup.getLabel());
                     break;
                 case suspended_no_error:
                     operation.suspendedNoError();
+                    eventMessage = String.format(EXPORT_PORT_REBALANCE_SUSPENDED_MSG, exportGroup.getLabel());
                     break;
                 case suspended_error:
                     operation.suspendedError(coded);
+                    eventMessage = String.format(EXPORT_PORT_REBALANCE_SUSPENDED_MSG, exportGroup.getLabel());
                     break;
                 default:
                     break;
             }
-            ExportGroup exportGroup = dbClient.queryObject(ExportGroup.class, getId());
+            
             exportGroup.getOpStatus().updateTaskStatus(getOpId(), operation);
             dbClient.updateObject(exportGroup);
 
-            log.info(String.format("Done Export path adjuestment - Id: %s, OpId: %s, status: %s",
+            log.info(String.format("Done Export path adjustment - Id: %s, OpId: %s, status: %s",
                     getId().toString(), getOpId(), status.name()));
 
-            recordBlockExportOperation(dbClient, OperationTypeEnum.EXPORT_PATH_ADJUSTMENT, status, eventMessage(status, exportGroup),
-                    exportGroup);
+            recordBlockExportOperation(dbClient, OperationTypeEnum.EXPORT_PATH_ADJUSTMENT, status, eventMessage);
         } catch (Exception e) {
             log.error(String.format("Failed updating status for Export path adjustment - Id: %s, OpId: %s",
                     getId().toString(), getOpId()), e);
@@ -86,17 +91,10 @@ public class ExportPortRebalanceCompleter extends ExportTaskCompleter{
         }
     }
     
-    private String eventMessage(Operation.Status status, ExportGroup exportGroup) {
-        return (status == Operation.Status.ready) ?
-                String.format(EXPORT_PORT_REBALANCE_MSG, exportGroup.getLabel()) :
-                String.format(EXPORT_PORT_REBALANCE_FAILED_MSG, exportGroup.getLabel());
-    }
     
     /**
      * Update export group pathParameters for the impacted volumes
-     * 
      * @param dbClient
-     * @param exportGroup
      */
     private void updateVolumeExportPathParam(DbClient dbClient) {
         log.info("updating path param map.");
@@ -112,35 +110,36 @@ public class ExportPortRebalanceCompleter extends ExportTaskCompleter{
             List<URI> impactedVolumes = new ArrayList<URI>();
             Map<URI, List<URI>> vpoolVolumes = new HashMap<URI, List<URI>>();
             Map<URI, List<URI>> volumePath = new HashMap<URI, List<URI>> ();
-            if (volumes != null && !volumes.isEmpty()) {
-                Set<String> volSet = volumes.keySet();
-                for (String volId : volSet) {
-                    URI volURI = URI.create(volId);
-                    Volume volume = dbClient.queryObject(Volume.class, volURI);
-                    if (volume != null && volume.getStorageController().equals(systemURI)) {
-                        log.info(String.format("Checking for the volume %s", volume.getLabel()));
-                        // Check if the volume is in the pathMap
-                        String pathParm = existingPathMap.get(volId);
-                        if (pathParm != null) {
-                            URI pathId  = URI.create(pathParm);
-                            List<URI> vols = volumePath.get(pathId);
-                            if (vols == null) {
-                                vols = new ArrayList<URI>();
-                                volumePath.put(pathId, vols);
-                            }
-                            vols.add(volURI);
-                        } else {
-                        
-                            // check if the volumes' export path parameters are the same
-                            URI vpId = volume.getVirtualPool();
-                            List<URI> vols = vpoolVolumes.get(vpId);
-                            if (vols == null) {
-                                vols = new ArrayList<URI>();
-                                vpoolVolumes.put(vpId, vols);
-                            }
-                            vols.add(volURI);
-                        }
+            if (volumes == null || volumes.isEmpty()) {
+                continue;
+            }
+            Set<String> volSet = volumes.keySet();
+            for (String volId : volSet) {
+                URI volURI = URI.create(volId);
+                Volume volume = dbClient.queryObject(Volume.class, volURI);
+                if (volume == null || !volume.getStorageController().equals(systemURI)) {
+                    continue;
+                }
+                log.info(String.format("Checking for the volume %s", volume.getLabel()));
+                // Check if the volume is in the pathMap
+                String pathParm = existingPathMap.get(volId);
+                if (pathParm != null) {
+                    URI pathId  = URI.create(pathParm);
+                    List<URI> vols = volumePath.get(pathId);
+                    if (vols == null) {
+                        vols = new ArrayList<URI>();
+                        volumePath.put(pathId, vols);
                     }
+                    vols.add(volURI);
+                } else {
+                    // check if the volumes' export path parameters are the same
+                    URI vpId = volume.getVirtualPool();
+                    List<URI> vols = vpoolVolumes.get(vpId);
+                    if (vols == null) {
+                        vols = new ArrayList<URI>();
+                        vpoolVolumes.put(vpId, vols);
+                    }
+                    vols.add(volURI);
                 }
             }
             if (!vpoolVolumes.isEmpty()) {

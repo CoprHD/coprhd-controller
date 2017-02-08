@@ -33,6 +33,7 @@ import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.StorageSystem;
+import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
@@ -588,6 +589,11 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
             // Clear the existing volumes to update with the latest info
             if (mask.getExistingVolumes() != null && !mask.getExistingVolumes().isEmpty()) {
                 mask.getExistingVolumes().clear();
+            }
+            
+            //COP-27296 fix
+            if (null == mask.getUserAddedVolumes()) {
+                mask.setUserAddedVolumes(new StringMap());
             }
 
             Set<String> existingVolumes = Sets.difference(discoveredVolumes.keySet(), mask.getUserAddedVolumes().keySet());

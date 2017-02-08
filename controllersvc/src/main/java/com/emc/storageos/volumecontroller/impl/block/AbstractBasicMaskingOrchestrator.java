@@ -1612,9 +1612,9 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
      * Get new paths that need to be added to the export mask, by comparing the zoning map in the exportMask, 
      * and making sure the initiators in the new path belong to the exportMask.
      *  
-     * @param exportMask 
-     * @param existingAndNewPaths -- include existing and new paths for all export masks belonging to the same export group
-     * @return
+     * @param exportMask - Export mask 
+     * @param existingAndNewPaths -- Include existing and new paths for all export masks belonging to the same export group
+     * @return The new paths to be added to the export mask
      */
     protected Map<URI, List<URI>> getNewPathsForExportMask(ExportMask exportMask, Map<URI, List<URI>> existingAndNewPaths) {
         Map<URI, List<URI>> result = new HashMap<URI, List<URI>>();

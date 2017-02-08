@@ -3230,13 +3230,13 @@ public class ExportGroupService extends TaskResourceService {
      * This is done by comparing the zoningMap containing the new paths with each ExportMasks's zoningMap,
      * and reporting eny paths in the EM's zoningMap that are not in the new zoningMap.
      * @param response -- OUT REST response where we are filling in removed paths
-     * @param zoningMap -- new proposed zoningMap (overall for all ExportMasks)
+     * @param calculatedZoningMap -- new proposed zoningMap (overall for all ExportMasks)
      * @param exportGroup -- Export Group on which provisioning was initiated
      * @param system -- StorageSystem
      * @param varray -- Virtual Array URI
      * @param hosts -- For cluster export group, the hosts that are being processed. Assumes all if emptySet.
      */
-    private void calculateRemovedPaths(ExportPathsAdjustmentPreviewRestRep response, Map<URI, List<URI>> zoningMap, 
+    private void calculateRemovedPaths(ExportPathsAdjustmentPreviewRestRep response, Map<URI, List<URI>> calculatedZoningMap, 
             ExportGroup exportGroup, StorageSystem system, URI varray, Set<URI> hosts) {
         // Find the Export Masks for this Storage System 
         List<ExportMask> exportMasks = ExportMaskUtils.getExportMasks(_dbClient,  exportGroup, system.getId());
@@ -3248,22 +3248,22 @@ public class ExportGroupService extends TaskResourceService {
            
             // Get the zoning map from the exportMask, and compare it with the zoningMap newly allocated.
             // Remove all entries that are in the new zoningMap (and thus will be kept and not deleted)
-            StringSetMap maskZoningMap = exportMask.getZoningMap();
-            for (String maskInitiator : maskZoningMap.keySet()) {
-                for (URI zoningInitiator : zoningMap.keySet()) {
+            StringSetMap existingZoningMap = exportMask.getZoningMap();
+            for (String maskInitiator : existingZoningMap.keySet()) {
+                for (URI zoningInitiator : calculatedZoningMap.keySet()) {
                     if (maskInitiator.equalsIgnoreCase(zoningInitiator.toString())) {
                         // same initiator, remove ports from mask set that are in zoning map
-                        StringSet maskPorts = maskZoningMap.get(maskInitiator);
-                        for (URI zoningPort : zoningMap.get(zoningInitiator)) {
+                        StringSet maskPorts = existingZoningMap.get(maskInitiator);
+                        for (URI zoningPort : calculatedZoningMap.get(zoningInitiator)) {
                             maskPorts.remove(zoningPort.toString());
                         }
-                        maskZoningMap.put(maskInitiator, maskPorts);
+                        existingZoningMap.put(maskInitiator, maskPorts);
                     }
                 }
             }
             // Now output the response information for this Export Mask to the removedPaths section.
-            for (String maskInitiator : maskZoningMap.keySet()) {
-                StringSet maskPorts = maskZoningMap.get(maskInitiator);
+            for (String maskInitiator : existingZoningMap.keySet()) {
+                StringSet maskPorts = existingZoningMap.get(maskInitiator);
                 if (maskPorts == null || maskPorts.isEmpty()) {
                     continue;
                 }
@@ -3478,7 +3478,7 @@ public class ExportGroupService extends TaskResourceService {
         	}
         }
         
-        if (mismatchHosts.size() > 0) {
+        if (!mismatchHosts.isEmpty()) {
         	StringBuilder mismatchHostsStr =  new StringBuilder();
         	for (Host mismatchHost : mismatchHosts) {
         		mismatchHostsStr.append(mismatchHost.getHostName() + " ");
@@ -3533,10 +3533,7 @@ public class ExportGroupService extends TaskResourceService {
         }
 
         validatePathAdjustment(exportGroup, system, param, varray);
-        Boolean wait = param.getWaitBeforeRemovePaths();
-        if (wait == null) {
-            wait = false;
-        }
+        Boolean wait = new Boolean(param.getWaitBeforeRemovePaths());
         
         String task = UUID.randomUUID().toString();
         Operation op = initTaskStatus(exportGroup, task, Operation.Status.pending, ResourceOperationTypeEnum.EXPORT_PATHS_ADJUSTMENT);
@@ -3605,7 +3602,7 @@ public class ExportGroupService extends TaskResourceService {
             Set<URI> egHostURIs = new HashSet<URI>();
             List<Initiator> egInitiators = ExportUtils.getExportGroupInitiators(exportGroup, _dbClient);
             for (Initiator egInitiator : egInitiators) {
-                if (egInitiator.getHost() != null) {
+                if (!NullColumnValueGetter.isNullURI(egInitiator.getHost())) {
                     egHostURIs.add(egInitiator.getHost());
                 }
             }

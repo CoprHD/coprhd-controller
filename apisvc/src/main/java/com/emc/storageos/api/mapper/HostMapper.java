@@ -237,12 +237,12 @@ public class HostMapper {
             return null;
         }
         ExportPathParametersRep to = new ExportPathParametersRep();
-        if (to.getStoragePorts() == null) {
-            to.setStoragePorts(new ArrayList<URI>());
-        }
         to.setMaxPaths(from.getMaxPaths());
         to.setMinPaths(from.getMinPaths());
         to.setPathsPerInitiator(from.getPathsPerInitiator());
+        if (!from.getStoragePorts().isEmpty() && to.getStoragePorts() == null) {
+            to.setStoragePorts(new ArrayList<URI>());
+        }
         for (String portId : from.getStoragePorts()) {
             to.getStoragePorts().add(URI.create(portId));
         }

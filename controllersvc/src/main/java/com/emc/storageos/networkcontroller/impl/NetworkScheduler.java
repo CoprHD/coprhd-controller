@@ -1150,7 +1150,6 @@ public class NetworkScheduler {
      * Makes a map from a volume/export group key to the FCZoneReference.
      * 
      * @param key - Endpoint key consisting of concatenated WWNs
-     * @param useExportGroup -- if true, Export Group will be part of the key, if false, just volume
      * @return Map of volume/export group key to FCZoneReference
      */
     public Map<String, FCZoneReference> makeExportToReferenceMap(String key) {
@@ -1431,7 +1430,7 @@ public class NetworkScheduler {
                         }
                     }
                 } catch (DeviceControllerException ex) {
-                    _log.info(String.format(
+                    _log.error(String.format(
                             "Initiator %s could not be paired with port %s",
                             initiator.getInitiatorPort(), sp.getPortNetworkId()));
                 }

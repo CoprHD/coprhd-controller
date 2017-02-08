@@ -36,15 +36,14 @@ public class ZoningAddPathsCompleter extends ExportTaskCompleter{
             ServiceCoded coded) throws DeviceControllerException {
         try {
             if (status == Operation.Status.ready && !exportMaskAdjustedPathMap.isEmpty()) {
-                log.info("Updating export mask zoning map");
+                log.info("Updating export mask zoning map in DB");
                 for (Map.Entry<URI, Map<URI, List<URI>>> maskPathEntry : exportMaskAdjustedPathMap.entrySet()) {
                     URI maskURI = maskPathEntry.getKey();
                     Map<URI, List<URI>> newPaths = maskPathEntry.getValue();
                     ExportMask exportMask = dbClient.queryObject(ExportMask.class, maskURI);
                     // update zoning map
                     StringSetMap zoningMap = exportMask.getZoningMap();
-                    if (zoningMap != null && !zoningMap.isEmpty()) {
-                        
+                    if (zoningMap != null && !zoningMap.isEmpty()) {                        
                         for (Map.Entry<URI, List<URI>> entry : newPaths.entrySet()) {
                             URI initiator = entry.getKey();
                             List<URI> ports = entry.getValue();
@@ -59,7 +58,8 @@ public class ZoningAddPathsCompleter extends ExportTaskCompleter{
                         }
                         dbClient.updateObject(exportMask);
                     } else {
-                        log.warn(String.format("No zoning map existing in the export mask %s", maskURI.toString()));
+                        // This should not happen, since it checks for zoning map in the beginning of the path adjustment operation
+                        log.warn(String.format("No zoning map exists in the export mask %s", maskURI.toString()));
                     }
                 }
             }

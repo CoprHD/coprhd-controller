@@ -54,7 +54,7 @@ public class ExportMaskRemovePathsCompleter extends ExportTaskCompleter{
             }
         } catch (Exception e) {
             _log.error(String.format(
-                    "Failed updating status for ExportMaskAddPaths - Id: %s, OpId: %s",
+                    "Failed updating status for ExportMaskRemovePaths - Id: %s, OpId: %s",
                     getId().toString(), getOpId()), e);
         } finally {
             super.complete(dbClient, status, coded);

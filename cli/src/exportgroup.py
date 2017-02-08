@@ -43,8 +43,8 @@ class ExportGroup(object):
     URI_EXPORT_GROUP_UPDATE = '/block/exports/{0}'
     URI_EXPORT_GROUP_TASKS_LIST = '/block/exports/{0}/tasks'
     URI_EXPORT_GROUP_TASK = URI_EXPORT_GROUP_TASKS_LIST + '/{1}'
-    URI_EXPORT_GROUP_PATH_ADJUSTMENT_PREVIEW = URI_EXPORT_GROUP + '/{0}' + '/paths-adjustment-preview'
-    URI_EXPORT_GROUP_PATH_ADJUSTMENT = URI_EXPORT_GROUP + '/{0}' + '/paths-adjustment'
+    URI_EXPORT_GROUP_PATH_ADJUSTMENT_PREVIEW = URI_EXPORT_SHOW +  '/paths-adjustment-preview'
+    URI_EXPORT_GROUP_PATH_ADJUSTMENT = URI_EXPORT_SHOW +  '/paths-adjustment'
     # 'Exclusive' is for backward compatibility only
     EXPORTGROUP_TYPE = ['Initiator', 'Host', 'Cluster', 'Exclusive']
     URI_EXPORT_GROUP_TAG = URI_EXPORT_GROUPS_SHOW + '/tags'
@@ -799,19 +799,8 @@ class ExportGroup(object):
 			removed_path['storage_ports'] = removed_ports
 			removed_paths.append(removed_path)
 
-	       	affectedEGs=rep['affected_export_groups']
-	    	for eg in affectedEGs:
-			egid=eg['id']
-			egdb=self.export_group_show(egid);
-			projid=egdb['project']['id'];
-			projobj = Project(self.__ipAddr, self.__port)
-        		fullproj = tenant + "/" + project
-        		projuri = projobj.project_query(fullproj)
-			project=Project.project_show(projid);
-			#print project['name'], "/", eg['name']
         	parms['adjusted_paths'] = adjusted_paths
         	parms['removed_paths'] = removed_paths
-
 	return parms
 
     def exportgroup_pathadjustment(self, name, project, tenant, storagesystem, varray, 

@@ -1758,7 +1758,12 @@ test_5() {
 	storage_failure_injections=""
     fi
 
-    if [ "${SS}" = "vmax2" -o "${SS}" = "vmax3" ]
+    if [ "${SS}" = "vmax2" ]
+    then
+	storage_failure_injections="failure_015_SmisCommandHelper.invokeMethod_DeleteGroup"
+    fi
+
+    if [ "${SS}" = "vmax3" ]
     then
 	storage_failure_injections="failure_015_SmisCommandHelper.invokeMethod_DeleteGroup \
                                     failure_015_SmisCommandHelper.invokeMethod_AddMembers"

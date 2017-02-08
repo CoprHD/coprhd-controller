@@ -204,7 +204,7 @@ public final class DownloadExecutor implements  Runnable {
                                                    .get(new URI(uri), InputStream.class, MediaType.APPLICATION_OCTET_STREAM);
 
             byte[] buffer = new byte[BackupConstants.DOWNLOAD_BUFFER_SIZE];
-            persistBackupFile(downloadDir, filename, new BufferedInputStream(in), buffer, true, true);
+            persistBackupFile(downloadDir, filename, new BufferedInputStream(in), buffer, true);
         } catch (URISyntaxException e) {
             log.error("Internal error occurred while prepareing get image URI: {}", e);
         }
@@ -243,7 +243,7 @@ public final class DownloadExecutor implements  Runnable {
             while (zentry != null) {
                 String filename = zentry.getName();
                 log.info("Extract backup file {}", filename);
-                persistBackupFile(backupFolder, filename, bzin, buf, false, true);
+                persistBackupFile(backupFolder, filename, bzin, buf, false);
 
                 if (!isGeo) {
                     isGeo = backupOps.isGeoBackup(filename);
@@ -329,11 +329,11 @@ public final class DownloadExecutor implements  Runnable {
 
     private File pullBackupFileFromRemoteServer(File downloadDir, String backupFileName,
                                                 BufferedInputStream in, byte[] buffer) throws IOException {
-        return persistBackupFile(downloadDir, backupFileName, in, buffer, true, true);
+        return persistBackupFile(downloadDir, backupFileName, in, buffer, true);
     }
 
     private File persistBackupFile(File downloadDir, String backupFileName, BufferedInputStream in,
-                                   byte[] buffer, boolean updateDownloadedSize, boolean doLock) throws IOException {
+                                   byte[] buffer, boolean updateDownloadedSize) throws IOException {
         File file = new File(downloadDir, backupFileName);
 
         if (!file.exists()) {
@@ -365,7 +365,7 @@ public final class DownloadExecutor implements  Runnable {
             }
         } catch(IOException e) {
             log.error("Failed to download file {} e=", backupFileName, e);
-            backupOps.setRestoreStatus(remoteBackupFileName, false, Status.DOWNLOAD_FAILED, e.getMessage(), true, doLock);
+            backupOps.setRestoreStatus(remoteBackupFileName, false, Status.DOWNLOAD_FAILED, e.getMessage(), true, true);
             throw e;
         }
 

@@ -22,23 +22,23 @@ import java.util.Iterator;
 import java.util.List;
 
 import com.emc.storageos.db.client.constraint.NamedElementQueryResultList.NamedElement;
-import com.emc.storageos.db.client.model.uimodels.OrchestrationWorkflow;
-import com.emc.storageos.db.client.model.uimodels.OrchestrationWorkflow.OrchestrationWorkflowStatus;
+import com.emc.storageos.db.client.model.uimodels.CustomServicesWorkflow;
+import com.emc.storageos.db.client.model.uimodels.CustomServicesWorkflow.OrchestrationWorkflowStatus;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 
-public class OrchestrationWorkflowFinder extends ModelFinder<OrchestrationWorkflow> {
+public class OrchestrationWorkflowFinder extends ModelFinder<CustomServicesWorkflow> {
 
-    private final static ImmutableList<String> SUMMARY_FIELDS = ImmutableList.<String>builder().add("label", OrchestrationWorkflow.NAME, OrchestrationWorkflow.DESCRIPTION).build();
+    private final static ImmutableList<String> SUMMARY_FIELDS = ImmutableList.<String>builder().add("label", CustomServicesWorkflow.NAME, CustomServicesWorkflow.DESCRIPTION).build();
     public OrchestrationWorkflowFinder(DBClientWrapper client) {
-        super(OrchestrationWorkflow.class, client);
+        super(CustomServicesWorkflow.class, client);
     }
     
-    public List<OrchestrationWorkflow> findByName(final String name) {
+    public List<CustomServicesWorkflow> findByName(final String name) {
 
-        List<OrchestrationWorkflow> results = Lists.newArrayList();
+        List<CustomServicesWorkflow> results = Lists.newArrayList();
 
-        List<NamedElement> workflows = client.findByAlternateId(OrchestrationWorkflow.class, OrchestrationWorkflow.NAME, name);
+        List<NamedElement> workflows = client.findByAlternateId(CustomServicesWorkflow.class, CustomServicesWorkflow.NAME, name);
         if (workflows != null) {
             results.addAll(findByIds(toURIs(workflows)));
         }
@@ -46,7 +46,7 @@ public class OrchestrationWorkflowFinder extends ModelFinder<OrchestrationWorkfl
         return results;
     }
     
-    public Iterator<OrchestrationWorkflow> findSummaries(final List<URI> ids) {
+    public Iterator<CustomServicesWorkflow> findSummaries(final List<URI> ids) {
         return client.findAllFields(clazz, ids, SUMMARY_FIELDS); 
     }
     
@@ -61,7 +61,7 @@ public class OrchestrationWorkflowFinder extends ModelFinder<OrchestrationWorkfl
     private List<URI> findIDsByStatus(final OrchestrationWorkflowStatus status) {
         final List<URI> out = Lists.newArrayList();
         if (null != status) {
-            final List<NamedElement> results = client.findByAlternateId(clazz, OrchestrationWorkflow.STATE, status.toString());
+            final List<NamedElement> results = client.findByAlternateId(clazz, CustomServicesWorkflow.STATE, status.toString());
             if (results != null) {
                 for (NamedElement namedElement : results) {
                     out.add(namedElement.getId());
@@ -72,11 +72,11 @@ public class OrchestrationWorkflowFinder extends ModelFinder<OrchestrationWorkfl
     }
 
     private List<NamedElement> prepareNamedElementFromURI(final List<URI> ids) {
-        final Iterator<OrchestrationWorkflow> it = client.findAllFields(clazz, ids, ImmutableList.<String>builder().add("label").build());
+        final Iterator<CustomServicesWorkflow> it = client.findAllFields(clazz, ids, ImmutableList.<String>builder().add("label").build());
         final List<NamedElement> results = new ArrayList<NamedElement>();
 
         while(it.hasNext()) {
-            final OrchestrationWorkflow element = it.next();
+            final CustomServicesWorkflow element = it.next();
             results.add(NamedElement.createElement(element.getId(), element.getLabel()));
         }
 

@@ -34,7 +34,7 @@ import com.emc.sa.service.vipr.oe.gson.ViprTask;
 import com.emc.sa.service.vipr.oe.tasks.TaskState;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.model.TaskResourceRep;
-import com.emc.storageos.model.orchestration.OrchestrationWorkflowDocument;
+import com.emc.storageos.model.customservices.CustomServicesWorkflowDocument;
 import com.emc.storageos.oe.api.restapi.OrchestrationEngineRestClient;
 import com.emc.vipr.client.ViPRCoreClient;
 import com.google.gson.Gson;
@@ -259,7 +259,7 @@ public class OrchestrationUtils {
         // temporarily insert test JSON here until DB calls are ready (Shane is doing DB work)
         workflowDefinition = "{\"workflow\": \"test JSON Workflow Goes Here\"}";
 
-        OrchestrationWorkflowDocument workflowObj = gson.fromJson(workflowDefinition,OrchestrationWorkflowDocument.class);
+        CustomServicesWorkflowDocument workflowObj = gson.fromJson(workflowDefinition,CustomServicesWorkflowDocument.class);
 
         // add code here to insert values of parameters into object model of workflow
         // TODO:  insert params

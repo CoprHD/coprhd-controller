@@ -14,7 +14,7 @@
  * limitations under the License.
  *
  */
-package com.emc.storageos.model.orchestration;
+package com.emc.storageos.model.customservices;
 
 import java.net.URI;
 
@@ -22,17 +22,17 @@ import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 
 @XmlRootElement(name = "orchestration_workflow_create_param")
-public class OrchestrationWorkflowCreateParam {
+public class CustomServicesWorkflowCreateParam {
 
-    private OrchestrationWorkflowDocument document;
+    private CustomServicesWorkflowDocument document;
     private URI directory;
     
     @XmlElement(name = "document")
-    public OrchestrationWorkflowDocument getDocument() {
+    public CustomServicesWorkflowDocument getDocument() {
         return document;
     }
 
-    public void setDocument(OrchestrationWorkflowDocument document) {
+    public void setDocument(CustomServicesWorkflowDocument document) {
         this.document = document;
     }
 

@@ -44,15 +44,15 @@ import com.emc.storageos.api.service.impl.resource.ArgValidator;
 import com.emc.storageos.api.service.impl.response.BulkList;
 import com.emc.storageos.api.service.impl.response.BulkList.ResourceFilter;
 import com.emc.storageos.db.client.constraint.NamedElementQueryResultList.NamedElement;
-import com.emc.storageos.db.client.model.uimodels.OrchestrationWorkflow;
-import com.emc.storageos.db.client.model.uimodels.OrchestrationWorkflow.OrchestrationWorkflowStatus;
+import com.emc.storageos.db.client.model.uimodels.CustomServicesWorkflow;
+import com.emc.storageos.db.client.model.uimodels.CustomServicesWorkflow.OrchestrationWorkflowStatus;
 import com.emc.storageos.model.BulkIdParam;
 import com.emc.storageos.model.ResourceTypeEnum;
-import com.emc.storageos.model.orchestration.OrchestrationWorkflowBulkRep;
-import com.emc.storageos.model.orchestration.OrchestrationWorkflowCreateParam;
-import com.emc.storageos.model.orchestration.OrchestrationWorkflowList;
-import com.emc.storageos.model.orchestration.OrchestrationWorkflowRestRep;
-import com.emc.storageos.model.orchestration.OrchestrationWorkflowUpdateParam;
+import com.emc.storageos.model.customservices.CustomServicesWorkflowBulkRep;
+import com.emc.storageos.model.customservices.CustomServicesWorkflowCreateParam;
+import com.emc.storageos.model.customservices.CustomServicesWorkflowList;
+import com.emc.storageos.model.customservices.CustomServicesWorkflowRestRep;
+import com.emc.storageos.model.customservices.CustomServicesWorkflowUpdateParam;
 import com.emc.storageos.security.authorization.ACL;
 import com.emc.storageos.security.authorization.DefaultPermissions;
 import com.emc.storageos.security.authorization.Role;
@@ -70,7 +70,7 @@ public class OrchestrationWorkflowService extends CatalogTaggedResourceService {
     
     @GET
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    public OrchestrationWorkflowList getWorkflows(@QueryParam("status") String status) {
+    public CustomServicesWorkflowList getWorkflows(@QueryParam("status") String status) {
         List<NamedElement> elements;
         if (null != status) {
             ArgValidator.checkFieldValueFromEnum(status, "status", OrchestrationWorkflowStatus.class);
@@ -85,15 +85,15 @@ public class OrchestrationWorkflowService extends CatalogTaggedResourceService {
     @GET
     @Path("/{id}")
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    public OrchestrationWorkflowRestRep getWorkflow(@PathParam("id") final URI id) {
+    public CustomServicesWorkflowRestRep getWorkflow(@PathParam("id") final URI id) {
         return map(getOrchestrationWorkflow(id));
     }
     
     @POST
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    public OrchestrationWorkflowRestRep addWorkflow(final OrchestrationWorkflowCreateParam workflow) {
-        checkForDuplicateName(workflow.getDocument().getName(), OrchestrationWorkflow.class);
-        final OrchestrationWorkflow newWorkflow;
+    public CustomServicesWorkflowRestRep addWorkflow(final CustomServicesWorkflowCreateParam workflow) {
+        checkForDuplicateName(workflow.getDocument().getName(), CustomServicesWorkflow.class);
+        final CustomServicesWorkflow newWorkflow;
         try {
             newWorkflow = WorkflowHelper.create(workflow.getDocument());
         } catch (IOException e) {
@@ -107,10 +107,10 @@ public class OrchestrationWorkflowService extends CatalogTaggedResourceService {
     @PUT
     @Path("/{id}")
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    public OrchestrationWorkflowRestRep updateWorkflow(@PathParam("id") final URI id, final OrchestrationWorkflowUpdateParam workflow) {  
-        final OrchestrationWorkflow updated;
+    public CustomServicesWorkflowRestRep updateWorkflow(@PathParam("id") final URI id, final CustomServicesWorkflowUpdateParam workflow) {  
+        final CustomServicesWorkflow updated;
         try {
-            OrchestrationWorkflow orchestrationWorkflow = getOrchestrationWorkflow(id);
+            CustomServicesWorkflow orchestrationWorkflow = getOrchestrationWorkflow(id);
 
             switch(OrchestrationWorkflowStatus.valueOf(orchestrationWorkflow.getState())) {
                 case PUBLISHED:
@@ -135,7 +135,7 @@ public class OrchestrationWorkflowService extends CatalogTaggedResourceService {
     @Path("/{id}/deactivate")
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     public Response deactivateWorkflow(@PathParam("id") final URI id) {
-        OrchestrationWorkflow orchestrationWorkflow = getOrchestrationWorkflow(id);
+        CustomServicesWorkflow orchestrationWorkflow = getOrchestrationWorkflow(id);
 
         switch(OrchestrationWorkflowStatus.valueOf(orchestrationWorkflow.getState())) {
             case PUBLISHED:
@@ -150,15 +150,15 @@ public class OrchestrationWorkflowService extends CatalogTaggedResourceService {
     @POST
     @Path("/{id}/publish")
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    public OrchestrationWorkflowRestRep publishWorkflow(@PathParam("id") final URI id) {
-        OrchestrationWorkflow orchestrationWorkflow = getOrchestrationWorkflow(id);
+    public CustomServicesWorkflowRestRep publishWorkflow(@PathParam("id") final URI id) {
+        CustomServicesWorkflow orchestrationWorkflow = getOrchestrationWorkflow(id);
         switch(OrchestrationWorkflowStatus.valueOf(orchestrationWorkflow.getState())) {
             case PUBLISHED:
                 // If worklow is already in published state, ignoring
                 return map(orchestrationWorkflow);
             case VALID:
                 // Workflow can only be published when it is in VALID state
-                OrchestrationWorkflow updated = WorkflowHelper.updateState(orchestrationWorkflow, OrchestrationWorkflowStatus.PUBLISHED.toString());
+                CustomServicesWorkflow updated = WorkflowHelper.updateState(orchestrationWorkflow, OrchestrationWorkflowStatus.PUBLISHED.toString());
                 orchestrationWorkflowManager.save(updated);
                 return map(updated);
             default:
@@ -169,8 +169,8 @@ public class OrchestrationWorkflowService extends CatalogTaggedResourceService {
     @POST
     @Path("/{id}/unpublish")
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    public OrchestrationWorkflowRestRep unpublishWorkflow(@PathParam("id") final URI id) {
-        OrchestrationWorkflow orchestrationWorkflow = getOrchestrationWorkflow(id);
+    public CustomServicesWorkflowRestRep unpublishWorkflow(@PathParam("id") final URI id) {
+        CustomServicesWorkflow orchestrationWorkflow = getOrchestrationWorkflow(id);
         // Workflow can only be unpublished when it is in PUBLISHED state
         switch(OrchestrationWorkflowStatus.valueOf(orchestrationWorkflow.getState())) {
             case VALID:
@@ -181,7 +181,7 @@ public class OrchestrationWorkflowService extends CatalogTaggedResourceService {
                 if (orchestrationWorkflowManager.hasCatalogServices(orchestrationWorkflow.getName())) {
                     throw APIException.methodNotAllowed.notSupportedWithReason("Cannot unpublish workflow. It has associated catalog services");
                 }
-                OrchestrationWorkflow updated = WorkflowHelper.updateState(orchestrationWorkflow, OrchestrationWorkflowStatus.VALID.toString());
+                CustomServicesWorkflow updated = WorkflowHelper.updateState(orchestrationWorkflow, OrchestrationWorkflowStatus.VALID.toString());
                 orchestrationWorkflowManager.save(updated);
                 return map(updated);
             default:
@@ -192,10 +192,10 @@ public class OrchestrationWorkflowService extends CatalogTaggedResourceService {
     @POST
     @Path("/{id}/validate")
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    public OrchestrationWorkflowRestRep validateWorkflow(@PathParam("id") final URI id) {
+    public CustomServicesWorkflowRestRep validateWorkflow(@PathParam("id") final URI id) {
         //TODO: Placeholder for validating workflow
         // For now just setting status to VALID
-        OrchestrationWorkflow updated = WorkflowHelper.updateState(getOrchestrationWorkflow(id), OrchestrationWorkflowStatus.VALID.toString());
+        CustomServicesWorkflow updated = WorkflowHelper.updateState(getOrchestrationWorkflow(id), OrchestrationWorkflowStatus.VALID.toString());
         orchestrationWorkflowManager.save(updated);
         return map(updated);
     }
@@ -203,12 +203,12 @@ public class OrchestrationWorkflowService extends CatalogTaggedResourceService {
     @POST
     @Path("/bulk")
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    public OrchestrationWorkflowBulkRep bulkGetWorkflows(final BulkIdParam ids) {
-        return (OrchestrationWorkflowBulkRep) super.getBulkResources(ids);
+    public CustomServicesWorkflowBulkRep bulkGetWorkflows(final BulkIdParam ids) {
+        return (CustomServicesWorkflowBulkRep) super.getBulkResources(ids);
     }
     
     @Override
-    protected OrchestrationWorkflow queryResource(URI id) {
+    protected CustomServicesWorkflow queryResource(URI id) {
         return orchestrationWorkflowManager.getById(id);
     }
 
@@ -223,27 +223,27 @@ public class OrchestrationWorkflowService extends CatalogTaggedResourceService {
     }
     
     @Override
-    public Class<OrchestrationWorkflow> getResourceClass() {
-        return OrchestrationWorkflow.class;
+    public Class<CustomServicesWorkflow> getResourceClass() {
+        return CustomServicesWorkflow.class;
     }
 
     @Override
-    public OrchestrationWorkflowBulkRep queryBulkResourceReps(List<URI> ids) {
-        Iterator<OrchestrationWorkflow> it = orchestrationWorkflowManager.getSummaries(ids);
-        return new OrchestrationWorkflowBulkRep(BulkList.wrapping(it, OrchestrationWorkflowMapper.getInstance()));
+    public CustomServicesWorkflowBulkRep queryBulkResourceReps(List<URI> ids) {
+        Iterator<CustomServicesWorkflow> it = orchestrationWorkflowManager.getSummaries(ids);
+        return new CustomServicesWorkflowBulkRep(BulkList.wrapping(it, OrchestrationWorkflowMapper.getInstance()));
     }
     
     @Override
-    public OrchestrationWorkflowBulkRep queryFilteredBulkResourceReps(List<URI> ids) {
+    public CustomServicesWorkflowBulkRep queryFilteredBulkResourceReps(List<URI> ids) {
 
-        Iterator<OrchestrationWorkflow> it = orchestrationWorkflowManager.getSummaries(ids);
-        ResourceFilter<OrchestrationWorkflow> filter = new OrchestrationWorkflowFilter(getUserFromContext(), _permissionsHelper);
+        Iterator<CustomServicesWorkflow> it = orchestrationWorkflowManager.getSummaries(ids);
+        ResourceFilter<CustomServicesWorkflow> filter = new OrchestrationWorkflowFilter(getUserFromContext(), _permissionsHelper);
         
-        return new OrchestrationWorkflowBulkRep(BulkList.wrapping(it, OrchestrationWorkflowMapper.getInstance(), filter));
+        return new CustomServicesWorkflowBulkRep(BulkList.wrapping(it, OrchestrationWorkflowMapper.getInstance(), filter));
     }
     
-    private OrchestrationWorkflow getOrchestrationWorkflow(final URI id) {
-        OrchestrationWorkflow workflow = queryResource(id);
+    private CustomServicesWorkflow getOrchestrationWorkflow(final URI id) {
+        CustomServicesWorkflow workflow = queryResource(id);
 
         ArgValidator.checkEntityNotNull(workflow, id, true);
 

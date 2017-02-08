@@ -77,10 +77,15 @@ public class PrimitiveManagerImpl implements PrimitiveManager {
         }
        
     }
+    
+    @Override
+    public List<URI> findAllAnsibleIds() {
+        return client.findByType(Ansible.class);
+    }
 
     @Override
     public List<Ansible> findAllAnsible() {
-        final List<URI> ids = client.findByType(Ansible.class);
+        final List<URI> ids = findAllAnsibleIds();
         if( null == ids) {
             return null;
         }
@@ -88,13 +93,20 @@ public class PrimitiveManagerImpl implements PrimitiveManager {
         return ansiblePrimitives;
     }
 
+
+    @Override
+    public List<URI> findAllScriptPrimitiveIds() {
+        return client.findByType(CustomServiceScriptPrimitive.class);
+    }
+    
     @Override
     public List<CustomServiceScriptPrimitive> findAllScriptPrimitives() {
-        final List<URI> ids = client.findByType(CustomServiceScriptPrimitive.class);
+        final List<URI> ids = findAllScriptPrimitiveIds();
         if( null == ids) {
             return null;
         }
         List<CustomServiceScriptPrimitive> scriptPrimitives = client.findByIds(CustomServiceScriptPrimitive.class, ids);
         return scriptPrimitives;
     }
+
 }

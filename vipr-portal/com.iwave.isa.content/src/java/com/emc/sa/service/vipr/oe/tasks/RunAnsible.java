@@ -20,11 +20,12 @@ package com.emc.sa.service.vipr.oe.tasks;
 import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.service.vipr.oe.OrchestrationServiceConstants;
 import com.emc.sa.service.vipr.tasks.ViPRExecutionTask;
-import com.emc.storageos.model.orchestration.OrchestrationWorkflowDocument;
-import com.emc.storageos.model.orchestration.OrchestrationWorkflowDocument.Input;
-import com.emc.storageos.model.orchestration.OrchestrationWorkflowDocument.Step;
+import com.emc.storageos.model.customservices.CustomServicesWorkflowDocument;
+import com.emc.storageos.model.customservices.CustomServicesWorkflowDocument.Input;
+import com.emc.storageos.model.customservices.CustomServicesWorkflowDocument.Step;
 import com.emc.storageos.primitives.Primitive.StepType;
 import com.emc.storageos.services.util.Exec;
+
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.Charset;
@@ -36,6 +37,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.LoggerFactory;
@@ -172,7 +174,7 @@ public class RunAnsible  extends ViPRExecutionTask<OrchestrationTaskResult> {
 
     //Execute Ansible playbook on remote node. Playbook is also in remote node
     private Exec.Result executeRemoteCmd(final String extraVars) {
-        final Map<String,OrchestrationWorkflowDocument.InputGroup> inputType = step.getInputGroups();
+        final Map<String,CustomServicesWorkflowDocument.InputGroup> inputType = step.getInputGroups();
         if (inputType == null) {
             return null;
 	}

@@ -14,34 +14,33 @@
  * limitations under the License.
  *
  */
-package com.emc.storageos.model.orchestration;
+package com.emc.storageos.model.customservices;
+
+import java.util.List;
 
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 
-import com.emc.storageos.model.DataObjectRestRep;
+import com.emc.storageos.model.NamedRelatedResourceRep;
 
-@XmlRootElement(name = "orchestration_workflow")
-public class OrchestrationWorkflowRestRep extends DataObjectRestRep {
-
-    private OrchestrationWorkflowDocument document;
-    private String state;
-
-    @XmlElement(name = "document")
-    public OrchestrationWorkflowDocument getDocument() {
-        return document;
+@XmlRootElement(name = "orchestration_workflow_list")
+public class CustomServicesWorkflowList {
+    
+    private List<NamedRelatedResourceRep> workflows;
+    
+    public CustomServicesWorkflowList() {}
+    
+    public CustomServicesWorkflowList(List<NamedRelatedResourceRep> workflows) {
+        this.workflows = workflows;
     }
 
-    public void setDocument(OrchestrationWorkflowDocument document) {
-        this.document = document;
+    @XmlElement(name = "workflows")
+    public List<NamedRelatedResourceRep> getWorkflows() {
+        return workflows;
     }
 
-    @XmlElement(name = "state" )
-    public String getState() {
-        return state;
+    public void setWorkflows(final List<NamedRelatedResourceRep> workflows) {
+        this.workflows = workflows;
     }
-
-    public void setState(String state) {
-        this.state = state;
-    }
+    
 }

@@ -14,33 +14,21 @@
  * limitations under the License.
  *
  */
-package com.emc.storageos.model.orchestration;
-
-import java.util.List;
+package com.emc.storageos.model.customservices;
 
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 
-import com.emc.storageos.model.NamedRelatedResourceRep;
-
-@XmlRootElement(name = "orchestration_workflow_list")
-public class OrchestrationWorkflowList {
+@XmlRootElement(name = "orchestration_workflow_update_param")
+public class CustomServicesWorkflowUpdateParam {
+    private CustomServicesWorkflowDocument document;
     
-    private List<NamedRelatedResourceRep> workflows;
-    
-    public OrchestrationWorkflowList() {}
-    
-    public OrchestrationWorkflowList(List<NamedRelatedResourceRep> workflows) {
-        this.workflows = workflows;
+    @XmlElement(name = "document")
+    public CustomServicesWorkflowDocument getDocument() {
+        return document;
     }
 
-    @XmlElement(name = "workflows")
-    public List<NamedRelatedResourceRep> getWorkflows() {
-        return workflows;
+    public void setDocument(CustomServicesWorkflowDocument document) {
+        this.document = document;
     }
-
-    public void setWorkflows(final List<NamedRelatedResourceRep> workflows) {
-        this.workflows = workflows;
-    }
-    
 }

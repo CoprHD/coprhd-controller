@@ -14,33 +14,36 @@
  * limitations under the License.
  *
  */
-package com.emc.storageos.model.orchestration;
+package com.emc.storageos.model.customservices;
 
+import java.net.URI;
 import java.util.List;
 
+import javax.xml.bind.annotation.XmlAccessType;
+import javax.xml.bind.annotation.XmlAccessorType;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 
-import com.emc.storageos.model.BulkRestRep;
+@XmlRootElement(name = "primitives")
+@XmlAccessorType(XmlAccessType.PROPERTY)
+public class PrimitiveList {
 
-@XmlRootElement(name = "bulk_orchestration_workflows")
-public class OrchestrationWorkflowBulkRep extends BulkRestRep {
-
-    private List<OrchestrationWorkflowRestRep> workflows;
-
-    public OrchestrationWorkflowBulkRep() {}
+    private List<URI> primitives;
     
-    public OrchestrationWorkflowBulkRep(
-            List<OrchestrationWorkflowRestRep> workflows) {
-        this.workflows = workflows;
+    public PrimitiveList() {
+        
+    }
+    
+    public PrimitiveList(final List<URI> primitives) {
+        this.primitives = primitives;
+    }
+    
+    @XmlElement(name = "primitive")
+    public List<URI> getPrimitives() { 
+        return primitives;
     }
 
-    @XmlElement(name = "workflows")
-    public List<OrchestrationWorkflowRestRep> getWorkflows() {
-        return workflows;
-    }
-
-    public void setWorkflows(List<OrchestrationWorkflowRestRep> workflows) {
-        this.workflows = workflows;
+    public void setPrimitives(List<URI> primitives) {
+        this.primitives = primitives;
     }
 }

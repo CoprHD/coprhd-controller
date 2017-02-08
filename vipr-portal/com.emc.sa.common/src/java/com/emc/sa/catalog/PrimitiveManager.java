@@ -31,7 +31,8 @@ public interface PrimitiveManager {
     
     public UserPrimitive findById(final URI id);
     public PrimitiveResource findResource(final URI id);
+    public List<URI> findAllAnsibleIds();
     public List<Ansible> findAllAnsible();
+    public List<URI> findAllScriptPrimitiveIds();
     public List<CustomServiceScriptPrimitive> findAllScriptPrimitives();
-
 }

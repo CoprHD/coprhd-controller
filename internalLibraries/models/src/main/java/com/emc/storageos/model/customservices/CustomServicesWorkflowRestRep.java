@@ -14,21 +14,34 @@
  * limitations under the License.
  *
  */
-package com.emc.storageos.model.orchestration;
+package com.emc.storageos.model.customservices;
 
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 
-@XmlRootElement(name = "orchestration_workflow_update_param")
-public class OrchestrationWorkflowUpdateParam {
-    private OrchestrationWorkflowDocument document;
-    
+import com.emc.storageos.model.DataObjectRestRep;
+
+@XmlRootElement(name = "orchestration_workflow")
+public class CustomServicesWorkflowRestRep extends DataObjectRestRep {
+
+    private CustomServicesWorkflowDocument document;
+    private String state;
+
     @XmlElement(name = "document")
-    public OrchestrationWorkflowDocument getDocument() {
+    public CustomServicesWorkflowDocument getDocument() {
         return document;
     }
 
-    public void setDocument(OrchestrationWorkflowDocument document) {
+    public void setDocument(CustomServicesWorkflowDocument document) {
         this.document = document;
+    }
+
+    @XmlElement(name = "state" )
+    public String getState() {
+        return state;
+    }
+
+    public void setState(String state) {
+        this.state = state;
     }
 }

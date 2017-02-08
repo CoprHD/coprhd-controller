@@ -26,8 +26,8 @@ import org.junit.Test;
 import org.testng.reporters.Files;
 
 import com.emc.sa.workflow.WorkflowHelper;
-import com.emc.storageos.db.client.model.uimodels.OrchestrationWorkflow;
-import com.emc.storageos.model.orchestration.OrchestrationWorkflowDocument;
+import com.emc.storageos.db.client.model.uimodels.CustomServicesWorkflow;
+import com.emc.storageos.model.customservices.CustomServicesWorkflowDocument;
 
 /**
  * Test class for the workflow helper
@@ -38,11 +38,11 @@ public class WorkflowTest {
     public void createWorkflow() throws JsonGenerationException, JsonMappingException, IOException {
         final String json = Files.readFile(new File("/Users/ssulliva/Documents/OEjson_sample.json"));
 
-        final OrchestrationWorkflowDocument wfDefinition = WorkflowHelper.toWorkflowDocument(json);
+        final CustomServicesWorkflowDocument wfDefinition = WorkflowHelper.toWorkflowDocument(json);
         
-        OrchestrationWorkflow workflow = WorkflowHelper.create(wfDefinition);
+        CustomServicesWorkflow workflow = WorkflowHelper.create(wfDefinition);
         
-        OrchestrationWorkflowDocument result = WorkflowHelper.toWorkflowDocument(workflow.getSteps());
+        CustomServicesWorkflowDocument result = WorkflowHelper.toWorkflowDocument(workflow.getSteps());
 
         Assert.assertEquals(wfDefinition.getName(), result.getName());
         

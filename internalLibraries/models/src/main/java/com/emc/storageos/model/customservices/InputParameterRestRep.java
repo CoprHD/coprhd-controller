@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 Dell Inc. or its subsidiaries.
+ * Copyright 2017 Dell Inc. or its subsidiaries.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,18 +14,18 @@
  * limitations under the License.
  *
  */
-package com.emc.storageos.model.orchestration;
+package com.emc.storageos.model.customservices;
+
+import java.util.List;
 
 import javax.xml.bind.annotation.XmlElement;
 
-/**
- * Rest representation class for an orchestration output parameter
- */
-public class OutputParameterRestRep {
+public class InputParameterRestRep {
 
     private String name;
+    private boolean required;
+    private List<String> defaultValue;
     private String type;
-    private String table;
 
     @XmlElement(name = "name")
     public String getName() {
@@ -36,20 +36,30 @@ public class OutputParameterRestRep {
         this.name = name;
     }
 
+    @XmlElement(name = "required")
+    public boolean getRequired() {
+        return required;
+    }
+
+    public void setRequired(final boolean required) {
+        this.required = required;
+    }
+
+    @XmlElement(name = "default_value")
+    public List<String> getDefaultValue() {
+        return defaultValue;
+    }
+
+    public void setDefaultValue( final List<String> defaultValue) {
+        this.defaultValue = defaultValue;
+    }
+
     @XmlElement(name = "type")
     public String getType() {
         return type;
     }
 
-    public void setType(String type) {
+    public void setType(final String type) {
         this.type = type;
-    }
-
-    @XmlElement(name = "table")
-    public String getTable() {
-        return table;
-    }
-    public void setTable(final String table) {
-        this.table = table;
     }
 }

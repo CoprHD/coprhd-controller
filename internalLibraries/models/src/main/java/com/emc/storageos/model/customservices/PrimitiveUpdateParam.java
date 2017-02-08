@@ -14,27 +14,25 @@
  * limitations under the License.
  *
  */
-package com.emc.storageos.model.orchestration;
+package com.emc.storageos.model.customservices;
 
 import java.net.URI;
-import java.util.List;
 import java.util.Map;
 
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 
-@XmlRootElement(name = "primitive_create_param")
-public class PrimitiveCreateParam {
+@XmlRootElement(name = "primitive_update_param")
+public class PrimitiveUpdateParam {
 
     private String name;
     private String friendlyName;
     private String description;
-    private String type;
-    private List<String> input;
-    private List<String> output;
+    private InputUpdateParam input;
+    private OutputUpdateParam output;
     private Map<String,String> attributes;
     private URI resource;
-    
+
     @XmlElement(name = "name")
     public String getName() {
         return name;
@@ -72,39 +70,20 @@ public class PrimitiveCreateParam {
     }
     
     @XmlElement(name = "input")
-    public List<String> getInput() {
+    public InputUpdateParam getInput() {
         return input;
     }
 
-    public void setInput(final List<String> input) {
+    public void setInput(InputUpdateParam input) {
         this.input = input;
     }
 
     @XmlElement(name = "output")
-    public List<String> getOutput() {
+    public OutputUpdateParam getOutput() {
         return output;
     }
 
-    public void setOutput(final List<String> output) {
+    public void setOutput(final OutputUpdateParam output) {
         this.output = output;
     }
-    
-    @XmlElement(name = "resource") 
-    public URI getResource() {
-        return resource;
-    }
-    
-    public void setResource(final URI resource) {
-        this.resource = resource;
-    }
-    
-    @XmlElement(name = "type") 
-    public String getType() {
-        return type;
-    }
-    
-    public void setType(final String type) {
-        this.type = type;
-    }
-    
 }

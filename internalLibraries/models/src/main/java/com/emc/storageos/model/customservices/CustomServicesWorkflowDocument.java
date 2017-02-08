@@ -14,10 +14,12 @@
  * limitations under the License.
  *
  */
-package com.emc.storageos.model.orchestration;
+package com.emc.storageos.model.customservices;
 
+import java.net.URI;
 import java.util.List;
 import java.util.Map;
+
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlElementWrapper;
 import javax.xml.bind.annotation.XmlRootElement;
@@ -27,7 +29,7 @@ import javax.xml.bind.annotation.XmlRootElement;
  */
 
 @XmlRootElement(name = "workflow_document")
-public class OrchestrationWorkflowDocument {
+public class CustomServicesWorkflowDocument {
 
     public static final long DEFAULT_STEP_TIMEOUT = 3600; //min
     
@@ -211,7 +213,7 @@ public class OrchestrationWorkflowDocument {
 
         private String id;
         private String friendlyName;
-        private String operation;
+        private URI operation;
         private String description;
         private Integer positionX;
         private Integer positionY;
@@ -255,10 +257,10 @@ public class OrchestrationWorkflowDocument {
         }
 
         @XmlElement(name = "operation")
-        public String getOperation() {
+        public URI getOperation() {
             return operation;
         }
-        public void setOperation(String operation) {
+        public void setOperation(URI operation) {
             this.operation = operation;
         }
         

@@ -25,8 +25,11 @@ import org.codehaus.jackson.map.JsonMappingException;
 import org.codehaus.jackson.map.ObjectMapper;
 
 import com.emc.storageos.db.client.URIUtil;
-import com.emc.storageos.db.client.model.uimodels.OrchestrationWorkflow;
-import com.emc.storageos.model.orchestration.OrchestrationWorkflowDocument;
+import com.emc.storageos.db.client.model.StringSet;
+import com.emc.storageos.db.client.model.uimodels.CustomServicesWorkflow;
+import com.emc.storageos.model.customservices.CustomServicesWorkflowDocument;
+import com.emc.storageos.model.customservices.CustomServicesWorkflowDocument.Step;
+import com.emc.storageos.primitives.Primitive.StepType;
 
 /**
  * Helper class to perform CRUD operations on a workflow
@@ -43,16 +46,27 @@ public final class WorkflowHelper {
      * @throws JsonMappingException 
      * @throws JsonGenerationException 
      */
-    public static OrchestrationWorkflow create(final OrchestrationWorkflowDocument document) throws JsonGenerationException, JsonMappingException, IOException {
-        final OrchestrationWorkflow oeWorkflow = new OrchestrationWorkflow();
+    public static CustomServicesWorkflow create(final CustomServicesWorkflowDocument document) throws JsonGenerationException, JsonMappingException, IOException {
+        final CustomServicesWorkflow workflow = new CustomServicesWorkflow();
         
-        oeWorkflow.setId(URIUtil.createId(OrchestrationWorkflow.class));
-        oeWorkflow.setLabel(document.getName());
-        oeWorkflow.setName(document.getName());
-        oeWorkflow.setDescription(document.getDescription());
-        oeWorkflow.setSteps(toStepsJson(document.getSteps()));
+        workflow.setId(URIUtil.createId(CustomServicesWorkflow.class));
+        workflow.setLabel(document.getName());
+        workflow.setName(document.getName());
+        workflow.setDescription(document.getDescription());
+        workflow.setSteps(toStepsJson(document.getSteps()));
+        
+        final StringSet primitives = new StringSet();
+        for(final Step step : document.getSteps()) {
+            switch(StepType.fromString(step.getType())) {
+            case VIPR_REST:
+                break;
+            default:
+                primitives.add(step.getOperation().toString());
+            }
+        }
 
-        return oeWorkflow;
+        workflow.setPrimitives(primitives);
+        return workflow;
     }
     
     /**
@@ -61,7 +75,7 @@ public final class WorkflowHelper {
      * @throws JsonMappingException 
      * @throws JsonGenerationException 
      */
-    public static OrchestrationWorkflow update(final OrchestrationWorkflow oeWorkflow, final OrchestrationWorkflowDocument document) throws JsonGenerationException, JsonMappingException, IOException {
+    public static CustomServicesWorkflow update(final CustomServicesWorkflow oeWorkflow, final CustomServicesWorkflowDocument document) throws JsonGenerationException, JsonMappingException, IOException {
 
         if(document.getDescription() != null) {
             oeWorkflow.setDescription(document.getDescription());
@@ -76,13 +90,13 @@ public final class WorkflowHelper {
         return oeWorkflow;
     }
 
-    public static OrchestrationWorkflow updateState(final OrchestrationWorkflow oeWorkflow, final String state) {
+    public static CustomServicesWorkflow updateState(final CustomServicesWorkflow oeWorkflow, final String state) {
         oeWorkflow.setState(state);
         return oeWorkflow;
     }
     
-    public static OrchestrationWorkflowDocument toWorkflowDocument(final OrchestrationWorkflow workflow) throws JsonParseException, JsonMappingException, IOException {
-        final OrchestrationWorkflowDocument document = new OrchestrationWorkflowDocument();
+    public static CustomServicesWorkflowDocument toWorkflowDocument(final CustomServicesWorkflow workflow) throws JsonParseException, JsonMappingException, IOException {
+        final CustomServicesWorkflowDocument document = new CustomServicesWorkflowDocument();
         document.setName(workflow.getName());
         document.setDescription(workflow.getDescription());
         document.setSteps(toDocumentSteps(workflow.getSteps()));
@@ -90,19 +104,19 @@ public final class WorkflowHelper {
         return document;
     }
     
-    public static OrchestrationWorkflowDocument toWorkflowDocument(final String workflow) throws JsonParseException, JsonMappingException, IOException {
-        return MAPPER.readValue(workflow, OrchestrationWorkflowDocument.class);
+    public static CustomServicesWorkflowDocument toWorkflowDocument(final String workflow) throws JsonParseException, JsonMappingException, IOException {
+        return MAPPER.readValue(workflow, CustomServicesWorkflowDocument.class);
     }
     
-    public static String toWorkflowDocumentJson( OrchestrationWorkflow workflow) throws JsonGenerationException, JsonMappingException, JsonParseException, IOException {
+    public static String toWorkflowDocumentJson( CustomServicesWorkflow workflow) throws JsonGenerationException, JsonMappingException, JsonParseException, IOException {
         return MAPPER.writeValueAsString(toWorkflowDocument(workflow));
     }
     
-    private static List<OrchestrationWorkflowDocument.Step> toDocumentSteps(final String steps) throws JsonParseException, JsonMappingException, IOException {
-        return steps == null ? null :  MAPPER.readValue(steps, MAPPER.getTypeFactory().constructCollectionType(List.class, OrchestrationWorkflowDocument.Step.class));
+    private static List<CustomServicesWorkflowDocument.Step> toDocumentSteps(final String steps) throws JsonParseException, JsonMappingException, IOException {
+        return steps == null ? null :  MAPPER.readValue(steps, MAPPER.getTypeFactory().constructCollectionType(List.class, CustomServicesWorkflowDocument.Step.class));
     }
     
-    private static String toStepsJson(final List<OrchestrationWorkflowDocument.Step> steps) throws JsonGenerationException, JsonMappingException, IOException {
+    private static String toStepsJson(final List<CustomServicesWorkflowDocument.Step> steps) throws JsonGenerationException, JsonMappingException, IOException {
         return MAPPER.writeValueAsString(steps);
     }
 }

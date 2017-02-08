@@ -18,7 +18,7 @@ import org.springframework.context.ApplicationContextAware;
 import org.springframework.stereotype.Component;
 
 import com.emc.sa.catalog.OrchestrationWorkflowManager;
-import com.emc.storageos.db.client.model.uimodels.OrchestrationWorkflow;
+import com.emc.storageos.db.client.model.uimodels.CustomServicesWorkflow;
 import com.emc.storageos.db.client.model.uimodels.CatalogService;
 import com.emc.storageos.db.client.model.uimodels.Order;
 import com.google.common.collect.Maps;
@@ -74,7 +74,7 @@ public class DefaultExecutionServiceFactory implements ExecutionServiceFactory, 
     }
 
     private boolean isWorkflowService(String serviceName) {
-        List<OrchestrationWorkflow> results = orchestrationWorkflowManager.getByName(serviceName);
+        List<CustomServicesWorkflow> results = orchestrationWorkflowManager.getByName(serviceName);
         if (null != results && !results.isEmpty()) {
             return true;
         }

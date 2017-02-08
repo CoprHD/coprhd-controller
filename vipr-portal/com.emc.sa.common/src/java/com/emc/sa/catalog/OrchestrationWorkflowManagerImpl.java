@@ -26,8 +26,8 @@ import org.springframework.stereotype.Component;
 import com.emc.sa.model.dao.ModelClient;
 import com.emc.storageos.db.client.constraint.NamedElementQueryResultList.NamedElement;
 import com.emc.storageos.db.client.model.uimodels.CatalogService;
-import com.emc.storageos.db.client.model.uimodels.OrchestrationWorkflow;
-import com.emc.storageos.db.client.model.uimodels.OrchestrationWorkflow.OrchestrationWorkflowStatus;
+import com.emc.storageos.db.client.model.uimodels.CustomServicesWorkflow;
+import com.emc.storageos.db.client.model.uimodels.CustomServicesWorkflow.OrchestrationWorkflowStatus;
 
 
 @Component
@@ -37,7 +37,7 @@ public class OrchestrationWorkflowManagerImpl implements
     private ModelClient client;
  
     @Override
-    public OrchestrationWorkflow getById(final URI id) {
+    public CustomServicesWorkflow getById(final URI id) {
         if( id == null ) {
             return null;
         }
@@ -46,7 +46,7 @@ public class OrchestrationWorkflowManagerImpl implements
     }
 
     @Override
-    public List<OrchestrationWorkflow> getByName(final String name) {
+    public List<CustomServicesWorkflow> getByName(final String name) {
         if( null == name) {
             return null;
         }
@@ -65,17 +65,17 @@ public class OrchestrationWorkflowManagerImpl implements
     }
 
     @Override
-    public Iterator<OrchestrationWorkflow> getSummaries(List<URI> ids) {
+    public Iterator<CustomServicesWorkflow> getSummaries(List<URI> ids) {
         return client.orchestrationWorkflows().findSummaries(ids);
     }
 
     @Override
-    public void save(final OrchestrationWorkflow workflow) {
+    public void save(final CustomServicesWorkflow workflow) {
         client.save(workflow);
     }
     
     @Override
-    public void delete(final OrchestrationWorkflow workflow) {
+    public void delete(final CustomServicesWorkflow workflow) {
         client.delete(workflow);
     }
 

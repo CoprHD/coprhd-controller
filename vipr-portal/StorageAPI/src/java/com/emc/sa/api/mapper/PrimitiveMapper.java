@@ -35,14 +35,13 @@ import com.emc.storageos.db.client.model.uimodels.PrimitiveResource;
 import com.emc.storageos.db.client.model.uimodels.UserPrimitive;
 import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.storageos.model.RestLinkRep;
-import com.emc.storageos.model.orchestration.InputParameterRestRep;
-import com.emc.storageos.model.orchestration.OutputParameterRestRep;
-import com.emc.storageos.model.orchestration.PrimitiveResourceRestRep;
-import com.emc.storageos.model.orchestration.PrimitiveResourceRestRep.Attribute;
-import com.emc.storageos.model.orchestration.PrimitiveRestRep;
+import com.emc.storageos.model.customservices.InputParameterRestRep;
+import com.emc.storageos.model.customservices.OutputParameterRestRep;
+import com.emc.storageos.model.customservices.PrimitiveResourceRestRep;
+import com.emc.storageos.model.customservices.PrimitiveResourceRestRep.Attribute;
+import com.emc.storageos.model.customservices.PrimitiveRestRep;
 import com.emc.storageos.primitives.Parameter.ParameterType;
 import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorException;
-
 
 public final class  PrimitiveMapper {
     public final static PrimitiveMapper instance = new PrimitiveMapper();

@@ -25,12 +25,12 @@ import java.util.List;
 
 import com.emc.sa.workflow.WorkflowHelper;
 import com.emc.storageos.db.client.constraint.NamedElementQueryResultList.NamedElement;
-import com.emc.storageos.db.client.model.uimodels.OrchestrationWorkflow;
+import com.emc.storageos.db.client.model.uimodels.CustomServicesWorkflow;
 import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.ResourceTypeEnum;
-import com.emc.storageos.model.orchestration.OrchestrationWorkflowBulkRep;
-import com.emc.storageos.model.orchestration.OrchestrationWorkflowList;
-import com.emc.storageos.model.orchestration.OrchestrationWorkflowRestRep;
+import com.emc.storageos.model.customservices.CustomServicesWorkflowBulkRep;
+import com.emc.storageos.model.customservices.CustomServicesWorkflowList;
+import com.emc.storageos.model.customservices.CustomServicesWorkflowRestRep;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.google.common.base.Function;
 import com.google.common.collect.Lists;
@@ -38,7 +38,7 @@ import com.google.common.collect.Lists;
 /**
  *
  */
-public class OrchestrationWorkflowMapper implements Function<OrchestrationWorkflow, OrchestrationWorkflowRestRep> {
+public class OrchestrationWorkflowMapper implements Function<CustomServicesWorkflow, CustomServicesWorkflowRestRep> {
     public static final OrchestrationWorkflowMapper instance = new OrchestrationWorkflowMapper();
 
     public static OrchestrationWorkflowMapper getInstance() {
@@ -48,8 +48,8 @@ public class OrchestrationWorkflowMapper implements Function<OrchestrationWorkfl
     private OrchestrationWorkflowMapper() {
     }
     
-    public static OrchestrationWorkflowRestRep map(OrchestrationWorkflow from) {
-        OrchestrationWorkflowRestRep to = new OrchestrationWorkflowRestRep(); 
+    public static CustomServicesWorkflowRestRep map(CustomServicesWorkflow from) {
+        CustomServicesWorkflowRestRep to = new CustomServicesWorkflowRestRep(); 
         
         mapDataObjectFields(from, to);
         
@@ -63,24 +63,24 @@ public class OrchestrationWorkflowMapper implements Function<OrchestrationWorkfl
         return to;
     }
     
-    public static OrchestrationWorkflowList mapList(List<NamedElement> fromList) {
+    public static CustomServicesWorkflowList mapList(List<NamedElement> fromList) {
         List<NamedRelatedResourceRep> resources = new ArrayList<NamedRelatedResourceRep>();
         for(NamedElement element : fromList) {
             resources.add(toNamedRelatedResource(ResourceTypeEnum.ORCHESTRATION_WORKFLOW, element.getId(), element.getName()));
         }
-        return new OrchestrationWorkflowList(resources);
+        return new CustomServicesWorkflowList(resources);
     }
     
-    public static OrchestrationWorkflowBulkRep mapBulk(List<OrchestrationWorkflow> workflows) {
-        final List<OrchestrationWorkflowRestRep> workflowRestRepList = Lists.newArrayList();
-        for( final OrchestrationWorkflow workflow : workflows) {
+    public static CustomServicesWorkflowBulkRep mapBulk(List<CustomServicesWorkflow> workflows) {
+        final List<CustomServicesWorkflowRestRep> workflowRestRepList = Lists.newArrayList();
+        for( final CustomServicesWorkflow workflow : workflows) {
             workflowRestRepList.add(map(workflow));
         }
-        return new OrchestrationWorkflowBulkRep(workflowRestRepList);
+        return new CustomServicesWorkflowBulkRep(workflowRestRepList);
     }
 
     @Override
-    public OrchestrationWorkflowRestRep apply(OrchestrationWorkflow input) {
+    public CustomServicesWorkflowRestRep apply(CustomServicesWorkflow input) {
         return map(input);
     }
 }

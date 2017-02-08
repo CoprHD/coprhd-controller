@@ -14,33 +14,31 @@
  * limitations under the License.
  *
  */
-package com.emc.storageos.model.orchestration;
+package com.emc.storageos.model.customservices;
 
 import java.util.List;
 
 import javax.xml.bind.annotation.XmlElement;
-import javax.xml.bind.annotation.XmlRootElement;
 
-import com.emc.storageos.model.BulkRestRep;
+public class OutputUpdateParam {
+    private List<String> add;
+    private List<String> remove;
 
-@XmlRootElement(name = "bulk_custom_service_primitives")
-public class PrimitiveBulkRestRep extends BulkRestRep {
-
-    private List<PrimitiveRestRep> primitives;
-
-    public PrimitiveBulkRestRep() {}
-    
-    public PrimitiveBulkRestRep(
-            List<PrimitiveRestRep> primitives) {
-        this.primitives = primitives;
+    @XmlElement(name = "add")
+    public List<String> getAdd() {
+        return add;
     }
 
-    @XmlElement(name = "primitives")
-    public List<PrimitiveRestRep> getWorkflows() {
-        return primitives;
+    public void setAdd(final List<String> add) {
+        this.add = add;
     }
 
-    public void setWorkflows(List<PrimitiveRestRep> primitives) {
-        this.primitives = primitives;
+    @XmlElement(name = "remove")
+    public List<String> getRemove() {
+        return remove;
+    }
+
+    public void setRemove(final List<String> remove) {
+        this.remove = remove;
     }
 }

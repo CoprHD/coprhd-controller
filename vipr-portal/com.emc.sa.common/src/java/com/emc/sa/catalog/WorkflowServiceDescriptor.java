@@ -20,17 +20,19 @@ import com.emc.sa.descriptor.ServiceDescriptor;
 import com.emc.sa.descriptor.ServiceField;
 import com.emc.sa.workflow.WorkflowHelper;
 import com.emc.storageos.db.client.constraint.NamedElementQueryResultList.NamedElement;
-import com.emc.storageos.db.client.model.uimodels.OrchestrationWorkflow;
-import com.emc.storageos.db.client.model.uimodels.OrchestrationWorkflow.OrchestrationWorkflowStatus;
-import com.emc.storageos.model.orchestration.OrchestrationWorkflowDocument;
-import com.emc.storageos.model.orchestration.OrchestrationWorkflowDocument.Step;
-import com.emc.storageos.model.orchestration.OrchestrationWorkflowDocument.Input;
+import com.emc.storageos.db.client.model.uimodels.CustomServicesWorkflow;
+import com.emc.storageos.db.client.model.uimodels.CustomServicesWorkflow.OrchestrationWorkflowStatus;
+import com.emc.storageos.model.customservices.CustomServicesWorkflowDocument;
+import com.emc.storageos.model.customservices.CustomServicesWorkflowDocument.Input;
+import com.emc.storageos.model.customservices.CustomServicesWorkflowDocument.Step;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.PostConstruct;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -59,14 +61,14 @@ public class WorkflowServiceDescriptor {
 
     public ServiceDescriptor getDescriptor(String serviceName) {
         log.debug("Getting workflow descriptor for {}", serviceName);
-        List<OrchestrationWorkflow> results = orchestrationWorkflowManager.getByName(serviceName);
+        List<CustomServicesWorkflow> results = orchestrationWorkflowManager.getByName(serviceName);
         if(null == results || results.isEmpty()) {
             return null;
         }
         if(results.size() > 1) {
             throw new IllegalStateException(String.format("Multiple workflows with the name %s", serviceName));
         }
-        OrchestrationWorkflow orchestrationWorkflow = results.get(0);
+        CustomServicesWorkflow orchestrationWorkflow = results.get(0);
         // Return service only if its PUBLISHED
         if (!OrchestrationWorkflowStatus.PUBLISHED.toString().equals(orchestrationWorkflow.getState())) {
             log.debug("Not returning workflow service because its state ({}) is not published", orchestrationWorkflow.getState());
@@ -80,7 +82,7 @@ public class WorkflowServiceDescriptor {
         List<ServiceDescriptor> wfServiceDescriptors = new ArrayList<>();
         List<NamedElement> oeElements = orchestrationWorkflowManager.listByStatus(OrchestrationWorkflowStatus.PUBLISHED);
         if (null != oeElements) {
-            OrchestrationWorkflow oeWorkflow;
+            CustomServicesWorkflow oeWorkflow;
             for(NamedElement oeElement: oeElements) {
                 oeWorkflow = orchestrationWorkflowManager.getById(oeElement.getId());
                 wfServiceDescriptors.add(mapWorkflowToServiceDescriptor(oeWorkflow));
@@ -90,10 +92,10 @@ public class WorkflowServiceDescriptor {
         return wfServiceDescriptors;
     }
 
-    private ServiceDescriptor mapWorkflowToServiceDescriptor(final OrchestrationWorkflow from) {
+    private ServiceDescriptor mapWorkflowToServiceDescriptor(final CustomServicesWorkflow from) {
         final ServiceDescriptor to = new ServiceDescriptor();
         try {
-            final OrchestrationWorkflowDocument wfDocument = WorkflowHelper.toWorkflowDocument(from);
+            final CustomServicesWorkflowDocument wfDocument = WorkflowHelper.toWorkflowDocument(from);
             to.setCategory(ORCHESTRATION_SERVICE_CATEGORY);
             to.setDescription(wfDocument.getDescription());
             to.setDestructive(false);
@@ -103,7 +105,7 @@ public class WorkflowServiceDescriptor {
 
             for (final Step step : wfDocument.getSteps()) {
                 if (null != step.getInputGroups()) {
-                    for (final OrchestrationWorkflowDocument.InputGroup inputs : step.getInputGroups().values()) {
+                    for (final CustomServicesWorkflowDocument.InputGroup inputs : step.getInputGroups().values()) {
                         for (final Input wfInput : inputs.getInputGroup()) {
                             String wfInputType = null;
                             // Creating service fields for only inputs of type "inputfromuser" and "assetoption"

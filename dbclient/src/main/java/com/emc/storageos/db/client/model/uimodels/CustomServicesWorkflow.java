@@ -18,25 +18,29 @@ package com.emc.storageos.db.client.model.uimodels;
 
 import com.emc.storageos.db.client.model.AlternateId;
 import com.emc.storageos.db.client.model.Cf;
+import com.emc.storageos.db.client.model.IndexByKey;
 import com.emc.storageos.db.client.model.Name;
+import com.emc.storageos.db.client.model.RelationIndex;
+import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.model.valid.EnumType;
 
 /**
  * DB model to represent an orchestration engine workflow document
  */
 @Cf("OrchestrationWorkflow")
-public class OrchestrationWorkflow extends ModelObjectWithACLs {
+public class CustomServicesWorkflow extends ModelObjectWithACLs {
 
     public static final String NAME = "name";
     public static final String DESCRIPTION = "description";
     public static final String STEPS = "steps";
     public static final String STATE = "state";
-
+    public static final String PRIMITIVES = "primitives";
     
     private String name;
     private String description;
     private String steps;
     private String state = OrchestrationWorkflowStatus.NONE.toString();
+    private StringSet primitives;
 
     public enum OrchestrationWorkflowStatus {
         NONE,
@@ -94,5 +98,17 @@ public class OrchestrationWorkflow extends ModelObjectWithACLs {
     public void setState(final String state) {
         this.state = state;
         setChanged(STATE);
+    }
+    
+    @RelationIndex(cf = "WorkflowPrimitives", type = UserPrimitive.class)
+    @IndexByKey
+    @Name(PRIMITIVES)
+    public StringSet getUserPrimitives() {
+        return primitives;
+    }
+    
+    public void setPrimitives(final StringSet primitives) {
+        this.primitives = primitives;
+        setChanged(PRIMITIVES);
     }
 }

@@ -16,13 +16,12 @@
  */
 package com.emc.storageos.primitives;
 
+import java.net.URI;
 import java.util.Set;
 
 import org.reflections.Reflections;
 import org.reflections.scanners.SubTypesScanner;
 
-import com.emc.storageos.primitives.samples.LocalAnsible;
-import com.emc.storageos.primitives.samples.RestPrimitive;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMap.Builder;
@@ -32,12 +31,12 @@ import com.google.common.collect.ImmutableMap.Builder;
  */
 public final class PrimitiveHelper {
     
-    private static final ImmutableMap<String, Primitive> PRIMITIVES_MAP;
+    private static final ImmutableMap<URI, Primitive> PRIMITIVES_MAP;
 
     static {
         Set<Class<? extends ViPRPrimitive>> primitives = 
                 new Reflections("com.emc.storageos", new SubTypesScanner()).getSubTypesOf(ViPRPrimitive.class);
-        final Builder<String, Primitive> builder = ImmutableMap.<String, Primitive>builder();
+        final Builder<URI, Primitive> builder = ImmutableMap.<URI, Primitive>builder();
         for( final Class<? extends ViPRPrimitive> primitive : primitives) {
             final ViPRPrimitive instance;
             try {
@@ -46,12 +45,9 @@ public final class PrimitiveHelper {
                 throw new RuntimeException("Failed to create instance of primitive: "+primitive.getName(), e);
             }
         
-            builder.put(instance.getName(), instance);
+            builder.put(instance.getId(), instance);
         }
-        
         PRIMITIVES_MAP = builder
-                .put(LocalAnsible.class.getName(), new LocalAnsible())
-                .put(RestPrimitive.class.getName(), new RestPrimitive())
                 .build();
     }
     
@@ -64,7 +60,7 @@ public final class PrimitiveHelper {
         return PRIMITIVES_LIST;
     }
     
-    public static Primitive get(final String name) {
-        return PRIMITIVES_MAP.get(name);
+    public static Primitive get(final URI id) {
+        return PRIMITIVES_MAP.get(id);
     }
 }

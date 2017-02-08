@@ -774,7 +774,7 @@ class ExportGroup(object):
  		rep = self.exportgroup_pathadjustment(name, project, tenant,
                                                storagesystem, varray, 
                                                minpaths, maxpaths, pathsperinitiator,
-                                               maxinitiatorsperport, storageports, useexisting, hosts, None, verbose, False)
+                                               maxinitiatorsperport, storageports, useexisting, hosts, verbose, None, False)
 		adjustedpaths = rep['adjusted_paths']
 	    	adjusted_paths = []
 	    	for path in adjustedpaths:

@@ -1527,6 +1527,7 @@ xtremio_ingest_export_test()
 
     # Real removal of volume/CG
     run_noundo export_group update ${PROJECT}/${XTREMIO_INGEST_HOST} --remVols "${PROJECT}/${XIO_INGEST_VOL1}/${XIO_INGEST_SNAP1_ARRAY_LABEL},${PROJECT}/${XIO_INGEST_VOL2}/${XIO_INGEST_SNAP2_ARRAY_LABEL}"
+    # Export group will be deleted implicitly when all its volumes get removed, no further cleanup needed for the export group afterwards
     run_noundo export_group update ${PROJECT}/${XTREMIO_INGEST_HOST} --remVols "${PROJECT}/${XIO_INGEST_VOL1},${PROJECT}/${XIO_INGEST_VOL2}"
     run_noundo blocksnapshot delete ${PROJECT}/${XIO_INGEST_VOL1}/${XIO_INGEST_SNAP1_ARRAY_LABEL}
     run_noundo volume delete ${PROJECT}/"${XIO_INGEST_VOL1}" --wait

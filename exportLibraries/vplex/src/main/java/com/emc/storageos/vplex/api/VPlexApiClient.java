@@ -561,7 +561,7 @@ public class VPlexApiClient {
      * @param nativeVolumeInfoList The native volume information for the
      *            storage volumes to be forgotten.
      */
-    public void forgetVolumes(List<VolumeInfo> nativeVolumeInfoList) {
+    public void forgetVolumes(List<VolumeInfo> nativeVolumeInfoList) throws Exception {
         s_logger.info("Request to forget volumes on VPlex at {}", _baseURI);
         _discoveryMgr.forgetVolumes(nativeVolumeInfoList);
     }

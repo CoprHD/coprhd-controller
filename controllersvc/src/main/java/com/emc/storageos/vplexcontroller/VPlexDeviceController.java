@@ -9910,11 +9910,13 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
                         StorageProvider.InterfaceType.vplex.name());
         for (StorageProvider vplexMnmgtServer : vplexMnmgtServers) {
             try {
-                VPlexApiClient client = getVPlexAPIClient(_vplexApiFactory,
-                        vplexMnmgtServer, _dbClient);
-                client.verifyConnectivity();
-                activeMgmntServers.add(vplexMnmgtServer.getId());
-                vplexMnmgtServer.setConnectionStatus(StorageProvider.ConnectionStatus.CONNECTED.toString());
+                if (ConnectivityUtil.ping(vplexMnmgtServer.getIPAddress())) {
+                    VPlexApiClient client = getVPlexAPIClient(_vplexApiFactory,
+                            vplexMnmgtServer, _dbClient);
+                    client.verifyConnectivity();
+                    activeMgmntServers.add(vplexMnmgtServer.getId());
+                    vplexMnmgtServer.setConnectionStatus(StorageProvider.ConnectionStatus.CONNECTED.toString());
+                }
             } catch (Exception e) {
                 _log.warn("Can't connect to VPLEX management server {}", vplexMnmgtServer.getIPAddress());
                 vplexMnmgtServer.setConnectionStatus(StorageProvider.ConnectionStatus.NOTCONNECTED.toString());

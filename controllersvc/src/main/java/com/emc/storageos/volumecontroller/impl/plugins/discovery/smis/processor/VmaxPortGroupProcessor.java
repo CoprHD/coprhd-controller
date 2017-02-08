@@ -112,7 +112,7 @@ public class VmaxPortGroupProcessor extends StorageProcessor{
      * @return - the existing or newly created port group
      */
     private StoragePortGroup getPortGroupInDB(String pgName, StorageSystem storage) {
-        String guid = String.format("%s+%s" , storage.getSerialNumber(), pgName);
+        String guid = String.format("%s+%s" , storage.getNativeGuid(), pgName);
         URIQueryResultList result = new URIQueryResultList();
         dbClient.queryByConstraint(AlternateIdConstraint.Factory
                 .getPortGroupNativeGUIdConstraint(guid), result);

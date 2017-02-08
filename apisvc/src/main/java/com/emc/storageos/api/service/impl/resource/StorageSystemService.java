@@ -82,6 +82,7 @@ import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVol
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume.SupportedVolumeCharacterstics;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
+import com.emc.storageos.db.client.util.StringSetUtil;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.model.BulkIdParam;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
@@ -97,6 +98,7 @@ import com.emc.storageos.model.object.ObjectUserSecretKeyAddRestRep;
 import com.emc.storageos.model.object.ObjectUserSecretKeyRequestParam;
 import com.emc.storageos.model.pools.StoragePoolList;
 import com.emc.storageos.model.pools.StoragePoolRestRep;
+import com.emc.storageos.model.portgroup.StoragePortGroupCreateParam;
 import com.emc.storageos.model.portgroup.StoragePortGroupList;
 import com.emc.storageos.model.portgroup.StoragePortGroupRestRep;
 import com.emc.storageos.model.ports.StoragePortList;
@@ -2105,8 +2107,6 @@ public class StorageSystemService extends TaskResourceService {
         // Make sure the storage system is registered.
         ArgValidator.checkFieldUriType(id, StorageSystem.class, "id");
         StorageSystem system = queryResource(id);
-        ArgValidator.checkEntity(system, id, isIdEmbeddedInURL(id));
-
         ArgValidator.checkFieldUriType(portGroupId, StoragePortGroup.class, "portGroupId");
         StoragePortGroup portGroup = _dbClient.queryObject(StoragePortGroup.class, portGroupId);
         ArgValidator.checkEntity(portGroup, portGroupId, isIdEmbeddedInURL(portGroupId));
@@ -2152,10 +2152,10 @@ public class StorageSystemService extends TaskResourceService {
      * is no longer used by the system. This simply sets the
      * registration_status of the storage port group to REGISTERED.
      * 
-     * @param id the URN of a ViPR storage port.
+     * @param id the URN of a ViPR storage port group.
      * 
-     * @brief Register storage port
-     * @return Status response indicating success or failure
+     * @brief Register storage port group
+     * @return StoragePortGroup 
      */
     @POST
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
@@ -2180,4 +2180,84 @@ public class StorageSystemService extends TaskResourceService {
         }
         return MapStoragePortGroup.getInstance(_dbClient).toStoragePortGroupRestRep(portGroup);
     }
+    
+    /**
+     * Create a storage port group
+     * 
+     * @param id the URN of a ViPR storage port.
+     * 
+     * @brief Create a storage port
+     * @return The pending task
+     */
+    @POST
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/{id}/storage-port-groups")
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
+    public TaskResourceRep createStoragePortGroup(@PathParam("id") URI id, StoragePortGroupCreateParam param) {
+
+        ArgValidator.checkFieldUriType(id, StorageSystem.class, "id");
+        StorageSystem system = queryResource(id);
+        // Only support for VMAX
+        if (!DiscoveredDataObject.Type.vmax.name().equals(system.getSystemType())) {
+            APIException.badRequests.operationNotSupportedForSystemType(
+                    OperationTypeEnum.CREATE_STORAGE_PORT_GROUP.name(), system.getSystemType());
+        }
+        ArgValidator.checkFieldNotEmpty(param.getName(), "name");
+        String portGroupName = param.getName();
+        List<URI> ports = param.getStoragePorts();
+        for (URI port : ports) {
+            ArgValidator.checkFieldUriType(port, StoragePort.class, "portURI");
+            StoragePort sport = _dbClient.queryObject(StoragePort.class, port);
+            ArgValidator.checkEntityNotNull(sport, port, isIdEmbeddedInURL(port));
+        }
+        checkForDuplicatePortGroupName(portGroupName, id);
+        StoragePortGroup portGroup = new StoragePortGroup();
+        portGroup.setLabel(portGroupName);
+        if (param.getRegistered()) {
+            portGroup.setRegistrationStatus(RegistrationStatus.REGISTERED.name());
+        } else {
+            portGroup.setRegistrationStatus(RegistrationStatus.UNREGISTERED.name());
+        }
+        portGroup.setStorageDevice(id);
+        portGroup.setStoragePorts(StringSetUtil.uriListToStringSet(ports));
+        portGroup.setId(URIUtil.createId(StoragePortGroup.class));
+        _dbClient.createObject(portGroup);
+        
+        String task = UUID.randomUUID().toString();
+        
+        Operation op = _dbClient.createTaskOpStatus(StoragePortGroup.class, portGroup.getId(),
+                task, ResourceOperationTypeEnum.CREATE_STORAGE_PORT_GROUP);
+        _dbClient.updateObject(portGroup);
+        auditOp(OperationTypeEnum.CREATE_STORAGE_PORT_GROUP, true, null, param.getName(), id.toString());
+        recordStoragePoolPortEvent(OperationTypeEnum.CREATE_STORAGE_PORT_GROUP,
+                STORAGEPORTGROUP_REGISTERED_DESCRIPTION, portGroup.getId(), "StoragePortGroup");
+
+        TaskResourceRep taskRes = toTask(portGroup, task, op);
+        
+        BlockController controller = getController(BlockController.class, system.getSystemType());
+        controller.createStoragePortGroup(system.getId(), portGroup.getId(), task);
+        return taskRes;
+    }
+    
+    /**
+     * Check if a storage port group with the same name exists for the passed storage system.
+     * 
+     * @param name Port group name
+     * @param id Storage system id
+     */
+    private void checkForDuplicatePortGroupName(String name, URI systemURI) {
+
+        URIQueryResultList portGroupURIs = new URIQueryResultList();
+        _dbClient.queryByConstraint(
+                ContainmentConstraint.Factory.getStorageDevicePortGroupConstraint(systemURI),
+                portGroupURIs);
+        Iterator<URI> portGroupIter = portGroupURIs.iterator();
+        while (portGroupIter.hasNext()) {
+            StoragePortGroup portGroup = _dbClient.queryObject(StoragePortGroup.class, portGroupIter.next());
+            if (portGroup != null && !portGroup.getInactive() && portGroup.getLabel().equalsIgnoreCase(name)) {
+                throw APIException.badRequests.duplicateLabel(name);
+            }
+        }
+    }
+    
 }

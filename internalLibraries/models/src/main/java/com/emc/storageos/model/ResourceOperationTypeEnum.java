@@ -352,7 +352,9 @@ public enum ResourceOperationTypeEnum {
     WORKFLOW_ROLLBACK ("WORKFLOW_ROLLBACK", "Rollback a workflow"),
     MOUNT_NFS_EXPORT("MOUNT NFS EXPORT", "mount nfs export operation"),
     UNMOUNT_NFS_EXPORT("UNMOUNT NFS EXPORT", "unmount nfs export operation"),
-    LIST_MOUNTED_EXPORTS("LIST MOUNTED EXPORTS", "list mounted exports operation");
+    LIST_MOUNTED_EXPORTS("LIST MOUNTED EXPORTS", "list mounted exports operation"),
+    CREATE_STORAGE_PORT_GROUP("CREATE STORAGE PORT GROUP", "create storage port group"),
+    DELETE_STORAGE_PORT_GROUP("DELETE STORAGE PORT GROUP", "delete storage port group");
 
     private final String name;
     private final String description;

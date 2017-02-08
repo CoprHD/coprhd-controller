@@ -516,6 +516,8 @@ public enum OperationTypeEnum {
     REMOVE_STORAGE_SYSTEM_TYPE("REMOVE STORAGE SYSTEM TYPE", "", "operation to initiate removing a storage system type"),
     REGISTER_STORAGE_PORT_GROUP("REGIESTER PORT GROUP", "", "operation to resgister storage port groupe"),
     DEREGISTER_STORAGE_PORT_GROUP("DEREGIESTER PORT GROUP", "", "operation to deresgister storage port groupe"),
+    CREATE_STORAGE_PORT_GROUP("CREATE STORAGE PORT GROUP", "", "operation to create a storage port group"),
+    DELETE_STORAGE_PORT_GROUP("DELETE STORAGE PORT GROUP", "", "operation to delete a storage port group"),
     CREATE_SCHEDULE_POLICY("SchedulePolicyCreated", "", "create schedule policy."),
     
     /* Filesystem Mount Operations*/

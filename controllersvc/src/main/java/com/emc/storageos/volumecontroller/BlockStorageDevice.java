@@ -1116,4 +1116,12 @@ public interface BlockStorageDevice {
      */
     public String doInitiatorAliasGet(StorageSystem storage, Initiator initiator) throws Exception;
     
+    /**
+     * Create storage port group
+     * 
+     * @param storage - Storage system
+     * @param portGroupURI - Storage port group URI
+     * @throws Exception
+     */
+    public void doCreateStoragePortGroup(StorageSystem storage, URI portGroupURI, TaskCompleter completer) throws Exception;
 }

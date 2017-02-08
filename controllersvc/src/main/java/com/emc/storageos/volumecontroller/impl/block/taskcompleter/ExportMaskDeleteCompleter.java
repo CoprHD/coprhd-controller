@@ -30,7 +30,7 @@ public class ExportMaskDeleteCompleter extends ExportTaskCompleter {
 
     @Override
     protected void complete(DbClient dbClient, Operation.Status status, ServiceCoded coded) throws DeviceControllerException {
-        try {
+        try {            
             ExportMask exportMask = (getMask() != null) ?
                     dbClient.queryObject(ExportMask.class, getMask()) : null;
             if ((status == Operation.Status.error) && (isRollingBack()) && (coded instanceof ServiceError)) {
@@ -49,6 +49,7 @@ public class ExportMaskDeleteCompleter extends ExportTaskCompleter {
                 ExportUtils.cleanupAssociatedMaskResources(dbClient, exportMask);
                 dbClient.markForDeletion(exportMask);
             }
+
             _log.info(String.format("Done ExportMaskDelete - EG: %s, OpId: %s, status: %s",
                     getId().toString(), getOpId(), status.name()));
         } catch (Exception e) {
@@ -58,5 +59,4 @@ public class ExportMaskDeleteCompleter extends ExportTaskCompleter {
             super.complete(dbClient, status, coded);
         }
     }
-
 }

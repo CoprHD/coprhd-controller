@@ -157,7 +157,6 @@ public class FileProtectionPolicies extends ViprResourceController {
 
         List<StringOption> replicationCopyTypeOptions = Lists.newArrayList();
         replicationCopyTypeOptions.add(new StringOption("ASYNC", MessagesUtils.get("schedulePolicy.replicationAsync")));
-        replicationCopyTypeOptions.add(new StringOption("SYNC", MessagesUtils.get("schedulePolicy.replicationSync")));
         renderArgs.put("replicationCopyTypeOptions", replicationCopyTypeOptions);
 
         List<StringOption> policyPriorityOptions = Lists.newArrayList();

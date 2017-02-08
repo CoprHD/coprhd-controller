@@ -112,14 +112,15 @@ public class VplexExportMaskValidator extends AbstractVplexValidator implements 
                     // Remove matched WWNs
                     storageViewWwns.remove(boWwn);
                 } else {
-                    log.info(String.format("Database volume/snap %s (%s) is not in StorageView [%s]", bo.getId(), bo.getWWN(),
-                            storageView.getName()));
+                    log.info(String.format("Database volume/snap %s (%s - %s) is not in StorageView [%s]", 
+                            bo.getId(), bo.getNativeGuid(), bo.getWWN(), storageView.getName()));
                 }
             }
         }
         // Any remaining WWNs in storageViewWwns had no matching volume, and therefore are error
         for (String wwn : storageViewWwns) {
-            getValidatorLogger().logDiff(id, "virtual-volume/snap WWN", ValidatorLogger.NO_MATCHING_ENTRY, wwn);
+            String volumeId = String.format("%s (%s)", wwn, storageView.getVolumeNameForWWN(wwn));
+            getValidatorLogger().logDiff(id, "virtual-volume/snap WWN", ValidatorLogger.NO_MATCHING_ENTRY, volumeId);
         }
     }
 

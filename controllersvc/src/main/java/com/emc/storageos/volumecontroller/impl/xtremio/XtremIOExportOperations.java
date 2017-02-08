@@ -33,6 +33,7 @@ import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.StorageSystem;
+import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
@@ -531,8 +532,8 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
             for (XtremIOInitiator initiator : initiators) {
                 URIQueryResultList initiatorResult = new URIQueryResultList();
                 dbClient
-                .queryByConstraint(AlternateIdConstraint.Factory.getInitiatorPortInitiatorConstraint(initiator.getPortAddress()),
-                        initiatorResult);
+                        .queryByConstraint(AlternateIdConstraint.Factory.getInitiatorPortInitiatorConstraint(initiator.getPortAddress()),
+                                initiatorResult);
                 if (initiatorResult.iterator().hasNext()) {
                     Initiator initiatorObj = dbClient.queryObject(Initiator.class, initiatorResult.iterator().next());
                     _log.info("Updating Initiator label from {} to {} in ViPR DB", initiatorObj.getLabel(), initiator.getName());
@@ -589,6 +590,11 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
             if (mask.getExistingVolumes() != null && !mask.getExistingVolumes().isEmpty()) {
                 mask.getExistingVolumes().clear();
             }
+            
+            //COP-27296 fix
+            if (null == mask.getUserAddedVolumes()) {
+                mask.setUserAddedVolumes(new StringMap());
+            }
 
             Set<String> existingVolumes = Sets.difference(discoveredVolumes.keySet(), mask.getUserAddedVolumes().keySet());
 
@@ -602,7 +608,7 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
 
         } catch (Exception e) {
             if (null != e.getMessage() && !e.getMessage().contains(XtremIOConstants.OBJECT_NOT_FOUND)) {
-                String msg = String.format("Error when refreshing export mask %s", mask.getMaskName());
+                String msg = String.format("Error when refreshing export mask %s, details: %s", mask.getMaskName(), e.getMessage());
                 throw XtremIOApiException.exceptions.refreshExistingMaskFailure(msg, e);
             } else {
                 _log.warn("Error refreshing export mask {}", mask.getMaskName());
@@ -730,7 +736,6 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
                         } catch (Exception e) {
                             failedVolumes.add(volumeUri.toString().concat(XtremIOConstants.DASH).concat(e.getMessage()));
                             _log.warn("Deletion of Lun Map {} failed}", lunMap, e);
-
                         }
                     }
                 } else {
@@ -751,7 +756,6 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
             }
 
             // Clean IGs if empty
-
             deleteInitiatorGroup(groupInitiatorsByIG, client, xioClusterName);
             // delete IG Folder as well if IGs are empty
             deleteInitiatorGroupFolder(client, xioClusterName, clusterName, hostName, storage);
@@ -763,7 +767,6 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
             ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
             taskCompleter.error(dbClient, serviceError);
         }
-
     }
 
     /**
@@ -811,7 +814,7 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
             initiatorsValidator.validate();
 
             Set<String> igNames = groupInitiatorsByIG.keySet();
-            List<URI> failedVolumes = new ArrayList<URI>();
+            List<String> failedVolumes = new ArrayList<String>();
             List<String> failedIGs = new ArrayList<String>();
             for (URI volumeUri : volumes) {
                 BlockObject blockObj = BlockObject.fetch(dbClient, volumeUri);
@@ -910,7 +913,7 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
                         try {
                             client.deleteLunMap(lunMap, xioClusterName);
                         } catch (Exception e) {
-                            failedVolumes.add(volumeUri);
+                            failedVolumes.add(volumeUri.toString().concat(XtremIOConstants.DASH).concat(e.getMessage()));
                             _log.warn("Deletion of Lun Map {} failed}", lunMap, e);
                         }
                     }
@@ -924,7 +927,8 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
                         ctx.setBlockObjects(volumes, dbClient);
                         ctx.setAllowExceptions(!WorkflowService.getInstance().isStepInRollbackState(taskCompleter.getOpId()));
                         // DU validation when removing initiators
-                        XtremIOExportMaskVolumesValidator volumeValidator = (XtremIOExportMaskVolumesValidator) validator.removeInitiators(ctx);
+                        XtremIOExportMaskVolumesValidator volumeValidator = (XtremIOExportMaskVolumesValidator) validator
+                                .removeInitiators(ctx);
                         volumeValidator.setIgNames(groupInitiatorsByIG.keySet());
                         volumeValidator.validate();
                         List<Initiator> initiatorsToBeRemoved = new ArrayList<Initiator>();
@@ -938,7 +942,7 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
                                 ExportOperationContextOperation operation = (ExportOperationContextOperation) li.previous();
                                 if (operation != null
                                         && XtremIOExportOperationContext.OPERATION_ADD_INITIATORS_TO_INITIATOR_GROUP
-                                        .equals(operation.getOperation())) {
+                                                .equals(operation.getOperation())) {
                                     initiatorsToBeRemoved = (List<Initiator>) operation.getArgs().get(0);
                                     _log.info("Removing initiators {} as part of rollback", Joiner.on(',').join(initiatorsToBeRemoved));
                                 }
@@ -1057,7 +1061,7 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
                     igGroup.getNumberOfInitiators());
 
         }
-        
+
         // add all the left out initiators to this folder
         for (Initiator remainingInitiator : initiatorsToBeCreated) {
             _log.info("Initiator {} Label {} ", remainingInitiator.getInitiatorPort(),
@@ -1160,7 +1164,7 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
                     volumesToIGMap.put(igName, igVolume.getVolInfo().get(1));
                 }
             }
-            
+
             InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_052);
 
             // create Lun Maps

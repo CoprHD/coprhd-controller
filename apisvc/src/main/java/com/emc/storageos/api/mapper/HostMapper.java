@@ -60,6 +60,10 @@ public class HostMapper {
         if (!NullColumnValueGetter.isNullURI(associatedInitiator)) {
             to.setAssociatedInitiator(toRelatedResource(ResourceTypeEnum.INITIATOR, associatedInitiator));
         }
+
+        if (NullColumnValueGetter.isNotNullValue(from.getClusterName())) {
+            to.setClusterName(from.getClusterName());
+        }
         return to;
     }
 

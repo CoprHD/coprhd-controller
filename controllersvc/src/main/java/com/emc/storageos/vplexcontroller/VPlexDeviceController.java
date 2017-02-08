@@ -3105,7 +3105,12 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
                     List<URI> volumeURIList = new ArrayList<URI>();
 
                     if (!otherExportGroups.isEmpty()) {
-                        volumeURIList = getVolumeListDiff(exportGroup, exportMask, otherExportGroups, null);
+                        if (exportGroup.getVolumes() != null) {
+                            for (String volUri : exportGroup.getVolumes().keySet()) {
+                                volumeURIList.add(URI.create(volUri));
+                            }
+                        }
+                        volumeURIList = getVolumeListDiff(exportGroup, exportMask, otherExportGroups, volumeURIList);
 
                         if (!volumeURIList.isEmpty()) {
                             removeVolumes = true;

@@ -372,7 +372,7 @@ public class VNXeMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                     _log.info(String.format("deleting the exportMask: %s",
                             exportMask.getId().toString()));
                     deleteStep = generateExportMaskDeleteWorkflow(workflow, deleteStep, storage,
-                            exportGroup, exportMask, null, null, null);
+                            exportGroup, exportMask, null, initiatorURIs, null);
 
                 } else {
                     Collection<URI> volumeURIs = (Collections2.transform(exportMask.getVolumes().keySet(),

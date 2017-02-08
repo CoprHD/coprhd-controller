@@ -3035,7 +3035,7 @@ test_26() {
     verify_export ${expname}1 ${HOST1} 3 4
 
     # Test remove volume
-    fail export_group update $PROJECT2/${expname}1 --remVols "${PROJECT}/${VOLNAME}-1"
+    fail export_group update $PROJECT/${expname}1 --remVols "${PROJECT}/${VOLNAME}-1"
     verify_export ${expname}1 ${HOST1} 3 4
 
     # Now remove the initiator from the host
@@ -3057,7 +3057,6 @@ test_26() {
     verify_export ${expname}1 ${HOST1} gone
 
     # Create the same export group again
-    runcmd export_group delete $PROJECT/${expname}1
     runcmd export_group create $PROJECT ${expname}1 $NH --type Host --volspec "${PROJECT}/${VOLNAME}-1,${PROJECT}/${VOLNAME}-2" --hosts "${HOST1}"
 
     # Verify the mask has the new initiator in it
@@ -3126,7 +3125,6 @@ test_26() {
 
     # Clean up
     arrayhelper delete_volume ${SERIAL_NUMBER} ${device_id}
-    runcmd export_group delete $PROJECT/${expname}1
 
     runcmd blocksnapshot delete $snap1
     runcmd blocksnapshot delete $snap2
@@ -3135,7 +3133,7 @@ test_26() {
 
 # DU Prevention Validation Test 27 (Unity only)
 #
-# Summary: Test remove initiator from one export group, other export group shouldn't be impacted
+# Summary: Test export group udate/deletion when host has multiple export groups
 #
 # Basic Use Case for single host, multiple export groups
 # 1. Create 2 volume, 1 host export from the first project
@@ -3174,7 +3172,7 @@ test_26() {
 # 23. Clean up
 #
 test_27() {
-    echot "Test 27: Export Group update/delete when multiple export groups for one host"
+    echot "Test 27: Export Group update/deletion when host has multiple export groups"
 
     # Check to make sure we're running Unity only
     if [ "${SS}" != "unity" ]; then
@@ -3183,6 +3181,10 @@ test_27() {
     fi
 
     expname=${EXPORT_GROUP_NAME}t27
+
+    # Make sure we start clean; no masking view on the array
+    verify_export ${expname}1 ${HOST1} gone
+
     PROJECT2=${PROJECT}2
 
     isCreated=$(project list --tenant $TENANT | grep ${PROJECT2} | wc -l)
@@ -3198,9 +3200,6 @@ test_27() {
     else
         run volume create P2${VOLNAME} ${PROJECT2} ${NH} ${VPOOL_BASE} 1GB --count 2
     fi
-
-    # Make sure we start clean; no masking view on the array
-    verify_export ${expname}1 ${HOST1} gone
 
     # Create the mask with the 2 volume for one project
     runcmd export_group create $PROJECT ${expname}1 $NH --type Host --volspec "${PROJECT}/${VOLNAME}-1,${PROJECT}/${VOLNAME}-2" --hosts "${HOST1}"
@@ -3241,7 +3240,6 @@ test_27() {
     # Verify the mask has the new initiator in it
     verify_export ${expname}1 ${HOST1} 3 2
 
-    runcmd export_group delete $PROJECT2/${expname}2
     runcmd export_group create ${PROJECT2} ${expname}2 $NH --type Host --volspec "${PROJECT2}/P2${VOLNAME}-1,${PROJECT2}/P2${VOLNAME}-2" --hosts "${HOST1}"
     verify_export ${expname}1 ${HOST1} 3 4
 
@@ -3303,25 +3301,241 @@ test_27() {
     verify_export ${expname}1 ${HOST1} 2 4
 
     runcmd export_group update $PROJECT/${expname}1 --remInits ${HOST1}/${H1PI1}
-    verify_export ${expname}1 ${HOST1} 2 4
+    verify_export ${expname}1 ${HOST1} 1 4
 
     runcmd export_group update $PROJECT2/${expname}2 --remInits ${HOST1}/${H1PI1}
     verify_export ${expname}1 ${HOST1} 1 4
 
     runcmd export_group update $PROJECT/${expname}1 --remInits ${HOST1}/${H1PI2}
-    verify_export ${expname}1 ${HOST1} 1 2
+    verify_export ${expname}1 ${HOST1} gone
 
     runcmd export_group update $PROJECT2/${expname}2 --remInits ${HOST1}/${H1PI2}
     verify_export ${expname}1 ${HOST1} gone
 
     # Clean up
     arrayhelper delete_volume ${SERIAL_NUMBER} ${device_id}
-    runcmd export_group delete $PROJECT/${expname}1
-    runcmd export_group delete $PROJECT2/${expname}2
     runcmd volume delete --project $PROJECT2 --wait
 }
 
 # DU Prevention Validation Test 28 (Unity only)
+#
+# Summary: Test export group udate/deletion when host has multiple export groups with no or partial shared initiators
+#
+# Basic Use Case for single host, multiple export groups
+# 1. Create 1 volume, 1 host export with the same host from the first project
+# 2. Remove initiator 2 from the export group
+# 3. Create 1 volume, 1 host export with the same host from the second project
+# 4. Remove shared initiator 1 from export group 2
+#    should fail since two export groups have different sets of initiators
+# 5. Remove non shared initiator 2 from export group 2
+#    should success
+# 6. Remove last shared initiator (initiator 1) from export group 2
+#    should success, both export groups have the same initiator 1
+# 7. Remove initiator 1 from export group 1
+#    should success, initiator 1 has already removed from array
+# 8. Create two export groups with different sets of initiators
+# 9. Remove last volume of export group 2
+#    should success, non shared initiator should be removed
+# 10. Create two export groups with different sets of initiators
+# 11. Remove last volume of export group 1
+#     should success, shared initiator should not be removed
+# 12. Create two export groups again with different sets of initiators
+# 13. Delete export group 2
+#     should success, non shared initiator should be removed
+# 14. Create two export groups again with different sets of initiators
+#     should success, shared initiator should not be removed
+# 15. Create two export groups with disjointed initiator sets
+# 16. Remove initiator from export group 1
+#     should success, LUN get removed, and initiator get deleted from array
+# 17. Remove initiator from export group 2
+#     should success, LUN get removed, initiator and host get deleted from array
+# 17. Remove volume from export group 1
+#     should success, LUN get removed, and initiator get deleted from array
+# 18. Remove volume from export group 2
+#     should success, LUN get removed, initiator and host get deleted from array
+# 19. Delete export group 1
+#     should success, LUN get removed, and initiator get deleted from array
+# 20. Delete from export group 2
+#     should success, LUN get removed, initiator and host get deleted from array
+# 21. Clean up
+#
+test_28() {
+    echot "Test 28: Export Group update/deletion when host has multiple export groups with no or partial shared initiators"
+
+    # Check to make sure we're running Unity only
+    if [ "${SS}" != "unity" ]; then
+        echo "test_28 only runs on Unity. Bypassing for ${SS}."
+        return
+    fi
+
+    expname=${EXPORT_GROUP_NAME}t28
+    PWWN="${H1NI2}:${H1PI2}"
+
+    # Make sure we start clean; no masking view on the array
+    verify_export ${expname}1 ${HOST1} gone
+
+    PROJECT2=${PROJECT}2
+
+    isCreated=$(project list --tenant $TENANT | grep ${PROJECT2} | wc -l)
+    if [ $isCreated -ne 0 ]; then
+        echo "Found project $PROJECT2"
+    else
+        run project create ${PROJECT2} --tenant $TENANT
+    fi
+
+    isCreated=$(volume list $PROJECT2 | grep P2${VOLNAME} | wc -l)
+    if [ $isCreated -ne 0 ]; then
+        echo "Found volume in $PROJECT2"
+    else
+        run volume create P2${VOLNAME} ${PROJECT2} ${NH} ${VPOOL_BASE} 1GB --count 2
+    fi
+
+    #######################################################
+    # Export groups with shared and non shared initiators #
+    #######################################################
+
+    # Create two export groups again with different sets of initiators
+    runcmd export_group create ${PROJECT} ${expname}1 $NH --type Host --volspec "${PROJECT}/${VOLNAME}-1" --hosts "${HOST1}"
+    verify_export ${expname}1 ${HOST1} 2 1
+
+    runcmd export_group update $PROJECT/${expname}1 --remInits ${HOST1}/${H1PI2}
+    verify_export ${expname}1 ${HOST1} 1 1
+
+    echo "Sleep 60 seconds"
+    sleep 60
+
+    runcmd export_group create ${PROJECT2} ${expname}2 $NH --type Host --volspec "${PROJECT2}/P2${VOLNAME}-1" --hosts "${HOST1}"
+    verify_export ${expname}1 ${HOST1} 2 2
+
+    # Remove shared initiator will fail since two export groups have different sets of initiators
+    fail export_group update $PROJECT2/${expname}2 --remInits ${HOST1}/${H1PI1}
+
+    # Remove non shared initiator should success
+    run export_group update $PROJECT2/${expname}2 --remInits ${HOST1}/${H1PI2}
+    verify_export ${expname}1 ${HOST1} 1 2
+
+    # Now each export group have same initiator
+    runcmd export_group update $PROJECT2/${expname}2 --remInits ${HOST1}/${H1PI1}
+    verify_export ${expname}1 ${HOST1} gone
+
+    run export_group update $PROJECT/${expname}1 --remInits ${HOST1}/${H1PI1}
+    verify_export ${expname}1 ${HOST1} gone
+
+    # Create two export groups again with different sets of initiators
+    runcmd export_group create ${PROJECT} ${expname}1 $NH --type Host --volspec "${PROJECT}/${VOLNAME}-1" --hosts "${HOST1}"
+    verify_export ${expname}1 ${HOST1} 2 1
+
+    runcmd export_group update $PROJECT/${expname}1 --remInits ${HOST1}/${H1PI2}
+    verify_export ${expname}1 ${HOST1} 1 1
+
+    echo "Sleep 60 seconds"
+    sleep 60
+
+    runcmd export_group create ${PROJECT2} ${expname}2 $NH --type Host --volspec "${PROJECT2}/P2${VOLNAME}-1" --hosts "${HOST1}"
+    verify_export ${expname}1 ${HOST1} 2 2
+
+    # Remove last volume of export group 2
+    runcmd export_group update $PROJECT2/${expname}2 --remVols "${PROJECT2}/P2${VOLNAME}-1"
+    verify_export ${expname}1 ${HOST1} 1 1
+
+    # Create export group 2 again with different sets of initiators
+    echo "Sleep 60 seconds"
+    sleep 60
+
+    runcmd export_group create ${PROJECT2} ${expname}2 $NH --type Host --volspec "${PROJECT2}/P2${VOLNAME}-1" --hosts "${HOST1}"
+    verify_export ${expname}1 ${HOST1} 2 2
+
+    # Remove last volume of export group 1
+    runcmd export_group update $PROJECT/${expname}1 --remVols "${PROJECT}/${VOLNAME}-1"
+    verify_export ${expname}1 ${HOST1} 2 1
+
+    # Create two export groups again with shared and non shared initiators
+    runcmd export_group delete $PROJECT2/${expname}2
+
+    runcmd export_group create ${PROJECT} ${expname}1 $NH --type Host --volspec "${PROJECT}/${VOLNAME}-1" --hosts "${HOST1}"
+    verify_export ${expname}1 ${HOST1} 2 1
+
+    runcmd export_group update $PROJECT/${expname}1 --remInits ${HOST1}/${H1PI2}
+    verify_export ${expname}1 ${HOST1} 1 1
+
+    echo "Sleep 60 seconds"
+    sleep 60
+
+    runcmd export_group create ${PROJECT2} ${expname}2 $NH --type Host --volspec "${PROJECT2}/P2${VOLNAME}-1" --hosts "${HOST1}"
+    verify_export ${expname}1 ${HOST1} 2 2
+
+    # Delete export group 2
+    runcmd export_group delete $PROJECT2/${expname}2
+    verify_export ${expname}1 ${HOST1} 1 1
+
+    # Create export group 2 again with different sets of initiators
+    runcmd export_group create ${PROJECT2} ${expname}2 $NH --type Host --volspec "${PROJECT2}/P2${VOLNAME}-1" --hosts "${HOST1}"
+    verify_export ${expname}1 ${HOST1} 2 2
+
+    # Delete export group 1
+    runcmd export_group delete $PROJECT/${expname}1
+    verify_export ${expname}1 ${HOST1} 2 1
+
+    runcmd export_group delete $PROJECT2/${expname}2
+    verify_export ${expname}1 ${HOST1} gone
+
+    ################################################
+    # Export groups with disjointed initiator sets #
+    ################################################
+
+    # Create export groups with disjointed initiator sets
+    runcmd export_group create ${PROJECT} ${expname}1 $NH --volspec "${PROJECT}/${VOLNAME}-1" --inits ${HOST1}/${H1PI1}
+    verify_export ${expname}1 ${HOST1} 1 1
+
+    # Add initiator 2 to host, so that export group 2 will use the same host
+    arrayhelper add_initiator_to_mask ${SERIAL_NUMBER} ${PWWN} ${HOST1}
+
+    runcmd export_group create ${PROJECT2} ${expname}2 $NH --volspec "${PROJECT2}/P2${VOLNAME}-1" --inits ${HOST1}/${H1PI2}
+    verify_export ${expname}1 ${HOST1} 2 2
+
+    runcmd export_group update $PROJECT/${expname}1 --remInits ${HOST1}/${H1PI1}
+    verify_export ${expname}1 ${HOST1} 1 1
+
+    runcmd export_group update $PROJECT2/${expname}2 --remInits ${HOST1}/${H1PI2}
+    verify_export ${expname}1 ${HOST1} gone
+
+    # Create export groups with disjointed initiators
+    runcmd export_group create ${PROJECT} ${expname}1 $NH --volspec "${PROJECT}/${VOLNAME}-1" --inits ${HOST1}/${H1PI1}
+    verify_export ${expname}1 ${HOST1} 1 1
+
+    # Add initiator 2 to host, so that export group 2 will use the same host
+    arrayhelper add_initiator_to_mask ${SERIAL_NUMBER} ${PWWN} ${HOST1}
+
+    runcmd export_group create ${PROJECT2} ${expname}2 $NH --volspec "${PROJECT2}/P2${VOLNAME}-1" --inits ${HOST1}/${H1PI2}
+    verify_export ${expname}1 ${HOST1} 2 2
+
+    runcmd export_group update $PROJECT/${expname}1 --remVols "${PROJECT}/${VOLNAME}-1"
+    verify_export ${expname}1 ${HOST1} 1 1
+
+    runcmd export_group update $PROJECT2/${expname}2 --remVols "${PROJECT2}/P2${VOLNAME}-1"
+    verify_export ${expname}1 ${HOST1} gone
+
+    # Create export groups with disjointed initiators
+    runcmd export_group create ${PROJECT} ${expname}1 $NH --volspec "${PROJECT}/${VOLNAME}-1" --inits ${HOST1}/${H1PI1}
+    verify_export ${expname}1 ${HOST1} 1 1
+
+    # Add initiator 2 to host, so that export group 2 will use the same host
+    arrayhelper add_initiator_to_mask ${SERIAL_NUMBER} ${PWWN} ${HOST1}
+
+    runcmd export_group create ${PROJECT2} ${expname}2 $NH --volspec "${PROJECT2}/P2${VOLNAME}-1" --inits ${HOST1}/${H1PI2}
+    verify_export ${expname}1 ${HOST1} 2 2
+
+    runcmd export_group delete $PROJECT/${expname}1
+    verify_export ${expname}1 ${HOST1} 1 1
+
+    runcmd export_group delete $PROJECT2/${expname}2
+    verify_export ${expname}1 ${HOST1} gone
+
+    # Clean up
+    runcmd volume delete --project $PROJECT2 --wait
+}
+
+# DU Prevention Validation Test 29 (Unity only)
 #
 # Summary: Test remove volume, initiator from host that no longer exists on array
 #
@@ -3343,16 +3557,16 @@ test_27() {
 # 11. Delete the export group
 #     should success
 #
-test_28() {
-    echot "Test 28: Export Group update/delete with no matched host"
+test_29() {
+    echot "Test 29: Export Group update/delete with no matched host"
 
     # Check to make sure we're running Unity only
     if [ "${SS}" != "unity" ]; then
-        echo "test_28 only runs on Unity. Bypassing for ${SS}."
+        echo "test_29 only runs on Unity. Bypassing for ${SS}."
         return
     fi
 
-    expname=${EXPORT_GROUP_NAME}t28
+    expname=${EXPORT_GROUP_NAME}t29
 
     # Make sure we start clean; no masking view on the array
     verify_export ${expname}1 ${HOST1} gone
@@ -3372,7 +3586,6 @@ test_28() {
     runcmd export_group update $PROJECT/${expname}1 --remVols "${PROJECT}/${VOLNAME}-2"
 
     # Create the same export group again
-    runcmd export_group delete $PROJECT/${expname}1
     runcmd export_group create $PROJECT ${expname}1 $NH --type Host --volspec "${PROJECT}/${VOLNAME}-1,${PROJECT}/${VOLNAME}-2" --hosts "${HOST1}"
 
     # Verify the mask has the new initiator in it
@@ -3389,7 +3602,6 @@ test_28() {
     runcmd export_group update $PROJECT/${expname}1 --remInits ${HOST1}/${H1PI2}
 
     # Create the same export group again
-    runcmd export_group delete $PROJECT/${expname}1
     runcmd export_group create $PROJECT ${expname}1 $NH --type Host --volspec "${PROJECT}/${VOLNAME}-1,${PROJECT}/${VOLNAME}-2" --hosts "${HOST1}"
 
     # Verify the mask has the new initiator in it
@@ -3511,7 +3723,7 @@ then
 fi
 
 test_start=0
-test_end=28
+test_end=29
 
 # If there's a last parameter, take that
 # as the name of the test to run

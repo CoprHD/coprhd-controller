@@ -81,7 +81,7 @@ public class ExportPortRebalanceCompleter extends ExportTaskCompleter{
             log.info(String.format("Done Export path adjustment - Id: %s, OpId: %s, status: %s",
                     getId().toString(), getOpId(), status.name()));
 
-            recordBlockExportOperation(dbClient, OperationTypeEnum.EXPORT_PATH_ADJUSTMENT, status, eventMessage);
+            recordBlockExportOperation(dbClient, OperationTypeEnum.EXPORT_PATH_ADJUSTMENT, status, eventMessage, exportGroup);
         } catch (Exception e) {
             log.error(String.format("Failed updating status for Export path adjustment - Id: %s, OpId: %s",
                     getId().toString(), getOpId()), e);

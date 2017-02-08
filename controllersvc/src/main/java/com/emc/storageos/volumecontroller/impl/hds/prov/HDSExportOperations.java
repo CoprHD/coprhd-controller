@@ -799,6 +799,8 @@ public class HDSExportOperations implements ExportMaskOperations {
         Iterable<String> portNativeGuidSplitter = Splitter.on(HDSConstants.DOT_OPERATOR).limit(6).split(nativeGuid);
         return Iterables.getLast(portNativeGuidSplitter);
     }
+    
+    
 
     @Override
     public void deleteExportMask(StorageSystem storage, URI exportMaskURI,
@@ -1458,11 +1460,32 @@ public class HDSExportOperations implements ExportMaskOperations {
 								}
 							}
 							if (null == maskForHSD) {
-								isNewExportMask = true;
-								maskForHSD = new ExportMask();
-								maskForHSD.setId(URIUtil.createId(ExportMask.class));
-								maskForHSD.setStorageDevice(storage.getId());
-								maskForHSD.setCreatedBySystem(false);
+								//first get the varray of the storageport of the HSD and then check if
+	                        	//any of the export masks have storage ports, which belong to the varray 
+	                        	//in consideration
+	                        	String  varrayUriOfHsdPort = getVarrayOfStoragePort(storagePortOFHDSURI);
+	                        	if(varrayUriOfHsdPort != null){
+	                        		for (ExportMask exportMaskhavingInitiators : exportMaskWithHostInitiators) {
+	                                    for(String storagePortUriIter : exportMaskhavingInitiators.getStoragePorts()) {
+	                                        //get the storage port entity
+	                                    	String  varrayOfStoragePort = getVarrayOfStoragePort(storagePortUriIter);
+	                                    	if ( (varrayOfStoragePort!=null) && (varrayOfStoragePort.equals(varrayUriOfHsdPort)) ){
+	                                    		maskForHSD = exportMaskhavingInitiators;
+	                                    		break;
+	                                    	}
+	                                    }
+	                                }
+	                        	}
+	                        	else{
+	                        		continue;
+	                        	}
+	                        	if(null == maskForHSD){
+	                        		isNewExportMask = true;
+	                                maskForHSD = new ExportMask();
+	                                maskForHSD.setId(URIUtil.createId(ExportMask.class));
+	                                maskForHSD.setStorageDevice(storage.getId());
+	                                maskForHSD.setCreatedBySystem(false);	
+	                        	}                  
 							}
 							Set<HostStorageDomain> hsdSet = new HashSet<>();
 							hsdSet.add(hsd);
@@ -1487,6 +1510,23 @@ public class HDSExportOperations implements ExportMaskOperations {
         }
         log.info("Found matching masks: {}", matchingMasks);
         return matchingMasks;
+    }
+    
+    
+    /**
+     * Returnsthe varray URI in string format for a given storage port 
+     * 
+     * @param storagePortId
+     * @return
+     */
+    String getVarrayOfStoragePort(String storagePortId){
+    	URI storagePortURI = URI.create(storagePortId);
+    	StoragePort objStoragePort = dbClient.queryObject(StoragePort.class, storagePortURI);
+    	if( (objStoragePort.getConnectedVirtualArrays()!=null) && 
+    			(!objStoragePort.getConnectedVirtualArrays().isEmpty()) ){
+    		return ((objStoragePort.getConnectedVirtualArrays().toArray())[0]).toString();
+    	}
+    	return null;
     }
 
     /**

@@ -808,6 +808,7 @@ public final class FileOrchestrationUtils {
             filePolicy.addAssignedResources(args.getFs().getId());
         }
         if (filePolicy.getApplyAt().equals(FilePolicyApplyLevel.project.name())) {
+            filePolicy.addAssignedResources(args.getProject().getId());
             filePolicy.setFilePolicyVpool(args.getVPool().getId());
         }
         dbClient.updateObject(filePolicy);

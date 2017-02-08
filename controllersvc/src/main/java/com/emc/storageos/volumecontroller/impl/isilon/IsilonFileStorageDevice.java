@@ -3265,7 +3265,8 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             }
         } catch (IsilonException e) {
             _log.error("Assigning file policy failed.", e);
-            result = BiosCommandResult.createErrorResult(e);
+            throw DeviceControllerException.exceptions.assignFilePolicyFailed(filePolicy.getFilePolicyName(),
+                    filePolicy.getApplyAt(), "Internal Exception occurred: "+ e);
         }
         return result;
     }

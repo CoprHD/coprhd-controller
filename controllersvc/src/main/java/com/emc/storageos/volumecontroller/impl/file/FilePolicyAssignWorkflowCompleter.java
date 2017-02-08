@@ -44,7 +44,6 @@ public class FilePolicyAssignWorkflowCompleter extends FilePolicyWorkflowComplet
         FilePolicy filePolicy = dbClient.queryObject(FilePolicy.class, getId());
 
         for (URI resourceURI : assignToResource) {
-            filePolicy.addAssignedResources(resourceURI);
             FilePolicyApplyLevel applyAt = FilePolicyApplyLevel.valueOf(filePolicy.getApplyAt());
             switch (applyAt) {
                 case project:

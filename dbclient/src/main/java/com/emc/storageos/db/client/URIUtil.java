@@ -5,19 +5,24 @@
 
 package com.emc.storageos.db.client;
 
-import com.emc.storageos.db.client.model.DataObject;
-import com.emc.storageos.db.client.model.VirtualDataCenter;
-import com.emc.storageos.db.client.util.KeyspaceUtil;
-import com.emc.storageos.db.common.VdcUtil;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.List;
+import java.util.UUID;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.util.*;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+import com.emc.storageos.db.client.model.DataObject;
+import com.emc.storageos.db.client.model.VirtualDataCenter;
+import com.emc.storageos.db.client.util.KeyspaceUtil;
+import com.emc.storageos.db.common.VdcUtil;
 
 public class URIUtil {
     private static final Logger log = LoggerFactory.getLogger(URIUtil.class);
@@ -339,5 +344,27 @@ public class URIUtil {
         return uris;
     }
 
+    /**
+     * Filter a list of URIs for a specific type
+     * 
+     * @param uris
+     *            list of URIs of any type
+     * @param clazz
+     *            class to filter in
+     * @return a list of URIs of that type, or an empty list
+     */
+    public static List<URI> getURIsofType(Collection<URI> uris, Class clazz) {
+        List<URI> returnIds = new ArrayList<URI>();
+        if (uris == null) {
+            return returnIds;
+        }
+
+        for (URI uri : uris) {
+            if (URIUtil.isType(uri, clazz)) {
+                returnIds.add(uri);
+            }
+        }
+        return returnIds;
+    }
 
 }

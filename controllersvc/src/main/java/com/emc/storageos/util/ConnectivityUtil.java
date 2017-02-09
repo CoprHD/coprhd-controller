@@ -4,6 +4,8 @@
  */
 package com.emc.storageos.util;
 
+import java.io.IOException;
+import java.net.InetAddress;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -48,10 +50,15 @@ import com.google.common.base.Joiner;
 
 public class ConnectivityUtil {
 
+    /**
+     * 
+     */
     // Return values from getVPlexClusterOfPort
     public static final String CLUSTER1 = VPlexApiConstants.CLUSTER_1_ID;
     public static final String CLUSTER2 = VPlexApiConstants.CLUSTER_2_ID;
     public static final String CLUSTER_UNKNOWN = "unknown-cluster";
+    
+    private static final int PING_TIMEOUT = 30 * 1000; // 30 second timeout for ping
 
     public static enum StorageSystemType {
         BLOCK,
@@ -1086,5 +1093,21 @@ public class ConnectivityUtil {
         }
 
         return foundStorageSystemURI;
+    }
+    
+    /**
+     * pings a resource
+     * @param resource host name or ip address of a resource
+     * @return
+     */
+    public static boolean ping(String resource) {
+         try {
+             InetAddress address = InetAddress.getByName(resource);
+             return address.isReachable(PING_TIMEOUT);
+        } catch (IOException e) {
+            _log.error("Error pinging endpoint " + resource);
+            _log.error(e.getMessage(), e);
+        }
+        return false;
     }
 }

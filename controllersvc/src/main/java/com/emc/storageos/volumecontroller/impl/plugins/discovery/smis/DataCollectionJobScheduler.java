@@ -21,8 +21,9 @@ import java.util.UUID;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
-import com.emc.storageos.volumecontroller.impl.externaldevice.ExternalDeviceUtils;
 import org.apache.curator.framework.recipes.leader.LeaderSelector;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -59,6 +60,7 @@ import com.emc.storageos.volumecontroller.impl.ControllerServiceImpl;
 import com.emc.storageos.volumecontroller.impl.ceph.CephUtils;
 import com.emc.storageos.volumecontroller.impl.cinder.CinderUtils;
 import com.emc.storageos.volumecontroller.impl.datadomain.DataDomainUtils;
+import com.emc.storageos.volumecontroller.impl.externaldevice.ExternalDeviceUtils;
 import com.emc.storageos.volumecontroller.impl.hds.prov.utils.HDSUtils;
 import com.emc.storageos.volumecontroller.impl.plugins.metering.smis.processor.PortMetricsProcessor;
 import com.emc.storageos.volumecontroller.impl.scaleio.ScaleIOStorageDevice;
@@ -107,6 +109,8 @@ public class DataCollectionJobScheduler {
     private XtremIOClientFactory xioClientFactory;
     private PortMetricsProcessor _portMetricsProcessor;
     private LeaderSelector computePortMetricsSelector;
+
+    private final Lock _providerConnectionRefreshMutex = new ReentrantLock();
 
     static enum JobIntervals {
 
@@ -298,14 +302,17 @@ public class DataCollectionJobScheduler {
         discoverySchedulingSelector.autoRequeue();
         discoverySchedulingSelector.start();
 
+        // run provider refresh in it's own thread so we don't hold up the scheduling
+        // thread if it takes longer than expected
         _dataCollectionExecutorService.scheduleAtFixedRate(
                 new Runnable() {
                     @Override
                     public void run() {
                         try {
-                            refreshProviderConnections();
+                            (new Thread(new RefreshProviderConnectionsThread())).start();
                         } catch (Exception e) {
-                            _logger.info("Failed to refresh connections: {}", e.getMessage(), e);
+                            _logger.error("Failed to start refresh connections thread: {}", e.getMessage());
+                            _logger.error(e.getMessage(), e);
                         }
                     }
                 }, initialConnectionRefreshDelay, JobIntervals.SCAN_INTERVALS.getInterval(), TimeUnit.SECONDS);
@@ -335,6 +342,32 @@ public class DataCollectionJobScheduler {
         computePortMetricsSelector.start();
 
     }
+    
+    private class RefreshProviderConnectionsThread implements Runnable {
+
+        @Override
+        public void run() {
+            try {
+                // a simple mutex lock is all we need in this case since provider connection refresh happens on all nodes
+                // this lock prevents a single node from starting a new provider connection refresh operation
+                // if a previous operation is still in progress
+                boolean acquired = _providerConnectionRefreshMutex.tryLock();
+                if (acquired) {
+                    try {
+                        _logger.info("Acquired mutex lock (_providerConnectionRefreshMutex) to refresh provider connections");
+                        refreshProviderConnections();
+                    } finally {
+                        _providerConnectionRefreshMutex.unlock();
+                    }
+                } else {
+                    _logger.error("Could not aquire mutex lock (_providerConnectionRefreshMutex) to refresh provider connections");
+                }
+            } catch (Exception e) {
+                _logger.error("Failed to refresh connections: {}", e.getMessage());
+                _logger.error(e.getMessage(), e);
+            }
+        }
+    }
 
     private class DiscoveryScheduler implements Runnable {
         String jobType;
@@ -358,7 +391,7 @@ public class DataCollectionJobScheduler {
             }
         }
     }
-
+    
     /**
      * Core method, responsible for loading StorageProviders from DB and do scanning.
      * 
@@ -366,8 +399,32 @@ public class DataCollectionJobScheduler {
      */
     private void scheduleScannerJobs() throws Exception {
         _logger.info("Started Loading Storage Providers from DB");
-        List<URI> providerUris = _dbClient.queryByType(StorageProvider.class, true);
-        List<StorageProvider> providers = _dbClient.queryObject(StorageProvider.class, providerUris);
+        List<StorageProvider> providers = _dbClient.queryObject(StorageProvider.class, _dbClient.queryByType(StorageProvider.class, true));
+
+        Map<String, List<StorageProvider>> providersByType = new HashMap<String, List<StorageProvider>>();
+        for (StorageProvider provider : providers) {
+            if (providersByType.get(provider.getInterfaceType()) == null) {
+                providersByType.put(provider.getInterfaceType(), new ArrayList<StorageProvider>());
+            }
+            providersByType.get(provider.getInterfaceType()).add(provider);
+        }
+        for (List<StorageProvider> providersSameType : providersByType.values()) {
+            scheduleScannerJobs(providersSameType);
+        }
+    }
+
+    /**
+     * scans a list of providers in one scan job
+     * 
+     * @param providers
+     * @throws Exception
+     */
+    private void scheduleScannerJobs(List<StorageProvider> providers) throws Exception {
+        if (providers == null || providers.isEmpty()) {
+            _logger.info("No scanning needed: provider list is empty");
+            return;
+        }
+        _logger.info("Starting scan of providers of type {}", providers.iterator().next().getInterfaceType());
         DataCollectionScanJob scanJob = new DataCollectionScanJob(DataCollectionJob.JobOrigin.SCHEDULER);
 
         for (StorageProvider provider : providers) {
@@ -377,29 +434,31 @@ public class DataCollectionJobScheduler {
         }
 
         long lastScanTime = 0;
-        boolean inProgress = true;
 
         List<URI> provUris = scanJob.getProviders();
         if (provUris != null && !provUris.isEmpty()) {
             ControllerServiceImpl.Lock lock = ControllerServiceImpl.Lock.getLock(ControllerServiceImpl.SCANNER);
             if (lock.acquire(lock.getRecommendedTimeout())) {
                 try {
-                    _logger.info("Acquired a lock {} to schedule Jobs", lock.toString());
+                    _logger.info("Acquired a lock {} to schedule {} scanner Jobs", providers.iterator().next().getInterfaceType(), lock.toString());
+                    
+                    boolean inProgress = ControllerServiceImpl.isDataCollectionJobInProgress(scanJob) || ControllerServiceImpl.isDataCollectionJobQueued(scanJob);
+
                     // Find the last scan time from the provider whose scan status is not in progress or scheduled
-                    for (StorageProvider provider : providers) {
-                        if (!isInProgress(provider)) {
-                            lastScanTime = provider.getLastScanTime();
-                            inProgress = false;
-                            break;
-                        }
+                    if (!inProgress) {
+                        lastScanTime = providers.iterator().next().getLastScanTime();
                     }
+                    
                     if (isDataCollectionScanJobSchedulingNeeded(lastScanTime, inProgress)) {
                         _logger.info("Added Scan job to the Distributed Queue");
                         ControllerServiceImpl.enqueueDataCollectionJob(scanJob);
                     }
+                } catch (Exception e) {
+                    _logger.error(e.getMessage(), e);
                 } finally {
                     try {
                         lock.release();
+                        _logger.info("Released a lock {} to schedule Jobs", lock.toString());
                     } catch (Exception e) {
                         _logger.error("Failed to release  Lock {} -->{}", lock.toString(), e.getMessage());
                     }
@@ -497,8 +556,8 @@ public class DataCollectionJobScheduler {
                 StorageProvider provider = null;
                 if (URIUtil.isType(systemURI, StorageSystem.class)) {
                     StorageSystem systemObj = _dbClient.queryObject(StorageSystem.class, systemURI);
-                    if (systemObj == null) {
-                        _logger.warn(String.format("StorageSystem %s is no longer in the DB. It could have been deleted or decommissioned",
+                    if (systemObj == null || systemObj.getInactive()) {
+                        _logger.warn(String.format("StorageSystem %s is no longer in the DB or is inactive. It could have been deleted or decommissioned",
                                 systemURI));
                         continue;
                     }
@@ -666,8 +725,7 @@ public class DataCollectionJobScheduler {
                 DataCollectionTaskCompleter completer = job.getCompleter();
                 DiscoveredSystemObject system = (DiscoveredSystemObject)
                         _dbClient.queryObject(completer.getType(), completer.getId());
-                if (isDataCollectionJobSchedulingNeeded(system,
-                        job.getType(), job.isSchedulerJob(), job.getNamespace())) {
+                if (isDataCollectionJobSchedulingNeeded(system, job)) {
                     job.schedule(_dbClient);
                     if (job instanceof DataCollectionArrayAffinityJob) {
                         ((ArrayAffinityDataCollectionTaskCompleter) completer).setLastStatusMessage(_dbClient, "");
@@ -676,8 +734,6 @@ public class DataCollectionJobScheduler {
                         _dbClient.updateObject(system);
                     }
 
-                    completer.setNextRunTime(_dbClient,
-                            System.currentTimeMillis() + JobIntervals.get(job.getType()).getInterval() * 1000);
                     ControllerServiceImpl.enqueueDataCollectionJob(job);
                 }
                 else {
@@ -765,8 +821,11 @@ public class DataCollectionJobScheduler {
      *            requested by a user.
      * @return
      */
-    private <T extends DiscoveredSystemObject> boolean isDataCollectionJobSchedulingNeeded(
-            T system, String type, boolean scheduler, String namespace) {
+    private <T extends DiscoveredSystemObject> boolean isDataCollectionJobSchedulingNeeded(T system, DataCollectionJob job) {
+
+        String type = job.getType();
+        boolean scheduler = job.isSchedulerJob();
+        String namespace = job.getNamespace();
 
         // CTRL-8227 if an unmanaged volume discovery is requested by the user,
         // just run it regardless of last discovery time
@@ -816,8 +875,54 @@ public class DataCollectionJobScheduler {
                 (system instanceof Host || system instanceof Vcenter)) {
             type = ControllerServiceImpl.CS_DISCOVERY;
         }
+        
+        // check directly on the queue to determine if the job is in progress
+        boolean inProgress = ControllerServiceImpl.isDataCollectionJobInProgress(job);
+        boolean queued = ControllerServiceImpl.isDataCollectionJobQueued(job);
 
-        return isJobSchedulingNeeded(system.getId(), type, isInProgress(system, type), isError(system, type), scheduler, lastTime, nextTime);
+        if (!queued && !inProgress) {
+            // the job does not appear on the queue in either active or queued state
+            // check the storage system database status; if it shows that it's scheduled or in progress, something
+            // went wrong with a previous discovery. Set it to error and allow it to be rescheduled.
+            boolean dbInProgressStatus = isInProgress(system, type);
+            if (dbInProgressStatus) {
+                _logger.warn(type + " job for " + system.getLabel() + " is not queued or in progress; correcting the ViPR DB status");
+                updateDataCollectionStatus(system, type, DiscoveredDataObject.DataCollectionJobStatus.ERROR);
+            }
+        } else {
+            // log a message if the discovery job has been runnig for longer than expected
+            long currentTime = System.currentTimeMillis();
+            long maxIdleTime = JobIntervals.getMaxIdleInterval() * 1000;
+            long jobInterval = JobIntervals.get(job.getType()).getInterval();
+            // next time is the time the job was picked up from the queue plus the job interval
+            // so the start time of the currently running job is next time minus job interval
+            // the running time of the currently running job is current time - next time - job interval
+            boolean longRunningDiscovery = inProgress && (currentTime - nextTime - jobInterval >= maxIdleTime);
+            if (longRunningDiscovery) {
+                _logger.warn(type + " job for " + system.getLabel() + 
+                        " has been running for longer than expected; this could indicate a problem with the storage system");
+            }
+         }
+
+        return isJobSchedulingNeeded(system.getId(), type, (queued || inProgress), isError(system, type), scheduler, lastTime, nextTime);
+    }
+
+    /**
+     * update data collection status on storage system
+     * 
+     * @param system
+     * @param type
+     * @param status
+     */
+    private <T extends DiscoveredSystemObject> void updateDataCollectionStatus(T system, String type, DiscoveredDataObject.DataCollectionJobStatus status) {
+        if (ControllerServiceImpl.METERING.equalsIgnoreCase(type)) {
+            system.setMeteringStatus(status.toString());
+        } else if (ControllerServiceImpl.ARRAYAFFINITY_DISCOVERY.equalsIgnoreCase(type)) {
+            ((StorageSystem) system).setArrayAffinityStatus(status.toString());
+        } else {
+            system.setDiscoveryStatus(status.toString());
+        }
+        _dbClient.updateObject(system);
     }
 
     /**
@@ -842,8 +947,8 @@ public class DataCollectionJobScheduler {
      * @param scheduler indicates if the job is initiated automatically by scheduler or if it is
      *            requested by a user.
      */
-    private boolean isJobSchedulingNeeded(URI id, String type, boolean inProgress,
-            boolean isError, boolean scheduler, long lastTime, long nextTime) {
+    private boolean isJobSchedulingNeeded(URI id, String type, boolean inProgress, boolean isError, boolean scheduler, long lastTime, long nextTime) {
+        
         long systemTime = System.currentTimeMillis();
         long tolerance = Long.parseLong(_configInfo.get(TOLERANCE)) * 1000;
         _logger.info("Next Run Time {} , Last Run Time {}", nextTime, lastTime);
@@ -871,20 +976,7 @@ public class DataCollectionJobScheduler {
                         id, type);
                 return false;
             }
-        }
-        // If in progress. We still needs to check that this status is not a
-        // left-over from unsuccessful thread (like the Bourne node crashed in the middle of the job.)
-        // We shouldn't trigger discovery of systems when user trigger the job for first time and the job is already InProgress.
-        else if (!scheduler && (systemTime - lastTime > refreshInterval * 1000) && lastTime > 0) {
-            _logger.info("User triggered {} Job for {} attempted to schedule later than refresh interval allows. Reschedule the job", type,
-                    id);
-        } else if (scheduler
-                && (systemTime - lastTime > refreshInterval * 1000)
-                && nextTime > 0
-                && System.currentTimeMillis() - nextTime >= JobIntervals.getMaxIdleInterval() * 1000) {
-            _logger.info("Scheduled {} Job for {} was idle for too long. Reschedule the job", type, id);
-        }
-        else {
+        } else {
             _logger.info("{} Job for {} is in Progress", type, id);
             return false;
         }
@@ -986,6 +1078,56 @@ public class DataCollectionJobScheduler {
 
     public void setConnectionFactory(CIMConnectionFactory cimConnectionFactory) {
         _connectionFactory = cimConnectionFactory;
+    }
+    
+    /**
+     * refresh all provider connections for an interface type
+     * 
+     * @param interfaceType
+     * @return the list of reachable providers for an interface type
+     */
+    public List<URI> refreshProviderConnections(String interfaceType) {
+        List<URI> activeProviderURIs = new ArrayList<URI>();
+        if (StorageProvider.InterfaceType.smis.name().equalsIgnoreCase(interfaceType)) {
+            activeProviderURIs.addAll(_connectionFactory.refreshConnections(
+                    CustomQueryUtility.getActiveStorageProvidersByInterfaceType(
+                            _dbClient, StorageProvider.InterfaceType.smis.name())));
+        } else if (StorageProvider.InterfaceType.ibmxiv.name().equalsIgnoreCase(interfaceType)) {
+            activeProviderURIs.addAll(_connectionFactory.refreshConnections(
+                    CustomQueryUtility.getActiveStorageProvidersByInterfaceType(
+                            _dbClient, StorageProvider.InterfaceType.ibmxiv.name())));
+        } else if (StorageProvider.InterfaceType.vplex.name().equalsIgnoreCase(interfaceType)) {
+            activeProviderURIs.addAll(VPlexDeviceController.getInstance()
+                    .refreshConnectionStatusForAllVPlexManagementServers());
+        } else if (StorageProvider.InterfaceType.hicommand.name().equalsIgnoreCase(interfaceType)) {
+            activeProviderURIs.addAll(HDSUtils.refreshHDSConnections(
+                    CustomQueryUtility.getActiveStorageProvidersByInterfaceType(
+                            _dbClient, StorageProvider.InterfaceType.hicommand.name()),
+                    _dbClient, hdsApiFactory));
+        } else if (StorageProvider.InterfaceType.cinder.name().equalsIgnoreCase(interfaceType)) {
+            activeProviderURIs.addAll(CinderUtils.refreshCinderConnections(
+                    CustomQueryUtility.getActiveStorageProvidersByInterfaceType(
+                            _dbClient, StorageProvider.InterfaceType.cinder.name()),
+                    _dbClient));
+        } else if (StorageProvider.InterfaceType.ddmc.name().equalsIgnoreCase(interfaceType)) {
+            activeProviderURIs.addAll(DataDomainUtils.refreshDDConnections(
+                    CustomQueryUtility.getActiveStorageProvidersByInterfaceType(
+                            _dbClient, StorageProvider.InterfaceType.ddmc.name()),
+                    _dbClient, ddClientFactory));
+        } else if (StorageProvider.InterfaceType.xtremio.name().equalsIgnoreCase(interfaceType)) {
+            activeProviderURIs.addAll(XtremIOProvUtils.refreshXtremeIOConnections(
+                    CustomQueryUtility.getActiveStorageProvidersByInterfaceType(
+                            _dbClient, StorageProvider.InterfaceType.xtremio.name()),
+                    _dbClient, xioClientFactory));
+        } else if (StorageProvider.InterfaceType.ceph.name().equalsIgnoreCase(interfaceType)) {
+            activeProviderURIs.addAll(CephUtils.refreshCephConnections(
+                    CustomQueryUtility.getActiveStorageProvidersByInterfaceType(
+                            _dbClient, StorageProvider.InterfaceType.ceph.name()),
+                    _dbClient));
+        } else  {
+            activeProviderURIs.addAll(ExternalDeviceUtils.refreshProviderConnections(_dbClient));
+        }
+        return activeProviderURIs;
     }
 
     public List<URI> refreshProviderConnections() {

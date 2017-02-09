@@ -53,6 +53,7 @@ public class RemoteReplicationMapper {
         to.setDisplayName(from.getDisplayName());
         to.setReplicationMode(from.getReplicationMode());
         to.setReplicationState(from.getReplicationState());
+        to.setProject(toRelatedResource(ResourceTypeEnum.PROJECT, from.getProject().getURI()));
 
         return to;
     }

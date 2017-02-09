@@ -12,11 +12,15 @@ import com.emc.storageos.db.client.model.FileShare;
 import com.emc.storageos.db.client.model.Name;
 import com.emc.storageos.db.client.model.NamedRelationIndex;
 import com.emc.storageos.db.client.model.NamedURI;
+import com.emc.storageos.db.client.model.Project;
+import com.emc.storageos.db.client.model.ProjectResource;
 import com.emc.storageos.db.client.model.RelationIndex;
 import com.emc.storageos.db.client.model.Volume;
 
+import javax.xml.bind.annotation.XmlTransient;
+
 @Cf("RemoteReplicationPair")
-public class RemoteReplicationPair extends DataObject {
+public class RemoteReplicationPair extends DataObject implements ProjectResource {
 
     public enum ElementType {
         VOLUME,
@@ -31,6 +35,11 @@ public class RemoteReplicationPair extends DataObject {
     // Element type (block or file element)
     private ElementType elementType;
 
+    // Tenant who owns this pair
+    private NamedURI tenant;
+
+    // Project this pair is associated with
+    private NamedURI project;
 
     // Replication direction for the pair
     private ReplicationDirection replicationDirection = ReplicationDirection.SOURCE_TO_TARGET;
@@ -88,6 +97,31 @@ public class RemoteReplicationPair extends DataObject {
     public void setReplicationSet(URI replicationSet) {
         this.replicationSet = replicationSet;
         setChanged("replicationSet");
+    }
+
+
+    @NamedRelationIndex(cf = "NamedRelation", type = Project.class)
+    @Name("project")
+    public NamedURI getProject() {
+        return project;
+    }
+
+    public void setProject(NamedURI project) {
+        this.project = project;
+        setChanged("project");
+    }
+
+    @Override
+    @XmlTransient
+    @NamedRelationIndex(cf = "NamedRelation")
+    @Name("tenant")
+    public NamedURI getTenant() {
+        return tenant;
+    }
+
+    public void setTenant(NamedURI tenant) {
+        this.tenant = tenant;
+        setChanged("tenant");
     }
 
     @Name("replicationMode")

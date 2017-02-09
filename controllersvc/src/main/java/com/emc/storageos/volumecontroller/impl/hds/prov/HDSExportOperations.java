@@ -1522,9 +1522,17 @@ public class HDSExportOperations implements ExportMaskOperations {
     String getVarrayOfStoragePort(String storagePortId){
     	URI storagePortURI = URI.create(storagePortId);
     	StoragePort objStoragePort = dbClient.queryObject(StoragePort.class, storagePortURI);
-    	if( (objStoragePort.getConnectedVirtualArrays()!=null) && 
+    	if( (objStoragePort.getConnectedVirtualArrays() != null) && 
     			(!objStoragePort.getConnectedVirtualArrays().isEmpty()) ){
     		return ((objStoragePort.getConnectedVirtualArrays().toArray())[0]).toString();
+    	}
+    	if( (objStoragePort.getAssignedVirtualArrays() != null) && 
+    			(!objStoragePort.getAssignedVirtualArrays().isEmpty()) ){
+    		return ((objStoragePort.getAssignedVirtualArrays().toArray())[0]).toString();
+    	}
+    	if( (objStoragePort.getTaggedVirtualArrays() != null) && 
+    			(!objStoragePort.getTaggedVirtualArrays().isEmpty()) ){
+    		return ((objStoragePort.getTaggedVirtualArrays().toArray())[0]).toString();
     	}
     	return null;
     }

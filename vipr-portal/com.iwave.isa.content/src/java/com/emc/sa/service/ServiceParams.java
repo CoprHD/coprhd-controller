@@ -57,6 +57,8 @@ public interface ServiceParams {
     public String FILESYSTEM = "fileSystem";
     public String FILE_COPIES = "fileCopies";
     public String FILE_POLICY = "filePolicy";
+    public String FILESYSTEM_SRC_VARRAY = "Source Virtual Array";
+    public String FILESYSTEM_TRGT_VARRAY = "Target Virtual Array";
     public String NFS_PERMISSIONS = "nfsPermissions";
     public String EXPORT_HOSTS = "exportHosts";
     public String FAILOVER_TARGET = "failoverTarget";

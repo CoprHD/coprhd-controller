@@ -1653,13 +1653,13 @@ public class VolumeIngestionUtil {
         }
 
         if (!portsValid) {
-            _logger.warn("Storage Ports {} in unmanaged mask {} is not available in VArray {}", new Object[] {
+            _logger.warn("None of the Storage Ports {} in unmanaged mask {} are available in source Virtual Array {}", new Object[] {
                     Joiner.on(",").join(diff), mask.getMaskName(), varray });
             if (volume instanceof Volume) {
                 Volume vol = (Volume) volume;
                 URI haVarray = checkVplexHighAvailabilityArray(vol, dbClient);
                 if (null != haVarray) {
-                    _logger.info("found high availabilty virtual array {}, " + "so checking for storage ports over there",
+                    _logger.info("found high availability Virtual Array {}, so checking for Storage Ports over there",
                             haVarray);
                     storagePortUris = dbClient.queryByConstraint(AlternateIdConstraint.Factory
                             .getVirtualArrayStoragePortsConstraint(haVarray.toString()));
@@ -1667,22 +1667,22 @@ public class VolumeIngestionUtil {
                     storagePortUriStr = new HashSet<String>((Collections2.transform(storagePortUris,
                             CommonTransformerFunctions.FCTN_URI_TO_STRING)));
                     diff = Sets.difference(portsInUnManagedMask, storagePortUriStr);
-                    if (!diff.isEmpty()) {
+                    if (!(diff.size() < portsInUnManagedMask.size())) {
                         _logger.warn("Storage Ports {} in unmanaged mask {} are not available in high "
-                                + "availability varray {}, matching fails",
+                                + "availability varray {}, matching fails for this mask",
                                 new Object[] { Joiner.on(",").join(diff), mask.getMaskName(), haVarray });
-                        StringBuffer errorMessage = new StringBuffer("Storage Port(s) ");
+                        StringBuffer errorMessage = new StringBuffer("Unable to find at least one of the Storage Port(s) ");
                         errorMessage.append(Joiner.on(", ").join(getStoragePortNames((Collections2.transform(diff,
                                 CommonTransformerFunctions.FCTN_STRING_TO_URI)), dbClient)));
-                        errorMessage.append(" in unmanaged export mask ").append(mask.getMaskName());
-                        errorMessage.append(" are available neither in source Virtual Array ");
+                        errorMessage.append(" of unmanaged export mask ").append(mask.getMaskName());
+                        errorMessage.append(" in source Virtual Array ");
                         errorMessage.append(getVarrayName(varray, dbClient));
-                        errorMessage.append(" nor in high availability Virtual Array ");
+                        errorMessage.append(" or in high availability Virtual Array ");
                         errorMessage.append(getVarrayName(haVarray, dbClient));
                         errorMessages.add(errorMessage.toString());
                         return false;
                     } else {
-                        _logger.info("Storage Ports {} in unmanaged mask {} found in "
+                        _logger.info("At least one of the Storage Ports {} in unmanaged mask {} is found in "
                                 + "high availability varray {}, so this mask is okay", new Object[] { Joiner.on(",").join(diff),
                                 mask.getMaskName(), haVarray });
                         return true;

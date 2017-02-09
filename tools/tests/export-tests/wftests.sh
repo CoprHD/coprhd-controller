@@ -368,7 +368,7 @@ unity_setup()
     run cos create block ${VPOOL_BASE}	\
 	--description Base true                 \
 	--protocols FC 			                \
-	--numpaths 2				            \
+	--numpaths 1				            \
 	--multiVolumeConsistency \
 	--provisionType 'Thin'			        \
 	--max_snapshots 10                      \
@@ -377,7 +377,7 @@ unity_setup()
     run cos create block ${VPOOL_CHANGE}	\
 	--description Base true                 \
 	--protocols FC 			                \
-	--numpaths 4				            \
+	--numpaths 2				            \
 	--multiVolumeConsistency \
 	--provisionType 'Thin'			        \
 	--max_snapshots 10                      \
@@ -438,7 +438,7 @@ vmax2_setup() {
 	--description Base true                 \
 	--protocols FC 			                \
 	--multiVolumeConsistency \
-	--numpaths 2				            \
+	--numpaths 1				            \
 	--provisionType 'Thin'			        \
 	--max_snapshots 10                      \
 	--expandable true                       \
@@ -448,7 +448,7 @@ vmax2_setup() {
 	--description Base true                 \
 	--protocols FC 			                \
 	--multiVolumeConsistency \
-	--numpaths 4				            \
+	--numpaths 2				            \
 	--provisionType 'Thin'			        \
 	--max_snapshots 10                      \
 	--expandable true                       \

@@ -17,9 +17,20 @@
 package com.emc.sa.api.mapper;
 
 import static com.emc.storageos.api.mapper.DbObjectMapper.mapDataObjectFields;
+
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
 import com.emc.storageos.api.service.impl.response.ResourceTypeMapping;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.uimodels.Ansible;
+import com.emc.storageos.db.client.model.uimodels.CustomServiceScriptPrimitive;
 import com.emc.storageos.db.client.model.uimodels.PrimitiveResource;
 import com.emc.storageos.db.client.model.uimodels.UserPrimitive;
 import com.emc.storageos.model.ResourceTypeEnum;
@@ -31,14 +42,6 @@ import com.emc.storageos.model.orchestration.PrimitiveResourceRestRep.Attribute;
 import com.emc.storageos.model.orchestration.PrimitiveRestRep;
 import com.emc.storageos.primitives.Parameter.ParameterType;
 import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorException;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 
 
 public final class  PrimitiveMapper {
@@ -72,9 +75,13 @@ public final class  PrimitiveMapper {
 
         mapDataObjectFields(from, to);
         mapPrimitiveFields(from, to);
+        
         if(from.isAnsible()) {
             mapAnsible(from.asAnsible(), to);
+        } else if(from.isCustomeServiceScript()) {
+            mapScript(from.asCustomeServiceScript(), to);
         }
+        
         try {
             to.setResource(makeResourceLink(from));
         } catch (final URISyntaxException e) {
@@ -110,9 +117,10 @@ public final class  PrimitiveMapper {
             final PrimitiveRestRep to) {
         final Map<String, PrimitiveRestRep.InputGroup> input = new HashMap<String, PrimitiveRestRep.InputGroup>();
         if (null != from.getExtraVars()) {
-            List<InputParameterRestRep> inputParam = new ArrayList<InputParameterRestRep>();
+            final List<InputParameterRestRep> inputParam = new ArrayList<InputParameterRestRep>();
             for (final String extraVar : from.getExtraVars()) {
-                InputParameterRestRep param = new InputParameterRestRep();
+                final InputParameterRestRep param = new InputParameterRestRep();
+                param.setName(extraVar);
                 param.setType(ParameterType.STRING.name());
                 inputParam.add(param);
             }
@@ -129,6 +137,24 @@ public final class  PrimitiveMapper {
         }
         to.setAttributes(attributes);
     }
+    
+    private static void mapScript(final CustomServiceScriptPrimitive from, final PrimitiveRestRep to) {
+        final Map<String, PrimitiveRestRep.InputGroup> input = new HashMap<String, PrimitiveRestRep.InputGroup>();
+        if (null != from.getInput()) {
+            final List<InputParameterRestRep> inputParam = new ArrayList<InputParameterRestRep>();
+            for (final String arg : from.getInput()) {
+                final InputParameterRestRep param = new InputParameterRestRep();
+                param.setName(arg);
+                param.setType(ParameterType.STRING.name());
+                inputParam.add(param);
+            }
+            PrimitiveRestRep.InputGroup inputGroup = new PrimitiveRestRep.InputGroup(){{
+                setInputGroup(inputParam);
+            }};
+            input.put("input_params",inputGroup);
+        }
+        to.setInputGroups(input);
+    }
 
     public static void mapPrimitiveFields(final UserPrimitive from,
             PrimitiveRestRep to) {
@@ -143,6 +169,7 @@ public final class  PrimitiveMapper {
         if (null != from) {
             for (final String parameter : from) {
                 final OutputParameterRestRep paramRestRep = new OutputParameterRestRep();
+                paramRestRep.setName(parameter);
                 paramRestRep.setType(ParameterType.STRING.name());
                 to.add(paramRestRep);
             }

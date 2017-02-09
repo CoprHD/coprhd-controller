@@ -21,10 +21,16 @@ import com.emc.storageos.model.orchestration.OrchestrationWorkflowRestRep;
 import com.emc.storageos.model.orchestration.OrchestrationWorkflowCreateParam;
 import com.emc.storageos.model.orchestration.OrchestrationWorkflowUpdateParam;
 import com.emc.storageos.model.orchestration.PrimitiveList;
+import com.emc.storageos.model.orchestration.PrimitiveCreateParam;
+import com.emc.storageos.model.orchestration.PrimitiveRestRep;
+import com.emc.storageos.model.orchestration.PrimitiveResourceRestRep;
 import com.emc.vipr.client.catalog.impl.PathConstants;
 import com.emc.vipr.client.impl.RestClient;
 
 import javax.ws.rs.core.UriBuilder;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
 import java.net.URI;
 
 /**
@@ -48,12 +54,29 @@ public class OrchestrationClient {
     }
 
     public PrimitiveList getPrimitives() {
-        UriBuilder builder = client.uriBuilder(PathConstants.OE_PRIMITIVES);
+        final UriBuilder builder = client.uriBuilder(PathConstants.OE_PRIMITIVES);
         return client.getURI(PrimitiveList.class, builder.build());
     }
 
+    public PrimitiveList getPrimitivesByType(final String type) {
+        final UriBuilder builder = client.uriBuilder(PathConstants.OE_PRIMITIVES);
+        builder.queryParam("type", type);
+        return client.getURI(PrimitiveList.class, builder.build());
+    }
+
+    public PrimitiveResourceRestRep createPrimitiveResource(final String resourceType, final File resource, final String resourceName) throws IOException{
+        final UriBuilder builder = client.uriBuilder(PathConstants.OE_PRIMITIVE_RESOURCE);
+        builder.queryParam("name", resourceName);
+        return client.postURIOctet(PrimitiveResourceRestRep.class, new FileInputStream(resource), builder.build(resourceType));
+    }
+
+    public PrimitiveRestRep createPrimitive(final PrimitiveCreateParam param) {
+        final UriBuilder builder = client.uriBuilder(PathConstants.OE_PRIMITIVES);
+        return client.postURI(PrimitiveRestRep.class, param, builder.build());
+    }
+
     public OrchestrationWorkflowList getWorkflows() {
-        UriBuilder builder = client.uriBuilder(PathConstants.OE_WORKFLOWS);
+        final UriBuilder builder = client.uriBuilder(PathConstants.OE_WORKFLOWS);
         return client.getURI(OrchestrationWorkflowList.class, builder.build());
     }
 

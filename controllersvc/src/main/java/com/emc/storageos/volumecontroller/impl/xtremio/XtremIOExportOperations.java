@@ -1347,11 +1347,13 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
                     ExportMask relatedExportMask = dbClient.queryObject(ExportMask.class, relatedExportMaskURI);                    
                     if (relatedExportMask != null 
                             && exportMask.getStorageDevice().equals(relatedExportMask.getStorageDevice())) {
-                        // Get the user added volumes from the related export mask and transform them into URIs
-                        Collection<URI> vols = Collections2.transform(relatedExportMask.getUserAddedVolumes().values(),
-                                CommonTransformerFunctions.FCTN_STRING_TO_URI);                
-                        // Keep track of the user added volumes
-                        volumes.addAll(vols);
+                        if (relatedExportMask.getUserAddedVolumes() != null) {
+                            // Get the user added volumes from the related export mask and transform them into URIs
+                            Collection<URI> vols = Collections2.transform(relatedExportMask.getUserAddedVolumes().values(),
+                                    CommonTransformerFunctions.FCTN_STRING_TO_URI);                
+                            // Keep track of the user added volumes
+                            volumes.addAll(vols);
+                        }
                     }
                 }
             }

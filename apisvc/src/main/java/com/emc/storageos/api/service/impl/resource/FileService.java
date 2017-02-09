@@ -3504,7 +3504,7 @@ public class FileService extends TaskResourceService {
             _log.info("Provided file policy {} is already is applied to the file sytem {}", filePolicy.getId(),
                     fs.getId());
             Operation op = _dbClient.createTaskOpStatus(FileShare.class, fs.getId(), task,
-                    ResourceOperationTypeEnum.ASSIGN_FILE_POLICY);
+                    ResourceOperationTypeEnum.ASSIGN_FILE_POLICY_TO_FILE_SYSTEM);
             op.setDescription("assign file policy to file system");
             _dbClient.ready(FileShare.class, fs.getId(), task);
             return toTask(fs, task, op);

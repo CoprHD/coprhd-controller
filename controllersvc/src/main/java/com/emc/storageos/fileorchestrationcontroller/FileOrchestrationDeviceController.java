@@ -1994,15 +1994,15 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
                 }
             }
 
-            // If policy to be applied is of type replication and source file system doesn't have any target,
+            // 1. If policy to be applied is of type replication and source file system doesn't have any target,
             // then we have to create mirror file system first..
 
             if (filePolicy.getFilePolicyType().equals(FilePolicyType.file_replication.name())
-                    && !sourceFS.getMirrorfsTargets().isEmpty()) {
+                    && sourceFS.getMirrorStatus() == null) {
                 waitFor = _fileDeviceController.addStepsForCreateFileSystems(workflow, waitFor, fileDescriptors, taskId);
             }
 
-            // Second apply the file protection policy
+            // 2. Apply the file protection policy
             String stepDescription = String.format("applying file policy : %s  for file system : %s",
                     filePolicy.getId(), sourceFS.getId());
             String applyFilePolicyStep = workflow.createStepId();

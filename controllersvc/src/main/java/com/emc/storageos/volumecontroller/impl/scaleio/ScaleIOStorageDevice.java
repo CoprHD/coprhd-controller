@@ -45,6 +45,7 @@ import com.emc.storageos.scaleio.api.restapi.ScaleIORestClient;
 import com.emc.storageos.scaleio.api.restapi.response.ScaleIOVolume;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
+import com.emc.storageos.util.ConnectivityUtil;
 import com.emc.storageos.volumecontroller.CloneOperations;
 import com.emc.storageos.volumecontroller.DefaultBlockStorageDevice;
 import com.emc.storageos.volumecontroller.SnapshotOperations;
@@ -126,11 +127,13 @@ public class ScaleIOStorageDevice extends DefaultBlockStorageDevice {
                 String nextIp = null;
                 do {
                     try {
-                        ScaleIORestClient handle = scaleIOHandleFactory.using(dbClient).getClientHandle(provider);
-                        handle.getSystem(); // Ignore the result on success, otherwise catch the exception
-                        log.info("Successfully connected to ScaleIO MDM {}: {}", provider.getIPAddress(), provider.getId());
-                        success = true;
-                        break;
+                        if (ConnectivityUtil.ping(provider.getIPAddress())) {
+                            ScaleIORestClient handle = scaleIOHandleFactory.using(dbClient).getClientHandle(provider);
+                            handle.getSystem(); // Ignore the result on success, otherwise catch the exception
+                            log.info("Successfully connected to ScaleIO MDM {}: {}", provider.getIPAddress(), provider.getId());
+                            success = true;
+                            break;
+                        }
                     } catch (Exception e) {
                         log.error(String.format("Failed to connect to ScaleIO MDM %s: %s",
                                 provider.getIPAddress(), provider.getId()), e);

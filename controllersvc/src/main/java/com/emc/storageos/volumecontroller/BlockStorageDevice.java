@@ -1124,4 +1124,13 @@ public interface BlockStorageDevice {
      * @throws Exception
      */
     public void doCreateStoragePortGroup(StorageSystem storage, URI portGroupURI, TaskCompleter completer) throws Exception;
+    
+    /**
+     * Delete storage port group
+     * 
+     * @param storage - Storage system
+     * @param portGroupURI - Storage port group URI
+     * @throws Exception
+     */
+    public void doDeleteStoragePortGroup(StorageSystem storage, URI portGroupURI, TaskCompleter completer) throws Exception;
 }

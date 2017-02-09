@@ -3314,4 +3314,19 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
             completer.error(_dbClient, DeviceControllerException.errors.jobFailed(e));
         }
     }
+    
+    @Override
+    public void doDeleteStoragePortGroup(StorageSystem storage, URI portGroupURI, TaskCompleter completer) throws Exception {
+        try {
+            StoragePortGroup portGroup = _dbClient.queryObject(StoragePortGroup.class, portGroupURI);
+            _log.info(String.format("Deleting port group %s starts", portGroup.getNativeGuid()));
+            _helper.deleteMaskingGroup(storage, portGroup.getLabel(), 
+                    SmisConstants.MASKING_GROUP_TYPE.SE_TargetMaskingGroup);
+            completer.ready(_dbClient);
+            _log.info(String.format("Deleting port group %s ends", portGroup.getNativeGuid()));
+        } catch (Exception e) {
+            _log.error("Failed deleting storage port group:", e);
+            completer.error(_dbClient, DeviceControllerException.errors.jobFailed(e));
+        }
+    }
 }

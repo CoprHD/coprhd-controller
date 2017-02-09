@@ -581,5 +581,15 @@ public interface BlockController extends BlockStorageManagementController {
      * @throws Exception
      */
     public void createStoragePortGroup(URI systemURI, URI portGroupURI, String opId);
+    
+    /**
+     * Delete storage port group in the array
+     * 
+     * @param systemURI - Storage system URI
+     * @param portGroupURI - Storage port group URI
+     * @param opId - The task identifier
+     * @throws Exception
+     */
+    public void deleteStoragePortGroup(URI systemURI, URI portGroupURI, String opId);
 
 }

@@ -50,6 +50,7 @@ import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.BlockSnapshotSession;
 import com.emc.storageos.db.client.model.Cluster;
 import com.emc.storageos.db.client.model.DataObject;
+import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.DataObject.Flag;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.RegistrationStatus;
 import com.emc.storageos.db.client.model.ExportGroup;
@@ -1638,11 +1639,13 @@ public class VolumeIngestionUtil {
         // With XIO we do not have the ability to remove specific (and possibly unavailable) storage ports
         // from the LUN maps. So a better check specifically for XIO is to ensure that we at least have one
         // storage port in the varray.
+        // also relaxed for vplex because some ports could be in different varrays
         StorageSystem storageSystem = dbClient.queryObject(StorageSystem.class, mask.getStorageSystemUri());
         boolean portsValid = true;
         if (storageSystem != null) {
             if (storageSystem.getSystemType().equalsIgnoreCase(SystemType.xtremio.toString()) ||
-                    storageSystem.getSystemType().equalsIgnoreCase(SystemType.unity.toString())) {
+                    storageSystem.getSystemType().equalsIgnoreCase(SystemType.unity.toString()) ||
+                        DiscoveredDataObject.Type.vplex.name().equals(storageSystem.getSystemType())) {
                 portsValid = diff.size() < portsInUnManagedMask.size();
             } else {
                 portsValid = diff.isEmpty();

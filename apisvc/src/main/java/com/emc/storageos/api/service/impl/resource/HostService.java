@@ -661,8 +661,15 @@ public class HostService extends TaskResourceService {
                 bootVolume =  _dbClient.queryObject(Volume.class, host.getBootVolumeId());
             }
             if (computeElement != null || bootVolume != null || serviceProfile != null) {
-                _log.error("No OS host: " + host.getLabel() +" with no initiators, but with compute element or service profile or boot volume association found. Cannot deactivate.");
-                throw APIException.badRequests.resourceCannotBeDeleted("No OS host with no initiators, but with compute element or service profile or boot volume association found. Please contact DELL EMC support to resolve inconsistency detected. Host ");
+                _log.error("No OS host: " + host.getLabel() +" with no initiators, but with compute element association found. Cannot deactivate.");
+                throw APIException.badRequests.resourceCannotBeDeleted("No OS host with no initiators, but with compute element association found. Please contact DELL EMC support to resolve inconsistency detected. Host ");
+            } else if (bootVolume != null ) {
+                _log.error("No OS host: " + host.getLabel() +" with no initiators, but with boot volume association found. Cannot deactivate.");
+                throw APIException.badRequests.resourceCannotBeDeleted("No OS host with no initiators, but with boot volume association found. Please contact DELL EMC support to resolve inconsistency detected. Host ");
+            }else if ( serviceProfile != null) {
+                 _log.error("No OS host: " + host.getLabel() +" with no initiators, but with service profile association found. Cannot deactivate.");
+                throw APIException.badRequests.resourceCannotBeDeleted("No OS host with no initiators, but with service profile association found. Please contact DELL EMC support to resolve inconsistency detected. Host ");
+
             } else {
                 _log.info("No OS host: " + host.getLabel() +" with no initiators and without valid computeElement, service profile or boot volume associations found. Will proceed with deactivation.");
             }

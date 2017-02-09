@@ -56,6 +56,7 @@ import com.emc.cloud.platform.ucs.out.model.VnicSanConnTempl;
 import com.emc.cloud.ucsm.service.UCSMService;
 import com.emc.storageos.computesystemcontroller.exceptions.ComputeSystemControllerException;
 import com.emc.storageos.computesystemcontroller.impl.HostToComputeElementMatcher;
+import com.emc.storageos.computesystemcontroller.impl.HostToServiceProfileMatcher;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
@@ -1764,25 +1765,19 @@ public class UcsDiscoveryWorker {
         computeVnic.setVlans(vlans);
     }
     private void removeServiceProfilesFromHosts(Collection<UCSServiceProfile> serviceProfiles) {
-        List<URI> ids = _dbClient.queryByType(Host.class, true);
-        Iterator<Host> iter = _dbClient.queryIterativeObjects(Host.class, ids);
-        List<UCSServiceProfile> serviceProfilesToUpdate = new ArrayList<UCSServiceProfile>();
-
-        while (iter.hasNext()) {
-            Host host = iter.next();
-            for (UCSServiceProfile serviceProfile : serviceProfiles) {
-                if (host.getServiceProfile() != null
-                        && host.getServiceProfile().equals(serviceProfile.getId())) {
-                    _log.info("Removing UCSServiceProfile {} association from Host {} ", serviceProfile.getDn(), host.getLabel());
-                    host.setServiceProfile(NullColumnValueGetter.getNullURI());
+         List<UCSServiceProfile> serviceProfilesToUpdate = new ArrayList<UCSServiceProfile>();
+         for (UCSServiceProfile serviceProfile : serviceProfiles) {
+             if (!NullColumnValueGetter.isNullURI(serviceProfile.getHost())){
+                Host host = _dbClient.queryObject(Host.class,serviceProfile.getHost());
+                if (host!=null){
+                     _log.info("Removing UCSServiceProfile {} association from Host {} ", serviceProfile.getDn(), host.getLabel());
+                     host.setServiceProfile(NullColumnValueGetter.getNullURI());
                     _dbClient.persistObject(host);
-                    _log.info("Removing Host association from service profile {}",  serviceProfile.getDn());
-                    serviceProfile.setHost(NullColumnValueGetter.getNullURI());
-                    serviceProfilesToUpdate.add(serviceProfile);
-                    break;
                 }
-            }
-
+                _log.info("Removing Host association from service profile {}",  serviceProfile.getDn());
+                serviceProfile.setHost(NullColumnValueGetter.getNullURI());
+                serviceProfilesToUpdate.add(serviceProfile);
+             }
         }
         if (!serviceProfilesToUpdate.isEmpty()){
             persistDataObjects(new ArrayList<DataObject>(serviceProfilesToUpdate));
@@ -2255,98 +2250,7 @@ public class UcsDiscoveryWorker {
     }
  
     private void matchServiceProfilesToHosts(ComputeSystem cs) {
-        URIQueryResultList uris = new URIQueryResultList();
-        _dbClient.queryByConstraint(ContainmentConstraint.Factory
-                .getComputeSystemServiceProfilesConstraint(cs.getId()), uris);
-        List<UCSServiceProfile> allServiceProfiles = _dbClient.queryObject(UCSServiceProfile.class, uris, true);
-        List<UCSServiceProfile> serviceProfilesWithoutHost = new ArrayList<UCSServiceProfile>();
-        for (UCSServiceProfile serviceProfile : allServiceProfiles) {
-            if (NullColumnValueGetter.isNullURI(serviceProfile.getHost())){
-                 if (NullColumnValueGetter.isNullValue(serviceProfile.getUuid()) || serviceProfile.getInactive()) {
-                    _log.debug("Skipping: service profile "+ serviceProfile.getDn() +" is inactive or has no UUID");
-                    continue;  // skip if no UUID or not active
-                 }
-
-                serviceProfilesWithoutHost.add(serviceProfile);
-            }
-        }
-        if (serviceProfilesWithoutHost.isEmpty()){
-            _log.info("No service profiles without host association. Nothing to do");
-            return;
-        }
-        
-        Collection<URI> allHostUris = _dbClient.queryByType(Host.class, true);
-        Collection<Host> hosts = _dbClient.queryObjectFields(Host.class,
-                Arrays.asList("uuid", "computeElement", "registrationStatus", "inactive"), getFullyImplementedCollection(allHostUris));
-        
-        List<Host> hostsWithoutServiceProfile = new ArrayList<Host>();
-        for (Host host : hosts){
-           if (NullColumnValueGetter.isNullURI(host.getServiceProfile())){
-                if ((host.getUuid() == null) || host.getInactive() ||
-                    RegistrationStatus.UNREGISTERED.name().equals(host.getRegistrationStatus())) {
-                _log.debug("Skipping: Host "+ host.getLabel()+ " is inactive, unregistered or has no UUID");
-                continue;  // skip if no UUID or not active, do not update
-            }
-
-               hostsWithoutServiceProfile.add(host);
-           }
-        }
-        if (hostsWithoutServiceProfile.isEmpty()){
-           _log.info("No hosts without service profile association. Nothing to do.");
-           return;
-        }
-
-        matchServiceProfilesToHosts(cs, serviceProfilesWithoutHost, hostsWithoutServiceProfile);
-        
-    }
-    private void matchServiceProfilesToHosts(ComputeSystem cs, List<UCSServiceProfile> serviceProfiles, List<Host> hosts){
-        List<Host> hostsToUpdate = new ArrayList<Host>();
-        List<UCSServiceProfile> serviceProfilesToUpdate = new ArrayList<UCSServiceProfile>();
-
-        for (UCSServiceProfile serviceProfile: serviceProfiles) {
-            _log.info("matching serviceProfile :" + serviceProfile.getDn());
-            List<Host> matchedHosts = new ArrayList<Host>();
-            for (Host host : hosts) {
-                _log.info("checking host " + host.getId());
-                if (!host.getUuid().equals(serviceProfile.getUuid())){
-                   _log.debug("UUIDs do not match");
-                   continue;
-                }
-                _log.info("UUID matched");
-                matchedHosts.add(host);
-            }
-            if (matchedHosts.isEmpty()){
-               _log.info("No match found");
-               continue;
-            }
-            if (matchedHosts.size() > 1 ){
-               StringBuffer hostNames = new StringBuffer();
-               for (Host host: matchedHosts){
-                  hostNames.append(host.getLabel()+ " ");
-               }
-               _log.error("Found multiple hosts "+ hostNames.toString()+ " that match service profile : " + serviceProfile.getLabel());
-               throw ComputeSystemControllerException.exceptions.serviceProfileMatchedMultipleHosts(serviceProfile.getDn(), serviceProfile.getUuid(), hostNames.toString());
-            }
-            Host matchedHost = matchedHosts.get(0); 
-            _log.info("Setting association host: "+ matchedHost.getLabel()+ " and serviceProfile: " + serviceProfile.getDn() );
-            matchedHost.setServiceProfile(serviceProfile.getId());
-            serviceProfile.setHost(matchedHost.getId());
-            hostsToUpdate.add(matchedHost);
-            serviceProfilesToUpdate.add(serviceProfile);
-        }
-        persistDataObjects(new ArrayList<DataObject>(serviceProfilesToUpdate));
-        persistDataObjects(new ArrayList<DataObject>(hostsToUpdate));
-    }
-    
-    private static <T> Collection<T> getFullyImplementedCollection(Collection<T> collectionIn) {
-        // Convert objects (like URIQueryResultList) that only implement iterator to
-        // fully implemented Collection
-        Collection<T> collectionOut = new ArrayList<>();
-        Iterator<T> iter = collectionIn.iterator();
-        while (iter.hasNext()) {
-            collectionOut.add(iter.next());
-        }
-        return collectionOut;
+        HostToServiceProfileMatcher.matchServiceProfilesToHosts(cs, _dbClient);
     }
 
     /**

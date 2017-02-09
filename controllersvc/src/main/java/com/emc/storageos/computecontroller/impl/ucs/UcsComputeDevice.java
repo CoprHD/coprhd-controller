@@ -810,7 +810,9 @@ public class UcsComputeDevice implements ComputeDevice {
             if (lsServer == null) {
                 throw new RuntimeException("UCS call to create service profile from template failed, null LsServer was returned.");
             }
-            workflowService.storeStepData(stepId, lsServer.getDn());
+            UCSServiceProfile serviceProfile = persistServiceProfileForHost(lsServer,cs, host.getId());
+            validateNewServiceProfile(cs, serviceProfile, host);
+
             lsServer = pullAndPollManagedObject(getUcsmURL(cs).toString(), cs.getUsername(), cs.getPassword(),
                     lsServer.getDn(), LsServer.class);
 
@@ -819,9 +821,6 @@ public class UcsComputeDevice implements ComputeDevice {
             if (lsServer == null) {
                 throw new RuntimeException("UCS call to poll for ManagedObject failed, null LsServer was returned.");
             }
-
-            UCSServiceProfile serviceProfile = persistServiceProfileForHost(lsServer,cs, host.getId());
-            validateNewServiceProfile(cs, serviceProfile, host);
 
         } catch (Exception e) {
             LOGGER.error("Unable to createLsServer...", e);

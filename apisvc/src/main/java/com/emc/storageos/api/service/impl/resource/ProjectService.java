@@ -85,10 +85,8 @@ import com.emc.storageos.volumecontroller.impl.monitoring.cim.enums.RecordType;
  * Project resource implementation
  */
 @Path("/projects")
-@DefaultPermissions(readRoles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN },
-        readAcls = { ACL.OWN, ACL.ALL },
-        writeRoles = { Role.TENANT_ADMIN },
-        writeAcls = { ACL.OWN, ACL.ALL })
+@DefaultPermissions(readRoles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, readAcls = { ACL.OWN, ACL.ALL }, writeRoles = {
+        Role.TENANT_ADMIN }, writeAcls = { ACL.OWN, ACL.ALL })
 public class ProjectService extends TaggedResource {
     private static final Logger _log = LoggerFactory.getLogger(ProjectService.class);
     private static String EXPECTED_GEO_VERSION = "2.4";
@@ -185,8 +183,7 @@ public class ProjectService extends TaggedResource {
 
             if (isRootInGeo) {
                 throw APIException.forbidden.specifiedOwnerIsNotValidForProjectTenant(
-                        "in GEO scenario, root can't be assigned as project owner"
-                        );
+                        "in GEO scenario, root can't be assigned as project owner");
             }
 
             // set owner acl
@@ -480,26 +477,25 @@ public class ProjectService extends TaggedResource {
     @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.OWN })
     public Response deactivateProject(@PathParam("id") URI id) {
         Project project = getProjectById(id, true);
-        
-        //check if any filepolicies are assigned to project
-        if(!project.getFilePolicies().isEmpty()){
+
+        // check if any filepolicies are assigned to project
+        if (project.getFilePolicies() != null && !project.getFilePolicies().isEmpty()) {
             throw APIException.badRequests.cannotDeleteProjectAssignedFilePolicy(project.getLabel());
         }
-        
-        //for block service cinder if there is QuotaOfCinder entries 
-        //we need to remove before the project removal
+
+        // for block service cinder if there is QuotaOfCinder entries
+        // we need to remove before the project removal
         List<URI> quotas = _dbClient.queryByType(QuotaOfCinder.class, true);
         for (URI quota : quotas) {
             QuotaOfCinder quotaObj = _dbClient.queryObject(QuotaOfCinder.class, quota);
 
             if ((quotaObj.getProject() != null) &&
                     (quotaObj.getProject().toString().equalsIgnoreCase(project.getId().toString()))) {
-            	_log.debug("Deleting related Quota object {}.",quotaObj.getId());
-            	_dbClient.removeObject(quotaObj);            	
+                _log.debug("Deleting related Quota object {}.", quotaObj.getId());
+                _dbClient.removeObject(quotaObj);
             }
         }
-        
-        
+
         ArgValidator.checkReference(Project.class, id, checkForDelete(project));
 
         // Check the project has been assigned with vNAS servers!!!
@@ -769,8 +765,7 @@ public class ProjectService extends TaggedResource {
                 RecordType.Event.name(),
                 EVENT_SERVICE_SOURCE,
                 "",
-                ""
-                );
+                "");
         try {
             _evtMgr.recordEvents(event);
         } catch (Exception ex) {
@@ -809,8 +804,7 @@ public class ProjectService extends TaggedResource {
     @Override
     public ProjectBulkRep queryBulkResourceReps(List<URI> ids) {
 
-        Iterator<Project> _dbIterator =
-                _dbClient.queryIterativeObjects(getResourceClass(), ids);
+        Iterator<Project> _dbIterator = _dbClient.queryIterativeObjects(getResourceClass(), ids);
         return new ProjectBulkRep(BulkList.wrapping(_dbIterator, MapProject.getInstance()));
     }
 
@@ -818,8 +812,7 @@ public class ProjectService extends TaggedResource {
     protected ProjectBulkRep queryFilteredBulkResourceReps(
             List<URI> ids) {
 
-        Iterator<Project> _dbIterator =
-                _dbClient.queryIterativeObjects(getResourceClass(), ids);
+        Iterator<Project> _dbIterator = _dbClient.queryIterativeObjects(getResourceClass(), ids);
         BulkList.ResourceFilter filter = new BulkList.ProjectFilter(getUserFromContext(), _permissionsHelper);
         return new ProjectBulkRep(BulkList.wrapping(_dbIterator, MapProject.getInstance(), filter));
     }
@@ -868,8 +861,7 @@ public class ProjectService extends TaggedResource {
      */
     @Override
     public ResRepFilter<? extends RelatedResourceRep> getPermissionFilter(StorageOSUser user,
-            PermissionsHelper permissionsHelper)
-    {
+            PermissionsHelper permissionsHelper) {
         return new ProjectResRepFilter(user, permissionsHelper);
     }
 

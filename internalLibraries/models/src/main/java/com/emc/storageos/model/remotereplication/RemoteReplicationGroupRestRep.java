@@ -22,9 +22,6 @@ public class RemoteReplicationGroupRestRep extends DataObjectRestRep {
     // Device label of this replication group.
     private String deviceLabel;
 
-    // Project to which group belongs
-    private RelatedResourceRep project;
-
     // Type of storage systems in this replication group.
     private String storageSystemType;
 
@@ -80,15 +77,6 @@ public class RemoteReplicationGroupRestRep extends DataObjectRestRep {
 
     public void setDisplayName(String displayName) {
         this.displayName = displayName;
-    }
-
-    @XmlElement(name = "project")
-    public RelatedResourceRep getProject() {
-        return project;
-    }
-
-    public void setProject(RelatedResourceRep project) {
-        this.project = project;
     }
 
     @XmlElement(name = "replication_mode")

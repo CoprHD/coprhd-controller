@@ -16,9 +16,6 @@ public class RemoteReplicationGroupCreate {
     // Display name of this replication group (when provisioned by the system).
     private String displayName;
 
-    // Project for this group
-    private URI project;
-
     // Source storage system of this group
     private URI sourceSystem;
 
@@ -98,12 +95,4 @@ public class RemoteReplicationGroupCreate {
         this.isGroupConsistencyEnforced = isGroupConsistencyEnforced;
     }
 
-    @XmlElement(name = "project")
-    public URI getProject() {
-        return project;
-    }
-
-    public void setProject(URI project) {
-        this.project = project;
-    }
 }

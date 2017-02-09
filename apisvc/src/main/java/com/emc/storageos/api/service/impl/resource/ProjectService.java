@@ -482,7 +482,7 @@ public class ProjectService extends TaggedResource {
         Project project = getProjectById(id, true);
         
         //check if any filepolicies are assigned to project
-        if(!project.getFilePolicies().isEmpty()){
+        if(project.getFilePolicies() != null && !project.getFilePolicies().isEmpty()){
             throw APIException.badRequests.cannotDeleteProjectAssignedFilePolicy(project.getLabel());
         }
         

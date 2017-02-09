@@ -1045,8 +1045,22 @@ public class OrderService extends CatalogTaggedResourceService {
             APIException.internalServerErrors.genericApisvcError(errMsg, e);
         }
 
-        auditOpSuccess(OperationTypeEnum.DELETE_ORDER, startTimeStr, endTimeStr);
+        String auditLogMsg = genDeletingOrdersMessage(startTimeStr, endTimeStr);
+        auditOpSuccess(OperationTypeEnum.DELETE_ORDER, auditLogMsg);
         return Response.status(Response.Status.ACCEPTED).build();
+    }
+
+    private String genDeletingOrdersMessage(String startTimeStr, String endTimeStr) {
+
+        Date startTime = TimeUtils.getDateTimestamp(startTimeStr);
+        Date endTime = TimeUtils.getDateTimestamp(endTimeStr);
+
+        StringBuilder builder = new StringBuilder("Deleting orders from ");
+        builder.append(startTime)
+                .append(" to ")
+                .append(endTime);
+
+        return builder.toString();
     }
 
     private OrderStatus getOrderStatus(String statusStr, boolean deleteOnly) {

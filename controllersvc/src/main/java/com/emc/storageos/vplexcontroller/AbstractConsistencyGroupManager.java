@@ -159,6 +159,7 @@ public abstract class AbstractConsistencyGroupManager implements ConsistencyGrou
         // Add step to delete local. There should only be a local for
         // VPLEX CGs and there should be either one or two depending upon
         // if the volumes in the CG are local or distributed.
+        String returnWaitFor = waitFor;
         if (cg.checkForType(Types.LOCAL)) {
             List<URI> localSystemUris = BlockConsistencyGroupUtils
                     .getLocalSystems(cg, dbClient);
@@ -170,9 +171,9 @@ public abstract class AbstractConsistencyGroupManager implements ConsistencyGrou
                         DELETE_CONSISTENCY_GROUP_METHOD_NAME, localSystemUri, cgURI, null, false, Boolean.FALSE, true);
                 Workflow.Method rollbackDeleteCGMethod = new Workflow.Method(
                         CREATE_CONSISTENCY_GROUP_METHOD_NAME, localSystemUri, cgURI);
-                waitFor = workflow.createStep(DELETE_LOCAL_CG_STEP, String.format(
+                returnWaitFor = workflow.createStep(DELETE_LOCAL_CG_STEP, String.format(
                         "Deleting Consistency Group %s on local system %s", localCgName,
-                        localSystemUri.toString()), null, localSystemUri, localSystem.getSystemType(),
+                        localSystemUri.toString()), returnWaitFor, localSystemUri, localSystem.getSystemType(),
                         BlockDeviceController.class, deleteCGMethod, rollbackDeleteCGMethod, null);
             }
         }
@@ -204,13 +205,13 @@ public abstract class AbstractConsistencyGroupManager implements ConsistencyGrou
                     // group. Note that we assume the consistency group does not
                     // contain any volumes. Currently, the API service does not allow
                     // this, and so this should never be called otherwise.
-                    waitFor = addStepForRemoveVPlexCG(workflow, stepId, waitFor, storageSystem,
+                    returnWaitFor = addStepForRemoveVPlexCG(workflow, stepId, returnWaitFor, storageSystem,
                             cgURI, vplexCg.getKey(), vplexCg.getValue(), markInactive, deletCGRollbackMethod);
                 }
             }
         }
 
-        return waitFor;
+        return returnWaitFor;
     }
 
     @Override
@@ -334,8 +335,6 @@ public abstract class AbstractConsistencyGroupManager implements ConsistencyGrou
                         cgRef, vplexSystemURI.toString()));
                 cg.removeSystemConsistencyGroup(vplexSystemURI.toString(), cgRef);
             }
-
-            dbClient.updateObject(cg);
         }
 
         // Only mark the ViPR CG for deletion when all associated VPlex CGs

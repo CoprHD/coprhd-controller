@@ -310,6 +310,7 @@ public abstract class AbstractDiscoveryAdapter implements ComputeSystemDiscovery
                 throw new IllegalArgumentException(e);
             }
             model.setLabel(label);
+            info("Creating new instance of %s with label %s", modelClass.getSimpleName(), label);
         } else {
             models.remove(model);
         }
@@ -681,8 +682,9 @@ public abstract class AbstractDiscoveryAdapter implements ComputeSystemDiscovery
                 }
             } else {
                 for (Initiator oldInitiator : oldInitiatorObjects) {
-                    log.info("Initiator marked for deletion: " + oldInitiator.getId());
-                    dbClient.markForDeletion(oldInitiator);
+                    info("Deleting Initiator %s because it was not re-discovered and is not in use by any export groups",
+                            oldInitiator.getId());
+                    dbClient.removeObject(oldInitiator);
                 }
             }
         }

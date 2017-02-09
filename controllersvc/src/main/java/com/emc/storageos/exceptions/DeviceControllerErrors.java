@@ -238,7 +238,10 @@ public interface DeviceControllerErrors {
     public ServiceError deleteShareACLFailed(final String fsUris, final String operationName, final Throwable cause);
 
     @DeclareServiceCode(ServiceCode.CONTROLLER_JOB_ERROR)
-    public ServiceError unassignFilePolicyFailed(final String uri, final String operationName, final Throwable cause);
+    public ServiceError assignFilePolicyFailed(final String uri, final String level, final Throwable cause);
+
+    @DeclareServiceCode(ServiceCode.CONTROLLER_JOB_ERROR)
+    public ServiceError unassignFilePolicyFailed(final String uri, final Throwable cause);
 
     @DeclareServiceCode(ServiceCode.CONTROLLER_JOB_ERROR)
     public ServiceError noNasServerFoundToAddStepsToApplyPolicy(final String system);

@@ -47,6 +47,7 @@ import com.emc.storageos.db.client.model.StorageProvider.ConnectionStatus;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.StringSet;
+import com.emc.storageos.db.client.model.StringSetMap;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedExportMask;
@@ -1113,7 +1114,7 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
         volume.getInitiatorNetworkIds().clear();
 
         // set volume characteristics and volume information
-        Map<String, StringSet> unManagedVolumeInformation = new HashMap<String, StringSet>();
+        StringSetMap unManagedVolumeInformation = new StringSetMap();
         StringMap unManagedVolumeCharacteristics = new StringMap();
 
         // Set up default MAXIMUM_IO_BANDWIDTH and MAXIMUM_IOPS
@@ -1243,7 +1244,7 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
 
         // add this info to the unmanaged volume object
         volume.setVolumeCharacterstics(unManagedVolumeCharacteristics);
-        volume.addVolumeInformation(unManagedVolumeInformation);
+        volume.setVolumeInformation(unManagedVolumeInformation);
 
         // discover backend volume data
         String discoveryMode = ControllerUtils.getPropertyValueFromCoordinator(

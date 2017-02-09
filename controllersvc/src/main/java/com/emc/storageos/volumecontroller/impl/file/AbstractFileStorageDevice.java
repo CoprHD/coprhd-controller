@@ -274,4 +274,11 @@ public abstract class AbstractFileStorageDevice implements FileStorageDevice,
     public BiosCommandResult doUnassignFilePolicy(StorageSystem storageObj, FileDeviceInputOutput args) {
         throw DeviceControllerException.exceptions.operationNotSupported();
     }
+
+    @Override
+    public BiosCommandResult
+            checkFilePolicyExistsOrCreate(StorageSystem storageObj, FileDeviceInputOutput args) {
+        throw DeviceControllerException.exceptions.operationNotSupported();
+    }
+
 }

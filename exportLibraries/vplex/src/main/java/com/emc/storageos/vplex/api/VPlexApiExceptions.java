@@ -847,4 +847,10 @@ public interface VPlexApiExceptions {
 
     @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
     VPlexApiException hluRetrievalFailed(final String message, final Throwable cause);
+
+    @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
+    VPlexApiException cannotAddVolumesToExportGroupWithoutInitiators(String exportGroupName);
+
+    @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
+    VPlexApiException forgetVolumesFailed(final String volumeWWNs, final String vplexName, final String errMsg, final Throwable cause);
 }

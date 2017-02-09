@@ -31,6 +31,7 @@ import com.emc.sa.service.vipr.compute.tasks.DeactivateHost;
 import com.emc.sa.service.vipr.compute.tasks.DeactivateHostNoWait;
 import com.emc.sa.service.vipr.compute.tasks.FindCluster;
 import com.emc.sa.service.vipr.compute.tasks.FindHostsInCluster;
+import com.emc.sa.service.vipr.compute.tasks.FindVblockHostsInCluster;
 import com.emc.sa.service.vipr.compute.tasks.InstallOs;
 import com.emc.sa.service.vipr.compute.tasks.RemoveHostFromCluster;
 import com.emc.sa.service.vipr.compute.tasks.SetBootVolume;
@@ -44,7 +45,6 @@ import com.emc.storageos.db.client.util.EndpointUtility;
 import com.emc.storageos.model.block.VolumeDeleteTypeEnum;
 import com.emc.storageos.model.block.VolumeRestRep;
 import com.emc.storageos.model.block.export.ExportGroupRestRep;
-import com.emc.storageos.model.compute.ComputeElementListRestRep;
 import com.emc.storageos.model.compute.OsInstallParam;
 import com.emc.storageos.model.host.HostRestRep;
 import com.emc.storageos.model.host.cluster.ClusterRestRep;
@@ -106,7 +106,7 @@ public class ComputeUtils {
             }
         }
         else { // If all the hosts failed, then the tasks are returned as null.
-               // In this case we need to deactivate all the hosts that we wanted to create.
+            // In this case we need to deactivate all the hosts that we wanted to create.
             for (HostRestRep hostRep : hostsInCluster) {
                 if (hostNames.contains(hostRep.getName())) {
                     hostURIsToDeactivate.add(hostRep.getId());
@@ -359,7 +359,7 @@ public class ComputeUtils {
         CapacityResponse capacityResponse = client.blockVpools()
                 .getCapacityOnVirtualArray(virtualPool, virtualArray);
         String size = capacityResponse.getFreeGb();
-        long freeCapacity = (long) Long.parseLong(size);
+        long freeCapacity = Long.parseLong(size);
         double reqSize = sizeOfBootVolumesInGb * numVols;
         long reqCapacity = (long) reqSize;
 
@@ -497,7 +497,7 @@ public class ComputeUtils {
                 tasks.remove(failedTask);
             }
         }
-        
+
         return successfulHostIds;
     }
 
@@ -724,6 +724,7 @@ public class ComputeUtils {
         @Param
         protected String ips;
 
+        @Override
         public String toString() {
             return "fqdns=" + fqdns + ", ips=" + ips;
         }
@@ -733,6 +734,7 @@ public class ComputeUtils {
         @Param
         protected String fqdns;
 
+        @Override
         public String toString() {
             return "fqdns=" + fqdns;
         }
@@ -804,5 +806,23 @@ public class ComputeUtils {
             }
         }
         return (successfulIds.isEmpty()) ? null : successfulIds.get(0);
+    }
+
+    /**
+     * This method fetches all vblock hosts for the given cluster
+     * @param clusterId cluster id URI
+     * @return
+     */
+    public static List<URI> getVblockHostURIsByCluster(URI clusterId) {
+        List<HostRestRep> resp = getVblockHostsInCluster(clusterId);
+        List<URI> provisionedHostURIs = Lists.newArrayList();
+        for (HostRestRep r : resp) {
+            provisionedHostURIs.add(r.getId());
+        }
+        return provisionedHostURIs;
+    }
+
+    public static List<HostRestRep> getVblockHostsInCluster(URI clusterId) {
+        return execute(new FindVblockHostsInCluster(clusterId));
     }
 }

@@ -332,7 +332,7 @@ public class HostService extends TaskResourceService {
          * for satisfying some high level requirements, although it may not be
          * sufficient from an API purity standpoint
          */
-        if (host.getComputeElement() != null && updateParam.getBootVolume() != null) {
+        if (!NullColumnValueGetter.isNullURI(host.getComputeElement()) && !NullColumnValueGetter.isNullURI(updateParam.getBootVolume())) {
             controller.setHostSanBootTargets(host.getId(), updateParam.getBootVolume());
         }
 
@@ -640,21 +640,22 @@ public class HostService extends TaskResourceService {
         if (hasPendingTasks) {
             throw APIException.badRequests.resourceCannotBeDeleted("Host with another operation in progress");
         }
+        
         boolean isHostInUse = ComputeSystemHelper.isHostInUse(_dbClient, host.getId());
-
         if (isHostInUse && !(detachStorage || detachStorageDeprecated)) {
             throw APIException.badRequests.resourceHasActiveReferences(Host.class.getSimpleName(), id);
         }
+        
         ComputeElement computeElement = null;
         Volume bootVolume = null;
     
         List<Initiator> initiators = CustomQueryUtility.queryActiveResourcesByRelation(_dbClient, host.getId(),Initiator.class, "host");
  
         if (StringUtils.equalsIgnoreCase(host.getType(),HostType.No_OS.toString()) && (initiators == null || initiators.isEmpty())) {
-            if (host.getComputeElement() != null){
+            if (!NullColumnValueGetter.isNullURI(host.getComputeElement())){
                 computeElement = _dbClient.queryObject(ComputeElement.class, host.getComputeElement());
             }
-            if (host.getBootVolumeId() != null){
+            if (!NullColumnValueGetter.isNullURI(host.getBootVolumeId())){
                 bootVolume =  _dbClient.queryObject(Volume.class, host.getBootVolumeId());
             }
             if (computeElement != null || bootVolume != null) {
@@ -664,6 +665,7 @@ public class HostService extends TaskResourceService {
                 _log.info("No OS host: " + host.getLabel() +" with no initiators and without valid computeElement or boot volume associations found. Will proceed with deactivation.");
             }
         }
+        
         String taskId = UUID.randomUUID().toString();
         Operation op = _dbClient.createTaskOpStatus(Host.class, host.getId(), taskId,
                 ResourceOperationTypeEnum.DELETE_HOST);
@@ -676,12 +678,17 @@ public class HostService extends TaskResourceService {
         auditOp(OperationTypeEnum.DELETE_HOST, true, op.getStatus(),
                 host.auditParameters());
         return toTask(host, taskId, op);
-        
     }
 
-    private boolean hostHasPendingTasks(URI id) {
+    /**
+     * Check for pending tasks on the Host
+     * 
+     * @param hostURI Host ID
+     * @return true if the host has pending tasks, false otherwise
+     */
+    private boolean hostHasPendingTasks(URI hostURI) {
         boolean hasPendingTasks = false;
-        List<Task> taskList = TaskUtils.findResourceTasks(_dbClient, id);
+        List<Task> taskList = TaskUtils.findResourceTasks(_dbClient, hostURI);
         for (Task task : taskList) {
             if (task.isPending()) {
                 hasPendingTasks = true;
@@ -2051,7 +2058,7 @@ public class HostService extends TaskResourceService {
         ArgValidator.checkEntity(host, hostId, isIdEmbeddedInURL(hostId));
 
         // only support os install on hosts with compute elements
-        if (host.getComputeElement() == null) {
+        if (NullColumnValueGetter.isNullURI(host.getComputeElement())) {
             throw APIException.badRequests.invalidParameterHostHasNoComputeElement();
         }
 

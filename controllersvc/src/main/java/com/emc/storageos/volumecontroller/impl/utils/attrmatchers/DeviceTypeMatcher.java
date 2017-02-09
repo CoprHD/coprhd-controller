@@ -43,12 +43,7 @@ public class DeviceTypeMatcher extends AttributeMatcher {
             StringBuffer errorMessage) {
 
         StringSet deviceTypes = (StringSet) attributeMap.get(Attributes.system_type.toString());
-        String deviceType = null;
-        for (String dType : deviceTypes) {
-            deviceType = dType;
-            break;
-        }
-        _logger.info(" Device Type {} Matcher Started {} :", deviceType, Joiner.on("\t").join(getNativeGuidFromPools(pools)));
+        _logger.info(" Device Type {} Matcher Started {} :", deviceTypes, Joiner.on("\t").join(getNativeGuidFromPools(pools)));
         List<StoragePool> filteredPools = new ArrayList<StoragePool>();
 
         Set<URI> systems = new HashSet<>();
@@ -69,11 +64,11 @@ public class DeviceTypeMatcher extends AttributeMatcher {
                 filteredPools.addAll(systemMap.get(system.getId()));
             }
         }
-        _logger.info("Device Type {} Matcher Ended {} :", deviceType,
+        _logger.info("Device Type {} Matcher Ended {} :", deviceTypes,
                 Joiner.on("\t").join(getNativeGuidFromPools(filteredPools)));
         
         if(CollectionUtils.isEmpty(filteredPools)){
-            errorMessage.append(String.format("No matching storage pool available for the given device type %s. ", deviceType));
+            errorMessage.append(String.format("No matching storage pool available for the given device type %s. ", deviceTypes));
             _logger.error(errorMessage.toString());
         }
         return filteredPools;

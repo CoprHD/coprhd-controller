@@ -27,7 +27,6 @@ import com.emc.storageos.db.client.util.CommonTransformerFunctions;
 import com.emc.storageos.db.client.util.StringSetUtil;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
-import com.emc.storageos.util.ExportUtils;
 import com.emc.storageos.volumecontroller.BlockStorageDevice;
 import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.ControllerServiceImpl;
@@ -201,8 +200,6 @@ public class XtremIOMaskingOrchestrator extends AbstractBasicMaskingOrchestrator
                     if (exportMask.getStorageDevice().equals(storageURI)) {
                         refreshExportMask(storage, getDevice(), exportMask);
                         log.info("export_volume_add: adding volume to an existing export");
-                        exportMask.addVolumes(volumeMap);
-                        _dbClient.persistObject(exportMask);
                         masks.add(exportMask);
                     }
                 }
@@ -704,7 +701,7 @@ public class XtremIOMaskingOrchestrator extends AbstractBasicMaskingOrchestrator
              * 1. If export mask is shared across export groups ,deleting an export mask means identifying the
              * right set of initiators and volumes to be removed from both the export Groups.
              */
-            if (!exportMasks.isEmpty()) {
+            if (exportMasks != null && !exportMasks.isEmpty()) {
                 for (ExportMask exportMask : exportMasks) {
                     refreshExportMask(storage, getDevice(), exportMask);
                     List<URI> initiators = StringSetUtil.stringSetToUriList(exportMask.getInitiators());

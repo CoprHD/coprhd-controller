@@ -692,9 +692,13 @@ test_move_clustered_host_to_another_cluster() {
         runcmd initiator create ${host2} FC ${init4} --node ${node4}
     
         # Export the volumes to the fake clusters    
-        runcmd export_group create $PROJECT ${exportgroup1} $NH --type Cluster --volspec ${PROJECT}/${volume1} --clusters ${TENANT}/${cluster1}
         runcmd export_group create $PROJECT ${exportgroup2} $NH --type Cluster --volspec ${PROJECT}/${volume2} --clusters ${TENANT}/${cluster2}
-        
+       
+        # Snap DB
+        snap_db 2 "${column_family[@]}"
+
+        runcmd export_group create $PROJECT ${exportgroup1} $NH --type Cluster --volspec ${PROJECT}/${volume1} --clusters ${TENANT}/${cluster1}
+ 
         # Double check the export groups to ensure the initiators are present
         foundinit1=`export_group show $PROJECT/${exportgroup1} | grep ${init1}`
         foundinit2=`export_group show $PROJECT/${exportgroup1} | grep ${init2}`
@@ -725,6 +729,12 @@ test_move_clustered_host_to_another_cluster() {
             set_artificial_failure ${failure}
             fail hosts update $host1 --cluster ${TENANT}/${cluster2}
             
+            # Snap DB
+            snap_db 3 "${column_family[@]}"
+
+            # Validate DB
+            validate_db 2 3 "${column_family[@]}"
+
             # Verify injected failures were hit
             verify_failures ${failure}
             # Let the async jobs calm down
@@ -830,10 +840,10 @@ test_move_clustered_host_to_another_cluster() {
         runcmd export_group delete $PROJECT/${exportgroup2}
         
         # Snap DB
-        snap_db 2 "${column_family[@]}"
+        snap_db 4 "${column_family[@]}"
     
         # Validate DB
-        validate_db 1 2 "${column_family[@]}"
+        validate_db 1 4 "${column_family[@]}"
 
         # Report results
         report_results ${test_name} ${failure}
@@ -2206,4 +2216,108 @@ test_host_remove_initiator_event() {
  
     # Report results
     report_results ${test_name} ${failure}
+}
+
+# TODO: will be moving all vblock related tests to different file, adding it here just for time being
+test_vblock_provision_bare_metal_host() {
+    test_name="test_vblock_provision_bare_metal_host"
+    echot "Test vblock_provision_bare_metal_host Begins"
+    vblock_failure_injections="failure_061_UcsComputeDevice.createLsServer_createServiceProfileFromTemplate_Poll \
+                               failure_062_UcsComputeDevice.modifyLsServerNoBoot_setServiceProfileToNoBoot \
+                               failure_063_UcsComputeDevice.bindServiceProfileToBlade_bindSPToComputeElement \
+                               failure_064_UcsComputeDevice.bindServiceProfileToBlade_ComputeElement_DB_Failure \
+                               failure_065_UcsComputeDevice.addHostPortsToVArrayNetworks_varrayAssociatedNetworks_DB_Failure"
+
+    failure_injections="${vblock_failure_injections}"
+
+    for failure in ${failure_injections}
+    do
+        echot "Running test_vblock_provision_bare_metal_host with failure scenario: ${failure}..."
+        TEST_OUTPUT_FILE=test_output_${RANDOM}.log
+        reset_counts
+        column_family="Host Volume ExportGroup ExportMask Cluster"
+        random_number=${RANDOM}
+        mkdir -p results/${random_number}
+        run computesystem discover $VBLOCK_COMPUTE_SYSTEM_NAME
+	# Snap DB
+        snap_db 1 "${column_family[@]}"
+        # Turn on failure at a specific point
+        set_artificial_failure ${failure}
+        #sleep 5
+        # will be externalising the hardcoded values to properties file.
+        run vblockcatalog provisionbaremetalhost $TENANT $VBLOCK_CLUSTER_NAME $VBLOCK_BOOT_VOL_SIZE $VBLOCK_HOST_NAME $PROJECT $NH $VPOOL_BASE $VBLOCK_COMPUTE_VIRTUAL_POOL_NAME $VBLOCK_BOOT_VOL_HLU $VBLOCK_CATALOG_PROVISION_BARE_METAL_CLUSTER
+
+        # Verify injected failures were hit
+        verify_failures ${failure}
+
+        # Snap DB
+        snap_db 2 "${column_family[@]}"
+
+        # Validate DB
+        validate_db 1 2 "${column_family[@]}"
+        # Report results
+        report_results ${test_name} ${failure}
+    done
+    run computesystem discover $VBLOCK_COMPUTE_SYSTEM_NAME
+    sleep 15
+    # Perform happy path now
+    # Snap DB
+    #snap_db 3 "${column_family[@]}"
+    # Turn off failure
+    set_artificial_failure none
+
+    run vblockcatalog provisionbaremetalhost $TENANT $VBLOCK_CLUSTER_NAME $VBLOCK_BOOT_VOL_SIZE $VBLOCK_HOST_NAME $PROJECT $NH $VPOOL_BASE $VBLOCK_COMPUTE_VIRTUAL_POOL_NAME $VBLOCK_BOOT_VOL_HLU $VBLOCK_CATALOG_PROVISION_BARE_METAL_CLUSTER
+    # need to verify if cluster, host and boot volume was created.
+}
+
+test_vblock_add_bare_metal_host() {
+    test_name="test_vblock_add_bare_metal_host"
+    echot "Test vblock_add_bare_metal_host Begins"
+
+    vblock_failure_injections="failure_061_UcsComputeDevice.createLsServer_createServiceProfileFromTemplate_Poll \
+                               failure_062_UcsComputeDevice.modifyLsServerNoBoot_setServiceProfileToNoBoot \
+                               failure_063_UcsComputeDevice.bindServiceProfileToBlade_bindSPToComputeElement \
+                               failure_064_UcsComputeDevice.bindServiceProfileToBlade_ComputeElement_DB_Failure \
+                               failure_065_UcsComputeDevice.addHostPortsToVArrayNetworks_varrayAssociatedNetworks_DB_Failure"
+
+    failure_injections="${vblock_failure_injections}"
+
+    for failure in ${failure_injections}
+    do
+        echot "Running test_vblock_provision_bare_metal_host with failure scenario: ${failure}..."
+        TEST_OUTPUT_FILE=test_output_${RANDOM}.log
+        reset_counts
+        column_family="Host Volume ExportGroup ExportMask Cluster"
+        random_number=${RANDOM}
+        mkdir -p results/${random_number}
+        run computesystem discover $VBLOCK_COMPUTE_SYSTEM_NAME
+	# Snap DB
+        snap_db 1 "${column_family[@]}"
+        # Turn on failure at a specific point
+        set_artificial_failure ${failure}
+        sleep 5
+        # will be externalising the hardcoded values to properties file.
+        run vblockcatalog addbaremetalhost $TENANT $VBLOCK_CLUSTER_NAME $VBLOCK_BOOT_VOL_SIZE $VBLOCK_HOST_NAME $PROJECT $NH $VPOOL_BASE $VBLOCK_COMPUTE_VIRTUAL_POOL_NAME $VBLOCK_BOOT_VOL_HLU $VBLOCK_CATALOG_ADD__BARE_METAL_HOSTS_TO_CLUSTER
+
+        # Verify injected failures were hit
+        verify_failures ${failure}
+
+        # Snap DB
+        snap_db 2 "${column_family[@]}"
+
+        # Validate DB
+        validate_db 1 2 "${column_family[@]}"
+        # Report results
+        report_results ${test_name} ${failure}
+    done
+    run computesystem discover $VBLOCK_COMPUTE_SYSTEM_NAME
+    sleep 15
+    # Perform happy path now
+    # Snap DB
+    #snap_db 3 "${column_family[@]}"
+    # Turn off failure
+    set_artificial_failure none
+
+    run vblockcatalog addbaremetalhost $TENANT $VBLOCK_CLUSTER_NAME $VBLOCK_BOOT_VOL_SIZE $VBLOCK_HOST_NAME $PROJECT $NH $VPOOL_BASE $VBLOCK_COMPUTE_VIRTUAL_POOL_NAME $VBLOCK_BOOT_VOL_HLU $VBLOCK_CATALOG_ADD__BARE_METAL_HOSTS_TO_CLUSTER
+    # need to verify if cluster, host and boot volume was created.
 }

@@ -159,8 +159,7 @@ public class StorageSystemService extends TaskResourceService {
     
     protected static final String PORT_GROUP_EVENT_SERVICE_SOURCE = "StoragePortGroupService";
     private static final String PORT_GROUP_EVENT_SERVICE_TYPE = "storageportGroup";
-    protected static final String STORAGEPORTGROUP_REGISTERED_DESCRIPTION = "Storage Port Group Registered";
-    protected static final String STORAGEPORTGROUP_DEREGISTERED_DESCRIPTION = "Storage Port Group Deregistered";
+
 
     private static final String TRUE_STR = "true";
 
@@ -2139,7 +2138,7 @@ public class StorageSystemService extends TaskResourceService {
 
             // Record the storage port deregister event.
             recordStoragePoolPortEvent(OperationTypeEnum.DEREGISTER_STORAGE_PORT_GROUP,
-                    STORAGEPORTGROUP_DEREGISTERED_DESCRIPTION, portGroup.getId(), "StoragePortGroup");
+                    OperationTypeEnum.DEREGISTER_STORAGE_PORT_GROUP.getDescription(), portGroup.getId(), "StoragePortGroup");
 
             auditOp(OperationTypeEnum.DEREGISTER_STORAGE_PORT_GROUP, true, null,
                     portGroup.getLabel(), portGroup.getId().toString());
@@ -2173,7 +2172,7 @@ public class StorageSystemService extends TaskResourceService {
 
             // Record the storage port deregister event.
             recordStoragePoolPortEvent(OperationTypeEnum.REGISTER_STORAGE_PORT_GROUP,
-                    STORAGEPORTGROUP_REGISTERED_DESCRIPTION, portGroup.getId(), "StoragePortGroup");
+                    OperationTypeEnum.REGISTER_STORAGE_PORT_GROUP.getDescription(), portGroup.getId(), "StoragePortGroup");
 
             auditOp(OperationTypeEnum.REGISTER_STORAGE_PORT_GROUP, true, null,
                     portGroup.getLabel(), portGroup.getId().toString());
@@ -2230,7 +2229,7 @@ public class StorageSystemService extends TaskResourceService {
         _dbClient.updateObject(portGroup);
         auditOp(OperationTypeEnum.CREATE_STORAGE_PORT_GROUP, true, null, param.getName(), id.toString());
         recordStoragePoolPortEvent(OperationTypeEnum.CREATE_STORAGE_PORT_GROUP,
-                STORAGEPORTGROUP_REGISTERED_DESCRIPTION, portGroup.getId(), "StoragePortGroup");
+                OperationTypeEnum.CREATE_STORAGE_PORT_GROUP.getDescription(), portGroup.getId(), "StoragePortGroup");
 
         TaskResourceRep taskRes = toTask(portGroup, task, op);
         
@@ -2258,6 +2257,61 @@ public class StorageSystemService extends TaskResourceService {
                 throw APIException.badRequests.duplicateLabel(name);
             }
         }
+    }
+    
+    /**
+     * Create a storage port group
+     * 
+     * @param id the URN of a ViPR storage port.
+     * 
+     * @brief Create a storage port
+     * @return The pending task
+     */
+    @POST
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/{id}/storage-port-groups/{pgId}/deactivate")
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
+    public TaskResourceRep deleteStoragePortGroup(@PathParam("id") URI id, @PathParam("pgId") URI pgId) {
+
+        ArgValidator.checkFieldUriType(id, StorageSystem.class, "id");
+        StorageSystem system = queryResource(id);
+        // Only support for VMAX
+        if (!DiscoveredDataObject.Type.vmax.name().equals(system.getSystemType())) {
+            APIException.badRequests.operationNotSupportedForSystemType(
+                    OperationTypeEnum.CREATE_STORAGE_PORT_GROUP.name(), system.getSystemType());
+        }
+        ArgValidator.checkFieldUriType(pgId, StoragePortGroup.class, "portGroupId");
+        StoragePortGroup portGroup = _dbClient.queryObject(StoragePortGroup.class, pgId);
+        String task = UUID.randomUUID().toString();
+        Operation op = null;
+        if (portGroup == null || portGroup.getInactive()) {
+            // The port group has been deleted
+            op = _dbClient.createTaskOpStatus(StoragePortGroup.class, portGroup.getId(),
+                    task, ResourceOperationTypeEnum.DELETE_STORAGE_PORT_GROUP);
+            op.ready();
+        } else {
+            // Check if the port group is used by any export mask
+            URIQueryResultList queryResult = new URIQueryResultList();
+            _dbClient.queryByConstraint(AlternateIdConstraint.Factory
+                    .getExportMasksByPortGroup(portGroup.getId().toString()), queryResult);
+            Iterator<URI> maskIt = queryResult.iterator();
+            if (maskIt.hasNext()) {
+                URI maskURI = maskIt.next();
+                ArgValidator.checkReference(StoragePortGroup.class, pgId, maskURI.toString()); 
+            }
+            op = _dbClient.createTaskOpStatus(StoragePortGroup.class, portGroup.getId(),
+                    task, ResourceOperationTypeEnum.DELETE_STORAGE_PORT_GROUP);
+            _dbClient.updateObject(portGroup);
+            BlockController controller = getController(BlockController.class, system.getSystemType());
+            controller.deleteStoragePortGroup(system.getId(), portGroup.getId(), task);
+        }
+        
+        auditOp(OperationTypeEnum.DELETE_STORAGE_PORT_GROUP, true, null, portGroup.getNativeGuid(), pgId.toString());
+        recordStoragePoolPortEvent(OperationTypeEnum.DELETE_STORAGE_PORT_GROUP,
+                OperationTypeEnum.DELETE_STORAGE_PORT_GROUP.getDescription(), portGroup.getId(),
+                "StoragePortGroup");
+        
+        return toTask(portGroup, task, op);
     }
     
 }

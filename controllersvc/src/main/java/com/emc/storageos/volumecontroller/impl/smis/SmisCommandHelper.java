@@ -7787,7 +7787,7 @@ public class SmisCommandHelper implements SmisConstants {
         _log.debug("{} createTargetPortGroup START...", storage.getSerialNumber());
         CIMObjectPath targetPortGroupPath = null;
 
-        CIMArgument[] inArgs = getCreateTargetPortGroupInputArguments(storage, portGroupName, targetURIList);
+        CIMArgument[] inArgs = getCreatePortGroupInputArguments(storage, portGroupName, targetURIList);
         CIMArgument[] outArgs = new CIMArgument[5];
         
         // Try to look up the port group. If it already exists, use it,
@@ -7802,5 +7802,31 @@ public class SmisCommandHelper implements SmisConstants {
         }     
         _log.debug("{} createTargetPortGroup END...", storage.getSerialNumber());
         return targetPortGroupPath;
+    }
+    
+    /**
+     * create port group input arguments
+     * 
+     * @param storageDevice - Storage system
+     * @param groupName - Port group name
+     * @param targetURIList - Storage ports URIs
+     * @return The input arguments for creating port group
+     */
+    public CIMArgument[] getCreatePortGroupInputArguments(StorageSystem storageDevice, String groupName, List<URI> targetURIList) {
+        CIMObjectPath[] targetPortPaths;
+        try {
+            targetPortPaths = _cimPath.getTargetPortPaths(storageDevice, targetURIList);
+        } catch (Exception e) {
+            _log.error(String.format("Problem creating target port group: %s on array %s",
+                    groupName, storageDevice.getSerialNumber()), e);
+            throw new IllegalStateException("Problem creating target port group: " + groupName + "on array: "
+                    + storageDevice.getSerialNumber());
+        }
+        return new CIMArgument[] {
+                _cimArgument.string(CP_GROUP_NAME, groupName),
+                _cimArgument.uint16(CP_TYPE, TARGET_PORT_GROUP_TYPE),
+                _cimArgument.referenceArray(CP_MEMBERS, targetPortPaths),
+                _cimArgument.bool(CP_DELETE_WHEN_BECOMES_UNASSOCIATED, Boolean.FALSE)
+        };
     }
 }

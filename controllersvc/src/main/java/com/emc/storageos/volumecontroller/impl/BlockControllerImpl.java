@@ -543,4 +543,9 @@ public class BlockControllerImpl extends AbstractDiscoveredSystemController impl
     public void createStoragePortGroup(URI systemURI, URI portGroupURI, String opId) {
         blockRMI("createStoragePortGroup", systemURI, portGroupURI, opId);
     }
+    
+    @Override
+    public void deleteStoragePortGroup(URI systemURI, URI portGroupURI, String opId) {
+        blockRMI("deleteStoragePortGroup", systemURI, portGroupURI, opId);
+    }
 }

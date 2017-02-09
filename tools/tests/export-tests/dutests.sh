@@ -3672,6 +3672,8 @@ esac
 
 # By default, check zones
 ZONE_CHECK=${ZONE_CHECK:-1}
+REPORT=0
+DO_CLEANUP=0;
 while [ "${1:0:1}" = "-" ]
 do
     if [ "${1}" = "setuphw" -o "${1}" = "setup" -o "${1}" = "-setuphw" -o "${1}" = "-setup" ]
@@ -3771,10 +3773,8 @@ echo There were $VERIFY_FAIL_COUNT export verification failures
 echo `date`
 echo `git status | grep 'On branch'`
 
-if [ "${docleanup}" = "1" ]; then
+if [ "${DO_CLEANUP}" = "1" ]; then
     cleanup;
 fi
 
 finish;
-
-

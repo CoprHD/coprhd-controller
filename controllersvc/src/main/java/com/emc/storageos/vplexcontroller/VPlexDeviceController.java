@@ -4170,7 +4170,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
                     exportURI, exportMask.getId(), hostInitiatorURIs, null, rollbackCompleter);
 
             lastStepId = workflow.createStep("storageView", "Add " + message,
-                    zoningStepId, vplexURI, vplex.getSystemType(), this.getClass(), addToViewMethod, addToViewRollbackMethod, null);
+                    zoningStepId, vplexURI, vplex.getSystemType(), this.getClass(), addToViewMethod, addToViewRollbackMethod, addInitStep);
         }
         return lastStepId;
     }

@@ -396,10 +396,7 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
             String xioClusterName = client.getClusterDetails(storage.getSerialNumber()).getName();
 
             Set<URI> allRelatedVolumes = new HashSet<URI>();
-            if (volumeURIList != null) {
-                allRelatedVolumes.addAll(volumeURIList);
-            }
-            
+                        
             Iterator<Initiator> iniItr = initiators.iterator();
             while (iniItr.hasNext()) {
                 Initiator initiator = iniItr.next();

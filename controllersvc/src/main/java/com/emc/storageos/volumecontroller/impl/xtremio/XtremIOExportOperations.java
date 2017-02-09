@@ -419,7 +419,7 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
                     iniItr.remove();
                 }
                 
-                allRelatedVolumes.addAll(findAllRelatedExportMaskVolumesForInitiator(initiator, exportMask));
+                allRelatedVolumes.addAll(findAllRelatedExportMaskVolumesForInitiator(initiator, exportMask.getStorageDevice()));
             }
             
             _log.info("removeInitiators: Export mask id: {}", exportMaskURI);
@@ -1326,13 +1326,13 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
      * all those related volumes so that they can be used for validation.          
      * 
      * @param initiator The initiator in question
-     * @param exportMask The known export mask
+     * @param storageSystemURI URI of the storage system to focus on
      * @return A set of related volumes, empty set if none are found.
      */
-    private Set<URI> findAllRelatedExportMaskVolumesForInitiator(Initiator initiator, ExportMask exportMask) {
+    private Set<URI> findAllRelatedExportMaskVolumesForInitiator(Initiator initiator, URI storageSystemURI) {
         Set<URI> volumes = new HashSet<URI>();
         
-        if (initiator != null && exportMask != null) {
+        if (initiator != null && storageSystemURI != null) {
             // Get all export masks that contain the initiator 
             URIQueryResultList relatedExportMasks = new URIQueryResultList();
             dbClient.queryByConstraint(
@@ -1342,20 +1342,18 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
             for (URI relatedExportMaskURI : relatedExportMasks) {
                 // The related export mask contains the initiator in question based on the initial query constraint, 
                 // so if the related export mask is NOT the current export mask and is for the same storage device 
-                // then we need to collect the user added volumes.
-                if (!exportMask.getId().equals(relatedExportMaskURI)) {
-                    ExportMask relatedExportMask = dbClient.queryObject(ExportMask.class, relatedExportMaskURI);                    
-                    if (relatedExportMask != null 
-                            && exportMask.getStorageDevice().equals(relatedExportMask.getStorageDevice())) {
-                        if (relatedExportMask.getUserAddedVolumes() != null) {
-                            // Get the user added volumes from the related export mask and transform them into URIs
-                            Collection<URI> vols = Collections2.transform(relatedExportMask.getUserAddedVolumes().values(),
-                                    CommonTransformerFunctions.FCTN_STRING_TO_URI);                
-                            // Keep track of the user added volumes
-                            volumes.addAll(vols);
-                        }
+                // then we need to collect the user added volumes.               
+                ExportMask relatedExportMask = dbClient.queryObject(ExportMask.class, relatedExportMaskURI);                    
+                if (relatedExportMask != null 
+                        && storageSystemURI.equals(relatedExportMask.getStorageDevice())) {
+                    if (relatedExportMask.getUserAddedVolumes() != null) {
+                        // Get the user added volumes from the related export mask and transform them into URIs
+                        Collection<URI> vols = Collections2.transform(relatedExportMask.getUserAddedVolumes().values(),
+                                CommonTransformerFunctions.FCTN_STRING_TO_URI);                
+                        // Keep track of the user added volumes
+                        volumes.addAll(vols);
                     }
-                }
+                }                
             }
         }
         
@@ -1363,7 +1361,7 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
             _log.info(String.format("Extra user added volumes present on related export masks for XIO "
                     + "storage device [%s] using initiator [%s], "
                     + "also use these volumes for validation of the IG Group: [%s]", 
-                    exportMask.getStorageDevice(),
+                    storageSystemURI,
                     initiator.getId(),
                     Joiner.on(',').join(volumes)));
         }

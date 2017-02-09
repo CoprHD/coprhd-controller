@@ -153,12 +153,12 @@ public class DefaultFileServiceApiImpl extends AbstractFileServiceApiImpl<FileSt
     }
 
     @Override
-    public TaskResourceRep assignFileReplicationPolicyToFS(FileShare fs, FilePolicy filePolicy, Project project, VirtualPool vpool,
+    public TaskResourceRep assignFilePolicyToFileSystem(FileShare fs, FilePolicy filePolicy, Project project, VirtualPool vpool,
             VirtualArray varray, TaskList taskList, String task, List<Recommendation> recommendations,
             VirtualPoolCapabilityValuesWrapper vpoolCapabilities)
             throws InternalException {
         try {
-            super.assignFileReplicationPolicyToFS(fs, filePolicy, project, vpool, varray, taskList, task,
+            super.assignFilePolicyToFileSystem(fs, filePolicy, project, vpool, varray, taskList, task,
                     recommendations, vpoolCapabilities);
         } catch (Exception e) {
             _log.error("Controller error when create mirror filesystems", e);

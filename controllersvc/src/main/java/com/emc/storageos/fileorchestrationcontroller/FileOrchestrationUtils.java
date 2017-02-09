@@ -804,9 +804,6 @@ public final class FileOrchestrationUtils {
 
         filePolicy.addPolicyStorageResources(policyStorageResource.getId());
 
-        if (filePolicy.getApplyAt().equals(FilePolicyApplyLevel.file_system.name())) {
-            filePolicy.addAssignedResources(args.getFs().getId());
-        }
         if (filePolicy.getApplyAt().equals(FilePolicyApplyLevel.project.name())) {
             filePolicy.setFilePolicyVpool(args.getVPool().getId());
         }

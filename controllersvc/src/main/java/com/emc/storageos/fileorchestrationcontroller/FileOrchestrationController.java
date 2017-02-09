@@ -258,7 +258,7 @@ public interface FileOrchestrationController extends Controller {
      * @param taskId
      * @throws ControllerException
      */
-    public abstract void assignFileReplicationPolicyToFS(FilePolicy filePolicy, List<FileDescriptor> fileDescriptors,
+    public abstract void assignFilePolicyToFileSystem(FilePolicy filePolicy, List<FileDescriptor> fileDescriptors,
             String taskId)
             throws ControllerException;
 }

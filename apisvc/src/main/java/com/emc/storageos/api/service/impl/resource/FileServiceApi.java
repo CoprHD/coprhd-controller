@@ -310,7 +310,7 @@ public interface FileServiceApi {
      * @return
      * @throws InternalException
      */
-    TaskResourceRep assignFileReplicationPolicyToFS(FileShare fs, FilePolicy filePolicy, Project project,
+    TaskResourceRep assignFilePolicyToFileSystem(FileShare fs, FilePolicy filePolicy, Project project,
             VirtualPool vpool, VirtualArray varray, TaskList taskList, String task, List<Recommendation> recommendations,
             VirtualPoolCapabilityValuesWrapper vpoolCapabilities)
             throws InternalException;

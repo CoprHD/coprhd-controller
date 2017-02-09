@@ -332,7 +332,7 @@ public abstract class AbstractFileServiceApiImpl<T> implements FileServiceApi {
     }
 
     @Override
-    public TaskResourceRep assignFileReplicationPolicyToFS(FileShare fs, FilePolicy filePolicy, Project project, VirtualPool vpool,
+    public TaskResourceRep assignFilePolicyToFileSystem(FileShare fs, FilePolicy filePolicy, Project project, VirtualPool vpool,
             VirtualArray varray, TaskList taskList, String task, List<Recommendation> recommendations,
             VirtualPoolCapabilityValuesWrapper vpoolCapabilities)
             throws InternalException {

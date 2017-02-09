@@ -288,8 +288,8 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                 auditType,
                 System.currentTimeMillis(),
                 operationalStatus ? AuditLogManager.AUDITLOG_SUCCESS : AuditLogManager.AUDITLOG_FAILURE,
-                        description,
-                        descparams);
+                description,
+                descparams);
     }
 
     @Override
@@ -3691,7 +3691,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
     @Override
     public String addStepsForCreateFileSystems(Workflow workflow,
             String waitFor, List<FileDescriptor> filesystems, String taskId)
-                    throws InternalException {
+            throws InternalException {
 
         if (filesystems != null && !filesystems.isEmpty()) {
             // create source filesystems
@@ -3726,7 +3726,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                                 createFileSharesMethod(descriptor),
                                 rollbackCreateFileSharesMethod(fileShareSource.getStorageDevice(), asList(fileShare.getParentFileShare()
                                         .getURI())),
-                                        null);
+                                null);
                     }
                 }
             }
@@ -3739,7 +3739,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
     @Override
     public String addStepsForDeleteFileSystems(Workflow workflow,
             String waitFor, List<FileDescriptor> filesystems, String taskId)
-                    throws InternalException {
+            throws InternalException {
         List<FileDescriptor> sourceDescriptors = FileDescriptor.filterByType(filesystems,
                 FileDescriptor.Type.FILE_DATA, FileDescriptor.Type.FILE_EXISTING_SOURCE,
                 FileDescriptor.Type.FILE_MIRROR_SOURCE);
@@ -3781,7 +3781,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                                     this.getClass(),
                                     deleteFileSharesMethod(fsTargObj.getStorageDevice(), asList(targetURI),
                                             filesystems.get(0).isForceDelete(), filesystems.get(0).getDeleteType(), taskId),
-                                            null, null);
+                                    null, null);
                         }
                     }
                 }
@@ -3794,7 +3794,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                             this.getClass(),
                             deleteFileSharesMethod(deviceURI, fileshareURIs,
                                     filesystems.get(0).isForceDelete(), filesystems.get(0).getDeleteType(), taskId),
-                                    null, null);
+                            null, null);
                 }
 
             }
@@ -3814,7 +3814,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
     @Override
     public String addStepsForExpandFileSystems(Workflow workflow, String waitFor,
             List<FileDescriptor> fileDescriptors, String taskId)
-                    throws InternalException {
+            throws InternalException {
         List<FileDescriptor> sourceDescriptors = FileDescriptor.filterByType(fileDescriptors, FileDescriptor.Type.FILE_MIRROR_SOURCE,
                 FileDescriptor.Type.FILE_EXISTING_SOURCE, FileDescriptor.Type.FILE_DATA,
                 FileDescriptor.Type.FILE_MIRROR_TARGET);
@@ -4368,7 +4368,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
     }
 
     @Override
-    public void applyFilePolicy(URI storage,URI sourceFS, URI policyURI, String taskId) throws ControllerException{
+    public void applyFilePolicy(URI storage, URI sourceFS, URI policyURI, String taskId) throws ControllerException {
         FileShare fsObj = null;
         StorageSystem storageObj = null;
         try {
@@ -4394,9 +4394,8 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             } else {
                 WorkflowStepCompleter.stepFailed(taskId, result.getServiceCoded());
             }
-            fsObj.getOpStatus().updateTaskStatus(taskId, result.toOperation());
         } catch (Exception e) {
-            _log.error("Unable to apply file policy: {} to file system: {}",policyURI,fsObj.getId()) ;
+            _log.error("Unable to apply file policy: {} to file system: {}", policyURI, fsObj.getId());
             ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
             WorkflowStepCompleter.stepFailed(taskId, serviceError);
             updateTaskStatus(taskId, fsObj, e);

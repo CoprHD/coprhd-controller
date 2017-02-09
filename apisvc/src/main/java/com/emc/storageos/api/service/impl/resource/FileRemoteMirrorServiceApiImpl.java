@@ -127,11 +127,11 @@ public class FileRemoteMirrorServiceApiImpl extends AbstractFileServiceApiImpl<F
     }
 
     @Override
-    public TaskResourceRep assignFileReplicationPolicyToFS(FileShare fs, FilePolicy filePolicy, Project project, VirtualPool vpool,
+    public TaskResourceRep assignFilePolicyToFileSystem(FileShare fs, FilePolicy filePolicy, Project project, VirtualPool vpool,
             VirtualArray varray,
             TaskList taskList, String task, List<Recommendation> recommendations, VirtualPoolCapabilityValuesWrapper vpoolCapabilities)
             throws InternalException {
-        return getFileMirrorServiceApiImpl().assignFileReplicationPolicyToFS(fs,filePolicy, project, vpool, varray, taskList, task, recommendations,
+        return getFileMirrorServiceApiImpl().assignFilePolicyToFileSystem(fs,filePolicy, project, vpool, varray, taskList, task, recommendations,
                 vpoolCapabilities);
     }
 }

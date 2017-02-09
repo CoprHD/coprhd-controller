@@ -589,7 +589,7 @@ public class FileMirrorServiceApiImpl extends AbstractFileServiceApiImpl<FileMir
     }
 
     @Override
-    public TaskResourceRep assignFileReplicationPolicyToFS(FileShare fs, FilePolicy filePolicy, Project project, VirtualPool vpool,
+    public TaskResourceRep assignFilePolicyToFileSystem(FileShare fs, FilePolicy filePolicy, Project project, VirtualPool vpool,
             VirtualArray varray, TaskList taskList, String task, List<Recommendation> recommendations,
             VirtualPoolCapabilityValuesWrapper vpoolCapabilities) throws InternalException {
         List<FileShare> fileList = null;
@@ -614,7 +614,7 @@ public class FileMirrorServiceApiImpl extends AbstractFileServiceApiImpl<FileMir
                 FileOrchestrationController.FILE_ORCHESTRATION_DEVICE);
         try {
             // Execute the create mirror copies of file share!!!
-            controller.assignFileReplicationPolicyToFS(filePolicy, fileDescriptors, task);
+            controller.assignFilePolicyToFileSystem(filePolicy, fileDescriptors, task);
         } catch (InternalException e) {
             _log.error("Controller error when creating mirror filesystems", e);
             failFileShareCreateRequest(task, taskList, fileShares, e.getMessage());

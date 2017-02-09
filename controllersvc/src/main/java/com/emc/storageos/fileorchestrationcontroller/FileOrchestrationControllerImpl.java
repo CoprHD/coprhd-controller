@@ -138,9 +138,9 @@ public class FileOrchestrationControllerImpl implements FileOrchestrationControl
     }
 
     @Override
-    public void assignFileReplicationPolicyToFS(FilePolicy filePolicy, List<FileDescriptor> fileDescriptors, String taskId)
+    public void assignFilePolicyToFileSystem(FilePolicy filePolicy, List<FileDescriptor> fileDescriptors, String taskId)
             throws ControllerException {
-        execOrchestration("assignFileReplicationPolicyToFS", filePolicy, fileDescriptors, taskId);
+        execOrchestration("assignFilePolicyToFileSystem", filePolicy, fileDescriptors, taskId);
 
     }
 

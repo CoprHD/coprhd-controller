@@ -35,6 +35,12 @@ public class FileDescriptor implements Serializable {
 
     }
 
+    public FileDescriptor(Type type, URI fsURI) {
+        super();
+        this._type = type;
+        this._fsURI = fsURI;
+    }
+
     public FileDescriptor(Type type, URI deviceURI, URI fsURI, URI poolURI,
             String deletionType, boolean forceDelete) {
         super();
@@ -67,7 +73,8 @@ public class FileDescriptor implements Serializable {
     }
 
     public enum Type {
-        /* ******************************
+        /*
+         * ******************************
          * The ordering of these are important for the sortByType() method,
          * be mindful when adding/removing/changing the list.
          */

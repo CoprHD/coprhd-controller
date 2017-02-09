@@ -102,6 +102,9 @@ import com.emc.storageos.db.client.util.FileOperationUtils;
 import com.emc.storageos.db.client.util.NameGenerator;
 import com.emc.storageos.db.client.util.SizeUtil;
 import com.emc.storageos.db.exceptions.DatabaseException;
+import com.emc.storageos.fileorchestrationcontroller.FileDescriptor;
+import com.emc.storageos.fileorchestrationcontroller.FileDescriptor.Type;
+import com.emc.storageos.fileorchestrationcontroller.FileOrchestrationController;
 import com.emc.storageos.filereplicationcontroller.FileReplicationController;
 import com.emc.storageos.model.BulkIdParam;
 import com.emc.storageos.model.BulkRestRep;
@@ -4376,13 +4379,18 @@ public class FileService extends TaskResourceService {
 
     private TaskResourceRep assignFilePolicyToFS(FileShare fs, FilePolicy filePolicy, String task) {
         StorageSystem device = _dbClient.queryObject(StorageSystem.class, fs.getStorageDevice());
-        FileController controller = getController(FileController.class, device.getSystemType());
+        FileOrchestrationController controller = getController(FileOrchestrationController.class,
+                FileOrchestrationController.FILE_ORCHESTRATION_DEVICE);
         Operation op = _dbClient.createTaskOpStatus(FileShare.class, fs.getId(), task,
-                ResourceOperationTypeEnum.ASSIGN_FILE_POLICY);
+                ResourceOperationTypeEnum.ASSIGN_FILE_POLICY_TO_FILE_SYSTEM);
         op.setDescription("assign file policy to file system");
         try {
             _log.info("No Errors found proceeding further {}, {}, {}", new Object[] { _dbClient, fs, filePolicy });
-            controller.applyFilePolicy(device.getId(), fs.getId(), filePolicy.getId(), task);
+            List<FileDescriptor> fileDescriptors = new ArrayList<>();
+            FileDescriptor desc = new FileDescriptor(Type.FILE_EXISTING_SOURCE, fs.getId());
+            fileDescriptors.add(desc);
+            controller.assignFilePolicyToFileSystem(filePolicy, fileDescriptors, task);
+
             auditOp(OperationTypeEnum.ASSIGN_FILE_POLICY, true, AuditLogManager.AUDITOP_BEGIN, fs.getId().toString(),
                     device.getId().toString(), filePolicy.getId());
         } catch (BadRequestException e) {
@@ -4464,7 +4472,7 @@ public class FileService extends TaskResourceService {
 
             // Verify the source virtual pool recommendations meets source fs
             // storage!!!
-            fileServiceApi.assignFileReplicationPolicyToFS(fs, filePolicy, project, vpool, sourceVarray, taskList, task,
+            fileServiceApi.assignFilePolicyToFileSystem(fs, filePolicy, project, vpool, sourceVarray, taskList, task,
                     recommendations, capabilities);
 
         } catch (Exception e) {

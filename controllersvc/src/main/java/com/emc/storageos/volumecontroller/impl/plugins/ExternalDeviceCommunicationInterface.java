@@ -527,7 +527,7 @@ public class ExternalDeviceCommunicationInterface extends
         // could be already populated by scan
         if (storageSystem.getSerialNumber() != null) {
             driverStorageSystem.setSerialNumber(storageSystem.getSerialNumber());
-            _log.info("discoverStorageSystem: set serial number to {}", driverStorageSystem.getSerialNumber());
+            _log.info("discoverRemoteReplicationGroups: set serial number to {}", driverStorageSystem.getSerialNumber());
         }
         // should be already populated by discovery
         if (storageSystem.getNativeId() != null) {

@@ -78,15 +78,21 @@ public class RemoteReplicationPairService extends TaskResourceService {
     @GET
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR })
-    public RemoteReplicationPairList getRemoteReplicationPairs() {
-        _log.info("Called: getRemoteReplicationPairs()");
-        RemoteReplicationPairList rrPairList = new RemoteReplicationPairList();
+    public RemoteReplicationPairList getRemoteReplicationPairs(@QueryParam("storageElement") URI storageElementURI) {
+        RemoteReplicationPairList rrPairList = null;
+        if (storageElementURI != null) {
+            _log.info("Called: getRemoteReplicationPairs() for storage element {}", storageElementURI);
+            rrPairList = getRemoteReplicationPairsForStorageElement(storageElementURI);
+        } else {
+            _log.info("Called: getRemoteReplicationPairs()");
+            rrPairList = new RemoteReplicationPairList();
 
-        List<URI> ids = _dbClient.queryByType(RemoteReplicationPair.class, true);
-        _log.info("Found pairs: {}", ids);
-        Iterator<RemoteReplicationPair> iter = _dbClient.queryIterativeObjects(RemoteReplicationPair.class, ids);
-        while (iter.hasNext()) {
-            rrPairList.getRemoteReplicationPairs().add(toNamedRelatedResource(iter.next()));
+            List<URI> ids = _dbClient.queryByType(RemoteReplicationPair.class, true);
+            _log.info("Found pairs: {}", ids);
+            Iterator<RemoteReplicationPair> iter = _dbClient.queryIterativeObjects(RemoteReplicationPair.class, ids);
+            while (iter.hasNext()) {
+                rrPairList.getRemoteReplicationPairs().add(toNamedRelatedResource(iter.next()));
+            }
         }
         return rrPairList;
     }
@@ -118,11 +124,7 @@ public class RemoteReplicationPairService extends TaskResourceService {
      * @param storageElementURI uri of a storage element
      * @return
      */
-    @GET
-    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    @Path("/with-storage-element")
-    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR })
-    public RemoteReplicationPairList getRemoteReplicationPairsForStorageElement(@QueryParam("storageElement") URI storageElementURI) {
+    private RemoteReplicationPairList getRemoteReplicationPairsForStorageElement(URI storageElementURI) {
         _log.info("Called: getRemoteReplicationPairsForStorageElement() for for storage element {}", storageElementURI);
 
         ArgValidator.checkUri(storageElementURI);

@@ -149,7 +149,6 @@ public class RemoteReplicationSetService extends TaskResourceService {
                     setGroups.add(rrGroup);
                 }
             }
-            setGroups.addAll(rrGroups);
         }
 
         RemoteReplicationGroupList rrGroupList = new RemoteReplicationGroupList();

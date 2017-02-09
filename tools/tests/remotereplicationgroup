@@ -21,10 +21,10 @@ def remotereplicationgroup_create(args):
     print 'Source system uri: ' + source_system_uri
     target_system_uri = bourne.storagedevice_querybynativeguid(args.target_system)
     print 'Target system uri: ' + target_system_uri
-    replicationset_uri = bourne.replicationset_query(args.replicationset_name)
-    print 'Replication set uri: ' + replicationset_uri
+    # replicationset_uri = bourne.replicationset_query(args.replicationset_name)
+    # print 'Replication set uri: ' + replicationset_uri
 
-    s = bourne.replicationgroup_create(replicationset_uri, args.system_type, args.name, args.replication_mode, source_system_uri, target_system_uri)
+    s = bourne.replicationgroup_create(args.system_type, args.name, args.replication_mode, source_system_uri, target_system_uri)
     if (s['state'] == 'ready'):
         print 'Remote replication group created with id ' + s['resource']['id']
     else:
@@ -79,7 +79,7 @@ create_storage_type.add_argument('--driver_class', help = 'Driver class name.')
 
 # remotereplicationgroup create
 create = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
-create.add_argument('replicationset_name', help = 'The name of the parent replication set.')
+#create.add_argument('replicationset_name', help = 'The name of the parent replication set.')
 create.add_argument('system_type', help = 'The name of the storage system type.')
 create.add_argument('name', help = 'The name of the remote replication group.')
 create.add_argument('replication_mode', help = 'The name of the group replication mode.')

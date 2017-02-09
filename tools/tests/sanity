@@ -6915,7 +6915,7 @@ sbsdk_remote_replication_tests()
     REMOTE_REPLICATION_GROUP_NAME=SBSDK_RemoteReplicationGroup-${RANDOM}
 
     echo "**** Creating replication group: $REMOTE_REPLICATION_GROUP_NAME *******"
-    run remotereplicationgroup create $SBSDK_DRIVER_REPLICATION_SET1 $SBSDK_DRIVER_SYS_TYPE $REMOTE_REPLICATION_GROUP_NAME synchronous \
+    run remotereplicationgroup create $SBSDK_DRIVER_SYS_TYPE $REMOTE_REPLICATION_GROUP_NAME synchronous \
                   --source_system $SBSDK_DRIVER_SYS_NATIVEGUID --target_system $SBSDK_DRIVER_SYS_TARGET_NATIVEGUID
 
 

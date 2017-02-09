@@ -206,4 +206,14 @@ public class RemoteReplicationConfiguration {
 
         return replicationSets;
     }
+
+    public static List<RemoteReplicationGroup> getRemoteReplicationGroups() {
+        List<RemoteReplicationGroup> replicationGroups = new ArrayList<>();
+        replicationGroups.add(replicationGroup1_set1);
+        replicationGroups.add(replicationGroup2_set1);
+        replicationGroups.add(replicationGroup1_set2);
+        replicationGroups.add(replicationGroup2_set2);
+
+        return replicationGroups;
+    }
 }

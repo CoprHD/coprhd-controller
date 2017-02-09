@@ -1084,6 +1084,22 @@ public class StorageDriverSimulator extends DefaultStorageDriver implements Bloc
     }
 
     @Override
+    public DriverTask discoverRemoteReplicationGroups(StorageSystem driverStorageSystem, List<RemoteReplicationGroup> remoteReplicationGroups)
+    {
+        remoteReplicationGroups.addAll(RemoteReplicationConfiguration.getRemoteReplicationGroups());
+        String driverName = this.getClass().getSimpleName();
+        String taskId = String.format("%s+%s+%s", driverName, "discoverRemoteReplicationGroups", UUID.randomUUID().toString());
+        DriverTask task = new DefaultDriverTask(taskId);
+        task.setStatus(DriverTask.TaskStatus.READY);
+
+        String msg = String.format("discoverRemoteReplicationGroups: Groups found: %s", remoteReplicationGroups);
+        _log.info(msg);
+        task.setMessage(msg);
+        return task;
+    }
+
+
+    @Override
     public boolean validateStorageProviderConnection(StorageProvider storageProvider) {
         String msg = String.format("Request to validate connection to storage provider with type: %s, host: %s, port: %s ",
                 storageProvider.getProviderType(), storageProvider.getProviderHost(), storageProvider.getPortNumber());

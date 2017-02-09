@@ -12,12 +12,18 @@ import com.emc.storageos.db.client.model.Cf;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.Name;
+import com.emc.storageos.db.client.model.NamedRelationIndex;
+import com.emc.storageos.db.client.model.NamedURI;
+import com.emc.storageos.db.client.model.Project;
+import com.emc.storageos.db.client.model.ProjectResource;
 import com.emc.storageos.db.client.model.RelationIndex;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
 
+import javax.xml.bind.annotation.XmlTransient;
+
 @Cf("RemoteReplicationGroup")
-public class RemoteReplicationGroup extends DiscoveredDataObject {
+public class RemoteReplicationGroup extends DiscoveredDataObject implements ProjectResource {
 
     // native id of this group
     private String nativeId;
@@ -33,6 +39,12 @@ public class RemoteReplicationGroup extends DiscoveredDataObject {
 
     // Display name of this replication group (when provisioned by the system).
     private String displayName;
+
+    // Tenant who owns this group
+    private NamedURI tenant;
+
+    // Project this group is associated with
+    private NamedURI project;
 
     // Source storage system of this group
     private URI sourceSystem;
@@ -101,6 +113,30 @@ public class RemoteReplicationGroup extends DiscoveredDataObject {
     public void setDisplayName(String displayName) {
         this.displayName = displayName;
         setChanged("displayName");
+    }
+
+    @NamedRelationIndex(cf = "NamedRelation", type = Project.class)
+    @Name("project")
+    public NamedURI getProject() {
+        return project;
+    }
+
+    public void setProject(NamedURI project) {
+        this.project = project;
+        setChanged("project");
+    }
+
+    @Override
+    @XmlTransient
+    @NamedRelationIndex(cf = "NamedRelation")
+    @Name("tenant")
+    public NamedURI getTenant() {
+        return tenant;
+    }
+
+    public void setTenant(NamedURI tenant) {
+        this.tenant = tenant;
+        setChanged("tenant");
     }
 
     @RelationIndex(cf = "RRGroupSourceSystem", type = StorageSystem.class)

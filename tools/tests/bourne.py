@@ -515,7 +515,7 @@ URI_REMOTEREPLICATIONSET_LIST            = URI_SERVICES_BASE   + '/vdc/block/rem
 URI_REMOTEREPLICATIONSET_INSTANCE        = URI_SERVICES_BASE   + '/vdc/block/remotereplicationsets/{0}'
 URI_REMOTEREPLICATIONGROUP_LIST            = URI_SERVICES_BASE   + '/vdc/block/remotereplicationgroups'
 URI_REMOTEREPLICATIONGROUP_INSTANCE        = URI_SERVICES_BASE   + '/vdc/block/remotereplicationgroups/{0}'
-URI_REMOTEREPLICATIONGROUP_CREATE        = URI_SERVICES_BASE   + '/vdc/block/remotereplicationsets/{0}/create-group'
+URI_REMOTEREPLICATIONGROUP_CREATE        = URI_SERVICES_BASE   + '/vdc/block/remotereplicationgroups/create-group'
 URI_REMOTEREPLICATIONGROUP_FAILOVER        = URI_SERVICES_BASE   + '/vdc/block/remotereplicationgroups/{0}/failover'
 URI_REMOTEREPLICATIONGROUP_TASK          = URI_SERVICES_BASE   + '/vdc/block/remotereplicationgroups/{0}/tasks/{1}'
 URI_STORAGE_SYSTEM_TYPE_CREATE           = URI_SERVICES_BASE   + '/vdc/storage-system-types/internal'
@@ -9343,17 +9343,17 @@ class Bourne:
                 return replicationgroup['id']
         raise Exception('bad remote replication group name ' + name)
 
-    def replicationgroup_create(self, replicationset_uri, systemtype, name, replicationmode, sourcesystem_uri, targetsystem_uri):
+    def replicationgroup_create(self, systemtype, name, replicationmode, sourcesystem_uri, targetsystem_uri):
 
         parms = {
-            'storage_system_type'   : systemtype,
             'name'      : name,
             'replication_mode'   : replicationmode,
             'source_system'       : sourcesystem_uri,
-            'target_system'	   : targetsystem_uri
+            'target_system'	   : targetsystem_uri,
+            'storage_system_type'   : systemtype
         }
 
-        o = self.api('POST', URI_REMOTEREPLICATIONGROUP_CREATE.format(replicationset_uri), parms)
+        o = self.api('POST', URI_REMOTEREPLICATIONGROUP_CREATE, parms)
         self.assert_is_dict(o)
         print '@@@@: ' + str(o) + ' :@@@@'
         s = self.api_sync_2(o['resource']['id'], o['op_id'], self.replicationgroup_show_task)

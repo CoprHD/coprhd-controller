@@ -66,8 +66,12 @@ public class Workflow implements Serializable {
     Boolean _suspendOnError = true; // suspend on error (rather than rollback)
     private WorkflowState _workflowState;
     Set<URI> _suspendSteps = new HashSet<URI>(); // Steps that initiate workflow suspend
+    private Boolean _rollingBackFromSuspend = false;  // Set during rollback initiated from suspend, transient
+    private Boolean _treatSuspendRollbackAsTerminate = false;
+    
 
     // Define the serializable, persistent fields save in ZK
+    
     private static final ObjectStreamField[] serialPersistentFields = {
             new ObjectStreamField("_orchControllerName", String.class),
             new ObjectStreamField("_orchMethod", String.class),
@@ -88,8 +92,9 @@ public class Workflow implements Serializable {
             new ObjectStreamField("_stepStatusMap", Map.class),
             new ObjectStreamField("_suspendOnError", Boolean.class),
             new ObjectStreamField("_workflowState", WorkflowState.class),
-            new ObjectStreamField("_suspendSteps", Set.class)
-    };
+            new ObjectStreamField("_suspendSteps", Set.class),
+            new ObjectStreamField("_treatSuspendRollbackAsTerminate", Boolean.class)    
+            };
 
     private static final Logger _log = LoggerFactory.getLogger(Workflow.class);
 
@@ -1094,6 +1099,22 @@ public class Workflow implements Serializable {
             return;
         }
         step.suspendedMessage = suspendedMessage;
+    }
+
+    public boolean isTreatSuspendRollbackAsTerminate() {
+        return _treatSuspendRollbackAsTerminate;
+    }
+
+    public void setTreatSuspendRollbackAsTerminate(boolean treatSuspendRollbackAsTerminate) {
+        this._treatSuspendRollbackAsTerminate = treatSuspendRollbackAsTerminate;
+    }
+
+    public boolean isRollingBackFromSuspend() {
+        return _rollingBackFromSuspend;
+    }
+
+    public void setRollingBackFromSuspend(boolean rollingBackFromSuspend) {
+        this._rollingBackFromSuspend = rollingBackFromSuspend;
     }
 
 }

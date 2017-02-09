@@ -995,6 +995,7 @@ public class BlockDeviceExportController implements BlockExportController {
                 if (waitBeforeRemovePaths) {
                     // Insert a step that will be suspended. When it resumes, it will re-acquire the lock keys,
                     // which are released when the workflow suspends.
+                    workflow.setTreatSuspendRollbackAsTerminate(true);
                     String suspendMessage = "Adjust/rescan host/cluster paths. Press \"Resume\" to start removal of unnecessary paths."
                             + "\"Rollback\" will terminate the order without removing paths, leaving the added paths in place.";
                     Workflow.Method method = WorkflowService.acquireWorkflowLocksMethod(lockKeys, 

@@ -726,6 +726,12 @@ public class WorkflowService implements WorkflowController {
         _log.info(String.format("Workflow %s overall state: %s (%s)",
                 workflow.getOrchTaskId(), state, errorMessage[0]));
         ServiceError error = Workflow.getOverallServiceError(statusMap);
+        
+        // Check for user requested terminate
+        if (state == WorkflowState.ERROR && error == null && workflow.isRollingBackFromSuspend() && workflow.isTreatSuspendRollbackAsTerminate()) {
+            WorkflowException exception = WorkflowException.exceptions.workflowTerminatedByRequest();
+            error = ServiceError.buildServiceError(exception.getServiceCode(), exception.getLocalizedMessage());
+        }
 
         // Initiate rollback if needed.
         if (automaticRollback && !workflow.isRollbackState() &&
@@ -2308,6 +2314,7 @@ public class WorkflowService implements WorkflowController {
             InterProcessLock workflowLock = null;
             try {
                 workflowLock = lockWorkflow(workflow);
+                workflow.setRollingBackFromSuspend(true);;
                 boolean rollBackStarted = initiateRollback(workflow);
                 if (rollBackStarted) {
                     _log.info(String.format("Rollback initiated workflow %s", uri));

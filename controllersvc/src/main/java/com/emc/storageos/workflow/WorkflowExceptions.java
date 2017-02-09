@@ -56,4 +56,7 @@ public interface WorkflowExceptions {
     
     @DeclareServiceCode(ServiceCode.WORKFLOW_CANNOT_ACQUIRE_LOCK)
     public WorkflowException workflowCannotAcquireLock(final String lockKeys);
+    
+    @DeclareServiceCode(ServiceCode.WORKFLOW_TERMINATED_BY_REQUEST)
+    public WorkflowException workflowTerminatedByRequest();
 }

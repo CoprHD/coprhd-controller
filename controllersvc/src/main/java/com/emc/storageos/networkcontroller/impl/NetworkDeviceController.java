@@ -2722,12 +2722,14 @@ public class NetworkDeviceController implements NetworkController {
     }
     
     /**
-     * Adds paths to the export mask.
-     * 
-     * @param exportGroupURI
-     * @param exportMaskURI
-     * @param newPaths - new paths to be added
-     * @return
+     * Method for the zoning for adding paths to mask.
+     * @param systemURI -- Storage system URI
+     * @param exportGroupURI -- Export Group URI
+     * @param exportMaskURIs -- List of ExportMask URIs
+     * @param newPaths -- Zoning map of the new paths to be added
+     * @param taskCompleter -- Task completer to be called
+     * @return true if successful
+     * @throws ControllerException
      */
     public Workflow.Method zoneExportAddPathsMethod(URI systemURI, URI exportGroupURI, Collection<URI> exportMasks, 
             Map<URI, List<URI>> newPaths, TaskCompleter taskCompleter) {
@@ -2735,13 +2737,14 @@ public class NetworkDeviceController implements NetworkController {
     }
 
     /**
-     * Handle zoning for adding new paths to export mask.
-     * 
-     * @param exportGroup -- Used for the zone references.
-     * @param exportMaskURI - ExportMask URI
-     * @param newPaths - new paths to be added
-     * @param token Workflow step id
-     * @return true if success, false otherwise
+     * Handle zoning when adding paths to ExportMasks
+     * @param systemURI -- Storage system URI
+     * @param exportGroupURI -- Export Group URI
+     * @param exportMaskURIs -- List of ExportMask URIs
+     * @param newPaths -- Zoning map of the new paths to be added
+     * @param taskCompleter -- Task completer to be called
+     * @param token -- Step id
+     * @return true if successful
      * @throws ControllerException
      */
     public boolean zoneExportAddPaths(URI systemURI, URI exportGroupURI,
@@ -2798,17 +2801,22 @@ public class NetworkDeviceController implements NetworkController {
     }
     
     /**
-     * Adds paths to the export mask.
-     * 
-     * @param exportGroupURI
-     * @param exportMaskURI
-     * @param newPaths - new paths to be added
-     * @return
+     * Method for handling zoning when removing paths
+     * @param zoningParam -- List of NetworkZoningParam
+     * @param taskCompleter -- TaskCompleter to be called
+     * @return true if successful
      */
     public Workflow.Method zoneExportRemovePathsMethod(List<NetworkZoningParam> zoningParam, TaskCompleter taskCompleter) {
         return new Workflow.Method("zoneExportRemovePaths", zoningParam, taskCompleter);
     }
     
+    /**
+     * Handle zoning when removing paths from export masks
+     * @param zoningParams NetworkZoningParam list
+     * @param taskCompleter -- Task completer to be called
+     * @param token -- Step id
+     * @return true if successful
+     */
     public boolean zoneExportRemovePaths(List<NetworkZoningParam> zoningParams, TaskCompleter taskCompleter, String token) {
         if (zoningParams.isEmpty()) {
             _log.info("zoningParams is empty, returning");

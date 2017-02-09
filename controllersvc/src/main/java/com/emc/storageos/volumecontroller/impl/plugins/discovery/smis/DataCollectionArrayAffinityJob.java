@@ -108,4 +108,26 @@ public class DataCollectionArrayAffinityJob extends DataCollectionJob implements
     public List<URI> getSystemIds() {
         return _systemIds;
     }
+    
+    private boolean uriListsMatch(List<URI> list1, List<URI> list2) {
+        if (list1 == null && list2 == null) {
+            return true;
+        }
+        if ((list1 == null && list2 != null)
+                || (list1 != null && list2 == null)
+                || list1.size() != list2.size()) {
+            return false;
+        }
+        
+        return list1.containsAll(list2);
+    }
+    
+    @Override
+    public boolean matches(DataCollectionJob job) {
+        return (this.getClass().equals(job.getClass())
+                && getCompleter().getJobType().equals(job.getCompleter().getJobType())
+                && getNamespace().equals(job.getNamespace())
+                && uriListsMatch(getHostIds(), ((DataCollectionArrayAffinityJob) job).getHostIds())
+                && uriListsMatch(getSystemIds(), ((DataCollectionArrayAffinityJob) job).getSystemIds()) );
+    }
 }

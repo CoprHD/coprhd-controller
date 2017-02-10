@@ -400,9 +400,10 @@ public class StoragePort extends VirtualArrayTaggedResource implements Comparabl
     }
     
     /**
-     * Check if the storage port is usable
-     * 
-     * @return
+     * Check if the storage port is usable for port allocation:
+     * must be COMPATIBLE, VISBLE, have a network ID,
+     * be registered, and type front end.
+     * @return true if the port is usable
      */
     public boolean isUsable() {
         URI portNetworkId = getNetwork();

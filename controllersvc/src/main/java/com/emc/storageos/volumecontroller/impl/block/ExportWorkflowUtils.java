@@ -26,7 +26,6 @@ import com.emc.storageos.db.client.model.DiscoveredSystemObject;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.Host;
-import com.emc.storageos.db.client.model.Host.HostType;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.ProtectionSystem;
 import com.emc.storageos.db.client.model.StorageSystem;
@@ -726,13 +725,13 @@ public class ExportWorkflowUtils {
     /**
      * Generate workflow step for add path zoning
      * 
-     * @param workflow
-     * @param wfGroupId
-     * @param storageURI
-     * @param exportGroupURI
+     * @param workflow -- workflow step to be added to
+     * @param wfGroupId -- worflow group id
+     * @param storageURI -- Storage System URI
+     * @param exportGroupURI -- Export Group URI
      * @param adjustedPaths - The paths going to be added and/or retained
-     * @param waitFor
-     * @return
+     * @param waitFor -- wait for this previous step
+     * @return stepId that was generated
      * @throws ControllerException
      */
     public String generateZoningAddPathsWorkflow(Workflow workflow, String wfGroupId, URI systemURI, URI exportGroupURI, 

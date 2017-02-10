@@ -861,8 +861,13 @@ public final class FileOrchestrationUtils {
         return targetHost;
     }
 
-    public static List<URI> getVNASServersOfStorageSystemAndVarrayOfVpool(DbClient dbClient, URI storageSystemURI, URI vpoolURI) {
+    public static List<URI> getVNASServersOfStorageSystemAndVarrayOfVpool(DbClient dbClient, URI storageSystemURI, URI vpoolURI,
+            URI projectURI) {
         VirtualPool vpool = dbClient.queryObject(VirtualPool.class, vpoolURI);
+        Project project = null;
+        if (projectURI != null) {
+            project = dbClient.queryObject(Project.class, projectURI);
+        }
         StringSet varraySet = vpool.getVirtualArrays();
         URIQueryResultList vNasURIs = new URIQueryResultList();
         List<URI> vNASURIList = new ArrayList<URI>();
@@ -875,6 +880,13 @@ public final class FileOrchestrationUtils {
             VirtualNAS vNas = dbClient.queryObject(VirtualNAS.class,
                     vNasURI);
             if (vNas != null && !vNas.getInactive()) {
+                // Dont pick the other project nas servers!!!
+                if (project != null && vNas.getAssociatedProjects() != null && !vNas.getAssociatedProjects().isEmpty()) {
+                    if (!vNas.getAssociatedProjects().contains(project.getId().toString())) {
+                        _log.info("vNas server {} assigned to other project, so ignoring this vNas server", vNas.getNasName());
+                        continue;
+                    }
+                }
                 StringSet vNASVarraySet = vNas.getAssignedVirtualArrays();
                 if (varraySet != null && !varraySet.isEmpty() && vNASVarraySet != null) {
 

@@ -133,7 +133,7 @@ public class FilePolicyServiceUtils {
                     break;
                 case MONTHS:
                     if (policyScheduleparams.getScheduleDayOfMonth() != null
-                            && policyScheduleparams.getScheduleDayOfMonth() > 0 && policyScheduleparams.getScheduleDayOfMonth() <= 31) {
+                    && policyScheduleparams.getScheduleDayOfMonth() > 0 && policyScheduleparams.getScheduleDayOfMonth() <= 31) {
                         schedulePolicy.setScheduleDayOfMonth((long) policyScheduleparams.getScheduleDayOfMonth());
                         schedulePolicy.setScheduleRepeat((long) policyScheduleparams.getScheduleRepeat());
                         schedulePolicy.setScheduleTime(policyScheduleparams.getScheduleTime() + period);
@@ -237,7 +237,7 @@ public class FilePolicyServiceUtils {
                     break;
                 case MONTHS:
                     if (policyScheduleparams.getScheduleDayOfMonth() != null
-                            && policyScheduleparams.getScheduleDayOfMonth() <= 0 || policyScheduleparams.getScheduleDayOfMonth() > 31) {
+                    && policyScheduleparams.getScheduleDayOfMonth() <= 0 || policyScheduleparams.getScheduleDayOfMonth() > 31) {
                         errorMsg.append("required parameter schedule_day_of_month is missing or value is invalid");
                         return false;
                     }
@@ -491,6 +491,7 @@ public class FilePolicyServiceUtils {
             for (String strPolicy : project.getFilePolicies()) {
                 FilePolicy policy = dbClient.queryObject(FilePolicy.class, URI.create(strPolicy));
                 if (policy.getFilePolicyType().equalsIgnoreCase(FilePolicyType.file_replication.name())
+                        && policy.getFilePolicyVpool() != null
                         && policy.getFilePolicyVpool().toString().equalsIgnoreCase(vpoolURI.toString())) {
                     _log.info("Replication policy found for vpool {} and project {}", vpoolURI.toString(), project.getLabel());
                     return true;

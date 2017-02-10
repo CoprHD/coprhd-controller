@@ -2262,4 +2262,75 @@ public class ExportUtils {
             }
         }
     }
+
+    /**
+     * Get all LUNs on the array that mapped to a host identified by initiators in the mask
+     *
+     * @param dbClient
+     * @param exportMask
+     * @return LUNs mapped to the host
+     */
+    public static Set<String> getAllLUNsForHost(DbClient dbClient, ExportMask exportMask) {
+        Set<String> lunIds = new HashSet<>();
+        URI storageUri = exportMask.getStorageDevice();
+        if (NullColumnValueGetter.isNullURI(storageUri)) {
+            return lunIds;
+        }
+
+        URI hostUri = null;
+        for (String init : exportMask.getInitiators()) {
+            Initiator initiator = dbClient.queryObject(Initiator.class, URI.create(init));
+            if (initiator != null && !initiator.getInactive()) {
+                hostUri = initiator.getHost();
+                if (!NullColumnValueGetter.isNullURI(hostUri)) {
+                    break;
+                }
+            }
+        }
+
+        // get initiators from host
+        Map<URI, ExportMask> exportMasks = new HashMap<>();
+        if (!NullColumnValueGetter.isNullURI(hostUri)) {
+            URIQueryResultList list = new URIQueryResultList();
+            dbClient.queryByConstraint(ContainmentConstraint.Factory.getContainedObjectsConstraint(hostUri, Initiator.class, "host"), list);
+            Iterator<URI> uriIter = list.iterator();
+            while (uriIter.hasNext()) {
+                URI initiatorId = uriIter.next();
+                URIQueryResultList egUris = new URIQueryResultList();
+                dbClient.queryByConstraint(AlternateIdConstraint.Factory.
+                        getExportGroupInitiatorConstraint(initiatorId.toString()), egUris);
+                ExportGroup exportGroup = null;
+                for (URI egUri : egUris) {
+                    exportGroup = dbClient.queryObject(ExportGroup.class, egUri);
+                    if (exportGroup == null || exportGroup.getInactive() || exportGroup.getExportMasks() == null) {
+                        continue;
+                    }
+                    List<ExportMask> masks = ExportMaskUtils.getExportMasks(dbClient, exportGroup);
+                    for (ExportMask mask : masks) {
+                        if (mask != null &&
+                                !mask.getInactive() &&
+                                mask.hasInitiator(initiatorId.toString()) &&
+                                mask.getVolumes() != null &&
+                                storageUri.equals(mask.getStorageDevice())) {
+                            exportMasks.put(mask.getId(), mask);
+                        }
+                    }
+                }
+            }
+        }
+
+        for (ExportMask mask : exportMasks.values()) {
+            StringMap volumeMap = mask.getVolumes();
+            if (volumeMap != null && !volumeMap.isEmpty()) {
+                for (String strUri : mask.getVolumes().keySet()) {
+                    BlockObject bo = BlockObject.fetch(dbClient, URI.create(strUri));
+                    if (bo != null && !bo.getInactive()) {
+                        lunIds.add(bo.getNativeId());
+                    }
+                }
+            }
+        }
+
+        return lunIds;
+    }
 }

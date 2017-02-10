@@ -1591,7 +1591,6 @@ angular.module("portalApp").controller("MyOrdersCtrl", function ($scope) {
     var ORDER_MY_LIST = routes.Order_list();
     console.info($scope);
     var dateFormat = "YYYY-MM-DD";
-    var watchFlag = false;
 
     var dateDaysAgo = $scope.dateDaysAgo;
     var startDate = $scope.startDate;
@@ -1605,30 +1604,24 @@ angular.module("portalApp").controller("MyOrdersCtrl", function ($scope) {
         });
     });
 
-    $scope.$watch('rangeEndDate', function (newVal, oldVal) {
-        console.info("vals " + oldVal + "\t|" + newVal + "\t|" + $scope.rangeStartDate + "\t|" + $scope.rangeEndDate);
-        if (watchFlag === false || oldVal === undefined || oldVal === newVal) {
-            watchFlag = false;
-            return;
-        } else if (newVal < $scope.rangeStartDate) {
+    angular.element("#endDatePicker").on("change", "input[type=text]", function(e) {
+        // Close the datepicker once a date is selected
+    	//watchFlag = true;
+    	var newEndVal = angular.element("#endDatePicker").find("input[type=text]").val();
+    	console.info("vals on change: " + $scope.rangeStartDate + "\t|" + 
+    			$scope.rangeEndDate+"\t"+ newEndVal);
+    	if (newEndVal < $scope.rangeStartDate) {
             alert("The End Date must be not earlier than the Start Date, please re-select.");
-            watchFlag = false;
             return;
         } else {
-            console.info("vals22 " + oldVal + "\t|" + newVal);
             var url = ORDER_MY_LIST + "?startDate=" + encodeURIComponent($scope.rangeStartDate) +
-                "&endDate=" + encodeURIComponent($scope.rangeEndDate);
+                "&endDate=" + encodeURIComponent(newEndVal);
             $('.bfh-datepicker-toggle input').attr("readonly", true);
             $('date-picker').click(false);
 
             console.info(url);
             window.location.href = url;
         }
-    });
-
-    angular.element("#endDatePicker").on("click", "table", function (e) {
-        console.info("endDatePicker click listener");
-        watchFlag = true;
     });
 
 });

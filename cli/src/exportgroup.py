@@ -22,8 +22,12 @@ from cluster import Cluster
 from hostinitiators import HostInitiator
 from host import Host
 from virtualarray import VirtualArray
+from storageport import Storageport
+from storagesystem import StorageSystem
 import uuid
 import json
+import pprint
+import argparse
 
 
 class ExportGroup(object):
@@ -39,9 +43,12 @@ class ExportGroup(object):
     URI_EXPORT_GROUP_UPDATE = '/block/exports/{0}'
     URI_EXPORT_GROUP_TASKS_LIST = '/block/exports/{0}/tasks'
     URI_EXPORT_GROUP_TASK = URI_EXPORT_GROUP_TASKS_LIST + '/{1}'
+    URI_EXPORT_GROUP_PATH_ADJUSTMENT_PREVIEW = URI_EXPORT_GROUPS_SHOW +  '/paths-adjustment-preview'
+    URI_EXPORT_GROUP_PATH_ADJUSTMENT = URI_EXPORT_GROUPS_SHOW +  '/paths-adjustment'
     # 'Exclusive' is for backward compatibility only
     EXPORTGROUP_TYPE = ['Initiator', 'Host', 'Cluster', 'Exclusive']
     URI_EXPORT_GROUP_TAG = URI_EXPORT_GROUPS_SHOW + '/tags'
+    PATH_ADJ_OPERATION = False 
 
     def __init__(self, ipAddr, port):
         '''
@@ -703,8 +710,265 @@ class ExportGroup(object):
         )
 
 
-# Export Group Create routines
+    '''
+    Export Group Path adjustment and Preview calls
+    '''
 
+    # Common rou:wtine to build the parameters for path_adjustment and path_adjustment_preview
+    def exportgroup_pathadjustment_parms(self, name, project, tenant, storagesystem, varray,
+                    minpaths, maxpaths, pathsperinitiator, maxinitiatorsperport,
+                    storageports, useexisting, hosts, verbose, wait, dorealloc):
+        varrayuri = None
+        if(varray):
+            varrayObject = VirtualArray(self.__ipAddr, self.__port)
+            varrayuri = varrayObject.varray_query(varray)
+
+        exportgroup_uri = self.exportgroup_query(name,
+                                                 project, tenant, varrayuri)
+	ssobj = StorageSystem(self.__ipAddr, self.__port)
+        storagesystem_uri = ssobj.query_by_serial_number(storagesystem)
+        parms = {}
+        parms['storage_system'] = storagesystem_uri
+        parms['virtual_array'] = varrayuri
+
+        path_parameters = {}
+
+        if (maxpaths):
+            path_parameters['max_paths'] = maxpaths
+        if (minpaths):
+            path_parameters['min_paths'] = minpaths
+        if(pathsperinitiator is not None):
+            path_parameters['paths_per_initiator'] = pathsperinitiator
+        if (maxinitiatorsperport):
+            path_parameters['max_initiators_per_port'] = maxinitiatorsperport
+
+        if(storageports):
+            storageport_uris = []
+            storageportobj = Storageport(self.__ipAddr, self.__port)
+            for storageport in storageports:
+                 storageport_uri = storageportobj.storageport_query(storagesystem_uri, storageport)
+                 sp = storageportobj.storageport_show_id(storagesystem_uri, storageport_uri)
+                 storageport_uris.append(sp['id'])
+
+            path_parameters['storage_ports'] = storageport_uris
+
+        if(maxpaths):
+            parms['path_parameters'] = path_parameters
+
+	if (not dorealloc):
+	   if (hosts):
+   	   	host_uris =[]
+	    	hostobj = Host(self.__ipAddr, self.__port)
+		for host in hosts:
+			host_uri = hostobj.query_by_name(host)
+			host_uris.append(host_uri)
+		parms['hosts'] = host_uris
+
+	   parms['use_existing_paths'] = useexisting
+	   return parms
+
+	if (dorealloc):
+		parms['wait_before_remove_paths'] = wait
+
+		#Call Preview first to fetch all the paths. 
+ 		rep = self.exportgroup_pathadjustment(name, project, tenant,
+                                               storagesystem, varray, 
+                                               minpaths, maxpaths, pathsperinitiator,
+                                               maxinitiatorsperport, storageports, useexisting, hosts, verbose, None, False)
+		adjustedpaths = rep['adjusted_paths']
+	    	adjusted_paths = []
+	    	for path in adjustedpaths:
+			adjusted_path = {}
+			adjusted_path['initiator'] = path['initiator']['id']
+			adjusted_ports = []
+			for port in path['storage_ports']:
+		    		#print path['initiator']['hostname'], path['initiator']['initiator_port'],port['name']
+		    		adjusted_ports.append(port['id'])
+			adjusted_path['storage_ports'] = adjusted_ports
+			adjusted_paths.append(adjusted_path)   
+
+	    	removedPaths=rep['removed_paths']
+		removed_paths = []
+		for path in removedPaths:
+			removed_path = {}
+			removed_path['initiator'] = path['initiator']['id']
+			removed_ports = []
+			for port in path['storage_ports']:
+			    #print path['initiator']['hostname'], path['initiator']['initiator_port'],port['name']
+			    removed_ports.append(port['id'])
+			removed_path['storage_ports'] = removed_ports
+			removed_paths.append(removed_path)
+
+        	parms['adjusted_paths'] = adjusted_paths
+        	parms['removed_paths'] = removed_paths
+	return parms
+
+    def exportgroup_pathadjustment(self, name, project, tenant, storagesystem, varray, 
+				   minpaths, maxpaths, pathsperinitiator, maxinitiatorsperport,
+		 		   storageports, useexistingpaths, hosts, verbose, wait, dorealloc):
+
+	parms = {}
+	varrayuri = None
+	if(varray):
+	    varrayObject = VirtualArray(self.__ipAddr, self.__port)
+	    varrayuri = varrayObject.varray_query(varray)
+
+	exportgroup_uri = self.exportgroup_query(name,
+						 project, tenant, varrayuri)
+
+	# PATH_ADJ_OPERATION is a boolean to keep track of what operation is being invoked.
+	# Since path adjustment also invokes preview, we storage this so that we can always display the output of preview and 
+        # display path_adjustment output only when verbose flag is passed in true.
+	if (dorealloc):
+		self.PATH_ADJ_OPERATION = True 
+
+	parms = self.exportgroup_pathadjustment_parms(name, project, tenant, storagesystem, varray, 
+						      minpaths, maxpaths, pathsperinitiator, maxinitiatorsperport, 
+						      storageports, useexistingpaths, hosts, verbose, wait, dorealloc)
+
+	body = json.dumps(parms)
+
+	operation = 'ExportGroup Path Adjustment' 
+	if (dorealloc):
+		(s, h) = common.service_json_request(self.__ipAddr,
+						     self.__port, "PUT",
+						     self.URI_EXPORT_GROUP_PATH_ADJUSTMENT.format(exportgroup_uri),
+						     body)
+	else:
+		operation += (' Preview')
+		(s, h) = common.service_json_request(self.__ipAddr,
+						     self.__port, "POST",
+						     self.URI_EXPORT_GROUP_PATH_ADJUSTMENT_PREVIEW.format(exportgroup_uri),
+						     body)
+        output = common.json_decode(s)
+
+
+
+	# Display output when verbose is set to true or if the operation is Preview.
+ 	if (verbose or not self.PATH_ADJ_OPERATION):
+    		print operation
+		print json.dumps(output, sort_keys=True, indent=4) 
+	 	print ' '
+
+	# If opeation is path_adjustment and wait is true and no verbose option selected, then display the task id of the suspended task
+	if (not verbose and self.PATH_ADJ_OPERATION):
+		if (output.get('id')) :
+    		    print operation
+		    print 'There are tasks (URIs listed below) that are suspended as part of this operation. Manually resume the tasks.'
+		    print  output['id']
+
+	return output
+
+def exportgroup_pathadjustment_parser(subcommand_parsers, common_parser):
+	# path adjustment command parser
+	path_adjustment_preview_parser = subcommand_parsers.add_parser(
+						'path_adjustment_preview',
+						description='ViPR Export Group Paths Adjustment Preview usage.',
+						parents=[common_parser],
+						conflict_handler='resolve',
+						help='Export group paths adjustment preview')
+	mandatory_args = path_adjustment_preview_parser.add_argument_group('mandatory arguments')
+	mandatory_args.add_argument('-name', '-n',
+			       metavar='<exportgroupname>',
+			       dest='name',
+			       help='name of Export Group',
+			       required=True)
+	mandatory_args.add_argument('-project', '-pr',
+			       metavar='<projectname>',
+			       dest='project',
+			       help='container project name',
+			       required=True)
+	mandatory_args.add_argument('-storagesystem', '-ss',
+			       metavar='<storagesystem>',
+			       dest='storagesystem',
+			       help='serial number of storagesystem in export that is adjusted',
+			       required=True)
+	mandatory_args.add_argument('-maxpaths', '-maxp',
+			       metavar='<maxpaths>',
+			       dest='maxpaths',
+			       help='max paths', 
+			       required=True)
+	mandatory_args.add_argument('-varray', '-va',
+			       metavar='<varray>',
+			       dest='varray',
+			       help='virtual array for export',
+			       required=True)
+	path_adjustment_preview_parser.add_argument('-tenant', '-tn',
+			       metavar='<tenantname>',
+			       dest='tenant',
+			       help='container tenant name')
+	path_adjustment_preview_parser.add_argument('-minpaths', '-minp',
+			       metavar='<minpaths>',
+			       dest='minpaths',
+			       help='min paths')
+	path_adjustment_preview_parser.add_argument('-pathsperinitiator', '-ppi',
+			       metavar='<pathsperinitiator>',
+			       dest='pathsperinitiator',
+			       help='paths per initiator')
+	path_adjustment_preview_parser.add_argument('-storageports', '-sp',
+			       metavar='<storageports>',
+			       dest='storageports',
+			       nargs='+',
+			       help='list of storage ports')
+	path_adjustment_preview_parser.add_argument('-useexistingpaths', '-useex',
+			       metavar='<useexistingpaths>',
+			       dest='useexistingpaths',
+			       default=False,
+			       help='use existing paths')
+	path_adjustment_preview_parser.add_argument('-verbose', '-vb',
+			       metavar='<verbose>',
+			       dest='verbose',
+			       default=False,
+			       help='Print verbose output')
+	path_adjustment_preview_parser.add_argument('-maxinitiatorsperport', '-maxipp',
+			       metavar='<maxinitiatorsperport>',
+			       dest='maxinitiatorsperport',
+			       help=argparse.SUPPRESS)
+	path_adjustment_preview_parser.add_argument('-hosts', '-hosts',
+			       metavar='<hosts>',
+			       dest='hosts',
+			       nargs='+',
+			       help=argparse.SUPPRESS)
+
+	#Path Adjustment parser, using preview parser as parent
+	path_adjustment_parser = subcommand_parsers.add_parser(
+					'path_adjustment',
+					description='ViPR Export Group Paths Adjustment usage.',
+					parents=[path_adjustment_preview_parser],
+					conflict_handler='resolve',
+					help='Export group paths adjustment')
+
+	path_adjustment_parser.add_argument('-wait', '-w',
+					metavar='<wait>',
+					dest='wait',
+					default=False,
+					help='Wait before removal of paths')
+
+	path_adjustment_parser.set_defaults(func=exportgroup_pathadjustment)
+	path_adjustment_preview_parser.set_defaults(func=exportgroup_pathadjustment_preview)
+
+def exportgroup_pathadjustment(args):
+    try:
+	obj = ExportGroup(args.ip, args.port)
+	obj.exportgroup_pathadjustment(args.name, args.project, args.tenant,
+				       args.storagesystem, args.varray,
+				       args.minpaths, args.maxpaths, args.pathsperinitiator, 
+				       args.maxinitiatorsperport, args.storageports, args.useexistingpaths, args.hosts, args.verbose, args.wait, True)
+    except SOSError as e:
+	raise common.format_err_msg_and_raise("pathadjustment", "exportgroup",
+					      e.err_text, e.err_code)
+def exportgroup_pathadjustment_preview(args):
+    try:
+	obj = ExportGroup(args.ip, args.port)
+	obj.exportgroup_pathadjustment(args.name, args.project, args.tenant,
+			       args.storagesystem, args.varray, 
+			       args.minpaths, args.maxpaths, args.pathsperinitiator, 
+			       args.maxinitiatorsperport, args.storageports, args.useexistingpaths, args.hosts, args.verbose, None, False)
+    except SOSError as e:
+	raise common.format_err_msg_and_raise("pathadjustment_preview", "exportgroup",
+				      e.err_text, e.err_code)
+
+# Export Group Create routines
 def create_parser(subcommand_parsers, common_parser):
     # create command parser
     create_parser = subcommand_parsers.add_parser(
@@ -1685,6 +1949,9 @@ def exportgroup_parser(parent_subparser, common_parser):
     # remove cluster command parser
     remove_host_parser(subcommand_parsers, common_parser)
 
+    # export path adjustment parser
+    exportgroup_pathadjustment_parser(subcommand_parsers, common_parser)
+    
     task_parser(subcommand_parsers, common_parser)
 
     tag_parser(subcommand_parsers, common_parser)

@@ -102,7 +102,8 @@ public class VirtualPoolFileReplicationPolicyMigration extends BaseCustomMigrati
                         logger.info("Creating replication topology for remote replication vpool {} .....", virtualPool.getLabel());
                         StringSet replicationTopologies = new StringSet();
                         StringSet targetVarrays = new StringSet();
-                        Map<URI, VpoolRemoteCopyProtectionSettings> remoteSettings = virtualPool.getRemoteProtectionSettings(virtualPool,
+                        Map<URI, VpoolRemoteCopyProtectionSettings> remoteSettings = virtualPool.getFileRemoteProtectionSettings(
+                                virtualPool,
                                 dbClient);
                         if (remoteSettings != null && !remoteSettings.isEmpty()) {
                             // till now CoprHD supports only single target!!

@@ -2944,6 +2944,7 @@ vplex_sim_variable_setup()
 
 vplex_setup_once()
 {
+    run syssvc $CONFIG_FILE $BOURNE_IPADDR set_prop controller_vplex_director_min_port_count 1
     if [ "$AUTH" == 'ipv6' ] ; then
         echo "Setting up VPLEX environment for IPv6"
         # Discover the storage systems 

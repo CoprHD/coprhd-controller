@@ -3021,7 +3021,6 @@ test_26() {
     snap2=$PROJECT/${VOLNAME}-3/$snap_label2
 
     runcmd blocksnapshot create $PROJECT/${VOLNAME}-1 ${snap_label1}
-    runcmd volume create ${VOLNAME}-3 ${PROJECT} ${NH} ${VPOOL_BASE} 1GB --count 1
     runcmd blocksnapshot create $PROJECT/${VOLNAME}-3 ${snap_label2}
 
     runcmd export_group update $PROJECT/${expname}1 --addVolspec "$snap1","$snap2"
@@ -3128,7 +3127,6 @@ test_26() {
 
     runcmd blocksnapshot delete $snap1
     runcmd blocksnapshot delete $snap2
-    runcmd volume delete $PROJECT/${VOLNAME}-3 --wait
 }
 
 # DU Prevention Validation Test 27 (Unity only)

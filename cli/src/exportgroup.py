@@ -888,7 +888,7 @@ def exportgroup_pathadjustment_parser(subcommand_parsers, common_parser):
 			       dest='maxpaths',
 			       help='max paths', 
 			       required=True)
-	path_adjustment_preview_parser.add_argument('-varray', '-va',
+	mandatory_args.add_argument('-varray', '-va',
 			       metavar='<varray>',
 			       dest='varray',
 			       help='varray for export',

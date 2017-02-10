@@ -76,6 +76,58 @@
          #{Form.selectOneControlGroup field:field, select:schedulePolicy.numWorkerThreads/}
       #{/field}
     
+     <!-- - -->
+  
+    #{field 'schedulePolicy.repeat'}
+      %{
+        field.fieldKey = 'schedulePolicy.repeat'
+        
+      }%
+      #{Form.inputTextControlGroup field:field, width:2 /}
+    #{/field}
+    
+     <!-- - -->    
+    #{field 'schedulePolicy.frequency'}
+    #{Form.controlGroup field:field, width:4}
+      %{ typeField = field }%
+      #{Form.radio field:typeField, value: "days", label: messages.get("schedulePolicy.daily")/}
+      
+      #{Form.radio field:typeField, value: "weeks", label: messages.get("schedulePolicy.weekly")/}
+      #{field 'schedulePolicy.scheduleDayOfWeek'}
+        %{
+          field.options = daysOfWeek
+          field.valueProperty = 'key'
+          field.labelProperty = 'value'
+        }%
+        <div class="row col-gap-none">
+          <div class="col-xs-4 col-xs-offset-1">
+            <label class="control-label">&{'schedulePolicy.dayOfWeek'}:</label>
+          </div>
+          <div class="col-xs-7"> 
+            #{Form.selectOne field:field, select:schedulePolicy.scheduleDayOfWeek/}
+          </div>
+        </div>
+      #{/field}
+          
+      #{Form.radio field:typeField, value: "months", label: messages.get("schedulePolicy.monthly")/}
+      #{field 'schedulePolicy.scheduleDayOfMonth'}
+        %{
+          field.options = daysOfMonth
+          field.valueProperty = 'key'
+          field.labelProperty = 'value'
+        }%
+        <div class="row col-gap-none">
+          <div class="col-xs-4 col-xs-offset-1">
+            <label class="control-label">&{'schedulePolicy.dayOfMonth'}:</label>
+          </div>
+          <div class="col-xs-7">
+            #{Form.selectOne field:field, select:schedulePolicy.scheduleDayOfMonth/}
+          </div>
+        </div>
+      #{/field}
+    #{/Form.controlGroup}
+  #{/field}
+  
     <!-- - -->
     #{field 'schedulePolicy.scheduleTime'}
     #{Form.controlGroup field:field, width:4}
@@ -104,57 +156,7 @@
     #{/Form.controlGroup}
   #{/field}
     <!--  -->
-
   
-    #{field 'schedulePolicy.repeat'}
-      %{
-        field.fieldKey = 'schedulePolicy.repeat'
-        
-      }%
-      #{Form.inputTextControlGroup field:field, width:2 /}
-    #{/field}
-    
-    
-    #{field 'schedulePolicy.frequency'}
-    #{Form.controlGroup field:field, width:4}
-      %{ typeField = field }%
-      #{Form.radio field:typeField, value: "days", label: messages.get("schedulePolicy.daily")/}
-      
-      #{Form.radio field:typeField, value: "weeks", label: messages.get("schedulePolicy.weekly")/}
-      #{field 'schedulePolicy.scheduleDayOfWeek'}
-        %{
-          field.options = daysOfWeek
-          field.valueProperty = 'key'
-          field.labelProperty = 'value'
-        }%
-        <div class="row col-gap-none">
-          <div class="col-xs-4 col-xs-offset-1">
-            <label class="control-label">&{'schedulePolicy.dayOfWeek'}:</label>
-          </div>
-          <div class="col-xs-7"> 
-            #{Form.selectOne field:field, select:schedulePolicy.scheduleDayOfWeek/}
-          </div>
-        </div>
-      #{/field}
-      
-      #{Form.radio field:typeField, value: "months", label: messages.get("schedulePolicy.monthly")/}
-      #{field 'schedulePolicy.scheduleDayOfMonth'}
-        %{
-          field.options = daysOfMonth
-          field.valueProperty = 'key'
-          field.labelProperty = 'value'
-        }%
-        <div class="row col-gap-none">
-          <div class="col-xs-4 col-xs-offset-1">
-            <label class="control-label">&{'schedulePolicy.dayOfMonth'}:</label>
-          </div>
-          <div class="col-xs-7">
-            #{Form.selectOne field:field, select:schedulePolicy.scheduleDayOfMonth/}
-          </div>
-        </div>
-      #{/field}
-    #{/Form.controlGroup}
-  #{/field}
   
   *{ expire parameters belongs to snapshot policy }*
    #{field 'schedulePolicy.expiration'}

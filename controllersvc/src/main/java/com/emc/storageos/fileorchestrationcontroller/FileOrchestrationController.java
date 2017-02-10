@@ -6,6 +6,7 @@ package com.emc.storageos.fileorchestrationcontroller;
 
 import java.net.URI;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import com.emc.storageos.Controller;
@@ -229,4 +230,16 @@ public interface FileOrchestrationController extends Controller {
      * @throws InternalException
      */
     public void unassignFilePolicy(URI policy, Set<URI> unassignFrom, String taskId) throws InternalException;
+
+    /**
+     * 
+     * @param vpoolToStorageSystemMap
+     * @param filePolicyToAssign
+     * @param taskId
+     */
+    public void assignFileSnapshotPolicyToVirtualPool(Map<URI, List<URI>> vpoolToStorageSystemMap, URI filePolicyToAssign, String taskId)
+            throws InternalException;
+
+    public abstract void assignFileSnapshotPolicyToProject(Map<URI, List<URI>> vpoolToStorageSystemMap, List<URI> projectURIs,
+            URI filePolicyToAssign, String taskId);
 }

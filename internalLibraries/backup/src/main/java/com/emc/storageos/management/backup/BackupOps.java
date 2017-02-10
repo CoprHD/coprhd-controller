@@ -568,7 +568,7 @@ public class BackupOps {
      * Persist download status to ZK
      */
     public void setBackupFileNames(String backupName, List<String> filenames) {
-        updateRestoreStatus(backupName, false, null, null, null, 0, false, filenames, true, false);
+        updateRestoreStatus(backupName, false, null, null,null, 0,false, filenames, true, false);
     }
 
     public void setRestoreStatus(String backupName, boolean isLocal, BackupRestoreStatus.Status s, String details,
@@ -609,6 +609,7 @@ public class BackupOps {
             BackupRestoreStatus currentStatus = queryBackupRestoreStatus(backupName, isLocal);
 
             if (!canBeUpdated(newStatus, currentStatus)) {
+                log.info("Can't update the status from {} to {}", currentStatus, newStatus);
                 return;
             }
 
@@ -677,6 +678,7 @@ public class BackupOps {
     }
 
     private boolean canBeUpdated(BackupRestoreStatus.Status newStatus, BackupRestoreStatus oldStatus) {
+        log.info("new status={} old status={}", newStatus, oldStatus);
         if (newStatus == BackupRestoreStatus.Status.RESTORE_FAILED
                 || newStatus == BackupRestoreStatus.Status.RESTORING
                 || newStatus == BackupRestoreStatus.Status.RESTORE_SUCCESS) {

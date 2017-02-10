@@ -27,6 +27,8 @@ import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.StorageSystem;
+import com.emc.storageos.db.client.model.StringSet;
+import com.emc.storageos.db.client.model.StringSetMap;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.util.CommonTransformerFunctions;
 import com.emc.storageos.db.client.util.StringSetUtil;
@@ -110,9 +112,7 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
              * Update the new values in the VolumeHLU Map.
              */
             Set<Integer> usedHlus = findHLUsForClusterHosts(storage, exportGroup, initiatorURIs);
-
             Integer maxHLU = ExportUtils.getMaximumAllowedHLU(storage);
-
             Set<Integer> freeHLUs = ExportUtils.calculateFreeHLUs(usedHlus, maxHLU);
 
             ExportUtils.updateFreeHLUsInVolumeMap(volumeMap, freeHLUs);
@@ -1563,4 +1563,89 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
         throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
     }
 
+    @Override
+    public void portRebalance(URI storageSystem, URI exportGroupURI, URI varray, URI exportMaskURI, 
+            Map<URI, List<URI>> adjustedPaths,
+            Map<URI, List<URI>> removedPaths, boolean isAdd, String token) throws Exception
+    {
+        String workflowKey = "exportMaskExportPathAdjustment";
+        if (_workflowService.hasWorkflowBeenCreated(token, workflowKey)) {
+            return;
+        }
+        Workflow workflow = _workflowService.getNewWorkflow(
+                MaskingWorkflowEntryPoints.getInstance(),
+                workflowKey, false, token);
+        ExportOrchestrationTask taskCompleter = new ExportOrchestrationTask(exportGroupURI, token);
+        try {
+            StorageSystem storage = _dbClient.queryObject(StorageSystem.class,
+                    storageSystem);
+
+            ExportMask exportMask = _dbClient.queryObject(ExportMask.class, exportMaskURI);
+            
+            if (isAdd) {
+                Map<URI, List<URI>> newPaths = getNewPathsForExportMask(exportMask, adjustedPaths);
+                generateExportMaskAddPathsWorkflow(workflow, storage, exportGroupURI, exportMaskURI,
+                        newPaths, null);
+            } else {
+                generateExportMaskRemovePathsWorkflow(workflow, storage, exportGroupURI, exportMaskURI, adjustedPaths, 
+                        removedPaths, null);
+            }
+            
+            if (!workflow.getAllStepStatus().isEmpty()) {
+                _log.info("The port rebalance workflow has {} steps. Starting the workflow.",
+                        workflow.getAllStepStatus().size());
+                workflow.executePlan(taskCompleter, "Update the export group on all export masks successfully.");
+                _workflowService.markWorkflowBeenCreated(token, workflowKey);
+            } else {
+                taskCompleter.ready(_dbClient);
+            }
+
+        } catch (Exception ex) {
+            _log.error("ExportGroup port rebalance failed.", ex);
+            ServiceError serviceError = DeviceControllerException.errors.jobFailedMsg(ex.getMessage(), ex);
+            taskCompleter.error(_dbClient, serviceError);
+        }       
+        
+    }
+    
+    /**
+     * Get new paths that need to be added to the export mask, by comparing the zoning map in the exportMask, 
+     * and making sure the initiators in the new path belong to the exportMask.
+     *  
+     * @param exportMask - Export mask 
+     * @param existingAndNewPaths -- Include existing and new paths for all export masks belonging to the same export group
+     * @return The new paths to be added to the export mask
+     */
+    protected Map<URI, List<URI>> getNewPathsForExportMask(ExportMask exportMask, Map<URI, List<URI>> existingAndNewPaths) {
+        Map<URI, List<URI>> result = new HashMap<URI, List<URI>>();
+        StringSetMap zoningMap = exportMask.getZoningMap();
+        StringSet maskInitiators = exportMask.getInitiators();
+        if (existingAndNewPaths == null || existingAndNewPaths.isEmpty()) {
+            return result;
+        }
+        for (Map.Entry<URI, List<URI>> entry : existingAndNewPaths.entrySet()) {
+            URI initiator = entry.getKey();
+            if (!maskInitiators.contains(initiator.toString())) {
+                _log.info(String.format("The initiator %s does not belong to the exportMask, it will be ignored", initiator.toString()));
+                continue;
+            }
+            List<URI> ports = entry.getValue();
+            List<URI> newPorts = new ArrayList<URI> ();
+            StringSet targets = zoningMap.get(initiator.toString());
+            if (targets != null && !targets.isEmpty()) {
+                for (URI port : ports) {
+                    if (!targets.contains(port.toString())) {
+                        newPorts.add(port);
+                    }
+                }
+                if (!newPorts.isEmpty()) {
+                    result.put(initiator, newPorts);
+                }
+            } else {
+                result.put(initiator, ports);
+            }
+        }
+        return result;
+    }
+    
 }

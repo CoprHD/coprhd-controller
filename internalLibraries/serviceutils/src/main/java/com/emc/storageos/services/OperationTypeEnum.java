@@ -520,7 +520,8 @@ public enum OperationTypeEnum {
     ADD_STORAGE_SYSTEM_TYPE("ADD STORAGE SYSTEM TYPE", "", "operation to initiate adding a new storage system type"),
     REMOVE_STORAGE_SYSTEM_TYPE("REMOVE STORAGE SYSTEM TYPE", "", "operation to initiate removing a storage system type"),
     CREATE_SCHEDULE_POLICY("SchedulePolicyCreated", "", "create schedule policy."),
-
+    EXPORT_PATH_ADJUSTMENT("EXPORT PATH ADJUSTMENT", "", "operation to adjust export paths"),
+    
     /* Filesystem Mount Operations*/
 
     MOUNT_NFS_EXPORT("MOUNT NFS EXPORT", "mount nfs export operation failed", "mount nfs export operation"),

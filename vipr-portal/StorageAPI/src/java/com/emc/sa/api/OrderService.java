@@ -55,6 +55,7 @@ import com.emc.sa.descriptor.ServiceDescriptor;
 import com.emc.sa.descriptor.ServiceDescriptors;
 import com.emc.sa.descriptor.ServiceField;
 import com.emc.sa.descriptor.ServiceFieldGroup;
+import com.emc.sa.descriptor.ServiceFieldModal;
 import com.emc.sa.descriptor.ServiceFieldTable;
 import com.emc.sa.descriptor.ServiceItem;
 import com.emc.sa.util.TextUtils;
@@ -1045,8 +1046,22 @@ public class OrderService extends CatalogTaggedResourceService {
             APIException.internalServerErrors.genericApisvcError(errMsg, e);
         }
 
-        auditOpSuccess(OperationTypeEnum.DELETE_ORDER, startTimeStr, endTimeStr);
+        String auditLogMsg = genDeletingOrdersMessage(startTimeStr, endTimeStr);
+        auditOpSuccess(OperationTypeEnum.DELETE_ORDER, auditLogMsg);
         return Response.status(Response.Status.ACCEPTED).build();
+    }
+
+    private String genDeletingOrdersMessage(String startTimeStr, String endTimeStr) {
+
+        Date startTime = TimeUtils.getDateTimestamp(startTimeStr);
+        Date endTime = TimeUtils.getDateTimestamp(endTimeStr);
+
+        StringBuilder builder = new StringBuilder("Deleting orders from ");
+        builder.append(startTime)
+                .append(" to ")
+                .append(endTime);
+
+        return builder.toString();
     }
 
     private OrderStatus getOrderStatus(String statusStr, boolean deleteOnly) {
@@ -1172,6 +1187,9 @@ public class OrderService extends CatalogTaggedResourceService {
             }
             else if (item instanceof ServiceFieldGroup) {
                 validateParameters(((ServiceFieldGroup) item).getItems().values(), parameters, storageSize);
+            }
+            else if (item instanceof ServiceFieldModal) {
+                validateParameters(((ServiceFieldModal) item).getItems().values(), parameters, storageSize);
             }
             else if (item instanceof ServiceField) {
                 ServiceField field = (ServiceField) item;

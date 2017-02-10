@@ -3137,13 +3137,40 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException cantMigrateNotAllRPSourceVolumesInRequest();
-
+    
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException driverNameNotFound(String name);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException cantUninstallDriverInUse(final String driverName);
 
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException varrayNotInExportGroup(String varray);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException externallyAddedInitiators(final String exportMask, final String initiators);
+    
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException additionalInitiators(final String exportMask, final String initiators);
+    
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException exportPathAdjustmentSystemNotSupported(final String systemType);
+    
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException exportPathAdjustmentSystemExportGroupNotMatch(final String exportGroup, String system);
+    
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException exportPathAdjustmentSystemExportGroupHostsMismatch(String mismatchHosts);
+    
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException exportPathAdjustmentRemovingPathsNotExist(final String initiator);
+    
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException exportPathAdjustmentAdjustedPathNotValid(final String initiatorOrTargets);
+    
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException exportPathAdjustmentNoPathAdjustmentAllowed(final String exportGroup);
+    
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException invalidParameterWwnBadFormat(String wwn);
 
@@ -3157,6 +3184,9 @@ public interface BadRequestExceptions {
     public BadRequestException invalidFilePolicyType(final String policyType);
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException invalidFilePolicyApplyLevel(final String applyLevel);
+
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException invalidFileReplicationPolicyParam(final String policyName, final String errorMsg);
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
@@ -3164,7 +3194,22 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException failedToDeleteFilePolicy(final String policyName, final String reason);
-  
+
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException invalidFilePolicyUnAssignParam(final String policyName, final String errorMsg);
+    
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException storagePortsNotInVarray(final String ports, final String exportMask, final String varray);
+    
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException exportMaskNotInVarray(final String exportMask);
+
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException invalidFileSnapshotPolicyParam(final String policyName, final String errorMsg);
+    
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException cannotDeleteVpoolAssignedFilePolicy(final String vpoolName);
+    
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException cannotDeleteProjectAssignedFilePolicy(final String projectName);
 }

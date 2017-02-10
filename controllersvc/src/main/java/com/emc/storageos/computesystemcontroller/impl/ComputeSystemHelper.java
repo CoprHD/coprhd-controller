@@ -579,13 +579,31 @@ public class ComputeSystemHelper {
         dbClient.updateObject(host);
     }
 
+    /**
+     * Update the cluster reference for all initiators that belong to hosts in the cluster
+     * 
+     * @param dbClient dbclient
+     * @param clusterURI the cluster id
+     */
+    public static void updateInitiatorClusterName(DbClient dbClient, URI clusterURI) {
+        if (!NullColumnValueGetter.isNullURI(clusterURI)) {
+            List<URI> clusterHosts = ComputeSystemHelper.getChildrenUris(dbClient, clusterURI, Host.class, "cluster");
+            for (URI hostURI : clusterHosts) {
+                updateInitiatorClusterName(dbClient, clusterURI, hostURI);
+            }
+        }
+    }
+
     public static void updateInitiatorClusterName(DbClient dbClient, URI clusterURI, URI hostURI) {
-        Cluster cluster = dbClient.queryObject(Cluster.class, clusterURI);
+        Cluster cluster = null;
+        if (!NullColumnValueGetter.isNullURI(clusterURI)) {
+            cluster = dbClient.queryObject(Cluster.class, clusterURI);
+        }
         List<Initiator> initiators = ComputeSystemHelper.queryInitiators(dbClient, hostURI);
         for (Initiator initiator : initiators) {
-            initiator.setClusterName(cluster != null ? cluster.getLabel() : "");
+            initiator.setClusterName(cluster != null ? cluster.getLabel() : "null");
         }
-        dbClient.persistObject(initiators);
+        dbClient.updateObject(initiators);
     }
 
     public static void updateInitiatorHostName(DbClient dbClient, Host host) {
@@ -593,7 +611,7 @@ public class ComputeSystemHelper {
         for (Initiator initiator : initiators) {
             initiator.setHostName(host.getHostName());
         }
-        dbClient.persistObject(initiators);
+        dbClient.updateObject(initiators);
     }
 
     /**

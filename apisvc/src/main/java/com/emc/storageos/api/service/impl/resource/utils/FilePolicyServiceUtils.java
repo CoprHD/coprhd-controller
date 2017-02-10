@@ -38,7 +38,7 @@ import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValues
 /**
  * @author jainm15
  */
-public final class FilePolicyServiceUtils {
+public class FilePolicyServiceUtils {
     private static final Logger _log = LoggerFactory.getLogger(FilePolicyServiceUtils.class);
     private static final int MIN_SNAPSHOT_EXPIRE_TIME = 2;
     private static final int MAX_SNAPSHOT_EXPIRE_TIME = 10;
@@ -133,7 +133,7 @@ public final class FilePolicyServiceUtils {
                     break;
                 case MONTHS:
                     if (policyScheduleparams.getScheduleDayOfMonth() != null
-                            && policyScheduleparams.getScheduleDayOfMonth() > 0 && policyScheduleparams.getScheduleDayOfMonth() <= 31) {
+                    && policyScheduleparams.getScheduleDayOfMonth() > 0 && policyScheduleparams.getScheduleDayOfMonth() <= 31) {
                         schedulePolicy.setScheduleDayOfMonth((long) policyScheduleparams.getScheduleDayOfMonth());
                         schedulePolicy.setScheduleRepeat((long) policyScheduleparams.getScheduleRepeat());
                         schedulePolicy.setScheduleTime(policyScheduleparams.getScheduleTime() + period);
@@ -152,7 +152,7 @@ public final class FilePolicyServiceUtils {
         return true;
     }
 
-    public static void validateSnapshotPolicyParam(FileSnapshotPolicyParam param) {
+    public static void validateSnapshotPolicyExpireParam(FileSnapshotPolicyParam param) {
         boolean isValidSnapshotExpire;
 
         // check snapshot expire type is valid or not
@@ -331,8 +331,10 @@ public final class FilePolicyServiceUtils {
             return true;
 
         } else if (vPool.getFileReplicationSupported()) {
+            capabilities.put(VirtualPoolCapabilityValuesWrapper.FILE_REPLICATION_TYPE, FileReplicationType.NONE.name());
             errorMsg.append("No replication policy assigned at any level for virtual pool ").append(vPool.getLabel());
-            return false;
+            _log.warn(errorMsg.toString());
+            return true;
         }
         return false;
     }

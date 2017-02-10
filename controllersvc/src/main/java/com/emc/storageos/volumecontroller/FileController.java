@@ -202,4 +202,12 @@ public interface FileController extends StorageController {
      */
     public void applyFilePolicy(URI fs, URI filePolicy, String taskId) throws InternalException;
 
+    public void assignFileSnapshotPolicyToVirtualPool(URI storageSystemURI, URI vNASURI, URI filePolicyToAssign, URI vpoolURI,
+            String taskId)
+            throws InternalException;
+
+    public void assignFileSnapshotPolicyToProject(URI storageSystemURI, URI vNASURI, URI filePolicyToAssign, URI vpoolURI, URI projectURI,
+            String taskId)
+            throws InternalException;
+
 }

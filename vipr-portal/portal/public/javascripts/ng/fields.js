@@ -587,7 +587,9 @@ angular.module('fields', ['vipr']).directive({  //NOSONAR ("Suppressing Sonar vi
                     if (bfhdatepicker) {
                         bfhdatepicker.updateCalendar();
                     }
-                    datepicker.find("input[type=text]").val(value).trigger('change');
+                    
+                    //remove .trigger('change') for below because no usage and impact my/all order pages
+                    datepicker.find("input[type=text]").val(value);
                 }
             }
         });

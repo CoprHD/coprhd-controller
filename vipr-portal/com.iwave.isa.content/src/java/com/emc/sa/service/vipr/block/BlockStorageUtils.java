@@ -57,6 +57,7 @@ import com.emc.sa.service.vipr.block.tasks.AddHostToExport;
 import com.emc.sa.service.vipr.block.tasks.AddJournalCapacity;
 import com.emc.sa.service.vipr.block.tasks.AddVolumesToConsistencyGroup;
 import com.emc.sa.service.vipr.block.tasks.AddVolumesToExport;
+import com.emc.sa.service.vipr.block.tasks.AdjustExportPaths;
 import com.emc.sa.service.vipr.block.tasks.CreateBlockVolume;
 import com.emc.sa.service.vipr.block.tasks.CreateBlockVolumeByName;
 import com.emc.sa.service.vipr.block.tasks.CreateContinuousCopy;
@@ -139,6 +140,7 @@ import com.emc.storageos.model.block.VolumeRestRep.FullCopyRestRep;
 import com.emc.storageos.model.block.export.ExportBlockParam;
 import com.emc.storageos.model.block.export.ExportGroupRestRep;
 import com.emc.storageos.model.block.export.ITLRestRep;
+import com.emc.storageos.model.block.export.InitiatorPathParam;
 import com.emc.storageos.model.systems.StorageSystemRestRep;
 import com.emc.storageos.model.varray.VirtualArrayRestRep;
 import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
@@ -393,6 +395,17 @@ public class BlockStorageUtils {
 
     public static ExportGroupRestRep findEmptyExportsByName(String name, URI projectId, URI varrayId) {
         return execute(new FindEmptyExportByName(name, projectId, varrayId));
+    }
+    
+    public static URI adjustExportPaths(URI vArray, Integer minPaths, Integer maxPaths, Integer pathsPerInitiator,
+            URI storageSystemId, URI id, List<InitiatorPathParam> addedPaths, List<InitiatorPathParam> removedPaths,
+            boolean suspendWait) {
+        
+        Task<ExportGroupRestRep> task = execute(new AdjustExportPaths(vArray, minPaths, maxPaths, pathsPerInitiator,
+                storageSystemId, id, addedPaths, removedPaths, suspendWait));
+        URI exportId = task.getResourceId();
+        addAffectedResource(exportId);
+        return exportId;
     }
 
     public static List<URI> addJournalCapacity(URI projectId, URI virtualArrayId, URI virtualPoolId, double sizeInGb, Integer count,

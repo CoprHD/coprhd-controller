@@ -14,6 +14,7 @@ public abstract class ServiceItem implements Serializable {
 
     public static String TYPE_GROUP = "group";
     public static String TYPE_TABLE = "table";
+    public static String TYPE_MODAL = "modal";
 
     private String name;
     private String label;
@@ -59,9 +60,13 @@ public abstract class ServiceItem implements Serializable {
     public boolean isTable() {
         return StringUtils.equals(type, TYPE_TABLE);
     }
+    
+    public boolean isModal() {
+        return StringUtils.equals(type, TYPE_MODAL);
+    }
 
     public boolean isField() {
-        return !(isGroup() || isTable());
+        return !(isGroup() || isTable() || isModal());
     }
 
     public boolean isPassword() {

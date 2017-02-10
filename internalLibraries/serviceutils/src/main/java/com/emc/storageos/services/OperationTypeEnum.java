@@ -549,6 +549,8 @@ public enum OperationTypeEnum {
     RESUME_REMOTE_REPLICATION_PAIR_LINK("RESUME REMOTE REPLICATION PAIR LINK", "ResumeRemoteReplicationPairLinkFailed", "resume remote replication pair link"),
     SWAP_REMOTE_REPLICATION_PAIR_LINK("SWAP REMOTE REPLICATION PAIR LINK", "SwapRemoteReplicationPairLinkFailed", "swap remote replication pair link"),
 
+    EXPORT_PATH_ADJUSTMENT("EXPORT PATH ADJUSTMENT", "", "operation to adjust export paths"),
+    
     /* Filesystem Mount Operations*/
 
     MOUNT_NFS_EXPORT("MOUNT NFS EXPORT", "mount nfs export operation failed", "mount nfs export operation"),

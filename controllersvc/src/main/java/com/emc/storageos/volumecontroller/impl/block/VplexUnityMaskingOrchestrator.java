@@ -276,12 +276,6 @@ public class VplexUnityMaskingOrchestrator extends VNXUnityMaskingOrchestrator i
                     StringSetUtil.stringSetToUriList(exportMask.getInitiators()), arrayURI);
             getWorkflowService().acquireWorkflowStepLocks(stepId, lockKeys, LockTimeoutValue.get(LockType.VPLEX_BACKEND_EXPORT));
 
-            // Make sure the completer will complete the workflow. This happens
-            // on rollback case.
-            if (!completer.getOpId().equals(stepId)) {
-                completer.setOpId(stepId);
-            }
-
             // Determine if we're deleting the last volume in the mask.
             StringMap maskVolumesMap = exportMask.getVolumes();
             Set<String> remainingVolumes = new HashSet<String>();

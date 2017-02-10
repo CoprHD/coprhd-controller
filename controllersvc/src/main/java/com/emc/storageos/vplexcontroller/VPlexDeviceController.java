@@ -1844,10 +1844,12 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
     @Override
     public void exportGroupCreate(URI vplex, URI export, List<URI> initiators,
             Map<URI, Integer> volumeMap,
-            String stepId) throws ControllerException {
+            String opId) throws ControllerException {
         ExportCreateCompleter completer = null;
         try {
-            completer = new ExportCreateCompleter(export, volumeMap, stepId);
+            WorkflowStepCompleter.stepExecuting(opId);
+
+            completer = new ExportCreateCompleter(export, volumeMap, opId);
             ExportGroup exportGroup = _dbClient.queryObject(ExportGroup.class, export);
             StorageSystem vplexSystem = _dbClient.queryObject(StorageSystem.class, vplex);
             _log.info(String.format("VPLEX exportGroupCreate %s vplex %s",
@@ -1907,7 +1909,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
             VPlexUtil.validateVPlexClusterExport(_dbClient, source,
                     haVarray, initiators, varrayToInitiators);
 
-            Workflow workflow = _workflowService.getNewWorkflow(this, "exportGroupCreate", true, stepId);
+            Workflow workflow = _workflowService.getNewWorkflow(this, "exportGroupCreate", true, opId);
 
             // If possible, do the HA side export. To do this we must have both
             // HA side initiators, and volumes accessible from the HA side.
@@ -1922,7 +1924,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
             if (srcVolumes != null && varrayToInitiators.get(srcVarray) != null) {
                 assembleExportMasksWorkflow(vplex, export, srcVarray,
                         varrayToInitiators.get(srcVarray),
-                        ExportMaskUtils.filterVolumeMap(volumeMap, srcVolumes), workflow, null, stepId);
+                        ExportMaskUtils.filterVolumeMap(volumeMap, srcVolumes), workflow, null, opId);
             }
 
             // If possible, do the HA side export. To do this we must have both
@@ -1931,7 +1933,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
                 assembleExportMasksWorkflow(vplex, export, haVarray,
                         varrayToInitiators.get(haVarray),
                         ExportMaskUtils.filterVolumeMap(volumeMap, varrayToVolumes.get(haVarray)),
-                        workflow, null, stepId);
+                        workflow, null, opId);
             }
 
             // Initiate the workflow.
@@ -1943,12 +1945,12 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
 
         } catch (VPlexApiException vae) {
             _log.error("Exception creating Export Group: " + vae.getMessage(), vae);
-            failStep(completer, stepId, vae);
+            failStep(completer, opId, vae);
         } catch (Exception ex) {
             _log.error("Exception creating Export Group: " + ex.getMessage(), ex);
             String opName = ResourceOperationTypeEnum.CREATE_EXPORT_GROUP.getName();
             ServiceError serviceError = VPlexApiException.errors.exportGroupCreateFailed(opName, ex);
-            failStep(completer, stepId, serviceError);
+            failStep(completer, opId, serviceError);
         }
     }
 
@@ -2863,9 +2865,9 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
         String lockName = null;
         boolean lockAcquired = false;
         try {
+            WorkflowStepCompleter.stepExecuting(stepId);
             StorageSystem vplex = getDataObject(StorageSystem.class, vplexURI, _dbClient);
             ExportMask exportMask = getDataObject(ExportMask.class, exportMaskURI, _dbClient);
-            WorkflowStepCompleter.stepExecuting(stepId);
             VPlexApiClient client = getVPlexAPIClient(_vplexApiFactory, vplex, _dbClient);
 
             // Setup the call to the VPlex API.
@@ -3003,13 +3005,14 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
      * java.lang.String)
      */
     @Override
-    public void exportGroupDelete(URI vplex, URI export, String stepId)
+    public void exportGroupDelete(URI vplex, URI export, String opId)
             throws ControllerException {
-        _log.info("Entering exportGroupDelete");
         ExportDeleteCompleter completer = null;
         try {
+            _log.info("Entering exportGroupDelete");
+            WorkflowStepCompleter.stepExecuting(opId);
 
-            completer = new ExportDeleteCompleter(export, stepId);
+            completer = new ExportDeleteCompleter(export, opId);
             StorageSystem vplexSystem = getDataObject(StorageSystem.class, vplex, _dbClient);
             ExportGroup exportGroup = null;
             try {
@@ -3026,7 +3029,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
 
             _log.info("Attempting to delete ExportGroup " + exportGroup.getGeneratedName()
                     + " on VPLEX " + vplexSystem.getLabel());
-            Workflow workflow = _workflowService.getNewWorkflow(this, "exportGroupDelete", false, stepId);
+            Workflow workflow = _workflowService.getNewWorkflow(this, "exportGroupDelete", false, opId);
 
             StringBuffer errorMessages = new StringBuffer();
             boolean isValidationNeeded = validatorConfig.isValidationEnabled()
@@ -3186,7 +3189,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
             _log.error("Exception deleting ExportGroup: " + ex.getMessage());
             String opName = ResourceOperationTypeEnum.DELETE_EXPORT_GROUP.getName();
             ServiceError serviceError = VPlexApiException.errors.exportGroupDeleteFailed(opName, ex);
-            failStep(completer, stepId, serviceError);
+            failStep(completer, opId, serviceError);
         }
     }
 
@@ -3246,11 +3249,11 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
      */
     public void deleteStorageView(URI vplexURI, URI exportGroupURI, URI exportMaskURI, String stepId)
             throws WorkflowException {
-
         ExportMaskDeleteCompleter completer = null;
         try {
-            completer = new ExportMaskDeleteCompleter(exportGroupURI, exportMaskURI, stepId);
             WorkflowStepCompleter.stepExecuting(stepId);
+
+            completer = new ExportMaskDeleteCompleter(exportGroupURI, exportMaskURI, stepId);
             StorageSystem vplex = getDataObject(StorageSystem.class, vplexURI, _dbClient);
             Boolean[] viewFound = new Boolean[] { new Boolean(false) };
             ExportMask exportMask = _dbClient.queryObject(ExportMask.class, exportMaskURI);
@@ -3336,25 +3339,6 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
         }
     }
 
-    /**
-     * Convenience method for ensuring that the step is terminated properly, regardless of
-     * completer state.
-     * 
-     * @param completer
-     *            completer, can be null
-     * @param stepId
-     *            step ID
-     * @param sc
-     *            service coded error
-     */
-    private void failStep(TaskCompleter completer, String stepId, ServiceCoded sc) {
-        if (completer != null) {
-            completer.error(_dbClient, sc);
-        } else {
-            WorkflowStepCompleter.stepFailed(stepId, sc);
-        }
-    }
-
     /*
      * (non-Javadoc)
      *
@@ -3365,17 +3349,22 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
     @Override
     public void exportGroupAddVolumes(URI vplexURI, URI exportURI,
             Map<URI, Integer> volumeMap,
-            String stepId) throws ControllerException {
-        String volListStr = Joiner.on(',').join(volumeMap.keySet());
-        ExportAddVolumeCompleter completer = new ExportAddVolumeCompleter(exportURI, volumeMap, stepId);
+            String opId) throws ControllerException {
+        String volListStr = "";
+        ExportAddVolumeCompleter completer = null;
 
         try {
-            Workflow workflow = _workflowService.getNewWorkflow(this, "exportGroupAddVolumes", true, stepId);
+            WorkflowStepCompleter.stepExecuting(opId);
+
+            completer = new ExportAddVolumeCompleter(exportURI, volumeMap, opId);
+            Workflow workflow = _workflowService.getNewWorkflow(this, "exportGroupAddVolumes", true, opId);
             ExportGroup exportGroup = _dbClient.queryObject(ExportGroup.class, exportURI);
             StorageSystem vplexSystem = _dbClient.queryObject(StorageSystem.class, vplexURI);
             URI srcVarray = exportGroup.getVirtualArray();
             boolean isRecoverPointExport = ExportUtils.checkIfInitiatorsForRP(_dbClient,
                     exportGroup.getInitiators());
+
+            volListStr = Joiner.on(',').join(volumeMap.keySet());
 
             if (!exportGroup.hasInitiators()) {
                 // VPLEX API restricts adding volumes before initiators
@@ -3431,7 +3420,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
                 srcExportStepId = assembleExportMasksWorkflow(vplexURI, exportURI, srcVarray,
                         varrayToInitiators.get(srcVarray),
                         ExportMaskUtils.filterVolumeMap(volumeMap, srcVolumes),
-                        workflow, null, stepId);
+                        workflow, null, opId);
             }
 
             // IF the haVarray has been set, and we have initiators with connectivity to the ha varray,
@@ -3443,7 +3432,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
                 assembleExportMasksWorkflow(vplexURI, exportURI, haVarray,
                         varrayToInitiators.get(haVarray),
                         ExportMaskUtils.filterVolumeMap(volumeMap, varrayToVolumes.get(haVarray)),
-                        workflow, srcExportStepId, stepId);
+                        workflow, srcExportStepId, opId);
             }
 
             // Initiate the workflow.
@@ -3455,7 +3444,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
             String message = String.format("Failed to add Volumes %s to ExportGroup %s",
                     volListStr, exportURI);
             _log.error(message, vae);
-            failStep(completer, stepId, vae);
+            failStep(completer, opId, vae);
         } catch (Exception ex) {
             String message = String.format("Failed to add Volumes %s to ExportGroup %s",
                     volListStr, exportURI);
@@ -3463,7 +3452,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
             String opName = ResourceOperationTypeEnum.ADD_EXPORT_VOLUME.getName();
             ServiceError serviceError = VPlexApiException.errors.exportGroupAddVolumesFailed(
                     volListStr, exportURI.toString(), opName, ex);
-            failStep(completer, stepId, serviceError);
+            failStep(completer, opId, serviceError);
         }
     }
 
@@ -3483,8 +3472,9 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
         String volListStr = "";
         ExportMaskAddVolumeCompleter completer = null;
         try {
-            completer = new ExportMaskAddVolumeCompleter(exportGroupURI, exportMaskURI, volumeMap, opId);
             WorkflowStepCompleter.stepExecuting(opId);
+
+            completer = new ExportMaskAddVolumeCompleter(exportGroupURI, exportMaskURI, volumeMap, opId);
             StorageSystem vplex = getDataObject(StorageSystem.class, vplexURI, _dbClient);
             ExportMask exportMask = getDataObject(ExportMask.class, exportMaskURI, _dbClient);
             volListStr = Joiner.on(',').join(volumeMap.keySet());
@@ -3600,12 +3590,15 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
     public void exportGroupRemoveVolumes(URI vplexURI, URI exportURI,
             List<URI> volumeURIs, String opId)
                     throws ControllerException {
-        _log.info("entering export group remove volumes");
-        String volListStr = Joiner.on(',').join(volumeURIs);
-        ExportRemoveVolumeCompleter completer = new ExportRemoveVolumeCompleter(exportURI, volumeURIs,
-                opId);
+        String volListStr = "";
+        ExportRemoveVolumeCompleter completer = null;
         boolean hasSteps = false;
         try {
+            _log.info("entering export group remove volumes");
+            WorkflowStepCompleter.stepExecuting(opId);
+
+            completer = new ExportRemoveVolumeCompleter(exportURI, volumeURIs, opId);
+            volListStr = Joiner.on(',').join(volumeURIs);
             validator.volumeURIs(volumeURIs, false, false, ValCk.ID);
             Workflow workflow = _workflowService.getNewWorkflow(this, EXPORT_GROUP_REMOVE_VOLUMES, false, opId);
             StorageSystem vplex = getDataObject(StorageSystem.class, vplexURI, _dbClient);
@@ -3615,6 +3608,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
             StringBuffer errorMessages = new StringBuffer();
             boolean isValidationNeeded = validatorConfig.isValidationEnabled();
             _log.info("Orchestration level validation needed : {}", isValidationNeeded);
+
 
             VPlexApiClient client = getVPlexAPIClient(_vplexApiFactory, vplex, _dbClient);
 
@@ -3881,6 +3875,8 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
             List<URI> initiatorURIs, String opId)
                     throws ControllerException {
         try {
+            WorkflowStepCompleter.stepExecuting(opId);
+
             StorageSystem vplex = getDataObject(StorageSystem.class, vplexURI, _dbClient);
             ExportGroup exportGroup = getDataObject(ExportGroup.class, exportURI, _dbClient);
             ExportAddInitiatorCompleter completer = new ExportAddInitiatorCompleter(exportURI, initiatorURIs, opId);
@@ -4166,6 +4162,8 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
             List<URI> initiatorURIs, URI varrayURI, String stepId) throws WorkflowException {
         String initListStr = Joiner.on(',').join(initiatorURIs);
         try {
+            WorkflowStepCompleter.stepExecuting(stepId);
+
             ExportGroup exportGroup = getDataObject(ExportGroup.class, exportURI, _dbClient);
             _log.info(String.format(
                     "Adding initiators %s to ExportGroup %s (%s)",
@@ -4542,8 +4540,6 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
      *            -- list of targets URIs (VPLEX FE ports) to be removed.
      *            If non null, the targets (VPlex front end ports) indicated by the targetURIs will be removed
      *            from the Storage View.
-     * @param completer
-     *            -- the ExportMaskRemoveInitiatorCompleter
      * @param stepId
      *            -- Workflow step id.
      * @throws WorkflowException
@@ -5028,8 +5024,6 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
      * @param targetURIs
      *            -- optional targets to be removed from the Storage View.
      *            If non null, a list of URIs for VPlex front-end ports that will be removed from Storage View.
-     * @param completer
-     *            -- the ExportMaskRemoveInitiatorCompleter
      * @param stepId
      *            -- Workflow step id.
      * @throws WorkflowException
@@ -5038,14 +5032,13 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
             List<URI> initiatorURIs, List<URI> targetURIs, String stepId)
                     throws WorkflowException {
 
-        // Create the completer
         ExportMaskRemoveInitiatorCompleter completer = null;
 
         try {
+            WorkflowStepCompleter.stepExecuting(stepId);
+
             completer = new ExportMaskRemoveInitiatorCompleter(exportGroupURI, exportMaskURI,
                     initiatorURIs, stepId);
-
-            WorkflowStepCompleter.stepExecuting(stepId);
             StorageSystem vplex = getDataObject(StorageSystem.class, vplexURI, _dbClient);
             ExportMask exportMask = _dbClient.queryObject(ExportMask.class, exportMaskURI);
             VPlexApiClient client = getVPlexAPIClient(_vplexApiFactory, vplex, _dbClient);
@@ -5055,9 +5048,6 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
             _log.info("Refreshing ExportMask {}", exportMask.getMaskName());
             VPlexControllerUtils.refreshExportMask(_dbClient, storageView, exportMask,
                     targetPortMap, _networkDeviceController);
-
-            completer = new ExportMaskRemoveInitiatorCompleter(exportGroupURI, exportMaskURI,
-                    initiatorURIs, stepId);
 
             // validate the remove initiator operation against the export mask volumes
             List<URI> volumeURIList = (exportMask.getUserAddedVolumes() != null)
@@ -13122,6 +13112,25 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
                     _dbClient.updateObject(vplexVolume);
                 }
             }
+        }
+    }
+
+    /**
+     * Convenience method for ensuring that the step is terminated properly, regardless of
+     * completer state.
+     * 
+     * @param completer
+     *            completer, can be null
+     * @param stepId
+     *            step ID
+     * @param sc
+     *            service coded error
+     */
+    private void failStep(TaskCompleter completer, String stepId, ServiceCoded sc) {
+        if (completer != null) {
+            completer.error(_dbClient, sc);
+        } else {
+            WorkflowStepCompleter.stepFailed(stepId, sc);
         }
     }
 }

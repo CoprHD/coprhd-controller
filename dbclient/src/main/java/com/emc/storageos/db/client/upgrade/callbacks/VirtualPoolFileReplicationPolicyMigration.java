@@ -37,8 +37,13 @@ import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.svcs.errorhandling.resources.MigrationCallbackException;
 
 /**
- * Migration handler to set the placement policy to Default policy in all existing Block vPools.
- * Placement policy field was introduced as part of Host/Array Affinity feature in v3.5
+ * File Protection policies are introduced in 3.6 release.
+ * Virtual pool replication attributes are moved to file protection policy, Hence
+ * 
+ * 1. Replication attributes should be converted to FilePolicy(replication).
+ * 2. If there are any file systems with the replication vpool,
+ * policy storage resources has to create between policy and file system resource.
+ * 
  * 
  */
 public class VirtualPoolFileReplicationPolicyMigration extends BaseCustomMigrationCallback {

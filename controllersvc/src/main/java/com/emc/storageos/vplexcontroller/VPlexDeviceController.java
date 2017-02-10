@@ -5113,7 +5113,8 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
                 initiatorPortInfo.add(portInfo);
             }
 
-            if (!initiatorPortInfo.isEmpty() && !exportMask.hasAnyExistingVolumes()) {
+            // remove any initiators found on VPLEX if there are no existing volumes or validation is disabled
+            if (!initiatorPortInfo.isEmpty() && (!exportMask.hasAnyExistingVolumes() || !validatorConfig.isValidationEnabled())) {
                 String lockName = null;
                 boolean lockAcquired = false;
                 try {

@@ -4,6 +4,8 @@
  */
 package com.emc.storageos.volumecontroller.impl.utils;
 
+import static com.google.common.collect.Sets.newHashSet;
+
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -34,6 +36,8 @@ import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DataObject.Flag;
+import com.emc.storageos.db.client.model.DiscoveredDataObject;
+import com.emc.storageos.db.client.model.DiscoveredDataObject.DiscoveryStatus;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportGroup.ExportGroupType;
 import com.emc.storageos.db.client.model.ExportMask;
@@ -1065,6 +1069,29 @@ public class ExportMaskUtils {
         }
         return true;
     }
+    
+    /**
+     * Get storage ports not in the given varray.
+     *
+     * @param exportMask -- ExportMask
+     * @param varrayURI -- Varray URI
+     * @return list of storage ports not tagged for the given Varray
+     */
+    public static List<URI> getExportMaskStoragePortsNotInVarray(DbClient dbClient, ExportMask exportMask, URI varrayURI) {
+        List<URI> ports = new ArrayList<URI> ();
+        if (exportMask.getStoragePorts() == null || exportMask.getStoragePorts().isEmpty()) {
+            return ports;
+        }
+        List<URI> targetURIs = StringSetUtil.stringSetToUriList(exportMask.getStoragePorts());
+        List<StoragePort> sports = dbClient.queryObject(StoragePort.class, targetURIs);
+        for (StoragePort port : sports) {
+            if (port.getTaggedVirtualArrays() == null
+                    || !port.getTaggedVirtualArrays().contains(varrayURI.toString())) {
+                ports.add(port.getId());
+            }
+        }
+        return ports;
+    }
 
     /**
      * Filter the volumeMap to only contain the desired includedVolumes.
@@ -1531,4 +1558,216 @@ public class ExportMaskUtils {
 
         return normalizedPorts.containsAll(maskInitiators);
     }
+    
+    /**
+     * Given a zone map as a Map of initiators to List of corresponding ports,
+     * return the union of all ports in the map.
+     * @param zoneMap Map<URI initiator, List<URI> portList>
+     * @return Set of all ports.
+     */
+    public static Set<URI> getAllPortsInZoneMap(Map<URI, List<URI>> zoneMap) {
+        Set<URI> result = new HashSet<URI>();
+        for (List<URI> ports : zoneMap.values()) {
+            result.addAll(ports);
+        }
+        return result;
+    }
+
+    /*
+     * Get new paths which are not in any of the export masks zoning maps from the given paths
+     * 
+     * @param dbClient
+     * @param exportMasks
+     * @param maskURIs - OUTPUT the export masks URI list which have zoning map entries
+     * @param paths - new and retained paths
+     * @return - the new paths for the export masks
+     */
+    public static Map<URI, List<URI>> getNewPaths(DbClient dbClient, List<ExportMask> exportMasks,
+            List<URI> maskURIs, Map<URI, List<URI>> paths) {
+    
+        Map<URI, List<URI>> newPaths = new HashMap<URI, List<URI>>();
+        StringSetMap allZoningMap = new StringSetMap();
+        for (ExportMask mask : exportMasks) {
+            StringSetMap map = mask.getZoningMap();
+            if (map != null && !map.isEmpty()) {
+                for (String init : map.keySet()) {
+                    StringSet allPorts = allZoningMap.get(init);
+                    if (allPorts == null) {
+                        allPorts = new StringSet();
+                        allZoningMap.put(init, allPorts);
+                    }
+                    allPorts.addAll(map.get(init));
+                }
+                maskURIs.add(mask.getId());
+            }
+        }
+        for (Map.Entry<URI, List<URI>> entry : paths.entrySet()) {
+            URI init = entry.getKey();
+            List<URI> entryPorts = entry.getValue();
+            StringSet zoningPorts = allZoningMap.get(init.toString());
+            if (zoningPorts != null && !zoningPorts.isEmpty()) {
+                List<URI> diffPorts = new ArrayList<URI>(Sets.difference(newHashSet(entryPorts), zoningPorts));
+                if (diffPorts != null && !diffPorts.isEmpty()) {
+                    newPaths.put(init, diffPorts);
+                }
+            } else {
+                newPaths.put(init, entryPorts);
+            }
+            
+        }
+        return newPaths;
+    }
+    
+    /**
+     * Get the remove path list for the exportMask in the given removedPaths.
+     * The given removedPaths could be paths from all the exportMasks belonging to one export group.
+     * 
+     * @param exportMask 
+     * @param removedPaths - The list paths. some of them may not belong to the export mask.
+     * @return - The list of paths are going to be removed from the export mask.
+     */
+    public static Map<URI, List<URI>> getRemovePathsForExportMask(ExportMask exportMask, Map<URI, List<URI>> removedPaths) {
+        Map<URI, List<URI>> result = new HashMap<URI, List<URI>>();
+        StringSetMap zoningMap = exportMask.getZoningMap();
+        StringSet maskInitiators = exportMask.getInitiators();
+        if (removedPaths == null || removedPaths.isEmpty()) {
+            return result;
+        }
+        for (Map.Entry<URI, List<URI>> entry : removedPaths.entrySet()) {
+            URI initiator = entry.getKey();
+            if (!maskInitiators.contains(initiator.toString())) {
+                continue;
+            }
+            List<URI> ports = entry.getValue();
+            List<URI> removePorts = new ArrayList<URI> ();
+            StringSet targets = zoningMap.get(initiator.toString());
+            if (targets != null && !targets.isEmpty()) {
+                for (URI port : ports) {
+                    if (targets.contains(port.toString())) {
+                        removePorts.add(port);
+                    }
+                }
+                if (!removePorts.isEmpty()) {
+                    result.put(initiator, removePorts);
+                }
+            } 
+        }
+        return result;
+    }
+    
+    /**
+     * Get adjusted paths per export mask. The members in the given adjusted paths could belong to different export masks in the same export group
+     * This method would check on the initiators in the export mask, if the path initiator belong to the same host as the initiators in the 
+     * export mask, then the path belongs to the export mask.
+     * 
+     * @param exportMask - export mask
+     * @param adjustedPaths - The list of the adjusted paths (new and retained) for the export group
+     * @param dbClient
+     * @return The adjusted paths (map of initiator to storage ports) for the export mask that is desired as a result of path adjustment
+     */
+    public static Map<URI, List<URI>> getAdjustedPathsForExportMask(ExportMask exportMask, Map<URI, List<URI>> adjustedPaths, DbClient dbClient) {
+        Map<URI, List<URI>> result = new HashMap<URI, List<URI>> ();
+        Set<String> hostsInMask = getHostNamesInMask(exportMask, dbClient);
+        for (Map.Entry<URI, List<URI>> entry : adjustedPaths.entrySet()) {
+            URI initURI = entry.getKey();
+            if (exportMask.getInitiators().contains(initURI.toString())) {
+                result.put(initURI, entry.getValue());
+            } else {
+                Initiator initiator = dbClient.queryObject(Initiator.class, initURI);
+                String hostName = initiator.getHostName();
+                if (hostName != null && !hostName.isEmpty()) {
+                    if (hostsInMask.contains(hostName)) {
+                        result.put(initURI, entry.getValue());
+                    }
+                } 
+            }
+        }
+                
+        return result;
+        
+    }
+    
+    /**
+     * Returns the set of Hosts Names in an ExportMask
+     * @param exportMask
+     * @param dbClient
+     * @return Set of Hostnames
+     */
+    public static Set<String> getHostNamesInMask(ExportMask exportMask, DbClient dbClient) {
+        Set<String> hostsInMask = new HashSet<String> ();
+        Set<Initiator> initiators = getInitiatorsForExportMask(dbClient, exportMask, Transport.FC);
+        if (initiators == null || initiators.isEmpty()) {
+            return hostsInMask;
+        }
+        for (Initiator init : initiators) {
+            String hostName = init.getHostName();
+            if (hostName != null && !hostName.isEmpty()) {
+                hostsInMask.add(hostName);
+            }
+        }
+        return hostsInMask;
+    }
+    
+    /**
+     * Builds a default zoneMap from the initiators and ports.
+     
+     * For the targets in the mask, they are paired with the initiators they can service,
+     * i.e. that are on the same or a route-able network, and are usable in the varray,
+     * and the corresponding zones are put in the zoning map.
+     * 
+     * @param mask -- The ExportMask being manipulated
+     * @param varray -- The Virtual Array (normally from the ExportGroup)
+     * @param dbClient -- DbClient 
+     * @return - The zoning map represented as a string set map that is constructed from the 
+     * cross product of mask initiators and mask storage ports. Initiators are only paired
+     * with ports on the same network.
+     * 
+     *       Assumption: the export mask has up to date initiators and storage ports
+     */
+    public static StringSetMap buildZoningMapFromInitiatorsAndPorts(ExportMask mask, URI varray, DbClient dbClient) {
+        _log.info(String.format("Creating zoning map for ExportMask %s (%s) from the initiator and port sets",
+                mask.getMaskName(), mask.getId()));
+        StringSetMap zoningMap = new StringSetMap();
+
+        // Loop through the Initiators, looking for ports in the mask
+        // corresponding to the Initiator.
+        for (String initiatorURIStr : mask.getInitiators()) {
+            Initiator initiator = dbClient.queryObject(Initiator.class, URI.create(initiatorURIStr));
+            if (initiator == null || initiator.getInactive()) {
+                continue;
+            }
+            List<URI> storagePortList = ExportUtils.getPortsInInitiatorNetwork(mask, initiator, dbClient);
+            if (storagePortList.isEmpty()) {
+                continue;
+            }
+            StringSet storagePorts = new StringSet();
+            for (URI portURI : storagePortList) {
+                StoragePort port = dbClient.queryObject(StoragePort.class, portURI);
+                if (!port.isUsable()) {
+                    _log.debug(
+                            "Storage port {} is not selected because it is inactive, is not compatible, is not visible, not on a network, "
+                                    + "is not registered, or is not a frontend port",
+                            port.getLabel());
+                    continue;
+                }
+                
+                // If the port can be used in the varray,
+                // include it in the zone map port entries for the initiator.
+                // Network connectivity was checked in getInitiatorPortsInMask()
+                if (port.getTaggedVirtualArrays().contains(varray.toString())) {
+                    storagePorts.add(portURI.toString());
+                } else {
+                    _log.debug(
+                            "Storage port {} is not selected because it is not in the specified varray {}",
+                            port.getLabel(), varray.toString());
+                }
+            }
+            if (!storagePorts.isEmpty()) {
+                zoningMap.put(initiatorURIStr, storagePorts);
+            }
+        }
+        _log.info("Constructed zoningMap -" + zoningMap.toString());
+        return zoningMap;
+    }
+
 }

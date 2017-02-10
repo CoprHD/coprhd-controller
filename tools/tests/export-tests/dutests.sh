@@ -184,7 +184,7 @@ prerun_setup() {
 		then
 		    storage_password=${XTREMIO_3X_PASSWD}
 		elif [ "${storage_type}" = "unity" ]; then
-                    storage_password=${UNITY_PW}
+            storage_password=${UNITY_PW}
 		fi
 	    fi
         else
@@ -194,24 +194,25 @@ prerun_setup() {
         echo "The tenant $TENANT doesn't exist"
     fi
 
-    smisprovider list | grep SIM > /dev/null
+    storageprovider list | grep SIM > /dev/null
     if [ $? -eq 0 ];
     then
-	ZONE_CHECK=0
-	echo "Shutting off zone check for simulator environment"
+    	ZONE_CHECK=0
+    	SIM=1;
+    	echo "Shutting off zone check for simulator environment"
     fi
 
     if [ "${SS}" = "vnx" ]
     then
-	array_ip=${VNXB_IP}
-	FC_ZONE_A=FABRIC_vplex154nbr2
+    	array_ip=${VNXB_IP}
+    	FC_ZONE_A=FABRIC_vplex154nbr2
     elif [ "${SS}" = "vmax2" ]
     then
         FC_ZONE_A=FABRIC_VPlex_LGL6220_FID_30-10:00:00:27:f8:58:f6:c1
     fi
 
     if [ "${SIM}" = "1" ]; then
-	FC_ZONE_A=${CLUSTER1NET_SIM_NAME}	  
+	   FC_ZONE_A=${CLUSTER1NET_SIM_NAME}	  
     fi
 
     # All export operations orchestration go through the same entry-points
@@ -224,20 +225,20 @@ prerun_setup() {
 
     # The actual steps that the orchestration generates varies depending on the device type
     if [ "${SS}" != "vplex" ]; then
-	exportCreateDeviceStep=MaskingWorkflowEntryPoints.doExportGroupCreate
-	exportAddVolumesDeviceStep=MaskingWorkflowEntryPoints.doExportGroupAddVolumes
-	exportRemoveVolumesDeviceStep=MaskingWorkflowEntryPoints.doExportGroupRemoveVolumes
-	exportAddInitiatorsDeviceStep=MaskingWorkflowEntryPoints.doExportGroupAddInitiators
-	exportRemoveInitiatorsDeviceStep=MaskingWorkflowEntryPoints.doExportGroupRemoveInitiators
-	exportDeleteDeviceStep=MaskingWorkflowEntryPoints.doExportGroupDelete
+    	exportCreateDeviceStep=MaskingWorkflowEntryPoints.doExportGroupCreate
+    	exportAddVolumesDeviceStep=MaskingWorkflowEntryPoints.doExportGroupAddVolumes
+    	exportRemoveVolumesDeviceStep=MaskingWorkflowEntryPoints.doExportGroupRemoveVolumes
+    	exportAddInitiatorsDeviceStep=MaskingWorkflowEntryPoints.doExportGroupAddInitiators
+    	exportRemoveInitiatorsDeviceStep=MaskingWorkflowEntryPoints.doExportGroupRemoveInitiators
+    	exportDeleteDeviceStep=MaskingWorkflowEntryPoints.doExportGroupDelete
     else
-	# VPLEX-specific entrypoints
-	exportCreateDeviceStep=VPlexDeviceController.createStorageView
-	exportAddVolumesDeviceStep=ExportWorkflowEntryPoints.exportAddVolumes
-	exportRemoveVolumesDeviceStep=ExportWorkflowEntryPoints.exportRemoveVolumes
-	exportAddInitiatorsDeviceStep=ExportWorkflowEntryPoints.exportAddInitiators
-	exportRemoveInitiatorsDeviceStep=ExportWorkflowEntryPoints.exportRemoveInitiators
-	exportDeleteDeviceStep=VPlexDeviceController.deleteStorageView
+	   # VPLEX-specific entrypoints
+    	exportCreateDeviceStep=VPlexDeviceController.createStorageView
+    	exportAddVolumesDeviceStep=ExportWorkflowEntryPoints.exportAddVolumes
+    	exportRemoveVolumesDeviceStep=ExportWorkflowEntryPoints.exportRemoveVolumes
+    	exportAddInitiatorsDeviceStep=ExportWorkflowEntryPoints.exportAddInitiators
+    	exportRemoveInitiatorsDeviceStep=ExportWorkflowEntryPoints.exportRemoveInitiators
+    	exportDeleteDeviceStep=VPlexDeviceController.deleteStorageView
     fi
     
     set_validation_check true
@@ -779,6 +780,7 @@ xio_sim_setup() {
     XTREMIO_3X_IP=$XIO_SIMULATOR_IP
     XTREMIO_PORT=$XIO_4X_SIMULATOR_PORT
     XTREMIO_NATIVEGUID=$XIO_4X_SIM_NATIVEGUID
+    FC_ZONE_A=${CLUSTER1NET_SIM_NAME}
 }
 
 xio_setup() {
@@ -790,7 +792,7 @@ xio_setup() {
     XTREMIO_PROVIDER_NAME=XIO-PROVIDER
 
     if [ "${SIM}" = "1" ]; then
-	xio_sim_setup
+	   xio_sim_setup
     fi    
     
     run storageprovider create ${XTREMIO_PROVIDER_NAME} $XTREMIO_3X_IP $XTREMIO_PORT $XTREMIO_3X_USER "$XTREMIO_3X_PASSWD" xtremio
@@ -807,13 +809,13 @@ xio_setup() {
     SERIAL_NUMBER=`storagedevice list | grep COMPLETE | awk '{print $2}' | awk -F+ '{print $2}'`
     
     run cos create block ${VPOOL_BASE}	\
-	--description Base true                 \
-	--protocols FC 			                \
-	--numpaths 1				            \
-	--provisionType 'Thin'			        \
-	--max_snapshots 10                      \
+        --description Base true                 \
+        --protocols FC 			                \
+        --numpaths 1				            \
+        --provisionType 'Thin'			        \
+        --max_snapshots 10                      \
         --multiVolumeConsistency        \
-	--neighborhoods $NH                    
+        --neighborhoods $NH                    
 
     run cos update block $VPOOL_BASE --storage ${XTREMIO_NATIVEGUID}
 }

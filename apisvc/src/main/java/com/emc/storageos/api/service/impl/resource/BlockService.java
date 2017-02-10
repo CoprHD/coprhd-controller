@@ -1071,9 +1071,14 @@ public class BlockService extends TaskResourceService {
             requestedTypes.add(Types.SRDF.name());
         }
 
+        if (VirtualPool.vPoolSpecifiesRemoteReplication(vpool)) {
+            requestedTypes.add(Types.RR.name());
+        }
+
         if (!VirtualPool.vPoolSpecifiesProtection(vpool)
                 && !VirtualPool.vPoolSpecifiesHighAvailability(vpool)
                 && !VirtualPool.vPoolSpecifiesSRDF(vpool)
+                && !VirtualPool.vPoolSpecifiesRemoteReplication(vpool)
                 && vpool.getMultivolumeConsistency()) {
             requestedTypes.add(Types.LOCAL.name());
         }

@@ -103,7 +103,8 @@ public enum ResourceTypeEnum {
     ACTIONABLE_EVENT("actionable_event", "/vdc/events"),
     REMOTE_REPLICATION_SET("remote_replication_set", "/vdc/block/remotereplicationsets"),
     REMOTE_REPLICATION_GROUP("remote_replication_group", "/vdc/block/remotereplicationgroups"),
-    REMOTE_REPLICATION_PAIR("remote_replication_pair", "/vdc/block/remotereplicationpairs");
+    REMOTE_REPLICATION_PAIR("remote_replication_pair", "/vdc/block/remotereplicationpairs"),
+    REMOTE_REPLICATION_MANAGEMENT("remote_replication_management", "/vdc/block/remotereplicationmanagement");
 
     private final String type;
     private final String service;

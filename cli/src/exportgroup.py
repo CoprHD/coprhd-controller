@@ -891,7 +891,7 @@ def exportgroup_pathadjustment_parser(subcommand_parsers, common_parser):
 	mandatory_args.add_argument('-varray', '-va',
 			       metavar='<varray>',
 			       dest='varray',
-			       help='varray for export',
+			       help='virtual array for export',
 			       required=True)
 	path_adjustment_preview_parser.add_argument('-tenant', '-tn',
 			       metavar='<tenantname>',
@@ -905,10 +905,6 @@ def exportgroup_pathadjustment_parser(subcommand_parsers, common_parser):
 			       metavar='<pathsperinitiator>',
 			       dest='pathsperinitiator',
 			       help='paths per initiator')
-	path_adjustment_preview_parser.add_argument('-maxinitiatorsperport', '-maxipp',
-			       metavar='<maxinitiatorsperport',
-			       dest='maxinitiatorsperport',
-			       help='max initiators per port')
 	path_adjustment_preview_parser.add_argument('-storageports', '-sp',
 			       metavar='<storageports>',
 			       dest='storageports',
@@ -924,6 +920,10 @@ def exportgroup_pathadjustment_parser(subcommand_parsers, common_parser):
 			       dest='verbose',
 			       default=False,
 			       help='Print verbose output')
+	path_adjustment_preview_parser.add_argument('-maxinitiatorsperport', '-maxipp',
+			       metavar='<maxinitiatorsperport>',
+			       dest='maxinitiatorsperport',
+			       help=argparse.SUPPRESS)
 	path_adjustment_preview_parser.add_argument('-hosts', '-hosts',
 			       metavar='<hosts>',
 			       dest='hosts',

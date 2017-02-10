@@ -103,8 +103,8 @@ public class WorkflowServiceDescriptor {
 
             for (final Step step : wfDocument.getSteps()) {
                 if (null != step.getInputGroups()) {
-                    for (final OrchestrationWorkflowDocument.InputGroup inputs : step.getInputGroups().values()) {
-                        for (final Input wfInput : inputs.getInputGroup()) {
+			//TODO add enum. and need to fix COP-28181
+			for (final Input wfInput : step.getInputGroups().get("input_params").getInputGroup()) {
                             String wfInputType = null;
                             // Creating service fields for only inputs of type "inputfromuser" and "assetoption"
                             if (INPUT_FROM_USER_INPUT_TYPE.equals(wfInput.getType())) {
@@ -129,7 +129,6 @@ public class WorkflowServiceDescriptor {
                                 to.getItems().put(inputName, serviceField);
                             }
                         }
-                    }
                 }
             }
 

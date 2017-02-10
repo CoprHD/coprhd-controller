@@ -267,9 +267,10 @@ public class RunAnsible  extends ViPRExecutionTask<OrchestrationTaskResult> {
         }
 
         final StringBuilder sb = new StringBuilder("\"");
-        for (Map.Entry<String, List<String>> e : input.entrySet())
-            sb.append(e.getKey()).append("=").append(e.getValue().get(0)).append(" ");
-
+        for (Map.Entry<String, List<String>> e : input.entrySet()) {
+            //TODO find a better way to fix this
+            sb.append(e.getKey()).append("=").append(e.getValue().get(0).replace("\"", "")).append(" ");
+	}
         sb.append("\"");
         logger.info("extra vars:{}", sb.toString());
 
@@ -279,7 +280,8 @@ public class RunAnsible  extends ViPRExecutionTask<OrchestrationTaskResult> {
     private String makeParam(final Map<String, List<String>> input) throws Exception {
         final StringBuilder sb = new StringBuilder();
         for (List<String> value : input.values()) {
-            sb.append(value.get(0)).append(" ");
+            //TODO find a better way to fix this
+            sb.append(value.get(0).replace("\"", "")).append(" ");
         }
 
         return sb.toString();

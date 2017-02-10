@@ -130,18 +130,19 @@ public class OrchestrationService extends ViPRService {
             updateInputPerStep(step);
 
             final OrchestrationTaskResult res;
-            Primitive primitive = PrimitiveHelper.get(step.getOperation());
-
-            if( null == primitive) {
-                throw InternalServerErrorException.internalServerErrors.
-                        customServiceExecutionFailed("Primitive not found: " + step.getOperation());
-            }
 
             try {
                 StepType type = StepType.fromString(step.getType());
                 switch (type) {
                     case VIPR_REST: {
+			//TODO move this outside the try after we have primitives for others. Except Remote Ansible
+            		Primitive primitive = PrimitiveHelper.get(step.getOperation());
 
+            		if( null == primitive) {
+                		throw InternalServerErrorException.internalServerErrors.
+                        		customServiceExecutionFailed("Primitive not found: " + step.getOperation());
+           		 }
+		
                         res = ViPRExecutionUtils.execute(new RunViprREST((ViPRPrimitive) (primitive),
                                 getClient().getRestClient(), inputPerStep.get(step.getId())));
 
@@ -176,9 +177,8 @@ public class OrchestrationService extends ViPRService {
                     }
                 }
                 next = getNext(isSuccess, res, step);
-
             } catch (final Exception e) {
-                logger.info("Failed to execute Step:{} msg:{}", step.getId(), e.getMessage());
+		logger.info("failed to execute step. Try to get rollback step");
                 next = getNext(false, null, step);
             }
 
@@ -196,11 +196,15 @@ public class OrchestrationService extends ViPRService {
     {
         if (result == null)
             return false;
+	//TODO commented this till I fix evaluation from the primitive
+	return true;
+	/*
         if (step.getSuccessCriteria() == null) {
             return evaluateDefaultValue(step, result.getReturnCode());
         } else {
             return findStatus(step.getSuccessCriteria(), result);
         }
+	*/
     }
 
     private String getNext(final boolean status, final OrchestrationTaskResult result, final Step step) {
@@ -328,7 +332,9 @@ public class OrchestrationService extends ViPRService {
             if (isAnsible(step)) {
                 out.put(o.getName(), evaluateAnsibleOut(result, o.getName()));
             } else {
-                out.put(o.getName(), evaluateValue(result, o.getName()));
+		//TODO: Remove this after parsing output is fully implemented
+                //out.put(o.getName(), evaluateValue(result, o.getName()));
+		return;
             }
         }
 

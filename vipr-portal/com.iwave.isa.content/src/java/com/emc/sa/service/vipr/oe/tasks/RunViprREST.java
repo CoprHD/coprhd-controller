@@ -167,7 +167,8 @@ public class RunViprREST extends ViPRExecutionTask<OrchestrationTaskResult> {
             if(null == value) {
                 throw InternalServerErrorException.internalServerErrors.customServiceExecutionFailed("Unfulfilled path parameter: " + key);
             }
-            pathParameterMap.put(key, value.get(0));
+	    //TODO find a better fix
+            pathParameterMap.put(key, value.get(0).replace("\"",""));
         }
         
         final String path = template.expand(pathParameterMap).getPath(); 
@@ -199,7 +200,12 @@ public class RunViprREST extends ViPRExecutionTask<OrchestrationTaskResult> {
         while (m.find()) {
             String pat = m.group(1);
             String newpat = "$" + pat;
-            body = body.replace(newpat, "\"" +input.get(pat).get(0).replace("\"","")+"\"");
+		if (input.get(pat) == null || input.get(pat).get(0) == null) {
+			logger.info("input.get(pat) is null for pat:{}", pat);
+			body = body.replace(newpat, "\"" +" "+"\"");
+		} else {
+            		body = body.replace(newpat, "\"" +input.get(pat).get(0).replace("\"","")+"\"");
+		}
         }
 
         return body;

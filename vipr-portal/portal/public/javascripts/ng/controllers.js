@@ -391,9 +391,17 @@ angular.module("portalApp").controller({
         $scope.deleteTopology = function(idx) { $scope.topologies.splice(idx, 1); }
         $scope.addTopology = function() { $scope.topologies.push(angular.copy($scope.add)); }
         
-        $http.get(routes.VirtualArrays_list()).success(function(data) {
+         $http.get(routes.VirtualArrays_list()).success(function(data) {
         	$scope.virtualArrayOptions = data.aaData;
         });  
+        
+         $scope.loadTopologies = function() { 
+              if($scope.topologiesString != null) {
+                for(var topology in angular.fromJson($scope.topologies, false)) {
+                    $scope.topologies.push(angular.copy(topology));
+                }
+             } 
+         }
         
         $scope.$watch('topologies', function(newVal) {
         	$scope.topologiesString = angular.toJson($scope.topologies, false);

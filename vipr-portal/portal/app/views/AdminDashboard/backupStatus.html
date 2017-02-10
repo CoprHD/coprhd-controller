@@ -1,5 +1,3 @@
-#{set isExternalServerConfigured:util.BackupUtils.isExternalServerConfigured() /}
-#{set isScheduledBackupEnabled:util.BackupUtils.isScheduledBackupEnabled() /}
 
 <div id="backupPanel">
     <div class="panel panel-default">
@@ -76,67 +74,6 @@
                     $('#lastScheduled').append(formatLocalDateTime(new Date(parseInt(lastScheduledCreationTime))));
                 } else {
                     $('#lastScheduled').append("&{'adminDashboard.backupStatus.none'}");
-                }
-            </script>
-
-            <tr class="odd ng-scope openRow">
-                <td class="type" height="25px" width="170px">&{'adminDashboard.nextScheduledBackup'}: </td>
-                <td class="icon" height="25px" width="25px">
-                #{if !isScheduledBackupEnabled}
-                    <span class="text-warning">#{icon 'warning-sign'/}</span>
-                #{/if}
-                </td>
-                <td class="time" id="nextScheduled"></td>
-            </tr>
-            <script>
-                if (${isScheduledBackupEnabled}) {
-                    var nextScheduledCreationTime = '${backupOperationStatus?.getNextScheduledCreation()}';
-                    if (nextScheduledCreationTime != '' && nextScheduledCreationTime != '0') {
-                        $('#nextScheduled').append(formatLocalDateTime(new Date(parseInt(nextScheduledCreationTime))));
-                    } else {
-                        $('#nextScheduled').append("&{'adminDashboard.backupStatus.none'}");
-                    }
-                } else {
-                    $('#nextScheduled').append("&{'adminDashboard.nextScheduledBackup.disabled'}");
-                }
-            </script>
-
-            <tr class="odd ng-scope openRow">
-                <td class="type" height="25px" width="170px">&{'adminDashboard.lastUploadStatus'}: </td>
-                <td class="icon" height="25px" width="25px">
-                #{if isExternalServerConfigured}
-                    #{if backupOperationStatus?.getLastUpload()}
-                        #{if backupOperationStatus?.getLastUpload()?.getOperationMessage()?.getValue() == "success"}
-                            <span class="text-success">#{icon 'ok-sign'/}</span>
-                        #{/if}
-                        #{else}
-                            <span class="text-danger">#{icon 'remove-sign'/}</span>
-                        #{/else}
-                    #{/if}
-                #{/if}
-                #{else}
-                    <span class="text-warning">#{icon 'warning-sign'/}</span>
-                #{/else}
-                </td>
-                <td class="time">
-                    #{if isExternalServerConfigured }
-                    <a href="@{Backup.list()}" id="lastUpload"></a>
-                    #{/if}
-                    #{else}
-                    <a href="@{infra.ConfigProperties.properties()}"  id="externalServer"></a>
-                    #{/else}
-                </td>
-            </tr>
-            <script>
-                if (${isExternalServerConfigured}) {
-                    if ('${backupOperationStatus?.getLastUpload()}' != '') {
-                        var lastUploadTime = '${backupOperationStatus?.getLastUpload()?.getOperationTime()}';
-                        $('#lastUpload').append(formatLocalDateTime(new Date(parseInt(lastUploadTime))));
-                    } else {
-                        $('#lastUpload').append("&{'adminDashboard.backupStatus.none'}");
-                    }
-                } else {
-                    $('#externalServer').append("&{'adminDashboard.lastUploadStatus.notConfigured'}");
                 }
             </script>
             </tbody>

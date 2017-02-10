@@ -1455,6 +1455,8 @@ public class HDSExportOperations implements ExportMaskOperations {
 							ExportMask maskForHSD = null;
 							for (ExportMask exportMaskhavingInitiators : exportMaskWithHostInitiators) {
 								if (exportMaskhavingInitiators.getStoragePorts().contains(storagePortOFHDSURI)) {
+									log.info("storagePortOFHDSURI {}",storagePortOFHDSURI);
+									log.info("exportMaskhavingInitiators {}",exportMaskhavingInitiators.getId());
 									maskForHSD = exportMaskhavingInitiators;
 									break;
 								}
@@ -1464,6 +1466,7 @@ public class HDSExportOperations implements ExportMaskOperations {
 	                        	//any of the export masks have storage ports, which belong to the varray 
 	                        	//in consideration
 	                        	String  varrayUriOfHsdPort = getVarrayOfStoragePort(storagePortOFHDSURI);
+	                        	log.info("varrayUriOfHsdPort {}", varrayUriOfHsdPort);	                        	
 	                        	if(varrayUriOfHsdPort != null){
 	                        		for (ExportMask exportMaskhavingInitiators : exportMaskWithHostInitiators) {
 	                                    for(String storagePortUriIter : exportMaskhavingInitiators.getStoragePorts()) {
@@ -1471,6 +1474,7 @@ public class HDSExportOperations implements ExportMaskOperations {
 	                                    	String  varrayOfStoragePort = getVarrayOfStoragePort(storagePortUriIter);
 	                                    	if ( (varrayOfStoragePort!=null) && (varrayOfStoragePort.equals(varrayUriOfHsdPort)) ){
 	                                    		maskForHSD = exportMaskhavingInitiators;
+	                                    		log.info("maskForHSD {}", maskForHSD.getId());
 	                                    		break;
 	                                    	}
 	                                    }

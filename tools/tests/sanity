@@ -620,7 +620,7 @@ setup_yaml() {
     echo "Creating ${tools_file}"
     touch $tools_file
 
-    if [ "storage_type" = "unity" ]; then
+    if [ "$storage_type" = "unity" ]; then
         printf 'array:\n  %s:\n  - ip: %s:%s\n    username: %s\n    password: %s' "$storage_type" "$UNITY_IP" "$UNITY_PORT" "$UNITY_USER" "$UNITY_PW" >> $tools_file
         return
     fi

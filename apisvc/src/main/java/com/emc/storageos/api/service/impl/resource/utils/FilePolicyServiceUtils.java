@@ -170,7 +170,7 @@ public class FilePolicyServiceUtils {
     }
 
     /**
-     * validates whether the schedule policy parameters are valid or not
+     * Validates whether the snapshot or replication schedule policy parameters are valid or not
      * 
      * @param policyScheduleparams - schedule policy parameters
      * @param schedulePolicy - schedulePolicy object to set schedule values

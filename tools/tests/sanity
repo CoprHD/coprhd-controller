@@ -230,7 +230,7 @@ do
 done
 
 case $SS in
-    all|snapvx|isilon|vplex|vplexexport|vplexsnap|netapp|netappc|recoverpoint|srdf|vnxfile|datadomainfile|vnxblock|vnxblock_flex_varray|hds|xtremio|vmaxblock|ingestblock|vmaxblock_flex_varray|combined_block|syssvc|blocksnapshot|blockmirror|full_copy|blockconsistencygroup|security|monitor|audit|ui|init|quick|errorhandling|vdc|vnxe|recovery|backuprestore|sanzoning|dr|ipsec|application|sbsdk|ceph|unityblock|unityfile|custvolname|arrayaffinity)
+    all|snapvx|isilon|vplex|vplexexport|vplexsnap|netapp|netappc|recoverpoint|srdf|vnxfile|datadomainfile|vnxblock|vnxblock_flex_varray|hds|xtremio|vmaxblock|ingestblock|vmaxblock_flex_varray|combined_block|syssvc|blocksnapshot|blockmirror|full_copy|blockconsistencygroup|security|monitor|audit|ui|init|quick|errorhandling|vdc|vnxe|recovery|backuprestore|sanzoning|dr|ipsec|application|sbsdk|ceph|unityblock|unityfile|custvolname|arrayaffinity|lparmobility)
     ;;
 
     # These tests are handled by sanity integration tests written with the code
@@ -14274,9 +14274,9 @@ lpar_hosts_setup()
     nodewwn4=80:a0:b0:c0:d0:e0:f0:04
 	fctz=${NH}/FABRIC_losam082-fabric
 
-    run hosts create ${LPAR_HOST1} $tenant Linux ${LPAR_HOST1}.lss.emc.com --port 2222 --username user --password 'password' --osversion 1.0 --isVirtual True
+    run hosts create ${LPAR_HOST1} $tenant Linux ${LPAR_HOST1}.lss.emc.com --port 2222 --username user --password 'password' --osversion 1.0 --isVirtual true
     run initiator createpair ${LPAR_HOST1} FC ${portwwn1} --node1 ${nodewwn1} ${portwwn2} --node2 ${nodewwn2}
-    run hosts create ${LPAR_HOST2} $tenant Linux ${LPAR_HOST2}.lss.emc.com --port 2222 --username user --password 'password' --osversion 1.0 --isVirtual True
+    run hosts create ${LPAR_HOST2} $tenant Linux ${LPAR_HOST2}.lss.emc.com --port 2222 --username user --password 'password' --osversion 1.0 --isVirtual true
     run initiator createpair ${LPAR_HOST2} FC ${portwwn3} --node1 ${nodewwn3} ${portwwn4} --node2 ${nodewwn4}
     
     run transportzone add $fctz $portwwn1
@@ -14289,12 +14289,19 @@ lpar_hosts_setup()
 
 lparmobility_setup()
 {
+	secho "START LPAR mobility setup"
+	
 	lpar_hosts_setup
 	vmaxblock_setup
+	
+	secho "LPAR mobility setup ended"
 }
 
 lparmobility_tests()
 {
+	secho "Start LPAR mobility tests"
+	
+	secho "LPAR mobility tests ended"
 	
 
 }

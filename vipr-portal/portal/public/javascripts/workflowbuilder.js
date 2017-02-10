@@ -397,6 +397,7 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
         //add data
         //TODO:remove friendlyName, it will be included in step data already
         var stepData = jQuery.extend(true, {}, treecontroller.data("primitiveData"));
+        stepData.operation = stepData.id;
         stepData.id = randomIdHash;
         stepData.positionY = positionY;
         stepData.positionX = positionX;

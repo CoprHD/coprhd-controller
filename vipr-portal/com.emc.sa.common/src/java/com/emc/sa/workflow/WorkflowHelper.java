@@ -57,11 +57,14 @@ public final class WorkflowHelper {
         
         final StringSet primitives = new StringSet();
         for(final Step step : document.getSteps()) {
-            switch(StepType.fromString(step.getType())) {
-            case VIPR_REST:
-                break;
-            default:
-                primitives.add(step.getOperation().toString());
+            final StepType stepType = (null == step.getType()) ? null : StepType.fromString(step.getType());
+            if(null != stepType ) {
+                switch(stepType) {
+                case VIPR_REST:
+                    break;
+                default:
+                    primitives.add(step.getOperation().toString());
+                }
             }
         }
 

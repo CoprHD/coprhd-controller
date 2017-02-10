@@ -238,18 +238,18 @@ public interface FileOrchestrationController extends Controller {
      * @param filePolicyToAssign
      * @param taskId
      */
-    public void assignFileSnapshotPolicyToVirtualPool(Map<URI, List<URI>> vpoolToStorageSystemMap, URI filePolicyToAssign, String taskId)
+    public void assignFileSnapshotPolicyToVirtualPools(Map<URI, List<URI>> vpoolToStorageSystemMap, URI filePolicyToAssign, String taskId)
             throws InternalException;
 
-    public abstract void assignFileSnapshotPolicyToProject(Map<URI, List<URI>> vpoolToStorageSystemMap, List<URI> projectURIs,
+    public abstract void assignFileSnapshotPolicyToProjects(Map<URI, List<URI>> vpoolToStorageSystemMap, List<URI> projectURIs,
             URI filePolicyToAssign, String taskId);
 
     public abstract void updateFileProtectionPolicy(URI policy, FilePolicyUpdateParam param, String taskId);
 
-    public void assignFileReplicationPolicyToVirtualPool(List<FileStorageSystemAssociation> associations,
+    public void assignFileReplicationPolicyToVirtualPools(List<FileStorageSystemAssociation> associations,
             List<URI> vpoolURIs, URI filePolicyToAssign, String taskId);
 
-    public void assignFileReplicationPolicyToProject(List<FileStorageSystemAssociation> associations, URI vpoolURI, List<URI> projectURIs,
+    public void assignFileReplicationPolicyToProjects(List<FileStorageSystemAssociation> associations, URI vpoolURI, List<URI> projectURIs,
             URI filePolicyToAssign, String taskId);
 
 }

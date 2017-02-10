@@ -205,6 +205,8 @@
         <property name="dbClient" ref="dbclient"/>
         <property name="workflowService" ref="workflowService"/>
         <property name="exportWorkflowEntryPoints" ref="exportWorkflowEntryPoints"/>
+        <property name="networkDeviceController" ref="networkDeviceController" />
+        <property name="hostRescanDeviceController" ref="hostRescanDeviceController"/>
     </bean>
 
     <bean id="locker" class="com.emc.storageos.volumecontroller.impl.ControllerLockingServiceImpl">
@@ -1099,6 +1101,7 @@
                 <ref bean="objectDeviceController"/>
 		<ref bean="workflowService"/>
                 <ref bean="computeSystemOrchestrationDeviceController"/>
+                <ref bean="hostRescanDeviceController"/>
             </set>
         </property>
         <property name="deviceMaxConnectionMap">
@@ -1798,6 +1801,10 @@
         <property name="serviceInterface" value="com.emc.storageos.computesystemorchestrationcontroller.ComputeSystemOrchestrationController"/>
         <property name="registryPort" value="10099"/>
         <property name="servicePort" value="40201"/>
+    </bean>
+
+    <bean id="hostRescanDeviceController" class="com.emc.storageos.computecontroller.impl.HostRescanDeviceController">
+        <property name="dbClient" ref="dbclient"/>
     </bean>
 </beans>
 

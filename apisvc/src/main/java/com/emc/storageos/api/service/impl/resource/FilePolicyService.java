@@ -741,7 +741,7 @@ public class FilePolicyService extends TaskResourceService {
                 if (replParam.getPolicySchedule().getScheduleFrequency() != null &&
                         !replParam.getPolicySchedule().getScheduleFrequency().isEmpty()) {
                     fileReplicationPolicy
-                    .setScheduleFrequency(replParam.getPolicySchedule().getScheduleFrequency());
+                            .setScheduleFrequency(replParam.getPolicySchedule().getScheduleFrequency());
                 }
             }
         }
@@ -990,7 +990,7 @@ public class FilePolicyService extends TaskResourceService {
 
     }
 
-    public static boolean updatePolicyCapabilities(DbClient dbClient, StringSet sourceVArraySet, VirtualPool vPool, FilePolicy policy,
+    private static boolean updatePolicyCapabilities(DbClient dbClient, StringSet sourceVArraySet, VirtualPool vPool, FilePolicy policy,
             VirtualPoolCapabilityValuesWrapper capabilities, StringBuilder errorMsg) {
 
         // Update replication policy capabilities!!
@@ -1216,7 +1216,7 @@ public class FilePolicyService extends TaskResourceService {
         // update replication topology info
         updateFileReplicationTopologyInfo(param, filepolicy);
         if ((param.getFileSystemAssignParams().getVpool() != null
-        && !param.getFileSystemAssignParams().getVpool().equals(filepolicy.getFilePolicyVpool()))) {
+                && !param.getFileSystemAssignParams().getVpool().equals(filepolicy.getFilePolicyVpool()))) {
             VirtualPool vpool = _dbClient.queryObject(VirtualPool.class, filepolicy.getFilePolicyVpool());
             errorMsg.append("File policy :" + filepolicy.getFilePolicyName()
                     + " is already assigned at file system level under the vpool: "

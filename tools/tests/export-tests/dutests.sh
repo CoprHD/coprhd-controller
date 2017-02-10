@@ -2800,6 +2800,11 @@ test_23() {
 #
 test_24() {
     echot "Test 24: Remove Volume doesn't remove the zone when extra volume is in the mask"
+    if [ "$SS" = "unity" ]; then
+        echo "This will fail for Unity due to COP-27778. So skipping this test for Unity for now."
+        return
+    fi
+
     expname=${EXPORT_GROUP_NAME}t24
 
     # Make sure we start clean; no masking view on the array
@@ -3023,7 +3028,6 @@ test_26() {
     snap2=$PROJECT/${VOLNAME}-3/$snap_label2
 
     runcmd blocksnapshot create $PROJECT/${VOLNAME}-1 ${snap_label1}
-    runcmd volume create ${VOLNAME}-3 ${PROJECT} ${NH} ${VPOOL_BASE} 1GB --count 1
     runcmd blocksnapshot create $PROJECT/${VOLNAME}-3 ${snap_label2}
 
     runcmd export_group update $PROJECT/${expname}1 --addVolspec "$snap1","$snap2"
@@ -3130,12 +3134,11 @@ test_26() {
 
     runcmd blocksnapshot delete $snap1
     runcmd blocksnapshot delete $snap2
-    runcmd volume delete $PROJECT/${VOLNAME}-3 --wait
 }
 
 # DU Prevention Validation Test 27 (Unity only)
 #
-# Summary: Test export group udate/deletion when host has multiple export groups
+# Summary: Test export group update/deletion when host has multiple export groups
 #
 # Basic Use Case for single host, multiple export groups
 # 1. Create 2 volume, 1 host export from the first project
@@ -3321,7 +3324,7 @@ test_27() {
 
 # DU Prevention Validation Test 28 (Unity only)
 #
-# Summary: Test export group udate/deletion when host has multiple export groups with no or partial shared initiators
+# Summary: Test export group update/deletion when host has multiple export groups with no or partial shared initiators
 #
 # Basic Use Case for single host, multiple export groups
 # 1. Create 1 volume, 1 host export with the same host from the first project

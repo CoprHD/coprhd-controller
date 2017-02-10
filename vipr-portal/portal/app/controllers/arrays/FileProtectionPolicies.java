@@ -467,7 +467,7 @@ public class FileProtectionPolicies extends ViprResourceController {
         // Day of the month
         public Long scheduleDayOfMonth;
 
-        public String snapshotNamePattern;
+        public String snapshotNamePattern = "Snapshot_%Y-%m-%d-_%H-%M";
 
         // Schedule Snapshot expire type e.g hours, days, weeks, months and never
         public String expireType;

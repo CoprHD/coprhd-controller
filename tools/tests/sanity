@@ -14,9 +14,14 @@ CONFIG_FILE=${1}
 
 Usage()
 {
-    echo 'Usage: sanity <configuration_file> <bourne_ip>|<[bourne_ipv6]> {all | snapvx | isilon | vplex [normal|quick|xio|vnx] [noingest|ingest [all|exported|unexported]] | vplexexport | vplexsnap | custvolname | vnxblock | ingestblock | vnxblock_flex_varray | netapp | netappc | recoverpoint | xtremio [quick|hlu|quick hlu] | srdf |
- vnxfile | datadomainfile | vmaxblock | hds | vmaxblock_flex_varray | combined_block | blocksnapshot | blockmirror | full_copy | blockconsistencygroup | init | quick | sbsdk |
- errorhandling | vnxe | security | syssvc | audit | monitor | vdc | catalog | recovery | backuprestore backupserver-uri username password | dr | ipsec | ceph} [local|ldap] [<timeslot>] | sanzoning | application | unityblock [all|block|vplex|rp|hlu] | unityfile | arrayaffinity'
+    echo 'Usage: sanity <configuration_file> <bourne_ip>|<[bourne_ipv6]> {all | snapvx | isilon 
+    | vplex [normal|quick|xio|vnx] [noingest|ingest [all|exported|unexported]] | vplexexport | vplexsnap
+    | custvolname | vnxblock | ingestblock | vnxblock_flex_varray | netapp | netappc | recoverpoint 
+    | xtremio [quick|hlu|quick hlu] | srdf | vnxfile | datadomainfile | vmaxblock | hds | vmaxblock_flex_varray 
+    | combined_block | blocksnapshot | blockmirror | full_copy | blockconsistencygroup | init | quick | sbsdk 
+    | errorhandling | vnxe | security | syssvc | audit | monitor | vdc | catalog | recovery
+    | backuprestore backupserver-uri username password | dr | ipsec | ceph} [local|ldap] [<timeslot>] 
+    | sanzoning | application | unityblock [all|block|vplex|rp|hlu] | unityfile | arrayaffinity | lparmobility'    
     echo 'E.g.:  sanity conf/sanity.conf 137.69.169.21 all'
     echo 'E.g.:  sanity ~/.sanity/sanity.conf 137.69.169.21 isilon'
     echo 'Note: IPv6 needs to be square bracket surrounded. E.g.:  sanity [2620:0:170:2842::180] security'
@@ -7478,8 +7483,11 @@ common_setup()
                 run neighborhood allow $NH2 $TENANT
                 run neighborhood allow $NH $ROOT_TENANT
                 run neighborhood allow $NH2 $ROOT_TENANT
-                secho "Setup hosts and clusters for $TENANT"
-                host_setup
+                
+                if [ "${SS}" != "lparmobility" ]; then
+                   secho "Setup hosts and clusters for $TENANT"
+                   host_setup
+                fi
             fi
         fi
     fi
@@ -14243,6 +14251,52 @@ arrayaffinity_tests()
     arrayaffinity_cleanup
 
     secho "Completed array affinity tests"
+}
+
+LPAR_HOST1=lparhost1
+LPAR_HOST2=lparhost2
+
+# Create LPAR HOST
+# These will be virtual hosts having paired initiators
+lpar_hosts_setup()
+{
+    secho "Setup LPAR hosts for $TENANT started"
+    proj=$PROJECT
+    tenant=$TENANT
+    
+    portwwn1=10:a0:b0:c0:d0:e0:f0:01
+    nodewwn1=20:a0:b0:c0:d0:e0:f0:01
+    portwwn2=30:a0:b0:c0:d0:e0:f0:03
+    nodewwn2=40:a0:b0:c0:d0:e0:f0:04
+    portwwn3=50:a0:b0:c0:d0:e0:f0:01
+    nodewwn3=60:a0:b0:c0:d0:e0:f0:01
+    portwwn4=70:a0:b0:c0:d0:e0:f0:03
+    nodewwn4=80:a0:b0:c0:d0:e0:f0:04
+	fctz=${NH}/FABRIC_losam082-fabric
+
+    run hosts create ${LPAR_HOST1} $tenant Linux ${LPAR_HOST1}.lss.emc.com --port 2222 --username user --password 'password' --osversion 1.0 --isVirtual True
+    run initiator createpair ${LPAR_HOST1} FC ${portwwn1} --node1 ${nodewwn1} ${portwwn2} --node2 ${nodewwn2}
+    run hosts create ${LPAR_HOST2} $tenant Linux ${LPAR_HOST2}.lss.emc.com --port 2222 --username user --password 'password' --osversion 1.0 --isVirtual True
+    run initiator createpair ${LPAR_HOST2} FC ${portwwn3} --node1 ${nodewwn3} ${portwwn4} --node2 ${nodewwn4}
+    
+    run transportzone add $fctz $portwwn1
+    run transportzone add $fctz $portwwn2
+    run transportzone add $fctz $portwwn3
+    run transportzone add $fctz $portwwn4
+
+    secho "Setup LPAR hosts for $TENANT ended"
+}
+
+lparmobility_setup()
+{
+	lpar_hosts_setup
+	vmaxblock_setup
+}
+
+lparmobility_tests()
+{
+	
+
 }
 
 # set DO_TESTS_ONLY to 1 if setup does not need to be re-run

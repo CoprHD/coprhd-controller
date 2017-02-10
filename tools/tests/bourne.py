@@ -369,6 +369,7 @@ URI_HOST                        = URI_SERVICES_BASE   + '/compute/hosts/{0}'
 URI_HOST_DEACTIVATE             = URI_HOST            + '/deactivate?detach_storage={1}'
 URI_HOSTS_BULKGET               = URI_HOSTS           + '/bulk'
 URI_HOST_INITIATORS             = URI_SERVICES_BASE   + '/compute/hosts/{0}/initiators'
+URI_INITIATOR_PAIR              = URI_SERVICES_BASE   + '/compute/hosts/{0}/paired-initiators'
 URI_HOST_IPINTERFACES           = URI_SERVICES_BASE   + '/compute/hosts/{0}/ip-interfaces'
 URI_INITIATORS                  = URI_SERVICES_BASE   + '/compute/initiators'
 URI_INITIATOR                   = URI_SERVICES_BASE   + '/compute/initiators/{0}'
@@ -6899,7 +6900,7 @@ class Bourne:
         self._headers['date'] = date
         #_headers['x-emc-date'] = date
         self._headers['x-emc-uid'] = uid
-        self._headers['x-emc-meta'] = 'color=red,city=seattle,key=é'
+        self._headers['x-emc-meta'] = 'color=red,city=seattle,key=ï¿½'
         self._headers['x-emc-signature'] = self.atmos_hmac_base64_sig(method, content_type, uri, date, secret)
 
         response = self.coreapi(method, uri, value, None, None, content_type)
@@ -8434,7 +8435,7 @@ class Bourne:
     #
     def host_create(self, label, tenant, type, hostname, devport,
                     username, password, osversion, usessl,
-                    project, cluster, datacenter, discoverable):
+                    project, cluster, datacenter, discoverable, isVirtual):
         uri = self.__tenant_id_from_label(tenant)
 
         parms = { 'name'            : label,
@@ -8445,7 +8446,8 @@ class Bourne:
                    'user_name'      : username,
                    'password'       : password,
                    'use_ssl'        : usessl,
-                   'discoverable'   : discoverable
+                   'discoverable'   : discoverable,
+                   'virtual_machine': isVirtual
                    }
         if(datacenter):
             parms['vcenter_data_center'] = self.datacenter_query(datacenter)
@@ -8572,6 +8574,28 @@ class Bourne:
                   'initiator_node'    : node,
                    }
         o = self.api('POST', URI_HOST_INITIATORS.format(uri), parms)
+        self.assert_is_dict(o)
+        s = self.api_sync_2(o['resource']['id'], o['op_id'], self.initiator_show_task)
+        return (o, s)
+    
+    def initiator_create_pair(self, host, protocol, port1, node1, port2, node2):
+        uri = self.host_query(host)
+        parms = {
+            "first_initiator": {
+                "protocol": protocol,
+                "initiator_node": node1,
+                "initiator_port": port1,
+                "name": "initname1"
+            },
+            "second_initiator": {
+                "protocol": protocol,
+                "initiator_node": node2,
+                "initiator_port": port2,
+                "name": "initname2"
+            }
+        }
+        
+        o = self.api('POST', URI_INITIATOR_PAIR.format(uri), parms)
         self.assert_is_dict(o)
         s = self.api_sync_2(o['resource']['id'], o['op_id'], self.initiator_show_task)
         return (o, s)

@@ -17,7 +17,7 @@ def host_create(args):
     bourne.connect(args.ip)
     task = bourne.host_create(args.label, args.tenant, args.type, args.hostname, 
                args.port, args.username, args.password, args.osversion, args.ssl,
-               args.project, args.cluster, args.datacenter, args.discoverable)
+               args.project, args.cluster, args.datacenter, args.discoverable, args.isVirtual)
     print task    
 
 def host_update(args):
@@ -112,6 +112,7 @@ create.add_argument('--project',        help = 'host project name when the host 
 create.add_argument('--cluster',        help = 'host cluster')
 create.add_argument('--datacenter',     help = 'SMIS provider TCP port')
 create.add_argument('--discoverable',   help = 'discoverable: true or false', default='false')
+create.add_argument('--isVirtual',   help = 'isVirtual: true or false', default='false')
 
 # host update uri
 update = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')

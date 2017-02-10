@@ -145,11 +145,11 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
 
     private static final String APPLY_FILE_POLICY_METHOD = "applyFilePolicy";
     private static final String UNASSIGN_FILE_POLICY_METHOD = "unassignFilePolicy";
-    private static final String ASSIGN_FILE_SNAPSHOT_POLICY_TO_VIRTUAL_POOL_METHOD = "assignFileSnapshotPolicyToVirtualPool";
-    private static final String ASSIGN_FILE_SNAPSHOT_POLICY_TO_PROJECT_METHOD = "assignFileSnapshotPolicyToProject";
+    private static final String ASSIGN_FILE_SNAPSHOT_POLICY_TO_VIRTUAL_POOLS_METHOD = "assignFileSnapshotPolicyToVirtualPools";
+    private static final String ASSIGN_FILE_SNAPSHOT_POLICY_TO_PROJECTS_METHOD = "assignFileSnapshotPolicyToProjects";
     private static final String UPDATE_STORAGE_SYSTEM_FILE_PROTECTION_POLICY_METHOD = "updateStorageSystemFileProtectionPolicy";
-    private static final String ASSIGN_FILE_REPLICATION_POLICY_TO_VIRTUAL_POOL_METHOD = "assignFileReplicationPolicyToVirtualPool";
-    private static final String ASSIGN_FILE_REPLICATION_POLICY_TO_PROJECT_METHOD = "assignFileReplicationPolicyToProject";
+    private static final String ASSIGN_FILE_REPLICATION_POLICY_TO_VIRTUAL_POOLS_METHOD = "assignFileReplicationPolicyToVirtualPools";
+    private static final String ASSIGN_FILE_REPLICATION_POLICY_TO_PROJECTS_METHOD = "assignFileReplicationPolicyToProjects";
 
     /*
      * (non-Javadoc)
@@ -1645,7 +1645,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
 
                         if (targetACE != null &&
                                 (!targetACE.getPermissions().equals(sourceACE.getPermissions()) ||
-                                        !targetACE.getPermissionType().equals(sourceACE.getPermissionType()))) {
+                                !targetACE.getPermissionType().equals(sourceACE.getPermissionType()))) {
 
                             targetACE.setPermissions(sourceACE.getPermissions());
                             targetACE.setPermissionType(sourceACE.getPermissionType());
@@ -1873,7 +1873,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
                                                 storageSystemURI);
                                 Object[] args = new Object[] { storageSystemURI, vNASURI, filePolicyToAssign, vpoolURI };
                                 waitFor = _fileDeviceController.createMethod(workflow, waitFor,
-                                        ASSIGN_FILE_SNAPSHOT_POLICY_TO_VIRTUAL_POOL_METHOD,
+                                        ASSIGN_FILE_SNAPSHOT_POLICY_TO_VIRTUAL_POOLS_METHOD,
                                         stepId,
                                         stepDes,
                                         storageSystemURI, args);
@@ -1893,7 +1893,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
                                                 storageSystemURI);
                                 Object[] args = new Object[] { storageSystemURI, null, filePolicyToAssign, vpoolURI };
                                 waitFor = _fileDeviceController.createMethod(workflow, waitFor,
-                                        ASSIGN_FILE_SNAPSHOT_POLICY_TO_VIRTUAL_POOL_METHOD,
+                                        ASSIGN_FILE_SNAPSHOT_POLICY_TO_VIRTUAL_POOLS_METHOD,
                                         stepId,
                                         stepDes,
                                         storageSystemURI, args);
@@ -1958,7 +1958,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
                                         Object[] args = new Object[] { storageSystemURI, vNASURI, filePolicyToAssign, vpoolURI,
                                                 projectURI };
                                         waitFor = _fileDeviceController.createMethod(workflow, waitFor,
-                                                ASSIGN_FILE_SNAPSHOT_POLICY_TO_PROJECT_METHOD,
+                                                ASSIGN_FILE_SNAPSHOT_POLICY_TO_PROJECTS_METHOD,
                                                 stepId,
                                                 stepDes,
                                                 storageSystemURI, args);
@@ -1988,7 +1988,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
                                                         storageSystemURI);
                                         Object[] args = new Object[] { storageSystemURI, null, filePolicyToAssign, vpoolURI, projectURI };
                                         waitFor = _fileDeviceController.createMethod(workflow, waitFor,
-                                                ASSIGN_FILE_SNAPSHOT_POLICY_TO_PROJECT_METHOD,
+                                                ASSIGN_FILE_SNAPSHOT_POLICY_TO_PROJECTS_METHOD,
                                                 stepId,
                                                 stepDes,
                                                 storageSystemURI, args);
@@ -2100,7 +2100,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
                                 Object[] args = new Object[] { association.getSourceSystem(), targetStorage,
                                         association.getSourceVNAS(), targetVNASURI, filePolicyToAssign, vpoolURI };
                                 waitFor = _fileDeviceController.createMethod(workflow, waitFor,
-                                        ASSIGN_FILE_REPLICATION_POLICY_TO_VIRTUAL_POOL_METHOD,
+                                        ASSIGN_FILE_REPLICATION_POLICY_TO_VIRTUAL_POOLS_METHOD,
                                         stepId,
                                         stepDes,
                                         association.getSourceSystem(), args);
@@ -2117,7 +2117,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
                                     Object[] args = new Object[] { association.getSourceSystem(), targetStorage,
                                             association.getSourceVNAS(), null, filePolicyToAssign, vpoolURI };
                                     waitFor = _fileDeviceController.createMethod(workflow, waitFor,
-                                            ASSIGN_FILE_REPLICATION_POLICY_TO_VIRTUAL_POOL_METHOD,
+                                            ASSIGN_FILE_REPLICATION_POLICY_TO_VIRTUAL_POOLS_METHOD,
                                             stepId,
                                             stepDes,
                                             association.getSourceSystem(), args);
@@ -2175,7 +2175,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
                                 Object[] args = new Object[] { association.getSourceSystem(), targetStorage,
                                         association.getSourceVNAS(), targetVNASURI, filePolicyToAssign, vpoolURI, projectURI };
                                 waitFor = _fileDeviceController.createMethod(workflow, waitFor,
-                                        ASSIGN_FILE_REPLICATION_POLICY_TO_PROJECT_METHOD,
+                                        ASSIGN_FILE_REPLICATION_POLICY_TO_PROJECTS_METHOD,
                                         stepId,
                                         stepDes,
                                         association.getSourceSystem(), args);
@@ -2191,7 +2191,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
                                     Object[] args = new Object[] { association.getSourceSystem(), targetStorage,
                                             association.getSourceVNAS(), null, filePolicyToAssign, vpoolURI, projectURI };
                                     waitFor = _fileDeviceController.createMethod(workflow, waitFor,
-                                            ASSIGN_FILE_REPLICATION_POLICY_TO_PROJECT_METHOD,
+                                            ASSIGN_FILE_REPLICATION_POLICY_TO_PROJECTS_METHOD,
                                             stepId,
                                             stepDes,
                                             association.getSourceSystem(), args);

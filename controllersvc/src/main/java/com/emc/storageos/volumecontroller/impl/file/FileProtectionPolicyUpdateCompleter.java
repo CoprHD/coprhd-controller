@@ -64,7 +64,7 @@ public class FileProtectionPolicyUpdateCompleter extends FilePolicyWorkflowCompl
         setStatus(dbClient, status, coded);
     }
 
-    public List<WorkflowStep> getWorkFlowSteps(DbClient dbClient) {
+    private List<WorkflowStep> getWorkFlowSteps(DbClient dbClient) {
         URI workFlowId = getWorkFlowId();
         List<WorkflowStep> workFlowSteps = new ArrayList<WorkflowStep>();
         if (workFlowId != null) {

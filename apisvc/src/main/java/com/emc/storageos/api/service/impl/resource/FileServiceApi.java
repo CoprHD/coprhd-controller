@@ -63,7 +63,7 @@ public interface FileServiceApi {
             VirtualArray varray, VirtualPool vpool, TenantOrg tenantOrg,
             DataObject.Flag[] flags, List<Recommendation> recommendations,
             TaskList taskList, String task, VirtualPoolCapabilityValuesWrapper vpoolCapabilities)
-            throws InternalException;
+                    throws InternalException;
 
     /**
      * Delete the passed filesystems for the passed system.
@@ -129,7 +129,7 @@ public interface FileServiceApi {
     public TaskResourceRep createTargetsForExistingSource(FileShare fs, Project project,
             VirtualPool vpool, VirtualArray varray, TaskList taskList, String task, List<Recommendation> recommendations,
             VirtualPoolCapabilityValuesWrapper vpoolCapabilities)
-            throws InternalException;
+                    throws InternalException;
 
     /**
      * Create CIFS share for the FileSystem
@@ -277,18 +277,18 @@ public interface FileServiceApi {
      */
     void deleteShareACLs(URI storage, URI uri, String shareName, String taskId) throws InternalException;
 
-    void assignFilePolicyToVirtualPool(Map<URI, List<URI>> vpoolToStorageSystemMap, URI filePolicyToAssign,
+    void assignFilePolicyToVirtualPools(Map<URI, List<URI>> vpoolToStorageSystemMap, URI filePolicyToAssign,
             String taskId);
 
-    void assignFilePolicyToProject(Map<URI, List<URI>> vpoolToStorageSystemMap, List<URI> projectURIs, URI filePolicyToAssign,
+    void assignFilePolicyToProjects(Map<URI, List<URI>> vpoolToStorageSystemMap, List<URI> projectURIs, URI filePolicyToAssign,
             String taskId);
 
     void updateFileProtectionPolicy(URI policy, FilePolicyUpdateParam param, String taskId);
 
-    void assignFileReplicationPolicyToVirtualPool(List<FileStorageSystemAssociation> associations,
+    void assignFileReplicationPolicyToVirtualPools(List<FileStorageSystemAssociation> associations,
             List<URI> vpoolURIs, URI filePolicyToAssign, String taskId);
 
-    void assignFileReplicationPolicyToProject(List<FileStorageSystemAssociation> associations, URI vpoolURI, List<URI> projectURIs,
+    void assignFileReplicationPolicyToProjects(List<FileStorageSystemAssociation> associations, URI vpoolURI, List<URI> projectURIs,
             URI filePolicyToAssign, String taskId);
 
 }

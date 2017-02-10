@@ -389,9 +389,9 @@ public class FilePolicyService extends TaskResourceService {
         FilePolicyApplyLevel appliedAt = FilePolicyApplyLevel.valueOf(applyAt);
         switch (appliedAt) {
             case vpool:
-                return assignFilePolicyToVpool(param, filepolicy);
+                return assignFilePolicyToVpools(param, filepolicy);
             case project:
-                return assignFilePolicyToProject(param, filepolicy);
+                return assignFilePolicyToProjects(param, filepolicy);
             default:
                 throw APIException.badRequests.invalidFilePolicyApplyLevel(appliedAt.name());
         }
@@ -567,7 +567,7 @@ public class FilePolicyService extends TaskResourceService {
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR, Role.TENANT_ADMIN })
     public FilePolicyStorageResources getFilePolicyStorageResources(@PathParam("id") URI id) {
 
-        _log.info("Request recieved to list of storage resource for the policy {}", id);
+        _log.info("Request recieved to list storage resources for the policy {}", id);
         FilePolicy filepolicy = queryResource(id);
         ArgValidator.checkEntity(filepolicy, id, true);
         FilePolicyStorageResources resources = new FilePolicyStorageResources();
@@ -596,12 +596,12 @@ public class FilePolicyService extends TaskResourceService {
             throw APIException.badRequests.invalidFileReplicationPolicyParam(param.getPolicyName(), errorMsg.toString());
         }
 
-        // Make apply at as mandatory field
+        // Make sure replication type and copy mode are provided
         ArgValidator.checkFieldNotNull(param.getReplicationPolicyParams().getReplicationCopyMode(), "replication_copy_mode");
         ArgValidator.checkFieldNotNull(param.getReplicationPolicyParams().getReplicationType(), "replication_type");
 
         // Validate replication policy schedule parameters
-        boolean isValidSchedule = FilePolicyServiceUtils.validateAndUpdatePolicySchdeuleParam(
+        boolean isValidSchedule = FilePolicyServiceUtils.validateAndUpdatePolicyScheduleParam(
                 param.getReplicationPolicyParams().getPolicySchedule(), fileReplicationPolicy, errorMsg);
         if (!isValidSchedule && errorMsg.length() > 0) {
             _log.error("Failed to create file replication policy due to {} ", errorMsg.toString());
@@ -650,7 +650,7 @@ public class FilePolicyService extends TaskResourceService {
         }
 
         // Validate snapshot policy schedule parameters
-        boolean isValidSchedule = FilePolicyServiceUtils.validateAndUpdatePolicySchdeuleParam(
+        boolean isValidSchedule = FilePolicyServiceUtils.validateAndUpdatePolicyScheduleParam(
                 param.getSnapshotPolicyPrams().getPolicySchedule(), fileSnapshotPolicy, errorMsg);
         if (!isValidSchedule && errorMsg.length() > 0) {
             _log.error("Failed to create file snapshot policy due to {} ", errorMsg.toString());
@@ -731,7 +731,7 @@ public class FilePolicyService extends TaskResourceService {
 
             // Validate replication policy schedule parameters
             if (replParam.getPolicySchedule() != null) {
-                boolean isValidSchedule = FilePolicyServiceUtils.validateAndUpdatePolicySchdeuleParam(
+                boolean isValidSchedule = FilePolicyServiceUtils.validateAndUpdatePolicyScheduleParam(
                         replParam.getPolicySchedule(), fileReplicationPolicy, errorMsg);
                 if (!isValidSchedule && errorMsg.length() > 0) {
                     _log.error("Failed to update file replication policy due to {} ", errorMsg.toString());
@@ -764,10 +764,10 @@ public class FilePolicyService extends TaskResourceService {
 
             // Validate snapshot policy schedule parameters
             if (param.getSnapshotPolicyPrams().getPolicySchedule() != null) {
-                boolean isValidSchedule = FilePolicyServiceUtils.validateAndUpdatePolicySchdeuleParam(
+                boolean isValidSchedule = FilePolicyServiceUtils.validateAndUpdatePolicyScheduleParam(
                         param.getSnapshotPolicyPrams().getPolicySchedule(), fileSnapshotPolicy, errorMsg);
-                if (!isValidSchedule && errorMsg.length() > 0) {
-                    _log.error("Failed to update file replication policy due to {} ", errorMsg.toString());
+                if (!isValidSchedule) {
+                    _log.error("Failed to update file snapshot policy due to {} ", errorMsg.toString());
                     throw APIException.badRequests.invalidFilePolicyScheduleParam(fileSnapshotPolicy.getFilePolicyName(),
                             errorMsg.toString());
                 }
@@ -803,10 +803,10 @@ public class FilePolicyService extends TaskResourceService {
             _log.info("Updated file protection policy {}", policy.getFilePolicyName());
         } catch (BadRequestException e) {
             Operation op = _dbClient.error(FilePolicy.class, policy.getId(), task, e);
-            _log.error("Error Unassigning File policy {}, {}", e.getMessage(), e);
+            _log.error("Error updating file policy on backend storage.", e);
             throw e;
         } catch (Exception e) {
-            _log.error("Error Unassigning Files Policy {}, {}", e.getMessage(), e);
+            _log.error("Error updating file policy on backend storage.", e);
             throw APIException.badRequests.unableToProcessRequest(e.getMessage());
         }
     }
@@ -901,7 +901,7 @@ public class FilePolicyService extends TaskResourceService {
      * @param param
      * @param filepolicy
      */
-    private TaskResourceRep assignFilePolicyToVpool(FilePolicyAssignParam param, FilePolicy filePolicy) {
+    private TaskResourceRep assignFilePolicyToVpools(FilePolicyAssignParam param, FilePolicy filePolicy) {
         StringBuilder errorMsg = new StringBuilder();
 
         ArgValidator.checkFieldNotNull(param.getVpoolAssignParams(), "vpool_assign_param");
@@ -977,7 +977,8 @@ public class FilePolicyService extends TaskResourceService {
                 }
                 taskObject = createAssignFilePolicyTask(filePolicy, task);
                 List<FileStorageSystemAssociation> associations = convertRecommendationsToStorageSystemAssociations(recommendations);
-                fileServiceApi.assignFileReplicationPolicyToVirtualPool(associations, filteredVpoolURIs, filePolicy.getId(), task);
+                fileServiceApi.assignFileReplicationPolicyToVirtualPools(associations, filteredVpoolURIs, filePolicy.getId(), task);
+                break;
             default:
                 break;
         }
@@ -1064,7 +1065,7 @@ public class FilePolicyService extends TaskResourceService {
      * @param filepolicy
      */
 
-    private TaskResourceRep assignFilePolicyToProject(FilePolicyAssignParam param, FilePolicy filePolicy) {
+    private TaskResourceRep assignFilePolicyToProjects(FilePolicyAssignParam param, FilePolicy filePolicy) {
         StringBuilder errorMsg = new StringBuilder();
         ArgValidator.checkFieldNotNull(param.getProjectAssignParams(), "project_assign_param");
         ArgValidator.checkFieldUriType(param.getProjectAssignParams().getVpool(), VirtualPool.class, "vpool");
@@ -1162,7 +1163,7 @@ public class FilePolicyService extends TaskResourceService {
                 }
 
                 List<FileStorageSystemAssociation> associations = convertRecommendationsToStorageSystemAssociations(recommendations);
-                fileServiceApi.assignFileReplicationPolicyToProject(associations, vpoolURI,
+                fileServiceApi.assignFileReplicationPolicyToProjects(associations, vpoolURI,
                         filteredProjectURIs, filePolicy.getId(), task);
                 break;
             default:

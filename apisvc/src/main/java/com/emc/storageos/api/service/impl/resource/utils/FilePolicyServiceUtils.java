@@ -57,7 +57,7 @@ public class FilePolicyServiceUtils {
      * @param errorMsg - error message
      * @return true/false
      */
-    public static boolean validateAndUpdatePolicySchdeuleParam(FilePolicyScheduleParams policyScheduleparams, FilePolicy schedulePolicy,
+    public static boolean validateAndUpdatePolicyScheduleParam(FilePolicyScheduleParams policyScheduleparams, FilePolicy schedulePolicy,
             StringBuilder errorMsg) {
 
         if (policyScheduleparams != null) {
@@ -141,7 +141,7 @@ public class FilePolicyServiceUtils {
                             schedulePolicy.setScheduleDayOfWeek(NullColumnValueGetter.getNullStr());
                         }
                     } else {
-                        errorMsg.append("required parameter schedule_day_of_month is missing or value is invalid");
+                        errorMsg.append("Required parameter schedule_day_of_month is missing or value is invalid");
                         return false;
                     }
                     break;
@@ -177,7 +177,7 @@ public class FilePolicyServiceUtils {
      * @param errorMsg - error message
      * @return true/false
      */
-    public static boolean validatePolicySchdeuleParam(FilePolicyScheduleParams policyScheduleparams, FilePolicy schedulePolicy,
+    public static boolean validatePolicyScheduleParam(FilePolicyScheduleParams policyScheduleparams, FilePolicy schedulePolicy,
             StringBuilder errorMsg) {
 
         if (policyScheduleparams != null) {

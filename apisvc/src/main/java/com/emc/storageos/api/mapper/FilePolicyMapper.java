@@ -191,7 +191,6 @@ public final class FilePolicyMapper {
             DataObject appliedAt = dbClient.queryObject(from.getAppliedAt());
             resp.setAppliedAt(DbObjectMapper.toNamedRelatedResource(appliedAt));
         }
-        resp.setId(from.getId());
 
         if (from.getNasServer() != null) {
             resp.setNasServer(from.getNasServer());

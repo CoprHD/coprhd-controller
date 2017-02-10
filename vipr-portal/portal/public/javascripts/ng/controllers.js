@@ -282,6 +282,10 @@ angular.module("portalApp").controller({
 	
             // if a required field has no value, disable the order button
             var result = false;
+
+            // if any field in serviceForm is invalid like max number of copies
+            result = ! $scope.serviceForm.$valid;
+
             angular.forEach(requiredFields, function(field) {
                 if (field.value == null || field.value.length < 1) {
                     result = true;
@@ -296,12 +300,15 @@ angular.module("portalApp").controller({
                 }  
             });
 
-            // if any field in serviceForm is invalid like max number of copies
-            result = ! $scope.serviceForm.$valid;
-
             // if we make it out, enable the order button
             return result;
-        }
+        };
+        $scope.disableModalButton = function() {
+        	if ($scope.$root.errorCount > 0) {
+        		return true
+        	}
+        	return false;
+	    };
     },
     
     FileRessourceCtrl: function($scope, $http, $window, translate) {

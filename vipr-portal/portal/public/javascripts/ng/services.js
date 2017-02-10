@@ -67,6 +67,11 @@ angular.module("services", []).directive({
                         });
                         if (item.select == "list") {
                         	item.options = "";
+                        	if ($scope.$root.errorCount === undefined) {
+                        		// keep track of how many error
+                        		$scope.$root.errorCount = 0;
+                        	}
+                        	$scope.$root.errorCount =+ 1;
                         }
                         $http.get("/api/options/" + fieldDescriptor.assetType, {params: params }).success(function(data) {
                             item.disabled = false;
@@ -77,6 +82,9 @@ angular.module("services", []).directive({
                             }
                             if (item.select != 'many') {
                             	addBlankOptionIfRequired(item);
+                            }
+                            if (item.select == "list") {
+                            	$scope.$root.errorCount -= 1;
                             }
                         }).error(function(data) {
                             var details = data.details || data;

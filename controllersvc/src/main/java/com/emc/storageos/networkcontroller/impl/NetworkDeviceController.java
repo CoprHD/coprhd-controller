@@ -469,6 +469,13 @@ public class NetworkDeviceController implements NetworkController {
             }
             return result;
         } catch (ControllerException ex) {
+        	 _log.info("waiting for 2 min before retrying with alternate device");
+        	 try {
+				Thread.sleep(1000 * 120);
+			} catch (InterruptedException e) {
+				_log.warn("Thread sleep interrupted.  Allowing to continue without sleep");
+			}
+         
             NetworkFCZoneInfo fabricInfo = fabricInfos.get(0);
             URI primaryUri = fabricInfo.getNetworkDeviceId();
             URI altUri = fabricInfo.getAltNetworkDeviceId();
@@ -701,6 +708,13 @@ public class NetworkDeviceController implements NetworkController {
                 setStatus(Volume.class, volUri, taskId, true, null);
             }
         } catch (ControllerException ex) {
+        	 _log.info("waiting for 2 min before retrying with alternate device");
+        	 try {
+				Thread.sleep(1000 * 120);
+			} catch (InterruptedException e) {
+				_log.warn("Thread sleep interrupted.  Allowing to continue without sleep");
+			}
+        	 
             URI primaryUri = fabricInfo.getNetworkDeviceId();
             URI altUri = fabricInfo.getAltNetworkDeviceId();
             if (altUri != null && altUri != primaryUri) {

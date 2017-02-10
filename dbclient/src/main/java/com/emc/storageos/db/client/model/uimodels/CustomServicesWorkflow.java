@@ -27,7 +27,7 @@ import com.emc.storageos.model.valid.EnumType;
 /**
  * DB model to represent an orchestration engine workflow document
  */
-@Cf("OrchestrationWorkflow")
+@Cf("CustomServicesWorkflow")
 public class CustomServicesWorkflow extends ModelObjectWithACLs {
 
     public static final String NAME = "name";

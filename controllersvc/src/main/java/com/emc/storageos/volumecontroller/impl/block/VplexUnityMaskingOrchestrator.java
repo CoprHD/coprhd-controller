@@ -311,7 +311,7 @@ public class VplexUnityMaskingOrchestrator extends VNXUnityMaskingOrchestrator i
             // If it is last volume and there are no existing volumes, delete the ExportMask.
             if (remainingVolumes.isEmpty()
                     && !exportMask.hasAnyExistingVolumes()) {
-                device.doExportDelete(array, exportMask, passedVolumesInMask, initiatorURIs, completer);
+                device.doExportDelete(array, exportMask, passedVolumesInMask, null, completer);
             } else {
                 List<Initiator> initiators = null;
                 if (initiatorURIs != null && !initiatorURIs.isEmpty()) {

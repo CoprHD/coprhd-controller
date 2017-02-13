@@ -51,8 +51,6 @@ public abstract class VMwareHostService extends ViPRService {
 
             logInfo("vmware.service.target.host", esxHost.getLabel());
 
-            host = vmware.getHostSystem(datacenter.getLabel(), esxHost.getLabel(), true);
-
         } else {
             hostCluster = getModelClient().clusters().findById(hostId);
             if (hostCluster == null) {
@@ -70,13 +68,15 @@ public abstract class VMwareHostService extends ViPRService {
             esxHost = getConnectedHost(hosts, datacenter);
 
             if (esxHost == null) {
-                throw new IllegalArgumentException("Cluster " + hostId + " does not have any connected hosts");
+                throw new IllegalArgumentException("Cluster '" + hostCluster.getLabel() + "' [" + hostId
+                        + "] does not contain any connected hosts");
             }
 
             logInfo("vmware.service.target.cluster", hostCluster.getLabel(), hosts.size());
-            
-            host = vmware.getHostSystem(datacenter.getLabel(), esxHost.getLabel(), true);
+
         }
+        host = vmware.getHostSystem(datacenter.getLabel(), esxHost.getLabel(), true);
+
     }
 
     /**

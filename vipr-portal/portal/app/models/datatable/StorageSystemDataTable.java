@@ -4,15 +4,15 @@
  */
 package models.datatable;
 
-import models.StorageSystemTypes;
-
 import org.apache.commons.lang.StringUtils;
-
-import util.MessagesUtils;
-import util.datatable.DataTable;
 
 import com.emc.storageos.model.systems.StorageSystemRestRep;
 import com.emc.vipr.client.core.util.ResourceUtils;
+
+import models.DiscoveryStatus;
+import models.StorageSystemTypes;
+import util.MessagesUtils;
+import util.datatable.DataTable;
 
 public class StorageSystemDataTable extends DataTable {
 
@@ -38,6 +38,7 @@ public class StorageSystemDataTable extends DataTable {
         public String type;
         public String version;
         public String registrationStatus;
+        public String discoveryInProgress;
 
         public StorageSystemInfo() {
         }
@@ -59,6 +60,7 @@ public class StorageSystemDataTable extends DataTable {
             this.type = StorageSystemTypes.getDisplayValue(storageSystem.getSystemType());
             this.version = storageSystem.getFirmwareVersion();
             this.registrationStatus = storageSystem.getRegistrationStatus();
+            this.discoveryInProgress = (this.discoveryStatus.equals(DiscoveryStatus.IN_PROGRESS) || this.discoveryStatus.equals(DiscoveryStatus.SCHEDULED)) ? "TRUE" : "FALSE";
         }
     }
 }

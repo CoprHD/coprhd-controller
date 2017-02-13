@@ -819,8 +819,6 @@ setup_yaml() {
     sstype=${SS:0:3}
     if [ "${SS}" = "xio" ]; then
 	sstype="xtremio"
-    elif [ "${SS}" = "unity" ]; then
-        sstype="unity"
     fi
 
     # create the yml file to be used for array tooling
@@ -913,7 +911,7 @@ getwwn() {
 }
 
 cleanup() {
-    if [ "${docleanup}" = "1" ]; then
+    if [ "${DO_CLEANUP}" = "1" ]; then
 	for id in `export_group list $PROJECT | grep YES | awk '{print $5}'`
 	do
 	  runcmd export_group delete ${id} > /dev/null

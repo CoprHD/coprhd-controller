@@ -879,7 +879,7 @@ public final class FileOrchestrationUtils {
                 if (varraySet != null && !varraySet.isEmpty() && vNASVarraySet != null) {
 
                     vNASVarraySet.retainAll(varraySet);
-                    if (vNASVarraySet.size() > 0) {
+                    if (!vNASVarraySet.isEmpty()) {
                         vNASURIList.add(vNas.getId());
                     }
                 }

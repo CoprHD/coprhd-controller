@@ -436,13 +436,7 @@ approve_pending_event() {
 test_host_remove_initiator() {
     test_name="test_host_remove_initiator"
     echot "Test host_remove_initiator Begins"
-    
-    # Turn off validation, shouldn't need to do this but until we have
-    # all the updates for export simplification it may be a necessary
-    # evil.
-    secho "Turning ViPR validation temporarily OFF (needed for now)"
-    syssvc $SANITY_CONFIG_FILE localhost set_prop validation_check false
-
+        
     common_failure_injections="failure_004_final_step_in_workflow_complete \
                                 failure_026_host_cluster_ComputeSystemControllerImpl.updateExportGroup_before_update"
 
@@ -466,7 +460,13 @@ test_host_remove_initiator() {
         random_number=${RANDOM}
         TEST_OUTPUT_FILE=test_output_${RANDOM}.log
         reset_counts
-        column_family=("Volume ExportGroup ExportMask")
+        if [ "${SS}" = "xio" ]; then
+            # Don't check Volume fields for XIO run. The WWN 
+            # and nativeId fields are expected to be updated.
+            column_family=("ExportGroup ExportMask")
+        else
+            column_family=("Volume ExportGroup ExportMask")
+        fi
         mkdir -p results/${random_number}
         host1=fakehost1-${random_number}
         host2=fakehost2-${random_number}
@@ -589,9 +589,7 @@ test_host_remove_initiator() {
             
         # Cleanup export groups  
         runcmd export_group update ${PROJECT}/${exportgroup1} --remVols ${PROJECT}/${volume1}
-        runcmd export_group delete ${PROJECT}/${exportgroup1}            
-        runcmd export_group update ${PROJECT}/${exportgroup2} --remVols ${PROJECT}/${volume2}                                     
-        runcmd export_group delete ${PROJECT}/${exportgroup2}
+        runcmd export_group update ${PROJECT}/${exportgroup2} --remVols ${PROJECT}/${volume2}
         
         # Cleanup everything else
         runcmd cluster delete ${TENANT}/${cluster1}        
@@ -614,10 +612,6 @@ test_host_remove_initiator() {
     # Cleanup volumes
     runcmd volume delete ${PROJECT}/${volume1} --wait
     runcmd volume delete ${PROJECT}/${volume2} --wait
-    
-    # Turn off validation back on
-    secho "Turning ViPR validation ON"
-    syssvc $SANITY_CONFIG_FILE localhost set_prop validation_check true
 }
 
 test_move_clustered_host_to_another_cluster() {

@@ -1691,9 +1691,9 @@ public class ExportUtils {
      */
     public static void cleanStaleExportMasks(StorageSystem storage, Set<String> maskNamesFromArray, List<String> initiatorNames,
             DbClient dbClient) {
-
         Set<Initiator> initiators = ExportUtils.getInitiators(initiatorNames, dbClient);
         Set<ExportMask> staleExportMasks = new HashSet<>();
+        
         _log.info("Mask Names found in array:{} for the initiators: {}", maskNamesFromArray, initiatorNames);
         for (Initiator initiator : initiators) {
             URIQueryResultList emUris = new URIQueryResultList();
@@ -1718,6 +1718,7 @@ public class ExportUtils {
                 }
             }
         }
+        
         if (!CollectionUtils.isEmpty(staleExportMasks)) {
             dbClient.markForDeletion(staleExportMasks);
             _log.info("Deleted {} stale export masks from DB", staleExportMasks.size());
@@ -2261,5 +2262,76 @@ public class ExportUtils {
                 }
             }
         }
+    }
+
+    /**
+     * Get all LUNs on the array that mapped to a host identified by initiators in the mask
+     *
+     * @param dbClient
+     * @param exportMask
+     * @return LUNs mapped to the host
+     */
+    public static Set<String> getAllLUNsForHost(DbClient dbClient, ExportMask exportMask) {
+        Set<String> lunIds = new HashSet<>();
+        URI storageUri = exportMask.getStorageDevice();
+        if (NullColumnValueGetter.isNullURI(storageUri)) {
+            return lunIds;
+        }
+
+        URI hostUri = null;
+        for (String init : exportMask.getInitiators()) {
+            Initiator initiator = dbClient.queryObject(Initiator.class, URI.create(init));
+            if (initiator != null && !initiator.getInactive()) {
+                hostUri = initiator.getHost();
+                if (!NullColumnValueGetter.isNullURI(hostUri)) {
+                    break;
+                }
+            }
+        }
+
+        // get initiators from host
+        Map<URI, ExportMask> exportMasks = new HashMap<>();
+        if (!NullColumnValueGetter.isNullURI(hostUri)) {
+            URIQueryResultList list = new URIQueryResultList();
+            dbClient.queryByConstraint(ContainmentConstraint.Factory.getContainedObjectsConstraint(hostUri, Initiator.class, "host"), list);
+            Iterator<URI> uriIter = list.iterator();
+            while (uriIter.hasNext()) {
+                URI initiatorId = uriIter.next();
+                URIQueryResultList egUris = new URIQueryResultList();
+                dbClient.queryByConstraint(AlternateIdConstraint.Factory.
+                        getExportGroupInitiatorConstraint(initiatorId.toString()), egUris);
+                ExportGroup exportGroup = null;
+                for (URI egUri : egUris) {
+                    exportGroup = dbClient.queryObject(ExportGroup.class, egUri);
+                    if (exportGroup == null || exportGroup.getInactive() || exportGroup.getExportMasks() == null) {
+                        continue;
+                    }
+                    List<ExportMask> masks = ExportMaskUtils.getExportMasks(dbClient, exportGroup);
+                    for (ExportMask mask : masks) {
+                        if (mask != null &&
+                                !mask.getInactive() &&
+                                mask.hasInitiator(initiatorId.toString()) &&
+                                mask.getVolumes() != null &&
+                                storageUri.equals(mask.getStorageDevice())) {
+                            exportMasks.put(mask.getId(), mask);
+                        }
+                    }
+                }
+            }
+        }
+
+        for (ExportMask mask : exportMasks.values()) {
+            StringMap volumeMap = mask.getVolumes();
+            if (volumeMap != null && !volumeMap.isEmpty()) {
+                for (String strUri : mask.getVolumes().keySet()) {
+                    BlockObject bo = BlockObject.fetch(dbClient, URI.create(strUri));
+                    if (bo != null && !bo.getInactive()) {
+                        lunIds.add(bo.getNativeId());
+                    }
+                }
+            }
+        }
+
+        return lunIds;
     }
 }

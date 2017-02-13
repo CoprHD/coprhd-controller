@@ -148,6 +148,9 @@ public interface ComputeSystemControllerExceptions {
     public ComputeSystemControllerException clusterHasVms(final String cluster);
 
     @DeclareServiceCode(ServiceCode.CONTROLLER_COMPUTESYSTEM_ERROR)
+    public ComputeSystemControllerException noInitiatorPortConnectivity(final String initiator, final String export);
+
+    @DeclareServiceCode(ServiceCode.CONTROLLER_COMPUTESYSTEM_ERROR)
     public ComputeSystemControllerException illegalInitiator(final String host, final String initiator, final String initiatorHost);
 
     @DeclareServiceCode(ServiceCode.CONTROLLER_COMPUTESYSTEM_ERROR)

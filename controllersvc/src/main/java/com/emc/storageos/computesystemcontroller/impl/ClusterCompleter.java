@@ -21,7 +21,7 @@ public class ClusterCompleter extends ComputeSystemCompleter {
      * Reference to logger
      */
     private static final Logger _logger = LoggerFactory
-            .getLogger(HostCompleter.class);
+            .getLogger(ClusterCompleter.class);
 
     public ClusterCompleter(URI id, boolean deactivateOnComplete, String opId) {
         super(Cluster.class, id, deactivateOnComplete, opId);

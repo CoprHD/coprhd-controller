@@ -16,6 +16,7 @@ import com.emc.storageos.db.client.model.FilePolicy.FilePolicyApplyLevel;
 import com.emc.storageos.db.client.model.FilePolicy.FilePolicyType;
 import com.emc.storageos.db.client.model.FileReplicationTopology;
 import com.emc.storageos.db.client.model.FileShare;
+import com.emc.storageos.db.client.model.PolicyStorageResource;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.SchedulePolicy.SnapshotExpireType;
 import com.emc.storageos.db.client.model.StringSet;
@@ -27,6 +28,7 @@ import com.emc.storageos.model.file.policy.FilePolicyRestRep;
 import com.emc.storageos.model.file.policy.FilePolicyRestRep.ReplicationSettingsRestRep;
 import com.emc.storageos.model.file.policy.FilePolicyRestRep.ScheduleRestRep;
 import com.emc.storageos.model.file.policy.FilePolicyRestRep.SnapshotSettingsRestRep;
+import com.emc.storageos.model.file.policy.FilePolicyStorageResourceRestRep;
 import com.emc.storageos.model.file.policy.FileReplicationTopologyRestRep;
 
 public final class FilePolicyMapper {
@@ -171,6 +173,41 @@ public final class FilePolicyMapper {
                 snapshotSettings.setSnapshotNamePattern(from.getSnapshotNamePattern());
             }
             resp.setSnapshotSettings(snapshotSettings);
+        }
+        return resp;
+
+    }
+
+    public static FilePolicyStorageResourceRestRep mapPolicyStorageResource(PolicyStorageResource from, FilePolicy policy,
+            DbClient dbClient) {
+
+        FilePolicyStorageResourceRestRep resp = new FilePolicyStorageResourceRestRep();
+
+        DbObjectMapper.mapDataObjectFields(from, resp);
+        resp.setFilePolicy(DbObjectMapper.toNamedRelatedResource(ResourceTypeEnum.FILE_POLICY,
+                policy.getId(), policy.getFilePolicyName()));
+
+        if (from.getAppliedAt() != null) {
+            DataObject appliedAt = dbClient.queryObject(from.getAppliedAt());
+            resp.setAppliedAt(DbObjectMapper.toNamedRelatedResource(appliedAt));
+        }
+
+        if (from.getNasServer() != null) {
+            resp.setNasServer(from.getNasServer());
+        }
+
+        if (from.getNativeGuid() != null) {
+            resp.setNativeGuid(from.getNativeGuid());
+        }
+
+        if (from.getPolicyNativeId() != null) {
+            resp.setPolicyNativeId(from.getPolicyNativeId());
+        }
+        if (from.getResourcePath() != null) {
+            resp.setResourcePath(from.getResourcePath());
+        }
+        if (from.getStorageSystem() != null) {
+            resp.setStorageSystem(DbObjectMapper.toRelatedResource(ResourceTypeEnum.STORAGE_SYSTEM, from.getStorageSystem()));
         }
         return resp;
 

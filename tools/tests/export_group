@@ -30,6 +30,7 @@ def export_group_create(args):
 	       storage_ports.append(bourne.storageport_query(storagePort))
 	    path_param['storage_ports'] = storage_ports
 	if (args.portgroup):
+	    print args.portgroup
 	    port_group_uri = bourne.storageportgroup_query(args.portgroup)
 	    path_param['port_group'] = port_group_uri
 	    

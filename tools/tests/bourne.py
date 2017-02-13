@@ -4973,7 +4973,10 @@ class Bourne:
             print 'Path parameters', pathParam
 	    parms['path_parameters'] = pathParam
 
-
+        if (pathParam['port_group']):
+            print 'Path parameters', pathParam
+	    parms['path_parameters'] = pathParam
+	    
         # Build volume parameter, if specified
         if (volspec):
            vols = volspec.split(',')

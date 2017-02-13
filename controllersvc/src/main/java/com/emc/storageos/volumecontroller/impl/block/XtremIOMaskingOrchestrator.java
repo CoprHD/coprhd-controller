@@ -389,7 +389,7 @@ public class XtremIOMaskingOrchestrator extends AbstractBasicMaskingOrchestrator
 
             Map<URI, Integer> volumes = selectExportMaskVolumes(exportGroup, storageURI);
 
-            checkForConsistentLunViolation(storage, exportGroup, initiatorURIs);
+            // checkForConsistentLunViolation(storage, exportGroup, initiatorURIs);
 
             log.info("Volumes  : {}", Joiner.on(",").join(volumes.keySet()));
             if (exportMasks != null && !exportMasks.isEmpty()) {

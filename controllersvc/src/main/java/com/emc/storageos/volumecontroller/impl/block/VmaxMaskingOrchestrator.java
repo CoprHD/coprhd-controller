@@ -194,7 +194,7 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
             }
         }
 
-        checkForConsistentLunViolation(storage, exportGroup, initiatorURIs);
+        // checkForConsistentLunViolation(storage, exportGroup, initiatorURIs);
 
         InitiatorHelper initiatorHelper = new InitiatorHelper(initiatorURIs).process(exportGroup);
 

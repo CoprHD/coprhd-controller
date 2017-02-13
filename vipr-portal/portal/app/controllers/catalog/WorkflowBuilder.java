@@ -143,11 +143,11 @@ public class WorkflowBuilder extends Controller {
         addPrimitivesByType(topLevelNodes, WFBuilderNodeTypes.VIPR.toString(), VIPR_PRIMITIVE_ROOT, null);
 
         //Add workflows
-        final CustomServicesWorkflowList CustomServicesWorkflowList = getCatalogClient()
+        final CustomServicesWorkflowList customServicesWorkflowList = getCatalogClient()
                 .orchestrationPrimitives().getWorkflows();
-        if (null != CustomServicesWorkflowList
-                && null != CustomServicesWorkflowList.getWorkflows()) {
-            for (NamedRelatedResourceRep o : CustomServicesWorkflowList
+        if (null != customServicesWorkflowList
+                && null != customServicesWorkflowList.getWorkflows()) {
+            for (NamedRelatedResourceRep o : customServicesWorkflowList
                     .getWorkflows()) {
                 final String parent = fileParents.containsKey(o.getId()) ? fileParents.get(o.getId()).getId().toString() : MY_LIBRARY_ROOT;
                 topLevelNodes.add(new Node(o.getId().toString(), o.getName(), parent, WFBuilderNodeTypes.WORKFLOW.toString()));
@@ -271,7 +271,7 @@ public class WorkflowBuilder extends Controller {
                 step.setSuccessCriteria(success_criteria);
             }
             param.setDocument(workflowDoc);
-            final CustomServicesWorkflowRestRep CustomServicesWorkflowRestRep = getCatalogClient()
+            final CustomServicesWorkflowRestRep customServicesWorkflowRestRep = getCatalogClient()
                     .orchestrationPrimitives().editWorkflow(workflowId,param);
         } catch (final Exception e) {
             Logger.error(e.getMessage());
@@ -280,37 +280,37 @@ public class WorkflowBuilder extends Controller {
     }
 
     public static void getWorkflow(final URI workflowId) {
-        CustomServicesWorkflowRestRep CustomServicesWorkflowRestRep = getCatalogClient()
+        CustomServicesWorkflowRestRep customServicesWorkflowRestRep = getCatalogClient()
                 .orchestrationPrimitives().getWorkflow(workflowId);
-        renderJSON(CustomServicesWorkflowRestRep);
+        renderJSON(customServicesWorkflowRestRep);
     }
 
     public static void validateWorkflow(final URI workflowId) {
-        CustomServicesWorkflowRestRep CustomServicesWorkflowRestRep = getCatalogClient()
+        CustomServicesWorkflowRestRep customServicesWorkflowRestRep = getCatalogClient()
                 .orchestrationPrimitives().validateWorkflow(workflowId);
-        renderJSON(CustomServicesWorkflowRestRep);
+        renderJSON(customServicesWorkflowRestRep);
     }
 
     public static void publishWorkflow(final URI workflowId) {
-        CustomServicesWorkflowRestRep CustomServicesWorkflowRestRep = getCatalogClient()
+        CustomServicesWorkflowRestRep customServicesWorkflowRestRep = getCatalogClient()
                 .orchestrationPrimitives().publishWorkflow(workflowId);
-        renderJSON(CustomServicesWorkflowRestRep);
+        renderJSON(customServicesWorkflowRestRep);
     }
 
     public static void unpublishWorkflow(final URI workflowId) {
-        CustomServicesWorkflowRestRep CustomServicesWorkflowRestRep = getCatalogClient()
+        CustomServicesWorkflowRestRep customServicesWorkflowRestRep = getCatalogClient()
                 .orchestrationPrimitives().unpublishWorkflow(workflowId);
-        renderJSON(CustomServicesWorkflowRestRep);
+        renderJSON(customServicesWorkflowRestRep);
     }
 
     public static void editWorkflowName(final String id, final String newName) {
         try {
             URI workflowURI = new URI(id);
-            CustomServicesWorkflowRestRep CustomServicesWorkflowRestRep = getCatalogClient()
+            CustomServicesWorkflowRestRep customServicesWorkflowRestRep = getCatalogClient()
                     .orchestrationPrimitives().getWorkflow(workflowURI);
-            if (null != CustomServicesWorkflowRestRep) {
+            if (null != customServicesWorkflowRestRep) {
                 final CustomServicesWorkflowUpdateParam param = new CustomServicesWorkflowUpdateParam();
-                param.setDocument(CustomServicesWorkflowRestRep.getDocument());
+                param.setDocument(customServicesWorkflowRestRep.getDocument());
                 param.getDocument().setName(newName);
                 getCatalogClient().orchestrationPrimitives().editWorkflow(
                         workflowURI, param);

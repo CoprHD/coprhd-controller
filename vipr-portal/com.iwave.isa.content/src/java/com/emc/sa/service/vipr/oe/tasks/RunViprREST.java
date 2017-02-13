@@ -26,7 +26,6 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import com.google.gson.Gson;
 import org.apache.commons.io.IOUtils;
 import org.slf4j.LoggerFactory;
 import org.springframework.web.util.UriTemplate;
@@ -37,6 +36,8 @@ import com.emc.sa.service.vipr.oe.OrchestrationServiceConstants;
 import com.emc.sa.service.vipr.oe.OrchestrationUtils;
 import com.emc.sa.service.vipr.tasks.ViPRExecutionTask;
 import com.emc.storageos.primitives.ViPRPrimitive;
+import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorException;
+import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
 import com.emc.vipr.client.impl.RestClient;
 import com.sun.jersey.api.client.ClientResponse;
 
@@ -83,66 +84,71 @@ public class RunViprREST extends ViPRExecutionTask<OrchestrationTaskResult> {
         return result;
     }
 
-    private Map<URI, String> waitForTask(final String result)
+    private Map<URI, String> waitForTask(final String result) throws InternalServerErrorException
     {
         final ViprOperation res = OrchestrationUtils.parseViprTasks(result);
         if (res == null) {
-            return null;
+            throw InternalServerErrorException.internalServerErrors.customServiceNoTaskFound("no task found");
         }
 
         try {
             return OrchestrationUtils.waitForTasks(res.getTaskIds(), getClient());
-        } catch (final InterruptedException e) {
-            logger.warn("Task Timed out");
-            return null;
         } catch (final URISyntaxException e) {
-            logger.warn("Failed to parse REST response");
-            return null;
+            throw InternalServerErrorException.internalServerErrors.customServiceExecutionFailed("Failed to parse REST response" + e);
         }
     }
 
-    private OrchestrationTaskResult makeRestCall(final String path, final Object requestBody, final String method) throws Exception {
+    private OrchestrationTaskResult makeRestCall(final String path, final Object requestBody, final String method) throws InternalServerErrorException {
 
-        final ClientResponse response;
+        ClientResponse response = null;
+        String responseString = null;
         OrchestrationServiceConstants.restMethods restmethod = OrchestrationServiceConstants.restMethods.valueOf(method);
 
-        switch(restmethod) {
-            case GET:
-                response = client.get(ClientResponse.class, path);
-                break;
-            case PUT: 
-                response = client.put(ClientResponse.class, requestBody, path);
-                break;
-            case POST:
-                response = client.post(ClientResponse.class, requestBody, path);
-                break;
-            case DELETE:
-                response = client.delete(ClientResponse.class, path);
-                break;
-            default:
-                logger.error("Unknown REST method type");
-		        throw new IllegalStateException("Invalid REST method type" + method);
-        }
-
-        if (response == null)
-            return null;
-
-        logger.info("Status of ViPR REST Operation:{} is :{}", primitive.getName(), response.getStatus());
-
-        final String responseString;
         try {
+            switch (restmethod) {
+                case GET:
+                    response = client.get(ClientResponse.class, path);
+                    break;
+                case PUT:
+                    response = client.put(ClientResponse.class, requestBody, path);
+                    break;
+                case POST:
+                    response = client.post(ClientResponse.class, requestBody, path);
+                    break;
+                case DELETE:
+                    response = client.delete(ClientResponse.class, path);
+                    break;
+                default:
+                    throw InternalServerErrorException.internalServerErrors.
+                            customServiceExecutionFailed("Invalid REST method type" + method);
+            }
+
+            if (response == null) {
+                throw InternalServerErrorException.internalServerErrors.
+                        customServiceExecutionFailed("REST Execution Failed. Response returned is null");
+            }
+
+            logger.info("Status of ViPR REST Operation:{} is :{}", primitive.getName(), response.getStatus());
+
+
             responseString = IOUtils.toString(response.getEntityInputStream(), "UTF-8");
-        } catch (final IOException e) {
-            logger.info("Unable to get response from rest");
 
-            return null;
+            final Map<URI, String> taskState = waitForTask(responseString);
+            return new OrchestrationTaskResult(responseString, responseString, response.getStatus(), taskState);
+
+        } catch (final InternalServerErrorException e) {
+
+            if (e.getServiceCode().getCode() == ServiceCode.CUSTOM_SERVICE_NOTASK.getCode()) {
+                return new OrchestrationTaskResult(responseString, responseString, response.getStatus(), null);
+            }
+
+            throw InternalServerErrorException.internalServerErrors.
+                    customServiceExecutionFailed("Failed to Execute REST request" + e.getMessage());
+        } catch (final Exception e) {
+
+            throw InternalServerErrorException.internalServerErrors.
+                    customServiceExecutionFailed("REST Execution Failed" + e.getMessage());
         }
-
-        final Map<URI, String> taskState = waitForTask(responseString);
-        if (taskState == null)
-            return null;
-
-        return new OrchestrationTaskResult(responseString, responseString, response.getStatus(), taskState);
     }
 
 
@@ -159,10 +165,10 @@ public class RunViprREST extends ViPRExecutionTask<OrchestrationTaskResult> {
         for(final String key : pathParameters) {
             List<String> value = input.get(key);
             if(null == value) {
-                //TODO convert to a better exception?
-                throw new IllegalStateException("Unfulfilled path parameter: " + key);
+                throw InternalServerErrorException.internalServerErrors.customServiceExecutionFailed("Unfulfilled path parameter: " + key);
             }
-            pathParameterMap.put(key, value.get(0));
+	    //TODO find a better fix
+            pathParameterMap.put(key, value.get(0).replace("\"",""));
         }
         
         final String path = template.expand(pathParameterMap).getPath(); 
@@ -194,7 +200,12 @@ public class RunViprREST extends ViPRExecutionTask<OrchestrationTaskResult> {
         while (m.find()) {
             String pat = m.group(1);
             String newpat = "$" + pat;
-            body = body.replace(newpat, "\"" +input.get(pat).get(0)+"\"");
+		if (input.get(pat) == null || input.get(pat).get(0) == null) {
+			logger.info("input.get(pat) is null for pat:{}", pat);
+			body = body.replace(newpat, "\"" +" "+"\"");
+		} else {
+            		body = body.replace(newpat, "\"" +input.get(pat).get(0).replace("\"","")+"\"");
+		}
         }
 
         return body;

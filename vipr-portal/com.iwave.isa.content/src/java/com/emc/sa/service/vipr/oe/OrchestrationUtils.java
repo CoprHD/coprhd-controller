@@ -36,6 +36,7 @@ import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.model.TaskResourceRep;
 import com.emc.storageos.model.customservices.CustomServicesWorkflowDocument;
 import com.emc.storageos.oe.api.restapi.OrchestrationEngineRestClient;
+import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorException;
 import com.emc.vipr.client.ViPRCoreClient;
 import com.google.gson.Gson;
 import com.google.gson.JsonSyntaxException;
@@ -198,9 +199,9 @@ public class OrchestrationUtils {
         }  
     }
 
-    public static Map<URI, String> waitForTasks(final List<URI> tasksStartedByOe, final ViPRCoreClient client) throws InterruptedException {
+    public static Map<URI, String> waitForTasks(final List<URI> tasksStartedByOe, final ViPRCoreClient client) throws InternalServerErrorException {
         if (tasksStartedByOe.isEmpty()) {
-            return null;
+		    throw InternalServerErrorException.internalServerErrors.customServiceNoTaskFound("No tasks to wait for");
         }
         ExecutionUtils.currentContext().logInfo("orchestrationService.waitforTask");
 
@@ -209,19 +210,26 @@ public class OrchestrationUtils {
 
         while(states.hasPending()) {
             states.updateState();
-
-            OrchestrationUtils.sleep(TASK_CHECK_INTERVAL);
-            checkTimeout(startTime);
+            try {
+                checkTimeout(startTime);
+            } catch (final InternalServerErrorException e) {
+                states.printTaskState();
+                throw e;
+            }
         }
 
         return states.getTaskState();
     }
 
-    public static void checkTimeout(final long startTime) {
-        if ((System.currentTimeMillis() - startTime)
-                > TASK_CHECK_TIMEOUT * 60 * 1000) {
-            throw new IllegalStateException("Task(s) started by Orchestration Engine " +
-                    "timed out.");
+    public static void checkTimeout(final long startTime) throws InternalServerErrorException {
+        try {
+            OrchestrationUtils.sleep(TASK_CHECK_INTERVAL);
+            if ((System.currentTimeMillis() - startTime)
+                    > TASK_CHECK_TIMEOUT * 60 * 1000) {
+                throw InternalServerErrorException.internalServerErrors.customServiceExecutionFailed("Custom Service Task Timedout");
+            }
+        } catch (final InterruptedException e) {
+            throw InternalServerErrorException.internalServerErrors.customServiceExecutionFailed("Custom Service Task is interrupted" + e);
         }
     }
 

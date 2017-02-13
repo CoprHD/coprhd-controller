@@ -19,6 +19,7 @@ package com.emc.sa.service.vipr.oe.tasks;
 
 import com.emc.storageos.db.client.model.Task;
 import com.emc.vipr.client.ViPRCoreClient;
+import org.slf4j.LoggerFactory;
 
 import java.net.URI;
 import java.util.HashMap;
@@ -29,6 +30,7 @@ import java.util.Map;
  * It tracks the state of each ViPR REST task started by Orchestration Engine
  */
 public class TaskState {
+    private static final org.slf4j.Logger logger = LoggerFactory.getLogger(RunViprREST.class);
     private final Map<URI, String> taskState = new HashMap<>();
     private final ViPRCoreClient client;
     private final List<URI> tasksStartedByOe;
@@ -53,6 +55,12 @@ public class TaskState {
         }
 
         return false;
+    }
+
+    public void printTaskState() {
+        for (final Map.Entry<URI, String> state : taskState.entrySet()) {
+            logger.info(state.getKey() + state.getValue());
+        }
     }
 
     public void updateState() {

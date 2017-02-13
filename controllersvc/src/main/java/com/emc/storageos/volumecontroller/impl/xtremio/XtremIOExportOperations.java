@@ -416,6 +416,9 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
                 }                                
             }
             
+            // We need to look at all related initiators from the affected EM. We can use this list
+            // to then find all related volumes across all EMs. This will allow us to properly
+            // perform our validations.
             List<Initiator> relatedInitiators = new ArrayList<Initiator>();
             if (exportMask.getInitiators() != null && !exportMask.getInitiators().isEmpty()) {
                 Collection<URI> relatedInitiatorURIs = Collections2.transform(exportMask.getInitiators(),

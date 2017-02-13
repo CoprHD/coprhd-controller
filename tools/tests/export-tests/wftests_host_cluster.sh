@@ -315,12 +315,19 @@ test_vcenter_event() {
     TEST_OUTPUT_FILE=test_output_${RANDOM}.log
     reset_counts
     expname=${EXPORT_GROUP_NAME}t2
-    item=${RANDOM}
-    cfs=("ExportGroup ExportMask Host Initiator Cluster")
+    item=${RANDOM}    
     mkdir -p results/${item}
     set_controller_cs_discovery_refresh_interval 1
 
     verify_export ${expname}1 ${HOST1} gone
+    
+    if [ "${SS}" = "xio" ]; then
+        # Don't check Initiator fields for XIO run. The WWN 
+        # and nativeId fields are expected to be updated.
+        cfs=("ExportGroup ExportMask Host Cluster")
+    else
+        cfs=("ExportGroup ExportMask Host Initiator Cluster")
+    fi
 
     # Perform any DB validation in here
     snap_db 1 "${cfs[@]}"

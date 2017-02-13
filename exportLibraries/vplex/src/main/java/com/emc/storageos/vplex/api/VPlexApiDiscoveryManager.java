@@ -3441,7 +3441,6 @@ public class VPlexApiDiscoveryManager {
      * @return the name of the top level device for the given storage volume
      * @throws VPlexApiException
      */
-     */
     @Deprecated
     public String getDeviceForStorageVolume(VolumeInfo vInfo) throws VPlexApiException {
 

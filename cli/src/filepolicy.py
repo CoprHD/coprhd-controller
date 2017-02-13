@@ -324,6 +324,8 @@ class FilePolicy(object):
         assign_to_vpools,
         project_assign_vpool,
         assign_to_projects,
+	source_varray,
+	target_varrays,
         filesystem_assign_vpool,
         ):
 
@@ -339,6 +341,7 @@ class FilePolicy(object):
                 )
 	o = common.json_decode(s)
 	appliedat = common.get_node_value(o,"applied_at")
+	pol_type = common.get_node_value(o,"type")
 	assign_request = {}
 
         assign_request['apply_on_target_site'] = apply_on_target_site
@@ -347,7 +350,7 @@ class FilePolicy(object):
 		vpool_assign_param = {}
 		assign_request_vpools = []
 		if assign_to_vpools is None:
-           		raise SOSError(SOSError.VALUE_ERR,"File policyassign error:"+ "Vpool value should be provided")
+           		raise SOSError(SOSError.VALUE_ERR,"File policyassign error:"+ "Vpool(assign_to_vpools) value should be provided")
 		elif( len(assign_to_vpools)>1):
             		vpool_names = assign_to_vpools.split(',')
             		vpool_obj = VirtualPool(self.__ipAddr, self.__port)
@@ -365,7 +368,7 @@ class FilePolicy(object):
 		assign_request_project_vpools = []
 		project_obj = Project(self.__ipAddr, self.__port)
 		if assign_to_projects is None or project_assign_vpool is None:
-                        raise SOSError(SOSError.VALUE_ERR,"File policyassign error:"+ "Vpool and project value should be provided")
+                        raise SOSError(SOSError.VALUE_ERR,"File policyassign error:"+ "Vpool (project_assign_vpool) and project (assign_to_projects) value should be provided")
                 
 		if( len(assign_to_projects)>1):
             		project_names = assign_to_projects.split(',')
@@ -376,37 +379,48 @@ class FilePolicy(object):
             		uri = project_obj.project_query(assign_to_projects)
             		assign_request_projects.append(uri)
 	
-		if ( len(project_assign_vpool)>1):
-            		vpool_names = project_assign_vpool.split(',')
-            		vpool_obj = VirtualPool(self.__ipAddr, self.__port)
-            		for name in vpool_names:
-                 		uri = vpool_obj.vpool_query(name, 'file')
-                 		assign_request_project_vpools.append(uri)
-        	else:
-            		uri = vpool_obj.vpool_query(project_assign_vpool, 'file')
-            		assign_request_project_vpools.append(uri)
-
-        	project_assign_param['vpool'] = assign_request_project_vpools
+		vpool_obj = VirtualPool(self.__ipAddr, self.__port)
+            	uri = vpool_obj.vpool_query(project_assign_vpool, 'file')
+            	project_assign_param['vpool'] = uri
         	project_assign_param['assign_to_projects'] = assign_request_projects
 		assign_request['project_assign_param'] = project_assign_param
 	else:
 		filesystem_assign_param = {}
-		assign_request_filesystems = []
-      		
+		      		
 		if filesystem_assign_vpool is None:
-           		raise SOSError(SOSError.VALUE_ERR,"File policyassign error:"+ "Vpool value should be provided")
+           		raise SOSError(SOSError.VALUE_ERR,"File policyassign error:"+ "Vpool (filesystem_assign_vpool) value should be provided")
         
-        	if ( len(filesystem_assign_vpool)>1):
-            		vpool_names = filesystem_assign_vpool.split(',')
-            		vpool_obj = VirtualPool(self.__ipAddr, self.__port)
-            		for name in vpool_names:
-                 		uri = vpool_obj.vpool_query(name, 'file')
-                 		assign_request_filesystems.append(uri)
-        	else:
-            		uri = vpool_obj.vpool_query(filesystem_assign_vpool, 'file')
-            		assign_request_filesystems.append(uri)
-		filesystem_assign_param['vpool'] = assign_request_filesystems
+        	vpool_obj = VirtualPool(self.__ipAddr, self.__port)
+        	uri = vpool_obj.vpool_query(filesystem_assign_vpool, 'file')
+            	filesystem_assign_param['vpool'] = uri
         	assign_request['filesystem_assign_param'] = filesystem_assign_param
+
+	if (pol_type == "file_replication"):
+		if (source_varray is not None and target_varrays is not None):
+			file_replication_topologies = []
+	        	file_replication_topology = {}
+			assign_target_varrays = []
+			from virtualarray import VirtualArray
+                	varray_obj = VirtualArray(self.__ipAddr, self.__port)
+	                src_varray_uri = varray_obj.varray_query(source_varray)
+		        file_replication_topology['source_varray']= src_varray_uri
+	
+		        if( len(target_varrays)>1):
+				trg_varrays= target_varrays.split(',')
+				for varray in trg_varrays:
+					uri =  varray_obj.varray_query(varray)
+					assign_target_varrays.append(uri)
+			else:
+				uri = varray_obj.varray_query(target_varrays)
+				assign_target_varrays.append(uri)
+		
+			file_replication_topology['target_varrays']= assign_target_varrays
+			file_replication_topologies.append(file_replication_topology)
+			assign_request['file_replication_topologies']= file_replication_topologies
+		else:
+			raise SOSError(SOSError.VALUE_ERR, "File policyassign error:"+ "Target and source virtual array should be provided")
+
+		
 
         try:
             body = json.dumps(assign_request)
@@ -865,33 +879,39 @@ def assign_parser(subcommand_parsers, common_parser):
         help='Name of the policy',
         required=True,
         )
-    mandatory_args.add_argument(
-        '-applyontargetsite',
-        '-aptrgtsite',
-        metavar='<apply_on_target_site>',
-        dest='apply_on_target_site',
-        help='Appply on target site true/false',
-        required=True,
-        )
+    update_parser.add_argument('-applyontargetsite','-aptrgtsite',
+			       metavar='<apply_on_target_site>',
+                               dest='apply_on_target_site',
+                               help='Appply on target site true/false',
+                               )
     update_parser.add_argument('-assigntovpools', '-asignvpls',
         		       metavar='<assign_to_vpools>',
        			       dest='assign_to_vpools',
-        		       help='assign to vpools')
+        		       help='assign to vpools. Required for assigning file policies to vpool')
     update_parser.add_argument('-assigntoprojects', '-asignprjs',
                                metavar='<assign_to_projects>',
                                dest='assign_to_projects',
-                               help='Assign to projects')
+                               help='Assign to projects. Required for assigning file policies to project' )
     update_parser.add_argument('-assigntoprojectsvpool',
                                '-asignprjvpool',
                                metavar='<project_assign_vpool>',
                                dest='project_assign_vpool',
-                               help='vpool of to-be asssigned projects '
+                               help='vpool of to-be asssigned projects. Required for assigning file policies to project '
                                )
-
+    update_parser.add_argument('-sourcevarray', '-srcvarray',
+			       metavar='<source_varray>',
+			       dest='source_varray',
+			       help='source varray for file replication'
+			       )
+    update_parser.add_argument('-targetvarrays', '-trgvarrays',
+			       metavar='<target_varrays>',
+                               dest='target_varrays',
+                               help='target varrays for file replication'
+                               )
     update_parser.add_argument('-filesystemvpool', '-fsvpool',
                                metavar='<filesystem_assign_vpool>',
                                dest='filesystem_assign_vpool',
-                               help='vpool of filesystems to be assigned to'
+                               help='filesystem vpool to be assigned. Required for assigning filepolicies to filesysytem'
                                )
 
     update_parser.set_defaults(func=filepolicy_assign)
@@ -908,7 +928,9 @@ def filepolicy_assign(args):
             args.assign_to_vpools,
             args.project_assign_vpool,
             args.assign_to_projects,
-            args.filesystem_assign_vpool,
+            args.source_varray,
+	    args.target_varrays,
+	    args.filesystem_assign_vpool,
             )
     except SOSError, e:
         if e.err_code == SOSError.NOT_FOUND_ERR:

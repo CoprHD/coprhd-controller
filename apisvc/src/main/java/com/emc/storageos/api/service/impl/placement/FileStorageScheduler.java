@@ -11,6 +11,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -120,6 +121,12 @@ public class FileStorageScheduler implements Scheduler {
             optionalAttributes = new HashMap<String, Object>();
         }
 
+        if (capabilities.getVpoolProjectPolicyAssign() && capabilities.getFileProtectionSourceStorageDevice() != null) {
+            Set<String> storageSystemSet = new HashSet<String>();
+            storageSystemSet.add(capabilities.getFileProtectionSourceStorageDevice().toString());
+            optionalAttributes.put(AttributeMatcher.Attributes.storage_system.name(), storageSystemSet);
+        }
+
         // Get all storage pools that match the passed vpool params and
         // protocols. In addition, the pool must have enough capacity
         // to hold at least one resource of the requested size.
@@ -147,7 +154,8 @@ public class FileStorageScheduler implements Scheduler {
                 vPool, vArray.getId(), candidatePools, project, invalidNasServers);
 
         VirtualNAS currvNAS = null;
-        List<FileRecommendation> fileRecommendations = null;
+        List<FileRecommendation> fileRecommendations = new ArrayList<FileRecommendation>();
+        List<FileRecommendation> recommendations = null;
 
         if (!vNASPoolMap.isEmpty()) {
             for (Entry<VirtualNAS, List<StoragePool>> eachVNASEntry : vNASPoolMap.entrySet()) {
@@ -174,14 +182,21 @@ public class FileStorageScheduler implements Scheduler {
                     }
 
                     // Get the file recommendations for pool recommendation!!!
-                    fileRecommendations = getFileRecommendationsForVNAS(currvNAS,
+                    recommendations = getFileRecommendationsForVNAS(currvNAS,
                             vArray.getId(), vPool, poolRecommendations);
 
-                    if (!fileRecommendations.isEmpty()) {
-                        _log.info("Selected vNAS {} for placement",
-                                currvNAS.getNasName());
+                    if (!recommendations.isEmpty()) {
+                        fileRecommendations = recommendations;
                         if (!capabilities.getVpoolProjectPolicyAssign()) {
+
+                            _log.info("Selected vNAS {} for placement",
+                                    currvNAS.getNasName());
                             break;
+                        } else {
+                            // Policy assignment required to create the policy on all applicable vNAS servers!!!
+                            _log.info(" vNAS {} for Added to the list of recommendations",
+                                    currvNAS.getNasName());
+                            fileRecommendations.addAll(recommendations);
                         }
                     }
                 }
@@ -193,15 +208,20 @@ public class FileStorageScheduler implements Scheduler {
         // 2. vpool does not have storage pools from vnx or
         // 3. vnx does not have vdms
         // Get the file recommendations
-        if (fileRecommendations == null || fileRecommendations.isEmpty()) {
+        if (fileRecommendations == null || fileRecommendations.isEmpty() || capabilities.getVpoolProjectPolicyAssign()) {
             // Get the recommendations for the candidate pools.
             _log.info("Placement on HADomain matching pools");
             List<Recommendation> poolRecommendations = _scheduler
                     .getRecommendationsForPools(vArray.getId().toString(),
                             candidatePools, capabilities);
 
-            fileRecommendations = selectStorageHADomainMatchingVpool(vPool,
+            recommendations = selectStorageHADomainMatchingVpool(vPool,
                     vArray.getId(), poolRecommendations, invalidNasServers);
+            if (recommendations != null && !recommendations.isEmpty()) {
+                if (fileRecommendations != null) {
+                    fileRecommendations.addAll(recommendations);
+                }
+            }
         }
         // We need to place all the resources. If we can't then
         // log an error and clear the list of recommendations.
@@ -642,7 +662,7 @@ public class FileStorageScheduler implements Scheduler {
                                         storagePort.getRegistrationStatus())
                         || (StoragePort.OperationalStatus.valueOf(storagePort
                                 .getOperationalStatus()))
-                                                .equals(StoragePort.OperationalStatus.NOT_OK)
+                                        .equals(StoragePort.OperationalStatus.NOT_OK)
                         || !DiscoveredDataObject.CompatibilityStatus.COMPATIBLE
                                 .name().equals(
                                         storagePort.getCompatibilityStatus())

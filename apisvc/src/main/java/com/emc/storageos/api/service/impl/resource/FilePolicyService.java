@@ -963,17 +963,25 @@ public class FilePolicyService extends TaskResourceService {
                     StringSet sourceVArraysSet = getSourceVArraySet(vpool, filePolicy);
 
                     VirtualPoolCapabilityValuesWrapper capabilities = new VirtualPoolCapabilityValuesWrapper();
-
                     updatePolicyCapabilities(_dbClient, sourceVArraysSet, vpool, filePolicy, capabilities, errorMsg);
 
-                    for (Iterator<String> iterator = sourceVArraysSet.iterator(); iterator.hasNext();) {
-                        String vArrayURI = iterator.next();
-                        VirtualArray srcVarray = _dbClient.queryObject(VirtualArray.class, URI.create(vArrayURI));
-                        List<FileRecommendation> newRecs = _filePlacementManager.getRecommendationsForFileCreateRequest(srcVarray, null,
-                                vpool, capabilities);
-                        recommendations.addAll(newRecs);
-                    }
+                    // Replication policy has to be created on each applicable source storage system!!
+                    List<URI> storageSystems = getAssociatedStorageSystemsByVPool(vpool);
+                    if (storageSystems != null && !storageSystems.isEmpty()) {
+                        for (URI storageSystem : storageSystems) {
+                            capabilities.put(VirtualPoolCapabilityValuesWrapper.FILE_PROTECTION_SOURCE_STORAGE_SYSTEM, storageSystem);
 
+                            for (Iterator<String> iterator = sourceVArraysSet.iterator(); iterator.hasNext();) {
+                                String vArrayURI = iterator.next();
+                                VirtualArray srcVarray = _dbClient.queryObject(VirtualArray.class, URI.create(vArrayURI));
+                                List<FileRecommendation> newRecs = _filePlacementManager.getRecommendationsForFileCreateRequest(srcVarray,
+                                        null,
+                                        vpool, capabilities);
+                                recommendations.addAll(newRecs);
+                            }
+                        }
+
+                    }
                 }
                 taskObject = createAssignFilePolicyTask(filePolicy, task);
                 List<FileStorageSystemAssociation> associations = convertRecommendationsToStorageSystemAssociations(recommendations);
@@ -1139,27 +1147,34 @@ public class FilePolicyService extends TaskResourceService {
                         filePolicy.getId(), vpoolToStorageSystemMap, filteredProjectURIs, fileServiceApi, taskObject, task);
                 break;
             case file_replication:
+                if (filteredProjectURIs.isEmpty()) {
+                    throw APIException.badRequests.invalidFilePolicyAssignParam(filePolicy.getFilePolicyName(),
+                            "No projects to assign to policy.");
+                }
                 // update replication topology info
                 updateFileReplicationTopologyInfo(param, filePolicy);
                 List<FileRecommendation> recommendations = new ArrayList<FileRecommendation>();
                 VirtualPoolCapabilityValuesWrapper capabilities = new VirtualPoolCapabilityValuesWrapper();
                 StringSet sourceVArraysSet = getSourceVArraySet(vpool, filePolicy);
                 updatePolicyCapabilities(_dbClient, sourceVArraysSet, vpool, filePolicy, capabilities, errorMsg);
-                for (Iterator<String> iterator = sourceVArraysSet.iterator(); iterator.hasNext();) {
-                    String vArrayURI = iterator.next();
-                    for (URI projectURI : filteredProjectURIs) {
-                        Project project = _dbClient.queryObject(Project.class, projectURI);
-                        VirtualArray srcVarray = _dbClient.queryObject(VirtualArray.class, URI.create(vArrayURI));
-                        List<FileRecommendation> newRecs = _filePlacementManager.getRecommendationsForFileCreateRequest(srcVarray,
-                                project,
-                                vpool, capabilities);
-                        recommendations.addAll(newRecs);
-                    }
-                }
 
-                if (filteredProjectURIs.isEmpty()) {
-                    throw APIException.badRequests.invalidFilePolicyAssignParam(filePolicy.getFilePolicyName(),
-                            "No projects to assign to policy.");
+                // Replication policy has to be created on each applicable source storage system!!
+                List<URI> storageSystems = getAssociatedStorageSystemsByVPool(vpool);
+                if (storageSystems != null && !storageSystems.isEmpty()) {
+                    for (URI storageSystem : storageSystems) {
+                        capabilities.put(VirtualPoolCapabilityValuesWrapper.FILE_PROTECTION_SOURCE_STORAGE_SYSTEM, storageSystem);
+                        for (Iterator<String> iterator = sourceVArraysSet.iterator(); iterator.hasNext();) {
+                            String vArrayURI = iterator.next();
+                            for (URI projectURI : filteredProjectURIs) {
+                                Project project = _dbClient.queryObject(Project.class, projectURI);
+                                VirtualArray srcVarray = _dbClient.queryObject(VirtualArray.class, URI.create(vArrayURI));
+                                List<FileRecommendation> newRecs = _filePlacementManager.getRecommendationsForFileCreateRequest(srcVarray,
+                                        project,
+                                        vpool, capabilities);
+                                recommendations.addAll(newRecs);
+                            }
+                        }
+                    }
                 }
 
                 List<FileStorageSystemAssociation> associations = convertRecommendationsToStorageSystemAssociations(recommendations);

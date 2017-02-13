@@ -17,9 +17,7 @@ HOST_TEST_CASES="test_host_add_initiator \
                     test_move_non_clustered_discovered_host_to_cluster \
                     test_move_clustered_discovered_host_to_cluster \
                     test_vcenter_event \
-                    test_host_remove_initiator_event \
-                    test_vblock_add_bare_metal_host \
-                    test_vblock_provision_bare_metal_host"
+                    test_host_remove_initiator_event"
 
 get_host_cluster() {
     tenant_arg=$1
@@ -295,7 +293,8 @@ test_host_add_initiator() {
 	    # Report results
 	    report_results ${test_name} ${failure}
 	    
-	    echo "\n"
+	    # Add a break in the output
+        echo " "
     done
     
     # Cleanup everything else
@@ -370,7 +369,8 @@ test_vcenter_event() {
     # Report results
     report_results ${test_name} ${failure}
     
-    echo "\n"
+    # Add a break in the output
+    echo " "
 }
 
 # Helper methods for tests
@@ -631,7 +631,8 @@ test_host_remove_initiator() {
         # Report results
         report_results ${test_name} ${failure}
         
-        echo "\n"
+        # Add a break in the output
+        echo " "
     done
     
     # Cleanup volumes
@@ -854,7 +855,8 @@ test_move_clustered_host_to_another_cluster() {
         # Report results
         report_results ${test_name} ${failure}
         
-        echo "\n"
+        # Add a break in the output
+        echo " "
     done    
 }
 
@@ -1021,7 +1023,8 @@ test_move_non_clustered_host_to_cluster() {
         # Report results
         report_results ${test_name} ${failure}
         
-        echo "\n"
+        # Add a break in the output
+        echo " "
     done
 }
 
@@ -1203,7 +1206,8 @@ test_move_clustered_discovered_host_to_cluster() {
         # Report results
         report_results ${test_name} ${failure}
         
-        echo "\n"
+        # Add a break in the output
+        echo " "
     done    
     
     delete_datastore_and_volume ${TENANT} ${datastore1} ${vcenter} "DC-Simulator-1" ${cluster1}
@@ -1462,7 +1466,8 @@ test_cluster_remove_host() {
         # Report results
     	report_results ${test_name} ${failure}
     	
-    	echo "\n"
+    	# Add a break in the output
+        echo " "
     done
     
      # Cleanup volumes
@@ -1771,7 +1776,8 @@ test_cluster_remove_discovered_host() {
             # Report results
             report_results ${test_name} ${failure}
             
-            echo "\n"
+            # Add a break in the output
+            echo " "
         done
     done
     
@@ -1913,7 +1919,8 @@ test_move_non_clustered_discovered_host_to_cluster() {
         # Report results
         report_results ${test_name} ${failure}
         
-        echo "\n"
+        # Add a break in the output
+        echo " "
     done
     
     # Cleanup exports
@@ -2020,7 +2027,8 @@ test_delete_host() {
         # Report results
         report_results ${test_name} ${failure}
         
-        echo "\n"
+        # Add a break in the output
+        echo " "
     done
 }
 
@@ -2134,7 +2142,8 @@ test_delete_cluster() {
         # Report results
         report_results ${test_name} ${failure}
         
-        echo "\n"
+        # Add a break in the output
+        echo " "
     done
 }
 
@@ -2196,7 +2205,8 @@ test_host_remove_initiator_event() {
     # Report results
     report_results ${test_name} ${failure}
     
-    echo "\n"
+    # Add a break in the output
+    echo " "
 }
 
 # TODO: will be moving all vblock related tests to different file, adding it here just for time being
@@ -2239,7 +2249,8 @@ test_vblock_provision_bare_metal_host() {
         # Report results
         report_results ${test_name} ${failure}
         
-        echo "\n"
+        # Add a break in the output
+        echo " "
     done
     run computesystem discover $VBLOCK_COMPUTE_SYSTEM_NAME
     sleep 15
@@ -2293,7 +2304,8 @@ test_vblock_add_bare_metal_host() {
         # Report results
         report_results ${test_name} ${failure}
         
-        echo "\n"
+        # Add a break in the output
+        echo " "
     done
     run computesystem discover $VBLOCK_COMPUTE_SYSTEM_NAME
     sleep 15

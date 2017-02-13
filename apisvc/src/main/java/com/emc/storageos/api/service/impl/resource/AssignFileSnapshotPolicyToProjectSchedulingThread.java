@@ -48,15 +48,15 @@ public class AssignFileSnapshotPolicyToProjectSchedulingThread implements Runnab
     public void run() {
         _log.info("Starting scheduling placement thread for task {}", task);
         try {
-            fileServiceImpl.assignFilePolicyToProject(vpoolToStorageSystemMap, projectURIs, filePolicyToAssign, task);
+            fileServiceImpl.assignFilePolicyToProjects(vpoolToStorageSystemMap, projectURIs, filePolicyToAssign, task);
         } catch (Exception ex) {
             if (ex instanceof ServiceCoded) {
                 this.filePolicyService._dbClient
-                        .error(FilePolicy.class, taskObject.getResource().getId(), taskObject.getOpId(), (ServiceCoded) ex);
+                .error(FilePolicy.class, taskObject.getResource().getId(), taskObject.getOpId(), (ServiceCoded) ex);
             } else {
                 this.filePolicyService._dbClient.error(FilePolicy.class, taskObject.getResource().getId(), taskObject.getOpId(),
                         InternalServerErrorException.internalServerErrors
-                                .unexpectedErrorVolumePlacement(ex));
+                        .unexpectedErrorVolumePlacement(ex));
             }
             _log.error(ex.getMessage(), ex);
             taskObject.setMessage(ex.getMessage());

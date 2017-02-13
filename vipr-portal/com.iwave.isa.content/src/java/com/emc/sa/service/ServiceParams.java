@@ -50,6 +50,7 @@ public interface ServiceParams {
     public String VOLUMES = "volumes";
     public String DELETION_TYPE = "deletionType";
     public String STORAGE_SYSTEMS = "storageSystems";
+    public String STORAGE_SYSTEM = "storageSystem";
     public String PROTECTION_SYSTEMS = "protectionSystems";
     public String REMOVED_VOLUMES = "removedVolumes";
     public String SNAPSHOTS = "snapshots";
@@ -86,6 +87,11 @@ public interface ServiceParams {
     public String READ_ONLY = "readOnly";
     public String MIGRATION_SUSPEND = "migrationSuspend";
     public String DISPLAY_JOURNALS = "displayJournals";
+    public String PORTS = "ports";
+    public String RESULTING_PATHS = "resultingPaths";
+    public String REMOVED_PATHS = "removedPaths";
+    public String USE_EXISTING_PATHS = "useExistingPaths";
+    public String SUSPEND_WAIT = "suspendWait";
 
     public String MOBILITY_GROUP_METHOD = "mobilityGroupMethod";
 

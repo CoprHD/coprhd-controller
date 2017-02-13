@@ -41,6 +41,7 @@ import com.emc.storageos.model.customservices.PrimitiveResourceRestRep;
 import com.emc.storageos.model.customservices.PrimitiveResourceRestRep.Attribute;
 import com.emc.storageos.model.customservices.PrimitiveRestRep;
 import com.emc.storageos.primitives.Parameter.ParameterType;
+import com.emc.storageos.primitives.Primitive.StepType;
 import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorException;
 
 public final class  PrimitiveMapper {
@@ -114,6 +115,7 @@ public final class  PrimitiveMapper {
 
     private static void mapAnsible(final Ansible from,
             final PrimitiveRestRep to) {
+        to.setType(StepType.LOCAL_ANSIBLE.toString());
         final Map<String, PrimitiveRestRep.InputGroup> input = new HashMap<String, PrimitiveRestRep.InputGroup>();
         if (null != from.getExtraVars()) {
             final List<InputParameterRestRep> inputParam = new ArrayList<InputParameterRestRep>();
@@ -138,6 +140,7 @@ public final class  PrimitiveMapper {
     }
     
     private static void mapScript(final CustomServiceScriptPrimitive from, final PrimitiveRestRep to) {
+        to.setType(StepType.SHELL_SCRIPT.toString());
         final Map<String, PrimitiveRestRep.InputGroup> input = new HashMap<String, PrimitiveRestRep.InputGroup>();
         if (null != from.getInput()) {
             final List<InputParameterRestRep> inputParam = new ArrayList<InputParameterRestRep>();

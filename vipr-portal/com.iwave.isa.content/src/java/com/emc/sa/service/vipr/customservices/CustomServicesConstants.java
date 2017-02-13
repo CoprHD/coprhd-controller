@@ -14,7 +14,7 @@
  * limitations under the License.
  *
  */
-package com.emc.sa.service.vipr.oe;
+package com.emc.sa.service.vipr.customservices;
 
 import java.util.Arrays;
 import java.util.List;
@@ -22,7 +22,7 @@ import java.util.List;
 /**
  * Orchestration Engine Constants
  */
-public final class OrchestrationServiceConstants {
+public final class CustomServicesConstants {
 
 
     public static final int STEP_ID = 0;

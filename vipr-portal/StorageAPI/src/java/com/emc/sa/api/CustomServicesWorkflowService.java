@@ -63,7 +63,7 @@ import com.emc.storageos.svcs.errorhandling.resources.APIException;
         writeRoles = { Role.TENANT_ADMIN },
         readAcls = { ACL.ANY })
 @Path("/workflows")
-public class OrchestrationWorkflowService extends CatalogTaggedResourceService {
+public class CustomServicesWorkflowService extends CatalogTaggedResourceService {
 
     @Autowired
     private OrchestrationWorkflowManager orchestrationWorkflowManager;

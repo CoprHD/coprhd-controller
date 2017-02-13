@@ -15,7 +15,7 @@
  *
  */
 
-package com.emc.sa.service.vipr.oe.tasks;
+package com.emc.sa.service.vipr.customservices.tasks;
 
 import com.emc.storageos.db.client.model.Task;
 import com.emc.vipr.client.ViPRCoreClient;

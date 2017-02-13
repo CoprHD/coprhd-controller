@@ -15,15 +15,17 @@
  *
  */
 
-package com.emc.sa.service.vipr.oe.gson;
+package com.emc.sa.service.vipr.customservices.gson;
 
-public class OeStatusMessage {
-    private String message;
-
-    public String getMessage() {
-        return message;
+public class ViprResource {
+    
+    private String name;
+    private String id;
+    
+    public String getName() {
+        return name;
     }
-    public boolean isValid() {
-        return message != null;
+    public String getId() {
+        return id;
     }
 }

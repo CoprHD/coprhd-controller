@@ -15,7 +15,7 @@
  *
  */
 
-package com.emc.sa.service.vipr.oe;
+package com.emc.sa.service.vipr.customservices;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -38,12 +38,12 @@ import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.engine.service.Service;
 import com.emc.sa.service.vipr.ViPRExecutionUtils;
 import com.emc.sa.service.vipr.ViPRService;
-import com.emc.sa.service.vipr.oe.OrchestrationServiceConstants.InputType;
-import com.emc.sa.service.vipr.oe.gson.ViprOperation;
-import com.emc.sa.service.vipr.oe.gson.ViprTask;
-import com.emc.sa.service.vipr.oe.tasks.OrchestrationTaskResult;
-import com.emc.sa.service.vipr.oe.tasks.RunAnsible;
-import com.emc.sa.service.vipr.oe.tasks.RunViprREST;
+import com.emc.sa.service.vipr.customservices.CustomServicesConstants.InputType;
+import com.emc.sa.service.vipr.customservices.gson.ViprOperation;
+import com.emc.sa.service.vipr.customservices.gson.ViprTask;
+import com.emc.sa.service.vipr.customservices.tasks.CustomServicesTaskResult;
+import com.emc.sa.service.vipr.customservices.tasks.RunAnsible;
+import com.emc.sa.service.vipr.customservices.tasks.RunViprREST;
 import com.emc.sa.workflow.WorkflowHelper;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.model.customservices.CustomServicesWorkflowDocument;
@@ -58,7 +58,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.gson.Gson;
 
 @Service("OrchestrationService")
-public class OrchestrationService extends ViPRService {
+public class CustomServicesService extends ViPRService {
 
     private Map<String, Object> params;
     private String oeOrderJson;
@@ -72,7 +72,7 @@ public class OrchestrationService extends ViPRService {
 
     private ImmutableMap<String, Step> stepsHash;
 
-    private static final org.slf4j.Logger logger = LoggerFactory.getLogger(OrchestrationService.class);
+    private static final org.slf4j.Logger logger = LoggerFactory.getLogger(CustomServicesService.class);
     private CustomServicesWorkflowDocument obj;
     private int code;
 
@@ -132,7 +132,7 @@ public class OrchestrationService extends ViPRService {
 
             updateInputPerStep(step);
 
-            final OrchestrationTaskResult res;
+            final CustomServicesTaskResult res;
 
             try {
                 StepType type = StepType.fromString(step.getType());
@@ -188,14 +188,14 @@ public class OrchestrationService extends ViPRService {
             if (next == null) {
                 throw InternalServerErrorException.internalServerErrors.customServiceExecutionFailed("Failed to get next step");
             }
-            if ((System.currentTimeMillis() - timeout) > OrchestrationServiceConstants.TIMEOUT) {
+            if ((System.currentTimeMillis() - timeout) > CustomServicesConstants.TIMEOUT) {
                 throw InternalServerErrorException.internalServerErrors.
                         customServiceExecutionFailed("Operation Timed out");
             }
         }
     }
 
-    private boolean isSuccess(Step step, OrchestrationTaskResult result)
+    private boolean isSuccess(Step step, CustomServicesTaskResult result)
     {
         if (result == null)
             return false;
@@ -210,7 +210,7 @@ public class OrchestrationService extends ViPRService {
 	*/
     }
 
-    private String getNext(final boolean status, final OrchestrationTaskResult result, final Step step) {
+    private String getNext(final boolean status, final CustomServicesTaskResult result, final Step step) {
         if (status) {
             ExecutionUtils.currentContext().logInfo("orchestrationService.stepSuccessStatus", step, result.getReturnCode());
 
@@ -232,7 +232,7 @@ public class OrchestrationService extends ViPRService {
             return;
         }
 
-        final List<Input> input = step.getInputGroups().get(OrchestrationServiceConstants.INPUT_PARAMS).getInputGroup();
+        final List<Input> input = step.getInputGroups().get(CustomServicesConstants.INPUT_PARAMS).getInputGroup();
 
         if (input == null) {
             return;
@@ -259,8 +259,8 @@ public class OrchestrationService extends ViPRService {
                 case FROM_STEP_INPUT:
                 case FROM_STEP_OUTPUT: {
                     final String[] paramVal = value.getValue().split("\\.");
-                    final String stepId = paramVal[OrchestrationServiceConstants.STEP_ID];
-                    final String attribute = paramVal[OrchestrationServiceConstants.INPUT_FIELD];
+                    final String stepId = paramVal[CustomServicesConstants.STEP_ID];
+                    final String attribute = paramVal[CustomServicesConstants.INPUT_FIELD];
 
                     Map<String, List<String>> stepInput;
                     if (value.getType().equals(InputType.FROM_STEP_INPUT.toString()))
@@ -392,7 +392,7 @@ public class OrchestrationService extends ViPRService {
         logger.debug("Find value of:{}", value);
         List<String> valueList = new ArrayList<String>();
 
-        if (!value.contains(OrchestrationServiceConstants.TASK)) {
+        if (!value.contains(CustomServicesConstants.TASK)) {
             Expression expr = parser.parseExpression(value);
             EvaluationContext context = new StandardEvaluationContext(res);
             String val = (String) expr.getValue(context);
@@ -435,7 +435,7 @@ public class OrchestrationService extends ViPRService {
      * @param res
      * @return
      */
-    private boolean findStatus(String successCriteria, final OrchestrationTaskResult res) {
+    private boolean findStatus(String successCriteria, final CustomServicesTaskResult res) {
         try {
 
             if (successCriteria == null)
@@ -456,7 +456,7 @@ public class OrchestrationService extends ViPRService {
 
             int p = 0;
             for (String statement : statements) {
-                if (statement.trim().startsWith(OrchestrationServiceConstants.RETURN_CODE)) {
+                if (statement.trim().startsWith(CustomServicesConstants.RETURN_CODE)) {
                     Expression e2 = parser.parseExpression(statement);
 
                     sc.setCode(res.getReturnCode());
@@ -471,7 +471,7 @@ public class OrchestrationService extends ViPRService {
                 String arr[] = StringUtils.split(statement);
                 String lvalue = arr[0];
 
-                if (!lvalue.contains(OrchestrationServiceConstants.TASK)) {
+                if (!lvalue.contains(CustomServicesConstants.TASK)) {
 
                     List<String> evaluatedValues = evaluateValue(result, lvalue);
                     sc.setEvaluateVal(evaluatedValues.get(0), p);

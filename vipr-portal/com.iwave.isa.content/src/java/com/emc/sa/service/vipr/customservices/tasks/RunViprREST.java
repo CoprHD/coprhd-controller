@@ -15,7 +15,7 @@
  *
  */
 
-package com.emc.sa.service.vipr.oe.tasks;
+package com.emc.sa.service.vipr.customservices.tasks;
 
 import java.io.IOException;
 import java.net.URI;
@@ -31,9 +31,9 @@ import org.slf4j.LoggerFactory;
 import org.springframework.web.util.UriTemplate;
 
 import com.emc.sa.engine.ExecutionUtils;
-import com.emc.sa.service.vipr.oe.gson.ViprOperation;
-import com.emc.sa.service.vipr.oe.OrchestrationServiceConstants;
-import com.emc.sa.service.vipr.oe.OrchestrationUtils;
+import com.emc.sa.service.vipr.customservices.CustomServicesConstants;
+import com.emc.sa.service.vipr.customservices.CustomServicesUtils;
+import com.emc.sa.service.vipr.customservices.gson.ViprOperation;
 import com.emc.sa.service.vipr.tasks.ViPRExecutionTask;
 import com.emc.storageos.primitives.ViPRPrimitive;
 import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorException;
@@ -44,7 +44,7 @@ import com.sun.jersey.api.client.ClientResponse;
 /**
  * This provides ability to run ViPR REST APIs
  */
-public class RunViprREST extends ViPRExecutionTask<OrchestrationTaskResult> {
+public class RunViprREST extends ViPRExecutionTask<CustomServicesTaskResult> {
 
     private static final org.slf4j.Logger logger = LoggerFactory.getLogger(RunViprREST.class);
 
@@ -59,7 +59,7 @@ public class RunViprREST extends ViPRExecutionTask<OrchestrationTaskResult> {
     }
 
     @Override
-    public OrchestrationTaskResult executeTask() throws Exception {
+    public CustomServicesTaskResult executeTask() throws Exception {
 
         final String requestBody;
 
@@ -67,7 +67,7 @@ public class RunViprREST extends ViPRExecutionTask<OrchestrationTaskResult> {
         final String body = primitive.body();
         final String method = primitive.method();
 
-        if (OrchestrationServiceConstants.BODY_REST_METHOD.contains(method) && !body.isEmpty()) {
+        if (CustomServicesConstants.BODY_REST_METHOD.contains(method) && !body.isEmpty()) {
             requestBody = makePostBody(body);
         } else {
             requestBody = "";
@@ -77,7 +77,7 @@ public class RunViprREST extends ViPRExecutionTask<OrchestrationTaskResult> {
 
         ExecutionUtils.currentContext().logInfo("runViprREST.startInfo", primitive.getFriendlyName());
 
-        OrchestrationTaskResult result = makeRestCall(path, requestBody, method);
+        CustomServicesTaskResult result = makeRestCall(path, requestBody, method);
 
         ExecutionUtils.currentContext().logInfo("runViprREST.doneInfo", primitive.getFriendlyName());
 
@@ -86,23 +86,23 @@ public class RunViprREST extends ViPRExecutionTask<OrchestrationTaskResult> {
 
     private Map<URI, String> waitForTask(final String result) throws InternalServerErrorException
     {
-        final ViprOperation res = OrchestrationUtils.parseViprTasks(result);
+        final ViprOperation res = CustomServicesUtils.parseViprTasks(result);
         if (res == null) {
             throw InternalServerErrorException.internalServerErrors.customServiceNoTaskFound("no task found");
         }
 
         try {
-            return OrchestrationUtils.waitForTasks(res.getTaskIds(), getClient());
+            return CustomServicesUtils.waitForTasks(res.getTaskIds(), getClient());
         } catch (final URISyntaxException e) {
             throw InternalServerErrorException.internalServerErrors.customServiceExecutionFailed("Failed to parse REST response" + e);
         }
     }
 
-    private OrchestrationTaskResult makeRestCall(final String path, final Object requestBody, final String method) throws InternalServerErrorException {
+    private CustomServicesTaskResult makeRestCall(final String path, final Object requestBody, final String method) throws InternalServerErrorException {
 
         ClientResponse response = null;
         String responseString = null;
-        OrchestrationServiceConstants.restMethods restmethod = OrchestrationServiceConstants.restMethods.valueOf(method);
+        CustomServicesConstants.restMethods restmethod = CustomServicesConstants.restMethods.valueOf(method);
 
         try {
             switch (restmethod) {
@@ -134,12 +134,12 @@ public class RunViprREST extends ViPRExecutionTask<OrchestrationTaskResult> {
             responseString = IOUtils.toString(response.getEntityInputStream(), "UTF-8");
 
             final Map<URI, String> taskState = waitForTask(responseString);
-            return new OrchestrationTaskResult(responseString, responseString, response.getStatus(), taskState);
+            return new CustomServicesTaskResult(responseString, responseString, response.getStatus(), taskState);
 
         } catch (final InternalServerErrorException e) {
 
             if (e.getServiceCode().getCode() == ServiceCode.CUSTOM_SERVICE_NOTASK.getCode()) {
-                return new OrchestrationTaskResult(responseString, responseString, response.getStatus(), null);
+                return new CustomServicesTaskResult(responseString, responseString, response.getStatus(), null);
             }
 
             throw InternalServerErrorException.internalServerErrors.

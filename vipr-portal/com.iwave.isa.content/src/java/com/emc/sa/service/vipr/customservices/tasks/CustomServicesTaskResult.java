@@ -15,19 +15,19 @@
  *
  */
 
-package com.emc.sa.service.vipr.oe.tasks;
+package com.emc.sa.service.vipr.customservices.tasks;
 
 import java.net.URI;
 import java.util.Map;
 
-public final class OrchestrationTaskResult {
+public final class CustomServicesTaskResult {
 
     private final String out;
     private final String err;
     private final int returnCode;
     private final Map<URI, String> taskState;
 
-    public OrchestrationTaskResult(final String out, final String err, final int returnCode, final Map<URI, String> taskState) {
+    public CustomServicesTaskResult(final String out, final String err, final int returnCode, final Map<URI, String> taskState) {
         this.out = out;
         this.err = err;
         this.returnCode = returnCode;

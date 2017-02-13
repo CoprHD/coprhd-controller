@@ -15,17 +15,8 @@
  *
  */
 
-package com.emc.sa.service.vipr.oe.gson;
+package com.emc.sa.service.vipr.customservices.gson;
 
-public class ViprResource {
-    
-    private String name;
-    private String id;
-    
-    public String getName() {
-        return name;
-    }
-    public String getId() {
-        return id;
-    }
-}
+public class AssetOptionPair extends AffectedResource {
+    // same structure as AffectedResource
+} 

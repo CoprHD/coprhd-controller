@@ -15,7 +15,7 @@
  *
  */
 
-package com.emc.sa.service.vipr.oe;
+package com.emc.sa.service.vipr.customservices;
 
 import java.io.IOException;
 import java.net.URI;
@@ -27,11 +27,11 @@ import java.util.Map;
 import org.apache.commons.io.IOUtils;
 
 import com.emc.sa.engine.ExecutionUtils;
-import com.emc.sa.service.vipr.oe.gson.AffectedResource;
-import com.emc.sa.service.vipr.oe.gson.OeStatusMessage;
-import com.emc.sa.service.vipr.oe.gson.ViprOperation;
-import com.emc.sa.service.vipr.oe.gson.ViprTask;
-import com.emc.sa.service.vipr.oe.tasks.TaskState;
+import com.emc.sa.service.vipr.customservices.gson.AffectedResource;
+import com.emc.sa.service.vipr.customservices.gson.CustomServicesStatusMessage;
+import com.emc.sa.service.vipr.customservices.gson.ViprOperation;
+import com.emc.sa.service.vipr.customservices.gson.ViprTask;
+import com.emc.sa.service.vipr.customservices.tasks.TaskState;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.model.TaskResourceRep;
 import com.emc.storageos.model.customservices.CustomServicesWorkflowDocument;
@@ -44,9 +44,9 @@ import com.sun.jersey.api.client.ClientResponse;
 
 //TODO: move log messages to separate file (for internationalization)
 
-public class OrchestrationUtils {
+public class CustomServicesUtils {
 
-    private OrchestrationUtils() {
+    private CustomServicesUtils() {
         // no public constructor allwoed for utility classes
     }
     
@@ -171,10 +171,10 @@ public class OrchestrationUtils {
         }
     }
 
-    public static OeStatusMessage parseOeStatusMessage(String workflowResponse) {
-        OeStatusMessage oeStatusMessage = null;
+    public static CustomServicesStatusMessage parseOeStatusMessage(String workflowResponse) {
+        CustomServicesStatusMessage oeStatusMessage = null;
         try {
-            oeStatusMessage = gson.fromJson(workflowResponse,OeStatusMessage.class);
+            oeStatusMessage = gson.fromJson(workflowResponse,CustomServicesStatusMessage.class);
         } catch(JsonSyntaxException e) {
             return null;
         }
@@ -223,7 +223,7 @@ public class OrchestrationUtils {
 
     public static void checkTimeout(final long startTime) throws InternalServerErrorException {
         try {
-            OrchestrationUtils.sleep(TASK_CHECK_INTERVAL);
+            CustomServicesUtils.sleep(TASK_CHECK_INTERVAL);
             if ((System.currentTimeMillis() - startTime)
                     > TASK_CHECK_TIMEOUT * 60 * 1000) {
                 throw InternalServerErrorException.internalServerErrors.customServiceExecutionFailed("Custom Service Task Timedout");

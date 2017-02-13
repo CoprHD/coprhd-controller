@@ -15,7 +15,7 @@
  *
  */
 
-package com.emc.sa.service.vipr.oe;
+package com.emc.sa.service.vipr.customservices;
 
 import java.io.IOException;
 import java.util.List;
@@ -85,21 +85,21 @@ public class ValidateCustomServiceWorkflow {
     private void validateStepInput(final Step step) throws InternalServerErrorException {
         final Map<String, CustomServicesWorkflowDocument.InputGroup> input = step.getInputGroups();
 
-        if (!isInputEmpty(input, OrchestrationServiceConstants.INPUT_PARAMS)) {
-            validateInput(input.get(OrchestrationServiceConstants.INPUT_PARAMS).getInputGroup());
+        if (!isInputEmpty(input, CustomServicesConstants.INPUT_PARAMS)) {
+            validateInput(input.get(CustomServicesConstants.INPUT_PARAMS).getInputGroup());
         }
-        if (!isInputEmpty(input, OrchestrationServiceConstants.CONNECTION_DETAILS)) {
-            validateInput(input.get(OrchestrationServiceConstants.CONNECTION_DETAILS).getInputGroup());
+        if (!isInputEmpty(input, CustomServicesConstants.CONNECTION_DETAILS)) {
+            validateInput(input.get(CustomServicesConstants.CONNECTION_DETAILS).getInputGroup());
         }
-        if (!isInputEmpty(input, OrchestrationServiceConstants.ANSIBLE_OPTIONS)) {
-            validateInput(input.get(OrchestrationServiceConstants.ANSIBLE_OPTIONS).getInputGroup());
+        if (!isInputEmpty(input, CustomServicesConstants.ANSIBLE_OPTIONS)) {
+            validateInput(input.get(CustomServicesConstants.ANSIBLE_OPTIONS).getInputGroup());
         }
     }
 
     private void validateInput(final List<Input> listInput){
         for (final Input in : listInput) {
             checkNameAndType(in);
-            switch (OrchestrationServiceConstants.InputType.fromString(in.getType())) {
+            switch (CustomServicesConstants.InputType.fromString(in.getType())) {
                 case FROM_USER:
                 case ASSET_OPTION:
                     validateInputUserParams(in);
@@ -125,14 +125,14 @@ public class ValidateCustomServiceWorkflow {
 
     private void validateOtherStepInput(final Step step, final Input in, final String attribute) throws InternalServerErrorException{
         if (step.getInputGroups() == null
-                || step.getInputGroups().get(OrchestrationServiceConstants.INPUT_PARAMS) == null
-                || step.getInputGroups().get(OrchestrationServiceConstants.INPUT_PARAMS).getInputGroup() == null)
+                || step.getInputGroups().get(CustomServicesConstants.INPUT_PARAMS) == null
+                || step.getInputGroups().get(CustomServicesConstants.INPUT_PARAMS).getInputGroup() == null)
         {
             throw InternalServerErrorException.internalServerErrors.
                     customServiceExecutionFailed("Other Step Input param not defined for input" + in.getName());
         }
 
-        final List<Input> in1 = step.getInputGroups().get(OrchestrationServiceConstants.INPUT_PARAMS).getInputGroup();
+        final List<Input> in1 = step.getInputGroups().get(CustomServicesConstants.INPUT_PARAMS).getInputGroup();
 
         for (final Input e : in1) {
             if (e.getName().equals(attribute)) {
@@ -173,9 +173,9 @@ public class ValidateCustomServiceWorkflow {
                     customServiceExecutionFailed("Step not defined. Cannot get value for:" + in.getName());
         }
 
-        if (in.getType().equals(OrchestrationServiceConstants.InputType.FROM_STEP_INPUT.toString())) {
+        if (in.getType().equals(CustomServicesConstants.InputType.FROM_STEP_INPUT.toString())) {
             validateOtherStepInput(step1, in, attribute);
-        } else if (in.getType().equals(OrchestrationServiceConstants.InputType.FROM_STEP_OUTPUT.toString())) {
+        } else if (in.getType().equals(CustomServicesConstants.InputType.FROM_STEP_OUTPUT.toString())) {
             validateOtherStepOutput(step1, in, attribute);
         }
 

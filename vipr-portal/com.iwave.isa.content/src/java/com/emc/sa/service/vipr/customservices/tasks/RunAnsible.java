@@ -15,7 +15,7 @@
  *
  */
 
-package com.emc.sa.service.vipr.oe.tasks;
+package com.emc.sa.service.vipr.customservices.tasks;
 
 import java.io.File;
 import java.io.IOException;
@@ -34,7 +34,7 @@ import org.apache.commons.lang.StringUtils;
 import org.slf4j.LoggerFactory;
 
 import com.emc.sa.engine.ExecutionUtils;
-import com.emc.sa.service.vipr.oe.OrchestrationServiceConstants;
+import com.emc.sa.service.vipr.customservices.CustomServicesConstants;
 import com.emc.sa.service.vipr.tasks.ViPRExecutionTask;
 import com.emc.storageos.model.customservices.CustomServicesWorkflowDocument;
 import com.emc.storageos.model.customservices.CustomServicesWorkflowDocument.Input;
@@ -48,7 +48,7 @@ import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorExcepti
  * It can run Ansible playbook on local node as well as on Remote node
  *
  */
-public class RunAnsible  extends ViPRExecutionTask<OrchestrationTaskResult> {
+public class RunAnsible  extends ViPRExecutionTask<CustomServicesTaskResult> {
 
     private static final org.slf4j.Logger logger = LoggerFactory.getLogger(RunAnsible.class);
 
@@ -67,11 +67,11 @@ public class RunAnsible  extends ViPRExecutionTask<OrchestrationTaskResult> {
             this.timeout = step.getAttributes().getTimeout();
         }
         this.params = params;
-        orderDir = OrchestrationServiceConstants.PATH + "OE" + ExecutionUtils.currentContext().getOrder().getOrderNumber();
+        orderDir = CustomServicesConstants.PATH + "OE" + ExecutionUtils.currentContext().getOrder().getOrderNumber();
     }
 
     @Override
-    public OrchestrationTaskResult executeTask() throws Exception {
+    public CustomServicesTaskResult executeTask() throws Exception {
 
         ExecutionUtils.currentContext().logInfo("runAnsible.statusInfo", step.getId());
         //TODO Get playbook/package from DB
@@ -89,14 +89,14 @@ public class RunAnsible  extends ViPRExecutionTask<OrchestrationTaskResult> {
         try {
             switch (type) {
                 case SHELL_SCRIPT:
-                    result = executeCmd(OrchestrationServiceConstants.PATH + "runscript.sh", makeParam(input));
+                    result = executeCmd(CustomServicesConstants.PATH + "runscript.sh", makeParam(input));
                     cleanUp("runscript.sh", false);
 
                     break;
                 case LOCAL_ANSIBLE:
                     untarPackage("ansi.tar");
                     final String hosts = getHostFile();
-                    result = executeLocal(hosts, makeExtraArg(input), OrchestrationServiceConstants.PATH +
+                    result = executeLocal(hosts, makeExtraArg(input), CustomServicesConstants.PATH +
                                 FilenameUtils.removeExtension("ansi.tar") + "/" + "helloworld.yml", "root");
 
                     cleanUp("ansi.tar", true);
@@ -122,7 +122,7 @@ public class RunAnsible  extends ViPRExecutionTask<OrchestrationTaskResult> {
 
         logger.info("Ansible Execution result:output{} error{} exitValue:{}", result.getStdOutput(), result.getStdError(), result.getExitValue());
 
-        return new OrchestrationTaskResult(parseOut(result.getStdOutput()), result.getStdError(), result.getExitValue(), null);
+        return new CustomServicesTaskResult(parseOut(result.getStdOutput()), result.getStdError(), result.getExitValue(), null);
     }
 
     private String parseOut(final String out) {
@@ -184,14 +184,14 @@ public class RunAnsible  extends ViPRExecutionTask<OrchestrationTaskResult> {
 	}
         
         final AnsibleCommandLine cmd = new AnsibleCommandLine(
-                getAnsibleConnAndOptions(OrchestrationServiceConstants.ANSIBLE_BIN, inputType.get(OrchestrationServiceConstants.ANSIBLE_OPTIONS).getInputGroup()),
-                getAnsibleConnAndOptions(OrchestrationServiceConstants.ANSIBLE_PLAYBOOK, inputType.get(OrchestrationServiceConstants.ANSIBLE_OPTIONS).getInputGroup()));
-        final String[] cmds = cmd.setSsh(OrchestrationServiceConstants.SHELL_LOCAL_BIN)
-                .setUserAndIp(getAnsibleConnAndOptions(OrchestrationServiceConstants.REMOTE_USER, inputType.get(OrchestrationServiceConstants.CONNECTION_DETAILS).getInputGroup()),
-                              getAnsibleConnAndOptions(OrchestrationServiceConstants.REMOTE_NODE, inputType.get(OrchestrationServiceConstants.CONNECTION_DETAILS).getInputGroup()))
-                .setHostFile(getAnsibleConnAndOptions(OrchestrationServiceConstants.ANSIBLE_HOST_FILE, inputType.get(OrchestrationServiceConstants.ANSIBLE_OPTIONS).getInputGroup()))
-                .setUser(getAnsibleConnAndOptions(OrchestrationServiceConstants.ANSIBLE_USER, inputType.get(OrchestrationServiceConstants.ANSIBLE_OPTIONS).getInputGroup()))
-                .setCommandLine(getAnsibleConnAndOptions(OrchestrationServiceConstants.ANSIBLE_COMMAND_LINE, inputType.get(OrchestrationServiceConstants.ANSIBLE_OPTIONS).getInputGroup()))
+                getAnsibleConnAndOptions(CustomServicesConstants.ANSIBLE_BIN, inputType.get(CustomServicesConstants.ANSIBLE_OPTIONS).getInputGroup()),
+                getAnsibleConnAndOptions(CustomServicesConstants.ANSIBLE_PLAYBOOK, inputType.get(CustomServicesConstants.ANSIBLE_OPTIONS).getInputGroup()));
+        final String[] cmds = cmd.setSsh(CustomServicesConstants.SHELL_LOCAL_BIN)
+                .setUserAndIp(getAnsibleConnAndOptions(CustomServicesConstants.REMOTE_USER, inputType.get(CustomServicesConstants.CONNECTION_DETAILS).getInputGroup()),
+                              getAnsibleConnAndOptions(CustomServicesConstants.REMOTE_NODE, inputType.get(CustomServicesConstants.CONNECTION_DETAILS).getInputGroup()))
+                .setHostFile(getAnsibleConnAndOptions(CustomServicesConstants.ANSIBLE_HOST_FILE, inputType.get(CustomServicesConstants.ANSIBLE_OPTIONS).getInputGroup()))
+                .setUser(getAnsibleConnAndOptions(CustomServicesConstants.ANSIBLE_USER, inputType.get(CustomServicesConstants.ANSIBLE_OPTIONS).getInputGroup()))
+                .setCommandLine(getAnsibleConnAndOptions(CustomServicesConstants.ANSIBLE_COMMAND_LINE, inputType.get(CustomServicesConstants.ANSIBLE_OPTIONS).getInputGroup()))
                 .setExtraVars(extraVars)
                 .build();
 
@@ -200,7 +200,7 @@ public class RunAnsible  extends ViPRExecutionTask<OrchestrationTaskResult> {
 
     //Execute Ansible playbook on given nodes. Playbook in local node
     private Exec.Result executeLocal(final String ips, final String extraVars, final String playbook, final String user) {
-        final AnsibleCommandLine cmd = new AnsibleCommandLine(OrchestrationServiceConstants.ANSIBLE_LOCAL_BIN, playbook);
+        final AnsibleCommandLine cmd = new AnsibleCommandLine(CustomServicesConstants.ANSIBLE_LOCAL_BIN, playbook);
         final String[] cmds = cmd.setHostFile(ips).setUser(user)
                 .setLimit(null)
                 .setTags(null)
@@ -213,7 +213,7 @@ public class RunAnsible  extends ViPRExecutionTask<OrchestrationTaskResult> {
 
     //Execute Ansible playbook on localhost
     private Exec.Result executeCmd(final String playbook, final String extraVars) {
-        final AnsibleCommandLine cmd = new AnsibleCommandLine(OrchestrationServiceConstants.SHELL_BIN, playbook);
+        final AnsibleCommandLine cmd = new AnsibleCommandLine(CustomServicesConstants.SHELL_BIN, playbook);
         cmd.setShellArgs(extraVars);
         final String[] cmds = cmd.build();
 
@@ -238,8 +238,8 @@ public class RunAnsible  extends ViPRExecutionTask<OrchestrationTaskResult> {
     }
 
     private Exec.Result untarPackage(final String tarFile) throws IOException {
-        final String[] cmds = {OrchestrationServiceConstants.UNTAR, OrchestrationServiceConstants.UNTAR_OPTION,
-                OrchestrationServiceConstants.PATH + tarFile, "-C", OrchestrationServiceConstants.PATH};
+        final String[] cmds = {CustomServicesConstants.UNTAR, CustomServicesConstants.UNTAR_OPTION,
+                CustomServicesConstants.PATH + tarFile, "-C", CustomServicesConstants.PATH};
         Exec.Result result = Exec.exec(timeout, cmds);
 
         if (result == null || result.getExitValue() != 0) {
@@ -287,12 +287,12 @@ public class RunAnsible  extends ViPRExecutionTask<OrchestrationTaskResult> {
     }
 
     private Exec.Result cleanUp(final String path, final boolean isTar) {
-        final String[] cmds = {OrchestrationServiceConstants.REMOVE, OrchestrationServiceConstants.REMOVE_OPTION,
-                OrchestrationServiceConstants.PATH + path};
+        final String[] cmds = {CustomServicesConstants.REMOVE, CustomServicesConstants.REMOVE_OPTION,
+                CustomServicesConstants.PATH + path};
         Exec.Result result = Exec.exec(timeout, cmds);
         if (isTar) {
-            String[] rmDir = {OrchestrationServiceConstants.REMOVE, OrchestrationServiceConstants.REMOVE_OPTION,
-                    OrchestrationServiceConstants.PATH + FilenameUtils.removeExtension(path)};
+            String[] rmDir = {CustomServicesConstants.REMOVE, CustomServicesConstants.REMOVE_OPTION,
+                    CustomServicesConstants.PATH + FilenameUtils.removeExtension(path)};
 
             if (!Exec.exec(timeout, rmDir).exitedNormally())
                 logger.error("Failed to remove directory:{}", FilenameUtils.removeExtension(path));
@@ -302,7 +302,7 @@ public class RunAnsible  extends ViPRExecutionTask<OrchestrationTaskResult> {
             logger.error("Failed to cleanup:{} error:{}", path, result.getStdError());
 
         //cleanup order context dir
-        final String[] cmd = {OrchestrationServiceConstants.REMOVE, OrchestrationServiceConstants.REMOVE_OPTION, orderDir};
+        final String[] cmd = {CustomServicesConstants.REMOVE, CustomServicesConstants.REMOVE_OPTION, orderDir};
 
         return Exec.exec(timeout, cmd);
     }

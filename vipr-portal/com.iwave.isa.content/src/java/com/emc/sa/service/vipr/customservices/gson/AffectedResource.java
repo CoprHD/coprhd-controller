@@ -15,7 +15,7 @@
  *
  */
 
-package com.emc.sa.service.vipr.oe.gson;
+package com.emc.sa.service.vipr.customservices.gson;
 
 public class AffectedResource {
     private String id;

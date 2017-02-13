@@ -15,39 +15,38 @@
  *
  */
 
-package com.emc.sa.service.vipr.oe;
+package com.emc.sa.service.vipr.customservices.gson;
 
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.List;
 
-public class SuccessCriteria {
+public class ViprOperation {
 
-    //Variables for Evaluation of SuccessCriteria and Output
-    private String eval;
-    private final List<String> evaluateVal = new ArrayList<String>();
-    private int code;
-
-    public String getEval() {
-        return eval;
+    public ViprOperation(ViprTask t){
+        task = new ViprTask[1];
+        task[0] = t;
     }
 
-    public List<String> getEvaluateVal() {
-        return evaluateVal;
+    private ViprTask[] task;
+
+    public ViprTask[] getTask() {
+        return task;
+    }
+    
+    public List<URI> getTaskIds() throws URISyntaxException {
+        List<URI> idList = new ArrayList<>();
+        if (task != null) {
+            for(ViprTask aTask : task) {
+                idList.add(new URI(aTask.getId()));
+            }
+        }
+        return idList;
     }
 
-    public void setEval(String eval) {
-        this.eval = eval;
+    public boolean isValid() {
+        return task != null;
     }
 
-    public int getCode() {
-        return code;
-    }
-
-    public void setCode(int code) {
-        this.code = code;
-    }
-
-    public void setEvaluateVal(String value, int pos) {
-        evaluateVal.add(pos, value);
-    }
 }

@@ -14,7 +14,7 @@
  * limitations under the License.
  *
  */
-package com.emc.sa.service.vipr.oe.tasks;
+package com.emc.sa.service.vipr.customservices.tasks;
 
 import com.google.common.collect.ImmutableList;
 import org.apache.commons.lang.StringUtils;

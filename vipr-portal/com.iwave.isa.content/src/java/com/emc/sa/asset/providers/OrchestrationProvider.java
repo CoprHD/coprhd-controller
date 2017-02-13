@@ -31,8 +31,8 @@ import com.emc.sa.asset.AssetOptionsContext;
 import com.emc.sa.asset.BaseAssetOptionsProvider;
 import com.emc.sa.asset.annotation.Asset;
 import com.emc.sa.asset.annotation.AssetNamespace;
-import com.emc.sa.service.vipr.oe.OrchestrationUtils;
-import com.emc.sa.service.vipr.oe.gson.AssetOptionPair;
+import com.emc.sa.service.vipr.customservices.CustomServicesUtils;
+import com.emc.sa.service.vipr.customservices.gson.AssetOptionPair;
 import com.emc.storageos.oe.api.restapi.OrchestrationEngineRestClient;
 import com.emc.storageos.oe.api.restapi.OrchestrationEngineRestClientFactory;
 import com.emc.vipr.model.catalog.AssetOption;
@@ -76,10 +76,10 @@ public class OrchestrationProvider extends BaseAssetOptionsProvider {
         factory.setSocketConnectionTimeoutMs(3600000);
         factory.setConnectionTimeoutMs(3600000);
         factory.init();
-        String endpoint = OrchestrationUtils.OE_SCHEME + "://" +
-                OrchestrationUtils.OE_SERVER + ":" + OrchestrationUtils.OE_SERVERPORT;
+        String endpoint = CustomServicesUtils.OE_SCHEME + "://" +
+                CustomServicesUtils.OE_SERVER + ":" + CustomServicesUtils.OE_SERVERPORT;
         restClient = (OrchestrationEngineRestClient) factory.getRESTClient(URI.create(endpoint),
-                OrchestrationUtils.USER, OrchestrationUtils.PASSWORD, true);
+                CustomServicesUtils.USER, CustomServicesUtils.PASSWORD, true);
     }
 
     @Override
@@ -172,8 +172,8 @@ public class OrchestrationProvider extends BaseAssetOptionsProvider {
         
         // Start the OE workflow to get options
         info("OE Provider calling " + apiUrl + "with body " + makePostBody());
-        String workflowResponse = OrchestrationUtils.makeRestCall(apiUrl,
-                makePostBody(),restClient,OrchestrationUtils.POST);
+        String workflowResponse = CustomServicesUtils.makeRestCall(apiUrl,
+                makePostBody(),restClient,CustomServicesUtils.POST);
 
         info("Started Orchestration Engine Workflow");
 
@@ -182,7 +182,7 @@ public class OrchestrationProvider extends BaseAssetOptionsProvider {
         while ( !isWorkflowSuccess(workflowResponse) ) {
             sleep(OE_WORKFLOW_CHECK_INTERVAL);
             // get updated WF reponse 
-            workflowResponse = OrchestrationUtils.makeRestCall("/path/to/get/wf/status",restClient);
+            workflowResponse = CustomServicesUtils.makeRestCall("/path/to/get/wf/status",restClient);
             if( isFailed(workflowResponse) || isTimedOut(++intervals) ) {
                 error("Orchestration Engine workflow timed out.");
                 return jsonToOptions(Arrays.asList(WORKFLOW_TIMEOUT_RESPONSE));
@@ -199,7 +199,7 @@ public class OrchestrationProvider extends BaseAssetOptionsProvider {
     }
 
     private boolean isFailed(String workflowResponse) {
-    	return OrchestrationUtils.isWorkflowFailed(workflowResponse);
+    	return CustomServicesUtils.isWorkflowFailed(workflowResponse);
 	}
 
     private boolean isTimedOut(int intervals) {

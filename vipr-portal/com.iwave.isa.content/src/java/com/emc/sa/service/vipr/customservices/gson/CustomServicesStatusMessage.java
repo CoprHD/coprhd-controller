@@ -15,8 +15,15 @@
  *
  */
 
-package com.emc.sa.service.vipr.oe.gson;
+package com.emc.sa.service.vipr.customservices.gson;
 
-public class AssetOptionPair extends AffectedResource {
-    // same structure as AffectedResource
-} 
+public class CustomServicesStatusMessage {
+    private String message;
+
+    public String getMessage() {
+        return message;
+    }
+    public boolean isValid() {
+        return message != null;
+    }
+}

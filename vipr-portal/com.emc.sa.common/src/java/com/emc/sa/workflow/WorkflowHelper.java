@@ -54,21 +54,7 @@ public final class WorkflowHelper {
         workflow.setName(document.getName());
         workflow.setDescription(document.getDescription());
         workflow.setSteps(toStepsJson(document.getSteps()));
-        
-        final StringSet primitives = new StringSet();
-        for(final Step step : document.getSteps()) {
-            final StepType stepType = (null == step.getType()) ? null : StepType.fromString(step.getType());
-            if(null != stepType ) {
-                switch(stepType) {
-                case VIPR_REST:
-                    break;
-                default:
-                    primitives.add(step.getOperation().toString());
-                }
-            }
-        }
-
-        workflow.setPrimitives(primitives);
+        workflow.setPrimitives(getPrimitives(document));
         return workflow;
     }
     
@@ -89,7 +75,11 @@ public final class WorkflowHelper {
             oeWorkflow.setLabel(document.getName());
         }
         
-        oeWorkflow.setSteps(toStepsJson(document.getSteps()));
+        if( null != document.getSteps()  ) {
+            oeWorkflow.setSteps(toStepsJson(document.getSteps()));
+            oeWorkflow.setPrimitives(getPrimitives(document));
+        }
+        
         return oeWorkflow;
     }
 
@@ -121,5 +111,22 @@ public final class WorkflowHelper {
     
     private static String toStepsJson(final List<CustomServicesWorkflowDocument.Step> steps) throws JsonGenerationException, JsonMappingException, IOException {
         return MAPPER.writeValueAsString(steps);
+    }
+    
+    private static StringSet getPrimitives(
+            final CustomServicesWorkflowDocument document) {
+        final StringSet primitives = new StringSet();
+        for(final Step step : document.getSteps()) {
+            final StepType stepType = (null == step.getType()) ? null : StepType.fromString(step.getType());
+            if(null != stepType ) {
+                switch(stepType) {
+                case VIPR_REST:
+                    break;
+                default:
+                    primitives.add(step.getOperation().toString());
+                }
+            }
+        }
+        return primitives;
     }
 }

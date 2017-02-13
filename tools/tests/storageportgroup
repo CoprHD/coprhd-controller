@@ -57,6 +57,20 @@ def storageportgroup_show(args):
     portgroup = bourne.storageportgroup_show(systemuri, portgroupuri)
     print portgroup
 
+def storageportgroup_delete(args):
+    bourne.connect(args.ip)
+    name = args.name
+    (systemname, portgroupname) = name.split('/', 1)
+    systemuri  = bourne.storagedevice_query(systemname)
+    uri  = bourne.storageportgroup_query(name)
+    bourne.storageportgroup_delete(systemuri, uri)
+
+def storageportgroup_create(args):
+    bourne.connect(args.ip)
+    name = args.name
+    systemuri  = bourne.storagedevice_query(args.storage)
+    bourne.storageportgroup_create(systemuri, name, args.storageports)
+    
 
 
 #
@@ -94,7 +108,7 @@ except:
 
 # storageportgroup <cmd> <cmd_args>  [--ip ipaddr]
 parser = argparse.ArgumentParser(description = 'Bourne storage port group cli usage.')
-parser.add_argument('cmd', help = 'cmd = (show | list | register | deregister | query)')
+parser.add_argument('cmd', help = 'cmd = (show | list | register | deregister | query | create | delete)')
 parser.add_argument('--ip',	metavar = 'ipaddr',	help = 'IP address of bourne', default=bourne_ip)
 
 # port group register
@@ -113,11 +127,20 @@ show.add_argument('name',	help = 'storage port group name');
 query = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
 query.add_argument('name',	help = 'storage port group name')
 
-# port deregister name
+# port group deregister name
 deregister = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
-deregister.add_argument('name',	help = 'storage port name')
+deregister.add_argument('name',	help = 'storage port group name')
 
 
+# port group delete name
+delete = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+delete.add_argument('name',	help = 'storage port group name')
+
+# port group create name --storage --storageports
+create = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+create.add_argument('name',	 help = 'storage port group name')
+create.add_argument('--storage', help = 'Storage system where this port belongs')
+create.add_argument('--storageports', help = 'Storage ports names in this port group', nargs='*')
 
 #----------------------------------------------------------------------
 # Main script
@@ -147,6 +170,12 @@ try:
     elif (cmd == "deregister"):
         args = deregister.parse_args()
         storageportgroup_deregister(args) 
+    elif (cmd == "create"):
+        args = create.parse_args()
+        storageportgroup_create(args)
+    elif (cmd == "delete"):
+        args = delete.parse_args()
+        storageportgroup_delete(args)
     else:
         parser.print_help()
 except:

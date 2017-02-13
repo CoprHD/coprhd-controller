@@ -861,6 +861,16 @@ public final class FileOrchestrationUtils {
         return targetHost;
     }
 
+    /**
+     * Get the list of virtual nas servers from storage system which are part of vpool and project
+     * 
+     * @param dbClient
+     * @param storageSystemURI
+     * @param vpoolURI
+     * @param projectURI
+     * @return
+     *
+     */
     public static List<URI> getVNASServersOfStorageSystemAndVarrayOfVpool(DbClient dbClient, URI storageSystemURI, URI vpoolURI,
             URI projectURI) {
         VirtualPool vpool = dbClient.queryObject(VirtualPool.class, vpoolURI);

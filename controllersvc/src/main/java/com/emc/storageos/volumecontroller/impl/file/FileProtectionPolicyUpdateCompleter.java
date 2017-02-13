@@ -68,9 +68,8 @@ public class FileProtectionPolicyUpdateCompleter extends FilePolicyWorkflowCompl
         // Update the task error, if the task failed!!!
         if (numStepsFailed > 0) {
             int successPolicies = numPolicies - numStepsFailed;
-            String errorMsg = String.format("Failed to Update %s storage policies and successfully updated %s  policies", numStepsFailed,
-                    successPolicies);
-            _log.error(errorMsg);
+            _log.error(String.format("Failed to Update %s storage policies and successfully updated %s policies", numStepsFailed,
+                    successPolicies));
             ServiceError serviceError = DeviceControllerException.errors.updateDeviceProtectionPoliciesFailed(filePolicy.getId().toString(),
                     numStepsFailed, successPolicies);
             setStatus(dbClient, status, serviceError);

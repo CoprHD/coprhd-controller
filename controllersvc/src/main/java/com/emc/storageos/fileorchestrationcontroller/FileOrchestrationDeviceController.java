@@ -1863,9 +1863,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
                         List<URI> vNASURIList = FileOrchestrationUtils
                                 .getVNASServersOfStorageSystemAndVarrayOfVpool(s_dbClient, storageSystemURI, vpoolURI, null);
                         if (vNASURIList != null && !vNASURIList.isEmpty()) {
-                            for (Iterator<URI> iterator = vNASURIList.iterator(); iterator.hasNext();) {
-
-                                URI vNASURI = iterator.next();
+                            for (URI vNASURI : vNASURIList) {
                                 String stepId = workflow.createStepId();
                                 String stepDes = String
                                         .format("Assigning file policy: %s, to vpool: %s on storage system: %s", filePolicy.getId(),
@@ -1941,16 +1939,12 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
 
                         if (projectURIs != null && !projectURIs.isEmpty()) {
 
-                            for (Iterator<URI> projectIterator = projectURIs.iterator(); projectIterator.hasNext();) {
-                                URI projectURI = projectIterator.next();
-
+                            for (URI projectURI : projectURIs) {
                                 // Get the eligible nas server for given project from the storage system!!!
                                 List<URI> vNASURIList = FileOrchestrationUtils.getVNASServersOfStorageSystemAndVarrayOfVpool(s_dbClient,
                                         storageSystemURI, vpoolURI, projectURI);
                                 if (vNASURIList != null && !vNASURIList.isEmpty()) {
-                                    for (Iterator<URI> iterator = vNASURIList.iterator(); iterator.hasNext();) {
-                                        URI vNASURI = iterator.next();
-
+                                    for (URI vNASURI : vNASURIList) {
                                         String stepId = workflow.createStepId();
                                         String stepDes = String
                                                 .format("Assigning file policy: %s, to project: %s on storage system: %s",

@@ -1323,6 +1323,7 @@ schedulepolicies.deleted=File Protection Policies deleted successfully.
 schedulepolicies.deleteConfirm=Are you sure you want to delete these Policies?
 schedulepolicies.create.title=Create File Protection Policy
 schedulepolicies.edit.title=Edit File Protection Policy
+schedulepolicies.saved=File Protection Policy '%s' saved successfully.
 schedulePolicy.policyName=Name
 schedulePolicy.policyType=Type
 schedulePolicy.scheduleTime=Schedule Time

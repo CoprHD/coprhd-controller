@@ -40,9 +40,11 @@ import com.emc.storageos.util.NetworkLite;
 import com.emc.storageos.volumecontroller.BlockStorageDevice;
 import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.ControllerLockingUtil;
+import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportMaskOnlyRemoveVolumeCompleter;
+import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportTaskCompleter;
 import com.emc.storageos.volumecontroller.placement.StoragePortsAllocator;
-import com.emc.storageos.volumecontroller.placement.StoragePortsAssigner;
 import com.emc.storageos.volumecontroller.placement.StoragePortsAllocator.PortAllocationContext;
+import com.emc.storageos.volumecontroller.placement.StoragePortsAssigner;
 import com.emc.storageos.vplex.api.VPlexApiException;
 import com.emc.storageos.workflow.Workflow;
 import com.emc.storageos.workflow.Workflow.Method;
@@ -522,14 +524,13 @@ public class VplexCinderMaskingOrchestrator extends CinderMaskingOrchestrator
             URI exportGroupURI,
             URI exportMaskURI,
             List<URI> volumes,
-            List<URI> initiatorURIs, TaskCompleter completer) {
+            List<URI> initiatorURIs) {
         return new Workflow.Method("deleteOrRemoveVolumesFromExportMask",
                 arrayURI,
                 exportGroupURI,
                 exportMaskURI,
                 volumes,
-                initiatorURIs,
-                completer);
+                initiatorURIs);
     }
 
     @Override
@@ -538,8 +539,11 @@ public class VplexCinderMaskingOrchestrator extends CinderMaskingOrchestrator
             URI exportMaskURI,
             List<URI> volumes,
             List<URI> initiatorURIs,
-            TaskCompleter completer, String stepId) {
+            String stepId) {
+        ExportTaskCompleter completer = null;
         try {
+            completer = new ExportMaskOnlyRemoveVolumeCompleter(exportGroupURI,
+                    exportMaskURI, volumes, stepId);
             WorkflowStepCompleter.stepExecuting(stepId);
             StorageSystem array = _dbClient.queryObject(StorageSystem.class, arrayURI);
             BlockStorageDevice device = _blockController.getDevice(array.getSystemType());
@@ -548,7 +552,7 @@ public class VplexCinderMaskingOrchestrator extends CinderMaskingOrchestrator
             // If the exportMask isn't found, or has been deleted, nothing to do.
             if (exportMask == null || exportMask.getInactive()) {
                 _log.info(String.format("ExportMask %s inactive, returning success", exportMaskURI));
-                WorkflowStepCompleter.stepSucceded(stepId);
+                completer.ready(_dbClient);
                 return;
             }
 
@@ -560,11 +564,6 @@ public class VplexCinderMaskingOrchestrator extends CinderMaskingOrchestrator
                             exportMask.getInitiators()),
                     arrayURI);
             getWorkflowService().acquireWorkflowStepLocks(stepId, lockKeys, LockTimeoutValue.get(LockType.VPLEX_BACKEND_EXPORT));
-
-            // Make sure the completer will complete the work flow. This happens on roll back case.
-            if (!completer.getOpId().equals(stepId)) {
-                completer.setOpId(stepId);
-            }
 
             // Refresh the ExportMask
             exportMask = refreshExportMask(array, device, exportMask);
@@ -597,7 +596,7 @@ public class VplexCinderMaskingOrchestrator extends CinderMaskingOrchestrator
             // None of the volumes is in the export mask, so we are done.
             if (passedVolumesInMask.isEmpty()) {
                 _log.info("None of these volumes {} are in export mask {}", volumes, exportMask.forDisplay());
-                WorkflowStepCompleter.stepSucceded(stepId);
+                completer.ready(_dbClient);
                 return;
             }
 
@@ -616,10 +615,11 @@ public class VplexCinderMaskingOrchestrator extends CinderMaskingOrchestrator
                 }
                 device.doExportRemoveVolumes(array, exportMask, passedVolumesInMask, initiators, completer);
             }
+            completer.ready(_dbClient);
         } catch (Exception ex) {
             _log.error("Failed to delete or remove volumes to export mask for cinder: ", ex);
             VPlexApiException vplexex = DeviceControllerExceptions.vplex.addStepsForDeleteVolumesFailed(ex);
-            WorkflowStepCompleter.stepFailed(stepId, vplexex);
+            completer.error(_dbClient, vplexex);
         }
 
     }

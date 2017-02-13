@@ -642,7 +642,7 @@ public class VMwareSupport {
      * @return true if host is connected, otherwise returns false
      */
     public static boolean isHostConnected(HostSystem host) {
-        HostRuntimeInfo runtime = host.getRuntime();
+        HostRuntimeInfo runtime = (host != null) ? host.getRuntime() : null;
         HostSystemConnectionState connectionState = (runtime != null) ? runtime
                 .getConnectionState() : null;
         return connectionState == HostSystemConnectionState.connected;

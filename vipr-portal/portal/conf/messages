@@ -1390,13 +1390,13 @@ assignPolicy.targetSites=Target vArray(s)
 assignPolicy.project.availableVpool=Available vPools
 assignPolicy.project.appliedVpool=Applied vPools
 assignPolicy.applyOnTargetSite=Apply on target vArray
-assignPolicy.targetVarray=Target vArrray(s)
+assignPolicy.targetVarray=Target vArray(s)
 assignPolicy.vArray.source=Source vArray
 assignPolicy.replicationTopology=Replication Site(s)
 
 replicationTopology.title=Select Replication Site(s)
 replicationTopology.sourceVArray=Source Virtual Array
-replicationTopology.targetVArray=Target Virtual Array
+replicationTopology.targetVArray=Target Virtual Array(s)
 
 vdcs.list.title=Virtual Data Centers
 vdcs.edit.title=Edit Virtual Data Center

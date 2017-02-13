@@ -24,12 +24,15 @@ import org.springframework.stereotype.Component;
 
 import com.emc.sa.model.dao.ModelClient;
 import com.emc.storageos.db.client.URIUtil;
+import com.emc.storageos.db.client.constraint.NamedElementQueryResultList.NamedElement;
 import com.emc.storageos.db.client.model.uimodels.Ansible;
 import com.emc.storageos.db.client.model.uimodels.AnsiblePackage;
 import com.emc.storageos.db.client.model.uimodels.CustomServiceScriptPrimitive;
 import com.emc.storageos.db.client.model.uimodels.CustomServiceScriptResource;
+import com.emc.storageos.db.client.model.uimodels.CustomServicesWorkflow;
 import com.emc.storageos.db.client.model.uimodels.PrimitiveResource;
 import com.emc.storageos.db.client.model.uimodels.UserPrimitive;
+import com.emc.storageos.svcs.errorhandling.resources.APIException;
 
 @Component
 public class PrimitiveManagerImpl implements PrimitiveManager {
@@ -61,6 +64,21 @@ public class PrimitiveManagerImpl implements PrimitiveManager {
     @Override
     public void save(final UserPrimitive primitive) {
         client.save(primitive);
+    }
+
+    @Override
+    public void deactivate(final URI id) {
+        final UserPrimitive primitive = findById(id);
+        if( null == primitive ) {
+            throw APIException.notFound.unableToFindEntityInURL(id);
+        }
+        
+        List<NamedElement> workflows = client.orchestrationWorkflows().getByPrimitive(id);
+        if( null != workflows && workflows.size() > 0) {
+            throw APIException.badRequests.resourceHasActiveReferencesWithType(primitive.getClass().getSimpleName(), id, CustomServicesWorkflow.class.getSimpleName());
+        }
+        
+        client.delete(primitive);
     }
 
     @Override

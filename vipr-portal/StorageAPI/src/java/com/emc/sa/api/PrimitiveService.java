@@ -472,6 +472,14 @@ public class PrimitiveService extends CatalogTaggedResourceService {
         return primitive;
     }
     
+    @POST
+    @Path("/{id}/deactivate")
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    public Response deactivatePrimitive(@PathParam("id") final URI id) {
+        primitiveManager.deactivate(id);
+        return Response.ok().build();
+    }
+    
     private PrimitiveRestRep updateAnsible(final Ansible update,
             final PrimitiveUpdateParam param) {
 

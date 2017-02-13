@@ -28,6 +28,7 @@ public interface PrimitiveManager {
 
     public void save(final UserPrimitive primitive);
     public void save(final PrimitiveResource resource);
+    public void deactivate(final URI id);
     
     public UserPrimitive findById(final URI id);
     public PrimitiveResource findResource(final URI id);

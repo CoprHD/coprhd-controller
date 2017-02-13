@@ -82,4 +82,8 @@ public class OrchestrationWorkflowFinder extends ModelFinder<CustomServicesWorkf
 
         return results;
     }
+    
+    public List<NamedElement> getByPrimitive(final URI id) {
+        return client.findBy(CustomServicesWorkflow.class, CustomServicesWorkflow.PRIMITIVES, id);
+    }
 }

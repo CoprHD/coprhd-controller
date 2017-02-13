@@ -11,11 +11,13 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.emc.storageos.api.service.impl.resource.utils.ExportUtils;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportMask;
@@ -389,7 +391,25 @@ public class XtremIOMaskingOrchestrator extends AbstractBasicMaskingOrchestrator
 
             Map<URI, Integer> volumes = selectExportMaskVolumes(exportGroup, storageURI);
 
-            checkForConsistentLunViolation(storage, exportGroup, initiatorURIs);
+            
+            Set<String> volumesExposedToGivenInitiatorsInAllExportGroups = new HashSet<String>();
+            
+            Set<String> volumesExposedToGivenInitiatorsInCurrentExportGroup = exportGroup.getVolumes().keySet();
+            
+            List<ExportGroup> exportGroups = com.emc.storageos.util.ExportUtils.getInitiatorExportGroups(initiatorURIs, _dbClient);
+            for (ExportGroup expGroup : exportGroups) {
+                if (expGroup.getId().equals(exportGroups)) continue;
+                if (expGroup.getVolumes() != null) {
+                    volumesExposedToGivenInitiatorsInAllExportGroups.addAll(expGroup.getVolumes().keySet());
+                }
+            }
+            
+            volumesExposedToGivenInitiatorsInCurrentExportGroup.removeAll(volumesExposedToGivenInitiatorsInAllExportGroups);
+            
+            if (!volumesExposedToGivenInitiatorsInCurrentExportGroup.isEmpty()) {
+                checkForConsistentLunViolation(storage, exportGroup, initiatorURIs);
+                
+            }
 
             log.info("Volumes  : {}", Joiner.on(",").join(volumes.keySet()));
             if (exportMasks != null && !exportMasks.isEmpty()) {

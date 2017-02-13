@@ -419,6 +419,30 @@ public class ExportUtils {
         _log.info("Found {} export masks for initiator {}", exportMasks.size(), initiator.getInitiatorPort());
         return exportMasks;
     }
+    
+    /**
+     * Get All export Groups containing the given initiator List
+     * @param initiatorUris
+     * @param dbClient
+     * @return
+     */
+    public static List<ExportGroup> getInitiatorExportGroups(List<URI> initiatorUris, DbClient dbClient) {
+        List<ExportGroup> exportGroups = new ArrayList<ExportGroup>();
+        for (URI initiatorURI : initiatorUris) {
+            URIQueryResultList egUris = new URIQueryResultList();
+            dbClient.queryByConstraint(AlternateIdConstraint.Factory.getExportGroupInitiatorConstraint(initiatorURI.toString()), egUris);
+            ExportGroup exportGroup = null;
+            for (URI egUri : egUris) {
+                exportGroup = dbClient.queryObject(ExportGroup.class, egUri);
+                if (exportGroup == null || exportGroup.getInactive() || exportGroup.getExportMasks() == null) {
+                    continue;
+                }
+                exportGroups.add(exportGroup);
+            }
+        }
+        return exportGroups;
+        
+    }
 
     /**
      * Returns all the ExportGroups the initiator is a member of.

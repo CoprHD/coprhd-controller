@@ -228,7 +228,7 @@ test_host_add_initiator() {
             # Verify injected failures were hit
             verify_failures ${failure}
             # Let the async jobs calm down
-            sleep 90
+            sleep 10
 
             # Snap the DB
             snap_db 3 "${cfs[@]}"

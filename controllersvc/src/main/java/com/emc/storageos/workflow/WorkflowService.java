@@ -635,7 +635,7 @@ public class WorkflowService implements WorkflowController {
                     }
                 } catch (NullPointerException npe) {
                     // Overwrite the status of the final state
-                    _log.error("Overwriting the state of the final step of a workflow due to artificial failure request");
+                    _log.error("Overwriting the state of the final step of a workflow due to artificial failure request", npe);
                     StepStatus ss = workflow.getStepStatus(stepId);
                     ss.state = StepState.ERROR;
                     ss.description = "Artificially thrown exception: " + InvokeTestFailure.ARTIFICIAL_FAILURE_004;

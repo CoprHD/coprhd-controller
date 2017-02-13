@@ -3054,33 +3054,34 @@ while [ "${1:0:1}" = "-" ]
 do
     if [ "${1}" = "setuphw" -o "${1}" = "setup" -o "${1}" = "-setuphw" -o "${1}" = "-setup" ]
     then
-	echo "Setting up testing based on real hardware"
-	setup=1;
-	SIM=0;
-	shift 1;
+    	echo "Setting up testing based on real hardware"
+    	setup=1;
+    	SIM=0;
+    	shift 1;
     elif [ "${1}" = "setupsim" -o "${1}" = "-setupsim" ]; then
-	if [ "$SS" = "xio" -o "$SS" = "vmax3" -o "$SS" = "vmax2" -o "$SS" = "vnx" -o "$SS" = "vplex" ]; then
-	    echo "Setting up testing based on simulators"
-	    SIM=1;
-	    ZONE_CHECK=0;
-	    setup=1;
-	    shift 1;
-	else
-	    echo "Simulator-based testing of this suite is not supported on ${SS} due to lack of CLI/arraytools support to ${SS} provider/simulator"
-	    exit 1
-	fi
+    	if [ "$SS" = "xio" -o "$SS" = "vmax3" -o "$SS" = "vmax2" -o "$SS" = "vnx" -o "$SS" = "vplex" ]; then
+    	    echo "Setting up testing based on simulators"
+    	    SIM=1;
+    	    ZONE_CHECK=0;
+    	    setup=1;
+    	    shift 1;
+    	else
+    	    echo "Simulator-based testing of this suite is not supported on ${SS} due to lack of CLI/arraytools support to ${SS} provider/simulator"
+    	    exit 1
+    	fi
     fi
 
     # Whether to report results to the master data collector of all things
     if [ "${1}" = "-report" ]; then
-	REPORT=1
-	shift;
+        echo "Reporting is ON"
+        REPORT=1
+        shift;
     fi
 
     if [ "$1" = "-cleanup" ]
     then
-	DO_CLEANUP=1;
-	shift
+	   DO_CLEANUP=1;
+	   shift
     fi
 done
 
@@ -3104,48 +3105,52 @@ test_start=1
 test_end=13
 
 # If there's a last parameter, take that
-# as the name of the test to run
+# as the name of the test to run - ignore "none" as that is usually for setup only.
+#
 # To start your suite on a specific test-case, just type the name of the first test case with a "+" after, such as:
 # ./wftest.sh sanity.conf vplex local test_7+
-if [ "$1" = "hosts" ]
+if [ "$1" != "none" ]
 then
-   secho Request to run ${HOST_TEST_CASES}
-   for t in ${HOST_TEST_CASES}
-   do
-      secho Run $
-      reset_system_props_pre_test
-      prerun_tests
-      $t
-      reset_system_props_pre_test
-   done
-elif [ "$1" != "" -a "${1:(-1)}" != "+"  ]
-then
-   secho Request to run $*
-   for t in $*
-   do
-      secho Run $t
-      reset_system_props_pre_test
-      prerun_tests
-      $t
-      reset_system_props_pre_test
-   done
-else
-   if [ "${1:(-1)}" = "+" ]
-   then
-      num=`echo $1 | sed 's/test_//g' | sed 's/+//g'`
-   else
-      num=${test_start}
-   fi
-   # Passing tests:
-   while [ ${num} -le ${test_end} ]; 
-   do
-     reset_system_props_pre_test
-     prerun_tests
-     test_${num}
-     reset_system_props_pre_test
-     num=`expr ${num} + 1`
-   done
-fi
+    if [ "$1" = "hosts" ]
+    then
+       secho Request to run ${HOST_TEST_CASES}
+       for t in ${HOST_TEST_CASES}
+       do
+          secho "\n\nRun $t"
+          reset_system_props_pre_test
+          prerun_tests
+          $t
+          reset_system_props_pre_test
+       done
+    elif [ "$1" != "" -a "${1:(-1)}" != "+"  ]
+    then
+       secho Request to run $*
+       for t in $*
+       do
+          secho "\n\nRun $t"
+          reset_system_props_pre_test
+          prerun_tests
+          $t
+          reset_system_props_pre_test
+       done
+    else
+       if [ "${1:(-1)}" = "+" ]
+       then
+          num=`echo $1 | sed 's/test_//g' | sed 's/+//g'`
+       else
+          num=${test_start}
+       fi
+       # Passing tests:
+       while [ ${num} -le ${test_end} ]; 
+       do
+         reset_system_props_pre_test
+         prerun_tests
+         test_${num}
+         reset_system_props_pre_test
+         num=`expr ${num} + 1`
+       done
+    fi
+fi    
 
 cleanup_previous_run_artifacts
 

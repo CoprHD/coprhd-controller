@@ -6,7 +6,20 @@
 
 HAPPY_PATH_TEST_INJECTION="happy_path_test_injection"
 
-HOST_TEST_CASES="test_host_add_initiator test_vcenter_event test_host_remove_initiator test_move_clustered_host_to_another_cluster test_move_non_clustered_host_to_cluster test_cluster_remove_host"
+HOST_TEST_CASES="test_host_add_initiator \
+                    test_host_remove_initiator \
+                    test_delete_host \
+                    test_delete_cluster \
+                    test_cluster_remove_host \
+                    test_move_non_clustered_host_to_cluster \
+                    test_move_clustered_host_to_another_cluster \
+                    test_cluster_remove_discovered_host \
+                    test_move_non_clustered_discovered_host_to_cluster \
+                    test_move_clustered_discovered_host_to_cluster \
+                    test_vcenter_event \
+                    test_host_remove_initiator_event \
+                    test_vblock_add_bare_metal_host \
+                    test_vblock_provision_bare_metal_host"
 
 get_host_cluster() {
     tenant_arg=$1
@@ -110,7 +123,6 @@ test_host_add_initiator() {
     echot "Test test_host_add_initiator_failure"
     
     test_name="test_host_add_initiator"
-    cfs=("ExportGroup ExportMask Initiator")
     random_number=${RANDOM}
     fake_pwwn1=`randwwn`
     fake_nwwn1=`randwwn`
@@ -120,8 +132,8 @@ test_host_add_initiator() {
     fake_nwwn3=`randwwn`
     fake_pwwn4=`randwwn`
     fake_nwwn4=`randwwn`
-    volume1=${VOLNAME}-2
-    volume2=${VOLNAME}-${random_number}       
+    volume1=${VOLNAME}-1-${random_number}
+    volume2=${VOLNAME}-2-${random_number}       
     project1=${PROJECT}
     project2=fakeproject-${random_number}
     host1=fakehost1-${random_number}
@@ -132,14 +144,15 @@ test_host_add_initiator() {
     host_cluster_failure_injections="failure_026_host_cluster_ComputeSystemControllerImpl.updateExportGroup_before_update"
 
     failure_injections="${HAPPY_PATH_TEST_INJECTION} ${common_failure_injections} ${host_cluster_failure_injections}"
-    
+
     # Create a second project
     runcmd project create $project2 --tenant $TENANT
     
     # Create the fake cluster
     runcmd cluster create ${cluster1} $TENANT
     
-    # Create a second volume for the new project
+    # Create volumes
+    runcmd volume create ${volume1} ${project1} ${NH} ${VPOOL_BASE} 1GB
     runcmd volume create ${volume2} ${project2} ${NH} ${VPOOL_BASE} 1GB
     
     # Add initiator to network
@@ -154,12 +167,20 @@ test_host_add_initiator() {
     runcmd initiator create $host1 FC ${fake_pwwn1} --node ${fake_nwwn1}
     runcmd initiator create $host2 FC ${fake_pwwn2} --node ${fake_nwwn2}
     
+    if [ "${SS}" = "xio" ]; then
+        # Don't check Initiator fields for XIO run. The WWN 
+        # and nativeId fields are expected to be updated.
+        cfs=("ExportGroup ExportMask")
+    else
+        cfs=("Initiator ExportGroup ExportMask")
+    fi
+    
     for failure in ${failure_injections}
     do
         if [ ${failure} == ${HAPPY_PATH_TEST_INJECTION} ]; then
-            echot "Running happy path test for add initiator to host..."
+            secho "Running happy path test for add initiator to host..."
         else    
-            echot "Running Add initiator to host with failure scenario: ${failure}..."
+            secho "Running Add initiator to host with failure scenario: ${failure}..."
         fi    
         
         TEST_OUTPUT_FILE=test_output_${RANDOM}.log
@@ -182,14 +203,10 @@ test_host_add_initiator() {
         # Verify the initiator does not exist in the ExportGroup
         add_init="false"
         if [[ $(export_contains ${project1}/$cluster1_export1 $fake_pwwn3) || $(export_contains ${project1}/$cluster1_export1 $fake_pwwn4) || $(export_contains ${project2}/$cluster1_export2 $fake_pwwn3) || $(export_contains ${project2}/$cluster1_export2 $fake_pwwn4) ]]; then
-            echo "Add initiator to host test failed. Initiator "${fake_pwwn3}" and/or "${fake_pwwn4}" already exists" 
-            
-            # Report results
+            echo "Add initiator to host test failed. Initiator "${fake_pwwn3}" and/or "${fake_pwwn4}" already exists"            
             incr_fail_count
-            if [ "${NO_BAILING}" != "1" ]; then
-                report_results ${test_name} ${failure}
-                finish -1
-            fi
+            report_results ${test_name} ${failure}
+            continue;
         fi  
 
         # Add initiator to network
@@ -211,7 +228,7 @@ test_host_add_initiator() {
             # Verify injected failures were hit
             verify_failures ${failure}
             # Let the async jobs calm down
-            sleep 5
+            sleep 90
 
             # Snap the DB
             snap_db 3 "${cfs[@]}"
@@ -252,33 +269,23 @@ test_host_add_initiator() {
     
         # Verify the initiators have been added to both ExportGroups
         if [[ $(export_contains $project1/$cluster1_export1 $fake_pwwn3) && $(export_contains $project1/$cluster1_export1 $fake_pwwn4) && $(export_contains $project2/$cluster1_export2 $fake_pwwn3) && $(export_contains $project2/$cluster1_export2 $fake_pwwn4) ]]; then
-            add_init="true"
             echo "Verified that initiators "${fake_pwwn3}" and/or "${fake_pwwn4}" have been added to export"
         else
-            echo "Add initiator to host test failed. Initiators "${fake_pwwn3}" and/or "${fake_pwwn4}" were not added to the export"  
-		
-		    # Report results
+            echo "Add initiator to host test failed. Initiators "${fake_pwwn3}" and/or "${fake_pwwn4}" were not added to the export"
 		    incr_fail_count
-            if [ "${NO_BAILING}" != "1" ]; then
-                report_results ${test_name} ${failure}
-                finish -1
-            fi
+		    report_results ${test_name} ${failure}
+		    continue;         
         fi
 
-        if [ ${add_init} = "true" ]; then
-            # If the initiator has been added, remove it here so the export groups are clean for the next failure injection
-            runcmd initiator delete ${host1}/${fake_pwwn3}
-            runcmd initiator delete ${host2}/${fake_pwwn4}
-            runcmd transportzone remove ${FC_ZONE_A} ${fake_pwwn3}
-            runcmd transportzone remove ${FC_ZONE_A} ${fake_pwwn4}
-            sleep 20
-        fi
+        runcmd initiator delete ${host1}/${fake_pwwn3}
+        runcmd initiator delete ${host2}/${fake_pwwn4}
+        runcmd transportzone remove ${FC_ZONE_A} ${fake_pwwn3}
+        runcmd transportzone remove ${FC_ZONE_A} ${fake_pwwn4}
+        sleep 10
         
-        # Cleanup export group  
+        # Cleanup export groups  
         runcmd export_group update ${project1}/${cluster1_export1} --remVols ${project1}/${volume1}
-        runcmd export_group update ${project2}/${cluster1_export2} --remVols ${project2}/${volume2}                         
-        runcmd export_group delete ${project1}/${cluster1_export1}
-        runcmd export_group delete ${project2}/${cluster1_export2}
+        runcmd export_group update ${project2}/${cluster1_export2} --remVols ${project2}/${volume2}
         
         snap_db 6 "${cfs[@]}"  
 
@@ -287,7 +294,18 @@ test_host_add_initiator() {
 
 	    # Report results
 	    report_results ${test_name} ${failure}
+	    
+	    echo "\n"
     done
+    
+    # Cleanup everything else
+    runcmd cluster delete ${TENANT}/${cluster1}                
+    runcmd hosts delete ${host1}
+    runcmd hosts delete ${host2}
+   
+    # Cleanup volumes
+    runcmd volume delete ${project1}/${volume1} --wait
+    runcmd volume delete ${project2}/${volume2} --wait
 }
 
 test_vcenter_event() {
@@ -318,10 +336,12 @@ test_vcenter_event() {
     EVENT_ID=$(get_pending_event)
     if [ -z "$EVENT_ID" ]
     then
-      echo "FAILED. Expected an event"
-      finish -1
+        echo "FAILED. Expected an event"
+        incr_fail_count
+        report_results ${test_name} ${failure}
+        continue;
     else
-      approve_pending_event $EVENT_ID 
+        approve_pending_event $EVENT_ID 
     fi
 
     # Remove the shared export
@@ -342,6 +362,8 @@ test_vcenter_event() {
 
     # Report results
     report_results ${test_name} ${failure}
+    
+    echo "\n"
 }
 
 # Helper methods for tests
@@ -452,21 +474,22 @@ test_host_remove_initiator() {
     volume2=${VOLNAME}-2-${random_number}    
     runcmd volume create ${volume1} ${PROJECT} ${NH} ${VPOOL_BASE} 1GB
     runcmd volume create ${volume2} ${PROJECT} ${NH} ${VPOOL_BASE} 1GB
+    
+    if [ "${SS}" = "xio" ]; then
+        # Don't check Volume fields for XIO run. The WWN 
+        # and nativeId fields are expected to be updated.
+        column_family=("ExportGroup ExportMask")
+    else
+        column_family=("Volume ExportGroup ExportMask")
+    fi
 
     for failure in ${failure_injections}
     do
-        echot "Running host_remove_initiator with failure scenario: ${failure}..."
+        secho "Running test_host_remove_initiator with failure scenario: ${failure}..."
         
         random_number=${RANDOM}
         TEST_OUTPUT_FILE=test_output_${RANDOM}.log
-        reset_counts
-        if [ "${SS}" = "xio" ]; then
-            # Don't check Volume fields for XIO run. The WWN 
-            # and nativeId fields are expected to be updated.
-            column_family=("ExportGroup ExportMask")
-        else
-            column_family=("Volume ExportGroup ExportMask")
-        fi
+        reset_counts       
         mkdir -p results/${random_number}
         host1=fakehost1-${random_number}
         host2=fakehost2-${random_number}
@@ -529,11 +552,8 @@ test_host_remove_initiator() {
                 echo "+++ FAIL - Some hosts and host initiators were not found on ${eg}...fail."
                 # Report results
                 incr_fail_count
-                if [ "${NO_BAILING}" != "1" ]
-                then
-                    report_results ${test_name} ${failure}
-                    exit 1
-                fi
+                report_results ${test_name} ${failure}
+                continue;
             else
                 echo "+++ SUCCESS - All hosts and host initiators present on ${eg}"   
             fi
@@ -575,13 +595,9 @@ test_host_remove_initiator() {
             if [[ "${foundinit1}" != "" ]]; then
                 # Fail, initiator 1 should be removed
                 echo "+++ FAIL - Expected host initiators were not removed from the export group ${eg}."
-                # Report results
                 incr_fail_count
-                if [ "${NO_BAILING}" != "1" ]
-                then
-                    report_results ${test_name} ${failure}
-                    exit 1
-                fi
+                report_results ${test_name} ${failure}
+                continue;
             else
                 echo "+++ SUCCESS - Expected host initiators removed from export group ${eg}." 
             fi                                     
@@ -607,6 +623,8 @@ test_host_remove_initiator() {
 
         # Report results
         report_results ${test_name} ${failure}
+        
+        echo "\n"
     done
     
     # Cleanup volumes
@@ -631,6 +649,14 @@ test_move_clustered_host_to_another_cluster() {
     random_number=${RANDOM}        
     volume1=${VOLNAME}-1
     volume2=${VOLNAME}-2
+    
+    if [ "${SS}" = "xio" ]; then
+        # Don't check Volume fields for XIO run. The WWN 
+        # and nativeId fields are expected to be updated.
+        column_family=("ExportGroup ExportMask")
+    else
+        column_family=("Volume ExportGroup ExportMask")
+    fi
         
     for failure in ${failure_injections}
     do
@@ -638,7 +664,6 @@ test_move_clustered_host_to_another_cluster() {
     
         TEST_OUTPUT_FILE=test_output_${RANDOM}.log
         reset_counts
-        column_family=("Volume ExportGroup ExportMask")
         random_number=${RANDOM}
         mkdir -p results/${random_number}
         volume1=${VOLNAME}-1
@@ -702,13 +727,9 @@ test_move_clustered_host_to_another_cluster() {
         if [[ "${foundinit1}" = ""  || "${foundinit2}" = "" || "${foundinit3}" = "" || "${foundinit4}" = "" ]]; then
             # Fail, initiators should have been added to the export group
             echo "+++ FAIL - Some initiators were not found on the export groups...fail."
-    	    # Report results
-        	incr_fail_count
-        	if [ "${NO_BAILING}" != "1" ]
-        	then
-        	    report_results ${test_name} ${failure}
-                    finish -1
-        	fi
+    	    incr_fail_count
+            report_results ${test_name} ${failure}
+            continue;
         else
             echo "+++ SUCCESS - All initiators from clusters present on export group"   
         fi
@@ -745,11 +766,8 @@ test_move_clustered_host_to_another_cluster() {
            if [[ "${cluster}" != "${cluster1}" ]]; then
                 echo "+++ FAIL - Host should belong to old cluster ${cluster1}...fail."
                 incr_fail_count
-                if [ "${NO_BAILING}" != "1" ]
-                then
-                    report_results ${test_name} ${failure}
-                        finish -1
-                fi
+                report_results ${test_name} ${failure}
+                continue;
            fi
            
            if [ ${failure} = "failure_042_host_cluster_ComputeSystemControllerImpl.updateHostAndInitiatorClusterReferences" ]; then
@@ -761,14 +779,11 @@ test_move_clustered_host_to_another_cluster() {
                foundinit4=`export_group show $PROJECT/${exportgroup2} | grep ${init4}`
                 
                if [[ "${foundinit3}" = "" || "${foundinit4}" = "" ]]; then
-                   # Fail, initiators should have been added to the export group
-                   echo "+++ FAIL - Some initiators were not found in correct export groups"
-                   incr_fail_count
-                   if [ "${NO_BAILING}" != "1" ]
-                   then
-                       report_results ${test_name} ${failure}
-                       finish -1
-                   fi
+                    # Fail, initiators should have been added to the export group
+                    echo "+++ FAIL - Some initiators were not found in correct export groups"
+                    incr_fail_count
+                    report_results ${test_name} ${failure}
+                    continue;
                else
                    echo "+++ SUCCESS - Initiators are in correct export groups"   
                fi
@@ -782,11 +797,8 @@ test_move_clustered_host_to_another_cluster() {
                    # Fail, initiators should have been added to the export group
                    echo "+++ FAIL - Some initiators were not found in correct export groups"
                    incr_fail_count
-                   if [ "${NO_BAILING}" != "1" ]
-                   then
-                       report_results ${test_name} ${failure}
-                       finish -1
-                   fi
+                   report_results ${test_name} ${failure}
+                   continue;
                else
                    echo "+++ SUCCESS - All initiators from clusters present on export group ${exportgroup2}"   
                fi
@@ -795,18 +807,14 @@ test_move_clustered_host_to_another_cluster() {
            set_artificial_failure none
            
            runcmd hosts update $host1 --cluster ${TENANT}/${cluster2}
-
         fi
         
         cluster=`get_host_cluster "emcworld" ${host1}`
         if [[ "${cluster}" != "${cluster2}" ]]; then
             echo "+++ FAIL - Host should belong to new cluster ${cluster2}...fail."
             incr_fail_count
-            if [ "${NO_BAILING}" != "1" ]
-            then
-                report_results ${test_name} ${failure}
-                    finish -1
-            fi
+            report_results ${test_name} ${failure}
+            continue;
         fi
         
         # Ensure that all initiators are now in same cluster
@@ -819,11 +827,8 @@ test_move_clustered_host_to_another_cluster() {
             # Fail, initiators should have been added to the export group
             echo "+++ FAIL - Some initiators were not found  in export group ${exportgroup2}...fail."
         	incr_fail_count
-        	if [ "${NO_BAILING}" != "1" ]
-        	then
-        	    report_results ${test_name} ${failure}
-                    finish -1
-        	fi
+            report_results ${test_name} ${failure}
+            continue;
         else
             echo "+++ SUCCESS - All initiators from clusters present on export group ${exportgroup2}"   
         fi
@@ -841,9 +846,10 @@ test_move_clustered_host_to_another_cluster() {
 
         # Report results
         report_results ${test_name} ${failure}
+        
+        echo "\n"
     done    
 }
-
 
 # Test - Move Non Clustered Host to Cluster
 #
@@ -910,9 +916,9 @@ test_move_non_clustered_host_to_cluster() {
     for failure in ${failure_injections}
     do
         if [ ${failure} == ${HAPPY_PATH_TEST_INJECTION} ]; then
-            echot "Running happy path test for move non-clustered host to cluster..."
+            secho "Running happy path test for move non-clustered host to cluster..."
         else    
-            echot "Running move non-clustered host to cluster with failure scenario: ${failure}..."
+            secho "Running move non-clustered host to cluster with failure scenario: ${failure}..."
         fi    
         
         TEST_OUTPUT_FILE=test_output_${RANDOM}.log
@@ -989,13 +995,9 @@ test_move_non_clustered_host_to_cluster() {
             echo "Host" ${host1} "and" ${host2} "have been successfully moved to cluster" ${cluster1}
         else
             echo "Failed to move host" ${host1} "and" ${host2} "to cluster" ${cluster1}  
-            
-            # Report results
             incr_fail_count
-            if [ "${NO_BAILING}" != "1" ]; then
-                report_results ${test_name} ${failure}
-                finish -1
-            fi
+            report_results ${test_name} ${failure}
+            continue;
         fi    
 
         if [ ${move_host} = "true"  ]; then
@@ -1011,6 +1013,8 @@ test_move_non_clustered_host_to_cluster() {
 
         # Report results
         report_results ${test_name} ${failure}
+        
+        echo "\n"
     done
 }
 
@@ -1095,9 +1099,9 @@ test_move_clustered_discovered_host_to_cluster() {
         fi
                 
         if [ ${failure} == ${HAPPY_PATH_TEST_INJECTION} ]; then
-            echot "Running happy path test for move discovered clustered host to another cluster..."
+            secho "Running happy path test for move discovered clustered host to another cluster..."
         else    
-            echot "Running move discovered clustered host to another cluster with failure scenario: ${failure}..."
+            secho "Running move discovered clustered host to another cluster with failure scenario: ${failure}..."
         fi    
         
         TEST_OUTPUT_FILE=test_output_${RANDOM}.log
@@ -1157,9 +1161,7 @@ test_move_clustered_discovered_host_to_cluster() {
                 else
                     echo "+++ Failure re-executed host move operation - Host should belong to ${cluster1}/${dc} but belongs to ${cluster}/${vcenterdc}."
                     incr_fail_count
-                    if [ "${NO_BAILING}" != "1" ]; then
-                        report_results ${test_name} ${failure}
-                    fi                
+                    report_results ${test_name} ${failure}
                     failed="true"
                     break
                 fi
@@ -1169,13 +1171,10 @@ test_move_clustered_discovered_host_to_cluster() {
             move_host="true"
             echo "${host} has been successfully moved and belongs to ${cluster1_export} export"
         else
-            echo "Failed to move ${host}. It should only belong to ${cluster1_export} export"  
-            
-            # Report results
+            echo "Failed to move ${host}. It should only belong to ${cluster1_export} export" 
             incr_fail_count
-            if [ "${NO_BAILING}" != "1" ]; then
-                report_results ${test_name} ${failure}
-            fi
+            report_results ${test_name} ${failure}
+            continue;
             failed="true"
         fi    
 
@@ -1196,6 +1195,8 @@ test_move_clustered_discovered_host_to_cluster() {
 
         # Report results
         report_results ${test_name} ${failure}
+        
+        echo "\n"
     done    
     
     delete_datastore_and_volume ${TENANT} ${datastore1} ${vcenter} "DC-Simulator-1" ${cluster1}
@@ -1269,15 +1270,22 @@ test_cluster_remove_host() {
     volume2=${VOLNAME}-2-${random_number}    
     runcmd volume create ${volume1} ${PROJECT} ${NH} ${VPOOL_BASE} 1GB
     runcmd volume create ${volume2} ${PROJECT2} ${NH} ${VPOOL_BASE} 1GB    
-        
+    
+    if [ "${SS}" = "xio" ]; then
+        # Don't check Volume fields for XIO run. The WWN 
+        # and nativeId fields are expected to be updated.
+        column_family=("ExportGroup ExportMask")
+    else
+        column_family=("Volume ExportGroup ExportMask")
+    fi
+     
     for failure in ${failure_injections}
     do
-        echot "Running cluster_remove_host with failure scenario: ${failure}..."
+        secho "Running cluster_remove_host with failure scenario: ${failure}..."
         
         random_number=${RANDOM}
         TEST_OUTPUT_FILE=test_output_${RANDOM}.log
         reset_counts
-        column_family=("Volume ExportGroup ExportMask")        
         mkdir -p results/${random_number}
         host1=fakehost1-${random_number}
         host2=fakehost2-${random_number}
@@ -1340,13 +1348,9 @@ test_cluster_remove_host() {
             if [[ "${foundinit1}" = ""  || "${foundinit2}" = "" || "${foundinit3}" = "" || "${foundinit4}" = "" || "${foundhost1}" = "" || "${foundhost2}" = "" ]]; then
                 # Fail, hosts and initiators should have been added to the export group
                 echo "+++ FAIL - Some hosts and host initiators were not found on ${eg}...fail."
-                # Report results
                 incr_fail_count
-                if [ "${NO_BAILING}" != "1" ]
-                then
-                    report_results ${test_name} ${failure}
-                    exit 1
-                fi
+                report_results ${test_name} ${failure}
+                continue;
             else
                 echo "+++ SUCCESS - All hosts and host initiators present on ${eg}"   
             fi
@@ -1385,13 +1389,9 @@ test_cluster_remove_host() {
                 if [ "${foundeg}" != "" ]; then
                     # Fail, export group should be removed
                     echo "+++ FAIL - Expected export group ${eg} was not deleted."
-                    # Report results
                     incr_fail_count
-                    if [ "${NO_BAILING}" != "1" ]
-                    then
-                        report_results ${test_name} ${failure}
-                        exit 1
-                    fi
+                    report_results ${test_name} ${failure}
+                    continue;
                 else
                     echo "+++ SUCCESS - Expected export group ${eg} was deleted." 
                 fi
@@ -1424,23 +1424,17 @@ test_cluster_remove_host() {
                 if [[ "${foundinit1}" != "" || "${foundinit2}" != "" || "${foundhost1}" != "" ]]; then
                     # Fail, initiators 1 and 2 and host1 should be removed and initiators 3 and 4 should still be present
                     echo "+++ FAIL - Expected host and host initiators were not removed from the export group ${eg}."
-                    # Report results
                     incr_fail_count
-                    if [ "${NO_BAILING}" != "1" ]
-                    then
-                        report_results ${test_name} ${failure}
-                        exit 1
-                    fi
+                    report_results ${test_name} ${failure}
+                    continue;
                 else
                     echo "+++ SUCCESS - Expected host and host initiators removed from export group ${eg}." 
                 fi                                     
             done
             
             # Cleanup export groups  
-            runcmd export_group update ${PROJECT}/${exportgroup1} --remVols ${PROJECT}/${volume1}
-            runcmd export_group delete ${PROJECT}/${exportgroup1}            
-            runcmd export_group update ${PROJECT2}/${exportgroup2} --remVols ${PROJECT2}/${volume2}                                     
-            runcmd export_group delete ${PROJECT2}/${exportgroup2}
+            runcmd export_group update ${PROJECT}/${exportgroup1} --remVols ${PROJECT}/${volume1}          
+            runcmd export_group update ${PROJECT2}/${exportgroup2} --remVols ${PROJECT2}/${volume2}
         fi    
         
         # Cleanup all
@@ -1460,6 +1454,8 @@ test_cluster_remove_host() {
 
         # Report results
     	report_results ${test_name} ${failure}
+    	
+    	echo "\n"
     done
     
      # Cleanup volumes
@@ -1553,7 +1549,7 @@ test_cluster_remove_discovered_host() {
         
         for failure in ${failure_injections}
         do
-            echot "Running cluster_remove_discovered_host with failure scenario: ${failure} and testing path: ${wf}..."
+            secho "Running cluster_remove_discovered_host with failure scenario: ${failure} and testing path: ${wf}..."
             
             random_number=${RANDOM}
             TEST_OUTPUT_FILE=test_output_${RANDOM}.log
@@ -1569,13 +1565,9 @@ test_cluster_remove_discovered_host() {
                 if [[ "${foundhost1}" = "" || "${foundhost2}" = "" ]]; then
                     # Fail, hosts should have been added to the export group
                     echo "+++ FAIL - Some hosts were not found on export group ${eg}...fail."
-                    # Report results
                     incr_fail_count
-                    if [ "${NO_BAILING}" != "1" ]
-                    then
-                        report_results ${test_name} ${failure}
-                        exit 1
-                    fi
+                    report_results ${test_name} ${failure}
+                    continue;
                 else
                     echo "+++ SUCCESS - All hosts present on export group ${eg}"
                 fi
@@ -1620,7 +1612,7 @@ test_cluster_remove_discovered_host() {
                     EVENT_ID=$(get_pending_event)
                     approve_pending_event $EVENT_ID
                                     
-                    exit 1
+                    continue;
                 else
                     if [ ${failure} == ${HAPPY_PATH_TEST_INJECTION} ]; then
                         # Happy path, no failure injection
@@ -1661,13 +1653,9 @@ test_cluster_remove_discovered_host() {
                     if [ "${foundeg}" != "" ]; then
                         # Fail, export group should have been removed
                         echo "+++ FAIL - Expected export group ${eg} was not deleted."
-                        # Report results
                         incr_fail_count
-                        if [ "${NO_BAILING}" != "1" ]
-                        then
-                            report_results ${test_name} ${failure}
-                            exit 1
-                        fi
+                        report_results ${test_name} ${failure}
+                        continue;
                     else
                         echo "+++ SUCCESS - Expected export group ${eg} was deleted." 
                     fi
@@ -1717,7 +1705,7 @@ test_cluster_remove_discovered_host() {
                     EVENT_ID=$(get_pending_event)
                     approve_pending_event $EVENT_ID
                                     
-                    exit 1
+                    continue;
                 else
                     if [ ${failure} == ${HAPPY_PATH_TEST_INJECTION} ]; then
                         # Happy path, no failure injection
@@ -1751,13 +1739,9 @@ test_cluster_remove_discovered_host() {
                     if [[ "${foundhost1}" != "" ]]; then
                         # Fail, host1 should have been removed
                         echo "+++ FAIL - Expected host was not removed from export group ${eg}."
-                        # Report results
                         incr_fail_count
-                        if [ "${NO_BAILING}" != "1" ]
-                        then
-                            report_results ${test_name} ${failure}
-                            exit 1
-                        fi
+                        report_results ${test_name} ${failure}
+                        continue;
                     else
                         echo "+++ SUCCESS - Expected host removed from export group ${eg}." 
                     fi                                     
@@ -1779,6 +1763,8 @@ test_cluster_remove_discovered_host() {
     
             # Report results
             report_results ${test_name} ${failure}
+            
+            echo "\n"
         done
     done
     
@@ -1860,10 +1846,12 @@ test_move_non_clustered_discovered_host_to_cluster() {
  
         EVENT_ID=$(get_pending_event)
         if [ -z "$EVENT_ID" ]; then
-            echo "FAILED. Expected an event"
+            echo "FAILED. Expected an event."
             # Move the host into cluster-1           
             #change_host_cluster $host $cluster1 $cluster2 $vcenter
-            finish -1
+            incr_fail_count
+            report_results ${test_name} ${failure}
+            continue;
         else
             if [ ${failure} == ${HAPPY_PATH_TEST_INJECTION} ]; then
                 approve_pending_event $EVENT_ID
@@ -1888,13 +1876,9 @@ test_move_non_clustered_discovered_host_to_cluster() {
             echo "Host" ${host} "has been successfully moved to cluster" ${cluster2}
         else
             echo "Failed to move host" ${host} "to cluster" ${cluster2}  
-            
-            # Report results
             incr_fail_count
-            if [ "${NO_BAILING}" != "1" ]; then
-                report_results ${test_name} ${failure}
-                finish -1
-            fi
+            report_results ${test_name} ${failure}
+            continue;
         fi    
 
         if [ ${move_host} = "true"  ]; then
@@ -1903,7 +1887,10 @@ test_move_non_clustered_discovered_host_to_cluster() {
             
             EVENT_ID=$(get_pending_event)
             if [ -z "$EVENT_ID" ]; then
-                finish -1
+                echo "FAILED. Expected an event."
+                incr_fail_count
+                report_results ${test_name} ${failure}
+                continue;
             else
                 approve_pending_event $EVENT_ID
             fi                  
@@ -1918,6 +1905,8 @@ test_move_non_clustered_discovered_host_to_cluster() {
 
         # Report results
         report_results ${test_name} ${failure}
+        
+        echo "\n"
     done
     
     # Cleanup exports
@@ -1956,9 +1945,9 @@ test_delete_host() {
     for failure in ${failure_injections}
     do
         if [ ${failure} == ${HAPPY_PATH_TEST_INJECTION} ]; then
-            secho "Running happy path test for delete host..."
+            echot "Running happy path test for delete host..."
         else    
-            secho "Running delete host with failure scenario: ${failure}..."
+            echot "Running delete host with failure scenario: ${failure}..."
         fi    
        
         TEST_OUTPUT_FILE=test_output_${RANDOM}.log
@@ -1992,14 +1981,10 @@ test_delete_host() {
             fail hosts delete ${host} --detachstorage true
    
             if [[ $(export_contains $PROJECT/$exclusive_export $host) == "" ]]; then
-               echo "Failure: Host ${host} removed from export ${exclusive_export}"  
-
-               # Report results
-               incr_fail_count
-               if [ "${NO_BAILING}" != "1" ]; then
-                   report_results ${test_name} ${failure}
-                   finish -1
-               fi
+                echo "Failure: Host ${host} removed from export ${exclusive_export}"  
+                incr_fail_count
+                report_results ${test_name} ${failure}
+                continue;
             fi
  
             # Rerun the command
@@ -2015,14 +2000,9 @@ test_delete_host() {
         then
             echo "+++ FAIL - Pending task ${TASK_ID} found"
             runcmd task delete ${TASK_ID}
-
-            # Report results
             incr_fail_count
-            if [ "${NO_BAILING}" != "1" ]
-            then
-                report_results ${test_name} ${failure}
-                exit 1
-            fi
+            report_results ${test_name} ${failure}
+            continue;
         fi
 
         snap_db 4 "${cfs[@]}"  
@@ -2032,7 +2012,8 @@ test_delete_host() {
 
         # Report results
         report_results ${test_name} ${failure}
-  
+        
+        echo "\n"
     done
 }
 
@@ -2043,8 +2024,14 @@ test_delete_cluster() {
     host2=fakehost-2-${RANDOM}
     cluster=fakecluster-${RANDOM}
     cluster_export=${cluster}
- 
-    cfs=("ExportGroup ExportMask Network Host Initiator Cluster")
+     
+    if [ "${SS}" = "xio" ]; then
+        # Don't check Initiator fields for XIO run. The WWN 
+        # and nativeId fields are expected to be updated.
+        cfs=("ExportGroup ExportMask Network Host Cluster")
+    else
+        cfs=("ExportGroup ExportMask Network Host Initiator Cluster")
+    fi
 
     common_failure_injections="failure_004_final_step_in_workflow_complete \
                                failure_027_host_cluster_ComputeSystemControllerImpl.deleteExportGroup_before_delete \
@@ -2074,9 +2061,9 @@ test_delete_cluster() {
     for failure in ${failure_injections}
     do
         if [ ${failure} == ${HAPPY_PATH_TEST_INJECTION} ]; then
-            secho "Running happy path test for delete cluster..."
+            echot "Running happy path test for delete cluster..."
         else    
-            secho "Running delete cluster with failure scenario: ${failure}..."
+            echot "Running delete cluster with failure scenario: ${failure}..."
         fi    
        
         TEST_OUTPUT_FILE=test_output_${RANDOM}.log
@@ -2108,14 +2095,10 @@ test_delete_cluster() {
             fail cluster delete ${TENANT}/${cluster} --detachstorage true
    
             if [[ $(export_contains $PROJECT/$cluster_export $cluster) == "" ]]; then
-               echo "Failure: Cluster ${cluster} removed from export ${cluster_export}"  
-
-               # Report results
-               incr_fail_count
-               if [ "${NO_BAILING}" != "1" ]; then
-                   report_results ${test_name} ${failure}
-                   finish -1
-               fi
+                echo "Failure: Cluster ${cluster} removed from export ${cluster_export}"  
+                incr_fail_count
+                report_results ${test_name} ${failure}
+                continue;
             fi
  
             # Rerun the command
@@ -2131,14 +2114,9 @@ test_delete_cluster() {
         then
             echo "+++ FAIL - Pending task ${TASK_ID} found"
             runcmd task delete ${TASK_ID}
-
-            # Report results
             incr_fail_count
-            if [ "${NO_BAILING}" != "1" ]
-            then
-                report_results ${test_name} ${failure}
-                exit 1
-            fi
+            report_results ${test_name} ${failure}
+            continue;
         fi
    
         snap_db 4 "${cfs[@]}"
@@ -2148,6 +2126,8 @@ test_delete_cluster() {
 
         # Report results
         report_results ${test_name} ${failure}
+        
+        echo "\n"
     done
 }
 
@@ -2176,8 +2156,10 @@ test_host_remove_initiator_event() {
     EVENT_ID=$(get_pending_event)
     if [ -z "$EVENT_ID" ]
     then
-      echo "FAILED. Expected an event"
-      finish -1
+        echo "FAILED. Expected an event."
+        incr_fail_count
+        report_results ${test_name} ${failure}
+        continue;
     else
       approve_pending_event $EVENT_ID 
     fi
@@ -2193,13 +2175,9 @@ test_host_remove_initiator_event() {
              echo "Success. Initiator was deleted from the event"    
     else
         echo "+++ FAIL - Initiator was not deleted from host"
-        # Report results
         incr_fail_count
-        if [ "${NO_BAILING}" != "1" ]
-        then
-            report_results ${test_name} ${failure}
-            exit 1
-        fi
+        report_results ${test_name} ${failure}
+        continue;
     fi
     
     # Remove the shared export
@@ -2210,6 +2188,8 @@ test_host_remove_initiator_event() {
  
     # Report results
     report_results ${test_name} ${failure}
+    
+    echo "\n"
 }
 
 # TODO: will be moving all vblock related tests to different file, adding it here just for time being
@@ -2226,14 +2206,14 @@ test_vblock_provision_bare_metal_host() {
 
     for failure in ${failure_injections}
     do
-        echot "Running test_vblock_provision_bare_metal_host with failure scenario: ${failure}..."
+        secho "Running test_vblock_provision_bare_metal_host with failure scenario: ${failure}..."
         TEST_OUTPUT_FILE=test_output_${RANDOM}.log
         reset_counts
         column_family="Host Volume ExportGroup ExportMask Cluster"
         random_number=${RANDOM}
         mkdir -p results/${random_number}
         run computesystem discover $VBLOCK_COMPUTE_SYSTEM_NAME
-	# Snap DB
+        # Snap DB
         snap_db 1 "${column_family[@]}"
         # Turn on failure at a specific point
         set_artificial_failure ${failure}
@@ -2251,6 +2231,8 @@ test_vblock_provision_bare_metal_host() {
         validate_db 1 2 "${column_family[@]}"
         # Report results
         report_results ${test_name} ${failure}
+        
+        echo "\n"
     done
     run computesystem discover $VBLOCK_COMPUTE_SYSTEM_NAME
     sleep 15
@@ -2278,14 +2260,14 @@ test_vblock_add_bare_metal_host() {
 
     for failure in ${failure_injections}
     do
-        echot "Running test_vblock_provision_bare_metal_host with failure scenario: ${failure}..."
+        secho "Running test_vblock_provision_bare_metal_host with failure scenario: ${failure}..."
         TEST_OUTPUT_FILE=test_output_${RANDOM}.log
         reset_counts
         column_family="Host Volume ExportGroup ExportMask Cluster"
         random_number=${RANDOM}
         mkdir -p results/${random_number}
         run computesystem discover $VBLOCK_COMPUTE_SYSTEM_NAME
-	# Snap DB
+	    # Snap DB
         snap_db 1 "${column_family[@]}"
         # Turn on failure at a specific point
         set_artificial_failure ${failure}
@@ -2303,6 +2285,8 @@ test_vblock_add_bare_metal_host() {
         validate_db 1 2 "${column_family[@]}"
         # Report results
         report_results ${test_name} ${failure}
+        
+        echo "\n"
     done
     run computesystem discover $VBLOCK_COMPUTE_SYSTEM_NAME
     sleep 15
@@ -2315,3 +2299,4 @@ test_vblock_add_bare_metal_host() {
     run vblockcatalog addbaremetalhost $TENANT $VBLOCK_CLUSTER_NAME $VBLOCK_BOOT_VOL_SIZE $VBLOCK_HOST_NAME $PROJECT $NH $VPOOL_BASE $VBLOCK_COMPUTE_VIRTUAL_POOL_NAME $VBLOCK_BOOT_VOL_HLU $VBLOCK_CATALOG_ADD__BARE_METAL_HOSTS_TO_CLUSTER
     # need to verify if cluster, host and boot volume was created.
 }
+

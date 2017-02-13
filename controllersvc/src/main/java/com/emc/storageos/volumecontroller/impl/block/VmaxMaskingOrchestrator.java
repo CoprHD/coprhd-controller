@@ -194,8 +194,6 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
             }
         }
 
-        checkForConsistentLunViolation(storage, exportGroup, initiatorURIs);
-
         InitiatorHelper initiatorHelper = new InitiatorHelper(initiatorURIs).process(exportGroup);
 
         boolean anyOperationsToDo = false;
@@ -438,6 +436,7 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
         }
 
         if (anyOperationsToDo) {
+            checkForConsistentLunViolation(storage, exportGroup, initiatorURIs);
             if (!zoneNewMasksToVolumeMap.isEmpty()) {
                 List<URI> exportMaskList = new ArrayList<URI>();
                 exportMaskList.addAll(zoneNewMasksToVolumeMap.keySet());

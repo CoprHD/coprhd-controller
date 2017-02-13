@@ -3892,7 +3892,6 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
                 }
             }
 
-            checkForConsistentLunViolation(vplex, exportGroup, initiatorURIs);
 
             // Process each host separately.
             String previousStep = null;
@@ -3922,6 +3921,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
                         }
                     }
                     if (!initiators.isEmpty()) {
+                        checkForConsistentLunViolation(vplex, exportGroup, initURIs);
                         previousStep = addStepsForAddInitiators(
                                 workflow, vplex, exportGroup, varrayURI,
                                 initURIs, initiators, hostURI, previousStep, opId);

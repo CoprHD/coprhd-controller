@@ -5,6 +5,7 @@ import static com.emc.sa.service.ServiceParams.HOST;
 import static com.emc.sa.service.ServiceParams.MAX_PATHS;
 import static com.emc.sa.service.ServiceParams.MIN_PATHS;
 import static com.emc.sa.service.ServiceParams.PATHS_PER_INITIATOR;
+import static com.emc.sa.service.ServiceParams.PORT_GROUP;
 import static com.emc.sa.service.vipr.ViPRExecutionUtils.logInfo;
 
 import java.net.URI;
@@ -38,6 +39,9 @@ public class CreateBlockVolumeForHostHelper extends CreateBlockVolumeHelper {
 
     @Param(value = PATHS_PER_INITIATOR, required = false)
     protected Integer pathsPerInitiator;
+
+    @Param(value = PORT_GROUP, required = false)
+    protected URI portGroup;
 
     private Host host;
     private Cluster cluster;
@@ -99,10 +103,10 @@ public class CreateBlockVolumeForHostHelper extends CreateBlockVolumeHelper {
                     URI exportId = null;
                     if (cluster != null) {
                         exportId = BlockStorageUtils.createClusterExport(project, virtualArray, batchVolumeIds, hlu, cluster,
-                                new HashMap<URI, Integer>(), minPaths, maxPaths, pathsPerInitiator);
+                                new HashMap<URI, Integer>(), minPaths, maxPaths, pathsPerInitiator, portGroup);
                     } else {
                         exportId = BlockStorageUtils.createHostExport(project, virtualArray, batchVolumeIds, hlu, host, new HashMap<URI, Integer>(),
-                                minPaths, maxPaths, pathsPerInitiator);
+                                minPaths, maxPaths, pathsPerInitiator, portGroup);
                     }
                     logInfo("create.block.volume.create.export", exportId);
                 }

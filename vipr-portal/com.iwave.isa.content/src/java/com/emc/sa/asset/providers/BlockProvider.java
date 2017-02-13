@@ -339,6 +339,58 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         return createVolumeOptions(null, volumes);
     }
 
+    @Asset("exportVolumePortGroups")
+    public List<AssetOption> getExportVolumePortGroups(AssetOptionsContext ctx) {
+        return getExportVolumePortGroups(ctx, new String(""));
+    }
+
+    @Asset("exportVolumePortGroups")
+    @AssetDependencies("unassignedBlockVolume")
+    public List<AssetOption> getExportVolumePortGroups(AssetOptionsContext ctx, String selectedVolumes) {
+        final ViPRCoreClient client = api(ctx);
+        List<AssetOption> options = Lists.newArrayList();
+
+        List<URI> volumeIds = Lists.newArrayList();
+        info("Volumes selected by user: %s", selectedVolumes);
+        List<String> parsedVolumeIds = TextUtils.parseCSV(selectedVolumes);
+        for (String id : parsedVolumeIds) {
+            volumeIds.add(uri(id));
+        }
+
+        List<VolumeRestRep> volumes = client.blockVolumes().getByIds(volumeIds);
+
+        Set<URI> storageControllers = new HashSet<URI>();
+        for (VolumeRestRep volume : volumes) {
+            storageControllers.add(volume.getStorageController());
+        }
+
+        if (storageControllers.size() == 1) {
+            Iterator<URI> it = storageControllers.iterator();
+            List<NamedRelatedResourceRep> portGroups = client.storageSystems().getStoragePortGroups(it.next());
+
+            for (NamedRelatedResourceRep group : portGroups) {
+                options.add(new AssetOption(group.getId(), group.getName()));
+            }
+        }
+
+        return options;
+    }
+
+    @Asset("exportVolumeForHostPortGroups")
+    @AssetDependencies("virtualArray")
+    public List<AssetOption> getExportVolumeForHostPortGroups(AssetOptionsContext ctx, URI vArrayId) {
+        final ViPRCoreClient client = api(ctx);
+        List<AssetOption> options = Lists.newArrayList();
+
+        List<NamedRelatedResourceRep> portGroups = client.varrays().getStoragePortGroups(vArrayId);
+
+        for (NamedRelatedResourceRep group : portGroups) {
+            options.add(new AssetOption(group.getId(), group.getName()));
+        }
+
+        return options;
+    }
+
     @Asset("exportedBlockVolume")
     @AssetDependencies("project")
     public List<AssetOption> getExportedVolumes(AssetOptionsContext ctx, URI project) {

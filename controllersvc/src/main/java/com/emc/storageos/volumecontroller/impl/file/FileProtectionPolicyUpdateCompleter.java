@@ -72,7 +72,7 @@ public class FileProtectionPolicyUpdateCompleter extends FilePolicyWorkflowCompl
                     successPolicies);
             _log.error(errorMsg);
             ServiceError serviceError = DeviceControllerException.errors.updateDeviceProtectionPoliciesFailed(filePolicy.getId().toString(),
-                    errorMsg);
+                    numStepsFailed, successPolicies);
             setStatus(dbClient, status, serviceError);
         } else {
             setStatus(dbClient, status, coded);

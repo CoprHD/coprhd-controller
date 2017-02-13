@@ -35,6 +35,7 @@ import com.emc.storageos.db.exceptions.DatabaseException;
 import com.netflix.astyanax.Keyspace;
 import com.netflix.astyanax.connectionpool.OperationResult;
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
+import com.netflix.astyanax.connectionpool.exceptions.NotFoundException;
 import com.netflix.astyanax.model.Column;
 import com.netflix.astyanax.model.ColumnFamily;
 import com.netflix.astyanax.model.ColumnList;
@@ -62,6 +63,7 @@ public class DbConsistencyCheckerHelper {
     private Map<Long, String> schemaVersionsTime;
     private BlockingQueue<Runnable> blockingQueue = new ArrayBlockingQueue<Runnable>(THREAD_POOL_QUEUE_SIZE);
     private ThreadPoolExecutor executor = new ThreadPoolExecutor(5, 20, 50, TimeUnit.MILLISECONDS, blockingQueue);
+    private boolean doubleConfirmed = true;
     
     public DbConsistencyCheckerHelper() {
     }
@@ -311,6 +313,11 @@ public class DbConsistencyCheckerHelper {
                     if (row.getColumns().isEmpty()
                             || (idxEntry.getColumnName().getTimeUUID() != null && !existingDataColumnUUIDSet.contains(idxEntry
                                     .getColumnName().getTimeUUID()))) {
+                        //double confirm it is inconsistent data, please see issue COP-27749
+                        if (doubleConfirmed && !isIndexExists(indexAndCf.keyspace, indexAndCf.cf, idxEntry.getIndexKey(), idxEntry.getColumnName())) {
+                            continue;
+                        }
+                        
                         String dbVersion = findDataCreatedInWhichDBVersion(idxEntry.getColumnName().getTimeUUID());
                         checkResult.increaseByVersion(dbVersion);
                         if (row.getColumns().isEmpty()) {
@@ -600,6 +607,17 @@ public class DbConsistencyCheckerHelper {
         }
         return false;
     }
+    
+    public boolean isIndexExists(Keyspace ks, ColumnFamily<String, IndexColumnName> indexCf, String indexKey, IndexColumnName column) throws ConnectionException {
+        try {
+            ks.prepareQuery(indexCf).getKey(indexKey)
+                    .getColumn(column)
+                    .execute().getResult();
+            return true;
+        } catch (NotFoundException e) {
+            return false;
+        }
+    }
 
     public static String getIndexKey(ColumnField field, Column<CompositeColumnName> column) {
         String indexKey = null;
@@ -737,6 +755,10 @@ public class DbConsistencyCheckerHelper {
     
     public ThreadPoolExecutor getExecutor() {
         return executor;
+    }
+
+    public void setDoubleConfirmed(boolean doubleConfirmed) {
+        this.doubleConfirmed = doubleConfirmed;
     }
 
     public static class CheckResult {

@@ -5,11 +5,14 @@
 package com.emc.storageos.db.server;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.concurrent.ThreadLocalRandom;
 
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -27,6 +30,9 @@ import com.emc.storageos.db.client.model.FileShare;
 import com.netflix.astyanax.Keyspace;
 import com.netflix.astyanax.MutationBatch;
 import com.netflix.astyanax.model.ColumnFamily;
+import com.netflix.astyanax.model.Row;
+import com.netflix.astyanax.model.Rows;
+import com.netflix.astyanax.serializers.CompositeRangeBuilder;
 import com.netflix.astyanax.serializers.StringSerializer;
 
 public class DbConsistencyCheckerHelperTest extends DbsvcTestBase {
@@ -52,6 +58,11 @@ public class DbConsistencyCheckerHelperTest extends DbsvcTestBase {
             }
             
         };
+    }
+    
+    @After
+    public void cleanup() throws Exception {
+        cleanupDataObjectCF(FileShare.class);
     }
     
     @Test
@@ -114,5 +125,32 @@ public class DbConsistencyCheckerHelperTest extends DbsvcTestBase {
         checkResult = new CheckResult();
         helper.checkIndexingCF(indexAndCf, false, checkResult);
         assertEquals(3, checkResult.getTotal());
+    }
+    
+    @Test
+    public void testIsIndexExists() throws Exception{
+        FileShare testData = new FileShare();
+        testData.setId(URIUtil.createId(FileShare.class));
+        testData.setPath("path1");
+        testData.setMountPath("mountPath1");
+        getDbClient().updateObject(testData);
+        
+        ColumnFamily<String, IndexColumnName> indexCF = new ColumnFamily<String, IndexColumnName>(
+                "AltIdIndex", StringSerializer.get(), IndexColumnNameSerializer.get());
+        Keyspace keyspace = ((DbClientImpl)getDbClient()).getLocalContext().getKeyspace();
+        
+        CompositeRangeBuilder builder = IndexColumnNameSerializer.get().buildRange();
+        builder.withPrefix("FileShare").greaterThanEquals(testData.getId().toString()).lessThanEquals(testData.getId().toString());
+        Rows<String, IndexColumnName> result = keyspace.prepareQuery(indexCF).getAllRows().withColumnRange(builder).execute().getResult();
+        
+        for (Row<String, IndexColumnName> row : result) {
+            System.out.println(row.getColumns().getColumnByIndex(0).getName());
+            assertTrue(helper.isIndexExists(keyspace, indexCF, row.getKey(), row.getColumns().getColumnByIndex(0).getName()));
+        }
+        
+        ((DbClientImpl)getDbClient()).internalRemoveObjects(testData);
+        for (Row<String, IndexColumnName> row : result) {
+            assertFalse(helper.isIndexExists(keyspace, indexCF, row.getKey(), row.getColumns().getColumnByIndex(0).getName()));
+        }
     }
 }

@@ -125,15 +125,15 @@ public class FileOrchestrationControllerImpl implements FileOrchestrationControl
     }
 
     @Override
-    public void assignFileSnapshotPolicyToVirtualPool(Map<URI, List<URI>> vpoolToStorageSystemMap, URI filePolicyToAssign, String taskId)
+    public void assignFileSnapshotPolicyToVirtualPools(Map<URI, List<URI>> vpoolToStorageSystemMap, URI filePolicyToAssign, String taskId)
             throws InternalException {
-        execOrchestration("assignFileSnapshotPolicyToVirtualPool", vpoolToStorageSystemMap, filePolicyToAssign, taskId);
+        execOrchestration("assignFileSnapshotPolicyToVirtualPools", vpoolToStorageSystemMap, filePolicyToAssign, taskId);
     }
 
     @Override
-    public void assignFileSnapshotPolicyToProject(Map<URI, List<URI>> vpoolToStorageSystemMap, List<URI> projectURIs,
+    public void assignFileSnapshotPolicyToProjects(Map<URI, List<URI>> vpoolToStorageSystemMap, List<URI> projectURIs,
             URI filePolicyToAssign, String taskId) {
-        execOrchestration("assignFileSnapshotPolicyToProject", vpoolToStorageSystemMap, projectURIs, filePolicyToAssign, taskId);
+        execOrchestration("assignFileSnapshotPolicyToProjects", vpoolToStorageSystemMap, projectURIs, filePolicyToAssign, taskId);
 
     }
 
@@ -143,16 +143,16 @@ public class FileOrchestrationControllerImpl implements FileOrchestrationControl
     }
 
     @Override
-    public void assignFileReplicationPolicyToVirtualPool(List<FileStorageSystemAssociation> associations,
+    public void assignFileReplicationPolicyToVirtualPools(List<FileStorageSystemAssociation> associations,
             List<URI> vpoolURIs, URI filePolicyToAssign, String taskId) {
-        execOrchestration("assignFileReplicationPolicyToVirtualPool", associations, vpoolURIs, filePolicyToAssign, taskId);
+        execOrchestration("assignFileReplicationPolicyToVirtualPools", associations, vpoolURIs, filePolicyToAssign, taskId);
 
     }
 
     @Override
-    public void assignFileReplicationPolicyToProject(List<FileStorageSystemAssociation> associations, URI vpoolURI, List<URI> projectURIs,
+    public void assignFileReplicationPolicyToProjects(List<FileStorageSystemAssociation> associations, URI vpoolURI, List<URI> projectURIs,
             URI filePolicyToAssign, String taskId) {
-        execOrchestration("assignFileReplicationPolicyToProject", associations, vpoolURI, projectURIs, filePolicyToAssign, taskId);
+        execOrchestration("assignFileReplicationPolicyToProjects", associations, vpoolURI, projectURIs, filePolicyToAssign, taskId);
 
     }
 

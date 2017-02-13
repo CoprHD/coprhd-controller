@@ -31,6 +31,7 @@ import com.emc.storageos.hds.model.ISCSIName;
 import com.emc.storageos.hds.model.Pool;
 import com.emc.storageos.hds.model.WorldWideName;
 import com.emc.storageos.plugins.AccessProfile;
+import com.emc.storageos.util.ConnectivityUtil;
 import com.google.common.base.Function;
 import com.google.common.base.Splitter;
 import com.google.common.collect.Iterables;
@@ -215,14 +216,16 @@ public class HDSUtils {
         List<URI> activeProviders = new ArrayList<URI>();
         for (StorageProvider storageProvider : hicommandProviderList) {
             try {
-                HDSApiClient hdsApiClient = hdsApiFactory.getClient(
-                        HDSUtils.getHDSServerManagementServerInfo(storageProvider),
-                        storageProvider.getUserName(), storageProvider.getPassword());
-                // Makes sure "Hi Command Device manager" is reachable
-                hdsApiClient.getStorageSystemsInfo();
-                storageProvider.setConnectionStatus(ConnectionStatus.CONNECTED.name());
-                activeProviders.add(storageProvider.getId());
+                if (ConnectivityUtil.ping(storageProvider.getIPAddress())) {
+                    HDSApiClient hdsApiClient = hdsApiFactory.getClient(
+                            HDSUtils.getHDSServerManagementServerInfo(storageProvider),
+                            storageProvider.getUserName(), storageProvider.getPassword());
+                    // Makes sure "Hi Command Device manager" is reachable
+                    hdsApiClient.getStorageSystemsInfo();
+                    storageProvider.setConnectionStatus(ConnectionStatus.CONNECTED.name());
+                    activeProviders.add(storageProvider.getId());
                 log.info("Storage Provider {} is reachable", storageProvider.getIPAddress());
+                }
             } catch (Exception e) {
                 log.error(e.getMessage(), e);
                 storageProvider.setConnectionStatus(ConnectionStatus.NOTCONNECTED.name());

@@ -1841,7 +1841,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
     }
 
     @Override
-    public void assignFileSnapshotPolicyToVirtualPool(Map<URI, List<URI>> vpoolToStorageSystemMap, URI filePolicyToAssign, String taskId)
+    public void assignFileSnapshotPolicyToVirtualPools(Map<URI, List<URI>> vpoolToStorageSystemMap, URI filePolicyToAssign, String taskId)
             throws InternalException {
         FilePolicy filePolicy = s_dbClient.queryObject(FilePolicy.class, filePolicyToAssign);
         TaskCompleter completer = new FilePolicyAssignWorkflowCompleter(filePolicyToAssign, vpoolToStorageSystemMap.keySet(), taskId);
@@ -1919,7 +1919,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
     }
 
     @Override
-    public void assignFileSnapshotPolicyToProject(Map<URI, List<URI>> vpoolToStorageSystemMap, List<URI> projectURIs,
+    public void assignFileSnapshotPolicyToProjects(Map<URI, List<URI>> vpoolToStorageSystemMap, List<URI> projectURIs,
             URI filePolicyToAssign, String taskId) {
         FilePolicy filePolicy = s_dbClient.queryObject(FilePolicy.class, filePolicyToAssign);
         String opName = ResourceOperationTypeEnum.ASSIGN_FILE_POLICY.getName();
@@ -2058,7 +2058,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
     }
 
     @Override
-    public void assignFileReplicationPolicyToVirtualPool(List<FileStorageSystemAssociation> associations,
+    public void assignFileReplicationPolicyToVirtualPools(List<FileStorageSystemAssociation> associations,
             List<URI> vpoolURIs, URI filePolicyToAssign, String taskId) {
 
         FilePolicy filePolicy = s_dbClient.queryObject(FilePolicy.class, filePolicyToAssign);
@@ -2136,7 +2136,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
     }
 
     @Override
-    public void assignFileReplicationPolicyToProject(List<FileStorageSystemAssociation> associations, URI vpoolURI, List<URI> projectURIs,
+    public void assignFileReplicationPolicyToProjects(List<FileStorageSystemAssociation> associations, URI vpoolURI, List<URI> projectURIs,
             URI filePolicyToAssign,
             String taskId) {
         FilePolicy filePolicy = s_dbClient.queryObject(FilePolicy.class, filePolicyToAssign);

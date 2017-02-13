@@ -368,7 +368,7 @@ unity_setup()
     run cos create block ${VPOOL_BASE}	\
 	--description Base true                 \
 	--protocols FC 			                \
-	--numpaths 2				            \
+	--numpaths 1				            \
 	--multiVolumeConsistency \
 	--provisionType 'Thin'			        \
 	--max_snapshots 10                      \
@@ -377,7 +377,7 @@ unity_setup()
     run cos create block ${VPOOL_CHANGE}	\
 	--description Base true                 \
 	--protocols FC 			                \
-	--numpaths 4				            \
+	--numpaths 2				            \
 	--multiVolumeConsistency \
 	--provisionType 'Thin'			        \
 	--max_snapshots 10                      \
@@ -438,7 +438,7 @@ vmax2_setup() {
 	--description Base true                 \
 	--protocols FC 			                \
 	--multiVolumeConsistency \
-	--numpaths 2				            \
+	--numpaths 1				            \
 	--provisionType 'Thin'			        \
 	--max_snapshots 10                      \
 	--expandable true                       \
@@ -448,7 +448,7 @@ vmax2_setup() {
 	--description Base true                 \
 	--protocols FC 			                \
 	--multiVolumeConsistency \
-	--numpaths 4				            \
+	--numpaths 2				            \
 	--provisionType 'Thin'			        \
 	--max_snapshots 10                      \
 	--expandable true                       \
@@ -1758,7 +1758,12 @@ test_5() {
 	storage_failure_injections=""
     fi
 
-    if [ "${SS}" = "vmax2" -o "${SS}" = "vmax3" ]
+    if [ "${SS}" = "vmax2" ]
+    then
+	storage_failure_injections="failure_015_SmisCommandHelper.invokeMethod_DeleteGroup"
+    fi
+
+    if [ "${SS}" = "vmax3" ]
     then
 	storage_failure_injections="failure_015_SmisCommandHelper.invokeMethod_DeleteGroup \
                                     failure_015_SmisCommandHelper.invokeMethod_AddMembers"
@@ -2616,7 +2621,7 @@ test_12() {
       set_suspend_on_class_method ${exportRemoveInitiatorsDeviceStep}
 
       # Run the export group command
-      runcmd_suspend test_13 export_group update $PROJECT/${expname}1 --remInits ${HOST1}/${H1PI1}
+      runcmd_suspend test_12 export_group update $PROJECT/${expname}1 --remInits ${HOST1}/${H1PI1}
 
       if [ "${failure}" = "failure_firewall" ]
       then
@@ -2663,7 +2668,7 @@ test_12() {
       validate_db 1 4 "${cfs[@]}"
 
       # Report results
-      report_results test_13 ${failure}
+      report_results test_12 ${failure}
     done
 }
 
@@ -2782,7 +2787,7 @@ test_13() {
       validate_db 1 4 "${cfs[@]}"
 
       # Report results
-      report_results test_14 ${failure}
+      report_results test_13 ${failure}
     done
 }
 
@@ -3079,7 +3084,6 @@ do
     fi
 done
 
-
 login
 
 # setup required by all runs, even ones where setup was already done.
@@ -3096,9 +3100,8 @@ then
     fi
 fi
 
-
 test_start=1
-test_end=14
+test_end=13
 
 # If there's a last parameter, take that
 # as the name of the test to run

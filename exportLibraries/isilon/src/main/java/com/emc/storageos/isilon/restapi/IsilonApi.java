@@ -676,7 +676,7 @@ public class IsilonApi {
         try {
             id = URLEncoder.encode(id, "UTF-8");
         } catch (UnsupportedEncodingException e) {
-            e.printStackTrace();
+            sLogger.error("UnsupportedEncodingException occured", e);
         }
         modify(_baseUrl.resolve(URI_SNAPSHOT_SCHEDULES), id, "schedule", s);
     }
@@ -692,7 +692,7 @@ public class IsilonApi {
         try {
             id = URLEncoder.encode(id, "UTF-8");
         } catch (UnsupportedEncodingException e) {
-            e.printStackTrace();
+            sLogger.error("UnsupportedEncodingException occured", e);
         }
         deleteSnapshotSchedule(_baseUrl.resolve(URI_SNAPSHOT_SCHEDULES + "/" + id));
     }
@@ -1488,7 +1488,7 @@ public class IsilonApi {
             fspath = fspath.concat("?acl");// add suffix ?acl
 
         } catch (UnsupportedEncodingException e) {
-            e.printStackTrace();
+            sLogger.error("UnsupportedEncodingException occured", e);
         }
 
         put(_baseUrl.resolve(URI_IFS), fspath, "ACL", acl);
@@ -1508,7 +1508,7 @@ public class IsilonApi {
             fspath = URLEncoder.encode(fspath, "UTF-8");
             fspath = fspath.concat("?acl");// add suffix ?acl
         } catch (UnsupportedEncodingException e) {
-            e.printStackTrace();
+            sLogger.error("UnsupportedEncodingException occured", e);
         }
         return getObj(_baseUrl.resolve(URI_IFS), fspath, IsilonNFSACL.class);
     }
@@ -1767,7 +1767,7 @@ public class IsilonApi {
                             statValueCurrent.error.toString());
                 }
                 statValueCurrent.value = new Gson()
-                        .fromJson(SecurityUtils.sanitizeJsonString(entryObj.getString("value")), valueType);
+                .fromJson(SecurityUtils.sanitizeJsonString(entryObj.getString("value")), valueType);
                 retMap.put(entryKey, statValueCurrent);
             }
             return retMap;

@@ -159,6 +159,7 @@ public class VNXeMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                     "exportGroupDelete", true, token);
             String deleteStep = null;
             for (ExportMask exportMask : exportMasks) {
+                refreshExportMask(storage, getDevice(), exportMask);
                 deleteStep = generateExportMaskDeleteWorkflow(workflow, deleteStep,
                         storage, exportGroup, exportMask, null, null, null);
             }
@@ -508,6 +509,8 @@ public class VNXeMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                 List<ExportMask> deleteMasks = new ArrayList<ExportMask>();
                 List<ExportMask> updateMasks = new ArrayList<ExportMask>();
                 for (ExportMask mask : exportMasks) {
+                    refreshExportMask(storage, getDevice(), mask);
+
                     // Determine if we're deleting the last volume.
                     Set<String> remainingVolumes = new HashSet<String>();
                     if (mask.getVolumes() != null) {
@@ -530,7 +533,7 @@ public class VNXeMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                                 exportGroup, exportMask, null, null, null);
                     }
                     generateZoningDeleteWorkflow(workflow, deleteStep,
-                            exportGroup, exportMasks);
+                            exportGroup, deleteMasks);
                 }
                 if (!updateMasks.isEmpty()) {
                     String unexportStep = null;
@@ -539,7 +542,7 @@ public class VNXeMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                                 storage, exportGroup, exportMask, volumes, null, null);
                     }
                     generateZoningRemoveVolumesWorkflow(workflow,
-                            null, exportGroup, exportMasks, volumes);
+                            null, exportGroup, updateMasks, volumes);
                 }
                 String successMessage = String.format(
                         "Volumes successfully unexported from StorageArray %s",

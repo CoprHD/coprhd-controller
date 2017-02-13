@@ -33,6 +33,7 @@ import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.ComputeSystem;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.CompatibilityStatus;
+import com.emc.storageos.db.client.model.DiscoveredDataObject.DataCollectionJobStatus;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
 import com.emc.storageos.db.client.model.DiscoveredSystemObject;
 import com.emc.storageos.db.client.model.Host;
@@ -375,15 +376,16 @@ public class DataCollectionJobScheduler {
         _logger.info("Started Loading Storage Providers from DB");
         List<StorageProvider> providers = _dbClient.queryObject(StorageProvider.class, _dbClient.queryByType(StorageProvider.class, true));
 
-        Map<String, List<StorageProvider>> providersByType = new HashMap<String, List<StorageProvider>>();
+        Map<String, DataCollectionScanJob> scanJobByInterfaceType = new HashMap<String, DataCollectionScanJob>();
         for (StorageProvider provider : providers) {
-            if (providersByType.get(provider.getInterfaceType()) == null) {
-                providersByType.put(provider.getInterfaceType(), new ArrayList<StorageProvider>());
+            if (scanJobByInterfaceType.get(provider.getInterfaceType()) == null) {
+                scanJobByInterfaceType.put(provider.getInterfaceType(), new DataCollectionScanJob(DataCollectionJob.JobOrigin.SCHEDULER));
             }
-            providersByType.get(provider.getInterfaceType()).add(provider);
+            String taskId = UUID.randomUUID().toString();
+            scanJobByInterfaceType.get(provider.getInterfaceType()).addCompleter(new ScanTaskCompleter(StorageProvider.class, provider.getId(), taskId));
         }
-        for (List<StorageProvider> providersSameType : providersByType.values()) {
-            scheduleScannerJobs(providersSameType);
+        for (DataCollectionScanJob scanJob : scanJobByInterfaceType.values()) {
+            scheduleScannerJobs(scanJob);
         }
     }
 
@@ -393,19 +395,14 @@ public class DataCollectionJobScheduler {
      * @param providers
      * @throws Exception
      */
-    private void scheduleScannerJobs(List<StorageProvider> providers) throws Exception {
+    public void scheduleScannerJobs(DataCollectionScanJob scanJob) throws Exception {
+        List<StorageProvider> providers = _dbClient.queryObject(StorageProvider.class, scanJob.getProviders());
         if (providers == null || providers.isEmpty()) {
             _logger.info("No scanning needed: provider list is empty");
             return;
         }
+        
         _logger.info("Starting scan of providers of type {}", providers.iterator().next().getInterfaceType());
-        DataCollectionScanJob scanJob = new DataCollectionScanJob(DataCollectionJob.JobOrigin.SCHEDULER);
-
-        for (StorageProvider provider : providers) {
-            URI providerURI = provider.getId();
-            String taskId = UUID.randomUUID().toString();
-            scanJob.addCompleter(new ScanTaskCompleter(StorageProvider.class, providerURI, taskId));
-        }
 
         long lastScanTime = 0;
 
@@ -424,8 +421,15 @@ public class DataCollectionJobScheduler {
                     }
                     
                     if (isDataCollectionScanJobSchedulingNeeded(lastScanTime, inProgress)) {
+                        for (StorageProvider provider : providers) {
+                            provider.setScanStatus(DataCollectionJobStatus.SCHEDULED.toString());
+                            _dbClient.updateObject(provider);
+                        }
                         _logger.info("Added Scan job to the Distributed Queue");
                         ControllerServiceImpl.enqueueDataCollectionJob(scanJob);
+                    } else {
+                        // clear the task that was created for this job but don't set the provider to not in progress
+                        scanJob.setTaskReady(_dbClient, "Scan job was not run because it is either in progress or was run recently");
                     }
                 } catch (Exception e) {
                     _logger.error(e.getMessage(), e);
@@ -688,8 +692,6 @@ public class DataCollectionJobScheduler {
     private boolean isInProgress(StorageProvider provider) {
         // if inprogress,
         return DiscoveredDataObject.DataCollectionJobStatus.IN_PROGRESS.toString()
-                .equalsIgnoreCase(provider.getScanStatus()) ||
-                DiscoveredDataObject.DataCollectionJobStatus.SCHEDULED.toString()
                         .equalsIgnoreCase(provider.getScanStatus());
     }
 

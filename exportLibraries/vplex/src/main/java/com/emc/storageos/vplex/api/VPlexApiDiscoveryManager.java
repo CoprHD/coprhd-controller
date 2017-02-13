@@ -3432,25 +3432,22 @@ public class VPlexApiDiscoveryManager {
     }
 
     /**
-     * Returns the top-level supporting device name for a given storage volume native id,
-     * wwn, and backend array serial number. Uses the storage-volume used-by VPLEX CLI
-     * command to do a reverse look up of the parent device for a storage volume
-     * based on the native id, wwn, and array serial number.
+     * Returns the top-level supporting device name for a given storage with the passed 
+     * native storage volume information. Uses the storage-volume used-by VPLEX CLI
+     * command to do a reverse look up of the parent device for a storage volume.
      * 
-     * @param volumeNativeId the storage volume's native id
-     * @param wwn the storage volume's wwn
-     * @param backendArraySerialNum the serial number of the backend array
+     * @param vInfo The native storage volume information.
      * 
      * @return the name of the top level device for the given storage volume
      * @throws VPlexApiException
      */
+     */
     @Deprecated
-    public String getDeviceForStorageVolume(String volumeNativeId,
-            String wwn, String backendArraySerialNum) throws VPlexApiException {
+    public String getDeviceForStorageVolume(VolumeInfo vInfo) throws VPlexApiException {
 
         long start = System.currentTimeMillis();
         s_logger.info("Getting device name for array {} volume {} (wwn: {}) from VPLEX at "
-                + _vplexApiClient.getBaseURI().toString(), backendArraySerialNum, volumeNativeId);
+                + vInfo.getStorageSystemNativeGuid(), vInfo.getVolumeNativeId(), vInfo.getVolumeWWN());
 
         StringBuilder contextArgBuilder = new StringBuilder();
         // format /storage-volume+used-by
@@ -3472,11 +3469,11 @@ public class VPlexApiDiscoveryManager {
         // to try to find a storage volume based on the native id, wwn, and array serial number
 
         // the max number of patterns possibly returned by getVolumeNamePattern
-        int numPatterns = 4;
+        int numPatterns = 3;
         boolean success = false;
         String responseStr = "";
         for (int i = 0; i < numPatterns; i++) {
-            String pattern = getVolumeNamePattern(i, volumeNativeId, wwn, backendArraySerialNum);
+            String pattern = getVolumeNamePattern(i, vInfo);
             Map<String, String> argsMap = new HashMap<String, String>();
             argsMap.put(VPlexApiConstants.ARG_DASH_D, contextArg + pattern);
 
@@ -3537,49 +3534,35 @@ public class VPlexApiDiscoveryManager {
      * A storage-volume name pattern generator.
      * 
      * @param i the pattern number to get
-     * @param volumeNativeId the volume's native id
-     * @param wwn the volume's WWN
-     * @param backendArraySerialNum the backend array serial number
+     * @param vInfo The native storage volume information.
      * @return
      */
     @Deprecated
-    private String getVolumeNamePattern(int i, String volumeNativeId,
-            String wwn, String backendArraySerialNum) {
+    private String getVolumeNamePattern(int i, VolumeInfo vInfo) {
         String pattern = "";
 
         switch (i) {
-            case 0:
-                // *[serialnum]*[deviceid] (this is the standard ViPR claimed volume format)
-                pattern = VPlexApiConstants.WILDCARD
-                        + backendArraySerialNum
-                        + VPlexApiConstants.WILDCARD
-                        + volumeNativeId;
-                break;
-            case 1:
-                // *[wwn] (seems by default vols get VPD83T3:wwn for a name)
-                pattern = VPlexApiConstants.WILDCARD
-                        + wwn
-                        + VPlexApiConstants.WILDCARD;
-                break;
-            case 2:
-                // *[wwn].toLowerCase (the used-by command seems to be case-sensitive,
-                // and many vol names are lower case)
-                pattern = VPlexApiConstants.WILDCARD
-                        + wwn.toLowerCase()
-                        + VPlexApiConstants.WILDCARD;
-                break;
-            case 3:
-                // *[wwn].substring(5) (for cases where the wwn was too long for
-                // the 63-char limit, like ViPR claimed Xtremio vols)
-                pattern = VPlexApiConstants.WILDCARD
-                        + wwn.substring(5).toLowerCase()
-                        + VPlexApiConstants.WILDCARD;
+             case 0:
+                 pattern = VPlexApiConstants.WILDCARD 
+                         + vInfo.getVolumeName();
+                 break;
+             case 1:
+                 // *[wwn] (seems by default vols get VPD83T3:wwn for a name)
+                 pattern = VPlexApiConstants.WILDCARD
+                         + vInfo.getVolumeWWN()
+                         + VPlexApiConstants.WILDCARD;
+                 break;
+             case 2:
+                 // *[wwn].toLowerCase (the used-by command seems to be case-sensitive,
+                 // and many vol names are lower case)
+                 pattern = VPlexApiConstants.WILDCARD
+                         + vInfo.getVolumeWWN().toLowerCase()
+                         + VPlexApiConstants.WILDCARD;
                 break;
         }
-
         return pattern;
     }
-
+    
     /**
      * Returns a VPlexDistributedDeviceInfo object for the given device. For each leg,
      * the device geometry (RAID configuration) is analyzed to ensure an acceptable component

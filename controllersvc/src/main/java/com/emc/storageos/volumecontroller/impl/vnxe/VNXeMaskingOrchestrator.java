@@ -372,6 +372,7 @@ public class VNXeMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                         exportMask.getVolumes() != null) {
                     _log.info(String.format("deleting the exportMask: %s",
                             exportMask.getId().toString()));
+                    // Initiator list (initiatorURIs) need to be provided when deleting export mask as a result of removing last initiators
                     deleteStep = generateExportMaskDeleteWorkflow(workflow, deleteStep, storage,
                             exportGroup, exportMask, null, initiatorURIs, null);
 

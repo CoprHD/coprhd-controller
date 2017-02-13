@@ -913,7 +913,7 @@ getwwn() {
 }
 
 cleanup() {
-    if [ "${docleanup}" = "1" ]; then
+    if [ "${DO_CLEANUP}" = "1" ]; then
 	for id in `export_group list $PROJECT | grep YES | awk '{print $5}'`
 	do
 	  runcmd export_group delete ${id} > /dev/null

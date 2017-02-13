@@ -85,8 +85,9 @@ public class VPlexApiClient {
     private String _vplexSessionId = null;
 
     // caching of some almost-static VPLEX info for performance improvement
-    private volatile Map<String, String> vplexClusterIdToNameCache = new HashMap<String, String>();
-    private volatile List<VPlexClusterInfo> vplexClusterInfoLiteCache = new ArrayList<VPlexClusterInfo>();
+    private volatile Map<String, String> _vplexClusterIdToNameCache = new HashMap<String, String>();
+    private volatile List<VPlexClusterInfo> _vplexClusterInfoLiteCache = new ArrayList<VPlexClusterInfo>();
+    private volatile Map<String, Map<String, String>> _vplexClusterInitiatorNameToWwnCache = new HashMap<String, Map<String, String>>();
 
     /**
      * Constructor
@@ -199,12 +200,12 @@ public class VPlexApiClient {
      */
     public synchronized List<VPlexClusterInfo> getClusterInfoLite() throws VPlexApiException {
         s_logger.info("Request for lightweight cluster info for VPlex at {}", _baseURI);
-        if (vplexClusterInfoLiteCache.isEmpty()) {
-            vplexClusterInfoLiteCache.addAll(_discoveryMgr.getClusterInfo(true, false));
-            s_logger.info("refreshed lightweight cluster info list is " + vplexClusterInfoLiteCache.toString());
+        if (_vplexClusterInfoLiteCache.isEmpty()) {
+            _vplexClusterInfoLiteCache.addAll(_discoveryMgr.getClusterInfo(true, false));
+            s_logger.info("refreshed lightweight cluster info list is " + _vplexClusterInfoLiteCache.toString());
         }
 
-        return vplexClusterInfoLiteCache;
+        return _vplexClusterInfoLiteCache;
     }
 
     /**
@@ -1303,8 +1304,41 @@ public class VPlexApiClient {
      * @return a map of port WWNs to initiator names. Note the keys (WWNs) have
      *         no colons.
      */
-    public Map<String, String> getInitiatorWwnToNameMap(String clusterName) {
-        return _discoveryMgr.getInitiatorWwnToNameMap(clusterName);
+    private synchronized Map<String, String> getInitiatorWwnToNameMap(String clusterName) {
+        if (!_vplexClusterInitiatorNameToWwnCache.containsKey(clusterName) ||
+                _vplexClusterInitiatorNameToWwnCache.get(clusterName).isEmpty()) {
+            long start = System.currentTimeMillis();
+            s_logger.info("TIMER: refreshing initiator wwn to name cache...");
+            Map<String, String> clusterInitiatorToNameMap = _discoveryMgr.getInitiatorWwnToNameMap(clusterName);
+            s_logger.info("TIMER: refreshing initiator wwn to name cache took {}ms", System.currentTimeMillis() - start);
+            _vplexClusterInitiatorNameToWwnCache.put(clusterName, clusterInitiatorToNameMap);
+        }
+
+        return _vplexClusterInitiatorNameToWwnCache.get(clusterName);
+    }
+
+    /**
+     * Gets the VPLEX initiator name for an upper case wwn with no colons,
+     * or null if not found.
+     * 
+     * @param vplexClusterName the name of the VPLEX cluster to check
+     * @param wwn the wwn to find an Initiator name for
+     * @return the name of the Initiator
+     */
+    public synchronized String getInitiatorNameForWwn(String vplexClusterName, String wwn) {
+        String initiatorName = null;
+
+        if (!getInitiatorWwnToNameMap(vplexClusterName).containsKey(wwn)) {
+            s_logger.info(
+                    "initiator wwn to name cache does not contain an entry for wwn {} on vplex cluster {}, clearing cache for refresh", 
+                        wwn, vplexClusterName);
+            _vplexClusterInitiatorNameToWwnCache.get(vplexClusterName).clear();
+        }
+
+        initiatorName = getInitiatorWwnToNameMap(vplexClusterName).get(wwn);
+
+        s_logger.info("initiator name {} found for wwn {}", initiatorName, wwn);
+        return initiatorName;
     }
 
     /**
@@ -1339,15 +1373,15 @@ public class VPlexApiClient {
      * @return a map of cluster IDs to cluster names for the VPLEX device
      */
     public synchronized Map<String, String> getClusterIdToNameMap() {
-        if (vplexClusterIdToNameCache.isEmpty()) {
+        if (_vplexClusterIdToNameCache.isEmpty()) {
             List<VPlexClusterInfo> clusterInfos = getClusterInfoLite();
             for (VPlexClusterInfo clusterInfo : clusterInfos) {
-                vplexClusterIdToNameCache.put(clusterInfo.getClusterId(), clusterInfo.getName());
+                _vplexClusterIdToNameCache.put(clusterInfo.getClusterId(), clusterInfo.getName());
             }
-            s_logger.info("refreshed cluster id to name map is " + vplexClusterIdToNameCache.toString());
+            s_logger.info("refreshed cluster id to name map is " + _vplexClusterIdToNameCache.toString());
         }
 
-        return vplexClusterIdToNameCache;
+        return _vplexClusterIdToNameCache;
     }
 
     /**
@@ -2014,7 +2048,16 @@ public class VPlexApiClient {
     }
 
     public synchronized void clearCaches() {
-        vplexClusterIdToNameCache.clear();
-        vplexClusterInfoLiteCache.clear();
+        _vplexClusterIdToNameCache.clear();
+        _vplexClusterInfoLiteCache.clear();
+        _vplexClusterInitiatorNameToWwnCache.clear();
+        primeCaches();
+    }
+
+    private synchronized void primeCaches() {
+        // prime the cluster id to name map, then use the values to prime the initiator to wwn map
+        for (String clusterName : getClusterIdToNameMap().values()) {
+            getInitiatorWwnToNameMap(clusterName);
+        }
     }
 }

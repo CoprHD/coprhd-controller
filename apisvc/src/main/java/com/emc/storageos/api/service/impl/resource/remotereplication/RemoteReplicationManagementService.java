@@ -136,7 +136,6 @@ public class RemoteReplicationManagementService extends TaskResourceService {
                 // for individual pairs send one request for each pair
                 // call pair service for each pair and add task to the taskList, return task list.
                 String taskID = UUID.randomUUID().toString();
-                List<RemoteReplicationPair> rrPairs = _dbClient.queryObject(RemoteReplicationPair.class, operationParam.getIds());
                 for (URI rrPairURI : operationParam.getIds()) {
                     TaskResourceRep rrPairTaskResourceRep = rrPairService.failoverRemoteReplicationPairLink(rrPairURI, taskID);
                     taskList.addTask(rrPairTaskResourceRep);

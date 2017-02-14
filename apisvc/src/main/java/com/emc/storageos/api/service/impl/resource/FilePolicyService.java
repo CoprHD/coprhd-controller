@@ -956,8 +956,7 @@ public class FilePolicyService extends TaskResourceService {
             case file_replication:
                 // update replication topology info
                 updateFileReplicationTopologyInfo(param, filePolicy);
-                List<FileRecommendation> recommendations = new ArrayList<FileRecommendation>();
-
+                List<FileStorageSystemAssociation> associations = new ArrayList<FileStorageSystemAssociation>();
                 for (URI vpoolURI : filteredVpoolURIs) {
                     VirtualPool vpool = _permissionsHelper.getObjectById(vpoolURI, VirtualPool.class);
                     StringSet sourceVArraysSet = getSourceVArraySet(vpool, filePolicy);
@@ -977,14 +976,19 @@ public class FilePolicyService extends TaskResourceService {
                                 List<FileRecommendation> newRecs = _filePlacementManager.getRecommendationsForFileCreateRequest(srcVarray,
                                         null,
                                         vpool, capabilities);
-                                recommendations.addAll(newRecs);
+                                if (newRecs != null && !newRecs.isEmpty()) {
+                                    associations.addAll(convertRecommendationsToStorageSystemAssociations(newRecs, filePolicy.getApplyAt(),
+                                            vpool.getId(), null));
+
+                                }
+
                             }
                         }
 
                     }
                 }
                 taskObject = createAssignFilePolicyTask(filePolicy, task);
-                List<FileStorageSystemAssociation> associations = convertRecommendationsToStorageSystemAssociations(recommendations);
+
                 fileServiceApi.assignFileReplicationPolicyToVirtualPools(associations, filteredVpoolURIs, filePolicy.getId(), task);
                 break;
             default:
@@ -1040,7 +1044,8 @@ public class FilePolicyService extends TaskResourceService {
         return true;
     }
 
-    private List<FileStorageSystemAssociation> convertRecommendationsToStorageSystemAssociations(List<FileRecommendation> recs) {
+    private List<FileStorageSystemAssociation> convertRecommendationsToStorageSystemAssociations(List<FileRecommendation> recs,
+            String appliedAt, URI vPoolURI, URI projectURI) {
 
         List<FileStorageSystemAssociation> associations = new ArrayList<FileStorageSystemAssociation>();
 
@@ -1049,7 +1054,12 @@ public class FilePolicyService extends TaskResourceService {
             FileStorageSystemAssociation association = new FileStorageSystemAssociation();
             association.setSourceSystem(mirrorRec.getSourceStorageSystem());
             association.setSourceVNAS(mirrorRec.getvNAS());
-
+            if (appliedAt.equalsIgnoreCase(FilePolicyApplyLevel.vpool.name())) {
+                association.setAppliedAtResource(vPoolURI);
+            } else if (appliedAt.equalsIgnoreCase(FilePolicyApplyLevel.project.name())) {
+                association.setProjectvPool(vPoolURI);
+                association.setAppliedAtResource(projectURI);
+            }
             // Constructing a map useful when one-to-many replication is supported in future
             Map<URI, URI> targetStorageDeviceToVNASMap = new HashMap<URI, URI>();
 
@@ -1153,7 +1163,7 @@ public class FilePolicyService extends TaskResourceService {
                 }
                 // update replication topology info
                 updateFileReplicationTopologyInfo(param, filePolicy);
-                List<FileRecommendation> recommendations = new ArrayList<FileRecommendation>();
+                List<FileStorageSystemAssociation> associations = new ArrayList<FileStorageSystemAssociation>();
                 VirtualPoolCapabilityValuesWrapper capabilities = new VirtualPoolCapabilityValuesWrapper();
                 StringSet sourceVArraysSet = getSourceVArraySet(vpool, filePolicy);
                 updatePolicyCapabilities(_dbClient, sourceVArraysSet, vpool, filePolicy, capabilities, errorMsg);
@@ -1171,13 +1181,17 @@ public class FilePolicyService extends TaskResourceService {
                                 List<FileRecommendation> newRecs = _filePlacementManager.getRecommendationsForFileCreateRequest(srcVarray,
                                         project,
                                         vpool, capabilities);
-                                recommendations.addAll(newRecs);
+                                if (newRecs != null && !newRecs.isEmpty()) {
+                                    associations.addAll(convertRecommendationsToStorageSystemAssociations(newRecs, filePolicy.getApplyAt(),
+                                            vpool.getId(), projectURI));
+
+                                }
+
                             }
                         }
                     }
                 }
 
-                List<FileStorageSystemAssociation> associations = convertRecommendationsToStorageSystemAssociations(recommendations);
                 fileServiceApi.assignFileReplicationPolicyToProjects(associations, vpoolURI,
                         filteredProjectURIs, filePolicy.getId(), task);
                 break;

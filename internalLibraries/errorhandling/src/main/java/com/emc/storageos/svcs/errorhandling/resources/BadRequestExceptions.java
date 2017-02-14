@@ -2981,6 +2981,9 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException virtualHostCantNotbeInCluster();
+    
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException invalidParameterInitatorAlreadyPaired(String initiatorPort, String pairedPort);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException cannotDeleteMirrorFileShareTargetWithActiveSource(URI target, URI source);

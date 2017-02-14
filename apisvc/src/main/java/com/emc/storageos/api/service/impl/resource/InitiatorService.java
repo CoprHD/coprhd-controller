@@ -180,7 +180,7 @@ public class InitiatorService extends TaskResourceService {
             @PathParam("associatedId") URI associatedId) throws DatabaseException {
 
         if (id.compareTo(associatedId) == 0) {
-            APIException.badRequests.associateInitiatorMismatch(id, associatedId);
+            throw APIException.badRequests.associateInitiatorMismatch(id, associatedId);
         }
 
         Initiator initiator = queryObject(Initiator.class, id, true);
@@ -192,7 +192,7 @@ public class InitiatorService extends TaskResourceService {
             URI secondtHost = pairInitiator.getHost();
 
             if (firstHost.compareTo(secondtHost) != 0) {
-                APIException.badRequests.initiatorsNotBelongToSameHost(id, associatedId);
+                throw APIException.badRequests.initiatorsNotBelongToSameHost(id, associatedId);
             }
 
             // If host has already exported volume .
@@ -200,8 +200,11 @@ public class InitiatorService extends TaskResourceService {
             // for initiator pair .Do not associate such initiator,
             if (ComputeSystemHelper.isHostInUse(_dbClient, firstHost)) {
 
-                APIException.badRequests.cannotAssociateInitiatorWhileHostInUse();
+                throw APIException.badRequests.cannotAssociateInitiatorWhileHostInUse();
             }
+            
+            //check whether associated initiator id is already a part of any initiator
+            checkForInitialAssocaition(initiator, pairInitiator);
 
             initiator.setAssociatedInitiator(associatedId);
             pairInitiator.setAssociatedInitiator(id);
@@ -214,6 +217,14 @@ public class InitiatorService extends TaskResourceService {
         }
         return map(queryObject(Initiator.class, id, false));
     }
+    
+    //internal method to check initiator association
+    private void checkForInitialAssocaition(Initiator initiator, Initiator pairInitiator) {
+		if (initiator.getAssociatedInitiator() != null && pairInitiator.getAssociatedInitiator() != null) {
+			throw APIException.badRequests.invalidParameterInitatorAlreadyPaired(initiator.getInitiatorPort(),
+					pairInitiator.getInitiatorPort());
+		}
+	}
 
     /**
      * Dissociate a Host initiator from its pair

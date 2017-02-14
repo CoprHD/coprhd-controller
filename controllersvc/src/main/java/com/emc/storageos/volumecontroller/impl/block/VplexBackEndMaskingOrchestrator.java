@@ -189,13 +189,11 @@ public interface VplexBackEndMaskingOrchestrator extends MaskingOrchestrator {
      *            -- List of Volume URIs to be removed from the Mask
      * @param initiatorURIs
      *            -- Initiators that are impacted by this change
-     * @param completer
-     *            -- Task completer to be fired when complete.
      * @return
      */
     Workflow.Method deleteOrRemoveVolumesFromExportMaskMethod(URI arrayURI,
             URI exportGroupURI, URI exportMaskURI,
-            List<URI> volumes, List<URI> initiatorURIs, TaskCompleter completer);
+            List<URI> volumes, List<URI> initiatorURIs);
 
     /**
      * Delete an Export Mask (VMAX: Masking View, VNX: Storage Group) on the backend array
@@ -212,11 +210,9 @@ public interface VplexBackEndMaskingOrchestrator extends MaskingOrchestrator {
      *            -- List of volume URIs
      * @param initiatorURIs
      *            -- Initiators that are impacted by this change
-     * @param completer
-     *            -- TaskCompleter to be fired when complete.
      * @param stepId
      *            -- Workflow step id.
      */
     void deleteOrRemoveVolumesFromExportMask(URI arrayURI, URI exportGroupURI, URI exportMaskURI,
-            List<URI> volumes, List<URI> initiatorURIs, TaskCompleter completer, String stepId);
+            List<URI> volumes, List<URI> initiatorURIs, String stepId);
 }

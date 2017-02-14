@@ -17,16 +17,10 @@
 
 package com.emc.sa.service.vipr.oe.tasks;
 
-import com.emc.sa.engine.ExecutionUtils;
-import com.emc.sa.service.vipr.oe.OrchestrationServiceConstants;
-import com.emc.sa.service.vipr.tasks.ViPRExecutionTask;
-import com.emc.storageos.model.orchestration.OrchestrationWorkflowDocument;
-import com.emc.storageos.model.orchestration.OrchestrationWorkflowDocument.Input;
-import com.emc.storageos.model.orchestration.OrchestrationWorkflowDocument.Step;
-import com.emc.storageos.primitives.Primitive.StepType;
-import com.emc.storageos.services.util.Exec;
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.net.URI;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -36,16 +30,31 @@ import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.LoggerFactory;
+
+import com.emc.sa.engine.ExecutionUtils;
+import com.emc.sa.service.vipr.oe.OrchestrationServiceConstants;
+import com.emc.sa.service.vipr.tasks.ViPRExecutionTask;
+import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.model.uimodels.CustomServiceScriptPrimitive;
+import com.emc.storageos.db.client.model.uimodels.CustomServiceScriptResource;
+import com.emc.storageos.model.orchestration.OrchestrationWorkflowDocument;
+import com.emc.storageos.model.orchestration.OrchestrationWorkflowDocument.Input;
+import com.emc.storageos.model.orchestration.OrchestrationWorkflowDocument.Step;
+import com.emc.storageos.primitives.Primitive.StepType;
+import com.emc.storageos.services.util.Exec;
+import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorException;
 
 /**
  * Runs Orchestration Shell script or Ansible Playbook.
  * It can run Ansible playbook on local node as well as on Remote node
  *
  */
-public class RunAnsible  extends ViPRExecutionTask<OrchestrationTaskResult> {
+public class RunAnsible extends ViPRExecutionTask<OrchestrationTaskResult> {
 
     private static final org.slf4j.Logger logger = LoggerFactory.getLogger(RunAnsible.class);
 
@@ -54,22 +63,30 @@ public class RunAnsible  extends ViPRExecutionTask<OrchestrationTaskResult> {
     private final String orderDir;
     private final long timeout;
     private final Map<String, Object> params;
+    private final DbClient dbClient;
 
-    public RunAnsible(final Step step, final Map<String, List<String>> input, final Map<String, Object> params) {
+
+    public RunAnsible(final Step step, final Map<String, List<String>> input, final Map<String, Object> params, final DbClient dbClient) {
         this.step = step;
         this.input = input;
-        this.timeout = (step.getAttributes().getTimeout()!= -1)?step.getAttributes().getTimeout():Exec.DEFAULT_CMD_TIMEOUT;
+        if (step.getAttributes() == null || step.getAttributes().getTimeout() == -1) {
+            this.timeout = Exec.DEFAULT_CMD_TIMEOUT;
+        } else {
+            this.timeout = step.getAttributes().getTimeout();
+        }
         this.params = params;
+        this.dbClient = dbClient;
+
         orderDir = OrchestrationServiceConstants.PATH + "OE" + ExecutionUtils.currentContext().getOrder().getOrderNumber();
+
     }
 
     @Override
     public OrchestrationTaskResult executeTask() throws Exception {
 
+        //TODO: change the message for shell script. The following is for ansible. will refactor after the local ansible work
         ExecutionUtils.currentContext().logInfo("runAnsible.statusInfo", step.getId());
-        //TODO Get playbook/package from DB
-
-        //TODO After the column family implementation will use this context directory instead of PATH
+        final URI scriptid = new URI(step.getOperation());
         if (!createOrderDir(orderDir)) {
             logger.error("Failed to create Order directory:{}", orderDir);
             return null;
@@ -78,41 +95,55 @@ public class RunAnsible  extends ViPRExecutionTask<OrchestrationTaskResult> {
         final StepType type = StepType.fromString(step.getType());
 
         final Exec.Result result;
-        switch (type) {
-            case SHELL_SCRIPT:
-                result = executeCmd(OrchestrationServiceConstants.PATH + "runscript.sh", makeParam(input));
-                cleanUp("runscript.sh", false);
+        try {
+            switch (type) {
+                case SHELL_SCRIPT:
+                    //get the resource database
+                    CustomServiceScriptPrimitive primitive = dbClient.queryObject(CustomServiceScriptPrimitive.class, scriptid);
+                    CustomServiceScriptResource script = dbClient.queryObject(CustomServiceScriptResource.class, primitive.getScript());
+                    final byte[] bytes = Base64.decodeBase64(script.getResource());
+                    try{
+                        FileOutputStream fileOuputStream = new FileOutputStream(orderDir+"/"+script.getLabel()+".sh");
+                        fileOuputStream.write(bytes);
+                        fileOuputStream.close();
+                    } catch (IOException e) {
+                        logger.error("Creating Shell Script file failed with exception: {}",
+                                e.getMessage());
+                    }
 
-                break;
-            case LOCAL_ANSIBLE:
-                try {
+                    logger.debug("input is {}" , makeParam(input));
+
+                    result = executeCmd(orderDir+"/"+script.getLabel()+".sh", makeParam(input));
+
+                    cleanUp(orderDir, false);
+
+                    break;
+                case LOCAL_ANSIBLE:
                     untarPackage("ansi.tar");
                     final String hosts = getHostFile();
                     result = executeLocal(hosts, makeExtraArg(input), OrchestrationServiceConstants.PATH +
                             FilenameUtils.removeExtension("ansi.tar") + "/" + "helloworld.yml", "root");
-                } catch (final IOException e) {
-                    logger.info("Unable to perform Local Ansible task {}", e);
 
-                    return null;
-                } finally {
                     cleanUp("ansi.tar", true);
-                }
+                    break;
+                case REMOTE_ANSIBLE:
+                    result = executeRemoteCmd(makeExtraArg(input));
 
-                break;
-            case REMOTE_ANSIBLE:
-                result = executeRemoteCmd(makeExtraArg(input));
+                    break;
+                default:
+                    logger.error("Ansible Operation type:{} not supported", type);
 
-                break;
-            default:
-                logger.error("Ansible Operation type:{} not supported", type);
-
-                throw new IllegalStateException("Unsupported Operation");
+                    throw InternalServerErrorException.internalServerErrors.customServiceExecutionFailed("Unsupported Operation");
+            }
+        } catch (final Exception e) {
+            throw InternalServerErrorException.internalServerErrors.customServiceExecutionFailed("Custom Service Task Failed" + e);
         }
 
         ExecutionUtils.currentContext().logInfo("runAnsible.doneInfo", step.getId());
 
-        if (result == null)
-            return null;
+        if (result == null) {
+            throw InternalServerErrorException.internalServerErrors.customServiceExecutionFailed("Script/Ansible execution Failed");
+        }
 
         logger.info("Ansible Execution result:output{} error{} exitValue:{}", result.getStdOutput(), result.getStdError(), result.getExitValue());
 
@@ -175,21 +206,20 @@ public class RunAnsible  extends ViPRExecutionTask<OrchestrationTaskResult> {
         final Map<String,OrchestrationWorkflowDocument.InputGroup> inputType = step.getInputGroups();
         if (inputType == null) {
             return null;
-	}
-        
+        }
+
         final AnsibleCommandLine cmd = new AnsibleCommandLine(
                 getAnsibleConnAndOptions(OrchestrationServiceConstants.ANSIBLE_BIN, inputType.get(OrchestrationServiceConstants.ANSIBLE_OPTIONS).getInputGroup()),
                 getAnsibleConnAndOptions(OrchestrationServiceConstants.ANSIBLE_PLAYBOOK, inputType.get(OrchestrationServiceConstants.ANSIBLE_OPTIONS).getInputGroup()));
         final String[] cmds = cmd.setSsh(OrchestrationServiceConstants.SHELL_LOCAL_BIN)
                 .setUserAndIp(getAnsibleConnAndOptions(OrchestrationServiceConstants.REMOTE_USER, inputType.get(OrchestrationServiceConstants.CONNECTION_DETAILS).getInputGroup()),
-                              getAnsibleConnAndOptions(OrchestrationServiceConstants.REMOTE_NODE, inputType.get(OrchestrationServiceConstants.CONNECTION_DETAILS).getInputGroup()))
+                        getAnsibleConnAndOptions(OrchestrationServiceConstants.REMOTE_NODE, inputType.get(OrchestrationServiceConstants.CONNECTION_DETAILS).getInputGroup()))
                 .setHostFile(getAnsibleConnAndOptions(OrchestrationServiceConstants.ANSIBLE_HOST_FILE, inputType.get(OrchestrationServiceConstants.ANSIBLE_OPTIONS).getInputGroup()))
                 .setUser(getAnsibleConnAndOptions(OrchestrationServiceConstants.ANSIBLE_USER, inputType.get(OrchestrationServiceConstants.ANSIBLE_OPTIONS).getInputGroup()))
                 .setCommandLine(getAnsibleConnAndOptions(OrchestrationServiceConstants.ANSIBLE_COMMAND_LINE, inputType.get(OrchestrationServiceConstants.ANSIBLE_OPTIONS).getInputGroup()))
                 .setExtraVars(extraVars)
                 .build();
 
-	logger.info("cmds:{}",  Arrays. toString(cmds));
         return Exec.exec(timeout, cmds);
     }
 
@@ -209,6 +239,7 @@ public class RunAnsible  extends ViPRExecutionTask<OrchestrationTaskResult> {
     //Execute Ansible playbook on localhost
     private Exec.Result executeCmd(final String playbook, final String extraVars) {
         final AnsibleCommandLine cmd = new AnsibleCommandLine(OrchestrationServiceConstants.SHELL_BIN, playbook);
+        cmd.setShellArgs(extraVars);
         final String[] cmds = cmd.build();
 
         return Exec.exec(timeout, cmds);
@@ -260,9 +291,10 @@ public class RunAnsible  extends ViPRExecutionTask<OrchestrationTaskResult> {
         }
 
         final StringBuilder sb = new StringBuilder("\"");
-        for (Map.Entry<String, List<String>> e : input.entrySet())
-            sb.append(e.getKey()).append("=").append(e.getValue().get(0)).append(" ");
-
+        for (Map.Entry<String, List<String>> e : input.entrySet()) {
+            //TODO find a better way to fix this
+            sb.append(e.getKey()).append("=").append(e.getValue().get(0).replace("\"", "")).append(" ");
+        }
         sb.append("\"");
         logger.info("extra vars:{}", sb.toString());
 
@@ -272,7 +304,8 @@ public class RunAnsible  extends ViPRExecutionTask<OrchestrationTaskResult> {
     private String makeParam(final Map<String, List<String>> input) throws Exception {
         final StringBuilder sb = new StringBuilder();
         for (List<String> value : input.values()) {
-            sb.append(value.get(0)).append(" ");
+            //TODO find a better way to fix this
+            sb.append(value.get(0).replace("\"", "")).append(" ");
         }
 
         return sb.toString();

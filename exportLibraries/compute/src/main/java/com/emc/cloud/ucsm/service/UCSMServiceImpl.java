@@ -616,7 +616,7 @@ public class UCSMServiceImpl implements UCSMService {
 
         if((returnedLsServer == null) || returnedLsServer.getAssignState().equals(ASSOC_STATE_UNASSOCIATED)) {
             throw new ClientGeneralException(ClientMessageKeys.UNEXPECTED_FAILURE,
-                    new String[] { "Failed to bind SPT to ComputeElement '" + computeElementDn +
+                    new String[] { "Failed to bind ServiceProfile " + serviceProfileDn + " to ComputeElement '" + computeElementDn +
                             "' on LsServer : " + serviceProfileDn });
         }
 
@@ -680,13 +680,13 @@ public class UCSMServiceImpl implements UCSMService {
     private LsServer pushLsServer(ComputeSession computeSession, ObjectFactory factory,
             ConfigConfMo configConfMo) throws ClientGeneralException {
         List<LsServer> lsList = pushConfigConfMo(computeSession, factory, configConfMo, LsServer.class,true);
-        return ((lsList != null) && (lsList.size() > 0)) ? lsList.get(0) : null;
+        return lsList.get(0);
     }
 
     private LsServer pushLsServer(ComputeSession computeSession, ObjectFactory factory,
             ConfigConfMo configConfMo, boolean returnsObject) throws ClientGeneralException {
         List<LsServer> lsList = pushConfigConfMo(computeSession, factory, configConfMo, LsServer.class, returnsObject);
-        return ((lsList != null) && (lsList.size() > 0)) ? lsList.get(0) : null;
+        return lsList.get(0);
     }
 
     private <T> List<T> pushConfigConfMo(ComputeSession computeSession, ObjectFactory factory,
@@ -875,6 +875,7 @@ public class UCSMServiceImpl implements UCSMService {
             break;
         case SAN:
             if (UcsmVersionChecker.verifyVersionDetails("2.2", version) < 0) {
+                // UCS Model change as of 2.2
                 List<com.emc.cloud.platform.ucs.out.model.LsbootStorage> lsBootStorages =
                         getSubElements(lsBootDefs.get(0).getContent(),
                                 com.emc.cloud.platform.ucs.out.model.LsbootStorage.class);
@@ -901,7 +902,7 @@ public class UCSMServiceImpl implements UCSMService {
             }
             break;
         case NONE:
-            if((lsBootDefs != null) && (lsBootDefs.size() == 0)) {
+            if((lsBootDefs != null) && (lsBootDefs.isEmpty())) {
                 operationVerified = true;
             }
             break;

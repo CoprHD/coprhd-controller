@@ -725,21 +725,44 @@ public final class FileOrchestrationUtils {
      * @return
      *
      */
-
     public static String generateNameForPolicy(FilePolicy filePolicy, FileShare fileShare, FileDeviceInputOutput args) {
-        String devPolicyName = "";
+        String devPolicyName = null;
         String policyName = stripSpecialCharacters(filePolicy.getFilePolicyName());
+        VirtualNAS vNAS = args.getvNAS();
 
         FilePolicyApplyLevel applyLevel = FilePolicyApplyLevel.valueOf(filePolicy.getApplyAt());
         switch (applyLevel) {
             case vpool:
-                devPolicyName = args.getVPoolNameWithNoSpecialCharacters() + "_" + policyName;
+                if (vNAS != null) {
+                    devPolicyName = String.format("%1$s_%2$s_%3$s", args.getVPoolNameWithNoSpecialCharacters(),
+                            args.getVNASNameWithNoSpecialCharacters(), policyName);
+                } else {
+                    devPolicyName = String.format("%1$s_%2$s", args.getVPoolNameWithNoSpecialCharacters(), policyName);
+                }
                 break;
             case project:
-                devPolicyName = args.getProjectNameWithNoSpecialCharacters() + "_" + policyName;
+                if (vNAS != null) {
+                    devPolicyName = String.format("%1$s_%2$s_%3$s_%4$s_%5$s", args.getVPoolNameWithNoSpecialCharacters(),
+                            args.getVNASNameWithNoSpecialCharacters(), args.getTenantNameWithNoSpecialCharacters(),
+                            args.getProjectNameWithNoSpecialCharacters(), policyName);
+                } else {
+                    devPolicyName = String.format("%1$s_%2$s_%3$s_%4$s", args.getVPoolNameWithNoSpecialCharacters(),
+                            args.getTenantNameWithNoSpecialCharacters(),
+                            args.getProjectNameWithNoSpecialCharacters(), policyName);
+                }
                 break;
             case file_system:
-                devPolicyName = fileShare.getName() + "_" + policyName;
+                String fileShareName = stripSpecialCharacters(fileShare.getName());
+                if (vNAS != null) {
+                    devPolicyName = String.format("%1$s_%2$s_%3$s_%4$s_%5$s_%6$s", args.getVPoolNameWithNoSpecialCharacters(),
+                            args.getVNASNameWithNoSpecialCharacters(), args.getTenantNameWithNoSpecialCharacters(),
+                            args.getProjectNameWithNoSpecialCharacters(), fileShareName, policyName);
+                } else {
+                    devPolicyName = String.format("%1$s_%2$s_%3$s_%4$s_%5$s", args.getVPoolNameWithNoSpecialCharacters(),
+                            args.getTenantNameWithNoSpecialCharacters(),
+                            args.getProjectNameWithNoSpecialCharacters(), fileShareName, policyName);
+                }
+                break;
         }
         return devPolicyName;
     }

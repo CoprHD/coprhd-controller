@@ -41,7 +41,6 @@ import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.exceptions.DeviceControllerException;
-import com.emc.storageos.fileorchestrationcontroller.FileDescriptor.Type;
 import com.emc.storageos.filereplicationcontroller.FileReplicationDeviceController;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.model.file.CifsShareACLUpdateParams;
@@ -1649,7 +1648,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
 
                         if (targetACE != null &&
                                 (!targetACE.getPermissions().equals(sourceACE.getPermissions()) ||
-                                !targetACE.getPermissionType().equals(sourceACE.getPermissionType()))) {
+                                        !targetACE.getPermissionType().equals(sourceACE.getPermissionType()))) {
 
                             targetACE.setPermissions(sourceACE.getPermissions());
                             targetACE.setPermissionType(sourceACE.getPermissionType());
@@ -1775,7 +1774,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
                     String stepDescription = String.format("creating file policy : %s  at : %s level", fileVpoolPolicy.getId(),
                             vpool.getLabel());
                     String applyFilePolicyStep = workflow.createStepId();
-                    Object[] args = new Object[] { sourceFS.getId(), fileVpoolPolicy.getId() };
+                    Object[] args = new Object[] { sourceFS.getStorageDevice(), sourceFS.getId(), fileVpoolPolicy.getId() };
                     waitFor = _fileDeviceController.createMethod(workflow, waitFor, APPLY_FILE_POLICY_METHOD, applyFilePolicyStep,
                             stepDescription, system.getId(), args);
                 }
@@ -1791,7 +1790,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
                     String stepDescription = String.format("creating file policy : %s  at : %s level", fileProjectPolicy.getId(),
                             project.getLabel());
                     String applyFilePolicyStep = workflow.createStepId();
-                    Object[] args = new Object[] { sourceFS.getId(), fileProjectPolicy.getId() };
+                    Object[] args = new Object[] { sourceFS.getStorageDevice(), sourceFS.getId(), fileProjectPolicy.getId() };
                     waitFor = _fileDeviceController.createMethod(workflow, waitFor, APPLY_FILE_POLICY_METHOD, applyFilePolicyStep,
                             stepDescription, system.getId(), args);
                 }
@@ -2230,8 +2229,8 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
             String waitFor = null;
             s_logger.info("Generating steps for creating mirror filesystems...");
             for (FileDescriptor fileDescriptor : fileDescriptors) {
-                if (fileDescriptor.getType().toString().equals(Type.FILE_EXISTING_MIRROR_SOURCE.name())
-                        || fileDescriptor.getType().toString().equals(Type.FILE_EXISTING_SOURCE.name())) {
+                if (fileDescriptor.getType().toString().equals(FileDescriptor.Type.FILE_EXISTING_MIRROR_SOURCE.name())
+                        || fileDescriptor.getType().toString().equals(FileDescriptor.Type.FILE_EXISTING_SOURCE.name())) {
                     sourceFS = s_dbClient.queryObject(FileShare.class, fileDescriptor.getFsURI());
                     break;
                 }

@@ -32,6 +32,7 @@ import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.PasswordHistory;
 import com.emc.storageos.db.client.model.ScopedLabel;
 import com.emc.storageos.db.exceptions.DatabaseException;
+import com.google.common.collect.Lists;
 import com.netflix.astyanax.Keyspace;
 import com.netflix.astyanax.connectionpool.OperationResult;
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
@@ -180,6 +181,10 @@ public class DbConsistencyCheckerHelper {
                         getIndexColumns(indexedField, column, objRow.getKey()));
                 
                 if (!isColumnInIndex) {
+                    if (doubleConfirmed && isDataObjectRemoved(doType.getDataObjectClass(), objRow.getKey())) {
+                        continue;
+                    }
+                    
                     String dbVersion = findDataCreatedInWhichDBVersion(column.getName().getTimeUUID());
                     checkResult.increaseByVersion(dbVersion);
                     logMessage(String.format(
@@ -194,7 +199,7 @@ public class DbConsistencyCheckerHelper {
             }
         }
     }
-    
+
     public void checkIndexingCF(IndexAndCf indexAndCf, boolean toConsole, CheckResult checkResult) throws ConnectionException {
         checkIndexingCF(indexAndCf, toConsole, checkResult, false);
     }
@@ -704,6 +709,11 @@ public class DbConsistencyCheckerHelper {
 
     public void setDbClient(DbClientImpl dbClient) {
         this.dbClient = dbClient;
+    }
+    
+    protected boolean isDataObjectRemoved(Class<? extends DataObject> clazz, String key) {
+        DataObject dataObject = dbClient.queryObject(URI.create(key));
+        return dataObject == null || dataObject.getInactive();
     }
     
     private boolean isValidDataObjectKey(URI uri, final Class<? extends DataObject> type) {

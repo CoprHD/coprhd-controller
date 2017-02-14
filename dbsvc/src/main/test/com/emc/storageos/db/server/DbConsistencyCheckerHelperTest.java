@@ -26,6 +26,8 @@ import com.emc.storageos.db.client.impl.DbConsistencyCheckerHelper.CheckResult;
 import com.emc.storageos.db.client.impl.DbConsistencyCheckerHelper.IndexAndCf;
 import com.emc.storageos.db.client.impl.IndexColumnName;
 import com.emc.storageos.db.client.impl.IndexColumnNameSerializer;
+import com.emc.storageos.db.client.impl.TypeMap;
+import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.FileShare;
 import com.netflix.astyanax.Keyspace;
 import com.netflix.astyanax.MutationBatch;
@@ -78,6 +80,49 @@ public class DbConsistencyCheckerHelperTest extends DbsvcTestBase {
                 helper.findDataCreatedInWhichDBVersion(ThreadLocalRandom.current().nextLong(TIME_STAMP_3_5, TIME_STAMP_3_6)));
         assertEquals("3.6",
                 helper.findDataCreatedInWhichDBVersion(ThreadLocalRandom.current().nextLong(TIME_STAMP_3_6, Long.MAX_VALUE)));
+    }
+    
+    @Test
+    public void testCheckCFIndexing() throws Exception {
+        ColumnFamily<String, CompositeColumnName> cf = new ColumnFamily<String, CompositeColumnName>("FileShare",
+                StringSerializer.get(),
+                CompositeColumnNameSerializer.get());
+        ColumnFamily<String, IndexColumnName> indexCF = new ColumnFamily<String, IndexColumnName>(
+                "AltIdIndex", StringSerializer.get(), IndexColumnNameSerializer.get());
+        
+        Keyspace keyspace = ((DbClientImpl)getDbClient()).getLocalContext().getKeyspace();
+        
+        FileShare testData = new FileShare();
+        testData.setId(URIUtil.createId(FileShare.class));
+        testData.setPath("A1");
+        testData.setMountPath("A2");
+        getDbClient().updateObject(testData);
+        
+        keyspace.prepareQuery(indexCF).withCql(String.format(
+                "delete from \"AltIdIndex\" where key='%s'", "A1")).execute();
+        
+        CheckResult checkResult = new CheckResult();
+        helper.checkCFIndices(TypeMap.getDoType(FileShare.class), false, checkResult);
+        assertEquals(1, checkResult.getTotal());
+        
+        keyspace.prepareQuery(indexCF).withCql(String.format(
+                "delete from \"AltIdIndex\" where key='%s'", "A2")).execute();
+        
+        checkResult = new CheckResult();
+        helper.checkCFIndices(TypeMap.getDoType(FileShare.class), false, checkResult);
+        assertEquals(2, checkResult.getTotal());
+        
+        helper = new DbConsistencyCheckerHelper((DbClientImpl)getDbClient()) {
+
+            @Override
+            protected boolean isDataObjectRemoved(Class<? extends DataObject> clazz, String key) {
+                return true;
+            }                        
+        };
+        
+        checkResult = new CheckResult();
+        helper.checkCFIndices(TypeMap.getDoType(FileShare.class), false, checkResult);
+        assertEquals(0, checkResult.getTotal());
     }
     
     @Test

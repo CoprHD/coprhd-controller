@@ -99,21 +99,43 @@ public class RunAnsible extends ViPRExecutionTask<OrchestrationTaskResult> {
             switch (type) {
                 case SHELL_SCRIPT:
                     //get the resource database
-                    CustomServiceScriptPrimitive primitive = dbClient.queryObject(CustomServiceScriptPrimitive.class, scriptid);
-                    CustomServiceScriptResource script = dbClient.queryObject(CustomServiceScriptResource.class, primitive.getScript());
+                    final CustomServiceScriptPrimitive primitive = dbClient.queryObject(CustomServiceScriptPrimitive.class, scriptid);
+                    if (null == primitive) {
+                        logger.error("Error retrieving the script primitive from DB. {} not found in DB", scriptid);
+                        throw InternalServerErrorException.internalServerErrors.customServiceExecutionFailed(scriptid + " not found in DB");
+                    }
+
+                    final CustomServiceScriptResource script = dbClient.queryObject(CustomServiceScriptResource.class, primitive.getScript());
+
+                    if (null == script) {
+                        logger.error("Error retrieving the resource for the script primitive from DB. {} not found in DB", primitive.getScript());
+
+                        throw InternalServerErrorException.internalServerErrors.customServiceExecutionFailed(primitive.getScript() + " not found in DB");
+                    }
+
+                    final String scriptFileName;
+
+                    if(script.getLabel() != null && !script.getLabel().isEmpty()) {
+                        scriptFileName = orderDir+"/" + script.getLabel() + ".sh";
+                    } else {
+                        // handle cases where DB is corrupted and the label is not present in the CustomServiceScriptResource CF.
+                        scriptFileName = orderDir+"/" + "temp.sh";
+                    }
+
                     final byte[] bytes = Base64.decodeBase64(script.getResource());
-                    try{
-                        FileOutputStream fileOuputStream = new FileOutputStream(orderDir+"/"+script.getLabel()+".sh");
+                    try (FileOutputStream fileOuputStream = new FileOutputStream(scriptFileName)) {
                         fileOuputStream.write(bytes);
-                        fileOuputStream.close();
                     } catch (IOException e) {
                         logger.error("Creating Shell Script file failed with exception: {}",
                                 e.getMessage());
+                        throw InternalServerErrorException.internalServerErrors.customServiceExecutionFailed("Creating Shell Script file failed with exception:" +
+                                e.getMessage());
                     }
+
 
                     logger.debug("input is {}" , makeParam(input));
 
-                    result = executeCmd(orderDir+"/"+script.getLabel()+".sh", makeParam(input));
+                    result = executeCmd(scriptFileName, makeParam(input));
 
                     cleanUp(orderDir, false);
 

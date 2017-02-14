@@ -4,7 +4,6 @@
  */
 package com.emc.storageos.vplexcontroller;
 
-import static com.emc.storageos.volumecontroller.impl.block.BlockDeviceController.updateExportGroupMethod;
 import static com.emc.storageos.volumecontroller.impl.block.ExportMaskPlacementDescriptorHelper.putUnplacedVolumesIntoAlternativeMask;
 
 import java.net.URI;
@@ -31,7 +30,6 @@ import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.RegistrationStatus;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportMask;
-import com.emc.storageos.db.client.model.ExportPathParams;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StorageProtocol.Transport;
@@ -68,11 +66,9 @@ import com.emc.storageos.volumecontroller.impl.block.VplexXtremIOMaskingOrchestr
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportMaskAddVolumeCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportMaskOnlyRemoveVolumeCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportTaskCompleter;
-import com.emc.storageos.volumecontroller.impl.plugins.metering.smis.processor.PortMetricsProcessor;
 import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
 import com.emc.storageos.volumecontroller.placement.BlockStorageScheduler;
 import com.emc.storageos.volumecontroller.placement.PlacementUtils;
-import com.emc.storageos.volumecontroller.placement.StoragePortsAllocator;
 import com.emc.storageos.volumecontroller.placement.StoragePortsAssigner;
 import com.emc.storageos.volumecontroller.placement.StoragePortsAssignerFactory;
 import com.emc.storageos.vplex.api.VPlexApiException;
@@ -890,10 +886,6 @@ public class VPlexBackendManager {
 
         String previousStepId = dependantStepId;
 
-        Workflow.Method updateExportGroupStep = updateExportGroupMethod(exportGroup.getId(), volumeLunIdMap);
-        previousStepId = workflow.createStep(EXPORT_STEP, "Updating ExportGroup Volumes", previousStepId, vplex.getId(),
-                vplex.getSystemType(), BlockDeviceController.class, updateExportGroupStep, null, null);
-
         String zoningDependentStep = ((isMaskingFirst && isOpenStack) ? reValidateExportMaskStep
                 : ((isMaskingFirst && !isOpenStack) ? maskStepId : previousStepId));
 
@@ -1123,6 +1115,7 @@ public class VPlexBackendManager {
     /**
      * Returns a Map of Volume URI to Integer (LUN).
      *
+     * @param storageSystemURI a storage system URI
      * @param volumeMap a mapping of URI to Volume.
      * @return          the Volume URI to LUN mapping.
      */

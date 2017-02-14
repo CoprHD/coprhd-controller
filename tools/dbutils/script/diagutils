@@ -45,7 +45,7 @@ usage() {
     echo "                              Note: It's suggested to always dump the output to the FTP to retain space in ViPR nodes"
     echo "       -conf <config file>    If specified, diagutils will use the settings in config file(refer /opt/storageos/conf/diagutils-sample.conf) instead of the default settings"
     echo "For example:"
-    echo "       $0 -all -ftp ftp://10.247.101.11:/tmp -u usera -p xxx"
+    echo "       $0 -all -ftp ftp://10.247.101.11/tmp -u usera -p xxx"
     echo "       $0 -quick"
     echo "       $0 -min_cfs -zk -logs"
     echo "Notes:"

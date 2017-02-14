@@ -9,20 +9,20 @@
 # it is provided by or on behalf of EMC.
 #
 
+# The variables could be reconfigured by option '-conf <config file>'
 DIAGCOLLECT_DIR="/data/diagutils-data"
 DIAGCOLLECT_MAME="diagutils-`date +%Y%0m%0d%0k%0M%0S`"
-DIAGCOLLECT_ARCHIVE_NAME="${DIAGCOLLECT_MAME}"
-DIAGCOLLECT_OUTPUT="${DIAGCOLLECT_DIR}/${DIAGCOLLECT_MAME}"
 DIAGCOLLECT_LOG="/tmp/diagutils.out"
-COMMAND_DIR="/opt/storageos/bin"
 DISK_USED_PERCENTAGE_WARNING_LIMIT=50
 DISK_USED_PERCENTAGE_TERMINATION_LIMIT=80
 MIN_CFS=(BlockConsistencyGroup BlockMirror BlockSnapshot Cluster ExportGroup ExportMask FCZoneReference Host Initiator Network NetworkSystem ProtectionSet ProtectionSystem StoragePort StorageSystem VirtualArray VirtualDataCenter VirtualPool Volume)
+LOG_DOWNLOAD_SERVICE_NAMES=(vasasvc portalsvc systemevents coordinatorsvc apisvc bkutils geosvc dbsvc authsvc controllersvc syssvc sasvc geodbsvc systemevents)
+
 
 #This script is used to help user to restore a backupset simply
 usage() {
     echo "Usage:"
-    echo "       $0 <-all|-quick>|<-min_cfs|-all_cfs|-zk|-backup|-logs|-properties|-health> [-ftp <server name or ip and directory> -u <user name> -p <password>]"
+    echo "       $0 <-all|-quick>|<-min_cfs|-all_cfs|-zk|-backup|-logs|-properties|-health> [-ftp <ftp/ftps server url> -u <user name> -p <password>] [-conf <config file>]"
     echo "Options:"
     echo "       -min_cfs               Collect a minimum set of column families through output of dbutils list and/or cqlsh"
     echo "                              The default cfs list includes:"
@@ -37,12 +37,13 @@ usage() {
     echo "       -properties            Collect system properties (version, node count, node names, etc.)."
     echo "       -health                Collect system health information (e.g. node and service status, etc.), performance data of local node from top output."
     echo "       -all                   Includs the output gathered by options: '-backup'(with default backup name), '-zk', '-logs', '-properties', '-health', and '-all_cfs'."
-    echo "                              '-ftp' is the only other option allowed with conjunction with '-all'"
+    echo "                              '-ftp' and '-conf' are the only two other options allowed with conjunction with '-all'"
     echo "       -quick                 Includs the output gathered by options: '-zk', '-logs', '-properties', '-health', and '-min_cfs'."
-    echo "                              '-ftp' is the only other option allowed with conjunction with '-quick'"
-    echo "       -ftp <server name or ip and directory> -u <user name> -p <password>"
-    echo "                              If specified, the output will be transferred to the external ftp site and removed from local storage after the transfer"
+    echo "                              '-ftp' and '-conf' are the only two other options allowed with conjunction with '-quick'"
+    echo "       -ftp <ftp/ftps server url> -u <user name> -p <password>"
+    echo "                              If specified, the output will be transferred to the external ftp/ftps server and removed from local storage after the transfer"
     echo "                              Note: It's suggested to always dump the output to the FTP to retain space in ViPR nodes"
+    echo "       -conf <config file>    If specified, diagtutils will use the settings in config file instead of the default settings"
     echo "For example:"
     echo "       $0 -all -ftp ftp://10.247.101.11:/tmp -u usera -p xxx"
     echo "       $0 -quick"
@@ -57,11 +58,20 @@ usage() {
 # Collect Functions
 ######################
 init() {
+    if [ -n "$CONFIG_FILE" ] && [ -f $CONFIG_FILE ]; then
+        echo "Using Configuration file $CONFIG_FILE for diagutils"
+        source $CONFIG_FILE
+    fi
+
+    COMMAND_DIR="/opt/storageos/bin"
+    DIAGCOLLECT_ARCHIVE_NAME="${DIAGCOLLECT_MAME}"
+    DIAGCOLLECT_OUTPUT="${DIAGCOLLECT_DIR}/${DIAGCOLLECT_MAME}"
+    NODE_COUNT=`/etc/systool --getprops | awk -F '=' '/\<node_count\>/ {print $2}'`
+    LOCAL_NODE=`/etc/systool --getprops | awk -F '=' '/\<node_id\>/ {print $2}'`
+
     mkdir -p ${DIAGCOLLECT_OUTPUT}
     touch ${DIAGCOLLECT_LOG}
     echo -n "@@@@@@@@@@@@@@ ${DIAGCOLLECT_OUTPUT} @@@@@@@@@@@@ at " >>${DIAGCOLLECT_LOG}; date >>${DIAGCOLLECT_LOG}
-    NODE_COUNT=`/etc/systool --getprops | awk -F '=' '/\<node_count\>/ {print $2}'`
-    LOCAL_NODE=`/etc/systool --getprops | awk -F '=' '/\<node_id\>/ {print $2}'`
 }
 
 collect_cfs() {
@@ -158,6 +168,12 @@ collect_properties() {
     set +e 
     /etc/systool --getprops > $propDir/systool-getprops
     /etc/systool --get-default > $propDir/systool-getdefault
+    /etc/getovfproperties --is-vapp
+    if [ $? -eq 0 ]; then
+        echo "vApp" > $propDir/platform
+    else
+        echo "no-vApp" > $propDir/platform
+    fi
     set -e
 }
 
@@ -506,8 +522,7 @@ diagnose_cfs() {
 }
 
 convert_log_name() {
-    local serviceList=(vasasvc portalsvc systemevents coordinatorsvc apisvc bkutils geosvc dbsvc authsvc controllersvc syssvc sasvc geodbsvc)
-    for service in ${serviceList[@]}; do
+    for service in ${LOG_DOWNLOAD_SERVICE_NAMES[@]}; do
         for i in $(seq 1 ${NODE_COUNT})
         do
             local nodeId=$(get_nodeid)
@@ -536,7 +551,7 @@ plain_param_count=0
 ftp_param_count=0
 cf_param_count=0
 
-check_ftp_parameter() {
+check_parameter() {
     local param=$1
     local next_param=$2
 
@@ -562,7 +577,7 @@ validate_parameters() {
     fi
 
     if [[ ${genaral_param_count} -gt 1 ]] || [[ (${genaral_param_count} -ne 0) && (${plain_param_count} -ne 0) ]]; then
-        echo "'-all/quick' could not be executed together with other commands"
+        echo "'-all/quick' could not be executed together with other options except '-ftp' and '-conf'"
         usage
         exit 2
     fi
@@ -618,21 +633,27 @@ do
             if [[ $i -lt $# ]]; then
                 eval FTP=\${$[i+1]}
             fi
-            check_ftp_parameter "$param" "$FTP"
+            check_parameter "$param" "$FTP"
             ;;
         -u)
             ftp_param_count=$[ftp_param_count+1]
             if [[ $i -lt $# ]]; then
                 eval USER=\${$[i+1]}
             fi
-            check_ftp_parameter "$param" "$USER"
+            check_parameter "$param" "$USER"
             ;;
         -p)
             ftp_param_count=$[ftp_param_count+1]
             if [[ $i -lt $# ]]; then
                 eval PASSWORD=\${$[i+1]}
             fi
-            check_ftp_parameter "$param" "$PASSWORD"
+            check_parameter "$param" "$PASSWORD"
+            ;;
+        -conf)
+            if [[ $i -lt $# ]]; then
+                eval CONFIG_FILE=\${$[i+1]}
+            fi
+            check_parameter "$param" "${CONFIG_FILE}"
             ;;
         -*)
             echo "Invalid Paramter: $param"

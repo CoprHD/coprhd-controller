@@ -69,14 +69,14 @@ import com.emc.storageos.db.client.model.uimodels.PrimitiveResource;
 import com.emc.storageos.db.client.model.uimodels.UserPrimitive;
 import com.emc.storageos.model.BulkIdParam;
 import com.emc.storageos.model.ResourceTypeEnum;
-import com.emc.storageos.model.orchestration.InputParameterRestRep;
-import com.emc.storageos.model.orchestration.OutputParameterRestRep;
-import com.emc.storageos.model.orchestration.PrimitiveBulkRestRep;
-import com.emc.storageos.model.orchestration.PrimitiveCreateParam;
-import com.emc.storageos.model.orchestration.PrimitiveList;
-import com.emc.storageos.model.orchestration.PrimitiveResourceRestRep;
-import com.emc.storageos.model.orchestration.PrimitiveRestRep;
-import com.emc.storageos.model.orchestration.PrimitiveUpdateParam;
+import com.emc.storageos.model.customservices.InputParameterRestRep;
+import com.emc.storageos.model.customservices.OutputParameterRestRep;
+import com.emc.storageos.model.customservices.PrimitiveBulkRestRep;
+import com.emc.storageos.model.customservices.PrimitiveCreateParam;
+import com.emc.storageos.model.customservices.PrimitiveList;
+import com.emc.storageos.model.customservices.PrimitiveResourceRestRep;
+import com.emc.storageos.model.customservices.PrimitiveRestRep;
+import com.emc.storageos.model.customservices.PrimitiveUpdateParam;
 import com.emc.storageos.primitives.Primitive;
 import com.emc.storageos.primitives.PrimitiveHelper;
 import com.emc.storageos.primitives.ViPRPrimitive;
@@ -109,8 +109,7 @@ import com.google.common.collect.Multimaps;
 public class PrimitiveService extends CatalogTaggedResourceService {
     @Autowired
     private PrimitiveManager primitiveManager;
-
-    private final PrimitiveList PRIMITIVE_LIST;
+    
     private final ImmutableMap<URI, PrimitiveRestRep> PRIMITIVE_MAP;
     private static final Logger _log = LoggerFactory
             .getLogger(PrimitiveManager.class);
@@ -202,9 +201,6 @@ public class PrimitiveService extends CatalogTaggedResourceService {
             builder.put(primitiveRestRep.getId(), primitiveRestRep);
         }
         PRIMITIVE_MAP = builder.build();
-        PRIMITIVE_LIST = new PrimitiveList(ImmutableList
-                .<PrimitiveRestRep> builder().addAll((PRIMITIVE_MAP.values()))
-                .build());
     }
 
     /**
@@ -229,26 +225,26 @@ public class PrimitiveService extends CatalogTaggedResourceService {
             ArgValidator.checkFieldValueFromEnum(type.toUpperCase(), "type", PrimitiveType.class);
             mask = PrimitiveType.get(type).mask();
         }
-        final List<PrimitiveRestRep> list = new ArrayList<PrimitiveRestRep>();
+        final List<URI> list = new ArrayList<URI>();
         
         if( (PrimitiveType.VIPR.mask() & mask) != 0) {
-            list.addAll(PRIMITIVE_LIST.getPrimitives());
+            list.addAll(PRIMITIVE_MAP.keySet());
         } 
         
         if( (PrimitiveType.ANSIBLE.mask() & mask) != 0 ) {
-            final List<Ansible> ansiblePrimitives = primitiveManager.findAllAnsible();
-            if(null != ansiblePrimitives) {
-                for(final Ansible primitive : ansiblePrimitives ) {
-                    list.add(PrimitiveMapper.map(primitive));
+            final List<URI> ansiblePrimitives = primitiveManager.findAllAnsibleIds();
+            if(null != ansiblePrimitives ) {
+                for( final URI id : ansiblePrimitives ) {
+                    list.add(id);
                 }
             }
         }
         
         if( (PrimitiveType.SCRIPT.mask() & mask ) != 0) {
-            final List<CustomServiceScriptPrimitive> scriptPrimitives = primitiveManager.findAllScriptPrimitives();
-            if(null != scriptPrimitives) {
-                for(final CustomServiceScriptPrimitive primitive : scriptPrimitives ) {
-                    list.add(PrimitiveMapper.map(primitive));
+            final List<URI> scriptPrimitives = primitiveManager.findAllScriptPrimitiveIds();
+            if(null != scriptPrimitives ) {
+                for( final URI id : scriptPrimitives ) {
+                    list.add(id);
                 }
             }
         }
@@ -474,6 +470,14 @@ public class PrimitiveService extends CatalogTaggedResourceService {
         primitive.setOutput(output);
         
         return primitive;
+    }
+    
+    @POST
+    @Path("/{id}/deactivate")
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    public Response deactivatePrimitive(@PathParam("id") final URI id) {
+        primitiveManager.deactivate(id);
+        return Response.ok().build();
     }
     
     private PrimitiveRestRep updateAnsible(final Ansible update,

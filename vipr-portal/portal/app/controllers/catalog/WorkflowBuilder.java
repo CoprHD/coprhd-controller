@@ -16,23 +16,8 @@
  */
 package controllers.catalog;
 
-import com.emc.storageos.model.NamedRelatedResourceRep;
-import com.emc.storageos.model.orchestration.OrchestrationWorkflowCreateParam;
-import com.emc.storageos.model.orchestration.OrchestrationWorkflowDocument;
-import com.emc.storageos.model.orchestration.OrchestrationWorkflowList;
-import com.emc.storageos.model.orchestration.OrchestrationWorkflowRestRep;
-import com.emc.storageos.model.orchestration.OrchestrationWorkflowUpdateParam;
-import com.emc.storageos.model.orchestration.PrimitiveCreateParam;
-import com.emc.storageos.model.orchestration.PrimitiveList;
-import com.emc.storageos.model.orchestration.PrimitiveRestRep;
-import com.emc.storageos.model.orchestration.PrimitiveResourceRestRep;
-import com.emc.vipr.model.catalog.WFBulkRep;
-import com.emc.vipr.model.catalog.WFDirectoryParam;
-import com.emc.vipr.model.catalog.WFDirectoryRestRep;
-import com.emc.vipr.model.catalog.WFDirectoryUpdateParam;
-import com.emc.vipr.model.catalog.WFDirectoryWorkflowsUpdateParam;
-import com.google.gson.annotations.SerializedName;
-import controllers.Common;
+
+import static util.BourneUtil.getCatalogClient;
 
 import java.io.File;
 import java.net.URI;
@@ -44,17 +29,35 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import util.StringOption;
 
 import org.apache.commons.lang.StringUtils;
 import org.owasp.esapi.ESAPI;
+
 import play.Logger;
 import play.data.validation.Required;
 import play.data.validation.Valid;
-
 import play.mvc.Controller;
 import play.mvc.With;
-import static util.BourneUtil.getCatalogClient;
+import util.StringOption;
+
+import com.emc.storageos.model.NamedRelatedResourceRep;
+import com.emc.storageos.model.customservices.CustomServicesWorkflowCreateParam;
+import com.emc.storageos.model.customservices.CustomServicesWorkflowDocument;
+import com.emc.storageos.model.customservices.CustomServicesWorkflowList;
+import com.emc.storageos.model.customservices.CustomServicesWorkflowRestRep;
+import com.emc.storageos.model.customservices.CustomServicesWorkflowUpdateParam;
+import com.emc.storageos.model.customservices.PrimitiveCreateParam;
+import com.emc.storageos.model.customservices.PrimitiveList;
+import com.emc.storageos.model.customservices.PrimitiveResourceRestRep;
+import com.emc.storageos.model.customservices.PrimitiveRestRep;
+import com.emc.vipr.model.catalog.WFBulkRep;
+import com.emc.vipr.model.catalog.WFDirectoryParam;
+import com.emc.vipr.model.catalog.WFDirectoryRestRep;
+import com.emc.vipr.model.catalog.WFDirectoryUpdateParam;
+import com.emc.vipr.model.catalog.WFDirectoryWorkflowsUpdateParam;
+import com.google.gson.annotations.SerializedName;
+
+import controllers.Common;
 
 /**
  * @author Nick Aquino
@@ -140,11 +143,11 @@ public class WorkflowBuilder extends Controller {
         addPrimitivesByType(topLevelNodes, WFBuilderNodeTypes.VIPR.toString(), VIPR_PRIMITIVE_ROOT, null);
 
         //Add workflows
-        final OrchestrationWorkflowList orchestrationWorkflowList = getCatalogClient()
+        final CustomServicesWorkflowList customServicesWorkflowList = getCatalogClient()
                 .orchestrationPrimitives().getWorkflows();
-        if (null != orchestrationWorkflowList
-                && null != orchestrationWorkflowList.getWorkflows()) {
-            for (NamedRelatedResourceRep o : orchestrationWorkflowList
+        if (null != customServicesWorkflowList
+                && null != customServicesWorkflowList.getWorkflows()) {
+            for (NamedRelatedResourceRep o : customServicesWorkflowList
                     .getWorkflows()) {
                 final String parent = fileParents.containsKey(o.getId()) ? fileParents.get(o.getId()).getId().toString() : MY_LIBRARY_ROOT;
                 topLevelNodes.add(new Node(o.getId().toString(), o.getName(), parent, WFBuilderNodeTypes.WORKFLOW.toString()));
@@ -199,18 +202,18 @@ public class WorkflowBuilder extends Controller {
     }
 
     //TODO: remove this method and use another means of hardcoding
-    private static List<OrchestrationWorkflowDocument.Step> getStartEndSteps(){
-        OrchestrationWorkflowDocument.Step start = new OrchestrationWorkflowDocument.Step();
+    private static List<CustomServicesWorkflowDocument.Step> getStartEndSteps(){
+        CustomServicesWorkflowDocument.Step start = new CustomServicesWorkflowDocument.Step();
         start.setFriendlyName("Start");
         start.setId("Start");
         start.setPositionX(1793);
         start.setPositionY(1783);
-        OrchestrationWorkflowDocument.Step end = new OrchestrationWorkflowDocument.Step();
+        CustomServicesWorkflowDocument.Step end = new CustomServicesWorkflowDocument.Step();
         end.setFriendlyName("End");
         end.setId("End");
         end.setPositionX(2041);
         end.setPositionY(1783);
-        List<OrchestrationWorkflowDocument.Step> steps = new ArrayList<OrchestrationWorkflowDocument.Step>();
+        List<CustomServicesWorkflowDocument.Step> steps = new ArrayList<CustomServicesWorkflowDocument.Step>();
         steps.add(start);
         steps.add(end);
         return steps;
@@ -220,23 +223,23 @@ public class WorkflowBuilder extends Controller {
             final String dirID) {
         try {
             // Create workflow with just name
-            final OrchestrationWorkflowCreateParam param = new OrchestrationWorkflowCreateParam();
-            final OrchestrationWorkflowDocument document = new OrchestrationWorkflowDocument();
+            final CustomServicesWorkflowCreateParam param = new CustomServicesWorkflowCreateParam();
+            final CustomServicesWorkflowDocument document = new CustomServicesWorkflowDocument();
             document.setName(workflowName);
-            List<OrchestrationWorkflowDocument.Step> steps = getStartEndSteps();
+            List<CustomServicesWorkflowDocument.Step> steps = getStartEndSteps();
             document.setSteps(steps);
             param.setDocument(document);
-            final OrchestrationWorkflowRestRep orchestrationWorkflowRestRep = getCatalogClient()
+            final CustomServicesWorkflowRestRep customServicesWorkflowRestRep = getCatalogClient()
                     .orchestrationPrimitives().createWorkflow(param);
 
             // Add this workflowid to directory
-            if (null != orchestrationWorkflowRestRep) {
-                addResourceToWFDirectory(orchestrationWorkflowRestRep.getId(), dirID);
+            if (null != customServicesWorkflowRestRep) {
+                addResourceToWFDirectory(customServicesWorkflowRestRep.getId(), dirID);
             } else {
                 flash.error("Error creating workflow");
             }
 
-            renderJSON(orchestrationWorkflowRestRep);
+            renderJSON(customServicesWorkflowRestRep);
         } catch (final Exception e) {
             Logger.error(e.getMessage());
             flash.error("Error creating workflow");
@@ -260,15 +263,15 @@ public class WorkflowBuilder extends Controller {
 
 
     public static void saveWorkflow(final URI workflowId,
-                                      final OrchestrationWorkflowDocument workflowDoc) {
+                                      final CustomServicesWorkflowDocument workflowDoc) {
         try {
-            final OrchestrationWorkflowUpdateParam param = new OrchestrationWorkflowUpdateParam();
-            for (final OrchestrationWorkflowDocument.Step step : workflowDoc.getSteps()){
+            final CustomServicesWorkflowUpdateParam param = new CustomServicesWorkflowUpdateParam();
+            for (final CustomServicesWorkflowDocument.Step step : workflowDoc.getSteps()){
                 final String success_criteria = ESAPI.encoder().decodeForHTML(step.getSuccessCriteria());
                 step.setSuccessCriteria(success_criteria);
             }
             param.setDocument(workflowDoc);
-            final OrchestrationWorkflowRestRep orchestrationWorkflowRestRep = getCatalogClient()
+            final CustomServicesWorkflowRestRep customServicesWorkflowRestRep = getCatalogClient()
                     .orchestrationPrimitives().editWorkflow(workflowId,param);
         } catch (final Exception e) {
             Logger.error(e.getMessage());
@@ -277,37 +280,37 @@ public class WorkflowBuilder extends Controller {
     }
 
     public static void getWorkflow(final URI workflowId) {
-        OrchestrationWorkflowRestRep orchestrationWorkflowRestRep = getCatalogClient()
+        CustomServicesWorkflowRestRep customServicesWorkflowRestRep = getCatalogClient()
                 .orchestrationPrimitives().getWorkflow(workflowId);
-        renderJSON(orchestrationWorkflowRestRep);
+        renderJSON(customServicesWorkflowRestRep);
     }
 
     public static void validateWorkflow(final URI workflowId) {
-        OrchestrationWorkflowRestRep orchestrationWorkflowRestRep = getCatalogClient()
+        CustomServicesWorkflowRestRep customServicesWorkflowRestRep = getCatalogClient()
                 .orchestrationPrimitives().validateWorkflow(workflowId);
-        renderJSON(orchestrationWorkflowRestRep);
+        renderJSON(customServicesWorkflowRestRep);
     }
 
     public static void publishWorkflow(final URI workflowId) {
-        OrchestrationWorkflowRestRep orchestrationWorkflowRestRep = getCatalogClient()
+        CustomServicesWorkflowRestRep customServicesWorkflowRestRep = getCatalogClient()
                 .orchestrationPrimitives().publishWorkflow(workflowId);
-        renderJSON(orchestrationWorkflowRestRep);
+        renderJSON(customServicesWorkflowRestRep);
     }
 
     public static void unpublishWorkflow(final URI workflowId) {
-        OrchestrationWorkflowRestRep orchestrationWorkflowRestRep = getCatalogClient()
+        CustomServicesWorkflowRestRep customServicesWorkflowRestRep = getCatalogClient()
                 .orchestrationPrimitives().unpublishWorkflow(workflowId);
-        renderJSON(orchestrationWorkflowRestRep);
+        renderJSON(customServicesWorkflowRestRep);
     }
 
     public static void editWorkflowName(final String id, final String newName) {
         try {
             URI workflowURI = new URI(id);
-            OrchestrationWorkflowRestRep orchestrationWorkflowRestRep = getCatalogClient()
+            CustomServicesWorkflowRestRep customServicesWorkflowRestRep = getCatalogClient()
                     .orchestrationPrimitives().getWorkflow(workflowURI);
-            if (null != orchestrationWorkflowRestRep) {
-                final OrchestrationWorkflowUpdateParam param = new OrchestrationWorkflowUpdateParam();
-                param.setDocument(orchestrationWorkflowRestRep.getDocument());
+            if (null != customServicesWorkflowRestRep) {
+                final CustomServicesWorkflowUpdateParam param = new CustomServicesWorkflowUpdateParam();
+                param.setDocument(customServicesWorkflowRestRep.getDocument());
                 param.getDocument().setName(newName);
                 getCatalogClient().orchestrationPrimitives().editWorkflow(
                         workflowURI, param);
@@ -345,20 +348,22 @@ public class WorkflowBuilder extends Controller {
         if (null == primitiveList || null == primitiveList.getPrimitives()) {
             return;
         }
-        for (PrimitiveRestRep primitiveRestRep : primitiveList.getPrimitives()) {
-            final String parent = (fileParents!=null && fileParents.containsKey(primitiveRestRep.getId())) ? fileParents.get(primitiveRestRep.getId()).getId().toString() : parentDefault;
-            Node node;
+        List<PrimitiveRestRep> primitives = getCatalogClient().orchestrationPrimitives().getByIds(primitiveList.getPrimitives());
+        for (final PrimitiveRestRep primitive : primitives) {
+            final String parent = (fileParents!=null && fileParents.containsKey(primitive.getId())) ? fileParents.get(primitive.getId()).getId().toString() : parentDefault;
+            final Node node;
+
             if (WFBuilderNodeTypes.VIPR.toString().equals(type)) {
-                node = new Node(primitiveRestRep.getId().toString(),
-                        primitiveRestRep.getFriendlyName(), parent, type);
+                node = new Node(primitive.getId().toString(),
+                        primitive.getFriendlyName(), parent, type);
             }
             else {
-                node = new Node(primitiveRestRep.getId().toString(),
-                        primitiveRestRep.getName(), parent, type);
+                node = new Node(primitive.getId().toString(),
+                        primitive.getName(), parent, type);
             }
 
             //TODO: remove this later
-            node.data = primitiveRestRep;
+            node.data = primitive;
             topLevelNodes.add(node);
         }
     }

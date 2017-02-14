@@ -43,7 +43,7 @@ import com.emc.storageos.db.client.model.uimodels.CatalogCategory;
 import com.emc.storageos.db.client.model.uimodels.CatalogService;
 import com.emc.storageos.db.client.model.uimodels.CatalogServiceAndFields;
 import com.emc.storageos.db.client.model.uimodels.CatalogServiceField;
-import com.emc.storageos.db.client.model.uimodels.OrchestrationWorkflow;
+import com.emc.storageos.db.client.model.uimodels.CustomServicesWorkflow;
 import com.emc.storageos.db.client.model.uimodels.Order;
 import com.emc.storageos.db.client.model.uimodels.RecentService;
 import com.emc.storageos.security.authentication.StorageOSUser;
@@ -374,7 +374,7 @@ public class CatalogServiceManagerImpl implements CatalogServiceManager {
     public String getWorkflowDocument(String workflowName) {
         if( null == workflowName || workflowName.isEmpty()) return null;
         
-        final List<OrchestrationWorkflow> results = orchestrationWorkflowManager.getByName(workflowName);
+        final List<CustomServicesWorkflow> results = orchestrationWorkflowManager.getByName(workflowName);
         if(null == results || results.isEmpty()) {
             return null;
         }

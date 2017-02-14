@@ -21,17 +21,17 @@ import java.util.Iterator;
 import java.util.List;
 
 import com.emc.storageos.db.client.constraint.NamedElementQueryResultList.NamedElement;
-import com.emc.storageos.db.client.model.uimodels.OrchestrationWorkflow;
-import com.emc.storageos.db.client.model.uimodels.OrchestrationWorkflow.OrchestrationWorkflowStatus;
+import com.emc.storageos.db.client.model.uimodels.CustomServicesWorkflow;
+import com.emc.storageos.db.client.model.uimodels.CustomServicesWorkflow.OrchestrationWorkflowStatus;
 
 public interface OrchestrationWorkflowManager {
 
-    public OrchestrationWorkflow getById(final URI id);
-    public List<OrchestrationWorkflow> getByName(final String name);
+    public CustomServicesWorkflow getById(final URI id);
+    public List<CustomServicesWorkflow> getByName(final String name);
     public List<NamedElement> list();
-    public Iterator<OrchestrationWorkflow> getSummaries(final List<URI> ids);
-    public void save(final OrchestrationWorkflow workflow);
-    public void delete(final OrchestrationWorkflow workflow);
+    public Iterator<CustomServicesWorkflow> getSummaries(final List<URI> ids);
+    public void save(final CustomServicesWorkflow workflow);
+    public void delete(final CustomServicesWorkflow workflow);
     public boolean hasCatalogServices(final String name);
     public List<NamedElement> listByStatus(final OrchestrationWorkflowStatus status);
     

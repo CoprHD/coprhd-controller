@@ -56,7 +56,7 @@
         <constructor-arg name="localDependencyChecker" ref="dependencyChecker"/>
     </bean>	
 
-    <bean id="orchestrationService" class="com.emc.sa.service.vipr.oe.OrchestrationService"/>
+    <bean id="customServicesService" class="com.emc.sa.service.vipr.customservices.CustomServicesService"/>
     
     <bean id="dbDependencyPurger" class="com.emc.storageos.db.common.DbDependencyPurger">
         <constructor-arg name="dbClient" ref="dbclient"/>
@@ -118,7 +118,7 @@
         <property name="dbClient" ref="dbclient"/>
         <property name="coordinator" ref="coordinator"/>
     </bean>
-    <bean id="orchestrationWorkflowService" class="com.emc.sa.api.OrchestrationWorkflowService">
+    <bean id="customServicesWorkflowService" class="com.emc.sa.api.CustomServicesWorkflowService">
          <property name="dbClient" ref="dbclient"/>
          <property name="coordinator" ref="coordinator"/>
     </bean>
@@ -140,7 +140,7 @@
 				<ref bean="catalogPreferenceService" />
 				<ref bean="primitiveService" />
                 <ref bean="wfDirectoryService" />
-                <ref bean="orchestrationWorkflowService" />
+                <ref bean="customServicesWorkflowService" />
 				<bean class="com.emc.storageos.svcs.errorhandling.mappers.ServiceCodeExceptionMapper"/>
 				<bean class="com.emc.storageos.api.service.impl.resource.ContextProvider"/>
 				<bean class="org.codehaus.jackson.jaxrs.JacksonJaxbJsonProvider"/>

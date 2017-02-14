@@ -18,10 +18,10 @@ package com.emc.sa.api.mapper;
 
 import com.emc.storageos.api.service.authorization.PermissionsHelper;
 import com.emc.storageos.api.service.impl.response.BulkList.TenantResourceFilter;
-import com.emc.storageos.db.client.model.uimodels.OrchestrationWorkflow;
+import com.emc.storageos.db.client.model.uimodels.CustomServicesWorkflow;
 import com.emc.storageos.security.authentication.StorageOSUser;
 
-public class OrchestrationWorkflowFilter extends TenantResourceFilter<OrchestrationWorkflow> {
+public class OrchestrationWorkflowFilter extends TenantResourceFilter<CustomServicesWorkflow> {
 
     public OrchestrationWorkflowFilter(StorageOSUser user,
             PermissionsHelper permissionsHelper) {
@@ -29,7 +29,7 @@ public class OrchestrationWorkflowFilter extends TenantResourceFilter<Orchestrat
     }
 
     @Override
-    protected boolean isAccessible(OrchestrationWorkflow resource) {
+    protected boolean isAccessible(CustomServicesWorkflow resource) {
         return true;
     }
 

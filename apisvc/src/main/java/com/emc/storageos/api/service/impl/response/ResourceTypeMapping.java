@@ -163,7 +163,7 @@ import com.emc.storageos.db.client.model.uimodels.CatalogServiceField;
 import com.emc.storageos.db.client.model.uimodels.CustomServiceScriptPrimitive;
 import com.emc.storageos.db.client.model.uimodels.CustomServiceScriptResource;
 import com.emc.storageos.db.client.model.uimodels.ExecutionWindow;
-import com.emc.storageos.db.client.model.uimodels.OrchestrationWorkflow;
+import com.emc.storageos.db.client.model.uimodels.CustomServicesWorkflow;
 import com.emc.storageos.db.client.model.uimodels.Order;
 import com.emc.storageos.db.client.model.uimodels.UserPrimitive;
 import com.emc.storageos.db.client.model.uimodels.WFDirectory;
@@ -245,7 +245,7 @@ public class ResourceTypeMapping {
         classMapping.put(CATALOG_IMAGE, CatalogImage.class);
         classMapping.put(ACTIONABLE_EVENT, ActionableEvent.class);
         classMapping.put(EXECUTION_WINDOW, ExecutionWindow.class);
-        classMapping.put(ORCHESTRATION_WORKFLOW, OrchestrationWorkflow.class);
+        classMapping.put(ORCHESTRATION_WORKFLOW, CustomServicesWorkflow.class);
         classMapping.put(ANSIBLE_PACKAGE, AnsiblePackage.class);
         classMapping.put(ANSIBLE, Ansible.class);
         classMapping.put(SCRIPT_PRIMITIVE, CustomServiceScriptPrimitive.class);

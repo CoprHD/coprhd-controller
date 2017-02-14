@@ -24,12 +24,15 @@ import org.springframework.stereotype.Component;
 
 import com.emc.sa.model.dao.ModelClient;
 import com.emc.storageos.db.client.URIUtil;
+import com.emc.storageos.db.client.constraint.NamedElementQueryResultList.NamedElement;
 import com.emc.storageos.db.client.model.uimodels.Ansible;
 import com.emc.storageos.db.client.model.uimodels.AnsiblePackage;
 import com.emc.storageos.db.client.model.uimodels.CustomServiceScriptPrimitive;
 import com.emc.storageos.db.client.model.uimodels.CustomServiceScriptResource;
+import com.emc.storageos.db.client.model.uimodels.CustomServicesWorkflow;
 import com.emc.storageos.db.client.model.uimodels.PrimitiveResource;
 import com.emc.storageos.db.client.model.uimodels.UserPrimitive;
+import com.emc.storageos.svcs.errorhandling.resources.APIException;
 
 @Component
 public class PrimitiveManagerImpl implements PrimitiveManager {
@@ -64,6 +67,21 @@ public class PrimitiveManagerImpl implements PrimitiveManager {
     }
 
     @Override
+    public void deactivate(final URI id) {
+        final UserPrimitive primitive = findById(id);
+        if( null == primitive ) {
+            throw APIException.notFound.unableToFindEntityInURL(id);
+        }
+        
+        List<NamedElement> workflows = client.orchestrationWorkflows().getByPrimitive(id);
+        if( null != workflows && !workflows.isEmpty()) {
+            throw APIException.badRequests.resourceHasActiveReferencesWithType(primitive.getClass().getSimpleName(), id, CustomServicesWorkflow.class.getSimpleName());
+        }
+        
+        client.delete(primitive);
+    }
+
+    @Override
     public PrimitiveResource findResource(final URI id) {
      // TODO: move down the enum constant defined in PrimitiveService.java and use that here.
         final String type = URIUtil.getTypeName(id);
@@ -77,10 +95,15 @@ public class PrimitiveManagerImpl implements PrimitiveManager {
         }
        
     }
+    
+    @Override
+    public List<URI> findAllAnsibleIds() {
+        return client.findByType(Ansible.class);
+    }
 
     @Override
     public List<Ansible> findAllAnsible() {
-        final List<URI> ids = client.findByType(Ansible.class);
+        final List<URI> ids = findAllAnsibleIds();
         if( null == ids) {
             return null;
         }
@@ -88,13 +111,20 @@ public class PrimitiveManagerImpl implements PrimitiveManager {
         return ansiblePrimitives;
     }
 
+
+    @Override
+    public List<URI> findAllScriptPrimitiveIds() {
+        return client.findByType(CustomServiceScriptPrimitive.class);
+    }
+    
     @Override
     public List<CustomServiceScriptPrimitive> findAllScriptPrimitives() {
-        final List<URI> ids = client.findByType(CustomServiceScriptPrimitive.class);
+        final List<URI> ids = findAllScriptPrimitiveIds();
         if( null == ids) {
             return null;
         }
         List<CustomServiceScriptPrimitive> scriptPrimitives = client.findByIds(CustomServiceScriptPrimitive.class, ids);
         return scriptPrimitives;
     }
+
 }

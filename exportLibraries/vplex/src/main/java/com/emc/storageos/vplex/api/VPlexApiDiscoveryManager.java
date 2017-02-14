@@ -1574,7 +1574,9 @@ public class VPlexApiDiscoveryManager {
         URI requestURI = _vplexApiClient.getBaseURI().resolve(
                 URI.create(uriBuilder.toString()));
         s_logger.info("Initiators Request URI is {}", requestURI.toString());
+        long start = System.currentTimeMillis();
         ClientResponse response = _vplexApiClient.get(requestURI, VPlexApiConstants.ACCEPT_JSON_FORMAT_1);
+        s_logger.info("TIMER: fetching all initiators for cluster {} took {}ms", clusterName, System.currentTimeMillis() - start);
         String responseStr = response.getEntity(String.class);
         int status = response.getStatus();
         response.close();

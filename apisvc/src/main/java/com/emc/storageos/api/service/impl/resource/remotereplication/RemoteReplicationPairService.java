@@ -23,24 +23,27 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 
-import com.emc.storageos.security.authorization.ACL;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.api.service.impl.resource.ArgValidator;
 import com.emc.storageos.api.service.impl.resource.TaskResourceService;
 import com.emc.storageos.db.client.URIUtil;
+import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.Operation;
+import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.remotereplication.RemoteReplicationPair;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.model.ResourceTypeEnum;
+import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.TaskResourceRep;
 import com.emc.storageos.model.remotereplication.RemoteReplicationGroupParam;
 import com.emc.storageos.model.remotereplication.RemoteReplicationModeChangeParam;
 import com.emc.storageos.model.remotereplication.RemoteReplicationPairList;
 import com.emc.storageos.model.remotereplication.RemoteReplicationPairRestRep;
 import com.emc.storageos.security.audit.AuditLogManager;
+import com.emc.storageos.security.authorization.ACL;
 import com.emc.storageos.security.authorization.CheckPermission;
 import com.emc.storageos.security.authorization.DefaultPermissions;
 import com.emc.storageos.security.authorization.Role;
@@ -156,6 +159,51 @@ public class RemoteReplicationPairService extends TaskResourceService {
         return rrPairList;
     }
 
+    public TaskList failoverRemoteReplicationCGLink(List<URI> ids) throws InternalException {
+        _log.info("Called: failoverRemoteReplicationCGLing() with ids {}", ids);
+        // todo:
+        // ArgValidator.checkFieldUriType(id, RemoteReplicationPair.class, "id");
+        String taskId = UUID.randomUUID().toString();
+        TaskList taskList = new TaskList();
+        List<RemoteReplicationPair> rrPairs = _dbClient.queryObject(RemoteReplicationPair.class, ids);
+
+        // todo: validate that this operation is valid:
+        // if all pairs are in the same consistency group (source volumes are in the same consistency group)
+        // if operations are allowed on Pairs,
+        // if Pair state is valid for the operation, if the Pair is reachable, etc.
+        URI sourceElementURI = rrPairs.get(0).getSourceElement().getURI();
+        ArgValidator.checkFieldUriType(sourceElementURI, Volume.class, "id");
+        Volume sourceElement = _dbClient.queryObject(Volume.class, sourceElementURI);
+        URI cgURI = sourceElement.getConsistencyGroup();
+        BlockConsistencyGroup cg = _dbClient.queryObject(BlockConsistencyGroup.class, cgURI);
+
+        Operation op = _dbClient.createTaskOpStatus(RemoteReplicationPair.class, cg.getId(),
+                taskId, ResourceOperationTypeEnum.FAILOVER_REMOTE_REPLICATION_CG_LINK);
+        TaskResourceRep volumeTaskResourceRep = toTask(cg, taskId, op);
+        taskList.getTaskList().add(volumeTaskResourceRep);
+
+        RemoteReplicationElement rrElement =
+                new RemoteReplicationElement(RemoteReplicationSet.ElementType.CONSISTENCY_GROUP, cgURI);
+        // send request to controller
+        try {
+            RemoteReplicationBlockServiceApiImpl rrServiceApi = getRemoteReplicationServiceApi();
+            rrServiceApi.failoverRemoteReplicationElementLink(rrElement, taskId);
+        } catch (final ControllerException e) {
+            _log.error("Controller Error", e);
+                op = cg.getOpStatus().get(taskId);
+                op.error(e);
+                cg.getOpStatus().updateTaskStatus(taskId, op);
+                cg.setInactive(true);
+                _dbClient.updateObject(cg);
+
+            throw e;
+        }
+
+        auditOp(OperationTypeEnum.FAILOVER_REMOTE_REPLICATION_CG_LINK, true, AuditLogManager.AUDITOP_BEGIN,
+                cg.getLabel());
+
+        return taskList;
+    }
 
     @POST
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
@@ -170,7 +218,7 @@ public class RemoteReplicationPairService extends TaskResourceService {
         // Create a task for the failover remote replication Pair operation
         String taskId = UUID.randomUUID().toString();
         Operation op = _dbClient.createTaskOpStatus(RemoteReplicationPair.class, rrPair.getId(),
-                taskId, ResourceOperationTypeEnum.SPLIT_REMOTE_REPLICATION_PAIR_LINK);
+                taskId, ResourceOperationTypeEnum.FAILOVER_REMOTE_REPLICATION_PAIR_LINK);
 
         RemoteReplicationElement rrElement =
                 new RemoteReplicationElement(com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationSet.ElementType.REPLICATION_PAIR, id);

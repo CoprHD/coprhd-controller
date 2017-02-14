@@ -83,6 +83,10 @@ public interface RemoteReplicationController extends Controller {
     // replication link operations
     /**
      * Suspend remote replication link for remote replication element.
+     *
+     * Before this operation all remote replication pairs which belong to the replication element
+     * should be in ACTIVE state.
+     *
      * At the completion of this operation all remote replication pairs which belong to the replication element should
      * be in the following state:
      *     Pairs state: SUSPENDED;
@@ -97,6 +101,11 @@ public interface RemoteReplicationController extends Controller {
 
     /**
      * Resume remote replication link for remote replication element.
+     *
+     * Before this operation all remote replication pairs which belong to the replication element
+     * should be in SUSPENDED state.
+     *
+     *
      * At the completion of this operation all remote replication pairs which belong to the replication element should
      * be in the following state:
      *     Pairs state: ACTIVE;
@@ -112,6 +121,10 @@ public interface RemoteReplicationController extends Controller {
 
     /**
      * Split remote replication link for remote replication element.
+     *
+     * Before this operation all remote replication pairs which belong to the replication element
+     * should be in ACTIVE state.
+     *
      * At the completion of this operation all remote replication pairs which belong to the replication element should
      * be in the following state:
      *     Pairs state: SPLIT;
@@ -126,6 +139,9 @@ public interface RemoteReplicationController extends Controller {
 
     /**
      * Establish replication link for remote replication element.
+     *
+     * Before this operation all remote replication pairs which belong to the replication element
+     * should be in SPLIT state.
      *
      * At the completion of this operation all remote replication pairs which belong to the replication element should
      * be in the following state:
@@ -142,6 +158,10 @@ public interface RemoteReplicationController extends Controller {
 
     /**
      * Failover remote replication link for remote replication element.
+     *
+     * Before this operation all remote replication pairs which belong to the replication element
+     * should be in ACTIVE state.
+     *
      * At the completion of this operation all remote replication pairs which belong to the replication element should
      * be in the following state:
      *     Pairs state: FAILED_OVER;
@@ -156,6 +176,10 @@ public interface RemoteReplicationController extends Controller {
 
     /**
      * Failback remote replication link for remote replication element.
+     *
+     * Before this operation all remote replication pairs which belong to the replication element
+     * should be in FAILED_OVER state.
+     *
      * At the completion of this operation all remote replication pairs which belong to the replication element should
      * be in the following state:
      *     Pairs state:ACTIVE;
@@ -173,14 +197,18 @@ public interface RemoteReplicationController extends Controller {
      * Swap remote replication link for remote replication element.
      * Changes roles of replication elements in each replication pair.
      *
+     * Before this operation all remote replication pairs which belong to the replication element
+     * should be in ACTIVE state.
+     *
      * At the completion of this operation all remote replication pairs which belong to the replication element should
      * be in the following state:
-     *     Pairs state: SWAPPED;
+     *     Pairs state: ACTIVE;
      *     No change in remote replication container (group/set) for the pairs;
      *     R1 elements should be read enabled/write disabled;
      *     R2 elements should be read/write enabled;
      *     data on R2 elements is synchronized with new R1 data copied to R2;
      *     replication links should be in ready state for replication from R2 to R1;
+     *     SWAP operation should reverse pair's replication direction
      *
      * @param replicationElement: set/group/pair
      */

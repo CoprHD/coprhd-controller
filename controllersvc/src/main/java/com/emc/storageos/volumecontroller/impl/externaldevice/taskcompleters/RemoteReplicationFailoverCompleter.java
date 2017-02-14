@@ -4,6 +4,7 @@ import java.net.URI;
 import java.util.Collections;
 import java.util.List;
 
+import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.NamedURI;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -35,6 +36,8 @@ public class RemoteReplicationFailoverCompleter extends TaskCompleter {
 
     private RemoteReplicationSet.ElementType elementType;
     private URI elementURI;
+    private List<URI> groupURIs = null;
+    private List<URI> pairURIs = null;
     /**
      * Constructor for failover completer
      *
@@ -53,6 +56,9 @@ public class RemoteReplicationFailoverCompleter extends TaskCompleter {
                 break;
             case REPLICATION_PAIR:
                 break;
+            case CONSISTENCY_GROUP:
+                setType(BlockConsistencyGroup.class);
+                break;
             case REPLICATION_SET:
                 break;
         }
@@ -65,22 +71,17 @@ public class RemoteReplicationFailoverCompleter extends TaskCompleter {
         setDbClient(dbClient);
 
         _logger.info("Complete operation for {} with id {} and status {}", elementType, elementURI, status);
+        List<RemoteReplicationPair> rrPairs;
         try {
             if (status == Operation.Status.ready) {
                 switch (elementType) {
                     case REPLICATION_GROUP:
                         RemoteReplicationGroup remoteReplicationGroup = dbClient.queryObject(RemoteReplicationGroup.class, elementURI);
-                        _logger.info("Failed over group: {}", remoteReplicationGroup.getNativeId());
-                        List<RemoteReplicationPair> rrPairs = CustomQueryUtility.queryActiveResourcesByRelation(dbClient, elementURI,
-                                RemoteReplicationPair.class, "replicationGroup");
+                        _logger.info("Failed over remote replication group: {}", remoteReplicationGroup.getNativeId());
+                        rrPairs = dbClient.queryObject(RemoteReplicationPair.class, pairURIs);
                         for (RemoteReplicationPair rrPair : rrPairs) {
                             rrPair.setReplicationState(RemoteReplicationSet.ReplicationState.FAILED_OVER.toString());
-                            // change replication direction:
-                            if (rrPair.getReplicationDirection() == RemoteReplicationPair.ReplicationDirection.SOURCE_TO_TARGET) {
-                                rrPair.setReplicationDirection(RemoteReplicationPair.ReplicationDirection.TARGET_TO_SOURCE);
-                            } else {
-                                rrPair.setReplicationDirection(RemoteReplicationPair.ReplicationDirection.SOURCE_TO_TARGET);
-                            }
+                             // after failover, replication link is inactive, leave replication direction as is
                         }
                         remoteReplicationGroup.setReplicationState(RemoteReplicationSet.ReplicationState.FAILED_OVER.toString());
                         dbClient.updateObject(remoteReplicationGroup);
@@ -88,6 +89,17 @@ public class RemoteReplicationFailoverCompleter extends TaskCompleter {
                         _logger.info("Completed operation for {} with id {} and status {}", elementType, elementURI, status);
                         break;
                     case REPLICATION_PAIR:
+                        break;
+                    case CONSISTENCY_GROUP:
+                        BlockConsistencyGroup cg = dbClient.queryObject(BlockConsistencyGroup.class, elementURI);
+                        _logger.info("Failed over consistency group: {}", cg.getNativeId());
+                        rrPairs = dbClient.queryObject(RemoteReplicationPair.class, pairURIs);
+                        for (RemoteReplicationPair rrPair : rrPairs) {
+                            rrPair.setReplicationState(RemoteReplicationSet.ReplicationState.FAILED_OVER.toString());
+                            // after failover, replication link is inactive, leave replication direction as is
+                        }
+                        dbClient.updateObject(rrPairs);
+                        _logger.info("Completed operation for {} with id {} and status {}", elementType, elementURI, status);
                         break;
                     case REPLICATION_SET:
                         break;
@@ -104,4 +116,19 @@ public class RemoteReplicationFailoverCompleter extends TaskCompleter {
         }
     }
 
+    public List<URI> getGroupURIs() {
+        return groupURIs;
+    }
+
+    public void setGroupURIs(List<URI> groupURIs) {
+        this.groupURIs = groupURIs;
+    }
+
+    public List<URI> getPairURIs() {
+        return pairURIs;
+    }
+
+    public void setPairURIs(List<URI> pairURIs) {
+        this.pairURIs = pairURIs;
+    }
 }

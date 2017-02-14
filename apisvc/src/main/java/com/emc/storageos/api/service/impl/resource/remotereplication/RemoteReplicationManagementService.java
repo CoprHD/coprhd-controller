@@ -13,13 +13,13 @@ import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 
-import com.emc.storageos.db.client.model.remotereplication.RemoteReplicationSet;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.api.service.impl.resource.TaskResourceService;
 import com.emc.storageos.db.client.model.remotereplication.RemoteReplicationGroup;
 import com.emc.storageos.db.client.model.remotereplication.RemoteReplicationPair;
+import com.emc.storageos.db.client.model.remotereplication.RemoteReplicationSet;
 import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.TaskResourceRep;
@@ -126,9 +126,13 @@ public class RemoteReplicationManagementService extends TaskResourceService {
         TaskList taskList = new TaskList();
         switch (operationContext) {
             case RR_PAIR:
+                // for individual pairs send one request for each pair
+                // call pair service for each pair and add task to the taskList, return task list.
+                // todo:
+                break;
             case RR_GROUP_CG:
             case RR_SET_CG:
-              //  taskList =  rrPairService.failoverRemoteReplicationPairLinks(operationParam.getIds());
+                taskList =  rrPairService.failoverRemoteReplicationCGLink(operationParam.getIds());
                 break;
             case RR_GROUP:
                 RemoteReplicationGroup rrGroup = _dbClient.queryObject(RemoteReplicationGroup.class, operationParam.getIds().get(0));

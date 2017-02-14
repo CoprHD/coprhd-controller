@@ -10,6 +10,7 @@ import java.util.List;
 
 import com.emc.storageos.db.client.model.remotereplication.RemoteReplicationPair;
 import com.emc.storageos.volumecontroller.TaskCompleter;
+import com.emc.storageos.volumecontroller.impl.externaldevice.taskcompleters.RemoteReplicationFailoverCompleter;
 
 public interface RemoteReplicationDevice {
 
@@ -25,7 +26,7 @@ public interface RemoteReplicationDevice {
     public void resume(RemoteReplicationElement replicationArgument, TaskCompleter taskCompleter);
     public void split(RemoteReplicationElement replicationArgument, TaskCompleter taskCompleter);
     public void synchronize(RemoteReplicationElement replicationArgument, TaskCompleter taskCompleter);
-    public void failover(RemoteReplicationElement replicationArgument, TaskCompleter taskCompleter);
+    public void failover(RemoteReplicationElement replicationArgument, RemoteReplicationFailoverCompleter taskCompleter);
     public void failback(RemoteReplicationElement replicationArgument, TaskCompleter taskCompleter);
     public void swap(RemoteReplicationElement replicationArgument, TaskCompleter taskCompleter);
 

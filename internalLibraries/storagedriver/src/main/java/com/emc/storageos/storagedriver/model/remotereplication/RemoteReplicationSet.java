@@ -37,7 +37,8 @@ public class RemoteReplicationSet {
     public enum ElementType {
         REPLICATION_SET,
         REPLICATION_GROUP,
-        REPLICATION_PAIR
+        REPLICATION_PAIR,
+        CONSISTENCY_GROUP
     }
 
     /**
@@ -49,7 +50,6 @@ public class RemoteReplicationSet {
         SUSPENDED,
         SPLIT,
         FAILED_OVER,
-        SWAPPED
     }
 
 

@@ -44,6 +44,7 @@ import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.hds.HDSConstants;
+import com.emc.storageos.remotereplicationcontroller.RemoteReplicationUtils;
 import com.emc.storageos.storagedriver.AbstractStorageDriver;
 import com.emc.storageos.storagedriver.BlockStorageDriver;
 import com.emc.storageos.storagedriver.DriverTask;
@@ -79,6 +80,7 @@ import com.emc.storageos.volumecontroller.impl.externaldevice.job.ExpandVolumeEx
 import com.emc.storageos.volumecontroller.impl.externaldevice.job.RestoreFromCloneExternalDeviceJob;
 import com.emc.storageos.volumecontroller.impl.externaldevice.job.RestoreFromGroupCloneExternalDeviceJob;
 import com.emc.storageos.volumecontroller.impl.externaldevice.job.RestoreFromSnapshotExternalDeviceJob;
+import com.emc.storageos.volumecontroller.impl.externaldevice.taskcompleters.RemoteReplicationFailoverCompleter;
 import com.emc.storageos.volumecontroller.impl.job.QueueJob;
 import com.emc.storageos.volumecontroller.impl.plugins.ExternalDeviceCommunicationInterface;
 import com.emc.storageos.volumecontroller.impl.smis.ExportMaskOperations;
@@ -1915,11 +1917,12 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice implem
     }
 
     @Override
-    public void failover(RemoteReplicationElement remoteReplicationElement, TaskCompleter taskCompleter) {
+    public void failover(RemoteReplicationElement remoteReplicationElement, RemoteReplicationFailoverCompleter taskCompleter) {
         com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationSet.ElementType elementType = remoteReplicationElement.getType();
         URI elementURI = remoteReplicationElement.getElementUri();
 
         _log.info("Failover remote replication element {} with system id {}", elementType.toString(), elementURI);
+        StorageSystem sourceSystem;
         RemoteReplicationDriver driver = null;
         RemoteReplicationOperationContext context = null;
         List<RemoteReplicationPair> systemRRPairs = null;
@@ -1930,14 +1933,28 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice implem
                     RemoteReplicationGroup remoteReplicationGroup = dbClient.queryObject(RemoteReplicationGroup.class, elementURI);
                     context = new RemoteReplicationOperationContext(com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationSet.ElementType.REPLICATION_GROUP,
                             null, remoteReplicationGroup.getNativeId());
-                    StorageSystem sourceSystem = dbClient.queryObject(StorageSystem.class, remoteReplicationGroup.getSourceSystem());
+                    sourceSystem = dbClient.queryObject(StorageSystem.class, remoteReplicationGroup.getSourceSystem());
 
                     driver = (RemoteReplicationDriver)getDriver(sourceSystem.getSystemType());
                     systemRRPairs = CustomQueryUtility.queryActiveResourcesByRelation(dbClient, elementURI,
                             RemoteReplicationPair.class, "replicationGroup");
+                    taskCompleter.setPairURIs(URIUtil.toUris(systemRRPairs));
                     break;
+
                 case REPLICATION_PAIR:
                     break;
+
+                case CONSISTENCY_GROUP:
+                    BlockConsistencyGroup cg = dbClient.queryObject(BlockConsistencyGroup.class, elementURI);
+                    context = new RemoteReplicationOperationContext(com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationSet.ElementType.CONSISTENCY_GROUP,
+                            null, null);
+                    sourceSystem = dbClient.queryObject(StorageSystem.class, cg.getStorageController());
+
+                    driver = (RemoteReplicationDriver)getDriver(sourceSystem.getSystemType());
+                    systemRRPairs = RemoteReplicationUtils.getRemoteReplicationPairsForCG(cg, dbClient);
+                    taskCompleter.setPairURIs(URIUtil.toUris(systemRRPairs));
+                    break;
+
                 case REPLICATION_SET:
                     break;
                 default:
@@ -1948,21 +1965,21 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice implem
                 // prepare driver replication pairs and call driver
                 prepareDriverRemoteReplicationPairs(systemRRPairs, driverRRPairs);
             }
-                DriverTask task = driver.failover(Collections.unmodifiableList(driverRRPairs), context, null);
-                // todo: need to implement support for async case.
-                if (task.getStatus() == DriverTask.TaskStatus.READY) {
-                    String msg = String.format("failover -- failed over remote replication element %s with system id %s: %s", elementType, elementURI,
-                            task.getMessage());
-                    _log.info(msg);
-                    taskCompleter.ready(dbClient);
-                } else {
-                    String errorMsg = String.format("failover -- Failed failover operation for remote replication element %s with system id %s: %s", elementType, elementURI,
-                            task.getMessage());
-                    _log.error(errorMsg);
-                    ServiceError serviceError = ExternalDeviceException.errors.remoteReplicationLinkOperationFailed(
-                            "failover", elementType.toString(), elementURI.toString(), errorMsg);
-                    taskCompleter.error(dbClient, serviceError);
-                }
+            DriverTask task = driver.failover(Collections.unmodifiableList(driverRRPairs), context, null);
+            // todo: need to implement support for async case.
+            if (task.getStatus() == DriverTask.TaskStatus.READY) {
+                String msg = String.format("failover -- failed over remote replication element %s with system id %s: %s", elementType, elementURI,
+                        task.getMessage());
+                _log.info(msg);
+                taskCompleter.ready(dbClient);
+            } else {
+                String errorMsg = String.format("failover -- Failed failover operation for remote replication element %s with system id %s: %s", elementType, elementURI,
+                        task.getMessage());
+                _log.error(errorMsg);
+                ServiceError serviceError = ExternalDeviceException.errors.remoteReplicationLinkOperationFailed(
+                        "failover", elementType.toString(), elementURI.toString(), errorMsg);
+                taskCompleter.error(dbClient, serviceError);
+            }
         } catch (Exception e) {
             String errorMsg = String.format("failover -- Failed failover operation for remote replication element %s with system id %s .", elementType, elementURI);
             _log.error(errorMsg, e);

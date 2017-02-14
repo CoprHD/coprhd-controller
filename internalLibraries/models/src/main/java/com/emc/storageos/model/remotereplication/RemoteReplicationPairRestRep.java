@@ -42,6 +42,30 @@ public class RemoteReplicationPairRestRep extends DataObjectRestRep {
     // Replication pair target element.
     private URI targetElement;
 
+    // Replication pair tenant
+    private URI tenant;
+
+    //Replication paire project
+    private URI project;
+
+    @XmlElement(name = "tenant")
+    public URI getTenant() {
+        return tenant;
+    }
+
+    public void setTenant(URI tenant) {
+        this.tenant = tenant;
+    }
+
+    @XmlElement(name = "project")
+    public URI getProject() {
+        return project;
+    }
+
+    public void setProject(URI project) {
+        this.project = project;
+    }
+
     @XmlElement(name = "native_id")
     public String getNativeId() {
         return nativeId;

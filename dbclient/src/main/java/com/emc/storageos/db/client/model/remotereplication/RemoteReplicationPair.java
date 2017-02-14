@@ -61,6 +61,33 @@ public class RemoteReplicationPair extends DataObject {
     // name: ElementType.VOLUME, Element.FILE_SYSTEM
     private NamedURI targetElement;
 
+    // Tenant of this pair
+    private NamedURI tenant;
+
+    // Project of this pair
+    private NamedURI project;
+
+
+    @Name("tenant")
+    public NamedURI getTenant() {
+        return tenant;
+    }
+
+    public void setTenant(NamedURI tenant) {
+        this.tenant = tenant;
+        setChanged("tenant");
+    }
+
+    @Name("project")
+    public NamedURI getProject() {
+        return project;
+    }
+
+    public void setProject(NamedURI project) {
+        this.project = project;
+        setChanged("project");
+    }
+
     @Name("nativeId")
     public String getNativeId() {
         return nativeId;
@@ -157,6 +184,7 @@ public class RemoteReplicationPair extends DataObject {
 
     @Override
     public String toString() {
-        return String.format("RR Pair id: %s, Source volume id: %s, target volume id: %s", _id, sourceElement, targetElement);
+        return String.format("RR Pair id: %s, Source volume id: %s, target volume id: %s, tenant: %s, project: %s", _id,
+                sourceElement, targetElement, tenant.getName(), project.getName());
     }
 }

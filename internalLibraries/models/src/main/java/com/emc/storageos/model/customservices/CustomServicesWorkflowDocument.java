@@ -190,12 +190,13 @@ public class CustomServicesWorkflowDocument {
 
         private boolean waitForTask = true;
         private long timeout = DEFAULT_STEP_TIMEOUT;
+        private String playbook;
         
         @XmlElement(name = "wait_for_task")
         public boolean getWaitForTask() {
             return waitForTask;
         }
-        public void setWaitForTask(Boolean waitForTask) {
+        public void setWaitForTask(boolean waitForTask) {
             this.waitForTask = waitForTask;
         }
         
@@ -203,10 +204,17 @@ public class CustomServicesWorkflowDocument {
         public long getTimeout() {
             return timeout;
         }
-        public void setTimeout(Long timeout) {
+        public void setTimeout(long timeout) {
             this.timeout = timeout;
         }
 
+        @XmlElement(name = "playbook")
+        public String getPlaybook() {
+            return playbook;
+        }
+        public void setPlaybook(String playbook) {
+            this.playbook = playbook;
+        }
     }
 
     public static class Step {

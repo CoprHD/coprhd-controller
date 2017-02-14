@@ -875,7 +875,7 @@ public class VPlexBackendManager {
         boolean isOpenStack = isOpenStack(array);
 
         Map<URI, Integer> volumeLunIdMap = createVolumeMap(array.getId(), exportGroup, volumeMap);
-        _dbClient.persistObject(exportGroup);
+        //_dbClient.persistObject(exportGroup);
 
         String zoningStep = null;
         String maskStepId = workflow.createStepId();
@@ -889,6 +889,10 @@ public class VPlexBackendManager {
                 exportMask.getId(), volumeList, maskStepId);
 
         String previousStepId = dependantStepId;
+
+        Workflow.Method updateExportGroupStep = new Workflow.Method("updateExportGroup", exportGroup, volumeLunIdMap);
+        previousStepId = workflow.createStep("UPDATE_EXPORTGROUP", "Updating EG", previousStepId, vplex.getId(),
+                vplex.getSystemType(), VPlexDeviceController.class, updateExportGroupStep, null, null);
 
         String zoningDependentStep = ((isMaskingFirst && isOpenStack) ? reValidateExportMaskStep
                 : ((isMaskingFirst && !isOpenStack) ? maskStepId : previousStepId));

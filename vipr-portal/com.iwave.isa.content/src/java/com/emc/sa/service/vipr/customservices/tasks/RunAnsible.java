@@ -77,7 +77,7 @@ public class RunAnsible  extends ViPRExecutionTask<CustomServicesTaskResult> {
         this.params = params;
         this.dbClient = dbClient;
 
-        orderDir = CustomServicesConstants.PATH + "OE" + ExecutionUtils.currentContext().getOrder().getOrderNumber();
+        orderDir = CustomServicesConstants.PATH + "CS" + ExecutionUtils.currentContext().getOrder().getOrderNumber();
 
     }
 
@@ -115,11 +115,11 @@ public class RunAnsible  extends ViPRExecutionTask<CustomServicesTaskResult> {
 
                     final String scriptFileName;
 
-                    if(script.getLabel() != null && !script.getLabel().isEmpty()) {
-                        scriptFileName = orderDir+"/" + script.getLabel() + ".sh";
+                    if(StringUtils.isNotEmpty(script.getLabel())) {
+                        scriptFileName = orderDir + "/" + script.getLabel() + ".sh";
                     } else {
                         // handle cases where DB is corrupted and the label is not present in the CustomServiceScriptResource CF.
-                        scriptFileName = orderDir+"/" + "temp.sh";
+                        scriptFileName = orderDir + "/" + "temp.sh";
                     }
 
                     final byte[] bytes = Base64.decodeBase64(script.getResource());
@@ -132,10 +132,10 @@ public class RunAnsible  extends ViPRExecutionTask<CustomServicesTaskResult> {
                                 e.getMessage());
                     }
 
+                    final String inputToScript = makeParam(input);
+                    logger.debug("input is {}" , inputToScript);
 
-                    logger.debug("input is {}" , makeParam(input));
-
-                    result = executeCmd(scriptFileName, makeParam(input));
+                    result = executeCmd(scriptFileName, inputToScript);
 
                     cleanUp(orderDir, false);
 
@@ -329,7 +329,6 @@ public class RunAnsible  extends ViPRExecutionTask<CustomServicesTaskResult> {
             //TODO find a better way to fix this
             sb.append(value.get(0).replace("\"", "")).append(" ");
         }
-
         return sb.toString();
     }
 

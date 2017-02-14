@@ -6964,4 +6964,42 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
         return getDevice(system.getSystemType()).doInitiatorAliasGet(
                 system, initiator);
     }
+
+    /**
+     * Returns a Workflow Method for updating an ExportGroup's volumes.
+     *
+     * @param exportGroup       an ExportGroup URI.
+     * @param volumeLunIdMap    a mapping of Volume URI to LUN.
+     * @return                  a Workflow Method.
+     */
+    public static Workflow.Method updateExportGroupMethod(URI exportGroup, Map<URI, Integer> volumeLunIdMap) {
+        return new Workflow.Method("updateExportGroup", exportGroup, volumeLunIdMap);
+    }
+
+    /**
+     * Simple workflow step that updates (adds) the given Volume to LUN mapping for the ExportGroup's volumes.
+     *
+     * @param exportGroup       an ExportGroup.
+     * @param volumeLunIdMap    a mapping of Volume URI to LUN.
+     * @param stepId            a workflow step ID
+     * @return                  true, if the step was successful, false otherwise.
+     */
+    public boolean updateExportGroup(URI exportGroup, Map<URI, Integer> volumeLunIdMap, String stepId) {
+        _log.info("updateExportGroup {} START", exportGroup);
+        WorkflowStepCompleter.stepExecuting(stepId);
+
+        try {
+            ExportGroup exportGroupObj = _dbClient.queryObject(ExportGroup.class, exportGroup);
+            exportGroupObj.addVolumes(volumeLunIdMap);
+            _dbClient.updateObject(exportGroupObj);
+        } catch (Exception e) {
+            _log.error("Unforeseen error whilst updating ExportGroup: {}", exportGroup, e);
+            ServiceError serviceError = DeviceControllerException.errors.unforeseen();
+            WorkflowStepCompleter.stepFailed(stepId, serviceError);
+            return false;
+        }
+
+        WorkflowStepCompleter.stepSucceded(stepId);
+        return true;
+    }
 }

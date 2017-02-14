@@ -4,6 +4,7 @@
  */
 package com.emc.storageos.vplexcontroller;
 
+import static com.emc.storageos.volumecontroller.impl.block.BlockDeviceController.updateExportGroupMethod;
 import static com.emc.storageos.volumecontroller.impl.block.ExportMaskPlacementDescriptorHelper.putUnplacedVolumesIntoAlternativeMask;
 
 import java.net.URI;
@@ -874,8 +875,7 @@ public class VPlexBackendManager {
         boolean isMaskingFirst = isMaskingFirst(array);
         boolean isOpenStack = isOpenStack(array);
 
-        Map<URI, Integer> volumeLunIdMap = createVolumeMap(array.getId(), exportGroup, volumeMap);
-        //_dbClient.persistObject(exportGroup);
+        Map<URI, Integer> volumeLunIdMap = createVolumeMap(array.getId(), volumeMap);
 
         String zoningStep = null;
         String maskStepId = workflow.createStepId();
@@ -883,16 +883,16 @@ public class VPlexBackendManager {
 
         ExportMaskAddVolumeCompleter createCompleter = new ExportMaskAddVolumeCompleter(
                 exportGroup.getId(), exportMask.getId(), volumeLunIdMap, maskStepId);
-        List<URI> volumeList = new ArrayList<URI>();
+        List<URI> volumeList = new ArrayList<>();
         volumeList.addAll(volumeLunIdMap.keySet());
         ExportTaskCompleter rollbackCompleter = new ExportMaskOnlyRemoveVolumeCompleter(exportGroup.getId(),
                 exportMask.getId(), volumeList, maskStepId);
 
         String previousStepId = dependantStepId;
 
-        Workflow.Method updateExportGroupStep = new Workflow.Method("updateExportGroup", exportGroup, volumeLunIdMap);
-        previousStepId = workflow.createStep("UPDATE_EXPORTGROUP", "Updating EG", previousStepId, vplex.getId(),
-                vplex.getSystemType(), VPlexDeviceController.class, updateExportGroupStep, null, null);
+        Workflow.Method updateExportGroupStep = updateExportGroupMethod(exportGroup.getId(), volumeLunIdMap);
+        previousStepId = workflow.createStep(EXPORT_STEP, "Updating ExportGroup Volumes", previousStepId, vplex.getId(),
+                vplex.getSystemType(), BlockDeviceController.class, updateExportGroupStep, null, null);
 
         String zoningDependentStep = ((isMaskingFirst && isOpenStack) ? reValidateExportMaskStep
                 : ((isMaskingFirst && !isOpenStack) ? maskStepId : previousStepId));
@@ -1121,21 +1121,19 @@ public class VPlexBackendManager {
     }
 
     /**
-     * 
-     * @param exportGroup
-     * @param volumeMap
-     * @return
+     * Returns a Map of Volume URI to Integer (LUN).
+     *
+     * @param volumeMap a mapping of URI to Volume.
+     * @return          the Volume URI to LUN mapping.
      */
-    private Map<URI, Integer> createVolumeMap(URI storageSystemURI, ExportGroup exportGroup,
-            Map<URI, Volume> volumeMap) {
-        Map<URI, Integer> volumeLunIdMap = new HashMap<URI, Integer>();
+    private Map<URI, Integer> createVolumeMap(URI storageSystemURI, Map<URI, Volume> volumeMap) {
+        Map<URI, Integer> volumeLunIdMap = new HashMap<>();
         Iterator<URI> volumeIter = volumeMap.keySet().iterator();
         while (volumeIter.hasNext()) {
             URI volumeURI = volumeIter.next();
             Volume volume = volumeMap.get(volumeURI);
             if (volume.getStorageController().toString().equals(storageSystemURI.toString())) {
                 volumeLunIdMap.put(volumeURI, ExportGroup.LUN_UNASSIGNED);
-                exportGroup.addVolume(volumeURI, ExportGroup.LUN_UNASSIGNED);
             }
         }
         return volumeLunIdMap;

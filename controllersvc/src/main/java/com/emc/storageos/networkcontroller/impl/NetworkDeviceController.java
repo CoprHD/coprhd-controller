@@ -469,7 +469,8 @@ public class NetworkDeviceController implements NetworkController {
             }
             return result;
         } catch (ControllerException ex) {
-        	 _log.info("waiting for 2 min before retrying with alternate device");
+        	 String operation = doRemove ? "Remove Zones" : "Add Zones";
+        	 _log.info(String.format("waiting for 2 min before retrying %s with alternate device", operation));
         	 try {
 				Thread.sleep(1000 * 120);
 			} catch (InterruptedException e) {
@@ -708,7 +709,7 @@ public class NetworkDeviceController implements NetworkController {
                 setStatus(Volume.class, volUri, taskId, true, null);
             }
         } catch (ControllerException ex) {
-        	 _log.info("waiting for 2 min before retrying with alternate device");
+        	 _log.info("waiting for 2 min before retrying removeZone with alternate device");
         	 try {
 				Thread.sleep(1000 * 120);
 			} catch (InterruptedException e) {

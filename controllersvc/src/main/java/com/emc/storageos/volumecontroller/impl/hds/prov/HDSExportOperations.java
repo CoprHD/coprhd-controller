@@ -1454,29 +1454,32 @@ public class HDSExportOperations implements ExportMaskOperations {
 									.get(0);
 							ExportMask maskForHSD = null;
 							for (ExportMask exportMaskhavingInitiators : exportMaskWithHostInitiators) {
-								if (exportMaskhavingInitiators.getStoragePorts().contains(storagePortOFHDSURI)) {
-									log.info("storagePortOFHDSURI {}",storagePortOFHDSURI);
-									log.info("exportMaskhavingInitiators {}",exportMaskhavingInitiators.getId());
+								if (exportMaskhavingInitiators.getStoragePorts().contains(storagePortOFHDSURI)) {									
 									maskForHSD = exportMaskhavingInitiators;
 									break;
 								}
 							}
 							if (null == maskForHSD) {
 								//first get the varray of the storageport of the HSD and then check if
-	                        	//any of the export masks have storage ports, which belong to the varray 
-	                        	//in consideration
-	                        	String  varrayUriOfHsdPort = getVarrayOfStoragePort(storagePortOFHDSURI);
-	                        	log.info("varrayUriOfHsdPort {}", varrayUriOfHsdPort);	                        	
+	                        	//any of the export masks have storage ports, which belong to the same varray 
+	                        	//which is in consideration. 
+								//NOTE: If the storageport is assigned to multiple varrays, then maintaining one
+								//export mask per varray is not possible.
+	                        	String  varrayUriOfHsdPort = getVarrayOfStoragePort(storagePortOFHDSURI);	                        	                  	
 	                        	if(varrayUriOfHsdPort != null){
+	                        		boolean bMaskFound = false;
 	                        		for (ExportMask exportMaskhavingInitiators : exportMaskWithHostInitiators) {
 	                                    for(String storagePortUriIter : exportMaskhavingInitiators.getStoragePorts()) {
 	                                        //get the storage port entity
 	                                    	String  varrayOfStoragePort = getVarrayOfStoragePort(storagePortUriIter);
 	                                    	if ( (varrayOfStoragePort!=null) && (varrayOfStoragePort.equals(varrayUriOfHsdPort)) ){
 	                                    		maskForHSD = exportMaskhavingInitiators;
-	                                    		log.info("maskForHSD {}", maskForHSD.getId());
+	                                    		bMaskFound = true;
 	                                    		break;
 	                                    	}
+	                                    }
+	                                    if(bMaskFound){
+	                                    	break;
 	                                    }
 	                                }
 	                        	}
@@ -1518,7 +1521,8 @@ public class HDSExportOperations implements ExportMaskOperations {
     
     
     /**
-     * Returnsthe varray URI in string format for a given storage port 
+     * Returns the virtual array URI in string format for a given storage port. 
+     * It returns the first  virtual array entry from the taggervirtualArray array entries. 
      * 
      * @param storagePortId
      * @return
@@ -1526,20 +1530,12 @@ public class HDSExportOperations implements ExportMaskOperations {
     String getVarrayOfStoragePort(String storagePortId){
     	URI storagePortURI = URI.create(storagePortId);
     	StoragePort objStoragePort = dbClient.queryObject(StoragePort.class, storagePortURI);
-    	log.info("objStoragePort.getConnectedVirtualArrays() {}", objStoragePort.getConnectedVirtualArrays());
-    	log.info("objStoragePort.getAssignedVirtualArrays() {}", objStoragePort.getAssignedVirtualArrays());
-    	log.info("objStoragePort.getTaggedVirtualArrays() {}", objStoragePort.getTaggedVirtualArrays());
-    	if( (objStoragePort.getConnectedVirtualArrays() != null) && 
-    			(!objStoragePort.getConnectedVirtualArrays().isEmpty()) ){
-    		return ((objStoragePort.getConnectedVirtualArrays().toArray())[0]).toString();
-    	}
-    	if( (objStoragePort.getAssignedVirtualArrays() != null) && 
-    			(!objStoragePort.getAssignedVirtualArrays().isEmpty()) ){
-    		return ((objStoragePort.getAssignedVirtualArrays().toArray())[0]).toString();
-    	}
-    	if( (objStoragePort.getTaggedVirtualArrays() != null) && 
-    			(!objStoragePort.getTaggedVirtualArrays().isEmpty()) ){
-    		return ((objStoragePort.getTaggedVirtualArrays().toArray())[0]).toString();
+    	    	
+    	if(objStoragePort != null){
+	    	if( (objStoragePort.getTaggedVirtualArrays() != null) && 
+	    			(!objStoragePort.getTaggedVirtualArrays().isEmpty()) ){
+	    		return ((objStoragePort.getTaggedVirtualArrays().toArray())[0]).toString();
+	    	}
     	}
     	return null;
     }

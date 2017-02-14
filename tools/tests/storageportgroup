@@ -26,26 +26,26 @@ def storageportgroup_list(args):
         port_group_display(portgroup)
 
 
-def storageport_register(args):
+def storageportgroup_register(args):
     bourne.connect(args.ip)
     (systemname, portgroupname) = args.name.split('/', 1)
     sduri  = bourne.storagedevice_query(systemname)
     portgroupuris = bourne.storageportgroup_list(sduri)
     for portgroupuri in portgroupuris:
         portgroup = bourne.storageportgroup_show(sduri, portgroupuri['id'])
-        if (portgroup['portgroupname'] == args.portgroup):
-            portgroup = bourne.storageportgroup_register(uri, portgroupuri['id'])
+        if (portgroup['name'] == portgroupname):
+            portgroup = bourne.storageportgroup_register(sduri, portgroupuri['id'])
             print portgroup
 
-def storageport_deregister(args):
+def storageportgroup_deregister(args):
     bourne.connect(args.ip)
     (systemname, portgroupname) = args.name.split('/', 1)
-    sduri  = bourne.storagedevice_query(args.systemname)
+    sduri  = bourne.storagedevice_query(systemname)
     portgroupuris = bourne.storageportgroup_list(sduri)
     for portgroupuri in portgroupuris:
         portgroup = bourne.storageportgroup_show(sduri, portgroupuri['id'])
-        if (portgroup['portgroupname'] == args.portgroup):
-            portgroup = bourne.storageportgroup_register(uri, portgroupuri['id'])
+        if (portgroup['name'] == portgroupname):
+            portgroup = bourne.storageportgroup_deregister(sduri, portgroupuri['id'])
             print portgroup
 
 def storageportgroup_show(args):

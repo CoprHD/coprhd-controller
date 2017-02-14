@@ -21,7 +21,9 @@ import java.util.List;
 import java.util.Map;
 
 import javax.xml.bind.annotation.XmlElement;
+import javax.xml.bind.annotation.XmlRootElement;
 
+@XmlRootElement(name = "primitive_create_param")
 public class PrimitiveCreateParam {
 
     private String name;

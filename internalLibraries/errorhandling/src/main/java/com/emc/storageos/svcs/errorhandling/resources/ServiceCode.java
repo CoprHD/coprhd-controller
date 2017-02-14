@@ -655,6 +655,10 @@ public enum ServiceCode {
     XIV_REST_DELETE_FAILURE(68004),
     XIV_REST_HOST_PARTOF_CLUSTER(68010),
 
+    //Custom Service Exception code
+    CUSTOM_SERVICE_EXCEPTION(69000),
+    CUSTOM_SERVICE_NOTASK(69001),
+
     // ****************************
     // Old style of Service codes
     // ****************************

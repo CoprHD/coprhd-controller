@@ -372,4 +372,10 @@ public interface InternalServerErrorExceptions {
 
     @DeclareServiceCode(ServiceCode.UNFORSEEN_ERROR)
     public InternalServerErrorException unexpectedHostOperationError(String cause);
+
+    @DeclareServiceCode(ServiceCode.CUSTOM_SERVICE_EXCEPTION)
+    public InternalServerErrorException customServiceExecutionFailed(String cause);
+
+    @DeclareServiceCode(ServiceCode.CUSTOM_SERVICE_NOTASK)
+    public InternalServerErrorException customServiceNoTaskFound(String cause);
 }

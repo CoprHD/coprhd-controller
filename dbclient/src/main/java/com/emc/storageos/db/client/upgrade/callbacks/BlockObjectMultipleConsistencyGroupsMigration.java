@@ -272,12 +272,14 @@ public class BlockObjectMultipleConsistencyGroupsMigration extends BaseCustomMig
                     log.info("Found " + activeCGVolumes.size() + " volumes that belong to BlockConsistencyGroup " + cg.getLabel());
 
                     for (Volume cgVolume : activeCGVolumes) {
-                        // Look at each of the associated volumes and add a mapping of VPlex storage
-                        // system to cluster/cg.
-                        String clusterId = getVPlexClusterFromVolume(cgVolume);
-                        log.info("Adding storage system to cluster/cg mapping for VPlex BlockConsistencyGroup " + cg.getLabel());
-                        cg.addSystemConsistencyGroup(cgVolume.getStorageController().toString(),
-                                BlockConsistencyGroupUtils.buildClusterCgName(clusterId, cg.getLabel()));
+                        if (!NullColumnValueGetter.isNullURI(cgVolume.getStorageController())) {
+                            // Look at each of the associated volumes and add a mapping of VPlex storage
+                            // system to cluster/cg.
+                            String clusterId = getVPlexClusterFromVolume(cgVolume);
+                            log.info("Adding storage system to cluster/cg mapping for VPlex BlockConsistencyGroup " + cg.getLabel());
+                            cg.addSystemConsistencyGroup(cgVolume.getStorageController().toString(),
+                                    BlockConsistencyGroupUtils.buildClusterCgName(clusterId, cg.getLabel()));
+                        }
                     }
                 } else if (!NullColumnValueGetter.isNullURI(cg.getStorageController())) {
                     // Non-RP/Non-VPLEX/Non-RP+VPLEX

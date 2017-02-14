@@ -63,6 +63,7 @@ import com.emc.storageos.model.customconfig.PreviewVariableParam;
 import com.emc.storageos.model.customconfig.RelatedConfigTypeRep;
 import com.emc.storageos.model.customconfig.ScopeParam;
 import com.emc.storageos.model.customconfig.ScopeParamList;
+import com.emc.storageos.model.customconfig.SimpleValueRep;
 import com.emc.storageos.model.customconfig.ConfigTypeScopeParam;
 import com.emc.storageos.model.customconfig.VariableParam;
 import com.emc.storageos.model.search.SearchResultResourceRep;
@@ -638,14 +639,14 @@ public class CustomConfigService extends ResourceService {
     @GET
     @Path("/types/{config_name}/value")
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    public CustomConfigPreviewRep getCustomConfigTypeValue(@PathParam("config_name") String configName,
+    public SimpleValueRep getCustomConfigTypeValue(@PathParam("config_name") String configName,
         @QueryParam("scope") String scope ) {
         ArgValidator.checkFieldNotEmpty(configName, "configName");
         CustomConfigType item = customConfigHandler.getCustomConfigType(configName);
-        CustomConfigPreviewRep result = new CustomConfigPreviewRep();
+        SimpleValueRep result = new SimpleValueRep();
         if (item != null) {
             String value = customConfigHandler.getComputedCustomConfigValue(configName, scope, null);
-            result.setResolvedValue(value);
+            result.setValue(value);
         } else {
             log.info("Invalid config type for :", configName);
             throw APIException.badRequests.invalidConfigType(configName);

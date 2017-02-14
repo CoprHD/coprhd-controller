@@ -64,8 +64,6 @@ import com.emc.storageos.volumecontroller.impl.block.VplexCinderMaskingOrchestra
 import com.emc.storageos.volumecontroller.impl.block.VplexUnityMaskingOrchestrator;
 import com.emc.storageos.volumecontroller.impl.block.VplexXtremIOMaskingOrchestrator;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportMaskAddVolumeCompleter;
-import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportMaskOnlyRemoveVolumeCompleter;
-import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportTaskCompleter;
 import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
 import com.emc.storageos.volumecontroller.placement.BlockStorageScheduler;
 import com.emc.storageos.volumecontroller.placement.PlacementUtils;
@@ -672,12 +670,6 @@ public class VPlexBackendManager {
                 _log.info(String.format("ExportMask %s not created by ViPR; no unzoning step", mask.getMaskName()));
             }
 
-            String stepId = workflow.createStepId();
-            ExportTaskCompleter exportTaskCompleter;
-            // If this ViPR instance created the ExportMask, we may want to use it again,
-            // so do not delete it from the database. Otherwise we will delete it if empty.
-            exportTaskCompleter = new ExportMaskOnlyRemoveVolumeCompleter(exportGroup.getId(),
-                    mask.getId(), volumes, stepId);
             VplexBackEndMaskingOrchestrator orca = getOrch(storage);
             List<URI> initiatorURIs = new ArrayList<>();
             if (mask.getInitiators() != null) {
@@ -685,7 +677,8 @@ public class VPlexBackendManager {
                         CommonTransformerFunctions.FCTN_STRING_TO_URI));
             }
             Workflow.Method removeVolumesMethod = orca.deleteOrRemoveVolumesFromExportMaskMethod(
-                    storage.getId(), exportGroup.getId(), mask.getId(), volumes, initiatorURIs, exportTaskCompleter);
+                    storage.getId(), exportGroup.getId(), mask.getId(), volumes, initiatorURIs);
+            String stepId = workflow.createStepId();
             workflow.createStep(EXPORT_STEP,
                     String.format("Removing volume from ExportMask %s", mask.getMaskName()),
                     previousStepId, storage.getId(), storage.getSystemType(), orca.getClass(),
@@ -881,8 +874,6 @@ public class VPlexBackendManager {
                 exportGroup.getId(), exportMask.getId(), volumeLunIdMap, maskStepId);
         List<URI> volumeList = new ArrayList<>();
         volumeList.addAll(volumeLunIdMap.keySet());
-        ExportTaskCompleter rollbackCompleter = new ExportMaskOnlyRemoveVolumeCompleter(exportGroup.getId(),
-                exportMask.getId(), volumeList, maskStepId);
 
         String previousStepId = dependantStepId;
 
@@ -926,7 +917,7 @@ public class VPlexBackendManager {
         Workflow.Method updateMaskMethod = orca.createOrAddVolumesToExportMaskMethod(
                 array.getId(), exportGroup.getId(), exportMask.getId(), volumeLunIdMap, initiatorURIs, createCompleter);
         Workflow.Method rollbackMaskMethod = orca.deleteOrRemoveVolumesFromExportMaskMethod(
-                array.getId(), exportGroup.getId(), exportMask.getId(), volumeList, initiatorURIs, rollbackCompleter);
+                array.getId(), exportGroup.getId(), exportMask.getId(), volumeList, initiatorURIs);
         workflow.createStep(EXPORT_STEP, "createOrAddVolumesToExportMask: " + exportMask.getMaskName(),
                 previousStepId, array.getId(), array.getSystemType(), orca.getClass(),
                 updateMaskMethod, rollbackMaskMethod, maskStepId);
@@ -944,7 +935,6 @@ public class VPlexBackendManager {
                     maskStepId, array.getId(), array.getSystemType(), orca.getClass(), updatezoningAndvalidateMaskMethod,
                     rollbackMaskMethod, reValidateExportMaskStep);
             // END - updateZoningMapAndValidateExportMask Step
-
         }
 
         _log.info(String.format(

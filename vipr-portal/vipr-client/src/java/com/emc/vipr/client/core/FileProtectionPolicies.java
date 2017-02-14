@@ -19,6 +19,8 @@ import com.emc.storageos.model.file.policy.FilePolicyCreateParam;
 import com.emc.storageos.model.file.policy.FilePolicyCreateResp;
 import com.emc.storageos.model.file.policy.FilePolicyListRestRep;
 import com.emc.storageos.model.file.policy.FilePolicyRestRep;
+import com.emc.storageos.model.file.policy.FilePolicyStorageResourceRestRep;
+import com.emc.storageos.model.file.policy.FilePolicyStorageResources;
 import com.emc.storageos.model.file.policy.FilePolicyUnAssignParam;
 import com.emc.storageos.model.file.policy.FilePolicyUpdateParam;
 import com.emc.vipr.client.Task;
@@ -28,7 +30,7 @@ import com.emc.vipr.client.core.impl.PathConstants;
 import com.emc.vipr.client.impl.RestClient;
 
 public class FileProtectionPolicies extends AbstractCoreBulkResources<FilePolicyRestRep>
-implements TaskResources<FilePolicyRestRep>, ACLResources {
+        implements TaskResources<FilePolicyRestRep>, ACLResources {
 
     public FileProtectionPolicies(ViPRCoreClient parent, RestClient client) {
 
@@ -41,6 +43,10 @@ implements TaskResources<FilePolicyRestRep>, ACLResources {
 
     private String getUnAssignPolicyUrl() {
         return PathConstants.FILE_PROTECTION_POLICY_URL + "/unassign-policy";
+    }
+
+    private String getPolicyStorageResourcesUrl() {
+        return PathConstants.FILE_PROTECTION_POLICY_URL + "/policy-storage-resources";
     }
 
     /**
@@ -80,8 +86,8 @@ implements TaskResources<FilePolicyRestRep>, ACLResources {
      * @param input
      *            the update configuration.
      */
-    public void update(URI id, FilePolicyUpdateParam input) {
-        client.put(FilePolicyCreateResp.class, input, PathConstants.FILE_PROTECTION_POLICY_URL, id);
+    public TaskResourceRep update(URI id, FilePolicyUpdateParam input) {
+        return client.put(TaskResourceRep.class, input, PathConstants.FILE_PROTECTION_POLICY_URL, id);
     }
 
     /**
@@ -162,6 +168,18 @@ implements TaskResources<FilePolicyRestRep>, ACLResources {
     @Override
     public List<ACLEntry> updateACLs(URI id, ACLAssignmentChanges aclChanges) {
         return doUpdateACLs(id, aclChanges);
+    }
+
+    /**
+     * Lists the file policy storage resources.
+     * <p>
+     * API Call: <tt>GET /file/file-policies/{id}/policy-storage-resources</tt>
+     * 
+     * @return get the details policy storage resource for given policy.
+     */
+    public List<FilePolicyStorageResourceRestRep> getPolicyStorageResources(URI id) {
+        FilePolicyStorageResources response = client.get(FilePolicyStorageResources.class, getPolicyStorageResourcesUrl(), id);
+        return defaultList(response.getStorageResources());
     }
 
 }

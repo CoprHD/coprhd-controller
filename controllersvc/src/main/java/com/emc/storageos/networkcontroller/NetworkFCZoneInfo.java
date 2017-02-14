@@ -59,6 +59,8 @@ public class NetworkFCZoneInfo implements Serializable {
     public URI _volumeId;					// URI for the volume (this value only used in NetworkDeviceController)
 
     private boolean existingZone = false;   // a flag that indicates if the zone was found on the network system
+    
+    private URI _exportGroup;        // Export Group, used when zones for different Export Groups are in same zoning operations (like path adjustment)
 
     public boolean isExistingZone() {
         return existingZone;
@@ -231,6 +233,15 @@ public class NetworkFCZoneInfo implements Serializable {
         newInfo.setNetworkDeviceId(_networkDeviceId);
         newInfo.setVolumeId(_volumeId);
         newInfo.setZoneName(_zoneName);
+        newInfo.setExportGroup(_exportGroup);
         return newInfo;
+    }
+
+    public URI getExportGroup() {
+        return _exportGroup;
+    }
+
+    public void setExportGroup(URI exportGroup) {
+        this._exportGroup = exportGroup;
     }
 }

@@ -567,11 +567,11 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
         if(step.next){
             if(step.next.defaultStep){
                 var passEndpoint = jspInstance.getEndpoint(step.id+"-pass");
-                jspInstance.connect({source:passEndpoint, target:step.next.defaultStep});
+                jspInstance.connect({source:passEndpoint, target:diagramContainer.find('#' + step.next.defaultStep)});
             }
             if(step.next.failedStep){
                 var failEndpoint = jspInstance.getEndpoint(step.id+"-fail");
-                jspInstance.connect({source:failEndpoint, target:step.next.failedStep});
+                jspInstance.connect({source:failEndpoint, target:diagramContainer.find('#' + step.next.failedStep)});
             }
         }
     }

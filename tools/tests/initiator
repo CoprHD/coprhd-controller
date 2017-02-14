@@ -24,6 +24,22 @@ def initiator_create_pair(args):
     task = bourne.initiator_create_pair(args.host, args.protocol, args.port1, args.node1, args.port2, args.node2)
     if(BOURNE_DEBUG == '1'):
         print task
+
+def initiator_associate(args):
+    port1 = args.name1
+    port2 = args.name2
+    
+    port1_uri = bourne.initiator_query(port1)
+    port2_uri = bourne.initiator_query(port2)
+    
+    res = bourne.associate_initiator(port1_uri, port2_uri)
+    print res
+    
+def initiator_disassociate(args):
+    port_uri = bourne.initiator_query(args.name1)
+    res = bourne.dissociate_initiator(port_uri)
+    
+    print res
     
 def initiator_delete(args):
     bourne.connect(args.ip)
@@ -37,7 +53,10 @@ def initiator_show(args):
 
 def initiator_query(args):
     bourne.connect(args.ip)
-    print bourne.initiator_query(args.name)
+    initiator_uri = bourne.initiator_query(args.name)
+    print initiator_uri
+    
+    return initiator_uri
 
 def initiator_list(args):
     bourne.connect(args.ip)
@@ -142,6 +161,15 @@ createpair.add_argument('--node1',          help = 'First Node WWN or null', def
 createpair.add_argument('port2',            help = 'Second Port WWN or IQN, etc.', default = None)
 createpair.add_argument('--node2',          help = 'Second Node WWN or null', default = None)
 
+# associate initiator to other initiator 
+associate  = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+associate.add_argument('name1',    help = 'name of initiator in the format host_name/initiator_port1')
+associate.add_argument('name2',    help = 'name of initiator in the format host_name/initiator_port2')
+
+# disassociate initiator from other initiator 
+disassociate  = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+disassociate.add_argument('name1',    help = 'name of initiator in the format host_name/initiator_port1')
+
 # initiator delete name
 delete = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
 delete.add_argument('name',	help = 'name of initiator in the format host_name/initiator_port')
@@ -210,7 +238,13 @@ try:
         initiator_create(args)
     elif(cmd == "createpair"):
         args = createpair.parse_args()
-        initiator_create_pair(args)    
+        initiator_create_pair(args)  
+    elif(cmd == "associate"):
+        args = associate.parse_args()
+        initiator_associate(args)  
+    elif(cmd == "disassociate"):
+        args = disassociate.parse_args()
+        initiator_disassociate(args)    
     elif (cmd == "delete"):
         args = delete.parse_args()
         initiator_delete(args)

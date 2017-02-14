@@ -370,6 +370,8 @@ URI_HOST_DEACTIVATE             = URI_HOST            + '/deactivate?detach_stor
 URI_HOSTS_BULKGET               = URI_HOSTS           + '/bulk'
 URI_HOST_INITIATORS             = URI_SERVICES_BASE   + '/compute/hosts/{0}/initiators'
 URI_INITIATOR_PAIR              = URI_SERVICES_BASE   + '/compute/hosts/{0}/paired-initiators'
+URI_INITIATOR_ASSOCIATE         = URI_SERVICES_BASE   + "/compute/initiators/{0}/associate/{1}"
+URI_INITIATOR_DISSOCIATE        = URI_SERVICES_BASE   + "/compute/initiators/{0}/dissociate"
 URI_HOST_IPINTERFACES           = URI_SERVICES_BASE   + '/compute/hosts/{0}/ip-interfaces'
 URI_INITIATORS                  = URI_SERVICES_BASE   + '/compute/initiators'
 URI_INITIATOR                   = URI_SERVICES_BASE   + '/compute/initiators/{0}'
@@ -8597,6 +8599,26 @@ class Bourne:
         }
         
         o = self.api('POST', URI_INITIATOR_PAIR.format(uri), parms)
+        self.assert_is_dict(o)
+        s = self.api_sync_2(o['resource']['id'], o['op_id'], self.initiator_show_task)
+        return (o, s)
+    
+    """
+    Associate initiators operation
+    """
+    def associate_initiator(self, initiatorUri, associatedInitiatorUri):
+
+        o = self.api("PUT", URI_INITIATOR_ASSOCIATE.format(initiatorUri, associatedInitiatorUri),None)
+        self.assert_is_dict(o)
+        s = self.api_sync_2(o['resource']['id'], o['op_id'], self.initiator_show_task)
+        return (o, s)
+        
+    """
+    Dissociate initiators operation
+    """
+    def dissociate_initiator(self, initiatorUri):
+        
+        o = self.api("PUT", URI_INITIATOR_DISSOCIATE.format(initiatorUri),None)
         self.assert_is_dict(o)
         s = self.api_sync_2(o['resource']['id'], o['op_id'], self.initiator_show_task)
         return (o, s)

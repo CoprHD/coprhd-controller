@@ -1885,7 +1885,8 @@ public class VolumeIngestionUtil {
                         Joiner.on(",").join(iniByProtocol.entrySet()));
                 // group Initiators by Protocol
                 for (Entry<String, Set<String>> entry : iniByProtocol.entrySet()) {
-                    _logger.info("Processing Initiators by Protocol {} Group", entry.getValue());
+                    Set<String> hostInitiatorsForProtocol = entry.getValue();
+                    _logger.info("Processing Initiators by Protocol {} Group", hostInitiatorsForProtocol);
                     if (hostPartOfCluster) {
                         /**
                          * If Host is part of a Cluster, then
@@ -1897,15 +1898,15 @@ public class VolumeIngestionUtil {
                          *
                          */
                         _logger.info("Host part of a Cluster- Comparing discovered [{}] with unmanaged [{}] ", Joiner.on(",")
-                                .join(entry.getValue()), Joiner.on(",").join(mask.getKnownInitiatorUris()));
-                        Set<String> ViPRDiscToExistingKnownInisDiff = Sets.difference(entry.getValue(),
+                                .join(hostInitiatorsForProtocol), Joiner.on(",").join(mask.getKnownInitiatorUris()));
+                        Set<String> ViPRDiscToExistingKnownInisDiff = Sets.difference(hostInitiatorsForProtocol,
                                 mask.getKnownInitiatorUris());
 
                         if (ViPRDiscToExistingKnownInisDiff.isEmpty()) {
 
                             // check whether remaining existing initiators on
                             // mask are part of the cluster
-                            Set<String> remainingInis = Sets.difference(mask.getKnownInitiatorUris(), entry.getValue());
+                            Set<String> remainingInis = Sets.difference(mask.getKnownInitiatorUris(), hostInitiatorsForProtocol);
                             Set<String> iniPartOfCluster = Sets.difference(remainingInis, initiatorsPartOfCluster);
                             _logger.info(
                                     "ViPR initiators are a complete subset of unmanaged mask's known initiators. Trying to find whether the other initiators {}"
@@ -1929,7 +1930,7 @@ public class VolumeIngestionUtil {
                         } else {
 
                             Set<String> existingknownInisToViprDiscDiff = Sets.difference(mask.getKnownInitiatorUris(),
-                                    entry.getValue());
+                                    hostInitiatorsForProtocol);
 
                             if (existingknownInisToViprDiscDiff.isEmpty()) {
                                 _logger.info(
@@ -1950,9 +1951,9 @@ public class VolumeIngestionUtil {
 
                     } else {
                         _logger.info("Host not part of any Cluster- Comparing discovered [{}] with unmanaged [{}] ",
-                                Joiner.on(",").join(entry.getValue()), Joiner.on(",").join(mask.getKnownInitiatorUris()));
+                                Joiner.on(",").join(hostInitiatorsForProtocol), Joiner.on(",").join(mask.getKnownInitiatorUris()));
                         Set<String> existingknownInisToViprDiscDiff = Sets.difference(mask.getKnownInitiatorUris(),
-                                entry.getValue());
+                                hostInitiatorsForProtocol);
 
                         if (existingknownInisToViprDiscDiff.isEmpty()) {
                             _logger.info("Matched Mask Found after Grouping by Protocol {}", mask.getMaskName());
@@ -2017,11 +2018,12 @@ public class VolumeIngestionUtil {
                 if (null != mask.getKnownInitiatorUris() && !mask.getKnownInitiatorUris().isEmpty()) {
 
                     for (Entry<String, Set<String>> entry : clusterIniByProtocol.entrySet()) {
-                        _logger.info("Processing Initiators by Protocol {} Group", entry.getValue());
-                        _logger.info("Cluster- Comparing discovered [{}] with unmanaged [{}] ", Joiner.on(",").join(entry.getValue()),
+                        Set<String> clusterInitiatorsForProtocol = entry.getValue();
+                        _logger.info("Processing Initiators by Protocol {} Group", clusterInitiatorsForProtocol);
+                        _logger.info("Cluster- Comparing discovered [{}] with unmanaged [{}] ", Joiner.on(",").join(clusterInitiatorsForProtocol),
                                 Joiner.on(",").join(mask.getKnownInitiatorUris()));
                         Set<String> existingknownInisToViprDiscDiff = Sets.difference(mask.getKnownInitiatorUris(),
-                                entry.getValue());
+                                clusterInitiatorsForProtocol);
                         /**
                          * ViPR initiators || Existing Mask in Array
                          * case 1: I1,I2,I3,I4 I1,I2 -- mask skipped ,as I1,i2 are initiators of 1 single Node in cluster (exlusive export
@@ -2050,7 +2052,7 @@ public class VolumeIngestionUtil {
                         } else {
                             _logger.info(
                                     "Existing ViPR known Initiators are not a complete subset of ViPR discovered, check whether ViPR discovered are a subset of existing");
-                            Set<String> ViPRDiscToExistingKnownInisDiff = Sets.difference(entry.getValue(),
+                            Set<String> ViPRDiscToExistingKnownInisDiff = Sets.difference(clusterInitiatorsForProtocol,
                                     mask.getKnownInitiatorUris());
                             if (ViPRDiscToExistingKnownInisDiff.isEmpty()) {
                                 _logger.info("Mask Found {} with a subset of ViPR initiators in existing mask.", mask.getMaskName());

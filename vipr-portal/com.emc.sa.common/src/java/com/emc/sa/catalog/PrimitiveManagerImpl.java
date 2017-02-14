@@ -74,7 +74,7 @@ public class PrimitiveManagerImpl implements PrimitiveManager {
         }
         
         List<NamedElement> workflows = client.orchestrationWorkflows().getByPrimitive(id);
-        if( null != workflows && workflows.size() > 0) {
+        if( null != workflows && !workflows.isEmpty()) {
             throw APIException.badRequests.resourceHasActiveReferencesWithType(primitive.getClass().getSimpleName(), id, CustomServicesWorkflow.class.getSimpleName());
         }
         

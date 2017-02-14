@@ -229,17 +229,17 @@ public class WorkflowBuilder extends Controller {
             List<CustomServicesWorkflowDocument.Step> steps = getStartEndSteps();
             document.setSteps(steps);
             param.setDocument(document);
-            final CustomServicesWorkflowRestRep CustomServicesWorkflowRestRep = getCatalogClient()
+            final CustomServicesWorkflowRestRep customServicesWorkflowRestRep = getCatalogClient()
                     .orchestrationPrimitives().createWorkflow(param);
 
             // Add this workflowid to directory
-            if (null != CustomServicesWorkflowRestRep) {
-                addResourceToWFDirectory(CustomServicesWorkflowRestRep.getId(), dirID);
+            if (null != customServicesWorkflowRestRep) {
+                addResourceToWFDirectory(customServicesWorkflowRestRep.getId(), dirID);
             } else {
                 flash.error("Error creating workflow");
             }
 
-            renderJSON(CustomServicesWorkflowRestRep);
+            renderJSON(customServicesWorkflowRestRep);
         } catch (final Exception e) {
             Logger.error(e.getMessage());
             flash.error("Error creating workflow");

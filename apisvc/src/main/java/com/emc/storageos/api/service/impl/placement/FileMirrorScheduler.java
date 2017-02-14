@@ -121,6 +121,11 @@ public class FileMirrorScheduler implements Scheduler {
         } else {
             // Get the recommendation for source from vpool!!!
             sourceFileRecommendations = _fileScheduler.getRecommendationsForResources(vArray, project, vPool, capabilities);
+            // Remove the source storage system from capabilities list
+            // otherwise, try to find the remote pools from the same source system!!!
+            if (capabilities.getVpoolProjectPolicyAssign() && capabilities.getFileProtectionSourceStorageDevice() != null) {
+                capabilities.removeCapabilityEntry(VirtualPoolCapabilityValuesWrapper.FILE_PROTECTION_SOURCE_STORAGE_SYSTEM);
+            }
         }
         // Process the each recommendations for targets
         for (FileRecommendation sourceFileRecommendation : sourceFileRecommendations) {

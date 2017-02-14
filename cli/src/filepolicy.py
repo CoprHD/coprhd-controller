@@ -516,16 +516,41 @@ def list_parser(subcommand_parsers, common_parser):
     mandatory_args = \
         list_parser.add_argument_group('mandatory arguments')
 
+    list_parser.add_argument('-v', '-verbose',
+                             dest='verbose',
+                             help='List FilePolicy with details',
+                             action='store_true')
+    list_parser.add_argument('-l', '-long',
+                             action='store_true',
+                             help='List Filepolicy with details in table format',
+                             dest='long')
     list_parser.set_defaults(func=filepolicy_list)
 
 
 def filepolicy_list(args):
     obj = FilePolicy(args.ip, args.port)
-    result = obj.list_file_polices()
+    try:
+	from common import TableGenerator
+	filepolicies = obj.list_file_polices()
+	records = []
+	for filepolicy in filepolicies:
+	    filepolicy_uri = filepolicy['id']
+	    filepolicy_detail = obj.filepolicy_show_by_uri(filepolicy_uri)
+	    if (filepolicy_detail) :
+		records.append(filepolicy_detail)
+	
+	if(len(records) > 0):
+	    if(args.verbose is True):
+	        return common.format_json_object(records)
+	    if(args.long is True):
+	        TableGenerator(records, ['name', 'type', 'description','applied_at']).printTable()
+	    else:
+	        TableGenerator(records, ['name']).printTable()
+	else:
+            return
 
-    from common import TableGenerator
-    TableGenerator(result, ['name']).printTable()
-
+    except SOSError as e:
+        raise e
 
 def show_parser(subcommand_parsers, common_parser):
     show_parser = subcommand_parsers.add_parser('show',
@@ -599,7 +624,7 @@ def create_parser(subcommand_parsers, common_parser):
     create_parser.add_argument('-apply_at','-aplat',
 		               metavar='<apply_at>',
 		               dest='apply_at',
-	  	               help='Level at which policy has to applied. Valid values are vpool, project, file_system',
+	  	               help='Level at which policy has to applied. Valid values are vpool, project, file_system. Default: vpool',
 	 	               default ='vpool',)
     create_parser.add_argument('-description', '-dc',
                                metavar='<policy_description>',
@@ -611,7 +636,7 @@ def create_parser(subcommand_parsers, common_parser):
     create_parser.add_argument('-num_worker_threads','-wt',
 			       metavar='<num_worker_threads>',
 			       dest='num_worker_threads',
-			       help = 'Number of worker threads',
+			       help = 'Number of worker threads range:3-10, Default: 3',
 			       choices = xrange(3,10), default = 3,)
     create_parser.add_argument('-policyscheduleweek', '-plscwk',
                                metavar='<policy_schedule_week>',
@@ -635,39 +660,39 @@ def create_parser(subcommand_parsers, common_parser):
     create_parser.add_argument('-snapshotexpiretype','-snpexptp',
 			       metavar='<snapshot_expire_type>',
         		       dest='snapshot_expire_type',
-        		       help='Snapshot expire type e.g hours, days, weeks, months or never',
+        		       help='Snapshot expire type e.g hours, days, weeks, months or never. Default: days',
     			       choices=['hours', 'days', 'weeks', 'months', 'never'], 
 			       default ='days')
     create_parser.add_argument('-snapshotexpirevalue', '-snpexpvl',
                                metavar='<snapshot_expire_value>',
                                dest='snapshot_expire_value',
-                               help='Snapshot expire after this value',
+                               help='Snapshot expire after this value. Default: 2',
         		       default = 2)
     create_parser.add_argument('-policyschedulefrequency','-plscfr',
         		       metavar='<policy_schedule_frequency>',
         		       dest='policy_sched_frequnecy',
-        		       help='Type of schedule policy e.g days, weeks or months',
+        		       help='Type of schedule policy e.g days, weeks or months. Default: days',
         		       default = 'days',)
     create_parser.add_argument('-policyschedulerepeat','-plscrp',
 		               metavar='<policy_schedule_repeat>',
 		               dest='policy_schedule_repeat',
-        		       help='Policy run on every',
+        		       help='Policy run on every. Default: 1',
         		       default = 1,)
     create_parser.add_argument('-policyscheduletime','-plsctm',
 		               metavar='<policy_schedule_time>',
 		               dest='policy_schedule_time',
-        		       help='Time when policy run',
+        		       help='Time when policy run. Default: 00:00',
        			       default='00:00',)
     create_parser.add_argument('-replicationtype','-reptype',
 		               metavar='<replication_type>',
 		               dest='replication_type',
-        		       help='File Replication type Valid values are: LOCAL, REMOTE',
+        		       help='File Replication type Valid values are: LOCAL, REMOTE. Default: REMOTE',
         		       choices=['LOCAL', 'REMOTE'],
         		       default = 'REMOTE',)
     create_parser.add_argument('-replicationcopymode','-repcpmode',
 		               metavar='<replication_copy_mode>',
 		               dest='replication_copy_mode',
-        		       help='File Replication copy type Valid values are: SYNC, ASYNC',
+        		       help='File Replication copy type Valid values are: SYNC, ASYNC. Default: ASYNC',
 		               choices=['SYNC', 'ASYNC'],
       		               default = 'ASYNC',)
     create_parser.set_defaults(func=filepolicy_create)

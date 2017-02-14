@@ -1851,7 +1851,7 @@ public class VolumeIngestionUtil {
      * @param vArray the VirtualArray
      * @param vPoolURI the VirtualPool
      * @param hostPartOfCluster boolean indicating if the Host is part of a Cluster
-     * @param initiatorsPartOfCluster boolean indicating if the Initiators are part of a Cluster
+     * @param initiatorsPartOfCluster initiators that are part of the Cluster
      * @param clusterUri the URI of the Cluster
      * @param errorMessages error messages to add to if necessary
      * @return a List of matching UnManagedExportMasks for a Host
@@ -1881,91 +1881,111 @@ public class VolumeIngestionUtil {
             }
             if (null != mask.getKnownInitiatorUris() && !mask.getKnownInitiatorUris().isEmpty()) {
 
-                _logger.info("Group initiators by protocol {}",
+                _logger.info("Grouping initiators by protocol: {}",
                         Joiner.on(",").join(iniByProtocol.entrySet()));
                 // group Initiators by Protocol
                 for (Entry<String, Set<String>> entry : iniByProtocol.entrySet()) {
                     Set<String> hostInitiatorsForProtocol = entry.getValue();
-                    _logger.info("Processing Initiators by Protocol {} Group", hostInitiatorsForProtocol);
+                    _logger.info("Processing initiators for {} Protocol Group: {}", entry.getKey(), hostInitiatorsForProtocol);
                     if (hostPartOfCluster) {
                         /**
                          * If Host is part of a Cluster, then
                          *
-                         * ViPR ini || Existing Mask in Array
-                         * case 1: I1,I2 I1,I3,I4,I2 [Verify whether I3,I4 are part of then same Cluster, then skip it]
-                         * case 2: I1,I2,I3 I1,I2 -- mask selected
-                         * case 3: I1,I3 I1,I2 -- not selected
+                         * Host's initiators -> UnManagedExportMask's initiators
+                         * case 1: I1,I2 -> I1,I3,I4,I2 [Verify whether I3,I4 are part of then same Cluster, then skip it]
+                         * case 2: I1,I2,I3 -> I1,I2 -- mask selected
+                         * case 3: I1,I3 -> I1,I2 -- not selected
                          *
                          */
-                        _logger.info("Host part of a Cluster- Comparing discovered [{}] with unmanaged [{}] ", Joiner.on(",")
-                                .join(hostInitiatorsForProtocol), Joiner.on(",").join(mask.getKnownInitiatorUris()));
-                        Set<String> ViPRDiscToExistingKnownInisDiff = Sets.difference(hostInitiatorsForProtocol,
+                        _logger.info("Host in Cluster- Comparing host's initiators [{}] with UnManagedExportMask {} initiators [{}] ", 
+                                Joiner.on(",").join(hostInitiatorsForProtocol),
+                                mask.forDisplay(),
+                                Joiner.on(",").join(mask.getKnownInitiatorUris()));
+                        Set<String> hostInitiatorsNotInUnManagedExportMask = Sets.difference(hostInitiatorsForProtocol,
                                 mask.getKnownInitiatorUris());
 
-                        if (ViPRDiscToExistingKnownInisDiff.isEmpty()) {
+                        if (hostInitiatorsNotInUnManagedExportMask.isEmpty()) {
 
-                            // check whether remaining existing initiators on
-                            // mask are part of the cluster
-                            Set<String> remainingInis = Sets.difference(mask.getKnownInitiatorUris(), hostInitiatorsForProtocol);
-                            Set<String> iniPartOfCluster = Sets.difference(remainingInis, initiatorsPartOfCluster);
+                            // check whether remaining existing initiators on mask are part of the cluster
+                            Set<String> unManagedExportMaskInitiatorsNotInHost = Sets.difference(mask.getKnownInitiatorUris(), hostInitiatorsForProtocol);
+                            Set<String> remainingInitsNotInClusterOrUnManagedExportMask = Sets.difference(unManagedExportMaskInitiatorsNotInHost, initiatorsPartOfCluster);
                             _logger.info(
-                                    "ViPR initiators are a complete subset of unmanaged mask's known initiators. Trying to find whether the other initiators {}"
-                                            + " in the unmanaged mask are actually owned by the same cluster {} this host belongs to.",
-                                    Joiner.on(",").join(iniPartOfCluster), clusterUri);
-                            if (iniPartOfCluster.size() == remainingInis.size()) {
+                                    "The host's initiators are all included in the UnManagedExportMask {} initiators. "
+                                    + "Checking whether any remaining initiators [{}] in the unmanaged mask are actually "
+                                    + "included in the cluster {} this host belongs to.",
+                                    mask.forDisplay(),
+                                    Joiner.on(",").join(remainingInitsNotInClusterOrUnManagedExportMask), 
+                                    clusterUri);
+                            if (remainingInitsNotInClusterOrUnManagedExportMask.size() == unManagedExportMaskInitiatorsNotInHost.size()) {
                                 _logger.info(
-                                        "Matched Mask Found {}, as there are no other initiators in existing mask owned by the cluster, this host belongs to.",
-                                        mask.getMaskName());
+                                        "UnManagedExportMask {} is a match, as there are no other initiators "
+                                        + "unaccounted for in the cluster this host belongs to.",
+                                        mask.forDisplay());
                                 if (verifyNumPath(Collections.singletonList(initiatorUris), mask.getZoningMap(),
                                         volume, vPoolURI, dbClient)) {
                                     eligibleMasks.add(mask);
+                                } else {
+                                    _logger.info("UnManagedExportMask {} doesn't satisfy the num path requirements, so it'll be skipped.", 
+                                            mask.forDisplay());
                                 }
                                 itr.remove();
                             } else {
                                 _logger.info(
-                                        "Even though Existing UnManaged Mask {} contains subset of ViPR initiators, it can't be used as there are other initiators [{}] "
-                                                + "in the mask which are owned by a different Hosts in the same cluster {} as this host belongs.",
-                                        new Object[] { mask.getMaskName(), Joiner.on(",").join(iniPartOfCluster), clusterUri });
+                                        "Even though UnManagedExportMask {} contains a subset of the cluster's initiators, "
+                                        + "it can't be used as there are other initiators [{}] in the mask which are owned "
+                                        + "by a different host in the same cluster this host belongs to.",
+                                        new Object[] { mask.forDisplay(), 
+                                                Joiner.on(",").join(remainingInitsNotInClusterOrUnManagedExportMask), 
+                                                clusterUri });
                             }
                         } else {
 
-                            Set<String> existingknownInisToViprDiscDiff = Sets.difference(mask.getKnownInitiatorUris(),
+                            Set<String> unManagedExportMaskInitiatorsNotInHost = Sets.difference(mask.getKnownInitiatorUris(),
                                     hostInitiatorsForProtocol);
 
-                            if (existingknownInisToViprDiscDiff.isEmpty()) {
+                            if (unManagedExportMaskInitiatorsNotInHost.isEmpty()) {
                                 _logger.info(
-                                        "Matched Mask Found {}, as existing ViPR known initiators are a complete subset of ViPR discovered.",
-                                        mask.getMaskName());
+                                        "Matching UnManagedExportMask {} found, as its initiators are a complete subset of the host's initiators.",
+                                        mask.forDisplay());
                                 if (verifyNumPath(Collections.singletonList(initiatorUris), mask.getZoningMap(),
                                         volume, vPoolURI, dbClient)) {
                                     eligibleMasks.add(mask);
+                                } else {
+                                    _logger.info("UnManagedExportMask {} doesn't satisfy the num path requirements, so it'll be skipped.", 
+                                            mask.forDisplay());
                                 }
                                 itr.remove();
                             } else {
                                 _logger.info(
-                                        "Existing ViPR known Initiators are not a complete subset of ViPR discovered, skipping the unmanaged mask {}",
-                                        mask.getMaskName());
+                                        "UnManagedExportMask initiators are not a complete subset of "
+                                        + "the host's initiators, skipping UnManagedExportMask {}",
+                                        mask.forDisplay());
                             }
 
                         }
 
                     } else {
-                        _logger.info("Host not part of any Cluster- Comparing discovered [{}] with unmanaged [{}] ",
+                        _logger.info("Host not part of any Cluster- Comparing host's initiators "
+                                + "[{}] with UnManagedExportMask's initiators [{}] ",
                                 Joiner.on(",").join(hostInitiatorsForProtocol), Joiner.on(",").join(mask.getKnownInitiatorUris()));
-                        Set<String> existingknownInisToViprDiscDiff = Sets.difference(mask.getKnownInitiatorUris(),
+                        Set<String> unManagedExportMaskInitiatorsNotInHost = Sets.difference(mask.getKnownInitiatorUris(),
                                 hostInitiatorsForProtocol);
 
-                        if (existingknownInisToViprDiscDiff.isEmpty()) {
-                            _logger.info("Matched Mask Found after Grouping by Protocol {}", mask.getMaskName());
+                        if (unManagedExportMaskInitiatorsNotInHost.isEmpty()) {
+                            _logger.info("Matching UnManagedExportMask {} found, since its initiators "
+                                    + "are a complete subset of the host's initiators", mask.getMaskName());
                             if (verifyNumPath(Collections.singletonList(initiatorUris), mask.getZoningMap(),
                                     volume, vPoolURI, dbClient)) {
                                 eligibleMasks.add(mask);
+                            } else {
+                                _logger.info("UnManagedExportMask {} doesn't satisfy the num path requirements, so it'll be skipped.", 
+                                        mask.forDisplay());
                             }
                             itr.remove();
                         } else {
                             _logger.info(
-                                    "Existing Unmanaged mask initiators have other ViPR known initiators {} from a different Host, where in the given host is not part of any cluster",
-                                    Joiner.on(",").join(existingknownInisToViprDiscDiff));
+                                    "UnManagedExportMask has initiators from a different host [{}], not part of cluster",
+                                    Joiner.on(",").join(unManagedExportMaskInitiatorsNotInHost));
                         }
                     }
 
@@ -2019,45 +2039,53 @@ public class VolumeIngestionUtil {
 
                     for (Entry<String, Set<String>> entry : clusterIniByProtocol.entrySet()) {
                         Set<String> clusterInitiatorsForProtocol = entry.getValue();
-                        _logger.info("Processing Initiators by Protocol {} Group", clusterInitiatorsForProtocol);
-                        _logger.info("Cluster- Comparing discovered [{}] with unmanaged [{}] ", Joiner.on(",").join(clusterInitiatorsForProtocol),
+                        _logger.info("Processing Initiators by {} Protocol Group: {}", entry.getKey(), clusterInitiatorsForProtocol);
+                        _logger.info("Comparing cluster's initiators [{}] with UnManagedExportMask's initiators [{}] ", 
+                                Joiner.on(",").join(clusterInitiatorsForProtocol),
                                 Joiner.on(",").join(mask.getKnownInitiatorUris()));
-                        Set<String> existingknownInisToViprDiscDiff = Sets.difference(mask.getKnownInitiatorUris(),
+                        Set<String> unmanagedExportMaskInitiatorsNotInCluster = Sets.difference(mask.getKnownInitiatorUris(),
                                 clusterInitiatorsForProtocol);
                         /**
-                         * ViPR initiators || Existing Mask in Array
-                         * case 1: I1,I2,I3,I4 I1,I2 -- mask skipped ,as I1,i2 are initiators of 1 single Node in cluster (exlusive export
-                         * mode)
-                         * case 2: I1,I2 I1,I2,I3 -- mask selected
-                         * case 3: I1,I3 I1,I2 -- not selected
+                         * Host's initiators -> UnManagedExportMask's initiators
+                         * case 1: I1,I2,I3,I4 -> I1,I2 -- mask skipped, as I1,I2 are initiators of a single node in cluster (exclusive export mode)
+                         * case 2: I1,I2 -> I1,I2,I3 -- mask selected
+                         * case 3: I1,I3 -> I1,I2 -- not selected
                          */
-                        if (existingknownInisToViprDiscDiff.isEmpty()) {
+                        if (unmanagedExportMaskInitiatorsNotInCluster.isEmpty()) {
                             _logger.info(
-                                    "Mask Found {}, as existing ViPR known initiators are a complete subset of ViPR discovered. try to find whether the subset is actually corresponds to 1"
-                                            +
-                                            "Node in a cluster, if yes then skip this, as the existing mask is meant for Exclusive mode exports.",
-                                    mask.getMaskName());
+                                    "UnManagedExportMask {} matches: its initiators are all included in the cluster's initiators. "
+                                    + "Will try to find whether the subset actually corresponds to a single node in the cluster. "
+                                    + "If true, then skip this UnManagedExportMask, as it is meant for Exclusive mode exports.",
+                                    mask.forDisplay());
                             if (groupInitiatorsByHost(mask.getKnownInitiatorUris(), dbClient).size() == 1) {
                                 _logger.info(
-                                        "Skip this unmanaged mask {}, as the mask has only initiators from 1 Node in a cluster, probably meant for exclusive export",
-                                        mask.getMaskName());
+                                        "Skipping UnManagedExportMask {}, as the mask has only initiators from a single node in the cluster. "
+                                        + "It is probably meant for Exclusive mode export.",
+                                        mask.forDisplay());
                             } else {
-                                _logger.info("Mask Found {} with a subset of initiators from more than 1 node in a cluster",
-                                        mask.getMaskName());
+                                _logger.info("UnManagedExportMask {} found with a subset of initiators from more than a single node in the cluster.",
+                                        mask.forDisplay());
                                 if (verifyNumPath(initiatorUris, mask.getZoningMap(), volume, vPoolURI, dbClient)) {
                                     eligibleMasks.add(mask);
+                                } else {
+                                    _logger.info("UnManagedExportMask {} doesn't satisfy the num path requirements, so it'll be skipped.", 
+                                            mask.forDisplay());
                                 }
                                 itr.remove();
                             }
                         } else {
                             _logger.info(
-                                    "Existing ViPR known Initiators are not a complete subset of ViPR discovered, check whether ViPR discovered are a subset of existing");
-                            Set<String> ViPRDiscToExistingKnownInisDiff = Sets.difference(clusterInitiatorsForProtocol,
+                                    "The initiators of UnManagedExportMask {} are NOT all included in the cluster's initiators, "
+                                    + "checking whether the cluster's initiators are a subset of the UnManagedExportMask's initiators instead.");
+                            Set<String> clusterInitiatorsNotInUnManagedExportMask = Sets.difference(clusterInitiatorsForProtocol,
                                     mask.getKnownInitiatorUris());
-                            if (ViPRDiscToExistingKnownInisDiff.isEmpty()) {
-                                _logger.info("Mask Found {} with a subset of ViPR initiators in existing mask.", mask.getMaskName());
+                            if (clusterInitiatorsNotInUnManagedExportMask.isEmpty()) {
+                                _logger.info("UnManagedExportMask {} found with a subset of the cluster's initiators.", mask.forDisplay());
                                 if (verifyNumPath(initiatorUris, mask.getZoningMap(), volume, vPoolURI, dbClient)) {
                                     eligibleMasks.add(mask);
+                                } else {
+                                    _logger.info("UnManagedExportMask {} doesn't satisfy the num path requirements, so it'll be skipped.", 
+                                            mask.forDisplay());
                                 }
                                 itr.remove();
                             }
@@ -2068,7 +2096,8 @@ public class VolumeIngestionUtil {
 
             if (eligibleMasks.isEmpty() && !unManagedMasks.isEmpty()) {
                 _logger.info(
-                        "Unable to find a MV/SG with all the cluster initiators, now trying to group initiators by Host and start the search");
+                        "Unable to find a masking construct with all the cluster initiators. "
+                        + "Grouping initiators by host and restarting the search.");
                 // return individual Host MVs if found any for each Cluster Node as
                 // well, to support exclusive mode volume export.
                 for (Set<String> initiatorUriList : initiatorUris) {
@@ -2076,13 +2105,14 @@ public class VolumeIngestionUtil {
                     if (unManagedMasks.isEmpty()) {
                         break;
                     }
-                    _logger.info("Looking a Mask for initiators {} belonging to a cluster node", Joiner.on(",").join(initiatorUriList));
+                    _logger.info("Looking for an UnManagedExportMask for initiators {} belonging to a cluster node.", 
+                            Joiner.on(",").join(initiatorUriList));
                     Map<String, Set<String>> iniByProtocol = groupInitiatorsByProtocol(initiatorUriList, dbClient);
                     eligibleMasks.addAll(findMatchingExportMaskForHost(volume, unManagedMasks, initiatorUriList,
                             iniByProtocol, dbClient, vArray, vPoolURI, true, clusterInitiators, cluster, errorMessages));
                 }
             } else {
-                _logger.info("Either masks already found or there are no unmanaged masks available");
+                _logger.info("Either masks were already found or there are no unmanaged masks available.");
             }
 
         } catch (IngestionException ex) {

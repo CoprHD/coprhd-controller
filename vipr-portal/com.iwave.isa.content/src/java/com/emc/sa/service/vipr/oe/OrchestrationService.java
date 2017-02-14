@@ -17,6 +17,19 @@
 
 package com.emc.sa.service.vipr.oe;
 
+import java.util.*;
+
+import org.apache.commons.lang.StringUtils;
+import org.codehaus.jackson.JsonNode;
+import org.codehaus.jackson.map.ObjectMapper;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.expression.EvaluationContext;
+import org.springframework.expression.Expression;
+import org.springframework.expression.ExpressionParser;
+import org.springframework.expression.spel.standard.SpelExpressionParser;
+import org.springframework.expression.spel.support.StandardEvaluationContext;
+
 import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.engine.service.Service;
 import com.emc.sa.service.vipr.ViPRExecutionUtils;
@@ -32,27 +45,13 @@ import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.model.orchestration.OrchestrationWorkflowDocument;
 import com.emc.storageos.model.orchestration.OrchestrationWorkflowDocument.Input;
 import com.emc.storageos.model.orchestration.OrchestrationWorkflowDocument.Step;
-import com.emc.storageos.model.orchestration.OrchestrationWorkflowDocument.StepAttribute;
 import com.emc.storageos.primitives.Primitive;
 import com.emc.storageos.primitives.Primitive.StepType;
 import com.emc.storageos.primitives.PrimitiveHelper;
 import com.emc.storageos.primitives.ViPRPrimitive;
+import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorException;
+import com.google.common.collect.ImmutableMap;
 import com.google.gson.Gson;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import org.apache.commons.lang.StringUtils;
-import org.codehaus.jackson.JsonNode;
-import org.codehaus.jackson.map.ObjectMapper;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.expression.EvaluationContext;
-import org.springframework.expression.Expression;
-import org.springframework.expression.ExpressionParser;
-import org.springframework.expression.spel.standard.SpelExpressionParser;
-import org.springframework.expression.spel.support.StandardEvaluationContext;
 
 @Service("OrchestrationService")
 public class OrchestrationService extends ViPRService {
@@ -62,23 +61,38 @@ public class OrchestrationService extends ViPRService {
 
     @Autowired
     private DbClient dbClient;
-    
+
     //<StepId, {"key" : "values...", "key" : "values ..."} ...>
     final private Map<String, Map<String, List<String>>> inputPerStep = new HashMap<String, Map<String, List<String>>>();
     final private Map<String, Map<String, List<String>>> outputPerStep = new HashMap<String, Map<String, List<String>>>();
 
-    final private Map<String, Step> stepsHash = new HashMap<String, OrchestrationWorkflowDocument.Step>();
+    private ImmutableMap<String, Step> stepsHash;
 
     private static final org.slf4j.Logger logger = LoggerFactory.getLogger(OrchestrationService.class);
-
+    private OrchestrationWorkflowDocument obj;
     private int code;
+
 
     @Override
     public void precheck() throws Exception {
 
         // get input params from order form
         params = ExecutionUtils.currentContext().getParameters();
+        final String raw = ExecutionUtils.currentContext().getOrder().getWorkflowDocument();
+        if( null == raw) {
+            throw InternalServerErrorException.internalServerErrors.
+                    customServiceExecutionFailed("Invalid orchestration service.  Workflow document cannot be null");
+        }
 
+        obj = WorkflowHelper.toWorkflowDocument(raw);
+        final List<Step> steps = obj.getSteps();
+        final ImmutableMap.Builder builder=new ImmutableMap.Builder();
+        for (final Step step : steps) {
+            builder.put(step.getId(), step);
+        }
+        stepsHash = builder.build();
+        ValidateCustomServiceWorkflow validate = new ValidateCustomServiceWorkflow(params, stepsHash);
+        validate.validate();
     }
 
     @Override
@@ -94,7 +108,6 @@ public class OrchestrationService extends ViPRService {
         }
     }
 
-
     /**
      * Method to parse Workflow Definition JSON
      *
@@ -103,23 +116,10 @@ public class OrchestrationService extends ViPRService {
     public void wfExecutor() throws Exception {
 
         logger.info("Parsing Workflow Definition");
-        
-        final String raw = ExecutionUtils.currentContext().getOrder().getWorkflowDocument();
-        if( null == raw) {
-            throw new IllegalStateException("Invalid orchestration service.  Workflow document cannot be null");
-        }
-        
-        final OrchestrationWorkflowDocument obj = WorkflowHelper.toWorkflowDocument(raw);
-
         ExecutionUtils.currentContext().logInfo("orchestrationService.status", obj.getName(), obj.getDescription());
-
-        final List<Step> steps = obj.getSteps();
-        for (Step step : steps)
-            stepsHash.put(step.getId(), step);
-
         Step step = stepsHash.get(StepType.START.toString());
         String next = step.getNext().getDefaultStep();
-
+        long timeout = System.currentTimeMillis();
         while (next != null && !next.equals(StepType.END.toString())) {
             step = stepsHash.get(next);
 
@@ -127,59 +127,69 @@ public class OrchestrationService extends ViPRService {
 
             updateInputPerStep(step);
 
-            //TODO implement waitfortask
-            StepAttribute stepAttribute = step.getAttributes();
-
             final OrchestrationTaskResult res;
 
-            StepType type = StepType.fromString(step.getType());
-            switch (type) {
-                case VIPR_REST: {
-            	    Primitive primitive = PrimitiveHelper.get(step.getOperation());
-                    if( null == primitive) {
-                        //TODO fail workflow
-                        throw new IllegalStateException("Primitive not found: " + step.getOperation());
+            try {
+                StepType type = StepType.fromString(step.getType());
+                switch (type) {
+                    case VIPR_REST: {
+                        //TODO move this outside the try after we have primitives for others. Except Remote Ansible
+                        Primitive primitive = PrimitiveHelper.get(step.getOperation());
+
+                        if( null == primitive) {
+                            throw InternalServerErrorException.internalServerErrors.
+                                    customServiceExecutionFailed("Primitive not found: " + step.getOperation());
+                        }
+
+                        res = ViPRExecutionUtils.execute(new RunViprREST((ViPRPrimitive) (primitive),
+                                getClient().getRestClient(), inputPerStep.get(step.getId())));
+
+                        break;
                     }
+                    case REST: {
+                        //TODO implement other REST Execution
+                        res = null;
+                        break;
+                    }
+                    case LOCAL_ANSIBLE:
+                    case SHELL_SCRIPT:
+                        res = ViPRExecutionUtils.execute(new RunAnsible(step, inputPerStep.get(step.getId()), params, dbClient));
+                        logger.error("Result from shell script execution", step.getType());
 
-                    res = ViPRExecutionUtils.execute(new RunViprREST((ViPRPrimitive)(primitive),
-                            getClient().getRestClient(), inputPerStep.get(step.getId())));
+                        break;
+                    case REMOTE_ANSIBLE: {
+                        res = ViPRExecutionUtils.execute(new RunAnsible(step, inputPerStep.get(step.getId()), params, dbClient));
 
-                    break;
+                        break;
+                    }
+                    default:
+                        logger.error("Operation Type Not found. Type:{}", step.getType());
+
+                        throw InternalServerErrorException.internalServerErrors.
+                                customServiceExecutionFailed("Operation Type not supported" + type);
                 }
-                case REST: {
-                    //TODO implement other REST Execution
-                    res = null;
-                    break;
-                }
-                case LOCAL_ANSIBLE:
-                case SHELL_SCRIPT:
-                case REMOTE_ANSIBLE: {
-                    res = ViPRExecutionUtils.execute(new RunAnsible(step, inputPerStep.get(step.getId()), params));
+                boolean isSuccess = isSuccess(step, res);
+                if (isSuccess) {
+                    try {
+                        updateOutputPerStep(step, res.getOut());
+                    } catch (final Exception e) {
+                        logger.info("Failed to parse output" + e);
 
-                    break;
+                        isSuccess = false;
+                    }
                 }
-                default:
-                    logger.error("Operation Type Not found. Type:{}", step.getType());
-
-                    throw new IllegalStateException("Operation Type not supported" + type);
+                next = getNext(isSuccess, res, step);
+            } catch (final Exception e) {
+                logger.info("failed to execute step. Try to get rollback step");
+                next = getNext(false, null, step);
             }
-
-            boolean isSuccess = isSuccess(step, res);
-            if (isSuccess) {
-                try {
-                    updateOutputPerStep(step, res.getOut());
-                } catch (final Exception e) {
-                    logger.info("Failed to parse output" + e);
-
-                    isSuccess = false;
-                }
-            }
-	    next = getNext(isSuccess, res, step);
 
             if (next == null) {
-                logger.error("Orchestration Engine failed to retrieve next step:{}", step.getId());
-
-                throw new IllegalStateException("Failed to retrieve Next Step");
+                throw InternalServerErrorException.internalServerErrors.customServiceExecutionFailed("Failed to get next step");
+            }
+            if ((System.currentTimeMillis() - timeout) > OrchestrationServiceConstants.TIMEOUT) {
+                throw InternalServerErrorException.internalServerErrors.
+                        customServiceExecutionFailed("Operation Timed out");
             }
         }
     }
@@ -188,11 +198,15 @@ public class OrchestrationService extends ViPRService {
     {
         if (result == null)
             return false;
+        //TODO commented this till I fix evaluation from the primitive
+        return true;
+	/*
         if (step.getSuccessCriteria() == null) {
             return evaluateDefaultValue(step, result.getReturnCode());
         } else {
             return findStatus(step.getSuccessCriteria(), result);
         }
+	*/
     }
 
     private String getNext(final boolean status, final OrchestrationTaskResult result, final Step step) {
@@ -232,99 +246,59 @@ public class OrchestrationService extends ViPRService {
                 case FROM_USER:
                 case OTHERS:
                 case ASSET_OPTION: {
-                    //TODO handle multiple , separated values
-                    final String paramVal = (params.get(name) != null) ? (StringUtils.strip(params.get(name).toString(), "\"")) : (value.getDefaultValue());
-
-                    if (paramVal == null) {
-                        if (value.getRequired()) {
-                            logger.error("Can't retrieve input:{} to execute step:{}", name, step.getId());
-
-                            throw new IllegalStateException();
+                    if (params.get(name) != null) {
+                        inputs.put(name, Arrays.asList(params.get(name).toString()));
+                    } else {
+                        if (value.getDefaultValue() != null) {
+                            inputs.put(name, Arrays.asList(value.getDefaultValue()));
                         }
-                        break;
                     }
-
-                    inputs.put(name, Arrays.asList(paramVal));
-
                     break;
                 }
                 case FROM_STEP_INPUT:
                 case FROM_STEP_OUTPUT: {
-                    
-                    if(!isValidinput(value))
-                    {
-                        logger.error("Can't retrieve input:{} to execute step:{}", name, step.getId());
-                        
-                        throw new IllegalStateException();
-                    }
+                    final String[] paramVal = value.getValue().split("\\.");
+                    final String stepId = paramVal[OrchestrationServiceConstants.STEP_ID];
+                    final String attribute = paramVal[OrchestrationServiceConstants.INPUT_FIELD];
 
-                    if (value.getValue() != null) {
-                        final String[] paramVal = value.getValue().split("\\.");
-                        final String stepId = paramVal[OrchestrationServiceConstants.STEP_ID];
-                        final String attribute = paramVal[OrchestrationServiceConstants.INPUT_FIELD];
+                    Map<String, List<String>> stepInput;
+                    if (value.getType().equals(InputType.FROM_STEP_INPUT.toString()))
+                        stepInput = inputPerStep.get(stepId);
+                    else
+                        stepInput = outputPerStep.get(stepId);
 
-                        Map<String, List<String>> stepInput;
-                        if (value.getType().equals(InputType.FROM_STEP_INPUT.toString()))
-                            stepInput = inputPerStep.get(stepId);
-                        else
-                            stepInput = outputPerStep.get(stepId);
-
-                        if (stepInput == null) {
-                            logger.info("stepInput is null {}", attribute);
-                            //TODO waitfortask
-                            
+                    if (stepInput != null) {
+                        logger.info("value is:{}", stepInput.get(attribute));
+                        if (stepInput.get(attribute) != null) {
+                            inputs.put(name, stepInput.get(attribute));
                             break;
-                            
-                        } else {
-                            logger.info("value is:{}", stepInput.get(attribute));
-                            if (stepInput.get(attribute) != null) {
-                                inputs.put(name, stepInput.get(attribute));
-
-                                break;
-                            }
-                        }   
+                        }
                     }
                     if (value.getDefaultValue() != null) {
                         inputs.put(name, Arrays.asList(value.getDefaultValue()));
                         logger.info("value default is:{}", Arrays.asList(value.getDefaultValue()));
                         break;
                     }
-
-                    if (false == value.getRequired()) 
-                        break;
-
-                    logger.error("Can't retrieve input:{} to execute step:{}", name, step.getId());
-
-                    throw new IllegalStateException();
-
                 }
                 default:
-                    logger.error("Input Type:{} is Invalid", value.getType());
-
-                    throw new IllegalStateException();
+                    throw InternalServerErrorException.internalServerErrors.
+                            customServiceExecutionFailed("Invalid input type:" + value.getType());
             }
         }
 
         inputPerStep.put(step.getId(), inputs);
     }
-    
-    private boolean isValidinput(Input value)
-    {
-        if (value.getValue() == null && value.getDefaultValue() == null && value.getRequired()) {
-            return false;
-        }
-        
-        return true;
 
-    }
     private List<String> evaluateAnsibleOut(final String result, final String key) throws Exception
     {
         final List<String> out = new ArrayList<String>();
 
         final JsonNode arrNode = new ObjectMapper().readTree(result).get(key);
 
-        if (arrNode.isNull())
-            throw new IllegalStateException("Could not parse the output" + key);
+        if (arrNode.isNull()) {
+            throw InternalServerErrorException.internalServerErrors.
+                    customServiceExecutionFailed("Could not parse the output" + key);
+        }
 
         if (arrNode.isArray()) {
             for (final JsonNode objNode : arrNode) {
@@ -336,7 +310,7 @@ public class OrchestrationService extends ViPRService {
 
         return out;
     }
-    
+
 
     /**
      * Parse REST Response and get output values as specified by the user in the workflow definition
@@ -351,7 +325,7 @@ public class OrchestrationService extends ViPRService {
      */
     private void updateOutputPerStep(final Step step, final String result) throws Exception {
         final List<OrchestrationWorkflowDocument.Output> output = step.getOutput();
-        if (output == null) 
+        if (output == null)
             return;
 
         final Map<String, List<String>> out = new HashMap<String, List<String>>();
@@ -360,7 +334,9 @@ public class OrchestrationService extends ViPRService {
             if (isAnsible(step)) {
                 out.put(o.getName(), evaluateAnsibleOut(result, o.getName()));
             } else {
-                out.put(o.getName(), evaluateValue(result, o.getName()));
+                //TODO: Remove this after parsing output is fully implemented
+                //out.put(o.getName(), evaluateValue(result, o.getName()));
+                return;
             }
         }
 
@@ -427,9 +403,7 @@ public class OrchestrationService extends ViPRService {
 
             String[] values = value.split("task.", 2);
             if (values.length != 2) {
-                logger.error("Cannot evaluate values with statement:{}", value);
-
-                throw new IllegalStateException();
+                throw InternalServerErrorException.internalServerErrors.customServiceExecutionFailed("Cannot evaluate values with statement:" + value);
             }
             value = values[1];
             Expression expr = parser.parseExpression(value);
@@ -443,7 +417,7 @@ public class OrchestrationService extends ViPRService {
 
             logger.info("valueList is:{}", valueList);
         }
-        
+
         return valueList;
     }
 

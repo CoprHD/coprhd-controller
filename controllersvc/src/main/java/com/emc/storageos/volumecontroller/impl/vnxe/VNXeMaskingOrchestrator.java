@@ -201,7 +201,6 @@ public class VNXeMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
 
             taskCompleter = new ExportOrchestrationTask(exportGroupURI, token);
 
-            // checkForConsistentLunViolation(storage, exportGroup, initiatorURIs);
 
             Map<URI, Integer> volumes = selectExportMaskVolumes(exportGroup, storageURI);
             _log.info("Volumes  : {}", Joiner.on(",").join(volumes.keySet()));

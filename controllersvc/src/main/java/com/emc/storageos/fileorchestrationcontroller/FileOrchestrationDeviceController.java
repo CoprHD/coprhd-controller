@@ -2253,7 +2253,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
                     stepDescription, sourceFS.getStorageDevice(), args);
 
             // Finish up and execute the plan.
-            String successMessage = String.format("Assigning file policy : %s, to file system successful.",
+            String successMessage = String.format("Assigning file policy : %s, to file system: %s successful.",
                     filePolicy.getId(), sourceFS.getId());
             workflow.executePlan(completer, successMessage);
 

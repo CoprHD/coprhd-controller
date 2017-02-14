@@ -4412,7 +4412,8 @@ public class FileService extends TaskResourceService {
 
         for (URI targertVarrayURI : targertVarrayURIs) {
             ArgValidator.checkFieldUriType(targertVarrayURI, VirtualArray.class, "target_varray");
-            _permissionsHelper.getObjectById(targertVarrayURI, VirtualArray.class);
+            VirtualArray targetVarray = _permissionsHelper.getObjectById(targertVarrayURI, VirtualArray.class);
+            ArgValidator.checkEntity(targetVarray, targertVarrayURI, false);
         }
 
         VirtualArray sourceVarray = _dbClient.queryObject(VirtualArray.class, fs.getVirtualArray());

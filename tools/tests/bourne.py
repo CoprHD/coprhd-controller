@@ -8457,7 +8457,7 @@ class Bourne:
             parms['project'] = self.tenant_project_query(tenant, project)
         return self.api('POST', URI_TENANTS_HOSTS.format(uri), parms)
 
-    def host_update(self, uri, cluster):
+    def host_update(self, uri, cluster, isVirtual):
         clusterURI = None
         if (cluster):
         	if (cluster == 'null'):
@@ -8466,7 +8466,8 @@ class Bourne:
         		clusterURI = self.cluster_query(cluster)
             
         parms = {
-        	'cluster' : clusterURI
+        	'cluster' : clusterURI,
+            'virtual_machine' : isVirtual
         }
   
         o =  self.api('PUT', URI_HOST.format(uri), parms)

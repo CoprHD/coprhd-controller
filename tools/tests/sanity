@@ -14297,9 +14297,49 @@ lparmobility_setup()
 	secho "LPAR mobility setup ended"
 }
 
+lpar_host_update()
+{
+	secho "LPAR host update test started"
+	
+    proj=$PROJECT
+    tenant=$TENANT
+    
+    host1=Non-LPAR-Host1
+    
+    portwwn1=10:a1:b0:c0:d0:e0:f0:01
+    nodewwn1=20:a1:b0:c0:d0:e0:f0:01
+    portwwn2=30:a1:b0:c0:d0:e0:f0:03
+    nodewwn2=40:a1:b0:c0:d0:e0:f0:04
+    portwwn3=50:a1:b0:c0:d0:e0:f0:01
+    nodewwn3=60:a1:b0:c0:d0:e0:f0:01
+    portwwn4=70:a1:b0:c0:d0:e0:f0:03
+    nodewwn4=80:a1:b0:c0:d0:e0:f0:04
+	fctz=${NH}/FABRIC_losam082-fabric
+
+    #Create a normal host
+    run hosts create ${host1} $tenant Linux ${host1}.lss.emc.com --port 2222 --username user --password 'password' --osversion 1.0
+    run initiator create $host1 FC ${portwwn1} --node ${nodewwn1}
+    
+    #Make it a virtual host
+    run hosts update
+    
+
+    secho "LPAR host update test ended"
+
+}
+
 lparmobility_tests()
 {
 	secho "Start LPAR mobility tests"
+	
+	vpool=$COS_VMAXBLOCK_FC
+	proj_name=$PROJECT
+	volume_name=lpartestvolume-${RANDOM}
+	export_name1=$LPAR_HOST1-eg
+	
+	run volume create $volume_name $proj_name $NH $vpool $BLK_SIZE	
+	run export_group create $proj_name $export_name1 $NH --type Host --volspec $proj_name/$volume_name --hosts $LPAR_HOST1
+	run export_group show $export_name1
 	
 	secho "LPAR mobility tests ended"
 	

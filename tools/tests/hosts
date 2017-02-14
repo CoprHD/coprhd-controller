@@ -23,7 +23,7 @@ def host_create(args):
 def host_update(args):
     bourne.connect(args.ip)
     uri = bourne.host_query(args.name)
-    task = bourne.host_update(uri, args.cluster)
+    task = bourne.host_update(uri, args.cluster, args.isVirtual)
     print task
 
 def host_delete(args):
@@ -36,7 +36,7 @@ def host_show(args):
     bourne.connect(args.ip)
     uri = bourne.host_query(args.name)
     host = bourne.host_show(uri)
-    print host
+    bourne.pretty_print_json(host)
 
 def host_query(args):
     bourne.connect(args.ip)
@@ -118,6 +118,7 @@ create.add_argument('--isVirtual',   help = 'isVirtual: true or false', default=
 update = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
 update.add_argument('name', help = 'name of host')
 update.add_argument('--cluster', help = 'host cluster or specify null if looking to remove host from existing cluster')
+update.add_argument('--isVirtual',   help = 'isVirtual: true or false', default='false')
 
 # host delete uri
 delete = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')

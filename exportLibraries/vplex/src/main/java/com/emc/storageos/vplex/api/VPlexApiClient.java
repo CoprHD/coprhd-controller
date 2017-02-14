@@ -103,6 +103,7 @@ public class VPlexApiClient {
         _exportMgr = new VPlexApiExportManager(this);
         _migrationMgr = new VPlexApiMigrationManager(this);
         _cgMgr = new VPlexApiConsistencyGroupManager(this);
+        primeCaches();
     }
 
     /**
@@ -2047,13 +2048,18 @@ public class VPlexApiClient {
         return getDiscoveryManager().getStorageViewsForCluster(clusterName, true);
     }
 
+    /**
+     * Clears the local VPLEX REST API info caches.
+     */
     public synchronized void clearCaches() {
         _vplexClusterIdToNameCache.clear();
         _vplexClusterInfoLiteCache.clear();
         _vplexClusterInitiatorNameToWwnCache.clear();
-        primeCaches();
     }
 
+    /**
+     * Primes the local VPLEX REST API info caches.
+     */
     private synchronized void primeCaches() {
         // prime the cluster id to name map, then use the values to prime the initiator to wwn map
         for (String clusterName : getClusterIdToNameMap().values()) {

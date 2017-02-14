@@ -9169,12 +9169,8 @@ class Bourne:
     def storageportgroup_register(self, systemuri, pguri):
         return self.api('POST', URI_STORAGEPORTGROUP_REGISTER.format(systemuri, pguri))
     
-    def storageport_deregister(self, pguri):
-        return self.api('POST', URI_STORAGEPORTGROUP_DEREGISTER.format(systemuri, pguri))
-    
-    def storageport_delete(self, uri):
-        return self.api('POST', URI_RESOURCE_DEACTIVATE.format(URI_STORAGEPORT.format(uri)))
-        
+    def storageportgroup_deregister(self, systemuri, pguri):
+        return self.api('POST', URI_STORAGEPORTGROUP_DEREGISTER.format(systemuri, pguri))     
         
     def storageportgroup_show(self, systemuri, portgroupuri):
         return self.api('GET', URI_STORAGEPORTGROUP.format(systemuri, portgroupuri))

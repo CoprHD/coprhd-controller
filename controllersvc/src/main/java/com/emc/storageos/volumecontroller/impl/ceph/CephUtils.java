@@ -17,8 +17,9 @@ import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.StorageProvider;
-import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StorageProvider.ConnectionStatus;
+import com.emc.storageos.db.client.model.StorageSystem;
+import com.emc.storageos.util.ConnectivityUtil;
 
 /**
  * Utils for Ceph related operations
@@ -55,9 +56,11 @@ public final class CephUtils {
         List<URI> activeProviders = new ArrayList<URI>();
         for (StorageProvider storageProvider : cephProviderList) {
             try {
-            	ensureConnectToCeph(storageProvider);
-                storageProvider.setConnectionStatus(ConnectionStatus.CONNECTED.name());
-                activeProviders.add(storageProvider.getId());
+                if (ConnectivityUtil.ping(storageProvider.getIPAddress())) {
+                    ensureConnectToCeph(storageProvider);
+                    storageProvider.setConnectionStatus(ConnectionStatus.CONNECTED.name());
+                    activeProviders.add(storageProvider.getId());
+                }
             } catch (Exception e) {
                 _log.error(String.format("Failed to connect to Ceph %s: %s",
                         storageProvider.getIPAddress(), storageProvider.getId()), e);

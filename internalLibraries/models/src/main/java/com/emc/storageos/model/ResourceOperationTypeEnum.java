@@ -136,6 +136,8 @@ public enum ResourceOperationTypeEnum {
             "assign snapshot schedule policy to a filesystem"),
     GET_FILE_SYSTEM_SNAPSHOT_BY_SCHEDULE("GET SNAPSHOT  CREATED BY SCHEDULE POLICY ",
             "get  snapshot created by schedule policy "),
+    UPDATE_FILE_POLICY_BY_POLICY_STORAGE_RESOURCE("UPDATE FILE POLICY BY POLICY STORAGE RESOURCE ",
+            "Update  file protection policy by policy storage resource "),
     UNASSIGN_FILE_SYSTEM_SNAPSHOT_SCHEDULE("UNASSIGN SNAPSHOT SCHEDULE POLICY TO A FILESYSTEM",
             "unassign snapshot schedule policy to a filesystem"),
     UNEXPORT_FILE_SYSTEM("UNEXPORT FILESYSTEM", "unexport filesystem operation"),
@@ -355,6 +357,10 @@ public enum ResourceOperationTypeEnum {
     MOUNT_NFS_EXPORT("MOUNT NFS EXPORT", "mount nfs export operation"),
     UNMOUNT_NFS_EXPORT("UNMOUNT NFS EXPORT", "unmount nfs export operation"),
     LIST_MOUNTED_EXPORTS("LIST MOUNTED EXPORTS", "list mounted exports operation"),
+    EXPORT_PATHS_ADJUSTMENT("EXPORT PATHS ADJUSTMENT", "export paths adjustment operation"),
+    ASSIGN_FILE_POLICY("ASSIGN FILE POLICY", "assign file policy to resource"),
+    UPDATE_FILE_PROTECTION_POLICY("UPDATE FILE PROTECTION POLICY", "Update file protection policy");
+
     ASSIGN_FILE_POLICY("ASSIGN FILE POLICY", "assign file policy to resource"),
 	ASSIGN_FILE_POLICY_TO_FILE_SYSTEM("ASSIGN FILE POLICY TO FILE SYSTEM", "assign file policy to existing file system");
 	

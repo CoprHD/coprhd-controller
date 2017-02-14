@@ -151,6 +151,7 @@ URI_TASK                    = URI_VDC    + "/tasks"
 URI_TASK_GET                = URI_TASK   + '/{0}'
 URI_TASK_LIST               = URI_TASK
 URI_TASK_LIST_SYSTEM        = URI_TASK   + "?tenant=system"
+URI_TASK_DELETE             = URI_TASK_GET + '/delete'
 
 URI_EVENT                   = URI_VDC    + "/events"
 URI_EVENT_GET               = URI_EVENT    + '/{0}'
@@ -361,10 +362,13 @@ URI_EXPORTGROUP_VOLUMES_REMOVE  = URI_SERVICES_BASE   + '/block/exports/{0}/remo
 URI_EXPORTGROUP_INITS           = URI_SERVICES_BASE   + '/block/exports/{0}/initiators'
 URI_EXPORTGROUP_INIT_DELETE     = URI_SERVICES_BASE   + '/block/exports/{0}/initiators/{1},{2}'
 URI_EXPORTGROUP_INITS_REMOVE    = URI_SERVICES_BASE   + '/block/exports/{0}/remove-initiators'
+URI_EXPORTGROUP_REALLOC		= URI_SERVICES_BASE   + '/block/exports/{0}/paths-adjustment-preview' 
+URI_EXPORTGROUP_REBALANCE	= URI_SERVICES_BASE   + '/block/exports/{0}/paths-adjustment' 
 URI_EXPORTGROUP_SEARCH_PROJECT  = URI_EXPORTGROUP_LIST + '/search?project={0}'
 
 URI_HOSTS                       = URI_SERVICES_BASE   + '/compute/hosts'
 URI_HOST                        = URI_SERVICES_BASE   + '/compute/hosts/{0}'
+URI_HOST_DEACTIVATE             = URI_HOST            + '/deactivate?detach_storage={1}'
 URI_HOSTS_BULKGET               = URI_HOSTS           + '/bulk'
 URI_HOST_INITIATORS             = URI_SERVICES_BASE   + '/compute/hosts/{0}/initiators'
 URI_HOST_IPINTERFACES           = URI_SERVICES_BASE   + '/compute/hosts/{0}/ip-interfaces'
@@ -387,6 +391,7 @@ URI_VCENTERS_BULKGET            = URI_VCENTERS        + '/bulk'
 URI_VCENTER_DATACENTERS         = URI_VCENTER         + '/vcenter-data-centers'
 URI_CLUSTERS                    = URI_SERVICES_BASE   + '/compute/clusters'
 URI_CLUSTER                     = URI_SERVICES_BASE   + '/compute/clusters/{0}'
+URI_CLUSTER_DEACTIVATE          = URI_CLUSTER         + '/deactivate?detach-storage={1}'
 URI_CLUSTERS_BULKGET            = URI_CLUSTERS        + '/bulk'
 URI_DATACENTERS                 = URI_SERVICES_BASE   + '/compute/vcenter-data-centers'
 URI_DATACENTER                  = URI_SERVICES_BASE   + '/compute/vcenter-data-centers/{0}'
@@ -3663,6 +3668,9 @@ class Bourne:
     def get_db_repair_status(self):
         return self.api('GET', URI_DB_REPAIR)
 
+    def task_delete(self,uri):
+        return self.api('POST', URI_TASK_DELETE.format(uri))
+
     def task_list(self):
         return self.api('GET', URI_TASK_LIST)
 
@@ -5251,6 +5259,39 @@ class Bourne:
             s = self.api_sync_2(groupId, o['op_id'], self.export_show_task)
         else:
             s = 'error'
+        return (o, s)
+
+    def export_group_pathadj_preview(self, groupId, systemId, varrayId, useExisting, pathParam, hosts):
+        parms = {}
+
+	# Optionally add path parameters
+        if (pathParam['max_paths'] > 0):
+            print 'Path parameters', pathParam
+	    parms['path_parameters'] = pathParam
+        if varrayId != "":
+            parms['virtual_array'] = varrayId
+        parms['storage_system'] = systemId
+        if useExisting:
+            parms['use_existing_paths'] = 'true'
+        if hosts:
+            parms['hosts'] = hosts;
+
+        if(BOURNE_DEBUG == '1'):
+	    print str(parms)
+        o = self.api('POST', URI_EXPORTGROUP_REALLOC.format(groupId), parms)
+        return o
+
+    def export_group_pathadj(self, groupId, parms):
+        if(BOURNE_DEBUG == '1'):
+	    print str(parms)
+        o = self.api('PUT', URI_EXPORTGROUP_REBALANCE.format(groupId), parms)
+        self.assert_is_dict(o)
+        if(BOURNE_DEBUG == '1'):
+	    print 'OOO: ' + str(o) + ' :OOO'
+	try:
+            s = self.api_sync_2(o['resource']['id'], o['op_id'], self.export_show_task)
+	except:
+	    print o
         return (o, s)
 
     #
@@ -8355,9 +8396,17 @@ class Bourne:
         uri = self.cluster_query(name)
         return self.api('GET', URI_CLUSTER.format(uri))
 
-    def cluster_delete(self, name):
+    def cluster_delete(self, name, detachstorage):
         uri = self.cluster_query(name)
-        return self.api('POST', URI_RESOURCE_DEACTIVATE.format(URI_CLUSTER.format(uri)))
+        o = self.api('POST', URI_CLUSTER_DEACTIVATE.format(uri, detachstorage))
+        self.assert_is_dict(o)
+        s = self.api_sync_2(o['resource']['id'], o['id'], self.cluster_show_task)
+        return (o,s)
+  
+    def cluster_show_task(self, uri, task):
+        uri_cluster_task = URI_CLUSTER + '/tasks/{1}'
+        return self.api('GET', uri_cluster_task.format(uri, task))
+
 
    
     # Service Catalog 
@@ -8492,9 +8541,12 @@ class Bourne:
         uri = self.host_query(name)
         return self.api('GET', URI_HOST.format(uri))
 
-    def host_delete(self, name):
+    def host_delete(self, name, detachstorage):
         uri = self.host_query(name)
-        return self.api('POST', URI_RESOURCE_DEACTIVATE.format(URI_HOST.format(uri)))
+        o = self.api('POST', URI_HOST_DEACTIVATE.format(uri, detachstorage))
+        self.assert_is_dict(o)
+        s = self.api_sync_2(o['resource']['id'], o['id'], self.host_show_task)
+        return (o,s)
 
     def initiator_show_tasks(self, uri):
         uri_initiator_task = URI_INITIATORS + '/tasks'
@@ -8554,9 +8606,12 @@ class Bourne:
                   'initiator_port'    : port,
                   'initiator_node'    : node,
                    }
-        o = self.api('POST', URI_HOST_INITIATORS.format(uri), parms)
-        self.assert_is_dict(o)
-        s = self.api_sync_2(o['resource']['id'], o['op_id'], self.initiator_show_task)
+        try:
+            o = self.api('POST', URI_HOST_INITIATORS.format(uri), parms)
+            self.assert_is_dict(o)
+            s = self.api_sync_2(o['resource']['id'], o['op_id'], self.initiator_show_task)
+        except:
+            print o, s
         return (o, s)
 
     def initiator_list(self, host):

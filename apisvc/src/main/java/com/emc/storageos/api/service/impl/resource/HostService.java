@@ -651,6 +651,7 @@ public class HostService extends TaskResourceService {
     
         List<Initiator> initiators = CustomQueryUtility.queryActiveResourcesByRelation(_dbClient, host.getId(),Initiator.class, "host");
  
+        // WJEIV TODO: Running host deactivate even if initiators == null or list empty seems risky
         if (StringUtils.equalsIgnoreCase(host.getType(),HostType.No_OS.toString()) && (initiators == null || initiators.isEmpty())) {
             if (!NullColumnValueGetter.isNullURI(host.getComputeElement())){
                 computeElement = _dbClient.queryObject(ComputeElement.class, host.getComputeElement());

@@ -5,11 +5,11 @@
 package com.emc.sa.service.vipr.compute;
 
 import static com.emc.sa.service.ServiceParams.CLUSTER;
+import static com.emc.sa.service.ServiceParams.COMPUTE_VIRTUAL_POOL;
 import static com.emc.sa.service.ServiceParams.HLU;
 import static com.emc.sa.service.ServiceParams.PROJECT;
 import static com.emc.sa.service.ServiceParams.SIZE_IN_GB;
 import static com.emc.sa.service.ServiceParams.VIRTUAL_ARRAY;
-import static com.emc.sa.service.ServiceParams.COMPUTE_VIRTUAL_POOL;
 import static com.emc.sa.service.ServiceParams.VIRTUAL_POOL;
 
 import java.net.URI;
@@ -137,6 +137,9 @@ public class AddBareMetalHostToClusterService extends ViPRService {
         // Below step to update the shared export group to the cluster (the
         // newly added hosts will be taken care of this update cluster
         // method and in a synchronized way)
+
+        // WJEIV TODO: This is another example which generates Remove others from cluster operations based on what is
+        // available in the database, which is something we should rely on.
         URI updatedClusterURI = ComputeUtils.updateClusterSharedExports(cluster.getId(), cluster.getLabel());
         // Make sure the all hosts that are being created belong to the all
         // of the exportGroups of the cluster, else fail the order.

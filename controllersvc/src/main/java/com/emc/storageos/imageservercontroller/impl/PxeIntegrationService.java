@@ -130,7 +130,7 @@ public class PxeIntegrationService {
         ImageServerUtils.replaceAll(sb, "${http.port}", imageServer.getImageServerHttpPort());
         ImageServerUtils.replaceAll(sb, "${session.id}", job.getPxeBootIdentifier());
         str = sb.toString();
-        log.trace(str);
+        log.info(str);
         ImageServerUtils.replaceAll(sb, "${root.password}", job.getPasswordHash());
         return sb.toString();
     }
@@ -155,7 +155,7 @@ public class PxeIntegrationService {
         ImageServerUtils.replaceAll(sb, "__DNS_SECONDARY_IP_MARKER__", dnsServers.length == 1 ? "" : dnsServers[1].trim());
 
         String str = sb.toString();
-        log.trace(str);
+        log.info(str);
         return str;
     }
 

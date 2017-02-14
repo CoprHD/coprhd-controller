@@ -9,8 +9,8 @@ import static com.emc.sa.service.ServiceParams.COMPUTE_IMAGE;
 import static com.emc.sa.service.ServiceParams.COMPUTE_VIRTUAL_POOL;
 import static com.emc.sa.service.ServiceParams.DATACENTER;
 import static com.emc.sa.service.ServiceParams.DNS_SERVERS;
-import static com.emc.sa.service.ServiceParams.HLU;
 import static com.emc.sa.service.ServiceParams.GATEWAY;
+import static com.emc.sa.service.ServiceParams.HLU;
 import static com.emc.sa.service.ServiceParams.HOST_PASSWORD;
 import static com.emc.sa.service.ServiceParams.MANAGEMENT_NETWORK;
 import static com.emc.sa.service.ServiceParams.NETMASK;
@@ -258,6 +258,9 @@ public class AddHostToClusterService extends ViPRService {
             throw new IllegalStateException(
                     ExecutionUtils.getMessage("compute.cluster.sharedexports.update.failed", cluster.getLabel()));
         } else {
+            // WJEIV: TODO Assuming shared exports are already exported to these new hosts, I see Hosts are getting
+            // moved out of cluster irrespective of the shared volumes. Even though it makes sense to remove the host
+            // out, we should be extra cautious to verify the shared volumes are already available.
             logInfo("compute.cluster.sharedexports.updated", cluster.getLabel());
             List<URI> bootVolumeIds = ComputeUtils.makeBootVolumes(project, virtualArray, virtualPool, size, hosts,
                     getClient());

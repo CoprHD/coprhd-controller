@@ -24,8 +24,8 @@ import org.springframework.util.CollectionUtils;
 
 import com.emc.storageos.Controller;
 import com.emc.storageos.computecontroller.impl.ComputeDeviceController;
-import com.emc.storageos.computesystemcontroller.exceptions.ComputeSystemControllerException;
 import com.emc.storageos.computesystemcontroller.ComputeSystemController;
+import com.emc.storageos.computesystemcontroller.exceptions.ComputeSystemControllerException;
 import com.emc.storageos.computesystemcontroller.hostmountadapters.HostDeviceInputOutput;
 import com.emc.storageos.computesystemcontroller.hostmountadapters.HostMountAdapter;
 import com.emc.storageos.computesystemcontroller.impl.InitiatorCompleter.InitiatorOperation;
@@ -449,6 +449,9 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
 
             // 1. For hosts in this cluster, remove them from other shared exports that don't belong to this current
             // cluster
+            // WJEIV: TODO This is doing something that we didn't ask it to do for the "benefit" of reconciling our
+            // internal database. There may be unintended side-effects associated with this and should be
+            // revisited/removed.
             for (URI hostId : clusterHostIds) {
                 List<Initiator> hostInitiators = ComputeSystemHelper.queryInitiators(_dbClient, hostId);
                 for (ExportGroup exportGroup : getExportGroups(_dbClient, hostId, hostInitiators)) {
@@ -463,6 +466,10 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                 waitFor = addStepsForRemoveHostFromExport(workflow, waitFor, clusterHostIds, export);
             }
 
+            // WJEIV TODO: Let's figure out what precipitated the need for this synchronziation call here
+            // The concern is that this will end up running operations like add/remove hsot on the array
+            // on hosts that weren't requested. Seems like the requests should be delta-based and very specific,
+            // and not just "synchronize everything".
             waitFor = addStepsForSynchronizeClusterExport(workflow, waitFor, clusterHostIds, clusterId);
 
             workflow.executePlan(completer, "Success", null, null, null, null);

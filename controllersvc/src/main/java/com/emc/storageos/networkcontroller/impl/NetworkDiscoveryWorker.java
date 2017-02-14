@@ -599,7 +599,7 @@ public class NetworkDiscoveryWorker {
             String currentNetworkWwn = entry.getKey();
             Network currentNetwork = getNetworkByNativeId(allNetworks, currentNetworkId);
             // How to determine it's a transit network: 1. More than one network system have the same network.
-            if (currentNetwork != null && currentNetwork.getNetworkSystems().size() > 1) {
+            if (currentNetwork != null && currentNetwork.getNetworkSystems() != null && currentNetwork.getNetworkSystems().size() > 1) {
                 _log.info("Network id={} is a transit VSAN", currentNetworkId);
                 transitNetworks.add(currentNetworkId);
             } else {

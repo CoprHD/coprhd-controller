@@ -6,6 +6,8 @@ package com.emc.storageos.model.block.export;
 
 import com.emc.storageos.model.DataObjectRestRep;
 import com.emc.storageos.model.RelatedResourceRep;
+import com.emc.storageos.model.StringHashMapEntry;
+
 import org.codehaus.jackson.annotate.JsonProperty;
 import com.emc.storageos.model.host.HostRestRep;
 import com.emc.storageos.model.host.InitiatorRestRep;
@@ -31,6 +33,7 @@ public class ExportGroupRestRep extends DataObjectRestRep {
     private String generatedName;
     private String type;
     private List<ExportPathParametersRep> pathParams;
+    private List<StringHashMapEntry> altVirtualArrays;
 
     /**
      * Name of the block export.
@@ -177,5 +180,15 @@ public class ExportGroupRestRep extends DataObjectRestRep {
 
     public void setPathParams(List<ExportPathParametersRep> pathParams) {
         this.pathParams = pathParams;
+    }
+
+    @XmlElementWrapper(name = "alternate_virtual_arrays")
+    @XmlElement(name = "alternate_virtual_array")
+    public List<StringHashMapEntry> getAltVirtualArrays() {
+        return altVirtualArrays;
+    }
+
+    public void setAltVirtualArrays(List<StringHashMapEntry> altVirtualArrays) {
+        this.altVirtualArrays = altVirtualArrays;
     }
 }

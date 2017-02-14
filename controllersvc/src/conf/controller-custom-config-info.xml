@@ -768,7 +768,7 @@
         <property name="sourceClass" value="com.emc.storageos.db.client.model.TenantOrg"/>
         <property name="displayName" value="tenant_name"/>
         <property name="propertyName" value="label"/>
-        <property name="sample" value="AbcGroup"/>
+        <property name="sample" value="providerTenant"/>
     </bean>
     
     <bean id="exportName" class="com.emc.storageos.customconfigcontroller.ComputedDataSourceVariable">
@@ -1395,7 +1395,7 @@
     
     <bean id="isilonClusterName" class="com.emc.storageos.customconfigcontroller.DataSourceVariable">
         <property name="displayName" value="isilon_cluster_name"/>
-        <property name="sample" value="clusterABC"/>
+        <property name="sample" value="cluster.company.com"/>
     </bean> 
     
     <bean id="dirName" class="com.emc.storageos.customconfigcontroller.DataSourceVariable">
@@ -1429,7 +1429,7 @@
         <property name="sourceClass" value="com.emc.storageos.db.client.model.VirtualPool"/>
         <property name="displayName" value="vpool_name"/>
         <property name="propertyName" value="label"/>
-        <property name="sample" value="vpoolABC"/>
+        <property name="sample" value="GoldPool"/>
     </bean>
     
      <bean id="autoTieringPolicy" class="com.emc.storageos.customconfigcontroller.DataSourceVariable">

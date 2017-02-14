@@ -1,0 +1,25 @@
+#!/bin/sh
+# Requres arg of desired project
+
+# Tenant and project 
+rootTenant=`tenant root`
+export rootTenant
+[ "$tenant" ] || {
+    tenant=$rootTenant
+}
+export tenant
+echo tenant $tenant 
+[ "$project" ] || {
+    project=proj
+}
+
+echo project $project
+existingProjects=$(project list)
+echo "Existing projects: $existingProjects"
+$(echo $existingProjects | grep -q $project) || {
+    echo project create $project
+    project create $project
+}
+existingProjects=$(project list)
+echo "Existing projects: $existingProjects"
+

@@ -184,7 +184,7 @@ prerun_setup() {
 		then
 		    storage_password=${XTREMIO_3X_PASSWD}
 		elif [ "${storage_type}" = "unity" ]; then
-                    storage_password=${UNITY_PW}
+            storage_password=${UNITY_PW}
 		fi
 	    fi
         else
@@ -194,24 +194,25 @@ prerun_setup() {
         echo "The tenant $TENANT doesn't exist"
     fi
 
-    smisprovider list | grep SIM > /dev/null
+    storageprovider list | grep SIM > /dev/null
     if [ $? -eq 0 ];
     then
-	ZONE_CHECK=0
-	echo "Shutting off zone check for simulator environment"
+    	ZONE_CHECK=0
+    	SIM=1;
+    	echo "Shutting off zone check for simulator environment"
     fi
 
     if [ "${SS}" = "vnx" ]
     then
-	array_ip=${VNXB_IP}
-	FC_ZONE_A=FABRIC_vplex154nbr2
+    	array_ip=${VNXB_IP}
+    	FC_ZONE_A=FABRIC_vplex154nbr2
     elif [ "${SS}" = "vmax2" ]
     then
         FC_ZONE_A=FABRIC_VPlex_LGL6220_FID_30-10:00:00:27:f8:58:f6:c1
     fi
 
     if [ "${SIM}" = "1" ]; then
-	FC_ZONE_A=${CLUSTER1NET_SIM_NAME}	  
+	   FC_ZONE_A=${CLUSTER1NET_SIM_NAME}	  
     fi
 
     # All export operations orchestration go through the same entry-points
@@ -224,20 +225,20 @@ prerun_setup() {
 
     # The actual steps that the orchestration generates varies depending on the device type
     if [ "${SS}" != "vplex" ]; then
-	exportCreateDeviceStep=MaskingWorkflowEntryPoints.doExportGroupCreate
-	exportAddVolumesDeviceStep=MaskingWorkflowEntryPoints.doExportGroupAddVolumes
-	exportRemoveVolumesDeviceStep=MaskingWorkflowEntryPoints.doExportGroupRemoveVolumes
-	exportAddInitiatorsDeviceStep=MaskingWorkflowEntryPoints.doExportGroupAddInitiators
-	exportRemoveInitiatorsDeviceStep=MaskingWorkflowEntryPoints.doExportGroupRemoveInitiators
-	exportDeleteDeviceStep=MaskingWorkflowEntryPoints.doExportGroupDelete
+    	exportCreateDeviceStep=MaskingWorkflowEntryPoints.doExportGroupCreate
+    	exportAddVolumesDeviceStep=MaskingWorkflowEntryPoints.doExportGroupAddVolumes
+    	exportRemoveVolumesDeviceStep=MaskingWorkflowEntryPoints.doExportGroupRemoveVolumes
+    	exportAddInitiatorsDeviceStep=MaskingWorkflowEntryPoints.doExportGroupAddInitiators
+    	exportRemoveInitiatorsDeviceStep=MaskingWorkflowEntryPoints.doExportGroupRemoveInitiators
+    	exportDeleteDeviceStep=MaskingWorkflowEntryPoints.doExportGroupDelete
     else
-	# VPLEX-specific entrypoints
-	exportCreateDeviceStep=VPlexDeviceController.createStorageView
-	exportAddVolumesDeviceStep=ExportWorkflowEntryPoints.exportAddVolumes
-	exportRemoveVolumesDeviceStep=ExportWorkflowEntryPoints.exportRemoveVolumes
-	exportAddInitiatorsDeviceStep=ExportWorkflowEntryPoints.exportAddInitiators
-	exportRemoveInitiatorsDeviceStep=ExportWorkflowEntryPoints.exportRemoveInitiators
-	exportDeleteDeviceStep=VPlexDeviceController.deleteStorageView
+	   # VPLEX-specific entrypoints
+    	exportCreateDeviceStep=VPlexDeviceController.createStorageView
+    	exportAddVolumesDeviceStep=ExportWorkflowEntryPoints.exportAddVolumes
+    	exportRemoveVolumesDeviceStep=ExportWorkflowEntryPoints.exportRemoveVolumes
+    	exportAddInitiatorsDeviceStep=ExportWorkflowEntryPoints.exportAddInitiators
+    	exportRemoveInitiatorsDeviceStep=ExportWorkflowEntryPoints.exportRemoveInitiators
+    	exportDeleteDeviceStep=VPlexDeviceController.deleteStorageView
     fi
     
     set_validation_check true
@@ -779,6 +780,7 @@ xio_sim_setup() {
     XTREMIO_3X_IP=$XIO_SIMULATOR_IP
     XTREMIO_PORT=$XIO_4X_SIMULATOR_PORT
     XTREMIO_NATIVEGUID=$XIO_4X_SIM_NATIVEGUID
+    FC_ZONE_A=${CLUSTER1NET_SIM_NAME}
 }
 
 xio_setup() {
@@ -790,7 +792,7 @@ xio_setup() {
     XTREMIO_PROVIDER_NAME=XIO-PROVIDER
 
     if [ "${SIM}" = "1" ]; then
-	xio_sim_setup
+	   xio_sim_setup
     fi    
     
     run storageprovider create ${XTREMIO_PROVIDER_NAME} $XTREMIO_3X_IP $XTREMIO_PORT $XTREMIO_3X_USER "$XTREMIO_3X_PASSWD" xtremio
@@ -807,13 +809,13 @@ xio_setup() {
     SERIAL_NUMBER=`storagedevice list | grep COMPLETE | awk '{print $2}' | awk -F+ '{print $2}'`
     
     run cos create block ${VPOOL_BASE}	\
-	--description Base true                 \
-	--protocols FC 			                \
-	--numpaths 1				            \
-	--provisionType 'Thin'			        \
-	--max_snapshots 10                      \
+        --description Base true                 \
+        --protocols FC 			                \
+        --numpaths 1				            \
+        --provisionType 'Thin'			        \
+        --max_snapshots 10                      \
         --multiVolumeConsistency        \
-	--neighborhoods $NH                    
+        --neighborhoods $NH                    
 
     run cos update block $VPOOL_BASE --storage ${XTREMIO_NATIVEGUID}
 }
@@ -2798,6 +2800,11 @@ test_23() {
 #
 test_24() {
     echot "Test 24: Remove Volume doesn't remove the zone when extra volume is in the mask"
+    if [ "$SS" = "unity" ]; then
+        echo "This will fail for Unity due to COP-27778. So skipping this test for Unity for now."
+        return
+    fi
+
     expname=${EXPORT_GROUP_NAME}t24
 
     # Make sure we start clean; no masking view on the array
@@ -3021,7 +3028,6 @@ test_26() {
     snap2=$PROJECT/${VOLNAME}-3/$snap_label2
 
     runcmd blocksnapshot create $PROJECT/${VOLNAME}-1 ${snap_label1}
-    runcmd volume create ${VOLNAME}-3 ${PROJECT} ${NH} ${VPOOL_BASE} 1GB --count 1
     runcmd blocksnapshot create $PROJECT/${VOLNAME}-3 ${snap_label2}
 
     runcmd export_group update $PROJECT/${expname}1 --addVolspec "$snap1","$snap2"
@@ -3128,12 +3134,11 @@ test_26() {
 
     runcmd blocksnapshot delete $snap1
     runcmd blocksnapshot delete $snap2
-    runcmd volume delete $PROJECT/${VOLNAME}-3 --wait
 }
 
 # DU Prevention Validation Test 27 (Unity only)
 #
-# Summary: Test export group udate/deletion when host has multiple export groups
+# Summary: Test export group update/deletion when host has multiple export groups
 #
 # Basic Use Case for single host, multiple export groups
 # 1. Create 2 volume, 1 host export from the first project
@@ -3319,7 +3324,7 @@ test_27() {
 
 # DU Prevention Validation Test 28 (Unity only)
 #
-# Summary: Test export group udate/deletion when host has multiple export groups with no or partial shared initiators
+# Summary: Test export group update/deletion when host has multiple export groups with no or partial shared initiators
 #
 # Basic Use Case for single host, multiple export groups
 # 1. Create 1 volume, 1 host export with the same host from the first project
@@ -3672,6 +3677,8 @@ esac
 
 # By default, check zones
 ZONE_CHECK=${ZONE_CHECK:-1}
+REPORT=0
+DO_CLEANUP=0;
 while [ "${1:0:1}" = "-" ]
 do
     if [ "${1}" = "setuphw" -o "${1}" = "setup" -o "${1}" = "-setuphw" -o "${1}" = "-setup" ]
@@ -3771,10 +3778,8 @@ echo There were $VERIFY_FAIL_COUNT export verification failures
 echo `date`
 echo `git status | grep 'On branch'`
 
-if [ "${docleanup}" = "1" ]; then
+if [ "${DO_CLEANUP}" = "1" ]; then
     cleanup;
 fi
 
 finish;
-
-

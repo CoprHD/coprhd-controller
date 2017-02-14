@@ -170,7 +170,11 @@ public class ExportMaskRemoveInitiatorCompleter extends ExportTaskCompleter {
 		    }
 		}
 
-        Set<String> targets = new HashSet<String>(exportMask.getStoragePorts());
+        Set<String> targets = new HashSet<String>();
+        if (exportMask.getStoragePorts() != null) {
+            targets.addAll(exportMask.getStoragePorts());
+        }
+        
         if (isRollback) {
             StringSet emStoragePorts = new StringSet();
 
@@ -191,6 +195,7 @@ public class ExportMaskRemoveInitiatorCompleter extends ExportTaskCompleter {
 				exportMask.addTarget(URIUtil.uri(zonedPort));
 			}
 		}
+		
 		for (String targetPort : targets) {
 			exportMask.removeTarget(URIUtil.uri(targetPort));
 		}

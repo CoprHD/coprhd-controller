@@ -339,13 +339,9 @@ vnx_setup() {
 	--max_snapshots 10                      \
 	--neighborhoods $NH                    
 
-    if [ "${SIM}" = "1" ]
+    if [ "${SIM}" != "1" ]
     then
-	# Remove the thin pool that doesn't support metas on the VNX simulator
-	run cos update_pools block $VPOOL_BASE --rem ${VNXB_NATIVEGUID}/${VNXB_NATIVEGUID}+POOL+U+TP0000
-        run cos update_pools block $VPOOL_CHANGE --rem ${VNXB_NATIVEGUID}/${VNXB_NATIVEGUID}+POOL+U+TP0000
-    else
-	run cos update block $VPOOL_BASE --storage ${VNXB_NATIVEGUID}
+	    run cos update block $VPOOL_BASE --storage ${VNXB_NATIVEGUID}
         run cos update block $VPOOL_CHANGE --storage ${VNXB_NATIVEGUID}
     fi
 }

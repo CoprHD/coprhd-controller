@@ -535,6 +535,7 @@ URI_STORAGEPORTGROUPS           = URI_STORAGEDEVICE       + '/storage-port-group
 URI_STORAGEPORTGROUP            = URI_STORAGEPORTGROUPS   + '/{1}'
 URI_STORAGEPORTGROUP_REGISTER   = URI_STORAGEPORTGROUP    + '/register'
 URI_STORAGEPORTGROUP_DEREGISTER = URI_STORAGEPORTGROUP    + '/deregister'
+URI_STORAGEPORTGROUP_DELETE     = URI_STORAGEPORTGROUP    + '/deactivate'
 
 
 PROD_NAME                       = 'storageos'
@@ -4972,7 +4973,10 @@ class Bourne:
             print 'Path parameters', pathParam
 	    parms['path_parameters'] = pathParam
 
-
+        if (pathParam['port_group']):
+            print 'Path parameters', pathParam
+	    parms['path_parameters'] = pathParam
+	    
         # Build volume parameter, if specified
         if (volspec):
            vols = volspec.split(',')
@@ -9165,12 +9169,8 @@ class Bourne:
     def storageportgroup_register(self, systemuri, pguri):
         return self.api('POST', URI_STORAGEPORTGROUP_REGISTER.format(systemuri, pguri))
     
-    def storageport_deregister(self, pguri):
-        return self.api('POST', URI_STORAGEPORTGROUP_DEREGISTER.format(systemuri, pguri))
-    
-    def storageport_delete(self, uri):
-        return self.api('POST', URI_RESOURCE_DEACTIVATE.format(URI_STORAGEPORT.format(uri)))
-        
+    def storageportgroup_deregister(self, systemuri, pguri):
+        return self.api('POST', URI_STORAGEPORTGROUP_DEREGISTER.format(systemuri, pguri))     
         
     def storageportgroup_show(self, systemuri, portgroupuri):
         return self.api('GET', URI_STORAGEPORTGROUP.format(systemuri, portgroupuri))
@@ -9200,3 +9200,32 @@ class Bourne:
             return {};
         else:
             return o['storage_port_group']
+            
+    def storageportgroup_delete(self, systemuri, pguri):
+        o = self.api('POST', URI_STORAGEPORTGROUP_DELETE.format(systemuri, pguri))
+        self.assert_is_dict(o)
+        s = self.api_sync_4(o['id'], self.task_show)
+        return (o, s)
+        
+    def storageportgroup_create(self, systemuri, name, ports):
+        params = dict()
+        params['name'] = name
+        addports = list()
+        for port in ports:
+            print port
+            porturi = self.storageport_query_by_portname(port, systemuri)
+            print porturi
+            addports.append(porturi)
+        params['storage_ports'] = addports
+        o = self.api('POST', URI_STORAGEPORTGROUPS.format(systemuri), params)
+        self.assert_is_dict(o)
+	s = self.api_sync_4(o['id'], self.task_show)
+        return (o, s)
+    
+    def storageport_query_by_portname(self, name, systemuri):
+        ports = self.storageport_list(systemuri)
+        for p in ports:
+            sport = self.storageport_show(systemuri, p['id'])
+            if (sport['port_name'] == name):
+                return sport['id']
+        raise Exception('bad storageport name: ' + name)

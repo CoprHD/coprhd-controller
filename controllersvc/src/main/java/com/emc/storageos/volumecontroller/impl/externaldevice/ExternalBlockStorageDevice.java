@@ -1942,6 +1942,16 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice implem
                     break;
 
                 case REPLICATION_PAIR:
+                    RemoteReplicationPair remoteReplicationPair = dbClient.queryObject(RemoteReplicationPair.class, elementURI);
+                    systemRRPairs = new ArrayList<>();
+                    systemRRPairs.add(remoteReplicationPair);
+                    context = new RemoteReplicationOperationContext(com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationSet.ElementType.REPLICATION_PAIR,
+                            null, remoteReplicationPair.getNativeId());
+                    URI sourceVolumeURI = remoteReplicationPair.getSourceElement().getURI();
+                    Volume sourceVolume = dbClient.queryObject(Volume.class, sourceVolumeURI);
+                    sourceSystem = dbClient.queryObject(StorageSystem.class, sourceVolume.getStorageController());
+
+                    driver = (RemoteReplicationDriver)getDriver(sourceSystem.getSystemType());
                     break;
 
                 case CONSISTENCY_GROUP:

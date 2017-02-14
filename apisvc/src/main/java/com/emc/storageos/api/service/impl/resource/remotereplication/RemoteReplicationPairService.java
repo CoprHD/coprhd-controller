@@ -243,6 +243,40 @@ public class RemoteReplicationPairService extends TaskResourceService {
         return toTask(rrPair, taskId, op);
     }
 
+    public TaskResourceRep failoverRemoteReplicationPairLink(URI id, String taskId) throws InternalException {
+        _log.info("Called: failoverRemoteReplicationPairLink() with id {} and task {}", id, taskId);
+        ArgValidator.checkFieldUriType(id, RemoteReplicationPair.class, "id");
+        RemoteReplicationPair rrPair = queryResource(id);
+
+        // todo: validate that this operation is valid: if operations are allowed on Pairs, if Pair state is valid for the operation, if the Pair is reachable, etc.
+        // Create a task for the failover remote replication Pair operation
+
+        Operation op = _dbClient.createTaskOpStatus(RemoteReplicationPair.class, rrPair.getId(),
+                taskId, ResourceOperationTypeEnum.FAILOVER_REMOTE_REPLICATION_PAIR_LINK);
+
+        RemoteReplicationElement rrElement =
+                new RemoteReplicationElement(com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationSet.ElementType.REPLICATION_PAIR, id);
+        // send request to controller
+        try {
+            RemoteReplicationBlockServiceApiImpl rrServiceApi = getRemoteReplicationServiceApi();
+            rrServiceApi.failoverRemoteReplicationElementLink(rrElement, taskId);
+        } catch (final ControllerException e) {
+            _log.error("Controller Error", e);
+            op = rrPair.getOpStatus().get(taskId);
+            op.error(e);
+            rrPair.getOpStatus().updateTaskStatus(taskId, op);
+            rrPair.setInactive(true);
+            _dbClient.updateObject(rrPair);
+
+            throw e;
+        }
+
+        auditOp(OperationTypeEnum.FAILOVER_REMOTE_REPLICATION_PAIR_LINK, true, AuditLogManager.AUDITOP_BEGIN,
+                rrPair.getNativeId(), rrPair.getSourceElement(), rrPair.getTargetElement());
+
+        return toTask(rrPair, taskId, op);
+    }
+
     @POST
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })

@@ -6,6 +6,8 @@ package com.emc.storageos.api.service.impl.resource.remotereplication;
 
 
 import java.net.URI;
+import java.util.List;
+import java.util.UUID;
 
 import javax.ws.rs.Consumes;
 import javax.ws.rs.POST;
@@ -13,6 +15,9 @@ import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 
+import com.emc.storageos.db.client.model.Operation;
+import com.emc.storageos.db.client.model.Volume;
+import com.emc.storageos.model.ResourceOperationTypeEnum;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -28,6 +33,8 @@ import com.emc.storageos.security.authorization.ACL;
 import com.emc.storageos.security.authorization.DefaultPermissions;
 import com.emc.storageos.security.authorization.Role;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
+
+import static com.emc.storageos.api.mapper.TaskMapper.toTask;
 
 @Path("/vdc/block/remotereplicationmanagement")
 @DefaultPermissions(readRoles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, readAcls = {
@@ -128,7 +135,12 @@ public class RemoteReplicationManagementService extends TaskResourceService {
             case RR_PAIR:
                 // for individual pairs send one request for each pair
                 // call pair service for each pair and add task to the taskList, return task list.
-                // todo:
+                String taskID = UUID.randomUUID().toString();
+                List<RemoteReplicationPair> rrPairs = _dbClient.queryObject(RemoteReplicationPair.class, operationParam.getIds());
+                for (URI rrPairURI : operationParam.getIds()) {
+                    TaskResourceRep rrPairTaskResourceRep = rrPairService.failoverRemoteReplicationPairLink(rrPairURI, taskID);
+                    taskList.addTask(rrPairTaskResourceRep);
+                }
                 break;
             case RR_GROUP_CG:
             case RR_SET_CG:

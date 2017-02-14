@@ -78,27 +78,42 @@ public class RemoteReplicationFailoverCompleter extends TaskCompleter {
                     case REPLICATION_GROUP:
                         RemoteReplicationGroup remoteReplicationGroup = dbClient.queryObject(RemoteReplicationGroup.class, elementURI);
                         _logger.info("Failed over remote replication group: {}", remoteReplicationGroup.getNativeId());
-                        rrPairs = dbClient.queryObject(RemoteReplicationPair.class, pairURIs);
-                        for (RemoteReplicationPair rrPair : rrPairs) {
-                            rrPair.setReplicationState(RemoteReplicationSet.ReplicationState.FAILED_OVER.toString());
-                             // after failover, replication link is inactive, leave replication direction as is
-                        }
                         remoteReplicationGroup.setReplicationState(RemoteReplicationSet.ReplicationState.FAILED_OVER.toString());
                         dbClient.updateObject(remoteReplicationGroup);
-                        dbClient.updateObject(rrPairs);
+                        if (pairURIs != null) {
+                            rrPairs = dbClient.queryObject(RemoteReplicationPair.class, pairURIs);
+                            for (RemoteReplicationPair rrPair : rrPairs) {
+                                rrPair.setReplicationState(RemoteReplicationSet.ReplicationState.FAILED_OVER.toString());
+                                // after failover, replication link is inactive, leave replication direction as is
+                            }
+                            dbClient.updateObject(rrPairs);
+                        } else {
+                            _logger.warn("No replication pairs provided for group link operation, group {}",
+                                    remoteReplicationGroup.getNativeId());
+                        }
                         _logger.info("Completed operation for {} with id {} and status {}", elementType, elementURI, status);
                         break;
                     case REPLICATION_PAIR:
+                        RemoteReplicationPair remoteReplicationPair = dbClient.queryObject(RemoteReplicationPair.class, elementURI);
+                        _logger.info("Failed over remote replication pair: {}", remoteReplicationPair.getNativeId());
+                        remoteReplicationPair.setReplicationState(RemoteReplicationSet.ReplicationState.FAILED_OVER.toString());
+                        dbClient.updateObject(remoteReplicationPair);
+                        _logger.info("Completed operation for {} with id {} and status {}", elementType, elementURI, status);
                         break;
                     case CONSISTENCY_GROUP:
                         BlockConsistencyGroup cg = dbClient.queryObject(BlockConsistencyGroup.class, elementURI);
                         _logger.info("Failed over consistency group: {}", cg.getNativeId());
-                        rrPairs = dbClient.queryObject(RemoteReplicationPair.class, pairURIs);
-                        for (RemoteReplicationPair rrPair : rrPairs) {
-                            rrPair.setReplicationState(RemoteReplicationSet.ReplicationState.FAILED_OVER.toString());
-                            // after failover, replication link is inactive, leave replication direction as is
+                        if (pairURIs != null) {
+                            rrPairs = dbClient.queryObject(RemoteReplicationPair.class, pairURIs);
+                            for (RemoteReplicationPair rrPair : rrPairs) {
+                                rrPair.setReplicationState(RemoteReplicationSet.ReplicationState.FAILED_OVER.toString());
+                                // after failover, replication link is inactive, leave replication direction as is
+                            }
+                            dbClient.updateObject(rrPairs);
+                        } else {
+                            _logger.warn("No replication pairs provided for cg link operation, cg {}",
+                                    cg.getNativeId());
                         }
-                        dbClient.updateObject(rrPairs);
                         _logger.info("Completed operation for {} with id {} and status {}", elementType, elementURI, status);
                         break;
                     case REPLICATION_SET:

@@ -1711,25 +1711,21 @@ public class VPlexApiClient {
     }
 
     /**
-     * Returns the top-level supporting device name for a given storage volume native id,
-     * wwn, and backend array serial number.
+     * Returns the top-level supporting device name for a given storage with the passed 
+     * native storage volume information.
      * 
-     * @param volumeNativeId the storage volume's native id
-     * @param wwn the storage volume's wwn
-     * @param backendArraySerialNum the serial number of the backend array
+     * @param vInfo The native storage volume information.
      * 
      * @return the name of the top level device for the given storage volume
      * @throws VPlexApiException
      */
     @Deprecated
-    public String getDeviceForStorageVolume(String volumeNativeId,
-            String wwn, String backendArraySerialNum) throws VPlexApiException {
+    public String getDeviceForStorageVolume(VolumeInfo vInfo) throws VPlexApiException {
 
         s_logger.info("Request to find device name for storage volume {} on VPLEX at {}",
-                volumeNativeId, _baseURI);
+                vInfo.getVolumeNativeId(), _baseURI);
 
-        String deviceName = getDiscoveryManager()
-                .getDeviceForStorageVolume(volumeNativeId, wwn, backendArraySerialNum);
+        String deviceName = getDiscoveryManager().getDeviceForStorageVolume(vInfo);
 
         return deviceName;
     }

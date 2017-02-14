@@ -150,6 +150,8 @@ public enum OperationTypeEnum {
     DELETE_FILE_SYSTEM_SHARE("FileSystemShareDeleted", "FileSystemShareDeleteFailed", "FileSystem share deleted"),
     GET_FILE_SYSTEM_SNAPSHOT_BY_SCHEDULE("FileSystemScheduleSnapshot", "FileSystemScheduleSnapshotFailed",
             "FileSystem Schedule Snapshot List"),
+    UPDATE_STORAGE_SYSTEM_POLICY_BY_POLICY_RESOURCE("StorageSystemPolicyForPolicyResource", "StorageSystemPolicyForPolicyResourceFailed",
+            "Get Storage System Policy For Policy Resource"),
 
     CREATE_FILE_SYSTEM_SNAPSHOT("FileSystemSnapshotCreated", "FileSystemSnapshotCreateFailed", "FileSystem snapshot created"),
     DELETE_FILE_SNAPSHOT("FileSystemSnapshotDeleted", "FileSystemSnapshotDeleteFailed", "FileSystem snapshot deleted"),
@@ -554,7 +556,6 @@ public enum OperationTypeEnum {
     EXPORT_PATH_ADJUSTMENT("EXPORT PATH ADJUSTMENT", "", "operation to adjust export paths"),
 
     /* Filesystem Mount Operations*/
-
     MOUNT_NFS_EXPORT("MOUNT NFS EXPORT", "mount nfs export operation failed", "mount nfs export operation"),
     UNMOUNT_NFS_EXPORT("UNMOUNT NFS EXPORT", "unmount nfs operation failed", "unmount nfs export operation"),
     LIST_MOUNTED_EXPORTS("LIST MOUNTED EXPORTS", "list mounted nfs operation failed", "list mounted exports operation"),

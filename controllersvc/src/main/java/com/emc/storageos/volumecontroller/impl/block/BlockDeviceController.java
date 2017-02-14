@@ -3280,6 +3280,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                     } else {
                         completer.ready(_dbClient);
                     }
+                    return;
                 }
             }
 

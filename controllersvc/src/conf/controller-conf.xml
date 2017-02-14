@@ -1692,6 +1692,7 @@
         <property name="fileDeviceController" ref="fileDeviceController" />
         <property name="fileReplicationDeviceController" ref="fileReplicationDeviceController" />
         <property name="locker" ref="locker"/>
+        <property name="customConfigHandler" ref="customConfigHandler" />
     </bean>
 
     <bean id="fileOrchestrationController" class="com.emc.storageos.fileorchestrationcontroller.FileOrchestrationControllerImpl">

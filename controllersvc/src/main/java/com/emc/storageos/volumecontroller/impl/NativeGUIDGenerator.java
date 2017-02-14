@@ -113,6 +113,7 @@ public class NativeGUIDGenerator {
         OBJECT_TYPE_SET.add(ADAPTER);
         OBJECT_TYPE_SET.add(PHYSICAL_NAS);
         OBJECT_TYPE_SET.add(VIRTUAL_NAS);
+        OBJECT_TYPE_SET.add(FILE_STORAGE_RESOURCE);
     }
 
     // Cannot get this bean from ControllerServiceImpl context,

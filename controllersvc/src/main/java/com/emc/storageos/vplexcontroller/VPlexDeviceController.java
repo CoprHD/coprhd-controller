@@ -13209,20 +13209,4 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
             }
         }
     }
-
-    public boolean updateExportGroup(URI storage, URI exportGroup, Map<URI, Integer> volumeLunIdMap, String stepId) {
-        WorkflowStepCompleter.stepExecuting(stepId);
-
-        try {
-            ExportGroup exportGroupObj = _dbClient.queryObject(ExportGroup.class, exportGroup);
-            exportGroupObj.addVolumes(volumeLunIdMap);
-            _dbClient.updateObject(exportGroupObj);
-        } catch (Exception e) {
-            WorkflowStepCompleter.stepFailed(stepId, null);
-            return false;
-        }
-
-
-        return true;
-    }
 }

@@ -32,10 +32,10 @@ import com.emc.sa.service.vipr.customservices.gson.CustomServicesStatusMessage;
 import com.emc.sa.service.vipr.customservices.gson.ViprOperation;
 import com.emc.sa.service.vipr.customservices.gson.ViprTask;
 import com.emc.sa.service.vipr.customservices.tasks.TaskState;
+import com.emc.storageos.customservices.api.restapi.CustomServicesRestClient;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.model.TaskResourceRep;
 import com.emc.storageos.model.customservices.CustomServicesWorkflowDocument;
-import com.emc.storageos.oe.api.restapi.OrchestrationEngineRestClient;
 import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorException;
 import com.emc.vipr.client.ViPRCoreClient;
 import com.google.gson.Gson;
@@ -51,8 +51,8 @@ public class CustomServicesUtils {
     }
     
     //TODO: externalize these values:
-    private static final int OE_WORKFLOW_CHECK_INTERVAL = 10; // secs
-    private static final int OE_WORKFLOW_CHECK_TIMEOUT = 600; // secs
+    private static final int CUSTOM_SERVICES_WORKFLOW_CHECK_INTERVAL = 10; // secs
+    private static final int CUSTOM_SERVICES_WORKFLOW_CHECK_TIMEOUT = 600; // secs
     private static final int TASK_CHECK_TIMEOUT = 3600;  // mins
     private static final int TASK_CHECK_INTERVAL = 10; // secs
 
@@ -60,19 +60,19 @@ public class CustomServicesUtils {
     // TODO: move these hard-coded strings out
     public static final String USER = "root";
     public static final String PASSWORD = "ChangeMe1!";
-    public static final String OE_SCHEME = "http"; // include, else URI.resolve(..) fails
-    public static final String OE_SERVER = "localhost";
-    public static final String OE_SERVERPORT = "9090";
+    public static final String CUSTOM_SERVICES_SCHEME = "http"; // include, else URI.resolve(..) fails
+    public static final String CUSTOM_SERVICES_SERVER = "localhost";
+    public static final String CUSTOM_SERVICES_SERVERPORT = "9090";
 
-    public static final String OE_API_NODE = "/api/1.1/nodes";
+    public static final String CUSTOM_SERVICES_API_NODE = "/api/1.1/nodes";
 
     public static final String POST = "POST";
     
     private static final Gson gson = new Gson();
 
     public static boolean isTimedOut(int intervals) {
-        return (intervals * OE_WORKFLOW_CHECK_INTERVAL) >= 
-                OE_WORKFLOW_CHECK_TIMEOUT;
+        return (intervals * CUSTOM_SERVICES_WORKFLOW_CHECK_INTERVAL) >= 
+                CUSTOM_SERVICES_WORKFLOW_CHECK_TIMEOUT;
     }
 
     public static String makePostBody(Map<String, Object> params, 
@@ -193,7 +193,7 @@ public class CustomServicesUtils {
         catch (URISyntaxException e) {
             ExecutionUtils.currentContext().logInfo("Warning: there was a " +
                     "problem locating tasks in ViPR that were initiated in " +
-                    "the Orchestration Engine.  (Task IDs from OE are not valid.  " + 
+                    "Custom Services.  (Task IDs from Custom Service are not valid.  " + 
                     e.getMessage());
             return new ArrayList<TaskResourceRep>();
         }  
@@ -203,7 +203,7 @@ public class CustomServicesUtils {
         if (tasksStartedByOe.isEmpty()) {
 		    throw InternalServerErrorException.internalServerErrors.customServiceNoTaskFound("No tasks to wait for");
         }
-        ExecutionUtils.currentContext().logInfo("orchestrationService.waitforTask");
+        ExecutionUtils.currentContext().logInfo("customServicesService.waitforTask");
 
         final long startTime = System.currentTimeMillis();
         final TaskState states = new TaskState(client, tasksStartedByOe);
@@ -233,12 +233,12 @@ public class CustomServicesUtils {
         }
     }
 
-    public static String makeRestCall(String uriString, OrchestrationEngineRestClient restClient) {
+    public static String makeRestCall(String uriString, CustomServicesRestClient restClient) {
         return makeRestCall(uriString,null,restClient,null);
     }
 
     public static String makeRestCall(String uriString, String postBody,
-            OrchestrationEngineRestClient restClient, String method) {
+            CustomServicesRestClient restClient, String method) {
 
         ClientResponse response;
         if(method != null && method.equals("POST")) {
@@ -252,7 +252,7 @@ public class CustomServicesUtils {
             responseString = IOUtils.toString(response.getEntityInputStream(),"UTF-8");
         } catch (IOException e) {
             ExecutionUtils.currentContext().logError("Error getting response " +
-                    "from Orchestration Engine for: " + uriString + " :: "+ e.getMessage());
+                    "from Custom Services for: " + uriString + " :: "+ e.getMessage());
         }
         return responseString;
     }

@@ -729,13 +729,13 @@
       ]
     }, 
     { 
-      "title": "oe_services.title",
+      "title": "custom_services.title",
       "image": "icon_orchestration.png",
-      "description": "oe_services.description",
+      "description": "custom_services.description",
       "services": [
         { 
           "image": "icon_orchestration.png", 
-          "baseService": "OrchestrationService"
+          "baseService": "CustomServicesService"
         } 
       ]
     } 

@@ -21,7 +21,7 @@ import javax.xml.bind.annotation.XmlRootElement;
 
 import com.emc.storageos.model.DataObjectRestRep;
 
-@XmlRootElement(name = "orchestration_workflow")
+@XmlRootElement(name = "custom_services_workflow")
 public class CustomServicesWorkflowRestRep extends DataObjectRestRep {
 
     private CustomServicesWorkflowDocument document;

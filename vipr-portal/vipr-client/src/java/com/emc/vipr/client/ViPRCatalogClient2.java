@@ -168,7 +168,7 @@ public class ViPRCatalogClient2 {
         return new WFDirectoryClient(this, client);
     }
 
-    public OrchestrationClient orchestrationPrimitives() {
-        return new OrchestrationClient(this, client);
+    public CustomServicesClient customServicesPrimitives() {
+        return new CustomServicesClient(this, client);
     }
 }

@@ -33,26 +33,26 @@ import com.emc.sa.asset.annotation.Asset;
 import com.emc.sa.asset.annotation.AssetNamespace;
 import com.emc.sa.service.vipr.customservices.CustomServicesUtils;
 import com.emc.sa.service.vipr.customservices.gson.AssetOptionPair;
-import com.emc.storageos.oe.api.restapi.OrchestrationEngineRestClient;
-import com.emc.storageos.oe.api.restapi.OrchestrationEngineRestClientFactory;
+import com.emc.storageos.customservices.api.restapi.CustomServicesRestClient;
+import com.emc.storageos.customservices.api.restapi.CustomServicesRestClientFactory;
 import com.emc.vipr.model.catalog.AssetOption;
 import com.google.gson.Gson;
 import com.google.gson.JsonSyntaxException;
 
 @Component
-@AssetNamespace("oe")
-public class OrchestrationProvider extends BaseAssetOptionsProvider {
+@AssetNamespace("customservices")
+public class CustomServicesProvider extends BaseAssetOptionsProvider {
 
     // tags defining what this provider supports
-    private static final String ASSET_NAMESPACE_TAG = "oe";
+    private static final String ASSET_NAMESPACE_TAG = "customservices";
     private static final String ASSET_TAG = "all";
     private String thisAssetType = "";
 
-    private OrchestrationEngineRestClient restClient;
+    private CustomServicesRestClient restClient;
 
     // constants
-    private static final int OE_WORKFLOW_CHECK_INTERVAL = 1; // secs
-    private static final int OE_WORKFLOW_CHECK_TIMEOUT = 30; // secs
+    private static final int CUSTOM_SERVICES_WORKFLOW_CHECK_INTERVAL = 1; // secs
+    private static final int CUSTOM_SERVICES_WORKFLOW_CHECK_TIMEOUT = 30; // secs
     private static final String WORKFLOW_TIMEOUT_RESPONSE = "[{\"key\":\"TIMEOUT_ERROR\",\"value\":\"TIMEOUT_ERROR\"}]";
     
     // JSON converter
@@ -60,31 +60,31 @@ public class OrchestrationProvider extends BaseAssetOptionsProvider {
 
     private Map<String,String> parentAssetParams = new HashMap<>();
 
-    /** Note: this is the only provider for all OE AssetOption calls, 
+    /** Note: this is the only provider for all Custom Services AssetOption calls, 
      * so if there are multiple requests (i.e.: multiple drop-down menus
      * in service descriptor) then they will run serially, one after 
-     * other.  If it takes 3 seconds to get options list from OE per
+     * other.  If it takes 3 seconds to get options list from Custome Services per
      * menu, then ten drop-downs will take 30 secs to process (and browser
      * may timeout).
      */
 
-    public OrchestrationProvider() {
-        OrchestrationEngineRestClientFactory factory = new OrchestrationEngineRestClientFactory();
+    public CustomServicesProvider() {
+        CustomServicesRestClientFactory factory = new CustomServicesRestClientFactory();
         factory.setMaxConnections(100);
         factory.setMaxConnectionsPerHost(100);
         factory.setNeedCertificateManager(false);
         factory.setSocketConnectionTimeoutMs(3600000);
         factory.setConnectionTimeoutMs(3600000);
         factory.init();
-        String endpoint = CustomServicesUtils.OE_SCHEME + "://" +
-                CustomServicesUtils.OE_SERVER + ":" + CustomServicesUtils.OE_SERVERPORT;
-        restClient = (OrchestrationEngineRestClient) factory.getRESTClient(URI.create(endpoint),
+        String endpoint = CustomServicesUtils.CUSTOM_SERVICES_SCHEME + "://" +
+                CustomServicesUtils.CUSTOM_SERVICES_SERVER + ":" + CustomServicesUtils.CUSTOM_SERVICES_SERVERPORT;
+        restClient = (CustomServicesRestClient) factory.getRESTClient(URI.create(endpoint),
                 CustomServicesUtils.USER, CustomServicesUtils.PASSWORD, true);
     }
 
     @Override
     public boolean isAssetTypeSupported(String assetTypeName) {
-        // this provider supports all asset types for 'oe'
+        // this provider supports all asset types for 'customservices'
         return assetTypeName.startsWith(ASSET_NAMESPACE_TAG + "."); 
     }
 
@@ -101,7 +101,7 @@ public class OrchestrationProvider extends BaseAssetOptionsProvider {
         for(String parentAssetName: getAssetDependencies(assetTypeName,availableAssets.keySet())) {
             String parentAssetValue = availableAssets.get(parentAssetName);
 
-            // TODO: possible bug:  sometimes param values have quotes (same in OrchestrationService)
+            // TODO: possible bug:  sometimes param values have quotes (same in CustomServicesService)
             if(parentAssetValue != null) {
                 if( parentAssetValue.equals("\"\"")) {
                     parentAssetValue = "";
@@ -134,8 +134,8 @@ public class OrchestrationProvider extends BaseAssetOptionsProvider {
 
     @Override
     public List<String> getAssetDependencies(String assetType, Set<String> availableTypes) {
-        // oe.a1.a2 means a1 depends on a2
-        // oe.a1.a2.a3 means a1 depends on a2 and a3, etc
+        // customservices.a1.a2 means a1 depends on a2
+        // customservices.a1.a2.a3 means a1 depends on a2 and a3, etc
         List<String> result = new ArrayList<>();
         String[] assetTypeParts = assetType.split("\\.");
         for(int i=2;i<assetTypeParts.length;i++) {
@@ -161,30 +161,30 @@ public class OrchestrationProvider extends BaseAssetOptionsProvider {
 	}
 
 	@Asset(ASSET_TAG)
-    public List<AssetOption> getOrchestrationOptions(AssetOptionsContext ctx) throws InterruptedException { 
+    public List<AssetOption> getCustomServicesOptions(AssetOptionsContext ctx) throws InterruptedException { 
 
-        info("Getting asset options for '" + thisAssetType + "' from OE."); 
+        info("Getting asset options for '" + thisAssetType + "' from Custom Services."); 
 
         String apiUrl = null;
 
-        // pass a proxy token that OE can use to login to ViPR API
+        // pass a proxy token that Custom Services can use to login to ViPR API
         parentAssetParams.put("ProxyToken", api(ctx).auth().proxyToken());
         
-        // Start the OE workflow to get options
-        info("OE Provider calling " + apiUrl + "with body " + makePostBody());
+        // Start the Custom Services workflow to get options
+        info("Custom Services Provider calling " + apiUrl + "with body " + makePostBody());
         String workflowResponse = CustomServicesUtils.makeRestCall(apiUrl,
                 makePostBody(),restClient,CustomServicesUtils.POST);
 
-        info("Started Orchestration Engine Workflow");
+        info("Started Custom Services Workflow");
 
-        // Get results (waiting for OE workflow to complete)
+        // Get results (waiting for Custom Services workflow to complete)
         int intervals = 0;
         while ( !isWorkflowSuccess(workflowResponse) ) {
-            sleep(OE_WORKFLOW_CHECK_INTERVAL);
+            sleep(CUSTOM_SERVICES_WORKFLOW_CHECK_INTERVAL);
             // get updated WF reponse 
             workflowResponse = CustomServicesUtils.makeRestCall("/path/to/get/wf/status",restClient);
             if( isFailed(workflowResponse) || isTimedOut(++intervals) ) {
-                error("Orchestration Engine workflow timed out.");
+                error("Custom Services workflow timed out.");
                 return jsonToOptions(Arrays.asList(WORKFLOW_TIMEOUT_RESPONSE));
             }
         }        
@@ -203,8 +203,8 @@ public class OrchestrationProvider extends BaseAssetOptionsProvider {
 	}
 
     private boolean isTimedOut(int intervals) {
-        return (intervals * OE_WORKFLOW_CHECK_INTERVAL) >= 
-                OE_WORKFLOW_CHECK_TIMEOUT;
+        return (intervals * CUSTOM_SERVICES_WORKFLOW_CHECK_INTERVAL) >= 
+                CUSTOM_SERVICES_WORKFLOW_CHECK_TIMEOUT;
     }
 
     private String makePostBody() {
@@ -215,7 +215,7 @@ public class OrchestrationProvider extends BaseAssetOptionsProvider {
     private List<AssetOption> jsonToOptions(List<String> wfResults) {
         
         //options will be combined from all ansible result files 
-        //  (i.e.: all OE ansible tasks that returned valid results)
+        //  (i.e.: all Custom Services ansible tasks that returned valid results)
         List<AssetOption> assetOptionList = new ArrayList<>();
         for(String wfResult : wfResults) {
             AssetOptionPair[] assetOptionArray = null;
@@ -226,12 +226,12 @@ public class OrchestrationProvider extends BaseAssetOptionsProvider {
                 }  
             } catch(JsonSyntaxException e) {
                 // not all task results will always be asset options
-                getLog().warn("Unable to parse Orchestration Engine task result as valid asset " + 
+                getLog().warn("Unable to parse Custom Services task result as valid asset " + 
                         "options.  " + e.getMessage() + "  Unparsable string was: " + 
                 wfResult);
             }
         }
-        info("Found " + assetOptionList.size()+ " options from OE: " + 
+        info("Found " + assetOptionList.size()+ " options from Custom Services: " + 
                 assetOptionList);   
         return assetOptionList;
     }

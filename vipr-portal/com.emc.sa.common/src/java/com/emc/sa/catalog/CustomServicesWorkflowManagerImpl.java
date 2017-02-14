@@ -27,12 +27,12 @@ import com.emc.sa.model.dao.ModelClient;
 import com.emc.storageos.db.client.constraint.NamedElementQueryResultList.NamedElement;
 import com.emc.storageos.db.client.model.uimodels.CatalogService;
 import com.emc.storageos.db.client.model.uimodels.CustomServicesWorkflow;
-import com.emc.storageos.db.client.model.uimodels.CustomServicesWorkflow.OrchestrationWorkflowStatus;
+import com.emc.storageos.db.client.model.uimodels.CustomServicesWorkflow.CustomServicesWorkflowStatus;
 
 
 @Component
-public class OrchestrationWorkflowManagerImpl implements
-        OrchestrationWorkflowManager {
+public class CustomServicesWorkflowManagerImpl implements
+        CustomServicesWorkflowManager {
     @Autowired
     private ModelClient client;
  
@@ -42,7 +42,7 @@ public class OrchestrationWorkflowManagerImpl implements
             return null;
         }
         
-        return client.orchestrationWorkflows().findById(id);
+        return client.customServicesWorkflows().findById(id);
     }
 
     @Override
@@ -51,22 +51,22 @@ public class OrchestrationWorkflowManagerImpl implements
             return null;
         }
         
-        return client.orchestrationWorkflows().findByName(name);
+        return client.customServicesWorkflows().findByName(name);
     }
     
     @Override
     public List<NamedElement> list() {
-        return client.orchestrationWorkflows().findAllNames();
+        return client.customServicesWorkflows().findAllNames();
     }
 
     @Override
-    public List<NamedElement> listByStatus(final OrchestrationWorkflowStatus status) {
-        return client.orchestrationWorkflows().findAllNamesByStatus(status);
+    public List<NamedElement> listByStatus(final CustomServicesWorkflowStatus status) {
+        return client.customServicesWorkflows().findAllNamesByStatus(status);
     }
 
     @Override
     public Iterator<CustomServicesWorkflow> getSummaries(List<URI> ids) {
-        return client.orchestrationWorkflows().findSummaries(ids);
+        return client.customServicesWorkflows().findSummaries(ids);
     }
 
     @Override

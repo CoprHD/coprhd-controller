@@ -25,7 +25,7 @@ import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.model.valid.EnumType;
 
 /**
- * DB model to represent an orchestration engine workflow document
+ * DB model to represent an custom services workflow document
  */
 @Cf("CustomServicesWorkflow")
 public class CustomServicesWorkflow extends ModelObjectWithACLs {
@@ -39,10 +39,10 @@ public class CustomServicesWorkflow extends ModelObjectWithACLs {
     private String name;
     private String description;
     private String steps;
-    private String state = OrchestrationWorkflowStatus.NONE.toString();
+    private String state = CustomServicesWorkflowStatus.NONE.toString();
     private StringSet primitives;
 
-    public enum OrchestrationWorkflowStatus {
+    public enum CustomServicesWorkflowStatus {
         NONE,
         VALID,
         INVALID,
@@ -51,7 +51,7 @@ public class CustomServicesWorkflow extends ModelObjectWithACLs {
 
 
     @Name(NAME)
-    @AlternateId("OrchestrationWorkflowNameIndex")
+    @AlternateId("CustomServicesWorkflowNameIndex")
     public String getName() {
         return name;
     }
@@ -88,11 +88,11 @@ public class CustomServicesWorkflow extends ModelObjectWithACLs {
         return null;
     }
 
-    @AlternateId("OrchestrationWorkflowStatusIndex")
-    @EnumType(OrchestrationWorkflowStatus.class)
+    @AlternateId("CustomServicesWorkflowStatusIndex")
+    @EnumType(CustomServicesWorkflowStatus.class)
     @Name(STATE)
     public String getState() {
-        return state == null? OrchestrationWorkflowStatus.NONE.toString() : state;
+        return state == null? CustomServicesWorkflowStatus.NONE.toString() : state;
     }
 
     public void setState(final String state) {
@@ -100,7 +100,7 @@ public class CustomServicesWorkflow extends ModelObjectWithACLs {
         setChanged(STATE);
     }
     
-    @RelationIndex(cf = "WorkflowPrimitives", type = UserPrimitive.class)
+    @RelationIndex(cf = "CustomServicesWorkflowPrimitives", type = UserPrimitive.class)
     @IndexByKey
     @Name(PRIMITIVES)
     public StringSet getPrimitives() {

@@ -15,7 +15,7 @@
  *
  */
 
-package com.emc.storageos.oe.api.restapi;
+package com.emc.storageos.customservices.api.restapi;
 
 import java.net.URI;
 
@@ -23,12 +23,12 @@ import com.emc.storageos.services.restutil.RestClientFactory;
 import com.emc.storageos.services.restutil.RestClientItf;
 import com.sun.jersey.api.client.Client;
 
-public class OrchestrationEngineRestClientFactory extends RestClientFactory {
+public class CustomServicesRestClientFactory extends RestClientFactory {
 
     @Override
     protected RestClientItf createNewRestClient(URI endpoint, String username,
             String password, Client client) {
-        return new OrchestrationEngineRestClient(endpoint, client);
+        return new CustomServicesRestClient(endpoint, client);
     }
 
 }

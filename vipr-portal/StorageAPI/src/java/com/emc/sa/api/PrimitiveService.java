@@ -204,8 +204,8 @@ public class PrimitiveService extends CatalogTaggedResourceService {
     }
 
     /**
-     * Get the list of primitives that can be used for creating orchestration
-     * workflows
+     * Get the list of primitives that can be used for creating 
+     * custom services workflows
      *
      * @prereq none
      *
@@ -295,7 +295,7 @@ public class PrimitiveService extends CatalogTaggedResourceService {
     }
 
     /**
-     * Get a primitive that can be used in orchestration workflows
+     * Get a primitive that can be used in custom services workflows
      *
      * @prereq none
      *

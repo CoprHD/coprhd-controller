@@ -73,7 +73,7 @@ public class PrimitiveManagerImpl implements PrimitiveManager {
             throw APIException.notFound.unableToFindEntityInURL(id);
         }
         
-        List<NamedElement> workflows = client.orchestrationWorkflows().getByPrimitive(id);
+        List<NamedElement> workflows = client.customServicesWorkflows().getByPrimitive(id);
         if( null != workflows && !workflows.isEmpty()) {
             throw APIException.badRequests.resourceHasActiveReferencesWithType(primitive.getClass().getSimpleName(), id, CustomServicesWorkflow.class.getSimpleName());
         }

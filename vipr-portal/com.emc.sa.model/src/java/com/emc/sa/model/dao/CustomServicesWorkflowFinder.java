@@ -23,14 +23,14 @@ import java.util.List;
 
 import com.emc.storageos.db.client.constraint.NamedElementQueryResultList.NamedElement;
 import com.emc.storageos.db.client.model.uimodels.CustomServicesWorkflow;
-import com.emc.storageos.db.client.model.uimodels.CustomServicesWorkflow.OrchestrationWorkflowStatus;
+import com.emc.storageos.db.client.model.uimodels.CustomServicesWorkflow.CustomServicesWorkflowStatus;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 
-public class OrchestrationWorkflowFinder extends ModelFinder<CustomServicesWorkflow> {
+public class CustomServicesWorkflowFinder extends ModelFinder<CustomServicesWorkflow> {
 
     private final static ImmutableList<String> SUMMARY_FIELDS = ImmutableList.<String>builder().add("label", CustomServicesWorkflow.NAME, CustomServicesWorkflow.DESCRIPTION).build();
-    public OrchestrationWorkflowFinder(DBClientWrapper client) {
+    public CustomServicesWorkflowFinder(DBClientWrapper client) {
         super(CustomServicesWorkflow.class, client);
     }
     
@@ -54,11 +54,11 @@ public class OrchestrationWorkflowFinder extends ModelFinder<CustomServicesWorkf
         return prepareNamedElementFromURI(client.findAllIds(clazz));
     }
 
-    public List<NamedElement> findAllNamesByStatus(final OrchestrationWorkflowStatus status) {
+    public List<NamedElement> findAllNamesByStatus(final CustomServicesWorkflowStatus status) {
         return prepareNamedElementFromURI(findIDsByStatus(status));
     }
 
-    private List<URI> findIDsByStatus(final OrchestrationWorkflowStatus status) {
+    private List<URI> findIDsByStatus(final CustomServicesWorkflowStatus status) {
         final List<URI> out = Lists.newArrayList();
         if (null != status) {
             final List<NamedElement> results = client.findByAlternateId(clazz, CustomServicesWorkflow.STATE, status.toString());

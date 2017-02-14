@@ -18,7 +18,7 @@ package com.emc.storageos.primitives;
 
 
 /**
- * Interface for orchestration primitive input/output parameters
+ * Interface for custom services primitive input/output parameters
  */
 public interface Parameter {
     public enum ParameterType {

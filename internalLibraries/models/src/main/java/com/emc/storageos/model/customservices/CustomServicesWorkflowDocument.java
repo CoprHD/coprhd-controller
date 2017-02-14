@@ -25,7 +25,7 @@ import javax.xml.bind.annotation.XmlElementWrapper;
 import javax.xml.bind.annotation.XmlRootElement;
 
 /**
- * JAXB model for Orchestration workflow Definition
+ * JAXB model for Custom Services workflow Definition
  */
 
 @XmlRootElement(name = "workflow_document")

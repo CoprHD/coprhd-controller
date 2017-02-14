@@ -21,7 +21,7 @@ import java.net.URI;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 
-@XmlRootElement(name = "orchestration_workflow_create_param")
+@XmlRootElement(name = "custom_services_workflow_create_param")
 public class CustomServicesWorkflowCreateParam {
 
     private CustomServicesWorkflowDocument document;

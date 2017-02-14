@@ -23,7 +23,7 @@ import javax.xml.bind.annotation.XmlRootElement;
 
 import com.emc.storageos.model.NamedRelatedResourceRep;
 
-@XmlRootElement(name = "orchestration_workflow_list")
+@XmlRootElement(name = "custom_services_workflow_list")
 public class CustomServicesWorkflowList {
     
     private List<NamedRelatedResourceRep> workflows;

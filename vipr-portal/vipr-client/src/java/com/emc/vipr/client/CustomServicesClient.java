@@ -41,13 +41,13 @@ import com.emc.vipr.client.catalog.impl.PathConstants;
 import com.emc.vipr.client.impl.RestClient;
 
 /**
- * Client for OE APIs - primitives, workflows
+ * Client for Custom Services APIs - primitives, workflows
  */
-public class OrchestrationClient extends AbstractCatalogBulkResources<PrimitiveRestRep> {
+public class CustomServicesClient extends AbstractCatalogBulkResources<PrimitiveRestRep> {
 
 
-    public OrchestrationClient(final ViPRCatalogClient2 parent, final RestClient client) {
-        super(parent, client, PrimitiveRestRep.class, PathConstants.OE_PRIMITIVES);
+    public CustomServicesClient(final ViPRCatalogClient2 parent, final RestClient client) {
+        super(parent, client, PrimitiveRestRep.class, PathConstants.CUSTOM_SERVICES_PRIMITIVES);
     }
 
     public ViPRCatalogClient2 getParent() {
@@ -65,62 +65,62 @@ public class OrchestrationClient extends AbstractCatalogBulkResources<PrimitiveR
     }
     
     public PrimitiveList getPrimitives() {
-        final UriBuilder builder = client.uriBuilder(PathConstants.OE_PRIMITIVES);
+        final UriBuilder builder = client.uriBuilder(PathConstants.CUSTOM_SERVICES_PRIMITIVES);
         return client.getURI(PrimitiveList.class, builder.build());
     }
 
     public PrimitiveList getPrimitivesByType(final String type) {
-        final UriBuilder builder = client.uriBuilder(PathConstants.OE_PRIMITIVES);
+        final UriBuilder builder = client.uriBuilder(PathConstants.CUSTOM_SERVICES_PRIMITIVES);
         builder.queryParam("type", type);
         return client.getURI(PrimitiveList.class, builder.build());
     }
 
     public PrimitiveResourceRestRep createPrimitiveResource(final String resourceType, final File resource, final String resourceName) throws IOException{
-        final UriBuilder builder = client.uriBuilder(PathConstants.OE_PRIMITIVE_RESOURCE);
+        final UriBuilder builder = client.uriBuilder(PathConstants.CUSTOM_SERVICES_PRIMITIVE_RESOURCE);
         builder.queryParam("name", resourceName);
         return client.postURIOctet(PrimitiveResourceRestRep.class, new FileInputStream(resource), builder.build(resourceType));
     }
 
     public PrimitiveRestRep createPrimitive(final PrimitiveCreateParam param) {
-        final UriBuilder builder = client.uriBuilder(PathConstants.OE_PRIMITIVES);
+        final UriBuilder builder = client.uriBuilder(PathConstants.CUSTOM_SERVICES_PRIMITIVES);
         return client.postURI(PrimitiveRestRep.class, param, builder.build());
     }
     
     public PrimitiveRestRep getPrimitive(final URI id) {
-        return client.get(PrimitiveRestRep.class, PathConstants.OE_PRIMITIVE, id);
+        return client.get(PrimitiveRestRep.class, PathConstants.CUSTOM_SERVICES_PRIMITIVE, id);
     }
 
     public CustomServicesWorkflowList getWorkflows() {
-        UriBuilder builder = client.uriBuilder(PathConstants.OE_WORKFLOWS);
+        UriBuilder builder = client.uriBuilder(PathConstants.CUSTOM_SERVICES_WORKFLOWS);
         return client.getURI(CustomServicesWorkflowList.class, builder.build());
     }
 
     public CustomServicesWorkflowRestRep getWorkflow(final URI id) {
-        return client.get(CustomServicesWorkflowRestRep.class, PathConstants.OE_WORKFLOW, id);
+        return client.get(CustomServicesWorkflowRestRep.class, PathConstants.CUSTOM_SERVICES_WORKFLOW, id);
     }
 
     public CustomServicesWorkflowRestRep validateWorkflow(final URI id) {
-        return client.post(CustomServicesWorkflowRestRep.class,PathConstants.OE_WORKFLOW_VALIDATE,id);
+        return client.post(CustomServicesWorkflowRestRep.class,PathConstants.CUSTOM_SERVICES_WORKFLOW_VALIDATE,id);
     }
 
     public CustomServicesWorkflowRestRep publishWorkflow(final URI id) {
-        return client.post(CustomServicesWorkflowRestRep.class,PathConstants.OE_WORKFLOW_PUBLISH,id);
+        return client.post(CustomServicesWorkflowRestRep.class,PathConstants.CUSTOM_SERVICES_WORKFLOW_PUBLISH,id);
     }
 
     public CustomServicesWorkflowRestRep unpublishWorkflow(final URI id) {
-        return client.post(CustomServicesWorkflowRestRep.class,PathConstants.OE_WORKFLOW_UNPUBLISH,id);
+        return client.post(CustomServicesWorkflowRestRep.class,PathConstants.CUSTOM_SERVICES_WORKFLOW_UNPUBLISH,id);
     }
 
     public CustomServicesWorkflowRestRep createWorkflow(final CustomServicesWorkflowCreateParam param) {
-        final UriBuilder builder = client.uriBuilder(PathConstants.OE_WORKFLOWS);
+        final UriBuilder builder = client.uriBuilder(PathConstants.CUSTOM_SERVICES_WORKFLOWS);
         return client.postURI(CustomServicesWorkflowRestRep.class,param, builder.build());
     }
 
     public CustomServicesWorkflowRestRep editWorkflow(final URI id, final CustomServicesWorkflowUpdateParam param) {
-        return client.put(CustomServicesWorkflowRestRep.class,param,PathConstants.OE_WORKFLOW,id);
+        return client.put(CustomServicesWorkflowRestRep.class,param,PathConstants.CUSTOM_SERVICES_WORKFLOW,id);
     }
 
     public void deleteWorkflow(final URI id) {
-        client.post(String.class,PathConstants.OE_WORKFLOW_DELETE,id);
+        client.post(String.class,PathConstants.CUSTOM_SERVICES_WORKFLOW_DELETE,id);
     }
 }

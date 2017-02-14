@@ -33,7 +33,7 @@ import com.emc.sa.descriptor.ServiceField;
 import com.emc.sa.workflow.WorkflowHelper;
 import com.emc.storageos.db.client.constraint.NamedElementQueryResultList.NamedElement;
 import com.emc.storageos.db.client.model.uimodels.CustomServicesWorkflow;
-import com.emc.storageos.db.client.model.uimodels.CustomServicesWorkflow.OrchestrationWorkflowStatus;
+import com.emc.storageos.db.client.model.uimodels.CustomServicesWorkflow.CustomServicesWorkflowStatus;
 import com.emc.storageos.model.customservices.CustomServicesWorkflowDocument;
 import com.emc.storageos.model.customservices.CustomServicesWorkflowDocument.Input;
 import com.emc.storageos.model.customservices.CustomServicesWorkflowDocument.Step;
@@ -57,34 +57,34 @@ public class WorkflowServiceDescriptor {
     }
 
     @Autowired
-    private OrchestrationWorkflowManager orchestrationWorkflowManager;
+    private CustomServicesWorkflowManager customServicesWorkflowManager;
 
     public ServiceDescriptor getDescriptor(String serviceName) {
         log.debug("Getting workflow descriptor for {}", serviceName);
-        List<CustomServicesWorkflow> results = orchestrationWorkflowManager.getByName(serviceName);
+        List<CustomServicesWorkflow> results = customServicesWorkflowManager.getByName(serviceName);
         if(null == results || results.isEmpty()) {
             return null;
         }
         if(results.size() > 1) {
             throw new IllegalStateException(String.format("Multiple workflows with the name %s", serviceName));
         }
-        CustomServicesWorkflow orchestrationWorkflow = results.get(0);
+        CustomServicesWorkflow customServicesWorkflow = results.get(0);
         // Return service only if its PUBLISHED
-        if (!OrchestrationWorkflowStatus.PUBLISHED.toString().equals(orchestrationWorkflow.getState())) {
-            log.debug("Not returning workflow service because its state ({}) is not published", orchestrationWorkflow.getState());
+        if (!CustomServicesWorkflowStatus.PUBLISHED.toString().equals(customServicesWorkflow.getState())) {
+            log.debug("Not returning workflow service because its state ({}) is not published", customServicesWorkflow.getState());
             return null;
         }
-        return mapWorkflowToServiceDescriptor(orchestrationWorkflow);
+        return mapWorkflowToServiceDescriptor(customServicesWorkflow);
     }
 
     // This method will only return service descriptors for PUBLISHED workflwos
     public Collection<ServiceDescriptor> listDescriptors() {
         List<ServiceDescriptor> wfServiceDescriptors = new ArrayList<>();
-        List<NamedElement> oeElements = orchestrationWorkflowManager.listByStatus(OrchestrationWorkflowStatus.PUBLISHED);
+        List<NamedElement> oeElements = customServicesWorkflowManager.listByStatus(CustomServicesWorkflowStatus.PUBLISHED);
         if (null != oeElements) {
             CustomServicesWorkflow oeWorkflow;
             for(NamedElement oeElement: oeElements) {
-                oeWorkflow = orchestrationWorkflowManager.getById(oeElement.getId());
+                oeWorkflow = customServicesWorkflowManager.getById(oeElement.getId());
                 wfServiceDescriptors.add(mapWorkflowToServiceDescriptor(oeWorkflow));
             }
         }

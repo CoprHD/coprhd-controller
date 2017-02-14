@@ -44,7 +44,7 @@ import com.emc.storageos.services.util.Exec;
 import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorException;
 
 /**
- * Runs Orchestration Shell script or Ansible Playbook.
+ * Runs Custom Services Shell script or Ansible Playbook.
  * It can run Ansible playbook on local node as well as on Remote node
  *
  */

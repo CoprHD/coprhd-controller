@@ -21,9 +21,9 @@ import com.emc.storageos.api.service.impl.response.BulkList.TenantResourceFilter
 import com.emc.storageos.db.client.model.uimodels.CustomServicesWorkflow;
 import com.emc.storageos.security.authentication.StorageOSUser;
 
-public class OrchestrationWorkflowFilter extends TenantResourceFilter<CustomServicesWorkflow> {
+public class CustomServicesWorkflowFilter extends TenantResourceFilter<CustomServicesWorkflow> {
 
-    public OrchestrationWorkflowFilter(StorageOSUser user,
+    public CustomServicesWorkflowFilter(StorageOSUser user,
             PermissionsHelper permissionsHelper) {
         super(user, permissionsHelper);
     }

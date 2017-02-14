@@ -77,7 +77,7 @@ public class ModelClient {
     private IpInterfaceFinder ipInterfaceDAO;
     private ClusterFinder clusterDAO;
     private ActionableEventFinder actionableEventDAO;
-    private OrchestrationWorkflowFinder orchestrationWorkflowDAO;
+    private CustomServicesWorkflowFinder customServicesWorkflowDAO;
 
     private WFDirectoryFinder wfDirectoryDAO;
 
@@ -347,12 +347,12 @@ public class ModelClient {
         return tenantPreferencesDAO;
     }
     
-    public OrchestrationWorkflowFinder orchestrationWorkflows() {
-        if(orchestrationWorkflowDAO == null) {
-            orchestrationWorkflowDAO = new OrchestrationWorkflowFinder(client);
+    public CustomServicesWorkflowFinder customServicesWorkflows() {
+        if(customServicesWorkflowDAO == null) {
+            customServicesWorkflowDAO = new CustomServicesWorkflowFinder(client);
         }
         
-        return orchestrationWorkflowDAO;
+        return customServicesWorkflowDAO;
     }
 
     public WFDirectoryFinder wfDirectory() {

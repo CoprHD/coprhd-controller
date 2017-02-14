@@ -15,7 +15,7 @@
  *
  */
 
-package com.emc.storageos.oe.api.restapi;
+package com.emc.storageos.customservices.api.restapi;
 
 import java.net.URI;
 import java.util.HashMap;
@@ -34,19 +34,19 @@ import com.sun.jersey.api.client.WebResource.Builder;
  * This class implements methods for calling OE REST API to do operations.
  */
 
-public class OrchestrationEngineRestClient extends StandardRestClient {
+public class CustomServicesRestClient extends StandardRestClient {
 
-    private static Logger log = LoggerFactory.getLogger(OrchestrationEngineRestClient.class);
+    private static Logger log = LoggerFactory.getLogger(CustomServicesRestClient.class);
     private Map<String, String> _authHeaders = new HashMap<String, String>();
 
     /**
      * Constructor
      * 
-     * @param factory A reference to the OrchestrationRestClientFactory
+     * @param factory A reference to the CustomServicesRestClientFactory
      * @param baseURI the base URI to connect to OE Gateway
      * @param client A reference to a Jersey Apache HTTP client.
      */
-    public OrchestrationEngineRestClient(URI baseURI, Client client) {
+    public CustomServicesRestClient(URI baseURI, Client client) {
         _client = client;
         _base = baseURI;
     }

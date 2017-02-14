@@ -57,7 +57,7 @@ import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorExcepti
 import com.google.common.collect.ImmutableMap;
 import com.google.gson.Gson;
 
-@Service("OrchestrationService")
+@Service("CustomServicesService")
 public class CustomServicesService extends ViPRService {
 
     private Map<String, Object> params;
@@ -85,7 +85,7 @@ public class CustomServicesService extends ViPRService {
         final String raw = ExecutionUtils.currentContext().getOrder().getWorkflowDocument();
         if( null == raw) {
             throw InternalServerErrorException.internalServerErrors.
-                    customServiceExecutionFailed("Invalid orchestration service.  Workflow document cannot be null");
+                    customServiceExecutionFailed("Invalid custom service.  Workflow document cannot be null");
         }
 
         obj = WorkflowHelper.toWorkflowDocument(raw);
@@ -101,12 +101,12 @@ public class CustomServicesService extends ViPRService {
 
     @Override
     public void execute() throws Exception {
-        ExecutionUtils.currentContext().logInfo("orchestrationService.title");
+        ExecutionUtils.currentContext().logInfo("customServicesService.title");
         try {
             wfExecutor();
-            ExecutionUtils.currentContext().logInfo("orchestrationService.successStatus");
+            ExecutionUtils.currentContext().logInfo("customServicesService.successStatus");
         } catch (final Exception e) {
-            ExecutionUtils.currentContext().logError("orchestrationService.failedStatus");
+            ExecutionUtils.currentContext().logError("customServicesService.failedStatus");
 
             throw e;
         }
@@ -121,14 +121,14 @@ public class CustomServicesService extends ViPRService {
 
         logger.info("Parsing Workflow Definition");
         
-        ExecutionUtils.currentContext().logInfo("orchestrationService.status", obj.getName(), obj.getDescription());
+        ExecutionUtils.currentContext().logInfo("customServicesService.status", obj.getName(), obj.getDescription());
         Step step = stepsHash.get(StepType.START.toString());
         String next = step.getNext().getDefaultStep();
 	    long timeout = System.currentTimeMillis();
         while (next != null && !next.equals(StepType.END.toString())) {
             step = stepsHash.get(next);
 
-            ExecutionUtils.currentContext().logInfo("orchestrationService.stepStatus", step.getId(), step.getType());
+            ExecutionUtils.currentContext().logInfo("customServicesService.stepStatus", step.getId(), step.getType());
 
             updateInputPerStep(step);
 
@@ -212,12 +212,12 @@ public class CustomServicesService extends ViPRService {
 
     private String getNext(final boolean status, final CustomServicesTaskResult result, final Step step) {
         if (status) {
-            ExecutionUtils.currentContext().logInfo("orchestrationService.stepSuccessStatus", step, result.getReturnCode());
+            ExecutionUtils.currentContext().logInfo("customServicesService.stepSuccessStatus", step, result.getReturnCode());
 
             return step.getNext().getDefaultStep();
         }
 
-        ExecutionUtils.currentContext().logError("orchestrationService.stepFailedStatus", step);
+        ExecutionUtils.currentContext().logError("customServicesService.stepFailedStatus", step);
 
         return step.getNext().getFailedStep();
     }

@@ -19,7 +19,7 @@ package com.emc.storageos.model.customservices;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 
-@XmlRootElement(name = "orchestration_workflow_update_param")
+@XmlRootElement(name = "custom_services_workflow_update_param")
 public class CustomServicesWorkflowUpdateParam {
     private CustomServicesWorkflowDocument document;
     

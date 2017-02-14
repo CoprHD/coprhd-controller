@@ -7,7 +7,6 @@ package com.emc.sa.engine.service;
 import java.util.List;
 import java.util.Map;
 
-
 import org.apache.commons.lang.UnhandledException;
 import org.apache.log4j.Logger;
 import org.springframework.beans.BeansException;
@@ -17,9 +16,9 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
 import org.springframework.stereotype.Component;
 
-import com.emc.sa.catalog.OrchestrationWorkflowManager;
-import com.emc.storageos.db.client.model.uimodels.CustomServicesWorkflow;
+import com.emc.sa.catalog.CustomServicesWorkflowManager;
 import com.emc.storageos.db.client.model.uimodels.CatalogService;
+import com.emc.storageos.db.client.model.uimodels.CustomServicesWorkflow;
 import com.emc.storageos.db.client.model.uimodels.Order;
 import com.google.common.collect.Maps;
 
@@ -28,7 +27,7 @@ public class DefaultExecutionServiceFactory implements ExecutionServiceFactory, 
     private static final Logger LOG = Logger.getLogger(DefaultExecutionServiceFactory.class);
 
     @Autowired
-    private OrchestrationWorkflowManager orchestrationWorkflowManager;
+    private CustomServicesWorkflowManager customServicesWorkflowManager;
 
     private Map<String, Class<? extends ExecutionService>> services = Maps.newHashMap();
     private ApplicationContext applicationContext;
@@ -62,9 +61,9 @@ public class DefaultExecutionServiceFactory implements ExecutionServiceFactory, 
         Class<? extends ExecutionService> serviceClass = services.get(serviceName);
         if (serviceClass == null) {
             // Check if service is created from workflow base serivce.
-            // For these services there is only one executor - OrchestrationService
+            // For these services there is only one executor - CustomServicesService
             if (isWorkflowService(serviceName)) {
-                serviceClass = services.get("OrchestrationService");
+                serviceClass = services.get("CustomServicesService");
             }
             else {
                 throw new ServiceNotFoundException(String.format("Service '%s' not found", serviceName));
@@ -74,7 +73,7 @@ public class DefaultExecutionServiceFactory implements ExecutionServiceFactory, 
     }
 
     private boolean isWorkflowService(String serviceName) {
-        List<CustomServicesWorkflow> results = orchestrationWorkflowManager.getByName(serviceName);
+        List<CustomServicesWorkflow> results = customServicesWorkflowManager.getByName(serviceName);
         if (null != results && !results.isEmpty()) {
             return true;
         }

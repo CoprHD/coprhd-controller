@@ -38,14 +38,14 @@ import com.google.common.collect.Lists;
 /**
  *
  */
-public class OrchestrationWorkflowMapper implements Function<CustomServicesWorkflow, CustomServicesWorkflowRestRep> {
-    public static final OrchestrationWorkflowMapper instance = new OrchestrationWorkflowMapper();
+public class CustomServicesWorkflowMapper implements Function<CustomServicesWorkflow, CustomServicesWorkflowRestRep> {
+    public static final CustomServicesWorkflowMapper instance = new CustomServicesWorkflowMapper();
 
-    public static OrchestrationWorkflowMapper getInstance() {
+    public static CustomServicesWorkflowMapper getInstance() {
         return instance;
     }
 
-    private OrchestrationWorkflowMapper() {
+    private CustomServicesWorkflowMapper() {
     }
     
     public static CustomServicesWorkflowRestRep map(CustomServicesWorkflow from) {
@@ -66,7 +66,7 @@ public class OrchestrationWorkflowMapper implements Function<CustomServicesWorkf
     public static CustomServicesWorkflowList mapList(List<NamedElement> fromList) {
         List<NamedRelatedResourceRep> resources = new ArrayList<NamedRelatedResourceRep>();
         for(NamedElement element : fromList) {
-            resources.add(toNamedRelatedResource(ResourceTypeEnum.ORCHESTRATION_WORKFLOW, element.getId(), element.getName()));
+            resources.add(toNamedRelatedResource(ResourceTypeEnum.CUSTOM_SERVICES_WORKFLOW, element.getId(), element.getName()));
         }
         return new CustomServicesWorkflowList(resources);
     }

@@ -99,7 +99,7 @@ public enum ResourceTypeEnum {
     STORAGE_SYSTEM_TYPE("storage_system_type", "/vdc/storage-system-types"),
     OBJECT_NAMESPACE("object_namespaces", "/vdc/object-namespaces"),
     ACTIONABLE_EVENT("actionable_event", "/vdc/events"),
-    ORCHESTRATION_WORKFLOW("orchestration_workflow", "/workflows"),
+    CUSTOM_SERVICES_WORKFLOW("custom_services_workflow", "/workflows"),
     ANSIBLE("ansible", "/primitives"),
     ANSIBLE_PACKAGE("ansible_package", "/primitives/resource/ansible"),
     SCRIPT_PRIMITIVE("script_primitive","/primitives"),

@@ -19,7 +19,7 @@ package com.emc.storageos.model.customservices;
 import javax.xml.bind.annotation.XmlElement;
 
 /**
- * Rest representation class for an orchestration output parameter
+ * Rest representation class for a custom services output parameter
  */
 public class OutputParameterRestRep {
 

@@ -22,9 +22,9 @@ import java.util.List;
 
 import com.emc.storageos.db.client.constraint.NamedElementQueryResultList.NamedElement;
 import com.emc.storageos.db.client.model.uimodels.CustomServicesWorkflow;
-import com.emc.storageos.db.client.model.uimodels.CustomServicesWorkflow.OrchestrationWorkflowStatus;
+import com.emc.storageos.db.client.model.uimodels.CustomServicesWorkflow.CustomServicesWorkflowStatus;
 
-public interface OrchestrationWorkflowManager {
+public interface CustomServicesWorkflowManager {
 
     public CustomServicesWorkflow getById(final URI id);
     public List<CustomServicesWorkflow> getByName(final String name);
@@ -33,7 +33,7 @@ public interface OrchestrationWorkflowManager {
     public void save(final CustomServicesWorkflow workflow);
     public void delete(final CustomServicesWorkflow workflow);
     public boolean hasCatalogServices(final String name);
-    public List<NamedElement> listByStatus(final OrchestrationWorkflowStatus status);
+    public List<NamedElement> listByStatus(final CustomServicesWorkflowStatus status);
     
     
 }

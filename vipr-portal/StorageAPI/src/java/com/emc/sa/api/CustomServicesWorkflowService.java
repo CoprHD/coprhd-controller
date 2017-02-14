@@ -16,8 +16,8 @@
  */
 package com.emc.sa.api;
 
-import static com.emc.sa.api.mapper.OrchestrationWorkflowMapper.map;
-import static com.emc.sa.api.mapper.OrchestrationWorkflowMapper.mapList;
+import static com.emc.sa.api.mapper.CustomServicesWorkflowMapper.map;
+import static com.emc.sa.api.mapper.CustomServicesWorkflowMapper.mapList;
 
 import java.io.IOException;
 import java.net.URI;
@@ -36,16 +36,16 @@ import javax.ws.rs.core.Response;
 
 import org.springframework.beans.factory.annotation.Autowired;
 
-import com.emc.sa.api.mapper.OrchestrationWorkflowFilter;
-import com.emc.sa.api.mapper.OrchestrationWorkflowMapper;
-import com.emc.sa.catalog.OrchestrationWorkflowManager;
+import com.emc.sa.api.mapper.CustomServicesWorkflowFilter;
+import com.emc.sa.api.mapper.CustomServicesWorkflowMapper;
+import com.emc.sa.catalog.CustomServicesWorkflowManager;
 import com.emc.sa.workflow.WorkflowHelper;
 import com.emc.storageos.api.service.impl.resource.ArgValidator;
 import com.emc.storageos.api.service.impl.response.BulkList;
 import com.emc.storageos.api.service.impl.response.BulkList.ResourceFilter;
 import com.emc.storageos.db.client.constraint.NamedElementQueryResultList.NamedElement;
 import com.emc.storageos.db.client.model.uimodels.CustomServicesWorkflow;
-import com.emc.storageos.db.client.model.uimodels.CustomServicesWorkflow.OrchestrationWorkflowStatus;
+import com.emc.storageos.db.client.model.uimodels.CustomServicesWorkflow.CustomServicesWorkflowStatus;
 import com.emc.storageos.model.BulkIdParam;
 import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.storageos.model.customservices.CustomServicesWorkflowBulkRep;
@@ -66,18 +66,18 @@ import com.emc.storageos.svcs.errorhandling.resources.APIException;
 public class CustomServicesWorkflowService extends CatalogTaggedResourceService {
 
     @Autowired
-    private OrchestrationWorkflowManager orchestrationWorkflowManager;
+    private CustomServicesWorkflowManager customServicesWorkflowManager;
     
     @GET
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     public CustomServicesWorkflowList getWorkflows(@QueryParam("status") String status) {
         List<NamedElement> elements;
         if (null != status) {
-            ArgValidator.checkFieldValueFromEnum(status, "status", OrchestrationWorkflowStatus.class);
-            elements = orchestrationWorkflowManager.listByStatus(OrchestrationWorkflowStatus.valueOf(status));
+            ArgValidator.checkFieldValueFromEnum(status, "status", CustomServicesWorkflowStatus.class);
+            elements = customServicesWorkflowManager.listByStatus(CustomServicesWorkflowStatus.valueOf(status));
         }
         else {
-            elements = orchestrationWorkflowManager.list();
+            elements = customServicesWorkflowManager.list();
         }
         return mapList(elements);
     }
@@ -86,7 +86,7 @@ public class CustomServicesWorkflowService extends CatalogTaggedResourceService 
     @Path("/{id}")
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     public CustomServicesWorkflowRestRep getWorkflow(@PathParam("id") final URI id) {
-        return map(getOrchestrationWorkflow(id));
+        return map(getCustomServicesWorkflow(id));
     }
     
     @POST
@@ -100,7 +100,7 @@ public class CustomServicesWorkflowService extends CatalogTaggedResourceService 
             throw APIException.internalServerErrors.genericApisvcError("Error serializing workflow", e);
         }
         
-        orchestrationWorkflowManager.save(newWorkflow);
+        customServicesWorkflowManager.save(newWorkflow);
         return map(newWorkflow);
     }
     
@@ -110,24 +110,24 @@ public class CustomServicesWorkflowService extends CatalogTaggedResourceService 
     public CustomServicesWorkflowRestRep updateWorkflow(@PathParam("id") final URI id, final CustomServicesWorkflowUpdateParam workflow) {  
         final CustomServicesWorkflow updated;
         try {
-            CustomServicesWorkflow orchestrationWorkflow = getOrchestrationWorkflow(id);
+            CustomServicesWorkflow customServicesWorkflow = getCustomServicesWorkflow(id);
 
-            switch(OrchestrationWorkflowStatus.valueOf(orchestrationWorkflow.getState())) {
+            switch(CustomServicesWorkflowStatus.valueOf(customServicesWorkflow.getState())) {
                 case PUBLISHED:
                     throw APIException.methodNotAllowed.notSupportedWithReason("Published workflow cannot be edited.");
                 default:
-                    updated = WorkflowHelper.update(orchestrationWorkflow, workflow.getDocument());
+                    updated = WorkflowHelper.update(customServicesWorkflow, workflow.getDocument());
 
                     // On update, if there is any change to steps, resetting workflow status to initial state -NONE
-                    if (!orchestrationWorkflow.getSteps().equals(updated.getSteps())) {
-                        updated.setState(OrchestrationWorkflowStatus.NONE.toString());
+                    if (!customServicesWorkflow.getSteps().equals(updated.getSteps())) {
+                        updated.setState(CustomServicesWorkflowStatus.NONE.toString());
                     }
             }
 
         } catch (IOException e) {
             throw APIException.internalServerErrors.genericApisvcError("Error serializing workflow", e);
         }
-        orchestrationWorkflowManager.save(updated);
+        customServicesWorkflowManager.save(updated);
         return map(updated);
     }
     
@@ -135,14 +135,14 @@ public class CustomServicesWorkflowService extends CatalogTaggedResourceService 
     @Path("/{id}/deactivate")
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     public Response deactivateWorkflow(@PathParam("id") final URI id) {
-        CustomServicesWorkflow orchestrationWorkflow = getOrchestrationWorkflow(id);
+        CustomServicesWorkflow customServicesWorkflow = getCustomServicesWorkflow(id);
 
-        switch(OrchestrationWorkflowStatus.valueOf(orchestrationWorkflow.getState())) {
+        switch(CustomServicesWorkflowStatus.valueOf(customServicesWorkflow.getState())) {
             case PUBLISHED:
                 // Published workflow cannot be deleted
                 throw APIException.methodNotAllowed.notSupportedWithReason("Published workflow cannot be deleted.");
             default:
-                orchestrationWorkflowManager.delete(orchestrationWorkflow);
+                customServicesWorkflowManager.delete(customServicesWorkflow);
                 return Response.ok().build();
         }
     }
@@ -151,18 +151,18 @@ public class CustomServicesWorkflowService extends CatalogTaggedResourceService 
     @Path("/{id}/publish")
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     public CustomServicesWorkflowRestRep publishWorkflow(@PathParam("id") final URI id) {
-        CustomServicesWorkflow orchestrationWorkflow = getOrchestrationWorkflow(id);
-        switch(OrchestrationWorkflowStatus.valueOf(orchestrationWorkflow.getState())) {
+        CustomServicesWorkflow customServicesWorkflow = getCustomServicesWorkflow(id);
+        switch(CustomServicesWorkflowStatus.valueOf(customServicesWorkflow.getState())) {
             case PUBLISHED:
                 // If worklow is already in published state, ignoring
-                return map(orchestrationWorkflow);
+                return map(customServicesWorkflow);
             case VALID:
                 // Workflow can only be published when it is in VALID state
-                CustomServicesWorkflow updated = WorkflowHelper.updateState(orchestrationWorkflow, OrchestrationWorkflowStatus.PUBLISHED.toString());
-                orchestrationWorkflowManager.save(updated);
+                CustomServicesWorkflow updated = WorkflowHelper.updateState(customServicesWorkflow, CustomServicesWorkflowStatus.PUBLISHED.toString());
+                customServicesWorkflowManager.save(updated);
                 return map(updated);
             default:
-                throw APIException.methodNotAllowed.notSupportedWithReason(String.format("Worklow cannot be published with its current state: %s", orchestrationWorkflow.getState()));
+                throw APIException.methodNotAllowed.notSupportedWithReason(String.format("Worklow cannot be published with its current state: %s", customServicesWorkflow.getState()));
         }
     }
 
@@ -170,22 +170,22 @@ public class CustomServicesWorkflowService extends CatalogTaggedResourceService 
     @Path("/{id}/unpublish")
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     public CustomServicesWorkflowRestRep unpublishWorkflow(@PathParam("id") final URI id) {
-        CustomServicesWorkflow orchestrationWorkflow = getOrchestrationWorkflow(id);
+        CustomServicesWorkflow customServicesWorkflow = getCustomServicesWorkflow(id);
         // Workflow can only be unpublished when it is in PUBLISHED state
-        switch(OrchestrationWorkflowStatus.valueOf(orchestrationWorkflow.getState())) {
+        switch(CustomServicesWorkflowStatus.valueOf(customServicesWorkflow.getState())) {
             case VALID:
                 // workflow is not published, ignoring
-                return map(orchestrationWorkflow);
+                return map(customServicesWorkflow);
             case PUBLISHED:
                 //Check if there are any existing services created from this WF
-                if (orchestrationWorkflowManager.hasCatalogServices(orchestrationWorkflow.getName())) {
+                if (customServicesWorkflowManager.hasCatalogServices(customServicesWorkflow.getName())) {
                     throw APIException.methodNotAllowed.notSupportedWithReason("Cannot unpublish workflow. It has associated catalog services");
                 }
-                CustomServicesWorkflow updated = WorkflowHelper.updateState(orchestrationWorkflow, OrchestrationWorkflowStatus.VALID.toString());
-                orchestrationWorkflowManager.save(updated);
+                CustomServicesWorkflow updated = WorkflowHelper.updateState(customServicesWorkflow, CustomServicesWorkflowStatus.VALID.toString());
+                customServicesWorkflowManager.save(updated);
                 return map(updated);
             default:
-                throw APIException.methodNotAllowed.notSupportedWithReason(String.format("Worklow cannot be unpublished with its current state: %s", orchestrationWorkflow.getState()));
+                throw APIException.methodNotAllowed.notSupportedWithReason(String.format("Worklow cannot be unpublished with its current state: %s", customServicesWorkflow.getState()));
         }
     }
 
@@ -195,8 +195,8 @@ public class CustomServicesWorkflowService extends CatalogTaggedResourceService 
     public CustomServicesWorkflowRestRep validateWorkflow(@PathParam("id") final URI id) {
         //TODO: Placeholder for validating workflow
         // For now just setting status to VALID
-        CustomServicesWorkflow updated = WorkflowHelper.updateState(getOrchestrationWorkflow(id), OrchestrationWorkflowStatus.VALID.toString());
-        orchestrationWorkflowManager.save(updated);
+        CustomServicesWorkflow updated = WorkflowHelper.updateState(getCustomServicesWorkflow(id), CustomServicesWorkflowStatus.VALID.toString());
+        customServicesWorkflowManager.save(updated);
         return map(updated);
     }
 
@@ -209,7 +209,7 @@ public class CustomServicesWorkflowService extends CatalogTaggedResourceService 
     
     @Override
     protected CustomServicesWorkflow queryResource(URI id) {
-        return orchestrationWorkflowManager.getById(id);
+        return customServicesWorkflowManager.getById(id);
     }
 
     @Override
@@ -219,7 +219,7 @@ public class CustomServicesWorkflowService extends CatalogTaggedResourceService 
 
     @Override
     protected ResourceTypeEnum getResourceType() {
-        return ResourceTypeEnum.ORCHESTRATION_WORKFLOW;
+        return ResourceTypeEnum.CUSTOM_SERVICES_WORKFLOW;
     }
     
     @Override
@@ -229,20 +229,20 @@ public class CustomServicesWorkflowService extends CatalogTaggedResourceService 
 
     @Override
     public CustomServicesWorkflowBulkRep queryBulkResourceReps(List<URI> ids) {
-        Iterator<CustomServicesWorkflow> it = orchestrationWorkflowManager.getSummaries(ids);
-        return new CustomServicesWorkflowBulkRep(BulkList.wrapping(it, OrchestrationWorkflowMapper.getInstance()));
+        Iterator<CustomServicesWorkflow> it = customServicesWorkflowManager.getSummaries(ids);
+        return new CustomServicesWorkflowBulkRep(BulkList.wrapping(it, CustomServicesWorkflowMapper.getInstance()));
     }
     
     @Override
     public CustomServicesWorkflowBulkRep queryFilteredBulkResourceReps(List<URI> ids) {
 
-        Iterator<CustomServicesWorkflow> it = orchestrationWorkflowManager.getSummaries(ids);
-        ResourceFilter<CustomServicesWorkflow> filter = new OrchestrationWorkflowFilter(getUserFromContext(), _permissionsHelper);
+        Iterator<CustomServicesWorkflow> it = customServicesWorkflowManager.getSummaries(ids);
+        ResourceFilter<CustomServicesWorkflow> filter = new CustomServicesWorkflowFilter(getUserFromContext(), _permissionsHelper);
         
-        return new CustomServicesWorkflowBulkRep(BulkList.wrapping(it, OrchestrationWorkflowMapper.getInstance(), filter));
+        return new CustomServicesWorkflowBulkRep(BulkList.wrapping(it, CustomServicesWorkflowMapper.getInstance(), filter));
     }
     
-    private CustomServicesWorkflow getOrchestrationWorkflow(final URI id) {
+    private CustomServicesWorkflow getCustomServicesWorkflow(final URI id) {
         CustomServicesWorkflow workflow = queryResource(id);
 
         ArgValidator.checkEntityNotNull(workflow, id, true);

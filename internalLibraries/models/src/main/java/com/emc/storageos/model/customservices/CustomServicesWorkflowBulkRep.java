@@ -23,7 +23,7 @@ import javax.xml.bind.annotation.XmlRootElement;
 
 import com.emc.storageos.model.BulkRestRep;
 
-@XmlRootElement(name = "bulk_orchestration_workflows")
+@XmlRootElement(name = "bulk_custom_services_workflows")
 public class CustomServicesWorkflowBulkRep extends BulkRestRep {
 
     private List<CustomServicesWorkflowRestRep> workflows;

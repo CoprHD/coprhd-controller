@@ -71,7 +71,7 @@ public class CatalogServiceManagerImpl implements CatalogServiceManager {
     private CatalogCategoryManager catalogCategoryManager;
     
     @Autowired 
-    private OrchestrationWorkflowManager orchestrationWorkflowManager;
+    private CustomServicesWorkflowManager customServicesWorkflowManager;
 
     public CatalogService getCatalogServiceById(URI id) {
         if (id == null) {
@@ -374,7 +374,7 @@ public class CatalogServiceManagerImpl implements CatalogServiceManager {
     public String getWorkflowDocument(String workflowName) {
         if( null == workflowName || workflowName.isEmpty()) return null;
         
-        final List<CustomServicesWorkflow> results = orchestrationWorkflowManager.getByName(workflowName);
+        final List<CustomServicesWorkflow> results = customServicesWorkflowManager.getByName(workflowName);
         if(null == results || results.isEmpty()) {
             return null;
         }

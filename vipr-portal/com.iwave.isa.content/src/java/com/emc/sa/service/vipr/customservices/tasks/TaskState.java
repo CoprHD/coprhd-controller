@@ -17,17 +17,18 @@
 
 package com.emc.sa.service.vipr.customservices.tasks;
 
-import com.emc.storageos.db.client.model.Task;
-import com.emc.vipr.client.ViPRCoreClient;
-import org.slf4j.LoggerFactory;
-
 import java.net.URI;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.slf4j.LoggerFactory;
+
+import com.emc.storageos.db.client.model.Task;
+import com.emc.vipr.client.ViPRCoreClient;
+
 /**
- * It tracks the state of each ViPR REST task started by Orchestration Engine
+ * It tracks the state of each ViPR REST task started by Custom Services
  */
 public class TaskState {
     private static final org.slf4j.Logger logger = LoggerFactory.getLogger(RunViprREST.class);

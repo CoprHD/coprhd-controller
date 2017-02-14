@@ -144,7 +144,7 @@ public class WorkflowBuilder extends Controller {
 
         //Add workflows
         final CustomServicesWorkflowList customServicesWorkflowList = getCatalogClient()
-                .orchestrationPrimitives().getWorkflows();
+                .customServicesPrimitives().getWorkflows();
         if (null != customServicesWorkflowList
                 && null != customServicesWorkflowList.getWorkflows()) {
             for (NamedRelatedResourceRep o : customServicesWorkflowList
@@ -229,8 +229,9 @@ public class WorkflowBuilder extends Controller {
             List<CustomServicesWorkflowDocument.Step> steps = getStartEndSteps();
             document.setSteps(steps);
             param.setDocument(document);
+            
             final CustomServicesWorkflowRestRep customServicesWorkflowRestRep = getCatalogClient()
-                    .orchestrationPrimitives().createWorkflow(param);
+                    .customServicesPrimitives().createWorkflow(param);
 
             // Add this workflowid to directory
             if (null != customServicesWorkflowRestRep) {
@@ -272,7 +273,7 @@ public class WorkflowBuilder extends Controller {
             }
             param.setDocument(workflowDoc);
             final CustomServicesWorkflowRestRep customServicesWorkflowRestRep = getCatalogClient()
-                    .orchestrationPrimitives().editWorkflow(workflowId,param);
+                    .customServicesPrimitives().editWorkflow(workflowId,param);
         } catch (final Exception e) {
             Logger.error(e.getMessage());
             flash.error("Error saving workflow");
@@ -281,25 +282,25 @@ public class WorkflowBuilder extends Controller {
 
     public static void getWorkflow(final URI workflowId) {
         CustomServicesWorkflowRestRep customServicesWorkflowRestRep = getCatalogClient()
-                .orchestrationPrimitives().getWorkflow(workflowId);
+                .customServicesPrimitives().getWorkflow(workflowId);
         renderJSON(customServicesWorkflowRestRep);
     }
 
     public static void validateWorkflow(final URI workflowId) {
         CustomServicesWorkflowRestRep customServicesWorkflowRestRep = getCatalogClient()
-                .orchestrationPrimitives().validateWorkflow(workflowId);
+                .customServicesPrimitives().validateWorkflow(workflowId);
         renderJSON(customServicesWorkflowRestRep);
     }
 
     public static void publishWorkflow(final URI workflowId) {
         CustomServicesWorkflowRestRep customServicesWorkflowRestRep = getCatalogClient()
-                .orchestrationPrimitives().publishWorkflow(workflowId);
+                .customServicesPrimitives().publishWorkflow(workflowId);
         renderJSON(customServicesWorkflowRestRep);
     }
 
     public static void unpublishWorkflow(final URI workflowId) {
         CustomServicesWorkflowRestRep customServicesWorkflowRestRep = getCatalogClient()
-                .orchestrationPrimitives().unpublishWorkflow(workflowId);
+                .customServicesPrimitives().unpublishWorkflow(workflowId);
         renderJSON(customServicesWorkflowRestRep);
     }
 
@@ -307,12 +308,12 @@ public class WorkflowBuilder extends Controller {
         try {
             URI workflowURI = new URI(id);
             CustomServicesWorkflowRestRep customServicesWorkflowRestRep = getCatalogClient()
-                    .orchestrationPrimitives().getWorkflow(workflowURI);
+                    .customServicesPrimitives().getWorkflow(workflowURI);
             if (null != customServicesWorkflowRestRep) {
                 final CustomServicesWorkflowUpdateParam param = new CustomServicesWorkflowUpdateParam();
                 param.setDocument(customServicesWorkflowRestRep.getDocument());
                 param.getDocument().setName(newName);
-                getCatalogClient().orchestrationPrimitives().editWorkflow(
+                getCatalogClient().customServicesPrimitives().editWorkflow(
                         workflowURI, param);
             } else {
                 flash.error("Workflow " + id + "not found");
@@ -327,7 +328,7 @@ public class WorkflowBuilder extends Controller {
         try {
             final URI workflowURI = new URI(workflowID);
             // Delete workflow
-            getCatalogClient().orchestrationPrimitives().deleteWorkflow(
+            getCatalogClient().customServicesPrimitives().deleteWorkflow(
                     workflowURI);
 
             // Delete this reference in WFDirectory
@@ -344,11 +345,11 @@ public class WorkflowBuilder extends Controller {
 
     private static void addPrimitivesByType(final List<Node> topLevelNodes, final String type, String parentDefault, final Map<URI, WFDirectoryRestRep> fileParents) {
         final PrimitiveList primitiveList = getCatalogClient()
-                .orchestrationPrimitives().getPrimitivesByType(type);
+                .customServicesPrimitives().getPrimitivesByType(type);
         if (null == primitiveList || null == primitiveList.getPrimitives()) {
             return;
         }
-        List<PrimitiveRestRep> primitives = getCatalogClient().orchestrationPrimitives().getByIds(primitiveList.getPrimitives());
+        List<PrimitiveRestRep> primitives = getCatalogClient().customServicesPrimitives().getByIds(primitiveList.getPrimitives());
         for (final PrimitiveRestRep primitive : primitives) {
             final String parent = (fileParents!=null && fileParents.containsKey(primitive.getId())) ? fileParents.get(primitive.getId()).getId().toString() : parentDefault;
             final Node node;
@@ -450,7 +451,7 @@ public class WorkflowBuilder extends Controller {
         shellPrimitive.validate();
 
         try {
-            final PrimitiveResourceRestRep primitiveResourceRestRep = getCatalogClient().orchestrationPrimitives().createPrimitiveResource("SCRIPT", shellPrimitive.script, shellPrimitive.scriptName);
+            final PrimitiveResourceRestRep primitiveResourceRestRep = getCatalogClient().customServicesPrimitives().createPrimitiveResource("SCRIPT", shellPrimitive.script, shellPrimitive.scriptName);
             if (null != primitiveResourceRestRep) {
                 final PrimitiveCreateParam primitiveCreateParam = new PrimitiveCreateParam();
                 //TODO - remove this hardcoded string once the enum is available
@@ -465,7 +466,7 @@ public class WorkflowBuilder extends Controller {
                 if (StringUtils.isNotEmpty(shellPrimitive.getOutputs())) {
                     primitiveCreateParam.setOutput(Arrays.asList(shellPrimitive.getOutputs().split(",")));
                 }
-                final PrimitiveRestRep primitiveRestRep = getCatalogClient().orchestrationPrimitives().createPrimitive(primitiveCreateParam);
+                final PrimitiveRestRep primitiveRestRep = getCatalogClient().customServicesPrimitives().createPrimitive(primitiveCreateParam);
                 if (primitiveRestRep != null) {
                     // add this to wf directory
                     addResourceToWFDirectory(primitiveRestRep.getId(), shellPrimitive.getWfDirID());
@@ -609,7 +610,7 @@ public class WorkflowBuilder extends Controller {
             }
             else if(null != localAnsible.ansiblePackage) {
                 //upload ansible package
-                primitiveResourceRestRep = getCatalogClient().orchestrationPrimitives().createPrimitiveResource("ANSIBLE", localAnsible.ansiblePackage, localAnsible.ansiblePackageName);
+                primitiveResourceRestRep = getCatalogClient().customServicesPrimitives().createPrimitiveResource("ANSIBLE", localAnsible.ansiblePackage, localAnsible.ansiblePackageName);
             }
 
             // Create Primitive
@@ -630,7 +631,7 @@ public class WorkflowBuilder extends Controller {
                     primitiveCreateParam.setOutput(Arrays.asList(localAnsible.getOutputs().split(",")));
                 }
 
-                final PrimitiveRestRep primitiveRestRep = getCatalogClient().orchestrationPrimitives().createPrimitive(primitiveCreateParam);
+                final PrimitiveRestRep primitiveRestRep = getCatalogClient().customServicesPrimitives().createPrimitive(primitiveCreateParam);
                 if (primitiveRestRep != null) {
                     // add this to wf directory
                     addResourceToWFDirectory(primitiveRestRep.getId(), localAnsible.getWfDirID());

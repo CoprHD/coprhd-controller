@@ -197,9 +197,6 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
             scanManagedSystems(client, mgmntServer, scanCache);
             s_logger.info("Storage System scanCache after scanning:" + scanCache);
 
-            // clear cached discovery data in the VPlexApiClient
-            client.clearCaches();
-
             scanStatusMessage = String.format("Scan job completed successfully for " +
                     "VPLEX management server: %s", mgmntServerURI.toString());
         } catch (Exception e) {

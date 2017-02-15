@@ -26,17 +26,17 @@ public class AssociateFilePolicyToFileSystemService extends ViPRService {
     protected URI fileSystem;
 
     @Param(FILESYSTEM_SRC_VARRAY)
-    protected URI srcVArray;
+    protected URI sourceVirtualArray;
 
     @Param(FILE_POLICY)
     protected URI filePolicy;
 
     @Param(FILESYSTEM_TRGT_VARRAY)
-    protected URI trgtVArray;
+    protected URI targetVirtualArray;
 
     @Override
     public void execute() throws Exception {
-        FileStorageUtils.associateFilePolicy(fileSystem, filePolicy, trgtVArray);
+        FileStorageUtils.associateFilePolicy(fileSystem, filePolicy, targetVirtualArray);
     }
 
 }

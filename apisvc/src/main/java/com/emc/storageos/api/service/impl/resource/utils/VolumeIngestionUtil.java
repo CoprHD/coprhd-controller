@@ -50,7 +50,6 @@ import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.BlockSnapshotSession;
 import com.emc.storageos.db.client.model.Cluster;
 import com.emc.storageos.db.client.model.DataObject;
-import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.DataObject.Flag;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.RegistrationStatus;
 import com.emc.storageos.db.client.model.ExportGroup;
@@ -1704,7 +1703,55 @@ public class VolumeIngestionUtil {
             _logger.warn(errorMessages.toString());
             return false;
         }
+        _logger.info("Storage Ports {} in unmanaged mask {} are valid for varray {}, so this mask is okay", 
+                new Object[] { Joiner.on(",").join(getStoragePortNames(Collections2.transform(portsInUnManagedMask,
+                        CommonTransformerFunctions.FCTN_STRING_TO_URI), dbClient)),
+                mask.forDisplay(), getVarrayName(varray, dbClient) });
         return true;
+    }
+
+    /**
+     * Convenience method to convert a Collection of UnManagedExportMask URIs to their pretty names.
+     *
+     * @param unmanagedExportMaskUris a Collection of Initiator URIs
+     * @param dbClient a reference to the database client
+     *
+     * @return a List of friendly Initiator names
+     */
+    public static List<String> getMaskNames(Collection<URI> unmanagedExportMaskUris, DbClient dbClient) {
+        List<String> maskNames = new ArrayList<String>();
+        if (unmanagedExportMaskUris != null && !unmanagedExportMaskUris.isEmpty()) {
+            List<UnManagedExportMask> masks = dbClient.queryObject(UnManagedExportMask.class, unmanagedExportMaskUris);
+            for (UnManagedExportMask mask : masks) {
+                if (mask != null) {
+                    maskNames.add("\n" + mask.getMaskName());
+                }
+            }
+        }
+
+        return maskNames;
+    }
+
+    /**
+     * Convenience method to convert a Collection of Initiator URIs to their pretty names.
+     *
+     * @param initiatorUris a Collection of Initiator URIs
+     * @param dbClient a reference to the database client
+     *
+     * @return a List of friendly Initiator names
+     */
+    public static List<String> getInitiatorNames(Collection<URI> initiatorUris, DbClient dbClient) {
+        List<String> initiatorNames = new ArrayList<String>();
+        if (initiatorUris != null && !initiatorUris.isEmpty()) {
+            List<Initiator> inits = dbClient.queryObject(Initiator.class, initiatorUris);
+            for (Initiator init : inits) {
+                if (init != null) {
+                    initiatorNames.add("\n" + init.forDisplay());
+                }
+            }
+        }
+
+        return initiatorNames;
     }
 
     /**
@@ -1737,7 +1784,7 @@ public class VolumeIngestionUtil {
      *
      * @return a Virtual Array name or the URI if it could not be found
      */
-    private static String getVarrayName(URI virtualArrayUri, DbClient dbClient) {
+    public static String getVarrayName(URI virtualArrayUri, DbClient dbClient) {
         if (virtualArrayUri != null) {
             VirtualArray varray = dbClient.queryObject(VirtualArray.class, virtualArrayUri);
             if (varray != null) {
@@ -1883,10 +1930,12 @@ public class VolumeIngestionUtil {
             if (!VolumeIngestionUtil.validateStoragePortsInVarray(dbClient, volume,
                     vArray, mask.getKnownStoragePortUris(), mask, errorMessages)) {
                 itr.remove();
+                _logger.info("unManagedMask skipped due to invalid storage ports: " + mask.getMaskName());
                 continue;
             }
-            if (null != mask.getKnownInitiatorUris() && !mask.getKnownInitiatorUris().isEmpty()) {
 
+            if (null != mask.getKnownInitiatorUris() && !mask.getKnownInitiatorUris().isEmpty()) {
+                _logger.info("unManagedMask being checked now: " + mask.getMaskName());
                 _logger.info("Grouping initiators by protocol: {}",
                         Joiner.on(",").join(iniByProtocol.entrySet()));
                 // group Initiators by Protocol
@@ -1903,10 +1952,10 @@ public class VolumeIngestionUtil {
                          * case 3: I1,I3 -> I1,I2 -- not selected
                          *
                          */
-                        _logger.info("Host in Cluster- Comparing host's initiators [{}] with UnManagedExportMask {} initiators [{}] ", 
-                                Joiner.on(",").join(hostInitiatorsForProtocol),
+                        _logger.info("Host in Cluster- Comparing host's initiators [{}] \nwith UnManagedExportMask {} initiators [{}] ", 
+                                Joiner.on(",").join(getInitiatorNames(URIUtil.toURIList(hostInitiatorsForProtocol), dbClient)),
                                 mask.forDisplay(),
-                                Joiner.on(",").join(mask.getKnownInitiatorUris()));
+                                Joiner.on(",").join(getInitiatorNames(URIUtil.toURIList(mask.getKnownInitiatorUris()), dbClient)));
                         Set<String> hostInitiatorsNotInUnManagedExportMask = Sets.difference(hostInitiatorsForProtocol,
                                 mask.getKnownInitiatorUris());
 
@@ -1941,7 +1990,7 @@ public class VolumeIngestionUtil {
                                         + "it can't be used as there are other initiators [{}] in the mask which are owned "
                                         + "by a different host in the same cluster this host belongs to.",
                                         new Object[] { mask.forDisplay(), 
-                                                Joiner.on(",").join(remainingInitsNotInClusterOrUnManagedExportMask), 
+                                                Joiner.on(",").join(getInitiatorNames(URIUtil.toURIList(remainingInitsNotInClusterOrUnManagedExportMask), dbClient)), 
                                                 clusterUri });
                             }
                         } else {
@@ -1964,8 +2013,9 @@ public class VolumeIngestionUtil {
                             } else {
                                 _logger.info(
                                         "UnManagedExportMask initiators are not a complete subset of "
-                                        + "the host's initiators, skipping UnManagedExportMask {}",
-                                        mask.forDisplay());
+                                        + "the host's initiators, skipping UnManagedExportMask {}, inits not in host are: {}",
+                                        mask.forDisplay(),
+                                        Joiner.on(",").join(getInitiatorNames(URIUtil.toURIList(unManagedExportMaskInitiatorsNotInHost), dbClient)));
                             }
 
                         }
@@ -1973,7 +2023,8 @@ public class VolumeIngestionUtil {
                     } else {
                         _logger.info("Host not part of any Cluster- Comparing host's initiators "
                                 + "[{}] with UnManagedExportMask's initiators [{}] ",
-                                Joiner.on(",").join(hostInitiatorsForProtocol), Joiner.on(",").join(mask.getKnownInitiatorUris()));
+                                Joiner.on(",").join(getInitiatorNames(URIUtil.toURIList(hostInitiatorsForProtocol), dbClient)), 
+                                Joiner.on(",").join(getInitiatorNames(URIUtil.toURIList(mask.getKnownInitiatorUris()), dbClient)));
                         Set<String> unManagedExportMaskInitiatorsNotInHost = Sets.difference(mask.getKnownInitiatorUris(),
                                 hostInitiatorsForProtocol);
 
@@ -1991,7 +2042,7 @@ public class VolumeIngestionUtil {
                         } else {
                             _logger.info(
                                     "UnManagedExportMask has initiators from a different host [{}], not part of cluster",
-                                    Joiner.on(",").join(unManagedExportMaskInitiatorsNotInHost));
+                                    Joiner.on(",").join(getInitiatorNames(URIUtil.toURIList(unManagedExportMaskInitiatorsNotInHost), dbClient)));
                         }
                     }
 
@@ -2001,6 +2052,7 @@ public class VolumeIngestionUtil {
 
         }
 
+        _logger.info("returning host eligible masks: " + getMaskNames(URIUtil.toUris(eligibleMasks), dbClient));
         return eligibleMasks;
     }
 
@@ -2029,6 +2081,7 @@ public class VolumeIngestionUtil {
         Map<String, Set<String>> clusterIniByProtocol = groupInitiatorsByProtocol(clusterInitiators, dbClient);
         Iterator<UnManagedExportMask> itr = unManagedMasks.iterator();
         List<String> maskErrorMessages = new ArrayList<String>();
+
         try {
             while (itr.hasNext()) {
                 UnManagedExportMask mask = itr.next();
@@ -2036,6 +2089,7 @@ public class VolumeIngestionUtil {
                         mask.getKnownStoragePortUris(), mask, errorMessages)) {
                     // not a valid mask remove it
                     itr.remove();
+                    _logger.info("unManagedMask skipped due to invalid storage ports: " + mask.getMaskName());
                     continue;
                 }
 
@@ -2043,12 +2097,13 @@ public class VolumeIngestionUtil {
                 // irrespective of actual initiators on the MV on Array
                 if (null != mask.getKnownInitiatorUris() && !mask.getKnownInitiatorUris().isEmpty()) {
 
+                    _logger.info("unManagedMask being checked now: " + mask.getMaskName());
                     for (Entry<String, Set<String>> entry : clusterIniByProtocol.entrySet()) {
                         Set<String> clusterInitiatorsForProtocol = entry.getValue();
                         _logger.info("Processing Initiators by {} Protocol Group: {}", entry.getKey(), clusterInitiatorsForProtocol);
-                        _logger.info("Comparing cluster's initiators [{}] with UnManagedExportMask's initiators [{}] ", 
-                                Joiner.on(",").join(clusterInitiatorsForProtocol),
-                                Joiner.on(",").join(mask.getKnownInitiatorUris()));
+                        _logger.info("Comparing cluster's initiators [{}] \nwith UnManagedExportMask's initiators [{}] ", 
+                                Joiner.on(",").join(getInitiatorNames(URIUtil.toURIList(clusterInitiatorsForProtocol), dbClient)),
+                                Joiner.on(",").join(getInitiatorNames(URIUtil.toURIList(mask.getKnownInitiatorUris()), dbClient)));
                         Set<String> unmanagedExportMaskInitiatorsNotInCluster = Sets.difference(mask.getKnownInitiatorUris(),
                                 clusterInitiatorsForProtocol);
                         /**
@@ -2135,6 +2190,7 @@ public class VolumeIngestionUtil {
             throw IngestionException.exceptions.inconsistentZoningAcrossHosts(message + messages);
         }
 
+        _logger.info("returning cluster eligible masks: " + getMaskNames(URIUtil.toUris(eligibleMasks), dbClient));
         return eligibleMasks;
     }
 

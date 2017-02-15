@@ -21,6 +21,7 @@ import com.emc.storageos.api.service.impl.resource.blockingestorchestration.cont
 import com.emc.storageos.api.service.impl.resource.utils.VolumeIngestionUtil;
 import com.emc.storageos.computesystemcontroller.impl.ComputeSystemHelper;
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.NamedElementQueryResultList;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.Cluster;
@@ -40,7 +41,6 @@ import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVol
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume.SupportedVolumeCharacterstics;
 import com.emc.storageos.db.client.util.CommonTransformerFunctions;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
-import com.emc.storageos.util.ConnectivityUtil;
 import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Collections2;
@@ -264,7 +264,8 @@ public abstract class BlockIngestExportOrchestrator extends ResourceService {
                 requestContext.addDataObjectToUpdate(exportMask, unManagedVolume);
             }
 
-            _logger.info("{} unmanaged mask(s) to process", unManagedMasks.size());
+            _logger.info("{} unmanaged mask(s) validated as eligible for further processing: {}", 
+                    unManagedMasks.size(), VolumeIngestionUtil.getMaskNames(URIUtil.toUris(unManagedMasks), _dbClient));
 
             List<ExportMask> exportMasksToCreate = new ArrayList<ExportMask>();
             List<UnManagedExportMask> eligibleMasks = null;
@@ -279,27 +280,11 @@ public abstract class BlockIngestExportOrchestrator extends ResourceService {
                     _logger.info("Found Hosts {} in cluster {}", Joiner.on(",").join(hostUris), cluster.forDisplay());
                     List<Set<String>> iniGroupByHost = new ArrayList<Set<String>>();
                     URI varrayUri = requestContext.getVarray(unManagedVolume).getId();
-                    boolean isVplexDistributedVolume = VolumeIngestionUtil.isVplexDistributedVolume(unManagedVolume);
                     for (URI hostUri : hostUris) {
                         Set<String> initsOfHost = getInitiatorsOfHost(hostUri);
-                        if (isVplexDistributedVolume) {
-                            _logger.info("this is a distributed vplex volume which may have split fabrics with different connectivity per host");
-                            Iterator<String> initsOfHostIt = initsOfHost.iterator();
-                            while (initsOfHostIt.hasNext()) {
-                                String uriStr = initsOfHostIt.next();
-                                Initiator init = _dbClient.queryObject(Initiator.class, URI.create(uriStr));
-                                if (null != init) {
-                                    _logger.info("checking initiator {} for connectivity", init.getInitiatorPort());
-                                    Set<String> connectedVarrays = ConnectivityUtil.getInitiatorVarrays(init.getInitiatorPort(), _dbClient);
-                                    _logger.info("initiator's connected varrays are: {}", connectedVarrays);
-                                    if (!connectedVarrays.contains(varrayUri.toString())) {
-                                        _logger.info("initiator {} of host {} is not connected to varray {}, removing",
-                                                init.getInitiatorPort(), hostUri, varrayUri);
-                                        initsOfHostIt.remove();
-                                    }
-                                }
-                            }
-                        }
+                        Host host2 = _dbClient.queryObject(Host.class, hostUri);
+                        _logger.info("Host {} has these initiators: " 
+                                + VolumeIngestionUtil.getInitiatorNames(URIUtil.toURIList(initsOfHost), _dbClient), host2.forDisplay());
                         if (!initsOfHost.isEmpty()) {
                             iniGroupByHost.add(initsOfHost);
                         }

@@ -17,10 +17,8 @@ import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.ExportMask;
-import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedExportMask;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
-import com.emc.storageos.util.ConnectivityUtil;
 
 /*
  * MULTIPLE_MASK_PER_HOST :

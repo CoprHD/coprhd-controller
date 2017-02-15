@@ -33,6 +33,7 @@ import com.emc.sa.model.dao.ModelClient;
 import com.emc.sa.model.util.CreationTimeComparator;
 import com.emc.sa.model.util.SortedIndexUtils;
 import com.emc.sa.util.ResourceType;
+import com.emc.sa.util.CatalogSerializationUtils;
 import com.emc.sa.util.TextUtils;
 import com.emc.sa.zookeeper.OrderCompletionQueue;
 import com.emc.sa.zookeeper.OrderExecutionQueue;
@@ -229,6 +230,7 @@ public class OrderManagerImpl implements OrderManager {
             case UNMANAGED_EXPORTMASK:
             case BLOCK_CONTINUOUS_COPY:
             case VPLEX_CONTINUOUS_COPY:
+            case STORAGE_PORT:
                 return true;
             default:
                 return false;
@@ -239,6 +241,22 @@ public class OrderManagerImpl implements OrderManager {
         try {
             if (canGetResourceLabel(key)) {
                 return getResourceLabel(key);
+            } else if (CatalogSerializationUtils.isSerializedObject(key)) {
+                Map<URI, List<URI>> port = (Map<URI, List<URI>>) CatalogSerializationUtils.serializeFromString(key);
+                String s = new String("{");
+                for (Map.Entry<URI, List<URI> > entry : port.entrySet()) {
+                    s += getResourceLabel(entry.getKey().toString());
+                    s += ":[";
+                    List<String> portLabels = new ArrayList<String>();
+                    for (URI p : entry.getValue()) {
+                        portLabels.add(getResourceLabel(p.toString()));
+                    }
+                    s += String.join(",", portLabels);
+                    s += "]";
+                }
+                s += "}";
+                log.info(String.format("Serialized label: %s", s));
+                return s;
             }
             else {
                 // Defer to AssetOptions if it's not a ViPR resource
@@ -341,6 +359,12 @@ public class OrderManagerImpl implements OrderManager {
                 case VPLEX_CONTINUOUS_COPY:
                     dataObject = client.findById(VplexMirror.class, id);
                     break;
+                case STORAGE_PORT:
+                    dataObject = client.findById(StoragePort.class, id);
+                    break;
+                case INITIATOR:
+                    dataObject = client.findById(Initiator.class, id);
+                    break;
             }
         } catch (Exception e) {
             log.error(String.format("Error getting resource %s", resourceId), e);
@@ -373,6 +397,8 @@ public class OrderManagerImpl implements OrderManager {
                     return String.format("%s [cluster: %s]", dataObject.getLabel(), cluster.getLabel());
                 }
             }
+        } else if (dataObject instanceof StoragePort) {
+            return ((StoragePort) dataObject).getPortName();
         }
         return dataObject.getLabel();
     }

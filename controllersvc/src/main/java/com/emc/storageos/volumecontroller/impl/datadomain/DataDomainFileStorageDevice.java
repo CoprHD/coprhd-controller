@@ -1600,4 +1600,10 @@ public class DataDomainFileStorageDevice extends AbstractFileStorageDevice {
                 DeviceControllerErrors.datadomain.operationNotSupported());
     }
 
+    @Override
+    public BiosCommandResult updateStorageSystemFileProtectionPolicy(StorageSystem storageObj, FileDeviceInputOutput args) {
+        return BiosCommandResult.createErrorResult(
+                DeviceControllerErrors.datadomain.operationNotSupported());
+    }
+
 }

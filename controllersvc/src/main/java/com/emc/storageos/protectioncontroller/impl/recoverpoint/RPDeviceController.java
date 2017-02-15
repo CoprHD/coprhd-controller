@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013 EMC Corporation
+* Copyright (c) 2013 EMC Corporation
  * All Rights Reserved
  */
 
@@ -7256,5 +7256,12 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
         _log.info(String.format("Found the following RecoverPoint copy states %s", copyAccessStates));
 
         return copyAccessStates;
+    }
+    
+    @Override
+    public void portRebalance(URI storageSystem, URI exportGroup, URI varray, URI exportMask, Map<URI, List<URI>> adjustedpaths,
+            Map<URI, List<URI>> removedPaths, boolean isAdd, String token) throws Exception
+    {
+        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
     }
 }

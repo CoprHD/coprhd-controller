@@ -362,6 +362,8 @@ URI_EXPORTGROUP_VOLUMES_REMOVE  = URI_SERVICES_BASE   + '/block/exports/{0}/remo
 URI_EXPORTGROUP_INITS           = URI_SERVICES_BASE   + '/block/exports/{0}/initiators'
 URI_EXPORTGROUP_INIT_DELETE     = URI_SERVICES_BASE   + '/block/exports/{0}/initiators/{1},{2}'
 URI_EXPORTGROUP_INITS_REMOVE    = URI_SERVICES_BASE   + '/block/exports/{0}/remove-initiators'
+URI_EXPORTGROUP_REALLOC		= URI_SERVICES_BASE   + '/block/exports/{0}/paths-adjustment-preview' 
+URI_EXPORTGROUP_REBALANCE	= URI_SERVICES_BASE   + '/block/exports/{0}/paths-adjustment' 
 URI_EXPORTGROUP_SEARCH_PROJECT  = URI_EXPORTGROUP_LIST + '/search?project={0}'
 
 URI_HOSTS                       = URI_SERVICES_BASE   + '/compute/hosts'
@@ -5262,6 +5264,39 @@ class Bourne:
             s = 'error'
         return (o, s)
 
+    def export_group_pathadj_preview(self, groupId, systemId, varrayId, useExisting, pathParam, hosts):
+        parms = {}
+
+	# Optionally add path parameters
+        if (pathParam['max_paths'] > 0):
+            print 'Path parameters', pathParam
+	    parms['path_parameters'] = pathParam
+        if varrayId != "":
+            parms['virtual_array'] = varrayId
+        parms['storage_system'] = systemId
+        if useExisting:
+            parms['use_existing_paths'] = 'true'
+        if hosts:
+            parms['hosts'] = hosts;
+
+        if(BOURNE_DEBUG == '1'):
+	    print str(parms)
+        o = self.api('POST', URI_EXPORTGROUP_REALLOC.format(groupId), parms)
+        return o
+
+    def export_group_pathadj(self, groupId, parms):
+        if(BOURNE_DEBUG == '1'):
+	    print str(parms)
+        o = self.api('PUT', URI_EXPORTGROUP_REBALANCE.format(groupId), parms)
+        self.assert_is_dict(o)
+        if(BOURNE_DEBUG == '1'):
+	    print 'OOO: ' + str(o) + ' :OOO'
+	try:
+            s = self.api_sync_2(o['resource']['id'], o['op_id'], self.export_show_task)
+	except:
+	    print o
+        return (o, s)
+
     #
     # block snapshot
     #
@@ -8576,9 +8611,12 @@ class Bourne:
                   'initiator_port'    : port,
                   'initiator_node'    : node,
                    }
-        o = self.api('POST', URI_HOST_INITIATORS.format(uri), parms)
-        self.assert_is_dict(o)
-        s = self.api_sync_2(o['resource']['id'], o['op_id'], self.initiator_show_task)
+        try:
+            o = self.api('POST', URI_HOST_INITIATORS.format(uri), parms)
+            self.assert_is_dict(o)
+            s = self.api_sync_2(o['resource']['id'], o['op_id'], self.initiator_show_task)
+        except:
+            print o, s
         return (o, s)
     
     def initiator_create_pair(self, host, protocol, port1, node1, port2, node2):

@@ -268,42 +268,64 @@ class FilePolicy(object):
         o = common.json_decode(s)
         pol_type = common.get_node_value(o,"type")
         update_request = {}
-        update_request['policy_name'] = name
-        update_request['policy_description'] = description
-        update_request['priority'] = priority
-        update_request['apply_at'] = applyat
+        if name is not None:
+            update_request['policy_name'] = name
+        if description is not None:
+            update_request['policy_description'] = description
+        if priority is not None:
+            update_request['priority'] = priority
+        if applyat is not None:
+            update_request['apply_at'] = applyat
 
         policy_schedule = {}
         snapshot_params = {}
         replication_params = {}
         snapshot_expire_params = {}
 
-        policy_schedule['schedule_frequency'] = policyschedulefrequency
-        policy_schedule['schedule_repeat'] = policyschedulerepeat
-        policy_schedule['schedule_time'] = policyscheduletime
-        policy_schedule['schedule_day_of_week'] = policyscheduleweek
-        policy_schedule['schedule_day_of_month'] = policyschedulemonth
+        if policyschedulefrequency is not None:
+            policy_schedule['schedule_frequency'] = policyschedulefrequency
+        if policyschedulerepeat is not None:
+            policy_schedule['schedule_repeat'] = policyschedulerepeat
+        if policyscheduletime is not None:
+            policy_schedule['schedule_time'] = policyscheduletime
+        if policyscheduleweek is not None:
+            policy_schedule['schedule_day_of_week'] = policyscheduleweek
+        if policyschedulemonth is not None:
+            policy_schedule['schedule_day_of_month'] = policyschedulemonth
 
         if pol_type == 'file_replication':
-            replication_params['replication_type'] = replicationtype
-            replication_params['replication_copy_mode'] = replicationcopymode
-            replication_params['replicate_configuration'] = replicationconfiguration
-            replication_params['policy_schedule'] = policy_schedule
-            update_request['priority'] = priority
-            update_request['num_worker_threads'] = num_worker_threads
-            update_request['replication_params'] = replication_params
+            if replicationtype is not None:
+                replication_params['replication_type'] = replicationtype
+            if replicationcopymode is not None:
+                replication_params['replication_copy_mode'] = replicationcopymode
+            if replicationconfiguration is not None:
+                replication_params['replicate_configuration'] = replicationconfiguration
+            if policy_schedule is not None and (len(policy_schedule) >1):
+                replication_params['policy_schedule'] = policy_schedule
+            if priority is not None:
+                update_request['priority'] = priority
+            if num_worker_threads is not None:
+                update_request['num_worker_threads'] = num_worker_threads
+            if replication_params is not None and (len(replication_params) >1):
+                update_request['replication_params'] = replication_params
         elif pol_type == 'file_snapshot':
-            snapshot_expire_params['expire_type'] = snapshotexpiretype
-            snapshot_expire_params['expire_value'] = snapshotexpirevalue
-            snapshot_params['snapshot_name_pattern'] = snapshotnamepattern
-            snapshot_params['snapshot_expire_params'] = snapshot_expire_params
-            snapshot_params['policy_schedule'] = policy_schedule
-            update_request['snapshot_params'] = snapshot_params
+            if snapshotexpiretype is not None:
+                snapshot_expire_params['expire_type'] = snapshotexpiretype
+            if snapshotexpirevalue is not None:
+                snapshot_expire_params['expire_value'] = snapshotexpirevalue
+            if snapshotnamepattern is not None:
+                snapshot_params['snapshot_name_pattern'] = snapshotnamepattern
+            if snapshot_expire_params is not None and (len(snapshot_expire_params) >1):
+                snapshot_params['snapshot_expire_params'] = snapshot_expire_params
+            if policy_schedule is not None and (len(policy_schedule) >1):
+                snapshot_params['policy_schedule'] = policy_schedule
+            if snapshot_params is not None and (len(snapshot_params) >1):
+                update_request['snapshot_params'] = snapshot_params
 
         try:
             body = json.dumps(update_request)
             (s, h) = common.service_json_request(self.__ipAddr,
-                    self.__port, 'POST',
+                    self.__port, 'PUT',
                     FilePolicy.URI_FILE_POLICY_UPDATE.format(filepolicy['id']),
                     body)
             if not s:

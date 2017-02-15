@@ -51,10 +51,10 @@ public class MultipleMaskPerHostIngestOrchestrator extends BlockIngestExportOrch
         if (null != maskUris && !maskUris.isEmpty()) {
             for (URI maskUri : maskUris) {
                 ExportMask exportMask = dbClient.queryObject(ExportMask.class, maskUri);
-                if (null == exportMask) {
-                    continue;
-                }
-                if (VolumeIngestionUtil.hasIncorrectMaskPathForVplex(mask, exportMask, dbClient)) {
+                // skip if the mask is null, the storage device doesn't match, or is on the incorrect vplex cluster path
+                if (null == exportMask 
+                        || !exportMask.getStorageDevice().equals(mask.getStorageSystemUri())
+                        || VolumeIngestionUtil.hasIncorrectMaskPathForVplex(mask, exportMask, dbClient)) {
                     continue;
                 }
                 // COP-18184 : Check if the initiators are also matching

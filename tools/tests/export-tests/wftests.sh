@@ -318,6 +318,12 @@ vnx_setup() {
 
     SERIAL_NUMBER=`storagedevice list | grep COMPLETE | awk '{print $2}' | awk -F+ '{print $2}'`
     
+    driveType=""
+    if [ "${SIM}" = "1" ]
+    then
+        driveType="--drive_type SATA"
+    fi
+    
     # Chose thick because we need a thick pool for VNX metas
     # Choose SATA as drive type because simulator's non-Unified pool is SATA.
     run cos create block ${VPOOL_BASE}	\
@@ -325,8 +331,7 @@ vnx_setup() {
 	--protocols FC 			                \
 	--numpaths 2				            \
 	--multiVolumeConsistency \
-	--provisionType 'Thick'			        \
-	--drive_type 'SATA' \
+	--provisionType 'Thick'	${driveType}		        \
 	--max_snapshots 10                      \
 	--neighborhoods $NH  
 
@@ -335,19 +340,12 @@ vnx_setup() {
 	--protocols FC 			                \
 	--numpaths 4				            \
 	--multiVolumeConsistency \
-	--provisionType 'Thick'			        \
+	--provisionType 'Thick'	${driveType}		        \
 	--max_snapshots 10                      \
 	--neighborhoods $NH                    
 
-    if [ "${SIM}" = "1" ]
-    then
-	# Remove the thin pool that doesn't support metas on the VNX simulator
-	run cos update_pools block $VPOOL_BASE --rem ${VNXB_NATIVEGUID}/${VNXB_NATIVEGUID}+POOL+U+TP0000
-        run cos update_pools block $VPOOL_CHANGE --rem ${VNXB_NATIVEGUID}/${VNXB_NATIVEGUID}+POOL+U+TP0000
-    else
-	run cos update block $VPOOL_BASE --storage ${VNXB_NATIVEGUID}
-        run cos update block $VPOOL_CHANGE --storage ${VNXB_NATIVEGUID}
-    fi
+    run cos update block $VPOOL_BASE --storage ${VNXB_NATIVEGUID}
+    run cos update block $VPOOL_CHANGE --storage ${VNXB_NATIVEGUID}
 }
 
 unity_setup()
@@ -2706,15 +2704,13 @@ test_13() {
 
     if [ "${SS}" = "vnx" -o "${SS}" = "vmax2" -o "${SS}" = "vmax3" ]
     then
-	storage_failure_injections="failure_015_SmisCommandHelper.invokeMethod_DeleteGroup \
-                                    failure_015_SmisCommandHelper.invokeMethod_*"
+	storage_failure_injections="failure_015_SmisCommandHelper.invokeMethod_*"
     fi
 
     failure_injections="${common_failure_injections} ${storage_failure_injections}"
 
     # Placeholder when a specific failure case is being worked...
-    # failure_injections="failure_firewall"
-    failure_injections="failure_015_SmisCommandHelper.invokeMethod_DeleteGroup"
+    #failure_injections="failure_015_SmisCommandHelper.invokeMethod_DeleteGroup"
 
     for failure in ${failure_injections}
     do

@@ -1317,7 +1317,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
 
     /**
      * Verifies that datastores contained within an export group can be unmounted. It must not be entering maintenance mode or contain any
-     * virtual machines.
+     * virtual machines running on the given ESXi host.
      *
      * @param exportGroup
      *            export group that contains volumes
@@ -1325,15 +1325,18 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
      *            vcenter that the datastore belongs to
      * @param vcenterDatacenter
      *            vcenter datacenter that the datastore belongs to
+     * @param esxHostName
+     *            the hostname of the ESXi host
+     * 
      * @return workflow method for unmounting and detaching disks and datastores
      */
-    public Workflow.Method verifyDatastoreMethod(URI exportGroup, URI vcenter, URI vcenterDatacenter) {
-        return new Workflow.Method("verifyDatastore", exportGroup, vcenter, vcenterDatacenter);
+    public Workflow.Method verifyDatastoreMethod(URI exportGroup, URI vcenter, URI vcenterDatacenter, String esxHostName) {
+        return new Workflow.Method("verifyDatastore", exportGroup, vcenter, vcenterDatacenter, esxHostName);
     }
 
     /**
      * Verifies that datastores contained within an export group can be unmounted. It must not be entering maintenance mode or contain any
-     * virtual machines.
+     * virtual machines running on the given ESXi host.
      *
      * @param exportGroupId
      *            export group that contains volumes
@@ -1341,10 +1344,13 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
      *            vcenter that the host belongs to
      * @param vcenterDatacenter
      *            vcenter datacenter that the host belongs to
+     * @param esxHostname
+     *            the hostname of the ESXi host
+     *
      * @param stepId
      *            the id of the workflow step
      */
-    public void verifyDatastore(URI exportGroupId, URI vCenterId, URI vcenterDatacenter, String stepId) {
+    public void verifyDatastore(URI exportGroupId, URI vCenterId, URI vcenterDatacenter, String esxHostname, String stepId) {
         WorkflowStepCompleter.stepExecuting(stepId);
 
         try {
@@ -1352,6 +1358,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
             VcenterDataCenter vCenterDataCenter = _dbClient.queryObject(VcenterDataCenter.class, vcenterDatacenter);
             ExportGroup exportGroup = _dbClient.queryObject(ExportGroup.class, exportGroupId);
             VCenterAPI api = VcenterDiscoveryAdapter.createVCenterAPI(vCenter);
+            HostSystem host = api.findHostSystem(vCenterDataCenter.getLabel(), esxHostname);
 
             if (exportGroup != null && exportGroup.getVolumes() != null) {
                 for (String volume : exportGroup.getVolumes().keySet()) {
@@ -1363,7 +1370,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                                 String datastoreName = getDatastoreName(tagValue);
                                 Datastore datastore = api.findDatastore(vCenterDataCenter.getLabel(), datastoreName);
                                 if (datastore != null) {
-                                    ComputeSystemHelper.verifyDatastore(datastore, api);
+                                    ComputeSystemHelper.verifyDatastore(datastore, host);
                                 }
                             }
                         }
@@ -1806,11 +1813,12 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
 
                     for (URI export : vCenterHostExportMap.get(hostId)) {
                         wait = workflow.createStep(VERIFY_DATASTORE_STEP,
-                                String.format("Verifying datastores for removal from export %s", export), wait,
+                                String.format("Verifying datastores for removal from export %s with host %s", export, esxHost.forDisplay()),
+                                wait,
                                 export, export.toString(),
                                 this.getClass(),
                                 verifyDatastoreMethod(export, vCenterId,
-                                        vcenterDataCenter.getId()),
+                                        vcenterDataCenter.getId(), esxHost.getHostName()),
                                 rollbackMethodNullMethod(), null);
                     }
                 }

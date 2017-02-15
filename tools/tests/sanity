@@ -14341,7 +14341,7 @@ lparmobility_tests()
 	#Run volume creation and export
 	run volume create $volume_name $proj_name $NH $vpool $BLK_SIZE	
 	run export_group create $proj_name $export_name1 $NH --type Host --volspec $proj_name/$volume_name --hosts $LPAR_HOST1
-	run export_group show $export_name1
+	run export_group show $proj_name/$export_name1
 	
 	#Run host update tests
 	lpar_host_update

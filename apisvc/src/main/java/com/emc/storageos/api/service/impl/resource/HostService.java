@@ -274,7 +274,8 @@ public class HostService extends TaskResourceService {
     public TaskResourceRep updateHost(@PathParam("id") URI id,
             HostUpdateParam updateParam,
             @QueryParam("validate_connection") @DefaultValue("false") final Boolean validateConnection,
-            @QueryParam("update_exports") @DefaultValue("true") boolean updateExports) {
+            @QueryParam("update_exports") @DefaultValue("true") boolean updateExports,
+            @QueryParam("update_sanboottargets") @DefaultValue("false") boolean updateSanBootTargets) {
         // update the host
         Host host = queryObject(Host.class, id, true);
         validateHostData(updateParam, host.getTenant(), host, validateConnection);
@@ -326,7 +327,7 @@ public class HostService extends TaskResourceService {
          * for satisfying some high level requirements, although it may not be
          * sufficient from an API purity standpoint
          */
-        if (host.getComputeElement() != null && updateParam.getBootVolume() != null) {
+        if (host.getComputeElement() != null && updateParam.getBootVolume() != null && updateSanBootTargets) {
             controller.setHostSanBootTargets(host.getId(), updateParam.getBootVolume());
         }
 
@@ -2131,6 +2132,9 @@ public class HostService extends TaskResourceService {
                 _log.info("volume id {}", vol.getWWN());
                 job.setBootDevice(ImageServerUtils.uuidFromString(vol.getWWN()).toString());
             }
+        }else {
+            _log.error("No boot volume set for host and no volume specified for os install for host:" + host.getId().toString());
+            throw APIException.badRequests.noBootVolumeSpecified(host.getLabel());
         }
         host.setProvisioningStatus(ProvisioningJobStatus.IN_PROGRESS.toString());
         _dbClient.persistObject(host);

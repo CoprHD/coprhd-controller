@@ -15,10 +15,12 @@ import com.emc.vipr.client.Task;
 public class SetBootVolume extends LongRunningTask<HostRestRep> {
     private URI hostId;
     private URI volumeId;
+    private boolean updateSanBootTargets = false;
 
-    public SetBootVolume(Host host, URI volumeId) {
+    public SetBootVolume(Host host, URI volumeId, boolean updateSanBootTargets) {
         this.hostId = host.getId();
         this.volumeId = volumeId;
+        this.updateSanBootTargets = updateSanBootTargets;
         setWaitFor(true);
         provideDetailArgs(host.getHostName(), volumeId);
     }
@@ -34,6 +36,6 @@ public class SetBootVolume extends LongRunningTask<HostRestRep> {
     protected Task<HostRestRep> doExecute() throws Exception {
         HostUpdateParam update = new HostUpdateParam();
         update.setBootVolume(volumeId);
-        return getClient().hosts().update(hostId, update);
+        return getClient().hosts().update(hostId, update, false, false, updateSanBootTargets);
     }
 }

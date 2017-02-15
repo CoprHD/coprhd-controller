@@ -728,11 +728,11 @@ public class ComputeUtils {
     }
 
     public static void setHostBootVolumes(List<Host> hosts,
-            List<URI> bootVolumeIds) {
+            List<URI> bootVolumeIds, boolean updateSanBootTargets) {
         for (Host host : hosts) {
             if (host != null && !host.getInactive()) {
                 host.setBootVolumeId(bootVolumeIds.get(hosts.indexOf(host)));
-                ViPRExecutionUtils.execute(new SetBootVolume(host, bootVolumeIds.get(hosts.indexOf(host))));
+                ViPRExecutionUtils.execute(new SetBootVolume(host, bootVolumeIds.get(hosts.indexOf(host)), updateSanBootTargets));
             }
         }
     }

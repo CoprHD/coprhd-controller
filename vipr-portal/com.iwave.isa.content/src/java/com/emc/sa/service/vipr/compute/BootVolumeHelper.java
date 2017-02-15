@@ -124,7 +124,7 @@ public class BootVolumeHelper implements ViPRTaskHandler<VolumeRestRep> {
         Host host = volumeIdToHost.get(volume.getId());
         if (host != null) {
             try {
-                ExecutionUtils.execute(new SetBootVolume(host, volume.getId()));
+                ExecutionUtils.execute(new SetBootVolume(host, volume.getId(), false));
                 successfulHosts.add(host.getId());
             } catch (ExecutionException e) {
                 ExecutionUtils.currentContext().logError(e, "SetBootVolume.failure", host.getHostName(),

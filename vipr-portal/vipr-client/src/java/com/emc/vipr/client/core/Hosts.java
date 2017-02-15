@@ -40,6 +40,8 @@ import com.emc.vipr.client.impl.RestClient;
 public class Hosts extends AbstractCoreBulkResources<HostRestRep> implements TenantResources<HostRestRep>,
         TaskResources<HostRestRep> {
 
+    private static final String UPDATE_SAN_BOOT_TARGETS = "update_sanboottargets";
+
     public Hosts(ViPRCoreClient parent, RestClient client) {
         super(parent, client, HostRestRep.class, PathConstants.HOST_URL);
     }
@@ -264,6 +266,25 @@ public class Hosts extends AbstractCoreBulkResources<HostRestRep> implements Ten
         }
         return putTaskURI(input, uriBuilder.build(id));
     }
+
+ 
+    public Task<HostRestRep> update(URI id, HostUpdateParam input, boolean validateConnection, boolean updateExports, boolean updateSanBootTargets) {  
+        UriBuilder uriBuilder = client.uriBuilder(getIdUrl());
+        if (validateConnection) {
+            uriBuilder.queryParam(VALIDATE_CONNECTION_PARAM, Boolean.TRUE);
+        }
+
+        if (updateExports) {
+            uriBuilder.queryParam(UPDATE_EXPORTS, Boolean.TRUE);
+        } else {
+            uriBuilder.queryParam(UPDATE_EXPORTS, Boolean.FALSE);
+        }   
+        if (updateSanBootTargets){
+            uriBuilder.queryParam(UPDATE_SAN_BOOT_TARGETS, Boolean.TRUE);
+        }
+        return putTaskURI(input, uriBuilder.build(id));
+    }
+
 
     /**
      * Deactivates a host.

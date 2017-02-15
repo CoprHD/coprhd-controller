@@ -186,7 +186,7 @@ public class FileProvider extends BaseAssetOptionsProvider {
     }
 
     @Asset("fileFilePolicy")
-    @AssetDependencies("fileFilesystemAssociation")
+    @AssetDependencies({ "project", "fileFilesystemAssociation" })
     public List<AssetOption> getFilePolicies(AssetOptionsContext ctx, URI project, URI fsId) {
         ViPRCoreClient client = api(ctx);
         List<AssetOption> options = Lists.newArrayList();

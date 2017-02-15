@@ -211,7 +211,7 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
             if (mgmntServer != null) {
                 try {
                     mgmntServer.setLastScanStatusMessage(scanStatusMessage);
-                    _dbClient.persistObject(mgmntServer);
+                    _dbClient.updateObject(mgmntServer);
                 } catch (Exception e) {
                     s_logger.error("Error persisting scan status message for management server {}",
                             mgmntServerURI.toString(), e);
@@ -238,7 +238,7 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
             throw e;
         } finally {
             try {
-                _dbClient.persistObject(mgmntServer);
+                _dbClient.updateObject(mgmntServer);
             } catch (Exception e) {
                 s_logger.error("Error persisting connection status for management server {}",
                         mgmntServer.getId(), e);
@@ -329,15 +329,15 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
                             s_logger.info("-- Setting compatibility status on Storage Port {} to {}",
                                     port.getLabel(), status.toString());
                             port.setCompatibilityStatus(status.name());
-                            _dbClient.persistObject(port);
+                            _dbClient.updateObject(port);
                         }
                     }
 
-                    _dbClient.persistObject(storageSystem);
+                    _dbClient.updateObject(storageSystem);
                 }
             }
         }
-        _dbClient.persistObject(provider);
+        _dbClient.updateObject(provider);
 
     }
 
@@ -930,7 +930,7 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
             if (null != vplex) {
                 try {
                     vplex.setLastDiscoveryStatusMessage(statusMessage);
-                    _dbClient.persistObject(vplex);
+                    _dbClient.updateObject(vplex);
                 } catch (Exception ex) {
                     s_logger.error("Error while saving VPLEX discovery status message: {} - Exception: {}",
                             statusMessage, ex.getLocalizedMessage());
@@ -1738,7 +1738,7 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
             if (null != vplex) {
                 try {
                     vplex.setLastDiscoveryStatusMessage(statusMessage);
-                    _dbClient.persistObject(vplex);
+                    _dbClient.updateObject(vplex);
                 } catch (Exception ex) {
                     s_logger.error("Error while saving VPLEX discovery status message: {} - Exception: {}",
                             statusMessage, ex.getLocalizedMessage());
@@ -1943,7 +1943,7 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
                 // connected backend storage.
                 s_logger.info("Discovering frontend and backend ports.");
                 discoverPorts(client, vplexStorageSystem, allPorts, null);
-                _dbClient.persistObject(vplexStorageSystem);
+                _dbClient.updateObject(vplexStorageSystem);
                 _completer.statusPending(_dbClient, "Completed port discovery");
             } catch (VPlexCollectionException vce) {
                 discoverySuccess = false;
@@ -1959,7 +1959,7 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
             try {
                 s_logger.info("Discovering connectivity.");
                 discoverConnectivity(vplexStorageSystem);
-                _dbClient.persistObject(vplexStorageSystem);
+                _dbClient.updateObject(vplexStorageSystem);
                 _completer.statusPending(_dbClient, "Completed connectivity verification");
             } catch (VPlexCollectionException vce) {
                 discoverySuccess = false;
@@ -1975,11 +1975,11 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
 
             if (discoverySuccess) {
                 vplexStorageSystem.setReachableStatus(true);
-                _dbClient.persistObject(vplexStorageSystem);
+                _dbClient.updateObject(vplexStorageSystem);
             } else {
                 // If part of the discovery process failed, throw an exception.
                 vplexStorageSystem.setReachableStatus(false);
-                _dbClient.persistObject(vplexStorageSystem);
+                _dbClient.updateObject(vplexStorageSystem);
                 throw new Exception(errMsgBuilder.toString());
             }
 
@@ -1987,6 +1987,7 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
 
             // clear cached discovery data in the VPlexApiClient
             client.clearCaches();
+            client.primeCaches();
 
             // discovery succeeds
             detailedStatusMessage = String.format("Discovery completed successfully for Storage System: %s",
@@ -2002,7 +2003,7 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
                 try {
                     // set detailed message
                     vplexStorageSystem.setLastDiscoveryStatusMessage(detailedStatusMessage);
-                    _dbClient.persistObject(vplexStorageSystem);
+                    _dbClient.updateObject(vplexStorageSystem);
                 } catch (DatabaseException ex) {
                     s_logger.error("Error persisting last discovery status for storage system {}",
                             vplexStorageSystem.getId(), ex);

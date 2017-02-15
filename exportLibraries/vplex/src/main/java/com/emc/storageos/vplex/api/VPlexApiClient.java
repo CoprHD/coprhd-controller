@@ -2056,7 +2056,7 @@ public class VPlexApiClient {
     /**
      * Primes the local VPLEX REST API info caches.
      */
-    private synchronized void primeCaches() {
+    public synchronized void primeCaches() {
         // prime the cluster id to name map, then use the values to prime the initiator to wwn map
         for (String clusterName : getClusterIdToNameMap().values()) {
             getInitiatorWwnToNameMap(clusterName);

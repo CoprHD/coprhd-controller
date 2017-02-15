@@ -26,6 +26,7 @@ def initiator_create_pair(args):
         print task
 
 def initiator_associate(args):
+    bourne.connect(args.ip)
     port1 = args.name1
     port2 = args.name2
     
@@ -36,6 +37,7 @@ def initiator_associate(args):
     print res
     
 def initiator_disassociate(args):
+    bourne.connect(args.ip)
     port_uri = bourne.initiator_query(args.name1)
     res = bourne.dissociate_initiator(port_uri)
     

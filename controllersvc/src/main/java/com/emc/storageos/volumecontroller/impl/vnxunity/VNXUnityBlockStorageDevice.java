@@ -792,8 +792,7 @@ public class VNXUnityBlockStorageDevice extends VNXUnityOperations
 
     @Override
     public ExportMask refreshExportMask(StorageSystem storage, ExportMask mask) throws DeviceControllerException {
-        // TODO Auto-generated method stub
-        return null;
+        return exportMaskOperationsHelper.refreshExportMask(storage, mask);
     }
 
     @Override

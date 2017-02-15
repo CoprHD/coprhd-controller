@@ -7,7 +7,9 @@ package com.emc.sa.service.vipr.compute;
 import static com.emc.sa.service.ServiceParams.CLUSTER;
 
 import java.net.URI;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.engine.bind.Param;
@@ -16,6 +18,7 @@ import com.emc.sa.service.ServiceParams;
 import com.emc.sa.service.vipr.ViPRService;
 import com.emc.sa.service.vipr.block.BlockStorageUtils;
 import com.emc.storageos.db.client.model.Cluster;
+import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.model.block.BlockObjectRestRep;
 import com.google.common.collect.Lists;
 
@@ -31,6 +34,7 @@ public class RemoveHostFromClusterService extends ViPRService {
     private Cluster cluster;
 
     private List<URI> hostIds;
+    private Map<URI, String> hostURIMap = new HashMap<URI,String>();
 
     @Override
     public void precheck() throws Exception {
@@ -42,12 +46,13 @@ public class RemoveHostFromClusterService extends ViPRService {
         }
 
         for (URI hostId : hostIds) {
-            if (BlockStorageUtils.getHost(hostId) == null) {
+            Host host = BlockStorageUtils.getHost(hostId);
+            if (host == null) {
                 preCheckErrors.append("Host doesn't exist for ID " + hostId);
-            } else if (!BlockStorageUtils.getHost(hostId).getCluster().equals(clusterId)) {
-                String hostName = getClient().hosts().get(hostId).getHostName();
-                preCheckErrors.append("Host " + hostName + " is not associated with cluster: " + cluster.getLabel());
+            } else if (!host.getCluster().equals(clusterId)) {
+                preCheckErrors.append("Host " + host.getLabel() + " is not associated with cluster: " + cluster.getLabel());
             }
+            hostURIMap.put(hostId, host.getLabel());
         }
 
         if (preCheckErrors.length() > 0) {
@@ -87,7 +92,7 @@ public class RemoveHostFromClusterService extends ViPRService {
         }
 
         // removing hosts also removes associated boot volumes and exports
-        List<URI> successfulHostIds = ComputeUtils.deactivateHostURIs(hostIds);
+        List<URI> successfulHostIds = ComputeUtils.deactivateHostURIs(hostURIMap);
 
         // fail order if no hosts removed
         if (successfulHostIds.isEmpty()) {
@@ -113,6 +118,20 @@ public class RemoveHostFromClusterService extends ViPRService {
             }
         }
 
+    }
+
+    /**
+     * @return the hostURIMap
+     */
+    public Map<URI, String> getHostURIMap() {
+        return hostURIMap;
+    }
+
+    /**
+     * @param hostURIMap the hostURIMap to set
+     */
+    public void setHostURIMap(Map<URI, String> hostURIMap) {
+        this.hostURIMap = hostURIMap;
     }
 
 }

@@ -52,6 +52,7 @@ import com.emc.storageos.vnxe.VNXeException;
 import com.emc.storageos.vnxe.models.Snap;
 import com.emc.storageos.vnxe.models.VNXeBase;
 import com.emc.storageos.vnxe.models.VNXeExportResult;
+import com.emc.storageos.vnxe.models.VNXeHost;
 import com.emc.storageos.vnxe.models.VNXeHostInitiator;
 import com.emc.storageos.vnxe.models.VNXeLunSnap;
 import com.emc.storageos.volumecontroller.TaskCompleter;
@@ -66,6 +67,7 @@ import com.emc.storageos.volumecontroller.impl.validators.ValidatorFactory;
 import com.emc.storageos.volumecontroller.impl.validators.contexts.ExportMaskValidationContext;
 import com.emc.storageos.workflow.WorkflowService;
 import com.google.common.base.Joiner;
+import com.google.common.collect.Sets;
 
 public class VNXeExportOperations extends VNXeOperations implements ExportMaskOperations {
     private static final Logger _logger = LoggerFactory.getLogger(VNXeExportOperations.class);
@@ -895,8 +897,43 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
 
     @Override
     public ExportMask refreshExportMask(StorageSystem storage, ExportMask mask) throws DeviceControllerException {
-        // TODO Auto-generated method stub
-        return null;
+        _logger.info("Refreshing export mask {}", mask.getMaskName());
+
+        try {
+            VNXeApiClient apiClient = getVnxeClient(storage);
+            List<Initiator> initiatorList = ExportUtils.getExportMaskInitiators(mask, _dbClient);
+            String vnxeHostId = getHostIdFromInitiators(initiatorList, apiClient);
+            if (vnxeHostId != null) {
+                VNXeHost vnxeHost = apiClient.getHostById(vnxeHostId);
+                if (vnxeHost != null) {
+                    Map<String, Integer> discoveredVolumes = apiClient.getHostLUNWWNs(vnxeHostId);
+
+                    // Clear the existing volumes to update with the latest info
+                    if (mask.getExistingVolumes() != null && !mask.getExistingVolumes().isEmpty()) {
+                        mask.getExistingVolumes().clear();
+                    }
+
+                    // COP-27296 fix
+                    if (null == mask.getUserAddedVolumes()) {
+                        mask.setUserAddedVolumes(new StringMap());
+                    }
+
+                    Set<String> existingVolumes = Sets.difference(discoveredVolumes.keySet(), mask.getUserAddedVolumes().keySet());
+
+                    _logger.info(String.format("VNXe discovered volumes: {%s}%n", Joiner.on(',').join(discoveredVolumes.keySet())));
+                    _logger.info(String.format("%nVNXe existing volumes : {%s}%n", Joiner.on(',').join(existingVolumes)));
+
+                    for (String lunId : existingVolumes) {
+                        mask.addToExistingVolumesIfAbsent(lunId, discoveredVolumes.get(lunId).toString());
+                    }
+                    _dbClient.updateObject(mask);
+                }
+            }
+        } catch (Exception e) {
+            _logger.warn("Error on refreshing export mask {}", mask.getMaskName());
+        }
+
+        return mask;
     }
 
     @Override
@@ -935,7 +972,7 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
         _dbClient.updateObject(blockObj);
         return wwn;
     }
-    
+
     /**
      * Find the corresponding blocksnapshot with the same nativeGUID as the internal volume
      * 

@@ -1645,7 +1645,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
 
                         if (targetACE != null &&
                                 (!targetACE.getPermissions().equals(sourceACE.getPermissions()) ||
-                                !targetACE.getPermissionType().equals(sourceACE.getPermissionType()))) {
+                                        !targetACE.getPermissionType().equals(sourceACE.getPermissionType()))) {
 
                             targetACE.setPermissions(sourceACE.getPermissions());
                             targetACE.setPermissionType(sourceACE.getPermissionType());
@@ -1861,11 +1861,9 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
                     for (URI storageSystemURI : storageSystemURIList) {
 
                         List<URI> vNASURIList = FileOrchestrationUtils
-                                .getVNASServersOfStorageSystemAndVarrayOfVpool(s_dbClient, storageSystemURI, vpoolURI);
+                                .getVNASServersOfStorageSystemAndVarrayOfVpool(s_dbClient, storageSystemURI, vpoolURI, null);
                         if (vNASURIList != null && !vNASURIList.isEmpty()) {
-                            for (Iterator<URI> iterator = vNASURIList.iterator(); iterator.hasNext();) {
-
-                                URI vNASURI = iterator.next();
+                            for (URI vNASURI : vNASURIList) {
                                 String stepId = workflow.createStepId();
                                 String stepDes = String
                                         .format("Assigning file policy: %s, to vpool: %s on storage system: %s", filePolicy.getId(),
@@ -1939,16 +1937,14 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
                 if (storageSystemURIList != null && !storageSystemURIList.isEmpty()) {
                     for (URI storageSystemURI : storageSystemURIList) {
 
-                        List<URI> vNASURIList = FileOrchestrationUtils.getVNASServersOfStorageSystemAndVarrayOfVpool(s_dbClient,
-                                storageSystemURI, vpoolURI);
-                        if (vNASURIList != null && !vNASURIList.isEmpty()) {
-                            for (Iterator<URI> iterator = vNASURIList.iterator(); iterator.hasNext();) {
-                                URI vNASURI = iterator.next();
-                                if (projectURIs != null && !projectURIs.isEmpty()) {
+                        if (projectURIs != null && !projectURIs.isEmpty()) {
 
-                                    for (Iterator<URI> projectIterator = projectURIs.iterator(); projectIterator.hasNext();) {
-                                        URI projectURI = projectIterator.next();
-
+                            for (URI projectURI : projectURIs) {
+                                // Get the eligible nas server for given project from the storage system!!!
+                                List<URI> vNASURIList = FileOrchestrationUtils.getVNASServersOfStorageSystemAndVarrayOfVpool(s_dbClient,
+                                        storageSystemURI, vpoolURI, projectURI);
+                                if (vNASURIList != null && !vNASURIList.isEmpty()) {
+                                    for (URI vNASURI : vNASURIList) {
                                         String stepId = workflow.createStepId();
                                         String stepDes = String
                                                 .format("Assigning file policy: %s, to project: %s on storage system: %s",
@@ -1964,16 +1960,10 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
                                                 storageSystemURI, args);
                                     }
                                 }
-                            }
-                        }
 
-                        StorageSystem storagesystem = s_dbClient.queryObject(StorageSystem.class, storageSystemURI);
+                                StorageSystem storagesystem = s_dbClient.queryObject(StorageSystem.class, storageSystemURI);
 
-                        if (projectURIs != null && !projectURIs.isEmpty()) {
-
-                            for (Iterator<URI> projectIterator = projectURIs.iterator(); projectIterator.hasNext();) {
-                                URI projectURI = projectIterator.next();
-
+                                // Create policy, if physical nas is eligible for provisioning!!
                                 if (storagesystem.getSystemType().equals(Type.isilon.toString())) {
 
                                     if (usePhysicalNAS) {

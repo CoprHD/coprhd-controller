@@ -20,6 +20,7 @@ import com.emc.storageos.db.client.model.Operation.Status;
 import com.emc.storageos.db.client.model.WorkflowStep;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
+import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 
 public class FileProtectionPolicyUpdateCompleter extends FilePolicyWorkflowCompleter {
 
@@ -44,11 +45,13 @@ public class FileProtectionPolicyUpdateCompleter extends FilePolicyWorkflowCompl
     protected void complete(DbClient dbClient, Status status, ServiceCoded coded) throws DeviceControllerException {
         FilePolicy filePolicy = dbClient.queryObject(FilePolicy.class, getId());
 
+        int numStepsFailed = 0;
+        int numPolicies = 0;
         List<WorkflowStep> workFlowSteps = getWorkFlowSteps(dbClient);
         if (workFlowSteps != null && !workFlowSteps.isEmpty()) {
             StringBuffer strErrorMsg = new StringBuffer();
             strErrorMsg.append("The following workflow step(s) failed :");
-            int numStepsFailed = 0;
+            numPolicies = workFlowSteps.size();
             for (WorkflowStep workFlowStep : workFlowSteps) {
                 if (workFlowStep.getState() != null && workFlowStep.getState().equalsIgnoreCase("error")) {
                     numStepsFailed++;
@@ -60,8 +63,20 @@ public class FileProtectionPolicyUpdateCompleter extends FilePolicyWorkflowCompl
             }
 
         }
+
         dbClient.updateObject(filePolicy);
-        setStatus(dbClient, status, coded);
+        // Update the task error, if the task failed!!!
+        if (numStepsFailed > 0) {
+            int successPolicies = numPolicies - numStepsFailed;
+            _log.error(String.format("Failed to Update %s storage policies and successfully updated %s policies", numStepsFailed,
+                    successPolicies));
+            ServiceError serviceError = DeviceControllerException.errors.updateDeviceProtectionPoliciesFailed(filePolicy.getId().toString(),
+                    numStepsFailed, successPolicies);
+            setStatus(dbClient, status, serviceError);
+        } else {
+            setStatus(dbClient, status, coded);
+        }
+
     }
 
     private List<WorkflowStep> getWorkFlowSteps(DbClient dbClient) {

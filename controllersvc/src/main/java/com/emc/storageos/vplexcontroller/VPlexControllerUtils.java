@@ -335,42 +335,6 @@ public class VPlexControllerUtils {
     }
 
     /**
-     * Returns the top-level supporting device name for a given storage volume native id,
-     * wwn, and backend array serial number.
-     * 
-     * @param volumeNativeId the storage volume's native id
-     * @param wwn the storage volume's wwn
-     * @param backendArraySerialNum the serial number of the backend array
-     * @param vplexUri the URI of the VPLEX device
-     * @param dbClient a reference to the database client
-     * 
-     * @return the name of the top level device for the given storage volume
-     * @throws VPlexApiException
-     */
-    @Deprecated
-    public static String getDeviceNameForStorageVolume(String volumeNativeId,
-            String wwn, String backendArraySerialNum, URI vplexUri, DbClient dbClient)
-            throws VPlexApiException {
-
-        String deviceName = null;
-        VPlexApiClient client = null;
-
-        try {
-            VPlexApiFactory vplexApiFactory = VPlexApiFactory.getInstance();
-            client = VPlexControllerUtils.getVPlexAPIClient(vplexApiFactory, vplexUri, dbClient);
-        } catch (URISyntaxException e) {
-            log.error("cannot load vplex api client", e);
-        }
-
-        if (null != client) {
-            deviceName = client.getDeviceForStorageVolume(volumeNativeId, wwn, backendArraySerialNum);
-        }
-
-        log.info("Device name for storage volume {} is {}", volumeNativeId, deviceName);
-        return deviceName;
-    }
-
-    /**
      * Gets the list of ITLs from the volume extensions
      * 
      * @param volume

@@ -29,7 +29,6 @@ import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.util.CommonTransformerFunctions;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
-import com.emc.storageos.util.ExportUtils;
 import com.emc.storageos.volumecontroller.BlockStorageDevice;
 import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.ControllerServiceImpl;
@@ -202,7 +201,6 @@ public class VNXeMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
 
             taskCompleter = new ExportOrchestrationTask(exportGroupURI, token);
 
-            checkForConsistentLunViolation(storage, exportGroup, initiatorURIs);
 
             Map<URI, Integer> volumes = selectExportMaskVolumes(exportGroup, storageURI);
             _log.info("Volumes  : {}", Joiner.on(",").join(volumes.keySet()));

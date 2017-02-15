@@ -8610,8 +8610,7 @@ class Bourne:
 
         o = self.api("PUT", URI_INITIATOR_ASSOCIATE.format(initiatorUri, associatedInitiatorUri),None)
         self.assert_is_dict(o)
-        s = self.api_sync_2(o['resource']['id'], o['op_id'], self.initiator_show_task)
-        return (o, s)
+        return (o)
         
     """
     Dissociate initiators operation
@@ -8620,8 +8619,7 @@ class Bourne:
         
         o = self.api("PUT", URI_INITIATOR_DISSOCIATE.format(initiatorUri),None)
         self.assert_is_dict(o)
-        s = self.api_sync_2(o['resource']['id'], o['op_id'], self.initiator_show_task)
-        return (o, s)
+        return (o)
 
     def initiator_list(self, host):
         uri = self.host_query(host)

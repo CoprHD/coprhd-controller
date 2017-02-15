@@ -14306,10 +14306,10 @@ lpar_host_update()
     
     host1=Non-LPAR-Host1
     
-    portwwn1=10:a1:b0:c0:d0:e0:f0:01
-    nodewwn1=20:a1:b0:c0:d0:e0:f0:01
-    portwwn2=30:a1:b0:c0:d0:e0:f0:03
-    nodewwn2=40:a1:b0:c0:d0:e0:f0:04
+    portwwn1=10:A1:B0:C0:D0:E0:F0:01
+    nodewwn1=20:A1:B0:C0:D0:E0:F0:01
+    portwwn2=30:A1:B0:C0:D0:E0:F0:03
+    nodewwn2=40:A1:B0:C0:D0:E0:F0:04
 
     #Create a normal host
     run hosts create ${host1} $tenant Linux ${host1}.lss.emc.com --port 2222 --username user --password 'password' --osversion 1.0

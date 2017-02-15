@@ -67,14 +67,12 @@ public class BackupUtils {
     }
 
     public static boolean isExternalServerConfigured() {
-       // Map<String, String> propInfo = ConfigPropertyUtils.getPropertiesFromCoordinator();
-       // return !(propInfo.get(ConfigProperty.BACKUP_EXTERNAL_URL).equals(""));
-        return false;
+        Map<String, String> propInfo = ConfigPropertyUtils.getPropertiesFromCoordinator();
+        return !(propInfo.get(ConfigProperty.BACKUP_EXTERNAL_URL).equals(""));
     }
 
     public static boolean isScheduledBackupEnabled() {
-        //Map<String, String> propInfo = ConfigPropertyUtils.getPropertiesFromCoordinator();
-       // return (propInfo.get(ConfigProperty.BACKUP_SCHEDULER_ENABLE).equals("true"));
-        return false;
+        Map<String, String> propInfo = ConfigPropertyUtils.getPropertiesFromCoordinator();
+        return (propInfo.get(ConfigProperty.BACKUP_SCHEDULER_ENABLE).equals("true"));
     }
 }

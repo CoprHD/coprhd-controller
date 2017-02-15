@@ -172,12 +172,12 @@ public class FileProvider extends BaseAssetOptionsProvider {
 
     @Asset("fileFilesystemSourceArray")
     @AssetDependencies("fileFilesystemAssociation")
-    public List<AssetOption> getFileFilesystemSourceArrayForAssociation(AssetOptionsContext ctx, URI fs) {
+    public List<AssetOption> getFileFilesystemSourceArrayForAssociation(AssetOptionsContext ctx, URI fsId) {
         ViPRCoreClient client = api(ctx);
         VirtualArrayRestRep vArray = null;
 
         List<AssetOption> options = Lists.newArrayList();
-        FileShareRestRep fsObj = client.fileSystems().get(fs);
+        FileShareRestRep fsObj = client.fileSystems().get(fsId);
         if (fsObj != null) {
             vArray = client.varrays().get(fsObj.getVirtualArray().getId());
             options.add(createBaseResourceOption(vArray));
@@ -208,7 +208,6 @@ public class FileProvider extends BaseAssetOptionsProvider {
     }
 
     @Asset("fileFilesystemWithPolicies")
-
     @AssetDependencies("project")
     public List<AssetOption> getFilesystemsWithPolicies(AssetOptionsContext ctx, URI project) {
         ViPRCoreClient client = api(ctx);
@@ -229,7 +228,6 @@ public class FileProvider extends BaseAssetOptionsProvider {
     }
 
     @Asset("fileSystemPolicies")
-
     @AssetDependencies({ "project", "fileFilesystemWithPolicies" })
     public List<AssetOption> getFileSystemPolicies(AssetOptionsContext ctx, URI project, URI fsId) {
         ViPRCoreClient client = api(ctx);

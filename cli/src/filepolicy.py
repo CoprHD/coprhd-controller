@@ -132,7 +132,7 @@ class FilePolicy(object):
         description,
         priority,
         num_worker_threads,
-	policyschedulefrequency,
+        policyschedulefrequency,
         policyschedulerepeat,
         policyscheduletime,
         policyscheduleweek,
@@ -184,25 +184,20 @@ class FilePolicy(object):
         policy_schedule['schedule_day_of_month'] = policyschedulemonth
 
         if type == 'file_replication':
-	    replication_params['replication_type'] = \
-                replicationtype
-            replication_params['replication_copy_mode'] = \
-                replicationcopymode
-            replication_params['replicate_configuration'] = \
-                replicationconfiguration
+            replication_params['replication_type'] = replicationtype
+            replication_params['replication_copy_mode'] = replicationcopymode
+            replication_params['replicate_configuration'] = replicationconfiguration
             replication_params['policy_schedule'] = policy_schedule
-	    create_request['priority'] = priority
-	    create_request['num_worker_threads'] = num_worker_threads
+            create_request['priority'] = priority
+            create_request['num_worker_threads'] = num_worker_threads
             create_request['replication_params'] = replication_params
-	elif type == 'file_snapshot':
+        elif type == 'file_snapshot':
             snapshot_expire_params['expire_type'] = snapshotexpiretype
             snapshot_expire_params['expire_value'] = snapshotexpirevalue
             if (snapshotnamepattern is None):
-		raise SOSError(SOSError.VALUE_ERR,"File policy create error:"+ "Snapshotshot name pattern should be provided")
-	    snapshot_params['snapshot_name_pattern'] = \
-                snapshotnamepattern
-            snapshot_params['snapshot_expire_params'] = \
-                snapshot_expire_params
+                raise SOSError(SOSError.VALUE_ERR,"File policy create error:"+ "Snapshotshot name pattern should be provided")
+            snapshot_params['snapshot_name_pattern'] = snapshotnamepattern
+            snapshot_params['snapshot_expire_params'] = snapshot_expire_params
             snapshot_params['policy_schedule'] = policy_schedule
             create_request['snapshot_params'] = snapshot_params
 
@@ -222,10 +217,11 @@ class FilePolicy(object):
 
     def filepolicy_update(
         self,
+        label,
         name,
-        tenants_access,
         description,
         priority,
+        num_worker_threads,
         policyschedulefrequency,
         policyschedulerepeat,
         policyscheduletime,
@@ -258,52 +254,78 @@ class FilePolicy(object):
         snapshotexpirevalue
         '''
 
-        filepolicy = self.filepolicy_query(name)
+        filepolicy = self.filepolicy_query(label)
 
+        (s, h) = common.service_json_request(
+                self.__ipAddr,
+                self.__port,
+                'GET',
+                FilePolicy.URI_FILE_POLICY_SHOW.format(filepolicy['id']),
+                None,
+                None,
+                False,
+                )
+        o = common.json_decode(s)
+        pol_type = common.get_node_value(o,"type")
         update_request = {}
-        update_request['policy_name'] = name
-        update_request['policy_description'] = description
-        update_request['priority'] = priority
-        update_request['is_access_to_tenants'] = tenants_access
-        update_request['apply_at'] = applyat
+        if name is not None:
+            update_request['policy_name'] = name
+        if description is not None:
+            update_request['policy_description'] = description
+        if priority is not None:
+            update_request['priority'] = priority
+        if applyat is not None:
+            update_request['apply_at'] = applyat
 
         policy_schedule = {}
         snapshot_params = {}
         replication_params = {}
         snapshot_expire_params = {}
 
-        policy_schedule['schedule_frequency'] = policyschedulefrequency
-        policy_schedule['schedule_repeat'] = policyschedulerepeat
-        policy_schedule['schedule_time'] = policyscheduletime
-        policy_schedule['schedule_day_of_week'] = policyscheduleweek
-        policy_schedule['schedule_day_of_month'] = policyschedulemonth
+        if policyschedulefrequency is not None:
+            policy_schedule['schedule_frequency'] = policyschedulefrequency
+        if policyschedulerepeat is not None:
+            policy_schedule['schedule_repeat'] = policyschedulerepeat
+        if policyscheduletime is not None:
+            policy_schedule['schedule_time'] = policyscheduletime
+        if policyscheduleweek is not None:
+            policy_schedule['schedule_day_of_week'] = policyscheduleweek
+        if policyschedulemonth is not None:
+            policy_schedule['schedule_day_of_month'] = policyschedulemonth
 
-        if type == 'file_replication':
-            replication_params['replication_type'] = \
-                replicationtype
-            replication_params['replication_copy_mode'] = \
-                replicationcopymode
-            replication_params['replicate_configuration'] = \
-                replicationconfiguration
-            replication_params['policy_schedule'] = policy_schedule
-        elif type == 'file_snapshot':
-            snapshot_expire_params['expire_type'] = snapshot_expire_type
-            snapshot_expire_value['expire_value'] = \
-                snapshot_expire_value
-            snapshot_params['snapshot_name_pattern'] = \
-                snapshotnamepattern
-            snapshot_params['snapshot_expire_params'] = \
-                snapshot_expire_params
-            snapshot_params['policy_schedule'] = policy_schedule
-
-        update_request['replication_params'] = \
-            replication_params
-        update_request['snapshot_params'] = snapshot_params
+        if pol_type == 'file_replication':
+            if replicationtype is not None:
+                replication_params['replication_type'] = replicationtype
+            if replicationcopymode is not None:
+                replication_params['replication_copy_mode'] = replicationcopymode
+            if replicationconfiguration is not None:
+                replication_params['replicate_configuration'] = replicationconfiguration
+            if policy_schedule is not None and (len(policy_schedule) >1):
+                replication_params['policy_schedule'] = policy_schedule
+            if priority is not None:
+                update_request['priority'] = priority
+            if num_worker_threads is not None:
+                update_request['num_worker_threads'] = num_worker_threads
+            if replication_params is not None and (len(replication_params) >1):
+                update_request['replication_params'] = replication_params
+        elif pol_type == 'file_snapshot':
+            if snapshotexpiretype is not None:
+                snapshot_expire_params['expire_type'] = snapshotexpiretype
+            if snapshotexpirevalue is not None:
+                snapshot_expire_params['expire_value'] = snapshotexpirevalue
+            if snapshotnamepattern is not None:
+                snapshot_params['snapshot_name_pattern'] = snapshotnamepattern
+            if snapshot_expire_params is not None and (len(snapshot_expire_params) >1):
+                snapshot_params['snapshot_expire_params'] = snapshot_expire_params
+            if policy_schedule is not None and (len(policy_schedule) >1):
+                snapshot_params['policy_schedule'] = policy_schedule
+            if snapshot_params is not None and (len(snapshot_params) >1):
+                update_request['snapshot_params'] = snapshot_params
 
         try:
-            body = json.dumps(create_request)
+            body = json.dumps(update_request)
             (s, h) = common.service_json_request(self.__ipAddr,
-                    self.__port, 'POST',
+                    self.__port, 'PUT',
                     FilePolicy.URI_FILE_POLICY_UPDATE.format(filepolicy['id']),
                     body)
             if not s:
@@ -313,7 +335,7 @@ class FilePolicy(object):
         except SOSError, e:
             errorMessage = str(e)
         if common.is_uri(filepolicy['id']):
-            errorMessage = str(e).replace(filepolicy['id'], name)
+            errorMessage = str(e).replace(filepolicy['id'], label)
         common.format_err_msg_and_raise('update', 'filepolicy',
                 errorMessage, e.err_code)
 
@@ -324,8 +346,8 @@ class FilePolicy(object):
         assign_to_vpools,
         project_assign_vpool,
         assign_to_projects,
-	source_varray,
-	target_varrays,
+        source_varray,
+        target_varrays,
         filesystem_assign_vpool,
         ):
 
@@ -710,7 +732,7 @@ def filepolicy_create(args):
                 args.tenants_access,
                 args.description,
                 args.priority,
-		args.num_worker_threads,
+                args.num_worker_threads,
                 args.policy_sched_frequnecy,
                 args.policy_schedule_repeat,
                 args.policy_schedule_time,
@@ -735,116 +757,107 @@ def update_parser(subcommand_parsers, common_parser):
             description='ViPR FilePolicy Update CLI usage.',
             parents=[common_parser], conflict_handler='resolve',
             help='Update a filepolicy')
-    mandatory_args = \
-        update_parser.add_argument_group('mandatory arguments')
+    mandatory_args = update_parser.add_argument_group('mandatory arguments')
     mandatory_args.add_argument(
-        '-name',
-        '-n',
-        metavar='<policy_name>',
-        dest='name',
-        help='Name of the policy',
+        '-existingpolname',
+        '-epn',
+        metavar='<existing_policy_name>',
+        dest='label',
+        help='Name of the existing policy to be changed',
         required=True,
         )
-    mandatory_args.add_argument(
-        '-type',
-        '-t',
-        metavar='<policy_type>',
-        dest='policy_type',
-        help='Type of the policy, valid values are : file_snapshot, file_replication, file_quota'
-            ,
-        required=True,
-        )
+    update_parser.add_argument('-name','-n',
+                               metavar='<policy_name>',
+                               dest='name',
+                               help='Name of the policy')
+    update_parser.add_argument('-apply_at','-aplat',
+                               metavar='<apply_at>',
+                               dest='apply_at',
+                               help='Level at which policy has to applied. Valid values are vpool, project, file_system')
     update_parser.add_argument('-description', '-dc',
                                metavar='<policy_description>',
                                dest='description',
                                help='Policy Description')
     update_parser.add_argument('-priority', '-pr', metavar='<priority>'
                                , dest='priority',
-                               help='Priority of the policy')
-
-    update_parser.add_argument('-policyschedulefrequency', '-plscfr',
-                               metavar='<policy_schedule_frequency>',
-                               dest='policy_sched_frequnecy',
-                               help='Type of schedule policy e.g days, weeks or months'
-                               )
-    update_parser.add_argument('-policyschedulerepeat', '-plscrp',
-                               metavar='<policy_schedule_repeat>',
-                               dest='policy_sched_repeat',
-                               help='Policy run on every')
-    update_parser.add_argument('-policyscheduletime', '-plsctm',
-                               metavar='<policy_schedule_time>',
-                               dest='policy_sched_time',
-                               help='Time when policy run')
+                               help='Priority of the policy',)
+    update_parser.add_argument('-num_worker_threads','-wt',
+                               metavar='<num_worker_threads>',
+                               dest='num_worker_threads',
+                               help = 'Number of worker threads',
+                               choices = xrange(3,10))
     update_parser.add_argument('-policyscheduleweek', '-plscwk',
                                metavar='<policy_schedule_week>',
-                               dest='policy_sched_week',
+                               dest='policy_schedule_week',
                                help='Day of week when policy run')
     update_parser.add_argument('-policyschedulemonth', '-plscmn',
                                metavar='<policy_schedule_month>',
-                               dest='policy_sched_month',
+                               dest='policy_schedule_month',
                                help='Day of month when policy run')
-
-    update_parser.add_argument('-replicationtype', '-reptype',
-                               metavar='<replication_type>',
-                               dest='replication_type',
-                               help='File Replication type Valid values are: LOCAL, REMOTE'
-                               )
-    update_parser.add_argument('-replicationcopymode', '-repcpmode',
-                               metavar='<replication_copy_mode>',
-                               dest='replication_copy_mode',
-                               help='File Replication copy type Valid values are: SYNC, ASYNC'
-                               )
-    update_parser.add_argument('-replicationconfiguration', '-repconf',
+    update_parser.add_argument('-replicationconfiguration','-repconf',
                                metavar='<replicate_configuration>',
                                dest='replicate_configuration',
-                               help='Whether to replicate File System configurations i.e CIFS shares, NFS Exports at the time of failover/failback. Default value is False'
-                               )
-
+                               help='Whether to replicate File System configurations i.e CIFS shares, NFS Exports at the time of failover/failback. Default value is False',
+                               choices=['True', 'False', 'true', 'false'])
     update_parser.add_argument('-snapshotnamepattern', '-snpnmptrn',
                                metavar='<snapshot_name_pattern>',
                                dest='snapshot_name_pattern',
                                help='Snapshot pattern ')
-    update_parser.add_argument('-snapshotexpiretype', '-snpexptp',
+    update_parser.add_argument('-snapshotexpiretype','-snpexptp',
                                metavar='<snapshot_expire_type>',
                                dest='snapshot_expire_type',
-                               help='Snapshot expire type e.g hours, days, weeks, months or never'
-                               )
+                               help='Snapshot expire type e.g hours, days, weeks, months or never',
+                               choices=['hours', 'days', 'weeks', 'months', 'never'])
     update_parser.add_argument('-snapshotexpirevalue', '-snpexpvl',
                                metavar='<snapshot_expire_value>',
                                dest='snapshot_expire_value',
                                help='Snapshot expire after this value')
-
-    mandatory_args.add_argument(
-        '-tenants_access',
-        '-ta',
-        metavar='<is_access_to_tenants>',
-        dest='tenants_access',
-        help='Tenants access',
-        required=False,
-        )
-
+    update_parser.add_argument('-policyschedulefrequency','-plscfr',
+                               metavar='<policy_schedule_frequency>',
+                               dest='policy_sched_frequnecy',
+                               help='Type of schedule policy e.g days, weeks or months')
+    update_parser.add_argument('-policyschedulerepeat','-plscrp',
+                               metavar='<policy_schedule_repeat>',
+                               dest='policy_schedule_repeat',
+                               help='Policy run on every')
+    update_parser.add_argument('-policyscheduletime','-plsctm',
+                               metavar='<policy_schedule_time>',
+                               dest='policy_schedule_time',
+                               help='Time when policy run')
+    update_parser.add_argument('-replicationtype','-reptype',
+                               metavar='<replication_type>',
+                               dest='replication_type',
+                               help='File Replication type Valid values are: LOCAL, REMOTE',
+                               choices=['LOCAL', 'REMOTE'])
+    update_parser.add_argument('-replicationcopymode','-repcpmode',
+                               metavar='<replication_copy_mode>',
+                               dest='replication_copy_mode',
+                               help='File Replication copy type Valid values are: SYNC, ASYNC',
+                               choices=['SYNC', 'ASYNC'])
     update_parser.set_defaults(func=filepolicy_update)
 
 
-def filepolicy_update(subcommand_parsers, common_parser):
+def filepolicy_update(args):
     obj = FilePolicy(args.ip, args.port)
     try:
         obj.filepolicy_update(
-            args.name,
-            args.tenants_access,
-            args.description,
-            args.priority,
-            args.policyschedulefrequency,
-            args.policyschedulerepeat,
-            args.policyscheduletime,
-            args.policyscheduleweek,
-            args.policyschedulemonth,
-            args.replication_type,
-            args.replication_copy_mode,
-            args.replicate_configuration,
-            args.snapshotnamepattern,
-            args.snapshotexpiretype,
-            args.snapshotexpirevalue,
+                args.label,
+                args.name,
+                args.description,
+                args.priority,
+                args.num_worker_threads,
+                args.policy_sched_frequnecy,
+                args.policy_schedule_repeat,
+                args.policy_schedule_time,
+                args.policy_schedule_week,
+                args.policy_schedule_month,
+                args.replication_type,
+                args.replication_copy_mode,
+                args.replicate_configuration,
+                args.snapshot_name_pattern,
+                args.snapshot_expire_type,
+                args.snapshot_expire_value,
+                args.apply_at,
             )
     except SOSError, e:
 

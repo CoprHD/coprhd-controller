@@ -3892,8 +3892,6 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
                 }
             }
 
-            checkForConsistentLunViolation(vplex, exportGroup, initiatorURIs);
-
             // Process each host separately.
             String previousStep = null;
             for (URI hostURI : hostInitiatorsMap.keySet()) {

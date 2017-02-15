@@ -3588,6 +3588,9 @@ test_29() {
     runcmd export_group update $PROJECT/${expname}1 --remVols "${PROJECT}/${VOLNAME}-1"
     runcmd export_group update $PROJECT/${expname}1 --remVols "${PROJECT}/${VOLNAME}-2"
 
+    echo "Sleep 60 seconds"
+    sleep 60
+
     # Create the same export group again
     runcmd export_group create $PROJECT ${expname}1 $NH --type Host --volspec "${PROJECT}/${VOLNAME}-1,${PROJECT}/${VOLNAME}-2" --hosts "${HOST1}"
 
@@ -3603,6 +3606,9 @@ test_29() {
     # Now remove initiators
     runcmd export_group update $PROJECT/${expname}1 --remInits ${HOST1}/${H1PI1}
     runcmd export_group update $PROJECT/${expname}1 --remInits ${HOST1}/${H1PI2}
+
+    echo "Sleep 60 seconds"
+    sleep 60
 
     # Create the same export group again
     runcmd export_group create $PROJECT ${expname}1 $NH --type Host --volspec "${PROJECT}/${VOLNAME}-1,${PROJECT}/${VOLNAME}-2" --hosts "${HOST1}"

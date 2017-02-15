@@ -113,14 +113,16 @@ public class CreateBlockVolumeForHostHelper extends CreateBlockVolumeHelper {
                 // Add the volume to the existing export
                 else {
                     BlockStorageUtils.addVolumesToExport(batchVolumeIds, hlu, export.getId(), new HashMap<URI, Integer>(), minPaths, maxPaths,
-                            pathsPerInitiator);
+                            pathsPerInitiator, portGroup);
                     // Since the existing export can also be an empty export, also check if the host/cluster is present in the export.
                     // If not, add them.
                     if (BlockStorageUtils.isEmptyExport(export)) {
                         if (cluster != null) {
-                            BlockStorageUtils.addClusterToExport(export.getId(), cluster.getId(), minPaths, maxPaths, pathsPerInitiator);
+                            BlockStorageUtils.addClusterToExport(export.getId(), cluster.getId(), minPaths, maxPaths,
+                                    pathsPerInitiator, portGroup);
                         } else {
-                            BlockStorageUtils.addHostToExport(export.getId(), host.getId(), minPaths, maxPaths, pathsPerInitiator);
+                            BlockStorageUtils.addHostToExport(export.getId(), host.getId(), minPaths, maxPaths,
+                                    pathsPerInitiator, portGroup);
                         }
                     }
                     logInfo("create.block.volume.update.export", export.getId());

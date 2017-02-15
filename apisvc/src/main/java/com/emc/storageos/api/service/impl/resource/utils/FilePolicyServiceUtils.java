@@ -57,7 +57,7 @@ public class FilePolicyServiceUtils {
      * @param errorMsg - error message
      * @return true/false
      */
-    public static boolean validatePolicySchdeuleParam(FilePolicyScheduleParams policyScheduleparams, FilePolicy schedulePolicy,
+    public static boolean validateAndUpdatePolicyScheduleParam(FilePolicyScheduleParams policyScheduleparams, FilePolicy schedulePolicy,
             StringBuilder errorMsg) {
 
         if (policyScheduleparams != null) {
@@ -133,7 +133,7 @@ public class FilePolicyServiceUtils {
                     break;
                 case MONTHS:
                     if (policyScheduleparams.getScheduleDayOfMonth() != null
-                    && policyScheduleparams.getScheduleDayOfMonth() > 0 && policyScheduleparams.getScheduleDayOfMonth() <= 31) {
+                            && policyScheduleparams.getScheduleDayOfMonth() > 0 && policyScheduleparams.getScheduleDayOfMonth() <= 31) {
                         schedulePolicy.setScheduleDayOfMonth((long) policyScheduleparams.getScheduleDayOfMonth());
                         schedulePolicy.setScheduleRepeat((long) policyScheduleparams.getScheduleRepeat());
                         schedulePolicy.setScheduleTime(policyScheduleparams.getScheduleTime() + period);
@@ -141,7 +141,7 @@ public class FilePolicyServiceUtils {
                             schedulePolicy.setScheduleDayOfWeek(NullColumnValueGetter.getNullStr());
                         }
                     } else {
-                        errorMsg.append("required parameter schedule_day_of_month is missing or value is invalid");
+                        errorMsg.append("Required parameter schedule_day_of_month is missing or value is invalid");
                         return false;
                     }
                     break;
@@ -167,6 +167,86 @@ public class FilePolicyServiceUtils {
             throw APIException.badRequests.invalidScheduleSnapshotExpireValue(expireTime, MIN_SNAPSHOT_EXPIRE_TIME,
                     MAX_SNAPSHOT_EXPIRE_TIME);
         }
+    }
+
+    /**
+     * Validates whether the snapshot or replication schedule policy parameters are valid or not
+     * 
+     * @param policyScheduleparams - schedule policy parameters
+     * @param schedulePolicy - schedulePolicy object to set schedule values
+     * @param errorMsg - error message
+     * @return true/false
+     */
+    public static boolean validatePolicyScheduleParam(FilePolicyScheduleParams policyScheduleparams, FilePolicy schedulePolicy,
+            StringBuilder errorMsg) {
+
+        if (policyScheduleparams != null) {
+
+            // check schedule frequency is valid or not
+            ArgValidator.checkFieldValueFromEnum(policyScheduleparams.getScheduleFrequency().toUpperCase(), "schedule_frequency",
+                    EnumSet.allOf(FilePolicy.ScheduleFrequency.class));
+
+            // validating schedule repeat period
+            if (policyScheduleparams.getScheduleRepeat() < 1) {
+                errorMsg.append("required parameter schedule_repeat is missing or value: " + policyScheduleparams.getScheduleRepeat()
+                        + " is invalid");
+                return false;
+            }
+
+            // validating schedule time
+            String period = " PM";
+            int hour;
+            int minute;
+            boolean isValid = true;
+            if (policyScheduleparams.getScheduleTime().contains(":")) {
+                String splitTime[] = policyScheduleparams.getScheduleTime().split(":");
+                hour = Integer.parseInt(splitTime[0]);
+                minute = Integer.parseInt(splitTime[1]);
+                if (splitTime[0].startsWith("-") || splitTime[1].startsWith("-")) {
+                    isValid = false;
+                }
+            } else {
+                hour = Integer.parseInt(policyScheduleparams.getScheduleTime());
+                minute = 0;
+            }
+            if (isValid && (hour >= 0 && hour < 24) && (minute >= 0 && minute < 60)) {
+                if (hour < 12) {
+                    period = " AM";
+                }
+            } else {
+                errorMsg.append("Schedule time: " + policyScheduleparams.getScheduleTime() + " is invalid");
+                return false;
+            }
+
+            ScheduleFrequency scheduleFreq = ScheduleFrequency.valueOf(policyScheduleparams.getScheduleFrequency().toUpperCase());
+            switch (scheduleFreq) {
+                case DAYS:
+                    break;
+                case WEEKS:
+                    if (policyScheduleparams.getScheduleDayOfWeek() != null && !policyScheduleparams.getScheduleDayOfWeek().isEmpty()) {
+                        List<String> weeks = Arrays.asList("monday", "tuesday", "wednesday", "thursday", "friday",
+                                "saturday", "sunday");
+                        if (!weeks.contains(policyScheduleparams.getScheduleDayOfWeek().toLowerCase())) {
+                            errorMsg.append("Schedule day of week: " + policyScheduleparams.getScheduleDayOfWeek() + " is invalid");
+                            return false;
+                        }
+                    } else {
+                        errorMsg.append("required parameter schedule_day_of_week is missing or empty");
+                        return false;
+                    }
+                    break;
+                case MONTHS:
+                    if (policyScheduleparams.getScheduleDayOfMonth() != null
+                            && policyScheduleparams.getScheduleDayOfMonth() <= 0 || policyScheduleparams.getScheduleDayOfMonth() > 31) {
+                        errorMsg.append("required parameter schedule_day_of_month is missing or value is invalid");
+                        return false;
+                    }
+                    break;
+                default:
+                    return false;
+            }
+        }
+        return true;
     }
 
     /**
@@ -411,6 +491,7 @@ public class FilePolicyServiceUtils {
             for (String strPolicy : project.getFilePolicies()) {
                 FilePolicy policy = dbClient.queryObject(FilePolicy.class, URI.create(strPolicy));
                 if (policy.getFilePolicyType().equalsIgnoreCase(FilePolicyType.file_replication.name())
+                        && policy.getFilePolicyVpool() != null && vpoolURI != null
                         && policy.getFilePolicyVpool().toString().equalsIgnoreCase(vpoolURI.toString())) {
                     _log.info("Replication policy found for vpool {} and project {}", vpoolURI.toString(), project.getLabel());
                     return true;

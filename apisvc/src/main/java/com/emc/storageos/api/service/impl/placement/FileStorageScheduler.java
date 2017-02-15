@@ -180,7 +180,9 @@ public class FileStorageScheduler implements Scheduler {
                     if (!fileRecommendations.isEmpty()) {
                         _log.info("Selected vNAS {} for placement",
                                 currvNAS.getNasName());
-                        break;
+                        if (!capabilities.getVpoolProjectPolicyAssign()) {
+                            break;
+                        }
                     }
                 }
             }
@@ -377,7 +379,8 @@ public class FileStorageScheduler implements Scheduler {
      * 6. Pick the overlapping StorageHADomian recommended by vPool.
      * 
      * @param vPool
-     * @param vArrayURI virtual array URI
+     * @param vArrayURI
+     *            virtual array URI
      * @param candidatePools
      * @param project
      * @return list of recommended storage ports for VNAS
@@ -390,12 +393,13 @@ public class FileStorageScheduler implements Scheduler {
 
         Map<VirtualNAS, List<StoragePool>> map = new LinkedHashMap<VirtualNAS, List<StoragePool>>();
 
-        _log.info(
-                "Get matching recommendations based on assigned VNAS to project {}",
-                project.getLabel());
-
-        List<VirtualNAS> vNASList = getVNASServersInProject(project, vArrayURI,
-                vPool, invalidNasServers);
+        List<VirtualNAS> vNASList = null;
+        if (project != null) {
+            _log.info(
+                    "Get matching recommendations based on assigned VNAS to project {}",
+                    project.getLabel());
+            vNASList = getVNASServersInProject(project, vArrayURI, vPool, invalidNasServers);
+        }
 
         if (vNASList == null || vNASList.isEmpty()) {
             _log.info(
@@ -451,7 +455,8 @@ public class FileStorageScheduler implements Scheduler {
     /**
      * Sort list of VNAS servers based on dynamic load on each VNAS
      * 
-     * @param vNASList list of VNAS servers
+     * @param vNASList
+     *            list of VNAS servers
      * 
      */
     private void sortVNASListOnDyanamicLoad(List<VirtualNAS> vNASList) {
@@ -492,7 +497,8 @@ public class FileStorageScheduler implements Scheduler {
     /**
      * Sort list of VNAS servers based on static load on each VNAS
      * 
-     * @param vNASList list of VNAS servers
+     * @param vNASList
+     *            list of VNAS servers
      * 
      */
     private void sortVNASListOnStaticLoad(List<VirtualNAS> vNASList) {
@@ -579,7 +585,7 @@ public class FileStorageScheduler implements Scheduler {
                     iterator.remove();
                     invalidNasServers.add(vNAS);
                 } else if (!vNAS.isNotAssignedToProject()) {
-                    if (!vNAS.getAssociatedProjects().contains(project.getId())) {
+                    if (project != null && !vNAS.getAssociatedProjects().contains(project.getId())) {
                         _log.info("Removing vNAS {} as it is assigned to project",
                                 vNAS.getNasName());
                         iterator.remove();
@@ -604,7 +610,8 @@ public class FileStorageScheduler implements Scheduler {
      * Get list of associated storage ports of VNAS server which are part of given virtual array.
      * 
      * @param vNAS
-     * @param vArrayURI virtual array
+     * @param vArrayURI
+     *            virtual array
      * @return spList
      * 
      */
@@ -635,7 +642,7 @@ public class FileStorageScheduler implements Scheduler {
                                         storagePort.getRegistrationStatus())
                         || (StoragePort.OperationalStatus.valueOf(storagePort
                                 .getOperationalStatus()))
-                                        .equals(StoragePort.OperationalStatus.NOT_OK)
+                                                .equals(StoragePort.OperationalStatus.NOT_OK)
                         || !DiscoveredDataObject.CompatibilityStatus.COMPATIBLE
                                 .name().equals(
                                         storagePort.getCompatibilityStatus())
@@ -905,7 +912,8 @@ public class FileStorageScheduler implements Scheduler {
             // TODO: normalize behavior across file arrays so that this check is
             // not required.
             // TODO: Implement fake storageHADomain for DD to fit the viPR model
-            // For unity, file system can be created only on vNas. There is no reason to find a matching HADomain if no vnas servers were
+            // For unity, file system can be created only on vNas. There is no reason to find a matching HADomain if no
+            // vnas servers were
             // found
             if (storage.getSystemType().equals(Type.unity.toString())) {
                 continue;
@@ -1007,15 +1015,24 @@ public class FileStorageScheduler implements Scheduler {
     /**
      * create fileshare from the Recommendation object
      * 
-     * @param param -file share create param
-     * @param task -task id
-     * @param taskList - task list
-     * @param project -project
-     * @param varray - Virtual Array
-     * @param vpool - Virtual Pool
-     * @param recommendations - recommendation structure
-     * @param cosCapabilities - Virtual pool wrapper
-     * @param createInactive - create device sync inactive
+     * @param param
+     *            -file share create param
+     * @param task
+     *            -task id
+     * @param taskList
+     *            - task list
+     * @param project
+     *            -project
+     * @param varray
+     *            - Virtual Array
+     * @param vpool
+     *            - Virtual Pool
+     * @param recommendations
+     *            - recommendation structure
+     * @param cosCapabilities
+     *            - Virtual pool wrapper
+     * @param createInactive
+     *            - create device sync inactive
      * @return
      */
     public List<FileShare> prepareFileSystems(FileSystemParam param, String task, TaskList taskList,
@@ -1096,9 +1113,12 @@ public class FileStorageScheduler implements Scheduler {
     /**
      * Convenience method to return a file from a task list with a pre-labeled fileshare.
      * 
-     * @param dbClient dbclient
-     * @param taskList task list
-     * @param label base label
+     * @param dbClient
+     *            dbclient
+     * @param taskList
+     *            task list
+     * @param label
+     *            base label
      * @return file object
      */
     public FileShare getPrecreatedFile(TaskList taskList, String label) {

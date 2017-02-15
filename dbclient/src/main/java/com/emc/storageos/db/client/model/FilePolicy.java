@@ -90,7 +90,7 @@ public class FilePolicy extends DataObjectWithACLs {
     }
 
     public static enum ScheduleFrequency {
-        DAYS, WEEKS, MONTHS
+        MINUTES, HOURS, DAYS, WEEKS, MONTHS
     }
 
     public static enum SnapshotExpireType {
@@ -107,6 +107,10 @@ public class FilePolicy extends DataObjectWithACLs {
 
     public static enum AssignToResource {
         all, selected
+    }
+
+    public static enum FilePolicyPriority {
+        HIGH, LOW;
     }
 
     @Name("fileReplicationType")

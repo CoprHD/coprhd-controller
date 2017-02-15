@@ -973,15 +973,25 @@ public class FilePolicyService extends TaskResourceService {
                             for (Iterator<String> iterator = sourceVArraysSet.iterator(); iterator.hasNext();) {
                                 String vArrayURI = iterator.next();
                                 VirtualArray srcVarray = _dbClient.queryObject(VirtualArray.class, URI.create(vArrayURI));
-                                List<FileRecommendation> newRecs = _filePlacementManager.getRecommendationsForFileCreateRequest(srcVarray,
-                                        null,
-                                        vpool, capabilities);
-                                if (newRecs != null && !newRecs.isEmpty()) {
-                                    associations.addAll(convertRecommendationsToStorageSystemAssociations(newRecs, filePolicy.getApplyAt(),
-                                            vpool.getId(), null));
+                                try {
+                                    List<FileRecommendation> newRecs = _filePlacementManager.getRecommendationsForFileCreateRequest(
+                                            srcVarray,
+                                            null,
+                                            vpool, capabilities);
+                                    if (newRecs != null && !newRecs.isEmpty()) {
+                                        // validate recommendations!!
+
+                                        associations.addAll(convertRecommendationsToStorageSystemAssociations(newRecs,
+                                                filePolicy.getApplyAt(), vpool.getId(), null));
+
+                                    }
+                                } catch (Exception ex) {
+                                    _log.error("No recommendations found for storage system {} and virtualArray {} with error {} ",
+                                            storageSystem, srcVarray.getLabel(), ex.getMessage());
+                                    // Continue to get the recommedations for next storage system!!
+                                    continue;
 
                                 }
-
                             }
                         }
 
@@ -1178,15 +1188,23 @@ public class FilePolicyService extends TaskResourceService {
                             for (URI projectURI : filteredProjectURIs) {
                                 Project project = _dbClient.queryObject(Project.class, projectURI);
                                 VirtualArray srcVarray = _dbClient.queryObject(VirtualArray.class, URI.create(vArrayURI));
-                                List<FileRecommendation> newRecs = _filePlacementManager.getRecommendationsForFileCreateRequest(srcVarray,
-                                        project,
-                                        vpool, capabilities);
-                                if (newRecs != null && !newRecs.isEmpty()) {
-                                    associations.addAll(convertRecommendationsToStorageSystemAssociations(newRecs, filePolicy.getApplyAt(),
-                                            vpool.getId(), projectURI));
+                                try {
+                                    List<FileRecommendation> newRecs = _filePlacementManager.getRecommendationsForFileCreateRequest(
+                                            srcVarray,
+                                            project,
+                                            vpool, capabilities);
+                                    if (newRecs != null && !newRecs.isEmpty()) {
+                                        associations
+                                                .addAll(convertRecommendationsToStorageSystemAssociations(newRecs, filePolicy.getApplyAt(),
+                                                        vpool.getId(), projectURI));
+                                    }
+                                } catch (Exception ex) {
+                                    _log.error("No recommendations found for storage system {} and virtualArray {} with error {} ",
+                                            storageSystem, srcVarray.getLabel(), ex.getMessage());
+                                    // Continue to get the recommedations for next storage system!!
+                                    continue;
 
                                 }
-
                             }
                         }
                     }

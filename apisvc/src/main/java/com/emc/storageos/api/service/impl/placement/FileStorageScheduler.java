@@ -149,57 +149,93 @@ public class FileStorageScheduler implements Scheduler {
         // should not be considered for file provisioning!!!
         List<VirtualNAS> invalidNasServers = new ArrayList<VirtualNAS>();
 
-        // Get the recommendation based on virtual nas servers
-        Map<VirtualNAS, List<StoragePool>> vNASPoolMap = getRecommendedVirtualNASBasedOnCandidatePools(
-                vPool, vArray.getId(), candidatePools, project, invalidNasServers);
+        boolean needTargetOnVirtualNAS = true;
+        VirtualNAS sourcevNAsServer = null;
+        if (capabilities.getPersonality() != null
+                && capabilities.getPersonality().equalsIgnoreCase(VirtualPoolCapabilityValuesWrapper.FILE_REPLICATION_TARGET)) {
+            // Get the source nas server, if no source vnas server, then need storage from physical nas server!!
+            URI sourceVNas = capabilities.getSourceVirtualNasServer();
+            if (sourceVNas == null) {
+                needTargetOnVirtualNAS = false;
+            } else {
+                sourcevNAsServer = _dbClient.queryObject(VirtualNAS.class, sourceVNas);
+                if (sourcevNAsServer == null || sourcevNAsServer.getInactive()) {
+                    needTargetOnVirtualNAS = false;
+                }
+            }
+        }
 
-        VirtualNAS currvNAS = null;
         List<FileRecommendation> fileRecommendations = new ArrayList<FileRecommendation>();
         List<FileRecommendation> recommendations = null;
 
-        if (!vNASPoolMap.isEmpty()) {
-            for (Entry<VirtualNAS, List<StoragePool>> eachVNASEntry : vNASPoolMap.entrySet()) {
-                // If No storage pools recommended!!!
-                if (eachVNASEntry.getValue().isEmpty()) {
-                    continue;
-                }
+        if (needTargetOnVirtualNAS) {
+            // Get the recommendation based on virtual nas servers
+            Map<VirtualNAS, List<StoragePool>> vNASPoolMap = getRecommendedVirtualNASBasedOnCandidatePools(
+                    vPool, vArray.getId(), candidatePools, project, invalidNasServers);
 
-                currvNAS = eachVNASEntry.getKey();
-                if (currvNAS != null) {
-                    _log.info("Best vNAS selected: {}", currvNAS.getNasName());
-                    List<StoragePool> recommendedPools = eachVNASEntry.getValue();
-
-                    // Get the recommendations for the current vnas pools.
-                    List<Recommendation> poolRecommendations = _scheduler
-                            .getRecommendationsForPools(vArray.getId().toString(),
-                                    recommendedPools, capabilities);
-                    // If we did not find pool recommendation for current vNAS
-                    // Pick the pools from next available vNas recommended pools!!!
-                    if (poolRecommendations.isEmpty()) {
-                        _log.info("Skipping vNAS {}, as pools are not having enough resources",
-                                currvNAS.getNasName());
+            VirtualNAS currvNAS = null;
+            if (!vNASPoolMap.isEmpty()) {
+                for (Entry<VirtualNAS, List<StoragePool>> eachVNASEntry : vNASPoolMap.entrySet()) {
+                    // If No storage pools recommended!!!
+                    if (eachVNASEntry.getValue().isEmpty()) {
                         continue;
                     }
 
-                    // Get the file recommendations for pool recommendation!!!
-                    recommendations = getFileRecommendationsForVNAS(currvNAS,
-                            vArray.getId(), vPool, poolRecommendations);
+                    currvNAS = eachVNASEntry.getKey();
+                    if (currvNAS != null) {
+                        if (capabilities.getPersonality() != null
+                                && capabilities.getPersonality()
+                                        .equalsIgnoreCase(VirtualPoolCapabilityValuesWrapper.FILE_REPLICATION_TARGET)) {
+                            if (sourcevNAsServer != null
+                                    && !sourcevNAsServer.getBaseDirPath().equalsIgnoreCase(currvNAS.getBaseDirPath())) {
+                                _log.info("Target Nas server path {} is not similar to source nas server {}, so ignoring this nas server",
+                                        currvNAS.getBaseDirPath(), sourcevNAsServer.getBaseDirPath());
+                                continue;
+                            }
+                        }
+                        _log.info("Best vNAS selected: {}", currvNAS.getNasName());
+                        List<StoragePool> recommendedPools = eachVNASEntry.getValue();
 
-                    if (!recommendations.isEmpty()) {
-                        fileRecommendations = recommendations;
-                        if (!capabilities.getVpoolProjectPolicyAssign()) {
+                        // Get the recommendations for the current vnas pools.
+                        List<Recommendation> poolRecommendations = _scheduler
+                                .getRecommendationsForPools(vArray.getId().toString(),
+                                        recommendedPools, capabilities);
+                        // If we did not find pool recommendation for current vNAS
+                        // Pick the pools from next available vNas recommended pools!!!
+                        if (poolRecommendations.isEmpty()) {
+                            _log.info("Skipping vNAS {}, as pools are not having enough resources",
+                                    currvNAS.getNasName());
+                            continue;
+                        }
 
-                            _log.info("Selected vNAS {} for placement",
-                                    currvNAS.getNasName());
-                            break;
-                        } else {
-                            // Policy assignment required to create the policy on all applicable vNAS servers!!!
-                            _log.info(" vNAS {} for Added to the list of recommendations",
-                                    currvNAS.getNasName());
+                        // Get the file recommendations for pool recommendation!!!
+                        recommendations = getFileRecommendationsForVNAS(currvNAS,
+                                vArray.getId(), vPool, poolRecommendations);
+
+                        if (!recommendations.isEmpty()) {
                             fileRecommendations.addAll(recommendations);
+                            if (!capabilities.getVpoolProjectPolicyAssign()) {
+                                _log.info("Selected vNAS {} for placement",
+                                        currvNAS.getNasName());
+                                break;
+                            } else {
+                                // Policy assignment required to create the policy on all applicable vNAS servers!!!
+                                _log.info(" vNAS {} for Added to the list of recommendations",
+                                        currvNAS.getNasName());
+                            }
                         }
                     }
                 }
+            }
+            // Source recommendation on virtual nas
+            // target also be placed on corresponding virtual nas
+            // No valid target recommendations
+            // so the entire source-target recommendation would be ignored!!!
+            if (capabilities.getPersonality() != null
+                    && capabilities.getPersonality().equalsIgnoreCase(VirtualPoolCapabilityValuesWrapper.FILE_REPLICATION_TARGET)
+                    && fileRecommendations.isEmpty()) {
+                _log.info("No target recommendations found for corresponding source vNAS ");
+                return fileRecommendations;
             }
         }
 

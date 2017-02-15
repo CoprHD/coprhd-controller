@@ -63,6 +63,7 @@ public class VirtualPoolCapabilityValuesWrapper implements Serializable {
     public static final String EXCLUDED_STORAGE_SYSTEM = "excluded_storage_system";
     public static final String FILE_TARGET_COPY_NAME = "file_target_copy_name";
     public static final String CHANGE_VPOOL_VOLUME = "changeVpoolVolume";
+    public static final String SOURCE_VIRTUAL_NAS_SERVER = "source_virtual_nas_server";
 
     // meta volume capabilities
     public static final String IS_META_VOLUME = "isMetaVolume";
@@ -431,6 +432,11 @@ public class VirtualPoolCapabilityValuesWrapper implements Serializable {
     public FileShare getSourceFileSystem() {
         Object value = _vpoolCapabilities.get(EXISTING_SOURCE_FILE_SYSTEM);
         return value != null ? (FileShare) value : null;
+    }
+
+    public URI getSourceVirtualNasServer() {
+        Object value = _vpoolCapabilities.get(SOURCE_VIRTUAL_NAS_SERVER);
+        return value != null ? (URI) value : null;
     }
 
     public StorageSystem getSourceStorageDevice() {

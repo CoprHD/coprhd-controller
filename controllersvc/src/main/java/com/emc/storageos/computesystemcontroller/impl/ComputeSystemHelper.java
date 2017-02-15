@@ -742,7 +742,8 @@ public class ComputeSystemHelper {
 
         if (!names.isEmpty()) {
             throw new Exception(
-                    "Datastore " + datastore.getName() + " contains " + vms.length + " Virtual Machines: " + Joiner.on(",").join(names));
+                    "Datastore " + datastore.getName() + " contains " + names.size() + " Virtual Machines running on host " + host.getName()
+                            + " and they are: " + Joiner.on(",").join(names));
         }
     }
 
@@ -750,7 +751,7 @@ public class ComputeSystemHelper {
      * Returns true if the virtual machine is running on the host
      * 
      * @param host the host to check
-     * @param vm the virtual machien to check
+     * @param vm the virtual machine to check
      * @return true if the virtual machine is running on the host, otherwise false
      */
     private static boolean isVirtualMachineRunningOnHost(HostSystem host, VirtualMachine vm) {

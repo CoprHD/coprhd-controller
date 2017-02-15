@@ -11,18 +11,9 @@
       type:"assetType.vipr.fileFilesystemAssociation",
       select:"one"
     },
-    
-    sourceVArray:{
-      type:"assetType.vipr.fileFilesystemSourceArray",
-    },
 
     filePolicy:{
       type:"assetType.vipr.fileFilePolicy",
-      select:"one"
-    }
-    
-    targetVArray:{
-      type:"assetType.vipr.fileVirtualArray",
       select:"one"
     }
   }

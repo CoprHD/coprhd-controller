@@ -15,6 +15,7 @@ import org.apache.commons.lang.math.NumberUtils;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.iwave.ext.command.HostRescanAdapter;
 import com.vmware.vim25.AlreadyExists;
 import com.vmware.vim25.DuplicateName;
 import com.vmware.vim25.HostConfigFault;
@@ -58,7 +59,7 @@ import com.vmware.vim25.mo.HostSystem;
  * 
  * @author jonnymiller
  */
-public class HostStorageAPI {
+public class HostStorageAPI implements HostRescanAdapter {
 
     private static final String VMW_PSP_RR = "VMW_PSP_RR";
     private static final String VMW_PSP_MRU = "VMW_PSP_MRU";
@@ -1172,5 +1173,10 @@ public class HostStorageAPI {
                 }
             }
         }
+    }
+
+    @Override
+    public void rescan() throws Exception {
+        rescanHBAs();
     }
 }

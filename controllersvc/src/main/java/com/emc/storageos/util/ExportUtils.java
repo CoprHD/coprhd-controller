@@ -1696,9 +1696,9 @@ public class ExportUtils {
      */
     public static void cleanStaleExportMasks(StorageSystem storage, Set<String> maskNamesFromArray, List<String> initiatorNames,
             DbClient dbClient) {
-
         Set<Initiator> initiators = ExportUtils.getInitiators(initiatorNames, dbClient);
         Set<ExportMask> staleExportMasks = new HashSet<>();
+        
         _log.info("Mask Names found in array:{} for the initiators: {}", maskNamesFromArray, initiatorNames);
         for (Initiator initiator : initiators) {
             URIQueryResultList emUris = new URIQueryResultList();
@@ -1723,6 +1723,7 @@ public class ExportUtils {
                 }
             }
         }
+        
         if (!CollectionUtils.isEmpty(staleExportMasks)) {
             dbClient.markForDeletion(staleExportMasks);
             _log.info("Deleted {} stale export masks from DB", staleExportMasks.size());

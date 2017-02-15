@@ -26,7 +26,6 @@ import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StorageProvider;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
-import com.emc.storageos.util.ConnectivityUtil;
 import com.emc.storageos.xtremio.restapi.XtremIOClient;
 import com.emc.storageos.xtremio.restapi.XtremIOClientFactory;
 import com.emc.storageos.xtremio.restapi.XtremIOConstants;
@@ -496,7 +495,7 @@ public class XtremIOProvUtils {
                 XtremIOClient xioClient = (XtremIOClient) xtremioRestClientFactory.getRESTClient(
                         URI.create(XtremIOConstants.getXIOBaseURI(provider.getIPAddress(), provider.getPortNumber())),
                         provider.getUserName(), provider.getPassword(), provider.getVersionString(), true);
-                if (ConnectivityUtil.ping(provider.getIPAddress()) && null != xioClient.getXtremIOXMSVersion()) {
+                if (null != xioClient.getXtremIOXMSVersion()) {
                     // Now update provider status based on connection live check.
                     provider.setConnectionStatus(StorageProvider.ConnectionStatus.CONNECTED
                             .toString());

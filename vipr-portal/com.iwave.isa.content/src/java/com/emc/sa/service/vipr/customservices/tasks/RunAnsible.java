@@ -77,7 +77,7 @@ public class RunAnsible  extends ViPRExecutionTask<CustomServicesTaskResult> {
         this.params = params;
         this.dbClient = dbClient;
 
-        orderDir = CustomServicesConstants.PATH + "CS" + ExecutionUtils.currentContext().getOrder().getOrderNumber();
+        orderDir = String.format("%s%s%s%s",CustomServicesConstants.PATH, "CS", ExecutionUtils.currentContext().getOrder().getOrderNumber(),"/");
 
     }
 
@@ -89,7 +89,7 @@ public class RunAnsible  extends ViPRExecutionTask<CustomServicesTaskResult> {
         final URI scriptid = step.getOperation();
         if (!createOrderDir(orderDir)) {
             logger.error("Failed to create Order directory:{}", orderDir);
-            return null;
+            throw InternalServerErrorException.internalServerErrors.customServiceExecutionFailed("Failed to create Order directory "+ orderDir);
         }
 
         final StepType type = StepType.fromString(step.getType());
@@ -116,10 +116,10 @@ public class RunAnsible  extends ViPRExecutionTask<CustomServicesTaskResult> {
                     final String scriptFileName;
 
                     if(StringUtils.isNotEmpty(script.getLabel())) {
-                        scriptFileName = orderDir + "/" + script.getLabel() + ".sh";
+                        scriptFileName = String.format("%s%s%s",orderDir, script.getLabel(), ".sh");
                     } else {
                         // handle cases where DB is corrupted and the label is not present in the CustomServiceScriptResource CF.
-                        scriptFileName = orderDir + "/" + "temp.sh";
+                        scriptFileName = String.format("%s%s", orderDir, "temp.sh");
                     }
 
                     final byte[] bytes = Base64.decodeBase64(script.getResource());
@@ -137,6 +137,7 @@ public class RunAnsible  extends ViPRExecutionTask<CustomServicesTaskResult> {
 
                     result = executeCmd(scriptFileName, inputToScript);
 
+                    //TODO: refactor after local ansible work
                     cleanUp(orderDir, false);
 
                     break;
@@ -145,7 +146,7 @@ public class RunAnsible  extends ViPRExecutionTask<CustomServicesTaskResult> {
                     final String hosts = getHostFile();
                     result = executeLocal(hosts, makeExtraArg(input), CustomServicesConstants.PATH +
                                 FilenameUtils.removeExtension("ansi.tar") + "/" + "helloworld.yml", "root");
-
+                    //TODO: refactor after local ansible work
                     cleanUp("ansi.tar", true);
                     break;
                 case REMOTE_ANSIBLE:

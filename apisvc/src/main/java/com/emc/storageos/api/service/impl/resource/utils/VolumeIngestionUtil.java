@@ -4839,17 +4839,33 @@ public class VolumeIngestionUtil {
      * 
      * @param unManagedVolume the UnManagedVolume being ingested
      * @param unManagedMasks the UnManagedExportMasks being ingested
+     * @param dbClient a reference to the database client
      */
     public static void validateUnManagedExportMasks(UnManagedVolume unManagedVolume, 
-            List<UnManagedExportMask> unManagedMasks) {
+            List<UnManagedExportMask> unManagedMasks, DbClient dbClient) {
         if (isVplexVolume(unManagedVolume)) {
             Map<String, Set<String>> initToMaskMap = new HashMap<String, Set<String>>();
+
             // vplex brownfield requires initiators to only be in one storage view.
-            // assemble a map of initiators to UnManagedExportMask paths
+            // assemble a Set of all initiator ports being masked to the ingesting unmanaged volume 
+            StringSet allInitiatorPortsBeingIngested = new StringSet();
             for (UnManagedExportMask mask : unManagedMasks) {
-                mapInitsToVplexStorageViews(initToMaskMap, mask, mask.getKnownInitiatorNetworkIds());
-                mapInitsToVplexStorageViews(initToMaskMap, mask, mask.getUnmanagedInitiatorNetworkIds());
+                allInitiatorPortsBeingIngested.addAll(mask.getKnownInitiatorNetworkIds());
+                allInitiatorPortsBeingIngested.addAll(mask.getUnmanagedInitiatorNetworkIds());
             }
+            URIQueryResultList result = new URIQueryResultList();
+            dbClient.queryByConstraint(ContainmentConstraint.Factory
+                    .getStorageSystemUnManagedExportMaskConstraint(unManagedVolume.getStorageSystemUri()), result);
+            Set<URI> allMasksUrisForVplex = new HashSet<URI>();
+            Iterator<URI> it = result.iterator();
+            while (it.hasNext()) {
+                allMasksUrisForVplex.add(it.next());
+            }
+            List<UnManagedExportMask> allMasksForVplex = dbClient.queryObject(UnManagedExportMask.class, allMasksUrisForVplex);
+            for (UnManagedExportMask mask: allMasksForVplex) {
+                mapInitsToVplexStorageViews(initToMaskMap, mask, allInitiatorPortsBeingIngested);
+            }
+
             _logger.info("initiator to UnManagedExportMask map is " + initToMaskMap);
             // filter out any initiator to mask entries that satisfy the requirements of 1 storage view per initiator
             Iterator<Entry<String, Set<String>>> mapEntries = initToMaskMap.entrySet().iterator();
@@ -4875,27 +4891,41 @@ public class VolumeIngestionUtil {
 
     /**
      * Maps a set of initiator port wwns to VPLEX UnManagedExportMask masking view paths that contain
-     * that port.  Ports can be in no more than one storage view on each VPLEX cluster to be valid 
+     * that port. Initiator ports can be in no more than one storage view on each VPLEX cluster to be valid 
      * for ingestion.
      * 
      * @param initToMaskMap a map of initiator port wwns to masking view paths that contain it
      * @param mask the UnManagedExportMask being processed
-     * @param portList a set of port wwns in the mask
+     * @param initPortList a set of initiator port wwns in the mask
      */
-    private static void mapInitsToVplexStorageViews(Map<String, Set<String>> initToMaskMap, UnManagedExportMask mask, StringSet portList) {
+    private static void mapInitsToVplexStorageViews(Map<String, Set<String>> initToMaskMap, UnManagedExportMask mask, StringSet initPortList) {
+
+        if (NullColumnValueGetter.isNullValue(mask.getMaskingViewPath()) 
+                || !mask.getMaskingViewPath().startsWith(VPlexApiConstants.URI_CLUSTERS_RELATIVE.toString())) {
+            _logger.warn("unexpected or invalid masking for validation: " + mask.getMaskingViewPath());
+            return;
+        }
+
         // path is in the format /clusters/cluster-1/exports/storage-views/V1_lglw7112lssemccom_001
         // where the second token will be the cluster name, which we can use to uniquely identify
         // the initiator port on each VPLEX cluster. trim off the leading / before splitting.
         String[] maskPathParts = mask.getMaskingViewPath().substring(1).split(VPlexApiConstants.SLASH);
         String maskClusterName = maskPathParts[1];
-        for (String initPort : portList) {
-            String initPortKey = maskClusterName + VPlexApiConstants.SLASH + initPort;
-            Set<String> maskSet = initToMaskMap.get(initPortKey);
-            if (null == maskSet) {
-                maskSet = new HashSet<String>();
-                initToMaskMap.put(initPortKey, maskSet);
+
+        StringSet allInitiatorForCurrentMask = new StringSet();
+        allInitiatorForCurrentMask.addAll(mask.getKnownInitiatorNetworkIds());
+        allInitiatorForCurrentMask.addAll(mask.getUnmanagedInitiatorNetworkIds());
+
+        for (String initPort : initPortList) {
+            if (allInitiatorForCurrentMask.contains(initPort)) {
+                String initPortKey = maskClusterName + VPlexApiConstants.SLASH + initPort;
+                Set<String> maskSet = initToMaskMap.get(initPortKey);
+                if (null == maskSet) {
+                    maskSet = new HashSet<String>();
+                    initToMaskMap.put(initPortKey, maskSet);
+                }
+                maskSet.add(mask.getMaskingViewPath());
             }
-            maskSet.add(mask.getMaskingViewPath());
         }
     }
 

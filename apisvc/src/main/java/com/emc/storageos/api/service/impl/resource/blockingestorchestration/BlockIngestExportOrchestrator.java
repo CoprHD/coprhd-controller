@@ -69,7 +69,7 @@ public abstract class BlockIngestExportOrchestrator extends ResourceService {
         try {
             _logger.info("Ingesting unmanaged masks {} for unmanaged volume {}",
                     Joiner.on(",").join(unManagedVolume.getUnmanagedExportMasks()), unManagedVolume.getNativeGuid());
-            VolumeIngestionUtil.validateUnManagedExportMasks(unManagedVolume, unManagedMasks);
+            VolumeIngestionUtil.validateUnManagedExportMasks(unManagedVolume, unManagedMasks, _dbClient);
             List<UnManagedExportMask> uemsToPersist = new ArrayList<UnManagedExportMask>();
             Iterator<UnManagedExportMask> itr = unManagedMasks.iterator();
 

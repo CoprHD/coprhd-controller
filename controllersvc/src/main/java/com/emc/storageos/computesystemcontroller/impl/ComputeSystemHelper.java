@@ -734,10 +734,7 @@ public class ComputeSystemHelper {
 
         if ((vms != null) && (vms.length > 0)) {
             for (VirtualMachine vm : vms) {
-                if (host != null && host.getConfig() != null && host.getConfig().getHost() != null
-                        && host.getConfig().getHost().getVal() != null && vm.getRuntime() != null
-                        && vm.getRuntime().getHost() != null
-                        && StringUtils.equalsIgnoreCase(host.getConfig().getHost().getVal(), vm.getRuntime().getHost().getVal())) {
+                if (isVirtualMachineRunningOnHost(host, vm)) {
                     names.add(vm.getName());
                 }
             }
@@ -747,6 +744,20 @@ public class ComputeSystemHelper {
             throw new Exception(
                     "Datastore " + datastore.getName() + " contains " + vms.length + " Virtual Machines: " + Joiner.on(",").join(names));
         }
+    }
+
+    /**
+     * Returns true if the virtual machine is running on the host
+     * 
+     * @param host the host to check
+     * @param vm the virtual machien to check
+     * @return true if the virtual machine is running on the host, otherwise false
+     */
+    private static boolean isVirtualMachineRunningOnHost(HostSystem host, VirtualMachine vm) {
+        return host != null && host.getConfig() != null && host.getConfig().getHost() != null
+                && host.getConfig().getHost().getVal() != null && vm.getRuntime() != null
+                && vm.getRuntime().getHost() != null
+                && StringUtils.equalsIgnoreCase(host.getConfig().getHost().getVal(), vm.getRuntime().getHost().getVal());
     }
 
     /**

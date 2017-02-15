@@ -13,6 +13,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -50,11 +51,11 @@ import com.emc.storageos.volumecontroller.placement.PlacementException;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
-import com.iwave.ext.vmware.VCenterAPI;
 import com.vmware.vim25.DatastoreSummary;
 import com.vmware.vim25.DatastoreSummaryMaintenanceModeState;
 import com.vmware.vim25.HostService;
 import com.vmware.vim25.mo.Datastore;
+import com.vmware.vim25.mo.HostSystem;
 import com.vmware.vim25.mo.VirtualMachine;
 
 public class ComputeSystemHelper {
@@ -706,13 +707,14 @@ public class ComputeSystemHelper {
     }
 
     /**
-     * Verify that datastore can be unmounted
+     * Verify that datastore can be unmounted from the given host
      * 
      * @param datastore the datastore to check
-     * @param vCenterApi the api for connecting to vCenter
+     * @param host the host to check for any running VMs on the given datastore
+     *
      * @throws Exception if an error occurs
      */
-    public static void verifyDatastore(Datastore datastore, VCenterAPI vCenterApi) throws Exception {
+    public static void verifyDatastore(Datastore datastore, HostSystem host) throws Exception {
         DatastoreSummary summary = datastore.getSummary();
         if (summary == null) {
             throw new Exception("Summary unavailable for datastore " + datastore.getName());
@@ -721,7 +723,7 @@ public class ComputeSystemHelper {
             throw new Exception("Datastore " + datastore.getName() + " is not accessible");
         }
         checkMaintenanceMode(datastore, summary);
-        checkVirtualMachines(datastore);
+        checkVirtualMachines(datastore, host);
     }
 
     /**
@@ -740,21 +742,43 @@ public class ComputeSystemHelper {
     }
 
     /**
-     * Checks if Virtual Machines are running on the datastore and fail if any are found
+     * Checks if Virtual Machines are running on the datastore and host, and fail if any are found
      * 
      * @param datastore the datastore to check
-     * @throws Exception if datastore contains any virtual machines
+     * @param host the host system to check
+     * @throws Exception if datastore contains any virtual machines on the host
      */
-    private static void checkVirtualMachines(Datastore datastore) throws Exception {
+    private static void checkVirtualMachines(Datastore datastore, HostSystem host) throws Exception {
         VirtualMachine[] vms = datastore.getVms();
+        Set<String> names = Sets.newTreeSet();
+
         if ((vms != null) && (vms.length > 0)) {
-            Set<String> names = Sets.newTreeSet();
             for (VirtualMachine vm : vms) {
-                names.add(vm.getName());
+                if (isVirtualMachineRunningOnHost(host, vm)) {
+                    names.add(vm.getName());
+                }
             }
-            throw new Exception(
-                    "Datastore " + datastore.getName() + " contains " + vms.length + " Virtual Machines: " + Joiner.on(",").join(names));
         }
+
+        if (!names.isEmpty()) {
+            throw new Exception(
+                    "Datastore " + datastore.getName() + " contains " + names.size() + " Virtual Machines running on host " + host.getName()
+                            + " and they are: " + Joiner.on(",").join(names));
+        }
+    }
+
+    /**
+     * Returns true if the virtual machine is running on the host
+     * 
+     * @param host the host to check
+     * @param vm the virtual machine to check
+     * @return true if the virtual machine is running on the host, otherwise false
+     */
+    private static boolean isVirtualMachineRunningOnHost(HostSystem host, VirtualMachine vm) {
+        return host != null && host.getConfig() != null && host.getConfig().getHost() != null
+                && host.getConfig().getHost().getVal() != null && vm.getRuntime() != null
+                && vm.getRuntime().getHost() != null
+                && StringUtils.equalsIgnoreCase(host.getConfig().getHost().getVal(), vm.getRuntime().getHost().getVal());
     }
 
     /**

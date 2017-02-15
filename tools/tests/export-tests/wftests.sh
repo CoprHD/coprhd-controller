@@ -318,6 +318,12 @@ vnx_setup() {
 
     SERIAL_NUMBER=`storagedevice list | grep COMPLETE | awk '{print $2}' | awk -F+ '{print $2}'`
     
+    driveType=""
+    if [ "${SIM}" = "1" ]
+    then
+        driveType="--drive_type SATA"
+    fi
+    
     # Chose thick because we need a thick pool for VNX metas
     # Choose SATA as drive type because simulator's non-Unified pool is SATA.
     run cos create block ${VPOOL_BASE}	\
@@ -325,8 +331,7 @@ vnx_setup() {
 	--protocols FC 			                \
 	--numpaths 2				            \
 	--multiVolumeConsistency \
-	--provisionType 'Thick'			        \
-	--drive_type 'SATA' \
+	--provisionType 'Thick'	${driveType}		        \
 	--max_snapshots 10                      \
 	--neighborhoods $NH  
 
@@ -335,8 +340,7 @@ vnx_setup() {
 	--protocols FC 			                \
 	--numpaths 4				            \
 	--multiVolumeConsistency \
-	--provisionType 'Thick'			        \
-    --drive_type 'SATA' \	
+	--provisionType 'Thick'	${driveType}		        \
 	--max_snapshots 10                      \
 	--neighborhoods $NH                    
 

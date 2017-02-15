@@ -15,7 +15,7 @@ DIAGCOLLECT_MAME="diagutils-`date +%Y%0m%0d%0k%0M%0S`"
 DIAGCOLLECT_LOG="/tmp/diagutils.out"
 DISK_USED_PERCENTAGE_WARNING_LIMIT=50
 DISK_USED_PERCENTAGE_TERMINATION_LIMIT=80
-MIN_CFS=(BlockConsistencyGroup BlockMirror BlockSnapshot Cluster ExportGroup ExportMask FCZoneReference Host Initiator Network NetworkSystem ProtectionSet ProtectionSystem StoragePort StorageSystem VirtualArray VirtualDataCenter VirtualPool Volume)
+MIN_CFS=(BlockConsistencyGroup BlockMirror BlockSnapshot Cluster ExportGroup ExportMask FCZoneReference Host Initiator Network NetworkSystem ProtectionSet ProtectionSystem StoragePort StorageProvider StorageSystem VirtualArray VirtualDataCenter VirtualPool Volume)
 LOG_DOWNLOAD_SERVICE_NAMES=(vasasvc portalsvc systemevents coordinatorsvc apisvc bkutils geosvc dbsvc authsvc controllersvc syssvc sasvc geodbsvc systemevents)
 
 
@@ -42,7 +42,7 @@ usage() {
     echo "                              '-ftp' and '-conf' are the only two other options allowed with conjunction with '-quick'"
     echo "       -ftp <ftp/ftps server url> -u <user name> -p <password>"
     echo "                              If specified, the output will be transferred to the external ftp/ftps server and removed from local storage after the transfer"
-    echo "                              Note: It's suggested to always dump the output to the FTP to retain space in ViPR nodes"
+    echo "                              Note: It's suggested to always transter the output to the FTP to retain space in ViPR nodes"
     echo "       -conf <config file>    If specified, diagutils will use the settings in config file(refer /opt/storageos/conf/diagutils-sample.conf) instead of the default settings"
     echo "For example:"
     echo "       $0 -all -ftp ftp://10.247.101.11/tmp -u usera -p xxx"

@@ -4471,10 +4471,10 @@ public class FileService extends TaskResourceService {
         Operation op = new Operation();
         op.setResourceType(ResourceOperationTypeEnum.ASSIGN_FILE_POLICY_TO_FILE_SYSTEM);
         op.setDescription("assign file policy to existing file system");
-        op = _dbClient.createTaskOpStatus(FilePolicy.class, filePolicy.getId(), task, op);
+        op = _dbClient.createTaskOpStatus(FileShare.class, fs.getId(), task, op);
 
-        TaskResourceRep filePolicyTask = toTask(filePolicy, task, op);
-        taskList.getTaskList().add(filePolicyTask);
+        TaskResourceRep fileShareTask = toTask(fs, task, op);
+        taskList.getTaskList().add(fileShareTask);
         StorageSystem device = _dbClient.queryObject(StorageSystem.class, fs.getStorageDevice());
 
         // prepare vpool capability values
@@ -4526,6 +4526,6 @@ public class FileService extends TaskResourceService {
         auditOp(OperationTypeEnum.CREATE_MIRROR_FILE_SYSTEM, true, AuditLogManager.AUDITOP_BEGIN, fs.getLabel(),
                 vpool.getLabel(), fs.getLabel(), project == null ? null : project.getId().toString());
 
-        return toTask(filePolicy, task, op);
+        return fileShareTask;
     }
 }

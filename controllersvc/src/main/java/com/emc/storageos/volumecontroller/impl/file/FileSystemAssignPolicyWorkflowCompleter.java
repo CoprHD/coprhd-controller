@@ -24,15 +24,15 @@ import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
  * 
  * @author Mudit Jain
  */
-public class FileSystemAssignPolicyWorkflowCompleter extends FilePolicyWorkflowCompleter {
+public class FileSystemAssignPolicyWorkflowCompleter extends FileWorkflowCompleter {
 
     private static final long serialVersionUID = 1L;
     protected static final Logger _log = LoggerFactory.getLogger(FilePolicyAssignWorkflowCompleter.class);
-    private List<URI> fsURIs;
+    private URI filePolicyURI;
 
     public FileSystemAssignPolicyWorkflowCompleter(URI filePolicy, List<URI> fsURIs, String task) {
-        super(filePolicy, task);
-        this.fsURIs = fsURIs;
+        super(fsURIs, task);
+        this.filePolicyURI = filePolicy;
     }
 
     @Override
@@ -53,20 +53,20 @@ public class FileSystemAssignPolicyWorkflowCompleter extends FilePolicyWorkflowC
 
     private FileShare getSourceFileSystem(DbClient dbClient) {
         FileShare fs = null;
-        if (fsURIs != null) {
-            for (URI id : fsURIs) {
-                FileShare fileSystem = dbClient.queryObject(FileShare.class, id);
-                if (fileSystem != null && !fileSystem.getInactive() && fileSystem.getPersonality() != null &&
-                        PersonalityTypes.SOURCE.name().equalsIgnoreCase(fileSystem.getPersonality())) {
-                    fs = fileSystem;
-                }
+
+        for (URI id : getIds()) {
+            FileShare fileSystem = dbClient.queryObject(FileShare.class, id);
+            if (fileSystem != null && !fileSystem.getInactive() && fileSystem.getPersonality() != null &&
+                    PersonalityTypes.SOURCE.name().equalsIgnoreCase(fileSystem.getPersonality())) {
+                fs = fileSystem;
             }
         }
+
         return fs;
     }
 
     private void updateFilePolicyResource(DbClient dbClient) {
-        FilePolicy filePolicy = dbClient.queryObject(FilePolicy.class, getId());
+        FilePolicy filePolicy = dbClient.queryObject(FilePolicy.class, filePolicyURI);
         if (filePolicy.getFilePolicyType().equals(FilePolicyType.file_snapshot.name())) {
             filePolicy.addAssignedResources(getIds().get(0));
             FileShare fileSystem = dbClient.queryObject(FileShare.class, getIds().get(0));

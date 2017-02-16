@@ -91,17 +91,29 @@ public class PxeIntegrationService {
 
     private String generateKickstartEsxEsxi(ComputeImageJob job, ComputeImage ci, ComputeImageServer imageServer) {
         log.info("generateKickstartEsxEsxi");
-        String clearDevice = "--firstdisk";
-        String installDevice = "--firstdisk";
+        // WJEIV TODO [DONE]: Remove these defaults. Define as null, and if null by the time you go to replace, throw an
+        // exception
+        String clearDevice = null;
+        String installDevice = null;
         String bootDeviceUuid = null;
         if (job.getBootDevice() != null) {
             if (ImageServerUtils.isUuid(job.getBootDevice())) {
                 bootDeviceUuid = ImageServerUtils.uuidFromString(job.getBootDevice()).toString().replaceAll("-", "");
             } else {
+                // WJEIV TODO: When would the boot device NOT be a uuid? We should be pretty specific here.
                 bootDeviceUuid = job.getBootDevice();
             }
             clearDevice = "--drives=naa." + bootDeviceUuid;
             installDevice = "--disk=naa." + bootDeviceUuid;
+        } else {
+            // If we can't find the boot device, it may be an issue with retrying the operation. Nevertheless,
+            // don't try to do anything else at this point.
+            throw ImageServerControllerException.exceptions.deviceNotKnown();
+        }
+
+        // Hardened code, ensure you have non-null clearDevice and installDevice, regardless of what happened above.
+        if (clearDevice == null || installDevice == null) {
+            throw ImageServerControllerException.exceptions.deviceNotKnown();
         }
 
         String str = null;

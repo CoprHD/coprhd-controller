@@ -51,6 +51,24 @@ public class SSHDialog {
         }
         return SSHPrompt.NOMATCH;
     }
+    
+    private void checkForException(String buf) throws NetworkDeviceControllerException {
+        _log.info("==========checkForException");
+        Pattern p = Pattern.compile("raise Exception\\(\\'.*\\'\\)");
+        Matcher m = p.matcher(buf);
+        boolean matches = m.matches();
+        if (matches) {
+            _log.info("==========checkForException - matches");
+            while (m.find()) {
+                _log.info("==========checkForException - found match");
+                String match = buf.substring(m.start(), m.end());
+                _log.info("==========checkForException - match: {}", match);
+                String message = match.substring(match.indexOf("'")+1, match.lastIndexOf("'"));
+                _log.info("==========checkForException - message: {}", message);
+                throw NetworkDeviceControllerException.exceptions.exceptionInResponse(message);
+            }
+        }
+    }
 
     /**
      * Wait for the occurrence of a prompt.
@@ -85,6 +103,7 @@ public class SSHDialog {
                         }
                         start = System.currentTimeMillis();
                         _log.debug("Checking for prompts in new input: " + String.valueOf(input));
+                        checkForException(buf.toString());
                         SSHPrompt px = checkForPrompt(buf.toString(), prompts);
                         _log.debug("Checking for prompts in new input only took " + (System.currentTimeMillis() - start));
                         if (px != SSHPrompt.NOMATCH) {
@@ -94,6 +113,7 @@ public class SSHDialog {
                     } else {
                         _log.debug("Reached EOF. Will check the full buffer for prompts");
                         start = System.currentTimeMillis();
+                        checkForException(buf.toString());
                         SSHPrompt px = checkForPrompt(buf.toString(), prompts);
                         _log.debug("Checking for prompts in the full buffer took " + (System.currentTimeMillis() - start));
                         if (px != SSHPrompt.NOMATCH) {

@@ -24,15 +24,15 @@ import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
  * 
  * @author Mudit Jain
  */
-public class FileSystemAssignPolicyWorkflowCompleter extends FileWorkflowCompleter {
+public class FileSystemAssignPolicyWorkflowCompleter extends FilePolicyWorkflowCompleter {
 
     private static final long serialVersionUID = 1L;
     protected static final Logger _log = LoggerFactory.getLogger(FilePolicyAssignWorkflowCompleter.class);
-    private URI filePolicyURI;
+    private List<URI> fsURIs;
 
-    public FileSystemAssignPolicyWorkflowCompleter(URI filePolicy, List<URI> fsUris, String task) {
-        super(fsUris, task);
-        this.filePolicyURI = filePolicy;
+    public FileSystemAssignPolicyWorkflowCompleter(URI filePolicy, List<URI> fsURIs, String task) {
+        super(filePolicy, task);
+        this.fsURIs = fsURIs;
     }
 
     @Override
@@ -53,29 +53,31 @@ public class FileSystemAssignPolicyWorkflowCompleter extends FileWorkflowComplet
 
     private FileShare getSourceFileSystem(DbClient dbClient) {
         FileShare fs = null;
-        for (URI id : getIds()) {
-            FileShare fileSystem = dbClient.queryObject(FileShare.class, id);
-            if (fileSystem != null && !fileSystem.getInactive() && fileSystem.getPersonality() != null &&
-                    PersonalityTypes.SOURCE.name().equalsIgnoreCase(fileSystem.getPersonality())) {
-                fs = fileSystem;
+        if (fsURIs != null) {
+            for (URI id : fsURIs) {
+                FileShare fileSystem = dbClient.queryObject(FileShare.class, id);
+                if (fileSystem != null && !fileSystem.getInactive() && fileSystem.getPersonality() != null &&
+                        PersonalityTypes.SOURCE.name().equalsIgnoreCase(fileSystem.getPersonality())) {
+                    fs = fileSystem;
+                }
             }
         }
         return fs;
     }
 
     private void updateFilePolicyResource(DbClient dbClient) {
-        FilePolicy filePolicy = dbClient.queryObject(FilePolicy.class, filePolicyURI);
+        FilePolicy filePolicy = dbClient.queryObject(FilePolicy.class, getId());
         if (filePolicy.getFilePolicyType().equals(FilePolicyType.file_snapshot.name())) {
             filePolicy.addAssignedResources(getIds().get(0));
             FileShare fileSystem = dbClient.queryObject(FileShare.class, getIds().get(0));
-            fileSystem.addFilePolicy(filePolicyURI);
+            fileSystem.addFilePolicy(getId());
             dbClient.updateObject(filePolicy);
             dbClient.updateObject(fileSystem);
         } else {
             FileShare fileSystem = getSourceFileSystem(dbClient);
             if (fileSystem != null) {
                 filePolicy.addAssignedResources(fileSystem.getId());
-                fileSystem.addFilePolicy(filePolicyURI);
+                fileSystem.addFilePolicy(getId());
                 dbClient.updateObject(filePolicy);
                 dbClient.updateObject(fileSystem);
             }

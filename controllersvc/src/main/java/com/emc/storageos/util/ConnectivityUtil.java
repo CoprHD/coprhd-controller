@@ -5,7 +5,6 @@
 package com.emc.storageos.util;
 
 import java.io.IOException;
-import java.net.InetAddress;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -1103,13 +1102,10 @@ public class ConnectivityUtil {
      * @return
      */
     public static boolean ping(String resource) {
-         try {
-             InetAddress address = InetAddress.getByName(resource);
-             return address.isReachable(PING_TIMEOUT);
-        } catch (IOException e) {
-            _log.error("Error pinging endpoint " + resource);
-            _log.error(e.getMessage(), e);
+        try {
+            return (java.lang.Runtime.getRuntime().exec("ping -c 1 "+resource).waitFor()==0);
+        } catch (IOException | InterruptedException e) {
+            return false;
         }
-        return false;
     }
 }

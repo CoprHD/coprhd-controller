@@ -501,6 +501,9 @@ public class RemoteReplicationDeviceController implements RemoteReplicationContr
 
             rrPair.setSourceElement(new NamedURI(sourceDescriptor.getVolumeURI(), RemoteReplicationPair.ElementType.VOLUME.toString()));
             rrPair.setTargetElement(new NamedURI(targetURI, RemoteReplicationPair.ElementType.VOLUME.toString()));
+            Volume volume = dbClient.queryObject(Volume.class, sourceDescriptor.getVolumeURI());
+            rrPair.setTenant(volume.getTenant());
+            rrPair.setProject(volume.getProject());
             _log.info("Remote Replication Pair {} ", rrPair);
 
             rrPairs.add(rrPair);

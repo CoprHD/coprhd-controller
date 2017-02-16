@@ -77,6 +77,8 @@ public class RemoteReplicationMapper {
         if (from.getReplicationGroup() != null) {
             to.setReplicationGroup(toRelatedResource(ResourceTypeEnum.REMOTE_REPLICATION_GROUP, from.getReplicationGroup()));
         }
+        to.setTenant(toRelatedResource(ResourceTypeEnum.TENANT, from.getTenant().getURI()));
+        to.setProject(toRelatedResource(ResourceTypeEnum.PROJECT, from.getProject().getURI()));
 
         return to;
     }

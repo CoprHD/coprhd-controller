@@ -124,6 +124,8 @@ com.emc.storageos.api.service.impl.resource.KeystoneService
 =Remote Replication Services
 com.emc.storageos.api.service.impl.resource.remotereplication.RemoteReplicationSetService
 com.emc.storageos.api.service.impl.resource.remotereplication.RemoteReplicationGroupService
+com.emc.storageos.api.service.impl.resource.remotereplication.RemoteReplicationPairService
+com.emc.storageos.api.service.impl.resource.remotereplication.RemoteReplicationManagementService
 
 =Other Services
 com.emc.storageos.api.service.impl.resource.AuditService

@@ -6,8 +6,8 @@
 package com.emc.storageos.svcs.errorhandling.annotations;
 
 import static java.text.MessageFormat.format;
-import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
@@ -55,6 +55,8 @@ public class MessageBundleTest extends AbstractBundleTest {
     @Test
     public void messagesWithoutMethods() {
         final Set<String> failures = new TreeSet<String>();
+
+        System.out.println("Message bundle: " + baseClass);
 
         final ResourceBundle bundle = MessageUtils.bundleForClass(baseClass);
         final Method[] methods = baseClass.getDeclaredMethods();

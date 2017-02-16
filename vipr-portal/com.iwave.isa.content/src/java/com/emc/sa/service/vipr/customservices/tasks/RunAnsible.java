@@ -77,7 +77,7 @@ public class RunAnsible  extends ViPRExecutionTask<CustomServicesTaskResult> {
         this.params = params;
         this.dbClient = dbClient;
 
-        orderDir = String.format("%s%s%s%s",CustomServicesConstants.PATH, "CS", ExecutionUtils.currentContext().getOrder().getOrderNumber(),"/");
+        orderDir = String.format("%sCS%s/", CustomServicesConstants.PATH, ExecutionUtils.currentContext().getOrder().getOrderNumber());
 
     }
 
@@ -113,14 +113,9 @@ public class RunAnsible  extends ViPRExecutionTask<CustomServicesTaskResult> {
                         throw InternalServerErrorException.internalServerErrors.customServiceExecutionFailed(primitive.getScript() + " not found in DB");
                     }
 
-                    final String scriptFileName;
 
-                    if(StringUtils.isNotEmpty(script.getLabel())) {
-                        scriptFileName = String.format("%s%s%s",orderDir, script.getLabel(), ".sh");
-                    } else {
-                        // handle cases where DB is corrupted and the label is not present in the CustomServiceScriptResource CF.
-                        scriptFileName = String.format("%s%s", orderDir, "temp.sh");
-                    }
+                    //Currently, the stepId is set to random hash values in the UI. If this changes then we have to change the following to generate filename with URI from step.getOperation()
+                    final String scriptFileName = String.format("%s%s.sh",orderDir, step.getId());
 
                     final byte[] bytes = Base64.decodeBase64(script.getResource());
                     try (FileOutputStream fileOuputStream = new FileOutputStream(scriptFileName)) {

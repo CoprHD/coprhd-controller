@@ -436,52 +436,6 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
     }
 
     @Override
-    public void synchronizeSharedExports(URI clusterId, String taskId)
-            throws ControllerException {
-        TaskCompleter completer = null;
-        try {
-            completer = new ClusterCompleter(clusterId, false, taskId);
-            Workflow workflow = _workflowService.getNewWorkflow(this, SYNCHRONIZE_SHARED_EXPORTS_WF_NAME, true, taskId);
-            String waitFor = null;
-
-            List<URI> clusterHostIds = ComputeSystemHelper.getChildrenUris(_dbClient, clusterId, Host.class, "cluster");
-            List<URI> exportGroups = Lists.newArrayList();
-
-            // 1. For hosts in this cluster, remove them from other shared exports that don't belong to this current
-            // cluster
-            // WJEIV: TODO This is doing something that we didn't ask it to do for the "benefit" of reconciling our
-            // internal database. There may be unintended side-effects associated with this and should be
-            // revisited/removed.
-            for (URI hostId : clusterHostIds) {
-                List<Initiator> hostInitiators = ComputeSystemHelper.queryInitiators(_dbClient, hostId);
-                for (ExportGroup exportGroup : getExportGroups(_dbClient, hostId, hostInitiators)) {
-                    if (exportGroup.forCluster() && !exportGroup.hasCluster(clusterId)) {
-                        _log.info("Export " + exportGroup.getId() + " contains reference to host " + hostId
-                                + ". Will remove this host from the export");
-                        exportGroups.add(exportGroup.getId());
-                    }
-                }
-            }
-            for (URI export : exportGroups) {
-                waitFor = addStepsForRemoveHostFromExport(workflow, waitFor, clusterHostIds, export);
-            }
-
-            // WJEIV TODO: Let's figure out what precipitated the need for this synchronziation call here
-            // The concern is that this will end up running operations like add/remove hsot on the array
-            // on hosts that weren't requested. Seems like the requests should be delta-based and very specific,
-            // and not just "synchronize everything".
-            waitFor = addStepsForSynchronizeClusterExport(workflow, waitFor, clusterHostIds, clusterId);
-
-            workflow.executePlan(completer, "Success", null, null, null, null);
-        } catch (Exception ex) {
-            String message = "synchronizeSharedExports caught an exception.";
-            _log.error(message, ex);
-            ServiceError serviceError = DeviceControllerException.errors.jobFailed(ex);
-            completer.error(_dbClient, serviceError);
-        }
-    }
-
-    @Override
     public void addHostsToExport(URI eventId, List<URI> hostIds, URI clusterId, String taskId, URI oldCluster, boolean isVcenter)
             throws ControllerException {
         HostCompleter completer = null;

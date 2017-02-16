@@ -60,22 +60,17 @@ import com.google.gson.Gson;
 @Service("CustomServicesService")
 public class CustomServicesService extends ViPRService {
 
-    private Map<String, Object> params;
-    private String oeOrderJson;
-
-    @Autowired
-    private DbClient dbClient;
-    
-    //<StepId, {"key" : "values...", "key" : "values ..."} ...>
+    private static final org.slf4j.Logger logger = LoggerFactory.getLogger(CustomServicesService.class);
+    // <StepId, {"key" : "values...", "key" : "values ..."} ...>
     final private Map<String, Map<String, List<String>>> inputPerStep = new HashMap<String, Map<String, List<String>>>();
     final private Map<String, Map<String, List<String>>> outputPerStep = new HashMap<String, Map<String, List<String>>>();
-
+    private Map<String, Object> params;
+    private String oeOrderJson;
+    @Autowired
+    private DbClient dbClient;
     private ImmutableMap<String, Step> stepsHash;
-
-    private static final org.slf4j.Logger logger = LoggerFactory.getLogger(CustomServicesService.class);
     private CustomServicesWorkflowDocument obj;
     private int code;
-
 
     @Override
     public void precheck() throws Exception {
@@ -83,6 +78,7 @@ public class CustomServicesService extends ViPRService {
         // get input params from order form
         params = ExecutionUtils.currentContext().getParameters();
         final String raw = ExecutionUtils.currentContext().getOrder().getWorkflowDocument();
+        
         if( null == raw) {
             throw InternalServerErrorException.internalServerErrors.
                     customServiceExecutionFailed("Invalid custom service.  Workflow document cannot be null");
@@ -90,7 +86,7 @@ public class CustomServicesService extends ViPRService {
 
         obj = WorkflowHelper.toWorkflowDocument(raw);
         final List<Step> steps = obj.getSteps();
-        final ImmutableMap.Builder builder=new ImmutableMap.Builder();
+        final ImmutableMap.Builder<String, Step> builder = ImmutableMap.builder();
         for (final Step step : steps) {
             builder.put(step.getId(), step);
         }
@@ -122,9 +118,10 @@ public class CustomServicesService extends ViPRService {
         logger.info("Parsing Workflow Definition");
         
         ExecutionUtils.currentContext().logInfo("customServicesService.status", obj.getName(), obj.getDescription());
+
         Step step = stepsHash.get(StepType.START.toString());
         String next = step.getNext().getDefaultStep();
-	    long timeout = System.currentTimeMillis();
+        long timeout = System.currentTimeMillis();
         while (next != null && !next.equals(StepType.END.toString())) {
             step = stepsHash.get(next);
 
@@ -138,36 +135,40 @@ public class CustomServicesService extends ViPRService {
                 StepType type = StepType.fromString(step.getType());
                 switch (type) {
                     case VIPR_REST: {
-			//TODO move this outside the try after we have primitives for others. Except Remote Ansible
-            		Primitive primitive = PrimitiveHelper.get(step.getOperation());
+                        // TODO move this outside the try after we have primitives for others. Except Remote Ansible
+                        Primitive primitive = PrimitiveHelper.get(step.getOperation());
 
-            		if( null == primitive) {
-                		throw InternalServerErrorException.internalServerErrors.
-                        		customServiceExecutionFailed("Primitive not found: " + step.getOperation());
-           		 }
-		
+                        if (null == primitive) {
+                            throw InternalServerErrorException.internalServerErrors
+                                    .customServiceExecutionFailed("Primitive not found: " + step.getOperation());
+                        }
+
                         res = ViPRExecutionUtils.execute(new RunViprREST((ViPRPrimitive) (primitive),
                                 getClient().getRestClient(), inputPerStep.get(step.getId())));
 
                         break;
                     }
                     case REST: {
-                        //TODO implement other REST Execution
+                        // TODO implement other REST Execution
                         res = null;
                         break;
                     }
                     case LOCAL_ANSIBLE:
                     case SHELL_SCRIPT:
+                        res = ViPRExecutionUtils.execute(new RunAnsible(step, inputPerStep.get(step.getId()), params, dbClient));
+                        logger.error("Result from shell script execution", step.getType());
+
+                        break;
                     case REMOTE_ANSIBLE: {
-                        res = ViPRExecutionUtils.execute(new RunAnsible(step, inputPerStep.get(step.getId()), params));
+                        res = ViPRExecutionUtils.execute(new RunAnsible(step, inputPerStep.get(step.getId()), params, dbClient));
 
                         break;
                     }
                     default:
                         logger.error("Operation Type Not found. Type:{}", step.getType());
 
-                        throw InternalServerErrorException.internalServerErrors.
-                                customServiceExecutionFailed("Operation Type not supported" + type);
+                        throw InternalServerErrorException.internalServerErrors
+                                .customServiceExecutionFailed("Operation Type not supported" + type);
                 }
                 boolean isSuccess = isSuccess(step, res);
                 if (isSuccess) {
@@ -181,7 +182,7 @@ public class CustomServicesService extends ViPRService {
                 }
                 next = getNext(isSuccess, res, step);
             } catch (final Exception e) {
-		logger.info("failed to execute step. Try to get rollback step");
+                logger.info("failed to execute step. Try to get rollback step");
                 next = getNext(false, null, step);
             }
 
@@ -189,25 +190,23 @@ public class CustomServicesService extends ViPRService {
                 throw InternalServerErrorException.internalServerErrors.customServiceExecutionFailed("Failed to get next step");
             }
             if ((System.currentTimeMillis() - timeout) > CustomServicesConstants.TIMEOUT) {
-                throw InternalServerErrorException.internalServerErrors.
-                        customServiceExecutionFailed("Operation Timed out");
+                throw InternalServerErrorException.internalServerErrors.customServiceExecutionFailed("Operation Timed out");
             }
         }
     }
 
-    private boolean isSuccess(Step step, CustomServicesTaskResult result)
-    {
+    private boolean isSuccess(Step step, CustomServicesTaskResult result) {
         if (result == null)
             return false;
-	//TODO commented this till I fix evaluation from the primitive
-	return true;
-	/*
-        if (step.getSuccessCriteria() == null) {
-            return evaluateDefaultValue(step, result.getReturnCode());
-        } else {
-            return findStatus(step.getSuccessCriteria(), result);
-        }
-	*/
+        // TODO commented this till I fix evaluation from the primitive
+        return true;
+        /*
+         * if (step.getSuccessCriteria() == null) {
+         * return evaluateDefaultValue(step, result.getReturnCode());
+         * } else {
+         * return findStatus(step.getSuccessCriteria(), result);
+         * }
+         */
     }
 
     private String getNext(final boolean status, final CustomServicesTaskResult result, final Step step) {
@@ -240,7 +239,7 @@ public class CustomServicesService extends ViPRService {
 
         final Map<String, List<String>> inputs = new HashMap<String, List<String>>();
 
-        for(final Input value : input) {
+        for (final Input value : input) {
             final String name = value.getName();
 
             switch (InputType.fromString(value.getType())) {
@@ -272,8 +271,8 @@ public class CustomServicesService extends ViPRService {
                         logger.info("value is:{}", stepInput.get(attribute));
                         if (stepInput.get(attribute) != null) {
                             inputs.put(name, stepInput.get(attribute));
-			                break;
-                        }   
+                            break;
+                        }
                     }
                     if (value.getDefaultValue() != null) {
                         inputs.put(name, Arrays.asList(value.getDefaultValue()));
@@ -282,23 +281,21 @@ public class CustomServicesService extends ViPRService {
                     }
                 }
                 default:
-                    throw InternalServerErrorException.internalServerErrors.
-                            customServiceExecutionFailed("Invalid input type:" + value.getType());
+                    throw InternalServerErrorException.internalServerErrors
+                            .customServiceExecutionFailed("Invalid input type:" + value.getType());
             }
         }
 
         inputPerStep.put(step.getId(), inputs);
     }
- 
-    private List<String> evaluateAnsibleOut(final String result, final String key) throws Exception
-    {
+
+    private List<String> evaluateAnsibleOut(final String result, final String key) throws Exception {
         final List<String> out = new ArrayList<String>();
 
         final JsonNode arrNode = new ObjectMapper().readTree(result).get(key);
 
         if (arrNode.isNull()) {
-            throw InternalServerErrorException.internalServerErrors.
-                    customServiceExecutionFailed("Could not parse the output" + key);
+            throw InternalServerErrorException.internalServerErrors.customServiceExecutionFailed("Could not parse the output" + key);
         }
 
         if (arrNode.isArray()) {
@@ -311,7 +308,6 @@ public class CustomServicesService extends ViPRService {
 
         return out;
     }
-    
 
     /**
      * Parse REST Response and get output values as specified by the user in the workflow definition
@@ -326,32 +322,32 @@ public class CustomServicesService extends ViPRService {
      */
     private void updateOutputPerStep(final Step step, final String result) throws Exception {
         final List<CustomServicesWorkflowDocument.Output> output = step.getOutput();
-        if (output == null) 
+        if (output == null)
             return;
 
         final Map<String, List<String>> out = new HashMap<String, List<String>>();
 
-        for(CustomServicesWorkflowDocument.Output o : output) {
+        for (CustomServicesWorkflowDocument.Output o : output) {
             if (isAnsible(step)) {
                 out.put(o.getName(), evaluateAnsibleOut(result, o.getName()));
             } else {
-		//TODO: Remove this after parsing output is fully implemented
-                //out.put(o.getName(), evaluateValue(result, o.getName()));
-		return;
+                // TODO: Remove this after parsing output is fully implemented
+                // out.put(o.getName(), evaluateValue(result, o.getName()));
+                return;
             }
         }
 
         outputPerStep.put(step.getId(), out);
     }
 
-    private boolean isAnsible(final Step step)
-    {
+    private boolean isAnsible(final Step step) {
         if (step.getType().equals(StepType.LOCAL_ANSIBLE.toString()) || step.getType().equals(StepType.REMOTE_ANSIBLE.toString())
                 || step.getType().equals(StepType.SHELL_SCRIPT.toString()))
             return true;
 
         return false;
     }
+
     /**
      * Evaluate
      *
@@ -367,7 +363,7 @@ public class CustomServicesService extends ViPRService {
             return false;
         }
 
-        //TODO get returncode for REST API from DB. Now it is hard coded.
+        // TODO get returncode for REST API from DB. Now it is hard coded.
         int code = 200;
         if (returnCode == code)
             return true;
@@ -403,7 +399,8 @@ public class CustomServicesService extends ViPRService {
 
             String[] values = value.split("task.", 2);
             if (values.length != 2) {
-                throw InternalServerErrorException.internalServerErrors.customServiceExecutionFailed("Cannot evaluate values with statement:" + value);
+                throw InternalServerErrorException.internalServerErrors
+                        .customServiceExecutionFailed("Cannot evaluate values with statement:" + value);
             }
             value = values[1];
             Expression expr = parser.parseExpression(value);
@@ -417,7 +414,7 @@ public class CustomServicesService extends ViPRService {
 
             logger.info("valueList is:{}", valueList);
         }
-        
+
         return valueList;
     }
 
@@ -481,7 +478,7 @@ public class CustomServicesService extends ViPRService {
                     continue;
                 }
 
-                //TODO accepted format is task_state but spel expects task.state. Could not find a regex for that
+                // TODO accepted format is task_state but spel expects task.state. Could not find a regex for that
                 String lvalue1 = lvalue.replace("_", ".");
 
                 List<String> evaluatedValues = evaluateValue(result, lvalue1);

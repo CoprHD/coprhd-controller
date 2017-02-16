@@ -72,7 +72,7 @@ public class RemoveHostFromClusterService extends ViPRService {
         // get boot vols to be deleted (so we can check afterwards)
         List<URI> bootVolsToBeDeleted = Lists.newArrayList();
         for (URI hostURI : hostIds) {
-            // WJEIV TODO: If the boot volume is null for a host, the code goes ahead and runs export update operations
+            // VBDU TODO: If the boot volume is null for a host, the code goes ahead and runs export update operations
             // on all the export Groups referencing the hosts. Ideally, we should run the exports only for shared export
             // groups, right?
             URI bootVolURI = BlockStorageUtils.getHost(hostURI).getBootVolumeId();

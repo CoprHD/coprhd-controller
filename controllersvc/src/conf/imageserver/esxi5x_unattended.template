@@ -1,8 +1,8 @@
 vmaccepteula
-# WJEIV TODO [DONE]: Steve already fixing ${clear.device} issue where device is null, so first volume is taken.
-# WJEIV TODO [DONE]: --overwritevmfs should probably be removed for paranoia, too:  "Permit overwriting of vmfs partitions on the specified drives. By default, overwrite vmfs partitions is not allowed."
-# WJEIV TODO [DONE]: If our use case is strictly around exporting a boot volume, installing, THEN exporting shared volumes, then maybe we can ensure the host only sees one device in the first place before it does anything.
-# WJEIV TODO [DONE]: This does mean that any attempt to re-use a volume that is already been formatted to vmfs will not be possible, and may require a workaround or cleanup activity.
+# VBDU TODO [DONE]: Steve already fixing ${clear.device} issue where device is null, so first volume is taken.
+# VBDU TODO [DONE]: --overwritevmfs should probably be removed for paranoia, too:  "Permit overwriting of vmfs partitions on the specified drives. By default, overwrite vmfs partitions is not allowed."
+# VBDU TODO [DONE]: If our use case is strictly around exporting a boot volume, installing, THEN exporting shared volumes, then maybe we can ensure the host only sees one device in the first place before it does anything.
+# VBDU TODO [DONE]: This does mean that any attempt to re-use a volume that is already been formatted to vmfs will not be possible, and may require a workaround or cleanup activity.
 clearpart ${clear.device}
 install ${install.device}
 rootpw --iscrypted  ${root.password}
@@ -21,8 +21,8 @@ echo "There are ${LINECOUNT} volumes seen by this host.  ViPR supports only a bo
 exit 1
 fi
 
-# WJEIV TODO [DONE]: The issue inserted code for D@T@STORE_SYM_LINK (sic) is that it does NOT guarantee the wwn is datastore1 at all.  And even if it did, it can nott guarantee
-# WJEIV TODO [DONE]: that is the first lun booted after the system comes back up.  I added the check above to ensure one and only one volume.
+# VBDU TODO [DONE]: The issue inserted code for D@T@STORE_SYM_LINK (sic) is that it does NOT guarantee the wwn is datastore1 at all.  And even if it did, it can nott guarantee
+# VBDU TODO [DONE]: that is the first lun booted after the system comes back up.  I added the check above to ensure one and only one volume.
 # if boot uuid was used, this will create sym link
 ${DATASTORE_SYM_LINK}
 cat /var/log/weasel.log  >> /vmfs/volumes/datastore1/osagent.log 2>&1

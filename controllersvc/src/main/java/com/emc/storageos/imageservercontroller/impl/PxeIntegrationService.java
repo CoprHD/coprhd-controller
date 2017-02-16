@@ -91,7 +91,7 @@ public class PxeIntegrationService {
 
     private String generateKickstartEsxEsxi(ComputeImageJob job, ComputeImage ci, ComputeImageServer imageServer) {
         log.info("generateKickstartEsxEsxi");
-        // WJEIV TODO [DONE]: Remove these defaults. Define as null, and if null by the time you go to replace, throw an
+        // VBDU TODO [DONE]: Remove these defaults. Define as null, and if null by the time you go to replace, throw an
         // exception
         String clearDevice = null;
         String installDevice = null;
@@ -100,7 +100,7 @@ public class PxeIntegrationService {
             if (ImageServerUtils.isUuid(job.getBootDevice())) {
                 bootDeviceUuid = ImageServerUtils.uuidFromString(job.getBootDevice()).toString().replaceAll("-", "");
             } else {
-                // WJEIV TODO: When would the boot device NOT be a uuid? We should be pretty specific here.
+                // VBDU TODO: When would the boot device NOT be a uuid? We should be pretty specific here.
                 bootDeviceUuid = job.getBootDevice();
             }
             clearDevice = "--drives=naa." + bootDeviceUuid;

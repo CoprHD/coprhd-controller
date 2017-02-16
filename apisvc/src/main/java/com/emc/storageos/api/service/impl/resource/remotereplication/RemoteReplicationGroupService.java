@@ -209,7 +209,7 @@ public class RemoteReplicationGroupService extends TaskResourceService {
         // Create a task for the create remote replication group operation
         String taskId = UUID.randomUUID().toString();
         Operation op = _dbClient.createTaskOpStatus(RemoteReplicationGroup.class, rrGroup.getId(),
-                taskId, ResourceOperationTypeEnum.SPLIT_REMOTE_REPLICATION_GROUP_LINK);
+                taskId, ResourceOperationTypeEnum.FAILOVER_REMOTE_REPLICATION_GROUP_LINK);
 
         RemoteReplicationElement rrElement = new RemoteReplicationElement(RemoteReplicationSet.ElementType.REPLICATION_GROUP, id);
         // send request to controller

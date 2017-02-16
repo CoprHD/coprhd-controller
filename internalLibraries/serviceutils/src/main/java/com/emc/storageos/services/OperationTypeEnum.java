@@ -552,7 +552,9 @@ public enum OperationTypeEnum {
     SWAP_REMOTE_REPLICATION_PAIR_LINK("SWAP REMOTE REPLICATION PAIR LINK", "SwapRemoteReplicationPairLinkFailed", "swap remote replication pair link"),
     //
     FAILOVER_REMOTE_REPLICATION_CG_LINK("FAILOVER REMOTE REPLICATION CG LINK", "FailoverRemoteReplicationCGLinkFailed", "failover remote replication cg link"),
+    ESTABLISH_REMOTE_REPLICATION_CG_LINK("ESTABLISH REMOTE REPLICATION CG LINK", "EstablishRemoteReplicationCGLinkFailed", "establish remote replication cg link"),
 
+    //
     EXPORT_PATH_ADJUSTMENT("EXPORT PATH ADJUSTMENT", "", "operation to adjust export paths"),
 
     /* Filesystem Mount Operations*/

@@ -6,7 +6,6 @@ package com.emc.storageos.api.service.impl.resource.remotereplication;
 
 
 import java.net.URI;
-import java.util.List;
 import java.util.UUID;
 
 import javax.ws.rs.Consumes;
@@ -15,9 +14,6 @@ import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 
-import com.emc.storageos.db.client.model.Operation;
-import com.emc.storageos.db.client.model.Volume;
-import com.emc.storageos.model.ResourceOperationTypeEnum;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -33,8 +29,6 @@ import com.emc.storageos.security.authorization.ACL;
 import com.emc.storageos.security.authorization.DefaultPermissions;
 import com.emc.storageos.security.authorization.Role;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
-
-import static com.emc.storageos.api.mapper.TaskMapper.toTask;
 
 @Path("/vdc/block/remotereplicationmanagement")
 @DefaultPermissions(readRoles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, readAcls = {
@@ -118,6 +112,52 @@ public class RemoteReplicationManagementService extends TaskResourceService {
     @POST
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/establish")
+    public TaskList establishRemoteReplicationLink(RemoteReplicationOperationParam operationParam) throws InternalException {
+        _log.info("Called: establishRemoteReplicationLink() with context {} and ids {}",
+                operationParam.getOperationContext(), operationParam.getIds());
+
+        // TODO:
+        checkOperationParameters(operationParam);
+
+        RemoteReplicationOperationParam.OperationContext operationContext =
+                RemoteReplicationOperationParam.OperationContext.valueOf(operationParam.getOperationContext());
+
+        TaskResourceRep task = null;
+        TaskList taskList = new TaskList();
+        switch (operationContext) {
+            case RR_PAIR:
+                // for individual pairs send one request for each pair
+                // call pair service for each pair and add task to the taskList, return task list.
+                String taskID = UUID.randomUUID().toString();
+                for (URI rrPairURI : operationParam.getIds()) {
+                    TaskResourceRep rrPairTaskResourceRep = rrPairService.establishRemoteReplicationPairLink(rrPairURI, taskID);
+                    taskList.addTask(rrPairTaskResourceRep);
+                }
+                break;
+            case RR_GROUP_CG:
+            case RR_SET_CG:
+                taskList =  rrPairService.establishRemoteReplicationCGLink(operationParam.getIds());
+                break;
+            case RR_GROUP:
+                RemoteReplicationGroup rrGroup = _dbClient.queryObject(RemoteReplicationGroup.class, operationParam.getIds().get(0));
+                task =  rrGroupService.establishRemoteReplicationGroupLink(rrGroup.getId());
+                taskList.addTask(task);
+                break;
+
+            case RR_SET:
+                RemoteReplicationSet rrSet = _dbClient.queryObject(RemoteReplicationSet.class, operationParam.getIds().get(0));
+                task =  rrSetService.establishRemoteReplicationSetLink(rrSet.getId());
+                taskList.addTask(task);
+                break;
+        }
+        return taskList;
+    }
+
+
+    @POST
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/failover")
     public TaskList failoverRemoteReplicationLink(RemoteReplicationOperationParam operationParam) throws InternalException {
         _log.info("Called: failoverRemoteReplicationLink() with context {} and ids {}",
@@ -174,9 +214,9 @@ public class RemoteReplicationManagementService extends TaskResourceService {
          *   --- if context is RR_GROUP, all ids should be in the same group and contain all group pairs
          *   --- if context is RR_PAIR, we do not enforce any additional validation
          *   --- if context is RR_SET_CG, all ids should be direct set pairs and their source volumes should be in the
-         *       same CG
+         *       same CG; all target volumes should be in the same target CG
          *   --- if context is RR_GROUP_CG, all ids should be part of remote replication group and their source volumes should be in the
-         *       same CG
+         *       same CG; all target volumes should be in the same target CG
          *
          *
          */

@@ -60,6 +60,7 @@ public class ServiceDescriptorMapper {
         to.setRegEx(from.getValidation().getRegEx());
         to.setRequired(from.isRequired());
         to.setOmitNone(from.isOmitNone());
+        to.setModalField(from.isModalField());
         to.setSelect(from.getSelect());
 
         for (String key : from.getOptions().keySet()) {

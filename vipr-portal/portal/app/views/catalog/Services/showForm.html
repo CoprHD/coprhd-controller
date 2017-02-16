@@ -91,7 +91,7 @@
                   <service-table table="item"></service-table>
                 </span>
                 <span ng-switch-when="modal">
-			      #{Modal.dialog id:'{{serviceDescriptor.modalTitle}}', cssClass:'widest'}
+			      #{Modal.dialog id:'serviceModal', cssClass:'widest'}
 			        #{Modal.body}
 			          #{Form.header titleKey:'{{serviceDescriptor.modalTitle}}'/}
 			          <!-- asset error -->
@@ -108,7 +108,7 @@
 			              <span ng-if="!isSchedulerEnabled()" >&{"service.order"}</span>
 			              <span ng-if="isSchedulerEnabled()" >&{"service.schedule"}</span>
 			            </button>
-			            #{Form.button 'button.cancel', icon:'primary', data:['dismiss':'modal']/}
+			            #{Form.button 'button.cancel', icon:'primary', data:['dismiss':'modal', 'ng-click':'hideModalDialog()']/}
 	                  </button-bar>
 			        #{/Modal.footer}
 			      #{/Modal.dialog}
@@ -152,7 +152,7 @@
           
           <button-bar>
             #{if serviceDescriptor.useModal}
-              <button type="button" class="btn btn-primary" ng-disabled="disableSubmitButton()" onClick="showModalDialog()">
+              <button type="button" class="btn btn-primary" ng-disabled="disableSubmitButton()" ng-Click="showModalDialog()">
                 <span v-icon=check></span>
                 <span>&{"service.preview"}</span>
               </button>
@@ -170,9 +170,4 @@
       </form>
       
   </div>
-  <script>
-	function showModalDialog() {
-	  $('.modal').modal();
-	}
-  </script>
 #{/if}

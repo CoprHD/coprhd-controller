@@ -303,12 +303,26 @@ angular.module("portalApp").controller({
             // if we make it out, enable the order button
             return result;
         };
+        $scope.showModalDialog = function() {
+            $('#serviceModal').modal({backdrop: 'static', keyboard: false});
+            $scope.enableModalFields();
+        }
+        $scope.hideModalDialog = function() {
+            $('#serviceModal').modal('hide');
+            $scope.disableModalFields();
+        }
         $scope.disableModalButton = function() {
-        	if ($scope.$root.errorCount > 0) {
-        		return true
-        	}
-        	return false;
-	    };
+            if ($scope.$root.errorCount > 0) {
+                return true
+            }
+            return false;
+        };
+        $scope.enableModalFields = function() {
+            $scope.updateModalFields = true;
+        };
+        $scope.disableModalFields = function() {
+            $scope.updateModalFields = false;
+        };
     },
     
     FileRessourceCtrl: function($scope, $http, $window, translate) {

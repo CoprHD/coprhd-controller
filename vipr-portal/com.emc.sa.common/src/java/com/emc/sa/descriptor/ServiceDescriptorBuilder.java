@@ -79,6 +79,7 @@ public class ServiceDescriptorBuilder {
         field.setOmitNone(definition.omitNone);
         field.setLockable(definition.lockable);
         field.setInitialValue(definition.initialValue);
+        field.setModalField(definition.modalField);
         field.setSelect(definition.select);
         field.addOptions(definition.options);
         field.getValidation().setMin(definition.validation.min);

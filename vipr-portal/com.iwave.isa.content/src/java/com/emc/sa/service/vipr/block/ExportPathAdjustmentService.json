@@ -68,19 +68,22 @@
                     type:"assetType.vipr.exportPathResultingPaths",
                     select: "list",
                     required: false,
-                    omitNone: true
+                    omitNone: true,
+                    modalField: true
                 },
                 removedPaths:{
                     type:"assetType.vipr.exportPathRemovedPaths",
                     select: "list",
                     required: false,
-                    omitNone: true
+                    omitNone: true,
+                    modalField: true
                 },
                 affectedExports:{
                     type:"assetType.vipr.exportPathAffectedExports",
                     select: "list",
                     required: false,
-                    omitNone: true
+                    omitNone: true,
+                    modalField: true
                 }
     	    }
         }

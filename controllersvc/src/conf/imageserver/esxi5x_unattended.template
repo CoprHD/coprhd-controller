@@ -21,7 +21,7 @@ echo "There are ${LINECOUNT} volumes seen by this host.  ViPR supports only a bo
 exit 1
 fi
 
-# WJEIV TODO [DONE]: The issue inserted code for ${DATASTORE_SYM_LINK} is that it does NOT guarantee the wwn is datastore1 at all.  And even if it did, it can't guarantee
+# WJEIV TODO [DONE]: The issue inserted code for D@T@STORE_SYM_LINK (sic) is that it does NOT guarantee the wwn is datastore1 at all.  And even if it did, it can't guarantee
 # WJEIV TODO [DONE]: that's the first lun booted after the system comes back up.  I added the check above to ensure one and only one volume.
 # if boot uuid was used, this will create sym link
 ${DATASTORE_SYM_LINK}

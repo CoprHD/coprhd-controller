@@ -121,7 +121,7 @@ public class FileStorageScheduler implements Scheduler {
             optionalAttributes = new HashMap<String, Object>();
         }
 
-        if (capabilities.getVpoolProjectPolicyAssign() && capabilities.getFileProtectionSourceStorageDevice() != null) {
+        if (capabilities.isVpoolProjectPolicyAssign() && capabilities.getFileProtectionSourceStorageDevice() != null) {
             Set<String> storageSystemSet = new HashSet<String>();
             storageSystemSet.add(capabilities.getFileProtectionSourceStorageDevice().toString());
             optionalAttributes.put(AttributeMatcher.Attributes.storage_system.name(), storageSystemSet);
@@ -151,7 +151,7 @@ public class FileStorageScheduler implements Scheduler {
 
         boolean needTargetOnVirtualNAS = true;
         VirtualNAS sourcevNAsServer = null;
-        if (capabilities.getPersonality() != null
+        if (capabilities.isVpoolProjectPolicyAssign() && capabilities.getPersonality() != null
                 && capabilities.getPersonality().equalsIgnoreCase(VirtualPoolCapabilityValuesWrapper.FILE_REPLICATION_TARGET)) {
             // Get the source nas server, if no source vnas server, then need storage from physical nas server!!
             URI sourceVNas = capabilities.getSourceVirtualNasServer();
@@ -214,7 +214,7 @@ public class FileStorageScheduler implements Scheduler {
 
                         if (!recommendations.isEmpty()) {
                             fileRecommendations.addAll(recommendations);
-                            if (!capabilities.getVpoolProjectPolicyAssign()) {
+                            if (!capabilities.isVpoolProjectPolicyAssign()) {
                                 _log.info("Selected vNAS {} for placement",
                                         currvNAS.getNasName());
                                 break;
@@ -231,7 +231,7 @@ public class FileStorageScheduler implements Scheduler {
             // target also be placed on corresponding virtual nas
             // No valid target recommendations
             // so the entire source-target recommendation would be ignored!!!
-            if (capabilities.getPersonality() != null
+            if (capabilities.isVpoolProjectPolicyAssign() && capabilities.getPersonality() != null
                     && capabilities.getPersonality().equalsIgnoreCase(VirtualPoolCapabilityValuesWrapper.FILE_REPLICATION_TARGET)
                     && fileRecommendations.isEmpty()) {
                 _log.info("No target recommendations found for corresponding source vNAS ");
@@ -244,7 +244,7 @@ public class FileStorageScheduler implements Scheduler {
         // 2. vpool does not have storage pools from vnx or
         // 3. vnx does not have vdms
         // Get the file recommendations
-        if (fileRecommendations == null || fileRecommendations.isEmpty() || capabilities.getVpoolProjectPolicyAssign()) {
+        if (fileRecommendations == null || fileRecommendations.isEmpty() || capabilities.isVpoolProjectPolicyAssign()) {
             // Get the recommendations for the candidate pools.
             _log.info("Placement on HADomain matching pools");
             List<Recommendation> poolRecommendations = _scheduler

@@ -490,7 +490,7 @@ public class VirtualPoolCapabilityValuesWrapper implements Serializable {
         }
     }
 
-    public boolean getVpoolProjectPolicyAssign() {
+    public boolean isVpoolProjectPolicyAssign() {
         Object value = _vpoolCapabilities.get(VPOOL_PROJECT_POLICY_ASSIGN);
         return value != null ? (Boolean) value : false;
     }

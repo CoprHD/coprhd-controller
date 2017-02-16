@@ -123,7 +123,7 @@ public class FileMirrorScheduler implements Scheduler {
             sourceFileRecommendations = _fileScheduler.getRecommendationsForResources(vArray, project, vPool, capabilities);
             // Remove the source storage system from capabilities list
             // otherwise, try to find the remote pools from the same source system!!!
-            if (capabilities.getVpoolProjectPolicyAssign() && capabilities.getFileProtectionSourceStorageDevice() != null) {
+            if (capabilities.isVpoolProjectPolicyAssign() && capabilities.getFileProtectionSourceStorageDevice() != null) {
                 capabilities.removeCapabilityEntry(VirtualPoolCapabilityValuesWrapper.FILE_PROTECTION_SOURCE_STORAGE_SYSTEM);
             }
         }
@@ -136,7 +136,10 @@ public class FileMirrorScheduler implements Scheduler {
             // Based on the source recommendation nas server, target should pick the right nas server.
             // Both source and target nas servers should be similar.
             // If sourceFileRecommendation.getvNAS() is null means, the recommendation is for physical nas server!!
-            capabilities.put(VirtualPoolCapabilityValuesWrapper.SOURCE_VIRTUAL_NAS_SERVER, sourceFileRecommendation.getvNAS());
+            // This should happen for assignment of replication policy
+            if (capabilities.isVpoolProjectPolicyAssign()) {
+                capabilities.put(VirtualPoolCapabilityValuesWrapper.SOURCE_VIRTUAL_NAS_SERVER, sourceFileRecommendation.getvNAS());
+            }
 
             for (String targetVArry : capabilities.getFileReplicationTargetVArrays()) {
                 // Process for target !!!

@@ -140,16 +140,14 @@ public class AddBareMetalHostToClusterService extends ViPRService {
 
         // WJEIV TODO: This is another example which generates Remove others from cluster operations based on what is
         // available in the database, which is something we should rely on.
-        URI updatedClusterURI = ComputeUtils.updateClusterSharedExports(cluster.getId(), cluster.getLabel());
+
         // Make sure the all hosts that are being created belong to the all
         // of the exportGroups of the cluster, else fail the order.
         // Not do so and continuing to create bootvolumes to the host we
         // might end up in "consistent lun violation" issue.
-        if (!ComputeUtils.nonNull(hosts).isEmpty() && null == updatedClusterURI) {
+        if (!ComputeUtils.nonNull(hosts).isEmpty()) {
             logInfo("compute.cluster.sharedexports.update.failed.rollback.started", cluster.getLabel());
             ComputeUtils.deactivateHosts(hosts);
-            // When the hosts are deactivated, update the cluster shared export groups to reflect the same.
-            ComputeUtils.updateClusterSharedExports(cluster.getId(), cluster.getLabel());
             logInfo("compute.cluster.sharedexports.update.failed.rollback.completed", cluster.getLabel());
             throw new IllegalStateException(
                     ExecutionUtils.getMessage("compute.cluster.sharedexports.update.failed", cluster.getLabel()));

@@ -36,7 +36,6 @@ import com.emc.sa.service.vipr.compute.tasks.InstallOs;
 import com.emc.sa.service.vipr.compute.tasks.RemoveHostFromCluster;
 import com.emc.sa.service.vipr.compute.tasks.SetBootVolume;
 import com.emc.sa.service.vipr.compute.tasks.UpdateCluster;
-import com.emc.sa.service.vipr.compute.tasks.UpdateClusterExports;
 import com.emc.sa.service.vipr.compute.tasks.UpdateVcenterCluster;
 import com.emc.sa.service.vipr.tasks.GetHost;
 import com.emc.storageos.db.client.model.Cluster;
@@ -401,8 +400,6 @@ public class ComputeUtils {
                 ExecutionUtils.currentContext().logError("computeutils.deactivatehost.deactivate.failure",
                         e.getMessage());
             }
-            ComputeUtils.updateClusterSharedExports(cluster.getId(), cluster.getLabel());
-            ExecutionUtils.currentContext().logInfo("compute.cluster.sharedexports.update.rollback.done", cluster.getLabel());
         }
         return hosts;
     }
@@ -444,8 +441,6 @@ public class ComputeUtils {
                 ExecutionUtils.currentContext().logError("computeutils.deactivatehost.deactivate.failure",
                         e.getMessage());
             }
-            ComputeUtils.updateClusterSharedExports(cluster.getId(), cluster.getLabel());
-            ExecutionUtils.currentContext().logInfo("compute.cluster.sharedexports.update.rollback.done", cluster.getLabel());
         }
         // Cleanup all bootvolumes of the deactivated host so that we do not leave any unsed boot volumes.
         if (!bootVolsToRemove.isEmpty()) {
@@ -774,38 +769,6 @@ public class ComputeUtils {
         ClusterRestRep clusterRestRep = execute(new UpdateCluster(clusterID, clusterName));
         return (clusterRestRep == null) ? null : BlockStorageUtils
                 .getCluster(clusterRestRep.getId());
-    }
-
-    /**
-     * Method to updated the shared exports groups of a given cluster, this method
-     * monitors the task until done and returns a successful cluster URI back, if failed
-     * null is returned.
-     * @param clusterID cluster id URI
-     * @param clusterName name of cluster
-     * @return returns a successful cluster URI back, if failed
-     * null is returned.
-     */
-    public static URI updateClusterSharedExports(URI clusterID, String clusterName) {
-        ArrayList<Task<ClusterRestRep>> tasks = Lists.newArrayList();
-
-        tasks.add(execute(new UpdateClusterExports(clusterID, clusterName)));
-
-        List<URI> successfulIds = Lists.newArrayList();
-        while (!tasks.isEmpty()) {
-            waitAndRefresh(tasks);
-            for (Task<ClusterRestRep> successfulTask : getSuccessfulTasks(tasks)) {
-                successfulIds.add(successfulTask.getResourceId());
-                addAffectedResource(successfulTask.getResourceId());
-                tasks.remove(successfulTask);
-            }
-            for (Task<ClusterRestRep> failedTask : getFailedTasks(tasks)) {
-                String errorMessage = failedTask.getMessage() == null ? "" : failedTask.getMessage();
-                ExecutionUtils.currentContext().logError("compute.cluster.sharedexports.update.failed", clusterName,
-                        errorMessage);
-                tasks.remove(failedTask);
-            }
-        }
-        return (successfulIds.isEmpty()) ? null : successfulIds.get(0);
     }
 
     /**

@@ -240,21 +240,14 @@ public class AddHostToClusterService extends ViPRService {
 
         List<Host> hosts = ComputeUtils.createHosts(cluster.getId(), computeVirtualPool, hostNames, virtualArray);
         logInfo("compute.cluster.hosts.created", ComputeUtils.nonNull(hosts).size());
-        // Below step to update the shared export group to the cluster (the
-        // newly added hosts will be taken care of this update cluster
-        // method and in a synchronized way)
-        URI updatedClusterURI = ComputeUtils.updateClusterSharedExports(cluster.getId(), cluster.getLabel());
 
         // Make sure the all hosts that are being created belong to the all
         // of the exportGroups of the cluster, else fail the order.
         // Not do so and continuing to create bootvolumes to the host we
         // might end up in "consistent lun violation" issue.
-        if (!ComputeUtils.nonNull(hosts).isEmpty() && null == updatedClusterURI) {
+        if (!ComputeUtils.nonNull(hosts).isEmpty()) {
             logInfo("compute.cluster.sharedexports.update.failed.rollback.started", cluster.getLabel());
             ComputeUtils.deactivateHosts(hosts);
-            // When the hosts are deactivated, update the cluster shared export groups to reflect the same.
-            ComputeUtils.updateClusterSharedExports(cluster.getId(), cluster.getLabel());
-            logInfo("compute.cluster.sharedexports.update.failed.rollback.completed", cluster.getLabel());
             throw new IllegalStateException(
                     ExecutionUtils.getMessage("compute.cluster.sharedexports.update.failed", cluster.getLabel()));
         } else {

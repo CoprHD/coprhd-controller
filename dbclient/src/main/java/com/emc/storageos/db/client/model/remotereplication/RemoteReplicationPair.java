@@ -20,7 +20,7 @@ import com.emc.storageos.db.client.model.Volume;
 import javax.xml.bind.annotation.XmlTransient;
 
 @Cf("RemoteReplicationPair")
-public class RemoteReplicationPair extends DataObject {
+public class RemoteReplicationPair extends DataObject implements ProjectResource {
 
     public enum ElementType {
         VOLUME,
@@ -68,6 +68,7 @@ public class RemoteReplicationPair extends DataObject {
     private NamedURI project;
 
 
+    @Override
     @Name("tenant")
     public NamedURI getTenant() {
         return tenant;
@@ -78,6 +79,7 @@ public class RemoteReplicationPair extends DataObject {
         setChanged("tenant");
     }
 
+    @Override
     @Name("project")
     public NamedURI getProject() {
         return project;

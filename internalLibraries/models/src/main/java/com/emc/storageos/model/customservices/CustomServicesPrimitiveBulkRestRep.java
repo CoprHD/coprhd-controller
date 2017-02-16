@@ -24,23 +24,23 @@ import javax.xml.bind.annotation.XmlRootElement;
 import com.emc.storageos.model.BulkRestRep;
 
 @XmlRootElement(name = "bulk_custom_service_primitives")
-public class PrimitiveBulkRestRep extends BulkRestRep {
+public class CustomServicesPrimitiveBulkRestRep extends BulkRestRep {
 
-    private List<PrimitiveRestRep> primitives;
+    private List<CustomServicesPrimitiveRestRep> primitives;
 
-    public PrimitiveBulkRestRep() {}
+    public CustomServicesPrimitiveBulkRestRep() {}
     
-    public PrimitiveBulkRestRep(
-            List<PrimitiveRestRep> primitives) {
+    public CustomServicesPrimitiveBulkRestRep(
+            List<CustomServicesPrimitiveRestRep> primitives) {
         this.primitives = primitives;
     }
 
     @XmlElement(name = "primitives")
-    public List<PrimitiveRestRep> getPrimitives() {
+    public List<CustomServicesPrimitiveRestRep> getPrimitives() {
         return primitives;
     }
 
-    public void setPrimitives(List<PrimitiveRestRep> primitives) {
+    public void setPrimitives(List<CustomServicesPrimitiveRestRep> primitives) {
         this.primitives = primitives;
     }
 }

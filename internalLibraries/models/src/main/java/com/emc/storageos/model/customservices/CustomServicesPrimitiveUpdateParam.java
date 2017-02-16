@@ -23,7 +23,7 @@ import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 
 @XmlRootElement(name = "primitive_update_param")
-public class PrimitiveUpdateParam {
+public class CustomServicesPrimitiveUpdateParam {
 
     private String name;
     private String friendlyName;

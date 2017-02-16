@@ -46,10 +46,10 @@ import com.emc.storageos.model.customservices.CustomServicesWorkflowDocument;
 import com.emc.storageos.model.customservices.CustomServicesWorkflowList;
 import com.emc.storageos.model.customservices.CustomServicesWorkflowRestRep;
 import com.emc.storageos.model.customservices.CustomServicesWorkflowUpdateParam;
-import com.emc.storageos.model.customservices.PrimitiveCreateParam;
-import com.emc.storageos.model.customservices.PrimitiveList;
-import com.emc.storageos.model.customservices.PrimitiveResourceRestRep;
-import com.emc.storageos.model.customservices.PrimitiveRestRep;
+import com.emc.storageos.model.customservices.CustomServicesPrimitiveCreateParam;
+import com.emc.storageos.model.customservices.CustomServicesPrimitiveList;
+import com.emc.storageos.model.customservices.CustomServicesPrimitiveResourceRestRep;
+import com.emc.storageos.model.customservices.CustomServicesPrimitiveRestRep;
 import com.emc.vipr.model.catalog.WFBulkRep;
 import com.emc.vipr.model.catalog.WFDirectoryParam;
 import com.emc.vipr.model.catalog.WFDirectoryRestRep;
@@ -95,7 +95,7 @@ public class WorkflowBuilder extends Controller {
         private String text;
         @SerializedName("parent")
         private String parentID;
-        private PrimitiveRestRep data;
+        private CustomServicesPrimitiveRestRep data;
         private String type;
 
         Node() {
@@ -344,13 +344,13 @@ public class WorkflowBuilder extends Controller {
     }
 
     private static void addPrimitivesByType(final List<Node> topLevelNodes, final String type, String parentDefault, final Map<URI, WFDirectoryRestRep> fileParents) {
-        final PrimitiveList primitiveList = getCatalogClient()
+        final CustomServicesPrimitiveList primitiveList = getCatalogClient()
                 .customServicesPrimitives().getPrimitivesByType(type);
         if (null == primitiveList || null == primitiveList.getPrimitives()) {
             return;
         }
-        List<PrimitiveRestRep> primitives = getCatalogClient().customServicesPrimitives().getByIds(primitiveList.getPrimitives());
-        for (final PrimitiveRestRep primitive : primitives) {
+        List<CustomServicesPrimitiveRestRep> primitives = getCatalogClient().customServicesPrimitives().getByIds(primitiveList.getPrimitives());
+        for (final CustomServicesPrimitiveRestRep primitive : primitives) {
             final String parent = (fileParents!=null && fileParents.containsKey(primitive.getId())) ? fileParents.get(primitive.getId()).getId().toString() : parentDefault;
             final Node node;
 
@@ -451,9 +451,9 @@ public class WorkflowBuilder extends Controller {
         shellPrimitive.validate();
 
         try {
-            final PrimitiveResourceRestRep primitiveResourceRestRep = getCatalogClient().customServicesPrimitives().createPrimitiveResource("SCRIPT", shellPrimitive.script, shellPrimitive.scriptName);
+            final CustomServicesPrimitiveResourceRestRep primitiveResourceRestRep = getCatalogClient().customServicesPrimitives().createPrimitiveResource("SCRIPT", shellPrimitive.script, shellPrimitive.scriptName);
             if (null != primitiveResourceRestRep) {
-                final PrimitiveCreateParam primitiveCreateParam = new PrimitiveCreateParam();
+                final CustomServicesPrimitiveCreateParam primitiveCreateParam = new CustomServicesPrimitiveCreateParam();
                 //TODO - remove this hardcoded string once the enum is available
                 primitiveCreateParam.setType("SCRIPT");
                 primitiveCreateParam.setName(shellPrimitive.getName());
@@ -466,7 +466,7 @@ public class WorkflowBuilder extends Controller {
                 if (StringUtils.isNotEmpty(shellPrimitive.getOutputs())) {
                     primitiveCreateParam.setOutput(Arrays.asList(shellPrimitive.getOutputs().split(",")));
                 }
-                final PrimitiveRestRep primitiveRestRep = getCatalogClient().customServicesPrimitives().createPrimitive(primitiveCreateParam);
+                final CustomServicesPrimitiveRestRep primitiveRestRep = getCatalogClient().customServicesPrimitives().createPrimitive(primitiveCreateParam);
                 if (primitiveRestRep != null) {
                     // add this to wf directory
                     addResourceToWFDirectory(primitiveRestRep.getId(), shellPrimitive.getWfDirID());
@@ -604,7 +604,7 @@ public class WorkflowBuilder extends Controller {
         localAnsible.validate();
 
         try {
-            PrimitiveResourceRestRep primitiveResourceRestRep = null;
+            CustomServicesPrimitiveResourceRestRep primitiveResourceRestRep = null;
             if(localAnsible.isExisting()) {
                 //TODO: waiting for resources GET
             }
@@ -615,7 +615,7 @@ public class WorkflowBuilder extends Controller {
 
             // Create Primitive
             if (null != primitiveResourceRestRep) {
-                final PrimitiveCreateParam primitiveCreateParam = new PrimitiveCreateParam();
+                final CustomServicesPrimitiveCreateParam primitiveCreateParam = new CustomServicesPrimitiveCreateParam();
                 //TODO - remove this hardcoded string once the enum is available
                 primitiveCreateParam.setType("ANSIBLE");
                 primitiveCreateParam.setName(localAnsible.getName());
@@ -631,7 +631,7 @@ public class WorkflowBuilder extends Controller {
                     primitiveCreateParam.setOutput(Arrays.asList(localAnsible.getOutputs().split(",")));
                 }
 
-                final PrimitiveRestRep primitiveRestRep = getCatalogClient().customServicesPrimitives().createPrimitive(primitiveCreateParam);
+                final CustomServicesPrimitiveRestRep primitiveRestRep = getCatalogClient().customServicesPrimitives().createPrimitive(primitiveCreateParam);
                 if (primitiveRestRep != null) {
                     // add this to wf directory
                     addResourceToWFDirectory(primitiveRestRep.getId(), localAnsible.getWfDirID());

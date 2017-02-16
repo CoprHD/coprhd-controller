@@ -26,7 +26,7 @@ import com.emc.storageos.db.client.model.StringSet;
  * Column family that represents a script that can be used in a custom service workflow
  */
 @Cf("CustomServiceScriptPrimitive")
-public class CustomServiceScriptPrimitive extends UserPrimitive {
+public class CustomServicesScriptPrimitive extends CustomServicesUserPrimitive {
 
     private static final long serialVersionUID = 1L;
     
@@ -57,22 +57,22 @@ public class CustomServiceScriptPrimitive extends UserPrimitive {
     }
 
     @Override
-    public boolean isAnsible() {
+    public boolean isCustomServiceAnsiblePrimitive() {
         return false;
     }
 
     @Override
-    public Ansible asAnsible() {
+    public CustomServicesAnsiblePrimitive asCustomServiceAnsiblePrimitive() {
         return null;
     }
 
     @Override
-    public boolean isCustomeServiceScript() {
+    public boolean isCustomServiceScriptPrimitive() {
         return true;
     }
 
     @Override
-    public CustomServiceScriptPrimitive asCustomeServiceScript() {
+    public CustomServicesScriptPrimitive asCustomServiceScriptPrimitive() {
         return this;
     }
 }

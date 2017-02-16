@@ -31,11 +31,11 @@ import com.emc.storageos.model.customservices.CustomServicesWorkflowCreateParam;
 import com.emc.storageos.model.customservices.CustomServicesWorkflowList;
 import com.emc.storageos.model.customservices.CustomServicesWorkflowRestRep;
 import com.emc.storageos.model.customservices.CustomServicesWorkflowUpdateParam;
-import com.emc.storageos.model.customservices.PrimitiveBulkRestRep;
-import com.emc.storageos.model.customservices.PrimitiveCreateParam;
-import com.emc.storageos.model.customservices.PrimitiveList;
-import com.emc.storageos.model.customservices.PrimitiveResourceRestRep;
-import com.emc.storageos.model.customservices.PrimitiveRestRep;
+import com.emc.storageos.model.customservices.CustomServicesPrimitiveBulkRestRep;
+import com.emc.storageos.model.customservices.CustomServicesPrimitiveCreateParam;
+import com.emc.storageos.model.customservices.CustomServicesPrimitiveList;
+import com.emc.storageos.model.customservices.CustomServicesPrimitiveResourceRestRep;
+import com.emc.storageos.model.customservices.CustomServicesPrimitiveRestRep;
 import com.emc.vipr.client.catalog.AbstractCatalogBulkResources;
 import com.emc.vipr.client.catalog.impl.PathConstants;
 import com.emc.vipr.client.impl.RestClient;
@@ -43,11 +43,11 @@ import com.emc.vipr.client.impl.RestClient;
 /**
  * Client for Custom Services APIs - primitives, workflows
  */
-public class CustomServicesClient extends AbstractCatalogBulkResources<PrimitiveRestRep> {
+public class CustomServicesClient extends AbstractCatalogBulkResources<CustomServicesPrimitiveRestRep> {
 
 
     public CustomServicesClient(final ViPRCatalogClient2 parent, final RestClient client) {
-        super(parent, client, PrimitiveRestRep.class, PathConstants.CUSTOM_SERVICES_PRIMITIVES);
+        super(parent, client, CustomServicesPrimitiveRestRep.class, PathConstants.CUSTOM_SERVICES_PRIMITIVES);
     }
 
     public ViPRCatalogClient2 getParent() {
@@ -59,35 +59,35 @@ public class CustomServicesClient extends AbstractCatalogBulkResources<Primitive
     }
     
     @Override
-    protected List<PrimitiveRestRep> getBulkResources(BulkIdParam input) {
-        PrimitiveBulkRestRep response = client.post(PrimitiveBulkRestRep.class, input, getBulkUrl());
+    protected List<CustomServicesPrimitiveRestRep> getBulkResources(BulkIdParam input) {
+        CustomServicesPrimitiveBulkRestRep response = client.post(CustomServicesPrimitiveBulkRestRep.class, input, getBulkUrl());
         return defaultList(response.getPrimitives());
     }
     
-    public PrimitiveList getPrimitives() {
+    public CustomServicesPrimitiveList getPrimitives() {
         final UriBuilder builder = client.uriBuilder(PathConstants.CUSTOM_SERVICES_PRIMITIVES);
-        return client.getURI(PrimitiveList.class, builder.build());
+        return client.getURI(CustomServicesPrimitiveList.class, builder.build());
     }
 
-    public PrimitiveList getPrimitivesByType(final String type) {
+    public CustomServicesPrimitiveList getPrimitivesByType(final String type) {
         final UriBuilder builder = client.uriBuilder(PathConstants.CUSTOM_SERVICES_PRIMITIVES);
         builder.queryParam("type", type);
-        return client.getURI(PrimitiveList.class, builder.build());
+        return client.getURI(CustomServicesPrimitiveList.class, builder.build());
     }
 
-    public PrimitiveResourceRestRep createPrimitiveResource(final String resourceType, final File resource, final String resourceName) throws IOException{
+    public CustomServicesPrimitiveResourceRestRep createPrimitiveResource(final String resourceType, final File resource, final String resourceName) throws IOException{
         final UriBuilder builder = client.uriBuilder(PathConstants.CUSTOM_SERVICES_PRIMITIVE_RESOURCE);
         builder.queryParam("name", resourceName);
-        return client.postURIOctet(PrimitiveResourceRestRep.class, new FileInputStream(resource), builder.build(resourceType));
+        return client.postURIOctet(CustomServicesPrimitiveResourceRestRep.class, new FileInputStream(resource), builder.build(resourceType));
     }
 
-    public PrimitiveRestRep createPrimitive(final PrimitiveCreateParam param) {
+    public CustomServicesPrimitiveRestRep createPrimitive(final CustomServicesPrimitiveCreateParam param) {
         final UriBuilder builder = client.uriBuilder(PathConstants.CUSTOM_SERVICES_PRIMITIVES);
-        return client.postURI(PrimitiveRestRep.class, param, builder.build());
+        return client.postURI(CustomServicesPrimitiveRestRep.class, param, builder.build());
     }
     
-    public PrimitiveRestRep getPrimitive(final URI id) {
-        return client.get(PrimitiveRestRep.class, PathConstants.CUSTOM_SERVICES_PRIMITIVE, id);
+    public CustomServicesPrimitiveRestRep getPrimitive(final URI id) {
+        return client.get(CustomServicesPrimitiveRestRep.class, PathConstants.CUSTOM_SERVICES_PRIMITIVE, id);
     }
 
     public CustomServicesWorkflowList getWorkflows() {

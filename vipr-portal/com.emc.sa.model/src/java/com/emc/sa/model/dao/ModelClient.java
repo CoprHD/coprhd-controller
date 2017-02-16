@@ -78,6 +78,7 @@ public class ModelClient {
     private ClusterFinder clusterDAO;
     private ActionableEventFinder actionableEventDAO;
     private CustomServicesWorkflowFinder customServicesWorkflowDAO;
+    private CustomServicesPrimitiveResourceFinder customServicesPrimitiveDAO;
 
     private WFDirectoryFinder wfDirectoryDAO;
 
@@ -353,6 +354,13 @@ public class ModelClient {
         }
         
         return customServicesWorkflowDAO;
+    }
+    
+    public CustomServicesPrimitiveResourceFinder customServicesPrimitiveResources() {
+        if( customServicesPrimitiveDAO == null ) {
+            customServicesPrimitiveDAO = new CustomServicesPrimitiveResourceFinder(client);
+        }
+        return customServicesPrimitiveDAO;
     }
 
     public WFDirectoryFinder wfDirectory() {

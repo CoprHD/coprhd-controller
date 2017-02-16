@@ -16,8 +16,6 @@
  */
 package com.emc.sa.api.mapper;
 
-import static com.emc.storageos.api.mapper.DbObjectMapper.mapDataObjectFields;
-
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
@@ -27,42 +25,47 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import com.emc.storageos.api.mapper.DbObjectMapper;
 import com.emc.storageos.api.service.impl.response.ResourceTypeMapping;
+import com.emc.storageos.db.client.constraint.NamedElementQueryResultList.NamedElement;
 import com.emc.storageos.db.client.model.StringSet;
-import com.emc.storageos.db.client.model.uimodels.Ansible;
-import com.emc.storageos.db.client.model.uimodels.CustomServiceScriptPrimitive;
-import com.emc.storageos.db.client.model.uimodels.PrimitiveResource;
-import com.emc.storageos.db.client.model.uimodels.UserPrimitive;
+import com.emc.storageos.db.client.model.uimodels.CustomServicesAnsiblePrimitive;
+import com.emc.storageos.db.client.model.uimodels.CustomServicesPrimitiveResource;
+import com.emc.storageos.db.client.model.uimodels.CustomServicesScriptPrimitive;
+import com.emc.storageos.db.client.model.uimodels.CustomServicesUserPrimitive;
+import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.storageos.model.RestLinkRep;
+import com.emc.storageos.model.customservices.CustomServicesPrimitiveResourceList;
 import com.emc.storageos.model.customservices.InputParameterRestRep;
 import com.emc.storageos.model.customservices.OutputParameterRestRep;
-import com.emc.storageos.model.customservices.PrimitiveResourceRestRep;
-import com.emc.storageos.model.customservices.PrimitiveResourceRestRep.Attribute;
-import com.emc.storageos.model.customservices.PrimitiveRestRep;
+import com.emc.storageos.model.customservices.CustomServicesPrimitiveResourceRestRep;
+import com.emc.storageos.model.customservices.CustomServicesPrimitiveResourceRestRep.Attribute;
+import com.emc.storageos.model.customservices.CustomServicesPrimitiveRestRep;
 import com.emc.storageos.primitives.Parameter.ParameterType;
 import com.emc.storageos.primitives.Primitive.StepType;
 import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorException;
+import com.google.common.collect.ImmutableList;
 
-public final class  PrimitiveMapper {
-    public final static PrimitiveMapper instance = new PrimitiveMapper();
+public final class  CustomServicesPrimitiveMapper extends DbObjectMapper {
+    public final static CustomServicesPrimitiveMapper instance = new CustomServicesPrimitiveMapper();
 
-    private PrimitiveMapper() {
+    private CustomServicesPrimitiveMapper() {
     };
 
-    public static PrimitiveMapper getInstance() {
+    public static CustomServicesPrimitiveMapper getInstance() {
         return instance;
     }
     
-    public static PrimitiveResourceRestRep map(final PrimitiveResource from ) {
-        final PrimitiveResourceRestRep to = new PrimitiveResourceRestRep();
+    public static CustomServicesPrimitiveResourceRestRep map(final CustomServicesPrimitiveResource from ) {
+        final CustomServicesPrimitiveResourceRestRep to = new CustomServicesPrimitiveResourceRestRep();
         mapDataObjectFields(from, to);
-        if( from.isAnsiblePackage()) {
+        if( from.isCustomServiceAnsiblePackage()) {
             final Attribute playbooks = new Attribute();
             playbooks.setName("playbooks");
-            playbooks.setValues(Arrays.asList(from.asAnsiblePackage().getPlaybooks().toArray(new String[0])));
+            playbooks.setValues(Arrays.asList(from.asCustomServiceAnsiblePackage().getPlaybooks().toArray(new String[0])));
             to.setAttributes(Collections.singletonList(playbooks));
-        } else if(from.isCustomerServiceScriptResource()) {
+        } else if(from.isCustomServiceScriptResource()) {
             
         } else {
             throw new RuntimeException("Uknown resource type: " + from );
@@ -70,16 +73,16 @@ public final class  PrimitiveMapper {
         return to;
     }
 
-    public static PrimitiveRestRep map(final UserPrimitive from) {
-        final PrimitiveRestRep to = new PrimitiveRestRep();
+    public static CustomServicesPrimitiveRestRep map(final CustomServicesUserPrimitive from) {
+        final CustomServicesPrimitiveRestRep to = new CustomServicesPrimitiveRestRep();
 
         mapDataObjectFields(from, to);
         mapPrimitiveFields(from, to);
         
-        if(from.isAnsible()) {
-            mapAnsible(from.asAnsible(), to);
-        } else if(from.isCustomeServiceScript()) {
-            mapScript(from.asCustomeServiceScript(), to);
+        if(from.isCustomServiceAnsiblePrimitive()) {
+            mapAnsible(from.asCustomServiceAnsiblePrimitive(), to);
+        } else if(from.isCustomServiceScriptPrimitive()) {
+            mapScript(from.asCustomServiceScriptPrimitive(), to);
         }
         
         try {
@@ -90,7 +93,7 @@ public final class  PrimitiveMapper {
         return to;
     }
 
-    private static RestLinkRep makeResourceLink(UserPrimitive resource) throws URISyntaxException {
+    private static RestLinkRep makeResourceLink(CustomServicesUserPrimitive resource) throws URISyntaxException {
         final ResourceTypeEnum type = ResourceTypeMapping.getResourceType(resource);
         if(type == null) {
             return null;
@@ -98,9 +101,9 @@ public final class  PrimitiveMapper {
         
         switch(type) {
         case ANSIBLE:
-           return makeResourceLink(type.getService(), "ansible", resource.asAnsible().getArchive());
+           return makeResourceLink(type.getService(), "ansible", resource.asCustomServiceAnsiblePrimitive().getArchive());
         case SCRIPT_PRIMITIVE:
-            return makeResourceLink(type.getService(), "script", resource.asCustomeServiceScript().getScript());
+            return makeResourceLink(type.getService(), "script", resource.asCustomServiceScriptPrimitive().getScript());
         default:
             return null;
         }
@@ -113,10 +116,10 @@ public final class  PrimitiveMapper {
         return new RestLinkRep("resource", new URI(builder.toString()));
     }
 
-    private static void mapAnsible(final Ansible from,
-            final PrimitiveRestRep to) {
+    private static void mapAnsible(final CustomServicesAnsiblePrimitive from,
+            final CustomServicesPrimitiveRestRep to) {
         to.setType(StepType.LOCAL_ANSIBLE.toString());
-        final Map<String, PrimitiveRestRep.InputGroup> input = new HashMap<String, PrimitiveRestRep.InputGroup>();
+        final Map<String, CustomServicesPrimitiveRestRep.InputGroup> input = new HashMap<String, CustomServicesPrimitiveRestRep.InputGroup>();
         if (null != from.getExtraVars()) {
             final List<InputParameterRestRep> inputParam = new ArrayList<InputParameterRestRep>();
             for (final String extraVar : from.getExtraVars()) {
@@ -125,7 +128,7 @@ public final class  PrimitiveMapper {
                 param.setType(ParameterType.STRING.name());
                 inputParam.add(param);
             }
-            PrimitiveRestRep.InputGroup inputGroup = new PrimitiveRestRep.InputGroup(){{
+            CustomServicesPrimitiveRestRep.InputGroup inputGroup = new CustomServicesPrimitiveRestRep.InputGroup(){{
                 setInputGroup(inputParam);
             }};
             input.put("input_params",inputGroup);
@@ -139,9 +142,9 @@ public final class  PrimitiveMapper {
         to.setAttributes(attributes);
     }
     
-    private static void mapScript(final CustomServiceScriptPrimitive from, final PrimitiveRestRep to) {
+    private static void mapScript(final CustomServicesScriptPrimitive from, final CustomServicesPrimitiveRestRep to) {
         to.setType(StepType.SHELL_SCRIPT.toString());
-        final Map<String, PrimitiveRestRep.InputGroup> input = new HashMap<String, PrimitiveRestRep.InputGroup>();
+        final Map<String, CustomServicesPrimitiveRestRep.InputGroup> input = new HashMap<String, CustomServicesPrimitiveRestRep.InputGroup>();
         if (null != from.getInput()) {
             final List<InputParameterRestRep> inputParam = new ArrayList<InputParameterRestRep>();
             for (final String arg : from.getInput()) {
@@ -150,7 +153,7 @@ public final class  PrimitiveMapper {
                 param.setType(ParameterType.STRING.name());
                 inputParam.add(param);
             }
-            PrimitiveRestRep.InputGroup inputGroup = new PrimitiveRestRep.InputGroup(){{
+            CustomServicesPrimitiveRestRep.InputGroup inputGroup = new CustomServicesPrimitiveRestRep.InputGroup(){{
                 setInputGroup(inputParam);
             }};
             input.put("input_params",inputGroup);
@@ -158,8 +161,8 @@ public final class  PrimitiveMapper {
         to.setInputGroups(input);
     }
 
-    public static void mapPrimitiveFields(final UserPrimitive from,
-            PrimitiveRestRep to) {
+    public static void mapPrimitiveFields(final CustomServicesUserPrimitive from,
+            CustomServicesPrimitiveRestRep to) {
         to.setFriendlyName(from.getFriendlyName());
         to.setDescription(from.getDescription());
         to.setSuccessCriteria(from.getSuccessCriteria());
@@ -177,5 +180,15 @@ public final class  PrimitiveMapper {
             }
         }
         return to;
+    }
+
+    public static <T extends CustomServicesPrimitiveResource> CustomServicesPrimitiveResourceList toCustomServicesPrimitiveResourceList(
+            final Class<T> type, final List<NamedElement> fromList) {
+        final ImmutableList.Builder<NamedRelatedResourceRep> builder = ImmutableList.builder();
+
+        for( final NamedElement resource : fromList) {
+            builder.add(toNamedRelatedResource(ResourceTypeMapping.getResourceType(type), resource.getId(), resource.getName()));
+        }
+        return new CustomServicesPrimitiveResourceList(builder.build());
     }
 }

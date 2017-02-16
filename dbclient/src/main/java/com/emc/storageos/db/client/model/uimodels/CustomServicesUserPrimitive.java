@@ -23,7 +23,7 @@ import com.emc.storageos.db.client.model.StringSet;
 /**
  *
  */
-public abstract class UserPrimitive extends ModelObject {
+public abstract class CustomServicesUserPrimitive extends ModelObject {
 
     private static final long serialVersionUID = 1L;
     
@@ -77,8 +77,8 @@ public abstract class UserPrimitive extends ModelObject {
         this.output = output;
     }
 
-    public abstract boolean isAnsible();
-    public abstract Ansible asAnsible(); 
-    public abstract boolean isCustomeServiceScript();
-    public abstract CustomServiceScriptPrimitive asCustomeServiceScript();
+    public abstract boolean isCustomServiceAnsiblePrimitive();
+    public abstract CustomServicesAnsiblePrimitive asCustomServiceAnsiblePrimitive(); 
+    public abstract boolean isCustomServiceScriptPrimitive();
+    public abstract CustomServicesScriptPrimitive asCustomServiceScriptPrimitive();
 }

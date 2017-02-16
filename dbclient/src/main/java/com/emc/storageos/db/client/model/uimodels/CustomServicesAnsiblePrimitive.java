@@ -25,8 +25,8 @@ import com.emc.storageos.db.client.model.StringSet;
 /**
  * Column family that contains details for an ansible primitive definition
  */
-@Cf("Ansible")
-public class Ansible extends UserPrimitive {
+@Cf("CustomServiceAnsiblePrimitive")
+public class CustomServicesAnsiblePrimitive extends CustomServicesUserPrimitive {
 
     private static final long serialVersionUID = 1L;
 
@@ -81,22 +81,22 @@ public class Ansible extends UserPrimitive {
     }
     
     @Override
-    public boolean isAnsible() {
+    public boolean isCustomServiceAnsiblePrimitive() {
         return true;
     }
 
     @Override
-    public Ansible asAnsible() {
+    public CustomServicesAnsiblePrimitive asCustomServiceAnsiblePrimitive() {
         return this;
     }
 
     @Override
-    public boolean isCustomeServiceScript() {
+    public boolean isCustomServiceScriptPrimitive() {
         return false;
     }
 
     @Override
-    public CustomServiceScriptPrimitive asCustomeServiceScript() {
+    public CustomServicesScriptPrimitive asCustomServiceScriptPrimitive() {
         return null;
     }
 

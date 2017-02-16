@@ -154,18 +154,18 @@ import com.emc.storageos.db.client.model.Workflow;
 import com.emc.storageos.db.client.model.WorkflowStep;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFileSystem;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
-import com.emc.storageos.db.client.model.uimodels.Ansible;
-import com.emc.storageos.db.client.model.uimodels.AnsiblePackage;
+import com.emc.storageos.db.client.model.uimodels.CustomServicesAnsiblePrimitive;
+import com.emc.storageos.db.client.model.uimodels.CustomServicesAnsiblePackage;
 import com.emc.storageos.db.client.model.uimodels.CatalogCategory;
 import com.emc.storageos.db.client.model.uimodels.CatalogImage;
 import com.emc.storageos.db.client.model.uimodels.CatalogService;
 import com.emc.storageos.db.client.model.uimodels.CatalogServiceField;
-import com.emc.storageos.db.client.model.uimodels.CustomServiceScriptPrimitive;
-import com.emc.storageos.db.client.model.uimodels.CustomServiceScriptResource;
+import com.emc.storageos.db.client.model.uimodels.CustomServicesScriptPrimitive;
+import com.emc.storageos.db.client.model.uimodels.CustomServicesScriptResource;
 import com.emc.storageos.db.client.model.uimodels.CustomServicesWorkflow;
 import com.emc.storageos.db.client.model.uimodels.ExecutionWindow;
 import com.emc.storageos.db.client.model.uimodels.Order;
-import com.emc.storageos.db.client.model.uimodels.UserPrimitive;
+import com.emc.storageos.db.client.model.uimodels.CustomServicesUserPrimitive;
 import com.emc.storageos.db.client.model.uimodels.WFDirectory;
 import com.emc.storageos.model.ResourceTypeEnum;
 
@@ -246,12 +246,12 @@ public class ResourceTypeMapping {
         classMapping.put(ACTIONABLE_EVENT, ActionableEvent.class);
         classMapping.put(EXECUTION_WINDOW, ExecutionWindow.class);
         classMapping.put(CUSTOM_SERVICES_WORKFLOW, CustomServicesWorkflow.class);
-        classMapping.put(ANSIBLE_PACKAGE, AnsiblePackage.class);
-        classMapping.put(ANSIBLE, Ansible.class);
-        classMapping.put(SCRIPT_PRIMITIVE, CustomServiceScriptPrimitive.class);
-        classMapping.put(SCRIPT_RESOURCE, CustomServiceScriptResource.class);
+        classMapping.put(ANSIBLE_PACKAGE, CustomServicesAnsiblePackage.class);
+        classMapping.put(ANSIBLE, CustomServicesAnsiblePrimitive.class);
+        classMapping.put(SCRIPT_PRIMITIVE, CustomServicesScriptPrimitive.class);
+        classMapping.put(SCRIPT_RESOURCE, CustomServicesScriptResource.class);
         classMapping.put(WF_DIRECTORY, WFDirectory.class);
-        classMapping.put(CUSTOM_SERVICE_PRIMITIVE, UserPrimitive.class);
+        classMapping.put(CUSTOM_SERVICE_PRIMITIVE, CustomServicesUserPrimitive.class);
 
         for (Map.Entry<ResourceTypeEnum, Class<? extends DataObject>> entry : classMapping
                 .entrySet()) {

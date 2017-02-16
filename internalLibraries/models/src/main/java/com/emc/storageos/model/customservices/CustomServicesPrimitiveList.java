@@ -26,15 +26,15 @@ import javax.xml.bind.annotation.XmlRootElement;
 
 @XmlRootElement(name = "primitives")
 @XmlAccessorType(XmlAccessType.PROPERTY)
-public class PrimitiveList {
+public class CustomServicesPrimitiveList {
 
     private List<URI> primitives;
     
-    public PrimitiveList() {
+    public CustomServicesPrimitiveList() {
         
     }
     
-    public PrimitiveList(final List<URI> primitives) {
+    public CustomServicesPrimitiveList(final List<URI> primitives) {
         this.primitives = primitives;
     }
     

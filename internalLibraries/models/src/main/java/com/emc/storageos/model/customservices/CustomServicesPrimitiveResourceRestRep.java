@@ -24,7 +24,7 @@ import javax.xml.bind.annotation.XmlRootElement;
 import com.emc.storageos.model.DataObjectRestRep;
 
 @XmlRootElement(name = "primitive_resource")
-public class PrimitiveResourceRestRep extends DataObjectRestRep {
+public class CustomServicesPrimitiveResourceRestRep extends DataObjectRestRep {
 
     private List<Attribute> attributes;
     

@@ -19,17 +19,17 @@ package com.emc.storageos.db.client.model.uimodels;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.Name;
 
-public abstract class PrimitiveResource extends DataObject {
+public abstract class CustomServicesPrimitiveResource extends DataObject {
 
     private static final long serialVersionUID = 1L;
     public static final String RESOURCE = "resource";
 
     private byte[] resource;
 
-    public abstract boolean isAnsiblePackage();
-    public abstract AnsiblePackage asAnsiblePackage();
-    public abstract boolean isCustomerServiceScriptResource();
-    public abstract CustomServiceScriptResource asCustomerServiceScriptResource();
+    public abstract boolean isCustomServiceAnsiblePackage();
+    public abstract CustomServicesAnsiblePackage asCustomServiceAnsiblePackage();
+    public abstract boolean isCustomServiceScriptResource();
+    public abstract CustomServicesScriptResource asCustomServiceScriptResource();
     public abstract String suffix();
 
     @Name(RESOURCE)

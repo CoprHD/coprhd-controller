@@ -54,29 +54,30 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import com.emc.sa.api.mapper.PrimitiveMapper;
-import com.emc.sa.catalog.PrimitiveManager;
+import com.emc.sa.api.mapper.CustomServicesPrimitiveMapper;
+import com.emc.sa.catalog.CustomServicesPrimitiveManager;
 import com.emc.storageos.api.service.impl.resource.ArgValidator;
 import com.emc.storageos.api.service.impl.response.BulkList;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.StringSet;
-import com.emc.storageos.db.client.model.uimodels.Ansible;
-import com.emc.storageos.db.client.model.uimodels.AnsiblePackage;
-import com.emc.storageos.db.client.model.uimodels.CustomServiceScriptPrimitive;
-import com.emc.storageos.db.client.model.uimodels.CustomServiceScriptResource;
-import com.emc.storageos.db.client.model.uimodels.PrimitiveResource;
-import com.emc.storageos.db.client.model.uimodels.UserPrimitive;
+import com.emc.storageos.db.client.model.uimodels.CustomServicesAnsiblePackage;
+import com.emc.storageos.db.client.model.uimodels.CustomServicesAnsiblePrimitive;
+import com.emc.storageos.db.client.model.uimodels.CustomServicesPrimitiveResource;
+import com.emc.storageos.db.client.model.uimodels.CustomServicesScriptPrimitive;
+import com.emc.storageos.db.client.model.uimodels.CustomServicesScriptResource;
+import com.emc.storageos.db.client.model.uimodels.CustomServicesUserPrimitive;
 import com.emc.storageos.model.BulkIdParam;
 import com.emc.storageos.model.ResourceTypeEnum;
+import com.emc.storageos.model.customservices.CustomServicesPrimitiveBulkRestRep;
+import com.emc.storageos.model.customservices.CustomServicesPrimitiveCreateParam;
+import com.emc.storageos.model.customservices.CustomServicesPrimitiveList;
+import com.emc.storageos.model.customservices.CustomServicesPrimitiveResourceList;
+import com.emc.storageos.model.customservices.CustomServicesPrimitiveResourceRestRep;
+import com.emc.storageos.model.customservices.CustomServicesPrimitiveRestRep;
+import com.emc.storageos.model.customservices.CustomServicesPrimitiveUpdateParam;
 import com.emc.storageos.model.customservices.InputParameterRestRep;
 import com.emc.storageos.model.customservices.OutputParameterRestRep;
-import com.emc.storageos.model.customservices.PrimitiveBulkRestRep;
-import com.emc.storageos.model.customservices.PrimitiveCreateParam;
-import com.emc.storageos.model.customservices.PrimitiveList;
-import com.emc.storageos.model.customservices.PrimitiveResourceRestRep;
-import com.emc.storageos.model.customservices.PrimitiveRestRep;
-import com.emc.storageos.model.customservices.PrimitiveUpdateParam;
 import com.emc.storageos.primitives.Primitive;
 import com.emc.storageos.primitives.PrimitiveHelper;
 import com.emc.storageos.primitives.ViPRPrimitive;
@@ -106,18 +107,18 @@ import com.google.common.collect.Multimaps;
 @DefaultPermissions(readRoles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, readAcls = {
         ACL.OWN, ACL.ALL }, writeRoles = { Role.TENANT_ADMIN }, writeAcls = {
         ACL.OWN, ACL.ALL })
-public class PrimitiveService extends CatalogTaggedResourceService {
+public class CustomServicesPrimitiveService extends CatalogTaggedResourceService {
     @Autowired
-    private PrimitiveManager primitiveManager;
+    private CustomServicesPrimitiveManager primitiveManager;
     
-    private final ImmutableMap<URI, PrimitiveRestRep> PRIMITIVE_MAP;
+    private final ImmutableMap<URI, CustomServicesPrimitiveRestRep> PRIMITIVE_MAP;
     private static final Logger _log = LoggerFactory
-            .getLogger(PrimitiveManager.class);
+            .getLogger(CustomServicesPrimitiveManager.class);
 
     private enum PrimitiveType {
         VIPR(ViPRPrimitive.class.getSimpleName(), 0x02), 
-        ANSIBLE(Ansible.class.getSimpleName(), 0x04, AnsiblePackage.class.getSimpleName()), 
-        SCRIPT(CustomServiceScriptPrimitive.class.getSimpleName(), 0x08, CustomServiceScriptResource.class.getSimpleName());
+        ANSIBLE(CustomServicesAnsiblePrimitive.class.getSimpleName(), 0x04, CustomServicesAnsiblePackage.class.getSimpleName()), 
+        SCRIPT(CustomServicesScriptPrimitive.class.getSimpleName(), 0x08, CustomServicesScriptResource.class.getSimpleName());
 
         public final static int ALL_MASK = 0xFF;
         
@@ -185,11 +186,11 @@ public class PrimitiveService extends CatalogTaggedResourceService {
         }
     }
 
-    public PrimitiveService() {
-        Builder<URI, PrimitiveRestRep> builder = ImmutableMap
-                .<URI, PrimitiveRestRep> builder();
+    public CustomServicesPrimitiveService() {
+        Builder<URI, CustomServicesPrimitiveRestRep> builder = ImmutableMap
+                .<URI, CustomServicesPrimitiveRestRep> builder();
         for (final Primitive primitive : PrimitiveHelper.list()) {
-            PrimitiveRestRep primitiveRestRep = new PrimitiveRestRep();
+            CustomServicesPrimitiveRestRep primitiveRestRep = new CustomServicesPrimitiveRestRep();
             primitiveRestRep.setId(primitive.getId());
             primitiveRestRep.setName(primitive.getName());
             primitiveRestRep.setType(primitive.getType().toString());
@@ -217,7 +218,7 @@ public class PrimitiveService extends CatalogTaggedResourceService {
      */
     @GET
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    public PrimitiveList getPrimitives(@QueryParam("type") final String type) {
+    public CustomServicesPrimitiveList getPrimitives(@QueryParam("type") final String type) {
         final int mask;
         if( null == type || type.equalsIgnoreCase("all")) {
             mask = PrimitiveType.ALL_MASK;
@@ -249,7 +250,7 @@ public class PrimitiveService extends CatalogTaggedResourceService {
             }
         }
         
-        final PrimitiveList primitiveList = new PrimitiveList();
+        final CustomServicesPrimitiveList primitiveList = new CustomServicesPrimitiveList();
         primitiveList.setPrimitives(list);
         return primitiveList;
     }
@@ -267,7 +268,7 @@ public class PrimitiveService extends CatalogTaggedResourceService {
      */
     @POST
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    public PrimitiveRestRep makePrimitive(PrimitiveCreateParam param) {
+    public CustomServicesPrimitiveRestRep makePrimitive(CustomServicesPrimitiveCreateParam param) {
         
         if(null != param.getType()) {
             ArgValidator.checkFieldValueFromEnum(param.getType().toUpperCase(), "type", PrimitiveType.dynamicTypes());
@@ -275,7 +276,7 @@ public class PrimitiveService extends CatalogTaggedResourceService {
             throw APIException.badRequests.requiredParameterMissingOrEmpty("type");
         }
         
-        final UserPrimitive primitive;
+        final CustomServicesUserPrimitive primitive;
         final PrimitiveType type = PrimitiveType
                 .get(param.getType());
         
@@ -291,7 +292,7 @@ public class PrimitiveService extends CatalogTaggedResourceService {
         }
         
         primitiveManager.save(primitive);
-        return PrimitiveMapper.map(primitive);
+        return CustomServicesPrimitiveMapper.map(primitive);
     }
 
     /**
@@ -308,7 +309,7 @@ public class PrimitiveService extends CatalogTaggedResourceService {
     @GET
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}")
-    public PrimitiveRestRep getPrimitive(@PathParam("id") final URI id) {
+    public CustomServicesPrimitiveRestRep getPrimitive(@PathParam("id") final URI id) {
         final PrimitiveType type = PrimitiveType.fromTypeName(URIUtil
                 .getTypeName(id));
         if (null == type) {
@@ -316,29 +317,66 @@ public class PrimitiveService extends CatalogTaggedResourceService {
         }
         switch (type) {
         case VIPR:
-            final PrimitiveRestRep primitive = PRIMITIVE_MAP.get(id);
+            final CustomServicesPrimitiveRestRep primitive = PRIMITIVE_MAP.get(id);
             if (null == primitive) {
                 throw APIException.notFound.unableToFindEntityInURL(id);
             }
             return primitive;
         case ANSIBLE:
-            final Ansible ansible = primitiveManager.findById(id).asAnsible();
+            final CustomServicesAnsiblePrimitive ansible = primitiveManager.findById(id).asCustomServiceAnsiblePrimitive();
             if (null == ansible) {
                 throw APIException.notFound.unableToFindEntityInURL(id);
             }
-            return PrimitiveMapper.map(ansible);
+            return CustomServicesPrimitiveMapper.map(ansible);
         case SCRIPT:
-            final CustomServiceScriptPrimitive script = primitiveManager.findById(id).asCustomeServiceScript();
+            final CustomServicesScriptPrimitive script = primitiveManager.findById(id).asCustomServiceScriptPrimitive();
             if (null == script) {
                 throw APIException.notFound.unableToFindEntityInURL(id);
             }
-            return PrimitiveMapper.map(script);
+            return CustomServicesPrimitiveMapper.map(script);
         default:
             throw APIException.notFound.unableToFindEntityInURL(id);
 
         }
     }
 
+    /**
+     * Get a list of resources of a given type
+     * 
+     * @brief Get a list of Custom Services resources
+     * 
+     * @param type The type of the custom services resource to list
+     * 
+     * @return a list of resources of the given type
+     */
+    @GET
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/resource/{type}")
+    public CustomServicesPrimitiveResourceList getResources(@PathParam("type") final String type) {
+        
+        final PrimitiveType primitiveType = PrimitiveType.get(type);
+        if (null == primitiveType) {
+            throw NotFoundException.notFound.unableToFindEntityInURL(URI
+                    .create(type));
+        }
+        
+        final Class<? extends CustomServicesPrimitiveResource> resourceType;
+        switch(primitiveType) {
+        case SCRIPT:
+            resourceType = CustomServicesScriptResource.class;
+            break;
+        case ANSIBLE:
+            resourceType = CustomServicesAnsiblePackage.class;
+            break;
+        default:
+            throw NotFoundException.notFound.unableToFindEntityInURL(URI
+                    .create(type));
+            
+        }
+        
+        return CustomServicesPrimitiveMapper.toCustomServicesPrimitiveResourceList(resourceType, primitiveManager.getResources(resourceType));
+    }
+    
     /**
      * Upload a resource
      * @param request HttpServletRequest containing the file octet stream
@@ -350,7 +388,7 @@ public class PrimitiveService extends CatalogTaggedResourceService {
     @Consumes({ MediaType.APPLICATION_OCTET_STREAM })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/resource/{type}")
-    public PrimitiveResourceRestRep upload(
+    public CustomServicesPrimitiveResourceRestRep upload(
             @Context HttpServletRequest request,
             @PathParam("type") String type, @QueryParam("name") String name) {
 
@@ -364,7 +402,7 @@ public class PrimitiveService extends CatalogTaggedResourceService {
         }
 
         final byte[] stream = read(request);
-        final PrimitiveResource resource;
+        final CustomServicesPrimitiveResource resource;
         switch (primitiveType) {
         case ANSIBLE:
             resource = makeAnsiblePackage(name, stream);
@@ -377,7 +415,7 @@ public class PrimitiveService extends CatalogTaggedResourceService {
                     .create(type));
         }
         primitiveManager.save(resource);
-        return PrimitiveMapper.map(resource);
+        return CustomServicesPrimitiveMapper.map(resource);
     }
 
     /**
@@ -390,17 +428,17 @@ public class PrimitiveService extends CatalogTaggedResourceService {
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}")
-    public PrimitiveRestRep updatePrimitive(@PathParam("id") final URI id,
-            final PrimitiveUpdateParam param) {
-        final UserPrimitive primitive = primitiveManager.findById(id);
+    public CustomServicesPrimitiveRestRep updatePrimitive(@PathParam("id") final URI id,
+            final CustomServicesPrimitiveUpdateParam param) {
+        final CustomServicesUserPrimitive primitive = primitiveManager.findById(id);
         ArgValidator.checkEntity(primitive, id, true);
         
         final PrimitiveType type = PrimitiveType.fromTypeName(primitive.getClass().getSimpleName());
         switch (type) {
         case ANSIBLE:
-            return updateAnsible(primitive.asAnsible(), param);
+            return updateAnsible(primitive.asCustomServiceAnsiblePrimitive(), param);
         case SCRIPT:
-            return updateScriptPrimitive(primitive.asCustomeServiceScript(), param);
+            return updateScriptPrimitive(primitive.asCustomServiceScriptPrimitive(), param);
         default:
             throw APIException.notFound.unableToFindEntityInURL(id);
         }
@@ -425,7 +463,7 @@ public class PrimitiveService extends CatalogTaggedResourceService {
                     .create(type));
         }
 
-        final PrimitiveResource resource = primitiveManager.findResource(id);
+        final CustomServicesPrimitiveResource resource = primitiveManager.findResource(id);
         ArgValidator.checkEntity(resource, id, true);
 
    
@@ -443,13 +481,13 @@ public class PrimitiveService extends CatalogTaggedResourceService {
     @POST
     @Path("/bulk")
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    public PrimitiveBulkRestRep bulkGetPrimitives(final BulkIdParam ids) {
-        return (PrimitiveBulkRestRep) super.getBulkResources(ids);
+    public CustomServicesPrimitiveBulkRestRep bulkGetPrimitives(final BulkIdParam ids) {
+        return (CustomServicesPrimitiveBulkRestRep) super.getBulkResources(ids);
     }
 
-    private Ansible makeAnsiblePrimitive(PrimitiveCreateParam param) {
-        final Ansible primitive = new Ansible();
-        primitive.setId(URIUtil.createId(Ansible.class));
+    private CustomServicesAnsiblePrimitive makeAnsiblePrimitive(CustomServicesPrimitiveCreateParam param) {
+        final CustomServicesAnsiblePrimitive primitive = new CustomServicesAnsiblePrimitive();
+        primitive.setId(URIUtil.createId(CustomServicesAnsiblePrimitive.class));
         primitive.setLabel(param.getName());
         primitive.setFriendlyName(param.getFriendlyName());
         primitive.setDescription(param.getDescription());
@@ -480,8 +518,8 @@ public class PrimitiveService extends CatalogTaggedResourceService {
         return Response.ok().build();
     }
     
-    private PrimitiveRestRep updateAnsible(final Ansible update,
-            final PrimitiveUpdateParam param) {
+    private CustomServicesPrimitiveRestRep updateAnsible(final CustomServicesAnsiblePrimitive update,
+            final CustomServicesPrimitiveUpdateParam param) {
 
         if (null != param.getInput()) {
             final StringSet extraVars = update.getExtraVars() == null ? new StringSet()
@@ -499,7 +537,7 @@ public class PrimitiveService extends CatalogTaggedResourceService {
             for(Entry<String, String> attribute : param.getAttributes().entrySet()) {
                 switch(attribute.getKey()) {
                 case "playbook":
-                    final AnsiblePackage archive = primitiveManager.findResource(update.getArchive()).asAnsiblePackage();
+                    final CustomServicesAnsiblePackage archive = primitiveManager.findResource(update.getArchive()).asCustomServiceAnsiblePackage();
                     if(!archive.getPlaybooks().contains(attribute.getValue())) {
                         throw BadRequestException.badRequests.parameterIsNotValid(attribute.getKey());
                     } else {
@@ -515,8 +553,8 @@ public class PrimitiveService extends CatalogTaggedResourceService {
     }
 
 
-    private static Map<String, PrimitiveRestRep.InputGroup> mapInput(Map<Primitive.InputType, List<InputParameter>> inputParameters) {
-        Map<String, PrimitiveRestRep.InputGroup> inputRestRep = new HashMap<String, PrimitiveRestRep.InputGroup>();
+    private static Map<String, CustomServicesPrimitiveRestRep.InputGroup> mapInput(Map<Primitive.InputType, List<InputParameter>> inputParameters) {
+        Map<String, CustomServicesPrimitiveRestRep.InputGroup> inputRestRep = new HashMap<String, CustomServicesPrimitiveRestRep.InputGroup>();
         for(final Entry<Primitive.InputType, List<InputParameter>> parameterType : inputParameters.entrySet()) {
             List<InputParameterRestRep> inputTypeRestRep = new ArrayList<InputParameterRestRep>();
             for(final InputParameter parameter : parameterType.getValue()) {
@@ -535,7 +573,7 @@ public class PrimitiveService extends CatalogTaggedResourceService {
                     inputTypeRestRep.add(inputParamRestRep);
                 }
             }
-            PrimitiveRestRep.InputGroup inputGroup = new PrimitiveRestRep.InputGroup(){{
+            CustomServicesPrimitiveRestRep.InputGroup inputGroup = new CustomServicesPrimitiveRestRep.InputGroup(){{
                 setInputGroup(inputTypeRestRep);
             }};
             inputRestRep.put(parameterType.getKey().toString(),inputGroup);
@@ -584,12 +622,12 @@ public class PrimitiveService extends CatalogTaggedResourceService {
         }
     }
     
-    private AnsiblePackage makeAnsiblePackage(final String name, final byte[] archive) {
+    private CustomServicesAnsiblePackage makeAnsiblePackage(final String name, final byte[] archive) {
         final StringSet playbooks = getPlaybooks(archive);
 
-        final AnsiblePackage ansiblePackage = new AnsiblePackage();
+        final CustomServicesAnsiblePackage ansiblePackage = new CustomServicesAnsiblePackage();
         ansiblePackage.setLabel(name);
-        ansiblePackage.setId(URIUtil.createId(AnsiblePackage.class));
+        ansiblePackage.setId(URIUtil.createId(CustomServicesAnsiblePackage.class));
 
         ansiblePackage.setPlaybooks(playbooks);
         ansiblePackage.setResource(Base64.encodeBase64(archive));
@@ -628,17 +666,17 @@ public class PrimitiveService extends CatalogTaggedResourceService {
        
     }
     
-    private CustomServiceScriptResource makeScript(final String name, final byte[] file) {
-        CustomServiceScriptResource script = new CustomServiceScriptResource();
-        script.setId(URIUtil.createId(CustomServiceScriptResource.class));
+    private CustomServicesScriptResource makeScript(final String name, final byte[] file) {
+        CustomServicesScriptResource script = new CustomServicesScriptResource();
+        script.setId(URIUtil.createId(CustomServicesScriptResource.class));
         script.setLabel(name);
         script.setResource(Base64.encodeBase64(file));
         return script;
     }
     
-    private CustomServiceScriptPrimitive makeScriptPrimitive(PrimitiveCreateParam param) {
-        final CustomServiceScriptPrimitive primitive = new CustomServiceScriptPrimitive();
-        primitive.setId(URIUtil.createId(CustomServiceScriptPrimitive.class));
+    private CustomServicesScriptPrimitive makeScriptPrimitive(CustomServicesPrimitiveCreateParam param) {
+        final CustomServicesScriptPrimitive primitive = new CustomServicesScriptPrimitive();
+        primitive.setId(URIUtil.createId(CustomServicesScriptPrimitive.class));
         primitive.setLabel(param.getName());
         primitive.setFriendlyName(param.getFriendlyName());
         primitive.setDescription(param.getDescription());
@@ -657,11 +695,11 @@ public class PrimitiveService extends CatalogTaggedResourceService {
         return primitive;
     }
     
-    private PrimitiveRestRep updateScriptPrimitive(final CustomServiceScriptPrimitive update, final PrimitiveUpdateParam param) {
+    private CustomServicesPrimitiveRestRep updateScriptPrimitive(final CustomServicesScriptPrimitive update, final CustomServicesPrimitiveUpdateParam param) {
         return updatePrimitive(update, param);
     }
     
-    private PrimitiveRestRep updatePrimitive(final UserPrimitive update, final PrimitiveUpdateParam param) {
+    private CustomServicesPrimitiveRestRep updatePrimitive(final CustomServicesUserPrimitive update, final CustomServicesPrimitiveUpdateParam param) {
         if (null != param.getName()) {
             update.setLabel(param.getName());
         }
@@ -688,7 +726,7 @@ public class PrimitiveService extends CatalogTaggedResourceService {
             update.setOutput(output);
         }
         primitiveManager.save(update);
-        return PrimitiveMapper.map(update);
+        return CustomServicesPrimitiveMapper.map(update);
     }
 
     @Override
@@ -708,23 +746,23 @@ public class PrimitiveService extends CatalogTaggedResourceService {
     }
     
     @Override
-    public Class<UserPrimitive> getResourceClass() {
-        return UserPrimitive.class;
+    public Class<CustomServicesUserPrimitive> getResourceClass() {
+        return CustomServicesUserPrimitive.class;
     }
     
     @Override
-    public PrimitiveBulkRestRep queryBulkResourceReps(final List<URI> ids) {
-        return new PrimitiveBulkRestRep(getPrimitiveRestReps(ids));
+    public CustomServicesPrimitiveBulkRestRep queryBulkResourceReps(final List<URI> ids) {
+        return new CustomServicesPrimitiveBulkRestRep(getPrimitiveRestReps(ids));
     }
     
     @Override
-    public PrimitiveBulkRestRep queryFilteredBulkResourceReps(final List<URI> ids) { 
+    public CustomServicesPrimitiveBulkRestRep queryFilteredBulkResourceReps(final List<URI> ids) { 
         //TODO do we need any filtering?
-        return new PrimitiveBulkRestRep(getPrimitiveRestReps(ids));
+        return new CustomServicesPrimitiveBulkRestRep(getPrimitiveRestReps(ids));
     }
     
-    private List<PrimitiveRestRep> getPrimitiveRestReps(final List<URI> ids) {
-        final ImmutableListMultimap<PrimitiveService.PrimitiveType, URI> idGroups = Multimaps.index(ids, new Function<URI, PrimitiveService.PrimitiveType>() {
+    private List<CustomServicesPrimitiveRestRep> getPrimitiveRestReps(final List<URI> ids) {
+        final ImmutableListMultimap<CustomServicesPrimitiveService.PrimitiveType, URI> idGroups = Multimaps.index(ids, new Function<URI, CustomServicesPrimitiveService.PrimitiveType>() {
             @Override
             public PrimitiveType apply(final URI id) {
                 PrimitiveType type = PrimitiveType.fromTypeName(URIUtil.getTypeName(id));
@@ -735,7 +773,7 @@ public class PrimitiveService extends CatalogTaggedResourceService {
             }
         });
         
-        final ImmutableList.Builder<PrimitiveRestRep> builder = ImmutableList.<PrimitiveRestRep>builder();
+        final ImmutableList.Builder<CustomServicesPrimitiveRestRep> builder = ImmutableList.<CustomServicesPrimitiveRestRep>builder();
         for( final Entry<PrimitiveType, Collection<URI>> entry : idGroups.asMap().entrySet()) {
             switch(entry.getKey()) {
             case VIPR:
@@ -743,21 +781,21 @@ public class PrimitiveService extends CatalogTaggedResourceService {
                 break;
             case ANSIBLE:
                 
-                builder.addAll(BulkList.wrapping(_dbClient.queryIterativeObjects(Ansible.class, entry.getValue()), new Function<Ansible, PrimitiveRestRep>() {
+                builder.addAll(BulkList.wrapping(_dbClient.queryIterativeObjects(CustomServicesAnsiblePrimitive.class, entry.getValue()), new Function<CustomServicesAnsiblePrimitive, CustomServicesPrimitiveRestRep>() {
 
                     @Override
-                    public PrimitiveRestRep apply(final Ansible from) {
-                        return PrimitiveMapper.map(from);
+                    public CustomServicesPrimitiveRestRep apply(final CustomServicesAnsiblePrimitive from) {
+                        return CustomServicesPrimitiveMapper.map(from);
                     }
                     
                 }).iterator());
                 break;
             case SCRIPT:
-                builder.addAll(BulkList.wrapping(_dbClient.queryIterativeObjects(CustomServiceScriptPrimitive.class, entry.getValue()), new Function<CustomServiceScriptPrimitive, PrimitiveRestRep>() {
+                builder.addAll(BulkList.wrapping(_dbClient.queryIterativeObjects(CustomServicesScriptPrimitive.class, entry.getValue()), new Function<CustomServicesScriptPrimitive, CustomServicesPrimitiveRestRep>() {
 
                     @Override
-                    public PrimitiveRestRep apply(final CustomServiceScriptPrimitive from) {
-                        return PrimitiveMapper.map(from);
+                    public CustomServicesPrimitiveRestRep apply(final CustomServicesScriptPrimitive from) {
+                        return CustomServicesPrimitiveMapper.map(from);
                     }
                     
                 }).iterator());

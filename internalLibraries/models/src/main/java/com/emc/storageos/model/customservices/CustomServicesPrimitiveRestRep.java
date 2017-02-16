@@ -27,7 +27,7 @@ import javax.xml.bind.annotation.XmlElementWrapper;
 import javax.xml.bind.annotation.XmlRootElement;
 
 @XmlRootElement(name = "primitive")
-public class PrimitiveRestRep extends DataObjectRestRep {
+public class CustomServicesPrimitiveRestRep extends DataObjectRestRep {
     
     private String type;
     private String friendlyName;

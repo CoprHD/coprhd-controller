@@ -45,7 +45,8 @@ import com.sun.jersey.spi.scanning.AnnotationScannerListener;
 public class Documenter {
     private static final Logger _log = LoggerFactory.getLogger(Documenter.class);
 
-    public static final String[] PACKAGES = new String[] { "com.emc.storageos.exceptions",
+    public static final String[] PACKAGES = new String[] {
+            "com.emc.storageos.exceptions",
             "com.emc.storageos.isilon.restapi",
             "com.emc.storageos.datadomain.restapi.errorhandling",
             "com.emc.storageos.netapp",
@@ -65,7 +66,51 @@ public class Documenter {
             "com.emc.storageos.security.exceptions",
             "com.emc.storageos.systemservices.exceptions",
             "com.emc.storageos.volumecontroller.placement",
-            "com.emc.storageos.vnxe" };
+            "com.emc.storageos.vnxe" 
+            /*
+             * This is the actual list, according to @MessageBundle greps on 2/2017 WJE
+             */ 
+            /*
+            "com.emc.storageos.ceph", 
+            "com.emc.storageos.cimadapter.exceptions", 
+            "com.emc.storageos.cinder.errorhandling",
+            "com.emc.storageos.computesystemcontroller.exceptions", 
+            "com.emc.storageos.coordinator.exceptions",
+            "com.emc.storageos.customconfigcontroller.exceptions", 
+            "com.emc.storageos.datadomain.restapi.errorhandling",
+            "com.emc.storageos.db.exceptions", 
+            "com.emc.storageos.ecs.api", 
+            "com.emc.storageos.exceptions",
+            "com.emc.storageos.glance.errorhandling", 
+            "com.emc.storageos.hds", 
+            "com.emc.storageos.imageservercontroller.exceptions",
+            "com.emc.storageos.isilon.restapi",
+            "com.emc.storageos.keystone.restapi.errorhandling", 
+            "com.emc.storageos.management.backup.exceptions",
+            "com.emc.storageos.netapp",
+            "com.emc.storageos.netappc",
+            "com.emc.storageos.networkcontroller.exceptions",
+            "com.emc.storageos.plugins",
+            "com.emc.storageos.plugins.metering.vplex",
+            "com.emc.storageos.recoverpoint.exceptions",
+            "com.emc.storageos.scaleio", 
+            "com.emc.storageos.security.exceptions", 
+            "com.emc.storageos.security.geo.exceptions",
+            "com.emc.storageos.svcs.errorhandling.resources",
+            "com.emc.storageos.systemservices.exceptions", 
+            "com.emc.storageos.vcentercontroller.exceptions",
+            "com.emc.storageos.vnx.xmlapi",
+            "com.emc.storageos.vnxe", 
+            "com.emc.storageos.volumecontroller.impl.externaldevice",
+            "com.emc.storageos.volumecontroller.impl.plugins.discovery.smis",
+            "com.emc.storageos.volumecontroller.impl.smis",
+            "com.emc.storageos.volumecontroller.placement",
+            "com.emc.storageos.vplex.api",
+            "com.emc.storageos.workflow", 
+            "com.emc.storageos.xiv.api", 
+            "com.emc.storageos.xtremio.restapi.errorhandling"
+            */
+             };
 
     public static Collection<DocumenterEntry> createEntries() {
         final List<Class<?>> list = getMessageBundleClasses();

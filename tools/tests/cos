@@ -63,15 +63,15 @@ def cos_create(args):
    	 autotierPolicy = ' '.join(args.auto_tiering_policy_name)
     
     cos = bourne.cos_create(args.type, args.name, args.description, args.useMatchedPools,
-                            args.protocols, args.numpaths, args.minpaths, args.pathsperinitiator, args.systemtype,
-                            args.highavailability, haNhUri,
+                            args.protocols, args.numpaths, args.minpaths, args.pathsperinitiator, 
+                            args.systemtype, args.highavailability, haNhUri,
                             haCosUri, args.activeProtectionAtHASite, args.metropoint, file_cos_uri, args.provisionType,
                             mirrorCosUri, args.neighborhoods, args.expandable,
                             args.sourceJournalSize, args.journalVarray, args.journalVpool, 
 			    args.standbyJournalVarray, args.standbyJournalVpool, args.rp_copy_mode, args.rp_rpo_value, args.rp_rpo_type,
                             args.protectionCoS, args.multiVolumeConsistency,
                             args.max_snapshots, args.max_mirrors, args.thin_volume_preallocation_percentage,
-                            args.long_term_retention, args.system_type, args.srdf, args.auto_tiering_policy_name, 
+                            args.long_term_retention, args.drive_type, args.system_type, args.srdf, args.auto_tiering_policy_name, 
                             args.host_io_limit_bandwidth, args.host_io_limit_iops, args.auto_cross_connect, args.placement_policy,
                             args.compressionEnabled, args.remote_replication)
     
@@ -99,7 +99,7 @@ def cos_match(args):
                             args.sourceJournalSize, args.journalVarray, args.journalVpool, 
 			    args.standbyJournalVarray, args.standbyJournalVpool, args.rp_copy_mode, args.rp_rpo_value, args.rp_rpo_type,
 			    args.protectionCoS, args.multiVolumeConsistency,
-                            args.max_snapshots, args.max_mirrors, args.thin_volume_preallocation_percentage,
+                            args.max_snapshots, args.max_mirrors, args.thin_volume_preallocation_percentage, args.drive_type,
                             args.system_type, args.srdf, args.compressionEnabled)
 
     
@@ -361,7 +361,8 @@ create.add_argument('--minpaths',      help = 'Minimum number of paths created f
 create.add_argument('--pathsperinitiator',      help = 'Desired paths per initiator to be created for block Storage')
 create.add_argument('--file_cos',   help = 'file equivalent cos for object storage')
 create.add_argument('--highavailability',   help = 'high availability')
-create.add_argument('--system_type',   help = 'system type such as vmax or vnx')
+create.add_argument('--drive_type',   help = 'drive type such as vmax or vnx')
+create.add_argument('--system_type',   help = 'system type such as SATA or SSD')
 create.add_argument('--haNeighborhood', help = 'high availability neighborhood')
 create.add_argument('--haCos', help = 'high availability CoS')
 create.add_argument('--activeProtectionAtHASite', help = 'Use the haNeighborhood as the active RP protected site')
@@ -386,6 +387,7 @@ create.add_argument('--max_snapshots', help = 'Maximum number of native snapshot
 create.add_argument('--max_mirrors', help = 'Maximum number of native continuous copies.  -1=disabled, 0=infinite (default)')
 create.add_argument('--thin_volume_preallocation_percentage', help = 'Thin volume preallocation percentage.')
 create.add_argument('--long_term_retention', help = 'Virtual pool attribute to be set to true for archiving and backup')
+create.add_argument('--drive_type', help = 'Drive type')
 create.add_argument('--systemtype', help = 'System type')
 create.add_argument('--auto_tiering_policy_name', help = 'AutoTiering Policy Name can be specified, only if system_type is specified.', nargs='*') 
 create.add_argument('--host_io_limit_bandwidth', help = 'VMAX host io limit bandwidth in Mb/second')
@@ -406,6 +408,7 @@ match.add_argument('--protocols',     help = 'Storage protocols supported by thi
 match.add_argument('--numpaths',      help = 'number of paths for block storage: min,max,default')
 match.add_argument('--file_cos',   help = 'file equivalent cos for object storage')
 match.add_argument('--highavailability',   help = 'high availability')
+match.add_argument('--drive_type',   help = 'drive type such as SATA or SSD')
 match.add_argument('--system_type',   help = 'system type such as vmax or vnx')
 match.add_argument('--haNeighborhood', help = 'high availability neighborhood')
 match.add_argument('--haCos', help = 'high availability CoS')

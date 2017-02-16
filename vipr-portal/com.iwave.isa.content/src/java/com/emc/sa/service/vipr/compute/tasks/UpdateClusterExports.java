@@ -5,6 +5,7 @@
 package com.emc.sa.service.vipr.compute.tasks;
 
 import java.net.URI;
+
 import com.emc.sa.service.vipr.tasks.ViPRExecutionTask;
 import com.emc.storageos.model.host.cluster.ClusterRestRep;
 import com.emc.vipr.client.Task;
@@ -17,7 +18,7 @@ public class UpdateClusterExports extends ViPRExecutionTask<Task<ClusterRestRep>
     public UpdateClusterExports(URI clusterid, String clusterName) {
         this.clusterName = clusterName;
         this.clusterID = clusterid;
-        provideDetailArgs(this.clusterID, this.clusterName);
+        provideDetailArgs(this.clusterName, this.clusterID);
     }
 
     @Override

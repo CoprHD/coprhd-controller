@@ -1638,7 +1638,6 @@ public class VolumeIngestionUtil {
         // With XIO we do not have the ability to remove specific (and possibly unavailable) storage ports
         // from the LUN maps. So a better check specifically for XIO is to ensure that we at least have one
         // storage port in the varray.
-        // also relaxed for vplex because some ports could be in different varrays
         StorageSystem storageSystem = dbClient.queryObject(StorageSystem.class, mask.getStorageSystemUri());
         boolean portsValid = true;
         if (storageSystem != null) {
@@ -1724,7 +1723,7 @@ public class VolumeIngestionUtil {
             List<UnManagedExportMask> masks = dbClient.queryObject(UnManagedExportMask.class, unmanagedExportMaskUris);
             for (UnManagedExportMask mask : masks) {
                 if (mask != null) {
-                    maskNames.add("\n" + mask.getMaskName());
+                    maskNames.add(mask.getMaskName());
                 }
             }
         }
@@ -1746,7 +1745,7 @@ public class VolumeIngestionUtil {
             List<Initiator> inits = dbClient.queryObject(Initiator.class, initiatorUris);
             for (Initiator init : inits) {
                 if (init != null) {
-                    initiatorNames.add("\n" + init.forDisplay());
+                    initiatorNames.add(init.forDisplay());
                 }
             }
         }

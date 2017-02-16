@@ -1365,8 +1365,8 @@ schedule.policies.unknown=Unknown File Policy
 schedulePolicy.appliedAt=Apply Policies at
 schedulePolicy.numWorkerThreads=Worker Threads
 
-assignPolicy.title=Policy Assignment
-assignPolicy.policyName=Policies
+assignPolicy.title=Policy Templates Assignment
+assignPolicy.policyName=Policy
 assignPolicy.appliedAt=Apply Policies at
 assignPolicy.project.applyAll=Apply for all applicable Projects
 assignPolicy.project.applySpecific=Apply for specific Projects
@@ -1390,7 +1390,6 @@ assignPolicy.targetVArray=Target vArray
 
 assignPolicy.project.availableVpool=Available vPools
 assignPolicy.project.appliedVpool=Applied vPools
-assignPolicy.applyOnTargetSite=Apply on target vArray
 assignPolicy.targetVarray=Target vArray
 assignPolicy.vArray.source=Source vArray
 assignPolicy.replicationTopology=Replication Site(s)
@@ -4234,7 +4233,7 @@ button.ipsec.rotate.keys=Rotate IPsec Key
 button.synchronize=Synchronize
 button.syncOptions=Sync Options
 selectOne.chooseOption=-- Please Choose --
-button.assignPolicies=Assign Policies
+button.assignPolicies=Assign/Unassign Policy
 
 button.mirroring.start=Start
 button.mirroring.stop=Stop

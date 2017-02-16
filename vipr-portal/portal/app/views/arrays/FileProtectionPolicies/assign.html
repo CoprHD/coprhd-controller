@@ -62,14 +62,9 @@
          #{Form.selectManyControlGroup field:field, options:vPoolOptions /}
      #{/field}
     </div>
-	
-	<div id="snapshotFields">           
-	   #{field 'assignPolicy.applyOnTargetSite'}
-          #{Form.booleanCheckBoxControlGroup field:field /}
-       #{/field} 
-    </div>   
+	  
    
-    <div ng-controller="filePolicyCtrl">
+    <div id="replicationFields" ng-controller="filePolicyCtrl">
 		<div class="row" style="padding-top:20px; padding-bottom:0px;">
 		  <div class="col-xs-3"></div>    
 	        <div class="pull-left col-sm-3" style="text-align:center;"><strong>&{'replicationTopology.sourceVArray'}</strong></div>
@@ -139,10 +134,8 @@
 				}
 				
 				if(policyType == 'file_snapshot') {
-					$('#snapshotFields').show();
 					$('#replicationFields').hide();
 				} else if (policyType == 'file_replication') {
-					$('#snapshotFields').hide();
 					$('#replicationFields').show();
 				}
 				

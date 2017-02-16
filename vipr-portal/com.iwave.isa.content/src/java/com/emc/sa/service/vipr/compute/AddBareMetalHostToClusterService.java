@@ -134,35 +134,15 @@ public class AddBareMetalHostToClusterService extends ViPRService {
         List<Host> hosts = ComputeUtils.createHosts(cluster.getId(), computeVirtualPool, hostNames, virtualArray);
         logInfo("compute.cluster.hosts.created", ComputeUtils.nonNull(hosts).size());
 
-        // Below step to update the shared export group to the cluster (the
-        // newly added hosts will be taken care of this update cluster
-        // method and in a synchronized way)
+        List<URI> bootVolumeIds = ComputeUtils.makeBootVolumes(project, virtualArray, virtualPool, size, hosts,
+                getClient());
+        logInfo("compute.cluster.boot.volumes.created", ComputeUtils.nonNull(bootVolumeIds).size());
+        hosts = ComputeUtils.deactivateHostsWithNoBootVolume(hosts, bootVolumeIds, cluster);
 
-        // WJEIV TODO: This is another example which generates Remove others from cluster operations based on what is
-        // available in the database, which is something we should rely on.
-
-        // Make sure the all hosts that are being created belong to the all
-        // of the exportGroups of the cluster, else fail the order.
-        // Not do so and continuing to create bootvolumes to the host we
-        // might end up in "consistent lun violation" issue.
-        if (!ComputeUtils.nonNull(hosts).isEmpty()) {
-            logInfo("compute.cluster.sharedexports.update.failed.rollback.started", cluster.getLabel());
-            ComputeUtils.deactivateHosts(hosts);
-            logInfo("compute.cluster.sharedexports.update.failed.rollback.completed", cluster.getLabel());
-            throw new IllegalStateException(
-                    ExecutionUtils.getMessage("compute.cluster.sharedexports.update.failed", cluster.getLabel()));
-        } else {
-            logInfo("compute.cluster.sharedexports.updated", cluster.getLabel());
-            List<URI> bootVolumeIds = ComputeUtils.makeBootVolumes(project, virtualArray, virtualPool, size, hosts,
-                    getClient());
-            logInfo("compute.cluster.boot.volumes.created", ComputeUtils.nonNull(bootVolumeIds).size());
-            hosts = ComputeUtils.deactivateHostsWithNoBootVolume(hosts, bootVolumeIds, cluster);
-
-            List<URI> exportIds = ComputeUtils.exportBootVols(bootVolumeIds, hosts, project, virtualArray, hlu);
-            logInfo("compute.cluster.exports.created", ComputeUtils.nonNull(exportIds).size());
-            hosts = ComputeUtils.deactivateHostsWithNoExport(hosts, exportIds, bootVolumeIds, cluster);
-            ComputeUtils.setHostBootVolumes(hosts, bootVolumeIds);
-        }
+        List<URI> exportIds = ComputeUtils.exportBootVols(bootVolumeIds, hosts, project, virtualArray, hlu);
+        logInfo("compute.cluster.exports.created", ComputeUtils.nonNull(exportIds).size());
+        hosts = ComputeUtils.deactivateHostsWithNoExport(hosts, exportIds, bootVolumeIds, cluster);
+        ComputeUtils.setHostBootVolumes(hosts, bootVolumeIds);
 
         String orderErrors = ComputeUtils.getOrderErrors(cluster, copyOfHostNames, null, null);
         if (orderErrors.length() > 0) { // fail order so user can resubmit

@@ -150,36 +150,20 @@ public class CreateBareMetalClusterService extends ViPRService {
 
         logInfo("compute.cluster.hosts.created", ComputeUtils.nonNull(hosts).size());
 
-        // Make sure the all hosts that are being created belong to the all
-        // of the exportGroups of the cluster, else fail the order.
-        // Not do so and continuing to create bootvolumes to the host we
-        // might end up in "consistent lun violation" issue.
-        if (!ComputeUtils.nonNull(hosts).isEmpty()) {
-            logInfo("compute.cluster.sharedexports.update.failed.rollback.started", cluster.getLabel());
-            ComputeUtils.deactivateHosts(hosts);
-            if (ComputeUtils.findHostNamesInCluster(cluster).isEmpty()) {
-                logInfo("compute.cluster.removing.empty.cluster");
-                ComputeUtils.deactivateCluster(cluster);
-            }
-            throw new IllegalStateException(
-                    ExecutionUtils.getMessage("compute.cluster.sharedexports.update.failed", cluster.getLabel()));
-        } else {
-            logInfo("compute.cluster.sharedexports.updated", cluster.getLabel());
-            List<URI> bootVolumeIds = ComputeUtils.makeBootVolumes(project, virtualArray, virtualPool, size, hosts,
-                    getClient());
-            logInfo("compute.cluster.boot.volumes.created", ComputeUtils.nonNull(bootVolumeIds).size());
-            hosts = ComputeUtils.deactivateHostsWithNoBootVolume(hosts, bootVolumeIds, cluster);
+        List<URI> bootVolumeIds = ComputeUtils.makeBootVolumes(project, virtualArray, virtualPool, size, hosts,
+                getClient());
+        logInfo("compute.cluster.boot.volumes.created", ComputeUtils.nonNull(bootVolumeIds).size());
+        hosts = ComputeUtils.deactivateHostsWithNoBootVolume(hosts, bootVolumeIds, cluster);
 
-            List<URI> exportIds = ComputeUtils.exportBootVols(bootVolumeIds, hosts, project, virtualArray, hlu);
-            logInfo("compute.cluster.exports.created", ComputeUtils.nonNull(exportIds).size());
-            hosts = ComputeUtils.deactivateHostsWithNoExport(hosts, exportIds, bootVolumeIds, cluster);
+        List<URI> exportIds = ComputeUtils.exportBootVols(bootVolumeIds, hosts, project, virtualArray, hlu);
+        logInfo("compute.cluster.exports.created", ComputeUtils.nonNull(exportIds).size());
+        hosts = ComputeUtils.deactivateHostsWithNoExport(hosts, exportIds, bootVolumeIds, cluster);
 
-            ComputeUtils.setHostBootVolumes(hosts, bootVolumeIds);
+        ComputeUtils.setHostBootVolumes(hosts, bootVolumeIds);
 
-            if (ComputeUtils.findHostNamesInCluster(cluster).isEmpty()) {
-                logInfo("compute.cluster.removing.empty.cluster");
-                ComputeUtils.deactivateCluster(cluster);
-            }
+        if (ComputeUtils.findHostNamesInCluster(cluster).isEmpty()) {
+            logInfo("compute.cluster.removing.empty.cluster");
+            ComputeUtils.deactivateCluster(cluster);
         }
 
         String orderErrors = ComputeUtils.getOrderErrors(cluster, copyOfHostNames, null, null);

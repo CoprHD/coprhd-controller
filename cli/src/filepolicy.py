@@ -977,7 +977,7 @@ def unassign_parser(subcommand_parsers, common_parser):
     update_parser = subcommand_parsers.add_parser('unassign',
             description='ViPR FilePolicy unassign CLI usage.',
             parents=[common_parser], conflict_handler='resolve',
-            help='Unassign FilePolicy from vpool, project, file system')
+            help='Unassign FilePolicy from vpool, project')
     mandatory_args = \
         update_parser.add_argument_group('mandatory arguments')
     mandatory_args.add_argument(

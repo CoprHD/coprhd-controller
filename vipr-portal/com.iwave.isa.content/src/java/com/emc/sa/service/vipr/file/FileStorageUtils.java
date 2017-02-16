@@ -83,6 +83,7 @@ import com.emc.storageos.model.file.ShareACL;
 import com.emc.storageos.model.file.ShareACLs;
 import com.emc.storageos.model.file.SmbShareResponse;
 import com.emc.storageos.model.file.SnapshotExportUpdateParams;
+import com.emc.storageos.model.file.policy.FilePolicyRestRep;
 import com.emc.storageos.volumecontroller.FileControllerConstants;
 import com.emc.vipr.client.Task;
 import com.emc.vipr.client.Tasks;
@@ -249,7 +250,7 @@ public class FileStorageUtils {
     public static String createFileSystemExport(URI fileSystemId, String comment, FileExportRule exportRule, String subDirectory) {
         String rootUserMapping = exportRule.rootUserMapping.trim();
         String domain = exportRule.domain;
-        if(StringUtils.isNotBlank(domain)) {
+        if (StringUtils.isNotBlank(domain)) {
             rootUserMapping = domain.trim() + "\\" + rootUserMapping.trim();
         }
         return createFileSystemExport(fileSystemId, comment, exportRule.getSecurity(), exportRule.permission, rootUserMapping,
@@ -489,7 +490,7 @@ public class FileStorageUtils {
             exportRule.setSecFlavor(rule.security);
             String rootUserMapping = rule.rootUserMapping;
             String domain = rule.domain;
-            if(StringUtils.isNotBlank(domain)) {
+            if (StringUtils.isNotBlank(domain)) {
                 rootUserMapping = domain.trim() + "\\" + rootUserMapping.trim();
             }
             exportRule.setAnon(rootUserMapping);
@@ -548,7 +549,7 @@ public class FileStorageUtils {
             exportRule.setSecFlavor(rule.security);
             String rootUserMapping = rule.rootUserMapping;
             String domain = rule.domain;
-            if(StringUtils.isNotBlank(domain)) {
+            if (StringUtils.isNotBlank(domain)) {
                 rootUserMapping = domain.trim() + "\\" + rootUserMapping.trim();
             }
             exportRule.setAnon(rootUserMapping);
@@ -605,7 +606,7 @@ public class FileStorageUtils {
         return execute(new AssociateFilePolicyToFileSystem(fileSystemId, filePolicyId, targetVArray));
     }
 
-    public static Task<FileShareRestRep> dissociateFilePolicy(URI fileSystemId, URI filePolicyId) {
+    public static Task<FilePolicyRestRep> dissociateFilePolicy(URI fileSystemId, URI filePolicyId) {
         return execute(new DissociateFilePolicyFromFileSystem(fileSystemId, filePolicyId));
     }
 

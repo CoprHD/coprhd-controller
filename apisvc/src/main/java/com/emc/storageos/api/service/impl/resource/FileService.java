@@ -3511,7 +3511,8 @@ public class FileService extends TaskResourceService {
         }
 
         // check if same TYPE of policy already applied to file system
-        if (existingFSPolicies != null && !existingFSPolicies.isEmpty()) {
+        if (filePolicy.getFilePolicyType().equals(FilePolicy.FilePolicyType.file_replication.name()) && existingFSPolicies != null
+                && !existingFSPolicies.isEmpty()) {
             checkForDuplicatePolicyApplied(filePolicy, existingFSPolicies);
         }
 

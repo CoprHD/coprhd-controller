@@ -70,14 +70,14 @@ public class FileSystemAssignPolicyWorkflowCompleter extends FileWorkflowComplet
         if (filePolicy.getFilePolicyType().equals(FilePolicyType.file_snapshot.name())) {
             filePolicy.addAssignedResources(getIds().get(0));
             FileShare fileSystem = dbClient.queryObject(FileShare.class, getIds().get(0));
-            fileSystem.addFilePolicy(getId());
+            fileSystem.addFilePolicy(filePolicyURI);
             dbClient.updateObject(filePolicy);
             dbClient.updateObject(fileSystem);
         } else {
             FileShare fileSystem = getSourceFileSystem(dbClient);
             if (fileSystem != null) {
                 filePolicy.addAssignedResources(fileSystem.getId());
-                fileSystem.addFilePolicy(getId());
+                fileSystem.addFilePolicy(filePolicyURI);
                 dbClient.updateObject(filePolicy);
                 dbClient.updateObject(fileSystem);
             }

@@ -40,8 +40,8 @@ import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.service.vipr.customservices.CustomServicesConstants;
 import com.emc.sa.service.vipr.tasks.ViPRExecutionTask;
 import com.emc.storageos.db.client.DbClient;
-import com.emc.storageos.db.client.model.uimodels.CustomServiceScriptPrimitive;
-import com.emc.storageos.db.client.model.uimodels.CustomServiceScriptResource;
+import com.emc.storageos.db.client.model.uimodels.CustomServicesScriptPrimitive;
+import com.emc.storageos.db.client.model.uimodels.CustomServicesScriptResource;
 import com.emc.storageos.model.customservices.CustomServicesWorkflowDocument;
 import com.emc.storageos.model.customservices.CustomServicesWorkflowDocument.Input;
 import com.emc.storageos.model.customservices.CustomServicesWorkflowDocument.Step;
@@ -99,13 +99,13 @@ public class RunAnsible extends ViPRExecutionTask<CustomServicesTaskResult> {
             switch (type) {
                 case SHELL_SCRIPT:
                     // get the resource database
-                    final CustomServiceScriptPrimitive primitive = dbClient.queryObject(CustomServiceScriptPrimitive.class, scriptid);
+                    final CustomServicesScriptPrimitive primitive = dbClient.queryObject(CustomServicesScriptPrimitive.class, scriptid);
                     if (null == primitive) {
                         logger.error("Error retrieving the script primitive from DB. {} not found in DB", scriptid);
                         throw InternalServerErrorException.internalServerErrors.customServiceExecutionFailed(scriptid + " not found in DB");
                     }
 
-                    final CustomServiceScriptResource script = dbClient.queryObject(CustomServiceScriptResource.class,
+                    final CustomServicesScriptResource script = dbClient.queryObject(CustomServicesScriptResource.class,
                             primitive.getScript());
 
                     if (null == script) {

@@ -4,7 +4,6 @@ import java.net.URI;
 import java.util.List;
 import java.util.Map;
 
-import com.emc.storageos.api.service.impl.placement.FileRecommendation;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.FilePolicy;
 import com.emc.storageos.db.client.model.FileShare;
@@ -65,7 +64,7 @@ public interface FileServiceApi {
             VirtualArray varray, VirtualPool vpool, TenantOrg tenantOrg,
             DataObject.Flag[] flags, List<Recommendation> recommendations,
             TaskList taskList, String task, VirtualPoolCapabilityValuesWrapper vpoolCapabilities)
-                    throws InternalException;
+            throws InternalException;
 
     /**
      * Delete the passed filesystems for the passed system.
@@ -131,7 +130,7 @@ public interface FileServiceApi {
     public TaskResourceRep createTargetsForExistingSource(FileShare fs, Project project,
             VirtualPool vpool, VirtualArray varray, TaskList taskList, String task, List<Recommendation> recommendations,
             VirtualPoolCapabilityValuesWrapper vpoolCapabilities)
-                    throws InternalException;
+            throws InternalException;
 
     /**
      * Create CIFS share for the FileSystem
@@ -293,7 +292,6 @@ public interface FileServiceApi {
     void assignFileReplicationPolicyToProjects(List<FileStorageSystemAssociation> associations, URI vpoolURI, List<URI> projectURIs,
             URI filePolicyToAssign, String taskId);
 
-
     /**
      * 
      * @param fs
@@ -308,7 +306,7 @@ public interface FileServiceApi {
      * @return
      * @throws InternalException
      */
-    TaskResourceRep assignFilePolicyToFileSystem(FileShare fs, FilePolicy filePolicy, Project project,
+    void assignFilePolicyToFileSystem(FileShare fs, FilePolicy filePolicy, Project project,
             VirtualPool vpool, VirtualArray varray, TaskList taskList, String task, List<Recommendation> recommendations,
             VirtualPoolCapabilityValuesWrapper vpoolCapabilities)
             throws InternalException;

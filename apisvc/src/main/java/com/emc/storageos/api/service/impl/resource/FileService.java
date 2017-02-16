@@ -4405,38 +4405,18 @@ public class FileService extends TaskResourceService {
     }
 
     private void checkForDuplicatePolicyApplied(FilePolicy filePolicy, StringSet existingFSPolicies) {
-
         List<URI> existingFSPolicyURIs = new ArrayList<>();
         for (String filePolicyURI : existingFSPolicies) {
             existingFSPolicyURIs.add(URI.create(filePolicyURI));
         }
-        boolean snapshotPolicyPresent = false;
-        boolean replicationPolicyPresent = false;
         Iterator<FilePolicy> iterator = _dbClient.queryIterativeObjects(FilePolicy.class, existingFSPolicyURIs, true);
         while (iterator.hasNext()) {
             FilePolicy fp = iterator.next();
-            if (FilePolicy.FilePolicyType.file_replication.name().equals(fp.getFilePolicyType())) {
-                replicationPolicyPresent = true;
-                break;
+            if (filePolicy.getFilePolicyType().equals(fp.getFilePolicyType())) {
+                _log.error("File policy of same type is already applied to the file system {}.",
+                        filePolicy.getFilePolicyType());
+                throw APIException.badRequests.duplicateFilePolicyTypeAssociation(filePolicy.getFilePolicyType());
             }
-            if (FilePolicy.FilePolicyType.file_snapshot.name().equals(fp.getFilePolicyType())) {
-                snapshotPolicyPresent = true;
-                break;
-            }
-        }
-
-        if (snapshotPolicyPresent && FilePolicyType.file_snapshot.name().equals(filePolicy.getFilePolicyType())) {
-            _log.error("File policy of same type is already applied to the file system {}.",
-                    filePolicy.getFilePolicyType());
-            throw APIException.badRequests
-                    .duplicateFilePolicyTypeAssociation(FilePolicy.FilePolicyType.file_snapshot.name());
-        }
-
-        if (replicationPolicyPresent && FilePolicyType.file_replication.name().equals(filePolicy.getFilePolicyType())) {
-            _log.error("File policy of same type is already applied to the file system {}.",
-                    filePolicy.getFilePolicyType());
-            throw APIException.badRequests
-                    .duplicateFilePolicyTypeAssociation(FilePolicy.FilePolicyType.file_replication.name());
         }
     }
 
@@ -4546,6 +4526,6 @@ public class FileService extends TaskResourceService {
         auditOp(OperationTypeEnum.CREATE_MIRROR_FILE_SYSTEM, true, AuditLogManager.AUDITOP_BEGIN, fs.getLabel(),
                 vpool.getLabel(), fs.getLabel(), project == null ? null : project.getId().toString());
 
-        return toTask(fs, task, op);
+        return fileSystemTask;
     }
 }

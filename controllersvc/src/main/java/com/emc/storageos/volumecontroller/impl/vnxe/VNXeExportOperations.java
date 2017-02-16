@@ -57,7 +57,6 @@ import com.emc.storageos.vnxe.models.VNXeHostInitiator;
 import com.emc.storageos.vnxe.models.VNXeLunSnap;
 import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.VolumeURIHLU;
-import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportMaskDeleteCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportMaskRemoveInitiatorCompleter;
 import com.emc.storageos.volumecontroller.impl.smis.ExportMaskOperations;
 import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
@@ -65,6 +64,7 @@ import com.emc.storageos.volumecontroller.impl.utils.ExportOperationContext;
 import com.emc.storageos.volumecontroller.impl.utils.ExportOperationContext.ExportOperationContextOperation;
 import com.emc.storageos.volumecontroller.impl.validators.ValidatorFactory;
 import com.emc.storageos.volumecontroller.impl.validators.contexts.ExportMaskValidationContext;
+import com.emc.storageos.volumecontroller.impl.validators.vnxe.AbstractVNXeValidator;
 import com.emc.storageos.workflow.WorkflowService;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Sets;
@@ -294,7 +294,9 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
                 ctx.setInitiators(initiatorList);
                 // Allow exceptions to be thrown when not rolling back
                 ctx.setAllowExceptions(!isRollback);
-                validator.exportMaskDelete(ctx).validate();
+                AbstractVNXeValidator deleteMaskValidator = (AbstractVNXeValidator) validator.exportMaskDelete(ctx);
+                deleteMaskValidator.setHostId(hostId);
+                deleteMaskValidator.validate();
 
                 if (removeLastInitiator) {
                     ctx = new ExportMaskValidationContext();
@@ -302,7 +304,9 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
                     ctx.setExportMask(exportMask);
                     ctx.setBlockObjects(volumeURIList, _dbClient);
                     ctx.setAllowExceptions(!isRollback);
-                    validator.removeInitiators(ctx).validate();
+                    AbstractVNXeValidator removeInitiatorsValidator = (AbstractVNXeValidator) validator.removeInitiators(ctx);
+                    removeInitiatorsValidator.setHostId(hostId);
+                    removeInitiatorsValidator.validate();
 
                     boolean hasSharedInitiator = false;
                     for (String strUri : exportMask.getInitiators()) {
@@ -443,8 +447,18 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
                     if (vnxeHostId == null) {
                         vnxeHostId = parentHost.getId();
                     } else if (!vnxeHostId.equals(parentHost.getId())) {
-                        throw new DeviceControllerException("ViPR initiators belong to different hosts");
+                        String msg = String.format(
+                                "Initiator %s blongs to host %s, but other initiator belongs host %s. Please move the initiator to the correct host",
+                                initiator.getInitiatorPort(), parentHost.getId(), vnxeHostId);
+                        _logger.error(msg);
+                        throw new DeviceControllerException(msg);
                     }
+                } else { // initiator found, but no parent host
+                    String msg = String.format(
+                            "Initiator %s doesn't have parent host. Please add the initiator to the correct host",
+                            initiator.getInitiatorPort());
+                    _logger.error(msg);
+                    throw new DeviceControllerException(msg);
                 }
             }
         }
@@ -612,7 +626,9 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
                 ctx.setInitiators(initiatorList);
                 // Allow exceptions to be thrown when not rolling back
                 ctx.setAllowExceptions(!isRollback);
-                validator.removeVolumes(ctx).validate();
+                AbstractVNXeValidator removeVolumesValidator = (AbstractVNXeValidator) validator.removeVolumes(ctx);
+                removeVolumesValidator.setHostId(hostId);
+                removeVolumesValidator.validate();
             }
 
             String opId = taskCompleter.getOpId();
@@ -728,6 +744,17 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
                                 "The new initiator %s does not belong to the same host as other initiators in the ExportMask",
                                 newInit.getInitiatorId());
                         _logger.error(msg);
+
+                        if (!createdInitiators.isEmpty()) {
+                            for (Initiator initiator : createdInitiators) {
+                                exportMask.getInitiators().add(initiator.getId().toString());
+                            }
+                            _dbClient.updateObject(exportMask);
+                            ExportOperationContext.insertContextOperation(taskCompleter,
+                                    VNXeExportOperationContext.OPERATION_ADD_INITIATORS_TO_HOST,
+                                    createdInitiators);
+                        }
+
                         ServiceError error = DeviceControllerErrors.vnxe.jobFailed("addiniator", msg);
                         taskCompleter.error(_dbClient, error);
                         return;
@@ -832,7 +859,9 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
                 ctx.setBlockObjects(volumeURIList, _dbClient);
                 // Allow exceptions to be thrown when not rolling back
                 ctx.setAllowExceptions(!isRollback);
-                validator.removeInitiators(ctx).validate();
+                AbstractVNXeValidator removeInitiatorsValidator = (AbstractVNXeValidator) validator.removeInitiators(ctx);
+                removeInitiatorsValidator.setHostId(vnxeHostId);
+                removeInitiatorsValidator.validate();
 
                 // remove initiator from array, if
                 // 1. rollback, or

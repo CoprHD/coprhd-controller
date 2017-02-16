@@ -256,7 +256,7 @@ upload_to_ftp() {
     execute_with_progress_point "${task}" "true"
     local result=$?
     set -e
-    if [ $? -eq 0 ]; then
+    if [ ${result} -eq 0 ]; then
         echo "Removing local archive file.."
         rm -rf ${uploadfile}
     else 

@@ -256,7 +256,7 @@ upload_to_ftp() {
     execute_with_progress_point "${task}" "true"
     local result=$?
     set -e
-    if [ $? -eq 0 ]; then
+    if [ ${result} -eq 0 ]; then
         echo "Removing local archive file.."
         rm -rf ${uploadfile}
     else 
@@ -529,10 +529,11 @@ convert_log_name() {
             local nodeName=$(get_nodeName)
             local serviceLogFiles=($(ls -rt info/${nodeId}/${service}.log.*.gz 2>>${DIAGCOLLECT_LOG}))
             for file in ${serviceLogFiles[@]}; do
-                zcat ${file} | sed "s/^[0-9]/${nodeId} ${nodeName} ${service} &/g" >> logs/${service}_${nodeId}_${nodeName}.log
+                local timestamp=`echo ${file} | awk -F '-' '{print $2}'`
+                zcat ${file} | sed "s/^[0-9]/${nodeId} ${nodeName} ${service} &/g" > logs/${service}_${nodeId}_${nodeName}_${timestamp}.log
             done
             if [ -f "info/${nodeId}/${service}.log" ]; then
-                cat info/${nodeId}/${service}.log | sed "s/^[0-9]/${nodeId} ${nodeName} ${service} &/g" >> logs/${service}_${nodeId}_${nodeName}.log
+                cat info/${nodeId}/${service}.log | sed "s/^[0-9]/${nodeId} ${nodeName} ${service} &/g" > logs/${service}_${nodeId}_${nodeName}.log
             fi
             rm -rf info/${nodeId}/${service}.log*
         done

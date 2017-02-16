@@ -171,6 +171,10 @@ public class VMwareSupport {
         execute(new VerifyDatastoreForRemoval(datastore));
     }
 
+    public void verifyDatastoreForRemoval(Datastore datastore, String datacenterName, List<Host> hosts) {
+        execute(new VerifyDatastoreForRemoval(datastore, datacenterName, hosts));
+    }
+
     /**
      * Creates a VMFS datastore.
      * 

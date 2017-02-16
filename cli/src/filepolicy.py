@@ -466,7 +466,7 @@ class FilePolicy(object):
         name,
         unassign_resource_type,
         unassign_from_vpools,
-        unassign_from_filesystem_vpool,
+#         unassign_from_filesystem_vpool,
         unassign_from_projects,
         ):
 
@@ -504,13 +504,13 @@ class FilePolicy(object):
                 uri = project_obj.project_query(unassign_from_projects)
                 projects_uris.append(uri)
             unassign_request['unassign_from'] = projects_uris
-        elif unassign_resource_type == 'filesystem':
-            if unassign_from_filesystem_vpool is None :
-                raise SOSError(SOSError.VALUE_ERR,"File policy unassign error:"+ "Vpools value should be provided")
-            
-            vpool_obj = VirtualPool(self.__ipAddr, self.__port)
-       	    vpool_uri = vpool_obj.vpool_query(unassign_from_filesystem_vpool, 'file')
-            unassign_request['unassign_from'] = vpool_uri
+#         elif unassign_resource_type == 'filesystem':
+#             if unassign_from_filesystem_vpool is None :
+#                 raise SOSError(SOSError.VALUE_ERR,"File policy unassign error:"+ "Vpools value should be provided")
+#             
+#             vpool_obj = VirtualPool(self.__ipAddr, self.__port)
+#        	    vpool_uri = vpool_obj.vpool_query(unassign_from_filesystem_vpool, 'file')
+#             unassign_request['unassign_from'] = vpool_uri
 	
         try:
             body = json.dumps(unassign_request)
@@ -993,19 +993,19 @@ def unassign_parser(subcommand_parsers, common_parser):
         '-unasngrestp',
         metavar='<unassign_resource_type>',
         dest='unassign_resource_type',
-        help='Resource type to be unassigned from. type values : vpools or projects or filesystem',
-        choices=['vpools', 'projects', 'filesystem'],
+        help='Resource type to be unassigned from. type values : vpools or projects',
+        choices=['vpools', 'projects'],
         required=True,
         )
     update_parser.add_argument('-unassignvpools', '-unasignvpls',
                                metavar='<unassign_from_vpools>',
                                dest='unassign_from_vpools',
                                help='unassign from vpools')
-    update_parser.add_argument('-unassignfsvpool', '-unasignfsvpl',
-                               metavar='<unassign_from_filesystem_vpool>',
-                               dest='unassign_from_filesystem_vpool',
-                               help='unassign from filesystem\'s vpool'
-                               )
+#     update_parser.add_argument('-unassignfsvpool', '-unasignfsvpl',
+#                                metavar='<unassign_from_filesystem_vpool>',
+#                                dest='unassign_from_filesystem_vpool',
+#                                help='unassign from filesystem\'s vpool'
+#                                )
     update_parser.add_argument('-unassignfromprojects', '-unasignprjs',
                                metavar='<unassign_from_projects>',
                                dest='unassign_from_projects',
@@ -1021,7 +1021,7 @@ def filepolicy_unassign(args):
             args.name = ''
         obj.filepolicy_unassign(args.name, args.unassign_resource_type,
                                 args.unassign_from_vpools,
-                                args.unassign_from_filesystem_vpool,
+#                                 args.unassign_from_filesystem_vpool,
                                 args.unassign_from_projects)
     except SOSError, e:
         if e.err_code == SOSError.NOT_FOUND_ERR:

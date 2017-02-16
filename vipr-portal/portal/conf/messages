@@ -1365,7 +1365,7 @@ schedule.policies.unknown=Unknown File Policy
 schedulePolicy.appliedAt=Apply Policies at
 schedulePolicy.numWorkerThreads=Worker Threads
 
-assignPolicy.title=Policy Templates Assignment
+assignPolicy.title=Policy Template Assignment
 assignPolicy.policyName=Policy
 assignPolicy.appliedAt=Apply Policies at
 assignPolicy.project.applyAll=Apply for all applicable Projects

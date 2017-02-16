@@ -391,14 +391,24 @@ angular.module("portalApp").controller({
     filePolicyCtrl: function($scope, $http, $window, translate) {
         $scope.add = {sourceVArray:'', targetVArray:''};
         $scope.topologies = []
-        
         $scope.deleteTopology = function(idx) { $scope.topologies.splice(idx, 1); }
         $scope.addTopology = function() { $scope.topologies.push(angular.copy($scope.add)); }
         
         $http.get(routes.VirtualArrays_list()).success(function(data) {
         	$scope.virtualArrayOptions = data.aaData;
         });  
+
+        var policyWatch = $scope.$watch('policyId', function () {            
+            $http.get(routes.FileProtectionPolicy_details({id:$scope.policyId})).success(function(data) {
+        	   $scope.protectionPolicyJson = data.aaData;
+           });
+        });
         
+        window.alert("policyWatch value is "+policyWatch); 
+  
+       
+ 
+                 
         $scope.$watch('topologies', function(newVal) {
         	$scope.topologiesString = angular.toJson($scope.topologies, false);
         }, true);

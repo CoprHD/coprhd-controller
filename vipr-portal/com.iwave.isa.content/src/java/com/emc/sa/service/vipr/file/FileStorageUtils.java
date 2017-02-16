@@ -249,7 +249,7 @@ public class FileStorageUtils {
     public static String createFileSystemExport(URI fileSystemId, String comment, FileExportRule exportRule, String subDirectory) {
         String rootUserMapping = exportRule.rootUserMapping.trim();
         String domain = exportRule.domain;
-        if (StringUtils.isNotBlank(domain)) {
+        if(StringUtils.isNotBlank(domain)) {
             rootUserMapping = domain.trim() + "\\" + rootUserMapping.trim();
         }
         return createFileSystemExport(fileSystemId, comment, exportRule.getSecurity(), exportRule.permission, rootUserMapping,
@@ -489,7 +489,7 @@ public class FileStorageUtils {
             exportRule.setSecFlavor(rule.security);
             String rootUserMapping = rule.rootUserMapping;
             String domain = rule.domain;
-            if (StringUtils.isNotBlank(domain)) {
+            if(StringUtils.isNotBlank(domain)) {
                 rootUserMapping = domain.trim() + "\\" + rootUserMapping.trim();
             }
             exportRule.setAnon(rootUserMapping);
@@ -548,7 +548,7 @@ public class FileStorageUtils {
             exportRule.setSecFlavor(rule.security);
             String rootUserMapping = rule.rootUserMapping;
             String domain = rule.domain;
-            if (StringUtils.isNotBlank(domain)) {
+            if(StringUtils.isNotBlank(domain)) {
                 rootUserMapping = domain.trim() + "\\" + rootUserMapping.trim();
             }
             exportRule.setAnon(rootUserMapping);

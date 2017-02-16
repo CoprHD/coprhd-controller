@@ -73,8 +73,7 @@ public class FileDescriptor implements Serializable {
     }
 
     public enum Type {
-        /*
-         * ******************************
+        /* ******************************
          * The ordering of these are important for the sortByType() method,
          * be mindful when adding/removing/changing the list.
          */

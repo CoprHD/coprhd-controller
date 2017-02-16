@@ -453,12 +453,6 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
                         _logger.error(msg);
                         throw new DeviceControllerException(msg);
                     }
-                } else { // initiator found, but no parent host
-                    String msg = String.format(
-                            "Initiator %s doesn't have parent host. Please add the initiator to the correct host",
-                            initiator.getInitiatorPort());
-                    _logger.error(msg);
-                    throw new DeviceControllerException(msg);
                 }
             }
         }

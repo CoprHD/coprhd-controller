@@ -79,9 +79,13 @@ public class ComputeUtils {
                     e.getMessage());
         }
         // Some tasks could succeed while others could error out.
+        // VBDU TODO: We will not be adding the host to the cluster until after the host is booted. The line below will need to be removed
+        // and we should only rely on the returned task ids to determine which hosts were successful.
         List<HostRestRep> hostsInCluster = ComputeUtils.getHostsInCluster(cluster);
         List<URI> hostURIsToDeactivate = Lists.newArrayList();
 
+        // VBDU TODO: We should only rely on the task resource id and not base it on the hostname. We should not delete a host just based on
+        // the hostname in case there are duplicates.
         List<String> succeededHosts = Lists.newArrayList();
         if ((tasks != null) && (tasks.getTasks() != null)) {
             for (Task<HostRestRep> task : tasks.getTasks()) {

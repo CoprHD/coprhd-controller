@@ -23,6 +23,8 @@ import javax.wbem.client.WBEMClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.emc.storageos.api.service.impl.resource.utils.PropertySetterUtil;
+import com.emc.storageos.api.service.impl.resource.utils.VolumeIngestionUtil;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
@@ -45,6 +47,7 @@ import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedCon
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedExportMask;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedProtectionSet;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
+import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume.SupportedVolumeInformation;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume.Types;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
@@ -73,10 +76,13 @@ public class DiscoveryUtils {
      * @param srdfProtectedVPoolUris srdf protected vpools
      * @param rpProtectedVPoolUris RP protected vpools
      * @param volumeType type of volume
-     * @return
+     * @param unManagedVolume the unManagedVolume being matched, if provided and the volume
+     * is a VPLEX backend volume, the parent matched vpools will be added
+     * @return a StringSet of matched VirtualPool URIs
      */
     public static StringSet getMatchedVirtualPoolsForPool(DbClient dbClient, URI poolUri,
-            String isThinlyProvisionedUnManagedObject, Set<URI> srdfProtectedVPoolUris, Set<URI> rpProtectedVPoolUris, String volumeType) {
+            String isThinlyProvisionedUnManagedObject, Set<URI> srdfProtectedVPoolUris, Set<URI> rpProtectedVPoolUris, 
+            String volumeType, UnManagedVolume unManagedVolume) {
         StringSet vpoolUriSet = new StringSet();
         // We should match all virtual pools as below:
         // 1) Virtual pools which have useMatchedPools set to true and have the storage pool in their matched pools
@@ -126,6 +132,8 @@ public class DiscoveryUtils {
             }
         }
 
+        addParentMatchedVpoolsIfVplexBackendVolume(unManagedVolume, vpoolUriSet, dbClient);
+
         return vpoolUriSet;
     }
 
@@ -136,7 +144,7 @@ public class DiscoveryUtils {
      * @param dbClient
      * @param poolUri
      * @param isThinlyProvisionedUnManagedObject
-     * @return
+     * @return a StringSet of matched VirtualPool URIs
      */
     public static StringSet getMatchedVirtualPoolsForPool(DbClient dbClient, URI poolUri,
             String isThinlyProvisionedUnManagedObject) {
@@ -164,6 +172,26 @@ public class DiscoveryUtils {
         return vpoolUriSet;
     }
 
+    /**
+     * Get Matched Virtual Pools For Pool.
+     * This is called to calculate supported vpools during unmanaged objects discovery
+     * 
+     * @param dbClient
+     * @param poolUri
+     * @param isThinlyProvisionedUnManagedObject
+     * @param unManagedVolume the unManagedVolume being matched, if provided and the volume
+     * is a VPLEX backend volume, the parent matched vpools will be added
+     * @return a StringSet of matched VirtualPool URIs
+     */
+    public static StringSet getMatchedVirtualPoolsForPool(DbClient dbClient, URI poolUri,
+            String isThinlyProvisionedUnManagedObject, UnManagedVolume unManagedVolume) {
+        StringSet vpoolUriSet = getMatchedVirtualPoolsForPool(dbClient, poolUri, isThinlyProvisionedUnManagedObject);
+
+        addParentMatchedVpoolsIfVplexBackendVolume(unManagedVolume, vpoolUriSet, dbClient);
+
+        return vpoolUriSet;
+    }
+
     // Getting all the vpools
     public static StringSet getMatchedVirtualPoolsForPool(DbClient dbClient, URI poolUri) {
         StringSet vpoolUriSet = new StringSet();
@@ -182,6 +210,35 @@ public class DiscoveryUtils {
             }
         }
         return vpoolUriSet;
+    }
+
+    /**
+     * Add any matched virtual pools in the parent volume if the unManagedVolume is
+     * a VPLEX backend volume.
+     *
+     * @param volume the UnManagedVolume in question
+     * @param matchedVPools the StringSet of vpool URIs to add to
+     * @param dbClient a reference to the database client
+     */
+    public static void addParentMatchedVpoolsIfVplexBackendVolume(
+            UnManagedVolume unManagedVolume, StringSet matchedVPools, DbClient dbClient) {
+        if (VolumeIngestionUtil.isVplexBackendVolume(unManagedVolume)) {
+            String vplexParentVolume = PropertySetterUtil.extractValueFromStringSet(
+                    SupportedVolumeInformation.VPLEX_PARENT_VOLUME.toString(),
+                    unManagedVolume.getVolumeInformation());
+            URIQueryResultList unManagedVolumeList = new URIQueryResultList();
+            dbClient.queryByConstraint(AlternateIdConstraint.Factory
+                    .getVolumeInfoNativeIdConstraint(vplexParentVolume), unManagedVolumeList);
+            if (unManagedVolumeList.iterator().hasNext()) {
+                UnManagedVolume parentVolume = dbClient.queryObject(UnManagedVolume.class, unManagedVolumeList.iterator().next());
+                StringSet parentMatchedPools = parentVolume.getSupportedVpoolUris();
+                if (parentMatchedPools != null && !parentMatchedPools.isEmpty()) {
+                    _log.info("Adding the following matched vpools from VPLEX parent volume {} to backend volume {}: {}",
+                            parentVolume.getLabel(), unManagedVolume.getLabel(), parentMatchedPools);
+                    matchedVPools.addAll(parentMatchedPools);
+                }
+            }
+        }
     }
 
     /**

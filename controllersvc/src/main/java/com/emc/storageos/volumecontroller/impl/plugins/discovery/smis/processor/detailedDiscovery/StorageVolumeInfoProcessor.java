@@ -26,6 +26,7 @@ import javax.wbem.client.WBEMClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.emc.storageos.api.service.impl.resource.utils.VolumeIngestionUtil;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
@@ -1043,7 +1044,7 @@ public class StorageVolumeInfoProcessor extends StorageProcessor {
                 StringSet matchedVPools = DiscoveryUtils.getMatchedVirtualPoolsForPool(_dbClient, pool
                         .getId(), unManagedVolumeCharacteristics
                                 .get(SupportedVolumeCharacterstics.IS_THINLY_PROVISIONED.toString()),
-                        srdfEnabledTargetVPools, null, volumeType);
+                        srdfEnabledTargetVPools, null, volumeType, unManagedVolume);
                 _logger.debug("Matched Pools : {}", Joiner.on("\t").join(matchedVPools));
 
                 if (null == matchedVPools || matchedVPools.isEmpty()) {

@@ -165,25 +165,9 @@ public class VplexBackendIngestionContext {
 
         if (!isDiscoveryInProgress()) {
             // first check the database for this unmanaged volume's backend volumes
-            StringSet dbBackendVolumes = extractValuesFromStringSet(
-                    SupportedVolumeInformation.VPLEX_BACKEND_VOLUMES.toString(),
-                    _unmanagedVirtualVolume.getVolumeInformation());
-            if (null != dbBackendVolumes && !dbBackendVolumes.isEmpty()) {
-                List<URI> umvUris = new ArrayList<URI>();
-                for (String nativeId : dbBackendVolumes) {
-                    _logger.info("\tfound unmanaged backend volume native id " + nativeId);
-                    URIQueryResultList unManagedVolumeList = new URIQueryResultList();
-                    _dbClient.queryByConstraint(AlternateIdConstraint.Factory
-                            .getVolumeInfoNativeIdConstraint(nativeId), unManagedVolumeList);
-                    if (unManagedVolumeList.iterator().hasNext()) {
-                        umvUris.add(unManagedVolumeList.iterator().next());
-                    }
-                }
-                if (!umvUris.isEmpty()) {
-                    unmanagedBackendVolumes = _dbClient.queryObject(UnManagedVolume.class, umvUris, true);
-                    _logger.info("\treturning unmanaged backend volume objects: " + unmanagedBackendVolumes);
-                    return unmanagedBackendVolumes;
-                }
+            unmanagedBackendVolumes = findBackendUnManagedVolumes(_unmanagedVirtualVolume, _dbClient);
+            if (null != unmanagedBackendVolumes) {
+                return unmanagedBackendVolumes;
             }
         }
 
@@ -1026,6 +1010,31 @@ public class VplexBackendIngestionContext {
         this._ingestionInProgress = ingestionInProgress;
     }
 
+    public static List<UnManagedVolume> findBackendUnManagedVolumes(UnManagedVolume _unmanagedVirtualVolume, DbClient dbClient) {
+        List<UnManagedVolume> unmanagedBackendVolumes = null;
+        StringSet dbBackendVolumes = extractValuesFromStringSet(
+                SupportedVolumeInformation.VPLEX_BACKEND_VOLUMES.toString(),
+                _unmanagedVirtualVolume.getVolumeInformation());
+        if (null != dbBackendVolumes && !dbBackendVolumes.isEmpty()) {
+            List<URI> umvUris = new ArrayList<URI>();
+            for (String nativeId : dbBackendVolumes) {
+                _logger.info("\tfound unmanaged backend volume native id " + nativeId);
+                URIQueryResultList unManagedVolumeList = new URIQueryResultList();
+                dbClient.queryByConstraint(AlternateIdConstraint.Factory
+                        .getVolumeInfoNativeIdConstraint(nativeId), unManagedVolumeList);
+                if (unManagedVolumeList.iterator().hasNext()) {
+                    umvUris.add(unManagedVolumeList.iterator().next());
+                }
+            }
+            if (!umvUris.isEmpty()) {
+                unmanagedBackendVolumes = dbClient.queryObject(UnManagedVolume.class, umvUris, true);
+                _logger.info("\treturning unmanaged backend volume objects: " + unmanagedBackendVolumes);
+                return unmanagedBackendVolumes;
+            }
+        }
+        return unmanagedBackendVolumes;
+    }
+    
     /**
      * Copied from PropertySetterUtil, which is in apisvc and
      * can't be accessed from controllersvc.

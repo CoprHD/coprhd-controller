@@ -642,6 +642,29 @@ public final class FileOrchestrationUtils {
         return null;
     }
 
+    /**
+     * Get the storage ports of storage system
+     * 
+     * @param dbClient
+     * @param system
+     * @return
+     */
+    public static List<StoragePort> getStorageSystemPorts(DbClient dbClient, StorageSystem system) {
+        List<StoragePort> ports = new ArrayList<StoragePort>();
+        // Update the port metrics calculations. This makes the UI display up-to-date when ports shown.
+        URIQueryResultList storagePortURIs = new URIQueryResultList();
+        dbClient.queryByConstraint(
+                ContainmentConstraint.Factory.getStorageDeviceStoragePortConstraint(system.getId()),
+                storagePortURIs);
+        List<StoragePort> storagePorts = dbClient.queryObject(StoragePort.class, storagePortURIs);
+        for (StoragePort port : storagePorts) {
+            if (!port.getInactive()) {
+                ports.add(port);
+            }
+        }
+        return ports;
+    }
+
     private static void setPolicyStorageAppliedAt(FilePolicy filePolicy, FileDeviceInputOutput args,
             PolicyStorageResource policyStorageResource) {
         FilePolicyApplyLevel applyLevel = FilePolicyApplyLevel.valueOf(filePolicy.getApplyAt());

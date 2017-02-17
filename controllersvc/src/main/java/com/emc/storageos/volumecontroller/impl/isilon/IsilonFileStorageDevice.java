@@ -3505,7 +3505,8 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
 
         // Source Path
         String sourcePath = getFilePolicyPath(sourceStorageObj, sourceSytemArgs);
-        String targetPath = getFilePolicyPath(targetStorageObj, targetSytemArgs);
+        // Make the target path same as source path!!!
+        String targetPath = sourcePath;
 
         if (FileReplicationType.LOCAL.name().equalsIgnoreCase(filePolicy.getFileReplicationType())) {
             targetPath = targetPath + "_localTarget";
@@ -3519,12 +3520,20 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             IsilonApi isi = getIsilonDevice(sourceStorageObj);
             ArrayList<IsilonSyncPolicy> isiReplicationPolicies = isi.getReplicationPolicies().getList();
             IsilonSyncPolicy isilonReplicationSchedule = checkForReplicationPolicyOnIsilon(isiReplicationPolicies,
-                    filePolicy, sourcePath, targetPath, targetStorageObj.getIpAddress());
+                    filePolicy, sourcePath, targetPath);
 
             if (isilonReplicationSchedule != null) {
                 boolean validPolicy = validateIsilonReplicationPolicy(isilonReplicationSchedule, filePolicy, targetPath,
-                        targetStorageObj.getIpAddress(), sourceStorageObj.getIpAddress());
+                        targetStorageObj, sourceStorageObj);
                 if (validPolicy) {
+                    // Verify the policy was mapped to FileStorageResource
+                    if (null == FileOrchestrationUtils.findPolicyStorageResourceByNativeId(_dbClient, sourceStorageObj,
+                            filePolicy, sourceSytemArgs, sourcePath)) {
+                        _log.info("Isilon policy found for {}, creating policy storage resouce to further management",
+                                filePolicy.getFilePolicyName());
+                        FileOrchestrationUtils.updatePolicyStorageResource(_dbClient, sourceStorageObj, filePolicy,
+                                sourceSytemArgs, sourcePath, isilonReplicationSchedule.getName());
+                    }
                     result = BiosCommandResult.createSuccessfulResult();
                 } else {
                     throw DeviceControllerException.exceptions.assignFilePolicyFailed(filePolicy.getFilePolicyName(),
@@ -3603,9 +3612,33 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         }
     }
 
-    private static boolean validateIsilonReplicationPolicy(IsilonSyncPolicy isiMatchedPolicy, FilePolicy filePolicy,
-            String targetPath,
-            String targetSystemIP, String sourceSystemIP) {
+    private boolean isValidTargetHostOnExistingPolicy(String existingPolicyTargetHost, StorageSystem system) {
+        if (existingPolicyTargetHost != null && !existingPolicyTargetHost.isEmpty()) {
+            // target cluster IP address is matching????
+            if (existingPolicyTargetHost.equalsIgnoreCase(system.getIpAddress())) {
+                return true;
+            }
+            IsilonApi isi = getIsilonDevice(system);
+            String targetClusterName = isi.getClusterConfig().getName();
+            // target cluster name is matching????
+            if (existingPolicyTargetHost.equalsIgnoreCase(targetClusterName)) {
+                return true;
+            }
+            // target cluster smart connect zone is matching???
+            for (com.emc.storageos.db.client.model.StoragePort port : FileOrchestrationUtils
+                    .getStorageSystemPorts(_dbClient, system)) {
+                if (existingPolicyTargetHost.equalsIgnoreCase(port.getPortName())) {
+                    return true;
+                } else if (existingPolicyTargetHost.equalsIgnoreCase(port.getPortNetworkId())) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    private boolean validateIsilonReplicationPolicy(IsilonSyncPolicy isiMatchedPolicy, FilePolicy filePolicy,
+            String targetPath, StorageSystem targetSystem, StorageSystem sourceSystem) {
         _log.info("Comparing filepolicy: {} with SyncIQ policy: {}", filePolicy.getFilePolicyName(), isiMatchedPolicy.getName());
 
         if (isiMatchedPolicy != null) {
@@ -3615,19 +3648,18 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                 return false;
             }
 
-            // remote or local?
-            if (sourceSystemIP.equalsIgnoreCase(targetSystemIP)) {
-                if (!filePolicy.getFileReplicationType().equalsIgnoreCase(FilePolicy.FileReplicationType.LOCAL.name())) {
-                    _log.error("Source and target system IPs are same. But, file policy type is not LOCAL replication.");
+            // Verify the remote/local cluster
+            if (filePolicy.getFileReplicationType().equalsIgnoreCase(FilePolicy.FileReplicationType.REMOTE.name())) {
+                if (!isValidTargetHostOnExistingPolicy(isiMatchedPolicy.getTargetHost(), targetSystem)) {
+                    _log.error("Target host is not matching for REMOTE replication.");
                     return false;
                 }
             } else {
-                if (!filePolicy.getFileReplicationType().equalsIgnoreCase(FilePolicy.FileReplicationType.REMOTE.name())) {
-                    _log.error("Source and target system IPs are different. But, file policy type is not REMOTE replication.");
+                if (!isValidTargetHostOnExistingPolicy(isiMatchedPolicy.getTargetHost(), sourceSystem)) {
+                    _log.error("Target host is not matching for LOCAL replication.");
                     return false;
                 }
             }
-
             // schedule validation
             String viprSchedule = getIsilonPolicySchedule(filePolicy);
             String isiSchedule = StringUtils.substringBefore(isiMatchedPolicy.getSchedule(), " between");
@@ -3646,15 +3678,13 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
     }
 
     private static IsilonSyncPolicy checkForReplicationPolicyOnIsilon(ArrayList<IsilonSyncPolicy> isiPolicies, FilePolicy filePolicy,
-            String sourceRootPath, String targetPath, String targetSystemIP) {
+            String sourceRootPath, String targetPath) {
         IsilonSyncPolicy isiMatchedPolicy = null;
 
         for (IsilonSyncPolicy isiPolicy : isiPolicies) {
-            if (isiPolicy.getSourceRootPath().equals(sourceRootPath) && isiPolicy.getTargetHost().equals(targetSystemIP)) {
-                if (isiPolicy.getTargetPath().equals(targetPath)) {
-                    isiMatchedPolicy = isiPolicy;
-                    break;
-                }
+            if (isiPolicy.getSourceRootPath().equals(sourceRootPath) && isiPolicy.getTargetPath().equals(targetPath)) {
+                isiMatchedPolicy = isiPolicy;
+                break;
             }
         }
 

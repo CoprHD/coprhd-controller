@@ -231,12 +231,14 @@ public class FileStorageScheduler implements Scheduler {
             // target also be placed on corresponding virtual nas
             // No valid target recommendations
             // so the entire source-target recommendation would be ignored!!!
-            if (capabilities.isVpoolProjectPolicyAssign() && capabilities.getPersonality() != null
-                    && capabilities.getPersonality().equalsIgnoreCase(VirtualPoolCapabilityValuesWrapper.FILE_REPLICATION_TARGET)
-                    && fileRecommendations.isEmpty()) {
-                _log.info("No target recommendations found for corresponding source vNAS ");
-                return fileRecommendations;
-            }
+            /*
+             * if (capabilities.isVpoolProjectPolicyAssign() && capabilities.getPersonality() != null
+             * && capabilities.getPersonality().equalsIgnoreCase(VirtualPoolCapabilityValuesWrapper.FILE_REPLICATION_TARGET)
+             * && fileRecommendations.isEmpty()) {
+             * _log.info("No target recommendations found for corresponding source vNAS ");
+             * return fileRecommendations;
+             * }
+             */
         }
 
         // In case of

@@ -27,11 +27,13 @@ import com.emc.storageos.model.NamedRelatedResourceRep;
 public class CustomServicesPrimitiveResourceList {
     private List<NamedRelatedResourceRep> resources;
     
+    public CustomServicesPrimitiveResourceList() {}
+    
     public CustomServicesPrimitiveResourceList(final List<NamedRelatedResourceRep> resources) {
         this.resources = resources;
     }
     
-    @XmlElement(name = "resource") 
+    @XmlElement(name = "primitive_resource") 
     public List<NamedRelatedResourceRep> getResources() {
         return resources;
     }

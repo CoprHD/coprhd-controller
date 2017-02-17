@@ -55,7 +55,7 @@ public class ServiceDescriptor implements ServiceItemContainer, Serializable {
     private boolean useModal = false;
     
     /** The service modal title. */
-    private String modalTitle;// = new String("exportPathAdjustment.modal.title");
+    private String modalTitle;
 
     public String getServiceId() {
         return serviceId;

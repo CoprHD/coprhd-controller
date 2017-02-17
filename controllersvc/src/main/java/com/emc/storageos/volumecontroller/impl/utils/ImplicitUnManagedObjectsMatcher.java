@@ -261,12 +261,14 @@ public class ImplicitUnManagedObjectsMatcher {
                             volume.getSupportedVpoolUris().add(vpool.getId().toString());
                             List<UnManagedVolume> backendVols = 
                                     VplexBackendIngestionContext.findBackendUnManagedVolumes(volume, dbClient);
-                            for (UnManagedVolume backendVol : backendVols) {
-                                if (backendVol.getSupportedVpoolUris() == null) {
-                                    backendVol.setSupportedVpoolUris(new StringSet());
+                            if (backendVols != null) {
+                                for (UnManagedVolume backendVol : backendVols) {
+                                    if (backendVol.getSupportedVpoolUris() == null) {
+                                        backendVol.setSupportedVpoolUris(new StringSet());
+                                    }
+                                    backendVol.getSupportedVpoolUris().add(vpool.getId().toString());
+                                    modifiedUnManagedVolumes.add(backendVol);
                                 }
-                                backendVol.getSupportedVpoolUris().add(vpool.getId().toString());
-                                modifiedUnManagedVolumes.add(backendVol);
                             }
                             modifiedUnManagedVolumes.add(volume);
                             break;

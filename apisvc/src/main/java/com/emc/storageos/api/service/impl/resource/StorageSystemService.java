@@ -40,6 +40,7 @@ import com.emc.storageos.api.mapper.functions.MapStoragePort;
 import com.emc.storageos.api.service.impl.resource.utils.AsyncTaskExecutorIntf;
 import com.emc.storageos.api.service.impl.resource.utils.DiscoveredObjectTaskScheduler;
 import com.emc.storageos.api.service.impl.resource.utils.PurgeRunnable;
+import com.emc.storageos.api.service.impl.resource.utils.VolumeIngestionUtil;
 import com.emc.storageos.api.service.impl.response.BulkList;
 import com.emc.storageos.cinder.CinderConstants;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
@@ -115,6 +116,7 @@ import com.emc.storageos.security.authorization.Role;
 import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
+import com.emc.storageos.util.ConnectivityUtil;
 import com.emc.storageos.coordinator.common.Service;
 import com.emc.storageos.coordinator.exceptions.CoordinatorException;
 import com.emc.storageos.volumecontroller.ArrayAffinityAsyncTask;
@@ -1793,6 +1795,8 @@ public class StorageSystemService extends TaskResourceService {
         }
         String isExportedSelected = exportType.equalsIgnoreCase(ExportType.EXPORTED.name()) ? TRUE_STR
                 : FALSE_STR;
+        StorageSystem system = _dbClient.queryObject(StorageSystem.class, id);
+        boolean isVplexSystem = ConnectivityUtil.isAVPlex(system);
         UnManagedVolumeList unManagedVolumeList = new UnManagedVolumeList();
         URIQueryResultList result = new URIQueryResultList();
         _dbClient.queryByConstraint(
@@ -1810,9 +1814,11 @@ public class StorageSystemService extends TaskResourceService {
                 umvExportStatus = umv.getVolumeCharacterstics().get(
                         SupportedVolumeCharacterstics.IS_VOLUME_EXPORTED.toString());
             }
-            
-            if (umv.getStorageSystemUri().equals(id) && null != umvExportStatus
-                    && umvExportStatus.equalsIgnoreCase(isExportedSelected)) {
+            // allow backend snapshots for vplex vpool ingestion
+            boolean isSnapshot = VolumeIngestionUtil.isSnapshot(umv);
+            boolean systemMatch = umv.getStorageSystemUri().equals(id) || (isVplexSystem && isSnapshot);
+            boolean exportStatusMatch = (null != umvExportStatus) && umvExportStatus.equalsIgnoreCase(isExportedSelected); 
+            if (systemMatch && exportStatusMatch) {
                 String name = (null == umv.getLabel()) ? umv.getNativeGuid() : umv.getLabel();
                 unManagedVolumeList.getNamedUnManagedVolumes().add(
                         toNamedRelatedResource(ResourceTypeEnum.UNMANAGED_VOLUMES, umv.getId(), name));

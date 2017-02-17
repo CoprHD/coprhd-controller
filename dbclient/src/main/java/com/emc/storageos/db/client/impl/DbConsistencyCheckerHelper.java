@@ -129,8 +129,7 @@ public class DbConsistencyCheckerHelper {
      */
     public void checkCFIndices(DataObjectType doType, boolean toConsole, CheckResult checkResult) throws ConnectionException {
         Class objClass = doType.getDataObjectClass();
-        _log.info("Check Data Object CF {}", objClass);
-        _log.info("double confirmed option: {}", doubleConfirmed);
+        _log.info("Check Data Object CF {} with double confirmed option: {}", objClass, doubleConfirmed);
 
         Map<String, ColumnField> indexedFields = new HashMap<String, ColumnField>();
         for (ColumnField field : doType.getColumnFields()) {
@@ -215,8 +214,7 @@ public class DbConsistencyCheckerHelper {
     public void checkIndexingCF(IndexAndCf indexAndCf, boolean toConsole, CheckResult checkResult, boolean isParallel) throws ConnectionException {
         String indexCFName = indexAndCf.cf.getName();
         Map<String, ColumnFamily<String, CompositeColumnName>> objCfs = getDataObjectCFs();
-        _log.info("Start checking the index CF {}", indexCFName);
-        _log.info("double confirmed option: {}", doubleConfirmed);
+        _log.info("Start checking the index CF {} with double confirmed option: {}", indexCFName, doubleConfirmed);
 
         Map<ColumnFamily<String, CompositeColumnName>, Map<String, List<IndexEntry>>> objsToCheck = new HashMap<>();
 

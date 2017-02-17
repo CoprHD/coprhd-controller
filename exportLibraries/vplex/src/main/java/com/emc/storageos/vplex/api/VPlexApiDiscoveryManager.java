@@ -33,6 +33,9 @@ public class VPlexApiDiscoveryManager {
     // A reference to the API client.
     private VPlexApiClient _vplexApiClient;
 
+    // initiator info cache by cluster name
+    private volatile Map<String, List<VPlexInitiatorInfo>> _vplexClusterInitiatorInfoCache = new HashMap<String, List<VPlexInitiatorInfo>>();
+
     /**
      * Package protected constructor.
      * 
@@ -1563,50 +1566,53 @@ public class VPlexApiDiscoveryManager {
     }
 
     /**
-     * Gets all initiators on the cluster with the passed name.
+     * Returns a cached List of VPlexInitiatorInfo objects for the cluster.
      * 
-     * @param clusterName The name of the cluster.
-     * 
-     * @return A list of VPlexInitiatorInfo instances specifying the initiator
-     *         information.
-     * 
-     * @throws VPlexApiException When an error occurs getting the initiators on
-     *             the cluster.
+     * @param clusterName indicates which VPlex cluster to check
+     * @return a List of VPlexInitiatorInfos for the given cluster
      */
-    List<VPlexInitiatorInfo> getInitiatorInfoForCluster(String clusterName)
-            throws VPlexApiException {
+    synchronized List<VPlexInitiatorInfo> getInitiatorInfoForCluster(String clusterName) {
+        if (!_vplexClusterInitiatorInfoCache.containsKey(clusterName) ||
+                _vplexClusterInitiatorInfoCache.get(clusterName) == null ||
+                _vplexClusterInitiatorInfoCache.get(clusterName).isEmpty()) {
+            long start = System.currentTimeMillis();
+            s_logger.info("refreshing VPlexInitiatorInfo cache for cluster " + clusterName);
 
-        // Get the URI for the initiator info request and make the request.
-        StringBuilder uriBuilder = new StringBuilder();
-        uriBuilder.append(VPlexApiConstants.URI_CLUSTERS.toString());
-        uriBuilder.append(clusterName);
-        uriBuilder.append(VPlexApiConstants.URI_INITIATORS.toString());
-        uriBuilder.append(VPlexApiConstants.WILDCARD.toString());
-        URI requestURI = _vplexApiClient.getBaseURI().resolve(
-                URI.create(uriBuilder.toString()));
-        s_logger.info("Initiators Request URI is {}", requestURI.toString());
-        long start = System.currentTimeMillis();
-        ClientResponse response = _vplexApiClient.get(requestURI, VPlexApiConstants.ACCEPT_JSON_FORMAT_1);
-        s_logger.info("TIMER: fetching all initiators for cluster {} took {}ms", clusterName, System.currentTimeMillis() - start);
-        String responseStr = response.getEntity(String.class);
-        int status = response.getStatus();
-        response.close();
+            // Get the URI for the initiator info request and make the request.
+            StringBuilder uriBuilder = new StringBuilder();
+            uriBuilder.append(VPlexApiConstants.URI_CLUSTERS.toString());
+            uriBuilder.append(clusterName);
+            uriBuilder.append(VPlexApiConstants.URI_INITIATORS.toString());
+            uriBuilder.append(VPlexApiConstants.WILDCARD.toString());
+            URI requestURI = _vplexApiClient.getBaseURI().resolve(URI.create(uriBuilder.toString()));
+            s_logger.info("Initiators Request URI is {}", requestURI.toString());
+            ClientResponse response = _vplexApiClient.get(requestURI, VPlexApiConstants.ACCEPT_JSON_FORMAT_1);
+            s_logger.info("TIMER: fetching all initiators for cluster {} took {}ms", clusterName, System.currentTimeMillis() - start);
+            String responseStr = response.getEntity(String.class);
+            int status = response.getStatus();
+            response.close();
 
-        if (status == VPlexApiConstants.SUCCESS_STATUS) {
-            try {
-                return VPlexApiUtils.getResourcesFromResponseContext(
-                        uriBuilder.toString(), responseStr, VPlexInitiatorInfo.class);
-            } catch (Exception e) {
-                throw VPlexApiException.exceptions.errorProcessingInitiatorInformation(e.getLocalizedMessage());
+            if (status == VPlexApiConstants.SUCCESS_STATUS) {
+                try {
+                    List<VPlexInitiatorInfo> clusterInitiatorInfo = VPlexApiUtils.getResourcesFromResponseContext(
+                            uriBuilder.toString(), responseStr, VPlexInitiatorInfo.class);
+                    _vplexClusterInitiatorInfoCache.put(clusterName, clusterInitiatorInfo);
+                } catch (Exception e) {
+                    throw VPlexApiException.exceptions.errorProcessingInitiatorInformation(e.getLocalizedMessage());
+                }
+            } else if (status == VPlexApiConstants.NOT_FOUND_STATUS) {
+                // return an empty list rather than an error
+                s_logger.info("VPLEX returned a 404 Not Found for this context, returning an empty list instead.");
+                return new ArrayList<VPlexInitiatorInfo>();
+            } else {
+                throw VPlexApiException.exceptions
+                        .failedGettingInitiatorInfoForCluster(clusterName, String.valueOf(status));
             }
-        } else if (status == VPlexApiConstants.NOT_FOUND_STATUS) {
-            // return an empty list rather than an error
-            s_logger.info("VPLEX returned a 404 Not Found for this context, returning an empty list instead.");
-            return new ArrayList<VPlexInitiatorInfo>();
-        } else {
-            throw VPlexApiException.exceptions
-                    .failedGettingInitiatorInfoForCluster(clusterName, String.valueOf(status));
+
+            s_logger.info("TIMER: refreshing VPlexInitiatorInfo cache took {}ms", System.currentTimeMillis() - start);
         }
+
+        return _vplexClusterInitiatorInfoCache.get(clusterName);
     }
 
     /**
@@ -1725,7 +1731,7 @@ public class VPlexApiDiscoveryManager {
         s_logger.info("Targets Request URI is {}", requestURI.toString());
         ClientResponse response = _vplexApiClient.get(requestURI, VPlexApiConstants.ACCEPT_JSON_FORMAT_1);
         String responseStr = response.getEntity(String.class);
-        s_logger.info("Response is {}", responseStr);
+        s_logger.debug("Response is {}", responseStr);
         int status = response.getStatus();
         response.close();
 
@@ -1812,7 +1818,7 @@ public class VPlexApiDiscoveryManager {
                                 VPlexStorageViewInfo.class);
                 storageViewInfo = null;
                 for (VPlexStorageViewInfo clusterStorageViewInfo : storageViewInfoList) {
-                    s_logger.info("Storage View Info: {}", clusterStorageViewInfo.toString());
+                    s_logger.debug("Storage View Info: {}", clusterStorageViewInfo.toString());
                     if (clusterStorageViewInfo.getName().equals(viewName)) {
                         storageViewInfo = clusterStorageViewInfo;
                         storageViewInfo.setClusterId(clusterName);
@@ -3949,5 +3955,27 @@ public class VPlexApiDiscoveryManager {
         }
         
         return svInfoList;
+    }
+
+    /**
+     * Clears the local VPLEX REST API VPlexInitiatorInfo cache for all clusters.
+     */
+    public synchronized void clearInitiatorCache() {
+        if (_vplexClusterInitiatorInfoCache != null) {
+            _vplexClusterInitiatorInfoCache.clear();
+        }
+    }
+
+    /**
+     * Clears the local VPLEX REST API VPlexInitiatorInfo cache for the given cluster.
+     * 
+     * @param clusterName the cluster to clear initiator info for
+     */
+    public synchronized void clearInitiatorCache(String clusterName) {
+        if (_vplexClusterInitiatorInfoCache != null) {
+            if (_vplexClusterInitiatorInfoCache.get(clusterName) != null) {
+                _vplexClusterInitiatorInfoCache.get(clusterName).clear();
+            }
+        }
     }
 }

@@ -221,14 +221,20 @@ public class VPlexApiExportManager {
             throw VPlexApiException.exceptions.couldNotFindStorageView(viewName);
         }
 
-        // Find the initiators in a cluster where storage view is found.
-        List<VPlexInitiatorInfo> initiatorInfoList = findInitiatorsOnCluster(storageViewInfo.getClusterId(),
-                initiatorPortInfo, null);
-
         VPlexClusterInfo clusterInfo = discoveryMgr.findClusterInfo(storageViewInfo.getClusterId());
 
         if (clusterInfo == null) {
             throw VPlexApiException.exceptions.couldNotFindCluster(storageViewInfo.getClusterId());
+        }
+
+        // Find the initiators in a cluster where storage view is found.
+        List<VPlexInitiatorInfo> initiatorInfoList = findInitiatorsOnCluster(storageViewInfo.getClusterId(),
+                initiatorPortInfo, null);
+
+        if (initiatorInfoList.size() != initiatorPortInfo.size()) {
+            // if some not found, retry once after clearing the initiator cache
+            discoveryMgr.clearInitiatorCache(clusterName);
+            initiatorInfoList = findInitiatorsOnCluster(storageViewInfo.getClusterId(), initiatorPortInfo, null);
         }
 
         if (initiatorInfoList.size() != initiatorPortInfo.size()) {
@@ -323,8 +329,12 @@ public class VPlexApiExportManager {
         }
 
         // Find the initiators in a cluster where storage view is found.
-        List<VPlexInitiatorInfo> initiatorInfoList = findInitiatorsOnCluster(storageViewInfo.getClusterId(),
-                initiatorPortInfo, null);
+        List<VPlexInitiatorInfo> initiatorInfoList = findInitiatorsOnCluster(storageViewInfo.getClusterId(), initiatorPortInfo, null);
+        if (initiatorInfoList.size() != initiatorPortInfo.size()) {
+            // if some not found, retry once after clearing the initiator cache
+            discoveryMgr.clearInitiatorCache(clusterName);
+            initiatorInfoList = findInitiatorsOnCluster(storageViewInfo.getClusterId(), initiatorPortInfo, null);
+        }
         if (initiatorInfoList.size() != initiatorPortInfo.size()) {
             StringBuffer notFoundInitiators = new StringBuffer();
             for (PortInfo portInfo : initiatorPortInfo) {
@@ -521,6 +531,7 @@ public class VPlexApiExportManager {
         // all of them. Do an initiator discovery on that cluster
         // and try to find the remaining.
         VPlexApiDiscoveryManager discoveryMgr = _vplexApiClient.getDiscoveryManager();
+        discoveryMgr.clearInitiatorCache(clusterName);
         discoveryMgr.discoverInitiatorsOnCluster(clusterInfo);
         initiatorInfoList.addAll(findInitiatorsOnCluster(clusterName,
                 unfoundInitiatorList, null));

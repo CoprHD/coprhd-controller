@@ -103,7 +103,6 @@ public class VPlexApiClient {
         _exportMgr = new VPlexApiExportManager(this);
         _migrationMgr = new VPlexApiMigrationManager(this);
         _cgMgr = new VPlexApiConsistencyGroupManager(this);
-        primeCaches();
     }
 
     /**
@@ -1312,11 +1311,12 @@ public class VPlexApiClient {
      */
     private synchronized Map<String, String> getInitiatorWwnToNameMap(String clusterName) {
         if (!_vplexClusterInitiatorNameToWwnCache.containsKey(clusterName) ||
+                _vplexClusterInitiatorNameToWwnCache.get(clusterName) == null ||
                 _vplexClusterInitiatorNameToWwnCache.get(clusterName).isEmpty()) {
             long start = System.currentTimeMillis();
-            s_logger.info("TIMER: refreshing initiator wwn to name cache...");
+            s_logger.info("refreshing initiator wwn-to-name cache for cluster " + clusterName);
             Map<String, String> clusterInitiatorToNameMap = _discoveryMgr.getInitiatorWwnToNameMap(clusterName);
-            s_logger.info("TIMER: refreshing initiator wwn to name cache took {}ms", System.currentTimeMillis() - start);
+            s_logger.info("TIMER: refreshing initiator wwn-to-name cache took {}ms", System.currentTimeMillis() - start);
             _vplexClusterInitiatorNameToWwnCache.put(clusterName, clusterInitiatorToNameMap);
         }
 
@@ -1339,6 +1339,7 @@ public class VPlexApiClient {
                     "initiator wwn to name cache does not contain an entry for wwn {} on vplex cluster {}, clearing cache for refresh", 
                         wwn, vplexClusterName);
             _vplexClusterInitiatorNameToWwnCache.get(vplexClusterName).clear();
+            _discoveryMgr.clearInitiatorCache(vplexClusterName);
         }
 
         initiatorName = getInitiatorWwnToNameMap(vplexClusterName).get(wwn);
@@ -2056,6 +2057,7 @@ public class VPlexApiClient {
         _vplexClusterIdToNameCache.clear();
         _vplexClusterInfoLiteCache.clear();
         _vplexClusterInitiatorNameToWwnCache.clear();
+        _discoveryMgr.clearInitiatorCache();
     }
 
     /**

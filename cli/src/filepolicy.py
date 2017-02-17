@@ -348,7 +348,6 @@ class FilePolicy(object):
         assign_to_projects,
         source_varray,
         target_varrays,
-#         filesystem_assign_vpool,
         ):
 
         filepolicy = self.filepolicy_query(name)
@@ -406,16 +405,6 @@ class FilePolicy(object):
             	project_assign_param['vpool'] = uri
         	project_assign_param['assign_to_projects'] = assign_request_projects
 		assign_request['project_assign_param'] = project_assign_param
-# 	else:
-# 		filesystem_assign_param = {}
-# 		      		
-# 		if filesystem_assign_vpool is None:
-#            		raise SOSError(SOSError.VALUE_ERR,"File policyassign error:"+ "Vpool (filesystem_assign_vpool) value should be provided")
-#         
-#         	vpool_obj = VirtualPool(self.__ipAddr, self.__port)
-#         	uri = vpool_obj.vpool_query(filesystem_assign_vpool, 'file')
-#             	filesystem_assign_param['vpool'] = uri
-#         	assign_request['filesystem_assign_param'] = filesystem_assign_param
 
 	if (pol_type == "file_replication"):
 		if (source_varray is not None and target_varrays is not None):
@@ -466,7 +455,6 @@ class FilePolicy(object):
         name,
         unassign_resource_type,
         unassign_from_vpools,
-#         unassign_from_filesystem_vpool,
         unassign_from_projects,
         ):
 
@@ -504,13 +492,6 @@ class FilePolicy(object):
                 uri = project_obj.project_query(unassign_from_projects)
                 projects_uris.append(uri)
             unassign_request['unassign_from'] = projects_uris
-#         elif unassign_resource_type == 'filesystem':
-#             if unassign_from_filesystem_vpool is None :
-#                 raise SOSError(SOSError.VALUE_ERR,"File policy unassign error:"+ "Vpools value should be provided")
-#             
-#             vpool_obj = VirtualPool(self.__ipAddr, self.__port)
-#        	    vpool_uri = vpool_obj.vpool_query(unassign_from_filesystem_vpool, 'file')
-#             unassign_request['unassign_from'] = vpool_uri
 	
         try:
             body = json.dumps(unassign_request)
@@ -941,10 +922,6 @@ def assign_parser(subcommand_parsers, common_parser):
                                metavar='<target_varrays>',
                                dest='target_varrays',
                                help='target varrays for file replication')
-#     update_parser.add_argument('-filesystemvpool', '-fsvpool',
-#                                metavar='<filesystem_assign_vpool>',
-#                                dest='filesystem_assign_vpool',
-#                                help='filesystem vpool to be assigned. Required for assigning filepolicies to filesysytem')
     update_parser.set_defaults(func=filepolicy_assign)
 
 
@@ -961,7 +938,6 @@ def filepolicy_assign(args):
             args.assign_to_projects,
             args.source_varray,
             args.target_varrays,
-#             args.filesystem_assign_vpool,
             )
     except SOSError, e:
         if e.err_code == SOSError.NOT_FOUND_ERR:
@@ -1001,11 +977,6 @@ def unassign_parser(subcommand_parsers, common_parser):
                                metavar='<unassign_from_vpools>',
                                dest='unassign_from_vpools',
                                help='unassign from vpools')
-#     update_parser.add_argument('-unassignfsvpool', '-unasignfsvpl',
-#                                metavar='<unassign_from_filesystem_vpool>',
-#                                dest='unassign_from_filesystem_vpool',
-#                                help='unassign from filesystem\'s vpool'
-#                                )
     update_parser.add_argument('-unassignfromprojects', '-unasignprjs',
                                metavar='<unassign_from_projects>',
                                dest='unassign_from_projects',
@@ -1021,7 +992,6 @@ def filepolicy_unassign(args):
             args.name = ''
         obj.filepolicy_unassign(args.name, args.unassign_resource_type,
                                 args.unassign_from_vpools,
-#                                 args.unassign_from_filesystem_vpool,
                                 args.unassign_from_projects)
     except SOSError, e:
         if e.err_code == SOSError.NOT_FOUND_ERR:

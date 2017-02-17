@@ -51,6 +51,7 @@ import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.impl.TypeMap;
 import com.emc.storageos.db.client.model.AutoTieringPolicy;
+import com.emc.storageos.db.client.model.DataObject.Flag;
 import com.emc.storageos.db.client.model.DecommissionedResource;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.CompatibilityStatus;
@@ -2079,7 +2080,7 @@ public class StorageSystemService extends TaskResourceService {
         while (portGroupIter.hasNext()) {
             URI pgURI = portGroupIter.next();
             StoragePortGroup portGroup = _dbClient.queryObject(StoragePortGroup.class, pgURI);
-            if (portGroup != null && !portGroup.getInactive()) {
+            if (portGroup != null && !portGroup.getInactive() && !portGroup.checkInternalFlags(Flag.INTERNAL_OBJECT)) {
                 portList.getPortGroups().add(toNamedRelatedResource(portGroup, portGroup.getNativeGuid()));
             }
         }
@@ -2164,6 +2165,10 @@ public class StorageSystemService extends TaskResourceService {
 
         ArgValidator.checkFieldUriType(portGroupId, StoragePortGroup.class, "portGroupId");
         StoragePortGroup portGroup = _dbClient.queryObject(StoragePortGroup.class, portGroupId);
+        if (portGroup.checkInternalFlags(Flag.INTERNAL_OBJECT)) {
+            // internal port group
+            throw APIException.badRequests.internalPortGroup(portGroup.getNativeGuid());
+        }
         if (RegistrationStatus.UNREGISTERED.toString().equalsIgnoreCase(
                 portGroup.getRegistrationStatus())) {
             // Setting status to UNREGISTERED.
@@ -2297,6 +2302,7 @@ public class StorageSystemService extends TaskResourceService {
             Iterator<URI> maskIt = queryResult.iterator();
             if (maskIt.hasNext()) {
                 URI maskURI = maskIt.next();
+                // The port group is used by at least one export mask, throw error
                 ArgValidator.checkReference(StoragePortGroup.class, pgId, maskURI.toString()); 
             }
             op = _dbClient.createTaskOpStatus(StoragePortGroup.class, portGroup.getId(),

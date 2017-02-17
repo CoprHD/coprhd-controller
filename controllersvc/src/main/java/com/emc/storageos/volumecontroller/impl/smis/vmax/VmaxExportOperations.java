@@ -50,6 +50,7 @@ import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.BlockObject;
+import com.emc.storageos.db.client.model.DataObject.Flag;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportGroup.ExportGroupType;
 import com.emc.storageos.db.client.model.ExportMask;
@@ -62,6 +63,7 @@ import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
+import com.emc.storageos.db.client.model.DiscoveredDataObject.RegistrationStatus;
 import com.emc.storageos.db.client.model.Volume.PersonalityTypes;
 import com.emc.storageos.db.client.util.CommonTransformerFunctions;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
@@ -2401,6 +2403,17 @@ public class VmaxExportOperations implements ExportMaskOperations {
                 targetPortGroupPath = _cimPath.getCimObjectPathFromOutputArgs(outArgs, "MaskingGroup");
                 ExportOperationContext.insertContextOperation(taskCompleter, VmaxExportOperationContext.OPERATION_CREATE_PORT_GROUP,
                         portGroupName, targetURIList);
+                // Create internal port group
+                StoragePortGroup portGroup = new StoragePortGroup();
+                String guid = String.format("%s+%s" , storage.getNativeGuid(), portGroupName);
+                portGroup.setId(URIUtil.createId(StoragePortGroup.class));
+                portGroup.setLabel(portGroupName);
+                portGroup.setNativeGuid(guid);
+                portGroup.setStorageDevice(storage.getId());
+                portGroup.setInactive(false);
+                portGroup.addInternalFlags(Flag.INTERNAL_OBJECT);
+                portGroup.setRegistrationStatus(RegistrationStatus.UNREGISTERED.name());
+                _dbClient.createObject(portGroup);
             }
         } catch (WBEMException we) {
             _log.info("{} Problem when trying to create target port group ... going to look up target port group.",

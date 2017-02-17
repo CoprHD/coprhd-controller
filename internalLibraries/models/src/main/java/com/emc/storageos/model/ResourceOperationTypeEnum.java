@@ -360,7 +360,8 @@ public enum ResourceOperationTypeEnum {
     LIST_MOUNTED_EXPORTS("LIST MOUNTED EXPORTS", "list mounted exports operation"),
     EXPORT_PATHS_ADJUSTMENT("EXPORT PATHS ADJUSTMENT", "export paths adjustment operation"),
     ASSIGN_FILE_POLICY("ASSIGN FILE POLICY", "assign file policy to resource"),
-    UPDATE_FILE_PROTECTION_POLICY("UPDATE FILE PROTECTION POLICY", "Update file protection policy");
+    UPDATE_FILE_PROTECTION_POLICY("UPDATE FILE PROTECTION POLICY", "Update file protection policy"),
+    ASSIGN_FILE_POLICY_TO_FILE_SYSTEM("ASSIGN FILE POLICY TO FILE SYSTEM", "assign file policy to existing file system");
 
     private final String name;
     private final String description;

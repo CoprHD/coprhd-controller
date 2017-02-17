@@ -1509,7 +1509,7 @@ class Bourne:
                    mirrorCosUri, neighborhoods, expandable, sourceJournalSize, journalVarray, journalVpool, standbyJournalVarray, 
                    standbyJournalVpool, rp_copy_mode, rp_rpo_value, rp_rpo_type, protectionCoS,
                    multiVolumeConsistency, max_snapshots, max_mirrors, thin_volume_preallocation_percentage,
-                   long_term_retention, system_type, srdf, auto_tiering_policy_name, host_io_limit_bandwidth, host_io_limit_iops,
+                   long_term_retention, drive_type, system_type, srdf, auto_tiering_policy_name, host_io_limit_bandwidth, host_io_limit_iops,
 		   auto_cross_connect, placement_policy, compressionEnabled):
 
         if (type != 'block' and type != 'file' and type != "object" ):
@@ -1525,6 +1525,8 @@ class Bourne:
             parms['use_matched_pools'] = useMatchedPools
         if (protocols):
             parms['protocols'] = protocols
+        if (drive_type):
+        	parms['drive_type'] = drive_type                        
         if (system_type):
             parms['system_type'] = system_type
 
@@ -1673,7 +1675,7 @@ class Bourne:
                    protocols, numpaths, highavailability, haNhUri, haCosUri, activeProtectionAtHASite, metropoint, file_cos, provisionType,
                    mirrorCosUri, neighborhoods, expandable, sourceJournalSize, journalVarray, journalVpool, standbyJournalVarray, 
                    standbyJournalVpool, rp_copy_mode, rp_rpo_value, rp_rpo_type, protectionCoS,
-                   multiVolumeConsistency, max_snapshots, max_mirrors, thin_volume_preallocation_percentage,
+                   multiVolumeConsistency, max_snapshots, max_mirrors, thin_volume_preallocation_percentage, drive_type,
                    system_type, srdf, compressionEnabled):
 
         if (type != 'block' and type != 'file' and type != "object" ):
@@ -1685,6 +1687,8 @@ class Bourne:
             parms['use_matched_pools'] = useMatchedPools
         if (protocols):
             parms['protocols'] = protocols
+        if (drive_type):
+        	parms['drive_type'] = drive_type            
         if (system_type):
             parms['system_type'] = system_type
 

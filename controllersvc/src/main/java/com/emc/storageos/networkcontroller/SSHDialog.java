@@ -35,6 +35,10 @@ public class SSHDialog {
     }
 
     private SSHPrompt checkForPrompt(String buf, SSHPrompt[] prompts) throws NetworkDeviceControllerException {
+        // First check for an exception, which will be thrown if found.
+        checkForException(buf);
+        
+        // Now look for the prompt.
         for (SSHPrompt p : prompts) {
             String regex = p.getRegex();
             if (regex.contains("<<devname>>")) {
@@ -53,20 +57,14 @@ public class SSHDialog {
     }
     
     private void checkForException(String buf) throws NetworkDeviceControllerException {
-        _log.info("==========checkForException: {}", buf);
-        Pattern p = Pattern.compile("raise Exception('.*')");
+        Pattern p = Pattern.compile("raise Exception\\('.*'\\)");     
         Matcher m = p.matcher(buf);
-        boolean matches = m.matches();
-        if (matches) {
-            _log.info("==========checkForException - matches");
-            while (m.find()) {
-                _log.info("==========checkForException - found match");
-                String match = buf.substring(m.start(), m.end());
-                _log.info("==========checkForException - match: {}", match);
-                String message = match.substring(match.indexOf("'")+1, match.lastIndexOf("'"));
-                _log.info("==========checkForException - message: {}", message);
-                throw NetworkDeviceControllerException.exceptions.exceptionInResponse(message);
-            }
+        if (m.find()) {
+            String match = buf.substring(m.start(), m.end());
+            _log.info("==========checkForException - match: {}", match);
+            String message = match.substring(match.indexOf("'")+1, match.lastIndexOf("'"));
+            _log.info("==========checkForException - message: {}", message);
+            throw NetworkDeviceControllerException.exceptions.exceptionInResponse(message);
         }
     }
 
@@ -103,7 +101,6 @@ public class SSHDialog {
                         }
                         start = System.currentTimeMillis();
                         _log.debug("Checking for prompts in new input: " + String.valueOf(input));
-                        checkForException(buf.toString());
                         SSHPrompt px = checkForPrompt(buf.toString(), prompts);
                         _log.debug("Checking for prompts in new input only took " + (System.currentTimeMillis() - start));
                         if (px != SSHPrompt.NOMATCH) {
@@ -113,7 +110,6 @@ public class SSHDialog {
                     } else {
                         _log.debug("Reached EOF. Will check the full buffer for prompts");
                         start = System.currentTimeMillis();
-                        checkForException(buf.toString());
                         SSHPrompt px = checkForPrompt(buf.toString(), prompts);
                         _log.debug("Checking for prompts in the full buffer took " + (System.currentTimeMillis() - start));
                         if (px != SSHPrompt.NOMATCH) {
@@ -129,7 +125,6 @@ public class SSHDialog {
             }
         }
 
-        checkForException(buf.toString());
         SSHPrompt prompt = checkForPrompt(buf.toString(), prompts);
         if (prompt == SSHPrompt.NOMATCH) {
             StringBuffer expectedPrompts = new StringBuffer("Expected one of these prompts, but not found: ");

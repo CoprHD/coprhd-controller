@@ -54,6 +54,7 @@ import com.emc.storageos.api.service.impl.resource.utils.HostConnectionValidator
 import com.emc.storageos.api.service.impl.resource.utils.VolumeIngestionUtil;
 import com.emc.storageos.api.service.impl.response.BulkList;
 import com.emc.storageos.api.service.impl.response.ResRepFilter;
+import com.emc.storageos.blockorchestrationcontroller.VolumeDescriptor;
 import com.emc.storageos.computecontroller.ComputeController;
 import com.emc.storageos.computesystemcontroller.ComputeSystemController;
 import com.emc.storageos.computesystemcontroller.impl.ComputeSystemHelper;
@@ -83,6 +84,7 @@ import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.IpInterface;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.Project;
+import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StorageProvider;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
@@ -177,6 +179,9 @@ public class HostService extends TaskResourceService {
 
     @Autowired
     private ComputeElementService computeElementService;
+
+    @Autowired
+    private VPlexBlockServiceApiImpl vplexBlockServiceApiImpl;
 
     @Override
     public String getServiceType() {
@@ -678,7 +683,25 @@ public class HostService extends TaskResourceService {
         Operation op = _dbClient.createTaskOpStatus(Host.class, host.getId(), taskId,
                 ResourceOperationTypeEnum.DELETE_HOST);
         ComputeSystemController controller = getController(ComputeSystemController.class, null);
-        controller.detachHostStorage(host.getId(), true, deactivateBootVolume, taskId);
+
+        List<VolumeDescriptor> bootVolDescriptors = new ArrayList<>();
+        if(deactivateBootVolume & !NullColumnValueGetter.isNullURI(host.getBootVolumeId())) {
+            Volume vol = _dbClient.queryObject(Volume.class, host.getBootVolumeId());
+            if (vol.isVPlexVolume(_dbClient)) {
+                bootVolDescriptors.addAll(vplexBlockServiceApiImpl.getDescriptorsForVolumesToBeDeleted(
+                        vol.getStorageController(), Arrays.asList(host.getBootVolumeId()), null));
+            } else {
+                if (vol.getPool() != null) {
+                    StoragePool storagePool = _dbClient.queryObject(StoragePool.class, vol.getPool());
+                    if (storagePool != null && storagePool.getStorageDevice() != null) {
+                        bootVolDescriptors.add(new VolumeDescriptor(VolumeDescriptor.Type.BLOCK_DATA, storagePool
+                                .getStorageDevice(), host.getBootVolumeId(), null, null));
+                    }
+                }
+            }
+        }
+
+        controller.detachHostStorage(host.getId(), true, deactivateBootVolume, bootVolDescriptors, taskId);
         if (!NullColumnValueGetter.isNullURI(host.getComputeElement())) {
             host.setProvisioningStatus(Host.ProvisioningJobStatus.IN_PROGRESS.toString());
         }
@@ -734,7 +757,7 @@ public class HostService extends TaskResourceService {
         Operation op = _dbClient.createTaskOpStatus(Host.class, host.getId(), taskId,
                 ResourceOperationTypeEnum.DETACH_HOST_STORAGE);
         ComputeSystemController controller = getController(ComputeSystemController.class, null);
-        controller.detachHostStorage(host.getId(), false, false, taskId);
+        controller.detachHostStorage(host.getId(), false, false, null, taskId);
         return toTask(host, taskId, op);
     }
 

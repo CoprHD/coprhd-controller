@@ -2981,6 +2981,51 @@ public class VNXeApiClient {
     }
 
     /**
+     * Get host LUN WWN and HLU
+     *
+     * @param hostId
+     * @return host LUN WWN to HLU map
+     */
+    public Map<String, Integer> getHostLUNWWNs(String hostId) {
+        Map<String, Integer> lunWWNToHLUs = new HashMap<>();
+        VNXeHost host = getHostById(hostId);
+        if (host != null) {
+            List<VNXeBase> hostLunIds = host.getHostLUNs();
+            if (hostLunIds != null && !hostLunIds.isEmpty()) {
+                for (VNXeBase hostLunId : hostLunIds) {
+                    HostLun hostLun = getHostLun(hostLunId.getId());
+                    String wwn = null;
+                    if (hostLun.getType() == HostLUNTypeEnum.LUN_SNAP.getValue()) {
+                        VNXeBase snapId = hostLun.getSnap();
+                        wwn = getSnapWWN(snapId.getId());
+                    } else {
+                        VNXeBase lunId = hostLun.getLun();
+                        VNXeLun vnxeLun = getLun(lunId.getId());
+                        wwn = vnxeLun.getWwn();
+                    }
+
+                    lunWWNToHLUs.put(wwn, hostLun.getHlu());
+                }
+            }
+        }
+
+        return lunWWNToHLUs;
+    }
+
+    private String getSnapWWN(String snapId) {
+        String wwn = "null";
+        if (!isUnityClient()) {
+            VNXeLunSnap snap = getLunSnapshot(snapId);
+            wwn = snap.getPromotedWWN();
+        } else {
+            Snap snap = getSnapshot(snapId);
+            wwn = snap.getAttachedWWN();
+        }
+
+        return wwn;
+    }
+
+    /**
      * Delete host
      *
      * @param hostId host Id

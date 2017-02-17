@@ -63,7 +63,7 @@ public class VmaxPortGroupProcessor extends StorageProcessor{
                 CIMInstance groupInstance = it.next();
                 CIMObjectPath groupPath = groupInstance.getObjectPath();
                 if (groupPath.toString().contains(serialID)) {
-                    String portGroupName = groupInstance.getPropertyValue(Constants.ELEMENTNAME).toString().toLowerCase();
+                    String portGroupName = groupInstance.getPropertyValue(Constants.ELEMENTNAME).toString();
                     if (portGroupName == null || portGroupName.isEmpty()) {
                         log.info(String.format("The port group %s name is null, skip", groupPath.toString()));
                         continue;

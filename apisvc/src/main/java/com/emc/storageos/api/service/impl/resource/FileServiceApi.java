@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Map;
 
 import com.emc.storageos.db.client.model.DataObject;
+import com.emc.storageos.db.client.model.FilePolicy;
 import com.emc.storageos.db.client.model.FileShare;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.StoragePort;
@@ -291,4 +292,22 @@ public interface FileServiceApi {
     void assignFileReplicationPolicyToProjects(List<FileStorageSystemAssociation> associations, URI vpoolURI, List<URI> projectURIs,
             URI filePolicyToAssign, String taskId);
 
+    /**
+     * 
+     * @param fs
+     * @param filePolicy
+     * @param project
+     * @param vpool
+     * @param varray
+     * @param taskList
+     * @param task
+     * @param recommendations
+     * @param vpoolCapabilities
+     * @return
+     * @throws InternalException
+     */
+    void assignFilePolicyToFileSystem(FileShare fs, FilePolicy filePolicy, Project project,
+            VirtualPool vpool, VirtualArray varray, TaskList taskList, String task, List<Recommendation> recommendations,
+            VirtualPoolCapabilityValuesWrapper vpoolCapabilities)
+            throws InternalException;
 }

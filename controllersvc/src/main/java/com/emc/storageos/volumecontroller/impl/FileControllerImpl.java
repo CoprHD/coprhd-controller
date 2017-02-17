@@ -254,8 +254,8 @@ public class FileControllerImpl extends AbstractDiscoveredSystemController imple
     }
 
     @Override
-    public void applyFilePolicy(URI fs, URI filePolicy, String taskId) throws InternalException {
-        execFS("applyFilePolicy", fs, filePolicy, taskId);
+    public void applyFilePolicy(URI storageSystem, URI fs, URI filePolicy, String taskId) throws InternalException {
+        execFS("applyFilePolicy", storageSystem, fs, filePolicy, taskId);
     }
 
     @Override

@@ -25,8 +25,8 @@ angular.module("services", []).directive({
             restrict: "E",
             scope: true,
             controller: function($scope, $attrs) {
-                if ($scope.$root.updateModalFields === undefined) {
-                    $scope.$root.updateModalFields = false;
+                if ($scope.updateModalFields === undefined) {
+                    $scope.updateModalFields = false;
                 }
                 var fieldDescriptor = $scope.assetFieldDescriptors[$scope.item.name] || {},
                     item = $scope.item;
@@ -40,7 +40,7 @@ angular.module("services", []).directive({
                 item.value = $scope.defaultValues[item.name] ? $scope.defaultValues[item.name] : item.initialValue;
 
                 var getAssetOptionsIfWeHaveAllDependencies = function() {
-                	// this check if we updating modal field or normal fields and avoids the aternative
+                    // this checks if we're updating modal fields or normal fields
                     if (($scope.updateModalFields == false && (item.modalField === undefined || item.modalField == false)) ||
                             ($scope.updateModalFields && item.modalField == true)) {
 	                    var params = {};

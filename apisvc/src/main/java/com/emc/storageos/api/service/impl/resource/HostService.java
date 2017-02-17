@@ -316,6 +316,12 @@ public class HostService extends TaskResourceService {
                             || ComputeSystemHelper.isClusterInExport(_dbClient, newClusterURI))) {
                 // Clustered host being moved to another cluster
                 controller.addHostsToExport(Arrays.asList(host.getId()), newClusterURI, taskId, oldClusterURI, false);
+            } else if (updateExports && !NullColumnValueGetter.isNullURI(oldClusterURI)
+                    && !NullColumnValueGetter.isNullURI(newClusterURI)
+                    && oldClusterURI.equals(newClusterURI)
+                    && ComputeSystemHelper.isClusterInExport(_dbClient, newClusterURI)) {
+                // Cluster hasn't changed but we should add host to the shared exports for this cluster
+                controller.addHostsToExport(Arrays.asList(host.getId()), newClusterURI, taskId, oldClusterURI, false);
             } else {
                 updateTaskStatus = true;
                 ComputeSystemHelper.updateHostAndInitiatorClusterReferences(_dbClient, newClusterURI, host.getId());

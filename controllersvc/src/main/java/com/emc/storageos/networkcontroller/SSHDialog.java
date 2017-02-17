@@ -53,7 +53,7 @@ public class SSHDialog {
     }
     
     private void checkForException(String buf) throws NetworkDeviceControllerException {
-        _log.info("==========checkForException");
+        _log.info("==========checkForException: {}", buf);
         Pattern p = Pattern.compile("raise Exception\\(\\'.*\\'\\)");
         Matcher m = p.matcher(buf);
         boolean matches = m.matches();

@@ -24,7 +24,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.api.service.impl.resource.utils.PropertySetterUtil;
-import com.emc.storageos.api.service.impl.resource.utils.VolumeIngestionUtil;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
@@ -47,6 +46,7 @@ import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedCon
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedExportMask;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedProtectionSet;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
+import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume.SupportedVolumeCharacterstics;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume.SupportedVolumeInformation;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume.Types;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
@@ -54,7 +54,6 @@ import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.plugins.common.PartitionManager;
 import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
 import com.emc.storageos.volumecontroller.impl.StoragePoolAssociationHelper;
-import com.emc.storageos.volumecontroller.impl.smis.SmisConstants;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Sets;
 import com.google.common.collect.Sets.SetView;
@@ -65,6 +64,7 @@ public class DiscoveryUtils {
     public static final String UNMANAGED_EXPORT_MASK = "UnManagedExportMask";
     public static final String UNMANAGED_VOLUME = "UnManagedVolume";
     public static final String UNMANAGED_CONSISTENCY_GROUP = "UnManagedConsistencyGroup";
+    private static final String TRUE = "true";
 
     /**
      * get Matched Virtual Pools For Pool.
@@ -222,7 +222,14 @@ public class DiscoveryUtils {
      */
     public static void addParentMatchedVpoolsIfVplexBackendVolume(
             UnManagedVolume unManagedVolume, StringSet matchedVPools, DbClient dbClient) {
-        if (VolumeIngestionUtil.isVplexBackendVolume(unManagedVolume)) {
+        if (null == unManagedVolume || null == unManagedVolume.getVolumeCharacterstics()) {
+            return;
+        }
+
+        String status = unManagedVolume.getVolumeCharacterstics()
+                .get(SupportedVolumeCharacterstics.IS_VPLEX_BACKEND_VOLUME.toString());
+
+        if (TRUE.equals(status)) {
             String vplexParentVolume = PropertySetterUtil.extractValueFromStringSet(
                     SupportedVolumeInformation.VPLEX_PARENT_VOLUME.toString(),
                     unManagedVolume.getVolumeInformation());

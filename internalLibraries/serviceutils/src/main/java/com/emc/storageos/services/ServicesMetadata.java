@@ -94,6 +94,26 @@ public class ServicesMetadata implements InitializingBean {
         return controlServices;
     }
 
+    public static List<String> getControlNodeLogNames() {
+        if (_serviceMetadataMap == null) {
+            throw new IllegalStateException("Service Metadata does not exist");
+        }
+
+        List<String> logNames = new ArrayList<String>();
+        for (ServiceMetadata serviceMetadata : _serviceMetadataMap.values()) {
+            if (serviceMetadata.isControlNodeService()) {
+                String serviceName = serviceMetadata.getName();
+                if (serviceName.equals("controllersvc")) {
+                    logNames.add("controllersvc-discovery");
+                    logNames.add("controllersvc-metering");
+                    logNames.add("controllersvc-vplex-api");
+                }
+                logNames.add(serviceMetadata.getName());
+            }
+        }
+        return logNames;
+    }
+
     /**
      * Returns list of service names that are available for extra node
      */

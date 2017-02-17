@@ -451,7 +451,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
 
             completer = new HostCompleter(eventId, hostIds, false, taskId);
 
-            if (!NullColumnValueGetter.isNullURI(oldCluster)) {
+            if (!NullColumnValueGetter.isNullURI(oldCluster) && !oldCluster.equals(clusterId)) {
                 waitFor = addStepsForRemoveHost(workflow, waitFor, hostIds, oldCluster, vCenterDataCenterId, isVcenter);
             }
 

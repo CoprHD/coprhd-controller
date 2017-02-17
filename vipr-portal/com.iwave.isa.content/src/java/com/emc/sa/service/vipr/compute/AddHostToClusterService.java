@@ -257,6 +257,8 @@ public class AddHostToClusterService extends ViPRService {
         List<HostRestRep> hostsWithOs = installOSForHosts(hostToIPs, ComputeUtils.getHostNameBootVolume(hosts));
         logInfo("compute.cluster.exports.installed.os", ComputeUtils.nonNull(hostsWithOs).size());
 
+        ComputeUtils.addHostsToCluster(hosts, cluster);
+
         pushToVcenter();
 
         String orderErrors = ComputeUtils.getOrderErrors(cluster, copyOfHostNames, computeImage, vcenterId);

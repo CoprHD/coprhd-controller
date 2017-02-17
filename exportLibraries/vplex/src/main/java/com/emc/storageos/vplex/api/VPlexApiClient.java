@@ -183,7 +183,7 @@ public class VPlexApiClient {
      */
     public List<VPlexClusterInfo> getClusterInfoDetails() throws VPlexApiException {
         s_logger.info("Request for complete detailed cluster info for VPlex at {}", _baseURI);
-        return _discoveryMgr.getClusterInfo(false, true);
+        return _discoveryMgr.getClusterInfo(false, true, null);
     }
 
     /**
@@ -202,7 +202,7 @@ public class VPlexApiClient {
     public synchronized List<VPlexClusterInfo> getClusterInfoLite() throws VPlexApiException {
         s_logger.info("Request for lightweight cluster info for VPlex at {}", _baseURI);
         if (_vplexClusterInfoLiteCache.isEmpty()) {
-            _vplexClusterInfoLiteCache.addAll(_discoveryMgr.getClusterInfo(true, false));
+            _vplexClusterInfoLiteCache.addAll(_discoveryMgr.getClusterInfo(true, false, null));
             s_logger.info("refreshed lightweight cluster info list is " + _vplexClusterInfoLiteCache.toString());
         }
 
@@ -447,8 +447,9 @@ public class VPlexApiClient {
             boolean findVirtualVolume, boolean thinEnabled)
                     throws VPlexApiException {
         s_logger.info("Request for virtual volume creation on VPlex at {}", _baseURI);
+        String clusterName = getClusterNameForId(winningClusterId);
         return _virtualVolumeMgr.createVirtualVolume(nativeVolumeInfoList, isDistributed,
-                discoveryRequired, preserveData, winningClusterId, clusterInfoList, findVirtualVolume, thinEnabled);
+                discoveryRequired, preserveData, winningClusterId, clusterInfoList, findVirtualVolume, thinEnabled, clusterName);
     }
 
     /**

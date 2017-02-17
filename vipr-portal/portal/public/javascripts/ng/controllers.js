@@ -400,15 +400,20 @@ angular.module("portalApp").controller({
 
         var policyWatch = $scope.$watch('policyId', function () {            
             $http.get(routes.FileProtectionPolicy_details({id:$scope.policyId})).success(function(data) {
-        	   $scope.protectionPolicyJson = data.aaData;
+        	   var protectionPolicyJson = data.replicationSettings.replicationTopologies;
+        	   if (typeof protectionPolicyJson != 'undefined') {
+        	         angular.forEach(protectionPolicyJson, function(topology) {
+        	            var source =topology.sourceVArray.id.toString();
+        	            //for now api support only one target for each source.
+        	            var target=  topology.targetVArrays[0].id.toString();       	           
+        	    	    var topo = {sourceVArray:source, targetVArray:target};
+        	    	    $scope.topologies.push(angular.copy(topo));
+        	    	   
+        	        });        	      
+        	    }
            });
         });
         
-        window.alert("policyWatch value is "+policyWatch); 
-  
-       
- 
-                 
         $scope.$watch('topologies', function(newVal) {
         	$scope.topologiesString = angular.toJson($scope.topologies, false);
         }, true);

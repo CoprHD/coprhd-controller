@@ -134,6 +134,17 @@
                 isSelectedAll = false;
             }
         });
+        
+        $('#orders').on( 'filter.dt', function () {
+            var searchText = $(".search-query").val();
+            var currentDate = '[' + new Date().toUTCString() + '] ';
+            console.info( currentDate + 'Search Val: ' + searchText );
+            if(searchText === '') {
+            	$('input[name=selectAll]').prop('disabled', false);
+            } else {
+            	$('input[name=selectAll]').prop('disabled', true);
+            }
+        } );
 
     });
 

@@ -342,7 +342,7 @@ public class DbConsistencyCheckerHelper {
                         DbCheckerFileWriter.writeTo(indexAndCf.keyspace.getKeyspaceName(),
                                 String.format(timeUUID != null ? DELETE_INDEX_CQL : DELETE_INDEX_CQL_WITHOUT_UUID,
                                         indexAndCf.cf.getName(), idxEntry.getIndexKey(), idxEntry.getColumnName().getOne(),
-                                        idxEntry.getColumnName().getTwo(),
+                                        handleNullValue(idxEntry.getColumnName().getTwo()),
                                         handleNullValue(idxEntry.getColumnName().getThree()),
                                         handleNullValue(idxEntry.getColumnName().getFour()),
                                         timeUUID));

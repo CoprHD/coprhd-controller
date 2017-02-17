@@ -34,5 +34,4 @@ public class FilePolicyUnAssignParam implements Serializable {
     public void setUnassignfrom(Set<URI> unassignfrom) {
         this.unassignfrom = unassignfrom;
     }
-
 }

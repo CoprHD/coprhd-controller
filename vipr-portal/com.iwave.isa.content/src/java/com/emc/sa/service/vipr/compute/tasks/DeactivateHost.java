@@ -38,6 +38,12 @@ public class DeactivateHost extends WaitForTask<HostRestRep> {
         provideDetailArgs(hostID);
     }
 
+    public DeactivateHost(URI hostID, String hostname, boolean detachStorage) {
+        this.hostId = hostID;
+        this.detachStorage = detachStorage;
+        provideDetailArgs(hostname);
+    }
+
     @Override
     public Task<HostRestRep> doExecute() throws Exception {
         Task<HostRestRep> task = getClient().hosts().deactivate(hostId, detachStorage);

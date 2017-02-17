@@ -23,6 +23,9 @@ public class SSHDialog {
     InputStreamReader insr;
     OutputStreamWriter oswr;
     protected String devname = "__unknown__device__";
+    
+    // Identifies and exception in the response.
+    private static final String EXCEPTION_REGEX = "raise Exception\\('.*'\\)";
 
     public SSHDialog(SSHSession session, Integer defaultTimeout) {
         this.session = session;
@@ -38,7 +41,7 @@ public class SSHDialog {
         // First check for an exception, which will be thrown if found.
         checkForException(buf);
         
-        // Now look for the prompt.
+        // If no exceptions, now look for the expected prompt(s).
         for (SSHPrompt p : prompts) {
             String regex = p.getRegex();
             if (regex.contains("<<devname>>")) {
@@ -56,14 +59,24 @@ public class SSHDialog {
         return SSHPrompt.NOMATCH;
     }
     
+    /**
+     * Checks the passed response content for an embedded exception.
+     * 
+     * Content will have the following for an exception:
+     * 
+     *     "raise Exception('A very specific bad thing happened')"
+     * 
+     * @param buf The response content.
+     * 
+     * @throws NetworkDeviceControllerException When an exception is found.
+     */
     private void checkForException(String buf) throws NetworkDeviceControllerException {
-        Pattern p = Pattern.compile("raise Exception\\('.*'\\)");     
+        Pattern p = Pattern.compile(EXCEPTION_REGEX);     
         Matcher m = p.matcher(buf);
         if (m.find()) {
             String match = buf.substring(m.start(), m.end());
-            _log.info("==========checkForException - match: {}", match);
+            _log.info("Found exception in response {}", match);
             String message = match.substring(match.indexOf("'")+1, match.lastIndexOf("'"));
-            _log.info("==========checkForException - message: {}", message);
             throw NetworkDeviceControllerException.exceptions.exceptionInResponse(message);
         }
     }

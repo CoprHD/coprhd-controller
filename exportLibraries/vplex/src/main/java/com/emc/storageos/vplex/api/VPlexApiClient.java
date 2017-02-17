@@ -447,7 +447,11 @@ public class VPlexApiClient {
             boolean findVirtualVolume, boolean thinEnabled)
                     throws VPlexApiException {
         s_logger.info("Request for virtual volume creation on VPlex at {}", _baseURI);
-        String clusterName = getClusterNameForId(winningClusterId);
+        String clusterName = null;
+        if (!isDistributed) {
+            // if this is a local volume, we can restrict work to just the local cluster
+            clusterName = getClusterNameForId(winningClusterId);
+        }
         return _virtualVolumeMgr.createVirtualVolume(nativeVolumeInfoList, isDistributed,
                 discoveryRequired, preserveData, winningClusterId, clusterInfoList, findVirtualVolume, thinEnabled, clusterName);
     }

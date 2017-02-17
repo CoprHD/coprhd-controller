@@ -23,7 +23,6 @@ import javax.wbem.client.WBEMClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.emc.storageos.api.service.impl.resource.utils.PropertySetterUtil;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
@@ -54,6 +53,7 @@ import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.plugins.common.PartitionManager;
 import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
 import com.emc.storageos.volumecontroller.impl.StoragePoolAssociationHelper;
+import com.emc.storageos.vplexcontroller.VplexBackendIngestionContext;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Sets;
 import com.google.common.collect.Sets.SetView;
@@ -230,7 +230,7 @@ public class DiscoveryUtils {
                 .get(SupportedVolumeCharacterstics.IS_VPLEX_BACKEND_VOLUME.toString());
 
         if (TRUE.equals(status)) {
-            String vplexParentVolume = PropertySetterUtil.extractValueFromStringSet(
+            String vplexParentVolume = VplexBackendIngestionContext.extractValueFromStringSet(
                     SupportedVolumeInformation.VPLEX_PARENT_VOLUME.toString(),
                     unManagedVolume.getVolumeInformation());
             URIQueryResultList unManagedVolumeList = new URIQueryResultList();

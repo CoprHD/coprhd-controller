@@ -616,6 +616,7 @@ public class FilePolicyService extends TaskResourceService {
 
         fileReplicationPolicy.setId(URIUtil.createId(FilePolicy.class));
         fileReplicationPolicy.setFilePolicyName(param.getPolicyName());
+        fileReplicationPolicy.setLabel(param.getPolicyName());
         fileReplicationPolicy.setFilePolicyType(param.getPolicyType());
         fileReplicationPolicy.setPriority(param.getPriority());
         fileReplicationPolicy.setNumWorkerThreads((long) param.getNumWorkerThreads());
@@ -664,6 +665,7 @@ public class FilePolicyService extends TaskResourceService {
         fileSnapshotPolicy.setLabel(param.getPolicyName());
         fileSnapshotPolicy.setFilePolicyType(param.getPolicyType());
         fileSnapshotPolicy.setFilePolicyName(param.getPolicyName());
+        fileSnapshotPolicy.setLabel(param.getPolicyName());
         if (param.getPolicyDescription() != null && !param.getPolicyDescription().isEmpty()) {
             fileSnapshotPolicy.setFilePolicyDescription(param.getPolicyDescription());
         }
@@ -819,6 +821,7 @@ public class FilePolicyService extends TaskResourceService {
             checkForDuplicateName(param.getPolicyName(), FilePolicy.class);
             existingPolicy.setLabel(param.getPolicyName());
             existingPolicy.setFilePolicyName(param.getPolicyName());
+            existingPolicy.setLabel(param.getPolicyName());
         }
 
         if (param.getPolicyDescription() != null && !param.getPolicyDescription().isEmpty()) {

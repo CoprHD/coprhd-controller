@@ -70,13 +70,19 @@ public class FilePolicy extends DataObjectWithACLs {
     // Policy priority Low/High
     private String priority;
 
+    // Policy priority Low/High
+    private Long numWorkerThreads;
+
     // Actual resources where is being applied
     private StringSet policyStorageResources;
+
+    // This has to be converted to FileReplicationTopology
+    private StringSet replicationTopologies;
 
     private Boolean applyOnTargetSite;
 
     public static enum FileReplicationType {
-        LOCAL, REMOTE;
+        LOCAL, REMOTE, NONE;
     }
 
     public static enum FileReplicationCopyMode {
@@ -84,7 +90,7 @@ public class FilePolicy extends DataObjectWithACLs {
     }
 
     public static enum ScheduleFrequency {
-        DAYS, WEEKS, MONTHS
+        MINUTES, HOURS, DAYS, WEEKS, MONTHS
     }
 
     public static enum SnapshotExpireType {
@@ -101,6 +107,10 @@ public class FilePolicy extends DataObjectWithACLs {
 
     public static enum AssignToResource {
         all, selected
+    }
+
+    public static enum FilePolicyPriority {
+        HIGH, LOW;
     }
 
     @Name("fileReplicationType")
@@ -293,6 +303,16 @@ public class FilePolicy extends DataObjectWithACLs {
         setChanged("priority");
     }
 
+    @Name("numWorkerThreads")
+    public Long getNumWorkerThreads() {
+        return numWorkerThreads;
+    }
+
+    public void setNumWorkerThreads(Long numWorkerThreads) {
+        this.numWorkerThreads = numWorkerThreads;
+        setChanged("numWorkerThreads");
+    }
+
     @Name("policyStorageResources")
     public StringSet getPolicyStorageResources() {
         return policyStorageResources;
@@ -303,6 +323,44 @@ public class FilePolicy extends DataObjectWithACLs {
         setChanged("policyStorageResources");
     }
 
+    @Name("replicationTopologies")
+    public StringSet getReplicationTopologies() {
+        return replicationTopologies;
+    }
+
+    public void setReplicationTopologies(StringSet replicationTopologies) {
+        this.replicationTopologies = replicationTopologies;
+        setChanged("replicationTopologies");
+    }
+
+    public void addReplicationTopology(String replicationTopology) {
+        if (this.replicationTopologies == null) {
+            this.replicationTopologies = new StringSet();
+        }
+        this.replicationTopologies.add(replicationTopology);
+        setChanged("replicationTopologies");
+    }
+
+    public void removeReplicationTopology(String topology) {
+        if (this.replicationTopologies != null) {
+            this.replicationTopologies.remove(topology);
+            setChanged("replicationTopologies");
+        }
+
+    }
+
+    @Override
+    public String toString() {
+        return "FilePolicy [filePolicyType=" + filePolicyType + ", filePolicyName=" + filePolicyName + ", filePolicyDescription="
+                + filePolicyDescription + ", applyAt=" + applyAt + ", assignedResources=" + assignedResources + ", accessTenants="
+                + accessTenants + ", scheduleFrequency=" + scheduleFrequency + ", scheduleRepeat=" + scheduleRepeat + ", scheduleTime="
+                + scheduleTime + ", scheduleDayOfWeek=" + scheduleDayOfWeek + ", scheduleDayOfMonth=" + scheduleDayOfMonth
+                + ", snapshotExpireType=" + snapshotExpireType + ", snapshotExpireTime=" + snapshotExpireTime + ", snapshotNamePattern="
+                + snapshotNamePattern + ", fileReplicationType=" + fileReplicationType + ", fileReplicationCopyMode="
+                + fileReplicationCopyMode + ", filePolicyVpool=" + filePolicyVpool + ", priority=" + priority + ", policyStorageResources="
+                + policyStorageResources + " ]";
+    }
+
     public void addAssignedResources(URI resourceURI) {
         StringSet assignedRes = this.assignedResources;
         if (assignedRes == null) {
@@ -310,6 +368,7 @@ public class FilePolicy extends DataObjectWithACLs {
         }
         assignedRes.add(resourceURI.toString());
         this.assignedResources = assignedRes;
+        setChanged("assignedResources");
     }
 
     public void removeAssignedResources(URI resourceURI) {
@@ -317,6 +376,7 @@ public class FilePolicy extends DataObjectWithACLs {
         if (assignedRes != null) {
             assignedRes.remove(resourceURI.toString());
             this.assignedResources = assignedRes;
+            setChanged("assignedResources");
         }
     }
 
@@ -328,6 +388,7 @@ public class FilePolicy extends DataObjectWithACLs {
         policyStrRes.add(resourceURI.toString());
 
         this.policyStorageResources = policyStrRes;
+        setChanged("policyStorageResources");
     }
 
     public void removePolicyStorageResources(URI resourceURI) {
@@ -335,6 +396,8 @@ public class FilePolicy extends DataObjectWithACLs {
         if (policyStrRes != null) {
             policyStrRes.remove(resourceURI.toString());
             this.policyStorageResources = policyStrRes;
+            setChanged("policyStorageResources");
         }
+
     }
 }

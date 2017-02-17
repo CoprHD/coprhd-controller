@@ -251,6 +251,15 @@ public class UnManagedExportMask extends UnManagedDiscoveredObject {
     }
 
     @Override
+    public String forDisplay() {
+        if (_maskName != null && !_maskName.isEmpty()) {
+            return String.format("%s (%s)", _maskName, _id);
+        } else {
+            return super.forDisplay();
+        }
+    }
+
+    @Override
     public String toString() {
         StringBuilder str = new StringBuilder("UnManagedExportMask: ");
         str.append(_maskingViewPath);

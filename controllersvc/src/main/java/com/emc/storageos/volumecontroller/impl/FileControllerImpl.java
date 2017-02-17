@@ -22,6 +22,7 @@ import com.emc.storageos.impl.AbstractDiscoveredSystemController;
 import com.emc.storageos.model.file.CifsShareACLUpdateParams;
 import com.emc.storageos.model.file.FileExportUpdateParams;
 import com.emc.storageos.model.file.NfsACLUpdateParams;
+import com.emc.storageos.model.file.policy.FilePolicyUpdateParam;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.volumecontroller.AsyncTask;
 import com.emc.storageos.volumecontroller.ControllerException;
@@ -246,8 +247,43 @@ public class FileControllerImpl extends AbstractDiscoveredSystemController imple
     }
 
     @Override
+    public void updateStorageSystemFileProtectionPolicy(URI storage, URI policy, URI policyRes, FilePolicyUpdateParam policyUpdateParam,
+            String opId) throws InternalException {
+        execFS("updateStorageSystemFileProtectionPolicy", storage, policy, policyRes, policyUpdateParam, opId);
+
+    }
+
+    @Override
     public void applyFilePolicy(URI fs, URI filePolicy, String taskId) throws InternalException {
         execFS("applyFilePolicy", fs, filePolicy, taskId);
+    }
+
+    @Override
+    public void
+    assignFileSnapshotPolicyToVirtualPools(URI storageSystemURI, URI vNASURI, URI filePolicyToAssign, URI vpoolURI, String taskId)
+            throws InternalException {
+        execFS("assignFileSnapshotPolicyToVirtualPools", storageSystemURI, vNASURI, filePolicyToAssign, vpoolURI, taskId);
+    }
+
+    @Override
+    public void assignFileSnapshotPolicyToProjects(URI storageSystemURI, URI vNASURI, URI filePolicyToAssign, URI vpoolURI, URI projectURI,
+            String taskId) throws InternalException {
+        execFS("assignFileSnapshotPolicyToProjects", storageSystemURI, vNASURI, filePolicyToAssign, vpoolURI, projectURI, taskId);
+    }
+
+    @Override
+    public void assignFileReplicationPolicyToVirtualPools(URI storageSystemURI, URI targetSystemURI,
+            URI sourceVNasURI, URI targetVNasURI, URI filePolicyToAssign, URI vpoolURI, String opId) throws ControllerException {
+        execFS("assignFileReplicationPolicyToVirtualPools", storageSystemURI, targetSystemURI,
+                sourceVNasURI, targetVNasURI, filePolicyToAssign, vpoolURI, opId);
+    }
+
+    @Override
+    public void assignFileReplicationPolicyToProjects(URI storageSystemURI, URI targetSystemURI,
+            URI sourceVNasURI, URI targetVNasURI, URI filePolicyToAssign, URI vpoolURI, URI projectURI, String opId)
+                    throws InternalException {
+        execFS("assignFileReplicationPolicyToProjects", storageSystemURI, targetSystemURI,
+                sourceVNasURI, targetVNasURI, filePolicyToAssign, vpoolURI, projectURI, opId);
     }
 
 }

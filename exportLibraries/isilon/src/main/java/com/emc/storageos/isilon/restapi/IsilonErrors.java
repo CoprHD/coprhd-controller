@@ -48,4 +48,10 @@ public interface IsilonErrors {
 
     @DeclareServiceCode(ServiceCode.ISILON_ERROR)
     public ServiceError unAssignPolicyFailed(final URI policyId);
+
+    @DeclareServiceCode(ServiceCode.ISILON_ERROR)
+    public ServiceError unableToCreateSnapshotPolicy(final String storageSystem);
+
+    @DeclareServiceCode(ServiceCode.ISILON_ERROR)
+    public ServiceError unableToCreateReplicationPolicy(final String storageSystem);
 }

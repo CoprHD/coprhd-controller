@@ -14,12 +14,13 @@ import com.emc.storageos.model.TaskResourceRep;
 import com.emc.storageos.model.auth.ACLAssignmentChanges;
 import com.emc.storageos.model.auth.ACLEntry;
 import com.emc.storageos.model.file.policy.FilePolicyAssignParam;
-import com.emc.storageos.model.file.policy.FilePolicyAssignResp;
 import com.emc.storageos.model.file.policy.FilePolicyBulkRep;
 import com.emc.storageos.model.file.policy.FilePolicyCreateParam;
 import com.emc.storageos.model.file.policy.FilePolicyCreateResp;
 import com.emc.storageos.model.file.policy.FilePolicyListRestRep;
 import com.emc.storageos.model.file.policy.FilePolicyRestRep;
+import com.emc.storageos.model.file.policy.FilePolicyStorageResourceRestRep;
+import com.emc.storageos.model.file.policy.FilePolicyStorageResources;
 import com.emc.storageos.model.file.policy.FilePolicyUnAssignParam;
 import com.emc.storageos.model.file.policy.FilePolicyUpdateParam;
 import com.emc.vipr.client.Task;
@@ -42,6 +43,10 @@ public class FileProtectionPolicies extends AbstractCoreBulkResources<FilePolicy
 
     private String getUnAssignPolicyUrl() {
         return PathConstants.FILE_PROTECTION_POLICY_URL + "/unassign-policy";
+    }
+
+    private String getPolicyStorageResourcesUrl() {
+        return PathConstants.FILE_PROTECTION_POLICY_URL + "/policy-storage-resources";
     }
 
     /**
@@ -81,8 +86,8 @@ public class FileProtectionPolicies extends AbstractCoreBulkResources<FilePolicy
      * @param input
      *            the update configuration.
      */
-    public void update(URI id, FilePolicyUpdateParam input) {
-        client.put(FilePolicyCreateResp.class, input, PathConstants.FILE_PROTECTION_POLICY_URL, id);
+    public TaskResourceRep update(URI id, FilePolicyUpdateParam input) {
+        return client.put(TaskResourceRep.class, input, PathConstants.FILE_PROTECTION_POLICY_URL, id);
     }
 
     /**
@@ -127,8 +132,8 @@ public class FileProtectionPolicies extends AbstractCoreBulkResources<FilePolicy
      * @param input
      *            the update configuration.
      */
-    public FilePolicyAssignResp assignPolicy(URI id, FilePolicyAssignParam input) {
-        return client.post(FilePolicyAssignResp.class, input, getAssignPolicyUrl(), id);
+    public TaskResourceRep assignPolicy(URI id, FilePolicyAssignParam input) {
+        return client.post(TaskResourceRep.class, input, getAssignPolicyUrl(), id);
     }
 
     /**
@@ -163,6 +168,18 @@ public class FileProtectionPolicies extends AbstractCoreBulkResources<FilePolicy
     @Override
     public List<ACLEntry> updateACLs(URI id, ACLAssignmentChanges aclChanges) {
         return doUpdateACLs(id, aclChanges);
+    }
+
+    /**
+     * Lists the file policy storage resources.
+     * <p>
+     * API Call: <tt>GET /file/file-policies/{id}/policy-storage-resources</tt>
+     * 
+     * @return get the details policy storage resource for given policy.
+     */
+    public List<FilePolicyStorageResourceRestRep> getPolicyStorageResources(URI id) {
+        FilePolicyStorageResources response = client.get(FilePolicyStorageResources.class, getPolicyStorageResourcesUrl(), id);
+        return defaultList(response.getStorageResources());
     }
 
 }

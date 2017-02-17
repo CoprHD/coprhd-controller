@@ -5,6 +5,7 @@
 package com.emc.sa.service.vipr.compute;
 
 import static com.emc.sa.service.ServiceParams.COMPUTE_VIRTUAL_POOL;
+import static com.emc.sa.service.ServiceParams.HLU;
 import static com.emc.sa.service.ServiceParams.NAME;
 import static com.emc.sa.service.ServiceParams.PROJECT;
 import static com.emc.sa.service.ServiceParams.SIZE_IN_GB;
@@ -46,6 +47,9 @@ public class CreateBareMetalClusterService extends ViPRService {
 
     @Param(SIZE_IN_GB)
     protected Double size;
+
+    @Param(value = HLU, required = false)
+    protected Integer hlu;
 
     @Bindable(itemType = FqdnTable.class)
     protected FqdnTable[] fqdnValues;
@@ -142,7 +146,7 @@ public class CreateBareMetalClusterService extends ViPRService {
             hostNames = ComputeUtils.removeExistingHosts(hostNames, cluster);
         }
 
-        List<Host> hosts = ComputeUtils.createHosts(cluster.getId(), computeVirtualPool, hostNames, virtualArray);
+        List<Host> hosts = ComputeUtils.createHosts(cluster, computeVirtualPool, hostNames, virtualArray);
 
         logInfo("compute.cluster.hosts.created", ComputeUtils.nonNull(hosts).size());
         // Below step to update the shared export group to the cluster (the
@@ -173,7 +177,7 @@ public class CreateBareMetalClusterService extends ViPRService {
             logInfo("compute.cluster.boot.volumes.created", ComputeUtils.nonNull(bootVolumeIds).size());
             hosts = ComputeUtils.deactivateHostsWithNoBootVolume(hosts, bootVolumeIds, cluster);
 
-            List<URI> exportIds = ComputeUtils.exportBootVols(bootVolumeIds, hosts, project, virtualArray);
+            List<URI> exportIds = ComputeUtils.exportBootVols(bootVolumeIds, hosts, project, virtualArray, hlu);
             logInfo("compute.cluster.exports.created", ComputeUtils.nonNull(exportIds).size());
             hosts = ComputeUtils.deactivateHostsWithNoExport(hosts, exportIds, bootVolumeIds, cluster);
 

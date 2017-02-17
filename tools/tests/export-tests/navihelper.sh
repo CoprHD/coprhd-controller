@@ -105,7 +105,11 @@ add_initiator_to_mask() {
     # This requires that the first number of the WWN is "1"
     /opt/Navisphere/bin/naviseccli -User bourne -Password bourne -Scope 0 -Address $VNX_SP_IP storagegroup -setpath -gname ${sgname} -hbauid $(echo $pwwn | sed 's/^1/2/g'):${pwwn} -sp a -spport 0 -arraycommpath 1 -failovermode 4 -host dutest_fakehost -ip 11.22.33.44 -o > /tmp/navisechelper.out
     if [ $? -ne 0 ]; then
-	echo "Failed to add the initiator to the mask."
+	echo "Failed to add the initiator to the mask, trying port 1"
+	/opt/Navisphere/bin/naviseccli -User bourne -Password bourne -Scope 0 -Address $VNX_SP_IP storagegroup -setpath -gname ${sgname} -hbauid $(echo $pwwn | sed 's/^1/2/g'):${pwwn} -sp a -spport 1 -arraycommpath 1 -failovermode 4 -host dutest_fakehost -ip 11.22.33.44 -o > /tmp/navisechelper.out
+	if [ $? -ne 0 ]; then
+	    echo "Failed to add the initiator to the mask"
+	fi
     fi
 
     # Ensure the provider is updated

@@ -42,6 +42,7 @@ import util.ConfigPropertyUtils;
 import util.MonitorUtils;
 
 import com.emc.storageos.db.client.model.uimodels.OrderStatus;
+import com.emc.storageos.db.client.util.OrderTextCreator;
 import com.emc.vipr.client.ViPRCatalogClient2;
 import com.emc.vipr.client.ViPRSystemClient;
 import com.emc.vipr.client.core.filters.DefaultResourceFilter;
@@ -283,12 +284,20 @@ public class SupportPackageCreator {
     }
 
     private void writeOrder(ZipOutputStream zip, OrderRestRep order) throws IOException {
-        String timestamp = formatTimestamp(order.getCreationTime());
-        String path = String.format("orders/Order-%s-%s-%s.txt", order.getOrderNumber(), order.getOrderStatus(),
-                timestamp);
-        TextOrderCreator creator = new TextOrderCreator(catalogApi(), order);
-        addStringEntry(zip, path, creator.getText());
+        String path = String.format("orders/%s", OrderTextCreator.genereateOrderFileName(order));
+        addStringEntry(zip, path, getOrderTextCreator(order).getText());
         Logger.debug("Written Order " + order.getId() + " to archive");
+    }
+
+    private OrderTextCreator getOrderTextCreator(OrderRestRep order) {
+        ViPRCatalogClient2 client = catalogApi();
+        OrderTextCreator creator = new OrderTextCreator();
+        creator.setOrder(order);
+        creator.setService(client.services().get(order.getCatalogService()));
+        creator.setState(client.orders().getExecutionState(order.getId()));
+        creator.setLogs(client.orders().getLogs(order.getId()));
+        creator.setExeLogs(client.orders().getExecutionLogs(order.getId()));
+        return creator;
     }
 
     private void writeLogs(ZipOutputStream zip) throws IOException {

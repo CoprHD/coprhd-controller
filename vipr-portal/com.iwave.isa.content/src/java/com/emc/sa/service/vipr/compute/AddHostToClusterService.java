@@ -10,6 +10,7 @@ import static com.emc.sa.service.ServiceParams.COMPUTE_VIRTUAL_POOL;
 import static com.emc.sa.service.ServiceParams.DATACENTER;
 import static com.emc.sa.service.ServiceParams.DNS_SERVERS;
 import static com.emc.sa.service.ServiceParams.GATEWAY;
+import static com.emc.sa.service.ServiceParams.HLU;
 import static com.emc.sa.service.ServiceParams.HOST_PASSWORD;
 import static com.emc.sa.service.ServiceParams.MANAGEMENT_NETWORK;
 import static com.emc.sa.service.ServiceParams.NETMASK;
@@ -35,6 +36,8 @@ import com.emc.sa.service.vipr.block.BlockStorageUtils;
 import com.emc.sa.service.vipr.compute.ComputeUtils.FqdnToIpTable;
 import com.emc.storageos.db.client.model.Cluster;
 import com.emc.storageos.db.client.model.Host;
+import com.emc.storageos.db.client.model.Vcenter;
+import com.emc.storageos.db.client.model.VcenterDataCenter;
 import com.emc.storageos.model.compute.OsInstallParam;
 import com.emc.storageos.model.host.HostRestRep;
 import com.emc.storageos.model.vpool.ComputeVirtualPoolRestRep;
@@ -79,6 +82,9 @@ public class AddHostToClusterService extends ViPRService {
 
     @Param(SIZE_IN_GB)
     protected Double size;
+
+    @Param(value = HLU, required = false)
+    protected Integer hlu;
 
     @Param(HOST_PASSWORD)
     protected String rootPassword;
@@ -234,7 +240,7 @@ public class AddHostToClusterService extends ViPRService {
 
         hostNames = ComputeUtils.removeExistingHosts(hostNames, cluster);
 
-        List<Host> hosts = ComputeUtils.createHosts(cluster.getId(), computeVirtualPool, hostNames, virtualArray);
+        List<Host> hosts = ComputeUtils.createHosts(cluster, computeVirtualPool, hostNames, virtualArray);
         logInfo("compute.cluster.hosts.created", ComputeUtils.nonNull(hosts).size());
         // Below step to update the shared export group to the cluster (the
         // newly added hosts will be taken care of this update cluster
@@ -260,7 +266,7 @@ public class AddHostToClusterService extends ViPRService {
             logInfo("compute.cluster.boot.volumes.created", ComputeUtils.nonNull(bootVolumeIds).size());
             hosts = ComputeUtils.deactivateHostsWithNoBootVolume(hosts, bootVolumeIds, cluster);
 
-            List<URI> exportIds = ComputeUtils.exportBootVols(bootVolumeIds, hosts, project, virtualArray);
+            List<URI> exportIds = ComputeUtils.exportBootVols(bootVolumeIds, hosts, project, virtualArray, hlu);
             logInfo("compute.cluster.exports.created", ComputeUtils.nonNull(exportIds).size());
             hosts = ComputeUtils.deactivateHostsWithNoExport(hosts, exportIds, bootVolumeIds, cluster);
 
@@ -300,7 +306,7 @@ public class AddHostToClusterService extends ViPRService {
     }
 
     private List<HostRestRep> installOSForHosts(Map<String, String> hostToIps, Map<String, URI> hostNameToBootVolumeMap) {
-        List<HostRestRep> hosts = ComputeUtils.getHostsInCluster(cluster.getId());
+        List<HostRestRep> hosts = ComputeUtils.getHostsInCluster(cluster.getId(), cluster.getLabel());
 
         List<OsInstallParam> osInstallParams = Lists.newArrayList();
 
@@ -316,7 +322,7 @@ public class AddHostToClusterService extends ViPRService {
         for (HostRestRep host : newHosts) {
             if ((host != null) && (
                     (host.getType() == null) ||
-                            host.getType().isEmpty() ||
+                    host.getType().isEmpty() ||
                     host.getType().equals(Host.HostType.No_OS.name())
                     )) {
                 OsInstallParam param = new OsInstallParam();
@@ -353,13 +359,30 @@ public class AddHostToClusterService extends ViPRService {
             // If the cluster already has a datacenter associated with it,
             // it needs to be updated, else create.
             try {
+                Vcenter vcenter = null;
+                VcenterDataCenter dataCenter = null;
+                vcenter = ComputeUtils.getVcenter(vcenterId);
+
+                if (null != datacenterId) {
+                    dataCenter = ComputeUtils.getVcenterDataCenter(datacenterId);
+                }
                 URI existingDatacenterId = cluster.getVcenterDataCenter();
                 if (existingDatacenterId == null) {
-                    logInfo("compute.cluster.create.vcenter.cluster", vcenterId, datacenterId);
-                    ComputeUtils.createVcenterCluster(cluster, datacenterId);
+                    logInfo("compute.cluster.create.vcenter.cluster.datacenter",
+                            (vcenter != null ? vcenter.getLabel() : vcenterId),
+                            (dataCenter != null ? dataCenter.getLabel() : datacenterId));
+                    if (dataCenter == null) {
+                        ComputeUtils.createVcenterCluster(cluster, datacenterId);
+                    } else {
+                        ComputeUtils.createVcenterCluster(cluster, dataCenter);
+                    }
                 } else {
                     logInfo("vcenter.cluster.update", cluster.getLabel());
-                    ComputeUtils.updateVcenterCluster(cluster, datacenterId);
+                    if (dataCenter == null) {
+                        ComputeUtils.updateVcenterCluster(cluster, datacenterId);
+                    } else {
+                        ComputeUtils.updateVcenterCluster(cluster, dataCenter);
+                    }
                 }
             } catch (Exception e) {
                 logError("compute.cluster.vcenter.push.failed", e.getMessage());

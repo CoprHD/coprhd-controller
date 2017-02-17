@@ -21,7 +21,11 @@ public class PolicyStorageResource extends DataObject {
     private URI nasServer;
     private URI appliedAt;
     private String policyNativeId;
+    private String resourcePath;
+    private String nativeGuid;
+    private FileReplicaPolicyTargetMap fileReplicaPolicyTargetMap;
 
+    @RelationIndex(cf = "RelationIndex", type = FilePolicy.class)
     @Name("filePolicyId")
     public URI getFilePolicyId() {
         return filePolicyId;
@@ -70,6 +74,36 @@ public class PolicyStorageResource extends DataObject {
     public void setAppliedAt(URI appliedAt) {
         this.appliedAt = appliedAt;
         setChanged("appliedAt");
+    }
+
+    @Name("resourcePath")
+    public String getResourcePath() {
+        return resourcePath;
+    }
+
+    public void setResourcePath(String resourcePath) {
+        this.resourcePath = resourcePath;
+        setChanged("resourcePath");
+    }
+
+    @AlternateId("AltIdIndex")
+    @Name("nativeGuid")
+    public String getNativeGuid() {
+        return nativeGuid;
+    }
+
+    public void setNativeGuid(String nativeGuid) {
+        this.nativeGuid = nativeGuid;
+        setChanged("nativeGuid");
+    }
+
+    @Name("filePolicyTargetMap")
+    public FileReplicaPolicyTargetMap getFileReplicaPolicyTargetMap() {
+        return fileReplicaPolicyTargetMap;
+    }
+
+    public void setFileReplicaPolicyTargetMap(FileReplicaPolicyTargetMap fileReplicaPolicyTargetMap) {
+        this.fileReplicaPolicyTargetMap = fileReplicaPolicyTargetMap;
     }
 
 }

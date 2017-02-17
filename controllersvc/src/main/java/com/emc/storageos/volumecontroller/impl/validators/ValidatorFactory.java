@@ -103,6 +103,14 @@ public class ValidatorFactory implements StorageSystemValidatorFactory {
         return systemFactories.get("xtremio");
     }
 
+    public StorageSystemValidatorFactory vnxe() {
+        return systemFactories.get("vnxe");
+    }
+
+    public StorageSystemValidatorFactory unity() {
+        return systemFactories.get("unity");
+    }
+
     /**
      * Return the Vplex validator factory.
      *

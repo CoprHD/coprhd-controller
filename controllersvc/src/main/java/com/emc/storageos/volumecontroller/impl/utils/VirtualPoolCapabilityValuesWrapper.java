@@ -47,6 +47,10 @@ public class VirtualPoolCapabilityValuesWrapper implements Serializable {
     public static final String FILE_REPLICATION_RPO_VALUE = "fileReplicationRpoValue";
     public static final String FILE_REPLICATION_RPO_TYPE = "fileReplicationRpoType";
     public static final String FILE_REPLICATION_COPY_MODE = "fileReplicationCopyMode";
+    public static final String FILE_REPLICATION_TARGET_VARRAYS = "fileReplicationTargetVarrays";
+    public static final String FILE_REPLICATION_TARGET_VPOOL = "fileReplicationTargetVPool";
+    public static final String FILE_REPLICATION_TYPE = "fileReplicationType";
+    public static final String FILE_REPLICATION_APPLIED_AT = "fileReplicationAppliedAt";
 
     // Not vpool params, but hints for volume descriptor creation
     // TODO: Move to ControllerOperationValuesWrapper
@@ -72,6 +76,8 @@ public class VirtualPoolCapabilityValuesWrapper implements Serializable {
     // replica options
     public static final String REPLICA_CREATE_INACTIVE = "replicaActiveInactiveMode";
     public static final String SNAPSHOT_SESSION_COPY_MODE = "snapshotSessionCopyMode";
+
+    public static final String VPOOL_PROJECT_POLICY_ASSIGN = "vpoolProjectPolicyAssign";
 
     private final Map<String, Object> _vpoolCapabilities = new HashMap<String, Object>();
 
@@ -192,21 +198,37 @@ public class VirtualPoolCapabilityValuesWrapper implements Serializable {
         if (capabilities.contains(QUOTA)) {
             _vpoolCapabilities.put(QUOTA, capabilities.getQuota());
         }
-        
+
         if (capabilities.contains(DEDUP)) {
             _vpoolCapabilities.put(DEDUP, capabilities.getDedupCapable());
         }
 
         if (capabilities.contains(FILE_REPLICATION_RPO_TYPE)) {
-            _vpoolCapabilities.put(FILE_REPLICATION_RPO_TYPE, capabilities.getRpRpoType());
+            _vpoolCapabilities.put(FILE_REPLICATION_RPO_TYPE, capabilities.getFileRpRpoType());
         }
 
-        if (capabilities.contains(FILE_REPLICATION_RPO_TYPE)) {
-            _vpoolCapabilities.put(FILE_REPLICATION_RPO_TYPE, capabilities.getRpCopyMode());
+        if (capabilities.contains(FILE_REPLICATION_RPO_VALUE)) {
+            _vpoolCapabilities.put(FILE_REPLICATION_RPO_VALUE, capabilities.getFileRpRpoValue());
         }
 
         if (capabilities.contains(FILE_REPLICATION_COPY_MODE)) {
-            _vpoolCapabilities.put(FILE_REPLICATION_COPY_MODE, capabilities.getRpCopyMode());
+            _vpoolCapabilities.put(FILE_REPLICATION_COPY_MODE, capabilities.getFileRpCopyMode());
+        }
+
+        if (capabilities.contains(FILE_REPLICATION_TARGET_VARRAYS)) {
+            _vpoolCapabilities.put(FILE_REPLICATION_TARGET_VARRAYS, capabilities.getFileReplicationTargetVArrays());
+        }
+
+        if (capabilities.contains(FILE_REPLICATION_TARGET_VPOOL)) {
+            _vpoolCapabilities.put(FILE_REPLICATION_TARGET_VPOOL, capabilities.getFileReplicationTargetVPool());
+        }
+
+        if (capabilities.contains(FILE_REPLICATION_TYPE)) {
+            _vpoolCapabilities.put(FILE_REPLICATION_TYPE, capabilities.getFileReplicationType());
+        }
+
+        if (capabilities.contains(FILE_REPLICATION_APPLIED_AT)) {
+            _vpoolCapabilities.put(FILE_REPLICATION_APPLIED_AT, capabilities.getFileReplicationAppliedAt());
         }
 
         if (capabilities.contains(COMPUTE)) {
@@ -216,7 +238,7 @@ public class VirtualPoolCapabilityValuesWrapper implements Serializable {
         if (capabilities.contains(ARRAY_AFFINITY)) {
             _vpoolCapabilities.put(ARRAY_AFFINITY, capabilities.getArrayAffinity());
         }
-        
+
         if (capabilities.contains(CHANGE_VPOOL_VOLUME)) {
             _vpoolCapabilities.put(CHANGE_VPOOL_VOLUME, capabilities.getChangeVpoolVolume());
         }
@@ -297,6 +319,26 @@ public class VirtualPoolCapabilityValuesWrapper implements Serializable {
 
     public String getRpCopyMode() {
         Object value = _vpoolCapabilities.get(RP_COPY_MODE);
+        return value != null ? (String) value : null;
+    }
+
+    public Set<String> getFileReplicationTargetVArrays() {
+        Object value = _vpoolCapabilities.get(FILE_REPLICATION_TARGET_VARRAYS);
+        return value != null ? (Set<String>) value : null;
+    }
+
+    public URI getFileReplicationTargetVPool() {
+        Object value = _vpoolCapabilities.get(FILE_REPLICATION_TARGET_VPOOL);
+        return value != null ? (URI) value : null;
+    }
+
+    public String getFileReplicationType() {
+        Object value = _vpoolCapabilities.get(FILE_REPLICATION_TYPE);
+        return value != null ? (String) value : null;
+    }
+
+    public String getFileReplicationAppliedAt() {
+        Object value = _vpoolCapabilities.get(FILE_REPLICATION_APPLIED_AT);
         return value != null ? (String) value : null;
     }
 
@@ -408,15 +450,17 @@ public class VirtualPoolCapabilityValuesWrapper implements Serializable {
     public String getChangeVpoolVolume() {
         Object value = _vpoolCapabilities.get(CHANGE_VPOOL_VOLUME);
         return value != null ? (String) value : null;
-    }        public String getReplicaCreateInactive() {
+    }
+
+    public String getReplicaCreateInactive() {
         Object value = _vpoolCapabilities.get(REPLICA_CREATE_INACTIVE);
         return value != null ? (String) value : null;
     }
-    
+
     public String getSnapshotSessionCopyMode() {
         Object value = _vpoolCapabilities.get(SNAPSHOT_SESSION_COPY_MODE);
         return value != null ? (String) value : null;
-}
+    }
 
     public String getCompute() {
         Object value = _vpoolCapabilities.get(COMPUTE);
@@ -427,10 +471,15 @@ public class VirtualPoolCapabilityValuesWrapper implements Serializable {
         Object value = _vpoolCapabilities.get(ARRAY_AFFINITY);
         return value != null ? (Boolean) value : false;
     }
-    
+
     public void removeCapabilityEntry(String keyEntry) {
-        if(_vpoolCapabilities.get(keyEntry) != null) {
+        if (_vpoolCapabilities.get(keyEntry) != null) {
             _vpoolCapabilities.remove(keyEntry);
         }
+    }
+
+    public boolean getVpoolProjectPolicyAssign() {
+        Object value = _vpoolCapabilities.get(VPOOL_PROJECT_POLICY_ASSIGN);
+        return value != null ? (Boolean) value : false;
     }
 }

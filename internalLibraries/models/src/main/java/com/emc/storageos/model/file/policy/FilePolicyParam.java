@@ -25,6 +25,9 @@ public class FilePolicyParam implements Serializable {
     // Priority of the policy
     private String priority;
 
+    // Priority of the policy
+    private int numWorkerThreads;
+
     // Replication related parameters
     private FileReplicationPolicyParam replicationPolicyParams;
 
@@ -45,7 +48,7 @@ public class FilePolicyParam implements Serializable {
      * 
      * @return
      */
-    @XmlElement(required = true, name = "policy_name")
+    @XmlElement(name = "policy_name")
     public String getPolicyName() {
         return this.policyName;
     }
@@ -110,7 +113,7 @@ public class FilePolicyParam implements Serializable {
      * 
      * @return
      */
-    @XmlElement(required = true, name = "apply_at")
+    @XmlElement(name = "apply_at")
     public String getApplyAt() {
         return this.applyAt;
     }
@@ -118,4 +121,14 @@ public class FilePolicyParam implements Serializable {
     public void setApplyAt(String applyAt) {
         this.applyAt = applyAt;
     }
+
+    @XmlElement(name = "num_worker_threads")
+    public int getNumWorkerThreads() {
+        return numWorkerThreads;
+    }
+
+    public void setNumWorkerThreads(int numWorkerThreads) {
+        this.numWorkerThreads = numWorkerThreads;
+    }
+
 }

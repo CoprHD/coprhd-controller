@@ -29,7 +29,7 @@
     <label class="description forRange">&{"orders.endDate"}:</label>
 
     <div class="control forRange" style="width:150px;">
-        <date-picker ng-model="rangeEndDate" close="true"></date-picker>
+        <date-picker id="endDatePicker" ng-model="rangeEndDate" close="true"></date-picker>
         <input type="hidden" name="rangeEndDate" value="{{rangeEndDate}}"/>
     </div>
 
@@ -134,6 +134,17 @@
                 isSelectedAll = false;
             }
         });
+        
+        $('#orders').on( 'filter.dt', function () {
+            var searchText = $(".search-query").val();
+            var currentDate = '[' + new Date().toUTCString() + '] ';
+            console.info( currentDate + 'Search Val: ' + searchText );
+            if(searchText === '') {
+            	$('input[name=selectAll]').prop('disabled', false);
+            } else {
+            	$('input[name=selectAll]').prop('disabled', true);
+            }
+        } );
 
     });
 

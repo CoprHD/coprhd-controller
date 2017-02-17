@@ -143,7 +143,10 @@
                 <bean class="com.emc.storageos.db.client.upgrade.callbacks.VplexVolumeBackingReplicationGroupInstanceMigration"/>
                 <bean class="com.emc.storageos.db.client.upgrade.callbacks.ExportMaskExistingInitiatorsMigration"/>
                 <bean class="com.emc.storageos.db.client.upgrade.callbacks.RebuildIndexDuplicatedCFNameMigration"/>
+                <bean class="com.emc.storageos.db.client.upgrade.callbacks.StaleRelationURICleanupMigration"/>
                 <bean class="com.emc.storageos.db.client.upgrade.callbacks.StaleIndexCleanerMigration"/>
+                <bean class="com.emc.storageos.db.client.upgrade.callbacks.MetroPointVolumeInternalSiteNameMigration"/>
+                <bean class="com.emc.storageos.db.client.upgrade.callbacks.VirtualPoolFileReplicationPolicyMigration"/>
             </list>
         </entry>
     </util:map>

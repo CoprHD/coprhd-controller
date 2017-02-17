@@ -84,7 +84,7 @@ public class NativeGUIDGenerator {
     public static final String UN_MANAGED_VOLUME = "UNMANAGEDVOLUME";
 
     public static final String UN_MANAGED_FILESYSTEM = "UNMANAGEDFILESYSTEM";
-    
+
     public static final String UN_MANAGED_QUOTADIRECTORY = "UNMANAGEDQUOTADIRECTORY";
 
     public static final String UN_MANAGED_FILE_EXPORT_RULE = "UNMANAGEDFILEEXPORTRULE";
@@ -99,6 +99,8 @@ public class NativeGUIDGenerator {
 
     public static final String VIRTUAL_NAS = "VIRTUALNAS";
 
+    public static final String FILE_STORAGE_RESOURCE = "FILESTORAGERESOURCE";
+
     public static final String NAMESPACE = "NAMESPACE";
 
     static {
@@ -107,6 +109,7 @@ public class NativeGUIDGenerator {
         OBJECT_TYPE_SET.add(ADAPTER);
         OBJECT_TYPE_SET.add(PHYSICAL_NAS);
         OBJECT_TYPE_SET.add(VIRTUAL_NAS);
+        OBJECT_TYPE_SET.add(FILE_STORAGE_RESOURCE);
     }
 
     // Cannot get this bean from ControllerServiceImpl context,
@@ -287,6 +290,33 @@ public class NativeGUIDGenerator {
         StorageSystem device = dbClient.queryObject(StorageSystem.class, port.getStorageDevice());
         return String.format("%s+%s+" + PORT + "+%s", _deviceTypeMap.get(device.getSystemType()), device.getSerialNumber(),
                 port.getPortNetworkId());
+    }
+
+    /**
+     * Generates the native guid format as StorageSystem+SerialNumber+<<TYPE>>+UNIQUE_ID for port, adapter & pool
+     * Objects.
+     * 
+     * @param device
+     *            : storage system.
+     * @param nasServer
+     *            : nas server name.
+     * @param policyType
+     *            : type of policy.
+     * @param path
+     *            : policy applicable path.
+     * @param type
+     *            : type of the object to generated nativeGuid.
+     * @return nativeGuid.
+     * @throws IOException
+     */
+    public static String generateNativeGuidForFilePolicyResource(StorageSystem device, String nasServer, String policyType,
+            String path, String type) {
+        String typeStr = "UNKNOWN";
+        if (OBJECT_TYPE_SET.contains(type)) {
+            typeStr = type;
+        }
+        return String.format("%s+%s+%s+%s+%s+%s", _deviceTypeMap.get(device.getSystemType()), device.getSerialNumber(), typeStr,
+                nasServer, policyType, path);
     }
 
     /**
@@ -511,13 +541,13 @@ public class NativeGUIDGenerator {
         return String.format("%s+%s+%s+" + QUOTADIRECTORY + "+%s", _deviceTypeMap.get(device.getSystemType()),
                 device.getSerialNumber(), fs.getName(), quotaDirName);
     }
-    
+
     public static String generateNativeGuidForQuotaDir(String deviceType, String serialNumber, String quotaDirName, String fsName)
             throws IOException {
         return String.format("%s+%s+%s+" + QUOTADIRECTORY + "+%s", _deviceTypeMap.get(deviceType),
                 serialNumber, fsName, quotaDirName);
     }
-    
+
     public static String generateNativeGuidForUnManagedQuotaDir(String deviceType, String serialNumber, String quotaDirName, String fsName)
             throws IOException {
         return String.format("%s+%s+%s+" + UN_MANAGED_QUOTADIRECTORY + "+%s", _deviceTypeMap.get(deviceType),
@@ -691,7 +721,7 @@ public class NativeGUIDGenerator {
         return String.format("%s+%s+" + UN_MANAGED_FILESYSTEM + "+%s", _deviceTypeMap.get(deviceType), serialNumber, fileShareNativeId);
 
     }
-    
+
     public static String generateNativeGuidForPreExistingQuotaDirectory(String deviceType, String serialNumber,
             String quotaDirectoryNativeId) {
         return String.format("%s+%s+" + UN_MANAGED_QUOTADIRECTORY + "+%s", _deviceTypeMap.get(deviceType), serialNumber,

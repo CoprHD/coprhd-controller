@@ -122,7 +122,7 @@ public enum ResourceOperationTypeEnum {
     CREATE_FILE_SYSTEM_QUOTA_DIR("CREATE FILESYSTEM QUOTA DIR", "create filesystem quota directory"),
     DELETE_FILE_SYSTEM_QUOTA_DIR("DELETE FILESYSTEM QUOTA DIR", "delete filesystem quota directory"),
     UPDATE_FILE_SYSTEM_QUOTA_DIR("UPDATE FILESYSTEM QUOTA DIR", "update filesystem quota directory"),
-    UNASSIGN_FILE_POLICY("UNASSIGN FILE POLICY", "unassign file policy"),
+    UNASSIGN_FILE_POLICY("UNASSIGN FILE POLICY", "unassign file policy from resource"),
     UPDATE_BUCKET("UPDATE BUCKET", "update bucket operation"),
     DELETE_BUCKET("DELETE BUCKET", "delete bucket operation"),
     CREATE_BUCKET("CREATE BUCKET", "create bucket operation"),
@@ -136,6 +136,8 @@ public enum ResourceOperationTypeEnum {
             "assign snapshot schedule policy to a filesystem"),
     GET_FILE_SYSTEM_SNAPSHOT_BY_SCHEDULE("GET SNAPSHOT  CREATED BY SCHEDULE POLICY ",
             "get  snapshot created by schedule policy "),
+    UPDATE_FILE_POLICY_BY_POLICY_STORAGE_RESOURCE("UPDATE FILE POLICY BY POLICY STORAGE RESOURCE ",
+            "Update  file protection policy by policy storage resource "),
     UNASSIGN_FILE_SYSTEM_SNAPSHOT_SCHEDULE("UNASSIGN SNAPSHOT SCHEDULE POLICY TO A FILESYSTEM",
             "unassign snapshot schedule policy to a filesystem"),
     UNEXPORT_FILE_SYSTEM("UNEXPORT FILESYSTEM", "unexport filesystem operation"),
@@ -354,7 +356,10 @@ public enum ResourceOperationTypeEnum {
     WORKFLOW_ROLLBACK("WORKFLOW_ROLLBACK", "Rollback a workflow"),
     MOUNT_NFS_EXPORT("MOUNT NFS EXPORT", "mount nfs export operation"),
     UNMOUNT_NFS_EXPORT("UNMOUNT NFS EXPORT", "unmount nfs export operation"),
-    LIST_MOUNTED_EXPORTS("LIST MOUNTED EXPORTS", "list mounted exports operation");
+    LIST_MOUNTED_EXPORTS("LIST MOUNTED EXPORTS", "list mounted exports operation"),
+    EXPORT_PATHS_ADJUSTMENT("EXPORT PATHS ADJUSTMENT", "export paths adjustment operation"),
+    ASSIGN_FILE_POLICY("ASSIGN FILE POLICY", "assign file policy to resource"),
+    UPDATE_FILE_PROTECTION_POLICY("UPDATE FILE PROTECTION POLICY", "Update file protection policy");
 
     private final String name;
     private final String description;

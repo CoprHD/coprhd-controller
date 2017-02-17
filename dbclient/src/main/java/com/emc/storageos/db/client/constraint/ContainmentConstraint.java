@@ -42,13 +42,14 @@ import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.FCEndpoint;
 import com.emc.storageos.db.client.model.FileExportRule;
 import com.emc.storageos.db.client.model.FileMountInfo;
-import com.emc.storageos.db.client.model.FilePolicy;
+import com.emc.storageos.db.client.model.FileReplicationTopology;
 import com.emc.storageos.db.client.model.FileShare;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Migration;
 import com.emc.storageos.db.client.model.NFSShareACL;
 import com.emc.storageos.db.client.model.ObjectBucketACL;
 import com.emc.storageos.db.client.model.ObjectNamespace;
+import com.emc.storageos.db.client.model.PolicyStorageResource;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.ProtectionSet;
 import com.emc.storageos.db.client.model.ProxyToken;
@@ -94,6 +95,7 @@ public interface ContainmentConstraint extends Constraint {
     class Factory {
         private static final String COMPUTE_SYSTEM = "computeSystem";
         private static final String FILE_SYSTEM_ID = "fileSystemId";
+        private static final String FILE_PROTECTION_POLICY_ID = "policyId";
         private static final String PROJECT = "project";
         private static final String STORAGE_DEVICE = "storageDevice";
         private static final String COMPUTE_IMAGESERVER_ID = "computeImageServerId";
@@ -385,7 +387,7 @@ public interface ContainmentConstraint extends Constraint {
             ColumnField field = doType.getColumnField("workflow");
             return new ContainmentConstraintImpl(workflow, WorkflowStep.class, field);
         }
-        
+
         public static ContainmentConstraint getWorkflowStepDataConstraint(URI workflow) {
             DataObjectType doType = TypeMap.getDoType(WorkflowStepData.class);
             ColumnField field = doType.getColumnField("workflow");
@@ -705,6 +707,18 @@ public interface ContainmentConstraint extends Constraint {
             DataObjectType doType = TypeMap.getDoType(FileExportRule.class);
             ColumnField field = doType.getColumnField("snapshotId");
             return new ContainmentConstraintImpl(snapshot, FileExportRule.class, field);
+        }
+
+        public static ContainmentConstraint getFileReplicationPolicyTopologyConstraint(URI policy) {
+            DataObjectType doType = TypeMap.getDoType(FileReplicationTopology.class);
+            ColumnField field = doType.getColumnField(FILE_PROTECTION_POLICY_ID);
+            return new ContainmentConstraintImpl(policy, FileReplicationTopology.class, field);
+        }
+
+        public static ContainmentConstraint getFilePolicyStorageResourceConstraint(URI policy) {
+            DataObjectType doType = TypeMap.getDoType(PolicyStorageResource.class);
+            ColumnField field = doType.getColumnField("filePolicyId");
+            return new ContainmentConstraintImpl(policy, PolicyStorageResource.class, field);
         }
 
         public static ContainmentConstraint getUnManagedFileExportRulesConstraint(URI fs) {

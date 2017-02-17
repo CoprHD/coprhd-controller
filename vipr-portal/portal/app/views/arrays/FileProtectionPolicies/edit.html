@@ -1,9 +1,16 @@
+
 %{
   titleKey = 'schedulepolicies.' + (schedulePolicy?.id ? 'edit' : 'create') + '.title';
 }%
 #{extends 'main.html'/}
-#{set navSelected: ['nav.tenantsettings', 'nav.schedulepolicies'] /}
+#{set navSelected: ['nav.virtualStorage', 'nav.file.protectionPolicies'] /}
 #{set 'title'}&{titleKey}#{/set}
+#{set editMode:schedulePolicy?.id ? true : false/}
+
+#{breadcrumb.container}
+  #{breadcrumb.item @list()}&{'FileProtectionPolicies.list.title'}#{/breadcrumb.item}
+  #{breadcrumb.item active:true}#{get 'title'/}#{/breadcrumb.item}
+#{/breadcrumb.container}
 
 <div class="container">
 #{Form.header titleKey:titleKey /}
@@ -24,9 +31,13 @@
   #{/field}
   
 
-  
-  #{field 'schedulePolicy.policyType'}
-    #{Form.selectOneControlGroup field:field, options:policyTypeOptions, select:schedulePolicy.policyType, cssClass:'span3' /}
+
+  #{field 'schedulePolicy.policyType'} 
+  %{
+  	field.options=policyTypeOptions
+  	field.cssClass = 'span3'
+  	}%
+    #{Form.selectOneControlGroup field:field/}
   #{/field}
   
     #{field 'schedulePolicy.policyName'}
@@ -37,7 +48,7 @@
       }%
       #{Form.inputTextControlGroup field:field /}
     #{/field}
-    
+  
     #{field 'schedulePolicy.snapshotNamePattern'}
       %{
         field.required = true
@@ -52,10 +63,72 @@
       #{field 'schedulePolicy.replicationCopyType'}
        #{Form.selectOneControlGroup field:field, options:replicationCopyTypeOptions, select:schedulePolicy.replicationCopyType, cssClass:'span3' /}
      #{/field}
-      #{field 'schedulePolicy.priority'}
+     #{field 'schedulePolicy.priority'}
        #{Form.selectOneControlGroup field:field, options:policyPriorityOptions, select:schedulePolicy.priority, cssClass:'span3' /}
      #{/field}
+      #{field 'schedulePolicy.numWorkerThreads'}
+         %{
+           field.options = numWorkerThreadsOptions 
+           field.valueProperty = 'key'
+           field.labelProperty = 'value' 
+           field.cssClass = 'span3'
+         }%
+         #{Form.selectOneControlGroup field:field, select:schedulePolicy.numWorkerThreads/}
+      #{/field}
     
+     <!-- - -->
+  
+    #{field 'schedulePolicy.repeat'}
+      %{
+        field.fieldKey = 'schedulePolicy.repeat'
+        
+      }%
+      #{Form.inputTextControlGroup field:field, width:2 /}
+    #{/field}
+    
+     <!-- - -->    
+    <div class="col-xs-1"></div>
+    #{field 'schedulePolicy.frequency'}
+    #{Form.controlGroup field:field, width:4}
+      %{ typeField = field }%
+      #{Form.radio field:typeField, value: "days", label: messages.get("schedulePolicy.daily")/}
+      
+      #{Form.radio field:typeField, value: "weeks", label: messages.get("schedulePolicy.weekly")/}
+      #{field 'schedulePolicy.scheduleDayOfWeek'}
+        %{
+          field.options = daysOfWeek
+          field.valueProperty = 'key'
+          field.labelProperty = 'value'
+        }%
+        <div class="row col-gap-none">
+          <div class="col-xs-4 col-xs-offset-1">
+            <label class="control-label">&{'schedulePolicy.dayOfWeek'}:</label>
+          </div>
+          <div class="col-xs-7"> 
+            #{Form.selectOne field:field, select:schedulePolicy.scheduleDayOfWeek/}
+          </div>
+        </div>
+      #{/field}
+          
+      #{Form.radio field:typeField, value: "months", label: messages.get("schedulePolicy.monthly")/}
+      #{field 'schedulePolicy.scheduleDayOfMonth'}
+        %{
+          field.options = daysOfMonth
+          field.valueProperty = 'key'
+          field.labelProperty = 'value'
+        }%
+        <div class="row col-gap-none">
+          <div class="col-xs-4 col-xs-offset-1">
+            <label class="control-label">&{'schedulePolicy.dayOfMonth'}:</label>
+          </div>
+          <div class="col-xs-7">
+            #{Form.selectOne field:field, select:schedulePolicy.scheduleDayOfMonth/}
+          </div>
+        </div>
+      #{/field}
+    #{/Form.controlGroup}
+  #{/field}
+  
     <!-- - -->
     #{field 'schedulePolicy.scheduleTime'}
     #{Form.controlGroup field:field, width:4}
@@ -84,57 +157,7 @@
     #{/Form.controlGroup}
   #{/field}
     <!--  -->
-
   
-    #{field 'schedulePolicy.repeat'}
-      %{
-        field.fieldKey = 'schedulePolicy.repeat'
-        
-      }%
-      #{Form.inputTextControlGroup field:field, width:2 /}
-    #{/field}
-    
-    
-    #{field 'schedulePolicy.frequency'}
-    #{Form.controlGroup field:field, width:4}
-      %{ typeField = field }%
-      #{Form.radio field:typeField, value: "days", label: messages.get("schedulePolicy.daily")/}
-      
-      #{Form.radio field:typeField, value: "weeks", label: messages.get("schedulePolicy.weekly")/}
-      #{field 'schedulePolicy.scheduleDayOfWeek'}
-        %{
-          field.options = daysOfWeek
-          field.valueProperty = 'key'
-          field.labelProperty = 'value'
-        }%
-        <div class="row col-gap-none">
-          <div class="col-xs-4 col-xs-offset-1">
-            <label class="control-label">&{'schedulePolicy.dayOfWeek'}:</label>
-          </div>
-          <div class="col-xs-7"> 
-            #{Form.selectOne field:field, select:schedulePolicy.scheduleDayOfWeek/}
-          </div>
-        </div>
-      #{/field}
-      
-      #{Form.radio field:typeField, value: "months", label: messages.get("schedulePolicy.monthly")/}
-      #{field 'schedulePolicy.scheduleDayOfMonth'}
-        %{
-          field.options = daysOfMonth
-          field.valueProperty = 'key'
-          field.labelProperty = 'value'
-        }%
-        <div class="row col-gap-none">
-          <div class="col-xs-4 col-xs-offset-1">
-            <label class="control-label">&{'schedulePolicy.dayOfMonth'}:</label>
-          </div>
-          <div class="col-xs-7">
-            #{Form.selectOne field:field, select:schedulePolicy.scheduleDayOfMonth/}
-          </div>
-        </div>
-      #{/field}
-    #{/Form.controlGroup}
-  #{/field}
   
   *{ expire parameters belongs to snapshot policy }*
    #{field 'schedulePolicy.expiration'}
@@ -142,7 +165,7 @@
       %{ typeField = field }%
       #{Form.radio field:typeField, value: "NEVER", label: messages.get("schedulePolicy.expire.never")/}
       <div class="row col-gap-sm">
-      <div class="col-xs-6">
+      <div class="col-xs-5">
          #{Form.radio field:typeField, value: "EXPIRE_TIME", label: messages.get("schedulePolicy.expire.value")/}
       </div>
        <div class="col-xs-2">
@@ -151,7 +174,7 @@
           #{Form.inputText field: field/}
           #{/field}
         </div>
-        <div class="col-xs-4">
+        <div class="col-xs-5">
           #{field 'schedulePolicy.expireType'}
             %{
               field.options = expirationTypeOptions   
@@ -167,6 +190,7 @@
     #{Form.selectOneControlGroup field:field, options:applyPolicyOptions, select:schedulePolicy.appliedAt, cssClass:'span3' /}
   #{/field}  
   *{ tenantOptions is only set if user has access to read tenants and write ACLs }*
+  <div id="aclFields">
   #{if tenantOptions}
     #{collapse 'schedulePolicy.group.accessControl', icon:'user'}
         #{field 'schedulePolicy.enableTenants'}
@@ -174,11 +198,12 @@
         #{/field}
       <div data-source="schedulePolicy_enableTenants" data-show="true">
         #{field 'schedulePolicy.tenants'}
-          #{Form.selectManyControlGroup field:field, options:tenantOptions /}
+          #{Form.selectOneControlGroup field:field, options:tenantOptions, select:schedulePolicy.tenants, cssClass:'span3' /}
         #{/field}
       </div>
     #{/collapse}
-  #{/if}   
+  #{/if}  
+  </div> 
 
   #{Form.saveCancelButtonBar size:'large', cancelHref:@list()/}
 #{/form}
@@ -191,6 +216,7 @@
         // know where it came from so can navigate back;
         // only set the referrerUrl if it has not been set at some earlier point 
         // i.e. in multi-step flows take into account error-handling
+        var editMode = #{get 'editMode'/};
         var referrerUrl = $('input[name="schedulePolicy.referrerUrl"]').val();
 		if(!referrerUrl)
 		  referrerUrl = document.referrer;
@@ -204,6 +230,7 @@
 		
 		
 		$('#schedulePolicy_policyType').on('change', showPolicyPage);
+		$('#schedulePolicy_appliedAt').on('change', showPolicyPage);
 		showPolicyPage();
 		//
         // for edit mode, do not allow "type" change
@@ -219,19 +246,29 @@
     
      function showPolicyPage() {
           var policyType = $('#schedulePolicy_policyType').val();
+          var appliedAt = $('#schedulePolicy_appliedAt').val();
           if(policyType == 'file_snapshot') {
                $('#schedulePolicy_snapshotNamePatternControlGroup').show();
                $('#schedulePolicy_replicationTypeControlGroup').hide();
                $('#schedulePolicy_replicationCopyTypeControlGroup').hide();
                $('#schedulePolicy_priorityControlGroup').hide();
                $('#schedulePolicy_expirationControlGroup').show();
+               $('#schedulePolicy_numWorkerThreadsControlGroup').hide();
           } else if (policyType == 'file_replication') {
           	   $('#schedulePolicy_snapshotNamePatternControlGroup').hide();
                $('#schedulePolicy_replicationTypeControlGroup').show();
                $('#schedulePolicy_replicationCopyTypeControlGroup').show();
                $('#schedulePolicy_priorityControlGroup').show();
                $('#schedulePolicy_expirationControlGroup').hide();
+               $('#schedulePolicy_numWorkerThreadsControlGroup').show();
           }
+          
+           if(appliedAt == 'vpool') {
+               $('#aclFields').hide();
+           } else  {
+               $('#aclFields').show();
+           }
+           
      }
     
    </script>

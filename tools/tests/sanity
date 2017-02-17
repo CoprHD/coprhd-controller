@@ -14,9 +14,9 @@ CONFIG_FILE=${1}
 
 Usage()
 {
-    echo 'Usage: sanity <configuration_file> <bourne_ip>|<[bourne_ipv6]> {all | snapvx | isilon | vplex [normal|quick|xio|vnx] [noingest|ingest [all|exported|unexported]] | vplexexport | vplexsnap | custvolname | vnxblock | ingestblock | vnxblock_flex_varray | netapp | netappc | recoverpoint | xtremio | srdf |
+    echo 'Usage: sanity <configuration_file> <bourne_ip>|<[bourne_ipv6]> {all | snapvx | isilon | vplex [normal|quick|xio|vnx] [noingest|ingest [all|exported|unexported]] | vplexexport | vplexsnap | custvolname | vnxblock | ingestblock | vnxblock_flex_varray | netapp | netappc | recoverpoint | xtremio [quick|hlu|quick hlu] | srdf |
  vnxfile | datadomainfile | vmaxblock | hds | vmaxblock_flex_varray | combined_block | blocksnapshot | blockmirror | full_copy | blockconsistencygroup | init | quick | sbsdk |
- errorhandling | vnxe | security | syssvc | audit | monitor | vdc | catalog | recovery | backuprestore backupserver-uri username password | dr | ipsec | ceph} [local|ldap] [<timeslot>] | sanzoning | application | unityblock | unityfile | arrayaffinity'
+ errorhandling | vnxe | security | syssvc | audit | monitor | vdc | catalog | recovery | backuprestore backupserver-uri username password | dr | ipsec | ceph} [local|ldap] [<timeslot>] | sanzoning | application | unityblock [all|block|vplex|rp|hlu] | unityfile | arrayaffinity'
     echo 'E.g.:  sanity conf/sanity.conf 137.69.169.21 all'
     echo 'E.g.:  sanity ~/.sanity/sanity.conf 137.69.169.21 isilon'
     echo 'Note: IPv6 needs to be square bracket surrounded. E.g.:  sanity [2620:0:170:2842::180] security'
@@ -121,6 +121,14 @@ elif [ ${SS} = "sbsdk" ]; then
     EXTRA_PARAM=${6}
 elif [ ${SS} = "xtremio" ]; then
     XIO_QUICK_PARAM=${4:-'quick'}
+    if [ "$XIO_QUICK_PARAM" != "quick" ] && [ "$XIO_QUICK_PARAM" = "hlu" ]; then
+        XIO_HLU_PARAM=1
+    elif [ ${XIO_QUICK_PARAM} = "quick" ]; then
+        if [ ${5} = "hlu" ]; then
+            XIO_HLU_PARAM=1
+            shift
+        fi
+    fi
     AUTH=${5:-ldap}
     EXTRA_PARAM=${6}
 elif [ ${SS} = "snapvx" ]; then
@@ -599,6 +607,39 @@ srdf_generate_rdfg_name() {
 SRDF_SLEEPING_SECONDS=180
 srdf_sleep() {
     ssleep ${SRDF_SLEEPING_SECONDS}
+}
+
+setup_yaml() {
+    storage_type=$1
+    tools_file="${BASEDIR}/export-tests/tools.yml"
+    if [ -f "$tools_file" ]; then
+	echo "Stale $tools_file found. Deleting it."
+	rm $tools_file
+    fi
+
+    echo "Creating ${tools_file}"
+    touch $tools_file
+
+    if [ "$storage_type" = "unity" ]; then
+        printf 'array:\n  %s:\n  - ip: %s:%s\n    username: %s\n    password: %s' "$storage_type" "$UNITY_IP" "$UNITY_PORT" "$UNITY_USER" "$UNITY_PW" >> $tools_file
+        return
+    fi
+
+    storage_sn=$2
+    storage_password=$3
+    if [ "${storage_password}" = "" ]; then
+	echo "storage_password is not set. Cannot make a valid tools.yml file without a storage_password"
+	exit;
+    fi
+
+    storage_id=`storagedevice list | grep COMPLETE | grep ${storage_sn} | awk '{print $5}'`
+    storage_version=`storagedevice show ${storage_id} | grep firmware_version | awk '{print $2}' | cut -d '"' -f2`
+    storage_ip=`storagedevice show ${storage_id} | grep smis_provider_ip | awk '{print $2}' | cut -d '"' -f2`
+    storage_port=`storagedevice show ${storage_id} | grep port_number | awk '{print $2}' | cut -d ',' -f1`
+    storage_user=`storagedevice show ${storage_id} | grep user_name | awk '{print $2}' | cut -d '"' -f2`
+
+    # create the yml file to be used for array tooling
+    printf 'array:\n  %s:\n  - ip: %s:%s\n    id: %s\n    username: %s\n    password: %s\n    version: %s' "$storage_type" "$storage_ip" "$storage_port" "$storage_sn" "$storage_user" "$storage_password" "$storage_version" >> $tools_file
 }
 
 #
@@ -1231,10 +1272,10 @@ xtremio_port_setup()
 
 xtremio_storage_setup() {
     secho "Starting XtremIO 3.x storageprovider create"
-    storageprovider create xtremio3x $XTREMIO_3X_IP 443 $XTREMIO_3X_USER $XTREMIO_3X_PASSWD xtremio 
+    run storageprovider create xtremio3x $XTREMIO_3X_IP 443 $XTREMIO_3X_USER $XTREMIO_3X_PASSWD xtremio
 
     secho "Starting XtremIO 4.x storageprovider create"
-    storageprovider create xtremio4x $XTREMIO_4X_IP 443 $XTREMIO_4X_USER $XTREMIO_4X_PASSWD xtremio
+    run storageprovider create xtremio4x $XTREMIO_4X_IP 443 $XTREMIO_4X_USER $XTREMIO_4X_PASSWD xtremio
 
     secho 'XtremIO discover storage systems'
     storagedevice discover_all
@@ -1245,7 +1286,7 @@ xtremio_network_setup()
 {
     secho "XtremIO network setup"
     networksystem show $BROCADE_NETWORK &> /dev/null && return $?
-    networksystem create $BROCADE_NETWORK brocade --smisip $BROCADE_IP --smisport 5988 --smisuser $BROCADE_USER --smispw $BROCADE_PW --smisssl false
+    run networksystem create $BROCADE_NETWORK brocade --smisip $BROCADE_IP --smisport 5988 --smisuser $BROCADE_USER --smispw $BROCADE_PW --smisssl false
     run transportzone assign ${SRDF_VMAXA_VSAN} $NH
 }
 
@@ -1519,14 +1560,13 @@ xtremio_ingest_export_test()
 
     # Real removal of volume/CG
     run_noundo export_group update ${PROJECT}/${XTREMIO_INGEST_HOST} --remVols "${PROJECT}/${XIO_INGEST_VOL1}/${XIO_INGEST_SNAP1_ARRAY_LABEL},${PROJECT}/${XIO_INGEST_VOL2}/${XIO_INGEST_SNAP2_ARRAY_LABEL}"
+    # Export group will be deleted implicitly when all its volumes get removed, no further cleanup needed for the export group afterwards
     run_noundo export_group update ${PROJECT}/${XTREMIO_INGEST_HOST} --remVols "${PROJECT}/${XIO_INGEST_VOL1},${PROJECT}/${XIO_INGEST_VOL2}"
     run_noundo blocksnapshot delete ${PROJECT}/${XIO_INGEST_VOL1}/${XIO_INGEST_SNAP1_ARRAY_LABEL}
     run_noundo volume delete ${PROJECT}/"${XIO_INGEST_VOL1}" --wait
 
     run_noundo blocksnapshot delete ${PROJECT}/${XIO_INGEST_VOL2}/${XIO_INGEST_SNAP2_ARRAY_LABEL}
     run_noundo volume delete ${PROJECT}/"${XIO_INGEST_VOL2}" --wait
-    run_noundo export_group delete ${PROJECT}/${XTREMIO_INGEST_HOST}
-
 }
 
 
@@ -1536,13 +1576,13 @@ xtremio_simulator_setup()
     xtremio_varray_setup   
     
     run syssvc $CONFIG_FILE $BOURNE_IPADDR set_prop controller_discovery_refresh_interval 5
- 
-    storageprovider create xtremio3x $XIO_SIMULATOR_IP 4430 root root xtremio 
-    storageprovider create xtremio4x $XIO_SIMULATOR_IP 4431 root root xtremio
+
+    run storageprovider create xtremio3x $XIO_SIMULATOR_IP $XIO_3X_SIMULATOR_PORT root root xtremio
+    run storageprovider create xtremio4x $XIO_SIMULATOR_IP $XIO_4X_SIMULATOR_PORT root root xtremio
     run networksystem create $FABRIC_SIMULATOR  mds --devip $SIMULATOR_CISCO_MDS --devport 22 --username $RP_FABRIC_SIM_USER --password $RP_FABRIC_SIM_PW
     
     storagedevice discover_all
-    storagedevice list    
+    storagedevice list
     run transportzone assign VSAN_11 ${NH}
 
     # Make sure all of the pools are updated and matched
@@ -1550,7 +1590,6 @@ xtremio_simulator_setup()
 
     run storagepool update $XIO_3X_SIM_NATIVEGUID --nhadd $NH --type block
     run storagepool update $XIO_4X_SIM_NATIVEGUID --nhadd $NH --type block
-
     
     run storageport update $XIO_3X_SIM_NATIVEGUID FC --addvarrays $NH
     run storageport update $XIO_4X_SIM_NATIVEGUID FC --addvarrays $NH
@@ -1615,26 +1654,41 @@ xtremio_setup()
         secho "XtremIO setup"
         xtremio_common_setup
     fi
-    
 }
 
 xtremio_tests()
 {
    echo 'xtremio tests invoked'
+
+   # HLU specific tests
+   if [ "$XIO_HLU_PARAM" = "1" ]; then
+       secho "Creating tools.yml"
+
+       storage_sn=$XTREMIO_4X_SN
+       storage_password=$XTREMIO_4X_PASSWD
+       if [ "$XIO_QUICK_PARAM" = "quick" ]; then
+           storage_sn=$XIO_4X_SIM_SN
+       fi
+
+       setup_yaml xtremio $storage_sn $storage_password
+
+       xtremio_export_test_hlu
+       return
+   fi
+
    if [ "$XIO_BLOCK_TESTS" = "1" ]; then
        xtremio_block_tests
        xtremio_blockconsistency_tests
    fi
+
    # Ingest specific tests
    if [ "$XIO_INGESTTESTS" = "1" ]; then
         secho "XIO ingest volumes"
         xtremio_ingest_test
-        secho "XIO ingest tests complete"
 
         secho "XIO ingest exported volumes"
         xtremio_ingest_export_test
         secho "XIO ingest tests complete"
-
    fi
 }
 
@@ -1716,33 +1770,21 @@ xtremio_block_tests()
     cos2=$XTREMIO_4X_COS_FC
     snap1_label=snap1-${HOSTNAME}-${RANDOM}
     snap2_label=snap2-${HOSTNAME}-${RANDOM}
-    snap3_label=snap3-${HOSTNAME}-${RANDOM}
             
     run volume create ${volume}1 $PROJECT $NH $cos2 $BLK_SIZE --thinVolume true
     run volume create ${volume}2 $PROJECT $NH $cos2 $BLK_SIZE --thinVolume true
-    run volume create ${volume}3 $PROJECT $NH $cos2 $BLK_SIZE --thinVolume true
-    run volume create ${volume}4 $PROJECT $NH $cos2 $BLK_SIZE --thinVolume true
-    run volume create ${volume}5 $PROJECT $NH $cos2 $BLK_SIZE --thinVolume true
     run blocksnapshot create $PROJECT/${volume}1 ${snap1_label}
     run blocksnapshot create $PROJECT/${volume}2 ${snap2_label}
-    run blocksnapshot create $PROJECT/${volume}3 ${snap3_label}
     
     xtremio_export_test ${export_name}1 ${volume}1 ${volume}2 ${snap1_label} ${snap2_label}
-    xtremio_export_test_hlu ${snap1_label} ${snap2_label} ${snap3_label}
 
     run blocksnapshot restore $snap2
     run volume bulkget
 
     run blocksnapshot delete $PROJECT/${volume}1/${snap1_label}
     run blocksnapshot delete $PROJECT/${volume}2/${snap2_label}
-    run blocksnapshot delete $PROJECT/${volume}3/${snap3_label}
     run volume delete $PROJECT/${volume}1 --wait
     run volume delete $PROJECT/${volume}2 --wait
-    run volume delete $PROJECT/${volume}3 --wait
-    run volume delete $PROJECT/${volume}4 --wait
-    run volume delete $PROJECT/${volume}5 --wait
-    echo There were $VERIFY_EXPORT_COUNT export verifications
-    echo There were $VERIFY_EXPORT_FAIL_COUNT export verification failures
 }
 
 xtremio_export_test()
@@ -1775,22 +1817,47 @@ xtremio_export_test()
     run export_group update $exp --addVolspec "$vol2" --remVols $vol1
     run export_group show $exp
     run export_group update $exp --remInits "$hostname/$pwwn1"
-    run export_group show $exp
-    run export_group update $exp --remVols $vol2,$snap1,$snap2
-    run export_group show $exp
 
     if [ "$BOURNE_SECURITY_DISABLED" != '1' ] ; then
         run bulkapi exportgroups $LOCAL_LDAP_SUPERUSER_USERNAME $LOCAL_LDAP_SUPERUSER_PASSWORD $LOCAL_LDAP_USER_PASSWORD_1
     fi
-
-    run export_group delete $exp
 }
 
 xtremio_export_test_hlu() {
-	xtremio_export_test_hlu1
-	xtremio_export_test_hlu2
-	xtremio_export_test_hlu_snapshot_1 $1 $2 $3
-	xtremio_export_test_hlu_snapshot_2 $1 $2 $3
+    echo "XtremIO export consistent HLU tests START"
+    cos1=$XTREMIO_3X_COS_FC
+    volume=${XTREMIOVOL}
+    cos2=$XTREMIO_4X_COS_FC
+    snap1_label=snap1-${HOSTNAME}-${RANDOM}
+    snap2_label=snap2-${HOSTNAME}-${RANDOM}
+    snap3_label=snap3-${HOSTNAME}-${RANDOM}
+
+    run volume create ${volume}1 $PROJECT $NH $cos2 $BLK_SIZE --thinVolume true
+    run volume create ${volume}2 $PROJECT $NH $cos2 $BLK_SIZE --thinVolume true
+    run volume create ${volume}3 $PROJECT $NH $cos2 $BLK_SIZE --thinVolume true
+    run volume create ${volume}4 $PROJECT $NH $cos2 $BLK_SIZE --thinVolume true
+    run volume create ${volume}5 $PROJECT $NH $cos2 $BLK_SIZE --thinVolume true
+    run blocksnapshot create $PROJECT/${volume}1 ${snap1_label}
+    run blocksnapshot create $PROJECT/${volume}2 ${snap2_label}
+    run blocksnapshot create $PROJECT/${volume}3 ${snap3_label}
+
+    xtremio_export_test_hlu1
+    xtremio_export_test_hlu2
+    xtremio_export_test_hlu_snapshot_1 ${snap1_label} ${snap2_label} ${snap3_label}
+    xtremio_export_test_hlu_snapshot_2 ${snap1_label} ${snap2_label} ${snap3_label}
+
+    run blocksnapshot delete $PROJECT/${volume}1/${snap1_label}
+    run blocksnapshot delete $PROJECT/${volume}2/${snap2_label}
+    run blocksnapshot delete $PROJECT/${volume}3/${snap3_label}
+    run volume delete $PROJECT/${volume}1 --wait
+    run volume delete $PROJECT/${volume}2 --wait
+    run volume delete $PROJECT/${volume}3 --wait
+    run volume delete $PROJECT/${volume}4 --wait
+    run volume delete $PROJECT/${volume}5 --wait
+
+    echo There were $VERIFY_EXPORT_COUNT export verifications
+    echo There were $VERIFY_EXPORT_FAIL_COUNT export verification failures
+    echo "XtremIO export consistent HLU tests END"
 }
 
 #Consistent Cluster HLU
@@ -1806,12 +1873,13 @@ xtremio_export_test_hlu() {
 # Step-9: Add HOST2 to CLUSTER. Result: All shared volumes of cluster to be exported to this new host with the HLU for those volumes same as that of cluster's view
 xtremio_export_test_hlu1()
 {
-    expname=${XTREMIOEXPORT_GROUP}
-	HOST1=$hostbase${tenant}21
-	HOST2=$hostbase${tenant}22
+	HOST1=$hostbase${tenant}11
+	HOST2=$hostbase${tenant}12
+	expname=${XTREMIOEXPORT_GROUP}
 	volname=${XTREMIOVOL}
-	
+	cluster=sanityCluster1
 	echo "XTREMIO Consistent HLU Test 1"
+
 	run export_group create $proj ${expname}1 $NH --type Cluster --volspec "${proj}/${volname}"1 --cluster ${tenant}/${cluster}
 	verify_export ${HOST1} 4 1 1
 	verify_export ${HOST2} 4 1 1
@@ -1872,11 +1940,11 @@ xtremio_export_test_hlu1()
 # Step-9: Add HOST2 to CLUSTER. Result: All shared volumes of cluster to be exported to this new host with the HLU for those volumes same as that of cluster's view
 xtremio_export_test_hlu2()
 {
-	HOST1=$hostbase${tenant}11
-	HOST2=$hostbase${tenant}12
+	HOST1=$hostbase${tenant}21
+	HOST2=$hostbase${tenant}22
 	expname=${XTREMIOEXPORT_GROUP}
 	volname=${XTREMIOVOL}
-	cluster=sanityCluster1
+	cluster=sanityCluster2
 	echo "XTREMIO Consistent HLU Test 2"
 	
 	run export_group create $proj ${expname}1 $NH --type Host --volspec "${proj}/${volname}"1 --hosts "${HOST1}"
@@ -1926,6 +1994,7 @@ xtremio_export_test_hlu_snapshot_1() {
 	snap3=$proj/${volname}3/$3
 	HOST1=$hostbase${tenant}11
 	HOST2=$hostbase${tenant}12
+	cluster=sanityCluster1
 	expname=${XTREMIOEXPORT_GROUP}Snap
 	echo "XTREMIO Consistent HLU Snapshot Test 1"
 	
@@ -2875,6 +2944,7 @@ vplex_sim_variable_setup()
 
 vplex_setup_once()
 {
+    run syssvc $CONFIG_FILE $BOURNE_IPADDR set_prop controller_vplex_director_min_port_count 1
     if [ "$AUTH" == 'ipv6' ] ; then
         echo "Setting up VPLEX environment for IPv6"
         # Discover the storage systems 
@@ -4590,18 +4660,6 @@ recoverpoint_export_bookmark_tests()
         run export_group delete ${rpexport}
     
         secho 'Finished running export RP bookmark failure tests'
-
-        secho 'Running export RP bookmark tests'
-        for tgt_varray in ${rp_tgt_varrays}
-        do
-            secho 'Running RP bookmark export tests for target copy '${tgt_varray}
-            run export_group create $PROJECT ${RP_EXPORT_GROUP}-${tgt_varray} ${tgt_varray} --type Host --volspec ${PROJECT}/${volume}${volume_name_modifier}/${rpsnap}-${tgt_varray} --hosts "${RP_HOSTNAME}1"
-            export_group show ${rpexport}-${tgt_varray}
-            run export_group update ${rpexport}-${tgt_varray} --remVol ${PROJECT}/${volume}${volume_name_modifier}/${rpsnap}-${tgt_varray}
-            run export_group update ${rpexport}-${tgt_varray} --addVolspec ${PROJECT}/${volume}${volume_name_modifier}/${rpsnap}-${tgt_varray}
-            export_group show ${rpexport}-${tgt_varray}
-            run export_group delete ${rpexport}-${tgt_varray}
-        done
 
         secho 'Exporting RP bookmark to 2 different hosts'
         run export_group create $PROJECT ${RP_EXPORT_GROUP} ${rp_tgt_varrays[0]} --type Host --volspec ${PROJECT}/${volume}${volume_name_modifier}/${rpsnap}-${rp_tgt_varrays[0]} --hosts "${RP_HOSTNAME}1"
@@ -7443,7 +7501,7 @@ common_setup()
 
         # RecoverPoint doesn't need zone setup, it uses its own zone setup
         if [ "${SS}" != "recoverpoint" -a "${SS}" != "srdf" ]; then
-          secho "Skipping zone setup"
+          secho "Run zone setup"
           zone_setup
           run transportzone add $NH/$IP_ZONE $BLK_CLIENT_iSCSI
         fi
@@ -8761,13 +8819,12 @@ export_initiator()
     run export_group update $exp --remInits "$hostname/$pwwn1"
     run export_group show $exp
     run export_group update $exp --remVols $vol2,$snap1
-    run export_group show $exp
+    # export group will be deleted by clean up process in ExportUpdateCompleter
 
     if [ "$BOURNE_SECURITY_DISABLED" != '1' ] ; then
         run bulkapi exportgroups $LOCAL_LDAP_SUPERUSER_USERNAME $LOCAL_LDAP_SUPERUSER_PASSWORD $LOCAL_LDAP_USER_PASSWORD_1
     fi
 
-    run export_group delete $exp
     run blocksnapshot delete $snap1
     # TODO Only for vmax3
     if ! [ ${SS} = "vnxblock" -o ${SS} = "vnxblock_flex_varray" ]; then
@@ -8857,13 +8914,11 @@ export_host()
     run export_group update $exp --remInits "$hostname2/$pwwn21,$hostname2/$pwwn23"
     run export_group show $exp
     run export_group update $exp --remVols $vol2
-    run export_group show $exp
+    # export group will be deleted by clean up process in ExportUpdateCompleter
 
     if [ "$BOURNE_SECURITY_DISABLED" != '1' ] ; then
         run bulkapi exportgroups $LOCAL_LDAP_SUPERUSER_USERNAME $LOCAL_LDAP_SUPERUSER_PASSWORD $LOCAL_LDAP_USER_PASSWORD_1
     fi
-
-    run export_group delete $exp
 }
 
 # =======================================================================================
@@ -12292,6 +12347,7 @@ application_copy_tests()
     if [ $APPLICATION_SNAPSHOT_SUPPORTED -eq 1 -a $APPLICATION_TEST_SNAPSHOTS -eq 1 ]; then
         APPLICATION_RESYNC_COPY_SUPPORTED=$APPLICATION_RESYNC_SNAP_SUPPORTED
         APPLICATION_DETACH_COPY_SUPPORTED=0
+        APPLICATION_EXPOSE_COPY_SUPPORTED=$APPLICATION_EXPOSE_SNAP_SUPPORTED
         APPLICATION_LINK_COPY_SUPPORTED=$APPLICATION_LINK_SNAP_SUPPORTED
         application_full_copy_tests $APPLICATION_SNAP_TYPE
     fi
@@ -12355,6 +12411,13 @@ application_full_copy_tests()
     # resync (no way to verify)
     if [[ $APPLICATION_RESYNC_COPY_SUPPORTED -eq 1 ]]; then
        run volumegroup resync-copy $copy_type $VG_COPYVG1 $VG_FCNAME
+    fi
+
+    # expose 
+    if [[ $APPLICATION_EXPOSE_COPY_SUPPORTED -eq 1 ]]; then
+       run volumegroup expose-copy $copy_type $VG_COPYVG1 $VG_FCNAME
+       VG_EXPOSEVOLS=`volume list ${PROJECT} | grep ${VG_FCNAME} | awk '{print $7}' | paste -s -d ,`
+       volume delete $VG_EXPOSEVOLS --wait
     fi
 
     # run restore (no way to verify)
@@ -12493,6 +12556,7 @@ application_tests()
         APPLICATION_SNAPSHOT_SUPPORTED=1
         APPLICATION_RESYNC_SNAP_SUPPORTED=1
         APPLICATION_LINK_SNAP_SUPPORTED=0
+        APPLICATION_EXPOSE_SNAP_SUPPORTED=0
         APPLICATION_SNAP_TYPE='snapshot'
         if [ $APPLICATION_TEST_BLOCK -eq 1 ]; then
             secho "running block vmax2 tests"
@@ -12518,6 +12582,7 @@ application_tests()
             VG_VARRAY_CG=$APP_VARRAY1
             APP_RUNNING_BLOCK_TEST=0
             APPLICATION_CREATE_INACTIVE_SUPPORTED=0
+            APPLICATION_EXPOSE_SNAP_SUPPORTED=1
 
             app_test_subgroup1a="${VG_CGNAME1}a"
             app_test_subgroup1b="${VG_CGNAME1}b"
@@ -12621,6 +12686,7 @@ application_tests()
         APPLICATION_SNAPSHOT_SUPPORTED=1
         APPLICATION_RESYNC_SNAP_SUPPORTED=0
         APPLICATION_LINK_SNAP_SUPPORTED=1
+        APPLICATION_EXPOSE_SNAP_SUPPORTED=0
         APPLICATION_CREATE_INACTIVE_SUPPORTED=0
         APPLICATION_SNAP_TYPE='snapshotsession'
         if [ $APPLICATION_TEST_BLOCK -eq 1 ]; then
@@ -13229,14 +13295,14 @@ unityfile_cos_setup()
 unityblock_setup()
 {
     secho "Starting unity storage system create"
-    discoveredsystem create $UNITY_DEV unity $UNITY_IP $UNITY_PORT $UNITY_USER $UNITY_PW --serialno=$UNITY_SN
-    storagedevice list
+    run discoveredsystem create $UNITY_DEV unity $UNITY_IP $UNITY_PORT $UNITY_USER $UNITY_PW --serialno=$UNITY_SN
+    run storagedevice list
 
     secho "Setup ACLs on neighborhood for $TENANT"
     run neighborhood allow $NH $TENANT
-    run neighborhood allow $NH $TENANT
+
     run transportzone assign ${SRDF_VMAXA_VSAN} $NH
-    storagepool update $UNITY_NATIVEGUID --type block --volume_type THIN_AND_THICK
+    run storagepool update $UNITY_NATIVEGUID --type block --volume_type THIN_AND_THICK
     run transportzone add ${SRDF_VMAXA_VSAN} $UNITY_INIT_PWWN1
     run transportzone add ${SRDF_VMAXA_VSAN} $UNITY_INIT_PWWN2
     unityblock_cos_setup
@@ -13270,6 +13336,13 @@ unityblock_tests()
     if [ "${UNITY_OPTION}" = "all" -o "${UNITY_OPTION}" = "rp" ]; then
         rpunity_tests
     fi
+
+    if [ "${UNITY_OPTION}" = "hlu" ]; then
+        secho "Creating tools.yml"
+        setup_yaml unity
+
+        unityblock_export_consistent_hlu_tests
+    fi
 }
 
 unityblock_base_tests()
@@ -13302,8 +13375,6 @@ unityblock_base_tests()
     run volume delete $PROJECT/$vol1 --wait
     run hosts delete $hostLbl
 
-    unityblock_export_consistent_hlu_test
-
     echo "unity consistency group tests"
 	    
     run blockconsistencygroup create $PROJECT $consistency_group
@@ -13316,9 +13387,6 @@ unityblock_base_tests()
     run volume delete $PROJECT/$vol2 --wait
     run blockconsistencygroup delete $consistency_group
     echo "**** Done unity block"
-
-    echo There were $VERIFY_EXPORT_COUNT export verifications
-    echo There were $VERIFY_EXPORT_FAIL_COUNT export verification failures
 }
 
 unity_verify_export() {
@@ -13338,15 +13406,18 @@ unity_verify_export() {
     VERIFY_EXPORT_COUNT=`expr $VERIFY_EXPORT_COUNT + 1`
 }
 
-unityblock_export_consistent_hlu_test()
+unityblock_export_consistent_hlu_tests()
 {
-    echo "unity export consistent HLU tests START"
+    echo "unity block export consistent HLU tests START"
     unityblock_export_consistent_hlu_test1
     unityblock_export_consistent_hlu_test2
 
     unityblock_export_consistent_hlu_snap_test1
     unityblock_export_consistent_hlu_snap_test2
-    echo "unity export consistent HLU tests END"
+
+    echo There were $VERIFY_EXPORT_COUNT export verifications
+    echo There were $VERIFY_EXPORT_FAIL_COUNT export verification failures
+    echo "unity block export consistent HLU tests END"
 }
 
 #Consistent Cluster HLU
@@ -13423,8 +13494,8 @@ unityblock_export_consistent_hlu_test1()
     unity_verify_export ${HOST2} 2 3 1,2,3
 
     run export_group delete $PROJECT/${expname}1
-    unity_verify_export ${HOST1} 2 0
-    unity_verify_export ${HOST2} 2 0
+    unity_verify_export ${HOST1} gone
+    unity_verify_export ${HOST2} gone
 
     run volume delete $PROJECT/${volname}-1 --wait
     run volume delete $PROJECT/${volname}-2 --wait
@@ -13509,8 +13580,8 @@ unityblock_export_consistent_hlu_test2()
     unity_verify_export ${HOST2} 2 2 1,2
 
     run export_group delete $PROJECT/${expname}2
-    unity_verify_export ${HOST1} 2 0
-    unity_verify_export ${HOST2} 2 0
+    unity_verify_export ${HOST1} gone
+    unity_verify_export ${HOST2} gone
 
     run volume delete $PROJECT/${volname}-1 --wait
     run volume delete $PROJECT/${volname}-2 --wait
@@ -13599,8 +13670,8 @@ unityblock_export_consistent_hlu_snap_test1()
     unity_verify_export ${HOST2} 2 3 1,2,3
 
     run export_group delete $PROJECT/${expname}1
-    unity_verify_export ${HOST1} 2 0
-    unity_verify_export ${HOST2} 2 0
+    unity_verify_export ${HOST1} gone
+    unity_verify_export ${HOST2} gone
 
     run blocksnapshot delete $PROJECT/${volname}-1/${snapname}-1
     run blocksnapshot delete $PROJECT/${volname}-2/${snapname}-2
@@ -13696,8 +13767,8 @@ unityblock_export_consistent_hlu_snap_test2()
     unity_verify_export ${HOST2} 2 2 1,2
 
     run export_group delete $PROJECT/${expname}2
-    unity_verify_export ${HOST1} 2 0
-    unity_verify_export ${HOST2} 2 0
+    unity_verify_export ${HOST1} gone
+    unity_verify_export ${HOST2} gone
 
     run blocksnapshot delete $PROJECT/${volname}-1/${snapname}-1
     run blocksnapshot delete $PROJECT/${volname}-2/${snapname}-2

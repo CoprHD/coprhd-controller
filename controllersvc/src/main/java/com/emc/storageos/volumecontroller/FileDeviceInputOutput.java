@@ -30,6 +30,7 @@ import com.emc.storageos.model.file.FileExportUpdateParams;
 import com.emc.storageos.model.file.NfsACE;
 import com.emc.storageos.model.file.NfsACLUpdateParams;
 import com.emc.storageos.model.file.ShareACL;
+import com.emc.storageos.model.file.policy.FilePolicyUpdateParam;
 
 /**
  * Class defining input/output from File storage device interface
@@ -91,6 +92,7 @@ public class FileDeviceInputOutput {
     // New Addition for File Policy Work
     private FilePolicy fileProtectionPolicy;
     private PolicyStorageResource policyStorageResource;
+    private FilePolicyUpdateParam fileProtectionPolicyUpdateParam;
 
     public String getFileSystemPath() {
         return fileSystemPath;
@@ -924,6 +926,10 @@ public class FileDeviceInputOutput {
         return stripSpecialCharacters(tenantOrg.getLabel());
     }
 
+    public String getVNASNameWithNoSpecialCharacters() {
+        return stripSpecialCharacters(vNAS.getNasName());
+    }
+
     private String stripSpecialCharacters(String label) {
         return label.replaceAll("[^\\dA-Za-z ]", "").replaceAll("\\s+", "_");
     }
@@ -1031,6 +1037,10 @@ public class FileDeviceInputOutput {
         return existingShareAcls;
     }
 
+    public void setShareAclsToAdd(List<ShareACL> shareAclsToAdd) {
+        this.shareAclsToAdd = shareAclsToAdd;
+    }
+
     public void setExistingShareAcls(List<ShareACL> existingShareAcls) {
         this.existingShareAcls = existingShareAcls;
     }
@@ -1058,6 +1068,14 @@ public class FileDeviceInputOutput {
 
     public void setFileProtectionPolicy(FilePolicy fileProtectionPolicy) {
         this.fileProtectionPolicy = fileProtectionPolicy;
+    }
+
+    public FilePolicyUpdateParam getFileProtectionPolicyUpdateParam() {
+        return fileProtectionPolicyUpdateParam;
+    }
+
+    public void setFileProtectionPolicyUpdateParam(FilePolicyUpdateParam fileProtectionPolicyUpdateParam) {
+        this.fileProtectionPolicyUpdateParam = fileProtectionPolicyUpdateParam;
     }
 
 }

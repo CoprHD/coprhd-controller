@@ -712,7 +712,7 @@ public class VNXeUnManagedObjectDiscoverer {
 
         unManagedVolume.setLabel(lun.getName());
 
-        Map<String, StringSet> unManagedVolumeInformation = new HashMap<String, StringSet>();
+        StringSetMap unManagedVolumeInformation = new StringSetMap();
         Map<String, String> unManagedVolumeCharacteristics = new HashMap<String, String>();
 
         Boolean isVolumeExported = false;
@@ -785,7 +785,7 @@ public class VNXeUnManagedObjectDiscoverer {
 
         }
 
-        unManagedVolume.addVolumeInformation(unManagedVolumeInformation);
+        unManagedVolume.setVolumeInformation(unManagedVolumeInformation);
 
         if (unManagedVolume.getVolumeCharacterstics() == null) {
             unManagedVolume.setVolumeCharacterstics(new StringMap());

@@ -47,6 +47,7 @@ import com.emc.storageos.db.client.model.StorageProvider.ConnectionStatus;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.StringSet;
+import com.emc.storageos.db.client.model.StringSetMap;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedExportMask;
@@ -196,9 +197,6 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
             scanManagedSystems(client, mgmntServer, scanCache);
             s_logger.info("Storage System scanCache after scanning:" + scanCache);
 
-            // clear cached discovery data in the VPlexApiClient
-            client.clearCaches();
-
             scanStatusMessage = String.format("Scan job completed successfully for " +
                     "VPLEX management server: %s", mgmntServerURI.toString());
         } catch (Exception e) {
@@ -210,7 +208,7 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
             if (mgmntServer != null) {
                 try {
                     mgmntServer.setLastScanStatusMessage(scanStatusMessage);
-                    _dbClient.persistObject(mgmntServer);
+                    _dbClient.updateObject(mgmntServer);
                 } catch (Exception e) {
                     s_logger.error("Error persisting scan status message for management server {}",
                             mgmntServerURI.toString(), e);
@@ -237,7 +235,7 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
             throw e;
         } finally {
             try {
-                _dbClient.persistObject(mgmntServer);
+                _dbClient.updateObject(mgmntServer);
             } catch (Exception e) {
                 s_logger.error("Error persisting connection status for management server {}",
                         mgmntServer.getId(), e);
@@ -328,15 +326,15 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
                             s_logger.info("-- Setting compatibility status on Storage Port {} to {}",
                                     port.getLabel(), status.toString());
                             port.setCompatibilityStatus(status.name());
-                            _dbClient.persistObject(port);
+                            _dbClient.updateObject(port);
                         }
                     }
 
-                    _dbClient.persistObject(storageSystem);
+                    _dbClient.updateObject(storageSystem);
                 }
             }
         }
-        _dbClient.persistObject(provider);
+        _dbClient.updateObject(provider);
 
     }
 
@@ -929,7 +927,7 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
             if (null != vplex) {
                 try {
                     vplex.setLastDiscoveryStatusMessage(statusMessage);
-                    _dbClient.persistObject(vplex);
+                    _dbClient.updateObject(vplex);
                 } catch (Exception ex) {
                     s_logger.error("Error while saving VPLEX discovery status message: {} - Exception: {}",
                             statusMessage, ex.getLocalizedMessage());
@@ -1113,7 +1111,7 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
         volume.getInitiatorNetworkIds().clear();
 
         // set volume characteristics and volume information
-        Map<String, StringSet> unManagedVolumeInformation = new HashMap<String, StringSet>();
+        StringSetMap unManagedVolumeInformation = new StringSetMap();
         StringMap unManagedVolumeCharacteristics = new StringMap();
 
         // Set up default MAXIMUM_IO_BANDWIDTH and MAXIMUM_IOPS
@@ -1243,7 +1241,7 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
 
         // add this info to the unmanaged volume object
         volume.setVolumeCharacterstics(unManagedVolumeCharacteristics);
-        volume.addVolumeInformation(unManagedVolumeInformation);
+        volume.setVolumeInformation(unManagedVolumeInformation);
 
         // discover backend volume data
         String discoveryMode = ControllerUtils.getPropertyValueFromCoordinator(
@@ -1359,9 +1357,9 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
             s_logger.info("Replaced Pools : {}", volume.getSupportedVpoolUris());
         }
 
-        Set<VPlexStorageViewInfo> svs = volumeToStorageViewMap.get(volume.getLabel());
+        Set<VPlexStorageViewInfo> svs = volumeToStorageViewMap.get(info.getName());
         if (svs != null) {
-            updateWwnAndHluInfo(volume, svs);
+            updateWwnAndHluInfo(volume, info.getName(), svs);
         }
     }
 
@@ -1369,9 +1367,10 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
      * For a given UnManagedVolume, determine the wwn from the storage views it is in.
      *
      * @param unManagedVolume the UnManagedVolume to check
+     * @param volumeName the original name of the Virtual Volume
      * @param storageViews the VPlexStorageViewInfo set the unmanaged volume is found in
      */
-    private void updateWwnAndHluInfo(UnManagedVolume unManagedVolume, Set<VPlexStorageViewInfo> storageViews) {
+    private void updateWwnAndHluInfo(UnManagedVolume unManagedVolume, String volumeName, Set<VPlexStorageViewInfo> storageViews) {
         if (null != storageViews) {
             String wwn = unManagedVolume.getWwn();
             StringSet hluMappings = new StringSet();
@@ -1379,20 +1378,20 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
                 if (wwn == null || wwn.isEmpty()) {
                     // the wwn may have been found in the virtual volume, if this is a 5.4+ VPLEX
                     // otherwise, we need to check in the storage view mappings for a WWN (5.3 and before)
-                    wwn = storageView.getWWNForStorageViewVolume(unManagedVolume.getLabel());
-                    s_logger.info("found wwn {} for unmanaged volume {}", wwn, unManagedVolume.getLabel());
+                    wwn = storageView.getWWNForStorageViewVolume(volumeName);
+                    s_logger.info("found wwn {} for unmanaged volume {}", wwn, volumeName);
                     if (wwn != null) {
                         unManagedVolume.setWwn(BlockObject.normalizeWWN(wwn));
                     }
                 }
-                Integer hlu = storageView.getHLUForStorageViewVolume(unManagedVolume.getLabel());
+                Integer hlu = storageView.getHLUForStorageViewVolume(volumeName);
                 if (hlu != null) {
                     hluMappings.add(storageView.getName() + "=" + hlu.toString());
                 }
             }
             if (!hluMappings.isEmpty()) {
                 s_logger.info("setting HLU_TO_EXPORT_MASK_NAME_MAP for unmanaged volume {} to "
-                        + hluMappings, unManagedVolume.getLabel());
+                        + hluMappings, volumeName);
                 unManagedVolume.putVolumeInfo(
                         SupportedVolumeInformation.HLU_TO_EXPORT_MASK_NAME_MAP.name(), hluMappings);
             }
@@ -1736,7 +1735,7 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
             if (null != vplex) {
                 try {
                     vplex.setLastDiscoveryStatusMessage(statusMessage);
-                    _dbClient.persistObject(vplex);
+                    _dbClient.updateObject(vplex);
                 } catch (Exception ex) {
                     s_logger.error("Error while saving VPLEX discovery status message: {} - Exception: {}",
                             statusMessage, ex.getLocalizedMessage());
@@ -1941,7 +1940,7 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
                 // connected backend storage.
                 s_logger.info("Discovering frontend and backend ports.");
                 discoverPorts(client, vplexStorageSystem, allPorts, null);
-                _dbClient.persistObject(vplexStorageSystem);
+                _dbClient.updateObject(vplexStorageSystem);
                 _completer.statusPending(_dbClient, "Completed port discovery");
             } catch (VPlexCollectionException vce) {
                 discoverySuccess = false;
@@ -1957,7 +1956,7 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
             try {
                 s_logger.info("Discovering connectivity.");
                 discoverConnectivity(vplexStorageSystem);
-                _dbClient.persistObject(vplexStorageSystem);
+                _dbClient.updateObject(vplexStorageSystem);
                 _completer.statusPending(_dbClient, "Completed connectivity verification");
             } catch (VPlexCollectionException vce) {
                 discoverySuccess = false;
@@ -1973,11 +1972,11 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
 
             if (discoverySuccess) {
                 vplexStorageSystem.setReachableStatus(true);
-                _dbClient.persistObject(vplexStorageSystem);
+                _dbClient.updateObject(vplexStorageSystem);
             } else {
                 // If part of the discovery process failed, throw an exception.
                 vplexStorageSystem.setReachableStatus(false);
-                _dbClient.persistObject(vplexStorageSystem);
+                _dbClient.updateObject(vplexStorageSystem);
                 throw new Exception(errMsgBuilder.toString());
             }
 
@@ -1985,6 +1984,7 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
 
             // clear cached discovery data in the VPlexApiClient
             client.clearCaches();
+            client.primeCaches();
 
             // discovery succeeds
             detailedStatusMessage = String.format("Discovery completed successfully for Storage System: %s",
@@ -2000,7 +2000,7 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
                 try {
                     // set detailed message
                     vplexStorageSystem.setLastDiscoveryStatusMessage(detailedStatusMessage);
-                    _dbClient.persistObject(vplexStorageSystem);
+                    _dbClient.updateObject(vplexStorageSystem);
                 } catch (DatabaseException ex) {
                     s_logger.error("Error persisting last discovery status for storage system {}",
                             vplexStorageSystem.getId(), ex);

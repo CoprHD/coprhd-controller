@@ -44,6 +44,7 @@ public class StaleIndexCleanerMigration extends BaseCustomMigrationCallback {
     @Override
     public void process() throws MigrationCallbackException {
         checkHelper = new DbConsistencyCheckerHelper((DbClientImpl)getDbClient());
+        checkHelper.setDoubleConfirmed(false);
         Map<String, IndexAndCf> allIdxCfs = getAllIndexCFs();
         CheckResult checkResult = new CheckResult();
         

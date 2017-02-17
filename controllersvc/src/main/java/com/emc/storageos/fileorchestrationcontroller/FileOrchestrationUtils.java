@@ -891,9 +891,6 @@ public final class FileOrchestrationUtils {
 
         FilePolicyApplyLevel applyAt = FilePolicyApplyLevel.valueOf(filePolicy.getApplyAt());
         switch (applyAt) {
-            case file_system:
-                filePolicy.addAssignedResources(args.getFs().getId());
-                break;
             case project:
                 filePolicy.setFilePolicyVpool(args.getVPool().getId());
             default:

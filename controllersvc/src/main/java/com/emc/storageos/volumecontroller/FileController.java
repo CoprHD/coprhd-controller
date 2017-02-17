@@ -254,16 +254,14 @@ public interface FileController extends StorageController {
             String opId) throws InternalException;
 
     /**
-     * Apply file policy to a file system
      * 
-     * @param FS
-     *            file system where policy has to be applied
+     * @param storageSystem
+     * @param fs
      * @param filePolicy
-     *            URI of the policy to be applied
      * @param taskId
      * @throws InternalException
      */
-    public void applyFilePolicy(URI fs, URI filePolicy, String taskId) throws InternalException;
+    public void applyFilePolicy(URI storageSystem,URI fs, URI filePolicy, String taskId) throws InternalException;
 
     public void assignFileSnapshotPolicyToVirtualPools(URI storageSystemURI, URI vNASURI, URI filePolicyToAssign, URI vpoolURI,
             String taskId)

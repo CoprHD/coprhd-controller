@@ -55,6 +55,7 @@ public class Host extends AbstractComputeSystem {
     private URI computeVirtualPoolId;
     public static String ALTER_ID_FIELD = "hostName";
     private String uuid;
+    private String bios;
 
     /**
      * Gets the host type which is an instance of {@link HostType}
@@ -368,6 +369,16 @@ public class Host extends AbstractComputeSystem {
     public void setUuid(String uuid) {
         this.uuid = uuid;
         setChanged("uuid");
+    }
+
+    @Name("bios")
+    public String getBios() {
+        return bios;
+    }
+
+    public void setBios(String bios) {
+        this.bios = bios;
+        setChanged("bios");
     }
 
     @Name("provisioningStatus")

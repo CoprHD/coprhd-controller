@@ -1354,6 +1354,7 @@ test_2() {
                                     failure_004:failure_044_VPlexVmaxMaskingOrchestrator.deleteOrRemoveVolumesToExportMask_after_operation \
                                     failure_015_SmisCommandHelper.invokeMethod_EMCCreateMultipleTypeElementsFromStoragePool \
                                     failure_015_SmisCommandHelper.invokeMethod_AddMembers \
+                                    failure_015_SmisCommandHelper.invokeMethod_CreateGroup \
                                     failure_045_VPlexDeviceController.createVirtualVolume_before_create_operation \
                                     failure_046_VPlexDeviceController.createVirtualVolume_after_create_operation \
                                     failure_004:failure_007_NetworkDeviceController.zoneExportRemoveVolumes_before_unzone \
@@ -1427,27 +1428,27 @@ test_2() {
       #For XIO, before failure 6 is invoked the task would have completed successfully
       if [ "${SS}" = "xio" -a "${failure}" = "failure_006_BlockDeviceController.createVolumes_after_device_create" ]
       then
-	  runcmd volume create ${volname} ${PROJECT} ${NH} ${VPOOL_BASE} 1GB --consistencyGroup=${CGNAME}
-	  # Remove the volume
-      	  runcmd volume delete ${PROJECT}/${volname} --wait
+        runcmd volume create ${volname} ${PROJECT} ${NH} ${VPOOL_BASE} 1GB --consistencyGroup=${CGNAME}
+        # Remove the volume
+        runcmd volume delete ${PROJECT}/${volname} --wait
       else
-      	  # If this is a rollback inject, make sure we get the "additional message"
-	  echo ${failure} | grep failure_004 | grep ":" > /dev/null
+        # If this is a rollback inject, make sure we get the "additional message"
+        echo ${failure} | grep failure_004 | grep ":" > /dev/null
 
-	  if [ $? -eq 0 ]
-	  then
-	      # Make sure it fails with additional errors accounted for in the error message
-      	      fail -with_error "Additional errors occurred" volume create ${volname} ${PROJECT} ${NH} ${VPOOL_BASE} 1GB --consistencyGroup=${CGNAME}
-	  else
-      	      # Create the volume
-	      fail volume create ${volname} ${PROJECT} ${NH} ${VPOOL_BASE} 1GB --consistencyGroup=${CGNAME}
-	  fi
+        if [ $? -eq 0 ]
+        then
+          # Make sure it fails with additional errors accounted for in the error message
+          fail -with_error "Additional errors occurred" volume create ${volname} ${PROJECT} ${NH} ${VPOOL_BASE} 1GB --consistencyGroup=${CGNAME}
+        else
+          # Create the volume
+          fail volume create ${volname} ${PROJECT} ${NH} ${VPOOL_BASE} 1GB --consistencyGroup=${CGNAME}
+        fi
 
-	  # Verify injected failures were hit
-	  verify_failures ${failure}
+        # Verify injected failures were hit
+        verify_failures ${failure}
 
-      	  # Let the async jobs calm down
-      	  sleep 5
+        # Let the async jobs calm down
+        sleep 5
       fi
 
       # Perform any DB validation in here

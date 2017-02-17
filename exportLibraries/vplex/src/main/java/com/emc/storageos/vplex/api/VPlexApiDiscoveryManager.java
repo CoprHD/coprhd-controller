@@ -305,6 +305,7 @@ public class VPlexApiDiscoveryManager {
      * @param shallow true to get just the name and path for each cluster, false
      *            to get additional info about the systems and volumes.
      * @param getStorageVolumeAtts true to get the storage volume attributes, false otherwise.
+     * @param clusterToGet if non-null, will only return VPlexClusterInfo for the named cluster.
      * 
      * @return A list of VPlexClusterInfo specifying the info for the VPlex
      *         clusters.
@@ -313,7 +314,7 @@ public class VPlexApiDiscoveryManager {
      *             an error occurs processing the response.
      */
 
-    List<VPlexClusterInfo> getClusterInfo(boolean shallow, boolean getStorageVolumeAtts)
+    List<VPlexClusterInfo> getClusterInfo(boolean shallow, boolean getStorageVolumeAtts, String clusterToGet)
             throws VPlexApiException {
 
         // Get the URI for the cluster info request and make the request.
@@ -337,6 +338,16 @@ public class VPlexApiDiscoveryManager {
             List<VPlexClusterInfo> clusterInfoList = VPlexApiUtils.getResourcesFromResponseContext(
                     VPlexApiConstants.URI_CLUSTERS.toString(), responseStr,
                     VPlexClusterInfo.class);
+
+            if (null != clusterToGet) {
+                Iterator<VPlexClusterInfo> clusterInfoIterator = clusterInfoList.iterator();
+                while (clusterInfoIterator.hasNext()) {
+                    VPlexClusterInfo clusterInfo = clusterInfoIterator.next();
+                    if (!clusterToGet.equals(clusterInfo.getName())) {
+                        clusterInfoIterator.remove();
+                    }
+                }
+            }
 
             if (!shallow) {
                 for (VPlexClusterInfo clusterInfo : clusterInfoList) {

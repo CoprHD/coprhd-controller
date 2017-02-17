@@ -43,11 +43,13 @@ import com.emc.storageos.db.client.model.StorageProvider;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StorageSystem.Discovery_Namespaces;
 import com.emc.storageos.db.client.model.Vcenter;
+import com.emc.storageos.db.client.model.util.TaskUtils;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.exceptions.DeviceControllerErrors;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.hds.api.HDSApiFactory;
+import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.model.property.PropertyConstants;
 import com.emc.storageos.services.util.PlatformUtils;
 import com.emc.storageos.volumecontroller.impl.ControllerServiceImpl;
@@ -83,6 +85,7 @@ public class DataCollectionJobScheduler {
     private static final String ENABLE_AUTO_OPS_SINGLENODE = "enable-auto-discovery-metering-scan-single-node-deployments";
     private static final String TOLERANCE = "time-tolerance";
     private static final String PROP_HEADER_CONTROLLER = "controller_";
+    private static final String SYSTEM_TENANT_ID = "urn:storageos:TenantOrg:system:";
 
     private static final int initialScanDelay = 30;
     private static final int initialDiscoveryDelay = 90;
@@ -418,6 +421,13 @@ public class DataCollectionJobScheduler {
                     // Find the last scan time from the provider whose scan status is not in progress or scheduled
                     if (!inProgress) {
                         lastScanTime = providers.iterator().next().getLastScanTime();
+                        
+                        // if there are any pending tasks clear them
+                        long startTime = System.currentTimeMillis();
+                        for (StorageProvider provider: providers) {
+                            TaskUtils.cleanupPendingTasks(_dbClient, provider.getId(), ResourceOperationTypeEnum.SCAN_STORAGEPROVIDER.getName(), URI.create(SYSTEM_TENANT_ID));
+                        }
+                        _logger.info(String.format("time to clear stale pending scan tasks (all providers): %d ms", System.currentTimeMillis()-startTime));
                     }
                     
                     if (isDataCollectionScanJobSchedulingNeeded(lastScanTime, inProgress)) {
@@ -804,6 +814,11 @@ public class DataCollectionJobScheduler {
                 _logger.warn(type + " job for " + system.getLabel() + " is not queued or in progress; correcting the ViPR DB status");
                 updateDataCollectionStatus(system, type, DiscoveredDataObject.DataCollectionJobStatus.ERROR);
             }
+            
+            // check for any pending tasks; if there are any, they're orphaned and should be cleaned up
+            long startTime = System.currentTimeMillis();
+            TaskUtils.cleanupPendingTasks(_dbClient, system.getId(), ResourceOperationTypeEnum.DISCOVER_STORAGE_SYSTEM.getName(), URI.create(SYSTEM_TENANT_ID));
+            _logger.info(String.format("time to clear stale pending discovery tasks: %d ms", System.currentTimeMillis()-startTime));
         } else {
             // log a message if the discovery job has been runnig for longer than expected
             long currentTime = System.currentTimeMillis();

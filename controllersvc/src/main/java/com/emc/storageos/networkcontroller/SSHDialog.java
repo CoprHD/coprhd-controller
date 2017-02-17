@@ -129,6 +129,7 @@ public class SSHDialog {
             }
         }
 
+        checkForException(buf.toString());
         SSHPrompt prompt = checkForPrompt(buf.toString(), prompts);
         if (prompt == SSHPrompt.NOMATCH) {
             StringBuffer expectedPrompts = new StringBuffer("Expected one of these prompts, but not found: ");

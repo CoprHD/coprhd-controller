@@ -326,8 +326,9 @@ public class SupportPackageCreator {
         String line = null;
         String path = String.format("logs/%s_%s_%s.log", logName, nodeId, nodeName);
         stream = nextEntry(zip, path);
+        BufferedReader br = new BufferedReader(new InputStreamReader(in));
         BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(stream));
-        try (BufferedReader br = new BufferedReader(new InputStreamReader(in))){
+        try {
             while ((line = br.readLine()) != null) {
                 bw.write(line);
                 bw.newLine();
@@ -342,6 +343,7 @@ public class SupportPackageCreator {
                 }
             }
         } finally {
+            br.close();
             IOUtils.closeQuietly(bw);
         }
     }

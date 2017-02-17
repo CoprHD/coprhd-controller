@@ -1,6 +1,7 @@
 %{
-  titleKey = 'assignPolicy.title';
+  titleKey = 'assignPolicy.' + (assignPolicy.operationAssign ? 'assign' : 'unassign') + '.title';
 }%
+
 #{extends 'main.html'/}
 #{set navSelected: ['nav.virtualStorage', 'nav.file.protectionPolicies'] /}
 #{set 'title'}&{titleKey}#{/set}
@@ -32,7 +33,7 @@
     #{field 'assignPolicy.policyName'}
       %{
         field.cssClass = 'initialFocus';
-        field.disabled = true
+        field.required = true
         field.fieldKey = 'assignPolicy.policyName'
       }%
       #{Form.inputTextControlGroup field:field /}

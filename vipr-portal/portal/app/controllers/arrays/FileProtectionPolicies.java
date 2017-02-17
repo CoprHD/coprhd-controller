@@ -374,13 +374,14 @@ public class FileProtectionPolicies extends ViprResourceController {
         FilePolicyUnAssignParam unAssignPolicyParam = new FilePolicyUnAssignParam();
         if (updateUnAssignPolicyParam(assignPolicy, unAssignPolicyParam)) {
             getViprClient().fileProtectionPolicies().unassignPolicy(uri(assignPolicy.id), unAssignPolicyParam);
+            flash.success(MessagesUtils.get("unAssignPolicy.request.submit", assignPolicy.policyName));
+        }else{
+            FilePolicyAssignParam assignPolicyParam = new FilePolicyAssignParam();
+            updateAssignPolicyParam(assignPolicy, assignPolicyParam);
+            getViprClient().fileProtectionPolicies().assignPolicy(uri(assignPolicy.id), assignPolicyParam);
+            flash.success(MessagesUtils.get("assignPolicy.request.submit", assignPolicy.policyName));
         }
-
-        FilePolicyAssignParam assignPolicyParam = new FilePolicyAssignParam();
-        updateAssignPolicyParam(assignPolicy, assignPolicyParam);
-        getViprClient().fileProtectionPolicies().assignPolicy(uri(assignPolicy.id), assignPolicyParam);
-
-        flash.success(MessagesUtils.get("assignPolicy.saved", assignPolicy.policyName));
+       
         if (StringUtils.isNotBlank(assignPolicy.referrerUrl)) {
             redirect(assignPolicy.referrerUrl);
         } else {
@@ -817,6 +818,9 @@ public class FileProtectionPolicies extends ViprResourceController {
         public List<String> virtualPools;
 
         public boolean applyOnTargetSite;
+        
+        //if true then form is used for assignmnet
+        public boolean operationAssign;
 
         public String appliedAt;
 
@@ -832,6 +836,11 @@ public class FileProtectionPolicies extends ViprResourceController {
             // this.tenantId = restRep.getTenant().getId().toString();
             this.policyType = restRep.getType();
             this.policyName = restRep.getName();
+              if(restRep.getAssignedResources() == null) {
+               // if it does not have already assigned  resource
+                 this.operationAssign =true;
+                
+            }
 
             this.appliedAt = restRep.getAppliedAt();
             this.applyOnTargetSite = false;

@@ -821,6 +821,7 @@ public class FilePolicyService extends TaskResourceService {
             checkForDuplicateName(param.getPolicyName(), FilePolicy.class);
             existingPolicy.setLabel(param.getPolicyName());
             existingPolicy.setFilePolicyName(param.getPolicyName());
+            existingPolicy.setLabel(param.getPolicyName());
         }
 
         if (param.getPolicyDescription() != null && !param.getPolicyDescription().isEmpty()) {

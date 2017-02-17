@@ -1,16 +1,6 @@
 vmaccepteula
 
-# ensure there is only one volume (the boot volume) visible to this server.  Do this before formatting anything, just in case.
-LINECOUNT=`localcli --format-param=show-header=false storage vmfs extent list | wc -l`
-if [ $LINECOUNT != 1 ] ; then
-echo "There are ${LINECOUNT} volumes seen by this host.  ViPR supports only a boot volume exposed to the host during OS installation to ensure data integrity of shared volumes"
-exit 1
-fi
-
-# VBDU TODO [DONE]: VBlock vipr team already fixing ${clear.device} issue where device is null, so first volume is taken.
-# VBDU TODO [DONE]: --overwritevmfs should probably be removed for paranoia, too:  "Permit overwriting of vmfs partitions on the specified drives. By default, overwrite vmfs partitions is not allowed."
-# VBDU TODO [DONE]: If our use case is strictly around exporting a boot volume, installing, THEN exporting shared volumes, then maybe we can ensure the host only sees one device in the first place before it does anything.
-# VBDU TODO [DONE]: This does mean that any attempt to re-use a volume that is already been formatted to vmfs will not be possible, and may require a workaround or cleanup activity.
+# Do not allow overwrite of existing datastore
 clearpart ${clear.device}
 install ${install.device}
 rootpw --iscrypted  ${root.password}
@@ -21,6 +11,14 @@ reboot
 
 %post --interpreter=busybox --ignorefailure=false 
 localcli network firewall set --enabled false
+
+# ensure there is only one volume (the boot volume) visible to this server.
+LINECOUNT=`localcli --format-param=show-header=false storage vmfs extent list | wc -l`
+if [ $LINECOUNT != 1 ] ; then
+# VBDU TODO: There are ways to get this to the KVM console, we should do that
+echo "There are ${LINECOUNT} volumes seen by this host.  ViPR supports only a boot volume exposed to the host during OS installation to ensure data integrity of shared or unmanaged volumes"
+exit 1
+fi
 
 # VBDU TODO [DONE]: The issue inserted code for D@T@STORE_SYM_LINK (sic) is that it does NOT guarantee the wwn is datastore1 at all.  And even if it did, it can nott guarantee
 # VBDU TODO [DONE]: that is the first lun booted after the system comes back up.  I added the check above to ensure one and only one volume.

@@ -931,7 +931,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
 
                 // Make a call to get cluster info
                 if (null == clusterInfoList) {
-                    clusterInfoList = client.getClusterInfoDetails();
+                    clusterInfoList = new ArrayList<VPlexClusterInfo>();
                 }
 
                 // Make the call to create a virtual volume. It is distributed if there are two (or more?)

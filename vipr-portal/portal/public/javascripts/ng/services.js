@@ -25,8 +25,8 @@ angular.module("services", []).directive({
             restrict: "E",
             scope: true,
             controller: function($scope, $attrs) {
-                if ($scope.updateModalFields === undefined) {
-                    $scope.updateModalFields = false;
+                if ($scope.$root.updateModalFields === undefined) {
+                    $scope.$root.updateModalFields = false;
                 }
                 var fieldDescriptor = $scope.assetFieldDescriptors[$scope.item.name] || {},
                     item = $scope.item;

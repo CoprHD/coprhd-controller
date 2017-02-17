@@ -448,7 +448,7 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
                         vnxeHostId = parentHost.getId();
                     } else if (!vnxeHostId.equals(parentHost.getId())) {
                         String msg = String.format(
-                                "Initiator %s blongs to host %s, but other initiator belongs host %s. Please move the initiator to the correct host",
+                                "Initiator %s belongs to %s, but other initiator belongs to %s. Please move initiator to the correct host",
                                 initiator.getInitiatorPort(), parentHost.getId(), vnxeHostId);
                         _logger.error(msg);
                         throw new DeviceControllerException(msg);
@@ -735,8 +735,8 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
                         apiClient.setInitiatorHost(init.getId(), hostId);
                     } else {
                         String msg = String.format(
-                                "The new initiator %s does not belong to the same host as other initiators in the ExportMask",
-                                newInit.getInitiatorId());
+                                "Initiator %s belongs to %s, but other initiator belongs to %s. Please move initiator to the correct host",
+                                init.getPortWWN(), host.getId(), hostId);
                         _logger.error(msg);
 
                         if (!createdInitiators.isEmpty()) {
@@ -1060,7 +1060,7 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
                 Initiator viprInitiator = NetworkUtil.findInitiatorInDB(portWWN, dbClient);
                 if (viprInitiator != null) {
                     if (!hostUri.equals(viprInitiator.getHost())) {
-                        String msg = String.format("Initiator {} belongs to different host. Remove the initiator from the host on array", portWWN);
+                        String msg = String.format("Initiator %s is not associated with the correct host. Please move the initiator to the correct host", portWWN);
                         _logger.error(msg);
                         throw new DeviceControllerException(msg);
                     }

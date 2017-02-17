@@ -5,11 +5,11 @@
 package com.emc.sa.service.vipr.compute;
 
 import static com.emc.sa.service.ServiceParams.CLUSTER;
+import static com.emc.sa.service.ServiceParams.COMPUTE_VIRTUAL_POOL;
 import static com.emc.sa.service.ServiceParams.HLU;
 import static com.emc.sa.service.ServiceParams.PROJECT;
 import static com.emc.sa.service.ServiceParams.SIZE_IN_GB;
 import static com.emc.sa.service.ServiceParams.VIRTUAL_ARRAY;
-import static com.emc.sa.service.ServiceParams.COMPUTE_VIRTUAL_POOL;
 import static com.emc.sa.service.ServiceParams.VIRTUAL_POOL;
 
 import java.net.URI;
@@ -131,7 +131,7 @@ public class AddBareMetalHostToClusterService extends ViPRService {
 
         hostNames = ComputeUtils.removeExistingHosts(hostNames, cluster);
 
-        List<Host> hosts = ComputeUtils.createHosts(cluster.getId(), computeVirtualPool, hostNames, virtualArray);
+        List<Host> hosts = ComputeUtils.createHosts(cluster, computeVirtualPool, hostNames, virtualArray);
         logInfo("compute.cluster.hosts.created", ComputeUtils.nonNull(hosts).size());
 
         // Below step to update the shared export group to the cluster (the

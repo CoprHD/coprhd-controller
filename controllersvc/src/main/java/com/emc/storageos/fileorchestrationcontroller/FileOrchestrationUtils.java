@@ -741,28 +741,111 @@ public final class FileOrchestrationUtils {
     }
 
     /**
-     * Generate unique name for policy
      * 
-     * @param filePolicy
-     * @param fileShare
-     * @return
-     *
+     * @param clusterName Isilon cluster name
+     * @param filePolicy the file policy template
+     * @param fileShare the file share
+     * @param args FileDeviceInputOutput
+     * @return the generated policy name
      */
+    public static String generateNameForSnapshotIQPolicy(String clusterName, FilePolicy filePolicy,
+            FileShare fileShare, FileDeviceInputOutput args) {
 
-    public static String generateNameForPolicy(FilePolicy filePolicy, FileShare fileShare, FileDeviceInputOutput args) {
-        String devPolicyName = "";
+        String devPolicyName = null;
         String policyName = stripSpecialCharacters(filePolicy.getFilePolicyName());
+        VirtualNAS vNAS = args.getvNAS();
+
+        String clusterNameWithoutSpecialCharacters = stripSpecialCharacters(clusterName);
 
         FilePolicyApplyLevel applyLevel = FilePolicyApplyLevel.valueOf(filePolicy.getApplyAt());
         switch (applyLevel) {
             case vpool:
-                devPolicyName = args.getVPoolNameWithNoSpecialCharacters() + "_" + policyName;
+                if (vNAS != null) {
+                    devPolicyName = String.format("%1$s_%2$s_%3$s_%4s", clusterNameWithoutSpecialCharacters,
+                            args.getVNASNameWithNoSpecialCharacters(), args.getVPoolNameWithNoSpecialCharacters(), policyName);
+                } else {
+                    devPolicyName = String.format("%1$s_%2$s_%3$s", clusterNameWithoutSpecialCharacters,
+                            args.getVPoolNameWithNoSpecialCharacters(), policyName);
+                }
                 break;
             case project:
-                devPolicyName = args.getProjectNameWithNoSpecialCharacters() + "_" + policyName;
+                if (vNAS != null) {
+                    devPolicyName = String.format("%1$s_%2$s_%3$s_%4$s_%5$s", clusterNameWithoutSpecialCharacters,
+                            args.getVNASNameWithNoSpecialCharacters(), args.getVPoolNameWithNoSpecialCharacters(),
+                            args.getProjectNameWithNoSpecialCharacters(), policyName);
+                } else {
+                    devPolicyName = String.format("%1$s_%2$s_%3$s_%4$s", clusterNameWithoutSpecialCharacters,
+                            args.getVPoolNameWithNoSpecialCharacters(), args.getProjectNameWithNoSpecialCharacters(), policyName);
+                }
                 break;
             case file_system:
-                devPolicyName = fileShare.getName() + "_" + policyName;
+                String fileShareName = stripSpecialCharacters(fileShare.getName());
+                if (vNAS != null) {
+                    devPolicyName = String.format("%1$s_%2$s_%3$s_%4$s_%5$s_%6$s", clusterNameWithoutSpecialCharacters,
+                            args.getVNASNameWithNoSpecialCharacters(), args.getVPoolNameWithNoSpecialCharacters(),
+                            args.getProjectNameWithNoSpecialCharacters(), fileShareName, policyName);
+                } else {
+                    devPolicyName = String.format("%1$s_%2$s_%3$s_%4$s_%5$s", clusterNameWithoutSpecialCharacters,
+                            args.getVPoolNameWithNoSpecialCharacters(), args.getProjectNameWithNoSpecialCharacters(),
+                            fileShareName, policyName);
+                }
+                break;
+        }
+        return devPolicyName;
+    }
+
+    /**
+     * 
+     * @param sourceFilerName the Isilon source cluster name
+     * @param targetFilerName the Isilon target cluster name
+     * @param filePolicy the file policy template
+     * @param fileShare the file share
+     * @param args FileDeviceInputOutput
+     * @return the generated policy name
+     */
+    public static String generateNameForSyncIQPolicy(String sourceFilerName, String targetFilerName, FilePolicy filePolicy,
+            FileShare fileShare, FileDeviceInputOutput args) {
+
+        String devPolicyName = null;
+        String policyName = stripSpecialCharacters(filePolicy.getFilePolicyName());
+        VirtualNAS vNAS = args.getvNAS();
+
+        String sourceClusterName = stripSpecialCharacters(sourceFilerName);
+        String targetClusterName = stripSpecialCharacters(targetFilerName);
+
+        FilePolicyApplyLevel applyLevel = FilePolicyApplyLevel.valueOf(filePolicy.getApplyAt());
+        switch (applyLevel) {
+            case vpool:
+                if (vNAS != null) {
+                    devPolicyName = String.format("%1$s_to_%2$s_%3$s_%4s_%5s", sourceClusterName, targetClusterName,
+                            args.getVNASNameWithNoSpecialCharacters(), args.getVPoolNameWithNoSpecialCharacters(), policyName);
+                } else {
+                    devPolicyName = String.format("%1$s_to_%2$s_%3$s_%4s", sourceClusterName, targetClusterName,
+                            args.getVPoolNameWithNoSpecialCharacters(), policyName);
+                }
+                break;
+            case project:
+                if (vNAS != null) {
+                    devPolicyName = String.format("%1$s_to_%2$s_%3$s_%4$s_%5$s_%6s", sourceClusterName, targetClusterName,
+                            args.getVNASNameWithNoSpecialCharacters(), args.getVPoolNameWithNoSpecialCharacters(),
+                            args.getProjectNameWithNoSpecialCharacters(), policyName);
+                } else {
+                    devPolicyName = String.format("%1$s_to_%2$s_%3$s_%4$s_%5s", sourceClusterName, targetClusterName,
+                            args.getVPoolNameWithNoSpecialCharacters(), args.getProjectNameWithNoSpecialCharacters(), policyName);
+                }
+                break;
+            case file_system:
+                String fileShareName = stripSpecialCharacters(fileShare.getName());
+                if (vNAS != null) {
+                    devPolicyName = String.format("%1$s_to_%2$s_%3$s_%4$s_%5$s_%6$s_%7s", sourceClusterName, targetClusterName,
+                            args.getVNASNameWithNoSpecialCharacters(), args.getVPoolNameWithNoSpecialCharacters(),
+                            args.getProjectNameWithNoSpecialCharacters(), fileShareName, policyName);
+                } else {
+                    devPolicyName = String.format("%1$s_%2$s_%3$s_%4$s_%5$s", sourceClusterName, targetClusterName,
+                            args.getVPoolNameWithNoSpecialCharacters(), args.getProjectNameWithNoSpecialCharacters(),
+                            fileShareName, policyName);
+                }
+                break;
         }
         return devPolicyName;
     }
@@ -831,9 +914,6 @@ public final class FileOrchestrationUtils {
 
         FilePolicyApplyLevel applyAt = FilePolicyApplyLevel.valueOf(filePolicy.getApplyAt());
         switch (applyAt) {
-            case file_system:
-                filePolicy.addAssignedResources(args.getFs().getId());
-                break;
             case project:
                 filePolicy.setFilePolicyVpool(args.getVPool().getId());
             default:
@@ -884,8 +964,23 @@ public final class FileOrchestrationUtils {
         return targetHost;
     }
 
-    public static List<URI> getVNASServersOfStorageSystemAndVarrayOfVpool(DbClient dbClient, URI storageSystemURI, URI vpoolURI) {
+    /**
+     * Get the list of virtual nas servers from storage system which are part of vpool and project
+     * 
+     * @param dbClient
+     * @param storageSystemURI
+     * @param vpoolURI
+     * @param projectURI
+     * @return
+     *
+     */
+    public static List<URI> getVNASServersOfStorageSystemAndVarrayOfVpool(DbClient dbClient, URI storageSystemURI, URI vpoolURI,
+            URI projectURI) {
         VirtualPool vpool = dbClient.queryObject(VirtualPool.class, vpoolURI);
+        Project project = null;
+        if (projectURI != null) {
+            project = dbClient.queryObject(Project.class, projectURI);
+        }
         StringSet varraySet = vpool.getVirtualArrays();
         URIQueryResultList vNasURIs = new URIQueryResultList();
         List<URI> vNASURIList = new ArrayList<URI>();
@@ -898,6 +993,13 @@ public final class FileOrchestrationUtils {
             VirtualNAS vNas = dbClient.queryObject(VirtualNAS.class,
                     vNasURI);
             if (vNas != null && !vNas.getInactive()) {
+                // Dont pick the other project nas servers!!!
+                if (project != null && vNas.getAssociatedProjects() != null && !vNas.getAssociatedProjects().isEmpty()) {
+                    if (!vNas.getAssociatedProjects().contains(project.getId().toString())) {
+                        _log.info("vNas server {} assigned to other project, so ignoring this vNas server", vNas.getNasName());
+                        continue;
+                    }
+                }
                 StringSet vNASVarraySet = vNas.getAssignedVirtualArrays();
                 if (varraySet != null && !varraySet.isEmpty() && vNASVarraySet != null) {
 

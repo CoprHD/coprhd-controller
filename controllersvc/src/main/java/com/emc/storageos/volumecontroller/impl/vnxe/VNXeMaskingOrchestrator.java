@@ -29,7 +29,6 @@ import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.util.CommonTransformerFunctions;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
-import com.emc.storageos.util.ExportUtils;
 import com.emc.storageos.volumecontroller.BlockStorageDevice;
 import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.ControllerServiceImpl;
@@ -159,6 +158,7 @@ public class VNXeMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                     "exportGroupDelete", true, token);
             String deleteStep = null;
             for (ExportMask exportMask : exportMasks) {
+                refreshExportMask(storage, getDevice(), exportMask);
                 deleteStep = generateExportMaskDeleteWorkflow(workflow, deleteStep,
                         storage, exportGroup, exportMask, null, null, null);
             }
@@ -202,7 +202,6 @@ public class VNXeMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
 
             taskCompleter = new ExportOrchestrationTask(exportGroupURI, token);
 
-            checkForConsistentLunViolation(storage, exportGroup, initiatorURIs);
 
             Map<URI, Integer> volumes = selectExportMaskVolumes(exportGroup, storageURI);
             _log.info("Volumes  : {}", Joiner.on(",").join(volumes.keySet()));
@@ -371,6 +370,7 @@ public class VNXeMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                         exportMask.getVolumes() != null) {
                     _log.info(String.format("deleting the exportMask: %s",
                             exportMask.getId().toString()));
+                    // Initiator list (initiatorURIs) need to be provided when deleting export mask as a result of removing last initiators
                     deleteStep = generateExportMaskDeleteWorkflow(workflow, deleteStep, storage,
                             exportGroup, exportMask, null, initiatorURIs, null);
 
@@ -508,6 +508,8 @@ public class VNXeMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                 List<ExportMask> deleteMasks = new ArrayList<ExportMask>();
                 List<ExportMask> updateMasks = new ArrayList<ExportMask>();
                 for (ExportMask mask : exportMasks) {
+                    refreshExportMask(storage, getDevice(), mask);
+
                     // Determine if we're deleting the last volume.
                     Set<String> remainingVolumes = new HashSet<String>();
                     if (mask.getVolumes() != null) {
@@ -530,7 +532,7 @@ public class VNXeMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                                 exportGroup, exportMask, null, null, null);
                     }
                     generateZoningDeleteWorkflow(workflow, deleteStep,
-                            exportGroup, exportMasks);
+                            exportGroup, deleteMasks);
                 }
                 if (!updateMasks.isEmpty()) {
                     String unexportStep = null;
@@ -539,7 +541,7 @@ public class VNXeMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                                 storage, exportGroup, exportMask, volumes, null, null);
                     }
                     generateZoningRemoveVolumesWorkflow(workflow,
-                            null, exportGroup, exportMasks, volumes);
+                            null, exportGroup, updateMasks, volumes);
                 }
                 String successMessage = String.format(
                         "Volumes successfully unexported from StorageArray %s",

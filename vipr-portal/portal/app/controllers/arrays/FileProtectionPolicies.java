@@ -157,7 +157,6 @@ public class FileProtectionPolicies extends ViprResourceController {
 
         List<StringOption> replicationCopyTypeOptions = Lists.newArrayList();
         replicationCopyTypeOptions.add(new StringOption("ASYNC", MessagesUtils.get("schedulePolicy.replicationAsync")));
-        replicationCopyTypeOptions.add(new StringOption("SYNC", MessagesUtils.get("schedulePolicy.replicationSync")));
         renderArgs.put("replicationCopyTypeOptions", replicationCopyTypeOptions);
 
         List<StringOption> policyPriorityOptions = Lists.newArrayList();
@@ -471,7 +470,7 @@ public class FileProtectionPolicies extends ViprResourceController {
         // Day of the month
         public Long scheduleDayOfMonth;
 
-        public String snapshotNamePattern;
+        public String snapshotNamePattern = "Snapshot_%Y-%m-%d-_%H-%M";
 
         // Schedule Snapshot expire type e.g hours, days, weeks, months and never
         public String expireType;

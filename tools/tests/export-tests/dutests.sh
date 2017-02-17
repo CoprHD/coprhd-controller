@@ -2800,11 +2800,6 @@ test_23() {
 #
 test_24() {
     echot "Test 24: Remove Volume doesn't remove the zone when extra volume is in the mask"
-    if [ "$SS" = "unity" ]; then
-        echo "This will fail for Unity due to COP-27778. So skipping this test for Unity for now."
-        return
-    fi
-
     expname=${EXPORT_GROUP_NAME}t24
 
     # Make sure we start clean; no masking view on the array
@@ -3473,6 +3468,9 @@ test_28() {
     runcmd export_group delete $PROJECT2/${expname}2
     verify_export ${expname}1 ${HOST1} 1 1
 
+    echo "Sleep 60 seconds"
+    sleep 60
+
     # Create export group 2 again with different sets of initiators
     runcmd export_group create ${PROJECT2} ${expname}2 $NH --type Host --volspec "${PROJECT2}/P2${VOLNAME}-1" --hosts "${HOST1}"
     verify_export ${expname}1 ${HOST1} 2 2
@@ -3590,6 +3588,9 @@ test_29() {
     runcmd export_group update $PROJECT/${expname}1 --remVols "${PROJECT}/${VOLNAME}-1"
     runcmd export_group update $PROJECT/${expname}1 --remVols "${PROJECT}/${VOLNAME}-2"
 
+    echo "Sleep 60 seconds"
+    sleep 60
+
     # Create the same export group again
     runcmd export_group create $PROJECT ${expname}1 $NH --type Host --volspec "${PROJECT}/${VOLNAME}-1,${PROJECT}/${VOLNAME}-2" --hosts "${HOST1}"
 
@@ -3605,6 +3606,9 @@ test_29() {
     # Now remove initiators
     runcmd export_group update $PROJECT/${expname}1 --remInits ${HOST1}/${H1PI1}
     runcmd export_group update $PROJECT/${expname}1 --remInits ${HOST1}/${H1PI2}
+
+    echo "Sleep 60 seconds"
+    sleep 60
 
     # Create the same export group again
     runcmd export_group create $PROJECT ${expname}1 $NH --type Host --volspec "${PROJECT}/${VOLNAME}-1,${PROJECT}/${VOLNAME}-2" --hosts "${HOST1}"

@@ -36,6 +36,7 @@ import com.emc.storageos.model.customservices.PrimitiveCreateParam;
 import com.emc.storageos.model.customservices.PrimitiveList;
 import com.emc.storageos.model.customservices.PrimitiveResourceRestRep;
 import com.emc.storageos.model.customservices.PrimitiveRestRep;
+import com.emc.storageos.model.customservices.PrimitiveUpdateParam;
 import com.emc.vipr.client.catalog.AbstractCatalogBulkResources;
 import com.emc.vipr.client.catalog.impl.PathConstants;
 import com.emc.vipr.client.impl.RestClient;
@@ -88,6 +89,10 @@ public class CustomServicesClient extends AbstractCatalogBulkResources<Primitive
     
     public PrimitiveRestRep getPrimitive(final URI id) {
         return client.get(PrimitiveRestRep.class, PathConstants.CUSTOM_SERVICES_PRIMITIVE, id);
+    }
+
+    public PrimitiveRestRep updatePrimitive(final URI id, PrimitiveUpdateParam param) {
+        return client.put(PrimitiveRestRep.class,param,PathConstants.CUSTOM_SERVICES_PRIMITIVE,id);
     }
 
     public CustomServicesWorkflowList getWorkflows() {

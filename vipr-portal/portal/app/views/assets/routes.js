@@ -118,5 +118,6 @@ var routes = {
   Workflow_unpublish: #{jsAction @catalog.WorkflowBuilder.unpublishWorkflow(':workflowId') /},
   Workflow_get: #{jsAction @catalog.WorkflowBuilder.getWorkflow(':workflowId') /},
   Workflow_delete: #{jsAction @catalog.WorkflowBuilder.deleteWorkflow(':workflowID', ':dirID') /},
-  Workflow_edit_name: #{jsAction @catalog.WorkflowBuilder.editWorkflowName(':id',':newName') /}
+  Workflow_edit_name: #{jsAction @catalog.WorkflowBuilder.editWorkflowName(':id',':newName') /},
+  Primitive_get: #{jsAction @catalog.WorkflowBuilder.getPrimitive(':primitiveId', ':primitiveType') /}
 };

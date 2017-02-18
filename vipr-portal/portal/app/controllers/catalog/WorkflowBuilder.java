@@ -30,6 +30,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import com.emc.storageos.model.customservices.InputParameterRestRep;
+import com.emc.storageos.model.customservices.InputUpdateParam;
+import com.emc.storageos.model.customservices.OutputParameterRestRep;
+import com.emc.storageos.model.customservices.OutputUpdateParam;
+import com.emc.storageos.model.customservices.PrimitiveUpdateParam;
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.owasp.esapi.ESAPI;
 
@@ -370,6 +376,7 @@ public class WorkflowBuilder extends Controller {
     }
 
     public static class ShellScriptPrimitiveForm{
+        private String id; //this is empty for CREATE
         // Name and Description step
         @Required
         private String name;
@@ -377,16 +384,32 @@ public class WorkflowBuilder extends Controller {
         private String description;
         @Required
         private File script;
+        @Required
         private String scriptName;
         private String inputs; //comma separated list of inputs
         private String outputs; // comma separated list of ouputs
-
-        @Required
-        private String wfDirID;
+        private boolean newScript; //if true create new resource(delete any existing)
+        private String wfDirID; // this is empty for EDIT
 
         //TODO
         public void validate(){
             // check if script is not null
+        }
+
+        public String getId() {
+            return id;
+        }
+
+        public void setId(String id) {
+            this.id = id;
+        }
+
+        public boolean isNewScript() {
+            return newScript;
+        }
+
+        public void setNewScript(boolean newScript) {
+            this.newScript = newScript;
         }
 
         public String getName() {
@@ -447,9 +470,57 @@ public class WorkflowBuilder extends Controller {
     }
 
 
-    public static void createShellScriptPrimitive(@Valid final ShellScriptPrimitiveForm shellPrimitive){
-        shellPrimitive.validate();
+    private static void editShellScriptPrimitive(final ShellScriptPrimitiveForm shellPrimitive){
+        try {
+            final URI shellPrimitiveID = new URI(shellPrimitive.getId());
+            final PrimitiveRestRep primitiveRestRep = getCatalogClient().customServicesPrimitives().getPrimitive(shellPrimitiveID);
+            if (null != primitiveRestRep) {
+                // Update name, description
+                final PrimitiveUpdateParam primitiveUpdateParam = new PrimitiveUpdateParam();
+                primitiveUpdateParam.setName(shellPrimitive.getName());
+                primitiveUpdateParam.setDescription(shellPrimitive.getDescription());
 
+                // Get and update differences between existing and new inputs
+                final List<String> newInputs = getListFromInputOutputString(shellPrimitive.getInputs());
+                final List<String> existingInputs = convertInputGroupsToList(primitiveRestRep.getInputGroups());
+                final InputUpdateParam inputUpdateParam = new InputUpdateParam();
+                inputUpdateParam.setRemove((List<String>)CollectionUtils.subtract(existingInputs, newInputs));
+                inputUpdateParam.setAdd((List<String>)CollectionUtils.subtract(newInputs, existingInputs));
+                primitiveUpdateParam.setInput(inputUpdateParam);
+
+                // Get and update differences between existing and new outputs
+                final List<String> newOutputs = getListFromInputOutputString(shellPrimitive.getOutputs());
+                final List<String> existingOutputs = convertOutputGroupsToList(primitiveRestRep.getOutput());
+                OutputUpdateParam outputUpdateParam = new OutputUpdateParam();
+                outputUpdateParam.setRemove((List<String>)CollectionUtils.subtract(existingOutputs, newOutputs));
+                outputUpdateParam.setAdd((List<String>)CollectionUtils.subtract(newOutputs, existingOutputs));
+                primitiveUpdateParam.setOutput(outputUpdateParam);
+
+                if (shellPrimitive.newScript) {
+                    //TODO: delete old resource
+
+                    //create new resource
+                    final PrimitiveResourceRestRep primitiveResourceRestRep = getCatalogClient().customServicesPrimitives().createPrimitiveResource("SCRIPT", shellPrimitive.script, shellPrimitive.scriptName);
+                    if(null != primitiveResourceRestRep) {
+                        //TODO: update resource link
+                    }
+                }
+                //TODO: update script name ( if it is different from existing name)
+
+                getCatalogClient().customServicesPrimitives().updatePrimitive(shellPrimitiveID, primitiveUpdateParam);
+            }
+        }
+        catch (final Exception e) {
+            Logger.error(e.getMessage());
+            flash.error(e.getMessage());
+        }
+    }
+
+    private static List<String> getListFromInputOutputString(final String param){
+        return StringUtils.isNotBlank(param) ? Arrays.asList(param.split(",")) : new ArrayList<String>();
+    }
+
+    private static void createShellScriptPrimitive(final ShellScriptPrimitiveForm shellPrimitive){
         try {
             final PrimitiveResourceRestRep primitiveResourceRestRep = getCatalogClient().customServicesPrimitives().createPrimitiveResource("SCRIPT", shellPrimitive.script, shellPrimitive.scriptName);
             if (null != primitiveResourceRestRep) {
@@ -461,10 +532,10 @@ public class WorkflowBuilder extends Controller {
                 primitiveCreateParam.setDescription(shellPrimitive.getDescription());
                 primitiveCreateParam.setResource(primitiveResourceRestRep.getId());
                 if (StringUtils.isNotEmpty(shellPrimitive.getInputs())) {
-                    primitiveCreateParam.setInput(Arrays.asList(shellPrimitive.getInputs().split(",")));
+                    primitiveCreateParam.setInput(getListFromInputOutputString(shellPrimitive.getInputs()));
                 }
                 if (StringUtils.isNotEmpty(shellPrimitive.getOutputs())) {
-                    primitiveCreateParam.setOutput(Arrays.asList(shellPrimitive.getOutputs().split(",")));
+                    primitiveCreateParam.setOutput(getListFromInputOutputString(shellPrimitive.getOutputs()));
                 }
                 final PrimitiveRestRep primitiveRestRep = getCatalogClient().customServicesPrimitives().createPrimitive(primitiveCreateParam);
                 if (primitiveRestRep != null) {
@@ -478,23 +549,34 @@ public class WorkflowBuilder extends Controller {
             else {
                 flash.error("Error while uploading primitive resource");
             }
-
         }
         catch (final Exception e) {
             Logger.error(e.getMessage());
-            flash.error(e.getMessage());
+            //flash.error(e.getMessage());
         }
+    }
 
+    public static void saveShellScriptPrimitive(@Valid final ShellScriptPrimitiveForm shellPrimitive){
+        shellPrimitive.validate();
+        if(StringUtils.isNotEmpty(shellPrimitive.getId())) {
+            editShellScriptPrimitive(shellPrimitive);
+        }
+        else {
+            createShellScriptPrimitive(shellPrimitive);
+        }
         view();
+
     }
 	
 	public static class LocalAnsiblePrimitiveForm {
+        private String id;
         @Required
         private String name;
         private String description;
         private boolean existing;
         private String existingResource;
         private File ansiblePackage;
+        @Required
         private String ansiblePackageName;
         @Required
         private String ansiblePlaybook;
@@ -502,13 +584,19 @@ public class WorkflowBuilder extends Controller {
         private String hostFilePath;
         private String inputs; //comma separated list of inputs
         private String outputs; // comma separated list of ouputs
-
-        @Required
         private String wfDirID;
 
         //TODO
         public void validate(){
 
+        }
+
+        public String getId() {
+            return id;
+        }
+
+        public void setId(String id) {
+            this.id = id;
         }
 
         public String getName() {
@@ -600,9 +688,70 @@ public class WorkflowBuilder extends Controller {
         }
     }
 
-    public static void createLocalAnsiblePrimitive(@Valid final LocalAnsiblePrimitiveForm localAnsible){
+    public static void saveLocalAnsiblePrimitive(@Valid final LocalAnsiblePrimitiveForm localAnsible){
         localAnsible.validate();
+        if(StringUtils.isNotEmpty(localAnsible.getId())) {
+            editLocalAnsiblePrimitive(localAnsible);
+        }
+        else {
+            createLocalAnsiblePrimitive(localAnsible);
+        }
+        view();
 
+    }
+
+    private static void editLocalAnsiblePrimitive(final LocalAnsiblePrimitiveForm localAnsible){
+        try {
+            final URI localAnsiblePrimitiveID = new URI(localAnsible.getId());
+            final PrimitiveRestRep primitiveRestRep = getCatalogClient().customServicesPrimitives().getPrimitive(localAnsiblePrimitiveID);
+            if (null != primitiveRestRep) {
+                // Update name, description
+                final PrimitiveUpdateParam primitiveUpdateParam = new PrimitiveUpdateParam();
+                primitiveUpdateParam.setName(localAnsible.getName());
+                primitiveUpdateParam.setDescription(localAnsible.getDescription());
+
+                // Get and update differences between existing and new inputs
+                final List<String> newInputs = getListFromInputOutputString(localAnsible.getInputs());
+                final List<String> existingInputs = convertInputGroupsToList(primitiveRestRep.getInputGroups());
+                final InputUpdateParam inputUpdateParam = new InputUpdateParam();
+                inputUpdateParam.setRemove((List<String>)CollectionUtils.subtract(existingInputs, newInputs));
+                inputUpdateParam.setAdd((List<String>)CollectionUtils.subtract(newInputs, existingInputs));
+                primitiveUpdateParam.setInput(inputUpdateParam);
+
+                // Get and update differences between existing and new outputs
+                final List<String> newOutputs = getListFromInputOutputString(localAnsible.getOutputs());
+                final List<String> existingOutputs = convertOutputGroupsToList(primitiveRestRep.getOutput());
+                OutputUpdateParam outputUpdateParam = new OutputUpdateParam();
+                outputUpdateParam.setRemove((List<String>)CollectionUtils.subtract(existingOutputs, newOutputs));
+                outputUpdateParam.setAdd((List<String>)CollectionUtils.subtract(newOutputs, existingOutputs));
+                primitiveUpdateParam.setOutput(outputUpdateParam);
+
+                //Set playbook
+                primitiveUpdateParam.setAttributes(new HashMap<String, String>());
+                primitiveUpdateParam.getAttributes().put("playbook", localAnsible.getAnsiblePlaybook());
+
+                if (!localAnsible.isExisting()) {
+                    //TODO: delete old resource
+
+                    //create new resource
+                    final PrimitiveResourceRestRep primitiveResourceRestRep = getCatalogClient().customServicesPrimitives().createPrimitiveResource("ANSIBLE", localAnsible.ansiblePackage, localAnsible.ansiblePackageName);
+                    if(null != primitiveResourceRestRep) {
+                        //TODO: update resource link
+                    }
+                }
+                //TODO: update script name ( if it is different from existing name)
+
+                getCatalogClient().customServicesPrimitives().updatePrimitive(localAnsiblePrimitiveID, primitiveUpdateParam);
+            }
+        }
+        catch (final Exception e) {
+            Logger.error(e.getMessage());
+            flash.error(e.getMessage());
+        }
+
+    }
+
+    private static void createLocalAnsiblePrimitive(@Valid final LocalAnsiblePrimitiveForm localAnsible){
         try {
             PrimitiveResourceRestRep primitiveResourceRestRep = null;
             if(localAnsible.isExisting()) {
@@ -625,10 +774,10 @@ public class WorkflowBuilder extends Controller {
                 primitiveCreateParam.setAttributes(new HashMap<String, String>());
                 primitiveCreateParam.getAttributes().put("playbook", localAnsible.getAnsiblePlaybook());
                 if (StringUtils.isNotEmpty(localAnsible.getInputs())) {
-                    primitiveCreateParam.setInput(Arrays.asList(localAnsible.getInputs().split(",")));
+                    primitiveCreateParam.setInput(getListFromInputOutputString(localAnsible.getInputs()));
                 }
                 if (StringUtils.isNotEmpty(localAnsible.getOutputs())) {
-                    primitiveCreateParam.setOutput(Arrays.asList(localAnsible.getOutputs().split(",")));
+                    primitiveCreateParam.setOutput(getListFromInputOutputString(localAnsible.getOutputs()));
                 }
 
                 final PrimitiveRestRep primitiveRestRep = getCatalogClient().customServicesPrimitives().createPrimitive(primitiveCreateParam);
@@ -659,6 +808,80 @@ public class WorkflowBuilder extends Controller {
         ansibleResourceNames.add(new StringOption("1x","CreateHostPackage"));
         ansibleResourceNames.add(new StringOption("urn:storageos:AnsiblePackage:32efea07-d2b7-4581-b577-60c7d95c7f53:vdc1","Create Project Package"));
         renderArgs.put("ansibleResourceNames", ansibleResourceNames);
+
+    }
+
+    private static List<String> convertInputGroupsToList(final Map<String, PrimitiveRestRep.InputGroup> inputGroups){
+        final List<String> inputNameList = new ArrayList<String>();
+        if(null != inputGroups && !inputGroups.isEmpty() && inputGroups.containsKey("input_params")) {
+            final List<InputParameterRestRep> inputParameterRestRepList = inputGroups.get("input_params").getInputGroup();
+            for (InputParameterRestRep inputParameterRestRep: inputParameterRestRepList) {
+                inputNameList.add(inputParameterRestRep.getName());
+            }
+        }
+        return inputNameList;
+    }
+
+    private static List<String> convertOutputGroupsToList(final List<OutputParameterRestRep> outputParameterRestRepList) {
+        final List<String> outputNameList = new ArrayList<String>();
+        if (null != outputParameterRestRepList){
+            for(OutputParameterRestRep outputParameterRestRep: outputParameterRestRepList) {
+                outputNameList.add(outputParameterRestRep.getName());
+            }
+        }
+        return outputNameList;
+    }
+
+    private static String convertListToString(final List<String> inList) {
+        return inList == null? "" :  String.join(",", inList);
+    }
+
+    private static ShellScriptPrimitiveForm mapPrimitiveScriptRestToForm(final PrimitiveRestRep primitiveRestRep) {
+        final ShellScriptPrimitiveForm shellPrimitive = new ShellScriptPrimitiveForm();
+        if (null != primitiveRestRep){
+            shellPrimitive.setId(primitiveRestRep.getId().toString());
+            shellPrimitive.setName(primitiveRestRep.getName());
+            shellPrimitive.setDescription(primitiveRestRep.getDescription());
+            shellPrimitive.setInputs(convertListToString(convertInputGroupsToList(primitiveRestRep.getInputGroups())));
+            shellPrimitive.setOutputs(convertListToString(convertOutputGroupsToList(primitiveRestRep.getOutput())));
+            //TODO: get script name from API
+            shellPrimitive.setScriptName("SAMPLE NAME");
+        }
+        return shellPrimitive;
+    }
+
+    private static LocalAnsiblePrimitiveForm mapPrimitiveLARestToForm(final PrimitiveRestRep primitiveRestRep) {
+        final LocalAnsiblePrimitiveForm localAnsiblePrimitiveForm = new LocalAnsiblePrimitiveForm();
+        if (null != primitiveRestRep){
+            localAnsiblePrimitiveForm.setId(primitiveRestRep.getId().toString());
+            localAnsiblePrimitiveForm.setName(primitiveRestRep.getName());
+            localAnsiblePrimitiveForm.setDescription(primitiveRestRep.getDescription());
+            localAnsiblePrimitiveForm.setInputs(convertListToString(convertInputGroupsToList(primitiveRestRep.getInputGroups())));
+            localAnsiblePrimitiveForm.setOutputs(convertListToString(convertOutputGroupsToList(primitiveRestRep.getOutput())));
+            //TODO: get script name from API
+            localAnsiblePrimitiveForm.setAnsiblePackageName("SAMPLE NAME");
+            localAnsiblePrimitiveForm.setAnsiblePlaybook(primitiveRestRep.getAttributes().get("playbook"));
+            localAnsiblePrimitiveForm.setExisting(true);
+        }
+        return localAnsiblePrimitiveForm;
+    }
+
+    public static void getPrimitive(final URI primitiveId, final String primitiveType) {
+        final PrimitiveRestRep primitiveRestRep = getCatalogClient().customServicesPrimitives().getPrimitive(primitiveId);
+        if (null == primitiveRestRep) {
+            flash.error("Invalid primitive ID");
+        }
+        else {
+            switch(WFBuilderNodeTypes.valueOf(primitiveType)){
+                case SCRIPT:
+                    renderJSON(mapPrimitiveScriptRestToForm(primitiveRestRep));
+                case ANSIBLE:
+                    renderJSON(mapPrimitiveLARestToForm(primitiveRestRep));
+                default:
+                    Logger.error("Invalid primitive type: %s", primitiveType);
+            }
+
+        }
 
     }
 }

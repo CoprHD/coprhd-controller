@@ -13,15 +13,13 @@ reboot
 localcli network firewall set --enabled false
 
 # ensure there is only one volume (the boot volume) visible to this server.
-LINECOUNT=`localcli --format-param=show-header=false storage vmfs extent list | wc -l`
-if [ $LINECOUNT != 1 ] ; then
-# VBDU TODO: There are ways to get this to the KVM console, we should do that
-echo "There are ${LINECOUNT} volumes seen by this host.  ViPR supports only a boot volume exposed to the host during OS installation to ensure data integrity of shared or unmanaged volumes"
+LINECOUNT=`ls /dev/disks/naa.* | grep -v ":" | wc -l`
+if [ "$LINECOUNT" != "1" ] ; then
+echo "ViPR requires only a boot volume at install time."
+ls /dev/disks/naa.* | grep -v ${clear.device} | grep -v ":" | awk -F. '{print $2}'
 exit 1
 fi
 
-# VBDU TODO [DONE]: The issue inserted code for D@T@STORE_SYM_LINK (sic) is that it does NOT guarantee the wwn is datastore1 at all.  And even if it did, it can nott guarantee
-# VBDU TODO [DONE]: that is the first lun booted after the system comes back up.  I added the check above to ensure one and only one volume.
 # if boot uuid was used, this will create sym link
 ${DATASTORE_SYM_LINK}
 cat /var/log/weasel.log  >> /vmfs/volumes/datastore1/osagent.log 2>&1

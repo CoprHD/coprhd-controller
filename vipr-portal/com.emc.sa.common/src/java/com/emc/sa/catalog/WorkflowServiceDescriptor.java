@@ -23,6 +23,8 @@ import java.util.List;
 
 import javax.annotation.PostConstruct;
 
+import com.emc.storageos.primitives.Primitive;
+import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -105,32 +107,32 @@ public class WorkflowServiceDescriptor {
 
             for (final Step step : wfDocument.getSteps()) {
                 if (null != step.getInputGroups()) {
-			//TODO add enum. and need to fix COP-28181
-			for (final Input wfInput : step.getInputGroups().get("input_params").getInputGroup()) {
-                            String wfInputType = null;
-                            // Creating service fields for only inputs of type "inputfromuser" and "assetoption"
-                            if (INPUT_FROM_USER_INPUT_TYPE.equals(wfInput.getType())) {
-                                wfInputType = INPUT_FROM_USER_FIELD_TYPE;
-                            } else if (ASSET_INPUT_TYPE.equals(wfInput.getType())) {
-                                wfInputType = wfInput.getValue();
-                            }
-                            if (null != wfInputType) {
-                                ServiceField serviceField = new ServiceField();
-                                String inputName = wfInput.getName();
-                                //TODO: change this to get description
-                                serviceField.setDescription(wfInput.getFriendlyName());
-                                serviceField.setLabel(wfInput.getFriendlyName());
-                                serviceField.setName(inputName);
-                                serviceField.setRequired(wfInput.getRequired());
-                                serviceField.setInitialValue(wfInput.getDefaultValue());
-                                // Setting all unlocked fields as lockable
-                                if (!wfInput.getLocked()) {
-                                    serviceField.setLockable(true);
-                                }
-                                serviceField.setType(wfInputType);
-                                to.getItems().put(inputName, serviceField);
-                            }
+                    //TODO: fix COP-28181
+			        for (final Input wfInput : step.getInputGroups().get(Primitive.InputType.INPUT_PARAMS).getInputGroup()) {
+                        String wfInputType = null;
+                        // Creating service fields for only inputs of type "inputfromuser" and "assetoption"
+                        if (INPUT_FROM_USER_INPUT_TYPE.equals(wfInput.getType())) {
+                            wfInputType = INPUT_FROM_USER_FIELD_TYPE;
+                        } else if (ASSET_INPUT_TYPE.equals(wfInput.getType())) {
+                            wfInputType = wfInput.getValue();
                         }
+                        if (null != wfInputType) {
+                            ServiceField serviceField = new ServiceField();
+                            String inputName = wfInput.getName();
+                            //TODO: change this to get description
+                            serviceField.setDescription(wfInput.getFriendlyName());
+                            serviceField.setLabel(StringUtils.isBlank(wfInput.getFriendlyName()) ? inputName : wfInput.getFriendlyName());
+                            serviceField.setName(inputName);
+                            serviceField.setRequired(wfInput.getRequired());
+                            serviceField.setInitialValue(wfInput.getDefaultValue());
+                            // Setting all unlocked fields as lockable
+                            if (!wfInput.getLocked()) {
+                                serviceField.setLockable(true);
+                            }
+                            serviceField.setType(wfInputType);
+                            to.getItems().put(inputName, serviceField);
+                        }
+                    }
                 }
             }
 

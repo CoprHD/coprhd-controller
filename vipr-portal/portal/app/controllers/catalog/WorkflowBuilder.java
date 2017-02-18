@@ -35,6 +35,7 @@ import com.emc.storageos.model.customservices.InputUpdateParam;
 import com.emc.storageos.model.customservices.OutputParameterRestRep;
 import com.emc.storageos.model.customservices.OutputUpdateParam;
 import com.emc.storageos.model.customservices.PrimitiveUpdateParam;
+import com.emc.storageos.primitives.Primitive;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.owasp.esapi.ESAPI;
@@ -813,8 +814,8 @@ public class WorkflowBuilder extends Controller {
 
     private static List<String> convertInputGroupsToList(final Map<String, PrimitiveRestRep.InputGroup> inputGroups){
         final List<String> inputNameList = new ArrayList<String>();
-        if(null != inputGroups && !inputGroups.isEmpty() && inputGroups.containsKey("input_params")) {
-            final List<InputParameterRestRep> inputParameterRestRepList = inputGroups.get("input_params").getInputGroup();
+        if(null != inputGroups && !inputGroups.isEmpty() && inputGroups.containsKey(Primitive.InputType.INPUT_PARAMS)) {
+            final List<InputParameterRestRep> inputParameterRestRepList = inputGroups.get(Primitive.InputType.INPUT_PARAMS).getInputGroup();
             for (InputParameterRestRep inputParameterRestRep: inputParameterRestRepList) {
                 inputNameList.add(inputParameterRestRep.getName());
             }

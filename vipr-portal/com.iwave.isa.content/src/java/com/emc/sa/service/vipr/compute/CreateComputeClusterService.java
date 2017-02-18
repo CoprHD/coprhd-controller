@@ -272,6 +272,7 @@ public class CreateComputeClusterService extends ViPRService {
             List<HostRestRep> hostsWithOs = installOSForHosts(hostToIPs, ComputeUtils.getHostNameBootVolume(hosts));
             logInfo("compute.cluster.exports.installed.os", ComputeUtils.nonNull(hostsWithOs).size());
 
+            ComputeUtils.addHostsToCluster(hosts, cluster);
             pushToVcenter();
         }
 

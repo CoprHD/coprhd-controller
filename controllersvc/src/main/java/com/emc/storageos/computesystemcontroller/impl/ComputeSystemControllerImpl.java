@@ -299,6 +299,8 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
     public static List<ExportGroup> getExportGroups(DbClient dbClient, URI hostId, List<Initiator> initiators) {
         HashMap<URI, ExportGroup> exports = new HashMap<URI, ExportGroup>();
         // Get all exports that use the host's initiators
+        //VBDU TODO: This method brings in cluster export Groups as well, which ends up in removing the shared and exclusive volumes
+        //from the host, may be its intentional, need to verify.
         for (Initiator item : initiators) {
             List<ExportGroup> list = ComputeSystemHelper.findExportsByInitiator(dbClient, item.getId().toString());
             for (ExportGroup export : list) {
@@ -451,7 +453,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
 
             completer = new HostCompleter(eventId, hostIds, false, taskId);
 
-            if (!NullColumnValueGetter.isNullURI(oldCluster)) {
+            if (!NullColumnValueGetter.isNullURI(oldCluster) && !oldCluster.equals(clusterId)) {
                 waitFor = addStepsForRemoveHost(workflow, waitFor, hostIds, oldCluster, vCenterDataCenterId, isVcenter);
             }
 

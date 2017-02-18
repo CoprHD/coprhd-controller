@@ -16,7 +16,7 @@ localcli network firewall set --enabled false
 LINECOUNT=`ls /dev/disks/naa.* | grep -v ":" | wc -l`
 if [ "$LINECOUNT" != "1" ] ; then
 echo "ViPR requires only a boot volume at install time."
-ls /dev/disks/naa.* | grep -v ${clear.device} | grep -v ":" | awk -F. '{print $2}'
+ls /dev/disks/naa.* | grep -v ${raw.uuid} | grep -v ":" | awk -F. '{print $2}'
 exit 1
 fi
 

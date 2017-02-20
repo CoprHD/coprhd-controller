@@ -62,9 +62,10 @@ public class SRDFVolumesInCGMigration extends BaseCustomMigrationCallback {
         while (volumes.hasNext()) {
             totalVolumes++;
             Volume volume = volumes.next();
-            URI cgUri = volume.getConsistencyGroup();
-            URI storageUri = volume.getStorageController();
-            if (!NullColumnValueGetter.isNullURI(volume.getConsistencyGroup())) {
+            if (!NullColumnValueGetter.isNullURI(volume.getStorageController()) 
+                    && !NullColumnValueGetter.isNullURI(volume.getConsistencyGroup())) {
+                URI cgUri = volume.getConsistencyGroup();
+                URI storageUri = volume.getStorageController();
                 BlockConsistencyGroup cg = dbClient.queryObject(BlockConsistencyGroup.class, cgUri);
                 StorageSystem system = dbClient.queryObject(StorageSystem.class, storageUri);
                 if (cg == null || system == null) {

@@ -866,19 +866,21 @@ public class VPlexUtil {
             // This indicates which cluster this is part of.
             boolean clusterMatch = false;
             _log.info("this ExportMask contains these storage ports: " + mask.getStoragePorts());
-            for (String portUri : mask.getStoragePorts()) {
-                StoragePort port = dbClient.queryObject(StoragePort.class, URI.create(portUri));
-                if (port != null && !port.getInactive()) {
-                    if (clusterMatch == false) {
-                        // We need to match the VPLEX cluster for the exportMask
-                        // as the exportMask for the same host can be in both VPLEX clusters
-                        String vplexClusterForMask = ConnectivityUtil.getVplexClusterOfPort(port);
-                        clusterMatch = vplexClusterForMask.equals(vplexCluster);
-                        if (clusterMatch) {
-                            _log.info("a matching ExportMask " + mask.getMaskName()
-                                    + " was found on this VPLEX " + varrayURI
-                                    + " on  cluster " + vplexCluster);
-                            exportMasksForVplexCluster.add(mask);
+            if (mask.getStoragePorts() != null) {
+                for (String portUri : mask.getStoragePorts()) {
+                    StoragePort port = dbClient.queryObject(StoragePort.class, URI.create(portUri));
+                    if (port != null && !port.getInactive()) {
+                        if (clusterMatch == false) {
+                            // We need to match the VPLEX cluster for the exportMask
+                            // as the exportMask for the same host can be in both VPLEX clusters
+                            String vplexClusterForMask = ConnectivityUtil.getVplexClusterOfPort(port);
+                            clusterMatch = vplexClusterForMask.equals(vplexCluster);
+                            if (clusterMatch) {
+                                _log.info("a matching ExportMask " + mask.getMaskName()
+                                        + " was found on this VPLEX " + varrayURI
+                                        + " on  cluster " + vplexCluster);
+                                exportMasksForVplexCluster.add(mask);
+                            }
                         }
                     }
                 }

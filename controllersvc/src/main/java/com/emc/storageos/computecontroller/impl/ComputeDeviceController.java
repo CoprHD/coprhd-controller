@@ -5,8 +5,10 @@
 package com.emc.storageos.computecontroller.impl;
 
 import java.net.URI;
+import java.util.List;
 
 import com.emc.storageos.Controller;
+import com.emc.storageos.blockorchestrationcontroller.VolumeDescriptor;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.workflow.Workflow;
 
@@ -98,7 +100,8 @@ public interface ComputeDeviceController extends Controller {
      *            boolean indicating if boot volume has to be deleted.
      * @return waitFor step name
      */
-    public String addStepsDeactivateHost(Workflow workflow, String waitFor, URI hostId, boolean deactivateBootVolume)
+    public String addStepsDeactivateHost(Workflow workflow, String waitFor, URI hostId,
+            boolean deactivateBootVolume, List<VolumeDescriptor> volumeDescriptors)
             throws InternalException;
 
     /**

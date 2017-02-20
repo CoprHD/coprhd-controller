@@ -45,7 +45,7 @@ public class VNXeExportMaskVolumesValidator extends AbstractVNXeValidator {
         ExportMask exportMask = getExportMask();
 
         try {
-            String vnxeHostId = getVNXeHostFromInitiators();
+            String vnxeHostId = getHostId();
             if (vnxeHostId != null) {
                 VNXeHost vnxeHost = apiClient.getHostById(vnxeHostId);
                 if (vnxeHost != null) {

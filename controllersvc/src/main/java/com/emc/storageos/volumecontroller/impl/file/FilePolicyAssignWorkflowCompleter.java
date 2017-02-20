@@ -15,6 +15,7 @@ import org.slf4j.LoggerFactory;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.FilePolicy;
 import com.emc.storageos.db.client.model.FilePolicy.FilePolicyApplyLevel;
+import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.Operation.Status;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.VirtualPool;
@@ -41,27 +42,29 @@ public class FilePolicyAssignWorkflowCompleter extends FilePolicyWorkflowComplet
 
     @Override
     protected void complete(DbClient dbClient, Status status, ServiceCoded coded) throws DeviceControllerException {
-        FilePolicy filePolicy = dbClient.queryObject(FilePolicy.class, getId());
+        if (Operation.Status.ready.equals(status)) {
+            FilePolicy filePolicy = dbClient.queryObject(FilePolicy.class, getId());
 
-        for (URI resourceURI : assignToResource) {
-            filePolicy.addAssignedResources(resourceURI);
-            FilePolicyApplyLevel applyAt = FilePolicyApplyLevel.valueOf(filePolicy.getApplyAt());
-            switch (applyAt) {
-                case project:
-                    Project project = dbClient.queryObject(Project.class, resourceURI);
-                    project.addFilePolicy(filePolicy.getId());
-                    dbClient.updateObject(project);
-                    break;
-                case vpool:
-                    VirtualPool vpool = dbClient.queryObject(VirtualPool.class, resourceURI);
-                    vpool.addFilePolicy(filePolicy.getId());
-                    dbClient.updateObject(vpool);
-                    break;
-                default:
-                    break;
+            for (URI resourceURI : assignToResource) {
+                filePolicy.addAssignedResources(resourceURI);
+                FilePolicyApplyLevel applyAt = FilePolicyApplyLevel.valueOf(filePolicy.getApplyAt());
+                switch (applyAt) {
+                    case project:
+                        Project project = dbClient.queryObject(Project.class, resourceURI);
+                        project.addFilePolicy(filePolicy.getId());
+                        dbClient.updateObject(project);
+                        break;
+                    case vpool:
+                        VirtualPool vpool = dbClient.queryObject(VirtualPool.class, resourceURI);
+                        vpool.addFilePolicy(filePolicy.getId());
+                        dbClient.updateObject(vpool);
+                        break;
+                    default:
+                        break;
+                }
             }
+            dbClient.updateObject(filePolicy);
         }
-        dbClient.updateObject(filePolicy);
         setStatus(dbClient, status, coded);
     }
 }

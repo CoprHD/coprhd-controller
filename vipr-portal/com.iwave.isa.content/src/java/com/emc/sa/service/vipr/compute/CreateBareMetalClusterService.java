@@ -146,7 +146,7 @@ public class CreateBareMetalClusterService extends ViPRService {
             hostNames = ComputeUtils.removeExistingHosts(hostNames, cluster);
         }
 
-        List<Host> hosts = ComputeUtils.createHosts(cluster.getId(), computeVirtualPool, hostNames, virtualArray);
+        List<Host> hosts = ComputeUtils.createHosts(cluster, computeVirtualPool, hostNames, virtualArray);
 
         logInfo("compute.cluster.hosts.created", ComputeUtils.nonNull(hosts).size());
 

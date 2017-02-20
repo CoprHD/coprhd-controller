@@ -101,6 +101,9 @@ public class VPlexApiExportManager {
             registerInitiators(clusterInfo, initiatorInfoList);
             s_logger.info("Registered initiators");
 
+            initiatorInfoList = findInitiatorsWithRetry(
+                    clusterInfo.getName(), clusterInfo.getClusterId(), initiatorPortInfo, null);
+
             // Add the initiators to storage view.
             addStorageViewInitiators(storageViewInfo, initiatorInfoList);
             s_logger.info("Initiators added to new storage view");

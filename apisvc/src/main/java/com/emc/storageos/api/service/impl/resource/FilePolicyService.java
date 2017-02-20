@@ -867,6 +867,7 @@ public class FilePolicyService extends TaskResourceService {
                                 if (filepolicy.getReplicationTopologies() == null
                                         || !filepolicy.getReplicationTopologies().contains(topology.getId().toString())) {
                                     filepolicy.addReplicationTopology(topology.getId().toString());
+                                    _dbClient.updateObject(filepolicy);
                                 }
                                 foundExistingTopology = true;
                                 break;
@@ -891,6 +892,7 @@ public class FilePolicyService extends TaskResourceService {
                         if (filepolicy.getReplicationTopologies() == null
                                 || !filepolicy.getReplicationTopologies().contains(dbReplTopology.getId().toString())) {
                             filepolicy.addReplicationTopology(dbReplTopology.getId().toString());
+                            _dbClient.updateObject(filepolicy);
                         }
                     }
                 }

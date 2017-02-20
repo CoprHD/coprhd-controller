@@ -144,6 +144,8 @@ public class AddBareMetalHostToClusterService extends ViPRService {
         hosts = ComputeUtils.deactivateHostsWithNoExport(hosts, exportIds, bootVolumeIds, cluster);
         ComputeUtils.setHostBootVolumes(hosts, bootVolumeIds);
 
+        ComputeUtils.addHostsToCluster(hosts, cluster);
+
         String orderErrors = ComputeUtils.getOrderErrors(cluster, copyOfHostNames, null, null);
         if (orderErrors.length() > 0) { // fail order so user can resubmit
             if (ComputeUtils.nonNull(hosts).isEmpty()) {

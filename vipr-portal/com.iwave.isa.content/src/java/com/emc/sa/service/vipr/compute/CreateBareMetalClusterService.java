@@ -164,6 +164,8 @@ public class CreateBareMetalClusterService extends ViPRService {
         if (ComputeUtils.findHostNamesInCluster(cluster).isEmpty()) {
             logInfo("compute.cluster.removing.empty.cluster");
             ComputeUtils.deactivateCluster(cluster);
+        } else {
+            ComputeUtils.addHostsToCluster(hosts, cluster);
         }
 
         String orderErrors = ComputeUtils.getOrderErrors(cluster, copyOfHostNames, null, null);

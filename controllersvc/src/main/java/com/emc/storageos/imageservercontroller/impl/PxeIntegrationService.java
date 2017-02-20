@@ -147,6 +147,7 @@ public class PxeIntegrationService {
         assertKickStartParam(job.getPasswordHash(), "Password hash");
 
         // common parameters for all versions
+        ImageServerUtils.replaceAll(sb, "${raw.uuid}", bootDeviceUuid);
         ImageServerUtils.replaceAll(sb, "${clear.device}", clearDevice);
         ImageServerUtils.replaceAll(sb, "${install.device}", installDevice);
         ImageServerUtils.replaceAll(sb, "${http.ip}", imageServer.getImageServerSecondIp());

@@ -297,6 +297,7 @@ public class HostService extends TaskResourceService {
         // We only want to update the export group if we're changing the cluster during a host update
         if (newClusterURI != null) {
             updateTaskStatus = false;
+            //VBDU TODO:The first if block never gets executed, need to understand the impact.
             if (updateExports && !NullColumnValueGetter.isNullURI(oldClusterURI)
                     && NullColumnValueGetter.isNullURI(newClusterURI)
                     && ComputeSystemHelper.isClusterInExport(_dbClient, oldClusterURI)) {
@@ -338,6 +339,7 @@ public class HostService extends TaskResourceService {
          * for satisfying some high level requirements, although it may not be
          * sufficient from an API purity standpoint
          */
+        //VBDU TODO: The above block of code doesn't guarantee that exports will be triggered for the updated host.Is it ok to set boot volume?
         if (!NullColumnValueGetter.isNullURI(host.getComputeElement()) && !NullColumnValueGetter.isNullURI(updateParam.getBootVolume())) {
             controller.setHostSanBootTargets(host.getId(), updateParam.getBootVolume());
         }

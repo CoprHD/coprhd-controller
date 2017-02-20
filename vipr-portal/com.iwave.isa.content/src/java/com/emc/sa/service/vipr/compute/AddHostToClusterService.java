@@ -244,7 +244,7 @@ public class AddHostToClusterService extends ViPRService {
         List<Host> hosts = ComputeUtils.createHosts(cluster, computeVirtualPool, hostNames, virtualArray);
         logInfo("compute.cluster.hosts.created", ComputeUtils.nonNull(hosts).size());
 
-        // WJEIV: TODO Assuming shared exports are already exported to these new hosts, I see Hosts are getting
+        // VBDU: TODO Assuming shared exports are already exported to these new hosts, I see Hosts are getting
         // moved out of cluster irrespective of the shared volumes. Even though it makes sense to remove the host
         // out, we should be extra cautious to verify the shared volumes are already available.
         List<URI> bootVolumeIds = ComputeUtils.makeBootVolumes(project, virtualArray, virtualPool, size, hosts,

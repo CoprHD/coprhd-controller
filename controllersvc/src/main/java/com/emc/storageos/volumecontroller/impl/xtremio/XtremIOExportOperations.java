@@ -35,7 +35,6 @@ import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringMap;
-import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.util.CommonTransformerFunctions;
@@ -50,6 +49,7 @@ import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import com.emc.storageos.volumecontroller.impl.VolumeURIHLU;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportMaskRemoveInitiatorCompleter;
 import com.emc.storageos.volumecontroller.impl.smis.ExportMaskOperations;
+import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
 import com.emc.storageos.volumecontroller.impl.utils.ExportOperationContext;
 import com.emc.storageos.volumecontroller.impl.utils.ExportOperationContext.ExportOperationContextOperation;
 import com.emc.storageos.volumecontroller.impl.validators.ValidatorFactory;
@@ -615,6 +615,8 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
                 mask.setUserAddedVolumes(new StringMap());
             }
 
+
+
             Set<String> existingVolumes = Sets.difference(discoveredVolumes.keySet(), mask.getUserAddedVolumes().keySet());
 
             _log.info(String.format("XtremIO discovered volumes: {%s}%n", Joiner.on(',').join(discoveredVolumes.keySet())));
@@ -623,6 +625,8 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
             for (String wwn : existingVolumes) {
                 mask.addToExistingVolumesIfAbsent(wwn, discoveredVolumes.get(wwn).toString());
             }
+            // Check export mask's user added volumes for missing HLU, and update if required (COP-27711)
+            ExportMaskUtils.updateMissingHLUsInExportMask(mask, discoveredVolumes, dbClient);
             dbClient.updateObject(mask);
 
         } catch (Exception e) {

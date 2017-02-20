@@ -5186,9 +5186,8 @@ public class VmaxExportOperations implements ExportMaskOperations {
         CIMInstance portGroupInstance = _helper.getPortGroupInstance(storage, exportMask.getMaskName());
         if (null == portGroupInstance) {
             String errMsg = String.format("add storage ports failed - maskName %s : Port group not found ", exportMask.getMaskName());
-            ServiceError serviceError = DeviceControllerException.errors.jobFailedMsg(errMsg, null);
-            taskCompleter.error(_dbClient, serviceError);
-            return null;
+            throw DeviceControllerException.exceptions.exportGroupPathAdjustmentError(errMsg);
+            
         }
         String pgGroupName = (String) portGroupInstance.getPropertyValue(SmisConstants.CP_ELEMENT_NAME);
 
@@ -5240,12 +5239,10 @@ public class VmaxExportOperations implements ExportMaskOperations {
         if (null == portGroupInstance) {
             String errMsg = String.format("remove storage ports failed - maskName %s : Port group not found ",
                     mask.getMaskName());
-            ServiceError serviceError = DeviceControllerException.errors.jobFailedMsg(errMsg, null);
-            taskCompleter.error(_dbClient, serviceError);
-            return portsToRemove;
+            throw DeviceControllerException.exceptions.exportGroupPathAdjustmentError(errMsg);
         }
         String pgGroupName = (String) portGroupInstance.getPropertyValue(SmisConstants.CP_ELEMENT_NAME);
-
+        
         // Get the current ports off of the storage group; only remove the ones that are there.
         WBEMClient client = _helper.getConnection(storage).getCimClient();
         List<String> storagePorts = _helper.getStoragePortsFromLunMaskingInstance(client,
@@ -5257,6 +5254,14 @@ public class VmaxExportOperations implements ExportMaskOperations {
         boolean removingLast = portsToRemove.size() == storagePortURIs.size();
 
         if (!portsToRemove.isEmpty() && !removingLast) {
+            // Going to remove the ports from the port group, checking if the port group is shared with other masking view
+            if (_helper.checkPortGroupShared(storage, pgGroupName, mask.getMaskName())) {
+                String msg = String.format("The port group %s has other masking view associated, could not remove ports from it", 
+                        pgGroupName);
+                _log.error(msg);
+                throw DeviceControllerException.exceptions.exportGroupPathAdjustmentError(msg);
+            }
+            
             CIMArgument[] inArgs = _helper.getRemoveTargetPortsFromMaskingGroupInputArguments(storage, pgGroupName,
                     Lists.newArrayList(portsToRemove));
             CIMArgument[] outArgs = new CIMArgument[5];

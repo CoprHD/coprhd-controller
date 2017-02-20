@@ -7760,4 +7760,49 @@ public class SmisCommandHelper implements SmisConstants {
                 _cimArgument.reference(CP_EXISTING_STORAGEID, shidPath)
         };
     }
+    
+    
+    /**
+     * Check if Port Groups is shared with other masking view than the passed in masking view name.
+     * If masking view name is null, then it is to check if the port group has any masking view associated
+     *
+     * @param system - Storage system
+     * @param portGroupName - port group name
+     * @param mvName - masking view name to check with
+     * @return true or false
+     * @throws Exception
+     */
+    public boolean checkPortGroupShared(StorageSystem system, String portGroupName, String mvName) throws Exception {
+        CIMObjectPath portGroupPath = _cimPath.getMaskingGroupPath(system, portGroupName,
+                SmisConstants.MASKING_GROUP_TYPE.SE_TargetMaskingGroup);
+        CloseableIterator<CIMInstance> cimPathItr = null;
+        boolean result = false;
+        try {
+            _log.info("Trying to find the masking view associated with port group {}", portGroupName);
+            cimPathItr = getAssociatorInstances(system, portGroupPath, null, SYMM_LUNMASKINGVIEW,
+                    null, null, PS_ELEMENT_NAME);
+            
+            while (cimPathItr.hasNext()) {
+                if (mvName == null) {
+                    // Just to check if there is any masking view associated to the port group
+                    result = true;
+                    break;
+                } else {
+                    String maskingName = CIMPropertyFactory.getPropertyValue(cimPathItr.next(), SmisConstants.CP_ELEMENT_NAME);
+                    _log.info("The port group {} has lun masking view {} associated", portGroupName, maskingName);
+                    if (maskingName != null && !maskingName.equals(mvName)) {
+                        result = true;
+                        break;
+                    }
+                }
+            }
+        } catch (Exception e) {
+           _log.info("Could not get assciated masking view:", e);
+        }  finally {
+            if (cimPathItr != null) {
+                cimPathItr.close();
+            }
+        }
+        return result;
+    }
 }

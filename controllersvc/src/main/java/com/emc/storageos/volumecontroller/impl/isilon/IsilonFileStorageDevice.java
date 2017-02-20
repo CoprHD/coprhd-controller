@@ -3494,6 +3494,15 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                 _log.info("Comparing snapshot schedule between CoprHD policy: {} and Isilon policy: {}.", filePolicySnapshotSchedule,
                         isilonSnapshotSchedule.getSchedule());
                 if (isilonSnapshotSchedule.getSchedule().equalsIgnoreCase(filePolicySnapshotSchedule)) {
+                    // Verify the policy was mapped to FileStorageResource
+                    if (null == FileOrchestrationUtils.findPolicyStorageResourceByNativeId(_dbClient, storageObj,
+                            filePolicy, args, filePolicyBasePath)) {
+                        _log.info("Isilon policy found for {}, creating policy storage resouce to further management",
+                                filePolicy.getFilePolicyName());
+                        FileOrchestrationUtils.updatePolicyStorageResource(_dbClient, storageObj, filePolicy,
+                                args, filePolicyBasePath, isilonSnapshotSchedule.getName(),
+                                null, null, null);
+                    }
                     result = BiosCommandResult.createSuccessfulResult();
                 } else {
                     _log.info("Snapshot schedule differs between Isilon policy and CoprHD file policy. So, create policy in Isilon...");

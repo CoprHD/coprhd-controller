@@ -10,6 +10,7 @@ import java.util.Map;
 import java.util.Set;
 
 import com.emc.storageos.Controller;
+import com.emc.storageos.db.client.model.FilePolicy;
 import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.model.file.CifsShareACLUpdateParams;
 import com.emc.storageos.model.file.FileExportUpdateParams;
@@ -252,4 +253,14 @@ public interface FileOrchestrationController extends Controller {
     public void assignFileReplicationPolicyToProjects(List<FileStorageSystemAssociation> associations, URI vpoolURI, List<URI> projectURIs,
             URI filePolicyToAssign, String taskId);
 
+    /**
+     * 
+     * @param filePolicy
+     * @param fileDescriptors
+     * @param taskId
+     * @throws ControllerException
+     */
+    public abstract void assignFilePolicyToFileSystem(FilePolicy filePolicy, List<FileDescriptor> fileDescriptors,
+            String taskId)
+            throws ControllerException;
 }

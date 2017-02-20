@@ -97,6 +97,10 @@ public class RecentOrdersDataTable extends OrderDataTable {
         if (info != null && !info.isNoJobOrJobDone()) {
             status = MessagesUtils.get("orders.delete.status", new Date(info.getStartTime()), new Date(info.getEndTime()),
                     info.getCompleted(), info.getTotal(), info.getFailed());
+            if (info.getTotal() >= OrderDataTable.ORDER_MAX_DELETE_PER_GC) {
+                status = String.format("%s %s", status, MessagesUtils.get("orders.delete.all.threshold",
+                        OrderDataTable.ORDER_MAX_DELETE_PER_GC));
+            }
         }
         Logger.info("getDeleteJobStatus: {}", status);
         return status;

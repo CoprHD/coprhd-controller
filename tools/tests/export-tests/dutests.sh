@@ -1104,10 +1104,6 @@ test_3() {
         return
     fi
 
-    if [ "$SS" = "unity" ]; then
-        echo "For Unity, we do not delete initiators for export mask delete if there is unknown volume. So skipping this test for Unity."
-        return
-    fi
 
     # Make sure we start clean; no masking view on the array
     verify_export ${expname}1 ${HOST1} gone
@@ -1140,13 +1136,19 @@ test_3() {
     runcmd workflow resume $workflow
 
     # Follow the task.  It should fail because of Poka Yoke validation
-    if [ "$SS" = "xio" ]; then
-        echo "For XtremIO, we do not delete initiators for export mask delete. So skipping this test for XIO."
-        return
-    fi
+    if [ "$SS" = "unity" ]; then
+        # deleting exort mask with unknown volume is allowed, unknown volume and initiators are untouched
+        runcmd task follow $task
+        verify_export ${expname}1 ${HOST1} 2 1
 
-    echo "*** Following the export_group delete task to verify it FAILS because of the additional volume"
-    fail task follow $task
+        # create the export group again
+        runcmd export_group create $PROJECT ${expname}1 $NH --type Host --volspec ${PROJECT}/${VOLNAME}-1 --hosts "${HOST1}"
+
+        verify_export ${expname}1 ${HOST1} 2 2
+    else
+        echo "*** Following the export_group delete task to verify it FAILS because of the additional volume"
+        fail task follow $task
+    fi
 
     # Now remove the volume from the storage group (masking view)
     arrayhelper remove_volume_from_mask ${SERIAL_NUMBER} ${device_id} ${HOST1}
@@ -2800,11 +2802,6 @@ test_23() {
 #
 test_24() {
     echot "Test 24: Remove Volume doesn't remove the zone when extra volume is in the mask"
-    if [ "$SS" = "unity" ]; then
-        echo "This will fail for Unity due to COP-27778. So skipping this test for Unity for now."
-        return
-    fi
-
     expname=${EXPORT_GROUP_NAME}t24
 
     # Make sure we start clean; no masking view on the array
@@ -2934,7 +2931,7 @@ test_25() {
     # Add another initiator to the mask (done differently per array type)
     arrayhelper add_initiator_to_mask ${SERIAL_NUMBER} ${PWWN} ${HOST1}
    
-    # Verify the mask has the new volume in it
+    # Verify the mask has the new initiator in it
     verify_export ${expname}1 ${HOST1} 3 1
 
     # Run the export group command 
@@ -3473,6 +3470,9 @@ test_28() {
     runcmd export_group delete $PROJECT2/${expname}2
     verify_export ${expname}1 ${HOST1} 1 1
 
+    echo "Sleep 60 seconds"
+    sleep 60
+
     # Create export group 2 again with different sets of initiators
     runcmd export_group create ${PROJECT2} ${expname}2 $NH --type Host --volspec "${PROJECT2}/P2${VOLNAME}-1" --hosts "${HOST1}"
     verify_export ${expname}1 ${HOST1} 2 2
@@ -3590,6 +3590,9 @@ test_29() {
     runcmd export_group update $PROJECT/${expname}1 --remVols "${PROJECT}/${VOLNAME}-1"
     runcmd export_group update $PROJECT/${expname}1 --remVols "${PROJECT}/${VOLNAME}-2"
 
+    echo "Sleep 60 seconds"
+    sleep 60
+
     # Create the same export group again
     runcmd export_group create $PROJECT ${expname}1 $NH --type Host --volspec "${PROJECT}/${VOLNAME}-1,${PROJECT}/${VOLNAME}-2" --hosts "${HOST1}"
 
@@ -3605,6 +3608,9 @@ test_29() {
     # Now remove initiators
     runcmd export_group update $PROJECT/${expname}1 --remInits ${HOST1}/${H1PI1}
     runcmd export_group update $PROJECT/${expname}1 --remInits ${HOST1}/${H1PI2}
+
+    echo "Sleep 60 seconds"
+    sleep 60
 
     # Create the same export group again
     runcmd export_group create $PROJECT ${expname}1 $NH --type Host --volspec "${PROJECT}/${VOLNAME}-1,${PROJECT}/${VOLNAME}-2" --hosts "${HOST1}"

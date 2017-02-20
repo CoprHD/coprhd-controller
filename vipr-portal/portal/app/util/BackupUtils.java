@@ -68,11 +68,13 @@ public class BackupUtils {
 
     public static boolean isExternalServerConfigured() {
         Map<String, String> propInfo = ConfigPropertyUtils.getPropertiesFromCoordinator();
-        return !(propInfo.get(ConfigProperty.BACKUP_EXTERNAL_URL).equals(""));
+        String url = propInfo.get(ConfigProperty.BACKUP_EXTERNAL_URL);
+        return !(url == null || (url.equals("")));
     }
 
     public static boolean isScheduledBackupEnabled() {
         Map<String, String> propInfo = ConfigPropertyUtils.getPropertiesFromCoordinator();
-        return (propInfo.get(ConfigProperty.BACKUP_SCHEDULER_ENABLE).equals("true"));
+        String enable = propInfo.get(ConfigProperty.BACKUP_SCHEDULER_ENABLE);
+        return (enable != null) && (enable.equals("true"));
     }
 }

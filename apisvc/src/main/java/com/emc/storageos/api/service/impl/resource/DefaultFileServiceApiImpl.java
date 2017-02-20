@@ -13,6 +13,7 @@ import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.api.service.impl.placement.FileStorageScheduler;
 import com.emc.storageos.db.client.model.DataObject;
+import com.emc.storageos.db.client.model.FilePolicy;
 import com.emc.storageos.db.client.model.FileShare;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.Project;
@@ -150,4 +151,17 @@ public class DefaultFileServiceApiImpl extends AbstractFileServiceApiImpl<FileSt
         }
     }
 
+    @Override
+    public void assignFilePolicyToFileSystem(FileShare fs, FilePolicy filePolicy, Project project, VirtualPool vpool,
+            VirtualArray varray, TaskList taskList, String task, List<Recommendation> recommendations,
+            VirtualPoolCapabilityValuesWrapper vpoolCapabilities)
+            throws InternalException {
+        try {
+            super.assignFilePolicyToFileSystem(fs, filePolicy, project, vpool, varray, taskList, task,
+                    recommendations, vpoolCapabilities);
+        } catch (Exception e) {
+            _log.error("Controller error when create mirror filesystems", e);
+            throw e;
+        }
+    }
 }

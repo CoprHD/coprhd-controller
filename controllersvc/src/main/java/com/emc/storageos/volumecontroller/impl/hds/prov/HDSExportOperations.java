@@ -1456,11 +1456,39 @@ public class HDSExportOperations implements ExportMaskOperations {
                             }
                         }
                         if (null == maskForHSD) {
-                            isNewExportMask = true;
-                            maskForHSD = new ExportMask();
-                            maskForHSD.setId(URIUtil.createId(ExportMask.class));
-                            maskForHSD.setStorageDevice(storage.getId());
-                            maskForHSD.setCreatedBySystem(false);
+							//first get the varray of the storageport of the HSD and then check if
+                        	//any of the export masks have storage ports, which belong to the same varray 
+                        	//which is in consideration. 
+							//NOTE: If the storageport is assigned to multiple varrays, then maintaining one
+							//export mask per varray is not possible.
+                        	String  varrayUriOfHsdPort = getVarrayOfStoragePort(storagePortOFHDSURI);	                        	                  	
+                        	if(varrayUriOfHsdPort != null){
+                        		boolean bMaskFound = false;
+                        		for (ExportMask exportMaskhavingInitiators : exportMaskWithHostInitiators) {
+                                    for(String storagePortUriIter : exportMaskhavingInitiators.getStoragePorts()) {
+                                        //get the storage port entity
+                                    	String  varrayOfStoragePort = getVarrayOfStoragePort(storagePortUriIter);
+                                    	if ( (varrayOfStoragePort!=null) && (varrayOfStoragePort.equals(varrayUriOfHsdPort)) ){
+                                    		maskForHSD = exportMaskhavingInitiators;
+                                    		bMaskFound = true;
+                                    		break;
+                                    	}
+                                    }
+                                    if(bMaskFound){
+                                    	break;
+                                    }
+                                }
+                        	}
+                        	else{
+                        		continue;
+                        	}
+                        	if(null == maskForHSD){
+                        		isNewExportMask = true;
+                                maskForHSD = new ExportMask();
+                                maskForHSD.setId(URIUtil.createId(ExportMask.class));
+                                maskForHSD.setStorageDevice(storage.getId());
+                                maskForHSD.setCreatedBySystem(false);	
+                        	}                  
                         }
                         Set<HostStorageDomain> hsdSet = new HashSet<>();
                         hsdSet.add(hsd);
@@ -1512,6 +1540,30 @@ public class HDSExportOperations implements ExportMaskOperations {
 
     }
 
+    
+    
+    
+    /**
+     * Returns the virtual array URI in string format for a given storage port. 
+     * It returns the first  virtual array entry from the taggervirtualArray array entries. 
+     * 
+     * @param storagePortId
+     * @return
+     */
+    String getVarrayOfStoragePort(String storagePortId){
+    	URI storagePortURI = URI.create(storagePortId);
+    	StoragePort objStoragePort = dbClient.queryObject(StoragePort.class, storagePortURI);
+    	    	
+    	if(objStoragePort != null){
+	    	if( (objStoragePort.getTaggedVirtualArrays() != null) && 
+	    			(!objStoragePort.getTaggedVirtualArrays().isEmpty()) ){
+	    		return ((objStoragePort.getTaggedVirtualArrays().toArray())[0]).toString();
+	    	}
+    	}
+    	return null;
+    }
+    
+    
     /**
      * Updates the HSD information in the ExportMask.
      * 

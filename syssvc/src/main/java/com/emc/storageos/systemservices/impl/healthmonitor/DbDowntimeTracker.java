@@ -99,6 +99,7 @@ public class DbDowntimeTracker {
         Configuration config = coordinator.getCoordinatorClient().queryConfiguration(siteId,
                 Constants.DB_DOWNTIME_TRACKER_CONFIG, serviceName);
         DbOfflineEventInfo dbOfflineEventInfo = new DbOfflineEventInfo(config);
+        log.debug("DbofflineEnventInfo is {}",dbOfflineEventInfo.getEventInfo());
 
         long currentTimeStamp = TimeUtils.getCurrentTime();
         Long lastUpdateTimestamp = dbOfflineEventInfo.getLastUpdateTimestamp();

@@ -39,29 +39,15 @@ public class LogFileFinder {
 
         List<File> sameBaseFiles;
         for (File file : logFiles) {
-            logger.info("lbyhh3 file={}", file.getName());
             String baseName;
             fileName = file.getName();
-            // int dashIndex = fileName.indexOf("-");
             int dotIndex = fileName.indexOf(".");
-            int subIndex;
-            /*
-            if (dotIndex > 0 && dashIndex > 0) {
-                subIndex = (dotIndex < dashIndex) ? dotIndex : dashIndex;
-            }
-            else {
-                subIndex = dotIndex > 0 ? dotIndex : dashIndex;
-            }
-            */
-            //if (subIndex > 0) {
             if (dotIndex > 0) {
-                //baseName = fileName.substring(0, subIndex);
                 baseName = fileName.substring(0, dotIndex);
             } else {
                 baseName = fileName;
             }
             logger.debug("fileName: {}. baseName: {}", fileName, baseName);
-            logger.info("lbyhh4 fileName: {}. baseName: {}", fileName, baseName);
             if ((sameBaseFiles = baseLogFiles.get(baseName)) == null) {
                 sameBaseFiles = new ArrayList<File>();
             }

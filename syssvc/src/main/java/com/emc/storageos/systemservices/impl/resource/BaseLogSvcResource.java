@@ -124,7 +124,6 @@ public abstract class BaseLogSvcResource {
      */
     protected Set<String> getValidLogNames() {
         Set<String> logNames = new HashSet<String>();
-        //logNames.addAll(ServicesMetadata.getControlNodeServiceNames());
         logNames.addAll(ServicesMetadata.getControlNodeLogNames());
         logNames.addAll(ServicesMetadata.getExtraNodeServiceNames());
         logNames.addAll(nonServiceLogFileNames);

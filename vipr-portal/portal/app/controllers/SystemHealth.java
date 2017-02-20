@@ -32,7 +32,6 @@ import org.apache.commons.lang.StringEscapeUtils;
 import org.apache.commons.lang.StringUtils;
 import org.joda.time.DateTime;
 
-import org.slf4j.LoggerFactory;
 import play.Logger;
 import play.data.validation.Required;
 import play.i18n.Messages;
@@ -77,7 +76,6 @@ import controllers.util.Models;
 @With(Common.class)
 @Restrictions({ @Restrict("SYSTEM_MONITOR"), @Restrict("SYSTEM_ADMIN"), @Restrict("RESTRICTED_SYSTEM_ADMIN"), @Restrict("SECURITY_ADMIN") })
 public class SystemHealth extends Controller {
-    private static final org.slf4j.Logger logger = LoggerFactory.getLogger(SystemHealth.class);
 
     public static final String PARAM_NODE_ID = "nodeId";
     public static final String PARAM_SERVICE = "service";
@@ -561,7 +559,6 @@ public class SystemHealth extends Controller {
 
         if (service != null && service.length > 0) {
             List<String> logNames = getLogNames(service);
-            //creator.setLogNames(Lists.newArrayList(service));
             creator.setLogNames(logNames);
         }
 
@@ -596,16 +593,12 @@ public class SystemHealth extends Controller {
 
     private static List<String> getLogNames(String[] services) {
         List<String> logNames = new ArrayList();
-        logger.info("lbygg services={}", services);
         for (String service : services) {
             if (service.equals("controllersvc")) {
-                logNames.add("controllersvc-discovery");
-                logNames.add("controllersvc-metering");
-                logNames.add("controllersvc-vplex-api");
+                logNames.addAll(ServicesMetadata.CONTROLLSVC_LOG_NAMES);
             }
             logNames.add(service);
         }
-        logger.info("lbygg logNames={}", logNames);
         return logNames;
     }
 

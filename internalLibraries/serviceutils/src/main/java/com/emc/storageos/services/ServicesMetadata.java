@@ -30,6 +30,8 @@ public class ServicesMetadata implements InitializingBean {
     private static volatile Map<String, ServiceMetadata> _serviceMetadataMap = null;
     private static volatile Map<String, RoleMetadata> _roleMetadataMap = null;
     private static volatile Map<String, List<String>> _roleServiceIndex = null;
+    public static final List<String> CONTROLLSVC_LOG_NAMES =
+            Arrays.asList("controllersvc-discovery", "controllersvc-metering", "controllersvc-vplex-api");
 
     public void setServiceMetadataMap(LinkedHashMap<String,
             ServiceMetadata> serviceMetadataMap) {
@@ -104,9 +106,7 @@ public class ServicesMetadata implements InitializingBean {
             if (serviceMetadata.isControlNodeService()) {
                 String serviceName = serviceMetadata.getName();
                 if (serviceName.equals("controllersvc")) {
-                    logNames.add("controllersvc-discovery");
-                    logNames.add("controllersvc-metering");
-                    logNames.add("controllersvc-vplex-api");
+                    logNames.addAll(CONTROLLSVC_LOG_NAMES);
                 }
                 logNames.add(serviceMetadata.getName());
             }

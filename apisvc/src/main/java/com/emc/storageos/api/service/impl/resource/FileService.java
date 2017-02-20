@@ -2890,7 +2890,16 @@ public class FileService extends TaskResourceService {
     @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.OWN, ACL.ALL })
     public TaskResourceRep startContinuousCopies(@PathParam("id") URI id, FileReplicationParam param)
             throws ControllerException {
-        return performProtectionAction(id, ProtectionOp.START.toString());
+        doMirrorOperationValidation(id, ProtectionOp.START.toString());
+        String task = UUID.randomUUID().toString();
+        FileShare sourceFileShare = queryResource(id);
+        Operation op = _dbClient.createTaskOpStatus(FileShare.class, id, task, ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_START);
+        op.setDescription("start the replication link between source and target");
+
+        StorageSystem system = _dbClient.queryObject(StorageSystem.class, sourceFileShare.getStorageDevice());
+        FileReplicationController controller = getController(FileReplicationController.class, system.getSystemType());
+        controller.performFileReplicationOperation(system.getId(), id, ProtectionOp.START.toString().toLowerCase(), task);
+        return toTask(sourceFileShare, task, op);
     }
 
     /**
@@ -2910,7 +2919,16 @@ public class FileService extends TaskResourceService {
     @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.OWN, ACL.ALL })
     public TaskResourceRep refreshContinuousCopies(@PathParam("id") URI id, FileReplicationParam param)
             throws ControllerException {
-        return performProtectionAction(id, ProtectionOp.REFRESH.toString());
+        doMirrorOperationValidation(id, ProtectionOp.REFRESH.toString());
+        String task = UUID.randomUUID().toString();
+        FileShare sourceFileShare = queryResource(id);
+        Operation op = _dbClient.createTaskOpStatus(FileShare.class, id, task, ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_REFRESH);
+        op.setDescription("refresh the replication link between source and target");
+
+        StorageSystem system = _dbClient.queryObject(StorageSystem.class, sourceFileShare.getStorageDevice());
+        FileReplicationController controller = getController(FileReplicationController.class, system.getSystemType());
+        controller.performFileReplicationOperation(system.getId(), id, ProtectionOp.REFRESH.toString().toLowerCase(), task);
+        return toTask(sourceFileShare, task, op);
     }
 
     /**
@@ -2930,7 +2948,16 @@ public class FileService extends TaskResourceService {
     @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.OWN, ACL.ALL })
     public TaskResourceRep stopContinuousCopies(@PathParam("id") URI id, FileReplicationParam param)
             throws ControllerException {
-        return performProtectionAction(id, ProtectionOp.STOP.toString());
+        doMirrorOperationValidation(id, ProtectionOp.STOP.toString());
+        String task = UUID.randomUUID().toString();
+        FileShare sourceFileShare = queryResource(id);
+        Operation op = _dbClient.createTaskOpStatus(FileShare.class, id, task, ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_STOP);
+        op.setDescription("stop the replication link between source and target");
+
+        StorageSystem system = _dbClient.queryObject(StorageSystem.class, sourceFileShare.getStorageDevice());
+        FileReplicationController controller = getController(FileReplicationController.class, system.getSystemType());
+        controller.performFileReplicationOperation(system.getId(), id, ProtectionOp.STOP.toString().toLowerCase(), task);
+        return toTask(sourceFileShare, task, op);
     }
 
     /**
@@ -2949,7 +2976,16 @@ public class FileService extends TaskResourceService {
     @Path("/{id}/protection/continuous-copies/pause")
     @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.OWN, ACL.ALL })
     public TaskResourceRep pauseContinuousCopies(@PathParam("id") URI id, FileReplicationParam param) throws ControllerException {
-        return performProtectionAction(id, ProtectionOp.PAUSE.toString());
+        doMirrorOperationValidation(id, ProtectionOp.PAUSE.toString());
+        String task = UUID.randomUUID().toString();
+        FileShare sourceFileShare = queryResource(id);
+        Operation op = _dbClient.createTaskOpStatus(FileShare.class, id, task, ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_PAUSE);
+        op.setDescription("pause the replication link between source and target");
+
+        StorageSystem system = _dbClient.queryObject(StorageSystem.class, sourceFileShare.getStorageDevice());
+        FileReplicationController controller = getController(FileReplicationController.class, system.getSystemType());
+        controller.performFileReplicationOperation(system.getId(), id, ProtectionOp.PAUSE.toString().toLowerCase(), task);
+        return toTask(sourceFileShare, task, op);
     }
 
     /**
@@ -2969,7 +3005,16 @@ public class FileService extends TaskResourceService {
     @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.OWN, ACL.ALL })
     public TaskResourceRep resumeContinuousCopies(@PathParam("id") URI id, FileReplicationParam param)
             throws ControllerException {
-        return performProtectionAction(id, ProtectionOp.RESUME.toString());
+        doMirrorOperationValidation(id, ProtectionOp.RESUME.toString());
+        String task = UUID.randomUUID().toString();
+        FileShare sourceFileShare = queryResource(id);
+        Operation op = _dbClient.createTaskOpStatus(FileShare.class, id, task, ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_RESUME);
+        op.setDescription("resume the replication link between source and target");
+
+        StorageSystem system = _dbClient.queryObject(StorageSystem.class, sourceFileShare.getStorageDevice());
+        FileReplicationController controller = getController(FileReplicationController.class, system.getSystemType());
+        controller.performFileReplicationOperation(system.getId(), id, ProtectionOp.RESUME.toString().toLowerCase(), task);
+        return toTask(sourceFileShare, task, op);
     }
 
     /**
@@ -2985,6 +3030,7 @@ public class FileService extends TaskResourceService {
      * @return Task resource representation
      * @throws InternalException
      */
+    @Deprecated
     @PUT
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
@@ -2992,35 +3038,7 @@ public class FileService extends TaskResourceService {
     @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.OWN, ACL.ALL })
     public TaskResourceRep updateFileSystemReplicationRPO(@PathParam("id") URI id, FileReplicationParam param)
             throws InternalException {
-
-        _log.info("Update file system replication RPO request received. Filesystem: {}", id.toString());
-        FileShare fs = queryResource(id);
-
-        ArgValidator.checkFieldUriType(id, FileShare.class, "id");
-        ArgValidator.checkEntity(fs, id, isIdEmbeddedInURL(id));
-        ArgValidator.checkFieldNotNull(param.getCopies().get(0).getReplicationSettingParam(), "replication_settings");
-
-        VirtualPool vpool = _dbClient.queryObject(VirtualPool.class, fs.getVirtualPool());
-
-        validateProtectionSettings(vpool, param);
-
-        StringBuffer notSuppReasonBuff = new StringBuffer();
-        if (!FileSystemReplicationUtils.doBasicMirrorValidation(fs, vpool, notSuppReasonBuff)) {
-            throw APIException.badRequests.unableToPerformMirrorOperation(ProtectionOp.UPDATE_RPO.toString(), fs.getId(),
-                    notSuppReasonBuff.toString());
-        }
-        String task = UUID.randomUUID().toString();
-
-        StorageSystem device = _dbClient.queryObject(StorageSystem.class, fs.getStorageDevice());
-        FileReplicationController controller = getController(FileReplicationController.class, device.getSystemType());
-
-        Operation op = _dbClient.createTaskOpStatus(FileShare.class, fs.getId(),
-                task, ResourceOperationTypeEnum.UPDATE_FILE_SYSTEM_REPLICATION_RPO);
-        op.setDescription("Update filesystem replication RPO");
-
-        controller.updateFileSystemReplicationRPO(device.getId(), fs.getId(), param, task);
-
-        return toTask(fs, task, op);
+        throw APIException.badRequests.unableToPerformMirrorOperation(ProtectionOp.UPDATE_RPO.toString(), id, "api is deprecated!!");
     }
 
     /**
@@ -3068,7 +3086,7 @@ public class FileService extends TaskResourceService {
         StringBuffer notSuppReasonBuff = new StringBuffer();
 
         String operation = ProtectionOp.FAILOVER.getRestOp();
-        if (!FileSystemReplicationUtils.validateMirrorOperationSupported(fs, currentVpool, notSuppReasonBuff, operation)) {
+        if (!FileSystemReplicationUtils.validateMirrorOperationSupported(fs, notSuppReasonBuff, operation)) {
             _log.error("Mirror Operation {} is not supported for the file system {} as : {}", operation.toUpperCase(),
                     fs.getLabel(), notSuppReasonBuff.toString());
             throw APIException.badRequests.unableToPerformMirrorOperation(operation.toUpperCase(), fs.getId(),
@@ -3158,7 +3176,7 @@ public class FileService extends TaskResourceService {
         StringBuffer notSuppReasonBuff = new StringBuffer();
 
         String operation = ProtectionOp.FAILBACK.getRestOp();
-        if (!FileSystemReplicationUtils.validateMirrorOperationSupported(sourceFileShare, currentVpool, notSuppReasonBuff, operation)) {
+        if (!FileSystemReplicationUtils.validateMirrorOperationSupported(sourceFileShare, notSuppReasonBuff, operation)) {
             _log.error("Mirror Operation {} is not supported for the file system {} as : {}", operation.toUpperCase(),
                     sourceFileShare.getLabel(), notSuppReasonBuff.toString());
             throw APIException.badRequests.unableToPerformMirrorOperation(operation.toUpperCase(), sourceFileShare.getId(),
@@ -3244,8 +3262,7 @@ public class FileService extends TaskResourceService {
         return list;
     }
 
-    private TaskResourceRep performProtectionAction(URI id, String op) throws InternalException {
-        String task = UUID.randomUUID().toString();
+    private void doMirrorOperationValidation(URI id, String op) {
 
         ArgValidator.checkFieldUriType(id, FileShare.class, "id");
         FileShare sourceFileShare = queryResource(id);
@@ -3255,14 +3272,13 @@ public class FileService extends TaskResourceService {
         // operation against the file share
         checkForPendingTasks(Arrays.asList(sourceFileShare.getTenant().getURI()), Arrays.asList(sourceFileShare));
 
-        VirtualPool currentVpool = _dbClient.queryObject(VirtualPool.class, sourceFileShare.getVirtualPool());
         StringBuffer notSuppReasonBuff = new StringBuffer();
 
         // Verify the file system is capable of replication..
-        if (!FileSystemReplicationUtils.validateMirrorOperationSupported(sourceFileShare, currentVpool, notSuppReasonBuff, op)) {
-            _log.error("Mirror Operation {} is not supported for the file system {} as : {}", op.toUpperCase(),
+        if (!FileSystemReplicationUtils.validateMirrorOperationSupported(sourceFileShare, notSuppReasonBuff, op.toLowerCase())) {
+            _log.error("Mirror Operation {} is not supported for the file system {} as : {}", op,
                     sourceFileShare.getLabel(), notSuppReasonBuff.toString());
-            throw APIException.badRequests.unableToPerformMirrorOperation(op.toUpperCase(), sourceFileShare.getId(),
+            throw APIException.badRequests.unableToPerformMirrorOperation(op, sourceFileShare.getId(),
                     notSuppReasonBuff.toString());
 
         }
@@ -3270,25 +3286,11 @@ public class FileService extends TaskResourceService {
         if (FileSystemReplicationUtils.getReplicationPolicyAppliedOnFS(sourceFileShare, _dbClient) == null) {
             notSuppReasonBuff.append(String.format(
                     "Mirror Operation {} is not supported for the file system {} as file system doesn't have any replication policy assigned/applied",
-                    op.toUpperCase(), sourceFileShare.getLabel()));
+                    op, sourceFileShare.getLabel()));
             _log.error(notSuppReasonBuff.toString());
-            throw APIException.badRequests.unableToPerformMirrorOperation(op.toUpperCase(), sourceFileShare.getId(),
+            throw APIException.badRequests.unableToPerformMirrorOperation(op, sourceFileShare.getId(),
                     notSuppReasonBuff.toString());
         }
-
-        Operation status = new Operation();
-        status.setResourceType(ProtectionOp.getResourceOperationTypeEnum(op));
-        _dbClient.createTaskOpStatus(FileShare.class, sourceFileShare.getId(), task, status);
-
-        // get storage system list
-        StorageSystem system = _dbClient.queryObject(StorageSystem.class, sourceFileShare.getStorageDevice());
-
-        FileReplicationController controller = getController(FileReplicationController.class, system.getSystemType());
-
-        // call controller service
-        controller.performRemoteContinuousCopies(system.getId(), id, op, task);
-
-        return toTask(sourceFileShare, task, status);
     }
 
     /**

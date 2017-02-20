@@ -112,7 +112,7 @@ public class FileSystemReplicationUtils {
      * @param notSuppReasonBuff the not supported reason string buffer
      * @param operation mirror operation to be checked
      */
-    public static boolean validateMirrorOperationSupported(FileShare fs, VirtualPool currentVpool, StringBuffer notSuppReasonBuff,
+    public static boolean validateMirrorOperationSupported(FileShare fs, StringBuffer notSuppReasonBuff,
             String operation) {
 
         _log.info("Checking if mirror operation {} is supported for file system {} ", operation, fs.getLabel());

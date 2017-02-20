@@ -125,15 +125,4 @@ public interface RemoteFileMirrorOperation {
     void doResyncLink(StorageSystem primarySystem, StorageSystem secondarySystem, FileShare Target, TaskCompleter completer,
             String policyName);
 
-    /**
-     * Modify replication RPO.
-     *
-     * @param system
-     * @param rpoValue
-     * @param rpoType
-     * @param target
-     * @param completer
-     */
-    void doModifyReplicationRPO(StorageSystem system, Long rpoValue, String rpoType, FileShare target, TaskCompleter completer);
-
 }

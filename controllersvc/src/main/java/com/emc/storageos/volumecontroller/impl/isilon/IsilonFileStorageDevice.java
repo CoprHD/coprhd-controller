@@ -124,7 +124,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
     private IsilonApiFactory _factory;
     private HashMap<String, String> configinfo;
 
-    private DbClient _dbClient;
+    protected DbClient _dbClient;
     @Autowired
     private CustomConfigHandler customConfigHandler;
     @Autowired
@@ -2536,11 +2536,6 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
     }
 
     @Override
-    public void doModifyReplicationRPO(StorageSystem system, Long rpoValue, String rpoType, FileShare target, TaskCompleter completer) {
-        mirrorOperations.doModifyReplicationRPO(system, rpoValue, rpoType, target, completer);
-    }
-
-    @Override
     public BiosCommandResult doStartMirrorLink(StorageSystem system, FileShare source, TaskCompleter completer) {
         IsilonMirrorOperations isiMirrorOp = new IsilonMirrorOperations();
         PolicyStorageResource policyStrRes = getEquivalentPolicyStorageResource(source, _dbClient);
@@ -3790,6 +3785,8 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             while (iterator.hasNext()) {
                 PolicyStorageResource policyRes = iterator.next();
                 if (policyRes.getAppliedAt().equals(fs.getId()) && policyRes.getStorageSystem().equals(fs.getStorageDevice())) {
+                    _log.info("Found replication policy:{} corresponding storage resource: {}  applied to the file system: {}.",
+                            fp.getLabel(), policyRes.toString(), fs.getId());
                     return policyRes;
                 }
             }

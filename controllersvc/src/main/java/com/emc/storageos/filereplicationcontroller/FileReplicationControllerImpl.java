@@ -13,7 +13,6 @@ import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.DiscoveredSystemObject;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.impl.AbstractDiscoveredSystemController;
-import com.emc.storageos.model.file.FileReplicationParam;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.impl.Dispatcher;
@@ -60,21 +59,14 @@ public class FileReplicationControllerImpl extends AbstractDiscoveredSystemContr
     @Override
     public void performNativeContinuousCopies(URI storage, URI sourceFileShare,
             List<URI> mirrorURIs, String opType, String opId)
-                    throws ControllerException {
+            throws ControllerException {
         execFS("performNativeContinuousCopies", storage, sourceFileShare, mirrorURIs, opType, opId);
     }
 
     @Override
-    public void performRemoteContinuousCopies(URI storage, URI copyId,
+    public void performFileReplicationOperation(URI storage, URI copyId,
             String opType, String opId) throws ControllerException {
-        execFS("performRemoteContinuousCopies", storage, copyId, opType, opId);
-    }
-
-    @Override
-    public void updateFileSystemReplicationRPO(URI storage, URI fs, FileReplicationParam param, String opId)
-            throws ControllerException {
-        execFS("updateFileSystemReplicationRPO", storage, fs, param, opId);
-
+        execFS("performFileReplicationOperation", storage, copyId, opType, opId);
     }
 
     private void execFS(String method, Object... args) throws InternalException {

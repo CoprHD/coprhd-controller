@@ -5,23 +5,18 @@
 package com.emc.storageos.volumecontroller.impl.isilon;
 
 import java.net.URI;
-import java.net.URISyntaxException;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.FileShare;
 import com.emc.storageos.db.client.model.StorageSystem;
-import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.exceptions.DeviceControllerErrors;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.isilon.restapi.IsilonApi;
-import com.emc.storageos.isilon.restapi.IsilonApiFactory;
 import com.emc.storageos.isilon.restapi.IsilonException;
-import com.emc.storageos.isilon.restapi.IsilonSshApi;
 import com.emc.storageos.isilon.restapi.IsilonSyncJob;
 import com.emc.storageos.isilon.restapi.IsilonSyncJob.Action;
 import com.emc.storageos.isilon.restapi.IsilonSyncPolicy;
@@ -33,7 +28,6 @@ import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.BiosCommandResult;
 import com.emc.storageos.volumecontroller.impl.ControllerServiceImpl;
-import com.emc.storageos.volumecontroller.impl.file.FileMirrorOperations;
 import com.emc.storageos.volumecontroller.impl.file.MirrorFileRefreshTaskCompleter;
 import com.emc.storageos.volumecontroller.impl.isilon.job.IsilonSyncIQJob;
 import com.emc.storageos.volumecontroller.impl.isilon.job.IsilonSyncJobFailover;
@@ -42,91 +36,8 @@ import com.emc.storageos.volumecontroller.impl.isilon.job.IsilonSyncJobStart;
 import com.emc.storageos.volumecontroller.impl.job.QueueJob;
 import com.emc.storageos.workflow.WorkflowStepCompleter;
 
-public class IsilonMirrorOperations implements FileMirrorOperations {
+public class IsilonMirrorOperations extends IsilonFileStorageDevice {
     private static final Logger _log = LoggerFactory.getLogger(IsilonMirrorOperations.class);
-
-    private DbClient _dbClient;
-    private IsilonApiFactory _factory;
-
-    public IsilonApiFactory getIsilonApiFactory() {
-        return _factory;
-    }
-
-    /**
-     * Set Isilon API factory
-     * 
-     * @param factory
-     */
-    public void setIsilonApiFactory(IsilonApiFactory factory) {
-        _factory = factory;
-    }
-
-    public void setDbClient(DbClient dbClient) {
-        _dbClient = dbClient;
-    }
-
-    /**
-     * Create Mirror between source and target fileshare
-     */
-    @Override
-    public void createMirrorFileShareLink(StorageSystem system, URI source, URI target, TaskCompleter completer)
-            throws DeviceControllerException {
-        FileShare sourceFileShare = _dbClient.queryObject(FileShare.class, source);
-        FileShare targetFileShare = _dbClient.queryObject(FileShare.class, target);
-
-        StorageSystem sourceStorageSystem = _dbClient.queryObject(StorageSystem.class, sourceFileShare.getStorageDevice());
-        StorageSystem targetStorageSystem = _dbClient.queryObject(StorageSystem.class, targetFileShare.getStorageDevice());
-
-        String policyName = targetFileShare.getLabel();
-
-        VirtualPool virtualPool = _dbClient.queryObject(VirtualPool.class, sourceFileShare.getVirtualPool());
-
-        String schedule = null;
-        if (virtualPool != null) {
-            if (virtualPool.getFrRpoValue() == 0) {
-                // Zero RPO value means policy has to be started manually-NO Schedule
-                schedule = "";
-            } else {
-                schedule = createSchedule(virtualPool.getFrRpoValue().toString(), virtualPool.getFrRpoType());
-            }
-        }
-        BiosCommandResult cmdResult = doCreateReplicationPolicy(sourceStorageSystem, policyName, sourceFileShare.getPath(),
-                targetStorageSystem.getIpAddress(), targetFileShare.getPath(), IsilonSyncPolicy.Action.sync, "", schedule);
-        if (cmdResult.getCommandSuccess()) {
-            completer.ready(_dbClient);
-        } else {
-            completer.error(_dbClient, cmdResult.getServiceCoded());
-        }
-    }
-
-    @Override
-    public void stopMirrorFileShareLink(StorageSystem system, FileShare target, TaskCompleter completer) throws DeviceControllerException {
-        BiosCommandResult cmdResult = null;
-        if (target.getParentFileShare() != null) {
-            String policyName = target.getLabel();
-            cmdResult = dodeleteReplicationPolicy(system, policyName);
-            if (cmdResult.getCommandSuccess()) {
-                completer.ready(_dbClient);
-            } else {
-                completer.error(_dbClient, cmdResult.getServiceCoded());
-            }
-        }
-    }
-
-    @Override
-    public void startMirrorFileShareLink(StorageSystem system, FileShare target, TaskCompleter completer, String policyName)
-            throws DeviceControllerException {
-        BiosCommandResult cmdResult = null;
-        cmdResult = doStartReplicationPolicy(system, policyName, completer);
-        if (cmdResult.getCommandSuccess()) {
-            completer.ready(_dbClient);
-        } else if (cmdResult.getCommandPending()) {
-            completer.statusPending(_dbClient, cmdResult.getMessage());
-        } else {
-            completer.error(_dbClient, cmdResult.getServiceCoded());
-        }
-
-    }
 
     public void deleteMirrorFileShareLink(StorageSystem system, URI source, URI target, TaskCompleter completer)
             throws DeviceControllerException {
@@ -174,115 +85,6 @@ public class IsilonMirrorOperations implements FileMirrorOperations {
             WorkflowStepCompleter.stepSucceded(completer.getOpId());
         } else {
             completer.error(_dbClient, cmdResult.getServiceCoded());
-        }
-    }
-
-    @Override
-    public void failoverMirrorFileShareLink(StorageSystem systemTarget, FileShare target, TaskCompleter completer, String policyName)
-            throws DeviceControllerException {
-        BiosCommandResult cmdResult = null;
-        cmdResult = this.doFailover(systemTarget, policyName, completer);
-        if (cmdResult.getCommandSuccess()) {
-            completer.ready(_dbClient);
-        } else if (cmdResult.getCommandPending()) {
-            completer.statusPending(_dbClient, cmdResult.getMessage());
-        } else {
-            completer.error(_dbClient, cmdResult.getServiceCoded());
-        }
-    }
-
-    @Override
-    public void
-            resyncMirrorFileShareLink(StorageSystem primarySystem, StorageSystem secondarySystem, FileShare target,
-                    TaskCompleter completer, String policyName) {
-        BiosCommandResult cmdResult = null;
-        cmdResult = isiResyncPrep(primarySystem, secondarySystem, policyName, completer);
-
-        if (cmdResult.getCommandSuccess()) {
-            completer.ready(_dbClient);
-        } else if (cmdResult.getCommandPending()) {
-            completer.statusPending(_dbClient, cmdResult.getMessage());
-        } else {
-            completer.error(_dbClient, cmdResult.getServiceCoded());
-        }
-        _log.info("IsilonMirrorOperations -  isiResyncPrep source system {} and dest system {} - complete ",
-                primarySystem.getLabel(), secondarySystem.getLabel());
-    }
-
-    /**
-     * Get isilon device represented by the StorageDevice
-     * 
-     * @param device
-     *            StorageDevice object
-     * @return IsilonApi object
-     * @throws IsilonException
-     */
-    private IsilonApi getIsilonDevice(StorageSystem device) throws IsilonException {
-        IsilonApi isilonAPI;
-        URI deviceURI;
-        try {
-            deviceURI = new URI("https", null, device.getIpAddress(), device.getPortNumber(), "/", null, null);
-        } catch (URISyntaxException ex) {
-            throw IsilonException.exceptions.errorCreatingServerURL(device.getIpAddress(), device.getPortNumber(), ex);
-        }
-        if (device.getUsername() != null && !device.getUsername().isEmpty()) {
-            isilonAPI = _factory.getRESTClient(deviceURI, device.getUsername(), device.getPassword());
-        } else {
-            isilonAPI = _factory.getRESTClient(deviceURI);
-        }
-
-        return isilonAPI;
-
-    }
-
-    /**
-     * Get isilon device represented by the StorageDevice
-     * 
-     * @param device
-     *            object
-     * @return IsilonSshApi object
-     */
-    private IsilonSshApi getIsilonDeviceSsh(StorageSystem device) throws IsilonException {
-        IsilonSshApi sshDmApi = new IsilonSshApi();
-        sshDmApi.setConnParams(device.getIpAddress(), device.getUsername(), device.getPassword());
-        return sshDmApi;
-    }
-
-    // mirror related operation
-    /**
-     * Call to Isilon Device to Create Replication Session
-     * 
-     * @param system
-     * @param name
-     * @param source_root_path
-     * @param target_host
-     * @param target_path
-     * @param action
-     * @param description
-     * @param schedule
-     * @return
-     */
-    public BiosCommandResult doCreateReplicationPolicy(StorageSystem system, String name, String source_root_path,
-            String target_host, String target_path, IsilonSyncPolicy.Action action, String description,
-            String schedule) {
-        try {
-            _log.info("IsilonFileStorageDevice doCreateReplicationPolicy {} - start", source_root_path);
-            IsilonApi isi = getIsilonDevice(system);
-
-            IsilonSyncPolicy policy = new IsilonSyncPolicy(name, source_root_path, target_path, target_host, action);
-            if (schedule != null && !schedule.isEmpty()) {
-                policy.setSchedule(schedule);
-            }
-            if (description != null && !description.isEmpty()) {
-                policy.setDescription(description);
-            }
-            policy.setEnabled(false);
-            String policyId = isi.createReplicationPolicy(policy);
-            _log.info("IsilonFileStorageDevice doCreateReplicationPolicy {} with policyId {} - complete", name,
-                    policyId);
-            return BiosCommandResult.createSuccessfulResult();
-        } catch (IsilonException e) {
-            return BiosCommandResult.createErrorResult(e);
         }
     }
 
@@ -497,39 +299,6 @@ public class IsilonMirrorOperations implements FileMirrorOperations {
     }
 
     /**
-     * Call to device to modify the RPO of policy
-     * 
-     * @param system
-     * @param policyName
-     * @param schedule
-     * @return
-     */
-    public BiosCommandResult doModifyReplicationPolicy(StorageSystem system, String policyName, String schedule) {
-        try {
-
-            IsilonApi isi = getIsilonDevice(system);
-            IsilonSyncPolicy policy = isi.getReplicationPolicy(policyName);
-            JobState policyState = policy.getLastJobState();
-
-            if (!policyState.equals(JobState.running) && !policyState.equals(JobState.paused)) {
-                IsilonSyncPolicy modifiedPolicy = new IsilonSyncPolicy();
-                modifiedPolicy.setSchedule(schedule);
-                modifiedPolicy.setName(policyName);
-                isi.modifyReplicationPolicy(policyName, modifiedPolicy);
-                _log.info("Modify Replication Policy- {} with new schedule - {} finished successfully", policyName, schedule);
-                return BiosCommandResult.createSuccessfulResult();
-            } else {
-                _log.error("Replication Policy - {} can't be MODIFIED because policy has an active job", policy.toString());
-                ServiceError error = DeviceControllerErrors.isilon
-                        .jobFailed("doModifyReplicationPolicy as : The policy has an active job and cannot be modified.");
-                return BiosCommandResult.createErrorResult(error);
-            }
-        } catch (IsilonException e) {
-            return BiosCommandResult.createErrorResult(e);
-        }
-    }
-
-    /**
      * Call to device to failover the policy
      * 
      * @param system
@@ -603,7 +372,7 @@ public class IsilonMirrorOperations implements FileMirrorOperations {
         }
 
         // if policy enable then we run resync operation
-        if (true == policy.getEnabled()) {
+        if (policy.getEnabled()) {
             isiPrimary.modifyReplicationJob(job);
 
             IsilonSyncJobResync isilonSyncJobResync = new IsilonSyncJobResync(policyName, secondarySystem.getId(), completer, policyName);
@@ -702,29 +471,6 @@ public class IsilonMirrorOperations implements FileMirrorOperations {
         return errorMessage;
     }
 
-    private String createSchedule(String fsRpoValue, String fsRpoType) {
-        StringBuilder builder = new StringBuilder();
-        switch (fsRpoType.toUpperCase()) {
-            case "MINUTES":
-                builder.append("every 1 days every ");
-                builder.append(fsRpoValue);
-                builder.append(" minutes between 12:00 AM and 11:59 PM");
-                break;
-            case "HOURS":
-                builder.append("every 1 days every ");
-                builder.append(fsRpoValue);
-                builder.append(" hours between 12:00 AM and 11:59 PM");
-                break;
-            case "DAYS":
-                builder.append("every ");
-                builder.append(fsRpoValue);
-                builder.append(" days at 12:00 AM");
-                break;
-        }
-        return builder.toString();
-    }
-
-    @Override
     public void refreshMirrorFileShareLink(StorageSystem system, FileShare source, FileShare target, TaskCompleter completer)
             throws DeviceControllerException {
         MirrorFileRefreshTaskCompleter mirrorRefreshCompleter = (MirrorFileRefreshTaskCompleter) completer;
@@ -762,16 +508,4 @@ public class IsilonMirrorOperations implements FileMirrorOperations {
         }
     }
 
-    @Override
-    public void doModifyReplicationRPO(StorageSystem system, Long rpoValue, String rpoType, FileShare target, TaskCompleter completer)
-            throws DeviceControllerException {
-        BiosCommandResult cmdResult = doModifyReplicationPolicy(system, target.getLabel(),
-                createSchedule(rpoValue.toString(), rpoType));
-        if (cmdResult.getCommandSuccess()) {
-            completer.ready(_dbClient);
-        } else {
-            completer.error(_dbClient, cmdResult.getServiceCoded());
-        }
-
-    }
 }

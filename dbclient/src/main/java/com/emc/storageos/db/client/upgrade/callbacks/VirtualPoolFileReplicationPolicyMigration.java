@@ -81,6 +81,7 @@ public class VirtualPoolFileReplicationPolicyMigration extends BaseCustomMigrati
                     String polName = virtualPool.getLabel() + "_Replication_Policy";
                     replPolicy.setLabel(polName);
                     replPolicy.setFilePolicyName(polName);
+                    replPolicy.setLabel(polName);
                     replPolicy.setFilePolicyType(FilePolicyType.file_replication.name());
                     replPolicy.setFilePolicyVpool(virtualPool.getId());
                     // Replication policy was created always at file system level!!

@@ -12,12 +12,14 @@ import static util.BourneUtil.getSysClient;
 import java.io.ByteArrayInputStream;
 import java.io.UnsupportedEncodingException;
 import java.net.URI;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
 import com.emc.storageos.model.tenant.TenantOrgRestRep;
+import com.emc.storageos.services.ServicesMetadata;
 import com.emc.vipr.model.sys.recovery.RecoveryPrecheckStatus;
 import jobs.MinorityNodeRecoveryJob;
 import jobs.RebootNodeJob;
@@ -554,9 +556,12 @@ public class SystemHealth extends Controller {
         if (StringUtils.isNotEmpty(nodeId)) {
             creator.setNodeIds(Lists.newArrayList(nodeId));
         }
+
         if (service != null && service.length > 0) {
-            creator.setLogNames(Lists.newArrayList(service));
+            List<String> logNames = getLogNames(service);
+            creator.setLogNames(logNames);
         }
+
         if (StringUtils.isNotEmpty(searchMessage)) {
             creator.setMsgRegex("(?i).*" + searchMessage + ".*");
         }
@@ -584,6 +589,17 @@ public class SystemHealth extends Controller {
             creator.setTenantIds(tenantIds);
         }
         renderSupportPackage(creator);
+    }
+
+    private static List<String> getLogNames(String[] services) {
+        List<String> logNames = new ArrayList();
+        for (String service : services) {
+            if (service.equals("controllersvc")) {
+                logNames.addAll(ServicesMetadata.CONTROLLSVC_LOG_NAMES);
+            }
+            logNames.add(service);
+        }
+        return logNames;
     }
 
     @Restrictions({ @Restrict("SYSTEM_ADMIN"), @Restrict("SECURITY_ADMIN"), @Restrict("RESTRICTED_SECURITY_ADMIN") })

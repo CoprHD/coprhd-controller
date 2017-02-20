@@ -61,6 +61,7 @@
         <property name="dbClient" ref="dbclient"/>
         <property name="portMetricsProcessor" ref="portMetricsProcessor"/>
         <property name="networkScheduler" ref="networkScheduler"/>
+        <property name="customConfigHandler" ref="customConfigHandler"/>
     </bean>
 
     <bean id="networkScheduler" class="com.emc.storageos.networkcontroller.impl.NetworkScheduler">
@@ -673,6 +674,7 @@
                 <bean class="com.emc.storageos.api.service.impl.resource.FilePolicyService">
                     <property name="dbClient" ref="dbclient"/>
                     <property name="coordinator" ref="coordinator"/>
+                    <property name="filePlacementManager" ref="filePlacementManager"/>
                     <property name="fileServiceApis">
 				        <map>
 				            <entry key="default" value-ref="defaultFileServiceApiImpl"/>

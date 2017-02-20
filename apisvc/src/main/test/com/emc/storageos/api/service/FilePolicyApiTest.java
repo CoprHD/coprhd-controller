@@ -24,6 +24,7 @@ import org.junit.Test;
 
 import com.emc.storageos.api.ldap.exceptions.DirectoryOrFileNotFoundException;
 import com.emc.storageos.api.ldap.exceptions.FileOperationFailedException;
+import com.emc.storageos.db.client.model.FilePolicy;
 import com.emc.storageos.db.client.model.FilePolicy.FilePolicyType;
 import com.emc.storageos.db.client.model.FilePolicy.SnapshotExpireType;
 import com.emc.storageos.model.NamedRelatedResourceRep;
@@ -139,6 +140,7 @@ public class FilePolicyApiTest extends ApiTestBase {
         param.setPolicyName(filePolicyName);
         param.setPolicyDescription(filePolicyName);
         param.setPolicyType(FilePolicyType.file_snapshot.name());
+        param.setApplyAt(FilePolicy.FilePolicyApplyLevel.vpool.toString());
         FilePolicyScheduleParams policySchedule = new FilePolicyScheduleParams();
         policySchedule.setScheduleFrequency("DAYS");
         policySchedule.setScheduleRepeat(6L);
@@ -168,6 +170,221 @@ public class FilePolicyApiTest extends ApiTestBase {
     }
 
     @Test
+    public void testCreatePolicyWithoutName() {
+        FilePolicyCreateParam param = new FilePolicyCreateParam();
+        ClientResponse createFilePolicyResp = rSys.path(FILE_POLICIES).post(ClientResponse.class,
+                param);
+        Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, createFilePolicyResp.getStatus());
+    }
+
+    @Test
+    public void testCreatePolicyWithInValidApplyAt() {
+        FilePolicyCreateParam param = new FilePolicyCreateParam();
+        param.setPolicyName(filePolicyName);
+        param.setPolicyDescription(filePolicyName);
+        param.setPolicyType(FilePolicyType.file_snapshot.name());
+        param.setApplyAt("Some_invalid_string");
+        ClientResponse createFilePolicyResp = rSys.path(FILE_POLICIES).post(ClientResponse.class,
+                param);
+        Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, createFilePolicyResp.getStatus());
+    }
+
+    @Test
+    public void testCreatePolicyWithInValidPolicyType() {
+        FilePolicyCreateParam param = new FilePolicyCreateParam();
+        param.setPolicyName(filePolicyName);
+        param.setPolicyDescription(filePolicyName);
+        param.setApplyAt(FilePolicy.FilePolicyApplyLevel.vpool.toString());
+        param.setPolicyType("Some_invalid_string");
+        ClientResponse createFilePolicyResp = rSys.path(FILE_POLICIES).post(ClientResponse.class,
+                param);
+        Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, createFilePolicyResp.getStatus());
+    }
+
+    @Test
+    public void testCreatePolicyWithInValidPolicyScheduleFrequency() {
+
+        FilePolicyCreateParam param = new FilePolicyCreateParam();
+        setFilePolicyMandatoryParams(param);
+
+        FilePolicyScheduleParams policySchedule = new FilePolicyScheduleParams();
+        policySchedule.setScheduleRepeat(6L);
+        policySchedule.setScheduleTime("12:00");
+        policySchedule.setScheduleFrequency("some_invalid_value");
+        FileSnapshotPolicyParam snapshotPolicyParam = new FileSnapshotPolicyParam();
+        snapshotPolicyParam.setPolicySchedule(policySchedule);
+        param.setSnapshotPolicyPrams(snapshotPolicyParam);
+
+        FileSnapshotPolicyExpireParam snapshotExpireParams = new FileSnapshotPolicyExpireParam();
+        snapshotExpireParams.setExpireType(SnapshotExpireType.NEVER.toString());
+        snapshotPolicyParam.setSnapshotExpireParams(snapshotExpireParams);
+
+        ClientResponse createFilePolicyResp = rSys.path(FILE_POLICIES).post(ClientResponse.class,
+                param);
+        Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, createFilePolicyResp.getStatus());
+    }
+
+    @Test
+    public void testCreatePolicyWithInValidPolicyScheduleRepeat() {
+        FilePolicyCreateParam param = new FilePolicyCreateParam();
+        setFilePolicyMandatoryParams(param);
+
+        FilePolicyScheduleParams policySchedule = new FilePolicyScheduleParams();
+        // Value less than 1
+        policySchedule.setScheduleRepeat(0L);
+        policySchedule.setScheduleTime("12:00");
+        policySchedule.setScheduleFrequency("DAYS");
+        FileSnapshotPolicyParam snapshotPolicyParam = new FileSnapshotPolicyParam();
+        snapshotPolicyParam.setPolicySchedule(policySchedule);
+        param.setSnapshotPolicyPrams(snapshotPolicyParam);
+
+        FileSnapshotPolicyExpireParam snapshotExpireParams = new FileSnapshotPolicyExpireParam();
+        snapshotExpireParams.setExpireType(SnapshotExpireType.NEVER.toString());
+        snapshotPolicyParam.setSnapshotExpireParams(snapshotExpireParams);
+
+        ClientResponse createFilePolicyResp = rSys.path(FILE_POLICIES).post(ClientResponse.class,
+                param);
+        Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, createFilePolicyResp.getStatus());
+    }
+
+    @Test
+    public void testCreatePolicyWithInValidPolicyScheduleTime() {
+        FilePolicyCreateParam param = new FilePolicyCreateParam();
+        setFilePolicyMandatoryParams(param);
+
+        FileSnapshotPolicyParam snapshotPolicyParam = new FileSnapshotPolicyParam();
+        FileSnapshotPolicyExpireParam snapshotExpireParams = new FileSnapshotPolicyExpireParam();
+        snapshotExpireParams.setExpireType(SnapshotExpireType.NEVER.toString());
+        snapshotPolicyParam.setSnapshotExpireParams(snapshotExpireParams);
+
+        FilePolicyScheduleParams policySchedule = new FilePolicyScheduleParams();
+        policySchedule.setScheduleRepeat(6L);
+        // Invalid TIME
+        policySchedule.setScheduleTime("67:00");
+        policySchedule.setScheduleFrequency("DAYS");
+        snapshotPolicyParam.setPolicySchedule(policySchedule);
+        param.setSnapshotPolicyPrams(snapshotPolicyParam);
+
+        ClientResponse createFilePolicyResp = rSys.path(FILE_POLICIES).post(ClientResponse.class,
+                param);
+        Assert.assertEquals(createFilePolicyResp.toString(), HttpStatus.SC_BAD_REQUEST, createFilePolicyResp.getStatus());
+    }
+
+    @Test
+    public void testCreatePolicyWithInValidPolicyScheduleDayOfWeek() {
+        FilePolicyCreateParam param = new FilePolicyCreateParam();
+        setFilePolicyMandatoryParams(param);
+
+        FileSnapshotPolicyParam snapshotPolicyParam = new FileSnapshotPolicyParam();
+        FileSnapshotPolicyExpireParam snapshotExpireParams = new FileSnapshotPolicyExpireParam();
+        snapshotExpireParams.setExpireType(SnapshotExpireType.NEVER.toString());
+        snapshotPolicyParam.setSnapshotExpireParams(snapshotExpireParams);
+
+        FilePolicyScheduleParams policySchedule = new FilePolicyScheduleParams();
+        policySchedule.setScheduleRepeat(6L);
+        policySchedule.setScheduleTime("13:00");
+        policySchedule.setScheduleFrequency("WEEKS");
+        // Invalid day of month
+        policySchedule.setScheduleDayOfWeek("invalid day");
+        snapshotPolicyParam.setPolicySchedule(policySchedule);
+        param.setSnapshotPolicyPrams(snapshotPolicyParam);
+
+        ClientResponse createFilePolicyResp = rSys.path(FILE_POLICIES).post(ClientResponse.class,
+                param);
+        Assert.assertEquals(createFilePolicyResp.toString(), HttpStatus.SC_BAD_REQUEST, createFilePolicyResp.getStatus());
+    }
+
+    @Test
+    public void testCreatePolicyWithInValidPolicyScheduleDayOfMonth() {
+        FilePolicyCreateParam param = new FilePolicyCreateParam();
+        setFilePolicyMandatoryParams(param);
+
+        FileSnapshotPolicyParam snapshotPolicyParam = new FileSnapshotPolicyParam();
+        FileSnapshotPolicyExpireParam snapshotExpireParams = new FileSnapshotPolicyExpireParam();
+        snapshotExpireParams.setExpireType(SnapshotExpireType.NEVER.toString());
+        snapshotPolicyParam.setSnapshotExpireParams(snapshotExpireParams);
+
+        FilePolicyScheduleParams policySchedule = new FilePolicyScheduleParams();
+        policySchedule.setScheduleRepeat(6L);
+        policySchedule.setScheduleTime("13:00");
+        policySchedule.setScheduleFrequency("MONTHS");
+        // Invalid day of month(not in range of 1-31)
+        policySchedule.setScheduleDayOfWeek("34");
+        snapshotPolicyParam.setPolicySchedule(policySchedule);
+        param.setSnapshotPolicyPrams(snapshotPolicyParam);
+
+        ClientResponse createFilePolicyResp = rSys.path(FILE_POLICIES).post(ClientResponse.class,
+                param);
+        Assert.assertEquals(createFilePolicyResp.toString(), HttpStatus.SC_BAD_REQUEST, createFilePolicyResp.getStatus());
+    }
+
+    @Test
+    public void testCreateSnapshotPolicyInvalidExpireType() {
+        FilePolicyCreateParam param = new FilePolicyCreateParam();
+        setFilePolicyMandatoryParams(param);
+        FileSnapshotPolicyParam snapshotPolicyParam = new FileSnapshotPolicyParam();
+
+        FilePolicyScheduleParams policySchedule = new FilePolicyScheduleParams();
+        setFilePolicyScheduleParams(policySchedule);
+        snapshotPolicyParam.setPolicySchedule(policySchedule);
+        param.setSnapshotPolicyPrams(snapshotPolicyParam);
+
+        FileSnapshotPolicyExpireParam snapshotExpireParams = new FileSnapshotPolicyExpireParam();
+        // Invalid Expire Type
+        snapshotExpireParams.setExpireType("some_junk_value");
+        snapshotPolicyParam.setSnapshotExpireParams(snapshotExpireParams);
+
+        ClientResponse createFilePolicyResp = rSys.path(FILE_POLICIES).post(ClientResponse.class,
+                param);
+        Assert.assertEquals(createFilePolicyResp.toString(), HttpStatus.SC_BAD_REQUEST, createFilePolicyResp.getStatus());
+    }
+
+    @Test
+    public void testCreateSnapshotPolicyInvalidExpireValue() {
+        FilePolicyCreateParam param = new FilePolicyCreateParam();
+        setFilePolicyMandatoryParams(param);
+        FileSnapshotPolicyParam snapshotPolicyParam = new FileSnapshotPolicyParam();
+
+        FilePolicyScheduleParams policySchedule = new FilePolicyScheduleParams();
+        setFilePolicyScheduleParams(policySchedule);
+        snapshotPolicyParam.setPolicySchedule(policySchedule);
+        param.setSnapshotPolicyPrams(snapshotPolicyParam);
+
+        FileSnapshotPolicyExpireParam snapshotExpireParams = new FileSnapshotPolicyExpireParam();
+        snapshotExpireParams.setExpireType("HOURS");
+        // Some invalid value less than 2 hours or greater than 2 years
+        snapshotExpireParams.setExpireValue(1);
+        snapshotPolicyParam.setSnapshotExpireParams(snapshotExpireParams);
+
+        ClientResponse createFilePolicyResp = rSys.path(FILE_POLICIES).post(ClientResponse.class,
+                param);
+        Assert.assertEquals(createFilePolicyResp.toString(), HttpStatus.SC_BAD_REQUEST, createFilePolicyResp.getStatus());
+    }
+
+    @Test
+    public void testCreateSnapshotPolicyWithoutParams() {
+        FilePolicyCreateParam param = new FilePolicyCreateParam();
+        setFilePolicyMandatoryParams(param);
+
+        ClientResponse createFilePolicyResp = rSys.path(FILE_POLICIES).post(ClientResponse.class,
+                param);
+        Assert.assertEquals(createFilePolicyResp.toString(), HttpStatus.SC_BAD_REQUEST, createFilePolicyResp.getStatus());
+    }
+
+    @Test
+    public void testCreateReplicationPolicyWithoutParams() {
+        FilePolicyCreateParam param = new FilePolicyCreateParam();
+        param.setPolicyName(filePolicyName);
+        param.setPolicyDescription(filePolicyName);
+        param.setPolicyType(FilePolicyType.file_replication.name());
+        param.setApplyAt(FilePolicy.FilePolicyApplyLevel.vpool.toString());
+
+        ClientResponse createFilePolicyResp = rSys.path(FILE_POLICIES).post(ClientResponse.class,
+                param);
+        Assert.assertEquals(createFilePolicyResp.toString(), HttpStatus.SC_BAD_REQUEST, createFilePolicyResp.getStatus());
+    }
+
+    @Test
     public void testGetFileSnapshotPolicy() {
         FilePolicyRestRep fileSnapshotPolicyResp = rSys.path(getFilePolicyURI(createdFileSnapshotPolicyURI)).get(FilePolicyRestRep.class);
         Assert.assertNotNull(fileSnapshotPolicyResp);
@@ -184,9 +401,24 @@ public class FilePolicyApiTest extends ApiTestBase {
             if (namedRelatedResourceRep.getId().equals(createdFileSnapshotPolicyURI)) {
                 Assert.assertTrue(true);
                 return;
+
             }
         }
         Assert.assertTrue(false);
+    }
+
+    public void setFilePolicyMandatoryParams(FilePolicyCreateParam param) {
+        param.setPolicyName(filePolicyName);
+        param.setPolicyDescription(filePolicyName);
+        param.setPolicyType(FilePolicyType.file_snapshot.name());
+        param.setApplyAt(FilePolicy.FilePolicyApplyLevel.vpool.toString());
+
+    }
+
+    public void setFilePolicyScheduleParams(FilePolicyScheduleParams policySchedule) {
+        policySchedule.setScheduleRepeat(6L);
+        policySchedule.setScheduleTime("13:00");
+        policySchedule.setScheduleFrequency("DAYS");
     }
 
     @After

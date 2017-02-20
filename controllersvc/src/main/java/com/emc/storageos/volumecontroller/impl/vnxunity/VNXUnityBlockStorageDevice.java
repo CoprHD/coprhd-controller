@@ -792,8 +792,7 @@ public class VNXUnityBlockStorageDevice extends VNXUnityOperations
 
     @Override
     public ExportMask refreshExportMask(StorageSystem storage, ExportMask mask) throws DeviceControllerException {
-        // TODO Auto-generated method stub
-        return null;
+        return exportMaskOperationsHelper.refreshExportMask(storage, mask);
     }
 
     @Override
@@ -1247,6 +1246,18 @@ public class VNXUnityBlockStorageDevice extends VNXUnityOperations
 
     @Override
     public String doInitiatorAliasGet(StorageSystem storage, Initiator initiator) throws DeviceControllerException {
+        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
+    }
+    
+    @Override
+    public void doExportAddPaths(StorageSystem storage, URI exportMask, Map<URI, List<URI>>addedPaths, 
+            TaskCompleter taskCompleter) throws DeviceControllerException {
+        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
+    }
+    
+    @Override
+    public void doExportRemovePaths(StorageSystem storage, URI exportMask, Map<URI, List<URI>> adjustedPaths, Map<URI, List<URI>>removedPaths, 
+            TaskCompleter taskCompleter) throws DeviceControllerException {
         throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
     }
 

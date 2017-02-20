@@ -194,8 +194,6 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
             }
         }
 
-        checkForConsistentLunViolation(storage, exportGroup, initiatorURIs);
-
         InitiatorHelper initiatorHelper = new InitiatorHelper(initiatorURIs).process(exportGroup);
 
         boolean anyOperationsToDo = false;
@@ -843,7 +841,6 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
             }
         }
     }
-
 
     @Override
     protected boolean useComputedMaskName() {

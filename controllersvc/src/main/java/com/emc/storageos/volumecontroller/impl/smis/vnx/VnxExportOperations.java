@@ -226,19 +226,24 @@ public class VnxExportOperations implements ExportMaskOperations {
                 return;
             }
 
-            // Get the context from the task completer, in case this is a rollback.
-            ExportOperationContext context = (ExportOperationContext) WorkflowService.getInstance().loadStepData(taskCompleter.getOpId());
-            if (context != null && context.getOperations() != null) {
+            boolean isRollback = WorkflowService.getInstance().isStepInRollbackState(taskCompleter.getOpId());
+            if (isRollback) {
                 boolean maskCreated = false;
-                ListIterator li = context.getOperations().listIterator(context.getOperations().size());
-                while (li.hasPrevious()) {
-                    ExportOperationContextOperation operation = (ExportOperationContextOperation) li.previous();
-                    _log.info("Handling deleteExportMask as a result of rollback");
-                    if (operation != null && VnxExportOperationContext.OPERATION_CREATE_STORAGE_GROUP.equals(operation.getOperation())) {
-                        URI createdExportMaskURI = (URI) operation.getArgs().get(0);
-                        if (exportMask.getId().equals(createdExportMaskURI)) {
-                            maskCreated = true;
-                            break;
+                // Get the context from the task completer as this is a rollback.
+                ExportOperationContext context = (ExportOperationContext) WorkflowService.getInstance()
+                        .loadStepData(taskCompleter.getOpId());
+                if (context != null && context.getOperations() != null) {
+                    ListIterator li = context.getOperations().listIterator(context.getOperations().size());
+                    while (li.hasPrevious()) {
+                        ExportOperationContextOperation operation = (ExportOperationContextOperation) li.previous();
+                        _log.info("Handling deleteExportMask as a result of rollback");
+                        if (operation != null
+                                && VnxExportOperationContext.OPERATION_CREATE_STORAGE_GROUP.equals(operation.getOperation())) {
+                            URI createdExportMaskURI = (URI) operation.getArgs().get(0);
+                            if (exportMask.getId().equals(createdExportMaskURI)) {
+                                maskCreated = true;
+                                break;
+                            }
                         }
                     }
                 }
@@ -259,7 +264,7 @@ public class VnxExportOperations implements ExportMaskOperations {
             ctx.setExportMask(exportMask);
             ctx.setBlockObjects(volumeURIList, _dbClient);
             ctx.setInitiators(initiatorList);
-            ctx.setAllowExceptions(context == null);
+            ctx.setAllowExceptions(!isRollback);
             validator.exportMaskDelete(ctx).validate();
 
             CIMObjectPath protocolController = _cimPath.getClarProtocolControllers(storage, nativeId)[0];
@@ -383,18 +388,22 @@ public class VnxExportOperations implements ExportMaskOperations {
             if (initiatorList != null) {
                 _log.info("removeVolumes: impacted initiators: {}", Joiner.on(",").join(initiatorList));
             }
-            // Get the context from the task completer, in case this is a rollback.
-            ExportOperationContext context = (ExportOperationContext) WorkflowService.getInstance().loadStepData(taskCompleter.getOpId());
-            if (context != null && context.getOperations() != null) {
+            boolean isRollback = WorkflowService.getInstance().isStepInRollbackState(taskCompleter.getOpId());
+            if (isRollback) {
                 _log.info("Handling removeVolumes as a result of rollback");
                 List<URI> addedVolumes = new ArrayList<URI>();
-                ListIterator li = context.getOperations().listIterator(context.getOperations().size());
-                while (li.hasPrevious()) {
-                    ExportOperationContextOperation operation = (ExportOperationContextOperation) li.previous();
-                    if (operation != null
-                            && VnxExportOperationContext.OPERATION_ADD_VOLUMES_TO_STORAGE_GROUP.equals(operation.getOperation())) {
-                        addedVolumes = (List<URI>) operation.getArgs().get(0);
-                        _log.info("Removing volumes {} as part of rollback", Joiner.on(',').join(addedVolumes));
+                // Get the context from the task completer as this is a rollback.
+                ExportOperationContext context = (ExportOperationContext) WorkflowService.getInstance()
+                        .loadStepData(taskCompleter.getOpId());
+                if (context != null && context.getOperations() != null) {
+                    ListIterator li = context.getOperations().listIterator(context.getOperations().size());
+                    while (li.hasPrevious()) {
+                        ExportOperationContextOperation operation = (ExportOperationContextOperation) li.previous();
+                        if (operation != null
+                                && VnxExportOperationContext.OPERATION_ADD_VOLUMES_TO_STORAGE_GROUP.equals(operation.getOperation())) {
+                            addedVolumes = (List<URI>) operation.getArgs().get(0);
+                            _log.info("Removing volumes {} as part of rollback", Joiner.on(',').join(addedVolumes));
+                        }
                     }
                 }
                 volumeURIList = addedVolumes;
@@ -405,20 +414,21 @@ public class VnxExportOperations implements ExportMaskOperations {
                 }
             }
 
-            ExportMask exportMask = _dbClient.queryObject(ExportMask.class, exportMaskURI);
-            ExportMaskValidationContext ctx = new ExportMaskValidationContext();
-            ctx.setStorage(storage);
-            ctx.setExportMask(exportMask);
-            ctx.setInitiators(initiatorList);
-            ctx.setAllowExceptions(context == null);
-            validator.removeVolumes(ctx).validate();
-
             if (null == volumeURIList || volumeURIList.isEmpty()) {
                 taskCompleter.ready(_dbClient);
                 _log.warn("{} removeVolumes invoked with zero volumes, resulting in no-op....",
                         storage.getSerialNumber());
                 return;
             }
+
+            ExportMask exportMask = _dbClient.queryObject(ExportMask.class, exportMaskURI);
+            ExportMaskValidationContext ctx = new ExportMaskValidationContext();
+            ctx.setStorage(storage);
+            ctx.setExportMask(exportMask);
+            ctx.setInitiators(initiatorList);
+            ctx.setAllowExceptions(!isRollback);
+            validator.removeVolumes(ctx).validate();
+
             String[] volumeNames = null;
 
             volumeNames = _helper.getBlockObjectAlternateNames(volumeURIList);
@@ -506,19 +516,22 @@ public class VnxExportOperations implements ExportMaskOperations {
             if (targets != null) {
                 _log.info("removeInitiators: targets : {}", Joiner.on(',').join(targets));
             }
-
-            // Get the context from the task completer, in case this is a rollback.
-            ExportOperationContext context = (ExportOperationContext) WorkflowService.getInstance().loadStepData(taskCompleter.getOpId());
-            if (context != null && context.getOperations() != null) {
+            boolean isRollback = WorkflowService.getInstance().isStepInRollbackState(taskCompleter.getOpId());
+            if (isRollback) {
                 _log.info("Handling removeInitiators as a result of rollback");
                 List<Initiator> addedInitiators = new ArrayList<Initiator>();
-                ListIterator li = context.getOperations().listIterator(context.getOperations().size());
-                while (li.hasPrevious()) {
-                    ExportOperationContextOperation operation = (ExportOperationContextOperation) li.previous();
-                    if (operation != null
-                            && VnxExportOperationContext.OPERATION_ADD_INITIATORS_TO_STORAGE_GROUP.equals(operation.getOperation())) {
-                        addedInitiators = (List<Initiator>) operation.getArgs().get(0);
-                        _log.info("Removing initiators {} as part of rollback", Joiner.on(',').join(addedInitiators));
+                // Get the context from the task completer as this is a rollback.
+                ExportOperationContext context = (ExportOperationContext) WorkflowService.getInstance()
+                        .loadStepData(taskCompleter.getOpId());
+                if (context != null && context.getOperations() != null) {
+                    ListIterator li = context.getOperations().listIterator(context.getOperations().size());
+                    while (li.hasPrevious()) {
+                        ExportOperationContextOperation operation = (ExportOperationContextOperation) li.previous();
+                        if (operation != null
+                                && VnxExportOperationContext.OPERATION_ADD_INITIATORS_TO_STORAGE_GROUP.equals(operation.getOperation())) {
+                            addedInitiators = (List<Initiator>) operation.getArgs().get(0);
+                            _log.info("Removing initiators {} as part of rollback", Joiner.on(',').join(addedInitiators));
+                        }
                     }
                 }
                 initiatorList = addedInitiators;
@@ -534,7 +547,7 @@ public class VnxExportOperations implements ExportMaskOperations {
             ctx.setStorage(storage);
             ctx.setExportMask(exportMask);
             ctx.setBlockObjects(volumeURIList, _dbClient);
-            ctx.setAllowExceptions(context == null);
+            ctx.setAllowExceptions(!isRollback);
             validator.removeInitiators(ctx).validate();
 
             deleteStorageHWIDs(storage, initiatorList);
@@ -1734,5 +1747,19 @@ public class VnxExportOperations implements ExportMaskOperations {
         Map<String, Set<URI>> foundMasks = findExportMasks(storage, portNames, false);
         // Return true when there was a match found (i.e., when foundMasks is not empty)
         return !foundMasks.isEmpty();
+    }
+    
+    @Override
+    public void addPaths(StorageSystem storage, URI exportMask, Map<URI, List<URI>> newPaths, TaskCompleter taskCompleter)
+            throws DeviceControllerException {
+        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
+        
+    }
+
+    @Override
+    public void removePaths(StorageSystem storage, URI exportMask, Map<URI, List<URI>> adjustedPaths, Map<URI, List<URI>> removePaths, TaskCompleter taskCompleter)
+            throws DeviceControllerException {
+        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
+        
     }
 }

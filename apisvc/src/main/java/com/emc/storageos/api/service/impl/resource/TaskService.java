@@ -304,7 +304,7 @@ public class TaskService extends TaggedResource {
         // Resume the workflow
         WorkflowService.initTaskStatus(_dbClient, workflow, opId, Operation.Status.pending,
                 ResourceOperationTypeEnum.WORKFLOW_RESUME);
-        getWorkflowController().resumeWorkflow(workflow.getId(), opId.toString());
+        getWorkflowController().resumeWorkflow(workflow.getId(), opId);
         return Response.ok().build();
     }
 
@@ -335,7 +335,7 @@ public class TaskService extends TaggedResource {
         // Rollback the workflow
         WorkflowService.initTaskStatus(_dbClient, workflow, opId, Operation.Status.pending,
                 ResourceOperationTypeEnum.WORKFLOW_ROLLBACK);
-        getWorkflowController().rollbackWorkflow(workflow.getId(), taskId.toString());
+        getWorkflowController().rollbackWorkflow(workflow.getId(), opId);
         return Response.ok().build();
     }
 

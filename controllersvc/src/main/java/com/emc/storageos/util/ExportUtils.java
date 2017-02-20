@@ -38,6 +38,7 @@ import com.emc.storageos.db.client.model.DataObject.Flag;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.DiscoveryStatus;
 import com.emc.storageos.db.client.model.ExportGroup;
+import com.emc.storageos.db.client.model.ExportGroup.ExportGroupType;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.ExportPathParams;
 import com.emc.storageos.db.client.model.Host;
@@ -126,7 +127,7 @@ public class ExportUtils {
         }
         return initiatorSet;
     }
-    
+
     /**
      * A utility function method to get the user-created initiators from an export mask.
      * If an initiator is not found for a given user-created WWN, it is simply
@@ -294,29 +295,22 @@ public class ExportUtils {
      * @param dbClient
      * @return
      */
-    public static List<URI> getPortsInInitiatorNetwork(ExportMask mask, Initiator initiator, DbClient dbClient)
-    {
+    public static List<URI> getPortsInInitiatorNetwork(ExportMask mask, Initiator initiator, DbClient dbClient) {
         List<URI> list = new ArrayList<URI>();
         List<StoragePort> ports = getStoragePorts(mask, dbClient);
         NetworkLite networkLite = NetworkUtil.getEndpointNetworkLite(initiator.getInitiatorPort(), dbClient);
-        if (networkLite != null)
-        {
-            for (StoragePort port : ports)
-            {
+        if (networkLite != null) {
+            for (StoragePort port : ports) {
                 if (port.getNetwork() != null &&
-                        port.getNetwork().equals(networkLite.getId()))
-                {
+                        port.getNetwork().equals(networkLite.getId())) {
                     list.add(port.getId());
                 }
             }
 
-            if (list.isEmpty() && networkLite.getRoutedNetworks() != null)
-            {
-                for (StoragePort port : ports)
-                {
+            if (list.isEmpty() && networkLite.getRoutedNetworks() != null) {
+                for (StoragePort port : ports) {
                     if (port.getNetwork() != null &&
-                            networkLite.getRoutedNetworks().contains(port.getNetwork().toString()))
-                    {
+                            networkLite.getRoutedNetworks().contains(port.getNetwork().toString())) {
                         list.add(port.getId());
                     }
                 }
@@ -372,15 +366,14 @@ public class ExportUtils {
     public static Map<ExportMask, ExportGroup> getExportMasks(BlockObject blockObject, DbClient dbClient) {
         Map<ExportMask, ExportGroup> exportMasksMap = new HashMap<ExportMask, ExportGroup>();
         URIQueryResultList exportGroups = new URIQueryResultList();
-        dbClient.queryByConstraint(ContainmentConstraint.
-                Factory.getBlockObjectExportGroupConstraint(blockObject.getId()), exportGroups);
+        dbClient.queryByConstraint(ContainmentConstraint.Factory.getBlockObjectExportGroupConstraint(blockObject.getId()), exportGroups);
         for (URI egUri : exportGroups) {
             ExportGroup exportGroup = dbClient.queryObject(ExportGroup.class, egUri);
             if (exportGroup.getInactive()) {
                 continue;
             }
-            
-            for (ExportMask exportMask : ExportMaskUtils.getExportMasks(dbClient, exportGroup)) { 
+
+            for (ExportMask exportMask : ExportMaskUtils.getExportMasks(dbClient, exportGroup)) {
                 if (exportMask != null && !exportMask.getInactive() && exportMask
                         .getStorageDevice().equals(blockObject.getStorageController())
                         && exportMask.hasVolume(blockObject.getId())
@@ -388,7 +381,7 @@ public class ExportUtils {
                     exportMasksMap.put(exportMask, exportGroup);
                 }
             }
-            
+
         }
         _log.info("Found {} export masks for block object {}", exportMasksMap.size(), blockObject.getLabel());
         return exportMasksMap;
@@ -405,9 +398,7 @@ public class ExportUtils {
             Initiator initiator, DbClient dbClient) {
         List<ExportMask> exportMasks = new ArrayList<ExportMask>();
         URIQueryResultList egUris = new URIQueryResultList();
-        dbClient.queryByConstraint(AlternateIdConstraint.Factory.
-                getExportGroupInitiatorConstraint(initiator.getId().toString())
-                , egUris);
+        dbClient.queryByConstraint(AlternateIdConstraint.Factory.getExportGroupInitiatorConstraint(initiator.getId().toString()), egUris);
         ExportGroup exportGroup = null;
         for (URI egUri : egUris) {
             exportGroup = dbClient.queryObject(ExportGroup.class, egUri);
@@ -440,9 +431,7 @@ public class ExportUtils {
             Initiator initiator, DbClient dbClient) {
         List<ExportGroup> exportGroups = new ArrayList<ExportGroup>();
         URIQueryResultList egUris = new URIQueryResultList();
-        dbClient.queryByConstraint(AlternateIdConstraint.Factory.
-                getExportGroupInitiatorConstraint(initiator.getId().toString())
-                , egUris);
+        dbClient.queryByConstraint(AlternateIdConstraint.Factory.getExportGroupInitiatorConstraint(initiator.getId().toString()), egUris);
         ExportGroup exportGroup = null;
         for (URI egUri : egUris) {
             exportGroup = dbClient.queryObject(ExportGroup.class, egUri);
@@ -466,9 +455,7 @@ public class ExportUtils {
             Initiator initiator, URI blockObjectId, DbClient dbClient) {
         List<ExportGroup> exportGroups = new ArrayList<ExportGroup>();
         URIQueryResultList egUris = new URIQueryResultList();
-        dbClient.queryByConstraint(AlternateIdConstraint.Factory.
-                getExportGroupInitiatorConstraint(initiator.getId().toString())
-                , egUris);
+        dbClient.queryByConstraint(AlternateIdConstraint.Factory.getExportGroupInitiatorConstraint(initiator.getId().toString()), egUris);
         for (URI egUri : egUris) {
             ExportGroup exportGroup = dbClient.queryObject(ExportGroup.class, egUri);
             if (exportGroup == null || exportGroup.getInactive() || exportGroup.getExportMasks() == null) {
@@ -554,9 +541,8 @@ public class ExportUtils {
     }
 
     static public boolean isExportMaskShared(DbClient dbClient, URI exportMaskURI, Collection<URI> exportGroupURIs) {
-        List<ExportGroup> results =
-                CustomQueryUtility.queryActiveResourcesByConstraint(dbClient, ExportGroup.class,
-                        ContainmentConstraint.Factory.getConstraint(ExportGroup.class, "exportMasks", exportMaskURI));
+        List<ExportGroup> results = CustomQueryUtility.queryActiveResourcesByConstraint(dbClient, ExportGroup.class,
+                ContainmentConstraint.Factory.getConstraint(ExportGroup.class, "exportMasks", exportMaskURI));
         int count = 0;
         for (ExportGroup exportGroup : results) {
             count++;
@@ -591,16 +577,15 @@ public class ExportUtils {
      */
     public static List<String> getExportMasksSharingInitiator(DbClient dbClient, URI initiatorUri, ExportMask curExportMask,
             Collection<URI> exportMaskURIs) {
-        List<ExportMask> results =
-                CustomQueryUtility.queryActiveResourcesByConstraint(dbClient, ExportMask.class,
-                        ContainmentConstraint.Factory.getConstraint(ExportMask.class, "initiators", initiatorUri));
+        List<ExportMask> results = CustomQueryUtility.queryActiveResourcesByConstraint(dbClient, ExportMask.class,
+                ContainmentConstraint.Factory.getConstraint(ExportMask.class, "initiators", initiatorUri));
         List<String> sharedExportMaskNameList = new ArrayList<>();
         for (ExportMask exportMask : results) {
-            if (exportMask != null && !exportMask.getId().equals(curExportMask.getId()) && 
+            if (exportMask != null && !exportMask.getId().equals(curExportMask.getId()) &&
                     exportMask.getStorageDevice().equals(curExportMask.getStorageDevice()) &&
                     !exportMaskURIs.contains(exportMask.getId())
                     && StringSetUtil.areEqual(exportMask.getInitiators(), curExportMask.getInitiators())) {
-                _log.info(String.format("Initiator %s is shared with mask %s.", 
+                _log.info(String.format("Initiator %s is shared with mask %s.",
                         initiatorUri, exportMask.getMaskName()));
                 sharedExportMaskNameList.add(exportMask.forDisplay());
             }
@@ -622,9 +607,8 @@ public class ExportUtils {
             return false;
         }
 
-        List<ExportMask> results =
-                CustomQueryUtility.queryActiveResourcesByConstraint(dbClient, ExportMask.class,
-                        ContainmentConstraint.Factory.getConstraint(ExportMask.class, "initiators", initiatorUri));
+        List<ExportMask> results = CustomQueryUtility.queryActiveResourcesByConstraint(dbClient, ExportMask.class,
+                ContainmentConstraint.Factory.getConstraint(ExportMask.class, "initiators", initiatorUri));
         for (ExportMask exportMask : results) {
             if (exportMask != null && !exportMask.getId().equals(mask.getId()) && storageUri.equals(exportMask.getStorageDevice())) {
                 return true;
@@ -964,8 +948,8 @@ public class ExportUtils {
             URI blockURI = URI.create(uriString);
             BlockObject block = BlockObject.fetch(dbClient, blockURI);
             // If this is an RP-based Block Snapshot, use the protection controller instead of the underlying block controller
-            URI storage = (block.getProtectionController() != null && protection && block.getId().toString().contains("BlockSnapshot")) ?
-                    block.getProtectionController() : block.getStorageController();
+            URI storage = (block.getProtectionController() != null && protection && block.getId().toString().contains("BlockSnapshot"))
+                    ? block.getProtectionController() : block.getStorageController();
 
             if (map.get(storage) == null) {
                 map.put(storage, new HashMap<URI, Integer>());
@@ -1118,8 +1102,7 @@ public class ExportUtils {
      * @return true if any of the ExportGroups referenced in the exportGroupURIs list has the initiator
      */
     public static boolean checkIfAnyExportGroupsContainInitiator(DbClient dbClient, Set<URI> exportGroupURIs, Initiator initiator) {
-        Iterator<ExportGroup> exportGroupIterator =
-                dbClient.queryIterativeObjects(ExportGroup.class, exportGroupURIs, true);
+        Iterator<ExportGroup> exportGroupIterator = dbClient.queryIterativeObjects(ExportGroup.class, exportGroupURIs, true);
         while (exportGroupIterator.hasNext()) {
             ExportGroup exportGroup = exportGroupIterator.next();
             if (exportGroup.hasInitiator(initiator)) {
@@ -1141,8 +1124,7 @@ public class ExportUtils {
     public static boolean checkIfAnyExportGroupsContainInitiatorAndBlockObject(
             DbClient dbClient, Set<URI> exportGroupURIs, Initiator initiator,
             BlockObject blockObject) {
-        Iterator<ExportGroup> exportGroupIterator =
-                dbClient.queryIterativeObjects(ExportGroup.class, exportGroupURIs, true);
+        Iterator<ExportGroup> exportGroupIterator = dbClient.queryIterativeObjects(ExportGroup.class, exportGroupURIs, true);
         while (exportGroupIterator.hasNext()) {
             ExportGroup exportGroup = exportGroupIterator.next();
             if (exportGroup.hasInitiator(initiator) && exportGroup.hasBlockObject(blockObject.getId())) {
@@ -1161,8 +1143,7 @@ public class ExportUtils {
      */
     public static List<ExportGroup> getExportGroupsForMask(URI uri, DbClient dbClient) {
         URIQueryResultList exportGroupUris = new URIQueryResultList();
-        dbClient.queryByConstraint(ContainmentConstraint.
-                Factory.getExportMaskExportGroupConstraint(uri), exportGroupUris);
+        dbClient.queryByConstraint(ContainmentConstraint.Factory.getExportMaskExportGroupConstraint(uri), exportGroupUris);
         return DataObjectUtils.iteratorToList(dbClient.queryIterativeObjects(ExportGroup.class,
                 DataObjectUtils.iteratorToList(exportGroupUris)));
     }
@@ -1177,8 +1158,7 @@ public class ExportUtils {
      */
     public static void updatePromotedMirrorExports(BlockMirror mirror, Volume promotedVolume, DbClient dbClient) {
         URIQueryResultList egUris = new URIQueryResultList();
-        dbClient.queryByConstraint(ContainmentConstraint.
-                Factory.getBlockObjectExportGroupConstraint(mirror.getId()), egUris);
+        dbClient.queryByConstraint(ContainmentConstraint.Factory.getBlockObjectExportGroupConstraint(mirror.getId()), egUris);
         List<ExportGroup> exportGroups = dbClient.queryObject(ExportGroup.class, egUris);
         Set<ExportMask> mirrorExportMasks = new HashSet<ExportMask>();
         List<DataObject> updatedObjects = new ArrayList<DataObject>();
@@ -1226,11 +1206,10 @@ public class ExportUtils {
      * @param pathParams ExportPathParams may contain a set of allowable ports. Optional, can be null.
      * @return a list of storage ports that are in good operational status and assigned to the virtual array
      */
-    public static List<StoragePort> getStorageSystemAssignablePorts(DbClient dbClient, URI storageSystemURI, 
+    public static List<StoragePort> getStorageSystemAssignablePorts(DbClient dbClient, URI storageSystemURI,
             URI varrayURI, ExportPathParams pathParams) {
         URIQueryResultList sports = new URIQueryResultList();
-        dbClient.queryByConstraint(ContainmentConstraint.Factory.
-                getStorageDeviceStoragePortConstraint(storageSystemURI), sports);
+        dbClient.queryByConstraint(ContainmentConstraint.Factory.getStorageDeviceStoragePortConstraint(storageSystemURI), sports);
         Iterator<URI> it = sports.iterator();
         List<StoragePort> spList = new ArrayList<StoragePort>();
         List<String> notRegisteredOrOk = new ArrayList<String>();
@@ -1247,13 +1226,14 @@ public class ExportUtils {
                 _log.debug(
                         "Storage port {} is not selected because it is inactive, is not compatible, is not visible, has no network assignment, "
                                 +
-                                "is not registered, has a status other than OK, or is not a frontend port", sp.getLabel());
+                                "is not registered, has a status other than OK, or is not a frontend port",
+                        sp.getLabel());
                 notRegisteredOrOk.add(sp.qualifiedPortName());
             } else if (sp.getTaggedVirtualArrays() == null || !sp.getTaggedVirtualArrays().contains(varrayURI.toString())) {
                 _log.debug("Storage port {} not selected because it is not connected " +
                         "or assigned to requested virtual array {}", sp.getNativeGuid(), varrayURI);
                 notInVarray.add(sp.qualifiedPortName());
-            } else if (pathParams != null && !pathParams.getStoragePorts().isEmpty() 
+            } else if (pathParams != null && !pathParams.getStoragePorts().isEmpty()
                     && !pathParams.getStoragePorts().contains(sp.getId().toString())) {
                 _log.debug("Storage port {} not selected because it is not in ExportPathParams port list", sp.getNativeGuid());
                 notInPathParams.add(sp.qualifiedPortName());
@@ -1271,7 +1251,7 @@ public class ExportUtils {
                     + varrayURI + " " + Joiner.on(" ").join(notInVarray));
         }
         if (!notInPathParams.isEmpty()) {
-            _log.info("Ports not selected because they are not in the ExportPathParams port list: " 
+            _log.info("Ports not selected because they are not in the ExportPathParams port list: "
                     + Joiner.on(" ").join(notInPathParams));
         }
         return spList;
@@ -1459,17 +1439,18 @@ public class ExportUtils {
 
         return String.format("VPlex_%s_%s", modfiedVPlexSerialNumber, modfiedArraySerialNumber);
     }
-    
+
     /**
      * Given an updatedBlockObjectMap (maps BlockObject URI to Lun Integer) representing the desired state,
      * and an Export Group, makes addedBlockObjects containing the entries that were added,
      * and removedBlockObjects containing the entries that were removed.
+     * 
      * @param updatedBlockObjectMap : desired state of the Block Object Map
      * @param exportGroup : existing map taken from exportGroup.getVolumes()
      * @param addedBlockObjects : OUTPUT - contains map of added Block Objects
      * @param removedBlockObjects : OUTPUT -- contains map of removed Block Objects
      */
-    public static void getAddedAndRemovedBlockObjects(Map<URI, Integer> updatedBlockObjectMap, 
+    public static void getAddedAndRemovedBlockObjects(Map<URI, Integer> updatedBlockObjectMap,
             ExportGroup exportGroup, Map<URI, Integer> addedBlockObjects, Map<URI, Integer> removedBlockObjects) {
         Map<URI, Integer> existingBlockObjectMap = StringMapUtil.stringMapToVolumeMap(exportGroup.getVolumes());
         // Determine the removed entries; they are in existing but not updated
@@ -1634,13 +1615,11 @@ public class ExportUtils {
      */
     public static List<URI> getAllInitiatorsForCluster(URI clusterURI, DbClient dbClient) {
         List<URI> clusterInitaitors = new ArrayList<URI>();
-        List<Host> hosts =
-                CustomQueryUtility.queryActiveResourcesByConstraint(dbClient, Host.class,
-                        ContainmentConstraint.Factory.getContainedObjectsConstraint(clusterURI, Host.class, "cluster"));
+        List<Host> hosts = CustomQueryUtility.queryActiveResourcesByConstraint(dbClient, Host.class,
+                ContainmentConstraint.Factory.getContainedObjectsConstraint(clusterURI, Host.class, "cluster"));
         for (Host host : hosts) {
-            List<Initiator> initiators =
-                    CustomQueryUtility.queryActiveResourcesByConstraint(dbClient, Initiator.class,
-                            ContainmentConstraint.Factory.getContainedObjectsConstraint(host.getId(), Initiator.class, "host"));
+            List<Initiator> initiators = CustomQueryUtility.queryActiveResourcesByConstraint(dbClient, Initiator.class,
+                    ContainmentConstraint.Factory.getContainedObjectsConstraint(host.getId(), Initiator.class, "host"));
             for (Initiator initiator : initiators) {
                 clusterInitaitors.add(initiator.getId());
             }
@@ -1712,9 +1691,9 @@ public class ExportUtils {
      */
     public static void cleanStaleExportMasks(StorageSystem storage, Set<String> maskNamesFromArray, List<String> initiatorNames,
             DbClient dbClient) {
-
         Set<Initiator> initiators = ExportUtils.getInitiators(initiatorNames, dbClient);
         Set<ExportMask> staleExportMasks = new HashSet<>();
+        
         _log.info("Mask Names found in array:{} for the initiators: {}", maskNamesFromArray, initiatorNames);
         for (Initiator initiator : initiators) {
             URIQueryResultList emUris = new URIQueryResultList();
@@ -1739,6 +1718,7 @@ public class ExportUtils {
                 }
             }
         }
+        
         if (!CollectionUtils.isEmpty(staleExportMasks)) {
             dbClient.markForDeletion(staleExportMasks);
             _log.info("Deleted {} stale export masks from DB", staleExportMasks.size());
@@ -1820,7 +1800,7 @@ public class ExportUtils {
 
         return false;
     }
-    
+
     /**
      * For ViPR-only delete operations, we use this method to remove the
      * block object from the export group and export masks associated with
@@ -1860,7 +1840,7 @@ public class ExportUtils {
             }
 
             List<ExportMask> exportMasks = ExportMaskUtils.getExportMasks(dbClient, exportGroup);
-            for (ExportMask exportMask : exportMasks) {              
+            for (ExportMask exportMask : exportMasks) {
                 if (exportMask.hasVolume(boURI)) {
                     _log.info(String.format("Cleaning block object from export mask [%s]", exportMask.forDisplay()));
                     StringMap exportMaskVolumeMap = exportMask.getVolumes();
@@ -1890,14 +1870,14 @@ public class ExportUtils {
             List<ExportMask> updatedExportMasks = new ArrayList<ExportMask>(
                     updatedExportMaskMap.values());
             dbClient.updateObject(updatedExportMasks);
-        }    
+        }
     }
 
     /**
      * Checks the passed in Export Group and determines if it requires cleanup. This is
      * mainly used for internal EGs (VPLEX/RP) as they might not otherwise be cleaned up.
      * 
-     * @param exportGroup The Export Group to check 
+     * @param exportGroup The Export Group to check
      * @param dbClient DbClient reference
      */
     public static void checkExportGroupForCleanup(ExportGroup exportGroup, DbClient dbClient) {
@@ -1906,8 +1886,8 @@ public class ExportUtils {
             // export group, delete the export group automatically.
             if ((exportGroup.checkInternalFlags(Flag.INTERNAL_OBJECT)) &&
                     (CollectionUtils.isEmpty(exportGroup.getVolumes())
-                    || CollectionUtils.isEmpty(ExportMaskUtils.getExportMasks(dbClient, exportGroup)))) {
-                _log.info(String.format("Marking export group [%s %s] for deletion.", 
+                            || CollectionUtils.isEmpty(ExportMaskUtils.getExportMasks(dbClient, exportGroup)))) {
+                _log.info(String.format("Marking export group [%s %s] for deletion.",
                         exportGroup.getLabel(), exportGroup.getId()));
                 dbClient.markForDeletion(exportGroup);
             }
@@ -1931,7 +1911,12 @@ public class ExportUtils {
 
         cleanStaleClusterReferences(exportGroup, dbClient);
 
-        dbClient.updateObject(exportGroup);
+        cleanStaleVolumeReferences(exportGroup, dbClient);
+
+        // Export Group might have been marked to deletion already
+        if (null != exportGroup && !exportGroup.getInactive()) {
+            dbClient.updateObject(exportGroup);
+        }
     }
 
     /**
@@ -1941,10 +1926,14 @@ public class ExportUtils {
      * @param dbClient {@link DbClient}
      */
     private static void cleanStaleMaskReferences(ExportGroup exportGroup, DbClient dbClient) {
+        if (null == exportGroup || exportGroup.getInactive()) {
+            return;
+        }
         // Clean stale export mask references from ExportGroup.
         StringSet exportMasks = exportGroup.getExportMasks();
         if (!CollectionUtils.isEmpty(exportMasks)) {
             List<URI> staleMasks = new ArrayList<>();
+            List<URI> unstaleMasks = new ArrayList<>();
             StringSet exportGroupInitiators = exportGroup.getInitiators();
             for (String mask : exportMasks) {
                 boolean isStaleMask = false;
@@ -1966,11 +1955,63 @@ public class ExportUtils {
                 if (isStaleMask) {
                     staleMasks.add(maskURI);
                     _log.info("Stale mask {} will be removed from Export Group {}", maskURI, exportGroup.getId());
+                } else {
+                    unstaleMasks.add(maskURI);
                 }
             }
             if (!CollectionUtils.isEmpty(staleMasks)) {
                 exportGroup.removeExportMasks(staleMasks);
+                for (URI maskURI : staleMasks) {
+                    List<ExportGroup> exportGroups = getExportGroupsForMask(maskURI, dbClient);
+                    if (exportGroups.isEmpty() || (exportGroups.size() == 1 && exportGroups.get(0).getId().equals(exportGroup.getId()))) {
+                        ExportMask maskObj = dbClient.queryObject(ExportMask.class, maskURI);
+                        if (maskObj != null) {
+                            _log.info("Deleting export mask {} because it is no longer in use by an export group", maskObj);
+                            dbClient.removeObject(maskObj);
+                        }
+                    }
+                }
             }
+
+            // Make sure the zoning map contains no stale entries for
+            // masks that are not stale.
+            if (!CollectionUtils.isEmpty(unstaleMasks)) {
+                cleanStaleZoningMapEntries(unstaleMasks, dbClient);
+            }
+
+        }
+
+        if (CollectionUtils.isEmpty(exportGroup.getExportMasks())
+                && !exportGroup.checkInternalFlags(DataObject.Flag.INTERNAL_OBJECT)) {
+            // COP-27689 - Even if all the export masks got cleared, the export Group still remains with initiators and volumes.
+            // Clean up all the initiators, volumes and ports as there are no available export masks or we could delete the export Group
+            // too.
+            _log.info("There are no masks in the export Group {}-->{} , hence deleting export group...", exportGroup.getId(),
+                    exportGroup.getLabel());
+            dbClient.markForDeletion(exportGroup);
+        }
+    }
+
+    /**
+     * Cleanup any stale entries in the zoning maps for the export masks with the passed URIs.
+     * 
+     * @param maskURIs The URIs of the export masks to examine.
+     * @param dbClient A reference to a database client.
+     */
+    private static void cleanStaleZoningMapEntries(List<URI> maskURIs, DbClient dbClient) {
+        Iterator<ExportMask> maskIter = dbClient.queryIterativeObjects(ExportMask.class, maskURIs);
+        while (maskIter.hasNext()) {
+            ExportMask maskObj = maskIter.next();
+            StringSetMap zoningMap = maskObj.getZoningMap();
+            StringSet maskInitIds = maskObj.getInitiators();
+            Set<String> zoningMapInitIds = new HashSet<>(zoningMap.keySet());
+            for (String zoningMapInitId : zoningMapInitIds) {
+                if (maskInitIds == null || maskInitIds.isEmpty() || !maskInitIds.contains(zoningMapInitId)) {
+                    zoningMap.remove(zoningMapInitId);
+                }
+            }
+            maskObj.setZoningMap(zoningMap);
+            dbClient.updateObject(maskObj);
         }
     }
 
@@ -1981,7 +2022,12 @@ public class ExportUtils {
      * @param dbClient {@link DbClient}
      */
     private static void cleanStaleInitiatorReferences(ExportGroup exportGroup, DbClient dbClient) {
+        if (null == exportGroup || exportGroup.getInactive()) {
+            return;
+        }
         StringSet exportGroupInitiators = exportGroup.getInitiators();
+        // Clean Stale Mask references will delete export Group if export masks is empty, therefore at this point the masks will not be
+        // empty
         if (!CollectionUtils.isEmpty(exportGroupInitiators) && !CollectionUtils.isEmpty(exportGroup.getExportMasks())) {
             Set<String> allMaskInitiators = new HashSet<>();
             for (String mask : exportGroup.getExportMasks()) {
@@ -1990,15 +2036,71 @@ public class ExportUtils {
                     allMaskInitiators.addAll(maskObj.getInitiators());
                 }
             }
-            // Stale initiators = EG intiators - all initiators available in all the eg.masks
+            // Stale initiators = EG initiators - all initiators available in all the eg.masks
             Set<String> staleInitiators = Sets.difference(exportGroupInitiators, allMaskInitiators);
             if (!CollectionUtils.isEmpty(staleInitiators)) {
-                Collection<URI> staleInitiatorURIS = Collections2.transform(staleInitiators,
+                Collection<URI> staleInitiatorURIs = Collections2.transform(staleInitiators,
                         CommonTransformerFunctions.FCTN_STRING_TO_URI);
-                exportGroup.removeInitiators(new ArrayList<>(staleInitiatorURIS));
-                _log.info("Stale initiators {} will be removed from Export Group {}", staleInitiatorURIS, exportGroup.getId());
+                _log.info(String.format("Stale initiators [%s] will be removed from Export Group %s",
+                        Joiner.on(',').join(staleInitiatorURIs), exportGroup.getId()));
+                exportGroup.removeInitiators(new ArrayList<>(staleInitiatorURIs));
+            }
+
+        }
+
+        if (CollectionUtils.isEmpty(exportGroup.getInitiators())
+                && !exportGroup.checkInternalFlags(DataObject.Flag.INTERNAL_OBJECT)) {
+            // COP-27689 - Even if all the export masks got cleared, the export Group still remains with initiators and volumes.
+            // Clean up all the initiators, volumes and ports as there are no available export masks or we could delete the export Group
+            // too.
+            _log.info("There are no initiators in the export Group {}-->{} , hence deleting export group...", exportGroup.getId(),
+                    exportGroup.getLabel());
+            dbClient.markForDeletion(exportGroup);
+        }
+    }
+
+    /**
+     * Get all the user Added volumes from all the masks in the export group.
+     * Compare the same with volumes with export group and remove stale volumes.
+     * After removal, if the volumes are empty in export Group, delete the export Group.
+     * 
+     * @param exportGroup
+     * @param dbClient
+     */
+    private static void cleanStaleVolumeReferences(ExportGroup exportGroup, DbClient dbClient) {
+        if (null == exportGroup || exportGroup.getInactive()) {
+            return;
+        }
+        // Clean Stale Mask references will delete export Group if export masks is empty, therefore at this point the masks will not be
+        // empty
+        if (!CollectionUtils.isEmpty(exportGroup.getVolumes()) && !CollectionUtils.isEmpty(exportGroup.getExportMasks())) {
+            Set<String> exportGroupVolumes = exportGroup.getVolumes().keySet();
+            Set<String> volumesInAllMasks = new HashSet<String>();
+            // Export masks inside export Group will be limited in number
+            for (String mask : exportGroup.getExportMasks()) {
+                ExportMask maskObj = dbClient.queryObject(ExportMask.class, URI.create(mask));
+                if (null != maskObj && !CollectionUtils.isEmpty(maskObj.getUserAddedVolumes())) {
+                    volumesInAllMasks.addAll(maskObj.getUserAddedVolumes().values());
+                }
+            }
+
+            Set<String> volumeDiff = Sets.difference(exportGroupVolumes, volumesInAllMasks);
+            if (!CollectionUtils.isEmpty(volumeDiff)) {
+                exportGroup.removeVolumes(volumeDiff);
+                _log.info("Stale volumes {}  removed from Export Group {}", volumeDiff, exportGroup.getId());
             }
         }
+        if (CollectionUtils.isEmpty(exportGroup.getVolumes())
+                && !exportGroup.checkInternalFlags(DataObject.Flag.INTERNAL_OBJECT)) {
+            // COP-27689 - Even if all the export masks got cleared, the export
+            // Group still remains with initiators and volumes.
+            // Clean up all the initiators, volumes and ports as there are no
+            // available export masks or we could delete the export Group too.
+            _log.info("There are no volumes in the export Group {}-->{} , hence deleting export group...", exportGroup.getId(),
+                    exportGroup.getLabel());
+            dbClient.markForDeletion(exportGroup);
+        }
+
     }
 
     /**
@@ -2008,13 +2110,22 @@ public class ExportUtils {
      * @param dbClient {@link DbClient}
      */
     private static void cleanStaleHostReferences(ExportGroup exportGroup, DbClient dbClient) {
+        if (null == exportGroup || exportGroup.getInactive()) {
+            return;
+        }
         StringSet exportGroupInitiators = exportGroup.getInitiators();
+        // Clean Stale Initiator references will delete export Group if initiators are empty, therefore at this point the initiators will
+        // not be empty
         if (!CollectionUtils.isEmpty(exportGroup.getHosts()) && !CollectionUtils.isEmpty(exportGroupInitiators)) {
             Set<String> egHosts = new HashSet<>();
             Collection<Initiator> initiators = Collections2.transform(exportGroupInitiators,
                     CommonTransformerFunctions.fctnStringToInitiator(dbClient));
+
             for (Initiator initiator : initiators) {
-                if (initiator.getHost() != null) {
+
+                // COP-27697 - The new migration handler code written by infra team would take care of removing the stale initiator uris on
+                // upgrade.
+                if (null != initiator && initiator.getHost() != null) {
                     egHosts.add(initiator.getHost().toString());
                 }
             }
@@ -2022,10 +2133,23 @@ public class ExportUtils {
             if (!CollectionUtils.isEmpty(staleHosts)) {
                 Collection<URI> staleHostURIs = Collections2.transform(staleHosts,
                         CommonTransformerFunctions.FCTN_STRING_TO_URI);
+                _log.info(String.format("Stale host references [%s] will be removed from Export Group %s",
+                        Joiner.on(',').join(staleHostURIs), exportGroup.getId()));
                 exportGroup.removeHosts(new ArrayList<>(staleHostURIs));
-                _log.info("Stale host references {} will be removed from Export Group {}", staleHostURIs, exportGroup.getId());
             }
+
         }
+        if (!ExportGroupType.Initiator.toString().equalsIgnoreCase(exportGroup.getType())
+                && CollectionUtils.isEmpty(exportGroup.getHosts())
+                && !exportGroup.checkInternalFlags(DataObject.Flag.INTERNAL_OBJECT)) {
+            // COP-27689 - Even if all the export masks got cleared, the export Group still remains with initiators and volumes.
+            // Clean up all the initiators, volumes and ports as there are no available export masks or we could delete the export Group
+            // too.
+            _log.info("There are no hosts in the export Group {}-->{} , hence deleting export group...", exportGroup.getId(),
+                    exportGroup.getLabel());
+            dbClient.markForDeletion(exportGroup);
+        }
+
     }
 
     /**
@@ -2035,6 +2159,9 @@ public class ExportUtils {
      * @param dbClient {@link DbClient}
      */
     private static void cleanStaleClusterReferences(ExportGroup exportGroup, DbClient dbClient) {
+        if (null == exportGroup || exportGroup.getInactive()) {
+            return;
+        }
         StringSet exportGroupInitiators = exportGroup.getInitiators();
         if (!CollectionUtils.isEmpty(exportGroup.getClusters()) && !CollectionUtils.isEmpty(exportGroupInitiators)) {
             Set<String> egClusterURIs = new HashSet<>();
@@ -2049,9 +2176,21 @@ public class ExportUtils {
             if (!CollectionUtils.isEmpty(staleClusters)) {
                 Collection<URI> staleClusterURIs = Collections2.transform(staleClusters,
                         CommonTransformerFunctions.FCTN_STRING_TO_URI);
+                _log.info(String.format("Stale cluster references [%s] will be removed from Export Group %s",
+                        Joiner.on(',').join(staleClusterURIs), exportGroup.getId()));
                 exportGroup.removeClusters(new ArrayList<>(staleClusterURIs));
-                _log.info("Stale cluster references {} will be removed from Export Group {}", staleClusterURIs, exportGroup.getId());
             }
+
+        }
+        if (ExportGroupType.Cluster.toString().equalsIgnoreCase(exportGroup.getType())
+                && CollectionUtils.isEmpty(exportGroup.getClusters())
+                && !exportGroup.checkInternalFlags(DataObject.Flag.INTERNAL_OBJECT)) {
+            // COP-27689 - Even if all the export masks got cleared, the export Group still remains with initiators and volumes.
+            // Clean up all the initiators, volumes and ports as there are no available export masks or we could delete the export Group
+            // too.
+            _log.info("There are no clusters in the export Group {}-->{} , hence deleting export group...", exportGroup.getId(),
+                    exportGroup.getLabel());
+            dbClient.markForDeletion(exportGroup);
         }
     }
 
@@ -2062,7 +2201,8 @@ public class ExportUtils {
      * @param exportMaskToRemovedVolumeMap a map of ExportMask URI to Volume URIs to be removed
      * @param exportGroupId the parent ExportGroup URI (used to determine "other" ExportGroups)
      */
-    public static void handleExportMaskVolumeRemoval(DbClient dbClient, Map<URI, List<URI>> exportMaskToRemovedVolumeMap, URI exportGroupUri) {
+    public static void handleExportMaskVolumeRemoval(DbClient dbClient, Map<URI, List<URI>> exportMaskToRemovedVolumeMap,
+            URI exportGroupUri) {
         if (null != exportMaskToRemovedVolumeMap) {
 
             Map<URI, BlockObject> blockObjectCache = new HashMap<URI, BlockObject>();
@@ -2095,7 +2235,7 @@ public class ExportUtils {
                     // if the ExportMask no longer has any user added volumes,
                     // remove it from any other ExportGroups it's associated with
                     // besides the exportGroupUri argument given to this method,
-                    // and mark the ExportMask for deletion.  the caller should
+                    // and mark the ExportMask for deletion. the caller should
                     // do the work of removing the ExportMask from the ExportGroup
                     // it's working on because it likely has other operations that
                     // need to be saved as well to the ExportGroup.
@@ -2104,9 +2244,9 @@ public class ExportUtils {
                         List<ExportGroup> exportGroups = ExportMaskUtils.getExportGroups(dbClient, exportMask);
                         for (ExportGroup eg : exportGroups) {
                             // only update ExportGroups besides the exportGroupUri argument --
-                            // The reason being that the caller (the completer class) has an 
-                            // ExportGroup object loaded from the database for that URI already, 
-                            // and has already called removeExportMask. We don't want to update 
+                            // The reason being that the caller (the completer class) has an
+                            // ExportGroup object loaded from the database for that URI already,
+                            // and has already called removeExportMask. We don't want to update
                             // it here and then save it again at the end of the complete method.
                             if (!eg.getId().equals(exportGroupUri)) {
                                 _log.info("Removing mask from ExportGroup " + eg.getGeneratedName());
@@ -2124,5 +2264,74 @@ public class ExportUtils {
         }
     }
 
-    
+    /**
+     * Get all LUNs on the array that mapped to a host identified by initiators in the mask
+     *
+     * @param dbClient
+     * @param exportMask
+     * @return LUNs mapped to the host
+     */
+    public static Set<String> getAllLUNsForHost(DbClient dbClient, ExportMask exportMask) {
+        Set<String> lunIds = new HashSet<>();
+        URI storageUri = exportMask.getStorageDevice();
+        if (NullColumnValueGetter.isNullURI(storageUri)) {
+            return lunIds;
+        }
+
+        URI hostUri = null;
+        for (String init : exportMask.getInitiators()) {
+            Initiator initiator = dbClient.queryObject(Initiator.class, URI.create(init));
+            if (initiator != null && !initiator.getInactive()) {
+                hostUri = initiator.getHost();
+                if (!NullColumnValueGetter.isNullURI(hostUri)) {
+                    break;
+                }
+            }
+        }
+
+        // get initiators from host
+        Map<URI, ExportMask> exportMasks = new HashMap<>();
+        if (!NullColumnValueGetter.isNullURI(hostUri)) {
+            URIQueryResultList list = new URIQueryResultList();
+            dbClient.queryByConstraint(ContainmentConstraint.Factory.getContainedObjectsConstraint(hostUri, Initiator.class, "host"), list);
+            Iterator<URI> uriIter = list.iterator();
+            while (uriIter.hasNext()) {
+                URI initiatorId = uriIter.next();
+                URIQueryResultList egUris = new URIQueryResultList();
+                dbClient.queryByConstraint(AlternateIdConstraint.Factory.
+                        getExportGroupInitiatorConstraint(initiatorId.toString()), egUris);
+                ExportGroup exportGroup = null;
+                for (URI egUri : egUris) {
+                    exportGroup = dbClient.queryObject(ExportGroup.class, egUri);
+                    if (exportGroup == null || exportGroup.getInactive() || exportGroup.getExportMasks() == null) {
+                        continue;
+                    }
+                    List<ExportMask> masks = ExportMaskUtils.getExportMasks(dbClient, exportGroup);
+                    for (ExportMask mask : masks) {
+                        if (mask != null &&
+                                !mask.getInactive() &&
+                                mask.hasInitiator(initiatorId.toString()) &&
+                                mask.getVolumes() != null &&
+                                storageUri.equals(mask.getStorageDevice())) {
+                            exportMasks.put(mask.getId(), mask);
+                        }
+                    }
+                }
+            }
+        }
+
+        for (ExportMask mask : exportMasks.values()) {
+            StringMap volumeMap = mask.getVolumes();
+            if (volumeMap != null && !volumeMap.isEmpty()) {
+                for (String strUri : mask.getVolumes().keySet()) {
+                    BlockObject bo = BlockObject.fetch(dbClient, URI.create(strUri));
+                    if (bo != null && !bo.getInactive()) {
+                        lunIds.add(bo.getNativeId());
+                    }
+                }
+            }
+        }
+
+        return lunIds;
+    }
 }

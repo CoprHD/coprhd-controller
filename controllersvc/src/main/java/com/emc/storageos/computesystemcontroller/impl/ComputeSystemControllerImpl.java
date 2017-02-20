@@ -931,6 +931,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
      * @param stepId to use for this step
      * @return stepId 
      */
+    //
     public String addStepsForRemoveHostFromCluster(Workflow workflow, String waitFor, URI hostId, String unassociateStepId) {
         Host host = _dbClient.queryObject(Host.class, hostId);
         String newWaitFor = null;
@@ -1321,10 +1322,14 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                             String tagValue = tag.getLabel();
                             if (tagValue != null && tagValue.startsWith(VMFS_DATASTORE_PREFIX)) {
                                 String datastoreName = getDatastoreName(tagValue);
+                                //VBDU TODO: In addition to Name , is there any other way we can make sure the right
+                                //data store is picked up
                                 Datastore datastore = api.findDatastore(vCenterDataCenter.getLabel(), datastoreName);
                                 if (datastore != null) {
                                     ComputeSystemHelper.verifyDatastore(datastore, api);
                                 }
+                                //VBDU TODO: If datastore doesn't match we should fail the operation, we cannot proceed
+                                //with unmount volumes.
                             }
                         }
                     }
@@ -1392,6 +1397,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                             }
                         }
                     }
+                    //VBDU TODO: If datastore doesn't match, why do we need to run DetachSCSILun() ?
                     // Test mechanism to invoke a failure. No-op on production systems.
                     InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_030);
                     for (HostScsiDisk entry : storageAPI.listScsiDisks()) {

@@ -1202,6 +1202,7 @@ public class ComputeSystemService extends TaskResourceService {
                     }
                 }
             } else {
+            	//VBDU TODO: Can compute system exist without image server?
                 cs.setComputeImageServer(NullColumnValueGetter.getNullURI());
             }
         }

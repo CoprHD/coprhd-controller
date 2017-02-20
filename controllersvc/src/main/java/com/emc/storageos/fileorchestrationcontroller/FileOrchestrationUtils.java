@@ -979,9 +979,9 @@ public final class FileOrchestrationUtils {
         while (storagePortIter.hasNext()) {
             StoragePort port = dbClient.queryObject(StoragePort.class, storagePortIter.next());
             if (port != null && !port.getInactive()) {
-                targetHost = port.getPortNetworkId();
                 // iterate until dr port found!!
                 if (port.getTag() != null && port.getTag().contains("dr_port")) {
+                    targetHost = port.getPortNetworkId();
                     _log.info("DR port {} found from storage system {} for replication", targetHost, targetSystem.getLabel());
                     break;
                 }

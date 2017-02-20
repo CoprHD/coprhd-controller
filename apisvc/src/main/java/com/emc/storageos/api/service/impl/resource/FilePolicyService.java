@@ -982,11 +982,8 @@ public class FilePolicyService extends TaskResourceService {
                                             null,
                                             vpool, capabilities);
                                     if (newRecs != null && !newRecs.isEmpty()) {
-                                        // validate recommendations!!
-
                                         associations.addAll(convertRecommendationsToStorageSystemAssociations(newRecs,
                                                 filePolicy.getApplyAt(), vpool.getId(), null));
-
                                     }
                                 } catch (Exception ex) {
                                     _log.error("No recommendations found for storage system {} and virtualArray {} with error {} ",

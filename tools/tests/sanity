@@ -724,6 +724,82 @@ VNX_COS_GROUP=vnx-cos-group-`date +%s | cut -c5-10`
 VMAX_COS_GROUP=vmax-cos-group-`date +%s | cut -c5-10`
 
 #
+# filepolicy tests configuration
+#
+SNAPSHOT_TYPE="file_snapshot"
+REPLICATION_TYPE="file_snapshot"
+APPLY_AT_VPOOL="vpool"
+APPLY_AT_PROJECT="project"
+DESCRIPTION="test policy"
+PRIORITY=4
+NUM_WORKER_THREAD=4
+REPLICATION_CONFIGURATION='false'
+SNAPSHOT_PATTERN=$SNAPSHOT"_TYPE_YYYY-MM-DD_HH-MM"
+SNAPSHOT_EXPIRE_TYPE="days"
+SNAPSHOT_EXPIRE_VALUE=3
+POLICY_SCHEDULE_FREQUENCY="days"
+POLICY_SCHEDULE_REPEAT=2
+POLICY_SCHEDULE_TIME=03:00
+REPLICATION_TYPE="LOCAL"
+REPLICATION_COPY_MODE="ASYNC"
+APPLY_ON_TARGET_SITE="false"
+
+#
+# filepolicy tests
+#
+filepolicy_tests()
+{
+    echo "File policy tests started"
+    cos=$1; shift
+    datetime=`date +%m%d%y%H%M%S`
+    fpname=$cos$SNAPSHOT_TYPE$APPLY_AT_VPOOL$datetime
+    echo $fpname
+    
+    run filepolicy create_snapshot_pol $fpname $SNAPSHOT_TYPE $APPLY_AT_VPOOL $DESCRIPTION $SNAPSHOT_PATTERN $SNAPSHOT_EXPIRE_TYPE $SNAPSHOT_EXPIRE_VALUE $POLICY_SCHEDULE_FREQUENCY $POLICY_SCHEDULE_REPEAT $POLICY_SCHEDULE_TIME
+
+	run filepolicy show $fpname
+	run filepolicy vpool_assign $fpname $APPLY_ON_TARGET_SITE $cos
+	run filepolicy show $fpname
+    run filepolicy vpool_unassign $fpname
+	run filepolicy delete $fpname
+
+	fpname=$cos$SNAPSHOT_TYPE$APPLY_AT_PROJECT$datetime
+    echo $fpname
+	
+	run filepolicy create_snapshot_pol $fpname $SNAPSHOT_TYPE $APPLY_AT_PROJECT $DESCRIPTION $SNAPSHOT_PATTERN $SNAPSHOT_EXPIRE_TYPE $SNAPSHOT_EXPIRE_VALUE $POLICY_SCHEDULE_FREQUENCY $POLICY_SCHEDULE_REPEAT $POLICY_SCHEDULE_TIME
+
+    run filepolicy show $fpname
+	run filepolicy project_assign $fpname $APPLY_ON_TARGET_SITE $cos $PROJECT
+	run filepolicy show $fpname
+    run filepolicy project_unassign $fpname
+	run filepolicy delete $fpname
+	
+	datetime=`date +%m%d%y%H%M%S`
+    fpname=$cos$REPLICATION_TYPE$APPLY_AT_VPOOL$datetime
+    echo $fpname
+	
+	run filepolicy create_replication_pol $fpname $REPLICATION_TYPE $APPLY_AT_VPOOL $DESCRIPTION $REPLICATION_TYPE $REPLICATION_COPY_MODE $REPLICATION_CONFIGURATION $POLICY_SCHEDULE_FREQUENCY $POLICY_SCHEDULE_REPEAT $POLICY_SCHEDULE_TIME
+
+	run filepolicy show $fpname
+	run filepolicy vpool_assign $fpname $APPLY_ON_TARGET_SITE $cos $NH $NH
+	run filepolicy show $fpname
+    run filepolicy vpool_unassign $fpname
+	run filepolicy delete $fpname
+
+	fpname=$cos$REPLICATION_TYPE$APPLY_AT_PROJECT$datetime
+    echo $fpname
+	
+	run filepolicy create_replication_pol $fpname $REPLICATION_TYPE $APPLY_AT_PROJECT $DESCRIPTION $REPLICATION_TYPE $REPLICATION_COPY_MODE $REPLICATION_CONFIGURATION $POLICY_SCHEDULE_FREQUENCY $POLICY_SCHEDULE_REPEAT $POLICY_SCHEDULE_TIME
+
+    run filepolicy show $fpname
+	run filepolicy project_assign $fpname $APPLY_ON_TARGET_SITE $cos $PROJECT $NH $NH
+	run filepolicy show $fpname
+    run filepolicy project_unassign $fpname
+	run filepolicy delete $fpname
+
+}
+
+#
 # fileshare tests configuration
 #
 # Min 1GB FS

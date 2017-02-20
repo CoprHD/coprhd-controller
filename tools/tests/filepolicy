@@ -49,19 +49,19 @@ def filepolicy_delete(args):
 
 def filepolicy_vpool_assign(args):
 	bourne.connect(args.ip)
-    s = bourne.filepolicy_vpool_assign(args.name, args.apply_on_target_site, args.assign_to_vpools, args.source_varray, args.target_varrays)
-	if (s['state'] == 'ready'):
-        print 'Filepolicy assigned to vpool succesfully'
-    else:
-        print 'Filepolicy assignment to vpool failed.'
+    bourne.filepolicy_vpool_assign(args.name, args.apply_on_target_site, args.assign_to_vpools, args.source_varray, args.target_varrays)
 
 def filepolicy_project_assign(args):
 	bourne.connect(args.ip)
-    s = bourne.filepolicy_project_assign(args.name, args.apply_on_target_site, args.project_assign_vpool, args.assign_to_projects, args.source_varray, args.target_varrays)
-	if (s['state'] == 'ready'):
-        print 'Filepolicy assigned to project succesfully'
-    else:
-        print 'Filepolicy assignment to project failed.'
+    bourne.filepolicy_project_assign(args.name, args.apply_on_target_site, args.project_assign_vpool, args.assign_to_projects, args.source_varray, args.target_varrays)
+
+def filepolicy_vpool_unassign(args):
+	bourne.connect(args.ip)
+    bourne.filepolicy_vpool_assign(args.name, args.unassign_from_vpools)
+
+def filepolicy_project_unassign(args):
+	bourne.connect(args.ip)
+    bourne.filepolicy_project_assign(args.name, args.unassign_from_projects)
 
 
 #----------------------------------------------------------------------
@@ -126,8 +126,8 @@ vpool_assign = argparse.ArgumentParser(parents = [parser], conflict_handler='res
 vpool_assign.add_argument('name',	help = 'name of filepolicy to be assigned to vPool')
 vpool_assign.add_argument('--apply_on_target_site', help='Appply on target site true/false', default = 'false')
 vpool_assign.add_argument('assign_to_vpools', help='assign to vpools. Required for assigning file policies to vpool', nargs='*')
-vpool_assign.add_argument('source_varray', help='source varray for file replication')
-vpool_assign.add_argument('target_varrays', help='target varrays for file replication', nargs='*')
+vpool_assign.add_argument('--source_varray', help='source varray for file replication')
+vpool_assign.add_argument('--target_varrays', help='target varrays for file replication', nargs='*')
 
 # filepolicy assign to project
 project_assign = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
@@ -135,12 +135,22 @@ project_assign.add_argument('name',	help = 'name of filepolicy to be assigned to
 project_assign.add_argument('--apply_on_target_site', help='Appply on target site true/false', default = 'false')
 project_assign.add_argument('project_assign_vpool', help='assign to vpools. Required for assigning file policies to Project')
 project_assign.add_argument('assign_to_projects', help='Assign to projects. Required for assigning file policies to project', nargs='*')
-project_assign.add_argument('source_varray', help='source varray for file replication')
-project_assign.add_argument('target_varrays', help='target varrays for file replication', nargs='*')
+project_assign.add_argument('--source_varray', help='source varray for file replication')
+project_assign.add_argument('--target_varrays', help='target varrays for file replication', nargs='*')
 
 # filepolicy list 
 list = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
 list.add_argument('project',	help = 'filepolicy list')
+
+# filepolicy unassign from vPool
+vpool_unassign = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+vpool_unassign.add_argument('name',	help = 'name of filepolicy to be unassigned from vPool')
+vpool_unassign.add_argument('unassign_from_vpools', help='unassign from  vpools, nargs='*')
+
+# filepolicy unassign from Project
+project_unassign = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+project_unassign.add_argument('name',	help = 'name of filepolicy to be unassigned from project')
+project_unassign.add_argument('unassign_from_projects', help='unassign from  projects, nargs='*')
 
 #----------------------------------------------------------------------
 # Main script
@@ -178,6 +188,12 @@ try:
     elif (cmd == "project_assign"):
         args = project_assign.parse_args()
         filepolicy_project_assign(args)
+    elif (cmd == "vpool_unassign"):
+        args = vpool_unassign.parse_args()
+        filepolicy_vpool_unassign(args)
+    elif (cmd == "project_unassign"):
+        args = project_unassign.parse_args()
+        filepolicy_project_unassign(args)
     else:
         parser.print_help()
 except:

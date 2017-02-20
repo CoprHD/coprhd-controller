@@ -9630,7 +9630,7 @@ class Bourne:
         return self.api('POST', URI_FILE_POLICIES, parms)
     
     # creates the replication filepolicy
-    def filepolicy_create_replication_pol(self, name, policy_type, apply_at, description, policyscheduleweek, policyschedulemonth, snapshotnamepattern, snapshotexpiretype, snapshotexpirevalue, policyschedulefrequency, policyschedulerepeat, policyscheduletime):
+    def filepolicy_create_replication_pol(self, name, policy_type, apply_at, description, policyscheduleweek, policyschedulemonth, replicationtype, replicationcopymode, replicationconfiguration, policyschedulefrequency, policyschedulerepeat, policyscheduletime):
         parms = {
             'name'              : name,
             'policy_type'       : policy_type,
@@ -9643,13 +9643,13 @@ class Bourne:
         return self.api('POST', URI_FILE_POLICIES, parms)
     
     # assigns thefilepolicy to vPool
-    def filepolicy_vpool_assign(name, apply_on_target_site, assign_to_vpools, source_varray, target_varrays) :
+    def filepolicy_vpool_assign(self, name, apply_on_target_site, assign_to_vpools, source_varray, target_varrays) :
         parms = {
             'name'              : name,
             'apply_on_target_site'       : apply_on_target_site,
             }
         assign_request_vpools = []
-        if( len(assign_to_vpools)>1):
+        if( assign_to_vpools is not None and (len(assign_to_vpools)>0)):
                     vpool_names = assign_to_vpools.split(',')
                     for name in vpool_names:
                          uri =  self.cos_query("file", name).strip()
@@ -9658,7 +9658,7 @@ class Bourne:
         parms['vpool_assign_param'] = {'assign_to_vpools' : assign_request_vpools}
         src_varray_uri = self.neighborhood_query(source_varray).strip()
         assign_target_varrays = []
-        if( len(target_varrays)>1):
+        if( target_varrays is not None and (len(target_varrays)>0)):
             trg_varrays= target_varrays.split(',')
             for varray in trg_varrays:
                 uri = self.neighborhood_query(varray).strip()
@@ -9667,15 +9667,15 @@ class Bourne:
         filepolicy = self.filepolicy_query(name)
         return self.api('POST', URI_FILE_POLICY_ASSIGN.format(filepolicy['id']), parms)
     
-     # assigns the filepolicy to project
-    def filepolicy_project_assign(name, apply_on_target_site, project_assign_vpool, assign_to_projects, source_varray, target_varrays):
+    # assigns the filepolicy to project
+    def filepolicy_project_assign(self, name, apply_on_target_site, project_assign_vpool, assign_to_projects, source_varray, target_varrays):
         parms = {
             'name'              : name,
             'apply_on_target_site'       : apply_on_target_site,
             }
         vpooluri =  self.cos_query("file", project_assign_vpool).strip()
         assign_request_projects = []
-        if( len(assign_to_projects)>1):
+        if( assign_to_projects is not None and (len(assign_to_projects)>0) ):
             project_names = assign_to_projects.split(',')
             for name in project_names:
                 uri =  self.project_query(name).strip()
@@ -9683,7 +9683,7 @@ class Bourne:
         parms['project_assign_param'] = {'vpool' : vpooluri,'assign_to_projects' : assign_request_projects}
         src_varray_uri = self.neighborhood_query(source_varray).strip()
         assign_target_varrays = []
-        if( len(target_varrays)>1):
+        if( target_varrays is not None and (len(target_varrays)>0)):
             trg_varrays= target_varrays.split(',')
             for varray in trg_varrays:
                 uri = self.neighborhood_query(varray)
@@ -9691,4 +9691,34 @@ class Bourne:
         parms['file_replication_topologies'] = {'source_varray': src_varray_uri , 'target_varrays' :assign_target_varrays}
         filepolicy = self.filepolicy_query(name)
         return self.api('POST', URI_FILE_POLICY_ASSIGN.format(filepolicy['id']), parms)
+    
+     # unassigns the filepolicy from vpool
+    def filepolicy_vpool_assign(self, name, unassign_from_vpools):
+        parms = {
+            'name'              : name,
+            }
+        unassign_request_vpools = []
+        if( unassign_from_vpools is not None and (len(unassign_from_vpools)>0)):
+                    vpool_names = unassign_from_vpools.split(',')
+                    for name in vpool_names:
+                         uri =  self.cos_query("file", name).strip()
+                         unassign_request_vpools.append(uri)
+        parms['unassign_from'] = unassign_request_vpools
+        filepolicy = self.filepolicy_query(name)
+        return self.api('POST', URI_FILE_POLICY_UNASSIGN.format(filepolicy['id']), parms)
+    
+    # unassigns the filepolicy from project
+    def filepolicy_vpool_assign(self, name, unassign_from_projects):
+        parms = {
+            'name'              : name,
+            }
+        unassign_request_projects = []
+        if( unassign_from_projects is not None and (len(unassign_from_projects)>0)):
+                    project_names = unassign_from_projects.split(',')
+                    for name in project_names:
+                         uri =  self.cos_query("file", name).strip()
+                         unassign_request_projects.append(uri)
+        parms['unassign_from'] = unassign_request_projects
+        filepolicy = self.filepolicy_query(name)
+        return self.api('POST', URI_FILE_POLICY_UNASSIGN.format(filepolicy['id']), parms)
     

@@ -26,6 +26,8 @@ import com.emc.storageos.db.client.model.FileExportRule;
 import com.emc.storageos.db.client.model.FilePolicy;
 import com.emc.storageos.db.client.model.FilePolicy.FilePolicyApplyLevel;
 import com.emc.storageos.db.client.model.FilePolicy.FilePolicyType;
+import com.emc.storageos.db.client.model.FileReplicaPolicyTarget;
+import com.emc.storageos.db.client.model.FileReplicaPolicyTargetMap;
 import com.emc.storageos.db.client.model.FileShare;
 import com.emc.storageos.db.client.model.FileShare.PersonalityTypes;
 import com.emc.storageos.db.client.model.NASServer;
@@ -885,7 +887,8 @@ public final class FileOrchestrationUtils {
      *
      */
     public static PolicyStorageResource updatePolicyStorageResource(DbClient dbClient, StorageSystem system, FilePolicy filePolicy,
-            FileDeviceInputOutput args, String sourcePath, String policyNativeId) {
+            FileDeviceInputOutput args, String sourcePath, String policyNativeId,
+            StorageSystem targetSystem, NASServer targetNasServer, String targetPath) {
         PolicyStorageResource policyStorageResource = new PolicyStorageResource();
 
         policyStorageResource.setId(URIUtil.createId(PolicyStorageResource.class));
@@ -908,6 +911,28 @@ public final class FileOrchestrationUtils {
         policyStorageResource.setNativeGuid(NativeGUIDGenerator.generateNativeGuidForFilePolicyResource(system,
                 nasServer.getNasName(), filePolicy.getFilePolicyType(), sourcePath, NativeGUIDGenerator.FILE_STORAGE_RESOURCE));
 
+        if (filePolicy.getFilePolicyType().equalsIgnoreCase(FilePolicy.FilePolicyType.file_replication.name())) {
+            // Update the target resource details!!!
+            FileReplicaPolicyTargetMap fileReplicaPolicyTargetMap = new FileReplicaPolicyTargetMap();
+            FileReplicaPolicyTarget target = new FileReplicaPolicyTarget();
+
+            if (targetNasServer != null) {
+                target.setNasServer(targetNasServer.getId().toString());
+            } else {
+                PhysicalNAS pNAS = FileOrchestrationUtils.getSystemPhysicalNAS(dbClient, targetSystem);
+                if (pNAS != null) {
+                    target.setNasServer(pNAS.getId().toString());
+                }
+            }
+
+            target.setAppliedAt(filePolicy.getApplyAt());
+            target.setStorageSystem(targetSystem.getId().toString());
+            target.setPath(targetPath);
+            String key = target.getFileTargetReplicaKey();
+            fileReplicaPolicyTargetMap.put(key, target);
+            policyStorageResource.setFileReplicaPolicyTargetMap(fileReplicaPolicyTargetMap);
+        }
+
         dbClient.createObject(policyStorageResource);
 
         filePolicy.addPolicyStorageResources(policyStorageResource.getId());
@@ -921,6 +946,7 @@ public final class FileOrchestrationUtils {
         }
 
         dbClient.updateObject(filePolicy);
+
         _log.info("PolicyStorageResource object created successfully for {} ",
                 system.getLabel() + policyStorageResource.getAppliedAt());
         return policyStorageResource;

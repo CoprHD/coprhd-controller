@@ -933,7 +933,7 @@ public final class FileOrchestrationUtils {
             StoragePort port = dbClient.queryObject(StoragePort.class, storagePortIter.next());
             if (port != null && !port.getInactive()) {
                 // iterate until dr port found!!
-                if (port.getTag() != null /* && .contains("dr_port") */) {
+                if (port.getTag() != null) {
                     ScopedLabelSet portTagSet = port.getTag();
                     if (portTagSet != null && !portTagSet.isEmpty()) {
                         for (ScopedLabel tag : portTagSet) {

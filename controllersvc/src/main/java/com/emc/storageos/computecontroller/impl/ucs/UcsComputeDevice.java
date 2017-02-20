@@ -3,7 +3,7 @@
  * All Rights Reserved
  */
 /**
- * 
+ *
  */
 package com.emc.storageos.computecontroller.impl.ucs;
 
@@ -69,8 +69,8 @@ import com.emc.storageos.db.client.model.UCSServiceProfileTemplate;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
-import com.emc.storageos.db.client.util.StringSetUtil;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
+import com.emc.storageos.db.client.util.StringSetUtil;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.networkcontroller.impl.NetworkAssociationHelper;
@@ -89,15 +89,15 @@ import com.emc.storageos.workflow.WorkflowStepCompleter;
 
 /**
  * @author Prabhakara,Janardhan
- * 
+ *
  */
 public class UcsComputeDevice implements ComputeDevice {
 
     /**
      * ServiceProfileKeyConstants
-     * 
+     *
      * @author Prabhakara,Janardhan
-     * 
+     *
      */
 
     private CoordinatorClient _coordinator = null;
@@ -306,7 +306,7 @@ public class UcsComputeDevice implements ComputeDevice {
         try {
             URL ucsmURL = getUcsmURL(cs);
             ucsmService
-                    .setLsServerPowerState(ucsmURL.toString(), cs.getUsername(), cs.getPassword(), ce.getDn(), state);
+            .setLsServerPowerState(ucsmURL.toString(), cs.getUsername(), cs.getPassword(), ce.getDn(), state);
             pullAndPollManagedObject(ucsmURL.toString(), cs.getUsername(), cs.getPassword(), ce.getLabel(), ComputeBlade.class);
         } catch (ComputeSystemControllerTimeoutException cstoe) {
             LOGGER.error("Unable to change power state of compute element due to a device TimeOut", cstoe);
@@ -325,35 +325,35 @@ public class UcsComputeDevice implements ComputeDevice {
     /*
      * TODO remove if not needed
      * private String getProcessorSpeed(ComputeBlade computeBlade) {
-     * 
+     *
      * if (computeBlade.getContent() != null && computeBlade.getContent().size() > 0) {
      * for (Serializable contentElement : computeBlade.getContent()) {
      * if (contentElement instanceof JAXBElement<?>) {
      * if (((JAXBElement) contentElement).getValue() instanceof ComputeBoard) {
      * ComputeBoard computeBoard = (ComputeBoard) ((JAXBElement) contentElement).getValue();
-     * 
+     *
      * if (computeBoard.getContent() != null && computeBoard.getContent().size() > 0) {
      * for (Serializable computeBoardContentElement : computeBoard.getContent()) {
      * if (computeBoardContentElement instanceof JAXBElement<?>) {
      * if (((JAXBElement) computeBoardContentElement).getValue() instanceof ProcessorUnit) {
-     * 
+     *
      * ProcessorUnit processorUnit = (ProcessorUnit) ((JAXBElement) computeBoardContentElement)
      * .getValue();
-     * 
+     *
      * if ("equipped".equals(processorUnit.getPresence())) {
      * return processorUnit.getSpeed();
      * }
-     * 
+     *
      * }
      * }
      * }
-     * 
+     *
      * }
-     * 
+     *
      * }
      * }
      * }
-     * 
+     *
      * }
      * return null;
      * }
@@ -562,18 +562,18 @@ public class UcsComputeDevice implements ComputeDevice {
                         exportGroup = _dbClient.queryObject(ExportGroup.class, exportGroup.getId());
 
                         switch (Status.toStatus(exportGroup.getOpStatus().get(task).getStatus())) {
-                            case ready:
-                                taskCompleted = true;
-                                LOGGER.info("Successfully added host " + host.getHostName() + " to ExportGroup: " + exportGroup.getLabel());
-                                break;
-                            case error:
-                                taskCompleted = true;
-                                LOGGER.error("Failed to add host " + host.getHostName() + " to ExportGroup: " + exportGroup.getLabel());
-                                WorkflowStepCompleter.stepFailed(stepId, exportGroup.getOpStatus().get(task)
-                                        .getServiceError());
-                                break;
-                            case pending:
-                                break;
+                        case ready:
+                            taskCompleted = true;
+                            LOGGER.info("Successfully added host " + host.getHostName() + " to ExportGroup: " + exportGroup.getLabel());
+                            break;
+                        case error:
+                            taskCompleted = true;
+                            LOGGER.error("Failed to add host " + host.getHostName() + " to ExportGroup: " + exportGroup.getLabel());
+                            WorkflowStepCompleter.stepFailed(stepId, exportGroup.getOpStatus().get(task)
+                                    .getServiceError());
+                            break;
+                        case pending:
+                            break;
 
                         }
                     }
@@ -833,8 +833,8 @@ public class UcsComputeDevice implements ComputeDevice {
             }
             Host host = _dbClient.queryObject(Host.class, hostURI);
             if (host!=null && host.getComputeElement()!=null){
-               host.setComputeElement(NullColumnValueGetter.getNullURI());
-               _dbClient.persistObject(host);
+                host.setComputeElement(NullColumnValueGetter.getNullURI());
+                _dbClient.persistObject(host);
             }
 
             WorkflowStepCompleter.stepSucceded(stepId);
@@ -938,7 +938,7 @@ public class UcsComputeDevice implements ComputeDevice {
             }
 
             while (ceHBAUriListIterator.hasNext()) {
-                URI ceHBAUri = (URI) ceHBAUriListIterator.next();
+                URI ceHBAUri = ceHBAUriListIterator.next();
 
                 ComputeElementHBA computeElementHBA = _dbClient.queryObject(ComputeElementHBA.class, ceHBAUri);
                 Initiator initiator = new Initiator();
@@ -1135,7 +1135,7 @@ public class UcsComputeDevice implements ComputeDevice {
     public void deactivateHost(ComputeSystem cs, Host host) throws ClientGeneralException {
 
         try {
-             if (host != null && host.getComputeElement() != null ) {
+            if (host != null && host.getComputeElement() != null ) {
                 ComputeElement computeElement = _dbClient.queryObject(ComputeElement.class, host.getComputeElement());
                 if (computeElement == null){
                     LOGGER.error("Host "+ host.getLabel()+ " has associated computeElementURI: "+ host.getComputeElement()+ " which is an invalid reference");
@@ -1152,26 +1152,41 @@ public class UcsComputeDevice implements ComputeDevice {
                         LsServer unboundServiceProfile = ucsmService.unbindServiceProfile(getUcsmURL(cs).toString(),
                                 cs.getUsername(), cs.getPassword(), sp.getDn());
 
-                        LOGGER.debug("Operational state of Deleted Service Profile : " + unboundServiceProfile.getOperState());
+                        LOGGER.debug("Operational state of Deleted Service Profile : "
+                                + unboundServiceProfile.getOperState());
 
-                        ComputeBlade computeBlade = pullAndPollManagedObject(getUcsmURL(cs).toString(), cs.getUsername(), cs.getPassword(),
-                                computeElement.getLabel(), ComputeBlade.class);
-                       
-                        if (computeBlade == null){
-                             LOGGER.info("ComputeBlade "+ computeElement.getLabel()+ " not found on UCS");
+                        ComputeBlade computeBlade = pullAndPollManagedObject(getUcsmURL(cs).toString(),
+                                cs.getUsername(), cs.getPassword(), computeElement.getLabel(), ComputeBlade.class);
+
+                        if (computeBlade == null) {
+                            LOGGER.info("ComputeBlade " + computeElement.getLabel() + " not found on UCS");
                         } else {
 
-                             // Release the computeElement back into the pool as soon as we have unbound it from the service profile
-                             if (LsServerOperStates.UNASSOCIATED.equals(LsServerOperStates.fromString(computeBlade.getOperState()))) {
-                                 computeElement.setAvailable(true);
-                                 _dbClient.persistObject(computeElement);
-                             }
+                            // Release the computeElement back into the pool as
+                            // soon as we have unbound it from the service
+                            // profile
+                            if (LsServerOperStates.UNASSOCIATED
+                                    .equals(LsServerOperStates.fromString(computeBlade.getOperState()))) {
+                                computeElement.setAvailable(true);
+                                _dbClient.persistObject(computeElement);
+                            }
                         }
 
-                        ucsmService.deleteServiceProfile(getUcsmURL(cs).toString(), cs.getUsername(), cs.getPassword(),
-                                unboundServiceProfile.getDn());
+                        // TODO: This is a temporary fix/workaround see
+                        // COP-28207 for more details. Commented the
+                        // code which deletes the service profile from the UCS
+                        // and adding logger to remove service
+                        // profile manually...
+                        /*
+                         * ucsmService.deleteServiceProfile(getUcsmURL(cs).
+                         * toString(), cs.getUsername(), cs.getPassword(),
+                         * unboundServiceProfile.getDn());
+                         */
+                        LOGGER.info(
+                                "Step to delete service profile {} of host {} is being skipped, please remove the servcie profile from UCS manually.",
+                                unboundServiceProfile.getDn(), host.getLabel());
                     } else {
-                        LOGGER.info("No service profile with uuid: " + host.getUuid() + " found on the UCS. Nothing to delete. "); 
+                        LOGGER.info("No service profile with uuid: " + host.getUuid() + " found on the UCS. Nothing to delete. ");
                     }
 
                     // On successful deletion of the service profile - get rid of the objects that represent objects from the service profile
@@ -1190,7 +1205,7 @@ public class UcsComputeDevice implements ComputeDevice {
      * Gets rid of the Initiators that were added to network. Also gets rid of
      * the ComputeElementHBAs that were created when the service profile was
      * bound to the host
-     * 
+     *
      * @param host
      */
     private void removeHostInitiatorsFromNetworks(Host host) {

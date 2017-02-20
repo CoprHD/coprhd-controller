@@ -107,7 +107,7 @@ public class RemoveHostFromClusterService extends ViPRService {
             for (URI bootVolURI : bootVolsToBeDeleted) {
                 BlockObjectRestRep bootVolRep = BlockStorageUtils.getBlockResource(bootVolURI);
                 if ((bootVolRep != null) && !bootVolRep.getInactive()) {
-                    logError("computeutils.removebootvolumes.failure", bootVolRep.getId());
+                    logError("computeutils.removebootvolumes.failure", bootVolRep.getDeviceLabel());
                     setPartialSuccess();
                 }
             }

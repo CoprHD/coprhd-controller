@@ -165,7 +165,7 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
 
                 waitFor = workflow.createStep(OS_INSTALL_SET_LAN_BOOT,
                         "Set the host to boot from LAN", waitFor, cs.getId(), cs
-                                .getSystemType(),
+                        .getSystemType(),
                         this.getClass(), new Workflow.Method("setLanBootTargetStep", computeSystemId,
                                 computeElementId, hostId),
                         new Workflow.Method(ROLLBACK_NOTHING_METHOD), null);
@@ -210,7 +210,7 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
 
         waitFor = workflow.createStep(OS_INSTALL_SET_SAN_BOOT_TARGET,
                 "Set the SAN boot target based on the storage ports used in the volume export", waitFor, cs.getId(), cs
-                        .getSystemType(),
+                .getSystemType(),
                 this.getClass(), new Workflow.Method("setSanBootTargetStep", computeSystemId,
                         computeElementId, hostId, volumeId),
                 new Workflow.Method(ROLLBACK_NOTHING_METHOD), null);
@@ -223,7 +223,7 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
             if (template.getUpdating()) {
                 waitFor = workflow.createStep(REBIND_HOST_TO_TEMPLATE,
                         "Rebind host to service profile template after OS install", waitFor, cs.getId(), cs
-                                .getSystemType(),
+                        .getSystemType(),
                         this.getClass(), new Workflow.Method("rebindHostToTemplateStep", computeSystemId,
                                 hostId),
                         new Workflow.Method(ROLLBACK_NOTHING_METHOD), null);
@@ -578,9 +578,9 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
              * would have been set.
              */
             if (host == null){
-                 log.error("No host found with Id: "+ hostId);
+                log.error("No host found with Id: "+ hostId);
             } else{
-                 log.info("Host: " + host.getLabel() + " has no associated computeElement. So skipping service profile and boot volume deletion steps");
+                log.info("Host: " + host.getLabel() + " has no associated computeElement. So skipping service profile and boot volume deletion steps");
             }
             return waitFor;
         }
@@ -589,24 +589,37 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
 
         if (computeElement != null) {
             ComputeSystem cs = _dbClient.queryObject(ComputeSystem.class, computeElement.getComputeSystem());
-            if (cs == null){
-                log.error("ComputeElement " + computeElement.getLabel() + " has an invalid computeSystem reference: " + computeElement.getComputeSystem());
+            if (cs == null) {
+                log.error("ComputeElement " + computeElement.getLabel() + " has an invalid computeSystem reference: "
+                        + computeElement.getComputeSystem());
                 return waitFor;
             }
 
             waitFor = workflow.createStep(DEACTIVATION_COMPUTE_SYSTEM_HOST, "Unbind blade from service profile",
-                    waitFor, cs.getId(), cs.getSystemType(), this.getClass(), new Workflow.Method(
-                            "deactiveComputeSystemHost", cs.getId(), hostId),
-                    null, null);
+                    waitFor, cs.getId(), cs.getSystemType(), this.getClass(),
+                    new Workflow.Method("deactiveComputeSystemHost", cs.getId(), hostId), null, null);
 
-            if (deactivateBootVolume && host.getBootVolumeId() != null) {
+            // TODO: This is a temporary fix/workaround see COP-28207 for more
+            // details.
+            // Hard-coding deactivateBootVolume to false so that we do not
+            // delete boot volume.
+            deactivateBootVolume = false;
+            boolean isBootVolNull = NullColumnValueGetter.isNullURI(host.getBootVolumeId());
+
+            if (!isBootVolNull) {
+                Volume bootVol = _dbClient.queryObject(Volume.class, host.getBootVolumeId());
+                String bootVolname = (bootVol != null) ? bootVol.getLabel() : host.getBootVolumeId().toString();
+                log.info("Skipping boot volume - {} deletion for host {}.  Please remove corresponding boot volume manually.",
+                        bootVolname, host.getLabel());
+            }
+            if (deactivateBootVolume && !isBootVolNull) {
                 waitFor = workflow.createStep(DEACTIVATION_COMPUTE_SYSTEM_BOOT_VOLUME,
-                        "Delete the boot volume for the host", waitFor, cs.getId(), cs.getSystemType(),
-                        this.getClass(), new Workflow.Method("deleteBlockVolume", hostId), null, null);
+                        "Delete the boot volume for the host", waitFor, cs.getId(), cs.getSystemType(), this.getClass(),
+                        new Workflow.Method("deleteBlockVolume", hostId), null, null);
             } else if (!deactivateBootVolume) {
-                 log.info("flag deactivateBootVolume set to false");
-            } else if (host.getBootVolumeId() == null){
-                 log.info("Host "+ host.getLabel() + " has no bootVolume association");
+                log.info("flag deactivateBootVolume set to false");
+            } else if (host.getBootVolumeId() == null) {
+                log.info("Host " + host.getLabel() + " has no bootVolume association");
             }
         } else {
             log.error("Host "+ host.getLabel()+ " has associated computeElementURI: "+ host.getComputeElement()+ " which is an invalid reference");
@@ -715,19 +728,19 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
                         volume = _dbClient.queryObject(Volume.class, host.getBootVolumeId());
 
                         switch (Status.toStatus(volume.getOpStatus().get(task).getStatus())) {
-                            case ready:
-                                WorkflowStepCompleter.stepSucceded(stepId);
-                                return;
-                            case error:
-                                log.warn("Unable to delete block volume associated with Host...",
-                                        ComputeSystemControllerException.exceptions
-                                                .unableToDeactivateBootVolumeAssociatedWithHost(host.getHostName(), host
-                                                        .getId().toASCIIString(), host.getBootVolumeId().toASCIIString(),
-                                                        volume.getOpStatus().get(task).getMessage()));
-                                WorkflowStepCompleter.stepSucceded(stepId);
-                                return;
-                            case pending:
-                                break;
+                        case ready:
+                            WorkflowStepCompleter.stepSucceded(stepId);
+                            return;
+                        case error:
+                            log.warn("Unable to delete block volume associated with Host...",
+                                    ComputeSystemControllerException.exceptions
+                                    .unableToDeactivateBootVolumeAssociatedWithHost(host.getHostName(), host
+                                            .getId().toASCIIString(), host.getBootVolumeId().toASCIIString(),
+                                            volume.getOpStatus().get(task).getMessage()));
+                            WorkflowStepCompleter.stepSucceded(stepId);
+                            return;
+                        case pending:
+                            break;
 
                         }
                     }
@@ -837,16 +850,16 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
                 VcenterDataCenter vcenterDataCenter = _dbClient.queryObject(VcenterDataCenter.class, host.getVcenterDataCenter());
 
                 switch (Status.toStatus(vcenterDataCenter.getOpStatus().get(taskId).getStatus())) {
-                    case ready:
-                        log.info("vCenter update request succeeded");
-                        WorkflowStepCompleter.stepSucceded(stepId);
-                        return;
-                    case error:
-                        log.info("vCenter update request failed - Best effort only so consider success");
-                        WorkflowStepCompleter.stepSucceded(stepId); // Only best effort
-                        return;
-                    case pending:
-                        break;
+                case ready:
+                    log.info("vCenter update request succeeded");
+                    WorkflowStepCompleter.stepSucceded(stepId);
+                    return;
+                case error:
+                    log.info("vCenter update request failed - Best effort only so consider success");
+                    WorkflowStepCompleter.stepSucceded(stepId); // Only best effort
+                    return;
+                case pending:
+                    break;
 
                 }
             }

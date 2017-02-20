@@ -1,6 +1,6 @@
 vmaccepteula
-clearpart ${clear.device} --overwritevmfs   
-install ${install.device} --overwritevmfs
+clearpart ${clear.device}
+install ${install.device}
 rootpw --iscrypted  ${root.password}
 network --addvmportgroup=0 --bootproto=dhcp  
 reboot

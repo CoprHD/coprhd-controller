@@ -251,7 +251,7 @@ public class RecoveryManager implements Runnable {
             setRecoveryStatus(RecoveryStatus.Status.SYNCING);
             waitDbsvcStarted();
 
-            autoBootCheck();
+            validateAutoBootFlag();
             markRecoverySuccessful();
             log.info("Node recovery is done successful");
         } catch (Exception ex) {
@@ -682,7 +682,7 @@ public class RecoveryManager implements Runnable {
         return status;
     }
 
-    private void autoBootCheck() {
+    private void validateAutoBootFlag() {
         String siteId = coordinator.getCoordinatorClient().getSiteId();
         List<Configuration> configs = coordinator.getCoordinatorClient().queryAllConfiguration(siteId, Constants.DB_CONFIG);
         if (!isAllAutoBootTrue(configs)) {

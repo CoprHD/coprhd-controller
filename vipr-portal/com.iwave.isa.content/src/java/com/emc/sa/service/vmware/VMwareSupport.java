@@ -171,6 +171,16 @@ public class VMwareSupport {
         execute(new VerifyDatastoreForRemoval(datastore));
     }
 
+    /**
+     * Performs various checks to see if the datatore should be able to be removed.
+     *
+     * @param datastore
+     *            the datastore.
+     * @param datacenterName
+     *            the name of the datacenter that we will use to check hosts that can access the datastore.
+     * @param hosts
+     *            the hosts that we will check to see if any VMs are running on this datastore.
+     */ 
     public void verifyDatastoreForRemoval(Datastore datastore, String datacenterName, List<Host> hosts) {
         execute(new VerifyDatastoreForRemoval(datastore, datacenterName, hosts));
     }

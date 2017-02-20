@@ -171,9 +171,6 @@ public interface BadRequestExceptions {
     public BadRequestException duplicateLabel(String entityName);
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
-    public BadRequestException inCompatiblePort(String portId, String systemId);
-
-    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException duplicateNamespace(String entityName);
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)

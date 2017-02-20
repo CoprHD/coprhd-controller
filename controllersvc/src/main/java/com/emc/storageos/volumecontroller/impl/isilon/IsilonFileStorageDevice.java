@@ -23,7 +23,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import com.emc.storageos.api.service.impl.resource.utils.FileSystemReplicationUtils;
 import com.emc.storageos.customconfigcontroller.CustomConfigConstants;
 import com.emc.storageos.customconfigcontroller.DataSource;
 import com.emc.storageos.customconfigcontroller.DataSourceFactory;
@@ -2544,7 +2543,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
     @Override
     public BiosCommandResult doStartMirrorLink(StorageSystem system, FileShare source, TaskCompleter completer) {
         IsilonMirrorOperations isiMirrorOp = new IsilonMirrorOperations();
-        PolicyStorageResource policyStrRes = FileSystemReplicationUtils.getEquivalentPolicyStorageResource(source, _dbClient);
+        PolicyStorageResource policyStrRes = getEquivalentPolicyStorageResource(source, _dbClient);
         if (policyStrRes != null) {
             String policyName = policyStrRes.getPolicyNativeId();
             return isiMirrorOp.doStartReplicationPolicy(system, policyName, completer);
@@ -2562,7 +2561,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
     @Override
     public BiosCommandResult doStopMirrorLink(StorageSystem system, FileShare source) {
         IsilonMirrorOperations isiMirrorOp = new IsilonMirrorOperations();
-        PolicyStorageResource policyStrRes = FileSystemReplicationUtils.getEquivalentPolicyStorageResource(source, _dbClient);
+        PolicyStorageResource policyStrRes = getEquivalentPolicyStorageResource(source, _dbClient);
         if (policyStrRes != null) {
             String policyName = policyStrRes.getPolicyNativeId();
             return isiMirrorOp.dodeleteReplicationPolicy(system, policyName);
@@ -2575,7 +2574,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
     public BiosCommandResult doPauseLink(StorageSystem system, FileShare source) {
 
         IsilonMirrorOperations isiMirrorOp = new IsilonMirrorOperations();
-        PolicyStorageResource policyStrRes = FileSystemReplicationUtils.getEquivalentPolicyStorageResource(source, _dbClient);
+        PolicyStorageResource policyStrRes = getEquivalentPolicyStorageResource(source, _dbClient);
         if (policyStrRes != null) {
             String policyName = policyStrRes.getPolicyNativeId();
             IsilonApi isi = getIsilonDevice(system);
@@ -2598,7 +2597,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
     @Override
     public BiosCommandResult doResumeLink(StorageSystem system, FileShare source, TaskCompleter completer) {
         IsilonMirrorOperations isiMirrorOp = new IsilonMirrorOperations();
-        PolicyStorageResource policyStrRes = FileSystemReplicationUtils.getEquivalentPolicyStorageResource(source, _dbClient);
+        PolicyStorageResource policyStrRes = getEquivalentPolicyStorageResource(source, _dbClient);
         if (policyStrRes != null) {
             String policyName = policyStrRes.getPolicyNativeId();
             return isiMirrorOp.doStartReplicationPolicy(system, policyName, completer);
@@ -3759,5 +3758,42 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             default:
                 break;
         }
+    }
+
+    public static FilePolicy getReplicationPolicyAppliedOnFS(FileShare fs, DbClient dbClient) {
+        StringSet existingFSPolicies = fs.getFilePolicies();
+        List<URI> existingFSPolicyURIs = new ArrayList<>();
+        for (String filePolicyURI : existingFSPolicies) {
+            existingFSPolicyURIs.add(URI.create(filePolicyURI));
+        }
+        Iterator<FilePolicy> iterator = dbClient.queryIterativeObjects(FilePolicy.class, existingFSPolicyURIs, true);
+        while (iterator.hasNext()) {
+            FilePolicy fp = iterator.next();
+            if (fp.getFilePolicyType().equals(FilePolicy.FilePolicyType.file_replication.name())) {
+                _log.info("Found replication policy :{}  applied to the file system:  {}.",
+                        fp.toString(), fs.getId());
+                return fp;
+            }
+        }
+        return null;
+    }
+
+    public static PolicyStorageResource getEquivalentPolicyStorageResource(FileShare fs, DbClient dbClient) {
+        FilePolicy fp = getReplicationPolicyAppliedOnFS(fs, dbClient);
+        if (fp != null) {
+            StringSet policyStrResources = fp.getPolicyStorageResources();
+            List<URI> policyStrURIs = new ArrayList<>();
+            for (String policyStrResource : policyStrResources) {
+                policyStrURIs.add(URI.create(policyStrResource));
+            }
+            Iterator<PolicyStorageResource> iterator = dbClient.queryIterativeObjects(PolicyStorageResource.class, policyStrURIs, true);
+            while (iterator.hasNext()) {
+                PolicyStorageResource policyRes = iterator.next();
+                if (policyRes.getAppliedAt().equals(fs.getId()) && policyRes.getStorageSystem().equals(fs.getStorageDevice())) {
+                    return policyRes;
+                }
+            }
+        }
+        return null;
     }
 }

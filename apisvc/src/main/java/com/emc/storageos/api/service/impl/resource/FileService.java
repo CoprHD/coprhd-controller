@@ -119,7 +119,6 @@ import com.emc.storageos.model.block.MirrorList;
 import com.emc.storageos.model.file.ExportRule;
 import com.emc.storageos.model.file.ExportRules;
 import com.emc.storageos.model.file.FileCifsShareACLUpdateParams;
-import com.emc.storageos.model.file.FileCopy;
 import com.emc.storageos.model.file.FileExportUpdateParam;
 import com.emc.storageos.model.file.FileNfsACLUpdateParams;
 import com.emc.storageos.model.file.FilePolicyList;
@@ -2878,17 +2877,10 @@ public class FileService extends TaskResourceService {
      * 
      * Start continuous copies.
      * 
-     * 
      * @prereq none
-     * 
-     * @param id
-     *            the URN of a ViPR Source fileshare
-     * @param param
-     *            List of copies to start
-     * 
-     * @brief Start continuous copies.
-     * @return TaskList
-     * 
+     * @param id the URN of a ViPR Source file share
+     * @brief Start the replication session between source and target file system.
+     * @return TaskResourceRep
      * @throws ControllerException
      * 
      */
@@ -2896,9 +2888,88 @@ public class FileService extends TaskResourceService {
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/protection/continuous-copies/start")
     @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.OWN, ACL.ALL })
-    public TaskList startContinuousCopies(@PathParam("id") URI id, FileReplicationParam param)
+    public TaskResourceRep startContinuousCopies(@PathParam("id") URI id, FileReplicationParam param)
             throws ControllerException {
-        return performFileProtectionAction(param, id, ProtectionOp.START.getRestOp());
+        return performProtectionAction(id, ProtectionOp.START.toString());
+    }
+
+    /**
+     * 
+     * Refresh continuous copies.
+     * 
+     * @prereq none
+     * @param id the URN of a ViPR Source file share
+     * @brief Refresh the replication session between source and target file system.
+     * @return TaskResourceRep
+     * @throws ControllerException
+     * 
+     */
+    @POST
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/{id}/protection/continuous-copies/refresh")
+    @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.OWN, ACL.ALL })
+    public TaskResourceRep refreshContinuousCopies(@PathParam("id") URI id, FileReplicationParam param)
+            throws ControllerException {
+        return performProtectionAction(id, ProtectionOp.REFRESH.toString());
+    }
+
+    /**
+     * 
+     * Stop continuous copies.
+     * 
+     * @prereq none
+     * @param id the URN of a ViPR Source file share
+     * @brief Stop the replication session between source and target file system.
+     * @return TaskResourceRep
+     * @throws ControllerException
+     * 
+     */
+    @POST
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/{id}/protection/continuous-copies/stop")
+    @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.OWN, ACL.ALL })
+    public TaskResourceRep stopContinuousCopies(@PathParam("id") URI id, FileReplicationParam param)
+            throws ControllerException {
+        return performProtectionAction(id, ProtectionOp.STOP.toString());
+    }
+
+    /**
+     * 
+     * Pause continuous copies.
+     * 
+     * @prereq none
+     * @param id the URN of a ViPR Source file share
+     * @brief Pause the replication session between source and target file system.
+     * @return TaskResourceRep
+     * @throws ControllerException
+     * 
+     */
+    @POST
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/{id}/protection/continuous-copies/pause")
+    @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.OWN, ACL.ALL })
+    public TaskResourceRep pauseContinuousCopies(@PathParam("id") URI id, FileReplicationParam param) throws ControllerException {
+        return performProtectionAction(id, ProtectionOp.PAUSE.toString());
+    }
+
+    /**
+     * 
+     * Resume continuous copies.
+     * 
+     * @prereq none
+     * @param id the URN of a ViPR Source file share
+     * @brief Resume the replication session between source and target file system.
+     * @return TaskResourceRep
+     * @throws ControllerException
+     * 
+     */
+    @POST
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/{id}/protection/continuous-copies/resume")
+    @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.OWN, ACL.ALL })
+    public TaskResourceRep resumeContinuousCopies(@PathParam("id") URI id, FileReplicationParam param)
+            throws ControllerException {
+        return performProtectionAction(id, ProtectionOp.RESUME.toString());
     }
 
     /**
@@ -2950,112 +3021,6 @@ public class FileService extends TaskResourceService {
         controller.updateFileSystemReplicationRPO(device.getId(), fs.getId(), param, task);
 
         return toTask(fs, task, op);
-    }
-
-    /**
-     * 
-     * Refresh continuous copies.
-     * 
-     * 
-     * @prereq none
-     * 
-     * @param id
-     *            the URN of a ViPR Source fileshare
-     * @param param
-     *            List of copies to refresh
-     * 
-     * @brief Refresh continuous copies.
-     * @return TaskList
-     * 
-     * @throws ControllerException
-     * 
-     */
-    @POST
-    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    @Path("/{id}/protection/continuous-copies/refresh")
-    @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.OWN, ACL.ALL })
-    public TaskList refreshContinuousCopies(@PathParam("id") URI id, FileReplicationParam param)
-            throws ControllerException {
-        ArgValidator.checkFieldUriType(id, FileShare.class, "id");
-        return performFileProtectionAction(param, id, ProtectionOp.REFRESH.getRestOp());
-    }
-
-    /**
-     * Stop continuous copies.
-     * 
-     * 
-     * @prereq none
-     * 
-     * @param id
-     *            the URN of a ViPR Source fileshare
-     * @param param
-     * 
-     * @brief Stop continuous copies.
-     * @return TaskList
-     * 
-     * @throws ControllerException
-     */
-    @POST
-    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    @Path("/{id}/protection/continuous-copies/stop")
-    @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.OWN, ACL.ALL })
-    public TaskList stopContinuousCopies(@PathParam("id") URI id, FileReplicationParam param)
-            throws ControllerException {
-        ArgValidator.checkFieldUriType(id, FileShare.class, "id");
-        return performFileProtectionAction(param, id, ProtectionOp.STOP.getRestOp());
-    }
-
-    /**
-     * Pause continuous copies for given source fileshare
-     * 
-     * NOTE: This is an asynchronous operation.
-     * 
-     * 
-     * @prereq none
-     * 
-     * @param id
-     *            the URN of a ViPR Source fileshare
-     * @param param
-     * 
-     * @brief Pause continuous copies
-     * @return TaskList
-     * 
-     * @throws ControllerException
-     */
-    @POST
-    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    @Path("/{id}/protection/continuous-copies/pause")
-    @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.OWN, ACL.ALL })
-    public TaskList pauseContinuousCopies(@PathParam("id") URI id, FileReplicationParam param) throws ControllerException {
-        ArgValidator.checkFieldUriType(id, FileShare.class, "id");
-        return performFileProtectionAction(param, id, ProtectionOp.PAUSE.getRestOp());
-    }
-
-    /**
-     * Resume continuous copies for given source fileshare
-     * 
-     * NOTE: This is an asynchronous operation.
-     * 
-     * 
-     * @prereq none
-     * 
-     * @param id
-     *            the URN of a ViPR Source fileshare
-     * @param param
-     * 
-     * @brief Resume continuous copies
-     * @return TaskList
-     * 
-     * @throws ControllerException
-     */
-    @POST
-    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    @Path("/{id}/protection/continuous-copies/resume")
-    @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.OWN, ACL.ALL })
-    public TaskList resumeContinuousCopies(@PathParam("id") URI id, FileReplicationParam param)
-            throws ControllerException {
-        ArgValidator.checkFieldUriType(id, FileShare.class, "id");
-        return performFileProtectionAction(param, id, ProtectionOp.RESUME.getRestOp());
     }
 
     /**
@@ -3324,29 +3289,6 @@ public class FileService extends TaskResourceService {
         controller.performRemoteContinuousCopies(system.getId(), id, op, task);
 
         return toTask(sourceFileShare, task, status);
-    }
-
-    /**
-     * perform file protection action
-     * 
-     * @param param
-     * @param id
-     * @param op
-     * @return
-     */
-    private TaskList performFileProtectionAction(FileReplicationParam param, URI id, String op) {
-        TaskResourceRep taskResp = null;
-        TaskList taskList = new TaskList();
-        FileCopy copy = param.getCopies().get(0);
-        if (copy.getType().equalsIgnoreCase(FileTechnologyType.REMOTE_MIRROR.name()) ||
-                copy.getType().equalsIgnoreCase(FileTechnologyType.LOCAL_MIRROR.name())) {
-            taskResp = performProtectionAction(id, op);
-            taskList.getTaskList().add(taskResp);
-            return taskList;
-        } else {
-            throw APIException.badRequests.invalidCopyType(copy.getType());
-        }
-
     }
 
     /**

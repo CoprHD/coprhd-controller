@@ -12,10 +12,8 @@ import java.util.concurrent.TimeUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.emc.storageos.api.service.impl.resource.utils.FileSystemReplicationUtils;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.FileShare;
-import com.emc.storageos.db.client.model.PolicyStorageResource;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.exceptions.DeviceControllerErrors;
@@ -130,61 +128,6 @@ public class IsilonMirrorOperations implements FileMirrorOperations {
 
     }
 
-    @Deprecated
-    @Override
-    public void pauseMirrorFileShareLink(StorageSystem system, FileShare source, TaskCompleter completer) throws DeviceControllerException {
-        BiosCommandResult cmdResult;
-        PolicyStorageResource policyStrRes = FileSystemReplicationUtils.getEquivalentPolicyStorageResource(source, _dbClient);
-        if (policyStrRes != null) {
-            String policyName = policyStrRes.getPolicyNativeId();
-            IsilonApi isi = getIsilonDevice(system);
-            IsilonSyncPolicy policy = isi.getReplicationPolicy(policyName);
-            JobState policyState = policy.getLastJobState();
-
-            if (policyState.equals(JobState.running) || policyState.equals(JobState.paused)) {
-                doCancelReplicationPolicy(system, policyName);
-            }
-            cmdResult = doStopReplicationPolicy(system, policyName);
-            if (cmdResult.getCommandSuccess()) {
-                completer.ready(_dbClient);
-            } else {
-                completer.error(_dbClient, cmdResult.getServiceCoded());
-            }
-        }
-    }
-
-    @Deprecated
-    @Override
-    public void resumeMirrorFileShareLink(StorageSystem system, FileShare target, TaskCompleter completer)
-            throws DeviceControllerException {
-        BiosCommandResult cmdResult = null;
-        if (target.getParentFileShare() != null) {
-            String policyName = target.getLabel();
-            cmdResult = doStartReplicationPolicy(system, policyName, completer);
-            if (cmdResult.getCommandSuccess()) {
-                completer.ready(_dbClient);
-            } else if (cmdResult.getCommandPending()) {
-                completer.statusPending(_dbClient, cmdResult.getMessage());
-            } else {
-                completer.error(_dbClient, cmdResult.getServiceCoded());
-            }
-        }
-    }
-
-    @Override
-    public void cancelMirrorFileShareLink(StorageSystem system, FileShare target, TaskCompleter completer, String devPolicyName)
-            throws DeviceControllerException {
-        BiosCommandResult cmdResult = doCancelReplicationPolicy(system, devPolicyName, completer);
-        if (cmdResult.getCommandSuccess()) {
-            completer.ready(_dbClient);
-        } else if (cmdResult.getCommandPending()) {
-            completer.statusPending(_dbClient, cmdResult.getMessage());
-        } else {
-            completer.error(_dbClient, cmdResult.getServiceCoded());
-        }
-    }
-
-    @Override
     public void deleteMirrorFileShareLink(StorageSystem system, URI source, URI target, TaskCompleter completer)
             throws DeviceControllerException {
         IsilonSyncPolicy policy;

@@ -14,7 +14,7 @@ import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 
 public class MirrorFilePauseTaskCompleter extends MirrorFileTaskCompleter {
-    private static final Logger _log = LoggerFactory.getLogger(MirrorFileResumeTaskCompleter.class);
+    private static final Logger _log = LoggerFactory.getLogger(MirrorFilePauseTaskCompleter.class);
 
     public MirrorFilePauseTaskCompleter(Class clazz, URI id, String opId) {
         super(clazz, id, opId);
@@ -24,11 +24,11 @@ public class MirrorFilePauseTaskCompleter extends MirrorFileTaskCompleter {
     protected void complete(DbClient dbClient, Status status, ServiceCoded coded) throws DeviceControllerException {
         try {
             setDbClient(dbClient);
-            recordMirrorOperation(dbClient, OperationTypeEnum.RESUME_FILE_MIRROR, status, getSourceFileShare().getId().toString(),
+            recordMirrorOperation(dbClient, OperationTypeEnum.PAUSE_FILE_MIRROR, status, getSourceFileShare().getId().toString(),
                     getTargetFileShare().getId().toString());
 
         } catch (Exception e) {
-            _log.error("Failed updating status. MirrorSessionResume {}, for task " + getOpId(), getId(), e);
+            _log.error("Failed updating status. MirrorSessionPause {}, for task " + getOpId(), getId(), e);
         } finally {
             super.complete(dbClient, status, coded);
         }

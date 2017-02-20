@@ -38,6 +38,7 @@ import com.emc.storageos.db.client.model.uimodels.CustomServicesWorkflow;
 import com.emc.storageos.db.client.model.uimodels.CustomServicesWorkflow.CustomServicesWorkflowStatus;
 import com.emc.storageos.model.customservices.CustomServicesWorkflowDocument;
 import com.emc.storageos.model.customservices.CustomServicesWorkflowDocument.Input;
+import com.emc.storageos.model.customservices.CustomServicesWorkflowDocument.InputGroup;
 import com.emc.storageos.model.customservices.CustomServicesWorkflowDocument.Step;
 
 /**
@@ -107,32 +108,35 @@ public class WorkflowServiceDescriptor {
 
             for (final Step step : wfDocument.getSteps()) {
                 if (null != step.getInputGroups()) {
-                    //TODO: fix COP-28181
-			        for (final Input wfInput : step.getInputGroups().get(Primitive.InputType.INPUT_PARAMS).getInputGroup()) {
-                        String wfInputType = null;
-                        // Creating service fields for only inputs of type "inputfromuser" and "assetoption"
-                        if (INPUT_FROM_USER_INPUT_TYPE.equals(wfInput.getType())) {
-                            wfInputType = INPUT_FROM_USER_FIELD_TYPE;
-                        } else if (ASSET_INPUT_TYPE.equals(wfInput.getType())) {
-                            wfInputType = wfInput.getValue();
-                        }
-                        if (null != wfInputType) {
-                            ServiceField serviceField = new ServiceField();
-                            String inputName = wfInput.getName();
-                            //TODO: change this to get description
-                            serviceField.setDescription(wfInput.getFriendlyName());
-                            serviceField.setLabel(StringUtils.isBlank(wfInput.getFriendlyName()) ? inputName : wfInput.getFriendlyName());
-                            serviceField.setName(inputName);
-                            serviceField.setRequired(wfInput.getRequired());
-                            serviceField.setInitialValue(wfInput.getDefaultValue());
-                            // Setting all unlocked fields as lockable
-                            if (!wfInput.getLocked()) {
-                                serviceField.setLockable(true);
+                    //Looping through all input groups
+                    for(InputGroup inputGroup: step.getInputGroups().values()){
+                        for (final Input wfInput : inputGroup.getInputGroup()) {
+                            String wfInputType = null;
+                            // Creating service fields for only inputs of type "inputfromuser" and "assetoption"
+                            if (INPUT_FROM_USER_INPUT_TYPE.equals(wfInput.getType())) {
+                                wfInputType = INPUT_FROM_USER_FIELD_TYPE;
+                            } else if (ASSET_INPUT_TYPE.equals(wfInput.getType())) {
+                                wfInputType = wfInput.getValue();
                             }
-                            serviceField.setType(wfInputType);
-                            to.getItems().put(inputName, serviceField);
+                            if (null != wfInputType) {
+                                ServiceField serviceField = new ServiceField();
+                                String inputName = wfInput.getName();
+                                //TODO: change this to get description
+                                serviceField.setDescription(wfInput.getFriendlyName());
+                                serviceField.setLabel(StringUtils.isBlank(wfInput.getFriendlyName()) ? inputName : wfInput.getFriendlyName());
+                                serviceField.setName(inputName);
+                                serviceField.setRequired(wfInput.getRequired());
+                                serviceField.setInitialValue(wfInput.getDefaultValue());
+                                // Setting all unlocked fields as lockable
+                                if (!wfInput.getLocked()) {
+                                    serviceField.setLockable(true);
+                                }
+                                serviceField.setType(wfInputType);
+                                to.getItems().put(inputName, serviceField);
+                            }
                         }
                     }
+
                 }
             }
 

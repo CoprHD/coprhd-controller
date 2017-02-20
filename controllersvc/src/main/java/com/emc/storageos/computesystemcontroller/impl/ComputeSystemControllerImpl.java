@@ -332,6 +332,8 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
             // clean all the export related to clusters in datacenter
             List<NamedElementQueryResultList.NamedElement> clustersUris = ComputeSystemHelper.listChildren(_dbClient,
                     dataCenter.getId(), Cluster.class, "label", "vcenterDataCenter");
+            //VBDU TODO:The above code runs host unexport only if compute element is null.Will there be any cases where few hosts in the cluster got skipped
+            //because of associated compute element, but this cluster unexport removes the storage.(because we didn't consider the skipped hosts above)
             for (NamedElementQueryResultList.NamedElement clusterUri : clustersUris) {
                 Cluster cluster = _dbClient.queryObject(Cluster.class, clusterUri.getId());
                 if (cluster != null && !cluster.getInactive()) {
@@ -452,7 +454,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
             }
 
             completer = new HostCompleter(eventId, hostIds, false, taskId);
-
+            
             if (!NullColumnValueGetter.isNullURI(oldCluster) && !oldCluster.equals(clusterId)) {
                 waitFor = addStepsForRemoveHost(workflow, waitFor, hostIds, oldCluster, vCenterDataCenterId, isVcenter);
             }
@@ -657,7 +659,9 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                     removedInitiators.add(initiator.getId());
                 }
             }
-
+            //VBDU TODO: This exposes concurrency issue, what if another thread was adding  new host into the same export group
+            // we might be deleting the export group, without knowing that another thread was adding a host.
+            //I think, this we can raise an enhancemnet and fix this later.
             if (updatedHosts.isEmpty()) {
                 newWaitFor = workflow.createStep(DELETE_EXPORT_GROUP_STEP,
                         String.format("Deleting export group %s", export.getId()), newWaitFor,
@@ -805,6 +809,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
             for (URI host : hostIds) {
                 hostExports.put(host, exportIds);
             }
+            //VBDU TODO: There might be few hosts skipped due to port connectivity above, we might need to skip those as well.
             waitFor = this.attachAndMountVolumes(hostExports, waitFor, workflow);
         }
 
@@ -1051,7 +1056,9 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                 existingInitiators.remove(initiator.getId());
                 removedInitiators.add(initiator.getId());
             }
-
+            //VBDU TODO: This is dangerous ..Delete export Group in controller means export all volumes in the export group.
+            //This call's intention is to remove a host, if for some reason one of the export group doesn't have the right set of initiator
+            //then we might end up in unexporting all volumes from all the hosts rather than executing remove Host.
             if ((existingInitiators.isEmpty() && export.getType().equals(ExportGroupType.Initiator.name())) ||
                     (existingHosts.isEmpty() && export.getType().equals(ExportGroupType.Host.name()))) {
                 waitFor = workflow.createStep(DELETE_EXPORT_GROUP_STEP,
@@ -1604,7 +1611,10 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                 updatedInitiators.removeAll(ComputeSystemHelper.getChildrenUris(_dbClient, hosturi, Initiator.class, "host"));
                 removedInitiators.addAll(ComputeSystemHelper.getChildrenUris(_dbClient, hosturi, Initiator.class, "host"));
             }
-
+          //VBDU TODO: This doesn't look that dangerous ,as we might see more than one cluster in export group.
+            //Delete export Group in controller means export all volumes in the export group.
+            //This call's intention is to remove a host, if for some reason one of the export group doesn't have the right set of initiator
+            //then we might end up in unexporting all volumes from all the hosts rather than executing remove Host.
             if (updatedInitiators.isEmpty()) {
                 waitFor = workflow.createStep(DELETE_EXPORT_GROUP_STEP,
                         String.format("Deleting export group %s", export.getId()), waitFor,

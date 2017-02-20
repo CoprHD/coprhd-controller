@@ -2086,7 +2086,7 @@ public class ExportUtils {
 
             Set<String> volumeDiff = Sets.difference(exportGroupVolumes, volumesInAllMasks);
             if (!CollectionUtils.isEmpty(volumeDiff)) {
-                exportGroup.removeVolumes(volumeDiff);
+                exportGroup.removeVolumes(new HashSet<String>(volumeDiff));
                 _log.info("Stale volumes {}  removed from Export Group {}", volumeDiff, exportGroup.getId());
             }
         }

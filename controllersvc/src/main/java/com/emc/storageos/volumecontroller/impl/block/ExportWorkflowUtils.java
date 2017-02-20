@@ -330,17 +330,19 @@ public class ExportWorkflowUtils {
                 ExportWorkflowEntryPoints.exportAddVolumesMethod(storage, export,
                         volumeMap);
 
-        List<URI> volumeList = new ArrayList<URI>();
-        volumeList.addAll(volumeMap.keySet());
-
-        Workflow.Method rollback =
-                ExportWorkflowEntryPoints.exportRemoveVolumesMethod(storage, export,
-                        volumeList);
+        /*
+         * List<URI> volumeList = new ArrayList<URI>();
+         * volumeList.addAll(volumeMap.keySet());
+         * 
+         * Workflow.Method rollback =
+         * ExportWorkflowEntryPoints.exportRemoveVolumesMethod(storage, export,
+         * volumeList);
+         */
 
         return newWorkflowStep(workflow, wfGroupId,
                 String.format("Adding volumes to export on storage array %s (%s)",
                         storageSystem.getNativeGuid(), storage.toString()),
-                storageSystem, method, rollback, waitFor, null);
+                storageSystem, method, rollbackMethodNullMethod(), waitFor, null);
     }
 
     public String generateExportGroupRemoveVolumes(Workflow workflow, String wfGroupId,

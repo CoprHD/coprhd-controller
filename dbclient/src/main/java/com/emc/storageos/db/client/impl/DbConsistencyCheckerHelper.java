@@ -31,11 +31,15 @@ import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.PasswordHistory;
 import com.emc.storageos.db.client.model.ScopedLabel;
+import com.emc.storageos.db.client.model.uimodels.Order;
 import com.emc.storageos.db.exceptions.DatabaseException;
+import com.google.common.collect.Lists;
 import com.netflix.astyanax.Keyspace;
 import com.netflix.astyanax.connectionpool.OperationResult;
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 import com.netflix.astyanax.connectionpool.exceptions.NotFoundException;
+import com.netflix.astyanax.cql.CqlStatement;
+import com.netflix.astyanax.cql.CqlStatementResult;
 import com.netflix.astyanax.model.Column;
 import com.netflix.astyanax.model.ColumnFamily;
 import com.netflix.astyanax.model.ColumnList;
@@ -43,7 +47,6 @@ import com.netflix.astyanax.model.CqlResult;
 import com.netflix.astyanax.model.Row;
 import com.netflix.astyanax.model.Rows;
 import com.netflix.astyanax.query.ColumnFamilyQuery;
-import com.netflix.astyanax.serializers.CompositeRangeBuilder;
 import com.netflix.astyanax.serializers.StringSerializer;
 import com.netflix.astyanax.util.RangeBuilder;
 import com.netflix.astyanax.util.TimeUUIDUtils;
@@ -149,7 +152,7 @@ public class DbConsistencyCheckerHelper {
 
         for (Row<String, CompositeColumnName> objRow : result.getResult()) {
             boolean inactiveObject = false;
-            
+
             for (Column<CompositeColumnName> column : objRow.getColumns()) {
                 if (column.getName().getOne().equals(DataObject.INACTIVE_FIELD_NAME) && column.getBooleanValue()) {
                 	inactiveObject = true;
@@ -172,7 +175,7 @@ public class DbConsistencyCheckerHelper {
                 }
             	
             	ColumnField indexedField = indexedFields.get(column.getName().getOne());
-            	String indexKey = getIndexKey(indexedField, column);
+            	String indexKey = getIndexKey(indexedField, column, objRow);
             	
                 if (indexKey == null) {
                     continue;
@@ -614,24 +617,26 @@ public class DbConsistencyCheckerHelper {
         }
     }
 
-    private boolean isColumnInIndex(Keyspace ks, ColumnFamily<String, IndexColumnName> indexCf, String indexKey, String[] indexColumns)
+    private boolean isColumnInIndex(Keyspace ks, ColumnFamily<String, CompositeIndexColumnName> indexCf, String indexKey, Object[] indexColumns)
             throws ConnectionException {
-        CompositeRangeBuilder builder = IndexColumnNameSerializer.get().buildRange();
+        StringBuilder cql = new StringBuilder("select * from ");
+        cql.append("\"").append(indexCf.getName())
+        .append("\" where key='").append(indexKey).append("' ");
+
         for (int i = 0; i < indexColumns.length; i++) {
-            if (i == (indexColumns.length - 1)) {
-                builder.greaterThanEquals(indexColumns[i]).lessThanEquals(indexColumns[i]).limit(1);
-                break;
+            cql.append(" and column").append(i + 1).append("=");
+            if (indexColumns[i] instanceof String) {
+                cql.append("\'").append(indexColumns[i]).append("'");
+            } else {
+                cql.append(indexColumns[i]);
             }
-            builder.withPrefix(indexColumns[i]);
         }
 
-        ColumnList<IndexColumnName> result = ks.prepareQuery(indexCf).getKey(indexKey)
-                .withColumnRange(builder)
-                .execute().getResult();
-        for (Column<IndexColumnName> indexColumn : result) {
-            return true;
-        }
-        return false;
+        CqlStatement statement = ks.prepareCqlStatement();
+        CqlStatementResult result = statement.withCql(cql.toString()).execute().getResult();
+        Rows<String, CompositeIndexColumnName> rows = result.getRows(indexCf);
+        
+        return !rows.isEmpty();
     }
     
     public <T extends CompositeIndexColumnName> boolean isIndexExists(Keyspace ks, ColumnFamily<String, T> indexCf, String indexKey, T column) throws ConnectionException {
@@ -645,7 +650,7 @@ public class DbConsistencyCheckerHelper {
         }
     }
 
-    public static String getIndexKey(ColumnField field, Column<CompositeColumnName> column) {
+    public static String getIndexKey(ColumnField field, Column<CompositeColumnName> column, Row<String, CompositeColumnName> objRow) {
         String indexKey = null;
         DbIndex dbIndex = field.getIndex();
         boolean indexByKey = field.isIndexByKey();
@@ -663,6 +668,15 @@ public class DbConsistencyCheckerHelper {
             indexKey = field.getPrefixIndexRowKey(column.getStringValue());
         } else if (dbIndex instanceof ScopedLabelDbIndex) {
             indexKey = field.getPrefixIndexRowKey(ScopedLabel.fromString(column.getStringValue()));
+        } else if (dbIndex instanceof ClassNameTimeSeriesDBIndex) {
+            indexKey = column.getStringValue();
+        } else if (dbIndex instanceof TimeSeriesDbIndex) {
+            if (field.getDataObjectType().equals(Order.class)) {
+                Order order = new Order();
+                DataObjectType doType = TypeMap.getDoType(Order.class);
+                doType.deserializeColumns(order, objRow, Lists.newArrayList(doType.getColumnField("tenant")), true);
+                indexKey = order.getTenant();
+            }
         } else if (dbIndex instanceof AggregateDbIndex) {
             // Not support this index type yet.
         } else {
@@ -673,8 +687,8 @@ public class DbConsistencyCheckerHelper {
         return indexKey;
     }
 
-    public static String[] getIndexColumns(ColumnField field, Column<CompositeColumnName> column, String rowKey) {
-        String[] indexColumns = null;
+    public static Object[] getIndexColumns(ColumnField field, Column<CompositeColumnName> column, String rowKey) {
+        Object[] indexColumns = null;
         DbIndex dbIndex = field.getIndex();
 
         if (dbIndex instanceof AggregateDbIndex) {
@@ -711,6 +725,11 @@ public class DbConsistencyCheckerHelper {
             Boolean val = column.getBooleanValue();
             indexColumns[0] = val.toString();
             indexColumns[1] = rowKey;
+        } else if (dbIndex instanceof ClassNameTimeSeriesDBIndex || dbIndex instanceof TimeSeriesDbIndex) {
+            indexColumns = new Object[3];
+            indexColumns[0] = field.getDataObjectType().getSimpleName();
+            indexColumns[1] = TimeUUIDUtils.getMicrosTimeFromUUID(column.getName().getTimeUUID());
+            indexColumns[2] = rowKey;
         } else {
             // For AltIdDbIndex, RelationDbIndex, PermissionsDbIndex
             indexColumns = new String[2];

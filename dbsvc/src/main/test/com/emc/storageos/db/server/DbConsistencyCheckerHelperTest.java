@@ -275,6 +275,39 @@ public class DbConsistencyCheckerHelperTest extends DbsvcTestBase {
         assertEquals(0, checkResult.getTotal());
     }
     
+    @Test
+    public void testCFIndexForOrder() throws Exception {
+        DbConsistencyCheckerHelperMock helper = new DbConsistencyCheckerHelperMock((DbClientImpl)getDbClient());
+        
+        Order order = new Order();
+        order.setId(URIUtil.createId(Order.class));
+        order.setLabel("order2");
+        order.setSubmittedByUserId("Tom");
+        order.setTenant("urn:storageos:TenantOrg:128e0354-c26e-438b-b1e6-1a6ceaa9b380:global");
+        order.setIndexed(true);
+        getDbClient().updateObject(order);
+        
+        Keyspace keyspace = ((DbClientImpl)getDbClient()).getLocalContext().getKeyspace();
+        ColumnFamily<String, ClassNameTimeSeriesIndexColumnName> userToOrdersByTimeStampCF = new ColumnFamily<String, ClassNameTimeSeriesIndexColumnName>(
+                "UserToOrdersByTimeStamp", StringSerializer.get(), ClassNameTimeSeriesSerializer.get());
+        ColumnFamily<String, TimeSeriesIndexColumnName> allOrdersByTimeStampCF = new ColumnFamily<String, TimeSeriesIndexColumnName>(
+                "AllOrdersByTimeStamp", StringSerializer.get(), TimeSeriesColumnNameSerializer.get());
+        ColumnFamily<String, CompositeColumnName> cf = new ColumnFamily<String, CompositeColumnName>("Order",
+                StringSerializer.get(),
+                CompositeColumnNameSerializer.get());
+        IndexAndCf indexAndCf = new IndexAndCf(TimeSeriesDbIndex.class, userToOrdersByTimeStampCF, keyspace);
+        
+        CheckResult checkResult = new CheckResult();
+        helper.checkCFIndices(TypeMap.getDoType(Order.class), true, checkResult);
+        assertEquals(0, checkResult.getTotal());
+        
+        keyspace.prepareQuery(userToOrdersByTimeStampCF).withCql(String.format("delete from \"UserToOrdersByTimeStamp\" where key='%s'", order.getSubmittedByUserId())).execute();
+        keyspace.prepareQuery(userToOrdersByTimeStampCF).withCql(String.format("delete from \"AllOrdersByTimeStamp\" where key='%s'", order.getTenant())).execute();
+        checkResult = new CheckResult();
+        helper.checkCFIndices(TypeMap.getDoType(Order.class), true, checkResult);
+        assertEquals(2, checkResult.getTotal());
+    }
+    
     class DbConsistencyCheckerHelperMock extends DbConsistencyCheckerHelper {
         
         public String cleanIndexCQL = null;

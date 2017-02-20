@@ -506,8 +506,17 @@ public class BackupOps {
      * Query restore status from ZK
     */
     public BackupRestoreStatus queryBackupRestoreStatus(String backupName, boolean isLocal) {
-        Configuration cfg = coordinatorClient.queryConfiguration(coordinatorClient.getSiteId(),
-                getBackupConfigKind(isLocal), backupName);
+        InterProcessLock lock = null;
+        Configuration cfg = null;
+        try {
+            lock = getLock(BackupConstants.RESTORE_STATUS_UPDATE_LOCK,
+                    -1, TimeUnit.MILLISECONDS); // -1= no timeout
+            cfg = coordinatorClient.queryConfiguration(coordinatorClient.getSiteId(),
+                    getBackupConfigKind(isLocal), backupName);
+        }finally {
+            releaseLock(lock);
+        }
+
         Map<String, String> allItems = (cfg == null) ? new HashMap<String, String>() : cfg.getAllConfigs(false);
 
         BackupRestoreStatus restoreStatus = new BackupRestoreStatus(allItems);
@@ -682,6 +691,7 @@ public class BackupOps {
         if (newStatus == BackupRestoreStatus.Status.RESTORE_FAILED
                 || newStatus == BackupRestoreStatus.Status.RESTORING
                 || newStatus == BackupRestoreStatus.Status.RESTORE_SUCCESS) {
+            log.info("The restore status can be updated to {}", newStatus);
             return true;
         }
 
@@ -689,6 +699,7 @@ public class BackupOps {
 
         if (currentStatus == BackupRestoreStatus.Status.DOWNLOAD_SUCCESS ||
                 currentStatus == BackupRestoreStatus.Status.DOWNLOAD_CANCELLED) {
+            log.info("The restore status can NOT be updated");
             return false;
         }
 
@@ -697,6 +708,7 @@ public class BackupOps {
             return false;
         }
 
+        log.info("The restore status can be updated to {}", newStatus);
         return true;
     }
 

@@ -49,6 +49,7 @@ import com.emc.storageos.db.client.model.Migration;
 import com.emc.storageos.db.client.model.NFSShareACL;
 import com.emc.storageos.db.client.model.ObjectBucketACL;
 import com.emc.storageos.db.client.model.ObjectNamespace;
+import com.emc.storageos.db.client.model.PolicyStorageResource;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.ProtectionSet;
 import com.emc.storageos.db.client.model.ProxyToken;
@@ -712,6 +713,12 @@ public interface ContainmentConstraint extends Constraint {
             DataObjectType doType = TypeMap.getDoType(FileReplicationTopology.class);
             ColumnField field = doType.getColumnField(FILE_PROTECTION_POLICY_ID);
             return new ContainmentConstraintImpl(policy, FileReplicationTopology.class, field);
+        }
+
+        public static ContainmentConstraint getFilePolicyStorageResourceConstraint(URI policy) {
+            DataObjectType doType = TypeMap.getDoType(PolicyStorageResource.class);
+            ColumnField field = doType.getColumnField("filePolicyId");
+            return new ContainmentConstraintImpl(policy, PolicyStorageResource.class, field);
         }
 
         public static ContainmentConstraint getUnManagedFileExportRulesConstraint(URI fs) {

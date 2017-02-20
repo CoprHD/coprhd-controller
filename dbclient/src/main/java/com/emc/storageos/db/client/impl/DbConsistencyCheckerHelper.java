@@ -32,7 +32,6 @@ import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.PasswordHistory;
 import com.emc.storageos.db.client.model.ScopedLabel;
 import com.emc.storageos.db.exceptions.DatabaseException;
-import com.google.common.collect.Lists;
 import com.netflix.astyanax.Keyspace;
 import com.netflix.astyanax.connectionpool.OperationResult;
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
@@ -55,6 +54,8 @@ public class DbConsistencyCheckerHelper {
 
     private static final String DELETE_INDEX_CQL = "delete from \"%s\" where key='%s' and column1='%s' and column2='%s' and column3='%s' and column4='%s' and column5=%s;";
     private static final String DELETE_INDEX_CQL_WITHOUT_UUID = "delete from \"%s\" where key='%s' and column1='%s' and column2='%s' and column3='%s' and column4='%s';";
+    private static final String DELETE_ORDER_INDEX_CQL = "delete from \"%s\" where key='%s' and column1='%s' and column2=%s and column3='%s' and column4='%s' and column5=%s;";
+    private static final String DELETE_ORDER_INDEX_CQL_WITHOUT_UUID = "delete from \"%s\" where key='%s' and column1='%s' and column2=%s and column3='%s' and column4='%s';";
     private static final String CQL_QUERY_SCHEMA_VERSION_TIMESTAMP = "SELECT key, writetime(value) FROM \"SchemaRecord\";";
     private static final int THREAD_POOL_QUEUE_SIZE = 50;
     private static final int WAITING_TIME_FOR_QUEUE_FULL_MS = 3000;
@@ -340,15 +341,29 @@ public class DbConsistencyCheckerHelper {
                         }
                         UUID timeUUID = idxEntry.getColumnName().getTimeUUID();
                         DbCheckerFileWriter.writeTo(indexAndCf.keyspace.getKeyspaceName(),
-                                String.format(timeUUID != null ? DELETE_INDEX_CQL : DELETE_INDEX_CQL_WITHOUT_UUID,
-                                        indexAndCf.cf.getName(), idxEntry.getIndexKey(), idxEntry.getColumnName().getOne(),
-                                        handleNullValue(idxEntry.getColumnName().getTwo()),
-                                        handleNullValue(idxEntry.getColumnName().getThree()),
-                                        handleNullValue(idxEntry.getColumnName().getFour()),
-                                        timeUUID));
+                                generateCleanIndexCQL(indexAndCf, idxEntry, timeUUID, idxEntry.getColumnName()));
                     }
                 }
             }
+        }
+    }
+
+    protected String generateCleanIndexCQL(IndexAndCf indexAndCf, IndexEntry idxEntry, UUID timeUUID, CompositeIndexColumnName compositeIndexColumnName) {
+        if (compositeIndexColumnName instanceof ClassNameTimeSeriesIndexColumnName ||
+                compositeIndexColumnName instanceof TimeSeriesIndexColumnName) {
+            return String.format(timeUUID != null ? DELETE_ORDER_INDEX_CQL : DELETE_ORDER_INDEX_CQL_WITHOUT_UUID,
+                    indexAndCf.cf.getName(), idxEntry.getIndexKey(), idxEntry.getColumnName().getOne(),
+                    handleNullValue(idxEntry.getColumnName().getTwo()),
+                    handleNullValue(idxEntry.getColumnName().getThree()),
+                    handleNullValue(idxEntry.getColumnName().getFour()),
+                    timeUUID);
+        } else {
+            return String.format(timeUUID != null ? DELETE_INDEX_CQL : DELETE_INDEX_CQL_WITHOUT_UUID,
+                indexAndCf.cf.getName(), idxEntry.getIndexKey(), idxEntry.getColumnName().getOne(),
+                handleNullValue(idxEntry.getColumnName().getTwo()),
+                handleNullValue(idxEntry.getColumnName().getThree()),
+                handleNullValue(idxEntry.getColumnName().getFour()),
+                timeUUID);
         }
     }
     
@@ -443,13 +458,13 @@ public class DbConsistencyCheckerHelper {
      * This class records the Index Data's ColumnFamily and
      * the related DbIndex type and it belongs to which Keyspace.
      */
-    public static class IndexAndCf implements Comparable {
-        private ColumnFamily<String, IndexColumnName> cf;
+    public static class IndexAndCf<T extends CompositeIndexColumnName> implements Comparable {
+        private ColumnFamily<String, T> cf;
         private Class<? extends DbIndex> indexType;
         private Keyspace keyspace;
 
         public IndexAndCf(Class<? extends DbIndex> indexType,
-                ColumnFamily<String, IndexColumnName> cf, Keyspace keyspace) {
+                ColumnFamily<String, T> cf, Keyspace keyspace) {
             this.indexType = indexType;
             this.cf = cf;
             this.keyspace = keyspace;
@@ -509,11 +524,11 @@ public class DbConsistencyCheckerHelper {
         }
     }
 
-    class IndexEntry {
+    public class IndexEntry {
         private String indexKey;
-        private IndexColumnName columnName;
+        private CompositeIndexColumnName columnName;
 
-        public IndexEntry(String indexKey, IndexColumnName columnName) {
+        public IndexEntry(String indexKey, CompositeIndexColumnName columnName) {
             this.indexKey = indexKey;
             this.columnName = columnName;
         }
@@ -522,7 +537,7 @@ public class DbConsistencyCheckerHelper {
             return indexKey;
         }
 
-        public IndexColumnName getColumnName() {
+        public CompositeIndexColumnName getColumnName() {
             return columnName;
         }
 
@@ -559,6 +574,12 @@ public class DbConsistencyCheckerHelper {
             objectId = name.getTwo();
             int firstColon = indexKey.indexOf(':');
             className = firstColon == -1 ? indexKey : indexKey.substring(0, firstColon);
+        } else if (type.equals(ClassNameTimeSeriesDBIndex.class)) {
+            objectId = name.getThree();
+            className = name.getOne();
+        } else if (type.equals(TimeSeriesDbIndex.class)) {
+            objectId = name.getThree();
+            className = name.getOne();
         } else {
             String msg = String.format("Unsupported index type %s.", type);
             logMessage(msg, false, toConsole);
@@ -613,7 +634,7 @@ public class DbConsistencyCheckerHelper {
         return false;
     }
     
-    public boolean isIndexExists(Keyspace ks, ColumnFamily<String, IndexColumnName> indexCf, String indexKey, IndexColumnName column) throws ConnectionException {
+    public <T extends CompositeIndexColumnName> boolean isIndexExists(Keyspace ks, ColumnFamily<String, T> indexCf, String indexKey, T column) throws ConnectionException {
         try {
             ks.prepareQuery(indexCf).getKey(indexKey)
                     .getColumn(column)

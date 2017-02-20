@@ -10,6 +10,7 @@ import static org.junit.Assert.assertTrue;
 
 import java.util.Map;
 import java.util.TreeMap;
+import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
 
 import org.junit.After;
@@ -18,17 +19,25 @@ import org.junit.Test;
 
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.impl.AltIdDbIndex;
+import com.emc.storageos.db.client.impl.ClassNameTimeSeriesDBIndex;
+import com.emc.storageos.db.client.impl.ClassNameTimeSeriesIndexColumnName;
+import com.emc.storageos.db.client.impl.ClassNameTimeSeriesSerializer;
 import com.emc.storageos.db.client.impl.CompositeColumnName;
 import com.emc.storageos.db.client.impl.CompositeColumnNameSerializer;
+import com.emc.storageos.db.client.impl.CompositeIndexColumnName;
 import com.emc.storageos.db.client.impl.DbClientImpl;
 import com.emc.storageos.db.client.impl.DbConsistencyCheckerHelper;
 import com.emc.storageos.db.client.impl.DbConsistencyCheckerHelper.CheckResult;
 import com.emc.storageos.db.client.impl.DbConsistencyCheckerHelper.IndexAndCf;
 import com.emc.storageos.db.client.impl.IndexColumnName;
 import com.emc.storageos.db.client.impl.IndexColumnNameSerializer;
+import com.emc.storageos.db.client.impl.TimeSeriesColumnNameSerializer;
+import com.emc.storageos.db.client.impl.TimeSeriesDbIndex;
+import com.emc.storageos.db.client.impl.TimeSeriesIndexColumnName;
 import com.emc.storageos.db.client.impl.TypeMap;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.FileShare;
+import com.emc.storageos.db.client.model.uimodels.Order;
 import com.netflix.astyanax.Keyspace;
 import com.netflix.astyanax.MutationBatch;
 import com.netflix.astyanax.model.ColumnFamily;
@@ -198,4 +207,92 @@ public class DbConsistencyCheckerHelperTest extends DbsvcTestBase {
             assertFalse(helper.isIndexExists(keyspace, indexCF, row.getKey(), row.getColumns().getColumnByIndex(0).getName()));
         }
     }
+    
+    @Test
+    public void testClassNameTimeSeriesIndex() throws Exception {
+        DbConsistencyCheckerHelperMock helper = new DbConsistencyCheckerHelperMock((DbClientImpl)getDbClient());
+        
+        Order order = new Order();
+        order.setId(URIUtil.createId(Order.class));
+        order.setLabel("order1");
+        order.setSubmittedByUserId("root");
+        getDbClient().updateObject(order);
+        
+        Keyspace keyspace = ((DbClientImpl)getDbClient()).getLocalContext().getKeyspace();
+        ColumnFamily<String, ClassNameTimeSeriesIndexColumnName> indexCF = new ColumnFamily<String, ClassNameTimeSeriesIndexColumnName>(
+                "UserToOrdersByTimeStamp", StringSerializer.get(), ClassNameTimeSeriesSerializer.get());
+        ColumnFamily<String, CompositeColumnName> cf = new ColumnFamily<String, CompositeColumnName>("Order",
+                StringSerializer.get(),
+                CompositeColumnNameSerializer.get());
+        IndexAndCf indexAndCf = new IndexAndCf(ClassNameTimeSeriesDBIndex.class, indexCF, keyspace);
+        
+        CheckResult checkResult = new CheckResult();
+        helper.checkIndexingCF(indexAndCf, false, checkResult);
+        assertEquals(0, checkResult.getTotal());
+        
+        keyspace.prepareQuery(cf).withCql(String.format("delete from \"Order\" where key='%s'", order.getId())).execute();
+        checkResult = new CheckResult();
+        helper.checkIndexingCF(indexAndCf, false, checkResult);
+        assertEquals(1, checkResult.getTotal());
+        
+        keyspace.prepareQuery(indexCF).withCql(helper.getCleanIndexCQL()).execute();
+        checkResult = new CheckResult();
+        helper.checkIndexingCF(indexAndCf, false, checkResult);
+        assertEquals(0, checkResult.getTotal());
+    }
+    
+    @Test
+    public void testTimeSeriesAlternateId() throws Exception {
+        DbConsistencyCheckerHelperMock helper = new DbConsistencyCheckerHelperMock((DbClientImpl)getDbClient());
+        
+        Order order = new Order();
+        order.setId(URIUtil.createId(Order.class));
+        order.setLabel("order2");
+        order.setTenant("tenant");
+        order.setIndexed(true);
+        getDbClient().updateObject(order);
+        
+        Keyspace keyspace = ((DbClientImpl)getDbClient()).getLocalContext().getKeyspace();
+        ColumnFamily<String, TimeSeriesIndexColumnName> indexCF = new ColumnFamily<String, TimeSeriesIndexColumnName>(
+                "AllOrdersByTimeStamp", StringSerializer.get(), TimeSeriesColumnNameSerializer.get());
+        ColumnFamily<String, CompositeColumnName> cf = new ColumnFamily<String, CompositeColumnName>("Order",
+                StringSerializer.get(),
+                CompositeColumnNameSerializer.get());
+        IndexAndCf indexAndCf = new IndexAndCf(TimeSeriesDbIndex.class, indexCF, keyspace);
+        
+        CheckResult checkResult = new CheckResult();
+        helper.checkIndexingCF(indexAndCf, false, checkResult);
+        assertEquals(0, checkResult.getTotal());
+        
+        keyspace.prepareQuery(cf).withCql(String.format("delete from \"Order\" where key='%s'", order.getId())).execute();
+        checkResult = new CheckResult();
+        helper.checkIndexingCF(indexAndCf, false, checkResult);
+        assertEquals(1, checkResult.getTotal());
+        
+        keyspace.prepareQuery(indexCF).withCql(helper.getCleanIndexCQL()).execute();
+        checkResult = new CheckResult();
+        helper.checkIndexingCF(indexAndCf, false, checkResult);
+        assertEquals(0, checkResult.getTotal());
+    }
+    
+    class DbConsistencyCheckerHelperMock extends DbConsistencyCheckerHelper {
+        
+        public String cleanIndexCQL = null;
+
+        public DbConsistencyCheckerHelperMock(DbClientImpl dbClient) {
+            super(dbClient);
+        }
+
+        @Override
+        protected String generateCleanIndexCQL(IndexAndCf indexAndCf, IndexEntry idxEntry, UUID timeUUID,
+                CompositeIndexColumnName compositeIndexColumnName) {
+            cleanIndexCQL = super.generateCleanIndexCQL(indexAndCf, idxEntry, timeUUID, compositeIndexColumnName);
+            return cleanIndexCQL;
+        }
+
+        public String getCleanIndexCQL() {
+            return cleanIndexCQL;
+        }
+
+    };
 }

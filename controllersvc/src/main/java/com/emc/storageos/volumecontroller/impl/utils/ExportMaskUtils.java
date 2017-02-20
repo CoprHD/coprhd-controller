@@ -36,8 +36,6 @@ import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DataObject.Flag;
-import com.emc.storageos.db.client.model.DiscoveredDataObject;
-import com.emc.storageos.db.client.model.DiscoveredDataObject.DiscoveryStatus;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportGroup.ExportGroupType;
 import com.emc.storageos.db.client.model.ExportMask;
@@ -124,7 +122,7 @@ public class ExportMaskUtils {
         	 URI maskUri = URI.create(maskUriStr);
         	 ExportMask exportMask = dbClient.queryObject(ExportMask.class, maskUri);
 
-            if (exportMask == null) {
+            if (exportMask == null || exportMask.getInactive()) {
                 continue;
             }
             if (ssysURI == null || exportMask.getStorageDevice().equals(ssysURI)) {
@@ -1354,7 +1352,6 @@ public class ExportMaskUtils {
 
     /**
      * Update missing HLUs for volumes in export mask and export group with the discovered information from array.
-     *
      * @param mask the export mask
      * @param discoveredVolumes the discovered volumes
      * @param dbClient the db client
@@ -1366,13 +1363,19 @@ public class ExportMaskUtils {
             dbClient.queryByConstraint(AlternateIdConstraint.Factory.getVolumeWwnConstraint(wwn), volumeList);
             if (volumeList.iterator().hasNext()) {
                 URI volumeURI = volumeList.iterator().next();
-                Integer discoveredHLU = discoveredVolumes.get(wwn);
-                if (mask.hasVolume(volumeURI)
-                        && ExportGroup.LUN_UNASSIGNED_DECIMAL_STR.equals(mask.returnVolumeHLU(volumeURI))
-                        && discoveredHLU != ExportGroup.LUN_UNASSIGNED) {
-                    mask.addVolume(volumeURI, discoveredHLU);
-                    updateMask = true;
+                if (!NullColumnValueGetter.isNullURI(volumeURI)) {
+                    BlockObject bo = BlockObject.fetch(dbClient, volumeURI);
+                    if (bo != null && !bo.getInactive() && mask.getStorageDevice().equals(bo.getStorageController())) {
+                        Integer discoveredHLU = discoveredVolumes.get(wwn);
+                        if (mask.hasVolume(volumeURI)
+                                && ExportGroup.LUN_UNASSIGNED_DECIMAL_STR.equals(mask.returnVolumeHLU(volumeURI))
+                                && discoveredHLU != ExportGroup.LUN_UNASSIGNED) {
+                            mask.addVolume(volumeURI, discoveredHLU);
+                            updateMask = true;
+                        }
+                    }
                 }
+
             }
         }
         if (updateMask) {

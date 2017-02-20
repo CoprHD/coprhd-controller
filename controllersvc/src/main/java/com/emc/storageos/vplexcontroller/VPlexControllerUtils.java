@@ -547,6 +547,8 @@ public class VPlexControllerUtils {
                     viprInits.add(Initiator.normalizePort(init.getInitiatorPort()));
                 }
             }
+            // Check export mask's user added volumes for missing HLU, and update if required (COP-27711)
+            ExportMaskUtils.updateMissingHLUsInExportMask(exportMask, discoveredVolumes, dbClient);
 
             String name = exportMask.getMaskName();
 

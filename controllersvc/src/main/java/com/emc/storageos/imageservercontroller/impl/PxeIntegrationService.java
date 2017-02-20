@@ -191,6 +191,7 @@ public class PxeIntegrationService {
         } else {
             sb = new StringBuilder(ImageServerUtils.getResourceAsString(ESXI_FIRSTBOOT_SH));
             // applies to ESXi only
+            //VBDU TODO: Check for explicit ESX type
             ImageServerUtils.replaceAll(sb, "__DEFAULT_VLAN_MARKER__", nonNullValue(job.getManagementNetwork()));
         }
         ImageServerUtils.replaceAll(sb, "__HOSTNAME_MARKER__", nonNullValue(job.getHostName()));

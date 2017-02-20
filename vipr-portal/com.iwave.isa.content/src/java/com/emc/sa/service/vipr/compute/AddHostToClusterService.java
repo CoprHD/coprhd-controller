@@ -236,6 +236,7 @@ public class AddHostToClusterService extends ViPRService {
             }
         }
 
+        //VBDU TODO: Throw exception of host name already existing in the cluster.
         hostNames = ComputeUtils.removeExistingHosts(hostNames, cluster);
 
         List<Host> hosts = ComputeUtils.createHosts(cluster.getId(), computeVirtualPool, hostNames, virtualArray);
@@ -256,7 +257,7 @@ public class AddHostToClusterService extends ViPRService {
         logInfo("compute.cluster.exports.installing.os");
         List<HostRestRep> hostsWithOs = installOSForHosts(hostToIPs, ComputeUtils.getHostNameBootVolume(hosts));
         logInfo("compute.cluster.exports.installed.os", ComputeUtils.nonNull(hostsWithOs).size());
-
+        //VBDU TODO: Deactivate Host without OS installed
         ComputeUtils.addHostsToCluster(hosts, cluster);
 
         pushToVcenter();

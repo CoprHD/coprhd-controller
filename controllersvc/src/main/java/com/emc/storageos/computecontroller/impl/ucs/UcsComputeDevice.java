@@ -347,6 +347,7 @@ public class UcsComputeDevice implements ComputeDevice {
         try {
             // Test mechanism to invoke a failure. No-op on production systems.
             InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_069);
+            //VBDU TODO: Check for initiators in host as well
             if (host != null && !NullColumnValueGetter.isNullURI(host.getComputeElement()) && host.getUuid() != null) {
                 ComputeElement ce = _dbClient.queryObject(ComputeElement.class, host.getComputeElement());
                 URI sptId = URI.create(ce.getSptId());
@@ -1120,6 +1121,9 @@ public class UcsComputeDevice implements ComputeDevice {
         ComputeElement computeElement = _dbClient.queryObject(ComputeElement.class, computeElementId);
 
         Map<String, Map<String, Integer>> hbaToStoragePorts = getHBAToStoragePorts(volumeId, hostId);
+        //VBDU TODO: HBAToStoragePorts are being constructed from the zoning map, for co-existence masks the zoning map will be empty in
+        //older releases. Do we need to still continue this operation?
+        
         try {
             if (null != computeElement) {
                 LsServer lsServer = ucsmService.setServiceProfileToSanBoot(getUcsmURL(cs).toString(), cs.getUsername(), cs.getPassword(),
@@ -1214,6 +1218,7 @@ public class UcsComputeDevice implements ComputeDevice {
     public void deactivateHost(ComputeSystem cs, Host host) throws ClientGeneralException {
 
         try {
+        	//VBDU TODO: Check initiators count, if empty do we still need to delete service profile?
             if (host != null && !NullColumnValueGetter.isNullURI(host.getComputeElement()) ) {
                 ComputeElement computeElement = _dbClient.queryObject(ComputeElement.class, host.getComputeElement());
                 if (computeElement == null){

@@ -1131,6 +1131,7 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
             vcenterController.updateVcenterCluster(task, host.getCluster(), null, new URI[] { host.getId() }, null);
 
             log.info("Monitor remove host " + host.getHostName() + " update vCenter task...");
+            //VBDU TODO: Anti pattern - completers are responsible for updating step status.
             while (true) {
                 Thread.sleep(TASK_STATUS_POLL_FREQUENCY);
                 VcenterDataCenter vcenterDataCenter = _dbClient.queryObject(VcenterDataCenter.class,
@@ -1284,6 +1285,7 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
 
             host = _dbClient.queryObject(Host.class, hostId);
             if (null != host) {
+            	//VBDU TODO: Need to check initiators inside the host as well.
                 if (NullColumnValueGetter.isNullURI(host.getComputeElement())) {
                     // NO-OP
                     log.info("Host " + host.getLabel() + " has no computeElement association");

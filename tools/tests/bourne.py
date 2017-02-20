@@ -131,6 +131,13 @@ URI_FILE_QUOTA_DIR_BASE         = URI_SERVICES_BASE + '/file/quotadirectories'
 URI_FILE_QUOTA_DIR              = URI_FILE_QUOTA_DIR_BASE + '/{0}'
 URI_FILE_QUOTA_DIR_DELETE       = URI_FILE_QUOTA_DIR + '/deactivate'
 
+URI_FILE_POLICIES = '/file/file-policies'
+URI_FILE_POLICY_SHOW = URI_FILE_POLICIES + '/{0}'
+URI_FILE_POLICY_DELETE = URI_FILE_POLICIES + '/{0}'
+URI_FILE_POLICY_UPDATE = URI_FILE_POLICIES + '/{0}'
+URI_FILE_POLICY_ASSIGN = URI_FILE_POLICIES + '/{0}/assign-policy'
+URI_FILE_POLICY_UNASSIGN = URI_FILE_POLICIES + '/{0}/unassign-policy'
+
 URI_DR                     = URI_SERVICES_BASE  + '/site'
 URI_DR_GET                 = URI_DR   + '/{0}'
 URI_DR_GET_DETAILS         = URI_DR   + '/{0}' + '/details'
@@ -9579,3 +9586,109 @@ class Bourne:
             return {};
         else:
             return o
+
+    # shows the filepolicy
+    def filepolicy_show(self, uri):
+        return self.api('GET', URI_FILE_POLICY_SHOW.format(uri))
+    
+    # lists all filepolicies
+    def filepolicy_list(self):
+        o = self.api('GET', URI_FILE_POLICIES)
+        if (not o):
+            return {};
+        returnlst = o['file_policy'];
+        if(type(returnlst) != list):
+            return [returnlst];
+        return returnlst;
+    
+    # queries filepolicy
+    def filepolicy_query(self, name):
+        if (self.__is_uri(name)):
+            return name
+        filepolicies = self.filepolicy_list()
+        for filepolicy in filepolicies:
+            try:
+                if (filepolicy['name'] == name):
+                    return filepolicy['id']
+            except KeyError:
+                print 'no name key'
+        raise Exception('bad filepolicy name: ' + name)
+    
+    # deletes the filepolicy
+    def filepolicy_delete(self, uri):
+        return self.api('DELETE', URI_FILE_POLICY_DELETE.format(uri))
+    
+    # creates the snapshot filepolicy
+    def filepolicy_create_snapshot_pol(self, name, policy_type, apply_at, description, policyscheduleweek, policyschedulemonth, snapshotnamepattern, snapshotexpiretype, snapshotexpirevalue, policyschedulefrequency, policyschedulerepeat, policyscheduletime):
+        parms = {
+            'name'              : name,
+            'policy_type'       : policy_type,
+            'apply_at'          : apply_at,
+            'description'       : description,
+            }
+        parms['snapshot_params'] = {'snapshot_name_pattern': snapshotnamepattern, 'snapshot_expire_params': {'expire_type' : snapshotexpiretype, 'expire_value' : snapshotexpirevalue}, 'policy_schedule': {'schedule_frequency' : policyschedulefrequency, 'schedule_repeat': policyschedulerepeat,'schedule_time' : policyscheduletime, 'schedule_day_of_week': policyscheduleweek, 'schedule_day_of_month' : policyschedulemonth}}
+        return self.api('POST', URI_FILE_POLICIES, parms)
+    
+    # creates the replication filepolicy
+    def filepolicy_create_replication_pol(self, name, policy_type, apply_at, description, policyscheduleweek, policyschedulemonth, snapshotnamepattern, snapshotexpiretype, snapshotexpirevalue, policyschedulefrequency, policyschedulerepeat, policyscheduletime):
+        parms = {
+            'name'              : name,
+            'policy_type'       : policy_type,
+            'apply_at'          : apply_at,
+            'description'       : description,
+            'priority'          : priority,
+            'num_worker_threads': num_worker_threads
+            }
+        parms['replication_params'] = {'replication_type': replicationtype, 'replication_copy_mode': replicationcopymode, 'replicate_configuration' : replicationconfiguration, 'policy_schedule': {'schedule_frequency' : policyschedulefrequency, 'schedule_repeat': policyschedulerepeat,'schedule_time' : policyscheduletime, 'schedule_day_of_week': policyscheduleweek, 'schedule_day_of_month' : policyschedulemonth}}
+        return self.api('POST', URI_FILE_POLICIES, parms)
+    
+    # assigns thefilepolicy to vPool
+    def filepolicy_vpool_assign(name, apply_on_target_site, assign_to_vpools, source_varray, target_varrays) :
+        parms = {
+            'name'              : name,
+            'apply_on_target_site'       : apply_on_target_site,
+            }
+        assign_request_vpools = []
+        if( len(assign_to_vpools)>1):
+                    vpool_names = assign_to_vpools.split(',')
+                    for name in vpool_names:
+                         uri =  self.cos_query("file", name).strip()
+                         assign_request_vpools.append(uri)
+       
+        parms['vpool_assign_param'] = {'assign_to_vpools' : assign_request_vpools}
+        src_varray_uri = self.neighborhood_query(source_varray).strip()
+        assign_target_varrays = []
+        if( len(target_varrays)>1):
+            trg_varrays= target_varrays.split(',')
+            for varray in trg_varrays:
+                uri = self.neighborhood_query(varray).strip()
+                assign_target_varrays.append(uri)
+        parms['file_replication_topologies'] = {'source_varray': src_varray_uri , target_varrays:assign_target_varrays}
+        filepolicy = self.filepolicy_query(name)
+        return self.api('POST', URI_FILE_POLICY_ASSIGN.format(filepolicy['id']), parms)
+    
+     # assigns the filepolicy to project
+    def filepolicy_project_assign(name, apply_on_target_site, project_assign_vpool, assign_to_projects, source_varray, target_varrays):
+        parms = {
+            'name'              : name,
+            'apply_on_target_site'       : apply_on_target_site,
+            }
+        vpooluri =  self.cos_query("file", project_assign_vpool).strip()
+        assign_request_projects = []
+        if( len(assign_to_projects)>1):
+            project_names = assign_to_projects.split(',')
+            for name in project_names:
+                uri =  self.project_query(name).strip()
+                assign_request_projects.append(uri)
+        parms['project_assign_param'] = {'vpool' : vpooluri,'assign_to_projects' : assign_request_projects}
+        src_varray_uri = self.neighborhood_query(source_varray).strip()
+        assign_target_varrays = []
+        if( len(target_varrays)>1):
+            trg_varrays= target_varrays.split(',')
+            for varray in trg_varrays:
+                uri = self.neighborhood_query(varray)
+                assign_target_varrays.append(uri)
+        parms['file_replication_topologies'] = {'source_varray': src_varray_uri , 'target_varrays' :assign_target_varrays}
+        filepolicy = self.filepolicy_query(name)
+        return self.api('POST', URI_FILE_POLICY_ASSIGN.format(filepolicy['id']), parms)
+    

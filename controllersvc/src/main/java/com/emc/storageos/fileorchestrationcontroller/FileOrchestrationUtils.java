@@ -763,7 +763,7 @@ public final class FileOrchestrationUtils {
         switch (applyLevel) {
             case vpool:
                 if (vNAS != null) {
-                    devPolicyName = String.format("%1$s_%2$s_%3$s_%4s", clusterNameWithoutSpecialCharacters,
+                    devPolicyName = String.format("%1$s_%2$s_%3$s_%4$s", clusterNameWithoutSpecialCharacters,
                             args.getVNASNameWithNoSpecialCharacters(), args.getVPoolNameWithNoSpecialCharacters(), policyName);
                 } else {
                     devPolicyName = String.format("%1$s_%2$s_%3$s", clusterNameWithoutSpecialCharacters,
@@ -819,31 +819,31 @@ public final class FileOrchestrationUtils {
         switch (applyLevel) {
             case vpool:
                 if (vNAS != null) {
-                    devPolicyName = String.format("%1$s_to_%2$s_%3$s_%4s_%5s", sourceClusterName, targetClusterName,
+                    devPolicyName = String.format("%1$s_to_%2$s_%3$s_%4$s_%5$s", sourceClusterName, targetClusterName,
                             args.getVNASNameWithNoSpecialCharacters(), args.getVPoolNameWithNoSpecialCharacters(), policyName);
                 } else {
-                    devPolicyName = String.format("%1$s_to_%2$s_%3$s_%4s", sourceClusterName, targetClusterName,
+                    devPolicyName = String.format("%1$s_to_%2$s_%3$s_%4$s", sourceClusterName, targetClusterName,
                             args.getVPoolNameWithNoSpecialCharacters(), policyName);
                 }
                 break;
             case project:
                 if (vNAS != null) {
-                    devPolicyName = String.format("%1$s_to_%2$s_%3$s_%4$s_%5$s_%6s", sourceClusterName, targetClusterName,
+                    devPolicyName = String.format("%1$s_to_%2$s_%3$s_%4$s_%5$s_%6$s", sourceClusterName, targetClusterName,
                             args.getVNASNameWithNoSpecialCharacters(), args.getVPoolNameWithNoSpecialCharacters(),
                             args.getProjectNameWithNoSpecialCharacters(), policyName);
                 } else {
-                    devPolicyName = String.format("%1$s_to_%2$s_%3$s_%4$s_%5s", sourceClusterName, targetClusterName,
+                    devPolicyName = String.format("%1$s_to_%2$s_%3$s_%4$s_%5$s", sourceClusterName, targetClusterName,
                             args.getVPoolNameWithNoSpecialCharacters(), args.getProjectNameWithNoSpecialCharacters(), policyName);
                 }
                 break;
             case file_system:
                 String fileShareName = stripSpecialCharacters(fileShare.getName());
                 if (vNAS != null) {
-                    devPolicyName = String.format("%1$s_to_%2$s_%3$s_%4$s_%5$s_%6$s_%7s", sourceClusterName, targetClusterName,
+                    devPolicyName = String.format("%1$s_to_%2$s_%3$s_%4$s_%5$s_%6$s_%7$s", sourceClusterName, targetClusterName,
                             args.getVNASNameWithNoSpecialCharacters(), args.getVPoolNameWithNoSpecialCharacters(),
                             args.getProjectNameWithNoSpecialCharacters(), fileShareName, policyName);
                 } else {
-                    devPolicyName = String.format("%1$s_%2$s_%3$s_%4$s_%5$s", sourceClusterName, targetClusterName,
+                    devPolicyName = String.format("%1$s_%2$s_%3$s_%4$s_%5$s_%6$s", sourceClusterName, targetClusterName,
                             args.getVPoolNameWithNoSpecialCharacters(), args.getProjectNameWithNoSpecialCharacters(),
                             fileShareName, policyName);
                 }

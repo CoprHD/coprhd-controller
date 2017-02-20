@@ -43,35 +43,33 @@ public abstract class AbstractFileStorageDevice implements FileStorageDevice,
     }
 
     @Override
-    public void doDetachMirrorLink(StorageSystem system, URI source, URI target,
+    public BiosCommandResult doDetachMirrorLink(StorageSystem system, URI source, URI target,
             TaskCompleter completer) {
         throw DeviceControllerException.exceptions.operationNotSupported();
     }
 
     @Override
-    public void doStartMirrorLink(StorageSystem system, FileShare target,
-            TaskCompleter completer, String policyName) {
+    public BiosCommandResult doStartMirrorLink(StorageSystem system, FileShare target, TaskCompleter completer) {
         throw DeviceControllerException.exceptions.operationNotSupported();
     }
 
     @Override
-    public void doRefreshMirrorLink(StorageSystem system, FileShare source, FileShare target, TaskCompleter completer) {
+    public BiosCommandResult doRefreshMirrorLink(StorageSystem system, FileShare source, FileShare target, TaskCompleter completer) {
         throw DeviceControllerException.exceptions.operationNotSupported();
     }
 
     @Override
-    public void doStopMirrorLink(StorageSystem system, FileShare target,
-            TaskCompleter completer) {
+    public BiosCommandResult doStopMirrorLink(StorageSystem system, FileShare source) {
         throw DeviceControllerException.exceptions.operationNotSupported();
     }
 
     @Override
-    public void doSuspendLink(StorageSystem system, FileShare target, TaskCompleter completer) {
+    public BiosCommandResult doPauseLink(StorageSystem system, FileShare target) {
         throw DeviceControllerException.exceptions.operationNotSupported();
     }
 
     @Override
-    public void doResumeLink(StorageSystem system, FileShare target, TaskCompleter completer) {
+    public BiosCommandResult doResumeLink(StorageSystem system, FileShare source, TaskCompleter completer) {
         throw DeviceControllerException.exceptions.operationNotSupported();
     }
 
@@ -95,7 +93,8 @@ public abstract class AbstractFileStorageDevice implements FileStorageDevice,
      * @param devSpecificPolicyName
      */
     @Override
-    public void doCancelMirrorLink(StorageSystem system, FileShare target, TaskCompleter completer, String devSpecificPolicyName) {
+    public BiosCommandResult doCancelMirrorLink(StorageSystem system, FileShare target, TaskCompleter completer,
+            String devSpecificPolicyName) {
         throw DeviceControllerException.exceptions.operationNotSupported();
     }
 
@@ -120,21 +119,21 @@ public abstract class AbstractFileStorageDevice implements FileStorageDevice,
     @Override
     public BiosCommandResult doExport(StorageSystem storage,
             FileDeviceInputOutput fd, List<FileExport> exportList)
-                    throws ControllerException {
+            throws ControllerException {
         throw DeviceControllerException.exceptions.operationNotSupported();
     }
 
     @Override
     public BiosCommandResult doShare(StorageSystem storage,
             FileDeviceInputOutput args, SMBFileShare smbFileShare)
-                    throws ControllerException {
+            throws ControllerException {
         throw DeviceControllerException.exceptions.operationNotSupported();
     }
 
     @Override
     public BiosCommandResult doDeleteShare(StorageSystem storage,
             FileDeviceInputOutput args, SMBFileShare smbFileShare)
-                    throws ControllerException {
+            throws ControllerException {
         throw DeviceControllerException.exceptions.operationNotSupported();
     }
 
@@ -147,7 +146,7 @@ public abstract class AbstractFileStorageDevice implements FileStorageDevice,
     @Override
     public BiosCommandResult doUnexport(StorageSystem storage,
             FileDeviceInputOutput fd, List<FileExport> exportList)
-                    throws ControllerException {
+            throws ControllerException {
         throw DeviceControllerException.exceptions.operationNotSupported();
     }
 
@@ -178,7 +177,7 @@ public abstract class AbstractFileStorageDevice implements FileStorageDevice,
     @Override
     public BiosCommandResult getFSSnapshotList(StorageSystem storage,
             FileDeviceInputOutput fd, List<String> snapshots)
-                    throws ControllerException {
+            throws ControllerException {
         throw DeviceControllerException.exceptions.operationNotSupported();
     }
 
@@ -206,7 +205,7 @@ public abstract class AbstractFileStorageDevice implements FileStorageDevice,
     @Override
     public BiosCommandResult doCreateQuotaDirectory(StorageSystem storage,
             FileDeviceInputOutput fd, QuotaDirectory qt)
-                    throws ControllerException {
+            throws ControllerException {
         throw DeviceControllerException.exceptions.operationNotSupported();
     }
 
@@ -219,7 +218,7 @@ public abstract class AbstractFileStorageDevice implements FileStorageDevice,
     @Override
     public BiosCommandResult doUpdateQuotaDirectory(StorageSystem storage,
             FileDeviceInputOutput fd, QuotaDirectory qt)
-                    throws ControllerException {
+            throws ControllerException {
         throw DeviceControllerException.exceptions.operationNotSupported();
     }
 

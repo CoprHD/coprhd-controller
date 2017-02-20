@@ -10,6 +10,7 @@ import java.util.List;
 import com.emc.storageos.db.client.model.FileShare;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.volumecontroller.TaskCompleter;
+import com.emc.storageos.volumecontroller.impl.BiosCommandResult;
 
 public interface RemoteFileMirrorOperation {
     /**
@@ -30,7 +31,16 @@ public interface RemoteFileMirrorOperation {
      * @param target
      * @param completer
      */
-    void doDetachMirrorLink(StorageSystem system, URI source, URI target, TaskCompleter completer);
+    BiosCommandResult doDetachMirrorLink(StorageSystem system, URI source, URI target, TaskCompleter completer);
+
+    /**
+     * Starts a replication link.
+     *
+     * @param system
+     * @param source
+     * @param completer
+     */
+    BiosCommandResult doStartMirrorLink(StorageSystem system, FileShare source, TaskCompleter completer);
 
     /**
      * Starts a replication link.
@@ -39,25 +49,15 @@ public interface RemoteFileMirrorOperation {
      * @param target
      * @param completer
      */
-    void doStartMirrorLink(StorageSystem system, FileShare target, TaskCompleter completer, String policyName);
-
-    /**
-     * Starts a replication link.
-     *
-     * @param system
-     * @param target
-     * @param completer
-     */
-    void doRefreshMirrorLink(StorageSystem system, FileShare source, FileShare target, TaskCompleter completer);
+    BiosCommandResult doRefreshMirrorLink(StorageSystem system, FileShare source, FileShare target, TaskCompleter completer);
 
     /**
      * stop a replication link.
      *
      * @param system
-     * @param target
-     * @param completer
+     * @param source
      */
-    void doStopMirrorLink(StorageSystem system, FileShare target, TaskCompleter completer);
+    BiosCommandResult doStopMirrorLink(StorageSystem system, FileShare source);
 
     /**
      * Cancel a replication link.
@@ -66,7 +66,7 @@ public interface RemoteFileMirrorOperation {
      * @param target
      * @param completer
      */
-    void doCancelMirrorLink(StorageSystem system, FileShare target, TaskCompleter completer, String devSpecificPolicyName);
+    BiosCommandResult doCancelMirrorLink(StorageSystem system, FileShare target, TaskCompleter completer, String devSpecificPolicyName);
 
     /**
      * Rollback replication links.
@@ -83,11 +83,9 @@ public interface RemoteFileMirrorOperation {
      * Suspend replication links.
      *
      * @param system
-     * @param target
-     *
-     * @param completer
+     * @param source
      */
-    void doSuspendLink(StorageSystem system, FileShare target, TaskCompleter completer);
+    BiosCommandResult doPauseLink(StorageSystem system, FileShare source);
 
     /**
      * Resume replication links.
@@ -96,7 +94,7 @@ public interface RemoteFileMirrorOperation {
      * @param target
      * @param completer
      */
-    void doResumeLink(StorageSystem system, FileShare target, TaskCompleter completer);
+    BiosCommandResult doResumeLink(StorageSystem system, FileShare target, TaskCompleter completer);
 
     /**
      * Failover replication links.

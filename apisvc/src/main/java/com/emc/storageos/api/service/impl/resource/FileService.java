@@ -2898,8 +2898,6 @@ public class FileService extends TaskResourceService {
     @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.OWN, ACL.ALL })
     public TaskList startContinuousCopies(@PathParam("id") URI id, FileReplicationParam param)
             throws ControllerException {
-        ArgValidator.checkFieldUriType(id, FileShare.class, "id");
-
         return performFileProtectionAction(param, id, ProtectionOp.START.getRestOp());
     }
 
@@ -3284,24 +3282,18 @@ public class FileService extends TaskResourceService {
     private TaskResourceRep performProtectionAction(URI id, String op) throws InternalException {
         String task = UUID.randomUUID().toString();
 
-        FileShare sourceFileShare = _dbClient.queryObject(FileShare.class, id);
+        ArgValidator.checkFieldUriType(id, FileShare.class, "id");
+        FileShare sourceFileShare = queryResource(id);
         ArgValidator.checkEntity(sourceFileShare, id, true);
 
         // Make sure that we don't have some pending
         // operation against the file share
         checkForPendingTasks(Arrays.asList(sourceFileShare.getTenant().getURI()), Arrays.asList(sourceFileShare));
 
-        // Get the project.
-        URI projectURI = sourceFileShare.getProject().getURI();
-        Project project = _permissionsHelper.getObjectById(projectURI,
-                Project.class);
-        ArgValidator.checkEntity(project, projectURI, false);
-        _log.info("Found filesystem project {}", projectURI);
-
         VirtualPool currentVpool = _dbClient.queryObject(VirtualPool.class, sourceFileShare.getVirtualPool());
         StringBuffer notSuppReasonBuff = new StringBuffer();
 
-        // Verify the file system and its vPool are capable of doing replication!!!
+        // Verify the file system is capable of replication..
         if (!FileSystemReplicationUtils.validateMirrorOperationSupported(sourceFileShare, currentVpool, notSuppReasonBuff, op)) {
             _log.error("Mirror Operation {} is not supported for the file system {} as : {}", op.toUpperCase(),
                     sourceFileShare.getLabel(), notSuppReasonBuff.toString());
@@ -3309,6 +3301,16 @@ public class FileService extends TaskResourceService {
                     notSuppReasonBuff.toString());
 
         }
+        // Check for replication policy existence on file system..
+        if (FileSystemReplicationUtils.getReplicationPolicyAppliedOnFS(sourceFileShare, _dbClient) == null) {
+            notSuppReasonBuff.append(String.format(
+                    "Mirror Operation {} is not supported for the file system {} as file system doesn't have any replication policy assigned/applied",
+                    op.toUpperCase(), sourceFileShare.getLabel()));
+            _log.error(notSuppReasonBuff.toString());
+            throw APIException.badRequests.unableToPerformMirrorOperation(op.toUpperCase(), sourceFileShare.getId(),
+                    notSuppReasonBuff.toString());
+        }
+
         Operation status = new Operation();
         status.setResourceType(ProtectionOp.getResourceOperationTypeEnum(op));
         _dbClient.createTaskOpStatus(FileShare.class, sourceFileShare.getId(), task, status);

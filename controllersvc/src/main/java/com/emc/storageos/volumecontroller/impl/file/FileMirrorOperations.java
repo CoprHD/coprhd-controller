@@ -52,28 +52,6 @@ public interface FileMirrorOperations {
             throws DeviceControllerException;
 
     /**
-     * Pause Mirror session between between source and target.
-     * This operation will cancel any running/paused job and then disable the policy
-     * 
-     * @param system
-     * @param target
-     * @param completer
-     * @throws DeviceControllerException
-     * 
-     */
-    void pauseMirrorFileShareLink(StorageSystem system, FileShare target, TaskCompleter completer) throws DeviceControllerException;
-
-    /**
-     * Resume Mirror link , this operation will enable the policy and start the replication job.
-     * 
-     * @param system
-     * @param target
-     * @param completer
-     * @throws DeviceControllerException
-     */
-    void resumeMirrorFileShareLink(StorageSystem system, FileShare target, TaskCompleter completer) throws DeviceControllerException;
-
-    /**
      * Failover Mirror link
      * 
      * @param system
@@ -95,28 +73,6 @@ public interface FileMirrorOperations {
      */
     void resyncMirrorFileShareLink(StorageSystem primarySystem, StorageSystem secondarySystem, FileShare target, TaskCompleter completer,
             String policyName);
-
-    /**
-     * Delete Mirror of a filesystem
-     * 
-     * @param system
-     * @param source
-     * @param target
-     * @param completer
-     * @throws DeviceControllerException
-     */
-    void deleteMirrorFileShareLink(StorageSystem system, URI source, URI target, TaskCompleter completer) throws DeviceControllerException;
-
-    /**
-     * Cancel the mirror link
-     * 
-     * @param system
-     * @param target
-     * @param completer
-     * @param devPolicyName
-     * @throws DeviceControllerException
-     */
-    void cancelMirrorFileShareLink(StorageSystem system, FileShare target, TaskCompleter completer, String devPolicyName) throws DeviceControllerException;
 
     /**
      * Refresh Mirror State of a filesystem

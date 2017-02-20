@@ -1108,7 +1108,8 @@ public class StorageDriverSimulator extends DefaultStorageDriver implements Bloc
     }
 
     @Override
-    public DriverTask createRemoteReplicationGroup(RemoteReplicationGroup replicationGroup, StorageCapabilities capabilities) {
+    public DriverTask createRemoteReplicationGroup(RemoteReplicationGroup replicationGroup,
+            List<StoragePort> sourcePorts, List<StoragePort> targetPorts, StorageCapabilities capabilities) {
         String driverName = this.getClass().getSimpleName();
         String taskId = String.format("%s+%s+%s", driverName, "createRemoteReplicationGroup", UUID.randomUUID().toString());
         DriverTask task = new DriverSimulatorTask(taskId);
@@ -1118,8 +1119,9 @@ public class StorageDriverSimulator extends DefaultStorageDriver implements Bloc
         task.setStatus(DriverTask.TaskStatus.READY);
 
         String msg = String.format("StorageDriver: createRemoteReplicationGroup information: name --- %s, source system: %s, \n " +
-                        "\t target system: %s - end",
-                replicationGroup.getNativeId(), replicationGroup.getSourceSystemNativeId(), replicationGroup.getTargetSystemNativeId());
+                        "\t target system: %s,\n\t source ports: %s, \n\t target ports: %s - end",
+                replicationGroup.getNativeId(), replicationGroup.getSourceSystemNativeId(), replicationGroup.getTargetSystemNativeId(),
+                sourcePorts.toString(), targetPorts.toString());
         _log.info(msg);
         task.setMessage(msg);
         return task;

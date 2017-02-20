@@ -8,6 +8,7 @@ package com.emc.storageos.storagedriver;
 
 import java.util.List;
 
+import com.emc.storageos.storagedriver.model.StoragePort;
 import com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationGroup;
 import com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationOperationContext;
 import com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationPair;
@@ -35,7 +36,8 @@ public interface RemoteReplicationDriver {
      * @param capabilities storage capabilities for the group
      * @return driver task
      */
-    public DriverTask createRemoteReplicationGroup(RemoteReplicationGroup replicationGroup, StorageCapabilities capabilities);
+    public DriverTask createRemoteReplicationGroup(RemoteReplicationGroup replicationGroup,
+            List<StoragePort> sourcePorts, List<StoragePort> targetPorts, StorageCapabilities capabilities);
 
     /**
      * Create replication pairs in existing replication group container.

@@ -14,7 +14,7 @@ import com.emc.storageos.volumecontroller.impl.externaldevice.taskcompleters.Rem
 
 public interface RemoteReplicationDevice {
 
-    public void createRemoteReplicationGroup(URI groupURI, TaskCompleter taskCompleter);
+    public void createRemoteReplicationGroup(URI groupURI, List<URI> sourcePorts, List<URI> targetPorts, TaskCompleter taskCompleter);
     public void createGroupReplicationPairs(List<RemoteReplicationPair> replicationPairs, TaskCompleter taskCompleter);
     public void createSetReplicationPairs(List<RemoteReplicationPair> replicationPairs, TaskCompleter taskCompleter);
     public void deleteReplicationPairs(List<URI> replicationPairs, TaskCompleter taskCompleter);

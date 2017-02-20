@@ -77,7 +77,7 @@ public class RemoteReplicationDeviceController implements RemoteReplicationContr
 
 
     @Override
-    public void createRemoteReplicationGroup(URI replicationGroup, String opId) {
+    public void createRemoteReplicationGroup(URI replicationGroup, List<URI> sourcePorts, List<URI> targetPorts, String opId) {
         RemoteReplicationGroup rrGroup = dbClient.queryObject(RemoteReplicationGroup.class, replicationGroup);
         _log.info("Create remote replication group: {} : {}", rrGroup.getLabel(), replicationGroup);
 
@@ -88,7 +88,7 @@ public class RemoteReplicationDeviceController implements RemoteReplicationContr
 
         // call device
         RemoteReplicationDevice rrDevice = getRemoteReplicationDevice();
-        rrDevice.createRemoteReplicationGroup(replicationGroup, taskCompleter);
+        rrDevice.createRemoteReplicationGroup(replicationGroup, sourcePorts, targetPorts, taskCompleter);
     }
 
     @Override

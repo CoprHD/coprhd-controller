@@ -18,7 +18,7 @@ public interface RemoteReplicationController extends Controller {
      * Create empty remote replication group.
      * @param replicationGroup URI of remote replication group to create.
      */
-    public void createRemoteReplicationGroup(URI replicationGroup, String opId);
+    public void createRemoteReplicationGroup(URI replicationGroup, List<URI> sourcePorts, List<URI> targetPorts, String opId);
 
     /**
      * Create replication pairs in existing replication group container.

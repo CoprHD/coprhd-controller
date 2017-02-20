@@ -336,11 +336,11 @@ public class RemoteReplicationBlockServiceApiImpl extends AbstractBlockServiceAp
         return object.canBeDeleted();
     }
 
-    public void createRemoteReplicationGroup(URI replicationGroupId, String taskId) {
+    public void createRemoteReplicationGroup(URI replicationGroupId, List<URI> sourcePorts, List<URI> targetPorts, String taskId) {
         RemoteReplicationController controller = getController(
                 RemoteReplicationController.class, Constants.EXTERNALDEVICE);
 
-        controller.createRemoteReplicationGroup(replicationGroupId, taskId);
+        controller.createRemoteReplicationGroup(replicationGroupId, sourcePorts, targetPorts, taskId);
     }
 
     public void failoverRemoteReplicationElementLink(RemoteReplicationElement remoterReplicationElement, String taskId) {

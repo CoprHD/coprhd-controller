@@ -599,7 +599,8 @@ public class DefaultStorageDriver extends AbstractStorageDriver implements Block
     }
 
     @Override
-    public DriverTask createRemoteReplicationGroup(RemoteReplicationGroup replicationGroup, StorageCapabilities capabilities) {
+    public DriverTask createRemoteReplicationGroup(RemoteReplicationGroup replicationGroup,
+            List<StoragePort> sourcePorts, List<StoragePort> targetPorts, StorageCapabilities capabilities) {
         String driverName = this.getClass().getSimpleName();
         String taskId = String.format("%s+%s+%s", driverName, "createRemoteReplicationGroup", UUID.randomUUID().toString());
         DriverTask task = new DefaultDriverTask(taskId);

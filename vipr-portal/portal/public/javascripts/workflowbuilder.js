@@ -20,9 +20,9 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
     var jstreeContainer = $element.find('#jstree_demo');
     var folderNodeType = "FOLDER";
     var workflowNodeType = "WORKFLOW";
-    var shellNodeType = "SHELL";
-    var localAnsibleNodeType = "LOCAL_ANSIBLE"
-    var fileNodeTypes = [workflowNodeType, shellNodeType, localAnsibleNodeType]
+    var shellNodeType = "SCRIPT";
+    var localAnsibleNodeType = "ANSIBLE"
+    var fileNodeTypes = [shellNodeType, localAnsibleNodeType]
 
     initializeJsTree();
 
@@ -50,7 +50,7 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
             "types": {
                 "#": {
                     "max_children": 1,
-                    "max_depth": 4,
+                    "max_depth": 10,
                     "valid_children": ["root"]
                 },
                 "root": {
@@ -59,9 +59,19 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
                 },
                 "FOLDER": {
                     "icon": "glyphicon glyphicon-folder-close",
-                    "valid_children": ["WORKFLOW","FOLDER"]
+                    "valid_children": ["WORKFLOW","FOLDER", "SCRIPT", "ANSIBLE"]
                 },
                 "WORKFLOW": {
+                    "icon": "glyphicon glyphicon-file",
+                    "valid_children": [],
+                    "li_attr": {"class": "draggable-card"}
+                },
+                "SCRIPT": {
+                    "icon": "glyphicon glyphicon-file",
+                    "valid_children": [],
+                    "li_attr": {"class": "draggable-card"}
+                },
+                "ANSIBLE": {
                     "icon": "glyphicon glyphicon-file",
                     "valid_children": [],
                     "li_attr": {"class": "draggable-card"}
@@ -148,6 +158,7 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
     var validActionsOnMyLib = ["addFolder", "addWorkflow"]
     var validActionsOnDirectory = ["addFolder", "addWorkflow", "deleteNode", "editNode"]
     var validActionsOnWorkflow = ["deleteNode", "editNode", "openEditor"]
+    var validActionsOnMyPrimitives = ["deleteNode", "editNode"]
     var allActions = ["addFolder", "addWorkflow", "deleteNode", "editNode", "openEditor"]
     var viprLibIDs = ["viprrest", "viprLib"]
 
@@ -168,9 +179,13 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
             // My Library root
             validActions = validActionsOnMyLib;
         }
+        else if(workflowNodeType === data.node.type){
+            // For workflows
+            validActions = validActionsOnWorkflow
+        }
         else if ($.inArray(data.node.type, fileNodeTypes) > -1) {
-            // workflows, shell script, ansible
-            validActions = validActionsOnWorkflow;
+            // shell script, ansible
+            validActions = validActionsOnMyPrimitives;
             if (shellNodeType === data.node.type) {
                 //preview Shell script
                 $scope.shellPreview = true;
@@ -217,12 +232,40 @@ angular.module("portalApp").controller('builderController', function($scope, $ro
         }
     }
 
+    $scope.openShellScriptModal = function(){
+        var scope = angular.element($('#scriptModal')).scope();
+        scope.populateModal(false);
+        $('#shellPrimitiveDialog').modal('show');
+    }
+
+    $scope.openLocalAnsibleModal = function(){
+        var scope = angular.element($('#localAnsibleModal')).scope();
+        scope.populateModal(false);
+        $('#localAnsiblePrimitiveDialog').modal('show');
+    }
+
+    // if folder edit name, if primitive - open modal
     $scope.editNode = function() {
         var ref = jstreeContainer.jstree(true),
-            sel = ref.get_selected();
+            sel = ref.get_selected('full',true);
+
         if(!sel.length) { return false; }
         sel = sel[0];
-        ref.edit(sel);
+        if(shellNodeType === sel.type) {
+            //open script modal
+            var scope = angular.element($('#scriptModal')).scope();
+            scope.populateModal(true, sel.id, sel.type);
+            $('#shellPrimitiveDialog').modal('show');
+        }
+        else if(localAnsibleNodeType === sel.type){
+            //open script modal
+            var scope = angular.element($('#localAnsibleModal')).scope();
+            scope.populateModal(true, sel.id, sel.type);
+            $('#localAnsiblePrimitiveDialog').modal('show');
+        }
+        else{
+            ref.edit(sel.id);
+        }
     };
 
     $scope.deleteNode = function() {

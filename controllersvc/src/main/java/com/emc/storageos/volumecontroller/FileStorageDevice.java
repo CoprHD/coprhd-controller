@@ -8,6 +8,7 @@ package com.emc.storageos.volumecontroller;
 import java.util.List;
 
 import com.emc.storageos.db.client.model.FileExport;
+import com.emc.storageos.db.client.model.FileShare;
 import com.emc.storageos.db.client.model.QuotaDirectory;
 import com.emc.storageos.db.client.model.SMBFileShare;
 import com.emc.storageos.db.client.model.StorageSystem;
@@ -304,5 +305,40 @@ public interface FileStorageDevice {
 
     public BiosCommandResult checkFileReplicationPolicyExistsOrCreate(StorageSystem sourceStorageObj, StorageSystem targetStorageObj,
             FileDeviceInputOutput sourceSytemArgs, FileDeviceInputOutput targetSytemArgs);
+
+    /**
+     * Starts a replication link.
+     *
+     * @param system
+     * @param source
+     * @param completer
+     */
+    BiosCommandResult doStartMirrorLink(StorageSystem system, FileShare source, TaskCompleter completer);
+
+    /**
+     * Starts a replication link.
+     *
+     * @param system
+     * @param target
+     * @param completer
+     */
+    BiosCommandResult doRefreshMirrorLink(StorageSystem system, FileShare source, FileShare target, TaskCompleter completer);
+
+    /**
+     * Suspend replication links.
+     *
+     * @param system
+     * @param source
+     */
+    BiosCommandResult doPauseLink(StorageSystem system, FileShare source);
+
+    /**
+     * Resume replication links.
+     *
+     * @param system
+     * @param target
+     * @param completer
+     */
+    BiosCommandResult doResumeLink(StorageSystem system, FileShare target, TaskCompleter completer);
 
 }

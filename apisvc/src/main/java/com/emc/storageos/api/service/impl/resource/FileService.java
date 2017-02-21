@@ -105,7 +105,6 @@ import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.fileorchestrationcontroller.FileDescriptor;
 import com.emc.storageos.fileorchestrationcontroller.FileDescriptor.Type;
 import com.emc.storageos.fileorchestrationcontroller.FileOrchestrationController;
-import com.emc.storageos.filereplicationcontroller.FileReplicationController;
 import com.emc.storageos.model.BulkIdParam;
 import com.emc.storageos.model.BulkRestRep;
 import com.emc.storageos.model.RelatedResourceRep;
@@ -176,6 +175,7 @@ import com.emc.storageos.volumecontroller.FileShareExport;
 import com.emc.storageos.volumecontroller.FileShareExport.Permissions;
 import com.emc.storageos.volumecontroller.FileShareExport.SecurityTypes;
 import com.emc.storageos.volumecontroller.FileShareQuotaDirectory;
+import com.emc.storageos.volumecontroller.impl.FileDeviceController;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
 
 @Path("/file/filesystems")
@@ -2897,7 +2897,7 @@ public class FileService extends TaskResourceService {
         op.setDescription("start the replication link between source and target");
 
         StorageSystem system = _dbClient.queryObject(StorageSystem.class, sourceFileShare.getStorageDevice());
-        FileReplicationController controller = getController(FileReplicationController.class, system.getSystemType());
+        FileController controller = getController(FileController.class, system.getSystemType());
         controller.performFileReplicationOperation(system.getId(), id, ProtectionOp.START.toString().toLowerCase(), task);
         return toTask(sourceFileShare, task, op);
     }
@@ -2926,7 +2926,7 @@ public class FileService extends TaskResourceService {
         op.setDescription("refresh the replication link between source and target");
 
         StorageSystem system = _dbClient.queryObject(StorageSystem.class, sourceFileShare.getStorageDevice());
-        FileReplicationController controller = getController(FileReplicationController.class, system.getSystemType());
+        FileController controller = getController(FileController.class, system.getSystemType());
         controller.performFileReplicationOperation(system.getId(), id, ProtectionOp.REFRESH.toString().toLowerCase(), task);
         return toTask(sourceFileShare, task, op);
     }
@@ -2955,7 +2955,7 @@ public class FileService extends TaskResourceService {
         op.setDescription("stop the replication link between source and target");
 
         StorageSystem system = _dbClient.queryObject(StorageSystem.class, sourceFileShare.getStorageDevice());
-        FileReplicationController controller = getController(FileReplicationController.class, system.getSystemType());
+        FileDeviceController controller = getController(FileDeviceController.class, system.getSystemType());
         controller.performFileReplicationOperation(system.getId(), id, ProtectionOp.STOP.toString().toLowerCase(), task);
         return toTask(sourceFileShare, task, op);
     }
@@ -2983,7 +2983,7 @@ public class FileService extends TaskResourceService {
         op.setDescription("pause the replication link between source and target");
 
         StorageSystem system = _dbClient.queryObject(StorageSystem.class, sourceFileShare.getStorageDevice());
-        FileReplicationController controller = getController(FileReplicationController.class, system.getSystemType());
+        FileController controller = getController(FileController.class, system.getSystemType());
         controller.performFileReplicationOperation(system.getId(), id, ProtectionOp.PAUSE.toString().toLowerCase(), task);
         return toTask(sourceFileShare, task, op);
     }
@@ -3012,7 +3012,7 @@ public class FileService extends TaskResourceService {
         op.setDescription("resume the replication link between source and target");
 
         StorageSystem system = _dbClient.queryObject(StorageSystem.class, sourceFileShare.getStorageDevice());
-        FileReplicationController controller = getController(FileReplicationController.class, system.getSystemType());
+        FileController controller = getController(FileController.class, system.getSystemType());
         controller.performFileReplicationOperation(system.getId(), id, ProtectionOp.RESUME.toString().toLowerCase(), task);
         return toTask(sourceFileShare, task, op);
     }

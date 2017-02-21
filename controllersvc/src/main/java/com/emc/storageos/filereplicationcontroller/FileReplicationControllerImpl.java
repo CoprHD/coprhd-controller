@@ -63,14 +63,7 @@ public class FileReplicationControllerImpl extends AbstractDiscoveredSystemContr
         execFS("performNativeContinuousCopies", storage, sourceFileShare, mirrorURIs, opType, opId);
     }
 
-    @Override
-    public void performFileReplicationOperation(URI storage, URI copyId,
-            String opType, String opId) throws ControllerException {
-        execFS("performFileReplicationOperation", storage, copyId, opType, opId);
-    }
-
     private void execFS(String method, Object... args) throws InternalException {
         queueTask(dbClient, StorageSystem.class, dispatcher, method, args);
     }
-
 }

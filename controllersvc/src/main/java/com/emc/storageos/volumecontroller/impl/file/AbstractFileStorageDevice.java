@@ -43,23 +43,12 @@ public abstract class AbstractFileStorageDevice implements FileStorageDevice,
     }
 
     @Override
-    public BiosCommandResult doDetachMirrorLink(StorageSystem system, URI source, URI target,
-            TaskCompleter completer) {
-        throw DeviceControllerException.exceptions.operationNotSupported();
-    }
-
-    @Override
     public BiosCommandResult doStartMirrorLink(StorageSystem system, FileShare target, TaskCompleter completer) {
         throw DeviceControllerException.exceptions.operationNotSupported();
     }
 
     @Override
     public BiosCommandResult doRefreshMirrorLink(StorageSystem system, FileShare source, FileShare target, TaskCompleter completer) {
-        throw DeviceControllerException.exceptions.operationNotSupported();
-    }
-
-    @Override
-    public BiosCommandResult doStopMirrorLink(StorageSystem system, FileShare source) {
         throw DeviceControllerException.exceptions.operationNotSupported();
     }
 
@@ -81,20 +70,6 @@ public abstract class AbstractFileStorageDevice implements FileStorageDevice,
     @Override
     public void doResyncLink(StorageSystem primarySystem, StorageSystem secondarySystem, FileShare Target, TaskCompleter completer,
             String policyName) {
-        throw DeviceControllerException.exceptions.operationNotSupported();
-    }
-
-    /**
-     * Cancel a replication link.
-     *
-     * @param system
-     * @param target
-     * @param completer
-     * @param devSpecificPolicyName
-     */
-    @Override
-    public BiosCommandResult doCancelMirrorLink(StorageSystem system, FileShare target, TaskCompleter completer,
-            String devSpecificPolicyName) {
         throw DeviceControllerException.exceptions.operationNotSupported();
     }
 

@@ -30,15 +30,4 @@ public interface FileReplicationController extends Controller {
     public void performNativeContinuousCopies(URI storage, URI sourceFileShare, List<URI> mirrorURIs, String opType, String opId)
             throws ControllerException;
 
-    /**
-     * Perform remote protection operation
-     * 
-     * @param storage
-     * @param copyId
-     * @param opType - operation to perform(pause, cancel , resume)
-     * @param opId
-     * @throws ControllerException
-     */
-    public void performFileReplicationOperation(URI storage, URI copyId, String opType, String opId) throws ControllerException;
-
 }

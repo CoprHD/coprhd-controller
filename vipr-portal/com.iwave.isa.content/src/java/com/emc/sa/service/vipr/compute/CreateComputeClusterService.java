@@ -248,8 +248,7 @@ public class CreateComputeClusterService extends ViPRService {
             cluster = ComputeUtils.createCluster(name);
             logInfo("compute.cluster.created", name);
         } else {
-            // If the hostName already exists, we remove it from the hostnames
-            // list.
+            // If the hostName already exists, we remove it from the hostnames list.
             hostNames = ComputeUtils.removeExistingHosts(hostNames, cluster);
         }
 
@@ -266,6 +265,7 @@ public class CreateComputeClusterService extends ViPRService {
         logInfo("compute.cluster.exports.created", ComputeUtils.nonNull(exportIds).size());
         hosts = ComputeUtils.deactivateHostsWithNoExport(hosts, exportIds, bootVolumeIds, cluster);
 
+        // VBDU TODO: COP-28400, Potential DU if external host is added to vCenter cluster not under ViPR mgmt.
         if (ComputeUtils.findHostNamesInCluster(cluster).isEmpty()) {
             logInfo("compute.cluster.removing.empty.cluster");
             ComputeUtils.deactivateCluster(cluster);
@@ -285,6 +285,7 @@ public class CreateComputeClusterService extends ViPRService {
                         ExecutionUtils.getMessage("compute.cluster.order.incomplete", orderErrors));
             } else {
                 logError("compute.cluster.order.incomplete", orderErrors);
+                // VBDU TODO: COP-28433, change criteria for partial success
                 setPartialSuccess();
             }
         }

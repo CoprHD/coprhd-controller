@@ -101,8 +101,6 @@ public class PxeIntegrationService {
      */
     private String generateKickstartEsxEsxi(ComputeImageJob job, ComputeImage ci, ComputeImageServer imageServer) {
         log.info("generateKickstartEsxEsxi");
-        // VBDU TODO [DONE]: Remove these defaults. Define as null, and if null by the time you go to replace, throw an
-        // exception
         String clearDevice = null;
         String installDevice = null;
         String bootDeviceUuid = null;
@@ -110,7 +108,6 @@ public class PxeIntegrationService {
             if (ImageServerUtils.isUuid(job.getBootDevice())) {
                 bootDeviceUuid = ImageServerUtils.uuidFromString(job.getBootDevice()).toString().replaceAll("-", "");
             } else {
-                // VBDU TODO: When would the boot device NOT be a uuid? We should be pretty specific here.
                 bootDeviceUuid = job.getBootDevice();
             }
             clearDevice = "--drives=naa." + bootDeviceUuid;
@@ -138,7 +135,6 @@ public class PxeIntegrationService {
 
         ImageServerUtils.replaceAll(sb, "${os_path}", ci.getLabel()); // does not apply for ESXi 5
 
-        // VBDU TODO [Done]: Add assertions for critical kick-start fields
         assertKickStartParam(clearDevice, "clearpart device");
         assertKickStartParam(installDevice, "install device");
         assertKickStartParam(imageServer.getImageServerSecondIp(), "image server second IP");
@@ -191,7 +187,7 @@ public class PxeIntegrationService {
         } else {
             sb = new StringBuilder(ImageServerUtils.getResourceAsString(ESXI_FIRSTBOOT_SH));
             // applies to ESXi only
-            //VBDU TODO: Check for explicit ESX type
+            // VBDU TODO: COP-28460, Check for explicit ESX type
             ImageServerUtils.replaceAll(sb, "__DEFAULT_VLAN_MARKER__", nonNullValue(job.getManagementNetwork()));
         }
         ImageServerUtils.replaceAll(sb, "__HOSTNAME_MARKER__", nonNullValue(job.getHostName()));

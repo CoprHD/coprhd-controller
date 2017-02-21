@@ -77,9 +77,9 @@ public class RemoveHostFromClusterService extends ViPRService {
         // get boot vols to be deleted (so we can check afterwards)
         List<URI> bootVolsToBeDeleted = Lists.newArrayList();
         for (URI hostURI : hostIds) {
-            // VBDU TODO: If the boot volume is null for a host, the code goes ahead and runs export update operations
-            // on all the export Groups referencing the hosts. Ideally, we should run the exports only for shared export
-            // groups, right?
+            // VBDU TODO, COP-28448, If the boot volume is null for a host, the code goes ahead and runs export update
+            // operations on all the export Groups referencing the hosts. Ideally, we should run the exports only for
+            // shared export groups, right?
             URI bootVolURI = BlockStorageUtils.getHost(hostURI).getBootVolumeId();
             if (bootVolURI != null) {
                 BlockObjectRestRep bootVolRep = null;
@@ -89,10 +89,10 @@ public class RemoveHostFromClusterService extends ViPRService {
                     //Invalid boot volume reference. Ignore
                 }
                 if (bootVolRep!=null && !bootVolRep.getInactive()) {
-                    // VBDU TODO: We're assuming the volume we're deleting is still the boot volume, but it could have
-                    // VBDU TODO: been manually dd'd (migrated) to another volume and this volume could be re-purposed
-                    // VBDU TODO: elsewhere. We should verify this is the boot volume on the server before attempting to
-                    // VBDU TODO: delete it.Same comment in RemoveComputeClusterService.
+                    // VBDU TODO: COP-28447, We're assuming the volume we're deleting is still the boot volume, but it
+                    // could have been manually dd'd (migrated) to another volume and this volume could be re-purposed
+                    // elsewhere. We should verify this is the boot volume on the server before attempting to
+                    // delete it.Same comment in RemoveComputeClusterService.
                     bootVolsToBeDeleted.add(bootVolURI);
                 }
             }

@@ -238,18 +238,19 @@ public class AddHostToClusterService extends ViPRService {
             }
         }
 
-        //VBDU TODO: Throw exception of host name already existing in the cluster.
+        // VBDU TODO: COP-28443, Throw exception of host name already existing in the cluster.
         hostNames = ComputeUtils.removeExistingHosts(hostNames, cluster);
 
         List<Host> hosts = ComputeUtils.createHosts(cluster, computeVirtualPool, hostNames, virtualArray);
         logInfo("compute.cluster.hosts.created", ComputeUtils.nonNull(hosts).size());
 
-        // VBDU: TODO Assuming shared exports are already exported to these new hosts, I see Hosts are getting
-        // moved out of cluster irrespective of the shared volumes. Even though it makes sense to remove the host
-        // out, we should be extra cautious to verify the shared volumes are already available.
         List<URI> bootVolumeIds = ComputeUtils.makeBootVolumes(project, virtualArray, virtualPool, size, hosts,
                 getClient());
         logInfo("compute.cluster.boot.volumes.created", ComputeUtils.nonNull(bootVolumeIds).size());
+
+        // VBDU TODO: COP-28443, Remove any logic that deactivates as part of a create/add operation.
+        // Throw an exception if there are hosts with no boot volume and/or no export, unless you have a
+        // really good (aka javadoc comment) reason for doing so.
         hosts = ComputeUtils.deactivateHostsWithNoBootVolume(hosts, bootVolumeIds, cluster);
 
         List<URI> exportIds = ComputeUtils.exportBootVols(bootVolumeIds, hosts, project, virtualArray, hlu);
@@ -259,7 +260,8 @@ public class AddHostToClusterService extends ViPRService {
         logInfo("compute.cluster.exports.installing.os");
         List<HostRestRep> hostsWithOs = installOSForHosts(hostToIPs, ComputeUtils.getHostNameBootVolume(hosts));
         logInfo("compute.cluster.exports.installed.os", ComputeUtils.nonNull(hostsWithOs).size());
-        //VBDU TODO: Deactivate Host without OS installed
+
+        // VBDU TODO: COP-28433: Deactivate Host without OS installed (when rollback is added, this should be addressed)
         ComputeUtils.addHostsToCluster(hosts, cluster);
 
         pushToVcenter();
@@ -271,11 +273,11 @@ public class AddHostToClusterService extends ViPRService {
                         ExecutionUtils.getMessage("compute.cluster.order.incomplete", orderErrors));
             } else {
                 logError("compute.cluster.order.incomplete", orderErrors);
-                // VBDU TODO: Partial success breeds multiple re-entrant use cases that may not be well-tested.
-                // VBDU TODO: We should consider rolling back failures to reduce chances of poorly tested code paths
-                // VBDU TODO: until we have time to test such paths thoroughly. This applies to all callers of
-                // VBDU TODO: "setPartialSuccess()" for create/add operations. This note does not apply to Delete/
-                // VBDU TODO: Remove operations, as they need to be re-entrant and have partial success.
+                // VBDU TODO: COP-28433, Partial success breeds multiple re-entrant use cases that may not be
+                // well-tested. We should consider rolling back failures to reduce chances of poorly tested code paths
+                // until we have time to test such paths thoroughly. This applies to all callers of
+                // "setPartialSuccess()" for create/add operations. This note does not apply to Delete/
+                // Remove operations, as they need to be re-entrant and have partial success.
                 setPartialSuccess();
             }
         }

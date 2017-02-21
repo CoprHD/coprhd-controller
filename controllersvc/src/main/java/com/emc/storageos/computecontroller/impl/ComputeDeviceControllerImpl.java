@@ -5,7 +5,6 @@
 package com.emc.storageos.computecontroller.impl;
 
 import java.net.URI;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -27,7 +26,6 @@ import com.emc.storageos.db.client.model.ComputeVirtualPool;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.Operation.Status;
-import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.UCSServiceProfileTemplate;
 import com.emc.storageos.db.client.model.VcenterDataCenter;
 import com.emc.storageos.db.client.model.VirtualArray;
@@ -884,9 +882,8 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
         List<URI> clusterHosts = ComputeSystemHelper.getChildrenUris(_dbClient, clusterId, Host.class, "cluster");
         // Check if cluster has hosts, if cluster is empty then safely remove from vcenter.
         
-        //VBDU TODO: Cluster without any hosts is kind of negative case, and this information is not verified against
-        // the environment, do we need to take liberty of removing the cluster from VCenter?
-        
+        // VBDU TODO: COP-28400, Cluster without any hosts is kind of negative case, and this information is not
+        // verified against the environment, do we need to take liberty of removing the cluster from VCenter?
         if (null == clusterHosts || clusterHosts.isEmpty()) {
             VcenterDataCenter vcenterDataCenter = _dbClient.queryObject(VcenterDataCenter.class,
                     cluster.getVcenterDataCenter());
@@ -1107,7 +1104,7 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
             vcenterController.updateVcenterCluster(task, host.getCluster(), null, new URI[] { host.getId() }, null);
 
             log.info("Monitor remove host " + host.getHostName() + " update vCenter task...");
-            //VBDU TODO: Anti pattern - completers are responsible for updating step status.
+            // VBDU TODO: COP-28456, Anti pattern - completers are responsible for updating step status.
             while (true) {
                 Thread.sleep(TASK_STATUS_POLL_FREQUENCY);
                 VcenterDataCenter vcenterDataCenter = _dbClient.queryObject(VcenterDataCenter.class,
@@ -1261,7 +1258,7 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
 
             host = _dbClient.queryObject(Host.class, hostId);
             if (null != host) {
-            	//VBDU TODO: Need to check initiators inside the host as well.
+                // VBDU TODO: COP-28452: Need to check initiators inside the host as well.
                 if (NullColumnValueGetter.isNullURI(host.getComputeElement())) {
                     // NO-OP
                     log.info("Host " + host.getLabel() + " has no computeElement association");

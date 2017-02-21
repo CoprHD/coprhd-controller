@@ -7797,7 +7797,7 @@ public class SmisCommandHelper implements SmisConstants {
                 }
             }
         } catch (Exception e) {
-           _log.info("Could not get assciated masking view:", e);
+           _log.error("Could not get associated masking view:", e);
         }  finally {
             if (cimPathItr != null) {
                 cimPathItr.close();

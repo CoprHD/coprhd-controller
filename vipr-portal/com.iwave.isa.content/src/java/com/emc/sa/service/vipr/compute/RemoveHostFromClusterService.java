@@ -64,9 +64,9 @@ public class RemoveHostFromClusterService extends ViPRService {
     public void execute() throws Exception {
         // In order to remove the hosts from cluster
         // 1. Set the cluster uri = null on the host itself - Should be taken care of during deactivate host
-        // 2. Delete hosts which will also take care of removing
-        // Boot volumes and dissociate any shared storage that is
+        // 2. Delete hosts which will also take care of removing boot volumes and dissociate any shared storage that is
         // associated with the host.
+        //
         // Remove host from cluster
         // Remove hosts
 
@@ -89,6 +89,10 @@ public class RemoveHostFromClusterService extends ViPRService {
                     //Invalid boot volume reference. Ignore
                 }
                 if (bootVolRep!=null && !bootVolRep.getInactive()) {
+                    // VBDU TODO: We're assuming the volume we're deleting is still the boot volume, but it could have
+                    // VBDU TODO: been manually dd'd (migrated) to another volume and this volume could be re-purposed
+                    // VBDU TODO: elsewhere. We should verify this is the boot volume on the server before attempting to
+                    // VBDU TODO: delete it.Same comment in RemoveComputeClusterService.
                     bootVolsToBeDeleted.add(bootVolURI);
                 }
             }

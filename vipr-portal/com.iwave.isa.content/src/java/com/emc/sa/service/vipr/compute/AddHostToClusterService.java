@@ -271,6 +271,11 @@ public class AddHostToClusterService extends ViPRService {
                         ExecutionUtils.getMessage("compute.cluster.order.incomplete", orderErrors));
             } else {
                 logError("compute.cluster.order.incomplete", orderErrors);
+                // VBDU TODO: Partial success breeds multiple re-entrant use cases that may not be well-tested.
+                // VBDU TODO: We should consider rolling back failures to reduce chances of poorly tested code paths
+                // VBDU TODO: until we have time to test such paths thoroughly. This applies to all callers of
+                // VBDU TODO: "setPartialSuccess()" for create/add operations. This note does not apply to Delete/
+                // VBDU TODO: Remove operations, as they need to be re-entrant and have partial success.
                 setPartialSuccess();
             }
         }
@@ -298,7 +303,7 @@ public class AddHostToClusterService extends ViPRService {
 
         List<OsInstallParam> osInstallParams = Lists.newArrayList();
 
-        // Filter out everyting except the hosts that were created and
+        // Filter out everything except the hosts that were created and
         // added to the cluster from the current order.
         List<HostRestRep> newHosts = Lists.newArrayList();
         for (HostRestRep host : hosts) {

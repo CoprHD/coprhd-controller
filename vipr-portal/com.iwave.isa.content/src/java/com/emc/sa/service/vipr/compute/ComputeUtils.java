@@ -61,10 +61,18 @@ import com.emc.vipr.client.core.filters.NameIgnoreCaseFilter;
 import com.emc.vipr.client.exceptions.TimeoutException;
 import com.google.common.collect.Lists;
 
+// VBDU TODO: In general, this module needs javadoc.  Many methods are using List objects and returning List objects that correspond to the incoming list that
+// require the indexing in the list to be retained or use of "indexOf()" to find the right map entry, both of which is poor programming practice, so that needs 
+// to be fixed as well.  It does not need to be fixed if the calling object literally doesn't care about the mapping between the incoming arg and the return object, 
+// so each case needs to be investigated separately.  Good hints are when you see use of "indexOf()" that Maps should've been used.
+//
+// Then Javadoc all of the methods so future readers know what the intentions are.  Be clear about return types.
 public class ComputeUtils {
 
     public static final URI nullConsistencyGroup = null;
 
+    // VBDU TODO: These methods need to be rewritten to use maps. Assuming stable indexing of
+    // hostNamesIn->return List is poor programming practice.
     public static List<Host> createHosts(Cluster cluster, URI vcp, List<String> hostNamesIn,
             URI varray) throws Exception {
 
@@ -128,6 +136,8 @@ public class ComputeUtils {
         return Arrays.asList(hosts);
     }
 
+    // VBDU TODO: These methods need to be rewritten to use maps. Assuming stable indexing of
+    // names->return List is poor programming practice.
     public static List<String> getHostNamesByName(ViPRCoreClient client,
             List<String> names) {
         List<String> hostNames = Lists.newArrayList();
@@ -212,6 +222,8 @@ public class ComputeUtils {
         return false;
     }
 
+    // VBDU TODO: These methods need to be rewritten to use maps. Assuming stable indexing of
+    // hosts->return List is poor programming practice.
     public static List<URI> makeBootVolumes(URI project,
             URI virtualArray, URI virtualPool, Double size,
             List<Host> hosts, ViPRCoreClient client) {
@@ -304,6 +316,8 @@ public class ComputeUtils {
         }
     }
 
+    // VBDU TODO: These methods need to be rewritten to use maps. Assuming stable indexing of
+    // volumeIds,hosts->return List is poor programming practice.
     public static List<URI> exportBootVols(List<URI> volumeIds, List<Host> hosts, URI project, URI virtualArray, Integer hlu) {
 
         if ((hosts == null) || (volumeIds == null)) {
@@ -378,6 +392,8 @@ public class ComputeUtils {
         return reqCapacity > freeCapacity ? false : true;
     }
 
+    // VBDU TODO: These methods need to be rewritten to use maps. Assuming stable indexing of
+    // hosts->return List is poor programming practice.
     public static List<Host> deactivateHostsWithNoBootVolume(List<Host> hosts,
             List<URI> bootVolumeIds, Cluster cluster) {
         if (hosts == null) {
@@ -414,6 +430,8 @@ public class ComputeUtils {
         return hosts;
     }
 
+    // VBDU TODO: These methods need to be rewritten to use maps. Assuming stable indexing of
+    // hosts/exports->return List is poor programming practice.
     public static List<Host> deactivateHostsWithNoExport(List<Host> hosts,
             List<URI> exportIds, List<URI> bootVolumeIds, Cluster cluster) {
         if (hosts == null) {
@@ -464,6 +482,8 @@ public class ComputeUtils {
         return hosts;
     }
 
+    // VBDU TODO: These methods need to be rewritten to use maps. Assuming stable indexing of
+    // hosts->return List is poor programming practice.
     public static List<Host> deactivateHosts(List<Host> hosts) {
         Map<URI, String> hostURIMap = new HashMap<URI, String>();
         for (Host host : hosts) {
@@ -480,6 +500,8 @@ public class ComputeUtils {
         return hosts;
     }
 
+    // VBDU TODO: These methods need to be rewritten to use maps. Assuming stable indexing of
+    // hostURIs->return List is poor programming practice.
     public static List<URI> deactivateHostURIs(Map<URI,String> hostURIs) {
         ArrayList<Task<HostRestRep>> tasks = new ArrayList<>();
         ExecutionUtils.currentContext().logInfo("computeutils.deactivatehost.inprogress", hostURIs.values());
@@ -500,6 +522,7 @@ public class ComputeUtils {
             for (Task<HostRestRep> failedTask : getFailedTasks(tasks)) {
                 ExecutionUtils.currentContext().logError("computeutils.deactivatehost.deactivate.failure",
                         failedTask.getResource().getName(), failedTask.getMessage());
+                // VBDU TODO: Why are we manipulating the task list here?
                 tasks.remove(failedTask);
             }
         }
@@ -507,6 +530,8 @@ public class ComputeUtils {
         return successfulHostIds;
     }
 
+    // VBDU TODO: These methods need to be rewritten to use maps. Assuming stable indexing of
+    // hosts->osInstallParams and hosts/osInstallParams->return List is poor programming practice.
     public static List<HostRestRep> installOsOnHosts(List<HostRestRep> hosts, List<OsInstallParam> osInstallParams) {
 
         if ((hosts == null) || hosts.isEmpty()) {
@@ -561,6 +586,8 @@ public class ComputeUtils {
         // remove failed hosts
         for (ListIterator<HostRestRep> itr = hosts.listIterator(); itr.hasNext();) {
             HostRestRep host = itr.next();
+            // VBDU TODO: Removing list elements from incoming argument is poor programming practice.
+            // Please clone list and return a new list of successfully installed host objects.
             if ((host != null) && !successfulHostIds.contains(host.getId())) {
                 itr.set(null);
             }
@@ -604,6 +631,8 @@ public class ComputeUtils {
         return objectListToReturn;
     }
 
+    // VBDU TODO: These methods need to be rewritten to use maps. Assuming stable indexing of
+    // hostNames->return List is poor programming practice.
     static List<String> removeExistingHosts(List<String> hostNames, Cluster cluster) {
         for (String hostNameFound : ComputeUtils.findHostNamesInCluster(cluster)) {
             for (int i = 0; i < hostNames.size(); i++) {

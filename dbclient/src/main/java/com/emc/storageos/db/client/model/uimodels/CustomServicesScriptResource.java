@@ -18,6 +18,9 @@ package com.emc.storageos.db.client.model.uimodels;
 
 import com.emc.storageos.db.client.model.Cf;
 
+/**
+ * Column family that represents a script file
+ */
 @Cf("CustomServiceScriptResource")
 public class CustomServicesScriptResource extends CustomServicesPrimitiveResource {
 

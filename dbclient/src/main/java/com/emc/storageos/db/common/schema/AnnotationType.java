@@ -139,11 +139,13 @@ public class AnnotationType implements SchemaObject {
             FieldInfo fieldInfo = (FieldInfo)parent;
             if (name.equals(DecommissionedIndex.class.getSimpleName()) && fieldInfo.getName().equals(Order.SUBMITTED)) {
                 log.info("ignore {} of field {}", DecommissionedIndex.class.getSimpleName(), Order.SUBMITTED);
+                log.info("lbyx canBeIgnore stack=", new Throwable());
                 return true;
             }
 
             if (name.equals(AlternateId.class.getSimpleName()) && fieldInfo.getName().equals(Order.SUBMITTED_BY_USER_ID)) {
                 log.info("ignore {} of field {}", AlternateId.class.getSimpleName(), Order.SUBMITTED_BY_USER_ID);
+                log.info("lbyx2 canBeIgnore stack=", new Throwable());
                 return true;
             }
         }

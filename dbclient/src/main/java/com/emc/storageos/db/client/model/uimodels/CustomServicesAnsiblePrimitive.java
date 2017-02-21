@@ -16,10 +16,9 @@
  */
 package com.emc.storageos.db.client.model.uimodels;
 
-import java.net.URI;
-
 import com.emc.storageos.db.client.model.Cf;
 import com.emc.storageos.db.client.model.Name;
+import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.StringSet;
 
 /**
@@ -38,7 +37,7 @@ public class CustomServicesAnsiblePrimitive extends CustomServicesUserPrimitive 
     private String description;
     private String playbook;
     private StringSet extraVars;
-    private URI archive;
+    private NamedURI archive;
     
     @Name(DESCRIPTION)
     public String getDescription() {
@@ -71,11 +70,11 @@ public class CustomServicesAnsiblePrimitive extends CustomServicesUserPrimitive 
     }
     
     @Name(ARCHIVE)
-    public URI getArchive() {
+    public NamedURI getArchive() {
         return archive;
     }
     
-    public void setArchive(final URI archive) {
+    public void setArchive(final NamedURI archive) {
         this.archive = archive;
         setChanged(ARCHIVE);
     }

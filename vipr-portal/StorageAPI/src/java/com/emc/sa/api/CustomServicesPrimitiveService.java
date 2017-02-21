@@ -60,6 +60,7 @@ import com.emc.storageos.api.service.impl.resource.ArgValidator;
 import com.emc.storageos.api.service.impl.response.BulkList;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.DataObject;
+import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.uimodels.CustomServicesAnsiblePackage;
 import com.emc.storageos.db.client.model.uimodels.CustomServicesAnsiblePrimitive;
@@ -279,13 +280,17 @@ public class CustomServicesPrimitiveService extends CatalogTaggedResourceService
         final CustomServicesUserPrimitive primitive;
         final PrimitiveType type = PrimitiveType
                 .get(param.getType());
+        final CustomServicesPrimitiveResource resource = primitiveManager.findResource(param.getResource());
+        if( null == resource ) {
+            throw BadRequestException.badRequests.invalidParameter("resource", param.getResource().toString());
+        }
         
         switch(type) {
         case ANSIBLE:
-            primitive = makeAnsiblePrimitive(param);
+            primitive = makeAnsiblePrimitive(param, resource.asCustomServiceAnsiblePackage());
             break;
         case SCRIPT:
-            primitive = makeScriptPrimitive(param);
+            primitive = makeScriptPrimitive(param, resource.asCustomServiceScriptResource());
             break;
         default:
             throw BadRequestException.methodNotAllowed.notSupportedWithReason("Primitive creation not supported for: "+type);
@@ -485,13 +490,15 @@ public class CustomServicesPrimitiveService extends CatalogTaggedResourceService
         return (CustomServicesPrimitiveBulkRestRep) super.getBulkResources(ids);
     }
 
-    private CustomServicesAnsiblePrimitive makeAnsiblePrimitive(CustomServicesPrimitiveCreateParam param) {
+    private CustomServicesAnsiblePrimitive makeAnsiblePrimitive(CustomServicesPrimitiveCreateParam param, 
+            CustomServicesAnsiblePackage ansiblePackage) {
+
         final CustomServicesAnsiblePrimitive primitive = new CustomServicesAnsiblePrimitive();
         primitive.setId(URIUtil.createId(CustomServicesAnsiblePrimitive.class));
         primitive.setLabel(param.getName());
         primitive.setFriendlyName(param.getFriendlyName());
         primitive.setDescription(param.getDescription());
-        primitive.setArchive(param.getResource());
+        primitive.setArchive(new NamedURI(ansiblePackage.getId(), ansiblePackage.getLabel()));
         primitive.setPlaybook(param.getAttributes().get("playbook"));
         final StringSet extraVars = new StringSet();
         if( null != param.getInput() ) {
@@ -537,7 +544,7 @@ public class CustomServicesPrimitiveService extends CatalogTaggedResourceService
             for(Entry<String, String> attribute : param.getAttributes().entrySet()) {
                 switch(attribute.getKey()) {
                 case "playbook":
-                    final CustomServicesAnsiblePackage archive = primitiveManager.findResource(update.getArchive()).asCustomServiceAnsiblePackage();
+                    final CustomServicesAnsiblePackage archive = primitiveManager.findResource(update.getArchive().getURI()).asCustomServiceAnsiblePackage();
                     if(!archive.getPlaybooks().contains(attribute.getValue())) {
                         throw BadRequestException.badRequests.parameterIsNotValid(attribute.getKey());
                     } else {
@@ -674,13 +681,14 @@ public class CustomServicesPrimitiveService extends CatalogTaggedResourceService
         return script;
     }
     
-    private CustomServicesScriptPrimitive makeScriptPrimitive(CustomServicesPrimitiveCreateParam param) {
+    private CustomServicesScriptPrimitive makeScriptPrimitive(final CustomServicesPrimitiveCreateParam param, 
+            final CustomServicesScriptResource script) {
         final CustomServicesScriptPrimitive primitive = new CustomServicesScriptPrimitive();
         primitive.setId(URIUtil.createId(CustomServicesScriptPrimitive.class));
         primitive.setLabel(param.getName());
         primitive.setFriendlyName(param.getFriendlyName());
         primitive.setDescription(param.getDescription());
-        primitive.setScript(param.getResource());
+        primitive.setScript(new NamedURI(script.getId(), script.getLabel()));
        
         final StringSet inputs = new StringSet();
         if( null != param.getInput() ) {

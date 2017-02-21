@@ -16,10 +16,9 @@
  */
 package com.emc.storageos.db.client.model.uimodels;
 
-import java.net.URI;
-
 import com.emc.storageos.db.client.model.Cf;
 import com.emc.storageos.db.client.model.Name;
+import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.StringSet;
 
 /**
@@ -34,7 +33,7 @@ public class CustomServicesScriptPrimitive extends CustomServicesUserPrimitive {
     public static final String SCRIPT = "script";
     
     private StringSet input;
-    private URI script;
+    private NamedURI script;
     
     @Name(INPUT)
     public StringSet getInput() {
@@ -47,11 +46,11 @@ public class CustomServicesScriptPrimitive extends CustomServicesUserPrimitive {
     }
     
     @Name(SCRIPT)
-    public URI getScript() {
+    public NamedURI getScript() {
         return script;
     }
 
-    public void setScript(final URI script) {
+    public void setScript(final NamedURI script) {
         this.script = script;
         setChanged(SCRIPT);
     }

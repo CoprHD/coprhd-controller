@@ -28,6 +28,7 @@ import java.util.Map;
 import com.emc.storageos.api.mapper.DbObjectMapper;
 import com.emc.storageos.api.service.impl.response.ResourceTypeMapping;
 import com.emc.storageos.db.client.constraint.NamedElementQueryResultList.NamedElement;
+import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.uimodels.CustomServicesAnsiblePrimitive;
 import com.emc.storageos.db.client.model.uimodels.CustomServicesPrimitiveResource;
@@ -37,11 +38,11 @@ import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.storageos.model.RestLinkRep;
 import com.emc.storageos.model.customservices.CustomServicesPrimitiveResourceList;
-import com.emc.storageos.model.customservices.InputParameterRestRep;
-import com.emc.storageos.model.customservices.OutputParameterRestRep;
 import com.emc.storageos.model.customservices.CustomServicesPrimitiveResourceRestRep;
 import com.emc.storageos.model.customservices.CustomServicesPrimitiveResourceRestRep.Attribute;
 import com.emc.storageos.model.customservices.CustomServicesPrimitiveRestRep;
+import com.emc.storageos.model.customservices.InputParameterRestRep;
+import com.emc.storageos.model.customservices.OutputParameterRestRep;
 import com.emc.storageos.primitives.Parameter.ParameterType;
 import com.emc.storageos.primitives.Primitive.StepType;
 import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorException;
@@ -93,7 +94,7 @@ public final class  CustomServicesPrimitiveMapper extends DbObjectMapper {
         return to;
     }
 
-    private static RestLinkRep makeResourceLink(CustomServicesUserPrimitive resource) throws URISyntaxException {
+    private static NamedRelatedResourceRep makeResourceLink(CustomServicesUserPrimitive resource) throws URISyntaxException {
         final ResourceTypeEnum type = ResourceTypeMapping.getResourceType(resource);
         if(type == null) {
             return null;
@@ -110,10 +111,10 @@ public final class  CustomServicesPrimitiveMapper extends DbObjectMapper {
     }
 
 
-    private static RestLinkRep makeResourceLink(final String service, final String type, final URI id) throws URISyntaxException {
+    private static NamedRelatedResourceRep makeResourceLink(final String service, final String type, final NamedURI id) throws URISyntaxException {
         StringBuilder builder = new StringBuilder(service).append("/resource/")
                 .append(type).append("/").append(id);
-        return new RestLinkRep("resource", new URI(builder.toString()));
+        return new NamedRelatedResourceRep(id.getURI(), new RestLinkRep("resource", new URI(builder.toString())), id.getName());
     }
 
     private static void mapAnsible(final CustomServicesAnsiblePrimitive from,

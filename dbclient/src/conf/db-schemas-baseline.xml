@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <!--
  The following schema is auto generated
-by com.emc.storageos.db.common.DbSchemaChecker against ViPR version 3.6, at Mon Feb 06 09:51:29 UTC 2017
+by com.emc.storageos.db.common.DbSchemaChecker against ViPR version 3.6, at Tue Feb 21 07:45:52 UTC 2017
 Please DO NOT modify the content.
 -->
 <dbschemas>
@@ -2357,6 +2357,9 @@ Please DO NOT modify the content.
     <data_object_schema name="Host" type="com.emc.storageos.db.client.model.Host">
         <annotations/>
         <fields>
+            <field name="bios" type="java.lang.String">
+                <annotations/>
+            </field>
             <field name="bootVolumeId" type="java.net.URI">
                 <annotations>
                     <annotation name="RelationIndex" type="com.emc.storageos.db.client.model.RelationIndex">
@@ -2525,6 +2528,16 @@ Please DO NOT modify the content.
                 <annotations>
                     <annotation name="EnumType" type="com.emc.storageos.model.valid.EnumType">
                         <annotation_value name="value" type="com.emc.storageos.db.client.model.DiscoveredDataObject.RegistrationStatus" value="RegistrationStatus"/>
+                    </annotation>
+                </annotations>
+            </field>
+            <field name="serviceProfile" type="java.net.URI">
+                <annotations>
+                    <annotation name="RelationIndex" type="com.emc.storageos.db.client.model.RelationIndex">
+                        <annotation_value name="type" type="com.emc.storageos.db.client.model.UCSServiceProfile" value="UCSServiceProfile"/>
+                        <annotation_value name="types" value=""/>
+                        <annotation_value name="cf" value="RelationIndex"/>
+                        <annotation_value name="deactivateIfEmpty" value="false"/>
                     </annotation>
                 </annotations>
             </field>
@@ -3983,6 +3996,9 @@ Please DO NOT modify the content.
             <field name="available" type="java.lang.Boolean">
                 <annotations/>
             </field>
+            <field name="bios" type="java.lang.String">
+                <annotations/>
+            </field>
             <field name="chassisId" type="java.lang.String">
                 <annotations/>
             </field>
@@ -5185,6 +5201,144 @@ Please DO NOT modify the content.
                 </annotations>
             </field>
             <field name="accessTenants" type="com.emc.storageos.db.client.model.StringSet">
+                <annotations/>
+            </field>
+        </fields>
+    </data_object_schema>
+    <data_object_schema name="UCSServiceProfile" type="com.emc.storageos.db.client.model.UCSServiceProfile">
+        <annotations/>
+        <fields>
+            <field name="compatibilityStatus" type="java.lang.String">
+                <annotations>
+                    <annotation name="EnumType" type="com.emc.storageos.model.valid.EnumType">
+                        <annotation_value name="value" type="com.emc.storageos.db.client.model.DiscoveredDataObject.CompatibilityStatus" value="CompatibilityStatus"/>
+                    </annotation>
+                </annotations>
+            </field>
+            <field name="computeElementDn" type="java.lang.String">
+                <annotations/>
+            </field>
+            <field name="computeSystem" type="java.net.URI">
+                <annotations>
+                    <annotation name="RelationIndex" type="com.emc.storageos.db.client.model.RelationIndex">
+                        <annotation_value name="type" type="com.emc.storageos.db.client.model.ComputeSystem" value="ComputeSystem"/>
+                        <annotation_value name="types" value=""/>
+                        <annotation_value name="cf" value="RelationIndex"/>
+                        <annotation_value name="deactivateIfEmpty" value="false"/>
+                    </annotation>
+                </annotations>
+            </field>
+            <field name="creationTime" type="java.util.Calendar">
+                <annotations/>
+            </field>
+            <field name="discoveryStatus" type="java.lang.String">
+                <annotations>
+                    <annotation name="EnumType" type="com.emc.storageos.model.valid.EnumType">
+                        <annotation_value name="value" type="com.emc.storageos.db.client.model.DiscoveredDataObject.DataCollectionJobStatus" value="DataCollectionJobStatus"/>
+                    </annotation>
+                </annotations>
+            </field>
+            <field name="dn" type="java.lang.String">
+                <annotations/>
+            </field>
+            <field name="host" type="java.net.URI">
+                <annotations/>
+            </field>
+            <field name="id" type="java.net.URI">
+                <annotations>
+                    <annotation name="Id" type="com.emc.storageos.db.client.model.Id"/>
+                </annotations>
+            </field>
+            <field name="inactive" type="java.lang.Boolean">
+                <annotations>
+                    <annotation name="DecommissionedIndex" type="com.emc.storageos.db.client.model.DecommissionedIndex">
+                        <annotation_value name="value" value="Decommissioned"/>
+                    </annotation>
+                </annotations>
+            </field>
+            <field name="internalFlags" type="java.lang.Long">
+                <annotations/>
+            </field>
+            <field name="isDriverManaged" type="java.lang.Boolean">
+                <annotations/>
+            </field>
+            <field name="label" type="java.lang.String">
+                <annotations>
+                    <annotation name="PrefixIndex" type="com.emc.storageos.db.client.model.PrefixIndex">
+                        <annotation_value name="cf" value="LabelPrefixIndex"/>
+                        <annotation_value name="minChars" value="2"/>
+                        <annotation_value name="scoped" value="false"/>
+                    </annotation>
+                    <annotation name="Length" type="com.emc.storageos.model.valid.Length">
+                        <annotation_value name="min" value="2"/>
+                        <annotation_value name="max" value="30"/>
+                    </annotation>
+                </annotations>
+            </field>
+            <field name="lastDiscoveryRunTime" type="java.lang.Long">
+                <annotations/>
+            </field>
+            <field name="lastDiscoveryStatusMessage" type="java.lang.String">
+                <annotations/>
+            </field>
+            <field name="lastMeteringRunTime" type="java.lang.Long">
+                <annotations/>
+            </field>
+            <field name="meteringStatus" type="java.lang.String">
+                <annotations>
+                    <annotation name="EnumType" type="com.emc.storageos.model.valid.EnumType">
+                        <annotation_value name="value" type="com.emc.storageos.db.client.model.DiscoveredDataObject.DataCollectionJobStatus" value="DataCollectionJobStatus"/>
+                    </annotation>
+                </annotations>
+            </field>
+            <field name="name" type="java.lang.String">
+                <annotations/>
+            </field>
+            <field name="nativeGuid" type="java.lang.String">
+                <annotations>
+                    <annotation name="AlternateId" type="com.emc.storageos.db.client.model.AlternateId">
+                        <annotation_value name="value" value="AltIdIndex"/>
+                    </annotation>
+                </annotations>
+            </field>
+            <field name="nextDiscoveryRunTime" type="java.lang.Long">
+                <annotations/>
+            </field>
+            <field name="nextMeteringRunTime" type="java.lang.Long">
+                <annotations/>
+            </field>
+            <field name="status" type="com.emc.storageos.db.client.model.OpStatusMap">
+                <annotations>
+                    <annotation name="ClockIndependent" type="com.emc.storageos.db.client.model.ClockIndependent">
+                        <annotation_value name="value" type="com.emc.storageos.db.client.model.Operation" value="Operation"/>
+                    </annotation>
+                </annotations>
+            </field>
+            <field name="registrationStatus" type="java.lang.String">
+                <annotations>
+                    <annotation name="EnumType" type="com.emc.storageos.model.valid.EnumType">
+                        <annotation_value name="value" type="com.emc.storageos.db.client.model.DiscoveredDataObject.RegistrationStatus" value="RegistrationStatus"/>
+                    </annotation>
+                </annotations>
+            </field>
+            <field name="successDiscoveryTime" type="java.lang.Long">
+                <annotations/>
+            </field>
+            <field name="successMeteringTime" type="java.lang.Long">
+                <annotations/>
+            </field>
+            <field name="systemType" type="java.lang.String">
+                <annotations/>
+            </field>
+            <field name="tags" type="com.emc.storageos.db.client.model.ScopedLabelSet">
+                <annotations>
+                    <annotation name="ScopedLabelIndex" type="com.emc.storageos.db.client.model.ScopedLabelIndex">
+                        <annotation_value name="cf" value="ScopedTagPrefixIndex"/>
+                        <annotation_value name="minChars" value="2"/>
+                    </annotation>
+                </annotations>
+            </field>
+            <field name="uuid" type="java.lang.String">
                 <annotations/>
             </field>
         </fields>
@@ -8154,6 +8308,16 @@ Please DO NOT modify the content.
                 <annotations/>
             </field>
             <field name="filePolicyId" type="java.net.URI">
+                <annotations>
+                    <annotation name="RelationIndex" type="com.emc.storageos.db.client.model.RelationIndex">
+                        <annotation_value name="type" type="com.emc.storageos.db.client.model.FilePolicy" value="FilePolicy"/>
+                        <annotation_value name="types" value=""/>
+                        <annotation_value name="cf" value="RelationIndex"/>
+                        <annotation_value name="deactivateIfEmpty" value="false"/>
+                    </annotation>
+                </annotations>
+            </field>
+            <field name="filePolicyTargetMap" type="com.emc.storageos.db.client.model.FileReplicaPolicyTargetMap">
                 <annotations/>
             </field>
             <field name="id" type="java.net.URI">

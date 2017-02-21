@@ -1812,7 +1812,7 @@ class Bourne:
     # Assign pools to CoS or change the max snapshots/mirrors values
     # Note that you can either do pool assignments or snapshot/mirror changes at a time
     #
-    def cos_update(self, pooladds, poolrems, type, cosuri, max_snapshots, max_mirrors, expandable, use_matched, host_io_limit_bandwidth, host_io_limit_iops, placement_policy):
+    def cos_update(self, pooladds, poolrems, type, cosuri, max_snapshots, max_mirrors, expandable, use_matched, host_io_limit_bandwidth, host_io_limit_iops, placement_policy, schedule_snapshots, replication_supported, allow_policy_at_project_level, allow_policy_at_fs_level):
         params = dict()
         if (pooladds or poolrems):
             poolassignments = dict();
@@ -1847,6 +1847,14 @@ class Bourne:
             params['expandable'] = expandable
         if (use_matched):
             params['use_matched_pools'] = use_matched
+		if (schedule_snapshots):
+            params['schedule_snapshots'] = schedule_snapshots
+		if (replication_supported):
+            params['replication_supported'] = replication_supported
+		if (allow_policy_at_project_level):
+            params['allow_policy_at_project_level'] = allow_policy_at_project_level
+		if (allow_policy_at_fs_level):
+            params['allow_policy_at_fs_level'] = allow_policy_at_fs_level
             
         if (host_io_limit_bandwidth):
             params['host_io_limit_bandwidth'] = host_io_limit_bandwidth

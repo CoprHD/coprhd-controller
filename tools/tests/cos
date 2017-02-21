@@ -163,7 +163,7 @@ def cos_update(args):
             return
 
     if (args.name):
-        cos = bourne.cos_update(pooladd, poolrem, args.type, cos_uri, args.max_snapshots, args.max_mirrors, args.expandable, args.use_matched,args.host_io_limit_bandwidth,args.host_io_limit_iops,args.placement_policy)
+        cos = bourne.cos_update(pooladd, poolrem, args.type, cos_uri, args.max_snapshots, args.max_mirrors, args.expandable, args.use_matched,args.host_io_limit_bandwidth,args.host_io_limit_iops,args.placement_policy, args.schedule_snapshots, args.replication_supported, args.allow_policy_at_project_level, args.allow_policy_at_fs_level)
         if 'code' in cos:
             print "FAILED: ", str(cos)
         else:

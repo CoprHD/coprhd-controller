@@ -598,7 +598,7 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
 
                         Double hluNumber = (Double) lunMapEntries.get(2);
                         _log.info("Found HLU {} for volume {}", hluNumber, igVolume.getVolInfo().get(1));
-                        // for each IG involved, the same volume is visible thro different HLUs.
+                        // for each IG involved, the same volume is visible through different HLUs.
                         // TODO we might need a list of HLU for each Volume URI
                         discoveredVolumes.put(BlockObject.normalizeWWN(igVolume.getWwn()), Integer.valueOf(hluNumber.intValue()));
                     }
@@ -614,13 +614,32 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
             if (null == mask.getUserAddedVolumes()) {
                 mask.setUserAddedVolumes(new StringMap());
             }
-
-
-
-            Set<String> existingVolumes = Sets.difference(discoveredVolumes.keySet(), mask.getUserAddedVolumes().keySet());
+            
+            // We need to look at all related initiators from the affected EM. We can use this list
+            // to then find all related volumes across all EMs. This will allow us to properly
+            // perform our validations.
+            List<Initiator> relatedInitiators = new ArrayList<Initiator>();
+            if (mask.getInitiators() != null && !mask.getInitiators().isEmpty()) {
+                Collection<URI> relatedInitiatorURIs = Collections2.transform(mask.getInitiators(),
+                        CommonTransformerFunctions.FCTN_STRING_TO_URI);
+                relatedInitiators.addAll(dbClient.queryObject(Initiator.class, relatedInitiatorURIs));
+            }
+            
+            Set<URI> allRelatedVolumes = new HashSet<URI>();
+            allRelatedVolumes.addAll(findAllRelatedExportMaskVolumesForInitiator(relatedInitiators, mask.getStorageDevice()));
+            
+            // If there are related volumes found, get the WWNs so we can diff against what has 
+            // been discovered on the array.
+            Set<String> allRelatedVolumesWWN = new HashSet<String>();
+            for (URI relatedVolumeURI : allRelatedVolumes) {
+                Volume relatedVolume = dbClient.queryObject(Volume.class, relatedVolumeURI);
+                allRelatedVolumesWWN.add(relatedVolume.getWWN());
+            }
+            
+            Set<String> existingVolumes = Sets.difference(discoveredVolumes.keySet(), allRelatedVolumesWWN);
 
             _log.info(String.format("XtremIO discovered volumes: {%s}%n", Joiner.on(',').join(discoveredVolumes.keySet())));
-            _log.info(String.format("%nXtremIO mask existing volumes : {%s}%n", Joiner.on(',').join(existingVolumes)));
+            _log.info(String.format("%nXtremIO mask existing volumes: {%s}%n", Joiner.on(',').join(existingVolumes)));
 
             for (String wwn : existingVolumes) {
                 mask.addToExistingVolumesIfAbsent(wwn, discoveredVolumes.get(wwn).toString());

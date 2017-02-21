@@ -1351,17 +1351,18 @@ public class ExportMaskUtils {
     }
 
     /**
-     * Update missing HLUs for volumes in export mask and export group with the discovered information from array.
+     * Update HLUs for volumes in export mask and export group with the discovered information from array.
+     * 
      * @param mask the export mask
      * @param discoveredVolumes the discovered volumes
      * @param dbClient the db client
      */
-    public static void updateMissingHLUsInExportMask(ExportMask mask, Map<String, Integer> discoveredVolumes, DbClient dbClient) {
+    public static void updateHLUsInExportMask(ExportMask mask, Map<String, Integer> discoveredVolumes, DbClient dbClient) {
         boolean updateMask = false;
         for (String wwn : discoveredVolumes.keySet()) {
             URIQueryResultList volumeList = new URIQueryResultList();
             dbClient.queryByConstraint(AlternateIdConstraint.Factory.getVolumeWwnConstraint(wwn), volumeList);
-            if (volumeList.iterator().hasNext()) {
+            while (volumeList.iterator().hasNext()) {
                 URI volumeURI = volumeList.iterator().next();
                 if (!NullColumnValueGetter.isNullURI(volumeURI)) {
                     BlockObject bo = BlockObject.fetch(dbClient, volumeURI);
@@ -1369,14 +1370,13 @@ public class ExportMaskUtils {
                             && mask.getStorageDevice().equals(bo.getStorageController())) {
                         Integer discoveredHLU = discoveredVolumes.get(wwn);
                         if (mask.hasVolume(volumeURI)
-                                && ExportGroup.LUN_UNASSIGNED_DECIMAL_STR.equals(mask.returnVolumeHLU(volumeURI))
                                 && discoveredHLU != ExportGroup.LUN_UNASSIGNED) {
                             mask.addVolume(volumeURI, discoveredHLU);
                             updateMask = true;
+                            break;
                         }
                     }
                 }
-
             }
         }
         if (updateMask) {

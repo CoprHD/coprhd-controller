@@ -949,8 +949,8 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
                     for (String lunId : existingVolumes) {
                         mask.addToExistingVolumesIfAbsent(lunId, discoveredVolumes.get(lunId).toString());
                     }
-                    // Check export mask's user added volumes for missing HLU, and update if required (COP-27711)
-                    ExportMaskUtils.updateMissingHLUsInExportMask(mask, discoveredVolumes, _dbClient);
+                    // Update user added volume's HLU information in ExportMask and ExportGroup
+                    ExportMaskUtils.updateHLUsInExportMask(mask, discoveredVolumes, _dbClient);
                     _dbClient.updateObject(mask);
                 }
             }

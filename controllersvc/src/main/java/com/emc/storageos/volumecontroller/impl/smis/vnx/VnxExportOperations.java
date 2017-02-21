@@ -818,8 +818,8 @@ public class VnxExportOperations implements ExportMaskOperations {
                 // Get volumes and initiators for the masking instance
                 Map<String, Integer> discoveredVolumes = _helper.getVolumesFromLunMaskingInstance(client, instance);
 
-                // Check export mask's user added volumes for missing HLU, and update if required (COP-27711)
-                ExportMaskUtils.updateMissingHLUsInExportMask(mask, discoveredVolumes, _dbClient);
+                // Update user added volume's HLU information in ExportMask and ExportGroup
+                ExportMaskUtils.updateHLUsInExportMask(mask, discoveredVolumes, _dbClient);
                 List<String> discoveredPorts = _helper.getInitiatorsFromLunMaskingInstance(client, instance);
 
                 Set existingInitiators = (mask.getExistingInitiators() != null) ? mask.getExistingInitiators() : Collections.emptySet();

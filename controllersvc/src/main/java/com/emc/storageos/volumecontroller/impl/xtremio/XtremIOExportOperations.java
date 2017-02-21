@@ -644,8 +644,8 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
             for (String wwn : existingVolumes) {
                 mask.addToExistingVolumesIfAbsent(wwn, discoveredVolumes.get(wwn).toString());
             }
-            // Check export mask's user added volumes for missing HLU, and update if required (COP-27711)
-            ExportMaskUtils.updateMissingHLUsInExportMask(mask, discoveredVolumes, dbClient);
+            // Update user added volume's HLU information in ExportMask and ExportGroup
+            ExportMaskUtils.updateHLUsInExportMask(mask, discoveredVolumes, dbClient);
             dbClient.updateObject(mask);
 
         } catch (Exception e) {

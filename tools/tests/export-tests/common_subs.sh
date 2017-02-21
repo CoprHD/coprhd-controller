@@ -123,6 +123,7 @@ verify_export() {
     shift 2
 
     masking_view_name=`get_masking_view_name ${export_name} ${host_name} false`
+    arrayhelper verify_export ${SERIAL_NUMBER} "${masking_view_name}" $*
     VERIFY_COUNT=`expr $VERIFY_COUNT + 1`
 }
 

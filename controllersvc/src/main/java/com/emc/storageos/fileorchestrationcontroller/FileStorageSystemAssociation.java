@@ -7,6 +7,10 @@ import java.util.Map;
 public class FileStorageSystemAssociation implements Serializable {
     private URI sourceSystem;
     private URI sourceVNAS;
+    // virtual pool for project associations
+    private URI projectvPool;
+    // set of virtual pools or projects at which policy should be applied.
+    private URI appliedAtResource;
 
     private Map<URI, URI> targetStorageDeviceToVNASMap;
 
@@ -32,6 +36,22 @@ public class FileStorageSystemAssociation implements Serializable {
 
     public void setTargetStorageDeviceToVNASMap(Map<URI, URI> targetStorageDeviceToVNASMap) {
         this.targetStorageDeviceToVNASMap = targetStorageDeviceToVNASMap;
+    }
+
+    public URI getProjectvPool() {
+        return projectvPool;
+    }
+
+    public void setProjectvPool(URI projectvPool) {
+        this.projectvPool = projectvPool;
+    }
+
+    public URI getAppliedAtResource() {
+        return appliedAtResource;
+    }
+
+    public void setAppliedAtResource(URI appliedAtResource) {
+        this.appliedAtResource = appliedAtResource;
     }
 
 }

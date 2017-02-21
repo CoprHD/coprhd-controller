@@ -4,30 +4,7 @@
  */
 package com.emc.storageos.scaleio.api.restapi;
 
-import java.net.URI;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
-import javax.ws.rs.core.MediaType;
-
-import org.codehaus.jettison.json.JSONArray;
-import org.codehaus.jettison.json.JSONException;
-import org.codehaus.jettison.json.JSONObject;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.emc.storageos.scaleio.ScaleIOException;
-import com.emc.storageos.services.restutil.StandardRestClient;
-import com.sun.jersey.api.client.Client;
-import com.sun.jersey.api.client.ClientResponse;
-import com.sun.jersey.api.client.WebResource;
-import com.sun.jersey.api.client.WebResource.Builder;
-import com.sun.jersey.api.client.filter.HTTPBasicAuthFilter;
-import com.sun.jersey.api.client.filter.LoggingFilter;
-
 import com.emc.storageos.scaleio.api.ScaleIOConstants;
 import com.emc.storageos.scaleio.api.restapi.request.ScaleIOCreateVolume;
 import com.emc.storageos.scaleio.api.restapi.request.ScaleIOMapVolumeToSDC;
@@ -39,16 +16,36 @@ import com.emc.storageos.scaleio.api.restapi.request.ScaleIOSnapshotVolumes;
 import com.emc.storageos.scaleio.api.restapi.request.ScaleIOUnmapVolumeToSDC;
 import com.emc.storageos.scaleio.api.restapi.request.ScaleIOUnmapVolumeToScsiInitiator;
 import com.emc.storageos.scaleio.api.restapi.request.ScaleIOVolumeList;
+import com.emc.storageos.scaleio.api.restapi.response.ScaleIODevice;
+import com.emc.storageos.scaleio.api.restapi.response.ScaleIOFaultSet;
 import com.emc.storageos.scaleio.api.restapi.response.ScaleIOProtectionDomain;
-import com.emc.storageos.scaleio.api.restapi.response.ScaleIOScsiInitiator;
 import com.emc.storageos.scaleio.api.restapi.response.ScaleIOSDC;
 import com.emc.storageos.scaleio.api.restapi.response.ScaleIOSDS;
+import com.emc.storageos.scaleio.api.restapi.response.ScaleIOScsiInitiator;
 import com.emc.storageos.scaleio.api.restapi.response.ScaleIOSnapshotVolumeResponse;
 import com.emc.storageos.scaleio.api.restapi.response.ScaleIOStoragePool;
 import com.emc.storageos.scaleio.api.restapi.response.ScaleIOSystem;
 import com.emc.storageos.scaleio.api.restapi.response.ScaleIOVolume;
-
+import com.emc.storageos.services.restutil.StandardRestClient;
 import com.google.gson.Gson;
+import com.sun.jersey.api.client.Client;
+import com.sun.jersey.api.client.ClientResponse;
+import com.sun.jersey.api.client.WebResource;
+import com.sun.jersey.api.client.WebResource.Builder;
+import com.sun.jersey.api.client.filter.HTTPBasicAuthFilter;
+import com.sun.jersey.api.client.filter.LoggingFilter;
+import java.net.URI;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import javax.ws.rs.core.MediaType;
+import org.codehaus.jettison.json.JSONArray;
+import org.codehaus.jettison.json.JSONException;
+import org.codehaus.jettison.json.JSONObject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * This class implements methods for calling ScaleIO REST API to do operations.
@@ -109,6 +106,17 @@ public class ScaleIORestClient extends StandardRestClient {
         log.info("Discoverying all SDS.");
         ClientResponse response = get(URI.create(ScaleIOConstants.GET_SDS_URI));
         return getResponseObjects(ScaleIOSDS.class, response);
+    }
+
+    /**
+     * Query all Storage Pools
+     *
+     * @return The list of Storage Pools
+     * @throws Exception
+     */
+    public List<ScaleIOStoragePool> queryAllStoragePools() throws Exception {
+        ClientResponse response = get(URI.create(ScaleIOConstants.GET_STORAGE_POOLS_URI));
+        return getResponseObjects(ScaleIOStoragePool.class, response);
     }
 
     /**
@@ -449,6 +457,17 @@ public class ScaleIORestClient extends StandardRestClient {
     }
 
     /**
+     * Get fault sets in the system
+     *
+     * @return The List of fault sets
+     * @throws JSONException
+     */
+    public List<ScaleIOFaultSet> queryAllFaultSets() throws JSONException {
+        ClientResponse response = get(URI.create(ScaleIOConstants.GET_FAULT_SET_URI));
+        return getResponseObjects(ScaleIOFaultSet.class, response);
+    }
+
+    /**
      * Get the storage pools in the protection domain
      * 
      * @param pdId The protection domain ID
@@ -478,6 +497,18 @@ public class ScaleIORestClient extends StandardRestClient {
         ScaleIOStoragePool pool = getResponseObject(ScaleIOStoragePool.class, response);
         pool.setId(poolId);
         return pool;
+    }
+
+    /**
+     * Get the SDS Device
+     *
+     * @param sdsId The SDS ID
+     * @return The details of the Device
+     * @throws Exception
+     */
+    public List<ScaleIODevice> getSdsDevices(String sdsId) throws Exception {
+        ClientResponse response = get(URI.create(ScaleIOConstants.getSdsDeviceURI(sdsId)));
+        return getResponseObjects(ScaleIODevice.class, response);
     }
 
     /**

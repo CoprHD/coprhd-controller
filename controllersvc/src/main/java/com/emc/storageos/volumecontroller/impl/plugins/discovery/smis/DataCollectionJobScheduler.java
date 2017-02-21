@@ -5,7 +5,10 @@
 package com.emc.storageos.volumecontroller.impl.plugins.discovery.smis;
 
 import java.net.URI;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
@@ -422,12 +425,14 @@ public class DataCollectionJobScheduler {
                     if (!inProgress) {
                         lastScanTime = providers.iterator().next().getLastScanTime();
                         
-                        // if there are any pending tasks clear them
-                        long startTime = System.currentTimeMillis();
+                        // if there are any pending tasks clear them; look for pending tasks more than an hour old. That will exclude the 
+                        // tasks created for the jobs currently being scheduled
                         for (StorageProvider provider: providers) {
-                            TaskUtils.cleanupPendingTasks(_dbClient, provider.getId(), ResourceOperationTypeEnum.SCAN_STORAGEPROVIDER.getName(), URI.create(SYSTEM_TENANT_ID));
+                            Calendar oneHourAgo = Calendar.getInstance();
+                            oneHourAgo.setTime(Date.from(LocalDateTime.now().minusHours(1).atZone(ZoneId.systemDefault()).toInstant()));
+                            TaskUtils.cleanupPendingTasks(_dbClient, provider.getId(), ResourceOperationTypeEnum.SCAN_STORAGEPROVIDER.getName(), URI.create(SYSTEM_TENANT_ID),
+                                    oneHourAgo);
                         }
-                        _logger.info(String.format("time to clear stale pending scan tasks (all providers): %d ms", System.currentTimeMillis()-startTime));
                     }
                     
                     if (isDataCollectionScanJobSchedulingNeeded(lastScanTime, inProgress)) {
@@ -816,9 +821,11 @@ public class DataCollectionJobScheduler {
             }
             
             // check for any pending tasks; if there are any, they're orphaned and should be cleaned up
-            long startTime = System.currentTimeMillis();
-            TaskUtils.cleanupPendingTasks(_dbClient, system.getId(), ResourceOperationTypeEnum.DISCOVER_STORAGE_SYSTEM.getName(), URI.create(SYSTEM_TENANT_ID));
-            _logger.info(String.format("time to clear stale pending discovery tasks: %d ms", System.currentTimeMillis()-startTime));
+            // look for tasks older than one hour; this will exclude the discovery job currently being scheduled
+            Calendar oneHourAgo = Calendar.getInstance();
+            oneHourAgo.setTime(Date.from(LocalDateTime.now().minusHours(1).atZone(ZoneId.systemDefault()).toInstant()));
+            TaskUtils.cleanupPendingTasks(_dbClient, system.getId(), ResourceOperationTypeEnum.DISCOVER_STORAGE_SYSTEM.getName(), URI.create(SYSTEM_TENANT_ID),
+                    oneHourAgo);
         } else {
             // log a message if the discovery job has been runnig for longer than expected
             long currentTime = System.currentTimeMillis();

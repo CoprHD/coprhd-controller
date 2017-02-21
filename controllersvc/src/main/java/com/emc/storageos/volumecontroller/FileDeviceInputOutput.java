@@ -20,6 +20,7 @@ import com.emc.storageos.db.client.model.SMBShareMap;
 import com.emc.storageos.db.client.model.SchedulePolicy;
 import com.emc.storageos.db.client.model.Snapshot;
 import com.emc.storageos.db.client.model.StoragePool;
+import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.model.VirtualNAS;
@@ -30,6 +31,7 @@ import com.emc.storageos.model.file.FileExportUpdateParams;
 import com.emc.storageos.model.file.NfsACE;
 import com.emc.storageos.model.file.NfsACLUpdateParams;
 import com.emc.storageos.model.file.ShareACL;
+import com.emc.storageos.model.file.policy.FilePolicyUpdateParam;
 
 /**
  * Class defining input/output from File storage device interface
@@ -91,6 +93,12 @@ public class FileDeviceInputOutput {
     // New Addition for File Policy Work
     private FilePolicy fileProtectionPolicy;
     private PolicyStorageResource policyStorageResource;
+    private FilePolicyUpdateParam fileProtectionPolicyUpdateParam;
+
+    // New additions for vNAS
+    private StorageSystem sourceSystem;
+    private VirtualNAS sourceVNAS;
+    private boolean isTarget = false;
 
     public String getFileSystemPath() {
         return fileSystemPath;
@@ -1067,4 +1075,37 @@ public class FileDeviceInputOutput {
     public void setFileProtectionPolicy(FilePolicy fileProtectionPolicy) {
         this.fileProtectionPolicy = fileProtectionPolicy;
     }
+
+    public FilePolicyUpdateParam getFileProtectionPolicyUpdateParam() {
+        return fileProtectionPolicyUpdateParam;
+    }
+
+    public void setFileProtectionPolicyUpdateParam(FilePolicyUpdateParam fileProtectionPolicyUpdateParam) {
+        this.fileProtectionPolicyUpdateParam = fileProtectionPolicyUpdateParam;
+    }
+
+    public VirtualNAS getSourceVNAS() {
+        return sourceVNAS;
+    }
+
+    public void setSourceVNAS(VirtualNAS sourceVNAS) {
+        this.sourceVNAS = sourceVNAS;
+    }
+
+    public boolean isTarget() {
+        return isTarget;
+    }
+
+    public void setTarget(boolean isTarget) {
+        this.isTarget = isTarget;
+    }
+
+    public StorageSystem getSourceSystem() {
+        return sourceSystem;
+    }
+
+    public void setSourceSystem(StorageSystem sourceSystem) {
+        this.sourceSystem = sourceSystem;
+    }
+
 }

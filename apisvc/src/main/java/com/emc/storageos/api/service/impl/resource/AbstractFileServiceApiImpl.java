@@ -19,6 +19,7 @@ import com.emc.storageos.api.service.authorization.PermissionsHelper;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.DataObject;
+import com.emc.storageos.db.client.model.FilePolicy;
 import com.emc.storageos.db.client.model.FileShare;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.StoragePort;
@@ -28,11 +29,13 @@ import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.common.DependencyChecker;
 import com.emc.storageos.fileorchestrationcontroller.FileDescriptor;
 import com.emc.storageos.fileorchestrationcontroller.FileOrchestrationController;
+import com.emc.storageos.fileorchestrationcontroller.FileStorageSystemAssociation;
 import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.TaskResourceRep;
 import com.emc.storageos.model.file.CifsShareACLUpdateParams;
 import com.emc.storageos.model.file.FileExportUpdateParams;
 import com.emc.storageos.model.file.FileSystemParam;
+import com.emc.storageos.model.file.policy.FilePolicyUpdateParam;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.volumecontroller.FileSMBShare;
@@ -146,7 +149,7 @@ public abstract class AbstractFileServiceApiImpl<T> implements FileServiceApi {
             VirtualArray varray, VirtualPool vpool, TenantOrg tenantOrg, DataObject.Flag[] flags,
             List<Recommendation> recommendations, TaskList taskList,
             String task, VirtualPoolCapabilityValuesWrapper vpoolCapabilities)
-                    throws InternalException {
+            throws InternalException {
         throw APIException.methodNotAllowed.notSupported();
 
     }
@@ -313,20 +316,54 @@ public abstract class AbstractFileServiceApiImpl<T> implements FileServiceApi {
     }
 
     @Override
-    public void assignFilePolicyToVirtualPool(Map<URI, List<URI>> vpoolToStorageSystemMap, URI filePolicyToAssign, String taskId) {
+    public void assignFilePolicyToVirtualPools(Map<URI, List<URI>> vpoolToStorageSystemMap, URI filePolicyToAssign, String taskId) {
         FileOrchestrationController controller = getController(FileOrchestrationController.class,
                 FileOrchestrationController.FILE_ORCHESTRATION_DEVICE);
-        controller.assignFileSnapshotPolicyToVirtualPool(vpoolToStorageSystemMap, filePolicyToAssign, taskId);
+        controller.assignFileSnapshotPolicyToVirtualPools(vpoolToStorageSystemMap, filePolicyToAssign, taskId);
 
     }
 
     @Override
-    public void assignFilePolicyToProject(Map<URI, List<URI>> vpoolToStorageSystemMap, List<URI> projectURIs, URI filePolicyToAssign,
+    public void assignFilePolicyToProjects(Map<URI, List<URI>> vpoolToStorageSystemMap, List<URI> projectURIs, URI filePolicyToAssign,
             String taskId) {
         FileOrchestrationController controller = getController(FileOrchestrationController.class,
                 FileOrchestrationController.FILE_ORCHESTRATION_DEVICE);
-        controller.assignFileSnapshotPolicyToProject(vpoolToStorageSystemMap, projectURIs, filePolicyToAssign, taskId);
+        controller.assignFileSnapshotPolicyToProjects(vpoolToStorageSystemMap, projectURIs, filePolicyToAssign, taskId);
 
+    }
+
+    @Override
+    public void updateFileProtectionPolicy(URI policy, FilePolicyUpdateParam param, String taskId) {
+        FileOrchestrationController controller = getController(FileOrchestrationController.class,
+                FileOrchestrationController.FILE_ORCHESTRATION_DEVICE);
+        controller.updateFileProtectionPolicy(policy, param, taskId);
+
+    }
+
+    @Override
+    public void assignFileReplicationPolicyToVirtualPools(List<FileStorageSystemAssociation> associations,
+            List<URI> vpoolURIs, URI filePolicyToAssign, String taskId) {
+        FileOrchestrationController controller = getController(FileOrchestrationController.class,
+                FileOrchestrationController.FILE_ORCHESTRATION_DEVICE);
+        controller.assignFileReplicationPolicyToVirtualPools(associations, vpoolURIs, filePolicyToAssign, taskId);
+
+    }
+
+    @Override
+    public void assignFileReplicationPolicyToProjects(List<FileStorageSystemAssociation> associations, URI vpoolURI, List<URI> projectURIs,
+            URI filePolicyToAssign, String taskId) {
+        FileOrchestrationController controller = getController(FileOrchestrationController.class,
+                FileOrchestrationController.FILE_ORCHESTRATION_DEVICE);
+        controller.assignFileReplicationPolicyToProjects(associations, vpoolURI, projectURIs, filePolicyToAssign, taskId);
+
+    }
+
+    @Override
+    public void assignFilePolicyToFileSystem(FileShare fs, FilePolicy filePolicy, Project project, VirtualPool vpool,
+            VirtualArray varray, TaskList taskList, String task, List<Recommendation> recommendations,
+            VirtualPoolCapabilityValuesWrapper vpoolCapabilities)
+            throws InternalException {
+        throw APIException.methodNotAllowed.notSupported();
     }
 
 }

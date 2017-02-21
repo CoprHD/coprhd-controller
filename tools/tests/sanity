@@ -609,6 +609,39 @@ srdf_sleep() {
     ssleep ${SRDF_SLEEPING_SECONDS}
 }
 
+setup_yaml() {
+    storage_type=$1
+    tools_file="${BASEDIR}/export-tests/tools.yml"
+    if [ -f "$tools_file" ]; then
+	echo "Stale $tools_file found. Deleting it."
+	rm $tools_file
+    fi
+
+    echo "Creating ${tools_file}"
+    touch $tools_file
+
+    if [ "$storage_type" = "unity" ]; then
+        printf 'array:\n  %s:\n  - ip: %s:%s\n    username: %s\n    password: %s' "$storage_type" "$UNITY_IP" "$UNITY_PORT" "$UNITY_USER" "$UNITY_PW" >> $tools_file
+        return
+    fi
+
+    storage_sn=$2
+    storage_password=$3
+    if [ "${storage_password}" = "" ]; then
+	echo "storage_password is not set. Cannot make a valid tools.yml file without a storage_password"
+	exit;
+    fi
+
+    storage_id=`storagedevice list | grep COMPLETE | grep ${storage_sn} | awk '{print $5}'`
+    storage_version=`storagedevice show ${storage_id} | grep firmware_version | awk '{print $2}' | cut -d '"' -f2`
+    storage_ip=`storagedevice show ${storage_id} | grep smis_provider_ip | awk '{print $2}' | cut -d '"' -f2`
+    storage_port=`storagedevice show ${storage_id} | grep port_number | awk '{print $2}' | cut -d ',' -f1`
+    storage_user=`storagedevice show ${storage_id} | grep user_name | awk '{print $2}' | cut -d '"' -f2`
+
+    # create the yml file to be used for array tooling
+    printf 'array:\n  %s:\n  - ip: %s:%s\n    id: %s\n    username: %s\n    password: %s\n    version: %s' "$storage_type" "$storage_ip" "$storage_port" "$storage_sn" "$storage_user" "$storage_password" "$storage_version" >> $tools_file
+}
+
 #
 # RecoverPoint configuration
 #
@@ -1239,10 +1272,10 @@ xtremio_port_setup()
 
 xtremio_storage_setup() {
     secho "Starting XtremIO 3.x storageprovider create"
-    storageprovider create xtremio3x $XTREMIO_3X_IP 443 $XTREMIO_3X_USER $XTREMIO_3X_PASSWD xtremio 
+    run storageprovider create xtremio3x $XTREMIO_3X_IP 443 $XTREMIO_3X_USER $XTREMIO_3X_PASSWD xtremio
 
     secho "Starting XtremIO 4.x storageprovider create"
-    storageprovider create xtremio4x $XTREMIO_4X_IP 443 $XTREMIO_4X_USER $XTREMIO_4X_PASSWD xtremio
+    run storageprovider create xtremio4x $XTREMIO_4X_IP 443 $XTREMIO_4X_USER $XTREMIO_4X_PASSWD xtremio
 
     secho 'XtremIO discover storage systems'
     storagedevice discover_all
@@ -1253,7 +1286,7 @@ xtremio_network_setup()
 {
     secho "XtremIO network setup"
     networksystem show $BROCADE_NETWORK &> /dev/null && return $?
-    networksystem create $BROCADE_NETWORK brocade --smisip $BROCADE_IP --smisport 5988 --smisuser $BROCADE_USER --smispw $BROCADE_PW --smisssl false
+    run networksystem create $BROCADE_NETWORK brocade --smisip $BROCADE_IP --smisport 5988 --smisuser $BROCADE_USER --smispw $BROCADE_PW --smisssl false
     run transportzone assign ${SRDF_VMAXA_VSAN} $NH
 }
 
@@ -1527,14 +1560,13 @@ xtremio_ingest_export_test()
 
     # Real removal of volume/CG
     run_noundo export_group update ${PROJECT}/${XTREMIO_INGEST_HOST} --remVols "${PROJECT}/${XIO_INGEST_VOL1}/${XIO_INGEST_SNAP1_ARRAY_LABEL},${PROJECT}/${XIO_INGEST_VOL2}/${XIO_INGEST_SNAP2_ARRAY_LABEL}"
+    # Export group will be deleted implicitly when all its volumes get removed, no further cleanup needed for the export group afterwards
     run_noundo export_group update ${PROJECT}/${XTREMIO_INGEST_HOST} --remVols "${PROJECT}/${XIO_INGEST_VOL1},${PROJECT}/${XIO_INGEST_VOL2}"
     run_noundo blocksnapshot delete ${PROJECT}/${XIO_INGEST_VOL1}/${XIO_INGEST_SNAP1_ARRAY_LABEL}
     run_noundo volume delete ${PROJECT}/"${XIO_INGEST_VOL1}" --wait
 
     run_noundo blocksnapshot delete ${PROJECT}/${XIO_INGEST_VOL2}/${XIO_INGEST_SNAP2_ARRAY_LABEL}
     run_noundo volume delete ${PROJECT}/"${XIO_INGEST_VOL2}" --wait
-    run_noundo export_group delete ${PROJECT}/${XTREMIO_INGEST_HOST}
-
 }
 
 
@@ -1544,13 +1576,13 @@ xtremio_simulator_setup()
     xtremio_varray_setup   
     
     run syssvc $CONFIG_FILE $BOURNE_IPADDR set_prop controller_discovery_refresh_interval 5
- 
-    storageprovider create xtremio3x $XIO_SIMULATOR_IP 4431 root root xtremio
-    storageprovider create xtremio4x $XIO_SIMULATOR_IP 4430 root root xtremio
+
+    run storageprovider create xtremio3x $XIO_SIMULATOR_IP $XIO_3X_SIMULATOR_PORT root root xtremio
+    run storageprovider create xtremio4x $XIO_SIMULATOR_IP $XIO_4X_SIMULATOR_PORT root root xtremio
     run networksystem create $FABRIC_SIMULATOR  mds --devip $SIMULATOR_CISCO_MDS --devport 22 --username $RP_FABRIC_SIM_USER --password $RP_FABRIC_SIM_PW
     
     storagedevice discover_all
-    storagedevice list    
+    storagedevice list
     run transportzone assign VSAN_11 ${NH}
 
     # Make sure all of the pools are updated and matched
@@ -1558,7 +1590,6 @@ xtremio_simulator_setup()
 
     run storagepool update $XIO_3X_SIM_NATIVEGUID --nhadd $NH --type block
     run storagepool update $XIO_4X_SIM_NATIVEGUID --nhadd $NH --type block
-
     
     run storageport update $XIO_3X_SIM_NATIVEGUID FC --addvarrays $NH
     run storageport update $XIO_4X_SIM_NATIVEGUID FC --addvarrays $NH
@@ -1623,7 +1654,6 @@ xtremio_setup()
         secho "XtremIO setup"
         xtremio_common_setup
     fi
-    
 }
 
 xtremio_tests()
@@ -1631,9 +1661,19 @@ xtremio_tests()
    echo 'xtremio tests invoked'
 
    # HLU specific tests
-   if [ $XIO_HLU_PARAM -eq 1 ]; then
+   if [ "$XIO_HLU_PARAM" = "1" ]; then
+       secho "Creating tools.yml"
+
+       storage_sn=$XTREMIO_4X_SN
+       storage_password=$XTREMIO_4X_PASSWD
+       if [ "$XIO_QUICK_PARAM" = "quick" ]; then
+           storage_sn=$XIO_4X_SIM_SN
+       fi
+
+       setup_yaml xtremio $storage_sn $storage_password
+
        xtremio_export_test_hlu
-	   return
+       return
    fi
 
    if [ "$XIO_BLOCK_TESTS" = "1" ]; then
@@ -1777,15 +1817,10 @@ xtremio_export_test()
     run export_group update $exp --addVolspec "$vol2" --remVols $vol1
     run export_group show $exp
     run export_group update $exp --remInits "$hostname/$pwwn1"
-    run export_group show $exp
-    run export_group update $exp --remVols $vol2,$snap1,$snap2
-    run export_group show $exp
 
     if [ "$BOURNE_SECURITY_DISABLED" != '1' ] ; then
         run bulkapi exportgroups $LOCAL_LDAP_SUPERUSER_USERNAME $LOCAL_LDAP_SUPERUSER_PASSWORD $LOCAL_LDAP_USER_PASSWORD_1
     fi
-
-    run export_group delete $exp
 }
 
 xtremio_export_test_hlu() {
@@ -2909,6 +2944,7 @@ vplex_sim_variable_setup()
 
 vplex_setup_once()
 {
+    run syssvc $CONFIG_FILE $BOURNE_IPADDR set_prop controller_vplex_director_min_port_count 1
     if [ "$AUTH" == 'ipv6' ] ; then
         echo "Setting up VPLEX environment for IPv6"
         # Discover the storage systems 
@@ -4624,18 +4660,6 @@ recoverpoint_export_bookmark_tests()
         run export_group delete ${rpexport}
     
         secho 'Finished running export RP bookmark failure tests'
-
-        secho 'Running export RP bookmark tests'
-        for tgt_varray in ${rp_tgt_varrays}
-        do
-            secho 'Running RP bookmark export tests for target copy '${tgt_varray}
-            run export_group create $PROJECT ${RP_EXPORT_GROUP}-${tgt_varray} ${tgt_varray} --type Host --volspec ${PROJECT}/${volume}${volume_name_modifier}/${rpsnap}-${tgt_varray} --hosts "${RP_HOSTNAME}1"
-            export_group show ${rpexport}-${tgt_varray}
-            run export_group update ${rpexport}-${tgt_varray} --remVol ${PROJECT}/${volume}${volume_name_modifier}/${rpsnap}-${tgt_varray}
-            run export_group update ${rpexport}-${tgt_varray} --addVolspec ${PROJECT}/${volume}${volume_name_modifier}/${rpsnap}-${tgt_varray}
-            export_group show ${rpexport}-${tgt_varray}
-            run export_group delete ${rpexport}-${tgt_varray}
-        done
 
         secho 'Exporting RP bookmark to 2 different hosts'
         run export_group create $PROJECT ${RP_EXPORT_GROUP} ${rp_tgt_varrays[0]} --type Host --volspec ${PROJECT}/${volume}${volume_name_modifier}/${rpsnap}-${rp_tgt_varrays[0]} --hosts "${RP_HOSTNAME}1"
@@ -7477,7 +7501,7 @@ common_setup()
 
         # RecoverPoint doesn't need zone setup, it uses its own zone setup
         if [ "${SS}" != "recoverpoint" -a "${SS}" != "srdf" ]; then
-          secho "Skipping zone setup"
+          secho "Run zone setup"
           zone_setup
           run transportzone add $NH/$IP_ZONE $BLK_CLIENT_iSCSI
         fi
@@ -13271,14 +13295,14 @@ unityfile_cos_setup()
 unityblock_setup()
 {
     secho "Starting unity storage system create"
-    discoveredsystem create $UNITY_DEV unity $UNITY_IP $UNITY_PORT $UNITY_USER $UNITY_PW --serialno=$UNITY_SN
-    storagedevice list
+    run discoveredsystem create $UNITY_DEV unity $UNITY_IP $UNITY_PORT $UNITY_USER $UNITY_PW --serialno=$UNITY_SN
+    run storagedevice list
 
     secho "Setup ACLs on neighborhood for $TENANT"
     run neighborhood allow $NH $TENANT
-    run neighborhood allow $NH $TENANT
+
     run transportzone assign ${SRDF_VMAXA_VSAN} $NH
-    storagepool update $UNITY_NATIVEGUID --type block --volume_type THIN_AND_THICK
+    run storagepool update $UNITY_NATIVEGUID --type block --volume_type THIN_AND_THICK
     run transportzone add ${SRDF_VMAXA_VSAN} $UNITY_INIT_PWWN1
     run transportzone add ${SRDF_VMAXA_VSAN} $UNITY_INIT_PWWN2
     unityblock_cos_setup
@@ -13314,6 +13338,9 @@ unityblock_tests()
     fi
 
     if [ "${UNITY_OPTION}" = "hlu" ]; then
+        secho "Creating tools.yml"
+        setup_yaml unity
+
         unityblock_export_consistent_hlu_tests
     fi
 }

@@ -901,15 +901,33 @@ class Fileshare(object):
             return self.check_for_sync(o, sync,synctimeout)
         return o
     
-    def assign_policy(self, filesharename, policyname, tenantname, policyid):
+    def assign_policy(self, filesharename, policyname, tenantname, policyid, targetvarrays):
+        assign_request = {}
+        filepolicy_filesystem_assign_param = {}
+        if (targetvarrays is not None):
+            assign_target_varrays = []
+            from virtualarray import VirtualArray
+            varray_obj = VirtualArray(self.__ipAddr, self.__port)
+            if( len(targetvarrays)>1):
+                trg_varrays= target_varrays.split(',')
+                for varray in trg_varrays:
+                    uri =  varray_obj.varray_query(varray)
+                    assign_target_varrays.append(uri)
+            else:
+                uri = varray_obj.varray_query(targetvarrays)
+                assign_target_varrays.append(uri)
+            filepolicy_filesystem_assign_param['target_varrays']= assign_target_varrays
+            assign_request['filepolicy_filesystem_assign_param']= filepolicy_filesystem_assign_param
+            
         fsname = self.show(filesharename)
         fsid = fsname['id']
 
+        body = json.dumps(assign_request)
         (s, h) = common.service_json_request(
             self.__ipAddr, self.__port,
             "PUT",
             Fileshare.URI_POLICY_ASSIGN.format(fsid, policyid),
-            None)
+            body)
         
         return
     
@@ -2693,7 +2711,10 @@ def assign_policy_parser(subcommand_parsers, common_parser):
                             dest='project',
                             help='Name of Project',
                             required=True)
-
+    assign_policy_parser.add_argument('-targetvarrays', '-trgvarrays',
+                            metavar='<targetvarrays>',
+                            dest='targetvarrays',
+                            help='target varrays for file replication')
     assign_policy_parser.set_defaults(func=assign_policy)
 
 
@@ -2707,7 +2728,7 @@ def assign_policy(args):
         
         res = obj.assign_policy(args.tenant + "/" + args.project + "/" + args.name,
                       args.polname,
-                      args.tenant, policyid)
+                      args.tenant, policyid, args.targetvarrays)
         return
     except SOSError as e:
         common.format_err_msg_and_raise("fileshare", "assign",

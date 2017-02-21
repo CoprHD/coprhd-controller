@@ -1470,6 +1470,7 @@ public class HDSExportOperations implements ExportMaskOperations {
                                     	String  varrayOfStoragePort = getVarrayOfStoragePort(storagePortUriIter);
                                     	if ( (varrayOfStoragePort!=null) && (varrayOfStoragePort.equals(varrayUriOfHsdPort)) ){
                                     		maskForHSD = exportMaskhavingInitiators;
+                                    		//Ingest the foreign HSD into a matching export mask with same host and varray combination
                                     		bMaskFound = true;
                                     		break;
                                     	}
@@ -1480,8 +1481,10 @@ public class HDSExportOperations implements ExportMaskOperations {
                                 }
                         	}
                         	else{
+                        		//Since this HSD port is not tagged to any varray, we will not ingest it
                         		continue;
                         	}
+                        	//No matching export mask found for the same host and varray combination. Creating a new export mask.
                         	if(null == maskForHSD){
                         		isNewExportMask = true;
                                 maskForHSD = new ExportMask();
@@ -1550,7 +1553,7 @@ public class HDSExportOperations implements ExportMaskOperations {
      * @param storagePortId
      * @return
      */
-    String getVarrayOfStoragePort(String storagePortId){
+    private String getVarrayOfStoragePort(String storagePortId){
     	URI storagePortURI = URI.create(storagePortId);
     	StoragePort objStoragePort = dbClient.queryObject(StoragePort.class, storagePortURI);
     	    	
@@ -1621,12 +1624,7 @@ public class HDSExportOperations implements ExportMaskOperations {
                                                 .keySet())));
 
             }
-            if (null == exportMask.getDeviceDataMap()
-                    || exportMask.getDeviceDataMap().isEmpty()) {
-                exportMask.addDeviceDataMap(deviceDataMapEntries);
-            } else {
-                exportMask.replaceDeviceDataMapEntries(deviceDataMapEntries);
-            }
+            exportMask.addDeviceDataMap(deviceDataMapEntries);
         }
 
         log.info(builder.toString());

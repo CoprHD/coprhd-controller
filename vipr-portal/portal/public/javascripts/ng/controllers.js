@@ -391,13 +391,27 @@ angular.module("portalApp").controller({
     filePolicyCtrl: function($scope, $http, $window, translate) {
         $scope.add = {sourceVArray:'', targetVArray:''};
         $scope.topologies = []
-        
         $scope.deleteTopology = function(idx) { $scope.topologies.splice(idx, 1); }
         $scope.addTopology = function() { $scope.topologies.push(angular.copy($scope.add)); }
         
         $http.get(routes.VirtualArrays_list()).success(function(data) {
         	$scope.virtualArrayOptions = data.aaData;
         });  
+
+        $scope.$watch('policyId', function () {
+            $http.get(routes.FileProtectionPolicy_details({id:$scope.policyId})).success(function(data) {             	            	 
+                if ( (typeof data.replicationSettings != 'undefined') &&  (typeof data.replicationSettings.replicationTopologies != 'undefined') ) {
+                    var protectionPolicyJson = data.replicationSettings.replicationTopologies;
+                    angular.forEach(protectionPolicyJson, function(topology) {
+                        var source =topology.sourceVArray.id.toString();
+                        //for now api support only one target for each source.
+                        var target=  topology.targetVArrays[0].id.toString();       	           
+                        var topo = {sourceVArray:source, targetVArray:target};
+                        $scope.topologies.push(angular.copy(topo));   
+                    });
+                }
+            });
+        });
         
         $scope.$watch('topologies', function(newVal) {
         	$scope.topologiesString = angular.toJson($scope.topologies, false);

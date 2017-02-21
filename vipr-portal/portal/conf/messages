@@ -1367,6 +1367,7 @@ schedulePolicy.expire.value=Snapshot expires
 schedulePolicy.expiration=Snapshot Expiration
 schedulePolicy.policyName.error.required=Policy name must be supplied
 schedulePolicy.snapshotNamePattern=Snapshot Name Pattern
+schedulePolicy.description=Description
 schedulePolicy.group.accessControl=Access Control
 schedulePolicy.enableTenants=Grant Access to Tenants
 schedulePolicy.tenants=Tenants
@@ -1385,8 +1386,9 @@ schedule.policies.unknown=Unknown File Policy
 schedulePolicy.appliedAt=Apply Policies at
 schedulePolicy.numWorkerThreads=Worker Threads
 
-assignPolicy.title=Policy Assignment
-assignPolicy.policyName=Policies
+assignPolicy.assign.title=Policy Template Assignment
+assignPolicy.unassign.title=Policy Template Unassignment
+assignPolicy.policyName=Policy
 assignPolicy.appliedAt=Apply Policies at
 assignPolicy.project.applyAll=Apply for all applicable Projects
 assignPolicy.project.applySpecific=Apply for specific Projects
@@ -1401,23 +1403,23 @@ assignPolicy.applyToAllVpools=Virtual Pools
 assignPolicy.projects=Projects
 assignPolicy.virtualPools=Virtual Pools
 assignPolicy.vpool=Virtual Pool
-assignPolicy.saved=File Protection Policy '%s' assignment saved successfully
+assignPolicy.request.submit=File Protection Policy '%s' assignment request submitted successfully
+unAssignPolicy.request.submit=File Protection Policy '%s' unassignment request submitted successfully
 assignPolicy.applyAtProject=Project
 assignPolicy.applyAtVPool=Virtual Pool
 assignPolicy.applyAtFs=File System
-assignPolicy.sourceSite=Source vArray
-assignPolicy.targetSites=Target vArray(s)
+assignPolicy.sourceVArray=Source vArray
+assignPolicy.targetVArray=Target vArray
 
 assignPolicy.project.availableVpool=Available vPools
 assignPolicy.project.appliedVpool=Applied vPools
-assignPolicy.applyOnTargetSite=Apply on target vArray
-assignPolicy.targetVarray=Target vArray(s)
+assignPolicy.targetVarray=Target vArray
 assignPolicy.vArray.source=Source vArray
 assignPolicy.replicationTopology=Replication Site(s)
 
 replicationTopology.title=Select Replication Site(s)
 replicationTopology.sourceVArray=Source Virtual Array
-replicationTopology.targetVArray=Target Virtual Array(s)
+replicationTopology.targetVArray=Target Virtual Array
 
 vdcs.list.title=Virtual Data Centers
 vdcs.edit.title=Edit Virtual Data Center
@@ -3241,6 +3243,7 @@ orders.warning=Based on the current filter, %s orders were found in the database
 orders.delete=Delete Orders
 orders.delete.description=Click Confirm to delete the selected (checked) orders.
 orders.delete.all=All rows are checked, all <b style="color:red">%s</b> orders will be deleted.
+orders.delete.all.threshold=(Only %,d orders could be deleted done in every five days).
 orders.delete.help=We strongly recommend that you download the orders before deleting them. <p>Only one 'Download/Delete' orders job is allowed at any given time. Only orders whose status are in '%s' can be deleted.</p>
 orders.delete.submitted=Orders deletion submitted successfully.
 orders.delete.status=Deleting orders from %s to %s is in progress: %s of %s orders have been successfully deleted, %s orders failed.
@@ -4254,7 +4257,7 @@ button.ipsec.rotate.keys=Rotate IPsec Key
 button.synchronize=Synchronize
 button.syncOptions=Sync Options
 selectOne.chooseOption=-- Please Choose --
-button.assignPolicies=Assign Policies
+button.assignPolicies=Assign/Unassign Policy
 
 button.mirroring.start=Start
 button.mirroring.stop=Stop

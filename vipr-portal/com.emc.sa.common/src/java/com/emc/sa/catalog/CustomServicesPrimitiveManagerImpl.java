@@ -40,6 +40,7 @@ public class CustomServicesPrimitiveManagerImpl implements CustomServicesPrimiti
     @Autowired
     private ModelClient client;
 
+    
     @Override
     public void save(final CustomServicesPrimitiveResource resource) {
         client.save(resource);
@@ -51,9 +52,9 @@ public class CustomServicesPrimitiveManagerImpl implements CustomServicesPrimiti
         final String type = URIUtil.getTypeName(id);
         
         switch(type) {
-        case "Ansible":
+        case "CustomServicesAnsiblePrimitive":
             return client.findById(CustomServicesAnsiblePrimitive.class, id);
-        case "CustomServiceScriptPrimitive":
+        case "CustomServicesScriptPrimitive":
             return client.findById(CustomServicesScriptPrimitive.class, id);
         default:
             throw new RuntimeException("Unknown Type " + type);
@@ -86,9 +87,9 @@ public class CustomServicesPrimitiveManagerImpl implements CustomServicesPrimiti
      // TODO: move down the enum constant defined in PrimitiveService.java and use that here.
         final String type = URIUtil.getTypeName(id);
         switch(type) {
-        case "AnsiblePackage":
+        case "CustomServicesAnsiblePackage":
             return client.findById(CustomServicesAnsiblePackage.class, id);
-        case "CustomServiceScriptResource":
+        case "CustomServicesScriptResource":
             return client.findById(CustomServicesScriptResource.class, id);
         default:
             return null;

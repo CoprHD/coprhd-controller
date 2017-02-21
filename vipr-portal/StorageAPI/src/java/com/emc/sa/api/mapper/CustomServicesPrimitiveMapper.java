@@ -113,7 +113,7 @@ public final class  CustomServicesPrimitiveMapper extends DbObjectMapper {
 
     private static NamedRelatedResourceRep makeResourceLink(final String service, final String type, final NamedURI id) throws URISyntaxException {
         StringBuilder builder = new StringBuilder(service).append("/resource/")
-                .append(type).append("/").append(id);
+                .append(type).append("/").append(id.getURI());
         return new NamedRelatedResourceRep(id.getURI(), new RestLinkRep("resource", new URI(builder.toString())), id.getName());
     }
 

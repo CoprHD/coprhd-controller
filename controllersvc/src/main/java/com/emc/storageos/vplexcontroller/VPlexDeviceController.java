@@ -258,6 +258,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
     private static final String IMPORT_COPY_STEP = "importCopy";
     private static final String VOLUME_FORGET_STEP = "forgetVolumes";
     private static final String ZONING_STEP = "zoning";
+    private static final String INITIATOR_REGISTRATION = "initiatorRegistration";
     private static final String RESTORE_VOLUME_STEP = "restoreVolume";
     private static final String RESTORE_VPLEX_VOLUME_STEP = "restoreVPlexVolume";
     private static final String INVALIDATE_CACHE_STEP = "invalidateCache";
@@ -307,6 +308,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
     private static final String RB_FORGET_VOLUMES_METHOD_NAME = "rollbackForgetVolumes";
     private static final String CREATE_STORAGE_VIEW = "createStorageView";
     private static final String DELETE_STORAGE_VIEW = "deleteStorageView";
+    private static final String REGISTER_INITIATORS_METHOD_NAME = "registerInitiators";
     private static final String RESTORE_VOLUME_METHOD_NAME = "restoreVolume";
     private static final String INVALIDATE_CACHE_METHOD_NAME = "invalidateCache";
     private static final String DETACH_MIRROR_METHOD_NAME = "detachMirror";
@@ -2037,9 +2039,9 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
         // look at each host
         String lockName = null;
         boolean lockAcquired = false;
+        String vplexClusterId = ConnectivityUtil.getVplexClusterForVarray(varrayUri, vplexURI, _dbClient);
+        String vplexClusterName = VPlexUtil.getVplexClusterName(varrayUri, vplexURI, client, _dbClient);
         try {
-            String vplexClusterId = ConnectivityUtil.getVplexClusterForVarray(varrayUri, vplexURI, _dbClient);
-            String vplexClusterName = VPlexUtil.getVplexClusterName(varrayUri, vplexURI, client, _dbClient);
             lockName = _vplexApiLockManager.getLockName(vplexURI, vplexClusterId);
             lockAcquired = _vplexApiLockManager.acquireLock(lockName, LockTimeoutValue.get(LockType.VPLEX_API_LIB));
             if (!lockAcquired) {
@@ -2181,7 +2183,9 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
                 blockObjectMap, workflow, waitFor, exportMasksToCreateOnDevice,
                 exportMasksToUpdateOnDevice);
 
-        String storageViewStepId = zoningStepId;
+        _log.info("set up initiator pre-registration step");
+        String storageViewStepId = 
+                handleInitiatorRegistration(initiators, vplexSystem, vplexClusterId, workflow, zoningStepId);
 
         _log.info("processing the export masks to be created");
         for (ExportMask exportMask : exportMasksToCreateOnDevice) {
@@ -2674,6 +2678,28 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
     }
 
     /**
+     * Handles registering any unregistered initiators.
+     * 
+     * @param initiators the initiators to check for registration
+     * @param vplexSystem the VPLEX StorageSystem object
+     * @param vplexClusterId the cluster id (1 or 2)
+     * @param workflow the workflow
+     * @param previousStepId the previous workflow step id to wait for
+     * @return the id of the initiator registration step
+     */
+    private String handleInitiatorRegistration(List<URI> initiators, 
+            StorageSystem vplexSystem, String vplexClusterId, Workflow workflow, String previousStepId) {
+        
+        Workflow.Method executeMethod = new Workflow.Method(REGISTER_INITIATORS_METHOD_NAME, 
+                initiators, vplexSystem.getId(), vplexClusterId);
+        // if rollback occurs, the unzoning step will cause any previously unregistered inits to go unregistered
+        String stepId = workflow.createStep(INITIATOR_REGISTRATION, "Registering any unregistered initiators on VPLEX", 
+                previousStepId, vplexSystem.getId(), vplexSystem.getSystemType(), this.getClass(), 
+                executeMethod, rollbackMethodNullMethod(), null);
+        return stepId;
+    }
+
+    /**
      * Handles adding ExportMask creation into the export workflow.
      *
      * @param blockObjectMap
@@ -2919,6 +2945,60 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
             String opName = ResourceOperationTypeEnum.CREATE_STORAGE_VIEW.getName();
             ServiceError serviceError = VPlexApiException.errors.createStorageViewFailed(opName, ex);
             failStep(completer, stepId, serviceError);
+        } finally {
+            if (lockAcquired) {
+                _vplexApiLockManager.releaseLock(lockName);
+            }
+        }
+    }
+
+    /**
+     * A Workflow Step to register initiators on the VPLEX, if not already found registered.
+     * 
+     * @param initiatorUris the initiator URIs to check for registration
+     * @param vplexURI the VPLEX URI
+     * @param vplexClusterId the VPLEX cluster ID (1 or 2)
+     * @param stepId the workflow step id
+     * @throws ControllerException if something went wrong
+     */
+    public void registerInitiators(List<URI> initiatorUris, URI vplexURI, String vplexClusterId, String stepId) throws ControllerException {
+        String lockName = null;
+        boolean lockAcquired = false;
+        try {
+            WorkflowStepCompleter.stepExecuting(stepId);
+            StorageSystem vplex = getDataObject(StorageSystem.class, vplexURI, _dbClient);
+            VPlexApiClient client = getVPlexAPIClient(_vplexApiFactory, vplex, _dbClient);
+
+            lockAcquired = _vplexApiLockManager.acquireLock(lockName, LockTimeoutValue.get(LockType.VPLEX_API_LIB));
+            if (!lockAcquired) {
+                throw VPlexApiException.exceptions.couldNotObtainConcurrencyLock(vplex.getLabel());
+            }
+
+            List<PortInfo> initiatorPortInfos = new ArrayList<PortInfo>();
+            for (URI init : initiatorUris) {
+                Initiator initiator = getDataObject(Initiator.class, init, _dbClient);
+                PortInfo pi = new PortInfo(initiator.getInitiatorPort().toUpperCase()
+                        .replaceAll(":", ""), initiator.getInitiatorNode().toUpperCase()
+                                .replaceAll(":", ""),
+                        initiator.getLabel(),
+                        getVPlexInitiatorType(initiator));
+                initiatorPortInfos.add(pi);
+            }
+            client.registerInitiators(initiatorPortInfos, vplexClusterId);
+
+            WorkflowStepCompleter.stepSucceded(stepId);
+        } catch (VPlexApiException vae) {
+            // TODO update new exception
+            _log.error("Exception registering initiators: " + vae.getMessage(), vae);
+            String opName = ResourceOperationTypeEnum.CREATE_INITIATOR.getName();
+            ServiceError serviceError = VPlexApiException.errors.createStorageViewFailed(opName, vae);
+            WorkflowStepCompleter.stepFailed(stepId, serviceError);
+        } catch (Exception ex) {
+            // TODO update new exception
+            _log.error("Exception registering initiators: " + ex.getMessage(), ex);
+            String opName = ResourceOperationTypeEnum.CREATE_INITIATOR.getName();
+            ServiceError serviceError = VPlexApiException.errors.createStorageViewFailed(opName, ex);
+            WorkflowStepCompleter.stepFailed(stepId, serviceError);
         } finally {
             if (lockAcquired) {
                 _vplexApiLockManager.releaseLock(lockName);
@@ -12923,6 +13003,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
 
         if (VPlexApiConstants.FIRMWARE_MIXED_VERSIONS.equalsIgnoreCase(vplex.getFirmwareVersion().trim())) {
             _log.warn("VPLEX indicates that directors have mixed firmware versions, so could not determine thin provisioning support");
+            // TODO throw new exception
             return false;
         }
 

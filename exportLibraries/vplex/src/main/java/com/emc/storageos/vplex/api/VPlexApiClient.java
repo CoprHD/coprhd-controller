@@ -209,6 +209,24 @@ public class VPlexApiClient {
     }
 
     /**
+     * Gets a VPlexClusterInfo from the cache for the given VPLEX cluster id.
+     * 
+     * @return a VPlexClusterInfo instance for the requested cluster id, or null if not found.
+     * 
+     * @throws VPlexApiException When an error occurs querying the VPlex.
+     */
+    public VPlexClusterInfo getClusterInfoLiteForClusterId(String vplexClusterId) throws VPlexApiException {
+        for (VPlexClusterInfo clusterInfo : getClusterInfoLite()) {
+            if (clusterInfo != null && clusterInfo.getClusterId() != null && clusterInfo.getClusterId().equals(vplexClusterId)) {
+                return clusterInfo;
+            }
+        }
+
+        s_logger.warn("VPlexClusterInfo for cluster id {} not found, returning null.", vplexClusterId);
+        return null;
+    }
+
+    /**
      * Rediscovers the storage systems attached to the VPlex identified by the
      * passed identifiers for the purpose of discovering new volumes accessible
      * to the VPlex.
@@ -744,6 +762,32 @@ public class VPlexApiClient {
     public boolean setVirtualVolumeThinEnabled(VPlexVirtualVolumeInfo virtualVolumeInfo) {
         s_logger.info(String.format("Request to set virtual volume %s to thin-enabled at %s", virtualVolumeInfo.getName(), _baseURI));
         return _virtualVolumeMgr.setVirtualVolumeThinEnabled(virtualVolumeInfo);
+    }
+
+    /**
+     * Take the list of initiators to check and register any that cannot be found
+     * already registered on the VPLEX.
+     * 
+     * @param initiatorsToCheck the initiators to check for registration
+     * @param vplexClusterId the VPLEX cluster id (1 or 2)
+     * @throws VPlexApiException if something went wrong
+     */
+    public void registerInitiators(List<PortInfo> initiatorsToCheck, String vplexClusterId) throws VPlexApiException {
+
+        s_logger.info("Request for registering initiators in cluster {} on VPLEX at {}", vplexClusterId, _baseURI);
+        VPlexClusterInfo clusterInfo = getClusterInfoLiteForClusterId(vplexClusterId);
+
+        List<VPlexInitiatorInfo> initiatorsFound = 
+                _exportMgr.findInitiatorsWithRetry(clusterInfo.getName(), vplexClusterId, initiatorsToCheck, null);
+
+        if (initiatorsFound.size() != initiatorsToCheck.size()) {
+            s_logger.info("Could not find all of the requested initiators on VPLex.");
+            initiatorsFound = _exportMgr.buildInitiatorInfoList(initiatorsFound, initiatorsToCheck, clusterInfo);
+            _exportMgr.registerInitiators(clusterInfo, initiatorsFound);
+            _discoveryMgr.clearInitiatorCache(clusterInfo.getName());
+        } else {
+            s_logger.info("All the requested initiators have already been registered.");
+        }
     }
 
     /**

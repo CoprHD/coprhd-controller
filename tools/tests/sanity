@@ -260,7 +260,7 @@ case $AUTH in
     ipv6)
         export BOURNE_IPV6_MODE="YES"
 	ISI_IP="2620:0:170:2842::6199"
-	ISI_IP1=""
+	ISI_IP1="2620:0:170:2842::6199"
 	ISI_SN="6805ca0e0736b7cf7b52af25f8f67c8e6d35"
 	ISI_SN1="6805ca0e0736b7cf7b52af25f8f67c8e6d35"
 	VNXF_IP="2620:0:170:2860::60"
@@ -743,7 +743,8 @@ SNAPSHOT_EXPIRE_VALUE=3
 POLICY_SCHEDULE_FREQUENCY="days"
 POLICY_SCHEDULE_REPEAT=2
 POLICY_SCHEDULE_TIME=03:00
-REPLICATION_TYPE="LOCAL"
+LOCAL_REPLICATION_TYPE="LOCAL"
+REMOTE_REPLICATION_TYPE="REMOTE"
 REPLICATION_COPY_MODE="ASYNC"
 APPLY_ON_TARGET_SITE="false"
 
@@ -798,7 +799,12 @@ filepolicy_tests()
     echo $fpname
     
     echo "Creating replication file policy $fpname"
-	run filepolicy create_replication_pol $fpname $REPLICATION_TYPE $APPLY_AT_VPOOL --description $DESCRIPTION --replicationtype $REPLICATION_TYPE --replicationcopymode $REPLICATION_COPY_MODE --replicationconfiguration $REPLICATION_CONFIGURATION --policyschedulefrequency $POLICY_SCHEDULE_FREQUENCY --policyschedulerepeat $POLICY_SCHEDULE_REPEAT --policyscheduletime $POLICY_SCHEDULE_TIME
+	if [ -f $CONFIG_FILE ]; then
+    run filepolicy create_replication_pol $fpname $REPLICATION_TYPE $APPLY_AT_VPOOL --description $DESCRIPTION --replicationtype $REMOTE_REPLICATION_TYPE --replicationcopymode $REPLICATION_COPY_MODE --replicationconfiguration $REPLICATION_CONFIGURATION --policyschedulefrequency $POLICY_SCHEDULE_FREQUENCY --policyschedulerepeat $POLICY_SCHEDULE_REPEAT --policyscheduletime $POLICY_SCHEDULE_TIME
+	else
+	run filepolicy create_replication_pol $fpname $REPLICATION_TYPE $APPLY_AT_VPOOL --description $DESCRIPTION --replicationtype $LOCAL_REPLICATION_TYPE --replicationcopymode $REPLICATION_COPY_MODE --replicationconfiguration $REPLICATION_CONFIGURATION --policyschedulefrequency $POLICY_SCHEDULE_FREQUENCY --policyschedulerepeat $POLICY_SCHEDULE_REPEAT --policyscheduletime $POLICY_SCHEDULE_TIME
+	fi
+	
 	run filepolicy show $fpname
 	
 	echo "Assigning filepolicy $fpname to vpool $tgt_vpools"
@@ -817,7 +823,12 @@ filepolicy_tests()
     echo $fpname
     
     echo "Creating replication file policy $fpname"
-	run filepolicy create_replication_pol $fpname $REPLICATION_TYPE $APPLY_AT_PROJECT --description $DESCRIPTION --replicationtype $REPLICATION_TYPE --replicationcopymode $REPLICATION_COPY_MODE --replicationconfiguration $REPLICATION_CONFIGURATION --policyschedulefrequency $POLICY_SCHEDULE_FREQUENCY --policyschedulerepeat $POLICY_SCHEDULE_REPEAT --policyscheduletime $POLICY_SCHEDULE_TIME
+	if [ -f $CONFIG_FILE ]; then
+    run filepolicy create_replication_pol $fpname $REPLICATION_TYPE $APPLY_AT_PROJECT --description $DESCRIPTION --replicationtype $REMOTE_REPLICATION_TYPE --replicationcopymode $REPLICATION_COPY_MODE --replicationconfiguration $REPLICATION_CONFIGURATION --policyschedulefrequency $POLICY_SCHEDULE_FREQUENCY --policyschedulerepeat $POLICY_SCHEDULE_REPEAT --policyscheduletime $POLICY_SCHEDULE_TIME
+	else
+	run filepolicy create_replication_pol $fpname $REPLICATION_TYPE $APPLY_AT_PROJECT --description $DESCRIPTION --replicationtype $LOCAL_REPLICATION_TYPE --replicationcopymode $REPLICATION_COPY_MODE --replicationconfiguration $REPLICATION_CONFIGURATION --policyschedulefrequency $POLICY_SCHEDULE_FREQUENCY --policyschedulerepeat $POLICY_SCHEDULE_REPEAT --policyscheduletime $POLICY_SCHEDULE_TIME
+	fi
+	
 	run filepolicy show $fpname
 	
 	echo "Assigning filepolicy $fpname to project $tgt_projects"

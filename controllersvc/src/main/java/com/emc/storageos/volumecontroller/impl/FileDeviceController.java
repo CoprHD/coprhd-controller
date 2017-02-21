@@ -4588,9 +4588,12 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             if (sourceVNasURI != null) {
                 sourceVNAS = _dbClient.queryObject(VirtualNAS.class, sourceVNasURI);
                 sourceArgs.setvNAS(sourceVNAS);
+                targetArgs.setSourceVNAS(sourceVNAS);
             }
 
+            targetArgs.setSourceSystem(sourceSystem);
             targetArgs.setVPool(vpool);
+            targetArgs.setTarget(true);
 
             if (targetVNasURI != null) {
                 targetVNAS = _dbClient.queryObject(VirtualNAS.class, targetVNasURI);
@@ -4643,8 +4646,11 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             if (sourceVNasURI != null) {
                 sourceVNAS = _dbClient.queryObject(VirtualNAS.class, sourceVNasURI);
                 sourceArgs.setvNAS(sourceVNAS);
+                targetArgs.setSourceVNAS(sourceVNAS);
             }
 
+            targetArgs.setTarget(true);
+            targetArgs.setSourceSystem(sourceSystem);
             targetArgs.setVPool(vpool);
             targetArgs.setProject(project);
             targetArgs.setTenantOrg(tenant);

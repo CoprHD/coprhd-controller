@@ -391,7 +391,13 @@ public class XtremIOMaskingOrchestrator extends AbstractBasicMaskingOrchestrator
 
             Map<URI, Integer> volumes = selectExportMaskVolumes(exportGroup, storageURI);
 
-            
+            /**
+             * If there are multiple export Groups for compute resource, then the idea is to figure out whether the 
+             * initiator-volume mapping is already available on a different export Group for the same compute Resource.
+             * If we found one, then this operation anyways is going to be a NO-OP on the Array, therefore no need to run consistentCheck.
+             * 
+             * Btw, we allowed the operation to run, because we wanted all the completers to run.
+             */
             Set<String> volumesExposedToGivenInitiatorsInAllExportGroups = new HashSet<String>();
             
             Set<String> volumesExposedToGivenInitiatorsInCurrentExportGroup = exportGroup.getVolumes().keySet();
@@ -405,10 +411,13 @@ public class XtremIOMaskingOrchestrator extends AbstractBasicMaskingOrchestrator
             }
             
             volumesExposedToGivenInitiatorsInCurrentExportGroup.removeAll(volumesExposedToGivenInitiatorsInAllExportGroups);
-            
+            //if its empty, it means the volumes are already exposed to the given initiators.
+            //this logic can be used for Arrays which doesn't have physical mapping between Array Mask and ExportMask.
+            log.info("Volumes Left to be exposed to given initiators  : {}", Joiner.on(",").join(volumesExposedToGivenInitiatorsInCurrentExportGroup));
             if (!volumesExposedToGivenInitiatorsInCurrentExportGroup.isEmpty()) {
                 checkForConsistentLunViolation(storage, exportGroup, initiatorURIs);
-                
+            } else {
+                log.info("Skipping Consistent Lun Violation");
             }
 
             log.info("Volumes  : {}", Joiner.on(",").join(volumes.keySet()));

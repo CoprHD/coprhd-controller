@@ -28,6 +28,7 @@ import java.util.Map.Entry;
 import java.util.Set;
 
 import org.apache.commons.lang3.StringUtils;
+import org.mockito.internal.invocation.finder.AllInvocationsFinder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -2075,17 +2076,16 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
                         // on the VPLEX and set it up as a new ExportMask.
                         if (null != sharedVplexExportMask) {
                             sharedExportMasks.add(sharedVplexExportMask);
+                            VPlexStorageViewInfo storageView = client.getStorageView(vplexClusterName, sharedVplexExportMask.getMaskName());
+                            //Refresh the mask first and then verify
+                            _log.info("Refreshing ExportMask {}", sharedVplexExportMask.getMaskName());
+                            VPlexControllerUtils.refreshExportMask(
+                                    _dbClient, storageView, sharedVplexExportMask, targetPortToPwwnMap, _networkDeviceController);
                             // If sharedVplexExportMask is found then that export mask will be used to add any missing
                             // initiators or storage ports as needed, and volumes requested, if not already present.
                             setupExistingExportMaskWithNewHost(blockObjectMap, vplexSystem, exportGroup, varrayUri,
                                     exportMasksToUpdateOnDevice, exportMasksToUpdateOnDeviceWithInitiators,
                                     exportMasksToUpdateOnDeviceWithStoragePorts, inits, sharedVplexExportMask, opId);
-
-                            VPlexStorageViewInfo storageView = client.getStorageView(vplexClusterName, sharedVplexExportMask.getMaskName());
-                            _log.info("Refreshing ExportMask {}", sharedVplexExportMask.getMaskName());
-                            VPlexControllerUtils.refreshExportMask(
-                                    _dbClient, storageView, sharedVplexExportMask, targetPortToPwwnMap, _networkDeviceController);
-
                             foundMatchingStorageView = true;
                             break;
                         } else {
@@ -2188,10 +2188,13 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
             }
         }
 
-        _log.info("updating zoning if necessary for both new and updated export masks");
-        String zoningStepId = handleZoningUpdate(export, initiators,
-                blockObjectMap, workflow, waitFor, exportMasksToCreateOnDevice,
-                exportMasksToUpdateOnDevice);
+        String zoningStepId = null;
+        
+        if (!exportMasksToCreateOnDevice.isEmpty() || !exportMasksToUpdateOnDevice.isEmpty()) {
+            _log.info("updating zoning if necessary for both new and updated export masks");
+            zoningStepId = handleZoningUpdate(export, initiators, blockObjectMap, workflow, waitFor, exportMasksToCreateOnDevice,
+                    exportMasksToUpdateOnDevice);
+        }
 
         String storageViewStepId = zoningStepId;
 
@@ -2454,17 +2457,18 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
                     exportMask = ExportUtils.updateZoningMap(_dbClient, exportMask, assignments,
                             exportMasksToUpdateOnDeviceWithStoragePorts);
                 }
+                exportMasksToUpdateOnDevice.add(exportMask);
+
+                // add the initiators to the map for the exportMask that do not exist
+                // already in the storage view as to create steps to add those initiators
+                exportMasksToUpdateOnDeviceWithInitiators.put(exportMask.getId(), initsToAdd);
+
+                // Storage ports that needs to be added will be calculated in the
+                // add storage ports method from the zoning Map.
+                exportMasksToUpdateOnDeviceWithStoragePorts.put(exportMask.getId(), new ArrayList<URI>());
             }
 
-            exportMasksToUpdateOnDevice.add(exportMask);
-
-            // add the initiators to the map for the exportMask that do not exist
-            // already in the storage view as to create steps to add those initiators
-            exportMasksToUpdateOnDeviceWithInitiators.put(exportMask.getId(), initsToAdd);
-
-            // Storage ports that needs to be added will be calculated in the
-            // add storage ports method from the zoning Map.
-            exportMasksToUpdateOnDeviceWithStoragePorts.put(exportMask.getId(), new ArrayList<URI>());
+            
         }
 
         return foundMatchingStorageView;
@@ -2620,8 +2624,12 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
 
         List<Initiator> initsToAddOnVplexDevice = new ArrayList<Initiator>();
         for (Initiator init : inits) {
-            if (!sharedVplexExportMask.hasExistingInitiator(init)) {
-                initsToAddOnVplexDevice.add(init);
+            if (sharedVplexExportMask.hasExistingInitiator(init) ||
+                    sharedVplexExportMask.hasInitiator(init.getId().toString()) ||
+                    sharedVplexExportMask.hasUserInitiator(init.getId())) {
+                _log.info("Initiator {} available in export mask {}",init.getInitiatorPort(), sharedVplexExportMask.getMaskName());
+            } else {
+                initsToAddOnVplexDevice.add(init); 
             }
         }
 
@@ -2632,14 +2640,14 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
                 exportMasksToUpdateOnDeviceWithInitiators.put(sharedVplexExportMask.getId(), new ArrayList<Initiator>());
             }
             exportMasksToUpdateOnDeviceWithInitiators.get(sharedVplexExportMask.getId()).addAll(initsToAddOnVplexDevice);
+            //We dont want to update the export masks if the initiators ot get added is empty.
+            exportMasksToUpdateOnDevice.add(sharedVplexExportMask);
         }
 
         // Storage ports that needs to be added will be calculated in the
         // add storage ports method from the zoning Map.
         exportMasksToUpdateOnDeviceWithStoragePorts.put(sharedVplexExportMask.getId(), new ArrayList<URI>());
-
-        exportMasksToUpdateOnDevice.add(sharedVplexExportMask);
-
+         
     }
 
     /**
@@ -3921,13 +3929,17 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
                         }
                     }
                     if (!initiators.isEmpty()) {
-                        checkForConsistentLunViolation(vplex, exportGroup, initURIs);
                         previousStep = addStepsForAddInitiators(
                                 workflow, vplex, exportGroup, varrayURI,
                                 initURIs, initiators, hostURI, previousStep, opId);
+                        if (null != previousStep) {
+                            checkForConsistentLunViolation(vplex, exportGroup, initURIs);
+                        }
                     }
                 }
             }
+            
+           
 
             // Fire off the Workflow
             String message = String.format("Successfully added initiators %s to ExportGroup %s",
@@ -4041,7 +4053,21 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
                     _dbClient, storageView, exportMask,
                     VPlexControllerUtils.getTargetPortToPwwnMap(client, vplexClusterName),
                     _networkDeviceController);
-
+            //If all the required initiators are already available in the mask, then no need to run exports.
+            boolean allInitiatorsExportedAlready = true;
+            for (Initiator initiator : initiators) {
+                if (!exportMask.hasInitiator(initiator.getId().toString()) &&
+                        !exportMask.hasUserInitiator(initiator.getId())) {
+                    allInitiatorsExportedAlready = false;
+                    break;
+                }
+            }
+            
+            if(allInitiatorsExportedAlready) {
+                _log.info("All initiators are already available in the export mask {}", exportMask.getMaskName());
+                return lastStepId;
+            }
+            
             if (exportMask.getVolumes() == null) {
                 // This can occur in Brownfield scenarios where we have not added any volumes yet to the HA side,
                 // CTRL10760
@@ -4070,7 +4096,8 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
             } else {
                 _log.info(String.format("No volumes at all- using default path parameters: %s", exportMask.getId()));
             }
-
+            
+           
             ExportPathParams pathParams = _blockScheduler.calculateExportPathParamForVolumes(
                     volumeURIs, exportGroup.getNumPaths(), exportMask.getStorageDevice(), exportGroup.getId());
             if (exportGroup.getType() != null) {

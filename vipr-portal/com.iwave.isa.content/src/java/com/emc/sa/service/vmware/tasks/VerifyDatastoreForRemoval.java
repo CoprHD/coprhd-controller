@@ -4,30 +4,37 @@
  */
 package com.emc.sa.service.vmware.tasks;
 
-import java.util.Set;
+import java.util.List;
 
 import javax.inject.Inject;
 
 import org.apache.commons.lang.StringUtils;
 
 import com.emc.sa.engine.ExecutionTask;
-import com.google.common.collect.Sets;
+import com.emc.storageos.computesystemcontroller.impl.ComputeSystemHelper;
+import com.emc.storageos.db.client.model.Host;
 import com.iwave.ext.vmware.VCenterAPI;
 import com.vmware.vim25.DatastoreHostMount;
 import com.vmware.vim25.DatastoreSummary;
-import com.vmware.vim25.DatastoreSummaryMaintenanceModeState;
 import com.vmware.vim25.HostMountInfo;
 import com.vmware.vim25.mo.Datastore;
 import com.vmware.vim25.mo.HostSystem;
-import com.vmware.vim25.mo.VirtualMachine;
 
 public class VerifyDatastoreForRemoval extends ExecutionTask<Void> {
     @Inject
     private VCenterAPI vcenter;
     private Datastore datastore;
+    private String datacenterName;
+    private List<Host> hosts;
 
     public VerifyDatastoreForRemoval(Datastore datastore) {
+        this(datastore, null, null);
+    }
+
+    public VerifyDatastoreForRemoval(Datastore datastore, String datacenterName, List<Host> hosts) {
         this.datastore = datastore;
+        this.datacenterName = datacenterName;
+        this.hosts = hosts;
         provideDetailArgs(datastore.getName());
     }
 
@@ -38,8 +45,15 @@ public class VerifyDatastoreForRemoval extends ExecutionTask<Void> {
             throw stateException("verify.datastore.removal.illegalState.summaryUnavailable", datastore.getName());
         }
         checkDatastoreAccessibility(summary);
-        checkMaintenanceMode(summary);
-        checkVirtualMachines();
+        ComputeSystemHelper.checkMaintenanceMode(datastore, summary);
+        if (hosts != null && !hosts.isEmpty()) {
+            for (Host host : hosts) {
+                HostSystem hostSystem = vcenter.findHostSystem(datacenterName, host.getHostName());
+                ComputeSystemHelper.checkVirtualMachines(datastore, hostSystem);
+            }
+        } else {
+            ComputeSystemHelper.checkVirtualMachines(datastore, null);
+        }
     }
 
     private void checkDatastoreAccessibility(DatastoreSummary summary) {
@@ -60,30 +74,6 @@ public class VerifyDatastoreForRemoval extends ExecutionTask<Void> {
             String hostName = host.getName();
             String reason = StringUtils.defaultIfBlank(mountInfo.getInaccessibleReason(), "unknown");
             logWarn("verify.datastore.removal.inaccessible", hostName, reason);
-        }
-    }
-
-    private void checkMaintenanceMode(DatastoreSummary summary) {
-        String mode = summary.getMaintenanceMode();
-
-        // If a datastore is already entering maintenance mode, fail
-        if (DatastoreSummaryMaintenanceModeState.enteringMaintenance.name().equals(mode)) {
-            throw stateException("verify.datastore.removal.illegalState.maintenanceMode", datastore.getName());
-        }
-        else if (DatastoreSummaryMaintenanceModeState.inMaintenance.name().equals(mode)) {
-            logInfo("verify.datastore.removal.maintenance.mode", datastore.getName());
-        }
-    }
-
-    private void checkVirtualMachines() {
-        VirtualMachine[] vms = datastore.getVms();
-        if ((vms != null) && (vms.length > 0)) {
-            Set<String> names = Sets.newTreeSet();
-            for (VirtualMachine vm : vms) {
-                names.add(vm.getName());
-            }
-            throw stateException("verify.datastore.removal.illegalState.notEmpty",
-                    datastore.getName(), vms.length, names);
         }
     }
 }

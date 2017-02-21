@@ -13015,9 +13015,8 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
         }
 
         if (VPlexApiConstants.FIRMWARE_MIXED_VERSIONS.equalsIgnoreCase(vplex.getFirmwareVersion().trim())) {
-            _log.warn("VPLEX indicates that directors have mixed firmware versions, so could not determine thin provisioning support");
-            // TODO throw new exception
-            return false;
+            _log.error("VPLEX indicates its that directors have mixed firmware versions, so could not determine thin provisioning support");
+            throw VPlexApiException.exceptions.thinProvisioningVerificationFailed(vplex.getLabel());
         }
 
         int versionValue = VersionChecker.verifyVersionDetails(VPlexApiConstants.MIN_VERSION_THIN_PROVISIONING, vplex.getFirmwareVersion());

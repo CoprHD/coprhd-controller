@@ -1365,7 +1365,8 @@ public class ExportMaskUtils {
                 URI volumeURI = volumeList.iterator().next();
                 if (!NullColumnValueGetter.isNullURI(volumeURI)) {
                     BlockObject bo = BlockObject.fetch(dbClient, volumeURI);
-                    if (bo != null && !bo.getInactive() && mask.getStorageDevice().equals(bo.getStorageController())) {
+                    if (bo != null && !bo.getInactive() && mask.getStorageDevice() != null
+                            && mask.getStorageDevice().equals(bo.getStorageController())) {
                         Integer discoveredHLU = discoveredVolumes.get(wwn);
                         if (mask.hasVolume(volumeURI)
                                 && ExportGroup.LUN_UNASSIGNED_DECIMAL_STR.equals(mask.returnVolumeHLU(volumeURI))

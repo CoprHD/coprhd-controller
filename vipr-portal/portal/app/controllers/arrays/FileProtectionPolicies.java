@@ -336,6 +336,7 @@ public class FileProtectionPolicies extends ViprResourceController {
             FilePolicyCreateParam policyParam = new FilePolicyCreateParam();
             updatePolicyParam(schedulePolicy, policyParam, null);
             policyParam.setPolicyType(schedulePolicy.policyType);
+            policyParam.setPolicyDescription(schedulePolicy.description);
             FilePolicyCreateResp createdPolicy = getViprClient().fileProtectionPolicies().create(policyParam);
             policyId = createdPolicy.getId();
         } else {
@@ -411,6 +412,10 @@ public class FileProtectionPolicies extends ViprResourceController {
         if (schedulePolicy.appliedAt != null) {
             param.setApplyAt(schedulePolicy.appliedAt);
         }
+        
+        if(schedulePolicy.description != null && !schedulePolicy.description.isEmpty()){
+            param.setPolicyDescription(schedulePolicy.description);           
+        }
 
         if (policyType == null) {
             policyType = schedulePolicy.policyType;
@@ -485,6 +490,10 @@ public class FileProtectionPolicies extends ViprResourceController {
         @MinSize(2)
         // Schedule policy name
         public String policyName;
+               
+        // Schedule policy description
+        public String description;
+              
         // Type of the policy
         public String policyType;
 
@@ -540,7 +549,10 @@ public class FileProtectionPolicies extends ViprResourceController {
             this.policyType = restRep.getType();
             this.policyName = restRep.getName();
             this.frequency = restRep.getSchedule().getFrequency();
-
+            
+            if (restRep.getDescription() != null && !restRep.getDescription().isEmpty()) {
+               this.description= restRep.getDescription();
+            }
             if (restRep.getSchedule().getDayOfMonth() != null) {
                 this.scheduleDayOfMonth = restRep.getSchedule().getDayOfMonth();
             }
@@ -836,9 +848,9 @@ public class FileProtectionPolicies extends ViprResourceController {
             // this.tenantId = restRep.getTenant().getId().toString();
             this.policyType = restRep.getType();
             this.policyName = restRep.getName();
-              if(restRep.getAssignedResources() == null) {
-               // if it does not have already assigned  resource
-                 this.operationAssign =true;
+            if(restRep.getAssignedResources() == null) {
+                // if it does not have already assigned  resource
+                this.operationAssign =true;
                 
             }
 

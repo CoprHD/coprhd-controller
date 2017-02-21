@@ -1347,6 +1347,7 @@ schedulePolicy.expire.value=Snapshot expires
 schedulePolicy.expiration=Snapshot Expiration
 schedulePolicy.policyName.error.required=Policy name must be supplied
 schedulePolicy.snapshotNamePattern=Snapshot Name Pattern
+schedulePolicy.description=Description
 schedulePolicy.group.accessControl=Access Control
 schedulePolicy.enableTenants=Grant Access to Tenants
 schedulePolicy.tenants=Tenants

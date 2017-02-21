@@ -35,6 +35,7 @@
         field.cssClass = 'initialFocus';
         field.required = true
         field.fieldKey = 'assignPolicy.policyName'
+        field.atts = ['readonly':'readonly']
       }%
       #{Form.inputTextControlGroup field:field /}
     #{/field}
@@ -63,34 +64,32 @@
          #{Form.selectManyControlGroup field:field, options:vPoolOptions /}
      #{/field}
     </div>
-	  
-   
+	    
     <div ng-init="policyId='${assignPolicy.id}'" id="replicationFields" ng-controller="filePolicyCtrl">
-		<div class="row" style="padding-top:20px; padding-bottom:0px;">
-		  <div class="col-xs-3"></div>    
-	        <div class="pull-left col-sm-3" style="text-align:center;"><strong>&{'replicationTopology.sourceVArray'}</strong></div>
-	        <div class="pull-left col-sm-3" style="text-align:center;"><strong>&{'replicationTopology.targetVArray'}</strong></div>
-	    	
-	    </div>
-	    <hr style="margin:5px;"/>
-		<div class="row col-gap-none" ng-repeat="topology in topologies" style="margin-bottom:5px;">
-		  <div class="col-xs-3"></div>    
-		    	<div class="pull-left col-sm-3" v-field="topology.sourceVArray">
-					<select-one options="virtualArrayOptions" required></select-one>
-		     	</div>
-		        <div class="pull-left col-sm-3" v-field="topology.targetVArray" style="padding-right:0px;">
-		        	<select-one options="virtualArrayOptions" required></select-one>
-		     	</div>
-		        <div class="pull-left col-sm-0" style="padding-left:10px; margin-top:5px;"><button type="button" ng-click="deleteTopology($index)" class="close">&times;</button></div>
-		</div>
-		<div class="row">
-		 <div class="col-xs-2"></div>    
-			<div class="pull-left col-sm-9"><button type="button" ng-click="addTopology()" class="btn btn-sm btn-success"><i v-icon=plus></i> &{'button.add'}</button></div>
-		</div>
-		#{field 'assignPolicy.topologiesString'}
-	     	<input type="hidden" name="assignPolicy.topologiesString" ng-value="topologiesString" />
-	  	#{/field}
-	</div>
+        <div class="row" style="padding-top:20px; padding-bottom:0px;">
+            <div class="col-xs-3"></div>    
+            <div class="pull-left col-sm-3" style="text-align:center;"><strong>&{'replicationTopology.sourceVArray'}</strong></div>
+            <div class="pull-left col-sm-3" style="text-align:center;"><strong>&{'replicationTopology.targetVArray'}</strong></div>
+        </div>
+        <hr style="margin:5px;"/>
+        <div class="row col-gap-none" ng-repeat="topology in topologies" style="margin-bottom:5px;">
+            <div class="col-xs-3"></div>    
+            <div class="pull-left col-sm-3" v-field="topology.sourceVArray">
+                <select-one options="virtualArrayOptions" required></select-one>
+            </div>
+            <div class="pull-left col-sm-3" v-field="topology.targetVArray" style="padding-right:0px;">
+                <select-one options="virtualArrayOptions" required></select-one>
+            </div>
+            <div class="pull-left col-sm-0" style="padding-left:10px; margin-top:5px;"><button type="button" ng-click="deleteTopology($index)" class="close">&times;</button></div>
+        </div>
+        <div class="row">
+            <div class="col-xs-2"></div>    
+            <div class="pull-left col-sm-9"><button type="button" ng-click="addTopology()" class="btn btn-sm btn-success"><i v-icon=plus></i> &{'button.add'}</button></div>
+        </div>
+        #{field 'assignPolicy.topologiesString'}
+            <input type="hidden" name="assignPolicy.topologiesString" ng-value="topologiesString" />
+        #{/field}
+    </div>
     
   #{Form.saveCancelButtonBar size:'large', cancelHref:@list()/}
 #{/form}

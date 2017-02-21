@@ -6,13 +6,13 @@ package com.emc.sa.service.vipr.compute.tasks;
 
 import java.net.URI;
 
-import com.emc.sa.service.vipr.tasks.LongRunningTask;
+import com.emc.sa.service.vipr.tasks.ViPRExecutionTask;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.model.host.HostRestRep;
 import com.emc.storageos.model.host.HostUpdateParam;
 import com.emc.vipr.client.Task;
 
-public class SetBootVolume extends LongRunningTask<HostRestRep> {
+public class SetBootVolume extends ViPRExecutionTask<Task<HostRestRep>> {
     private URI hostId;
     private URI volumeId;
     private boolean updateSanBootTargets = false;
@@ -21,21 +21,24 @@ public class SetBootVolume extends LongRunningTask<HostRestRep> {
         this.hostId = host.getId();
         this.volumeId = volumeId;
         this.updateSanBootTargets = updateSanBootTargets;
-        setWaitFor(true);
+//        setWaitFor(true);
         provideDetailArgs(host.getHostName(), volumeId);
     }
 
     public SetBootVolume(HostRestRep host, URI volumeId) {
         this.hostId = host.getId();
         this.volumeId = volumeId;
-        setWaitFor(true);
+  //      setWaitFor(true);
         provideDetailArgs(host.getHostName(), volumeId);
     }
 
     @Override
-    protected Task<HostRestRep> doExecute() throws Exception {
+    public Task<HostRestRep> executeTask() throws Exception {
         HostUpdateParam update = new HostUpdateParam();
         update.setBootVolume(volumeId);
-        return getClient().hosts().update(hostId, update, false, false, updateSanBootTargets);
+        update.setUpdateSanBootTargets(updateSanBootTargets);
+        Task<HostRestRep> task = getClient().hosts().updateBootVolume(hostId, update, updateSanBootTargets);
+        addOrderIdTag(task.getTaskResource().getId());
+        return task;
     }
 }

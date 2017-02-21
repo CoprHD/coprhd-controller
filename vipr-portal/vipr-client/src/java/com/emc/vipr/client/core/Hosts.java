@@ -261,7 +261,7 @@ public class Hosts extends AbstractCoreBulkResources<HostRestRep> implements Ten
 
     public Task<HostRestRep> update(URI id, HostUpdateParam input, boolean validateConnection) {
         UriBuilder uriBuilder = client.uriBuilder(getIdUrl());
-        if (validateConnection) {
+        if (validateConnection) { 
             uriBuilder.queryParam(VALIDATE_CONNECTION_PARAM, Boolean.TRUE);
         }
         return putTaskURI(input, uriBuilder.build(id));
@@ -283,6 +283,24 @@ public class Hosts extends AbstractCoreBulkResources<HostRestRep> implements Ten
             uriBuilder.queryParam(UPDATE_SAN_BOOT_TARGETS, Boolean.TRUE);
         }
         return putTaskURI(input, uriBuilder.build(id));
+    }
+
+     /**
+     * Sets boot volume for a host.
+     * <p>
+     * API Call: <tt>PUT /compute/hosts/{id}/update-boot-volume</tt>
+     *
+     * @param id
+     *            the ID of the host.
+     * @return
+     */
+
+    public Task<HostRestRep> updateBootVolume(URI id, HostUpdateParam input, boolean updateSanBootTargets) {
+        UriBuilder uriBuilder = client.uriBuilder(getIdUrl());
+/*        if (updateSanBootTargets){
+            uriBuilder.queryParam(UPDATE_SAN_BOOT_TARGETS, Boolean.TRUE);
+        } */
+        return putTask(input, getIdUrl() + "/update-boot-volume", id);
     }
 
 

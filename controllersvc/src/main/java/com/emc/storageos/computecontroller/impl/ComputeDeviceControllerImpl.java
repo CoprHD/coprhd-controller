@@ -298,7 +298,10 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
 
         log.info("setSanBootTarget");
         ComputeSystem cs = _dbClient.queryObject(ComputeSystem.class, computeSystemId);
-
+ //FIXME:
+if (true){
+throw ComputeSystemControllerException.exceptions.targetNotFound(cs.getId().toString());
+}
         getDevice(cs.getSystemType()).setSanBootTarget(cs, computeElementId, hostId, volumeId, waitForServerRestart);
 
     }

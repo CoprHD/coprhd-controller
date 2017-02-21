@@ -368,7 +368,29 @@ public class ComputeUtils {
         }
         return reqCapacity > freeCapacity ? false : true;
     }
-
+    public static List<Host> deactivateHostsWithoutBootVolumeAssociation(List<Host> hosts,
+            List<URI> goodHostIds, Cluster cluster) {
+           if (hosts == null) {
+            return Lists.newArrayList();
+        }
+         List<Host> hostsToRemove = Lists.newArrayList();
+        for (Host host : hosts) {
+            if ((host != null) && (goodHostIds.get(hosts.indexOf(host)) == null)) {
+                hostsToRemove.add(host);
+                host.setInactive(true);
+            }
+        }
+         if (!hostsToRemove.isEmpty()) {
+            try {
+                deactivateHosts(hostsToRemove);
+            } catch (Exception e) {
+                ExecutionUtils.currentContext().logError("computeutils.deactivatehost.deactivate.failure",
+                        e.getMessage());
+            }
+        }
+        return hosts;
+    
+    }
     public static List<Host> deactivateHostsWithNoBootVolume(List<Host> hosts,
             List<URI> bootVolumeIds, Cluster cluster) {
         if (hosts == null) {
@@ -727,14 +749,35 @@ public class ComputeUtils {
         }
     }
 
-    public static void setHostBootVolumes(List<Host> hosts,
+    public static List<URI> setHostBootVolumes(List<Host> hosts,
             List<URI> bootVolumeIds, boolean updateSanBootTargets) {
+        List<Task<HostRestRep>> tasks = new ArrayList<>();
         for (Host host : hosts) {
             if (host != null && !host.getInactive()) {
                 host.setBootVolumeId(bootVolumeIds.get(hosts.indexOf(host)));
-                ViPRExecutionUtils.execute(new SetBootVolume(host, bootVolumeIds.get(hosts.indexOf(host)), updateSanBootTargets));
+                Task<HostRestRep> task = ViPRExecutionUtils.execute(new SetBootVolume(host, bootVolumeIds.get(hosts.indexOf(host)), updateSanBootTargets));
+                tasks.add(task);
             }
         }
+        //monitor tasks
+         List<String> hostNames = Lists.newArrayList();
+        for (Host host : hosts) {
+            if (host != null) {
+                hostNames.add(host.getHostName());
+            }
+            else {
+                hostNames.add(null);
+            }
+        }
+        URI[] succeededHosts = new URI[hosts.size()];
+        for (Host host : hosts){
+            Host refreshedHost = execute(new GetHost(host.getId()));
+            if (refreshedHost.getBootVolumeId()!=null && !refreshedHost.getBootVolumeId().toString().equalsIgnoreCase("null")){
+               int hostNameIndex = hostNames.indexOf(host.getLabel());
+               succeededHosts[hostNameIndex] = host.getId();
+            }
+        }
+        return Arrays.asList(succeededHosts);
     }
 
     public static Map<String, URI> getHostNameBootVolume(List<Host> hosts) {

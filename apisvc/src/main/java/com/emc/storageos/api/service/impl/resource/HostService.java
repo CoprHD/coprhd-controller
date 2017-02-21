@@ -328,7 +328,8 @@ public class HostService extends TaskResourceService {
          * sufficient from an API purity standpoint
          */
         if (host.getComputeElement() != null && updateParam.getBootVolume() != null && updateSanBootTargets) {
-            controller.setHostSanBootTargets(host.getId(), updateParam.getBootVolume());
+            controller.setHostSanBootTargets(host.getId(), updateParam.getBootVolume(), taskId);
+             
         }
 
         _dbClient.updateAndReindexObject(host);
@@ -337,6 +338,60 @@ public class HostService extends TaskResourceService {
 
         return doDiscoverHost(host);
     }
+
+    /**
+     * Updates the hosts boot volume Id
+     *
+     * @param id the URN of host
+	 * @
+     *
+     * @return the task.
+     */
+    @PUT
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @CheckPermission(roles = { Role.TENANT_ADMIN })
+    @Path("/{id}/update-boot-volume")
+    public TaskResourceRep updateBootVolume(@PathParam("id") URI id, HostUpdateParam param) {
+//           	@QueryParam("update_sanboottargets") @DefaultValue("false") boolean updateSanBootTargets) {
+         Host host = queryObject(Host.class, id, true);
+        boolean hasPendingTasks = hostHasPendingTasks(id);
+        boolean updateSanBootTargets = param.getUpdateSanBootTargets();
+        if (hasPendingTasks) {
+            throw APIException.badRequests.cannotUpdateHost("another operation is in progress for this host");
+        }
+        
+        if (param.getBootVolume() != null) {
+            host.setBootVolumeId(NullColumnValueGetter.isNullURI(param.getBootVolume()) ? NullColumnValueGetter
+                    .getNullURI() : param.getBootVolume());
+            _log.info("set boot volume in database");
+        }
+	_dbClient.updateAndReindexObject(host);
+        auditOp(OperationTypeEnum.UPDATE_HOST, true, null,
+                host.auditParameters());
+		
+        String taskId = UUID.randomUUID().toString();
+        ComputeSystemController controller = getController(ComputeSystemController.class, null);
+        Operation op = _dbClient.createTaskOpStatus(Host.class, id, taskId,
+                ResourceOperationTypeEnum.UPDATE_HOST);
+
+        controller.setHostBootVolume(host.getId(), param.getBootVolume(), updateSanBootTargets, taskId);
+         /*
+         * It is not merely enough to make the Host -> (Boot)Volume association
+         * by setting the boot volume id on the Host. A volume is truly a boot
+         * volume, iff it's exported to the Host with HLU 0. Hence an update to
+         * the Host to set the boot volume should only really be made *after*
+         * the volume has been exported to the Host.
+         */
+/*        if (host.getComputeElement() != null && param.getBootVolume() != null && updateSanBootTargets) {
+            _log.info("updateSanBootTargets is true");
+            controller.setHostSanBootTargets(host.getId(), param.getBootVolume(), taskId);
+
+        }*/
+
+        return toTask(host, taskId, op);
+    }
+    
 
     /**
      * Discovers (refreshes) a host. This is an asynchronous call.

@@ -131,7 +131,7 @@ MeteringService
 WorkflowService
 TaskService
 DisasterRecoveryService
-PrimitiveService
+CustomServicesPrimitiveService
 CustomServicesWorkflowService
 
 =API Differences

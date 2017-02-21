@@ -15,6 +15,7 @@ import com.emc.storageos.scaleio.api.restapi.response.ScaleIOScsiInitiator;
 import com.emc.storageos.scaleio.api.restapi.response.ScaleIOStoragePool;
 import com.emc.storageos.scaleio.api.restapi.response.ScaleIOSystem;
 import com.emc.storageos.scaleio.api.restapi.response.ScaleIOVolume;
+import com.emc.storageos.services.util.EnvConfig;
 import java.net.URI;
 import static java.text.MessageFormat.format;
 import java.util.ArrayList;
@@ -32,9 +33,9 @@ public class ScaleIORestClientTest {
     private static Logger log = LoggerFactory.getLogger(ScaleIORestClientTest.class);
     private static ScaleIORestClient restClient;
     private static final String UNIT_TEST_CONFIG_FILE = "sanity";
-    private static final String HOST = "10.247.97.83";//EnvConfig.get(UNIT_TEST_CONFIG_FILE, "scaleio.host.api.ipaddress");
-    private static final String USER = "admin";//EnvConfig.get(UNIT_TEST_CONFIG_FILE, "scaleio.host.api.user");
-    private static final String PASSWORD = "ChangeMe1!";//EnvConfig.get(UNIT_TEST_CONFIG_FILE, "scaleio.host.api.password");
+    private static final String HOST = EnvConfig.get(UNIT_TEST_CONFIG_FILE, "scaleio.host.api.ipaddress");
+    private static final String USER = EnvConfig.get(UNIT_TEST_CONFIG_FILE, "scaleio.host.api.user");
+    private static final String PASSWORD = EnvConfig.get(UNIT_TEST_CONFIG_FILE, "scaleio.host.api.password");
     private static int PORT = 443;
 
     @BeforeClass

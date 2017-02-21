@@ -810,6 +810,7 @@ public class UcsComputeDevice implements ComputeDevice {
             if (lsServer == null) {
                 throw new RuntimeException("UCS call to create service profile from template failed, null LsServer was returned.");
             }
+            workflowService.storeStepData(stepId, lsServer.getDn());
             UCSServiceProfile serviceProfile = persistServiceProfileForHost(lsServer,cs, host.getId());
             validateNewServiceProfile(cs, serviceProfile, host);
 

@@ -1321,6 +1321,36 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
                         _log.info("deleteEntireMask for {}? {}", exportMask.getId(), deleteEntireMask);
 
                         Set<URI> volumesToRemove = new HashSet<>();
+                        if (exportGroup.getInitiators() != null && !exportGroup.getInitiators().isEmpty()) {
+                            Set<String> egInitiators = new HashSet<String>(exportGroup.getInitiators());
+                            for (String initiatorIdStr : egInitiators) {
+                                Initiator initiator = _dbClient.queryObject(Initiator.class, URI.create(initiatorIdStr));
+
+                                if (initiator == null) {
+                                    _log.warn("Found that initiator " + initiatorIdStr
+                                            + " in the export group is no longer in the database, removing from the initiator list.");
+                                    exportGroup.removeInitiator(URI.create(initiatorIdStr));
+                                    _dbClient.updateAndReindexObject(exportGroup);
+                                    continue;
+                                }
+
+                                // Search for this initiator in another export group
+                                List<ExportGroup> exportGroupList = ExportUtils.getInitiatorExportGroups(initiator, _dbClient);
+                                // We cannot remove initiator from mask if the mask has existing volumes
+                                if (exportMask.hasUserInitiator(URI.create(initiatorIdStr)) && !exportMask.hasAnyExistingVolumes()) {
+                                    // If there's more than one export group, that means there's my export group plus another one. (at
+                                    // least)
+                                    // Best to just leave that initiator alone.
+                                    if ((exportGroupList != null && exportGroupList.size() > 1)
+                                            && ExportUtils.isExportMaskShared(_dbClient, exportMask.getId(), null)) {
+                                        _log.info(String
+                                                .format("Found that my initiator is in %s more export groups, so we shouldn't remove it from the mask",
+                                                        exportGroupList.size() - 1));
+                                        deleteEntireMask = false;
+                                    }
+                                }
+                            }
+                        }
 
                         if (deleteEntireMask) {
                             _log.info(String.format(

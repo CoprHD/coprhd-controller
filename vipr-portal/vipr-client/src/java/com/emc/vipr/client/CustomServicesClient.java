@@ -27,15 +27,16 @@ import java.util.List;
 import javax.ws.rs.core.UriBuilder;
 
 import com.emc.storageos.model.BulkIdParam;
-import com.emc.storageos.model.customservices.CustomServicesWorkflowCreateParam;
-import com.emc.storageos.model.customservices.CustomServicesWorkflowList;
-import com.emc.storageos.model.customservices.CustomServicesWorkflowRestRep;
-import com.emc.storageos.model.customservices.CustomServicesWorkflowUpdateParam;
 import com.emc.storageos.model.customservices.CustomServicesPrimitiveBulkRestRep;
 import com.emc.storageos.model.customservices.CustomServicesPrimitiveCreateParam;
 import com.emc.storageos.model.customservices.CustomServicesPrimitiveList;
 import com.emc.storageos.model.customservices.CustomServicesPrimitiveResourceRestRep;
 import com.emc.storageos.model.customservices.CustomServicesPrimitiveRestRep;
+import com.emc.storageos.model.customservices.CustomServicesPrimitiveUpdateParam;
+import com.emc.storageos.model.customservices.CustomServicesWorkflowCreateParam;
+import com.emc.storageos.model.customservices.CustomServicesWorkflowList;
+import com.emc.storageos.model.customservices.CustomServicesWorkflowRestRep;
+import com.emc.storageos.model.customservices.CustomServicesWorkflowUpdateParam;
 import com.emc.vipr.client.catalog.AbstractCatalogBulkResources;
 import com.emc.vipr.client.catalog.impl.PathConstants;
 import com.emc.vipr.client.impl.RestClient;
@@ -88,6 +89,10 @@ public class CustomServicesClient extends AbstractCatalogBulkResources<CustomSer
     
     public CustomServicesPrimitiveRestRep getPrimitive(final URI id) {
         return client.get(CustomServicesPrimitiveRestRep.class, PathConstants.CUSTOM_SERVICES_PRIMITIVE, id);
+    }
+
+    public CustomServicesPrimitiveRestRep updatePrimitive(final URI id, CustomServicesPrimitiveUpdateParam param) {
+        return client.put(CustomServicesPrimitiveRestRep.class,param,PathConstants.CUSTOM_SERVICES_PRIMITIVE,id);
     }
 
     public CustomServicesWorkflowList getWorkflows() {

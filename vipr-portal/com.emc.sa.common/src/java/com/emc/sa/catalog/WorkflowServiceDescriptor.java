@@ -23,6 +23,7 @@ import java.util.List;
 
 import javax.annotation.PostConstruct;
 
+import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -36,6 +37,7 @@ import com.emc.storageos.db.client.model.uimodels.CustomServicesWorkflow;
 import com.emc.storageos.db.client.model.uimodels.CustomServicesWorkflow.CustomServicesWorkflowStatus;
 import com.emc.storageos.model.customservices.CustomServicesWorkflowDocument;
 import com.emc.storageos.model.customservices.CustomServicesWorkflowDocument.Input;
+import com.emc.storageos.model.customservices.CustomServicesWorkflowDocument.InputGroup;
 import com.emc.storageos.model.customservices.CustomServicesWorkflowDocument.Step;
 
 /**
@@ -50,7 +52,6 @@ public class WorkflowServiceDescriptor {
     private static final String INPUT_FROM_USER_FIELD_TYPE = "text";
     private static final String CUSTOM_SERVICE_CATEGORY = "Custom Services";
 
-
     @PostConstruct
     public void init() {
         log.info("Initializing WorkflowServiceDescriptor");
@@ -62,10 +63,10 @@ public class WorkflowServiceDescriptor {
     public ServiceDescriptor getDescriptor(String serviceName) {
         log.debug("Getting workflow descriptor for {}", serviceName);
         List<CustomServicesWorkflow> results = customServicesWorkflowManager.getByName(serviceName);
-        if(null == results || results.isEmpty()) {
+        if (null == results || results.isEmpty()) {
             return null;
         }
-        if(results.size() > 1) {
+        if (results.size() > 1) {
             throw new IllegalStateException(String.format("Multiple workflows with the name %s", serviceName));
         }
         CustomServicesWorkflow customServicesWorkflow = results.get(0);
@@ -83,7 +84,7 @@ public class WorkflowServiceDescriptor {
         List<NamedElement> oeElements = customServicesWorkflowManager.listByStatus(CustomServicesWorkflowStatus.PUBLISHED);
         if (null != oeElements) {
             CustomServicesWorkflow oeWorkflow;
-            for(NamedElement oeElement: oeElements) {
+            for (NamedElement oeElement : oeElements) {
                 oeWorkflow = customServicesWorkflowManager.getById(oeElement.getId());
                 wfServiceDescriptors.add(mapWorkflowToServiceDescriptor(oeWorkflow));
             }
@@ -105,8 +106,9 @@ public class WorkflowServiceDescriptor {
 
             for (final Step step : wfDocument.getSteps()) {
                 if (null != step.getInputGroups()) {
-			//TODO add enum. and need to fix COP-28181
-			for (final Input wfInput : step.getInputGroups().get("input_params").getInputGroup()) {
+                    // Looping through all input groups
+                    for (final InputGroup inputGroup : step.getInputGroups().values()) {
+                        for (final Input wfInput : inputGroup.getInputGroup()) {
                             String wfInputType = null;
                             // Creating service fields for only inputs of type "inputfromuser" and "assetoption"
                             if (INPUT_FROM_USER_INPUT_TYPE.equals(wfInput.getType())) {
@@ -117,9 +119,10 @@ public class WorkflowServiceDescriptor {
                             if (null != wfInputType) {
                                 ServiceField serviceField = new ServiceField();
                                 String inputName = wfInput.getName();
-                                //TODO: change this to get description
+                                // TODO: change this to get description
                                 serviceField.setDescription(wfInput.getFriendlyName());
-                                serviceField.setLabel(wfInput.getFriendlyName());
+                                serviceField
+                                        .setLabel(StringUtils.isBlank(wfInput.getFriendlyName()) ? inputName : wfInput.getFriendlyName());
                                 serviceField.setName(inputName);
                                 serviceField.setRequired(wfInput.getRequired());
                                 serviceField.setInitialValue(wfInput.getDefaultValue());
@@ -131,6 +134,8 @@ public class WorkflowServiceDescriptor {
                                 to.getItems().put(inputName, serviceField);
                             }
                         }
+                    }
+
                 }
             }
 
@@ -142,4 +147,3 @@ public class WorkflowServiceDescriptor {
         return to;
     }
 }
-

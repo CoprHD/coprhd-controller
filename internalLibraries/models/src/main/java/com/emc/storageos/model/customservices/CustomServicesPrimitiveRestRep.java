@@ -17,14 +17,15 @@
 package com.emc.storageos.model.customservices;
 
 
-import com.emc.storageos.model.DataObjectRestRep;
-import com.emc.storageos.model.RestLinkRep;
 import java.util.List;
 import java.util.Map;
 
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlElementWrapper;
 import javax.xml.bind.annotation.XmlRootElement;
+
+import com.emc.storageos.model.DataObjectRestRep;
+import com.emc.storageos.model.NamedRelatedResourceRep;
 
 @XmlRootElement(name = "primitive")
 public class CustomServicesPrimitiveRestRep extends DataObjectRestRep {
@@ -36,7 +37,7 @@ public class CustomServicesPrimitiveRestRep extends DataObjectRestRep {
     private Map<String, InputGroup> inputGroups;
     private List<OutputParameterRestRep> output;
     private Map<String, String> attributes;
-    private RestLinkRep resource;
+    private NamedRelatedResourceRep resource;
 
     @XmlElement(name = "type")
     public String getType() {
@@ -102,11 +103,11 @@ public class CustomServicesPrimitiveRestRep extends DataObjectRestRep {
     }
 
     @XmlElement(name = "resource")
-    public RestLinkRep getResource() {
+    public NamedRelatedResourceRep getResource() {
         return resource;
     }
 
-    public void setResource(RestLinkRep resource) {
+    public void setResource(NamedRelatedResourceRep resource) {
         this.resource = resource;
     }
 

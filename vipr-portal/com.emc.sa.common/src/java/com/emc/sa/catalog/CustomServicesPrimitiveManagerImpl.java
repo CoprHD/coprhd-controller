@@ -37,6 +37,7 @@ public class CustomServicesPrimitiveManagerImpl implements CustomServicesPrimiti
     @Autowired
     private ModelClient client;
 
+    
     @Override
     public void save(final CustomServicesPrimitiveResource resource) {
         client.save(resource);

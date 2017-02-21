@@ -1513,8 +1513,7 @@ class Bourne:
                    mirrorCosUri, neighborhoods, expandable, sourceJournalSize, journalVarray, journalVpool, standbyJournalVarray, 
                    standbyJournalVpool, rp_copy_mode, rp_rpo_value, rp_rpo_type, protectionCoS,
                    multiVolumeConsistency, max_snapshots, max_mirrors, thin_volume_preallocation_percentage,
-                   long_term_retention, drive_type, system_type, srdf, auto_tiering_policy_name, host_io_limit_bandwidth, host_io_limit_iops,
-		   auto_cross_connect, placement_policy, compressionEnabled):
+                   long_term_retention, drive_type, system_type, srdf, auto_tiering_policy_name, host_io_limit_bandwidth, host_io_limit_iops,auto_cross_connect, placement_policy, compressionEnabled, schedule_snapshots, replication_supported, allow_policy_at_project_level, allow_policy_at_fs_level):
 
         if (type != 'block' and type != 'file' and type != "object" ):
             raise Exception('wrong type for vpool: ' + str(type))
@@ -1653,6 +1652,10 @@ class Bourne:
             if (max_snapshots):
                 cos_protection_snapshot_params = dict()
                 cos_protection_snapshot_params['max_native_snapshots'] = max_snapshots
+                cos_protection_snapshot_params['schedule_snapshots'] = schedule_snapshots
+                cos_protection_snapshot_params['replication_supported'] = replication_supported
+                cos_protection_snapshot_params['allow_policy_at_project_level'] = allow_policy_at_project_level
+                cos_protection_snapshot_params['allow_policy_at_fs_level'] = allow_policy_at_fs_level
                 cos_protection_params['snapshots'] = cos_protection_snapshot_params
 
             parms['protection'] = cos_protection_params
@@ -1680,7 +1683,7 @@ class Bourne:
                    mirrorCosUri, neighborhoods, expandable, sourceJournalSize, journalVarray, journalVpool, standbyJournalVarray, 
                    standbyJournalVpool, rp_copy_mode, rp_rpo_value, rp_rpo_type, protectionCoS,
                    multiVolumeConsistency, max_snapshots, max_mirrors, thin_volume_preallocation_percentage, drive_type,
-                   system_type, srdf, compressionEnabled):
+                   system_type, srdf, compressionEnabled, schedule_snapshots, replication_supported, allow_policy_at_project_level, allow_policy_at_fs_level):
 
         if (type != 'block' and type != 'file' and type != "object" ):
             raise Exception('wrong type for vpool: ' + str(type))
@@ -1789,6 +1792,10 @@ class Bourne:
             if (max_snapshots):
                 cos_protection_snapshot_params = dict()
                 cos_protection_snapshot_params['max_native_snapshots'] = max_snapshots
+                cos_protection_snapshot_params['schedule_snapshots'] = schedule_snapshots
+                cos_protection_snapshot_params['replication_supported'] = replication_supported
+                cos_protection_snapshot_params['allow_policy_at_project_level'] = allow_policy_at_project_level
+                cos_protection_snapshot_params['allow_policy_at_fs_level'] = allow_policy_at_fs_level
                 cos_protection_params['snapshots'] = cos_protection_snapshot_params
 
             parms['protection'] = cos_protection_params
@@ -9616,7 +9623,9 @@ class Bourne:
     
     # deletes the filepolicy
     def filepolicy_delete(self, uri):
-        return self.api('DELETE', URI_FILE_POLICY_DELETE.format(uri))
+        o = self.api('DELETE', URI_FILE_POLICY_DELETE.format(uri))
+        self.assert_is_dict(o)
+        s = self.api_sync_2(o['resource']['id'], o['op_id'], self.filepolicy_show_task)
     
     # creates the snapshot filepolicy
     def filepolicy_create_snapshot_pol(self, name, policy_type, apply_at, description, policyscheduleweek, policyschedulemonth, snapshotnamepattern, snapshotexpiretype, snapshotexpirevalue, policyschedulefrequency, policyschedulerepeat, policyscheduletime):
@@ -9627,7 +9636,9 @@ class Bourne:
             'description'       : description,
             }
         parms['snapshot_params'] = {'snapshot_name_pattern': snapshotnamepattern, 'snapshot_expire_params': {'expire_type' : snapshotexpiretype, 'expire_value' : snapshotexpirevalue}, 'policy_schedule': {'schedule_frequency' : policyschedulefrequency, 'schedule_repeat': policyschedulerepeat,'schedule_time' : policyscheduletime, 'schedule_day_of_week': policyscheduleweek, 'schedule_day_of_month' : policyschedulemonth}}
-        return self.api('POST', URI_FILE_POLICIES, parms)
+        o = self.api('POST', URI_FILE_POLICIES, parms)
+        self.assert_is_dict(o)
+        s = self.api_sync_2(o['resource']['id'], o['op_id'], self.filepolicy_show_task)
     
     # creates the replication filepolicy
     def filepolicy_create_replication_pol(self, name, policy_type, apply_at, description, policyscheduleweek, policyschedulemonth, replicationtype, replicationcopymode, replicationconfiguration, policyschedulefrequency, policyschedulerepeat, policyscheduletime):
@@ -9640,7 +9651,9 @@ class Bourne:
             'num_worker_threads': num_worker_threads
             }
         parms['replication_params'] = {'replication_type': replicationtype, 'replication_copy_mode': replicationcopymode, 'replicate_configuration' : replicationconfiguration, 'policy_schedule': {'schedule_frequency' : policyschedulefrequency, 'schedule_repeat': policyschedulerepeat,'schedule_time' : policyscheduletime, 'schedule_day_of_week': policyscheduleweek, 'schedule_day_of_month' : policyschedulemonth}}
-        return self.api('POST', URI_FILE_POLICIES, parms)
+        o = self.api('POST', URI_FILE_POLICIES, parms)
+        self.assert_is_dict(o)
+        s = self.api_sync_2(o['resource']['id'], o['op_id'], self.filepolicy_show_task)
     
     # assigns thefilepolicy to vPool
     def filepolicy_vpool_assign(self, name, apply_on_target_site, assign_to_vpools, source_varray, target_varrays) :
@@ -9665,7 +9678,9 @@ class Bourne:
                 assign_target_varrays.append(uri)
         parms['file_replication_topologies'] = {'source_varray': src_varray_uri , target_varrays:assign_target_varrays}
         filepolicy = self.filepolicy_query(name)
-        return self.api('POST', URI_FILE_POLICY_ASSIGN.format(filepolicy['id']), parms)
+        o = self.api('POST', URI_FILE_POLICY_ASSIGN.format(filepolicy['id']), parms)
+        self.assert_is_dict(o)
+        s = self.api_sync_2(o['resource']['id'], o['op_id'], self.filepolicy_show_task)
     
     # assigns the filepolicy to project
     def filepolicy_project_assign(self, name, apply_on_target_site, project_assign_vpool, assign_to_projects, source_varray, target_varrays):
@@ -9690,10 +9705,12 @@ class Bourne:
                 assign_target_varrays.append(uri)
         parms['file_replication_topologies'] = {'source_varray': src_varray_uri , 'target_varrays' :assign_target_varrays}
         filepolicy = self.filepolicy_query(name)
-        return self.api('POST', URI_FILE_POLICY_ASSIGN.format(filepolicy['id']), parms)
+        o = self.api('POST', URI_FILE_POLICY_ASSIGN.format(filepolicy['id']), parms)
+        self.assert_is_dict(o)
+        s = self.api_sync_2(o['resource']['id'], o['op_id'], self.filepolicy_show_task)
     
      # unassigns the filepolicy from vpool
-    def filepolicy_vpool_assign(self, name, unassign_from_vpools):
+    def filepolicy_vpool_unassign(self, name, unassign_from_vpools):
         parms = {
             'name'              : name,
             }
@@ -9705,10 +9722,12 @@ class Bourne:
                          unassign_request_vpools.append(uri)
         parms['unassign_from'] = unassign_request_vpools
         filepolicy = self.filepolicy_query(name)
-        return self.api('POST', URI_FILE_POLICY_UNASSIGN.format(filepolicy['id']), parms)
+        o = self.api('POST', URI_FILE_POLICY_UNASSIGN.format(filepolicy['id']), parms)
+        self.assert_is_dict(o)
+        s = self.api_sync_2(o['resource']['id'], o['op_id'], self.filepolicy_show_task)
     
     # unassigns the filepolicy from project
-    def filepolicy_vpool_assign(self, name, unassign_from_projects):
+    def filepolicy_vpool_unassign(self, name, unassign_from_projects):
         parms = {
             'name'              : name,
             }
@@ -9720,5 +9739,13 @@ class Bourne:
                          unassign_request_projects.append(uri)
         parms['unassign_from'] = unassign_request_projects
         filepolicy = self.filepolicy_query(name)
-        return self.api('POST', URI_FILE_POLICY_UNASSIGN.format(filepolicy['id']), parms)
+        o = self.api('POST', URI_FILE_POLICY_UNASSIGN.format(filepolicy['id']), parms)
+        self.assert_is_dict(o)
+        s = self.api_sync_2(o['resource']['id'], o['op_id'], self.filepolicy_show_task)
+        self.assert_is_dict(o)
+        s = self.api_sync_2(o['resource']['id'], o['op_id'], self.filepolicy_show_task)
+    
+    def filepolicy_show_task(self, fp, task):
+        uri_filepolicy_task = URI_FILE_POLICY_SHOW + '/tasks/{1}'
+        return self.api('GET', uri_filepolicy_task.format(fp, task))
     

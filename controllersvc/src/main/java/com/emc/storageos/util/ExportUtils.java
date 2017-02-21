@@ -2037,7 +2037,7 @@ public class ExportUtils {
                 }
             }
             // Stale initiators = EG initiators - all initiators available in all the eg.masks
-            Set<String> staleInitiators = Sets.difference(exportGroupInitiators, allMaskInitiators);
+            Set<String> staleInitiators = new HashSet<>(Sets.difference(exportGroupInitiators, allMaskInitiators));
             if (!CollectionUtils.isEmpty(staleInitiators)) {
                 Collection<URI> staleInitiatorURIs = Collections2.transform(staleInitiators,
                         CommonTransformerFunctions.FCTN_STRING_TO_URI);
@@ -2083,8 +2083,8 @@ public class ExportUtils {
                     volumesInAllMasks.addAll(maskObj.getUserAddedVolumes().values());
                 }
             }
-
-            Set<String> volumeDiff = Sets.difference(exportGroupVolumes, volumesInAllMasks);
+            // To Avoid concurrent modfication exception created new set instance
+            Set<String> volumeDiff = new HashSet<>(Sets.difference(exportGroupVolumes, volumesInAllMasks));
             if (!CollectionUtils.isEmpty(volumeDiff)) {
                 exportGroup.removeVolumes(volumeDiff);
                 _log.info("Stale volumes {}  removed from Export Group {}", volumeDiff, exportGroup.getId());
@@ -2129,7 +2129,7 @@ public class ExportUtils {
                     egHosts.add(initiator.getHost().toString());
                 }
             }
-            Set<String> staleHosts = Sets.difference(exportGroup.getHosts(), egHosts);
+            Set<String> staleHosts = new HashSet<>(Sets.difference(exportGroup.getHosts(), egHosts));
             if (!CollectionUtils.isEmpty(staleHosts)) {
                 Collection<URI> staleHostURIs = Collections2.transform(staleHosts,
                         CommonTransformerFunctions.FCTN_STRING_TO_URI);
@@ -2172,7 +2172,7 @@ public class ExportUtils {
                     egClusterURIs.add(host.getCluster().toString());
                 }
             }
-            Set<String> staleClusters = Sets.difference(exportGroup.getClusters(), egClusterURIs);
+            Set<String> staleClusters = new HashSet<>(Sets.difference(exportGroup.getClusters(), egClusterURIs));
             if (!CollectionUtils.isEmpty(staleClusters)) {
                 Collection<URI> staleClusterURIs = Collections2.transform(staleClusters,
                         CommonTransformerFunctions.FCTN_STRING_TO_URI);

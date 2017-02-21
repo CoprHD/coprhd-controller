@@ -35,6 +35,8 @@ import com.emc.storageos.db.client.model.NFSShareACL;
 import com.emc.storageos.db.client.model.PhysicalNAS;
 import com.emc.storageos.db.client.model.PolicyStorageResource;
 import com.emc.storageos.db.client.model.Project;
+import com.emc.storageos.db.client.model.ScopedLabel;
+import com.emc.storageos.db.client.model.ScopedLabelSet;
 import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
@@ -980,10 +982,18 @@ public final class FileOrchestrationUtils {
             StoragePort port = dbClient.queryObject(StoragePort.class, storagePortIter.next());
             if (port != null && !port.getInactive()) {
                 // iterate until dr port found!!
-                if (port.getTag() != null && port.getTag().contains("dr_port")) {
-                    targetHost = port.getPortNetworkId();
-                    _log.info("DR port {} found from storage system {} for replication", targetHost, targetSystem.getLabel());
-                    break;
+                if (port.getTag() != null) {
+                    ScopedLabelSet portTagSet = port.getTag();
+                    if (portTagSet != null && !portTagSet.isEmpty()) {
+                        for (ScopedLabel tag : portTagSet) {
+                            if ("dr_port".equals(tag.getLabel())) {
+                                _log.info("DR port {} found from storage system {} for replication", port.getPortNetworkId(),
+                                        targetSystem.getLabel());
+                                return port.getPortNetworkId();
+                            }
+                        }
+
+                    }
                 }
             }
         }

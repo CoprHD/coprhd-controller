@@ -2871,7 +2871,15 @@ public class VmaxExportOperations implements ExportMaskOperations {
         } catch (WBEMException we) {
             _log.info("{} Problem when trying to create masking view ... going to look up masking view.",
                     storage.getSerialNumber(), we);
-            if (handleCreateMaskingViewException(storage, maskingViewName)) {
+            boolean handleException = false;
+            
+            try {
+                handleException = handleCreateMaskingViewException(storage, maskingViewName);
+            } catch (Exception e) {
+                _log.error("Issue trying to handle Export Mask exception", e);
+            }
+            
+            if (handleException) {
                 _log.info("{} Found masking view: {}", storage.getSerialNumber(), maskingViewName);
                 taskCompleter.ready(_dbClient);
             } else {

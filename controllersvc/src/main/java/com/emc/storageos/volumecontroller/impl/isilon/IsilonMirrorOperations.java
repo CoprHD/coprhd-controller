@@ -237,7 +237,6 @@ public class IsilonMirrorOperations {
             IsilonApi isi = getIsilonDevice(system);
             IsilonSyncPolicy policy = isi.getReplicationPolicy(policyName);
             JobState policyState = policy.getLastJobState();
-
             if (policyState.equals(JobState.running) || policyState.equals(JobState.paused)) {
                 _log.info("Canceling Replication Policy  -{} because policy is in - {} state ", policyName, policyState);
                 IsilonSyncPolicy modifiedPolicy = new IsilonSyncPolicy();
@@ -245,15 +244,8 @@ public class IsilonMirrorOperations {
                 modifiedPolicy.setLastJobState(JobState.canceled);
                 isi.modifyReplicationPolicy(policyName, modifiedPolicy);
                 return BiosCommandResult.createSuccessfulResult();
-
-            } else {
-                _log.error("Replication Policy - {} can't be CANCEL because policy's last job is in {} state", policyName,
-                        policyState);
-                ServiceError error = DeviceControllerErrors.isilon
-                        .jobFailed(
-                                "doCancelReplicationPolicy as : Replication Policy Job can't be Cancel because policy's last job is NOT in PAUSED state");
-                return BiosCommandResult.createErrorResult(error);
             }
+            return BiosCommandResult.createSuccessfulResult();
         } catch (IsilonException e) {
             return BiosCommandResult.createErrorResult(e);
         }
@@ -336,6 +328,7 @@ public class IsilonMirrorOperations {
                 modifiedPolicy.setName(policyName);
                 modifiedPolicy.setEnabled(false);
                 isi.modifyReplicationPolicy(policyName, modifiedPolicy);
+                _log.info("Replication Policy -{}  disabled successfully.", policy.toString());
                 return BiosCommandResult.createSuccessfulResult();
             } else {
                 _log.info("Replication Policy - {} can't be STOPPED because policy is already DISABLED", policy.toString());

@@ -2552,20 +2552,6 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         return null;
     }
 
-    /*
-     * @Override
-     * public BiosCommandResult doStopMirrorLink(StorageSystem system, FileShare source) {
-     * IsilonMirrorOperations isiMirrorOp = new IsilonMirrorOperations();
-     * PolicyStorageResource policyStrRes = getEquivalentPolicyStorageResource(source, _dbClient);
-     * if (policyStrRes != null) {
-     * String policyName = policyStrRes.getPolicyNativeId();
-     * return isiMirrorOp.dodeleteReplicationPolicy(system, policyName);
-     * }
-     * ServiceError serviceError = DeviceControllerErrors.isilon.unableToCreateFileShare();
-     * return BiosCommandResult.createErrorResult(serviceError);
-     * }
-     */
-
     @Override
     public BiosCommandResult doPauseLink(StorageSystem system, FileShare source) {
 

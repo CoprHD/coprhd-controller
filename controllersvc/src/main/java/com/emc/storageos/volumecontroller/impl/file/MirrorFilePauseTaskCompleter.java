@@ -24,11 +24,9 @@ public class MirrorFilePauseTaskCompleter extends MirrorFileTaskCompleter {
     protected void complete(DbClient dbClient, Status status, ServiceCoded coded) throws DeviceControllerException {
         try {
             setDbClient(dbClient);
-            recordMirrorOperation(dbClient, OperationTypeEnum.PAUSE_FILE_MIRROR, status, getSourceFileShare().getId().toString(),
-                    getTargetFileShare().getId().toString());
-
+            recordMirrorOperation(dbClient, OperationTypeEnum.PAUSE_FILE_MIRROR, status, getId());
         } catch (Exception e) {
-            _log.error("Failed updating status. MirrorSessionPause {}, for task " + getOpId(), getId(), e);
+            _log.error("Failed updating status MirrorSessionPause {}.", getId(), e);
         } finally {
             super.complete(dbClient, status, coded);
         }

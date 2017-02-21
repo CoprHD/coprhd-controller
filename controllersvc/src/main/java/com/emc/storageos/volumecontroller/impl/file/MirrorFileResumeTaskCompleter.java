@@ -30,11 +30,9 @@ public class MirrorFileResumeTaskCompleter extends MirrorFileTaskCompleter {
     protected void complete(DbClient dbClient, Status status, ServiceCoded coded) throws DeviceControllerException {
         try {
             setDbClient(dbClient);
-            recordMirrorOperation(dbClient, OperationTypeEnum.RESUME_FILE_MIRROR, status, getSourceFileShare().getId().toString(),
-                    getTargetFileShare().getId().toString());
-
+            recordMirrorOperation(dbClient, OperationTypeEnum.RESUME_FILE_MIRROR, status, getId());
         } catch (Exception e) {
-            _log.error("Failed updating status. MirrorSessionResume {}, for task " + getOpId(), getId(), e);
+            _log.error("Failed updating status MirrorSessionPause {}.", getId(), e);
         } finally {
             super.complete(dbClient, status, coded);
         }
@@ -42,11 +40,6 @@ public class MirrorFileResumeTaskCompleter extends MirrorFileTaskCompleter {
 
     @Override
     protected String getFileMirrorStatusForSuccess(FileShare fs) {
-        if (fs.getStorageDevice().equals(getStorageUri())) {
-            return MirrorStatus.SYNCHRONIZED.name();
-        } else {
-            return fs.getMirrorStatus();
-        }
+        return MirrorStatus.SYNCHRONIZED.name();
     }
-
 }

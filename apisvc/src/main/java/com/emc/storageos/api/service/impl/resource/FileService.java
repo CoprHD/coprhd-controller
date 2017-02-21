@@ -175,7 +175,6 @@ import com.emc.storageos.volumecontroller.FileShareExport;
 import com.emc.storageos.volumecontroller.FileShareExport.Permissions;
 import com.emc.storageos.volumecontroller.FileShareExport.SecurityTypes;
 import com.emc.storageos.volumecontroller.FileShareQuotaDirectory;
-import com.emc.storageos.volumecontroller.impl.FileDeviceController;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
 
 @Path("/file/filesystems")
@@ -2898,7 +2897,9 @@ public class FileService extends TaskResourceService {
 
         StorageSystem system = _dbClient.queryObject(StorageSystem.class, sourceFileShare.getStorageDevice());
         FileController controller = getController(FileController.class, system.getSystemType());
+
         controller.performFileReplicationOperation(system.getId(), id, ProtectionOp.START.toString().toLowerCase(), task);
+
         return toTask(sourceFileShare, task, op);
     }
 
@@ -2951,12 +2952,18 @@ public class FileService extends TaskResourceService {
         doMirrorOperationValidation(id, ProtectionOp.STOP.toString());
         String task = UUID.randomUUID().toString();
         FileShare sourceFileShare = queryResource(id);
+        Set<URI> unassignFrom = new HashSet<>();
+        unassignFrom.add(id);
+        FilePolicy filepolicy = FileSystemReplicationUtils.getReplicationPolicyAppliedOnFS(sourceFileShare, _dbClient);
+
         Operation op = _dbClient.createTaskOpStatus(FileShare.class, id, task, ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_STOP);
         op.setDescription("stop the replication link between source and target");
 
-        StorageSystem system = _dbClient.queryObject(StorageSystem.class, sourceFileShare.getStorageDevice());
-        FileDeviceController controller = getController(FileDeviceController.class, system.getSystemType());
-        controller.performFileReplicationOperation(system.getId(), id, ProtectionOp.STOP.toString().toLowerCase(), task);
+        FileOrchestrationController controller = getController(FileOrchestrationController.class,
+                FileOrchestrationController.FILE_ORCHESTRATION_DEVICE);
+
+        controller.unassignFilePolicy(filepolicy.getId(), unassignFrom, task);
+        auditOp(OperationTypeEnum.STOP_FILE_MIRROR, true, "BEGIN", sourceFileShare.getId().toString());
         return toTask(sourceFileShare, task, op);
     }
 

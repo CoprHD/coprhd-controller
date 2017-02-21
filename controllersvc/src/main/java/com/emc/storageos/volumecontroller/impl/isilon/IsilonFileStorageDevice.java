@@ -100,7 +100,6 @@ import com.emc.storageos.volumecontroller.FileShareExport;
 import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.BiosCommandResult;
 import com.emc.storageos.volumecontroller.impl.file.AbstractFileStorageDevice;
-import com.emc.storageos.volumecontroller.impl.file.FileMirrorOperations;
 import com.google.common.collect.Sets;
 
 /**
@@ -124,19 +123,19 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
     private IsilonApiFactory _factory;
     private HashMap<String, String> configinfo;
 
-    protected DbClient _dbClient;
+    private DbClient _dbClient;
     @Autowired
     private CustomConfigHandler customConfigHandler;
     @Autowired
     private DataSourceFactory dataSourceFactory;
 
-    private FileMirrorOperations mirrorOperations;
+    private IsilonMirrorOperations mirrorOperations;
 
-    public FileMirrorOperations getMirrorOperations() {
+    public IsilonMirrorOperations getMirrorOperations() {
         return mirrorOperations;
     }
 
-    public void setMirrorOperations(FileMirrorOperations mirrorOperations) {
+    public void setMirrorOperations(IsilonMirrorOperations mirrorOperations) {
         this.mirrorOperations = mirrorOperations;
     }
 
@@ -2532,16 +2531,16 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
 
     @Override
     public void doCreateMirrorLink(StorageSystem system, URI source, URI target, TaskCompleter completer) {
-        mirrorOperations.createMirrorFileShareLink(system, source, target, completer);
+        // mirrorOperations.createMirrorFileShareLink(system, source, target, completer);
     }
 
     @Override
     public BiosCommandResult doStartMirrorLink(StorageSystem system, FileShare source, TaskCompleter completer) {
-        IsilonMirrorOperations isiMirrorOp = new IsilonMirrorOperations();
+
         PolicyStorageResource policyStrRes = getEquivalentPolicyStorageResource(source, _dbClient);
         if (policyStrRes != null) {
             String policyName = policyStrRes.getPolicyNativeId();
-            return isiMirrorOp.doStartReplicationPolicy(system, policyName, completer);
+            return mirrorOperations.doStartReplicationPolicy(system, policyName, completer);
         }
         ServiceError serviceError = DeviceControllerErrors.isilon.unableToCreateFileShare();
         return BiosCommandResult.createErrorResult(serviceError);
@@ -2570,7 +2569,6 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
     @Override
     public BiosCommandResult doPauseLink(StorageSystem system, FileShare source) {
 
-        IsilonMirrorOperations isiMirrorOp = new IsilonMirrorOperations();
         PolicyStorageResource policyStrRes = getEquivalentPolicyStorageResource(source, _dbClient);
         if (policyStrRes != null) {
             String policyName = policyStrRes.getPolicyNativeId();
@@ -2579,9 +2577,9 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             JobState policyState = policy.getLastJobState();
 
             if (policyState.equals(JobState.running) || policyState.equals(JobState.paused)) {
-                isiMirrorOp.doCancelReplicationPolicy(system, policyName);
+                mirrorOperations.doCancelReplicationPolicy(system, policyName);
             }
-            return isiMirrorOp.doStopReplicationPolicy(system, policyName);
+            return mirrorOperations.doStopReplicationPolicy(system, policyName);
         }
         ServiceError serviceError = DeviceControllerErrors.isilon.unableToCreateFileShare();
         return BiosCommandResult.createErrorResult(serviceError);
@@ -2593,11 +2591,11 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
 
     @Override
     public BiosCommandResult doResumeLink(StorageSystem system, FileShare source, TaskCompleter completer) {
-        IsilonMirrorOperations isiMirrorOp = new IsilonMirrorOperations();
+
         PolicyStorageResource policyStrRes = getEquivalentPolicyStorageResource(source, _dbClient);
         if (policyStrRes != null) {
             String policyName = policyStrRes.getPolicyNativeId();
-            return isiMirrorOp.doStartReplicationPolicy(system, policyName, completer);
+            return mirrorOperations.doStartReplicationPolicy(system, policyName, completer);
         }
         ServiceError serviceError = DeviceControllerErrors.isilon.unableToCreateFileShare();
         return BiosCommandResult.createErrorResult(serviceError);
@@ -2608,7 +2606,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         if (devSpecificPolicyName == null) {
             devSpecificPolicyName = gerneratePolicyName(systemTarget, target);
         }
-        mirrorOperations.failoverMirrorFileShareLink(systemTarget, target, completer, devSpecificPolicyName);
+        // mirrorOperations.failoverMirrorFileShareLink(systemTarget, target, completer, devSpecificPolicyName);
     }
 
     @Override
@@ -2617,7 +2615,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         if (devSpecificPolicyName == null) {
             devSpecificPolicyName = gerneratePolicyName(primarySystem, target);
         }
-        mirrorOperations.resyncMirrorFileShareLink(primarySystem, secondarySystem, target, completer, devSpecificPolicyName);
+        // mirrorOperations.resyncMirrorFileShareLink(primarySystem, secondarySystem, target, completer, devSpecificPolicyName);
     }
 
     /**

@@ -5,17 +5,20 @@
 package com.emc.storageos.volumecontroller.impl.isilon;
 
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.FileShare;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.exceptions.DeviceControllerErrors;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.isilon.restapi.IsilonApi;
+import com.emc.storageos.isilon.restapi.IsilonApiFactory;
 import com.emc.storageos.isilon.restapi.IsilonException;
 import com.emc.storageos.isilon.restapi.IsilonSyncJob;
 import com.emc.storageos.isilon.restapi.IsilonSyncJob.Action;
@@ -36,8 +39,27 @@ import com.emc.storageos.volumecontroller.impl.isilon.job.IsilonSyncJobStart;
 import com.emc.storageos.volumecontroller.impl.job.QueueJob;
 import com.emc.storageos.workflow.WorkflowStepCompleter;
 
-public class IsilonMirrorOperations extends IsilonFileStorageDevice {
+public class IsilonMirrorOperations {
     private static final Logger _log = LoggerFactory.getLogger(IsilonMirrorOperations.class);
+    private DbClient _dbClient;
+    private IsilonApiFactory _factory;
+
+    public IsilonApiFactory getIsilonApiFactory() {
+        return _factory;
+    }
+
+    /**
+     * Set Isilon API factory
+     * 
+     * @param factory
+     */
+    public void setIsilonApiFactory(IsilonApiFactory factory) {
+        _factory = factory;
+    }
+
+    public void setDbClient(DbClient dbClient) {
+        _dbClient = dbClient;
+    }
 
     public void deleteMirrorFileShareLink(StorageSystem system, URI source, URI target, TaskCompleter completer)
             throws DeviceControllerException {
@@ -235,6 +257,32 @@ public class IsilonMirrorOperations extends IsilonFileStorageDevice {
         } catch (IsilonException e) {
             return BiosCommandResult.createErrorResult(e);
         }
+
+    }
+
+    /**
+     * Get isilon device represented by the StorageDevice
+     * 
+     * @param device
+     *            StorageDevice object
+     * @return IsilonApi object
+     * @throws IsilonException
+     */
+    private IsilonApi getIsilonDevice(StorageSystem device) throws IsilonException {
+        IsilonApi isilonAPI;
+        URI deviceURI;
+        try {
+            deviceURI = new URI("https", null, device.getIpAddress(), device.getPortNumber(), "/", null, null);
+        } catch (URISyntaxException ex) {
+            throw IsilonException.exceptions.errorCreatingServerURL(device.getIpAddress(), device.getPortNumber(), ex);
+        }
+        if (device.getUsername() != null && !device.getUsername().isEmpty()) {
+            isilonAPI = _factory.getRESTClient(deviceURI, device.getUsername(), device.getPassword());
+        } else {
+            isilonAPI = _factory.getRESTClient(deviceURI);
+        }
+
+        return isilonAPI;
 
     }
 

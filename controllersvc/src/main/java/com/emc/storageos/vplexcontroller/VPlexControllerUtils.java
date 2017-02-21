@@ -547,6 +547,8 @@ public class VPlexControllerUtils {
                     viprInits.add(Initiator.normalizePort(init.getInitiatorPort()));
                 }
             }
+            // Update user added volume's HLU information in ExportMask and ExportGroup
+            ExportMaskUtils.updateHLUsInExportMask(exportMask, discoveredVolumes, dbClient);
 
             String name = exportMask.getMaskName();
 

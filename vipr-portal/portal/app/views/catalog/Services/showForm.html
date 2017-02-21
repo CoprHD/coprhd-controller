@@ -69,8 +69,8 @@
     #{/if}
     
       <!-- asset error -->
-      <div class="alert alert-danger hideFast" ng-show="assetError">
-          <button type="button" class="close" ng-click="assetError = null" aria-hidden="true">&times;</button>
+      <div class="alert alert-danger hideFast" ng-if="assetError">
+          <button type="button" class="close" ng-click="dismissAssetError()" aria-hidden="true">&times;</button>
           <div id="assetErrorMessage" style="white-space: pre-line;">{{assetError}}</div>
       </div>
     
@@ -95,8 +95,8 @@
 			        #{Modal.body}
 			          #{Form.header titleKey:'{{serviceDescriptor.modalTitle}}'/}
 			          <!-- asset error -->
-				      <div class="alert alert-danger hideFast" ng-show="assetError">
-				          <button type="button" class="close" ng-click="assetError = null" aria-hidden="true">&times;</button>
+				      <div class="alert alert-danger hideFast" ng-if="assetError">
+				          <button type="button" class="close" ng-click="dismissAssetError()" aria-hidden="true">&times;</button>
 				          <div id="assetErrorMessage" style="white-space: pre-line;">{{assetError}}</div>
 				      </div>
 			          <service-modal modal="item"></service-modal>

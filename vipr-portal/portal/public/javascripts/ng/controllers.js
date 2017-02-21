@@ -303,12 +303,16 @@ angular.module("portalApp").controller({
             // if we make it out, enable the order button
             return result;
         };
+        $scope.dismissAssetError = function() {
+            $scope.$root.assetError = undefined;
+        }
         $scope.showModalDialog = function() {
             $('#serviceModal').modal({backdrop: 'static', keyboard: false});
             $scope.enableModalFields();
         }
         $scope.hideModalDialog = function() {
             $('#serviceModal').modal('hide');
+            $scope.dismissAssetError();
             $scope.disableModalFields();
         }
         $scope.disableModalButton = function() {

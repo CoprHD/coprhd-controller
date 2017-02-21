@@ -936,7 +936,7 @@ public class FileDeviceInputOutput {
 
     // replace all special characters except forward slash; -+!@#$%^&())";:[]{}\ |
     public String getPathWithoutSpecialCharacters(String path) {
-        return path.replaceAll("[^/\\-\\dA-Za-z ]", "").replaceAll("\\s+", "_");
+        return path.replaceAll("[^/\\dA-Za-z ]", "").replaceAll("\\s+", "_");
     }
 
     public Project getProject() {

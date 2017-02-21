@@ -4,29 +4,37 @@
  */
 package com.emc.storageos.scaleio.api;
 
+import com.emc.storageos.scaleio.api.restapi.ScaleIORestClient;
+import com.emc.storageos.scaleio.api.restapi.ScaleIORestClientFactory;
+import com.emc.storageos.scaleio.api.restapi.response.ScaleIODevice;
+import com.emc.storageos.scaleio.api.restapi.response.ScaleIOFaultSet;
+import com.emc.storageos.scaleio.api.restapi.response.ScaleIOProtectionDomain;
+import com.emc.storageos.scaleio.api.restapi.response.ScaleIOSDC;
+import com.emc.storageos.scaleio.api.restapi.response.ScaleIOSDS;
+import com.emc.storageos.scaleio.api.restapi.response.ScaleIOScsiInitiator;
+import com.emc.storageos.scaleio.api.restapi.response.ScaleIOStoragePool;
+import com.emc.storageos.scaleio.api.restapi.response.ScaleIOSystem;
+import com.emc.storageos.scaleio.api.restapi.response.ScaleIOVolume;
 import java.net.URI;
+import static java.text.MessageFormat.format;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
+import org.junit.Assert;
 import org.junit.BeforeClass;
+import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.emc.storageos.scaleio.api.restapi.ScaleIORestClient;
-import com.emc.storageos.scaleio.api.restapi.ScaleIORestClientFactory;
-import com.emc.storageos.scaleio.api.restapi.response.ScaleIOSDS;
-import com.emc.storageos.scaleio.api.restapi.response.ScaleIOScsiInitiator;
-import com.emc.storageos.scaleio.api.restapi.response.ScaleIOVolume;
-import com.emc.storageos.services.util.EnvConfig;
 
 public class ScaleIORestClientTest {
     private static Logger log = LoggerFactory.getLogger(ScaleIORestClientTest.class);
     private static ScaleIORestClient restClient;
     private static final String UNIT_TEST_CONFIG_FILE = "sanity";
-    private static final String HOST = EnvConfig.get(UNIT_TEST_CONFIG_FILE, "scaleio.host.api.ipaddress");
-    private static final String USER = EnvConfig.get(UNIT_TEST_CONFIG_FILE, "scaleio.host.api.user");
-    private static final String PASSWORD = EnvConfig.get(UNIT_TEST_CONFIG_FILE, "scaleio.host.api.password");
+    private static final String HOST = "10.247.97.83";//EnvConfig.get(UNIT_TEST_CONFIG_FILE, "scaleio.host.api.ipaddress");
+    private static final String USER = "admin";//EnvConfig.get(UNIT_TEST_CONFIG_FILE, "scaleio.host.api.user");
+    private static final String PASSWORD = "ChangeMe1!";//EnvConfig.get(UNIT_TEST_CONFIG_FILE, "scaleio.host.api.password");
     private static int PORT = 443;
 
     @BeforeClass
@@ -69,6 +77,54 @@ public class ScaleIORestClientTest {
             }
         } catch (Exception e) {
             log.error("Exception: ", e);
+            Assert.fail();
+        }
+    }
+
+    // @Test
+    public void testQuerySDSdetails() {
+        List<ScaleIOSDS> result = null;
+        Map<String,ScaleIOProtectionDomain> pdMap = null;
+        Map<String,ScaleIOFaultSet> fsMap = null;
+        Map<String,ScaleIOStoragePool> spMap = null;
+        try {
+            result = restClient.queryAllSDS();
+            pdMap = restClient.getProtectionDomains().stream().collect(
+                    Collectors.toMap(ScaleIOProtectionDomain::getId,p->p));
+            List<ScaleIOFaultSet> fsList = restClient.queryAllFaultSets();
+            if (null != fsList) {
+                fsMap = restClient.queryAllFaultSets().stream().collect(
+                        Collectors.toMap(ScaleIOFaultSet::getId, f -> f));
+            }
+            spMap = restClient.queryAllStoragePools().stream().collect(
+                    Collectors.toMap(ScaleIOStoragePool::getId,s->s));
+
+            for (ScaleIOSDS sds : result) {
+
+                List<ScaleIODevice> devices = restClient.getSdsDevices(sds.getId());
+
+                String sdsId = sds.getId();
+                String sdsPort = sds.getPort();
+                String sdsIp = sds.getIpList().get(0).getIp();
+                String sdsPd = null;
+                if (null != pdMap) {
+                    sdsPd = pdMap.get(sds.getProtectionDomainId()).getName();
+                }
+                String sdsFs = null;
+                if (null != fsMap) {
+                    sdsFs = fsMap.get(sds.getFaultSetId()).getName();
+                }
+                //Gson gson = new GsonBuilder().setPrettyPrinting().create();
+                //System.out.println(gson.toJson(sds));
+                System.out.printf("Sds id : %s  port : %s  IP: %s  PD: %s FS: %s %n", sdsId, sdsPort, sdsIp,sdsPd,sdsFs);
+                for(ScaleIODevice device:devices) {
+                    String spName = spMap.get(device.getStoragePoolId()).getName();
+                    System.out.printf("\t Storage Pool name: %s device: %s %n",spName,device.getDeviceCurrentPathName());
+                }
+
+            }
+        } catch (Exception e) {
+            log.error("Exception: ", e);
         }
     }
 
@@ -88,6 +144,112 @@ public class ScaleIORestClientTest {
             }
         } catch (Exception e) {
             log.error("Exception: ", e);
+            Assert.fail();
+        }
+    }
+
+    @Test
+    public void testQuerySystemName() {
+
+        try {
+            ScaleIOSystem result = restClient.getSystem();
+            System.out.println("ScaleIO System Name "+ result.getName());
+            System.out.println("ScaleIO Primary MDM IPs ");
+            for (String ip:result.getMdmCluster().getMaster().getManagementIPs()){
+                System.out.println(ip);
+            }
+
+        } catch (Exception e) {
+            log.error("Exception: ", e);
+            Assert.fail();
+        }
+    }
+
+    @Test
+    public void testQuerySdc() {
+
+        try {
+            List<ScaleIOSDC> result = restClient.queryAllSDC();
+            System.out.println("ScaleIO SDC GUIDs");
+            for (ScaleIOSDC sdc : result) {
+                System.out.println(format(
+                        "\tName: {0}, IP: {1}, State: {2}, GUID: {3}",
+                        sdc.getName(), sdc.getSdcIp(), sdc.getMdmConnectionState(), sdc.getSdcGuid()
+                ));
+            }
+
+        } catch (Exception e) {
+            log.error("Exception: ", e);
+            Assert.fail();
+        }
+    }
+
+    @Test
+    public void testQueryAllStoragePools() {
+
+        try {
+            List<ScaleIOStoragePool> result = restClient.queryAllStoragePools();
+            for (ScaleIOStoragePool pool : result) {
+                String poolId = pool.getId();
+                String poolProtectionDomainId = pool.getProtectionDomainId();
+                String poolName = pool.getName();
+                System.out.printf("Pool id : %s  name : %s  Protection Domain: %s %n", poolId, poolName, poolProtectionDomainId);
+
+            }
+
+        } catch (Exception e) {
+            log.error("Exception: ", e);
+            Assert.fail();
+        }
+    }
+
+    @Test
+    public void testQueryAllFaultSets() {
+
+        try {
+            List<ScaleIOFaultSet> result = restClient.queryAllFaultSets();
+            if (null != result) {
+                for (ScaleIOFaultSet faultSet : result) {
+                    String faultSetId = faultSet.getId();
+                    String faultSetProtectionDomain = faultSet.getProtectionDomain();
+                    String faultSetName = faultSet.getName();
+                    System.out.printf("Fault Set id : %s  name : %s  Protection Domain: %s %n", faultSetId, faultSetName, faultSetProtectionDomain);
+
+                }
+            } else {
+                System.out.println("No Fault Sets to test");
+            }
+
+        } catch (Exception e) {
+            log.error("Exception: ", e);
+            Assert.fail();
+        }
+    }
+
+    @Test
+    public void testGetSdsDevices() {
+
+        try {
+            List<ScaleIOSDS> result = restClient.queryAllSDS();
+            for (ScaleIOSDS sds : result) {
+                List<ScaleIODevice> sdsDevices = restClient.getSdsDevices(sds.getId());
+                String sdsId = sds.getId();
+                String sdsName = sds.getName();
+                System.out.printf("SDS id : %s  name : %s %n", sdsId, sdsName);
+                for (ScaleIODevice device : sdsDevices) {
+                    String deviceId = device.getId();
+                    String deviceStoragePoolId = device.getStoragePoolId();
+                    String deviceCurrentPathName = device.getDeviceCurrentPathName();
+                    String deviceName = device.getName();
+                    System.out.printf("Device id : %s  name : %s  PoolId: %s Path: %s %n", deviceId, deviceName, deviceStoragePoolId, deviceCurrentPathName);
+
+                }
+
+            }
+
+        } catch (Exception e) {
+            log.error("Exception: ", e);
+            Assert.fail();
         }
     }
 
@@ -98,6 +260,7 @@ public class ScaleIORestClientTest {
             System.out.printf("created volume id: %s", result.getId());
         } catch (Exception e) {
             log.error("Exception: ", e);
+            Assert.fail();
         }
     }
 
@@ -108,6 +271,7 @@ public class ScaleIORestClientTest {
             System.out.println("removed.");
         } catch (Exception e) {
             log.error("Exception: ", e);
+            Assert.fail();
         }
     }
 
@@ -133,6 +297,7 @@ public class ScaleIORestClientTest {
             restClient.mapVolumeToSDC(volId, sdcId);
         } catch (Exception e) {
             log.error("Exception: ", e);
+            Assert.fail();
         }
     }
 
@@ -144,6 +309,7 @@ public class ScaleIORestClientTest {
             restClient.unMapVolumeToSDC(volId, sdcId);
         } catch (Exception e) {
             log.error("Exception: ", e);
+            Assert.fail();
         }
     }
 
@@ -160,6 +326,7 @@ public class ScaleIORestClientTest {
 
         } catch (Exception e) {
             log.error("Exception: ", e);
+            Assert.fail();
         }
     }
 
@@ -173,6 +340,7 @@ public class ScaleIORestClientTest {
 
         } catch (Exception e) {
             log.error("Exception: ", e);
+            Assert.fail();
         }
     }
 
@@ -184,6 +352,7 @@ public class ScaleIORestClientTest {
 
         } catch (Exception e) {
             log.error("Exception: ", e);
+            Assert.fail();
         }
     }
 }

@@ -228,8 +228,7 @@ public class VPlexApiExportManager {
             throw VPlexApiException.exceptions.couldNotFindCluster(storageViewInfo.getClusterId());
         }
 
-        List<VPlexInitiatorInfo> initiatorsFound = 
-                findInitiatorsWithRetry(clusterName, storageViewInfo.getClusterId(), initiatorsToAdd, null);
+        List<VPlexInitiatorInfo> initiatorsFound = findInitiatorsWithRetry(clusterName, initiatorsToAdd, null);
 
         if (initiatorsFound.size() != initiatorsToAdd.size()) {
             s_logger.info("Could not find all of the requested initiators on VPLex.");
@@ -324,7 +323,7 @@ public class VPlexApiExportManager {
 
         // Find the initiators in a cluster where storage view is found.
         List<VPlexInitiatorInfo> initiatorsFoundForRemoval = 
-                findInitiatorsWithRetry(clusterName, storageViewInfo.getClusterId(), initiatorToRemove, null);
+                findInitiatorsWithRetry(clusterName, initiatorToRemove, null);
         if (initiatorsFoundForRemoval.size() != initiatorToRemove.size()) {
             StringBuffer notFoundInitiators = new StringBuffer();
             for (PortInfo portInfo : initiatorToRemove) {
@@ -504,7 +503,7 @@ public class VPlexApiExportManager {
         // Find the initiators for the passed ports on the passed cluster.
         String clusterName = clusterInfo.getName();
         List<VPlexInitiatorInfo> foundInitiators = findInitiatorsWithRetry(
-                clusterName, clusterId, initiatorsToFind, unfoundInitiatorList);
+                clusterName, initiatorsToFind, unfoundInitiatorList);
 
         // If the skip discovery flag is true, we return whether or not
         // all initiators were found. For example, we may be finding
@@ -524,8 +523,7 @@ public class VPlexApiExportManager {
         VPlexApiDiscoveryManager discoveryMgr = _vplexApiClient.getDiscoveryManager();
         discoveryMgr.clearInitiatorCache(clusterName);
         discoveryMgr.discoverInitiatorsOnCluster(clusterInfo);
-        foundInitiators.addAll(findInitiatorsWithRetry(clusterName, clusterId,
-                unfoundInitiatorList, null));
+        foundInitiators.addAll(findInitiatorsWithRetry(clusterName, unfoundInitiatorList, null));
 
         return foundInitiators;
     }
@@ -1300,18 +1298,17 @@ public class VPlexApiExportManager {
      * the initiator cache.
      * 
      * @param clusterName the name of the cluster to check
-     * @param clusterId the id of the cluster to check
      * @param initiatorsToFind a list of initiator port infos to update
      * @param unfoundInitiatorList unknown initiator list out param, or null if not needed
      * @return a List of VPlexInitiatorInfos
      */
-    List<VPlexInitiatorInfo> findInitiatorsWithRetry(String clusterName, String clusterId,
+    List<VPlexInitiatorInfo> findInitiatorsWithRetry(String clusterName, 
             List<PortInfo> initiatorsToFind, List<PortInfo> unfoundInitiatorList) {
-        List<VPlexInitiatorInfo> foundInitiators = findInitiatorsOnCluster(clusterId, initiatorsToFind, unfoundInitiatorList);
+        List<VPlexInitiatorInfo> foundInitiators = findInitiatorsOnCluster(clusterName, initiatorsToFind, unfoundInitiatorList);
         if (foundInitiators.size() != initiatorsToFind.size()) {
             // if some not found, retry once after clearing the initiator cache
             _vplexApiClient.getDiscoveryManager().clearInitiatorCache(clusterName);
-            foundInitiators = findInitiatorsOnCluster(clusterId, initiatorsToFind, unfoundInitiatorList);
+            foundInitiators = findInitiatorsOnCluster(clusterName, initiatorsToFind, unfoundInitiatorList);
         }
         return foundInitiators;
     }

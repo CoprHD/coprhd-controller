@@ -769,22 +769,22 @@ public class VPlexApiClient {
      * already registered on the VPLEX.
      * 
      * @param initiatorsToCheck the initiators to check for registration
-     * @param vplexClusterId the VPLEX cluster id (1 or 2)
+     * @param vplexClusterName the VPLEX cluster name (like cluster-1 or cluster-2)
      * @throws VPlexApiException if something went wrong
      */
-    public void registerInitiators(List<PortInfo> initiatorsToCheck, String vplexClusterId) throws VPlexApiException {
+    public void registerInitiators(List<PortInfo> initiatorsToCheck, String vplexClusterName) throws VPlexApiException {
 
-        s_logger.info("Request for registering initiators in cluster {} on VPLEX at {}", vplexClusterId, _baseURI);
-        VPlexClusterInfo clusterInfo = getClusterInfoLiteForClusterId(vplexClusterId);
+        s_logger.info("Request for registering initiators in cluster {} on VPLEX at {}", vplexClusterName, _baseURI);
+        VPlexClusterInfo clusterInfo = getClusterInfoLiteForClusterId(vplexClusterName);
 
         List<VPlexInitiatorInfo> initiatorsFound = 
-                _exportMgr.findInitiatorsWithRetry(clusterInfo.getName(), vplexClusterId, initiatorsToCheck, null);
+                _exportMgr.findInitiatorsWithRetry(vplexClusterName, initiatorsToCheck, null);
 
         if (initiatorsFound.size() != initiatorsToCheck.size()) {
-            s_logger.info("Could not find all of the requested initiators on VPLex.");
+            s_logger.info("Could not find all of the requested initiators on VPLEX.");
             initiatorsFound = _exportMgr.buildInitiatorInfoList(initiatorsFound, initiatorsToCheck, clusterInfo);
             _exportMgr.registerInitiators(clusterInfo, initiatorsFound);
-            _discoveryMgr.clearInitiatorCache(clusterInfo.getName());
+            _discoveryMgr.clearInitiatorCache(vplexClusterName);
         } else {
             s_logger.info("All the requested initiators have already been registered.");
         }
@@ -1373,17 +1373,25 @@ public class VPlexApiClient {
      * 
      * @param vplexClusterName the name of the VPLEX cluster to check
      * @param wwn the wwn to find an Initiator name for
+     * @param doRefresh trigger a cache refresh, once done, this out param will be set to false
+     *                  so that subsequent calls don't have to refresh the cache
      * @return the name of the Initiator
      */
-    public synchronized String getInitiatorNameForWwn(String vplexClusterName, String wwn) {
+    public synchronized String getInitiatorNameForWwn(String vplexClusterName, String wwn, Boolean[] doRefresh) {
         String initiatorName = null;
 
         if (!getInitiatorWwnToNameMap(vplexClusterName).containsKey(wwn)) {
             s_logger.info(
-                    "initiator wwn to name cache does not contain an entry for wwn {} on vplex cluster {}, clearing cache for refresh", 
+                    "initiator wwn to name cache does not contain an entry for wwn {} on vplex cluster {}", 
                         wwn, vplexClusterName);
-            _vplexClusterInitiatorNameToWwnCache.get(vplexClusterName).clear();
-            _discoveryMgr.clearInitiatorCache(vplexClusterName);
+            if (doRefresh[0]) {
+                s_logger.info("clearing vplex cluster {} cache for refresh", vplexClusterName);
+                _vplexClusterInitiatorNameToWwnCache.get(vplexClusterName).clear();
+                _discoveryMgr.clearInitiatorCache(vplexClusterName);
+                doRefresh[0] = false;
+            } else {
+                return null;
+            }
         }
 
         initiatorName = getInitiatorWwnToNameMap(vplexClusterName).get(wwn);

@@ -2061,6 +2061,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
             }
 
             Map<String, String> targetPortToPwwnMap = VPlexControllerUtils.getTargetPortToPwwnMap(client, vplexClusterName);
+            Boolean[] doInitiatorRefresh =  new Boolean[] { new Boolean(true) };
 
             for (URI hostUri : hostInitiatorMap.keySet()) {
                 _log.info("assembling export masks workflow, now looking at host URI: " + hostUri);
@@ -2114,7 +2115,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
                                     vplexSystem, vplexClusterName, inits, exportGroup,
                                     varrayUri, blockObjectMap,
                                     exportMasksToUpdateOnDevice, exportMasksToUpdateOnDeviceWithInitiators,
-                                    exportMasksToUpdateOnDeviceWithStoragePorts, opId);
+                                    exportMasksToUpdateOnDeviceWithStoragePorts, doInitiatorRefresh, opId);
                             long elapsed = new Date().getTime() - start;
                             _log.info("TIMER: finding an existing storage view took {} ms and returned {}",
                                     elapsed, foundMatchingStorageView);
@@ -2197,7 +2198,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
 
         _log.info("set up initiator pre-registration step");
         String storageViewStepId = 
-                handleInitiatorRegistration(initiators, vplexSystem, vplexClusterId, workflow, zoningStepId);
+                handleInitiatorRegistration(initiators, vplexSystem, vplexClusterName, workflow, zoningStepId);
 
         _log.info("processing the export masks to be created");
         for (ExportMask exportMask : exportMasksToCreateOnDevice) {
@@ -2334,14 +2335,16 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
             ExportGroup exportGroup, URI varrayUri, Map<URI, Integer> blockObjectMap,
             List<ExportMask> exportMasksToUpdateOnDevice,
             Map<URI, List<Initiator>> exportMasksToUpdateOnDeviceWithInitiators,
-            Map<URI, List<URI>> exportMasksToUpdateOnDeviceWithStoragePorts, String opId) throws Exception {
+            Map<URI, List<URI>> exportMasksToUpdateOnDeviceWithStoragePorts, 
+            Boolean[] doInitiatorRefresh, String opId) throws Exception {
         boolean foundMatchingStorageView = false;
 
         List<String> initiatorNames = new ArrayList<String>();
         for (Initiator initiator : inits) {
             String portWwn = initiator.getInitiatorPort();
-            String initiatorName = client.getInitiatorNameForWwn(vplexCluster, WWNUtility.getUpperWWNWithNoColons(portWwn));
-            if (initiatorName != null) {
+            String initiatorName = client.getInitiatorNameForWwn(
+                    vplexCluster, WWNUtility.getUpperWWNWithNoColons(portWwn), doInitiatorRefresh);
+            if (initiatorName != null && !initiatorName.startsWith(VPlexApiConstants.UNREGISTERED_INITIATOR_PREFIX)) {
                 initiatorNames.add(initiatorName);
             }
         }
@@ -2694,18 +2697,18 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
      * 
      * @param initiators the initiators to check for registration
      * @param vplexSystem the VPLEX StorageSystem object
-     * @param vplexClusterId the cluster id (1 or 2)
+     * @param vplexClusterName the VPLEX cluster name (like cluster-1 or cluster-2)
      * @param workflow the workflow
      * @param previousStepId the previous workflow step id to wait for
      * @return the id of the initiator registration step
      */
     private String handleInitiatorRegistration(List<URI> initiators, 
-            StorageSystem vplexSystem, String vplexClusterId, Workflow workflow, String previousStepId) {
+            StorageSystem vplexSystem, String vplexClusterName, Workflow workflow, String previousStepId) {
         
         Workflow.Method executeMethod = new Workflow.Method(REGISTER_INITIATORS_METHOD_NAME, 
-                initiators, vplexSystem.getId(), vplexClusterId);
+                initiators, vplexSystem.getId(), vplexClusterName);
         // if rollback occurs, the unzoning step will cause any previously unregistered inits to go unregistered
-        String stepId = workflow.createStep(INITIATOR_REGISTRATION, "Registering any unregistered initiators on VPLEX", 
+        String stepId = workflow.createStep(INITIATOR_REGISTRATION, "Register any unregistered initiators on VPLEX", 
                 previousStepId, vplexSystem.getId(), vplexSystem.getSystemType(), this.getClass(), 
                 executeMethod, rollbackMethodNullMethod(), null);
         return stepId;
@@ -2969,22 +2972,15 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
      * 
      * @param initiatorUris the initiator URIs to check for registration
      * @param vplexURI the VPLEX URI
-     * @param vplexClusterId the VPLEX cluster ID (1 or 2)
+     * @param vplexClusterName the VPLEX cluster name (like cluster-1 or cluster-2)
      * @param stepId the workflow step id
      * @throws ControllerException if something went wrong
      */
-    public void registerInitiators(List<URI> initiatorUris, URI vplexURI, String vplexClusterId, String stepId) throws ControllerException {
-        String lockName = null;
-        boolean lockAcquired = false;
+    public void registerInitiators(List<URI> initiatorUris, URI vplexURI, String vplexClusterName, String stepId) throws ControllerException {
         try {
             WorkflowStepCompleter.stepExecuting(stepId);
             StorageSystem vplex = getDataObject(StorageSystem.class, vplexURI, _dbClient);
             VPlexApiClient client = getVPlexAPIClient(_vplexApiFactory, vplex, _dbClient);
-
-            lockAcquired = _vplexApiLockManager.acquireLock(lockName, LockTimeoutValue.get(LockType.VPLEX_API_LIB));
-            if (!lockAcquired) {
-                throw VPlexApiException.exceptions.couldNotObtainConcurrencyLock(vplex.getLabel());
-            }
 
             List<PortInfo> initiatorPortInfos = new ArrayList<PortInfo>();
             for (URI init : initiatorUris) {
@@ -2996,7 +2992,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
                         getVPlexInitiatorType(initiator));
                 initiatorPortInfos.add(pi);
             }
-            client.registerInitiators(initiatorPortInfos, vplexClusterId);
+            client.registerInitiators(initiatorPortInfos, vplexClusterName);
 
             WorkflowStepCompleter.stepSucceded(stepId);
         } catch (VPlexApiException vae) {
@@ -3011,10 +3007,6 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
             String opName = ResourceOperationTypeEnum.CREATE_INITIATOR.getName();
             ServiceError serviceError = VPlexApiException.errors.createStorageViewFailed(opName, ex);
             WorkflowStepCompleter.stepFailed(stepId, serviceError);
-        } finally {
-            if (lockAcquired) {
-                _vplexApiLockManager.releaseLock(lockName);
-            }
         }
     }
 
@@ -5259,14 +5251,15 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
         String vplexClusterName = VPlexUtil.getVplexClusterName(srcVarrayURI, vplexStorageSystem.getId(), client, _dbClient);
         _log.info("vplexClusterName :{}", vplexClusterName);
 
-        Map<String, String> initiatorWwnToNameMap = null;
         Iterator<Initiator> inits = _dbClient.queryIterativeObjects(Initiator.class, initiatorURIs);
         List<String> initiatorNames = new ArrayList<String>();
+        Boolean[] doRefresh =  new Boolean[] { new Boolean(true) };
         while (inits.hasNext()) {
             Initiator ini = inits.next();
             String portWwn = ini.getInitiatorPort();
-            String initiatorName = client.getInitiatorNameForWwn(vplexClusterName, WWNUtility.getUpperWWNWithNoColons(portWwn));
-            if (initiatorName != null) {
+            String initiatorName = client.getInitiatorNameForWwn(
+                    vplexClusterName, WWNUtility.getUpperWWNWithNoColons(portWwn), doRefresh);
+            if (initiatorName != null && !initiatorName.startsWith(VPlexApiConstants.UNREGISTERED_INITIATOR_PREFIX)) {
                 initiatorNames.add(initiatorName);
             }
         }
@@ -5283,11 +5276,12 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
 
             inits = _dbClient.queryIterativeObjects(Initiator.class, initiatorURIs);
             List<String> haInitiatorNames = new ArrayList<String>();
+            Boolean[] doRefreshHa =  new Boolean[] { new Boolean(true) };
             while (inits.hasNext()) {
                 Initiator ini = inits.next();
                 String portWwn = ini.getInitiatorPort();
-                String initiatorName = client.getInitiatorNameForWwn(vplexHAClusterName, WWNUtility.getUpperWWNWithNoColons(portWwn));
-                if (initiatorName != null) {
+                String initiatorName = client.getInitiatorNameForWwn(vplexHAClusterName, WWNUtility.getUpperWWNWithNoColons(portWwn), doRefreshHa);
+                if (initiatorName != null && !initiatorName.startsWith(VPlexApiConstants.UNREGISTERED_INITIATOR_PREFIX)) {
                     haInitiatorNames.add(initiatorName);
                 }
             }

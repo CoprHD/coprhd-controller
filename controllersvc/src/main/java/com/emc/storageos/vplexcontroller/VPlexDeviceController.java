@@ -2192,17 +2192,17 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
         }
 
         _log.info("updating zoning if necessary for both new and updated export masks");
-        String zoningStepId = handleZoningUpdate(export, initiators,
+        String zoningStepId = addStepsForZoningUpdate(export, initiators,
                 blockObjectMap, workflow, waitFor, exportMasksToCreateOnDevice,
                 exportMasksToUpdateOnDevice);
 
         _log.info("set up initiator pre-registration step");
         String storageViewStepId = 
-                handleInitiatorRegistration(initiators, vplexSystem, vplexClusterName, workflow, zoningStepId);
+                addStepsForInitiatorRegistration(initiators, vplexSystem, vplexClusterName, workflow, zoningStepId);
 
         _log.info("processing the export masks to be created");
         for (ExportMask exportMask : exportMasksToCreateOnDevice) {
-            storageViewStepId = handleExportMaskCreate(blockObjectMap, workflow, vplexSystem, exportGroup,
+            storageViewStepId = addStepsForExportMaskCreate(blockObjectMap, workflow, vplexSystem, exportGroup,
                     storageViewStepId, exportMask);
         }
 
@@ -2213,7 +2213,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
                 shared = true;
             }
 
-            storageViewStepId = handleExportMaskUpdate(export,
+            storageViewStepId = addStepsForExportMaskUpdate(export,
                     blockObjectMap, workflow, vplexSystem,
                     exportMasksToUpdateOnDeviceWithInitiators,
                     exportMasksToUpdateOnDeviceWithStoragePorts,
@@ -2667,7 +2667,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
      *            collection of ExportMasks to update on the device
      * @return
      */
-    private String handleZoningUpdate(URI export, List<URI> initiators,
+    private String addStepsForZoningUpdate(URI export, List<URI> initiators,
             Map<URI, Integer> blockObjectMap, Workflow workflow,
             String waitFor,
             List<ExportMask> exportMasksToCreateOnDevice,
@@ -2693,7 +2693,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
     }
 
     /**
-     * Handles registering any unregistered initiators.
+     * Handles setting up workflow step for registering any unregistered initiators.
      * 
      * @param initiators the initiators to check for registration
      * @param vplexSystem the VPLEX StorageSystem object
@@ -2702,15 +2702,16 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
      * @param previousStepId the previous workflow step id to wait for
      * @return the id of the initiator registration step
      */
-    private String handleInitiatorRegistration(List<URI> initiators, 
+    private String addStepsForInitiatorRegistration(List<URI> initiators,
             StorageSystem vplexSystem, String vplexClusterName, Workflow workflow, String previousStepId) {
-        
-        Workflow.Method executeMethod = new Workflow.Method(REGISTER_INITIATORS_METHOD_NAME, 
-                initiators, vplexSystem.getId(), vplexClusterName);
-        // if rollback occurs, the unzoning step will cause any previously unregistered inits to go unregistered
-        String stepId = workflow.createStep(INITIATOR_REGISTRATION, "Register any unregistered initiators on VPLEX", 
-                previousStepId, vplexSystem.getId(), vplexSystem.getSystemType(), this.getClass(), 
-                executeMethod, rollbackMethodNullMethod(), null);
+
+        Workflow.Method executeMethod = registerInitiatorsMethod(initiators, vplexSystem.getId(), vplexClusterName);
+        // if rollback occurs, the unzoning step will cause any previously unregistered inits
+        // to go back to unregistered when zoning disappears -- so, a null rollback method is fine here.
+        Workflow.Method rollbackMethod = rollbackMethodNullMethod();
+        String stepId = workflow.createStep(INITIATOR_REGISTRATION, "Register any unregistered initiators on VPLEX",
+                previousStepId, vplexSystem.getId(), vplexSystem.getSystemType(), this.getClass(),
+                executeMethod, rollbackMethod, null);
         return stepId;
     }
 
@@ -2731,7 +2732,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
      *            the ExportMask object to be created
      * @return the workflow step id
      */
-    private String handleExportMaskCreate(Map<URI, Integer> blockObjectMap, Workflow workflow,
+    private String addStepsForExportMaskCreate(Map<URI, Integer> blockObjectMap, Workflow workflow,
             StorageSystem vplexSystem, ExportGroup exportGroup,
             String storageViewStepId, ExportMask exportMask) {
         _log.info("adding step to create export mask: " + exportMask.getMaskName());
@@ -2788,7 +2789,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
      *            boolean that indicates whether passed exportMask is shared for multiple host
      * @return
      */
-    private String handleExportMaskUpdate(URI export,
+    private String addStepsForExportMaskUpdate(URI export,
             Map<URI, Integer> blockObjectMap, Workflow workflow, StorageSystem vplexSystem,
             Map<URI, List<Initiator>> exportMasksToUpdateOnDeviceWithInitiators,
             Map<URI, List<URI>> exportMasksToUpdateOnDeviceWithStoragePorts,
@@ -2968,6 +2969,19 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
     }
 
     /**
+     * Returns a Workflow.Method for registering initiators.
+     *
+     * @param initiatorUris the initiator URIs to check for registration
+     * @param vplexURI the VPLEX URI
+     * @param vplexClusterName the VPLEX cluster name (like cluster-1 or cluster-2)
+     *
+     * @return The register initiators method.
+     */
+    private Workflow.Method registerInitiatorsMethod(List<URI> initiatorUris, URI vplexURI, String vplexClusterName ) {
+        return new Workflow.Method(REGISTER_INITIATORS_METHOD_NAME, initiatorUris, vplexURI, vplexClusterName);
+    }
+
+    /**
      * A Workflow Step to register initiators on the VPLEX, if not already found registered.
      * 
      * @param initiatorUris the initiator URIs to check for registration
@@ -2983,8 +2997,8 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
             VPlexApiClient client = getVPlexAPIClient(_vplexApiFactory, vplex, _dbClient);
 
             List<PortInfo> initiatorPortInfos = new ArrayList<PortInfo>();
-            for (URI init : initiatorUris) {
-                Initiator initiator = getDataObject(Initiator.class, init, _dbClient);
+            List<Initiator> inits = _dbClient.queryObject(Initiator.class, initiatorUris);
+            for (Initiator initiator : inits) {
                 PortInfo pi = new PortInfo(initiator.getInitiatorPort().toUpperCase()
                         .replaceAll(":", ""), initiator.getInitiatorNode().toUpperCase()
                                 .replaceAll(":", ""),
@@ -2995,17 +3009,10 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
             client.registerInitiators(initiatorPortInfos, vplexClusterName);
 
             WorkflowStepCompleter.stepSucceded(stepId);
-        } catch (VPlexApiException vae) {
-            // TODO update new exception
-            _log.error("Exception registering initiators: " + vae.getMessage(), vae);
-            String opName = ResourceOperationTypeEnum.CREATE_INITIATOR.getName();
-            ServiceError serviceError = VPlexApiException.errors.createStorageViewFailed(opName, vae);
-            WorkflowStepCompleter.stepFailed(stepId, serviceError);
         } catch (Exception ex) {
-            // TODO update new exception
             _log.error("Exception registering initiators: " + ex.getMessage(), ex);
-            String opName = ResourceOperationTypeEnum.CREATE_INITIATOR.getName();
-            ServiceError serviceError = VPlexApiException.errors.createStorageViewFailed(opName, ex);
+            String opName = ResourceOperationTypeEnum.REGISTER_EXPORT_INITIATOR.getName();
+            ServiceError serviceError = VPlexApiException.errors.registerInitiatorsStepFailed(opName, ex);
             WorkflowStepCompleter.stepFailed(stepId, serviceError);
         }
     }
@@ -4942,7 +4949,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
             }
         } else {
             // this is just a simple initiator removal, so just do it...
-            lastStep = handleInitiatorRemoval(vplex, workflow, completer, exportGroup,
+            lastStep = addStepsForInitiatorRemoval(vplex, workflow, completer, exportGroup,
                     exportMask, hostInitiatorURIs, targetURIs, lastStep,
                     removeAllInits, hostURI, errorMessages);
         }
@@ -4980,7 +4987,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
     }
 
     /**
-     * Method for handling the final removal of a set of Initiators
+     * Adds workflow steps for the final removal of a set of Initiators
      * from a given ExportMask (Storage View) on the VPLEX.
      *
      * @param vplex
@@ -5006,7 +5013,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
      *            -- collector for any validation-related error messages
      * @return a workflow step id
      */
-    private String handleInitiatorRemoval(StorageSystem vplex, Workflow workflow,
+    private String addStepsForInitiatorRemoval(StorageSystem vplex, Workflow workflow,
             ExportRemoveInitiatorCompleter completer, ExportGroup exportGroup, ExportMask exportMask,
             List<URI> hostInitiatorURIs, List<URI> targetURIs, String zoneStep,
             boolean removeAllInits, URI computeResourceId, StringBuffer errorMessages) {

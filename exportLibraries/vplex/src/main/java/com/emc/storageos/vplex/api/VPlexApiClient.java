@@ -210,20 +210,21 @@ public class VPlexApiClient {
 
     /**
      * Gets a VPlexClusterInfo from the cache for the given VPLEX cluster id.
-     * 
+     *
+     * @param vplexClusterName the name of the VPLEX cluster to get.
      * @return a VPlexClusterInfo instance for the requested cluster id, or null if not found.
      * 
      * @throws VPlexApiException When an error occurs querying the VPlex.
      */
-    public VPlexClusterInfo getClusterInfoLiteForClusterId(String vplexClusterId) throws VPlexApiException {
+    public VPlexClusterInfo getClusterInfoLiteForClusterName(String vplexClusterName) throws VPlexApiException {
         for (VPlexClusterInfo clusterInfo : getClusterInfoLite()) {
-            if (clusterInfo != null && clusterInfo.getClusterId() != null && clusterInfo.getClusterId().equals(vplexClusterId)) {
+            if (clusterInfo != null && clusterInfo.getName() != null && clusterInfo.getName().equals(vplexClusterName)) {
                 return clusterInfo;
             }
         }
 
-        s_logger.warn("VPlexClusterInfo for cluster id {} not found, returning null.", vplexClusterId);
-        return null;
+        s_logger.error("VPlexClusterInfo for cluster id {} not found.", vplexClusterName);
+        throw VPlexApiException.exceptions.couldNotFindCluster(vplexClusterName);
     }
 
     /**
@@ -775,15 +776,19 @@ public class VPlexApiClient {
     public void registerInitiators(List<PortInfo> initiatorsToCheck, String vplexClusterName) throws VPlexApiException {
 
         s_logger.info("Request for registering initiators in cluster {} on VPLEX at {}", vplexClusterName, _baseURI);
-        VPlexClusterInfo clusterInfo = getClusterInfoLiteForClusterId(vplexClusterName);
+        VPlexClusterInfo clusterInfo = getClusterInfoLiteForClusterName(vplexClusterName);
 
         List<VPlexInitiatorInfo> initiatorsFound = 
-                _exportMgr.findInitiatorsWithRetry(vplexClusterName, initiatorsToCheck, null);
+                _exportMgr.findInitiators(vplexClusterName, initiatorsToCheck);
 
         if (initiatorsFound.size() != initiatorsToCheck.size()) {
             s_logger.info("Could not find all of the requested initiators on VPLEX.");
+
+            // get a list of all initiators and register them (the register method checks the name for status)
             initiatorsFound = _exportMgr.buildInitiatorInfoList(initiatorsFound, initiatorsToCheck, clusterInfo);
             _exportMgr.registerInitiators(clusterInfo, initiatorsFound);
+
+            // clear the cache so that we'll get a fresh reading next request
             _discoveryMgr.clearInitiatorCache(vplexClusterName);
         } else {
             s_logger.info("All the requested initiators have already been registered.");
@@ -1422,8 +1427,13 @@ public class VPlexApiClient {
      */
     public String getClusterNameForId(String clusterId) {
         String clusterName = getClusterIdToNameMap().get(clusterId);
-        s_logger.info("found cluster name {} for cluster id {}", clusterName, clusterId);
-        return clusterName;
+        if (clusterName != null && !clusterName.isEmpty()) {
+            s_logger.info("found cluster name {} for cluster id {}", clusterName, clusterId);
+            return clusterName;
+        }
+
+        s_logger.error("VPLEX cluster name for cluster id {} not found.", clusterId);
+        throw VPlexApiException.exceptions.couldNotFindCluster(clusterId);
     }
 
     /**

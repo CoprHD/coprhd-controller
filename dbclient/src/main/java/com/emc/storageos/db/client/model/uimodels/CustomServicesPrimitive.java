@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 Dell Inc. or its subsidiaries.
+ * Copyright 2017 Dell Inc. or its subsidiaries.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,21 +14,11 @@
  * limitations under the License.
  *
  */
-package com.emc.storageos.primitives;
+package com.emc.storageos.db.client.model.uimodels;
 
+import com.emc.storageos.db.client.model.ModelObject;
 
-import com.emc.storageos.primitives.input.InputParameter;
-import com.emc.storageos.primitives.output.OutputParameter;
-import java.net.URI;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
-/**
- * Abstract Class that contains the base properties of a primitive
- */
-public abstract class Primitive {
+public abstract class CustomServicesPrimitive extends ModelObject {
 
     public enum StepType {
         VIPR_REST("ViPR REST API"),
@@ -85,59 +75,10 @@ public abstract class Primitive {
             return null;
         }
     }
-    private final URI id;
-    private final String name;
-    private final StepType type;
-    private final String friendlyName;
-    private final String description;
-    private final String successCriteria;
-    private Map<InputType, List<InputParameter>> input;
-    private List<OutputParameter> output;
-
-    public Primitive(final URI id, final String name, final String friendlyName,
-            final String description, final String successCriteria,
-            final InputParameter[] input, final OutputParameter[] output, final StepType type) {
-        this.id = id;
-        this.name = name;
-        this.friendlyName = friendlyName;
-        this.description = description;
-        this.successCriteria = successCriteria;
-        this.input = new HashMap<InputType, List<InputParameter>>(){{
-            put(InputType.INPUT_PARAMS,Arrays.asList(input));
-        }};
-        this.output = Arrays.asList(output);
-        this.type = type;
-    }
-
-    public URI getId() {
-        return id;
-    }
-
-    public String getName() {
-        return name;
-    }
-
-    public StepType getType() {
-        return type;
-    }
-
-    public String getFriendlyName() {
-        return friendlyName;
-    }
-
-    public String getDescription() {
-        return description;
-    }
-
-    public String getSuccessCriteria() {
-        return successCriteria;
-    }
-
-    public Map<InputType, List<InputParameter>> getInput() {
-        return input;
-    }
     
-    public List<OutputParameter> getOutput() {
-        return output;
-    }
+    public abstract String getFriendlyName();
+    public abstract String getDescription();
+    public abstract String getSuccessCriteria();
+    public abstract StepType getType();
+    
 }

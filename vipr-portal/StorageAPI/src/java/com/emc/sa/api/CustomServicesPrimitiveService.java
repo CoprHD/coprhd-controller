@@ -26,7 +26,6 @@ import java.nio.file.FileSystems;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -78,9 +77,9 @@ import com.emc.storageos.model.customservices.CustomServicesPrimitiveRestRep;
 import com.emc.storageos.model.customservices.CustomServicesPrimitiveUpdateParam;
 import com.emc.storageos.model.customservices.InputParameterRestRep;
 import com.emc.storageos.model.customservices.OutputParameterRestRep;
-import com.emc.storageos.primitives.Primitive;
-import com.emc.storageos.primitives.PrimitiveHelper;
-import com.emc.storageos.primitives.ViPRPrimitive;
+import com.emc.storageos.primitives.CustomServicesPrimitiveHelper;
+import com.emc.storageos.primitives.CustomServicesPrimitiveType;
+import com.emc.storageos.primitives.CustomServicesStaticPrimitive;
 import com.emc.storageos.primitives.input.BasicInputParameter;
 import com.emc.storageos.primitives.input.InputParameter;
 import com.emc.storageos.primitives.output.BasicOutputParameter;
@@ -115,84 +114,13 @@ public class CustomServicesPrimitiveService extends CatalogTaggedResourceService
     private static final Logger _log = LoggerFactory
             .getLogger(CustomServicesPrimitiveManager.class);
 
-    private enum PrimitiveType {
-        VIPR(ViPRPrimitive.class.getSimpleName(), 0x02), 
-        ANSIBLE(CustomServicesAnsiblePrimitive.class.getSimpleName(), 0x04, CustomServicesAnsiblePackage.class.getSimpleName()), 
-        SCRIPT(CustomServicesScriptPrimitive.class.getSimpleName(), 0x08, CustomServicesScriptResource.class.getSimpleName());
-
-        public final static int ALL_MASK = 0xFF;
-        
-        private final static EnumSet<PrimitiveType> DYNAMIC_TYPES = EnumSet.of(ANSIBLE, SCRIPT);
-        private final static String NO_RESOURCE = "NONE";
-        
-        private final String type;
-        private final String resourceType;
-        private final int mask;
-
-        private PrimitiveType(final String type, final int mask) {
-            this(type, mask, NO_RESOURCE);
-        }
-        
-        private PrimitiveType(final String type, final int mask, final String resourceType) {
-            this.type = type;
-            this.mask = mask;
-            this.resourceType = resourceType;
-        }
-
-        public static PrimitiveType get(final String primitiveType) {
-            try {
-                return PrimitiveType.valueOf(primitiveType.toUpperCase());
-            } catch (final IllegalArgumentException e) {
-                return null;
-            }
-        }
-        
-        public static PrimitiveType fromTypeName(final String typeName) {
-            for(PrimitiveType primitiveType : values()) {
-                if(primitiveType.type().equals(typeName)) {
-                    return primitiveType;
-                }
-            }
-            return null;
-        }
-        
-        public static PrimitiveType dynamicType(final String type) {
-            final PrimitiveType primitiveType = get(type);
-            if(null != primitiveType && DYNAMIC_TYPES.contains(primitiveType)) {
-                return primitiveType;
-            } else {
-                return null;
-            }
-        }
-        
-        public static EnumSet<PrimitiveType> dynamicTypes() {
-            return DYNAMIC_TYPES;
-        }
-        
-        public String toString() {
-            return type;
-        }
-
-        public String type() {
-            return type;
-        }
-        
-        public String resourceType() {
-            return resourceType;
-        }
-        
-        public int mask() {
-            return mask;
-        }
-    }
-
     public CustomServicesPrimitiveService() {
         Builder<URI, CustomServicesPrimitiveRestRep> builder = ImmutableMap
                 .<URI, CustomServicesPrimitiveRestRep> builder();
-        for (final Primitive primitive : PrimitiveHelper.list()) {
+        for (final CustomServicesStaticPrimitive primitive : CustomServicesPrimitiveHelper.list()) {
             CustomServicesPrimitiveRestRep primitiveRestRep = new CustomServicesPrimitiveRestRep();
             primitiveRestRep.setId(primitive.getId());
-            primitiveRestRep.setName(primitive.getName());
+            primitiveRestRep.setName(primitive.getLabel());
             primitiveRestRep.setType(primitive.getType().toString());
             primitiveRestRep.setFriendlyName(primitive.getFriendlyName());
             primitiveRestRep.setDescription(primitive.getDescription());
@@ -221,18 +149,18 @@ public class CustomServicesPrimitiveService extends CatalogTaggedResourceService
     public CustomServicesPrimitiveList getPrimitives(@QueryParam("type") final String type) {
         final int mask;
         if( null == type || type.equalsIgnoreCase("all")) {
-            mask = PrimitiveType.ALL_MASK;
+            mask = CustomServicesPrimitiveType.ALL_MASK;
         } else {
-            ArgValidator.checkFieldValueFromEnum(type.toUpperCase(), "type", PrimitiveType.class);
-            mask = PrimitiveType.get(type).mask();
+            ArgValidator.checkFieldValueFromEnum(type.toUpperCase(), "type", CustomServicesPrimitiveType.class);
+            mask = CustomServicesPrimitiveType.get(type).mask();
         }
         final List<URI> list = new ArrayList<URI>();
         
-        if( (PrimitiveType.VIPR.mask() & mask) != 0) {
+        if( (CustomServicesPrimitiveType.VIPR.mask() & mask) != 0) {
             list.addAll(PRIMITIVE_MAP.keySet());
         } 
         
-        if( (PrimitiveType.ANSIBLE.mask() & mask) != 0 ) {
+        if( (CustomServicesPrimitiveType.ANSIBLE.mask() & mask) != 0 ) {
             final List<URI> ansiblePrimitives = primitiveManager.findAllAnsibleIds();
             if(null != ansiblePrimitives ) {
                 for( final URI id : ansiblePrimitives ) {
@@ -241,7 +169,7 @@ public class CustomServicesPrimitiveService extends CatalogTaggedResourceService
             }
         }
         
-        if( (PrimitiveType.SCRIPT.mask() & mask ) != 0) {
+        if( (CustomServicesPrimitiveType.SCRIPT.mask() & mask ) != 0) {
             final List<URI> scriptPrimitives = primitiveManager.findAllScriptPrimitiveIds();
             if(null != scriptPrimitives ) {
                 for( final URI id : scriptPrimitives ) {
@@ -271,13 +199,13 @@ public class CustomServicesPrimitiveService extends CatalogTaggedResourceService
     public CustomServicesPrimitiveRestRep makePrimitive(CustomServicesPrimitiveCreateParam param) {
         
         if(null != param.getType()) {
-            ArgValidator.checkFieldValueFromEnum(param.getType().toUpperCase(), "type", PrimitiveType.dynamicTypes());
+            ArgValidator.checkFieldValueFromEnum(param.getType().toUpperCase(), "type", CustomServicesPrimitiveType.dynamicTypes());
         } else {
             throw APIException.badRequests.requiredParameterMissingOrEmpty("type");
         }
         
         final CustomServicesUserPrimitive primitive;
-        final PrimitiveType type = PrimitiveType
+        final CustomServicesPrimitiveType type = CustomServicesPrimitiveType
                 .get(param.getType());
         
         switch(type) {
@@ -310,34 +238,18 @@ public class CustomServicesPrimitiveService extends CatalogTaggedResourceService
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}")
     public CustomServicesPrimitiveRestRep getPrimitive(@PathParam("id") final URI id) {
-        final PrimitiveType type = PrimitiveType.fromTypeName(URIUtil
+        final CustomServicesPrimitiveType type = CustomServicesPrimitiveType.fromTypeName(URIUtil
                 .getTypeName(id));
         if (null == type) {
             throw APIException.notFound.unableToFindEntityInURL(id);
         }
-        switch (type) {
-        case VIPR:
-            final CustomServicesPrimitiveRestRep primitive = PRIMITIVE_MAP.get(id);
-            if (null == primitive) {
-                throw APIException.notFound.unableToFindEntityInURL(id);
-            }
-            return primitive;
-        case ANSIBLE:
-            final CustomServicesAnsiblePrimitive ansible = primitiveManager.findById(id).asCustomServiceAnsiblePrimitive();
-            if (null == ansible) {
-                throw APIException.notFound.unableToFindEntityInURL(id);
-            }
-            return CustomServicesPrimitiveMapper.map(ansible);
-        case SCRIPT:
-            final CustomServicesScriptPrimitive script = primitiveManager.findById(id).asCustomServiceScriptPrimitive();
-            if (null == script) {
-                throw APIException.notFound.unableToFindEntityInURL(id);
-            }
-            return CustomServicesPrimitiveMapper.map(script);
-        default:
-            throw APIException.notFound.unableToFindEntityInURL(id);
-
+        
+        if(CustomServicesPrimitiveHelper.isStatic(type)) {
+            return getStaticPrimitive(id);
+        } else {
+            return getUserPrimitive(CustomServicesPrimitiveHelper.userModel(type), id);
         }
+        
     }
 
     /**
@@ -354,7 +266,7 @@ public class CustomServicesPrimitiveService extends CatalogTaggedResourceService
     @Path("/resource/{type}")
     public CustomServicesPrimitiveResourceList getResources(@PathParam("type") final String type) {
         
-        final PrimitiveType primitiveType = PrimitiveType.get(type);
+        final CustomServicesPrimitiveType primitiveType = CustomServicesPrimitiveType.get(type);
         if (null == primitiveType) {
             throw NotFoundException.notFound.unableToFindEntityInURL(URI
                     .create(type));
@@ -394,7 +306,7 @@ public class CustomServicesPrimitiveService extends CatalogTaggedResourceService
 
         ArgValidator.checkFieldNotNull(name, "name");
         
-        final PrimitiveType primitiveType = PrimitiveType
+        final CustomServicesPrimitiveType primitiveType = CustomServicesPrimitiveType
                 .dynamicType(type);
         if (null == primitiveType) {
             throw NotFoundException.notFound.unableToFindEntityInURL(URI
@@ -430,10 +342,13 @@ public class CustomServicesPrimitiveService extends CatalogTaggedResourceService
     @Path("/{id}")
     public CustomServicesPrimitiveRestRep updatePrimitive(@PathParam("id") final URI id,
             final CustomServicesPrimitiveUpdateParam param) {
-        final CustomServicesUserPrimitive primitive = primitiveManager.findById(id);
+        final CustomServicesPrimitiveType type = CustomServicesPrimitiveHelper.typeFromId(id);
+        if( null == type ) {
+            throw APIException.notFound.unableToFindEntityInURL(id);
+        }
+        final CustomServicesUserPrimitive primitive = primitiveManager.findById(CustomServicesPrimitiveHelper.userModel(type), id);
         ArgValidator.checkEntity(primitive, id, true);
         
-        final PrimitiveType type = PrimitiveType.fromTypeName(primitive.getClass().getSimpleName());
         switch (type) {
         case ANSIBLE:
             return updateAnsible(primitive.asCustomServiceAnsiblePrimitive(), param);
@@ -457,13 +372,13 @@ public class CustomServicesPrimitiveService extends CatalogTaggedResourceService
             @PathParam("id") final URI id,
             @Context final HttpServletResponse response) {
 
-        final PrimitiveType primitiveType = PrimitiveType.get(type);
-        if (null == primitiveType || !URIUtil.getTypeName(id).equals(primitiveType.resourceType())) {
+        final CustomServicesPrimitiveType primitiveType = CustomServicesPrimitiveType.get(type);
+        if (null == primitiveType ) {
             throw NotFoundException.notFound.unableToFindEntityInURL(URI
                     .create(type));
         }
 
-        final CustomServicesPrimitiveResource resource = primitiveManager.findResource(id);
+        final CustomServicesPrimitiveResource resource = primitiveManager.findResource(primitiveType.resourceType(), id);
         ArgValidator.checkEntity(resource, id, true);
 
    
@@ -514,7 +429,17 @@ public class CustomServicesPrimitiveService extends CatalogTaggedResourceService
     @Path("/{id}/deactivate")
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     public Response deactivatePrimitive(@PathParam("id") final URI id) {
-        primitiveManager.deactivate(id);
+        CustomServicesPrimitiveType type = CustomServicesPrimitiveHelper.typeFromId(id);
+        if( null == type ) {
+            throw APIException.notFound.unableToFindEntityInURL(id);
+        }
+        
+        Class<? extends CustomServicesUserPrimitive> model = CustomServicesPrimitiveHelper.userModel(type);
+        if( null == model ) {
+            throw APIException.notFound.unableToFindEntityInURL(id);
+        }
+        
+        primitiveManager.deactivate(model, id);
         return Response.ok().build();
     }
     
@@ -537,7 +462,7 @@ public class CustomServicesPrimitiveService extends CatalogTaggedResourceService
             for(Entry<String, String> attribute : param.getAttributes().entrySet()) {
                 switch(attribute.getKey()) {
                 case "playbook":
-                    final CustomServicesAnsiblePackage archive = primitiveManager.findResource(update.getArchive()).asCustomServiceAnsiblePackage();
+                    final CustomServicesAnsiblePackage archive = primitiveManager.findResource(CustomServicesAnsiblePackage.class, update.getArchive());
                     if(!archive.getPlaybooks().contains(attribute.getValue())) {
                         throw BadRequestException.badRequests.parameterIsNotValid(attribute.getKey());
                     } else {
@@ -553,9 +478,9 @@ public class CustomServicesPrimitiveService extends CatalogTaggedResourceService
     }
 
 
-    private static Map<String, CustomServicesPrimitiveRestRep.InputGroup> mapInput(Map<Primitive.InputType, List<InputParameter>> inputParameters) {
+    private static Map<String, CustomServicesPrimitiveRestRep.InputGroup> mapInput(Map<CustomServicesStaticPrimitive.InputType, List<InputParameter>> inputParameters) {
         Map<String, CustomServicesPrimitiveRestRep.InputGroup> inputRestRep = new HashMap<String, CustomServicesPrimitiveRestRep.InputGroup>();
-        for(final Entry<Primitive.InputType, List<InputParameter>> parameterType : inputParameters.entrySet()) {
+        for(final Entry<CustomServicesStaticPrimitive.InputType, List<InputParameter>> parameterType : inputParameters.entrySet()) {
             List<InputParameterRestRep> inputTypeRestRep = new ArrayList<InputParameterRestRep>();
             for(final InputParameter parameter : parameterType.getValue()) {
                 if (parameter.isBasicInputParameter()) {
@@ -731,7 +656,8 @@ public class CustomServicesPrimitiveService extends CatalogTaggedResourceService
 
     @Override
     protected DataObject queryResource(URI id) {
-        return primitiveManager.findById(id);
+        Class<? extends CustomServicesUserPrimitive> model = CustomServicesPrimitiveHelper.getUserModel(id);
+        return model == null ? null : primitiveManager.findById(model, id);
     }
 
     @Override
@@ -761,11 +687,24 @@ public class CustomServicesPrimitiveService extends CatalogTaggedResourceService
         return new CustomServicesPrimitiveBulkRestRep(getPrimitiveRestReps(ids));
     }
     
+    private CustomServicesPrimitiveRestRep getStaticPrimitive(final URI id) {
+        final CustomServicesPrimitiveRestRep primitive = PRIMITIVE_MAP.get(id);
+        if (null == primitive) {
+            throw APIException.notFound.unableToFindEntityInURL(id);
+        }
+        return primitive;
+    }
+    
+    private <T extends CustomServicesUserPrimitive> CustomServicesPrimitiveRestRep getUserPrimitive(final Class<T> clazz, final URI id ) {
+        final T primitive = primitiveManager.findById(clazz, id);
+        return CustomServicesPrimitiveMapper.map(primitive);
+    }
+    
     private List<CustomServicesPrimitiveRestRep> getPrimitiveRestReps(final List<URI> ids) {
-        final ImmutableListMultimap<CustomServicesPrimitiveService.PrimitiveType, URI> idGroups = Multimaps.index(ids, new Function<URI, CustomServicesPrimitiveService.PrimitiveType>() {
+        final ImmutableListMultimap<CustomServicesPrimitiveType, URI> idGroups = Multimaps.index(ids, new Function<URI, CustomServicesPrimitiveType>() {
             @Override
-            public PrimitiveType apply(final URI id) {
-                PrimitiveType type = PrimitiveType.fromTypeName(URIUtil.getTypeName(id));
+            public CustomServicesPrimitiveType apply(final URI id) {
+                CustomServicesPrimitiveType type = CustomServicesPrimitiveType.fromTypeName(URIUtil.getTypeName(id));
                 if( null == type) {
                     throw BadRequestException.badRequests.invalidParameter("id", id.toString());
                 }
@@ -774,7 +713,7 @@ public class CustomServicesPrimitiveService extends CatalogTaggedResourceService
         });
         
         final ImmutableList.Builder<CustomServicesPrimitiveRestRep> builder = ImmutableList.<CustomServicesPrimitiveRestRep>builder();
-        for( final Entry<PrimitiveType, Collection<URI>> entry : idGroups.asMap().entrySet()) {
+        for( final Entry<CustomServicesPrimitiveType, Collection<URI>> entry : idGroups.asMap().entrySet()) {
             switch(entry.getKey()) {
             case VIPR:
                 builder.addAll(Collections2.transform(Collections2.filter(entry.getValue(), Predicates.in(PRIMITIVE_MAP.keySet())), Functions.forMap(PRIMITIVE_MAP)));

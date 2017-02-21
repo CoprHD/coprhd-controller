@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 Dell Inc. or its subsidiaries.
+ * Copyright 2017 Dell Inc. or its subsidiaries.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,22 +18,22 @@ package com.emc.storageos.primitives;
 
 import java.net.URI;
 
-import com.emc.storageos.primitives.input.InputParameter;
-import com.emc.storageos.primitives.output.OutputParameter;
-
 /**
  * Base class for a primitive that represents a ViPR API call
  */
-public abstract class ViPRPrimitive extends Primitive {
-
-    private final static StepType TYPE = StepType.VIPR_REST;
+public abstract class ViPRPrimitive extends CustomServicesStaticPrimitive {
     
-    public ViPRPrimitive(final URI id, final String name, final String friendlyName, final String description,
-            final String successCriteria, final InputParameter[] input,
-            OutputParameter[] output) {
-        super(id, name, friendlyName, description, successCriteria, input, output,TYPE);
+    private static final long serialVersionUID = 1L;
+
+    public ViPRPrimitive(final URI id, final String name) {
+        super(id, name);
     }
 
+    @Override 
+    public StepType getType() {
+        return StepType.VIPR_REST;
+    }
+    
     public abstract String path();
 
     public abstract String method();

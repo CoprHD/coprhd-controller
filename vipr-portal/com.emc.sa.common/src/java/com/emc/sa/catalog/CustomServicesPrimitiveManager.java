@@ -29,10 +29,9 @@ public interface CustomServicesPrimitiveManager {
 
     public void save(final CustomServicesUserPrimitive primitive);
     public void save(final CustomServicesPrimitiveResource resource);
-    public void deactivate(final URI id);
-    
-    public CustomServicesUserPrimitive findById(final URI id);
-    public CustomServicesPrimitiveResource findResource(final URI id);
+    public  <T extends CustomServicesUserPrimitive> void deactivate(final Class<T> clazz, final URI id);
+    public <T extends CustomServicesUserPrimitive> T findById(final Class<T> clazz, final URI id);
+    public <T extends CustomServicesPrimitiveResource> T findResource(final Class<T> clazz, final URI id);
     public List<URI> findAllAnsibleIds();
     public List<CustomServicesAnsiblePrimitive> findAllAnsible();
     public List<URI> findAllScriptPrimitiveIds();

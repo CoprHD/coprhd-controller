@@ -17,7 +17,6 @@
 
 package com.emc.sa.service.vipr.customservices.tasks;
 
-import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.HashMap;
@@ -128,7 +127,7 @@ public class RunViprREST extends ViPRExecutionTask<CustomServicesTaskResult> {
                         customServiceExecutionFailed("REST Execution Failed. Response returned is null");
             }
 
-            logger.info("Status of ViPR REST Operation:{} is :{}", primitive.getName(), response.getStatus());
+            logger.info("Status of ViPR REST Operation:{} is :{}", primitive.getLabel(), response.getStatus());
 
 
             responseString = IOUtils.toString(response.getEntityInputStream(), "UTF-8");

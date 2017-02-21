@@ -57,6 +57,10 @@ public class CustomServicesScriptPrimitive extends CustomServicesUserPrimitive {
     }
 
     @Override
+    public StepType getType() {
+        return StepType.SHELL_SCRIPT;
+    }
+    @Override
     public boolean isCustomServiceAnsiblePrimitive() {
         return false;
     }
@@ -75,4 +79,5 @@ public class CustomServicesScriptPrimitive extends CustomServicesUserPrimitive {
     public CustomServicesScriptPrimitive asCustomServiceScriptPrimitive() {
         return this;
     }
+    
 }

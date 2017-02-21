@@ -23,13 +23,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import com.emc.sa.model.dao.ModelClient;
-import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.NamedElementQueryResultList.NamedElement;
-import com.emc.storageos.db.client.model.uimodels.CustomServicesAnsiblePackage;
 import com.emc.storageos.db.client.model.uimodels.CustomServicesAnsiblePrimitive;
 import com.emc.storageos.db.client.model.uimodels.CustomServicesPrimitiveResource;
 import com.emc.storageos.db.client.model.uimodels.CustomServicesScriptPrimitive;
-import com.emc.storageos.db.client.model.uimodels.CustomServicesScriptResource;
 import com.emc.storageos.db.client.model.uimodels.CustomServicesUserPrimitive;
 import com.emc.storageos.db.client.model.uimodels.CustomServicesWorkflow;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
@@ -46,19 +43,8 @@ public class CustomServicesPrimitiveManagerImpl implements CustomServicesPrimiti
     }
 
     @Override
-    public CustomServicesUserPrimitive findById(final URI id) {
-        // TODO: move down the enum constant defined in PrimitiveService.java and use that here.
-        final String type = URIUtil.getTypeName(id);
-        
-        switch(type) {
-        case "Ansible":
-            return client.findById(CustomServicesAnsiblePrimitive.class, id);
-        case "CustomServiceScriptPrimitive":
-            return client.findById(CustomServicesScriptPrimitive.class, id);
-        default:
-            throw new RuntimeException("Unknown Type " + type);
-        }
-        
+    public <T extends CustomServicesUserPrimitive> T findById(final Class<T> clazz, final URI id) {
+        return client.findById(clazz, id);  
     }
 
     @Override
@@ -67,8 +53,8 @@ public class CustomServicesPrimitiveManagerImpl implements CustomServicesPrimiti
     }
 
     @Override
-    public void deactivate(final URI id) {
-        final CustomServicesUserPrimitive primitive = findById(id);
+    public <T extends CustomServicesUserPrimitive> void deactivate(final Class<T> clazz, final URI id) {
+        final CustomServicesUserPrimitive primitive = findById(clazz, id);
         if( null == primitive ) {
             throw APIException.notFound.unableToFindEntityInURL(id);
         }
@@ -82,18 +68,8 @@ public class CustomServicesPrimitiveManagerImpl implements CustomServicesPrimiti
     }
 
     @Override
-    public CustomServicesPrimitiveResource findResource(final URI id) {
-     // TODO: move down the enum constant defined in PrimitiveService.java and use that here.
-        final String type = URIUtil.getTypeName(id);
-        switch(type) {
-        case "AnsiblePackage":
-            return client.findById(CustomServicesAnsiblePackage.class, id);
-        case "CustomServiceScriptResource":
-            return client.findById(CustomServicesScriptResource.class, id);
-        default:
-            return null;
-        }
-       
+    public <T extends CustomServicesPrimitiveResource> T findResource(final Class<T> clazz, final URI id) {
+            return client.findById(clazz, id);  
     }
     
     @Override

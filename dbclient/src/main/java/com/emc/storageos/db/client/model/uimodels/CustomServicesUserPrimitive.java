@@ -16,14 +16,12 @@
  */
 package com.emc.storageos.db.client.model.uimodels;
 
-import com.emc.storageos.db.client.model.ModelObject;
+import java.net.URI;
+
 import com.emc.storageos.db.client.model.Name;
 import com.emc.storageos.db.client.model.StringSet;
 
-/**
- *
- */
-public abstract class CustomServicesUserPrimitive extends ModelObject {
+public abstract class CustomServicesUserPrimitive extends CustomServicesPrimitive {
 
     private static final long serialVersionUID = 1L;
     
@@ -37,6 +35,21 @@ public abstract class CustomServicesUserPrimitive extends ModelObject {
     private String successCriteria;
     private StringSet output;
 
+    public CustomServicesUserPrimitive() {}
+    
+    public CustomServicesUserPrimitive(final URI id, final String label,
+            final String friendlyName, final String description, final String successCriteria,
+            final StringSet output) {
+        setId(id);
+        setLabel(label);
+        this.friendlyName = friendlyName;
+        this.description = description;
+        this.successCriteria = successCriteria;  
+        this.output = output;
+        
+    }
+
+    @Override
     @Name(FRIENDLY_NAME)
     public String getFriendlyName() {
         return friendlyName;
@@ -47,6 +60,7 @@ public abstract class CustomServicesUserPrimitive extends ModelObject {
         setChanged(FRIENDLY_NAME);
     }
 
+    @Override
     @Name(DESCRIPTION)
     public String getDescription() {
         return description;
@@ -57,6 +71,7 @@ public abstract class CustomServicesUserPrimitive extends ModelObject {
         setChanged(DESCRIPTION);
     }
 
+    @Override
     @Name(SUCCESS_CRITERIA)
     public String getSuccessCriteria() {
         return successCriteria;
@@ -76,9 +91,10 @@ public abstract class CustomServicesUserPrimitive extends ModelObject {
     public void setOutput(final StringSet output) {
         this.output = output;
     }
-
+    
     public abstract boolean isCustomServiceAnsiblePrimitive();
     public abstract CustomServicesAnsiblePrimitive asCustomServiceAnsiblePrimitive(); 
     public abstract boolean isCustomServiceScriptPrimitive();
     public abstract CustomServicesScriptPrimitive asCustomServiceScriptPrimitive();
+    
 }

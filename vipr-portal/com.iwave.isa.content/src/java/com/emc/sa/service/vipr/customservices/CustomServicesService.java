@@ -46,12 +46,12 @@ import com.emc.sa.service.vipr.customservices.tasks.RunAnsible;
 import com.emc.sa.service.vipr.customservices.tasks.RunViprREST;
 import com.emc.sa.workflow.WorkflowHelper;
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.model.uimodels.CustomServicesPrimitive.StepType;
 import com.emc.storageos.model.customservices.CustomServicesWorkflowDocument;
 import com.emc.storageos.model.customservices.CustomServicesWorkflowDocument.Input;
 import com.emc.storageos.model.customservices.CustomServicesWorkflowDocument.Step;
-import com.emc.storageos.primitives.Primitive;
-import com.emc.storageos.primitives.Primitive.StepType;
-import com.emc.storageos.primitives.PrimitiveHelper;
+import com.emc.storageos.primitives.CustomServicesStaticPrimitive;
+import com.emc.storageos.primitives.CustomServicesPrimitiveHelper;
 import com.emc.storageos.primitives.ViPRPrimitive;
 import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorException;
 import com.google.common.collect.ImmutableMap;
@@ -136,7 +136,7 @@ public class CustomServicesService extends ViPRService {
                 switch (type) {
                     case VIPR_REST: {
                         // TODO move this outside the try after we have primitives for others. Except Remote Ansible
-                        Primitive primitive = PrimitiveHelper.get(step.getOperation());
+                        CustomServicesStaticPrimitive primitive = CustomServicesPrimitiveHelper.get(step.getOperation());
 
                         if (null == primitive) {
                             throw InternalServerErrorException.internalServerErrors

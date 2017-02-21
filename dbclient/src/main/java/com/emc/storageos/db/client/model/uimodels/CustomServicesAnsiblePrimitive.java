@@ -81,6 +81,11 @@ public class CustomServicesAnsiblePrimitive extends CustomServicesUserPrimitive 
     }
     
     @Override
+    public StepType getType() {
+        return StepType.LOCAL_ANSIBLE;
+    }
+    
+    @Override
     public boolean isCustomServiceAnsiblePrimitive() {
         return true;
     }
@@ -99,5 +104,4 @@ public class CustomServicesAnsiblePrimitive extends CustomServicesUserPrimitive 
     public CustomServicesScriptPrimitive asCustomServiceScriptPrimitive() {
         return null;
     }
-
 }

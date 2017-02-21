@@ -733,7 +733,7 @@ public class ComputeSystemHelper {
      * @param summary the datastore summary
      * @throws Exception if datastore is entering maintenance mode
      */
-    private static void checkMaintenanceMode(Datastore datastore, DatastoreSummary summary) throws Exception {
+    public static void checkMaintenanceMode(Datastore datastore, DatastoreSummary summary) throws Exception {
         String mode = summary.getMaintenanceMode();
         // If a datastore is already entering maintenance mode, fail
         if (DatastoreSummaryMaintenanceModeState.enteringMaintenance.name().equals(mode)) {
@@ -748,7 +748,7 @@ public class ComputeSystemHelper {
      * @param host the host system to check
      * @throws Exception if datastore contains any virtual machines on the host
      */
-    private static void checkVirtualMachines(Datastore datastore, HostSystem host) throws Exception {
+    public static void checkVirtualMachines(Datastore datastore, HostSystem host) throws Exception {
         VirtualMachine[] vms = datastore.getVms();
         Set<String> names = Sets.newTreeSet();
 

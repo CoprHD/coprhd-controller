@@ -28,7 +28,7 @@ import com.emc.storageos.volumecontroller.impl.validators.ValidatorLogger;
 public class VNXeExportMaskInitiatorsValidator extends AbstractVNXeValidator {
     private static final Logger log = LoggerFactory.getLogger(VNXeExportMaskInitiatorsValidator.class);
     private static final String misMatchInitiatorRemediation = "Remove the initiator from the host on array";
-    private static final String unknownInitiatorRemediation = "Remove the initiator from the host on array, or add the initiator to the host in ViPR";
+    private static final String unknownInitiatorRemediation = "Remove the initiator from the host on array, or add the initiator to the host in CoprHD";
 
     public VNXeExportMaskInitiatorsValidator(StorageSystem storage, ExportMask exportMask) {
         super(storage, exportMask);
@@ -53,7 +53,7 @@ public class VNXeExportMaskInitiatorsValidator extends AbstractVNXeValidator {
             }
 
             // all initiators of VNXe host should be on single ViPR host, or unknown to ViPR
-            String vnxeHostId = getVNXeHostFromInitiators();
+            String vnxeHostId = getHostId();
             if (vnxeHostId == null) {
                 return true;
             }

@@ -771,6 +771,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
                     }
                 } catch (Exception e) {
                     _log.error("Exception caught while running rollback", e);
+                    throw e;
                 }
             }
         }

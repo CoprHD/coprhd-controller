@@ -3753,7 +3753,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         switch (appliedAt) {
             case project:
                 if (args.getProject() != null) {
-                    resourceName = args.getProjectNameWithNoSpecialCharacters();
+                    resourceName = args.getProjectNameWithNoSpecialCharacters().replaceAll("_", "");
                     if (!filePolicyBasePath.contains(resourceName)) {
                         _log.error("File policy base path does not contain project: {}", resourceName);
                         throw DeviceControllerException.exceptions.assignFilePolicyFailed(filePolicy.getFilePolicyName(),
@@ -3767,7 +3767,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                 break;
             case vpool:
                 if (args.getVPool() != null) {
-                    resourceName = args.getVPoolNameWithNoSpecialCharacters();
+                    resourceName = args.getVPoolNameWithNoSpecialCharacters().replaceAll("_", "");
                     if (!filePolicyBasePath.contains(resourceName)) {
                         _log.error("File policy base path does not contain vpool: {}", resourceName);
                         throw DeviceControllerException.exceptions.assignFilePolicyFailed(filePolicy.getFilePolicyName(),

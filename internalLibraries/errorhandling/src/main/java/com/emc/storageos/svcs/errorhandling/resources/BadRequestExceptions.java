@@ -3221,5 +3221,7 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException cannotDeleteProjectAssignedFilePolicy(final String projectName);
-
+    
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException cannotDeleteApplicationSnapshotExportExists(final String applicationName, final String copySetName);
 }

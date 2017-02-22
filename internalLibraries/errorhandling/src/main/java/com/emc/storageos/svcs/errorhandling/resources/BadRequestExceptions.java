@@ -2343,6 +2343,18 @@ public interface BadRequestExceptions {
     public BadRequestException cannotExecuteOperationWhilePendingTask(final String pendingVolumes);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException clusterHostMismatch(String cluster);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException clusterNotFoundInDatacenter(String cluster, String datacenter);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException vCenterDataCenterNotFound(URI datacenter);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException vCenterNotFound(URI vcenter);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException rpClusterVarrayNoClusterId(String label);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)

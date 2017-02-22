@@ -278,7 +278,7 @@ collect_data() {
     local sourceDir=${1}
     local targetDir=${2}
     local haveSubDir=${3}
- 
+     
     for i in $(seq 1 ${NODE_COUNT})
     do
         local viprNode=$(get_nodeid)

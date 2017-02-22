@@ -2,25 +2,23 @@
  * Copyright (c) 2016 EMC Corporation
  * All Rights Reserved
  */
-package com.emc.storageos.scaleio.api.restapi.response;
+package com.emc.storageos.model.collectdata;
 
 import java.util.Arrays;
-import org.codehaus.jackson.annotate.JsonIgnoreProperties;
 
 /**
  * MDM Cluster attributes
  * 
  */
-@JsonIgnoreProperties(ignoreUnknown = true)
-public class MdmCluster {
+public class MdmClusterDataRestRep {
 	private String clusterState;
 	private String id;
 	private String goodNodesNum;
-	private TieBreakers[] tieBreakers;
+	private TieBreakersDataRestRep[] tieBreakers;
 	private String name;
-	private Slaves[] slaves;
+	private SlavesDataRestRep[] slaves;
 	private String goodReplicasNum;
-	private Master master;
+	private MasterDataRestRep master;
 	private String clusterMode;
 
 	public String getClusterState ()
@@ -54,14 +52,14 @@ public class MdmCluster {
 	}
 
 
-	public TieBreakers[] getTieBreakers () {
+	public TieBreakersDataRestRep[] getTieBreakers () {
 		if(null == tieBreakers){
 			return null;
 		}
 		return Arrays.copyOf(tieBreakers,tieBreakers.length);
 	}
 
-	public void setTieBreakers (TieBreakers[] tieBreakers) {
+	public void setTieBreakers (TieBreakersDataRestRep[] tieBreakers) {
 		if(null == tieBreakers){
 			return;
 		}
@@ -78,14 +76,14 @@ public class MdmCluster {
 		this.name = name;
 	}
 
-	public Slaves[] getSlaves () {
+	public SlavesDataRestRep[] getSlaves () {
 		if(null == slaves){
 			return null;
 		}
 		return Arrays.copyOf(slaves,slaves.length);
 	}
 
-	public void setSlaves (Slaves[] slaves) {
+	public void setSlaves (SlavesDataRestRep[] slaves) {
 		if(null == slaves){
 			return;
 		}
@@ -102,12 +100,12 @@ public class MdmCluster {
 		this.goodReplicasNum = goodReplicasNum;
 	}
 
-	public Master getMaster ()
+	public MasterDataRestRep getMaster ()
 	{
 		return master;
 	}
 
-	public void setMaster (Master master)
+	public void setMaster (MasterDataRestRep master)
 	{
 		this.master = master;
 	}
@@ -122,9 +120,4 @@ public class MdmCluster {
 		this.clusterMode = clusterMode;
 	}
 
-	@Override
-	public String toString()
-	{
-		return "ClassPojo [clusterState = "+clusterState+", id = "+id+", goodNodesNum = "+goodNodesNum+", tieBreakers = "+tieBreakers+", name = "+name+", slaves = "+slaves+", goodReplicasNum = "+goodReplicasNum+", master = "+master+", clusterMode = "+clusterMode+"]";
-	}
 }

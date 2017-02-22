@@ -689,12 +689,6 @@ public class UCSMServiceImpl implements UCSMService {
         return lsList.get(0);
     }
 
-    private LsServer pushLsServer(ComputeSession computeSession, ObjectFactory factory,
-            ConfigConfMo configConfMo, boolean returnsObject) throws ClientGeneralException {
-        List<LsServer> lsList = pushConfigConfMo(computeSession, factory, configConfMo, LsServer.class, returnsObject);
-        return lsList.get(0);
-    }
-
     private <T> List<T> pushConfigConfMo(ComputeSession computeSession, ObjectFactory factory,
             ConfigConfMo configConfMo, Class<T> clazz, boolean returnsObject) throws ClientGeneralException {
 
@@ -1675,8 +1669,8 @@ public class UCSMServiceImpl implements UCSMService {
     @Override
     public LsServer getLsServer(String ucsmURL, String username, String password, String uuid)
             throws ClientGeneralException {
-            ComputeSession computeSession = sessionManager.getSession(ucsmURL, username, password);
-            return getLsServer(computeSession, uuid);
+        ComputeSession computeSession = sessionManager.getSession(ucsmURL, username, password);
+        return getLsServer(computeSession, uuid);
     }
 
     public LsServer getLsServer(ComputeSession computeSession, String uuid)
@@ -1752,7 +1746,7 @@ public class UCSMServiceImpl implements UCSMService {
 
         deleteSPMO.getContent().add(factory.createConfigConfMoInConfig(configConfig));
 
-        pushLsServer(computeSession, factory, deleteSPMO, false);
+        pushLsServer(computeSession, factory, deleteSPMO);
 
         log.info("Deleted the Service Profile with dn : " + spDn);
 

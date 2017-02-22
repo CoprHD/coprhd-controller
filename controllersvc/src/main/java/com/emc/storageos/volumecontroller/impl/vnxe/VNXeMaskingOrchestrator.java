@@ -18,6 +18,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.util.CollectionUtils;
 
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
@@ -205,7 +206,13 @@ public class VNXeMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
 
             Map<URI, Integer> volumes = selectExportMaskVolumes(exportGroup, storageURI);
             _log.info("Volumes  : {}", Joiner.on(",").join(volumes.keySet()));
-            if (exportMasks != null && !exportMasks.isEmpty()) {
+            if (!CollectionUtils.isEmpty(exportMasks)) {
+
+                // Refresh all export masks
+                for (ExportMask exportMask : exportMasks) {
+                    refreshExportMask(storage, getDevice(), exportMask);
+                }
+
                 // find the export mask which has the same Host name as the initiator
                 // Add the initiator to that export mask
                 // Set up workflow steps.
@@ -364,6 +371,7 @@ public class VNXeMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
             }
             String deleteStep = null;
             for (ExportMask exportMask : exportMasksMap.keySet()) {
+                refreshExportMask(storage, getDevice(), exportMask);
                 List<Initiator> inits = exportMasksMap.get(exportMask);
 
                 if (exportMask.getInitiators().size() == inits.size() &&
@@ -418,8 +426,11 @@ public class VNXeMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
             taskCompleter = new ExportOrchestrationTask(exportGroupURI, token);
 
             List<ExportMask> exportMasks = ExportMaskUtils.getExportMasks(_dbClient, exportGroup, storageURI);
-            if (exportMasks != null && !exportMasks.isEmpty()) {
-
+            if (!CollectionUtils.isEmpty(exportMasks)) {
+                // refresh all export masks
+                for (ExportMask exportMask : exportMasks) {
+                    refreshExportMask(storage, getDevice(), exportMask);
+                }
                 // Set up workflow steps.
                 Workflow workflow = _workflowService.getNewWorkflow(
                         MaskingWorkflowEntryPoints.getInstance(),

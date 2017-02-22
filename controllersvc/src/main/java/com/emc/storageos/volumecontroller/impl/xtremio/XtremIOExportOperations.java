@@ -49,6 +49,7 @@ import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import com.emc.storageos.volumecontroller.impl.VolumeURIHLU;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportMaskRemoveInitiatorCompleter;
 import com.emc.storageos.volumecontroller.impl.smis.ExportMaskOperations;
+import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
 import com.emc.storageos.volumecontroller.impl.utils.ExportOperationContext;
 import com.emc.storageos.volumecontroller.impl.utils.ExportOperationContext.ExportOperationContextOperation;
 import com.emc.storageos.volumecontroller.impl.validators.ValidatorFactory;
@@ -643,6 +644,8 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
             for (String wwn : existingVolumes) {
                 mask.addToExistingVolumesIfAbsent(wwn, discoveredVolumes.get(wwn).toString());
             }
+            // Update user added volume's HLU information in ExportMask and ExportGroup
+            ExportMaskUtils.updateHLUsInExportMask(mask, discoveredVolumes, dbClient);
             dbClient.updateObject(mask);
 
         } catch (Exception e) {

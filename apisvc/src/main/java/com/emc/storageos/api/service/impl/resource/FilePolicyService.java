@@ -345,13 +345,13 @@ public class FilePolicyService extends TaskResourceService {
         FilePolicy filepolicy = queryResource(id);
         ArgValidator.checkEntity(filepolicy, id, true);
 
-        ArgValidator.checkReference(FilePolicy.class, id, checkForDelete(filepolicy));
+        ArgValidator.checkReference(FilePolicy.class, filepolicy.getFilePolicyName(), checkForDelete(filepolicy));
 
         StringSet assignedResources = filepolicy.getAssignedResources();
 
         if (assignedResources != null && !assignedResources.isEmpty()) {
             _log.error("Delete file pocicy failed because the policy has associacted resources");
-            throw APIException.badRequests.failedToDeleteFilePolicy(filepolicy.getLabel(), "This policy has assigned resources.");
+            throw APIException.badRequests.failedToDeleteFilePolicy(filepolicy.getFilePolicyName(), "This policy has assigned resources.");
         }
 
         _dbClient.markForDeletion(filepolicy);
@@ -743,7 +743,7 @@ public class FilePolicyService extends TaskResourceService {
                 if (replParam.getPolicySchedule().getScheduleFrequency() != null &&
                         !replParam.getPolicySchedule().getScheduleFrequency().isEmpty()) {
                     fileReplicationPolicy
-                            .setScheduleFrequency(replParam.getPolicySchedule().getScheduleFrequency());
+                    .setScheduleFrequency(replParam.getPolicySchedule().getScheduleFrequency());
                 }
             }
         }
@@ -1197,8 +1197,8 @@ public class FilePolicyService extends TaskResourceService {
                                             vpool, capabilities);
                                     if (newRecs != null && !newRecs.isEmpty()) {
                                         associations
-                                                .addAll(convertRecommendationsToStorageSystemAssociations(newRecs, filePolicy.getApplyAt(),
-                                                        vpool.getId(), projectURI));
+                                        .addAll(convertRecommendationsToStorageSystemAssociations(newRecs, filePolicy.getApplyAt(),
+                                                vpool.getId(), projectURI));
                                     }
                                 } catch (Exception ex) {
                                     _log.error("No recommendations found for storage system {} and virtualArray {} with error {} ",

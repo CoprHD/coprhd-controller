@@ -670,7 +670,6 @@ public class UnManagedFilesystemService extends TaggedResource {
         _logger.info("found {} quota directories for fs {}", unManagedFileQuotaDirectories.size(), parentFS.getId());
         for (UnManagedFileQuotaDirectory unManagedFileQuotaDirectory : unManagedFileQuotaDirectories) {
             QuotaDirectory quotaDirectory = new QuotaDirectory();
-            StringMap extensions= new StringMap();
             quotaDirectory.setId(URIUtil.createId(QuotaDirectory.class));
             quotaDirectory.setParent(new NamedURI(parentFS.getId(), unManagedFileQuotaDirectory.getLabel()));
             quotaDirectory.setNativeId(unManagedFileQuotaDirectory.getNativeId());
@@ -704,8 +703,15 @@ public class UnManagedFilesystemService extends TaggedResource {
             quotaDirectory.setSize(unManagedFileQuotaDirectory.getSize());
             quotaDirectory.setSecurityStyle(unManagedFileQuotaDirectory.getSecurityStyle());
             quotaDirectory.setNativeGuid(NativeGUIDGenerator.generateNativeGuid(_dbClient, quotaDirectory, parentFS.getName()));
-            extensions.put(QUOTA, unManagedFileQuotaDirectory.getExtensions().get(QUOTA));
-            quotaDirectory.setExtensions(extensions);
+            //check for file extensions
+            if (null != unManagedFileQuotaDirectory.getExtensions() &&
+                    !unManagedFileQuotaDirectory.getExtensions().isEmpty()){
+                StringMap extensions = new StringMap();
+                if(null != unManagedFileQuotaDirectory.getExtensions().get(QUOTA)) {
+                    extensions.put(QUOTA, unManagedFileQuotaDirectory.getExtensions().get(QUOTA));
+                    quotaDirectory.setExtensions(extensions);
+                }
+            }
             quotaDirectories.add(quotaDirectory);
         }
 

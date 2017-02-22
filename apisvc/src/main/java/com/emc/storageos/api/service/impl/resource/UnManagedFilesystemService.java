@@ -712,7 +712,6 @@ public class UnManagedFilesystemService extends TaggedResource {
                     quotaDirectory.setExtensions(extensions);
                 }
             }
-
             quotaDirectories.add(quotaDirectory);
         }
 

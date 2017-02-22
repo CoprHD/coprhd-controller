@@ -300,13 +300,13 @@ class FilePolicy(object):
                 replication_params['replication_copy_mode'] = replicationcopymode
             if replicationconfiguration is not None:
                 replication_params['replicate_configuration'] = replicationconfiguration
-            if policy_schedule is not None and (len(policy_schedule) >1):
+            if policy_schedule is not None and (len(policy_schedule) >0):
                 replication_params['policy_schedule'] = policy_schedule
             if priority is not None:
                 update_request['priority'] = priority
             if num_worker_threads is not None:
                 update_request['num_worker_threads'] = num_worker_threads
-            if replication_params is not None and (len(replication_params) >1):
+            if replication_params is not None and (len(replication_params) >0):
                 update_request['replication_params'] = replication_params
         elif pol_type == 'file_snapshot':
             if snapshotexpiretype is not None:
@@ -315,11 +315,11 @@ class FilePolicy(object):
                 snapshot_expire_params['expire_value'] = snapshotexpirevalue
             if snapshotnamepattern is not None:
                 snapshot_params['snapshot_name_pattern'] = snapshotnamepattern
-            if snapshot_expire_params is not None and (len(snapshot_expire_params) >1):
+            if snapshot_expire_params is not None and (len(snapshot_expire_params) >0):
                 snapshot_params['snapshot_expire_params'] = snapshot_expire_params
-            if policy_schedule is not None and (len(policy_schedule) >1):
+            if policy_schedule is not None and (len(policy_schedule) >0):
                 snapshot_params['policy_schedule'] = policy_schedule
-            if snapshot_params is not None and (len(snapshot_params) >1):
+            if snapshot_params is not None and (len(snapshot_params) >0):
                 update_request['snapshot_params'] = snapshot_params
 
         try:
@@ -473,7 +473,7 @@ class FilePolicy(object):
                 vpools = unassign_from_vpools.split(',')
                 for vpool in vpools:
                     uri = vpool_obj.vpool_query(vpool, 'file')
-                    pools_uris.append(uri)
+                    vpools_uris.append(uri)
             else :
                 uri = vpool_obj.vpool_query(unassign_from_vpools, 'file')
                 vpools_uris.append(uri)

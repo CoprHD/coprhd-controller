@@ -15,43 +15,43 @@ DIAGCOLLECT_MAME="diagutils-`date +%Y%0m%0d%0k%0M%0S`"
 DIAGCOLLECT_LOG="/tmp/diagutils.out"
 DISK_USED_PERCENTAGE_WARNING_LIMIT=50
 DISK_USED_PERCENTAGE_TERMINATION_LIMIT=80
-MIN_CFS=(BlockConsistencyGroup BlockMirror BlockSnapshot Cluster ExportGroup ExportMask FCZoneReference Host Initiator Network NetworkSystem ProtectionSet ProtectionSystem StoragePort StorageProvider StorageSystem VirtualArray VirtualDataCenter VirtualPool Volume)
+MIN_CFS=(BlockConsistencyGroup BlockMirror BlockSnapshot Cluster ExportGroup ExportMask FCZoneReference Host Initiator Network NetworkSystem ProtectionSet ProtectionSystem StorageProvider StoragePool StoragePort StorageSystem Vcenter VirtualArray VirtualDataCenter VirtualPool Volume)
 LOG_DOWNLOAD_SERVICE_NAMES=(vasasvc portalsvc systemevents coordinatorsvc apisvc bkutils geosvc dbsvc authsvc controllersvc syssvc sasvc geodbsvc systemevents)
 
 
 #This script is used to help user to restore a backupset simply
 usage() {
-    echo "Usage:"
-    echo "       $0 <-all|-quick>|<-min_cfs|-all_cfs|-zk|-backup|-logs|-properties|-health> [-ftp <ftp/ftps server url> -u <user name> -p <password>] [-conf <config file>]"
-    echo "Options:"
-    echo "       -min_cfs               Collect a minimum set of column families through output of dbutils list and/or cqlsh"
-    echo "                              The default cfs list includes:"
-    echo "                              BlockConsistencyGroup, BlockMirror, BlockSnapshot, Cluster, ExportGroup, ExportMask, FCZoneReference, Host, Initiator, Network, NetworkSystem,"
-    echo "                              ProtectionSet, ProtectionSystem, StoragePort, StorageProvider, StorageSystem, VirtualArray, VirtualDataCenter, VirtualPool, Volume."
-    echo "       -all_cfs               Collect all column families through output of dbutils list and/or cqlsh."
-    echo "       -zk                    Collect zk jobs and queues through zkutils."
-    echo "       -backup [backup name]  Create a new ViPR system backup/dump of DB and ZK through bkutils, which can be restored later."
-    echo "                              If the backup name is not specified, timestamp will be used instead."
-    echo "                              If the backup name already exists, the utility won't create a new backup, but copy the existing backup into the archive."
-    echo "       -logs                  Collect all system logs (/var/log/messages), ViPR logs including the rotated ones and orders in recent 30 days."
-    echo "       -properties            Collect system properties (version, node count, node names, etc.)."
-    echo "       -health                Collect system health information (e.g. node and service status, etc.), performance data of local node from top output."
-    echo "       -all                   Includs the output gathered by options: '-backup'(with default backup name), '-zk', '-logs', '-properties', '-health', and '-all_cfs'."
-    echo "                              '-ftp' and '-conf' are the only two other options allowed with conjunction with '-all'"
-    echo "       -quick                 Includs the output gathered by options: '-zk', '-logs', '-properties', '-health', and '-min_cfs'."
-    echo "                              '-ftp' and '-conf' are the only two other options allowed with conjunction with '-quick'"
-    echo "       -ftp <ftp/ftps server url> -u <user name> -p <password>"
-    echo "                              If specified, the output will be transferred to the external ftp/ftps server and removed from local storage after the transfer"
-    echo "                              Note: It's suggested to always transter the output to the FTP to retain space in ViPR nodes"
-    echo "       -conf <config file>    If specified, diagutils will use the settings in config file(refer /opt/storageos/conf/diagutils-sample.conf) instead of the default settings"
-    echo "For example:"
-    echo "       $0 -all -ftp ftp://10.247.101.11/tmp -u usera -p xxx"
-    echo "       $0 -quick"
-    echo "       $0 -min_cfs -zk -logs"
-    echo "Notes:"
-    echo "       '-all' equal to '-backup -zk -logs -properties -health -all_cfs'"
-    echo "       '-quick' equal to '-zk -logs -properties -health -min_cfs'"
-    echo "       (diagutils command log please refer ${DIAGCOLLECT_LOG})" 
+    echo_stdout_log "Usage:"
+    echo_stdout_log "       $0 <-all|-quick>|<-min_cfs|-all_cfs|-zk|-backup|-logs|-properties|-health> [-ftp <ftp/ftps server url> -u <user name> -p <password>] [-conf <config file>]"
+    echo_stdout_log "Options:"
+    echo_stdout_log "       -min_cfs               Collect a minimum set of column families through output of dbutils list and/or cqlsh"
+    echo_stdout_log "                              The default cfs list includes:"
+    echo_stdout_log "                              BlockConsistencyGroup, BlockMirror, BlockSnapshot, Cluster, ExportGroup, ExportMask, FCZoneReference, Host, Initiator, Network, NetworkSystem,"
+    echo_stdout_log "                              ProtectionSet, ProtectionSystem, StoragePort, StorageProvider, StorageSystem, VirtualArray, VirtualDataCenter, VirtualPool, Volume."
+    echo_stdout_log "       -all_cfs               Collect all column families through output of dbutils list and/or cqlsh."
+    echo_stdout_log "       -zk                    Collect zk jobs and queues through zkutils."
+    echo_stdout_log "       -backup [backup name]  Create a new ViPR system backup/dump of DB and ZK through bkutils, which can be restored later."
+    echo_stdout_log "                              If the backup name is not specified, timestamp will be used instead."
+    echo_stdout_log "                              If the backup name already exists, the utility won't create a new backup, but copy the existing backup into the archive."
+    echo_stdout_log "       -logs                  Collect all system logs (/var/log/messages), ViPR logs including the rotated ones and orders in recent 30 days."
+    echo_stdout_log "       -properties            Collect system properties (version, node count, node names, etc.)."
+    echo_stdout_log "       -health                Collect system health information (e.g. node and service status, etc.), performance data of local node from top output."
+    echo_stdout_log "       -all                   Includs the output gathered by options: '-backup'(with default backup name), '-zk', '-logs', '-properties', '-health', and '-all_cfs'."
+    echo_stdout_log "                              '-ftp' and '-conf' are the only two other options allowed with conjunction with '-all'"
+    echo_stdout_log "       -quick                 Includs the output gathered by options: '-zk', '-logs', '-properties', '-health', and '-min_cfs'."
+    echo_stdout_log "                              '-ftp' and '-conf' are the only two other options allowed with conjunction with '-quick'"
+    echo_stdout_log "       -ftp <ftp/ftps server url> -u <user name> -p <password>"
+    echo_stdout_log "                              If specified, the output will be transferred to the external ftp/ftps server and removed from local storage after the transfer"
+    echo_stdout_log "                              Note: It's suggested to always transter the output to the FTP to retain space in ViPR nodes"
+    echo_stdout_log "       -conf <config file>    If specified, diagutils will use the settings in config file(refer /opt/storageos/conf/diagutils-sample.conf) instead of the default settings"
+    echo_stdout_log "For example:"
+    echo_stdout_log "       $0 -all -ftp ftp://10.247.101.11/tmp -u usera -p xxx"
+    echo_stdout_log "       $0 -quick"
+    echo_stdout_log "       $0 -min_cfs -zk -logs"
+    echo_stdout_log "Notes:"
+    echo_stdout_log "       '-all' equal to '-backup -zk -logs -properties -health -all_cfs'"
+    echo_stdout_log "       '-quick' equal to '-zk -logs -properties -health -min_cfs'"
+    echo_stdout_log "       (diagutils command log please refer ${DIAGCOLLECT_LOG})" 
 }
 
 ######################
@@ -59,7 +59,7 @@ usage() {
 ######################
 init() {
     if [ -n "$CONFIG_FILE" ] && [ -f $CONFIG_FILE ]; then
-        echo "Using Configuration file $CONFIG_FILE for diagutils"
+        echo_stdout_log "Using Configuration file $CONFIG_FILE for diagutils"
         source $CONFIG_FILE
     fi
 
@@ -71,7 +71,7 @@ init() {
 
     mkdir -p ${DIAGCOLLECT_OUTPUT}
     touch ${DIAGCOLLECT_LOG}
-    echo -n "@@@@@@@@@@@@@@ ${DIAGCOLLECT_OUTPUT} @@@@@@@@@@@@ at " >>${DIAGCOLLECT_LOG}; date >>${DIAGCOLLECT_LOG}
+    echo_stdout_log -n "@@@@@@@@@@@@@@ ${DIAGCOLLECT_OUTPUT} @@@@@@@@@@@@ at " >>${DIAGCOLLECT_LOG}; date >>${DIAGCOLLECT_LOG}
 }
 
 collect_cfs() {
@@ -83,7 +83,7 @@ collect_cfs() {
         return
     fi
 
-    echo "Collecting cfs info.."
+    echo_stdout_log "Collecting cfs info.."
     local cfsDir="${DIAGCOLLECT_OUTPUT}/${param}"
     mkdir -p ${cfsDir}
 
@@ -99,7 +99,7 @@ collect_zk() {
         return
     fi
 
-    echo "Collecting zk info.."
+    echo_stdout_log "Collecting zk info.."
     local zkDir="${DIAGCOLLECT_OUTPUT}/$param"
     mkdir -p ${zkDir}
 
@@ -118,18 +118,18 @@ collect_backup() {
     set +e
     check_if_skip "new backup"
     if [[ ${SKIP_COLLECT} == false ]] ; then
-        echo "Collecting backup data.."
+        echo_stdout_log "Collecting backup data.."
         local foundName=`${COMMAND_DIR}/bkutils -l | grep "${backupName}" | awk '{print $1}'`
         if [ "${foundName}" == "${backupName}" ]; then
-            echo -e "\tBackup($backupName) exists"
+            echo_stdout_log -e "\tBackup($backupName) exists"
         else
-            echo -e -n "\tStarting to creat backup(${backupName}).."
+            echo_stdout_log -e -n "\tStarting to create backup(${backupName}).."
             local task="${COMMAND_DIR}/bkutils -c ${backupName} -f"
             execute_with_progress_point "${task}" "true"
         fi
     fi
 
-    echo -e -n "\tTrying to collect and archive existing backup data.."
+    echo_stdout_log -e -n "\tTrying to collect and archive existing backup data.."
     local backupDir="${DIAGCOLLECT_OUTPUT}/backup"
     mkdir -p ${backupDir}
     collect_data "/data/backup/${backupName}" "${backupDir}" "false"
@@ -139,13 +139,13 @@ collect_backup() {
     execute_with_progress_point "${task}" "false"
     rm -rf ${backupName}_*
     if [[ ${SKIP_COLLECT} == false ]] ; then
-        ${COMMAND_DIR}/bkutils -d ${backupName} &> ${DIAGCOLLECT_LOG}
+        ${COMMAND_DIR}/bkutils -d ${backupName} &>> ${DIAGCOLLECT_LOG}
     fi
     set -e
 }
 
 collect_logs() {
-    echo "Collecting logs.."
+    echo_stdout_log "Collecting logs.."
     local logsDir="${DIAGCOLLECT_OUTPUT}/logs"
     mkdir -p ${logsDir}
 
@@ -161,7 +161,7 @@ collect_logs() {
 }
 
 collect_properties() {
-    echo "Collecting properties.."
+    echo_stdout_log "Collecting properties.."
     local propDir="${DIAGCOLLECT_OUTPUT}/properties"
     mkdir -p ${propDir}
  
@@ -170,27 +170,27 @@ collect_properties() {
     /etc/systool --get-default > $propDir/systool-getdefault
     /etc/getovfproperties --is-vapp
     if [ $? -eq 0 ]; then
-        echo "vApp" > $propDir/platform
+        echo_stdout_log "vApp" > $propDir/platform
     else
-        echo "no-vApp" > $propDir/platform
+        echo_stdout_log "no-vApp" > $propDir/platform
     fi
     set -e
 }
 
 collect_health() {
-    echo "Collecting health infomation.."
+    echo_stdout_log "Collecting health information.."
     local healthDir="${DIAGCOLLECT_OUTPUT}/health"
     mkdir -p ${healthDir}
     
     set +e
-    echo -e -n "\tCollecting memory disk related information on local node.."
+    echo_stdout_log -e -n "\tCollecting memory disk related information on local node.."
     free > ${healthDir}/${LOCAL_NODE}-memory 
     df -l > ${healthDir}/${LOCAL_NODE}-space 
     ifconfig > ${healthDir}/${LOCAL_NODE}-ifconfig 
     local task="/etc/diagtool -v > ${healthDir}/${LOCAL_NODE}-diagtool"
     execute_with_progress_point "${task}" "false"
 
-    echo -e -n "\tCollecting nodetool realted information of each node.."
+    echo_stdout_log -e -n "\tCollecting nodetool related information of each node.."
     for i in $(seq 1 ${NODE_COUNT})
     do
         local viprNode=$(get_nodeid)
@@ -202,12 +202,12 @@ collect_health() {
         print_progress_point
     done
     wait
-    echo "finish"
+    echo_stdout_log "finish"
     set -e
 }
 
 collect_all() {
-    echo "We are collecting a complete set of diagnostic data.."
+    echo_stdout_log "We are collecting a complete set of diagnostic data.."
     collect_logs
     collect_properties
     collect_health
@@ -217,7 +217,7 @@ collect_all() {
 }
 
 collect_quick() {
-    echo "We are collecting a default set of diagnostic data..."
+    echo_stdout_log "We are collecting a default set of diagnostic data..."
     collect_logs
     collect_properties
     collect_health
@@ -226,7 +226,7 @@ collect_quick() {
 }
 
 create_archive() {
-    echo -n "Creating the final archive(${DIAGCOLLECT_DIR}/${DIAGCOLLECT_ARCHIVE_NAME}.zip).."
+    echo_stdout_log -n "Creating the final archive(${DIAGCOLLECT_DIR}/${DIAGCOLLECT_ARCHIVE_NAME}.zip).."
     cd ${DIAGCOLLECT_DIR}
 
     set +e
@@ -237,7 +237,7 @@ create_archive() {
     if [ ${result} -eq 0 ]; then
         rm -rf ${DIAGCOLLECT_OUTPUT}
     else
-        echo "Exit."
+        echo_stdout_log "Exit."
         return ${result}
     fi
 }
@@ -249,7 +249,7 @@ upload_to_ftp() {
 
     cd ${DIAGCOLLECT_DIR}
     local uploadfile=${DIAGCOLLECT_ARCHIVE_NAME}.zip
-    echo -n "Uploading ${uploadfile} to ftp server(${ftpserver}).."
+    echo_stdout_log -n "Uploading ${uploadfile} to ftp server(${ftpserver}).."
 
     set +e
     local task="cat ${uploadfile} | curl -sSk -u ${user}:${password} -a -T - "${ftpserver}"/${DIAGCOLLECT_ARCHIVE_NAME}.zip"
@@ -257,10 +257,10 @@ upload_to_ftp() {
     local result=$?
     set -e
     if [ ${result} -eq 0 ]; then
-        echo "Removing local archive file.."
+        echo_stdout_log "Removing local archive file.."
         rm -rf ${uploadfile}
     else 
-        echo "Exit."
+        echo_stdout_log "Exit."
         return ${result}
     fi
 }
@@ -293,14 +293,14 @@ collect_data() {
 
 get_nodeid() {
     if [ ${NODE_COUNT} -eq 1 ]; then
-        echo "${LOCAL_NODE}"
+        echo_stdout_log "${LOCAL_NODE}"
     else
-        echo "vipr$i"
+        echo_stdout_log "vipr$i"
     fi
 }
 
 get_nodeName() {
-    echo `/etc/systool --getprops | grep "node_${i}_name" | awk -F '=' '{print $2}'`
+    echo_stdout_log `/etc/systool --getprops | grep "node_${i}_name" | awk -F '=' '{print $2}'`
 }
 
 user_confirm() {
@@ -309,8 +309,8 @@ user_confirm() {
         read -p "$message(yes/no)" yn
         case $yn in
             [Yy]es ) break;;
-            [Nn]o )  echo "Exiting.."; exit;;
-            * ) echo "Invalid input.";;
+            [Nn]o )  echo_stdout_log "Exiting.."; exit;;
+            * ) echo_stdout_log "Invalid input.";;
         esac
     done
 }
@@ -319,7 +319,7 @@ execute_with_progress_point() {
     local task=$1
     local printResult=$2
 
-    while true; do echo -n "."; sleep 5; done &
+    while true; do echo_stdout_log -n "."; sleep 5; done &
     BACKGROUND_PRINT_PID=$!
     local result="success"
     eval "${task}" &>>${DIAGCOLLECT_LOG}
@@ -329,9 +329,9 @@ execute_with_progress_point() {
     kill_background_thread &>>${DIAGCOLLECT_LOG}
 
     if [[ ${printResult} == "true" ]]; then
-        echo "${result}"
+        echo_stdout_log "${result}"
     else
-        echo "finish"
+        echo_stdout_log "finish"
     fi
     if [[ ${result} == "failed" ]]; then
         return 1
@@ -361,9 +361,13 @@ set_max_current_job_number() {
 
 print_progress_point() {
     while [ `jobs -r | grep "Running" | wc -l` -ge $MAX_CURR_JOBS ]; do
-        echo -n "." 
+        echo_stdout_log -n "." 
         sleep 5
     done
+}
+
+echo_stdout_log() {
+    echo "$@" | tee -a ${DIAGCOLLECT_LOG}
 }
 
 check_if_skip() {
@@ -371,12 +375,12 @@ check_if_skip() {
 
     local param=$1
     if [[ ${NODE_AVAILABLE} == false ]]; then
-        echo "Local node is unavailable, can not collect ${param}.."
+        echo_stdout_log "Local node is unavailable, can not collect ${param}.."
         SKIP_COLLECT=true
         return
     fi
     if [[ ${CLUSTER_AVAILABLE} == false ]]; then
-        echo "Cluster is unavailable, can not collect ${param}.."
+        echo_stdout_log "Cluster is unavailable, can not collect ${param}.."
         SKIP_COLLECT=true
     fi
 }
@@ -389,13 +393,13 @@ precheck_node_cluster_status() {
     do
         local viprNode=$(get_nodeid)
         local tmpFile="/tmp/zk_telnet_status"
-        echo ruok | curl telnet://${viprNode}:2181 &> ${tmpFile}
+        echo_stdout_log ruok | curl telnet://${viprNode}:2181 &> ${tmpFile}
         cat ${tmpFile} | grep "imok" &>>${DIAGCOLLECT_LOG}
         if [ $? -eq 0 ]; then
             if [ ${viprNode} == ${LOCAL_NODE} ]; then
                 NODE_AVAILABLE=true
             fi
-            echo stat | curl telnet://${viprNode}:2181 &>${tmpFile}
+            echo_stdout_log stat | curl telnet://${viprNode}:2181 &>${tmpFile}
             cat ${tmpFile} | grep "Mode" &>>${DIAGCOLLECT_LOG}
             if [ $? -eq 0 ]; then
                 CLUSTER_AVAILABLE=true
@@ -407,22 +411,22 @@ precheck_node_cluster_status() {
     done
 
     if [[ ${NODE_AVAILABLE} == false ]] ;then
-        echo "Key service(s) on this node is unavailable, some collection would be missed, we'd better change to execute the tool on a healthy node."
+        echo_stdout_log "Key service(s) on this node is unavailable, some collection would be missed, we'd better change to execute the tool on a healthy node."
         user_confirm "Are you sure you want to continue?"
     fi
 
     if [[ ${CLUSTER_AVAILABLE} == false ]]; then
-        echo "Cluster is unavailable, some collection would be missed"
+        echo_stdout_log "Cluster is unavailable, some collection would be missed"
     fi
 }
 
 precheck_disk_status() {
     local dataUsedPercentage=$(df -km /data | awk -F ' ' '/\<data\>/ {print $5}')
     if [[ ${dataUsedPercentage%\%} -gt $DISK_USED_PERCENTAGE_TERMINATION_LIMIT ]]; then
-        echo "Data disk used percentage is over than 80%(${dataUsedPercentage}), can not execute this tool."
+        echo_stdout_log "Data disk used percentage is over than 80%(${dataUsedPercentage}), can not execute this tool."
         exit 1
     elif [[ ${dataUsedPercentage%\%} -gt $DISK_USED_PERCENTAGE_WARNING_LIMIT ]]; then
-        echo "Data disk used percentage is over than 50%(${dataUsedPercentage})."
+        echo_stdout_log "Data disk used percentage is over than 50%(${dataUsedPercentage})."
         user_confirm "Are you sure you want to continue?"
     fi
 }
@@ -434,7 +438,7 @@ precheck_ftp_status() {
 
     curl -sSk -u ${user}:${password} -l "${ftpserver}" &>>${DIAGCOLLECT_LOG}
     if [ $? -ne 0 ]; then
-        echo "FTP server is unavailable or username/password is incorrect."
+        echo_stdout_log "FTP server is unavailable or username/password is incorrect."
         exit 2
     fi
 }
@@ -450,7 +454,7 @@ diagnose_cfs() {
     elif [ "${option}" == "-all_cfs" ]; then
         cfList=$($COMMAND_DIR/dbcli show_cf | cut -d " " -f3)
     else
-        echo "Invalid option for diagnosing cfs: ${option}"
+        echo_stdout_log "Invalid option for diagnosing cfs: ${option}"
         exit 2
     fi
 
@@ -458,17 +462,17 @@ diagnose_cfs() {
     local cfListFile="collected_cf_list"
     rm -rf ${cfsDir}
     mkdir -p ${cfsDir}/${output}
-    echo "${cfList[*]}" > ${cfsDir}/${cfListFile}
+    echo_stdout_log "${cfList[*]}" > ${cfsDir}/${cfListFile}
 
     # Generate the "dbutils list" output files
     # processed in parallel with:  no. of threads == no. of CPU cores
-    echo -n -e "\tNow generating dbutils listings, this may take some time..."
+    echo_stdout_log -n -e "\tNow generating dbutils listings, this may take some time..."
     for CF in ${cfList[@]}; do
         nohup $COMMAND_DIR/dbutils list ${CF} > ${cfsDir}/${output}/"dbutils.list.${CF}.out" 2> ${cfsDir}/${output}/cfs_dump.err < ${DIAGCOLLECT_LOG} &
         print_progress_point
     done
     wait
-    echo "finish"
+    echo_stdout_log "finish"
 
     # Format the generated "dbutils list" output files
     # (further formatting can be added with additional "else if" clauses in the "gawk" program below)
@@ -499,26 +503,26 @@ diagnose_cfs() {
     done
 
     # Generate cqlsh RelationIndex and AltIndex output
-    echo -e -n "\tCapturing RelationIndex output, AltIndex output and system properties..."
+    echo_stdout_log -e -n "\tCapturing RelationIndex output, AltIndex output and system properties..."
     local indexList=(RelationIndex AltIdIndex)
     for index in ${indexList[@]}
     do
         local tmpFile="${cfsDir}/cqlsh.Input"
-        echo "SELECT * FROM \"$index\" LIMIT 1000000;" >${tmpFile}
+        echo_stdout_log "SELECT * FROM \"$index\" LIMIT 1000000;" >${tmpFile}
         $COMMAND_DIR/cqlsh -k StorageOS localhost -f ${tmpFile} > ${cfsDir}/${output}/"cqlsh.${index}_Output.txt"
     done
-    echo "finish"
+    echo_stdout_log "finish"
     rm -rf ${tmpFile}
 
     # Clean up temporary files and zip up the output files
-    echo -e -n "\tArchiving cfs data.."
+    echo_stdout_log -e -n "\tArchiving cfs data.."
     cd ${cfsDir}/${output}
     tar -cf "unformatted_output.tar" *.out --format=gnu &>>${DIAGCOLLECT_LOG}
     rm -f *.out
     cd ${cfsDir}
     tar -czf "cfs-`date +%Y%0m%0d%0k%0M%0S`.tar.gz" ${output}/* --format=gnu &>>${DIAGCOLLECT_LOG}
     rm -rf ${output}
-    echo "finish"
+    echo_stdout_log "finish"
 }
 
 convert_log_name() {
@@ -529,7 +533,7 @@ convert_log_name() {
             local nodeName=$(get_nodeName)
             local serviceLogFiles=($(ls -rt info/${nodeId}/${service}.log.*.gz 2>>${DIAGCOLLECT_LOG}))
             for file in ${serviceLogFiles[@]}; do
-                local timestamp=`echo ${file} | awk -F '-' '{print $2}'`
+                local timestamp=`echo_stdout_log ${file} | awk -F '-' '{print $2}'`
                 zcat ${file} | sed "s/^[0-9]/${nodeId} ${nodeName} ${service} &/g" > logs/${service}_${nodeId}_${nodeName}_${timestamp}.log
             done
             if [ -f "info/${nodeId}/${service}.log" ]; then
@@ -557,7 +561,7 @@ check_parameter() {
     local next_param=$2
 
     if [[ ! -n "${next_param}" ]] || [[ "${next_param}" == -* ]]; then
-        echo "Invalid value of '$param'"
+        echo_stdout_log "Invalid value of '$param'"
         usage
         exit 2
     fi
@@ -572,25 +576,25 @@ set_backupname() {
 
 validate_parameters() {
     if [[ ${genaral_param_count} -eq 0 ]] && [[ ${plain_param_count} -eq 0 ]]; then
-        echo "Lack of mandatory paramter"
+        echo_stdout_log "Lack of mandatory paramter"
         usage
         exit 2
     fi
 
     if [[ ${genaral_param_count} -gt 1 ]] || [[ (${genaral_param_count} -ne 0) && (${plain_param_count} -ne 0) ]]; then
-        echo "'-all/quick' could not be executed together with other options except '-ftp' and '-conf'"
+        echo_stdout_log "'-all/quick' could not be executed together with other options except '-ftp' and '-conf'"
         usage
         exit 2
     fi
 
     if [[ ${cf_param_count} -gt 1 ]]; then
-        echo "'-min_cfs' and '-all_cfs' could not be executed together"
+        echo_stdout_log "'-min_cfs' and '-all_cfs' could not be executed together"
         usage
         exit 2
     fi
 
     if [[ ${ftp_param_count} -ne 0 && ${ftp_param_count} -ne 3 ]]; then
-        echo "Lack of parameters for ftp server.."
+        echo_stdout_log "Lack of parameters for ftp server.."
         usage
         exit 2
     elif [[ ${ftp_param_count} -eq 3 ]]; then
@@ -657,7 +661,7 @@ do
             check_parameter "$param" "${CONFIG_FILE}"
             ;;
         -*)
-            echo "Invalid Paramter: $param"
+            echo_stdout_log "Invalid Paramter: $param"
             usage
             exit 2;;
     esac
@@ -695,4 +699,4 @@ if [[ ${ftp_param_count} -eq 3 ]]; then
     upload_to_ftp "${FTP}" "${USER}" "${PASSWORD}" 2>>${DIAGCOLLECT_LOG}
 fi
 
-echo "ViPR diag finished."
+echo_stdout_log "ViPR diag finished."

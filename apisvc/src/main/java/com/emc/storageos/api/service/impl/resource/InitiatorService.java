@@ -36,6 +36,7 @@ import com.emc.storageos.api.service.impl.response.ResRepFilter;
 import com.emc.storageos.api.service.impl.response.SearchedResRepList;
 import com.emc.storageos.computesystemcontroller.ComputeSystemController;
 import com.emc.storageos.computesystemcontroller.impl.ComputeSystemHelper;
+import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.model.Cluster;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.RegistrationStatus;
@@ -194,14 +195,9 @@ public class InitiatorService extends TaskResourceService {
             if (firstHost.compareTo(secondtHost) != 0) {
                 throw APIException.badRequests.initiatorsNotBelongToSameHost(id, associatedId);
             }
-
-            // If host has already exported volume .
-            // Adding initiator one by one update export mask one by one and same storage port can not be guaranteed
-            // for initiator pair .Do not associate such initiator,
-            if (ComputeSystemHelper.isHostInUse(_dbClient, firstHost)) {
-
-                throw APIException.badRequests.cannotAssociateInitiatorWhileHostInUse();
-            }
+            
+            //check if initiator associated with any exportGroup
+            checkForExportGroupAssociation(id.toString(), associatedId.toString());
             
             //check whether associated initiator id is already a part of any initiator
             checkForInitialAssocaition(initiator, pairInitiator);
@@ -218,7 +214,21 @@ public class InitiatorService extends TaskResourceService {
         return map(queryObject(Initiator.class, id, false));
     }
     
-    //internal method to check initiator association
+    //internal method to check initiator association with exportGroup
+    private void checkForExportGroupAssociation(String initiator, String associatedInitiator) {
+    	String initiatorInUse = null;
+		if (ComputeSystemHelper.isInitiatorInUse(_dbClient, initiator)) {
+			initiatorInUse = initiator;
+			if (initiatorInUse == null && ComputeSystemHelper.isInitiatorInUse(_dbClient, associatedInitiator)) {
+				initiatorInUse = associatedInitiator;
+			}
+			throw APIException.badRequests.resourceHasActiveReferencesWithType(Initiator.class.getSimpleName(), URIUtil.uri(initiatorInUse),
+                    ExportGroup.class.getSimpleName());
+		}
+		
+	}
+
+	//internal method to check initiator association
     private void checkForInitialAssocaition(Initiator initiator, Initiator pairInitiator) {
 		if (initiator.getAssociatedInitiator() != null && pairInitiator.getAssociatedInitiator() != null) {
 			throw APIException.badRequests.invalidParameterInitatorAlreadyPaired(initiator.getInitiatorPort(),
@@ -252,6 +262,7 @@ public class InitiatorService extends TaskResourceService {
                 throw APIException.badRequests.associateInitiatorNotFound(id);
             }
             if (pairInitiator != null) {
+            	checkForExportGroupAssociation(initiator.getId().toString(), pairInitiator.getId().toString());
                 initiator.setAssociatedInitiator(NullColumnValueGetter.getNullURI());
                 pairInitiator.setAssociatedInitiator(NullColumnValueGetter.getNullURI());
                 _dbClient.updateObject(initiator);

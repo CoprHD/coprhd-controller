@@ -7,6 +7,8 @@ package com.emc.storageos.db.client.upgrade.callbacks;
 
 import java.util.UUID;
 
+import com.emc.storageos.db.client.model.TimeSeriesAlternateId;
+import com.emc.storageos.db.client.upgrade.BaseCustomMigrationCallback;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -21,10 +23,9 @@ import com.netflix.astyanax.serializers.CompositeRangeBuilder;
 
 import com.emc.storageos.db.client.impl.*;
 import com.emc.storageos.db.client.model.uimodels.Order;
-import com.emc.storageos.db.client.upgrade.BaseDefaultMigrationCallback;
 import com.emc.storageos.svcs.errorhandling.resources.MigrationCallbackException;
 
-public class TimeSeriesIndexMigration extends BaseDefaultMigrationCallback {
+public class TimeSeriesIndexMigration extends BaseCustomMigrationCallback {
     private static final Logger log = LoggerFactory.getLogger(TimeSeriesIndexMigration.class);
     final public static String SOURCE_INDEX_CF_NAME="TenantToOrder";
     final public static String SOURCE_INDEX_CF_NAME2="timeseriesIndex";
@@ -38,7 +39,7 @@ public class TimeSeriesIndexMigration extends BaseDefaultMigrationCallback {
         long start = System.currentTimeMillis();
 
         log.info("Adding new index records for class: {} field: {} annotation: {}",
-                new Object[] { cfClass, fieldName, annotation.annotationType().getCanonicalName()});
+                new Object[] { Order.class.getName(), Order.SUBMITTED, TimeSeriesAlternateId.class.getName()});
 
         ColumnFamily<String, IndexColumnName> tenantToOrder =
                 new ColumnFamily<>(SOURCE_INDEX_CF_NAME, StringSerializer.get(), IndexColumnNameSerializer.get());
@@ -50,14 +51,14 @@ public class TimeSeriesIndexMigration extends BaseDefaultMigrationCallback {
         ColumnField field = doType.getColumnField(Order.SUBMITTED);
         ColumnFamily<String, TimeSeriesIndexColumnName> newIndexCF = field.getIndexCF();
 
-        DbClientImpl client = getInternalDbClient();
+        DbClientImpl client = (DbClientImpl)dbClient;
         Keyspace ks = client.getKeyspace(Order.class);
         MutationBatch mutationBatch = ks.prepareMutationBatch();
 
         try {
             long m = 0;
             OperationResult<Rows<String, IndexColumnName>> result = ks.prepareQuery(tenantToOrder).getAllRows()
-                    .setRowLimit(100)
+                    .setRowLimit(1000)
                     .withColumnRange(new RangeBuilder().setLimit(0).build())
                     .execute();
             for (Row<String, IndexColumnName> row : result.getResult()) {
@@ -101,7 +102,7 @@ public class TimeSeriesIndexMigration extends BaseDefaultMigrationCallback {
             mutationBatch.execute();
 
             long end = System.currentTimeMillis();
-            log.info("Read {} records in {} MS", m, (end - start)/1000);
+            log.info("Read {} records in {} seconds", m, (end - start)/1000);
         }catch (Exception e) {
             log.error("Migration to {} failed e=", newIndexCF.getName(), e);
         }

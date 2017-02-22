@@ -817,6 +817,9 @@ public class VnxExportOperations implements ExportMaskOperations {
                         SmisConstants.CP_ELEMENT_NAME);
                 // Get volumes and initiators for the masking instance
                 Map<String, Integer> discoveredVolumes = _helper.getVolumesFromLunMaskingInstance(client, instance);
+
+                // Update user added volume's HLU information in ExportMask and ExportGroup
+                ExportMaskUtils.updateHLUsInExportMask(mask, discoveredVolumes, _dbClient);
                 List<String> discoveredPorts = _helper.getInitiatorsFromLunMaskingInstance(client, instance);
 
                 Set existingInitiators = (mask.getExistingInitiators() != null) ? mask.getExistingInitiators() : Collections.emptySet();

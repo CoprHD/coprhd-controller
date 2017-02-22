@@ -993,7 +993,7 @@ def unassign_parser(subcommand_parsers, common_parser):
         '-unasngrestp',
         metavar='<unassign_resource_type>',
         dest='unassign_resource_type',
-        help='Resource type to be unassigned from. type values : vpools or projects',
+        help='Resource type to be unassigned from. type values : vpools or projects or filesystem',
         choices=['vpools', 'projects', 'filesystem'],
         required=True,
         )

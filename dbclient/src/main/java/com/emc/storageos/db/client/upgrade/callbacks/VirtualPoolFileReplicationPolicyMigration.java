@@ -97,7 +97,7 @@ public class VirtualPoolFileReplicationPolicyMigration extends BaseCustomMigrati
                     if (virtualPool.getFrRpoValue() != null && virtualPool.getFrRpoType() != null) {
                         replPolicy.setScheduleRepeat((long) virtualPool.getFrRpoValue());
                         replPolicy.setScheduleTime("00:00AM");
-                        replPolicy.setScheduleFrequency(virtualPool.getFrRpoType().toUpperCase());
+                        replPolicy.setScheduleFrequency(virtualPool.getFrRpoType().toLowerCase());
                         // Virtual pool was supporting only Minutes/Hours/Days for RPO type
                         // Day of the week and month is not applicable!!
                         replPolicy.setScheduleDayOfWeek(NullColumnValueGetter.getNullStr());

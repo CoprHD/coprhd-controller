@@ -776,7 +776,6 @@ public class ComputeUtils {
                     ExecutionUtils.currentContext().logError("computeutils.sethostbootvolume.failure",
                             successfulTask.getResource().getName());
                     hostsToRemove.add(hostId);
-                    bootVolumesToRemove.add(bootVolumeIds.get(hosts.indexOf(newHost)));
                 }
                 else {
                     ExecutionUtils.currentContext().logInfo("computeutils.sethostbootvolume.success",
@@ -793,17 +792,26 @@ public class ComputeUtils {
                 URI hostId = failedTask.getResource().getId();
                 Host newHost = execute(new GetHost(hostId));
                 hostsToRemove.add(hostId);
-                bootVolumesToRemove.add(bootVolumeIds.get(hosts.indexOf(newHost)));
 
             }
         }
 
         for (URI hostId: hostsToRemove){
+            for (Host host: hosts){
+               if (host.getId() == hostId){
+                 ExecutionUtils.currentContext().logInfo("computeutils.deactivatehost.nobootvolumeassociation",
+                            host.getHostName());
+
+                 bootVolumesToRemove.add(host.getBootVolumeId());
+                 break;
+               }
+            }
             execute(new DeactivateHost(hostId, true));
         }
         // Cleanup all bootvolumes of the deactivated host so that we do not leave any unsed boot volumes.
         if (!bootVolumesToRemove.isEmpty()) {
             try {
+                ExecutionUtils.currentContext().logInfo("computeutils.deactivatebootvolume.nobootvolumeassociation")
                 BlockStorageUtils.deactivateVolumes(bootVolumesToRemove, VolumeDeleteTypeEnum.FULL);
             }catch (Exception e) {
                 ExecutionUtils.currentContext().logError("computeutils.bootvolume.deactivate.failure",

@@ -33,8 +33,6 @@ public interface RemoteReplicationDriver {
     /**
      * Create empty remote replication group.
      * @param replicationGroup specifies properties of remote replication group to create.
-     * @param sourcePorts specifies ports of source system used for remote replication
-     * @param targetPorts specifies ports of target system used for remote replication
      * @param capabilities storage capabilities for the group
      * @return driver task
      */

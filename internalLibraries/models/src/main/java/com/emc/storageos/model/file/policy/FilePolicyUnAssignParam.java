@@ -25,8 +25,8 @@ public class FilePolicyUnAssignParam implements Serializable {
         super();
     }
 
-    @XmlElementWrapper(name = "unassign_from")
-    @XmlElement(name = "URI")
+    @XmlElementWrapper(name = "unassign_ids")
+    @XmlElement(name = "id")
     public Set<URI> getUnassignfrom() {
         return unassignfrom;
     }

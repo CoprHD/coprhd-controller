@@ -4237,7 +4237,8 @@ button.ipsec.rotate.keys=Rotate IPsec Key
 button.synchronize=Synchronize
 button.syncOptions=Sync Options
 selectOne.chooseOption=-- Please Choose --
-button.assignPolicies=Assign/Unassign Policy
+button.assignPolicies=Assign Policy
+button.unassignPolicies=Unassign Policy
 
 button.mirroring.start=Start
 button.mirroring.stop=Stop

@@ -158,6 +158,26 @@ public class FileProtectionPolicies extends ViprResourceController {
         }
 
     }
+    
+    
+    @FlashException(value = "list", keep = true)
+    public static void unassign(String ids) {
+
+        FilePolicyRestRep filePolicyRestRep = getViprClient().fileProtectionPolicies().get(uri(ids));
+
+        if (filePolicyRestRep != null) {
+            AssignPolicyForm assignPolicy = new AssignPolicyForm().form(filePolicyRestRep);
+            addRenderApplyPolicysAt();
+            addProjectArgs(ids);
+            addvPoolArgs(ids);
+            render(assignPolicy);
+
+        } else {
+            flash.error(MessagesUtils.get(UNKNOWN, ids));
+            list();
+        }
+
+    }
 
     @Util
     private static void addRenderArgs() {
@@ -291,6 +311,29 @@ public class FileProtectionPolicies extends ViprResourceController {
 
         return createResourceOptions(vPools);
     }
+    
+    
+    /**
+     * Get list the pool which is already assigned to a protection policy.
+     * @param id
+     * @return
+     */
+    private static List<StringOption> getAssignedResourceOptions(String id,FilePolicyApplyLevel type) {
+
+        List<StringOption> options = Lists.newArrayList();
+        // Filter the vpools based on policy type!!!
+        Collection<FileVirtualPoolRestRep> vPools = Lists.newArrayList();
+        FilePolicyRestRep policy = getViprClient().fileProtectionPolicies().get(uri(id));
+        if (type.name().equalsIgnoreCase(policy.getAppliedAt())) {
+            List<NamedRelatedResourceRep> existingResource = policy.getAssignedResources();
+
+            for (NamedRelatedResourceRep value : existingResource) {
+
+                options.add(new StringOption(value.getId().toString(), value.getName())); 
+            }
+        }
+        return options;
+    }
 
     private static List<StringOption> getFileProjectOptions(URI tenantId) {
         Collection<ProjectRestRep> projects = getViprClient().projects().getByTenant(tenantId);
@@ -306,6 +349,22 @@ public class FileProtectionPolicies extends ViprResourceController {
         renderArgs.put("vPoolOptions", getFileVirtualPoolsOptions(null, id));
         renderArgs.put("virtualArrayOptions", getVarrays());
     }
+    
+    
+    
+    private static void addAssignedProjectArgs(String id) {
+        renderArgs.put("projectVpoolOptions", getFileVirtualPoolsOptions(null, id));
+        renderArgs.put("projectOptions", getFileProjectOptions(uri(Models.currentAdminTenant())));
+    }
+
+    private static void addAssignedVPoolArgs(String id) {
+        renderArgs.put("vPoolOptions", getFileVirtualPoolsOptions(null, id));
+        renderArgs.put("virtualArrayOptions", getVarrays());
+    }
+    
+    
+    
+    
 
     private static List<StringOption> getVarrays() {
 

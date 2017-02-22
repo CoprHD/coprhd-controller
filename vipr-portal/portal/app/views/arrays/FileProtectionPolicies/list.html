@@ -3,13 +3,17 @@
 
 #{tenantSelector/}
 #{DataTable.header titleKey:'schedulepolicies.list.title' /}
-#{DataTable.formAction @assign(), id:'deregisterForm', table:'schedulepolicies'/}
+#{DataTable.formAction @assign(), id:'assignForm', table:'schedulepolicies'/}
+#{DataTable.formAction @unassign(), id:'unassignForm', table:'schedulepolicies'/}
 
 #{DataTable.crudTable id:'schedulepolicies', dataTable:dataTable, deleteConfirm:messages.get('schedulepolicies.deleteConfirm')}
 
 
 
- #{Form.button name:'button.assignPolicies', submit:'deregisterForm', 
+ #{Form.button name:'button.assignPolicies', submit:'assignForm', 
+                data:['enabled':'selected', 'selection':'single']/}
+                
+#{Form.button name:'button.unassignPolicies', submit:'unassignForm', 
                 data:['enabled':'selected', 'selection':'single']/}
 #{/DataTable.crudTable}
                 

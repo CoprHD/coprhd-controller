@@ -274,8 +274,7 @@ public class HostService extends TaskResourceService {
     public TaskResourceRep updateHost(@PathParam("id") URI id,
             HostUpdateParam updateParam,
             @QueryParam("validate_connection") @DefaultValue("false") final Boolean validateConnection,
-            @QueryParam("update_exports") @DefaultValue("true") boolean updateExports,
-            @QueryParam("update_sanboottargets") @DefaultValue("false") boolean updateSanBootTargets) {
+            @QueryParam("update_exports") @DefaultValue("true") boolean updateExports) {
         // update the host
         Host host = queryObject(Host.class, id, true);
         validateHostData(updateParam, host.getTenant(), host, validateConnection);
@@ -315,24 +314,6 @@ public class HostService extends TaskResourceService {
                 ComputeSystemHelper.updateHostAndInitiatorClusterReferences(_dbClient, host.getCluster(), host.getId());
             }
         }
-        /*
-         * It is not merely enough to make the Host -> (Boot)Volume association
-         * by setting the boot volume id on the Host. A volume is truly a boot
-         * volume, iff it's exported to the Host with HLU 0. Hence an update to
-         * the Host to set the boot volume should only really be made *after*
-         * the volume has been exported to the Host.
-         * TODO Consider making the
-         * above requirement a hard one, by validating that such an export in
-         * fact exists. For the time being following piece of code suffices
-         * for satisfying some high level requirements, although it may not be
-         * sufficient from an API purity standpoint
-         */
-        if (host.getComputeElement() != null && updateParam.getBootVolume() != null && updateSanBootTargets) {
-            controller.setHostSanBootTargets(host.getId(), updateParam.getBootVolume(), taskId);
-             
-        }
-
-        _dbClient.updateAndReindexObject(host);
         auditOp(OperationTypeEnum.UPDATE_HOST, true, null,
                 host.auditParameters());
 
@@ -353,7 +334,6 @@ public class HostService extends TaskResourceService {
     @CheckPermission(roles = { Role.TENANT_ADMIN })
     @Path("/{id}/update-boot-volume")
     public TaskResourceRep updateBootVolume(@PathParam("id") URI id, HostUpdateParam param) {
-//           	@QueryParam("update_sanboottargets") @DefaultValue("false") boolean updateSanBootTargets) {
          Host host = queryObject(Host.class, id, true);
         boolean hasPendingTasks = hostHasPendingTasks(id);
         boolean updateSanBootTargets = param.getUpdateSanBootTargets();
@@ -383,11 +363,6 @@ public class HostService extends TaskResourceService {
          * the Host to set the boot volume should only really be made *after*
          * the volume has been exported to the Host.
          */
-/*        if (host.getComputeElement() != null && param.getBootVolume() != null && updateSanBootTargets) {
-            _log.info("updateSanBootTargets is true");
-            controller.setHostSanBootTargets(host.getId(), param.getBootVolume(), taskId);
-
-        }*/
 
         return toTask(host, taskId, op);
     }

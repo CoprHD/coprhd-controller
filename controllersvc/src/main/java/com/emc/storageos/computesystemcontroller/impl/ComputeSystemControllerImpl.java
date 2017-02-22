@@ -1659,14 +1659,14 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
            _log.info("Generating steps for setting boot volume associstion");
            waitFor = workflow.createStep(null,
                    "Set Boot Volume Association", waitFor, host.getId(), host.getLabel(),
-                        this.getClass(), new Workflow.Method("setHostBootVolume", hostId, volumeId),
-                        new Workflow.Method("rollbackHostBootVolume", hostId, volumeId), null);
+                        this.getClass(), new Workflow.Method("setHostBootVolumeId", hostId, volumeId),
+                        new Workflow.Method("rollbackHostBootVolumeId", hostId, volumeId), null);
         }
         return waitFor;
     }
 
-    public void setHostBootVolume(URI hostId, URI volumeId, String stepId) throws ControllerException {
-        _log.info("setHostBootVolume :"+ hostId.toString());
+    public void setHostBootVolumeId(URI hostId, URI volumeId, String stepId) throws ControllerException {
+        _log.info("setHostBootVolumeId :"+ hostId.toString());
         Host host = null;
         try {
             WorkflowStepCompleter.stepExecuting(stepId);
@@ -1683,14 +1683,18 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
             WorkflowStepCompleter.stepSucceded(stepId);
         } catch (Exception e){
             _log.error("unexpected exception: " + e.getMessage(), e);
+            String hostString = hostId.toString();
+            if (host!=null){
+                hostString = host.getHostName();
+            }
             ServiceCoded serviceCoded = ComputeSystemControllerException.exceptions.unableToSetBootVolume(
-                    host != null ? host.getHostName() : hostId.toString(), e);
+                    hostString, e);
             WorkflowStepCompleter.stepFailed(stepId, serviceCoded);
         }        
 
    }
-   public void rollbackHostBootVolume(URI hostId, URI volumeId, String stepId) throws ControllerException {
-        _log.info("rollbackHostBootVolume:"+ hostId.toString());
+   public void rollbackHostBootVolumeId(URI hostId, URI volumeId, String stepId) throws ControllerException {
+        _log.info("rollbackHostBootVolumeId:"+ hostId.toString());
         Host host = null;
         try {
             WorkflowStepCompleter.stepExecuting(stepId);
@@ -1707,8 +1711,12 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
             WorkflowStepCompleter.stepSucceded(stepId);
         } catch (Exception e){
             _log.error("unexpected exception: " + e.getMessage(), e);
+            String hostString = hostId.toString();
+            if (host!=null){
+                hostString = host.getHostName();
+            }
             ServiceCoded serviceCoded = ComputeSystemControllerException.exceptions.unableToRollbackBootVolume(
-                    host != null ? host.getHostName() : hostId.toString(), e);
+                    hostString, e);
             WorkflowStepCompleter.stepFailed(stepId, serviceCoded);
         }
 
@@ -1747,8 +1755,12 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
            WorkflowStepCompleter.stepSucceded(stepId);
         }catch (Exception e){
             _log.error("unexpected exception: " + e.getMessage(), e);
+            String hostString = hostId.toString();
+            if (host!=null){
+                hostString = host.getHostName();
+            }
             ServiceCoded serviceCoded = ComputeSystemControllerException.exceptions.unableToSetSanBootTargets(
-                    host != null ? host.getHostName() : hostId.toString(), e);
+                    hostString, e);
             WorkflowStepCompleter.stepFailed(stepId, serviceCoded);
         }
 

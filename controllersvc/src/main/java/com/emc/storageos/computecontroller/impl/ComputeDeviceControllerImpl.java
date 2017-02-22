@@ -602,13 +602,13 @@ throw ComputeSystemControllerException.exceptions.targetNotFound(cs.getId().toSt
                             "deactiveComputeSystemHost", cs.getId(), hostId),
                     null, null);
 
-            if (deactivateBootVolume && host.getBootVolumeId() != null) {
+            if (deactivateBootVolume && !NullColumnValueGetter.isNullURI(host.getBootVolumeId()) ) {
                 waitFor = workflow.createStep(DEACTIVATION_COMPUTE_SYSTEM_BOOT_VOLUME,
                         "Delete the boot volume for the host", waitFor, cs.getId(), cs.getSystemType(),
                         this.getClass(), new Workflow.Method("deleteBlockVolume", hostId), null, null);
             } else if (!deactivateBootVolume) {
                  log.info("flag deactivateBootVolume set to false");
-            } else if (host.getBootVolumeId() == null){
+            } else if (NullColumnValueGetter.isNullURI(host.getBootVolumeId()) ){
                  log.info("Host "+ host.getLabel() + " has no bootVolume association");
             }
         } else {

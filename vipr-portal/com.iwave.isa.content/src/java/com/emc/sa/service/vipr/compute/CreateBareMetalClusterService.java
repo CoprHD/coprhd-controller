@@ -170,7 +170,7 @@ public class CreateBareMetalClusterService extends ViPRService {
             logInfo("compute.cluster.exports.created", ComputeUtils.nonNull(exportIds).size());
             hosts = ComputeUtils.deactivateHostsWithNoExport(hosts, exportIds, bootVolumeIds, cluster);
 
-            ComputeUtils.setHostBootVolumes(hosts, bootVolumeIds, true);
+            hosts = ComputeUtils.setHostBootVolumes(hosts, bootVolumeIds, true);
 
             if (ComputeUtils.findHostNamesInCluster(cluster).isEmpty()) {
                 logInfo("compute.cluster.removing.empty.cluster");

@@ -16,6 +16,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
+import java.util.Map.Entry;
 
 import com.emc.sa.engine.ExecutionException;
 import com.emc.sa.engine.ExecutionUtils;
@@ -749,10 +750,11 @@ public class ComputeUtils {
         }
     }
 
-    public static List<URI> setHostBootVolumes(List<Host> hosts,
+    public static List<Host> setHostBootVolumes(List<Host> hosts,
             List<URI> bootVolumeIds, boolean updateSanBootTargets) {
         List<Task<HostRestRep>> tasks = new ArrayList<>();
         for (Host host : hosts) {
+
             if (host != null && !host.getInactive()) {
                 host.setBootVolumeId(bootVolumeIds.get(hosts.indexOf(host)));
                 Task<HostRestRep> task = ViPRExecutionUtils.execute(new SetBootVolume(host, bootVolumeIds.get(hosts.indexOf(host)), updateSanBootTargets));
@@ -760,24 +762,63 @@ public class ComputeUtils {
             }
         }
         //monitor tasks
-         List<String> hostNames = Lists.newArrayList();
-        for (Host host : hosts) {
-            if (host != null) {
-                hostNames.add(host.getHostName());
+        List<URI> successfulHostIds = Lists.newArrayList();
+        List<URI> hostsToRemove = Lists.newArrayList();
+        List<URI> bootVolumesToRemove = Lists.newArrayList();
+        Map<URI,URI> hostDeactivateMap = new HashMap<URI, URI>();
+        while (!tasks.isEmpty()) {
+            waitAndRefresh(tasks);
+            for (Task<HostRestRep> successfulTask : getSuccessfulTasks(tasks)) {
+                tasks.remove(successfulTask);
+                URI hostId = successfulTask.getResource().getId();
+                Host newHost = execute(new GetHost(hostId));
+                if (newHost == null || newHost.getBootVolumeId()== null || newHost.getBootVolumeId().equals("null")) {
+                    ExecutionUtils.currentContext().logError("computeutils.sethostbootvolume.failure",
+                            successfulTask.getResource().getName());
+                    hostsToRemove.add(hostId);
+                    bootVolumesToRemove.add(bootVolumeIds.get(hosts.indexOf(newHost)));
+                }
+                else {
+                    ExecutionUtils.currentContext().logInfo("computeutils.sethostbootvolume.success",
+                            newHost.getHostName());
+                    addAffectedResource(hostId);
+                    successfulHostIds.add(hostId);
+                }
             }
-            else {
-                hostNames.add(null);
+            for (Task<HostRestRep> failedTask : getFailedTasks(tasks)) {
+                tasks.remove(failedTask);
+                String errorMessage = failedTask.getMessage() == null ? "" : failedTask.getMessage();
+                ExecutionUtils.currentContext().logError("computeutils.sethostbootvolume.failure.task",
+                        failedTask.getResource().getName(), errorMessage);
+                URI hostId = failedTask.getResource().getId();
+                Host newHost = execute(new GetHost(hostId));
+                hostsToRemove.add(hostId);
+                bootVolumesToRemove.add(bootVolumeIds.get(hosts.indexOf(newHost)));
+
             }
         }
-        URI[] succeededHosts = new URI[hosts.size()];
-        for (Host host : hosts){
-            Host refreshedHost = execute(new GetHost(host.getId()));
-            if (refreshedHost.getBootVolumeId()!=null && !refreshedHost.getBootVolumeId().toString().equalsIgnoreCase("null")){
-               int hostNameIndex = hostNames.indexOf(host.getLabel());
-               succeededHosts[hostNameIndex] = host.getId();
+
+        for (URI hostId: hostsToRemove){
+            execute(new DeactivateHost(hostId, true));
+        }
+        // Cleanup all bootvolumes of the deactivated host so that we do not leave any unsed boot volumes.
+        if (!bootVolumesToRemove.isEmpty()) {
+            try {
+                BlockStorageUtils.deactivateVolumes(bootVolumesToRemove, VolumeDeleteTypeEnum.FULL);
+            }catch (Exception e) {
+                ExecutionUtils.currentContext().logError("computeutils.bootvolume.deactivate.failure",
+                        e.getMessage());
             }
         }
-        return Arrays.asList(succeededHosts);
+        // remove failed hosts
+        for (ListIterator<Host> itr = hosts.listIterator(); itr.hasNext();) {
+            Host host = itr.next();
+            if ((host != null) && !successfulHostIds.contains(host.getId())) {
+                itr.set(null);
+            }
+        }
+
+        return hosts;
     }
 
     public static Map<String, URI> getHostNameBootVolume(List<Host> hosts) {

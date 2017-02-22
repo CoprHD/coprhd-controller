@@ -21,14 +21,12 @@ public class SetBootVolume extends ViPRExecutionTask<Task<HostRestRep>> {
         this.hostId = host.getId();
         this.volumeId = volumeId;
         this.updateSanBootTargets = updateSanBootTargets;
-//        setWaitFor(true);
         provideDetailArgs(host.getHostName(), volumeId);
     }
 
     public SetBootVolume(HostRestRep host, URI volumeId) {
         this.hostId = host.getId();
         this.volumeId = volumeId;
-  //      setWaitFor(true);
         provideDetailArgs(host.getHostName(), volumeId);
     }
 
@@ -37,7 +35,7 @@ public class SetBootVolume extends ViPRExecutionTask<Task<HostRestRep>> {
         HostUpdateParam update = new HostUpdateParam();
         update.setBootVolume(volumeId);
         update.setUpdateSanBootTargets(updateSanBootTargets);
-        Task<HostRestRep> task = getClient().hosts().updateBootVolume(hostId, update, updateSanBootTargets);
+        Task<HostRestRep> task = getClient().hosts().updateBootVolume(hostId, update);
         addOrderIdTag(task.getTaskResource().getId());
         return task;
     }

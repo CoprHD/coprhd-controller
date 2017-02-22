@@ -46,13 +46,15 @@ public interface ComputeSystemControllerExceptions {
             final Throwable cause);
 
     @DeclareServiceCode(ServiceCode.CONTROLLER_COMPUTESYSTEM_ERROR)
-    public ComputeSystemControllerException unableToSetSanBootTargets(final String id);
+    public ComputeSystemControllerException unableToSetSanBootTargets(final String id, final Throwable cause);
+
+   @DeclareServiceCode(ServiceCode.CONTROLLER_COMPUTESYSTEM_ERROR)
+    public ComputeSystemControllerException hostNotFound(final String id);
+    @DeclareServiceCode(ServiceCode.CONTROLLER_COMPUTESYSTEM_ERROR)
+    public ComputeSystemControllerException unableToSetBootVolume(final String id, final Throwable cause);
 
     @DeclareServiceCode(ServiceCode.CONTROLLER_COMPUTESYSTEM_ERROR)
-    public ComputeSystemControllerException unableToSetBootVolume(final String id);
-
-    @DeclareServiceCode(ServiceCode.CONTROLLER_COMPUTESYSTEM_ERROR)
-    public ComputeSystemControllerException unableToRollbackBootVolume(final String id);
+    public ComputeSystemControllerException unableToRollbackBootVolume(final String id, final Throwable cause);
 
     @DeclareServiceCode(ServiceCode.CONTROLLER_COMPUTESYSTEM_ERROR)
     public ComputeSystemControllerException unbindHostFromTemplateFailed(final String id,

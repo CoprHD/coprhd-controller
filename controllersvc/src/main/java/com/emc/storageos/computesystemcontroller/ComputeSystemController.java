@@ -131,7 +131,7 @@ public interface ComputeSystemController extends Controller {
 
     public void removeIpInterfaceFromFileShare(URI hostId, URI ipInterface, String taskId) throws ControllerException;
 
-    public void setHostBootVolume(URI hostId, URI volumeId,bollean updateSanBootTargets, String taskId) throws ControllerException;
+    public void setHostBootVolume(URI hostId, URI volumeId, boolean updateSanBootTargets, String taskId) throws ControllerException;
 
     /**
      * Synchronize the cluster's export groups by following steps:

@@ -63,7 +63,20 @@ public class ZoneMember extends ZoneWwnAlias {
     }
 
     public String getLogString() {
-        return "ZoneMember: " + getAddress() + " " + type.toString() + " Alias: " + getName() == null ? "" : getName();
+        StringBuilder builder = new StringBuilder();
+        builder.append("ZoneMember: ");
+        if (getAddress() != null) {
+            builder.append(getAddress());
+        }
+        builder.append(" ");
+        if (type != null) {
+            builder.append("Type: " + type.toString());
+        }
+        builder.append(" ");
+        if (getName() != null) {
+            builder.append("Alias: " + getName());
+        }
+        return builder.toString();
     }
 
     /**

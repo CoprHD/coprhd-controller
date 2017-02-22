@@ -46,15 +46,15 @@ public class AssignFileSnapshotPolicyToVpoolSchedulingThread implements Runnable
     public void run() {
         _log.info("Starting scheduling placement thread for task {}", task);
         try {
-            fileServiceImpl.assignFilePolicyToVirtualPool(vpoolToStorageSystemMap, filePolicyToAssign, task);
+            fileServiceImpl.assignFilePolicyToVirtualPools(vpoolToStorageSystemMap, filePolicyToAssign, task);
         } catch (Exception ex) {
             if (ex instanceof ServiceCoded) {
                 this.filePolicyService._dbClient
-                        .error(FilePolicy.class, taskObject.getResource().getId(), taskObject.getOpId(), (ServiceCoded) ex);
+                .error(FilePolicy.class, taskObject.getResource().getId(), taskObject.getOpId(), (ServiceCoded) ex);
             } else {
                 this.filePolicyService._dbClient.error(FilePolicy.class, taskObject.getResource().getId(), taskObject.getOpId(),
                         InternalServerErrorException.internalServerErrors
-                                .unexpectedErrorVolumePlacement(ex));
+                        .unexpectedErrorVolumePlacement(ex));
             }
             _log.error(ex.getMessage(), ex);
             taskObject.setMessage(ex.getMessage());
@@ -69,7 +69,8 @@ public class AssignFileSnapshotPolicyToVpoolSchedulingThread implements Runnable
             Map<URI, List<URI>> vpoolToStorageSystemMap,
             FileServiceApi fileServiceImpl, TaskResourceRep taskObject, String task) {
 
-        AssignFileSnapshotPolicyToVpoolSchedulingThread schedulingThread = new AssignFileSnapshotPolicyToVpoolSchedulingThread(fileService, filePolicyToAssign,
+        AssignFileSnapshotPolicyToVpoolSchedulingThread schedulingThread = new AssignFileSnapshotPolicyToVpoolSchedulingThread(fileService,
+                filePolicyToAssign,
                 vpoolToStorageSystemMap, fileServiceImpl, taskObject, task);
         try {
             executorService.execute(schedulingThread);

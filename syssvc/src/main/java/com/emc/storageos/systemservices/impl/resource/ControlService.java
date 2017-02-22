@@ -212,7 +212,7 @@ public class ControlService {
         final String dbDir = dataDir + "db/";
         final String geodbDir=dataDir +"geodb/";
         final String dbFile= dbDir + startupModeFile;
-        final String geodbFile=geodbDir + startupModeContent;
+        final String geodbFile=geodbDir + startupModeFile;
 
         ArrayList<String> cleanDb = new ArrayList<>();
         cleanDb.add("/usr/bin/rm");
@@ -577,6 +577,11 @@ public class ControlService {
             Long dbOfflineTime = DbInfoUtils.getDbOfflineTime(_coordinator.getCoordinatorClient(), Constants.DBSVC_NAME, nodeId);
             if (dbOfflineTime != null ) {
                 unvaliableNodeSet.add(nodeId);
+            } else {
+                dbOfflineTime = DbInfoUtils.getDbOfflineTime(_coordinator.getCoordinatorClient(), Constants.GEODBSVC_NAME, nodeId);
+                if (dbOfflineTime != null) {
+                    unvaliableNodeSet.add(nodeId);
+                }
             }
             try {
                 DbOfflineStatus dbOfflineStatus = SysClientFactory.getSysClient(_coordinator.getNodeEndpoint(nodeId)).get(SysClientFactory.URI_GET_DB_OFFLINE_STATUS,
@@ -622,6 +627,7 @@ public class ControlService {
         _log.info("Check db offline time");
         try {
             DbInfoUtils.checkDBOfflineInfo(_coordinator.getCoordinatorClient(), Constants.DBSVC_NAME , "/data/db", false);
+            DbInfoUtils.checkDBOfflineInfo(_coordinator.getCoordinatorClient(), Constants.GEODBSVC_NAME , "/data/geodb", false);
         }catch (IllegalStateException e){
             return new DbOfflineStatus(true);
         }

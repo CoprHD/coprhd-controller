@@ -42,6 +42,7 @@ public class Host extends AbstractComputeSystem {
     private String provisioningStatus;
     private StringSet volumeGroupIds;
     private StringMap preferredPools;
+    private URI _serviceProfile;
 
     /**
      * This is for recording the volumeId that was used in the OsInstallation phase. Will be used to remove the associated volume when
@@ -55,6 +56,7 @@ public class Host extends AbstractComputeSystem {
     private URI computeVirtualPoolId;
     public static String ALTER_ID_FIELD = "hostName";
     private String uuid;
+    private String bios;
 
     /**
      * Gets the host type which is an instance of {@link HostType}
@@ -286,6 +288,23 @@ public class Host extends AbstractComputeSystem {
         setChanged("useSSL");
     }
 
+    @RelationIndex(cf = "RelationIndex", type = UCSServiceProfile.class)
+    @Name("serviceProfile")
+    public URI getServiceProfile() {
+        return _serviceProfile;
+    }
+
+    /**
+     * Sets the service profile on UCS for this host
+     *
+     * @param serviceProfile URI of serviceProfile for this host
+     */
+    public void setServiceProfile(URI serviceProfile) {
+        this._serviceProfile = serviceProfile;
+        setChanged("serviceProfile");
+    }
+
+
     /**
      * Returns the name of the data center in vcenter where this host resides
      * 
@@ -368,6 +387,16 @@ public class Host extends AbstractComputeSystem {
     public void setUuid(String uuid) {
         this.uuid = uuid;
         setChanged("uuid");
+    }
+
+    @Name("bios")
+    public String getBios() {
+        return bios;
+    }
+
+    public void setBios(String bios) {
+        this.bios = bios;
+        setChanged("bios");
     }
 
     @Name("provisioningStatus")

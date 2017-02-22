@@ -318,6 +318,12 @@ vnx_setup() {
 
     SERIAL_NUMBER=`storagedevice list | grep COMPLETE | awk '{print $2}' | awk -F+ '{print $2}'`
     
+    driveType=""
+    if [ "${SIM}" = "1" ]
+    then
+        driveType="--drive_type SATA"
+    fi
+    
     # Chose thick because we need a thick pool for VNX metas
     # Choose SATA as drive type because simulator's non-Unified pool is SATA.
     run cos create block ${VPOOL_BASE}	\
@@ -325,8 +331,7 @@ vnx_setup() {
 	--protocols FC 			                \
 	--numpaths 2				            \
 	--multiVolumeConsistency \
-	--provisionType 'Thick'			        \
-	--drive_type 'SATA' \
+	--provisionType 'Thick'	${driveType}		        \
 	--max_snapshots 10                      \
 	--neighborhoods $NH  
 
@@ -335,19 +340,12 @@ vnx_setup() {
 	--protocols FC 			                \
 	--numpaths 4				            \
 	--multiVolumeConsistency \
-	--provisionType 'Thick'			        \
+	--provisionType 'Thick'	${driveType}		        \
 	--max_snapshots 10                      \
 	--neighborhoods $NH                    
 
-    if [ "${SIM}" = "1" ]
-    then
-	# Remove the thin pool that doesn't support metas on the VNX simulator
-	run cos update_pools block $VPOOL_BASE --rem ${VNXB_NATIVEGUID}/${VNXB_NATIVEGUID}+POOL+U+TP0000
-        run cos update_pools block $VPOOL_CHANGE --rem ${VNXB_NATIVEGUID}/${VNXB_NATIVEGUID}+POOL+U+TP0000
-    else
-	run cos update block $VPOOL_BASE --storage ${VNXB_NATIVEGUID}
-        run cos update block $VPOOL_CHANGE --storage ${VNXB_NATIVEGUID}
-    fi
+    run cos update block $VPOOL_BASE --storage ${VNXB_NATIVEGUID}
+    run cos update block $VPOOL_CHANGE --storage ${VNXB_NATIVEGUID}
 }
 
 unity_setup()
@@ -368,7 +366,7 @@ unity_setup()
     run cos create block ${VPOOL_BASE}	\
 	--description Base true                 \
 	--protocols FC 			                \
-	--numpaths 2				            \
+	--numpaths 1				            \
 	--multiVolumeConsistency \
 	--provisionType 'Thin'			        \
 	--max_snapshots 10                      \
@@ -377,7 +375,7 @@ unity_setup()
     run cos create block ${VPOOL_CHANGE}	\
 	--description Base true                 \
 	--protocols FC 			                \
-	--numpaths 4				            \
+	--numpaths 2				            \
 	--multiVolumeConsistency \
 	--provisionType 'Thin'			        \
 	--max_snapshots 10                      \
@@ -438,7 +436,7 @@ vmax2_setup() {
 	--description Base true                 \
 	--protocols FC 			                \
 	--multiVolumeConsistency \
-	--numpaths 2				            \
+	--numpaths 1				            \
 	--provisionType 'Thin'			        \
 	--max_snapshots 10                      \
 	--expandable true                       \
@@ -448,7 +446,7 @@ vmax2_setup() {
 	--description Base true                 \
 	--protocols FC 			                \
 	--multiVolumeConsistency \
-	--numpaths 4				            \
+	--numpaths 2				            \
 	--provisionType 'Thin'			        \
 	--max_snapshots 10                      \
 	--expandable true                       \
@@ -1356,6 +1354,7 @@ test_2() {
                                     failure_004:failure_044_VPlexVmaxMaskingOrchestrator.deleteOrRemoveVolumesToExportMask_after_operation \
                                     failure_015_SmisCommandHelper.invokeMethod_EMCCreateMultipleTypeElementsFromStoragePool \
                                     failure_015_SmisCommandHelper.invokeMethod_AddMembers \
+                                    failure_015_SmisCommandHelper.invokeMethod_CreateGroup \
                                     failure_045_VPlexDeviceController.createVirtualVolume_before_create_operation \
                                     failure_046_VPlexDeviceController.createVirtualVolume_after_create_operation \
                                     failure_004:failure_007_NetworkDeviceController.zoneExportRemoveVolumes_before_unzone \
@@ -1429,27 +1428,27 @@ test_2() {
       #For XIO, before failure 6 is invoked the task would have completed successfully
       if [ "${SS}" = "xio" -a "${failure}" = "failure_006_BlockDeviceController.createVolumes_after_device_create" ]
       then
-	  runcmd volume create ${volname} ${PROJECT} ${NH} ${VPOOL_BASE} 1GB --consistencyGroup=${CGNAME}
-	  # Remove the volume
-      	  runcmd volume delete ${PROJECT}/${volname} --wait
+        runcmd volume create ${volname} ${PROJECT} ${NH} ${VPOOL_BASE} 1GB --consistencyGroup=${CGNAME}
+        # Remove the volume
+        runcmd volume delete ${PROJECT}/${volname} --wait
       else
-      	  # If this is a rollback inject, make sure we get the "additional message"
-	  echo ${failure} | grep failure_004 | grep ":" > /dev/null
+        # If this is a rollback inject, make sure we get the "additional message"
+        echo ${failure} | grep failure_004 | grep ":" > /dev/null
 
-	  if [ $? -eq 0 ]
-	  then
-	      # Make sure it fails with additional errors accounted for in the error message
-      	      fail -with_error "Additional errors occurred" volume create ${volname} ${PROJECT} ${NH} ${VPOOL_BASE} 1GB --consistencyGroup=${CGNAME}
-	  else
-      	      # Create the volume
-	      fail volume create ${volname} ${PROJECT} ${NH} ${VPOOL_BASE} 1GB --consistencyGroup=${CGNAME}
-	  fi
+        if [ $? -eq 0 ]
+        then
+          # Make sure it fails with additional errors accounted for in the error message
+          fail -with_error "Additional errors occurred" volume create ${volname} ${PROJECT} ${NH} ${VPOOL_BASE} 1GB --consistencyGroup=${CGNAME}
+        else
+          # Create the volume
+          fail volume create ${volname} ${PROJECT} ${NH} ${VPOOL_BASE} 1GB --consistencyGroup=${CGNAME}
+        fi
 
-	  # Verify injected failures were hit
-	  verify_failures ${failure}
+        # Verify injected failures were hit
+        verify_failures ${failure}
 
-      	  # Let the async jobs calm down
-      	  sleep 5
+        # Let the async jobs calm down
+        sleep 5
       fi
 
       # Perform any DB validation in here
@@ -2621,7 +2620,7 @@ test_12() {
       set_suspend_on_class_method ${exportRemoveInitiatorsDeviceStep}
 
       # Run the export group command
-      runcmd_suspend test_13 export_group update $PROJECT/${expname}1 --remInits ${HOST1}/${H1PI1}
+      runcmd_suspend test_12 export_group update $PROJECT/${expname}1 --remInits ${HOST1}/${H1PI1}
 
       if [ "${failure}" = "failure_firewall" ]
       then
@@ -2668,7 +2667,7 @@ test_12() {
       validate_db 1 4 "${cfs[@]}"
 
       # Report results
-      report_results test_13 ${failure}
+      report_results test_12 ${failure}
     done
 }
 
@@ -2706,15 +2705,13 @@ test_13() {
 
     if [ "${SS}" = "vnx" -o "${SS}" = "vmax2" -o "${SS}" = "vmax3" ]
     then
-	storage_failure_injections="failure_015_SmisCommandHelper.invokeMethod_DeleteGroup \
-                                    failure_015_SmisCommandHelper.invokeMethod_*"
+	storage_failure_injections="failure_015_SmisCommandHelper.invokeMethod_*"
     fi
 
     failure_injections="${common_failure_injections} ${storage_failure_injections}"
 
     # Placeholder when a specific failure case is being worked...
-    # failure_injections="failure_firewall"
-    failure_injections="failure_015_SmisCommandHelper.invokeMethod_DeleteGroup"
+    #failure_injections="failure_015_SmisCommandHelper.invokeMethod_DeleteGroup"
 
     for failure in ${failure_injections}
     do
@@ -2787,7 +2784,7 @@ test_13() {
       validate_db 1 4 "${cfs[@]}"
 
       # Report results
-      report_results test_14 ${failure}
+      report_results test_13 ${failure}
     done
 }
 
@@ -3054,36 +3051,36 @@ while [ "${1:0:1}" = "-" ]
 do
     if [ "${1}" = "setuphw" -o "${1}" = "setup" -o "${1}" = "-setuphw" -o "${1}" = "-setup" ]
     then
-	echo "Setting up testing based on real hardware"
-	setup=1;
-	SIM=0;
-	shift 1;
+    	echo "Setting up testing based on real hardware"
+    	setup=1;
+    	SIM=0;
+    	shift 1;
     elif [ "${1}" = "setupsim" -o "${1}" = "-setupsim" ]; then
-	if [ "$SS" = "xio" -o "$SS" = "vmax3" -o "$SS" = "vmax2" -o "$SS" = "vnx" -o "$SS" = "vplex" ]; then
-	    echo "Setting up testing based on simulators"
-	    SIM=1;
-	    ZONE_CHECK=0;
-	    setup=1;
-	    shift 1;
-	else
-	    echo "Simulator-based testing of this suite is not supported on ${SS} due to lack of CLI/arraytools support to ${SS} provider/simulator"
-	    exit 1
-	fi
+    	if [ "$SS" = "xio" -o "$SS" = "vmax3" -o "$SS" = "vmax2" -o "$SS" = "vnx" -o "$SS" = "vplex" ]; then
+    	    echo "Setting up testing based on simulators"
+    	    SIM=1;
+    	    ZONE_CHECK=0;
+    	    setup=1;
+    	    shift 1;
+    	else
+    	    echo "Simulator-based testing of this suite is not supported on ${SS} due to lack of CLI/arraytools support to ${SS} provider/simulator"
+    	    exit 1
+    	fi
     fi
 
     # Whether to report results to the master data collector of all things
     if [ "${1}" = "-report" ]; then
-	REPORT=1
-	shift;
+        echo "Reporting is ON"
+        REPORT=1
+        shift;
     fi
 
     if [ "$1" = "-cleanup" ]
     then
-	DO_CLEANUP=1;
-	shift
+	   DO_CLEANUP=1;
+	   shift
     fi
 done
-
 
 login
 
@@ -3101,53 +3098,56 @@ then
     fi
 fi
 
-
 test_start=1
-test_end=14
+test_end=13
 
 # If there's a last parameter, take that
-# as the name of the test to run
+# as the name of the test to run - ignore "none" as that is usually for setup only.
+#
 # To start your suite on a specific test-case, just type the name of the first test case with a "+" after, such as:
 # ./wftest.sh sanity.conf vplex local test_7+
-if [ "$1" = "hosts" ]
+if [ "$1" != "none" ]
 then
-   secho Request to run ${HOST_TEST_CASES}
-   for t in ${HOST_TEST_CASES}
-   do
-      secho Run $
-      reset_system_props_pre_test
-      prerun_tests
-      $t
-      reset_system_props_pre_test
-   done
-elif [ "$1" != "" -a "${1:(-1)}" != "+"  ]
-then
-   secho Request to run $*
-   for t in $*
-   do
-      secho Run $t
-      reset_system_props_pre_test
-      prerun_tests
-      $t
-      reset_system_props_pre_test
-   done
-else
-   if [ "${1:(-1)}" = "+" ]
-   then
-      num=`echo $1 | sed 's/test_//g' | sed 's/+//g'`
-   else
-      num=${test_start}
-   fi
-   # Passing tests:
-   while [ ${num} -le ${test_end} ]; 
-   do
-     reset_system_props_pre_test
-     prerun_tests
-     test_${num}
-     reset_system_props_pre_test
-     num=`expr ${num} + 1`
-   done
-fi
+    if [ "$1" = "hosts" ]
+    then
+       secho Request to run ${HOST_TEST_CASES}
+       for t in ${HOST_TEST_CASES}
+       do
+          secho "\n\nRun $t"
+          reset_system_props_pre_test
+          prerun_tests
+          $t
+          reset_system_props_pre_test
+       done
+    elif [ "$1" != "" -a "${1:(-1)}" != "+"  ]
+    then
+       secho Request to run $*
+       for t in $*
+       do
+          secho "\n\nRun $t"
+          reset_system_props_pre_test
+          prerun_tests
+          $t
+          reset_system_props_pre_test
+       done
+    else
+       if [ "${1:(-1)}" = "+" ]
+       then
+          num=`echo $1 | sed 's/test_//g' | sed 's/+//g'`
+       else
+          num=${test_start}
+       fi
+       # Passing tests:
+       while [ ${num} -le ${test_end} ]; 
+       do
+         reset_system_props_pre_test
+         prerun_tests
+         test_${num}
+         reset_system_props_pre_test
+         num=`expr ${num} + 1`
+       done
+    fi
+fi    
 
 cleanup_previous_run_artifacts
 

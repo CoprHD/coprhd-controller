@@ -123,6 +123,7 @@ verify_export() {
     shift 2
 
     masking_view_name=`get_masking_view_name ${export_name} ${host_name} false`
+    arrayhelper verify_export ${SERIAL_NUMBER} "${masking_view_name}" $*
     VERIFY_COUNT=`expr $VERIFY_COUNT + 1`
 }
 
@@ -819,8 +820,6 @@ setup_yaml() {
     sstype=${SS:0:3}
     if [ "${SS}" = "xio" ]; then
 	sstype="xtremio"
-    elif [ "${SS}" = "unity" ]; then
-        sstype="unity"
     fi
 
     # create the yml file to be used for array tooling
@@ -913,7 +912,7 @@ getwwn() {
 }
 
 cleanup() {
-    if [ "${docleanup}" = "1" ]; then
+    if [ "${DO_CLEANUP}" = "1" ]; then
 	for id in `export_group list $PROJECT | grep YES | awk '{print $5}'`
 	do
 	  runcmd export_group delete ${id} > /dev/null

@@ -1,8 +1,10 @@
 package com.emc.storageos.model.remotereplication;
 
 import javax.xml.bind.annotation.XmlElement;
+import javax.xml.bind.annotation.XmlElementWrapper;
 import javax.xml.bind.annotation.XmlRootElement;
 import java.net.URI;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -39,8 +41,12 @@ public class RemoteReplicationGroupCreate {
     // When TRUE, link operations are supported only on group level for this group
     private Boolean isGroupConsistencyEnforced;
 
+    @XmlElementWrapper(name = "source_ports", required = true)
     @XmlElement(name = "source_port")
     public List<URI> getSourcePorts() {
+        if (sourcePorts == null) {
+            sourcePorts = new ArrayList<URI>();
+        }
         return sourcePorts;
     }
 
@@ -48,8 +54,12 @@ public class RemoteReplicationGroupCreate {
         this.sourcePorts = sourcePorts;
     }
 
+    @XmlElementWrapper(name = "target_ports", required = true)
     @XmlElement(name = "target_port")
     public List<URI> getTargetPorts() {
+        if (targetPorts == null) {
+            targetPorts = new ArrayList<URI>();
+        }
         return targetPorts;
     }
 

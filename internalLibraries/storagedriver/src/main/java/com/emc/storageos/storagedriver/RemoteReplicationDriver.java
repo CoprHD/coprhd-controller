@@ -38,8 +38,7 @@ public interface RemoteReplicationDriver {
      * @param capabilities storage capabilities for the group
      * @return driver task
      */
-    public DriverTask createRemoteReplicationGroup(RemoteReplicationGroup replicationGroup,
-            List<StoragePort> sourcePorts, List<StoragePort> targetPorts, StorageCapabilities capabilities);
+    public DriverTask createRemoteReplicationGroup(RemoteReplicationGroup replicationGroup, StorageCapabilities capabilities);
 
     /**
      * Create replication pairs in existing replication group container.

@@ -1746,9 +1746,9 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice implem
 
             // prepare driver group
             com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationGroup driverGroup =
-                    prepareDriverRemoteReplicationGroup(systemGroup);
+                    prepareDriverRemoteReplicationGroup(systemGroup, sourcePorts, targetPorts);
             // call driver
-            DriverTask task = driver.createRemoteReplicationGroup(driverGroup, convert(sourcePorts), convert(targetPorts), null);
+            DriverTask task = driver.createRemoteReplicationGroup(driverGroup, null);
             // todo: need to implement support for async case.
             if (task.getStatus() == DriverTask.TaskStatus.READY) {
                 // update group and update parent replication set
@@ -1775,14 +1775,11 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice implem
     }
 
     /**
-     * Prepare a list of StoragePorts, in which only these fields are provided:
-     *     Native id
-     *     Port network id
-     *     Storage system id
-     * These 3 fields are enough for driver to identify ports
+     * Convert db model type ports to sb sdk model type ports, and build a map in which the key is storage system native id
+     * and the value is ports of this storage system that are used for remote replication
      */
-    private List<com.emc.storageos.storagedriver.model.StoragePort> convert(List<StoragePort> ports) {
-        List<com.emc.storageos.storagedriver.model.StoragePort> storagePorts = new ArrayList<>();
+    private Map<String, Set<com.emc.storageos.storagedriver.model.StoragePort>> preparePortsMap(String system, List<StoragePort> ports) {
+        Set<com.emc.storageos.storagedriver.model.StoragePort> storagePorts = new HashSet<>();
         for (StoragePort port : ports) {
             com.emc.storageos.storagedriver.model.StoragePort storagePort = new com.emc.storageos.storagedriver.model.StoragePort();
             storagePort.setNativeId(port.getNativeId());
@@ -1790,7 +1787,9 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice implem
             storagePort.setStorageSystemId(port.getStorageDevice().toString());
             storagePorts.add(storagePort);
         }
-        return storagePorts;
+        Map<String, Set<com.emc.storageos.storagedriver.model.StoragePort>> portsMap = new HashMap<>();
+        portsMap.put(system, storagePorts);
+        return portsMap;
         
     }
 
@@ -2244,7 +2243,8 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice implem
          }
     }
 
-    private com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationGroup prepareDriverRemoteReplicationGroup(RemoteReplicationGroup systemGroup) {
+    private com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationGroup prepareDriverRemoteReplicationGroup(
+            RemoteReplicationGroup systemGroup, List<StoragePort> sourcePorts, List<StoragePort> targetPorts) {
 
         com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationGroup driverGroup = new com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationGroup();
 
@@ -2254,6 +2254,8 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice implem
         driverGroup.setSourceSystemNativeId(sourceSystem.getNativeId());
         driverGroup.setTargetSystemNativeId(targetSystem.getNativeId());
         driverGroup.setReplicationMode(systemGroup.getReplicationMode());
+        driverGroup.setSourcePorts(preparePortsMap(sourceSystem.getNativeId(), sourcePorts));
+        driverGroup.setTargetPorts(preparePortsMap(targetSystem.getNativeId(), targetPorts));
 
         // todo: complete
         return driverGroup;

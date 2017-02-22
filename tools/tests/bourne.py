@@ -1847,13 +1847,13 @@ class Bourne:
             params['expandable'] = expandable
         if (use_matched):
             params['use_matched_pools'] = use_matched
-		if (schedule_snapshots):
+        if (schedule_snapshots):
             params['schedule_snapshots'] = schedule_snapshots
-		if (replication_supported):
+        if (replication_supported):
             params['replication_supported'] = replication_supported
-		if (allow_policy_at_project_level):
+        if (allow_policy_at_project_level):
             params['allow_policy_at_project_level'] = allow_policy_at_project_level
-		if (allow_policy_at_fs_level):
+        if (allow_policy_at_fs_level):
             params['allow_policy_at_fs_level'] = allow_policy_at_fs_level
             
         if (host_io_limit_bandwidth):
@@ -6960,7 +6960,7 @@ class Bourne:
         self._headers['date'] = date
         #_headers['x-emc-date'] = date
         self._headers['x-emc-uid'] = uid
-        self._headers['x-emc-meta'] = 'color=red,city=seattle,key=�'
+        self._headers['x-emc-meta'] = 'color=red,city=seattle,key=ï¿½'
         self._headers['x-emc-signature'] = self.atmos_hmac_base64_sig(method, content_type, uri, date, secret)
 
         response = self.coreapi(method, uri, value, None, None, content_type)

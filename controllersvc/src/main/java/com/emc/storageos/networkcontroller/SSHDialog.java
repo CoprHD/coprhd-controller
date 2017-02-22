@@ -71,7 +71,7 @@ public class SSHDialog {
      * @throws NetworkDeviceControllerException When an exception is found.
      */
     private void checkForException(String buf) throws NetworkDeviceControllerException {
-        Pattern p = Pattern.compile(EXCEPTION_REGEX);     
+        Pattern p = Pattern.compile(getResponseExceptionRegex());     
         Matcher m = p.matcher(buf);
         if (m.find()) {
             String match = buf.substring(m.start(), m.end());
@@ -252,5 +252,15 @@ public class SSHDialog {
 
     public SSHSession getSession() {
         return session;
+    }
+    
+    /**
+     * Returns a regular expression that can be used to parse the response and
+     * identify whether or not an exception occurred handling the request.
+     * 
+     * @return The regular expression to use when parsing the response for an exception.
+     */
+    protected String getResponseExceptionRegex() {
+        return EXCEPTION_REGEX;
     }
 }

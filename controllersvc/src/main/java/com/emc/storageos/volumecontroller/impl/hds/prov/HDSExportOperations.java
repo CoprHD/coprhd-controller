@@ -44,6 +44,7 @@ import com.emc.storageos.db.client.model.StringSetMap;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.util.CommonTransformerFunctions;
+import com.emc.storageos.db.client.util.StringSetUtil;
 import com.emc.storageos.db.client.util.WWNUtility;
 import com.emc.storageos.exceptions.DeviceControllerErrors;
 import com.emc.storageos.exceptions.DeviceControllerException;
@@ -1456,19 +1457,20 @@ public class HDSExportOperations implements ExportMaskOperations {
                             }
                         }
                         if (null == maskForHSD) {
-							//first get the varray of the storageport of the HSD and then check if
-                        	//any of the export masks have storage ports, which belong to the same varray 
-                        	//which is in consideration. 
+							//first get the varrays associated with the storage port of the HSD and then check if
+                        	//any of the export masks have storage ports, which have virtual arrays overlapping with the virtual
+                        	//arrays of the HSD storage port
 							//NOTE: If the storageport is assigned to multiple varrays, then maintaining one
-							//export mask per varray is not possible.
-                        	String  varrayUriOfHsdPort = getVarrayOfStoragePort(storagePortOFHDSURI);	                        	                  	
-                        	if(varrayUriOfHsdPort != null){
+							//export mask per varray is not possible. Proper seggregation has to be done.
+                        	StringSet  varraysAssociatedWithHSDStoragePort = getTaggedVarrays(storagePortOFHDSURI);	                        	                  	
+                        	if(varraysAssociatedWithHSDStoragePort != null){
                         		boolean bMaskFound = false;
                         		for (ExportMask exportMaskhavingInitiators : exportMaskWithHostInitiators) {
                                     for(String storagePortUriIter : exportMaskhavingInitiators.getStoragePorts()) {
                                         //get the storage port entity
-                                    	String  varrayOfStoragePort = getVarrayOfStoragePort(storagePortUriIter);
-                                    	if ( (varrayOfStoragePort!=null) && (varrayOfStoragePort.equals(varrayUriOfHsdPort)) ){
+                                    	StringSet  varraysOfStoragePort = getTaggedVarrays(storagePortUriIter);
+                                    	if ( (varraysOfStoragePort !=null) && (!varraysOfStoragePort.isEmpty()) && 
+                                    			(StringSetUtil.hasIntersection(varraysOfStoragePort, varraysAssociatedWithHSDStoragePort))){
                                     		maskForHSD = exportMaskhavingInitiators;
                                     		//Ingest the foreign HSD into a matching export mask with same host and varray combination
                                     		bMaskFound = true;
@@ -1547,23 +1549,22 @@ public class HDSExportOperations implements ExportMaskOperations {
     
     
     /**
-     * Returns the virtual array URI in string format for a given storage port. 
-     * It returns the first  virtual array entry from the taggervirtualArray array entries. 
+     * Returns the set of taggervirtualArray arrays for the storage port object. 
      * 
      * @param storagePortId
-     * @return
+     * @return string set of tagged virtual arrays
      */
-    private String getVarrayOfStoragePort(String storagePortId){
+    private StringSet getTaggedVarrays(String storagePortId){
     	URI storagePortURI = URI.create(storagePortId);
     	StoragePort objStoragePort = dbClient.queryObject(StoragePort.class, storagePortURI);
     	    	
     	if(objStoragePort != null){
 	    	if( (objStoragePort.getTaggedVirtualArrays() != null) && 
 	    			(!objStoragePort.getTaggedVirtualArrays().isEmpty()) ){
-	    		return ((objStoragePort.getTaggedVirtualArrays().toArray())[0]).toString();
+	    		return objStoragePort.getTaggedVirtualArrays();
 	    	}
     	}
-    	return null;
+    	return new StringSet();
     }
     
     

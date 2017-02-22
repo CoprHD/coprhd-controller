@@ -147,6 +147,29 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
         }
         return usedHlus;
     }
+    
+    /**
+     * Lun Violation check has to be invoked for 2 cases
+     * 1. Add Host to Cluster.
+     * 2. Export boot volume to Host, where the host is part of Cluster.
+     * For the 2nd case we have to validate whether the given HLU for the boot volume will cause 
+     * lun violation if later the host gets added to Cluster.
+     * @param storage
+     * @param exportGroup
+     * @param initiators
+     * @param givenHLUs
+     * @return
+     */
+    private boolean canInvokeLunViolationCheck(StorageSystem storage, ExportGroup exportGroup, List<Initiator> initiators,
+            Collection<Integer> givenHLUs) {
+        return ((exportGroup.forCluster() && exportGroup.getVolumes() != null && ExportUtils
+                .systemSupportsConsistentHLUGeneration(storage)) ||
+        
+        (null != initiators.get(0).getClusterName() && exportGroup.getVolumes() != null
+                && ExportUtils.systemSupportsConsistentHLUGeneration(storage) && null!= givenHLUs &&
+                !givenHLUs.contains(ExportGroup.LUN_UNASSIGNED)));
+        
+    }
 
     /**
      * Validates if there is a HLU conflict between cluster volumes and the host volumes.
@@ -155,19 +178,26 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
      * @param exportGroup the export group
      * @param newInitiatorURIs the host initiators to be added to the export group
      **/
-    public void checkForConsistentLunViolation(StorageSystem storage, ExportGroup exportGroup, List<URI> newInitiatorURIs) {
+    public void checkForConsistentLunViolation(StorageSystem storage, ExportGroup exportGroup, List<URI> newInitiatorURIs,
+            Collection<Integer> givenHLUs) {
 
         Map<String, Integer> volumeHluPair = new HashMap<String, Integer>();
+        List<Initiator> initiators = _dbClient.queryObject(Initiator.class, newInitiatorURIs);
+        
         // For 'add host to cluster' operation, validate and fail beforehand if HLU conflict is detected
-        if (exportGroup.forCluster() && exportGroup.getVolumes() != null
-                && ExportUtils.systemSupportsConsistentHLUGeneration(storage)) {
+        if (canInvokeLunViolationCheck(storage, exportGroup, initiators, givenHLUs)) {
             // get HLUs from ExportGroup as these are the volumes that will be exported to new Host.
             Collection<String> egHlus = exportGroup.getVolumes().values();
             Collection<Integer> clusterHlus = Collections2.transform(egHlus, CommonTransformerFunctions.FCTN_STRING_TO_INTEGER);
 
-            List<Initiator> initiators = _dbClient.queryObject(Initiator.class, newInitiatorURIs);
+            
             Collection<String> initiatorNames = Collections2.transform(initiators, CommonTransformerFunctions.fctnInitiatorToPortName());
             Set<Integer> newHostUsedHlus = getDevice().findHLUsForInitiators(storage, new ArrayList<String>(initiatorNames), false);
+            if(null!= givenHLUs && !givenHLUs.isEmpty() &&
+                    !givenHLUs.contains(ExportGroup.LUN_UNASSIGNED)) {
+                //During VBlock export boot volume to stand alone host, we have to figure out lun violation.
+                newHostUsedHlus.addAll(givenHLUs);
+            }
 
             // newHostUsedHlus now will contain the intersection of the two Set of HLUs which are conflicting one's
             newHostUsedHlus.retainAll(clusterHlus);

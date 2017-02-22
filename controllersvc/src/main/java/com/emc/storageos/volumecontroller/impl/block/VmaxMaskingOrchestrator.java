@@ -436,7 +436,7 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
         }
 
         if (anyOperationsToDo) {
-            checkForConsistentLunViolation(storage, exportGroup, initiatorURIs);
+            checkForConsistentLunViolation(storage, exportGroup, initiatorURIs, null);
             if (!zoneNewMasksToVolumeMap.isEmpty()) {
                 List<URI> exportMaskList = new ArrayList<URI>();
                 exportMaskList.addAll(zoneNewMasksToVolumeMap.keySet());
@@ -897,6 +897,9 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
         Map<String, Set<URI>> initiatorToExportMaskPlacementMap = determineInitiatorToExportMaskPlacements(exportGroup, storage.getId(),
                 initiatorHelper.getResourceToInitiators(), device.findExportMasks(storage, initiatorHelper.getPortNames(), false),
                 initiatorHelper.getPortNameToInitiatorURI(), partialMasks);
+        
+        //During boot volumes export, we have to validate whether the given HLU will cause lun violation.
+        checkForConsistentLunViolation(storage, exportGroup, initiatorURIs, volumeMap.values());
 
         findAndUpdateFreeHLUsForClusterExport(storage, exportGroup, initiatorURIs, volumeMap);
 

@@ -28,7 +28,6 @@ import java.util.Map.Entry;
 import java.util.Set;
 
 import org.apache.commons.lang3.StringUtils;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -1932,6 +1931,9 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
                 exportGroup.putAltVirtualArray(vplex.toString(), haVarray.toString());
                 _dbClient.updateObject(exportGroup);
             }
+            
+            //Validate exporting this boot volume would in turn cause Lun violation ,when the host gets added to cluster.
+            checkForConsistentLunViolation(vplexSystem, exportGroup, initiators, volumeMap.values());
 
             findAndUpdateFreeHLUsForClusterExport(vplexSystem, exportGroup, initiators, volumeMap);
 
@@ -3380,6 +3382,9 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
                                 exportGroup.getInitiators().toString(), varrayURIs.toString());
             }
 
+            //Validate exporting this boot volume would in turn cause Lun violation ,when the host gets added to cluster.
+            checkForConsistentLunViolation(vplexSystem, exportGroup, exportGroupInitiatorList, volumeMap.values());
+            
             findAndUpdateFreeHLUsForClusterExport(vplexSystem, exportGroup, exportGroupInitiatorList, volumeMap);
 
             // Add all the volumes to the SRC varray if there are src side volumes and
@@ -3921,7 +3926,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
                                 workflow, vplex, exportGroup, varrayURI,
                                 initURIs, initiators, hostURI, previousStep, opId);
                         if (null != previousStep) {
-                            checkForConsistentLunViolation(vplex, exportGroup, initURIs);
+                            checkForConsistentLunViolation(vplex, exportGroup, initURIs, null);
                         }
                     }
                 }
@@ -3943,6 +3948,27 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
             WorkflowStepCompleter.stepFailed(opId, serviceError);
         }
     }
+    
+    /**
+     * Lun Violation check has to be invoked for 2 cases
+     * 1. Add Host to Cluster.
+     * 2. Export boot volume to Host, where the host is part of Cluster.
+     * For the 2nd case we have to validate whether the given HLU for the boot volume will cause 
+     * lun violation if later the host gets added to Cluster.
+     * @param storage
+     * @param exportGroup
+     * @param initiators
+     * @param givenHLUs
+     * @return
+     */
+    private boolean canInvokeLunViolationCheck(StorageSystem storage, ExportGroup exportGroup, Initiator initiator,
+            Collection<Integer> givenHLUs) {
+        return ((exportGroup.forCluster() && exportGroup.getVolumes() != null) ||
+        
+        (null != initiator.getClusterName() && exportGroup.getVolumes() != null
+                && null!= givenHLUs && !givenHLUs.contains(ExportGroup.LUN_UNASSIGNED)));
+        
+    }
 
     /**
      * Validates if there is a HLU conflict between cluster volumes and the host volumes.
@@ -3952,11 +3978,13 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
      * @param newInitiatorURIs the host initiators to be added to the export group
      **/
     @Override
-    public void checkForConsistentLunViolation(StorageSystem storage, ExportGroup exportGroup, List<URI> newInitiatorURIs) {
+    public void checkForConsistentLunViolation(StorageSystem storage, ExportGroup exportGroup, List<URI> newInitiatorURIs,
+            Collection<Integer> givenHLUs) {
 
         Map<String, Integer> volumeHluPair = new HashMap<String, Integer>();
+        Initiator initiator = _dbClient.queryObject(Initiator.class, newInitiatorURIs.get(0));
         // For 'add host to cluster' operation, validate and fail beforehand if HLU conflict is detected
-        if (exportGroup.forCluster() && exportGroup.getVolumes() != null) {
+        if (canInvokeLunViolationCheck(storage, exportGroup, initiator, givenHLUs)) {
             // get HLUs from ExportGroup as these are the volumes that will be exported to new Host.
             Collection<String> egHlus = exportGroup.getVolumes().values();
             Collection<Integer> clusterHlus = Collections2.transform(egHlus, CommonTransformerFunctions.FCTN_STRING_TO_INTEGER);
@@ -3967,6 +3995,11 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
                 String errMsg = "Encountered an error when attempting to query used HLUs for initiators: " + e.getMessage();
                 _log.error(errMsg, e);
                 throw VPlexApiException.exceptions.hluRetrievalFailed(errMsg, e);
+            }
+            if(null!= givenHLUs && !givenHLUs.isEmpty() &&
+                    !givenHLUs.contains(ExportGroup.LUN_UNASSIGNED)) {
+                //During VBlock export boot volume to stand alone host, we have to figure out lun violation.
+                newHostUsedHlus.addAll(givenHLUs);
             }
             // newHostUsedHlus now will contain the intersection of the two Set of HLUs which are conflicting one's
             newHostUsedHlus.retainAll(clusterHlus);

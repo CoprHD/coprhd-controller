@@ -184,6 +184,7 @@ public class XtremIOMaskingOrchestrator extends AbstractBasicMaskingOrchestrator
                 Collection<URI> initiators = Collections2.transform(exportGroup.getInitiators(),
                         CommonTransformerFunctions.FCTN_STRING_TO_URI);
                 initiatorURIs = new ArrayList<URI>(initiators);
+                checkForConsistentLunViolation(storage, exportGroup, initiatorURIs, volumeMap.values());
                 findAndUpdateFreeHLUsForClusterExport(storage, exportGroup, initiatorURIs, volumeMap);
             }
 
@@ -415,7 +416,7 @@ public class XtremIOMaskingOrchestrator extends AbstractBasicMaskingOrchestrator
             //this logic can be used for Arrays which doesn't have physical mapping between Array Mask and ExportMask.
             log.info("Volumes Left to be exposed to given initiators  : {}", Joiner.on(",").join(volumesExposedToGivenInitiatorsInCurrentExportGroup));
             if (!volumesExposedToGivenInitiatorsInCurrentExportGroup.isEmpty()) {
-                checkForConsistentLunViolation(storage, exportGroup, initiatorURIs);
+                checkForConsistentLunViolation(storage, exportGroup, initiatorURIs, null);
             } else {
                 log.info("Skipping Consistent Lun Violation");
             }

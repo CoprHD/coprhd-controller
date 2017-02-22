@@ -29,6 +29,10 @@
      <input type="hidden" name="${field.policyName}" value="${field.value}">
   #{/field}
   
+  #{field 'assignPolicy.replicationType'}
+     <input type="hidden" id="replicationType" value="${field.value}">
+  #{/field}
+  
  
     #{field 'assignPolicy.policyName'}
       %{
@@ -122,7 +126,7 @@
     function showAssignAt(){
 			var assignAt = $('#assignPolicy_appliedAt').val();
             var policyType = $('#policyType').val();
-            var replicationType = $('input[name="assignPolicy.replicationType"]').val();
+            var replicationType = $('#replicationType').val();
 				if (assignAt == 'project') {
 					$('#vpoolFields').hide();
 					$('#projectFields').show();

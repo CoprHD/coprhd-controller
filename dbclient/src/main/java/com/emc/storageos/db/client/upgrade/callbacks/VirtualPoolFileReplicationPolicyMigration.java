@@ -221,7 +221,8 @@ public class VirtualPoolFileReplicationPolicyMigration extends BaseCustomMigrati
             String[] targetFSs = fs.getMirrorfsTargets().toArray(new String[fs.getMirrorfsTargets().size()]);
             // Today we support single target!!
             FileShare fsTarget = dbClient.queryObject(FileShare.class, URI.create(targetFSs[0]));
-
+            // In older release, policy name was set to target file system lable!!
+            policyStorageResource.setPolicyNativeId(fsTarget.getLabel());
             // Update the target resource details!!!
             FileReplicaPolicyTargetMap fileReplicaPolicyTargetMap = new FileReplicaPolicyTargetMap();
             FileReplicaPolicyTarget target = new FileReplicaPolicyTarget();

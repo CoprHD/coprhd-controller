@@ -4,10 +4,7 @@
  */
 package util.support;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.io.StringWriter;
+import java.io.*;
 import java.net.URI;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
@@ -318,18 +315,36 @@ public class SupportPackageCreator {
     }
 
     private void writeLog(ZipOutputStream zip, String nodeId, String nodeName, String logName) throws IOException {
-        String path = String.format("logs/%s_%s_%s.log", logName, nodeId, nodeName);
-        OutputStream stream = nextEntry(zip, path);
-
         Set<String> nodeIds = Collections.singleton(nodeId);
         Set<String> logNames = Collections.singleton(logName);
+        OutputStream stream = null;
 
         InputStream in = api().logs().getAsText(nodeIds, null, logNames, logSeverity, startTime, endTime, msgRegex, null);
+        long size = 1024*1024*300L;
+        int partId = 2;
+        long writeSize = 0L;
+        String line = null;
+        String path = String.format("logs/%s_%s_%s.log", logName, nodeId, nodeName);
+        stream = nextEntry(zip, path);
+        BufferedReader br = new BufferedReader(new InputStreamReader(in));
+        BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(stream));
         try {
-            IOUtils.copy(in, stream);
+            while ((line = br.readLine()) != null) {
+                bw.write(line);
+                bw.newLine();
+                writeSize = writeSize + line.length();
+                if (writeSize > size) {
+                    bw.close();
+                    path = String.format("logs/%s_%s_%s_%d.log", logName, nodeId, nodeName,partId);
+                    stream = nextEntry(zip, path);
+                    bw = new BufferedWriter(new OutputStreamWriter(stream));
+                    writeSize = 0L;
+                    partId++;
+                }
+            }
         } finally {
-            in.close();
-            stream.close();
+            br.close();
+            IOUtils.closeQuietly(bw);
         }
     }
 

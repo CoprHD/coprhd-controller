@@ -1259,8 +1259,11 @@ public class UcsComputeDevice implements ComputeDevice {
             }
 
         } catch (ClientGeneralException e) {
-            LOGGER.warn("Unable to deactivate host : ", e);
+            LOGGER.error("Unable to deactivate host : {}", host.getLabel(), e);
             throw e;
+        } catch (Exception ex) {
+            LOGGER.error("Error while deactivating host {} check stacktrace", host.getLabel(), ex);
+            throw ex;
         }
 
     }

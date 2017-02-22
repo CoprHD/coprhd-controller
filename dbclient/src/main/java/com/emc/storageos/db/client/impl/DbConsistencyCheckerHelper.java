@@ -32,9 +32,11 @@ import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.PasswordHistory;
 import com.emc.storageos.db.client.model.ScopedLabel;
 import com.emc.storageos.db.exceptions.DatabaseException;
+import com.google.common.collect.Lists;
 import com.netflix.astyanax.Keyspace;
 import com.netflix.astyanax.connectionpool.OperationResult;
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
+import com.netflix.astyanax.connectionpool.exceptions.NotFoundException;
 import com.netflix.astyanax.model.Column;
 import com.netflix.astyanax.model.ColumnFamily;
 import com.netflix.astyanax.model.ColumnList;
@@ -62,6 +64,7 @@ public class DbConsistencyCheckerHelper {
     private Map<Long, String> schemaVersionsTime;
     private BlockingQueue<Runnable> blockingQueue = new ArrayBlockingQueue<Runnable>(THREAD_POOL_QUEUE_SIZE);
     private ThreadPoolExecutor executor = new ThreadPoolExecutor(5, 20, 50, TimeUnit.MILLISECONDS, blockingQueue);
+    private boolean doubleConfirmed = true;
     
     public DbConsistencyCheckerHelper() {
     }
@@ -126,7 +129,7 @@ public class DbConsistencyCheckerHelper {
      */
     public void checkCFIndices(DataObjectType doType, boolean toConsole, CheckResult checkResult) throws ConnectionException {
         Class objClass = doType.getDataObjectClass();
-        _log.info("Check Data Object CF {}", objClass);
+        _log.info("Check Data Object CF {} with double confirmed option: {}", objClass, doubleConfirmed);
 
         Map<String, ColumnField> indexedFields = new HashMap<String, ColumnField>();
         for (ColumnField field : doType.getColumnFields()) {
@@ -178,6 +181,10 @@ public class DbConsistencyCheckerHelper {
                         getIndexColumns(indexedField, column, objRow.getKey()));
                 
                 if (!isColumnInIndex) {
+                    if (doubleConfirmed && isDataObjectRemoved(doType.getDataObjectClass(), objRow.getKey())) {
+                        continue;
+                    }
+                    
                     String dbVersion = findDataCreatedInWhichDBVersion(column.getName().getTimeUUID());
                     checkResult.increaseByVersion(dbVersion);
                     logMessage(String.format(
@@ -192,7 +199,7 @@ public class DbConsistencyCheckerHelper {
             }
         }
     }
-    
+
     public void checkIndexingCF(IndexAndCf indexAndCf, boolean toConsole, CheckResult checkResult) throws ConnectionException {
         checkIndexingCF(indexAndCf, toConsole, checkResult, false);
     }
@@ -207,7 +214,7 @@ public class DbConsistencyCheckerHelper {
     public void checkIndexingCF(IndexAndCf indexAndCf, boolean toConsole, CheckResult checkResult, boolean isParallel) throws ConnectionException {
         String indexCFName = indexAndCf.cf.getName();
         Map<String, ColumnFamily<String, CompositeColumnName>> objCfs = getDataObjectCFs();
-        _log.info("Start checking the index CF {}", indexCFName);
+        _log.info("Start checking the index CF {} with double confirmed option: {}", indexCFName, doubleConfirmed);
 
         Map<ColumnFamily<String, CompositeColumnName>, Map<String, List<IndexEntry>>> objsToCheck = new HashMap<>();
 
@@ -311,6 +318,11 @@ public class DbConsistencyCheckerHelper {
                     if (row.getColumns().isEmpty()
                             || (idxEntry.getColumnName().getTimeUUID() != null && !existingDataColumnUUIDSet.contains(idxEntry
                                     .getColumnName().getTimeUUID()))) {
+                        //double confirm it is inconsistent data, please see issue COP-27749
+                        if (doubleConfirmed && !isIndexExists(indexAndCf.keyspace, indexAndCf.cf, idxEntry.getIndexKey(), idxEntry.getColumnName())) {
+                            continue;
+                        }
+                        
                         String dbVersion = findDataCreatedInWhichDBVersion(idxEntry.getColumnName().getTimeUUID());
                         checkResult.increaseByVersion(dbVersion);
                         if (row.getColumns().isEmpty()) {
@@ -600,6 +612,17 @@ public class DbConsistencyCheckerHelper {
         }
         return false;
     }
+    
+    public boolean isIndexExists(Keyspace ks, ColumnFamily<String, IndexColumnName> indexCf, String indexKey, IndexColumnName column) throws ConnectionException {
+        try {
+            ks.prepareQuery(indexCf).getKey(indexKey)
+                    .getColumn(column)
+                    .execute().getResult();
+            return true;
+        } catch (NotFoundException e) {
+            return false;
+        }
+    }
 
     public static String getIndexKey(ColumnField field, Column<CompositeColumnName> column) {
         String indexKey = null;
@@ -688,6 +711,11 @@ public class DbConsistencyCheckerHelper {
         this.dbClient = dbClient;
     }
     
+    protected boolean isDataObjectRemoved(Class<? extends DataObject> clazz, String key) {
+        DataObject dataObject = dbClient.queryObject(URI.create(key));
+        return dataObject == null || dataObject.getInactive();
+    }
+    
     private boolean isValidDataObjectKey(URI uri, final Class<? extends DataObject> type) {
     	return uri != null && URIUtil.isValid(uri) && URIUtil.isType(uri, type);
     }
@@ -737,6 +765,10 @@ public class DbConsistencyCheckerHelper {
     
     public ThreadPoolExecutor getExecutor() {
         return executor;
+    }
+
+    public void setDoubleConfirmed(boolean doubleConfirmed) {
+        this.doubleConfirmed = doubleConfirmed;
     }
 
     public static class CheckResult {

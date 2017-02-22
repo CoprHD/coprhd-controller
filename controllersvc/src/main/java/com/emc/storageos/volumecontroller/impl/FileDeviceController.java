@@ -4407,7 +4407,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
     }
 
     @Override
-    public void applyFilePolicy(URI sourceFS, URI policyURI, String taskId) {
+    public void applyFilePolicy(URI storage, URI sourceFS, URI policyURI, String taskId) throws ControllerException {
         FileShare fsObj = null;
         StorageSystem storageObj = null;
         try {
@@ -4415,7 +4415,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             VirtualPool vpool = _dbClient.queryObject(VirtualPool.class, fsObj.getVirtualPool());
             Project project = _dbClient.queryObject(Project.class, fsObj.getProject());
             TenantOrg tenantOrg = _dbClient.queryObject(TenantOrg.class, project.getTenantOrg());
-            storageObj = _dbClient.queryObject(StorageSystem.class, fsObj.getStorageDevice());
+            storageObj = _dbClient.queryObject(StorageSystem.class, storage);
             FileDeviceInputOutput args = new FileDeviceInputOutput();
             FilePolicy filePolicy = _dbClient.queryObject(FilePolicy.class, policyURI);
             args.setOpId(taskId);
@@ -4436,8 +4436,10 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                 WorkflowStepCompleter.stepFailed(taskId, result.getServiceCoded());
             }
         } catch (Exception e) {
+            _log.error("Unable to apply file policy: {} to file system: {}", policyURI, fsObj.getId());
             ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
             WorkflowStepCompleter.stepFailed(taskId, serviceError);
+            updateTaskStatus(taskId, fsObj, e);
         }
     }
 
@@ -4586,9 +4588,12 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             if (sourceVNasURI != null) {
                 sourceVNAS = _dbClient.queryObject(VirtualNAS.class, sourceVNasURI);
                 sourceArgs.setvNAS(sourceVNAS);
+                targetArgs.setSourceVNAS(sourceVNAS);
             }
 
+            targetArgs.setSourceSystem(sourceSystem);
             targetArgs.setVPool(vpool);
+            targetArgs.setTarget(true);
 
             if (targetVNasURI != null) {
                 targetVNAS = _dbClient.queryObject(VirtualNAS.class, targetVNasURI);
@@ -4618,7 +4623,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
     @Override
     public void assignFileReplicationPolicyToProjects(URI storageSystemURI, URI targetSystemURI,
             URI sourceVNasURI, URI targetVNasURI, URI filePolicyToAssign, URI vpoolURI, URI projectURI, String opId)
-                    throws InternalException {
+            throws InternalException {
         try {
             WorkflowStepCompleter.stepExecuting(opId);
             StorageSystem sourceSystem = _dbClient.queryObject(StorageSystem.class, storageSystemURI);
@@ -4641,8 +4646,11 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             if (sourceVNasURI != null) {
                 sourceVNAS = _dbClient.queryObject(VirtualNAS.class, sourceVNasURI);
                 sourceArgs.setvNAS(sourceVNAS);
+                targetArgs.setSourceVNAS(sourceVNAS);
             }
 
+            targetArgs.setTarget(true);
+            targetArgs.setSourceSystem(sourceSystem);
             targetArgs.setVPool(vpool);
             targetArgs.setProject(project);
             targetArgs.setTenantOrg(tenant);

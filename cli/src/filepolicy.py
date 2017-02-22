@@ -16,6 +16,7 @@ import json
 import socket
 import commands
 from project import Project
+import fileshare
 from common import SOSError
 from threading import Timer
 from virtualpool import VirtualPool
@@ -456,6 +457,9 @@ class FilePolicy(object):
         unassign_resource_type,
         unassign_from_vpools,
         unassign_from_projects,
+        unassign_from_filesystem,
+        tenant,
+        project
         ):
 
         filepolicy = self.filepolicy_query(name)
@@ -492,6 +496,26 @@ class FilePolicy(object):
                 uri = project_obj.project_query(unassign_from_projects)
                 projects_uris.append(uri)
             unassign_request['unassign_from'] = projects_uris
+        elif unassign_resource_type == 'filesystem':
+	    filesystem_uris = []
+            if unassign_from_filesystem is None or project is None :
+                raise SOSError(SOSError.VALUE_ERR,"File policy unassign error:"+ "Filesystem and project value should be provided")
+            
+            fs_obj = fileshare.Fileshare(self.__ipAddr, self.__port)
+            resourcepath = "/" + project + "/"
+            if(tenant is not None):
+                resourcepath = tenant + resourcepath
+            if( len(unassign_from_filesystem) > 1):
+                filesystems = unassign_from_filesystem.split(',')
+                for filesystem in filesystems:
+                    uri = fs_obj.fileshare_query(resourcepath + filesystem)
+                    filesystem_uris.append(uri)
+            else :
+                uri = fs_obj.fileshare_query(resourcepath + filesystem)
+                filesystem_uris.append(uri)
+                
+            unassign_request['unassign_from'] = filesystem_uris
+            
 	
         try:
             body = json.dumps(unassign_request)
@@ -953,7 +977,7 @@ def unassign_parser(subcommand_parsers, common_parser):
     update_parser = subcommand_parsers.add_parser('unassign',
             description='ViPR FilePolicy unassign CLI usage.',
             parents=[common_parser], conflict_handler='resolve',
-            help='Unassign FilePolicy from vpool, project')
+            help='Unassign FilePolicy from vpool, project, filesystem')
     mandatory_args = \
         update_parser.add_argument_group('mandatory arguments')
     mandatory_args.add_argument(
@@ -970,7 +994,7 @@ def unassign_parser(subcommand_parsers, common_parser):
         metavar='<unassign_resource_type>',
         dest='unassign_resource_type',
         help='Resource type to be unassigned from. type values : vpools or projects',
-        choices=['vpools', 'projects'],
+        choices=['vpools', 'projects', 'filesystem'],
         required=True,
         )
     update_parser.add_argument('-unassignvpools', '-unasignvpls',
@@ -981,6 +1005,18 @@ def unassign_parser(subcommand_parsers, common_parser):
                                metavar='<unassign_from_projects>',
                                dest='unassign_from_projects',
                                help='unassign from projects')
+    update_parser.add_argument('-unassignfromfs', '-unasignfs',
+                               metavar='<unassign_from_filesystem>',
+                               dest='unassign_from_filesystem',
+                               help='unassign from filesystem')
+    update_parser.add_argument('-tenant', '-tn',
+                               metavar='<tenantname>',
+                               dest='tenant',
+                               help='Name of tenant')
+    update_parser.add_argument('-project', '-pr',
+                               metavar='<projectname>',
+                               dest='project',
+                               help='Name of Project')
 
     update_parser.set_defaults(func=filepolicy_unassign)
 
@@ -992,7 +1028,7 @@ def filepolicy_unassign(args):
             args.name = ''
         obj.filepolicy_unassign(args.name, args.unassign_resource_type,
                                 args.unassign_from_vpools,
-                                args.unassign_from_projects)
+                                args.unassign_from_projects, args.unassign_from_filesystem, args.tenant, args.project)
     except SOSError, e:
         if e.err_code == SOSError.NOT_FOUND_ERR:
             raise SOSError(SOSError.NOT_FOUND_ERR,

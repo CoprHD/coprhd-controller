@@ -23,7 +23,6 @@ import com.netflix.astyanax.serializers.CompositeRangeBuilder;
 
 import com.emc.storageos.db.client.impl.*;
 import com.emc.storageos.db.client.model.uimodels.Order;
-import com.emc.storageos.db.client.upgrade.BaseDefaultMigrationCallback;
 import com.emc.storageos.svcs.errorhandling.resources.MigrationCallbackException;
 
 public class TimeSeriesIndexMigration extends BaseCustomMigrationCallback {
@@ -39,7 +38,7 @@ public class TimeSeriesIndexMigration extends BaseCustomMigrationCallback {
     public void process() throws MigrationCallbackException {
         long start = System.currentTimeMillis();
 
-        log.info("lbyx Adding new index records for class: {} field: {} annotation: {}",
+        log.info("Adding new index records for class: {} field: {} annotation: {}",
                 new Object[] { Order.class.getName(), Order.SUBMITTED, TimeSeriesAlternateId.class.getName()});
 
         ColumnFamily<String, IndexColumnName> tenantToOrder =
@@ -52,7 +51,6 @@ public class TimeSeriesIndexMigration extends BaseCustomMigrationCallback {
         ColumnField field = doType.getColumnField(Order.SUBMITTED);
         ColumnFamily<String, TimeSeriesIndexColumnName> newIndexCF = field.getIndexCF();
 
-        //DbClientImpl client = getInternalDbClient();
         DbClientImpl client = (DbClientImpl)dbClient;
         Keyspace ks = client.getKeyspace(Order.class);
         MutationBatch mutationBatch = ks.prepareMutationBatch();
@@ -60,7 +58,7 @@ public class TimeSeriesIndexMigration extends BaseCustomMigrationCallback {
         try {
             long m = 0;
             OperationResult<Rows<String, IndexColumnName>> result = ks.prepareQuery(tenantToOrder).getAllRows()
-                    .setRowLimit(100)
+                    .setRowLimit(1000)
                     .withColumnRange(new RangeBuilder().setLimit(0).build())
                     .execute();
             for (Row<String, IndexColumnName> row : result.getResult()) {
@@ -104,7 +102,7 @@ public class TimeSeriesIndexMigration extends BaseCustomMigrationCallback {
             mutationBatch.execute();
 
             long end = System.currentTimeMillis();
-            log.info("Read {} records in {} MS", m, (end - start)/1000);
+            log.info("Read {} records in {} seconds", m, (end - start)/1000);
         }catch (Exception e) {
             log.error("Migration to {} failed e=", newIndexCF.getName(), e);
         }

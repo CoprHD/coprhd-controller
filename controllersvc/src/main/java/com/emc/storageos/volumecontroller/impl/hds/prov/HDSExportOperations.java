@@ -1463,14 +1463,13 @@ public class HDSExportOperations implements ExportMaskOperations {
 							//NOTE: If the storageport is assigned to multiple varrays, then maintaining one
 							//export mask per varray is not possible. Proper seggregation has to be done.
                         	StringSet  varraysAssociatedWithHSDStoragePort = getTaggedVarrays(storagePortOFHDSURI);	                        	                  	
-                        	if(varraysAssociatedWithHSDStoragePort != null){
+                        	if(!varraysAssociatedWithHSDStoragePort.isEmpty()){
                         		boolean bMaskFound = false;
                         		for (ExportMask exportMaskhavingInitiators : exportMaskWithHostInitiators) {
                                     for(String storagePortUriIter : exportMaskhavingInitiators.getStoragePorts()) {
                                         //get the storage port entity
                                     	StringSet  varraysOfStoragePort = getTaggedVarrays(storagePortUriIter);
-                                    	if ( (varraysOfStoragePort !=null) && (!varraysOfStoragePort.isEmpty()) && 
-                                    			(StringSetUtil.hasIntersection(varraysOfStoragePort, varraysAssociatedWithHSDStoragePort))){
+                                    	if (StringSetUtil.hasIntersection(varraysOfStoragePort, varraysAssociatedWithHSDStoragePort)){
                                     		maskForHSD = exportMaskhavingInitiators;
                                     		//Ingest the foreign HSD into a matching export mask with same host and varray combination
                                     		bMaskFound = true;
@@ -1486,8 +1485,9 @@ public class HDSExportOperations implements ExportMaskOperations {
                         		//Since this HSD port is not tagged to any varray, we will not ingest it
                         		continue;
                         	}
-                        	//No matching export mask found for the same host and varray combination. Creating a new export mask.
+
                         	if(null == maskForHSD){
+                            	//No matching export mask found for the same host and varray combination. Creating a new export mask.
                         		isNewExportMask = true;
                                 maskForHSD = new ExportMask();
                                 maskForHSD.setId(URIUtil.createId(ExportMask.class));

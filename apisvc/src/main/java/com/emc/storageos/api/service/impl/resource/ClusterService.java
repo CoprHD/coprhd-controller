@@ -321,14 +321,36 @@ public class ClusterService extends TaskResourceService {
     }
 
     /**
+     * Updates the shared export groups of the give cluster [Deprecated]
+     *
+     * @param id the URN of a ViPR cluster
+     *
+     * @return the representation of the updated cluster.
+     */
+    @POST
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @CheckPermission(roles = { Role.TENANT_ADMIN })
+    @Path("/{id}/update-shared-exports")
+    @Deprecated
+    public TaskResourceRep updateClusterSharedExports(@PathParam("id") URI id) {
+        // This call is immediately deprecated. It only served the UI, so nobody externally should be using it.
+        // In case someone is, they should move over to update hosts like the UI has.
+        throw APIException.badRequests.deprecatedRestCall("POST /compute/clusters/{cluster-id}/update-shared-exports",
+                "PUT /compute/hosts/{host-id}");
+    }
+
+    /**
      * List data for the specified clusters.
      *
-     * @param param POST data containing the id list.
+     * @param param
+     *            POST data containing the id list.
      * @prereq none
      * @brief List data of specified clusters
      * @return list of representations.
      *
-     * @throws DatabaseException When an error occurs querying the database.
+     * @throws DatabaseException
+     *             When an error occurs querying the database.
      */
     @POST
     @Path("/bulk")

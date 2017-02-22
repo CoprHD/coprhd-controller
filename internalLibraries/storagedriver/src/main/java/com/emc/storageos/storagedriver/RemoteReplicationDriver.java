@@ -8,7 +8,6 @@ package com.emc.storageos.storagedriver;
 
 import java.util.List;
 
-import com.emc.storageos.storagedriver.model.StoragePort;
 import com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationGroup;
 import com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationOperationContext;
 import com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationPair;

@@ -5,7 +5,6 @@
 package com.emc.storageos.computecontroller.impl;
 
 import java.net.URI;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -27,7 +26,6 @@ import com.emc.storageos.db.client.model.ComputeVirtualPool;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.Operation.Status;
-import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.UCSServiceProfileTemplate;
 import com.emc.storageos.db.client.model.VcenterDataCenter;
 import com.emc.storageos.db.client.model.VirtualArray;
@@ -844,8 +842,8 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
 
             if (deactivateBootVolume && host.getBootVolumeId() != null) {
                 waitFor = workflow.createStep(DEACTIVATION_COMPUTE_SYSTEM_BOOT_VOLUME,
-                        "Delete the boot volume for the host", waitFor, cs.getId(), cs.getSystemType(), 
-                        this.getClass(), new Workflow.Method("deleteBlockBootVolume", hostId, volumeDescriptors), 
+                        "Delete the boot volume for the host", waitFor, cs.getId(), cs.getSystemType(),
+                        this.getClass(), new Workflow.Method("deleteBlockBootVolume", hostId, volumeDescriptors),
                         new Workflow.Method(ROLLBACK_NOTHING_METHOD), null);
             } else if (!deactivateBootVolume) {
                 log.info("flag deactivateBootVolume set to false");
@@ -963,7 +961,7 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
 
                 Volume bootVolume = _dbClient.queryObject(Volume.class, host.getBootVolumeId());
 
-                Operation op = _dbClient.createTaskOpStatus(Volume.class, bootVolume.getId(), task, 
+                Operation op = _dbClient.createTaskOpStatus(Volume.class, bootVolume.getId(), task,
                         ResourceOperationTypeEnum.DELETE_BLOCK_VOLUME);
                 bootVolume.getOpStatus().put(task, op);
 
@@ -1278,6 +1276,7 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
             }
 
         } catch (Exception exception) {
+            log.error("Error on deactivate ComputeSystemHost with hostid {} and computementid {}",hostId, csId, exception);
             ServiceCoded serviceCoded = ComputeSystemControllerException.exceptions
                     .unableToDeactivateHost(host != null ? host.getHostName() : hostId.toString(), exception);
             WorkflowStepCompleter.stepFailed(stepId, serviceCoded);

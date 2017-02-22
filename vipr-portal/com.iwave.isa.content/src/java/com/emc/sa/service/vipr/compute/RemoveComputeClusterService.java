@@ -20,6 +20,7 @@ import com.emc.sa.service.vipr.block.BlockStorageUtils;
 import com.emc.sa.service.vipr.compute.tasks.DeactivateCluster;
 import com.emc.storageos.db.client.model.Cluster;
 import com.emc.storageos.model.block.BlockObjectRestRep;
+import com.emc.storageos.model.host.HostRestRep;
 import com.google.common.collect.Lists;
 
 @Service("RemoveComputeCluster")
@@ -50,6 +51,14 @@ public class RemoveComputeClusterService extends ViPRService {
             preCheckErrors.append("Cluster ").append(cluster.getLabel())
             .append(" is a mixed cluster, cannot decommission a mixed cluster.");
         }
+
+        // Validate all of the boot volumes are still valid.
+        if (!validateBootVolumes()) {
+            logError("computeutils.deactivatecluster.deactivate.bootvolumes", cluster.getLabel());
+            preCheckErrors.append("Cluster ").append(cluster.getLabel())
+                    .append(" has different boot volumes than what controller provisioned.  Cannot delete original boot volume in case it was re-purposed.");
+        }
+
         if (preCheckErrors.length() > 0) {
             throw new IllegalStateException(preCheckErrors.toString());
         }
@@ -119,6 +128,25 @@ public class RemoveComputeClusterService extends ViPRService {
             }
         }
 
+    }
+
+    /**
+     * Validate that the boot volume for this host is still on the server.
+     * This prevents us from deleting a re-purposed volume that was originally
+     * a boot volume.
+     * 
+     * @return false if we can reach the server and determine the boot volume is no longer there.
+     */
+    private boolean validateBootVolumes() {
+        // If the cluster isn't returned properly, not found in DB, do not delete the boot volume until
+        // the references are fixed.
+        if (cluster == null || cluster.getInactive()) {
+            logError("computeutils.removebootvolumes.failure.cluster");
+            return false;
+        }
+
+        List<HostRestRep> clusterHosts = ComputeUtils.getHostsInCluster(cluster.getId());
+        return ComputeUtils.validateBootVolumes(cluster, clusterHosts);
     }
 
     /**

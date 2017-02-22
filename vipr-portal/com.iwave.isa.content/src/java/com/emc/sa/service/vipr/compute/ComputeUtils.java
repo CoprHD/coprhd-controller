@@ -23,6 +23,7 @@ import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.engine.bind.Param;
 import com.emc.sa.service.vipr.ViPRExecutionUtils;
 import com.emc.sa.service.vipr.block.BlockStorageUtils;
+import com.emc.sa.service.vipr.block.tasks.GetBlockResource;
 import com.emc.sa.service.vipr.compute.tasks.AddHostToCluster;
 import com.emc.sa.service.vipr.compute.tasks.CreateCluster;
 import com.emc.sa.service.vipr.compute.tasks.CreateHosts;
@@ -39,6 +40,7 @@ import com.emc.sa.service.vipr.compute.tasks.SetBootVolume;
 import com.emc.sa.service.vipr.compute.tasks.UpdateCluster;
 import com.emc.sa.service.vipr.compute.tasks.UpdateVcenterCluster;
 import com.emc.sa.service.vipr.tasks.GetHost;
+import com.emc.sa.service.vmware.VMwareSupport;
 import com.emc.sa.service.vmware.tasks.GetVcenter;
 import com.emc.sa.service.vmware.tasks.GetVcenterDataCenter;
 import com.emc.storageos.db.client.model.Cluster;
@@ -46,6 +48,8 @@ import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Vcenter;
 import com.emc.storageos.db.client.model.VcenterDataCenter;
 import com.emc.storageos.db.client.util.EndpointUtility;
+import com.emc.storageos.db.client.util.NullColumnValueGetter;
+import com.emc.storageos.model.block.BlockObjectRestRep;
 import com.emc.storageos.model.block.VolumeDeleteTypeEnum;
 import com.emc.storageos.model.block.VolumeRestRep;
 import com.emc.storageos.model.block.export.ExportGroupRestRep;
@@ -60,6 +64,7 @@ import com.emc.vipr.client.ViPRCoreClient;
 import com.emc.vipr.client.core.filters.NameIgnoreCaseFilter;
 import com.emc.vipr.client.exceptions.TimeoutException;
 import com.google.common.collect.Lists;
+import com.vmware.vim25.mo.HostSystem;
 
 // VBDU TODO COP-28437: In general, this module needs javadoc.  Many methods are using List objects and returning List objects that correspond to the incoming list that
 // require the indexing in the list to be retained or use of "indexOf()" to find the right map entry, both of which is poor programming practice, so that needs 
@@ -899,5 +904,88 @@ public class ComputeUtils {
      */
     public static VcenterDataCenter getVcenterDataCenter(URI datacenterId) {
         return execute(new GetVcenterDataCenter(datacenterId));
+    }
+
+    /**
+     * Validate that the boot volume for this host is still on the server.
+     * This prevents us from deleting a re-purposed volume that was originally
+     * a boot volume.
+     * 
+     * @return true if the volumes are valid, or the volumes are not able to be validated, so we can go ahead anyway.
+     */
+    public static boolean validateBootVolumes(Cluster cluster, List<HostRestRep> hostsToValidate) {
+        // If the cluster isn't returned properly, not found in DB, do not delete the boot volume until
+        // the references are fixed.
+        if (cluster == null || cluster.getInactive()) {
+            ExecutionUtils.currentContext().logError("computeutils.removebootvolumes.failure.cluster");
+            return false;
+        }
+
+        // If this cluster is not part of a virtual center/datacenter, then we cannot perform validation,
+        // so return that the boot volume is valid due to lack of technical ability to dig any deeper.
+        if (cluster.getVcenterDataCenter() == null) {
+            ExecutionUtils.currentContext().logInfo("computeutils.removebootvolumes.validation.skipped", cluster.forDisplay());
+            return true;
+        }
+
+        VcenterDataCenter dataCenter = execute(new GetVcenterDataCenter(cluster.getVcenterDataCenter()));
+
+        // If the datacenter isn't returned properly, not found in DB, but the cluster has a reference to
+        // it, there's an issue with the sync of the DB object. Do not allow the validation to pass
+        // until that's fixed.
+        if (dataCenter == null || dataCenter.getInactive() || NullColumnValueGetter.isNullURI(dataCenter.getVcenter())) {
+            ExecutionUtils.currentContext().logError("computeutils.removebootvolumes.failure.datacenter", cluster.forDisplay());
+            return false;
+        }
+
+        Vcenter vcenter = execute(new GetVcenter(dataCenter.getVcenter()));
+
+        // If the vcenter isn't returned properly, not found in DB, but the cluster has a reference to
+        // it, there's an issue with the sync of the DB object. Do not allow the validation to pass
+        // until that's fixed.
+        if (vcenter == null || vcenter.getInactive()) {
+            ExecutionUtils.currentContext().logError("computeutils.removebootvolumes.failure.vcenter", cluster.forDisplay());
+            return false;
+        }
+
+        VMwareSupport vmware = new VMwareSupport();
+        vmware.connect(vcenter.getId());
+
+        for (HostRestRep clusterHost : hostsToValidate) {
+            Host host = BlockStorageUtils.getHost(clusterHost.getId());
+
+            // Do not validate a host no longer in our database
+            if (host == null || host.getInactive()) {
+                ExecutionUtils.currentContext().logError("computeutils.removebootvolumes.failure.host", "N/A", "host not found or inactive");
+                return false;
+            }
+
+            // If there's no vcenter associated with the host, then there's some DB association issue
+            // that needs to be addressed.
+            if (host.getVcenterDataCenter() == null) {
+                ExecutionUtils.currentContext().logError("computeutils.removebootvolumes.failure.host", host.getHostName(), "vcenter info not in sync with host");
+                return false;
+            }
+
+            BlockObjectRestRep bootVolume = execute(new GetBlockResource(clusterHost.getBootVolume().getId()));
+
+            // Do not validate an old/non-existent boot volume representation
+            if (bootVolume == null || bootVolume.getInactive()) {
+                ExecutionUtils.currentContext().logError("computeutils.removebootvolumes.failure.host", host.getHostName(),
+                        "boot volume not found or inactive");
+                return false;
+            }
+
+            HostSystem hostSystem = vmware.getHostSystem(dataCenter.getLabel(), clusterHost.getName());
+            if (vmware.findScsiDisk(hostSystem, null, bootVolume, false) == null) {
+                // fail, host can't see its boot volume
+                ExecutionUtils.currentContext().logError("computeutils.removebootvolumes.failure.bootvolume", bootVolume.getDeviceLabel(), bootVolume.getWwn());
+                return false;
+            } else {
+                ExecutionUtils.currentContext().logInfo("computeutils.removebootvolumes.validated", host.getHostName(), bootVolume.getDeviceLabel());
+            }
+        }
+
+        return true;
     }
 }

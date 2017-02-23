@@ -881,6 +881,9 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
         }
         List<URI> clusterHosts = ComputeSystemHelper.getChildrenUris(_dbClient, clusterId, Host.class, "cluster");
         // Check if cluster has hosts, if cluster is empty then safely remove from vcenter.
+        
+        // VBDU TODO: COP-28400, Cluster without any hosts is kind of negative case, and this information is not
+        // verified against the environment, do we need to take liberty of removing the cluster from VCenter?
         if (null == clusterHosts || clusterHosts.isEmpty()) {
             VcenterDataCenter vcenterDataCenter = _dbClient.queryObject(VcenterDataCenter.class,
                     cluster.getVcenterDataCenter());
@@ -1101,6 +1104,7 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
             vcenterController.updateVcenterCluster(task, host.getCluster(), null, new URI[] { host.getId() }, null);
 
             log.info("Monitor remove host " + host.getHostName() + " update vCenter task...");
+            // VBDU TODO: COP-28456, Anti pattern - completers are responsible for updating step status.
             while (true) {
                 Thread.sleep(TASK_STATUS_POLL_FREQUENCY);
                 VcenterDataCenter vcenterDataCenter = _dbClient.queryObject(VcenterDataCenter.class,
@@ -1254,6 +1258,7 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
 
             host = _dbClient.queryObject(Host.class, hostId);
             if (null != host) {
+                // VBDU TODO: COP-28452: Need to check initiators inside the host as well.
                 if (NullColumnValueGetter.isNullURI(host.getComputeElement())) {
                     // NO-OP
                     log.info("Host " + host.getLabel() + " has no computeElement association");

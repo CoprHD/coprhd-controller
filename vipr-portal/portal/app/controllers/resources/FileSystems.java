@@ -1376,7 +1376,7 @@ public class FileSystems extends ResourceController {
 
         public void validate(String formName) {
 
-            formName = formName.replaceAll("[^/\\dA-Za-z, ]", "");
+            formName = formName.replaceAll(",", "");
             if (StringUtils.isEmpty(size) || !size.matches("^\\d+$")) {
                 Validation.addError(formName + ".size", "resources.filesystem.quota.size.invalid.value");
             }

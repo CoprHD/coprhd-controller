@@ -256,6 +256,8 @@ public class AddHostToClusterService extends ViPRService {
         List<URI> exportIds = ComputeUtils.exportBootVols(bootVolumeIds, hosts, project, virtualArray, hlu);
         logInfo("compute.cluster.exports.created", ComputeUtils.nonNull(exportIds).size());
         hosts = ComputeUtils.deactivateHostsWithNoExport(hosts, exportIds, bootVolumeIds, cluster);
+        //Set host boot volume ids, but do not set san boot targets. They will get set post os install.
+        hosts = ComputeUtils.setHostBootVolumes(hosts, bootVolumeIds, false);
 
         logInfo("compute.cluster.exports.installing.os");
         List<HostRestRep> hostsWithOs = installOSForHosts(hostToIPs, ComputeUtils.getHostNameBootVolume(hosts));

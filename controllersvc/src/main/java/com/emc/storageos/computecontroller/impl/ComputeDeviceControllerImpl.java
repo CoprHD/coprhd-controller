@@ -840,14 +840,14 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
                             "deactiveComputeSystemHost", cs.getId(), hostId),
                     new Workflow.Method(ROLLBACK_NOTHING_METHOD), null);
 
-            if (deactivateBootVolume && host.getBootVolumeId() != null) {
+            if (deactivateBootVolume && !NullColumnValueGetter.isNullURI(host.getBootVolumeId())) {
                 waitFor = workflow.createStep(DEACTIVATION_COMPUTE_SYSTEM_BOOT_VOLUME,
                         "Delete the boot volume for the host", waitFor, cs.getId(), cs.getSystemType(),
                         this.getClass(), new Workflow.Method("deleteBlockBootVolume", hostId, volumeDescriptors),
                         new Workflow.Method(ROLLBACK_NOTHING_METHOD), null);
             } else if (!deactivateBootVolume) {
                 log.info("flag deactivateBootVolume set to false");
-            } else if (host.getBootVolumeId() == null){
+            } else if (!NullColumnValueGetter.isNullURI(host.getBootVolumeId())){
                 log.info("Host "+ host.getLabel() + " has no bootVolume association");
             }
         } else {

@@ -59,50 +59,13 @@ public class RemoteReplicationFailbackCompleter extends TaskCompleter {
         }
     }
 
-
     @Override
     protected void complete(DbClient dbClient, Operation.Status status, ServiceCoded coded)
             throws DeviceControllerException {
-        setDbClient(dbClient);
-
         _logger.info("Complete operation for {} with id {} and status {}", elementType, elementURI, status);
-        try {
-            if (status == Operation.Status.ready) {
-                switch (elementType) {
-                    case REPLICATION_GROUP:
-                        RemoteReplicationGroup remoteReplicationGroup = dbClient.queryObject(RemoteReplicationGroup.class, elementURI);
-                        _logger.info("Failed back group: {}", remoteReplicationGroup.getNativeId());
-                        List<RemoteReplicationPair> rrPairs = CustomQueryUtility.queryActiveResourcesByRelation(dbClient, elementURI,
-                                RemoteReplicationPair.class, "replicationGroup");
-                        for (RemoteReplicationPair rrPair : rrPairs) {
-                            rrPair.setReplicationState(RemoteReplicationSet.ReplicationState.ACTIVE.toString());
-                            // change replication direction:
-                            if (rrPair.getReplicationDirection() == RemoteReplicationPair.ReplicationDirection.SOURCE_TO_TARGET) {
-                                rrPair.setReplicationDirection(RemoteReplicationPair.ReplicationDirection.TARGET_TO_SOURCE);
-                            } else {
-                                rrPair.setReplicationDirection(RemoteReplicationPair.ReplicationDirection.SOURCE_TO_TARGET);
-                            }
-                        }
-                        remoteReplicationGroup.setReplicationState(RemoteReplicationSet.ReplicationState.ACTIVE.toString());
-                        dbClient.updateObject(remoteReplicationGroup);
-                        dbClient.updateObject(rrPairs);
-                        _logger.info("Completed operation for {} with id {} and status {}", elementType, elementURI, status);
-                        break;
-                    case REPLICATION_PAIR:
-                        break;
-                    case REPLICATION_SET:
-                        break;
-                }
-            }
-        } catch (Exception e) {
-            _logger.error(String.format(
-                    "Failed to process failback completion for %s with Id: %s, OpId: %s",
-                    elementType, elementURI, getOpId()), e);
-
-        } finally {
-            setStatus(dbClient, status, coded);
-            updateWorkflowStatus(status, coded);
-        }
+        setDbClient(dbClient);
+        setStatus(dbClient, status, coded);
+        updateWorkflowStatus(status, coded);
     }
 }
 

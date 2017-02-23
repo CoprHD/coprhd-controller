@@ -1118,8 +1118,9 @@ public class StorageDriverSimulator extends DefaultStorageDriver implements Bloc
         task.setStatus(DriverTask.TaskStatus.READY);
 
         String msg = String.format("StorageDriver: createRemoteReplicationGroup information: name --- %s, source system: %s, \n " +
-                        "\t target system: %s - end",
-                replicationGroup.getNativeId(), replicationGroup.getSourceSystemNativeId(), replicationGroup.getTargetSystemNativeId());
+                        "\t target system: %s,\n\t source ports: %s, \n\t target ports: %s - end",
+                replicationGroup.getNativeId(), replicationGroup.getSourceSystemNativeId(), replicationGroup.getTargetSystemNativeId(),
+                replicationGroup.getSourcePorts().toString(), replicationGroup.getTargetPorts().toString());
         _log.info(msg);
         task.setMessage(msg);
         return task;
@@ -1130,7 +1131,7 @@ public class StorageDriverSimulator extends DefaultStorageDriver implements Bloc
         Set<String> driverPairs = new HashSet<>();
         for (RemoteReplicationPair pair : replicationPairs) {
             pair.setNativeId("driverSimulatorPair" + UUID.randomUUID().toString());
-            pair.setReplicationState(RemoteReplicationSet.ReplicationState.ACTIVE);
+            pair.setReplicationState("ACTIVE");
 
             driverPairs.add(pair.getNativeId());
         }
@@ -1151,7 +1152,7 @@ public class StorageDriverSimulator extends DefaultStorageDriver implements Bloc
         Set<String> driverPairs = new HashSet<>();
         for (RemoteReplicationPair pair : replicationPairs) {
             pair.setNativeId("driverSimulatorPair" + UUID.randomUUID().toString());
-            pair.setReplicationState(RemoteReplicationSet.ReplicationState.ACTIVE);
+            pair.setReplicationState("ACTIVE");
 
             driverPairs.add(pair.getNativeId());
         }

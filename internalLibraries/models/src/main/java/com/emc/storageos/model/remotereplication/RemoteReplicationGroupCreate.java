@@ -1,8 +1,11 @@
 package com.emc.storageos.model.remotereplication;
 
 import javax.xml.bind.annotation.XmlElement;
+import javax.xml.bind.annotation.XmlElementWrapper;
 import javax.xml.bind.annotation.XmlRootElement;
 import java.net.URI;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Remote replication group create parameters
@@ -19,8 +22,14 @@ public class RemoteReplicationGroupCreate {
     // Source storage system of this group
     private URI sourceSystem;
 
+    // Source storage system ports of this group
+    private List<URI> sourcePorts;
+
     // Target storage system of this group
     private URI targetSystem;
+
+    // Target storage system ports of this group
+    private List<URI> targetPorts;
 
     // replication mode of this group
     private String replicationMode;
@@ -31,6 +40,32 @@ public class RemoteReplicationGroupCreate {
     // Defines if group consistency of link operations is enforced
     // When TRUE, link operations are supported only on group level for this group
     private Boolean isGroupConsistencyEnforced;
+
+    @XmlElementWrapper(name = "source_ports", required = true)
+    @XmlElement(name = "source_port")
+    public List<URI> getSourcePorts() {
+        if (sourcePorts == null) {
+            sourcePorts = new ArrayList<URI>();
+        }
+        return sourcePorts;
+    }
+
+    public void setSourcePorts(List<URI> sourcePorts) {
+        this.sourcePorts = sourcePorts;
+    }
+
+    @XmlElementWrapper(name = "target_ports", required = true)
+    @XmlElement(name = "target_port")
+    public List<URI> getTargetPorts() {
+        if (targetPorts == null) {
+            targetPorts = new ArrayList<URI>();
+        }
+        return targetPorts;
+    }
+
+    public void setTargetPorts(List<URI> targetPorts) {
+        this.targetPorts = targetPorts;
+    }
 
     @XmlElement(name = "storage_system_type")
     public String getStorageSystemType() {

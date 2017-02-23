@@ -42,18 +42,6 @@ public class RemoteReplicationSet {
     }
 
     /**
-     * State of remote replication link.
-     */
-    public enum ReplicationState {
-        ACTIVE,
-        SYNCHRONIZING,
-        SUSPENDED,
-        SPLIT,
-        FAILED_OVER,
-    }
-
-
-    /**
      * Device native id of the replication set. Identifies replication set for driver. Type: Output.
      */
     private String nativeId;
@@ -95,11 +83,12 @@ public class RemoteReplicationSet {
 
 
     /**
-     * When replication link granularity is only SET, defines replication link state of this set.
-     * Otherwise, not applicable.
-     * Type: Output.
+     * Replication state of the set. Type: Input/Output.
+     * When Input --- state as known to the system.
+     * When Output --- state on device.
+     * Should be set by driver when applicable.
      */
-    private ReplicationState replicationState;
+    private String replicationState;
 
     /**
      * Set of replication groups in this replication set. Type: Output.
@@ -160,11 +149,11 @@ public class RemoteReplicationSet {
 //        this.replicationMode = replicationMode;
 //    }
 
-    public ReplicationState getReplicationState() {
+    public String getReplicationState() {
         return replicationState;
     }
 
-    public void setReplicationState(ReplicationState replicationState) {
+    public void setReplicationState(String replicationState) {
         this.replicationState = replicationState;
     }
 

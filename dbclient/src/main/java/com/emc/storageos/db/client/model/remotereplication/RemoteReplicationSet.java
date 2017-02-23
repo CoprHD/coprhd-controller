@@ -20,6 +20,8 @@ import com.emc.storageos.db.client.model.StringSetMap;
 @Cf("RemoteReplicationSet")
 public class RemoteReplicationSet extends DiscoveredDataObject {
 
+    public static String CREATE_STATE_PROPERTY_NAME = "create_state";
+
     // native id of replication set.
     private String nativeId;
 

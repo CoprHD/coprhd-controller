@@ -13,6 +13,11 @@ public class RemoteReplicationAttributes extends CapabilityDefinition {
     // The uid of this capability definition.
     public static final String CAPABILITY_UID = CapabilityDefinition.CapabilityUid.remoteReplicationAttributes.name();
 
+    // The names of the supported properties.
+    public static enum PROPERTY_NAME {
+        CREATE_STATE
+    };
+
     /**
      * Default Constructor
      */

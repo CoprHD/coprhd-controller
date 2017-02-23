@@ -18,6 +18,7 @@ import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.ProjectResource;
 import com.emc.storageos.db.client.model.RelationIndex;
 import com.emc.storageos.db.client.model.StorageSystem;
+import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.StringSet;
 
 import javax.xml.bind.annotation.XmlTransient;
@@ -55,6 +56,10 @@ public class RemoteReplicationGroup extends DiscoveredDataObject {
 
     // Defines if group consistency of link operations is enforced.
     private Boolean isGroupConsistencyEnforced;
+
+    // Properties of replication group
+    private StringMap properties;
+
 
     @Name("nativeId")
     public String getNativeId() {
@@ -159,6 +164,23 @@ public class RemoteReplicationGroup extends DiscoveredDataObject {
     public void setReplicationState(String replicationState) {
         this.replicationState = replicationState;
         setChanged("replicationState");
+    }
+
+    @Name("properties")
+    public StringMap getProperties() {
+        return properties;
+    }
+
+    public void setProperties(StringMap properties) {
+        this.properties = properties;
+        setChanged("properties");
+    }
+
+    public void addProperty(String name, String value) {
+        if (getProperties() == null) {
+            setProperties(new StringMap());
+        }
+        getProperties().put(name, value);
     }
 
     @Override

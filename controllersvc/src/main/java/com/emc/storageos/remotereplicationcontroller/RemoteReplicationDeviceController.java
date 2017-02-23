@@ -18,7 +18,6 @@ import com.emc.storageos.db.client.model.remotereplication.RemoteReplicationPair
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.exceptions.DeviceControllerException;
-import com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationSet;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
@@ -29,7 +28,7 @@ import com.emc.storageos.volumecontroller.impl.externaldevice.RemoteReplicationE
 import com.emc.storageos.volumecontroller.impl.externaldevice.taskcompleters.RemoteReplicationFailbackCompleter;
 import com.emc.storageos.volumecontroller.impl.externaldevice.taskcompleters.RemoteReplicationFailoverCompleter;
 import com.emc.storageos.volumecontroller.impl.externaldevice.taskcompleters.RemoteReplicationGroupCompleter;
-import com.emc.storageos.volumecontroller.impl.externaldevice.taskcompleters.RemoteReplicationTaskCompleter;
+import com.emc.storageos.volumecontroller.impl.externaldevice.taskcompleters.RemoteReplicationPairCompleter;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
 import com.emc.storageos.workflow.Workflow;
 import com.emc.storageos.workflow.WorkflowService;
@@ -77,7 +76,7 @@ public class RemoteReplicationDeviceController implements RemoteReplicationContr
 
 
     @Override
-    public void createRemoteReplicationGroup(URI replicationGroup, String opId) {
+    public void createRemoteReplicationGroup(URI replicationGroup, List<URI> sourcePorts, List<URI> targetPorts, String opId) {
         RemoteReplicationGroup rrGroup = dbClient.queryObject(RemoteReplicationGroup.class, replicationGroup);
         _log.info("Create remote replication group: {} : {}", rrGroup.getLabel(), replicationGroup);
 
@@ -88,7 +87,7 @@ public class RemoteReplicationDeviceController implements RemoteReplicationContr
 
         // call device
         RemoteReplicationDevice rrDevice = getRemoteReplicationDevice();
-        rrDevice.createRemoteReplicationGroup(replicationGroup, taskCompleter);
+        rrDevice.createRemoteReplicationGroup(replicationGroup, sourcePorts, targetPorts, taskCompleter);
     }
 
     @Override
@@ -108,7 +107,7 @@ public class RemoteReplicationDeviceController implements RemoteReplicationContr
         List<URI> volumeURIs = null;
         try {
             volumeURIs = RemoteReplicationUtils.getElements(dbClient, replicationPairs);
-            RemoteReplicationTaskCompleter taskCompleter = new RemoteReplicationTaskCompleter(volumeURIs, opId);
+            RemoteReplicationPairCompleter taskCompleter = new RemoteReplicationPairCompleter(volumeURIs, opId);
 
             RemoteReplicationDevice rrDevice = getRemoteReplicationDevice();
             WorkflowStepCompleter.stepExecuting(opId);
@@ -327,7 +326,7 @@ public class RemoteReplicationDeviceController implements RemoteReplicationContr
         List<URI> elementURIs = new ArrayList<>();
         elementURIs.addAll(VolumeDescriptor.getVolumeURIs(sourceDescriptors));
         elementURIs.addAll(targetURIs);
-        RemoteReplicationTaskCompleter taskCompleter = new RemoteReplicationTaskCompleter(elementURIs, opId);
+        RemoteReplicationPairCompleter taskCompleter = new RemoteReplicationPairCompleter(elementURIs, opId);
         List<RemoteReplicationPair> rrPairs = prepareRemoteReplicationPairs(sourceDescriptors, targetURIs);
 
         RemoteReplicationDevice rrDevice = getRemoteReplicationDevice();
@@ -494,9 +493,9 @@ public class RemoteReplicationDeviceController implements RemoteReplicationContr
             rrPair.setReplicationSet(capabilities.getRemoteReplicationSet());
             rrPair.setReplicationMode(capabilities.getRemoteReplicationMode());
             if (capabilities.getRemoteReplicationCreateInactive()) {
-                rrPair.setReplicationState(RemoteReplicationSet.ReplicationState.ACTIVE.toString());
+                rrPair.addProperty(com.emc.storageos.db.client.model.remotereplication.RemoteReplicationSet.CREATE_STATE_PROPERTY_NAME, "INACTIVE");
             } else {
-                rrPair.setReplicationState(RemoteReplicationSet.ReplicationState.SPLIT.toString());
+                rrPair.addProperty(com.emc.storageos.db.client.model.remotereplication.RemoteReplicationSet.CREATE_STATE_PROPERTY_NAME, "ACTIVE");
             }
 
             rrPair.setSourceElement(new NamedURI(sourceDescriptor.getVolumeURI(), RemoteReplicationPair.ElementType.VOLUME.toString()));

@@ -4,8 +4,6 @@
  */
 package com.emc.storageos.volumecontroller.impl.externaldevice.taskcompleters;
 
-import static java.util.Arrays.asList;
-
 import java.net.URI;
 import java.util.List;
 
@@ -19,9 +17,9 @@ import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.volumecontroller.TaskCompleter;
 
-public class RemoteReplicationTaskCompleter extends TaskCompleter {
+public class RemoteReplicationPairCompleter extends TaskCompleter {
 
-    private static final Logger _logger = LoggerFactory.getLogger(RemoteReplicationTaskCompleter.class);
+    private static final Logger _logger = LoggerFactory.getLogger(RemoteReplicationPairCompleter.class);
 
     private DbClient dbClient;
 
@@ -39,13 +37,10 @@ public class RemoteReplicationTaskCompleter extends TaskCompleter {
      * @param ids
      * @param opId
      */
-    public RemoteReplicationTaskCompleter(List<URI> ids, String opId) {
+    public RemoteReplicationPairCompleter(List<URI> ids, String opId) {
         super(Volume.class, ids, opId);
     }
 
-    public RemoteReplicationTaskCompleter(URI sourceURI, URI targetURI, String opId) {
-        super(Volume.class, asList(sourceURI, targetURI), opId);
-    }
 
     @Override
     protected void complete(DbClient dbClient, Operation.Status status, ServiceCoded coded)

@@ -15,6 +15,7 @@ import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.ProjectResource;
 import com.emc.storageos.db.client.model.RelationIndex;
+import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.Volume;
 
 import javax.xml.bind.annotation.XmlTransient;
@@ -60,6 +61,9 @@ public class RemoteReplicationPair extends DataObject implements ProjectResource
     // Replication pair target element.
     // name: ElementType.VOLUME, Element.FILE_SYSTEM
     private NamedURI targetElement;
+
+    // Properties of replication pair
+    private StringMap properties;
 
     // Tenant of this pair
     private NamedURI tenant;
@@ -182,6 +186,23 @@ public class RemoteReplicationPair extends DataObject implements ProjectResource
 
     public void setReplicationDirection(ReplicationDirection replicationDirection) {
         this.replicationDirection = replicationDirection;
+    }
+
+    @Name("properties")
+    public StringMap getProperties() {
+        return properties;
+    }
+
+    public void setProperties(StringMap properties) {
+        this.properties = properties;
+        setChanged("properties");
+    }
+
+    public void addProperty(String name, String value) {
+        if (getProperties() == null) {
+            setProperties(new StringMap());
+        }
+        getProperties().put(name, value);
     }
 
     @Override

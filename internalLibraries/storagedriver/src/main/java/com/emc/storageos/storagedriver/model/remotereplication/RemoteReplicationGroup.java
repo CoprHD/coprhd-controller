@@ -4,10 +4,13 @@
  */
 package com.emc.storageos.storagedriver.model.remotereplication;
 
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
+import com.emc.storageos.storagedriver.model.StoragePort;
 import com.emc.storageos.storagedriver.storagecapabilities.CapabilityInstance;
 
 /**
@@ -40,9 +43,12 @@ public class RemoteReplicationGroup {
     private String replicationMode;
 
     /**
-     * Replication state of the group. Type: Output.
+     * Replication state of the group. Type: Input/Output.
+     * When Input --- state as known to the system.
+     * When Output --- state on device.
+     * Should be set by driver when applicable.
      */
-    private RemoteReplicationSet.ReplicationState replicationState;
+    private String replicationState;
 
     /**
      * Defines if group consistency for link operations is enforced. Type: Input/Output.
@@ -66,6 +72,36 @@ public class RemoteReplicationGroup {
      * Device specific capabilities. Type: Input.
      */
     private List<CapabilityInstance> capabilities;
+
+    /**
+     * In this map, for each key-value pair:
+     *   key is the native id of the source storage system,
+     *   value is ports of the storage system that are used for remote replication.
+     */
+    private Map<String, Set<StoragePort>> sourcePorts = new HashMap<>();
+
+    /**
+     * In this map, for each key-value pair:
+     *   key is the native id of the target storage system,
+     *   value is ports of the storage system that are used for remote replication.
+     */
+    private Map<String, Set<StoragePort>> targetPorts = new HashMap<>();
+
+    public Map<String, Set<StoragePort>> getSourcePorts() {
+        return sourcePorts;
+    }
+
+    public void setSourcePorts(Map<String, Set<StoragePort>> sourcePorts) {
+        this.sourcePorts = sourcePorts;
+    }
+
+    public Map<String, Set<StoragePort>> getTargetPorts() {
+        return targetPorts;
+    }
+
+    public void setTargetPorts(Map<String, Set<StoragePort>> targetPorts) {
+        this.targetPorts = targetPorts;
+    }
 
     public String getNativeId() {
         return nativeId;
@@ -99,11 +135,11 @@ public class RemoteReplicationGroup {
         this.replicationMode = replicationMode;
     }
 
-    public RemoteReplicationSet.ReplicationState getReplicationState() {
+    public String getReplicationState() {
         return replicationState;
     }
 
-    public void setReplicationState(RemoteReplicationSet.ReplicationState replicationState) {
+    public void setReplicationState(String replicationState) {
         this.replicationState = replicationState;
     }
 

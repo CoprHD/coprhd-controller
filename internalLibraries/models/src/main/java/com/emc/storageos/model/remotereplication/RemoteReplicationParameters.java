@@ -8,13 +8,13 @@ import javax.xml.bind.annotation.XmlRootElement;
 @XmlRootElement(name = "remote_replication")
 public class RemoteReplicationParameters {
 
-        private String remoteReplicationMode;
-        private URI remoteReplicationSet;
-        private URI remoteReplicationGroup;
-        private Boolean createInactive = Boolean.FALSE;;
+    private String remoteReplicationMode;
+    private URI remoteReplicationSet;
+    private URI remoteReplicationGroup;
+    private Boolean createInactive = Boolean.FALSE;;
 
-        public RemoteReplicationParameters() {
-        }
+    public RemoteReplicationParameters() {
+    }
 
     @XmlElement(name = "replication_mode", required = true)
     public String getRemoteReplicationMode() {

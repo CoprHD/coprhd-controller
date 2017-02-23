@@ -2808,9 +2808,9 @@ public class VNXeStorageDevice extends VNXeOperations
     }
 
     @Override
-    public BiosCommandResult doRefreshMirrorLink(StorageSystem system, FileShare source, FileShare target, TaskCompleter completer) {
+    public BiosCommandResult doRefreshMirrorLink(StorageSystem system, FileShare source) {
         return BiosCommandResult.createErrorResult(
-                DeviceControllerErrors.vnxe.operationNotSupported("refresh the mirror link", "VNXe"));
+                DeviceControllerErrors.vnxe.operationNotSupported("start the mirror link", "VNXe"));
     }
 
     @Override

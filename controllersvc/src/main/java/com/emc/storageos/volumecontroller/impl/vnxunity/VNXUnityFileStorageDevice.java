@@ -1780,7 +1780,7 @@ public class VNXUnityFileStorageDevice extends VNXUnityOperations
     }
 
     @Override
-    public BiosCommandResult doRefreshMirrorLink(StorageSystem system, FileShare source, FileShare target, TaskCompleter completer) {
+    public BiosCommandResult doRefreshMirrorLink(StorageSystem system, FileShare source) {
         return BiosCommandResult.createErrorResult(
                 DeviceControllerErrors.vnxe.operationNotSupported("refresh the mirror link", "Unity"));
     }

@@ -6,6 +6,7 @@ package com.emc.storageos.volumecontroller.impl.isilon;
 
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
@@ -14,7 +15,9 @@ import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.FileShare;
+import com.emc.storageos.db.client.model.FileShare.MirrorStatus;
 import com.emc.storageos.db.client.model.StorageSystem;
+import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.exceptions.DeviceControllerErrors;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.isilon.restapi.IsilonApi;
@@ -31,7 +34,6 @@ import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.BiosCommandResult;
 import com.emc.storageos.volumecontroller.impl.ControllerServiceImpl;
-import com.emc.storageos.volumecontroller.impl.file.MirrorFileRefreshTaskCompleter;
 import com.emc.storageos.volumecontroller.impl.isilon.job.IsilonSyncIQJob;
 import com.emc.storageos.volumecontroller.impl.isilon.job.IsilonSyncJobFailover;
 import com.emc.storageos.volumecontroller.impl.isilon.job.IsilonSyncJobResync;
@@ -512,40 +514,45 @@ public class IsilonMirrorOperations {
         return errorMessage;
     }
 
-    public void refreshMirrorFileShareLink(StorageSystem system, FileShare source, FileShare target, TaskCompleter completer)
+    public BiosCommandResult doRefreshMirrorFileShareLink(StorageSystem system, FileShare source, String policyName)
             throws DeviceControllerException {
-        MirrorFileRefreshTaskCompleter mirrorRefreshCompleter = (MirrorFileRefreshTaskCompleter) completer;
-        String policyName = target.getLabel();
+
         IsilonSyncPolicy policy;
         IsilonSyncTargetPolicy localTarget = null;
+        StringSet targets = source.getMirrorfsTargets();
+        List<URI> targetFSURI = new ArrayList<>();
+        for (String target : targets) {
+            targetFSURI.add(URI.create(target));
+        }
+        FileShare target = _dbClient.queryObject(FileShare.class, targetFSURI.get(0));
         StorageSystem systemTarget = _dbClient.queryObject(StorageSystem.class, target.getStorageDevice());
-        IsilonApi isiPrimary = getIsilonDevice(system);
-        IsilonApi isiSecondary = getIsilonDevice(systemTarget);
         try {
 
+            IsilonApi isiPrimary = getIsilonDevice(system);
+            IsilonApi isiSecondary = getIsilonDevice(systemTarget);
             policy = isiPrimary.getReplicationPolicy(policyName);
             if (policy.getLastStarted() != null) {
                 localTarget = isiSecondary.getTargetReplicationPolicy(policyName);
             }
             if (policy.getLastStarted() == null) {
-                mirrorRefreshCompleter.setFileMirrorStatusForSuccess(FileShare.MirrorStatus.UNKNOWN);
-            } else if (!policy.getEnabled()) {
-                mirrorRefreshCompleter.setFileMirrorStatusForSuccess(FileShare.MirrorStatus.DETACHED);
-            } else if (policy.getLastJobState().equals(JobState.paused)) {
-                mirrorRefreshCompleter.setFileMirrorStatusForSuccess(FileShare.MirrorStatus.SUSPENDED);
+                source.setMirrorStatus(MirrorStatus.UNKNOWN.toString());
+            } else if (!policy.getEnabled() || policy.getLastJobState().equals(JobState.paused)) {
+                source.setMirrorStatus(MirrorStatus.PAUSED.toString());
             } else if (localTarget.getFoFbState().equals(FOFB_STATES.writes_enabled)) {
-                mirrorRefreshCompleter.setFileMirrorStatusForSuccess(FileShare.MirrorStatus.FAILED_OVER);
+                source.setMirrorStatus(MirrorStatus.FAILED_OVER.toString());
             } else if (policy.getEnabled() && policy.getLastJobState().equals(JobState.finished) &&
                     localTarget.getFoFbState().equals(FOFB_STATES.writes_disabled)) {
-                mirrorRefreshCompleter.setFileMirrorStatusForSuccess(FileShare.MirrorStatus.SYNCHRONIZED);
+                source.setMirrorStatus(MirrorStatus.SYNCHRONIZED.toString());
             } else if (policy.getLastJobState().equals(JobState.running)) {
-                mirrorRefreshCompleter.setFileMirrorStatusForSuccess(FileShare.MirrorStatus.IN_SYNC);
+                source.setMirrorStatus(MirrorStatus.IN_SYNC.toString());
             } else if (policy.getLastJobState().equals(JobState.failed) || policy.getLastJobState().equals(JobState.needs_attention)) {
-                mirrorRefreshCompleter.setFileMirrorStatusForSuccess(FileShare.MirrorStatus.ERROR);
+                source.setMirrorStatus(MirrorStatus.ERROR.toString());
             }
-            completer.ready(_dbClient);
+            _dbClient.updateObject(source);
+            return BiosCommandResult.createSuccessfulResult();
         } catch (IsilonException e) {
-            completer.error(_dbClient, BiosCommandResult.createErrorResult(e).getServiceCoded());
+            _log.error("refresh mirror satus failed.", e);
+            return BiosCommandResult.createErrorResult(e);
         }
     }
 

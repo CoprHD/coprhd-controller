@@ -316,13 +316,14 @@ public interface FileStorageDevice {
     BiosCommandResult doStartMirrorLink(StorageSystem system, FileShare source, TaskCompleter completer);
 
     /**
-     * Starts a replication link.
-     *
+     * Refresh a replication link.
+     * 
      * @param system
+     * @param source
      * @param target
-     * @param completer
+     * @return
      */
-    BiosCommandResult doRefreshMirrorLink(StorageSystem system, FileShare source, FileShare target, TaskCompleter completer);
+    BiosCommandResult doRefreshMirrorLink(StorageSystem system, FileShare source);
 
     /**
      * Suspend replication links.

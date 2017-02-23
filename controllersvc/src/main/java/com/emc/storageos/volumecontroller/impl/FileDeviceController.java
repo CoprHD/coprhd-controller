@@ -99,6 +99,7 @@ import com.emc.storageos.volumecontroller.FileShareQuotaDirectory;
 import com.emc.storageos.volumecontroller.FileStorageDevice;
 import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.file.MirrorFilePauseTaskCompleter;
+import com.emc.storageos.volumecontroller.impl.file.MirrorFileRefreshTaskCompleter;
 import com.emc.storageos.volumecontroller.impl.file.MirrorFileResumeTaskCompleter;
 import com.emc.storageos.volumecontroller.impl.file.MirrorFileStartTaskCompleter;
 import com.emc.storageos.volumecontroller.impl.monitoring.RecordableBourneEvent;
@@ -4678,13 +4679,6 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
     public void performFileReplicationOperation(URI storage, URI sourceFSURI, String opType, String opId) throws ControllerException {
         StorageSystem system = _dbClient.queryObject(StorageSystem.class, storage);
         FileShare fileShare = _dbClient.queryObject(FileShare.class, sourceFSURI);
-        StringSet targets = fileShare.getMirrorfsTargets();
-        List<URI> combinedFSURIs = new ArrayList<>();
-        for (String target : targets) {
-            combinedFSURIs.add(URI.create(target));
-        }
-        combinedFSURIs.add(sourceFSURI);
-
         TaskCompleter completer = null;
         BiosCommandResult result = new BiosCommandResult();
         try {
@@ -4701,8 +4695,8 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                 result = getDevice(system.getSystemType()).doStartMirrorLink(system, fileShare, completer);
 
             } else if ("refresh".equalsIgnoreCase(opType)) {
-                // completer = new MirrorFileRefreshTaskCompleter(FileShare.class, fileShare.getId(), opId);
-                // getRemoteMirrorDevice(system).doRefreshMirrorLink(system, fileShare, completer);
+                completer = new MirrorFileRefreshTaskCompleter(FileShare.class, sourceFSURI, opId);
+                result = getDevice(system.getSystemType()).doRefreshMirrorLink(system, fileShare);
             }
             if (result.getCommandSuccess()) {
                 completer.ready(_dbClient);

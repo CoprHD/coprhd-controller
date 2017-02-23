@@ -43,17 +43,17 @@ public abstract class AbstractFileStorageDevice implements FileStorageDevice,
     }
 
     @Override
-    public BiosCommandResult doStartMirrorLink(StorageSystem system, FileShare target, TaskCompleter completer) {
+    public BiosCommandResult doStartMirrorLink(StorageSystem system, FileShare source, TaskCompleter completer) {
         throw DeviceControllerException.exceptions.operationNotSupported();
     }
 
     @Override
-    public BiosCommandResult doRefreshMirrorLink(StorageSystem system, FileShare source, FileShare target, TaskCompleter completer) {
+    public BiosCommandResult doRefreshMirrorLink(StorageSystem system, FileShare source) {
         throw DeviceControllerException.exceptions.operationNotSupported();
     }
 
     @Override
-    public BiosCommandResult doPauseLink(StorageSystem system, FileShare target) {
+    public BiosCommandResult doPauseLink(StorageSystem system, FileShare source) {
         throw DeviceControllerException.exceptions.operationNotSupported();
     }
 

@@ -75,8 +75,8 @@ public class SSHDialog {
         Matcher m = p.matcher(buf);
         if (m.find()) {
             String match = buf.substring(m.start(), m.end());
-            _log.info("Found exception in response {}", match);
             String message = match.substring(match.indexOf("'")+1, match.lastIndexOf("'"));
+            _log.error("Found exception in response {}:{}", match, message);
             throw NetworkDeviceControllerException.exceptions.exceptionInResponse(message);
         }
     }

@@ -132,16 +132,6 @@ public class ClusterService extends TaskResourceService {
         auditOp(OperationTypeEnum.UPDATE_CLUSTER, true, null,
                 cluster.auditParameters());
 
-        if (updateExports) {
-            String taskId = UUID.randomUUID().toString();
-            ComputeSystemController controller = getController(ComputeSystemController.class, null);
-            Operation op = _dbClient.createTaskOpStatus(Cluster.class, cluster.getId(), taskId,
-                    ResourceOperationTypeEnum.UPDATE_CLUSTER);
-            controller.synchronizeSharedExports(cluster.getId(), taskId);
-            auditOp(OperationTypeEnum.UPDATE_CLUSTER, true, op.getStatus(),
-                    cluster.auditParameters());
-        }
-
         return map(queryObject(Cluster.class, id, false));
     }
 
@@ -321,6 +311,8 @@ public class ClusterService extends TaskResourceService {
             Operation op = _dbClient.createTaskOpStatus(Cluster.class, id, taskId,
                     ResourceOperationTypeEnum.DELETE_CLUSTER);
             ComputeSystemController controller = getController(ComputeSystemController.class, null);
+            // VBDU TODO: COP-28449, Cross verify checkVMs is always passed as TRUE. We can explicitly make this true
+            // always in the code.
             controller.detachClusterStorage(id, true, checkVms, taskId);
             auditOp(OperationTypeEnum.DELETE_CLUSTER, true, op.getStatus(),
                     cluster.auditParameters());
@@ -329,14 +321,36 @@ public class ClusterService extends TaskResourceService {
     }
 
     /**
+     * Updates the shared export groups of the give cluster [Deprecated]
+     *
+     * @param id the URN of a ViPR cluster
+     *
+     * @return the representation of the updated cluster.
+     */
+    @POST
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @CheckPermission(roles = { Role.TENANT_ADMIN })
+    @Path("/{id}/update-shared-exports")
+    @Deprecated
+    public TaskResourceRep updateClusterSharedExports(@PathParam("id") URI id) {
+        // This call is immediately deprecated. It only served the UI, so nobody externally should be using it.
+        // In case someone is, they should move over to update hosts like the UI has.
+        throw APIException.badRequests.deprecatedRestCall("POST /compute/clusters/{cluster-id}/update-shared-exports",
+                "PUT /compute/hosts/{host-id}");
+    }
+
+    /**
      * List data for the specified clusters.
      *
-     * @param param POST data containing the id list.
+     * @param param
+     *            POST data containing the id list.
      * @prereq none
      * @brief List data of specified clusters
      * @return list of representations.
      *
-     * @throws DatabaseException When an error occurs querying the database.
+     * @throws DatabaseException
+     *             When an error occurs querying the database.
      */
     @POST
     @Path("/bulk")
@@ -518,34 +532,6 @@ public class ClusterService extends TaskResourceService {
         }
 
         return list;
-    }
-
-    /**
-     * Updates the shared export groups of the give cluster
-     *
-     * @param id the URN of a ViPR cluster
-     *
-     * @return the representation of the updated cluster.
-     */
-    @POST
-    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    @CheckPermission(roles = { Role.TENANT_ADMIN })
-    @Path("/{id}/update-shared-exports")
-    public TaskResourceRep updateClusterSharedExports(@PathParam("id") URI id) {
-        // query the cluster
-        Cluster cluster = queryObject(Cluster.class, id, true);
-
-        auditOp(OperationTypeEnum.UPDATE_EXPORT_GROUP, true, null, cluster.auditParameters());
-
-        String taskId = UUID.randomUUID().toString();
-        ComputeSystemController controller = getController(ComputeSystemController.class, null);
-        Operation op = _dbClient.createTaskOpStatus(Cluster.class, cluster.getId(), taskId,
-                ResourceOperationTypeEnum.UPDATE_EXPORT_GROUP);
-        controller.synchronizeSharedExports(cluster.getId(), taskId);
-        auditOp(OperationTypeEnum.UPDATE_EXPORT_GROUP, true, op.getStatus(), cluster.auditParameters());
-
-        return toTask(cluster, taskId, op);
     }
 
     /**

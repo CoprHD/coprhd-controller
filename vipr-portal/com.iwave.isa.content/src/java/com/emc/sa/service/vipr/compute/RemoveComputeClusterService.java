@@ -61,6 +61,8 @@ public class RemoveComputeClusterService extends ViPRService {
         // removing cluster checks for running VMs first for ESX hosts
         addAffectedResource(clusterId);
 
+        // VBDU TODO COP-28400: Looks like this will decommission an entire cluster if there are hosts in it that we are
+        // not managing.
         if (vblockHostURIs.isEmpty() && hostURIs.isEmpty()) {
             execute(new DeactivateCluster(cluster));
             return;
@@ -69,6 +71,9 @@ public class RemoveComputeClusterService extends ViPRService {
         // get boot vols to be deleted (so we can check afterwards)
         List<URI> bootVolsToBeDeleted = Lists.newArrayList();
         for (URI hostURI : vblockHostURIs) {
+            // VBDU TODO: COP-28447, We're assuming the volume we're deleting is still the boot volume, but it could
+            // have been manually dd'd (migrated) to another volume and this volume could be re-purposed elsewhere.
+            // We should verify this is the boot volume on the server before attempting to delete it.
             URI bootVolURI = BlockStorageUtils.getHost(hostURI).getBootVolumeId();
             if (bootVolURI != null) {
                 BlockObjectRestRep bootVolRep = null;
@@ -108,7 +113,7 @@ public class RemoveComputeClusterService extends ViPRService {
             for (URI bootVolURI : bootVolsToBeDeleted) {
                 BlockObjectRestRep bootVolRep = BlockStorageUtils.getBlockResource(bootVolURI);
                 if ((bootVolRep != null) && !bootVolRep.getInactive()) {
-                    logError("computeutils.removebootvolumes.failure", bootVolRep.getId());
+                    logError("computeutils.removebootvolumes.failure", bootVolRep.getDeviceLabel());
                     setPartialSuccess();
                 }
             }

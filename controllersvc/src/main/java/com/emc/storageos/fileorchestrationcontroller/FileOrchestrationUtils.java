@@ -981,6 +981,7 @@ public final class FileOrchestrationUtils {
         while (storagePortIter.hasNext()) {
             StoragePort port = dbClient.queryObject(StoragePort.class, storagePortIter.next());
             if (port != null && !port.getInactive()) {
+                targetHost = port.getPortNetworkId();
                 // iterate until dr port found!!
                 if (port.getTag() != null) {
                     ScopedLabelSet portTagSet = port.getTag();

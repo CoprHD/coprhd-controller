@@ -14,8 +14,8 @@ import javax.xml.bind.annotation.XmlRootElement;
 @XmlRootElement(name = "scaleio_system")
 @XmlAccessorType(XmlAccessType.PROPERTY)
 public class ScaleIOSystemDataRestRep {
-    private List<ScaleIOSDCDataRestRep> sdcs;
-    private List<ScaleIOSDSDataRestRep> sds;
+    private List<ScaleIOSDCDataRestRep> sdcList;
+    private List<ScaleIOSDSDataRestRep> sdsList;
     private String mdmMode;
     private String[] primaryMdmActorIpList;
     private String[] secondaryMdmActorIpList;
@@ -129,20 +129,20 @@ public class ScaleIOSystemDataRestRep {
         return systemVersionName;
     }
 
-    public List<ScaleIOSDSDataRestRep> getSds() {
-        return sds;
+    public List<ScaleIOSDSDataRestRep> getSdsList() {
+        return sdsList;
     }
 
-    public void setSds(List<ScaleIOSDSDataRestRep> sds) {
-        this.sds = sds;
+    public void setSdsList(List<ScaleIOSDSDataRestRep> sdsList) {
+        this.sdsList = sdsList;
     }
 
-    public List<ScaleIOSDCDataRestRep> getSdcs() {
-        return sdcs;
+    public List<ScaleIOSDCDataRestRep> getSdcList() {
+        return sdcList;
     }
 
-    public void setSdcs(List<ScaleIOSDCDataRestRep> sdcs) {
-        this.sdcs = sdcs;
+    public void setSdcList(List<ScaleIOSDCDataRestRep> sdcList) {
+        this.sdcList = sdcList;
     }
 
 

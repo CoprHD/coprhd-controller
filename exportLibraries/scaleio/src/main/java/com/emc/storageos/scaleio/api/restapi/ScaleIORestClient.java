@@ -102,7 +102,7 @@ public class ScaleIORestClient extends StandardRestClient {
      * @return The list of ScaleIOSDS
      * @throws Exception
      */
-    public List<ScaleIOSDS> queryAllSDS() throws Exception {
+    public List<ScaleIOSDS> queryAllSDS() throws JSONException {
         log.info("Discoverying all SDS.");
         ClientResponse response = get(URI.create(ScaleIOConstants.GET_SDS_URI));
         return getResponseObjects(ScaleIOSDS.class, response);
@@ -114,7 +114,7 @@ public class ScaleIORestClient extends StandardRestClient {
      * @return The list of Storage Pools
      * @throws Exception
      */
-    public List<ScaleIOStoragePool> queryAllStoragePools() throws Exception {
+    public List<ScaleIOStoragePool> queryAllStoragePools() throws JSONException {
         ClientResponse response = get(URI.create(ScaleIOConstants.GET_STORAGE_POOLS_URI));
         return getResponseObjects(ScaleIOStoragePool.class, response);
     }
@@ -439,7 +439,7 @@ public class ScaleIORestClient extends StandardRestClient {
      * @return The details of the system
      * @throws Exception
      */
-    public ScaleIOSystem getSystem() throws Exception {
+    public ScaleIOSystem getSystem() throws JSONException {
         ClientResponse response = get(URI.create(ScaleIOConstants.GET_SYSTEMS_URI));
         List<ScaleIOSystem> systemsInfo = getResponseObjects(ScaleIOSystem.class, response);
         return systemsInfo.get(0);
@@ -506,7 +506,7 @@ public class ScaleIORestClient extends StandardRestClient {
      * @return The details of the Device
      * @throws Exception
      */
-    public List<ScaleIODevice> getSdsDevices(String sdsId) throws Exception {
+    public List<ScaleIODevice> getSdsDevices(String sdsId) throws JSONException {
         ClientResponse response = get(URI.create(ScaleIOConstants.getSdsDeviceURI(sdsId)));
         return getResponseObjects(ScaleIODevice.class, response);
     }

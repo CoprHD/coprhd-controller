@@ -3222,4 +3222,10 @@ public interface BadRequestExceptions {
     
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException cannotDeleteApplicationSnapshotExportExists(final String applicationName, final String copySetName);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException cannotDiscoverStorageSystemUnexpectedResponse(final String storageSystemType);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException storageSystemClientException(final String storageSystemType, final String errorMsg);
 }

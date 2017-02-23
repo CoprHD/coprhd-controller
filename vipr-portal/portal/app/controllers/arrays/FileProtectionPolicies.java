@@ -437,7 +437,33 @@ public class FileProtectionPolicies extends ViprResourceController {
         }
 
     }
+    
 
+    @FlashException(keep = true, referrer = { "assign" })
+    public static void saveAssignPolicy(AssignPolicyForm assignPolicy) {
+
+        if (assignPolicy == null) {
+            Logger.error("No assign policy parameters passed");
+            badRequest("No assign policy parameters passed");
+            return;
+        }
+        assignPolicy.validate("assignPolicy");
+        if (Validation.hasErrors()) {
+            Common.handleError();
+        }
+        FilePolicyAssignParam assignPolicyParam = new FilePolicyAssignParam();
+        updateAssignPolicyParam(assignPolicy, assignPolicyParam);
+        getViprClient().fileProtectionPolicies().assignPolicy(uri(assignPolicy.id), assignPolicyParam);
+        flash.success(MessagesUtils.get("assignPolicy.request.submit", assignPolicy.policyName));
+        if (StringUtils.isNotBlank(assignPolicy.referrerUrl)) {
+            redirect(assignPolicy.referrerUrl);
+        } else {
+            list();
+        }
+
+    }
+    
+    
     @FlashException(keep = true, referrer = { "unassign" })
     public static void saveUnAssignPolicy(AssignPolicyForm assignPolicy) {
 
@@ -456,34 +482,6 @@ public class FileProtectionPolicies extends ViprResourceController {
             getViprClient().fileProtectionPolicies().unassignPolicy(uri(assignPolicy.id), unAssignPolicyParam);
             flash.success(MessagesUtils.get("unAssignPolicy.request.submit", assignPolicy.policyName));
         }
-        if (StringUtils.isNotBlank(assignPolicy.referrerUrl)) {
-            redirect(assignPolicy.referrerUrl);
-        } else {
-            list();
-        }
-
-    }
-    
-    
-
-    @FlashException(keep = true, referrer = { "assign" })
-    public static void saveAssignPolicy(AssignPolicyForm assignPolicy) {
-
-        if (assignPolicy == null) {
-            Logger.error("No assign policy parameters passed");
-            badRequest("No assign policy parameters passed");
-            return;
-        }
-        assignPolicy.validate("assignPolicy");
-        if (Validation.hasErrors()) {
-            Common.handleError();
-        }
-            FilePolicyAssignParam assignPolicyParam = new FilePolicyAssignParam();
-            updateAssignPolicyParam(assignPolicy, assignPolicyParam);
-            getViprClient().fileProtectionPolicies().assignPolicy(uri(assignPolicy.id), assignPolicyParam);
-            flash.success(MessagesUtils.get("assignPolicy.request.submit", assignPolicy.policyName));
-        }
-       
         if (StringUtils.isNotBlank(assignPolicy.referrerUrl)) {
             redirect(assignPolicy.referrerUrl);
         } else {

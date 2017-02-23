@@ -16,8 +16,26 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import jobs.vipr.TenantsCall;
+import models.datatable.ScheculePoliciesDataTable;
+
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
+
+import play.Logger;
+import play.data.binding.As;
+import play.data.validation.MaxSize;
+import play.data.validation.MinSize;
+import play.data.validation.Required;
+import play.data.validation.Validation;
+import play.mvc.Util;
+import play.mvc.With;
+import util.MessagesUtils;
+import util.StringOption;
+import util.TenantUtils;
+import util.VirtualPoolUtils;
+import util.builders.ACLUpdateBuilder;
+import util.datatable.DataTablesSupport;
 
 import com.emc.storageos.db.client.model.FilePolicy.FilePolicyApplyLevel;
 import com.emc.storageos.db.client.model.FilePolicy.FilePolicyType;
@@ -58,22 +76,6 @@ import controllers.deadbolt.Restrictions;
 import controllers.util.FlashException;
 import controllers.util.Models;
 import controllers.util.ViprResourceController;
-import jobs.vipr.TenantsCall;
-import models.datatable.ScheculePoliciesDataTable;
-import play.Logger;
-import play.data.binding.As;
-import play.data.validation.MaxSize;
-import play.data.validation.MinSize;
-import play.data.validation.Required;
-import play.data.validation.Validation;
-import play.mvc.Util;
-import play.mvc.With;
-import util.MessagesUtils;
-import util.StringOption;
-import util.TenantUtils;
-import util.VirtualPoolUtils;
-import util.builders.ACLUpdateBuilder;
-import util.datatable.DataTablesSupport;
 
 @With(Common.class)
 @Restrictions({ @Restrict("PROJECT_ADMIN"), @Restrict("TENANT_ADMIN"), @Restrict("SYSTEM_ADMIN"), @Restrict("RESTRICTED_SYSTEM_ADMIN") })
@@ -366,8 +368,7 @@ public class FileProtectionPolicies extends ViprResourceController {
         renderArgs.put("vPoolOptions", getFileVirtualPoolsOptions(null, id));
         renderArgs.put("virtualArrayOptions", getVarrays());
     }
-    
-    
+
     
     private static void addAssignedProjectArgs(String id) {
         renderArgs.put("projectVpoolOptions", getVPoolForAssignedProjectOptions(id));
@@ -378,10 +379,7 @@ public class FileProtectionPolicies extends ViprResourceController {
         renderArgs.put("vPoolOptions", getAssignedResourceOptions(id,FilePolicyApplyLevel.vpool));
         renderArgs.put("virtualArrayOptions", getVarrays());
     }
-    
-    
-        
-    
+
 
     private static List<StringOption> getVarrays() {
 

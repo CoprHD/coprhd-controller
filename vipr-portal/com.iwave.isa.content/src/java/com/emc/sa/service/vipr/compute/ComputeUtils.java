@@ -923,7 +923,7 @@ public class ComputeUtils {
 
         // If this cluster is not part of a virtual center/datacenter, then we cannot perform validation,
         // so return that the boot volume is valid due to lack of technical ability to dig any deeper.
-        if (cluster.getVcenterDataCenter() == null) {
+        if (NullColumnValueGetter.isNullURI(cluster.getVcenterDataCenter())) {
             ExecutionUtils.currentContext().logInfo("computeutils.removebootvolumes.validation.skipped", cluster.forDisplay());
             return true;
         }
@@ -948,42 +948,69 @@ public class ComputeUtils {
             return false;
         }
 
-        VMwareSupport vmware = new VMwareSupport();
-        vmware.connect(vcenter.getId());
+        VMwareSupport vmware = null;
+        try {
+            vmware = new VMwareSupport();
+            vmware.connect(vcenter.getId());
 
-        for (HostRestRep clusterHost : hostsToValidate) {
-            Host host = BlockStorageUtils.getHost(clusterHost.getId());
+            for (HostRestRep clusterHost : hostsToValidate) {
+                Host host = BlockStorageUtils.getHost(clusterHost.getId());
 
-            // Do not validate a host no longer in our database
-            if (host == null || host.getInactive()) {
-                ExecutionUtils.currentContext().logError("computeutils.removebootvolumes.failure.host", "N/A", "host not found or inactive");
-                return false;
+                // Do not validate a host no longer in our database
+                if (host == null || host.getInactive()) {
+                    ExecutionUtils.currentContext().logError("computeutils.removebootvolumes.failure.host", "N/A",
+                            "host not found or inactive");
+                    return false;
+                }
+
+                // If there's no vcenter associated with the host, then this host is in the ViPR cluster, but is not
+                // in the vCenter cluster, and therefore we can not perform a deep validation.
+                if (NullColumnValueGetter.isNullURI(host.getVcenterDataCenter())) {
+                    ExecutionUtils.currentContext().logInfo("computeutils.removebootvolumes.validation.skipped.hostnotinvcenter",
+                            host.getHostName());
+                    continue;
+                }
+
+                // Validate the boot volume exists. If it doesn't, there's nothing that will get deleted anyway. Don't
+                // flag it as an issue.
+                if (clusterHost.getBootVolume() == null || NullColumnValueGetter.isNullURI(clusterHost.getBootVolume().getId())) {
+                    ExecutionUtils.currentContext().logWarn("computeutils.removebootvolumes.failure.host", host.getHostName(),
+                            "no boot volume associated with host");
+                    continue;
+                }
+
+                BlockObjectRestRep bootVolume = execute(new GetBlockResource(clusterHost.getBootVolume().getId()));
+
+                // Do not validate an old/non-existent boot volume representation
+                if (bootVolume == null || bootVolume.getInactive()) {
+                    ExecutionUtils.currentContext().logError("computeutils.removebootvolumes.failure.host", host.getHostName(),
+                            "boot volume not found or inactive");
+                    return false;
+                }
+
+                HostSystem hostSystem = vmware.getHostSystem(dataCenter.getLabel(), clusterHost.getName());
+
+                // Make sure the host system is still part of the cluster. If it isn't, hostSystem will be null and
+                // we can fail the validation based on principle alone.
+                if (hostSystem == null) {
+                    ExecutionUtils.currentContext().logError("computeutils.removebootvolumes.failure.host", host.getHostName(),
+                            "host not part of cluster/datacenter.");
+                    return false;
+                }
+
+                if (vmware.findScsiDisk(hostSystem, null, bootVolume, false, false) == null) {
+                    // fail, host can't see its boot volume
+                    ExecutionUtils.currentContext().logError("computeutils.removebootvolumes.failure.bootvolume",
+                            bootVolume.getDeviceLabel(), bootVolume.getWwn());
+                    return false;
+                } else {
+                    ExecutionUtils.currentContext().logInfo("computeutils.removebootvolumes.validated", host.getHostName(),
+                            bootVolume.getDeviceLabel());
+                }
             }
-
-            // If there's no vcenter associated with the host, then this host is in the ViPR cluster, but is not
-            // in the vCenter cluster, and therefore we can not perform a deep validation.
-            if (host.getVcenterDataCenter() == null) {
-                ExecutionUtils.currentContext().logInfo("computeutils.removebootvolumes.validation.skipped.hostnotinvcenter",
-                        host.getHostName());
-                continue;
-            }
-
-            BlockObjectRestRep bootVolume = execute(new GetBlockResource(clusterHost.getBootVolume().getId()));
-
-            // Do not validate an old/non-existent boot volume representation
-            if (bootVolume == null || bootVolume.getInactive()) {
-                ExecutionUtils.currentContext().logError("computeutils.removebootvolumes.failure.host", host.getHostName(),
-                        "boot volume not found or inactive");
-                return false;
-            }
-
-            HostSystem hostSystem = vmware.getHostSystem(dataCenter.getLabel(), clusterHost.getName());
-            if (vmware.findScsiDisk(hostSystem, null, bootVolume, false, false) == null) {
-                // fail, host can't see its boot volume
-                ExecutionUtils.currentContext().logError("computeutils.removebootvolumes.failure.bootvolume", bootVolume.getDeviceLabel(), bootVolume.getWwn());
-                return false;
-            } else {
-                ExecutionUtils.currentContext().logInfo("computeutils.removebootvolumes.validated", host.getHostName(), bootVolume.getDeviceLabel());
+        } finally {
+            if (vmware != null) {
+                vmware.disconnect();
             }
         }
 

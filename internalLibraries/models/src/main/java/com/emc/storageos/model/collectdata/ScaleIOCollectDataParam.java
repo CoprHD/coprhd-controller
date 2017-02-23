@@ -16,7 +16,6 @@ public class ScaleIOCollectDataParam {
     private String iPAddress;
     private Integer portNumber;
     private String userName;
-    private Boolean useSSL;
     private String password;
 
     public ScaleIOCollectDataParam() {
@@ -37,7 +36,7 @@ public class ScaleIOCollectDataParam {
 
     /**
      * The port number used to connect with the
-     * provider, typically 5988 or 5989.
+     * provider, typically 443.
      * 
      */
     @XmlElement(name = "port_number")
@@ -60,19 +59,6 @@ public class ScaleIOCollectDataParam {
 
     public void setUserName(String userName) {
         this.userName = userName;
-    }
-
-    /**
-     * Whether or not secure SSL connection is used.
-     * 
-     */
-    @XmlElement(name = "use_ssl")
-    public Boolean getUseSSL() {
-        return useSSL;
-    }
-
-    public void setUseSSL(Boolean useSSL) {
-        this.useSSL = useSSL;
     }
 
     /**

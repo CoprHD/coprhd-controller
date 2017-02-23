@@ -1,3 +1,7 @@
+/*
+ * Copyright (c) 2017 EMC Corporation
+ * All Rights Reserved
+ */
 package com.emc.storageos.api.service.impl.resource;
 
 import com.emc.storageos.api.mapper.ScaleIODataMapper;
@@ -33,9 +37,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Created by aquinn on 2/7/17.
+ * APIs for stateless data collection of systems
  */
-
 @Path("/collect-data")
 @DefaultPermissions(readRoles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN,
         Role.SECURITY_ADMIN, Role.RESTRICTED_SECURITY_ADMIN, Role.SYSTEM_MONITOR },
@@ -51,6 +54,12 @@ public class StorageSystemDataCollectionService {
         this.scaleIORestClientFactory = scaleIORestClientFactory;
     }
 
+    /**
+     * Collect Data for ScaleIO system
+     *
+     * @param param ScaleIO discovery information
+     * @return Data collected for ScaleIO system
+     */
     @POST
     @Path("/scaleio")
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })

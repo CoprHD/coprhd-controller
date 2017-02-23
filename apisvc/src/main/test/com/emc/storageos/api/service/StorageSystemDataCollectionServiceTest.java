@@ -53,7 +53,6 @@ public class StorageSystemDataCollectionServiceTest extends ApiTestBase {
         param.setPassword(PASSWORD);
         param.setPortNumber(PORT);
         param.setUserName(USER);
-        param.setUseSSL(true);
         ScaleIOSystemDataRestRep sio = service.discoverScaleIO(param);
         Gson gson = new GsonBuilder().setPrettyPrinting().create();
         System.out.println(gson.toJson(sio));

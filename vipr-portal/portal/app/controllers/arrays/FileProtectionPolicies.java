@@ -168,8 +168,8 @@ public class FileProtectionPolicies extends ViprResourceController {
         if (filePolicyRestRep != null) {
             AssignPolicyForm assignPolicy = new AssignPolicyForm().form(filePolicyRestRep);
             addRenderApplyPolicysAt();
-            addProjectArgs(ids);
-            addvPoolArgs(ids);
+            addAssignedProjectArgs(ids);
+            addAssignedVPoolArgs(ids);
             render(assignPolicy);
 
         } else {
@@ -322,19 +322,40 @@ public class FileProtectionPolicies extends ViprResourceController {
 
         List<StringOption> options = Lists.newArrayList();
         // Filter the vpools based on policy type!!!
-        Collection<FileVirtualPoolRestRep> vPools = Lists.newArrayList();
         FilePolicyRestRep policy = getViprClient().fileProtectionPolicies().get(uri(id));
         if (type.name().equalsIgnoreCase(policy.getAppliedAt())) {
             List<NamedRelatedResourceRep> existingResource = policy.getAssignedResources();
 
             for (NamedRelatedResourceRep value : existingResource) {
-
                 options.add(new StringOption(value.getId().toString(), value.getName())); 
             }
         }
         return options;
     }
 
+    
+    
+    
+    /**
+     * Get  vpool associated with  is  assigned to a protection policy at project level.
+     * @param id
+     * @return list ,currently only one
+     */
+    private static List<StringOption> getVPoolForAssignedProjectOptions(String id) {
+
+        List<StringOption> options = Lists.newArrayList();
+        // get the vpool for which projects are assigned.
+        FilePolicyRestRep policy = getViprClient().fileProtectionPolicies().get(uri(id));
+        if (FilePolicyApplyLevel.project.name().equalsIgnoreCase(policy.getAppliedAt())) {
+            NamedRelatedResourceRep vpool = policy.getVpool();
+            if (vpool!=null) {
+                options.add(new StringOption(vpool.getId().toString(), vpool.getName()));   
+            }
+        }
+        return options;
+    }
+    
+    
     private static List<StringOption> getFileProjectOptions(URI tenantId) {
         Collection<ProjectRestRep> projects = getViprClient().projects().getByTenant(tenantId);
         return createResourceOptions(projects);
@@ -353,17 +374,17 @@ public class FileProtectionPolicies extends ViprResourceController {
     
     
     private static void addAssignedProjectArgs(String id) {
-        renderArgs.put("projectVpoolOptions", getFileVirtualPoolsOptions(null, id));
-        renderArgs.put("projectOptions", getFileProjectOptions(uri(Models.currentAdminTenant())));
+        renderArgs.put("projectVpoolOptions", getVPoolForAssignedProjectOptions(id));
+        renderArgs.put("projectOptions", getAssignedResourceOptions(id,FilePolicyApplyLevel.project));
     }
 
     private static void addAssignedVPoolArgs(String id) {
-        renderArgs.put("vPoolOptions", getFileVirtualPoolsOptions(null, id));
+        renderArgs.put("vPoolOptions", getAssignedResourceOptions(id,FilePolicyApplyLevel.vpool));
         renderArgs.put("virtualArrayOptions", getVarrays());
     }
     
     
-    
+        
     
 
     private static List<StringOption> getVarrays() {

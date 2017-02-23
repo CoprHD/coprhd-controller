@@ -6,6 +6,7 @@ package com.emc.storageos.fileorchestrationcontroller;
 
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -964,11 +965,11 @@ public final class FileOrchestrationUtils {
      */
     public static String getTargetHostPortForReplication(DbClient dbClient, FileShare targetFS) {
 
-        return getTargetHostPortForReplication(dbClient, targetFS.getStorageDevice());
+        return getTargetHostPortForReplication(dbClient, targetFS.getStorageDevice(), targetFS.getVirtualArray());
 
     }
 
-    public static String getTargetHostPortForReplication(DbClient dbClient, URI targetStorageSystemURI) {
+    public static String getTargetHostPortForReplication(DbClient dbClient, URI targetStorageSystemURI, URI targetVarrayURI) {
 
         StorageSystem targetSystem = dbClient.queryObject(StorageSystem.class, targetStorageSystemURI);
         String targetHost = targetSystem.getIpAddress();
@@ -978,9 +979,16 @@ public final class FileOrchestrationUtils {
                 ContainmentConstraint.Factory.getStorageDeviceStoragePortConstraint(targetStorageSystemURI),
                 storagePortURIs);
         Iterator<URI> storagePortIter = storagePortURIs.iterator();
+        List<String> drPorts = new ArrayList<String>();
         while (storagePortIter.hasNext()) {
             StoragePort port = dbClient.queryObject(StoragePort.class, storagePortIter.next());
+
             if (port != null && !port.getInactive()) {
+
+                StringSet varraySet = port.getAssignedVirtualArrays();
+                if (varraySet == null || !varraySet.contains(targetVarrayURI.toString())) {
+                    continue;
+                }
                 targetHost = port.getPortNetworkId();
                 // iterate until dr port found!!
                 if (port.getTag() != null) {
@@ -990,13 +998,17 @@ public final class FileOrchestrationUtils {
                             if ("dr_port".equals(tag.getLabel())) {
                                 _log.info("DR port {} found from storage system {} for replication", port.getPortNetworkId(),
                                         targetSystem.getLabel());
-                                return port.getPortNetworkId();
+                                drPorts.add(port.getPortNetworkId());
                             }
                         }
 
                     }
                 }
             }
+        }
+        if (!drPorts.isEmpty()) {
+            Collections.shuffle(drPorts);
+            return drPorts.get(0);
         }
         return targetHost;
     }

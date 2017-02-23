@@ -438,6 +438,34 @@ public class FileProtectionPolicies extends ViprResourceController {
 
     }
 
+    @FlashException(keep = true, referrer = { "unassign" })
+    public static void saveUnAssignPolicy(AssignPolicyForm assignPolicy) {
+
+        if (assignPolicy == null) {
+            Logger.error("No Unassign policy parameters passed");
+            badRequest("No Unassign policy parameters passed");
+            return;
+        }
+        assignPolicy.validate("UnassignPolicy");
+        if (Validation.hasErrors()) {
+            Common.handleError();
+        }
+        assignPolicy.id = params.get("id");
+        FilePolicyUnAssignParam unAssignPolicyParam = new FilePolicyUnAssignParam();
+        if(updateUnAssignPolicyParam(assignPolicy, unAssignPolicyParam)){
+            getViprClient().fileProtectionPolicies().unassignPolicy(uri(assignPolicy.id), unAssignPolicyParam);
+            flash.success(MessagesUtils.get("unAssignPolicy.request.submit", assignPolicy.policyName));
+        }
+        if (StringUtils.isNotBlank(assignPolicy.referrerUrl)) {
+            redirect(assignPolicy.referrerUrl);
+        } else {
+            list();
+        }
+
+    }
+    
+    
+
     @FlashException(keep = true, referrer = { "assign" })
     public static void saveAssignPolicy(AssignPolicyForm assignPolicy) {
 
@@ -450,13 +478,6 @@ public class FileProtectionPolicies extends ViprResourceController {
         if (Validation.hasErrors()) {
             Common.handleError();
         }
-
-        assignPolicy.id = params.get("id");
-        FilePolicyUnAssignParam unAssignPolicyParam = new FilePolicyUnAssignParam();
-        if (updateUnAssignPolicyParam(assignPolicy, unAssignPolicyParam)) {
-            getViprClient().fileProtectionPolicies().unassignPolicy(uri(assignPolicy.id), unAssignPolicyParam);
-            flash.success(MessagesUtils.get("unAssignPolicy.request.submit", assignPolicy.policyName));
-        }else{
             FilePolicyAssignParam assignPolicyParam = new FilePolicyAssignParam();
             updateAssignPolicyParam(assignPolicy, assignPolicyParam);
             getViprClient().fileProtectionPolicies().assignPolicy(uri(assignPolicy.id), assignPolicyParam);

@@ -78,7 +78,7 @@ public class FilePolicyServiceUtils {
             int hour;
             int minute;
             boolean isValid = true;
-            if (policyScheduleparams.getScheduleTime().contains(":")) {
+            if (policyScheduleparams.getScheduleTime() != null && policyScheduleparams.getScheduleTime().contains(":")) {
                 String splitTime[] = policyScheduleparams.getScheduleTime().split(":");
                 hour = Integer.parseInt(splitTime[0]);
                 minute = Integer.parseInt(splitTime[1]);

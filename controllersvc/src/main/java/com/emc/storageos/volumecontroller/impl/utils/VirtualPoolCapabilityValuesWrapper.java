@@ -59,9 +59,11 @@ public class VirtualPoolCapabilityValuesWrapper implements Serializable {
     public static final String FILE_SYSTEM_CREATE_MIRROR_COPY = "file_system_create_mirror_copy";
     public static final String EXISTING_SOURCE_FILE_SYSTEM = "existing_source_file_system";
     public static final String SOURCE_STORAGE_SYSTEM = "source_storage_system";
+    public static final String FILE_PROTECTION_SOURCE_STORAGE_SYSTEM = "file_protection_source_storage_system";
     public static final String EXCLUDED_STORAGE_SYSTEM = "excluded_storage_system";
     public static final String FILE_TARGET_COPY_NAME = "file_target_copy_name";
     public static final String CHANGE_VPOOL_VOLUME = "changeVpoolVolume";
+    public static final String SOURCE_VIRTUAL_NAS_SERVER = "source_virtual_nas_server";
 
     // meta volume capabilities
     public static final String IS_META_VOLUME = "isMetaVolume";
@@ -456,9 +458,19 @@ public class VirtualPoolCapabilityValuesWrapper implements Serializable {
         return value != null ? (FileShare) value : null;
     }
 
+    public URI getSourceVirtualNasServer() {
+        Object value = _vpoolCapabilities.get(SOURCE_VIRTUAL_NAS_SERVER);
+        return value != null ? (URI) value : null;
+    }
+
     public StorageSystem getSourceStorageDevice() {
         Object value = _vpoolCapabilities.get(SOURCE_STORAGE_SYSTEM);
         return value != null ? (StorageSystem) value : null;
+    }
+
+    public URI getFileProtectionSourceStorageDevice() {
+        Object value = _vpoolCapabilities.get(FILE_PROTECTION_SOURCE_STORAGE_SYSTEM);
+        return value != null ? (URI) value : null;
     }
 
     public StorageSystem getExcludedStorageDevice() {
@@ -501,7 +513,7 @@ public class VirtualPoolCapabilityValuesWrapper implements Serializable {
             _vpoolCapabilities.remove(keyEntry);
         }
     }
-
+    
     public URI getRemoteReplicationSet() {
         Object value = _vpoolCapabilities.get(REMOTE_REPLICATION_SET);
         return value != null ? (URI) value : null;
@@ -522,7 +534,7 @@ public class VirtualPoolCapabilityValuesWrapper implements Serializable {
         return value != null ? (Boolean) value : null;
     }
 
-    public boolean getVpoolProjectPolicyAssign() {
+    public boolean isVpoolProjectPolicyAssign() {
         Object value = _vpoolCapabilities.get(VPOOL_PROJECT_POLICY_ASSIGN);
         return value != null ? (Boolean) value : false;
 

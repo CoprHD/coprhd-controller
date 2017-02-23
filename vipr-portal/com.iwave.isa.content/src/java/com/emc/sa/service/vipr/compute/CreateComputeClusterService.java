@@ -248,8 +248,7 @@ public class CreateComputeClusterService extends ViPRService {
             cluster = ComputeUtils.createCluster(name);
             logInfo("compute.cluster.created", name);
         } else {
-            // If the hostName already exists, we remove it from the hostnames
-            // list.
+            // If the hostName already exists, we remove it from the hostnames list.
             hostNames = ComputeUtils.removeExistingHosts(hostNames, cluster);
         }
 
@@ -257,48 +256,27 @@ public class CreateComputeClusterService extends ViPRService {
 
         logInfo("compute.cluster.hosts.created", ComputeUtils.nonNull(hosts).size());
 
-        // Below step to update the shared export group to the cluster (the
-        // newly added hosts will be taken care of this update cluster
-        // method and in a synchronized way)
-        URI updatedClusterURI = ComputeUtils.updateClusterSharedExports(cluster.getId(), cluster.getLabel());
+        List<URI> bootVolumeIds = ComputeUtils.makeBootVolumes(project, virtualArray, virtualPool, size, hosts,
+                getClient());
+        logInfo("compute.cluster.boot.volumes.created", ComputeUtils.nonNull(bootVolumeIds).size());
+        hosts = ComputeUtils.deactivateHostsWithNoBootVolume(hosts, bootVolumeIds, cluster);
 
-        // Make sure the all hosts that are being created belong to the all
-        // of the exportGroups of the cluster, else fail the order.
-        // Not do so and continuing to create bootvolumes to the host we
-        // might end up in "consistent lun violation" issue.
-        if (!ComputeUtils.nonNull(hosts).isEmpty() && null == updatedClusterURI) {
-            logInfo("compute.cluster.sharedexports.update.failed.rollback.started", cluster.getLabel());
-            ComputeUtils.deactivateHosts(hosts);
-            // When the hosts are deactivated, update the cluster shared export groups to reflect the same.
-            ComputeUtils.updateClusterSharedExports(cluster.getId(), cluster.getLabel());
-            logInfo("compute.cluster.sharedexports.update.failed.rollback.completed", cluster.getLabel());
-            if (ComputeUtils.findHostNamesInCluster(cluster).isEmpty()) {
-                logInfo("compute.cluster.removing.empty.cluster");
-                ComputeUtils.deactivateCluster(cluster);
-            }
-            throw new IllegalStateException(
-                    ExecutionUtils.getMessage("compute.cluster.sharedexports.update.failed", cluster.getLabel()));
+        List<URI> exportIds = ComputeUtils.exportBootVols(bootVolumeIds, hosts, project, virtualArray, hlu);
+        logInfo("compute.cluster.exports.created", ComputeUtils.nonNull(exportIds).size());
+        hosts = ComputeUtils.deactivateHostsWithNoExport(hosts, exportIds, bootVolumeIds, cluster);
+
+        // VBDU [DONE]: COP-28400, Potential DU if external host is added to vCenter cluster not under ViPR mgmt.
+        // ClusterService has a precheck to verify the matching environments before deactivating
+        if (ComputeUtils.findHostNamesInCluster(cluster).isEmpty()) {
+            logInfo("compute.cluster.removing.empty.cluster");
+            ComputeUtils.deactivateCluster(cluster);
         } else {
-            logInfo("compute.cluster.sharedexports.updated", cluster.getLabel());
-            List<URI> bootVolumeIds = ComputeUtils.makeBootVolumes(project, virtualArray, virtualPool, size, hosts,
-                    getClient());
-            logInfo("compute.cluster.boot.volumes.created", ComputeUtils.nonNull(bootVolumeIds).size());
-            hosts = ComputeUtils.deactivateHostsWithNoBootVolume(hosts, bootVolumeIds, cluster);
+            logInfo("compute.cluster.exports.installing.os");
+            List<HostRestRep> hostsWithOs = installOSForHosts(hostToIPs, ComputeUtils.getHostNameBootVolume(hosts));
+            logInfo("compute.cluster.exports.installed.os", ComputeUtils.nonNull(hostsWithOs).size());
 
-            List<URI> exportIds = ComputeUtils.exportBootVols(bootVolumeIds, hosts, project, virtualArray, hlu);
-            logInfo("compute.cluster.exports.created", ComputeUtils.nonNull(exportIds).size());
-            hosts = ComputeUtils.deactivateHostsWithNoExport(hosts, exportIds, bootVolumeIds, cluster);
-
-            if (ComputeUtils.findHostNamesInCluster(cluster).isEmpty()) {
-                logInfo("compute.cluster.removing.empty.cluster");
-                ComputeUtils.deactivateCluster(cluster);
-            } else {
-                logInfo("compute.cluster.exports.installing.os");
-                List<HostRestRep> hostsWithOs = installOSForHosts(hostToIPs, ComputeUtils.getHostNameBootVolume(hosts));
-                logInfo("compute.cluster.exports.installed.os", ComputeUtils.nonNull(hostsWithOs).size());
-
-                pushToVcenter();
-            }
+            ComputeUtils.addHostsToCluster(hosts, cluster);
+            pushToVcenter();
         }
 
         String orderErrors = ComputeUtils.getOrderErrors(cluster, copyOfHostNames, computeImage, vcenterId);
@@ -308,6 +286,7 @@ public class CreateComputeClusterService extends ViPRService {
                         ExecutionUtils.getMessage("compute.cluster.order.incomplete", orderErrors));
             } else {
                 logError("compute.cluster.order.incomplete", orderErrors);
+                // VBDU TODO: COP-28433, change criteria for partial success
                 setPartialSuccess();
             }
         }

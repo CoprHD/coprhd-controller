@@ -445,6 +445,7 @@ public class FileProtectionPolicies extends ViprResourceController {
         if (Validation.hasErrors()) {
             Common.handleError();
         }
+        assignPolicy.id = params.get("id");
         FilePolicyAssignParam assignPolicyParam = new FilePolicyAssignParam();
         updateAssignPolicyParam(assignPolicy, assignPolicyParam);
         getViprClient().fileProtectionPolicies().assignPolicy(uri(assignPolicy.id), assignPolicyParam);

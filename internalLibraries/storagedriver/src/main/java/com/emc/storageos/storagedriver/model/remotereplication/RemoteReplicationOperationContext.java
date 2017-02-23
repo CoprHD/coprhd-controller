@@ -11,20 +11,31 @@ public class RemoteReplicationOperationContext {
     private RemoteReplicationSet.ElementType elementType;
 
     /**
-     * Remote replication set of the operation context
+     * Remote replication set of the operation context. Type: Input .
      */
     private String remoteReplicationSetNativeId;
 
     /**
-     * Remote replication group  of the operation  context
+     * Remote replication group  of the operation  context. Type: Input.
      */
     private String remoteReplicationGroupNativeId;
 
-    public RemoteReplicationOperationContext(RemoteReplicationSet.ElementType elementType, String remoteReplicationSetNativeId,
-                                             String remoteReplicationGroupNativeId) {
+    /**
+     * State of remote replication Set. Type: Input/Output .
+     * Controller will pass this state as currently know to the system.
+     * Driver should update this state based on result of remote replication operation on device.
+     */
+    private String remoteReplicationSetState;
+
+    /**
+     * State of remote replication Group. Type: Input/Output .
+     * Controller will pass this state as currently know to the system.
+     * Driver should update this state based on result of remote replication operation on device.
+     */
+    private String remoteReplicationGroupState;
+
+    public RemoteReplicationOperationContext(RemoteReplicationSet.ElementType elementType) {
         this.elementType = elementType;
-        this.remoteReplicationSetNativeId = remoteReplicationSetNativeId;
-        this.remoteReplicationGroupNativeId = remoteReplicationGroupNativeId;
     }
 
     public RemoteReplicationSet.ElementType getElementType() {
@@ -49,5 +60,21 @@ public class RemoteReplicationOperationContext {
 
     public void setRemoteReplicationGroupNativeId(String remoteReplicationGroupNativeId) {
         this.remoteReplicationGroupNativeId = remoteReplicationGroupNativeId;
+    }
+
+    public String getRemoteReplicationSetState() {
+        return remoteReplicationSetState;
+    }
+
+    public void setRemoteReplicationSetState(String remoteReplicationSetState) {
+        this.remoteReplicationSetState = remoteReplicationSetState;
+    }
+
+    public String getRemoteReplicationGroupState() {
+        return remoteReplicationGroupState;
+    }
+
+    public void setRemoteReplicationGroupState(String remoteReplicationGroupState) {
+        this.remoteReplicationGroupState = remoteReplicationGroupState;
     }
 }

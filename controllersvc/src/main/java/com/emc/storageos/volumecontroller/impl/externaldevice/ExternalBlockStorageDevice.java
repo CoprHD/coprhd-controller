@@ -1925,19 +1925,32 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice implem
         StorageSystem sourceSystem;
         RemoteReplicationDriver driver = null;
         RemoteReplicationOperationContext context = null;
+        URI rrSetURI = null;
+        URI rrGroupURI = null;
+        RemoteReplicationSet rrSet = null;
+        RemoteReplicationGroup remoteReplicationGroup = null;
+        String rrGroupNativeId = null;
+        String rrGroupState = null;
         List<RemoteReplicationPair> systemRRPairs = null;
         List<com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationPair> driverRRPairs = new ArrayList<>();
         try {
             switch (elementType) {
                 case REPLICATION_GROUP:
-                    RemoteReplicationGroup remoteReplicationGroup = dbClient.queryObject(RemoteReplicationGroup.class, elementURI);
-                    context = new RemoteReplicationOperationContext(com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationSet.ElementType.REPLICATION_GROUP,
-                            null, remoteReplicationGroup.getNativeId());
-                    sourceSystem = dbClient.queryObject(StorageSystem.class, remoteReplicationGroup.getSourceSystem());
+                    remoteReplicationGroup = dbClient.queryObject(RemoteReplicationGroup.class, elementURI);
 
+                    sourceSystem = dbClient.queryObject(StorageSystem.class, remoteReplicationGroup.getSourceSystem());
                     driver = (RemoteReplicationDriver)getDriver(sourceSystem.getSystemType());
                     systemRRPairs = CustomQueryUtility.queryActiveResourcesByRelation(dbClient, elementURI,
                             RemoteReplicationPair.class, "replicationGroup");
+                    rrSetURI = systemRRPairs.get(0).getReplicationSet();
+                    rrSet = dbClient.queryObject(RemoteReplicationSet.class, rrSetURI);
+                    // create context
+                    context = new RemoteReplicationOperationContext(
+                            com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationSet.ElementType.REPLICATION_GROUP);
+                    context.setRemoteReplicationSetNativeId(rrSet.getNativeId());
+                    context.setRemoteReplicationGroupNativeId(remoteReplicationGroup.getNativeId());
+                    context.setRemoteReplicationSetState(rrSet.getReplicationState());
+                    context.setRemoteReplicationGroupState(remoteReplicationGroup.getReplicationState());
                     taskCompleter.setPairURIs(URIUtil.toUris(systemRRPairs));
                     break;
 
@@ -1945,23 +1958,50 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice implem
                     RemoteReplicationPair remoteReplicationPair = dbClient.queryObject(RemoteReplicationPair.class, elementURI);
                     systemRRPairs = new ArrayList<>();
                     systemRRPairs.add(remoteReplicationPair);
-                    context = new RemoteReplicationOperationContext(com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationSet.ElementType.REPLICATION_PAIR,
-                            null, remoteReplicationPair.getNativeId());
                     URI sourceVolumeURI = remoteReplicationPair.getSourceElement().getURI();
                     Volume sourceVolume = dbClient.queryObject(Volume.class, sourceVolumeURI);
                     sourceSystem = dbClient.queryObject(StorageSystem.class, sourceVolume.getStorageController());
-
                     driver = (RemoteReplicationDriver)getDriver(sourceSystem.getSystemType());
+                    rrSetURI = systemRRPairs.get(0).getReplicationSet();
+                    rrGroupURI = systemRRPairs.get(0).getReplicationGroup();
+                    rrSet = dbClient.queryObject(RemoteReplicationSet.class, rrSetURI);
+
+                    if (!URIUtil.isNull(rrGroupURI)) {
+                        remoteReplicationGroup = dbClient.queryObject(RemoteReplicationGroup.class, rrGroupURI);
+                        rrGroupNativeId = remoteReplicationGroup.getNativeId();
+                        rrGroupState = remoteReplicationGroup.getReplicationState();
+                    }
+                    // create context
+                    context = new RemoteReplicationOperationContext(com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationSet.ElementType.REPLICATION_PAIR);
+                    context.setRemoteReplicationSetNativeId(rrSet.getNativeId());
+                    context.setRemoteReplicationGroupNativeId(rrGroupNativeId);
+                    context.setRemoteReplicationSetState(rrSet.getReplicationState());
+                    context.setRemoteReplicationGroupState(rrGroupState);
+
                     break;
 
                 case CONSISTENCY_GROUP:
                     BlockConsistencyGroup cg = dbClient.queryObject(BlockConsistencyGroup.class, elementURI);
-                    context = new RemoteReplicationOperationContext(com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationSet.ElementType.CONSISTENCY_GROUP,
-                            null, null);
                     sourceSystem = dbClient.queryObject(StorageSystem.class, cg.getStorageController());
 
                     driver = (RemoteReplicationDriver)getDriver(sourceSystem.getSystemType());
                     systemRRPairs = RemoteReplicationUtils.getRemoteReplicationPairsForCG(cg, dbClient);
+                    rrSetURI = systemRRPairs.get(0).getReplicationSet();
+                    rrGroupURI = systemRRPairs.get(0).getReplicationGroup();
+                    rrSet = dbClient.queryObject(RemoteReplicationSet.class, rrSetURI);
+
+                    if (!URIUtil.isNull(rrGroupURI)) {
+                        remoteReplicationGroup = dbClient.queryObject(RemoteReplicationGroup.class, rrGroupURI);
+                        rrGroupNativeId = remoteReplicationGroup.getNativeId();
+                        rrGroupState = remoteReplicationGroup.getReplicationState();
+                    }
+                    // create context
+                    context = new RemoteReplicationOperationContext(com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationSet.ElementType.REPLICATION_PAIR);
+                    context.setRemoteReplicationSetNativeId(rrSet.getNativeId());
+                    context.setRemoteReplicationGroupNativeId(rrGroupNativeId);
+                    context.setRemoteReplicationSetState(rrSet.getReplicationState());
+                    context.setRemoteReplicationGroupState(rrGroupState);
+
                     taskCompleter.setPairURIs(URIUtil.toUris(systemRRPairs));
                     break;
 
@@ -2007,19 +2047,33 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice implem
         _log.info("Failback remote replication element {} with system id {}", elementType.toString(), elementURI);
         RemoteReplicationDriver driver = null;
         RemoteReplicationOperationContext context = null;
+        URI rrSetURI = null;
+        URI rrGroupURI = null;
+        RemoteReplicationSet rrSet = null;
+        RemoteReplicationGroup remoteReplicationGroup = null;
+        String rrGroupNativeId = null;
+        String rrGroupState = null;
         List<RemoteReplicationPair> systemRRPairs = null;
         List<com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationPair> driverRRPairs = new ArrayList<>();
         try {
             switch (elementType) {
                 case REPLICATION_GROUP:
-                    RemoteReplicationGroup remoteReplicationGroup = dbClient.queryObject(RemoteReplicationGroup.class, elementURI);
-                    context = new RemoteReplicationOperationContext(com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationSet.ElementType.REPLICATION_GROUP,
-                            null, remoteReplicationGroup.getNativeId());
+                    remoteReplicationGroup = dbClient.queryObject(RemoteReplicationGroup.class, elementURI);
                     StorageSystem sourceSystem = dbClient.queryObject(StorageSystem.class, remoteReplicationGroup.getSourceSystem());
 
                     driver = (RemoteReplicationDriver)getDriver(sourceSystem.getSystemType());
                     systemRRPairs = CustomQueryUtility.queryActiveResourcesByRelation(dbClient, elementURI,
                             RemoteReplicationPair.class, "replicationGroup");
+                    rrSetURI = systemRRPairs.get(0).getReplicationSet();
+                    rrSet = dbClient.queryObject(RemoteReplicationSet.class, rrSetURI);
+                    // create context
+                    context = new RemoteReplicationOperationContext(
+                            com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationSet.ElementType.REPLICATION_GROUP);
+                    context.setRemoteReplicationSetNativeId(rrSet.getNativeId());
+                    context.setRemoteReplicationGroupNativeId(remoteReplicationGroup.getNativeId());
+                    context.setRemoteReplicationSetState(rrSet.getReplicationState());
+                    context.setRemoteReplicationGroupState(remoteReplicationGroup.getReplicationState());
+
                     break;
                 case REPLICATION_PAIR:
                     break;

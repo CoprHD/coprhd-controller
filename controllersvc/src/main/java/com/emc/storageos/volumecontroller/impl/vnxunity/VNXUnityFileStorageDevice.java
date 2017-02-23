@@ -1796,4 +1796,10 @@ public class VNXUnityFileStorageDevice extends VNXUnityOperations
         return BiosCommandResult.createErrorResult(
                 DeviceControllerErrors.vnxe.operationNotSupported("resume the mirror link", "Unity"));
     }
+
+    @Override
+    public BiosCommandResult doFailoverLink(StorageSystem system, FileShare target, TaskCompleter completer) {
+        return BiosCommandResult.createErrorResult(
+                DeviceControllerErrors.vnxe.operationNotSupported("failover the mirror link", "Unity"));
+    }
 }

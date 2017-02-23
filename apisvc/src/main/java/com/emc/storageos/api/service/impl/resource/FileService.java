@@ -3072,36 +3072,18 @@ public class FileService extends TaskResourceService {
     @Path("/{id}/protection/continuous-copies/failover")
     @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.OWN, ACL.ALL })
     public TaskList failoverProtection(@PathParam("id") URI id, FileReplicationParam param) throws ControllerException {
+
+        doMirrorOperationValidation(id, ProtectionOp.FAILOVER.toString());
         TaskResourceRep taskResp = null;
         StoragePort storageportNFS = null;
         StoragePort storageportCIFS = null;
+
         TaskList taskList = new TaskList();
         String task = UUID.randomUUID().toString();
-        ArgValidator.checkFieldUriType(id, FileShare.class, "id");
 
-        FileShare fs = _dbClient.queryObject(FileShare.class, id);
-        ArgValidator.checkEntity(fs, id, true);
-
-        checkForPendingTasks(Arrays.asList(fs.getTenant().getURI()), Arrays.asList(fs));
-
-        URI projectURI = fs.getProject().getURI();
-        Project project = _permissionsHelper.getObjectById(projectURI, Project.class);
-        ArgValidator.checkEntity(project, projectURI, false);
-        _log.info("Found filesystem project {}", projectURI);
-
-        VirtualPool currentVpool = _dbClient.queryObject(VirtualPool.class, fs.getVirtualPool());
-        StringBuffer notSuppReasonBuff = new StringBuffer();
-
-        String operation = ProtectionOp.FAILOVER.getRestOp();
-        if (!FileSystemReplicationUtils.validateMirrorOperationSupported(fs, notSuppReasonBuff, operation)) {
-            _log.error("Mirror Operation {} is not supported for the file system {} as : {}", operation.toUpperCase(),
-                    fs.getLabel(), notSuppReasonBuff.toString());
-            throw APIException.badRequests.unableToPerformMirrorOperation(operation.toUpperCase(), fs.getId(),
-                    notSuppReasonBuff.toString());
-        }
-
+        FileShare fs = queryResource(id);
         Operation op = _dbClient.createTaskOpStatus(FileShare.class, id, task, ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_FAILOVER);
-        op.setDescription("Filesystem Failover");
+        op.setDescription("failover source file system to target system");
 
         boolean replicateConfiguration = param.isReplicateConfiguration();
         if (replicateConfiguration) {

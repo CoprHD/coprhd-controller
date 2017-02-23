@@ -34,15 +34,6 @@ public interface RemoteFileMirrorOperation {
     void doRollbackMirrorLink(StorageSystem system, List<URI> sources, List<URI> targets, TaskCompleter completer, String opId);
 
     /**
-     * Failover replication links.
-     *
-     * @param system
-     * @param target
-     * @param completer
-     */
-    void doFailoverLink(StorageSystem system, FileShare target, TaskCompleter completer, String policyName);
-
-    /**
      * Failback replication links.
      *
      * @param system

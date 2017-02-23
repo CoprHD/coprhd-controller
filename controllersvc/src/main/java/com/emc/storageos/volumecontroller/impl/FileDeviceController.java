@@ -4382,9 +4382,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             Object[] args) {
         StorageSystem system = _dbClient.queryObject(StorageSystem.class, storage);
         Workflow.Method method = new Workflow.Method(methodName, args);
-        String waitForStep = workflow.createStep(null, stepDescription, waitFor, storage, system.getSystemType(), getClass(), method, null,
-                stepId);
-        return waitForStep;
+        return workflow.createStep(null, stepDescription, waitFor, storage, system.getSystemType(), getClass(), method, null, stepId);
     }
 
     /**
@@ -4718,4 +4716,38 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             updateTaskStatus(opId, fileShare, e);
         }
     }
+
+    /**
+     * Fail over Work flow Method
+     * 
+     * @param storage target storage system
+     * @param fileshareURI target file system URI
+     * @param completer
+     * @param opId
+     */
+    public void failoverFileSystem(URI storage, URI fileshareURI, TaskCompleter completer, String opId) {
+        try {
+            StorageSystem system = _dbClient.queryObject(StorageSystem.class, storage);
+            FileShare fileShare = _dbClient.queryObject(FileShare.class, fileshareURI);
+            WorkflowStepCompleter.stepExecuting(opId);
+            _log.info("Execution of Failover Job Started");
+
+            BiosCommandResult cmdResult = getDevice(system.getSystemType()).doFailoverLink(system, fileShare, completer);
+
+            if (cmdResult.getCommandSuccess()) {
+                completer.ready(_dbClient);
+            } else if (cmdResult.getCommandPending()) {
+                completer.statusPending(_dbClient, cmdResult.getMessage());
+            } else {
+                completer.error(_dbClient, cmdResult.getServiceCoded());
+            }
+        } catch (Exception e) {
+            ServiceError error = DeviceControllerException.errors.jobFailed(e);
+            if (null != completer) {
+                completer.error(this._dbClient, error);
+            }
+            WorkflowStepCompleter.stepFailed(opId, error);
+        }
+    }
+
 }

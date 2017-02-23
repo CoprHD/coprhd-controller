@@ -2588,11 +2588,15 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
     }
 
     @Override
-    public void doFailoverLink(StorageSystem systemTarget, FileShare target, TaskCompleter completer, String devSpecificPolicyName) {
-        if (devSpecificPolicyName == null) {
-            devSpecificPolicyName = gerneratePolicyName(systemTarget, target);
+    public BiosCommandResult doFailoverLink(StorageSystem systemTarget, FileShare target, TaskCompleter completer) {
+        FileShare source = _dbClient.queryObject(FileShare.class, target.getParentFileShare());
+        PolicyStorageResource policyStrRes = getEquivalentPolicyStorageResource(source, _dbClient);
+        if (policyStrRes != null) {
+            String policyName = policyStrRes.getPolicyNativeId();
+            return mirrorOperations.doFailover(systemTarget, policyName, completer);
         }
-        // mirrorOperations.failoverMirrorFileShareLink(systemTarget, target, completer, devSpecificPolicyName);
+        ServiceError serviceError = DeviceControllerErrors.isilon.unableToCreateFileShare();
+        return BiosCommandResult.createErrorResult(serviceError);
     }
 
     @Override
@@ -3778,5 +3782,11 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             }
         }
         return null;
+    }
+
+    @Override
+    public void doFailbackLink(StorageSystem system, FileShare target, TaskCompleter completer) {
+        // TODO Auto-generated method stub
+
     }
 }

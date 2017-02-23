@@ -30,13 +30,11 @@ import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.FileStorageDevice;
 import com.emc.storageos.volumecontroller.TaskCompleter;
-import com.emc.storageos.volumecontroller.impl.BiosCommandResult;
 import com.emc.storageos.volumecontroller.impl.file.FileMirrorDetachTaskCompleter;
 import com.emc.storageos.volumecontroller.impl.file.FileMirrorRollbackCompleter;
 import com.emc.storageos.volumecontroller.impl.file.MirrorFileCancelTaskCompleter;
 import com.emc.storageos.volumecontroller.impl.file.MirrorFileCreateTaskCompleter;
 import com.emc.storageos.volumecontroller.impl.file.MirrorFileFailbackTaskCompleter;
-import com.emc.storageos.volumecontroller.impl.file.MirrorFileFailoverTaskCompleter;
 import com.emc.storageos.volumecontroller.impl.file.MirrorFileResyncTaskCompleter;
 import com.emc.storageos.volumecontroller.impl.file.RemoteFileMirrorOperation;
 import com.emc.storageos.workflow.Workflow;
@@ -645,9 +643,9 @@ public class FileReplicationDeviceController implements FileOrchestrationInterfa
             if (fileShare.getParentFileShare() != null) {
                 combined.add(fileShare.getParentFileShare().getURI());
             }
-            completer = new MirrorFileFailoverTaskCompleter(FileShare.class, combined, opId, storage);
+            // completer = new MirrorFileFailoverTaskCompleter(FileShare.class, combined, opId, storage);
             WorkflowStepCompleter.stepExecuting(opId);
-            getRemoteMirrorDevice(system).doFailoverLink(system, fileShare, completer, policyName);
+            // getRemoteMirrorDevice(system).doFailoverLink(system, fileShare, completer, policyName);
         } catch (Exception e) {
             ServiceError error = DeviceControllerException.errors.jobFailed(e);
             if (null != completer) {
@@ -786,45 +784,4 @@ public class FileReplicationDeviceController implements FileOrchestrationInterfa
         return waitForStep;
     }
 
-    /**
-     * Fail over Work flow Method
-     * 
-     * @param storage
-     * @param fileshareURI
-     * @param completer
-     * @param opId
-     */
-    public void failoverFileSystem(URI storage, URI fileshareURI, TaskCompleter completer, String opId) {
-        try {
-            StorageSystem system = this.dbClient.queryObject(StorageSystem.class, storage);
-            FileShare fileShare = this.dbClient.queryObject(FileShare.class, fileshareURI);
-            WorkflowStepCompleter.stepExecuting(opId);
-            log.info("Execution of Failover Job Started");
-            getRemoteMirrorDevice(system).doFailoverLink(system, fileShare, completer, fileShare.getLabel());
-        } catch (Exception e) {
-            ServiceError error = DeviceControllerException.errors.jobFailed(e);
-            if (null != completer) {
-                completer.error(this.dbClient, error);
-            }
-            WorkflowStepCompleter.stepFailed(opId, error);
-        }
-    }
-
-    private void updateTaskStatus(String opId, DataObject fsObj, Exception e) {
-
-        final ServiceCoded serviceCoded;
-        if ((opId == null) || (fsObj == null)) {
-            return;
-        }
-        if (e instanceof ServiceCoded) {
-            serviceCoded = (ServiceCoded) e;
-        } else {
-            serviceCoded = DeviceControllerException.errors.jobFailed(e);
-        }
-        final BiosCommandResult result = BiosCommandResult.createErrorResult(serviceCoded);
-        fsObj.getOpStatus().updateTaskStatus(opId, result.toOperation());
-
-        dbClient.updateObject(fsObj);
-        log.debug("updateTaskStatus:afterUpdate:" + fsObj.getOpStatus().get(opId).toString());
-    }
 }

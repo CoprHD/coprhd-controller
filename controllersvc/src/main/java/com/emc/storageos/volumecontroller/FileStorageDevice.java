@@ -341,4 +341,12 @@ public interface FileStorageDevice {
      */
     BiosCommandResult doResumeLink(StorageSystem system, FileShare target, TaskCompleter completer);
 
+    /**
+     * Failover replication links.
+     *
+     * @param system
+     * @param target
+     * @param completer
+     */
+    BiosCommandResult doFailoverLink(StorageSystem system, FileShare target, TaskCompleter completer);
 }

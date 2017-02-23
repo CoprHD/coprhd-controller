@@ -960,11 +960,12 @@ public class ComputeUtils {
                 return false;
             }
 
-            // If there's no vcenter associated with the host, then there's some DB association issue
-            // that needs to be addressed.
+            // If there's no vcenter associated with the host, then this host is in the ViPR cluster, but is not
+            // in the vCenter cluster, and therefore we can not perform a deep validation.
             if (host.getVcenterDataCenter() == null) {
-                ExecutionUtils.currentContext().logError("computeutils.removebootvolumes.failure.host", host.getHostName(), "vcenter info not in sync with host");
-                return false;
+                ExecutionUtils.currentContext().logInfo("computeutils.removebootvolumes.validation.skipped.hostnotinvcenter",
+                        host.getHostName());
+                continue;
             }
 
             BlockObjectRestRep bootVolume = execute(new GetBlockResource(clusterHost.getBootVolume().getId()));

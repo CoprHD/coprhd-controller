@@ -595,9 +595,20 @@ public class VMwareSupport {
         return findScsiDisk(host, cluster, volume, false);
     }
 
+    /**
+     * Finds the SCSI disk on the host system that matches the volume.
+     * 
+     * @param host
+     *            the host system.
+     * @param volume
+     *            the volume to find.
+     * @param availableDiskOnly
+     *            if true, only find available disk for VMFS. if false, find disk even if it's not available for VMFS.
+     * @return the disk for the volume.
+     */
     public HostScsiDisk findScsiDisk(HostSystem host, ClusterComputeResource cluster, BlockObjectRestRep volume,
             boolean availableDiskOnly) {
-        return findScsiDisk(host, cluster, volume, false, true);
+        return findScsiDisk(host, cluster, volume, availableDiskOnly, true);
     }
 
     /**

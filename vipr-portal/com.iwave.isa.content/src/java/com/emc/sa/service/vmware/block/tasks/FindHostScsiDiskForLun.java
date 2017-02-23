@@ -21,8 +21,8 @@ import com.vmware.vim25.mo.HostSystem;
 public class FindHostScsiDiskForLun extends ExecutionTask<HostScsiDisk> {
     private static long SECONDS = 1000;
     private static long MINUTES = 60 * SECONDS;
-    private static long FIND_DISK_TIMEOUT = 10 * MINUTES; // 10 Minutes
-    private static long VALID_STATE_TIMEOUT = 20 * MINUTES; // 20 Minutes
+    private static long FIND_DISK_TIMEOUT = 1 * MINUTES; // 10 Minutes
+    private static long VALID_STATE_TIMEOUT = 1 * MINUTES; // 20 Minutes
     private static long FIND_DISK_DELAY = 15 * SECONDS; // 15 Seconds
     private static long VALID_STATE_DELAY = 5 * SECONDS; // 5 Seconds
 

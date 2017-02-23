@@ -2349,6 +2349,9 @@ public interface BadRequestExceptions {
     public BadRequestException clusterNotFoundInDatacenter(String cluster, String datacenter);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException vCenterDataCenterHasNullVcenter(String datacenter);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException vCenterDataCenterNotFound(URI datacenter);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)

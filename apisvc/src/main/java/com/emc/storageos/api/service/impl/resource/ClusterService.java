@@ -618,27 +618,36 @@ public class ClusterService extends TaskResourceService {
     public void validateVcenterClusterHosts(Cluster cluster) {
 
         if (null == cluster) {
-            _log.info("Cluster is null");
+            _log.error("Validation cluster is not set, not performing vCenter cluster validation");
             return;
         }
 
+        // We can only proceed if this cluster belongs to a datacenter
         if (NullColumnValueGetter.isNullURI(cluster.getVcenterDataCenter())) {
             _log.info("Cluster is not synced to vcenter");
             return;
         }
 
+        // Get a list of the cluster's hosts that are in our database.
         List<URI> clusterHosts = ComputeSystemHelper.getChildrenUris(_dbClient, cluster.getId(), Host.class, "cluster");
 
         VcenterDataCenter vcenterDataCenter = _dbClient.queryObject(VcenterDataCenter.class,
                 cluster.getVcenterDataCenter());
 
+        // If the datacenter is not in our database, we must fail the validation.
         if (vcenterDataCenter == null) {
             throw APIException.badRequests.vCenterDataCenterNotFound(cluster.getVcenterDataCenter());
         }
 
+        // If the datacenter has a null vCenter reference, we must fail the validation.
+        if (NullColumnValueGetter.isNullURI(vcenterDataCenter.getVcenter())) {
+            throw APIException.badRequests.vCenterDataCenterHasNullVcenter(vcenterDataCenter.forDisplay());
+        }
+ 
         Vcenter vcenter = _dbClient.queryObject(Vcenter.class,
                 vcenterDataCenter.getVcenter());
 
+        // If the vCenter is not in our database, we must fail the validation.
         if (vcenter == null) {
             throw APIException.badRequests.vCenterNotFound(vcenterDataCenter.getVcenter());
         }
@@ -648,12 +657,17 @@ public class ClusterService extends TaskResourceService {
 
         try {
 
+            // Query the vCenter to get a reference to the cluster so that we can compare the hosts between the actual
+            // environment and our database representation of the cluster.
             ClusterComputeResource vcenterCluster = api.findCluster(vcenterDataCenter.getLabel(), cluster.getLabel());
 
+            // If we can't find the cluster on the vCenter environment, we can not proceed and must fail the validation.
+            // This may be caused by a datacenter or cluster rename in the vCenter environment.
             if (vcenterCluster == null) {
                 throw APIException.badRequests.clusterNotFoundInDatacenter(cluster.forDisplay(), vcenterDataCenter.forDisplay());
             }
 
+            // Gather a set of all the host UUIDs in this vCenter cluster.
             Set<String> vCenterHostUuids = Sets.newHashSet();
             for (HostSystem hostSystem : vcenterCluster.getHosts()) {
                 if (hostSystem != null && hostSystem.getHardware() != null && hostSystem.getHardware().systemInfo != null) {
@@ -661,11 +675,13 @@ public class ClusterService extends TaskResourceService {
                 }
             }
 
+            // Gather a set of all the host UUIDs in our database.
             Set<String> dbHostUuids = Sets.newHashSet();
             for (Host host : dbHosts) {
                 dbHostUuids.add(host.getUuid());
             }
 
+            // Compare the list of UUIDs between the vCenter environment and our database. Throw an exception if they do not match.
             if (!vCenterHostUuids.equals(dbHostUuids)) {
                 throw APIException.badRequests.clusterHostMismatch(cluster.forDisplay());
             }

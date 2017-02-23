@@ -813,7 +813,7 @@ public class FileSystems extends ResourceController {
 
         param.setSize(String.valueOf(DiskSizeConversionUtils.gbToBytes(modifyQuotaSize)));
         client.quotaDirectories().updateQuotaDirectory(uri(id), param);
-        flash.put("info", MessagesUtils.get("resources.filesystem.quota.update"));
+        //flash.put("info", MessagesUtils.get("resources.filesystem.quota.update"));
         fileSystem(fileSystemId);
     }
 
@@ -1383,7 +1383,9 @@ public class FileSystems extends ResourceController {
 
         public void validate(String formName) {
             String tempSize = size;
-            tempSize = tempSize.replace(",", "");
+            if(true == tempSize.contains(",")) {
+                tempSize = tempSize.replace(",", "");
+            }
             if (StringUtils.isEmpty(size) || !tempSize.matches("^\\d+$")) {
                 Validation.addError(formName + ".size", "resources.filesystem.quota.size.invalid.value");
             }

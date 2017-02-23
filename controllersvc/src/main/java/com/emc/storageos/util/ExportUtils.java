@@ -1538,11 +1538,13 @@ public class ExportUtils {
      */
     public static List<String> findVolumesWithoutHLUs(ExportGroup exportGroup) {
         List<String> result = new ArrayList<>();
-        for (Map.Entry<String, String> entry : exportGroup.getVolumes().entrySet()) {
-            String volumeURIStr = entry.getKey();
-            String hlu = entry.getValue();
-            if (hlu.equals(ExportGroup.LUN_UNASSIGNED_DECIMAL_STR)) {
-                result.add(volumeURIStr);
+        if (exportGroup.getVolumes() != null) {
+            for (Map.Entry<String, String> entry : exportGroup.getVolumes().entrySet()) {
+                String volumeURIStr = entry.getKey();
+                String hlu = entry.getValue();
+                if (hlu.equals(ExportGroup.LUN_UNASSIGNED_DECIMAL_STR)) {
+                    result.add(volumeURIStr);
+                }
             }
         }
         return result;

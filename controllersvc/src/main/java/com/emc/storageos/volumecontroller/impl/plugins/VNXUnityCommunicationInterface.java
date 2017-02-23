@@ -458,7 +458,6 @@ public class VNXUnityCommunicationInterface extends ExtendedCommunicationInterfa
             viprStorageSystem.setUsername(accessProfile.getUserName());
             viprStorageSystem.setPortNumber(accessProfile.getPortNumber());
             viprStorageSystem.setPassword(accessProfile.getPassword());
-            _dbClient.updateObject(viprStorageSystem);
             _completer.statusPending(_dbClient, "Completed discovery of system properties");
         } else {
             _logger.error("Failed to retrieve VNX Unity system info!");
@@ -469,6 +468,7 @@ public class VNXUnityCommunicationInterface extends ExtendedCommunicationInterfa
         if (info != null) {
             viprStorageSystem.setFirmwareVersion(info.getSoftwareVersion());
         }
+        _dbClient.updateObject(viprStorageSystem);
         return viprStorageSystem;
     }
 

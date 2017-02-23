@@ -13,6 +13,7 @@ import java.net.URI;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 import javax.ws.rs.Consumes;
@@ -37,6 +38,7 @@ import com.emc.storageos.api.service.impl.response.BulkList;
 import com.emc.storageos.api.service.impl.response.ResRepFilter;
 import com.emc.storageos.computesystemcontroller.ComputeSystemController;
 import com.emc.storageos.computesystemcontroller.impl.ComputeSystemHelper;
+import com.emc.storageos.computesystemcontroller.impl.adapter.VcenterDiscoveryAdapter;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
@@ -50,6 +52,7 @@ import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.Task;
 import com.emc.storageos.db.client.model.TenantOrg;
+import com.emc.storageos.db.client.model.Vcenter;
 import com.emc.storageos.db.client.model.VcenterDataCenter;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedExportMask;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
@@ -78,6 +81,10 @@ import com.emc.storageos.security.authorization.Role;
 import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.google.common.base.Strings;
+import com.google.common.collect.Sets;
+import com.iwave.ext.vmware.VCenterAPI;
+import com.vmware.vim25.mo.ClusterComputeResource;
+import com.vmware.vim25.mo.HostSystem;
 
 /**
  * A service that provides APIs for viewing, updating and deleting clusters.
@@ -307,6 +314,7 @@ public class ClusterService extends TaskResourceService {
                     }
                 }
             }
+            validateVcenterClusterHosts(cluster);
             String taskId = UUID.randomUUID().toString();
             Operation op = _dbClient.createTaskOpStatus(Cluster.class, id, taskId,
                     ResourceOperationTypeEnum.DELETE_CLUSTER);
@@ -599,6 +607,88 @@ public class ClusterService extends TaskResourceService {
             return elements;
         } else {
             return new ArrayList<NamedElementQueryResultList.NamedElement>();
+        }
+    }
+
+    /**
+     * Validate that the hosts in the cluster in our database matches the vCenter environment
+     * 
+     * @param cluster the cluster to check
+     */
+    public void validateVcenterClusterHosts(Cluster cluster) {
+
+        if (null == cluster) {
+            _log.error("Validation cluster is not set, not performing vCenter cluster validation");
+            return;
+        }
+
+        // We can only proceed if this cluster belongs to a datacenter
+        if (NullColumnValueGetter.isNullURI(cluster.getVcenterDataCenter())) {
+            _log.info("Cluster is not synced to vcenter");
+            return;
+        }
+
+        // Get a list of the cluster's hosts that are in our database.
+        List<URI> clusterHosts = ComputeSystemHelper.getChildrenUris(_dbClient, cluster.getId(), Host.class, "cluster");
+
+        VcenterDataCenter vcenterDataCenter = _dbClient.queryObject(VcenterDataCenter.class,
+                cluster.getVcenterDataCenter());
+
+        // If the datacenter is not in our database, we must fail the validation.
+        if (vcenterDataCenter == null) {
+            throw APIException.badRequests.vCenterDataCenterNotFound(cluster.getVcenterDataCenter());
+        }
+
+        // If the datacenter has a null vCenter reference, we must fail the validation.
+        if (NullColumnValueGetter.isNullURI(vcenterDataCenter.getVcenter())) {
+            throw APIException.badRequests.vCenterDataCenterHasNullVcenter(vcenterDataCenter.forDisplay());
+        }
+ 
+        Vcenter vcenter = _dbClient.queryObject(Vcenter.class,
+                vcenterDataCenter.getVcenter());
+
+        // If the vCenter is not in our database, we must fail the validation.
+        if (vcenter == null) {
+            throw APIException.badRequests.vCenterNotFound(vcenterDataCenter.getVcenter());
+        }
+
+        List<Host> dbHosts = _dbClient.queryObject(Host.class, clusterHosts);
+        VCenterAPI api = VcenterDiscoveryAdapter.createVCenterAPI(vcenter);
+
+        try {
+
+            // Query the vCenter to get a reference to the cluster so that we can compare the hosts between the actual
+            // environment and our database representation of the cluster.
+            ClusterComputeResource vcenterCluster = api.findCluster(vcenterDataCenter.getLabel(), cluster.getLabel());
+
+            // If we can't find the cluster on the vCenter environment, we can not proceed and must fail the validation.
+            // This may be caused by a datacenter or cluster rename in the vCenter environment.
+            if (vcenterCluster == null) {
+                throw APIException.badRequests.clusterNotFoundInDatacenter(cluster.forDisplay(), vcenterDataCenter.forDisplay());
+            }
+
+            // Gather a set of all the host UUIDs in this vCenter cluster.
+            Set<String> vCenterHostUuids = Sets.newHashSet();
+            for (HostSystem hostSystem : vcenterCluster.getHosts()) {
+                if (hostSystem != null && hostSystem.getHardware() != null && hostSystem.getHardware().systemInfo != null) {
+                    vCenterHostUuids.add(hostSystem.getHardware().systemInfo.uuid);
+                }
+            }
+
+            // Gather a set of all the host UUIDs in our database.
+            Set<String> dbHostUuids = Sets.newHashSet();
+            for (Host host : dbHosts) {
+                dbHostUuids.add(host.getUuid());
+            }
+
+            // Compare the list of UUIDs between the vCenter environment and our database. Throw an exception if they do not match.
+            if (!vCenterHostUuids.equals(dbHostUuids)) {
+                throw APIException.badRequests.clusterHostMismatch(cluster.forDisplay());
+            }
+        } finally {
+            if (api != null) {
+                api.logout();
+            }
         }
     }
 }

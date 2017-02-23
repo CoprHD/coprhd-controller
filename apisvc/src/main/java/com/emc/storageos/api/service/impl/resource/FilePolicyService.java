@@ -65,6 +65,7 @@ import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.fileorchestrationcontroller.FileOrchestrationController;
 import com.emc.storageos.fileorchestrationcontroller.FileOrchestrationUtils;
 import com.emc.storageos.fileorchestrationcontroller.FileStorageSystemAssociation;
+import com.emc.storageos.fileorchestrationcontroller.FileStorageSystemAssociation.TargetAssociation;
 import com.emc.storageos.model.BulkIdParam;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.model.ResourceTypeEnum;
@@ -1072,17 +1073,20 @@ public class FilePolicyService extends TaskResourceService {
                 association.setProjectvPool(vPoolURI);
                 association.setAppliedAtResource(projectURI);
             }
-            // Constructing a map useful when one-to-many replication is supported in future
-            Map<URI, URI> targetStorageDeviceToVNASMap = new HashMap<URI, URI>();
 
             Map<URI, Target> virtualArrayTargetMap = mirrorRec.getVirtualArrayTargetMap();
             // Getting the first target because we support one-to-one replication now.
+            URI targetVArray = virtualArrayTargetMap.entrySet().iterator().next().getKey();
             Target target = virtualArrayTargetMap.entrySet().iterator().next().getValue();
             URI targetStorageDevice = target.getTargetStorageDevice();
             URI targetVNasURI = target.getTargetvNASURI();
-            targetStorageDeviceToVNASMap.put(targetStorageDevice, targetVNasURI);
 
-            association.setTargetStorageDeviceToVNASMap(targetStorageDeviceToVNASMap);
+            TargetAssociation targetAssociation = new TargetAssociation();
+            targetAssociation.setStorageSystemURI(targetStorageDevice);
+            targetAssociation.setvArrayURI(targetVArray);
+            targetAssociation.setvNASURI(targetVNasURI);
+            association.addTargetAssociation(targetAssociation);
+
             associations.add(association);
         }
         return associations;

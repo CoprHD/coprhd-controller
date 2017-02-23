@@ -261,21 +261,22 @@ public interface FileController extends StorageController {
      * @param taskId
      * @throws InternalException
      */
-    public void applyFilePolicy(URI storageSystem,URI fs, URI filePolicy, String taskId) throws InternalException;
+    public void applyFilePolicy(URI storageSystem, URI fs, URI filePolicy, String taskId) throws InternalException;
 
     public void assignFileSnapshotPolicyToVirtualPools(URI storageSystemURI, URI vNASURI, URI filePolicyToAssign, URI vpoolURI,
             String taskId)
-                    throws InternalException;
+            throws InternalException;
 
     public void assignFileSnapshotPolicyToProjects(URI storageSystemURI, URI vNASURI, URI filePolicyToAssign, URI vpoolURI, URI projectURI,
             String taskId)
-                    throws InternalException;
+            throws InternalException;
 
     public void assignFileReplicationPolicyToVirtualPools(URI storageSystemURI, URI targetSystemURI,
-            URI sourceVNasURI, URI targetVNasURI, URI filePolicyToAssign, URI vpoolURI, String opId) throws ControllerException;
+            URI sourceVNasURI, URI targetVArrayURI, URI targetVNasURI, URI filePolicyToAssign, URI vpoolURI, String opId)
+            throws ControllerException;
 
     public void assignFileReplicationPolicyToProjects(URI storageSystemURI, URI targetSystemURI,
-            URI sourceVNasURI, URI targetVNasURI, URI filePolicyToAssign, URI vpoolURI, URI projectURI, String opId)
-                    throws InternalException;
+            URI sourceVNasURI, URI targetVArrayURI, URI targetVNasURI, URI filePolicyToAssign, URI vpoolURI, URI projectURI, String opId)
+            throws InternalException;
 
 }

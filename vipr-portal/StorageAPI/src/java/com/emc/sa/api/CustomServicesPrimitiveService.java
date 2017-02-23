@@ -642,27 +642,43 @@ public class CustomServicesPrimitiveService extends CatalogTaggedResourceService
     }
 
     private StringSet getPlaybooks(final byte[] archive) {
-        try(final TarArchiveInputStream tarIn = new TarArchiveInputStream(
+        String playbook;
+        try (final TarArchiveInputStream tarIn = new TarArchiveInputStream(
                 new GzipCompressorInputStream(new ByteArrayInputStream(
                         archive)))) {
             TarArchiveEntry entry = tarIn.getNextTarEntry();
             final StringSet playbooks = new StringSet();
-    
+            // get the root
+
+            java.nio.file.Path root = FileSystems
+                    .getDefault().getPath(entry.getName());
+
             while (entry != null) {
                 if (entry.isFile()
                         && entry.getName().toLowerCase().endsWith(".yml")) {
-                    
+
                     final java.nio.file.Path path = FileSystems
                             .getDefault().getPath(entry.getName());
-                    final java.nio.file.Path root = path.getRoot() != null ? path
-                            .getRoot() : FileSystems.getDefault().getPath(
-                            ".");
-                    if (path.getParent() == null
-                            || 0 == path.getParent().compareTo(root)) {
-                        final String playbook = path.getFileName().toString();
-                        _log.info("Top level playbook: " + playbook);
+
+                    if (null != path.getParent()) {
+                        int nameCount = path.getParent().getNameCount();
+                        // nameCount cannot be 0. The .yml file is the child.
+
+                        java.nio.file.Path immediateParent = path.getParent().getName(nameCount - 1);
+                        if (immediateParent != null && 0 == immediateParent.compareTo(root)) {
+                            playbook = path.getFileName().toString();
+                            _log.info("Top level playbook: " + playbook);
+                            playbooks.add(playbook);
+                        }
+                    } else {
+                        // The playbook was archived by itself without a directory. Hence root is top-level directory
+                        // Setting root to "." to avoid unwanted comparison in the above if-block where immediateParent is checked
+                        root = FileSystems.getDefault().getPath(".");
+                        playbook = path.getFileName().toString();
+                        _log.info("Top level playbook without a parent directory: " + playbook);
                         playbooks.add(playbook);
-                    } 
+                    }
+
                 }
                 entry = tarIn.getNextTarEntry();
             }
@@ -670,7 +686,7 @@ public class CustomServicesPrimitiveService extends CatalogTaggedResourceService
         } catch (IOException e) {
             throw InternalServerErrorException.internalServerErrors.genericApisvcError("Invalid ansible archive", e);
         }
-       
+
     }
     
     private CustomServicesScriptResource makeScript(final String name, final byte[] file) {

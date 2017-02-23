@@ -31,7 +31,7 @@ import javax.xml.bind.annotation.XmlRootElement;
 @XmlRootElement(name = "workflow_document")
 public class CustomServicesWorkflowDocument {
 
-    public static final long DEFAULT_STEP_TIMEOUT = 3600; //min
+    public static final long DEFAULT_STEP_TIMEOUT = 600000; // Setting default to 10 mins
     
     private String name;
     private String description;

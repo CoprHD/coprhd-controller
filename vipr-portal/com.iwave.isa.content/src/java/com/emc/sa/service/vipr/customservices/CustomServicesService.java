@@ -17,6 +17,7 @@
 
 package com.emc.sa.service.vipr.customservices;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -53,6 +54,7 @@ import com.emc.storageos.primitives.Primitive;
 import com.emc.storageos.primitives.Primitive.StepType;
 import com.emc.storageos.primitives.PrimitiveHelper;
 import com.emc.storageos.primitives.ViPRPrimitive;
+import com.emc.storageos.services.util.Exec;
 import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorException;
 import com.google.common.collect.ImmutableMap;
 import com.google.gson.Gson;
@@ -118,6 +120,8 @@ public class CustomServicesService extends ViPRService {
         logger.info("Parsing Workflow Definition");
         
         ExecutionUtils.currentContext().logInfo("customServicesService.status", obj.getName(), obj.getDescription());
+        final String orderDir = String.format("%sCS%s/", CustomServicesConstants.PATH,
+                ExecutionUtils.currentContext().getOrder().getOrderNumber());
 
         Step step = stepsHash.get(StepType.START.toString());
         String next = step.getNext().getDefaultStep();
@@ -154,14 +158,26 @@ public class CustomServicesService extends ViPRService {
                         break;
                     }
                     case LOCAL_ANSIBLE:
+                        logger.info("Executing Local Ansible step");
+                        if (!createOrderDir(orderDir)) {
+                            logger.error("Failed to create Order directory:{}", orderDir);
+                            throw InternalServerErrorException.internalServerErrors
+                                    .customServiceExecutionFailed("Failed to create Order directory " + orderDir);
+                        }
+                        res = ViPRExecutionUtils.execute(new RunAnsible(step, inputPerStep.get(step.getId()), params, dbClient, orderDir));
+                        break;
                     case SHELL_SCRIPT:
-                        res = ViPRExecutionUtils.execute(new RunAnsible(step, inputPerStep.get(step.getId()), params, dbClient));
-                        logger.error("Result from shell script execution", step.getType());
-
+                        logger.info("Executing Shel Script step");
+                        if (!createOrderDir(orderDir)) {
+                            logger.error("Failed to create Order directory:{}", orderDir);
+                            throw InternalServerErrorException.internalServerErrors
+                                    .customServiceExecutionFailed("Failed to create Order directory " + orderDir);
+                        }
+                        res = ViPRExecutionUtils.execute(new RunAnsible(step, inputPerStep.get(step.getId()), params, dbClient, orderDir));
                         break;
                     case REMOTE_ANSIBLE: {
-                        res = ViPRExecutionUtils.execute(new RunAnsible(step, inputPerStep.get(step.getId()), params, dbClient));
-
+                        logger.info("Executing remote ansible step");
+                        res = ViPRExecutionUtils.execute(new RunAnsible(step, inputPerStep.get(step.getId()), params, dbClient, orderDir));
                         break;
                     }
                     default:
@@ -184,6 +200,8 @@ public class CustomServicesService extends ViPRService {
             } catch (final Exception e) {
                 logger.info("failed to execute step. Try to get rollback step");
                 next = getNext(false, null, step);
+            } finally {
+                orderDirCleanup(orderDir);
             }
 
             if (next == null) {
@@ -192,6 +210,34 @@ public class CustomServicesService extends ViPRService {
             if ((System.currentTimeMillis() - timeout) > CustomServicesConstants.TIMEOUT) {
                 throw InternalServerErrorException.internalServerErrors.customServiceExecutionFailed("Operation Timed out");
             }
+        }
+    }
+
+    private boolean createOrderDir(final String orderDir) {
+        try {
+            File file = new File(orderDir);
+            if (!file.exists()) {
+                return file.mkdir();
+            } else {
+                logger.error("Order directory already exists: {}", orderDir);
+                return true;
+            }
+        } catch (final Exception e) {
+            logger.info("Failed to create directory" + e);
+            return false;
+        }
+
+    }
+
+    private void orderDirCleanup(final String orderDir) {
+        try {
+            File file = new File(orderDir);
+            if (file.exists()) {
+                final String[] cmd = { CustomServicesConstants.REMOVE, CustomServicesConstants.REMOVE_OPTION, orderDir };
+                Exec.exec(Exec.DEFAULT_CMD_TIMEOUT, cmd);
+            }
+        } catch (final Exception e) {
+            logger.info("Failed to create directory" + e);
         }
     }
 

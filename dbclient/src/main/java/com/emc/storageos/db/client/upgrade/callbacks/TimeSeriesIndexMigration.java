@@ -36,14 +36,14 @@ public class TimeSeriesIndexMigration extends BaseCustomMigrationCallback {
     public final static int TASK_SIZE=10000;
 
     class MigrationTask implements Runnable {
-        ColumnList<IndexColumnName> columns;
-        String indexKey;
-        Keyspace keyspace;
-        MutationBatch mutationBatch;
+        private ColumnList<IndexColumnName> columns;
+        private String indexKey;
+        private Keyspace keyspace;
+        private MutationBatch mutationBatch;
 
-        ColumnFamily<String, IndexColumnName> tenantToOrder;
-        ColumnFamily<String, IndexColumnName> timeseriesIndex;
-        ColumnFamily<String, TimeSeriesIndexColumnName> newIndexCF;
+        private ColumnFamily<String, IndexColumnName> tenantToOrder;
+        private ColumnFamily<String, IndexColumnName> timeseriesIndex;
+        private ColumnFamily<String, TimeSeriesIndexColumnName> newIndexCF;
 
         public MigrationTask(Keyspace ks, String indexKey, ColumnList<IndexColumnName> cols,
             ColumnFamily<String, IndexColumnName> tenantToOrder,

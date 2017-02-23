@@ -31,6 +31,7 @@ import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.StoragePool;
+import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StorageProvider;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
@@ -1731,7 +1732,7 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice implem
     }
 
     @Override
-    public void createRemoteReplicationGroup(URI groupURI, TaskCompleter taskCompleter) {
+    public void createRemoteReplicationGroup(URI groupURI, List<URI> sourcePortIds, List<URI> targetPortIds, TaskCompleter taskCompleter) {
 
         RemoteReplicationGroup systemGroup = dbClient.queryObject(RemoteReplicationGroup.class, groupURI);
         _log.info("Create remote replication group: {}, id: {} .", systemGroup.getLabel(), groupURI);
@@ -1739,11 +1740,13 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice implem
         try {
             StorageSystem sourceSystem = dbClient.queryObject(StorageSystem.class, systemGroup.getSourceSystem());
             StorageSystem targetSystem = dbClient.queryObject(StorageSystem.class, systemGroup.getTargetSystem());
+            List<StoragePort> sourcePorts = dbClient.queryObject(StoragePort.class, sourcePortIds);
+            List<StoragePort> targetPorts = dbClient.queryObject(StoragePort.class, targetPortIds);
             RemoteReplicationDriver driver = (RemoteReplicationDriver)getDriver(sourceSystem.getSystemType());
 
             // prepare driver group
             com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationGroup driverGroup =
-                    prepareDriverRemoteReplicationGroup(systemGroup);
+                    prepareDriverRemoteReplicationGroup(systemGroup, sourcePorts, targetPorts);
             // call driver
             DriverTask task = driver.createRemoteReplicationGroup(driverGroup, null);
             // todo: need to implement support for async case.
@@ -1771,6 +1774,24 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice implem
         }
     }
 
+    /**
+     * Convert db model type ports to sb sdk model type ports, and build a map in which the key is storage system native id
+     * and the value is ports of this storage system that are used for remote replication
+     */
+    private Map<String, Set<com.emc.storageos.storagedriver.model.StoragePort>> preparePortsMap(String system, List<StoragePort> ports) {
+        Set<com.emc.storageos.storagedriver.model.StoragePort> storagePorts = new HashSet<>();
+        for (StoragePort port : ports) {
+            com.emc.storageos.storagedriver.model.StoragePort storagePort = new com.emc.storageos.storagedriver.model.StoragePort();
+            storagePort.setNativeId(port.getNativeId());
+            storagePort.setPortNetworkId(port.getPortNetworkId());
+            storagePort.setStorageSystemId(port.getStorageDevice().toString());
+            storagePorts.add(storagePort);
+        }
+        Map<String, Set<com.emc.storageos.storagedriver.model.StoragePort>> portsMap = new HashMap<>();
+        portsMap.put(system, storagePorts);
+        return portsMap;
+        
+    }
 
     @Override
     public void createGroupReplicationPairs(List<RemoteReplicationPair> systemReplicationPairs, TaskCompleter taskCompleter) {
@@ -2276,7 +2297,8 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice implem
          }
     }
 
-    private com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationGroup prepareDriverRemoteReplicationGroup(RemoteReplicationGroup systemGroup) {
+    private com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationGroup prepareDriverRemoteReplicationGroup(
+            RemoteReplicationGroup systemGroup, List<StoragePort> sourcePorts, List<StoragePort> targetPorts) {
 
         com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationGroup driverGroup = new com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationGroup();
 
@@ -2286,6 +2308,8 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice implem
         driverGroup.setSourceSystemNativeId(sourceSystem.getNativeId());
         driverGroup.setTargetSystemNativeId(targetSystem.getNativeId());
         driverGroup.setReplicationMode(systemGroup.getReplicationMode());
+        driverGroup.setSourcePorts(preparePortsMap(sourceSystem.getNativeId(), sourcePorts));
+        driverGroup.setTargetPorts(preparePortsMap(targetSystem.getNativeId(), targetPorts));
 
         // todo: complete
         return driverGroup;

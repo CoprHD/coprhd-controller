@@ -63,9 +63,9 @@ public class RemoteReplicationControllerImpl implements RemoteReplicationControl
     }
 
     @Override
-    public void createRemoteReplicationGroup(URI replicationGroup, String opId) {
+    public void createRemoteReplicationGroup(URI replicationGroup, List<URI> sourcePorts, List<URI> targetPorts, String opId) {
         RemoteReplicationGroup rrGroup = dbClient.queryObject(RemoteReplicationGroup.class, replicationGroup);
-        exec("createRemoteReplicationGroup", replicationGroup, opId);
+        exec("createRemoteReplicationGroup", replicationGroup, sourcePorts, targetPorts, opId);
 
     }
 

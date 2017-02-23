@@ -24,6 +24,7 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 
 import com.emc.storageos.security.authorization.ACL;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -32,6 +33,8 @@ import com.emc.storageos.api.service.impl.resource.TaskResourceService;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.OpStatusMap;
 import com.emc.storageos.db.client.model.Operation;
+import com.emc.storageos.db.client.model.StoragePort;
+import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.remotereplication.RemoteReplicationGroup;
 import com.emc.storageos.db.client.model.remotereplication.RemoteReplicationPair;
@@ -153,8 +156,13 @@ public class RemoteReplicationGroupService extends TaskResourceService {
     public TaskResourceRep createRemoteReplicationGroup(final RemoteReplicationGroupCreate param) throws InternalException {
 
         _log.info("Called: createRemoteReplicationGroup()");
+        URI sourceSystem = param.getSourceSystem();
+        URI targetSystem = param.getTargetSystem();
+        precheckStorageSystem(sourceSystem, "source system");
+        precheckStorageSystem(targetSystem, "target system");
+
         List<com.emc.storageos.db.client.model.remotereplication.RemoteReplicationGroup> rrGroupsForSystem =
-                queryActiveResourcesByRelation(_dbClient, param.getSourceSystem(), com.emc.storageos.db.client.model.remotereplication.RemoteReplicationGroup.class,
+                queryActiveResourcesByRelation(_dbClient, sourceSystem, com.emc.storageos.db.client.model.remotereplication.RemoteReplicationGroup.class,
                         "sourceSystem");
 
         if (rrGroupsForSystem != null) {
@@ -164,6 +172,11 @@ public class RemoteReplicationGroupService extends TaskResourceService {
                 }
             }
         }
+
+        List<URI> sourcePorts = param.getSourcePorts();
+        List<URI> targetPorts = param.getTargetPorts();
+        precheckPorts(sourcePorts, sourceSystem, "source ports");
+        precheckPorts(targetPorts, targetSystem, "target ports");
 
         RemoteReplicationGroup rrGroup = prepareRRGroup(param);
         _dbClient.createObject(rrGroup);
@@ -176,7 +189,7 @@ public class RemoteReplicationGroupService extends TaskResourceService {
         // send request to controller
         try {
             RemoteReplicationBlockServiceApiImpl rrServiceApi = getRemoteReplicationServiceApi();
-            rrServiceApi.createRemoteReplicationGroup(rrGroup.getId(), taskId);
+            rrServiceApi.createRemoteReplicationGroup(rrGroup.getId(), sourcePorts, targetPorts, taskId);
         } catch (final ControllerException e) {
             _log.error("Controller Error", e);
             op = rrGroup.getOpStatus().get(taskId);
@@ -194,7 +207,6 @@ public class RemoteReplicationGroupService extends TaskResourceService {
         return toTask(rrGroup, taskId, op);
 
     }
-
 
     @POST
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
@@ -546,6 +558,28 @@ public class RemoteReplicationGroupService extends TaskResourceService {
         return remoteReplicationGroup;
     }
 
+    /* Pre-check methods */
+
+    private void precheckStorageSystem(URI systemId, String fieldName) {
+        if (systemId == null) {
+            throw APIException.badRequests.parameterIsNullOrEmpty(fieldName);
+        }
+        ArgValidator.checkFieldUriType(systemId, StorageSystem.class, fieldName);
+    }
+
+    private void precheckPorts(List<URI> portIds, URI deviceId, String fieldName) {
+        if (portIds == null || portIds.isEmpty()) {
+            throw APIException.badRequests.parameterIsNullOrEmpty(fieldName);
+        }
+
+        for (URI portId : portIds) {
+            ArgValidator.checkFieldUriType(portId, StoragePort.class, "storage port");
+            StoragePort port = _dbClient.queryObject(StoragePort.class, portId);
+            if (port == null || !deviceId.equals(port.getStorageDevice())) {
+                throw APIException.badRequests.invalidParameterURIInvalid(fieldName, portId);
+            }
+        }
+    }
 
     @Override
     protected ResourceTypeEnum getResourceType() {

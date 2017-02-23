@@ -703,12 +703,12 @@
         <property name="connManagerTimeout" value="60000"/>
         <property name="socketConnectionTimeoutMs" value="7200000" />
     </bean>
-     
+          
     <bean id="isilonMirrorOperations" class="com.emc.storageos.volumecontroller.impl.isilon.IsilonMirrorOperations">
         <property name="dbClient" ref="dbclient"/>
         <property name="isilonApiFactory" ref="isilonapifactory"/>
     </bean>
-                         
+          
     <bean id="isilonDevice" class="com.emc.storageos.volumecontroller.impl.isilon.IsilonFileStorageDevice">
         <property name="isilonApiFactory" ref="isilonapifactory"/>
          <property name="mirrorOperations" ref="isilonMirrorOperations"/>

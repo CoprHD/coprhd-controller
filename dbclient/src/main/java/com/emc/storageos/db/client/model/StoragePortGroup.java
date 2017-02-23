@@ -67,5 +67,20 @@ public class StoragePortGroup extends DiscoveredDataObject {
         this.metrics = metrics;
         setChanged("metrics");
     }
+    
+    /**
+     * Check if the port group could be used for volume export
+     * 
+     * @return true or false
+     */
+    public boolean isUsable() {
+        boolean result = true;
+        if (getInactive() ||
+                !RegistrationStatus.REGISTERED.name().equalsIgnoreCase(getRegistrationStatus()) ||
+                checkInternalFlags(Flag.INTERNAL_OBJECT)) {
+            result = false;
+        }
+        return result;
+    }
 
 }

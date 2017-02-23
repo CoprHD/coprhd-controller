@@ -1,6 +1,7 @@
 %{
-  titleKey = 'assignPolicy.assign.title';
+  titleKey = 'assignPolicy.unassign.title';
 }%
+
 #{extends 'main.html'/}
 #{set navSelected: ['nav.virtualStorage', 'nav.file.protectionPolicies'] /}
 #{set 'title'}&{titleKey}#{/set}
@@ -15,24 +16,16 @@
 
 #{alerts/}
 
-#{form @saveAssignPolicy(), id:'assignPolicy', class:'form form-horizontal', autocomplete:"off"}
+#{form @saveUnAssignPolicy(), id:'UnassignPolicy', class:'form form-horizontal', autocomplete:"off"}
   #{if assignPolicy?.id}
     #{field 'assignPolicy.id'}
       <input type="hidden" name="id" value="${field.value}">
     #{/field}  
   #{/if}
-<!--   #{field 'assignPolicy.tenantId'} -->
-        <input type="hidden" name="tenantId" value="${field.value}"/>
-  #{/field}
  #{field 'assignPolicy.referrerUrl'}
      <input type="hidden" name="${field.policyName}" value="${field.value}">
   #{/field}
   
-  #{field 'assignPolicy.replicationType'}
-     <input type="hidden" id="replicationType" value="${field.value}">
-  #{/field}
-  
- 
     #{field 'assignPolicy.policyName'}
       %{
         field.cssClass = 'initialFocus';
@@ -78,22 +71,18 @@
         <div class="row col-gap-none" ng-repeat="topology in topologies" style="margin-bottom:5px;">
             <div class="col-xs-3"></div>    
             <div class="pull-left col-sm-3" v-field="topology.sourceVArray">
-                <select-one options="virtualArrayOptions" required></select-one>
+                <select-one options="virtualArrayOptions" required  disabled="true"></select-one>
             </div>
             <div class="pull-left col-sm-3" v-field="topology.targetVArray" style="padding-right:0px;">
-                <select-one options="virtualArrayOptions" required></select-one>
+                <select-one options="virtualArrayOptions" required  disabled="true"></select-one>
             </div>
             <div class="pull-left col-sm-0" style="padding-left:10px; margin-top:5px;"><button type="button" ng-click="deleteTopology($index)" class="close">&times;</button></div>
-        </div>
-        <div class="row">
-            <div class="col-xs-2"></div>    
-            <div class="pull-left col-sm-9"><button type="button" ng-click="addTopology()" class="btn btn-sm btn-success"><i v-icon=plus></i> &{'button.add'}</button></div>
         </div>
         #{field 'assignPolicy.topologiesString'}
             <input type="hidden" name="assignPolicy.topologiesString" ng-value="topologiesString" />
         #{/field}
     </div>
-    
+    <br>
   #{Form.saveCancelButtonBar size:'large', cancelHref:@list()/}
 #{/form}
 </div>
@@ -125,7 +114,6 @@
     function showAssignAt(){
 			var assignAt = $('#assignPolicy_appliedAt').val();
             var policyType = $('#policyType').val();
-            var replicationType = $('#replicationType').val();
 				if (assignAt == 'project') {
 					$('#vpoolFields').hide();
 					$('#projectFields').show();
@@ -140,11 +128,7 @@
 				if(policyType == 'file_snapshot') {
 					$('#replicationFields').hide();
 				} else if (policyType == 'file_replication') {
-				    if(replicationType == 'REMOTE') {
-					    $('#replicationFields').show();
-					} else {
-					    $('#replicationFields').hide();
-					}
+					$('#replicationFields').show();
 				}
 				
 			}

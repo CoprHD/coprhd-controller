@@ -16,8 +16,26 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import jobs.vipr.TenantsCall;
+import models.datatable.ScheculePoliciesDataTable;
+
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
+
+import play.Logger;
+import play.data.binding.As;
+import play.data.validation.MaxSize;
+import play.data.validation.MinSize;
+import play.data.validation.Required;
+import play.data.validation.Validation;
+import play.mvc.Util;
+import play.mvc.With;
+import util.MessagesUtils;
+import util.StringOption;
+import util.TenantUtils;
+import util.VirtualPoolUtils;
+import util.builders.ACLUpdateBuilder;
+import util.datatable.DataTablesSupport;
 
 import com.emc.storageos.db.client.model.FilePolicy.FilePolicyApplyLevel;
 import com.emc.storageos.db.client.model.FilePolicy.FilePolicyType;
@@ -58,22 +76,6 @@ import controllers.deadbolt.Restrictions;
 import controllers.util.FlashException;
 import controllers.util.Models;
 import controllers.util.ViprResourceController;
-import jobs.vipr.TenantsCall;
-import models.datatable.ScheculePoliciesDataTable;
-import play.Logger;
-import play.data.binding.As;
-import play.data.validation.MaxSize;
-import play.data.validation.MinSize;
-import play.data.validation.Required;
-import play.data.validation.Validation;
-import play.mvc.Util;
-import play.mvc.With;
-import util.MessagesUtils;
-import util.StringOption;
-import util.TenantUtils;
-import util.VirtualPoolUtils;
-import util.builders.ACLUpdateBuilder;
-import util.datatable.DataTablesSupport;
 
 @With(Common.class)
 @Restrictions({ @Restrict("PROJECT_ADMIN"), @Restrict("TENANT_ADMIN"), @Restrict("SYSTEM_ADMIN"), @Restrict("RESTRICTED_SYSTEM_ADMIN") })
@@ -146,6 +148,26 @@ public class FileProtectionPolicies extends ViprResourceController {
             addRenderApplyPolicysAt();
             addProjectArgs(ids);
             addvPoolArgs(ids);
+            render(assignPolicy);
+
+        } else {
+            flash.error(MessagesUtils.get(UNKNOWN, ids));
+            list();
+        }
+
+    }
+    
+    
+    @FlashException(value = "list", keep = true)
+    public static void unassign(String ids) {
+
+        FilePolicyRestRep filePolicyRestRep = getViprClient().fileProtectionPolicies().get(uri(ids));
+
+        if (filePolicyRestRep != null) {
+            AssignPolicyForm assignPolicy = new AssignPolicyForm().form(filePolicyRestRep);
+            addRenderApplyPolicysAt();
+            addAssignedProjectArgs(ids);
+            addAssignedVPoolArgs(ids);
             render(assignPolicy);
 
         } else {
@@ -287,7 +309,51 @@ public class FileProtectionPolicies extends ViprResourceController {
 
         return createResourceOptions(vPools);
     }
+    
+    
+    /**
+     * Get list the pool which is already assigned to a protection policy.
+     * @param id
+     * @return
+     */
+    private static List<StringOption> getAssignedResourceOptions(String id,FilePolicyApplyLevel type) {
 
+        List<StringOption> options = Lists.newArrayList();
+        // Filter the vpools based on policy type!!!
+        FilePolicyRestRep policy = getViprClient().fileProtectionPolicies().get(uri(id));
+        if (type.name().equalsIgnoreCase(policy.getAppliedAt())) {
+            List<NamedRelatedResourceRep> existingResource = policy.getAssignedResources();
+
+            for (NamedRelatedResourceRep value : existingResource) {
+                options.add(new StringOption(value.getId().toString(), value.getName())); 
+            }
+        }
+        return options;
+    }
+
+    
+    
+    
+    /**
+     * Get  vpool associated with  is  assigned to a protection policy at project level.
+     * @param id
+     * @return list ,currently only one
+     */
+    private static List<StringOption> getVPoolForAssignedProjectOptions(String id) {
+
+        List<StringOption> options = Lists.newArrayList();
+        // get the vpool for which projects are assigned.
+        FilePolicyRestRep policy = getViprClient().fileProtectionPolicies().get(uri(id));
+        if (FilePolicyApplyLevel.project.name().equalsIgnoreCase(policy.getAppliedAt())) {
+            NamedRelatedResourceRep vpool = policy.getVpool();
+            if (vpool!=null) {
+                options.add(new StringOption(vpool.getId().toString(), vpool.getName()));   
+            }
+        }
+        return options;
+    }
+    
+    
     private static List<StringOption> getFileProjectOptions(URI tenantId) {
         Collection<ProjectRestRep> projects = getViprClient().projects().getByTenant(tenantId);
         return createResourceOptions(projects);
@@ -302,6 +368,18 @@ public class FileProtectionPolicies extends ViprResourceController {
         renderArgs.put("vPoolOptions", getFileVirtualPoolsOptions(null, id));
         renderArgs.put("virtualArrayOptions", getVarrays());
     }
+
+    
+    private static void addAssignedProjectArgs(String id) {
+        renderArgs.put("projectVpoolOptions", getVPoolForAssignedProjectOptions(id));
+        renderArgs.put("projectOptions", getAssignedResourceOptions(id,FilePolicyApplyLevel.project));
+    }
+
+    private static void addAssignedVPoolArgs(String id) {
+        renderArgs.put("vPoolOptions", getAssignedResourceOptions(id,FilePolicyApplyLevel.vpool));
+        renderArgs.put("virtualArrayOptions", getVarrays());
+    }
+
 
     private static List<StringOption> getVarrays() {
 
@@ -353,6 +431,7 @@ public class FileProtectionPolicies extends ViprResourceController {
         }
 
     }
+    
 
     @FlashException(keep = true, referrer = { "assign" })
     public static void saveAssignPolicy(AssignPolicyForm assignPolicy) {
@@ -366,19 +445,11 @@ public class FileProtectionPolicies extends ViprResourceController {
         if (Validation.hasErrors()) {
             Common.handleError();
         }
-
         assignPolicy.id = params.get("id");
-        FilePolicyUnAssignParam unAssignPolicyParam = new FilePolicyUnAssignParam();
-        if (updateUnAssignPolicyParam(assignPolicy, unAssignPolicyParam)) {
-            getViprClient().fileProtectionPolicies().unassignPolicy(uri(assignPolicy.id), unAssignPolicyParam);
-            flash.success(MessagesUtils.get("unAssignPolicy.request.submit", assignPolicy.policyName));
-        } else {
-            FilePolicyAssignParam assignPolicyParam = new FilePolicyAssignParam();
-            updateAssignPolicyParam(assignPolicy, assignPolicyParam);
-            getViprClient().fileProtectionPolicies().assignPolicy(uri(assignPolicy.id), assignPolicyParam);
-            flash.success(MessagesUtils.get("assignPolicy.request.submit", assignPolicy.policyName));
-        }
-
+        FilePolicyAssignParam assignPolicyParam = new FilePolicyAssignParam();
+        updateAssignPolicyParam(assignPolicy, assignPolicyParam);
+        getViprClient().fileProtectionPolicies().assignPolicy(uri(assignPolicy.id), assignPolicyParam);
+        flash.success(MessagesUtils.get("assignPolicy.request.submit", assignPolicy.policyName));
         if (StringUtils.isNotBlank(assignPolicy.referrerUrl)) {
             redirect(assignPolicy.referrerUrl);
         } else {
@@ -386,11 +457,39 @@ public class FileProtectionPolicies extends ViprResourceController {
         }
 
     }
+    
+    @FlashException(keep = true, referrer = { "unassign" })
+    public static void saveUnAssignPolicy(AssignPolicyForm assignPolicy) {
+
+        if (assignPolicy == null) {
+            Logger.error("No Unassign policy parameters passed");
+            badRequest("No Unassign policy parameters passed");
+            return;
+        }
+        assignPolicy.validate("UnassignPolicy");
+        if (Validation.hasErrors()) {
+            Common.handleError();
+        }
+        assignPolicy.id = params.get("id");
+        FilePolicyUnAssignParam unAssignPolicyParam = new FilePolicyUnAssignParam();
+        if (updateUnAssignPolicyParam(assignPolicy, unAssignPolicyParam)) {
+            getViprClient().fileProtectionPolicies().unassignPolicy(uri(assignPolicy.id), unAssignPolicyParam);
+            flash.success(MessagesUtils.get("unAssignPolicy.request.submit", assignPolicy.policyName));
+        }
+        if (StringUtils.isNotBlank(assignPolicy.referrerUrl)) {
+            redirect(assignPolicy.referrerUrl);
+        } else {
+            list();
+        }
+
+    }
+    
+    
 
     private static Set<FileReplicationTopologyParam>
             getFileReplicationTopologyParamSet(List<FileReplicationTopology> replicationTopologies) {
 
-        Set<FileReplicationTopologyParam> topologyParamSet = new HashSet<FileReplicationTopologyParam>();
+        Set<FileReplicationTopologyParam>  topologyParamSet = new HashSet<FileReplicationTopologyParam>();
 
         for (FileReplicationTopology replicationTopology : replicationTopologies) {
 
@@ -847,7 +946,7 @@ public class FileProtectionPolicies extends ViprResourceController {
             this.policyType = restRep.getType();
             this.policyName = restRep.getName();
             if (restRep.getAssignedResources() == null) {
-                // if it does not have already assigned resource
+                // if it does not have already assigned  resource
                 this.operationAssign = true;
 
             }
@@ -860,24 +959,24 @@ public class FileProtectionPolicies extends ViprResourceController {
             if (restRep.getReplicationSettings() != null) {
                 this.replicationType = restRep.getReplicationSettings().getType();
                 List<FileReplicationTopologyRestRep> topologyRestReps = restRep.getReplicationSettings().getReplicationTopologies();
-                if (topologyRestReps != null && !topologyRestReps.isEmpty()) {
+            if (topologyRestReps != null && !topologyRestReps.isEmpty()) {
 
-                    List<FileReplicationTopology> replicationTopologies = new ArrayList<FileReplicationTopology>();
+                List<FileReplicationTopology> replicationTopologies = new ArrayList<FileReplicationTopology>();
 
-                    for (FileReplicationTopologyRestRep repTopology : topologyRestReps) {
-                        FileReplicationTopology fileTopology = new FileReplicationTopology();
-                        if (repTopology.getSourceVArray() != null) {
-                            fileTopology.sourceVArray = repTopology.getSourceVArray().toString();
-                        }
-                        if (repTopology.getTargetVArrays() != null && !repTopology.getTargetVArrays().isEmpty()) {
-                            fileTopology.targetVArray = repTopology.getTargetVArrays().iterator().next().toString();
-                        }
-                        replicationTopologies.add(fileTopology);
+                for (FileReplicationTopologyRestRep repTopology : topologyRestReps) {
+                    FileReplicationTopology fileTopology = new FileReplicationTopology();
+                    if (repTopology.getSourceVArray() != null) {
+                        fileTopology.sourceVArray = repTopology.getSourceVArray().toString();
                     }
-                    if (!replicationTopologies.isEmpty()) {
-                        this.topologies = replicationTopologies;
+                    if (repTopology.getTargetVArrays() != null && !repTopology.getTargetVArrays().isEmpty()) {
+                        fileTopology.targetVArray = repTopology.getTargetVArrays().iterator().next().toString();
                     }
+                    replicationTopologies.add(fileTopology);
                 }
+                if (!replicationTopologies.isEmpty()) {
+                        this.topologies = replicationTopologies;
+                }
+            }
 
             }
             // Load project applicable fields

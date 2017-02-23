@@ -86,7 +86,9 @@
                     <span class="text-warning">#{icon 'warning-sign'/}</span>
                 #{/if}
                 </td>
-                <td class="time" id="nextScheduled"></td>
+                <td class="time">
+                    <a href="@{infra.ConfigProperties.properties()}" id="nextScheduled"></a>
+                </td>
             </tr>
             <script>
                 if (${isScheduledBackupEnabled}) {

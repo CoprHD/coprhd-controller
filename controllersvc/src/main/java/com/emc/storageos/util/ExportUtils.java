@@ -1543,11 +1543,13 @@ public class ExportUtils {
      */
     public static List<String> findVolumesWithoutHLUs(ExportGroup exportGroup) {
         List<String> result = new ArrayList<>();
-        for (Map.Entry<String, String> entry : exportGroup.getVolumes().entrySet()) {
-            String volumeURIStr = entry.getKey();
-            String hlu = entry.getValue();
-            if (hlu.equals(ExportGroup.LUN_UNASSIGNED_DECIMAL_STR)) {
-                result.add(volumeURIStr);
+        if (exportGroup.getVolumes() != null) {
+            for (Map.Entry<String, String> entry : exportGroup.getVolumes().entrySet()) {
+                String volumeURIStr = entry.getKey();
+                String hlu = entry.getValue();
+                if (hlu.equals(ExportGroup.LUN_UNASSIGNED_DECIMAL_STR)) {
+                    result.add(volumeURIStr);
+                }
             }
         }
         return result;
@@ -1696,9 +1698,9 @@ public class ExportUtils {
      */
     public static void cleanStaleExportMasks(StorageSystem storage, Set<String> maskNamesFromArray, List<String> initiatorNames,
             DbClient dbClient) {
-
         Set<Initiator> initiators = ExportUtils.getInitiators(initiatorNames, dbClient);
         Set<ExportMask> staleExportMasks = new HashSet<>();
+        
         _log.info("Mask Names found in array:{} for the initiators: {}", maskNamesFromArray, initiatorNames);
         for (Initiator initiator : initiators) {
             URIQueryResultList emUris = new URIQueryResultList();
@@ -1723,6 +1725,7 @@ public class ExportUtils {
                 }
             }
         }
+        
         if (!CollectionUtils.isEmpty(staleExportMasks)) {
             dbClient.markForDeletion(staleExportMasks);
             _log.info("Deleted {} stale export masks from DB", staleExportMasks.size());
@@ -2032,25 +2035,39 @@ public class ExportUtils {
         StringSet exportGroupInitiators = exportGroup.getInitiators();
         // Clean Stale Mask references will delete export Group if export masks is empty, therefore at this point the masks will not be
         // empty
-        if (!CollectionUtils.isEmpty(exportGroupInitiators) && !CollectionUtils.isEmpty(exportGroup.getExportMasks())) {
-            Set<String> allMaskInitiators = new HashSet<>();
-            for (String mask : exportGroup.getExportMasks()) {
-                ExportMask maskObj = dbClient.queryObject(ExportMask.class, URI.create(mask));
-                if (maskObj != null && !CollectionUtils.isEmpty(maskObj.getInitiators())) {
-                    allMaskInitiators.addAll(maskObj.getInitiators());
+        if (!CollectionUtils.isEmpty(exportGroupInitiators)) {
+            List<URI> initiatorsNotInDB = new ArrayList<>();
+            Iterator<String> egInitiatorsIterator = exportGroupInitiators.iterator();
+            while (egInitiatorsIterator.hasNext()) {
+                URI initiatorURI = URI.create(egInitiatorsIterator.next());
+                Initiator initiatorObj = dbClient.queryObject(Initiator.class, initiatorURI);
+                if (initiatorObj == null || initiatorObj.getInactive()) {
+                    _log.info("Removed stale initiator {} from export group {}", initiatorURI, exportGroup.forDisplay());
+                    initiatorsNotInDB.add(initiatorURI);
                 }
             }
-            // Stale initiators = EG initiators - all initiators available in all the eg.masks
-            Set<String> staleInitiators = Sets.difference(exportGroupInitiators, allMaskInitiators);
-            if (!CollectionUtils.isEmpty(staleInitiators)) {
-                Collection<URI> staleInitiatorURIs = Collections2.transform(staleInitiators,
-                        CommonTransformerFunctions.FCTN_STRING_TO_URI);
-                _log.info(String.format("Stale initiators [%s] will be removed from Export Group %s",
-                        Joiner.on(',').join(staleInitiatorURIs), exportGroup.getId()));
-                exportGroup.removeInitiators(new ArrayList<>(staleInitiatorURIs));
-            }
+            exportGroup.removeInitiators(initiatorsNotInDB);
 
+            if (!CollectionUtils.isEmpty(exportGroup.getExportMasks())) {
+                Set<String> allMaskInitiators = new HashSet<>();
+                for (String mask : exportGroup.getExportMasks()) {
+                    ExportMask maskObj = dbClient.queryObject(ExportMask.class, URI.create(mask));
+                    if (maskObj != null && !CollectionUtils.isEmpty(maskObj.getInitiators())) {
+                        allMaskInitiators.addAll(maskObj.getInitiators());
+                    }
+                }
+                // Stale initiators = EG initiators - all initiators available in all the eg.masks
+                Set<String> staleInitiators = new HashSet<>(Sets.difference(exportGroupInitiators, allMaskInitiators));
+                if (!CollectionUtils.isEmpty(staleInitiators)) {
+                    Collection<URI> staleInitiatorURIs = Collections2.transform(staleInitiators,
+                            CommonTransformerFunctions.FCTN_STRING_TO_URI);
+                    _log.info(String.format("Stale initiators [%s] will be removed from Export Group %s",
+                            Joiner.on(',').join(staleInitiatorURIs), exportGroup.getId()));
+                    exportGroup.removeInitiators(new ArrayList<>(staleInitiatorURIs));
+                }
+            }
         }
+
 
         if (CollectionUtils.isEmpty(exportGroup.getInitiators())
                 && !exportGroup.checkInternalFlags(DataObject.Flag.INTERNAL_OBJECT)) {
@@ -2087,8 +2104,8 @@ public class ExportUtils {
                     volumesInAllMasks.addAll(maskObj.getUserAddedVolumes().values());
                 }
             }
-
-            Set<String> volumeDiff = Sets.difference(exportGroupVolumes, volumesInAllMasks);
+            // To Avoid concurrent modfication exception created new set instance
+            Set<String> volumeDiff = new HashSet<>(Sets.difference(exportGroupVolumes, volumesInAllMasks));
             if (!CollectionUtils.isEmpty(volumeDiff)) {
                 exportGroup.removeVolumes(volumeDiff);
                 _log.info("Stale volumes {}  removed from Export Group {}", volumeDiff, exportGroup.getId());
@@ -2133,7 +2150,7 @@ public class ExportUtils {
                     egHosts.add(initiator.getHost().toString());
                 }
             }
-            Set<String> staleHosts = Sets.difference(exportGroup.getHosts(), egHosts);
+            Set<String> staleHosts = new HashSet<>(Sets.difference(exportGroup.getHosts(), egHosts));
             if (!CollectionUtils.isEmpty(staleHosts)) {
                 Collection<URI> staleHostURIs = Collections2.transform(staleHosts,
                         CommonTransformerFunctions.FCTN_STRING_TO_URI);
@@ -2176,7 +2193,7 @@ public class ExportUtils {
                     egClusterURIs.add(host.getCluster().toString());
                 }
             }
-            Set<String> staleClusters = Sets.difference(exportGroup.getClusters(), egClusterURIs);
+            Set<String> staleClusters = new HashSet<>(Sets.difference(exportGroup.getClusters(), egClusterURIs));
             if (!CollectionUtils.isEmpty(staleClusters)) {
                 Collection<URI> staleClusterURIs = Collections2.transform(staleClusters,
                         CommonTransformerFunctions.FCTN_STRING_TO_URI);

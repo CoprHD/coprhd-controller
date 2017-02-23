@@ -948,21 +948,23 @@ public class ConnectivityUtil {
     public static String getVplexClusterForExportMask(ExportMask exportMask, URI vplexStorageSystemUri, DbClient dbClient) {
         String vplexCluster = CLUSTER_UNKNOWN;
         List<URI> storagePortUris = URIUtil.toURIList(exportMask.getStoragePorts());
-        for (URI uri : storagePortUris) {
-            StoragePort storagePort = dbClient.queryObject(StoragePort.class, uri);
-            if ((storagePort != null)
-                    && DiscoveredDataObject.CompatibilityStatus.COMPATIBLE.name().equals(
-                            storagePort.getCompatibilityStatus())
-                    && (RegistrationStatus.REGISTERED.toString().equals(storagePort
-                            .getRegistrationStatus()))
-                    && DiscoveryStatus.VISIBLE.toString().equals(storagePort.getDiscoveryStatus())) {
-                if (storagePort.getStorageDevice().equals(vplexStorageSystemUri)) {
-                    // Assumption is this ExportMask cannot have mix of Cluster 1
-                    // and Cluster 2 ports from VPLEX so getting
-                    // cluster information from one of the VPLEX port should
-                    // work.
-                    vplexCluster = getVplexClusterOfPort(storagePort);
-                    break;
+        if (storagePortUris != null) {
+            for (URI uri : storagePortUris) {
+                StoragePort storagePort = dbClient.queryObject(StoragePort.class, uri);
+                if ((storagePort != null)
+                        && DiscoveredDataObject.CompatibilityStatus.COMPATIBLE.name().equals(
+                        storagePort.getCompatibilityStatus())
+                        && (RegistrationStatus.REGISTERED.toString().equals(storagePort
+                        .getRegistrationStatus()))
+                        && DiscoveryStatus.VISIBLE.toString().equals(storagePort.getDiscoveryStatus())) {
+                    if (storagePort.getStorageDevice().equals(vplexStorageSystemUri)) {
+                        // Assumption is this ExportMask cannot have mix of Cluster 1
+                        // and Cluster 2 ports from VPLEX so getting
+                        // cluster information from one of the VPLEX port should
+                        // work.
+                        vplexCluster = getVplexClusterOfPort(storagePort);
+                        break;
+                    }
                 }
             }
         }

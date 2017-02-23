@@ -31,7 +31,7 @@ public class FileReplicationPolicyParam implements Serializable {
      * 
      * @return
      */
-    @XmlElement(required = true, name = "replication_type")
+    @XmlElement(name = "replication_type")
     public String getReplicationType() {
         return this.replicationType;
     }
@@ -46,7 +46,7 @@ public class FileReplicationPolicyParam implements Serializable {
      * 
      * @return
      */
-    @XmlElement(required = true, name = "replication_copy_mode")
+    @XmlElement(name = "replication_copy_mode")
     public String getReplicationCopyMode() {
         return this.replicationCopyMode;
     }

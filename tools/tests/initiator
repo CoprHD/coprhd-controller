@@ -19,6 +19,30 @@ def initiator_create(args):
     if(BOURNE_DEBUG == '1'):
         print task
 
+def initiator_create_pair(args):
+    bourne.connect(args.ip)
+    task = bourne.initiator_create_pair(args.host, args.protocol, args.port1, args.node1, args.port2, args.node2)
+    if(BOURNE_DEBUG == '1'):
+        print task
+
+def initiator_associate(args):
+    bourne.connect(args.ip)
+    port1 = args.name1
+    port2 = args.name2
+    
+    port1_uri = bourne.initiator_query(port1)
+    port2_uri = bourne.initiator_query(port2)
+    
+    res = bourne.associate_initiator(port1_uri, port2_uri)
+    print res
+    
+def initiator_disassociate(args):
+    bourne.connect(args.ip)
+    port_uri = bourne.initiator_query(args.name1)
+    res = bourne.dissociate_initiator(port_uri)
+    
+    print res
+    
 def initiator_delete(args):
     bourne.connect(args.ip)
     res = bourne.initiator_delete(args.name)
@@ -31,7 +55,10 @@ def initiator_show(args):
 
 def initiator_query(args):
     bourne.connect(args.ip)
-    print bourne.initiator_query(args.name)
+    initiator_uri = bourne.initiator_query(args.name)
+    print initiator_uri
+    
+    return initiator_uri
 
 def initiator_list(args):
     bourne.connect(args.ip)
@@ -117,7 +144,7 @@ except:
 
 # initiator <cmd> <cmd_args>
 parser = argparse.ArgumentParser(description = 'Bourne initiator cli usage.')
-parser.add_argument('cmd', help = 'cmd = (create | delete | show | list | register | deregister | aliasget | aliasset)')
+parser.add_argument('cmd', help = 'cmd = (create | createpair | delete | show | list | register | deregister | aliasget | aliasset)')
 parser.add_argument('--ip',	metavar = 'ipaddr',	help = 'IP address of bourne', default=bourne_ip)
 
 # initiator create host protocol port node
@@ -126,6 +153,24 @@ create.add_argument('host',            help = 'host label or URI')
 create.add_argument('protocol',        help = 'FC or ISCSI', default = None)
 create.add_argument('port',            help = 'Port WWN or IQN, etc.', default = None)
 create.add_argument('--node',          help = 'Node WWN or null', default = None)
+
+# initiator create host protocol port node
+createpair = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+createpair.add_argument('host',            help = 'host label or URI')
+createpair.add_argument('protocol',        help = 'FC or ISCSI', default = None)
+createpair.add_argument('port1',            help = 'First Port WWN or IQN, etc.', default = None)
+createpair.add_argument('--node1',          help = 'First Node WWN or null', default = None)
+createpair.add_argument('port2',            help = 'Second Port WWN or IQN, etc.', default = None)
+createpair.add_argument('--node2',          help = 'Second Node WWN or null', default = None)
+
+# associate initiator to other initiator 
+associate  = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+associate.add_argument('name1',    help = 'name of initiator in the format host_name/initiator_port1')
+associate.add_argument('name2',    help = 'name of initiator in the format host_name/initiator_port2')
+
+# disassociate initiator from other initiator 
+disassociate  = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+disassociate.add_argument('name1',    help = 'name of initiator in the format host_name/initiator_port1')
 
 # initiator delete name
 delete = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
@@ -193,6 +238,15 @@ try:
     if   (cmd == "create"):
         args = create.parse_args()
         initiator_create(args)
+    elif(cmd == "createpair"):
+        args = createpair.parse_args()
+        initiator_create_pair(args)  
+    elif(cmd == "associate"):
+        args = associate.parse_args()
+        initiator_associate(args)  
+    elif(cmd == "disassociate"):
+        args = disassociate.parse_args()
+        initiator_disassociate(args)    
     elif (cmd == "delete"):
         args = delete.parse_args()
         initiator_delete(args)

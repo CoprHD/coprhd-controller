@@ -54,6 +54,7 @@ import com.emc.storageos.api.service.impl.resource.utils.HostConnectionValidator
 import com.emc.storageos.api.service.impl.resource.utils.VolumeIngestionUtil;
 import com.emc.storageos.api.service.impl.response.BulkList;
 import com.emc.storageos.api.service.impl.response.ResRepFilter;
+import com.emc.storageos.blockorchestrationcontroller.VolumeDescriptor;
 import com.emc.storageos.computecontroller.ComputeController;
 import com.emc.storageos.computesystemcontroller.ComputeSystemController;
 import com.emc.storageos.computesystemcontroller.impl.ComputeSystemHelper;
@@ -83,6 +84,7 @@ import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.IpInterface;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.Project;
+import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StorageProvider;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
@@ -177,6 +179,9 @@ public class HostService extends TaskResourceService {
 
     @Autowired
     private ComputeElementService computeElementService;
+
+    @Autowired
+    private VPlexBlockServiceApiImpl vplexBlockServiceApiImpl;
 
     @Override
     public String getServiceType() {
@@ -298,6 +303,7 @@ public class HostService extends TaskResourceService {
         // We only want to update the export group if we're changing the cluster during a host update
         if (newClusterURI != null) {
             updateTaskStatus = false;
+            // VBDU TODO: COP-28451, The first if block never gets executed, need to understand the impact.
             if (updateExports && !NullColumnValueGetter.isNullURI(oldClusterURI)
                     && NullColumnValueGetter.isNullURI(newClusterURI)
                     && ComputeSystemHelper.isClusterInExport(_dbClient, oldClusterURI)) {
@@ -316,6 +322,12 @@ public class HostService extends TaskResourceService {
                             || ComputeSystemHelper.isClusterInExport(_dbClient, newClusterURI))) {
                 // Clustered host being moved to another cluster
                 controller.addHostsToExport(Arrays.asList(host.getId()), newClusterURI, taskId, oldClusterURI, false);
+            } else if (updateExports && !NullColumnValueGetter.isNullURI(oldClusterURI)
+                    && !NullColumnValueGetter.isNullURI(newClusterURI)
+                    && oldClusterURI.equals(newClusterURI)
+                    && ComputeSystemHelper.isClusterInExport(_dbClient, newClusterURI)) {
+                // Cluster hasn't changed but we should add host to the shared exports for this cluster
+                controller.addHostsToExport(Arrays.asList(host.getId()), newClusterURI, taskId, oldClusterURI, false);
             } else {
                 updateTaskStatus = true;
                 ComputeSystemHelper.updateHostAndInitiatorClusterReferences(_dbClient, newClusterURI, host.getId());
@@ -327,12 +339,14 @@ public class HostService extends TaskResourceService {
          * volume, iff it's exported to the Host with HLU 0. Hence an update to
          * the Host to set the boot volume should only really be made *after*
          * the volume has been exported to the Host.
-         * TODO Consider making the
+         * VBDU TODO: COP-28451, Consider making the
          * above requirement a hard one, by validating that such an export in
          * fact exists. For the time being following piece of code suffices
          * for satisfying some high level requirements, although it may not be
          * sufficient from an API purity standpoint
          */
+        // VBDU TODO: COP-28451, The above block of code doesn't guarantee that exports will be triggered for the
+        // updated host. Is it OK to set boot volume?
         if (!NullColumnValueGetter.isNullURI(host.getComputeElement()) && !NullColumnValueGetter.isNullURI(updateParam.getBootVolume())) {
             controller.setHostSanBootTargets(host.getId(), updateParam.getBootVolume());
         }
@@ -659,6 +673,7 @@ public class HostService extends TaskResourceService {
     
         List<Initiator> initiators = CustomQueryUtility.queryActiveResourcesByRelation(_dbClient, host.getId(),Initiator.class, "host");
  
+        // VBDU TODO: COP-28452, Running host deactivate even if initiators == null or list empty seems risky
         if (StringUtils.equalsIgnoreCase(host.getType(),HostType.No_OS.toString()) && (initiators == null || initiators.isEmpty())) {
             if (!NullColumnValueGetter.isNullURI(host.getComputeElement())){
                 computeElement = _dbClient.queryObject(ComputeElement.class, host.getComputeElement());
@@ -678,7 +693,25 @@ public class HostService extends TaskResourceService {
         Operation op = _dbClient.createTaskOpStatus(Host.class, host.getId(), taskId,
                 ResourceOperationTypeEnum.DELETE_HOST);
         ComputeSystemController controller = getController(ComputeSystemController.class, null);
-        controller.detachHostStorage(host.getId(), true, deactivateBootVolume, taskId);
+
+        List<VolumeDescriptor> bootVolDescriptors = new ArrayList<>();
+        if(deactivateBootVolume & !NullColumnValueGetter.isNullURI(host.getBootVolumeId())) {
+            Volume vol = _dbClient.queryObject(Volume.class, host.getBootVolumeId());
+            if (vol.isVPlexVolume(_dbClient)) {
+                bootVolDescriptors.addAll(vplexBlockServiceApiImpl.getDescriptorsForVolumesToBeDeleted(
+                        vol.getStorageController(), Arrays.asList(host.getBootVolumeId()), null));
+            } else {
+                if (vol.getPool() != null) {
+                    StoragePool storagePool = _dbClient.queryObject(StoragePool.class, vol.getPool());
+                    if (storagePool != null && storagePool.getStorageDevice() != null) {
+                        bootVolDescriptors.add(new VolumeDescriptor(VolumeDescriptor.Type.BLOCK_DATA, storagePool
+                                .getStorageDevice(), host.getBootVolumeId(), null, null));
+                    }
+                }
+            }
+        }
+
+        controller.detachHostStorage(host.getId(), true, deactivateBootVolume, bootVolDescriptors, taskId);
         if (!NullColumnValueGetter.isNullURI(host.getComputeElement())) {
             host.setProvisioningStatus(Host.ProvisioningJobStatus.IN_PROGRESS.toString());
         }
@@ -734,7 +767,7 @@ public class HostService extends TaskResourceService {
         Operation op = _dbClient.createTaskOpStatus(Host.class, host.getId(), taskId,
                 ResourceOperationTypeEnum.DETACH_HOST_STORAGE);
         ComputeSystemController controller = getController(ComputeSystemController.class, null);
-        controller.detachHostStorage(host.getId(), false, false, taskId);
+        controller.detachHostStorage(host.getId(), false, false, null, taskId);
         return toTask(host, taskId, op);
     }
 

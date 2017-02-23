@@ -362,6 +362,8 @@ URI_EXPORTGROUP_VOLUMES_REMOVE  = URI_SERVICES_BASE   + '/block/exports/{0}/remo
 URI_EXPORTGROUP_INITS           = URI_SERVICES_BASE   + '/block/exports/{0}/initiators'
 URI_EXPORTGROUP_INIT_DELETE     = URI_SERVICES_BASE   + '/block/exports/{0}/initiators/{1},{2}'
 URI_EXPORTGROUP_INITS_REMOVE    = URI_SERVICES_BASE   + '/block/exports/{0}/remove-initiators'
+URI_EXPORTGROUP_REALLOC		= URI_SERVICES_BASE   + '/block/exports/{0}/paths-adjustment-preview' 
+URI_EXPORTGROUP_REBALANCE	= URI_SERVICES_BASE   + '/block/exports/{0}/paths-adjustment' 
 URI_EXPORTGROUP_SEARCH_PROJECT  = URI_EXPORTGROUP_LIST + '/search?project={0}'
 
 URI_HOSTS                       = URI_SERVICES_BASE   + '/compute/hosts'
@@ -369,6 +371,9 @@ URI_HOST                        = URI_SERVICES_BASE   + '/compute/hosts/{0}'
 URI_HOST_DEACTIVATE             = URI_HOST            + '/deactivate?detach_storage={1}'
 URI_HOSTS_BULKGET               = URI_HOSTS           + '/bulk'
 URI_HOST_INITIATORS             = URI_SERVICES_BASE   + '/compute/hosts/{0}/initiators'
+URI_INITIATOR_PAIR              = URI_SERVICES_BASE   + '/compute/hosts/{0}/paired-initiators'
+URI_INITIATOR_ASSOCIATE         = URI_SERVICES_BASE   + "/compute/initiators/{0}/associate/{1}"
+URI_INITIATOR_DISSOCIATE        = URI_SERVICES_BASE   + "/compute/initiators/{0}/dissociate"
 URI_HOST_IPINTERFACES           = URI_SERVICES_BASE   + '/compute/hosts/{0}/ip-interfaces'
 URI_INITIATORS                  = URI_SERVICES_BASE   + '/compute/initiators'
 URI_INITIATOR                   = URI_SERVICES_BASE   + '/compute/initiators/{0}'
@@ -1504,7 +1509,7 @@ class Bourne:
                    mirrorCosUri, neighborhoods, expandable, sourceJournalSize, journalVarray, journalVpool, standbyJournalVarray, 
                    standbyJournalVpool, rp_copy_mode, rp_rpo_value, rp_rpo_type, protectionCoS,
                    multiVolumeConsistency, max_snapshots, max_mirrors, thin_volume_preallocation_percentage,
-                   long_term_retention, system_type, srdf, auto_tiering_policy_name, host_io_limit_bandwidth, host_io_limit_iops,
+                   long_term_retention, drive_type, system_type, srdf, auto_tiering_policy_name, host_io_limit_bandwidth, host_io_limit_iops,
 		   auto_cross_connect, placement_policy, compressionEnabled):
 
         if (type != 'block' and type != 'file' and type != "object" ):
@@ -1520,6 +1525,8 @@ class Bourne:
             parms['use_matched_pools'] = useMatchedPools
         if (protocols):
             parms['protocols'] = protocols
+        if (drive_type):
+        	parms['drive_type'] = drive_type                        
         if (system_type):
             parms['system_type'] = system_type
 
@@ -1668,7 +1675,7 @@ class Bourne:
                    protocols, numpaths, highavailability, haNhUri, haCosUri, activeProtectionAtHASite, metropoint, file_cos, provisionType,
                    mirrorCosUri, neighborhoods, expandable, sourceJournalSize, journalVarray, journalVpool, standbyJournalVarray, 
                    standbyJournalVpool, rp_copy_mode, rp_rpo_value, rp_rpo_type, protectionCoS,
-                   multiVolumeConsistency, max_snapshots, max_mirrors, thin_volume_preallocation_percentage,
+                   multiVolumeConsistency, max_snapshots, max_mirrors, thin_volume_preallocation_percentage, drive_type,
                    system_type, srdf, compressionEnabled):
 
         if (type != 'block' and type != 'file' and type != "object" ):
@@ -1680,6 +1687,8 @@ class Bourne:
             parms['use_matched_pools'] = useMatchedPools
         if (protocols):
             parms['protocols'] = protocols
+        if (drive_type):
+        	parms['drive_type'] = drive_type            
         if (system_type):
             parms['system_type'] = system_type
 
@@ -5259,6 +5268,39 @@ class Bourne:
             s = 'error'
         return (o, s)
 
+    def export_group_pathadj_preview(self, groupId, systemId, varrayId, useExisting, pathParam, hosts):
+        parms = {}
+
+	# Optionally add path parameters
+        if (pathParam['max_paths'] > 0):
+            print 'Path parameters', pathParam
+	    parms['path_parameters'] = pathParam
+        if varrayId != "":
+            parms['virtual_array'] = varrayId
+        parms['storage_system'] = systemId
+        if useExisting:
+            parms['use_existing_paths'] = 'true'
+        if hosts:
+            parms['hosts'] = hosts;
+
+        if(BOURNE_DEBUG == '1'):
+	    print str(parms)
+        o = self.api('POST', URI_EXPORTGROUP_REALLOC.format(groupId), parms)
+        return o
+
+    def export_group_pathadj(self, groupId, parms):
+        if(BOURNE_DEBUG == '1'):
+	    print str(parms)
+        o = self.api('PUT', URI_EXPORTGROUP_REBALANCE.format(groupId), parms)
+        self.assert_is_dict(o)
+        if(BOURNE_DEBUG == '1'):
+	    print 'OOO: ' + str(o) + ' :OOO'
+	try:
+            s = self.api_sync_2(o['resource']['id'], o['op_id'], self.export_show_task)
+	except:
+	    print o
+        return (o, s)
+
     #
     # block snapshot
     #
@@ -6899,7 +6941,7 @@ class Bourne:
         self._headers['date'] = date
         #_headers['x-emc-date'] = date
         self._headers['x-emc-uid'] = uid
-        self._headers['x-emc-meta'] = 'color=red,city=seattle,key=é'
+        self._headers['x-emc-meta'] = 'color=red,city=seattle,key=ï¿½'
         self._headers['x-emc-signature'] = self.atmos_hmac_base64_sig(method, content_type, uri, date, secret)
 
         response = self.coreapi(method, uri, value, None, None, content_type)
@@ -8434,7 +8476,7 @@ class Bourne:
     #
     def host_create(self, label, tenant, type, hostname, devport,
                     username, password, osversion, usessl,
-                    project, cluster, datacenter, discoverable):
+                    project, cluster, datacenter, discoverable, isVirtual):
         uri = self.__tenant_id_from_label(tenant)
 
         parms = { 'name'            : label,
@@ -8445,7 +8487,8 @@ class Bourne:
                    'user_name'      : username,
                    'password'       : password,
                    'use_ssl'        : usessl,
-                   'discoverable'   : discoverable
+                   'discoverable'   : discoverable,
+                   'virtual_machine': isVirtual
                    }
         if(datacenter):
             parms['vcenter_data_center'] = self.datacenter_query(datacenter)
@@ -8455,7 +8498,7 @@ class Bourne:
             parms['project'] = self.tenant_project_query(tenant, project)
         return self.api('POST', URI_TENANTS_HOSTS.format(uri), parms)
 
-    def host_update(self, uri, cluster):
+    def host_update(self, uri, cluster, isVirtual):
         clusterURI = None
         if (cluster):
         	if (cluster == 'null'):
@@ -8464,7 +8507,8 @@ class Bourne:
         		clusterURI = self.cluster_query(cluster)
             
         parms = {
-        	'cluster' : clusterURI
+        	'cluster' : clusterURI,
+            'virtual_machine' : isVirtual
         }
   
         o =  self.api('PUT', URI_HOST.format(uri), parms)
@@ -8571,10 +8615,53 @@ class Bourne:
                   'initiator_port'    : port,
                   'initiator_node'    : node,
                    }
-        o = self.api('POST', URI_HOST_INITIATORS.format(uri), parms)
+        try:
+            o = self.api('POST', URI_HOST_INITIATORS.format(uri), parms)
+            self.assert_is_dict(o)
+            s = self.api_sync_2(o['resource']['id'], o['op_id'], self.initiator_show_task)
+        except:
+            print o, s
+        return (o, s)
+    
+    def initiator_create_pair(self, host, protocol, port1, node1, port2, node2):
+        uri = self.host_query(host)
+        parms = {
+            "first_initiator": {
+                "protocol": protocol,
+                "initiator_node": node1,
+                "initiator_port": port1,
+                "name": "initname1"
+            },
+            "second_initiator": {
+                "protocol": protocol,
+                "initiator_node": node2,
+                "initiator_port": port2,
+                "name": "initname2"
+            }
+        }
+        
+        o = self.api('POST', URI_INITIATOR_PAIR.format(uri), parms)
         self.assert_is_dict(o)
         s = self.api_sync_2(o['resource']['id'], o['op_id'], self.initiator_show_task)
         return (o, s)
+    
+    """
+    Associate initiators operation
+    """
+    def associate_initiator(self, initiatorUri, associatedInitiatorUri):
+
+        o = self.api("PUT", URI_INITIATOR_ASSOCIATE.format(initiatorUri, associatedInitiatorUri),None)
+        self.assert_is_dict(o)
+        return (o)
+        
+    """
+    Dissociate initiators operation
+    """
+    def dissociate_initiator(self, initiatorUri):
+        
+        o = self.api("PUT", URI_INITIATOR_DISSOCIATE.format(initiatorUri),None)
+        self.assert_is_dict(o)
+        return (o)
 
     def initiator_list(self, host):
         uri = self.host_query(host)

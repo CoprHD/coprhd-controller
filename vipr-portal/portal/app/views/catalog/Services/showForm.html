@@ -90,6 +90,24 @@
                 <span ng-switch-when="table">
                   <service-table table="item"></service-table>
                 </span>
+                <span ng-switch-when="modal">
+			      #{Modal.dialog id:'exportPathAdjustment', cssClass:'widest'}
+			        #{Modal.body}
+			          #{Form.header titleKey:'exportPathAdjustment.modal.title'/}
+			          <service-modal modal="item"></service-modal>
+			        #{/Modal.body}
+			        #{Modal.footer}
+			          <button-bar>
+			            <button type="submit" class="btn btn-primary" ng-disabled="disableSubmitButton()" v-submit-form>
+			               <span v-icon=shopping-cart></span>
+			              <span ng-if="!isSchedulerEnabled()" >&{"service.order"}</span>
+			              <span ng-if="isSchedulerEnabled()" >&{"service.schedule"}</span>
+			            </button>
+			            #{Form.button 'button.cancel', icon:'primary', data:['dismiss':'modal']/}
+	                  </button-bar>
+			        #{/Modal.footer}
+			      #{/Modal.dialog}
+			    </span>
                 <span ng-switch-default>
                   <service-field field="item"></service-field>
                 </span>
@@ -128,15 +146,26 @@
           #{/if}
           
           <button-bar>
-            <button type="submit" class="btn btn-primary" ng-disabled="disableSubmitButton()" v-submit-form>
+          
+            #{if serviceDescriptor.useModal}
+              #{Form.button name:'service.preview', icon:'check', action:'showModalDialog()' /}
+            #{/if}
+            #{else}
+              <button type="submit" class="btn btn-primary" ng-disabled="disableSubmitButton()" v-submit-form>
                 <span v-icon=shopping-cart></span>
                 <span ng-if="!isSchedulerEnabled()" >&{"service.order"}</span>
                 <span ng-if="isSchedulerEnabled()" >&{"service.schedule"}</span>
-            </button>
+              </button>
+            #{/else}
             #{Form.button name:'service.cancel', icon:'trash', href:backUrl /}
           </button-bar>
 
       </form>
       
   </div>
+  <script>
+	function showModalDialog() {
+	  $('.modal').modal();
+	}
+  </script>
 #{/if}

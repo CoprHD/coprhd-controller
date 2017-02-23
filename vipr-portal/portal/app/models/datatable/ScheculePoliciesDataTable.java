@@ -63,7 +63,9 @@ public class ScheculePoliciesDataTable extends DataTable {
                     }
                 }
                 if (FilePolicyApplyLevel.project.name().equals(policy.getAppliedAt())) {
-                    vPools = policy.getVpool().getName();
+                    if (policy.getVpool() != null) {
+                        vPools = policy.getVpool().getName();
+                    }
                     projects = assignRes.toString();
 
                 } else if (FilePolicyApplyLevel.vpool.name().equals(policy.getAppliedAt())) {

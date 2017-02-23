@@ -5,12 +5,16 @@
 package com.emc.sa.service.vipr.file.tasks;
 
 import java.net.URI;
+import java.util.HashSet;
+import java.util.Set;
 
 import com.emc.sa.service.vipr.tasks.WaitForTask;
-import com.emc.storageos.model.file.FileShareRestRep;
+import com.emc.storageos.model.TaskResourceRep;
+import com.emc.storageos.model.file.policy.FilePolicyRestRep;
+import com.emc.storageos.model.file.policy.FilePolicyUnAssignParam;
 import com.emc.vipr.client.Task;
 
-public class DissociateFilePolicyFromFileSystem extends WaitForTask<FileShareRestRep> {
+public class DissociateFilePolicyFromFileSystem extends WaitForTask<FilePolicyRestRep> {
 
     private final URI fileSystemId;
     private final URI filePolicyId;
@@ -26,7 +30,12 @@ public class DissociateFilePolicyFromFileSystem extends WaitForTask<FileShareRes
     }
 
     @Override
-    protected Task<FileShareRestRep> doExecute() throws Exception {
-        return getClient().fileSystems().dissociateFilePolicy(fileSystemId, filePolicyId);
+    protected Task<FilePolicyRestRep> doExecute() throws Exception {
+        FilePolicyUnAssignParam input = new FilePolicyUnAssignParam();
+        Set<URI> fileSystems = new HashSet<URI>();
+        fileSystems.add(fileSystemId);
+        input.setUnassignfrom(fileSystems);
+        TaskResourceRep taskResp = getClient().fileProtectionPolicies().unassignPolicy(filePolicyId, input);
+        return getClient().fileProtectionPolicies().getTask(filePolicyId, taskResp.getId());
     }
 }

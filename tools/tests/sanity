@@ -14,9 +14,14 @@ CONFIG_FILE=${1}
 
 Usage()
 {
-    echo 'Usage: sanity <configuration_file> <bourne_ip>|<[bourne_ipv6]> {all | snapvx | isilon | vplex [normal|quick|xio|vnx] [noingest|ingest [all|exported|unexported]] | vplexexport | vplexsnap | custvolname | vnxblock | ingestblock | vnxblock_flex_varray | netapp | netappc | recoverpoint | xtremio [quick|hlu|quick hlu] | srdf |
- vnxfile | datadomainfile | vmaxblock | hds | vmaxblock_flex_varray | combined_block | blocksnapshot | blockmirror | full_copy | blockconsistencygroup | init | quick | sbsdk |
- errorhandling | vnxe | security | syssvc | audit | monitor | vdc | catalog | recovery | backuprestore backupserver-uri username password | dr | ipsec | ceph} [local|ldap] [<timeslot>] | sanzoning | application | unityblock [all|block|vplex|rp|hlu] | unityfile | arrayaffinity'
+    echo 'Usage: sanity <configuration_file> <bourne_ip>|<[bourne_ipv6]> {all | snapvx | isilon 
+    | vplex [normal|quick|xio|vnx] [noingest|ingest [all|exported|unexported]] | vplexexport | vplexsnap
+    | custvolname | vnxblock | ingestblock | vnxblock_flex_varray | netapp | netappc | recoverpoint 
+    | xtremio [quick|hlu|quick hlu] | srdf | vnxfile | datadomainfile | vmaxblock | hds | vmaxblock_flex_varray 
+    | combined_block | blocksnapshot | blockmirror | full_copy | blockconsistencygroup | init | quick | sbsdk 
+    | errorhandling | vnxe | security | syssvc | audit | monitor | vdc | catalog | recovery
+    | backuprestore backupserver-uri username password | dr | ipsec | ceph} [local|ldap] [<timeslot>] 
+    | sanzoning | application | unityblock [all|block|vplex|rp|hlu] | unityfile | arrayaffinity | lparmobility'    
     echo 'E.g.:  sanity conf/sanity.conf 137.69.169.21 all'
     echo 'E.g.:  sanity ~/.sanity/sanity.conf 137.69.169.21 isilon'
     echo 'Note: IPv6 needs to be square bracket surrounded. E.g.:  sanity [2620:0:170:2842::180] security'
@@ -225,7 +230,7 @@ do
 done
 
 case $SS in
-    all|snapvx|isilon|vplex|vplexexport|vplexsnap|netapp|netappc|recoverpoint|srdf|vnxfile|datadomainfile|vnxblock|vnxblock_flex_varray|hds|xtremio|vmaxblock|ingestblock|vmaxblock_flex_varray|combined_block|syssvc|blocksnapshot|blockmirror|full_copy|blockconsistencygroup|security|monitor|audit|ui|init|quick|errorhandling|vdc|vnxe|recovery|backuprestore|sanzoning|dr|ipsec|application|sbsdk|ceph|unityblock|unityfile|custvolname|arrayaffinity)
+    all|snapvx|isilon|vplex|vplexexport|vplexsnap|netapp|netappc|recoverpoint|srdf|vnxfile|datadomainfile|vnxblock|vnxblock_flex_varray|hds|xtremio|vmaxblock|ingestblock|vmaxblock_flex_varray|combined_block|syssvc|blocksnapshot|blockmirror|full_copy|blockconsistencygroup|security|monitor|audit|ui|init|quick|errorhandling|vdc|vnxe|recovery|backuprestore|sanzoning|dr|ipsec|application|sbsdk|ceph|unityblock|unityfile|custvolname|arrayaffinity|lparmobility)
     ;;
 
     # These tests are handled by sanity integration tests written with the code
@@ -607,6 +612,39 @@ srdf_generate_rdfg_name() {
 SRDF_SLEEPING_SECONDS=180
 srdf_sleep() {
     ssleep ${SRDF_SLEEPING_SECONDS}
+}
+
+setup_yaml() {
+    storage_type=$1
+    tools_file="${BASEDIR}/export-tests/tools.yml"
+    if [ -f "$tools_file" ]; then
+	echo "Stale $tools_file found. Deleting it."
+	rm $tools_file
+    fi
+
+    echo "Creating ${tools_file}"
+    touch $tools_file
+
+    if [ "$storage_type" = "unity" ]; then
+        printf 'array:\n  %s:\n  - ip: %s:%s\n    username: %s\n    password: %s' "$storage_type" "$UNITY_IP" "$UNITY_PORT" "$UNITY_USER" "$UNITY_PW" >> $tools_file
+        return
+    fi
+
+    storage_sn=$2
+    storage_password=$3
+    if [ "${storage_password}" = "" ]; then
+	echo "storage_password is not set. Cannot make a valid tools.yml file without a storage_password"
+	exit;
+    fi
+
+    storage_id=`storagedevice list | grep COMPLETE | grep ${storage_sn} | awk '{print $5}'`
+    storage_version=`storagedevice show ${storage_id} | grep firmware_version | awk '{print $2}' | cut -d '"' -f2`
+    storage_ip=`storagedevice show ${storage_id} | grep smis_provider_ip | awk '{print $2}' | cut -d '"' -f2`
+    storage_port=`storagedevice show ${storage_id} | grep port_number | awk '{print $2}' | cut -d ',' -f1`
+    storage_user=`storagedevice show ${storage_id} | grep user_name | awk '{print $2}' | cut -d '"' -f2`
+
+    # create the yml file to be used for array tooling
+    printf 'array:\n  %s:\n  - ip: %s:%s\n    id: %s\n    username: %s\n    password: %s\n    version: %s' "$storage_type" "$storage_ip" "$storage_port" "$storage_sn" "$storage_user" "$storage_password" "$storage_version" >> $tools_file
 }
 
 #
@@ -1239,10 +1277,10 @@ xtremio_port_setup()
 
 xtremio_storage_setup() {
     secho "Starting XtremIO 3.x storageprovider create"
-    storageprovider create xtremio3x $XTREMIO_3X_IP 443 $XTREMIO_3X_USER $XTREMIO_3X_PASSWD xtremio 
+    run storageprovider create xtremio3x $XTREMIO_3X_IP 443 $XTREMIO_3X_USER $XTREMIO_3X_PASSWD xtremio
 
     secho "Starting XtremIO 4.x storageprovider create"
-    storageprovider create xtremio4x $XTREMIO_4X_IP 443 $XTREMIO_4X_USER $XTREMIO_4X_PASSWD xtremio
+    run storageprovider create xtremio4x $XTREMIO_4X_IP 443 $XTREMIO_4X_USER $XTREMIO_4X_PASSWD xtremio
 
     secho 'XtremIO discover storage systems'
     storagedevice discover_all
@@ -1253,7 +1291,7 @@ xtremio_network_setup()
 {
     secho "XtremIO network setup"
     networksystem show $BROCADE_NETWORK &> /dev/null && return $?
-    networksystem create $BROCADE_NETWORK brocade --smisip $BROCADE_IP --smisport 5988 --smisuser $BROCADE_USER --smispw $BROCADE_PW --smisssl false
+    run networksystem create $BROCADE_NETWORK brocade --smisip $BROCADE_IP --smisport 5988 --smisuser $BROCADE_USER --smispw $BROCADE_PW --smisssl false
     run transportzone assign ${SRDF_VMAXA_VSAN} $NH
 }
 
@@ -1543,13 +1581,13 @@ xtremio_simulator_setup()
     xtremio_varray_setup   
     
     run syssvc $CONFIG_FILE $BOURNE_IPADDR set_prop controller_discovery_refresh_interval 5
- 
-    storageprovider create xtremio3x $XIO_SIMULATOR_IP 4431 root root xtremio
-    storageprovider create xtremio4x $XIO_SIMULATOR_IP 4430 root root xtremio
+
+    run storageprovider create xtremio3x $XIO_SIMULATOR_IP $XIO_3X_SIMULATOR_PORT root root xtremio
+    run storageprovider create xtremio4x $XIO_SIMULATOR_IP $XIO_4X_SIMULATOR_PORT root root xtremio
     run networksystem create $FABRIC_SIMULATOR  mds --devip $SIMULATOR_CISCO_MDS --devport 22 --username $RP_FABRIC_SIM_USER --password $RP_FABRIC_SIM_PW
     
     storagedevice discover_all
-    storagedevice list    
+    storagedevice list
     run transportzone assign VSAN_11 ${NH}
 
     # Make sure all of the pools are updated and matched
@@ -1557,7 +1595,6 @@ xtremio_simulator_setup()
 
     run storagepool update $XIO_3X_SIM_NATIVEGUID --nhadd $NH --type block
     run storagepool update $XIO_4X_SIM_NATIVEGUID --nhadd $NH --type block
-
     
     run storageport update $XIO_3X_SIM_NATIVEGUID FC --addvarrays $NH
     run storageport update $XIO_4X_SIM_NATIVEGUID FC --addvarrays $NH
@@ -1622,7 +1659,6 @@ xtremio_setup()
         secho "XtremIO setup"
         xtremio_common_setup
     fi
-    
 }
 
 xtremio_tests()
@@ -1631,8 +1667,18 @@ xtremio_tests()
 
    # HLU specific tests
    if [ "$XIO_HLU_PARAM" = "1" ]; then
+       secho "Creating tools.yml"
+
+       storage_sn=$XTREMIO_4X_SN
+       storage_password=$XTREMIO_4X_PASSWD
+       if [ "$XIO_QUICK_PARAM" = "quick" ]; then
+           storage_sn=$XIO_4X_SIM_SN
+       fi
+
+       setup_yaml xtremio $storage_sn $storage_password
+
        xtremio_export_test_hlu
-	   return
+       return
    fi
 
    if [ "$XIO_BLOCK_TESTS" = "1" ]; then
@@ -2903,6 +2949,7 @@ vplex_sim_variable_setup()
 
 vplex_setup_once()
 {
+    run syssvc $CONFIG_FILE $BOURNE_IPADDR set_prop controller_vplex_director_min_port_count 1
     if [ "$AUTH" == 'ipv6' ] ; then
         echo "Setting up VPLEX environment for IPv6"
         # Discover the storage systems 
@@ -7459,7 +7506,7 @@ common_setup()
 
         # RecoverPoint doesn't need zone setup, it uses its own zone setup
         if [ "${SS}" != "recoverpoint" -a "${SS}" != "srdf" ]; then
-          secho "Skipping zone setup"
+          secho "Run zone setup"
           zone_setup
           run transportzone add $NH/$IP_ZONE $BLK_CLIENT_iSCSI
         fi
@@ -7478,8 +7525,11 @@ common_setup()
                 run neighborhood allow $NH2 $TENANT
                 run neighborhood allow $NH $ROOT_TENANT
                 run neighborhood allow $NH2 $ROOT_TENANT
-                secho "Setup hosts and clusters for $TENANT"
-                host_setup
+                
+                if [ "${SS}" != "lparmobility" ]; then
+                   secho "Setup hosts and clusters for $TENANT"
+                   host_setup
+                fi
             fi
         fi
     fi
@@ -12196,7 +12246,7 @@ application_createvols()
     secho cg1volid3 is ${VG_CG1VOLID3}
 
     # create volumes in cg2
-    run blockconsistencygroup create ${PROJECT} ${VG_CGNAME2}
+    run blockconsistencygroup create ${PROJECT} ${VG_CGNAME2} --noarrayconsistency
     a=`blockconsistencygroup show ${VG_CGNAME2} | grep '"id":' | grep BlockConsistencyGroup | awk '{print $2}'`
     b=${a:1}
     VG_CGID2=${b%'"'*}
@@ -12349,6 +12399,37 @@ application_multi_sub_group_copy_tests()
 }
 
 
+application_export_snapshot_tests()
+{
+    hostseed="${RANDOM}"
+    apphostname="apphost-${hostseed}"
+    appexportname="host${hostseed}.sanity.com"
+    volspec=$1
+    copysetname=$2
+
+    # get snapshot names
+    snapshotname=`blocksnapshot list ${volspec} | grep ${copysetname} | awk '{print $1}'`
+
+    snapspec=$volspec/$snapshotname
+
+    PWWN1=`pwwn 6F`;
+    NWWN1=`pwwn 7F`;
+    run hosts create ${apphostname} $TENANT Windows ${apphostname} --port 8111 --username $RP_HOST_USER --password '${RP_HOST_PW}' --osversion 1.0
+    run initiator create ${apphostname} FC $PWWN1 --node $NWWN1
+    run transportzone add ${VG_VARRAY_CG}/${SIMULATOR_VSAN_11} $PWWN1
+
+    sleep 20
+
+    run export_group create $PROJECT ${appexportname} ${VG_VARRAY_CG} --volspec ${snapspec} --inits "${apphostname}/$PWWN1"
+
+    # delete copy should fail because one of the snapshots is exported to a host
+    fail volumegroup delete-copy $copy_type $VG_COPYVG1 $VG_FCNAME
+
+    run export_group delete $PROJECT/${appexportname}
+    run hosts delete ${apphostname}
+
+}
+
 application_full_copy_tests()
 {
     secho "application_full_copy_tests()"
@@ -12400,11 +12481,14 @@ application_full_copy_tests()
         if [[ $APPLICATION_LINK_COPY_SUPPORTED -eq 1 ]]; then
             target_name="tgt-${VG_FCNAME}"
             run volumegroup link-copy $copy_type $VG_COPYVG1 $VG_FCNAME 1 $target_name nocopy
+            application_export_snapshot_tests $PROJECT/$VG_CG1VOL1 $target_name
             if [[ $APP_RESTORE_SUPPORTED -eq 1 ]]; then
                 run volumegroup restore-copy $copy_type $VG_COPYVG1 $VG_FCNAME
             fi
             run volumegroup relink-copy $copy_type $VG_COPYVG1 $VG_FCNAME ${target_name}-1
             run volumegroup unlink-copy $copy_type $VG_COPYVG1 $VG_FCNAME ${target_name}-1
+        else
+            application_export_snapshot_tests $PROJECT/$VG_CG1VOL1 $VG_FCNAME
         fi
         run volumegroup delete-copy $copy_type $VG_COPYVG1 $VG_FCNAME
         fail volumegroup verify-copy-set $copy_type $VG_COPYVG1 $VG_FCNAME
@@ -13253,14 +13337,14 @@ unityfile_cos_setup()
 unityblock_setup()
 {
     secho "Starting unity storage system create"
-    discoveredsystem create $UNITY_DEV unity $UNITY_IP $UNITY_PORT $UNITY_USER $UNITY_PW --serialno=$UNITY_SN
-    storagedevice list
+    run discoveredsystem create $UNITY_DEV unity $UNITY_IP $UNITY_PORT $UNITY_USER $UNITY_PW --serialno=$UNITY_SN
+    run storagedevice list
 
     secho "Setup ACLs on neighborhood for $TENANT"
     run neighborhood allow $NH $TENANT
-    run neighborhood allow $NH $TENANT
+
     run transportzone assign ${SRDF_VMAXA_VSAN} $NH
-    storagepool update $UNITY_NATIVEGUID --type block --volume_type THIN_AND_THICK
+    run storagepool update $UNITY_NATIVEGUID --type block --volume_type THIN_AND_THICK
     run transportzone add ${SRDF_VMAXA_VSAN} $UNITY_INIT_PWWN1
     run transportzone add ${SRDF_VMAXA_VSAN} $UNITY_INIT_PWWN2
     unityblock_cos_setup
@@ -13296,6 +13380,9 @@ unityblock_tests()
     fi
 
     if [ "${UNITY_OPTION}" = "hlu" ]; then
+        secho "Creating tools.yml"
+        setup_yaml unity
+
         unityblock_export_consistent_hlu_tests
     fi
 }
@@ -14243,6 +14330,103 @@ arrayaffinity_tests()
     arrayaffinity_cleanup
 
     secho "Completed array affinity tests"
+}
+
+LPAR_HOST1=lparhost1
+LPAR_HOST2=lparhost2
+
+# Create LPAR HOST
+# These will be virtual hosts having paired initiators
+lpar_hosts_setup()
+{
+    secho "Setup LPAR hosts for $TENANT started"
+    proj=$PROJECT
+    tenant=$TENANT
+    
+    portwwn1=10:a0:b0:c0:d0:e0:f0:01
+    nodewwn1=20:a0:b0:c0:d0:e0:f0:01
+    portwwn2=30:a0:b0:c0:d0:e0:f0:03
+    nodewwn2=40:a0:b0:c0:d0:e0:f0:04
+    portwwn3=50:a0:b0:c0:d0:e0:f0:01
+    nodewwn3=60:a0:b0:c0:d0:e0:f0:01
+    portwwn4=70:a0:b0:c0:d0:e0:f0:03
+    nodewwn4=80:a0:b0:c0:d0:e0:f0:04
+	fctz=${NH}/FABRIC_losam082-fabric
+
+    run hosts create ${LPAR_HOST1} $tenant Linux ${LPAR_HOST1}.lss.emc.com --port 2222 --username user --password 'password' --osversion 1.0 --isVirtual true
+    run initiator createpair ${LPAR_HOST1} FC ${portwwn1} --node1 ${nodewwn1} ${portwwn2} --node2 ${nodewwn2}
+    run hosts create ${LPAR_HOST2} $tenant Linux ${LPAR_HOST2}.lss.emc.com --port 2222 --username user --password 'password' --osversion 1.0 --isVirtual true
+    run initiator createpair ${LPAR_HOST2} FC ${portwwn3} --node1 ${nodewwn3} ${portwwn4} --node2 ${nodewwn4}
+    
+    run transportzone add $fctz $portwwn1
+    run transportzone add $fctz $portwwn2
+    run transportzone add $fctz $portwwn3
+    run transportzone add $fctz $portwwn4
+
+    secho "Setup LPAR hosts for $TENANT ended"
+}
+
+lparmobility_setup()
+{
+	secho "START LPAR mobility setup"
+	
+	lpar_hosts_setup
+	vmaxblock_setup
+	
+	secho "LPAR mobility setup ended"
+}
+
+lpar_host_update()
+{
+	secho "LPAR host update test started"
+	
+    proj=$PROJECT
+    tenant=$TENANT
+    
+    host1=Non-LPAR-Host1
+    
+    portwwn1=10:A1:B0:C0:D0:E0:F0:01
+    nodewwn1=20:A1:B0:C0:D0:E0:F0:01
+    portwwn2=30:A1:B0:C0:D0:E0:F0:03
+    nodewwn2=40:A1:B0:C0:D0:E0:F0:04
+
+    #Create a normal host
+    run hosts create ${host1} $tenant Linux ${host1}.lss.emc.com --port 2222 --username user --password 'password' --osversion 1.0
+        
+    #Update it to a virtual host
+    run hosts update ${host1} --isVirtual true
+    
+    #Create initiators and associate
+    run initiator create $host1 FC ${portwwn1} --node ${nodewwn1}
+    run initiator create $host1 FC ${portwwn2} --node ${nodewwn2}
+    run initiator associate $host1/${portwwn1} $host1/${portwwn2}
+    
+    #disassociate initiators
+    run initiator disassociate $host1/${portwwn1}
+    
+    secho "LPAR host update test ended"
+
+}
+
+lparmobility_tests()
+{
+	secho "Start LPAR mobility tests"
+	
+	vpool=$COS_VMAXBLOCK_FC
+	proj_name=$PROJECT
+	volume_name=lpartestvolume-${RANDOM}
+	export_name1=$LPAR_HOST1-eg
+	
+	#Run volume creation and export
+	run volume create $volume_name $proj_name $NH $vpool $BLK_SIZE	
+	run export_group create $proj_name $export_name1 $NH --type Host --volspec $proj_name/$volume_name --hosts $LPAR_HOST1
+	run export_group show $proj_name/$export_name1
+	
+	#Run host update tests
+	lpar_host_update
+	
+	secho "LPAR mobility tests ended"	
+
 }
 
 # set DO_TESTS_ONLY to 1 if setup does not need to be re-run

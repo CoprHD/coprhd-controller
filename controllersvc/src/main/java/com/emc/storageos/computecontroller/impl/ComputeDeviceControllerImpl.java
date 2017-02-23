@@ -881,9 +881,10 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
         }
         List<URI> clusterHosts = ComputeSystemHelper.getChildrenUris(_dbClient, clusterId, Host.class, "cluster");
         // Check if cluster has hosts, if cluster is empty then safely remove from vcenter.
-        
-        // VBDU TODO: COP-28400, Cluster without any hosts is kind of negative case, and this information is not
+
+        // VBDU [DONE]: COP-28400, Cluster without any hosts is kind of negative case, and this information is not
         // verified against the environment, do we need to take liberty of removing the cluster from VCenter?
+        // Before we get to this cluster removal, ClusterService has a precheck to verify the matching environments
         if (null == clusterHosts || clusterHosts.isEmpty()) {
             VcenterDataCenter vcenterDataCenter = _dbClient.queryObject(VcenterDataCenter.class,
                     cluster.getVcenterDataCenter());

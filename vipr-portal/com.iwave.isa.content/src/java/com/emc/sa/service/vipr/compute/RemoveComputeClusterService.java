@@ -61,8 +61,9 @@ public class RemoveComputeClusterService extends ViPRService {
         // removing cluster checks for running VMs first for ESX hosts
         addAffectedResource(clusterId);
 
-        // VBDU TODO COP-28400: Looks like this will decommission an entire cluster if there are hosts in it that we are
+        // VBDU [DONE] COP-28400: Looks like this will decommission an entire cluster if there are hosts in it that we are
         // not managing.
+        // ClusterService has a precheck to verify the matching environments before deactivating
         if (vblockHostURIs.isEmpty() && hostURIs.isEmpty()) {
             execute(new DeactivateCluster(cluster));
             return;

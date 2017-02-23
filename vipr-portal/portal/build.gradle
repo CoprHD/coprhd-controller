@@ -113,11 +113,7 @@ play {
         exclude "conf/dev-assets.json"
         into("public") {
             includeEmptyDirs = false
-            String[] base = 'public/docs/en_US'.split("\\/")
             from zipTree(configurations.documentation.singleFile)
-            eachFile { details->
-                rebase(base, details)
-            }
         }
         into("public/scaleio-1.20") {
             from configurations.scaleio120
@@ -202,7 +198,7 @@ tasks['eclipse'].dependsOn(copyTools, unpackWebjars)
 tasks['idea'].dependsOn(copyTools, unpackWebjars)
 
 
-void rebase(String[] base, FileCopyDetails details) {
+/*void rebase(String[] base, FileCopyDetails details) {
     def oldPath = details.relativePath.toString()
     String[] segments = details.relativePath.segments
     for (int i = 0; i < base.length && i < segments.length; i++) {
@@ -210,7 +206,7 @@ void rebase(String[] base, FileCopyDetails details) {
     }
     details.relativePath = new RelativePath(details.relativePath.isFile(), segments)
     project.logger.debug("  ${oldPath} -> ${details.relativePath}")
-}
+}*/
 
 sourceCompatibility = rootProject.javaSourceCompatibility
 targetCompatibility = rootProject.javaTargetCompatibility

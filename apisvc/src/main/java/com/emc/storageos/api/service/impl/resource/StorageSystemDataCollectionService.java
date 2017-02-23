@@ -1,22 +1,23 @@
 package com.emc.storageos.api.service.impl.resource;
 
 import com.emc.storageos.api.mapper.ScaleIODataMapper;
+import com.emc.storageos.model.collectdata.ScaleIOCollectDataParam;
 import com.emc.storageos.model.collectdata.ScaleIODeviceDataRestRep;
 import com.emc.storageos.model.collectdata.ScaleIOSDSDataRestRep;
-import com.emc.storageos.model.collectdata.ScaleIOCollectDataParam;
 import com.emc.storageos.model.collectdata.ScaleIOSystemDataRestRep;
+import com.emc.storageos.scaleio.ScaleIOException;
 import com.emc.storageos.scaleio.api.ScaleIOConstants;
 import com.emc.storageos.scaleio.api.restapi.ScaleIORestClient;
 import com.emc.storageos.scaleio.api.restapi.ScaleIORestClientFactory;
 import com.emc.storageos.scaleio.api.restapi.response.ScaleIODevice;
 import com.emc.storageos.scaleio.api.restapi.response.ScaleIOFaultSet;
 import com.emc.storageos.scaleio.api.restapi.response.ScaleIOProtectionDomain;
-import com.emc.storageos.scaleio.api.restapi.response.ScaleIOSDC;
 import com.emc.storageos.scaleio.api.restapi.response.ScaleIOSDS;
 import com.emc.storageos.scaleio.api.restapi.response.ScaleIOStoragePool;
 import com.emc.storageos.scaleio.api.restapi.response.ScaleIOSystem;
 import com.emc.storageos.security.authorization.DefaultPermissions;
 import com.emc.storageos.security.authorization.Role;
+import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
@@ -27,6 +28,7 @@ import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
+import org.codehaus.jettison.json.JSONException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -42,6 +44,8 @@ public class StorageSystemDataCollectionService {
     private static final Logger log = LoggerFactory.getLogger(StorageSystemDataCollectionService.class);
     private ScaleIORestClientFactory scaleIORestClientFactory;
 
+    private String SCALEIO = "ScaleIO";
+
     public void setScaleIORestClientFactory(
             ScaleIORestClientFactory scaleIORestClientFactory) {
         this.scaleIORestClientFactory = scaleIORestClientFactory;
@@ -52,31 +56,32 @@ public class StorageSystemDataCollectionService {
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     public ScaleIOSystemDataRestRep discoverScaleIO(ScaleIOCollectDataParam param) {
-        log.info("discovering ScaleIO: {}", param.getIPAddress());
+        log.debug("discovering ScaleIO: {}", param.getIPAddress());
         URI baseURI = URI.create(ScaleIOConstants.getAPIBaseURI(param.getIPAddress(), param.getPortNumber()));
-        ScaleIORestClient client = (ScaleIORestClient) scaleIORestClientFactory.getRESTClient(baseURI,param.getUserName(),param.getPassword());
+        ScaleIORestClient client =
+                (ScaleIORestClient) scaleIORestClientFactory.getRESTClient(baseURI,param.getUserName(),param.getPassword());
         ScaleIOSystemDataRestRep sio = null;
-
-        List<ScaleIOSDS> allSDS = null;
-        List<ScaleIOSDC> allSDC = null;
-        Map<String,ScaleIOProtectionDomain> pdMap = null;
-        Map<String,ScaleIOFaultSet> fsMap = null;
-        Map<String,ScaleIOStoragePool> spMap = null;
         try {
             //collect and map scaleIO system
             ScaleIOSystem system = client.getSystem();
             sio = ScaleIODataMapper.map(system);
 
             //collect sds,device,fault set, and protection domain data
-            allSDS = client.queryAllSDS();
-            pdMap = client.getProtectionDomains().stream().collect(
-                    Collectors.toMap(ScaleIOProtectionDomain::getId, p->p));
-            List<ScaleIOFaultSet> fsList = client.queryAllFaultSets();
-            if (null != fsList) {
-                fsMap = client.queryAllFaultSets().stream().collect(
-                        Collectors.toMap(ScaleIOFaultSet::getId, f -> f));
+            List<ScaleIOSDS> allSDS = client.queryAllSDS();
+
+            Map<String,ScaleIOProtectionDomain> pdMap = null;
+            List<ScaleIOProtectionDomain> pdList = client.getProtectionDomains();
+            if (null != pdList) {
+                pdMap = pdList.stream().collect(Collectors.toMap(ScaleIOProtectionDomain::getId, p -> p));
             }
-            spMap = client.queryAllStoragePools().stream().collect(
+
+            List<ScaleIOFaultSet> fsList = client.queryAllFaultSets();
+            Map<String,ScaleIOFaultSet> fsMap = null;
+            if (null != fsList) {
+                fsMap = client.queryAllFaultSets().stream().collect(Collectors.toMap(ScaleIOFaultSet::getId, f -> f));
+            }
+
+            Map<String,ScaleIOStoragePool> spMap = client.queryAllStoragePools().stream().collect(
                     Collectors.toMap(ScaleIOStoragePool::getId,s->s));
 
             //map SDS data
@@ -100,21 +105,27 @@ public class StorageSystemDataCollectionService {
                     sdsData.setFaultSet(ScaleIODataMapper.map(fsMap.get(sds.getFaultSetId())));
                 }
 
-                //map protection domain data
-                sdsData.setProtectionDomain(ScaleIODataMapper.map(pdMap.get(sds.getProtectionDomainId())));
-
-                //map Ip data
+                //map protection domain and IP data
+                if (null != pdMap) {
+                    sdsData.setProtectionDomain(ScaleIODataMapper.map(pdMap.get(sds.getProtectionDomainId())));
+                }
                 sdsData.setIpList(ScaleIODataMapper.mapIpList(sds.getIpList()));
 
                 scaleIOSDSDataRestReps.add(sdsData);
             }
-            sio.setSds(scaleIOSDSDataRestReps);
+            sio.setSdsList(scaleIOSDSDataRestReps);
 
             //collect and map SDC data
-            sio.setSdcs(ScaleIODataMapper.mapSdcList(client.queryAllSDC()));
+            sio.setSdcList(ScaleIODataMapper.mapSdcList(client.queryAllSDC()));
 
-        } catch (Exception e) {
-            log.error("Exception: ", e);
+        } catch(ScaleIOException e){
+            log.error(String.format("Exception was encountered in the ScaleIO client when connecting to instance %s",
+                    param.getIPAddress()), e);
+            throw APIException.badRequests.storageSystemClientException(SCALEIO,e.getLocalizedMessage());
+        } catch (JSONException e) {
+            log.error(String.format("Exception was encountered when attempting to discover ScaleIO Instance %s",
+                    param.getIPAddress()), e);
+            throw APIException.badRequests.cannotDiscoverStorageSystemUnexpectedResponse(SCALEIO);
         }
 
         return sio;

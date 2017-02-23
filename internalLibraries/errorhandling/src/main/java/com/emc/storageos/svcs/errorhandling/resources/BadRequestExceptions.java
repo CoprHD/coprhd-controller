@@ -3290,5 +3290,11 @@ public interface BadRequestExceptions {
     public BadRequestException userNotAuthorizedForWorkflow();
     
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
-    public BadRequestException userNotAuthorizedForWorkflowStep();    
+    public BadRequestException userNotAuthorizedForWorkflowStep();
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException cannotDiscoverStorageSystemUnexpectedResponse(final String storageSystemType);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException storageSystemClientException(final String storageSystemType, final String errorMsg);
 }

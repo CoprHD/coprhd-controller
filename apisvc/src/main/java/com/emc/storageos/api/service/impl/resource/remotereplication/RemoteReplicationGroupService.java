@@ -519,10 +519,7 @@ public class RemoteReplicationGroupService extends TaskResourceService {
 
         remoteReplicationGroup.setDisplayName(param.getDisplayName());
         if (param.getReplicationState() != null ) {
-            remoteReplicationGroup.setReplicationState(param.getReplicationState());
-        } else {
-            // set to active by default
-            remoteReplicationGroup.setReplicationState("ACTIVE");
+            remoteReplicationGroup.addProperty(com.emc.storageos.db.client.model.remotereplication.RemoteReplicationSet.CREATE_STATE_PROPERTY_NAME, param.getReplicationState());
         }
         remoteReplicationGroup.setIsGroupConsistencyEnforced(param.getIsGroupConsistencyEnforced());
 

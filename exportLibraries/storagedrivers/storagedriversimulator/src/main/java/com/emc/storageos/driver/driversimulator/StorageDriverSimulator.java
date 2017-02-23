@@ -1131,7 +1131,7 @@ public class StorageDriverSimulator extends DefaultStorageDriver implements Bloc
         Set<String> driverPairs = new HashSet<>();
         for (RemoteReplicationPair pair : replicationPairs) {
             pair.setNativeId("driverSimulatorPair" + UUID.randomUUID().toString());
-            pair.setReplicationState(RemoteReplicationSet.ReplicationState.ACTIVE);
+            pair.setReplicationState("ACTIVE");
 
             driverPairs.add(pair.getNativeId());
         }
@@ -1152,7 +1152,7 @@ public class StorageDriverSimulator extends DefaultStorageDriver implements Bloc
         Set<String> driverPairs = new HashSet<>();
         for (RemoteReplicationPair pair : replicationPairs) {
             pair.setNativeId("driverSimulatorPair" + UUID.randomUUID().toString());
-            pair.setReplicationState(RemoteReplicationSet.ReplicationState.ACTIVE);
+            pair.setReplicationState("ACTIVE");
 
             driverPairs.add(pair.getNativeId());
         }

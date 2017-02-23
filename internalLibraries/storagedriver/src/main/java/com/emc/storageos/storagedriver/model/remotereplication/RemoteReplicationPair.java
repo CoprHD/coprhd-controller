@@ -37,9 +37,12 @@ public class RemoteReplicationPair {
     private String replicationMode;
 
     /**
-     * Replication state of the pair. Type: Output.
+     * Replication state of the pair. Type: Input/Output.
+     * When Input --- state as known to the system.
+     * When Output --- state on device.
+     * Should be set by driver.
      */
-    private RemoteReplicationSet.ReplicationState replicationState;
+    private String replicationState;
 
     /**
      * Source volume of replication pair. Type: Input.
@@ -88,11 +91,11 @@ public class RemoteReplicationPair {
         this.replicationMode = replicationMode;
     }
 
-    public RemoteReplicationSet.ReplicationState getReplicationState() {
+    public String getReplicationState() {
         return replicationState;
     }
 
-    public void setReplicationState(RemoteReplicationSet.ReplicationState replicationState) {
+    public void setReplicationState(String replicationState) {
         this.replicationState = replicationState;
     }
 

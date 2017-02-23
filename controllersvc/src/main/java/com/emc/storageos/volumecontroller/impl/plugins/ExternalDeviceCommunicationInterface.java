@@ -1495,8 +1495,8 @@ public class ExternalDeviceCommunicationInterface extends
             systemSet.setSupportedElementTypes(supportedElementTypes);
 
             // set replication state
-            RemoteReplicationSet.ReplicationState replicationState = driverSet.getReplicationState();
-            systemSet.setReplicationState(replicationState.toString());
+            String replicationState = driverSet.getReplicationState();
+            systemSet.setReplicationState(replicationState);
 
 
             // set systems to roles map
@@ -1576,8 +1576,8 @@ public class ExternalDeviceCommunicationInterface extends
                 systemGroup.setLabel(driverGroup.getDisplayName());
             }
             // set replication state
-            RemoteReplicationSet.ReplicationState replicationState = driverGroup.getReplicationState();
-            systemGroup.setReplicationState(replicationState.toString());
+            String replicationState = driverGroup.getReplicationState();
+            systemGroup.setReplicationState(replicationState);
 
             // set replication mode for this group
             if (driverGroup.getReplicationMode() != null) {

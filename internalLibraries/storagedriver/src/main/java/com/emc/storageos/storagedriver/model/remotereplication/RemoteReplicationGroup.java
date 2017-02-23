@@ -43,9 +43,12 @@ public class RemoteReplicationGroup {
     private String replicationMode;
 
     /**
-     * Replication state of the group. Type: Output.
+     * Replication state of the group. Type: Input/Output.
+     * When Input --- state as known to the system.
+     * When Output --- state on device.
+     * Should be set by driver when applicable.
      */
-    private RemoteReplicationSet.ReplicationState replicationState;
+    private String replicationState;
 
     /**
      * Defines if group consistency for link operations is enforced. Type: Input/Output.
@@ -132,11 +135,11 @@ public class RemoteReplicationGroup {
         this.replicationMode = replicationMode;
     }
 
-    public RemoteReplicationSet.ReplicationState getReplicationState() {
+    public String getReplicationState() {
         return replicationState;
     }
 
-    public void setReplicationState(RemoteReplicationSet.ReplicationState replicationState) {
+    public void setReplicationState(String replicationState) {
         this.replicationState = replicationState;
     }
 

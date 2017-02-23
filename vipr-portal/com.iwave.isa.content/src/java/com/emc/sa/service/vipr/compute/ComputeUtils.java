@@ -978,7 +978,7 @@ public class ComputeUtils {
             }
 
             HostSystem hostSystem = vmware.getHostSystem(dataCenter.getLabel(), clusterHost.getName());
-            if (vmware.findScsiDisk(hostSystem, null, bootVolume, false) == null) {
+            if (vmware.findScsiDisk(hostSystem, null, bootVolume, false, false) == null) {
                 // fail, host can't see its boot volume
                 ExecutionUtils.currentContext().logError("computeutils.removebootvolumes.failure.bootvolume", bootVolume.getDeviceLabel(), bootVolume.getWwn());
                 return false;

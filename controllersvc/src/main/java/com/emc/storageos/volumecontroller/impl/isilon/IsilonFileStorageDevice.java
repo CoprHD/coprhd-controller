@@ -2218,51 +2218,58 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         // get the all the Share ACL from the storage system.
         IsilonApi isi = getIsilonDevice(storage);
         String zoneName = getZoneName(args.getvNAS());
-        IsilonSMBShare share = getIsilonSMBShare(isi, args.getShareName(), zoneName);
-        List<Permission> permissions = share.getPermissions();
-        for (Permission perm : permissions) {
-            if (perm.getPermissionType().equalsIgnoreCase(Permission.PERMISSION_TYPE_ALLOW)) {
-                ShareACL shareACL = new ShareACL();
-                shareACL.setPermission(perm.getPermission());
-                String userAndDomain = perm.getTrustee().getName();
-                String[] trustees = new String[2];
-                trustees = userAndDomain.split("\\\\");
-                String trusteesType = perm.getTrustee().getType();
-                if (trustees.length > 1) {
-                    shareACL.setDomain(trustees[0]);
-                    if (trusteesType.equals("group")) {
-                        shareACL.setGroup(trustees[1]);
-                    } else {
-                        shareACL.setUser(trustees[1]);
-                    }
-                } else {
-                    if (trusteesType.equals("group")) {
-                        shareACL.setGroup(trustees[0]);
-                    } else {
-                        shareACL.setUser(trustees[0]);
-                    }
-                }
-                arrayShareACLMap.put(perm.getTrustee().getName(), shareACL);
-
-            }
+        IsilonSMBShare share = null;
+        if (zoneName != null) {
+            share = isi.getShare(args.getShareName(), zoneName);
+        } else {
+            share = isi.getShare(args.getShareName());
         }
-        for (Iterator iterator = existingDBShareACL.iterator(); iterator.hasNext();) {
-            ShareACL shareACL = (ShareACL) iterator.next();
-            String key = "";
-            String domain = "";
-            String user = shareACL.getUser();
-            String group = shareACL.getGroup();
-            if (shareACL.getDomain() != null && !shareACL.getDomain().isEmpty()) {
-                domain = shareACL.getDomain() + "\\";
-            }
-            if (user != null && !user.isEmpty()) {
-                key = domain + user;
-            } else if (group != null && !group.isEmpty()) {
-                key = domain + group;
-            }
-            if (arrayShareACLMap.containsKey(key)) {
+        if (share != null) {
+            List<Permission> permissions = share.getPermissions();
+            for (Permission perm : permissions) {
+                if (perm.getPermissionType().equalsIgnoreCase(Permission.PERMISSION_TYPE_ALLOW)) {
+                    ShareACL shareACL = new ShareACL();
+                    shareACL.setPermission(perm.getPermission());
+                    String userAndDomain = perm.getTrustee().getName();
+                    String[] trustees = new String[2];
+                    trustees = userAndDomain.split("\\\\");
+                    String trusteesType = perm.getTrustee().getType();
+                    if (trustees.length > 1) {
+                        shareACL.setDomain(trustees[0]);
+                        if (trusteesType.equals("group")) {
+                            shareACL.setGroup(trustees[1]);
+                        } else {
+                            shareACL.setUser(trustees[1]);
+                        }
+                    } else {
+                        if (trusteesType.equals("group")) {
+                            shareACL.setGroup(trustees[0]);
+                        } else {
+                            shareACL.setUser(trustees[0]);
+                        }
+                    }
+                    arrayShareACLMap.put(perm.getTrustee().getName(), shareACL);
 
-                arrayShareACLMap.remove(key);
+                }
+            }
+            for (Iterator iterator = existingDBShareACL.iterator(); iterator.hasNext();) {
+                ShareACL shareACL = (ShareACL) iterator.next();
+                String key = "";
+                String domain = "";
+                String user = shareACL.getUser();
+                String group = shareACL.getGroup();
+                if (shareACL.getDomain() != null && !shareACL.getDomain().isEmpty()) {
+                    domain = shareACL.getDomain() + "\\";
+                }
+                if (user != null && !user.isEmpty()) {
+                    key = domain + user;
+                } else if (group != null && !group.isEmpty()) {
+                    key = domain + group;
+                }
+                if (arrayShareACLMap.containsKey(key)) {
+
+                    arrayShareACLMap.remove(key);
+                }
             }
         }
         return arrayShareACLMap;

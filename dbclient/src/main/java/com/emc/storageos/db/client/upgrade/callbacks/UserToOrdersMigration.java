@@ -44,8 +44,6 @@ public class UserToOrdersMigration extends BaseCustomMigrationCallback {
 
     @Override
     public void process() throws MigrationCallbackException {
-        long start = System.currentTimeMillis();
-
         log.info("Adding new index records for class: {} field: {} annotation: {} name={}",
                 new Object[] { Order.class, Order.SUBMITTED_BY_USER_ID, ClassNameTimeSeries.class.getName(), name});
 
@@ -90,9 +88,6 @@ public class UserToOrdersMigration extends BaseCustomMigrationCallback {
             }
 
             mutationBatch.execute();
-
-            long end = System.currentTimeMillis();
-            log.info("Read {} records in {} seconds", m, (end - start)/1000);
         }catch (Exception e) {
             log.error("Migration to {} failed e=", newIndexCF.getName(), e);
         }

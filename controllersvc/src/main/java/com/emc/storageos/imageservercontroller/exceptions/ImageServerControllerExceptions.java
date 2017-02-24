@@ -55,4 +55,10 @@ public interface ImageServerControllerExceptions {
 
     @DeclareServiceCode(ServiceCode.IMAGE_SERVER_CONTROLLER_ERROR)
     public ImageServerControllerException tftpServerNotRunning();
+
+    @DeclareServiceCode(ServiceCode.IMAGE_SERVER_CONTROLLER_ERROR)
+    public ImageServerControllerException deviceNotKnown();
+
+    @DeclareServiceCode(ServiceCode.IMAGE_SERVER_CONTROLLER_ERROR)
+    public ImageServerControllerException missingKickstartParameter(final String paramName);
 }

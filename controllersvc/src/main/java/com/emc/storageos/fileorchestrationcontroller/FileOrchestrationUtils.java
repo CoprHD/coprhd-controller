@@ -938,15 +938,6 @@ public final class FileOrchestrationUtils {
         dbClient.createObject(policyStorageResource);
 
         filePolicy.addPolicyStorageResources(policyStorageResource.getId());
-
-        FilePolicyApplyLevel applyAt = FilePolicyApplyLevel.valueOf(filePolicy.getApplyAt());
-        switch (applyAt) {
-            case project:
-                filePolicy.setFilePolicyVpool(args.getVPool().getId());
-            default:
-                break;
-        }
-
         dbClient.updateObject(filePolicy);
 
         _log.info("PolicyStorageResource object created successfully for {} ",
@@ -981,6 +972,7 @@ public final class FileOrchestrationUtils {
         while (storagePortIter.hasNext()) {
             StoragePort port = dbClient.queryObject(StoragePort.class, storagePortIter.next());
             if (port != null && !port.getInactive()) {
+                targetHost = port.getPortNetworkId();
                 // iterate until dr port found!!
                 if (port.getTag() != null) {
                     ScopedLabelSet portTagSet = port.getTag();

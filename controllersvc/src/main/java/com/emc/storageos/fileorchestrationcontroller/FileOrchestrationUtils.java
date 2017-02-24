@@ -990,13 +990,6 @@ public final class FileOrchestrationUtils {
             targetNasVarraySet = pNAS.getTaggedVirtualArrays();
         }
 
-        /*
-         * URIQueryResultList storagePortURIs = new URIQueryResultList();
-         * dbClient.queryByConstraint(
-         * ContainmentConstraint.Factory.getStorageDeviceStoragePortConstraint(targetStorageSystemURI),
-         * storagePortURIs);
-         * Iterator<URI> storagePortIter = storagePortURIs.iterator();
-         */
         List<String> drPorts = new ArrayList<String>();
         for (String nasPort : targetStoragePortSet) {
 

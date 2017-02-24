@@ -952,6 +952,12 @@ public class FilePolicyService extends TaskResourceService {
                 throw APIException.badRequests.invalidFilePolicyAssignParam(filePolicy.getFilePolicyName(), errorMsg.toString());
             }
 
+            if (FilePolicyServiceUtils.vPoolHasSnapshotPolicyWithSameSchedule(_dbClient, vpoolURI, filePolicy)) {
+                errorMsg.append("Snapshot policy with similar schedule is already present on vpool " + virtualPool.getLabel());
+                _log.error(errorMsg.toString());
+                throw APIException.badRequests.invalidFilePolicyAssignParam(filePolicy.getFilePolicyName(), errorMsg.toString());
+            }
+
             ArgValidator.checkEntity(virtualPool, vpoolURI, false);
 
             FilePolicyServiceUtils.validateVpoolSupportPolicyType(filePolicy, virtualPool);
@@ -1197,6 +1203,12 @@ public class FilePolicyService extends TaskResourceService {
             if (FilePolicyServiceUtils.projectHasReplicationPolicy(_dbClient, projectURI, vpool.getId())) {
                 errorMsg.append("Virtual pool " + filePolicy.getFilePolicyVpool().toString() + " project " + project.getLabel()
                         + "pair is already assigned with replication policy.");
+                _log.error(errorMsg.toString());
+                throw APIException.badRequests.invalidFilePolicyAssignParam(filePolicy.getFilePolicyName(), errorMsg.toString());
+            }
+
+            if (FilePolicyServiceUtils.projectHasSnapshotPolicyWithSameSchedule(_dbClient, projectURI, vpool.getId(), filePolicy)) {
+                errorMsg.append("Snapshot policy with similar schedule is already present on project " + project.getLabel());
                 _log.error(errorMsg.toString());
                 throw APIException.badRequests.invalidFilePolicyAssignParam(filePolicy.getFilePolicyName(), errorMsg.toString());
             }

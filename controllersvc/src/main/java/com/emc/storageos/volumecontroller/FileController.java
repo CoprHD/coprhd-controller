@@ -279,4 +279,14 @@ public interface FileController extends StorageController {
             URI sourceVNasURI, URI targetVArrayURI, URI targetVNasURI, URI filePolicyToAssign, URI vpoolURI, URI projectURI, String opId)
             throws InternalException;
 
+    /**
+     * 
+     * @param storage -URI of the storage system
+     * @param fsId -URI of the source file system
+     * @param opType - operation to perform(start,pause,resume,refresh)
+     * @param opId -task Id
+     * @throws ControllerException
+     */
+    public void performFileReplicationOperation(URI storage, URI fsId, String opType, String opId) throws ControllerException;
+
 }

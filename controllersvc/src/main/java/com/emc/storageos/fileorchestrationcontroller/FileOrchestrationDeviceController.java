@@ -801,6 +801,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
             String waitForFailback = _fileReplicationDeviceController.createMethod(workflow, null, null,
                     FAILBACK_FILE_SYSTEM_METHOD, failbackStep, stepDescription, systemSource.getId(), args);
 
+            // Replicate directory quota setting
             stepDescription = String.format(
                     "Replicating directory quota settings from source file system : %s to file target system : %s",
                     sourceFileShare.getId(), targetFileShare.getId());
@@ -912,16 +913,13 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
             String failoverStep = workflow.createStepId();
 
             List<URI> combined = Arrays.asList(sourceFileShare.getId(), targetFileShare.getId());
-            failoverCompleter = new MirrorFileFailoverTaskCompleter(FileShare.class, combined, failoverStep,
-                    targetFileShare.getStorageDevice());
+            failoverCompleter = new MirrorFileFailoverTaskCompleter(FileShare.class, combined, failoverStep);
             stepDescription = String.format("Failover Source File System %s to Target System.", sourceFileShare.getLabel());
-
-            stepDescription = String.format("Failover source file System : %s to target system : %s.", sourceFileShare.getName(),
-                    targetFileShare.getName());
             Object[] args = new Object[] { systemTarget.getId(), targetFileShare.getId(), failoverCompleter };
-            String waitForFailover = _fileReplicationDeviceController.createMethod(workflow, null, null,
+            String waitForFailover = _fileDeviceController.createMethod(workflow, null,
                     FAILOVER_FILE_SYSTEM_METHOD, failoverStep, stepDescription, systemTarget.getId(), args);
 
+            // Replicate quota setting
             stepDescription = String.format(
                     "Replicating directory quota settings from source file system : %s to file target system : %s",
                     sourceFileShare.getId(), targetFileShare.getId());

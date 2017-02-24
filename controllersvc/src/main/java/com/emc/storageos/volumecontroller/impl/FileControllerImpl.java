@@ -288,4 +288,10 @@ public class FileControllerImpl extends AbstractDiscoveredSystemController imple
                 sourceVNasURI, targetVNasURI, filePolicyToAssign, vpoolURI, projectURI, opId);
     }
 
+    @Override
+    public void performFileReplicationOperation(URI storage, URI copyId,
+            String opType, String opId) throws ControllerException {
+        execFS("performFileReplicationOperation", storage, copyId, opType, opId);
+    }
+
 }

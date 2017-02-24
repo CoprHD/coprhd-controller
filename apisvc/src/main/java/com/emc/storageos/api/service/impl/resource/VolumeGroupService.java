@@ -2114,14 +2114,9 @@ public class VolumeGroupService extends TaskResourceService {
     private TaskList performVolumeGroupSnapshotOperation(final URI volumeGroupId, final VolumeGroupSnapshotOperationParam param, OperationTypeEnum opType) {
         Map<String, List<BlockSnapshot>> snapsetToSnapshots = getSnapshotsGroupedBySnapset(volumeGroupId, param);
         
-        // Check for pending tasks
-        VolumeGroup volumeGroup = _dbClient.queryObject(VolumeGroup.class, volumeGroupId);
-        if (opType == OperationTypeEnum.RESTORE_VOLUME_GROUP_SNAPSHOT) {
-            checkForApplicationPendingTasks(volumeGroup, _dbClient, true);
-        } else {
-            checkForApplicationPendingTasks(volumeGroup, _dbClient, false);
-        }
-        
+        // validate that it's ok to do the snapshot operation
+        validateSnapshotOperation(volumeGroupId, snapsetToSnapshots, opType);
+                
         auditOp(opType, true, AuditLogManager.AUDITOP_BEGIN,
                 volumeGroupId.toString(), param.getSnapshots());
         TaskList taskList = new TaskList();
@@ -2167,6 +2162,38 @@ public class VolumeGroupService extends TaskResourceService {
         auditOp(opType, true, AuditLogManager.AUDITOP_END, volumeGroupId.toString(), param.getSnapshots());
         return taskList;
     }
+    
+    /**
+     * Validates a snapshot operation and throws and exception if the operation cannot be done:
+     *      - checks for pending tasks
+     *      - for deactivate snapshot, check for any exported snapshots
+     *      
+     * @param volumeGroupId
+     * @param snapsetToSnapshots
+     * @param opType
+     */
+    private void validateSnapshotOperation(URI volumeGroupId, Map<String, List<BlockSnapshot>> snapsetToSnapshots, OperationTypeEnum opType) {
+        // Check for pending tasks
+        VolumeGroup volumeGroup = _dbClient.queryObject(VolumeGroup.class, volumeGroupId);
+        if (opType == OperationTypeEnum.RESTORE_VOLUME_GROUP_SNAPSHOT) {
+            checkForApplicationPendingTasks(volumeGroup, _dbClient, true);
+        } else {
+            checkForApplicationPendingTasks(volumeGroup, _dbClient, false);
+            if (opType == OperationTypeEnum.DEACTIVATE_VOLUME_GROUP_SNAPSHOT) {
+                for (Entry<String, List<BlockSnapshot>> entry : snapsetToSnapshots.entrySet()) {
+                    String snapsetName = entry.getKey();
+                    List<BlockSnapshot> snapshotList = entry.getValue();
+                    for (BlockSnapshot snapshot : snapshotList) {
+                        if (snapshot.isSnapshotExported(_dbClient)) {
+                            throw APIException.badRequests.cannotDeleteApplicationSnapshotExportExists(volumeGroup.getLabel(), snapsetName);
+                        }
+                    }
+                }
+            }
+        }
+        
+    }
+
 
     /**
      * Activate the specified Volume group snapshot

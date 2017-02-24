@@ -54,7 +54,9 @@
     &{'orders.delete.description'}
     #{/Modal.header}
     #{Modal.body cssClass:'form-horizontal'}
-    <span class="checkedAll-block">&{"orders.delete.all", orderCount}</span>
+    <span class="checkedAll-block">&{"orders.delete.all", orderCount} 
+        #{if orderCount >= models.datatable.OrderDataTable.ORDER_MAX_DELETE_PER_GC}&{"orders.delete.all.threshold", models.datatable.OrderDataTable.ORDER_MAX_DELETE_PER_GC}#{/if}
+    </span>
     <div><span class="help-block">&{"orders.delete.help", canBeDeletedStatuses}</span></div>
     #{/Modal.body}
     #{Modal.footer}

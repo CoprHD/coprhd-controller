@@ -142,7 +142,7 @@ public class ArgValidator {
             throw APIException.badRequests.requiredParameterMissingOrEmpty(fieldName);
         }
     }
-    
+
     /**
      * Validates that the value supplied is not null, and matches one of the
      * expected values
@@ -225,6 +225,16 @@ public class ArgValidator {
                 throw APIException.badRequests.resourceCannotBeDeleteDueToUnreachableVdc();
             } else {
                 throw APIException.badRequests.resourceHasActiveReferencesWithType(type.getSimpleName(), id, depedency);
+            }
+        }
+    }
+
+    public static void checkReference(final Class<? extends DataObject> type, final String label, final String depedency) {
+        if (depedency != null) {
+            if (depedency.length() == 0) {
+                throw APIException.badRequests.resourceCannotBeDeleteDueToUnreachableVdc();
+            } else {
+                throw APIException.badRequests.resourceHasActiveReferencesWithType(type.getSimpleName(), label, depedency);
             }
         }
     }
@@ -690,6 +700,7 @@ public class ArgValidator {
 
     /**
      * Check whether consistency group has special characters other than _ and -
+     * 
      * @param consistencyGroupName
      */
     public static void checkIsAlphaNumeric(String consistencyGroupName) {

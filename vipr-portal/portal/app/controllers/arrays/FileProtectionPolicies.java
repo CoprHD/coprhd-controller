@@ -439,9 +439,14 @@ public class FileProtectionPolicies extends ViprResourceController {
         }
         assignPolicy.id = params.get("id");
         FilePolicyAssignParam assignPolicyParam = new FilePolicyAssignParam();
-        updateAssignPolicyParam(assignPolicy, assignPolicyParam);
-        getViprClient().fileProtectionPolicies().assignPolicy(uri(assignPolicy.id), assignPolicyParam);
-        flash.success(MessagesUtils.get("assignPolicy.request.submit", assignPolicy.policyName));
+        try {
+            updateAssignPolicyParam(assignPolicy, assignPolicyParam);
+            TaskResourceRep taskRes = getViprClient().fileProtectionPolicies().assignPolicy(uri(assignPolicy.id), assignPolicyParam);
+            waitForTaskToFinish(assignPolicy.id, taskRes);
+            flash.success(MessagesUtils.get("assignPolicy.request.saved", assignPolicy.policyName));
+        } catch (Exception ex) {
+            flash.error(ex.getMessage(), assignPolicy.policyName);
+        }
         if (StringUtils.isNotBlank(assignPolicy.referrerUrl)) {
             redirect(assignPolicy.referrerUrl);
         } else {
@@ -464,9 +469,15 @@ public class FileProtectionPolicies extends ViprResourceController {
         }
         assignPolicy.id = params.get("id");
         FilePolicyUnAssignParam unAssignPolicyParam = new FilePolicyUnAssignParam();
-        if (updateUnAssignPolicyParam(assignPolicy, unAssignPolicyParam)) {
-            getViprClient().fileProtectionPolicies().unassignPolicy(uri(assignPolicy.id), unAssignPolicyParam);
-            flash.success(MessagesUtils.get("unAssignPolicy.request.submit", assignPolicy.policyName));
+        try {
+            if (updateUnAssignPolicyParam(assignPolicy, unAssignPolicyParam)) {
+                TaskResourceRep taskRes = getViprClient().fileProtectionPolicies().unassignPolicy(uri(assignPolicy.id),
+                        unAssignPolicyParam);
+                waitForTaskToFinish(assignPolicy.id, taskRes);
+                flash.success(MessagesUtils.get("unAssignPolicy.request.saved", assignPolicy.policyName));
+            }
+        } catch (Exception ex) {
+            flash.error(ex.getMessage(), assignPolicy.policyName);
         }
         if (StringUtils.isNotBlank(assignPolicy.referrerUrl)) {
             redirect(assignPolicy.referrerUrl);
@@ -964,12 +975,16 @@ public class FileProtectionPolicies extends ViprResourceController {
                         if (repTopology.getSourceVArray() != null) {
                             fileTopology.sourceVArray = repTopology.getSourceVArray().toString();
                         }
+                        if (repTopology.getTargetVArrays() != null && !repTopology.getTargetVArrays().isEmpty()) {
+                            fileTopology.targetVArray = repTopology.getTargetVArrays().iterator().next().toString();
+                        }
                         replicationTopologies.add(fileTopology);
                     }
                     if (!replicationTopologies.isEmpty()) {
                         this.topologies = replicationTopologies;
                     }
                 }
+
             }
             // Load project applicable fields
             if (FilePolicyApplyLevel.project.name().equalsIgnoreCase(restRep.getAppliedAt())) {

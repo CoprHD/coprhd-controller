@@ -1115,7 +1115,6 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
      * @param stepId to use for this step
      * @return stepId 
      */
-    //
     public String addStepsForRemoveHostFromCluster(Workflow workflow, String waitFor, URI hostId, String unassociateStepId) {
         Host host = _dbClient.queryObject(Host.class, hostId);
         String newWaitFor = null;

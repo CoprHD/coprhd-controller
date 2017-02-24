@@ -60,7 +60,6 @@ public class LogStreamMerger extends AbstractLogStreamMerger {
         logHeads = new LogMessage[size];
 
         for (int i = 0; i < size; i++) {
-            // logger.info("for loop of each service");
             String service = groups.get(i);
             logStreamList[i] = new LogFileStream(service, groupedLogFiles.get(service), req,
                     status);

@@ -1413,7 +1413,6 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
                         cgVolsMap.put(vplexVolume.getConsistencyGroup(), cgVols);
                     }
                     cgVols.add(vplexVolumeURI);
-                    cgVols.addAll(forgetVolumeURIs);
                 }
                 // Adding the VPLEX mirror backend volume to forgetVolumeURIs
                 if (vplexVolume.getMirrors() != null && !(vplexVolume.getMirrors().isEmpty())) {
@@ -1451,10 +1450,22 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
         Volume vol = getDataObject(Volume.class, allVplexVolumeURIs.get(0), _dbClient);
         ConsistencyGroupManager consistencyGroupManager = getConsistencyGroupManager(vol);
 
+        // Generate step(s) to delete the VPLEX consistency groups
         for (URI cgURI : cgVolsMap.keySet()) {
+
+            // Skip volumes that are part of a VPlex SRDF target CG, as it will
+            // be deleted earlier
+            List<URI> volURIs = new ArrayList<URI>(cgVolsMap.get(cgURI));
+            volURIs = VPlexSrdfUtil.filterOutVplexSrdfTargets(_dbClient, volURIs);
+            if (volURIs.isEmpty()) {
+                _log.info(String.format("CG %s has all VPLEX SRDF targets, skipping as CG should already be deleted",
+                        cgURI));
+                continue;
+            }
+
             // find member volumes in the group
             List<Volume> volumeList = new ArrayList<Volume>();
-            Iterator<Volume> volumeIterator = _dbClient.queryIterativeObjects(Volume.class, cgVolsMap.get(cgURI), true);
+            Iterator<Volume> volumeIterator = _dbClient.queryIterativeObjects(Volume.class, volURIs, true);
             while (volumeIterator.hasNext()) {
                 volumeList.add(volumeIterator.next());
             }
@@ -1463,7 +1474,8 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
             // delete replication group from array
             if (ControllerUtils.cgHasNoOtherVolume(_dbClient, cgURI, volumeList)) {
                 _log.info(String.format("Adding step to delete the consistency group %s", cgURI));
-                returnWaitFor = consistencyGroupManager.addStepsForDeleteConsistencyGroup(workflow, returnWaitFor, storage, cgURI, false);
+                returnWaitFor = consistencyGroupManager.addStepsForDeleteConsistencyGroup(workflow, returnWaitFor,
+                        storage, cgURI, false);
             }
         }
 
@@ -1478,7 +1490,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
      * A workflow step that marks Volumes inactive after all the delete volume
      * workflow steps have completed.
      *
-     * @param volumes
+     c* @param volumes
      *            -- List<URI> of volumes
      * @param stepId
      *            -- Workflow Step Id.
@@ -4761,7 +4773,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
         // What is about to happen...
         //
         // 1. if all the initiators in the storage view are getting removed
-        // and there are no existing (external) initiators or volumes in the Export Mask
+        // and there are no existing (external) initiators in the Export Mask
         // then delete the storage view
         //
         // 2. if there are other ExportGroups referencing this ExportMask
@@ -4782,7 +4794,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
         // all initiators, also remove any volumes present in the ExportGroup
 
         boolean removeAllInits = (hostInitiatorURIs.size() >= exportMask.getInitiators().size());
-        boolean canDeleteMask = removeAllInits && !exportMask.hasAnyExistingInitiators() && !exportMask.hasAnyExistingVolumes();
+        boolean canDeleteMask = removeAllInits && !exportMask.hasAnyExistingInitiators();
 
         if (canDeleteMask) {
             if (!exportMaskHasBothExclusiveAndSharedVolumes(exportGroup, otherExportGroups, exportMask)) {
@@ -9762,13 +9774,11 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
                         StorageProvider.InterfaceType.vplex.name());
         for (StorageProvider vplexMnmgtServer : vplexMnmgtServers) {
             try {
-                if (ConnectivityUtil.ping(vplexMnmgtServer.getIPAddress())) {
-                    VPlexApiClient client = getVPlexAPIClient(_vplexApiFactory,
-                            vplexMnmgtServer, _dbClient);
-                    client.verifyConnectivity();
-                    activeMgmntServers.add(vplexMnmgtServer.getId());
-                    vplexMnmgtServer.setConnectionStatus(StorageProvider.ConnectionStatus.CONNECTED.toString());
-                }
+                VPlexApiClient client = getVPlexAPIClient(_vplexApiFactory,
+                        vplexMnmgtServer, _dbClient);
+                client.verifyConnectivity();
+                activeMgmntServers.add(vplexMnmgtServer.getId());
+                vplexMnmgtServer.setConnectionStatus(StorageProvider.ConnectionStatus.CONNECTED.toString());
             } catch (Exception e) {
                 _log.warn("Can't connect to VPLEX management server {}", vplexMnmgtServer.getIPAddress());
                 vplexMnmgtServer.setConnectionStatus(StorageProvider.ConnectionStatus.NOTCONNECTED.toString());

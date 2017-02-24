@@ -4,22 +4,16 @@
  */
 package com.emc.storageos.volumecontroller.impl.validators.vnxe;
 
-import java.net.URI;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
 import com.emc.storageos.db.client.model.ExportMask;
-import com.emc.storageos.db.client.model.HostInterface.Protocol;
-import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.vnxe.VNXeApiClient;
 import com.emc.storageos.vnxe.VNXeApiClientFactory;
-import com.emc.storageos.vnxe.models.VNXeBase;
-import com.emc.storageos.vnxe.models.VNXeHostInitiator;
 import com.emc.storageos.volumecontroller.impl.validators.Validator;
 import com.emc.storageos.volumecontroller.impl.validators.ValidatorConfig;
 import com.emc.storageos.volumecontroller.impl.validators.ValidatorLogger;
@@ -43,6 +37,7 @@ public abstract class AbstractVNXeValidator implements Validator {
     private VNXeApiClient apiClient;
     private ExceptionContext exceptionContext;
     private String remediation = ValidatorLogger.CONTACT_EMC_SUPPORT;
+    private String hostId;
 
     public AbstractVNXeValidator(StorageSystem storage, ExportMask exportMask) {
         this.storage = storage;
@@ -115,48 +110,13 @@ public abstract class AbstractVNXeValidator implements Validator {
         return getConfig().isValidationEnabled() && (exceptionContext == null || exceptionContext.isAllowExceptions());
     }
 
-    /*
-     * Get VNXe hostId from ViPR initiators
-     * All initiators need to be on a single host (if there is one on array)
-     *
-     * @return VNXe host Id
-     */
-    protected String getVNXeHostFromInitiators() {
-        // all initiator on ViPR host should be on one host on VNXe
-        DbClient dbClient = getDbClient();
-        String vnxeHostId = null;
-        for (String init : exportMask.getInitiators()) {
-            Initiator initiator = dbClient.queryObject(Initiator.class, URI.create(init));
-            if (initiator != null && !initiator.getInactive()) {
-                log.info("Processing initiator {}", initiator.getLabel());
-                String initiatorId = initiator.getInitiatorPort();
-                if (Protocol.FC.name().equals(initiator.getProtocol())) {
-                    initiatorId = initiator.getInitiatorNode() + ":" + initiatorId;
-                }
 
-                // query initiator on array
-                VNXeHostInitiator vnxeInitiator = apiClient.getInitiatorByWWN(initiatorId);
-                if (vnxeInitiator != null) {
-                    VNXeBase parentHost = vnxeInitiator.getParentHost();
-                    if (parentHost != null) {
-                        if (vnxeHostId == null) {
-                            vnxeHostId = parentHost.getId();
-                        } else if (!vnxeHostId.equals(parentHost.getId())) {
-                            log.info("ViPR initiator {} belongs to different host", initiator.getLabel());
-                            getLogger().logDiff(exportMask.getId().toString(), "initiators", ValidatorLogger.NO_MATCHING_ENTRY,
-                                    initiator.getLabel());
-                            checkForErrors();
-                        }
-                    }
-                }
-            }
-        }
+    public String getHostId() {
+        return hostId;
+    }
 
-        if (vnxeHostId == null) {
-            log.warn("No host found for export mask {}", exportMask.getLabel());
-        }
-
-        return vnxeHostId;
+    public void setHostId(String hostId) {
+        this.hostId = hostId;
     }
 
     public StorageSystem getStorage() {

@@ -965,14 +965,23 @@ public final class FileOrchestrationUtils {
      */
     public static String getTargetHostPortForReplication(DbClient dbClient, FileShare targetFS) {
 
-        return getTargetHostPortForReplication(dbClient, targetFS.getStorageDevice(), targetFS.getVirtualArray());
+        return getTargetHostPortForReplication(dbClient, targetFS.getStorageDevice(),
+                targetFS.getVirtualArray(), targetFS.getVirtualNAS());
 
     }
 
-    public static String getTargetHostPortForReplication(DbClient dbClient, URI targetStorageSystemURI, URI targetVarrayURI) {
+    public static String getTargetHostPortForReplication(DbClient dbClient, URI targetStorageSystemURI, URI targetVarrayURI,
+            URI targetVNasURI) {
 
         StorageSystem targetSystem = dbClient.queryObject(StorageSystem.class, targetStorageSystemURI);
         String targetHost = targetSystem.getIpAddress();
+
+        StringSet targetVNasVarraySet = null;
+
+        if (targetVNasURI != null) {
+            VirtualNAS targetVNas = dbClient.queryObject(VirtualNAS.class, targetVNasURI);
+            targetVNasVarraySet = targetVNas.getTaggedVirtualArrays();
+        }
 
         URIQueryResultList storagePortURIs = new URIQueryResultList();
         dbClient.queryByConstraint(
@@ -989,7 +998,13 @@ public final class FileOrchestrationUtils {
                 if (varraySet == null || !varraySet.contains(targetVarrayURI.toString())) {
                     continue;
                 }
+                if (targetVNasVarraySet != null) {
+                    if (!targetVNasVarraySet.contains(targetVarrayURI.toString())) {
+                        continue;
+                    }
+                }
                 targetHost = port.getPortNetworkId();
+
                 // iterate until dr port found!!
                 if (port.getTag() != null) {
                     ScopedLabelSet portTagSet = port.getTag();

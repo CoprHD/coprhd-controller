@@ -1444,7 +1444,7 @@ public class HDSExportOperations implements ExportMaskOperations {
                 for (URI hostURI : hostToInitiatorMap.keySet()) {
                     Set<URI> hostInitiators = hostToInitiatorMap.get(hostURI);
                     boolean isNewExportMask = false;
-                    // Create single ExportMask for each hsd having host initiators
+                    //Create single ExportMask for each host-varray combination
                     List<ExportMask> exportMaskWithHostInitiators = fetchExportMasksFromDB(activeMasks,
                             hostInitiators, storage);
                     for (HostStorageDomain hsd : matchedHostHSDsMap.get(hostURI)) {
@@ -1500,6 +1500,7 @@ public class HDSExportOperations implements ExportMaskOperations {
                         updateHSDInfoInExportMask(maskForHSD, hostInitiators, hsdSet, storage, matchingMasks);
                         if (isNewExportMask) {
                             dbClient.createObject(maskForHSD);
+                            exportMaskWithHostInitiators.add(maskForHSD); 
                         } else {
                             ExportMaskUtils.sanitizeExportMaskContainers(dbClient, maskForHSD);
                             dbClient.updateAndReindexObject(maskForHSD);

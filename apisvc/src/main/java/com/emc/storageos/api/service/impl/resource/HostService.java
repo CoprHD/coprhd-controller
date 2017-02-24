@@ -684,7 +684,7 @@ public class HostService extends TaskResourceService {
             if (!NullColumnValueGetter.isNullURI(host.getBootVolumeId())){
                 bootVolume =  _dbClient.queryObject(Volume.class, host.getBootVolumeId());
             }
-            if (computeElement != null || bootVolume != null || serviceProfile != null) {
+            if (computeElement != null) {
                 _log.error("No OS host: " + host.getLabel() +" with no initiators, but with compute element association found. Cannot deactivate.");
                 throw APIException.badRequests.resourceCannotBeDeleted("No OS host with no initiators, but with compute element association found. Please contact DELL EMC support to resolve inconsistency detected. Host ");
             } else if (bootVolume != null ) {

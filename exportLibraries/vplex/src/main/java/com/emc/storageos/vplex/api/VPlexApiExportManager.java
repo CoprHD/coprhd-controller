@@ -332,7 +332,6 @@ public class VPlexApiExportManager {
                     notFoundInitiators.append(" ,").append(portInfo.getPortWWN());
                 }
             }
-            // TODO - QUESTION - if inits weren't found, should we just fail gracefully?
             throw VPlexApiException.exceptions.couldNotFindInitiators(notFoundInitiators.toString());
         }
 

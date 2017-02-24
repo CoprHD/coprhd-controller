@@ -2754,7 +2754,6 @@ test_13() {
       # Run the export group command
       fail export_group update $PROJECT/${expname}1 --remHosts ${HOST2}
 
-      exit;
       # Turn off suspend of export after orchestration
       set_suspend_on_class_method none
 

@@ -381,29 +381,6 @@ public class ComputeUtils {
         return Arrays.asList(exportIds);
     }
 
-    public static List<Host> deactivateHostsWithoutBootVolumeAssociation(List<Host> hosts,
-            List<URI> goodHostIds, Cluster cluster) {
-           if (hosts == null) {
-            return Lists.newArrayList();
-        }
-         List<Host> hostsToRemove = Lists.newArrayList();
-        for (Host host : hosts) {
-            if ((host != null) && (goodHostIds.get(hosts.indexOf(host)) == null)) {
-                hostsToRemove.add(host);
-                host.setInactive(true);
-            }
-        }
-         if (!hostsToRemove.isEmpty()) {
-            try {
-                deactivateHosts(hostsToRemove);
-            } catch (Exception e) {
-                ExecutionUtils.currentContext().logError("computeutils.deactivatehost.deactivate.failure",
-                        e.getMessage());
-            }
-        }
-        return hosts;
-    
-    }
     protected static boolean isCapacityAvailable(ViPRCoreClient client,
             URI virtualPool, URI virtualArray, Double sizeOfBootVolumesInGb,
             Integer numVols) {

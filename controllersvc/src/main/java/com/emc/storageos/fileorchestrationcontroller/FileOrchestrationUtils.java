@@ -976,24 +976,31 @@ public final class FileOrchestrationUtils {
         StorageSystem targetSystem = dbClient.queryObject(StorageSystem.class, targetStorageSystemURI);
         String targetHost = targetSystem.getIpAddress();
 
-        StringSet targetVNasVarraySet = null;
+        StringSet targetNasVarraySet = null;
+
+        StringSet targetStoragePortSet = null;
 
         if (targetVNasURI != null) {
             VirtualNAS targetVNas = dbClient.queryObject(VirtualNAS.class, targetVNasURI);
-            targetVNasVarraySet = targetVNas.getTaggedVirtualArrays();
+            targetStoragePortSet = targetVNas.getStoragePorts();
+            targetNasVarraySet = targetVNas.getTaggedVirtualArrays();
         } else {
             PhysicalNAS pNAS = FileOrchestrationUtils.getSystemPhysicalNAS(dbClient, targetSystem);
-            targetVNasVarraySet = pNAS.getTaggedVirtualArrays();
+            targetStoragePortSet = pNAS.getStoragePorts();
+            targetNasVarraySet = pNAS.getTaggedVirtualArrays();
         }
 
-        URIQueryResultList storagePortURIs = new URIQueryResultList();
-        dbClient.queryByConstraint(
-                ContainmentConstraint.Factory.getStorageDeviceStoragePortConstraint(targetStorageSystemURI),
-                storagePortURIs);
-        Iterator<URI> storagePortIter = storagePortURIs.iterator();
+        /*
+         * URIQueryResultList storagePortURIs = new URIQueryResultList();
+         * dbClient.queryByConstraint(
+         * ContainmentConstraint.Factory.getStorageDeviceStoragePortConstraint(targetStorageSystemURI),
+         * storagePortURIs);
+         * Iterator<URI> storagePortIter = storagePortURIs.iterator();
+         */
         List<String> drPorts = new ArrayList<String>();
-        while (storagePortIter.hasNext()) {
-            StoragePort port = dbClient.queryObject(StoragePort.class, storagePortIter.next());
+        for (String nasPort : targetStoragePortSet) {
+
+            StoragePort port = dbClient.queryObject(StoragePort.class, URI.create(nasPort));
 
             if (port != null && !port.getInactive()) {
 
@@ -1001,8 +1008,8 @@ public final class FileOrchestrationUtils {
                 if (varraySet == null || !varraySet.contains(targetVarrayURI.toString())) {
                     continue;
                 }
-                if (targetVNasVarraySet != null) {
-                    if (!targetVNasVarraySet.contains(targetVarrayURI.toString())) {
+                if (targetNasVarraySet != null) {
+                    if (!targetNasVarraySet.contains(targetVarrayURI.toString())) {
                         continue;
                     }
                 }

@@ -868,13 +868,13 @@ public abstract class VirtualPoolService extends TaggedResource {
             List<URI> filePolicyList = _dbClient.queryByType(FilePolicy.class, true);
             for (URI filePolicy : filePolicyList) {
                 FilePolicy policyObj = _dbClient.queryObject(FilePolicy.class, filePolicy);
-                if ((policyObj.getFilePolicyVpool() != null) &&
+                if ((policyObj.getAssignedResources() != null) && (policyObj.getFilePolicyVpool() != null) &&
                         (policyObj.getFilePolicyVpool().toString().equalsIgnoreCase(vpool.getId().toString()))) {
                     throw APIException.badRequests.cannotDeleteVpoolAssignedFilePolicy(vpool.getLabel());
                 }
             }
         }
-
+                
         if (!vpool.getType().equals(type.name())) {
             throw APIException.badRequests.providedVirtualPoolNotCorrectType();
         }

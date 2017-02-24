@@ -863,8 +863,8 @@ public abstract class VirtualPoolService extends TaggedResource {
             if ((vpool.getFilePolicies() != null) && !(vpool.getFilePolicies().isEmpty())) {
                 throw APIException.badRequests.cannotDeleteVpoolAssignedFilePolicy(vpool.getLabel());
             }
-            // if file policy is assigned to project level then also then also it has file vpool associated with it.
-            // In this scenario assocation is only way.so need to iterate through all the policy to get vpool reference.
+            // if file policy is assigned to project level then also it has file vpool associated with it.
+            // In this scenario association is only way.so need to iterate through all the policy to get vpool reference.
             List<URI> filePolicyList = _dbClient.queryByType(FilePolicy.class, true);
             for (URI filePolicy : filePolicyList) {
                 FilePolicy policyObj = _dbClient.queryObject(FilePolicy.class, filePolicy);

@@ -857,6 +857,11 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
         return waitFor;
     }
 
+    @Override 
+     public boolean validateBootVolumeExport(URI hostId, URI volumeId) throws InternalException{
+        return validateBootVolumeExport(hostId, volumeId);
+     }
+
     /**
      * A cluster could have only discovered hosts, only provisioned hosts, or mixed.
      * If cluster has only provisioned hosts, then the hosts will be deleted from vCenter.

@@ -160,5 +160,12 @@ public interface ComputeDeviceController extends Controller {
      */
     public void setSanBootTarget(URI computeSystemId, URI computeElementId, URI hostId, URI volumeId,
             boolean waitForServerRestart) throws InternalException;
-
+    
+    /**
+     * Validates that the specified boot volume is exported to the host and there are array portsmapped to the host's initiators in the export masks
+     * @param hostId the host URI
+     * @param volumeId the volumeId
+     * @returns boolean true if the export is valid
+     */
+     public boolean validateBootVolumeExport(URI hostId, URI volumeId) throws InternalException;
 }

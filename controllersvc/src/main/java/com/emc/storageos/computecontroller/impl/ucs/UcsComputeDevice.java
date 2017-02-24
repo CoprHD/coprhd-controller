@@ -1146,6 +1146,35 @@ public class UcsComputeDevice implements ComputeDevice {
 
     }
 
+    public boolean validateBootVolumeExport(URI hostId, URI volumeId) throws InternalException {
+        boolean valid = false;
+        Host host = _dbClient.queryObject(Host.class, hostId);
+        Volume volume = _dbClient.queryObject(Volume.class, volumeId);
+        List<Initiator> initiators = CustomQueryUtility.queryActiveResourcesByRelation(_dbClient, hostId,
+                Initiator.class, "host");
+        Map<ExportMask, ExportGroup> exportMasks = ExportUtils.getExportMasks(volume, _dbClient);
+        Map<Initiator,List<URI>> initiatorPortMap = new HashMap<Initiator,List<URI>>();
+        for (Initiator initiator : initiators) {
+            for (ExportMask exportMask : exportMasks.keySet()) {
+                List<URI> storagePorts = ExportUtils.getInitiatorPortsInMask(exportMask, initiator, _dbClient);
+             
+                if (storagePorts != null && !storagePorts.isEmpty()) {
+                    LOGGER.info("Initiator " + initiator.getLabel() + " mapped to "+ storagePorts.size()+ " array ports");
+                    initiatorPortMap.add(initiator, storagePorts);
+                }else {
+                    LOGGER.info("Initiator " + initiator.getLabel() + " not mapped to any array ports");
+                }
+             }
+        }
+        if (!initiatorPortMap.isEmpty()){
+           valid = true;
+        }else {
+           LOGGER.error("no array ports mapped to the hosts initiators!");
+        }
+        return valid;
+
+    }
+
     private Map<String, Map<String, Integer>> getHBAToStoragePorts(URI volumeId, URI hostId) {
 
         Host host = _dbClient.queryObject(Host.class, hostId);

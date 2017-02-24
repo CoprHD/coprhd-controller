@@ -55,6 +55,7 @@ import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.ScopedLabel;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.Vcenter;
+import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.VcenterDataCenter;
 import com.emc.storageos.db.client.util.CommonTransformerFunctions;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
@@ -234,12 +235,54 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
         if (host != null && host.getComputeElement() != null) {
            _log.info("Generating steps for setting boot volume associstion");
            waitFor = workflow.createStep(null,
+                   "Validate Boot Volume export", waitFor, host.getId(), host.getLabel(),
+                        this.getClass(), new Workflow.Method("validateBootVolumeExport", hostId, volumeId),
+                        new Workflow.Method("rollbackMethodNull"), null);
+
+           waitFor = workflow.createStep(null,
                    "Set Boot Volume Association", waitFor, host.getId(), host.getLabel(),
                         this.getClass(), new Workflow.Method("setHostBootVolumeId", hostId, volumeId),
                         new Workflow.Method("rollbackHostBootVolumeId", hostId, volumeId), null);
         }
         return waitFor;
     }
+  
+    public void validateBootVolumeExport(URI hostId, URI volumeId, String stepId) throws ControllerException {
+        _log.info("validatetBootVolumeExport :"+ hostId.toString());
+        Host host = null;
+        try{
+            WorkflowStepCompleter.stepExecuting(stepId);
+
+            host = _dbClient.queryObject(Host.class, hostId);
+            if (host == null) {
+                throw ComputeSystemControllerException.exceptions.hostNotFound(hostId.toString());
+            }
+            Volume volume = _dbClient.queryObject(Volume.class, volumeId);
+            if (volume == null){
+                throw ComputeSystemControllerException.exceptions.volumeNotFound(volumeId.toString());
+            }
+            boolean validExport = computeDeviceController.validateBootVolumeExport(hostId, volumeId);
+            if (validExport){
+                 WorkflowStepCompleter.stepSucceded(stepId);
+            }else{
+                 ServiceCoded serviceCoded = ComputeSystemControllerException.exceptions.invalidBootVolumeExport(host.getLabel(),volume.getLabel());
+                 WorkflowStepCompleter.stepFailed(stepId, serviceCoded);
+            }
+       } catch (Exception e){
+            _log.error("unexpected exception: " + e.getMessage(), e);
+            String hostString = hostId.toString();
+            if (host!=null){
+                hostString = host.getHostName();
+            }
+            ServiceCoded serviceCoded = ComputeSystemControllerException.exceptions.unableToValidateBootVolumeExport(
+                    hostString, volumeId.toString(), e);
+            WorkflowStepCompleter.stepFailed(stepId, serviceCoded);
+        }
+
+   }
+
+
+
 
     public void setHostBootVolumeId(URI hostId, URI volumeId, String stepId) throws ControllerException {
         _log.info("setHostBootVolumeId :"+ hostId.toString());

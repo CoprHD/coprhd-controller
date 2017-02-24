@@ -55,6 +55,15 @@ public interface ComputeSystemControllerExceptions {
     public ComputeSystemControllerException unableToRollbackBootVolume(final String id, final Throwable cause);
 
     @DeclareServiceCode(ServiceCode.CONTROLLER_COMPUTESYSTEM_ERROR)
+    public ComputeSystemControllerException volumeNotFound(final String id);
+
+    @DeclareServiceCode(ServiceCode.CONTROLLER_COMPUTESYSTEM_ERROR)
+    public ComputeSystemControllerException invalidBootVolumeExport(final String host, final String volume );
+
+    @DeclareServiceCode(ServiceCode.CONTROLLER_COMPUTESYSTEM_ERROR)
+    public ComputeSystemControllerException unableToValidateBootVolumeExport(final String host, final String volume, final Throwable cause);
+
+    @DeclareServiceCode(ServiceCode.CONTROLLER_COMPUTESYSTEM_ERROR)
     public ComputeSystemControllerException unbindHostFromTemplateFailed(final String id,
             final Throwable cause);
 

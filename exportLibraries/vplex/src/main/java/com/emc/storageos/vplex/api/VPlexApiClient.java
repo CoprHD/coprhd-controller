@@ -87,7 +87,7 @@ public class VPlexApiClient {
     // caching of some almost-static VPLEX info for performance improvement
     private volatile Map<String, String> _vplexClusterIdToNameCache = new HashMap<String, String>();
     private volatile List<VPlexClusterInfo> _vplexClusterInfoLiteCache = new ArrayList<VPlexClusterInfo>();
-    private volatile Map<String, Map<String, String>> _vplexClusterInitiatorNameToWwnCache = new HashMap<String, Map<String, String>>();
+    private volatile Map<String, Map<String, String>> _vplexClusterInitiatorWwnToNameCache = new HashMap<String, Map<String, String>>();
 
     /**
      * Constructor
@@ -1359,17 +1359,17 @@ public class VPlexApiClient {
      *         no colons.
      */
     private synchronized Map<String, String> getInitiatorWwnToNameMap(String clusterName) {
-        if (!_vplexClusterInitiatorNameToWwnCache.containsKey(clusterName) ||
-                _vplexClusterInitiatorNameToWwnCache.get(clusterName) == null ||
-                _vplexClusterInitiatorNameToWwnCache.get(clusterName).isEmpty()) {
+        if (!_vplexClusterInitiatorWwnToNameCache.containsKey(clusterName) ||
+                _vplexClusterInitiatorWwnToNameCache.get(clusterName) == null ||
+                _vplexClusterInitiatorWwnToNameCache.get(clusterName).isEmpty()) {
             long start = System.currentTimeMillis();
             s_logger.info("refreshing initiator wwn-to-name cache for cluster " + clusterName);
             Map<String, String> clusterInitiatorToNameMap = _discoveryMgr.getInitiatorWwnToNameMap(clusterName);
             s_logger.info("TIMER: refreshing initiator wwn-to-name cache took {}ms", System.currentTimeMillis() - start);
-            _vplexClusterInitiatorNameToWwnCache.put(clusterName, clusterInitiatorToNameMap);
+            _vplexClusterInitiatorWwnToNameCache.put(clusterName, clusterInitiatorToNameMap);
         }
 
-        return _vplexClusterInitiatorNameToWwnCache.get(clusterName);
+        return _vplexClusterInitiatorWwnToNameCache.get(clusterName);
     }
 
     /**
@@ -1391,7 +1391,7 @@ public class VPlexApiClient {
                         wwn, vplexClusterName);
             if (doRefresh[0]) {
                 s_logger.info("clearing vplex cluster {} cache for refresh", vplexClusterName);
-                _vplexClusterInitiatorNameToWwnCache.get(vplexClusterName).clear();
+                _vplexClusterInitiatorWwnToNameCache.get(vplexClusterName).clear();
                 _discoveryMgr.clearInitiatorCache(vplexClusterName);
                 doRefresh[0] = false;
             } else {
@@ -2118,7 +2118,7 @@ public class VPlexApiClient {
     public synchronized void clearCaches() {
         _vplexClusterIdToNameCache.clear();
         _vplexClusterInfoLiteCache.clear();
-        _vplexClusterInitiatorNameToWwnCache.clear();
+        _vplexClusterInitiatorWwnToNameCache.clear();
         _discoveryMgr.clearInitiatorCache();
     }
 

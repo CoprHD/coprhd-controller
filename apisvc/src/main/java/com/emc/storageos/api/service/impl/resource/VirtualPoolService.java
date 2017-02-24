@@ -51,6 +51,7 @@ import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.Bucket;
+import com.emc.storageos.db.client.model.FilePolicy;
 import com.emc.storageos.db.client.model.FileShare;
 import com.emc.storageos.db.client.model.QosSpecification;
 import com.emc.storageos.db.client.model.QuotaOfCinder;
@@ -857,10 +858,21 @@ public abstract class VirtualPoolService extends TaggedResource {
 	            }
 	        }
         }
-        
-        //check if any file policies are assigned to the vpool
-        if((vpool.getFilePolicies() != null) && !(vpool.getFilePolicies().isEmpty())) {
-            throw APIException.badRequests.cannotDeleteVpoolAssignedFilePolicy(vpool.getLabel());
+        if (vpool.getType().equalsIgnoreCase(Type.file.name())) {
+            // check if any file policies are assigned to the vpool
+            if ((vpool.getFilePolicies() != null) && !(vpool.getFilePolicies().isEmpty())) {
+                throw APIException.badRequests.cannotDeleteVpoolAssignedFilePolicy(vpool.getLabel());
+            }
+            // if file policy is assigned to project level then also then also it has file vpool associated with it.
+            // In this scenario assocation is only way.so need to iterate through all the policy to get vpool reference.
+            List<URI> filePolicyList = _dbClient.queryByType(FilePolicy.class, true);
+            for (URI filePolicy : filePolicyList) {
+                FilePolicy policyObj = _dbClient.queryObject(FilePolicy.class, filePolicy);
+                if ((policyObj.getFilePolicyVpool() != null) &&
+                        (policyObj.getFilePolicyVpool().toString().equalsIgnoreCase(vpool.getId().toString()))) {
+                    throw APIException.badRequests.cannotDeleteVpoolAssignedFilePolicy(vpool.getLabel());
+                }
+            }
         }
 
         if (!vpool.getType().equals(type.name())) {

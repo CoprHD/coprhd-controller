@@ -791,9 +791,9 @@ unity_test_5() {
 }
 
 unity_test_all() {
-    #unity_test_1
-    #unity_test_2
+    unity_test_1
+    unity_test_2
     unity_test_3
-    #unity_test_4
-    #unity_test_5
+    unity_test_4
+    unity_test_5
 }

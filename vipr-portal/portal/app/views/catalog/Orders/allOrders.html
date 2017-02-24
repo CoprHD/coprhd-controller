@@ -29,7 +29,7 @@
     <label class="description forRange">&{"orders.endDate"}:</label>
 
     <div class="control forRange" style="width:150px;">
-        <date-picker ng-model="rangeEndDate" close="true"></date-picker>
+        <date-picker id="endDatePicker" ng-model="rangeEndDate" close="true"></date-picker>
         <input type="hidden" name="rangeEndDate" value="{{rangeEndDate}}"/>
     </div>
 
@@ -54,7 +54,9 @@
     &{'orders.delete.description'}
     #{/Modal.header}
     #{Modal.body cssClass:'form-horizontal'}
-    <span class="checkedAll-block">&{"orders.delete.all", orderCount}</span>
+    <span class="checkedAll-block">&{"orders.delete.all", orderCount} 
+        #{if orderCount >= models.datatable.OrderDataTable.ORDER_MAX_DELETE_PER_GC}&{"orders.delete.all.threshold", models.datatable.OrderDataTable.ORDER_MAX_DELETE_PER_GC}#{/if}
+    </span>
     <div><span class="help-block">&{"orders.delete.help", canBeDeletedStatuses}</span></div>
     #{/Modal.body}
     #{Modal.footer}
@@ -134,6 +136,17 @@
                 isSelectedAll = false;
             }
         });
+        
+        $('#orders').on( 'filter.dt', function () {
+            var searchText = $(".search-query").val();
+            var currentDate = '[' + new Date().toUTCString() + '] ';
+            console.info( currentDate + 'Search Val: ' + searchText );
+            if(searchText === '') {
+            	$('input[name=selectAll]').prop('disabled', false);
+            } else {
+            	$('input[name=selectAll]').prop('disabled', true);
+            }
+        } );
 
     });
 

@@ -15,6 +15,7 @@ import org.slf4j.LoggerFactory;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.FilePolicy;
 import com.emc.storageos.db.client.model.FilePolicy.FilePolicyApplyLevel;
+import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.Operation.Status;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.VirtualPool;
@@ -26,42 +27,50 @@ public class FilePolicyAssignWorkflowCompleter extends FilePolicyWorkflowComplet
     private static final long serialVersionUID = 1L;
     protected static final Logger _log = LoggerFactory.getLogger(FilePolicyAssignWorkflowCompleter.class);
     private ArrayList<URI> assignToResource;
+    private URI projectVPool;
 
-    public FilePolicyAssignWorkflowCompleter(URI policyUri, Set<URI> assignToResource, String task) {
+    public FilePolicyAssignWorkflowCompleter(URI policyUri, Set<URI> assignToResource, URI projectVPool, String task) {
         super(policyUri, task);
         this.assignToResource = new ArrayList<URI>(assignToResource);
+        this.projectVPool = projectVPool;
         _log.info("Creating completer for OpId: " + getOpId());
     }
 
-    public FilePolicyAssignWorkflowCompleter(URI policyUri, List<URI> assignToResource, String taskId) {
+    public FilePolicyAssignWorkflowCompleter(URI policyUri, List<URI> assignToResource, URI projectVPool, String taskId) {
         super(policyUri, taskId);
         this.assignToResource = new ArrayList<URI>(assignToResource);
+        this.projectVPool = projectVPool;
         _log.info("Creating completer for OpId: " + getOpId());
     }
 
     @Override
     protected void complete(DbClient dbClient, Status status, ServiceCoded coded) throws DeviceControllerException {
-        FilePolicy filePolicy = dbClient.queryObject(FilePolicy.class, getId());
+        if (Operation.Status.ready.equals(status)) {
+            FilePolicy filePolicy = dbClient.queryObject(FilePolicy.class, getId());
 
-        for (URI resourceURI : assignToResource) {
-            filePolicy.addAssignedResources(resourceURI);
-            FilePolicyApplyLevel applyAt = FilePolicyApplyLevel.valueOf(filePolicy.getApplyAt());
-            switch (applyAt) {
-                case project:
-                    Project project = dbClient.queryObject(Project.class, resourceURI);
-                    project.addFilePolicy(filePolicy.getId());
-                    dbClient.updateObject(project);
-                    break;
-                case vpool:
-                    VirtualPool vpool = dbClient.queryObject(VirtualPool.class, resourceURI);
-                    vpool.addFilePolicy(filePolicy.getId());
-                    dbClient.updateObject(vpool);
-                    break;
-                default:
-                    break;
+            for (URI resourceURI : assignToResource) {
+                filePolicy.addAssignedResources(resourceURI);
+                FilePolicyApplyLevel applyAt = FilePolicyApplyLevel.valueOf(filePolicy.getApplyAt());
+                switch (applyAt) {
+                    case project:
+                        Project project = dbClient.queryObject(Project.class, resourceURI);
+                        project.addFilePolicy(filePolicy.getId());
+                        dbClient.updateObject(project);
+                        if (projectVPool != null) {
+                            filePolicy.setFilePolicyVpool(projectVPool);
+                        }
+                        break;
+                    case vpool:
+                        VirtualPool vpool = dbClient.queryObject(VirtualPool.class, resourceURI);
+                        vpool.addFilePolicy(filePolicy.getId());
+                        dbClient.updateObject(vpool);
+                        break;
+                    default:
+                        break;
+                }
             }
+            dbClient.updateObject(filePolicy);
         }
-        dbClient.updateObject(filePolicy);
         setStatus(dbClient, status, coded);
     }
 }

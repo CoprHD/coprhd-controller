@@ -5,7 +5,6 @@
 package com.emc.storageos.computecontroller.impl;
 
 import java.net.URI;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -809,8 +808,8 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
      * @return waitFor step name
      */
     @Override
-    public String addStepsDeactivateHost(Workflow workflow, String waitFor, URI hostId, boolean deactivateBootVolume)
-            throws InternalException {
+    public String addStepsDeactivateHost(Workflow workflow, String waitFor, URI hostId,
+            boolean deactivateBootVolume, List<VolumeDescriptor> volumeDescriptors) throws InternalException {
 
         Host host = _dbClient.queryObject(Host.class, hostId);
 
@@ -862,7 +861,7 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
             if (deactivateBootVolume && host.getBootVolumeId() != null) {
                 waitFor = workflow.createStep(DEACTIVATION_COMPUTE_SYSTEM_BOOT_VOLUME,
                         "Delete the boot volume for the host", waitFor, cs.getId(), cs.getSystemType(),
-                        this.getClass(), new Workflow.Method("deleteBlockBootVolume", hostId),
+                        this.getClass(), new Workflow.Method("deleteBlockBootVolume", hostId, volumeDescriptors),
                         new Workflow.Method(ROLLBACK_NOTHING_METHOD), null);
             } else if (!deactivateBootVolume) {
                 log.info("flag deactivateBootVolume set to false");
@@ -898,6 +897,10 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
         }
         List<URI> clusterHosts = ComputeSystemHelper.getChildrenUris(_dbClient, clusterId, Host.class, "cluster");
         // Check if cluster has hosts, if cluster is empty then safely remove from vcenter.
+
+        // VBDU [DONE]: COP-28400, Cluster without any hosts is kind of negative case, and this information is not
+        // verified against the environment, do we need to take liberty of removing the cluster from VCenter?
+        // Before we get to this cluster removal, ClusterService has a precheck to verify the matching environments
         if (null == clusterHosts || clusterHosts.isEmpty()) {
             VcenterDataCenter vcenterDataCenter = _dbClient.queryObject(VcenterDataCenter.class,
                     cluster.getVcenterDataCenter());
@@ -955,7 +958,7 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
      * @param stepId
      *            {@link String} step id
      */
-    public void deleteBlockBootVolume(URI hostId, String stepId) {
+    public void deleteBlockBootVolume(URI hostId, List<VolumeDescriptor> volumeDescriptors, String stepId) {
 
         log.info("deleteBlockBootVolume");
 
@@ -967,40 +970,16 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
 
             host = _dbClient.queryObject(Host.class, hostId);
 
-            List<VolumeDescriptor> volumeDescriptors = new ArrayList<VolumeDescriptor>();
+            if (host != null && host.getBootVolumeId() != null) {
 
-            if (host != null && !NullColumnValueGetter.isNullURI(host.getBootVolumeId())) {
-
-                Volume bootVolume = _dbClient.queryObject(Volume.class, host.getBootVolumeId());
-                if (bootVolume.getPool() != null) {
-                    StoragePool storagePool = _dbClient.queryObject(StoragePool.class, bootVolume.getPool());
-                    if (storagePool != null && storagePool.getStorageDevice() != null) {
-                        volumeDescriptors.add(new VolumeDescriptor(VolumeDescriptor.Type.BLOCK_DATA,
-                                storagePool.getStorageDevice(), host.getBootVolumeId(), null, null));
-                    }
-                } //TODO: below commented code is delete for vplex boot volume and this will be removed
-                /* else if (bootVolume.isVPlexVolume(_dbClient)) {
-                    URI systemURI = bootVolume.getProtectionController();
-                    if(NullColumnValueGetter.isNullURI(systemURI)) {
-                        systemURI = bootVolume.getStorageController();
-                    }
-                    VolumeDescriptor descriptor = new VolumeDescriptor(VolumeDescriptor.Type.VPLEX_VIRT_VOLUME,
-                            systemURI, bootVolume.getId(), null, null);
-                    volumeDescriptors.add(descriptor);
-                    // Add descriptors for each of the associated volume
-                    if(null != bootVolume.getAssociatedVolumes()) {
-                        for (String  associatedVolumeId : bootVolume.getAssociatedVolumes()) {
-                            Volume associatedVolume = _dbClient.queryObject(Volume.class, URI.create(associatedVolumeId));
-                            if (null != associatedVolume && !associatedVolume.getInactive() && associatedVolume.getNativeId() != null) {
-                                VolumeDescriptor assocDesc = new VolumeDescriptor(VolumeDescriptor.Type.BLOCK_DATA,
-                                        associatedVolume.getStorageController(), associatedVolume.getId(), null, null);
-                                volumeDescriptors.add(assocDesc);
-                            }
-                        }
-                    }
-                }*/
+                if(volumeDescriptors.isEmpty()) {
+                    throw new IllegalStateException("Could not locate VolumeDescriptor(s) for boot volume " +
+                            host.getLabel() + " [" + host.getBootVolumeId() + "]");
+                }
 
                 String task = UUID.randomUUID().toString();
+
+                Volume bootVolume = _dbClient.queryObject(Volume.class, host.getBootVolumeId());
 
                 Operation op = _dbClient.createTaskOpStatus(Volume.class, bootVolume.getId(), task,
                         ResourceOperationTypeEnum.DELETE_BLOCK_VOLUME);
@@ -1142,6 +1121,7 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
             vcenterController.updateVcenterCluster(task, host.getCluster(), null, new URI[] { host.getId() }, null);
 
             log.info("Monitor remove host " + host.getHostName() + " update vCenter task...");
+            // VBDU TODO: COP-28456, Anti pattern - completers are responsible for updating step status.
             while (true) {
                 Thread.sleep(TASK_STATUS_POLL_FREQUENCY);
                 VcenterDataCenter vcenterDataCenter = _dbClient.queryObject(VcenterDataCenter.class,
@@ -1295,6 +1275,7 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
 
             host = _dbClient.queryObject(Host.class, hostId);
             if (null != host) {
+                // VBDU TODO: COP-28452: Need to check initiators inside the host as well
                 if (NullColumnValueGetter.isNullURI(host.getComputeElement())  && NullColumnValueGetter.isNullURI(host.getServiceProfile())) {
                     // NO-OP
                     log.info("Host " + host.getLabel() + " has no computeElement association and no service profile association");
@@ -1308,6 +1289,7 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
             }
 
         } catch (Exception exception) {
+            log.error("Error on deactivate ComputeSystemHost with hostid {} and computementid {}",hostId, csId, exception);
             ServiceCoded serviceCoded = ComputeSystemControllerException.exceptions
                     .unableToDeactivateHost(host != null ? host.getHostName() : hostId.toString(), exception);
             WorkflowStepCompleter.stepFailed(stepId, serviceCoded);

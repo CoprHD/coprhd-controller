@@ -374,6 +374,8 @@ public class UcsComputeDevice implements ComputeDevice {
         try {
             // Test mechanism to invoke a failure. No-op on production systems.
             InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_069);
+
+            // VBDU TODO: COP-28452, Check for initiators in host as well
             if (host != null && !NullColumnValueGetter.isNullURI(host.getComputeElement()) && host.getUuid() != null) {
                 ComputeElement ce = _dbClient.queryObject(ComputeElement.class, host.getComputeElement());
                 URI sptId = URI.create(ce.getSptId());
@@ -1196,6 +1198,9 @@ public class UcsComputeDevice implements ComputeDevice {
         ComputeElement computeElement = _dbClient.queryObject(ComputeElement.class, computeElementId);
 
         Map<String, Map<String, Integer>> hbaToStoragePorts = getHBAToStoragePorts(volumeId, hostId);
+
+        // VBDU TODO: COP-28455, HBAToStoragePorts are being constructed from the zoning map, for co-existence masks the
+        // zoning map will be empty in older releases. Do we need to still continue this operation?
         try {
             if (null != computeElement) {
                 LsServer lsServer = ucsmService.setServiceProfileToSanBoot(getUcsmURL(cs).toString(), cs.getUsername(), cs.getPassword(),
@@ -1295,9 +1300,12 @@ public class UcsComputeDevice implements ComputeDevice {
        }catch (ClientGeneralException e){
            LOGGER.warn("Unable to deactivate host : ", e);
            throw e;
+       }catch (Exception ex) {
+            LOGGER.error("Error while deactivating host {} check stacktrace", host.getLabel(), ex);
+            throw ex;
        }
-
     }
+
    /*
    * Unbinds the host's service profile from the associated blade.
    * Determines the service profile to unbind using host's serviceProfile association.
@@ -1306,6 +1314,7 @@ public class UcsComputeDevice implements ComputeDevice {
    * the computeElement's uuid. 
    */
     private void unbindHostFromComputeElement(ComputeSystem cs, Host host) throws ClientGeneralException{
+        // VBDU TODO: COP-28452, Check initiators count, if empty do we still need to delete service profile?
         if (host != null && !NullColumnValueGetter.isNullURI(host.getComputeElement())) {
             ComputeElement computeElement = _dbClient.queryObject(ComputeElement.class, host.getComputeElement());
             if (computeElement == null){
@@ -1425,8 +1434,8 @@ public class UcsComputeDevice implements ComputeDevice {
        }else {
            LOGGER.info("host is null. NO OP");
        }
-
     }
+
     /**
      * Gets rid of the Initiators that were added to network. Also gets rid of
      * the ComputeElementHBAs that were created when the service profile was

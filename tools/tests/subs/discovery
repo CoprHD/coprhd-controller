@@ -1,0 +1,32 @@
+#!/bin/sh
+source subs/run
+
+disnetworksystem() {
+    discovered=$(networksystem list | grep $2 | wc -l)
+    if [ $discovered -eq 0 ]; then
+        run networksystem $*
+        newdev=1
+    else
+        echo "$2 already discovered"
+    fi
+}
+
+dissmisprovider() {
+    discovered=$(smisprovider list | grep $2 | wc -l)
+    if [ $discovered -eq 0 ]; then
+        run  smisprovider $*
+        newdev=1
+    else
+        echo "$2 already discovered"
+    fi
+}
+
+disstorageprovider() {
+    discovered=$(storageprovider list | grep $2 | wc -l)
+    if [ $discovered -eq 0 ]; then
+        run  storageprovider $*
+        newdev=1
+    else
+        echo "$2 already discovered"
+    fi
+}

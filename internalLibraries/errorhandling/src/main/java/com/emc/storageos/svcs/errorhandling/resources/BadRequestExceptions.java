@@ -403,7 +403,7 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException invalidParameterWithCause(final String parameterName,
-                                                         final String parameterValue, final Throwable cause);
+            final String parameterValue, final Throwable cause);
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID_RANGE)
     public BadRequestException invalidParameterAboveMaximum(String string, long size, long maximum,
@@ -1284,6 +1284,10 @@ public interface BadRequestExceptions {
     @DeclareServiceCode(ServiceCode.API_RESOURCE_BEING_REFERENCED)
     public BadRequestException resourceHasActiveReferencesWithType(final String clazz,
             final URI resourceId, final String depType);
+
+    @DeclareServiceCode(ServiceCode.API_RESOURCE_BEING_REFERENCED)
+    public BadRequestException resourceHasActiveReferencesWithType(final String clazz,
+            final String label, final String depType);
 
     @DeclareServiceCode(ServiceCode.API_RESOURCE_CANNOT_BE_DELETE_DUE_TO_UNREACHABLE_VDC)
     public BadRequestException resourceCannotBeDeleteDueToUnreachableVdc();
@@ -2339,6 +2343,21 @@ public interface BadRequestExceptions {
     public BadRequestException cannotExecuteOperationWhilePendingTask(final String pendingVolumes);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException clusterHostMismatch(String cluster);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException clusterNotFoundInDatacenter(String cluster, String datacenter);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException vCenterDataCenterHasNullVcenter(String datacenter);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException vCenterDataCenterNotFound(URI datacenter);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException vCenterNotFound(URI vcenter);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException rpClusterVarrayNoClusterId(String label);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
@@ -3090,6 +3109,12 @@ public interface BadRequestExceptions {
     @DeclareServiceCode(ServiceCode.API_NO_PLACEMENT_FOUND)
     public BadRequestException noStoragePools(final String varrayLabel, final String vpoolLabel, final String errorMessage);
 
+    @DeclareServiceCode(ServiceCode.API_NO_PLACEMENT_FOUND)
+    public BadRequestException noFileStorageRecommendationsFound(final String policyLabel);
+
+    @DeclareServiceCode(ServiceCode.API_NO_PLACEMENT_FOUND)
+    public BadRequestException noStoragePoolsExists(final String vPools);
+
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException noVolumesForTaskObjects(String vpool, String taskId);
 
@@ -3145,6 +3170,33 @@ public interface BadRequestExceptions {
     public BadRequestException cantUninstallDriverInUse(final String driverName);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException varrayNotInExportGroup(String varray);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException externallyAddedInitiators(final String exportMask, final String initiators);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException additionalInitiators(final String exportMask, final String initiators);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException exportPathAdjustmentSystemNotSupported(final String systemType);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException exportPathAdjustmentSystemExportGroupNotMatch(final String exportGroup, String system);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException exportPathAdjustmentSystemExportGroupHostsMismatch(String mismatchHosts);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException exportPathAdjustmentRemovingPathsNotExist(final String initiator);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException exportPathAdjustmentAdjustedPathNotValid(final String initiatorOrTargets);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException exportPathAdjustmentNoPathAdjustmentAllowed(final String exportGroup);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException invalidParameterWwnBadFormat(String wwn);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
@@ -3171,12 +3223,29 @@ public interface BadRequestExceptions {
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException invalidFilePolicyUnAssignParam(final String policyName, final String errorMsg);
 
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException storagePortsNotInVarray(final String ports, final String exportMask, final String varray);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException exportMaskNotInVarray(final String exportMask);
+
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException invalidPolicyResourceParam(final String errorMsg);
+
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException providePolicyStorageResource(final String errorMsg);
+
     public BadRequestException invalidFileSnapshotPolicyParam(final String policyName, final String errorMsg);
-    
+
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException cannotDeleteVpoolAssignedFilePolicy(final String vpoolName);
-    
+
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException cannotDeleteProjectAssignedFilePolicy(final String projectName);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException cannotDeleteApplicationSnapshotExportExists(final String applicationName, final String copySetName);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException deprecatedRestCall(final String uri, final String replacementUri);
 }

@@ -20,6 +20,7 @@ import java.util.Set;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.util.CollectionUtils;
 
 import com.emc.storageos.customconfigcontroller.CustomConfigConstants;
 import com.emc.storageos.customconfigcontroller.DataSource;
@@ -36,6 +37,7 @@ import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
+import com.emc.storageos.db.client.util.CommonTransformerFunctions;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.exceptions.DeviceControllerErrors;
 import com.emc.storageos.exceptions.DeviceControllerException;
@@ -47,6 +49,7 @@ import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import com.emc.storageos.volumecontroller.impl.VolumeURIHLU;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportMaskRemoveInitiatorCompleter;
 import com.emc.storageos.volumecontroller.impl.smis.ExportMaskOperations;
+import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
 import com.emc.storageos.volumecontroller.impl.utils.ExportOperationContext;
 import com.emc.storageos.volumecontroller.impl.utils.ExportOperationContext.ExportOperationContextOperation;
 import com.emc.storageos.volumecontroller.impl.validators.ValidatorFactory;
@@ -67,6 +70,7 @@ import com.emc.storageos.xtremio.restapi.model.response.XtremIOTag;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOVolume;
 import com.google.common.base.Joiner;
 import com.google.common.collect.ArrayListMultimap;
+import com.google.common.collect.Collections2;
 import com.google.common.collect.Sets;
 
 public class XtremIOExportOperations extends XtremIOOperations implements ExportMaskOperations {
@@ -386,15 +390,7 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
         // Default_IG;
         List<String> failedIGs = new ArrayList<String>();
         ArrayListMultimap<String, Initiator> groupInitiatorsByIG = ArrayListMultimap.create();
-        try {
-            _log.info("removeInitiators: Export mask id: {}", exportMaskURI);
-
-            if (volumeURIList != null) {
-                _log.info("removeInitiators: volumes : {}", Joiner.on(',').join(volumeURIList));
-            }
-            _log.info("removeInitiators: initiators : {}", Joiner.on(',').join(initiators));
-            _log.info("removeInitiators: targets : {}", Joiner.on(',').join(targets));
-
+        try {            
             String hostName = null;
             String clusterName = null;
             client = XtremIOProvUtils.getXtremIOClient(dbClient, storage, xtremioRestClientFactory);
@@ -417,16 +413,39 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
                     exportMask.removeFromExistingInitiators(initiator);
                     exportMask.removeFromUserCreatedInitiators(initiator);
                     iniItr.remove();
-                }
+                }                                
             }
+            
+            // We need to look at all related initiators from the affected EM. We can use this list
+            // to then find all related volumes across all EMs. This will allow us to properly
+            // perform our validations.
+            List<Initiator> relatedInitiators = new ArrayList<Initiator>();
+            if (exportMask.getInitiators() != null && !exportMask.getInitiators().isEmpty()) {
+                Collection<URI> relatedInitiatorURIs = Collections2.transform(exportMask.getInitiators(),
+                        CommonTransformerFunctions.FCTN_STRING_TO_URI);
+                relatedInitiators.addAll(dbClient.queryObject(Initiator.class, relatedInitiatorURIs));
+            } else {
+                relatedInitiators.addAll(initiators);
+            }
+            
+            Set<URI> allRelatedVolumes = new HashSet<URI>();
+            allRelatedVolumes.addAll(findAllRelatedExportMaskVolumesForInitiator(relatedInitiators, exportMask.getStorageDevice()));
+            
+            _log.info("removeInitiators: Export mask id: {}", exportMaskURI);
+
+            if (!CollectionUtils.isEmpty(allRelatedVolumes)) {
+                _log.info("removeInitiators: volumes : {}", Joiner.on(',').join(allRelatedVolumes));
+            }
+            _log.info("removeInitiators: initiators : {}", Joiner.on(',').join(initiators));
+            _log.info("removeInitiators: targets : {}", Joiner.on(',').join(targets));
 
             _log.info("List of  IGs found {} with size : {}",
                     Joiner.on(",").join(groupInitiatorsByIG.asMap().entrySet()), groupInitiatorsByIG.size());
-
+            
             ExportMaskValidationContext ctx = new ExportMaskValidationContext();
             ctx.setStorage(storage);
             ctx.setExportMask(exportMask);
-            ctx.setBlockObjects(volumeURIList, dbClient);
+            ctx.setBlockObjects(allRelatedVolumes, dbClient);
             ctx.setAllowExceptions(!isRollback);
             XtremIOExportMaskVolumesValidator volumeValidator = (XtremIOExportMaskVolumesValidator) validator.removeInitiators(ctx);
             volumeValidator.setIgNames(groupInitiatorsByIG.keySet());
@@ -579,7 +598,7 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
 
                         Double hluNumber = (Double) lunMapEntries.get(2);
                         _log.info("Found HLU {} for volume {}", hluNumber, igVolume.getVolInfo().get(1));
-                        // for each IG involved, the same volume is visible thro different HLUs.
+                        // for each IG involved, the same volume is visible through different HLUs.
                         // TODO we might need a list of HLU for each Volume URI
                         discoveredVolumes.put(BlockObject.normalizeWWN(igVolume.getWwn()), Integer.valueOf(hluNumber.intValue()));
                     }
@@ -595,15 +614,38 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
             if (null == mask.getUserAddedVolumes()) {
                 mask.setUserAddedVolumes(new StringMap());
             }
-
-            Set<String> existingVolumes = Sets.difference(discoveredVolumes.keySet(), mask.getUserAddedVolumes().keySet());
+            
+            // We need to look at all related initiators from the affected EM. We can use this list
+            // to then find all related volumes across all EMs. This will allow us to properly
+            // perform our validations.
+            List<Initiator> relatedInitiators = new ArrayList<Initiator>();
+            if (mask.getInitiators() != null && !mask.getInitiators().isEmpty()) {
+                Collection<URI> relatedInitiatorURIs = Collections2.transform(mask.getInitiators(),
+                        CommonTransformerFunctions.FCTN_STRING_TO_URI);
+                relatedInitiators.addAll(dbClient.queryObject(Initiator.class, relatedInitiatorURIs));
+            }
+            
+            Set<URI> allRelatedVolumes = new HashSet<URI>();
+            allRelatedVolumes.addAll(findAllRelatedExportMaskVolumesForInitiator(relatedInitiators, mask.getStorageDevice()));
+            
+            // If there are related volumes found, get the WWNs so we can diff against what has 
+            // been discovered on the array.
+            Set<String> allRelatedVolumesWWN = new HashSet<String>();
+            for (URI relatedVolumeURI : allRelatedVolumes) {
+                Volume relatedVolume = dbClient.queryObject(Volume.class, relatedVolumeURI);
+                allRelatedVolumesWWN.add(relatedVolume.getWWN());
+            }
+            
+            Set<String> existingVolumes = Sets.difference(discoveredVolumes.keySet(), allRelatedVolumesWWN);
 
             _log.info(String.format("XtremIO discovered volumes: {%s}%n", Joiner.on(',').join(discoveredVolumes.keySet())));
-            _log.info(String.format("%nXtremIO mask existing volumes : {%s}%n", Joiner.on(',').join(existingVolumes)));
+            _log.info(String.format("%nXtremIO mask existing volumes: {%s}%n", Joiner.on(',').join(existingVolumes)));
 
             for (String wwn : existingVolumes) {
                 mask.addToExistingVolumesIfAbsent(wwn, discoveredVolumes.get(wwn).toString());
             }
+            // Update user added volume's HLU information in ExportMask and ExportGroup
+            ExportMaskUtils.updateHLUsInExportMask(mask, discoveredVolumes, dbClient);
             dbClient.updateObject(mask);
 
         } catch (Exception e) {
@@ -1302,18 +1344,84 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
                 }
             }
         }
-
+    }
+    
+    /**
+     * This method provides an easy way to get all the related export mask volumes for an initiator so that
+     * validation can be done properly for the XIO IG. 
+     * 
+     * The main export mask doesn't necessarily tell us all the volumes that are present on the XIO IG. Just the
+     * volumes exposed for that single mask.
+     * 
+     * To find that out if there are more volumes exposed to the XIO IG we need a common initiator to find 
+     * if there are any other export masks that have other user added volumes present. If there are, collect 
+     * all those related volumes so that they can be used for validation.          
+     * 
+     * @param initiators The initiator in question
+     * @param storageSystemURI URI of the storage system to focus on
+     * @return A set of related volumes, empty set if none are found.
+     */
+    private Set<URI> findAllRelatedExportMaskVolumesForInitiator(List<Initiator> initiators, URI storageSystemURI) {
+        Set<URI> volumes = new HashSet<URI>();
+        
+        if (initiators != null && storageSystemURI != null) {
+            for (Initiator init : initiators) {
+                // Get all export masks that contain the initiator 
+                URIQueryResultList relatedExportMasks = new URIQueryResultList();
+                dbClient.queryByConstraint(
+                        AlternateIdConstraint.Factory.getExportMaskInitiatorConstraint(init.getId().toString()), 
+                        relatedExportMasks);
+                
+                for (URI relatedExportMaskURI : relatedExportMasks) {
+                    // The related export mask contains the initiator in question based on the initial query constraint, 
+                    // so if the related export mask is NOT the current export mask and is for the same storage device 
+                    // then we need to collect the user added volumes.               
+                    ExportMask relatedExportMask = dbClient.queryObject(ExportMask.class, relatedExportMaskURI);                    
+                    if (relatedExportMask != null 
+                            && storageSystemURI.equals(relatedExportMask.getStorageDevice())) {
+                        if (relatedExportMask.getUserAddedVolumes() != null) {
+                            // Get the user added volumes from the related export mask and transform them into URIs
+                            Collection<URI> vols = Collections2.transform(relatedExportMask.getUserAddedVolumes().values(),
+                                    CommonTransformerFunctions.FCTN_STRING_TO_URI);                
+                            // Keep track of the user added volumes
+                            volumes.addAll(vols);
+                        }
+                    }                
+                }
+            }
+        }
+        
+        if (!CollectionUtils.isEmpty(volumes)) {
+            _log.info(String.format("Volumes across related export masks for XIO "
+                    + "[%s] using initiators [%s] - volumes: [%s]", 
+                    storageSystemURI,
+                    Joiner.on(',').join(initiators),
+                    Joiner.on(',').join(volumes)));
+        }
+        
+        return volumes;
     }
 
     @Override
     public void updateStorageGroupPolicyAndLimits(StorageSystem storage, ExportMask exportMask,
             List<URI> volumeURIs, VirtualPool newVirtualPool, boolean rollback,
             TaskCompleter taskCompleter) throws Exception {
-
     }
 
     @Override
     public Map<URI, Integer> getExportMaskHLUs(StorageSystem storage, ExportMask exportMask) {
         return Collections.emptyMap();
+    }
+    
+    @Override
+    public void addPaths(StorageSystem storage, URI exportMask, Map<URI, List<URI>> newPaths, TaskCompleter taskCompleter)
+            throws DeviceControllerException {
+        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
+    }
+
+    @Override
+    public void removePaths(StorageSystem storage, URI exportMask, Map<URI, List<URI>> adjustedPaths, Map<URI, List<URI>> removePaths, TaskCompleter taskCompleter)
+            throws DeviceControllerException {
+        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
     }
 }
